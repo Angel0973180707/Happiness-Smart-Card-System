@@ -12,11 +12,6 @@
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
         .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
         .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
-        .theme-royal-purple { --primary: #6c5ce7; --secondary: #a29bfe; }
-        .theme-sunny-orange { --primary: #e67e22; --secondary: #f39c12; }
-        .theme-classic-grey { --primary: #636e72; --secondary: #b2bec3; }
-        .theme-deep-berry { --primary: #6d214f; --secondary: #b33939; }
-        .theme-sky-cyan { --primary: #00cec9; --secondary: #81ecec; }
         #preview-bar { width: 100%; max-width: 500px; background: #2d3436; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
         .preview-btn { border: none; color: #fff; padding: 8px 0; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; }
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
@@ -26,7 +21,7 @@
         .info { text-align: center; padding: 0 25px 25px; }
         .name { font-size: 28px; font-weight: 800; margin: 5px 0; }
         .title { color: #636e72; font-size: 16px; margin-bottom: 20px; }
-        .slogan { font-size: 15px; background: rgba(0,0,0,0.03); padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; color: #444; }
+        .slogan { font-size: 15px; background: rgba(0,0,0,0.05); padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; color: #444; }
         .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
         .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
         .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
@@ -42,18 +37,13 @@
         <button class="preview-btn" onclick="setTheme('forest-green')" style="background:#27ae60">森林綠</button>
         <button class="preview-btn" onclick="setTheme('soft-gold')" style="background:#b89130">沉穩金</button>
         <button class="preview-btn" onclick="setTheme('tiffany-blue')" style="background:#00b894">湖水藍</button>
-        <button class="preview-btn" onclick="setTheme('royal-purple')" style="background:#6c5ce7">皇家紫</button>
-        <button class="preview-btn" onclick="setTheme('sunny-orange')" style="background:#e67e22">陽光橘</button>
-        <button class="preview-btn" onclick="setTheme('classic-grey')" style="background:#636e72">紳士灰</button>
-        <button class="preview-btn" onclick="setTheme('deep-berry')" style="background:#6d214f">莓果紅</button>
-        <button class="preview-btn" onclick="setTheme('sky-cyan')" style="background:#00cec9">青空藍</button>
     </div>
 
     <div class="card">
         <div class="banner"></div>
         <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
         <div class="info">
-            <h1 id="user-name" class="name">讀取中...</h1>
+            <h1 id="user-name" class="name">資料載入中...</h1>
             <p id="user-title" class="title"></p>
             <div id="user-slogan" class="slogan"></div>
         </div>
@@ -89,47 +79,36 @@
         }
 
         async function init() {
-            const fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
-            // 加上 t= 參數防止 Google 連結快取
+            // 自動偵測 ID，確保跳過標題行
+            let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
             
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // 更加魯棒的解析
-                const rows = text.split(/\r?\n/).map(row => {
-                    return row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim());
-                });
+                const rows = text.split(/\r?\n/).map(row => row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim()));
 
-                // 核心保護：如果抓到的是標題（包含「12.上傳照片」等字眼），強制往後跳
+                // --- 核心防呆：如果抓到標題列，自動向下跳一行 ---
                 let dataRow = rows[fetchId - 1];
-                if (dataRow && dataRow.join('').includes("上傳照片")) {
-                    dataRow = rows[fetchId]; // 標題被重複讀取時，強制選下一行
+                if (dataRow && dataRow.some(cell => cell.includes("您的姓名") || cell.includes("上傳照片"))) {
+                    dataRow = rows[fetchId]; 
                 }
 
                 if(dataRow) {
-                    // 自動掃描：不靠 index，靠過濾
-                    const cleanData = dataRow.filter(c => c !== "" && !c.includes("您的姓名") && !c.includes("上傳照片"));
-                    
+                    // 1. 姓名與職稱 (通常在第 2, 3 格)
                     document.getElementById('user-name').innerText = dataRow[1] || "姓名";
                     document.getElementById('user-title').innerText = dataRow[2] || "職稱";
-                    document.getElementById('user-slogan').innerText = dataRow[5] || "";
                     
-                    let qa = '';
-                    // 掃描第 17, 18 欄
-                    if(dataRow[17] && dataRow[17].length > 2 && !dataRow[17].includes("問題")) {
-                        qa += `<div class="qa-item"><span class="qa-q">Q: ${dataRow[17]}</span><p class="qa-a">${dataRow[18]}</p></div>`;
-                    }
-                    if(dataRow[19] && dataRow[19].length > 2 && !dataRow[19].includes("問題")) {
-                        qa += `<div class="qa-item"><span class="qa-q">Q: ${dataRow[19]}</span><p class="qa-a">${dataRow[20]}</p></div>`;
-                    }
-                    document.getElementById('qa-area').innerHTML = qa;
+                    // 2. 智慧偵測 Slogan (避開連結)
+                    document.getElementById('user-slogan').innerText = dataRow[5] || "";
 
-                    // 尋找 Drive 連結
+                    // 3. 智慧偵測照片 (掃描整行，找包含 drive 的連結)
                     let pId = null;
                     dataRow.forEach(cell => {
                         const match = cell.match(/[-\w]{25,}/);
-                        if (match && cell.includes('drive.google.com')) pId = match[0];
+                        if (match && cell.includes('drive.google.com')) {
+                            pId = match[0];
+                        }
                     });
                     
                     if (pId) {
@@ -137,8 +116,20 @@
                     } else {
                         document.getElementById('user-photo').src = 'https://via.placeholder.com/150?text=Photo';
                     }
+
+                    // 4. Q&A 區塊 (固定抓取第 17-20 格，並過濾標題)
+                    let qa = '';
+                    const q1 = dataRow[17]; const a1 = dataRow[18];
+                    if(q1 && q1.length > 2 && !q1.includes("問題")) {
+                        qa += `<div class="qa-item"><span class="qa-q">Q: ${q1}</span><p class="qa-a">${a1}</p></div>`;
+                    }
+                    const q2 = dataRow[19]; const a2 = dataRow[20];
+                    if(q2 && q2.length > 2 && !q2.includes("問題")) {
+                        qa += `<div class="qa-item"><span class="qa-q">Q: ${q2}</span><p class="qa-a">${a2}</p></div>`;
+                    }
+                    document.getElementById('qa-area').innerHTML = qa;
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("資料讀取失敗", e); }
         }
         init();
     </script>
