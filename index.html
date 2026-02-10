@@ -6,34 +6,23 @@
     <title>幸福智慧名片 | 協作工房</title>
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: linear-gradient(135deg, #fff5f5 0%, #f1f2f6 100%); }
-        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
-        
-        /* 10 色工具列 */
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         #preview-bar { width: 100%; max-width: 450px; background: rgba(44, 62, 80, 0.9); padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; position: sticky; top: 0; z-index: 100; }
         .preview-btn { border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 0; border-radius: 6px; font-size: 10px; cursor: pointer; }
-
-        /* 名片本體 */
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
         .banner { height: 150px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
         .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.1); background: #eee; }
-        
         .info { text-align: center; padding: 0 25px 25px; }
         .name { font-size: 28px; font-weight: 800; margin: 5px 0; color: #2d3436; }
         .title { color: #636e72; font-size: 16px; margin-bottom: 20px; font-weight: 500; }
         .slogan { font-size: 15px; background: rgba(250, 177, 160, 0.1); padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; margin: 15px 0; color: #444; }
-
-        /* Q&A 區塊 */
         .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
-        .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #eee; }
+        .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
         .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
-        .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; text-align: justify; }
-
-        /* 生成器工具 */
+        .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; }
         #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 30px 30px 0 0; }
         .copy-btn { background: var(--secondary); color: #2d3436; padding: 16px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
-
-        /* 配色庫 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
@@ -57,7 +46,7 @@
             <img id="user-photo" src="" class="avatar">
         </div>
         <div class="info">
-            <h1 id="user-name" class="name">智慧名片同步中...</h1>
+            <h1 id="user-name" class="name">同步中...</h1>
             <p id="user-title" class="title"></p>
             <div id="user-slogan" class="slogan"></div>
         </div>
@@ -89,7 +78,7 @@
             const th = document.body.className.replace('theme-', '');
             const url = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
             navigator.clipboard.writeText(url);
-            alert("✨ 專屬名片連結已複製成功！");
+            alert("網址已複製成功！");
         }
 
         async function init() {
@@ -99,34 +88,30 @@
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // 修正：針對 Google TXT 格式進行 Tab 分隔解析，並清理引號
+                // 修正：使用 Tab 分隔解析，並強力去除試算表匯出的多餘雙引號
                 const rows = text.split('\r\n').map(r => r.split('\t').map(c => c.replace(/^"|"$/g, '').trim()));
                 const d = rows[fetchId - 1];
 
                 if(d) {
-                    // --- 絕對精準欄位校對 ---
+                    // --- 根據您的表格內容精確校準索引 ---
                     document.getElementById('user-name').innerText = d[1] || '姓名';      // 李秀芳
                     document.getElementById('user-title').innerText = d[2] || '職稱';     // 智慧名片工作室
                     document.getElementById('user-slogan').innerText = d[5] || '';        // 打造專屬個人智慧名片
 
                     // Q&A 區塊：對應「智慧名片怎麼使用」
                     let qa = '';
-                    if(d[17] && d[17].length > 1) {
-                        qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18] || ''}</p></div>`;
-                    }
-                    if(d[19] && d[19].length > 1) {
-                        qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20] || ''}</p></div>`;
-                    }
+                    if(d[17]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18] || ''}</p></div>`;
+                    if(d[19]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20] || ''}</p></div>`;
                     document.getElementById('qa-area').innerHTML = qa;
 
-                    // 照片區：對應第 7 欄位
+                    // 照片區：對應第 7 欄位 (個人專業照)
                     const pLink = d[6] || '';
                     const pId = pLink.match(/[-\w]{25,}/);
                     document.getElementById('user-photo').src = pId ? `https://drive.google.com/uc?export=view&id=${pId[0]}` : 'https://via.placeholder.com/140';
                 }
             } catch (e) {
                 console.error(e);
-                document.getElementById('user-name').innerText = "系統校準中...";
+                document.getElementById('user-name').innerText = "連線中...";
             }
         }
         init();
