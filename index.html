@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>幸福智慧名片 | 協作工房</title>
-    <link rel="manifest" href="manifest.json">
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: linear-gradient(135deg, #fff5f5 0%, #f1f2f6 100%); }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
@@ -24,7 +23,8 @@
         .qa-a { font-size: 14px; color: #555; line-height: 1.6; margin: 0; }
         #generator-box { padding: 20px; background: #2d3436; color: white; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 20px 20px 0 0; }
         .copy-btn { background: var(--secondary); color: #2d3436; padding: 12px; border-radius: 10px; border: none; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; }
-        /* 主題顏色 */
+        
+        /* 樣板顏色定義 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
@@ -48,7 +48,7 @@
             <img id="user-photo" src="" class="avatar">
         </div>
         <div class="info">
-            <h1 id="user-name" class="name">載入中...</h1>
+            <h1 id="user-name" class="name">讀取中...</h1>
             <p id="user-title" class="title"></p>
             <div id="user-slogan" class="slogan"></div>
         </div>
@@ -80,7 +80,7 @@
             const th = document.body.className.replace('theme-', '');
             const url = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
             navigator.clipboard.writeText(url);
-            alert("網址已複製！");
+            alert("網址已複製成功！");
         }
 
         async function init() {
@@ -90,28 +90,31 @@
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // 根據您貼出的結構解析 Tab 分隔的資料
+                // 根據您貼出的結構精準解析
                 const rows = text.split('\r\n').map(r => r.split('\t').map(c => c.replace(/^"|"$/g, '').trim()));
                 const d = rows[fetchId - 1];
 
                 if(d) {
-                    // 精準對照您的欄位索引
-                    document.getElementById('user-name').innerText = d[1] || '姓名'; // 1.您的姓名
-                    document.getElementById('user-title').innerText = d[2] || '職稱'; // 2.專業職稱
-                    document.getElementById('user-slogan').innerText = d[5] || '';   // 3.個人核心理念 (Slogan)
+                    // --- 核心欄位對應修正 ---
+                    document.getElementById('user-name').innerText = d[1] || '姓名';      // 1.您的姓名
+                    document.getElementById('user-title').innerText = d[2] || '職稱';     // 2.專業職稱
+                    document.getElementById('user-slogan').innerText = d[5] || '';        // 3.個人核心理念 (Slogan)
 
-                    // Q&A 區塊：對應 17, 18, 19, 20 欄位 (8.常見問題, 9.專業解答...)
+                    // Q&A 區塊：對應「智慧名片怎麼使用」等欄位
                     let qa = '';
                     if(d[17]) qa += `<div class="qa-item"><span class="qa-q">${d[17]}</span><p class="qa-a">${d[18] || ''}</p></div>`;
                     if(d[19]) qa += `<div class="qa-item"><span class="qa-q">${d[19]}</span><p class="qa-a">${d[20] || ''}</p></div>`;
                     document.getElementById('qa-area').innerHTML = qa;
 
-                    // 照片區：對應第 6 欄位 (12.上傳照片/個人專業照)
+                    // 照片區：對應「12.上傳照片/個人專業照」
                     const pLink = d[6] || '';
                     const pMatch = pLink.match(/[-\w]{25,}/);
                     document.getElementById('user-photo').src = pMatch ? `https://drive.google.com/uc?export=view&id=${pMatch[0]}` : 'https://via.placeholder.com/130';
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error(e); 
+                document.getElementById('user-name').innerText = "資料連動失敗";
+            }
         }
         init();
     </script>
