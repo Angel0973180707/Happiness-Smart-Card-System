@@ -4,37 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>幸福智慧名片 | 協作工房</title>
-    <link rel="manifest" href="manifest.json">
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: linear-gradient(135deg, #fff5f5 0%, #f1f2f6 100%); }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; color: #2d3436; }
-        
-        /* 頂部工具列 */
         #preview-bar { width: 100%; max-width: 450px; background: rgba(44, 62, 80, 0.9); padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; position: sticky; top: 0; z-index: 100; }
         .preview-btn { border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 8px 0; border-radius: 6px; font-size: 10px; cursor: pointer; }
-
-        /* 名片本體 */
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
         .banner { height: 150px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
-        .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.1); background: #eee; }
-        
+        .avatar-container { width: 140px; height: 140px; margin: -85px auto 10px; position: relative; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,0.15); background: #eee; }
         .info { text-align: center; padding: 0 25px 25px; }
         .name { font-size: 28px; font-weight: 800; margin: 5px 0; }
         .title { color: #636e72; font-size: 16px; margin-bottom: 20px; }
         .slogan { font-size: 15px; background: rgba(250, 177, 160, 0.1); padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; margin: 15px 0; color: #444; }
-
-        /* Q&A 區塊 */
         .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
         .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
         .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; }
-
-        /* 下方生成器 */
-        #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 30px 30px 0 0; }
+        #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; border-radius: 30px 30px 0 0; box-sizing: border-box; }
         .copy-btn { background: var(--secondary); color: #2d3436; padding: 16px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; width: 100%; font-size: 16px; margin-top: 10px; }
-
-        /* 主題色彩 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
@@ -43,7 +31,6 @@
     </style>
 </head>
 <body class="theme-warm-pink">
-
     <div id="preview-bar">
         <button class="preview-btn" onclick="setTheme('warm-pink')" style="background:#e17055">暖心粉</button>
         <button class="preview-btn" onclick="setTheme('navy-blue')" style="background:#0984e3">深海藍</button>
@@ -58,7 +45,7 @@
             <img id="user-photo" src="" class="avatar">
         </div>
         <div class="info">
-            <h1 id="user-name" class="name">智慧名片載入中...</h1>
+            <h1 id="user-name" class="name">載入中...</h1>
             <p id="user-title" class="title"></p>
             <div id="user-slogan" class="slogan"></div>
         </div>
@@ -88,10 +75,9 @@
         function generateAndCopy() {
             const id = document.getElementById('input-id').value;
             const th = document.body.className.replace('theme-', '');
-            const baseUrl = window.location.href.split('?')[0];
-            const finalUrl = `${baseUrl}?id=${id}&theme=${th}`;
-            navigator.clipboard.writeText(finalUrl);
-            alert("✨ 專屬名片連結已複製成功！");
+            const url = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
+            navigator.clipboard.writeText(url);
+            alert("✨ 網址已複製，明天準時交件！");
         }
 
         async function init() {
@@ -101,17 +87,14 @@
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // 使用 Tab 分隔解析，並強力去除引號
                 const rows = text.split('\r\n').map(r => r.split('\t').map(c => c.replace(/^"|"$/g, '').trim()));
                 const d = rows[fetchId - 1];
 
                 if(d) {
-                    // --- 核心欄位精準校對 ---
                     document.getElementById('user-name').innerText = d[1] || '姓名';      
                     document.getElementById('user-title').innerText = d[2] || '職稱';     
-                    document.getElementById('user-slogan').innerText = d[5] || '';        
+                    document.getElementById('user-slogan').innerText = d[5] || '';
 
-                    // Q&A 區塊
                     let qa = '';
                     if(d[17] && d[17].length > 1) {
                         qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18] || ''}</p></div>`;
@@ -121,24 +104,19 @@
                     }
                     document.getElementById('qa-area').innerHTML = qa;
 
-                    // 照片區：自動處理多連結並轉換為直連
+                    // --- 終極修正：Google Drive 圖片顯示語法 ---
                     const photoRaw = d[6] || ""; 
                     const firstLink = photoRaw.split(',')[0].trim();
                     const photoIdMatch = firstLink.match(/[-\w]{25,}/);
+                    
                     if (photoIdMatch) {
+                        // 使用最標準的 uc?export=view 連結
                         document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${photoIdMatch[0]}`;
                     } else {
-                        document.getElementById('user-photo').src = 'https://via.placeholder.com/140';
+                        document.getElementById('user-photo').src = 'https://via.placeholder.com/150?text=Photo';
                     }
                 }
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        // 註冊 Service Worker 讓 PWA 生效
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+            } catch (e) { console.error(e); }
         }
         init();
     </script>
