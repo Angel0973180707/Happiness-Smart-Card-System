@@ -6,26 +6,44 @@
     <title>幸福智慧名片 | 幸福教養概念館</title>
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
-        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        body { font-family: 'PingFang TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
         .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
         .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
+        
         #preview-bar { width: 100%; max-width: 500px; background: #2d3436; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
         .preview-btn { border: none; color: #fff; padding: 8px 0; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; }
-        .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        
+        .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); position: relative; }
         .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
+        
+        /* Logo 位置 */
+        #user-logo { position: absolute; top: 15px; right: 20px; width: 50px; height: 50px; object-fit: contain; }
+
         .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; background: #eee; }
-        .info { text-align: center; padding: 0 25px 25px; }
+        
+        .info { text-align: center; padding: 0 25px 15px; }
         .name { font-size: 28px; font-weight: 800; margin: 5px 0; }
-        .title { color: #636e72; font-size: 16px; margin-bottom: 20px; }
-        .slogan { font-size: 15px; background: rgba(0,0,0,0.05); padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; color: #444; }
+        .title { color: #636e72; font-size: 16px; margin-bottom: 15px; }
+        
+        /* 聯繫按鈕區 */
+        .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 0 25px 20px; }
+        .contact-btn { background: #f1f2f6; border-radius: 12px; padding: 12px; text-decoration: none; color: var(--primary); font-size: 12px; font-weight: bold; text-align: center; }
+
+        .slogan { font-size: 14px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.6; margin: 10px 25px; color: #444; }
+        
+        /* 產品展示區 */
+        .product-section { padding: 0 25px 20px; }
+        .product-img { width: 100%; border-radius: 15px; margin-top: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+
         .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
-        .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
-        .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
-        .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; white-space: pre-wrap; }
+        .qa-item { background: white; padding: 18px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
+        .qa-q { font-size: 15px; font-weight: bold; color: var(--primary); margin-bottom: 6px; display: block; }
+        .qa-a { font-size: 13px; color: #555; line-height: 1.6; margin: 0; white-space: pre-wrap; }
+
         #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; border-radius: 30px 30px 0 0; box-sizing: border-box; }
         .copy-btn { background: var(--secondary); color: #2d3436; padding: 16px; border-radius: 12px; border: none; font-weight: 800; width: 100%; cursor: pointer; margin-top: 10px; }
     </style>
@@ -40,13 +58,28 @@
     </div>
 
     <div class="card">
+        <img id="user-logo" src="" alt="">
         <div class="banner"></div>
         <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
+        
         <div class="info">
-            <h1 id="user-name" class="name">名片載入中...</h1>
+            <h1 id="user-name" class="name">讀取中...</h1>
             <p id="user-title" class="title"></p>
-            <div id="user-slogan" class="slogan"></div>
         </div>
+
+        <div class="contact-grid">
+            <a id="link-phone" href="" class="contact-btn">📞 電話</a>
+            <a id="link-email" href="" class="contact-btn">✉️ Email</a>
+            <a id="link-line" href="" class="contact-btn" target="_blank">💬 LINE</a>
+        </div>
+
+        <div id="user-slogan" class="slogan"></div>
+
+        <div class="product-section">
+            <img id="product-img-1" class="product-img" style="display:none">
+            <img id="product-img-2" class="product-img" style="display:none">
+        </div>
+
         <div id="qa-area" class="qa-section"></div>
     </div>
 
@@ -78,45 +111,48 @@
             alert("✨ 網址複製成功！");
         }
 
+        function getDriveUrl(raw) {
+            if(!raw) return "";
+            const match = raw.match(/[-\w]{25,}/);
+            return match ? `https://drive.google.com/uc?export=view&id=${match[0]}` : "";
+        }
+
         async function init() {
-            // 💡 修正 1：確保輸入框改變時，名片會跟著變 (ID 不再鎖死)
             let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
             
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                
                 const lines = text.split(/\r?\n/);
                 const dataLines = lines.filter(l => l.includes("2026/")); 
-                
-                // 💡 修正 2：對位邏輯修正 (fetchId 為 2 代表第一筆資料)
                 const d = dataLines[fetchId - 2]?.split(',').map(c => c.replace(/^"|"$/g, '').trim());
 
                 if(d) {
-                    document.getElementById('user-name').innerText = d[1] || "姓名";
-                    document.getElementById('user-title').innerText = d[2] || "職稱";
-                    document.getElementById('user-slogan').innerText = d[5] || "";
+                    // 基本資訊
+                    document.getElementById('user-name').innerText = d[1];
+                    document.getElementById('user-title').innerText = d[2];
+                    document.getElementById('user-slogan').innerText = d[5];
 
-                    let qa = '';
-                    if(d[17] && d[17].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
-                    if(d[19] && d[19].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
-                    document.getElementById('qa-area').innerHTML = qa;
+                    // 聯繫方式
+                    document.getElementById('link-phone').href = `tel:${d[9]}`;
+                    document.getElementById('link-email').href = `mailto:${d[10]}`;
+                    document.getElementById('link-line').href = d[4] || "#";
 
-                    // 💡 修正 3：更強大的照片偵測邏輯
-                    let pId = null;
-                    d.forEach(cell => {
-                        // 掃描包含 drive 且長度符合 ID 特徵的字串
-                        const match = cell.match(/[-\w]{25,}/);
-                        if (match && cell.includes('drive')) pId = match[0];
-                    });
+                    // 照片處理 (形象照: d[6], 產品照: d[7], Logo: d[8])
+                    document.getElementById('user-photo').src = getDriveUrl(d[6]);
                     
-                    if (pId) {
-                        // 使用直連格式，繞過 Google Drive 預覽頁面
-                        document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId}`;
-                    } else {
-                        document.getElementById('user-photo').src = 'https://via.placeholder.com/150?text=Wait+Photo';
-                    }
+                    const p1 = getDriveUrl(d[7]);
+                    if(p1) { document.getElementById('product-img-1').src = p1; document.getElementById('product-img-1').style.display = "block"; }
+                    
+                    const logo = getDriveUrl(d[8]);
+                    if(logo) { document.getElementById('user-logo').src = logo; }
+
+                    // Q&A
+                    let qa = '';
+                    if(d[17]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
+                    if(d[19]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
+                    document.getElementById('qa-area').innerHTML = qa;
                 }
             } catch (e) { console.error(e); }
         }
