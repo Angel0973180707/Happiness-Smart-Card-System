@@ -46,7 +46,7 @@
             <img id="user-photo" src="" class="avatar">
         </div>
         <div class="info">
-            <h1 id="user-name" class="name">同步中...</h1>
+            <h1 id="user-name" class="name">名片校準中...</h1>
             <p id="user-title" class="title"></p>
             <div id="user-slogan" class="slogan"></div>
         </div>
@@ -78,7 +78,7 @@
             const th = document.body.className.replace('theme-', '');
             const url = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
             navigator.clipboard.writeText(url);
-            alert("網址已複製成功！");
+            alert("網址已複製！");
         }
 
         async function init() {
@@ -88,30 +88,33 @@
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // 修正：使用 Tab 分隔解析，並強力去除試算表匯出的多餘雙引號
+                // 使用 Tab 分隔解析，並嚴格清理 Google 帶出的雙引號
                 const rows = text.split('\r\n').map(r => r.split('\t').map(c => c.replace(/^"|"$/g, '').trim()));
                 const d = rows[fetchId - 1];
 
                 if(d) {
-                    // --- 根據您的表格內容精確校準索引 ---
+                    // --- 根據您的表格結構精確對位 ---
                     document.getElementById('user-name').innerText = d[1] || '姓名';      // 李秀芳
                     document.getElementById('user-title').innerText = d[2] || '職稱';     // 智慧名片工作室
                     document.getElementById('user-slogan').innerText = d[5] || '';        // 打造專屬個人智慧名片
 
-                    // Q&A 區塊：對應「智慧名片怎麼使用」
+                    // Q&A：鎖定在「智慧名片怎麼使用」之後的欄位
                     let qa = '';
-                    if(d[17]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18] || ''}</p></div>`;
-                    if(d[19]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20] || ''}</p></div>`;
+                    if(d[17] && d[17].length > 2) {
+                        qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18] || ''}</p></div>`;
+                    }
+                    if(d[19] && d[19].length > 2) {
+                        qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20] || ''}</p></div>`;
+                    }
                     document.getElementById('qa-area').innerHTML = qa;
 
-                    // 照片區：對應第 7 欄位 (個人專業照)
+                    // 照片：鎖定第 7 欄位 (個人專業照)
                     const pLink = d[6] || '';
                     const pId = pLink.match(/[-\w]{25,}/);
                     document.getElementById('user-photo').src = pId ? `https://drive.google.com/uc?export=view&id=${pId[0]}` : 'https://via.placeholder.com/140';
                 }
             } catch (e) {
                 console.error(e);
-                document.getElementById('user-name').innerText = "連線中...";
             }
         }
         init();
