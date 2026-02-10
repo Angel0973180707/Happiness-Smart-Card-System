@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸福智慧名片協作工房</title>
+    <style>
+        /* 保持感官一致，防止字體忽大忽小 */
+        html { -webkit-text-size-adjust: 100%; }
+        :root { --primary: #e17055; --bg: #fff5f5; }
+        body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; transition: 0.4s; }
+        
+        /* 10色切換鈕（展示模式顯示） */
+        #preview-bar { width: 100%; max-width: 450px; background: #2c3e50; padding: 12px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
+        .preview-btn { border: none; color: #fff; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; min-width: 65px; }
+
+        .card { background: white; width: 100%; max-width: 420px; box-shadow: 0 0 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; min-height: 100vh; }
+        .banner { height: 130px; background: var(--primary); clip-path: ellipse(120% 100% at 50% 0%); }
+        .avatar { width: 130px; height: 130px; border-radius: 50%; border: 5px solid white; object-fit: cover; display: block; margin: -65px auto 10px; background: #eee; }
+        
+        .info { text-align: center; padding: 20px; }
+        .name { font-size: 24px; font-weight: bold; margin: 0; }
+        .title { color: #7f8c8d; font-size: 16px; margin: 5px 0 15px; }
+        .slogan { font-size: 14px; font-style: italic; background: #f9f9f9; padding: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.6; margin: 0 20px; }
+
+        /* Q&A 區塊 */
+        .qa-section { padding: 25px 20px; background: #fdfdfd; border-top: 1px solid #eee; }
+        .qa-item { margin-bottom: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; }
+        .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
+        .qa-a { font-size: 14px; color: #444; line-height: 1.8; white-space: pre-wrap; text-align: justify; margin: 0; }
+
+        /* 生成器區塊（僅接案者看） */
+        #generator-box { padding: 20px; background: #2d3436; color: white; width: 100%; max-width: 420px; box-sizing: border-box; }
+        .input-group { margin-bottom: 10px; display: flex; flex-direction: column; gap: 5px; }
+        input, select { padding: 10px; border-radius: 5px; border: none; }
+        .copy-btn { background: #fab1a0; color: #2d3436; padding: 12px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; width: 100%; }
+
+        /* 顏色定義 */
+        .theme-warm-pink { --primary: #e17055; --bg: #fff5f5; }
+        .theme-navy-blue { --primary: #1e3799; --bg: #f1f2f6; }
+        .theme-forest-green { --primary: #27ae60; --bg: #f1f8f4; }
+        .theme-sunny-orange { --primary: #f39c12; --bg: #fef5e7; }
+        .theme-tiffany-blue { --primary: #00cec9; --bg: #e0ffff; }
+        .theme-royal-purple { --primary: #6d5dfc; --bg: #f4f2ff; }
+        .theme-classic-grey { --primary: #636e72; --bg: #f5f6fa; }
+        .theme-vibrant-teal { --primary: #10ac84; --bg: #e9f7f4; }
+        .theme-soft-gold { --primary: #b89130; --bg: #fdfaf2; }
+        .theme-deep-berry { --primary: #833471; --bg: #f9f2f7; }
+    </style>
+</head>
+<body class="theme-warm-pink">
+
+    <div id="preview-bar">
+        <button class="preview-btn" style="background:#e17055" onclick="setTheme('warm-pink')">暖心粉</button>
+        <button class="preview-btn" style="background:#1e3799" onclick="setTheme('navy-blue')">深海藍</button>
+        <button class="preview-btn" style="background:#27ae60" onclick="setTheme('forest-green')">森林綠</button>
+        <button class="preview-btn" style="background:#f39c12" onclick="setTheme('sunny-orange')">陽光橘</button>
+        <button class="preview-btn" style="background:#00cec9" onclick="setTheme('tiffany-blue')">湖水藍</button>
+    </div>
+
+    <div class="card">
+        <div class="banner"></div>
+        <img id="user-photo" src="https://cdn-icons-png.flaticon.com/512/1177/1177568.png" class="avatar">
+        <div class="info">
+            <h1 id="user-name" class="name">載入中...</h1>
+            <p id="user-title" class="title"></p>
+            <div id="user-slogan" class="slogan"></div>
+        </div>
+
+        <div id="qa-area" class="qa-section"></div>
+    </div>
+
+    <div id="generator-box">
+        <p style="text-align:center; font-weight:bold; color:#fab1a0; margin-top:0;">📋 交付網址一鍵生成器</p>
+        <div class="input-group">
+            <label>1. 輸入客戶 ID (試算表行號):</label>
+            <input type="number" id="input-id" placeholder="例如：2" value="2">
+        </div>
+        <div class="input-group">
+            <label>2. 選擇客戶樣板顏色:</label>
+            <select id="select-theme">
+                <option value="warm-pink">暖心粉 (預設)</option>
+                <option value="navy-blue">深海藍 (專業)</option>
+                <option value="forest-green">森林綠 (清新)</option>
+                <option value="sunny-orange">陽光橘 (活力)</option>
+                <option value="tiffany-blue">湖水藍 (時尚)</option>
+                <option value="royal-purple">皇室紫 (高雅)</option>
+                <option value="classic-grey">經典灰 (內斂)</option>
+                <option value="vibrant-teal">活力翠 (動感)</option>
+                <option value="soft-gold">沉穩金 (奢華)</option>
+                <option value="deep-berry">莓果紫 (神祕)</option>
+            </select>
+        </div>
+        <button class="copy-btn" onclick="generateAndCopy()">🔗 一鍵產生並複製交付連結</button>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const rowId = params.get('id');
+        const theme = params.get('theme') || 'warm-pink';
+
+        // 智慧隱藏邏輯：如果有 id，代表是客戶版，隱藏工具列
+        if (rowId) {
+            document.getElementById('preview-bar').style.display = 'none';
+            document.getElementById('generator-box').style.display = 'none';
+            document.body.className = `theme-${theme}`;
+        }
+
+        function setTheme(t) { document.body.className = `theme-${t}`; }
+
+        function generateAndCopy() {
+            const id = document.getElementById('input-id').value;
+            const col = document.getElementById('select-theme').value;
+            const baseUrl = window.location.href.split('?')[0];
+            const finalUrl = `${baseUrl}?id=${id}&theme=${col}`;
+            
+            navigator.clipboard.writeText(finalUrl);
+            alert(`✨ 已產生交付網址！\nID: ${id} | 顏色: ${col}\n您可以直接傳給客戶了！`);
+        }
+        
+        // 這裡填入您之前的 init() 資料讀取邏輯...
+    </script>
+</body>
+</html>
