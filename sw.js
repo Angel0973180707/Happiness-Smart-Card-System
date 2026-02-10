@@ -1,31 +1,31 @@
-// 每次更新 index.html 的介面時，建議修改版本號 (如 v3.1)，讓手機強制抓取新外觀
-const CACHE_NAME = 'happy-smart-card-v3.1';
+// 每次版面美化或邏輯更新，請手動將版本號加 0.1 (例如 v3.2 -> v3.3)，手機才會更新外觀
+const CACHE_NAME = 'happy-smart-card-v3.3';
 
-// 定義 PWA 需要存放的靜態資源
+// 這是需要存進手機的「基礎骨架」
 const ASSETS_TO_CACHE = [
   'index.html',
   'manifest.json'
 ];
 
-// 1. 安裝階段：將質感介面存入手機快取
+// 1. 安裝：把名片框架存入手機
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('幸福名片：旗艦版介面資源已成功快取');
+      console.log('幸福名片：框架快取成功！');
       return cache.addAll(ASSETS_TO_CACHE);
     })
   );
   self.skipWaiting();
 });
 
-// 2. 激活階段：移除舊版快取，確保客戶看到的是美化後的成果
+// 2. 激活：刪除舊版快取，避免新舊設計衝突
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('幸福名片：正在更新為最新美感介面...');
+            console.log('幸福名片：正在清理舊版快取...');
             return caches.delete(cache);
           }
         })
@@ -34,12 +34,17 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. 攔截請求：優先讀取快取（介面），動態資料（試算表）則走網路
+// 3. 抓取：介面檔案用快取 (秒開)，但試算表資料 (CSV) 則永遠抓最新的
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      // 如果快取有檔案就直接用，否則去網路抓取（如試算表資料）
-      return response || fetch(event.request);
-    })
-  );
+  // 如果是抓取 Google 試算表的 CSV 資料，我們不緩存，確保資料即時
+  if (event.request.url.includes('docs.google.com/spreadsheets')) {
+    event.respondWith(fetch(event.request));
+  } else {
+    // 其他檔案（如 HTML, JSON）則優先從快取讀取，達成秒開
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        return response || fetch(event.request);
+      })
+    );
+  }
 });
