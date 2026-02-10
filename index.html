@@ -1,63 +1,211 @@
-<script>
-    // 這裡使用您剛才提供的發佈版 ID
-    const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
-    const params = new URLSearchParams(window.location.search);
-    const rowId = params.get('id');
-    const theme = params.get('theme') || 'warm-pink';
-
-    if (rowId) {
-        document.getElementById('preview-bar').style.display = 'none';
-        document.getElementById('generator-box').style.display = 'none';
-        document.getElementById('form-btn').style.display = 'none';
-        document.body.className = `theme-${theme}`;
-    }
-
-    function setTheme(t) { document.body.className = `theme-${t}`; }
-
-    function generateAndCopy() {
-        const id = document.getElementById('input-id').value;
-        const col = document.body.className.replace('theme-', '');
-        const baseUrl = window.location.href.split('?')[0];
-        const finalUrl = `${baseUrl}?id=${id}&theme=${col}`;
-        navigator.clipboard.writeText(finalUrl);
-        alert("✨ 交付連結已複製！");
-    }
-
-    async function init() {
-        // 如果沒有帶 id 參數，預設抓取第 2 行
-        const fetchId = rowId || document.getElementById('input-id').value || 2;
-        
-        // 這是讀取「發佈到網路」資料的專用 API 格式
-        const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv`;
-        
-        try {
-            const res = await fetch(url);
-            const data = await res.text();
-            
-            // 將 CSV 格式轉為陣列
-            const rows = data.split('\n').map(row => row.split(','));
-            const targetRow = rows[fetchId - 1]; // 因為 CSV 第一行是標題，所以 fetchId 剛好對應行號
-
-            if(targetRow) {
-                // 根據您的欄位順序填入 (0:時間, 1:姓名, 2:職稱, 3:格言...)
-                document.getElementById('user-name').innerText = targetRow[1] || '姓名';
-                document.getElementById('user-title').innerText = targetRow[2] || '職稱';
-                document.getElementById('user-slogan').innerText = targetRow[3] || '';
-                
-                let qaHtml = '';
-                if(targetRow[8]) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${targetRow[8]}</span><p class="qa-a">${targetRow[9] || ''}</p></div>`;
-                if(targetRow[10]) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${targetRow[10]}</span><p class="qa-a">${targetRow[11] || ''}</p></div>`;
-                document.getElementById('qa-area').innerHTML = qaHtml;
-                
-                // 處理照片 (針對 Google Drive 連結轉為直連)
-                const photoLink = targetRow[12];
-                const photoId = photoLink ? photoLink.match(/[-\w]{25,}/) : null;
-                document.getElementById('user-photo').src = photoId ? `https://drive.google.com/uc?export=view&id=${photoId[0]}` : 'https://via.placeholder.com/130';
-            }
-        } catch (e) {
-            console.error("讀取失敗", e);
-            document.getElementById('user-name').innerText = "資料同步異常";
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>幸福智慧名片 | 協作工房</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            --primary: #e17055;
+            --secondary: #fab1a0;
+            --text-dark: #2d3436;
+            --bg-gradient: linear-gradient(135deg, #fff5f5 0%, #f1f2f6 100%);
         }
-    }
-    init();
-</script>
+
+        /* 介面穩定性 */
+        html { -webkit-text-size-adjust: 100%; }
+        body { 
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; 
+            margin: 0; background: var(--bg-gradient); 
+            display: flex; flex-direction: column; align-items: center; 
+            min-height: 100vh; color: var(--text-dark);
+        }
+
+        /* 頂部 10 色工具列 - 作品模式自動隱藏 */
+        #preview-bar { 
+            width: 100%; max-width: 450px; background: rgba(44, 62, 80, 0.95); 
+            backdrop-filter: blur(10px); padding: 12px; 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; 
+            position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .preview-btn { 
+            border: 2px solid rgba(255,255,255,0.1); color: #fff; padding: 8px 0; 
+            border-radius: 6px; font-size: 11px; cursor: pointer; transition: 0.3s; 
+        }
+
+        /* 名片核心卡片 */
+        .card { 
+            background: white; width: 92%; max-width: 400px; 
+            margin: 20px 0; border-radius: 30px; overflow: hidden; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1); position: relative;
+        }
+
+        .banner { 
+            height: 160px; background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%);
+        }
+
+        .avatar-container { width: 140px; height: 140px; margin: -85px auto 15px; position: relative; z-index: 2; }
+        .avatar { 
+            width: 100%; height: 100%; border-radius: 50%; 
+            border: 6px solid white; object-fit: cover; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15); background: #eee;
+        }
+
+        .info { text-align: center; padding: 0 25px 25px; }
+        .name { font-size: 28px; font-weight: 800; margin: 5px 0; letter-spacing: 1px; }
+        .title { color: #636e72; font-size: 16px; margin-bottom: 20px; font-weight: 500; }
+        
+        #form-btn { 
+            display: inline-block; background: linear-gradient(90deg, #ff7675, #e17055); 
+            color: white; text-decoration: none; padding: 14px 30px; 
+            border-radius: 50px; font-weight: bold; margin: 15px 0;
+            box-shadow: 0 6px 20px rgba(225, 112, 85, 0.4);
+            animation: pulse 2s infinite; font-size: 16px;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+        .slogan { 
+            font-size: 15px; line-height: 1.7; color: #444; 
+            background: rgba(250, 177, 160, 0.1); padding: 18px; 
+            border-radius: 15px; border-left: 5px solid var(--primary);
+            text-align: left; margin: 15px 0; position: relative;
+        }
+
+        /* Q&A 區塊 */
+        .qa-section { padding: 30px 25px; background: #fafafa; }
+        .qa-item { 
+            background: white; padding: 20px; border-radius: 20px; 
+            margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #eee;
+        }
+        .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 10px; display: block; }
+        .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; text-align: justify; }
+
+        /* ID 生成器工具列 - 作品模式自動隱藏 */
+        #generator-box { 
+            padding: 30px; background: #2d3436; color: white; width: 100%; 
+            max-width: 420px; box-sizing: border-box; border-radius: 30px 30px 0 0;
+        }
+        #generator-box input { 
+            width: 100%; padding: 15px; border-radius: 12px; border: none; 
+            font-size: 16px; margin: 10px 0 20px; box-sizing: border-box;
+        }
+        .copy-btn { 
+            background: var(--secondary); color: #2d3436; padding: 16px; 
+            border-radius: 12px; border: none; font-weight: 800; 
+            cursor: pointer; width: 100%; font-size: 16px;
+        }
+
+        /* 主題配色定義 */
+        .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
+        .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
+        .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
+        .theme-royal-purple { --primary: #6c5ce7; --secondary: #a29bfe; }
+        .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
+        .theme-vibrant-teal { --primary: #00cec9; --secondary: #81ecec; }
+        .theme-sunny-orange { --primary: #e67e22; --secondary: #f39c12; }
+        .theme-classic-grey { --primary: #636e72; --secondary: #b2bec3; }
+        .theme-deep-berry { --primary: #6d214f; --secondary: #b33939; }
+        .theme-tiffany-blue { --primary: #00b894; --secondary: #55efc4; }
+    </style>
+</head>
+<body class="theme-warm-pink">
+
+    <div id="preview-bar">
+        <button class="preview-btn" style="background:#e17055" onclick="setTheme('warm-pink')">暖心粉</button>
+        <button class="preview-btn" style="background:#0984e3" onclick="setTheme('navy-blue')">深海藍</button>
+        <button class="preview-btn" style="background:#27ae60" onclick="setTheme('forest-green')">森林綠</button>
+        <button class="preview-btn" style="background:#6c5ce7" onclick="setTheme('royal-purple')">皇室紫</button>
+        <button class="preview-btn" style="background:#b89130" onclick="setTheme('soft-gold')">沉穩金</button>
+        <button class="preview-btn" style="background:#00cec9" onclick="setTheme('vibrant-teal')">活力翠</button>
+        <button class="preview-btn" style="background:#e67e22" onclick="setTheme('sunny-orange')">陽光橘</button>
+        <button class="preview-btn" style="background:#636e72" onclick="setTheme('classic-grey')">經典灰</button>
+        <button class="preview-btn" style="background:#6d214f" onclick="setTheme('deep-berry')">莓果紫</button>
+        <button class="preview-btn" style="background:#00b894" onclick="setTheme('tiffany-blue')">湖水綠</button>
+    </div>
+
+    <div class="card">
+        <div class="banner"></div>
+        <div class="avatar-container">
+            <img id="user-photo" src="" class="avatar">
+        </div>
+        <div class="info">
+            <h1 id="user-name" class="name">同步中...</h1>
+            <p id="user-title" class="title"></p>
+            <a id="form-btn" href="https://forms.gle/GsoYTRfqP3iF6XJK9" target="_blank">✨ 立即申請製作名片</a>
+            <div id="user-slogan" class="slogan"></div>
+        </div>
+        <div id="qa-area" class="qa-section"></div>
+    </div>
+
+    <div id="generator-box">
+        <label>輸入 ID (試算表行號):</label>
+        <input type="number" id="input-id" value="2">
+        <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製專屬名片網址</button>
+    </div>
+
+    <script>
+        // 對應您剛才提供的已發佈試算表 ID
+        const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
+        const params = new URLSearchParams(window.location.search);
+        const rowId = params.get('id');
+        const theme = params.get('theme') || 'warm-pink';
+
+        // 初始化佈局模式
+        if (rowId) {
+            document.getElementById('preview-bar').style.display = 'none';
+            document.getElementById('generator-box').style.display = 'none';
+            document.getElementById('form-btn').style.display = 'none';
+            document.body.className = `theme-${theme}`;
+        }
+
+        function setTheme(t) { document.body.className = `theme-${t}`; }
+
+        function generateAndCopy() {
+            const currentId = document.getElementById('input-id').value;
+            const currentTheme = document.body.className.replace('theme-', '');
+            const baseUrl = window.location.href.split('?')[0];
+            const finalUrl = `${baseUrl}?id=${currentId}&theme=${currentTheme}`;
+            navigator.clipboard.writeText(finalUrl);
+            alert("✨ 專屬作品網址已複製成功！");
+        }
+
+        async function init() {
+            const fetchId = rowId || document.getElementById('input-id').value || 2;
+            const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv`;
+            
+            try {
+                const res = await fetch(url);
+                const data = await res.text();
+                // 處理 CSV 資料 (處理逗號與換行)
+                const rows = data.split('\n').map(r => r.split(','));
+                const targetRow = rows[fetchId - 1];
+
+                if(targetRow) {
+                    document.getElementById('user-name').innerText = targetRow[1] || '姓名';
+                    document.getElementById('user-title').innerText = targetRow[2] || '職稱';
+                    document.getElementById('user-slogan').innerText = targetRow[3] || '讓愛發揮力量，熱衷推廣幸福教養。';
+                    
+                    let qaHtml = '';
+                    if(targetRow[8]) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${targetRow[8]}</span><p class="qa-a">${targetRow[9] || ''}</p></div>`;
+                    if(targetRow[10]) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${targetRow[10]}</span><p class="qa-a">${targetRow[11] || ''}</p></div>`;
+                    document.getElementById('qa-area').innerHTML = qaHtml;
+                    
+                    const photoLink = targetRow[12];
+                    const photoId = photoLink ? photoLink.match(/[-\w]{25,}/) : null;
+                    document.getElementById('user-photo').src = photoId ? `https://drive.google.com/uc?export=view&id=${photoId[0]}` : 'https://via.placeholder.com/130';
+                }
+            } catch (e) {
+                document.getElementById('user-name').innerText = "資料同步失敗";
+                console.error(e);
+            }
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+        }
+        init();
+    </script>
+</body>
+</html>
