@@ -14,42 +14,41 @@
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
         .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
         .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
-        
+        .theme-royal-purple { --primary: #6c5ce7; --secondary: #a29bfe; }
+        .theme-sunny-orange { --primary: #e67e22; --secondary: #f39c12; }
+        .theme-classic-grey { --primary: #636e72; --secondary: #b2bec3; }
+        .theme-deep-berry { --primary: #6d214f; --secondary: #b33939; }
+        .theme-sky-cyan { --primary: #00cec9; --secondary: #81ecec; }
+
         #preview-bar { width: 100%; max-width: 500px; background: #2d3436; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
         .preview-btn { border: none; color: #fff; padding: 8px 0; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; }
         
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; }
         .banner { height: 160px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); }
         
-        /* Logo */
         #user-logo { position: absolute; top: 20px; right: 25px; width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
-
-        /* 頭像 */
         .avatar-container { width: 140px; height: 140px; margin: -90px auto 10px; position: relative; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
         
-        .info { text-align: center; padding: 0 25px 20px; }
+        .info { text-align: center; padding: 0 25px 15px; }
         .name { font-size: 30px; font-weight: 800; margin: 10px 0 5px; color: #2d3436; }
         .title { color: #636e72; font-size: 16px; font-weight: 500; }
         
-        /* 美化聯繫按鈕 */
-        .contact-row { display: flex; justify-content: center; gap: 15px; padding: 10px 25px 25px; }
-        .contact-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 20px; transition: 0.3s; background: #f1f2f6; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .contact-row { display: flex; justify-content: center; gap: 15px; padding: 0 25px 25px; }
+        .contact-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 20px; transition: 0.3s; background: #f1f2f6; }
         .contact-circle:hover { transform: translateY(-3px); background: var(--secondary); color: white; }
 
         .slogan { font-size: 15px; background: rgba(0,0,0,0.02); padding: 20px; border-radius: 20px; border-left: 6px solid var(--primary); text-align: left; line-height: 1.8; margin: 0 25px 25px; color: #444; }
         
-        /* 產品櫥窗 */
         .product-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 25px 25px; }
         .product-img { width: 100%; aspect-ratio: 1/1; border-radius: 15px; object-fit: cover; background: #eee; }
 
         .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
         .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
         .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
-        .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; }
+        .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; white-space: pre-wrap; }
 
-        /* 返回預約按鈕 */
-        .back-nav { display: block; text-align: center; padding: 20px; background: #2d3436; color: white; text-decoration: none; font-weight: bold; border-radius: 0 0 40px 40px; transition: 0.3s; }
+        .back-nav { display: block; text-align: center; padding: 20px; background: #2d3436; color: white; text-decoration: none; font-weight: bold; transition: 0.3s; }
         .back-nav:hover { background: var(--primary); }
 
         #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; border-radius: 30px 30px 0 0; box-sizing: border-box; margin-top: 20px; }
@@ -76,21 +75,17 @@
         </div>
 
         <div class="contact-row">
-            <a id="link-phone" href="" class="contact-circle" title="撥打電話">📞</a>
-            <a id="link-line" href="" class="contact-circle" target="_blank" title="LINE 聯繫">💬</a>
-            <a id="link-email" href="" class="contact-circle" title="發送郵件">✉️</a>
+            <a id="link-phone" href="" class="contact-circle">📞</a>
+            <a id="link-line" href="" class="contact-circle" target="_blank">💬</a>
+            <a id="link-email" href="" class="contact-circle">✉️</a>
         </div>
 
         <div id="user-slogan" class="slogan"></div>
 
-        <div class="product-gallery" id="product-area">
-            <img id="product-img-1" class="product-img" style="display:none">
-            <img id="product-img-2" class="product-img" style="display:none">
-        </div>
+        <div class="product-gallery" id="product-area"></div>
 
         <div id="qa-area" class="qa-section"></div>
-        
-        <a href="https://lihi.cc/你的預約頁面連結" class="back-nav">📅 預約製作我的智慧名片</a>
+        <a href="https://lihi.cc/VqJzb" class="back-nav">📅 預約製作我的智慧名片</a>
     </div>
 
     <div id="generator-box">
@@ -106,8 +101,7 @@
         const theme = params.get('theme') || 'warm-pink';
 
         if (rowId) {
-            document.getElementById('preview-bar').style.display = 'none';
-            document.getElementById('generator-box').style.display = 'none';
+            document.body.insertAdjacentHTML('afterbegin', `<style>#preview-bar, #generator-box { display: none !important; } .card { margin-top: 40px; }</style>`);
             document.body.className = `theme-${theme}`;
         }
 
@@ -116,15 +110,19 @@
         function generateAndCopy() {
             const id = document.getElementById('input-id').value;
             const th = document.body.className.replace('theme-', '');
-            const url = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
-            navigator.clipboard.writeText(url);
-            alert("✨ 網址複製成功！");
+            const finalUrl = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
+            const el = document.createElement('textarea');
+            el.value = finalUrl;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert("✨ 專屬名片網址已複製！可以交貨給客戶了。");
         }
 
         function getDriveUrl(raw) {
             if(!raw) return "";
-            // 處理多個連結的情況，只取第一個
-            const first = raw.split(',')[0].trim();
+            const first = raw.split(',')[0].split(' ')[0].trim();
             const match = first.match(/[-\w]{25,}/);
             return match ? `https://drive.google.com/uc?export=view&id=${match[0]}` : "";
         }
@@ -148,26 +146,26 @@
                     document.getElementById('link-email').href = `mailto:${d[10]}`;
                     document.getElementById('link-line').href = d[4] || "#";
 
-                    // 12.形象照 (d[6]), 13.產品照 (d[7]), 14.Logo (d[8])
                     document.getElementById('user-photo').src = getDriveUrl(d[6]);
-                    
                     const logo = getDriveUrl(d[8]);
                     if(logo) document.getElementById('user-logo').src = logo;
 
-                    // 處理產品照（可能有多張，以逗號隔開）
+                    // 處理產品照片
+                    const productArea = document.getElementById('product-area');
+                    productArea.innerHTML = '';
                     const pUrls = d[7] ? d[7].split(',') : [];
-                    if(pUrls[0]) {
-                        document.getElementById('product-img-1').src = getDriveUrl(pUrls[0]);
-                        document.getElementById('product-img-1').style.display = "block";
-                    }
-                    if(pUrls[1]) {
-                        document.getElementById('product-img-2').src = getDriveUrl(pUrls[1]);
-                        document.getElementById('product-img-2').style.display = "block";
-                    }
+                    pUrls.forEach(p => {
+                        const url = getDriveUrl(p);
+                        if(url) {
+                            const img = document.createElement('img');
+                            img.src = url; img.className = 'product-img';
+                            productArea.appendChild(img);
+                        }
+                    });
 
                     let qa = '';
-                    if(d[17]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
-                    if(d[19]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
+                    if(d[17] && d[17].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
+                    if(d[19] && d[19].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
                     document.getElementById('qa-area').innerHTML = qa;
                 }
             } catch (e) { console.error(e); }
