@@ -56,7 +56,7 @@
         <div class="banner"></div>
         <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
         <div class="info">
-            <h1 id="user-name" class="name">同步中...</h1>
+            <h1 id="user-name" class="name">讀取中...</h1>
             <p id="user-title" class="title"></p>
             <div id="user-slogan" class="slogan"></div>
         </div>
@@ -92,42 +92,41 @@
         }
 
         async function init() {
-            const fetchId = rowId || document.getElementById('input-id').value || 2;
+            // 強制 ID 偏移：如果 rowId 是 2，代表是試算表的第 2 列
+            const fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv`;
             
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                const rows = text.split(/\r?\n/).map(row => row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim()));
-                const headers = rows[0]; // 標題列
-                const d = rows[fetchId - 1]; // 資料列
+                // 更加魯棒的解析邏輯
+                const rows = text.split(/\r?\n/).map(row => {
+                    // 處理可能包含逗號的引號內容
+                    const parts = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || row.split(',');
+                    return parts.map(cell => cell.replace(/^"|"$/g, '').trim());
+                });
 
-                // 🚀 智慧搜尋：透過標題內容找索引
-                const getVal = (keyword) => {
-                    const idx = headers.findIndex(h => h.includes(keyword));
-                    return idx !== -1 ? d[idx] : "";
-                };
+                const d = rows[fetchId - 1]; 
 
-                if(d) {
-                    document.getElementById('user-name').innerText = getVal("您的姓名") || "姓名";
-                    document.getElementById('user-title').innerText = getVal("專業職稱") || "職稱";
-                    document.getElementById('user-slogan').innerText = getVal("核心理念") || getVal("Slogan") || "";
+                if(d && d.length > 1) {
+                    // 直接鎖定：姓名(1), 職稱(2), Slogan(5), 照片(6), Q1(17), A1(18)...
+                    document.getElementById('user-name').innerText = d[1] || "姓名";
+                    document.getElementById('user-title').innerText = d[2] || "職稱";
+                    document.getElementById('user-slogan').innerText = d[5] || "";
                     
-                    // Q&A 區塊
                     let qa = '';
-                    const q1 = getVal("8.常見問題 Q1") || getVal("問題 1");
-                    const a1 = getVal("9.專業解答 A1") || getVal("答案 1");
-                    if(q1) qa += `<div class="qa-item"><span class="qa-q">Q: ${q1}</span><p class="qa-a">${a1}</p></div>`;
-                    
-                    const q2 = getVal("10.常見問題 Q2") || getVal("問題 2");
-                    const a2 = getVal("11.專業解答 A2") || getVal("答案 2");
-                    if(q2) qa += `<div class="qa-item"><span class="qa-q">Q: ${q2}</span><p class="qa-a">${a2}</p></div>`;
+                    if(d[17] && d[17].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
+                    if(d[19] && d[19].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
                     document.getElementById('qa-area').innerHTML = qa;
 
-                    // 照片處理
-                    const pLink = getVal("12.上傳照片/個人專業照") || getVal("上傳照片");
-                    const pId = pLink.match(/[-\w]{25,}/);
-                    document.getElementById('user-photo').src = pId ? `https://drive.google.com/uc?export=view&id=${pId[0]}` : 'https://via.placeholder.com/150';
+                    // 尋找行內任何像 Google Drive 的連結
+                    let pId = null;
+                    d.forEach(cell => {
+                        const match = cell.match(/[-\w]{25,}/);
+                        if (match && cell.includes('drive')) pId = match[0];
+                    });
+                    
+                    document.getElementById('user-photo').src = pId ? `https://drive.google.com/uc?export=view&id=${pId}` : 'https://via.placeholder.com/150';
                 }
             } catch (e) { document.getElementById('user-name').innerText = "連線中..."; }
         }
