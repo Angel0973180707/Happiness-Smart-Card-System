@@ -13,7 +13,7 @@
             --bg-gradient: linear-gradient(135deg, #fff5f5 0%, #f1f2f6 100%);
         }
 
-        /* 介面穩定性 */
+        /* 全域樣式 */
         html { -webkit-text-size-adjust: 100%; }
         body { 
             font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; 
@@ -22,7 +22,7 @@
             min-height: 100vh; color: var(--text-dark);
         }
 
-        /* 頂部 10 色工具列 - 作品模式自動隱藏 */
+        /* 頂部 10 色工具列 */
         #preview-bar { 
             width: 100%; max-width: 450px; background: rgba(44, 62, 80, 0.95); 
             backdrop-filter: blur(10px); padding: 12px; 
@@ -34,7 +34,7 @@
             border-radius: 6px; font-size: 11px; cursor: pointer; transition: 0.3s; 
         }
 
-        /* 名片核心卡片 */
+        /* 名片本體設計 */
         .card { 
             background: white; width: 92%; max-width: 400px; 
             margin: 20px 0; border-radius: 30px; overflow: hidden; 
@@ -73,7 +73,7 @@
             text-align: left; margin: 15px 0; position: relative;
         }
 
-        /* Q&A 區塊 */
+        /* Q&A 區塊設計 */
         .qa-section { padding: 30px 25px; background: #fafafa; }
         .qa-item { 
             background: white; padding: 20px; border-radius: 20px; 
@@ -82,7 +82,7 @@
         .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 10px; display: block; }
         .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; text-align: justify; }
 
-        /* ID 生成器工具列 - 作品模式自動隱藏 */
+        /* ID 生成器工具列 */
         #generator-box { 
             padding: 30px; background: #2d3436; color: white; width: 100%; 
             max-width: 420px; box-sizing: border-box; border-radius: 30px 30px 0 0;
@@ -97,7 +97,7 @@
             cursor: pointer; width: 100%; font-size: 16px;
         }
 
-        /* 主題配色定義 */
+        /* 10 色主題庫 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
@@ -113,16 +113,16 @@
 <body class="theme-warm-pink">
 
     <div id="preview-bar">
-        <button class="preview-btn" style="background:#e17055" onclick="setTheme('warm-pink')">暖心粉</button>
-        <button class="preview-btn" style="background:#0984e3" onclick="setTheme('navy-blue')">深海藍</button>
-        <button class="preview-btn" style="background:#27ae60" onclick="setTheme('forest-green')">森林綠</button>
-        <button class="preview-btn" style="background:#6c5ce7" onclick="setTheme('royal-purple')">皇室紫</button>
-        <button class="preview-btn" style="background:#b89130" onclick="setTheme('soft-gold')">沉穩金</button>
-        <button class="preview-btn" style="background:#00cec9" onclick="setTheme('vibrant-teal')">活力翠</button>
-        <button class="preview-btn" style="background:#e67e22" onclick="setTheme('sunny-orange')">陽光橘</button>
-        <button class="preview-btn" style="background:#636e72" onclick="setTheme('classic-grey')">經典灰</button>
-        <button class="preview-btn" style="background:#6d214f" onclick="setTheme('deep-berry')">莓果紫</button>
-        <button class="preview-btn" style="background:#00b894" onclick="setTheme('tiffany-blue')">湖水綠</button>
+        <button class="preview-btn" onclick="setTheme('warm-pink')" style="background:#e17055">暖心粉</button>
+        <button class="preview-btn" onclick="setTheme('navy-blue')" style="background:#0984e3">深海藍</button>
+        <button class="preview-btn" onclick="setTheme('forest-green')" style="background:#27ae60">森林綠</button>
+        <button class="preview-btn" onclick="setTheme('royal-purple')" style="background:#6c5ce7">皇室紫</button>
+        <button class="preview-btn" onclick="setTheme('soft-gold')" style="background:#b89130">沉穩金</button>
+        <button class="preview-btn" onclick="setTheme('vibrant-teal')" style="background:#00cec9">活力翠</button>
+        <button class="preview-btn" onclick="setTheme('sunny-orange')" style="background:#e67e22">陽光橘</button>
+        <button class="preview-btn" onclick="setTheme('classic-grey')" style="background:#636e72">經典灰</button>
+        <button class="preview-btn" onclick="setTheme('deep-berry')" style="background:#6d214f">莓果紫</button>
+        <button class="preview-btn" onclick="setTheme('tiffany-blue')" style="background:#00b894">湖水藍</button>
     </div>
 
     <div class="card">
@@ -131,7 +131,7 @@
             <img id="user-photo" src="" class="avatar">
         </div>
         <div class="info">
-            <h1 id="user-name" class="name">同步中...</h1>
+            <h1 id="user-name" class="name">校準中...</h1>
             <p id="user-title" class="title"></p>
             <a id="form-btn" href="https://forms.gle/GsoYTRfqP3iF6XJK9" target="_blank">✨ 立即申請製作名片</a>
             <div id="user-slogan" class="slogan"></div>
@@ -146,13 +146,11 @@
     </div>
 
     <script>
-        // 對應您剛才提供的已發佈試算表 ID
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
         const params = new URLSearchParams(window.location.search);
         const rowId = params.get('id');
         const theme = params.get('theme') || 'warm-pink';
 
-        // 初始化佈局模式
         if (rowId) {
             document.getElementById('preview-bar').style.display = 'none';
             document.getElementById('generator-box').style.display = 'none';
@@ -168,36 +166,44 @@
             const baseUrl = window.location.href.split('?')[0];
             const finalUrl = `${baseUrl}?id=${currentId}&theme=${currentTheme}`;
             navigator.clipboard.writeText(finalUrl);
-            alert("✨ 專屬作品網址已複製成功！");
+            alert("✨ 專屬名片網址已複製！");
         }
 
         async function init() {
             const fetchId = rowId || document.getElementById('input-id').value || 2;
-            const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv`;
+            // 核心優化：改用 output=txt (Tab 分隔) 避免錯位
+            const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=txt`;
             
             try {
                 const res = await fetch(url);
-                const data = await res.text();
-                // 處理 CSV 資料 (處理逗號與換行)
-                const rows = data.split('\n').map(r => r.split(','));
+                const text = await res.text();
+                // 使用 Tab 分隔解析，這是最穩定的做法
+                const rows = text.split('\r\n').map(r => r.split('\t'));
                 const targetRow = rows[fetchId - 1];
 
                 if(targetRow) {
-                    document.getElementById('user-name').innerText = targetRow[1] || '姓名';
-                    document.getElementById('user-title').innerText = targetRow[2] || '職稱';
-                    document.getElementById('user-slogan').innerText = targetRow[3] || '讓愛發揮力量，熱衷推廣幸福教養。';
+                    // 清理引號並填入資料
+                    const clean = (val) => (val || '').replace(/^"|"$/g, '').trim();
+                    
+                    document.getElementById('user-name').innerText = clean(targetRow[1]) || '姓名';
+                    document.getElementById('user-title').innerText = clean(targetRow[2]) || '職稱';
+                    document.getElementById('user-slogan').innerText = clean(targetRow[3]) || '讓愛發揮力量，推廣幸福教養。';
                     
                     let qaHtml = '';
-                    if(targetRow[8]) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${targetRow[8]}</span><p class="qa-a">${targetRow[9] || ''}</p></div>`;
-                    if(targetRow[10]) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${targetRow[10]}</span><p class="qa-a">${targetRow[11] || ''}</p></div>`;
+                    if(targetRow[8]) {
+                        qaHtml += `<div class="qa-item"><span class="qa-q">${clean(targetRow[8])}</span><p class="qa-a">${clean(targetRow[9])}</p></div>`;
+                    }
+                    if(targetRow[10]) {
+                        qaHtml += `<div class="qa-item"><span class="qa-q">${clean(targetRow[10])}</span><p class="qa-a">${clean(targetRow[11])}</p></div>`;
+                    }
                     document.getElementById('qa-area').innerHTML = qaHtml;
                     
-                    const photoLink = targetRow[12];
-                    const photoId = photoLink ? photoLink.match(/[-\w]{25,}/) : null;
-                    document.getElementById('user-photo').src = photoId ? `https://drive.google.com/uc?export=view&id=${photoId[0]}` : 'https://via.placeholder.com/130';
+                    const photoLink = clean(targetRow[12]);
+                    const photoId = photoLink.match(/[-\w]{25,}/);
+                    document.getElementById('user-photo').src = photoId ? `https://drive.google.com/uc?export=view&id=${photoId[0]}` : 'https://via.placeholder.com/140';
                 }
             } catch (e) {
-                document.getElementById('user-name').innerText = "資料同步失敗";
+                document.getElementById('user-name').innerText = "連線中...";
                 console.error(e);
             }
         }
