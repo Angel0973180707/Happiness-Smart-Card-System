@@ -1,4 +1,4 @@
-const CACHE_NAME = 'happy-v1';
+const CACHE_NAME = 'happiness-v1';
 const ASSETS = ['index.html', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -8,4 +8,3 @@ self.addEventListener('install', (e) => {
 self.addEventListener('fetch', (e) => {
   e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
 });
-
