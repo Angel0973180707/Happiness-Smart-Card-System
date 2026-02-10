@@ -3,38 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>幸福智慧名片 | 協作工房</title>
+    <title>幸福智慧名片 | 幸福教養概念館</title>
     <style>
-        :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
-        body { font-family: 'PingFang TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; transition: 0.3s; }
+        :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f5f6fa; }
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; transition: 0.3s; }
         
-        /* 10 色工具列 - 優化排版 */
-        #preview-bar { 
-            width: 100%; max-width: 450px; background: #2d3436; padding: 12px; 
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; 
-            position: sticky; top: 0; z-index: 100; box-sizing: border-box;
-        }
-        .preview-btn { border: none; color: #fff; padding: 10px 0; border-radius: 6px; font-size: 11px; cursor: pointer; text-align: center; font-weight: bold; }
-
-        .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
-        .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
-        .avatar-container { width: 130px; height: 130px; margin: -75px auto 15px; position: relative; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.15); background: #eee; }
-        
-        .info { text-align: center; padding: 0 25px 25px; }
-        .name { font-size: 26px; font-weight: 800; margin: 5px 0; color: #2d3436; }
-        .title { color: #636e72; font-size: 16px; margin-bottom: 15px; }
-        .slogan { font-size: 15px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 12px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.6; color: #444; }
-
-        .qa-section { padding: 25px; background: #fafafa; border-top: 1px solid #eee; }
-        .qa-item { background: white; padding: 18px; border-radius: 15px; margin-bottom: 12px; border: 1px solid #eee; }
-        .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 6px; display: block; }
-        .qa-a { font-size: 14px; color: #555; line-height: 1.6; margin: 0; }
-
-        #generator-box { padding: 25px; background: #2d3436; color: white; width: 100%; max-width: 420px; border-radius: 20px 20px 0 0; box-sizing: border-box; }
-        .copy-btn { background: var(--secondary); color: #2d3436; padding: 15px; border-radius: 10px; border: none; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; }
-
-        /* 10 種顏色定義 */
+        /* 10 種主題顏色定義 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
@@ -45,6 +19,33 @@
         .theme-classic-grey { --primary: #636e72; --secondary: #b2bec3; }
         .theme-deep-berry { --primary: #6d214f; --secondary: #b33939; }
         .theme-sky-cyan { --primary: #00cec9; --secondary: #81ecec; }
+
+        /* 頂部 10 色工具列 */
+        #preview-bar { 
+            width: 100%; max-width: 500px; background: #2d3436; padding: 10px; 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; 
+            position: sticky; top: 0; z-index: 100; 
+        }
+        .preview-btn { border: none; color: #fff; padding: 8px 0; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; }
+
+        /* 名片本體卡片 */
+        .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
+        .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; background: #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        .info { text-align: center; padding: 0 25px 25px; }
+        .name { font-size: 26px; font-weight: 800; margin: 5px 0; color: #2d3436; }
+        .title { color: #636e72; font-size: 16px; margin-bottom: 20px; }
+        .slogan { font-size: 15px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; color: #444; }
+
+        .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
+        .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
+        .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
+        .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; }
+
+        #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; border-radius: 30px 30px 0 0; box-sizing: border-box; }
+        .copy-btn { background: var(--secondary); color: #2d3436; padding: 16px; border-radius: 12px; border: none; font-weight: 800; width: 100%; cursor: pointer; font-size: 16px; }
     </style>
 </head>
 <body class="theme-warm-pink">
@@ -68,7 +69,7 @@
             <img id="user-photo" src="" class="avatar">
         </div>
         <div class="info">
-            <h1 id="user-name" class="name">讀取中...</h1>
+            <h1 id="user-name" class="name">智慧名片同步中...</h1>
             <p id="user-title" class="title"></p>
             <div id="user-slogan" class="slogan"></div>
         </div>
@@ -77,7 +78,7 @@
 
     <div id="generator-box">
         <label>輸入 ID (試算表行號):</label>
-        <input type="number" id="input-id" value="2" style="width:100%; padding:12px; margin:8px 0; border-radius:8px; border:none; box-sizing:border-box;">
+        <input type="number" id="input-id" value="2" style="width:100%; padding:15px; margin:10px 0; border-radius:12px; border:none; box-sizing:border-box;">
         <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製專屬名片網址</button>
     </div>
 
@@ -100,7 +101,7 @@
             const th = document.body.className.replace('theme-', '');
             const url = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
             navigator.clipboard.writeText(url);
-            alert("✨ 網址已複製！明天交件沒問題！");
+            alert("✨ 專屬名片網址已複製成功！");
         }
 
         async function init() {
@@ -110,33 +111,35 @@
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // 修正解析邏輯：處理換行與 Tab
+                // 修正：更強大的換行解析邏輯，防止「載入中」
                 const rows = text.split(/\r?\n/).map(r => r.split('\t').map(c => c.replace(/^"|"$/g, '').trim()));
                 const d = rows[fetchId - 1];
 
                 if(d && d.length > 1) {
-                    document.getElementById('user-name').innerText = d[1] || '姓名';
-                    document.getElementById('user-title').innerText = d[2] || '職稱';
+                    document.getElementById('user-name').innerText = d[1] || '姓名';      
+                    document.getElementById('user-title').innerText = d[2] || '職稱';     
                     document.getElementById('user-slogan').innerText = d[5] || '';
 
                     let qa = '';
-                    if(d[17]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18] || ''}</p></div>`;
-                    if(d[19]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20] || ''}</p></div>`;
+                    if(d[17] && d[17].length > 1) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18] || ''}</p></div>`;
+                    if(d[19] && d[19].length > 1) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20] || ''}</p></div>`;
                     document.getElementById('qa-area').innerHTML = qa;
 
+                    // 照片邏輯修正
                     const photoRaw = d[6] || ""; 
                     const firstLink = photoRaw.split(',')[0].trim();
                     const photoIdMatch = firstLink.match(/[-\w]{25,}/);
                     if (photoIdMatch) {
                         document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${photoIdMatch[0]}`;
                     } else {
-                        document.getElementById('user-photo').src = 'https://via.placeholder.com/140';
+                        document.getElementById('user-photo').src = 'https://via.placeholder.com/150?text=Photo';
                     }
                 } else {
-                    document.getElementById('user-name').innerText = "找不到資料";
+                    document.getElementById('user-name').innerText = "找不到資料，請確認 ID";
                 }
             } catch (e) {
-                document.getElementById('user-name').innerText = "系統校準中...";
+                console.error(e);
+                document.getElementById('user-name').innerText = "資料連線中...";
             }
         }
         init();
