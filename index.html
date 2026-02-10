@@ -1,52 +1,69 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>幸福智慧名片 | 幸福教養概念館</title>
     <style>
-        :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
+        :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f5f6fa; }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        /* 10 種顏色主題 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
         .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
         .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
+        .theme-royal-purple { --primary: #6c5ce7; --secondary: #a29bfe; }
+        .theme-sunny-orange { --primary: #e67e22; --secondary: #f39c12; }
+        .theme-classic-grey { --primary: #636e72; --secondary: #b2bec3; }
+        .theme-deep-berry { --primary: #6d214f; --secondary: #b33939; }
+        .theme-sky-cyan { --primary: #00cec9; --secondary: #81ecec; }
+
         #preview-bar { width: 100%; max-width: 500px; background: #2d3436; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
         .preview-btn { border: none; color: #fff; padding: 8px 0; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; }
+        
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
         .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
         .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; background: #eee; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; background: #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
         .info { text-align: center; padding: 0 25px 25px; }
-        .name { font-size: 28px; font-weight: 800; margin: 5px 0; }
+        .name { font-size: 28px; font-weight: 800; margin: 5px 0; color: #2d3436; }
         .title { color: #636e72; font-size: 16px; margin-bottom: 20px; }
-        .slogan { font-size: 15px; background: rgba(0,0,0,0.05); padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; color: #444; }
+        .slogan { font-size: 15px; background: rgba(0,0,0,0.03); padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; color: #444; }
+
         .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
         .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
         .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; white-space: pre-wrap; }
+
         #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; border-radius: 30px 30px 0 0; box-sizing: border-box; }
-        .copy-btn { background: var(--secondary); color: #2d3436; padding: 16px; border-radius: 12px; border: none; font-weight: 800; width: 100%; cursor: pointer; }
+        .copy-btn { background: var(--secondary); color: #2d3436; padding: 16px; border-radius: 12px; border: none; font-weight: 800; width: 100%; cursor: pointer; font-size: 16px; margin-top: 10px; }
     </style>
 </head>
 <body class="theme-warm-pink">
+
     <div id="preview-bar">
-        <button class="preview-btn" onclick="setTheme('warm-pink')" style="background:#e17055">暖心粉</button>
-        <button class="preview-btn" onclick="setTheme('navy-blue')" style="background:#0984e3">深海藍</button>
-        <button class="preview-btn" onclick="setTheme('forest-green')" style="background:#27ae60">森林綠</button>
-        <button class="preview-btn" onclick="setTheme('soft-gold')" style="background:#b89130">沉穩金</button>
-        <button class="preview-btn" onclick="setTheme('tiffany-blue')" style="background:#00b894">湖水藍</button>
+        <button class="preview-btn" onclick="updatePreview('warm-pink')" style="background:#e17055">暖心粉</button>
+        <button class="preview-btn" onclick="updatePreview('navy-blue')" style="background:#0984e3">深海藍</button>
+        <button class="preview-btn" onclick="updatePreview('forest-green')" style="background:#27ae60">森林綠</button>
+        <button class="preview-btn" onclick="updatePreview('soft-gold')" style="background:#b89130">沉穩金</button>
+        <button class="preview-btn" onclick="updatePreview('tiffany-blue')" style="background:#00b894">湖水藍</button>
+        <button class="preview-btn" onclick="updatePreview('royal-purple')" style="background:#6c5ce7">皇家紫</button>
+        <button class="preview-btn" onclick="updatePreview('sunny-orange')" style="background:#e67e22">陽光橘</button>
+        <button class="preview-btn" onclick="updatePreview('classic-grey')" style="background:#636e72">紳士灰</button>
+        <button class="preview-btn" onclick="updatePreview('deep-berry')" style="background:#6d214f">莓果紅</button>
+        <button class="preview-btn" onclick="updatePreview('sky-cyan')" style="background:#00cec9">青空藍</button>
     </div>
 
     <div class="card">
         <div class="banner"></div>
-        <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
+        <div class="avatar-container">
+            <img id="user-photo" src="" class="avatar" alt="請上傳形象照">
+        </div>
         <div class="info">
-            <h1 id="user-name" class="name">名片載入中...</h1>
+            <h1 id="user-name" class="name">載入中...</h1>
             <p id="user-title" class="title"></p>
             <div id="user-slogan" class="slogan"></div>
         </div>
@@ -55,208 +72,85 @@
 
     <div id="generator-box">
         <label>輸入 ID (試算表行號):</label>
-        <input type="number" id="input-id" value="2" style="width:100%; padding:15px; margin:10px 0; border-radius:12px; border:none; box-sizing:border-box;">
+        <input type="number" id="input-id" value="2" oninput="init()" style="width:100%; padding:15px; margin:10px 0; border-radius:12px; border:none; box-sizing:border-box;">
         <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製專屬名片網址</button>
     </div>
 
     <script>
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
         const params = new URLSearchParams(window.location.search);
-        const rowId = params.get('id');
-        const theme = params.get('theme') || 'warm-pink';
+        let currentRowId = params.get('id');
+        let currentTheme = params.get('theme') || 'warm-pink';
 
-        if (rowId) {
+        if (currentRowId) {
             document.getElementById('preview-bar').style.display = 'none';
             document.getElementById('generator-box').style.display = 'none';
-            document.body.className = `theme-${theme}`;
+            document.body.className = `theme-${currentTheme}`;
         }
 
-        function setTheme(t) { document.body.className = `theme-${t}`; }
+        function updatePreview(t) {
+            currentTheme = t;
+            document.body.className = `theme-${t}`;
+        }
 
         function generateAndCopy() {
             const id = document.getElementById('input-id').value;
             const th = document.body.className.replace('theme-', '');
             const url = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
             navigator.clipboard.writeText(url);
-            alert("✨ 網址複製成功！");
+            alert("✨ 網址已根據您設定的顏色與 ID 複製成功！");
         }
 
         async function init() {
-            let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
+            const fetchId = parseInt(currentRowId || document.getElementById('input-id').value || 2);
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
             
             try {
                 const res = await fetch(url);
                 const text = await res.text();
                 
-                // --- 專業級解析：處理標題列超長換行問題 ---
-                const lines = text.split(/\r?\n/);
-                // 找到真正的資料列 (跳過第一列標題)
-                const dataLines = lines.filter(l => l.includes("2026/")); // 透過時間戳記特徵找資料行
-                const d = dataLines[fetchId - 2]?.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                // 更穩健的 CSV 解析
+                const rows = text.split(/\r?\n/).map(row => {
+                    const matches = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    return matches ? matches.map(c => c.replace(/^"|"$/g, '').trim()) : [];
+                });
 
-                if(d) {
-                    // 根據 CSV 實測對齊位置
-                    document.getElementById('user-name').innerText = d[1] || "姓名";
-                    document.getElementById('user-title').innerText = d[2] || "職稱";
-                    document.getElementById('user-slogan').innerText = d[5] || "";
+                // 略過標題，確保抓到正確的資料列 (李秀芳是第 2 列，對應 Index 1)
+                const d = rows[fetchId - 1];
 
-                    // QA 區塊：直接找最後幾個欄位
+                if(d && d.length > 1) {
+                    // 對齊您的 CSV 欄位
+                    document.getElementById('user-name').innerText = d[1] || '姓名';      
+                    document.getElementById('user-title').innerText = d[2] || '職稱';     
+                    document.getElementById('user-slogan').innerText = d[5] || ''; 
+
+                    // Q&A 對齊 (17, 18, 19, 20)
                     let qa = '';
-                    if(d[17]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
-                    if(d[19]) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
-                    document.getElementById('qa-area').innerHTML = qa;
-
-                    // 照片偵測
-                    let pId = null;
-                    d.forEach(cell => {
-                        if (cell.includes('id=')) pId = cell.split('id=')[1].split(/[&, ]/)[0];
-                    });
-                    if (pId) document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId}`;
-                }
-            } catch (e) { console.error(e); }
-        }
-        init();
-    </script>
-</body>
-</html>
-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>幸福智慧名片 | 幸福教養概念館</title>
-    <style>
-        :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
-        body { font-family: 'PingFang TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
-        .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
-        .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
-        .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
-        .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
-        #preview-bar { width: 100%; max-width: 500px; background: #2d3436; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
-        .preview-btn { border: none; color: #fff; padding: 8px 0; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; }
-        .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
-        .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
-        .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; background: #eee; }
-        .info { text-align: center; padding: 0 25px 25px; }
-        .name { font-size: 28px; font-weight: 800; margin: 5px 0; }
-        .title { color: #636e72; font-size: 16px; margin-bottom: 20px; }
-        .slogan { font-size: 15px; background: rgba(0,0,0,0.05); padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; color: #444; }
-        .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
-        .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
-        .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
-        .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; white-space: pre-wrap; }
-        #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; border-radius: 30px 30px 0 0; box-sizing: border-box; }
-        .copy-btn { background: var(--secondary); color: #2d3436; padding: 16px; border-radius: 12px; border: none; font-weight: 800; width: 100%; cursor: pointer; }
-    </style>
-</head>
-<body class="theme-warm-pink">
-    <div id="preview-bar">
-        <button class="preview-btn" onclick="setTheme('warm-pink')" style="background:#e17055">暖心粉</button>
-        <button class="preview-btn" onclick="setTheme('navy-blue')" style="background:#0984e3">深海藍</button>
-        <button class="preview-btn" onclick="setTheme('forest-green')" style="background:#27ae60">森林綠</button>
-        <button class="preview-btn" onclick="setTheme('soft-gold')" style="background:#b89130">沉穩金</button>
-        <button class="preview-btn" onclick="setTheme('tiffany-blue')" style="background:#00b894">湖水藍</button>
-    </div>
-
-    <div class="card">
-        <div class="banner"></div>
-        <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
-        <div class="info">
-            <h1 id="user-name" class="name">名片載入中...</h1>
-            <p id="user-title" class="title"></p>
-            <div id="user-slogan" class="slogan"></div>
-        </div>
-        <div id="qa-area" class="qa-section"></div>
-    </div>
-
-    <div id="generator-box">
-        <label>輸入 ID (試算表行數):</label>
-        <input type="number" id="input-id" value="2" style="width:100%; padding:15px; margin:10px 0; border-radius:12px; border:none; box-sizing:border-box;">
-        <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製專屬名片網址</button>
-    </div>
-
-    <script>
-        const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
-        const params = new URLSearchParams(window.location.search);
-        const rowId = params.get('id');
-        const theme = params.get('theme') || 'warm-pink';
-
-        if (rowId) {
-            document.getElementById('preview-bar').style.display = 'none';
-            document.getElementById('generator-box').style.display = 'none';
-            document.body.className = `theme-${theme}`;
-        }
-
-        function setTheme(t) { document.body.className = `theme-${t}`; }
-
-        function generateAndCopy() {
-            const id = document.getElementById('input-id').value;
-            const th = document.body.className.replace('theme-', '');
-            const url = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
-            navigator.clipboard.writeText(url);
-            alert("✨ 網址複製成功！");
-        }
-
-        async function init() {
-            let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
-            // 改用更強大的 t 參數確保資料最新
-            const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
-            
-            try {
-                const res = await fetch(url);
-                const text = await res.text();
-                
-                // --- 核心：強效 CSV 解析 (處理內容中的逗號與換行) ---
-                function parseCSV(str) {
-                    const arr = [];
-                    let quote = false;
-                    for (let row = col = c = 0; c < str.length; c++) {
-                        let cc = str[c], nc = str[c+1];
-                        arr[row] = arr[row] || [];
-                        arr[row][col] = arr[row][col] || '';
-                        if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; continue; }
-                        if (cc == '"') { quote = !quote; continue; }
-                        if (cc == ',' && !quote) { ++col; continue; }
-                        if (cc == '\r' && nc == '\n' && !quote) { ++row; col = 0; ++c; continue; }
-                        if (cc == '\n' && !quote) { ++row; col = 0; continue; }
-                        if (cc == '\r' && !quote) { ++row; col = 0; continue; }
-                        arr[row][col] += cc;
+                    if(d[17] && d[17].length > 2) {
+                        qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
                     }
-                    return arr;
-                }
-
-                const rows = parseCSV(text);
-                const headers = rows[0]; // 標題列
-                const data = rows[fetchId - 1]; // 目標資料列
-
-                // --- 智慧標籤搜尋函數 ---
-                const getByLabel = (label) => {
-                    const idx = headers.findIndex(h => h && h.includes(label));
-                    return idx !== -1 ? data[idx] : "";
-                };
-
-                if(data) {
-                    document.getElementById('user-name').innerText = getByLabel("姓名") || "姓名";
-                    document.getElementById('user-title').innerText = getByLabel("職稱") || "職稱";
-                    document.getElementById('user-slogan').innerText = getByLabel("Slogan") || getByLabel("核心理念") || "";
-
-                    // Q&A 區塊
-                    let qa = '';
-                    const q1 = getByLabel("常見問題 Q1");
-                    const a1 = getByLabel("專業解答 A1");
-                    if(q1 && q1.length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${q1}</span><p class="qa-a">${a1}</p></div>`;
+                    if(d[19] && d[19].length > 2) {
+                        qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
+                    }
                     document.getElementById('qa-area').innerHTML = qa;
 
-                    // 照片處理：找包含 drive 的連結
-                    let pId = null;
-                    data.forEach(cell => {
-                        const m = cell.match(/[-\w]{25,}/);
-                        if (m && cell.includes('drive')) pId = m[0];
-                    });
-                    document.getElementById('user-photo').src = pId ? `https://drive.google.com/uc?export=view&id=${pId}` : '';
+                    // 圖片直連強化技術
+                    let photoId = "";
+                    const photoCell = d[6] || "";
+                    const match = photoCell.match(/[-\w]{25,}/);
+                    if (match) {
+                        photoId = match[0];
+                        // 使用 Google 直接讀取技術，繞過所有預覽阻擋
+                        document.getElementById('user-photo').src = `https://lh3.googleusercontent.com/d/${photoId}`;
+                    } else {
+                        document.getElementById('user-photo').src = 'https://via.placeholder.com/150?text=Wait+Photo';
+                    }
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+            }
         }
+
         init();
     </script>
 </body>
