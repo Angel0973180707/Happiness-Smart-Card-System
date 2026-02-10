@@ -6,12 +6,12 @@
     <title>幸福智慧名片協作工房</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        /* 視覺穩定排版：強制鎖定字級防止縮放 */
+        /* 視覺穩定與字級鎖定 */
         html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         :root { --primary: #e17055; --bg: #fff5f5; }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; transition: 0.4s; }
         
-        /* 頂部 10 色切換條 (兩排佈局) */
+        /* 10 色切換條 (展示模式) */
         #preview-bar { width: 100%; max-width: 450px; background: #2c3e50; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
         .preview-btn { border: none; color: #fff; padding: 8px 2px; border-radius: 4px; font-size: 11px; cursor: pointer; text-align: center; font-weight: bold; }
 
@@ -24,23 +24,25 @@
         .name { font-size: 24px; font-weight: bold; margin: 10px 0 5px; color: #2d3436; }
         .title { color: #636e72; font-size: 16px; margin-bottom: 15px; }
         
-        /* 一鍵填表單按鈕 (帶脈動動畫) */
+        /* 智慧填表單按鈕 (帶脈動動畫) */
         #form-btn { display: block; background: #ff7675; color: white; text-decoration: none; padding: 15px; border-radius: 50px; margin: 10px 20px 20px; text-align: center; font-weight: bold; box-shadow: 0 4px 15px rgba(255,118,117,0.4); animation: pulse 2s infinite; font-size: 16px; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
-        .slogan { font-size: 14px; font-style: italic; background: #f9f9f9; padding: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.6; color: #444; }
+        .slogan { font-size: 14px; font-style: italic; background: #f9f9f9; padding: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.6; color: #444; margin: 10px 0; }
 
-        /* Q&A 區塊：字級鎖定 14px */
+        /* Q&A 區塊 */
         .qa-section { padding: 25px 20px; background: #fff; border-top: 8px solid #f1f2f6; }
         .qa-item { margin-bottom: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; }
         .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         .qa-a { font-size: 14px; color: #555; line-height: 1.8; white-space: pre-wrap; text-align: justify; margin: 0; }
 
-        /* 網址生成器 */
+        /* 底部 ID 生成器 (展示模式) */
         #generator-box { padding: 25px; background: #2d3436; color: white; width: 100%; max-width: 420px; box-sizing: border-box; }
+        .input-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
+        input { padding: 12px; border-radius: 6px; border: none; font-size: 14px; color: #333; }
         .copy-btn { background: #fab1a0; color: #2d3436; padding: 15px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; }
 
-        /* 10 種顏色主題 (完全對應您的表單截圖) */
+        /* 10 色主題 */
         .theme-warm-pink { --primary: #e17055; --bg: #fff5f5; }
         .theme-navy-blue { --primary: #1e3799; --bg: #f1f2f6; }
         .theme-forest-green { --primary: #27ae60; --bg: #f1f8f4; }
@@ -74,15 +76,19 @@
         <div class="info">
             <h1 id="user-name" class="name">載入中...</h1>
             <p id="user-title" class="title"></p>
-            <a id="form-btn" href="https://docs.google.com/forms/d/e/1FAIpQLSdO7i9Bv5vW1yL9_YOUR_FORM_ID/viewform" target="_blank">✨ 立即申請製作我的名片</a>
+            
+            <a id="form-btn" href="https://forms.gle/GsoYTRfqP3iF6XJK9" target="_blank">✨ 立即申請製作我的名片</a>
+            
             <div id="user-slogan" class="slogan"></div>
         </div>
         <div id="qa-area" class="qa-section"></div>
     </div>
 
     <div id="generator-box">
-        <p style="text-align:center; font-size:14px; margin-bottom:15px;">填完表單後，在此輸入 ID 即可複製交付連結：</p>
-        <input type="number" id="input-id" value="2" style="width:100%; padding:10px; margin-bottom:10px; border-radius:5px; border:none;">
+        <div class="input-group">
+            <label style="font-size: 14px;">填完表單後，在此輸入 ID 產生交付連結：</label>
+            <input type="number" id="input-id" value="2">
+        </div>
         <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製交付連結</button>
     </div>
 
@@ -92,6 +98,7 @@
         const rowId = params.get('id');
         const theme = params.get('theme') || 'warm-pink';
 
+        // 智慧隱藏邏輯
         if (rowId) {
             document.getElementById('preview-bar').style.display = 'none';
             document.getElementById('generator-box').style.display = 'none';
@@ -107,7 +114,7 @@
             const baseUrl = window.location.href.split('?')[0];
             const finalUrl = `${baseUrl}?id=${id}&theme=${col}`;
             navigator.clipboard.writeText(finalUrl);
-            alert("已產生交付連結！直接傳給客戶即可開啟「專屬模式」。");
+            alert("✨ 已複製交付連結！\n顏色：" + col + " | ID：" + id);
         }
 
         async function init() {
@@ -126,7 +133,7 @@
                 let qaHtml = '';
                 if(row[8]?.v) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${row[8].v}</span><p class="qa-a">${row[9]?.v || ''}</p></div>`;
                 if(row[10]?.v) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${row[10].v}</span><p class="qa-a">${row[11]?.v || ''}</p></div>`;
-                document.getElementById('qa-area').innerHTML = qaHtml || '您的專業 Q&A 將在此展現。';
+                document.getElementById('qa-area').innerHTML = qaHtml || '專業 Q&A 載入中...';
                 
                 const photoId = row[12]?.v ? row[12].v.match(/[-\w]{25,}/) : null;
                 document.getElementById('user-photo').src = photoId ? `https://drive.google.com/uc?export=view&id=${photoId[0]}` : 'https://via.placeholder.com/130';
