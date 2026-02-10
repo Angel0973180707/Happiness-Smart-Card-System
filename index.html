@@ -1,126 +1,63 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>幸福智慧名片</title>
-    <style>
-        :root { --primary: #e17055; --secondary: #fab1a0; --bg: #fff5f5; }
-        body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; transition: 0.4s; }
+<script>
+    // 這裡使用您剛才提供的發佈版 ID
+    const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
+    const params = new URLSearchParams(window.location.search);
+    const rowId = params.get('id');
+    const theme = params.get('theme') || 'warm-pink';
+
+    if (rowId) {
+        document.getElementById('preview-bar').style.display = 'none';
+        document.getElementById('generator-box').style.display = 'none';
+        document.getElementById('form-btn').style.display = 'none';
+        document.body.className = `theme-${theme}`;
+    }
+
+    function setTheme(t) { document.body.className = `theme-${t}`; }
+
+    function generateAndCopy() {
+        const id = document.getElementById('input-id').value;
+        const col = document.body.className.replace('theme-', '');
+        const baseUrl = window.location.href.split('?')[0];
+        const finalUrl = `${baseUrl}?id=${id}&theme=${col}`;
+        navigator.clipboard.writeText(finalUrl);
+        alert("✨ 交付連結已複製！");
+    }
+
+    async function init() {
+        // 如果沒有帶 id 參數，預設抓取第 2 行
+        const fetchId = rowId || document.getElementById('input-id').value || 2;
         
-        /* 展示模式工具列 */
-        #preview-bar { width: 100%; max-width: 450px; background: #2c3e50; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
-        .preview-btn { border: none; color: #fff; padding: 8px 2px; border-radius: 4px; font-size: 11px; cursor: pointer; text-align: center; }
-
-        .card { background: white; width: 100%; max-width: 420px; box-shadow: 0 0 25px rgba(0,0,0,0.1); border-radius: 30px; margin: 20px 0; overflow: hidden; min-height: 80vh; }
-        .banner { height: 130px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: ellipse(120% 100% at 50% 0%); }
-        .avatar { width: 130px; height: 130px; border-radius: 50%; border: 5px solid white; object-fit: cover; display: block; margin: -65px auto 10px; background: #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        // 這是讀取「發佈到網路」資料的專用 API 格式
+        const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv`;
         
-        .info { text-align: center; padding: 0 20px 20px; }
-        .name { font-size: 26px; font-weight: bold; margin: 10px 0 5px; color: #2d3436; }
-        .title { color: #636e72; font-size: 16px; margin-bottom: 15px; }
-        
-        #form-btn { display: block; background: #ff7675; color: white; text-decoration: none; padding: 15px; border-radius: 50px; margin: 10px 20px 20px; text-align: center; font-weight: bold; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-
-        .slogan { font-size: 15px; background: rgba(225,112,85,0.05); padding: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.6; margin: 10px 0; border-radius: 0 10px 10px 0; }
-
-        .qa-section { padding: 20px; background: #fff; border-top: 10px solid #f1f2f6; }
-        .qa-item { background: #f9f9f9; padding: 15px; border-radius: 15px; margin-bottom: 15px; border: 1px solid #eee; }
-        .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
-        .qa-a { font-size: 14px; color: #555; line-height: 1.6; margin: 0; }
-
-        #generator-box { padding: 25px; background: #2d3436; color: white; width: 100%; max-width: 420px; box-sizing: border-box; border-radius: 20px 20px 0 0; }
-        .copy-btn { background: #fab1a0; color: #2d3436; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
-
-        /* 主題色 */
-        .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
-        .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
-        .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
-        .theme-royal-purple { --primary: #6c5ce7; --secondary: #a29bfe; }
-        .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
-    </style>
-</head>
-<body class="theme-warm-pink">
-
-    <div id="preview-bar">
-        <button class="preview-btn" style="background:#e17055" onclick="setTheme('warm-pink')">暖心粉</button>
-        <button class="preview-btn" style="background:#0984e3" onclick="setTheme('navy-blue')">深海藍</button>
-        <button class="preview-btn" style="background:#27ae60" onclick="setTheme('forest-green')">森林綠</button>
-        <button class="preview-btn" style="background:#6c5ce7" onclick="setTheme('royal-purple')">皇室紫</button>
-        <button class="preview-btn" style="background:#b89130" onclick="setTheme('soft-gold')">沉穩金</button>
-    </div>
-
-    <div class="card">
-        <div class="banner"></div>
-        <img id="user-photo" src="" class="avatar">
-        <div class="info">
-            <h1 id="user-name" class="name">連結同步中...</h1>
-            <p id="user-title" class="title"></p>
-            <a id="form-btn" href="https://forms.gle/GsoYTRfqP3iF6XJK9" target="_blank">✨ 立即申請製作名片</a>
-            <div id="user-slogan" class="slogan"></div>
-        </div>
-        <div id="qa-area" class="qa-section"></div>
-    </div>
-
-    <div id="generator-box">
-        <label>輸入 ID (試算表行號):</label>
-        <input type="number" id="input-id" value="2" style="width:100%; padding:10px; margin:5px 0;">
-        <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製名片網址</button>
-    </div>
-
-    <script>
-        // 已更新為您提供的試算表 ID
-        const SHEET_ID = '13g1hAwQ0HyRnzFEUWokbw-UID3sOBrWQs7qyOLD8ugM';
-        const params = new URLSearchParams(window.location.search);
-        const rowId = params.get('id');
-        const theme = params.get('theme') || 'warm-pink';
-
-        if (rowId) {
-            document.getElementById('preview-bar').style.display = 'none';
-            document.getElementById('generator-box').style.display = 'none';
-            document.getElementById('form-btn').style.display = 'none';
-            document.body.className = `theme-${theme}`;
-        }
-
-        function setTheme(t) { document.body.className = `theme-${t}`; }
-
-        function generateAndCopy() {
-            const id = document.getElementById('input-id').value;
-            const col = document.body.className.replace('theme-', '');
-            const baseUrl = window.location.href.split('?')[0];
-            const finalUrl = `${baseUrl}?id=${id}&theme=${col}`;
-            navigator.clipboard.writeText(finalUrl);
-            alert("✨ 網址已複製！請貼給客戶。");
-        }
-
-        async function init() {
-            const fetchId = rowId || document.getElementById('input-id').value || 2;
-            // 抓取第一張工作表
-            const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+        try {
+            const res = await fetch(url);
+            const data = await res.text();
             
-            try {
-                const res = await fetch(url);
-                const text = await res.text();
-                const json = JSON.parse(text.substring(47).slice(0, -2));
-                const row = json.table.rows[fetchId - 1].c;
+            // 將 CSV 格式轉為陣列
+            const rows = data.split('\n').map(row => row.split(','));
+            const targetRow = rows[fetchId - 1]; // 因為 CSV 第一行是標題，所以 fetchId 剛好對應行號
 
-                document.getElementById('user-name').innerText = row[1]?.v || '姓名';
-                document.getElementById('user-title').innerText = row[2]?.v || '職稱';
-                document.getElementById('user-slogan').innerText = row[3]?.v || '';
+            if(targetRow) {
+                // 根據您的欄位順序填入 (0:時間, 1:姓名, 2:職稱, 3:格言...)
+                document.getElementById('user-name').innerText = targetRow[1] || '姓名';
+                document.getElementById('user-title').innerText = targetRow[2] || '職稱';
+                document.getElementById('user-slogan').innerText = targetRow[3] || '';
                 
                 let qaHtml = '';
-                if(row[8]?.v) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${row[8].v}</span><p class="qa-a">${row[9]?.v || ''}</p></div>`;
-                if(row[10]?.v) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${row[10].v}</span><p class="qa-a">${row[11]?.v || ''}</p></div>`;
+                if(targetRow[8]) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${targetRow[8]}</span><p class="qa-a">${targetRow[9] || ''}</p></div>`;
+                if(targetRow[10]) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${targetRow[10]}</span><p class="qa-a">${targetRow[11] || ''}</p></div>`;
                 document.getElementById('qa-area').innerHTML = qaHtml;
                 
-                const photoId = row[12]?.v ? row[12].v.match(/[-\w]{25,}/) : null;
+                // 處理照片 (針對 Google Drive 連結轉為直連)
+                const photoLink = targetRow[12];
+                const photoId = photoLink ? photoLink.match(/[-\w]{25,}/) : null;
                 document.getElementById('user-photo').src = photoId ? `https://drive.google.com/uc?export=view&id=${photoId[0]}` : 'https://via.placeholder.com/130';
-            } catch (e) {
-                document.getElementById('user-name').innerText = "請檢查發佈權限";
             }
+        } catch (e) {
+            console.error("讀取失敗", e);
+            document.getElementById('user-name').innerText = "資料同步異常";
         }
-        init();
-    </script>
-</body>
-</html>
+    }
+    init();
+</script>
