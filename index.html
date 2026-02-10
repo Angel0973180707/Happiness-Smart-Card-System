@@ -6,14 +6,14 @@
     <title>幸福智慧名片協作工房</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        /* 核心穩定排版：防止字體忽大忽小 */
+        /* 視覺穩定排版：鎖定字級比例 */
         html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
         :root { --primary: #e17055; --bg: #fff5f5; }
         body { font-family: -apple-system, "Microsoft JhengHei", sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; transition: 0.4s; }
         
-        /* 預覽控制列 (僅展示模式) */
+        /* 展示模式工具列 */
         #preview-bar { width: 100%; max-width: 450px; background: #2c3e50; padding: 12px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
-        .preview-btn { border: none; color: #fff; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; min-width: 65px; }
+        .preview-btn { border: none; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; }
 
         /* 名片本體 */
         .card { background: white; width: 100%; max-width: 420px; box-shadow: 0 0 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; min-height: 100vh; }
@@ -22,20 +22,20 @@
         
         .info { text-align: center; padding: 0 20px 20px; }
         .name { font-size: 24px; font-weight: bold; margin: 10px 0 5px; color: #2d3436; }
-        .title { color: #636e72; font-size: 16px; margin-bottom: 15px; font-weight: 500; }
-        .slogan { font-size: 14px; font-style: italic; background: #f9f9f9; padding: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.6; margin: 10px 0; color: #444; }
+        .title { color: #636e72; font-size: 16px; margin-bottom: 15px; }
+        .slogan { font-size: 14px; font-style: italic; background: #f9f9f9; padding: 15px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.6; color: #444; }
 
-        /* Q&A 區塊：字級鎖定 */
+        /* Q&A 區塊：字級鎖定 14px，防止忽大忽小 */
         .qa-section { padding: 25px 20px; background: #fff; border-top: 8px solid #f1f2f6; }
         .qa-item { margin-bottom: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; }
         .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         .qa-a { font-size: 14px; color: #555; line-height: 1.8; white-space: pre-wrap; text-align: justify; margin: 0; }
 
-        /* 網址生成器 (僅展示模式) */
+        /* 網址生成器 */
         #generator-box { padding: 25px; background: #2d3436; color: white; width: 100%; max-width: 420px; box-sizing: border-box; }
         .input-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px; }
         input, select { padding: 12px; border-radius: 6px; border: none; font-size: 14px; }
-        .copy-btn { background: #fab1a0; color: #2d3436; padding: 15px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; }
+        .copy-btn { background: #fab1a0; color: #2d3436; padding: 15px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; width: 100%; }
 
         /* 10 種顏色主題 */
         .theme-warm-pink { --primary: #e17055; --bg: #fff5f5; }
@@ -51,7 +51,6 @@
     </style>
 </head>
 <body class="theme-warm-pink">
-
     <div id="preview-bar">
         <button class="preview-btn" style="background:#e17055" onclick="setTheme('warm-pink')">暖心粉</button>
         <button class="preview-btn" style="background:#1e3799" onclick="setTheme('navy-blue')">深海藍</button>
@@ -64,7 +63,7 @@
         <div class="banner"></div>
         <img id="user-photo" src="" class="avatar">
         <div class="info">
-            <h1 id="user-name" class="name">讀取中...</h1>
+            <h1 id="user-name" class="name">載入中...</h1>
             <p id="user-title" class="title"></p>
             <div id="user-slogan" class="slogan"></div>
         </div>
@@ -74,7 +73,7 @@
     <div id="generator-box">
         <p style="text-align:center; font-weight:bold; color:#fab1a0; margin-top:0;">📋 交付網址一鍵生成器</p>
         <div class="input-group">
-            <label>1. 客戶 ID (試算表列號):</label>
+            <label>1. 客戶 ID (列號):</label>
             <input type="number" id="input-id" value="2">
         </div>
         <div class="input-group">
@@ -85,6 +84,10 @@
                 <option value="forest-green">森林綠</option>
                 <option value="tiffany-blue">湖水藍</option>
                 <option value="soft-gold">沉穩金</option>
+                <option value="royal-purple">皇室紫</option>
+                <option value="classic-grey">經典灰</option>
+                <option value="vibrant-teal">活力翠</option>
+                <option value="deep-berry">莓果紫</option>
             </select>
         </div>
         <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製交付連結</button>
@@ -110,11 +113,11 @@
             const baseUrl = window.location.href.split('?')[0];
             const finalUrl = `${baseUrl}?id=${id}&theme=${col}`;
             navigator.clipboard.writeText(finalUrl);
-            alert("已複製連結！傳給客戶即可開啟專屬模式。");
+            alert("✨ 已產生交付連結！直接傳給客戶即可。");
         }
 
         async function init() {
-            const fetchId = rowId || 2; // 展示模式預設抓第 2 行
+            const fetchId = rowId || 2;
             const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&gid=681093399`;
             try {
                 const res = await fetch(url);
@@ -124,21 +127,16 @@
 
                 document.getElementById('user-name').innerText = row[1]?.v || '姓名';
                 document.getElementById('user-title').innerText = row[2]?.v || '職稱';
-                document.getElementById('user-slogan').innerText = row[3]?.v || '';
+                document.getElementById('user-slogan').innerText = row[3]?.v ? `「${row[3].v}」` : '';
                 
                 let qaHtml = '';
                 if(row[8]?.v) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${row[8].v}</span><p class="qa-a">${row[9]?.v || ''}</p></div>`;
                 if(row[10]?.v) qaHtml += `<div class="qa-item"><span class="qa-q">Q: ${row[10].v}</span><p class="qa-a">${row[11]?.v || ''}</p></div>`;
-                document.getElementById('qa-area').innerHTML = qaHtml || '您的專業問答將顯示在此。';
+                document.getElementById('qa-area').innerHTML = qaHtml || '您的專業 Q&A 將在此展現。';
                 
-                document.getElementById('user-photo').src = fixDriveUrl(row[12]?.v);
-            } catch (e) { console.log("讀取失敗"); }
-        }
-
-        function fixDriveUrl(url) {
-            if(!url) return "https://via.placeholder.com/130";
-            let id = url.match(/[-\w]{25,}/);
-            return id ? `https://drive.google.com/uc?export=view&id=${id[0]}` : url;
+                const photoId = row[12]?.v ? row[12].v.match(/[-\w]{25,}/) : null;
+                document.getElementById('user-photo').src = photoId ? `https://drive.google.com/uc?export=view&id=${photoId[0]}` : 'https://via.placeholder.com/130';
+            } catch (e) { console.error("資料載入失敗"); }
         }
 
         if ('serviceWorker' in navigator) {
