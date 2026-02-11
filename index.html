@@ -8,7 +8,6 @@
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; --dark: #2d3436; }
         
-        /* 1. 字體美化系統 */
         body { 
             font-family: 'Noto Sans TC', sans-serif; 
             margin: 0; background: var(--bg); color: var(--dark); 
@@ -32,7 +31,6 @@
         .theme-chocolate { --primary: #5d4037; --secondary: #8d6e63; }
         .theme-pure-black { --primary: #000000; --secondary: #434343; }
 
-        /* 樣板預覽工具 */
         .demo-controls { width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 25px; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
         .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
         .color-dot { height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
@@ -40,55 +38,65 @@
         .style-btn { padding: 10px 5px; border-radius: 12px; border: 1px solid #eee; font-size: 11px; font-weight: 700; cursor: pointer; background: #f9f9f9; }
         .style-btn.active { background: var(--dark); color: white; border-color: var(--dark); }
 
-        /* 🃏 名片主體美化 */
-        .card { background: white; width: 92%; max-width: 400px; border-radius: 40px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); position: relative; }
+        /* 🃏 名片主體 */
+        .card { 
+            background: white; width: 92%; max-width: 400px; border-radius: 40px; 
+            overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); 
+            position: relative; padding-bottom: 30px;
+        }
         
-        .banner-wrap { position: relative; height: 180px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
-        .banner-bg { position: absolute; width: 100%; height: 100px; background: white; transition: 0.5s; bottom: -1px; border-radius: 100px 100px 0 0; }
+        /* 玻璃質感的關鍵：背景層 */
+        .banner-wrap { position: relative; height: 190px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
+        .banner-bg { position: absolute; width: 100%; height: 110px; background: white; transition: 0.5s; bottom: -1px; border-radius: 100px 100px 0 0; }
         
         .style-spotlight .banner-wrap { background: white; }
-        .style-spotlight .banner-color-layer { position: absolute; top: 0; width: 100%; height: 130px; background: linear-gradient(135deg, var(--primary), var(--secondary)); clip-path: ellipse(90% 100% at 50% 0%); }
+        .style-spotlight .banner-color-layer { position: absolute; top: 0; width: 100%; height: 140px; background: linear-gradient(135deg, var(--primary), var(--secondary)); clip-path: ellipse(90% 100% at 50% 0%); }
         .style-spotlight .banner-bg { display: none; }
-        .style-flat .banner-bg { border-radius: 0; height: 60px; }
+        .style-flat .banner-bg { border-radius: 0; height: 65px; }
 
         .unit-tag { position: absolute; top: 15px; width: 100%; text-align: center; color: white; font-size: 13px; font-weight: 700; letter-spacing: 3px; z-index: 20; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-        /* 照片美化 - 加強陰影與邊框 */
-        .avatar-container { width: 115px; height: 115px; position: absolute; top: 48px; left: 50%; transform: translateX(-50%); z-index: 15; }
+        .avatar-container { width: 115px; height: 115px; position: absolute; top: 52px; left: 50%; transform: translateX(-50%); z-index: 15; }
         .avatar { 
             width: 100%; height: 100%; border-radius: 50%; 
             border: 6px solid white; object-fit: cover; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.02); 
-            background: #f0f0f0; transition: 0.3s;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
+            background: #f0f0f0;
         }
 
-        .info { text-align: center; padding: 45px 25px 15px; margin-top: 65px; }
+        .info { text-align: center; padding: 45px 25px 15px; margin-top: 75px; }
         .name { font-size: 28px; font-weight: 900; margin-bottom: 8px; letter-spacing: 1px; }
         .title { color: #636e72; font-size: 15px; line-height: 1.8; white-space: pre-wrap; font-weight: 400; }
 
-        /* 💡 內容框美化：淺色系 + 側邊立體框 */
+        /* ✨ 玻璃質感內容框 (Glassmorphism) */
         .content-box { 
-            font-size: 15px; background: color-mix(in srgb, var(--primary), white 93%); 
+            font-size: 15px; 
+            background: rgba(255, 255, 255, 0.7); /* 半透明白 */
+            backdrop-filter: blur(15px); /* 磨砂效果 */
+            -webkit-backdrop-filter: blur(15px);
             padding: 24px; border-radius: 25px; 
             border-left: 8px solid var(--primary); 
-            margin: 0 25px 25px; line-height: 1.8; 
+            border-top: 1px solid rgba(255,255,255,0.8); /* 玻璃亮邊 */
+            border-right: 1px solid rgba(255,255,255,0.3);
+            margin: 0 20px 25px; line-height: 1.8; 
             white-space: pre-wrap; text-align: left;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-            font-weight: 400;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
         }
 
-        .faq-box { margin: 0 25px 30px; }
-        .faq-q { font-weight: 700; color: var(--primary); display: block; margin-bottom: 8px; font-size: 16px; letter-spacing: 0.5px; }
+        .faq-box { margin: 0 20px 10px; }
+        .faq-q { font-weight: 700; color: var(--primary); display: block; margin-bottom: 8px; font-size: 16px; padding-left: 10px; }
         .faq-a { 
-            background: color-mix(in srgb, var(--primary), white 95%); 
+            background: rgba(255, 255, 255, 0.5); 
+            backdrop-filter: blur(10px);
             padding: 18px; border-radius: 20px; font-size: 14px; color: #2d3436; 
-            display: block; line-height: 1.7; border: 1px solid rgba(0,0,0,0.02);
+            display: block; line-height: 1.7; border: 1px solid rgba(255,255,255,0.5);
+            margin-bottom: 20px;
         }
 
         .form-cta-btn { 
             background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; 
-            text-decoration: none; font-weight: 700; margin-top: 10px; display: inline-block; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: 0.3s;
+            text-decoration: none; font-weight: 700; margin-top: 20px; display: inline-block; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
         .copyright { padding: 40px 0 20px; font-size: 11px; color: #bbb; text-align: center; width: 100%; }
     </style>
@@ -131,13 +139,14 @@
             <h1 id="user-name" class="name">李秀芳</h1>
             <div id="user-title" class="title">載入中...</div>
         </div>
+        
         <div id="user-slogan" class="content-box"></div>
         <div id="faq-area" class="faq-box"></div>
     </div>
 
     <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即訂製我的智能名片</a>
 
-    <div class="copyright">© 2026 天使幸福系統 | V54.0 質感美學版</div>
+    <div class="copyright">© 2026 天使幸福系統 | V55.0 琉璃光感版</div>
 
     <script>
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
@@ -162,22 +171,19 @@
                 const res = await fetch(url);
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(row => row.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                
-                // 優先尋找 ID 2 的資料
                 const d = rows.find(r => r[1] === "李秀芳") || rows[1]; 
                 if(d) {
                     document.getElementById('user-name').innerText = d[1];
                     document.getElementById('user-title').innerText = d[2];
                     document.getElementById('user-slogan').innerText = d[5];
                     
-                    // 強化版照片抓取
                     let pId = "";
-                    d.forEach(cell => { if(cell && cell.includes("id=")) { let m = cell.match(/id=([-\w]{25,})/); if(m) pId = m[1]; } else if(cell && cell.includes("drive.google.com/uc")) { let m = cell.match(/id=([-\w]{25,})/); if(m) pId = m[1]; } });
+                    d.forEach(cell => { if(cell && cell.includes("id=")) { let m = cell.match(/id=([-\w]{25,}/); if(m) pId = m[1]; } });
                     if(pId) document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId}`;
 
                     let qa = "";
-                    if(d[16]) qa += `<div style="margin-bottom:20px;"><b class="faq-q">❓ ${d[16]}</b><p class="faq-a">${d[17]}</p></div>`;
-                    if(d[18]) qa += `<div style="margin-bottom:20px;"><b class="faq-q">❓ ${d[18]}</b><p class="faq-a">${d[19]}</p></div>`;
+                    if(d[16]) qa += `<div><b class="faq-q">❓ ${d[16]}</b><p class="faq-a">${d[17]}</p></div>`;
+                    if(d[18]) qa += `<div><b class="faq-q">❓ ${d[18]}</b><p class="faq-a">${d[19]}</p></div>`;
                     document.getElementById('faq-area').innerHTML = qa;
                 }
             } catch (e) {}
