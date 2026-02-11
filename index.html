@@ -7,8 +7,6 @@
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
         body { font-family: 'PingFang TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; color: #2d3436; }
-        
-        /* 顏色主題 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
@@ -17,37 +15,27 @@
 
         #preview-bar { width: 100%; max-width: 500px; background: #2d3436; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
         .preview-btn { border: none; color: #fff; padding: 8px 0; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; }
-        
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; }
         .banner { height: 160px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); }
-        
-        #user-logo { position: absolute; top: 20px; right: 25px; width: 60px; height: 60px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1)); }
+        #user-logo { position: absolute; top: 20px; right: 25px; width: 60px; height: 60px; object-fit: contain; }
         .avatar-container { width: 140px; height: 140px; margin: -90px auto 10px; position: relative; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; }
         .info { text-align: center; padding: 0 25px 15px; }
-        .name { font-size: 30px; font-weight: 800; margin: 10px 0 5px; color: #2d3436; }
+        .name { font-size: 30px; font-weight: 800; margin: 10px 0 5px; }
         .title { color: #636e72; font-size: 16px; font-weight: 500; }
-        
         .contact-row { display: flex; justify-content: center; gap: 15px; padding: 0 25px 25px; }
-        .contact-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 20px; transition: 0.3s; background: #f1f2f6; }
-        .contact-circle:hover { transform: translateY(-3px); background: var(--secondary); color: white; }
-
+        .contact-circle { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 20px; background: #f1f2f6; transition: 0.3s; }
         .slogan { font-size: 15px; background: rgba(0,0,0,0.02); padding: 20px; border-radius: 20px; border-left: 6px solid var(--primary); text-align: left; line-height: 1.8; margin: 0 25px 25px; color: #444; }
-        
         .product-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 25px 25px; }
-        .product-img { width: 100%; aspect-ratio: 1/1; border-radius: 15px; object-fit: cover; background: #eee; border: 1px solid #f1f1f1; }
-
+        .product-img { width: 100%; aspect-ratio: 1/1; border-radius: 15px; object-fit: cover; background: #eee; }
         .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
         .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
         .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
         .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; white-space: pre-wrap; }
-
-        .back-nav { display: block; text-align: center; padding: 20px; background: #2d3436; color: white; text-decoration: none; font-weight: bold; transition: 0.3s; }
-        .back-nav:hover { background: var(--primary); }
-
-        #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; border-radius: 30px 30px 0 0; box-sizing: border-box; margin-top: 20px; }
-        .copy-btn { background: var(--secondary); color: #2d3436; padding: 18px; border-radius: 15px; border: none; font-weight: 800; width: 100%; cursor: pointer; font-size: 16px; }
+        .back-nav { display: block; text-align: center; padding: 20px; background: #2d3436; color: white; text-decoration: none; font-weight: bold; }
+        .ver-tag { font-size: 10px; color: #999; text-align: center; padding: 10px; }
+        #generator-box { padding: 30px; background: #2d3436; color: white; width: 100%; max-width: 420px; border-radius: 30px 30px 0 0; }
+        .copy-btn { background: var(--secondary); color: #2d3436; padding: 18px; border-radius: 15px; width: 100%; font-weight: bold; border: none; cursor: pointer; }
     </style>
 </head>
 <body class="theme-warm-pink">
@@ -63,29 +51,25 @@
         <img id="user-logo" src="" alt="">
         <div class="banner"></div>
         <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
-        
         <div class="info">
             <h1 id="user-name" class="name">載入中...</h1>
             <p id="user-title" class="title"></p>
         </div>
-
         <div class="contact-row">
             <a id="link-phone" href="" class="contact-circle">📞</a>
             <a id="link-line" href="" class="contact-circle" target="_blank">💬</a>
             <a id="link-email" href="" class="contact-circle">✉️</a>
         </div>
-
         <div id="user-slogan" class="slogan"></div>
-
         <div class="product-gallery" id="product-area"></div>
-
         <div id="qa-area" class="qa-section"></div>
         <a href="https://angel0973180707.github.io/Happiness-Smart-Card-System/" class="back-nav">📅 預約製作我的智慧名片</a>
+        <div class="ver-tag">Version 18.5 | 幸福教養概念館 </div>
     </div>
 
     <div id="generator-box">
         <label>輸入 ID (試算表行號):</label>
-        <input type="number" id="input-id" value="2" oninput="init()" style="width:100%; padding:15px; margin:10px 0; border-radius:12px; border:none; box-sizing:border-box;">
+        <input type="number" id="input-id" value="2" oninput="init()" style="width:100%; padding:15px; margin:10px 0; border-radius:12px; border:none;">
         <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製專屬名片網址</button>
     </div>
 
@@ -105,38 +89,28 @@
         function generateAndCopy() {
             const id = document.getElementById('input-id').value;
             const th = document.body.className.replace('theme-', '');
-            const baseUrl = window.location.origin + window.location.pathname;
-            const finalUrl = `${baseUrl}?id=${id}&theme=${th}`;
-            
+            const finalUrl = `${window.location.origin}${window.location.pathname}?id=${id}&theme=${th}`;
             const el = document.createElement('textarea');
-            el.value = finalUrl;
-            document.body.appendChild(el);
-            el.select();
-            document.execCommand('copy');
-            document.body.removeChild(el);
-            alert("✨ 專屬名片網址已複製！");
+            el.value = finalUrl; document.body.appendChild(el);
+            el.select(); document.execCommand('copy'); document.body.removeChild(el);
+            alert("✨ 網址已複製！");
         }
 
-        // 💡 強化版照片解析函數
-        function getDriveUrl(rawString) {
-            if (!rawString || rawString.trim() === "") return "";
-            // 處理多個連結，只取第一個
-            const firstPart = rawString.split(',')[0].trim();
-            const idMatch = firstPart.match(/[-\w]{25,}/);
+        function getDriveUrl(raw) {
+            if(!raw) return "";
+            const idMatch = raw.split(',')[0].match(/[-\w]{25,}/);
             return idMatch ? `https://drive.google.com/uc?export=view&id=${idMatch[0]}` : "";
         }
 
         async function init() {
             let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
-            
             try {
                 const res = await fetch(url);
                 const text = await res.text();
                 const lines = text.split(/\r?\n/);
                 const dataLines = lines.filter(l => l.includes("2026/")); 
                 const d = dataLines[fetchId - 2]?.split(',').map(c => c.replace(/^"|"$/g, '').trim());
-
                 if(d) {
                     document.getElementById('user-name').innerText = d[1];
                     document.getElementById('user-title').innerText = d[2];
@@ -144,35 +118,21 @@
                     document.getElementById('link-phone').href = `tel:${d[9]}`;
                     document.getElementById('link-email').href = `mailto:${d[10]}`;
                     document.getElementById('link-line').href = d[4] || "#";
-
-                    // 照片處理：個人照(d[6]), Logo(d[8])
-                    document.getElementById('user-photo').src = getDriveUrl(d[6]) || "https://via.placeholder.com/150?text=Wait+Photo";
-                    
-                    const logoUrl = getDriveUrl(d[8]);
-                    if(logoUrl) document.getElementById('user-logo').src = logoUrl;
-
-                    // 產品照片展示 (d[7])
+                    document.getElementById('user-photo').src = getDriveUrl(d[6]);
+                    const logo = getDriveUrl(d[8]); if(logo) document.getElementById('user-logo').src = logo;
                     const productArea = document.getElementById('product-area');
                     productArea.innerHTML = '';
-                    const productRaw = d[7] || "";
-                    // 如果有多個連結，用逗號拆分
-                    const pUrls = productRaw.split(',');
-                    pUrls.forEach(p => {
-                        const directUrl = getDriveUrl(p);
-                        if(directUrl) {
-                            const img = document.createElement('img');
-                            img.src = directUrl;
-                            img.className = 'product-img';
-                            productArea.appendChild(img);
+                    (d[7] || "").split(',').forEach(p => {
+                        const u = getDriveUrl(p); if(u) {
+                            const img = document.createElement('img'); img.src = u; img.className = 'product-img'; productArea.appendChild(img);
                         }
                     });
-
                     let qa = '';
                     if(d[17] && d[17].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
                     if(d[19] && d[19].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
                     document.getElementById('qa-area').innerHTML = qa;
                 }
-            } catch (e) { console.error("資料載入失敗", e); }
+            } catch (e) { console.error(e); }
         }
         init();
     </script>
