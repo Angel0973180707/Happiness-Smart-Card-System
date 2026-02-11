@@ -9,16 +9,16 @@
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; -webkit-font-smoothing: antialiased; }
 
-        /* 🏢 門面管理控制台 */
-        #admin-panel { width: 100%; background: white; text-align: center; padding: 25px 0; border-bottom: 1px solid #eee; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 15px; }
-        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        /* 🏢 門面控制面板 */
+        #admin-panel { width: 100%; background: white; text-align: center; padding: 20px 0; border-bottom: 1px solid #eee; margin-bottom: 20px; }
+        .picker-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .btn-style { padding: 8px 15px; border-radius: 12px; border: 1px solid #eee; font-size: 12px; cursor: pointer; background: white; font-weight: 700; }
         .btn-style.active { background: #2d3436; color: white; border-color: #2d3436; }
 
         /* 🃏 名片容器 */
         .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 40px 80px rgba(0,0,0,0.1); position: relative; margin-top: 40px; }
-        .avatar-wrap { width: 145px; height: 145px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+        .avatar-wrap { width: 145px; height: 145px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
 
         .banner { position: relative; height: 195px; background: linear-gradient(135deg, var(--p), var(--s)); border-radius: 50px 50px 0 0; z-index: 1; overflow: hidden; }
@@ -29,17 +29,16 @@
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.5); height: 105px; }
 
         .info { text-align: center; padding: 15px 25px; margin-top: 60px; }
-        .name { font-size: 26px; font-weight: 900; color: #222; margin-bottom: 8px; letter-spacing: 1px; }
-        .title { color: #555; font-size: 16px; font-weight: 700; line-height: 1.8; margin-bottom: 25px; white-space: pre-wrap; }
+        .name { font-size: 24px; font-weight: 900; color: #222; margin-bottom: 5px; }
+        .title { color: #666; font-size: 14px; font-weight: 700; margin-bottom: 25px; white-space: pre-wrap; }
 
         .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 25px 20px; }
         .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
         .btn-line-off { background: #06C755; color: white; grid-column: span 2; border: none; }
 
         .advantage { background: #fff; margin: 0 25px 30px; padding: 25px; border-radius: 35px; border-left: 10px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
-        .advantage h4 { margin: 0 0 12px 0; color: var(--s); font-size: 16px; font-weight: 900; }
-        .advantage li { font-size: 13px; color: #666; margin-bottom: 8px; list-style: none; text-align: left; line-height: 1.5; }
-        .btn-order { display: block; background: #f1c40f; color: #222; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; margin-top: 15px; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3); }
+        .advantage h4 { margin: 0 0 10px 0; color: var(--s); font-size: 16px; font-weight: 900; }
+        .btn-order { display: block; background: #f1c40f; color: #222; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; margin-top: 10px; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3); }
 
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s ease; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .work-content { padding: 30px; text-align: center; }
@@ -87,16 +86,14 @@
         </div>
         <div class="advantage">
             <h4>🚀 智慧名片優勢</h4>
-            <li>✨ <b>第一印象</b>：立體美學，展現品牌專業。</li>
-            <li>✨ <b>一鍵聯繫</b>：電話、LINE、郵件點擊即通。</li>
-            <li>✨ <b>雲端更新</b>：資料隨時更新，不需重新印製。</li>
+            <li style="font-size:12px; color:#888; list-style:none; margin-bottom:5px;">✨ 立體美學｜一鍵聯繫｜雲端更新</li>
             <a href="https://forms.gle/3X4pRqvoMX42Bwte7" target="_blank" class="btn-order">📝 填寫訂購資料</a>
         </div>
     </div>
 
     <div id="work-drawer">
         <div class="work-content">
-            <input type="text" id="work-id" class="work-input" placeholder="請輸入 ID (時間戳記)">
+            <input type="text" id="work-id" class="work-input" placeholder="請輸入序號 (ID)">
             <button class="work-btn" style="background:var(--p)" onclick="doPreview()">即時預覽成品</button>
             <button class="work-btn" style="background:#2ecc71" onclick="doCopy()">複製交付網址</button>
             <p onclick="document.getElementById('work-drawer').style.maxHeight='0'" style="cursor:pointer; color:#888; font-size:12px">關閉</p>
@@ -112,10 +109,10 @@
         let allRows = [];
         let isClient = false;
 
-        // 🚀 門面寫死資料
+        // 🚀 門面寫死資料 (簡化版)
         const MY_DATA = {
             name: "歡迎數位名片設計訂製",
-            title: "李秀芳 天使智慧名片設計師\n數位轉型顧問｜品牌行銷專家",
+            title: "智慧名片優勢",
             photo: "https://180707.github.io/167777.png", 
             lineOff: "https://lin.ee/2ac9Roe",
             tel: "0973180707",
@@ -175,19 +172,22 @@
                 const text = await res.text();
                 allRows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (targetId) renderFromSheet(targetId);
-            } catch(e) { console.error("Load Error", e); }
+            } catch(e) { console.error("Sheet Error", e); }
         }
 
         function renderFromSheet(idValue) {
             const d = allRows.find(r => r[0] === idValue);
             if(d) {
-                document.getElementById('u-name').innerText = d[1]; // 成品姓名 100% 讀表格
-                document.getElementById('u-title').innerText = d[2]; // 成品職稱 100% 讀表格
+                // 🚀 關鍵：這裡完全讀取試算表，不帶任何門面文字
+                document.getElementById('u-name').innerText = d[1];
+                document.getElementById('u-title').innerText = d[2];
                 
                 const match = d[6].match(/[-\w]{25,}/);
                 if(match) {
                     document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
                 }
+                
+                // 按鈕連動
                 const lOff = document.getElementById('link-line-off');
                 if(d[4]) { lOff.href = d[4]; lOff.style.display = 'block'; } else { lOff.style.display = 'none'; }
                 document.getElementById('link-tel').href = "tel:" + d[9];
