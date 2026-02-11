@@ -13,7 +13,7 @@
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        /* 🎨 十種旗艦配色 */
+        /* 十款配色樣板 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
@@ -39,11 +39,26 @@
         .advantage-item { font-size: 15px; color: #444; margin-bottom: 10px; display: flex; align-items: flex-start; }
         .advantage-item::before { content: "✅"; margin-right: 8px; }
 
-        /* 名片與後台 */
+        /* 名片本體樣式 */
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); display: none; }
-        #admin-panel { display: none; width: 92%; max-width: 400px; background: #2d3436; color: white; padding: 25px; border-radius: 30px; margin-bottom: 30px; }
-        .admin-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: none; }
-        .copy-btn { background: var(--secondary); color: #2d3436; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; border: none; cursor: pointer; }
+        .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); }
+        .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; }
+        
+        .info { text-align: center; padding: 0 25px 20px; }
+        .name { font-size: 28px; font-weight: 800; margin: 5px 0; color: #2d3436; }
+        .title { color: #636e72; font-size: 15px; margin-bottom: 20px; }
+        .slogan { font-size: 14px; background: rgba(0,0,0,0.03); padding: 18px; border-radius: 20px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; color: #444; margin: 0 25px 20px; }
+
+        .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
+        .qa-item { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #eee; }
+        .qa-q { font-size: 14px; font-weight: bold; color: var(--primary); margin-bottom: 5px; display: block; }
+        .qa-a { font-size: 13px; color: #555; line-height: 1.6; margin: 0; white-space: pre-wrap; }
+
+        /* 隱形後台 */
+        #admin-panel { display: none; width: 92%; max-width: 400px; background: #2d3436; color: white; padding: 25px; border-radius: 30px; margin-bottom: 30px; box-sizing: border-box; }
+        .admin-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: none; font-size: 16px; }
+        .copy-btn { background: var(--secondary); color: #2d3436; padding: 15px; border-radius: 12px; border: none; font-weight: 800; width: 100%; cursor: pointer; }
         
         .copyright { font-size: 11px; color: #ccc; margin: 30px 0; cursor: pointer; text-align: center; }
         .back-nav-btn { display:block; text-align:center; padding:20px; background:#2d3436; color:white; text-decoration:none; font-weight:bold; }
@@ -80,16 +95,14 @@
     </div>
 
     <div class="card" id="main-card">
-        <div style="height:140px; background:linear-gradient(180deg, var(--primary), var(--secondary)); clip-path:polygon(0 0, 100% 0, 100% 85%, 0% 100%);"></div>
-        <div style="width:130px; height:130px; margin:-75px auto 10px; position:relative;">
-            <img id="user-photo" src="" style="width:100%; height:100%; border-radius:50%; border:6px solid white; object-fit:cover; background:#eee;">
+        <div class="banner"></div>
+        <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
+        <div class="info">
+            <h1 id="user-name" class="name">載入中...</h1>
+            <p id="user-title" class="title"></p>
         </div>
-        <div style="text-align:center; padding:0 25px 20px;">
-            <h1 id="user-name" style="font-size:28px; font-weight:800; margin:10px 0 5px;">載入中...</h1>
-            <p id="user-title" style="color:#636e72; font-size:15px;"></p>
-        </div>
-        <div id="user-slogan" style="font-size:14px; background:rgba(0,0,0,0.03); padding:18px; border-radius:20px; border-left:5px solid var(--primary); margin:0 25px 20px;"></div>
-        <div id="qa-area" style="padding:20px; background:#fafafa; border-top:1px solid #eee;"></div>
+        <div id="user-slogan" class="slogan"></div>
+        <div id="qa-area" class="qa-section"></div>
         <a href="index.html" class="back-nav-btn">📅 預約製作我的智能名片</a>
     </div>
 
@@ -115,4 +128,53 @@
 
         function toggleAdmin() {
             const panel = document.getElementById('admin-panel');
-            panel.style.display = (panel.style.display === 'none') ? '
+            panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+            document.getElementById('main-card').style.display = 'block';
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function setTheme(t) { document.body.className = `theme-${t}`; }
+
+        function generateAndCopy() {
+            const id = document.getElementById('input-id').value;
+            const th = document.body.className.replace('theme-', '');
+            const finalUrl = `${window.location.protocol}//${window.location.host}${window.location.pathname}?id=${id}&theme=${th}`;
+            const textArea = document.createElement("textarea");
+            textArea.value = finalUrl; document.body.appendChild(textArea);
+            textArea.select(); document.execCommand('copy'); document.body.removeChild(textArea);
+            alert("✨ 智能名片專屬網址已複製成功！");
+        }
+
+        async function init() {
+            let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
+            // 💡 修正 1：對接正確的 Google Sheets CSV 導出網址
+            const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
+            
+            try {
+                const res = await fetch(url);
+                const text = await res.text();
+                // 💡 修正 2：確保只抓取包含 2026 年份的資料列，避免標題行干擾
+                const dataLines = text.split(/\r?\n/).filter(l => l.includes("2026/")); 
+                const d = dataLines[fetchId - 2]?.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+
+                if(d) {
+                    document.getElementById('user-name').innerText = d[1] || '姓名';
+                    document.getElementById('user-title').innerText = d[2] || '職稱';
+                    document.getElementById('user-slogan').innerText = d[5] || '';
+                    
+                    // 💡 照片直連處理
+                    const m = (d[6] || "").match(/[-\w]{25,}/);
+                    document.getElementById('user-photo').src = m ? `https://drive.google.com/uc?export=view&id=${m[0]}` : "";
+                    
+                    // 💡 QA 區塊對位 (17, 18, 19, 20)
+                    let qa = '';
+                    if(d[17]) qa += `<div class="qa-item"><b class="qa-q">Q: ${d[17]}</b><p class="qa-a">${d[18]}</p></div>`;
+                    if(d[19]) qa += `<div class="qa-item"><b class="qa-q">Q: ${d[19]}</b><p class="qa-a">${d[20]}</p></div>`;
+                    document.getElementById('qa-area').innerHTML = qa;
+                }
+            } catch (e) { console.error("資料載入失敗", e); }
+        }
+        init();
+    </script>
+</body>
+</html>
