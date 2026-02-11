@@ -9,14 +9,12 @@
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; -webkit-font-smoothing: antialiased; }
 
-        /* 🏢 門面管理控制台 */
-        #admin-panel { width: 100%; background: white; text-align: center; padding: 20px 0; border-bottom: 1px solid #eee; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
-        .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 15px; }
-        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        #admin-panel { width: 100%; background: white; text-align: center; padding: 20px 0; border-bottom: 1px solid #eee; margin-bottom: 20px; }
+        .picker-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .btn-style { padding: 8px 15px; border-radius: 12px; border: 1px solid #eee; font-size: 12px; cursor: pointer; background: white; font-weight: 700; }
         .btn-style.active { background: #2d3436; color: white; border-color: #2d3436; }
 
-        /* 🃏 名片容器 */
         .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 40px 80px rgba(0,0,0,0.1); position: relative; margin-top: 40px; }
         .avatar-wrap { width: 145px; height: 145px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
@@ -29,26 +27,25 @@
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.5); height: 105px; }
 
         .info { text-align: center; padding: 15px 25px; margin-top: 60px; }
-        /* 🚀 解決斷字與字縮小：使用動態縮放並限制寬度 */
-        .name { font-size: 22px; font-weight: 900; color: #222; margin-bottom: 8px; letter-spacing: 0.5px; line-height: 1.3; overflow-wrap: break-word; }
+        .name { font-size: 22px; font-weight: 900; color: #222; margin-bottom: 8px; line-height: 1.2; }
         .title { color: #555; font-size: 15px; font-weight: 700; line-height: 1.6; margin-bottom: 25px; white-space: pre-wrap; }
 
         .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 25px 20px; }
         .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
-        .btn-line-off { background: #06C755; color: white; grid-column: span 2; border: none; }
+        .btn-line-off { background: #06C755 !important; color: white !important; grid-column: span 2; border: none; }
 
         .section-box { background: #fff; margin: 0 25px 20px; padding: 20px; border-radius: 25px; border-left: 8px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); display: none; }
         .section-box h4 { margin: 0 0 10px 0; color: var(--s); font-size: 15px; font-weight: 900; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .section-box p { font-size: 13px; color: #555; line-height: 1.7; margin: 0; white-space: pre-wrap; }
 
-        .btn-order { display: block; background: #f1c40f; color: #222; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; margin: 15px 25px 30px; text-align: center; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3); }
+        .btn-order { display: block; background: #f1c40f; color: #222; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; margin: 15px 25px 30px; text-align: center; }
 
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s ease; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .work-content { padding: 30px; text-align: center; }
-        .work-input { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 15px; text-align: center; }
+        .work-input { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 15px; }
         .work-btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: 900; cursor: pointer; color: white; margin-bottom: 10px; }
 
-        .footer { font-size: 11px; color: #ccc; margin-top: 50px; text-align: center; padding: 20px; cursor: pointer; user-select: none; }
+        .footer { font-size: 11px; color: #ccc; margin-top: 50px; text-align: center; padding: 20px; cursor: pointer; }
 
         .warm-pink { --p: #ff7675; --s: #d63031; }
         .aurora-blue { --p: #00d2ff; --s: #3a7bd5; }
@@ -75,18 +72,18 @@
     </div>
 
     <div class="card">
-        <div class="avatar-wrap"><img id="u-img" src="https://raw.githubusercontent.com/180707/180707.github.io/main/167777.png" class="avatar" onerror="this.src='https://180707.github.io/167777.png'"></div>
+        <div class="avatar-wrap"><img id="u-img" src="https://180707.github.io/167777.png" class="avatar" onerror="this.src='https://raw.githubusercontent.com/180707/180707.github.io/main/167777.png'"></div>
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="info">
-            <h1 id="u-name" class="name">天使幸福智慧名片系統</h1>
-            <div id="u-title" class="title">優質智慧名片</div>
+            <h1 id="u-name" class="name">載入中...</h1>
+            <div id="u-title" class="title"></div>
         </div>
         
         <div class="actions">
-            <a href="#" id="link-line-off" class="act-btn btn-line-off">✅ LINE 官方帳號</a>
-            <a href="#" id="link-tel" class="act-btn">📞 一鍵電話</a>
-            <a href="#" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
-            <a href="#" id="link-line-p" class="act-btn" style="grid-column: span 2;">💬 LINE 私訊找我</a>
+            <a href="javascript:void(0)" id="link-line-off" class="act-btn btn-line-off">✅ LINE 官方帳號</a>
+            <a href="javascript:void(0)" id="link-tel" class="act-btn">📞 一鍵電話</a>
+            <a href="javascript:void(0)" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
+            <a href="javascript:void(0)" id="link-line-p" class="act-btn" style="grid-column: span 2;">💬 LINE 私訊找我</a>
         </div>
 
         <div id="client-content">
@@ -108,7 +105,6 @@
             <input type="text" id="work-id" class="work-input" placeholder="請輸入序號 (ID)">
             <button class="work-btn" style="background:var(--p)" onclick="doPreview()">即時預覽成品</button>
             <button class="work-btn" style="background:#2ecc71" onclick="doCopy()">複製交付網址</button>
-            <p onclick="document.getElementById('work-drawer').style.maxHeight='0'" style="cursor:pointer; color:#888; font-size:12px">關閉</p>
         </div>
     </div>
 
@@ -120,7 +116,7 @@
         const MY_DATA = { 
             name: "天使幸福智慧名片系統", 
             title: "優質智慧名片", 
-            photo: "https://raw.githubusercontent.com/180707/180707.github.io/main/167777.png", 
+            photo: "https://180707.github.io/167777.png", 
             lineOff: "https://lin.ee/2ac9Roe", 
             tel: "0973180707", 
             mail: "a0973180707@gmail.com", 
@@ -129,7 +125,7 @@
 
         function setTheme(t) { document.body.className = t + ' style-' + curStyle; curTheme = t; }
         function setStyle(s, btn) { curStyle = s; document.body.className = curTheme + ' style-' + s; document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
-        function handleFooterClick() { if (isClient) return; clicks++; if(clicks >= 3) { const d = document.getElementById('work-drawer'); d.style.maxHeight = d.style.maxHeight === '450px' ? '0' : '450px'; clicks = 0; } setTimeout(() => clicks = 0, 1000); }
+        function handleFooterClick() { if (isClient) return; clicks++; if(clicks >= 3) { document.getElementById('work-drawer').style.maxHeight = '450px'; clicks = 0; } setTimeout(() => clicks = 0, 1000); }
 
         async function init() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -176,33 +172,29 @@
                 document.getElementById('u-name').innerText = d[1];
                 document.getElementById('u-title').innerText = d[2];
                 if (d[6]) {
-                    const imgIdMatch = d[6].match(/[-\w]{25,}/);
-                    if(imgIdMatch) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + imgIdMatch[0];
+                    const imgMatch = d[6].match(/[-\w]{25,}/);
+                    if(imgMatch) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + imgMatch[0];
                 }
-                const lOff = document.getElementById('link-line-off');
-                if(d[4]) { lOff.href = d[4]; lOff.style.display = 'block'; } else { lOff.style.display = 'none'; }
+                document.getElementById('link-line-off').href = d[4] || "javascript:void(0)";
                 document.getElementById('link-tel').href = "tel:" + d[9];
                 document.getElementById('link-mail').href = "mailto:" + d[10];
-                const lP = document.getElementById('link-line-p');
-                if(d[14]) { lP.href = d[14]; lP.style.display = 'block'; } else { lP.style.display = 'none'; }
+                document.getElementById('link-line-p').href = d[14] || "javascript:void(0)";
                 
                 if(d[15]) {
                     document.getElementById('box-1').style.display = 'block';
                     document.getElementById('q1-title').innerText = "💡 " + d[15];
                     document.getElementById('q1-ans').innerText = d[16];
-                } else { document.getElementById('box-1').style.display = 'none'; }
-                
+                }
                 if(d[17]) {
                     document.getElementById('box-2').style.display = 'block';
                     document.getElementById('q2-title').innerText = "💡 " + d[17];
                     document.getElementById('q2-ans').innerText = d[18];
-                } else { document.getElementById('box-2').style.display = 'none'; }
+                }
             }
         }
 
         function doPreview() { const id = document.getElementById('work-id').value; if(id) renderFromSheet(id); }
-        function doCopy() { const id = document.getElementById('work-id').value; if(!id) return alert("請輸入 ID"); const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}`; navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 已複製交付連結！")); }
-        
+        function doCopy() { const id = document.getElementById('work-id').value; if(!id) return alert("請輸入 ID"); navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}`).then(() => alert("✅ 已複製！")); }
         init();
     </script>
 </body>
