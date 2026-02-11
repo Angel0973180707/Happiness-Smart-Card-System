@@ -8,18 +8,18 @@
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; --dark: #2d3436; }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); color: var(--dark); display: flex; flex-direction: column; align-items: center; }
 
-        /* 頂部門面 - 解決斷字問題 */
-        .hero-section { width: 100%; background: white; text-align: center; padding: 30px 15px; box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        /* 頂部門面 */
+        .hero-section { width: 100%; background: white; text-align: center; padding: 30px 15px; box-sizing: border-box; shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .logo-img { width: 100px; height: 100px; border-radius: 25px; object-fit: cover; margin-bottom: 12px; }
         .hero-title { font-size: 22px; font-weight: 800; margin: 5px 0; letter-spacing: 0.5px; word-break: keep-all; }
         .hero-subtitle { color: #666; font-size: 14px; margin-top: 5px; }
         
         /* 核心聯繫區 */
         .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 92%; max-width: 450px; margin: 20px 0; }
-        .action-btn { text-decoration: none; background: white; padding: 12px 2px; border-radius: 15px; text-align: center; border: 1px solid #eee; transition: 0.2s; }
+        .action-btn { text-decoration: none; background: white; padding: 12px 2px; border-radius: 15px; text-align: center; border: 1px solid #eee; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
         .btn-icon { font-size: 20px; display: block; margin-bottom: 3px; }
         .btn-label { font-size: 12px; font-weight: bold; color: var(--dark); }
-        .wechat-btn { grid-column: span 3; background: #27ae60; border: none; padding: 12px; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .wechat-btn { grid-column: span 3; background: #27ae60; border: none; padding: 12px; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(39,174,96,0.2); }
 
         /* 優勢清單 */
         .advantage-section { width: 92%; max-width: 450px; background: var(--dark); color: white; padding: 25px; border-radius: 25px; margin-bottom: 30px; box-sizing: border-box; }
@@ -33,20 +33,31 @@
         .color-dot { height: 30px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
 
         /* 名片區 */
+        .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
+        .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
+        .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
+        .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
+        .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
+
         .card { background: white; width: 92%; max-width: 400px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .banner { height: 110px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); }
         .avatar-container { width: 110px; height: 110px; margin: -65px auto 10px; position: relative; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; }
         .info { text-align: center; padding: 0 25px 15px; }
-        .slogan { font-size: 13px; background: #f8f9fa; padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); margin: 0 25px 20px; line-height: 1.6; white-space: pre-wrap; }
+        .slogan { font-size: 13px; background: #f8f9fa; padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); margin: 0 25px 20px; line-height: 1.6; white-space: pre-wrap; text-align: left; }
 
         /* 填寫資料鍵 */
         .form-cta-btn { background: var(--dark); color: white; padding: 18px 40px; border-radius: 35px; text-decoration: none; font-weight: bold; display: inline-block; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin: 10px 0 40px; }
 
-        /* 後台 */
+        /* 隱藏入口與版權 */
+        .copyright { padding: 30px 0; font-size: 11px; color: #bbb; cursor: pointer; text-align: center; width: 100%; }
         #admin-panel { display: none; width: 92%; max-width: 400px; background: #ddd; padding: 25px; border-radius: 20px; margin-bottom: 40px; }
-        .copyright { padding: 30px 0; font-size: 11px; color: #bbb; cursor: pointer; text-align: center; }
+        .admin-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #ccc; box-sizing: border-box; }
+        .copy-btn { background: var(--primary); color: white; padding: 15px; border-radius: 12px; width: 100%; border: none; font-weight: bold; cursor: pointer; }
+
+        /* 微信 QR 遮罩 */
         #qr-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center; flex-direction:column; color:white; }
+        .qr-img { width: 250px; border-radius: 15px; margin-bottom: 20px; border: 5px solid white; }
     </style>
 </head>
 <body class="theme-warm-pink">
@@ -105,16 +116,17 @@
     <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即填寫資料訂製</a>
 
     <div id="admin-panel">
-        <input type="number" id="input-id" value="2" oninput="init()" class="admin-input" placeholder="ID">
+        <h3 style="margin:0 0 10px 0;">🛠️ 製作後台</h3>
+        <input type="number" id="input-id" value="2" oninput="init()" class="admin-input" placeholder="輸入 ID">
         <button class="copy-btn" onclick="generateAndCopy()">🔗 產生交貨連結</button>
     </div>
 
     <div class="copyright" onclick="handleSecretEntry()">
-        © 2026 天使幸福智能名片系統 | 隱藏入口
+        © 2026 天使幸福智能名片系統 | 幸福天使 V43.0
     </div>
 
     <div id="qr-overlay" onclick="this.style.display='none'">
-        <img src="https://drive.google.com/uc?export=view&id=1kmsj68l3uKu-CC_xJqFS8aE7mv4ESlGj" style="width:250px; border-radius:15px; margin-bottom:20px; border: 5px solid white;">
+        <img src="mmqrcode1770777103365.png" class="qr-img">
         <p>點擊任何處關閉</p>
     </div>
 
