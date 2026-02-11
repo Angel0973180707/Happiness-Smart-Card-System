@@ -8,139 +8,179 @@
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; --dark: #2d3436; }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); color: var(--dark); display: flex; flex-direction: column; align-items: center; padding-bottom: 60px; }
 
-        /* 門面區 */
-        .hero-section { width: 100%; background: white; text-align: center; padding: 25px 15px; box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .logo-img { width: 80px; height: 80px; border-radius: 20px; object-fit: cover; }
-        .hero-title { font-size: 20px; font-weight: 800; margin: 10px 0 5px; }
+        /* 頂部門面 */
+        .hero-section { width: 100%; background: white; text-align: center; padding: 25px 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .logo-img { width: 90px; height: 90px; border-radius: 20px; object-fit: cover; margin-bottom: 10px; }
+        .hero-title { font-size: 20px; font-weight: 800; margin: 5px 0; }
         
-        /* 配色主題 - 飽滿漸層 */
-        .theme-暖心粉 { --primary: #ff7675; --secondary: #e17055; }
-        .theme-深海藍 { --primary: #0984e3; --secondary: #00cec9; }
-        .theme-森林綠 { --primary: #26ae60; --secondary: #1abc9c; }
-        .theme-柔和金 { --primary: #d4af37; --secondary: #f1c40f; }
-        .theme-湖水藍 { --primary: #00b894; --secondary: #55efc4; }
+        /* 聯繫區 */
+        .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 92%; max-width: 450px; margin: 20px 0; }
+        .action-btn { text-decoration: none; background: white; padding: 12px 2px; border-radius: 15px; text-align: center; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .btn-label { font-size: 12px; font-weight: bold; display: block; margin-top: 5px; }
+        .wechat-btn { grid-column: span 3; background: #27ae60; color: white; border: none; padding: 12px; border-radius: 15px; font-weight: bold; cursor: pointer; }
 
-        /* 版型控制 */
-        .card { background: white; width: 92%; max-width: 400px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.12); margin-top: 25px; }
-        .banner { height: 140px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
+        /* 四大優勢區 - 務必保留 */
+        .advantage-section { width: 92%; max-width: 450px; background: var(--dark); color: white; padding: 25px; border-radius: 25px; margin-bottom: 25px; box-sizing: border-box; }
+        .adv-title { font-size: 18px; margin-bottom: 15px; text-align: center; color: var(--secondary); }
+        .adv-item { margin-bottom: 12px; display: flex; align-items: center; font-size: 14px; }
+        .adv-item i { margin-right: 10px; font-style: normal; }
+
+        /* 十色與版型切換 */
+        .demo-controls { width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; margin-bottom: 25px; }
+        .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
+        .color-dot { height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
+        .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .style-btn { padding: 8px; border-radius: 10px; border: 1px solid #eee; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .style-btn.active { background: var(--dark); color: white; }
+
+        /* 十色漸層定義 */
+        .theme-warm-pink { --primary: #ff7675; --secondary: #e17055; }
+        .theme-navy-blue { --primary: #0984e3; --secondary: #00cec9; }
+        .theme-forest-green { --primary: #26ae60; --secondary: #1abc9c; }
+        .theme-soft-gold { --primary: #d4af37; --secondary: #f1c40f; }
+        .theme-tiffany-blue { --primary: #00b894; --secondary: #55efc4; }
+        .theme-royal-purple { --primary: #6c5ce7; --secondary: #a29bfe; }
+        .theme-rose-red { --primary: #d63031; --secondary: #ff7675; }
+        .theme-modern-grey { --primary: #2d3436; --secondary: #636e72; }
+        .theme-chocolate { --primary: #5d4037; --secondary: #8d6e63; }
+        .theme-pure-black { --primary: #000000; --secondary: #434343; }
+
+        /* 樣板名片區 */
+        .card { background: white; width: 92%; max-width: 400px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .banner { height: 140px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s ease; }
         
-        /* 1. 斜切型 */
+        /* 版型切換邏輯 */
         .style-slanted .banner { clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
-        /* 2. 拱門型 */
-        .style-arch .banner { clip-path: ellipse(80% 100% at 50% 0%); }
-        /* 3. 平直型 */
-        .style-flat .banner { clip-path: none; height: 120px; }
+        .style-arch .banner { clip-path: ellipse(100% 100% at 50% 0%); } /* ✨ 正拱門改正 */
+        .style-flat .banner { clip-path: none; height: 110px; }
 
         .avatar-container { width: 120px; height: 120px; margin: -75px auto 10px; position: relative; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; }
-        
         .info { text-align: center; padding: 0 25px 15px; }
-        .slogan { font-size: 14px; background: #fcfcfc; padding: 20px; border-radius: 20px; border-left: 6px solid var(--primary); margin: 0 25px 20px; line-height: 1.7; white-space: pre-wrap; text-align: left; }
+        .slogan { font-size: 14px; background: #fcfcfc; padding: 20px; border-radius: 20px; border-left: 6px solid var(--primary); margin: 0 25px 25px; line-height: 1.7; white-space: pre-wrap; text-align: left; }
+        .faq-area { padding: 0 25px 30px; font-size: 13px; }
 
-        /* FAQ 區塊 */
-        .faq-section { padding: 0 25px 30px; }
-        .faq-item { margin-bottom: 15px; }
-        .faq-q { font-weight: bold; color: var(--primary); font-size: 15px; margin-bottom: 5px; display: block; }
-        .faq-a { font-size: 13px; color: #555; line-height: 1.6; background: #f0f0f0; padding: 12px; border-radius: 10px; display: block; }
-
-        /* 控制按鈕 */
-        .demo-controls { width: 92%; max-width: 400px; margin-top: 20px; text-align: center; background: white; padding: 15px; border-radius: 20px; }
-        .btn-group { display: flex; justify-content: space-around; margin-top: 10px; }
-        .style-btn { padding: 8px 15px; border-radius: 10px; border: 1px solid #ddd; font-size: 12px; cursor: pointer; }
-        .style-btn.active { background: var(--dark); color: white; }
-
-        .form-cta-btn { background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; text-decoration: none; font-weight: bold; margin-top: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        .form-cta-btn { background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; text-decoration: none; font-weight: bold; display: inline-block; box-shadow: 0 10px 20px rgba(0,0,0,0.15); margin-top: 30px; }
+        .copyright { padding: 40px 0 20px; font-size: 11px; color: #bbb; cursor: pointer; text-align: center; width: 100%; }
+        #qr-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center; }
     </style>
 </head>
-<body class="theme-暖心粉 style-slanted">
+<body class="theme-warm-pink style-arch">
 
     <div class="hero-section">
         <img src="167777.png" class="logo-img">
         <h1 class="hero-title">天使幸福智能名片系統</h1>
     </div>
 
+    <div class="action-grid">
+        <a href="https://line.me/ti/p/VqJzbWHm_4" class="action-btn">💬<span class="btn-label">一鍵 LINE</span></a>
+        <a href="tel:0973180707" class="action-btn">📞<span class="btn-label">一鍵電話</span></a>
+        <a href="mailto:a0973180707@gmail.com" class="action-btn">✉️<span class="btn-label">一鍵郵箱</span></a>
+        <button class="wechat-btn" onclick="document.getElementById('qr-overlay').style.display='flex'">微信聯繫 QR Code</button>
+    </div>
+
+    <div class="advantage-section">
+        <div class="adv-title">✨ 智能名片專屬優勢</div>
+        <div class="adv-item"><i>🚀</i> 秒速安裝：無需 App，點擊即存桌面</div>
+        <div class="adv-item"><i>🔄</i> 同步更新：資料異動，客戶端即時生效</div>
+        <div class="adv-item"><i>📊</i> 高效轉換：內建 LINE/電話一鍵通</div>
+        <div class="adv-item"><i>💎</i> 品牌形象：數位化商務交流最前線</div>
+    </div>
+
     <div class="demo-controls">
-        <span style="font-size: 12px; color: #999;">手動測試版型切換：</span>
-        <div class="btn-group">
-            <div class="style-btn active" onclick="updateStyle('slanted', this)">斜切型</div>
-            <div class="style-btn" onclick="updateStyle('arch', this)">拱門型</div>
-            <div class="style-btn" onclick="updateStyle('flat', this)">平直型</div>
+        <span style="font-size:12px; color:#999; display:block; margin-bottom:10px;">—— 樣板即時預覽與配色 ——</span>
+        <div class="color-grid">
+            <div onclick="setTheme('warm-pink')" class="color-dot" style="background:#ff7675"></div>
+            <div onclick="setTheme('navy-blue')" class="color-dot" style="background:#0984e3"></div>
+            <div onclick="setTheme('forest-green')" class="color-dot" style="background:#26ae60"></div>
+            <div onclick="setTheme('soft-gold')" class="color-dot" style="background:#d4af37"></div>
+            <div onclick="setTheme('tiffany-blue')" class="color-dot" style="background:#00b894"></div>
+            <div onclick="setTheme('royal-purple')" class="color-dot" style="background:#6c5ce7"></div>
+            <div onclick="setTheme('rose-red')" class="color-dot" style="background:#d63031"></div>
+            <div onclick="setTheme('modern-grey')" class="color-dot" style="background:#636e72"></div>
+            <div onclick="setTheme('chocolate')" class="color-dot" style="background:#5d4037"></div>
+            <div onclick="setTheme('pure-black')" class="color-dot" style="background:#2d3436"></div>
+        </div>
+        <div class="style-grid">
+            <button class="style-btn" onclick="setStyle('slanted', this)">📐 斜切型</button>
+            <button class="style-btn active" onclick="setStyle('arch', this)">🏛️ 拱門型</button>
+            <button class="style-btn" onclick="setStyle('flat', this)">📏 平直型</button>
         </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="main-card">
         <div class="banner"></div>
         <div class="avatar-container"><img id="user-photo" src="167777.png" class="avatar"></div>
         <div class="info">
-            <h1 id="user-name" style="margin:5px 0; font-size:26px;">載入中...</h1>
-            <div id="user-title" style="font-size:15px; color:#666; line-height:1.6; white-space:pre-wrap;"></div>
+            <h1 id="user-name" style="margin:5px 0; font-size:26px;">天使笑長</h1>
+            <div id="user-title" style="font-size:15px; color:#666; line-height:1.6; white-space:pre-wrap;">載入中...</div>
         </div>
         <div id="user-slogan" class="slogan"></div>
-        
-        <div class="faq-section" id="faq-area">
-            <div class="faq-item">
-                <span class="faq-q" id="q1-title"></span>
-                <span class="faq-a" id="a1-text"></span>
-            </div>
-            <div class="faq-item">
-                <span class="faq-q" id="q2-title"></span>
-                <span class="faq-a" id="a2-text"></span>
-            </div>
-        </div>
+        <div id="faq-area" class="faq-area"></div>
     </div>
 
     <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即訂製智能名片</a>
 
-    <div class="copyright">© 2026 天使幸福 | 數據聯動 V47.0</div>
+    <div class="copyright">© 2026 天使幸福系統 | V48.0</div>
+
+    <div id="qr-overlay" onclick="this.style.display='none'">
+        <img src="mmqrcode1770777103365.png" style="width:250px; border-radius:15px; border:5px solid white;">
+    </div>
 
     <script>
-        const PUB_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB/pub?gid=681093399&single=true&output=csv';
-        
-        function updateStyle(s, btn) {
-            document.body.classList.remove('style-slanted', 'style-arch', 'style-flat');
-            document.body.classList.add('style-' + s);
+        const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
+        const params = new URLSearchParams(window.location.search);
+        const rowId = params.get('id') || "2";
+
+        function setTheme(t) { 
+            const s = document.body.className.split(' ').find(c => c.startsWith('style-'));
+            document.body.className = `theme-${t} ${s}`; 
+        }
+
+        function setStyle(s, btn) {
+            const t = document.body.className.split(' ').find(c => c.startsWith('theme-'));
+            document.body.className = `${t} style-${s}`;
             document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
-            if(btn) btn.classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function parseCSV(text) {
+            const result = [];
+            let row = [''], quote = false;
+            for (let char of text) {
+                if (char === '"') quote = !quote;
+                else if (char === ',' && !quote) row.push('');
+                else if (char === '\n' && !quote) { result.push(row); row = ['']; }
+                else row[row.length - 1] += char;
+            }
+            result.push(row);
+            return result;
         }
 
         async function init() {
+            const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
             try {
-                const res = await fetch(`${PUB_URL}&t=${new Date().getTime()}`);
-                const text = await res.text();
-                // 簡易 CSV 解析 (考慮到換行)
-                const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(row => row.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                
-                // 抓取 ID 2 (秀芳您的最新測試資料)
-                const d = rows.find(r => r[0] && r[0].includes("2026/2/11")); 
-
+                const res = await fetch(url);
+                const rows = parseCSV(await res.text());
+                const dataRows = rows.filter(r => r[0] && r[0].includes("/"));
+                const d = dataRows[parseInt(rowId) - 2];
                 if(d) {
                     document.getElementById('user-name').innerText = d[1];
                     document.getElementById('user-title').innerText = d[2];
-                    document.getElementById('user-slogan').innerText = d[5]; // 個人核心價值
+                    document.getElementById('user-slogan').innerText = d[5];
                     
-                    // FAQ 區域
-                    if(d[16]) { // 常見問題 Q1
-                        document.getElementById('q1-title').innerText = "❓ " + d[16];
-                        document.getElementById('a1-text').innerText = d[17];
-                    }
-                    if(d[18]) { // 常見問題 Q2
-                        document.getElementById('q2-title').innerText = "❓ " + d[18];
-                        document.getElementById('a2-text').innerText = d[19];
-                    }
+                    // 照片全掃描
+                    let pId = "";
+                    d.forEach(cell => { if(cell && cell.includes("drive")) { let m = cell.match(/[-\w]{25,}/); if(m) pId = m[0]; } });
+                    if(pId) document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId}`;
 
-                    // 處理照片
-                    let pId = d[6].match(/[-\w]{25,}/);
-                    if(pId) document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId[0]}`;
-
-                    // 自動設定顏色
-                    if(d[15]) document.body.className = `theme-${d[15]} style-slanted`;
-                    
-                    // 自動設定版型 (根據表單最後一個欄位)
-                    const styleInput = d[d.length - 2]; // 微信QRcode 前一欄
-                    if(styleInput && styleInput.includes("拱門")) updateStyle('arch');
-                    else if(styleInput && styleInput.includes("平直")) updateStyle('flat');
+                    // FAQ 呈現
+                    let qa = "";
+                    if(d[16]) qa += `<div style="margin-bottom:15px;"><b style="color:var(--primary);">Q: ${d[16]}</b><p style="background:#f9f9f9; padding:10px; border-radius:10px; margin-top:5px;">${d[17]}</p></div>`;
+                    if(d[18]) qa += `<div><b style="color:var(--primary);">Q: ${d[18]}</b><p style="background:#f9f9f9; padding:10px; border-radius:10px; margin-top:5px;">${d[19]}</p></div>`;
+                    document.getElementById('faq-area').innerHTML = qa;
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) {}
         }
         init();
     </script>
