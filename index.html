@@ -82,10 +82,10 @@
             <div id="u-title" class="title"></div>
         </div>
         <div class="actions">
-            <a href="#" id="l-line-off" class="act-btn btn-line-off">✅ LINE 官方帳號</a>
-            <a href="#" id="l-tel" class="act-btn">📞 一鍵電話</a>
-            <a href="#" id="l-mail" class="act-btn">✉️ 寄送郵箱</a>
-            <a href="#" id="l-line-p" class="act-btn" style="grid-column: span 2;">💬 LINE 私訊找我</a>
+            <a href="#" id="link-line-off" class="act-btn btn-line-off">✅ LINE 官方帳號</a>
+            <a href="#" id="link-tel" class="act-btn">📞 一鍵電話</a>
+            <a href="#" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
+            <a href="#" id="link-line-p" class="act-btn" style="grid-column: span 2;">💬 LINE 私訊找我</a>
         </div>
         <div class="advantage">
             <h4>🚀 智慧名片優勢</h4>
@@ -155,7 +155,7 @@
                 await loadSheetData(id);
             } else {
                 loadMyPage();
-                loadSheetData(); 
+                await loadSheetData(); // 背景加載數據供預覽
             }
         }
 
@@ -176,7 +176,7 @@
                 const text = await res.text();
                 allRows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (targetId) renderFromSheet(targetId);
-            } catch(e) { console.error("Data error", e); }
+            } catch(e) { console.error("Data Load Fail", e); }
         }
 
         function renderFromSheet(idValue) {
@@ -185,13 +185,15 @@
                 document.getElementById('u-name').innerText = d[1];
                 document.getElementById('u-title').innerText = d[2];
                 const match = d[6].match(/[-\w]{25,}/);
-                if(match) {
-                    document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
-                }
+                if(match) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
+                
+                // 🚀 同步更新各個聯繫按鈕
                 const lOff = document.getElementById('link-line-off');
                 if(d[4]) { lOff.href = d[4]; lOff.style.display = 'block'; } else { lOff.style.display = 'none'; }
+                
                 document.getElementById('link-tel').href = "tel:" + d[9];
                 document.getElementById('link-mail').href = "mailto:" + d[10];
+                
                 const lP = document.getElementById('link-line-p');
                 if(d[14]) { lP.href = d[14]; lP.style.display = 'block'; } else { lP.style.display = 'none'; }
             }
@@ -206,7 +208,7 @@
             const id = document.getElementById('work-id').value;
             if(!id) return alert("請輸入 ID");
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交件網址已複製！"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 專業交件網址已複製！"));
         }
 
         init();
