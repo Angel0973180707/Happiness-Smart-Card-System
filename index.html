@@ -9,10 +9,12 @@
         :root { --primary: #ff7675; --secondary: #e17055; --bg: #f8f9fa; --dark: #2d3436; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 60px; color: var(--dark); }
 
+        /* 門面設計 */
         .hero-section { width: 100%; background: white; text-align: center; padding: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .logo-img { width: 60px; height: 60px; border-radius: 15px; }
         .hero-title { font-size: 18px; font-weight: 900; margin: 5px 0 0; }
 
+        /* 控制台 */
         .demo-controls { width: 92%; max-width: 400px; background: white; padding: 15px; border-radius: 20px; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
         .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px; }
         .color-dot { height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
@@ -20,6 +22,7 @@
         .style-btn { padding: 8px 0; border-radius: 10px; border: 1px solid #eee; font-size: 11px; font-weight: 700; cursor: pointer; background: #f9f9f9; }
         .style-btn.active { background: var(--dark); color: white; border-color: var(--dark); }
 
+        /* 名片本體 (樣板區) */
         .card { background: white; width: 92%; max-width: 380px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; }
         .banner-wrap { position: relative; height: 180px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
         .banner-bg { position: absolute; width: 100%; height: 100px; background: white; transition: 0.5s; bottom: -1px; border-radius: 100px 100px 0 0; }
@@ -31,16 +34,19 @@
 
         .unit-tag { position: absolute; top: 15px; width: 100%; text-align: center; color: white; font-size: 13px; font-weight: 700; z-index: 20; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         
-        .avatar-container { width: 110px; height: 110px; position: absolute; top: 50px; left: 50%; transform: translateX(-50%); z-index: 15; background: #f0f0f0; border-radius: 50%; }
+        /* 照片區 - 關鍵修正 */
+        .avatar-container { width: 110px; height: 110px; position: absolute; top: 50px; left: 50%; transform: translateX(-50%); z-index: 15; background: #eee; border-radius: 50%; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: none; }
 
         .info { text-align: center; padding: 45px 20px 5px; margin-top: 65px; }
         .name { font-size: 26px; font-weight: 900; margin-bottom: 5px; }
         .title { color: #555; font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 10px; }
 
+        /* 樣板聯繫資訊 */
         .card-action-bar { display: flex; justify-content: space-around; margin: 0 25px 15px; padding: 12px; border-radius: 15px; background: #fdfdfd; border: 1px solid #eee; }
         .card-link { text-decoration: none; text-align: center; color: var(--dark); font-size: 10px; font-weight: bold; }
 
+        /* 內容框 */
         .content-box { font-size: 14px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 22px; border-radius: 25px; border-left: 8px solid var(--primary); margin: 0 20px 25px; line-height: 1.8; text-align: left; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
 
         .faq-area { margin: 0 20px 20px; text-align: left; }
@@ -49,6 +55,13 @@
 
         .form-cta-btn { background: var(--dark); color: white; padding: 15px 40px; border-radius: 30px; text-decoration: none; font-weight: 700; margin-top: 10px; display: inline-block; }
         .copyright { padding: 30px 0; font-size: 10px; color: #bbb; }
+
+        /* 主題顏色 */
+        .theme-warm-pink { --primary: #ff7675; --secondary: #e17055; }
+        .theme-navy-blue { --primary: #0984e3; --secondary: #00cec9; }
+        .theme-forest-green { --primary: #26ae60; --secondary: #1abc9c; }
+        .theme-soft-gold { --primary: #d4af37; --secondary: #f1c40f; }
+        .theme-tiffany-blue { --primary: #00b894; --secondary: #55efc4; }
     </style>
 </head>
 <body class="theme-warm-pink style-arch">
@@ -98,7 +111,7 @@
     </div>
 
     <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即訂製我的智能名片</a>
-    <div class="copyright">© 2026 天使幸福系統 | V63.0 影像終極版</div>
+    <div class="copyright">© 2026 天使幸福系統 | V64.0 影像完全體</div>
 
     <script>
         function setTheme(t) { 
@@ -113,29 +126,36 @@
             btn.classList.add('active');
         }
 
-        // ✨ 影像解析終極邏輯：掃描全行尋找 Drive ID
-        function findAndSetImage(rowArray) {
+        // ✨ 影像解析核心：三段式探測
+        function forceLoadImage(rowArray) {
             let foundId = "";
             rowArray.forEach(cell => {
-                if (typeof cell === 'string' && cell.includes("drive.google.com")) {
+                if (typeof cell === 'string' && (cell.includes("drive.google.com") || cell.includes("id="))) {
                     const match = cell.match(/[-\w]{25,}/);
                     if (match) foundId = match[0];
                 }
             });
 
-            const imgElement = document.getElementById('user-photo');
+            const img = document.getElementById('user-photo');
             if (foundId) {
-                // 先嘗試直連模式
-                imgElement.src = `https://drive.google.com/uc?export=view&id=${foundId}`;
-                imgElement.style.display = 'block';
-                
-                // 萬一失敗的後備方案
-                imgElement.onerror = function() {
-                    this.src = `https://drive.google.com/uc?id=${foundId}`;
+                // 第一階段：LH3 (最快最穩)
+                img.src = `https://lh3.googleusercontent.com/u/0/d/${foundId}`;
+                img.style.display = 'block';
+
+                img.onerror = function() {
+                    // 第二階段：UC Export (備援)
+                    this.src = `https://drive.google.com/uc?export=download&id=${foundId}`;
+                    this.onerror = function() {
+                        // 第三階段：原始 UC
+                        this.src = `https://drive.google.com/uc?id=${foundId}`;
+                        this.onerror = function() {
+                            this.src = "167777.png"; // 真的沒圖才顯示預設
+                        }
+                    }
                 };
             } else {
-                imgElement.src = "167777.png";
-                imgElement.style.display = 'block';
+                img.src = "167777.png";
+                img.style.display = 'block';
             }
         }
 
@@ -145,6 +165,7 @@
             try {
                 const res = await fetch(url);
                 const text = await res.text();
+                // 複雜 CSV 行解析
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(row => row.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 
                 const d = rows.find(r => r[1] === "李秀芳") || rows[1]; 
@@ -157,8 +178,8 @@
                     if(d[10]) document.getElementById('link-email').href = `mailto:${d[10]}`;
                     if(d[4]) document.getElementById('link-line').href = d[4];
 
-                    // ✨ 調用廣域掃描影像函式
-                    findAndSetImage(d);
+                    // ✨ 影像探測
+                    forceLoadImage(d);
 
                     let qa = "";
                     if(d[16]) qa += `<b class="faq-q">❓ ${d[16]}</b><p class="faq-a">${d[17]}</p>`;
