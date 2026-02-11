@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
     <title>智能名片</title>
     <meta name="apple-mobile-web-app-title" content="智能名片">
     <meta name="application-name" content="智能名片">
     <meta name="apple-mobile-web-app-capable" content="yes">
-
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
-        /* 十款配色樣板 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
@@ -25,41 +21,29 @@
         .theme-deep-berry { --primary: #6d214f; --secondary: #b33939; }
         .theme-sky-cyan { --primary: #00cec9; --secondary: #81ecec; }
 
-        /* 主畫面樣式 */
         #studio-landing { width: 92%; max-width: 500px; text-align: center; padding: 40px 10px; box-sizing: border-box; }
         .studio-title { font-size: 32px; font-weight: 800; color: #2d3436; margin-bottom: 20px; }
-        
         .color-sample-box { background: white; padding: 20px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        .color-title { font-size: 14px; color: #636e72; margin-bottom: 15px; font-weight: bold; }
         .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
-        .color-dot { height: 35px; border-radius: 10px; cursor: pointer; transition: 0.3s; border: 1px solid rgba(0,0,0,0.05); }
+        .color-dot { height: 35px; border-radius: 10px; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
         .dot-label { font-size: 9px; margin-top: 5px; color: #999; }
-
         .advantage-list { text-align: left; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 30px; }
         .advantage-item { font-size: 15px; color: #444; margin-bottom: 10px; display: flex; align-items: flex-start; }
         .advantage-item::before { content: "✅"; margin-right: 8px; }
 
-        /* 名片本體樣式 */
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); display: none; }
         .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); }
         .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; }
-        
         .info { text-align: center; padding: 0 25px 20px; }
         .name { font-size: 28px; font-weight: 800; margin: 5px 0; color: #2d3436; }
-        .title { color: #636e72; font-size: 15px; margin-bottom: 20px; }
-        .slogan { font-size: 14px; background: rgba(0,0,0,0.03); padding: 18px; border-radius: 20px; border-left: 5px solid var(--primary); text-align: left; line-height: 1.7; color: #444; margin: 0 25px 20px; }
-
+        .slogan { font-size: 14px; background: rgba(0,0,0,0.03); padding: 18px; border-radius: 20px; border-left: 5px solid var(--primary); text-align: left; margin: 0 25px 20px; }
         .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
         .qa-item { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; border: 1px solid #eee; }
-        .qa-q { font-size: 14px; font-weight: bold; color: var(--primary); margin-bottom: 5px; display: block; }
-        .qa-a { font-size: 13px; color: #555; line-height: 1.6; margin: 0; white-space: pre-wrap; }
 
-        /* 隱形後台 */
-        #admin-panel { display: none; width: 92%; max-width: 400px; background: #2d3436; color: white; padding: 25px; border-radius: 30px; margin-bottom: 30px; box-sizing: border-box; }
-        .admin-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: none; font-size: 16px; }
+        #admin-panel { display: none; width: 92%; max-width: 400px; background: #2d3436; color: white; padding: 25px; border-radius: 30px; margin-bottom: 30px; }
+        .admin-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: none; }
         .copy-btn { background: var(--secondary); color: #2d3436; padding: 15px; border-radius: 12px; border: none; font-weight: 800; width: 100%; cursor: pointer; }
-        
         .copyright { font-size: 11px; color: #ccc; margin: 30px 0; cursor: pointer; text-align: center; }
         .back-nav-btn { display:block; text-align:center; padding:20px; background:#2d3436; color:white; text-decoration:none; font-weight:bold; }
     </style>
@@ -68,30 +52,21 @@
 
     <div id="studio-landing">
         <h1 class="studio-title">智能名片</h1>
-        
         <div class="color-sample-box">
-            <div class="color-title">—— 十款質感配色預覽 ——</div>
             <div class="color-grid">
                 <div onclick="setTheme('warm-pink')"><div class="color-dot" style="background:#e17055"></div><div class="dot-label">暖心粉</div></div>
                 <div onclick="setTheme('navy-blue')"><div class="color-dot" style="background:#0984e3"></div><div class="dot-label">深海藍</div></div>
                 <div onclick="setTheme('forest-green')"><div class="color-dot" style="background:#27ae60"></div><div class="dot-label">森林綠</div></div>
                 <div onclick="setTheme('soft-gold')"><div class="color-dot" style="background:#b89130"></div><div class="dot-label">沉穩金</div></div>
                 <div onclick="setTheme('tiffany-blue')"><div class="color-dot" style="background:#00b894"></div><div class="dot-label">湖水藍</div></div>
-                <div onclick="setTheme('royal-purple')"><div class="color-dot" style="background:#6c5ce7"></div><div class="dot-label">皇家紫</div></div>
-                <div onclick="setTheme('sunny-orange')"><div class="color-dot" style="background:#e67e22"></div><div class="dot-label">陽光橘</div></div>
-                <div onclick="setTheme('classic-grey')"><div class="color-dot" style="background:#636e72"></div><div class="dot-label">紳士灰</div></div>
-                <div onclick="setTheme('deep-berry')"><div class="color-dot" style="background:#6d214f"></div><div class="dot-label">莓果紅</div></div>
-                <div onclick="setTheme('sky-cyan')"><div class="color-dot" style="background:#00cec9"></div><div class="dot-label">青空藍</div></div>
             </div>
         </div>
-
         <div class="advantage-list">
             <div class="advantage-item">資訊同步更新，無需重新發卡。</div>
-            <div class="advantage-item">整合一鍵聯繫，業務開發更高效。</div>
-            <div class="advantage-item">專屬 PWA 技術，像 App 常駐手機。</div>
+            <div class="advantage-item">一鍵快速聯繫，提升業務效率。</div>
+            <div class="advantage-item">App 化體驗，常駐手機桌面。</div>
         </div>
-        
-        <a href="https://lihi.cc/VqJzb" style="background:#2d3436; color:white; padding:18px 40px; border-radius:35px; text-decoration:none; font-weight:bold; display:inline-block; box-shadow:0 10px 20px rgba(0,0,0,0.1);">✨ 填寫製作表單</a>
+        <a href="https://lihi.cc/VqJzb" style="background:#2d3436; color:white; padding:18px 40px; border-radius:35px; text-decoration:none; font-weight:bold; display:inline-block;">✨ 填寫製作表單</a>
     </div>
 
     <div class="card" id="main-card">
@@ -99,7 +74,7 @@
         <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
         <div class="info">
             <h1 id="user-name" class="name">載入中...</h1>
-            <p id="user-title" class="title"></p>
+            <p id="user-title" style="color:#636e72; font-size: 15px;"></p>
         </div>
         <div id="user-slogan" class="slogan"></div>
         <div id="qa-area" class="qa-section"></div>
@@ -116,6 +91,7 @@
     <div class="copyright" onclick="toggleAdmin()">© 2026 幸福教養概念館 | 智能名片</div>
 
     <script>
+        // 💡 關鍵修復：這裡的路徑必須是 CSV 匯出格式
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
         const params = new URLSearchParams(window.location.search);
         const rowId = params.get('id');
@@ -142,37 +118,35 @@
             const textArea = document.createElement("textarea");
             textArea.value = finalUrl; document.body.appendChild(textArea);
             textArea.select(); document.execCommand('copy'); document.body.removeChild(textArea);
-            alert("✨ 智能名片專屬網址已複製成功！");
+            alert("✨ 智能名片網址已複製！");
         }
 
         async function init() {
             let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
-            // 💡 修正 1：對接正確的 Google Sheets CSV 導出網址
+            // 💡 修正 1：改用 CSV 導出參數
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
             
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // 💡 修正 2：確保只抓取包含 2026 年份的資料列，避免標題行干擾
-                const dataLines = text.split(/\r?\n/).filter(l => l.includes("2026/")); 
-                const d = dataLines[fetchId - 2]?.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                // 💡 修正 2：改用穩健的 CSV 行分割
+                const rows = text.split(/\r?\n/).map(line => line.split(',').map(cell => cell.replace(/^"|"$/g, '').trim()));
+                const dataRows = rows.filter(r => r[0] && r[0].includes("2026/"));
+                const d = dataRows[fetchId - 2];
 
                 if(d) {
-                    document.getElementById('user-name').innerText = d[1] || '姓名';
-                    document.getElementById('user-title').innerText = d[2] || '職稱';
-                    document.getElementById('user-slogan').innerText = d[5] || '';
-                    
-                    // 💡 照片直連處理
+                    document.getElementById('user-name').innerText = d[1];
+                    document.getElementById('user-title').innerText = d[2];
+                    document.getElementById('user-slogan').innerText = d[5];
                     const m = (d[6] || "").match(/[-\w]{25,}/);
                     document.getElementById('user-photo').src = m ? `https://drive.google.com/uc?export=view&id=${m[0]}` : "";
                     
-                    // 💡 QA 區塊對位 (17, 18, 19, 20)
                     let qa = '';
-                    if(d[17]) qa += `<div class="qa-item"><b class="qa-q">Q: ${d[17]}</b><p class="qa-a">${d[18]}</p></div>`;
-                    if(d[19]) qa += `<div class="qa-item"><b class="qa-q">Q: ${d[19]}</b><p class="qa-a">${d[20]}</p></div>`;
+                    if(d[17]) qa += `<div class="qa-item"><b>Q: ${d[17]}</b><p>${d[18]}</p></div>`;
+                    if(d[19]) qa += `<div class="qa-item"><b>Q: ${d[19]}</b><p>${d[20]}</p></div>`;
                     document.getElementById('qa-area').innerHTML = qa;
                 }
-            } catch (e) { console.error("資料載入失敗", e); }
+            } catch (e) { console.error("表單連結失敗", e); }
         }
         init();
     </script>
