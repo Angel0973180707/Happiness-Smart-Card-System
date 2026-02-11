@@ -75,7 +75,7 @@
     </div>
 
     <div class="card">
-        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
+        <div class="avatar-wrap"><img id="u-img" src="https://180707.github.io/167777.png" class="avatar"></div>
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="info">
             <h1 id="u-name" class="name">載入中...</h1>
@@ -116,7 +116,17 @@
 
     <script>
         let curTheme = 'warm-pink'; let curStyle = 'arch'; let clicks = 0; let allRows = []; let isClient = false;
-        const MY_DATA = { name: "歡迎數位名片設計訂製", title: "優質智慧名片", photo: "https://180707.github.io/167777.png", lineOff: "https://lin.ee/2ac9Roe", tel: "0973180707", mail: "a0973180707@gmail.com", lineP: "https://line.me/ti/p/VqJzbWHm_4" };
+        
+        // 門面版預設資料
+        const MY_DATA = { 
+            name: "歡迎數位名片設計訂製", 
+            title: "優質智慧名片", 
+            photo: "https://180707.github.io/167777.png", 
+            lineOff: "https://lin.ee/2ac9Roe", 
+            tel: "0973180707", 
+            mail: "a0973180707@gmail.com", 
+            lineP: "https://line.me/ti/p/VqJzbWHm_4" 
+        };
 
         function setTheme(t) { document.body.className = t + ' style-' + curStyle; curTheme = t; }
         function setStyle(s, btn) { curStyle = s; document.body.className = curTheme + ' style-' + s; document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
@@ -127,14 +137,16 @@
             const id = urlParams.get('id');
             const theme = urlParams.get('theme') || 'warm-pink';
             setTheme(theme);
+            
+            // 先讀取試算表資料，再決定顯示哪一版
+            await loadSheetData(id ? decodeURIComponent(id) : null);
+
             if (id) {
                 isClient = true;
                 document.getElementById('admin-panel').style.display = 'none';
                 document.getElementById('main-order-btn').style.display = 'none';
-                await loadSheetData(decodeURIComponent(id));
             } else {
                 loadMyPage();
-                await loadSheetData(); 
             }
         }
 
@@ -154,20 +166,28 @@
                 const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB/pub?gid=681093399&single=true&output=csv&t=" + Date.now();
                 const res = await fetch(csvUrl);
                 const text = await res.text();
+                // 處理 CSV 換行與特殊字元
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
+                
                 if (targetId) renderFromSheet(targetId);
-            } catch(e) { console.error(e); }
+            } catch(e) { console.error("資料加載失敗", e); }
         }
 
         function renderFromSheet(idValue) {
-            // 🚀 關鍵修復：去掉 ID 前後的空格進行比對
+            // ID 匹配邏輯強化：移除空白進行對位
             const d = allRows.find(r => r[0].replace(/\s/g, '') === idValue.replace(/\s/g, ''));
             if(d) {
                 document.getElementById('u-name').innerText = d[1];
                 document.getElementById('u-title').innerText = d[2];
-                const match = d[6].match(/[-\w]{25,}/);
-                if(match) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
+                
+                // 照片讀取
+                if (d[6]) {
+                    const imgIdMatch = d[6].match(/[-\w]{25,}/);
+                    if(imgIdMatch) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + imgIdMatch[0];
+                }
+                
+                // 按鈕對位
                 const lOff = document.getElementById('link-line-off');
                 if(d[4]) { lOff.href = d[4]; lOff.style.display = 'block'; } else { lOff.style.display = 'none'; }
                 document.getElementById('link-tel').href = "tel:" + d[9];
@@ -175,22 +195,28 @@
                 const lP = document.getElementById('link-line-p');
                 if(d[14]) { lP.href = d[14]; lP.style.display = 'block'; } else { lP.style.display = 'none'; }
                 
-                // Q&A 對位修復
+                // Q&A 對位 (欄位 15, 16 與 17, 18)
                 if(d[15]) {
                     document.getElementById('box-1').style.display = 'block';
                     document.getElementById('q1-title').innerText = "💡 " + d[15];
                     document.getElementById('q1-ans').innerText = d[16];
+                } else {
+                    document.getElementById('box-1').style.display = 'none';
                 }
+                
                 if(d[17]) {
                     document.getElementById('box-2').style.display = 'block';
                     document.getElementById('q2-title').innerText = "💡 " + d[17];
                     document.getElementById('q2-ans').innerText = d[18];
+                } else {
+                    document.getElementById('box-2').style.display = 'none';
                 }
             }
         }
 
         function doPreview() { const id = document.getElementById('work-id').value; if(id) renderFromSheet(id); }
-        function doCopy() { const id = document.getElementById('work-id').value; if(!id) return alert("請輸入 ID"); const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}`; navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 已複製！")); }
+        function doCopy() { const id = document.getElementById('work-id').value; if(!id) return alert("請輸入 ID"); const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}`; navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 已複製交付連結！")); }
+        
         init();
     </script>
 </body>
