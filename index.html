@@ -6,28 +6,28 @@
     <title>天使幸福智能名片系統</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #ff7675; --secondary: #e17055; --bg: #f8f9fa; --dark: #212529; }
+        :root { --primary: #ff7675; --secondary: #e17055; --bg: #f8f9fa; --dark: #2d3436; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 60px; color: var(--dark); }
 
         /* 門面設計 */
-        .hero-section { width: 100%; background: white; text-align: center; padding: 25px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .logo-img { width: 70px; height: 70px; border-radius: 18px; object-fit: cover; }
-        .hero-title { font-size: 19px; font-weight: 900; margin: 8px 0 0; }
+        .hero-section { width: 100%; background: white; text-align: center; padding: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .logo-img { width: 60px; height: 60px; border-radius: 15px; }
+        .hero-title { font-size: 18px; font-weight: 900; margin: 5px 0 0; }
 
         /* 控制台 */
-        .demo-controls { width: 92%; max-width: 400px; background: white; padding: 20px; border-radius: 25px; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
-        .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
-        .color-dot { height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
+        .demo-controls { width: 92%; max-width: 400px; background: white; padding: 15px; border-radius: 20px; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
+        .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px; }
+        .color-dot { height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
         .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .style-btn { padding: 10px 0; border-radius: 10px; border: 1px solid #eee; font-size: 11px; font-weight: 700; cursor: pointer; background: #f9f9f9; }
+        .style-btn { padding: 8px 0; border-radius: 10px; border: 1px solid #eee; font-size: 11px; font-weight: 700; cursor: pointer; background: #f9f9f9; }
         .style-btn.active { background: var(--dark); color: white; border-color: var(--dark); }
 
         /* 名片本體 (樣板區) */
-        .card { background: white; width: 92%; max-width: 380px; border-radius: 40px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); position: relative; }
+        .card { background: white; width: 92%; max-width: 380px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; }
         .banner-wrap { position: relative; height: 180px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
         .banner-bg { position: absolute; width: 100%; height: 100px; background: white; transition: 0.5s; bottom: -1px; border-radius: 100px 100px 0 0; }
         
-        /* 倒拱門邏輯 */
+        /* 倒拱門版型 */
         .style-spotlight .banner-wrap { background: white; }
         .style-spotlight .banner-color-layer { position: absolute; top: 0; width: 100%; height: 130px; background: linear-gradient(135deg, var(--primary), var(--secondary)); clip-path: ellipse(90% 100% at 50% 0%); }
         .style-spotlight .banner-bg { display: none; }
@@ -35,36 +35,29 @@
 
         .unit-tag { position: absolute; top: 15px; width: 100%; text-align: center; color: white; font-size: 13px; font-weight: 700; z-index: 20; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         
-        .avatar-container { width: 115px; height: 115px; position: absolute; top: 50px; left: 50%; transform: translateX(-50%); z-index: 15; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; background: #eee; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+        /* 照片區 */
+        .avatar-container { width: 110px; height: 110px; position: absolute; top: 50px; left: 50%; transform: translateX(-50%); z-index: 15; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; background: #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 
-        .info { text-align: center; padding: 45px 20px 10px; margin-top: 70px; }
-        .name { font-size: 28px; font-weight: 900; margin-bottom: 5px; }
-        .title { color: #495057; font-size: 15px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 15px; }
+        .info { text-align: center; padding: 45px 20px 5px; margin-top: 65px; }
+        .name { font-size: 26px; font-weight: 900; margin-bottom: 5px; }
+        .title { color: #555; font-size: 14px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 10px; }
 
         /* 樣板聯繫資訊 */
-        .card-action-bar { display: flex; justify-content: space-around; margin: 0 25px 20px; padding: 15px; border-radius: 20px; background: #f8f9fa; border: 1px solid #eee; }
-        .card-link { text-decoration: none; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--dark); }
-        .card-link i { font-size: 18px; font-style: normal; }
-        .card-link span { font-size: 11px; font-weight: bold; }
+        .card-action-bar { display: flex; justify-content: space-around; margin: 0 25px 15px; padding: 12px; border-radius: 15px; background: #fdfdfd; border: 1px solid #eee; }
+        .card-link { text-decoration: none; text-align: center; color: var(--dark); font-size: 10px; font-weight: bold; }
 
-        /* 琉璃內容框 */
-        .content-box { 
-            font-size: 15px; background: rgba(255, 255, 255, 0.7); 
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            padding: 24px; border-radius: 25px; border-left: 8px solid var(--primary); 
-            margin: 0 20px 25px; line-height: 1.8; text-align: left;
-            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.05); border-top: 1px solid rgba(255,255,255,0.8);
-        }
+        /* 內容框 */
+        .content-box { font-size: 14px; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 22px; border-radius: 25px; border-left: 8px solid var(--primary); margin: 0 20px 20px; line-height: 1.8; text-align: left; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
 
-        .faq-area { margin: 0 20px 20px; text-align: left; padding: 0 5px; }
-        .faq-q { font-weight: 700; color: var(--primary); font-size: 16px; margin-bottom: 8px; display: block; }
-        .faq-a { background: rgba(255,255,255,0.6); padding: 18px; border-radius: 15px; font-size: 14px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.4); line-height: 1.6; }
+        .faq-area { margin: 0 20px 20px; text-align: left; }
+        .faq-q { font-weight: 700; color: var(--primary); font-size: 15px; margin-bottom: 5px; display: block; }
+        .faq-a { background: rgba(255,255,255,0.6); padding: 15px; border-radius: 12px; font-size: 13px; margin-bottom: 15px; border: 1px solid rgba(0,0,0,0.05); }
 
-        .form-cta-btn { background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; text-decoration: none; font-weight: 700; margin-top: 20px; display: inline-block; }
-        .copyright { padding: 40px 0; font-size: 11px; color: #bbb; cursor: pointer; }
+        .form-cta-btn { background: var(--dark); color: white; padding: 15px 40px; border-radius: 30px; text-decoration: none; font-weight: 700; margin-top: 10px; display: inline-block; }
+        .copyright { padding: 30px 0; font-size: 10px; color: #bbb; }
 
-        /* 玻璃質感主題色定義 */
+        /* 主題顏色庫 */
         .theme-warm-pink { --primary: #ff7675; --secondary: #e17055; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #00cec9; }
         .theme-forest-green { --primary: #26ae60; --secondary: #1abc9c; }
@@ -107,9 +100,9 @@
         </div>
 
         <div class="card-action-bar">
-            <a href="#" id="link-phone" class="card-link"><i>📞</i><span>一鍵電話</span></a>
-            <a href="#" id="link-email" class="card-link"><i>✉️</i><span>一鍵郵件</span></a>
-            <a href="#" id="link-line" class="card-link"><i>💬</i><span>一鍵 LINE</span></a>
+            <a href="#" id="link-phone" class="card-link">📞 一鍵電話</a>
+            <a href="#" id="link-email" class="card-link">✉️ 一鍵郵件</a>
+            <a href="#" id="link-line" class="card-link">💬 一鍵 LINE</a>
         </div>
 
         <div id="user-slogan" class="content-box"></div>
@@ -117,7 +110,7 @@
     </div>
 
     <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即訂製我的智能名片</a>
-    <div class="copyright">© 2026 天使幸福系統 | V60.0 終極修復</div>
+    <div class="copyright">© 2026 天使幸福系統 | V62.0 穩定影像版</div>
 
     <script>
         function setTheme(t) { 
@@ -132,11 +125,16 @@
             btn.classList.add('active');
         }
 
-        // 解析 Google Drive 圖片 ID 的萬能函式
-        function getDriveImageUrl(input) {
-            if (!input) return "167777.png";
-            const match = input.match(/[-\w]{25,}/); // 尋找 ID 特徵
-            return match ? `https://drive.google.com/uc?export=view&id=${match[0]}` : input;
+        // ✨ 影像解析核心：徹底掃描所有可能的 ID 格式
+        function fixImageUrl(input) {
+            if (!input || input === "") return "167777.png";
+            // 正則表達式：尋找符合 Google Drive ID 特徵的 33 個字串
+            const driveIdMatch = input.match(/[-\w]{25,}/);
+            if (driveIdMatch) {
+                // 強制轉換為直連下載模式，這最穩定
+                return `https://drive.google.com/uc?export=download&id=${driveIdMatch[0]}`;
+            }
+            return input;
         }
 
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
@@ -145,7 +143,7 @@
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // 複雜 CSV 行析 (處理換行)
+                // 複雜解析以應對 CSV 中的換行
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(row => row.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 
                 const d = rows.find(r => r[1] === "李秀芳") || rows[1]; 
@@ -158,9 +156,9 @@
                     if(d[10]) document.getElementById('link-email').href = `mailto:${d[10]}`;
                     if(d[4]) document.getElementById('link-line').href = d[4];
 
-                    // 圖片解析修復
-                    const photoUrl = d[6] || d.find(cell => cell.includes("drive.google.com"));
-                    document.getElementById('user-photo').src = getDriveImageUrl(photoUrl);
+                    // ✨ 影像解析調用
+                    const photoCell = d[6] || "";
+                    document.getElementById('user-photo').src = fixImageUrl(photoCell);
 
                     let qa = "";
                     if(d[16]) qa += `<b class="faq-q">❓ ${d[16]}</b><p class="faq-a">${d[17]}</p>`;
