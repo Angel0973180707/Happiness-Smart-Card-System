@@ -36,7 +36,7 @@
         .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
         .btn-line-off { background: #06C755; color: white; grid-column: span 2; border: none; }
 
-        /* 內容區塊：Q&A 與 優勢 */
+        /* 💡 內容區塊 */
         .section-box { background: #fff; margin: 0 25px 20px; padding: 20px; border-radius: 25px; border-left: 8px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .section-box h4 { margin: 0 0 10px 0; color: var(--s); font-size: 15px; font-weight: 900; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .section-box p { font-size: 13px; color: #555; line-height: 1.7; margin: 0; white-space: pre-wrap; }
@@ -123,7 +123,7 @@
 
         const MY_DATA = {
             name: "歡迎數位名片設計訂製",
-            title: "智慧名片優勢",
+            title: "優質智慧名片",
             photo: "https://180707.github.io/167777.png", 
             lineOff: "https://lin.ee/2ac9Roe",
             tel: "0973180707",
@@ -159,7 +159,7 @@
             if (id) {
                 isClient = true;
                 document.getElementById('admin-panel').style.display = 'none';
-                document.getElementById('main-order-btn').style.display = 'none'; // 成品隱藏訂購按鈕
+                document.getElementById('main-order-btn').style.display = 'none';
                 await loadSheetData(id);
             } else {
                 loadMyPage();
@@ -190,15 +190,10 @@
         function renderFromSheet(idValue) {
             const d = allRows.find(r => r[0] === idValue);
             if(d) {
-                // 1. 基本資料 (100% 讀表)
                 document.getElementById('u-name').innerText = d[1];
                 document.getElementById('u-title').innerText = d[2];
-                
-                // 2. 照片處理
                 const match = d[6].match(/[-\w]{25,}/);
                 if(match) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
-                
-                // 3. 聯繫按鈕 (100% 讀表)
                 const lOff = document.getElementById('link-line-off');
                 if(d[4]) { lOff.href = d[4]; lOff.style.display = 'block'; } else { lOff.style.display = 'none'; }
                 document.getElementById('link-tel').href = "tel:" + d[9];
@@ -206,14 +201,12 @@
                 const lP = document.getElementById('link-line-p');
                 if(d[14]) { lP.href = d[14]; lP.style.display = 'block'; } else { lP.style.display = 'none'; }
 
-                // 4. 動態內容：核心價值與 Q&A
-                // 區塊 1：客戶的問題 1 (第 16 欄) 與 回答 1 (第 17 欄)
+                // Q&A
                 if(d[16]) {
                     document.getElementById('box-1').style.display = 'block';
                     document.getElementById('q1-title').innerText = "💡 " + d[16];
                     document.getElementById('q1-ans').innerText = d[17];
                 }
-                // 區塊 2：客戶的問題 2 (第 18 欄) 與 回答 2 (第 19 欄)
                 if(d[18]) {
                     document.getElementById('box-2').style.display = 'block';
                     document.getElementById('q2-title').innerText = "💡 " + d[18];
@@ -231,7 +224,7 @@
             const id = document.getElementById('work-id').value;
             if(!id) return alert("請輸入 ID");
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 專業交付網址已複製！"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交件網址已複製！"));
         }
 
         init();
