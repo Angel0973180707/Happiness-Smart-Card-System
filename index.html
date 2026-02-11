@@ -49,7 +49,6 @@
 
         .footer { font-size: 11px; color: #ccc; margin-top: 50px; text-align: center; padding: 20px; cursor: pointer; user-select: none; }
 
-        /* 五權威色系 */
         .warm-pink { --p: #ff7675; --s: #d63031; }
         .aurora-blue { --p: #00d2ff; --s: #3a7bd5; }
         .vivid-orange { --p: #ff9f43; --s: #ee5253; }
@@ -93,7 +92,7 @@
             <li>✨ <b>第一印象</b>：立體美學，展現品牌專業。</li>
             <li>✨ <b>一鍵聯繫</b>：電話、LINE、郵件點擊即通。</li>
             <li>✨ <b>雲端更新</b>：資料隨時更新，不需重新印製。</li>
-            <a href="https://docs.google.com/forms/d/e/1FAIpQLSfp_k7Pizj1DveL717S7H6eR9Zf3L9u-M6Ew/viewform" class="btn-order">📝 填寫訂購資料</a>
+            <a href="https://forms.gle/3X4pRqvoMX42Bwte7" target="_blank" class="btn-order">📝 填寫訂購資料</a>
         </div>
     </div>
 
@@ -115,7 +114,6 @@
         let allRows = [];
         let isClient = false;
 
-        // 🚀 門面寫死資料
         const MY_DATA = {
             name: "天使幸福智慧名片系統",
             title: "歡迎數位名片設計訂製",
@@ -165,10 +163,10 @@
             document.getElementById('u-name').innerText = MY_DATA.name;
             document.getElementById('u-title').innerText = MY_DATA.title;
             document.getElementById('u-img').src = MY_DATA.photo;
-            document.getElementById('l-line-off').href = MY_DATA.lineOff;
-            document.getElementById('l-tel').href = "tel:" + MY_DATA.tel;
-            document.getElementById('l-mail').href = "mailto:" + MY_DATA.mail;
-            document.getElementById('l-line-p').href = MY_DATA.lineP;
+            document.getElementById('link-line-off').href = MY_DATA.lineOff;
+            document.getElementById('link-tel').href = "tel:" + MY_DATA.tel;
+            document.getElementById('link-mail').href = "mailto:" + MY_DATA.mail;
+            document.getElementById('link-line-p').href = MY_DATA.lineP;
         }
 
         async function loadSheetData(targetId) {
@@ -178,7 +176,7 @@
                 const text = await res.text();
                 allRows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (targetId) renderFromSheet(targetId);
-            } catch(e) { console.error("Data loading fail", e); }
+            } catch(e) { console.error("Data error", e); }
         }
 
         function renderFromSheet(idValue) {
@@ -192,8 +190,8 @@
                 }
                 const lOff = document.getElementById('link-line-off');
                 if(d[4]) { lOff.href = d[4]; lOff.style.display = 'block'; } else { lOff.style.display = 'none'; }
-                document.getElementById('l-tel').href = "tel:" + d[9];
-                document.getElementById('l-mail').href = "mailto:" + d[10];
+                document.getElementById('link-tel').href = "tel:" + d[9];
+                document.getElementById('link-mail').href = "mailto:" + d[10];
                 const lP = document.getElementById('link-line-p');
                 if(d[14]) { lP.href = d[14]; lP.style.display = 'block'; } else { lP.style.display = 'none'; }
             }
@@ -208,7 +206,7 @@
             const id = document.getElementById('work-id').value;
             if(!id) return alert("請輸入 ID");
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 專業交件網址已複製！"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交件網址已複製！"));
         }
 
         init();
