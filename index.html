@@ -3,160 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智能名片系統</title>
+    <title>天使幸福智能名片系統 V82</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #ff7675; --secondary: #e17055; --bg: #f5f7fa; --dark: #2d3436; }
-        body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 60px; -webkit-font-smoothing: antialiased; }
+        :root { --primary: #ff7675; --secondary: #d63031; --bg: #f8f9fa; --dark: #2d3436; }
+        body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; }
 
-        /* 🚀 隱形管理中心 (隱藏抽屜) */
+        /* 🚀 門面管理中心 (隱藏抽屜) */
         #admin-drawer { 
             width: 100%; max-width: 400px; background: #2d3436; color: white; 
-            max-height: 0; overflow: hidden; transition: max-height 0.5s ease;
-            position: fixed; top: 0; z-index: 2000; border-radius: 0 0 30px 30px;
+            max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out;
+            position: fixed; top: 0; z-index: 2000; border-radius: 0 0 35px 35px; box-shadow: 0 15px 35px rgba(0,0,0,0.4);
         }
-        .drawer-content { padding: 20px; text-align: center; }
-        .admin-section { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #444; }
-        .admin-section label { display: block; font-size: 12px; margin-bottom: 8px; color: #aaa; }
+        .drawer-content { padding: 25px; text-align: center; }
+        .admin-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        input { flex: 1; padding: 14px; border-radius: 12px; border: none; font-size: 16px; outline: none; }
+        .btn { padding: 12px 20px; border-radius: 12px; border: none; font-weight: 900; cursor: pointer; color: white; transition: 0.3s; }
+        .btn-p { background: var(--primary); }
+        .btn-s { background: #2ecc71; width: 100%; margin-top: 5px; font-size: 15px; }
+        .btn-form { background: #f1c40f; color: #333; width: 100%; margin-top: 15px; }
+
+        /* ✨ 門面區域 (Hero Section) */
+        .hero { width: 100%; background: white; text-align: center; padding: 25px 0; cursor: pointer; border-bottom: 1px solid #eee; transition: 0.3s; }
+        .hero:active { background: #fafafa; }
+        .hero h1 { font-size: 20px; margin: 0; font-weight: 900; letter-spacing: 2px; color: #222; text-shadow: 1px 1px 1px rgba(0,0,0,0.05); }
+        .hero p { font-size: 11px; color: #aaa; margin-top: 5px; font-weight: 700; letter-spacing: 1px; }
+
+        /* 🃏 樣板區域 (Card Section) */
+        .card { background: white; width: 92%; max-width: 385px; border-radius: 50px; overflow: visible; box-shadow: 0 45px 90px rgba(0,0,0,0.1); position: relative; margin-top: 20px; border: 1px solid rgba(0,0,0,0.02); }
         
-        .admin-btn { padding: 10px 15px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 700; cursor: pointer; margin: 5px; font-size: 13px; }
-        .input-box { width: 80%; padding: 10px; border-radius: 10px; border: none; margin-bottom: 10px; font-size: 15px; text-align: center; }
+        /* 圖片容器 */
+        .avatar-wrap { width: 145px; height: 145px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 5px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); border: 1px solid rgba(0,0,0,0.05); }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f9f9f9; }
 
-        /* 前台美化 */
-        .hero-section { width: 100%; background: white; text-align: center; padding: 25px 0; cursor: pointer; user-select: none; }
-        .hero-title { font-size: 19px; font-weight: 900; letter-spacing: 1px; }
+        /* 拱門樣式 */
+        .banner { position: relative; height: 195px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 50px 50px 0 0; z-index: 1; transition: 0.5s; }
+        .banner-arch { position: absolute; width: 100%; height: 115px; background: white; bottom: -1px; border-radius: 115px 115px 0 0; z-index: 2; }
+        .unit-label { position: absolute; top: 18px; width: 100%; text-align: center; color: white; font-size: 14px; font-weight: 900; z-index: 10; letter-spacing: 3px; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 
-        .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 40px 80px rgba(0,0,0,0.15); position: relative; margin-top: 15px; }
-        .avatar-container { width: 145px; height: 145px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        /* 樣板文字區 */
+        .info { text-align: center; padding: 15px 25px; margin-top: 60px; }
+        .name { font-size: 36px; font-weight: 900; color: #2d3436; margin-bottom: 8px; letter-spacing: 2px; text-shadow: 2px 3px 6px rgba(0,0,0,0.1); }
+        .title { color: #636e72; font-size: 16px; font-weight: 700; line-height: 1.8; margin-bottom: 25px; white-space: pre-wrap; }
 
-        .banner-wrap { position: relative; height: 200px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 50px 50px 0 0; z-index: 1; transition: 0.4s; }
-        .banner-bg { position: absolute; width: 100%; height: 120px; background: white; bottom: -1px; border-radius: 120px 120px 0 0; z-index: 2; }
-        .unit-tag { position: absolute; top: 18px; width: 100%; text-align: center; color: white; font-size: 14px; font-weight: 900; z-index: 10; letter-spacing: 2px; text-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        /* 樣板功能區 */
+        .actions { display: flex; justify-content: space-around; margin: 0 25px 25px; padding: 16px; border-radius: 30px; background: #fff; border: 1px solid #f0f0f0; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
+        .actions a { text-decoration: none; color: #2d3436; font-size: 12px; font-weight: 900; }
 
-        .info { text-align: center; padding: 10px 20px; }
-        .name { font-size: 36px; font-weight: 900; color: var(--dark); margin-bottom: 5px; text-shadow: 2px 3px 6px rgba(0,0,0,0.1); }
-        .title { color: #5d6d7e; font-size: 16px; font-weight: 700; line-height: 1.8; margin-bottom: 25px; }
+        /* 樣板核心價值區 */
+        .slogan { font-size: 16px; background: #fff; padding: 28px; border-radius: 40px; border-left: 12px solid var(--primary); margin: 0 22px 35px; line-height: 2; box-shadow: 0 15px 35px rgba(0,0,0,0.05); border-top: 1px solid rgba(255,255,255,0.8); }
 
-        .card-action-bar { display: flex; justify-content: space-around; margin: 0 25px 25px; padding: 16px; border-radius: 30px; background: #f8f9fa; border: 1px solid #f0f0f0; }
-        .card-link { text-decoration: none; text-align: center; color: var(--dark); font-size: 12px; font-weight: 900; }
-
-        .content-box { font-size: 16px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); padding: 30px; border-radius: 40px; border-left: 12px solid var(--primary); margin: 0 22px 30px; line-height: 2; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-
-        /* 顏色主題 */
-        .theme-warm-pink { --primary: #ff7675; --secondary: #d63031; }
-        .theme-bright-blue { --primary: #00d2ff; --secondary: #3a7bd5; }
-        .theme-teal-green { --primary: #00b894; --secondary: #006266; }
-        .theme-vivid-orange { --primary: #ff9f43; --secondary: #ee5253; }
-        .theme-royal-purple { --primary: #a55eea; --secondary: #6c5ce7; }
+        .footer { font-size: 11px; color: #ccc; margin-top: 45px; text-align: center; font-weight: 700; }
     </style>
 </head>
-<body class="theme-warm-pink">
+<body class="theme-pink">
 
     <div id="admin-drawer">
         <div class="drawer-content">
-            <div class="admin-section">
-                <label>1. 快速查詢/交貨 (ID)</label>
-                <input type="text" id="id-input" class="input-box" placeholder="輸入序號 (如: 2)">
-                <button class="admin-btn" onclick="handleSearch()">查詢預覽</button>
-                <button class="admin-btn" style="background:#2ecc71" onclick="copyLink()">複製交貨連結</button>
+            <h3 style="margin: 0 0 20px 0; font-weight: 900; color: var(--primary);">🚀 交付管理中心</h3>
+            <div class="admin-row">
+                <input type="text" id="id-input" placeholder="輸入客戶 ID (例: 2)">
+                <button class="btn btn-p" onclick="searchID()">預覽</button>
             </div>
-            
-            <div class="admin-section">
-                <label>2. 切換版型配色</label>
-                <button class="admin-btn" onclick="setTheme('warm-pink')" style="background:#ff7675">粉</button>
-                <button class="admin-btn" onclick="setTheme('bright-blue')" style="background:#00d2ff">藍</button>
-                <button class="admin-btn" onclick="setTheme('teal-green')" style="background:#00b894">綠</button>
-                <button class="admin-btn" onclick="setTheme('vivid-orange')" style="background:#ff9f43">橘</button>
-            </div>
-
-            <div class="admin-section" style="border:none">
-                <label>3. 訂單管理</label>
-                <button class="admin-btn" style="background:#f1c40f; color:#000" onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSfp_k7Pizj1DveL717S7H6eR9Zf3L9u-M6Ew/viewform')">填寫訂單資料</button>
-            </div>
-            <p onclick="toggleDrawer()" style="font-size:12px; opacity:0.5">點此關閉隱藏面板</p>
+            <button class="btn btn-s" onclick="copyDelivery()">✅ 複製交貨連結</button>
+            <button class="btn btn-form" onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSfp_k7Pizj1DveL717S7H6eR9Zf3L9u-M6Ew/viewform')">📝 填寫訂單/選版型</button>
+            <p onclick="document.getElementById('admin-drawer').style.maxHeight='0'" style="font-size:12px; color:#666; margin-top:20px; cursor:pointer;">收回面板</p>
         </div>
     </div>
 
-    <div class="hero-section" onclick="handleTitleClick()">
-        <h1 class="hero-title">天使幸福智能名片系統</h1>
+    <div class="hero" onclick="handleTitleClick()">
+        <h1>天使幸福智能名片系統</h1>
+        <p>ANGEL HAPPINESS SMART BUSINESS CARD</p>
     </div>
 
     <div class="card">
-        <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
-        <div class="banner-wrap">
-            <div id="user-unit" class="unit-tag">幸福教養概念館</div>
-            <div class="banner-bg"></div>
+        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
+        <div class="banner">
+            <div id="u-unit" class="unit-label">幸福教養概念館</div>
+            <div class="banner-arch"></div>
         </div>
         <div class="info">
-            <h1 id="user-name" class="name">載入中...</h1>
-            <div id="user-title" class="title"></div>
+            <h1 id="u-name" class="name">載入中...</h1>
+            <div id="u-title" class="title"></div>
         </div>
-        <div class="card-action-bar">
-            <a href="#" id="link-phone" class="card-link">📞 一鍵電話</a>
-            <a href="#" id="link-email" class="card-link">✉️ 一鍵郵件</a>
-            <a href="#" id="link-line" class="card-link">💬 一鍵 LINE</a>
+        <div class="actions">
+            <a href="#" id="l-tel">📞 一鍵電話</a>
+            <a href="#" id="l-mail">✉️ 一鍵郵件</a>
+            <a href="#" id="l-line">💬 一鍵 LINE</a>
         </div>
-        <div id="user-slogan" class="content-box"></div>
+        <div id="u-slogan" class="slogan"></div>
         <div id="faq-area" style="padding: 0 25px;"></div>
     </div>
 
+    <div class="footer">© 2026 天使幸福系統 | V82.0 旗艦版</div>
+
     <script>
-        let clickTimer = null;
-        let clickCount = 0;
-
+        let clicks = 0;
         function handleTitleClick() {
-            clickCount++;
-            if (clickCount === 3) {
-                toggleDrawer();
-                clickCount = 0;
+            clicks++;
+            if(clicks === 3) {
+                const drawer = document.getElementById('admin-drawer');
+                drawer.style.maxHeight = drawer.style.maxHeight === '500px' ? '0' : '500px';
+                clicks = 0;
             }
-            clearTimeout(clickTimer);
-            clickTimer = setTimeout(() => { clickCount = 0; }, 500);
+            setTimeout(() => clicks = 0, 1000);
         }
 
-        function toggleDrawer() {
-            const d = document.getElementById('admin-drawer');
-            d.style.maxHeight = d.style.maxHeight === '500px' ? '0' : '500px';
-        }
-
-        function setTheme(t) { document.body.className = `theme-${t}`; }
-
-        let allData = [];
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
+        let dataRows = [];
 
         async function init() {
-            const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
-            const res = await fetch(url);
-            const text = await res.text();
-            allData = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(row => row.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-            renderUser("李秀芳"); 
+            try {
+                const res = await fetch(`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${Date.now()}`);
+                const text = await res.text();
+                dataRows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
+                loadUser("李秀芳");
+            } catch(e) { console.error(e); }
         }
 
-        function renderUser(name) {
-            const d = allData.find(r => r[1] === name) || allData[1];
-            document.getElementById('user-name').innerText = d[1];
-            document.getElementById('user-title').innerText = d[2];
-            document.getElementById('user-slogan').innerText = d[5];
-            if(d[9]) document.getElementById('link-phone').href = `tel:${d[9]}`;
-            if(d[10]) document.getElementById('link-email').href = `mailto:${d[10]}`;
-            if(d[4]) document.getElementById('link-line').href = d[4];
-            const m = d[6].match(/[-\w]{25,}/);
-            if(m) document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${m[0]}`;
+        function loadUser(name) {
+            const d = dataRows.find(r => r[1] === name) || dataRows[1];
+            if(d) {
+                document.getElementById('u-name').innerText = d[1];
+                document.getElementById('u-title').innerText = d[2];
+                document.getElementById('u-slogan').innerText = d[5];
+                document.getElementById('u-unit').innerText = d[21] || "幸福教養概念館";
+                if(d[9]) document.getElementById('l-tel').href = `tel:${d[9]}`;
+                if(d[10]) document.getElementById('l-mail').href = `mailto:${d[10]}`;
+                if(d[4]) document.getElementById('l-line').href = d[4];
+                const m = d[6].match(/[-\w]{25,}/);
+                if(m) document.getElementById('u-img').src = `https://drive.google.com/uc?export=view&id=${m[0]}`;
+            }
         }
 
-        function handleSearch() {
+        function searchID() {
             const id = document.getElementById('id-input').value;
-            const target = allData.find(r => r[0] == id);
-            if(target) renderUser(target[1]);
-            else alert("找不到該 ID！");
+            const r = dataRows.find(row => row[0] == id);
+            if(r) loadUser(r[1]);
+            else alert("找不到此 ID 號碼！");
         }
 
-        function copyLink() {
+        function copyDelivery() {
             const id = document.getElementById('id-input').value;
-            if(!id) return alert("請先輸入 ID 並查詢");
-            const link = `https://180707.github.io/?id=${id}`;
-            navigator.clipboard.writeText(link).then(() => alert("✅ 交貨連結已複製！"));
+            if(!id) return alert("請先輸入客戶 ID");
+            navigator.clipboard.writeText(`https://180707.github.io/?id=${id}`).then(() => alert("✅ 交貨連結已複製，可直接貼給客戶！"));
         }
 
         init();
