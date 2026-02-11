@@ -8,12 +8,11 @@
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; --dark: #2d3436; }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); color: var(--dark); display: flex; flex-direction: column; align-items: center; padding-bottom: 60px; }
 
-        /* 頂部門面 */
         .hero-section { width: 100%; background: white; text-align: center; padding: 25px 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .logo-img { width: 80px; height: 80px; border-radius: 20px; object-fit: cover; }
         .hero-title { font-size: 20px; font-weight: 800; margin: 10px 0 0; }
         
-        /* 十色主題 */
+        /* 十色飽滿漸層主題 */
         .theme-warm-pink { --primary: #ff7675; --secondary: #e17055; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #00cec9; }
         .theme-forest-green { --primary: #26ae60; --secondary: #1abc9c; }
@@ -27,36 +26,42 @@
 
         /* 控制面板 */
         .demo-controls { width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 25px; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
-        .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
-        .style-btn { padding: 10px 5px; border-radius: 12px; border: 1px solid #eee; font-size: 11px; font-weight: bold; cursor: pointer; background: #f9f9f9; transition: 0.3s; }
-        .style-btn.active { background: var(--dark); color: white; border-color: var(--dark); transform: translateY(-2px); }
-        .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 5px; }
+        .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
         .color-dot { height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
+        .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .style-btn { padding: 10px 5px; border-radius: 12px; border: 1px solid #eee; font-size: 11px; font-weight: bold; cursor: pointer; background: #f9f9f9; }
+        .style-btn.active { background: var(--dark); color: white; border-color: var(--dark); }
 
-        /* 名片結構 */
+        /* 🃏 名片主體 */
         .card { background: white; width: 92%; max-width: 400px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,0.1); position: relative; }
-        .banner-wrap { position: relative; height: 180px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
-        .banner-bg { position: absolute; bottom: -1px; width: 100%; height: 100px; background: white; transition: 0.5s; }
         
-        /* 🏛️ 1. 優雅正拱 */
-        .style-arch .banner-bg { border-radius: 100px 100px 0 0; }
-        /* ✨ 2. 晨曦聚光 */
-        .style-spotlight .banner-bg { border-radius: 0 0 100px 100px; height: 50px; top: -1px; }
+        /* 彩色 Banner 區 - 統一漸層色，不分層 */
+        .banner-wrap { position: relative; height: 180px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
+        
+        /* 拱門形狀修正 */
+        .banner-bg { position: absolute; width: 100%; height: 100px; background: white; transition: 0.5s; }
+        
+        /* 🏛️ 正拱門：白色在下向上凸 */
+        .style-arch .banner-bg { bottom: -1px; border-radius: 100px 100px 0 0; }
+        
+        /* ✨ 晨曦聚光（倒拱門）：白色在上向下凹 */
         .style-spotlight .banner-wrap { background: white; }
-        .style-spotlight .banner-overlay { position: absolute; top:0; width:100%; height:130px; background: linear-gradient(135deg, var(--primary), var(--secondary)); clip-path: ellipse(85% 100% at 50% 0%); }
-        /* 📏 3. 經典平直 */
-        .style-flat .banner-bg { border-radius: 0; height: 60px; }
+        .style-spotlight .banner-color-layer { position: absolute; top: 0; width: 100%; height: 130px; background: linear-gradient(135deg, var(--primary), var(--secondary)); clip-path: ellipse(90% 100% at 50% 0%); }
+        .style-spotlight .banner-bg { display: none; } /* 倒拱門不需要底部白塊 */
 
-        /* 標籤定位 */
-        .unit-tag { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); color: white; font-size: 11px; font-weight: bold; letter-spacing: 2px; background: rgba(0,0,0,0.15); padding: 4px 15px; border-radius: 20px; backdrop-filter: blur(5px); z-index: 5; }
-        .style-spotlight .unit-tag { color: var(--primary); background: rgba(255,255,255,0.8); top: 140px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        /* 📏 平直版 */
+        .style-flat .banner-bg { bottom: 0; height: 60px; border-radius: 0; }
 
-        .avatar-container { width: 110px; height: 110px; position: absolute; top: 50px; left: 50%; transform: translateX(-50%); z-index: 10; }
+        /* 單位名稱 - 置頂且清晰 */
+        .unit-tag { position: absolute; top: 15px; width: 100%; text-align: center; color: white; font-size: 13px; font-weight: bold; letter-spacing: 2px; z-index: 20; text-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .style-spotlight .unit-tag { color: white; } /* 倒拱門時也在最上方彩色區 */
+
+        .avatar-container { width: 110px; height: 110px; position: absolute; top: 48px; left: 50%; transform: translateX(-50%); z-index: 15; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,0.1); background: #f0f0f0; }
         
         .info { text-align: center; padding: 40px 25px 15px; margin-top: 65px; }
         .name { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
-        .title { color: #555; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+        .title { color: #555; font-size: 15px; line-height: 1.6; white-space: pre-wrap; }
 
         /* 內容框 */
         .content-box { font-size: 14px; background: color-mix(in srgb, var(--primary), white 93%); padding: 22px; border-radius: 25px; border-left: 6px solid var(--primary); margin: 0 25px 20px; line-height: 1.8; white-space: pre-wrap; text-align: left; }
@@ -65,9 +70,8 @@
         .faq-q { font-weight: bold; color: var(--primary); display: block; margin-bottom: 6px; font-size: 15px; }
         .faq-a { background: color-mix(in srgb, var(--primary), white 95%); padding: 15px; border-radius: 15px; font-size: 13px; color: #444; display: block; line-height: 1.6; }
 
-        .form-cta-btn { background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; text-decoration: none; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.15); margin-top: 10px; transition: 0.3s; }
-        .form-cta-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(0,0,0,0.2); }
-        .copyright { padding: 40px 0 20px; font-size: 11px; color: #bbb; text-align: center; }
+        .form-cta-btn { background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; text-decoration: none; font-weight: bold; margin-top: 10px; display: inline-block; box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
+        .copyright { padding: 40px 0 20px; font-size: 11px; color: #bbb; text-align: center; width: 100%; }
     </style>
 </head>
 <body class="theme-warm-pink style-arch">
@@ -99,10 +103,8 @@
 
     <div class="card" id="main-card">
         <div class="banner-wrap">
-            <div class="banner-overlay"></div>
             <div id="user-unit" class="unit-tag">幸福教養概念館</div>
-            <div class="banner-bg"></div>
-            <div class="avatar-container"><img id="user-photo" src="167777.png" class="avatar"></div>
+            <div class="banner-color-layer"></div> <div class="banner-bg"></div> <div class="avatar-container"><img id="user-photo" src="167777.png" class="avatar"></div>
         </div>
         <div class="info">
             <h1 id="user-name" class="name">李秀芳</h1>
@@ -114,7 +116,7 @@
 
     <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即訂製我的智能名片</a>
 
-    <div class="copyright">© 2026 天使幸福系統 | V52.0 品牌正式版</div>
+    <div class="copyright">© 2026 天使幸福系統 | V53.0 純淨視覺</div>
 
     <script>
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
