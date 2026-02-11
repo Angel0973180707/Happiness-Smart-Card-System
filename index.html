@@ -9,22 +9,22 @@
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; }
 
-        /* 🏢 門面管理區 - 預設顯示，交件時會自動隱藏 */
+        /* 管理面板 */
         #admin-panel { width: 100%; background: white; text-align: center; padding: 20px 0; border-bottom: 1px solid #eee; margin-bottom: 20px; }
         .picker-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
         .dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
         .btn-style { padding: 8px 15px; border-radius: 12px; border: 1px solid #eee; font-size: 12px; cursor: pointer; background: white; font-weight: 700; }
         .btn-style.active { background: #2d3436; color: white; border-color: #2d3436; }
 
-        /* 🃏 名片容器 */
+        /* 名片本體 */
         .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 30px 60px rgba(0,0,0,0.12); position: relative; margin-top: 40px; }
         .avatar-wrap { width: 140px; height: 140px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 5px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #eee; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; border: 1px solid rgba(0,0,0,0.05); }
 
         .banner { position: relative; height: 190px; background: linear-gradient(135deg, var(--p), var(--s)); border-radius: 50px 50px 0 0; z-index: 1; overflow: hidden; }
         .arch-overlay { position: absolute; width: 100%; height: 110px; background: white; bottom: -1px; transition: 0.5s; z-index: 2; }
 
-        /* 版型動態切換 */
+        /* 版型樣式 */
         .style-arch .arch-overlay { border-radius: 110px 110px 0 0; }
         .style-flat .arch-overlay { border-radius: 0; height: 40px; }
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.5); height: 100px; }
@@ -37,8 +37,8 @@
         .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; }
         .btn-line-off { background: #06C755; color: white; grid-column: span 2; border: none; }
 
-        /* 🛠 工作區面板 */
-        #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s ease; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
+        /* 工作區 */
+        #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .work-content { padding: 30px; text-align: center; }
         .work-input { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 15px; text-align: center; }
         .work-btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: 900; cursor: pointer; color: white; margin-bottom: 10px; }
@@ -69,8 +69,8 @@
         </div>
     </div>
 
-    <div id="card-obj" class="card">
-        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
+    <div class="card">
+        <div class="avatar-wrap"><img id="u-img" src="" class="avatar" onerror="this.src='https://via.placeholder.com/150?text=Wait'"></div>
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="info"><h1 id="u-name" class="name">讀取中...</h1><div id="u-title" class="title"></div></div>
         <div class="actions">
@@ -84,13 +84,13 @@
     <div id="work-drawer">
         <div class="work-content">
             <input type="text" id="work-id" class="work-input" placeholder="輸入 ID (如: 2)">
-            <button class="work-btn" style="background:var(--p)" onclick="doPreview()">即時預覽</button>
-            <button class="work-btn" style="background:#2ecc71" onclick="doCopy()">複製專業交件網址</button>
-            <p onclick="document.getElementById('work-drawer').style.maxHeight='0'" style="margin-top:10px; font-size:12px; color:#888">關閉</p>
+            <button class="work-btn" style="background:var(--p)" onclick="previewID()">預覽內容</button>
+            <button class="work-btn" style="background:#2ecc71" onclick="copyLink()">複製交件網址</button>
+            <p onclick="document.getElementById('work-drawer').style.maxHeight='0'" style="font-size:12px; color:#888">關閉</p>
         </div>
     </div>
 
-    <div class="footer" onclick="clickFooter()">© 2026 天使幸福智慧名片系統</div>
+    <div class="footer" onclick="clickCount()">© 2026 天使幸福智慧名片系統 | V94</div>
 
     <script>
         let currentTheme = 'warm-pink';
@@ -106,7 +106,7 @@
             btn.classList.add('active');
         }
 
-        function clickFooter() {
+        function clickCount() {
             clicks++;
             if(clicks >= 3) {
                 const d = document.getElementById('work-drawer');
@@ -121,20 +121,14 @@
             const id = urlParams.get('id');
             const theme = urlParams.get('theme') || 'warm-pink';
             
-            // 🚀 重要：如果是帶 ID 的交件網址，隱藏管理區
-            if(id) {
-                document.getElementById('admin-panel').style.display = 'none';
-            }
-            
+            if(id) document.getElementById('admin-panel').style.display = 'none';
             setTheme(theme);
 
             try {
-                // 使用最乾淨的 CSV URL
-                const csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB/pub?gid=681093399&single=true&output=csv";
+                const csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB/pub?gid=681093399&single=true&output=csv&cache=" + Date.now();
                 const res = await fetch(csv);
                 const text = await res.text();
                 allData = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                
                 render(id || "2");
             } catch(e) { console.error(e); }
         }
@@ -144,7 +138,7 @@
             if(d) {
                 document.getElementById('u-name').innerText = d[1];
                 document.getElementById('u-title').innerText = d[2];
-                // 🚀 修正後的讀圖技術
+                // 🚀 圖片終極修正路徑
                 const match = d[6].match(/[-\w]{25,}/);
                 if(match) {
                     document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
@@ -152,8 +146,8 @@
             }
         }
 
-        function doPreview() { render(document.getElementById('work-id').value); }
-        function doCopy() {
+        function previewID() { render(document.getElementById('work-id').value); }
+        function copyLink() {
             const id = document.getElementById('work-id').value;
             if(!id) return alert("請輸入 ID");
             const finalUrl = `https://angel0973180707.github.io/Happiness-Smart-Card-System/?id=${id}&theme=${currentTheme}`;
