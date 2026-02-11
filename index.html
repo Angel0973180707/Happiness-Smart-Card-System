@@ -9,28 +9,23 @@
         :root { --primary: #ff7675; --secondary: #e17055; --bg: #f5f7fa; --dark: #2d3436; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 60px; -webkit-font-smoothing: antialiased; }
 
+        /* 門面 */
         .hero-section { width: 100%; background: white; text-align: center; padding: 15px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .logo-img { width: 50px; height: 50px; border-radius: 12px; }
-        .hero-title { font-size: 16px; font-weight: 900; margin: 5px 0 0; }
+        .hero-title { font-size: 16px; font-weight: 900; }
 
+        /* 控制台 */
         .demo-controls { width: 92%; max-width: 400px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 15px; border-radius: 20px; margin: 15px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; z-index: 1000; }
         .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px; }
-        .color-dot { height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .color-dot { height: 28px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .style-btn { padding: 8px 0; border-radius: 10px; border: 1px solid #eee; font-size: 11px; font-weight: 700; cursor: pointer; background: #fff; }
         .style-btn.active { background: var(--dark); color: white; }
 
-        .card { background: white; width: 92%; max-width: 380px; border-radius: 40px; overflow: visible; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin-top: 10px; }
+        /* 名片核心容器 */
+        .card { background: white; width: 92%; max-width: 380px; border-radius: 40px; overflow: visible; box-shadow: 0 30px 60px rgba(0,0,0,0.12); position: relative; margin-top: 10px; }
         
-        /* 圖片容器：強制置頂與修復 */
-        .avatar-container { 
-            width: 140px; height: 140px; position: absolute; 
-            top: 45px; left: 50%; transform: translateX(-50%); 
-            z-index: 500; background: #fff; border-radius: 50%; 
-            padding: 5px; box-shadow: 0 12px 35px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; background: #eee; }
+        .avatar-container { width: 140px; height: 140px; position: absolute; top: 45px; left: 50%; transform: translateX(-50%); z-index: 500; background: #fff; border-radius: 50%; padding: 5px; box-shadow: 0 12px 35px rgba(0,0,0,0.2); }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #eee; }
 
         .banner-wrap { position: relative; height: 190px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 40px 40px 0 0; transition: 0.5s; z-index: 1; }
         .banner-bg { position: absolute; width: 100%; height: 110px; background: white; bottom: -1px; border-radius: 100px 100px 0 0; z-index: 2; }
@@ -38,34 +33,39 @@
         .unit-tag { position: absolute; top: 18px; width: 100%; text-align: center; color: white; font-size: 14px; font-weight: 900; z-index: 10; letter-spacing: 2px; text-shadow: 0 2px 6px rgba(0,0,0,0.4); }
 
         .info { text-align: center; padding: 60px 20px 5px; margin-top: 75px; }
-        .name { font-size: 32px; font-weight: 900; margin-bottom: 6px; color: var(--dark); text-shadow: 1px 2px 4px rgba(0,0,0,0.1); }
-        .title { color: #555; font-size: 16px; font-weight: 700; line-height: 1.7; white-space: pre-wrap; margin-bottom: 25px; }
+        .name { font-size: 32px; font-weight: 900; margin-bottom: 6px; text-shadow: 1px 2px 4px rgba(0,0,0,0.1); }
+        .title { color: #555; font-size: 16px; font-weight: 700; line-height: 1.7; margin-bottom: 25px; }
 
+        /* 產品照與 Logo 顯示區 */
+        .img-section { padding: 0 20px 20px; display: none; text-align: center; } /* 預設隱藏 */
+        .product-img { width: 100%; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); margin-bottom: 15px; }
+        .logo-img-small { width: 80px; height: auto; margin-bottom: 10px; }
+
+        /* 互動聯繫列 */
         .card-action-bar { display: flex; justify-content: space-around; margin: 0 25px 25px; padding: 15px; border-radius: 25px; background: #fdfdfd; border: 1px solid #f0f0f0; }
         .card-link { text-decoration: none; text-align: center; color: var(--dark); font-size: 11px; font-weight: 900; }
 
-        .content-box { font-size: 15px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 25px; border-radius: 30px; border-left: 10px solid var(--primary); margin: 0 20px 25px; line-height: 1.8; box-shadow: 0 10px 25px rgba(0,0,0,0.06); border-top: 1px solid rgba(255,255,255,0.7); }
+        /* 內容框 */
+        .content-box { font-size: 15px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 25px; border-radius: 30px; border-left: 10px solid var(--primary); margin: 0 20px 25px; line-height: 1.8; box-shadow: 0 10px 25px rgba(0,0,0,0.06); }
 
-        .advantage-box { margin: 0 20px 30px; background: #2d3436; color: #fff; padding: 25px; border-radius: 30px; text-align: left; }
+        /* 優勢介紹區 */
+        .advantage-box { margin: 0 20px 30px; background: #2d3436; color: #fff; padding: 25px; border-radius: 30px; }
         .adv-title { font-size: 18px; font-weight: 900; color: var(--primary); margin-bottom: 15px; display: block; }
-        .adv-item { font-size: 13px; margin-bottom: 12px; display: flex; align-items: flex-start; }
-        .adv-item:before { content: "✨"; margin-right: 8px; }
+        .adv-item { font-size: 13px; margin-bottom: 10px; display: flex; text-align: left; }
 
-        .form-cta-btn { background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; text-decoration: none; font-weight: 900; margin-top: 10px; display: inline-block; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .copyright { padding: 40px 0; font-size: 10px; color: #ccc; cursor: pointer; }
 
-        /* ✨ 顏色更新 */
+        /* 顏色更新 */
         .theme-warm-pink { --primary: #ff7675; --secondary: #d63031; }
-        .theme-bright-blue { --primary: #00bfff; --secondary: #1e90ff; } /* 亮藍 */
+        .theme-bright-blue { --primary: #00bfff; --secondary: #1e90ff; }
         .theme-vivid-orange { --primary: #ff9f43; --secondary: #ee5253; }
         .theme-royal-purple { --primary: #a55eea; --secondary: #6c5ce7; }
-        .theme-teal-green { --primary: #00b894; --secondary: #006266; } /* 翡翠藍綠 */
+        .theme-teal-green { --primary: #00b894; --secondary: #006266; }
     </style>
 </head>
 <body class="theme-warm-pink style-arch">
 
     <div class="hero-section">
-        <img src="167777.png" class="logo-img">
         <h1 class="hero-title">天使幸福智能名片系統</h1>
     </div>
 
@@ -85,10 +85,7 @@
     </div>
 
     <div class="card" id="main-card">
-        <div class="avatar-container">
-            <img id="user-photo" src="167777.png" class="avatar">
-        </div>
-
+        <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
         <div class="banner-wrap">
             <div id="user-unit" class="unit-tag">載入中...</div>
             <div class="banner-bg"></div>
@@ -97,6 +94,11 @@
         <div class="info">
             <h1 id="user-name" class="name">載入中...</h1>
             <div id="user-title" class="title"></div>
+        </div>
+
+        <div id="product-section" class="img-section">
+            <img id="user-logo" src="" class="logo-img-small" style="display:none;">
+            <img id="user-product" src="" class="product-img" style="display:none;">
         </div>
 
         <div class="card-action-bar">
@@ -109,21 +111,20 @@
 
         <div class="advantage-box">
             <span class="adv-title">🚀 智能名片五大優勢</span>
-            <div class="adv-item"><b>永不改號</b>：名片內容隨時更新，連結永遠有效。</div>
-            <div class="adv-item"><b>一鍵聯繫</b>：電話、LINE、Email 點擊即通。</div>
-            <div class="adv-item"><b>多圖展示</b>：同時呈現專業形象與精選產品。</div>
-            <div class="adv-item"><b>信任感建立</b>：內建常見問題解答，專業度立現。</div>
-            <div class="adv-item"><b>輕量高效</b>：免安裝 App，分享最快，掃碼即看。</div>
+            <div class="adv-item">✨ 永不改號：內容隨時更新，連結永遠有效。</div>
+            <div class="adv-item">✨ 一鍵聯繫：電話、LINE、Email 點擊即通。</div>
+            <div class="adv-item">✨ 多圖展示：同時呈現專業形象與精選產品。</div>
+        </div>
+
+        <div id="wechat-area" style="text-align:center; display:none; padding: 20px;">
+            <p style="font-size:12px; color:#777;">微信聯繫 QR Code</p>
+            <img id="user-wechat" src="" style="width:180px; border-radius:15px; box-shadow:0 5px 15px rgba(0,0,0,0.1);">
         </div>
 
         <div id="faq-area" class="faq-area" style="padding: 0 20px;"></div>
     </div>
 
-    <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即訂製我的智能名片</a>
-    
-    <div class="copyright" id="admin-trigger">
-        © 2026 天使幸福系統 | V69.0 影像強效版
-    </div>
+    <div class="copyright" id="admin-trigger">© 2026 天使幸福系統 | V70.0</div>
 
     <script>
         function setTheme(t) { 
@@ -138,11 +139,11 @@
             btn.classList.add('active');
         }
 
-        // 連點 5 次進入後台
-        let count = 0;
-        document.getElementById('admin-trigger').onclick = function() {
-            count++; if(count >= 5) { window.location.href="https://docs.google.com/spreadsheets/d/1FheazjGkNRUCw-EGWkbjcV2Vtjh3_-Sq/edit"; count = 0; }
-        };
+        function getDriveUrl(url) {
+            if (!url) return null;
+            const match = url.match(/[-\w]{25,}/);
+            return match ? `https://drive.google.com/uc?export=view&id=${match[0]}` : null;
+        }
 
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
         async function init() {
@@ -163,19 +164,30 @@
                     if(d[10]) document.getElementById('link-email').href = `mailto:${d[10]}`;
                     if(d[4]) document.getElementById('link-line').href = d[4];
 
-                    // ✨ 強效解碼：嘗試繞過 Google 限制
-                    let photoUrl = d[6]; 
-                    const match = photoUrl.match(/[-\w]{25,}/);
-                    if(match) {
-                        const fileId = match[0];
-                        const imgEl = document.getElementById('user-photo');
-                        // 優先使用 Google User Content CDN
-                        imgEl.src = `https://lh3.googleusercontent.com/u/0/d/${fileId}`;
-                        
-                        // 如果 CDN 失敗，自動切換到下載模式
-                        imgEl.onerror = function() {
-                            this.src = `https://drive.google.com/uc?export=view&id=${fileId}`;
-                        };
+                    // 1. 大頭照
+                    const photo = getDriveUrl(d[6]);
+                    if(photo) document.getElementById('user-photo').src = photo;
+
+                    // 2. 產品照與 Logo (動態顯示)
+                    const product = getDriveUrl(d[7]);
+                    const logo = getDriveUrl(d[8]);
+                    if(product || logo) {
+                        document.getElementById('product-section').style.display = 'block';
+                        if(logo) {
+                            document.getElementById('user-logo').src = logo;
+                            document.getElementById('user-logo').style.display = 'inline-block';
+                        }
+                        if(product) {
+                            document.getElementById('user-product').src = product;
+                            document.getElementById('user-product').style.display = 'block';
+                        }
+                    }
+
+                    // 3. 微信 QR Code
+                    const wechat = getDriveUrl(d[23]); // 假設在第 23 欄，或您表單對應的欄位
+                    if(wechat) {
+                        document.getElementById('wechat-area').style.display = 'block';
+                        document.getElementById('user-wechat').src = wechat;
                     }
 
                     let qa = "";
