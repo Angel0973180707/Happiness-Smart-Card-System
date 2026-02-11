@@ -8,17 +8,12 @@
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
         body { font-family: 'PingFang TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; color: #2d3436; }
         
-        /* 10 種顏色主題 */
+        /* 顏色主題 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
         .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
         .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
-        .theme-royal-purple { --primary: #6c5ce7; --secondary: #a29bfe; }
-        .theme-sunny-orange { --primary: #e67e22; --secondary: #f39c12; }
-        .theme-classic-grey { --primary: #636e72; --secondary: #b2bec3; }
-        .theme-deep-berry { --primary: #6d214f; --secondary: #b33939; }
-        .theme-sky-cyan { --primary: #00cec9; --secondary: #81ecec; }
 
         #preview-bar { width: 100%; max-width: 500px; background: #2d3436; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; position: sticky; top: 0; z-index: 100; box-sizing: border-box; }
         .preview-btn { border: none; color: #fff; padding: 8px 0; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; }
@@ -41,7 +36,7 @@
         .slogan { font-size: 15px; background: rgba(0,0,0,0.02); padding: 20px; border-radius: 20px; border-left: 6px solid var(--primary); text-align: left; line-height: 1.8; margin: 0 25px 25px; color: #444; }
         
         .product-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 25px 25px; }
-        .product-img { width: 100%; aspect-ratio: 1/1; border-radius: 15px; object-fit: cover; background: #eee; }
+        .product-img { width: 100%; aspect-ratio: 1/1; border-radius: 15px; object-fit: cover; background: #eee; border: 1px solid #f1f1f1; }
 
         .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
         .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
@@ -85,7 +80,7 @@
         <div class="product-gallery" id="product-area"></div>
 
         <div id="qa-area" class="qa-section"></div>
-        <a href="https://lihi.cc/VqJzb" class="back-nav">📅 預約製作我的智慧名片</a>
+        <a href="https://angel0973180707.github.io/Happiness-Smart-Card-System/" class="back-nav">📅 預約製作我的智慧名片</a>
     </div>
 
     <div id="generator-box">
@@ -110,21 +105,25 @@
         function generateAndCopy() {
             const id = document.getElementById('input-id').value;
             const th = document.body.className.replace('theme-', '');
-            const finalUrl = `${window.location.href.split('?')[0]}?id=${id}&theme=${th}`;
+            const baseUrl = window.location.origin + window.location.pathname;
+            const finalUrl = `${baseUrl}?id=${id}&theme=${th}`;
+            
             const el = document.createElement('textarea');
             el.value = finalUrl;
             document.body.appendChild(el);
             el.select();
             document.execCommand('copy');
             document.body.removeChild(el);
-            alert("✨ 專屬名片網址已複製！可以交貨給客戶了。");
+            alert("✨ 專屬名片網址已複製！");
         }
 
-        function getDriveUrl(raw) {
-            if(!raw) return "";
-            const first = raw.split(',')[0].split(' ')[0].trim();
-            const match = first.match(/[-\w]{25,}/);
-            return match ? `https://drive.google.com/uc?export=view&id=${match[0]}` : "";
+        // 💡 強化版照片解析函數
+        function getDriveUrl(rawString) {
+            if (!rawString || rawString.trim() === "") return "";
+            // 處理多個連結，只取第一個
+            const firstPart = rawString.split(',')[0].trim();
+            const idMatch = firstPart.match(/[-\w]{25,}/);
+            return idMatch ? `https://drive.google.com/uc?export=view&id=${idMatch[0]}` : "";
         }
 
         async function init() {
@@ -146,19 +145,24 @@
                     document.getElementById('link-email').href = `mailto:${d[10]}`;
                     document.getElementById('link-line').href = d[4] || "#";
 
-                    document.getElementById('user-photo').src = getDriveUrl(d[6]);
-                    const logo = getDriveUrl(d[8]);
-                    if(logo) document.getElementById('user-logo').src = logo;
+                    // 照片處理：個人照(d[6]), Logo(d[8])
+                    document.getElementById('user-photo').src = getDriveUrl(d[6]) || "https://via.placeholder.com/150?text=Wait+Photo";
+                    
+                    const logoUrl = getDriveUrl(d[8]);
+                    if(logoUrl) document.getElementById('user-logo').src = logoUrl;
 
-                    // 處理產品照片
+                    // 產品照片展示 (d[7])
                     const productArea = document.getElementById('product-area');
                     productArea.innerHTML = '';
-                    const pUrls = d[7] ? d[7].split(',') : [];
+                    const productRaw = d[7] || "";
+                    // 如果有多個連結，用逗號拆分
+                    const pUrls = productRaw.split(',');
                     pUrls.forEach(p => {
-                        const url = getDriveUrl(p);
-                        if(url) {
+                        const directUrl = getDriveUrl(p);
+                        if(directUrl) {
                             const img = document.createElement('img');
-                            img.src = url; img.className = 'product-img';
+                            img.src = directUrl;
+                            img.className = 'product-img';
                             productArea.appendChild(img);
                         }
                     });
@@ -168,7 +172,7 @@
                     if(d[19] && d[19].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
                     document.getElementById('qa-area').innerHTML = qa;
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("資料載入失敗", e); }
         }
         init();
     </script>
