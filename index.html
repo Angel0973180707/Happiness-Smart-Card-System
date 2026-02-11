@@ -6,20 +6,14 @@
     <title>天使幸福智能名片系統</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; --dark: #2d3436; }
+        :root { --primary: #ff7675; --secondary: #e17055; --bg: #f8f9fa; --dark: #2d3436; }
         
         body { 
-            font-family: 'Noto Sans TC', sans-serif; 
-            margin: 0; background: var(--bg); color: var(--dark); 
-            display: flex; flex-direction: column; align-items: center; 
-            padding-bottom: 60px; -webkit-font-smoothing: antialiased;
+            font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); 
+            display: flex; flex-direction: column; align-items: center; padding-bottom: 60px;
         }
 
-        .hero-section { width: 100%; background: white; text-align: center; padding: 25px 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .logo-img { width: 80px; height: 80px; border-radius: 20px; object-fit: cover; }
-        .hero-title { font-size: 20px; font-weight: 900; margin: 10px 0 0; letter-spacing: 1.5px; }
-        
-        /* 十色飽滿漸層 */
+        /* 十色主題 */
         .theme-warm-pink { --primary: #ff7675; --secondary: #e17055; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #00cec9; }
         .theme-forest-green { --primary: #26ae60; --secondary: #1abc9c; }
@@ -31,74 +25,53 @@
         .theme-chocolate { --primary: #5d4037; --secondary: #8d6e63; }
         .theme-pure-black { --primary: #000000; --secondary: #434343; }
 
-        .demo-controls { width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 25px; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
+        .hero-section { width: 100%; background: white; text-align: center; padding: 20px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .logo-img { width: 60px; height: 60px; border-radius: 15px; }
+        .hero-title { font-size: 18px; font-weight: 900; margin: 8px 0 0; }
+
+        /* 控制面板 */
+        .demo-controls { width: 90%; max-width: 400px; background: white; padding: 15px; border-radius: 25px; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
         .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
-        .color-dot { height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
+        .color-dot { height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
         .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        .style-btn { padding: 10px 5px; border-radius: 12px; border: 1px solid #eee; font-size: 11px; font-weight: 700; cursor: pointer; background: #f9f9f9; }
+        .style-btn { padding: 8px 0; border-radius: 10px; border: 1px solid #eee; font-size: 11px; font-weight: 700; cursor: pointer; background: #f9f9f9; }
         .style-btn.active { background: var(--dark); color: white; border-color: var(--dark); }
 
-        /* 🃏 名片主體 */
-        .card { 
-            background: white; width: 92%; max-width: 400px; border-radius: 40px; 
-            overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); 
-            position: relative; padding-bottom: 30px;
-        }
+        /* 名片主體 */
+        .card { background: white; width: 92%; max-width: 380px; border-radius: 40px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); position: relative; }
         
-        /* 玻璃質感的關鍵：背景層 */
-        .banner-wrap { position: relative; height: 190px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
-        .banner-bg { position: absolute; width: 100%; height: 110px; background: white; transition: 0.5s; bottom: -1px; border-radius: 100px 100px 0 0; }
+        .banner-wrap { position: relative; height: 180px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
+        .banner-bg { position: absolute; width: 100%; height: 100px; background: white; transition: 0.5s; bottom: -1px; border-radius: 100px 100px 0 0; }
         
         .style-spotlight .banner-wrap { background: white; }
-        .style-spotlight .banner-color-layer { position: absolute; top: 0; width: 100%; height: 140px; background: linear-gradient(135deg, var(--primary), var(--secondary)); clip-path: ellipse(90% 100% at 50% 0%); }
+        .style-spotlight .banner-color-layer { position: absolute; top: 0; width: 100%; height: 130px; background: linear-gradient(135deg, var(--primary), var(--secondary)); clip-path: ellipse(90% 100% at 50% 0%); }
         .style-spotlight .banner-bg { display: none; }
-        .style-flat .banner-bg { border-radius: 0; height: 65px; }
+        .style-flat .banner-bg { border-radius: 0; height: 60px; }
 
-        .unit-tag { position: absolute; top: 15px; width: 100%; text-align: center; color: white; font-size: 13px; font-weight: 700; letter-spacing: 3px; z-index: 20; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .unit-tag { position: absolute; top: 15px; width: 100%; text-align: center; color: white; font-size: 13px; font-weight: 700; z-index: 20; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-        .avatar-container { width: 115px; height: 115px; position: absolute; top: 52px; left: 50%; transform: translateX(-50%); z-index: 15; }
-        .avatar { 
-            width: 100%; height: 100%; border-radius: 50%; 
-            border: 6px solid white; object-fit: cover; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
-            background: #f0f0f0;
-        }
+        .avatar-container { width: 110px; height: 110px; position: absolute; top: 50px; left: 50%; transform: translateX(-50%); z-index: 15; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
 
-        .info { text-align: center; padding: 45px 25px 15px; margin-top: 75px; }
-        .name { font-size: 28px; font-weight: 900; margin-bottom: 8px; letter-spacing: 1px; }
-        .title { color: #636e72; font-size: 15px; line-height: 1.8; white-space: pre-wrap; font-weight: 400; }
+        .info { text-align: center; padding: 45px 20px 15px; margin-top: 65px; }
+        .name { font-size: 26px; font-weight: 900; margin-bottom: 5px; }
+        .title { color: #636e72; font-size: 14px; line-height: 1.6; }
 
-        /* ✨ 玻璃質感內容框 (Glassmorphism) */
+        /* 玻璃質感框 */
         .content-box { 
-            font-size: 15px; 
-            background: rgba(255, 255, 255, 0.7); /* 半透明白 */
-            backdrop-filter: blur(15px); /* 磨砂效果 */
-            -webkit-backdrop-filter: blur(15px);
-            padding: 24px; border-radius: 25px; 
-            border-left: 8px solid var(--primary); 
-            border-top: 1px solid rgba(255,255,255,0.8); /* 玻璃亮邊 */
-            border-right: 1px solid rgba(255,255,255,0.3);
-            margin: 0 20px 25px; line-height: 1.8; 
-            white-space: pre-wrap; text-align: left;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+            font-size: 14px; background: rgba(255, 255, 255, 0.7); 
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 20px; border-radius: 20px; border-left: 6px solid var(--primary); 
+            margin: 0 20px 20px; line-height: 1.8; text-align: left;
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.05);
         }
 
-        .faq-box { margin: 0 20px 10px; }
-        .faq-q { font-weight: 700; color: var(--primary); display: block; margin-bottom: 8px; font-size: 16px; padding-left: 10px; }
-        .faq-a { 
-            background: rgba(255, 255, 255, 0.5); 
-            backdrop-filter: blur(10px);
-            padding: 18px; border-radius: 20px; font-size: 14px; color: #2d3436; 
-            display: block; line-height: 1.7; border: 1px solid rgba(255,255,255,0.5);
-            margin-bottom: 20px;
-        }
+        .faq-item { margin: 0 20px 15px; }
+        .faq-q { font-weight: 700; color: var(--primary); font-size: 15px; margin-bottom: 5px; display: block; }
+        .faq-a { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(5px); padding: 15px; border-radius: 15px; font-size: 13px; color: #444; border: 1px solid rgba(255,255,255,0.4); }
 
-        .form-cta-btn { 
-            background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; 
-            text-decoration: none; font-weight: 700; margin-top: 20px; display: inline-block; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        .copyright { padding: 40px 0 20px; font-size: 11px; color: #bbb; text-align: center; width: 100%; }
+        .form-cta-btn { background: var(--dark); color: white; padding: 15px 40px; border-radius: 30px; text-decoration: none; font-weight: 700; margin: 20px 0; }
+        .copyright { padding: 30px 0; font-size: 10px; color: #bbb; }
     </style>
 </head>
 <body class="theme-warm-pink style-arch">
@@ -137,34 +110,31 @@
         </div>
         <div class="info">
             <h1 id="user-name" class="name">李秀芳</h1>
-            <div id="user-title" class="title">載入中...</div>
+            <div id="user-title" class="title">天使智能名片負責人</div>
         </div>
-        
-        <div id="user-slogan" class="content-box"></div>
-        <div id="faq-area" class="faq-box"></div>
+        <div id="user-slogan" class="content-box">讓愛發揮力量，熱衷推廣幸福教養。</div>
+        <div id="faq-area"></div>
     </div>
 
     <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即訂製我的智能名片</a>
-
-    <div class="copyright">© 2026 天使幸福系統 | V55.0 琉璃光感版</div>
+    <div class="copyright">© 2026 天使幸福系統 | V56.0</div>
 
     <script>
-        const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
-        const params = new URLSearchParams(window.location.search);
-        const rowId = params.get('id') || "2";
-
+        // 切換主題色
         function setTheme(t) { 
-            const s = document.body.className.split(' ').find(c => c.startsWith('style-'));
-            document.body.className = `theme-${t} ${s}`; 
+            const currentStyle = document.body.className.split(' ').find(c => c.startsWith('style-'));
+            document.body.className = `theme-${t} ${currentStyle}`; 
         }
 
+        // 切換版型
         function setStyle(s, btn) {
-            const t = document.body.className.split(' ').find(c => c.startsWith('theme-'));
-            document.body.className = `${t} style-${s}`;
+            const currentTheme = document.body.className.split(' ').find(c => c.startsWith('theme-'));
+            document.body.className = `${currentTheme} style-${s}`;
             document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         }
 
+        const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
         async function init() {
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
             try {
@@ -176,14 +146,12 @@
                     document.getElementById('user-name').innerText = d[1];
                     document.getElementById('user-title').innerText = d[2];
                     document.getElementById('user-slogan').innerText = d[5];
-                    
                     let pId = "";
-                    d.forEach(cell => { if(cell && cell.includes("id=")) { let m = cell.match(/id=([-\w]{25,}/); if(m) pId = m[1]; } });
+                    d.forEach(cell => { if(cell && cell.includes("id=")) { let m = cell.match(/id=([-\w]{25,})/); if(m) pId = m[1]; } });
                     if(pId) document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId}`;
-
                     let qa = "";
-                    if(d[16]) qa += `<div><b class="faq-q">❓ ${d[16]}</b><p class="faq-a">${d[17]}</p></div>`;
-                    if(d[18]) qa += `<div><b class="faq-q">❓ ${d[18]}</b><p class="faq-a">${d[19]}</p></div>`;
+                    if(d[16]) qa += `<div class="faq-item"><b class="faq-q">❓ ${d[16]}</b><p class="faq-a">${d[17]}</p></div>`;
+                    if(d[18]) qa += `<div class="faq-item"><b class="faq-q">❓ ${d[18]}</b><p class="faq-a">${d[19]}</p></div>`;
                     document.getElementById('faq-area').innerHTML = qa;
                 }
             } catch (e) {}
