@@ -6,63 +6,65 @@
     <title>幸福智多星 | 幸福教養概念館</title>
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
-        body { font-family: 'PingFang TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        
-        /* 門面樣式 */
-        #studio-landing { width: 92%; max-width: 500px; text-align: center; padding: 80px 20px; box-sizing: border-box; }
-        .studio-title { font-size: 32px; font-weight: 800; color: #2d3436; margin-bottom: 15px; }
-        .studio-desc { font-size: 17px; color: #636e72; line-height: 1.8; margin-bottom: 40px; }
-        .action-btn { background: #2d3436; color: white; padding: 18px 35px; border-radius: 35px; text-decoration: none; font-weight: bold; display: inline-block; margin: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-
-        /* 名片本體樣式 */
-        .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); display: none; }
-        
-        /* 🤫 隱形管理區：預設完全隱藏 */
-        #admin-panel { display: none; width: 100%; max-width: 420px; background: #2d3436; color: white; padding: 30px; border-radius: 30px; margin-top: 20px; box-sizing: border-box; text-align: left; }
-        .admin-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; }
-        .copy-btn { background: var(--secondary); color: #2d3436; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
-        
-        /* 顏色主題 */
+        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
         .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
         .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
+
+        /* 門面樣式 (首頁) */
+        #studio-landing { width: 92%; max-width: 500px; text-align: center; padding: 60px 20px; box-sizing: border-box; }
+        .studio-title { font-size: 32px; font-weight: 800; color: #2d3436; margin-bottom: 15px; }
+        .studio-desc { font-size: 17px; color: #636e72; line-height: 1.8; margin-bottom: 40px; }
+        .action-btn { background: #2d3436; color: white; padding: 18px 35px; border-radius: 35px; text-decoration: none; font-weight: bold; display: inline-block; margin: 10px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+
+        /* 名片樣式 */
+        .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 30px; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.1); display: none; }
+        .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
+        .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; background: #eee; }
+        
+        /* 🤫 隱形管理區：預設完全隱藏 */
+        #admin-panel { display: none; width: 100%; max-width: 420px; background: #2d3436; color: white; padding: 30px; border-radius: 30px; margin-top: 20px; box-sizing: border-box; }
+        #preview-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 15px; }
+        .preview-btn { border: none; color: #fff; padding: 8px 0; border-radius: 4px; font-size: 10px; cursor: pointer; font-weight: bold; }
+        .admin-input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: none; box-sizing: border-box; }
+        .copy-btn { background: var(--secondary); color: #2d3436; padding: 16px; border-radius: 12px; border: none; font-weight: 800; width: 100%; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body class="theme-warm-pink">
 
     <div id="studio-landing">
         <h1 class="studio-title">幸福智多星</h1>
-        <p class="studio-desc">專為幸福產業打造的數位身分系統。<br>讓您的專業，隨時隨地在手機端完美呈現。</p>
-        <a href="https://lihi.cc/VqJzb" class="action-btn">✨ 填寫製作表單</a>
+        <p class="studio-desc">致力結合心腦科學實踐，為您打造專屬個人智慧名片。<br>讓您的專業，隨時隨地在手機端完美呈現。</p>
+        <a href="https://lihi.cc/VqJzb" class="action-btn">✨ 填寫需求表單</a>
         <p onclick="unlockAdmin()" style="margin-top:100px; font-size:12px; color:#ddd; cursor:pointer;">© 2026 幸福教養概念館</p>
     </div>
 
     <div class="card" id="main-card">
-        <div style="height:160px; background:linear-gradient(180deg, var(--primary), var(--secondary)); clip-path:polygon(0 0, 100% 0, 100% 85%, 0% 100%);"></div>
-        <div style="width:140px; height:140px; margin:-90px auto 10px; position:relative;">
-            <img id="user-photo" src="" style="width:100%; height:100%; border-radius:50%; border:6px solid white; object-fit:cover;">
+        <div class="banner"></div>
+        <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
+        <div class="info" style="text-align:center; padding:0 25px 25px;">
+            <h1 id="user-name" class="name">載入中...</h1>
+            <p id="user-title" class="title"></p>
+            <div id="user-slogan" class="slogan" style="margin-top:15px;"></div>
         </div>
-        <div style="text-align:center; padding:0 25px 30px;">
-            <h1 id="user-name" style="font-size:30px; margin:10px 0;">載入中...</h1>
-            <p id="user-title" style="color:#636e72; font-size:16px;"></p>
-        </div>
+        <div id="qa-area" class="qa-section"></div>
         <a href="https://angel0973180707.github.io/Happiness-Smart-Card-System/" style="display:block; text-align:center; padding:20px; background:#2d3436; color:white; text-decoration:none; font-weight:bold;">📅 預約製作我的智慧名片</a>
     </div>
 
     <div id="admin-panel">
-        <h3 style="margin:0 0 15px 0;">🛠️ 製作人後台</h3>
-        <div style="display:flex; gap:5px; margin-bottom:15px; flex-wrap:wrap;">
-            <button onclick="setTheme('warm-pink')" style="background:#e17055; border:none; color:white; padding:5px 10px; border-radius:4px;">粉</button>
-            <button onclick="setTheme('navy-blue')" style="background:#0984e3; border:none; color:white; padding:5px 10px; border-radius:4px;">藍</button>
-            <button onclick="setTheme('forest-green')" style="background:#27ae60; border:none; color:white; padding:5px 10px; border-radius:4px;">綠</button>
-            <button onclick="setTheme('soft-gold')" style="background:#b89130; border:none; color:white; padding:5px 10px; border-radius:4px;">金</button>
-            <button onclick="setTheme('tiffany-blue')" style="background:#00b894; border:none; color:white; padding:5px 10px; border-radius:4px;">青</button>
+        <div id="preview-bar">
+            <button class="preview-btn" onclick="setTheme('warm-pink')" style="background:#e17055">暖心粉</button>
+            <button class="preview-btn" onclick="setTheme('navy-blue')" style="background:#0984e3">深海藍</button>
+            <button class="preview-btn" onclick="setTheme('forest-green')" style="background:#27ae60">森林綠</button>
+            <button class="preview-btn" onclick="setTheme('soft-gold')" style="background:#b89130">沉穩金</button>
+            <button class="preview-btn" onclick="setTheme('tiffany-blue')" style="background:#00b894">湖水藍</button>
         </div>
-        <label>輸入客戶 ID (試算表行號):</label>
+        <label>輸入 ID (試算表行號):</label>
         <input type="number" id="input-id" value="2" oninput="init()" class="admin-input">
-        <button onclick="generateAndCopy()" class="copy-btn">🔗 產生並複製交貨網址</button>
+        <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製專屬名片網址</button>
     </div>
 
     <script>
@@ -71,50 +73,65 @@
         const rowId = params.get('id');
         const theme = params.get('theme') || 'warm-pink';
 
-        // 💡 模式判斷
+        // 💡 模式判定：如果有 ID 參數，隱藏大門秀名片
         if (rowId) {
-            // 成品模式：什麼都不顯示，只秀名片
             document.getElementById('studio-landing').style.display = 'none';
             document.getElementById('main-card').style.display = 'block';
             document.body.className = `theme-${theme}`;
-        } else {
-            // 門面模式：顯示大門，隱藏名片與後台
-            document.getElementById('main-card').style.display = 'none';
         }
 
-        // 🤫 開啟後台的「隱藏密技」：點擊版權文字
+        // 🤫 隱藏密技：開啟管理後台
         function unlockAdmin() {
             const panel = document.getElementById('admin-panel');
             panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
-            document.getElementById('main-card').style.display = 'block'; // 同時顯示預覽名片
+            document.getElementById('main-card').style.display = 'block'; // 同時顯示名片預覽
             window.scrollTo(0, document.body.scrollHeight);
         }
 
         function setTheme(t) { document.body.className = `theme-${t}`; }
-        
+
         function generateAndCopy() {
             const id = document.getElementById('input-id').value;
             const th = document.body.className.replace('theme-', '');
             const url = `${window.location.origin}${window.location.pathname}?id=${id}&theme=${th}`;
-            navigator.clipboard.writeText(url).then(() => alert("✨ 交貨連結複製成功！"));
+            navigator.clipboard.writeText(url).then(() => alert("✨ 專屬名片網址已複製成功！"));
         }
 
         async function init() {
             let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
+            
             try {
                 const res = await fetch(url);
                 const text = await res.text();
                 const lines = text.split(/\r?\n/);
                 const dataLines = lines.filter(l => l.includes("2026/")); 
                 const d = dataLines[fetchId - 2]?.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+
                 if(d) {
-                    document.getElementById('user-name').innerText = d[1];
-                    document.getElementById('user-title').innerText = d[2];
-                    const idMatch = d[6].match(/[-\w]{25,}/);
-                    document.getElementById('user-photo').src = idMatch ? `https://drive.google.com/uc?export=view&id=${idMatch[0]}` : "";
+                    document.getElementById('user-name').innerText = d[1] || "姓名";
+                    document.getElementById('user-title').innerText = d[2] || "職稱";
+                    document.getElementById('user-slogan').innerText = d[5] || "";
+
+                    let qa = '';
+                    if(d[17] && d[17].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
+                    if(d[19] && d[19].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
+                    document.getElementById('qa-area').innerHTML = qa;
+
+                    // 💡 照片偵測邏輯強化
+                    let pId = null;
+                    d.forEach(cell => {
+                        const match = cell.match(/[-\w]{25,}/);
+                        if (match && cell.includes('drive')) pId = match[0];
+                    });
+                    
+                    if (pId) {
+                        document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId}`;
+                    } else {
+                        document.getElementById('user-photo').src = 'https://via.placeholder.com/150?text=Photo';
+                    }
                 }
-            } catch (e) { }
+            } catch (e) { console.error(e); }
         }
         init();
     </script>
