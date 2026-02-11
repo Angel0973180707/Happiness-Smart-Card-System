@@ -8,36 +8,67 @@
     <style>
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; }
-        #admin-panel { width: 100%; background: white; text-align: center; padding: 20px 0; border-bottom: 1px solid #eee; margin-bottom: 20px; }
-        .picker-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
-        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+        /* 🏢 門面管理控制台 */
+        #admin-panel { width: 100%; background: white; text-align: center; padding: 25px 0; border-bottom: 1px solid #eee; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 15px; }
+        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .btn-style { padding: 8px 15px; border-radius: 12px; border: 1px solid #eee; font-size: 12px; cursor: pointer; background: white; font-weight: 700; }
+        .btn-style.active { background: #2d3436; color: white; border-color: #2d3436; }
+
+        /* 🃏 名片容器 */
         .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 40px 80px rgba(0,0,0,0.1); position: relative; margin-top: 40px; }
         .avatar-wrap { width: 145px; height: 145px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #eee; }
-        .banner { height: 195px; background: linear-gradient(135deg, var(--p), var(--s)); border-radius: 50px 50px 0 0; position: relative; }
-        .arch-overlay { position: absolute; width: 100%; height: 115px; background: white; bottom: -1px; border-radius: 115px 115px 0 0; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
+
+        .banner { position: relative; height: 195px; background: linear-gradient(135deg, var(--p), var(--s)); border-radius: 50px 50px 0 0; z-index: 1; overflow: hidden; }
+        .arch-overlay { position: absolute; width: 100%; height: 115px; background: white; bottom: -1px; transition: 0.5s; z-index: 2; }
+
+        .style-arch .arch-overlay { border-radius: 115px 115px 0 0; }
+        .style-flat .arch-overlay { border-radius: 0; height: 40px; }
+        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.5); height: 105px; }
+
         .info { text-align: center; padding: 15px 25px; margin-top: 60px; }
-        .name { font-size: 24px; font-weight: 900; color: #222; margin-bottom: 5px; }
-        .title { color: #666; font-size: 15px; font-weight: 700; margin-bottom: 25px; white-space: pre-wrap; }
+        .name { font-size: 22px; font-weight: 900; color: #222; margin-bottom: 8px; line-height: 1.2; }
+        .title { color: #555; font-size: 15px; font-weight: 700; line-height: 1.6; margin-bottom: 25px; white-space: pre-wrap; }
+
         .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 25px 20px; }
-        .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; cursor: pointer; }
+        .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
         .btn-line-off { background: #06C755 !important; color: white !important; grid-column: span 2; border: none; }
+
         .section-box { background: #fff; margin: 0 25px 20px; padding: 20px; border-radius: 25px; border-left: 8px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); display: none; }
-        .section-box h4 { margin: 0 0 10px 0; color: var(--s); font-size: 15px; font-weight: 900; }
+        .section-box h4 { margin: 0 0 10px 0; color: var(--s); font-size: 15px; font-weight: 900; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         .section-box p { font-size: 13px; color: #555; line-height: 1.7; margin: 0; white-space: pre-wrap; }
-        #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
-        .footer { font-size: 11px; color: #ccc; margin-top: 50px; text-align: center; padding: 20px; cursor: pointer; }
+
+        .btn-order { display: block; background: #f1c40f; color: #222; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; margin: 15px 25px 30px; text-align: center; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3); }
+
+        #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s ease; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
+
+        .footer { font-size: 11px; color: #ccc; margin-top: 50px; text-align: center; padding: 20px; cursor: pointer; user-select: none; }
+
+        /* 🎨 顏色定義 */
+        .warm-pink { --p: #ff7675; --s: #d63031; }
+        .aurora-blue { --p: #00d2ff; --s: #3a7bd5; }
+        .vivid-orange { --p: #ff9f43; --s: #ee5253; }
+        .royal-purple { --p: #a55eea; --s: #6c5ce7; }
+        .teal-green { --p: #00b894; --s: #006266; }
     </style>
 </head>
-<body class="warm-pink">
+<body class="warm-pink style-arch">
 
     <div id="admin-panel">
         <div class="picker-group">
             <div class="dot" style="background:#ff7675" onclick="setTheme('warm-pink')"></div>
             <div class="dot" style="background:#00d2ff" onclick="setTheme('aurora-blue')"></div>
+            <div class="dot" style="background:#ff9f43" onclick="setTheme('vivid-orange')"></div>
+            <div class="dot" style="background:#a55eea" onclick="setTheme('royal-purple')"></div>
             <div class="dot" style="background:#00b894" onclick="setTheme('teal-green')"></div>
         </div>
-        <p style="font-size: 12px; color: #999;">天使幸福智慧名片展示中心</p>
+        <div class="picker-group">
+            <button class="btn-style active" onclick="setStyle('arch', this)">優雅正拱</button>
+            <button class="btn-style" onclick="setStyle('flat', this)">經典平直</button>
+            <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
+        </div>
     </div>
 
     <div class="card">
@@ -49,53 +80,56 @@
         </div>
         
         <div class="actions">
-            <div onclick="openLink('lineOff')" class="act-btn btn-line-off">✅ LINE 官方帳號</div>
-            <div onclick="openLink('tel')" class="act-btn">📞 一鍵電話</div>
-            <div onclick="openLink('mail')" class="act-btn">✉️ 寄送郵箱</div>
-            <div onclick="openLink('lineP')" class="act-btn" style="grid-column: span 2;">💬 LINE 私訊找我</div>
+            <div onclick="goLink('lineOff')" class="act-btn btn-line-off">✅ LINE 官方帳號</div>
+            <div onclick="goLink('tel')" class="act-btn">📞 一鍵電話</div>
+            <div onclick="goLink('mail')" class="act-btn">✉️ 寄送郵箱</div>
+            <div onclick="goLink('lineP')" class="act-btn" style="grid-column: span 2;">💬 LINE 私訊找我</div>
         </div>
 
-        <div class="section-box" id="box-1">
-            <h4 id="q1-title">智慧名片優勢</h4>
-            <p id="q1-ans">✨ 立體美學｜一鍵聯繫｜雲端更新</p>
-        </div>
-        <div class="section-box" id="box-2">
-            <h4 id="q2-title"></h4>
-            <p id="q2-ans"></p>
+        <div id="client-content">
+            <div class="section-box" id="box-1">
+                <h4 id="q1-title">智慧名片優勢</h4>
+                <p id="q1-ans">✨ 立體美學｜一鍵聯繫｜雲端更新</p>
+            </div>
+            <div class="section-box" id="box-2">
+                <h4 id="q2-title"></h4>
+                <p id="q2-ans"></p>
+            </div>
         </div>
 
-        <a href="https://forms.gle/3X4pRqvoMX42Bwte7" target="_blank" id="order-btn" style="display:block; background:#f1c40f; color:#222; text-decoration:none; padding:15px; border-radius:15px; font-weight:900; margin:15px 25px 30px; text-align:center;">📝 填寫訂購資料</a>
+        <a href="https://forms.gle/3X4pRqvoMX42Bwte7" target="_blank" class="btn-order" id="main-order-btn">📝 填寫訂購資料</a>
     </div>
 
     <div id="work-drawer">
         <div style="padding: 30px; text-align: center;">
-            <input type="text" id="work-id" style="width:100%; padding:15px; border-radius:12px; margin-bottom:15px;" placeholder="輸入 ID 預覽">
-            <button onclick="doPreview()" style="width:100%; padding:15px; background:var(--p); color:white; border:none; border-radius:12px; font-weight:900;">即時預覽成品</button>
+            <input type="text" id="work-id" style="width:100%; padding:15px; border-radius:12px; border:none; margin-bottom:15px;" placeholder="輸入 ID 預覽">
+            <button onclick="doPreview()" style="width:100%; padding:15px; border-radius:12px; border:none; font-weight:900; background:var(--p); color:white;">即時預覽成品</button>
             <p onclick="document.getElementById('work-drawer').style.maxHeight='0'" style="margin-top:20px; color:#888; cursor:pointer;">關閉</p>
         </div>
     </div>
 
-    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統</div>
+    <div class="footer" id="admin-footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統</div>
 
     <script>
-        let allRows = []; let isClient = false;
+        let curTheme = 'warm-pink'; let curStyle = 'arch'; let clicks = 0; let allRows = []; let isClient = false;
         let currentLinks = { lineOff: '', tel: '', mail: '', lineP: '' };
-        
-        // 🚀 門面寫死資料
+
         const MY_DATA = { 
             name: "天使幸福智慧名片系統", 
             title: "優質智慧名片", 
-            photo: "https://180707.github.io/167777.png?v=" + Date.now(), 
+            photo: "https://180707.github.io/167777.png?t=" + Date.now(), 
             lineOff: "https://lin.ee/2ac9Roe", 
             tel: "0973180707", 
             mail: "a0973180707@gmail.com", 
             lineP: "https://line.me/ti/p/VqJzbWHm_4" 
         };
 
-        function setTheme(t) { document.body.className = t; }
-        function openLink(type) { if(currentLinks[type]) window.location.href = currentLinks[type]; }
+        function setTheme(t) { curTheme = t; document.body.className = t + ' style-' + curStyle; }
+        function setStyle(s, btn) { curStyle = s; document.body.className = curTheme + ' style-' + s; document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+        function goLink(type) { if(currentLinks[type]) window.open(currentLinks[type], '_blank'); }
 
         function handleFooterClick() {
+            if (isClient) return;
             clicks++;
             if(clicks >= 3) { document.getElementById('work-drawer').style.maxHeight = '450px'; clicks = 0; }
             setTimeout(() => clicks = 0, 1000);
@@ -113,13 +147,14 @@
             } else {
                 isClient = true;
                 document.getElementById('admin-panel').style.display = 'none';
-                document.getElementById('order-btn').style.display = 'none';
+                document.getElementById('main-order-btn').style.display = 'none';
             }
         }
 
         async function loadSheetData(targetId) {
             try {
-                const res = await fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB/pub?gid=681093399&single=true&output=csv&cache=" + Date.now());
+                const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB/pub?gid=681093399&single=true&output=csv&t=" + Date.now();
+                const res = await fetch(csvUrl);
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
@@ -132,8 +167,8 @@
             if(d) {
                 document.getElementById('u-name').innerText = d[1];
                 document.getElementById('u-title').innerText = d[2];
-                const imgMatch = d[6].match(/[-\w]{25,}/);
-                if(imgMatch) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + imgMatch[0];
+                const match = d[6].match(/[-\w]{25,}/);
+                if(match) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
                 
                 currentLinks = {
                     lineOff: d[4] || '',
@@ -156,7 +191,6 @@
         }
 
         function doPreview() { renderSheet(document.getElementById('work-id').value); }
-        let clicks = 0;
         init();
     </script>
 </body>
