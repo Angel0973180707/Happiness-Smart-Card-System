@@ -3,48 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片系統</title>
+    <title>天使幸福智慧名片系統 V95</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; }
 
-        /* 管理面板 */
+        /* 隱藏管理面板 */
         #admin-panel { width: 100%; background: white; text-align: center; padding: 20px 0; border-bottom: 1px solid #eee; margin-bottom: 20px; }
         .picker-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
-        .dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
+        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
         .btn-style { padding: 8px 15px; border-radius: 12px; border: 1px solid #eee; font-size: 12px; cursor: pointer; background: white; font-weight: 700; }
         .btn-style.active { background: #2d3436; color: white; border-color: #2d3436; }
 
         /* 名片本體 */
-        .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 30px 60px rgba(0,0,0,0.12); position: relative; margin-top: 40px; }
-        .avatar-wrap { width: 140px; height: 140px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 5px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; border: 1px solid rgba(0,0,0,0.05); }
+        .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 40px 80px rgba(0,0,0,0.1); position: relative; margin-top: 50px; }
+        .avatar-wrap { width: 145px; height: 145px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
 
-        .banner { position: relative; height: 190px; background: linear-gradient(135deg, var(--p), var(--s)); border-radius: 50px 50px 0 0; z-index: 1; overflow: hidden; }
-        .arch-overlay { position: absolute; width: 100%; height: 110px; background: white; bottom: -1px; transition: 0.5s; z-index: 2; }
+        .banner { position: relative; height: 195px; background: linear-gradient(135deg, var(--p), var(--s)); border-radius: 50px 50px 0 0; z-index: 1; overflow: hidden; }
+        .arch-overlay { position: absolute; width: 100%; height: 115px; background: white; bottom: -1px; transition: 0.5s; z-index: 2; }
 
-        /* 版型樣式 */
-        .style-arch .arch-overlay { border-radius: 110px 110px 0 0; }
+        /* 版型動態切換 */
+        .style-arch .arch-overlay { border-radius: 115px 115px 0 0; }
         .style-flat .arch-overlay { border-radius: 0; height: 40px; }
-        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.5); height: 100px; }
+        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.5); height: 105px; }
 
         .info { text-align: center; padding: 15px 25px; margin-top: 60px; }
-        .name { font-size: 34px; font-weight: 900; margin-bottom: 5px; }
-        .title { color: #555; font-size: 16px; font-weight: 700; line-height: 1.6; margin-bottom: 25px; white-space: pre-wrap; }
+        .name { font-size: 34px; font-weight: 900; color: #222; margin-bottom: 8px; letter-spacing: 2px; }
+        .title { color: #555; font-size: 15px; font-weight: 700; line-height: 1.8; margin-bottom: 25px; white-space: pre-wrap; }
 
+        /* 功能按鈕 */
         .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 25px 25px; }
         .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; }
         .btn-line-off { background: #06C755; color: white; grid-column: span 2; border: none; }
 
-        /* 工作區 */
-        #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
+        /* 工作區面板 */
+        #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s ease; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .work-content { padding: 30px; text-align: center; }
         .work-input { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 15px; text-align: center; }
         .work-btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: 900; cursor: pointer; color: white; margin-bottom: 10px; }
 
         .footer { font-size: 11px; color: #ccc; margin-top: 50px; text-align: center; padding: 20px; cursor: pointer; user-select: none; }
 
+        /* 顏色主題 */
         .warm-pink { --p: #ff7675; --s: #d63031; }
         .aurora-blue { --p: #00d2ff; --s: #3a7bd5; }
         .vivid-orange { --p: #ff9f43; --s: #ee5253; }
@@ -63,50 +65,54 @@
             <div class="dot" style="background:#00b894" onclick="setTheme('teal-green')"></div>
         </div>
         <div class="picker-group">
-            <button class="btn-style" onclick="setStyle('flat', this)">經典平直</button>
             <button class="btn-style active" onclick="setStyle('arch', this)">優雅正拱</button>
+            <button class="btn-style" onclick="setStyle('flat', this)">經典平直</button>
             <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
         </div>
     </div>
 
-    <div class="card">
-        <div class="avatar-wrap"><img id="u-img" src="" class="avatar" onerror="this.src='https://via.placeholder.com/150?text=Wait'"></div>
+    <div id="card-obj" class="card">
+        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
         <div class="banner"><div class="arch-overlay"></div></div>
-        <div class="info"><h1 id="u-name" class="name">讀取中...</h1><div id="u-title" class="title"></div></div>
+        <div class="info">
+            <h1 id="u-name" class="name">讀取中...</h1>
+            <div id="u-title" class="title"></div>
+        </div>
         <div class="actions">
-            <a href="https://lin.ee/2ac9Roe" class="act-btn btn-line-off">✅ LINE 官方帳號</a>
-            <a href="tel:0973180707" class="act-btn">📞 一鍵電話</a>
-            <a href="mailto:a0973180707@gmail.com" class="act-btn">✉️ 寄送郵箱</a>
-            <a href="https://line.me/ti/p/VqJzbWHm_4" class="act-btn" style="grid-column: span 2;">💬 LINE 私訊找我</a>
+            <a href="https://lin.ee/2ac9Roe" id="link-line-off" class="act-btn btn-line-off">✅ LINE 官方帳號</a>
+            <a href="tel:0973180707" id="link-tel" class="act-btn">📞 一鍵電話</a>
+            <a href="mailto:a0973180707@gmail.com" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
+            <a href="https://line.me/ti/p/VqJzbWHm_4" id="link-line-p" class="act-btn" style="grid-column: span 2;">💬 LINE 私訊找我</a>
         </div>
     </div>
 
     <div id="work-drawer">
         <div class="work-content">
-            <input type="text" id="work-id" class="work-input" placeholder="輸入 ID (如: 2)">
-            <button class="work-btn" style="background:var(--p)" onclick="previewID()">預覽內容</button>
-            <button class="work-btn" style="background:#2ecc71" onclick="copyLink()">複製交件網址</button>
-            <p onclick="document.getElementById('work-drawer').style.maxHeight='0'" style="font-size:12px; color:#888">關閉</p>
+            <h3 style="margin:0 0 20px 0">🛠 交件管理區</h3>
+            <input type="text" id="work-id" class="work-input" placeholder="輸入 ID (預設 2026/2/11...)">
+            <button class="work-btn" style="background:var(--p)" onclick="doPreview()">預覽內容</button>
+            <button class="work-btn" style="background:#2ecc71" onclick="doCopy()">複製專業交件網址</button>
+            <p onclick="document.getElementById('work-drawer').style.maxHeight='0'" style="cursor:pointer; color:#888">關閉</p>
         </div>
     </div>
 
-    <div class="footer" onclick="clickCount()">© 2026 天使幸福智慧名片系統 | V94</div>
+    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統</div>
 
     <script>
-        let currentTheme = 'warm-pink';
-        let currentStyle = 'arch';
+        let curTheme = 'warm-pink';
+        let curStyle = 'arch';
         let clicks = 0;
-        let allData = [];
+        let allRows = [];
 
-        function setTheme(t) { document.body.className = t + ' style-' + currentStyle; currentTheme = t; }
+        function setTheme(t) { document.body.className = t + ' style-' + curStyle; curTheme = t; }
         function setStyle(s, btn) {
-            currentStyle = s;
-            document.body.className = currentTheme + ' style-' + s;
+            curStyle = s;
+            document.body.className = curTheme + ' style-' + s;
             document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         }
 
-        function clickCount() {
+        function handleFooterClick() {
             clicks++;
             if(clicks >= 3) {
                 const d = document.getElementById('work-drawer');
@@ -125,32 +131,44 @@
             setTheme(theme);
 
             try {
-                const csv = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB/pub?gid=681093399&single=true&output=csv&cache=" + Date.now();
-                const res = await fetch(csv);
+                // 🚀 強制破解緩存，加入時間戳記
+                const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB/pub?gid=681093399&single=true&output=csv&cache=" + Date.now();
+                const res = await fetch(csvUrl);
                 const text = await res.text();
-                allData = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                render(id || "2");
-            } catch(e) { console.error(e); }
+                // 解析 CSV 並對應欄位
+                allRows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
+                
+                // 預設尋找包含「李秀芳」的這一列，或根據傳入的 ID
+                render(id || "2026/2/11 上午 10:33:59");
+            } catch(e) { console.error("資料讀取失敗", e); }
         }
 
-        function render(id) {
-            const d = allData.find(r => r[0] == id);
+        function render(idValue) {
+            const d = allRows.find(r => r[0] === idValue) || allRows[1];
             if(d) {
-                document.getElementById('u-name').innerText = d[1];
-                document.getElementById('u-title').innerText = d[2];
-                // 🚀 圖片終極修正路徑
-                const match = d[6].match(/[-\w]{25,}/);
+                document.getElementById('u-name').innerText = d[1]; // 姓名
+                document.getElementById('u-title').innerText = d[2]; // 職稱
+                
+                // 🚀 修正後的讀圖技術
+                const imgCell = d[6]; // 第 6 欄是上傳照片
+                const match = imgCell.match(/[-\w]{25,}/);
                 if(match) {
                     document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
                 }
+                
+                // 其他連結動態更新
+                if(d[4]) document.getElementById('link-line-off').href = d[4];
+                if(d[9]) document.getElementById('link-tel').href = "tel:" + d[9];
+                if(d[10]) document.getElementById('link-mail').href = "mailto:" + d[10];
+                if(d[14]) document.getElementById('link-line-p').href = d[14];
             }
         }
 
-        function previewID() { render(document.getElementById('work-id').value); }
-        function copyLink() {
+        function doPreview() { render(document.getElementById('work-id').value); }
+        function doCopy() {
             const id = document.getElementById('work-id').value;
-            if(!id) return alert("請輸入 ID");
-            const finalUrl = `https://angel0973180707.github.io/Happiness-Smart-Card-System/?id=${id}&theme=${currentTheme}`;
+            if(!id) return alert("請輸入序號 (時間戳記)");
+            const finalUrl = `https://angel0973180707.github.io/Happiness-Smart-Card-System/?id=${encodeURIComponent(id)}&theme=${curTheme}`;
             navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 專業交件網址已複製！"));
         }
 
