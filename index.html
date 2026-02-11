@@ -9,55 +9,54 @@
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); color: var(--dark); display: flex; flex-direction: column; align-items: center; }
 
         /* 頂部門面 */
-        .hero-section { width: 100%; background: white; text-align: center; padding: 30px 15px; box-sizing: border-box; shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .hero-section { width: 100%; background: white; text-align: center; padding: 30px 15px; box-sizing: border-box; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .logo-img { width: 100px; height: 100px; border-radius: 25px; object-fit: cover; margin-bottom: 12px; }
         .hero-title { font-size: 22px; font-weight: 800; margin: 5px 0; letter-spacing: 0.5px; word-break: keep-all; }
         .hero-subtitle { color: #666; font-size: 14px; margin-top: 5px; }
         
         /* 核心聯繫區 */
         .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 92%; max-width: 450px; margin: 20px 0; }
-        .action-btn { text-decoration: none; background: white; padding: 12px 2px; border-radius: 15px; text-align: center; border: 1px solid #eee; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .action-btn { text-decoration: none; background: white; padding: 12px 2px; border-radius: 15px; text-align: center; border: 1px solid #eee; transition: 0.2s; }
         .btn-icon { font-size: 20px; display: block; margin-bottom: 3px; }
-        .btn-label { font-size: 12px; font-weight: bold; color: var(--dark); }
-        .wechat-btn { grid-column: span 3; background: #27ae60; border: none; padding: 12px; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(39,174,96,0.2); }
-
-        /* 優勢清單 */
-        .advantage-section { width: 92%; max-width: 450px; background: var(--dark); color: white; padding: 25px; border-radius: 25px; margin-bottom: 30px; box-sizing: border-box; }
-        .adv-title { font-size: 18px; margin-bottom: 15px; text-align: center; color: var(--secondary); }
-        .adv-item { margin-bottom: 12px; display: flex; align-items: center; font-size: 14px; }
-        .adv-item i { margin-right: 10px; font-style: normal; }
+        .btn-label { font-size: 12px; font-weight: bold; }
+        .wechat-btn { grid-column: span 3; background: #27ae60; border: none; padding: 12px; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; font-size: 14px; }
 
         /* 十色預覽按鈕區 */
         .demo-controls { width: 92%; max-width: 400px; text-align: center; margin-bottom: 15px; }
         .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; background: white; padding: 12px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .color-dot { height: 30px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
+        .color-dot { height: 30px; border-radius: 8px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1); }
 
-        /* 名片區 */
+        /* 名片區配色定義 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
         .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
         .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
+        .theme-royal-purple { --primary: #6c5ce7; --secondary: #a29bfe; }
+        .theme-rose-red { --primary: #d63031; --secondary: #ff7675; }
+        .theme-modern-grey { --primary: #636e72; --secondary: #b2bec3; }
+        .theme-chocolate { --primary: #6d4c41; --secondary: #a1887f; }
+        .theme-pure-black { --primary: #2d3436; --secondary: #636e72; }
 
         .card { background: white; width: 92%; max-width: 400px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .banner { height: 110px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); }
+        .banner { height: 110px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); transition: 0.5s; }
         .avatar-container { width: 110px; height: 110px; margin: -65px auto 10px; position: relative; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; }
         .info { text-align: center; padding: 0 25px 15px; }
-        .slogan { font-size: 13px; background: #f8f9fa; padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); margin: 0 25px 20px; line-height: 1.6; white-space: pre-wrap; text-align: left; }
+        .slogan { font-size: 13px; background: #f8f9fa; padding: 18px; border-radius: 15px; border-left: 5px solid var(--primary); margin: 0 25px 20px; line-height: 1.6; white-space: pre-wrap; text-align: left; transition: border-left 0.5s; }
+
+        /* 優勢介紹 */
+        .advantage-section { width: 92%; max-width: 450px; background: var(--dark); color: white; padding: 25px; border-radius: 25px; margin-bottom: 30px; box-sizing: border-box; }
+        .adv-title { font-size: 18px; margin-bottom: 15px; text-align: center; color: var(--secondary); }
+        .adv-item { margin-bottom: 12px; display: flex; align-items: center; font-size: 14px; }
+        .adv-item i { margin-right: 10px; font-style: normal; }
 
         /* 填寫資料鍵 */
         .form-cta-btn { background: var(--dark); color: white; padding: 18px 40px; border-radius: 35px; text-decoration: none; font-weight: bold; display: inline-block; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin: 10px 0 40px; }
 
-        /* 隱藏入口與版權 */
-        .copyright { padding: 30px 0; font-size: 11px; color: #bbb; cursor: pointer; text-align: center; width: 100%; }
+        .copyright { padding: 30px 0; font-size: 11px; color: #bbb; cursor: pointer; text-align: center; }
         #admin-panel { display: none; width: 92%; max-width: 400px; background: #ddd; padding: 25px; border-radius: 20px; margin-bottom: 40px; }
-        .admin-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #ccc; box-sizing: border-box; }
-        .copy-btn { background: var(--primary); color: white; padding: 15px; border-radius: 12px; width: 100%; border: none; font-weight: bold; cursor: pointer; }
-
-        /* 微信 QR 遮罩 */
         #qr-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center; flex-direction:column; color:white; }
-        .qr-img { width: 250px; border-radius: 15px; margin-bottom: 20px; border: 5px solid white; }
     </style>
 </head>
 <body class="theme-warm-pink">
@@ -92,13 +91,18 @@
     </div>
 
     <div class="demo-controls">
-        <div style="font-size: 13px; color: #888; margin-bottom: 10px; font-weight: bold;">—— 即時預覽樣板配色 ——</div>
+        <div style="font-size: 13px; color: #888; margin-bottom: 10px; font-weight: bold;">—— 樣板十色配色預覽 ——</div>
         <div class="color-grid">
             <div onclick="setTheme('warm-pink')" class="color-dot" style="background:#e17055"></div>
             <div onclick="setTheme('navy-blue')" class="color-dot" style="background:#0984e3"></div>
             <div onclick="setTheme('forest-green')" class="color-dot" style="background:#27ae60"></div>
             <div onclick="setTheme('soft-gold')" class="color-dot" style="background:#b89130"></div>
             <div onclick="setTheme('tiffany-blue')" class="color-dot" style="background:#00b894"></div>
+            <div onclick="setTheme('royal-purple')" class="color-dot" style="background:#6c5ce7"></div>
+            <div onclick="setTheme('rose-red')" class="color-dot" style="background:#d63031"></div>
+            <div onclick="setTheme('modern-grey')" class="color-dot" style="background:#636e72"></div>
+            <div onclick="setTheme('chocolate')" class="color-dot" style="background:#6d4c41"></div>
+            <div onclick="setTheme('pure-black')" class="color-dot" style="background:#2d3436"></div>
         </div>
     </div>
 
@@ -106,8 +110,8 @@
         <div class="banner"></div>
         <div class="avatar-container"><img id="user-photo" src="167777.png" class="avatar"></div>
         <div class="info">
-            <h1 id="user-name" style="margin:5px 0; font-size:24px;">天使笑長</h1>
-            <div id="user-title" style="font-size:14px; color:#666; line-height:1.6; white-space:pre-wrap;">載入中...</div>
+            <h1 id="user-name" style="margin:5px 0; font-size:24px;">載入中...</h1>
+            <div id="user-title" style="font-size:14px; color:#666; line-height:1.6; white-space:pre-wrap;"></div>
         </div>
         <div id="user-slogan" class="slogan"></div>
         <div id="qa-area"></div>
@@ -116,25 +120,27 @@
     <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即填寫資料訂製</a>
 
     <div id="admin-panel">
-        <h3 style="margin:0 0 10px 0;">🛠️ 製作後台</h3>
-        <input type="number" id="input-id" value="2" oninput="init()" class="admin-input" placeholder="輸入 ID">
+        <input type="number" id="input-id" value="2" oninput="init()" class="admin-input" placeholder="ID">
         <button class="copy-btn" onclick="generateAndCopy()">🔗 產生交貨連結</button>
     </div>
 
     <div class="copyright" onclick="handleSecretEntry()">
-        © 2026 天使幸福智能名片系統 | 幸福天使 V43.0
+        © 2026 天使幸福智能名片系統 | 幸福天使 V44.0
     </div>
 
     <div id="qr-overlay" onclick="this.style.display='none'">
-        <img src="mmqrcode1770777103365.png" class="qr-img">
+        <img src="mmqrcode1770777103365.png" style="width:250px; border-radius:15px; margin-bottom:20px; border: 5px solid white;">
         <p>點擊任何處關閉</p>
     </div>
 
     <script>
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
         const params = new URLSearchParams(window.location.search);
-        const rowId = params.get('id');
+        // 如果網址沒有 ID，則強制預設為 2
+        const rowId = params.get('id') || "2";
         let clickCount = 0;
+
+        function setTheme(t) { document.body.className = `theme-${t}`; }
 
         function handleSecretEntry() {
             clickCount++;
@@ -143,15 +149,6 @@
                 window.scrollTo(0, document.body.scrollHeight);
                 clickCount = 0;
             }
-        }
-
-        function setTheme(t) { document.body.className = `theme-${t}`; }
-
-        function generateAndCopy() {
-            const id = document.getElementById('input-id').value;
-            const th = document.body.className.replace('theme-', '');
-            const url = `${window.location.origin}${window.location.pathname}?id=${id}&theme=${th}`;
-            navigator.clipboard.writeText(url).then(() => alert("✨ 交貨連結已複製！"));
         }
 
         function parseCSV(text) {
@@ -168,19 +165,18 @@
         }
 
         async function init() {
-            let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
             try {
                 const res = await fetch(url);
                 const rows = parseCSV(await res.text());
                 const dataRows = rows.filter(r => r[0] && r[0].includes("/"));
-                const d = dataRows[fetchId - 2];
+                const d = dataRows[parseInt(rowId) - 2];
                 if(d) {
                     document.getElementById('user-name').innerText = d[1];
                     document.getElementById('user-title').innerText = d[2];
                     document.getElementById('user-slogan').innerText = d[5];
-                    let photoId = d[6].match(/[-\w]{25,}/);
-                    if(photoId) document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${photoId[0]}`;
+                    let pId = d[6].match(/[-\w]{25,}/);
+                    if(pId) document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId[0]}`;
                 }
             } catch (e) {}
         }
