@@ -8,73 +8,72 @@
     <meta name="apple-mobile-web-app-title" content="智能名片">
     <meta name="application-name" content="智能名片">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        /* 樣板顏色定義 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
         .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
         .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
 
-        /* 名片卡片 */
+        /* 主畫面樣式 */
+        #studio-landing { width: 92%; max-width: 500px; text-align: center; padding: 60px 20px; box-sizing: border-box; }
+        .studio-title { font-size: 32px; font-weight: 800; color: #2d3436; margin-bottom: 20px; }
+        .advantage-list { text-align: left; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .advantage-item { font-size: 16px; color: #444; margin-bottom: 12px; display: flex; align-items: flex-start; }
+        .advantage-item::before { content: "✅"; margin-right: 10px; }
+
+        /* 名片樣式 */
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; }
         .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); }
-        .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
+        .avatar-container { width: 130px; height: 130px; margin: -90px auto 10px; position: relative; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; }
         
         .info { text-align: center; padding: 0 25px 20px; }
-        .name { font-size: 28px; font-weight: 800; margin: 5px 0; color: #2d3436; }
-        .title { color: #636e72; font-size: 16px; margin-bottom: 20px; }
-        .slogan { font-size: 15px; background: rgba(0,0,0,0.03); padding: 18px; border-radius: 20px; border-left: 6px solid var(--primary); text-align: left; line-height: 1.7; color: #444; margin: 0 25px 20px; }
+        .name { font-size: 28px; font-weight: 800; margin: 5px 0; }
+        .slogan { font-size: 15px; background: rgba(0,0,0,0.03); padding: 18px; border-radius: 20px; border-left: 6px solid var(--primary); text-align: left; line-height: 1.7; margin: 0 25px 20px; }
 
-        .qa-section { padding: 30px 25px; background: #fafafa; border-top: 1px solid #eee; }
-        .qa-item { background: white; padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #eee; }
-        .qa-q { font-size: 16px; font-weight: bold; color: var(--primary); margin-bottom: 8px; display: block; }
-        .qa-a { font-size: 14px; color: #555; line-height: 1.8; margin: 0; white-space: pre-wrap; }
+        #admin-panel { display: none; width: 92%; max-width: 400px; background: #2d3436; color: white; padding: 25px; border-radius: 30px; margin-bottom: 30px; }
+        .admin-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: none; }
+        .copy-btn { background: var(--secondary); color: #2d3436; padding: 15px; border-radius: 12px; width: 100%; font-weight: bold; border: none; cursor: pointer; }
 
-        /* 🤫 隱形後台 */
-        #admin-panel { display: none; width: 92%; max-width: 400px; background: #2d3436; color: white; padding: 25px; border-radius: 30px; margin-bottom: 30px; box-sizing: border-box; }
-        .admin-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: none; font-size: 16px; }
-        .copy-btn { background: var(--secondary); color: #2d3436; padding: 15px; border-radius: 12px; border: none; font-weight: 800; width: 100%; cursor: pointer; }
-
-        .copyright { font-size: 12px; color: #ccc; margin: 20px 0; cursor: pointer; text-align: center; }
+        .copyright { font-size: 12px; color: #ccc; margin: 20px 0; cursor: pointer; }
         .back-nav-btn { display:block; text-align:center; padding:20px; background:#2d3436; color:white; text-decoration:none; font-weight:bold; }
     </style>
 </head>
 <body class="theme-warm-pink">
 
+    <div id="studio-landing">
+        <h1 class="studio-title">幸福智能名片</h1>
+        <div class="advantage-list">
+            <div class="advantage-item"><b>永久同步</b>：職稱或內容異動，客戶端的名片自動更新，無需重新發送。</div>
+            <div class="advantage-item"><b>一鍵聯繫</b>：整合 LINE、電話、Email，客戶聯繫您只需一秒鐘。</div>
+            <div class="advantage-item"><b>App 化體驗</b>：支援加入手機主畫面，像原生 App 一樣常駐，提升品牌記憶點。</div>
+            <div class="advantage-item"><b>專業問答</b>：內建常見問題區，在您開口前就先贏得客戶信任。</div>
+        </div>
+        <a href="https://lihi.cc/VqJzb" style="background:#2d3436; color:white; padding:18px 35px; border-radius:35px; text-decoration:none; font-weight:bold; display:inline-block; box-shadow:0 10px 20px rgba(0,0,0,0.1);">✨ 填寫需求表單</a>
+    </div>
+
     <div class="card" id="main-card">
         <div class="banner"></div>
-        <div class="avatar-container">
-            <img id="user-photo" src="" class="avatar">
-        </div>
+        <div class="avatar-container"><img id="user-photo" src="" class="avatar"></div>
         <div class="info">
-            <h1 id="user-name" class="name">智能名片載入中...</h1>
-            <p id="user-title" class="title"></p>
+            <h1 id="user-name" class="name">載入中...</h1>
+            <p id="user-title" style="color:#636e72;"></p>
         </div>
         <div id="user-slogan" class="slogan"></div>
-        <div id="qa-area" class="qa-section"></div>
-        
+        <div id="qa-area" style="padding:20px; background:#fafafa; border-top:1px solid #eee;"></div>
         <a id="back-home-link" href="#" class="back-nav-btn">📅 預約製作我的智能名片</a>
     </div>
 
     <div id="admin-panel">
-        <h3 style="margin-top:0">🛠️ 智能名片製作後台</h3>
-        <div style="margin-bottom:10px;">
-            <button onclick="setTheme('warm-pink')" style="background:#e17055; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">粉</button>
-            <button onclick="setTheme('navy-blue')" style="background:#0984e3; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">藍</button>
-            <button onclick="setTheme('forest-green')" style="background:#27ae60; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">綠</button>
-            <button onclick="setTheme('soft-gold')" style="background:#b89130; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">金</button>
-            <button onclick="setTheme('tiffany-blue')" style="background:#00b894; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">青</button>
-        </div>
+        <h3 style="margin-top:0">🛠️ 智能名片後台</h3>
         <label>輸入 ID 預覽：</label>
         <input type="number" id="input-id" value="2" oninput="init()" class="admin-input">
-        <button class="copy-btn" onclick="generateAndCopy()">🔗 產生專屬連結並複製</button>
+        <button class="copy-btn" onclick="generateAndCopy()">🔗 產生並複製網址</button>
     </div>
 
     <div class="copyright" onclick="toggleAdmin()">© 2026 幸福教養概念館 | 幸福智能名片</div>
@@ -83,22 +82,57 @@
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
         const params = new URLSearchParams(window.location.search);
         const rowId = params.get('id');
-        const theme = params.get('theme') || 'warm-pink';
 
-        // 動態修正跳轉連結：確保回到主頁面
         document.getElementById('back-home-link').href = window.location.origin + window.location.pathname;
 
-        if (rowId) { document.body.className = `theme-${theme}`; }
+        if (rowId) {
+            document.getElementById('studio-landing').style.display = 'none';
+            document.getElementById('main-card').style.display = 'block';
+            document.body.className = `theme-${params.get('theme') || 'warm-pink'}`;
+        }
 
         function toggleAdmin() {
             const panel = document.getElementById('admin-panel');
             panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+            document.getElementById('main-card').style.display = 'block';
             window.scrollTo(0, document.body.scrollHeight);
         }
 
-        function setTheme(t) { document.body.className = `theme-${t}`; }
-
         function generateAndCopy() {
             const id = document.getElementById('input-id').value;
-            const currentTheme = document.body.className.replace('theme-', '');
-            const finalUrl
+            const th = document.body.className.replace('theme-', '');
+            const url = `${window.location.origin}${window.location.pathname}?id=${id}&theme=${th}`;
+            navigator.clipboard.writeText(url).then(() => alert("✨ 網址複製成功！"));
+        }
+
+        function getDriveUrl(raw) {
+            if(!raw) return "";
+            const match = raw.split(',')[0].match(/[-\w]{25,}/);
+            return match ? `https://drive.google.com/uc?export=view&id=${match[0]}` : "";
+        }
+
+        async function init() {
+            let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
+            const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
+            try {
+                const res = await fetch(url);
+                const text = await res.text();
+                const dataLines = text.split(/\r?\n/).filter(l => l.includes("2026/")); 
+                const d = dataLines[fetchId - 2]?.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                if(d) {
+                    document.getElementById('user-name').innerText = d[1];
+                    document.getElementById('user-title').innerText = d[2];
+                    document.getElementById('user-slogan').innerText = d[5];
+                    document.getElementById('user-photo').src = getDriveUrl(d[6]);
+                    
+                    let qa = '';
+                    if(d[17] && d[17].length > 2) qa += `<div style="background:white; padding:15px; border-radius:15px; margin-bottom:10px; border:1px solid #eee;"><b style="color:var(--primary); display:block; margin-bottom:5px;">Q: ${d[17]}</b><p style="margin:0; font-size:14px; color:#555;">${d[18]}</p></div>`;
+                    if(d[19] && d[19].length > 2) qa += `<div style="background:white; padding:15px; border-radius:15px; margin-bottom:10px; border:1px solid #eee;"><b style="color:var(--primary); display:block; margin-bottom:5px;">Q: ${d[19]}</b><p style="margin:0; font-size:14px; color:#555;">${d[20]}</p></div>`;
+                    document.getElementById('qa-area').innerHTML = qa;
+                }
+            } catch (e) { }
+        }
+        init();
+    </script>
+</body>
+</html>
