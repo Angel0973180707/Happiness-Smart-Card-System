@@ -30,15 +30,18 @@
 
         .info { text-align: center; padding: 15px 25px; margin-top: 60px; }
         .name { font-size: 24px; font-weight: 900; color: #222; margin-bottom: 5px; }
-        .title { color: #666; font-size: 14px; font-weight: 700; margin-bottom: 25px; white-space: pre-wrap; }
+        .title { color: #666; font-size: 14px; font-weight: 700; margin-bottom: 25px; white-space: pre-wrap; line-height: 1.6; }
 
         .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 25px 20px; }
         .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
         .btn-line-off { background: #06C755; color: white; grid-column: span 2; border: none; }
 
-        .advantage { background: #fff; margin: 0 25px 30px; padding: 25px; border-radius: 35px; border-left: 10px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
-        .advantage h4 { margin: 0 0 10px 0; color: var(--s); font-size: 16px; font-weight: 900; }
-        .btn-order { display: block; background: #f1c40f; color: #222; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; margin-top: 10px; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3); }
+        /* 內容區塊：Q&A 與 優勢 */
+        .section-box { background: #fff; margin: 0 25px 20px; padding: 20px; border-radius: 25px; border-left: 8px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .section-box h4 { margin: 0 0 10px 0; color: var(--s); font-size: 15px; font-weight: 900; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .section-box p { font-size: 13px; color: #555; line-height: 1.7; margin: 0; white-space: pre-wrap; }
+
+        .btn-order { display: block; background: #f1c40f; color: #222; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; margin: 15px 25px 30px; text-align: center; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3); }
 
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s ease; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .work-content { padding: 30px; text-align: center; }
@@ -78,17 +81,26 @@
             <h1 id="u-name" class="name">載入中...</h1>
             <div id="u-title" class="title"></div>
         </div>
+        
         <div class="actions">
             <a href="#" id="link-line-off" class="act-btn btn-line-off">✅ LINE 官方帳號</a>
             <a href="#" id="link-tel" class="act-btn">📞 一鍵電話</a>
             <a href="#" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
             <a href="#" id="link-line-p" class="act-btn" style="grid-column: span 2;">💬 LINE 私訊找我</a>
         </div>
-        <div class="advantage">
-            <h4>🚀 智慧名片優勢</h4>
-            <li style="font-size:12px; color:#888; list-style:none; margin-bottom:5px;">✨ 立體美學｜一鍵聯繫｜雲端更新</li>
-            <a href="https://forms.gle/3X4pRqvoMX42Bwte7" target="_blank" class="btn-order">📝 填寫訂購資料</a>
+
+        <div id="client-content">
+            <div class="section-box" id="box-1">
+                <h4 id="q1-title">智慧名片優勢</h4>
+                <p id="q1-ans">✨ 立體美學｜一鍵聯繫｜雲端更新</p>
+            </div>
+            <div class="section-box" id="box-2" style="display:none;">
+                <h4 id="q2-title"></h4>
+                <p id="q2-ans"></p>
+            </div>
         </div>
+
+        <a href="https://forms.gle/3X4pRqvoMX42Bwte7" target="_blank" class="btn-order" id="main-order-btn">📝 填寫訂購資料</a>
     </div>
 
     <div id="work-drawer">
@@ -109,7 +121,6 @@
         let allRows = [];
         let isClient = false;
 
-        // 🚀 門面寫死資料 (簡化版)
         const MY_DATA = {
             name: "歡迎數位名片設計訂製",
             title: "智慧名片優勢",
@@ -148,6 +159,7 @@
             if (id) {
                 isClient = true;
                 document.getElementById('admin-panel').style.display = 'none';
+                document.getElementById('main-order-btn').style.display = 'none'; // 成品隱藏訂購按鈕
                 await loadSheetData(id);
             } else {
                 loadMyPage();
@@ -178,22 +190,35 @@
         function renderFromSheet(idValue) {
             const d = allRows.find(r => r[0] === idValue);
             if(d) {
-                // 🚀 關鍵：這裡完全讀取試算表，不帶任何門面文字
+                // 1. 基本資料 (100% 讀表)
                 document.getElementById('u-name').innerText = d[1];
                 document.getElementById('u-title').innerText = d[2];
                 
+                // 2. 照片處理
                 const match = d[6].match(/[-\w]{25,}/);
-                if(match) {
-                    document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
-                }
+                if(match) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
                 
-                // 按鈕連動
+                // 3. 聯繫按鈕 (100% 讀表)
                 const lOff = document.getElementById('link-line-off');
                 if(d[4]) { lOff.href = d[4]; lOff.style.display = 'block'; } else { lOff.style.display = 'none'; }
                 document.getElementById('link-tel').href = "tel:" + d[9];
                 document.getElementById('link-mail').href = "mailto:" + d[10];
                 const lP = document.getElementById('link-line-p');
                 if(d[14]) { lP.href = d[14]; lP.style.display = 'block'; } else { lP.style.display = 'none'; }
+
+                // 4. 動態內容：核心價值與 Q&A
+                // 區塊 1：客戶的問題 1 (第 16 欄) 與 回答 1 (第 17 欄)
+                if(d[16]) {
+                    document.getElementById('box-1').style.display = 'block';
+                    document.getElementById('q1-title').innerText = "💡 " + d[16];
+                    document.getElementById('q1-ans').innerText = d[17];
+                }
+                // 區塊 2：客戶的問題 2 (第 18 欄) 與 回答 2 (第 19 欄)
+                if(d[18]) {
+                    document.getElementById('box-2').style.display = 'block';
+                    document.getElementById('q2-title').innerText = "💡 " + d[18];
+                    document.getElementById('q2-ans').innerText = d[19];
+                }
             }
         }
 
