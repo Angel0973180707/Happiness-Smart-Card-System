@@ -22,8 +22,8 @@
         .theme-deep-berry { --primary: #6d214f; --secondary: #b33939; }
         .theme-sky-cyan { --primary: #00cec9; --secondary: #81ecec; }
 
-        /* 引導與展示區樣式 */
-        #studio-landing { width: 92%; max-width: 500px; text-align: center; padding: 30px 10px; box-sizing: border-box; }
+        /* 主網頁導購區 */
+        #studio-landing { width: 92%; max-width: 500px; text-align: center; padding: 20px 10px; box-sizing: border-box; }
         .color-sample-box { background: white; padding: 20px; border-radius: 25px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
         .color-dot { height: 35px; border-radius: 10px; cursor: pointer; border: 1px solid rgba(0,0,0,0.05); }
@@ -59,20 +59,9 @@
                 <div onclick="setTheme('forest-green')"><div class="color-dot" style="background:#27ae60"></div><div class="dot-label">森綠</div></div>
                 <div onclick="setTheme('soft-gold')"><div class="color-dot" style="background:#b89130"></div><div class="dot-label">沉金</div></div>
                 <div onclick="setTheme('tiffany-blue')"><div class="color-dot" style="background:#00b894"></div><div class="dot-label">湖藍</div></div>
-                <div onclick="setTheme('royal-purple')"><div class="color-dot" style="background:#6c5ce7"></div><div class="dot-label">皇家紫</div></div>
-                <div onclick="setTheme('sunny-orange')"><div class="color-dot" style="background:#e67e22"></div><div class="dot-label">陽光橘</div></div>
-                <div onclick="setTheme('classic-grey')"><div class="color-dot" style="background:#636e72"></div><div class="dot-label">紳士灰</div></div>
-                <div onclick="setTheme('deep-berry')"><div class="color-dot" style="background:#6d214f"></div><div class="dot-label">莓果紅</div></div>
-                <div onclick="setTheme('sky-cyan')"><div class="color-dot" style="background:#00cec9"></div><div class="dot-label">青空藍</div></div>
             </div>
         </div>
         <h1 style="font-size: 30px; color:#2d3436; margin-bottom: 20px;">幸福天使智能名片</h1>
-        <div class="advantage-card">
-            <div class="advantage-item"><b>資訊同步</b>：試算表自動更新，內容免重發。</div>
-            <div class="advantage-item"><b>一鍵對接</b>：內建 LINE/電話，業務力倍增。</div>
-            <div class="advantage-item"><b>專屬 PWA</b>：手機安裝後，隨時隨地開啟。</div>
-        </div>
-        <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" style="background:#2d3436; color:white; padding:20px 40px; border-radius:40px; text-decoration:none; font-weight:bold; display:inline-block; box-shadow:0 10px 20px rgba(0,0,0,0.2);">🚀 進入表單填寫資料訂製</a>
     </div>
 
     <div class="card" id="main-card" style="display: block;">
@@ -82,9 +71,20 @@
             <h1 id="user-name" style="font-size:28px; font-weight:800; margin:10px 0;">智能名片系統</h1>
             <p id="user-title" style="color:#636e72; font-size:16px;">樣板預覽</p>
         </div>
-        <div id="user-slogan" class="slogan">請點擊下方版權小字開啟後台並輸入 ID 生成正式名片。</div>
+        <div id="user-slogan" class="slogan">智能名片讓您的專業，隨時隨地在手機端完美呈現。</div>
         <div id="qa-area" style="background:#fafafa; border-top:1px solid #eee;"></div>
         <a href="index.html" class="back-nav-btn" id="res-btn" style="display:none;">📅 預約製作我的智能名片</a>
+    </div>
+
+    <div id="studio-advantages">
+        <div class="advantage-card">
+            <div class="advantage-item"><b>資訊同步</b>：試算表自動更新，內容免重發。</div>
+            <div class="advantage-item"><b>一鍵對接</b>：內建 LINE/電話，業務力倍增。</div>
+            <div class="advantage-item"><b>專屬 PWA</b>：手機安裝後，隨時隨地開啟。</div>
+        </div>
+        <div style="text-align: center;">
+            <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" style="background:#2d3436; color:white; padding:20px 40px; border-radius:40px; text-decoration:none; font-weight:bold; display:inline-block; box-shadow:0 10px 20px rgba(0,0,0,0.2); margin-bottom: 20px;">🚀 進入表單填寫資料訂製</a>
+        </div>
     </div>
 
     <div id="admin-panel">
@@ -95,7 +95,7 @@
     </div>
 
     <div class="copyright" onclick="toggleAdmin()" id="copyright-text">
-        © 2026 幸福教養概念館 | 幸福天使智能名片 V36.0
+        © 2026 幸福教養概念館 | 幸福天使智能名片 V37.0
     </div>
 
     <script>
@@ -103,13 +103,18 @@
         const params = new URLSearchParams(window.location.search);
         const rowId = params.get('id');
 
-        // 💡 成品模式判定
+        // 💡 邏輯切換：成品模式 vs 主頁模式
         if (rowId) {
-            document.getElementById('studio-landing').style.display = 'none'; // 隱藏主頁介紹
-            document.getElementById('copyright-text').style.display = 'none'; // 隱藏管理入口
-            document.getElementById('res-btn').style.display = 'block';      // 秀出預約按鈕
+            // 成品模式：隱藏所有引導、優勢與後台入口
+            document.getElementById('studio-landing').style.display = 'none';
+            document.getElementById('studio-advantages').style.display = 'none';
+            document.getElementById('copyright-text').style.display = 'none';
+            document.getElementById('res-btn').style.display = 'block'; 
             document.body.className = `theme-${params.get('theme') || 'warm-pink'}`;
-            init(); // 載入真實資料
+            init(); // 載入試算表真實資料
+        } else {
+            // 主頁模式：顯示樣板內容供預覽
+            document.getElementById('user-slogan').innerText = "點擊底部版權小字開啟後台並輸入 ID 生成正式名片。";
         }
 
         function toggleAdmin() {
@@ -127,10 +132,9 @@
             navigator.clipboard.writeText(url).then(() => alert("✨ 交貨連結複製成功！"));
         }
 
-        // 💡 強化版照片解析
         function getDriveUrl(raw) {
             if(!raw) return "";
-            const match = raw.match(/[-\w]{25,}/); // 提取 ID
+            const match = raw.match(/[-\w]{25,}/);
             return match ? `https://drive.google.com/uc?export=view&id=${match[0]}` : "";
         }
 
@@ -140,7 +144,6 @@
             try {
                 const res = await fetch(url);
                 const text = await res.text();
-                // 分割 CSV 行
                 const rows = text.split(/\r?\n/).map(line => line.split(',').map(cell => cell.replace(/^"|"$/g, '').trim()));
                 const d = rows.filter(r => r[0] && r[0].includes("2026/"))[fetchId - 2];
 
@@ -149,7 +152,6 @@
                     document.getElementById('user-title').innerText = d[2];
                     document.getElementById('user-slogan').innerText = d[5];
                     
-                    // 照片處理：強制掃描
                     let photoUrl = "";
                     d.forEach(cell => { if(cell.includes("drive")) photoUrl = getDriveUrl(cell); });
                     document.getElementById('user-photo').src = photoUrl || "167777.png";
