@@ -7,16 +7,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
-        body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; }
+        body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; }
 
-        /* 🏢 門面區 */
-        .hero { width: 100%; background: white; text-align: center; padding: 25px 0; border-bottom: 1px solid #eee; }
-        .hero h1 { font-size: 22px; font-weight: 900; color: #2d3436; margin: 0 0 15px 0; letter-spacing: 2px; }
+        /* 🏢 門面管理區：僅在管理模式顯示 */
+        .hero-admin { width: 100%; background: white; text-align: center; padding: 25px 0; border-bottom: 1px solid #eee; display: none; }
+        .hero-admin h1 { font-size: 22px; font-weight: 900; color: #2d3436; margin: 0 0 15px 0; letter-spacing: 2px; }
         .style-picker { display: flex; justify-content: center; gap: 15px; }
-        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.15); transition: 0.3s; }
+        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.15); }
 
-        /* 🃏 樣板區 */
-        .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 40px 80px rgba(0,0,0,0.12); position: relative; margin-top: 25px; }
+        /* 🃏 樣板區：這是交付給對方的純淨名片 */
+        .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 40px 80px rgba(0,0,0,0.12); position: relative; margin-top: 50px; }
         .avatar-wrap { width: 140px; height: 140px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 5px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
         .banner { position: relative; height: 190px; background: linear-gradient(135deg, var(--p), var(--s)); border-radius: 50px 50px 0 0; z-index: 1; transition: 0.5s; }
@@ -34,15 +34,15 @@
         .advantage h4 { margin: 0 0 12px 0; color: var(--s); font-size: 15px; font-weight: 900; }
         .advantage li { font-size: 14px; color: #555; margin-bottom: 8px; list-style: none; line-height: 1.5; }
 
-        /* 🚀 隱藏工作區 (底部連點3下) */
+        /* 🚀 隱藏工作區 (僅管理模式可連點開啟) */
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: max-height 0.4s ease; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .work-content { padding: 30px; text-align: center; }
         .work-input { width: 100%; padding: 15px; border-radius: 12px; border: none; font-size: 16px; margin-bottom: 15px; text-align: center; }
         .work-btn { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: 900; cursor: pointer; color: white; margin-bottom: 10px; }
 
-        .footer { font-size: 11px; color: #ccc; margin-top: 50px; cursor: pointer; padding: 20px; }
+        .footer { font-size: 11px; color: #ccc; margin-top: 50px; cursor: pointer; padding: 20px; text-align: center; }
 
-        /* 五大色系配方 */
+        /* 五大色系 */
         .warm-pink { --p: #ff7675; --s: #d63031; }
         .aurora-blue { --p: #00d2ff; --s: #3a7bd5; }
         .vivid-orange { --p: #ff9f43; --s: #ee5253; }
@@ -52,7 +52,7 @@
 </head>
 <body class="warm-pink">
 
-    <div class="hero">
+    <div id="admin-hero" class="hero-admin">
         <h1>天使幸福智慧名片系統</h1>
         <div class="style-picker">
             <div class="dot" style="background:#ff7675" onclick="setTheme('warm-pink')"></div>
@@ -77,24 +77,26 @@
             <h4>🚀 智慧名片優勢</h4>
             <li>✨ <b>立體美學</b>：展現教養館專業權威。</li>
             <li>✨ <b>一鍵聯繫</b>：電話、郵件、LINE 點擊即通。</li>
-            <li>✨ <b>永續更新</b>：資料隨時調整，連結永遠有效。</li>
+            <li>✨ <b>永續更新</b>：內容隨時調整，連結永遠有效。</li>
         </div>
     </div>
 
     <div id="work-drawer">
         <div class="work-content">
-            <h3 style="margin:0 0 20px 0">🛠 交件工作區</h3>
-            <input type="text" id="work-id" class="work-input" placeholder="請輸入客戶 ID">
+            <h3 style="margin:0 0 20px 0">🛠 交件管理區</h3>
+            <input type="text" id="work-id" class="work-input" placeholder="輸入客戶 ID">
             <button class="work-btn" style="background:var(--p)" onclick="searchID()">預覽名片</button>
             <button class="work-btn" style="background:#2ecc71" onclick="copyDeliveryLink()">一鍵複製交件網址</button>
             <p onclick="toggleDrawer()" style="font-size:12px; margin-top:15px; color:#666">關閉工作區</p>
         </div>
     </div>
 
-    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統</div>
+    <div id="admin-footer" class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統</div>
 
     <script>
         let currentTheme = 'warm-pink';
+        let isAdmin = true;
+
         function setTheme(t) { 
             document.body.className = t; 
             currentTheme = t;
@@ -102,6 +104,7 @@
         
         let footerClicks = 0;
         function handleFooterClick() {
+            if(!isAdmin) return; // 客戶端禁止點開工作區
             footerClicks++;
             if(footerClicks === 3) toggleDrawer();
             setTimeout(() => footerClicks = 0, 1000);
@@ -118,14 +121,23 @@
         async function init() {
             try {
                 const params = new URLSearchParams(window.location.search);
-                const id = params.get('id') || "2";
+                const id = params.get('id');
                 const theme = params.get('theme') || "warm-pink";
-                setTheme(theme);
+                
+                // 🚀 自動辨識：如果有 ID，代表是交件模式，隱藏所有管理功能
+                if (id) {
+                    isAdmin = false;
+                    document.getElementById('admin-hero').style.display = 'none';
+                    document.getElementById('admin-footer').style.cursor = 'default';
+                } else {
+                    document.getElementById('admin-hero').style.display = 'block';
+                }
 
+                setTheme(theme);
                 const res = await fetch(`https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${Date.now()}`);
                 const text = await res.text();
                 allData = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                render(id);
+                render(id || "2"); 
             } catch(e) { console.error(e); }
         }
 
@@ -146,7 +158,7 @@
             if(!id) return alert("請先輸入 ID");
             const baseUrl = window.location.origin + window.location.pathname;
             const fullUrl = `${baseUrl}?id=${id}&theme=${currentTheme}`;
-            navigator.clipboard.writeText(fullUrl).then(() => alert("✅ 交件網址已複製：\n" + fullUrl));
+            navigator.clipboard.writeText(fullUrl).then(() => alert("✅ 已生成乾淨的交件網址！"));
         }
 
         init();
