@@ -3,16 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>幸福智能名片 | 幸福教養概念館</title>
+    
+    <title>智能名片</title>
+    <meta name="apple-mobile-web-app-title" content="智能名片">
+    <meta name="application-name" content="智能名片">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
     <style>
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        /* 樣板顏色定義 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
         .theme-soft-gold { --primary: #b89130; --secondary: #f1c40f; }
         .theme-tiffany-blue { --primary: #00b894; --secondary: #81ecec; }
 
+        /* 名片卡片 */
         .card { background: white; width: 92%; max-width: 400px; margin: 20px 0; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); position: relative; }
         .banner { height: 140px; background: linear-gradient(180deg, var(--primary), var(--secondary)); clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%); }
         .avatar-container { width: 130px; height: 130px; margin: -75px auto 10px; position: relative; }
@@ -50,12 +59,20 @@
         </div>
         <div id="user-slogan" class="slogan"></div>
         <div id="qa-area" class="qa-section"></div>
+        
         <a id="back-home-link" href="#" class="back-nav-btn">📅 預約製作我的智能名片</a>
     </div>
 
     <div id="admin-panel">
         <h3 style="margin-top:0">🛠️ 智能名片製作後台</h3>
-        <label>切換 ID 預覽：</label>
+        <div style="margin-bottom:10px;">
+            <button onclick="setTheme('warm-pink')" style="background:#e17055; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">粉</button>
+            <button onclick="setTheme('navy-blue')" style="background:#0984e3; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">藍</button>
+            <button onclick="setTheme('forest-green')" style="background:#27ae60; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">綠</button>
+            <button onclick="setTheme('soft-gold')" style="background:#b89130; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">金</button>
+            <button onclick="setTheme('tiffany-blue')" style="background:#00b894; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">青</button>
+        </div>
+        <label>輸入 ID 預覽：</label>
         <input type="number" id="input-id" value="2" oninput="init()" class="admin-input">
         <button class="copy-btn" onclick="generateAndCopy()">🔗 產生專屬連結並複製</button>
     </div>
@@ -68,7 +85,7 @@
         const rowId = params.get('id');
         const theme = params.get('theme') || 'warm-pink';
 
-        // 動態設定回首頁連結，確保跳轉成功
+        // 動態修正跳轉連結：確保回到主頁面
         document.getElementById('back-home-link').href = window.location.origin + window.location.pathname;
 
         if (rowId) { document.body.className = `theme-${theme}`; }
@@ -79,56 +96,9 @@
             window.scrollTo(0, document.body.scrollHeight);
         }
 
+        function setTheme(t) { document.body.className = `theme-${t}`; }
+
         function generateAndCopy() {
             const id = document.getElementById('input-id').value;
             const currentTheme = document.body.className.replace('theme-', '');
-            const finalUrl = `${window.location.origin}${window.location.pathname}?id=${id}&theme=${currentTheme}`;
-            
-            const textArea = document.createElement("textarea");
-            textArea.value = finalUrl;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            alert("✨ 智能名片網址已複製成功！");
-        }
-
-        async function init() {
-            let fetchId = parseInt(rowId || document.getElementById('input-id').value || 2);
-            const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
-            
-            try {
-                const res = await fetch(url);
-                const text = await res.text();
-                const lines = text.split(/\r?\n/);
-                const dataLines = lines.filter(l => l.includes("2026/")); 
-                const d = dataLines[fetchId - 2]?.split(',').map(c => c.replace(/^"|"$/g, '').trim());
-
-                if(d) {
-                    document.getElementById('user-name').innerText = d[1] || "姓名";
-                    document.getElementById('user-title').innerText = d[2] || "職稱";
-                    document.getElementById('user-slogan').innerText = d[5] || "";
-
-                    let qa = '';
-                    if(d[17] && d[17].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[17]}</span><p class="qa-a">${d[18]}</p></div>`;
-                    if(d[19] && d[19].length > 2) qa += `<div class="qa-item"><span class="qa-q">Q: ${d[19]}</span><p class="qa-a">${d[20]}</p></div>`;
-                    document.getElementById('qa-area').innerHTML = qa;
-
-                    let pId = null;
-                    d.forEach(cell => {
-                        const match = cell.match(/[-\w]{25,}/);
-                        if (match && cell.includes('drive')) pId = match[0];
-                    });
-                    
-                    if (pId) {
-                        document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId}`;
-                    } else {
-                        document.getElementById('user-photo').src = 'https://via.placeholder.com/150?text=Photo';
-                    }
-                }
-            } catch (e) { console.error("資料載入失敗", e); }
-        }
-        init();
-    </script>
-</body>
-</html>
+            const finalUrl
