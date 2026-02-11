@@ -10,30 +10,10 @@
 
         /* 頂部門面 */
         .hero-section { width: 100%; background: white; text-align: center; padding: 25px 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .logo-img { width: 90px; height: 90px; border-radius: 20px; object-fit: cover; margin-bottom: 10px; }
-        .hero-title { font-size: 20px; font-weight: 800; margin: 5px 0; }
+        .logo-img { width: 80px; height: 80px; border-radius: 20px; object-fit: cover; }
+        .hero-title { font-size: 20px; font-weight: 800; margin: 10px 0 0; }
         
-        /* 聯繫區 */
-        .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 92%; max-width: 450px; margin: 20px 0; }
-        .action-btn { text-decoration: none; background: white; padding: 12px 2px; border-radius: 15px; text-align: center; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .btn-label { font-size: 12px; font-weight: bold; display: block; margin-top: 5px; }
-        .wechat-btn { grid-column: span 3; background: #27ae60; color: white; border: none; padding: 12px; border-radius: 15px; font-weight: bold; cursor: pointer; }
-
-        /* 四大優勢區 - 務必保留 */
-        .advantage-section { width: 92%; max-width: 450px; background: var(--dark); color: white; padding: 25px; border-radius: 25px; margin-bottom: 25px; box-sizing: border-box; }
-        .adv-title { font-size: 18px; margin-bottom: 15px; text-align: center; color: var(--secondary); }
-        .adv-item { margin-bottom: 12px; display: flex; align-items: center; font-size: 14px; }
-        .adv-item i { margin-right: 10px; font-style: normal; }
-
-        /* 十色與版型切換 */
-        .demo-controls { width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; margin-bottom: 25px; }
-        .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 15px; }
-        .color-dot { height: 30px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
-        .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .style-btn { padding: 8px; border-radius: 10px; border: 1px solid #eee; font-size: 11px; font-weight: bold; cursor: pointer; }
-        .style-btn.active { background: var(--dark); color: white; }
-
-        /* 十色漸層定義 */
+        /* 十色主題 */
         .theme-warm-pink { --primary: #ff7675; --secondary: #e17055; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #00cec9; }
         .theme-forest-green { --primary: #26ae60; --secondary: #1abc9c; }
@@ -45,24 +25,49 @@
         .theme-chocolate { --primary: #5d4037; --secondary: #8d6e63; }
         .theme-pure-black { --primary: #000000; --secondary: #434343; }
 
-        /* 樣板名片區 */
-        .card { background: white; width: 92%; max-width: 400px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
-        .banner { height: 140px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s ease; }
+        /* 控制面板 */
+        .demo-controls { width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 25px; margin: 20px 0; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
+        .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+        .style-btn { padding: 10px 5px; border-radius: 12px; border: 1px solid #eee; font-size: 11px; font-weight: bold; cursor: pointer; background: #f9f9f9; transition: 0.3s; }
+        .style-btn.active { background: var(--dark); color: white; border-color: var(--dark); transform: translateY(-2px); }
+        .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 5px; }
+        .color-dot { height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 0 0 1px #ddd; }
+
+        /* 名片結構 */
+        .card { background: white; width: 92%; max-width: 400px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,0.1); position: relative; }
+        .banner-wrap { position: relative; height: 180px; background: linear-gradient(135deg, var(--primary), var(--secondary)); transition: 0.5s; }
+        .banner-bg { position: absolute; bottom: -1px; width: 100%; height: 100px; background: white; transition: 0.5s; }
         
-        /* 版型切換邏輯 */
-        .style-slanted .banner { clip-path: polygon(0 0, 100% 0, 100% 80%, 0% 100%); }
-        .style-arch .banner { clip-path: ellipse(100% 100% at 50% 0%); } /* ✨ 正拱門改正 */
-        .style-flat .banner { clip-path: none; height: 110px; }
+        /* 🏛️ 1. 優雅正拱 */
+        .style-arch .banner-bg { border-radius: 100px 100px 0 0; }
+        /* ✨ 2. 晨曦聚光 */
+        .style-spotlight .banner-bg { border-radius: 0 0 100px 100px; height: 50px; top: -1px; }
+        .style-spotlight .banner-wrap { background: white; }
+        .style-spotlight .banner-overlay { position: absolute; top:0; width:100%; height:130px; background: linear-gradient(135deg, var(--primary), var(--secondary)); clip-path: ellipse(85% 100% at 50% 0%); }
+        /* 📏 3. 經典平直 */
+        .style-flat .banner-bg { border-radius: 0; height: 60px; }
 
-        .avatar-container { width: 120px; height: 120px; margin: -75px auto 10px; position: relative; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 6px solid white; object-fit: cover; background: #eee; }
-        .info { text-align: center; padding: 0 25px 15px; }
-        .slogan { font-size: 14px; background: #fcfcfc; padding: 20px; border-radius: 20px; border-left: 6px solid var(--primary); margin: 0 25px 25px; line-height: 1.7; white-space: pre-wrap; text-align: left; }
-        .faq-area { padding: 0 25px 30px; font-size: 13px; }
+        /* 標籤定位 */
+        .unit-tag { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); color: white; font-size: 11px; font-weight: bold; letter-spacing: 2px; background: rgba(0,0,0,0.15); padding: 4px 15px; border-radius: 20px; backdrop-filter: blur(5px); z-index: 5; }
+        .style-spotlight .unit-tag { color: var(--primary); background: rgba(255,255,255,0.8); top: 140px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
-        .form-cta-btn { background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; text-decoration: none; font-weight: bold; display: inline-block; box-shadow: 0 10px 20px rgba(0,0,0,0.15); margin-top: 30px; }
-        .copyright { padding: 40px 0 20px; font-size: 11px; color: #bbb; cursor: pointer; text-align: center; width: 100%; }
-        #qr-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:1000; justify-content:center; align-items:center; }
+        .avatar-container { width: 110px; height: 110px; position: absolute; top: 50px; left: 50%; transform: translateX(-50%); z-index: 10; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; border: 5px solid white; object-fit: cover; box-shadow: 0 8px 20px rgba(0,0,0,0.1); background: #f0f0f0; }
+        
+        .info { text-align: center; padding: 40px 25px 15px; margin-top: 65px; }
+        .name { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
+        .title { color: #555; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+
+        /* 內容框 */
+        .content-box { font-size: 14px; background: color-mix(in srgb, var(--primary), white 93%); padding: 22px; border-radius: 25px; border-left: 6px solid var(--primary); margin: 0 25px 20px; line-height: 1.8; white-space: pre-wrap; text-align: left; }
+        .faq-box { margin: 0 25px 30px; }
+        .faq-item { margin-bottom: 18px; }
+        .faq-q { font-weight: bold; color: var(--primary); display: block; margin-bottom: 6px; font-size: 15px; }
+        .faq-a { background: color-mix(in srgb, var(--primary), white 95%); padding: 15px; border-radius: 15px; font-size: 13px; color: #444; display: block; line-height: 1.6; }
+
+        .form-cta-btn { background: var(--dark); color: white; padding: 18px 45px; border-radius: 40px; text-decoration: none; font-weight: bold; box-shadow: 0 10px 20px rgba(0,0,0,0.15); margin-top: 10px; transition: 0.3s; }
+        .form-cta-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(0,0,0,0.2); }
+        .copyright { padding: 40px 0 20px; font-size: 11px; color: #bbb; text-align: center; }
     </style>
 </head>
 <body class="theme-warm-pink style-arch">
@@ -72,23 +77,7 @@
         <h1 class="hero-title">天使幸福智能名片系統</h1>
     </div>
 
-    <div class="action-grid">
-        <a href="https://line.me/ti/p/VqJzbWHm_4" class="action-btn">💬<span class="btn-label">一鍵 LINE</span></a>
-        <a href="tel:0973180707" class="action-btn">📞<span class="btn-label">一鍵電話</span></a>
-        <a href="mailto:a0973180707@gmail.com" class="action-btn">✉️<span class="btn-label">一鍵郵箱</span></a>
-        <button class="wechat-btn" onclick="document.getElementById('qr-overlay').style.display='flex'">微信聯繫 QR Code</button>
-    </div>
-
-    <div class="advantage-section">
-        <div class="adv-title">✨ 智能名片專屬優勢</div>
-        <div class="adv-item"><i>🚀</i> 秒速安裝：無需 App，點擊即存桌面</div>
-        <div class="adv-item"><i>🔄</i> 同步更新：資料異動，客戶端即時生效</div>
-        <div class="adv-item"><i>📊</i> 高效轉換：內建 LINE/電話一鍵通</div>
-        <div class="adv-item"><i>💎</i> 品牌形象：數位化商務交流最前線</div>
-    </div>
-
     <div class="demo-controls">
-        <span style="font-size:12px; color:#999; display:block; margin-bottom:10px;">—— 樣板即時預覽與配色 ——</span>
         <div class="color-grid">
             <div onclick="setTheme('warm-pink')" class="color-dot" style="background:#ff7675"></div>
             <div onclick="setTheme('navy-blue')" class="color-dot" style="background:#0984e3"></div>
@@ -102,30 +91,30 @@
             <div onclick="setTheme('pure-black')" class="color-dot" style="background:#2d3436"></div>
         </div>
         <div class="style-grid">
-            <button class="style-btn" onclick="setStyle('slanted', this)">📐 斜切型</button>
-            <button class="style-btn active" onclick="setStyle('arch', this)">🏛️ 拱門型</button>
-            <button class="style-btn" onclick="setStyle('flat', this)">📏 平直型</button>
+            <button class="style-btn active" onclick="setStyle('arch', this)">🏛️ 優雅正拱</button>
+            <button class="style-btn" onclick="setStyle('spotlight', this)">✨ 晨曦聚光</button>
+            <button class="style-btn" onclick="setStyle('flat', this)">📏 經典平直</button>
         </div>
     </div>
 
     <div class="card" id="main-card">
-        <div class="banner"></div>
-        <div class="avatar-container"><img id="user-photo" src="167777.png" class="avatar"></div>
-        <div class="info">
-            <h1 id="user-name" style="margin:5px 0; font-size:26px;">天使笑長</h1>
-            <div id="user-title" style="font-size:15px; color:#666; line-height:1.6; white-space:pre-wrap;">載入中...</div>
+        <div class="banner-wrap">
+            <div class="banner-overlay"></div>
+            <div id="user-unit" class="unit-tag">幸福教養概念館</div>
+            <div class="banner-bg"></div>
+            <div class="avatar-container"><img id="user-photo" src="167777.png" class="avatar"></div>
         </div>
-        <div id="user-slogan" class="slogan"></div>
-        <div id="faq-area" class="faq-area"></div>
+        <div class="info">
+            <h1 id="user-name" class="name">李秀芳</h1>
+            <div id="user-title" class="title">載入中...</div>
+        </div>
+        <div id="user-slogan" class="content-box"></div>
+        <div id="faq-area" class="faq-box"></div>
     </div>
 
-    <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即訂製智能名片</a>
+    <a href="https://forms.gle/TuS5XAzMNKcSnjdf6" target="_blank" class="form-cta-btn">🚀 立即訂製我的智能名片</a>
 
-    <div class="copyright">© 2026 天使幸福系統 | V48.0</div>
-
-    <div id="qr-overlay" onclick="this.style.display='none'">
-        <img src="mmqrcode1770777103365.png" style="width:250px; border-radius:15px; border:5px solid white;">
-    </div>
+    <div class="copyright">© 2026 天使幸福系統 | V52.0 品牌正式版</div>
 
     <script>
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
@@ -144,40 +133,23 @@
             btn.classList.add('active');
         }
 
-        function parseCSV(text) {
-            const result = [];
-            let row = [''], quote = false;
-            for (let char of text) {
-                if (char === '"') quote = !quote;
-                else if (char === ',' && !quote) row.push('');
-                else if (char === '\n' && !quote) { result.push(row); row = ['']; }
-                else row[row.length - 1] += char;
-            }
-            result.push(row);
-            return result;
-        }
-
         async function init() {
             const url = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=681093399&single=true&output=csv&t=${new Date().getTime()}`;
             try {
                 const res = await fetch(url);
-                const rows = parseCSV(await res.text());
-                const dataRows = rows.filter(r => r[0] && r[0].includes("/"));
-                const d = dataRows[parseInt(rowId) - 2];
+                const text = await res.text();
+                const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(row => row.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
+                const d = rows.find(r => r[1] === "李秀芳") || rows[1]; 
                 if(d) {
                     document.getElementById('user-name').innerText = d[1];
                     document.getElementById('user-title').innerText = d[2];
                     document.getElementById('user-slogan').innerText = d[5];
-                    
-                    // 照片全掃描
                     let pId = "";
                     d.forEach(cell => { if(cell && cell.includes("drive")) { let m = cell.match(/[-\w]{25,}/); if(m) pId = m[0]; } });
                     if(pId) document.getElementById('user-photo').src = `https://drive.google.com/uc?export=view&id=${pId}`;
-
-                    // FAQ 呈現
                     let qa = "";
-                    if(d[16]) qa += `<div style="margin-bottom:15px;"><b style="color:var(--primary);">Q: ${d[16]}</b><p style="background:#f9f9f9; padding:10px; border-radius:10px; margin-top:5px;">${d[17]}</p></div>`;
-                    if(d[18]) qa += `<div><b style="color:var(--primary);">Q: ${d[18]}</b><p style="background:#f9f9f9; padding:10px; border-radius:10px; margin-top:5px;">${d[19]}</p></div>`;
+                    if(d[16]) qa += `<div class="faq-item"><b class="faq-q">❓ ${d[16]}</b><p class="faq-a">${d[17]}</p></div>`;
+                    if(d[18]) qa += `<div class="faq-item"><b class="faq-q">❓ ${d[18]}</b><p class="faq-a">${d[19]}</p></div>`;
                     document.getElementById('faq-area').innerHTML = qa;
                 }
             } catch (e) {}
