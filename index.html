@@ -29,7 +29,7 @@
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.5); height: 105px; }
 
         .info { text-align: center; padding: 15px 25px; margin-top: 60px; }
-        .name { font-size: 34px; font-weight: 900; color: #222; margin-bottom: 8px; letter-spacing: 2px; }
+        .name { font-size: 30px; font-weight: 900; color: #222; margin-bottom: 8px; letter-spacing: 1px; }
         .title { color: #555; font-size: 15px; font-weight: 700; line-height: 1.8; margin-bottom: 25px; white-space: pre-wrap; }
 
         .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 25px 20px; }
@@ -38,8 +38,7 @@
 
         .advantage { background: #fff; margin: 0 25px 30px; padding: 25px; border-radius: 35px; border-left: 10px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
         .advantage h4 { margin: 0 0 12px 0; color: var(--s); font-size: 15px; font-weight: 900; }
-        .advantage li { font-size: 13px; color: #555; margin-bottom: 8px; list-style: none; text-align: left; }
-        .btn-order { display: block; background: #f1c40f; color: #222; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; margin-top: 20px; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3); }
+        .btn-order { display: block; background: #f1c40f; color: #222; text-decoration: none; padding: 15px; border-radius: 15px; font-weight: 900; margin-top: 10px; box-shadow: 0 4px 12px rgba(241, 196, 15, 0.3); }
 
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s ease; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .work-content { padding: 30px; text-align: center; }
@@ -88,8 +87,7 @@
         </div>
         <div class="advantage">
             <h4>🚀 智慧名片優勢</h4>
-            <li>✨ <b>立體美學</b>：展現教養館專業權威。</li>
-            <li>✨ <b>一鍵聯繫</b>：電話、郵件、LINE 點擊即通。</li>
+            <li style="font-size:13px; color:#666; list-style:none; margin-bottom:5px;">✨ 立體美學｜一鍵聯繫｜永續更新</li>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSfp_k7Pizj1DveL717S7H6eR9Zf3L9u-M6Ew/viewform" class="btn-order">📝 填寫訂購資料</a>
         </div>
     </div>
@@ -99,11 +97,11 @@
             <input type="text" id="work-id" class="work-input" placeholder="請輸入序號 (ID)">
             <button class="work-btn" style="background:var(--p)" onclick="doPreview()">樣品預覽</button>
             <button class="work-btn" style="background:#2ecc71" onclick="doCopy()">複製樣品交付網址</button>
-            <p onclick="document.getElementById('work-drawer').style.maxHeight='0'" style="cursor:pointer; color:#888; font-size:12px">關閉</p>
+            <p onclick="document.getElementById('work-drawer').style.maxHeight='0'" style="cursor:pointer; color:#888; font-size:12px">關閉控制台</p>
         </div>
     </div>
 
-    <div class="footer" id="admin-footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統 | V101</div>
+    <div class="footer" id="admin-footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統</div>
 
     <script>
         let curTheme = 'warm-pink';
@@ -112,10 +110,10 @@
         let allRows = [];
         let isClient = false;
 
-        // 🚀 門面寫死資料 (鎖定您的 GitHub 圖示與資訊)
+        // 🚀 門面寫死資料
         const MY_DATA = {
-            name: "李秀芳",
-            title: "天使智慧名片設計師\n幸福教養概念館館長\n天使笑長影音執行長",
+            name: "天使幸福智慧名片系統",
+            title: "數位轉型顧問｜品牌行銷專家\n李秀芳 天使智慧名片設計師",
             photo: "https://180707.github.io/167777.png", 
             lineOff: "https://lin.ee/2ac9Roe",
             tel: "0973180707",
@@ -149,14 +147,12 @@
             setTheme(theme);
 
             if (id) {
-                // 🚀 樣板模式：讀取表格
                 isClient = true;
                 document.getElementById('admin-panel').style.display = 'none';
                 await loadSheetData(id);
             } else {
-                // 🚀 門面模式：寫死資料
                 loadMyData();
-                loadSheetData(); // 背景預讀試算表供工作區預覽使用
+                loadSheetData(); 
             }
         }
 
@@ -199,7 +195,7 @@
             const id = document.getElementById('work-id').value;
             if(!id) return alert("請輸入 ID");
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交件網址已複製！"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 專業交付網址已複製！"));
         }
 
         init();
