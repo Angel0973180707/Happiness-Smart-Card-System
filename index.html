@@ -10,7 +10,7 @@
         :root { --primary: #e17055; --secondary: #fab1a0; --bg: #f8f9fa; }
         body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        /* 十色配色樣板 */
+        /* 十色樣板 */
         .theme-warm-pink { --primary: #e17055; --secondary: #fab1a0; }
         .theme-navy-blue { --primary: #0984e3; --secondary: #74b9ff; }
         .theme-forest-green { --primary: #27ae60; --secondary: #55efc4; }
@@ -22,7 +22,7 @@
         .theme-deep-berry { --primary: #6d214f; --secondary: #b33939; }
         .theme-sky-cyan { --primary: #00cec9; --secondary: #81ecec; }
 
-        /* 主網頁導購區 */
+        /* 展示主頁 */
         #studio-landing { width: 92%; max-width: 500px; text-align: center; padding: 20px 10px; box-sizing: border-box; }
         .color-sample-box { background: white; padding: 20px; border-radius: 25px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
@@ -40,11 +40,12 @@
         .info { text-align: center; padding: 0 25px 20px; }
         .slogan { font-size: 14px; background: rgba(0,0,0,0.03); padding: 20px; border-radius: 20px; border-left: 6px solid var(--primary); text-align: left; line-height: 1.7; color: #444; margin: 0 25px 20px; }
 
-        /* 隱形工作臺 */
+        /* 🔒 安全隱形工作臺 */
         #admin-panel { display: none; width: 92%; max-width: 400px; background: #2d3436; color: white; padding: 30px; border-radius: 30px; margin-top: 20px; box-sizing: border-box; }
         .admin-input { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: none; font-size: 16px; }
         .copy-btn { background: var(--secondary); color: #2d3436; padding: 18px; border-radius: 15px; width: 100%; font-weight: 800; border: none; cursor: pointer; }
-        .copyright { font-size: 11px; color: #ccc; margin: 30px 0; cursor: pointer; text-align: center; line-height: 1.8; }
+        
+        .copyright { font-size: 11px; color: #ccc; margin: 30px 0; cursor: pointer; text-align: center; line-height: 1.8; user-select: none; }
         .back-nav-btn { display:block; text-align:center; padding:20px; background:#2d3436; color:white; text-decoration:none; font-weight:bold; }
     </style>
 </head>
@@ -94,33 +95,36 @@
         <button class="copy-btn" onclick="generateAndCopy()">🔗 產生交貨連結並複製</button>
     </div>
 
-    <div class="copyright" onclick="toggleAdmin()" id="copyright-text">
-        © 2026 幸福教養概念館 | 幸福天使智能名片 V37.0
+    <div class="copyright" id="copyright-text" onclick="handleSecretEntry()">
+        © 2026 幸福教養概念館 | 幸福天使智能名片 V38.0
     </div>
 
     <script>
         const PUB_ID = '2PACX-1vQ0afkWyngYyTexUeNJn50CHrKmZ6cl0CYBcfGSQ56SA1XcpMLi8dJwjkuAB3YY7LXaGtWM0IOR75zB';
         const params = new URLSearchParams(window.location.search);
         const rowId = params.get('id');
+        let clickCount = 0;
 
-        // 💡 邏輯切換：成品模式 vs 主頁模式
+        // 💡 邏輯分離：成品模式 vs 主頁模式
         if (rowId) {
-            // 成品模式：隱藏所有引導、優勢與後台入口
             document.getElementById('studio-landing').style.display = 'none';
             document.getElementById('studio-advantages').style.display = 'none';
-            document.getElementById('copyright-text').style.display = 'none';
-            document.getElementById('res-btn').style.display = 'block'; 
+            document.getElementById('copyright-text').style.display = 'none'; // 徹底隱藏秘密入口
+            document.getElementById('res-btn').style.display = 'block';      // 導回展示主頁
             document.body.className = `theme-${params.get('theme') || 'warm-pink'}`;
-            init(); // 載入試算表真實資料
-        } else {
-            // 主頁模式：顯示樣板內容供預覽
-            document.getElementById('user-slogan').innerText = "點擊底部版權小字開啟後台並輸入 ID 生成正式名片。";
+            init(); 
         }
 
-        function toggleAdmin() {
-            const panel = document.getElementById('admin-panel');
-            panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
-            window.scrollTo(0, document.body.scrollHeight);
+        // 💡 安全秘密入口：連續點擊 5 次才開啟後台
+        function handleSecretEntry() {
+            if (rowId) return; // 成品模式下無效
+            clickCount++;
+            if (clickCount >= 5) {
+                const panel = document.getElementById('admin-panel');
+                panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+                window.scrollTo(0, document.body.scrollHeight);
+                clickCount = 0;
+            }
         }
 
         function setTheme(t) { document.body.className = `theme-${t}`; }
@@ -151,11 +155,9 @@
                     document.getElementById('user-name').innerText = d[1];
                     document.getElementById('user-title').innerText = d[2];
                     document.getElementById('user-slogan').innerText = d[5];
-                    
                     let photoUrl = "";
                     d.forEach(cell => { if(cell.includes("drive")) photoUrl = getDriveUrl(cell); });
                     document.getElementById('user-photo').src = photoUrl || "167777.png";
-                    
                     let qa = '';
                     if(d[17]) qa += `<div style="padding:20px; border-bottom:1px solid #eee;"><b>Q: ${d[17]}</b><p style="margin-top:10px; font-size:14px; color:#555;">${d[18]}</p></div>`;
                     if(d[19]) qa += `<div style="padding:20px;"><b>Q: ${d[19]}</b><p style="margin-top:10px; font-size:14px; color:#555;">${d[20]}</p></div>`;
