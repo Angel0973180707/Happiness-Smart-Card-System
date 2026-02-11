@@ -29,14 +29,13 @@
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.5); height: 105px; }
 
         .info { text-align: center; padding: 15px 25px; margin-top: 60px; }
-        .name { font-size: 28px; font-weight: 900; color: #222; margin-bottom: 8px; letter-spacing: 1px; }
+        .name { font-size: 26px; font-weight: 900; color: #222; margin-bottom: 8px; letter-spacing: 1px; }
         .title { color: #555; font-size: 16px; font-weight: 700; line-height: 1.8; margin-bottom: 25px; white-space: pre-wrap; }
 
         .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 25px 20px; }
         .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; box-shadow: 0 5px 15px rgba(0,0,0,0.03); }
         .btn-line-off { background: #06C755; color: white; grid-column: span 2; border: none; }
 
-        /* 智慧名片優勢區 */
         .advantage { background: #fff; margin: 0 25px 30px; padding: 25px; border-radius: 35px; border-left: 10px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
         .advantage h4 { margin: 0 0 12px 0; color: var(--s); font-size: 16px; font-weight: 900; }
         .advantage li { font-size: 13px; color: #666; margin-bottom: 8px; list-style: none; text-align: left; line-height: 1.5; }
@@ -59,7 +58,6 @@
 <body class="warm-pink style-arch">
 
     <div id="admin-panel">
-        <h1 style="font-size: 18px; margin-bottom: 15px;">天使幸福智慧名片系統</h1>
         <div class="picker-group">
             <div class="dot" style="background:#ff7675" onclick="setTheme('warm-pink')"></div>
             <div class="dot" style="background:#00d2ff" onclick="setTheme('aurora-blue')"></div>
@@ -114,9 +112,10 @@
         let allRows = [];
         let isClient = false;
 
+        // 🚀 門面寫死資料
         const MY_DATA = {
-            name: "天使幸福智慧名片系統",
-            title: "歡迎數位名片設計訂製",
+            name: "歡迎數位名片設計訂製",
+            title: "李秀芳 天使智慧名片設計師\n數位轉型顧問｜品牌行銷專家",
             photo: "https://180707.github.io/167777.png", 
             lineOff: "https://lin.ee/2ac9Roe",
             tel: "0973180707",
@@ -155,7 +154,7 @@
                 await loadSheetData(id);
             } else {
                 loadMyPage();
-                await loadSheetData(); // 背景加載數據供預覽
+                await loadSheetData(); 
             }
         }
 
@@ -176,24 +175,23 @@
                 const text = await res.text();
                 allRows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (targetId) renderFromSheet(targetId);
-            } catch(e) { console.error("Data Load Fail", e); }
+            } catch(e) { console.error("Load Error", e); }
         }
 
         function renderFromSheet(idValue) {
             const d = allRows.find(r => r[0] === idValue);
             if(d) {
-                document.getElementById('u-name').innerText = d[1];
-                document.getElementById('u-title').innerText = d[2];
-                const match = d[6].match(/[-\w]{25,}/);
-                if(match) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
+                document.getElementById('u-name').innerText = d[1]; // 成品姓名 100% 讀表格
+                document.getElementById('u-title').innerText = d[2]; // 成品職稱 100% 讀表格
                 
-                // 🚀 同步更新各個聯繫按鈕
+                const match = d[6].match(/[-\w]{25,}/);
+                if(match) {
+                    document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + match[0];
+                }
                 const lOff = document.getElementById('link-line-off');
                 if(d[4]) { lOff.href = d[4]; lOff.style.display = 'block'; } else { lOff.style.display = 'none'; }
-                
                 document.getElementById('link-tel').href = "tel:" + d[9];
                 document.getElementById('link-mail').href = "mailto:" + d[10];
-                
                 const lP = document.getElementById('link-line-p');
                 if(d[14]) { lP.href = d[14]; lP.style.display = 'block'; } else { lP.style.display = 'none'; }
             }
@@ -208,7 +206,7 @@
             const id = document.getElementById('work-id').value;
             if(!id) return alert("請輸入 ID");
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 專業交件網址已複製！"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 專業交付網址已複製！"));
         }
 
         init();
