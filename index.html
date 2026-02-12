@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片系統 V153</title>
+    <title>天使幸福智慧名片系統 V154</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
@@ -62,8 +62,8 @@
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="info">
             <h1 id="u-name" class="name">天使幸福智慧名片系統</h1>
-            <div id="u-unit" class="unit">幸福教養概念館</div>
-            <div id="u-slogan" class="slogan">讓愛發揮力量</div>
+            <div id="u-unit" class="unit">智慧行銷服務</div>
+            <div id="u-slogan" class="slogan">讓您的專業一眼被看見</div>
             <div id="u-title" class="title">優質智慧名片服務</div>
             <div class="social-grid" id="u-socials">
                 <a href="#" class="social-btn" id="s1" target="_blank">📹</a><a href="#" class="social-btn" id="s2" target="_blank">🎵</a><a href="#" class="social-btn" id="s3" target="_blank">🎙️</a>
@@ -88,11 +88,12 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V153</div>
+    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V154</div>
 
     <script>
+        // 🚀 門面資料庫：已移除教養館相關文字
         const MY_HOME = {
-            name: "天使幸福智慧名片系統", unit: "幸福教養概念館", slogan: "讓愛發揮力量", title: "優質智慧名片服務",
+            name: "天使幸福智慧名片系統", unit: "智慧行銷服務", slogan: "讓您的專業一眼被看見", title: "優質智慧名片服務",
             lineOff: "https://lin.ee/2ac9Roe", tel: "0973180707", mail: "a0973180707@gmail.com", lineP: "https://line.me/ti/p/VqJzbWHm_4"
         };
 
@@ -105,7 +106,6 @@
         function handleFooterClick() { clicks++; if(clicks >= 3) { document.getElementById('work-drawer').style.maxHeight = '500px'; clicks = 0; } setTimeout(() => clicks = 0, 1000); }
 
         async function init() {
-            // 🚀 強迫先顯示門面資料，不准留白
             renderHome();
             if (urlId) {
                 const t = urlParams.get('theme'); const s = urlParams.get('style');
@@ -133,7 +133,7 @@
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 renderSheet(targetId);
-            } catch(e) { console.error("抓取失敗，維持門面狀態"); }
+            } catch(e) { console.error("抓取失敗"); }
         }
 
         function renderSheet(idValue) {
@@ -149,12 +149,13 @@
                 document.getElementById('u-slogan').innerText = d[findIdx('理念')] || "";
                 document.getElementById('u-title').innerText = (d[findIdx('職稱')] || "") + "\n" + (d[findIdx('服務項目')] || "");
                 
-                const av = d[findIdx('形象照')].match(/[-\w]{25,}/);
-                if(av) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + av[0];
+                const avId = d[findIdx('形象照')].match(/[-\w]{25,}/);
+                if(avId) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + avId[0];
 
                 document.getElementById('link-line-p').href = d[findIdx('私訊 LINE')] || "#";
                 document.getElementById('link-line-off').href = d[findIdx('官方帳號')] || "#";
                 document.getElementById('link-tel').href = "tel:" + d[findIdx('電話')];
+                document.getElementById('link-mail').href = "mailto:" + d[findIdx('Email')];
                 
                 if(d[findIdx('Q1')]) { 
                     document.getElementById('box-1').style.display='block'; 
