@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片系統 V150</title>
+    <title>天使幸福智慧名片系統 V151</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
@@ -18,7 +18,7 @@
         .avatar-wrap { width: 145px; height: 145px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #eee; }
         .banner { height: 195px; background: linear-gradient(135deg, var(--p), var(--s)); border-radius: 50px 50px 0 0; position: relative; overflow: hidden; }
-        .arch-overlay { position: absolute; width: 100%; height: 115px; background: white; bottom: -1px; border-radius: 115px 115px 0 0; transition: 0.5s; }
+        .arch-overlay { position: absolute; width: 100%; height: 115px; background: white; bottom: -1px; border-radius: 115px 115px 0 0; }
         .style-flat .arch-overlay { border-radius: 0; height: 40px; }
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.5); height: 105px; }
         .info { text-align: center; padding: 15px 25px; margin-top: 60px; }
@@ -38,12 +38,9 @@
         .footer { font-size: 11px; color: #ccc; margin-top: 50px; text-align: center; padding: 20px; cursor: pointer; }
         .warm-pink { --p: #ff7675; --s: #d63031; }
         .aurora-blue { --p: #00d2ff; --s: #3a7bd5; }
-        .vivid-orange { --p: #ff9f43; --s: #ee5253; }
-        .royal-purple { --p: #a55eea; --s: #6c5ce7; }
-        .teal-green { --p: #00b894; --s: #006266; }
     </style>
 </head>
-<body class="warm-pink">
+<body class="warm-pink style-arch">
 
     <div id="admin-panel">
         <div class="picker-group">
@@ -61,14 +58,14 @@
     </div>
 
     <div id="card-container" class="card">
-        <div class="logo-wrap" id="u-logo-wrap"><img id="u-logo" src="" style="width:100%;height:100%;object-fit:contain;"></div>
+        <div class="logo-wrap" id="logo-wrap"><img id="u-logo" src="" style="width:100%;height:100%;object-fit:contain;"></div>
         <div class="avatar-wrap"><img id="u-img" src="167777.png" class="avatar"></div>
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="info">
-            <h1 id="u-name" class="name">載入中...</h1>
-            <div id="u-unit" class="unit"></div>
-            <div id="u-slogan" class="slogan"></div>
-            <div id="u-title" class="title"></div>
+            <h1 id="u-name" class="name">天使幸福智慧名片系統</h1>
+            <div id="u-unit" class="unit">天使設計中心</div>
+            <div id="u-slogan" class="slogan">讓您的名片會說話</div>
+            <div id="u-title" class="title">優質智慧名片服務</div>
             <div class="social-grid" id="u-socials">
                 <a href="#" class="social-btn" id="s1" target="_blank">📹</a><a href="#" class="social-btn" id="s2" target="_blank">🎵</a><a href="#" class="social-btn" id="s3" target="_blank">🎙️</a>
                 <a href="#" class="social-btn" id="s4" target="_blank">📘</a><a href="#" class="social-btn" id="s5" target="_blank">📸</a><a href="#" class="social-btn" id="s6" target="_blank">📝</a>
@@ -87,14 +84,14 @@
     </div>
 
     <div id="work-drawer">
-        <div style="padding: 30px; text-align: center;">
-            <input type="text" id="work-id" style="width:100%; padding:15px; border-radius:12px; border:1px solid #ddd; margin-bottom:15px;" placeholder="輸入 ID (如：2026/2/11...)">
-            <button onclick="doPreview()" style="width:100%; padding:15px; border-radius:12px; font-weight:900; background:var(--p); color:white; border:none; margin-bottom:10px;">1. 預覽成品</button>
-            <button onclick="doCopy()" style="width:100%; padding:15px; border-radius:12px; font-weight:900; background:#2ecc71; color:white; border:none;">2. 複製網址</button>
+        <div style="padding: 20px; text-align: center;">
+            <input type="text" id="work-id" style="width:90%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:10px;" placeholder="輸入 ID (如：1)">
+            <button onclick="doPreview()" style="width:90%; padding:12px; border-radius:10px; background:var(--p); color:white; border:none; font-weight:bold; margin-bottom:10px;">預覽成品樣貌</button>
+            <button onclick="doCopy()" style="width:90%; padding:12px; border-radius:10px; background:#2ecc71; color:white; border:none; font-weight:bold;">複製交付連結</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V150</div>
+    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V151</div>
 
     <script>
         let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
@@ -105,16 +102,15 @@
         function setStyle(s, btn) { curStyle = s; document.body.className = curTheme + ' style-' + s; if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
         function handleFooterClick() { clicks++; if(clicks >= 3) { document.getElementById('work-drawer').style.maxHeight = '500px'; clicks = 0; } setTimeout(() => clicks = 0, 1000); }
 
-        async function loadSheetData(targetId) {
+        async function loadSheetData() {
             const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
             try {
                 const res = await fetch(csvUrl);
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                if (targetId) renderSheet(targetId);
-                else { document.getElementById('u-name').innerText = "天使幸福智慧名片系統"; }
-            } catch(e) { console.error(e); }
+                if (urlId) renderSheet(urlId);
+            } catch(e) { console.error("資料讀取失敗"); }
         }
 
         function getGImg(url) {
@@ -126,11 +122,13 @@
         function renderSheet(idValue) {
             const headers = allRows[0];
             const findIdx = (k) => headers.findIndex(h => h.includes(k));
-            const d = allRows.find(r => r[0].toString().includes(idValue) || idValue.includes(r[0].toString()));
+            const d = allRows.find(r => r[0].toString().trim() === idValue.toString().trim());
             
             if(d) {
+                // 🚀 只有真正找到資料，才隱藏門面控制鈕
                 document.getElementById('admin-panel').style.display = 'none';
                 document.getElementById('order-btn').style.display = 'none';
+                
                 document.getElementById('u-name').innerText = d[findIdx('姓名')] || "未填寫";
                 document.getElementById('u-unit').innerText = d[findIdx('單位')] || "";
                 document.getElementById('u-slogan').innerText = d[findIdx('理念')] || "";
@@ -138,27 +136,25 @@
                 
                 const av = getGImg(d[findIdx('個人專業形象照')]); if(av) document.getElementById('u-img').src = av;
                 const prod = getGImg(d[findIdx('產品或品牌照片')]); if(prod){ document.getElementById('u-prod-wrap').style.display='block'; document.getElementById('u-prod').src=prod; }
-                const logo = getGImg(d[findIdx('品牌 Logo')]); if(logo){ document.getElementById('u-logo-wrap').style.display='block'; document.getElementById('u-logo').src=logo; }
+                const logo = getGImg(d[findIdx('品牌 Logo')]); if(logo){ document.getElementById('logo-wrap').style.display='block'; document.getElementById('u-logo').src=logo; }
 
-                // 影音社群按鈕
                 for(let i=1; i<=3; i++) {
                     const l1 = d[findIdx('影音平台 '+i)]; if(l1 && l1.length > 5){ document.getElementById('s'+i).style.display='flex'; document.getElementById('s'+i).href=l1; }
                     const l2 = d[findIdx('社群平台 '+i)]; if(l2 && l2.length > 5){ document.getElementById('s'+(i+3)).style.display='flex'; document.getElementById('s'+(i+3)).href=l2; }
                 }
 
-                // 🚀 LINE 兩個帳號核心對齊
                 document.getElementById('link-line-p').href = d[findIdx('私訊 LINE')] || "#";
                 document.getElementById('link-line-off').href = d[findIdx('官方帳號')] || "#";
                 document.getElementById('link-mail').href = "mailto:" + d[findIdx('Email')];
                 document.getElementById('link-tel').href = "tel:" + d[findIdx('電話')];
                 
                 if(d[findIdx('Q1')]) { document.getElementById('box-1').style.display='block'; document.getElementById('q1-t').innerText="💡 "+d[findIdx('Q1')]; document.getElementById('q1-a').innerText=d[findIdx('A1')]; }
-                if(d[findIdx('Q2')]) { document.getElementById('box-2').style.display='block'; document.getElementById('q2-t').innerText="💡 "+d[findIdx('Q2')]; document.getElementById('q2-a').innerText=d[findIdx('A2')]; }
+                if(d[findIdx('Q2')]) { document.getElementById('box-2').style.display='block'; document.getElementById('q2-t').innerText="💡 "+d[22]; document.getElementById('q2-a').innerText=d[23]; }
             }
         }
 
         async function init() {
-            await loadSheetData(urlId);
+            await loadSheetData();
             if (urlId) {
                 const t = urlParams.get('theme'); const s = urlParams.get('style');
                 if(t) setTheme(t); if(s) setStyle(s);
@@ -168,7 +164,7 @@
         function doCopy() {
             const id = document.getElementById('work-id').value;
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 連結已複製"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 網址已複製"));
         }
         init();
     </script>
