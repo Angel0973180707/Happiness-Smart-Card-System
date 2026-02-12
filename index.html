@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片系統 V146</title>
+    <title>天使幸福智慧名片系統 V147</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
@@ -33,6 +33,7 @@
         .btn-line-off { background: #06C755 !important; color: white !important; grid-column: span 2; }
         .prod-img { width: 88%; margin: 0 auto 20px; border-radius: 20px; overflow: hidden; display: none; }
         .section-box { background: #fff; margin: 0 25px 20px; padding: 20px; border-radius: 25px; border-left: 8px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); display: none; }
+        #order-btn { display: block; background:#f1c40f; color:#222; text-decoration:none; padding:15px; border-radius:15px; font-weight:900; margin:15px 25px 30px; text-align:center; }
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .footer { font-size: 11px; color: #ccc; margin-top: 50px; text-align: center; padding: 20px; cursor: pointer; }
         .warm-pink { --p: #ff7675; --s: #d63031; }
@@ -46,11 +47,11 @@
 
     <div id="admin-panel">
         <div class="picker-group">
-            <div class="dot" style="background:#ff7675" onclick="setTheme('warm-pink')"></div>
-            <div class="dot" style="background:#00d2ff" onclick="setTheme('aurora-blue')"></div>
-            <div class="dot" style="background:#ff9f43" onclick="setTheme('vivid-orange')"></div>
-            <div class="dot" style="background:#a55eea" onclick="setTheme('royal-purple')"></div>
-            <div class="dot" style="background:#00b894" onclick="setTheme('teal-green')"></div>
+            <div class="dot" onclick="setTheme('warm-pink')" style="background:#ff7675"></div>
+            <div class="dot" onclick="setTheme('aurora-blue')" style="background:#00d2ff"></div>
+            <div class="dot" onclick="setTheme('vivid-orange')" style="background:#ff9f43"></div>
+            <div class="dot" onclick="setTheme('royal-purple')" style="background:#a55eea"></div>
+            <div class="dot" onclick="setTheme('teal-green')" style="background:#00b894"></div>
         </div>
         <div class="picker-group">
             <button class="btn-style active" onclick="setStyle('arch', this)">優雅正拱</button>
@@ -60,14 +61,14 @@
     </div>
 
     <div id="card-container" class="card">
-        <div id="u-logo" class="logo-wrap"><img id="logo-img" src="" style="width:100%; height:100%; object-fit:contain;"></div>
+        <img id="u-logo" src="" class="logo-wrap" style="object-fit: contain;">
         <div class="avatar-wrap"><img id="u-img" src="167777.png" class="avatar"></div>
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="info">
-            <h1 id="u-name" class="name">載入中...</h1>
+            <h1 id="u-name" class="name">天使幸福智慧名片系統</h1>
             <div id="u-unit" class="unit"></div>
             <div id="u-slogan" class="slogan"></div>
-            <div id="u-title" class="title"></div>
+            <div id="u-title" class="title">優質智慧名片服務</div>
             <div class="social-grid" id="u-socials">
                 <a href="#" class="social-btn" id="s1">📹</a><a href="#" class="social-btn" id="s2">🎵</a><a href="#" class="social-btn" id="s3">🎙️</a>
                 <a href="#" class="social-btn" id="s4">📘</a><a href="#" class="social-btn" id="s5">📸</a><a href="#" class="social-btn" id="s6">📝</a>
@@ -82,18 +83,18 @@
         <div id="u-prod-wrap" class="prod-img"><img id="u-prod" src="" style="width:100%;"></div>
         <div id="box-1" class="section-box"><h4 id="q1-t"></h4><p id="q1-a"></p></div>
         <div id="box-2" class="section-box"><h4 id="q2-t"></h4><p id="q2-a"></p></div>
-        <a href="https://forms.gle/biwhtWf5Bh8ga6xu8" id="order-btn" style="display:block; background:#f1c40f; color:#222; text-decoration:none; padding:15px; border-radius:15px; font-weight:900; margin:15px 25px 30px; text-align:center;">📝 填寫名片訂購資料</a>
+        <a href="https://forms.gle/biwhtWf5Bh8ga6xu8" id="order-btn">📝 填寫名片訂購資料</a>
     </div>
 
     <div id="work-drawer">
         <div style="padding: 30px; text-align: center;">
-            <input type="text" id="work-id" style="width:100%; padding:15px; border-radius:12px; border:1px solid #ddd; margin-bottom:15px;" placeholder="輸入序號 (如: 1)">
-            <button onclick="doPreview()" style="width:100%; padding:15px; border-radius:12px; font-weight:900; background:var(--p); color:white; border:none; margin-bottom:10px;">預覽成品</button>
+            <input type="text" id="work-id" style="width:100%; padding:15px; border-radius:12px; border:1px solid #ddd; margin-bottom:15px;" placeholder="輸入序號 (如: 2)">
+            <button onclick="doPreview()" style="width:100%; padding:15px; border-radius:12px; font-weight:900; background:var(--p); color:white; border:none; margin-bottom:10px;">預覽成品樣貌</button>
             <button onclick="doCopy()" style="width:100%; padding:15px; border-radius:12px; font-weight:900; background:#2ecc71; color:white; border:none;">複製交件連結</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V146.0 鋼鐵地基鎖死版</div>
+    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V147</div>
 
     <script>
         let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
@@ -105,7 +106,6 @@
         function handleFooterClick() { clicks++; if(clicks >= 3) { document.getElementById('work-drawer').style.maxHeight = '500px'; clicks = 0; } setTimeout(() => clicks = 0, 1000); }
 
         async function loadSheetData(targetId) {
-            // 🚀 終極鎖定：您的試算表 ID 與 GID
             const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
             try {
                 const res = await fetch(csvUrl);
@@ -113,20 +113,13 @@
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (targetId) renderSheet(targetId);
-                else renderMyPage();
-            } catch(e) { renderMyPage(); }
+            } catch(e) { console.error(e); }
         }
 
         function getGImg(url) {
             if (!url || !url.includes('id=')) return "";
             const m = url.match(/[-\w]{25,}/);
             return m ? "https://lh3.googleusercontent.com/d/" + m[0] : "";
-        }
-
-        function renderMyPage() {
-            document.getElementById('u-name').innerText = "天使幸福智慧名片系統";
-            document.getElementById('u-unit').innerText = "天使設計中心";
-            document.getElementById('u-img').src = "167777.png";
         }
 
         function renderSheet(idValue) {
@@ -138,28 +131,19 @@
                 document.getElementById('u-unit').innerText = d[2];
                 document.getElementById('u-slogan').innerText = d[3];
                 document.getElementById('u-title').innerText = d[4] + "\n" + d[5];
-                
-                const av = getGImg(d[6]);
-                if (av) { document.getElementById('u-img').src = av; }
-                
-                const prod = getGImg(d[7]);
-                if (prod) { document.getElementById('u-prod-wrap').style.display = 'block'; document.getElementById('u-prod').src = prod; }
-
-                const logo = getGImg(d[8]);
-                if (logo) { document.getElementById('u-logo').style.display = 'block'; document.getElementById('logo-img').src = logo; }
-
+                const av = getGImg(d[6]); if (av) document.getElementById('u-img').src = av;
+                const prod = getGImg(d[7]); if (prod) { document.getElementById('u-prod-wrap').style.display = 'block'; document.getElementById('u-prod').src = prod; }
+                const logo = getGImg(d[8]); if (logo) { document.getElementById('u-logo').style.display = 'block'; document.getElementById('u-logo').src = logo; }
                 for(let i=1; i<=6; i++) {
                     const btn = document.getElementById('s'+i);
                     const link = d[10+i]; 
                     if(link && link.length > 5) { btn.style.display = 'flex'; btn.href = link; }
                     else { btn.style.display = 'none'; }
                 }
-
                 document.getElementById('link-line-p').href = d[16] || "#";
                 document.getElementById('link-line-off').href = d[17] || "#";
                 document.getElementById('link-mail').href = "mailto:" + d[18];
                 document.getElementById('link-tel').href = "tel:" + d[19];
-                
                 if(d[20]) { document.getElementById('box-1').style.display='block'; document.getElementById('q1-t').innerText="💡 "+d[20]; document.getElementById('q1-a').innerText=d[21]; }
                 if(d[22]) { document.getElementById('box-2').style.display='block'; document.getElementById('q2-t').innerText="💡 "+d[22]; document.getElementById('q2-a').innerText=d[23]; }
             }
@@ -167,13 +151,12 @@
 
         async function init() {
             if (urlId) {
+                document.getElementById('u-name').innerText = "幸福讀取中...";
                 const theme = urlParams.get('theme');
                 const style = urlParams.get('style');
                 if (theme) setTheme(theme);
                 if (style) setStyle(style);
                 await loadSheetData(urlId);
-            } else {
-                renderMyPage();
             }
         }
         function doPreview() { renderSheet(document.getElementById('work-id').value); }
