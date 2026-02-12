@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片系統 V154</title>
+    <title>天使幸福智慧名片系統 V155</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
@@ -13,6 +13,12 @@
         .dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .btn-style { padding: 8px 12px; border-radius: 12px; border: 1px solid #eee; font-size: 11px; cursor: pointer; background: white; font-weight: 700; }
         .btn-style.active { background: #2d3436; color: white; border-color: #2d3436; }
+        
+        /* 🚀 交付狀態遮罩 */
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--p); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         .card { background: white; width: 92%; max-width: 380px; border-radius: 50px; overflow: visible; box-shadow: 0 40px 80px rgba(0,0,0,0.1); position: relative; margin-top: 40px; }
         .logo-wrap { position: absolute; top: 25px; right: 35px; width: 45px; height: 45px; z-index: 10; display: none; }
         .avatar-wrap { width: 145px; height: 145px; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 40px rgba(0,0,0,0.2); }
@@ -31,15 +37,17 @@
         .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 25px 20px; }
         .act-btn { text-decoration: none; background: #fff; padding: 14px; border-radius: 18px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; }
         .btn-line-off { background: #06C755 !important; color: white !important; grid-column: span 2; }
+        .prod-img { width: 88%; margin: 0 auto 20px; border-radius: 20px; overflow: hidden; display: none; }
         .section-box { background: #fff; margin: 0 25px 20px; padding: 20px; border-radius: 25px; border-left: 8px solid var(--p); box-shadow: 0 10px 30px rgba(0,0,0,0.05); display: none; }
-        #order-btn { display: block; background:#f1c40f; color:#222; text-decoration:none; padding:15px; border-radius:15px; font-weight:900; margin:15px 25px 30px; text-align:center; }
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .footer { font-size: 11px; color: #ccc; margin-top: 50px; text-align: center; padding: 20px; cursor: pointer; }
         .warm-pink { --p: #ff7675; --s: #d63031; }
         .aurora-blue { --p: #00d2ff; --s: #3a7bd5; }
     </style>
 </head>
-<body class="warm-pink style-arch">
+<body class="warm-pink">
+
+    <div id="loading-overlay"><div class="spinner"></div><p style="margin-top:15px; color:#555; font-weight:bold;">幸福資料傳遞中...</p></div>
 
     <div id="admin-panel">
         <div class="picker-group">
@@ -76,70 +84,68 @@
             <a href="mailto:a0973180707@gmail.com" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
             <a href="https://line.me/ti/p/VqJzbWHm_4" id="link-line-p" class="act-btn" style="grid-column: span 2;" target="_blank">💬 LINE 私訊找我</a>
         </div>
+        <div id="u-prod-wrap" class="prod-img"><img id="u-prod" src="" style="width:100%;"></div>
         <div id="box-1" class="section-box"><h4 id="q1-t"></h4><p id="q1-a"></p></div>
-        <a href="https://forms.gle/biwhtWf5Bh8ga6xu8" id="order-btn">📝 填寫名片訂購資料</a>
+        <div id="box-2" class="section-box"><h4 id="q2-t"></h4><p id="q2-a"></p></div>
+        <a href="https://forms.gle/biwhtWf5Bh8ga6xu8" id="order-btn" style="display:block; background:#f1c40f; color:#222; text-decoration:none; padding:15px; border-radius:15px; font-weight:900; margin:15px 25px 30px; text-align:center;">📝 填寫名片訂購資料</a>
     </div>
 
     <div id="work-drawer">
         <div style="padding: 20px; text-align: center;">
-            <input type="text" id="work-id" style="width:90%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:10px;" placeholder="輸入序號 (如: 1)">
-            <button onclick="doPreview()" style="width:90%; padding:12px; border-radius:10px; background:var(--p); color:white; border:none; font-weight:bold; margin-bottom:10px;">預覽成品</button>
-            <button onclick="doCopy()" style="width:90%; padding:12px; border-radius:10px; background:#2ecc71; color:white; border:none; font-weight:bold;">複製連結</button>
+            <input type="text" id="work-id" style="width:90%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:10px;" placeholder="輸入序號或姓名關鍵字">
+            <button onclick="doPreview()" style="width:90%; padding:12px; border-radius:10px; background:var(--p); color:white; border:none; font-weight:bold; margin-bottom:10px;">預覽成品樣貌</button>
+            <button onclick="doCopy()" style="width:90%; padding:12px; border-radius:10px; background:#2ecc71; color:white; border:none; font-weight:bold;">複製交付連結</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V154</div>
+    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V155</div>
 
     <script>
-        // 🚀 門面資料庫：已移除教養館相關文字
         const MY_HOME = {
             name: "天使幸福智慧名片系統", unit: "智慧行銷服務", slogan: "讓您的專業一眼被看見", title: "優質智慧名片服務",
             lineOff: "https://lin.ee/2ac9Roe", tel: "0973180707", mail: "a0973180707@gmail.com", lineP: "https://line.me/ti/p/VqJzbWHm_4"
         };
-
-        let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
+        let allRows = []; let curTheme = 'warm-pink'; let curStyle = 'arch';
         const urlParams = new URLSearchParams(window.location.search);
         const urlId = urlParams.get('id');
 
         function setTheme(t) { curTheme = t; document.body.className = t + ' style-' + curStyle; }
         function setStyle(s, btn) { curStyle = s; document.body.className = curTheme + ' style-' + s; if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
-        function handleFooterClick() { clicks++; if(clicks >= 3) { document.getElementById('work-drawer').style.maxHeight = '500px'; clicks = 0; } setTimeout(() => clicks = 0, 1000); }
-
-        async function init() {
-            renderHome();
-            if (urlId) {
-                const t = urlParams.get('theme'); const s = urlParams.get('style');
-                if(t) setTheme(t); if(s) setStyle(s);
-                await loadSheetData(urlId);
-            }
-        }
-
-        function renderHome() {
-            document.getElementById('u-name').innerText = MY_HOME.name;
-            document.getElementById('u-unit').innerText = MY_HOME.unit;
-            document.getElementById('u-slogan').innerText = MY_HOME.slogan;
-            document.getElementById('u-title').innerText = MY_HOME.title;
-            document.getElementById('link-line-off').href = MY_HOME.lineOff;
-            document.getElementById('link-tel').href = "tel:" + MY_HOME.tel;
-            document.getElementById('link-mail').href = "mailto:" + MY_HOME.mail;
-            document.getElementById('link-line-p').href = MY_HOME.lineP;
-        }
-
+        function handleFooterClick() { let clicks = 0; return function(){ clicks++; if(clicks >= 3){ document.getElementById('work-drawer').style.maxHeight='500px'; clicks=0; } setTimeout(()=>clicks=0, 1000); } }();
+        
         async function loadSheetData(targetId) {
+            if (targetId) document.getElementById('loading-overlay').style.display = 'flex';
             const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
             try {
                 const res = await fetch(csvUrl);
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                renderSheet(targetId);
-            } catch(e) { console.error("抓取失敗"); }
+                if (targetId) renderSheet(targetId);
+                document.getElementById('loading-overlay').style.display = 'none';
+            } catch(e) { 
+                console.error("抓取失敗");
+                document.getElementById('loading-overlay').style.display = 'none';
+            }
         }
 
-        function renderSheet(idValue) {
-            const headers = allRows[0];
+        function getGImg(url) {
+            if (!url || !url.includes('id=')) return "";
+            const m = url.match(/[-\w]{25,}/);
+            return m ? "https://lh3.googleusercontent.com/d/" + m[0] : "";
+        }
+
+        function renderSheet(keyword) {
+            const headers = allRows[0].map(h => h.replace(/\s/g,''));
             const findIdx = (k) => headers.findIndex(h => h.includes(k));
-            const d = allRows.find(r => r[0].toString().trim() === idValue.toString().trim());
+            
+            // 🚀 模糊匹配邏輯：序號符合 OR 姓名包含關鍵字
+            const d = allRows.find((r, idx) => {
+                if (idx === 0) return false;
+                const rowId = r[0].toString();
+                const rowName = r[1] ? r[1].toString() : "";
+                return rowId.includes(keyword) || rowName.includes(keyword);
+            });
             
             if(d) {
                 document.getElementById('admin-panel').style.display = 'none';
@@ -151,25 +157,42 @@
                 
                 const avId = d[findIdx('形象照')].match(/[-\w]{25,}/);
                 if(avId) document.getElementById('u-img').src = "https://lh3.googleusercontent.com/d/" + avId[0];
+                const prodId = d[findIdx('產品')].match(/[-\w]{25,}/);
+                if(prodId) { document.getElementById('u-prod-wrap').style.display='block'; document.getElementById('u-prod').src="https://lh3.googleusercontent.com/d/"+prodId[0]; }
 
-                document.getElementById('link-line-p').href = d[findIdx('私訊 LINE')] || "#";
+                // 🚀 自動隱藏空社群按鈕
+                for(let i=1; i<=3; i++) {
+                    const l1 = d[findIdx('影音平台'+i)]; const s1 = document.getElementById('s'+i);
+                    if(l1 && l1.length > 5){ s1.style.display='flex'; s1.href=l1; } else { s1.style.display='none'; }
+                    const l2 = d[findIdx('社群平台'+i)]; const s2 = document.getElementById('s'+(i+3));
+                    if(l2 && l2.length > 5){ s2.style.display='flex'; s2.href=l2; } else { s2.style.display='none'; }
+                }
+
+                document.getElementById('link-line-p').href = d[findIdx('私訊LINE')] || "#";
                 document.getElementById('link-line-off').href = d[findIdx('官方帳號')] || "#";
                 document.getElementById('link-tel').href = "tel:" + d[findIdx('電話')];
                 document.getElementById('link-mail').href = "mailto:" + d[findIdx('Email')];
                 
-                if(d[findIdx('Q1')]) { 
-                    document.getElementById('box-1').style.display='block'; 
-                    document.getElementById('q1-t').innerText="💡 "+d[findIdx('Q1')]; 
-                    document.getElementById('q1-a').innerText=d[findIdx('A1')]; 
-                }
+                if(d[findIdx('Q1')]) { document.getElementById('box-1').style.display='block'; document.getElementById('q1-t').innerText="💡 "+d[findIdx('Q1')]; document.getElementById('q1-a').innerText=d[findIdx('A1')]; }
+                if(d[findIdx('Q2')]) { document.getElementById('box-2').style.display='block'; document.getElementById('q2-t').innerText="💡 "+d[findIdx('Q2')]; document.getElementById('q2-a').innerText=d[findIdx('A2')]; }
+            } else if (urlId) {
+                alert("找不到資料，將為您顯示門面。");
+                document.getElementById('loading-overlay').style.display = 'none';
             }
         }
 
+        async function init() {
+            if (urlId) {
+                const t = urlParams.get('theme'); const s = urlParams.get('style');
+                if(t) setTheme(t); if(s) setStyle(s);
+                await loadSheetData(urlId);
+            }
+        }
         function doPreview() { loadSheetData(document.getElementById('work-id').value); }
         function doCopy() {
             const id = document.getElementById('work-id').value;
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 網址已複製"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交付連結已複製"));
         }
         init();
     </script>
