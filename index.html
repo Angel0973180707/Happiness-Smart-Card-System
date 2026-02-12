@@ -3,48 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V168</title>
+    <title>天使幸福智慧名片 V170</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #ee5253; --bg: #f8f9fa; }
-        body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; }
+        body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 50px; }
         
-        /* 1. 樣式切換區 */
-        #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0; border-bottom: 1px solid #eee; z-index: 10; }
-        .picker-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; }
+        /* 管理面板 */
+        #admin-panel { width: 100%; background: white; text-align: center; padding: 10px 0; border-bottom: 1px solid #eee; z-index: 1000; }
+        .picker-group { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
         .dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn-style { padding: 5px 12px; border-radius: 15px; border: 1px solid #ddd; font-size: 11px; cursor: pointer; background: white; }
-        .btn-style.active { background: #2d3436; color: white; }
+        .btn-style { padding: 4px 12px; border-radius: 15px; border: 1px solid #ddd; font-size: 11px; cursor: pointer; background: white; }
 
-        /* 2. 名片主體框架 - 鎖死寬高防止亂掉 */
-        .card { background: white; width: 92%; max-width: 380px; min-height: 550px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.1); position: relative; margin-top: 50px; }
+        /* 🚀 名片總框架：鎖死高度，不准被文字撐破 */
+        .card { background: white; width: 92%; max-width: 380px; height: 620px; border-radius: 40px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.15); position: relative; margin-top: 40px; display: flex; flex-direction: column; }
         
-        /* 3. 照片框架 - 物理鎖死圓形 */
-        .avatar-wrap { width: 130px; height: 130px; position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #eee; display: block; }
+        /* 照片區：絕對固定 */
+        .avatar-wrap { width: 130px; height: 130px; position: absolute; top: 30px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
         
-        .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); position: relative; }
-        .arch-overlay { position: absolute; width: 100%; height: 80px; background: white; bottom: -1px; border-radius: 80px 80px 0 0; }
-        .style-flat .arch-overlay { border-radius: 0; height: 30px; }
-        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 80px; }
+        .banner { height: 150px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; }
+        .arch-overlay { position: absolute; width: 100%; height: 80px; background: white; top: 70px; border-radius: 80px 80px 0 0; }
+        .style-flat .arch-overlay { border-radius: 0; top: 120px; }
+        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); top: 80px; }
 
-        /* 4. 文字內容區 - 強制對齊 */
-        .info { text-align: center; padding: 10px 25px 20px; margin-top: 50px; }
-        .name { font-size: 26px; font-weight: 900; color: #2d3436; margin: 0 0 5px 0; height: 35px; overflow: hidden; }
-        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 10px; height: 20px; overflow: hidden; }
-        .slogan { font-size: 13px; color: #636e72; min-height: 40px; margin-bottom: 15px; line-height: 1.4; display: flex; align-items: center; justify-content: center; }
-        .title-box { font-size: 14px; color: #2d3436; font-weight: 700; border-top: 1px solid #f1f2f6; padding-top: 15px; text-align: left; line-height: 1.6; min-height: 80px; }
+        /* 🚀 核心排版：內容區自動滾動 */
+        .info-scroll { flex-grow: 1; overflow-y: auto; padding: 20px 25px; margin-top: 5px; text-align: center; scrollbar-width: none; }
+        .info-scroll::-webkit-scrollbar { display: none; } /* 隱藏滾動條但可滾動 */
+        
+        .name { font-size: 24px; font-weight: 900; color: #222; margin-bottom: 4px; margin-top: 15px; }
+        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 10px; }
+        .slogan { font-size: 13px; color: #666; margin-bottom: 15px; font-style: italic; border-bottom: 1px solid #f0f0f0; padding-bottom: 10px; }
+        
+        /* 文字塊區 */
+        .text-block { text-align: left; background: #fafafa; padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 13px; line-height: 1.6; color: #444; }
+        .block-label { color: var(--s); font-weight: 900; font-size: 11px; margin-bottom: 4px; display: block; }
 
-        /* 5. 按鈕區 - 地基鎖定 */
-        .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 25px 25px; }
-        .act-btn { text-decoration: none; background: #fff; padding: 12px 5px; border-radius: 12px; color: #2d3436; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #f1f2f6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-        .btn-line-off { background: #06C755 !important; color: white !important; grid-column: span 2; font-size: 15px; }
+        /* 🚀 按鈕區：永遠固定在底部 */
+        .actions { background: white; padding: 15px 25px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #f9f9f9; }
+        .act-btn { text-decoration: none; background: #fff; padding: 12px 5px; border-radius: 12px; color: #333; font-size: 12px; font-weight: 900; text-align: center; border: 1px solid #eee; }
+        .btn-line-off { background: #06C755 !important; color: white !important; grid-column: span 2; font-size: 14px; border: none; }
 
-        /* 後台入口 */
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s; position: fixed; bottom: 0; z-index: 2000; border-radius: 30px 30px 0 0; }
-        .footer { font-size: 11px; color: #b2bec3; margin-top: 40px; text-align: center; padding: 20px; cursor: pointer; }
-
-        /* 色系 */
+        .footer { font-size: 11px; color: #ccc; margin-top: 30px; text-align: center; padding: 20px; cursor: pointer; }
+        
         .warm-pink { --p: #ff7675; --s: #ee5253; }
         .aurora-blue { --p: #00cec9; --s: #0984e3; }
         .vivid-orange { --p: #fab1a0; --s: #e17055; }
@@ -63,21 +65,32 @@
             <div class="dot" onclick="setTheme('teal-green')" style="background:#55efc4"></div>
         </div>
         <div class="picker-group">
-            <button class="btn-style active" onclick="setStyle('arch', this)">優雅正拱</button>
-            <button class="btn-style" onclick="setStyle('flat', this)">經典平直</button>
-            <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
+            <button class="btn-style" onclick="setStyle('arch', this)">正拱</button>
+            <button class="btn-style" onclick="setStyle('flat', this)">平直</button>
+            <button class="btn-style" onclick="setStyle('spot', this)">晨曦</button>
         </div>
     </div>
 
     <div id="card-container" class="card">
         <div class="avatar-wrap"><img id="u-img" src="167777.png" class="avatar"></div>
         <div class="banner"><div class="arch-overlay"></div></div>
-        <div class="info">
+        
+        <div class="info-scroll">
             <h1 id="u-name" class="name">天使幸福智慧名片</h1>
-            <div id="u-unit" class="unit">幸福智慧服務</div>
+            <div id="u-unit" class="unit">幸福智慧服務中心</div>
             <div id="u-slogan" class="slogan">讓您的專業一眼被看見</div>
-            <div id="u-title" class="title-box">服務項目設計中...</div>
+            
+            <div class="text-block">
+                <span class="block-label">服務項目</span>
+                <div id="u-service">正在載入服務項目...</div>
+            </div>
+
+            <div id="box-qa" style="display:none;" class="text-block">
+                <span class="block-label" id="u-q">常見問題</span>
+                <div id="u-a">專業解答讀取中...</div>
+            </div>
         </div>
+
         <div class="actions">
             <a href="#" id="link-line-off" class="act-btn btn-line-off" target="_blank">✅ LINE 官方帳號</a>
             <a href="#" id="link-tel" class="act-btn">📞 一鍵電話</a>
@@ -87,13 +100,14 @@
     </div>
 
     <div id="work-drawer">
-        <div style="padding: 30px; text-align: center;">
-            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:12px; border:none; margin-bottom:15px;" placeholder="輸入姓名或 2">
-            <button onclick="doPreview()" style="width:90%; padding:15px; border-radius:12px; background:#ff7675; color:white; border:none; font-weight:bold;">預覽名片</button>
+        <div style="padding: 25px; text-align: center;">
+            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:12px; border:none; margin-bottom:15px; font-size:16px;" placeholder="輸入姓名或 2">
+            <button onclick="doPreview()" style="width:90%; padding:15px; border-radius:12px; background:#ff7675; color:white; border:none; font-weight:bold; font-size:16px;">1. 預覽名片樣貌</button>
+            <button onclick="doCopy()" style="width:90%; padding:15px; border-radius:12px; background:#2ecc71; color:white; border:none; font-weight:bold; margin-top:10px;">2. 複製交付連結</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 天使幸福智慧名片系統<br>V168 鋼鐵框架版</div>
+    <div class="footer" onclick="handleGate()">© 2026 天使幸福智慧名片系統<br>V170 鋼骨排版版</div>
 
     <script>
         let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
@@ -110,34 +124,32 @@
                 const res = await fetch(csvUrl);
                 const text = await res.text();
                 const rows = text.split(/\r?\n/);
-                // 🚀 V168 絕對精準解析
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (urlId) renderSheet(urlId);
-            } catch(e) { console.error("連接失敗"); }
+            } catch(e) { console.error("抓取失敗"); }
         }
 
         function fixImageUrl(url) {
-            if (!url || url.length < 10) return "167777.png";
-            const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/);
+            if (!url) return "167777.png";
+            const idMatch = url.match(/id=([-\w]+)/);
             return idMatch ? `https://drive.google.com/uc?export=view&id=${idMatch[1]}` : url;
         }
 
         function renderSheet(keyword) {
-            // 🚀 V168 基於您貼出的資料結構，我們直接鎖死欄位 index (絕對不會放錯位置)
-            // 0=時間, 1=姓名, 2=單位, 3=理念, 4=服務項目, 5=頭銜, 6=形象照, 16=私訊, 17=官方, 18=Email, 19=電話
             const d = allRows.find((r, idx) => idx !== 0 && (r[1] && r[1].includes(keyword) || r[0].includes(keyword)));
-            
             if(d) {
                 document.getElementById('u-name').innerText = d[1] || "";
                 document.getElementById('u-unit').innerText = d[2] || "";
                 document.getElementById('u-slogan').innerText = d[3] || "";
-                
-                let titleContent = "";
-                if(d[4]) titleContent += "【服務項目】\n" + d[4] + "\n\n";
-                if(d[5]) titleContent += "【重要頭銜】\n" + d[5];
-                document.getElementById('u-title').innerText = titleContent;
-                
+                document.getElementById('u-service').innerText = (d[4] || "") + "\n" + (d[5] || "");
                 document.getElementById('u-img').src = fixImageUrl(d[6]);
+                
+                // Q&A 區
+                if(d[20]) {
+                    document.getElementById('box-qa').style.display = 'block';
+                    document.getElementById('u-q').innerText = "💡 " + d[20];
+                    document.getElementById('u-a').innerText = d[21] || "";
+                }
 
                 document.getElementById('link-line-p').href = d[16] || "#";
                 document.getElementById('link-line-off').href = d[17] || "#";
@@ -146,10 +158,13 @@
             }
         }
 
-        async function init() {
-            await loadSheetData();
-        }
+        async function init() { await loadSheetData(); }
         function doPreview() { renderSheet(document.getElementById('work-id').value); }
+        function doCopy() {
+            const id = document.getElementById('work-id').value;
+            const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 複製成功！"));
+        }
         init();
     </script>
 </body>
