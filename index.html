@@ -3,18 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片系統 V163</title>
+    <title>天使幸福智慧名片系統 V165</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
+        :root { --p: #ff7675; --s: #ee5253; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding-bottom: 80px; }
+        
+        /* 介面優化 */
         #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0; border-bottom: 1px solid #eee; }
         .picker-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; }
         .dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .btn-style { padding: 6px 15px; border-radius: 20px; border: 1px solid #ddd; font-size: 12px; cursor: pointer; background: white; }
         .btn-style.active { background: #2d3436; color: white; border-color: #2d3436; }
 
-        .card { background: white; width: 92%; max-width: 380px; border-radius: 40px; overflow: visible; box-shadow: 0 30px 60px rgba(0,0,0,0.12); position: relative; margin-top: 50px; }
+        .card { background: white; width: 92%; max-width: 380px; border-radius: 40px; overflow: visible; box-shadow: 0 30px 60px rgba(0,0,0,0.12); position: relative; margin-top: 55px; }
+        
+        /* 右上角 Logo 區 */
+        .logo-box { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; z-index: 101; display: none; }
+        .logo-box img { width: 100%; height: 100%; object-fit: contain; }
+
         .avatar-wrap { width: 140px; height: 140px; position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; background: #fff; border-radius: 50%; padding: 5px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
         
@@ -23,19 +30,25 @@
         .style-flat .arch-overlay { border-radius: 0; height: 40px; }
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 90px; }
         
-        .info { text-align: center; padding: 20px 25px; margin-top: 55px; }
-        .name { font-size: 26px; font-weight: 900; color: #2d3436; margin-bottom: 8px; }
-        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 10px; }
-        .slogan { font-size: 13px; color: #636e72; margin-bottom: 20px; font-style: italic; }
-        .title { color: #2d3436; font-size: 15px; font-weight: 700; line-height: 1.6; white-space: pre-wrap; border-top: 1px solid #f1f2f6; padding-top: 15px; }
+        .info { text-align: center; padding: 20px 25px; margin-top: 60px; }
+        .name { font-size: 26px; font-weight: 900; color: #2d3436; margin-bottom: 5px; }
+        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 10px; background: #fff5f5; padding: 2px 12px; border-radius: 8px; display: inline-block; }
+        .slogan { font-size: 13px; color: #636e72; margin-bottom: 20px; font-style: italic; line-height: 1.4; padding: 0 10px; }
+        .title-box { color: #2d3436; font-size: 15px; font-weight: 700; line-height: 1.6; white-space: pre-wrap; border-top: 1px solid #f1f2f6; padding-top: 15px; margin-top: 10px; }
         
+        /* 影音與問答區 */
+        .q-box { background: #f8f9fa; margin: 15px 25px; padding: 15px; border-radius: 15px; border-left: 5px solid var(--p); text-align: left; display: none; }
+        .q-title { font-weight: 900; font-size: 14px; color: var(--s); margin-bottom: 5px; }
+        .q-ans { font-size: 13px; color: #444; line-height: 1.5; }
+
         .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 20px 25px 30px; }
-        .act-btn { text-decoration: none; background: #fff; padding: 12px; border-radius: 15px; color: #2d3436; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #f1f2f6; }
-        .btn-line-off { background: #06C755 !important; color: white !important; grid-column: span 2; }
+        .act-btn { text-decoration: none; background: #fff; padding: 12px; border-radius: 15px; color: #2d3436; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #f1f2f6; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .btn-line-off { background: #06C755 !important; color: white !important; grid-column: span 2; font-size: 16px; border: none; }
         
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.4s; position: fixed; bottom: 0; z-index: 2000; border-radius: 30px 30px 0 0; }
         .footer { font-size: 11px; color: #b2bec3; margin-top: 60px; text-align: center; padding: 25px; cursor: pointer; }
         
+        /* 色系 */
         .warm-pink { --p: #ff7675; --s: #ee5253; }
         .aurora-blue { --p: #00cec9; --s: #0984e3; }
         .vivid-orange { --p: #fab1a0; --s: #e17055; }
@@ -61,29 +74,38 @@
     </div>
 
     <div id="card-container" class="card">
+        <div class="logo-box" id="u-logo-box"><img id="u-logo" src=""></div>
         <div class="avatar-wrap"><img id="u-img" src="167777.png" class="avatar"></div>
         <div class="banner"><div class="arch-overlay"></div></div>
+        
         <div class="info">
-            <h1 id="u-name" class="name">天使幸福智慧名片</h1>
-            <div id="u-unit" class="unit">智慧行銷服務中心</div>
-            <div id="u-slogan" class="slogan">讀取中...</div>
-            <div id="u-title" class="title">正在從雲端抓取精確資料</div>
+            <h1 id="u-name" class="name">讀取中...</h1>
+            <div id="u-unit" class="unit">幸福智慧名片</div>
+            <div id="u-slogan" class="slogan">正在載入專屬資料</div>
+            <div id="u-title" class="title-box">服務項目載入中</div>
         </div>
+
+        <div id="qa-area" class="q-box">
+            <div id="q1-t" class="q-title"></div>
+            <div id="q1-a" class="q-ans"></div>
+        </div>
+
         <div class="actions">
             <a href="https://lin.ee/2ac9Roe" id="link-line-off" class="act-btn btn-line-off" target="_blank">✅ LINE 官方帳號</a>
             <a href="tel:0973180707" id="link-tel" class="act-btn">📞 一鍵電話</a>
             <a href="mailto:a0973180707@gmail.com" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
+            <a href="https://line.me/ti/p/VqJzbWHm_4" id="link-line-p" class="act-btn" style="grid-column: span 2;" target="_blank">💬 LINE 私訊找我</a>
         </div>
     </div>
 
     <div id="work-drawer">
         <div style="padding: 30px; text-align: center;">
-            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:12px; border:none; margin-bottom:15px;" placeholder="輸入姓名(如:小天使)或序號">
-            <button onclick="doPreview()" style="width:90%; padding:15px; border-radius:12px; background:#ff7675; color:white; border:none; font-weight:bold;">預覽資料</button>
+            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:12px; border:none; margin-bottom:15px;" placeholder="輸入 2 或 小天使">
+            <button onclick="doPreview()" style="width:90%; padding:15px; border-radius:12px; background:#ff7675; color:white; border:none; font-weight:bold;">預覽名片</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 天使幸福智慧名片系統<br>V163 鋼鐵對位版</div>
+    <div class="footer" onclick="handleGate()">© 2026 天使幸福智慧名片系統<br>V165 最終對位版</div>
 
     <script>
         let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
@@ -100,46 +122,56 @@
                 const res = await fetch(csvUrl);
                 const text = await res.text();
                 const rows = text.split(/\r?\n/);
+                // 🚀 V165 核心修復：更精準的 CSV 解析（處理逗號與換行）
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (urlId) renderSheet(urlId);
             } catch(e) { console.error("連接失敗"); }
         }
 
-        // 🚀 照片轉換神器
-        function fixImageUrl(url) {
+        function fixImg(url) {
             if (!url) return "167777.png";
-            if (url.includes('drive.google.com')) {
-                const id = url.match(/[-\w]{25,}/);
-                return id ? `https://lh3.googleusercontent.com/d/${id[0]}` : "167777.png";
-            }
-            return url;
+            const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/);
+            return idMatch ? `https://drive.google.com/uc?id=${idMatch[1]}` : url;
         }
 
         function renderSheet(keyword) {
-            const headers = allRows[0].map(h => h.trim());
-            // 🚀 雷達：根據名稱找位置
-            const findIdx = (k) => headers.findIndex(h => h.includes(k));
+            const headers = allRows[0];
+            // 🚀 V165 智慧索引：根據關鍵字找到正確的欄位 index
+            const getI = (k) => headers.findIndex(h => h.includes(k));
             
             const d = allRows.find((r, idx) => idx !== 0 && (r[0].includes(keyword) || (r[1] && r[1].includes(keyword))));
             
             if(d) {
-                document.getElementById('u-name').innerText = d[findIdx('姓名')] || "未填寫";
-                document.getElementById('u-unit').innerText = d[findIdx('單位')] || "";
-                document.getElementById('u-slogan').innerText = d[findIdx('理念')] || "";
+                document.getElementById('u-name').innerText = d[getI('姓名')] || "未填寫";
+                document.getElementById('u-unit').innerText = d[getI('單位名稱')] || "";
+                document.getElementById('u-slogan').innerText = d[getI('理念標語')] || "";
                 
-                const title = d[findIdx('職稱')] || "";
-                const service = d[findIdx('服務項目')] || "";
-                document.getElementById('u-title').innerText = title + (service ? "\n" + service : "");
+                const services = d[getI('服務項目')] || "";
+                const titles = d[getI('重要頭銜')] || "";
+                document.getElementById('u-title').innerText = services + (titles ? "\n" + titles : "");
                 
-                // 🚀 照片強制對位顯示
-                const imgUrl = d[findIdx('個人專業形象照')];
-                document.getElementById('u-img').src = fixImageUrl(imgUrl);
+                // 🚀 照片、Logo 精準對位
+                document.getElementById('u-img').src = fixImg(d[getI('個人專業形象照')]);
+                const logoUrl = fixImg(d[getI('品牌 Logo')]);
+                if(logoUrl && logoUrl.length > 20) {
+                    document.getElementById('u-logo-box').style.display = 'block';
+                    document.getElementById('u-logo').src = logoUrl;
+                }
 
-                // 🚀 聯繫功能精準對位
-                document.getElementById('link-line-p').href = d[findIdx('私訊 LINE')] || "#";
-                document.getElementById('link-line-off').href = d[findIdx('官方帳號')] || "#";
-                document.getElementById('link-tel').href = "tel:" + (d[findIdx('電話')] || "");
-                document.getElementById('link-mail').href = "mailto:" + (d[findIdx('Email')] || "");
+                // 🚀 連結精準對位
+                document.getElementById('link-line-p').href = d[getI('私訊 LINE')] || "#";
+                document.getElementById('link-line-off').href = d[getI('LINE 官方帳號')] || "#";
+                document.getElementById('link-tel').href = "tel:" + (d[getI('電話')] || "");
+                document.getElementById('link-mail').href = "mailto:" + (d[getI('Email')] || "");
+
+                // 🚀 Q1 問答顯示
+                const q1 = d[getI('提問 1')];
+                const a1 = d[getI('解答 1')];
+                if(q1 && a1) {
+                    document.getElementById('qa-area').style.display = 'block';
+                    document.getElementById('q1-t').innerText = "💡 " + q1;
+                    document.getElementById('q1-a').innerText = a1;
+                }
             }
         }
 
