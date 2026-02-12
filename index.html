@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片系統 V147</title>
+    <title>天使幸福智慧名片系統 V148</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #d63031; --bg: #f8f9fa; }
@@ -43,7 +43,7 @@
         .teal-green { --p: #00b894; --s: #006266; }
     </style>
 </head>
-<body class="warm-pink style-arch">
+<body class="warm-pink">
 
     <div id="admin-panel">
         <div class="picker-group">
@@ -54,14 +54,14 @@
             <div class="dot" onclick="setTheme('teal-green')" style="background:#00b894"></div>
         </div>
         <div class="picker-group">
-            <button class="btn-style active" onclick="setStyle('arch', this)">優雅正拱</button>
-            <button class="btn-style" onclick="setStyle('flat', this)">經典平直</button>
-            <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
+            <button class="btn-style active" onclick="setStyle('arch', this)">正拱</button>
+            <button class="btn-style" onclick="setStyle('flat', this)">平直</button>
+            <button class="btn-style" onclick="setStyle('spot', this)">晨曦</button>
         </div>
     </div>
 
     <div id="card-container" class="card">
-        <img id="u-logo" src="" class="logo-wrap" style="object-fit: contain;">
+        <img id="u-logo" src="" class="logo-wrap">
         <div class="avatar-wrap"><img id="u-img" src="167777.png" class="avatar"></div>
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="info">
@@ -78,7 +78,7 @@
             <a href="#" id="link-line-off" class="act-btn btn-line-off" target="_blank">✅ LINE 官方帳號</a>
             <a href="#" id="link-tel" class="act-btn">📞 一鍵電話</a>
             <a href="#" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
-            <a href="#" id="link-line-p" class="act-btn" style="grid-column: span 2;" target="_blank">💬 LINE 私訊找我</a>
+            <a href="#" id="link-line-p" class="act-btn" style="grid-column: span 2;" target="_blank">💬 LINE 私訊</a>
         </div>
         <div id="u-prod-wrap" class="prod-img"><img id="u-prod" src="" style="width:100%;"></div>
         <div id="box-1" class="section-box"><h4 id="q1-t"></h4><p id="q1-a"></p></div>
@@ -87,14 +87,14 @@
     </div>
 
     <div id="work-drawer">
-        <div style="padding: 30px; text-align: center;">
-            <input type="text" id="work-id" style="width:100%; padding:15px; border-radius:12px; border:1px solid #ddd; margin-bottom:15px;" placeholder="輸入序號 (如: 2)">
-            <button onclick="doPreview()" style="width:100%; padding:15px; border-radius:12px; font-weight:900; background:var(--p); color:white; border:none; margin-bottom:10px;">預覽成品樣貌</button>
-            <button onclick="doCopy()" style="width:100%; padding:15px; border-radius:12px; font-weight:900; background:#2ecc71; color:white; border:none;">複製交件連結</button>
+        <div style="padding: 20px; text-align: center;">
+            <input type="text" id="work-id" style="width:90%; padding:12px; border-radius:10px; border:1px solid #ddd; margin-bottom:10px;" placeholder="輸入序號 (如: 2)">
+            <button onclick="doPreview()" style="width:90%; padding:12px; border-radius:10px; background:var(--p); color:white; border:none; font-weight:bold; margin-bottom:10px;">預覽成品</button>
+            <button onclick="doCopy()" style="width:90%; padding:12px; border-radius:10px; background:#2ecc71; color:white; border:none; font-weight:bold;">複製連結</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V147</div>
+    <div class="footer" onclick="handleFooterClick()">© 2026 天使幸福智慧名片系統<br>V148</div>
 
     <script>
         let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
@@ -105,14 +105,14 @@
         function setStyle(s, btn) { curStyle = s; document.body.className = curTheme + ' style-' + s; if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
         function handleFooterClick() { clicks++; if(clicks >= 3) { document.getElementById('work-drawer').style.maxHeight = '500px'; clicks = 0; } setTimeout(() => clicks = 0, 1000); }
 
-        async function loadSheetData(targetId) {
+        async function loadSheetData() {
             const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
             try {
                 const res = await fetch(csvUrl);
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                if (targetId) renderSheet(targetId);
+                if (urlId) renderSheet(urlId);
             } catch(e) { console.error(e); }
         }
 
@@ -150,20 +150,20 @@
         }
 
         async function init() {
+            // 🚀 強迫在 init 時就去載入資料，不管有沒有 ID
+            await loadSheetData();
             if (urlId) {
-                document.getElementById('u-name').innerText = "幸福讀取中...";
                 const theme = urlParams.get('theme');
                 const style = urlParams.get('style');
                 if (theme) setTheme(theme);
                 if (style) setStyle(style);
-                await loadSheetData(urlId);
             }
         }
         function doPreview() { renderSheet(document.getElementById('work-id').value); }
         function doCopy() {
             const id = document.getElementById('work-id').value;
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 網址已複製！"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 連結已複製！"));
         }
         init();
     </script>
