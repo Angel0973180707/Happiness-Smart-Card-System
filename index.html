@@ -3,107 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V184</title>
+    <title>天使幸福智慧名片 V185</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #ee5253; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
+        /* 🚀 找回 V180 版型控制區 */
         #admin-panel { width: 100%; background: white; text-align: center; padding: 12px 0; border-bottom: 1px solid #eee; z-index: 1000; flex-shrink: 0; }
         .picker-group { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
         .dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .btn-style { padding: 4px 12px; border-radius: 15px; border: 1px solid #ddd; font-size: 11px; cursor: pointer; background: white; }
         .btn-style.active { background: #2d3436; color: white; border-color: #2d3436; }
 
+        /* 名片主框架 */
         .card { background: white; width: 92%; max-width: 380px; height: 650px; border-radius: 40px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.1); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         
-        .logo-box { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; z-index: 101; display: none; }
-        .logo-box img { width: 100%; height: 100%; object-fit: contain; }
-
-        .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 5px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 30px; left: 50%; transform: translateX(-50%); z-index: 100; }
+        .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
+        .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
+        .style-flat .arch-overlay { border-radius: 0; height: 30px; }
+        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 90px; }
+        
+        /* 形象照與 Logo 中軸線 */
+        .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 5px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #eee; }
-
-        .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; }
-        .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; top: 70px; border-radius: 90px 90px 0 0; }
+        
+        /* 🚀 Logo 改在頭像下方 */
+        .u-logo-wrap { width: 100%; display: flex; justify-content: center; margin-top: 10px; display: none; }
+        .u-logo-wrap img { height: 40px; object-fit: contain; }
 
         .info-scroll { flex-grow: 1; overflow-y: auto; padding: 50px 25px 20px; text-align: center; scrollbar-width: none; }
         .info-scroll::-webkit-scrollbar { display: none; }
+        
         .name { font-size: 26px; font-weight: 900; color: #333; margin: 15px 0 5px; }
-        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 15px; }
-
-        /* 🚀 幸福概念館大按鈕 */
-        .museum-btn { display: none; background: linear-gradient(to right, var(--p), var(--s)); color: white; text-decoration: none; padding: 12px; border-radius: 15px; font-weight: 900; font-size: 15px; margin: 10px 0 20px; box-shadow: 0 10px 20px rgba(238, 82, 83, 0.2); }
-
-        .social-bar { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
-        .social-link { width: 44px; height: 44px; border-radius: 12px; background: #fff; display: none; align-items: center; justify-content: center; text-decoration: none; font-size: 18px; border: 1px solid #f1f1f1; box-shadow: 4px 4px 10px rgba(0,0,0,0.05); color: var(--s); }
+        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 12px; }
+        .slogan { font-size: 14px; color: #636e72; font-style: italic; margin-bottom: 15px; }
 
         .text-block { text-align: left; background: #fdfdfd; padding: 15px; border-radius: 18px; margin-bottom: 15px; border: 1px solid #f1f2f6; }
         .block-label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 4px; display: block; }
-        .content-text { font-size: 14px; color: #444; line-height: 1.6; }
+        
+        /* 🚀 產品照縮小 */
+        .prod-wrap { margin: 10px auto; width: 80%; border-radius: 15px; overflow: hidden; display: none; border: 1px solid #eee; }
+        .prod-img { width: 100%; height: auto; display: block; }
 
-        .img-container { margin: 15px 0; border-radius: 15px; overflow: hidden; display: none; border: 1px solid #f0f0f0; }
-        .img-container img { width: 100%; height: auto; display: block; }
+        /* 🚀 微信圖片區 (放在聯絡區) */
+        .wechat-box { padding: 10px 20px; text-align: center; display: none; border-top: 1px solid #eee; background: #fff; }
+        .wechat-box img { width: 100px; height: 100px; margin: 0 auto; display: block; }
+        .wechat-label { font-size: 11px; color: #07C160; font-weight: bold; margin-bottom: 5px; }
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; }
         .act-btn { text-decoration: none; background: #fff; padding: 12px; border-radius: 15px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; }
         .btn-line-off { background: #06C755 !important; color: white !important; grid-column: span 2; font-size: 15px; }
 
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
-        .footer { font-size: 11px; color: #ccc; padding: 15px; cursor: pointer; }
+        .footer { font-size: 11px; color: #ccc; padding: 20px; cursor: pointer; }
+
+        .warm-pink { --p: #ff7675; --s: #ee5253; }
+        .aurora-blue { --p: #00cec9; --s: #0984e3; }
     </style>
 </head>
 <body class="warm-pink">
 
+    <div id="admin-panel">
+        <div class="picker-group">
+            <div class="dot" onclick="setTheme('warm-pink')" style="background:#ff7675"></div>
+            <div class="dot" onclick="setTheme('aurora-blue')" style="background:#00cec9"></div>
+            <div class="dot" onclick="setTheme('vivid-orange')" style="background:#fab1a0"></div>
+            <div class="dot" onclick="setTheme('royal-purple')" style="background:#a29bfe"></div>
+            <div class="dot" onclick="setTheme('teal-green')" style="background:#55efc4"></div>
+        </div>
+        <div class="picker-group">
+            <button class="btn-style active" onclick="setStyle('arch', this)">優雅正拱</button>
+            <button class="btn-style" onclick="setStyle('flat', this)">經典平直</button>
+            <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
+        </div>
+    </div>
+
     <div id="card-container" class="card">
-        <div id="logo-box" class="logo-box"><img id="u-logo" src=""></div>
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="avatar-wrap"><img id="u-img" src="167777.png" class="avatar"></div>
         
         <div class="info-scroll">
+            <div id="logo-wrap" class="u-logo-wrap"><img id="u-logo" src=""></div>
+            
             <h1 id="u-name" class="name">小天使笑長</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
+            <div id="u-slogan" class="slogan">讓您的專業一眼被看見</div>
             
-            <a href="#" id="u-museum" class="museum-btn"><i class="fa-solid fa-house-heart"></i> 進入幸福教養概念館</a>
-
-            <div class="social-bar">
-                <a href="#" id="v1" class="social-link"><i class="fa-solid fa-play"></i></a>
-                <a href="#" id="v2" class="social-link"><i class="fa-solid fa-video"></i></a>
-                <a href="#" id="c1" class="social-link"><i class="fa-solid fa-earth-americas"></i></a>
-                <a href="#" id="c2" class="social-link"><i class="fa-solid fa-link"></i></a>
-            </div>
-
             <div class="text-block">
-                <span class="block-label">理念標語</span>
-                <div id="u-slogan" class="content-text">讓您的專業一眼被看見</div>
+                <span class="block-label">服務項目</span>
+                <div id="u-service" style="font-size:14px; color:#444; line-height:1.6;">智慧名片設計製作 / 幸福教養系統推廣</div>
             </div>
 
-            <div id="prod-box" class="img-container"><img id="u-prod" src=""></div>
+            <div id="prod-wrap" class="prod-wrap"><img id="u-prod" src="" class="prod-img"></div>
+        </div>
+
+        <div id="wechat-box" class="wechat-box">
+            <div class="wechat-label">WeChat 微信聯繫</div>
+            <img id="u-wechat" src="">
         </div>
 
         <div class="actions">
             <a href="https://lin.ee/2ac9Roe" id="link-line-off" class="act-btn btn-line-off" target="_blank">✅ LINE 官方帳號</a>
             <a href="tel:0973180707" id="link-tel" class="act-btn">📞 一鍵電話</a>
             <a href="mailto:a0973180707@gmail.com" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
+            <a href="https://line.me/ti/p/VqJzbWHm_4" id="link-line-p" class="act-btn" style="grid-column: span 2;" target="_blank">💬 LINE 私訊找我</a>
         </div>
     </div>
 
     <div id="work-drawer">
         <div style="padding: 25px; text-align: center;">
-            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:12px; border:1px solid #ddd; margin-bottom:15px;" placeholder="輸入姓名或 2">
+            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:12px; border:1px solid #ddd; margin-bottom:15px;" placeholder="輸入姓名(小天使)">
             <button onclick="doPreview()" style="width:90%; padding:15px; border-radius:12px; background:#ff7675; color:white; border:none; font-weight:bold;">1. 預覽成品</button>
             <button onclick="doCopy()" style="width:90%; padding:15px; border-radius:12px; background:#2ecc71; color:white; border:none; font-weight:bold; margin-top:10px;">2. 複製網址交付</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleSecret()">© 2026 天使幸福智慧名片<br>V184</div>
+    <div class="footer" onclick="handleGate()">© 2026 天使幸福智慧名片<br>V185 核心穩固加強版</div>
 
     <script>
-        let allRows = []; let clicks = 0;
+        let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
         const urlParams = new URLSearchParams(window.location.search);
         const urlId = urlParams.get('id');
 
-        function handleSecret() { clicks++; if(clicks>=3){document.getElementById('work-drawer').style.maxHeight='500px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
+        function setTheme(t) { curTheme = t; document.body.className = t + ' style-' + curStyle; }
+        function setStyle(s, btn) { curStyle = s; document.body.className = curTheme + ' style-' + s; if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
+        function handleGate() { clicks++; if(clicks>=3){document.getElementById('work-drawer').style.maxHeight='500px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
 
         async function loadSheetData() {
             const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
@@ -113,14 +139,13 @@
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (urlId) renderSheet(urlId);
-            } catch(e) { console.log("連線中"); }
+            } catch(e) { console.log("資料連線中..."); }
         }
 
-        // 🚀 解析 Google Drive ID 的最終武器
         function fixImg(url) {
-            if (!url || url.length < 15) return "";
+            if (!url || url.length < 10) return "";
             const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/);
-            if (idMatch) return `https://lh3.googleusercontent.com/d/${idMatch[1]}=w1000`;
+            if (idMatch) return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
             return url;
         }
 
@@ -128,38 +153,37 @@
             const headers = allRows[0];
             const getI = (k) => headers.findIndex(h => h.includes(k));
             const d = allRows.find((r, idx) => idx !== 0 && (r[1] && r[1].includes(keyword) || r[0].includes(keyword)));
-            
             if(d) {
-                document.getElementById('u-name').innerText = d[getI('姓名')] || "小天使";
+                document.getElementById('u-name').innerText = d[getI('姓名')] || "";
                 document.getElementById('u-unit').innerText = d[getI('單位名稱')] || "";
                 document.getElementById('u-slogan').innerText = d[getI('理念標語')] || "";
+                document.getElementById('u-service').innerText = (d[getI('服務項目')] || "") + "\n" + (d[getI('重要頭銜')] || "");
                 
-                // 🚀 讀取概念館連結 (備註1)
-                const museumLink = d[getI('備註1')] || d[getI('特殊需求')];
-                if(museumLink && museumLink.includes('http')) {
-                    document.getElementById('u-museum').style.display = 'block';
-                    document.getElementById('u-museum').href = museumLink;
-                }
-
-                // 照片解析
-                document.getElementById('u-img').src = fixImg(d[getI('個人專業形象照')]) || "167777.png";
-                const logo = fixImg(d[getI('品牌 Logo')]);
-                if(logo){ document.getElementById('logo-box').style.display='block'; document.getElementById('u-logo').src=logo; }
+                // 影像解析
+                document.getElementById('u-img').src = fixImg(d[getI('形象照')]) || "167777.png";
+                
+                const logo = fixImg(d[getI('Logo')]);
+                if(logo){ document.getElementById('logo-wrap').style.display='flex'; document.getElementById('u-logo').src=logo; }
+                
                 const prod = fixImg(d[getI('產品或品牌照片')]);
-                if(prod){ document.getElementById('prod-box').style.display='block'; document.getElementById('u-prod').src=prod; }
-
-                // 影音按鈕
-                const vKeys = ['影音平台 1', '影音平台 2', '社群平台 1', '社群平台 2'];
-                const vIds = ['v1', 'v2', 'c1', 'c2'];
-                vKeys.forEach((k, i) => {
-                    const l = d[getI(k)];
-                    if(l && l.length > 5){ document.getElementById(vIds[i]).style.display='flex'; document.getElementById(vIds[i]).href=l; }
-                });
+                if(prod){ document.getElementById('prod-wrap').style.display='block'; document.getElementById('u-prod').src=prod; }
+                
+                const wechat = fixImg(d[getI('微信')]);
+                if(wechat){ document.getElementById('wechat-box').style.display='block'; document.getElementById('u-wechat').src=wechat; }
+                
+                document.getElementById('link-line-off').href = d[getI('官方帳號')] || "#";
+                document.getElementById('link-line-p').href = d[getI('私訊 LINE')] || "#";
+                document.getElementById('link-tel').href = "tel:" + (d[getI('電話')] || "");
             }
         }
 
         async function init() { await loadSheetData(); }
         function doPreview() { renderSheet(document.getElementById('work-id').value); }
+        function doCopy() {
+            const id = document.getElementById('work-id').value;
+            const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 網址複製成功"));
+        }
         init();
     </script>
 </body>
