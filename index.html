@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V186</title>
+    <title>天使幸福智慧名片 V188</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -34,9 +34,8 @@
         
         .name { font-size: 26px; font-weight: 900; color: #333; margin: 15px 0 5px; }
         .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 12px; }
-        .slogan { font-size: 14px; color: #636e72; font-style: italic; margin-bottom: 15px; }
 
-        /* 🚀 質感影音圖示回歸 */
+        /* 🚀 智慧識別導航列 */
         .social-bar { display: flex; justify-content: center; gap: 15px; margin: 10px 0 20px; flex-wrap: wrap; }
         .social-link { 
             width: 44px; height: 44px; border-radius: 12px; background: #fff; display: none; align-items: center; justify-content: center; 
@@ -52,8 +51,7 @@
         .prod-img { width: 100%; height: auto; display: block; }
 
         .wechat-box { padding: 15px 20px; text-align: center; display: none; border-top: 1px solid #eee; background: #fff; }
-        .wechat-box img { width: 110px; height: 110px; margin: 0 auto; display: block; border-radius: 10px; border: 1px solid #f0f0f0; }
-        .wechat-label { font-size: 11px; color: #07C160; font-weight: bold; margin-bottom: 8px; }
+        .wechat-box img { width: 110px; height: 110px; margin: 0 auto; display: block; }
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; }
         .act-btn { text-decoration: none; background: #fff; padding: 12px; border-radius: 15px; color: #333; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #eee; }
@@ -92,13 +90,17 @@
             
             <h1 id="u-name" class="name">小天使笑長</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
-            <div id="u-slogan" class="slogan">讓您的專業一眼被看見</div>
             
             <div class="social-bar" id="social-bar">
-                <a href="#" id="v1" class="social-link"><i class="fa-solid fa-play"></i></a>
-                <a href="#" id="v2" class="social-link"><i class="fa-solid fa-video"></i></a>
-                <a href="#" id="c1" class="social-link"><i class="fa-solid fa-earth-americas"></i></a>
-                <a href="#" id="c2" class="social-link"><i class="fa-solid fa-link"></i></a>
+                <a href="#" id="link1" class="social-link"></a>
+                <a href="#" id="link2" class="social-link"></a>
+                <a href="#" id="link3" class="social-link"></a>
+                <a href="#" id="link4" class="social-link"></a>
+            </div>
+
+            <div class="text-block">
+                <span class="block-label">理念標語</span>
+                <div id="u-slogan" style="font-size:14px; color:#636e72; font-style:italic;">讓您的專業一眼被看見</div>
             </div>
 
             <div class="text-block">
@@ -110,7 +112,7 @@
         </div>
 
         <div id="wechat-box" class="wechat-box">
-            <div class="wechat-label">WeChat 微信聯繫</div>
+            <div style="font-size: 11px; color: #07C160; font-weight: bold; margin-bottom: 5px;">WeChat 微信聯繫</div>
             <img id="u-wechat" src="">
         </div>
 
@@ -130,7 +132,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 天使幸福智慧名片<br>V186 深度修復版</div>
+    <div class="footer" onclick="handleGate()">© 2026 天使幸福智慧名片<br>V188 智慧圖示版</div>
 
     <script>
         let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
@@ -149,18 +151,26 @@
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (urlId) renderSheet(urlId);
-            } catch(e) { console.log("資料連線中..."); }
+            } catch(e) { console.log("資料同步中..."); }
         }
 
-        // 🚀 V186 雙重解析邏輯
         function fixImg(url) {
             if (!url || url.length < 10) return "";
             const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/);
-            if (idMatch) {
-                // 先嘗試 Google 圖床伺服器 1
-                return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-            }
+            if (idMatch) return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
             return url;
+        }
+
+        // 🚀 智慧識別核心：根據網址決定圖示
+        function getIcon(url) {
+            const low = url.toLowerCase();
+            if (low.includes('youtube')) return '<i class="fa-solid fa-circle-play"></i>';
+            if (low.includes('instagram')) return '<i class="fa-brands fa-instagram"></i>';
+            if (low.includes('tiktok')) return '<i class="fa-brands fa-tiktok"></i>';
+            if (low.includes('facebook') || low.includes('fb.com')) return '<i class="fa-brands fa-facebook"></i>';
+            if (low.includes('video') || low.includes('vimeo')) return '<i class="fa-solid fa-video"></i>';
+            // 預設為導航地球圖示 (適合您的幸福教養概念館)
+            return '<i class="fa-solid fa-earth-asia"></i>';
         }
 
         function renderSheet(keyword) {
@@ -173,28 +183,27 @@
                 document.getElementById('u-slogan').innerText = d[getI('理念標語')] || "";
                 document.getElementById('u-service').innerText = (d[getI('服務項目')] || "") + "\n" + (getI('重要頭銜') !== -1 ? d[getI('重要頭銜')] : "");
                 
-                // 照片顯示
+                // 照片
                 document.getElementById('u-img').src = fixImg(d[getI('形象照')]) || "167777.png";
-                
                 const logo = fixImg(d[getI('Logo')]);
                 if(logo){ document.getElementById('u-logo').style.display='block'; document.getElementById('u-logo').src=logo; }
-                
                 const prod = fixImg(d[getI('產品或品牌照片')]);
                 if(prod){ document.getElementById('prod-wrap').style.display='block'; document.getElementById('u-prod').src=prod; }
-                
                 const wechat = fixImg(d[getI('微信')]);
                 if(wechat){ document.getElementById('wechat-box').style.display='block'; document.getElementById('u-wechat').src=wechat; }
                 
-                // 🚀 影音圖示修復
-                const vKeys = ['影音平台 1', '影音平台 2', '社群平台 1', '社群平台 2'];
-                const vIds = ['v1', 'v2', 'c1', 'c2'];
-                vKeys.forEach((k, i) => {
-                    const link = d[getI(k)];
-                    if(link && link.length > 5){ 
-                        document.getElementById(vIds[i]).style.display='flex'; 
-                        document.getElementById(vIds[i]).href=link; 
+                // 🚀 智慧圖示渲染
+                const linkKeys = ['影音平台 1', '影音平台 2', '社群平台 1', '社群平台 2'];
+                const linkIds = ['link1', 'link2', 'link3', 'link4'];
+                linkKeys.forEach((k, i) => {
+                    const url = d[getI(k)];
+                    if(url && url.includes('http')){
+                        const el = document.getElementById(linkIds[i]);
+                        el.style.display = 'flex';
+                        el.href = url;
+                        el.innerHTML = getIcon(url); // 根據網址內容填入圖示
                     } else {
-                        document.getElementById(vIds[i]).style.display='none';
+                        document.getElementById(linkIds[i]).style.display = 'none';
                     }
                 });
 
@@ -209,7 +218,7 @@
         function doCopy() {
             const id = document.getElementById('work-id').value;
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 網址複製成功"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 智慧連結複製成功！"));
         }
         init();
     </script>
