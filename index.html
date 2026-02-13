@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V242</title>
+    <title>天使幸福智慧名片 V243</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -47,13 +47,20 @@
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
         .text { font-size: 14.5px; color: #2d3436; line-height: 1.8; white-space: pre-wrap; }
 
+        /* 🚀 門面專用樣式 */
+        #order-box { display: block; margin-top: 10px; background: #fff9f9; border: 1.5px dashed var(--p); }
+        body.is-final #order-box { display: none !important; }
+        .form-btn { display: block; text-align: center; background: var(--p); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; margin-top: 10px; box-shadow: 0 4px 10px rgba(255,118,117,0.3); }
+
         .photo-list { width: 100%; display: flex; flex-direction: column; gap: 15px; }
         .photo-item { width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #eee; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
         .photo-item img { width: 100%; height: auto; display: block; }
 
-        .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; flex-shrink: 0; border-top: 1px solid #eee; }
-        .act-btn { text-decoration: none; background: #f8f9fa; padding: 14px; border-radius: 18px; color: #333; font-size: 14px; font-weight: 900; text-align: center; box-shadow: 5px 5px 10px rgba(0,0,0,0.05); }
-        .btn-line { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; font-size: 16px; border: none; }
+        /* 🚀 底部聯繫區優化 */
+        .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
+        .act-btn { text-decoration: none; background: #f8f9fa; padding: 12px; border-radius: 15px; color: #333; font-size: 13px; font-weight: 900; text-align: center; box-shadow: 4px 4px 8px rgba(0,0,0,0.05); border: 1px solid #f1f1f1; }
+        .btn-line-oa { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; font-size: 15px; border: none; }
+        .btn-line-p { background: #ffffff !important; color: #06C755 !important; border: 1.5px solid #06C755 !important; }
 
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 3000; border-radius: 40px 40px 0 0; }
         .drawer-btn { width: 90%; padding: 15px; border-radius: 15px; border: none; margin-top: 10px; font-weight: bold; cursor: pointer; }
@@ -75,16 +82,16 @@
             <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
             <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
         </div>
-        <div class="guide-text">✨ 第一步：點選上方，挑選您喜歡的顏色與版型</div>
+        <div class="guide-text">✨ 步驟 1：挑選您最愛的版型與顏色</div>
     </div>
 
     <div id="card-container" class="card">
         <div class="banner"><div class="arch-overlay"></div></div>
-        <div class="avatar-wrap"><img id="u-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" class="avatar"></div>
+        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
         <div class="info-scroll">
-            <h1 id="u-name" class="name">小天使笑長</h1>
+            <h1 id="u-name" class="name">讀取中...</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
-            <div id="u-slogan" class="slogan-box">為您打造個人品牌智慧名片</div>
+            <div id="u-slogan" class="slogan-box">讓您的專業一眼被看見</div>
 
             <div class="social-bar">
                 <a href="#" id="lk1" class="social-link" target="_blank"></a>
@@ -97,9 +104,10 @@
                 <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
             </div>
 
-            <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ff7675;">
-                <span class="label" style="color:#ff7675">📝 第二步：預約製作您的智慧名片</span>
-                <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">點我填寫申請表單 →</a>
+            <div id="order-box" class="content-box">
+                <span class="label" style="color:var(--s)">📝 步驟 2：預約製作您的智慧名片</span>
+                <div style="font-size: 13.5px; color: #444; line-height: 1.6;">選定版型後，請點擊下方按鈕填寫資料，我們將為您量身打造專屬名片。</div>
+                <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" class="form-btn">立即填寫預約表單</a>
             </div>
 
             <div class="content-box">
@@ -112,10 +120,11 @@
                 <div id="p2" class="photo-item"><img id="u-p2" src=""></div>
             </div>
         </div>
+        
         <div class="actions">
-            <a href="https://lin.ee/2ac9Roe" id="link-line-oa" class="act-btn btn-line" target="_blank">✅ LINE 官方帳號</a>
+            <a href="https://lin.ee/2ac9Roe" id="link-line-oa" class="act-btn btn-line-oa" target="_blank">✅ LINE 官方帳號</a>
+            <a href="https://line.me/ti/p/VqJzbWHm_4" id="link-line-p" class="act-btn btn-line-p" target="_blank">💬 私訊 LINE 找我</a>
             <a href="tel:0973180707" id="link-tel" class="act-btn">📞 一鍵電話</a>
-            <a href="mailto:a0973180707@gmail.com" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
         </div>
     </div>
 
@@ -128,7 +137,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V242</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V243</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -147,7 +156,6 @@
                 document.getElementById('share-label').style.color = "#6c5ce7";
                 document.getElementById('share-box').style.background = "#f3f0ff";
                 document.getElementById('share-box').style.borderColor = "#a29bfe";
-                document.getElementById('order-box').style.display = "none";
             });
         }
 
@@ -169,8 +177,8 @@
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                if (urlId) renderSheet(urlId);
-            } catch(e) { console.log("系統就緒"); }
+                if (urlId) renderSheet(urlId); else renderSheet("小天使笑長");
+            } catch(e) { console.log("連線中"); }
         }
 
         function fixImg(url) {
@@ -191,11 +199,12 @@
                 document.getElementById('u-service').innerText = d[getI('服務')] || "";
                 document.getElementById('u-img').src = fixImg(d[getI('形象照')]);
                 
+                // 🚀 資訊區純淨化：過濾所有 LINE 連結
                 let lkIdx = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    if((head.includes('影音') || head.includes('平台') || head.includes('連結')) && val && val.includes('http') && !val.includes('line.me') && lkIdx <= 3) {
+                    if(val && val.includes('http') && !val.toLowerCase().includes('line.me') && lkIdx <= 3) {
                         const el = document.getElementById('lk' + lkIdx);
                         el.style.display = 'flex'; el.href = val; 
                         el.innerHTML = (val.includes('youtube') ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>');
@@ -203,9 +212,13 @@
                     }
                 });
 
-                // 🚀 保持 LINE 官方帳號正確跳轉
-                document.getElementById('link-line-oa').href = d[h.findIndex(head => head.includes('官方帳號'))] || "https://lin.ee/2ac9Roe";
+                // 🚀 聯繫區正確對位
+                const oaLink = d[h.findIndex(head => head.includes('官方帳號'))];
+                const pLink = d[h.findIndex(head => head.includes('私訊 LINE'))];
+                if(oaLink) document.getElementById('link-line-oa').href = oaLink;
+                if(pLink) document.getElementById('link-line-p').href = pLink;
                 document.getElementById('link-tel').href = "tel:" + (d[getI('電話')] || "");
+                
                 const prodIdx = h.findIndex(head => head.includes('產品'));
                 if(prodIdx !== -1 && d[prodIdx]) {
                     const photoUrls = d[prodIdx].split(/[,，\s\n]+/).filter(u => u.includes('http'));
