@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V243</title>
+    <title>天使幸福智慧名片 V244</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -32,7 +32,7 @@
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
 
         .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #eee; }
 
         .info-scroll { flex-grow: 1; overflow-y: auto; padding: 45px 20px 20px; text-align: center; scrollbar-width: none; }
         .info-scroll::-webkit-scrollbar { display: none; }
@@ -47,16 +47,14 @@
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
         .text { font-size: 14.5px; color: #2d3436; line-height: 1.8; white-space: pre-wrap; }
 
-        /* 🚀 門面專用樣式 */
         #order-box { display: block; margin-top: 10px; background: #fff9f9; border: 1.5px dashed var(--p); }
         body.is-final #order-box { display: none !important; }
-        .form-btn { display: block; text-align: center; background: var(--p); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; margin-top: 10px; box-shadow: 0 4px 10px rgba(255,118,117,0.3); }
+        .form-btn { display: block; text-align: center; background: var(--p); color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-weight: bold; margin-top: 10px; }
 
         .photo-list { width: 100%; display: flex; flex-direction: column; gap: 15px; }
         .photo-item { width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #eee; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
         .photo-item img { width: 100%; height: auto; display: block; }
 
-        /* 🚀 底部聯繫區優化 */
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #f8f9fa; padding: 12px; border-radius: 15px; color: #333; font-size: 13px; font-weight: 900; text-align: center; box-shadow: 4px 4px 8px rgba(0,0,0,0.05); border: 1px solid #f1f1f1; }
         .btn-line-oa { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; font-size: 15px; border: none; }
@@ -106,7 +104,6 @@
 
             <div id="order-box" class="content-box">
                 <span class="label" style="color:var(--s)">📝 步驟 2：預約製作您的智慧名片</span>
-                <div style="font-size: 13.5px; color: #444; line-height: 1.6;">選定版型後，請點擊下方按鈕填寫資料，我們將為您量身打造專屬名片。</div>
                 <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" class="form-btn">立即填寫預約表單</a>
             </div>
 
@@ -137,7 +134,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V243</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V244</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -171,14 +168,16 @@
         function handleGate() { clicks++; if(clicks>=3){document.getElementById('work-drawer').style.maxHeight='550px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
 
         async function loadSheetData() {
+            // 🚀 防止緩存讀取舊資料
             const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
             try {
                 const res = await fetch(csvUrl);
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
+                // 🚀 初始化渲染
                 if (urlId) renderSheet(urlId); else renderSheet("小天使笑長");
-            } catch(e) { console.log("連線中"); }
+            } catch(e) { console.log("連線同步中"); }
         }
 
         function fixImg(url) {
@@ -199,11 +198,12 @@
                 document.getElementById('u-service').innerText = d[getI('服務')] || "";
                 document.getElementById('u-img').src = fixImg(d[getI('形象照')]);
                 
-                // 🚀 資訊區純淨化：過濾所有 LINE 連結
+                // 🚀 重新精準讀取影音連結
                 let lkIdx = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
+                    // 過濾掉 LINE，只抓取影音或外連網址
                     if(val && val.includes('http') && !val.toLowerCase().includes('line.me') && lkIdx <= 3) {
                         const el = document.getElementById('lk' + lkIdx);
                         el.style.display = 'flex'; el.href = val; 
@@ -212,12 +212,13 @@
                     }
                 });
 
-                // 🚀 聯繫區正確對位
+                // 底部聯繫區連動試算表
                 const oaLink = d[h.findIndex(head => head.includes('官方帳號'))];
                 const pLink = d[h.findIndex(head => head.includes('私訊 LINE'))];
-                if(oaLink) document.getElementById('link-line-oa').href = oaLink;
-                if(pLink) document.getElementById('link-line-p').href = pLink;
-                document.getElementById('link-tel').href = "tel:" + (d[getI('電話')] || "");
+                if(oaLink && oaLink.includes('http')) document.getElementById('link-line-oa').href = oaLink;
+                if(pLink && pLink.includes('http')) document.getElementById('link-line-p').href = pLink;
+                const phone = d[getI('電話')];
+                if(phone) document.getElementById('link-tel').href = "tel:" + phone;
                 
                 const prodIdx = h.findIndex(head => head.includes('產品'));
                 if(prodIdx !== -1 && d[prodIdx]) {
