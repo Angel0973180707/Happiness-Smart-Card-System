@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V258</title>
+    <title>天使幸福智慧名片 V259</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --p: #ee5253; --s: #d63031; --bg: #f5f6fa; }
-        .warm-pink { --p: #ee5253; --s: #d63031; }
+        :root { --p: #ff4757; --s: #ee5253; --bg: #f5f6fa; }
+        .warm-pink { --p: #ff4757; --s: #ee5253; }
         .aurora-blue { --p: #00a8ff; --s: #0097e6; }
         .vivid-orange { --p: #f0932b; --s: #eb4d4b; }
         .royal-purple { --p: #6c5ce7; --s: #4834d4; }
@@ -49,7 +49,7 @@
         .advantage-item i { color: #20bf6b; font-size: 12px; }
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
-        .act-btn { display: none; text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; box-shadow: 3px 3px 6px rgba(0,0,0,0.04); border: 1px solid #e1e2e6; }
+        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; box-shadow: 3px 3px 6px rgba(0,0,0,0.04); border: 1px solid #e1e2e6; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; font-size: 15px; border: none; }
         .btn-sub { background: #ffffff !important; color: #06C755 !important; border: 2px solid #06C755 !important; }
 
@@ -62,7 +62,7 @@
 
     <div id="admin-panel">
         <div class="picker-group">
-            <div class="dot" onclick="setTheme('warm-pink')" style="background:#ee5253"></div>
+            <div class="dot" onclick="setTheme('warm-pink')" style="background:#ff4757"></div>
             <div class="dot" onclick="setTheme('aurora-blue')" style="background:#00a8ff"></div>
             <div class="dot" onclick="setTheme('vivid-orange')" style="background:#f0932b"></div>
             <div class="dot" onclick="setTheme('royal-purple')" style="background:#6c5ce7"></div>
@@ -78,9 +78,9 @@
 
     <div id="card-container" class="card">
         <div class="banner"><div class="arch-overlay"></div></div>
-        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
+        <div class="avatar-wrap"><img id="u-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" class="avatar"></div>
         <div class="info-scroll">
-            <h1 id="u-name" class="name">讀取中...</h1>
+            <h1 id="u-name" class="name">小天使笑長</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
 
             <div class="social-bar">
@@ -114,15 +114,15 @@
         </div>
         
         <div class="actions">
-            <a href="javascript:void(0)" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
-            <a href="javascript:void(0)" id="btn-wechat" class="act-btn" onclick="showWechat()">💬 微信聯繫</a>
-            <a href="javascript:void(0)" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
-            <a href="javascript:void(0)" id="btn-p" class="act-btn btn-sub" target="_blank">👤 LINE 加好友</a>
+            <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
+            <a href="javascript:void(0)" id="btn-wechat" class="act-btn" onclick="showWechat()" style="display:block;">💬 微信聯繫</a>
+            <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn" style="display:block;">✉️ 寄送郵箱</a>
+            <a href="https://line.me/ti/p/VqJzbWHm_4" id="btn-p" class="act-btn btn-sub" target="_blank" style="display:block;">👤 LINE 加好友</a>
         </div>
     </div>
 
     <div id="wechat-mask" onclick="this.style.display='none'">
-        <img id="wechat-img" src="" style="width:80%; max-width:300px; border-radius:20px;">
+        <img id="wechat-img" src="https://drive.google.com/thumbnail?id=1Ym-YpA1O_r9v_T9pG2Z4G0K-7J1S3v9u&sz=w1000" style="width:80%; max-width:300px; border-radius:20px;">
         <p style="color:white; margin-top:15px; font-weight:900;">長按二維碼識別添加</p>
     </div>
 
@@ -135,7 +135,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V258</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V259</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -176,10 +176,8 @@
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                
-                // 🚀 V258 核心：初始化渲染
                 if (urlId) renderSheet(urlId); else renderSheet("1");
-            } catch(e) { console.log("資料讀取中"); }
+            } catch(e) { console.log("資料同步中"); }
         }
 
         function renderSheet(keyword) {
@@ -194,20 +192,14 @@
 
                 document.getElementById('u-name').innerText = getVal('姓名') || "讀取失敗";
                 document.getElementById('u-unit').innerText = getVal('單位') || "";
+                document.getElementById('u-img').src = fixImg(getVal('形象照')) || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
                 
-                // 🚀 大頭照邏輯
-                const avatarImg = getVal('形象照');
-                document.getElementById('u-img').src = avatarImg ? fixImg(avatarImg) : "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
-                
-                // 🚀 影音區
                 let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    // 強化過濾：包含 lin.ee 或 line.me 的絕對禁止進入圖示區
                     const isLine = val.toLowerCase().includes('line.me') || val.toLowerCase().includes('lin.ee');
                     const isDrive = val.includes('drive.google.com') || val.includes('google.com/open');
-                    
                     if(val && val.includes('http') && !isLine && !isDrive && lkCount <= 3) {
                         const el = document.getElementById('lk' + lkCount);
                         el.style.display = 'flex'; el.href = val;
@@ -216,45 +208,27 @@
                     }
                 });
 
-                // 🚀 聯繫按鈕讀取
-                const oa = getVal('官方帳號');
-                const p = getVal('私訊 LINE');
-                const wechat = getVal('微信');
-                const mail = getVal('郵箱');
+                // 成品模式才根據資料隱藏按鈕
+                if(urlId || document.getElementById('work-id').value) {
+                    const oa = getVal('官方帳號');
+                    const p = getVal('私訊 LINE');
+                    const wechat = getVal('微信');
+                    const mail = getVal('郵箱');
 
-                const btnOa = document.getElementById('btn-oa');
-                if(oa) { btnOa.style.display = 'block'; btnOa.href = oa; } else { btnOa.style.display = 'none'; }
-
-                const btnP = document.getElementById('btn-p');
-                if(p) { btnP.style.display = 'block'; btnP.href = p; } else { btnP.style.display = 'none'; }
-
-                const btnWx = document.getElementById('btn-wechat');
-                if(wechat) { btnWx.style.display = 'block'; document.getElementById('wechat-img').src = fixImg(wechat); } else { btnWx.style.display = 'none'; }
-
-                const btnMail = document.getElementById('btn-mail');
-                if(mail) { 
-                    btnMail.style.display = 'block'; 
-                    btnMail.href = mail.includes('@') ? "mailto:" + mail : mail; 
-                } else { btnMail.style.display = 'none'; }
-
-                // 產品照
-                const prodVal = getVal('產品');
-                if(prodVal) {
-                    const urls = prodVal.split(/[,，\s\n]+/).filter(u => u.includes('http'));
-                    for(let i=1; i<=2; i++) {
-                        const el = document.getElementById('p'+i);
-                        if(urls[i-1]) { el.style.display = 'block'; document.getElementById('u-p'+i).src = fixImg(urls[i-1]); }
-                        else { el.style.display = 'none'; }
-                    }
+                    document.getElementById('btn-oa').style.display = oa ? 'block' : 'none';
+                    if(oa) document.getElementById('btn-oa').href = oa;
+                    document.getElementById('btn-p').style.display = p ? 'block' : 'none';
+                    if(p) document.getElementById('btn-p').href = p;
+                    document.getElementById('btn-wechat').style.display = wechat ? 'block' : 'none';
+                    if(wechat) document.getElementById('wechat-img').src = fixImg(wechat);
+                    document.getElementById('btn-mail').style.display = mail ? 'block' : 'none';
+                    if(mail) document.getElementById('btn-mail').href = mail.includes('@') ? "mailto:" + mail : mail;
                 }
             }
         }
 
         async function init() { await loadSheetData(); updateClass(); }
-        function doPreview() { 
-            const inputVal = document.getElementById('work-id').value;
-            if(inputVal) renderSheet(inputVal); 
-        }
+        function doPreview() { renderSheet(document.getElementById('work-id').value); }
         function doCopy() {
             const id = document.getElementById('work-id').value;
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
