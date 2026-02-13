@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V257</title>
+    <title>天使幸福智慧名片 V258</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -80,7 +80,7 @@
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
         <div class="info-scroll">
-            <h1 id="u-name" class="name">小天使笑長</h1>
+            <h1 id="u-name" class="name">讀取中...</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
 
             <div class="social-bar">
@@ -135,7 +135,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V257</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V258</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -156,7 +156,7 @@
             });
         }
 
-        function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製！")); }
+        function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
         function showWechat() { document.getElementById('wechat-mask').style.display = 'flex'; }
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
@@ -176,9 +176,10 @@
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                // 🚀 V257：載入完畢立刻渲染
+                
+                // 🚀 V258 核心：初始化渲染
                 if (urlId) renderSheet(urlId); else renderSheet("1");
-            } catch(e) { console.log("資料同步中"); }
+            } catch(e) { console.log("資料讀取中"); }
         }
 
         function renderSheet(keyword) {
@@ -191,20 +192,23 @@
                     return (idx !== -1 && d[idx]) ? d[idx] : "";
                 };
 
-                document.getElementById('u-name').innerText = getVal('姓名');
-                document.getElementById('u-unit').innerText = getVal('單位');
-                document.getElementById('u-img').src = fixImg(getVal('形象照')) || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
+                document.getElementById('u-name').innerText = getVal('姓名') || "讀取失敗";
+                document.getElementById('u-unit').innerText = getVal('單位') || "";
                 
-                // 🚀 影音區：禁止 LINE 連結進入
+                // 🚀 大頭照邏輯
+                const avatarImg = getVal('形象照');
+                document.getElementById('u-img').src = avatarImg ? fixImg(avatarImg) : "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
+                
+                // 🚀 影音區
                 let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    // 嚴格過濾：禁止 line.me / lin.ee / google.com/open 進入影音展示區
+                    // 強化過濾：包含 lin.ee 或 line.me 的絕對禁止進入圖示區
                     const isLine = val.toLowerCase().includes('line.me') || val.toLowerCase().includes('lin.ee');
-                    const isPhoto = val.includes('drive.google.com') || val.includes('google.com/open');
+                    const isDrive = val.includes('drive.google.com') || val.includes('google.com/open');
                     
-                    if(val && val.includes('http') && !isLine && !isPhoto && lkCount <= 3) {
+                    if(val && val.includes('http') && !isLine && !isDrive && lkCount <= 3) {
                         const el = document.getElementById('lk' + lkCount);
                         el.style.display = 'flex'; el.href = val;
                         el.innerHTML = (val.includes('youtube') || val.includes('youtu.be')) ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>';
@@ -212,20 +216,26 @@
                     }
                 });
 
-                // 🚀 聯繫按鈕：強制下沉
+                // 🚀 聯繫按鈕讀取
                 const oa = getVal('官方帳號');
                 const p = getVal('私訊 LINE');
                 const wechat = getVal('微信');
                 const mail = getVal('郵箱');
 
-                document.getElementById('btn-oa').style.display = oa ? 'block' : 'none';
-                if(oa) document.getElementById('btn-oa').href = oa;
-                document.getElementById('btn-p').style.display = p ? 'block' : 'none';
-                if(p) document.getElementById('btn-p').href = p;
-                document.getElementById('btn-wechat').style.display = wechat ? 'block' : 'none';
-                if(wechat) document.getElementById('wechat-img').src = fixImg(wechat);
-                document.getElementById('btn-mail').style.display = mail ? 'block' : 'none';
-                if(mail) document.getElementById('btn-mail').href = mail.includes('@') ? "mailto:" + mail : mail;
+                const btnOa = document.getElementById('btn-oa');
+                if(oa) { btnOa.style.display = 'block'; btnOa.href = oa; } else { btnOa.style.display = 'none'; }
+
+                const btnP = document.getElementById('btn-p');
+                if(p) { btnP.style.display = 'block'; btnP.href = p; } else { btnP.style.display = 'none'; }
+
+                const btnWx = document.getElementById('btn-wechat');
+                if(wechat) { btnWx.style.display = 'block'; document.getElementById('wechat-img').src = fixImg(wechat); } else { btnWx.style.display = 'none'; }
+
+                const btnMail = document.getElementById('btn-mail');
+                if(mail) { 
+                    btnMail.style.display = 'block'; 
+                    btnMail.href = mail.includes('@') ? "mailto:" + mail : mail; 
+                } else { btnMail.style.display = 'none'; }
 
                 // 產品照
                 const prodVal = getVal('產品');
