@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V317</title>
-    <link rel="manifest" href="./manifest.json?v=317">
+    <title>天使幸福智慧名片 V318</title>
+    <link rel="manifest" href="./manifest.json?v=290">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -16,6 +16,7 @@
         .teal-green { --p: #20bf6b; --s: #0b8d51; }
 
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+
         #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0 10px; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
         .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
         .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
@@ -23,6 +24,7 @@
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
+
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; }
         .style-flat .arch-overlay { border-radius: 0; height: 35px; }
@@ -31,30 +33,76 @@
         .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-        /* V290 結構補丁：Logo 與 產品圖 */
-        #u-logo { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; z-index: 150; border-radius: 10px; overflow: hidden; display: none; background: white; }
-        #u-logo img { width: 100%; height: 100%; object-fit: contain; }
-        #u-products { display: flex; gap: 8px; margin: 15px 0; justify-content: center; }
-        .prod-img { width: 30%; aspect-ratio: 1; border-radius: 12px; object-fit: cover; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
-
+        /* ✅ 滾動區 */
         .info-scroll { flex: 1; overflow-y: auto; padding: 45px 20px 0; text-align: center; scrollbar-width: none; }
         .info-scroll::-webkit-scrollbar { display: none; }
-        
+
         .name { font-size: 26px; font-weight: 900; color: #2d3436; margin: 5px 0; }
-        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 8px; }
+        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 6px; }
+
+        /* ✅ 新增：標語 */
+        .motto {
+            font-size: 13px;
+            color: #2d3436;
+            opacity: 0.9;
+            font-weight: 700;
+            margin: 0 0 8px;
+            line-height: 1.5;
+        }
+
+        /* ✅ 新增：右上角 Logo */
+        .brand-logo {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.92);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+            z-index: 150;
+        }
+        .brand-logo img { width: 100%; height: 100%; object-fit: cover; }
+
+        .social-bar { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 15px 0 20px; }
+        .social-link { width: 45px; height: 45px; border-radius: 12px; background: #fff; display: none; align-items: center; justify-content: center; text-decoration: none; font-size: 20px; color: var(--s); box-shadow: 4px 4px 10px rgba(0,0,0,0.06); }
+
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 15px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
+
+        /* ✅ 新增：多張圖片展示 */
+        .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .img-grid a { display: block; }
+        .img-grid img { width: 100%; height: 78px; object-fit: cover; border-radius: 14px; border: 1px solid #eee; background: #f7f7f7; }
+
+        /* ✅ FAQ */
+        .faq-item { background:#fafafa; border:1px solid #eee; border-radius:16px; padding:12px 12px; margin-top:10px; }
+        .faq-q { font-weight: 900; color:#2d3436; font-size: 13px; margin-bottom: 6px; }
+        .faq-a { color:#2d3436; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
 
         .bottom-guide-bar { padding: 5px 0 20px; text-align: center; }
         .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; }
 
+        /* ✅ actions 固定底部 */
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; border: none; }
         .btn-sub { background: #ffffff !important; color: #06C755 !important; border: 2px solid #06C755 !important; }
 
-        #install-modal, #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:11000; align-items:center; justify-content:center; }
-        .modal-content { background: white; width: 85%; max-width: 320px; border-radius: 35px; padding: 25px; text-align: center; }
+        #install-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 35px; padding: 25px; position: relative; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #999; cursor: pointer; }
+        .modal-tab { display: flex; gap: 8px; margin: 15px 0; }
+        .tab-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { background: var(--p); color: white; border-color: var(--p); }
+        .tab-pane { display: none; text-align: left; font-size: 14px; line-height: 1.8; color: #444; }
+        .tab-pane.active { display: block; }
+
+        #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:11000; align-items:center; justify-content:center; flex-direction:column; color: white; }
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 12000; border-radius: 40px 40px 0 0; }
         .footer { font-size: 11px; color: #bbb; padding: 25px; cursor: pointer; text-align: center; }
     </style>
@@ -77,105 +125,426 @@
     </div>
 
     <div id="card-container" class="card">
-        <div id="u-logo" class="brand-logo"><img></div>
-        <div class="banner"><div class="arch-overlay"></div></div>
-        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
-        <div class="info-scroll">
-            <h1 id="u-name" class="name">載入中...</h1>
-            <div id="u-unit" class="unit"></div>
-            <div id="u-slogan" style="font-size:13px; color:#636e72; margin-bottom:12px;"></div>
-            <div id="u-products"></div>
+        <div class="banner">
+            <div class="arch-overlay"></div>
 
-            <div id="door-content" style="display:none;">
-                <div class="content-box" style="background: #f0f7ff; border: 1px solid #00a8ff; text-align: center; cursor: pointer;" onclick="handleShare()">
-                    <span class="label" style="color:#0097e6">📢 推薦製作智慧名片</span>
-                    <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
-                </div>
-                <div class="content-box" style="background: #fff9f9; border: 1px dashed #ee5253; text-align: center;">
-                    <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
-                    <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">立即填寫預約表單 →</a>
+            <!-- ✅ 新增：Logo 容器（有值才顯示） -->
+            <div id="brand-logo" class="brand-logo"><img id="u-logo" alt="logo"></div>
+        </div>
+
+        <div class="avatar-wrap"><img id="u-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" class="avatar"></div>
+
+        <div class="info-scroll">
+            <h1 id="u-name" class="name">讀取中...</h1>
+            <div id="u-unit" class="unit">幸福智慧服務中心</div>
+            <div id="u-motto" class="motto" style="display:none;"></div>
+
+            <div class="social-bar">
+                <a href="#" id="lk1" class="social-link" target="_blank"></a>
+                <a href="#" id="lk2" class="social-link" target="_blank"></a>
+                <a href="#" id="lk3" class="social-link" target="_blank"></a>
+            </div>
+
+            <div id="share-box" class="content-box" style="background: #f0f7ff; border: 1px solid #00a8ff; text-align: center; cursor: pointer;" onclick="handleShare()">
+                <span id="share-label" class="label" style="color:#0097e6">📢 推薦製作智慧名片</span>
+                <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
+            </div>
+
+            <div id="advantage-box" class="content-box">
+                <span class="label" style="color: #6c5ce7;">🏆 為什麼您需要智慧名片？</span>
+                <div style="font-size:14px; color:#2d3436; margin-bottom:8px;">一鍵分享：複製網址，傳播全世界</div>
+                <div style="font-size:14px; color:#2d3436; margin-bottom:8px;">影音整合：個人YouTube、FB 等平臺展示</div>
+                <div style="font-size:14px; color:#2d3436;">內容更新：後台更新，同步更新</div>
+            </div>
+
+            <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ee5253;">
+                <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
+                <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">立即填寫預約表單 →</a>
+            </div>
+
+            <!-- ✅ 新增：品牌/產品照片（最多3張） -->
+            <div id="photos-box" class="content-box" style="display:none;">
+                <span class="label">品牌 / 產品照片</span>
+                <div class="img-grid">
+                    <a id="p1a" href="#" target="_blank" style="display:none;"><img id="p1" alt="photo1"></a>
+                    <a id="p2a" href="#" target="_blank" style="display:none;"><img id="p2" alt="photo2"></a>
+                    <a id="p3a" href="#" target="_blank" style="display:none;"><img id="p3" alt="photo3"></a>
                 </div>
             </div>
 
-            <div class="content-box"><span class="label">服務項目</span><div id="u-service" style="font-size: 14.5px; color: #2d3436; line-height: 1.6; white-space: pre-wrap;"></div></div>
-            <div class="content-box"><span class="label">專業解答 (Q&A)</span><div id="u-qa" style="font-size: 13.5px; color: #2d3436; line-height: 1.6;"></div></div>
-            <div id="install-entry" class="bottom-guide-bar" style="display:none;"><button class="mini-install-btn" onclick="document.getElementById('install-modal').style.display='flex'">📲 安裝名片 App 教學</button></div>
+            <div class="content-box">
+                <span class="label">服務項目</span>
+                <div id="u-service" class="text" style="font-size: 14.5px; color: #2d3436; line-height: 1.6; white-space: pre-wrap;">讀取中...</div>
+            </div>
+
+            <!-- ✅ 新增：頭銜/獎銜 -->
+            <div id="titles-box" class="content-box" style="display:none;">
+                <span class="label">重要頭銜 / 獎銜</span>
+                <div id="u-titles" style="font-size:14.5px; color:#2d3436; line-height:1.7; white-space: pre-wrap;"></div>
+            </div>
+
+            <!-- ✅ 新增：FAQ -->
+            <div id="faq-box" class="content-box" style="display:none;">
+                <span class="label">常見提問</span>
+                <div id="faq-1" class="faq-item" style="display:none;">
+                    <div id="q1" class="faq-q"></div>
+                    <div id="a1" class="faq-a"></div>
+                </div>
+                <div id="faq-2" class="faq-item" style="display:none;">
+                    <div id="q2" class="faq-q"></div>
+                    <div id="a2" class="faq-a"></div>
+                </div>
+            </div>
+
+            <div id="install-entry" class="bottom-guide-bar" style="display:none;">
+                <button class="mini-install-btn" onclick="openInstallModal()">📲 安裝名片 App 教學</button>
+            </div>
         </div>
-        <div class="actions">
-            <a href="" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
-            <a href="javascript:void(0)" class="act-btn" onclick="document.getElementById('wechat-mask').style.display='flex'">💬 微信聯繫</a>
-            <a href="mailto:" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
-            <a href="tel:" id="btn-tel" class="act-btn btn-sub" target="_blank">📞 撥打電話</a>
+
+        <div id="actions-area" class="actions">
+            <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
+            <a href="javascript:void(0)" id="btn-wechat" class="act-btn" onclick="showWechatText()">💬 微信聯繫</a>
+            <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
+            <a href="https://line.me/ti/p/VqJzbWHm_4" id="btn-p" class="act-btn btn-sub" target="_blank">👤 LINE 加好友</a>
         </div>
     </div>
 
-    <div id="install-modal" onclick="this.style.display='none'"><div class="modal-content" onclick="event.stopPropagation()"><h3 style="color:var(--p);">安裝教學</h3><p style="text-align:left; font-size:14px;">🍎 <b>iPhone</b>: 分享 ⮕ 加入主畫面<br>🤖 <b>Android</b>: 三點 ⮕ 安裝應用程式</p></div></div>
-    <div id="wechat-mask" onclick="this.style.display='none'"><div style="background: white; padding: 30px; border-radius: 30px; text-align: center; width: 80%;"><i class="fa-brands fa-weixin" style="font-size: 50px; color: #07C160;"></i><p id="wechat-id-text" style="font-size: 22px; font-weight: bold; margin: 20px 0; background: #eee; padding: 10px; border-radius: 10px;"></p><button onclick="copyWechat()" style="background: #07C160; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold;">複製 ID</button></div></div>
-    <div id="work-drawer"><div style="padding: 25px; text-align: center;"><input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd; color: #333;" placeholder="序號"><button onclick="doPreview()" style="background:#ee5253; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">預覽成品</button></div></div>
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V317</div>
+    <div id="install-modal" onclick="closeInstallModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-modal" onclick="closeInstallModal(event)">&times;</span>
+            <h3 style="margin-top:0; color:var(--p); text-align:center;">安裝名片教學</h3>
+            <div style="background:#f8f9fa; padding:15px; border-radius:15px; text-align:center; margin-bottom:15px;">
+                <button onclick="copyCurrentUrl()" style="background:var(--p); color:white; border:none; padding:8px 15px; border-radius:10px; font-weight:bold; width:100%;">🔗 複製網址</button>
+            </div>
+            <div class="modal-tab">
+                <button class="tab-btn active" onclick="switchTab('apple')">🍎 iPhone</button>
+                <button class="tab-btn" onclick="switchTab('android')">🤖 Android</button>
+            </div>
+            <div id="apple-pane" class="tab-pane active">1. 點擊 Safari 下方 [分享箭頭 ⬆️]<br>2. 選擇 [加入主畫面]</div>
+            <div id="android-pane" class="tab-pane">1. 點擊 Chrome 右上角 [三個點點]<br>2. 選擇 [安裝應用程式]</div>
+        </div>
+    </div>
+
+    <div id="wechat-mask" onclick="this.style.display='none'">
+        <div style="background: white; color: #333; padding: 30px; border-radius: 30px; width: 80%; max-width: 320px; text-align: center;">
+            <i class="fa-brands fa-weixin" style="font-size: 50px; color: #07C160; margin-bottom: 15px;"></i>
+            <h3 style="margin: 10px 0;">微信聯繫 ID</h3>
+            <p id="wechat-id-text" style="font-size: 20px; font-weight: bold; background: #f0f0f0; padding: 10px; border-radius: 10px; margin: 15px 0;">a0973180707</p>
+            <button onclick="copyWechat()" style="background: #07C160; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; width: 100%;">點擊複製 ID</button>
+        </div>
+    </div>
+
+    <div id="work-drawer">
+        <div style="padding: 25px; text-align: center;">
+            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd; color: #333;" placeholder="輸入序號">
+            <button onclick="doPreview()" style="background:#ee5253; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">預覽成品</button>
+            <button onclick="doCopy()" style="background:#2ecc71; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">複製交貨網址</button>
+        </div>
+    </div>
+
+    <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V290</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const urlId = urlParams.get('id');
-        let allRows = []; let clicks = 0;
+        let allRows = [];
+        let clicks = 0;
         let curTheme = urlParams.get('theme') || 'warm-pink';
         let curStyle = urlParams.get('style') || 'arch';
 
-        function fixImg(url) { if (!url) return ""; const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/); return idMatch ? `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000` : url; }
-
-        async function loadSheetData() {
-            const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
-            const res = await fetch(csvUrl);
-            const text = await res.text();
-            const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
-            allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-            renderSheet(urlId || "1");
-            updateClass();
+        function openInstallModal() { document.getElementById('install-modal').style.display = 'flex'; }
+        function closeInstallModal(e) { document.getElementById('install-modal').style.display = 'none'; }
+        function switchTab(type) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            if(type === 'apple') { document.querySelectorAll('.tab-btn')[0].classList.add('active'); document.getElementById('apple-pane').classList.add('active'); }
+            else { document.querySelectorAll('.tab-btn')[1].classList.add('active'); document.getElementById('android-pane').classList.add('active'); }
         }
+        function copyCurrentUrl() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製！")); }
+        function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
+        function copyWechat() { navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製！")); }
 
-        function renderSheet(keyword) {
-            const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
-            if(d) {
-                // 🚀 B-X 欄位精準對位
-                document.getElementById('u-name').innerText = d[1];   // B: 姓名
-                document.getElementById('u-unit').innerText = d[2];   // C: 單位
-                document.getElementById('u-slogan').innerText = d[3]; // D: 標語
-                document.getElementById('u-service').innerText = d[4];// E: 服務項目
-                document.getElementById('u-img').src = fixImg(d[6]);  // G: 形象照
-                
-                const prodBox = document.getElementById('u-products'); prodBox.innerHTML = '';
-                if(d[7]) d[7].split(',').forEach(url => { // H: 產品圖
-                    const img = document.createElement('img'); img.src = fixImg(url); img.className = 'prod-img'; prodBox.appendChild(img);
-                });
-
-                const logoBox = document.getElementById('u-logo');
-                if(d[8]) { logoBox.style.display = 'block'; logoBox.querySelector('img').src = fixImg(d[8]); } // I: Logo
-                else { logoBox.style.display = 'none'; }
-
-                document.getElementById('wechat-id-text').innerText = d[9] || ""; // J: 微信
-                document.getElementById('btn-p').href = d[16];        // Q: LINE好友
-                document.getElementById('btn-oa').href = d[17];       // R: LINE OA
-                document.getElementById('btn-mail').href = "mailto:" + d[18]; // S: Email
-                document.getElementById('btn-tel').href = "tel:" + d[19];     // T: 電話
-                
-                document.getElementById('u-qa').innerHTML = `<b>Q: ${d[20]}</b><br>${d[21]}<br><br><b>Q: ${d[22]}</b><br>${d[23]}`; // U-X: Q1,A1,Q2,A2
-
-                const isMain = keyword == "1";
-                document.getElementById('admin-panel').style.display = isMain ? 'block' : 'none';
-                document.getElementById('door-content').style.display = isMain ? 'block' : 'none';
-                document.getElementById('install-entry').style.display = isMain ? 'none' : 'block';
-            }
-        }
-
-        function copyWechat() { navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製")); }
-        function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
         function updateClass() { document.body.className = curTheme + ' style-' + curStyle; }
         function handleGate() { clicks++; if(clicks >= 3){document.getElementById('work-drawer').style.maxHeight='500px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
-        function doPreview() { renderSheet(document.getElementById('work-id').value); document.getElementById('work-drawer').style.maxHeight='0'; }
+        function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
 
-        loadSheetData();
+        function fixImg(url) {
+            if (!url) return "";
+            const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/);
+            return idMatch ? `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000` : url;
+        }
+
+        function splitPhotos(raw) {
+            if (!raw) return [];
+            // 支援：逗號分隔、換行分隔
+            return raw
+                .split(/[\n,]+/)
+                .map(s => s.trim())
+                .filter(Boolean)
+                .slice(0, 3);
+        }
+
+        function setIf(el, val) {
+            if (!el) return;
+            if (val) { el.style.display = ''; }
+            else { el.style.display = 'none'; }
+        }
+
+        async function loadSheetData() {
+            const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
+            try {
+                const res = await fetch(csvUrl);
+                const text = await res.text();
+                const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
+                allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
+                if (urlId) renderSheet(urlId); else renderSheet("1");
+            } catch(e) {
+                console.log("資料同步中");
+            }
+        }
+
+        function doPreview() {
+            const id = document.getElementById('work-id').value;
+            if(id) renderSheet(id);
+        }
+
+        function renderSheet(keyword) {
+            if(!keyword || !allRows[0]) return;
+
+            const h = allRows[0];
+            const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
+
+            if(!d) return;
+
+            const getVal = (key) => {
+                const idx = h.findIndex(head => (head || "").includes(key));
+                return (idx !== -1 && d[idx]) ? d[idx] : "";
+            };
+
+            // ✅ 欄位對應（照你貼的表單標題）
+            const name   = getVal('姓名');
+            const unit   = getVal('單位') || getVal('單位名稱');
+            const motto  = getVal('理念標語');
+            const service= getVal('服務項目') || getVal('服務');
+            const titles = getVal('重要頭銜') || getVal('獎銜');
+            const avatar = fixImg(getVal('個人專業形象照') || getVal('形象照'));
+            const photos = splitPhotos(getVal('產品或品牌照片'));
+            const logo   = fixImg(getVal('品牌 Logo') || getVal('品牌Logo') || getVal('Logo'));
+            const wechat = getVal('微信') || getVal('微信 ID');
+            const email  = getVal('一鍵聯繫 Email') || getVal('Email') || getVal('郵箱');
+            const phone  = getVal('一鍵聯繫電話') || getVal('電話');
+            const lineP  = getVal('私訊 LINE') || getVal('LINE 加好友') || getVal('個人好友');
+            const lineOA = getVal('LINE 官方') || getVal('官方帳號');
+
+            const q1 = getVal('客戶常見提問 1') || getVal('Q1');
+            const a1 = getVal('專業解答 1') || getVal('A1');
+            const q2 = getVal('客戶常見提問 2') || getVal('Q2');
+            const a2 = getVal('專業解答2') || getVal('專業解答 2') || getVal('A2');
+
+            // ✅ 基本顯示
+            document.getElementById('u-name').innerText = name || "（未填姓名）";
+            document.getElementById('u-unit').innerText = unit || "（未填單位）";
+            document.getElementById('u-service').innerText = service || "幸福教養系統推廣";
+
+            if (avatar) document.getElementById('u-img').src = avatar;
+            else document.getElementById('u-img').src = "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
+
+            // ✅ 標語（照片下方）
+            const mottoEl = document.getElementById('u-motto');
+            if (motto) { mottoEl.style.display = ''; mottoEl.innerText = motto; }
+            else { mottoEl.style.display = 'none'; mottoEl.innerText = ''; }
+
+            // ✅ Logo（右上角）
+            const logoWrap = document.getElementById('brand-logo');
+            const logoImg  = document.getElementById('u-logo');
+            if (logo) {
+                logoImg.src = logo;
+                logoWrap.style.display = 'flex';
+            } else {
+                logoImg.src = '';
+                logoWrap.style.display = 'none';
+            }
+
+            // ✅ 品牌/產品照片最多3張
+            const photosBox = document.getElementById('photos-box');
+            if (photos.length) {
+                photosBox.style.display = '';
+                const ids = [
+                    {a:'p1a', i:'p1'},
+                    {a:'p2a', i:'p2'},
+                    {a:'p3a', i:'p3'}
+                ];
+                ids.forEach((x, idx) => {
+                    const a = document.getElementById(x.a);
+                    const img = document.getElementById(x.i);
+                    const raw = photos[idx] || "";
+                    if (raw) {
+                        const fixed = fixImg(raw);
+                        a.href = raw;
+                        img.src = fixed || raw;
+                        a.style.display = '';
+                    } else {
+                        a.style.display = 'none';
+                        img.src = '';
+                    }
+                });
+            } else {
+                photosBox.style.display = 'none';
+            }
+
+            // ✅ 頭銜/獎銜
+            const titlesBox = document.getElementById('titles-box');
+            const titlesEl  = document.getElementById('u-titles');
+            if (titles) {
+                titlesBox.style.display = '';
+                titlesEl.innerText = titles;
+            } else {
+                titlesBox.style.display = 'none';
+                titlesEl.innerText = '';
+            }
+
+            // ✅ FAQ
+            const faqBox = document.getElementById('faq-box');
+            const faq1 = document.getElementById('faq-1');
+            const faq2 = document.getElementById('faq-2');
+            let anyFaq = false;
+
+            if (q1 || a1) {
+                anyFaq = true;
+                faq1.style.display = '';
+                document.getElementById('q1').innerText = q1 || "常見提問";
+                document.getElementById('a1').innerText = a1 || "";
+            } else {
+                faq1.style.display = 'none';
+            }
+
+            if (q2 || a2) {
+                anyFaq = true;
+                faq2.style.display = '';
+                document.getElementById('q2').innerText = q2 || "常見提問";
+                document.getElementById('a2').innerText = a2 || "";
+            } else {
+                faq2.style.display = 'none';
+            }
+
+            faqBox.style.display = anyFaq ? '' : 'none';
+
+            // ✅ 影音/社群自動 icon（沿用你原本）
+            let lkCount = 1;
+            for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
+
+            h.forEach((head, idx) => {
+                const val = d[idx];
+                if(val && val.includes('http') &&
+                   !val.toLowerCase().includes('line.me') &&
+                   !val.toLowerCase().includes('lin.ee') &&
+                   !val.includes('drive.google.com') &&
+                   lkCount <= 3
+                ) {
+                    const el = document.getElementById('lk' + lkCount);
+                    el.style.display = 'flex';
+                    el.href = val;
+                    el.innerHTML = (val.includes('youtube') || val.includes('youtu.be')) ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>';
+                    lkCount++;
+                }
+            });
+
+            const isMain = keyword == "1";
+
+            // ✅ 你原本的主樣板邏輯保留：1號顯示招商/預約，其他是交貨版
+            if(isMain) {
+                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('advantage-box').style.display = 'block';
+                document.getElementById('order-box').style.display = 'block';
+                document.getElementById('install-entry').style.display = 'none';
+                document.getElementById('wechat-id-text').innerText = "a0973180707";
+            } else {
+                document.getElementById('admin-panel').style.display = 'none';
+                document.getElementById('advantage-box').style.display = 'none';
+                document.getElementById('order-box').style.display = 'none';
+                document.getElementById('install-entry').style.display = 'block';
+                document.getElementById('wechat-id-text').innerText = wechat || "未提供";
+            }
+
+            // ✅ 交貨版：底部聯繫按鈕根據表單內容呈現（主樣板仍保留你固定值）
+            if(!isMain) {
+                // LINE OA
+                const btnOA = document.getElementById('btn-oa');
+                if (lineOA && lineOA.includes('http')) {
+                    btnOA.href = lineOA;
+                    btnOA.style.display = 'block';
+                } else {
+                    // 沒填就隱藏（避免點了沒反應）
+                    btnOA.style.display = 'none';
+                }
+
+                // LINE 私訊（加好友）
+                const btnP = document.getElementById('btn-p');
+                if (lineP && lineP.includes('http')) {
+                    btnP.href = lineP;
+                    btnP.style.display = 'block';
+                } else {
+                    btnP.style.display = 'none';
+                }
+
+                // Email
+                const btnMail = document.getElementById('btn-mail');
+                if (email) {
+                    btnMail.href = `mailto:${email}`;
+                    btnMail.style.display = 'block';
+                } else {
+                    btnMail.style.display = 'none';
+                }
+
+                // Phone：如果有填電話，這顆就改成「📞 一鍵撥號」，沒有就隱藏
+                const actions = document.getElementById('actions-area');
+                let phoneBtn = document.getElementById('btn-phone');
+                if (!phoneBtn) {
+                    phoneBtn = document.createElement('a');
+                    phoneBtn.id = 'btn-phone';
+                    phoneBtn.className = 'act-btn';
+                    phoneBtn.innerText = '📞 一鍵撥號';
+                    // 插到 Email 後面比較自然
+                    actions.insertBefore(phoneBtn, document.getElementById('btn-p'));
+                }
+                if (phone) {
+                    phoneBtn.href = `tel:${phone.replace(/\s+/g,'')}`;
+                    phoneBtn.style.display = 'block';
+                } else {
+                    phoneBtn.style.display = 'none';
+                }
+
+                // WeChat：沒填就隱藏按鈕
+                const btnWechat = document.getElementById('btn-wechat');
+                if (wechat) {
+                    btnWechat.style.display = 'block';
+                } else {
+                    btnWechat.style.display = 'none';
+                }
+            } else {
+                // 主樣板仍維持你原本固定按鈕
+                const btnOA = document.getElementById('btn-oa'); btnOA.style.display = 'block';
+                const btnP  = document.getElementById('btn-p');  btnP.style.display = 'block';
+                const btnM  = document.getElementById('btn-mail');btnM.style.display = 'block';
+                const btnW  = document.getElementById('btn-wechat');btnW.style.display = 'block';
+                const phoneBtn = document.getElementById('btn-phone');
+                if (phoneBtn) phoneBtn.style.display = 'none';
+            }
+        }
+
+        function doCopy() {
+            const id = document.getElementById('work-id').value;
+            const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
+        }
+
+        async function init() {
+            await loadSheetData();
+            updateClass();
+        }
+        init();
     </script>
 </body>
 </html>
