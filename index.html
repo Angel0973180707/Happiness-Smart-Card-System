@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V280</title>
+    <title>天使幸福智慧名片 V282</title>
     
-    <link rel="manifest" href="./manifest.json?v=280">
+    <link rel="manifest" href="./manifest.json?v=282">
     <meta name="theme-color" content="#ee5253">
     <link rel="apple-touch-icon" href="./icon-192.png">
     
@@ -29,16 +29,13 @@
         .btn-style { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
-        .guide-tag { display: inline-block; background: #fdf2f2; color: #ee5253; padding: 4px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; margin-top: 5px; border: 1px solid #ffcccc; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.03); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
+        .guide-tag { display: inline-block; background: #fdf2f2; color: #ee5253; padding: 4px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; margin-top: 5px; border: 1px solid #ffcccc; }
+        #install-pwa { display: none; background: #2f3640; color: white; padding: 8px 18px; border-radius: 50px; font-size: 12px; font-weight: 900; margin-top: 10px; cursor: pointer; border: none; }
 
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 35px 70px rgba(0,0,0,0.18); position: relative; margin: 15px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
         
-        .style-flat .arch-overlay { border-radius: 0; height: 35px; }
-        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
-
         .avatar-wrap { width: 135px; height: 135px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
 
@@ -52,6 +49,11 @@
 
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
+
+        /* 🚀 成品區安裝提示樣式 */
+        .install-guide-box { background: #f0f7ff; border: 2px solid #00a8ff; border-radius: 25px; padding: 15px; margin-bottom: 18px; text-align: center; }
+        .install-guide-box h4 { margin: 0 0 10px; color: #0077cc; font-size: 16px; }
+        .install-guide-box p { margin: 0; font-size: 13px; color: #333; line-height: 1.6; }
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
@@ -78,7 +80,8 @@
             <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
             <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
         </div>
-        <div class="guide-tag">✨ 點擊上方圓點換顏色，按鈕換版型</div>
+        <div class="guide-tag">✨ 客製化配色與版型</div><br>
+        <button id="install-pwa"><i class="fa-solid fa-download"></i> 安裝至手機桌面</button>
     </div>
 
     <div id="card-container" class="card">
@@ -92,6 +95,11 @@
                 <a href="#" id="lk1" class="social-link" target="_blank"></a>
                 <a href="#" id="lk2" class="social-link" target="_blank"></a>
                 <a href="#" id="lk3" class="social-link" target="_blank"></a>
+            </div>
+
+            <div id="install-guide" class="install-guide-box" style="display: none;">
+                <h4>📱 把名片種在桌面</h4>
+                <p id="guide-text">正在偵測系統...</p>
             </div>
 
             <div id="share-box" class="content-box" style="background: #f0f7ff; border: 1px solid #00a8ff; text-align: center; cursor: pointer;" onclick="handleShare()">
@@ -144,7 +152,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V280</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V282</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -152,6 +160,7 @@
         let allRows = []; let clicks = 0;
         let curTheme = urlParams.get('theme') || 'warm-pink';
         let curStyle = urlParams.get('style') || 'arch';
+        let deferredPrompt;
 
         function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
         function copyWechat() {
@@ -196,7 +205,6 @@
                     const idx = h.findIndex(head => head.includes(key));
                     return (idx !== -1 && d[idx]) ? d[idx] : "";
                 };
-
                 document.getElementById('u-name').innerText = getVal('姓名');
                 document.getElementById('u-unit').innerText = getVal('單位');
                 document.getElementById('u-service').innerText = getVal('服務') || "智慧名片設計製作 / 幸福教養系統推廣";
@@ -223,6 +231,7 @@
                     document.getElementById('wechat-id-text').innerText = "a0973180707";
                     document.getElementById('advantage-box').style.display = 'block';
                     document.getElementById('order-box').style.display = 'block';
+                    document.getElementById('install-guide').style.display = 'none';
                 } else {
                     document.getElementById('share-label').innerText = "🔗 分享我的智慧名片";
                     const oa = getVal('官方帳號'), p = getVal('私訊 LINE'), wx = getVal('微信'), ml = getVal('郵箱');
@@ -230,8 +239,21 @@
                     if(p) document.getElementById('btn-p').href = p;
                     document.getElementById('wechat-id-text').innerText = wx || "未提供";
                     if(ml) document.getElementById('btn-mail').href = ml.includes('@') ? "mailto:"+ml : ml;
+                    
                     document.getElementById('advantage-box').style.display = 'none';
                     document.getElementById('order-box').style.display = 'none';
+                    
+                    // 🚀 顯示成品區安裝提示
+                    const guideBox = document.getElementById('install-guide');
+                    const guideText = document.getElementById('guide-text');
+                    guideBox.style.display = 'block';
+                    
+                    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                    if(isiOS) {
+                        guideText.innerHTML = "點擊瀏覽器下方 <b>[分享箭頭]</b> 圖示<br>選擇 <b>[加入主畫面]</b> 即可安裝！";
+                    } else {
+                        guideText.innerHTML = "點擊頂端 <b>[安裝至手機桌面]</b> 按鈕<br>讓名片像 App 一樣好找！";
+                    }
                 }
             }
         }
@@ -245,21 +267,25 @@
         async function init() { await loadSheetData(); updateClass(); }
         init();
 
-        // 🚀 PWA 強制註冊與監聽：路徑務必對齊 ./sw.js
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=280')
-                    .then(reg => {
-                        console.log('SW Registered');
-                        reg.update(); // 強制檢查更新
-                    })
-                    .catch(err => console.log('SW Fail', err));
+                navigator.serviceWorker.register('./sw.js?v=282').catch(err => console.log('SW Fail', err));
             });
         }
-        
-        // 🚀 監聽 Chrome 安裝提示
+
+        const installBtn = document.getElementById('install-pwa');
         window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('Chrome Install Prompt Ready');
+            e.preventDefault(); deferredPrompt = e;
+            installBtn.style.display = 'inline-block';
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') installBtn.style.display = 'none';
+                deferredPrompt = null;
+            }
         });
     </script>
 </body>
