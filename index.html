@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V275</title>
+    <title>天使幸福智慧名片 V276</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -130,7 +130,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V275</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V276</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -169,6 +169,12 @@
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (urlId) renderSheet(urlId); else renderSheet("1");
             } catch(e) { console.log("資料同步中"); }
+        }
+
+        // 🚀 核心：預覽功能實作
+        function doPreview() {
+            const id = document.getElementById('work-id').value;
+            if(id) renderSheet(id);
         }
 
         function renderSheet(keyword) {
@@ -216,6 +222,12 @@
                     document.getElementById('advantage-box').style.display = 'none';
                 }
             }
+        }
+
+        function doCopy() {
+            const id = document.getElementById('work-id').value;
+            const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
         }
 
         async function init() { await loadSheetData(); updateClass(); }
