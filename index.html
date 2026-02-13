@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V239</title>
+    <title>天使幸福智慧名片 V240</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -38,16 +38,13 @@
         .unit { font-size: 15px; color: var(--s); font-weight: 700; margin-bottom: 8px; }
         .slogan-box { font-size: 14px; color: #7f8c8d; font-style: italic; margin-bottom: 20px; }
 
-        .social-bar { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
-        .social-link { width: 46px; height: 46px; border-radius: 12px; background: #fff; display: none; align-items: center; justify-content: center; text-decoration: none; font-size: 20px; color: var(--s); box-shadow: 4px 4px 10px rgba(0,0,0,0.05); }
-
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
         .text { font-size: 14.5px; color: #2d3436; line-height: 1.8; white-space: pre-wrap; }
 
-        /* 🚀 門面專用區塊 */
-        .door-only { display: block; }
-        body.is-final .door-only { display: none !important; }
+        /* 🚀 分享按鈕樣式 */
+        .share-btn-box { cursor: pointer; transition: 0.3s; }
+        .share-btn-box:active { transform: scale(0.95); }
 
         .photo-list { width: 100%; display: flex; flex-direction: column; gap: 15px; }
         .photo-item { width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #eee; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
@@ -85,26 +82,21 @@
         <div class="info-scroll">
             <h1 id="u-name" class="name">小天使笑長</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
-            <div id="u-slogan" class="slogan-box">為您打造個人品牌智慧名片</div>
-            <div class="social-bar">
-                <a href="#" id="lk1" class="social-link" target="_blank"></a>
-                <a href="#" id="lk2" class="social-link" target="_blank"></a>
-                <a href="#" id="lk3" class="social-link" target="_blank"></a>
+            <div id="u-slogan" class="slogan-box">讓您的專業一眼被看見</div>
+
+            <div id="share-box" class="content-box share-btn-box" style="background: #f0f7ff; border: 1px solid #00cec9; text-align: center;" onclick="handleShare()">
+                <span id="share-label" class="label" style="color:#0984e3">📢 推薦製作智慧名片</span>
+                <div id="share-text" style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
             </div>
-            
+
+            <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ff7675;">
+                <span class="label" style="color:#ff7675">📝 預約製作您的智慧名片</span>
+                <a href="https://forms.gle/zXN6p3o2wV3X3G596" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">點我填寫申請表單 →</a>
+            </div>
+
             <div class="content-box">
                 <span class="label">服務項目</span>
                 <div id="u-service" class="text">智慧名片設計製作 / 幸福教養系統推廣</div>
-            </div>
-
-            <div class="door-only content-box" style="background: #f0f7ff; border: 1px solid #00cec9; text-align: center; cursor: pointer;" onclick="copyMainUrl()">
-                <span class="label" style="color:#0984e3">📢 推薦分享給好友</span>
-                <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製門面網址</div>
-            </div>
-            
-            <div id="order-box" class="door-only content-box" style="background: #fff9f9; border: 1px dashed #ff7675;">
-                <span class="label" style="color:#ff7675">📝 預約製作您的智慧名片</span>
-                <a href="https://forms.gle/zXN6p3o2wV3X3G596" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">點我填寫申請表單 →</a>
             </div>
 
             <div id="photo-list" class="photo-list">
@@ -128,7 +120,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V239</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V240</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -140,12 +132,30 @@
         let curTheme = themeParam || 'warm-pink'; 
         let curStyle = styleParam || 'arch';
 
-        if(urlId) { document.body.classList.add('is-final'); }
+        // 🚀 模式判定
+        if(urlId) { 
+            document.body.classList.add('is-final');
+            // 客戶模式：修改分享鈕文字
+            document.addEventListener("DOMContentLoaded", () => {
+                document.getElementById('share-label').innerText = "🔗 分享我的智慧名片";
+                document.getElementById('share-label').style.color = "#6c5ce7";
+                document.getElementById('share-box').style.background = "#f3f0ff";
+                document.getElementById('share-box').style.borderColor = "#a29bfe";
+                document.getElementById('order-box').style.display = "none"; // 成品不顯示填表
+            });
+        }
+
+        function handleShare() {
+            const shareUrl = window.location.href;
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                const msg = urlId ? "名片網址已複製！快分享給朋友吧！" : "幸福門面網址已複製！感謝您的推薦！";
+                alert(msg);
+            });
+        }
 
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
         function updateClass() { document.body.className = curTheme + ' style-' + curStyle + (document.body.classList.contains('is-final') ? ' is-final' : ''); }
-        
         function handleGate() { clicks++; if(clicks>=3){document.getElementById('work-drawer').style.maxHeight='550px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
 
         async function loadSheetData() {
@@ -156,7 +166,7 @@
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (urlId) renderSheet(urlId);
-            } catch(e) { console.log("系統同步中"); }
+            } catch(e) { console.log("連線中"); }
         }
 
         function fixImg(url) {
@@ -176,18 +186,6 @@
                 document.getElementById('u-slogan').innerText = d[getI('理念')] || "";
                 document.getElementById('u-service').innerText = d[getI('服務')] || "";
                 document.getElementById('u-img').src = fixImg(d[getI('形象照')]);
-                let lkIdx = 1;
-                for(let i=1; i<=3; i++) { if(document.getElementById('lk'+i)) document.getElementById('lk'+i).style.display = 'none'; }
-                h.forEach((head, idx) => {
-                    const val = d[idx];
-                    if((head.includes('影音') || head.includes('平台')) && val && val.includes('http') && lkIdx <= 3) {
-                        const el = document.getElementById('lk' + lkIdx);
-                        if(el) { el.style.display = 'flex'; el.href = val; el.innerHTML = (val.includes('youtube') ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>'); }
-                        lkIdx++;
-                    }
-                });
-                document.getElementById('link-line-oa').href = d[h.findIndex(head => head.includes('官方帳號'))] || "#";
-                document.getElementById('link-tel').href = "tel:" + (d[getI('電話')] || "");
                 const prodIdx = h.findIndex(head => head.includes('產品'));
                 if(prodIdx !== -1 && d[prodIdx]) {
                     const photoUrls = d[prodIdx].split(/[,，\s\n]+/).filter(u => u.includes('http'));
@@ -205,10 +203,9 @@
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
             navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
         }
-        
         function copyMainUrl() {
             const mainUrl = `${window.location.origin}${window.location.pathname}`;
-            navigator.clipboard.writeText(mainUrl).then(() => alert("感謝您的推薦！門面網址已複製，快去分享給好友吧！"));
+            navigator.clipboard.writeText(mainUrl).then(() => alert("✅ 門面網址已複製！"));
         }
         init();
     </script>
