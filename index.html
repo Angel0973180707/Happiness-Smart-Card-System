@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V237</title>
+    <title>天使幸福智慧名片 V239</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -45,18 +45,20 @@
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
         .text { font-size: 14.5px; color: #2d3436; line-height: 1.8; white-space: pre-wrap; }
 
+        /* 🚀 門面專用區塊 */
+        .door-only { display: block; }
+        body.is-final .door-only { display: none !important; }
+
         .photo-list { width: 100%; display: flex; flex-direction: column; gap: 15px; }
         .photo-item { width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #eee; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
         .photo-item img { width: 100%; height: auto; display: block; }
-
-        #order-box { display: block; margin-top: 20px; }
-        body.is-final #order-box { display: none !important; }
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #f8f9fa; padding: 14px; border-radius: 18px; color: #333; font-size: 14px; font-weight: 900; text-align: center; box-shadow: 5px 5px 10px rgba(0,0,0,0.05); }
         .btn-line { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; font-size: 16px; border: none; }
 
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 3000; border-radius: 40px 40px 0 0; }
+        .drawer-btn { width: 90%; padding: 15px; border-radius: 15px; border: none; margin-top: 10px; font-weight: bold; cursor: pointer; }
         .footer { font-size: 11px; color: #ccc; padding: 25px; cursor: pointer; text-align: center; }
     </style>
 </head>
@@ -89,12 +91,18 @@
                 <a href="#" id="lk2" class="social-link" target="_blank"></a>
                 <a href="#" id="lk3" class="social-link" target="_blank"></a>
             </div>
+            
             <div class="content-box">
                 <span class="label">服務項目</span>
                 <div id="u-service" class="text">智慧名片設計製作 / 幸福教養系統推廣</div>
             </div>
+
+            <div class="door-only content-box" style="background: #f0f7ff; border: 1px solid #00cec9; text-align: center; cursor: pointer;" onclick="copyMainUrl()">
+                <span class="label" style="color:#0984e3">📢 推薦分享給好友</span>
+                <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製門面網址</div>
+            </div>
             
-            <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ff7675;">
+            <div id="order-box" class="door-only content-box" style="background: #fff9f9; border: 1px dashed #ff7675;">
                 <span class="label" style="color:#ff7675">📝 預約製作您的智慧名片</span>
                 <a href="https://forms.gle/zXN6p3o2wV3X3G596" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">點我填寫申請表單 →</a>
             </div>
@@ -114,12 +122,13 @@
     <div id="work-drawer">
         <div style="padding: 25px; text-align: center;">
             <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd;" placeholder="輸入序號或姓名">
-            <button onclick="doPreview()" style="width:90%; padding:15px; border-radius:15px; background:#ff7675; color:white; border:none; margin-top:10px; font-weight:bold;">1. 預覽成品</button>
-            <button onclick="doCopy()" style="width:90%; padding:15px; border-radius:15px; background:#2ecc71; color:white; border:none; margin-top:10px; font-weight:bold;">2. 製作並複製交貨網址</button>
+            <button onclick="doPreview()" class="drawer-btn" style="background:#ff7675; color:white;">1. 預覽成品</button>
+            <button onclick="doCopy()" class="drawer-btn" style="background:#2ecc71; color:white;">2. 製作並複製交貨網址</button>
+            <button onclick="copyMainUrl()" class="drawer-btn" style="background:#3498db; color:white;">3. 複製門面網址分享</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V237</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V239</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -140,7 +149,6 @@
         function handleGate() { clicks++; if(clicks>=3){document.getElementById('work-drawer').style.maxHeight='550px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
 
         async function loadSheetData() {
-            // 🚀 加入時間戳記避免緩存
             const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
             try {
                 const res = await fetch(csvUrl);
@@ -148,7 +156,7 @@
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (urlId) renderSheet(urlId);
-            } catch(e) { console.log("系統就緒"); }
+            } catch(e) { console.log("系統同步中"); }
         }
 
         function fixImg(url) {
@@ -161,23 +169,13 @@
             if(!keyword || !allRows[0]) return;
             const h = allRows[0];
             const getI = (k) => h.findIndex(head => head.includes(k));
-            
-            // 🚀 強化比對：比對序號(第一欄)或姓名(第二欄)
-            const d = allRows.find((r, idx) => {
-                if(idx === 0) return false;
-                const rowId = r[0] ? r[0].toString().trim() : "";
-                const rowName = r[1] ? r[1].toString().trim() : "";
-                const searchKey = keyword.toString().trim();
-                return rowId === searchKey || rowName === searchKey;
-            });
-
+            const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
             if(d) {
                 document.getElementById('u-name').innerText = d[getI('姓名')] || "";
                 document.getElementById('u-unit').innerText = d[getI('單位')] || "";
                 document.getElementById('u-slogan').innerText = d[getI('理念')] || "";
                 document.getElementById('u-service').innerText = d[getI('服務')] || "";
                 document.getElementById('u-img').src = fixImg(d[getI('形象照')]);
-                
                 let lkIdx = 1;
                 for(let i=1; i<=3; i++) { if(document.getElementById('lk'+i)) document.getElementById('lk'+i).style.display = 'none'; }
                 h.forEach((head, idx) => {
@@ -188,18 +186,14 @@
                         lkIdx++;
                     }
                 });
-                
                 document.getElementById('link-line-oa').href = d[h.findIndex(head => head.includes('官方帳號'))] || "#";
                 document.getElementById('link-tel').href = "tel:" + (d[getI('電話')] || "");
-                
                 const prodIdx = h.findIndex(head => head.includes('產品'));
                 if(prodIdx !== -1 && d[prodIdx]) {
                     const photoUrls = d[prodIdx].split(/[,，\s\n]+/).filter(u => u.includes('http'));
                     for(let i=1; i<=2; i++) document.getElementById('p'+i).style.display = 'none';
                     photoUrls.forEach((url, idx) => { if(idx < 2) { document.getElementById('p' + (idx+1)).style.display = 'block'; document.getElementById('u-p' + (idx+1)).src = fixImg(url); } });
                 }
-            } else {
-                alert("找不到對應的資料，請確認序號或姓名是否正確！");
             }
         }
 
@@ -209,7 +203,12 @@
             const id = document.getElementById('work-id').value;
             if(!id) { alert("請輸入客戶 ID"); return; }
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！已鎖定目前選定的配色。"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
+        }
+        
+        function copyMainUrl() {
+            const mainUrl = `${window.location.origin}${window.location.pathname}`;
+            navigator.clipboard.writeText(mainUrl).then(() => alert("感謝您的推薦！門面網址已複製，快去分享給好友吧！"));
         }
         init();
     </script>
