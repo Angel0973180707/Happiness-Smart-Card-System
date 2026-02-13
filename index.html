@@ -3,46 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V206</title>
+    <title>天使幸福智慧名片 V207</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         :root { --p: #ff7675; --s: #ee5253; --bg: #f8f9fa; }
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        /* 🚀 恢復 5色3版 控制區 */
+        /* 版型切換區 */
         #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0; border-bottom: 1px solid #eee; z-index: 1000; flex-shrink: 0; }
         .is-final #admin-panel { display: none; }
-        .picker-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 10px; }
-        .dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .btn-style { padding: 6px 15px; border-radius: 20px; border: 1px solid #ddd; font-size: 12px; cursor: pointer; background: white; font-weight: bold; }
+        .picker-group { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
+        .dot { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn-style { padding: 5px 12px; border-radius: 15px; border: 1px solid #ddd; font-size: 11px; cursor: pointer; background: white; font-weight: bold; }
         .btn-style.active { background: #2d3436 !important; color: white !important; }
 
         /* 名片結構 */
-        .card { background: white; width: 92%; max-width: 380px; height: 660px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
+        .card { background: white; width: 92%; max-width: 380px; height: 660px; border-radius: 40px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.12); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
-        .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s ease; }
+        .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
         
-        /* 🚀 3種版型樣式定義 */
         .style-flat .arch-overlay { border-radius: 0; height: 35px; }
-        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
+        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 95px; }
 
         .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 5px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
-        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #eee; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
 
         .info-scroll { flex-grow: 1; overflow-y: auto; padding: 45px 25px 20px; text-align: center; scrollbar-width: none; }
         .info-scroll::-webkit-scrollbar { display: none; }
         
         .name { font-size: 26px; font-weight: 900; color: #333; margin: 5px 0; }
-        .unit { font-size: 15px; color: var(--s); font-weight: 700; margin-bottom: 15px; }
-        
-        /* 門面營業項目：鎖定 V180 內容 */
-        .content-box { text-align: left; background: #fdfdfd; padding: 18px; border-radius: 20px; margin-bottom: 20px; border: 1px solid #f1f2f6; }
-        .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 4px; display: block; }
-        .text { font-size: 14.5px; color: #444; line-height: 1.7; white-space: pre-wrap; }
+        .unit { font-size: 15px; color: var(--s); font-weight: 700; margin-bottom: 12px; }
 
         .social-bar { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
         .social-link { width: 44px; height: 44px; border-radius: 12px; background: #fff; display: none; align-items: center; justify-content: center; text-decoration: none; font-size: 20px; border: 1px solid #f1f1f1; color: var(--s); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        .content-box { text-align: left; background: #fdfdfd; padding: 18px; border-radius: 20px; margin-bottom: 20px; border: 1px solid #f1f2f6; }
+        .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 4px; display: block; }
+        .text { font-size: 14.5px; color: #444; line-height: 1.7; white-space: pre-wrap; }
 
         .photo-list { width: 100%; display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
         .photo-item { width: 90%; margin: 0 auto; border-radius: 15px; overflow: hidden; border: 1px solid #eee; display: none; }
@@ -50,12 +48,11 @@
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #fff; padding: 12px; border-radius: 15px; color: #333; font-size: 13.5px; font-weight: 900; text-align: center; border: 1.5px solid #eee; cursor: pointer; }
-        .btn-line { background: #06C755 !important; color: white !important; grid-column: span 2; font-size: 16px; border: none; }
+        .btn-green { background: #06C755 !important; color: white !important; grid-column: span 2; font-size: 16px; border: none; }
 
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 2000; border-radius: 35px 35px 0 0; }
         .footer { font-size: 11px; color: #ccc; padding: 25px; cursor: pointer; }
 
-        /* 色系定義 */
         .warm-pink { --p: #ff7675; --s: #ee5253; }
         .aurora-blue { --p: #00cec9; --s: #0984e3; }
         .vivid-orange { --p: #fab1a0; --s: #e17055; }
@@ -85,7 +82,7 @@
         <div class="avatar-wrap"><img id="u-img" src="167777.png" class="avatar"></div>
         
         <div class="info-scroll">
-            <h1 id="u-name" class="name">小天使笑長</h1>
+            <h1 id="u-name" class="name">小天使</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
             
             <div class="social-bar">
@@ -96,8 +93,7 @@
 
             <div class="content-box">
                 <span class="label">服務項目與專業內容</span>
-                <div class="text">智慧名片設計製作 / 幸福教養系統推廣
-一鍵導航，讓您的專業一眼被看見</div>
+                <div id="u-desc" class="text">智慧名片設計製作 / 幸福教養系統推廣...</div>
             </div>
 
             <div id="photo-list" class="photo-list">
@@ -108,22 +104,22 @@
         </div>
 
         <div class="actions">
-            <a href="javascript:void(0)" id="link-line-oa" class="act-btn btn-line" onclick="deepLink(this.getAttribute('data-url'))">✅ LINE 官方帳號</a>
+            <a href="javascript:void(0)" id="link-line-oa" class="act-btn btn-green" onclick="jumpLine(this.getAttribute('data-url'))">✅ LINE 官方帳號</a>
             <a href="tel:0973180707" id="link-tel" class="act-btn">📞 一鍵電話</a>
             <a href="mailto:a0973180707@gmail.com" id="link-mail" class="act-btn">✉️ 寄送郵箱</a>
-            <a href="javascript:void(0)" id="link-line-p" class="act-btn" style="grid-column: span 2;" onclick="deepLink(this.getAttribute('data-url'))">💬 LINE 私訊找我</a>
+            <a href="javascript:void(0)" id="link-line-p" class="act-btn" style="grid-column: span 2;" onclick="jumpLine(this.getAttribute('data-url'))">💬 LINE 私訊找我</a>
         </div>
     </div>
 
     <div id="work-drawer">
         <div style="padding: 25px; text-align: center;">
-            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd; margin-bottom:15px;" placeholder="輸入：小天使">
-            <button onclick="doPreview()" style="width:90%; padding:15px; border-radius:15px; background:#ff7675; color:white; border:none; font-weight:bold;">1. 預覽成品</button>
-            <button onclick="doCopy()" style="width:90%; padding:15px; border-radius:12px; background:#2ecc71; color:white; border:none; margin-top:10px; font-weight:bold;">2. 複製網址交付</button>
+            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:12px; border:1px solid #ddd; margin-bottom:15px;" placeholder="輸入：小天使">
+            <button onclick="doPreview()" style="width:90%; padding:15px; border-radius:12px; background:#ff7675; color:white; border:none; font-weight:bold;">1. 預覽成品</button>
+            <button onclick="doCopy()" style="width:90%; padding:15px; border-radius:12px; background:#2ecc71; color:white; border:none; margin-top:10px; font-weight:bold;">2. 複製網址</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 天使幸福智慧名片<br>V206 旗艦對位版</div>
+    <div class="footer" onclick="handleGate()">© 2026 天使幸福智慧名片<br>V207 智慧識別版</div>
 
     <script>
         let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
@@ -132,15 +128,16 @@
 
         if(urlId) { document.body.classList.add('is-final'); }
 
-        function setTheme(t) { curTheme = t; document.body.className = t + ' style-' + curStyle + (urlId ? ' is-final' : ''); }
-        function setStyle(s, btn) { curStyle = s; document.body.className = curTheme + ' style-' + s + (urlId ? ' is-final' : ''); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
+        function setTheme(t) { curTheme = t; updateClass(); }
+        function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
+        function updateClass() { document.body.className = curTheme + ' style-' + curStyle + (urlId ? ' is-final' : ''); }
         function handleGate() { clicks++; if(clicks>=3){document.getElementById('work-drawer').style.maxHeight='550px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
 
-        // 🚀 深層喚醒 LINE 程式
-        function deepLink(url) {
+        // 🚀 最高層級跳轉指令
+        function jumpLine(url) {
             if(!url) return;
-            location.replace(url);
-            setTimeout(() => { window.open(url, '_blank'); }, 300);
+            top.location.href = url;
+            setTimeout(() => { window.location.assign(url); }, 300);
         }
 
         async function loadSheetData() {
@@ -168,8 +165,18 @@
             if(d) {
                 document.getElementById('u-name').innerText = d[getI('姓名')] || "小天使笑長";
                 document.getElementById('u-unit').innerText = d[getI('單位')] || "幸福智慧服務中心";
+                
+                // 🚀 營業項目智慧判斷 (解決成品讀不到的問題)
+                const sIdx = h.findIndex(head => head.includes('服務') || head.includes('項目'));
+                if(urlId && d[sIdx]) {
+                    document.getElementById('u-desc').innerText = d[sIdx];
+                } else {
+                    document.getElementById('u-desc').innerText = "智慧名片設計製作 / 幸福教養系統推廣\n一鍵導航，讓您的專業一眼被看見";
+                }
+
                 document.getElementById('u-img').src = fixImg(d[getI('形象照')]) || "167777.png";
                 
+                // 產品照
                 const prodStr = d[h.findIndex(head => head.includes('產品') || head.includes('照片'))];
                 if(prodStr) {
                     const photos = prodStr.split(/[,，]/);
@@ -181,24 +188,13 @@
                     });
                 }
 
-                // LINE 連結存入 Data 屬性
+                // LINE 連結對位
                 const oa = d[h.findIndex(head => head.includes('官方帳號'))];
-                const linep = d[h.findIndex(head => head.includes('私訊 LINE'))];
+                const p = d[h.findIndex(head => head.includes('私訊 LINE'))];
                 if(oa) document.getElementById('link-line-oa').setAttribute('data-url', oa);
-                if(linep) document.getElementById('link-line-p').setAttribute('data-url', linep);
+                if(p) document.getElementById('link-line-p').setAttribute('data-url', p);
                 
                 document.getElementById('link-tel').href = "tel:" + (d[getI('電話')] || "");
-                document.getElementById('link-mail').href = "mailto:" + (d[getI('email')] || "");
-
-                let lkCount = 1;
-                h.forEach((head, idx) => {
-                    const val = d[idx];
-                    if((head.includes('平台') || head.includes('需求')) && val && val.includes('http') && !val.includes('line.me') && lkCount <= 3) {
-                        const el = document.getElementById('lk' + lkCount);
-                        el.style.display = 'flex'; el.href = val;
-                        lkCount++;
-                    }
-                });
             }
         }
 
@@ -207,7 +203,7 @@
         function doCopy() {
             const id = document.getElementById('work-id').value;
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 幸福連結已複製！"));
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 幸福交付連結已複製！"));
         }
         init();
     </script>
