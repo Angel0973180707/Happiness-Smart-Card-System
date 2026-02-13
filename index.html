@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V276</title>
+    <title>天使幸福智慧名片 V277</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -16,14 +16,19 @@
 
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
+        #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0 10px; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
         body.is-final #admin-panel { display: none !important; }
+        
         .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
         .dot { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .btn-style { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
-        .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 35px 70px rgba(0,0,0,0.18); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
+        /* 🚀 導引標籤動態效果 */
+        .guide-tag { display: inline-block; background: #fdf2f2; color: #ee5253; padding: 4px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; margin-top: 5px; border: 1px solid #ffcccc; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.03); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
+
+        .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 35px 70px rgba(0,0,0,0.18); position: relative; margin: 15px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
         
@@ -50,7 +55,6 @@
         .btn-sub { background: #ffffff !important; color: #06C755 !important; border: 2px solid #06C755 !important; }
 
         #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; align-items:center; justify-content:center; flex-direction:column; color: white; padding: 20px; text-align: center; }
-        
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 3000; border-radius: 40px 40px 0 0; }
         .footer { font-size: 11px; color: #bbb; padding: 25px; cursor: pointer; text-align: center; }
     </style>
@@ -70,6 +74,7 @@
             <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
             <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
         </div>
+        <div class="guide-tag">✨ 點擊上方圓點換顏色，按鈕換版型</div>
     </div>
 
     <div id="card-container" class="card">
@@ -130,7 +135,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V276</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V277</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -171,7 +176,6 @@
             } catch(e) { console.log("資料同步中"); }
         }
 
-        // 🚀 核心：預覽功能實作
         function doPreview() {
             const id = document.getElementById('work-id').value;
             if(id) renderSheet(id);
