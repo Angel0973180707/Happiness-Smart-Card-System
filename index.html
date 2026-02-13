@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V310</title>
-    <link rel="manifest" href="./manifest.json?v=310">
+    <title>天使幸福智慧名片 V311</title>
+    <link rel="manifest" href="./manifest.json?v=311">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -17,14 +17,12 @@
 
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow: hidden; }
         
-        /* 控制台 */
         #admin-panel { width: 100%; background: white; text-align: center; padding: 10px 0; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
         .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 5px; }
         .dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .btn-style { padding: 5px 12px; border-radius: 15px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
-        /* 名片主體 */
         .card { background: white; width: 92%; max-width: 380px; height: 82vh; max-height: 720px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         
         #u-logo { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; z-index: 150; border-radius: 10px; overflow: hidden; display: none; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -38,7 +36,6 @@
         .avatar-wrap { width: 120px; height: 120px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; border: 2px solid var(--p); }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-        /* 🚀 捲動核心 */
         .info-scroll { flex: 1; overflow-y: auto !important; padding: 45px 20px 20px; text-align: center; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .info-scroll::-webkit-scrollbar { display: none; }
         
@@ -51,18 +48,16 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 15px; border: 1px solid #f0f0f0; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; margin-top: 10px; }
-
-        /* 🚀 固定聯繫區 */
+        /* 底部按鈕區 */
         .actions { background: white; padding: 12px 20px 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; border: none; }
 
-        /* 彈窗與抽屜 */
-        #install-modal, #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:11000; align-items:center; justify-content:center; }
-        .modal-content { background: white; width: 85%; max-width: 320px; border-radius: 35px; padding: 25px; text-align: center; }
+        /* 隱藏入口/彈窗區 */
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 12000; border-radius: 40px 40px 0 0; }
         .footer { font-size: 11px; color: #bbb; padding: 25px; cursor: pointer; text-align: center; flex-shrink: 0; }
+        #install-modal, #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:11000; align-items:center; justify-content:center; }
+        .modal-content { background: white; width: 85%; max-width: 320px; border-radius: 35px; padding: 25px; text-align: center; }
     </style>
 </head>
 <body class="warm-pink style-arch">
@@ -91,8 +86,6 @@
             <h1 id="u-name" class="name">載入中...</h1>
             <div id="u-unit" class="unit"></div>
             
-            <div id="u-products"></div>
-
             <div id="door-content" style="display:none;">
                 <div class="content-box" style="background: #f0f7ff; border: 1px solid #00a8ff; text-align: center; cursor: pointer;" onclick="handleShare()">
                     <span class="label" style="color:#0097e6">📢 推薦製作智慧名片</span>
@@ -104,6 +97,8 @@
                 </div>
             </div>
 
+            <div id="u-products"></div>
+
             <div class="content-box">
                 <span class="label">服務項目</span>
                 <div id="u-service" style="font-size: 14.5px; color: #2d3436; line-height: 1.6; white-space: pre-wrap;"></div>
@@ -113,13 +108,13 @@
                 <div id="u-qa" style="font-size: 13.5px; color: #2d3436; line-height: 1.6;"></div>
             </div>
             <div id="install-entry" style="display:none; padding-bottom: 20px;">
-                <button class="mini-install-btn" onclick="document.getElementById('install-modal').style.display='flex'">📲 安裝名片 App 教學</button>
+                <button onclick="document.getElementById('install-modal').style.display='flex'" style="background:#fff; color:var(--p); border:1.5px solid var(--p); padding:8px 15px; border-radius:50px; font-size:12px; font-weight:900; cursor:pointer;">📲 安裝名片 App 教學</button>
             </div>
         </div>
         
         <div class="actions">
             <a href="" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
-            <a href="javascript:void(0)" class="act-btn" onclick="showWechatText()">💬 微信聯繫</a>
+            <a href="javascript:void(0)" class="act-btn" onclick="document.getElementById('wechat-mask').style.display='flex'">💬 微信聯繫</a>
             <a href="mailto:" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
             <a href="tel:" id="btn-tel" class="act-btn">📞 撥打電話</a>
         </div>
@@ -148,7 +143,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V310</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V311</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -210,7 +205,7 @@
                     document.getElementById('wechat-id-text').innerText = d[9] || "";
                     document.getElementById('btn-oa').href = d[17];
                     document.getElementById('btn-mail').href = "mailto:" + d[18];
-                    document.getElementById('btn-tel').href = "tel:" + d[19];
+                    document.getElementById('btn-tel').href = d[19];
                     document.getElementById('u-service').innerText = d[4];
                     document.getElementById('u-qa').innerHTML = `<b>Q: ${d[20]}</b><br>A: ${d[21]}`;
                     document.getElementById('admin-panel').style.display = 'none';
@@ -220,7 +215,6 @@
             }
         }
 
-        function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
         function copyWechat() { navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製")); }
         function copyCurrentUrl() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製")); }
         function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
