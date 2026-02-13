@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V262</title>
+    <title>天使幸福智慧名片 V263</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -22,7 +22,7 @@
         .dot { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .btn-style { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
-        
+
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 35px 70px rgba(0,0,0,0.18); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
@@ -42,7 +42,7 @@
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
-        .act-btn { display: none; text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; }
+        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: none; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; font-size: 15px; border: none; }
         .btn-sub { background: #ffffff !important; color: #06C755 !important; border: 2px solid #06C755 !important; }
 
@@ -70,9 +70,9 @@
 
     <div id="card-container" class="card">
         <div class="banner"><div class="arch-overlay"></div></div>
-        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
+        <div class="avatar-wrap"><img id="u-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" class="avatar"></div>
         <div class="info-scroll">
-            <h1 id="u-name" class="name">讀取中...</h1>
+            <h1 id="u-name" class="name">小天使笑長</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
 
             <div class="social-bar">
@@ -106,9 +106,9 @@
         </div>
         
         <div class="actions">
-            <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
+            <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank" style="display:block;">✅ LINE 官方帳號</a>
             <a href="javascript:void(0)" id="btn-wechat" class="act-btn" onclick="showWechat()" style="display:block;">💬 微信聯繫</a>
-            <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
+            <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn" style="display:block;">✉️ 寄送郵箱</a>
             <a href="https://line.me/ti/p/VqJzbWHm_4" id="btn-p" class="act-btn btn-sub" target="_blank" style="display:block;">👤 LINE 加好友</a>
         </div>
     </div>
@@ -126,7 +126,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V262</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V263</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -155,7 +155,7 @@
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (urlId) renderSheet(urlId); else renderSheet("1");
-            } catch(e) { console.log("資料讀取中"); }
+            } catch(e) { console.log("連線中"); }
         }
 
         function renderSheet(keyword) {
@@ -170,11 +170,8 @@
 
                 document.getElementById('u-name').innerText = getVal('姓名');
                 document.getElementById('u-unit').innerText = getVal('單位');
-                // 形象照寫死備援
-                const avatar = getVal('形象照');
-                document.getElementById('u-img').src = avatar ? fixImg(avatar) : "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
+                document.getElementById('u-img').src = fixImg(getVal('形象照')) || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
                 
-                // 影音區
                 let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
@@ -187,16 +184,18 @@
                     }
                 });
 
-                // 聯繫按鈕邏輯
+                // 🚀 關鍵修正：成品與門面按鈕切換邏輯
                 const isMain = (!urlId && !document.getElementById('work-id').value) || keyword == "1";
                 if(isMain) {
-                    document.getElementById('btn-oa').style.display = 'block';
-                    document.getElementById('btn-p').style.display = 'block';
-                    document.getElementById('btn-wechat').style.display = 'block';
-                    document.getElementById('btn-mail').style.display = 'block';
+                    // 門面強制全開，內容鎖死您的資料
+                    document.getElementById('btn-oa').style.display = 'block'; document.getElementById('btn-oa').href = "https://lin.ee/2ac9Roe";
+                    document.getElementById('btn-p').style.display = 'block'; document.getElementById('btn-p').href = "https://line.me/ti/p/VqJzbWHm_4";
+                    document.getElementById('btn-wechat').style.display = 'block'; document.getElementById('wechat-img').src = "https://raw.githubusercontent.com/fsh-angel/happiness-card/main/wechat_qr.jpg";
+                    document.getElementById('btn-mail').style.display = 'block'; document.getElementById('btn-mail').href = "mailto:a0973180707@gmail.com";
                     document.getElementById('advantage-box').style.display = 'block';
                     document.getElementById('order-box').style.display = 'block';
                 } else {
+                    // 成品區讀取客戶資料
                     const oa = getVal('官方帳號'), p = getVal('私訊 LINE'), wx = getVal('微信'), ml = getVal('郵箱');
                     document.getElementById('btn-oa').style.display = oa ? 'block' : 'none'; if(oa) document.getElementById('btn-oa').href = oa;
                     document.getElementById('btn-p').style.display = p ? 'block' : 'none'; if(p) document.getElementById('btn-p').href = p;
