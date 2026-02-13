@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V253</title>
+    <title>天使幸福智慧名片 V255</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -94,7 +94,7 @@
                 <span class="label" style="color: #6c5ce7;">🏆 為什麼您需要智慧名片？</span>
                 <div class="advantage-item"><i class="fas fa-check-circle"></i> 一鍵分享：複製網址，傳播全世界</div>
                 <div class="advantage-item"><i class="fas fa-check-circle"></i> 影音整合：個人YouTube、FB 等平臺展示</div>
-                <div class="advantage-item"><i class="fas fa-check-circle"></i> 輕鬆更新：後台同步，資料隨時改</div>
+                <div class="advantage-item"><i class="fas fa-check-circle"></i> 內容更新：後台更新，所有名片同步更新</div>
                 <div class="advantage-item"><i class="fas fa-check-circle"></i> 永不遺失：數位名片隨時隨地查看</div>
             </div>
 
@@ -136,7 +136,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V253</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V255</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -207,19 +207,20 @@
                     }
                 });
 
-                const oa = getVal('官方帳號');
-                const p = getVal('私訊 LINE');
-                const wechat = getVal('微信');
-                const mail = getVal('郵箱');
+                // 🚀 聯繫按鈕：如果試算表有填就讀取，沒填就用預設值（門面專用）
+                const oa = getVal('官方帳號') || "https://lin.ee/2ac9Roe";
+                const p = getVal('私訊 LINE') || "https://line.me/ti/p/VqJzbWHm_4";
+                const wechat = getVal('微信') || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
+                const mail = getVal('郵箱') || "a0973180707@gmail.com";
 
-                document.getElementById('btn-oa').style.display = oa ? 'block' : 'none';
-                if(oa) document.getElementById('btn-oa').href = oa;
-                document.getElementById('btn-p').style.display = p ? 'block' : 'none';
-                if(p) document.getElementById('btn-p').href = p;
-                document.getElementById('btn-wechat').style.display = wechat ? 'block' : 'none';
-                if(wechat) document.getElementById('wechat-img').src = fixImg(wechat);
-                document.getElementById('btn-mail').style.display = mail ? 'block' : 'none';
-                if(mail) document.getElementById('btn-mail').href = "mailto:" + mail;
+                document.getElementById('btn-oa').style.display = 'block';
+                document.getElementById('btn-oa').href = oa;
+                document.getElementById('btn-p').style.display = 'block';
+                document.getElementById('btn-p').href = p;
+                document.getElementById('btn-wechat').style.display = 'block';
+                document.getElementById('wechat-img').src = fixImg(wechat);
+                document.getElementById('btn-mail').style.display = 'block';
+                document.getElementById('btn-mail').href = mail.includes('@') ? "mailto:" + mail : mail;
 
                 const prodVal = getVal('產品');
                 if(prodVal) {
@@ -234,15 +235,6 @@
         }
 
         async function init() { await loadSheetData(); updateClass(); }
-        function doPreview() { renderSheet(document.getElementById('work-id').value); }
-        function doCopy() {
-            const id = document.getElementById('work-id').value;
-            const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
-            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
-        }
-        function copyMainUrl() {
-            navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}`).then(() => alert("✅ 門面網址已複製！"));
-        }
         init();
     </script>
 </body>
