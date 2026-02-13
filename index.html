@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V277</title>
+    <title>天使幸福智慧名片 V279</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ee5253">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -24,7 +27,6 @@
         .btn-style { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
-        /* 🚀 導引標籤動態效果 */
         .guide-tag { display: inline-block; background: #fdf2f2; color: #ee5253; padding: 4px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; margin-top: 5px; border: 1px solid #ffcccc; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.03); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
 
@@ -103,6 +105,11 @@
                 <div style="font-size:14px; color:#2d3436;">永不遺失：數位名片隨時隨地查看</div>
             </div>
 
+            <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ee5253;">
+                <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
+                <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">立即填寫預約表單 →</a>
+            </div>
+
             <div class="content-box">
                 <span class="label">服務項目</span>
                 <div id="u-service" class="text" style="font-size: 14.5px; color: #2d3436; line-height: 1.8;">智慧名片設計製作 / 幸福教養系統推廣</div>
@@ -135,7 +142,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V277</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V279</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -145,12 +152,9 @@
         let curStyle = urlParams.get('style') || 'arch';
 
         function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
-        
         function copyWechat() {
             const idText = document.getElementById('wechat-id-text').innerText;
-            navigator.clipboard.writeText(idText).then(() => {
-                alert("微信 ID 已複製：" + idText + "\n請前往微信搜尋添加！");
-            });
+            navigator.clipboard.writeText(idText).then(() => { alert("微信 ID 已複製：" + idText + "\n請前往微信搜尋添加！"); });
         }
 
         function setTheme(t) { curTheme = t; updateClass(); }
@@ -216,6 +220,7 @@
                     document.getElementById('btn-mail').href = "mailto:a0973180707@gmail.com";
                     document.getElementById('wechat-id-text').innerText = "a0973180707";
                     document.getElementById('advantage-box').style.display = 'block';
+                    document.getElementById('order-box').style.display = 'block';
                 } else {
                     document.getElementById('share-label').innerText = "🔗 分享我的智慧名片";
                     const oa = getVal('官方帳號'), p = getVal('私訊 LINE'), wx = getVal('微信'), ml = getVal('郵箱');
@@ -224,6 +229,7 @@
                     document.getElementById('wechat-id-text').innerText = wx || "未提供";
                     if(ml) document.getElementById('btn-mail').href = ml.includes('@') ? "mailto:"+ml : ml;
                     document.getElementById('advantage-box').style.display = 'none';
+                    document.getElementById('order-box').style.display = 'none';
                 }
             }
         }
@@ -236,6 +242,13 @@
 
         async function init() { await loadSheetData(); updateClass(); }
         init();
+
+        // 🚀 PWA Service Worker 註冊
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW註冊失敗', err));
+            });
+        }
     </script>
 </body>
 </html>
