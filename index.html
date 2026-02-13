@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V298</title>
-    <link rel="manifest" href="./manifest.json?v=298">
+    <title>天使幸福智慧名片 V300</title>
+    <link rel="manifest" href="./manifest.json?v=300">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -17,19 +17,19 @@
 
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow: hidden; }
         
-        /* 5色3版控制台 */
-        #admin-panel { width: 100%; background: white; text-align: center; padding: 10px 0; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
-        .picker-group { display: flex; justify-content: center; gap: 10px; margin-bottom: 5px; }
-        .dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .btn-style { padding: 5px 12px; border-radius: 15px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; }
+        #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0 10px; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
+        .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
+        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .btn-style { padding: 6px 14px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         
-        .brand-logo { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; z-index: 150; border-radius: 10px; overflow: hidden; display: none; background: white; }
-        .brand-logo img { width: 100%; height: 100%; object-fit: contain; }
+        /* Logo 位置預留 */
+        #u-logo { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; z-index: 150; border-radius: 10px; overflow: hidden; display: none; background: white; }
+        #u-logo img { width: 100%; height: 100%; object-fit: contain; }
 
-        .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
+        .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
         .style-flat .arch-overlay { border-radius: 0; height: 35px; }
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
@@ -37,37 +37,40 @@
         .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; border: 2px solid var(--p); }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-        /* 內容區 */
-        .info-scroll { flex: 1; overflow-y: auto; padding: 45px 20px 10px; text-align: center; scrollbar-width: none; }
+        .info-scroll { flex: 1; overflow-y: auto; padding: 45px 20px 0; text-align: center; scrollbar-width: none; }
         .info-scroll::-webkit-scrollbar { display: none; }
         
         .name { font-size: 26px; font-weight: 900; color: #2d3436; margin: 5px 0; }
-        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 5px; }
-        .slogan { font-size: 13px; color: #636e72; margin-bottom: 12px; }
-
-        .product-gallery { display: flex; gap: 8px; margin: 15px 0; justify-content: center; }
+        .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 8px; }
+        
+        /* 產品照預留區 */
+        #u-products { display: flex; gap: 8px; margin: 15px 0; justify-content: center; }
         .prod-img { width: 30%; aspect-ratio: 1; border-radius: 12px; object-fit: cover; box-shadow: 0 3px 6px rgba(0,0,0,0.1); }
 
-        .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 15px; border: 1px solid #f0f0f0; }
+        .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 15px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        /* 安裝說明按鈕（成品專用） */
-        .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; margin: 10px 0; display: inline-block; }
+        .bottom-guide-bar { padding: 5px 0 20px; text-align: center; }
+        .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; }
 
-        /* 聯繫按鈕區 */
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
-        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; }
+        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; border: none; }
+        .btn-sub { background: #ffffff !important; color: #06C755 !important; border: 2px solid #06C755 !important; }
 
-        /* 彈窗樣式 */
-        #install-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; }
-        .modal-content { background: white; width: 85%; max-width: 320px; border-radius: 35px; padding: 25px; text-align: center; }
-        
-        #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:11000; align-items:center; justify-content:center; flex-direction:column; color: white; padding: 20px; }
-        
+        /* 彈窗 */
+        #install-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; padding: 20px; }
+        .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 35px; padding: 25px; position: relative; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #999; cursor: pointer; }
+        .modal-tab { display: flex; gap: 8px; margin: 15px 0; }
+        .tab-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .tab-btn.active { background: var(--p); color: white; border-color: var(--p); }
+        .tab-pane { display: none; text-align: left; font-size: 14px; line-height: 1.8; color: #444; }
+        .tab-pane.active { display: block; }
+
+        #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:11000; align-items:center; justify-content:center; flex-direction:column; color: white; }
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 12000; border-radius: 40px 40px 0 0; }
-        
-        .footer { font-size: 11px; color: #bbb; padding: 20px; cursor: pointer; text-align: center; flex-shrink: 0; }
+        .footer { font-size: 11px; color: #bbb; padding: 25px; cursor: pointer; text-align: center; }
     </style>
 </head>
 <body class="warm-pink style-arch">
@@ -90,62 +93,76 @@
     <div id="card-container" class="card">
         <div id="u-logo" class="brand-logo"><img></div>
         <div class="banner"><div class="arch-overlay"></div></div>
-        <div class="avatar-wrap"><img id="u-img" class="avatar" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000"></div>
+        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
         
         <div class="info-scroll">
-            <h1 id="u-name" class="name">小天使笑長</h1>
+            <h1 id="u-name" class="name">讀取中...</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
-            <div id="u-slogan" class="slogan">為您打造個人品牌智慧名片</div>
 
-            <div id="u-products" class="product-gallery"></div>
+            <div id="u-products"></div>
+
+            <div id="share-box" class="content-box" style="background: #f0f7ff; border: 1px solid #00a8ff; text-align: center; cursor: pointer;" onclick="handleShare()">
+                <span id="share-label" class="label" style="color:#0097e6">📢 推薦製作智慧名片</span>
+                <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
+            </div>
 
             <div class="content-box">
                 <span class="label">服務項目</span>
-                <div id="u-service" style="font-size: 14.5px; color: #2d3436; line-height: 1.6; white-space: pre-wrap;">智慧名片設計製作 / 幸福教養系統推廣</div>
+                <div id="u-service" style="font-size: 14.5px; color: #2d3436; line-height: 1.6; white-space: pre-wrap;"></div>
             </div>
 
-            <div id="qa-area" class="content-box">
-                <span class="label">常見問題 FAQ</span>
+            <div class="content-box">
+                <span class="label">專業解答 (Q&A)</span>
                 <div id="u-qa" style="font-size: 13.5px; color: #2d3436; line-height: 1.6;"></div>
             </div>
 
-            <div id="install-entry" style="display:none;">
-                <button class="mini-install-btn" onclick="document.getElementById('install-modal').style.display='flex'">📲 安裝名片到桌面教學</button>
+            <div id="install-entry" class="bottom-guide-bar" style="display:none;">
+                <button class="mini-install-btn" onclick="openInstallModal()">📲 安裝名片 App 教學</button>
             </div>
         </div>
         
-        <div class="actions">
+        <div id="actions-area" class="actions">
             <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
-            <a href="javascript:void(0)" class="act-btn" onclick="showWechatText()">💬 微信聯繫</a>
+            <a href="javascript:void(0)" id="btn-wechat" class="act-btn" onclick="showWechatText()">💬 微信聯繫</a>
             <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
             <a href="https://line.me/ti/p/VqJzbWHm_4" id="btn-p" class="act-btn btn-sub" target="_blank">👤 LINE 加好友</a>
         </div>
     </div>
 
-    <div id="install-modal" onclick="this.style.display='none'">
+    <div id="install-modal" onclick="closeInstallModal(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <h3 style="margin-top:0; color:var(--p);">安裝教學</h3>
-            <button onclick="copyCurrentUrl()" style="background:var(--p); color:white; border:none; padding:10px; border-radius:10px; width:100%; font-weight:bold; margin-bottom:15px;">🔗 複製網址改用瀏覽器開啟</button>
-            <p style="font-size:14px; text-align:left;">🍎 <b>iPhone</b>: 點擊下方 [分享] ⮕ [加入主畫面]<br>🤖 <b>Android</b>: 點擊右上 [三點] ⮕ [安裝應用程式]</p>
+            <span class="close-modal" onclick="closeInstallModal(event)">&times;</span>
+            <h3 style="margin-top:0; color:var(--p); text-align:center;">安裝名片教學</h3>
+            <div style="background:#f8f9fa; padding:15px; border-radius:15px; text-align:center; margin-bottom:15px;">
+                <button onclick="copyCurrentUrl()" style="background:var(--p); color:white; border:none; padding:8px 15px; border-radius:10px; font-weight:bold; width:100%;">🔗 複製網址</button>
+            </div>
+            <div class="modal-tab">
+                <button class="tab-btn active" onclick="switchTab('apple')">🍎 iPhone</button>
+                <button class="tab-btn" onclick="switchTab('android')">🤖 Android</button>
+            </div>
+            <div id="apple-pane" class="tab-pane active">1. 點擊 Safari 下方 [分享箭頭 ⬆️]<br>2. 選擇 [加入主畫面]</div>
+            <div id="android-pane" class="tab-pane">1. 點擊 Chrome 右上角 [三個點點]<br>2. 選擇 [安裝應用程式]</div>
         </div>
     </div>
 
     <div id="wechat-mask" onclick="this.style.display='none'">
-        <div style="background: white; padding: 30px; border-radius: 30px; text-align: center; width: 80%;">
-            <i class="fa-brands fa-weixin" style="font-size: 50px; color: #07C160;"></i>
-            <p id="wechat-id-text" style="font-size: 22px; font-weight: bold; margin: 20px 0; background: #eee; padding: 10px; border-radius: 10px;">a0973180707</p>
-            <button onclick="copyWechat()" style="background: #07C160; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold;">點擊複製 ID</button>
+        <div style="background: white; color: #333; padding: 30px; border-radius: 30px; width: 80%; max-width: 320px; text-align: center;">
+            <i class="fa-brands fa-weixin" style="font-size: 50px; color: #07C160; margin-bottom: 15px;"></i>
+            <h3 style="margin: 10px 0;">微信聯繫 ID</h3>
+            <p id="wechat-id-text" style="font-size: 20px; font-weight: bold; background: #f0f0f0; padding: 10px; border-radius: 10px; margin: 15px 0;">a0973180707</p>
+            <button onclick="copyWechat()" style="background: #07C160; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; width: 100%;">點擊複製 ID</button>
         </div>
     </div>
 
     <div id="work-drawer">
         <div style="padding: 25px; text-align: center;">
-            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd; color: #333;" placeholder="輸入序號或姓名">
+            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd; color: #333;" placeholder="輸入序號">
             <button onclick="doPreview()" style="background:#ee5253; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">預覽成品</button>
+            <button onclick="doCopy()" style="background:#2ecc71; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">複製交貨網址</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V298</div>
+    <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V300</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -153,6 +170,24 @@
         let allRows = []; let clicks = 0;
         let curTheme = urlParams.get('theme') || 'warm-pink';
         let curStyle = urlParams.get('style') || 'arch';
+
+        function openInstallModal() { document.getElementById('install-modal').style.display = 'flex'; }
+        function closeInstallModal(e) { document.getElementById('install-modal').style.display = 'none'; }
+        function switchTab(type) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            if(type === 'apple') { document.querySelectorAll('.tab-btn')[0].classList.add('active'); document.getElementById('apple-pane').classList.add('active'); }
+            else { document.querySelectorAll('.tab-btn')[1].classList.add('active'); document.getElementById('android-pane').classList.add('active'); }
+        }
+        function copyCurrentUrl() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製！")); }
+        function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
+        function copyWechat() { navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製！")); }
+
+        function setTheme(t) { curTheme = t; updateClass(); }
+        function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
+        function updateClass() { document.body.className = curTheme + ' style-' + curStyle; }
+        function handleGate() { clicks++; if(clicks >= 3){document.getElementById('work-drawer').style.maxHeight='500px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
+        function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
 
         function fixImg(url) {
             if (!url) return "";
@@ -163,28 +198,30 @@
 
         async function loadSheetData() {
             const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
-            const res = await fetch(csvUrl);
-            const text = await res.text();
-            const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
-            allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-            renderSheet(urlId || "1");
-            updateClass();
+            try {
+                const res = await fetch(csvUrl);
+                const text = await res.text();
+                const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
+                allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
+                renderSheet(urlId || "1");
+                updateClass();
+            } catch(e) { console.log("資料讀取中"); }
         }
 
         function renderSheet(keyword) {
-            // 🚀 門面寫死，確保品牌不壞
             if (keyword == "1") {
+                // 🚀 門面寫死，守護品牌
                 document.getElementById('u-name').innerText = "小天使笑長";
                 document.getElementById('u-unit').innerText = "幸福智慧服務中心";
-                document.getElementById('u-slogan').innerText = "為您打造個人品牌智慧名片";
-                document.getElementById('u-service').innerText = "智慧名片設計製作\n幸福教養系統推廣";
                 document.getElementById('u-img').src = "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
                 document.getElementById('u-logo').style.display = 'block';
                 document.getElementById('u-logo').querySelector('img').src = "https://drive.google.com/thumbnail?id=1qd5XEPovYPtyPw_MiPjxMBNK1BsQ1UaG&sz=w1000";
+                document.getElementById('u-service').innerText = "智慧名片設計製作 / 幸福教養系統推廣";
                 document.getElementById('u-products').innerHTML = '';
                 document.getElementById('wechat-id-text').innerText = "a0973180707";
                 document.getElementById('btn-oa').href = "https://lin.ee/2ac9Roe";
                 document.getElementById('btn-mail').href = "mailto:a0973180707@gmail.com";
+                document.getElementById('btn-tel').href = "tel:0973180707";
                 document.getElementById('u-qa').innerHTML = "<b>Q: 為什麼需要智慧名片？</b><br>A: 它是您的數位分身，整合影音與聯繫功能。";
                 document.getElementById('admin-panel').style.display = 'block';
                 document.getElementById('install-entry').style.display = 'none';
@@ -193,25 +230,29 @@
                 if(d) {
                     document.getElementById('u-name').innerText = d[1];
                     document.getElementById('u-unit').innerText = d[2];
-                    document.getElementById('u-slogan').innerText = d[3];
                     document.getElementById('u-service').innerText = d[4];
                     document.getElementById('u-img').src = fixImg(d[6]); // G 形象照
                     
                     const prodContainer = document.getElementById('u-products');
                     prodContainer.innerHTML = '';
-                    if(d[7]) d[7].split(',').forEach(url => {
-                        const img = document.createElement('img');
-                        img.src = fixImg(url); img.className = 'prod-img';
-                        prodContainer.appendChild(img);
-                    });
+                    if(d[7]) { // H 產品照
+                        prodContainer.className = 'product-gallery';
+                        d[7].split(',').forEach(url => {
+                            const img = document.createElement('img');
+                            img.src = fixImg(url); img.className = 'prod-img';
+                            prodContainer.appendChild(img);
+                        });
+                    }
 
                     const logoBox = document.getElementById('u-logo');
-                    if(d[8]) { logoBox.style.display = 'block'; logoBox.querySelector('img').src = fixImg(d[8]); }
-                    else { logoBox.style.display = 'none'; }
+                    if(d[8]) { // I Logo
+                        logoBox.style.display = 'block'; logoBox.querySelector('img').src = fixImg(d[8]);
+                    } else { logoBox.style.display = 'none'; }
 
                     document.getElementById('wechat-id-text').innerText = d[9] || "";
                     document.getElementById('btn-oa').href = d[17];
                     document.getElementById('btn-mail').href = "mailto:" + d[18];
+                    document.getElementById('btn-tel').href = "tel:" + d[19];
                     document.getElementById('u-qa').innerHTML = `<b>Q: ${d[20]}</b><br>A: ${d[21]}`;
                     
                     document.getElementById('admin-panel').style.display = 'none';
@@ -220,14 +261,12 @@
             }
         }
 
-        function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
-        function copyWechat() { navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製")); }
-        function copyCurrentUrl() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製")); }
-        function setTheme(t) { curTheme = t; updateClass(); }
-        function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
-        function updateClass() { document.body.className = curTheme + ' style-' + curStyle; }
-        function handleGate() { clicks++; if(clicks >= 3){document.getElementById('work-drawer').style.maxHeight='500px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
         function doPreview() { renderSheet(document.getElementById('work-id').value); }
+        function doCopy() {
+            const id = document.getElementById('work-id').value;
+            const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
+            navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
+        }
 
         loadSheetData();
     </script>
