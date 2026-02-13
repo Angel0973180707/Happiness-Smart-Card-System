@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V269</title>
+    <title>天使幸福智慧名片 V271</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -17,11 +17,6 @@
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
         body.is-final #admin-panel { display: none !important; }
-
-        .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
-        .dot { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-        .btn-style { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
-        .btn-style.active { background: #2f3640 !important; color: white !important; }
 
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 35px 70px rgba(0,0,0,0.18); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
@@ -96,19 +91,9 @@
                 <div style="font-size:14px; color:#2d3436;">永不遺失：數位名片隨時隨地查看</div>
             </div>
 
-            <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ee5253;">
-                <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
-                <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">立即填寫預約表單 →</a>
-            </div>
-
             <div class="content-box">
                 <span class="label">服務項目</span>
                 <div id="u-service" class="text" style="font-size: 14.5px; color: #2d3436; line-height: 1.8;">智慧名片設計製作 / 幸福教養系統推廣</div>
-            </div>
-
-            <div id="photo-list" class="photo-list" style="display: flex; flex-direction: column; gap: 15px;">
-                <div id="p1" class="photo-item" style="display:none;"><img id="u-p1" src="" style="width:100%; border-radius:20px;"></div>
-                <div id="p2" class="photo-item" style="display:none;"><img id="u-p2" src="" style="width:100%; border-radius:20px;"></div>
             </div>
         </div>
         
@@ -122,8 +107,8 @@
 
     <div id="wechat-mask" onclick="this.style.display='none'">
         <img id="wechat-img" 
-             src="https://fsh-angel.github.io/happiness-card/mmqrcode1770777103365.png" 
-             onerror="this.src='https://raw.githubusercontent.com/fsh-angel/happiness-card/main/mmqrcode1770777103365.png'">
+             src="https://raw.githubusercontent.com/fsh-angel/happiness-card/main/mmqrcode1770777103365.png" 
+             onerror="console.error('Image fail');">
         <p style="margin-top:20px; font-weight:900; font-size: 18px;">長按二維碼識別添加</p>
     </div>
 
@@ -135,7 +120,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V269</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V271</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -144,7 +129,9 @@
         let curTheme = urlParams.get('theme') || 'warm-pink';
         let curStyle = urlParams.get('style') || 'arch';
 
-        function showWechat() { document.getElementById('wechat-mask').style.display = 'flex'; }
+        function showWechat() { 
+            document.getElementById('wechat-mask').style.display = 'flex';
+        }
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
         function updateClass() { document.body.className = curTheme + ' style-' + curStyle; }
@@ -210,8 +197,9 @@
                     document.getElementById('btn-oa').href = "https://lin.ee/2ac9Roe";
                     document.getElementById('btn-p').href = "https://line.me/ti/p/VqJzbWHm_4";
                     document.getElementById('btn-mail').href = "mailto:a0973180707@gmail.com";
+                    // 門面專用圖片連結
+                    document.getElementById('wechat-img').src = "https://raw.githubusercontent.com/fsh-angel/happiness-card/main/mmqrcode1770777103365.png";
                     document.getElementById('advantage-box').style.display = 'block';
-                    document.getElementById('order-box').style.display = 'block';
                 } else {
                     document.getElementById('share-label').innerText = "🔗 分享我的智慧名片";
                     const oa = getVal('官方帳號'), p = getVal('私訊 LINE'), wx = getVal('微信'), ml = getVal('郵箱');
@@ -220,15 +208,6 @@
                     if(wx) document.getElementById('wechat-img').src = fixImg(wx);
                     if(ml) document.getElementById('btn-mail').href = ml.includes('@') ? "mailto:"+ml : ml;
                     document.getElementById('advantage-box').style.display = 'none';
-                    document.getElementById('order-box').style.display = 'none';
-                }
-
-                const prodVal = getVal('產品');
-                const urls = prodVal ? prodVal.split(/[,，\s\n]+/).filter(u => u.includes('http')) : [];
-                for(let i=1; i<=2; i++) {
-                    const el = document.getElementById('p'+i);
-                    if(urls[i-1]) { el.style.display = 'block'; document.getElementById('u-p'+i).src = fixImg(urls[i-1]); }
-                    else { el.style.display = 'none'; }
                 }
             }
         }
