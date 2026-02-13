@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V264</title>
+    <title>天使幸福智慧名片 V265</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -96,7 +96,7 @@
 
             <div class="content-box">
                 <span class="label">服務項目</span>
-                <div id="u-service" class="text" style="font-size: 14.5px; color: #2d3436; line-height: 1.8;">智慧名片設計製作 / 幸福教養系統推廣</div>
+                <div id="u-service" class="text" style="font-size: 14.5px; color: #2d3436; line-height: 1.8;">讀取中...</div>
             </div>
 
             <div id="photo-list" class="photo-list" style="display: flex; flex-direction: column; gap: 15px;">
@@ -126,7 +126,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V264</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V265</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -168,18 +168,20 @@
                     return (idx !== -1 && d[idx]) ? d[idx] : "";
                 };
 
-                document.getElementById('u-name').innerText = getVal('姓名') || "小天使笑長";
-                document.getElementById('u-unit').innerText = getVal('單位') || "幸福智慧服務中心";
+                // 🚀 服務項目：成品與門面分開，成品必須讀試算表
+                document.getElementById('u-name').innerText = getVal('姓名') || "讀取中";
+                document.getElementById('u-unit').innerText = getVal('單位');
+                document.getElementById('u-service').innerText = getVal('服務') || "智慧名片設計製作 / 幸福教養系統推廣";
                 
-                // 形象照備援
+                // 形象照
                 const avatar = getVal('形象照');
                 document.getElementById('u-img').src = avatar ? fixImg(avatar) : "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
                 
+                // 影音區
                 let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    // 過濾所有照片連結與 LINE 連結
                     if(val && val.includes('http') && !val.includes('line.me') && !val.includes('lin.ee') && !val.includes('drive.google.com') && lkCount <= 3) {
                         const el = document.getElementById('lk' + lkCount);
                         el.style.display = 'flex'; el.href = val;
@@ -190,15 +192,17 @@
 
                 const isMain = (!urlId && !document.getElementById('work-id').value) || keyword == "1";
                 if(isMain) {
-                    // 門面內容寫死
+                    // 門面內容
                     document.getElementById('btn-oa').style.display = 'block'; document.getElementById('btn-oa').href = "https://lin.ee/2ac9Roe";
                     document.getElementById('btn-p').style.display = 'block'; document.getElementById('btn-p').href = "https://line.me/ti/p/VqJzbWHm_4";
-                    document.getElementById('btn-wechat').style.display = 'block'; document.getElementById('wechat-img').src = "https://raw.githubusercontent.com/fsh-angel/happiness-card/main/mmqrcode1770777103365.png";
+                    document.getElementById('btn-wechat').style.display = 'block'; 
+                    // 門面微信照片雙重保險
+                    document.getElementById('wechat-img').src = fixImg(getVal('微信')) || "https://raw.githubusercontent.com/fsh-angel/happiness-card/main/mmqrcode1770777103365.png";
                     document.getElementById('btn-mail').style.display = 'block'; document.getElementById('btn-mail').href = "mailto:a0973180707@gmail.com";
                     document.getElementById('advantage-box').style.display = 'block';
                     document.getElementById('order-box').style.display = 'block';
                 } else {
-                    // 客戶模式動態讀取
+                    // 客戶模式
                     const oa = getVal('官方帳號'), p = getVal('私訊 LINE'), wx = getVal('微信'), ml = getVal('郵箱');
                     document.getElementById('btn-oa').style.display = oa ? 'block' : 'none'; if(oa) document.getElementById('btn-oa').href = oa;
                     document.getElementById('btn-p').style.display = p ? 'block' : 'none'; if(p) document.getElementById('btn-p').href = p;
