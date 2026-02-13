@@ -3,12 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V289</title>
-    
-    <link rel="manifest" href="./manifest.json?v=289">
-    <meta name="theme-color" content="#ee5253">
-    <link rel="apple-touch-icon" href="./icon-192.png">
-    
+    <title>天使幸福智慧名片 V290</title>
+    <link rel="manifest" href="./manifest.json?v=290">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -19,7 +15,7 @@
         .royal-purple { --p: #6c5ce7; --s: #4834d4; }
         .teal-green { --p: #20bf6b; --s: #0b8d51; }
 
-        body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow: hidden; }
+        body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
         #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0 10px; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
         .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
@@ -27,7 +23,7 @@
         .btn-style { padding: 6px 14px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
-        .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; flex-shrink: 0; }
+        .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; }
@@ -37,8 +33,8 @@
         .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-        /* 🚀 優化後的滾動區：內容不亂跑的關鍵 */
-        .info-scroll { flex: 1; overflow-y: auto; padding: 45px 20px 10px; text-align: center; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        /* 🚀 滾動區修正：確保不會吃掉底部的按鈕 */
+        .info-scroll { flex: 1; overflow-y: auto; padding: 45px 20px 0; text-align: center; scrollbar-width: none; }
         .info-scroll::-webkit-scrollbar { display: none; }
         
         .name { font-size: 26px; font-weight: 900; color: #2d3436; margin: 5px 0; }
@@ -50,17 +46,16 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 15px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        /* 🚀 底部引導條設計 */
-        .bottom-guide-bar { padding: 10px 0 20px; text-align: center; }
-        .mini-install-btn { background: white; color: var(--p); border: 1.5px solid var(--p); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; transition: 0.3s; }
+        .bottom-guide-bar { padding: 5px 0 20px; text-align: center; }
+        .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; }
 
-        .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; z-index: 200; }
-        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; }
+        /* 🚀 聯繫區：固定在最底部 */
+        .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
+        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; border: none; }
         .btn-sub { background: #ffffff !important; color: #06C755 !important; border: 2px solid #06C755 !important; }
 
-        /* 🚀 彈窗系統 */
-        #install-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; align-items:center; justify-content:center; padding: 20px; }
+        #install-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; padding: 20px; }
         .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 35px; padding: 25px; position: relative; }
         .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #999; cursor: pointer; }
         .modal-tab { display: flex; gap: 8px; margin: 15px 0; }
@@ -71,7 +66,7 @@
 
         #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:11000; align-items:center; justify-content:center; flex-direction:column; color: white; }
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 12000; border-radius: 40px 40px 0 0; }
-        .footer { font-size: 11px; color: #bbb; padding: 20px; cursor: pointer; text-align: center; flex-shrink: 0; }
+        .footer { font-size: 11px; color: #bbb; padding: 25px; cursor: pointer; text-align: center; }
     </style>
 </head>
 <body class="warm-pink style-arch">
@@ -112,8 +107,8 @@
 
             <div id="advantage-box" class="content-box">
                 <span class="label" style="color: #6c5ce7;">🏆 為什麼您需要智慧名片？</span>
-                <div style="font-size:14px; color:#2d3436; margin-bottom:6px;">一鍵分享：複製網址，傳播全世界</div>
-                <div style="font-size:14px; color:#2d3436; margin-bottom:6px;">影音整合：個人YouTube、FB 等平臺展示</div>
+                <div style="font-size:14px; color:#2d3436; margin-bottom:8px;">一鍵分享：複製網址，傳播全世界</div>
+                <div style="font-size:14px; color:#2d3436; margin-bottom:8px;">影音整合：個人YouTube、FB 等平臺展示</div>
                 <div style="font-size:14px; color:#2d3436;">內容更新：後台更新，同步更新</div>
             </div>
 
@@ -128,11 +123,11 @@
             </div>
 
             <div id="install-entry" class="bottom-guide-bar" style="display:none;">
-                <button class="mini-install-btn" onclick="openInstallModal()">📲 安裝名片 App 到桌面教學</button>
+                <button class="mini-install-btn" onclick="openInstallModal()">📲 安裝名片 App 教學</button>
             </div>
         </div>
         
-        <div class="actions">
+        <div id="actions-area" class="actions">
             <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
             <a href="javascript:void(0)" id="btn-wechat" class="act-btn" onclick="showWechatText()">💬 微信聯繫</a>
             <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
@@ -144,27 +139,15 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close-modal" onclick="closeInstallModal(event)">&times;</span>
             <h3 style="margin-top:0; color:var(--p); text-align:center;">安裝名片教學</h3>
-            
             <div style="background:#f8f9fa; padding:15px; border-radius:15px; text-align:center; margin-bottom:15px;">
-                <p style="font-size:11px; margin-bottom:8px; color:#666;">若正使用 LINE，請複製網址改用瀏覽器開啟</p>
                 <button onclick="copyCurrentUrl()" style="background:var(--p); color:white; border:none; padding:8px 15px; border-radius:10px; font-weight:bold; width:100%;">🔗 複製網址</button>
             </div>
-
             <div class="modal-tab">
                 <button class="tab-btn active" onclick="switchTab('apple')">🍎 iPhone</button>
                 <button class="tab-btn" onclick="switchTab('android')">🤖 Android</button>
             </div>
-
-            <div id="apple-pane" class="tab-pane active">
-                1. 點擊 Safari 下方 <b>[分享箭頭 ⬆️]</b><br>
-                2. 往下滑找到 <b>[加入主畫面]</b><br>
-                3. 點擊右上角 <b>[新增]</b> 即可！
-            </div>
-            <div id="android-pane" class="tab-pane">
-                1. 點擊 Chrome 右上角 <b>[三個點點]</b><br>
-                2. 選擇 <b>[安裝應用程式]</b> 或 <b>[新增至主螢幕]</b><br>
-                3. 確認安裝即可！
-            </div>
+            <div id="apple-pane" class="tab-pane active">1. 點擊 Safari 下方 [分享箭頭 ⬆️]<br>2. 選擇 [加入主畫面]</div>
+            <div id="android-pane" class="tab-pane">1. 點擊 Chrome 右上角 [三個點點]<br>2. 選擇 [安裝應用程式]</div>
         </div>
     </div>
 
@@ -185,7 +168,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V289</div>
+    <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V290</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -199,23 +182,12 @@
         function switchTab(type) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-            if(type === 'apple') {
-                document.querySelectorAll('.tab-btn')[0].classList.add('active');
-                document.getElementById('apple-pane').classList.add('active');
-            } else {
-                document.querySelectorAll('.tab-btn')[1].classList.add('active');
-                document.getElementById('android-pane').classList.add('active');
-            }
+            if(type === 'apple') { document.querySelectorAll('.tab-btn')[0].classList.add('active'); document.getElementById('apple-pane').classList.add('active'); }
+            else { document.querySelectorAll('.tab-btn')[1].classList.add('active'); document.getElementById('android-pane').classList.add('active'); }
         }
-        function copyCurrentUrl() {
-            navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製！"));
-        }
-
+        function copyCurrentUrl() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製！")); }
         function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
-        function copyWechat() {
-            const idText = document.getElementById('wechat-id-text').innerText;
-            navigator.clipboard.writeText(idText).then(() => { alert("微信 ID 已複製！"); });
-        }
+        function copyWechat() { navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製！")); }
 
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
@@ -247,10 +219,7 @@
             const h = allRows[0];
             const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
             if(d) {
-                const getVal = (key) => {
-                    const idx = h.findIndex(head => head.includes(key));
-                    return (idx !== -1 && d[idx]) ? d[idx] : "";
-                };
+                const getVal = (key) => { const idx = h.findIndex(head => head.includes(key)); return (idx !== -1 && d[idx]) ? d[idx] : ""; };
                 document.getElementById('u-name').innerText = getVal('姓名');
                 document.getElementById('u-unit').innerText = getVal('單位');
                 document.getElementById('u-service').innerText = getVal('服務') || "幸福教養系統推廣";
