@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V227</title>
+    <title>天使幸福智慧名片 V228</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -16,19 +16,16 @@
 
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        /* 🚀 控制面板：門面模式大方顯示 */
+        /* 🚀 初始封鎖：面板預設是不存在的 */
         #admin-panel { 
+            display: none; 
             width: 100%; background: white; text-align: center; padding: 15px 0; 
             border-bottom: 1px solid #eee; z-index: 2000; flex-shrink: 0;
-            display: block; /* 門面預設顯示 */
         }
-        
-        /* 🚀 成品模式：絕對物理消失 */
-        body.is-final #admin-panel { display: none !important; }
 
         .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 10px; }
         .dot { 
-            width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid white;
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white;
             box-shadow: 4px 4px 8px rgba(0,0,0,0.1), -4px -4px 8px rgba(255,255,255,0.9);
         }
         .btn-style { 
@@ -78,7 +75,7 @@
         .footer { font-size: 11px; color: #ccc; padding: 25px; cursor: pointer; text-align: center; }
     </style>
 </head>
-<body class="warm-pink">
+<body>
 
     <div id="admin-panel">
         <div class="picker-group">
@@ -134,17 +131,22 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V227</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V228</div>
 
     <script>
-        let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
         const urlParams = new URLSearchParams(window.location.search);
         const urlId = urlParams.get('id');
 
-        // 🚀 關鍵邏輯：只要網址有 id，立刻判定為成品模式
-        if(urlId) { 
-            document.body.classList.add('is-final'); 
+        // 🚀 核心邏輯：初始隔離
+        // 如果沒有 id，代表是門面編輯模式，立即顯示面板
+        if(!urlId) {
+            document.getElementById('admin-panel').style.display = 'block';
+        } else {
+            // 如果有 id，代表是成品交付模式，確保面板絕對是隱藏的，並給 body 加上成品標籤
+            document.body.classList.add('is-final');
         }
+
+        let allRows = []; let clicks = 0; let curTheme = 'warm-pink'; let curStyle = 'arch';
 
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
