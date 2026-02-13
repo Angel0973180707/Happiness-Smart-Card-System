@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V251</title>
+    <title>天使幸福智慧名片 V252</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        /* 🚀 旗艦級色彩飽和度 */
         :root { --p: #ee5253; --s: #d63031; --bg: #f5f6fa; }
         .warm-pink { --p: #ee5253; --s: #d63031; }
         .aurora-blue { --p: #00a8ff; --s: #0097e6; }
@@ -23,6 +22,10 @@
         .dot { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .btn-style { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
+        
+        /* 🚀 門面引導語動畫 */
+        .guide-banner { font-size: 13px; color: var(--s); font-weight: 900; margin-top: 5px; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 35px 70px rgba(0,0,0,0.18); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
@@ -43,6 +46,10 @@
 
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
+
+        /* 🚀 智慧名片優勢列表樣式 */
+        .advantage-item { font-size: 14px; color: #2d3436; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .advantage-item i { color: #20bf6b; font-size: 12px; }
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { display: none; text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; box-shadow: 3px 3px 6px rgba(0,0,0,0.04); border: 1px solid #e1e2e6; }
@@ -69,15 +76,15 @@
             <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
             <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
         </div>
+        <div class="guide-banner">✨ 第一步：點選上方，挑選您最愛的配色與風格</div>
     </div>
 
     <div id="card-container" class="card">
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
         <div class="info-scroll">
-            <h1 id="u-name" class="name">讀取中...</h1>
+            <h1 id="u-name" class="name">小天使笑長</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
-            <div id="u-slogan" class="slogan-box" style="font-size: 14px; color: #7f8c8d; font-style: italic; margin-bottom: 20px;">讓您的專業一眼被看見</div>
 
             <div class="social-bar">
                 <a href="#" id="lk1" class="social-link" target="_blank"></a>
@@ -85,13 +92,17 @@
                 <a href="#" id="lk3" class="social-link" target="_blank"></a>
             </div>
 
-            <div id="share-box" class="content-box" style="background: #f0f7ff; border: 1px solid #00cec9; text-align: center; cursor: pointer;" onclick="handleShare()">
-                <span id="share-label" class="label" style="color:#0984e3">📢 推薦製作智慧名片</span>
-                <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
+            <div id="advantage-box" class="content-box" style="background: #fdfdfd; border-color: #eee;">
+                <span class="label" style="color: #6c5ce7;">🏆 為什麼您需要智慧名片？</span>
+                <div class="advantage-item"><i class="fas fa-check-circle"></i> 專業形象：多款版型色彩自由切換</div>
+                <div class="advantage-item"><i class="fas fa-check-circle"></i> 一鍵分享：複製網址，傳播全世界</div>
+                <div class="advantage-item"><i class="fas fa-check-circle"></i> 影音整合：YouTube、FB 專業展示</div>
+                <div class="advantage-item"><i class="fas fa-check-circle"></i> 輕鬆更新：後台同步，資料隨時改</div>
+                <div class="advantage-item"><i class="fas fa-check-circle"></i> 永不遺失：數位名片隨時隨地查看</div>
             </div>
 
             <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ee5253;">
-                <span class="label" style="color:#ee5253">📝 預約製作您的智慧名片</span>
+                <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
                 <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">立即填寫預約表單 →</a>
             </div>
 
@@ -115,7 +126,7 @@
     </div>
 
     <div id="wechat-mask" onclick="this.style.display='none'">
-        <img id="wechat-img" src="" style="width:80%; max-width:300px; border-radius:20px; box-shadow: 0 0 20px rgba(255,255,255,0.2);">
+        <img id="wechat-img" src="" style="width:80%; max-width:300px; border-radius:20px;">
         <p style="color:white; margin-top:15px; font-weight:900;">長按二維碼識別添加</p>
     </div>
 
@@ -128,7 +139,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V251</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V252</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -142,11 +153,14 @@
 
         if(urlId) { 
             document.body.classList.add('is-final');
-            document.getElementById('share-label').innerText = "🔗 分享我的智慧名片";
-            document.getElementById('order-box').style.display = "none";
+            document.addEventListener("DOMContentLoaded", () => {
+                document.getElementById('advantage-box').style.display = "none";
+                document.getElementById('order-box').style.display = "none";
+                document.querySelector('.guide-banner').style.display = "none";
+            });
         }
 
-        function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
+        function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製！")); }
         function showWechat() { document.getElementById('wechat-mask').style.display = 'flex'; }
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
@@ -166,17 +180,8 @@
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                
-                // 🚀 V251 核心：強效對位邏輯
-                if (urlId) {
-                    renderSheet(urlId);
-                } else {
-                    // 門面模式：強制尋找李秀芳或第2行
-                    const defaultRow = allRows.find((r, i) => i !== 0 && (r[0] == "1" || r[1] == "李秀芳"));
-                    if (defaultRow) renderSheet(defaultRow[0] || defaultRow[1]);
-                    else if(allRows[1]) renderSheet(allRows[1][0] || allRows[1][1]);
-                }
-            } catch(e) { console.log("資料同步出錯"); }
+                if (urlId) renderSheet(urlId); else renderSheet("1");
+            } catch(e) { console.log("連線同步中"); }
         }
 
         function renderSheet(keyword) {
@@ -189,21 +194,17 @@
                     return (idx !== -1 && d[idx]) ? d[idx] : "";
                 };
 
-                document.getElementById('u-name').innerText = getVal('姓名') || "小天使笑長";
-                document.getElementById('u-unit').innerText = getVal('單位') || "幸福智慧服務中心";
-                document.getElementById('u-slogan').innerText = getVal('理念') || "讓您的專業一眼被看見";
-                document.getElementById('u-service').innerText = getVal('服務') || "智慧名片設計製作 / 幸福教養系統推廣";
+                document.getElementById('u-name').innerText = getVal('姓名');
+                document.getElementById('u-unit').innerText = getVal('單位');
+                document.getElementById('u-img').src = fixImg(getVal('形象照')) || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
                 
-                // 🚀 大頭照保險機制
-                const imgVal = getVal('形象照');
-                document.getElementById('u-img').src = imgVal ? fixImg(imgVal) : "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
-                
-                // 🚀 影音區強化過濾
+                // 🚀 影音區精準過濾：排除 line.me 與 試算表官網欄位
                 let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    if(val && val.includes('http') && !val.includes('line.me') && !val.includes('drive.google.com') && lkCount <= 3) {
+                    // 關鍵過濾：只要網址裡有 line.me 或 google.com/open (官網網址) 就不出現在圖示區
+                    if(val && val.includes('http') && !val.toLowerCase().includes('line.me') && !val.includes('google.com/open') && !val.includes('drive.google.com') && lkCount <= 3) {
                         const el = document.getElementById('lk' + lkCount);
                         el.style.display = 'flex'; el.href = val;
                         el.innerHTML = (val.includes('youtube') || val.includes('youtu.be')) ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>';
@@ -211,7 +212,6 @@
                     }
                 });
 
-                // 🚀 聯繫區按需顯示
                 const oa = getVal('官方帳號');
                 const p = getVal('私訊 LINE');
                 const wechat = getVal('微信');
@@ -219,17 +219,13 @@
 
                 document.getElementById('btn-oa').style.display = oa ? 'block' : 'none';
                 if(oa) document.getElementById('btn-oa').href = oa;
-
                 document.getElementById('btn-p').style.display = p ? 'block' : 'none';
                 if(p) document.getElementById('btn-p').href = p;
-
                 document.getElementById('btn-wechat').style.display = wechat ? 'block' : 'none';
                 if(wechat) document.getElementById('wechat-img').src = fixImg(wechat);
-
                 document.getElementById('btn-mail').style.display = mail ? 'block' : 'none';
                 if(mail) document.getElementById('btn-mail').href = "mailto:" + mail;
 
-                // 產品照顯示
                 const prodVal = getVal('產品');
                 if(prodVal) {
                     const urls = prodVal.split(/[,，\s\n]+/).filter(u => u.includes('http'));
@@ -246,7 +242,6 @@
         function doPreview() { renderSheet(document.getElementById('work-id').value); }
         function doCopy() {
             const id = document.getElementById('work-id').value;
-            if(!id) { alert("請輸入 ID"); return; }
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
             navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
         }
