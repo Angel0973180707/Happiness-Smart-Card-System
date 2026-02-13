@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V279</title>
-    <link rel="manifest" href="manifest.json">
+    <title>天使幸福智慧名片 V280</title>
+    
+    <link rel="manifest" href="./manifest.json?v=280">
     <meta name="theme-color" content="#ee5253">
+    <link rel="apple-touch-icon" href="./icon-192.png">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
@@ -142,7 +144,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V279</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V280</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -243,12 +245,22 @@
         async function init() { await loadSheetData(); updateClass(); }
         init();
 
-        // 🚀 PWA Service Worker 註冊
+        // 🚀 PWA 強制註冊與監聽：路徑務必對齊 ./sw.js
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW註冊失敗', err));
+                navigator.serviceWorker.register('./sw.js?v=280')
+                    .then(reg => {
+                        console.log('SW Registered');
+                        reg.update(); // 強制檢查更新
+                    })
+                    .catch(err => console.log('SW Fail', err));
             });
         }
+        
+        // 🚀 監聽 Chrome 安裝提示
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('Chrome Install Prompt Ready');
+        });
     </script>
 </body>
 </html>
