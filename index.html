@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V285</title>
+    <title>天使幸福智慧名片 V286</title>
     
-    <link rel="manifest" href="./manifest.json?v=285">
+    <link rel="manifest" href="./manifest.json?v=286">
     <meta name="theme-color" content="#ee5253">
     <link rel="apple-touch-icon" href="./icon-192.png">
     
@@ -21,19 +21,16 @@
 
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        /* 🎨 控制面板樣式 */
         #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0 10px; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
         .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
         .dot { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .btn-style { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
-        .guide-tag { display: inline-block; background: #fdf2f2; color: #ee5253; padding: 4px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; margin-top: 5px; border: 1px solid #ffcccc; }
 
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 35px 70px rgba(0,0,0,0.18); position: relative; margin: 15px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
         
-        /* 版型效果 */
         .style-flat .arch-overlay { border-radius: 0; height: 35px; }
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
 
@@ -51,10 +48,11 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        /* 🚀 底部安裝區樣式 */
-        .bottom-install-area { background: #f8f9fa; padding: 20px 15px; border-top: 1px solid #eee; text-align: center; }
-        #install-pwa-btn { background: #2f3640; color: white; padding: 12px 25px; border-radius: 50px; font-size: 14px; font-weight: 900; margin-bottom: 10px; cursor: pointer; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: none; }
-        .guide-text-sm { font-size: 12px; color: #666; line-height: 1.5; margin: 0; }
+        /* 🚀 底部安裝區：背景改為暖粉色 */
+        .bottom-install-area { background: #fff5f5; padding: 22px 15px; border-top: 1px dashed #ffcccc; text-align: center; }
+        #install-pwa-btn { background: #2f3640; color: white; padding: 12px 25px; border-radius: 50px; font-size: 14px; font-weight: 900; margin-bottom: 12px; cursor: pointer; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: none; }
+        .guide-text-lg { font-size: 14px; color: #d63031; font-weight: bold; line-height: 1.6; margin: 0; }
+        .guide-text-sm { font-size: 12px; color: #777; margin-top: 8px; }
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
@@ -81,7 +79,6 @@
             <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
             <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
         </div>
-        <div class="guide-tag">✨ 客製化配色與版型</div>
     </div>
 
     <div id="card-container" class="card">
@@ -122,8 +119,10 @@
         </div>
 
         <div id="install-area" class="bottom-install-area" style="display:none;">
-            <button id="install-pwa-btn"><i class="fa-solid fa-download"></i> 安裝至手機桌面</button>
-            <p id="install-text" class="guide-text-sm"></p>
+            <p id="install-title" style="font-weight: 900; color: #2d3436; margin-bottom: 10px;">📲 把名片收藏到手機桌面</p>
+            <button id="install-pwa-btn"><i class="fa-solid fa-download"></i> 立即安裝名片 App</button>
+            <p id="install-text" class="guide-text-lg"></p>
+            <p class="guide-text-sm">※ 建議使用 Chrome 或 Safari 瀏覽器以獲得最佳體驗</p>
         </div>
         
         <div class="actions">
@@ -152,7 +151,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V285</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V286</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -224,25 +223,23 @@
 
                 if(isMain) {
                     document.getElementById('admin-panel').style.display = 'block';
-                    document.getElementById('share-label').innerText = "📢 推薦製作智慧名片";
                     document.getElementById('advantage-box').style.display = 'block';
                     document.getElementById('order-box').style.display = 'block';
                     document.getElementById('install-area').style.display = 'none';
                     document.getElementById('wechat-id-text').innerText = "a0973180707";
                 } else {
-                    // 🚀 成品區：隱藏面板，顯示底部安裝引導
                     document.getElementById('admin-panel').style.display = 'none';
                     document.getElementById('advantage-box').style.display = 'none';
                     document.getElementById('order-box').style.display = 'none';
-                    document.getElementById('share-label').innerText = "🔗 分享我的智慧名片";
                     
                     document.getElementById('install-area').style.display = 'block';
                     if(isiOS) {
                         document.getElementById('install-pwa-btn').style.display = 'none';
-                        document.getElementById('install-text').innerHTML = "🍎 iPhone 用戶：請點擊 Safari 下方 <b>分享箭頭</b><br>選擇 <b>[加入主畫面]</b> 即可安裝名片 App";
+                        document.getElementById('install-text').innerHTML = "🍎 iPhone 客戶請點擊網頁下方 <b style='font-size:18px'>[分享箭頭 ⬆️]</b><br>並選擇 <b>[加入主畫面]</b> 即可完成安裝！";
                     } else {
-                        document.getElementById('install-pwa-btn').style.display = 'inline-block';
-                        document.getElementById('install-text').innerHTML = "📱 Android 用戶：點擊上方按鈕一鍵安裝<br>或點擊瀏覽器選單 <b>[安裝應用程式]</b>";
+                        // 初始狀態下，Android 先顯示提示，若偵測到 BeforeInstallPrompt 再開啟按鈕
+                        document.getElementById('install-pwa-btn').style.display = 'none';
+                        document.getElementById('install-text').innerHTML = "📱 Android 客戶請點擊瀏覽器選單 <b>[三個點點]</b><br>並選擇 <b>[安裝應用程式]</b> 或 <b>[新增至主螢幕]</b>";
                     }
                     document.getElementById('wechat-id-text').innerText = getVal('微信') || "未提供";
                 }
@@ -260,12 +257,18 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=285').catch(err => console.log('SW Fail', err));
+                navigator.serviceWorker.register('./sw.js?v=286').catch(err => console.log('SW Fail', err));
             });
         }
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault(); deferredPrompt = e;
+            // 如果偵測到環境支援按鈕安裝（Android Chrome），則開啟按鈕並簡化提示
+            const btn = document.getElementById('install-pwa-btn');
+            if(btn && !urlParams.get('id') == "1") {
+                btn.style.display = 'inline-block';
+                document.getElementById('install-text').innerHTML = "點擊上方按鈕，一鍵將名片存入手機！";
+            }
         });
 
         document.getElementById('install-pwa-btn').addEventListener('click', async () => {
@@ -273,8 +276,6 @@
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 deferredPrompt = null;
-            } else {
-                alert("手機正在準備中，請稍候再試，或從瀏覽器選單點選『安裝應用程式』");
             }
         });
     </script>
