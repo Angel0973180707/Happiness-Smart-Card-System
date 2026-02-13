@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V259</title>
+    <title>天使幸福智慧名片 V260</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -29,9 +29,6 @@
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 35px 70px rgba(0,0,0,0.18); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
-        .style-flat .arch-overlay { border-radius: 0; height: 35px; }
-        .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
-
         .avatar-wrap { width: 135px; height: 135px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
 
@@ -45,15 +42,13 @@
 
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
-        .advantage-item { font-size: 14px; color: #2d3436; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        .advantage-item i { color: #20bf6b; font-size: 12px; }
 
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
-        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; box-shadow: 3px 3px 6px rgba(0,0,0,0.04); border: 1px solid #e1e2e6; }
+        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; font-size: 15px; border: none; }
         .btn-sub { background: #ffffff !important; color: #06C755 !important; border: 2px solid #06C755 !important; }
 
-        #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; flex-direction:column; }
+        #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; align-items:center; justify-content:center; flex-direction:column; color: white; }
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 3000; border-radius: 40px 40px 0 0; }
         .footer { font-size: 11px; color: #bbb; padding: 25px; cursor: pointer; text-align: center; }
     </style>
@@ -73,7 +68,6 @@
             <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
             <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
         </div>
-        <div class="guide-banner">✨ 第一步：點選上方，挑選您最愛的配色與風格</div>
     </div>
 
     <div id="card-container" class="card">
@@ -87,19 +81,6 @@
                 <a href="#" id="lk1" class="social-link" target="_blank"></a>
                 <a href="#" id="lk2" class="social-link" target="_blank"></a>
                 <a href="#" id="lk3" class="social-link" target="_blank"></a>
-            </div>
-
-            <div id="advantage-box" class="content-box">
-                <span class="label" style="color: #6c5ce7;">🏆 為什麼您需要智慧名片？</span>
-                <div class="advantage-item"><i class="fas fa-check-circle"></i> 一鍵分享：複製網址，傳播全世界</div>
-                <div class="advantage-item"><i class="fas fa-check-circle"></i> 影音整合：個人YouTube、FB 等平臺展示</div>
-                <div class="advantage-item"><i class="fas fa-check-circle"></i> 內容更新：後台更新，所有名片同步更新</div>
-                <div class="advantage-item"><i class="fas fa-check-circle"></i> 永不遺失：數位名片隨時隨地查看</div>
-            </div>
-
-            <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ee5253;">
-                <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
-                <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">立即填寫預約表單 →</a>
             </div>
 
             <div class="content-box">
@@ -122,49 +103,36 @@
     </div>
 
     <div id="wechat-mask" onclick="this.style.display='none'">
-        <img id="wechat-img" src="https://drive.google.com/thumbnail?id=1Ym-YpA1O_r9v_T9pG2Z4G0K-7J1S3v9u&sz=w1000" style="width:80%; max-width:300px; border-radius:20px;">
-        <p style="color:white; margin-top:15px; font-weight:900;">長按二維碼識別添加</p>
+        <img id="wechat-img" src="https://drive.google.com/thumbnail?id=1Ym-YpA1O_r9v_T9pG2Z4G0K-7J1S3v9u&sz=w1000" style="width:80%; max-width:300px; border-radius:20px; border: 5px solid white;">
+        <p style="margin-top:20px; font-weight:900; font-size: 18px;">長按二維碼識別添加</p>
+        <p style="font-size: 14px; opacity: 0.8;">( 點擊任何處關閉 )</p>
     </div>
 
     <div id="work-drawer">
         <div style="padding: 25px; text-align: center;">
-            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd; color: #333;" placeholder="輸入序號或姓名">
-            <button onclick="doPreview()" style="background:#ee5253; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">1. 預覽成品</button>
-            <button onclick="doCopy()" style="background:#2ecc71; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">2. 製作並複製交貨網址</button>
-            <button onclick="copyMainUrl()" style="background:#3498db; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">3. 複製門面網址分享</button>
+            <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd;" placeholder="輸入序號預覽">
+            <button onclick="doPreview()" style="background:#ee5253; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">預覽成品</button>
+            <button onclick="doCopy()" style="background:#2ecc71; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">複製交貨網址</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V259</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V260</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const urlId = urlParams.get('id');
-        const themeParam = urlParams.get('theme');
-        const styleParam = urlParams.get('style');
-
         let allRows = []; let clicks = 0; 
-        let curTheme = themeParam || 'warm-pink'; 
-        let curStyle = styleParam || 'arch';
+        let curTheme = urlParams.get('theme') || 'warm-pink'; 
+        let curStyle = urlParams.get('style') || 'arch';
 
-        if(urlId) { 
-            document.body.classList.add('is-final');
-            document.addEventListener("DOMContentLoaded", () => {
-                document.getElementById('advantage-box').style.display = "none";
-                document.getElementById('order-box').style.display = "none";
-                document.querySelector('.guide-banner').style.display = "none";
-            });
-        }
-
-        function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
         function showWechat() { document.getElementById('wechat-mask').style.display = 'flex'; }
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
-        function updateClass() { document.body.className = curTheme + ' style-' + curStyle + (document.body.classList.contains('is-final') ? ' is-final' : ''); }
-        function handleGate() { clicks++; if(clicks>=3){document.getElementById('work-drawer').style.maxHeight='550px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
+        function updateClass() { document.body.className = curTheme + ' style-' + curStyle; }
+        function handleGate() { clicks++; if(clicks>=3){document.getElementById('work-drawer').style.maxHeight='500px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
 
         function fixImg(url) {
-            if (!url || url.length < 10) return "";
+            if (!url) return "";
             const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/);
             return idMatch ? `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000` : url;
         }
@@ -189,18 +157,16 @@
                     const idx = h.findIndex(head => head.includes(key));
                     return (idx !== -1 && d[idx]) ? d[idx] : "";
                 };
-
-                document.getElementById('u-name').innerText = getVal('姓名') || "讀取失敗";
-                document.getElementById('u-unit').innerText = getVal('單位') || "";
-                document.getElementById('u-img').src = fixImg(getVal('形象照')) || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
+                document.getElementById('u-name').innerText = getVal('姓名');
+                document.getElementById('u-unit').innerText = getVal('單位');
+                document.getElementById('u-img').src = fixImg(getVal('形象照')) || document.getElementById('u-img').src;
                 
+                // 影音區過濾
                 let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    const isLine = val.toLowerCase().includes('line.me') || val.toLowerCase().includes('lin.ee');
-                    const isDrive = val.includes('drive.google.com') || val.includes('google.com/open');
-                    if(val && val.includes('http') && !isLine && !isDrive && lkCount <= 3) {
+                    if(val && val.includes('http') && !val.includes('line.me') && !val.includes('lin.ee') && lkCount <= 3) {
                         const el = document.getElementById('lk' + lkCount);
                         el.style.display = 'flex'; el.href = val;
                         el.innerHTML = (val.includes('youtube') || val.includes('youtu.be')) ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>';
@@ -208,21 +174,12 @@
                     }
                 });
 
-                // 成品模式才根據資料隱藏按鈕
                 if(urlId || document.getElementById('work-id').value) {
-                    const oa = getVal('官方帳號');
-                    const p = getVal('私訊 LINE');
-                    const wechat = getVal('微信');
-                    const mail = getVal('郵箱');
-
-                    document.getElementById('btn-oa').style.display = oa ? 'block' : 'none';
-                    if(oa) document.getElementById('btn-oa').href = oa;
-                    document.getElementById('btn-p').style.display = p ? 'block' : 'none';
-                    if(p) document.getElementById('btn-p').href = p;
-                    document.getElementById('btn-wechat').style.display = wechat ? 'block' : 'none';
-                    if(wechat) document.getElementById('wechat-img').src = fixImg(wechat);
-                    document.getElementById('btn-mail').style.display = mail ? 'block' : 'none';
-                    if(mail) document.getElementById('btn-mail').href = mail.includes('@') ? "mailto:" + mail : mail;
+                    const oa = getVal('官方帳號'), p = getVal('私訊 LINE'), wx = getVal('微信'), ml = getVal('郵箱');
+                    document.getElementById('btn-oa').style.display = oa ? 'block' : 'none'; if(oa) document.getElementById('btn-oa').href = oa;
+                    document.getElementById('btn-p').style.display = p ? 'block' : 'none'; if(p) document.getElementById('btn-p').href = p;
+                    document.getElementById('btn-wechat').style.display = wx ? 'block' : 'none'; if(wx) document.getElementById('wechat-img').src = fixImg(wx);
+                    document.getElementById('btn-mail').style.display = ml ? 'block' : 'none'; if(ml) document.getElementById('btn-mail').href = ml.includes('@') ? "mailto:"+ml : ml;
                 }
             }
         }
@@ -233,9 +190,6 @@
             const id = document.getElementById('work-id').value;
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
             navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
-        }
-        function copyMainUrl() {
-            navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}`).then(() => alert("✅ 門面網址已複製！"));
         }
         init();
     </script>
