@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V282</title>
+    <title>天使幸福智慧名片 V283</title>
     
-    <link rel="manifest" href="./manifest.json?v=282">
+    <link rel="manifest" href="./manifest.json?v=283">
     <meta name="theme-color" content="#ee5253">
     <link rel="apple-touch-icon" href="./icon-192.png">
     
@@ -30,7 +30,9 @@
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
         .guide-tag { display: inline-block; background: #fdf2f2; color: #ee5253; padding: 4px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; margin-top: 5px; border: 1px solid #ffcccc; }
-        #install-pwa { display: none; background: #2f3640; color: white; padding: 8px 18px; border-radius: 50px; font-size: 12px; font-weight: 900; margin-top: 10px; cursor: pointer; border: none; }
+        
+        /* 🚀 修正：安裝鈕預設顯示，增加視覺重量 */
+        #install-pwa { display: inline-block; background: #2f3640; color: white; padding: 10px 22px; border-radius: 50px; font-size: 13px; font-weight: 900; margin: 10px 0; cursor: pointer; border: 2px solid #444; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 35px 70px rgba(0,0,0,0.18); position: relative; margin: 15px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
@@ -50,7 +52,6 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        /* 🚀 成品區安裝提示樣式 */
         .install-guide-box { background: #f0f7ff; border: 2px solid #00a8ff; border-radius: 25px; padding: 15px; margin-bottom: 18px; text-align: center; }
         .install-guide-box h4 { margin: 0 0 10px; color: #0077cc; font-size: 16px; }
         .install-guide-box p { margin: 0; font-size: 13px; color: #333; line-height: 1.6; }
@@ -88,8 +89,8 @@
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="avatar-wrap"><img id="u-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" class="avatar"></div>
         <div class="info-scroll">
-            <h1 id="u-name" class="name">小天使笑長</h1>
-            <div id="u-unit" class="unit">幸福智慧服務中心</div>
+            <h1 id="u-name" class="name">小天使</h1>
+            <div id="u-unit" class="unit">天使幸福智慧名片館</div>
 
             <div class="social-bar">
                 <a href="#" id="lk1" class="social-link" target="_blank"></a>
@@ -152,7 +153,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V282</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V283</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -243,7 +244,6 @@
                     document.getElementById('advantage-box').style.display = 'none';
                     document.getElementById('order-box').style.display = 'none';
                     
-                    // 🚀 顯示成品區安裝提示
                     const guideBox = document.getElementById('install-guide');
                     const guideText = document.getElementById('guide-text');
                     guideBox.style.display = 'block';
@@ -251,6 +251,7 @@
                     const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
                     if(isiOS) {
                         guideText.innerHTML = "點擊瀏覽器下方 <b>[分享箭頭]</b> 圖示<br>選擇 <b>[加入主畫面]</b> 即可安裝！";
+                        document.getElementById('install-pwa').style.display = 'none'; // iPhone 隱藏按鈕
                     } else {
                         guideText.innerHTML = "點擊頂端 <b>[安裝至手機桌面]</b> 按鈕<br>讓名片像 App 一樣好找！";
                     }
@@ -269,22 +270,26 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=282').catch(err => console.log('SW Fail', err));
+                navigator.serviceWorker.register('./sw.js?v=283').catch(err => console.log('SW Fail', err));
             });
         }
 
         const installBtn = document.getElementById('install-pwa');
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault(); deferredPrompt = e;
-            installBtn.style.display = 'inline-block';
+            // 按鈕現在預設顯示，不需要在這裡開啟
         });
 
         installBtn.addEventListener('click', async () => {
             if (deferredPrompt) {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') installBtn.style.display = 'none';
+                if (outcome === 'accepted') {
+                    alert("安裝中，請稍候...");
+                }
                 deferredPrompt = null;
+            } else {
+                alert("手機尚未準備好安裝，請稍等 3 秒或嘗試點擊 Chrome 選單中的『安裝應用程式』");
             }
         });
     </script>
