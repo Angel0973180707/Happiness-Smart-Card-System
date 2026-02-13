@@ -1,6 +1,6 @@
 // 版本號：每次修改介面設計時，請手動將 5.2 加 0.1，這會強制客戶手機更新
 const CACHE_// 版本號升級至 7.0 (每次 index.html 大改，這裡就要換數字)
-const CACHE_NAME = 'happy-smart-card-v236';
+const CACHE_NAME = 'happy-smart-card-v237';
 
 // 僅快取名片的「外殼」
 const ASSETS_TO_CACHE = [
