@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V309</title>
-    <link rel="manifest" href="./manifest.json?v=309">
+    <title>天使幸福智慧名片 V310</title>
+    <link rel="manifest" href="./manifest.json?v=310">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -17,28 +17,29 @@
 
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow: hidden; }
         
+        /* 控制台 */
         #admin-panel { width: 100%; background: white; text-align: center; padding: 10px 0; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
         .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 5px; }
         .dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .btn-style { padding: 5px 12px; border-radius: 15px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
-        /* 🚀 關鍵修復：名片主體高度與捲動權限 */
-        .card { background: white; width: 92%; max-width: 380px; height: 85vh; max-height: 700px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
+        /* 名片主體 */
+        .card { background: white; width: 92%; max-width: 380px; height: 82vh; max-height: 720px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         
         #u-logo { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; z-index: 150; border-radius: 10px; overflow: hidden; display: none; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         #u-logo img { width: 100%; height: 100%; object-fit: contain; }
 
-        .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
+        .banner { height: 150px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; }
         .style-flat .arch-overlay { border-radius: 0; height: 35px; }
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
 
-        .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; border: 2px solid var(--p); }
+        .avatar-wrap { width: 120px; height: 120px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; border: 2px solid var(--p); }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-        /* 🚀 這是能滑動的核心：確保高度填滿剩餘空間且 overflow 是滾動 */
-        .info-scroll { flex: 1 1 auto; overflow-y: scroll !important; -webkit-overflow-scrolling: touch; padding: 45px 20px 20px; text-align: center; }
+        /* 🚀 捲動核心 */
+        .info-scroll { flex: 1; overflow-y: auto !important; padding: 45px 20px 20px; text-align: center; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .info-scroll::-webkit-scrollbar { display: none; }
         
         .name { font-size: 26px; font-weight: 900; color: #2d3436; margin: 5px 0 0; }
@@ -50,13 +51,14 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 15px; border: 1px solid #f0f0f0; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; margin: 10px 0; }
+        .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; margin-top: 10px; }
 
-        /* 🚀 聯繫按鈕：固定且不影響捲動 */
-        .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
+        /* 🚀 固定聯繫區 */
+        .actions { background: white; padding: 12px 20px 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; border: none; }
 
+        /* 彈窗與抽屜 */
         #install-modal, #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:11000; align-items:center; justify-content:center; }
         .modal-content { background: white; width: 85%; max-width: 320px; border-radius: 35px; padding: 25px; text-align: center; }
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 12000; border-radius: 40px 40px 0 0; }
@@ -86,9 +88,22 @@
         <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
         
         <div class="info-scroll" id="scroll-area">
-            <h1 id="u-name" class="name">小天使笑長</h1>
-            <div id="u-unit" class="unit">幸福智慧服務中心</div>
+            <h1 id="u-name" class="name">載入中...</h1>
+            <div id="u-unit" class="unit"></div>
+            
             <div id="u-products"></div>
+
+            <div id="door-content" style="display:none;">
+                <div class="content-box" style="background: #f0f7ff; border: 1px solid #00a8ff; text-align: center; cursor: pointer;" onclick="handleShare()">
+                    <span class="label" style="color:#0097e6">📢 推薦製作智慧名片</span>
+                    <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
+                </div>
+                <div class="content-box" style="background: #fff9f9; border: 1px dashed #ee5253; text-align: center;">
+                    <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
+                    <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">立即填寫預約表單 →</a>
+                </div>
+            </div>
+
             <div class="content-box">
                 <span class="label">服務項目</span>
                 <div id="u-service" style="font-size: 14.5px; color: #2d3436; line-height: 1.6; white-space: pre-wrap;"></div>
@@ -103,10 +118,10 @@
         </div>
         
         <div class="actions">
-            <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
+            <a href="" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
             <a href="javascript:void(0)" class="act-btn" onclick="showWechatText()">💬 微信聯繫</a>
-            <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
-            <a href="tel:0973180707" id="btn-tel" class="act-btn">📞 撥打電話</a>
+            <a href="mailto:" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
+            <a href="tel:" id="btn-tel" class="act-btn">📞 撥打電話</a>
         </div>
     </div>
 
@@ -121,7 +136,7 @@
     <div id="wechat-mask" onclick="this.style.display='none'">
         <div style="background: white; padding: 30px; border-radius: 30px; text-align: center; width: 80%;">
             <i class="fa-brands fa-weixin" style="font-size: 50px; color: #07C160;"></i>
-            <p id="wechat-id-text" style="font-size: 22px; font-weight: bold; margin: 20px 0; background: #eee; padding: 10px; border-radius: 10px;">a0973180707</p>
+            <p id="wechat-id-text" style="font-size: 22px; font-weight: bold; margin: 20px 0; background: #eee; padding: 10px; border-radius: 10px;"></p>
             <button onclick="copyWechat()" style="background: #07C160; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold;">複製 ID</button>
         </div>
     </div>
@@ -133,7 +148,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V309</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V310</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -174,6 +189,7 @@
                 document.getElementById('btn-tel').href = "tel:0973180707";
                 document.getElementById('u-qa').innerHTML = "<b>Q: 為什麼需要智慧名片？</b><br>A: 它是您的數位分身，整合影音與聯繫功能。";
                 document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('door-content').style.display = 'block';
                 document.getElementById('install-entry').style.display = 'none';
             } else {
                 const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
@@ -198,6 +214,7 @@
                     document.getElementById('u-service').innerText = d[4];
                     document.getElementById('u-qa').innerHTML = `<b>Q: ${d[20]}</b><br>A: ${d[21]}`;
                     document.getElementById('admin-panel').style.display = 'none';
+                    document.getElementById('door-content').style.display = 'none';
                     document.getElementById('install-entry').style.display = 'block';
                 }
             }
@@ -206,6 +223,7 @@
         function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
         function copyWechat() { navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製")); }
         function copyCurrentUrl() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製")); }
+        function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
         function updateClass() { document.body.className = curTheme + ' style-' + curStyle; }
