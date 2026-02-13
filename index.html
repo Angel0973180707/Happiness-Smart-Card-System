@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V256</title>
+    <title>天使幸福智慧名片 V257</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -45,7 +45,6 @@
 
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
-
         .advantage-item { font-size: 14px; color: #2d3436; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
         .advantage-item i { color: #20bf6b; font-size: 12px; }
 
@@ -81,7 +80,7 @@
         <div class="banner"><div class="arch-overlay"></div></div>
         <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
         <div class="info-scroll">
-            <h1 id="u-name" class="name">讀取中...</h1>
+            <h1 id="u-name" class="name">小天使笑長</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
 
             <div class="social-bar">
@@ -90,7 +89,7 @@
                 <a href="#" id="lk3" class="social-link" target="_blank"></a>
             </div>
 
-            <div id="advantage-box" class="content-box" style="background: #fdfdfd; border-color: #eee;">
+            <div id="advantage-box" class="content-box">
                 <span class="label" style="color: #6c5ce7;">🏆 為什麼您需要智慧名片？</span>
                 <div class="advantage-item"><i class="fas fa-check-circle"></i> 一鍵分享：複製網址，傳播全世界</div>
                 <div class="advantage-item"><i class="fas fa-check-circle"></i> 影音整合：個人YouTube、FB 等平臺展示</div>
@@ -136,7 +135,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V256</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V257</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -177,9 +176,9 @@
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                // 🚀 初始化載入：成品模式讀參數 ID，門面模式讀 1 號
+                // 🚀 V257：載入完畢立刻渲染
                 if (urlId) renderSheet(urlId); else renderSheet("1");
-            } catch(e) { console.log("連線同步中"); }
+            } catch(e) { console.log("資料同步中"); }
         }
 
         function renderSheet(keyword) {
@@ -192,16 +191,20 @@
                     return (idx !== -1 && d[idx]) ? d[idx] : "";
                 };
 
-                document.getElementById('u-name').innerText = getVal('姓名') || "讀取失敗";
-                document.getElementById('u-unit').innerText = getVal('單位') || "";
-                document.getElementById('u-img').src = fixImg(getVal('形象照')) || "";
+                document.getElementById('u-name').innerText = getVal('姓名');
+                document.getElementById('u-unit').innerText = getVal('單位');
+                document.getElementById('u-img').src = fixImg(getVal('形象照')) || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
                 
-                // 🚀 影音區精確過濾
+                // 🚀 影音區：禁止 LINE 連結進入
                 let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    if(val && val.includes('http') && !val.toLowerCase().includes('line.me') && !val.includes('google.com/open') && !val.includes('drive.google.com') && lkCount <= 3) {
+                    // 嚴格過濾：禁止 line.me / lin.ee / google.com/open 進入影音展示區
+                    const isLine = val.toLowerCase().includes('line.me') || val.toLowerCase().includes('lin.ee');
+                    const isPhoto = val.includes('drive.google.com') || val.includes('google.com/open');
+                    
+                    if(val && val.includes('http') && !isLine && !isPhoto && lkCount <= 3) {
                         const el = document.getElementById('lk' + lkCount);
                         el.style.display = 'flex'; el.href = val;
                         el.innerHTML = (val.includes('youtube') || val.includes('youtu.be')) ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>';
@@ -209,30 +212,20 @@
                     }
                 });
 
-                // 🚀 聯繫按鈕：讀取目前搜尋到的資料
+                // 🚀 聯繫按鈕：強制下沉
                 const oa = getVal('官方帳號');
                 const p = getVal('私訊 LINE');
                 const wechat = getVal('微信');
                 const mail = getVal('郵箱');
 
-                // 處理官網按鈕
-                const btnOa = document.getElementById('btn-oa');
-                if(oa) { btnOa.style.display = 'block'; btnOa.href = oa; } else { btnOa.style.display = 'none'; }
-
-                // 處理加好友按鈕
-                const btnP = document.getElementById('btn-p');
-                if(p) { btnP.style.display = 'block'; btnP.href = p; } else { btnP.style.display = 'none'; }
-
-                // 處理微信按鈕
-                const btnWx = document.getElementById('btn-wechat');
-                if(wechat) { btnWx.style.display = 'block'; document.getElementById('wechat-img').src = fixImg(wechat); } else { btnWx.style.display = 'none'; }
-
-                // 處理郵箱按鈕
-                const btnMail = document.getElementById('btn-mail');
-                if(mail) { 
-                    btnMail.style.display = 'block'; 
-                    btnMail.href = mail.includes('@') ? "mailto:" + mail : mail; 
-                } else { btnMail.style.display = 'none'; }
+                document.getElementById('btn-oa').style.display = oa ? 'block' : 'none';
+                if(oa) document.getElementById('btn-oa').href = oa;
+                document.getElementById('btn-p').style.display = p ? 'block' : 'none';
+                if(p) document.getElementById('btn-p').href = p;
+                document.getElementById('btn-wechat').style.display = wechat ? 'block' : 'none';
+                if(wechat) document.getElementById('wechat-img').src = fixImg(wechat);
+                document.getElementById('btn-mail').style.display = mail ? 'block' : 'none';
+                if(mail) document.getElementById('btn-mail').href = mail.includes('@') ? "mailto:" + mail : mail;
 
                 // 產品照
                 const prodVal = getVal('產品');
