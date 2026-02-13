@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V241</title>
+    <title>天使幸福智慧名片 V242</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -18,10 +18,12 @@
         #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0; border-bottom: 1px solid #eee; z-index: 2000; flex-shrink: 0; }
         body.is-final #admin-panel { display: none !important; }
 
-        .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 10px; }
+        .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
         .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 4px 4px 8px rgba(0,0,0,0.1); }
         .btn-style { padding: 8px 16px; border-radius: 20px; border: 1px solid #ddd; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2d3436 !important; color: white !important; }
+        .guide-text { font-size: 13px; color: var(--s); font-weight: 900; margin-top: 5px; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
@@ -44,9 +46,6 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
         .text { font-size: 14.5px; color: #2d3436; line-height: 1.8; white-space: pre-wrap; }
-
-        .share-btn-box { cursor: pointer; transition: 0.3s; }
-        .share-btn-box:active { transform: scale(0.95); }
 
         .photo-list { width: 100%; display: flex; flex-direction: column; gap: 15px; }
         .photo-item { width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #eee; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
@@ -76,6 +75,7 @@
             <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
             <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
         </div>
+        <div class="guide-text">✨ 第一步：點選上方，挑選您喜歡的顏色與版型</div>
     </div>
 
     <div id="card-container" class="card">
@@ -84,7 +84,7 @@
         <div class="info-scroll">
             <h1 id="u-name" class="name">小天使笑長</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
-            <div id="u-slogan" class="slogan-box">讓您的專業一眼被看見</div>
+            <div id="u-slogan" class="slogan-box">為您打造個人品牌智慧名片</div>
 
             <div class="social-bar">
                 <a href="#" id="lk1" class="social-link" target="_blank"></a>
@@ -92,14 +92,14 @@
                 <a href="#" id="lk3" class="social-link" target="_blank"></a>
             </div>
 
-            <div id="share-box" class="content-box share-btn-box" style="background: #f0f7ff; border: 1px solid #00cec9; text-align: center;" onclick="handleShare()">
+            <div id="share-box" class="content-box" style="background: #f0f7ff; border: 1px solid #00cec9; text-align: center; cursor: pointer;" onclick="handleShare()">
                 <span id="share-label" class="label" style="color:#0984e3">📢 推薦製作智慧名片</span>
                 <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
             </div>
 
             <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ff7675;">
-                <span class="label" style="color:#ff7675">📝 預約製作您的智慧名片</span>
-                <a href="https://forms.gle/zXN6p3o2wV3X3G596" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">點我填寫申請表單 →</a>
+                <span class="label" style="color:#ff7675">📝 第二步：預約製作您的智慧名片</span>
+                <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">點我填寫申請表單 →</a>
             </div>
 
             <div class="content-box">
@@ -128,7 +128,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V241</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V242</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -170,7 +170,7 @@
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
                 if (urlId) renderSheet(urlId);
-            } catch(e) { console.log("連線中"); }
+            } catch(e) { console.log("系統就緒"); }
         }
 
         function fixImg(url) {
@@ -191,12 +191,11 @@
                 document.getElementById('u-service').innerText = d[getI('服務')] || "";
                 document.getElementById('u-img').src = fixImg(d[getI('形象照')]);
                 
-                // 🚀 重新接回影音連結邏輯
                 let lkIdx = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    if((head.includes('影音') || head.includes('平台') || head.includes('連結')) && val && val.includes('http') && !val.includes('line.me') && !val.includes('google.com/open') && lkIdx <= 3) {
+                    if((head.includes('影音') || head.includes('平台') || head.includes('連結')) && val && val.includes('http') && !val.includes('line.me') && lkIdx <= 3) {
                         const el = document.getElementById('lk' + lkIdx);
                         el.style.display = 'flex'; el.href = val; 
                         el.innerHTML = (val.includes('youtube') ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>');
@@ -204,7 +203,8 @@
                     }
                 });
 
-                document.getElementById('link-line-oa').href = d[h.findIndex(head => head.includes('官方帳號'))] || "#";
+                // 🚀 保持 LINE 官方帳號正確跳轉
+                document.getElementById('link-line-oa').href = d[h.findIndex(head => head.includes('官方帳號'))] || "https://lin.ee/2ac9Roe";
                 document.getElementById('link-tel').href = "tel:" + (d[getI('電話')] || "");
                 const prodIdx = h.findIndex(head => head.includes('產品'));
                 if(prodIdx !== -1 && d[prodIdx]) {
