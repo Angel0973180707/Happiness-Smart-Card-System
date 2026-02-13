@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V245</title>
+    <title>天使幸福智慧名片 V246</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -24,7 +24,7 @@
         .btn-style.active { background: #2d3436 !important; color: white !important; }
 
         .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
-        .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; transition: 0.5s; }
+        .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
         .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
         .style-flat .arch-overlay { border-radius: 0; height: 35px; }
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
@@ -45,19 +45,14 @@
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
         .text { font-size: 14.5px; color: #2d3436; line-height: 1.8; white-space: pre-wrap; }
 
-        .photo-list { width: 100%; display: flex; flex-direction: column; gap: 15px; }
-        .photo-item { width: 100%; border-radius: 20px; overflow: hidden; border: 1px solid #eee; display: none; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
-        .photo-item img { width: 100%; height: auto; display: block; }
-
-        /* 🚀 底部聯繫區樣式 */
+        /* 底部聯繫區 */
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { display: none; text-decoration: none; background: #f8f9fa; padding: 12px; border-radius: 15px; color: #333; font-size: 13px; font-weight: 900; text-align: center; box-shadow: 4px 4px 8px rgba(0,0,0,0.05); border: 1px solid #f1f1f1; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; font-size: 15px; border: none; }
 
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 3000; border-radius: 40px 40px 0 0; }
         .footer { font-size: 11px; color: #ccc; padding: 25px; cursor: pointer; text-align: center; }
-        
-        /* 微信二維碼彈窗 */
+
         #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:10000; align-items:center; justify-content:center; flex-direction:column; }
     </style>
 </head>
@@ -107,9 +102,9 @@
                 <div id="u-service" class="text">智慧名片設計製作 / 幸福教養系統推廣</div>
             </div>
 
-            <div id="photo-list" class="photo-list">
-                <div id="p1" class="photo-item"><img id="u-p1" src=""></div>
-                <div id="p2" class="photo-item"><img id="u-p2" src=""></div>
+            <div id="photo-list" class="photo-list" style="display: flex; flex-direction: column; gap: 15px;">
+                <div id="p1" class="photo-item" style="width:100%; border-radius:20px; overflow:hidden; display:none;"><img id="u-p1" src="" style="width:100%;"></div>
+                <div id="p2" class="photo-item" style="width:100%; border-radius:20px; overflow:hidden; display:none;"><img id="u-p2" src="" style="width:100%;"></div>
             </div>
         </div>
         
@@ -129,13 +124,13 @@
     <div id="work-drawer">
         <div style="padding: 25px; text-align: center;">
             <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd;" placeholder="輸入序號或姓名">
-            <button onclick="doPreview()" class="drawer-btn" style="background:#ff7675; color:white;">1. 預覽成品</button>
-            <button onclick="doCopy()" class="drawer-btn" style="background:#2ecc71; color:white;">2. 製作並複製交貨網址</button>
-            <button onclick="copyMainUrl()" class="drawer-btn" style="background:#3498db; color:white;">3. 複製門面網址分享</button>
+            <button onclick="doPreview()" class="drawer-btn" style="background:#ff7675; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">1. 預覽成品</button>
+            <button onclick="doCopy()" class="drawer-btn" style="background:#2ecc71; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">2. 製作並複製交貨網址</button>
+            <button onclick="copyMainUrl()" class="drawer-btn" style="background:#3498db; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">3. 複製門面網址分享</button>
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V245</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V246</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -149,19 +144,13 @@
 
         if(urlId) { 
             document.body.classList.add('is-final');
-            document.addEventListener("DOMContentLoaded", () => {
-                document.getElementById('share-label').innerText = "🔗 分享我的智慧名片";
-                document.getElementById('share-box').style.background = "#f3f0ff";
-                document.getElementById('order-box').style.display = "none";
-            });
+            document.getElementById('share-label').innerText = "🔗 分享我的智慧名片";
+            document.getElementById('order-box').style.display = "none";
         }
 
         function handleShare() {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                alert(urlId ? "名片網址已複製！快分享給朋友吧！" : "幸福門面網址已複製！感謝您的推薦！");
-            });
+            navigator.clipboard.writeText(window.location.href).then(() => { alert("網址已複製！"); });
         }
-
         function showWechat() { document.getElementById('wechat-mask').style.display = 'flex'; }
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
@@ -175,9 +164,8 @@
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                // 🚀 初始化渲染
                 if (urlId) renderSheet(urlId); else renderSheet("小天使笑長");
-            } catch(e) { console.log("資料同步中"); }
+            } catch(e) { console.log("資料加載失敗"); }
         }
 
         function fixImg(url) {
@@ -189,53 +177,59 @@
         function renderSheet(keyword) {
             if(!keyword || !allRows[0]) return;
             const h = allRows[0];
-            const getI = (k) => h.findIndex(head => head.includes(k));
             const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
             if(d) {
-                document.getElementById('u-name').innerText = d[getI('姓名')] || "";
-                document.getElementById('u-unit').innerText = d[getI('單位')] || "";
-                document.getElementById('u-slogan').innerText = d[getI('理念')] || "";
-                document.getElementById('u-service').innerText = d[getI('服務')] || "";
-                document.getElementById('u-img').src = fixImg(d[getI('形象照')]);
+                const getVal = (key) => {
+                    const idx = h.findIndex(head => head.includes(key));
+                    return idx !== -1 ? d[idx] : "";
+                };
+
+                document.getElementById('u-name').innerText = getVal('姓名');
+                document.getElementById('u-unit').innerText = getVal('單位');
+                document.getElementById('u-slogan').innerText = getVal('理念');
+                document.getElementById('u-service').innerText = getVal('服務');
+                document.getElementById('u-img').src = fixImg(getVal('形象照'));
                 
-                // 🚀 影音連結精準修復
-                let lkIdx = 1;
+                // 🚀 影音連結修正：物理過濾
+                let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    // 排除 LINE 和圖片預覽連結
-                    if(val && val.includes('http') && !val.toLowerCase().includes('line.me') && !val.includes('drive.google.com/thumbnail') && lkIdx <= 3) {
-                        const el = document.getElementById('lk' + lkIdx);
-                        el.style.display = 'flex'; el.href = val; 
+                    if(val && val.includes('http') && !val.includes('line.me') && !val.includes('drive.google.com') && lkCount <= 3) {
+                        const el = document.getElementById('lk' + lkCount);
+                        el.style.display = 'flex'; el.href = val;
                         el.innerHTML = (val.includes('youtube') ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>');
-                        lkIdx++;
+                        lkCount++;
                     }
                 });
 
-                // 🚀 聯繫區智慧讀取
-                const oaLink = d[h.findIndex(head => head.includes('官方帳號'))];
-                const wechatImg = d[h.findIndex(head => head.includes('微信'))];
-                const mail = d[getI('郵箱')];
-                const tel = d[getI('電話')];
+                // 🚀 聯繫區：根據試算表內容顯示
+                const oa = getVal('官方帳號');
+                const wechat = getVal('微信');
+                const mail = getVal('郵箱');
+                const tel = getVal('電話');
 
-                // 全部重置隱藏
-                const btns = ['btn-oa', 'btn-wechat', 'btn-mail', 'btn-tel'];
-                btns.forEach(b => document.getElementById(b).style.display = 'none');
+                document.getElementById('btn-oa').style.display = oa ? 'block' : 'none';
+                if(oa) document.getElementById('btn-oa').href = oa;
 
-                // 按需顯示
-                if(oaLink) { document.getElementById('btn-oa').style.display = 'block'; document.getElementById('btn-oa').href = oaLink; }
-                if(wechatImg) { 
-                    document.getElementById('btn-wechat').style.display = 'block'; 
-                    document.getElementById('wechat-img').src = fixImg(wechatImg);
-                }
-                if(mail) { document.getElementById('btn-mail').style.display = 'block'; document.getElementById('btn-mail').href = "mailto:" + mail; }
-                if(tel) { document.getElementById('btn-tel').style.display = 'block'; document.getElementById('btn-tel').href = "tel:" + tel; }
-                
-                const prodIdx = h.findIndex(head => head.includes('產品'));
-                if(prodIdx !== -1 && d[prodIdx]) {
-                    const photoUrls = d[prodIdx].split(/[,，\s\n]+/).filter(u => u.includes('http'));
-                    for(let i=1; i<=2; i++) document.getElementById('p'+i).style.display = 'none';
-                    photoUrls.forEach((url, idx) => { if(idx < 2) { document.getElementById('p' + (idx+1)).style.display = 'block'; document.getElementById('u-p' + (idx+1)).src = fixImg(url); } });
+                document.getElementById('btn-wechat').style.display = wechat ? 'block' : 'none';
+                if(wechat) document.getElementById('wechat-img').src = fixImg(wechat);
+
+                document.getElementById('btn-mail').style.display = mail ? 'block' : 'none';
+                if(mail) document.getElementById('btn-mail').href = "mailto:" + mail;
+
+                document.getElementById('btn-tel').style.display = tel ? 'block' : 'none';
+                if(tel) document.getElementById('btn-tel').href = "tel:" + tel;
+
+                // 產品照片
+                const prodVal = getVal('產品');
+                if(prodVal) {
+                    const urls = prodVal.split(/[,，\s\n]+/).filter(u => u.includes('http'));
+                    for(let i=1; i<=2; i++) {
+                        const el = document.getElementById('p'+i);
+                        if(urls[i-1]) { el.style.display = 'block'; document.getElementById('u-p'+i).src = fixImg(urls[i-1]); }
+                        else { el.style.display = 'none'; }
+                    }
                 }
             }
         }
@@ -244,7 +238,6 @@
         function doPreview() { renderSheet(document.getElementById('work-id').value); }
         function doCopy() {
             const id = document.getElementById('work-id').value;
-            if(!id) { alert("請輸入客戶 ID"); return; }
             const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
             navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
         }
