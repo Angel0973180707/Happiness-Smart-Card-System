@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V252</title>
+    <title>天使幸福智慧名片 V253</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -23,7 +23,6 @@
         .btn-style { padding: 8px 16px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
         
-        /* 🚀 門面引導語動畫 */
         .guide-banner { font-size: 13px; color: var(--s); font-weight: 900; margin-top: 5px; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
 
@@ -47,7 +46,6 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        /* 🚀 智慧名片優勢列表樣式 */
         .advantage-item { font-size: 14px; color: #2d3436; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
         .advantage-item i { color: #20bf6b; font-size: 12px; }
 
@@ -81,7 +79,7 @@
 
     <div id="card-container" class="card">
         <div class="banner"><div class="arch-overlay"></div></div>
-        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
+        <div class="avatar-wrap"><img id="u-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" class="avatar"></div>
         <div class="info-scroll">
             <h1 id="u-name" class="name">小天使笑長</h1>
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
@@ -94,9 +92,8 @@
 
             <div id="advantage-box" class="content-box" style="background: #fdfdfd; border-color: #eee;">
                 <span class="label" style="color: #6c5ce7;">🏆 為什麼您需要智慧名片？</span>
-                <div class="advantage-item"><i class="fas fa-check-circle"></i> 專業形象：多款版型色彩自由切換</div>
                 <div class="advantage-item"><i class="fas fa-check-circle"></i> 一鍵分享：複製網址，傳播全世界</div>
-                <div class="advantage-item"><i class="fas fa-check-circle"></i> 影音整合：YouTube、FB 專業展示</div>
+                <div class="advantage-item"><i class="fas fa-check-circle"></i> 影音整合：個人YouTube、FB 等平臺展示</div>
                 <div class="advantage-item"><i class="fas fa-check-circle"></i> 輕鬆更新：後台同步，資料隨時改</div>
                 <div class="advantage-item"><i class="fas fa-check-circle"></i> 永不遺失：數位名片隨時隨地查看</div>
             </div>
@@ -126,7 +123,7 @@
     </div>
 
     <div id="wechat-mask" onclick="this.style.display='none'">
-        <img id="wechat-img" src="" style="width:80%; max-width:300px; border-radius:20px;">
+        <img id="wechat-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" style="width:80%; max-width:300px; border-radius:20px;">
         <p style="color:white; margin-top:15px; font-weight:900;">長按二維碼識別添加</p>
     </div>
 
@@ -139,7 +136,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V252</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V253</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -194,16 +191,14 @@
                     return (idx !== -1 && d[idx]) ? d[idx] : "";
                 };
 
-                document.getElementById('u-name').innerText = getVal('姓名');
-                document.getElementById('u-unit').innerText = getVal('單位');
+                document.getElementById('u-name').innerText = getVal('姓名') || "小天使笑長";
+                document.getElementById('u-unit').innerText = getVal('單位') || "幸福智慧服務中心";
                 document.getElementById('u-img').src = fixImg(getVal('形象照')) || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
                 
-                // 🚀 影音區精準過濾：排除 line.me 與 試算表官網欄位
                 let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
-                    // 關鍵過濾：只要網址裡有 line.me 或 google.com/open (官網網址) 就不出現在圖示區
                     if(val && val.includes('http') && !val.toLowerCase().includes('line.me') && !val.includes('google.com/open') && !val.includes('drive.google.com') && lkCount <= 3) {
                         const el = document.getElementById('lk' + lkCount);
                         el.style.display = 'flex'; el.href = val;
