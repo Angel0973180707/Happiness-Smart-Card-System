@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V263</title>
+    <title>天使幸福智慧名片 V264</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -114,7 +114,7 @@
     </div>
 
     <div id="wechat-mask" onclick="this.style.display='none'">
-        <img id="wechat-img" src="https://raw.githubusercontent.com/fsh-angel/happiness-card/main/wechat_qr.jpg" style="width:80%; max-width:300px; border-radius:20px; border: 5px solid white;">
+        <img id="wechat-img" src="https://raw.githubusercontent.com/fsh-angel/happiness-card/main/mmqrcode1770777103365.png" style="width:80%; max-width:300px; border-radius:20px; border: 5px solid white;">
         <p style="margin-top:20px; font-weight:900; font-size: 18px;">長按二維碼識別添加</p>
     </div>
 
@@ -126,7 +126,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V263</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V264</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -168,14 +168,18 @@
                     return (idx !== -1 && d[idx]) ? d[idx] : "";
                 };
 
-                document.getElementById('u-name').innerText = getVal('姓名');
-                document.getElementById('u-unit').innerText = getVal('單位');
-                document.getElementById('u-img').src = fixImg(getVal('形象照')) || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
+                document.getElementById('u-name').innerText = getVal('姓名') || "小天使笑長";
+                document.getElementById('u-unit').innerText = getVal('單位') || "幸福智慧服務中心";
+                
+                // 形象照備援
+                const avatar = getVal('形象照');
+                document.getElementById('u-img').src = avatar ? fixImg(avatar) : "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
                 
                 let lkCount = 1;
                 for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
                 h.forEach((head, idx) => {
                     const val = d[idx];
+                    // 過濾所有照片連結與 LINE 連結
                     if(val && val.includes('http') && !val.includes('line.me') && !val.includes('lin.ee') && !val.includes('drive.google.com') && lkCount <= 3) {
                         const el = document.getElementById('lk' + lkCount);
                         el.style.display = 'flex'; el.href = val;
@@ -184,18 +188,17 @@
                     }
                 });
 
-                // 🚀 關鍵修正：成品與門面按鈕切換邏輯
                 const isMain = (!urlId && !document.getElementById('work-id').value) || keyword == "1";
                 if(isMain) {
-                    // 門面強制全開，內容鎖死您的資料
+                    // 門面內容寫死
                     document.getElementById('btn-oa').style.display = 'block'; document.getElementById('btn-oa').href = "https://lin.ee/2ac9Roe";
                     document.getElementById('btn-p').style.display = 'block'; document.getElementById('btn-p').href = "https://line.me/ti/p/VqJzbWHm_4";
-                    document.getElementById('btn-wechat').style.display = 'block'; document.getElementById('wechat-img').src = "https://raw.githubusercontent.com/fsh-angel/happiness-card/main/wechat_qr.jpg";
+                    document.getElementById('btn-wechat').style.display = 'block'; document.getElementById('wechat-img').src = "https://raw.githubusercontent.com/fsh-angel/happiness-card/main/mmqrcode1770777103365.png";
                     document.getElementById('btn-mail').style.display = 'block'; document.getElementById('btn-mail').href = "mailto:a0973180707@gmail.com";
                     document.getElementById('advantage-box').style.display = 'block';
                     document.getElementById('order-box').style.display = 'block';
                 } else {
-                    // 成品區讀取客戶資料
+                    // 客戶模式動態讀取
                     const oa = getVal('官方帳號'), p = getVal('私訊 LINE'), wx = getVal('微信'), ml = getVal('郵箱');
                     document.getElementById('btn-oa').style.display = oa ? 'block' : 'none'; if(oa) document.getElementById('btn-oa').href = oa;
                     document.getElementById('btn-p').style.display = p ? 'block' : 'none'; if(p) document.getElementById('btn-p').href = p;
@@ -205,7 +208,7 @@
                     document.getElementById('order-box').style.display = 'none';
                 }
 
-                // 產品照
+                // 產品照片
                 const prodVal = getVal('產品');
                 const urls = prodVal ? prodVal.split(/[,，\s\n]+/).filter(u => u.includes('http')) : [];
                 for(let i=1; i<=2; i++) {
