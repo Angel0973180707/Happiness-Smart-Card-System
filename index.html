@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V286</title>
+    <title>天使幸福智慧名片 V287</title>
     
-    <link rel="manifest" href="./manifest.json?v=286">
+    <link rel="manifest" href="./manifest.json?v=287">
     <meta name="theme-color" content="#ee5253">
     <link rel="apple-touch-icon" href="./icon-192.png">
     
@@ -37,7 +37,8 @@
         .avatar-wrap { width: 135px; height: 135px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #f0f0f0; }
 
-        .info-scroll { flex-grow: 1; overflow-y: auto; padding: 45px 20px 20px; text-align: center; scrollbar-width: none; }
+        /* 🚀 滾動區：確保內容優先，不被底部擋住 */
+        .info-scroll { flex-grow: 1; overflow-y: auto; padding: 45px 20px 10px; text-align: center; scrollbar-width: none; }
         .info-scroll::-webkit-scrollbar { display: none; }
         .name { font-size: 28px; font-weight: 900; color: #2d3436; margin: 5px 0; }
         .unit { font-size: 15px; color: var(--s); font-weight: 700; margin-bottom: 8px; }
@@ -48,20 +49,19 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 18px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        /* 🚀 底部安裝區：背景改為暖粉色 */
-        .bottom-install-area { background: #fff5f5; padding: 22px 15px; border-top: 1px dashed #ffcccc; text-align: center; }
-        #install-pwa-btn { background: #2f3640; color: white; padding: 12px 25px; border-radius: 50px; font-size: 14px; font-weight: 900; margin-bottom: 12px; cursor: pointer; border: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); display: none; }
-        .guide-text-lg { font-size: 14px; color: #d63031; font-weight: bold; line-height: 1.6; margin: 0; }
-        .guide-text-sm { font-size: 12px; color: #777; margin-top: 8px; }
+        /* 🚀 精簡安裝區：大幅度減小體積，不擋內容 */
+        .bottom-install-area { background: #fff5f5; padding: 12px 10px; border-top: 1px dashed #ffcccc; text-align: center; margin-top: auto; }
+        #install-pwa-btn { background: #2f3640; color: white; padding: 8px 20px; border-radius: 50px; font-size: 12px; font-weight: 900; margin-bottom: 5px; cursor: pointer; border: none; display: none; }
+        .guide-text-sm { font-size: 11px; color: #ee5253; font-weight: bold; line-height: 1.4; margin: 0; }
 
-        .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
+        .actions { background: white; padding: 10px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; font-size: 15px; border: none; }
         .btn-sub { background: #ffffff !important; color: #06C755 !important; border: 2px solid #06C755 !important; }
 
         #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; align-items:center; justify-content:center; flex-direction:column; color: white; padding: 20px; text-align: center; }
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 3000; border-radius: 40px 40px 0 0; }
-        .footer { font-size: 11px; color: #bbb; padding: 25px; cursor: pointer; text-align: center; }
+        .footer { font-size: 11px; color: #bbb; padding: 20px; cursor: pointer; text-align: center; }
     </style>
 </head>
 <body class="warm-pink style-arch">
@@ -114,15 +114,13 @@
 
             <div class="content-box">
                 <span class="label">服務項目</span>
-                <div id="u-service" class="text" style="font-size: 14.5px; color: #2d3436; line-height: 1.8;">智慧名片設計製作 / 幸福教養系統推廣</div>
+                <div id="u-service" class="text" style="font-size: 14.5px; color: #2d3436; line-height: 1.8;">讀取中...</div>
             </div>
         </div>
 
         <div id="install-area" class="bottom-install-area" style="display:none;">
-            <p id="install-title" style="font-weight: 900; color: #2d3436; margin-bottom: 10px;">📲 把名片收藏到手機桌面</p>
-            <button id="install-pwa-btn"><i class="fa-solid fa-download"></i> 立即安裝名片 App</button>
-            <p id="install-text" class="guide-text-lg"></p>
-            <p class="guide-text-sm">※ 建議使用 Chrome 或 Safari 瀏覽器以獲得最佳體驗</p>
+            <button id="install-pwa-btn"><i class="fa-solid fa-download"></i> 點此一鍵安裝名片 App</button>
+            <p id="install-text" class="guide-text-sm"></p>
         </div>
         
         <div class="actions">
@@ -151,7 +149,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V286</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V287</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -235,11 +233,10 @@
                     document.getElementById('install-area').style.display = 'block';
                     if(isiOS) {
                         document.getElementById('install-pwa-btn').style.display = 'none';
-                        document.getElementById('install-text').innerHTML = "🍎 iPhone 客戶請點擊網頁下方 <b style='font-size:18px'>[分享箭頭 ⬆️]</b><br>並選擇 <b>[加入主畫面]</b> 即可完成安裝！";
+                        document.getElementById('install-text').innerHTML = "🍎 iPhone 客戶請點擊網頁下方 [分享箭頭 ⬆️] 並選擇 [加入主畫面] 即可完成安裝";
                     } else {
-                        // 初始狀態下，Android 先顯示提示，若偵測到 BeforeInstallPrompt 再開啟按鈕
                         document.getElementById('install-pwa-btn').style.display = 'none';
-                        document.getElementById('install-text').innerHTML = "📱 Android 客戶請點擊瀏覽器選單 <b>[三個點點]</b><br>並選擇 <b>[安裝應用程式]</b> 或 <b>[新增至主螢幕]</b>";
+                        document.getElementById('install-text').innerHTML = "📱 Android 客戶請點擊瀏覽器選單 [三個點點] 並選擇 [安裝應用程式]";
                     }
                     document.getElementById('wechat-id-text').innerText = getVal('微信') || "未提供";
                 }
@@ -257,17 +254,16 @@
 
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js?v=286').catch(err => console.log('SW Fail', err));
+                navigator.serviceWorker.register('./sw.js?v=287').catch(err => console.log('SW Fail', err));
             });
         }
 
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault(); deferredPrompt = e;
-            // 如果偵測到環境支援按鈕安裝（Android Chrome），則開啟按鈕並簡化提示
             const btn = document.getElementById('install-pwa-btn');
-            if(btn && !urlParams.get('id') == "1") {
+            if(btn && urlParams.get('id') != "1") {
                 btn.style.display = 'inline-block';
-                document.getElementById('install-text').innerHTML = "點擊上方按鈕，一鍵將名片存入手機！";
+                document.getElementById('install-text').innerHTML = "點擊上方按鈕一鍵安裝，名片不再丟失";
             }
         });
 
