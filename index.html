@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V307</title>
-    <link rel="manifest" href="./manifest.json?v=307">
+    <title>天使幸福智慧名片 V308</title>
+    <link rel="manifest" href="./manifest.json?v=308">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -15,34 +15,33 @@
         .royal-purple { --p: #6c5ce7; --s: #4834d4; }
         .teal-green { --p: #20bf6b; --s: #0b8d51; }
 
-        /* 🚀 修正：讓 body 允許捲動，避免頁面被鎖死 */
         body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0 10px; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
-        .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
-        .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
-        .btn-style { padding: 6px 14px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
+        #admin-panel { width: 100%; background: white; text-align: center; padding: 10px 0; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
+        .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 5px; }
+        .dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .btn-style { padding: 5px 12px; border-radius: 15px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; }
         .btn-style.active { background: #2f3640 !important; color: white !important; }
 
-        /* 🚀 名片主體：固定高度，但允許內容溢出捲動 */
-        .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; flex-shrink: 0; }
+        /* 🚀 修正：主體高度彈性化，不再鎖死 680px */
+        .card { background: white; width: 92%; max-width: 380px; height: 90vh; max-height: 750px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
         
         #u-logo { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; z-index: 150; border-radius: 10px; overflow: hidden; display: none; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         #u-logo img { width: 100%; height: 100%; object-fit: contain; }
 
         .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
-        .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; }
+        .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; transition: 0.5s; }
         .style-flat .arch-overlay { border-radius: 0; height: 35px; }
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
 
         .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; border: 2px solid var(--p); }
         .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-        /* 🚀 內容捲動區：開啟 overflow-y: auto，這是能往下拉的關鍵 */
-        .info-scroll { flex: 1; overflow-y: auto; padding: 45px 20px 20px; text-align: center; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        /* 🚀 核心修正：info-scroll 必須擁有獨立的捲動權限 */
+        .info-scroll { flex: 1; overflow-y: auto !important; padding: 45px 20px 20px; text-align: center; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .info-scroll::-webkit-scrollbar { display: none; }
         
-        .name { font-size: 26px; font-weight: 900; color: #2d3436; margin: 5px 0; }
+        .name { font-size: 26px; font-weight: 900; color: #2d3436; margin: 5px 0 0; }
         .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 8px; }
         
         #u-products { display: flex; gap: 8px; margin: 15px 0; justify-content: center; flex-wrap: wrap; }
@@ -51,11 +50,11 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 15px; border: 1px solid #f0f0f0; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        .bottom-guide-bar { padding: 10px 0 20px; text-align: center; }
-        .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; }
+        .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 8px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; margin-top: 10px; }
 
-        .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
-        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; }
+        /* 🚀 底部聯繫區固定 */
+        .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; z-index: 200; }
+        .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; border: none; }
 
         #install-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:11000; align-items:center; justify-content:center; }
@@ -85,7 +84,7 @@
     <div id="card-container" class="card">
         <div id="u-logo" class="brand-logo"><img></div>
         <div class="banner"><div class="arch-overlay"></div></div>
-        <div class="avatar-wrap"><img id="u-img" class="avatar"></div>
+        <div class="avatar-wrap"><img id="u-img" src="" class="avatar"></div>
         
         <div class="info-scroll">
             <h1 id="u-name" class="name">載入中...</h1>
@@ -99,8 +98,8 @@
                 <span class="label">專業解答 (Q&A)</span>
                 <div id="u-qa" style="font-size: 13.5px; color: #2d3436; line-height: 1.6;"></div>
             </div>
-            <div id="install-entry" class="bottom-guide-bar" style="display:none;">
-                <button class="mini-install-btn" onclick="openInstallModal()">📲 安裝名片 App 教學</button>
+            <div id="install-entry" style="display:none; padding: 10px 0;">
+                <button class="mini-install-btn" onclick="document.getElementById('install-modal').style.display='flex'">📲 安裝名片 App 教學</button>
             </div>
         </div>
         
@@ -135,7 +134,7 @@
         </div>
     </div>
 
-    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V307</div>
+    <div class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V308</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
@@ -205,7 +204,6 @@
             }
         }
 
-        function openInstallModal() { document.getElementById('install-modal').style.display = 'flex'; }
         function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
         function copyWechat() { navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製")); }
         function copyCurrentUrl() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製")); }
