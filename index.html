@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V333</title>
+  <title>天使幸福智慧名片 V335</title>
 
-  <link rel="manifest" href="./manifest.json?v=333" />
+  <link rel="manifest" href="./manifest.json?v=335" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -102,7 +102,6 @@
     }
     .avatar{ width:100%;height:100%;border-radius:50%;object-fit:cover; }
 
-    /* ✅改這裡：門面模式也維持圓形頭像框 */
     .mode-main .avatar-wrap{ border-radius:50%; }
     .mode-main .avatar{ border-radius:50%; }
 
@@ -352,9 +351,11 @@
     <div class="modal-content" onclick="event.stopPropagation()">
       <span class="close-modal" onclick="closeInstallModal(event)">&times;</span>
       <h3 style="margin-top:0;color:var(--p);text-align:center;">安裝名片教學</h3>
+
       <div style="background:#f8f9fa;padding:15px;border-radius:15px;text-align:center;margin-bottom:15px;">
         <button onclick="copyCurrentUrl()" style="background:var(--p);color:white;border:none;padding:8px 15px;border-radius:10px;font-weight:900;width:100%;">🔗 複製網址</button>
       </div>
+
       <div class="modal-tab">
         <button class="tab-btn active" onclick="switchTab('apple')">🍎 iPhone</button>
         <button class="tab-btn" onclick="switchTab('android')">🤖 Android</button>
@@ -381,12 +382,18 @@
     </div>
   </div>
 
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V333</div>
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V335</div>
 
   <script>
+    const VERSION = 335;
+
+    // ✅【V335】記住你在前臺替客戶選的顏色/版型（重整也不會跑掉）
+    const LS_THEME = 'angel_card_theme';
+    const LS_STYLE = 'angel_card_style';
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=333').catch(() => {});
+        navigator.serviceWorker.register('./sw.js?v=' + VERSION).catch(() => {});
       });
     }
 
@@ -396,8 +403,9 @@
     let allRows = [];
     let clicks = 0;
 
-    let curTheme = urlParams.get('theme') || 'warm-pink';
-    let curStyle = urlParams.get('style') || 'arch';
+    // ✅ 優先順序：URL > localStorage > 預設
+    let curTheme = urlParams.get('theme') || localStorage.getItem(LS_THEME) || 'warm-pink';
+    let curStyle = urlParams.get('style') || localStorage.getItem(LS_STYLE) || 'arch';
 
     let uiMain = !urlId;
 
@@ -414,19 +422,58 @@
         document.getElementById('android-pane').classList.add('active');
       }
     }
-    function copyCurrentUrl(){ navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製！")); }
-    function showWechatText(){ document.getElementById('wechat-mask').style.display = 'flex'; }
-    function copyWechat(){ navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製！")); }
 
-    function setTheme(t){ curTheme = t; updateClass(); }
+    async function safeCopy(text){
+      try{
+        if(navigator.clipboard && window.isSecureContext){
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      }catch(e){}
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly','');
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      }catch(e){
+        return false;
+      }
+    }
+
+    async function copyCurrentUrl(){
+      const ok = await safeCopy(window.location.href);
+      alert(ok ? "網址已複製！" : "此瀏覽器限制複製，請長按網址列複製");
+    }
+
+    function showWechatText(){ document.getElementById('wechat-mask').style.display = 'flex'; }
+    async function copyWechat(){
+      const ok = await safeCopy(document.getElementById('wechat-id-text').innerText);
+      alert(ok ? "微信 ID 已複製！" : "此瀏覽器限制複製，請手動複製");
+    }
+
+    // ✅【V335】選完就立刻記住（你前臺選好，後臺只輸入姓名就好）
+    function setTheme(t){
+      curTheme = t;
+      localStorage.setItem(LS_THEME, t);
+      updateClass();
+    }
     function setStyle(s, btn){
       curStyle = s;
+      localStorage.setItem(LS_STYLE, s);
       updateClass();
       if(btn){
         document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
       }
     }
+
     function updateClass(){
       document.body.className = `${curTheme} style-${curStyle}${uiMain ? ' mode-main' : ' mode-delivery'}`;
       const meta = document.querySelector('meta[name="theme-color"]');
@@ -442,7 +489,11 @@
       }
       setTimeout(() => clicks = 0, 1000);
     }
-    function handleShare(){ navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
+
+    async function handleShare(){
+      const ok = await safeCopy(window.location.href);
+      alert(ok ? "連結複製成功！" : "此瀏覽器限制複製，請長按網址列複製");
+    }
 
     function fixImg(url){
       if(!url) return "";
@@ -454,13 +505,47 @@
       return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).slice(0, 3);
     }
 
+    // ✅ 穩定 CSV 解析（保留你原邏輯但更穩）
+    function parseCSV(text){
+      const rows = [];
+      let row = [];
+      let cur = '';
+      let i = 0;
+      let inQuotes = false;
+
+      while(i < text.length){
+        const ch = text[i];
+
+        if(inQuotes){
+          if(ch === '"'){
+            const next = text[i+1];
+            if(next === '"'){ cur += '"'; i += 2; continue; }
+            inQuotes = false; i++; continue;
+          }
+          cur += ch; i++; continue;
+        }else{
+          if(ch === '"'){ inQuotes = true; i++; continue; }
+          if(ch === ','){ row.push(cur.trim()); cur=''; i++; continue; }
+          if(ch === '\n' || ch === '\r'){
+            if(ch === '\r' && text[i+1] === '\n') i++;
+            row.push(cur.trim()); cur='';
+            if(row.some(c => c !== '')) rows.push(row);
+            row = []; i++; continue;
+          }
+          cur += ch; i++; continue;
+        }
+      }
+      row.push(cur.trim());
+      if(row.some(c => c !== '')) rows.push(row);
+      return rows;
+    }
+
     async function loadSheetData(){
       const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
       try{
         const res = await fetch(csvUrl);
         const text = await res.text();
-        const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
-        allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
+        allRows = parseCSV(text);
       } catch(e){
         console.log("資料同步中");
       }
@@ -595,175 +680,22 @@
       }
       faqBox.style.display = anyFaq ? '' : 'none';
 
-      // ✅ 修正：影音/網頁連結「仍跳出 LINE」= 把所有 LINE 相關網域更完整排除
-      const isLineDomain = (v) => {
-        return (
-          v.startsWith('line://') ||
-          v.includes('line.me') ||
-          v.includes('lin.ee') ||
-          v.includes('liff.line.me') ||
-          v.includes('linevoom.line.me') ||
-          v.includes('openchat.line.me') ||
-          v.includes('line.biz') ||
-          v.includes('access.line.me') ||
-          v.includes('social-plugins.line.me')
-        );
-      };
-
-      // ✅【V333 新增】導航判斷與導航連結產生（只加功能，不動其他流程）
-      const parseAddressOrUrl = (raw) => {
-        const s = (raw || "").trim();
-        if(!s) return { type:'none', value:'' };
-
-        const httpIdx = s.indexOf('http');
-        if(httpIdx >= 0){
-          const maybeAddr = s.slice(0, httpIdx).trim();
-          const maybeUrl  = s.slice(httpIdx).trim();
-          return { type:'mixed', addr: maybeAddr, url: maybeUrl };
-        }
-        return { type:'plain', value: s };
-      };
-
-      const isMapUrl = (u) => {
-        const v = (u || "").toLowerCase();
-        return (
-          v.includes('google.com/maps') ||
-          v.includes('maps.google') ||
-          v.includes('maps.app.goo.gl') ||
-          v.includes('share.google') ||
-          v.includes('goo.gl/maps') ||
-          v.includes('maps.apple.com')
-        );
-      };
-
-      const toNavUrl = (raw) => {
-        // raw 可能是：純地址 / 地圖網址 /「地址 + 網址」
-        const p = parseAddressOrUrl(raw);
-
-        // 1) 混合：優先用地址當 destination（最穩），沒有地址再用網址
-        if(p.type === 'mixed'){
-          if(p.addr){
-            return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.addr)}`;
-          }
-          if(p.url){
-            // 若是 apple maps 就直接開
-            if((p.url || "").toLowerCase().includes('maps.apple.com')) return p.url;
-            if(isMapUrl(p.url)){
-              // 對於 share.google / maps.app.goo.gl 等，直接開原連結也可；這裡統一用 destination=原字串（可工作）
-              return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.url)}`;
-            }
-            return p.url;
-          }
-        }
-
-        // 2) 純網址：如果是地圖，開導航；不是地圖，原樣
-        if(p.type === 'plain' && p.value.includes('http')){
-          const url = p.value;
-          if(url.toLowerCase().includes('maps.apple.com')) return url;
-          if(isMapUrl(url)) return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(url)}`;
-          return url;
-        }
-
-        // 3) 純文字：當地址處理
-        if(p.type === 'plain'){
-          return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.value)}`;
-        }
-
-        return '';
-      };
-
-      const isProbablyAddress = (raw) => {
-        const s = (raw || "").trim();
-        if(!s) return false;
-
-        // 有明顯地址關鍵字
-        if(/[市縣區鄉鎮里路街巷弄號樓]/.test(s)) return true;
-
-        // 以郵遞區號開頭（台灣 3/5 碼）
-        if(/^\d{3}(\d{2})?\s?/.test(s)) return true;
-
-        // 內含地圖網址
-        if(s.includes('http') && isMapUrl(s)) return true;
-
-        // 混合「地址 + http」也算
-        if(s.includes('http') && s.indexOf('http') > 0) return true;
-
-        return false;
-      };
-
-      let lkCount = 1;
-      for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
-
-      const isAllowedWebLink = (val) => {
-        if(!val) return false;
-
-        const raw = String(val).trim();
-        const v = raw.toLowerCase();
-
-        // ✅ LINE 全排除（只放聯繫區）
-        if(isLineDomain(v)) return false;
-
-        // ✅ drive 圖檔不放連結區
-        if(v.includes('drive.google.com')) return false;
-
-        // ✅【V333】允許「地址/地圖」進入連結區（不要求一定有 http）
-        if(isProbablyAddress(raw)) return true;
-
-        // 其它一般/影音網頁：需 http
-        if(!v.includes('http')) return false;
-
-        return true;
-      };
-
-      const linkIconHtml = (val) => {
-        const raw = String(val || "").trim();
-        const v = raw.toLowerCase();
-
-        // ✅【V333】地圖/地址 → 導航 icon
-        if(isProbablyAddress(raw)) return '<i class="fa-solid fa-map-location-dot"></i>';
-
-        if(v.includes('youtube') || v.includes('youtu.be')) return '<i class="fa-solid fa-play"></i>';
-        if(v.includes('tiktok') || v.includes('douyin')) return '<i class="fa-brands fa-tiktok"></i>';
-        return '<i class="fa-solid fa-link"></i>';
-      };
-
-      h.forEach((head, idx) => {
-        const val = d[idx];
-        if(isAllowedWebLink(val) && lkCount <= 3){
-          const el = document.getElementById('lk' + lkCount);
-          el.style.display = 'flex';
-          el.innerHTML = linkIconHtml(val);
-
-          // ✅【V333】地圖/地址 → 導航連結；其他 → 原連結
-          const raw = String(val || "").trim();
-          if(isProbablyAddress(raw)){
-            el.href = toNavUrl(raw);
-          } else {
-            // 如果是混合「文字 + http」但不是地址，也只抓 http
-            const httpIdx = raw.indexOf('http');
-            el.href = httpIdx >= 0 ? raw.slice(httpIdx).trim() : raw;
-          }
-
-          lkCount++;
-        }
-      });
-
-      const lineGuide = document.getElementById('line-guide');
-
+      // ✅ 交貨頁顯示安裝教學
       if(isMainData){
         document.getElementById('advantage-box').style.display = 'block';
         document.getElementById('order-box').style.display = 'block';
         document.getElementById('install-entry').style.display = 'none';
         document.getElementById('wechat-id-text').innerText = "a0973180707";
-        if(lineGuide) lineGuide.style.display = 'block';
+        document.getElementById('line-guide').style.display = 'block';
       } else {
         document.getElementById('advantage-box').style.display = 'none';
         document.getElementById('order-box').style.display = 'none';
         document.getElementById('install-entry').style.display = 'block';
         document.getElementById('wechat-id-text').innerText = wechat || "未提供";
-        if(lineGuide) lineGuide.style.display = uiMain ? 'block' : 'none';
+        document.getElementById('line-guide').style.display = uiMain ? 'block' : 'none';
       }
 
+      // ✅ 交貨頁聯絡按鈕
       if(!isMainData){
         const btnOA = document.getElementById('btn-oa');
         if(lineOA && lineOA.includes('http')){ btnOA.href = lineOA; btnOA.style.display = 'block'; }
@@ -802,11 +734,16 @@
       }
     }
 
-    function doCopy(){
+    // ✅【V335】你要的：前臺選好 → 後臺只輸入姓名 → 一鍵複製「帶版型顏色」交貨網址
+    async function doCopy(){
       const id = (document.getElementById('work-id').value || "").trim();
       if(!id){ alert("請先輸入序號或姓名"); return; }
-      const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
-      navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
+
+      // 確保用「目前已選」的 theme/style（並已存 localStorage）
+      const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${encodeURIComponent(curTheme)}&style=${encodeURIComponent(curStyle)}`;
+
+      const ok = await safeCopy(finalUrl);
+      alert(ok ? "✅ 交貨網址已複製！（已帶顏色/版型）" : "此瀏覽器限制複製，請手動複製網址列");
     }
 
     async function init(){
