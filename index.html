@@ -49,7 +49,6 @@
     }
     .btn-style.active{ background:#2f3640!important; color:white!important; }
 
-    /* ✅ 提示字（微微跳動） */
     .hint-bounce{
       font-size:12px;
       font-weight:900;
@@ -95,7 +94,6 @@
     .style-flat .arch-overlay{ border-radius:0; height:35px; }
     .style-spot .arch-overlay{ border-radius:50% 50% 0 0; transform:scaleX(1.4); height:100px; }
 
-    /* ✅ 預設：成品區（乾淨）= 圓形框 */
     .avatar-wrap{
       width:130px;height:130px;background:#fff;border-radius:50%;
       padding:6px;box-shadow:0 10px 25px rgba(0,0,0,0.1);
@@ -104,7 +102,6 @@
     }
     .avatar{ width:100%;height:100%;border-radius:50%;object-fit:cover; }
 
-    /* ✅ 門面區（主樣板）= 圓角框 */
     .mode-main .avatar-wrap{ border-radius:28px; }
     .mode-main .avatar{ border-radius:22px; }
 
@@ -200,7 +197,6 @@
       border:2px solid #06C755!important;
     }
 
-    /* ✅ 主樣板（門面）加一句引導：點進LINE官方網站預約 */
     .line-guide{
       grid-column: span 2;
       background: #f7fff9;
@@ -233,7 +229,6 @@
       align-items:center; justify-content:center; flex-direction:column; color:white;
     }
 
-    /* ✅ 抽屜（門面才會用到） */
     #work-drawer{
       width:100%; max-width:420px; background:#2d3436; color:white;
       max-height:0; overflow:hidden; transition:0.5s;
@@ -242,7 +237,6 @@
     }
     .footer{ font-size:11px; color:#bbb; padding:25px; cursor:pointer; text-align:center; }
 
-    /* ✅ 成品模式：整個門面入口/抽屜/版型都隱藏 */
     .mode-delivery #admin-panel,
     .mode-delivery #work-drawer,
     .mode-delivery #gate-footer{ display:none !important; }
@@ -259,7 +253,6 @@
       <div class="dot" onclick="setTheme('teal-green')" style="background:#20bf6b"></div>
     </div>
 
-    <!-- ✅ 版型區：加提示字 -->
     <div class="picker-group" style="margin-top:2px;">
       <span class="hint-bounce"><i class="fa-solid fa-hand-pointer"></i> 點選顏色版型參考</span>
     </div>
@@ -345,7 +338,6 @@
     </div>
 
     <div id="actions-area" class="actions">
-      <!-- ✅ 門面引導句（只在門面顯示） -->
       <div id="line-guide" class="line-guide">點進 line 官方網站，預約訂製名片</div>
 
       <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
@@ -383,7 +375,6 @@
   <div id="work-drawer">
     <div style="padding:25px;text-align:center;">
       <input type="text" id="work-id" style="width:90%;padding:15px;border-radius:15px;border:1px solid #ddd;color:#333;" placeholder="輸入序號或姓名" />
-      <!-- ✅ 預覽：不跳出去（留在門面、可回來複製網址） -->
       <button onclick="doPreviewInPlace()" style="background:#ee5253;color:white;width:90%;padding:15px;margin-top:10px;border-radius:15px;border:none;font-weight:900;">預覽成品（不跳出）</button>
       <button onclick="doCopy()" style="background:#2ecc71;color:white;width:90%;padding:15px;margin-top:10px;border-radius:15px;border:none;font-weight:900;">複製交貨網址</button>
     </div>
@@ -392,7 +383,6 @@
   <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V332</div>
 
   <script>
-    // ✅ Service Worker（沒有它常常就「無法安裝」）
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js?v=332').catch(() => {});
@@ -408,9 +398,6 @@
     let curTheme = urlParams.get('theme') || 'warm-pink';
     let curStyle = urlParams.get('style') || 'arch';
 
-    // ✅ UI模式：門面(有抽屜/版型) vs 成品(乾淨)
-    // - URL 有 id = 成品頁（乾淨）
-    // - URL 無 id = 門面頁（可預覽，但不跳走）
     let uiMain = !urlId;
 
     function openInstallModal(){ document.getElementById('install-modal').style.display = 'flex'; }
@@ -441,13 +428,12 @@
     }
     function updateClass(){
       document.body.className = `${curTheme} style-${curStyle}${uiMain ? ' mode-main' : ' mode-delivery'}`;
-      // 同步 theme-color（Android 安裝後頂欄色）
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#ee5253');
     }
 
     function handleGate(){
-      if(!uiMain) return; // 成品不開抽屜
+      if(!uiMain) return;
       clicks++;
       if(clicks >= 3){
         document.getElementById('work-drawer').style.maxHeight = '500px';
@@ -479,13 +465,11 @@
       }
     }
 
-    // ✅ 門面：固定讀第一筆資料（第2列 allRows[1]）
     function renderMainFixedFirstRow(){
       if(!allRows[0] || !allRows[1]) return;
       applyRow(allRows[0], allRows[1], { isMainData:true, keepUiMain:true });
     }
 
-    // ✅ 成品：用 id 或 姓名 找資料
     function renderById(keyword, keepUiMain){
       if(!keyword || !allRows[0]) return false;
       const h = allRows[0];
@@ -495,14 +479,11 @@
       return true;
     }
 
-    // ✅ 你要的「預覽成品：不跳出去」= 仍保留門面UI，但資料換成顧客那筆
     function doPreviewInPlace(){
       const id = (document.getElementById('work-id').value || "").trim();
       if(!id){ alert("請先輸入序號或姓名"); return; }
       const ok = renderById(id, true);
       if(!ok){ alert("找不到此序號/姓名"); return; }
-      // 讓你「預覽後」依然在門面，可直接複製交貨網址
-      // 小提醒：預覽只是畫面切換，不改網址
       document.querySelector('.info-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -510,7 +491,6 @@
       const isMainData = !!(opt && opt.isMainData);
       const keepUiMain = !!(opt && opt.keepUiMain);
 
-      // UI模式：成品頁由 URL 決定；門面預覽保持門面 UI
       uiMain = keepUiMain ? true : !urlId;
       updateClass();
 
@@ -544,12 +524,10 @@
 
       document.getElementById('u-img').src = avatar || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
 
-      // motto
       const mottoEl = document.getElementById('u-motto');
       if(motto){ mottoEl.style.display=''; mottoEl.innerText=motto; }
       else { mottoEl.style.display='none'; mottoEl.innerText=''; }
 
-      // logo
       const logoWrap = document.getElementById('brand-logo');
       const logoImg  = document.getElementById('u-logo');
       if(logo){
@@ -560,7 +538,6 @@
         logoWrap.style.display = 'none';
       }
 
-      // photos
       const photosBox = document.getElementById('photos-box');
       if(photos.length){
         photosBox.style.display = '';
@@ -583,7 +560,6 @@
         photosBox.style.display = 'none';
       }
 
-      // titles
       const titlesBox = document.getElementById('titles-box');
       const titlesEl  = document.getElementById('u-titles');
       if(titles){
@@ -594,7 +570,6 @@
         titlesEl.innerText = '';
       }
 
-      // FAQ
       const faqBox = document.getElementById('faq-box');
       const faq1 = document.getElementById('faq-1');
       const faq2 = document.getElementById('faq-2');
@@ -619,19 +594,30 @@
       }
       faqBox.style.display = anyFaq ? '' : 'none';
 
-      // ✅ 顧客網頁連結區：只放影音/一般網頁；LINE 全部排除（改放聯繫區）
+      // ✅ 修正：影音/網頁連結「仍跳出 LINE」= 把所有 LINE 相關網域更完整排除
+      const isLineDomain = (v) => {
+        return (
+          v.startsWith('line://') ||
+          v.includes('line.me') ||
+          v.includes('lin.ee') ||
+          v.includes('liff.line.me') ||
+          v.includes('linevoom.line.me') ||
+          v.includes('openchat.line.me') ||
+          v.includes('line.biz') ||
+          v.includes('access.line.me') ||
+          v.includes('social-plugins.line.me')
+        );
+      };
+
       let lkCount = 1;
       for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
 
       const isAllowedWebLink = (val) => {
         if(!val || !val.includes('http')) return false;
         const v = val.toLowerCase();
-        // 排除：LINE（聯繫區）
-        if(v.includes('line.me') || v.includes('lin.ee')) return false;
-        // 排除：Google Drive 圖檔
-        if(v.includes('drive.google.com')) return false;
-        // 其它就當一般網頁/影音都可
-        return true;
+        if(isLineDomain(v)) return false;           // ✅ LINE 全排除（只放聯繫區）
+        if(v.includes('drive.google.com')) return false; // 圖檔不放連結區
+        return true; // 影音/一般網頁都OK（含 tiktok/douyin/youtube）
       };
 
       const linkIconHtml = (val) => {
@@ -652,43 +638,35 @@
         }
       });
 
-      // ✅ 顯示/隱藏：門面招商區 vs 成品安裝教學
       const lineGuide = document.getElementById('line-guide');
 
       if(isMainData){
-        // 門面固定那筆資料
         document.getElementById('advantage-box').style.display = 'block';
         document.getElementById('order-box').style.display = 'block';
         document.getElementById('install-entry').style.display = 'none';
         document.getElementById('wechat-id-text').innerText = "a0973180707";
         if(lineGuide) lineGuide.style.display = 'block';
       } else {
-        // 顧客成品資料
         document.getElementById('advantage-box').style.display = 'none';
         document.getElementById('order-box').style.display = 'none';
         document.getElementById('install-entry').style.display = 'block';
         document.getElementById('wechat-id-text').innerText = wechat || "未提供";
-        if(lineGuide) lineGuide.style.display = uiMain ? 'block' : 'none'; // 門面預覽仍顯示引導句
+        if(lineGuide) lineGuide.style.display = uiMain ? 'block' : 'none';
       }
 
-      // ✅ 聯繫區：LINE 全部放這裡（不出現在連結區）
       if(!isMainData){
-        // LINE OA
         const btnOA = document.getElementById('btn-oa');
         if(lineOA && lineOA.includes('http')){ btnOA.href = lineOA; btnOA.style.display = 'block'; }
         else { btnOA.style.display = 'none'; }
 
-        // LINE 私訊
         const btnP = document.getElementById('btn-p');
         if(lineP && lineP.includes('http')){ btnP.href = lineP; btnP.style.display = 'block'; }
         else { btnP.style.display = 'none'; }
 
-        // Email
         const btnMail = document.getElementById('btn-mail');
         if(email){ btnMail.href = `mailto:${email}`; btnMail.style.display = 'block'; }
         else { btnMail.style.display = 'none'; }
 
-        // Phone
         const actions = document.getElementById('actions-area');
         let phoneBtn = document.getElementById('btn-phone');
         if(!phoneBtn){
@@ -701,16 +679,14 @@
         if(phone){ phoneBtn.href = `tel:${phone.replace(/\s+/g,'')}`; phoneBtn.style.display = 'block'; }
         else { phoneBtn.style.display = 'none'; }
 
-        // WeChat
         const btnWechat = document.getElementById('btn-wechat');
         if(wechat){ btnWechat.style.display = 'block'; }
         else { btnWechat.style.display = 'none'; }
       } else {
-        // 主樣板仍維持固定按鈕（你原本的）
-        const btnOA = document.getElementById('btn-oa'); btnOA.style.display = 'block';
-        const btnP  = document.getElementById('btn-p');  btnP.style.display = 'block';
-        const btnM  = document.getElementById('btn-mail');btnM.style.display = 'block';
-        const btnW  = document.getElementById('btn-wechat');btnW.style.display = 'block';
+        document.getElementById('btn-oa').style.display = 'block';
+        document.getElementById('btn-p').style.display  = 'block';
+        document.getElementById('btn-mail').style.display= 'block';
+        document.getElementById('btn-wechat').style.display='block';
         const phoneBtn = document.getElementById('btn-phone');
         if(phoneBtn) phoneBtn.style.display = 'none';
       }
@@ -726,12 +702,10 @@
     async function init(){
       await loadSheetData();
 
-      // ✅ 有 id：成品（乾淨）；無 id：門面固定第一筆
       if(urlId){
         uiMain = false;
         const ok = renderById(urlId, false);
         if(!ok){
-          // 找不到資料也至少顯示門面第一筆（避免空白）
           uiMain = true;
           renderMainFixedFirstRow();
         }
@@ -740,7 +714,6 @@
         renderMainFixedFirstRow();
       }
 
-      // ✅ 同步按鈕 active（門面會看到）
       document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
       const mapBtn = { arch:0, flat:1, spot:2 };
       const idx = mapBtn[curStyle] ?? 0;
