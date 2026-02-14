@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>天使幸福智慧名片 V320</title>
-    <link rel="manifest" href="./manifest.json?v=320">
+    <title>天使幸福智慧名片 V331</title>
+    <link rel="manifest" href="./manifest.json?v=331">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
@@ -30,18 +30,20 @@
         .style-flat .arch-overlay { border-radius: 0; height: 35px; }
         .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
 
-        .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 28px; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
-        /* ✅ 個人照：稍微圓角（不再是圓形） */
-        .avatar { width: 100%; height: 100%; border-radius: 22px; object-fit: cover; }
+        /* ✅ 預設：成品區（乾淨）= 圓形框 */
+        .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-        /* ✅ 滾動區 */
+        /* ✅ 門面區（主樣板）= 圓角框 */
+        .mode-main .avatar-wrap { border-radius: 28px; }
+        .mode-main .avatar { border-radius: 22px; }
+
         .info-scroll { flex: 1; overflow-y: auto; padding: 45px 20px 0; text-align: center; scrollbar-width: none; }
         .info-scroll::-webkit-scrollbar { display: none; }
 
         .name { font-size: 26px; font-weight: 900; color: #2d3436; margin: 5px 0; }
         .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 6px; }
 
-        /* ✅ 標語 */
         .motto {
             font-size: 13px;
             color: #2d3436;
@@ -51,7 +53,6 @@
             line-height: 1.5;
         }
 
-        /* ✅ Logo 改成「個人照下方」的樣式 */
         .brand-logo-below {
             width: 52px;
             height: 52px;
@@ -73,12 +74,10 @@
         .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 15px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
         .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
 
-        /* ✅ 多張圖片展示 */
         .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .img-grid a { display: block; }
         .img-grid img { width: 100%; height: 78px; object-fit: cover; border-radius: 14px; border: 1px solid #eee; background: #f7f7f7; }
 
-        /* ✅ FAQ */
         .faq-item { background:#fafafa; border:1px solid #eee; border-radius:16px; padding:12px 12px; margin-top:10px; }
         .faq-q { font-weight: 900; color:#2d3436; font-size: 13px; margin-bottom: 6px; }
         .faq-a { color:#2d3436; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
@@ -86,7 +85,6 @@
         .bottom-guide-bar { padding: 5px 0 20px; text-align: center; }
         .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; }
 
-        /* ✅ actions 固定底部 */
         .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
         .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
         .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; border: none; }
@@ -102,8 +100,15 @@
         .tab-pane.active { display: block; }
 
         #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:11000; align-items:center; justify-content:center; flex-direction:column; color: white; }
+
+        /* ✅ 抽屜（門面才會用到） */
         #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 12000; border-radius: 40px 40px 0 0; }
         .footer { font-size: 11px; color: #bbb; padding: 25px; cursor: pointer; text-align: center; }
+
+        /* ✅ 成品模式：整個門面入口/抽屜/版型都隱藏 */
+        .mode-delivery #admin-panel,
+        .mode-delivery #work-drawer,
+        .mode-delivery #gate-footer { display: none !important; }
     </style>
 </head>
 <body class="warm-pink style-arch">
@@ -135,7 +140,6 @@
             <div id="u-unit" class="unit">幸福智慧服務中心</div>
             <div id="u-motto" class="motto" style="display:none;"></div>
 
-            <!-- ✅ Logo 改放在個人照下面（有值才顯示） -->
             <div id="brand-logo" class="brand-logo-below"><img id="u-logo" alt="logo"></div>
 
             <div class="social-bar">
@@ -161,7 +165,6 @@
                 <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">立即填寫預約表單 →</a>
             </div>
 
-            <!-- ✅ 品牌/產品照片（最多3張） -->
             <div id="photos-box" class="content-box" style="display:none;">
                 <span class="label">品牌 / 產品照片</span>
                 <div class="img-grid">
@@ -176,13 +179,11 @@
                 <div id="u-service" class="text" style="font-size: 14.5px; color: #2d3436; line-height: 1.6; white-space: pre-wrap;">讀取中...</div>
             </div>
 
-            <!-- ✅ 頭銜/獎銜 -->
             <div id="titles-box" class="content-box" style="display:none;">
                 <span class="label">重要頭銜 / 獎銜</span>
                 <div id="u-titles" style="font-size:14.5px; color:#2d3436; line-height:1.7; white-space: pre-wrap;"></div>
             </div>
 
-            <!-- ✅ FAQ -->
             <div id="faq-box" class="content-box" style="display:none;">
                 <span class="label">常見提問</span>
                 <div id="faq-1" class="faq-item" style="display:none;">
@@ -241,15 +242,19 @@
         </div>
     </div>
 
-    <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V320</div>
+    <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V331</div>
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const urlId = urlParams.get('id');
         let allRows = [];
         let clicks = 0;
+
         let curTheme = urlParams.get('theme') || 'warm-pink';
         let curStyle = urlParams.get('style') || 'arch';
+
+        // ✅ 模式：門面 true / 成品 false
+        let modeMain = false;
 
         function openInstallModal() { document.getElementById('install-modal').style.display = 'flex'; }
         function closeInstallModal(e) { document.getElementById('install-modal').style.display = 'none'; }
@@ -265,8 +270,23 @@
 
         function setTheme(t) { curTheme = t; updateClass(); }
         function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
-        function updateClass() { document.body.className = curTheme + ' style-' + curStyle; }
-        function handleGate() { clicks++; if(clicks >= 3){document.getElementById('work-drawer').style.maxHeight='500px'; clicks=0;} setTimeout(()=>clicks=0, 1000); }
+        function updateClass() {
+            // ✅ 成品模式加上 mode-delivery，門面模式加上 mode-main
+            document.body.className = `${curTheme} style-${curStyle}${modeMain ? ' mode-main' : ' mode-delivery'}`;
+        }
+
+        function handleGate() {
+            // ✅ 成品模式：不開抽屜
+            if(!modeMain) return;
+
+            clicks++;
+            if(clicks >= 3){
+                document.getElementById('work-drawer').style.maxHeight='500px';
+                clicks=0;
+            }
+            setTimeout(()=>clicks=0, 1000);
+        }
+
         function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
 
         function fixImg(url) {
@@ -277,18 +297,11 @@
 
         function splitPhotos(raw) {
             if (!raw) return [];
-            // 支援：逗號分隔、換行分隔
             return raw
                 .split(/[\n,]+/)
                 .map(s => s.trim())
                 .filter(Boolean)
                 .slice(0, 3);
-        }
-
-        function setIf(el, val) {
-            if (!el) return;
-            if (val) { el.style.display = ''; }
-            else { el.style.display = 'none'; }
         }
 
         async function loadSheetData() {
@@ -298,7 +311,6 @@
                 const text = await res.text();
                 const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
                 allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-                if (urlId) renderSheet(urlId); else renderSheet("1");
             } catch(e) {
                 console.log("資料同步中");
             }
@@ -306,23 +318,34 @@
 
         function doPreview() {
             const id = document.getElementById('work-id').value;
-            if(id) renderSheet(id);
+            if(id) renderById(id);
         }
 
-        function renderSheet(keyword) {
+        function renderById(keyword) {
             if(!keyword || !allRows[0]) return;
-
             const h = allRows[0];
             const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
-
             if(!d) return;
+            applyRow(h, d, false);
+        }
+
+        // ✅ 門面：固定讀第一筆資料（第 2 列 allRows[1]）
+        function renderMainFixedFirstRow() {
+            if(!allRows[0] || !allRows[1]) return;
+            const h = allRows[0];
+            const d = allRows[1];
+            applyRow(h, d, true);
+        }
+
+        function applyRow(h, d, isMain) {
+            modeMain = !!isMain;
+            updateClass();
 
             const getVal = (key) => {
                 const idx = h.findIndex(head => (head || "").includes(key));
                 return (idx !== -1 && d[idx]) ? d[idx] : "";
             };
 
-            // ✅ 欄位對應（照你貼的表單標題）
             const name   = getVal('姓名');
             const unit   = getVal('單位') || getVal('單位名稱');
             const motto  = getVal('理念標語');
@@ -342,7 +365,6 @@
             const q2 = getVal('客戶常見提問 2') || getVal('Q2');
             const a2 = getVal('專業解答2') || getVal('專業解答 2') || getVal('A2');
 
-            // ✅ 基本顯示
             document.getElementById('u-name').innerText = name || "（未填姓名）";
             document.getElementById('u-unit').innerText = unit || "（未填單位）";
             document.getElementById('u-service').innerText = service || "幸福教養系統推廣";
@@ -350,12 +372,10 @@
             if (avatar) document.getElementById('u-img').src = avatar;
             else document.getElementById('u-img').src = "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
 
-            // ✅ 標語（照片下方）
             const mottoEl = document.getElementById('u-motto');
             if (motto) { mottoEl.style.display = ''; mottoEl.innerText = motto; }
             else { mottoEl.style.display = 'none'; mottoEl.innerText = ''; }
 
-            // ✅ Logo（現在在個人照下方）
             const logoWrap = document.getElementById('brand-logo');
             const logoImg  = document.getElementById('u-logo');
             if (logo) {
@@ -366,7 +386,6 @@
                 logoWrap.style.display = 'none';
             }
 
-            // ✅ 品牌/產品照片最多3張
             const photosBox = document.getElementById('photos-box');
             if (photos.length) {
                 photosBox.style.display = '';
@@ -393,7 +412,6 @@
                 photosBox.style.display = 'none';
             }
 
-            // ✅ 頭銜/獎銜
             const titlesBox = document.getElementById('titles-box');
             const titlesEl  = document.getElementById('u-titles');
             if (titles) {
@@ -404,7 +422,6 @@
                 titlesEl.innerText = '';
             }
 
-            // ✅ FAQ
             const faqBox = document.getElementById('faq-box');
             const faq1 = document.getElementById('faq-1');
             const faq2 = document.getElementById('faq-2');
@@ -430,7 +447,6 @@
 
             faqBox.style.display = anyFaq ? '' : 'none';
 
-            // ✅ 影音/社群自動 icon（沿用你原本）
             let lkCount = 1;
             for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
 
@@ -450,53 +466,34 @@
                 }
             });
 
-            const isMain = keyword == "1";
-
-            // ✅ 你原本的主樣板邏輯保留：1號顯示招商/預約，其他是交貨版
             if(isMain) {
                 document.getElementById('admin-panel').style.display = 'block';
                 document.getElementById('advantage-box').style.display = 'block';
                 document.getElementById('order-box').style.display = 'block';
                 document.getElementById('install-entry').style.display = 'none';
                 document.getElementById('wechat-id-text').innerText = "a0973180707";
+                document.getElementById('gate-footer').style.display = 'block';
+                document.getElementById('work-drawer').style.display = 'block';
             } else {
-                document.getElementById('admin-panel').style.display = 'none';
                 document.getElementById('advantage-box').style.display = 'none';
                 document.getElementById('order-box').style.display = 'none';
                 document.getElementById('install-entry').style.display = 'block';
                 document.getElementById('wechat-id-text').innerText = wechat || "未提供";
             }
 
-            // ✅ 交貨版：底部聯繫按鈕根據表單內容呈現（主樣板仍保留你固定值）
             if(!isMain) {
-                // LINE OA
                 const btnOA = document.getElementById('btn-oa');
-                if (lineOA && lineOA.includes('http')) {
-                    btnOA.href = lineOA;
-                    btnOA.style.display = 'block';
-                } else {
-                    btnOA.style.display = 'none';
-                }
+                if (lineOA && lineOA.includes('http')) { btnOA.href = lineOA; btnOA.style.display = 'block'; }
+                else { btnOA.style.display = 'none'; }
 
-                // LINE 私訊（加好友）
                 const btnP = document.getElementById('btn-p');
-                if (lineP && lineP.includes('http')) {
-                    btnP.href = lineP;
-                    btnP.style.display = 'block';
-                } else {
-                    btnP.style.display = 'none';
-                }
+                if (lineP && lineP.includes('http')) { btnP.href = lineP; btnP.style.display = 'block'; }
+                else { btnP.style.display = 'none'; }
 
-                // Email
                 const btnMail = document.getElementById('btn-mail');
-                if (email) {
-                    btnMail.href = `mailto:${email}`;
-                    btnMail.style.display = 'block';
-                } else {
-                    btnMail.style.display = 'none';
-                }
+                if (email) { btnMail.href = `mailto:${email}`; btnMail.style.display = 'block'; }
+                else { btnMail.style.display = 'none'; }
 
-                // Phone：如果有填電話，這顆就改成「📞 一鍵撥號」，沒有就隱藏
                 const actions = document.getElementById('actions-area');
                 let phoneBtn = document.getElementById('btn-phone');
                 if (!phoneBtn) {
@@ -506,22 +503,13 @@
                     phoneBtn.innerText = '📞 一鍵撥號';
                     actions.insertBefore(phoneBtn, document.getElementById('btn-p'));
                 }
-                if (phone) {
-                    phoneBtn.href = `tel:${phone.replace(/\s+/g,'')}`;
-                    phoneBtn.style.display = 'block';
-                } else {
-                    phoneBtn.style.display = 'none';
-                }
+                if (phone) { phoneBtn.href = `tel:${phone.replace(/\s+/g,'')}`; phoneBtn.style.display = 'block'; }
+                else { phoneBtn.style.display = 'none'; }
 
-                // WeChat：沒填就隱藏按鈕
                 const btnWechat = document.getElementById('btn-wechat');
-                if (wechat) {
-                    btnWechat.style.display = 'block';
-                } else {
-                    btnWechat.style.display = 'none';
-                }
+                if (wechat) { btnWechat.style.display = 'block'; }
+                else { btnWechat.style.display = 'none'; }
             } else {
-                // 主樣板仍維持你原本固定按鈕
                 const btnOA = document.getElementById('btn-oa'); btnOA.style.display = 'block';
                 const btnP  = document.getElementById('btn-p');  btnP.style.display = 'block';
                 const btnM  = document.getElementById('btn-mail');btnM.style.display = 'block';
@@ -539,6 +527,21 @@
 
         async function init() {
             await loadSheetData();
+
+            // ✅ 有 id：成品；無 id：門面固定讀第一筆
+            if (urlId) {
+                renderById(urlId);
+            } else {
+                renderMainFixedFirstRow();
+            }
+
+            // ✅ 同步按鈕 active（門面會看到）
+            document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
+            const mapBtn = { arch: 0, flat: 1, spot: 2 };
+            const idx = mapBtn[curStyle] ?? 0;
+            const btns = document.querySelectorAll('.btn-style');
+            if (btns[idx]) btns[idx].classList.add('active');
+
             updateClass();
         }
         init();
