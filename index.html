@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V332</title>
+  <title>天使幸福智慧名片 V333</title>
 
-  <link rel="manifest" href="./manifest.json?v=332" />
+  <link rel="manifest" href="./manifest.json?v=333" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -380,12 +380,12 @@
     </div>
   </div>
 
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V332</div>
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V333</div>
 
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=332').catch(() => {});
+        navigator.serviceWorker.register('./sw.js?v=333').catch(() => {});
       });
     }
 
@@ -609,19 +609,118 @@
         );
       };
 
+      // ✅【V333 新增】導航判斷與導航連結產生（只加功能，不動其他流程）
+      const parseAddressOrUrl = (raw) => {
+        const s = (raw || "").trim();
+        if(!s) return { type:'none', value:'' };
+
+        const httpIdx = s.indexOf('http');
+        if(httpIdx >= 0){
+          const maybeAddr = s.slice(0, httpIdx).trim();
+          const maybeUrl  = s.slice(httpIdx).trim();
+          return { type:'mixed', addr: maybeAddr, url: maybeUrl };
+        }
+        return { type:'plain', value: s };
+      };
+
+      const isMapUrl = (u) => {
+        const v = (u || "").toLowerCase();
+        return (
+          v.includes('google.com/maps') ||
+          v.includes('maps.google') ||
+          v.includes('maps.app.goo.gl') ||
+          v.includes('share.google') ||
+          v.includes('goo.gl/maps') ||
+          v.includes('maps.apple.com')
+        );
+      };
+
+      const toNavUrl = (raw) => {
+        // raw 可能是：純地址 / 地圖網址 /「地址 + 網址」
+        const p = parseAddressOrUrl(raw);
+
+        // 1) 混合：優先用地址當 destination（最穩），沒有地址再用網址
+        if(p.type === 'mixed'){
+          if(p.addr){
+            return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.addr)}`;
+          }
+          if(p.url){
+            // 若是 apple maps 就直接開
+            if((p.url || "").toLowerCase().includes('maps.apple.com')) return p.url;
+            if(isMapUrl(p.url)){
+              // 對於 share.google / maps.app.goo.gl 等，直接開原連結也可；這裡統一用 destination=原字串（可工作）
+              return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.url)}`;
+            }
+            return p.url;
+          }
+        }
+
+        // 2) 純網址：如果是地圖，開導航；不是地圖，原樣
+        if(p.type === 'plain' && p.value.includes('http')){
+          const url = p.value;
+          if(url.toLowerCase().includes('maps.apple.com')) return url;
+          if(isMapUrl(url)) return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(url)}`;
+          return url;
+        }
+
+        // 3) 純文字：當地址處理
+        if(p.type === 'plain'){
+          return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.value)}`;
+        }
+
+        return '';
+      };
+
+      const isProbablyAddress = (raw) => {
+        const s = (raw || "").trim();
+        if(!s) return false;
+
+        // 有明顯地址關鍵字
+        if(/[市縣區鄉鎮里路街巷弄號樓]/.test(s)) return true;
+
+        // 以郵遞區號開頭（台灣 3/5 碼）
+        if(/^\d{3}(\d{2})?\s?/.test(s)) return true;
+
+        // 內含地圖網址
+        if(s.includes('http') && isMapUrl(s)) return true;
+
+        // 混合「地址 + http」也算
+        if(s.includes('http') && s.indexOf('http') > 0) return true;
+
+        return false;
+      };
+
       let lkCount = 1;
       for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
 
       const isAllowedWebLink = (val) => {
-        if(!val || !val.includes('http')) return false;
-        const v = val.toLowerCase();
-        if(isLineDomain(v)) return false;           // ✅ LINE 全排除（只放聯繫區）
-        if(v.includes('drive.google.com')) return false; // 圖檔不放連結區
-        return true; // 影音/一般網頁都OK（含 tiktok/douyin/youtube）
+        if(!val) return false;
+
+        const raw = String(val).trim();
+        const v = raw.toLowerCase();
+
+        // ✅ LINE 全排除（只放聯繫區）
+        if(isLineDomain(v)) return false;
+
+        // ✅ drive 圖檔不放連結區
+        if(v.includes('drive.google.com')) return false;
+
+        // ✅【V333】允許「地址/地圖」進入連結區（不要求一定有 http）
+        if(isProbablyAddress(raw)) return true;
+
+        // 其它一般/影音網頁：需 http
+        if(!v.includes('http')) return false;
+
+        return true;
       };
 
       const linkIconHtml = (val) => {
-        const v = (val || "").toLowerCase();
+        const raw = String(val || "").trim();
+        const v = raw.toLowerCase();
+
+        // ✅【V333】地圖/地址 → 導航 icon
+        if(isProbablyAddress(raw)) return '<i class="fa-solid fa-map-location-dot"></i>';
+
         if(v.includes('youtube') || v.includes('youtu.be')) return '<i class="fa-solid fa-play"></i>';
         if(v.includes('tiktok') || v.includes('douyin')) return '<i class="fa-brands fa-tiktok"></i>';
         return '<i class="fa-solid fa-link"></i>';
@@ -632,8 +731,18 @@
         if(isAllowedWebLink(val) && lkCount <= 3){
           const el = document.getElementById('lk' + lkCount);
           el.style.display = 'flex';
-          el.href = val;
           el.innerHTML = linkIconHtml(val);
+
+          // ✅【V333】地圖/地址 → 導航連結；其他 → 原連結
+          const raw = String(val || "").trim();
+          if(isProbablyAddress(raw)){
+            el.href = toNavUrl(raw);
+          } else {
+            // 如果是混合「文字 + http」但不是地址，也只抓 http
+            const httpIdx = raw.indexOf('http');
+            el.href = httpIdx >= 0 ? raw.slice(httpIdx).trim() : raw;
+          }
+
           lkCount++;
         }
       });
