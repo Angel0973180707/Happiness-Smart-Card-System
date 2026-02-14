@@ -102,8 +102,9 @@
     }
     .avatar{ width:100%;height:100%;border-radius:50%;object-fit:cover; }
 
-    .mode-main .avatar-wrap{ border-radius:28px; }
-    .mode-main .avatar{ border-radius:22px; }
+    /* ✅改這裡：門面模式也維持圓形頭像框 */
+    .mode-main .avatar-wrap{ border-radius:50%; }
+    .mode-main .avatar{ border-radius:50%; }
 
     .info-scroll{
       flex:1; overflow-y:auto; padding:45px 20px 0; text-align:center;
