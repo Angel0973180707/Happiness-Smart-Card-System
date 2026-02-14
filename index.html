@@ -1,155 +1,255 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>天使幸福智慧名片 V332</title>
 
-  <meta name="theme-color" content="#ee5253">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="幸福智慧名片">
-
-  <link rel="manifest" href="./manifest.json?v=332">
-  <link rel="icon" href="./icon-192.png">
-  <link rel="apple-touch-icon" href="./icon-192.png">
-
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="manifest" href="./manifest.json?v=332" />
+  <meta name="theme-color" content="#ee5253" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
 
   <style>
-    :root { --p: #ee5253; --s: #d63031; --bg: #f5f6fa; }
-    .warm-pink { --p: #ee5253; --s: #d63031; }
-    .aurora-blue { --p: #00a8ff; --s: #0097e6; }
-    .vivid-orange { --p: #f0932b; --s: #eb4d4b; }
-    .royal-purple { --p: #6c5ce7; --s: #4834d4; }
-    .teal-green { --p: #20bf6b; --s: #0b8d51; }
+    :root { --p:#ee5253; --s:#d63031; --bg:#f5f6fa; }
+    .warm-pink { --p:#ee5253; --s:#d63031; }
+    .aurora-blue { --p:#00a8ff; --s:#0097e6; }
+    .vivid-orange { --p:#f0932b; --s:#eb4d4b; }
+    .royal-purple { --p:#6c5ce7; --s:#4834d4; }
+    .teal-green { --p:#20bf6b; --s:#0b8d51; }
 
-    body { font-family: 'Noto Sans TC', sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-
-    #admin-panel { width: 100%; background: white; text-align: center; padding: 15px 0 10px; border-bottom: 1px solid #ddd; z-index: 2000; flex-shrink: 0; }
-    .picker-group { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; }
-    .dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
-    .btn-style { padding: 6px 14px; border-radius: 20px; border: 1px solid #ccc; font-size: 11px; cursor: pointer; background: #fff; font-weight: bold; }
-    .btn-style.active { background: #2f3640 !important; color: white !important; }
-
-    /* ✅ 門面提示：點選顏色版型參考（微跳動） */
-    .pick-hint{
-      font-size: 12px;
-      font-weight: 900;
-      color: #2d3436;
-      opacity: .85;
-      margin: 0 0 8px;
-      display: inline-flex;
-      gap: 6px;
-      align-items: center;
-      justify-content: center;
-      animation: hintBounce 1.6s ease-in-out infinite;
-    }
-    .pick-hint i{
-      color: var(--p);
-      animation: hintWiggle 1.6s ease-in-out infinite;
-    }
-    @keyframes hintBounce{
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-2px); }
-    }
-    @keyframes hintWiggle{
-      0%, 100% { transform: rotate(0deg); }
-      50% { transform: rotate(-8deg); }
+    body{
+      font-family:'Noto Sans TC',sans-serif;
+      margin:0;
+      background:var(--bg);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      min-height:100vh;
     }
 
-    .card { background: white; width: 92%; max-width: 380px; height: 680px; border-radius: 45px; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,0.15); position: relative; margin: 20px 0; display: flex; flex-direction: column; }
+    #admin-panel{
+      width:100%;
+      background:white;
+      text-align:center;
+      padding:15px 0 10px;
+      border-bottom:1px solid #ddd;
+      z-index:2000;
+      flex-shrink:0;
+    }
+    .picker-group{ display:flex; justify-content:center; gap:12px; margin-bottom:8px; align-items:center; }
+    .dot{
+      width:32px;height:32px;border-radius:50%;
+      cursor:pointer;border:3px solid white;
+      box-shadow:0 4px 10px rgba(0,0,0,0.15);
+    }
+    .btn-style{
+      padding:6px 14px;border-radius:20px;border:1px solid #ccc;
+      font-size:11px;cursor:pointer;background:#fff;font-weight:900;
+    }
+    .btn-style.active{ background:#2f3640!important; color:white!important; }
 
-    .banner { height: 160px; background: linear-gradient(135deg, var(--p), var(--s)); flex-shrink: 0; position: relative; }
-    .arch-overlay { position: absolute; width: 100%; height: 90px; background: white; bottom: -1px; border-radius: 90px 90px 0 0; }
-    .style-flat .arch-overlay { border-radius: 0; height: 35px; }
-    .style-spot .arch-overlay { border-radius: 50% 50% 0 0; transform: scaleX(1.4); height: 100px; }
+    /* ✅ 提示字（微微跳動） */
+    .hint-bounce{
+      font-size:12px;
+      font-weight:900;
+      color:#2d3436;
+      opacity:0.9;
+      letter-spacing:0.5px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      user-select:none;
+      animation: hintFloat 1.2s ease-in-out infinite;
+    }
+    .hint-bounce i{ color:var(--p); }
+    @keyframes hintFloat{
+      0%,100%{ transform: translateY(0); }
+      50%{ transform: translateY(-3px); }
+    }
+
+    .card{
+      background:white;
+      width:92%;
+      max-width:380px;
+      height:680px;
+      border-radius:45px;
+      overflow:hidden;
+      box-shadow:0 30px 60px rgba(0,0,0,0.15);
+      position:relative;
+      margin:20px 0;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .banner{
+      height:160px;
+      background:linear-gradient(135deg,var(--p),var(--s));
+      flex-shrink:0;
+      position:relative;
+    }
+    .arch-overlay{
+      position:absolute;width:100%;height:90px;background:white;
+      bottom:-1px;border-radius:90px 90px 0 0;
+    }
+    .style-flat .arch-overlay{ border-radius:0; height:35px; }
+    .style-spot .arch-overlay{ border-radius:50% 50% 0 0; transform:scaleX(1.4); height:100px; }
 
     /* ✅ 預設：成品區（乾淨）= 圓形框 */
-    .avatar-wrap { width: 130px; height: 130px; background: #fff; border-radius: 50%; padding: 6px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: absolute; top: 35px; left: 50%; transform: translateX(-50%); z-index: 100; }
-    .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+    .avatar-wrap{
+      width:130px;height:130px;background:#fff;border-radius:50%;
+      padding:6px;box-shadow:0 10px 25px rgba(0,0,0,0.1);
+      position:absolute;top:35px;left:50%;transform:translateX(-50%);
+      z-index:100;
+    }
+    .avatar{ width:100%;height:100%;border-radius:50%;object-fit:cover; }
 
     /* ✅ 門面區（主樣板）= 圓角框 */
-    .mode-main .avatar-wrap { border-radius: 28px; }
-    .mode-main .avatar { border-radius: 22px; }
+    .mode-main .avatar-wrap{ border-radius:28px; }
+    .mode-main .avatar{ border-radius:22px; }
 
-    .info-scroll { flex: 1; overflow-y: auto; padding: 45px 20px 0; text-align: center; scrollbar-width: none; }
-    .info-scroll::-webkit-scrollbar { display: none; }
+    .info-scroll{
+      flex:1; overflow-y:auto; padding:45px 20px 0; text-align:center;
+      scrollbar-width:none;
+    }
+    .info-scroll::-webkit-scrollbar{ display:none; }
 
-    .name { font-size: 26px; font-weight: 900; color: #2d3436; margin: 5px 0; }
-    .unit { font-size: 14px; color: var(--s); font-weight: 700; margin-bottom: 6px; }
+    .name{ font-size:26px; font-weight:900; color:#2d3436; margin:5px 0; }
+    .unit{ font-size:14px; color:var(--s); font-weight:700; margin-bottom:6px; }
 
-    .motto {
-      font-size: 13px;
-      color: #2d3436;
-      opacity: 0.9;
-      font-weight: 700;
-      margin: 0 0 8px;
-      line-height: 1.5;
+    .motto{
+      font-size:13px;color:#2d3436;opacity:0.9;font-weight:700;
+      margin:0 0 8px;line-height:1.5;
     }
 
-    .brand-logo-below {
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
-      background: rgba(255,255,255,0.95);
+    .brand-logo-below{
+      width:52px;height:52px;border-radius:16px;
+      background:rgba(255,255,255,0.95);
+      display:none; align-items:center; justify-content:center;
+      overflow:hidden;
+      box-shadow:0 10px 18px rgba(0,0,0,0.10);
+      border:1px solid rgba(0,0,0,0.06);
+      margin:8px auto 8px;
+    }
+    .brand-logo-below img{ width:100%;height:100%;object-fit:cover; }
+
+    .social-bar{ display:flex; justify-content:center; align-items:center; gap:15px; margin:15px 0 20px; }
+    .social-link{
+      width:45px;height:45px;border-radius:12px;background:#fff;
+      display:none; align-items:center; justify-content:center;
+      text-decoration:none;font-size:20px;color:var(--s);
+      box-shadow:4px 4px 10px rgba(0,0,0,0.06);
+    }
+
+    .content-box{
+      text-align:left;background:#ffffff;padding:18px;border-radius:25px;
+      margin-bottom:15px;
+      box-shadow:10px 10px 20px rgba(0,0,0,0.03);
+      border:1px solid #f9f9f9;
+    }
+    .label{ color:#adb5bd;font-weight:900;font-size:11px;margin-bottom:8px;display:block; }
+
+    .img-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .img-grid a{ display:block; }
+    .img-grid img{
+      width:100%; height:78px; object-fit:cover; border-radius:14px;
+      border:1px solid #eee; background:#f7f7f7;
+    }
+
+    .faq-item{ background:#fafafa;border:1px solid #eee;border-radius:16px;padding:12px 12px;margin-top:10px; }
+    .faq-q{ font-weight:900;color:#2d3436;font-size:13px;margin-bottom:6px; }
+    .faq-a{ color:#2d3436;font-size:13px;line-height:1.7;white-space:pre-wrap; }
+
+    .bottom-guide-bar{ padding:5px 0 20px; text-align:center; }
+    .mini-install-btn{
+      background:#fff; color:var(--p); border:1.5px solid var(--p);
+      padding:6px 15px; border-radius:50px; font-size:12px; font-weight:900;
+      cursor:pointer;
+    }
+
+    .actions{
+      background:white;
+      padding:15px 20px 25px;
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:10px;
+      flex-shrink:0;
+      border-top:1px solid #eee;
+    }
+    .act-btn{
+      text-decoration:none;
+      background:#f1f2f6;
+      padding:12px;
+      border-radius:15px;
+      color:#2f3542;
+      font-size:13px;
+      font-weight:900;
+      text-align:center;
+      border:1px solid #e1e2e6;
+      display:block;
+    }
+    .btn-main{
+      background:linear-gradient(145deg,#06C755,#05af4b)!important;
+      color:white!important;
+      grid-column:span 2;
+      border:none;
+    }
+    .btn-sub{
+      background:#ffffff!important;
+      color:#06C755!important;
+      border:2px solid #06C755!important;
+    }
+
+    /* ✅ 主樣板（門面）加一句引導：點進LINE官方網站預約 */
+    .line-guide{
+      grid-column: span 2;
+      background: #f7fff9;
+      border: 1px solid rgba(6,199,85,0.25);
+      color: #1f7a46;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 10px 12px;
+      border-radius: 14px;
+      text-align: center;
       display: none;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      box-shadow: 0 10px 18px rgba(0,0,0,0.10);
-      border: 1px solid rgba(0,0,0,0.06);
-      margin: 8px auto 8px;
     }
-    .brand-logo-below img { width: 100%; height: 100%; object-fit: cover; }
 
-    .social-bar { display: flex; justify-content: center; align-items: center; gap: 15px; margin: 15px 0 20px; }
-    .social-link { width: 45px; height: 45px; border-radius: 12px; background: #fff; display: none; align-items: center; justify-content: center; text-decoration: none; font-size: 20px; color: var(--s); box-shadow: 4px 4px 10px rgba(0,0,0,0.06); }
+    #install-modal{
+      display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.85); z-index:10000;
+      align-items:center; justify-content:center; padding:20px;
+    }
+    .modal-content{ background:white; width:100%; max-width:320px; border-radius:35px; padding:25px; position:relative; }
+    .close-modal{ position:absolute; top:15px; right:20px; font-size:24px; color:#999; cursor:pointer; }
+    .modal-tab{ display:flex; gap:8px; margin:15px 0; }
+    .tab-btn{ flex:1; padding:8px; border-radius:10px; border:1px solid #ddd; background:#f8f9fa; font-size:12px; font-weight:900; cursor:pointer; }
+    .tab-btn.active{ background:var(--p); color:white; border-color:var(--p); }
+    .tab-pane{ display:none; text-align:left; font-size:14px; line-height:1.8; color:#444; }
+    .tab-pane.active{ display:block; }
 
-    .content-box { text-align: left; background: #ffffff; padding: 18px; border-radius: 25px; margin-bottom: 15px; box-shadow: 10px 10px 20px rgba(0,0,0,0.03); border: 1px solid #f9f9f9; }
-    .label { color: #adb5bd; font-weight: 900; font-size: 11px; margin-bottom: 8px; display: block; }
-
-    .img-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .img-grid a { display: block; }
-    .img-grid img { width: 100%; height: 78px; object-fit: cover; border-radius: 14px; border: 1px solid #eee; background: #f7f7f7; }
-
-    .faq-item { background:#fafafa; border:1px solid #eee; border-radius:16px; padding:12px 12px; margin-top:10px; }
-    .faq-q { font-weight: 900; color:#2d3436; font-size: 13px; margin-bottom: 6px; }
-    .faq-a { color:#2d3436; font-size: 13px; line-height: 1.7; white-space: pre-wrap; }
-
-    .bottom-guide-bar { padding: 5px 0 20px; text-align: center; }
-    .mini-install-btn { background: #fff; color: var(--p); border: 1.5px solid var(--p); padding: 6px 15px; border-radius: 50px; font-size: 12px; font-weight: 900; cursor: pointer; }
-
-    .actions { background: white; padding: 15px 20px 25px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; flex-shrink: 0; border-top: 1px solid #eee; }
-    .act-btn { text-decoration: none; background: #f1f2f6; padding: 12px; border-radius: 15px; color: #2f3542; font-size: 13px; font-weight: 900; text-align: center; border: 1px solid #e1e2e6; display: block; }
-    .btn-main { background: linear-gradient(145deg, #06C755, #05af4b) !important; color: white !important; grid-column: span 2; border: none; }
-    .btn-sub { background: #ffffff !important; color: #06C755 !important; border: 2px solid #06C755 !important; }
-
-    #install-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center; padding: 20px; }
-    .modal-content { background: white; width: 100%; max-width: 320px; border-radius: 35px; padding: 25px; position: relative; }
-    .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; color: #999; cursor: pointer; }
-    .modal-tab { display: flex; gap: 8px; margin: 15px 0; }
-    .tab-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-size: 12px; font-weight: bold; cursor: pointer; }
-    .tab-btn.active { background: var(--p); color: white; border-color: var(--p); }
-    .tab-pane { display: none; text-align: left; font-size: 14px; line-height: 1.8; color: #444; }
-    .tab-pane.active { display: block; }
-
-    #wechat-mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:11000; align-items:center; justify-content:center; flex-direction:column; color: white; }
+    #wechat-mask{
+      display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.9); z-index:11000;
+      align-items:center; justify-content:center; flex-direction:column; color:white;
+    }
 
     /* ✅ 抽屜（門面才會用到） */
-    #work-drawer { width: 100%; max-width: 420px; background: #2d3436; color: white; max-height: 0; overflow: hidden; transition: 0.5s; position: fixed; bottom: 0; z-index: 12000; border-radius: 40px 40px 0 0; }
-    .footer { font-size: 11px; color: #bbb; padding: 25px; cursor: pointer; text-align: center; }
+    #work-drawer{
+      width:100%; max-width:420px; background:#2d3436; color:white;
+      max-height:0; overflow:hidden; transition:0.5s;
+      position:fixed; bottom:0; z-index:12000;
+      border-radius:40px 40px 0 0;
+    }
+    .footer{ font-size:11px; color:#bbb; padding:25px; cursor:pointer; text-align:center; }
 
     /* ✅ 成品模式：整個門面入口/抽屜/版型都隱藏 */
     .mode-delivery #admin-panel,
     .mode-delivery #work-drawer,
-    .mode-delivery #gate-footer { display: none !important; }
+    .mode-delivery #gate-footer{ display:none !important; }
   </style>
 </head>
 
 <body class="warm-pink style-arch">
-
   <div id="admin-panel">
     <div class="picker-group">
       <div class="dot" onclick="setTheme('warm-pink')" style="background:#ee5253"></div>
@@ -159,8 +259,10 @@
       <div class="dot" onclick="setTheme('teal-green')" style="background:#20bf6b"></div>
     </div>
 
-    <!-- ✅ 新增提示字（微跳動） -->
-    <div class="pick-hint"><i class="fa-solid fa-hand-pointer"></i> 點選顏色版型參考</div>
+    <!-- ✅ 版型區：加提示字 -->
+    <div class="picker-group" style="margin-top:2px;">
+      <span class="hint-bounce"><i class="fa-solid fa-hand-pointer"></i> 點選顏色版型參考</span>
+    </div>
 
     <div class="picker-group">
       <button class="btn-style active" onclick="setStyle('arch', this)">優雅拱型</button>
@@ -170,12 +272,10 @@
   </div>
 
   <div id="card-container" class="card">
-    <div class="banner">
-      <div class="arch-overlay"></div>
-    </div>
+    <div class="banner"><div class="arch-overlay"></div></div>
 
     <div class="avatar-wrap">
-      <img id="u-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" class="avatar">
+      <img id="u-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" class="avatar" />
     </div>
 
     <div class="info-scroll">
@@ -183,7 +283,7 @@
       <div id="u-unit" class="unit">幸福智慧服務中心</div>
       <div id="u-motto" class="motto" style="display:none;"></div>
 
-      <div id="brand-logo" class="brand-logo-below"><img id="u-logo" alt="logo"></div>
+      <div id="brand-logo" class="brand-logo-below"><img id="u-logo" alt="logo" /></div>
 
       <div class="social-bar">
         <a href="#" id="lk1" class="social-link" target="_blank"></a>
@@ -191,45 +291,40 @@
         <a href="#" id="lk3" class="social-link" target="_blank"></a>
       </div>
 
-      <div id="share-box" class="content-box" style="background: #f0f7ff; border: 1px solid #00a8ff; text-align: center; cursor: pointer;" onclick="handleShare()">
+      <div id="share-box" class="content-box" style="background:#f0f7ff;border:1px solid #00a8ff;text-align:center;cursor:pointer;" onclick="handleShare()">
         <span id="share-label" class="label" style="color:#0097e6">📢 推薦製作智慧名片</span>
-        <div style="font-weight: bold; font-size: 14px; color: #2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
+        <div style="font-weight:900;font-size:14px;color:#2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
       </div>
 
       <div id="advantage-box" class="content-box">
-        <span class="label" style="color: #6c5ce7;">🏆 為什麼您需要智慧名片？</span>
-        <div style="font-size:14px; color:#2d3436; margin-bottom:8px;">一鍵分享：複製網址，傳播全世界</div>
-        <div style="font-size:14px; color:#2d3436; margin-bottom:8px;">影音整合：個人YouTube、FB 等平臺展示</div>
-        <div style="font-size:14px; color:#2d3436;">內容更新：後台更新，同步更新</div>
+        <span class="label" style="color:#6c5ce7;">🏆 為什麼您需要智慧名片？</span>
+        <div style="font-size:14px;color:#2d3436;margin-bottom:8px;">一鍵分享：複製網址，傳播全世界</div>
+        <div style="font-size:14px;color:#2d3436;margin-bottom:8px;">影音整合：個人 YouTube、抖音 等平臺展示</div>
+        <div style="font-size:14px;color:#2d3436;">內容更新：後台更新，同步更新</div>
       </div>
 
-      <div id="order-box" class="content-box" style="background: #fff9f9; border: 1px dashed #ee5253;">
+      <div id="order-box" class="content-box" style="background:#fff9f9;border:1px dashed #ee5253;">
         <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
-        <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color: #2d3436; text-decoration: none; font-weight: bold; font-size: 14px;">立即填寫預約表單 →</a>
-
-        <!-- ✅ 新增：你指定的句子 -->
-        <div style="margin-top:10px; font-size:13px; font-weight:900; color:#2d3436;">
-          點進 LINE 官方網站，預約訂製名片
-        </div>
+        <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" style="color:#2d3436;text-decoration:none;font-weight:900;font-size:14px;">立即填寫預約表單 →</a>
       </div>
 
       <div id="photos-box" class="content-box" style="display:none;">
         <span class="label">品牌 / 產品照片</span>
         <div class="img-grid">
-          <a id="p1a" href="#" target="_blank" style="display:none;"><img id="p1" alt="photo1"></a>
-          <a id="p2a" href="#" target="_blank" style="display:none;"><img id="p2" alt="photo2"></a>
-          <a id="p3a" href="#" target="_blank" style="display:none;"><img id="p3" alt="photo3"></a>
+          <a id="p1a" href="#" target="_blank" style="display:none;"><img id="p1" alt="photo1" /></a>
+          <a id="p2a" href="#" target="_blank" style="display:none;"><img id="p2" alt="photo2" /></a>
+          <a id="p3a" href="#" target="_blank" style="display:none;"><img id="p3" alt="photo3" /></a>
         </div>
       </div>
 
       <div class="content-box">
         <span class="label">服務項目</span>
-        <div id="u-service" class="text" style="font-size: 14.5px; color: #2d3436; line-height: 1.6; white-space: pre-wrap;">讀取中...</div>
+        <div id="u-service" class="text" style="font-size:14.5px;color:#2d3436;line-height:1.6;white-space:pre-wrap;">讀取中...</div>
       </div>
 
       <div id="titles-box" class="content-box" style="display:none;">
         <span class="label">重要頭銜 / 獎銜</span>
-        <div id="u-titles" style="font-size:14.5px; color:#2d3436; line-height:1.7; white-space: pre-wrap;"></div>
+        <div id="u-titles" style="font-size:14.5px;color:#2d3436;line-height:1.7;white-space:pre-wrap;"></div>
       </div>
 
       <div id="faq-box" class="content-box" style="display:none;">
@@ -250,6 +345,9 @@
     </div>
 
     <div id="actions-area" class="actions">
+      <!-- ✅ 門面引導句（只在門面顯示） -->
+      <div id="line-guide" class="line-guide">點進 line 官方網站，預約訂製名片</div>
+
       <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank">✅ LINE 官方帳號</a>
       <a href="javascript:void(0)" id="btn-wechat" class="act-btn" onclick="showWechatText()">💬 微信聯繫</a>
       <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn">✉️ 寄送郵箱</a>
@@ -260,9 +358,9 @@
   <div id="install-modal" onclick="closeInstallModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
       <span class="close-modal" onclick="closeInstallModal(event)">&times;</span>
-      <h3 style="margin-top:0; color:var(--p); text-align:center;">安裝名片教學</h3>
-      <div style="background:#f8f9fa; padding:15px; border-radius:15px; text-align:center; margin-bottom:15px;">
-        <button onclick="copyCurrentUrl()" style="background:var(--p); color:white; border:none; padding:8px 15px; border-radius:10px; font-weight:bold; width:100%;">🔗 複製網址</button>
+      <h3 style="margin-top:0;color:var(--p);text-align:center;">安裝名片教學</h3>
+      <div style="background:#f8f9fa;padding:15px;border-radius:15px;text-align:center;margin-bottom:15px;">
+        <button onclick="copyCurrentUrl()" style="background:var(--p);color:white;border:none;padding:8px 15px;border-radius:10px;font-weight:900;width:100%;">🔗 複製網址</button>
       </div>
       <div class="modal-tab">
         <button class="tab-btn active" onclick="switchTab('apple')">🍎 iPhone</button>
@@ -274,119 +372,146 @@
   </div>
 
   <div id="wechat-mask" onclick="this.style.display='none'">
-    <div style="background: white; color: #333; padding: 30px; border-radius: 30px; width: 80%; max-width: 320px; text-align: center;">
-      <i class="fa-brands fa-weixin" style="font-size: 50px; color: #07C160; margin-bottom: 15px;"></i>
-      <h3 style="margin: 10px 0;">微信聯繫 ID</h3>
-      <p id="wechat-id-text" style="font-size: 20px; font-weight: bold; background: #f0f0f0; padding: 10px; border-radius: 10px; margin: 15px 0;">a0973180707</p>
-      <button onclick="copyWechat()" style="background: #07C160; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: bold; width: 100%;">點擊複製 ID</button>
+    <div style="background:white;color:#333;padding:30px;border-radius:30px;width:80%;max-width:320px;text-align:center;">
+      <i class="fa-brands fa-weixin" style="font-size:50px;color:#07C160;margin-bottom:15px;"></i>
+      <h3 style="margin:10px 0;">微信聯繫 ID</h3>
+      <p id="wechat-id-text" style="font-size:20px;font-weight:900;background:#f0f0f0;padding:10px;border-radius:10px;margin:15px 0;">a0973180707</p>
+      <button onclick="copyWechat()" style="background:#07C160;color:white;border:none;padding:10px 20px;border-radius:10px;font-weight:900;width:100%;">點擊複製 ID</button>
     </div>
   </div>
 
   <div id="work-drawer">
-    <div style="padding: 25px; text-align: center;">
-      <input type="text" id="work-id" style="width:90%; padding:15px; border-radius:15px; border:1px solid #ddd; color: #333;" placeholder="輸入序號">
-      <button onclick="doPreview()" style="background:#ee5253; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">預覽成品</button>
-      <button onclick="doCopy()" style="background:#2ecc71; color:white; width:90%; padding:15px; margin-top:10px; border-radius:15px; border:none; font-weight:bold;">複製交貨網址</button>
+    <div style="padding:25px;text-align:center;">
+      <input type="text" id="work-id" style="width:90%;padding:15px;border-radius:15px;border:1px solid #ddd;color:#333;" placeholder="輸入序號或姓名" />
+      <!-- ✅ 預覽：不跳出去（留在門面、可回來複製網址） -->
+      <button onclick="doPreviewInPlace()" style="background:#ee5253;color:white;width:90%;padding:15px;margin-top:10px;border-radius:15px;border:none;font-weight:900;">預覽成品（不跳出）</button>
+      <button onclick="doCopy()" style="background:#2ecc71;color:white;width:90%;padding:15px;margin-top:10px;border-radius:15px;border:none;font-weight:900;">複製交貨網址</button>
     </div>
   </div>
 
   <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V332</div>
 
   <script>
+    // ✅ Service Worker（沒有它常常就「無法安裝」）
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?v=332').catch(() => {});
+      });
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const urlId = urlParams.get('id');
+
     let allRows = [];
     let clicks = 0;
 
     let curTheme = urlParams.get('theme') || 'warm-pink';
     let curStyle = urlParams.get('style') || 'arch';
 
-    // ✅ 模式：門面 true / 成品 false
-    let modeMain = false;
+    // ✅ UI模式：門面(有抽屜/版型) vs 成品(乾淨)
+    // - URL 有 id = 成品頁（乾淨）
+    // - URL 無 id = 門面頁（可預覽，但不跳走）
+    let uiMain = !urlId;
 
-    function openInstallModal() { document.getElementById('install-modal').style.display = 'flex'; }
-    function closeInstallModal(e) { document.getElementById('install-modal').style.display = 'none'; }
-    function switchTab(type) {
+    function openInstallModal(){ document.getElementById('install-modal').style.display = 'flex'; }
+    function closeInstallModal(e){ document.getElementById('install-modal').style.display = 'none'; }
+    function switchTab(type){
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-      if(type === 'apple') { document.querySelectorAll('.tab-btn')[0].classList.add('active'); document.getElementById('apple-pane').classList.add('active'); }
-      else { document.querySelectorAll('.tab-btn')[1].classList.add('active'); document.getElementById('android-pane').classList.add('active'); }
+      if(type === 'apple'){
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('apple-pane').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('android-pane').classList.add('active');
+      }
     }
-    function copyCurrentUrl() { navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製！")); }
-    function showWechatText() { document.getElementById('wechat-mask').style.display = 'flex'; }
-    function copyWechat() { navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製！")); }
+    function copyCurrentUrl(){ navigator.clipboard.writeText(window.location.href).then(() => alert("網址已複製！")); }
+    function showWechatText(){ document.getElementById('wechat-mask').style.display = 'flex'; }
+    function copyWechat(){ navigator.clipboard.writeText(document.getElementById('wechat-id-text').innerText).then(() => alert("微信 ID 已複製！")); }
 
-    function setTheme(t) { curTheme = t; updateClass(); }
-    function setStyle(s, btn) { curStyle = s; updateClass(); if(btn){document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active')); btn.classList.add('active');}}
-    function updateClass() {
-      // ✅ 成品模式加上 mode-delivery，門面模式加上 mode-main
-      document.body.className = `${curTheme} style-${curStyle}${modeMain ? ' mode-main' : ' mode-delivery'}`;
+    function setTheme(t){ curTheme = t; updateClass(); }
+    function setStyle(s, btn){
+      curStyle = s;
+      updateClass();
+      if(btn){
+        document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    }
+    function updateClass(){
+      document.body.className = `${curTheme} style-${curStyle}${uiMain ? ' mode-main' : ' mode-delivery'}`;
+      // 同步 theme-color（Android 安裝後頂欄色）
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#ee5253');
     }
 
-    function handleGate() {
-      // ✅ 成品模式：不開抽屜
-      if(!modeMain) return;
-
+    function handleGate(){
+      if(!uiMain) return; // 成品不開抽屜
       clicks++;
       if(clicks >= 3){
-        document.getElementById('work-drawer').style.maxHeight='500px';
-        clicks=0;
+        document.getElementById('work-drawer').style.maxHeight = '500px';
+        clicks = 0;
       }
-      setTimeout(()=>clicks=0, 1000);
+      setTimeout(() => clicks = 0, 1000);
     }
+    function handleShare(){ navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
 
-    function handleShare() { navigator.clipboard.writeText(window.location.href).then(() => alert("連結複製成功！")); }
-
-    function fixImg(url) {
-      if (!url) return "";
+    function fixImg(url){
+      if(!url) return "";
       const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/);
       return idMatch ? `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000` : url;
     }
-
-    function splitPhotos(raw) {
-      if (!raw) return [];
-      return raw
-        .split(/[\n,]+/)
-        .map(s => s.trim())
-        .filter(Boolean)
-        .slice(0, 3);
+    function splitPhotos(raw){
+      if(!raw) return [];
+      return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).slice(0, 3);
     }
 
-    async function loadSheetData() {
+    async function loadSheetData(){
       const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
-      try {
+      try{
         const res = await fetch(csvUrl);
         const text = await res.text();
         const rows = text.split(/\r?\n(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/);
         allRows = rows.map(r => r.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim()));
-      } catch(e) {
+      } catch(e){
         console.log("資料同步中");
       }
     }
 
-    function doPreview() {
-      const id = document.getElementById('work-id').value;
-      if(id) renderById(id);
+    // ✅ 門面：固定讀第一筆資料（第2列 allRows[1]）
+    function renderMainFixedFirstRow(){
+      if(!allRows[0] || !allRows[1]) return;
+      applyRow(allRows[0], allRows[1], { isMainData:true, keepUiMain:true });
     }
 
-    function renderById(keyword) {
-      if(!keyword || !allRows[0]) return;
+    // ✅ 成品：用 id 或 姓名 找資料
+    function renderById(keyword, keepUiMain){
+      if(!keyword || !allRows[0]) return false;
       const h = allRows[0];
       const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
-      if(!d) return;
-      applyRow(h, d, false);
+      if(!d) return false;
+      applyRow(h, d, { isMainData:false, keepUiMain: !!keepUiMain });
+      return true;
     }
 
-    // ✅ 門面：固定讀第一筆資料（第 2 列 allRows[1]）
-    function renderMainFixedFirstRow() {
-      if(!allRows[0] || !allRows[1]) return;
-      const h = allRows[0];
-      const d = allRows[1];
-      applyRow(h, d, true);
+    // ✅ 你要的「預覽成品：不跳出去」= 仍保留門面UI，但資料換成顧客那筆
+    function doPreviewInPlace(){
+      const id = (document.getElementById('work-id').value || "").trim();
+      if(!id){ alert("請先輸入序號或姓名"); return; }
+      const ok = renderById(id, true);
+      if(!ok){ alert("找不到此序號/姓名"); return; }
+      // 讓你「預覽後」依然在門面，可直接複製交貨網址
+      // 小提醒：預覽只是畫面切換，不改網址
+      document.querySelector('.info-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function applyRow(h, d, isMain) {
-      modeMain = !!isMain;
+    function applyRow(h, d, opt){
+      const isMainData = !!(opt && opt.isMainData);
+      const keepUiMain = !!(opt && opt.keepUiMain);
+
+      // UI模式：成品頁由 URL 決定；門面預覽保持門面 UI
+      uiMain = keepUiMain ? true : !urlId;
       updateClass();
 
       const getVal = (key) => {
@@ -417,16 +542,17 @@
       document.getElementById('u-unit').innerText = unit || "（未填單位）";
       document.getElementById('u-service').innerText = service || "幸福教養系統推廣";
 
-      if (avatar) document.getElementById('u-img').src = avatar;
-      else document.getElementById('u-img').src = "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
+      document.getElementById('u-img').src = avatar || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
 
+      // motto
       const mottoEl = document.getElementById('u-motto');
-      if (motto) { mottoEl.style.display = ''; mottoEl.innerText = motto; }
-      else { mottoEl.style.display = 'none'; mottoEl.innerText = ''; }
+      if(motto){ mottoEl.style.display=''; mottoEl.innerText=motto; }
+      else { mottoEl.style.display='none'; mottoEl.innerText=''; }
 
+      // logo
       const logoWrap = document.getElementById('brand-logo');
       const logoImg  = document.getElementById('u-logo');
-      if (logo) {
+      if(logo){
         logoImg.src = logo;
         logoWrap.style.display = 'flex';
       } else {
@@ -434,19 +560,16 @@
         logoWrap.style.display = 'none';
       }
 
+      // photos
       const photosBox = document.getElementById('photos-box');
-      if (photos.length) {
+      if(photos.length){
         photosBox.style.display = '';
-        const ids = [
-          {a:'p1a', i:'p1'},
-          {a:'p2a', i:'p2'},
-          {a:'p3a', i:'p3'}
-        ];
+        const ids = [{a:'p1a',i:'p1'},{a:'p2a',i:'p2'},{a:'p3a',i:'p3'}];
         ids.forEach((x, idx) => {
           const a = document.getElementById(x.a);
           const img = document.getElementById(x.i);
           const raw = photos[idx] || "";
-          if (raw) {
+          if(raw){
             const fixed = fixImg(raw);
             a.href = raw;
             img.src = fixed || raw;
@@ -460,9 +583,10 @@
         photosBox.style.display = 'none';
       }
 
+      // titles
       const titlesBox = document.getElementById('titles-box');
       const titlesEl  = document.getElementById('u-titles');
-      if (titles) {
+      if(titles){
         titlesBox.style.display = '';
         titlesEl.innerText = titles;
       } else {
@@ -470,12 +594,13 @@
         titlesEl.innerText = '';
       }
 
+      // FAQ
       const faqBox = document.getElementById('faq-box');
       const faq1 = document.getElementById('faq-1');
       const faq2 = document.getElementById('faq-2');
       let anyFaq = false;
 
-      if (q1 || a1) {
+      if(q1 || a1){
         anyFaq = true;
         faq1.style.display = '';
         document.getElementById('q1').innerText = q1 || "常見提問";
@@ -484,7 +609,7 @@
         faq1.style.display = 'none';
       }
 
-      if (q2 || a2) {
+      if(q2 || a2){
         anyFaq = true;
         faq2.style.display = '';
         document.getElementById('q2').innerText = q2 || "常見提問";
@@ -492,115 +617,139 @@
       } else {
         faq2.style.display = 'none';
       }
-
       faqBox.style.display = anyFaq ? '' : 'none';
 
+      // ✅ 顧客網頁連結區：只放影音/一般網頁；LINE 全部排除（改放聯繫區）
       let lkCount = 1;
       for(let i=1; i<=3; i++) document.getElementById('lk'+i).style.display = 'none';
 
+      const isAllowedWebLink = (val) => {
+        if(!val || !val.includes('http')) return false;
+        const v = val.toLowerCase();
+        // 排除：LINE（聯繫區）
+        if(v.includes('line.me') || v.includes('lin.ee')) return false;
+        // 排除：Google Drive 圖檔
+        if(v.includes('drive.google.com')) return false;
+        // 其它就當一般網頁/影音都可
+        return true;
+      };
+
+      const linkIconHtml = (val) => {
+        const v = (val || "").toLowerCase();
+        if(v.includes('youtube') || v.includes('youtu.be')) return '<i class="fa-solid fa-play"></i>';
+        if(v.includes('tiktok') || v.includes('douyin')) return '<i class="fa-brands fa-tiktok"></i>';
+        return '<i class="fa-solid fa-link"></i>';
+      };
+
       h.forEach((head, idx) => {
         const val = d[idx];
-        if(val && val.includes('http') &&
-           !val.toLowerCase().includes('line.me') &&
-           !val.toLowerCase().includes('lin.ee') &&
-           !val.includes('drive.google.com') &&
-           lkCount <= 3
-        ) {
+        if(isAllowedWebLink(val) && lkCount <= 3){
           const el = document.getElementById('lk' + lkCount);
           el.style.display = 'flex';
           el.href = val;
-          el.innerHTML = (val.includes('youtube') || val.includes('youtu.be')) ? '<i class="fa-solid fa-play"></i>' : '<i class="fa-solid fa-link"></i>';
+          el.innerHTML = linkIconHtml(val);
           lkCount++;
         }
       });
 
-      if(isMain) {
-        document.getElementById('admin-panel').style.display = 'block';
+      // ✅ 顯示/隱藏：門面招商區 vs 成品安裝教學
+      const lineGuide = document.getElementById('line-guide');
+
+      if(isMainData){
+        // 門面固定那筆資料
         document.getElementById('advantage-box').style.display = 'block';
         document.getElementById('order-box').style.display = 'block';
         document.getElementById('install-entry').style.display = 'none';
         document.getElementById('wechat-id-text').innerText = "a0973180707";
-        document.getElementById('gate-footer').style.display = 'block';
-        document.getElementById('work-drawer').style.display = 'block';
+        if(lineGuide) lineGuide.style.display = 'block';
       } else {
+        // 顧客成品資料
         document.getElementById('advantage-box').style.display = 'none';
         document.getElementById('order-box').style.display = 'none';
         document.getElementById('install-entry').style.display = 'block';
         document.getElementById('wechat-id-text').innerText = wechat || "未提供";
+        if(lineGuide) lineGuide.style.display = uiMain ? 'block' : 'none'; // 門面預覽仍顯示引導句
       }
 
-      if(!isMain) {
+      // ✅ 聯繫區：LINE 全部放這裡（不出現在連結區）
+      if(!isMainData){
+        // LINE OA
         const btnOA = document.getElementById('btn-oa');
-        if (lineOA && lineOA.includes('http')) { btnOA.href = lineOA; btnOA.style.display = 'block'; }
+        if(lineOA && lineOA.includes('http')){ btnOA.href = lineOA; btnOA.style.display = 'block'; }
         else { btnOA.style.display = 'none'; }
 
+        // LINE 私訊
         const btnP = document.getElementById('btn-p');
-        if (lineP && lineP.includes('http')) { btnP.href = lineP; btnP.style.display = 'block'; }
+        if(lineP && lineP.includes('http')){ btnP.href = lineP; btnP.style.display = 'block'; }
         else { btnP.style.display = 'none'; }
 
+        // Email
         const btnMail = document.getElementById('btn-mail');
-        if (email) { btnMail.href = `mailto:${email}`; btnMail.style.display = 'block'; }
+        if(email){ btnMail.href = `mailto:${email}`; btnMail.style.display = 'block'; }
         else { btnMail.style.display = 'none'; }
 
+        // Phone
         const actions = document.getElementById('actions-area');
         let phoneBtn = document.getElementById('btn-phone');
-        if (!phoneBtn) {
+        if(!phoneBtn){
           phoneBtn = document.createElement('a');
           phoneBtn.id = 'btn-phone';
           phoneBtn.className = 'act-btn';
           phoneBtn.innerText = '📞 一鍵撥號';
           actions.insertBefore(phoneBtn, document.getElementById('btn-p'));
         }
-        if (phone) { phoneBtn.href = `tel:${phone.replace(/\s+/g,'')}`; phoneBtn.style.display = 'block'; }
+        if(phone){ phoneBtn.href = `tel:${phone.replace(/\s+/g,'')}`; phoneBtn.style.display = 'block'; }
         else { phoneBtn.style.display = 'none'; }
 
+        // WeChat
         const btnWechat = document.getElementById('btn-wechat');
-        if (wechat) { btnWechat.style.display = 'block'; }
+        if(wechat){ btnWechat.style.display = 'block'; }
         else { btnWechat.style.display = 'none'; }
       } else {
+        // 主樣板仍維持固定按鈕（你原本的）
         const btnOA = document.getElementById('btn-oa'); btnOA.style.display = 'block';
         const btnP  = document.getElementById('btn-p');  btnP.style.display = 'block';
         const btnM  = document.getElementById('btn-mail');btnM.style.display = 'block';
         const btnW  = document.getElementById('btn-wechat');btnW.style.display = 'block';
         const phoneBtn = document.getElementById('btn-phone');
-        if (phoneBtn) phoneBtn.style.display = 'none';
+        if(phoneBtn) phoneBtn.style.display = 'none';
       }
     }
 
-    function doCopy() {
-      const id = document.getElementById('work-id').value;
+    function doCopy(){
+      const id = (document.getElementById('work-id').value || "").trim();
+      if(!id){ alert("請先輸入序號或姓名"); return; }
       const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${curTheme}&style=${curStyle}`;
       navigator.clipboard.writeText(finalUrl).then(() => alert("✅ 交貨網址已複製！"));
     }
 
-    async function init() {
+    async function init(){
       await loadSheetData();
 
-      // ✅ 有 id：成品；無 id：門面固定讀第一筆
-      if (urlId) {
-        renderById(urlId);
+      // ✅ 有 id：成品（乾淨）；無 id：門面固定第一筆
+      if(urlId){
+        uiMain = false;
+        const ok = renderById(urlId, false);
+        if(!ok){
+          // 找不到資料也至少顯示門面第一筆（避免空白）
+          uiMain = true;
+          renderMainFixedFirstRow();
+        }
       } else {
+        uiMain = true;
         renderMainFixedFirstRow();
       }
 
       // ✅ 同步按鈕 active（門面會看到）
       document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
-      const mapBtn = { arch: 0, flat: 1, spot: 2 };
+      const mapBtn = { arch:0, flat:1, spot:2 };
       const idx = mapBtn[curStyle] ?? 0;
       const btns = document.querySelectorAll('.btn-style');
-      if (btns[idx]) btns[idx].classList.add('active');
+      if(btns[idx]) btns[idx].classList.add('active');
 
       updateClass();
     }
-
     init();
-
-    // ✅ PWA：註冊 Service Worker（安裝關鍵）
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=332').catch(() => {});
-      });
-    }
   </script>
 </body>
 </html>
