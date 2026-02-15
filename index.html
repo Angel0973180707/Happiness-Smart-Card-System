@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V352</title>
+  <title>天使幸福智慧名片 V354</title>
 
-  <link rel="manifest" href="./manifest.json?v=352" />
+  <link rel="manifest" href="./manifest.json?v=354" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -14,22 +14,15 @@
     :root { --p:#ee5253; --s:#d63031; --bg:#f5f6fa; }
 
     /* themes */
-    .warm-pink { --p:#ee5253; --s:#d63031; }
+    .warm-pink   { --p:#ee5253; --s:#d63031; }
     .aurora-blue { --p:#00a8ff; --s:#0097e6; }
-    .vivid-orange { --p:#f0932b; --s:#eb4d4b; }
-    .royal-purple { --p:#6c5ce7; --s:#4834d4; }
-    .teal-green { --p:#20bf6b; --s:#0b8d51; }
+    .vivid-orange{ --p:#f0932b; --s:#eb4d4b; }
+    .royal-purple{ --p:#6c5ce7; --s:#4834d4; }
+    .teal-green  { --p:#20bf6b; --s:#0b8d51; }
 
-    /* ===== paper defaults ===== */
+    /* ===== fixed material strength (no slider) ===== */
     :root{
-      /* base texture params (variant will override) */
-      --paperOpacity: .06;
-      --paperGrainOpacity: .10;
-      --paperFiberOpacity: .08;
-      --paperContrast: .06;
-
-      /* strength multiplier (0.8 - 2.0) */
-      --paperStrength: 1.20;
+      --paperStrength: 2; /* ✅ fixed 2.0 */
     }
 
     body{
@@ -47,7 +40,7 @@
       width:100%;
       background:white;
       text-align:center;
-      padding:14px 0 10px;
+      padding:14px 0 12px;
       border-bottom:1px solid #ddd;
       z-index:2000;
       flex-shrink:0;
@@ -82,66 +75,6 @@
       50%{ transform: translateY(-3px); }
     }
 
-    /* ===== paper strength row (main only) ===== */
-    .strength-row{
-      width:100%;
-      max-width:420px;
-      margin:2px auto 6px;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .strength-pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:7px 12px;
-      border-radius:999px;
-      border:1px solid rgba(0,0,0,0.12);
-      background:#fff;
-      box-shadow:0 8px 18px rgba(0,0,0,0.06);
-      font-weight:900;
-      font-size:11px;
-      color:#2d3436;
-    }
-    .strength-pill .tag{
-      padding:2px 8px;
-      border-radius:999px;
-      background:rgba(0,0,0,0.06);
-      font-size:10px;
-      font-weight:900;
-    }
-    .strength-pill .val{
-      min-width:44px;
-      text-align:center;
-      padding:2px 10px;
-      border-radius:999px;
-      background:rgba(255,255,255,0.95);
-      border:1px solid rgba(0,0,0,0.10);
-      color:var(--p);
-      box-shadow:0 10px 18px rgba(0,0,0,0.04);
-      font-size:11px;
-      font-weight:900;
-    }
-    .strength-pill.active{
-      border-color: rgba(0,0,0,0.22);
-      box-shadow:0 10px 22px rgba(0,0,0,0.10);
-    }
-    #paper-strength{
-      width:220px;
-      accent-color: var(--p);
-      cursor:pointer;
-    }
-    .strength-hint{
-      font-size:10.5px;
-      font-weight:900;
-      color:#636e72;
-      opacity:.95;
-      user-select:none;
-    }
-
     /* ===== Card ===== */
     .card{
       background:white;
@@ -150,45 +83,32 @@
       height:680px;
       border-radius:45px;
       overflow:hidden;
+      box-shadow:
+        0 34px 70px rgba(0,0,0,0.16),
+        0 10px 22px rgba(0,0,0,0.08);
+      border:1px solid rgba(0,0,0,0.06);
       position:relative;
       margin:18px 0 20px;
       display:flex;
       flex-direction:column;
       isolation:isolate;
-
-      /* elevate card depth slightly */
-      box-shadow:
-        0 34px 70px rgba(0,0,0,0.16),
-        0 10px 22px rgba(0,0,0,0.08);
-      border:1px solid rgba(0,0,0,0.06);
     }
 
-    /* --- paper texture overlay (whole card) --- */
+    /* ===== Paper overlay base =====
+       ✅ v354: material difference is STRUCTURAL, not only opacity.
+       ✅ fixed strength = 2.0 via opacity multiplier.
+    */
     .card::before{
       content:"";
       position:absolute;
       inset:0;
       pointer-events:none;
       z-index:2;
-
-      /* IMPORTANT: strength multiplier applied here */
-      opacity: calc(var(--paperOpacity) * var(--paperStrength));
-
-      background:
-        radial-gradient(circle at 12% 18%, rgba(0,0,0,var(--paperFiberOpacity)) 0 1px, transparent 2px),
-        radial-gradient(circle at 68% 28%, rgba(0,0,0,var(--paperFiberOpacity)) 0 1px, transparent 2px),
-        radial-gradient(circle at 33% 62%, rgba(0,0,0,var(--paperFiberOpacity)) 0 1px, transparent 2px),
-        radial-gradient(circle at 82% 74%, rgba(0,0,0,var(--paperFiberOpacity)) 0 1px, transparent 2px),
-        radial-gradient(circle at 45% 35%, rgba(0,0,0,var(--paperFiberOpacity)) 0 1px, transparent 2px),
-        linear-gradient(0deg, rgba(0,0,0,var(--paperContrast)) 0, transparent 18%, transparent 82%, rgba(0,0,0,var(--paperContrast)) 100%),
-        repeating-linear-gradient(135deg,
-          rgba(0,0,0,var(--paperGrainOpacity)) 0 1px,
-          transparent 1px 6px
-        );
+      opacity: calc(var(--paperAlpha, .10) * var(--paperStrength));
       mix-blend-mode: multiply;
-      filter: blur(.22px);
+      filter: blur(var(--paperBlur, .15px)) contrast(var(--paperContrast, 1.08));
+      background: var(--paperTexture, none);
     }
-    /* subtle highlight for premium “print” feel */
     .card::after{
       content:"";
       position:absolute;
@@ -196,60 +116,65 @@
       pointer-events:none;
       z-index:3;
       background:
-        radial-gradient(120px 90px at 18% 14%, rgba(255,255,255,0.55), transparent 70%),
-        radial-gradient(160px 120px at 78% 72%, rgba(255,255,255,0.35), transparent 72%);
+        radial-gradient(140px 110px at 18% 14%, rgba(255,255,255,0.62), transparent 70%),
+        radial-gradient(190px 140px at 78% 72%, rgba(255,255,255,0.40), transparent 72%);
       opacity:.22;
       mix-blend-mode: screen;
     }
 
-    /* paper variants (base params only) */
+    /* ===== Paper variants (strongly distinguishable) ===== */
+    /* 霧面棉紙：柔霧 + 纖維點狀 */
     .paper-cotton{
-      --paperOpacity: .06;
-      --paperGrainOpacity: .08;
-      --paperFiberOpacity: .07;
-      --paperContrast: .05;
+      --paperAlpha: .10;
+      --paperBlur: .20px;
+      --paperContrast: 1.08;
+      --paperTexture:
+        radial-gradient(circle at 12% 18%, rgba(0,0,0,.10) 0 1px, transparent 2px),
+        radial-gradient(circle at 68% 28%, rgba(0,0,0,.10) 0 1px, transparent 2px),
+        radial-gradient(circle at 33% 62%, rgba(0,0,0,.10) 0 1px, transparent 2px),
+        radial-gradient(circle at 82% 74%, rgba(0,0,0,.10) 0 1px, transparent 2px),
+        radial-gradient(circle at 45% 35%, rgba(0,0,0,.10) 0 1px, transparent 2px),
+        linear-gradient(0deg, rgba(0,0,0,.06) 0, transparent 20%, transparent 80%, rgba(0,0,0,.06) 100%),
+        repeating-linear-gradient(135deg, rgba(0,0,0,.06) 0 1px, transparent 1px 7px);
     }
+
+    /* 細顆粒紙：砂感密度更高 + 微顆粒雜點 */
     .paper-grain{
-      --paperOpacity: .075;
-      --paperGrainOpacity: .12;
-      --paperFiberOpacity: .08;
-      --paperContrast: .06;
+      --paperAlpha: .12;
+      --paperBlur: .10px;
+      --paperContrast: 1.12;
+      --paperTexture:
+        repeating-linear-gradient(135deg, rgba(0,0,0,.10) 0 1px, transparent 1px 5px),
+        repeating-linear-gradient(45deg, rgba(0,0,0,.06) 0 1px, transparent 1px 6px),
+        radial-gradient(circle at 18% 22%, rgba(0,0,0,.10) 0 1px, transparent 2px),
+        radial-gradient(circle at 72% 66%, rgba(0,0,0,.10) 0 1px, transparent 2px),
+        radial-gradient(circle at 38% 78%, rgba(0,0,0,.08) 0 1px, transparent 2px);
     }
+
+    /* 亞麻紋：交織網格超明顯（與其他一眼區分） */
     .paper-linen{
-      --paperOpacity: .07;
-      --paperGrainOpacity: .10;
-      --paperFiberOpacity: .07;
-      --paperContrast: .05;
+      --paperAlpha: .11;
+      --paperBlur: 0px;
+      --paperContrast: 1.18;
+      --paperTexture:
+        repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 1px, transparent 1px 9px),
+        repeating-linear-gradient(90deg, rgba(0,0,0,.10) 0 1px, transparent 1px 10px),
+        repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 4px),
+        repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 4px);
     }
+
+    /* 水彩紙：不規則壓紋 + 暈染陰影塊 */
     .paper-watercolor{
-      --paperOpacity: .085;
-      --paperGrainOpacity: .14;
-      --paperFiberOpacity: .10;
-      --paperContrast: .07;
-    }
-
-    /* linen cross-hatch enhancement */
-    .paper-linen .card::before{
-      background:
-        repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 1px, transparent 1px 9px),
-        repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 1px, transparent 1px 10px),
-        radial-gradient(circle at 25% 22%, rgba(0,0,0,.08) 0 1px, transparent 2px),
-        radial-gradient(circle at 62% 66%, rgba(0,0,0,.08) 0 1px, transparent 2px);
-      opacity: calc(var(--paperOpacity) * var(--paperStrength));
-      mix-blend-mode: multiply;
-      filter: blur(.18px);
-    }
-
-    /* watercolor roughness enhancement */
-    .paper-watercolor .card::before{
-      background:
-        radial-gradient(120px 120px at 30% 40%, rgba(0,0,0,.08), transparent 70%),
-        radial-gradient(160px 160px at 70% 65%, rgba(0,0,0,.06), transparent 72%),
-        repeating-linear-gradient(135deg, rgba(0,0,0,.10) 0 1px, transparent 1px 7px),
-        repeating-linear-gradient(45deg, rgba(0,0,0,.06) 0 1px, transparent 1px 9px);
-      opacity: calc(var(--paperOpacity) * var(--paperStrength));
-      mix-blend-mode: multiply;
-      filter: blur(.28px);
+      --paperAlpha: .13;
+      --paperBlur: .22px;
+      --paperContrast: 1.20;
+      --paperTexture:
+        radial-gradient(160px 160px at 28% 38%, rgba(0,0,0,.10), transparent 72%),
+        radial-gradient(220px 200px at 74% 68%, rgba(0,0,0,.08), transparent 75%),
+        radial-gradient(circle at 14% 22%, rgba(0,0,0,.10) 0 1px, transparent 2px),
+        radial-gradient(circle at 66% 46%, rgba(0,0,0,.10) 0 1px, transparent 2px),
+        repeating-linear-gradient(135deg, rgba(0,0,0,.12) 0 1px, transparent 1px 8px),
+        repeating-linear-gradient(45deg, rgba(0,0,0,.08) 0 1px, transparent 1px 10px);
     }
 
     .banner{
@@ -275,9 +200,6 @@
       border:1px solid rgba(0,0,0,0.04);
     }
     .avatar{ width:100%;height:100%;border-radius:50%;object-fit:cover; }
-
-    .mode-main .avatar-wrap{ border-radius:50%; }
-    .mode-main .avatar{ border-radius:50%; }
 
     .info-scroll{
       flex:1; overflow-y:auto; padding:45px 20px 0; text-align:center;
@@ -434,12 +356,11 @@
       background:rgba(0,0,0,0.03);
       border:1px solid rgba(0,0,0,0.06);
     }
+    .btn-ico i{ font-size:14px; color:var(--p); }
     .btn-main .btn-ico{
       background:rgba(255,255,255,0.22);
       border:1px solid rgba(255,255,255,0.28);
     }
-
-    .btn-ico i{ font-size:14px; color:var(--p); }
     .btn-main .btn-ico i{ color:#fff; }
     .btn-sub .btn-ico i{ color:#06C755; }
 
@@ -484,7 +405,6 @@
     .tab-btn.active{ background:var(--p); color:white; border-color:var(--p); }
     .tab-pane{ display:none; text-align:left; font-size:14px; line-height:1.8; color:#444; }
     .tab-pane.active{ display:block; }
-
     .modal-copy-btn{
       background:var(--p);color:white;border:none;padding:8px 12px;border-radius:12px;font-weight:900;width:100%;
       font-size:13px;
@@ -521,6 +441,11 @@
 
 <body class="warm-pink style-arch paper-cotton">
   <div id="admin-panel">
+    <!-- Step 1 title -->
+    <div class="picker-group" style="margin-bottom:10px;">
+      <span class="hint-bounce"><i class="fa-solid fa-1"></i> 步驟一：點選顏色、版型、紙感</span>
+    </div>
+
     <div class="picker-group">
       <div class="dot" onclick="setTheme('warm-pink')" style="background:#ee5253"></div>
       <div class="dot" onclick="setTheme('aurora-blue')" style="background:#00a8ff"></div>
@@ -529,17 +454,12 @@
       <div class="dot" onclick="setTheme('teal-green')" style="background:#20bf6b"></div>
     </div>
 
-    <div class="picker-group" style="margin-top:2px;">
-      <span class="hint-bounce"><i class="fa-solid fa-hand-pointer"></i> 點選顏色版型參考</span>
-    </div>
-
     <div class="picker-group">
       <button class="btn-style active" onclick="setStyle('arch', this)">優雅拱型</button>
       <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
       <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
     </div>
 
-    <!-- Paper picker -->
     <div class="picker-group" style="margin-top:6px;">
       <button class="btn-style active" onclick="setPaper('cotton', this)">霧面棉紙</button>
       <button class="btn-style" onclick="setPaper('grain', this)">細顆粒紙</button>
@@ -547,17 +467,10 @@
       <button class="btn-style" onclick="setPaper('watercolor', this)">水彩紙</button>
     </div>
 
-    <!-- ✅ Paper strength slider (main only, with number) -->
-    <div class="strength-row" id="paper-strength-row">
-      <div id="paper-strength-pill" class="strength-pill active" title="紙感強度（0.8 - 2.0）">
-        <span class="tag">紙感</span>
-        <span id="paper-strength-val" class="val">1.20</span>
-      </div>
-
-      <input id="paper-strength" type="range" min="0.8" max="2.0" step="0.05" value="1.20"
-        oninput="setPaperStrength(this.value, true)" />
-
-      <div class="strength-hint">0.8 更淡｜2.0 更紙</div>
+    <!-- Step 2 CTA -->
+    <div class="picker-group" style="margin-top:10px;">
+      <button class="btn-style active" style="background:var(--p)!important;border-color:var(--p)!important;color:#fff!important;"
+              onclick="goFillForm()">步驟二：填寫名片資料</button>
     </div>
   </div>
 
@@ -597,8 +510,12 @@
       </div>
 
       <div id="order-box" class="content-box" style="background:#fff9f9;border:1px dashed #ee5253;">
-        <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
-        <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" rel="noopener" style="color:#2d3436;text-decoration:none;font-weight:900;font-size:14px;">立即填寫預約表單 →</a>
+        <span class="label" style="color:#ee5253">📝 填寫名片資料</span>
+        <a id="form-link" href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" rel="noopener"
+           style="color:#2d3436;text-decoration:none;font-weight:900;font-size:14px;">立即填寫預約表單 →</a>
+        <div style="font-size:11.5px;color:#666;margin-top:8px;line-height:1.5;">
+          小提醒：您剛剛選的顏色、版型、紙感，會成為這張名片的外觀喜好。
+        </div>
       </div>
 
       <div id="photos-box" class="content-box" style="display:none;">
@@ -672,7 +589,6 @@
           <span class="btn-subtitle">一對一私訊</span>
         </span>
       </a>
-      <!-- phone button dynamically created on delivery page if has phone -->
     </div>
   </div>
 
@@ -717,16 +633,22 @@
     </div>
   </div>
 
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V352｜版權所有</div>
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V354｜版權所有</div>
 
   <script>
-    const VERSION = 352;
+    const VERSION = 354;
 
-    // ✅ 記住前臺挑的顏色/版型/紙感/紙感強度
+    // ✅ Remember (for main page only)
     const LS_THEME = 'angel_card_theme';
     const LS_STYLE = 'angel_card_style';
     const LS_PAPER = 'angel_card_paper';
-    const LS_PAPER_STRENGTH = 'angel_card_paper_strength';
+
+    // ✅ Google Form base (kept same)
+    const FORM_BASE = "https://forms.gle/dkeHW9tfEYiGx39U9";
+    // ✅ Optional: if you later provide a Google Form "prefill link" with entry.xxxx, fill it here.
+    // Example:
+    // const FORM_PREFILL = "https://docs.google.com/forms/d/e/xxxx/viewform?usp=pp_url&entry.111=__THEME__&entry.222=__STYLE__&entry.333=__PAPER__";
+    const FORM_PREFILL = "";
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -740,23 +662,10 @@
     let allRows = [];
     let clicks = 0;
 
-    // ✅ 優先順序：URL > localStorage > 預設
+    // default selections (for main page choosing UI)
     let curTheme = urlParams.get('theme') || localStorage.getItem(LS_THEME) || 'warm-pink';
     let curStyle = urlParams.get('style') || localStorage.getItem(LS_STYLE) || 'arch';
     let curPaper = urlParams.get('paper') || localStorage.getItem(LS_PAPER) || 'cotton';
-
-    function parseStrength(v){
-      const n = Number(v);
-      if(!isFinite(n)) return null;
-      const clamped = Math.min(2.0, Math.max(0.8, n));
-      return Math.round(clamped * 100) / 100;
-    }
-
-    // ✅ 預設 1.20
-    let curPaperStrength =
-      parseStrength(urlParams.get('paperStrength')) ||
-      parseStrength(localStorage.getItem(LS_PAPER_STRENGTH)) ||
-      1.20;
 
     let uiMain = !urlId;
 
@@ -813,22 +722,22 @@
       curTheme = t;
       localStorage.setItem(LS_THEME, t);
       updateClass();
-      syncStrengthPill();
+      syncStyleButtons();
+      syncPaperButtons();
+      updateFormLink();
     }
-
     function setStyle(s, btn){
       curStyle = s;
       localStorage.setItem(LS_STYLE, s);
       updateClass();
       if(btn){
-        document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#admin-panel .picker-group:nth-of-type(3) .btn-style').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
       }
       syncStyleButtons();
       syncPaperButtons();
-      syncStrengthPill();
+      updateFormLink();
     }
-
     function setPaper(p, btn){
       curPaper = p;
       localStorage.setItem(LS_PAPER, p);
@@ -840,63 +749,13 @@
       }
       syncStyleButtons();
       syncPaperButtons();
-      syncStrengthPill();
-    }
-
-    function setPaperStrength(val, fromSlider){
-      const n = parseStrength(val);
-      if(n === null) return;
-
-      curPaperStrength = n;
-      localStorage.setItem(LS_PAPER_STRENGTH, String(curPaperStrength));
-
-      // update css var
-      document.documentElement.style.setProperty('--paperStrength', String(curPaperStrength));
-
-      // update UI number
-      const vEl = document.getElementById('paper-strength-val');
-      if(vEl) vEl.innerText = curPaperStrength.toFixed(2);
-
-      // slider sync
-      const slider = document.getElementById('paper-strength');
-      if(slider && !fromSlider) slider.value = String(curPaperStrength);
-
-      syncStrengthPill();
-    }
-
-    function syncStrengthPill(){
-      const pill = document.getElementById('paper-strength-pill');
-      if(!pill) return;
-
-      // ✅ always “active” in main (visual anchor)
-      if(uiMain) pill.classList.add('active');
-      else pill.classList.remove('active');
-
-      // slight tint based on strength for “feel”
-      const t = Math.min(1, Math.max(0, (curPaperStrength - 0.8) / (2.0 - 0.8))); // 0..1
-      pill.style.background = `rgba(255,255,255, ${0.92 - t*0.10})`;
-      pill.style.borderColor = `rgba(0,0,0, ${0.14 + t*0.10})`;
+      updateFormLink();
     }
 
     function updateClass(){
-      // keep mode, theme, style, paper
       document.body.className = `${curTheme} style-${curStyle} paper-${curPaper}${uiMain ? ' mode-main' : ' mode-delivery'}`;
-
-      // apply strength var
-      document.documentElement.style.setProperty('--paperStrength', String(curPaperStrength));
-
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#ee5253');
-
-      // ✅ delivery page hides slider row completely
-      const row = document.getElementById('paper-strength-row');
-      if(row) row.style.display = uiMain ? '' : 'none';
-
-      // keep number synced
-      const vEl = document.getElementById('paper-strength-val');
-      if(vEl) vEl.innerText = curPaperStrength.toFixed(2);
-      const slider = document.getElementById('paper-strength');
-      if(slider) slider.value = String(curPaperStrength);
     }
 
     function syncStyleButtons(){
@@ -940,7 +799,7 @@
       return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).slice(0, 3);
     }
 
-    // ✅ CSV 解析
+    // ===== CSV parsing =====
     function parseCSV(text){
       const rows = [];
       let row = [];
@@ -987,29 +846,7 @@
       }
     }
 
-    function renderMainFixedFirstRow(){
-      if(!allRows[0] || !allRows[1]) return;
-      applyRow(allRows[0], allRows[1], { isMainData:true, keepUiMain:true });
-    }
-
-    function renderById(keyword, keepUiMain){
-      if(!keyword || !allRows[0]) return false;
-      const h = allRows[0];
-      const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
-      if(!d) return false;
-      applyRow(h, d, { isMainData:false, keepUiMain: !!keepUiMain });
-      return true;
-    }
-
-    function doPreviewInPlace(){
-      const id = (document.getElementById('work-id').value || "").trim();
-      if(!id){ alert("請先輸入序號或姓名"); return; }
-      const ok = renderById(id, true);
-      if(!ok){ alert("找不到此序號/姓名"); return; }
-      document.querySelector('.info-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    // ✅【Link area helpers】
+    // ===== link area helpers =====
     const isLineDomain = (v) => {
       const s = (v || '').toLowerCase();
       return (
@@ -1142,11 +979,88 @@
         .filter(el => getComputedStyle(el).display !== 'none' && !el.classList.contains('btn-main'));
 
       btns.forEach(b => b.style.gridColumn = '');
-
       if(btns.length % 2 === 1){
         const last = btns[btns.length - 1];
         last.style.gridColumn = 'span 2';
       }
+    }
+
+    // ===== v354: normalize sheet "preferences" =====
+    function normalizeThemeFromSheet(v){
+      const s = String(v||'').trim().toLowerCase();
+      if(!s) return "";
+      if(['warm-pink','aurora-blue','vivid-orange','royal-purple','teal-green'].includes(s)) return s;
+      if(s.includes('粉') || s.includes('暖')) return 'warm-pink';
+      if(s.includes('藍') || s.includes('極光')) return 'aurora-blue';
+      if(s.includes('橘')) return 'vivid-orange';
+      if(s.includes('紫')) return 'royal-purple';
+      if(s.includes('綠') || s.includes('青')) return 'teal-green';
+      return "";
+    }
+    function normalizeStyleFromSheet(v){
+      const s = String(v||'').trim().toLowerCase();
+      if(!s) return "";
+      if(['arch','flat','spot'].includes(s)) return s;
+      if(s.includes('拱')) return 'arch';
+      if(s.includes('平') || s.includes('簡潔')) return 'flat';
+      if(s.includes('光') || s.includes('聚')) return 'spot';
+      return "";
+    }
+    function normalizePaperFromSheet(v){
+      const s = String(v||'').trim().toLowerCase();
+      if(!s) return "";
+      if(['cotton','grain','linen','watercolor'].includes(s)) return s;
+      if(s.includes('棉')) return 'cotton';
+      if(s.includes('顆粒') || s.includes('砂')) return 'grain';
+      if(s.includes('亞麻') || s.includes('麻')) return 'linen';
+      if(s.includes('水彩')) return 'watercolor';
+      return "";
+    }
+
+    function updateFormLink(){
+      const a = document.getElementById('form-link');
+      if(!a) return;
+
+      // If FORM_PREFILL exists, do a lightweight placeholder replace.
+      if(FORM_PREFILL){
+        const url = FORM_PREFILL
+          .replaceAll('__THEME__', encodeURIComponent(curTheme))
+          .replaceAll('__STYLE__', encodeURIComponent(curStyle))
+          .replaceAll('__PAPER__', encodeURIComponent(curPaper));
+        a.href = url;
+        return;
+      }
+
+      // Otherwise keep base link, but still attach a helpful URL for your own tracking (optional).
+      a.href = FORM_BASE;
+    }
+
+    function goFillForm(){
+      updateFormLink();
+      window.open(document.getElementById('form-link').href, '_blank', 'noopener');
+    }
+
+    // ===== render helpers =====
+    function renderMainFixedFirstRow(){
+      if(!allRows[0] || !allRows[1]) return;
+      applyRow(allRows[0], allRows[1], { isMainData:true, keepUiMain:true });
+    }
+
+    function renderById(keyword, keepUiMain){
+      if(!keyword || !allRows[0]) return false;
+      const h = allRows[0];
+      const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
+      if(!d) return false;
+      applyRow(h, d, { isMainData:false, keepUiMain: !!keepUiMain });
+      return true;
+    }
+
+    function doPreviewInPlace(){
+      const id = (document.getElementById('work-id').value || "").trim();
+      if(!id){ alert("請先輸入序號或姓名"); return; }
+      const ok = renderById(id, true);
+      if(!ok){ alert("找不到此序號/姓名"); return; }
+      document.querySelector('.info-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function applyRow(h, d, opt){
@@ -1154,19 +1068,37 @@
       const keepUiMain = !!(opt && opt.keepUiMain);
 
       uiMain = keepUiMain ? true : !urlId;
-      updateClass();
-      syncStrengthPill();
 
       const getVal = (key) => {
         const idx = h.findIndex(head => (head || "").includes(key));
         return (idx !== -1 && d[idx]) ? d[idx] : "";
       };
 
+      // ✅ v354 (B): prefer sheet preferences (delivery page especially)
+      const prefTheme = normalizeThemeFromSheet(getVal('您喜歡的顏色'));
+      const prefStyle = normalizeStyleFromSheet(getVal('您喜歡的版型'));
+      const prefPaper = normalizePaperFromSheet(getVal('您喜歡的紙感'));
+
+      // Priority: sheet > url/local > default
+      curTheme = prefTheme || (urlParams.get('theme') || localStorage.getItem(LS_THEME) || curTheme || 'warm-pink');
+      curStyle = prefStyle || (urlParams.get('style') || localStorage.getItem(LS_STYLE) || curStyle || 'arch');
+      curPaper = prefPaper || (urlParams.get('paper') || localStorage.getItem(LS_PAPER) || curPaper || 'cotton');
+
+      // keep main page memory updated only when no sheet value (avoid overwriting user preference unintentionally)
+      if(uiMain){
+        localStorage.setItem(LS_THEME, curTheme);
+        localStorage.setItem(LS_STYLE, curStyle);
+        localStorage.setItem(LS_PAPER, curPaper);
+      }
+
+      updateClass();
+      updateFormLink();
+
       const name   = getVal('姓名');
       const unit   = getVal('單位') || getVal('單位名稱');
       const motto  = getVal('理念標語');
       const service= getVal('服務項目') || getVal('服務');
-      const titles = getVal('重要頭銜') || getVal('獎銜');
+      const titles = getVal('重要頭銜') || getVal('獎銜') || getVal('重要頭銜/獎銜');
       const avatar = fixImg(getVal('個人專業形象照') || getVal('形象照'));
       const photos = splitPhotos(getVal('產品或品牌照片'));
       const logo   = fixImg(getVal('品牌 Logo') || getVal('品牌Logo') || getVal('Logo'));
@@ -1174,7 +1106,7 @@
       const email  = getVal('一鍵聯繫 Email') || getVal('Email') || getVal('郵箱');
       const phone  = getVal('一鍵聯繫電話') || getVal('電話');
       const lineP  = getVal('私訊 LINE') || getVal('LINE 加好友') || getVal('個人好友');
-      const lineOA = getVal('LINE 官方') || getVal('官方帳號');
+      const lineOA = getVal('LINE 官方') || getVal('官方帳號') || getVal('​LINE 官方帳號連結');
 
       const v1 = getVal('影音平台 1') || getVal('影音平台1');
       const v2 = getVal('影音平台 2') || getVal('影音平台2');
@@ -1266,24 +1198,25 @@
 
       fillSocialLinks([v1, v2, v3, s1, s2, s3]);
 
-      // ✅ 主頁/交貨頁顯示切換
+      // ✅ main/delivery visibility
       if(isMainData){
         document.getElementById('advantage-box').style.display = 'block';
         document.getElementById('order-box').style.display = 'block';
         document.getElementById('install-entry').style.display = 'none';
         document.getElementById('wechat-id-text').innerText = "a0973180707";
         document.getElementById('line-guide').style.display = 'block';
-        document.getElementById('share-cta-text').innerText = "複製網址，分享名片給朋友";
       } else {
         document.getElementById('advantage-box').style.display = 'none';
         document.getElementById('order-box').style.display = 'none';
         document.getElementById('install-entry').style.display = 'block';
         document.getElementById('wechat-id-text').innerText = wechat || "未提供";
         document.getElementById('line-guide').style.display = uiMain ? 'block' : 'none';
-        document.getElementById('share-cta-text').innerText = "複製網址，分享名片給朋友";
       }
 
-      // ✅ 交貨頁聯絡按鈕動態顯示
+      // ✅ share text unified
+      document.getElementById('share-cta-text').innerText = "複製網址，分享名片給朋友";
+
+      // ✅ delivery page contact buttons dynamic
       if(!isMainData){
         const btnOA = document.getElementById('btn-oa');
         if(lineOA && String(lineOA).includes('http')){ btnOA.href = lineOA; btnOA.style.display = 'flex'; }
@@ -1334,27 +1267,16 @@
       layoutActionsGrid();
     }
 
-    // ✅ 前臺選好 → 後臺只輸入姓名 → 一鍵複製「帶版型顏色+紙感+紙感強度」交貨網址
+    // ✅ B mode delivery url: carry current UI choice (optional), but final look is still sheet-first
     async function doCopy(){
       const id = (document.getElementById('work-id').value || "").trim();
       if(!id){ alert("請先輸入序號或姓名"); return; }
-
-      const finalUrl =
-        `${window.location.origin}${window.location.pathname}` +
-        `?id=${encodeURIComponent(id)}` +
-        `&theme=${encodeURIComponent(curTheme)}` +
-        `&style=${encodeURIComponent(curStyle)}` +
-        `&paper=${encodeURIComponent(curPaper)}` +
-        `&paperStrength=${encodeURIComponent(curPaperStrength.toFixed(2))}`;
-
+      const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${encodeURIComponent(curTheme)}&style=${encodeURIComponent(curStyle)}&paper=${encodeURIComponent(curPaper)}`;
       const ok = await safeCopy(finalUrl);
-      alert(ok ? "✅ 交貨網址已複製！（已帶顏色/版型/紙感/紙感強度）" : "此瀏覽器限制複製，請手動複製網址列");
+      alert(ok ? "✅ 交貨網址已複製！（成品以資料列外觀為主）" : "此瀏覽器限制複製，請手動複製網址列");
     }
 
     async function init(){
-      // ensure css var + UI reflect initial
-      setPaperStrength(curPaperStrength, false);
-
       await loadSheetData();
 
       if(urlId){
@@ -1372,7 +1294,7 @@
       updateClass();
       syncStyleButtons();
       syncPaperButtons();
-      syncStrengthPill();
+      updateFormLink();
       layoutActionsGrid();
     }
     init();
