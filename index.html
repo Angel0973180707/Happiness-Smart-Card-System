@@ -1406,7 +1406,7 @@
       const service= getVal('服務項目') || getVal('服務');
       const titles = getVal('重要頭銜') || getVal('獎銜') || getVal('重要頭銜/獎銜');
       const avatar = fixImg(getVal('個人專業形象照') || getVal('形象照'));
-      const photos = splitPhotos(getVal('產品或品牌照片'));
+      const photos = splitPhotos(getVal('產品或品牌或活動照片'));
       const logo   = fixImg(getVal('品牌 Logo') || getVal('品牌Logo') || getVal('Logo'));
       const wechat = getVal('微信') || getVal('微信 ID');
       const email  = getVal('一鍵聯繫 Email') || getVal('Email') || getVal('郵箱');
