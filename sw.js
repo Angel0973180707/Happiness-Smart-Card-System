@@ -1,88 +1,1094 @@
-/* 天使幸福智慧名片 SW v343*/
-const CACHE_VERSION = "v343";
-const CACHE_NAME = `angel-card-${CACHE_VERSION}`;
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>天使幸福智慧名片 V344</title>
 
-const CORE_ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./sw.js"
-];
+  <link rel="manifest" href="./manifest.json?v=344" />
+  <meta name="theme-color" content="#ee5253" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
-  );
-  self.skipWaiting();
-});
+  <style>
+    :root { --p:#ee5253; --s:#d63031; --bg:#f5f6fa; }
+    .warm-pink { --p:#ee5253; --s:#d63031; }
+    .aurora-blue { --p:#00a8ff; --s:#0097e6; }
+    .vivid-orange { --p:#f0932b; --s:#eb4d4b; }
+    .royal-purple { --p:#6c5ce7; --s:#4834d4; }
+    .teal-green { --p:#20bf6b; --s:#0b8d51; }
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    (async () => {
-      const keys = await caches.keys();
-      await Promise.all(
-        keys
-          .filter((k) => k.startsWith("angel-card-") && k !== CACHE_NAME)
-          .map((k) => caches.delete(k))
-      );
-      await self.clients.claim();
-    })()
-  );
-});
+    body{
+      font-family:'Noto Sans TC',sans-serif;
+      margin:0;
+      background:var(--bg);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      min-height:100vh;
+    }
 
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
+    /* ===== Admin panel ===== */
+    #admin-panel{
+      width:100%;
+      background:white;
+      text-align:center;
+      padding:12px 0 8px; /* ✅更矮 */
+      border-bottom:1px solid #ddd;
+      z-index:2000;
+      flex-shrink:0;
+    }
+    .picker-group{ display:flex; justify-content:center; gap:10px; margin-bottom:6px; align-items:center; }
 
-  // 只處理同源（GitHub Pages）
-  if (url.origin !== self.location.origin) return;
+    .dot{
+      width:28px;height:28px;border-radius:50%;
+      cursor:pointer;border:3px solid white;
+      box-shadow:0 4px 10px rgba(0,0,0,0.15);
+    }
 
-  // 導覽請求（/ 或 /?id=...）：network-first，失敗回快取的 index.html
-  if (req.mode === "navigate") {
-    event.respondWith(
-      (async () => {
-        try {
-          const fresh = await fetch(req);
-          const cache = await caches.open(CACHE_NAME);
-          cache.put("./index.html", fresh.clone());
-          return fresh;
-        } catch (e) {
-          const cached = await caches.match("./index.html");
-          return cached || caches.match("./");
+    /* ✅ 版型按鈕更小更矮 */
+    .btn-style{
+      padding:4px 10px;
+      border-radius:18px;
+      border:1px solid #ccc;
+      font-size:10.5px;
+      cursor:pointer;
+      background:#fff;
+      font-weight:900;
+      line-height:1.05;
+      min-height:28px;
+    }
+    .btn-style.active{ background:#2f3640!important; color:white!important; }
+
+    .hint-bounce{
+      font-size:11px;
+      font-weight:900;
+      color:#2d3436;
+      opacity:0.9;
+      letter-spacing:0.3px;
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      user-select:none;
+      animation: hintFloat 1.2s ease-in-out infinite;
+    }
+    .hint-bounce i{ color:var(--p); }
+    @keyframes hintFloat{
+      0%,100%{ transform: translateY(0); }
+      50%{ transform: translateY(-3px); }
+    }
+
+    /* ===== Card ===== */
+    .card{
+      background:white;
+      width:92%;
+      max-width:380px;
+      height:680px;
+      border-radius:45px;
+      overflow:hidden;
+      box-shadow:0 30px 60px rgba(0,0,0,0.15);
+      position:relative;
+      margin:16px 0; /* ✅更緊 */
+      display:flex;
+      flex-direction:column;
+    }
+
+    .banner{
+      height:160px;
+      background:linear-gradient(135deg,var(--p),var(--s));
+      flex-shrink:0;
+      position:relative;
+    }
+    .arch-overlay{
+      position:absolute;width:100%;height:90px;background:white;
+      bottom:-1px;border-radius:90px 90px 0 0;
+    }
+    .style-flat .arch-overlay{ border-radius:0; height:35px; }
+    .style-spot .arch-overlay{ border-radius:50% 50% 0 0; transform:scaleX(1.4); height:100px; }
+
+    .avatar-wrap{
+      width:130px;height:130px;background:#fff;border-radius:50%;
+      padding:6px;box-shadow:0 10px 25px rgba(0,0,0,0.1);
+      position:absolute;top:35px;left:50%;transform:translateX(-50%);
+      z-index:100;
+    }
+    .avatar{ width:100%;height:100%;border-radius:50%;object-fit:cover; }
+
+    .mode-main .avatar-wrap{ border-radius:50%; }
+    .mode-main .avatar{ border-radius:50%; }
+
+    .info-scroll{
+      flex:1;
+      overflow-y:auto;
+      padding:42px 18px 0; /* ✅微縮，避免跟按鈕搶高度 */
+      text-align:center;
+      scrollbar-width:none;
+    }
+    .info-scroll::-webkit-scrollbar{ display:none; }
+
+    .name{ font-size:26px; font-weight:900; color:#2d3436; margin:5px 0; }
+    .unit{ font-size:14px; color:var(--s); font-weight:700; margin-bottom:6px; }
+    .motto{
+      font-size:13px;color:#2d3436;opacity:0.9;font-weight:700;
+      margin:0 0 8px;line-height:1.5;
+    }
+
+    .brand-logo-below{
+      width:52px;height:52px;border-radius:16px;
+      background:rgba(255,255,255,0.95);
+      display:none; align-items:center; justify-content:center;
+      overflow:hidden;
+      box-shadow:0 10px 18px rgba(0,0,0,0.10);
+      border:1px solid rgba(0,0,0,0.06);
+      margin:8px auto 8px;
+    }
+    .brand-logo-below img{ width:100%;height:100%;object-fit:cover; }
+
+    .social-bar{ display:flex; justify-content:center; align-items:center; gap:14px; margin:10px 0 16px; }
+    .social-link{
+      width:46px;height:46px;border-radius:16px;background:#fff;
+      display:none; align-items:center; justify-content:center;
+      text-decoration:none;font-size:19px;color:var(--s);
+      box-shadow:6px 8px 16px rgba(0,0,0,0.08);
+      border:1px solid rgba(0,0,0,0.06);
+      transition: transform .08s ease;
+    }
+    .social-link:active{ transform: scale(0.96); }
+
+    .content-box{
+      text-align:left;background:#ffffff;padding:18px;border-radius:25px;
+      margin-bottom:15px;
+      box-shadow:10px 10px 20px rgba(0,0,0,0.03);
+      border:1px solid #f9f9f9;
+    }
+    .label{ color:#adb5bd;font-weight:900;font-size:11px;margin-bottom:8px;display:block; }
+
+    .img-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    .img-grid a{ display:block; }
+    .img-grid img{
+      width:100%; height:78px; object-fit:cover; border-radius:14px;
+      border:1px solid #eee; background:#f7f7f7;
+    }
+
+    .faq-item{ background:#fafafa;border:1px solid #eee;border-radius:16px;padding:12px 12px;margin-top:10px; }
+    .faq-q{ font-weight:900;color:#2d3436;font-size:13px;margin-bottom:6px; }
+    .faq-a{ color:#2d3436;font-size:13px;line-height:1.7;white-space:pre-wrap; }
+
+    .bottom-guide-bar{ padding:4px 0 16px; text-align:center; } /* ✅更矮 */
+    /* ✅ 安裝教學按鈕更小更矮 */
+    .mini-install-btn{
+      background:#fff; color:var(--p); border:1.5px solid var(--p);
+      padding:5px 12px;
+      border-radius:50px;
+      font-size:11px;
+      font-weight:900;
+      cursor:pointer;
+      line-height:1.05;
+      min-height:28px;
+    }
+
+    /* ===== Actions / Contact Area：所有聯繫鈕再矮一點 ===== */
+    .actions{
+      background:linear-gradient(180deg, rgba(255,255,255,0.70), rgba(255,255,255,1));
+      padding:5px 9px 7px;     /* ✅更薄 */
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:5px;                 /* ✅更緊 */
+      flex-shrink:0;
+      border-top:1px solid #eee;
+    }
+
+    .act-btn{
+      text-decoration:none;
+      background:#ffffff;
+      padding:5px 7px;         /* ✅更矮 */
+      border-radius:15px;
+      color:#2f3542;
+      font-size:12px;
+      font-weight:900;
+      text-align:left;
+      border:1px solid rgba(0,0,0,0.06);
+      display:flex;
+      align-items:center;
+      gap:7px;                 /* ✅更矮 */
+      box-shadow: 0 10px 18px rgba(0,0,0,0.05);
+      min-height:38px;         /* ✅更矮 */
+      line-height:1.02;
+    }
+    .act-btn:active{ transform: scale(0.99); }
+
+    .btn-main{
+      grid-column:span 2;
+      background:linear-gradient(135deg, #06C755, #06b150)!important;
+      color:white!important;
+      border:none!important;
+      box-shadow: 0 14px 24px rgba(6,199,85,0.22);
+      padding:6px 8px;         /* ✅更矮 */
+      min-height:42px;         /* ✅更矮 */
+    }
+    .btn-sub{
+      background:#ffffff!important;
+      color:#06C755!important;
+      border:2px solid rgba(6,199,85,0.35)!important;
+      box-shadow: 0 10px 18px rgba(6,199,85,0.10);
+    }
+
+    .btn-ico{
+      width:26px; height:26px; /* ✅更小 */
+      border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      flex:0 0 auto;
+      background:rgba(0,0,0,0.03);
+      border:1px solid rgba(0,0,0,0.06);
+    }
+    .btn-main .btn-ico{
+      background:rgba(255,255,255,0.22);
+      border:1px solid rgba(255,255,255,0.28);
+    }
+
+    .btn-ico i{ font-size:14px; color:var(--p); } /* ✅更小 */
+    .btn-main .btn-ico i{ color:#fff; }
+    .btn-sub .btn-ico i{ color:#06C755; }
+
+    .btn-txt{
+      display:flex;
+      flex-direction:column;
+      gap:0px;
+      line-height:1.01;        /* ✅更收斂 */
+      min-width:0;
+    }
+    .btn-title{
+      font-size:12.5px;        /* ✅更小 */
+      font-weight:900;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .btn-subtitle{
+      font-size:9.8px;         /* ✅更小 */
+      opacity:.80;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .line-guide{
+      grid-column: span 2;
+      background: #f7fff9;
+      border: 1px solid rgba(6,199,85,0.25);
+      color: #1f7a46;
+      font-size: 10.5px;       /* ✅更小 */
+      font-weight: 900;
+      padding: 5px 7px;        /* ✅更矮 */
+      border-radius: 12px;
+      text-align: center;
+      display: none;
+      line-height:1.05;
+    }
+
+    .framed{
+      border:2px solid var(--p) !important;
+      box-shadow: 0 10px 18px rgba(0,0,0,0.05);
+    }
+    .framed .btn-title{ color:#2d3436; }
+    .framed .btn-subtitle{ color:var(--s); opacity:0.85; }
+    .framed .btn-ico{
+      background:rgba(255,255,255,0.75);
+      border:1px solid rgba(0,0,0,0.06);
+    }
+    .framed .btn-ico i{ color:var(--p); }
+
+    .span-2{ grid-column: span 2 !important; }
+
+    /* ===== Modals / Masks ===== */
+    #install-modal{
+      display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.85); z-index:10000;
+      align-items:center; justify-content:center; padding:20px;
+    }
+    .modal-content{ background:white; width:100%; max-width:320px; border-radius:35px; padding:22px; position:relative; }
+    .close-modal{ position:absolute; top:12px; right:18px; font-size:22px; color:#999; cursor:pointer; }
+
+    .modal-tab{ display:flex; gap:8px; margin:12px 0; }
+    /* ✅ 分頁按鈕更小 */
+    .tab-btn{
+      flex:1;
+      padding:6px 8px;
+      border-radius:10px;
+      border:1px solid #ddd;
+      background:#f8f9fa;
+      font-size:11px;
+      font-weight:900;
+      cursor:pointer;
+      line-height:1.05;
+      min-height:30px;
+    }
+    .tab-btn.active{ background:var(--p); color:white; border-color:var(--p); }
+
+    .tab-pane{ display:none; text-align:left; font-size:13px; line-height:1.75; color:#444; }
+    .tab-pane.active{ display:block; }
+
+    #wechat-mask{
+      display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.9); z-index:11000;
+      align-items:center; justify-content:center; flex-direction:column; color:white;
+    }
+
+    #work-drawer{
+      width:100%; max-width:420px; background:#2d3436; color:white;
+      max-height:0; overflow:hidden; transition:0.5s;
+      position:fixed; bottom:0; z-index:12000;
+      border-radius:40px 40px 0 0;
+    }
+
+    /* ✅ 後台按鈕更小更矮 */
+    .wd-btn{
+      width:90%;
+      padding:12px;             /* ✅更矮 */
+      margin-top:8px;
+      border-radius:14px;
+      border:none;
+      font-weight:900;
+      font-size:12.5px;
+      line-height:1.05;
+      cursor:pointer;
+    }
+
+    .footer{ font-size:11px; color:#bbb; padding:22px; cursor:pointer; text-align:center; }
+
+    .mode-delivery #admin-panel,
+    .mode-delivery #work-drawer,
+    .mode-delivery #gate-footer{ display:none !important; }
+  </style>
+</head>
+
+<body class="warm-pink style-arch">
+  <div id="admin-panel">
+    <div class="picker-group">
+      <div class="dot" onclick="setTheme('warm-pink')" style="background:#ee5253"></div>
+      <div class="dot" onclick="setTheme('aurora-blue')" style="background:#00a8ff"></div>
+      <div class="dot" onclick="setTheme('vivid-orange')" style="background:#f0932b"></div>
+      <div class="dot" onclick="setTheme('royal-purple')" style="background:#6c5ce7"></div>
+      <div class="dot" onclick="setTheme('teal-green')" style="background:#20bf6b"></div>
+    </div>
+
+    <div class="picker-group" style="margin-top:2px;">
+      <span class="hint-bounce"><i class="fa-solid fa-hand-pointer"></i> 點選顏色版型參考</span>
+    </div>
+
+    <div class="picker-group">
+      <button class="btn-style active" onclick="setStyle('arch', this)">優雅拱型</button>
+      <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
+      <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
+    </div>
+  </div>
+
+  <div id="card-container" class="card">
+    <div class="banner"><div class="arch-overlay"></div></div>
+
+    <div class="avatar-wrap">
+      <img id="u-img" src="https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000" class="avatar" />
+    </div>
+
+    <div class="info-scroll">
+      <h1 id="u-name" class="name">讀取中...</h1>
+      <div id="u-unit" class="unit">幸福智慧服務中心</div>
+      <div id="u-motto" class="motto" style="display:none;"></div>
+
+      <div id="brand-logo" class="brand-logo-below"><img id="u-logo" alt="logo" /></div>
+
+      <div class="social-bar">
+        <a href="#" id="lk1" class="social-link" target="_blank" rel="noopener"></a>
+        <a href="#" id="lk2" class="social-link" target="_blank" rel="noopener"></a>
+        <a href="#" id="lk3" class="social-link" target="_blank" rel="noopener"></a>
+      </div>
+
+      <div id="share-box" class="content-box" style="background:#f0f7ff;border:1px solid #00a8ff;text-align:center;cursor:pointer;" onclick="handleShare()">
+        <span id="share-label" class="label" style="color:#0097e6">📢 推薦製作智慧名片</span>
+        <div style="font-weight:900;font-size:13.5px;color:#2d3436;"><i class="fa-solid fa-share-nodes"></i> 點我複製網址分享</div>
+      </div>
+
+      <div id="advantage-box" class="content-box">
+        <span class="label" style="color:#6c5ce7;">🏆 為什麼您需要智慧名片？</span>
+        <div style="font-size:14px;color:#2d3436;margin-bottom:8px;">一鍵分享：複製網址，傳播全世界</div>
+        <div style="font-size:14px;color:#2d3436;margin-bottom:8px;">影音整合：個人 YouTube、抖音 等平臺展示</div>
+        <div style="font-size:14px;color:#2d3436;">內容更新：後台更新，同步更新</div>
+      </div>
+
+      <div id="order-box" class="content-box" style="background:#fff9f9;border:1px dashed #ee5253;">
+        <span class="label" style="color:#ee5253">📝 第二步：預約製作您的智慧名片</span>
+        <a href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" rel="noopener" style="color:#2d3436;text-decoration:none;font-weight:900;font-size:13.5px;">立即填寫預約表單 →</a>
+      </div>
+
+      <div id="photos-box" class="content-box" style="display:none;">
+        <span class="label">品牌 / 產品照片</span>
+        <div class="img-grid">
+          <a id="p1a" href="#" target="_blank" rel="noopener" style="display:none;"><img id="p1" alt="photo1" /></a>
+          <a id="p2a" href="#" target="_blank" rel="noopener" style="display:none;"><img id="p2" alt="photo2" /></a>
+          <a id="p3a" href="#" target="_blank" rel="noopener" style="display:none;"><img id="p3" alt="photo3" /></a>
+        </div>
+      </div>
+
+      <div class="content-box">
+        <span class="label">服務項目</span>
+        <div id="u-service" class="text" style="font-size:14.5px;color:#2d3436;line-height:1.6;white-space:pre-wrap;">讀取中...</div>
+      </div>
+
+      <div id="titles-box" class="content-box" style="display:none;">
+        <span class="label">重要頭銜 / 獎銜</span>
+        <div id="u-titles" style="font-size:14.5px;color:#2d3436;line-height:1.7;white-space:pre-wrap;"></div>
+      </div>
+
+      <div id="faq-box" class="content-box" style="display:none;">
+        <span class="label">常見提問</span>
+        <div id="faq-1" class="faq-item" style="display:none;">
+          <div id="q1" class="faq-q"></div>
+          <div id="a1" class="faq-a"></div>
+        </div>
+        <div id="faq-2" class="faq-item" style="display:none;">
+          <div id="q2" class="faq-q"></div>
+          <div id="a2" class="faq-a"></div>
+        </div>
+      </div>
+
+      <div id="install-entry" class="bottom-guide-bar" style="display:none;">
+        <button class="mini-install-btn" onclick="openInstallModal()">📲 安裝名片 App 教學</button>
+      </div>
+    </div>
+
+    <div id="actions-area" class="actions">
+      <div id="line-guide" class="line-guide">點進 line 官方網站，預約訂製名片</div>
+
+      <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank" rel="noopener">
+        <span class="btn-ico"><i class="fa-brands fa-line"></i></span>
+        <span class="btn-txt">
+          <span class="btn-title">LINE 官方帳號</span>
+          <span class="btn-subtitle">預約訂製 / 洽詢</span>
+        </span>
+      </a>
+
+      <a href="javascript:void(0)" id="btn-wechat" class="act-btn framed" onclick="showWechatText()">
+        <span class="btn-ico"><i class="fa-brands fa-weixin"></i></span>
+        <span class="btn-txt">
+          <span class="btn-title">微信聯繫</span>
+          <span class="btn-subtitle">點一下顯示 ID</span>
+        </span>
+      </a>
+
+      <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn framed">
+        <span class="btn-ico"><i class="fa-solid fa-envelope"></i></span>
+        <span class="btn-txt">
+          <span class="btn-title">寄送郵箱</span>
+          <span class="btn-subtitle">一鍵寄信</span>
+        </span>
+      </a>
+
+      <a href="https://line.me/ti/p/VqJzbWHm_4" id="btn-p" class="act-btn btn-sub" target="_blank" rel="noopener">
+        <span class="btn-ico"><i class="fa-solid fa-user-plus"></i></span>
+        <span class="btn-txt">
+          <span class="btn-title">LINE 加好友</span>
+          <span class="btn-subtitle">個人私訊</span>
+        </span>
+      </a>
+    </div>
+  </div>
+
+  <div id="install-modal" onclick="closeInstallModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <span class="close-modal" onclick="closeInstallModal(event)">&times;</span>
+      <h3 style="margin-top:0;color:var(--p);text-align:center;font-size:16px;">安裝名片教學</h3>
+
+      <!-- ✅ 複製網址按鈕更小更矮（這顆就是你說的那顆） -->
+      <div style="background:#f8f9fa;padding:12px;border-radius:15px;text-align:center;margin-bottom:12px;">
+        <button onclick="copyCurrentUrl()"
+          style="background:var(--p);color:white;border:none;padding:7px 12px;border-radius:10px;font-weight:900;width:100%;font-size:12px;line-height:1.05;min-height:34px;cursor:pointer;">
+          🔗 複製網址
+        </button>
+      </div>
+
+      <div class="modal-tab">
+        <button class="tab-btn active" onclick="switchTab('apple')">🍎 iPhone</button>
+        <button class="tab-btn" onclick="switchTab('android')">🤖 Android</button>
+      </div>
+      <div id="apple-pane" class="tab-pane active">1. 點擊 Safari 下方 [分享箭頭 ⬆️]<br>2. 選擇 [加入主畫面]</div>
+      <div id="android-pane" class="tab-pane">1. 點擊 Chrome 右上角 [三個點點]<br>2. 選擇 [安裝應用程式]</div>
+    </div>
+  </div>
+
+  <div id="wechat-mask" onclick="this.style.display='none'">
+    <div style="background:white;color:#333;padding:26px;border-radius:28px;width:80%;max-width:320px;text-align:center;">
+      <i class="fa-brands fa-weixin" style="font-size:46px;color:#07C160;margin-bottom:12px;"></i>
+      <h3 style="margin:8px 0;font-size:16px;">微信聯繫 ID</h3>
+      <p id="wechat-id-text" style="font-size:19px;font-weight:900;background:#f0f0f0;padding:9px;border-radius:10px;margin:12px 0;">a0973180707</p>
+
+      <!-- ✅ 複製微信ID按鈕更小更矮 -->
+      <button onclick="copyWechat()"
+        style="background:#07C160;color:white;border:none;padding:8px 12px;border-radius:10px;font-weight:900;width:100%;font-size:12px;line-height:1.05;min-height:34px;cursor:pointer;">
+        點擊複製 ID
+      </button>
+    </div>
+  </div>
+
+  <div id="work-drawer">
+    <div style="padding:22px;text-align:center;">
+      <input type="text" id="work-id" style="width:90%;padding:13px;border-radius:14px;border:1px solid #ddd;color:#333;font-size:13px;" placeholder="輸入序號或姓名" />
+
+      <button class="wd-btn" onclick="doPreviewInPlace()" style="background:#ee5253;color:white;">
+        預覽成品（不跳出）
+      </button>
+
+      <button class="wd-btn" onclick="doCopy()" style="background:#2ecc71;color:white;">
+        複製交貨網址
+      </button>
+    </div>
+  </div>
+
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V344</div>
+
+  <script>
+    const VERSION = 344;
+
+    const LS_THEME = 'angel_card_theme';
+    const LS_STYLE = 'angel_card_style';
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?v=' + VERSION).catch(() => {});
+      });
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlId = urlParams.get('id');
+
+    let allRows = [];
+    let clicks = 0;
+
+    let curTheme = urlParams.get('theme') || localStorage.getItem(LS_THEME) || 'warm-pink';
+    let curStyle = urlParams.get('style') || localStorage.getItem(LS_STYLE) || 'arch';
+
+    let uiMain = !urlId;
+
+    function openInstallModal(){ document.getElementById('install-modal').style.display = 'flex'; }
+    function closeInstallModal(e){ document.getElementById('install-modal').style.display = 'none'; }
+    function switchTab(type){
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      if(type === 'apple'){
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('apple-pane').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('android-pane').classList.add('active');
+      }
+    }
+
+    async function safeCopy(text){
+      try{
+        if(navigator.clipboard && window.isSecureContext){
+          await navigator.clipboard.writeText(text);
+          return true;
         }
-      })()
-    );
-    return;
-  }
+      }catch(e){}
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly','');
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      }catch(e){
+        return false;
+      }
+    }
 
-  // 靜態檔：cache-first + 背景更新
-  event.respondWith(
-    (async () => {
-      const cached = await caches.match(req);
-      if (cached) {
-        event.waitUntil(
-          (async () => {
-            try {
-              const fresh = await fetch(req);
-              const cache = await caches.open(CACHE_NAME);
-              cache.put(req, fresh.clone());
-            } catch (e) {}
-          })()
-        );
-        return cached;
+    async function copyCurrentUrl(){
+      const ok = await safeCopy(window.location.href);
+      alert(ok ? "網址已複製！" : "此瀏覽器限制複製，請長按網址列複製");
+    }
+
+    function showWechatText(){ document.getElementById('wechat-mask').style.display = 'flex'; }
+    async function copyWechat(){
+      const ok = await safeCopy(document.getElementById('wechat-id-text').innerText);
+      alert(ok ? "微信 ID 已複製！" : "此瀏覽器限制複製，請手動複製");
+    }
+
+    function setTheme(t){
+      curTheme = t;
+      localStorage.setItem(LS_THEME, t);
+      updateClass();
+    }
+    function setStyle(s, btn){
+      curStyle = s;
+      localStorage.setItem(LS_STYLE, s);
+      updateClass();
+      if(btn){
+        document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    }
+
+    function updateClass(){
+      document.body.className = `${curTheme} style-${curStyle}${uiMain ? ' mode-main' : ' mode-delivery'}`;
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#ee5253');
+    }
+
+    function handleGate(){
+      if(!uiMain) return;
+      clicks++;
+      if(clicks >= 3){
+        document.getElementById('work-drawer').style.maxHeight = '500px';
+        clicks = 0;
+      }
+      setTimeout(() => clicks = 0, 1000);
+    }
+
+    async function handleShare(){
+      const ok = await safeCopy(window.location.href);
+      alert(ok ? "連結複製成功！" : "此瀏覽器限制複製，請長按網址列複製");
+    }
+
+    function fixImg(url){
+      if(!url) return "";
+      const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/);
+      return idMatch ? `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000` : url;
+    }
+    function splitPhotos(raw){
+      if(!raw) return [];
+      return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).slice(0, 3);
+    }
+
+    function parseCSV(text){
+      const rows = [];
+      let row = [];
+      let cur = '';
+      let i = 0;
+      let inQuotes = false;
+
+      while(i < text.length){
+        const ch = text[i];
+
+        if(inQuotes){
+          if(ch === '"'){
+            const next = text[i+1];
+            if(next === '"'){ cur += '"'; i += 2; continue; }
+            inQuotes = false; i++; continue;
+          }
+          cur += ch; i++; continue;
+        }else{
+          if(ch === '"'){ inQuotes = true; i++; continue; }
+          if(ch === ','){ row.push(cur.trim()); cur=''; i++; continue; }
+          if(ch === '\n' || ch === '\r'){
+            if(ch === '\r' && text[i+1] === '\n') i++;
+            row.push(cur.trim()); cur='';
+            if(row.some(c => c !== '')) rows.push(row);
+            row = []; i++; continue;
+          }
+          cur += ch; i++; continue;
+        }
+      }
+      row.push(cur.trim());
+      if(row.some(c => c !== '')) rows.push(row);
+      return rows;
+    }
+
+    async function loadSheetData(){
+      const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
+      try{
+        const res = await fetch(csvUrl);
+        const text = await res.text();
+        allRows = parseCSV(text);
+      } catch(e){
+        console.log("資料同步中");
+      }
+    }
+
+    function renderMainFixedFirstRow(){
+      if(!allRows[0] || !allRows[1]) return;
+      applyRow(allRows[0], allRows[1], { isMainData:true, keepUiMain:true });
+    }
+
+    function renderById(keyword, keepUiMain){
+      if(!keyword || !allRows[0]) return false;
+      const h = allRows[0];
+      const d = allRows.find((r, idx) => idx !== 0 && (r[0] == keyword || r[1] == keyword));
+      if(!d) return false;
+      applyRow(h, d, { isMainData:false, keepUiMain: !!keepUiMain });
+      return true;
+    }
+
+    function doPreviewInPlace(){
+      const id = (document.getElementById('work-id').value || "").trim();
+      if(!id){ alert("請先輸入序號或姓名"); return; }
+      const ok = renderById(id, true);
+      if(!ok){ alert("找不到此序號/姓名"); return; }
+      document.querySelector('.info-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    const isLineDomain = (v) => {
+      const s = (v || '').toLowerCase();
+      return (
+        s.startsWith('line://') ||
+        s.includes('line.me') ||
+        s.includes('lin.ee') ||
+        s.includes('liff.line.me') ||
+        s.includes('linevoom.line.me') ||
+        s.includes('openchat.line.me') ||
+        s.includes('line.biz') ||
+        s.includes('access.line.me') ||
+        s.includes('social-plugins.line.me')
+      );
+    };
+
+    const isMapUrl = (u) => {
+      const v = (u || "").toLowerCase();
+      return (
+        v.includes('google.com/maps') ||
+        v.includes('maps.google') ||
+        v.includes('maps.app.goo.gl') ||
+        v.includes('share.google') ||
+        v.includes('goo.gl/maps') ||
+        v.includes('maps.apple.com')
+      );
+    };
+
+    const parseAddressOrUrl = (raw) => {
+      const s = (raw || "").trim();
+      if(!s) return { type:'none', value:'' };
+      const httpIdx = s.indexOf('http');
+      if(httpIdx >= 0){
+        const maybeAddr = s.slice(0, httpIdx).trim();
+        const maybeUrl  = s.slice(httpIdx).trim();
+        return { type:'mixed', addr: maybeAddr, url: maybeUrl };
+      }
+      return { type:'plain', value: s };
+    };
+
+    const toNavUrl = (raw) => {
+      const p = parseAddressOrUrl(raw);
+
+      if(p.type === 'mixed'){
+        if(p.addr){
+          return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.addr)}`;
+        }
+        if(p.url){
+          if((p.url || "").toLowerCase().includes('maps.apple.com')) return p.url;
+          if(isMapUrl(p.url)){
+            return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.url)}`;
+          }
+          return p.url;
+        }
       }
 
-      try {
-        const fresh = await fetch(req);
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(req, fresh.clone());
-        return fresh;
-      } catch (e) {
-        // 真的離線且無快取，就放掉
-        return cached;
+      if(p.type === 'plain' && p.value.includes('http')){
+        const url = p.value;
+        if(url.toLowerCase().includes('maps.apple.com')) return url;
+        if(isMapUrl(url)) return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(url)}`;
+        return url;
       }
-    })()
-  );
-});
+
+      if(p.type === 'plain'){
+        return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(p.value)}`;
+      }
+
+      return '';
+    };
+
+    const isProbablyAddress = (raw) => {
+      const s = (raw || "").trim();
+      if(!s) return false;
+      if(/[市縣區鄉鎮里路街巷弄號樓]/.test(s)) return true;
+      if(/^\d{3}(\d{2})?\s?/.test(s)) return true;
+      if(s.includes('http') && isMapUrl(s)) return true;
+      if(s.includes('http') && s.indexOf('http') > 0) return true;
+      return false;
+    };
+
+    const linkIconHtml = (val) => {
+      const raw = String(val || "").trim();
+      const v = raw.toLowerCase();
+      if(isProbablyAddress(raw)) return '<i class="fa-solid fa-map-location-dot"></i>';
+      if(v.includes('youtube') || v.includes('youtu.be')) return '<i class="fa-solid fa-play"></i>';
+      if(v.includes('tiktok') || v.includes('douyin')) return '<i class="fa-brands fa-tiktok"></i>';
+      return '<i class="fa-solid fa-link"></i>';
+    };
+
+    const normalizeWebOrAddress = (val) => {
+      const raw = String(val || "").trim();
+      if(!raw) return "";
+      if(isLineDomain(raw)) return "";
+      if(raw.toLowerCase().includes('drive.google.com')) return "";
+      if(isProbablyAddress(raw)) return toNavUrl(raw);
+      const httpIdx = raw.indexOf('http');
+      if(httpIdx < 0) return "";
+      return raw.slice(httpIdx).trim();
+    };
+
+    function fillSocialLinks(list){
+      for(let i=1; i<=3; i++){
+        const el = document.getElementById('lk'+i);
+        el.style.display = 'none';
+        el.href = '#';
+        el.innerHTML = '';
+      }
+
+      const cleaned = [];
+      (list || []).forEach(v => {
+        const href = normalizeWebOrAddress(v);
+        if(!href) return;
+        cleaned.push({ raw: String(v||'').trim(), href });
+      });
+
+      let count = 1;
+      for(const item of cleaned){
+        if(count > 3) break;
+        const el = document.getElementById('lk'+count);
+        el.style.display = 'flex';
+        el.innerHTML = linkIconHtml(item.raw);
+        el.href = item.href;
+        count++;
+      }
+    }
+
+    function balanceActions(){
+      const area = document.getElementById('actions-area');
+      if(!area) return;
+
+      Array.from(area.querySelectorAll('.act-btn, .line-guide')).forEach(el => el.classList.remove('span-2'));
+      const btns = Array.from(area.querySelectorAll('.act-btn')).filter(el => el.style.display !== 'none');
+
+      if(btns.length === 1){
+        btns[0].classList.add('span-2');
+        return;
+      }
+      if(btns.length % 2 === 1){
+        btns[btns.length - 1].classList.add('span-2');
+      }
+    }
+
+    function applyRow(h, d, opt){
+      const isMainData = !!(opt && opt.isMainData);
+      const keepUiMain = !!(opt && opt.keepUiMain);
+
+      uiMain = keepUiMain ? true : !urlId;
+      updateClass();
+
+      const getVal = (key) => {
+        const idx = h.findIndex(head => (head || "").includes(key));
+        return (idx !== -1 && d[idx]) ? d[idx] : "";
+      };
+
+      const name   = getVal('姓名');
+      const unit   = getVal('單位') || getVal('單位名稱');
+      const motto  = getVal('理念標語');
+      const service= getVal('服務項目') || getVal('服務');
+      const titles = getVal('重要頭銜') || getVal('獎銜');
+      const avatar = fixImg(getVal('個人專業形象照') || getVal('形象照'));
+      const photos = splitPhotos(getVal('產品或品牌照片'));
+      const logo   = fixImg(getVal('品牌 Logo') || getVal('品牌Logo') || getVal('Logo'));
+      const wechat = getVal('微信') || getVal('微信 ID');
+      const email  = getVal('一鍵聯繫 Email') || getVal('Email') || getVal('郵箱');
+      const phone  = getVal('一鍵聯繫電話') || getVal('電話');
+      const lineP  = getVal('私訊 LINE') || getVal('LINE 加好友') || getVal('個人好友');
+      const lineOA = getVal('LINE 官方') || getVal('官方帳號');
+
+      const v1 = getVal('影音平台 1') || getVal('影音平台1');
+      const v2 = getVal('影音平台 2') || getVal('影音平台2');
+      const v3 = getVal('影音平台 3') || getVal('影音平台3');
+      const s1 = getVal('社群平台 1') || getVal('社群平台1');
+      const s2 = getVal('社群平台 2') || getVal('社群平台2');
+      const s3 = getVal('社群平台 3') || getVal('社群平台3');
+
+      const q1 = getVal('客戶常見提問 1') || getVal('Q1');
+      const a1 = getVal('專業解答 1') || getVal('A1');
+      const q2 = getVal('客戶常見提問 2') || getVal('Q2');
+      const a2 = getVal('專業解答2') || getVal('專業解答 2') || getVal('A2');
+
+      document.getElementById('u-name').innerText = name || "（未填姓名）";
+      document.getElementById('u-unit').innerText = unit || "（未填單位）";
+      document.getElementById('u-service').innerText = service || "幸福教養系統推廣";
+      document.getElementById('u-img').src = avatar || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
+
+      const mottoEl = document.getElementById('u-motto');
+      if(motto){ mottoEl.style.display=''; mottoEl.innerText=motto; }
+      else { mottoEl.style.display='none'; mottoEl.innerText=''; }
+
+      const logoWrap = document.getElementById('brand-logo');
+      const logoImg  = document.getElementById('u-logo');
+      if(logo){
+        logoImg.src = logo;
+        logoWrap.style.display = 'flex';
+      } else {
+        logoImg.src = '';
+        logoWrap.style.display = 'none';
+      }
+
+      const photosBox = document.getElementById('photos-box');
+      if(photos.length){
+        photosBox.style.display = '';
+        const ids = [{a:'p1a',i:'p1'},{a:'p2a',i:'p2'},{a:'p3a',i:'p3'}];
+        ids.forEach((x, idx) => {
+          const a = document.getElementById(x.a);
+          const img = document.getElementById(x.i);
+          const raw = photos[idx] || "";
+          if(raw){
+            const fixed = fixImg(raw);
+            a.href = raw;
+            img.src = fixed || raw;
+            a.style.display = '';
+          } else {
+            a.style.display = 'none';
+            img.src = '';
+          }
+        });
+      } else {
+        photosBox.style.display = 'none';
+      }
+
+      const titlesBox = document.getElementById('titles-box');
+      const titlesEl  = document.getElementById('u-titles');
+      if(titles){
+        titlesBox.style.display = '';
+        titlesEl.innerText = titles;
+      } else {
+        titlesBox.style.display = 'none';
+        titlesEl.innerText = '';
+      }
+
+      const faqBox = document.getElementById('faq-box');
+      const faq1 = document.getElementById('faq-1');
+      const faq2 = document.getElementById('faq-2');
+      let anyFaq = false;
+
+      if(q1 || a1){
+        anyFaq = true;
+        faq1.style.display = '';
+        document.getElementById('q1').innerText = q1 || "常見提問";
+        document.getElementById('a1').innerText = a1 || "";
+      } else {
+        faq1.style.display = 'none';
+      }
+
+      if(q2 || a2){
+        anyFaq = true;
+        faq2.style.display = '';
+        document.getElementById('q2').innerText = q2 || "常見提問";
+        document.getElementById('a2').innerText = a2 || "";
+      } else {
+        faq2.style.display = 'none';
+      }
+      faqBox.style.display = anyFaq ? '' : 'none';
+
+      fillSocialLinks([v1, v2, v3, s1, s2, s3]);
+
+      if(isMainData){
+        document.getElementById('advantage-box').style.display = 'block';
+        document.getElementById('order-box').style.display = 'block';
+        document.getElementById('install-entry').style.display = 'none';
+        document.getElementById('wechat-id-text').innerText = "a0973180707";
+        document.getElementById('line-guide').style.display = 'block';
+      } else {
+        document.getElementById('advantage-box').style.display = 'none';
+        document.getElementById('order-box').style.display = 'none';
+        document.getElementById('install-entry').style.display = 'block';
+        document.getElementById('wechat-id-text').innerText = wechat || "未提供";
+        document.getElementById('line-guide').style.display = uiMain ? 'block' : 'none';
+      }
+
+      const btnOA = document.getElementById('btn-oa');
+      const btnP  = document.getElementById('btn-p');
+      const btnMail = document.getElementById('btn-mail');
+      const btnWechat = document.getElementById('btn-wechat');
+
+      if(!isMainData){
+        if(lineOA && String(lineOA).includes('http')){ btnOA.href = lineOA; btnOA.style.display = 'flex'; }
+        else { btnOA.style.display = 'none'; }
+
+        if(lineP && String(lineP).includes('http')){ btnP.href = lineP; btnP.style.display = 'flex'; }
+        else { btnP.style.display = 'none'; }
+
+        if(email){ btnMail.href = `mailto:${email}`; btnMail.style.display = 'flex'; }
+        else { btnMail.style.display = 'none'; }
+
+        if(wechat){ btnWechat.style.display = 'flex'; }
+        else { btnWechat.style.display = 'none'; }
+
+        const actions = document.getElementById('actions-area');
+        let phoneBtn = document.getElementById('btn-phone');
+        if(!phoneBtn){
+          phoneBtn = document.createElement('a');
+          phoneBtn.id = 'btn-phone';
+          phoneBtn.className = 'act-btn framed';
+          phoneBtn.href = 'javascript:void(0)';
+          phoneBtn.innerHTML = `
+            <span class="btn-ico"><i class="fa-solid fa-phone"></i></span>
+            <span class="btn-txt">
+              <span class="btn-title">一鍵撥號</span>
+              <span class="btn-subtitle">直接撥打電話</span>
+            </span>
+          `;
+          actions.appendChild(phoneBtn);
+        }
+        if(phone){
+          phoneBtn.href = \`tel:\${String(phone).replace(/\\s+/g,'')}\`;
+          phoneBtn.style.display = 'flex';
+        }else{
+          phoneBtn.style.display = 'none';
+        }
+
+      } else {
+        btnOA.style.display = 'flex';
+        btnP.style.display  = 'flex';
+        btnMail.style.display= 'flex';
+        btnWechat.style.display='flex';
+
+        const phoneBtn = document.getElementById('btn-phone');
+        if(phoneBtn) phoneBtn.style.display = 'none';
+      }
+
+      balanceActions();
+    }
+
+    async function doCopy(){
+      const id = (document.getElementById('work-id').value || "").trim();
+      if(!id){ alert("請先輸入序號或姓名"); return; }
+      const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${encodeURIComponent(curTheme)}&style=${encodeURIComponent(curStyle)}`;
+      const ok = await safeCopy(finalUrl);
+      alert(ok ? "✅ 交貨網址已複製！（已帶顏色/版型）" : "此瀏覽器限制複製，請手動複製網址列");
+    }
+
+    async function init(){
+      await loadSheetData();
+
+      if(urlId){
+        uiMain = false;
+        const ok = renderById(urlId, false);
+        if(!ok){
+          uiMain = true;
+          renderMainFixedFirstRow();
+        }
+      } else {
+        uiMain = true;
+        renderMainFixedFirstRow();
+      }
+
+      document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
+      const mapBtn = { arch:0, flat:1, spot:2 };
+      const idx = mapBtn[curStyle] ?? 0;
+      const btns = document.querySelectorAll('.btn-style');
+      if(btns[idx]) btns[idx].classList.add('active');
+
+      updateClass();
+    }
+    init();
+  </script>
+</body>
+</html>
