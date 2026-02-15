@@ -1,5 +1,5 @@
-/* 天使幸福智慧名片 SW v341*/
-const CACHE_VERSION = "v341";
+/* 天使幸福智慧名片 SW v343*/
+const CACHE_VERSION = "v343";
 const CACHE_NAME = `angel-card-${CACHE_VERSION}`;
 
 const CORE_ASSETS = [
