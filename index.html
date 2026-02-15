@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V354</title>
+  <title>天使幸福智慧名片 V355</title>
 
-  <link rel="manifest" href="./manifest.json?v=354" />
+  <link rel="manifest" href="./manifest.json?v=355" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -21,9 +21,7 @@
     .teal-green  { --p:#20bf6b; --s:#0b8d51; }
 
     /* ===== fixed material strength (no slider) ===== */
-    :root{
-      --paperStrength: 2; /* ✅ fixed 2.0 */
-    }
+    :root{ --paperStrength: 2; /* ✅ fixed 2.0 */ }
 
     body{
       font-family:'Noto Sans TC',sans-serif;
@@ -94,10 +92,7 @@
       isolation:isolate;
     }
 
-    /* ===== Paper overlay base =====
-       ✅ v354: material difference is STRUCTURAL, not only opacity.
-       ✅ fixed strength = 2.0 via opacity multiplier.
-    */
+    /* ===== Paper overlay base ===== */
     .card::before{
       content:"";
       position:absolute;
@@ -122,8 +117,7 @@
       mix-blend-mode: screen;
     }
 
-    /* ===== Paper variants (strongly distinguishable) ===== */
-    /* 霧面棉紙：柔霧 + 纖維點狀 */
+    /* ===== Paper variants ===== */
     .paper-cotton{
       --paperAlpha: .10;
       --paperBlur: .20px;
@@ -137,8 +131,6 @@
         linear-gradient(0deg, rgba(0,0,0,.06) 0, transparent 20%, transparent 80%, rgba(0,0,0,.06) 100%),
         repeating-linear-gradient(135deg, rgba(0,0,0,.06) 0 1px, transparent 1px 7px);
     }
-
-    /* 細顆粒紙：砂感密度更高 + 微顆粒雜點 */
     .paper-grain{
       --paperAlpha: .12;
       --paperBlur: .10px;
@@ -150,8 +142,6 @@
         radial-gradient(circle at 72% 66%, rgba(0,0,0,.10) 0 1px, transparent 2px),
         radial-gradient(circle at 38% 78%, rgba(0,0,0,.08) 0 1px, transparent 2px);
     }
-
-    /* 亞麻紋：交織網格超明顯（與其他一眼區分） */
     .paper-linen{
       --paperAlpha: .11;
       --paperBlur: 0px;
@@ -162,8 +152,6 @@
         repeating-linear-gradient(0deg, rgba(0,0,0,.05) 0 1px, transparent 1px 4px),
         repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 4px);
     }
-
-    /* 水彩紙：不規則壓紋 + 暈染陰影塊 */
     .paper-watercolor{
       --paperAlpha: .13;
       --paperBlur: .22px;
@@ -257,11 +245,68 @@
     }
     .label{ color:#adb5bd;font-weight:900;font-size:11px;margin-bottom:8px;display:block; }
 
-    .img-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-    .img-grid a{ display:block; }
-    .img-grid img{
-      width:100%; height:78px; object-fit:cover; border-radius:14px;
-      border:1px solid #eee; background:#f7f7f7;
+    /* ===== v355: Photo carousel (bigger + swipe) ===== */
+    .photo-carousel{
+      display:flex;
+      gap:10px;
+      overflow-x:auto;
+      scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding:2px 2px 8px;
+      scrollbar-width:none;
+    }
+    .photo-carousel::-webkit-scrollbar{ display:none; }
+
+    .photo-slide{
+      flex:0 0 86%;
+      scroll-snap-align:center;
+      position:relative;
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid rgba(0,0,0,0.06);
+      background:#f7f7f7;
+      box-shadow: 0 12px 20px rgba(0,0,0,0.05);
+      aspect-ratio: 4 / 5; /* ✅ bigger, elegant */
+      cursor:pointer;
+    }
+    .photo-slide img{
+      width:100%;
+      height:100%;
+      object-fit:cover; /* ✅ premium look */
+      display:block;
+      transform: scale(1.01);
+    }
+    .photo-slide::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: radial-gradient(160px 120px at 20% 18%, rgba(255,255,255,0.55), transparent 70%),
+                  linear-gradient(180deg, rgba(0,0,0,0.00) 60%, rgba(0,0,0,0.14) 100%);
+      opacity:.55;
+      pointer-events:none;
+    }
+    .photo-hint{
+      margin-top:8px;
+      text-align:center;
+      font-size:11px;
+      font-weight:900;
+      color:#6c757d;
+      opacity:.92;
+      user-select:none;
+    }
+    .photo-dots{
+      display:flex;
+      justify-content:center;
+      gap:6px;
+      margin-top:8px;
+    }
+    .photo-dot{
+      width:7px;height:7px;border-radius:999px;
+      background: rgba(0,0,0,0.12);
+    }
+    .photo-dot.active{
+      background: var(--p);
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
     }
 
     .faq-item{ background:#fafafa;border:1px solid #eee;border-radius:16px;padding:12px 12px;margin-top:10px; }
@@ -436,12 +481,98 @@
     .mode-delivery #admin-panel,
     .mode-delivery #work-drawer,
     .mode-delivery #gate-footer{ display:none !important; }
+
+    /* ===== v355: Fullscreen photo viewer ===== */
+    #photo-viewer{
+      display:none;
+      position:fixed;
+      inset:0;
+      z-index:13000;
+      background:rgba(0,0,0,0.92);
+      align-items:center;
+      justify-content:center;
+      touch-action: pan-y;
+    }
+    .pv-inner{
+      width:100%;
+      max-width:520px;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      padding:14px 12px;
+      box-sizing:border-box;
+    }
+    .pv-topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      color:#fff;
+      font-weight:900;
+      font-size:12px;
+      opacity:.95;
+      user-select:none;
+    }
+    .pv-close{
+      background:rgba(255,255,255,0.12);
+      border:1px solid rgba(255,255,255,0.18);
+      color:#fff;
+      font-weight:900;
+      border-radius:999px;
+      padding:8px 12px;
+      cursor:pointer;
+    }
+    .pv-stage{
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin-top:10px;
+      position:relative;
+      border-radius:18px;
+      overflow:hidden;
+    }
+    .pv-img{
+      max-width:100%;
+      max-height:100%;
+      object-fit:contain; /* ✅ safe: never crop in fullscreen */
+      border-radius:18px;
+      background:rgba(255,255,255,0.03);
+    }
+    .pv-nav{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:44px;height:44px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(255,255,255,0.10);
+      border:1px solid rgba(255,255,255,0.16);
+      color:#fff;
+      cursor:pointer;
+      user-select:none;
+    }
+    .pv-prev{ left:10px; }
+    .pv-next{ right:10px; }
+    .pv-bottom{
+      margin-top:10px;
+      display:flex;
+      justify-content:center;
+      gap:6px;
+      flex-wrap:wrap;
+    }
+    .pv-dot{
+      width:7px;height:7px;border-radius:999px;
+      background:rgba(255,255,255,0.25);
+    }
+    .pv-dot.active{ background:#fff; }
   </style>
 </head>
 
 <body class="warm-pink style-arch paper-cotton">
   <div id="admin-panel">
-    <!-- Step 1 title -->
     <div class="picker-group" style="margin-bottom:10px;">
       <span class="hint-bounce"><i class="fa-solid fa-1"></i> 步驟一：點選顏色、版型、紙感</span>
     </div>
@@ -467,7 +598,6 @@
       <button class="btn-style" onclick="setPaper('watercolor', this)">水彩紙</button>
     </div>
 
-    <!-- Step 2 CTA -->
     <div class="picker-group" style="margin-top:10px;">
       <button class="btn-style active" style="background:var(--p)!important;border-color:var(--p)!important;color:#fff!important;"
               onclick="goFillForm()">步驟二：填寫名片資料</button>
@@ -518,13 +648,12 @@
         </div>
       </div>
 
+      <!-- v355: swipe carousel (auto for any number) -->
       <div id="photos-box" class="content-box" style="display:none;">
         <span class="label">品牌 / 產品照片</span>
-        <div class="img-grid">
-          <a id="p1a" href="#" target="_blank" rel="noopener" style="display:none;"><img id="p1" alt="photo1" /></a>
-          <a id="p2a" href="#" target="_blank" rel="noopener" style="display:none;"><img id="p2" alt="photo2" /></a>
-          <a id="p3a" href="#" target="_blank" rel="noopener" style="display:none;"><img id="p3" alt="photo3" /></a>
-        </div>
+        <div id="photo-carousel" class="photo-carousel"></div>
+        <div id="photo-dots" class="photo-dots" style="display:none;"></div>
+        <div class="photo-hint">左右滑動看照片｜點一下可放大</div>
       </div>
 
       <div class="content-box">
@@ -624,6 +753,24 @@
     </div>
   </div>
 
+  <!-- v355: Fullscreen photo viewer -->
+  <div id="photo-viewer" onclick="closePhotoViewer(event)">
+    <div class="pv-inner" onclick="event.stopPropagation()">
+      <div class="pv-topbar">
+        <div id="pv-counter">1 / 1</div>
+        <button class="pv-close" onclick="hidePhotoViewer()">關閉</button>
+      </div>
+
+      <div class="pv-stage" id="pv-stage">
+        <div class="pv-nav pv-prev" id="pv-prev" onclick="pvPrev(event)"><i class="fa-solid fa-chevron-left"></i></div>
+        <img id="pv-img" class="pv-img" alt="photo" />
+        <div class="pv-nav pv-next" id="pv-next" onclick="pvNext(event)"><i class="fa-solid fa-chevron-right"></i></div>
+      </div>
+
+      <div class="pv-bottom" id="pv-dots"></div>
+    </div>
+  </div>
+
   <!-- Hidden work drawer -->
   <div id="work-drawer">
     <div style="padding:22px;text-align:center;">
@@ -633,10 +780,10 @@
     </div>
   </div>
 
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V354｜版權所有</div>
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V355｜版權所有</div>
 
   <script>
-    const VERSION = 354;
+    const VERSION = 355;
 
     // ✅ Remember (for main page only)
     const LS_THEME = 'angel_card_theme';
@@ -645,9 +792,6 @@
 
     // ✅ Google Form base (kept same)
     const FORM_BASE = "https://forms.gle/dkeHW9tfEYiGx39U9";
-    // ✅ Optional: if you later provide a Google Form "prefill link" with entry.xxxx, fill it here.
-    // Example:
-    // const FORM_PREFILL = "https://docs.google.com/forms/d/e/xxxx/viewform?usp=pp_url&entry.111=__THEME__&entry.222=__STYLE__&entry.333=__PAPER__";
     const FORM_PREFILL = "";
 
     if ('serviceWorker' in navigator) {
@@ -794,9 +938,11 @@
       const idMatch = url.match(/id=([-\w]+)/) || url.match(/d\/([-\w]+)/);
       return idMatch ? `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000` : url;
     }
+
+    // v355: allow any number (no slice)
     function splitPhotos(raw){
       if(!raw) return [];
-      return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).slice(0, 3);
+      return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
     }
 
     // ===== CSV parsing =====
@@ -1021,7 +1167,6 @@
       const a = document.getElementById('form-link');
       if(!a) return;
 
-      // If FORM_PREFILL exists, do a lightweight placeholder replace.
       if(FORM_PREFILL){
         const url = FORM_PREFILL
           .replaceAll('__THEME__', encodeURIComponent(curTheme))
@@ -1030,8 +1175,6 @@
         a.href = url;
         return;
       }
-
-      // Otherwise keep base link, but still attach a helpful URL for your own tracking (optional).
       a.href = FORM_BASE;
     }
 
@@ -1039,6 +1182,171 @@
       updateFormLink();
       window.open(document.getElementById('form-link').href, '_blank', 'noopener');
     }
+
+    // ===== v355: photo carousel + viewer state =====
+    let pvList = [];
+    let pvIndex = 0;
+
+    function buildPhotoCarousel(rawList){
+      const box = document.getElementById('photos-box');
+      const rail = document.getElementById('photo-carousel');
+      const dots = document.getElementById('photo-dots');
+
+      rail.innerHTML = '';
+      dots.innerHTML = '';
+
+      const list = (rawList || []).filter(Boolean);
+      if(!list.length){
+        box.style.display = 'none';
+        return;
+      }
+
+      box.style.display = '';
+      pvList = list.map(u => ({ raw:u, fixed: fixImg(u) || u }));
+
+      pvList.forEach((item, idx) => {
+        const slide = document.createElement('div');
+        slide.className = 'photo-slide';
+        slide.setAttribute('data-idx', String(idx));
+        slide.innerHTML = `<img alt="photo${idx+1}" loading="lazy" src="${item.fixed}">`;
+        slide.addEventListener('click', () => showPhotoViewer(idx));
+        rail.appendChild(slide);
+
+        const dot = document.createElement('div');
+        dot.className = 'photo-dot' + (idx === 0 ? ' active' : '');
+        dots.appendChild(dot);
+      });
+
+      dots.style.display = (pvList.length > 1) ? 'flex' : 'none';
+
+      // update dots on scroll (snap)
+      let ticking = false;
+      rail.addEventListener('scroll', () => {
+        if(ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          ticking = false;
+          const slides = Array.from(rail.querySelectorAll('.photo-slide'));
+          if(!slides.length) return;
+          // find nearest slide to center
+          const railRect = rail.getBoundingClientRect();
+          const centerX = railRect.left + railRect.width / 2;
+          let bestIdx = 0;
+          let bestDist = Infinity;
+          slides.forEach((s, i) => {
+            const r = s.getBoundingClientRect();
+            const cx = r.left + r.width / 2;
+            const d = Math.abs(cx - centerX);
+            if(d < bestDist){ bestDist = d; bestIdx = i; }
+          });
+          setCarouselDot(bestIdx);
+        });
+      }, { passive:true });
+    }
+
+    function setCarouselDot(idx){
+      const dots = document.getElementById('photo-dots');
+      const arr = Array.from(dots.querySelectorAll('.photo-dot'));
+      arr.forEach(d => d.classList.remove('active'));
+      if(arr[idx]) arr[idx].classList.add('active');
+    }
+
+    function showPhotoViewer(idx){
+      if(!pvList.length) return;
+      pvIndex = Math.max(0, Math.min(idx, pvList.length - 1));
+      document.getElementById('photo-viewer').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      pvRender();
+    }
+
+    function hidePhotoViewer(){
+      document.getElementById('photo-viewer').style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    function closePhotoViewer(e){
+      hidePhotoViewer();
+    }
+
+    function pvRender(){
+      const img = document.getElementById('pv-img');
+      const counter = document.getElementById('pv-counter');
+      const dots = document.getElementById('pv-dots');
+      const prevBtn = document.getElementById('pv-prev');
+      const nextBtn = document.getElementById('pv-next');
+
+      const item = pvList[pvIndex];
+      img.src = item ? item.fixed : '';
+      counter.textContent = `${pvIndex + 1} / ${pvList.length}`;
+
+      prevBtn.style.display = pvList.length > 1 ? 'flex' : 'none';
+      nextBtn.style.display = pvList.length > 1 ? 'flex' : 'none';
+
+      dots.innerHTML = '';
+      if(pvList.length > 1){
+        pvList.forEach((_, i) => {
+          const d = document.createElement('div');
+          d.className = 'pv-dot' + (i === pvIndex ? ' active' : '');
+          dots.appendChild(d);
+        });
+      }
+    }
+
+    function pvPrev(e){
+      if(e) e.stopPropagation();
+      if(pvList.length <= 1) return;
+      pvIndex = (pvIndex - 1 + pvList.length) % pvList.length;
+      pvRender();
+    }
+    function pvNext(e){
+      if(e) e.stopPropagation();
+      if(pvList.length <= 1) return;
+      pvIndex = (pvIndex + 1) % pvList.length;
+      pvRender();
+    }
+
+    // swipe in fullscreen
+    (function bindPvSwipe(){
+      const stage = () => document.getElementById('pv-stage');
+      let startX = 0, startY = 0, moved = false;
+
+      const onStart = (ev) => {
+        const t = ev.touches ? ev.touches[0] : ev;
+        startX = t.clientX;
+        startY = t.clientY;
+        moved = false;
+      };
+      const onMove = (ev) => {
+        const t = ev.touches ? ev.touches[0] : ev;
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+        if(Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) moved = true;
+      };
+      const onEnd = (ev) => {
+        if(!moved || pvList.length <= 1) return;
+        const t = ev.changedTouches ? ev.changedTouches[0] : ev;
+        const dx = t.clientX - startX;
+        if(Math.abs(dx) < 35) return;
+        if(dx < 0) pvNext();
+        else pvPrev();
+      };
+
+      window.addEventListener('load', () => {
+        const el = stage();
+        if(!el) return;
+        el.addEventListener('touchstart', onStart, { passive:true });
+        el.addEventListener('touchmove', onMove, { passive:true });
+        el.addEventListener('touchend', onEnd, { passive:true });
+      });
+    })();
+
+    // keyboard (desktop)
+    window.addEventListener('keydown', (e) => {
+      if(document.getElementById('photo-viewer').style.display !== 'flex') return;
+      if(e.key === 'Escape') hidePhotoViewer();
+      if(e.key === 'ArrowLeft') pvPrev();
+      if(e.key === 'ArrowRight') pvNext();
+    });
 
     // ===== render helpers =====
     function renderMainFixedFirstRow(){
@@ -1074,17 +1382,15 @@
         return (idx !== -1 && d[idx]) ? d[idx] : "";
       };
 
-      // ✅ v354 (B): prefer sheet preferences (delivery page especially)
+      // ✅ prefer sheet preferences (delivery page especially)
       const prefTheme = normalizeThemeFromSheet(getVal('您喜歡的顏色'));
       const prefStyle = normalizeStyleFromSheet(getVal('您喜歡的版型'));
       const prefPaper = normalizePaperFromSheet(getVal('您喜歡的紙感'));
 
-      // Priority: sheet > url/local > default
       curTheme = prefTheme || (urlParams.get('theme') || localStorage.getItem(LS_THEME) || curTheme || 'warm-pink');
       curStyle = prefStyle || (urlParams.get('style') || localStorage.getItem(LS_STYLE) || curStyle || 'arch');
       curPaper = prefPaper || (urlParams.get('paper') || localStorage.getItem(LS_PAPER) || curPaper || 'cotton');
 
-      // keep main page memory updated only when no sheet value (avoid overwriting user preference unintentionally)
       if(uiMain){
         localStorage.setItem(LS_THEME, curTheme);
         localStorage.setItem(LS_STYLE, curStyle);
@@ -1140,27 +1446,8 @@
         logoWrap.style.display = 'none';
       }
 
-      const photosBox = document.getElementById('photos-box');
-      if(photos.length){
-        photosBox.style.display = '';
-        const ids = [{a:'p1a',i:'p1'},{a:'p2a',i:'p2'},{a:'p3a',i:'p3'}];
-        ids.forEach((x, idx) => {
-          const a = document.getElementById(x.a);
-          const img = document.getElementById(x.i);
-          const raw = photos[idx] || "";
-          if(raw){
-            const fixed = fixImg(raw);
-            a.href = raw;
-            img.src = fixed || raw;
-            a.style.display = '';
-          } else {
-            a.style.display = 'none';
-            img.src = '';
-          }
-        });
-      } else {
-        photosBox.style.display = 'none';
-      }
+      // v355: carousel
+      buildPhotoCarousel(photos);
 
       const titlesBox = document.getElementById('titles-box');
       const titlesEl  = document.getElementById('u-titles');
@@ -1198,7 +1485,6 @@
 
       fillSocialLinks([v1, v2, v3, s1, s2, s3]);
 
-      // ✅ main/delivery visibility
       if(isMainData){
         document.getElementById('advantage-box').style.display = 'block';
         document.getElementById('order-box').style.display = 'block';
@@ -1213,10 +1499,8 @@
         document.getElementById('line-guide').style.display = uiMain ? 'block' : 'none';
       }
 
-      // ✅ share text unified
       document.getElementById('share-cta-text').innerText = "複製網址，分享名片給朋友";
 
-      // ✅ delivery page contact buttons dynamic
       if(!isMainData){
         const btnOA = document.getElementById('btn-oa');
         if(lineOA && String(lineOA).includes('http')){ btnOA.href = lineOA; btnOA.style.display = 'flex'; }
@@ -1267,7 +1551,6 @@
       layoutActionsGrid();
     }
 
-    // ✅ B mode delivery url: carry current UI choice (optional), but final look is still sheet-first
     async function doCopy(){
       const id = (document.getElementById('work-id').value || "").trim();
       if(!id){ alert("請先輸入序號或姓名"); return; }
