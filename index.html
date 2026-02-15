@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V356</title>
+  <title>天使幸福智慧名片 V357</title>
 
-  <link rel="manifest" href="./manifest.json?v=356" />
+  <link rel="manifest" href="./manifest.json?v=357" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -73,6 +73,54 @@
       50%{ transform: translateY(-3px); }
     }
 
+    /* =======================
+       v357: CTA button motion
+       ======================= */
+    .cta-attention{
+      position:relative;
+      overflow:hidden;
+      border:none !important;
+      transform-origin:center;
+      animation: ctaPulse 1.25s ease-in-out infinite;
+      box-shadow:
+        0 18px 30px rgba(0,0,0,0.10),
+        0 10px 18px rgba(0,0,0,0.08);
+    }
+    .cta-attention::before{
+      content:"";
+      position:absolute;
+      inset:-40%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.75), transparent 50%),
+                  radial-gradient(circle at 70% 70%, rgba(255,255,255,0.35), transparent 55%);
+      opacity:.55;
+      transform: rotate(12deg);
+      pointer-events:none;
+    }
+    .cta-attention::after{
+      content:"";
+      position:absolute;
+      left:-40%;
+      top:0;
+      width:40%;
+      height:100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent);
+      transform: skewX(-18deg);
+      animation: ctaShine 1.9s ease-in-out infinite;
+      pointer-events:none;
+      opacity:.55;
+    }
+    @keyframes ctaPulse{
+      0%,100%{ transform: translateY(0) scale(1); filter: saturate(1); }
+      35%{ transform: translateY(-3px) scale(1.04); filter: saturate(1.12); }
+      60%{ transform: translateY(0) scale(1.01); }
+    }
+    @keyframes ctaShine{
+      0%{ left:-45%; opacity:0; }
+      25%{ opacity:.55; }
+      55%{ left:120%; opacity:0; }
+      100%{ left:120%; opacity:0; }
+    }
+
     /* ===== Card ===== */
     .card{
       background:white;
@@ -81,16 +129,24 @@
       height:680px;
       border-radius:45px;
       overflow:hidden;
+
+      /* v357: stronger 3D */
       box-shadow:
-        0 34px 70px rgba(0,0,0,0.16),
-        0 10px 22px rgba(0,0,0,0.08);
-      border:1px solid rgba(0,0,0,0.06);
+        0 46px 92px rgba(0,0,0,0.18),
+        0 16px 34px rgba(0,0,0,0.10),
+        0 2px 0 rgba(255,255,255,0.55) inset;
+      border:1px solid rgba(0,0,0,0.05);
+
       position:relative;
       margin:18px 0 20px;
       display:flex;
       flex-direction:column;
       isolation:isolate;
+      transform: translateZ(0);
     }
+
+    /* v357: subtle edge highlight */
+    .card::marker{ content:""; }
 
     /* ===== Paper overlay base ===== */
     .card::before{
@@ -111,9 +167,10 @@
       pointer-events:none;
       z-index:3;
       background:
-        radial-gradient(140px 110px at 18% 14%, rgba(255,255,255,0.62), transparent 70%),
-        radial-gradient(190px 140px at 78% 72%, rgba(255,255,255,0.40), transparent 72%);
-      opacity:.22;
+        radial-gradient(170px 130px at 18% 12%, rgba(255,255,255,0.70), transparent 70%),
+        radial-gradient(220px 160px at 84% 76%, rgba(255,255,255,0.46), transparent 72%),
+        linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.02));
+      opacity:.28;
       mix-blend-mode: screen;
     }
 
@@ -182,7 +239,7 @@
     .avatar-wrap{
       width:130px;height:130px;background:#fff;border-radius:50%;
       padding:6px;
-      box-shadow:0 10px 25px rgba(0,0,0,0.12);
+      box-shadow:0 12px 28px rgba(0,0,0,0.14);
       position:absolute;top:35px;left:50%;transform:translateX(-50%);
       z-index:4;
       border:1px solid rgba(0,0,0,0.04);
@@ -236,8 +293,8 @@
       padding:16px;
       border-radius:25px;
       margin-bottom:14px;
-      box-shadow:10px 10px 20px rgba(0,0,0,0.035);
-      border:1px solid rgba(0,0,0,0.045);
+      box-shadow:12px 14px 24px rgba(0,0,0,0.05);
+      border:1px solid rgba(0,0,0,0.05);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
       position:relative;
@@ -245,7 +302,7 @@
     }
     .label{ color:#adb5bd;font-weight:900;font-size:11px;margin-bottom:8px;display:block; }
 
-    /* ===== Photo carousel (auto for any number) ===== */
+    /* ===== Photo carousel (swipe) ===== */
     .photo-carousel{
       display:flex;
       gap:10px;
@@ -599,8 +656,12 @@
     </div>
 
     <div class="picker-group" style="margin-top:10px;">
-      <button class="btn-style active" style="background:var(--p)!important;border-color:var(--p)!important;color:#fff!important;"
-              onclick="goFillForm()">步驟二：填寫名片資料</button>
+      <!-- v357: add motion/glow -->
+      <button class="btn-style active cta-attention"
+              style="background:var(--p)!important;border-color:var(--p)!important;color:#fff!important;"
+              onclick="goFillForm()">
+        步驟二：填寫名片資料
+      </button>
     </div>
   </div>
 
@@ -648,7 +709,7 @@
         </div>
       </div>
 
-      <!-- ✅ v356: unlimited photos (sheet may become max 5, 8, ... no code change needed) -->
+      <!-- swipe carousel -->
       <div id="photos-box" class="content-box" style="display:none;">
         <span class="label">品牌/產品照/活動照</span>
         <div id="photo-carousel" class="photo-carousel"></div>
@@ -780,10 +841,10 @@
     </div>
   </div>
 
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V356｜版權所有</div>
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V357｜版權所有</div>
 
   <script>
-    const VERSION = 356;
+    const VERSION = 357;
 
     // ✅ Remember (for main page only)
     const LS_THEME = 'angel_card_theme';
@@ -939,13 +1000,10 @@
       return idMatch ? `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000` : url;
     }
 
-    // ✅ v356: future-proof splitting (supports max 3 / max 5 / unlimited; also supports chinese separators)
+    // allow any number
     function splitPhotos(raw){
       if(!raw) return [];
-      return String(raw)
-        .split(/[\n,，;；|、]+/)
-        .map(s => s.trim())
-        .filter(Boolean);
+      return raw.split(/[\n,，;；、|]+/).map(s => s.trim()).filter(Boolean);
     }
 
     // ===== CSV parsing =====
@@ -1186,7 +1244,7 @@
       window.open(document.getElementById('form-link').href, '_blank', 'noopener');
     }
 
-    // ===== Photo carousel + viewer state =====
+    // ===== photo carousel + viewer state =====
     let pvList = [];
     let pvIndex = 0;
 
@@ -1222,7 +1280,6 @@
 
       dots.style.display = (pvList.length > 1) ? 'flex' : 'none';
 
-      // update dots on scroll (snap)
       let ticking = false;
       rail.addEventListener('scroll', () => {
         if(ticking) return;
@@ -1307,7 +1364,6 @@
       pvRender();
     }
 
-    // swipe in fullscreen
     (function bindPvSwipe(){
       const stage = () => document.getElementById('pv-stage');
       let startX = 0, startY = 0, moved = false;
@@ -1342,7 +1398,6 @@
       });
     })();
 
-    // keyboard (desktop)
     window.addEventListener('keydown', (e) => {
       if(document.getElementById('photo-viewer').style.display !== 'flex') return;
       if(e.key === 'Escape') hidePhotoViewer();
@@ -1350,7 +1405,6 @@
       if(e.key === 'ArrowRight') pvNext();
     });
 
-    // ===== render helpers =====
     function renderMainFixedFirstRow(){
       if(!allRows[0] || !allRows[1]) return;
       applyRow(allRows[0], allRows[1], { isMainData:true, keepUiMain:true });
@@ -1379,19 +1433,11 @@
 
       uiMain = keepUiMain ? true : !urlId;
 
-      // ✅ v356: robust header matching (works even if sheet changes to "最多5張" etc.)
       const getVal = (key) => {
-        const norm = (s) => String(s || '')
-          .replace(/["“”]/g, '')
-          .replace(/\uFEFF/g, '')
-          .replace(/\s+/g, '')
-          .trim();
-        const nk = norm(key);
-        const idx = h.findIndex(head => norm(head).includes(nk));
+        const idx = h.findIndex(head => (head || "").includes(key));
         return (idx !== -1 && d[idx]) ? d[idx] : "";
       };
 
-      // ✅ prefer sheet preferences (delivery page especially)
       const prefTheme = normalizeThemeFromSheet(getVal('您喜歡的顏色'));
       const prefStyle = normalizeStyleFromSheet(getVal('您喜歡的版型'));
       const prefPaper = normalizePaperFromSheet(getVal('您喜歡的紙感'));
@@ -1415,19 +1461,7 @@
       const service= getVal('服務項目') || getVal('服務');
       const titles = getVal('重要頭銜') || getVal('獎銜') || getVal('重要頭銜/獎銜');
       const avatar = fixImg(getVal('個人專業形象照') || getVal('形象照'));
-
-      // ✅ v356: photos key is "future-proof" (max3/max5 wording won't break)
-      const photosRaw =
-        getVal('產品或品牌或活動照片') ||
-        getVal('品牌/產品/活動照片') ||
-        getVal('品牌產品活動照片') ||
-        getVal('內容區插圖') ||
-        getVal('插圖') ||
-        getVal('最多3張') ||
-        getVal('最多5張');
-
-      const photos = splitPhotos(photosRaw);
-
+      const photos = splitPhotos(getVal('產品或品牌或活動照片'));
       const logo   = fixImg(getVal('品牌 Logo') || getVal('品牌Logo') || getVal('Logo'));
       const wechat = getVal('微信') || getVal('微信 ID');
       const email  = getVal('一鍵聯繫 Email') || getVal('Email') || getVal('郵箱');
@@ -1467,7 +1501,6 @@
         logoWrap.style.display = 'none';
       }
 
-      // ✅ carousel (unlimited)
       buildPhotoCarousel(photos);
 
       const titlesBox = document.getElementById('titles-box');
