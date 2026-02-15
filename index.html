@@ -45,18 +45,30 @@
       text-align:center;
       padding:14px 0 10px;
       border-bottom:1px solid #ddd;
-      z-index:2000;
+
+      /* ✅關鍵：讓 z-index 生效 + 不被下面卡片蓋住 */
+      position: sticky;
+      top: 0;
+      z-index: 2000;
+
       flex-shrink:0;
+      pointer-events:auto;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
+    #admin-panel *{ pointer-events:auto; }
+
     .picker-group{ display:flex; justify-content:center; gap:12px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
     .dot{
       width:32px;height:32px;border-radius:50%;
       cursor:pointer;border:3px solid white;
       box-shadow:0 4px 10px rgba(0,0,0,0.15);
+      touch-action: manipulation; /* ✅手機點擊保命 */
     }
     .btn-style{
       padding:6px 14px;border-radius:20px;border:1px solid #ccc;
       font-size:11px;cursor:pointer;background:#fff;font-weight:900;
+      touch-action: manipulation; /* ✅手機點擊保命 */
     }
     .btn-style.active{ background:#2f3640!important; color:white!important; border-color:#2f3640!important; }
 
@@ -102,7 +114,6 @@
       pointer-events:none;
       z-index:2;
       opacity: var(--paperOpacity);
-      /* layered micro texture (no external images) */
       background:
         radial-gradient(circle at 12% 18%, rgba(0,0,0,var(--paperFiberOpacity)) 0 1px, transparent 2px),
         radial-gradient(circle at 68% 28%, rgba(0,0,0,var(--paperFiberOpacity)) 0 1px, transparent 2px),
@@ -117,7 +128,6 @@
       mix-blend-mode: multiply;
       filter: blur(.2px);
     }
-    /* subtle highlight for premium “print” feel */
     .card::after{
       content:"";
       position:absolute;
@@ -157,7 +167,6 @@
       --paperContrast: .07;
     }
 
-    /* linen cross-hatch enhancement */
     .paper-linen .card::before{
       background:
         repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 1px, transparent 1px 9px),
@@ -169,7 +178,6 @@
       filter: blur(.15px);
     }
 
-    /* watercolor roughness enhancement */
     .paper-watercolor .card::before{
       background:
         radial-gradient(120px 120px at 30% 40%, rgba(0,0,0,.08), transparent 70%),
@@ -181,7 +189,6 @@
       filter: blur(.25px);
     }
 
-    /* elevate card depth slightly */
     .card{
       box-shadow:
         0 34px 70px rgba(0,0,0,0.16),
@@ -220,7 +227,7 @@
       flex:1; overflow-y:auto; padding:45px 20px 0; text-align:center;
       scrollbar-width:none;
       position:relative;
-      z-index:4; /* above paper */
+      z-index:4;
     }
     .info-scroll::-webkit-scrollbar{ display:none; }
 
@@ -288,6 +295,7 @@
       background:#fff; color:var(--p); border:1.5px solid var(--p);
       padding:5px 10px; border-radius:50px; font-size:11.5px; font-weight:900;
       cursor:pointer;
+      touch-action: manipulation;
     }
 
     /* ✅ Share box button smaller */
@@ -310,7 +318,7 @@
     }
     #share-box .share-cta:active{ transform: scale(0.99); }
 
-    /* ===== Actions (Contact Area) v349: fixed 2 columns + compressed ===== */
+    /* ===== Actions (Contact Area) v349 ===== */
     .actions{
       background:linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,1));
       padding:5px 10px 7px;
@@ -341,6 +349,7 @@
       box-shadow: 0 10px 18px rgba(0,0,0,0.05);
       min-height:38px;
       box-sizing:border-box;
+      touch-action: manipulation;
     }
     .act-btn:active{ transform: scale(0.99); }
 
@@ -376,7 +385,6 @@
       border:1px solid rgba(255,255,255,0.28);
     }
 
-    /* ✅ icon 顏色同步（不要黑色） */
     .btn-ico i{ font-size:14px; color:var(--p); }
     .btn-main .btn-ico i{ color:#fff; }
     .btn-sub .btn-ico i{ color:#06C755; }
@@ -404,7 +412,6 @@
       display: none;
     }
 
-    /* ✅ 微信/郵箱/電話：框固定綠色（不跟主題跑） */
     .framed{
       border:2px solid #06C755 !important;
       box-shadow: 0 10px 18px rgba(0,0,0,0.05);
@@ -419,16 +426,16 @@
     .modal-content{ background:white; width:100%; max-width:320px; border-radius:35px; padding:22px; position:relative; }
     .close-modal{ position:absolute; top:14px; right:18px; font-size:24px; color:#999; cursor:pointer; }
     .modal-tab{ display:flex; gap:8px; margin:12px 0; }
-    .tab-btn{ flex:1; padding:8px; border-radius:10px; border:1px solid #ddd; background:#f8f9fa; font-size:12px; font-weight:900; cursor:pointer; }
+    .tab-btn{ flex:1; padding:8px; border-radius:10px; border:1px solid #ddd; background:#f8f9fa; font-size:12px; font-weight:900; cursor:pointer; touch-action: manipulation; }
     .tab-btn.active{ background:var(--p); color:white; border-color:var(--p); }
     .tab-pane{ display:none; text-align:left; font-size:14px; line-height:1.8; color:#444; }
     .tab-pane.active{ display:block; }
 
-    /* ✅ modal copy button smaller */
     .modal-copy-btn{
       background:var(--p);color:white;border:none;padding:8px 12px;border-radius:12px;font-weight:900;width:100%;
       font-size:13px;
       cursor:pointer;
+      touch-action: manipulation;
     }
 
     #wechat-mask{
@@ -473,18 +480,17 @@
       <span class="hint-bounce"><i class="fa-solid fa-hand-pointer"></i> 點選顏色版型參考</span>
     </div>
 
-    <div class="picker-group">
-      <button class="btn-style active" onclick="setStyle('arch', this)">優雅拱型</button>
-      <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
-      <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
+    <div class="picker-group" id="style-row">
+      <button type="button" class="btn-style active" onclick="setStyle('arch', this)">優雅拱型</button>
+      <button type="button" class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
+      <button type="button" class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
     </div>
 
-    <!-- ✅ Paper picker -->
-    <div class="picker-group" style="margin-top:6px;">
-      <button class="btn-style active" onclick="setPaper('cotton', this)">霧面棉紙</button>
-      <button class="btn-style" onclick="setPaper('grain', this)">細顆粒紙</button>
-      <button class="btn-style" onclick="setPaper('linen', this)">亞麻紋</button>
-      <button class="btn-style" onclick="setPaper('watercolor', this)">水彩紙</button>
+    <div class="picker-group" id="paper-row" style="margin-top:6px;">
+      <button type="button" class="btn-style active" onclick="setPaper('cotton', this)">霧面棉紙</button>
+      <button type="button" class="btn-style" onclick="setPaper('grain', this)">細顆粒紙</button>
+      <button type="button" class="btn-style" onclick="setPaper('linen', this)">亞麻紋</button>
+      <button type="button" class="btn-style" onclick="setPaper('watercolor', this)">水彩紙</button>
     </div>
   </div>
 
@@ -560,11 +566,10 @@
       </div>
 
       <div id="install-entry" class="bottom-guide-bar" style="display:none;">
-        <button class="mini-install-btn" onclick="openInstallModal()">📲 安裝名片 App 教學</button>
+        <button type="button" class="mini-install-btn" onclick="openInstallModal()">📲 安裝名片 App 教學</button>
       </div>
     </div>
 
-    <!-- ===== Contact Area ===== -->
     <div id="actions-area" class="actions">
       <div id="line-guide" class="line-guide">點進 line 官方網站，預約訂製名片</div>
 
@@ -599,49 +604,44 @@
           <span class="btn-subtitle">一對一私訊</span>
         </span>
       </a>
-
-      <!-- phone button (created dynamically on delivery page if has phone) -->
     </div>
   </div>
 
-  <!-- Install modal -->
   <div id="install-modal" onclick="closeInstallModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
       <span class="close-modal" onclick="closeInstallModal(event)">&times;</span>
       <h3 style="margin-top:0;color:var(--p);text-align:center;">安裝名片教學</h3>
 
       <div style="background:#f8f9fa;padding:12px;border-radius:16px;text-align:center;margin-bottom:12px;">
-        <button onclick="copyCurrentUrl()" class="modal-copy-btn">🔗 一鍵複製名片網址</button>
+        <button type="button" onclick="copyCurrentUrl()" class="modal-copy-btn">🔗 一鍵複製名片網址</button>
         <div style="font-size:12px;color:#666;margin-top:8px;line-height:1.4;">
           若無法直接安裝，請先複製網址貼進瀏覽器開啟，再使用「加入主畫面 / 安裝應用程式」。
         </div>
       </div>
 
       <div class="modal-tab">
-        <button class="tab-btn active" onclick="switchTab('apple')">🍎 iPhone</button>
-        <button class="tab-btn" onclick="switchTab('android')">🤖 Android</button>
+        <button type="button" class="tab-btn active" onclick="switchTab('apple')">🍎 iPhone</button>
+        <button type="button" class="tab-btn" onclick="switchTab('android')">🤖 Android</button>
       </div>
       <div id="apple-pane" class="tab-pane active">1. 點擊 Safari 下方 [分享箭頭 ⬆️]<br>2. 選擇 [加入主畫面]</div>
       <div id="android-pane" class="tab-pane">1. 點擊 Chrome 右上角 [三個點點]<br>2. 選擇 [安裝應用程式]</div>
     </div>
   </div>
 
-  <!-- WeChat -->
   <div id="wechat-mask" onclick="this.style.display='none'">
     <div style="background:white;color:#333;padding:26px;border-radius:28px;width:80%;max-width:320px;text-align:center;">
       <i class="fa-brands fa-weixin" style="font-size:48px;color:#07C160;margin-bottom:12px;"></i>
       <h3 style="margin:10px 0;">微信聯繫 ID</h3>
       <p id="wechat-id-text" style="font-size:20px;font-weight:900;background:#f0f0f0;padding:10px;border-radius:12px;margin:14px 0;">a0973180707</p>
-      <button onclick="copyWechat()" style="background:#07C160;color:white;border:none;padding:10px 16px;border-radius:12px;font-weight:900;width:100%;cursor:pointer;">點擊複製 ID</button>
+      <button type="button" onclick="copyWechat()" style="background:#07C160;color:white;border:none;padding:10px 16px;border-radius:12px;font-weight:900;width:100%;cursor:pointer;touch-action:manipulation;">點擊複製 ID</button>
     </div>
   </div>
 
-  <!-- Hidden work drawer -->
   <div id="work-drawer">
     <div style="padding:22px;text-align:center;">
       <input type="text" id="work-id" style="width:90%;padding:14px;border-radius:14px;border:1px solid #ddd;color:#333;" placeholder="輸入序號或姓名" />
-      <button onclick="doPreviewInPlace()" style="background:#ee5253;color:white;width:90%;padding:14px;margin-top:10px;border-radius:14px;border:none;font-weight:900;cursor:pointer;">預覽成品（不跳出）</button>
-      <button onclick="doCopy()" style="background:#2ecc71;color:white;width:90%;padding:14px;margin-top:10px;border-radius:14px;border:none;font-weight:900;cursor:pointer;">複製交貨網址</button>
+      <button type="button" onclick="doPreviewInPlace()" style="background:#ee5253;color:white;width:90%;padding:14px;margin-top:10px;border-radius:14px;border:none;font-weight:900;cursor:pointer;touch-action:manipulation;">預覽成品（不跳出）</button>
+      <button type="button" onclick="doCopy()" style="background:#2ecc71;color:white;width:90%;padding:14px;margin-top:10px;border-radius:14px;border:none;font-weight:900;cursor:pointer;touch-action:manipulation;">複製交貨網址</button>
     </div>
   </div>
 
@@ -650,7 +650,6 @@
   <script>
     const VERSION = 349;
 
-    // ✅ 記住前臺挑的顏色/版型/紙感
     const LS_THEME = 'angel_card_theme';
     const LS_STYLE = 'angel_card_style';
     const LS_PAPER = 'angel_card_paper';
@@ -667,7 +666,6 @@
     let allRows = [];
     let clicks = 0;
 
-    // ✅ 優先順序：URL > localStorage > 預設
     let curTheme = urlParams.get('theme') || localStorage.getItem(LS_THEME) || 'warm-pink';
     let curStyle = urlParams.get('style') || localStorage.getItem(LS_STYLE) || 'arch';
     let curPaper = urlParams.get('paper') || localStorage.getItem(LS_PAPER) || 'cotton';
@@ -728,26 +726,30 @@
       localStorage.setItem(LS_THEME, t);
       updateClass();
     }
+
     function setStyle(s, btn){
       curStyle = s;
       localStorage.setItem(LS_STYLE, s);
       updateClass();
+
+      // ✅只影響「版型那一排」，不要把紙張那排 active 也清掉
       if(btn){
-        document.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
+        const row = document.getElementById('style-row');
+        row.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
       }
       syncStyleButtons();
-      syncPaperButtons(); // keep paper active state consistent
+      syncPaperButtons();
     }
 
     function setPaper(p, btn){
       curPaper = p;
       localStorage.setItem(LS_PAPER, p);
       updateClass();
+
       if(btn){
-        // only toggle within paper row
-        const paperRow = btn.parentElement;
-        paperRow.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
+        const row = document.getElementById('paper-row');
+        row.querySelectorAll('.btn-style').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
       }
       syncStyleButtons();
@@ -755,14 +757,13 @@
     }
 
     function updateClass(){
-      // keep mode, theme, style, paper
       document.body.className = `${curTheme} style-${curStyle} paper-${curPaper}${uiMain ? ' mode-main' : ' mode-delivery'}`;
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#ee5253');
     }
 
     function syncStyleButtons(){
-      const btns = document.querySelectorAll('#admin-panel .picker-group:nth-of-type(3) .btn-style');
+      const btns = document.querySelectorAll('#style-row .btn-style');
       btns.forEach(b => b.classList.remove('active'));
       const mapBtn = { arch:0, flat:1, spot:2 };
       const idx = mapBtn[curStyle] ?? 0;
@@ -770,11 +771,11 @@
     }
 
     function syncPaperButtons(){
-      const paperBtns = document.querySelectorAll('#admin-panel .picker-group:nth-of-type(4) .btn-style');
-      paperBtns.forEach(b => b.classList.remove('active'));
+      const btns = document.querySelectorAll('#paper-row .btn-style');
+      btns.forEach(b => b.classList.remove('active'));
       const map = { cotton:0, grain:1, linen:2, watercolor:3 };
       const idx = map[curPaper] ?? 0;
-      if(paperBtns[idx]) paperBtns[idx].classList.add('active');
+      if(btns[idx]) btns[idx].classList.add('active');
     }
 
     function handleGate(){
@@ -802,7 +803,6 @@
       return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).slice(0, 3);
     }
 
-    // ✅ CSV 解析
     function parseCSV(text){
       const rows = [];
       let row = [];
@@ -837,16 +837,31 @@
       return rows;
     }
 
+    function showLoadErrorHint(){
+      const nameEl = document.getElementById('u-name');
+      const svcEl  = document.getElementById('u-service');
+      if(nameEl && nameEl.innerText.includes('讀取中')) nameEl.innerText = '資料同步中...';
+      if(svcEl && svcEl.innerText.includes('讀取中'))  svcEl.innerText  = '若久未顯示，可能是試算表權限/網路限制，系統將自動重試。';
+    }
+
     async function loadSheetData(){
       const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
-      try{
-        const res = await fetch(csvUrl, { cache: 'no-store' });
-        if(!res.ok) throw new Error('bad status');
-        const text = await res.text();
-        allRows = parseCSV(text);
-      } catch(e){
-        console.log("資料同步中");
+
+      // ✅最多重試 3 次，避免使用者一直卡住
+      for(let attempt=1; attempt<=3; attempt++){
+        try{
+          const res = await fetch(csvUrl, { cache: 'no-store' });
+          if(!res.ok) throw new Error('bad status');
+          const text = await res.text();
+          allRows = parseCSV(text);
+          if(allRows && allRows.length >= 2) return true;
+          throw new Error('empty');
+        } catch(e){
+          showLoadErrorHint();
+          await new Promise(r => setTimeout(r, 600 * attempt));
+        }
       }
+      return false;
     }
 
     function renderMainFixedFirstRow(){
@@ -871,7 +886,6 @@
       document.querySelector('.info-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ✅【Link area helpers】
     const isLineDomain = (v) => {
       const s = (v || '').toLowerCase();
       return (
@@ -963,9 +977,9 @@
     const normalizeWebOrAddress = (val) => {
       const raw = String(val || "").trim();
       if(!raw) return "";
-      if(isLineDomain(raw)) return "";                 // LINE 不放連結區
-      if(raw.toLowerCase().includes('drive.google.com')) return ""; // drive 圖不放連結區
-      if(isProbablyAddress(raw)) return toNavUrl(raw); // 地址/地圖 → 導航連結
+      if(isLineDomain(raw)) return "";
+      if(raw.toLowerCase().includes('drive.google.com')) return "";
+      if(isProbablyAddress(raw)) return toNavUrl(raw);
       const httpIdx = raw.indexOf('http');
       if(httpIdx < 0) return "";
       return raw.slice(httpIdx).trim();
@@ -998,13 +1012,11 @@
     }
 
     function layoutActionsGrid(){
-      // ✅ 固定 2 欄：若最後一顆落單 → 自動跨兩欄
       const actions = document.getElementById('actions-area');
       if(!actions) return;
       const btns = Array.from(actions.querySelectorAll('a.act-btn'))
         .filter(el => getComputedStyle(el).display !== 'none' && !el.classList.contains('btn-main'));
 
-      // reset
       btns.forEach(b => b.style.gridColumn = '');
 
       if(btns.length % 2 === 1){
@@ -1136,6 +1148,8 @@
         document.getElementById('install-entry').style.display = 'none';
         document.getElementById('wechat-id-text').innerText = "a0973180707";
         document.getElementById('line-guide').style.display = 'block';
+
+        // ✅文字統一
         document.getElementById('share-cta-text').innerText = "複製網址，分享名片給朋友";
       } else {
         document.getElementById('advantage-box').style.display = 'none';
@@ -1143,7 +1157,9 @@
         document.getElementById('install-entry').style.display = 'block';
         document.getElementById('wechat-id-text').innerText = wechat || "未提供";
         document.getElementById('line-guide').style.display = uiMain ? 'block' : 'none';
-        document.getElementById('share-cta-text').innerText = "複製網址，分享這張名片給朋友";
+
+        // ✅文字統一（你原本這裡是「分享這張名片給朋友」）
+        document.getElementById('share-cta-text').innerText = "複製網址，分享名片給朋友";
       }
 
       // ✅ 交貨頁聯絡按鈕動態顯示
@@ -1176,7 +1192,7 @@
           actions.appendChild(phoneBtn);
         }
         if(phone){
-          phoneBtn.href = \`tel:\${String(phone).replace(/\\s+/g,'')}\`;
+          phoneBtn.href = `tel:${String(phone).replace(/\s+/g,'')}`;
           phoneBtn.style.display = 'flex';
         } else {
           phoneBtn.style.display = 'none';
@@ -1194,15 +1210,13 @@
         if(phoneBtn) phoneBtn.style.display = 'none';
       }
 
-      // ✅ 最後：固定2欄 + 落單跨欄
       layoutActionsGrid();
     }
 
-    // ✅ 前臺選好 → 後臺只輸入姓名 → 一鍵複製「帶版型顏色+紙感」交貨網址
     async function doCopy(){
       const id = (document.getElementById('work-id').value || "").trim();
       if(!id){ alert("請先輸入序號或姓名"); return; }
-      const finalUrl = \`\${window.location.origin}\${window.location.pathname}?id=\${encodeURIComponent(id)}&theme=\${encodeURIComponent(curTheme)}&style=\${encodeURIComponent(curStyle)}&paper=\${encodeURIComponent(curPaper)}\`;
+      const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${encodeURIComponent(curTheme)}&style=${encodeURIComponent(curStyle)}&paper=${encodeURIComponent(curPaper)}`;
       const ok = await safeCopy(finalUrl);
       alert(ok ? "✅ 交貨網址已複製！（已帶顏色/版型/紙感）" : "此瀏覽器限制複製，請手動複製網址列");
     }
