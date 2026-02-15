@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V340</title>
+  <title>天使幸福智慧名片 V341</title>
 
-  <link rel="manifest" href="./manifest.json?v=340" />
+  <link rel="manifest" href="./manifest.json?v=341" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -131,7 +131,6 @@
     }
     .brand-logo-below img{ width:100%;height:100%;object-fit:cover; }
 
-    /* ===== social link 3 dots ===== */
     .social-bar{ display:flex; justify-content:center; align-items:center; gap:14px; margin:10px 0 16px; }
     .social-link{
       width:48px;height:48px;border-radius:16px;background:#fff;
@@ -169,16 +168,17 @@
       cursor:pointer;
     }
 
-    /* ===== Actions (Contact Area) =====
-       v340: keep icon circle on each button, remove extra tiny icons,
-       but make area compact & auto-balance when some fields are empty.
+    /* ===== Actions (Contact Area) v341 =====
+       1) 變矮：縮 padding / gap / 按鈕高度
+       2) 微信/郵箱/電話加框：框色跟 var(--p) 同步
+       3) icon 不要黑色：同步 var(--p) / var(--s)
     */
     .actions{
       background:linear-gradient(180deg, rgba(255,255,255,0.70), rgba(255,255,255,1));
-      padding:12px 16px 16px;
+      padding:10px 14px 12px;     /* ✅更矮 */
       display:grid;
       grid-template-columns:repeat(2,1fr);
-      gap:10px;
+      gap:8px;                    /* ✅更矮 */
       flex-shrink:0;
       border-top:1px solid #eee;
     }
@@ -186,7 +186,7 @@
     .act-btn{
       text-decoration:none;
       background:#ffffff;
-      padding:12px 12px;
+      padding:10px 10px;          /* ✅更矮 */
       border-radius:18px;
       color:#2f3542;
       font-size:13px;
@@ -195,9 +195,9 @@
       border:1px solid rgba(0,0,0,0.06);
       display:flex;
       align-items:center;
-      gap:12px;
-      box-shadow: 0 12px 24px rgba(0,0,0,0.06);
-      min-height:52px;
+      gap:10px;                   /* ✅更矮 */
+      box-shadow: 0 10px 18px rgba(0,0,0,0.05);
+      min-height:48px;            /* ✅更矮 */
     }
     .act-btn:active{ transform: scale(0.99); }
 
@@ -206,31 +206,37 @@
       background:linear-gradient(135deg, #06C755, #06b150)!important;
       color:white!important;
       border:none!important;
-      box-shadow: 0 16px 30px rgba(6,199,85,0.24);
+      box-shadow: 0 14px 24px rgba(6,199,85,0.22);
+      padding:11px 12px;          /* ✅更矮 */
+      min-height:52px;            /* ✅更矮 */
     }
     .btn-sub{
       background:#ffffff!important;
       color:#06C755!important;
       border:2px solid rgba(6,199,85,0.35)!important;
-      box-shadow: 0 12px 24px rgba(6,199,85,0.12);
+      box-shadow: 0 10px 18px rgba(6,199,85,0.10);
     }
 
     /* icon circle */
     .btn-ico{
-      width:38px; height:38px;
+      width:34px; height:34px;    /* ✅更矮 */
       border-radius:999px;
       display:inline-flex;
       align-items:center;
       justify-content:center;
       flex:0 0 auto;
-      background:rgba(255,255,255,0.22);
-      border:1px solid rgba(255,255,255,0.28);
-    }
-    .act-btn:not(.btn-main) .btn-ico{
       background:rgba(0,0,0,0.03);
       border:1px solid rgba(0,0,0,0.06);
     }
-    .btn-ico i{ font-size:18px; }
+    .btn-main .btn-ico{
+      background:rgba(255,255,255,0.22);
+      border:1px solid rgba(255,255,255,0.28);
+    }
+
+    /* ✅ icon 顏色同步版型（不要黑色） */
+    .btn-ico i{ font-size:17px; color:var(--p); }
+    .btn-main .btn-ico i{ color:#fff; }
+    .btn-sub .btn-ico i{ color:#06C755; }
 
     /* button text */
     .btn-txt{
@@ -240,9 +246,9 @@
       line-height:1.1;
     }
     .btn-title{ font-size:14px; font-weight:900; }
-    .btn-subtitle{ font-size:11px; opacity:.78; font-weight:700; }
+    .btn-subtitle{ font-size:11px; opacity:.78; font-weight:800; }
 
-    /* line guide (hint bar) */
+    /* line guide */
     .line-guide{
       grid-column: span 2;
       background: #f7fff9;
@@ -250,15 +256,27 @@
       color: #1f7a46;
       font-size: 12px;
       font-weight: 900;
-      padding: 9px 12px;
+      padding: 8px 10px;          /* ✅更矮 */
       border-radius: 14px;
       text-align: center;
       display: none;
     }
 
-    /* compact mode when buttons are fewer */
-    .actions.compact { padding:10px 14px 14px; gap:8px; }
-    .actions.compact .act-btn{ min-height:50px; padding:11px 12px; }
+    /* ✅ 微信/郵箱/電話：加框 & 同步主色 */
+    .framed{
+      border:2px solid var(--p) !important;
+      box-shadow: 0 10px 18px rgba(0,0,0,0.05);
+    }
+    .framed .btn-ico{
+      border:1px solid rgba(0,0,0,0.06);
+    }
+    .framed .btn-title{ color:#2d3436; }
+    .framed .btn-subtitle{ color:var(--s); opacity:0.95; }
+
+    /* compact mode when fewer items */
+    .actions.compact { padding:9px 12px 11px; gap:7px; }
+    .actions.compact .act-btn{ min-height:46px; padding:9px 10px; }
+    .actions.compact .btn-ico{ width:32px;height:32px; }
 
     /* ===== Install modal ===== */
     #install-modal{
@@ -394,7 +412,6 @@
     <div id="actions-area" class="actions">
       <div id="line-guide" class="line-guide">點進 line 官方網站，預約訂製名片</div>
 
-      <!-- Buttons: keep icon-circle on each, remove tiny extra icons (done) -->
       <a href="https://lin.ee/2ac9Roe" id="btn-oa" class="act-btn btn-main" target="_blank" rel="noopener">
         <span class="btn-ico"><i class="fa-brands fa-line"></i></span>
         <span class="btn-txt">
@@ -403,7 +420,8 @@
         </span>
       </a>
 
-      <a href="javascript:void(0)" id="btn-wechat" class="act-btn" onclick="showWechatText()">
+      <!-- ✅ framed：微信/郵箱/電話加框（同步主色） -->
+      <a href="javascript:void(0)" id="btn-wechat" class="act-btn framed" onclick="showWechatText()">
         <span class="btn-ico"><i class="fa-brands fa-weixin"></i></span>
         <span class="btn-txt">
           <span class="btn-title">微信聯繫</span>
@@ -411,7 +429,7 @@
         </span>
       </a>
 
-      <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn">
+      <a href="mailto:a0973180707@gmail.com" id="btn-mail" class="act-btn framed">
         <span class="btn-ico"><i class="fa-solid fa-envelope"></i></span>
         <span class="btn-txt">
           <span class="btn-title">寄送郵箱</span>
@@ -464,12 +482,11 @@
     </div>
   </div>
 
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V340</div>
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V341</div>
 
   <script>
-    const VERSION = 340;
+    const VERSION = 341;
 
-    // remember theme/style
     const LS_THEME = 'angel_card_theme';
     const LS_STYLE = 'angel_card_style';
 
@@ -485,7 +502,6 @@
     let allRows = [];
     let clicks = 0;
 
-    // priority: URL > localStorage > default
     let curTheme = urlParams.get('theme') || localStorage.getItem(LS_THEME) || 'warm-pink';
     let curStyle = urlParams.get('style') || localStorage.getItem(LS_STYLE) || 'arch';
 
@@ -561,7 +577,6 @@
       if (meta) meta.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--p').trim() || '#ee5253');
     }
 
-    // backdoor: tap footer 3 times quickly to open drawer
     function handleGate(){
       if(!uiMain) return;
       clicks++;
@@ -587,7 +602,6 @@
       return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).slice(0, 3);
     }
 
-    // CSV parse
     function parseCSV(text){
       const rows = [];
       let row = [];
@@ -622,7 +636,6 @@
       return rows;
     }
 
-    // ===== Header normalize + alias match (fix: "影音/導航沒讀到") =====
     const norm = (s) => String(s || '')
       .replace(/\u3000/g,' ')
       .replace(/\s+/g,' ')
@@ -674,7 +687,6 @@
       document.querySelector('.info-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ===== Link tools (影音/社群/地址導航) =====
     const isLineDomain = (v) => {
       const s = (v || '').toLowerCase();
       return (
@@ -766,9 +778,9 @@
     const normalizeWebOrAddress = (val) => {
       const raw = String(val || "").trim();
       if(!raw) return "";
-      if(isLineDomain(raw)) return "";                 // LINE 不放連結區
-      if(raw.toLowerCase().includes('drive.google.com')) return ""; // drive 圖不放連結區
-      if(isProbablyAddress(raw)) return toNavUrl(raw); // 地址/地圖 → 導航連結
+      if(isLineDomain(raw)) return "";
+      if(raw.toLowerCase().includes('drive.google.com')) return "";
+      if(isProbablyAddress(raw)) return toNavUrl(raw);
       const httpIdx = raw.indexOf('http');
       if(httpIdx < 0) return "";
       return raw.slice(httpIdx).trim();
@@ -800,7 +812,6 @@
       }
     }
 
-    // ===== Contact auto-balance =====
     function balanceActions(){
       const area = document.getElementById('actions-area');
       if(!area) return;
@@ -809,18 +820,14 @@
         .map(id => document.getElementById(id))
         .filter(el => el && el.style.display !== 'none');
 
-      // compact when fewer items
       if(visible.length <= 3) area.classList.add('compact');
       else area.classList.remove('compact');
 
-      // reset grid span defaults
       visible.forEach(el => el.style.gridColumn = '');
 
-      // If only 1 visible -> full width
       if(visible.length === 1){
         visible[0].style.gridColumn = 'span 2';
       }
-      // If 3 visible -> last one full width (nice balance)
       if(visible.length === 3){
         visible[2].style.gridColumn = 'span 2';
       }
@@ -833,7 +840,6 @@
       uiMain = keepUiMain ? true : !urlId;
       updateClass();
 
-      // base fields (aliases)
       const name   = getValByAliases(h, d, ['姓名','名字']);
       const unit   = getValByAliases(h, d, ['單位','單位名稱','公司','品牌']);
       const motto  = getValByAliases(h, d, ['理念標語','標語','一句話']);
@@ -850,7 +856,6 @@
       const lineP  = getValByAliases(h, d, ['私訊 line','line 加好友','line好友','個人好友','LINE 加好友']);
       const lineOA = getValByAliases(h, d, ['line 官方','官方帳號','line oa','LINE 官方']);
 
-      // media/social/address
       const v1 = getValByAliases(h, d, ['影音平台 1','影音平台1','YouTube','youtube 1','影片1']);
       const v2 = getValByAliases(h, d, ['影音平台 2','影音平台2','tiktok','抖音','影片2']);
       const v3 = getValByAliases(h, d, ['影音平台 3','影音平台3','導航','地址','地圖','location','影片3']);
@@ -939,10 +944,8 @@
       }
       faqBox.style.display = anyFaq ? '' : 'none';
 
-      // fill 3 social dots
       fillSocialLinks([v1, v2, v3, s1, s2, s3]);
 
-      // main/delivery UI
       if(isMainData){
         document.getElementById('advantage-box').style.display = 'block';
         document.getElementById('order-box').style.display = 'block';
@@ -957,7 +960,6 @@
         document.getElementById('line-guide').style.display = uiMain ? 'block' : 'none';
       }
 
-      // contact buttons in delivery page: show/hide + correct href
       const btnOA = document.getElementById('btn-oa');
       if(lineOA && String(lineOA).trim()){
         btnOA.href = String(lineOA).trim();
@@ -982,13 +984,12 @@
         btnMail.style.display = isMainData ? 'flex' : 'none';
       }
 
-      // phone dynamic insert (keep same behavior)
       const actions = document.getElementById('actions-area');
       let phoneBtn = document.getElementById('btn-phone');
       if(!phoneBtn){
         phoneBtn = document.createElement('a');
         phoneBtn.id = 'btn-phone';
-        phoneBtn.className = 'act-btn';
+        phoneBtn.className = 'act-btn framed';  // ✅電話加框同步主色
         phoneBtn.innerHTML = `
           <span class="btn-ico"><i class="fa-solid fa-phone"></i></span>
           <span class="btn-txt">
@@ -1012,11 +1013,9 @@
         btnWechat.style.display = isMainData ? 'flex' : 'none';
       }
 
-      // final: balance layout
       balanceActions();
     }
 
-    // copy delivery url with theme/style
     async function doCopy(){
       const id = (document.getElementById('work-id').value || "").trim();
       if(!id){ alert("請先輸入序號或姓名"); return; }
