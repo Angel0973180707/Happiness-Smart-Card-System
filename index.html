@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V342</title>
+  <title>天使幸福智慧名片 V343</title>
 
-  <link rel="manifest" href="./manifest.json?v=342" />
+  <link rel="manifest" href="./manifest.json?v=343" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -168,13 +168,13 @@
       cursor:pointer;
     }
 
-    /* ===== Actions (Contact Area) v342 ===== */
+    /* ===== Actions (Contact Area) v343 : 再矮一階 ===== */
     .actions{
       background:linear-gradient(180deg, rgba(255,255,255,0.70), rgba(255,255,255,1));
-      padding:8px 12px 10px;
+      padding:6px 10px 8px;        /* ✅更薄 */
       display:grid;
       grid-template-columns:repeat(2,1fr);
-      gap:7px;
+      gap:6px;                     /* ✅更緊 */
       flex-shrink:0;
       border-top:1px solid #eee;
     }
@@ -182,18 +182,18 @@
     .act-btn{
       text-decoration:none;
       background:#ffffff;
-      padding:8px 9px;
-      border-radius:17px;
+      padding:6px 8px;             /* ✅再縮 */
+      border-radius:16px;
       color:#2f3542;
-      font-size:13px;
+      font-size:12.5px;
       font-weight:900;
       text-align:left;
       border:1px solid rgba(0,0,0,0.06);
       display:flex;
       align-items:center;
-      gap:9px;
+      gap:8px;                     /* ✅再縮 */
       box-shadow: 0 10px 18px rgba(0,0,0,0.05);
-      min-height:44px;
+      min-height:40px;             /* ✅再降（關鍵） */
     }
     .act-btn:active{ transform: scale(0.99); }
 
@@ -203,8 +203,8 @@
       color:white!important;
       border:none!important;
       box-shadow: 0 14px 24px rgba(6,199,85,0.22);
-      padding:9px 10px;
-      min-height:48px;
+      padding:7px 9px;             /* ✅再降 */
+      min-height:44px;             /* ✅再降（主鈕也一起） */
     }
     .btn-sub{
       background:#ffffff!important;
@@ -214,7 +214,7 @@
     }
 
     .btn-ico{
-      width:30px; height:30px;
+      width:28px; height:28px;     /* ✅再小 */
       border-radius:999px;
       display:inline-flex;
       align-items:center;
@@ -229,29 +229,42 @@
     }
 
     /* ✅ icon 顏色同步（不要黑色） */
-    .btn-ico i{ font-size:16px; color:var(--p); }
+    .btn-ico i{ font-size:15px; color:var(--p); } /* ✅再小 */
     .btn-main .btn-ico i{ color:#fff; }
     .btn-sub .btn-ico i{ color:#06C755; }
 
     .btn-txt{
       display:flex;
       flex-direction:column;
-      gap:1px;
-      line-height:1.08;
+      gap:0px;                     /* ✅更緊 */
+      line-height:1.02;            /* ✅更收 */
       min-width:0;
     }
-    .btn-title{ font-size:13.5px; font-weight:900; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .btn-subtitle{ font-size:10.5px; opacity:.80; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .btn-title{
+      font-size:13px;              /* ✅微降 */
+      font-weight:900;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .btn-subtitle{
+      font-size:10px;              /* ✅微降 */
+      opacity:.80;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
 
     .line-guide{
       grid-column: span 2;
       background: #f7fff9;
       border: 1px solid rgba(6,199,85,0.25);
       color: #1f7a46;
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 900;
-      padding: 7px 9px;
-      border-radius: 13px;
+      padding: 6px 8px;            /* ✅更矮 */
+      border-radius: 12px;
       text-align: center;
       display: none;
     }
@@ -401,7 +414,7 @@
       </div>
     </div>
 
-    <!-- ✅ Contact Area (no tiny icons, keep round icon button) -->
+    <!-- ✅ Contact Area -->
     <div id="actions-area" class="actions">
       <div id="line-guide" class="line-guide">點進 line 官方網站，預約訂製名片</div>
 
@@ -474,12 +487,11 @@
     </div>
   </div>
 
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V342</div>
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V343</div>
 
   <script>
-    const VERSION = 342;
+    const VERSION = 343;
 
-    // ✅ 記住前臺挑的顏色/版型
     const LS_THEME = 'angel_card_theme';
     const LS_STYLE = 'angel_card_style';
 
@@ -495,7 +507,6 @@
     let allRows = [];
     let clicks = 0;
 
-    // ✅ 優先順序：URL > localStorage > 預設
     let curTheme = urlParams.get('theme') || localStorage.getItem(LS_THEME) || 'warm-pink';
     let curStyle = urlParams.get('style') || localStorage.getItem(LS_STYLE) || 'arch';
 
@@ -596,7 +607,6 @@
       return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean).slice(0, 3);
     }
 
-    // ✅ CSV 解析
     function parseCSV(text){
       const rows = [];
       let row = [];
@@ -664,7 +674,6 @@
       document.querySelector('.info-scroll')?.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // ✅【連結區：影音/社群/地址(導航)】
     const isLineDomain = (v) => {
       const s = (v || '').toLowerCase();
       return (
@@ -756,9 +765,9 @@
     const normalizeWebOrAddress = (val) => {
       const raw = String(val || "").trim();
       if(!raw) return "";
-      if(isLineDomain(raw)) return "";                 // LINE 不放連結區
-      if(raw.toLowerCase().includes('drive.google.com')) return ""; // drive 圖不放連結區
-      if(isProbablyAddress(raw)) return toNavUrl(raw); // 地址/地圖 → 導航連結
+      if(isLineDomain(raw)) return "";
+      if(raw.toLowerCase().includes('drive.google.com')) return "";
+      if(isProbablyAddress(raw)) return toNavUrl(raw);
       const httpIdx = raw.indexOf('http');
       if(httpIdx < 0) return "";
       return raw.slice(httpIdx).trim();
@@ -794,19 +803,13 @@
       const area = document.getElementById('actions-area');
       if(!area) return;
 
-      // 清掉舊的 span-2
       Array.from(area.querySelectorAll('.act-btn, .line-guide')).forEach(el => el.classList.remove('span-2'));
-
-      // 找出可見的按鈕
       const btns = Array.from(area.querySelectorAll('.act-btn')).filter(el => el.style.display !== 'none');
 
-      // 只有 1 個按鈕 → 滿版
       if(btns.length === 1){
         btns[0].classList.add('span-2');
         return;
       }
-
-      // 偶數沒事；奇數 → 最後一顆滿版
       if(btns.length % 2 === 1){
         btns[btns.length - 1].classList.add('span-2');
       }
@@ -838,10 +841,9 @@
       const lineP  = getVal('私訊 LINE') || getVal('LINE 加好友') || getVal('個人好友');
       const lineOA = getVal('LINE 官方') || getVal('官方帳號');
 
-      // ✅ 依固定欄位讀「影音/社群」
       const v1 = getVal('影音平台 1') || getVal('影音平台1');
       const v2 = getVal('影音平台 2') || getVal('影音平台2');
-      const v3 = getVal('影音平台 3') || getVal('影音平台3'); // 也可放地址
+      const v3 = getVal('影音平台 3') || getVal('影音平台3');
       const s1 = getVal('社群平台 1') || getVal('社群平台1');
       const s2 = getVal('社群平台 2') || getVal('社群平台2');
       const s3 = getVal('社群平台 3') || getVal('社群平台3');
@@ -854,7 +856,6 @@
       document.getElementById('u-name').innerText = name || "（未填姓名）";
       document.getElementById('u-unit').innerText = unit || "（未填單位）";
       document.getElementById('u-service').innerText = service || "幸福教養系統推廣";
-
       document.getElementById('u-img').src = avatar || "https://drive.google.com/thumbnail?id=18izl3Ym9zRDLtqe6zplRhB7mFjDA3tuB&sz=w1000";
 
       const mottoEl = document.getElementById('u-motto');
@@ -927,10 +928,8 @@
       }
       faqBox.style.display = anyFaq ? '' : 'none';
 
-      // ✅ 影音/社群/導航
       fillSocialLinks([v1, v2, v3, s1, s2, s3]);
 
-      // ✅ 主頁/交貨頁顯示切換
       if(isMainData){
         document.getElementById('advantage-box').style.display = 'block';
         document.getElementById('order-box').style.display = 'block';
@@ -945,30 +944,24 @@
         document.getElementById('line-guide').style.display = uiMain ? 'block' : 'none';
       }
 
-      // ✅ 交貨頁聯絡按鈕（動態平衡）
       const btnOA = document.getElementById('btn-oa');
       const btnP  = document.getElementById('btn-p');
       const btnMail = document.getElementById('btn-mail');
       const btnWechat = document.getElementById('btn-wechat');
 
       if(!isMainData){
-        // LINE 官方（必須是 http）
         if(lineOA && String(lineOA).includes('http')){ btnOA.href = lineOA; btnOA.style.display = 'flex'; }
         else { btnOA.style.display = 'none'; }
 
-        // LINE 加好友
         if(lineP && String(lineP).includes('http')){ btnP.href = lineP; btnP.style.display = 'flex'; }
         else { btnP.style.display = 'none'; }
 
-        // Email
         if(email){ btnMail.href = `mailto:${email}`; btnMail.style.display = 'flex'; }
         else { btnMail.style.display = 'none'; }
 
-        // 微信
         if(wechat){ btnWechat.style.display = 'flex'; }
         else { btnWechat.style.display = 'none'; }
 
-        // Phone（動態插入在最後）
         const actions = document.getElementById('actions-area');
         let phoneBtn = document.getElementById('btn-phone');
         if(!phoneBtn){
@@ -993,7 +986,6 @@
         }
 
       } else {
-        // 主頁全顯示（維持門面）
         btnOA.style.display = 'flex';
         btnP.style.display  = 'flex';
         btnMail.style.display= 'flex';
@@ -1006,7 +998,6 @@
       balanceActions();
     }
 
-    // ✅ 前臺選好 → 後臺只輸入姓名 → 一鍵複製「帶版型顏色」交貨網址
     async function doCopy(){
       const id = (document.getElementById('work-id').value || "").trim();
       if(!id){ alert("請先輸入序號或姓名"); return; }
