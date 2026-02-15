@@ -1,10 +1,10 @@
-/* sw.js — Angel Card PWA v357
+/* sw.js — Angel Card PWA v358
    - Offline-first (App Shell)
    - Network-first for Google Sheet CSV (fallback to cache)
    - Cache-busting via VERSION
 */
 
-const VERSION = "357";
+const VERSION = "358";
 const CACHE_NAME = `angel-card-v${VERSION}`;
 const RUNTIME_CACHE = `angel-card-runtime-v${VERSION}`;
 
