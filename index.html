@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V355</title>
+  <title>天使幸福智慧名片 V356</title>
 
-  <link rel="manifest" href="./manifest.json?v=355" />
+  <link rel="manifest" href="./manifest.json?v=356" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -245,7 +245,7 @@
     }
     .label{ color:#adb5bd;font-weight:900;font-size:11px;margin-bottom:8px;display:block; }
 
-    /* ===== v355: Photo carousel (bigger + swipe) ===== */
+    /* ===== Photo carousel (auto for any number) ===== */
     .photo-carousel{
       display:flex;
       gap:10px;
@@ -266,13 +266,13 @@
       border:1px solid rgba(0,0,0,0.06);
       background:#f7f7f7;
       box-shadow: 0 12px 20px rgba(0,0,0,0.05);
-      aspect-ratio: 4 / 5; /* ✅ bigger, elegant */
+      aspect-ratio: 4 / 5;
       cursor:pointer;
     }
     .photo-slide img{
       width:100%;
       height:100%;
-      object-fit:cover; /* ✅ premium look */
+      object-fit:cover;
       display:block;
       transform: scale(1.01);
     }
@@ -482,7 +482,7 @@
     .mode-delivery #work-drawer,
     .mode-delivery #gate-footer{ display:none !important; }
 
-    /* ===== v355: Fullscreen photo viewer ===== */
+    /* ===== Fullscreen photo viewer ===== */
     #photo-viewer{
       display:none;
       position:fixed;
@@ -535,7 +535,7 @@
     .pv-img{
       max-width:100%;
       max-height:100%;
-      object-fit:contain; /* ✅ safe: never crop in fullscreen */
+      object-fit:contain;
       border-radius:18px;
       background:rgba(255,255,255,0.03);
     }
@@ -648,7 +648,7 @@
         </div>
       </div>
 
-      <!-- v355: swipe carousel (auto for any number) -->
+      <!-- ✅ v356: unlimited photos (sheet may become max 5, 8, ... no code change needed) -->
       <div id="photos-box" class="content-box" style="display:none;">
         <span class="label">品牌/產品照/活動照</span>
         <div id="photo-carousel" class="photo-carousel"></div>
@@ -753,7 +753,7 @@
     </div>
   </div>
 
-  <!-- v355: Fullscreen photo viewer -->
+  <!-- Fullscreen photo viewer -->
   <div id="photo-viewer" onclick="closePhotoViewer(event)">
     <div class="pv-inner" onclick="event.stopPropagation()">
       <div class="pv-topbar">
@@ -780,10 +780,10 @@
     </div>
   </div>
 
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V355｜版權所有</div>
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V356｜版權所有</div>
 
   <script>
-    const VERSION = 355;
+    const VERSION = 356;
 
     // ✅ Remember (for main page only)
     const LS_THEME = 'angel_card_theme';
@@ -939,10 +939,13 @@
       return idMatch ? `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000` : url;
     }
 
-    // v355: allow any number (no slice)
+    // ✅ v356: future-proof splitting (supports max 3 / max 5 / unlimited; also supports chinese separators)
     function splitPhotos(raw){
       if(!raw) return [];
-      return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+      return String(raw)
+        .split(/[\n,，;；|、]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
     }
 
     // ===== CSV parsing =====
@@ -1131,7 +1134,7 @@
       }
     }
 
-    // ===== v354: normalize sheet "preferences" =====
+    // ===== normalize sheet "preferences" =====
     function normalizeThemeFromSheet(v){
       const s = String(v||'').trim().toLowerCase();
       if(!s) return "";
@@ -1183,7 +1186,7 @@
       window.open(document.getElementById('form-link').href, '_blank', 'noopener');
     }
 
-    // ===== v355: photo carousel + viewer state =====
+    // ===== Photo carousel + viewer state =====
     let pvList = [];
     let pvIndex = 0;
 
@@ -1228,7 +1231,6 @@
           ticking = false;
           const slides = Array.from(rail.querySelectorAll('.photo-slide'));
           if(!slides.length) return;
-          // find nearest slide to center
           const railRect = rail.getBoundingClientRect();
           const centerX = railRect.left + railRect.width / 2;
           let bestIdx = 0;
@@ -1377,8 +1379,15 @@
 
       uiMain = keepUiMain ? true : !urlId;
 
+      // ✅ v356: robust header matching (works even if sheet changes to "最多5張" etc.)
       const getVal = (key) => {
-        const idx = h.findIndex(head => (head || "").includes(key));
+        const norm = (s) => String(s || '')
+          .replace(/["“”]/g, '')
+          .replace(/\uFEFF/g, '')
+          .replace(/\s+/g, '')
+          .trim();
+        const nk = norm(key);
+        const idx = h.findIndex(head => norm(head).includes(nk));
         return (idx !== -1 && d[idx]) ? d[idx] : "";
       };
 
@@ -1406,7 +1415,19 @@
       const service= getVal('服務項目') || getVal('服務');
       const titles = getVal('重要頭銜') || getVal('獎銜') || getVal('重要頭銜/獎銜');
       const avatar = fixImg(getVal('個人專業形象照') || getVal('形象照'));
-      const photos = splitPhotos(getVal('產品或品牌或活動照片'));
+
+      // ✅ v356: photos key is "future-proof" (max3/max5 wording won't break)
+      const photosRaw =
+        getVal('產品或品牌或活動照片') ||
+        getVal('品牌/產品/活動照片') ||
+        getVal('品牌產品活動照片') ||
+        getVal('內容區插圖') ||
+        getVal('插圖') ||
+        getVal('最多3張') ||
+        getVal('最多5張');
+
+      const photos = splitPhotos(photosRaw);
+
       const logo   = fixImg(getVal('品牌 Logo') || getVal('品牌Logo') || getVal('Logo'));
       const wechat = getVal('微信') || getVal('微信 ID');
       const email  = getVal('一鍵聯繫 Email') || getVal('Email') || getVal('郵箱');
@@ -1446,7 +1467,7 @@
         logoWrap.style.display = 'none';
       }
 
-      // v355: carousel
+      // ✅ carousel (unlimited)
       buildPhotoCarousel(photos);
 
       const titlesBox = document.getElementById('titles-box');
