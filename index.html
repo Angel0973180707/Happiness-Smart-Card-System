@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V361</title>
+  <title>天使幸福智慧名片 V358</title>
 
-  <link rel="manifest" href="./manifest.json?v=361" />
+  <link rel="manifest" href="./manifest.json?v=358" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
@@ -73,39 +73,6 @@
       50%{ transform: translateY(-3px); }
     }
 
-    /* ===== v361: 讀取狀態條（避免卡住你看不到原因） ===== */
-    #load-status{
-      width:92%;
-      max-width:380px;
-      margin:10px 0 0;
-      padding:10px 12px;
-      border-radius:16px;
-      background:rgba(255,255,255,0.92);
-      border:1px solid rgba(0,0,0,0.06);
-      box-shadow:0 10px 18px rgba(0,0,0,0.04);
-      font-size:12px;
-      font-weight:900;
-      color:#2d3436;
-      display:none;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    #load-status small{ font-weight:800; opacity:.72; }
-    #retry-btn{
-      border:none;
-      background:linear-gradient(135deg,var(--p),var(--s));
-      color:#fff;
-      font-weight:900;
-      border-radius:999px;
-      padding:7px 10px;
-      cursor:pointer;
-      font-size:11px;
-      flex:0 0 auto;
-      box-shadow:0 10px 18px rgba(0,0,0,0.08);
-      display:none;
-    }
-
     /* ===== Card ===== */
     .card{
       background:white;
@@ -119,7 +86,7 @@
         0 10px 22px rgba(0,0,0,0.08);
       border:1px solid rgba(0,0,0,0.06);
       position:relative;
-      margin:12px 0 20px;
+      margin:18px 0 20px;
       display:flex;
       flex-direction:column;
       isolation:isolate;
@@ -278,7 +245,7 @@
     }
     .label{ color:#adb5bd;font-weight:900;font-size:11px;margin-bottom:8px;display:block; }
 
-    /* ===== Photo carousel (bigger + swipe) ===== */
+    /* ===== v355: Photo carousel (bigger + swipe) ===== */
     .photo-carousel{
       display:flex;
       gap:10px;
@@ -373,7 +340,7 @@
     }
     #share-box .share-cta:active{ transform: scale(0.99); }
 
-    /* ===== 讓「填寫名片資料」一眼就看到（立體＋跳動） ===== */
+    /* ===== v358: 讓「填寫名片資料」一眼就看到（立體＋跳動） ===== */
     #order-box{
       position:relative;
       overflow:hidden;
@@ -469,13 +436,16 @@
       50%{ transform: translateX(4px); }
     }
 
+    /* 點擊時的「按下去」立體感 */
     #order-box:active{
       transform: translateY(1px);
       box-shadow:
         0 14px 28px rgba(0,0,0,0.10),
         0 8px 14px rgba(238,82,83,0.10);
     }
-    #order-box:active .order-cta{ transform: scale(0.99); }
+    #order-box:active .order-cta{
+      transform: scale(0.99);
+    }
 
     /* ===== Actions ===== */
     .actions{
@@ -619,7 +589,7 @@
     .mode-delivery #work-drawer,
     .mode-delivery #gate-footer{ display:none !important; }
 
-    /* ===== Fullscreen photo viewer ===== */
+    /* ===== v355: Fullscreen photo viewer ===== */
     #photo-viewer{
       display:none;
       position:fixed;
@@ -709,15 +679,6 @@
 </head>
 
 <body class="warm-pink style-arch paper-cotton">
-  <!-- v361 狀態條 -->
-  <div id="load-status">
-    <div>
-      <div id="ls-title">資料載入中…</div>
-      <small id="ls-sub">正在同步 Google Sheets</small>
-    </div>
-    <button id="retry-btn" onclick="manualRetry()">重試</button>
-  </div>
-
   <div id="admin-panel">
     <div class="picker-group" style="margin-bottom:10px;">
       <span class="hint-bounce"><i class="fa-solid fa-1"></i> 步驟一：點選顏色、版型、紙感</span>
@@ -785,6 +746,7 @@
         <div style="font-size:14px;color:#2d3436;">內容更新：後台更新，同步更新</div>
       </div>
 
+      <!-- v358: order-box 變立體 + 文字跳動 + 整塊可點 -->
       <div id="order-box" class="content-box" onclick="goFillForm()">
         <div class="order-inner">
           <div class="order-head">
@@ -797,6 +759,7 @@
             <div class="order-cta-arrow"><i class="fa-solid fa-arrow-right"></i></div>
           </div>
 
+          <!-- 仍保留原本 a（給需要長按複製的人用） -->
           <a id="form-link" href="https://forms.gle/dkeHW9tfEYiGx39U9" target="_blank" rel="noopener"
              style="display:none;">form</a>
 
@@ -806,6 +769,7 @@
         </div>
       </div>
 
+      <!-- v355: swipe carousel (auto for any number) -->
       <div id="photos-box" class="content-box" style="display:none;">
         <span class="label">品牌/產品照/活動照</span>
         <div id="photo-carousel" class="photo-carousel"></div>
@@ -840,6 +804,7 @@
       </div>
     </div>
 
+    <!-- ===== Contact Area ===== -->
     <div id="actions-area" class="actions">
       <div id="line-guide" class="line-guide">點進 line 官方網站，預約訂製名片</div>
 
@@ -877,6 +842,7 @@
     </div>
   </div>
 
+  <!-- Install modal -->
   <div id="install-modal" onclick="closeInstallModal(event)">
     <div class="modal-content" onclick="event.stopPropagation()">
       <span class="close-modal" onclick="closeInstallModal(event)">&times;</span>
@@ -898,6 +864,7 @@
     </div>
   </div>
 
+  <!-- WeChat -->
   <div id="wechat-mask" onclick="this.style.display='none'">
     <div style="background:white;color:#333;padding:26px;border-radius:28px;width:80%;max-width:320px;text-align:center;">
       <i class="fa-brands fa-weixin" style="font-size:48px;color:#07C160;margin-bottom:12px;"></i>
@@ -907,6 +874,7 @@
     </div>
   </div>
 
+  <!-- v355: Fullscreen photo viewer -->
   <div id="photo-viewer" onclick="closePhotoViewer(event)">
     <div class="pv-inner" onclick="event.stopPropagation()">
       <div class="pv-topbar">
@@ -924,6 +892,7 @@
     </div>
   </div>
 
+  <!-- Hidden work drawer -->
   <div id="work-drawer">
     <div style="padding:22px;text-align:center;">
       <input type="text" id="work-id" style="width:90%;padding:14px;border-radius:14px;border:1px solid #ddd;color:#333;" placeholder="輸入序號或姓名" />
@@ -932,54 +901,28 @@
     </div>
   </div>
 
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V361｜版權所有</div>
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V358｜版權所有</div>
 
   <script>
-    const VERSION = 361;
+    const VERSION = 358;
 
     // ✅ Remember (for main page only)
     const LS_THEME = 'angel_card_theme';
     const LS_STYLE = 'angel_card_style';
     const LS_PAPER = 'angel_card_paper';
 
-    // ✅ Google Form base
+    // ✅ Google Form base (kept same)
     const FORM_BASE = "https://forms.gle/dkeHW9tfEYiGx39U9";
     const FORM_PREFILL = "";
 
-    // ✅ v361：可用 URL 參數調整 Sheet / gid（避免 gid 一變就整個壞）
-    // 使用方式：
-    // ?sheet=16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY&gid=1350316682
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlId = urlParams.get('id');
-
-    const SHEET_ID = urlParams.get('sheet') || "16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY";
-    const SHEET_GID = urlParams.get('gid') || "1350316682";
-
-    function showLoadStatus(title, sub, showRetry){
-      const box = document.getElementById('load-status');
-      const t = document.getElementById('ls-title');
-      const s = document.getElementById('ls-sub');
-      const r = document.getElementById('retry-btn');
-      t.textContent = title || "資料載入中…";
-      s.textContent = sub || "";
-      box.style.display = 'flex';
-      r.style.display = showRetry ? 'inline-flex' : 'none';
-    }
-    function hideLoadStatus(){
-      const box = document.getElementById('load-status');
-      box.style.display = 'none';
-    }
-
-    // ✅ v361：SW 註冊改成更新策略
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', async () => {
-        try{
-          const reg = await navigator.serviceWorker.register('./sw.js?v=' + VERSION);
-          // 嘗試立刻檢查更新
-          reg.update().catch(()=>{});
-        }catch(e){}
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?v=' + VERSION).catch(() => {});
       });
     }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlId = urlParams.get('id');
 
     let allRows = [];
     let clicks = 0;
@@ -1117,11 +1060,13 @@
       return idMatch ? `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000` : url;
     }
 
+    // allow any number (future 5, 8, 10 都 ok)
     function splitPhotos(raw){
       if(!raw) return [];
       return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
     }
 
+    // ===== CSV parsing =====
     function parseCSV(text){
       const rows = [];
       let row = [];
@@ -1156,49 +1101,16 @@
       return rows;
     }
 
-    // ✅ v361：改成「強制不快取 + 超時 + 重試」
-    async function fetchWithTimeout(url, ms){
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), ms);
+    async function loadSheetData(){
+      const csvUrl = "https://docs.google.com/spreadsheets/d/16c21SGmuUVpKVnUrCvWt88OWZdepI76hawWW3DvNJMY/export?format=csv&gid=1350316682&t=" + Date.now();
       try{
-        const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
-        return res;
-      } finally {
-        clearTimeout(t);
+        const res = await fetch(csvUrl, { cache: 'no-store' });
+        if(!res.ok) throw new Error('bad status');
+        const text = await res.text();
+        allRows = parseCSV(text);
+      } catch(e){
+        console.log("資料同步中");
       }
-    }
-
-    async function loadSheetDataWithRetry(){
-      const csvUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}&t=${Date.now()}`;
-
-      showLoadStatus("資料載入中…", "正在同步 Google Sheets", false);
-
-      let lastErr = "";
-      for(let attempt=1; attempt<=4; attempt++){
-        try{
-          showLoadStatus("資料載入中…", `同步中（第 ${attempt} 次）`, false);
-          const res = await fetchWithTimeout(csvUrl, 9000);
-          if(!res.ok) throw new Error("HTTP " + res.status);
-          const text = await res.text();
-          const parsed = parseCSV(text);
-          if(!parsed || parsed.length < 2) throw new Error("CSV 內容不足（可能是權限/未發佈）");
-          allRows = parsed;
-          hideLoadStatus();
-          return true;
-        }catch(e){
-          lastErr = String(e && e.message ? e.message : e);
-          await new Promise(r => setTimeout(r, 600 * attempt));
-        }
-      }
-
-      // 失敗：顯示可重試
-      showLoadStatus("資料讀取失敗", "可能原因：Sheets 權限/未發佈/網路阻擋/ gid 變動", true);
-      console.log("loadSheetData failed:", lastErr);
-      return false;
-    }
-
-    function manualRetry(){
-      init(true);
     }
 
     // ===== link area helpers =====
@@ -1340,6 +1252,7 @@
       }
     }
 
+    // ===== normalize sheet "preferences" =====
     function normalizeThemeFromSheet(v){
       const s = String(v||'').trim().toLowerCase();
       if(!s) return "";
@@ -1729,7 +1642,7 @@
           actions.appendChild(phoneBtn);
         }
         if(phone){
-          phoneBtn.href = \`tel:\${String(phone).replace(/\\s+/g,'')}\`;
+          phoneBtn.href = `tel:${String(phone).replace(/\s+/g,'')}`;
           phoneBtn.style.display = 'flex';
         } else {
           phoneBtn.style.display = 'none';
@@ -1753,30 +1666,18 @@
     async function doCopy(){
       const id = (document.getElementById('work-id').value || "").trim();
       if(!id){ alert("請先輸入序號或姓名"); return; }
-      const finalUrl = \`\${window.location.origin}\${window.location.pathname}?id=\${encodeURIComponent(id)}&theme=\${encodeURIComponent(curTheme)}&style=\${encodeURIComponent(curStyle)}&paper=\${encodeURIComponent(curPaper)}\`;
+      const finalUrl = `${window.location.origin}${window.location.pathname}?id=${encodeURIComponent(id)}&theme=${encodeURIComponent(curTheme)}&style=${encodeURIComponent(curStyle)}&paper=${encodeURIComponent(curPaper)}`;
       const ok = await safeCopy(finalUrl);
       alert(ok ? "✅ 交貨網址已複製！（成品以資料列外觀為主）" : "此瀏覽器限制複製，請手動複製網址列");
     }
 
-    async function init(force){
-      // v361：每次 init 都試著更新 class / form link
-      updateClass();
-      syncStyleButtons();
-      syncPaperButtons();
-      updateFormLink();
-
-      const ok = await loadSheetDataWithRetry();
-      if(!ok){
-        // 讀不到就先顯示「讀取中...」避免空白
-        document.getElementById('u-name').innerText = "讀取中…";
-        document.getElementById('u-service').innerText = "資料同步失敗，請按上方『重試』";
-        return;
-      }
+    async function init(){
+      await loadSheetData();
 
       if(urlId){
         uiMain = false;
-        const ok2 = renderById(urlId, false);
-        if(!ok2){
+        const ok = renderById(urlId, false);
+        if(!ok){
           uiMain = true;
           renderMainFixedFirstRow();
         }
@@ -1791,7 +1692,6 @@
       updateFormLink();
       layoutActionsGrid();
     }
-
     init();
   </script>
 </body>
