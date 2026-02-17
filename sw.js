@@ -1,134 +1,77 @@
-/* sw.js — Angel Card PWA v358
-   - Offline-first (App Shell)
-   - Network-first for Google Sheet CSV (fallback to cache)
-   - Cache-busting via VERSION
-*/
-
-const VERSION = "358";
+/* Angel Card Service Worker v361 */
+const VERSION = "361";
 const CACHE_NAME = `angel-card-v${VERSION}`;
-const RUNTIME_CACHE = `angel-card-runtime-v${VERSION}`;
 
-// ✅ App Shell：你目前這個名片是單檔版（index 內嵌 CSS/JS）
-// 如果你未來拆成 style.css / app.js，再把它們加進來即可。
-const APP_SHELL = [
+const CORE = [
   "./",
-  `./index.html?v=${VERSION}`,
-  `./manifest.json?v=${VERSION}`,
-  "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css",
-  "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap"
+  "./index.html",
+  "./manifest.json",
+  "./sw.js",
+  "./icons/icon.svg"
 ];
 
-// 你的 icons 路徑若不同，請自行調整；抓不到也不會壞，只是離線時 icon 可能空。
-const ICONS = [
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
-];
-
+// 安裝：預先快取核心檔
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_NAME);
-      // 盡量預存 app shell
-      await cache.addAll([...APP_SHELL, ...ICONS].map((u) => new Request(u, { cache: "reload" })));
-      self.skipWaiting();
-    })()
+      // 同時快取「帶版本」與「不帶版本」，避免你用 ?v=361 讀不到
+      const withV = CORE.map((u) => (u.includes("?") ? u : `${u}?v=${VERSION}`));
+      await cache.addAll([...new Set([...CORE, ...withV])]);
+    })().catch(() => {})
   );
 });
 
+// 啟用：清掉舊版 cache
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME && key !== RUNTIME_CACHE) return caches.delete(key);
-        })
-      );
+      await Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())));
       await self.clients.claim();
     })()
   );
 });
 
-// --- helpers ---
-async function cacheFirst(req) {
-  const cache = await caches.open(CACHE_NAME);
-  const hit = await cache.match(req, { ignoreSearch: false });
-  if (hit) return hit;
-
-  const res = await fetch(req);
-  if (res && res.ok) cache.put(req, res.clone());
-  return res;
-}
-
-async function networkFirst(req) {
-  const cache = await caches.open(RUNTIME_CACHE);
-  try {
-    const res = await fetch(req);
-    if (res && res.ok) cache.put(req, res.clone());
-    return res;
-  } catch (err) {
-    const hit = await cache.match(req, { ignoreSearch: true });
-    if (hit) return hit;
-    throw err;
-  }
-}
-
-function isSheetCSV(url) {
-  // 你 index.html 內的 CSV 來源：docs.google.com ... export?format=csv
-  return (
-    url.hostname.includes("docs.google.com") &&
-    url.pathname.includes("/spreadsheets/") &&
-    url.searchParams.get("format") === "csv"
-  );
-}
-
-function isGoogleFonts(url) {
-  return url.hostname.includes("fonts.googleapis.com") || url.hostname.includes("fonts.gstatic.com");
-}
-
-function isCDN(url) {
-  return url.hostname.includes("cdnjs.cloudflare.com");
-}
-
+// 抓取：先 cache；同時背景更新；離線回 index.html
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-
-  // 只處理 GET
   if (req.method !== "GET") return;
 
   const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return; // 不攔外部資源
 
-  // 同源：HTML / manifest / icons -> cache-first（秒開）
-  if (url.origin === self.location.origin) {
-    // index / root / manifest / icons
-    if (
-      url.pathname === "/" ||
-      url.pathname.endsWith("/index.html") ||
-      url.pathname.endsWith("/manifest.json") ||
-      url.pathname.startsWith("/icons/") ||
-      url.pathname.endsWith(".png") ||
-      url.pathname.endsWith(".jpg") ||
-      url.pathname.endsWith(".jpeg") ||
-      url.pathname.endsWith(".webp") ||
-      url.pathname.endsWith(".svg")
-    ) {
-      event.respondWith(cacheFirst(req));
-      return;
-    }
-  }
+  event.respondWith(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
 
-  // Google Sheet CSV：network-first（確保最新），離線用快取頂上
-  if (isSheetCSV(url)) {
-    event.respondWith(networkFirst(req));
-    return;
-  }
+      const cached = await cache.match(req, { ignoreSearch: false });
+      if (cached) {
+        event.waitUntil(
+          fetch(req)
+            .then((res) => {
+              if (res && res.ok) cache.put(req, res.clone());
+            })
+            .catch(() => {})
+        );
+        return cached;
+      }
 
-  // Fonts / CDN：cache-first（穩定）
-  if (isGoogleFonts(url) || isCDN(url)) {
-    event.respondWith(cacheFirst(req));
-    return;
-  }
-
-  // 其他：預設 network-first（避免舊資料）
-  event.respondWith(networkFirst(req));
+      try {
+        const fresh = await fetch(req);
+        if (fresh && fresh.ok) cache.put(req, fresh.clone());
+        return fresh;
+      } catch (e) {
+        const fallback = await cache.match("./index.html", { ignoreSearch: true });
+        return (
+          fallback ||
+          new Response("Offline", {
+            status: 200,
+            headers: { "Content-Type": "text/plain; charset=utf-8" }
+          })
+        );
+      }
+    })()
+  );
 });
