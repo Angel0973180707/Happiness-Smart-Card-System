@@ -1,81 +1,63 @@
-/* Angel Card Front v364 (FULL OVERWRITE)
+/* Angel Card Front (FULL OVERWRITE)
  * Fix:
- * - “成品預覽”只顯示標題（不塞多餘文字）
- * - 顏色更飽滿
- * - 自由款 3 版型：拱形 / 平直 / 聚光 確實切換到門面預覽
- * - 讀 GAS ?action=public (TW0001 fixed in GAS)
+ * 1) 自由款：選版型一定動（支援 data-layout 與文字辨識）
+ * 2) 精品款：更飽滿質感（plan-premium）
+ * 3) 圖片：Drive 連結轉直連；若仍不出＝Drive 權限問題
  */
 
 const API_BASE = "https://script.google.com/macros/s/AKfycbwjEhMQJRT7CUte2jJd7BzZfU1cwl0PfyInnH3zvbYU8IMZt4TnbTwPZftssW0OGva8/exec";
-const FORM_URL = "https://forms.gle/B13z5M2mwwv9ZKME8";
+const STORE_LAYOUT = "ANGEL_FREE_LAYOUT";
 
-const STORE_LAYOUT = "ANGEL_FREE_LAYOUT"; // arch / flat / spotlight
+const qsa = (s, root=document) => Array.from(root.querySelectorAll(s));
 
-const $ = (id) => document.getElementById(id);
-const qsa = (s) => Array.from(document.querySelectorAll(s));
+function findFacadeEl(){
+  return (
+    document.getElementById("facade") ||
+    document.querySelector(".facade") ||
+    document.querySelector("[data-facade]") ||
+    document.getElementById("preview") ||
+    document.getElementById("previewCard") ||
+    document.querySelector(".previewCard") ||
+    null
+  );
+}
 
-const els = {
-  facade: $("facade"),
-  btnGoForm: $("btnGoForm"),
-  // 你的三顆按鈕不一定有固定 id，所以我用「文字判斷」去抓
-};
+function setSelected(btns, layout){
+  btns.forEach(b=>b.classList.remove("selected"));
+  const pick = btns.find(b => (b.dataset.layout||"") === layout);
+  if (pick) pick.classList.add("selected");
+}
 
 function setLayout(layout){
-  const root = els.facade;
-  if (!root) return;
+  const facade = findFacadeEl();
+  if (!facade) return;
 
-  root.classList.remove("layout-arch","layout-flat","layout-spotlight");
-  if (layout === "arch") root.classList.add("layout-arch");
-  if (layout === "flat") root.classList.add("layout-flat");
-  if (layout === "spotlight") root.classList.add("layout-spotlight");
-
-  // 紙感永遠開
-  root.classList.add("paper");
+  facade.classList.add("paper");
+  facade.classList.remove("layout-arch","layout-flat","layout-spotlight");
+  if (layout === "arch") facade.classList.add("layout-arch");
+  if (layout === "flat") facade.classList.add("layout-flat");
+  if (layout === "spotlight") facade.classList.add("layout-spotlight");
 
   localStorage.setItem(STORE_LAYOUT, layout);
 
-  // 同步按鈕 selected 狀態（抓文字）
-  const buttons = qsa("button, .pillBtn");
-  buttons.forEach(b=>{
-    const t = (b.innerText||"").trim();
-    const isArch = t.includes("雜誌") || t.includes("拱形");
-    const isFlat = t.includes("留白") || t.includes("平直");
-    const isSpot = t.includes("聚光") || t.includes("強對比");
-    b.classList.remove("selected");
-    if (layout === "arch" && isArch) b.classList.add("selected");
-    if (layout === "flat" && isFlat) b.classList.add("selected");
-    if (layout === "spotlight" && isSpot) b.classList.add("selected");
-  });
+  // 同步 selected（抓 data-layout 的按鈕）
+  const btns = qsa("[data-layout]");
+  if (btns.length) setSelected(btns, layout);
 }
 
-function bindLayoutButtons(){
-  const buttons = qsa("button, .pillBtn");
-  buttons.forEach(b=>{
-    const t = (b.innerText||"").trim();
-
-    // 依你截圖：雜誌編輯感 / 藝廊留白感 / 強對比主視覺
-    if (t.includes("雜誌") || t.includes("拱形")) {
-      b.addEventListener("click", ()=> setLayout("arch"));
-      return;
-    }
-    if (t.includes("藝廊") || t.includes("留白") || t.includes("平直")) {
-      b.addEventListener("click", ()=> setLayout("flat"));
-      return;
-    }
-    if (t.includes("強對比") || t.includes("聚光")) {
-      b.addEventListener("click", ()=> setLayout("spotlight"));
-      return;
-    }
-  });
-}
-
-function driveToDirect(url){
+function normalizeDriveToDirect(url){
   const s = String(url || "").trim();
   if (!s) return "";
+
+  // open?id=XXXX
   let m = s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
   if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+
+  // /file/d/XXXX or /d/XXXX
   m = s.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+
+  // already direct or normal url
   return s;
 }
 
@@ -94,152 +76,25 @@ function esc(str){
     .replaceAll("'","&#039;");
 }
 
+function detectPlanPremium(d){
+  const plan = String(d["請選擇製作方案？"] || "").trim();
+  // 只要包含「精品」就當精品款（你也可以改成更精準）
+  return plan.includes("精品");
+}
+
 function buildLinkPills(d){
   const pills = [];
 
-  const lineOA = (d["​LINE 官方帳號連結（綠色主按鈕）"] || d["LINE 官方帳號連結（綠色主按鈕）"] || "").trim();
+  const lineOA = String(d["​LINE 官方帳號連結（綠色主按鈕）"] || d["LINE 官方帳號連結（綠色主按鈕）"] || "").trim();
   if (lineOA) pills.push({href: lineOA, text:"LINE 官方帳號", primary:true});
 
-  const linePrivate = (d["私訊 LINE 連結（第一行填連結，換行填line名稱）"] || "").trim();
+  const linePrivate = String(d["私訊 LINE 連結（第一行填連結，換行填line名稱）"] || "").trim();
   if (linePrivate){
     const parts = linePrivate.split(/\n+/).map(s=>s.trim()).filter(Boolean);
     if (parts[0]) pills.push({href: parts[0], text: parts[1] || "私訊 LINE", primary:false});
   }
 
-  const v1 = (d["影音平台 1（如：YouTube或其他連結）"] || "").trim();
-  const v2 = (d["影音平台 2（如：TikTok / 抖音或其他連結）"] || "").trim();
-  const v3 = (d["影音平台 3（或地址）"] || "").trim();
-  if (v1) pills.push({href:v1, text:"影音平台 1"});
-  if (v2) pills.push({href:v2, text:"影音平台 2"});
-  if (v3) pills.push({href:v3, text:"影音平台 3"});
-
-  const s1 = (d["社群平台 1（如：Facebook 粉絲專頁或其他連結）"] || "").trim();
-  const s2 = (d["社群平台 2（如：Instagram或其他連結）"] || "").trim();
-  const s3 = (d["社群平台 3（如：Thread / 部落格或其他連結）"] || "").trim();
-  if (s1) pills.push({href:s1, text:"社群平台 1"});
-  if (s2) pills.push({href:s2, text:"社群平台 2"});
-  if (s3) pills.push({href:s3, text:"社群平台 3"});
-
-  const email = (d["一鍵聯繫 Email"] || "").trim();
-  const phone = (d["一鍵聯繫電話"] || "").trim();
-  if (email) pills.push({href:`mailto:${email}`, text:"Email"});
-  if (phone) pills.push({href:`tel:${phone}`, text:"電話"});
-
-  const wechat = (d["微信 ID"] || "").trim();
-  if (wechat) pills.push({href:"", text:`微信：${wechat}`});
-
-  return pills;
-}
-
-function renderFacade(payload){
-  const root = els.facade;
-  if (!root) return;
-
-  const d = payload?.data || {};
-
-  const title = (d["姓名（名片大標題）"] || "名片示範").trim();
-  const org   = (d["單位名稱（如：幸福教養概念館）"] || "").trim();
-  const tag   = (d["理念標語（顯示在照片下方，精簡有力）"] || "").trim();
-  const svc   = (d["服務項目（核心業務，多項可條列換行）"] || "").trim();
-  const honor = (d["重要頭銜/獎銜（權威背書項目，多項可條列換行）"] || "").trim();
-
-  const avatarUrl = driveToDirect(d["個人專業形象照（名片主圖）"]);
-  const logoUrl   = driveToDirect(d["品牌 Logo（右上角小圖標）"]);
-
-  const imgs = splitMulti(d["產品或品牌或活動照片最多3張（內容區插圖）"]).map(driveToDirect);
-
-  const pills = buildLinkPills(d);
-
-  root.innerHTML = `
-    <div class="hero">
-      <div class="heroTop">
-        <div class="avatar">${avatarUrl ? `<img src="${avatarUrl}" alt="photo">` : ""}</div>
-        <div class="logo">${logoUrl ? `<img src="${logoUrl}" alt="logo">` : ""}</div>
-      </div>
-
-      <div class="heroText">
-        <h2 class="h2">${esc(title)}</h2>
-        ${org ? `<div class="h3">${esc(org)}</div>` : ""}
-        ${tag ? `<div class="tagline">${esc(tag)}</div>` : ""}
-      </div>
-    </div>
-
-    ${svc ? `<div class="section"><h4>服務</h4><p class="kv">${esc(svc)}</p></div>` : ""}
-
-    ${imgs.length ? `
-      <div class="section">
-        <h4>內容</h4>
-        <div class="carousel">
-          ${imgs.map(u=>`
-            <div class="carouselItem" data-full="${u}">
-              <img src="${u}" alt="img">
-            </div>
-          `).join("")}
-        </div>
-      </div>
-    ` : ""}
-
-    ${honor ? `<div class="section"><h4>頭銜</h4><p class="kv">${esc(honor)}</p></div>` : ""}
-
-    ${pills.length ? `
-      <div class="section">
-        <h4>連結</h4>
-        <div class="links">
-          ${pills.map(p=>{
-            if (!p.href) return `<span class="pill">${esc(p.text)}</span>`;
-            return `<a class="pill ${p.primary ? "primary":""}" href="${p.href}" target="_blank" rel="noopener noreferrer">${esc(p.text)}</a>`;
-          }).join("")}
-        </div>
-      </div>
-    ` : ""}
-  `;
-
-  // 圖片點擊開大圖
-  qsa(".carouselItem").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const u = el.getAttribute("data-full");
-      if (u) window.open(u, "_blank", "noopener,noreferrer");
-    });
-  });
-
-  // 保底：如果 hero 背景沒套到，補 layout class
-  const saved = localStorage.getItem(STORE_LAYOUT) || "arch";
-  setLayout(saved);
-}
-
-async function loadPublic(){
-  const url = `${API_BASE}?action=public&_=${Date.now()}`;
-  const res = await fetch(url, { cache:"no-store" });
-  const json = await res.json();
-  if (!json || !json.ok) throw new Error(json?.message || "API failed");
-  return json;
-}
-
-function bindFormBtn(){
-  if (!els.btnGoForm) return;
-  els.btnGoForm.addEventListener("click", ()=> {
-    window.location.href = FORM_URL;
-  });
-}
-
-(async function init(){
-  try{
-    // 綁自由款三版型
-    bindLayoutButtons();
-
-    // 先套一個預設 layout（避免你說的「沒出現」）
-    const saved = localStorage.getItem(STORE_LAYOUT) || "arch";
-    setLayout(saved);
-
-    // 綁表單按鈕（若有）
-    bindFormBtn();
-
-    // 載入 TW0001 公開示範資料
-    const payload = await loadPublic();
-    renderFacade(payload);
-
-  } catch (err){
-    console.error(err);
-    alert("前臺載入失敗：\n" + (err?.message || err));
-  }
-})();
+  const v1 = String(d["影音平台 1（如：YouTube或其他連結）"] || "").trim();
+  const v2 = String(d["影音平台 2（如：TikTok / 抖音或其他連結）"] || "").trim();
+  const v3 = String(d["影音平台 3（或地址）"] || "").trim();
+  if (v1) pills.push({href:v
