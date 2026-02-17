@@ -1,4 +1,4 @@
-const CACHE_NAME = "angel-card-front-v1";
+const CACHE_NAME = "hscs-front-v1";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,35 +9,37 @@ const ASSETS = [
   "./icon-512.png"
 ];
 
-self.addEventListener("install", (e) => {
+self.addEventListener("install", (e)=>{
   e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
+  self.skipWaiting();
 });
 
-self.addEventListener("activate", (e) => {
+self.addEventListener("activate", (e)=>{
   e.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE_NAME ? caches.delete(k) : null)))
-      .then(() => self.clients.claim())
+    caches.keys().then(keys => Promise.all(
+      keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve()))
+    ))
   );
+  self.clients.claim();
 });
 
-self.addEventListener("fetch", (e) => {
+self.addEventListener("fetch", (e)=>{
   const req = e.request;
-  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+
+  // Always network for GAS (fresh)
+  if (url.href.includes("script.google.com/macros/s/")) {
+    e.respondWith(fetch(req).catch(()=>caches.match("./index.html")));
+    return;
+  }
 
   e.respondWith(
-    caches.match(req).then(hit => {
-      if (hit) return hit;
-      return fetch(req).then(res => {
-        // cache same-origin assets
-        const url = new URL(req.url);
-        if (url.origin === location.origin) {
-          const copy = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
-        }
-        return res;
-      }).catch(() => caches.match("./index.html"));
-    })
+    caches.match(req).then(cached => cached || fetch(req).then(res=>{
+      const copy = res.clone();
+      caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
+      return res;
+    }).catch(()=>cached))
   );
 });
