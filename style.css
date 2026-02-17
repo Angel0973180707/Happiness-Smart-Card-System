@@ -1,24 +1,27 @@
 :root{
-  --bg:#eef2ff;          /* 更飽滿但乾淨 */
+  --bg:#eef2ff;
   --card:#ffffff;
   --ink:#111827;
   --muted:#6b7280;
-  --line:#e5e7eb;
+  --line:rgba(17,24,39,.10);
 
-  --p:#2563eb;          /* 預設主色更飽滿 */
-  --shadow: 0 14px 32px rgba(17,24,39,.12);
-  --r: 18px;
+  --p:#2563eb;
+  --p2:#10b981;
+
+  --shadow: 0 16px 34px rgba(17,24,39,.14);
+  --shadow2: 0 22px 60px rgba(17,24,39,.18);
+  --r: 20px;
 }
 
 html,body{height:100%}
 body{
   margin:0;
   font-family:"Noto Sans TC",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"PingFang TC","Microsoft JhengHei",sans-serif;
-  background:
-    radial-gradient(1200px 520px at 12% 0%, rgba(37,99,235,.22), rgba(37,99,235,0) 55%),
-    radial-gradient(900px 520px at 88% 10%, rgba(16,185,129,.16), rgba(16,185,129,0) 60%),
-    linear-gradient(180deg, #f3f6ff 0%, #eef2ff 35%, #f7f7fb 100%);
   color:var(--ink);
+  background:
+    radial-gradient(1200px 520px at 12% 0%, rgba(37,99,235,.24), rgba(37,99,235,0) 55%),
+    radial-gradient(900px 520px at 88% 10%, rgba(16,185,129,.18), rgba(16,185,129,0) 60%),
+    linear-gradient(180deg, #f3f6ff 0%, #eef2ff 35%, #f7f7fb 100%);
 }
 
 .container{
@@ -27,57 +30,24 @@ body{
   padding:16px 14px 56px;
 }
 
-/* ===== 區塊標題（精簡） ===== */
-.sectionTitle{
-  margin: 14px 0 10px;
-  font-size: 18px;
-  font-weight: 900;
-  letter-spacing:.4px;
-}
-.sectionSub{
-  margin:0 0 10px;
-  color:var(--muted);
-  font-size: 13px;
-}
-
-/* ===== 按鈕 ===== */
-.btn{
-  border:none;
-  border-radius:999px;
-  padding: 11px 14px;
-  font-weight:900;
-  cursor:pointer;
-  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
-}
-.btn:active{ transform: translateY(1px); }
-.btn.primary{
-  background: var(--p);
-  color:#fff;
-  box-shadow: 0 14px 26px rgba(0,0,0,.16);
-}
-.btn.ghost{
-  background:#fff;
-  border:1px solid var(--line);
-  color:var(--ink);
-}
-.btn.disabled{ opacity:.5; pointer-events:none; }
-
-/* ===== 版型選擇鈕（你的三顆） ===== */
+/* ===== 版型選擇 ===== */
 .picker{
-  background: rgba(255,255,255,.78);
+  background: rgba(255,255,255,.82);
   border:1px solid rgba(17,24,39,.08);
   border-radius: 18px;
   padding: 14px;
-  box-shadow: 0 10px 24px rgba(17,24,39,.08);
+  box-shadow: 0 10px 24px rgba(17,24,39,.10);
   backdrop-filter: blur(10px);
 }
+
 .pickerRow{
   display:flex;
   gap:12px;
   flex-wrap:wrap;
 }
-.pillBtn{
-  border:1px solid rgba(17,24,39,.10);
+
+.pillBtn, button.pillBtn{
+  border:1px solid rgba(17,24,39,.12);
   background: #fff;
   border-radius: 999px;
   padding: 12px 16px;
@@ -86,13 +56,13 @@ body{
   cursor:pointer;
   transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
 }
-.pillBtn:hover{ transform: translateY(-1px); box-shadow: 0 10px 22px rgba(17,24,39,.10); }
+.pillBtn:hover{ transform: translateY(-1px); box-shadow: 0 12px 26px rgba(17,24,39,.12); }
 .pillBtn.selected{
-  border-color: rgba(37,99,235,.35);
-  box-shadow: 0 12px 26px rgba(37,99,235,.18);
+  border-color: rgba(37,99,235,.40);
+  box-shadow: 0 14px 28px rgba(37,99,235,.18);
 }
 
-/* ===== 門面（成品預覽）卡片 ===== */
+/* ===== 門面卡片（成品預覽） ===== */
 .facade{
   border-radius: 22px;
   background: var(--card);
@@ -102,25 +72,24 @@ body{
   position:relative;
 }
 
-/* 紙感：更明顯 */
-.paper{
-  background:
-    radial-gradient(circle at 18% 10%, rgba(0,0,0,.05) 0, rgba(0,0,0,0) 55%),
-    radial-gradient(circle at 90% 30%, rgba(0,0,0,.04) 0, rgba(0,0,0,0) 55%),
-    linear-gradient(180deg, rgba(255,255,255,1), rgba(250,250252,1));
-}
-.paper::before{
+/* 紙感（更明顯） */
+.facade.paper::before{
   content:"";
   position:absolute; inset:0;
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E");
   mix-blend-mode:multiply;
   opacity:.45;
   pointer-events:none;
 }
 
-/* ===== 自由款三種版型（核心修正） ===== */
-/* 共同：預覽背景更飽滿 */
+/* ===== 顏色飽滿：精品款（plan-premium） ===== */
+.facade.plan-premium{
+  box-shadow: var(--shadow2);
+  border-color: rgba(17,24,39,.10);
+}
+
+/* ===== Hero 區 ===== */
 .facade .hero{
   position:relative;
   padding: 18px 16px 14px;
@@ -130,56 +99,62 @@ body{
   overflow:hidden;
 }
 
-/* 拱形：上方拱形罩 + 柔光 */
+/* 自由款：拱形 */
 .facade.layout-arch .hero{
   background:
-    radial-gradient(900px 360px at 50% -10%, rgba(37,99,235,.35), rgba(37,99,235,0) 65%),
-    linear-gradient(180deg, rgba(255,231,210,.95) 0%, rgba(255,248,242,.96) 55%, rgba(255,255,255,1) 100%);
+    radial-gradient(900px 360px at 50% -10%, rgba(37,99,235,.42), rgba(37,99,235,0) 65%),
+    linear-gradient(180deg, rgba(255,226,206,.98) 0%, rgba(255,248,242,.98) 55%, rgba(255,255,255,1) 100%);
 }
 .facade.layout-arch .hero::before{
   content:"";
   position:absolute;
   left:50%; top:-120px;
-  width: 520px; height: 360px;
+  width: 540px; height: 380px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: rgba(255,255,255,.55);
-  filter: blur(0px);
+  background: rgba(255,255,255,.60);
   border:1px solid rgba(17,24,39,.06);
 }
 
-/* 平直：乾淨分區、直線切割感 */
+/* 自由款：平直 */
 .facade.layout-flat .hero{
   background:
-    linear-gradient(180deg, rgba(219,234,254,.95) 0%, rgba(255,255,255,1) 70%),
-    linear-gradient(90deg, rgba(37,99,235,.12), rgba(16,185,129,.10));
+    linear-gradient(180deg, rgba(219,234,254,.98) 0%, rgba(255,255,255,1) 70%),
+    linear-gradient(90deg, rgba(37,99,235,.16), rgba(16,185,129,.12));
 }
 .facade.layout-flat .hero::before{
   content:"";
   position:absolute; inset:0;
   background:
-    linear-gradient(90deg, rgba(17,24,39,.05) 0, rgba(17,24,39,0) 35%),
-    linear-gradient(180deg, rgba(17,24,39,0) 0, rgba(17,24,39,.04) 100%);
+    linear-gradient(90deg, rgba(17,24,39,.06) 0, rgba(17,24,39,0) 35%),
+    linear-gradient(180deg, rgba(17,24,39,0) 0, rgba(17,24,39,.05) 100%);
   pointer-events:none;
-  opacity:.8;
 }
 
-/* 聚光：中心聚光燈效果 */
+/* 自由款：聚光 */
 .facade.layout-spotlight .hero{
   background:
-    radial-gradient(260px 260px at 50% 42%, rgba(255,255,255,.92) 0%, rgba(255,255,255,0) 65%),
-    radial-gradient(900px 520px at 50% 10%, rgba(245,158,11,.22), rgba(245,158,11,0) 65%),
-    linear-gradient(180deg, rgba(255,243,233,.98) 0%, rgba(255,255,255,1) 70%);
+    radial-gradient(280px 280px at 50% 42%, rgba(255,255,255,.95) 0%, rgba(255,255,255,0) 68%),
+    radial-gradient(900px 520px at 50% 10%, rgba(245,158,11,.26), rgba(245,158,11,0) 65%),
+    linear-gradient(180deg, rgba(255,240,230,1) 0%, rgba(255,255,255,1) 70%);
 }
 .facade.layout-spotlight .hero::after{
   content:"";
   position:absolute; inset:-20px;
-  background: radial-gradient(380px 320px at 50% 40%, rgba(0,0,0,.10), rgba(0,0,0,0) 70%);
+  background: radial-gradient(400px 340px at 50% 40%, rgba(0,0,0,.12), rgba(0,0,0,0) 72%);
   pointer-events:none;
-  opacity:.35;
+  opacity:.38;
 }
 
-/* ===== 頭像、logo、文字 ===== */
+/* 精品款：飽滿質感（在任何 layout 上再加強） */
+.facade.plan-premium .hero{
+  background:
+    radial-gradient(980px 460px at 18% 0%, rgba(99,102,241,.34), rgba(99,102,241,0) 60%),
+    radial-gradient(900px 460px at 88% 10%, rgba(16,185,129,.28), rgba(16,185,129,0) 62%),
+    linear-gradient(180deg, rgba(255,241,233,1) 0%, rgba(255,255,255,1) 75%);
+}
+
+/* ===== logo/avatar/文字 ===== */
 .heroTop{
   position:absolute; inset:0;
   padding: 18px 16px;
@@ -191,7 +166,7 @@ body{
 .logo{
   width:46px;height:46px;border-radius:14px;
   background:#fff;
-  border:1px solid rgba(17,24,39,.08);
+  border:1px solid rgba(17,24,39,.10);
   overflow:hidden;
   pointer-events:auto;
 }
@@ -201,9 +176,9 @@ body{
   width: 120px; height: 120px;
   border-radius: 18px;
   background:#f3f4f6;
-  border:1px solid rgba(17,24,39,.08);
+  border:1px solid rgba(17,24,39,.10);
   overflow:hidden;
-  box-shadow: 0 14px 26px rgba(17,24,39,.10);
+  box-shadow: 0 16px 30px rgba(17,24,39,.12);
 }
 .avatar img{width:100%;height:100%;object-fit:cover;display:block}
 
@@ -229,16 +204,16 @@ body{
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 16px;
-  background: rgba(255,255,255,.60);
-  border:1px solid rgba(17,24,39,.08);
+  background: rgba(255,255,255,.64);
+  border:1px solid rgba(17,24,39,.10);
   font-size: 13px;
   font-weight: 900;
 }
 
-/* 內容區 */
+/* ===== 內容區 ===== */
 .section{
   padding: 14px 16px;
-  border-top: 1px solid rgba(17,24,39,.07);
+  border-top: 1px solid rgba(17,24,39,.08);
 }
 .section h4{
   margin:0 0 8px;
@@ -247,7 +222,7 @@ body{
 }
 .kv{
   margin:0;
-  color: rgba(17,24,39,.70);
+  color: rgba(17,24,39,.72);
   font-size: 13px;
   line-height:1.6;
   white-space: pre-line;
@@ -262,20 +237,20 @@ body{
   padding-bottom: 4px;
 }
 .carousel::-webkit-scrollbar{ height: 8px; }
-.carousel::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.18); border-radius: 999px; }
+.carousel::-webkit-scrollbar-thumb{ background: rgba(0,0,0,.20); border-radius: 999px; }
 .carouselItem{
   scroll-snap-align:start;
   width: 240px;
   aspect-ratio: 4/3;
   border-radius: 16px;
   overflow:hidden;
-  border:1px solid rgba(17,24,39,.08);
+  border:1px solid rgba(17,24,39,.10);
   background:#f3f4f6;
   cursor:pointer;
 }
 .carouselItem img{ width:100%; height:100%; object-fit:cover; display:block; }
 
-/* 連結 pills */
+/* 連結 */
 .links{ display:flex; flex-wrap:wrap; gap:10px; }
 .pill{
   display:inline-flex;
@@ -294,40 +269,5 @@ body{
   background: var(--p);
   border-color: transparent;
   color:#fff;
-  box-shadow: 0 14px 24px rgba(37,99,235,.20);
-}
-
-/* Modal（如果你有） */
-.modal{
-  position:fixed; inset:0;
-  background: rgba(0,0,0,.45);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding: 16px;
-  z-index: 9999;
-}
-.modal.show{ display:flex; }
-.modalCard{
-  max-width: 560px;
-  width:100%;
-  background:#fff;
-  border-radius: 20px;
-  border:1px solid rgba(17,24,39,.12);
-  box-shadow: 0 24px 70px rgba(0,0,0,.25);
-  overflow:hidden;
-}
-.modalHead{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(17,24,39,.10);
-}
-.modalHead h4{ margin:0; font-size: 15px; font-weight:1000; }
-.modalBody{
-  padding: 14px 16px;
-  color: rgba(17,24,39,.75);
-  line-height:1.7;
-  font-size: 13px;
+  box-shadow: 0 14px 24px rgba(37,99,235,.22);
 }
