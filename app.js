@@ -1,6 +1,6 @@
 /* Angel - plan chooser (frontend) */
 const STORAGE_KEY = "ANGEL_CARD_PLAN";
-const FORM_URL = "PASTE_YOUR_FORM_URL_HERE"; 
+const FORM_URL = "https://forms.gle/aCoV85GK5vcetbfH6"; 
 // ✅ 請把上面這行換成你的 Google 表單連結（客人要填的那一個）
 
 const els = {
