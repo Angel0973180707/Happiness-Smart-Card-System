@@ -2,95 +2,125 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜選版參考 v362</title>
-  <meta name="theme-color" content="#3aa0ff" />
-  <link rel="stylesheet" href="./style.css?v=362" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>天使幸福智慧名片｜v363</title>
+
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="description" content="先選版型再填表｜填完用 id+token 立即查看名片成品（含影音平台與導航）" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json?v=363" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css?v=363" />
 </head>
 
 <body>
-  <div class="wrap">
-    <header class="top">
-      <div class="title">
-        <div class="kicker">天使幸福智慧名片館</div>
-        <h1>先選版參考，再填表</h1>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logoDot" aria-hidden="true"></div>
+      <div class="brandTxt">
+        <div class="brandName">天使幸福智慧名片</div>
+        <div class="brandSub">先選版型 → 再填表 → 用 id+token 立刻看成品</div>
       </div>
-      <div class="ver">v362</div>
-    </header>
+    </div>
+    <div class="ver">v363</div>
+  </header>
 
-    <section class="panel">
-      <div class="step">
-        <div class="step-badge">1</div>
-        <div class="step-title">步驟一：點選顏色、版型、紙感</div>
-      </div>
-
-      <!-- Colors -->
-      <div class="row">
-        <div class="label">顏色</div>
-        <div class="colors" id="colorGroup">
-          <button class="dot" data-color="rose" aria-label="玫瑰紅"></button>
-          <button class="dot" data-color="sky" aria-label="晴空藍"></button>
-          <button class="dot" data-color="amber" aria-label="琥珀橘"></button>
-          <button class="dot" data-color="violet" aria-label="紫羅蘭"></button>
-          <button class="dot" data-color="green" aria-label="森林綠"></button>
-        </div>
+  <main class="wrap">
+    <!-- A. Plan chooser -->
+    <section class="paperCard">
+      <div class="sectionTitle">
+        <div class="h2">先選版型（參考用）</div>
+        <div class="hint">選完會記住「版型名稱」，下一步填表要填一樣的款式。</div>
       </div>
 
-      <!-- Plans -->
-      <div class="row">
-        <div class="label">版型</div>
-        <div class="seg" id="planGroup">
-          <button class="pill" data-plan="精品設計款">精品設計款</button>
-          <button class="pill" data-plan="自由搭配款">自由搭配款</button>
-        </div>
-      </div>
-
-      <!-- Papers -->
-      <div class="row">
-        <div class="label">紙感</div>
-        <div class="seg" id="paperGroup">
-          <button class="pill" data-paper="霧面棉紙">霧面棉紙</button>
-          <button class="pill" data-paper="細顆粒紙">細顆粒紙</button>
-          <button class="pill" data-paper="亞麻紋">亞麻紋</button>
-          <button class="pill" data-paper="水彩紙">水彩紙</button>
-        </div>
-      </div>
-
-      <!-- Step 2 -->
-      <div class="step2">
-        <button id="btnGoForm" class="btn primary" type="button" aria-disabled="true">
-          步驟二：填寫名片資料
+      <div class="plans">
+        <button class="planCard breathe" type="button" data-plan="精品設計款" aria-label="選擇 精品設計款">
+          <div class="planTop">
+            <div class="pill pillPro">精品</div>
+            <div class="planName">精品設計款</div>
+          </div>
+          <div class="planLook proLook">
+            <div class="shine"></div>
+            <div class="frame"></div>
+          </div>
+          <div class="planMini">質感更強｜紙感更明顯</div>
         </button>
-        <div id="hint" class="hint">
-          小提醒：請先選擇一個版型（上方兩個其一），填表時要選相同名稱。
+
+        <button class="planCard breathe" type="button" data-plan="自由搭配款" aria-label="選擇 自由搭配款">
+          <div class="planTop">
+            <div class="pill pillFree">自由</div>
+            <div class="planName">自由搭配款</div>
+          </div>
+          <div class="planLook freeLook">
+            <div class="grain"></div>
+            <div class="frame"></div>
+          </div>
+          <div class="planMini">清爽耐看｜彈性搭配</div>
+        </button>
+      </div>
+
+      <div class="chosenRow">
+        <div class="chosenBox">
+          <div class="chosenLabel">目前選擇</div>
+          <div class="chosenPlan" id="chosenPlan">尚未選擇</div>
+          <div class="chosenNote" id="chosenNote">請先點選上方其中一個版型（卡片會跳動提醒你）。</div>
         </div>
 
-        <div class="mini">
-          <span class="chip" id="chipColor">顏色：未選</span>
-          <span class="chip" id="chipPlan">版型：未選</span>
-          <span class="chip" id="chipPaper">紙感：未選</span>
-          <button id="btnClear" class="btn ghost" type="button">清除選擇</button>
+        <div class="btnRow">
+          <button class="btn btnGhost" id="btnClear" type="button">清除</button>
+          <button class="btn btnPrimary disabled" id="btnNext" type="button" aria-disabled="true">請先選一個版型 ↑</button>
         </div>
       </div>
     </section>
 
-    <!-- Simple preview (kept clean) -->
-    <section class="preview" id="preview">
-      <div class="card">
-        <div class="cover"></div>
-        <div class="avatar"></div>
-        <div class="name">小天使</div>
-        <div class="sub">天使幸福智慧名片館</div>
+    <!-- B. After form: view card by id+token -->
+    <section class="paperCard">
+      <div class="sectionTitle">
+        <div class="h2">已填表？直接看成品</div>
+        <div class="hint">請輸入表格裡的 <b>id</b> 與 <b>token</b>（例如 TW0001 + 2d0e...）。</div>
+      </div>
+
+      <div class="formRow">
+        <label class="field">
+          <div class="fieldLabel">ID</div>
+          <input id="inputId" class="input" placeholder="例如：TW0001" autocomplete="off" inputmode="text" />
+        </label>
+        <label class="field">
+          <div class="fieldLabel">Token</div>
+          <input id="inputToken" class="input" placeholder="例如：2d0e8ff827044774" autocomplete="off" inputmode="text" />
+        </label>
+      </div>
+
+      <div class="btnRow">
+        <button class="btn btnPrimary" id="btnLoad" type="button">查看名片</button>
+        <button class="btn btnGhost" id="btnDemo" type="button">載入示範（TW0001）</button>
+      </div>
+
+      <div id="msg" class="msg" aria-live="polite"></div>
+
+      <div id="cardArea" class="cardArea hidden">
+        <!-- rendered by app.js -->
       </div>
     </section>
 
-    <footer class="foot">
-      <span>© Angel</span>
-      <span>｜</span>
-      <span>選版只作為外觀參考</span>
+    <footer class="footer">
+      <div class="footerLine">© Angel｜Happiness Smart Card System</div>
+      <div class="footerLine small">提示：版型「先選再填」是為了做一致交付（選版只是參考，但名稱要一致）。</div>
     </footer>
-  </div>
+  </main>
 
-  <script src="./app.js?v=362"></script>
+  <script src="./app.js?v=363"></script>
+  <script>
+    // service worker
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=363"));
+    }
+  </script>
 </body>
 </html>
