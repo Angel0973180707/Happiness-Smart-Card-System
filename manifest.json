@@ -1,10 +1,10 @@
 {
-  "name": "幸福智慧名片｜選版參考",
-  "short_name": "智慧名片",
+  "name": "Happiness Smart Card System",
+  "short_name": "Smart Card",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f4f7fb",
-  "theme_color": "#2d6cdf",
+  "background_color": "#f5f7fb",
+  "theme_color": "#4aa3ff",
   "icons": [
     { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
