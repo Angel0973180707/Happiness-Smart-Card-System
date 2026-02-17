@@ -2,75 +2,95 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Angel｜選版參考</title>
-  <meta name="theme-color" content="#0c2a16" />
-  <link rel="stylesheet" href="./style.css?v=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>天使幸福智慧名片｜選版參考 v362</title>
+  <meta name="theme-color" content="#3aa0ff" />
+  <link rel="stylesheet" href="./style.css?v=362" />
 </head>
 
 <body>
-  <main class="wrap">
-    <header class="hero">
-      <div class="badge">先選版型 → 再填表</div>
-      <h1>請先選一張喜歡的名片樣式（僅作參考）</h1>
-      <p class="sub">
-        這裡是「版型參考區」。<br/>
-        <b>請記住你選的版型名稱</b>，下一步填表時需要填寫相同款式。
-      </p>
+  <div class="wrap">
+    <header class="top">
+      <div class="title">
+        <div class="kicker">天使幸福智慧名片館</div>
+        <h1>先選版參考，再填表</h1>
+      </div>
+      <div class="ver">v362</div>
     </header>
 
-    <section class="cards" aria-label="版型選擇">
-      <button class="card breathe" data-plan="精品設計款" type="button">
-        <div class="card-top">
-          <span class="tag premium">精品</span>
-          <span class="hint">適合想要「整體感」與「設計一致性」</span>
-        </div>
-        <div class="card-title">精品設計款</div>
-        <div class="card-desc">
-          由我們協助統一視覺、版面與呈現節奏。<br/>
-          你提供內容，我們做整體設計。
-        </div>
-      </button>
+    <section class="panel">
+      <div class="step">
+        <div class="step-badge">1</div>
+        <div class="step-title">步驟一：點選顏色、版型、紙感</div>
+      </div>
 
-      <button class="card breathe" data-plan="自由搭配款" type="button">
-        <div class="card-top">
-          <span class="tag flex">自由</span>
-          <span class="hint">適合想要「自己搭配」與「快速完成」</span>
+      <!-- Colors -->
+      <div class="row">
+        <div class="label">顏色</div>
+        <div class="colors" id="colorGroup">
+          <button class="dot" data-color="rose" aria-label="玫瑰紅"></button>
+          <button class="dot" data-color="sky" aria-label="晴空藍"></button>
+          <button class="dot" data-color="amber" aria-label="琥珀橘"></button>
+          <button class="dot" data-color="violet" aria-label="紫羅蘭"></button>
+          <button class="dot" data-color="green" aria-label="森林綠"></button>
         </div>
-        <div class="card-title">自由搭配款</div>
-        <div class="card-desc">
-          你可依照喜好自由組合內容區塊。<br/>
-          想保留彈性、快速上線很適合。
-        </div>
-      </button>
-    </section>
+      </div>
 
-    <section class="confirm" aria-live="polite">
-      <div class="confirm-box">
-        <div class="confirm-title">你目前選的是：</div>
-        <div class="confirm-plan" id="chosenPlan">尚未選擇</div>
-        <div class="confirm-note" id="chosenNote">
-          請先點選上方其中一個版型（版型卡片會跳動提醒你）。
+      <!-- Plans -->
+      <div class="row">
+        <div class="label">版型</div>
+        <div class="seg" id="planGroup">
+          <button class="pill" data-plan="精品設計款">精品設計款</button>
+          <button class="pill" data-plan="自由搭配款">自由搭配款</button>
+        </div>
+      </div>
+
+      <!-- Papers -->
+      <div class="row">
+        <div class="label">紙感</div>
+        <div class="seg" id="paperGroup">
+          <button class="pill" data-paper="霧面棉紙">霧面棉紙</button>
+          <button class="pill" data-paper="細顆粒紙">細顆粒紙</button>
+          <button class="pill" data-paper="亞麻紋">亞麻紋</button>
+          <button class="pill" data-paper="水彩紙">水彩紙</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step2">
+        <button id="btnGoForm" class="btn primary" type="button" aria-disabled="true">
+          步驟二：填寫名片資料
+        </button>
+        <div id="hint" class="hint">
+          小提醒：請先選擇一個版型（上方兩個其一），填表時要選相同名稱。
+        </div>
+
+        <div class="mini">
+          <span class="chip" id="chipColor">顏色：未選</span>
+          <span class="chip" id="chipPlan">版型：未選</span>
+          <span class="chip" id="chipPaper">紙感：未選</span>
+          <button id="btnClear" class="btn ghost" type="button">清除選擇</button>
         </div>
       </div>
     </section>
 
-    <section class="actions">
-      <button id="btnNext" class="btn next disabled" type="button" aria-disabled="true">
-        請先選一個版型 ↑
-      </button>
-      <button id="btnClear" class="btn ghost" type="button">
-        清除選擇
-      </button>
+    <!-- Simple preview (kept clean) -->
+    <section class="preview" id="preview">
+      <div class="card">
+        <div class="cover"></div>
+        <div class="avatar"></div>
+        <div class="name">小天使</div>
+        <div class="sub">天使幸福智慧名片館</div>
+      </div>
     </section>
 
     <footer class="foot">
-      <div class="mini">
-        小提醒：選版只是參考，<b>記住名稱</b> → 下一步表單要填一樣的款式。
-      </div>
+      <span>© Angel</span>
+      <span>｜</span>
+      <span>選版只作為外觀參考</span>
     </footer>
-  </main>
+  </div>
 
-  <script src="./app.js?v=1"></script>
+  <script src="./app.js?v=362"></script>
 </body>
 </html>
