@@ -3,123 +3,238 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>天使幸福智慧名片｜v363</title>
-
-  <meta name="theme-color" content="#7c3aed" />
-  <meta name="description" content="先選版型再填表｜填完用 id+token 立即查看名片成品（含影音平台與導航）" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <title>幸福智慧名片｜示範門面</title>
+  <meta name="description" content="智慧名片示範門面｜自由搭配＆精品設計｜一鍵前往填表" />
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=363" />
+  <link rel="manifest" href="./manifest.json?v=364" />
   <link rel="icon" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
 
+  <!-- Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./style.css?v=363" />
-</head>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
 
+  <link rel="stylesheet" href="./style.css?v=364" />
+</head>
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="logoDot" aria-hidden="true"></div>
-      <div class="brandTxt">
-        <div class="brandName">天使幸福智慧名片</div>
-        <div class="brandSub">先選版型 → 再填表 → 用 id+token 立刻看成品</div>
+      <div class="brandDot"></div>
+      <div class="brandText">
+        <div class="brandTitle">幸福智慧名片</div>
+        <div class="brandSub">示範門面（顧客只看得到這裡）</div>
       </div>
     </div>
-    <div class="ver">v363</div>
+
+    <button id="btnHelp" class="iconBtn" aria-label="素材準備說明" title="素材準備說明">?</button>
   </header>
 
-  <main class="wrap">
-    <!-- A. Plan chooser -->
-    <section class="paperCard">
-      <div class="sectionTitle">
-        <div class="h2">先選版型（參考用）</div>
-        <div class="hint">選完會記住「版型名稱」，下一步填表要填一樣的款式。</div>
+  <!-- Step 1: choose plan/style (minimal text, intuitive) -->
+  <section class="panel">
+    <div class="stepTitle">
+      <span class="stepNo">1</span>
+      <div>
+        <div class="stepMain">先選一個「參考版型」</div>
+        <div class="stepHint">選完會立即改變門面外觀（請記住名稱，下一步填表要填同款）</div>
+      </div>
+    </div>
+
+    <div class="planRow">
+      <button class="planCard breathe" data-plan="自由搭配款" id="cardFree">
+        <div class="planBadge">自由</div>
+        <div class="planName">自由搭配款</div>
+        <div class="planMini">像 v358：直覺切換色系／版型／紙感</div>
+      </button>
+
+      <button class="planCard breathe" data-plan="精品設計款" id="cardPro">
+        <div class="planBadge pro">精品</div>
+        <div class="planName">精品設計款</div>
+        <div class="planMini">排版更有設計感（可加值精修）</div>
+      </button>
+    </div>
+
+    <!-- Free controls -->
+    <div id="freeControls" class="controls hidden">
+      <div class="controlGroup">
+        <div class="controlLabel">顏色</div>
+        <div class="chips" id="colorChips"></div>
       </div>
 
-      <div class="plans">
-        <button class="planCard breathe" type="button" data-plan="精品設計款" aria-label="選擇 精品設計款">
-          <div class="planTop">
-            <div class="pill pillPro">精品</div>
-            <div class="planName">精品設計款</div>
-          </div>
-          <div class="planLook proLook">
-            <div class="shine"></div>
-            <div class="frame"></div>
-          </div>
-          <div class="planMini">質感更強｜紙感更明顯</div>
-        </button>
-
-        <button class="planCard breathe" type="button" data-plan="自由搭配款" aria-label="選擇 自由搭配款">
-          <div class="planTop">
-            <div class="pill pillFree">自由</div>
-            <div class="planName">自由搭配款</div>
-          </div>
-          <div class="planLook freeLook">
-            <div class="grain"></div>
-            <div class="frame"></div>
-          </div>
-          <div class="planMini">清爽耐看｜彈性搭配</div>
-        </button>
+      <div class="controlGroup">
+        <div class="controlLabel">版型</div>
+        <div class="chips" id="layoutChips"></div>
       </div>
 
-      <div class="chosenRow">
-        <div class="chosenBox">
-          <div class="chosenLabel">目前選擇</div>
-          <div class="chosenPlan" id="chosenPlan">尚未選擇</div>
-          <div class="chosenNote" id="chosenNote">請先點選上方其中一個版型（卡片會跳動提醒你）。</div>
-        </div>
-
-        <div class="btnRow">
-          <button class="btn btnGhost" id="btnClear" type="button">清除</button>
-          <button class="btn btnPrimary disabled" id="btnNext" type="button" aria-disabled="true">請先選一個版型 ↑</button>
-        </div>
+      <div class="controlGroup">
+        <div class="controlLabel">紙感（更明顯）</div>
+        <div class="chips" id="paperChips"></div>
       </div>
-    </section>
+    </div>
 
-    <!-- B. After form: view card by id+token -->
-    <section class="paperCard">
-      <div class="sectionTitle">
-        <div class="h2">已填表？直接看成品</div>
-        <div class="hint">請輸入表格裡的 <b>id</b> 與 <b>token</b>（例如 TW0001 + 2d0e...）。</div>
+    <!-- Pro controls -->
+    <div id="proControls" class="controls hidden">
+      <div class="controlGroup">
+        <div class="controlLabel">精品底色</div>
+        <div class="chips" id="proBaseChips"></div>
       </div>
 
-      <div class="formRow">
-        <label class="field">
-          <div class="fieldLabel">ID</div>
-          <input id="inputId" class="input" placeholder="例如：TW0001" autocomplete="off" inputmode="text" />
-        </label>
-        <label class="field">
-          <div class="fieldLabel">Token</div>
-          <input id="inputToken" class="input" placeholder="例如：2d0e8ff827044774" autocomplete="off" inputmode="text" />
-        </label>
+      <div class="controlGroup">
+        <div class="controlLabel">精品版型</div>
+        <div class="chips" id="proTemplateChips"></div>
+      </div>
+    </div>
+
+    <div class="nextRow">
+      <div class="chosenBox">
+        <div class="chosenTitle">已選擇</div>
+        <div class="chosenValue" id="chosenPlan">尚未選擇</div>
+        <div class="chosenNote" id="chosenNote">請先點上方其中一個版型（卡片會呼吸提醒）。</div>
       </div>
 
       <div class="btnRow">
-        <button class="btn btnPrimary" id="btnLoad" type="button">查看名片</button>
-        <button class="btn btnGhost" id="btnDemo" type="button">載入示範（TW0001）</button>
+        <button id="btnClear" class="btn ghost">清除</button>
+        <button id="btnNext" class="btn primary disabled" aria-disabled="true">請先選一個版型 ↑</button>
       </div>
+    </div>
+  </section>
 
-      <div id="msg" class="msg" aria-live="polite"></div>
+  <!-- Facade (public) -->
+  <main class="stage">
+    <div id="loading" class="loading">載入示範門面中…</div>
+    <div id="error" class="error hidden"></div>
 
-      <div id="cardArea" class="cardArea hidden">
-        <!-- rendered by app.js -->
-      </div>
-    </section>
+    <article id="facade" class="card hidden">
+      <!-- HERO -->
+      <section id="hero" class="hero">
+        <div class="heroBg"></div>
 
-    <footer class="footer">
-      <div class="footerLine">© Angel｜Happiness Smart Card System</div>
-      <div class="footerLine small">提示：版型「先選再填」是為了做一致交付（選版只是參考，但名稱要一致）。</div>
-    </footer>
+        <div class="heroTop">
+          <img id="logoImg" class="logo hidden" alt="logo" />
+          <div class="heroSpacer"></div>
+        </div>
+
+        <div class="avatarWrap">
+          <img id="avatarImg" class="avatar" alt="avatar" />
+        </div>
+
+        <h1 id="nameText" class="name">—</h1>
+        <div id="orgText" class="org">—</div>
+        <div id="sloganText" class="slogan">—</div>
+      </section>
+
+      <!-- CTA buttons -->
+      <section class="ctaBar">
+        <a id="btnLineOA" class="cta green hidden" target="_blank" rel="noopener">LINE 官方帳號</a>
+        <a id="btnLineDM" class="cta outline hidden" target="_blank" rel="noopener">私訊 LINE</a>
+        <a id="btnEmail" class="cta outline hidden" target="_blank" rel="noopener">Email</a>
+        <a id="btnPhone" class="cta outline hidden" target="_blank" rel="noopener">電話</a>
+      </section>
+
+      <!-- services / titles -->
+      <section id="blocks" class="blocks">
+        <div class="block">
+          <div class="blockTitle">服務項目</div>
+          <div id="services" class="blockBody muted">—</div>
+        </div>
+        <div class="block">
+          <div class="blockTitle">重要頭銜 / 獎銜</div>
+          <div id="titles" class="blockBody muted">—</div>
+        </div>
+      </section>
+
+      <!-- gallery -->
+      <section class="gallerySection">
+        <div class="secTitle">產品 / 品牌 / 活動</div>
+        <div id="gallery" class="gallery"></div>
+      </section>
+
+      <!-- links -->
+      <section class="linksSection">
+        <div class="secTitle">影音 / 社群 / 導航</div>
+        <div id="links" class="links"></div>
+      </section>
+
+      <!-- Q&A -->
+      <section class="qaSection">
+        <div class="secTitle">常見提問</div>
+        <div id="qa" class="qa"></div>
+      </section>
+
+      <footer class="foot">
+        <div class="footLine">© 幸福智慧名片系統</div>
+        <div class="footSmall">門面示範固定顯示：小天使（TW0001）</div>
+      </footer>
+    </article>
   </main>
 
-  <script src="./app.js?v=363"></script>
+  <!-- Image viewer -->
+  <div id="viewer" class="viewer hidden" role="dialog" aria-modal="true">
+    <div class="viewerBackdrop" id="viewerClose"></div>
+    <div class="viewerPanel">
+      <img id="viewerImg" alt="preview" />
+      <button id="viewerBtn" class="viewerBtn">關閉</button>
+    </div>
+  </div>
+
+  <!-- Help modal -->
+  <div id="help" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modalBackdrop" id="helpClose"></div>
+    <div class="modalPanel">
+      <div class="modalTitle">填表前，先準備這些素材（越清楚越好）</div>
+
+      <ul class="modalList">
+        <li><b>一張清晰的形象照</b>（自然、看得清楚就可以）</li>
+        <li><b>最多三張</b> 品牌／產品／活動照片（手機拍也可以）</li>
+        <li><b>Logo</b>（若有就提供，沒有也OK）</li>
+        <li><b>連結</b>：影音平台、社群、地點或地址（有就填）</li>
+        <li><b>一句理念</b>：精簡、像你的招牌句</li>
+      </ul>
+
+      <div class="tipBox">
+        <div class="tipTitle">精品版可加值（以後再談也行）</div>
+        <div class="tipText">如果你希望照片更專業，我們可以協助轉檔／修圖／精修（加值服務）。</div>
+      </div>
+
+      <button class="btn primary full" id="helpOk">我知道了</button>
+
+      <div class="modalHint">
+        小提醒：你剛選的版型是「參考」，但<b>要記住名稱</b>，下一步填表要填同款。
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin (hidden) -->
+  <div id="admin" class="admin hidden">
+    <div class="adminPanel">
+      <div class="adminTitle">後台入口（隱藏）</div>
+      <div class="adminRow">
+        <input id="adminToken" class="adminInput" placeholder="輸入你的 token（或 MASTER_TOKEN）" />
+        <button id="adminLoad" class="btn primary">載入成品區</button>
+      </div>
+
+      <div id="adminMsg" class="adminMsg muted">（顧客看不到）</div>
+
+      <div id="adminData" class="adminData hidden">
+        <div class="adminActions">
+          <button id="btnCopyJson" class="btn">一鍵複製 JSON</button>
+          <button id="btnCopyLinks" class="btn">一鍵複製連結清單</button>
+          <button id="btnHideAdmin" class="btn ghost">隱藏後台</button>
+        </div>
+        <pre id="adminPre" class="adminPre"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js?v=364"></script>
   <script>
-    // service worker
+    // PWA SW
     if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js?v=363"));
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js?v=364").catch(()=>{});
+      });
     }
   </script>
 </body>
