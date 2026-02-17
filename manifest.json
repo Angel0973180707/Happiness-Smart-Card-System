@@ -1,21 +1,12 @@
 {
-  "name": "天使幸福智慧名片",
-  "short_name": "幸福名片",
-  "start_url": "./index.html?v=361",
-  "scope": "./",
+  "name": "幸福智慧名片｜選版參考",
+  "short_name": "智慧名片",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f5f6fa",
-  "theme_color": "#ee5253",
+  "background_color": "#f4f7fb",
+  "theme_color": "#2d6cdf",
   "icons": [
-    {
-      "src": "./icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "./icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
