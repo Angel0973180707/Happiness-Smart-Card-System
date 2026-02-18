@@ -641,4 +641,34 @@ body{
 .facade.plan-pro .paperOverlay{
   opacity: .10 !important;
   mix-blend-mode: soft-light !important;
+}/* ===== 強制修正：精品版內容一定浮出 ===== */
+
+.facade.plan-pro{
+  background: linear-gradient(180deg, #1c2533, #121a26) !important;
+}
+
+/* 內容層做實體玻璃白卡 */
+.facade.plan-pro .content{
+  background: rgba(255,255,255,.08) !important;
+  backdrop-filter: blur(6px);
+  border-radius: 28px;
+  padding: 24px 18px 36px;
+  margin-top: -10px;
+}
+
+/* 卡片不再透明到融掉 */
+.facade.plan-pro .card{
+  background: rgba(255,255,255,.22) !important;
+  border: 1px solid rgba(255,255,255,.35) !important;
+}
+
+/* 字色拉亮 */
+.facade.plan-pro .cardBody,
+.facade.plan-pro .qaItem .a{
+  color: rgba(255,255,255,.92) !important;
+}
+
+/* 關閉過重的紙感 */
+.facade.plan-pro .paperOverlay{
+  opacity: .05 !important;
 }
