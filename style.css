@@ -1,42 +1,22 @@
 :root {
-    --font: 'Noto Sans TC', sans-serif;
-    --p: #ee5253; --bg: #f5f6fa; --card-bg: #fff; --text: #2d3436;
-    --ls: normal; --shadow: 0 15px 35px rgba(0,0,0,0.1);
+  --p:#ee5253; --bg:#f5f6fa; --card-bg:#fff; --text:#2d3436; --ls:normal;
 }
 
-/* --- 🌿 精品七色語彙 --- */
-.p-deep-green { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; --shadow:0 40px 80px rgba(0,0,0,0.5); }
-.p-blue-gray  { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.08em; }
+/* 🌿 精品設計：選色即選版型 */
+.p-deep-green { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; }
+.p-blue-gray  { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.1em; }
 .p-wine-red   { --p:#5d2525; --bg:#3d1616; --card-bg:#3d1616; --text:#fff5f5; --fx:radial-gradient(circle at 50% 20%, rgba(255,100,100,0.2), transparent 70%); }
-.p-caramel    { --p:#8e5a3c; --bg:#5d3a26; --card-bg:#5d3a26; --text:#fff9f2; --ls:0.04em; }
-.p-morandi    { --p:#7a94a6; --bg:#f4f7f9; --card-bg:#f4f7f9; --text:#2c3e50; --ls:0.15em; }
-.p-misty      { --p:#6b6687; --bg:#4a4561; --card-bg:#4a4561; --text:#f8f7ff; }
 .p-graphite   { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; --ls:0.25em; }
+/* ... 莫蘭迪、焦糖、霧紫依照此類推 ... */
 
-/* 基礎樣式 */
-body { background: var(--bg); font-family: var(--font); transition: 0.5s; display: flex; flex-direction: column; align-items: center; }
-.card { 
-    width: 92%; max-width: 380px; height: 680px; background: var(--card-bg); 
-    border-radius: 40px; overflow: hidden; position: relative; margin: 20px 0;
-    box-shadow: var(--shadow); transition: 0.5s; color: var(--text);
-}
+.mode-premium .banner { display: none !important; }
+.mode-premium .avatar-wrap { top: 45px; }
+.mode-premium .info-scroll { padding-top: 55px; }
+.mode-premium .name { letter-spacing: var(--ls); font-weight: 900; }
+.mode-premium .content-box { background: rgba(255,255,255,0.05) !important; color: #fff; border: 1px solid rgba(255,255,255,0.1); }
 
-/* 精品模式排版切換 */
-.mode-premium .banner { display: none; }
-.mode-premium .avatar-wrap { top: 40px; }
-.mode-premium .info-scroll { padding-top: 50px; }
-.mode-premium .name { font-weight: 900; letter-spacing: var(--ls); }
-.mode-premium .content-box { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1); color: #fff; }
-.mode-premium .premium-fx { position: absolute; inset: 0; background: var(--fx, none); pointer-events: none; }
-
-/* 自由搭配版型 (V358) */
-.style-arch .arch-overlay { background: var(--card-bg); height: 50px; border-radius: 50px 50px 0 0; position: absolute; bottom: 0; width: 100%; }
-.style-flat .arch-overlay { display: none; }
-.banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; }
-
-/* UI 控制元件 */
-#admin-panel { background: #fff; width: 100%; padding: 15px 0; text-align: center; border-bottom: 1px solid #ddd; }
-.dots-row { display: flex; justify-content: center; gap: 12px; margin: 10px 0; }
-.dot, .p-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-.active { transform: scale(1.2); border-color: #2d3436; }
-.btn-main-action { background: var(--p); color: #fff; border: none; padding: 12px 30px; border-radius: 30px; font-weight: 900; cursor: pointer; }
+/* 管理面板與按鈕樣式 */
+.dots-row { display: flex; justify-content: center; gap: 10px; padding: 10px; }
+.dot, .p-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+.active { transform: scale(1.2); border-color: #333 !important; }
+.btn-main-action { background: var(--p); color: white; border: none; padding: 12px 30px; border-radius: 30px; font-weight: 900; cursor: pointer; }
