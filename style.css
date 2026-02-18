@@ -382,7 +382,8 @@ body{
 .side__details{ display:none !important; }
 
 /* Hide settings card (user-facing) */
-.settings{ display:none !important; }
+.settings{display:none}
+.settings__row{ display:none !important; }
 
 /* v372 platforms mini buttons */
 .platforms{ margin-top:10px; display:grid; grid-template-columns:1fr; gap:10px; }
@@ -402,3 +403,13 @@ body{
   border:0;
 }
 .pbtn--primary .pbtn__s{ color:rgba(255,255,255,.9); }
+
+
+/* links list inside preview */
+.links{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:12px}
+.linkchip{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:999px;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);
+  color:rgba(255,255,255,.92);text-decoration:none;font-weight:800}
+.linkchip:active{transform:scale(.98)}
+
+.settings{display:none!important}

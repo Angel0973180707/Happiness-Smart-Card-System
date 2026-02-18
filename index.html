@@ -165,38 +165,21 @@
               </button>
             </div>
 
+            <div class="links" id="platforms" aria-label="links"></div>
+
+                          <button class="pbtn ghost" id="btnMap" style="display:none">
+                <span class="pbtn__icon">🗺️</span>
+                <span class="pbtn__txt">
+                  <span class="pbtn__t">地址導航</span>
+                  <span class="pbtn__s">自動轉地圖</span>
+                </span>
+              </button>
+
             <div class="pnote" id="pnote"></div>
           </div>
         </div>
 
-        <div class="card side">
-          <div class="side__title">設定</div>
-          <div class="side__item">
-            <div class="side__k">資料來源</div>
-            <div class="side__v">試算表 API（小天使那一欄）</div>
-          </div>
-          <div class="side__item">
-            <div class="side__k">自由版色彩</div>
-            <div class="side__v">已加飽和（v374）</div>
-          </div>
-          <div class="side__item">
-            <div class="side__k">晨曦 / 正拱</div>
-            <div class="side__v">已修正錯置（v374）</div>
-          </div>
-
-          <div class="side__hr"></div>
-
-          <details class="side__details">
-            <summary>如何改 API</summary>
-            <div class="side__small">
-              到 <code>data/config.json</code> 設定：
-              <ul>
-                <li><code>apiUrl</code>：你的 Apps Script /exec</li>
-                <li><code>matchValue</code>：預設「小天使」</li>
-              </ul>
-            </div>
-          </details>
-        </div>
+        <div class="card side" style="display:none"></div>
       </section>
 
       <footer class="foot">

@@ -23,6 +23,95 @@ const state = {
   data: null
 };
 
+// ===== Sheet field mapping (Chinese headers -> canonical) =====
+function pickField_(row, testers){
+  if(!row) return "";
+  const keys = Object.keys(row);
+  for(const t of testers){
+    for(const k of keys){
+      try{
+        if(typeof t === "string"){
+          if(k === t) { const v = row[k]; if(v!=null && String(v).trim()!=="") return v; }
+        } else if(t instanceof RegExp){
+          if(t.test(k)) { const v = row[k]; if(v!=null && String(v).trim()!=="") return v; }
+        } else if(typeof t === "function"){
+          if(t(k)) { const v = row[k]; if(v!=null && String(v).trim()!=="") return v; }
+        }
+      }catch(e){}
+    }
+  }
+  return "";
+}
+
+function splitMulti_(v){
+  const s = normalize(v);
+  if(!s) return [];
+  // allow newline or comma separated (drive links list)
+  return s.split(/\n|\r|,\s*/).map(x=>x.trim()).filter(Boolean);
+}
+
+function mapRowToCard_(row){
+  // row is json.data from GAS (public) with original headers
+  const name = pickField_(row, [/姓名/]);
+  const org = pickField_(row, [/單位名稱/, /單位/]);
+  const tagline = pickField_(row, [/理念標語/, /標語/]);
+  const services = pickField_(row, [/服務項目/]);
+  const titles = pickField_(row, [/重要頭銜/, /獎銜/]);
+
+  const photo = pickField_(row, [/個人專業形象照/, /形象照/, /主圖/]);
+  const logo  = pickField_(row, [/品牌\s*Logo/, /Logo/]);
+  const imgsRaw = pickField_(row, [/產品或品牌或活動照片最多3張/, /活動照片/, /最多3張/]);
+  const imgs = splitMulti_(imgsRaw).slice(0,3);
+
+  const wechat = pickField_(row, [/微信\s*ID/, /微信/]);
+
+  const v1 = pickField_(row, [/影音平台\s*1/]);
+  const v2 = pickField_(row, [/影音平台\s*2/]);
+  const v3 = pickField_(row, [/影音平台\s*3/, /地址/]); // v3 might be address
+  const s1 = pickField_(row, [/社群平台\s*1/]);
+  const s2 = pickField_(row, [/社群平台\s*2/]);
+  const s3 = pickField_(row, [/社群平台\s*3/]);
+
+  // address: if v3 looks like address (contains 市 or 路 etc), treat as address; else treat as link
+  let address = "";
+  let link3 = "";
+  const v3n = normalize(v3);
+  if(v3n && !/^https?:\/\//i.test(v3n)){
+    address = v3n;
+  } else {
+    link3 = v3n;
+  }
+
+  const links = [v1,v2,link3,s1,s2,s3].map(safeUrl).filter(Boolean).slice(0,6);
+
+  const lineDM = pickField_(row, [/私訊\s*LINE\s*連結/, /私訊LINE/]);
+  const lineOA = pickField_(row, [/LINE\s*官方帳號連結/, /官方帳號/]);
+
+  const email = pickField_(row, [/一鍵聯繫\s*Email/, /Email/]);
+  const phone = pickField_(row, [/一鍵聯繫電話/, /電話/]);
+
+  const q1 = pickField_(row, [/客戶常見提問\s*1/, /Q1/]);
+  const a1 = pickField_(row, [/專業解答\s*1/, /A1/]);
+  const q2 = pickField_(row, [/客戶常見提問\s*2/, /Q2/]);
+  const a2 = pickField_(row, [/專業解答2/, /A2/]);
+
+  return {
+    name, org, tagline,
+    services, titles,
+    photo, logo, imgs,
+    wechat,
+    links,
+    address,
+    lineDM: safeUrl(lineDM),
+    lineOA: safeUrl(lineOA),
+    email: normalize(email),
+    phone: normalize(phone),
+    qa: [{q:q1,a:a1},{q:q2,a:a2}].filter(x=>normalize(x.q)||normalize(x.a))
+  };
+}
+
+
+
 const $$ = (sel, root=document)=> Array.from(root.querySelectorAll(sel));
 const $  = (sel, root=document)=> root.querySelector(sel);
 
@@ -128,33 +217,22 @@ function setImg(sel, url){
 function renderPlatforms(o){
   const el = $("#platforms");
   if(!el) return;
-  el.innerHTML = "";
 
-  const links = (o && Array.isArray(o.links)) ? o.links : [];
-  links.slice(0,6).forEach((u, i)=>{
-    const url = safeUrl(u);
-    if(!url) return;
-    const a = document.createElement("a");
-    a.className = "pbtn pbtn--mini";
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.innerHTML = `<span class="pbtn__icon">${detectIcon(url)}</span><span class="pbtn__txt"><span class="pbtn__t">連結 ${i+1}</span><span class="pbtn__s">${url}</span></span>`;
-    el.appendChild(a);
-  });
+  const links = (o && o.links) ? o.links.filter(Boolean) : [];
+  const chips = [];
 
-  const addr = normalize(o?.address || "");
-  const mapLink = safeUrl(o?.map || "") || toMapUrlFromAddress(addr);
-  if(mapLink){
-    const a = document.createElement("a");
-    a.className = "pbtn pbtn--mini";
-    a.href = mapLink;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.innerHTML = `<span class="pbtn__icon">🗺</span><span class="pbtn__txt"><span class="pbtn__t">導航</span><span class="pbtn__s">${addr || mapLink}</span></span>`;
-    el.appendChild(a);
+  const esc = (s)=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+  for(let i=0;i<links.length && i<6;i++){
+    const url = links[i];
+    const label = (i<3) ? `影音 ${i+1}` : `社群 ${i-2}`;
+    chips.push(`<a class="linkchip" href="${esc(url)}" target="_blank" rel="noopener">${label}</a>`);
   }
+
+  el.innerHTML = chips.join("");
 }
+
+
 
 function renderContacts(o){
   const lineOA = safeUrl(o?.line_oa || "");
@@ -340,7 +418,8 @@ async function init(){
   bindHiddenAdmin();
 
   try {
-    state.data = await fetchPublic();
+    state.dataRaw = await fetchPublic();
+    state.data = mapRowToCard_(state.dataRaw);
     renderCard();
   } catch (e) {
     // keep quiet: facade must be stable
