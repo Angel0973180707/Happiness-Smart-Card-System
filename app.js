@@ -1,20 +1,31 @@
 /**
- * Angel Card Frontend v376 (Complete Overwrite)
- * - Prefer GAS action=card (clean keys) ✅
- * - Fallback to action=public + robust mapping
- * - Sync theme to BOTH #app and #preview
- * - Better URL normalization (fix "讀到但連結消失")
+ * Angel Card Frontend v377 (Complete Overwrite)
+ * - Ultra-robust fetch:
+ *   1) ?action=card
+ *   2) ?action=public
+ *   3) ?action=list
+ *   4) no action
+ * - Accept multiple response shapes:
+ *   {ok, card}
+ *   {ok, data}
+ *   {ok, rows, headers}
+ *   {data} / {rows}
+ * - Auto-pick "小天使/TW0001" row if list-style
+ * - Keep your existing UI logic + mapping
  */
 
-const VERSION = 376;
+const VERSION = 377;
 const API_URL = "https://script.google.com/macros/s/AKfycby74ta4CUFzkWcEfyPfoOMV9K93f-sIUzAxP6yECiadpVEzFUmk_JiHCFG_s2-ePHvJ/exec";
 
+// You can change this if your sample id differs
+const SAMPLE_ID_CANDIDATES = ["TW0001", "小天使"];
+
 const state = {
-  plan: "free",            // free | pro
-  theme: "arch",           // arch | flat | dawn
-  freeColor: "blue",       // pink | blue | orange | purple | green
-  paper: "cotton",         // cotton | grain | linen | watercolor
-  proColor: "deepSeaBlue", // 7 colors
+  plan: "free",
+  theme: "arch",
+  freeColor: "blue",
+  paper: "cotton",
+  proColor: "deepSeaBlue",
   dataRaw: null,
   card: null
 };
@@ -29,15 +40,11 @@ function safeUrl(u){
   let s = normalize(u);
   if(!s) return "";
 
-  // If user pasted just domain/path
   if(/^www\./i.test(s)) s = "https://" + s;
-
-  // common link shortforms
   if(/^line\.me\//i.test(s)) s = "https://" + s;
   if(/^lin\.ee\//i.test(s)) s = "https://" + s;
   if(/^t\.me\//i.test(s)) s = "https://" + s;
 
-  // accept
   if(/^https?:\/\//i.test(s)) return s;
   if(/^mailto:/i.test(s) || /^tel:/i.test(s) || /^line:/i.test(s)) return s;
 
@@ -165,29 +172,115 @@ function mapRowToCard_(row){
   };
 }
 
-/** Fetch: prefer action=card */
-async function fetchCardPreferred(){
-  // 1) preferred clean endpoint
-  {
-    const url = API_URL + "?action=card";
-    const res = await fetch(url, { cache: "no-store" });
-    const json = await res.json();
-    if(json && json.ok && json.card){
-      return { mode:"card", payload: json.card, raw: json };
-    }
-  }
+/** ---------- NEW: Ultra-robust fetch ---------- */
 
-  // 2) fallback to public + mapping
-  {
-    const url = API_URL + "?action=public";
-    const res = await fetch(url, { cache: "no-store" });
-    const json = await res.json();
-    if(!json || !json.ok) throw new Error("public not ok");
-    return { mode:"public", payload: json.data || null, raw: json };
+async function fetchJson_(url){
+  const res = await fetch(url, { cache: "no-store" });
+  const text = await res.text();
+  try{
+    return JSON.parse(text);
+  }catch(e){
+    // some GAS returns text/html error page; keep snippet for debug
+    throw new Error(`JSON parse failed. url=${url}\n${text.slice(0,200)}`);
   }
 }
 
-/** Apply visual state to BOTH app + preview */
+/** Turn list-style {headers, rows} into array of objects */
+function rowsToObjects_(headers, rows){
+  if(!Array.isArray(headers) || !Array.isArray(rows)) return [];
+  return rows.map(r=>{
+    const obj = {};
+    headers.forEach((h, i)=>{ obj[h] = (r && r[i] != null) ? r[i] : ""; });
+    return obj;
+  });
+}
+
+/** Try select sample row by id/name heuristics */
+function pickSampleRow_(arr){
+  if(!Array.isArray(arr) || !arr.length) return null;
+
+  const hit = arr.find(row=>{
+    const id = normalize(pickField_(row, [/編號/, /^id$/i, /ID/]));
+    const name = normalize(pickField_(row, [/姓名/, /暱稱/, /稱呼/]));
+    return SAMPLE_ID_CANDIDATES.includes(id) || SAMPLE_ID_CANDIDATES.includes(name);
+  });
+  return hit || arr[0];
+}
+
+/** Normalize any response to one of:
+ * - { mode:"card", payload: cardObj }
+ * - { mode:"row",  payload: rowObj }   (Chinese headers row)
+ */
+function normalizeApiResponse_(json){
+  if(!json) return null;
+
+  // common ok wrapper
+  const ok = (json.ok === undefined) ? true : !!json.ok;
+  if(!ok) return null;
+
+  // 1) card shape
+  if(json.card && typeof json.card === "object"){
+    return { mode:"card", payload: json.card, raw: json };
+  }
+
+  // 2) public/data single row object
+  if(json.data && typeof json.data === "object" && !Array.isArray(json.data)){
+    return { mode:"row", payload: json.data, raw: json };
+  }
+
+  // 3) public/data array
+  if(Array.isArray(json.data)){
+    const row = pickSampleRow_(json.data);
+    if(row) return { mode:"row", payload: row, raw: json };
+  }
+
+  // 4) list shape: headers + rows
+  if(Array.isArray(json.headers) && Array.isArray(json.rows)){
+    const arr = rowsToObjects_(json.headers, json.rows);
+    const row = pickSampleRow_(arr);
+    if(row) return { mode:"row", payload: row, raw: json };
+  }
+
+  // 5) raw rows array without headers (rare)
+  if(Array.isArray(json.rows) && json.rows.length && typeof json.rows[0] === "object"){
+    const row = pickSampleRow_(json.rows);
+    if(row) return { mode:"row", payload: row, raw: json };
+  }
+
+  // 6) if whole response itself is a card object
+  if(typeof json === "object" && !Array.isArray(json) && (json.name || json.lineOA || json.site || json.form)){
+    return { mode:"card", payload: json, raw: json };
+  }
+
+  return null;
+}
+
+async function fetchCardPreferred(){
+  const tries = [
+    API_URL + "?action=card",
+    API_URL + "?action=public",
+    API_URL + "?action=list",
+    API_URL
+  ];
+
+  const errors = [];
+
+  for(const url of tries){
+    try{
+      const json = await fetchJson_(url);
+      const norm = normalizeApiResponse_(json);
+      if(norm) return norm;
+      errors.push(`no usable payload: ${url}`);
+    }catch(e){
+      errors.push(String(e.message || e));
+    }
+  }
+
+  throw new Error("All fetch attempts failed:\n" + errors.join("\n---\n"));
+}
+
+/** ---------- Visual state ---------- */
+
 function applyVisualState(){
   const app = $("#app");
   const preview = $("#preview");
@@ -208,13 +301,11 @@ function applyVisualState(){
     }
   }
 
-  // ✅ theme sync for structure layer (curve)
   if(preview){
     preview.dataset.theme = state.theme;
   }
 }
 
-/** Pro pack: color -> auto theme + effects */
 function applyPremiumPack(){
   const app = $("#app");
   if(app){
@@ -247,7 +338,8 @@ function applyPremiumPack(){
   });
 }
 
-/** Render */
+/** ---------- Render ---------- */
+
 function renderCard(){
   const o = state.card || {};
 
@@ -439,7 +531,6 @@ function escapeAttr(s){ return escapeHtml(s).replace(/'/g,"&#39;"); }
 
 /** Init */
 async function init(){
-  // read initial dataset (avoid mismatch)
   const app = $("#app");
   if(app){
     state.plan = app.dataset.plan || state.plan;
@@ -455,6 +546,7 @@ async function init(){
   bindCopy();
 
   const hint = $("#hint");
+
   try{
     if(hint) hint.textContent = "門面資料讀取中…（試算表：小天使）";
 
@@ -462,7 +554,6 @@ async function init(){
     state.dataRaw = got.payload;
 
     if(got.mode === "card"){
-      // ✅ clean keys directly
       const c = got.payload || {};
       state.card = {
         name: normalize(c.name),
@@ -480,15 +571,15 @@ async function init(){
         links: (c.links || []).map(safeUrl).filter(Boolean).slice(0, 6)
       };
     }else{
-      // fallback mapping
+      // row mode (Chinese headers)
       state.card = mapRowToCard_(state.dataRaw);
     }
 
     renderCard();
     if(hint) hint.textContent = "門面資料已載入（樣版＝小天使）";
   }catch(e){
-    if(hint) hint.textContent = "門面讀取失敗（請檢查 GAS / 試算表欄位）";
     console.error(e);
+    if(hint) hint.textContent = "門面讀取失敗（請開 F12 Console 看錯誤）";
   }
 }
 
