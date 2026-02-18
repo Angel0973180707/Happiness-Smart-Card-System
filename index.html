@@ -1,168 +1,31 @@
-<!doctype html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>天使幸福智慧名片 v367.1</title>
-
-  <meta name="theme-color" content="#155e4b" />
-  <meta name="description" content="天使幸福智慧名片｜選方案、選版型、預覽與預約訂製" />
-
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="icon" href="./icons/icon-192.png" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="./style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天使幸福智慧名片 v368</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app" id="app" data-theme="dawn" data-plan="free">
-    <!-- Top -->
-    <header class="top">
-      <div class="top__bg" aria-hidden="true"></div>
-      <div class="top__inner">
-        <div class="brand">
-          <div class="brand__mark" aria-hidden="true">A</div>
-          <div class="brand__txt">
-            <div class="brand__title">天使幸福智慧名片</div>
-            <div class="brand__sub">v367.1｜選方案 → 選版型 → 預覽／預約</div>
-          </div>
-        </div>
 
-        <div class="top__controls">
-          <div class="seg" role="group" aria-label="方案選擇">
-            <button class="seg__btn is-on" data-plan="free">方案 A｜自由版</button>
-            <button class="seg__btn" data-plan="pro">方案 B｜專業版</button>
-          </div>
+<div class="container" id="card">
 
-          <div class="seg" role="group" aria-label="版型選擇">
-            <!-- ✅ 修正：晨曦 = dawn，正拱 = arch -->
-            <button class="seg__btn is-on" data-theme="dawn">晨曦</button>
-            <button class="seg__btn" data-theme="arch">正拱</button>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- Main -->
-    <main class="main">
-      <!-- Stepper -->
-      <section class="card stepper">
-        <div class="stepper__row">
-          <div class="step is-done"><span class="step__no">1</span><span class="step__txt">選方案 A / B</span></div>
-          <div class="step is-done"><span class="step__no">2</span><span class="step__txt">選版型 晨曦 / 正拱</span></div>
-          <div class="step"><span class="step__no">3</span><span class="step__txt">預約訂製（先加 LINE OA）／直接訂製（填表）</span></div>
-        </div>
-        <div class="hint" id="hint">門面資料讀取中…（試算表：小天使）</div>
-      </section>
-
-      <!-- Preview -->
-      <section class="preview-wrap">
-        <div class="preview" id="preview" aria-live="polite">
-          <div class="preview__overlay" aria-hidden="true"></div>
-
-          <!-- Arch header only appears in arch theme -->
-          <div class="arch" aria-hidden="true">
-            <div class="arch__curve"></div>
-          </div>
-
-          <div class="phead">
-            <div class="avatar" id="avatar">
-              <div class="avatar__ring"></div>
-              <img class="avatar__img" id="avatarImg" alt="頭像" />
-              <div class="avatar__fallback" id="avatarFallback">小天使</div>
-            </div>
-            <div class="pmeta">
-              <div class="pname" id="pname">小天使</div>
-              <div class="ptitle" id="ptitle">門面讀取試算表中</div>
-              <div class="ptags" id="ptags"></div>
-            </div>
-          </div>
-
-          <div class="pbody">
-            <div class="pblock">
-              <div class="pblock__title">一句話定位</div>
-              <div class="pblock__text" id="pone">—</div>
-            </div>
-
-            <div class="pgrid" id="pgrid">
-              <a class="pbtn" id="btnLine" href="#" target="_blank" rel="noopener">
-                <span class="pbtn__icon">💚</span>
-                <span class="pbtn__txt">
-                  <span class="pbtn__t">LINE 官方帳號</span>
-                  <span class="pbtn__s">第一次預約｜一定要先加</span>
-                </span>
-              </a>
-
-              <a class="pbtn" id="btnSite" href="#" target="_blank" rel="noopener">
-                <span class="pbtn__icon">🏠</span>
-                <span class="pbtn__txt">
-                  <span class="pbtn__t">門面｜官網入口</span>
-                  <span class="pbtn__s">回概念館／總入口</span>
-                </span>
-              </a>
-
-              <!-- ✅ 填表鈕放官網下 -->
-              <a class="pbtn pbtn--lite" id="btnForm" href="#" target="_blank" rel="noopener">
-                <span class="pbtn__icon">📝</span>
-                <span class="pbtn__txt">
-                  <span class="pbtn__t">直接訂製｜填表</span>
-                  <span class="pbtn__s">已加 LINE 或老客可直接填</span>
-                </span>
-              </a>
-
-              <button class="pbtn pbtn--ghost" id="btnCopy">
-                <span class="pbtn__icon">📋</span>
-                <span class="pbtn__txt">
-                  <span class="pbtn__t">複製門面資訊</span>
-                  <span class="pbtn__s">姓名／一句話／連結</span>
-                </span>
-              </button>
-            </div>
-
-            <div class="pnote" id="pnote"></div>
-          </div>
-        </div>
-
-        <div class="card side">
-          <div class="side__title">設定</div>
-          <div class="side__item">
-            <div class="side__k">資料來源</div>
-            <div class="side__v">試算表 API（小天使那一欄）</div>
-          </div>
-          <div class="side__item">
-            <div class="side__k">自由版色彩</div>
-            <div class="side__v">已加飽和（v367.1）</div>
-          </div>
-          <div class="side__item">
-            <div class="side__k">晨曦 / 正拱</div>
-            <div class="side__v">已修正錯置（v367.1）</div>
-          </div>
-
-          <div class="side__hr"></div>
-
-          <details class="side__details">
-            <summary>如何改 API</summary>
-            <div class="side__small">
-              到 <code>data/config.json</code> 設定：
-              <ul>
-                <li><code>apiUrl</code>：你的 Apps Script /exec</li>
-                <li><code>matchValue</code>：預設「小天使」</li>
-              </ul>
-            </div>
-          </details>
-        </div>
-      </section>
-
-      <footer class="foot">
-        <div class="foot__txt">© Angel Card · offline-first · v367.1</div>
-      </footer>
-    </main>
+  <div class="avatar-wrapper" id="logoArea">
+    <img id="avatar" class="avatar" src="" alt="avatar">
   </div>
 
-  <script src="./app.js"></script>
+  <h1 id="name"></h1>
+  <h2 id="title"></h2>
+  <p id="bio"></p>
+
+  <div id="contactArea"></div>
+
+  <div id="links" class="links"></div>
+
+  <footer>Angel Card v368</footer>
+
+</div>
+
+<script src="app.js"></script>
 </body>
 </html>
