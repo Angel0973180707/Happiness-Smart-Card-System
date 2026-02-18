@@ -182,4 +182,9 @@ button{ font-family:inherit; }
 @media (min-width:860px){
   .main{ grid-template-columns: 1fr 1.2fr; align-items:start; }
   .preview-wrap{ grid-column: 2; grid-row: 1 / span 3; }
+}/* v377.1 hotfix: overlay/curve must NOT block clicks */
+.preview__overlay,
+.curve,
+.curve__shape {
+  pointer-events: none !important;
 }
