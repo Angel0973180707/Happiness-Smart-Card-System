@@ -576,4 +576,22 @@ body{
   .pill.color{ width: 42px; height: 42px; }
 }
 
-/* --- PART 3/3 END --- */
+/* --- PART 3/3 END --- *//* ===== Fix: paperOverlay 不要蓋住內容（尤其 Pro 全底色時） ===== */
+.facade { position: relative; }
+
+.paperOverlay{
+  z-index: 0;              /* 放到底層 */
+  mix-blend-mode: multiply;
+}
+
+/* 內容層浮到遮罩上面 */
+.hero, .content{
+  position: relative;
+  z-index: 1;
+}
+
+/* Pro 精品版：遮罩淡一點，不要把成品區「染黑」 */
+.facade.plan-pro .paperOverlay{
+  opacity: .18;            /* 原本 .55 太重 */
+  mix-blend-mode: overlay; /* 比 multiply 更溫柔 */
+}
