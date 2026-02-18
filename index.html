@@ -1,363 +1,198 @@
 <!doctype html>
-
 <html lang="zh-Hant">
-
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>天使幸福智慧名片 v377-clean</title>
+  <meta name="theme-color" content="#155e4b" />
+  <meta name="description" content="天使幸福智慧名片｜方案A自由款｜方案B精品款｜選版展示｜讀取小天使樣版" />
 
-<meta charset="UTF-8" />
+  <link rel="manifest" href="./manifest.json?v=377" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
 
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
 
-<title>天使幸福智慧名片 v377-clean</title>
-
-<meta name="theme-color" content="#155e4b" />
-
-<meta name="description" content="天使幸福智慧名片｜方案A自由款｜方案B精品款｜選版展示｜讀取小天使樣版" />
-
-<link rel="manifest" href="./manifest.json?v=377" />
-
-<link rel="icon" href="./icons/icon-192.png" />
-
-<link rel="apple-touch-icon" href="./icons/icon-192.png" />
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="./style.css?v=377" />
-
+  <link rel="stylesheet" href="./style.css?v=377" />
 </head>
 
 <body>
-
-<div class="app" id="app"
-
-data-plan="free"
-
-data-theme="arch"
-
-data-free-color="blue"
-
-data-paper="cotton"
-
-data-pro-color="deepSeaBlue">
-
-<!-- Top -->
-
-<header class="top">
-
-<div class="top__bg" aria-hidden="true"></div>
-
-<div class="top__inner">
-
-<div class="brand">
-
-<div class="brand__mark" aria-hidden="true">A</div>
-
-<div class="brand__txt">
-
-<div class="brand__title">天使幸福智慧名片</div>
-
-<div class="brand__sub">v377-clean｜選方案 →（A選版型/顏色/紙感｜B選七色）→ 預覽</div>
-
-</div>
-
-</div>
-
-<div class="top__controls">
-
-<!-- Plan -->
-
-<div class="seg" role="group" aria-label="方案選擇">
-
-<button class="seg__btn is-on" data-plan="free">方案 A｜自由款</button>
-
-<button class="seg__btn" data-plan="pro">方案 B｜精品款</button>
-
-</div>
-
-<!-- Theme (only A can change; B is auto) -->
-
-<div class="seg" role="group" aria-label="版型選擇（自由款）">
-
-<button class="seg__btn is-on" data-theme="arch">正拱</button>
-
-<button class="seg__btn" data-theme="flat">平直</button>
-
-<button class="seg__btn" data-theme="dawn">晨曦（倒拱）</button>
-
-</div>
-
-</div>
-
-</div>
-
-</header>
-
-<main class="main">
-
-<!-- Stepper -->
-
-<section class="card stepper">
-
-<div class="stepper__row">
-
-<div class="step is-done"><span class="step__no">1</span><span class="step__txt">選方案 A / B</span></div>
-
-<div class="step is-done"><span class="step__no">2</span><span class="step__txt">A：選版型/顏色/紙感｜B：選七色</span></div>
-
-<div class="step"><span class="step__no">3</span><span class="step__txt">預覽（讀取：小天使樣版）</span></div>
-
-</div>
-
-<div class="hint" id="hint">門面資料讀取中…（試算表：小天使 TW0001）</div>
-
-</section>
-
-<!-- Composer -->
-
-<section class="card composer" id="composer">
-
-<div class="composer__title">設定區</div>
-
-<!-- A Free controls -->
-
-<div class="composer__block" data-only="free">
-
-<div class="composer__k">自由款｜五色</div>
-
-<div class="swatches" role="group" aria-label="自由款顏色">
-
-<button class="sw" data-free-color="pink">粉</button>
-
-<button class="sw is-on" data-free-color="blue">藍</button>
-
-<button class="sw" data-free-color="orange">橘</button>
-
-<button class="sw" data-free-color="purple">紫</button>
-
-<button class="sw" data-free-color="green">綠</button>
-
-</div>
-
-<div class="composer__k mt">自由款｜紙感四種</div>
-
-<div class="chips" role="group" aria-label="紙感">
-
-<button class="chip is-on" data-paper="cotton">霧面棉紙</button>
-
-<button class="chip" data-paper="grain">細顆粒紙</button>
-
-<button class="chip" data-paper="linen">亞麻紋</button>
-
-<button class="chip" data-paper="watercolor">水彩紙</button>
-
-</div>
-
-<div class="composer__note">
-
-自由款規則：<b>版型可選 3 種</b>｜<b>頭像固定圓形</b>｜無光暈｜無浮動｜不做高階特效
-
-</div>
-
-</div>
-
-<!-- B Pro controls -->
-
-<div class="composer__block" data-only="pro">
-
-<div class="composer__k">精品款｜七色（只選色；排版/頭像框/特效由系統決定）</div>
-
-<div class="swatches swatches--pro" role="group" aria-label="精品款七色">
-
-<button class="sw is-on" data-pro-color="deepSeaBlue">深海藍</button>
-
-<button class="sw" data-pro-color="creamyMist">奶油霧</button>
-
-<button class="sw" data-pro-color="graphiteGray">石墨灰</button>
-
-<button class="sw" data-pro-color="mistPurpleGray">霧紫灰</button>
-
-<button class="sw" data-pro-color="caramelBrown">焦糖棕</button>
-
-<button class="sw" data-pro-color="inkGreen">青墨綠</button>
-
-<button class="sw" data-pro-color="warmGrayBlue">暖灰藍</button>
-
-</div>
-
-<div class="composer__note">
-
-精品款規則：<b>不讓使用者選版型</b>｜不選頭像框｜不選特效｜只選七色；每一色自動套用（三架構之一）
-
-</div>
-
-</div>
-
-</section>
-
-<!-- Preview -->
-
-<section class="preview-wrap">
-
-<div class="preview" id="preview" aria-live="polite">
-
-<!-- overlay strictly inside preview -->
-
-<div class="preview__overlay" aria-hidden="true"></div>
-
-<!-- 3-theme structural curve layer -->
-
-<div class="curve" aria-hidden="true">
-
-<div class="curve__shape"></div>
-
-</div>
-
-<div class="phead">
-
-<div class="avatar" id="avatar">
-
-<!-- A: fixed circle ring (basic). B: may be overridden by fx classes -->
-
-<div class="avatar__ring" aria-hidden="true"></div>
-
-<img class="avatar__img" id="avatarImg" alt="頭像" />
-
-<div class="avatar__fallback" id="avatarFallback">小天使</div>
-
-</div>
-
-<div class="pmeta">
-
-<div class="pname" id="pname">小天使</div>
-
-<div class="ptitle" id="ptitle">門面讀取試算表中</div>
-
-<div class="ptags" id="ptags"></div>
-
-</div>
-
-</div>
-
-<div class="pbody">
-
-<div class="pblock">
-
-<div class="pblock__title">一句話定位</div>
-
-<div class="pblock__text" id="pone">—</div>
-
-</div>
-
-<div class="pgrid" id="pgrid">
-
-<a class="pbtn" id="btnLine" href="#" target="_blank" rel="noopener">
-
-<span class="pbtn__icon">💚</span>
-
-<span class="pbtn__txt">
-
-<span class="pbtn__t">LINE 官方帳號</span>
-
-<span class="pbtn__s">第一次預約｜一定要先加</span>
-
-</span>
-
-</a>
-
-<a class="pbtn" id="btnSite" href="#" target="_blank" rel="noopener">
-
-<span class="pbtn__icon">🏠</span>
-
-<span class="pbtn__txt">
-
-<span class="pbtn__t">門面｜官網入口</span>
-
-<span class="pbtn__s">回概念館／總入口</span>
-
-</span>
-
-</a>
-
-<!-- ✅ 填表鈕放官網下 -->
-
-<a class="pbtn pbtn--lite" id="btnForm" href="#" target="_blank" rel="noopener">
-
-<span class="pbtn__icon">📝</span>
-
-<span class="pbtn__txt">
-
-<span class="pbtn__t">直接訂製｜填表</span>
-
-<span class="pbtn__s">已加 LINE 或老客可直接填</span>
-
-</span>
-
-</a>
-
-<button class="pbtn pbtn--ghost" id="btnCopy" type="button">
-
-<span class="pbtn__icon">📋</span>
-
-<span class="pbtn__txt">
-
-<span class="pbtn__t">複製門面資訊</span>
-
-<span class="pbtn__s">姓名／一句話／連結</span>
-
-</span>
-
-</button>
-
-</div>
-
-<div class="links" id="platforms" aria-label="links"></div>
-
-<button class="pbtn pbtn--ghost" id="btnMap" type="button" style="display:none">
-
-<span class="pbtn__icon">🗺️</span>
-
-<span class="pbtn__txt">
-
-<span class="pbtn__t">地址導航</span>
-
-<span class="pbtn__s">自動轉地圖</span>
-
-</span>
-
-</button>
-
-<div class="pnote" id="pnote"></div>
-
-</div>
-
-</div>
-
-<div class="card side" style="display:none"></div>
-
-</section>
-
-<footer class="app__footer">
-
-<div class="legal">
-
-<span id="versionTap" class="ver">Angel Card v377-clean</span>
-
-<span class="copy">© Angel</span>
-
-</div>
-
-</footer>
-
-</main>
-
-</div>
-
-<script src="./app.js?v=377"></script>
-
+  <div class="app" id="app"
+    data-plan="free"
+    data-theme="arch"
+    data-free-color="blue"
+    data-paper="cotton"
+    data-pro-color="deepSeaBlue">
+
+    <header class="top">
+      <div class="top__bg" aria-hidden="true"></div>
+
+      <div class="top__inner">
+        <div class="brand">
+          <div class="brand__mark" aria-hidden="true">A</div>
+          <div class="brand__txt">
+            <div class="brand__title">天使幸福智慧名片</div>
+            <div class="brand__sub">v377-clean｜選方案 →（A選版型/顏色/紙感｜B選七色）→ 預覽</div>
+          </div>
+        </div>
+
+        <div class="top__controls">
+          <div class="seg" role="group" aria-label="方案選擇">
+            <button class="seg__btn is-on" data-plan="free" type="button">方案 A｜自由款</button>
+            <button class="seg__btn" data-plan="pro" type="button">方案 B｜精品款</button>
+          </div>
+
+          <div class="seg" role="group" aria-label="版型選擇（自由款）">
+            <button class="seg__btn is-on" data-theme="arch" type="button">正拱</button>
+            <button class="seg__btn" data-theme="flat" type="button">平直</button>
+            <button class="seg__btn" data-theme="dawn" type="button">晨曦（倒拱）</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="card stepper">
+        <div class="stepper__row">
+          <div class="step is-done"><span class="step__no">1</span><span class="step__txt">選方案 A / B</span></div>
+          <div class="step is-done"><span class="step__no">2</span><span class="step__txt">A：選版型/顏色/紙感｜B：選七色</span></div>
+          <div class="step"><span class="step__no">3</span><span class="step__txt">預覽（讀取：小天使樣版）</span></div>
+        </div>
+        <div class="hint" id="hint">門面資料讀取中…（試算表：小天使 TW0001）</div>
+      </section>
+
+      <section class="card composer" id="composer">
+        <div class="composer__title">設定區</div>
+
+        <div class="composer__block" data-only="free">
+          <div class="composer__k">自由款｜五色</div>
+          <div class="swatches" role="group" aria-label="自由款顏色">
+            <button class="sw" data-free-color="pink" type="button">粉</button>
+            <button class="sw is-on" data-free-color="blue" type="button">藍</button>
+            <button class="sw" data-free-color="orange" type="button">橘</button>
+            <button class="sw" data-free-color="purple" type="button">紫</button>
+            <button class="sw" data-free-color="green" type="button">綠</button>
+          </div>
+
+          <div class="composer__k mt">自由款｜紙感四種</div>
+          <div class="chips" role="group" aria-label="紙感">
+            <button class="chip is-on" data-paper="cotton" type="button">霧面棉紙</button>
+            <button class="chip" data-paper="grain" type="button">細顆粒紙</button>
+            <button class="chip" data-paper="linen" type="button">亞麻紋</button>
+            <button class="chip" data-paper="watercolor" type="button">水彩紙</button>
+          </div>
+
+          <div class="composer__note">
+            自由款規則：<b>版型可選 3 種</b>｜<b>頭像固定圓形</b>｜無光暈｜無浮動｜不做高階特效
+          </div>
+        </div>
+
+        <div class="composer__block" data-only="pro">
+          <div class="composer__k">精品款｜七色（只選色；排版/頭像框/特效由系統決定）</div>
+          <div class="swatches swatches--pro" role="group" aria-label="精品款七色">
+            <button class="sw is-on" data-pro-color="deepSeaBlue" type="button">深海藍</button>
+            <button class="sw" data-pro-color="creamyMist" type="button">奶油霧</button>
+            <button class="sw" data-pro-color="graphiteGray" type="button">石墨灰</button>
+            <button class="sw" data-pro-color="mistPurpleGray" type="button">霧紫灰</button>
+            <button class="sw" data-pro-color="caramelBrown" type="button">焦糖棕</button>
+            <button class="sw" data-pro-color="inkGreen" type="button">青墨綠</button>
+            <button class="sw" data-pro-color="warmGrayBlue" type="button">暖灰藍</button>
+          </div>
+
+          <div class="composer__note">
+            精品款規則：<b>不讓使用者選版型</b>｜不選頭像框｜不選特效｜只選七色；每一色自動套用（三架構之一）
+          </div>
+        </div>
+      </section>
+
+      <section class="preview-wrap">
+        <div class="preview" id="preview" aria-live="polite">
+          <div class="preview__overlay" aria-hidden="true"></div>
+
+          <div class="curve" aria-hidden="true">
+            <div class="curve__shape"></div>
+          </div>
+
+          <div class="phead">
+            <div class="avatar" id="avatar">
+              <div class="avatar__ring" aria-hidden="true"></div>
+              <img class="avatar__img" id="avatarImg" alt="頭像" />
+              <div class="avatar__fallback" id="avatarFallback">小天使</div>
+            </div>
+
+            <div class="pmeta">
+              <div class="pname" id="pname">小天使</div>
+              <div class="ptitle" id="ptitle">門面讀取試算表中</div>
+              <div class="ptags" id="ptags"></div>
+            </div>
+          </div>
+
+          <div class="pbody">
+            <div class="pblock">
+              <div class="pblock__title">一句話定位</div>
+              <div class="pblock__text" id="pone">—</div>
+            </div>
+
+            <div class="pgrid" id="pgrid">
+              <a class="pbtn" id="btnLine" href="#" target="_blank" rel="noopener">
+                <span class="pbtn__icon">💚</span>
+                <span class="pbtn__txt">
+                  <span class="pbtn__t">LINE 官方帳號</span>
+                  <span class="pbtn__s">第一次預約｜一定要先加</span>
+                </span>
+              </a>
+
+              <a class="pbtn" id="btnSite" href="#" target="_blank" rel="noopener">
+                <span class="pbtn__icon">🏠</span>
+                <span class="pbtn__txt">
+                  <span class="pbtn__t">門面｜官網入口</span>
+                  <span class="pbtn__s">回概念館／總入口</span>
+                </span>
+              </a>
+
+              <a class="pbtn pbtn--lite" id="btnForm" href="#" target="_blank" rel="noopener">
+                <span class="pbtn__icon">📝</span>
+                <span class="pbtn__txt">
+                  <span class="pbtn__t">直接訂製｜填表</span>
+                  <span class="pbtn__s">已加 LINE 或老客可直接填</span>
+                </span>
+              </a>
+
+              <button class="pbtn pbtn--ghost" id="btnCopy" type="button">
+                <span class="pbtn__icon">📋</span>
+                <span class="pbtn__txt">
+                  <span class="pbtn__t">複製門面資訊</span>
+                  <span class="pbtn__s">姓名／一句話／連結</span>
+                </span>
+              </button>
+            </div>
+
+            <div class="links" id="platforms" aria-label="links"></div>
+
+            <button class="pbtn pbtn--ghost" id="btnMap" type="button" style="display:none">
+              <span class="pbtn__icon">🗺️</span>
+              <span class="pbtn__txt">
+                <span class="pbtn__t">地址導航</span>
+                <span class="pbtn__s">自動轉地圖</span>
+              </span>
+            </button>
+
+            <div class="pnote" id="pnote"></div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="app__footer">
+        <div class="legal">
+          <span id="versionTap" class="ver">Angel Card v377-clean</span>
+          <span class="copy">© Angel</span>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="./app.js?v=377"></script>
 </body>
-
 </html>
