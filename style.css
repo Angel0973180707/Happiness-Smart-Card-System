@@ -594,4 +594,51 @@ body{
 .facade.plan-pro .paperOverlay{
   opacity: .18;            /* 原本 .55 太重 */
   mix-blend-mode: overlay; /* 比 multiply 更溫柔 */
+}/* ===== v366 HOTFIX: Pro 底色太吃內容 → 讓內容層更立體、更清楚 ===== */
+.facade{
+  position: relative;
+  isolation: isolate;           /* ✅ 強制分層，避免混色整片糊掉 */
+}
+
+/* paperOverlay 永遠在最底 */
+.paperOverlay{
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+}
+
+/* 內容層一定在上面 */
+.hero, .content{
+  position: relative;
+  z-index: 2;
+}
+
+/* ✅ 精品版：卡片/按鈕/QA 透明度加厚，不再融成同一色 */
+.facade.plan-pro .card{
+  background: rgba(255,255,255,.18) !important;
+  border: 1px solid rgba(255,255,255,.26) !important;
+  box-shadow: 0 18px 50px rgba(0,0,0,.28) !important;
+}
+
+.facade.plan-pro .linkPill{
+  background: rgba(255,255,255,.16) !important;
+  border: 1px solid rgba(255,255,255,.24) !important;
+}
+
+.facade.plan-pro .qaItem{
+  background: rgba(255,255,255,.16) !important;
+  border: 1px solid rgba(255,255,255,.22) !important;
+}
+
+/* ✅ 精品版：字再亮一點 */
+.facade.plan-pro .cardBody,
+.facade.plan-pro .qaItem .a{
+  color: rgba(255,255,255,.88) !important;
+}
+
+/* ✅ 精品版：紙感遮罩變很淡，避免整片「染色」 */
+.facade.plan-pro .paperOverlay{
+  opacity: .10 !important;
+  mix-blend-mode: soft-light !important;
 }
