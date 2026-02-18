@@ -31,6 +31,9 @@ body{
   color:var(--text);
 }
 
+/* Non-interactive background layer (safety for touch) */
+.bg{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+
 .app{min-height:100%}
 
 /* Top */
@@ -43,7 +46,11 @@ body{
   position:absolute; inset:0;
   background: linear-gradient(180deg, rgba(0,0,0,.52), rgba(0,0,0,.18));
   border-bottom:1px solid rgba(255,255,255,.06);
+  pointer-events:none;
 }
+
+/* Ensure controls are always tappable above any glass/backdrop layers */
+.tabs, .seg, .step, .third{ position:relative; z-index:5; }
 .top__inner{position:relative; max-width:1120px; margin:0 auto; display:grid; gap:12px}
 .brand{display:flex; gap:12px; align-items:center}
 .brand__mark{
@@ -373,6 +380,9 @@ body{
 
 /* Hide API how-to block (v372) */
 .side__details{ display:none !important; }
+
+/* Hide settings card (user-facing) */
+.settings{ display:none !important; }
 
 /* v372 platforms mini buttons */
 .platforms{ margin-top:10px; display:grid; grid-template-columns:1fr; gap:10px; }
