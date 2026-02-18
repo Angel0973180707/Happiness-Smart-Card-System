@@ -1,19 +1,71 @@
-<div id="admin-panel">
-  <div class="picker-section">
-    <span class="label">🎨 自由搭配款</span>
-    <div class="dots-row">
-      <div class="dot active" style="background:#ee5253" onclick="setAppMode('free','warm-pink', this)"></div>
-      <div class="dot" style="background:#00a8ff" onclick="setAppMode('free','aurora-blue', this)"></div>
-      <div class="dot" style="background:#f0932b" onclick="setAppMode('free','vivid-orange', this)"></div>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>幸福智慧名片 V380</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body class="mode-free warm-pink style-arch">
+
+  <div id="admin-panel">
+    <div class="picker-section">
+      <span class="label">🎨 自由搭配：亮色親和款</span>
+      <div class="dots-row">
+        <div class="dot active" style="background:#ee5253" onclick="setAppMode('free','warm-pink', this)"></div>
+        <div class="dot" style="background:#00a8ff" onclick="setAppMode('free','aurora-blue', this)"></div>
+        <div class="dot" style="background:#f0932b" onclick="setAppMode('free','vivid-orange', this)"></div>
+        <div class="dot" style="background:#6c5ce7" onclick="setAppMode('free','royal-purple', this)"></div>
+        <div class="dot" style="background:#20bf6b" onclick="setAppMode('free','teal-green', this)"></div>
       </div>
+      <div id="style-selector" class="btn-row">
+        <button class="btn-mini active" onclick="setFreeStyle('arch', this)">優雅拱型</button>
+        <button class="btn-mini" onclick="setFreeStyle('flat', this)">簡潔平直</button>
+      </div>
+    </div>
+
+    <div class="picker-section">
+      <span class="label">🌿 精品設計：七種氣質語彙</span>
+      <div class="dots-row">
+        <div class="p-dot p-deep-green" onclick="setAppMode('premium','p-deep-green', this)"></div>
+        <div class="p-dot p-blue-gray" onclick="setAppMode('premium','p-blue-gray', this)"></div>
+        <div class="p-dot p-wine-red" onclick="setAppMode('premium','p-wine-red', this)"></div>
+        <div class="p-dot p-caramel" onclick="setAppMode('premium','p-caramel', this)"></div>
+        <div class="p-dot p-morandi" onclick="setAppMode('premium','p-morandi', this)"></div>
+        <div class="p-dot p-misty" onclick="setAppMode('premium','p-misty', this)"></div>
+        <div class="p-dot p-graphite" onclick="setAppMode('premium','p-graphite', this)"></div>
+      </div>
+    </div>
+
+    <button class="btn-main-action" onclick="goFillForm()">立即預約訂製</button>
   </div>
 
-  <div class="picker-section">
-    <span class="label">🌿 精品設計款 (內建排版)</span>
-    <div class="dots-row">
-      <div class="p-dot" style="background:#1a2f27" onclick="setAppMode('premium','p-deep-green', this)"></div>
-      <div class="p-dot" style="background:#2c3e50" onclick="setAppMode('premium','p-blue-gray', this)"></div>
-      <div class="p-dot" style="background:#5d2525" onclick="setAppMode('premium','p-wine-red', this)"></div>
-      </div>
+  <div id="card-container" class="card">
+    <div class="premium-fx"></div>
+    <div class="banner"><div class="arch-overlay"></div></div>
+    <div class="avatar-wrap"><img id="u-img" src="" class="avatar" /></div>
+    <div class="info-scroll">
+      <h1 id="u-name" class="name">載入中...</h1>
+      <div id="u-unit" class="unit">...</div>
+      <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">立即預約表單</div>
+      <div class="content-box"><div id="u-service">讀取小天使資料中...</div></div>
+    </div>
   </div>
-</div>
+
+  <div id="work-drawer">
+    <div class="drawer-inner">
+      <h3>管理預覽系統</h3>
+      <input type="text" id="work-id" placeholder="輸入編號 (例: TW0001)" />
+      <button onclick="doPreviewById()">即時調用資料</button>
+    </div>
+  </div>
+
+  <div id="gate-footer" class="footer" onclick="handleHiddenGate()">
+    © 2026 幸福智慧名片 V380｜版權所有
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
