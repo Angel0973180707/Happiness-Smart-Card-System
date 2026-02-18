@@ -1,374 +1,76 @@
-<!doctype html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>天使幸福智慧名片 v377.1-clean</title>
-
-<meta name="theme-color" content="#155e4b" />
-<meta name="description" content="天使幸福智慧名片｜方案A自由款｜方案B精品款｜選版展示｜讀取小天使樣版" />
-
-<link rel="manifest" href="./manifest.json?v=3771" />
-<link rel="icon" href="./icons/icon-192.png" />
-<link rel="apple-touch-icon" href="./icons/icon-192.png" />
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="./style.css?v=3771" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>幸福智慧名片 V358.1 - 小天使自動化版</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
 </head>
+<body class="mode-free warm-pink style-arch">
 
-<body>
-
-<div class="app" id="app"
-  data-plan="free"
-  data-theme="arch"
-  data-free-color="blue"
-  data-paper="cotton"
-  data-pro-color="deepSeaBlue">
-
-  <!-- Top -->
-  <header class="top">
-    <div class="top__bg" aria-hidden="true"></div>
-
-    <div class="top__inner">
-      <div class="brand">
-        <div class="brand__mark" aria-hidden="true">A</div>
-        <div class="brand__txt">
-          <div class="brand__title">天使幸福智慧名片</div>
-          <div class="brand__sub">v377.1-clean｜選方案 →（A選版型/顏色/紙感｜B選七色）→ 預覽</div>
-        </div>
-      </div>
-
-      <div class="top__controls">
-
-        <!-- Plan -->
-        <div class="seg" role="group" aria-label="方案選擇">
-          <button class="seg__btn is-on" data-plan="free">方案 A｜自由款</button>
-          <button class="seg__btn" data-plan="pro">方案 B｜精品款</button>
+    <div id="admin-panel">
+        <div class="picker-section">
+            <span class="section-title">🎨 自由搭配：亮色親和款</span>
+            <div class="dots-row">
+                <div class="dot active" style="background:#ee5253" onclick="setAppMode('free','warm-pink', this)"></div>
+                <div class="dot" style="background:#00a8ff" onclick="setAppMode('free','aurora-blue', this)"></div>
+                <div class="dot" style="background:#f0932b" onclick="setAppMode('free','vivid-orange', this)"></div>
+                <div class="dot" style="background:#6c5ce7" onclick="setAppMode('free','royal-purple', this)"></div>
+                <div class="dot" style="background:#20bf6b" onclick="setAppMode('free','teal-green', this)"></div>
+            </div>
+            <div id="style-selector" class="btn-row">
+                <button class="btn-mini active" onclick="setFreeStyle('arch', this)">優雅拱型</button>
+                <button class="btn-mini" onclick="setFreeStyle('flat', this)">簡潔平直</button>
+                <button class="btn-mini" onclick="setFreeStyle('spot', this)">晨曦聚光</button>
+            </div>
         </div>
 
-        <!-- Theme (自由款才顯示) -->
-        <div class="seg" role="group" aria-label="版型選擇（自由款）" data-only="free">
-          <button class="seg__btn is-on" data-theme="arch">正拱</button>
-          <button class="seg__btn" data-theme="flat">平直</button>
-          <button class="seg__btn" data-theme="dawn">晨曦（倒拱）</button>
+        <div class="picker-section">
+            <span class="section-title">🌿 精品設計：七種氣質語彙 (選色即選版)</span>
+            <div class="dots-row">
+                <div class="p-dot p-deep-green" title="深墨綠" onclick="setAppMode('premium','p-deep-green', this)"></div>
+                <div class="p-dot p-blue-gray" title="深藍灰" onclick="setAppMode('premium','p-blue-gray', this)"></div>
+                <div class="p-dot p-wine-red" title="酒紅棕" onclick="setAppMode('premium','p-wine-red', this)"></div>
+                <div class="p-dot p-caramel" title="焦糖暖棕" onclick="setAppMode('premium','p-caramel', this)"></div>
+                <div class="p-dot p-morandi" title="莫蘭迪藍" onclick="setAppMode('premium','p-morandi', this)"></div>
+                <div class="p-dot p-misty" title="霧紫灰" onclick="setAppMode('premium','p-misty', this)"></div>
+                <div class="p-dot p-graphite" title="石墨黑" onclick="setAppMode('premium','p-graphite', this)"></div>
+            </div>
         </div>
 
-      </div>
+        <button class="btn-main-action" onclick="goFillForm()">
+            立即預約訂製名片 <i class="fa-solid fa-arrow-right"></i>
+        </button>
     </div>
-  </header>
 
-  <main class="main">
-
-    <!-- Stepper -->
-    <section class="card stepper">
-      <div class="stepper__row">
-        <div class="step is-done"><span class="step__no">1</span><span class="step__txt">選方案 A / B</span></div>
-        <div class="step is-done"><span class="step__no">2</span><span class="step__txt">A：選版型/顏色/紙感｜B：選七色</span></div>
-        <div class="step"><span class="step__no">3</span><span class="step__txt">預覽（讀取：小天使樣版）</span></div>
-      </div>
-      <div class="hint" id="hint">門面資料讀取中…（試算表：小天使 TW0001）</div>
-    </section>
-
-    <!-- Composer -->
-    <section class="card composer" id="composer">
-      <div class="composer__title">設定區</div>
-
-      <!-- A Free controls -->
-      <div class="composer__block" data-only="free">
-        <div class="composer__k">自由款｜五色</div>
-        <div class="swatches" role="group" aria-label="自由款顏色">
-          <button class="sw" data-free-color="pink">粉</button>
-          <button class="sw is-on" data-free-color="blue">藍</button>
-          <button class="sw" data-free-color="orange">橘</button>
-          <button class="sw" data-free-color="purple">紫</button>
-          <button class="sw" data-free-color="green">綠</button>
+    <div id="card-container" class="card">
+        <div class="premium-fx"></div>
+        <div class="banner"><div class="arch-overlay"></div></div>
+        
+        <div class="avatar-wrap">
+          <img id="u-img" src="" class="avatar" alt="頭像" />
         </div>
 
-        <div class="composer__k mt">自由款｜紙感四種</div>
-        <div class="chips" role="group" aria-label="紙感">
-          <button class="chip is-on" data-paper="cotton">霧面棉紙</button>
-          <button class="chip" data-paper="grain">細顆粒紙</button>
-          <button class="chip" data-paper="linen">亞麻紋</button>
-          <button class="chip" data-paper="watercolor">水彩紙</button>
-        </div>
-
-        <div class="composer__note">
-          自由款規則：<b>版型可選 3 種</b>｜<b>頭像固定圓形</b>｜無光暈｜無浮動｜不做高階特效
-        </div>
-      </div>
-
-      <!-- B Pro controls -->
-      <div class="composer__block" data-only="pro" style="display:none">
-        <div class="composer__k">精品款｜七色（只選色；排版/頭像框/特效由系統決定）</div>
-        <div class="swatches swatches--pro" role="group" aria-label="精品款七色">
-          <button class="sw is-on" data-pro-color="deepSeaBlue">深海藍</button>
-          <button class="sw" data-pro-color="creamyMist">奶油霧</button>
-          <button class="sw" data-pro-color="graphiteGray">石墨灰</button>
-          <button class="sw" data-pro-color="mistPurpleGray">霧紫灰</button>
-          <button class="sw" data-pro-color="caramelBrown">焦糖棕</button>
-          <button class="sw" data-pro-color="inkGreen">青墨綠</button>
-          <button class="sw" data-pro-color="warmGrayBlue">暖灰藍</button>
-        </div>
-
-        <div class="composer__note">
-          精品款規則：<b>不讓使用者選版型</b>｜不選頭像框｜不選特效｜只選七色；每一色自動套用（三架構之一）
-        </div>
-      </div>
-    </section>
-
-    <!-- Preview -->
-    <section class="preview-wrap">
-      <div class="preview" id="preview" aria-live="polite" data-theme="arch">
-        <div class="preview__overlay" aria-hidden="true"></div>
-
-        <div class="curve" aria-hidden="true">
-          <div class="curve__shape"></div>
-        </div>
-
-        <div class="phead">
-          <div class="avatar" id="avatar">
-            <div class="avatar__ring" aria-hidden="true"></div>
-            <img class="avatar__img" id="avatarImg" alt="頭像" />
-            <div class="avatar__fallback" id="avatarFallback"></div>
+        <div class="info-scroll">
+          <h1 id="u-name" class="name">讀取中...</h1>
+          <div id="u-unit" class="unit">...</div>
+          
+          <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">
+            <div class="order-inner">
+              <span>立即預約訂製</span>
+              <i class="fa-solid fa-chevron-right"></i>
+            </div>
           </div>
 
-          <div class="pmeta">
-            <!-- 預設空白，等試算表 -->
-            <div class="pname" id="pname"></div>
-            <div class="ptitle" id="ptitle"></div>
-            <div class="ptags" id="ptags"></div>
+          <div class="content-box glass-box">
+            <span class="label">服務項目</span>
+            <div id="u-service" class="service-text">正在從雲端讀取小天使最新資料...</div>
           </div>
         </div>
+    </div>
 
-        <div class="pbody">
-          <div class="pblock">
-            <div class="pblock__title">一句話定位</div>
-            <div class="pblock__text" id="pone"></div>
-          </div>
-
-          <div class="pgrid" id="pgrid">
-            <a class="pbtn" id="btnLine" href="#" target="_blank" rel="noopener" style="display:none">
-              <span class="pbtn__icon">💚</span>
-              <span class="pbtn__txt">
-                <span class="pbtn__t">LINE 官方帳號</span>
-                <span class="pbtn__s">第一次預約｜一定要先加</span>
-              </span>
-            </a>
-
-            <a class="pbtn" id="btnSite" href="#" target="_blank" rel="noopener" style="display:none">
-              <span class="pbtn__icon">🏠</span>
-              <span class="pbtn__txt">
-                <span class="pbtn__t">門面｜官網入口</span>
-                <span class="pbtn__s">回概念館／總入口</span>
-              </span>
-            </a>
-
-            <a class="pbtn pbtn--lite" id="btnForm" href="#" target="_blank" rel="noopener" style="display:none">
-              <span class="pbtn__icon">📝</span>
-              <span class="pbtn__txt">
-                <span class="pbtn__t">直接訂製｜填表</span>
-                <span class="pbtn__s">已加 LINE 或老客可直接填</span>
-              </span>
-            </a>
-          </div>
-
-          <div class="links" id="platforms" aria-label="links"></div>
-
-          <button class="pbtn pbtn--ghost" id="btnMap" type="button" style="display:none">
-            <span class="pbtn__icon">🗺️</span>
-            <span class="pbtn__txt">
-              <span class="pbtn__t">地址導航</span>
-              <span class="pbtn__s">自動轉地圖</span>
-            </span>
-          </button>
-
-          <div class="pnote" id="pnote"></div>
-        </div>
-      </div>
-
-      <div class="card side" style="display:none"></div>
-    </section>
-
-    <footer class="app__footer">
-      <div class="legal">
-        <span id="versionTap" class="ver">Angel Card v377.1-clean</span>
-        <span class="copy">© Angel</span>
-      </div>
-    </footer>
-
-  </main>
-</div>
-
-<script>
-/* ===== 新部署 API（已寫死在本 HTML）===== */
-const API_URL = "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec";
-
-const $ = (s, el=document)=>el.querySelector(s);
-const $$ = (s, el=document)=>Array.from(el.querySelectorAll(s));
-
-function setPlan(plan){
-  const app = $("#app");
-  app.dataset.plan = plan;
-
-  // plan buttons
-  $$(".seg__btn[data-plan]").forEach(b=>b.classList.toggle("is-on", b.dataset.plan===plan));
-
-  // show/hide blocks by data-only
-  $$("[data-only='free']").forEach(el=>{
-    // 版型 seg + free composer block
-    if(el.classList.contains("seg") || el.classList.contains("composer__block")) {
-      el.style.display = (plan==="free") ? "" : "none";
-    }
-  });
-  $$("[data-only='pro']").forEach(el=>{
-    if(el.classList.contains("composer__block")) {
-      el.style.display = (plan==="pro") ? "" : "none";
-    }
-  });
-}
-
-function setTheme(theme){
-  const app = $("#app");
-  app.dataset.theme = theme;
-  $("#preview").dataset.theme = theme;
-
-  $$(".seg__btn[data-theme]").forEach(b=>b.classList.toggle("is-on", b.dataset.theme===theme));
-}
-
-function setFreeColor(c){
-  const app = $("#app");
-  app.dataset.freeColor = c;
-  $$(".sw[data-free-color]").forEach(b=>b.classList.toggle("is-on", b.dataset.freeColor===c));
-}
-
-function setPaper(p){
-  const app = $("#app");
-  app.dataset.paper = p;
-  $$(".chip[data-paper]").forEach(b=>b.classList.toggle("is-on", b.dataset.paper===p));
-}
-
-function setProColor(c){
-  const app = $("#app");
-  app.dataset.proColor = c;
-  $$(".sw[data-pro-color]").forEach(b=>b.classList.toggle("is-on", b.dataset.proColor===c));
-}
-
-function safeText(v){ return (v==null) ? "" : String(v).trim(); }
-function showLink(id, url){
-  const el = document.getElementById(id);
-  const u = safeText(url);
-  if(u){
-    el.href = u;
-    el.style.display = "flex";
-  }else{
-    el.style.display = "none";
-  }
-}
-
-async function loadAngelCard(){
-  const hint = $("#hint");
-  hint.textContent = "門面資料讀取中…（試算表：小天使 TW0001）";
-
-  try{
-    const res = await fetch(API_URL + "?action=angel&ts=" + Date.now(), { cache:"no-store" });
-    const data = await res.json();
-
-    if(!data.ok || !data.item){
-      hint.textContent = "找不到小天使資料";
-      return;
-    }
-
-    const card = data.item;
-
-    // === 欄位對應（照你表單表頭）===
-    const name   = safeText(card["姓名（名片大標題）"]);
-    const unit   = safeText(card["單位名稱（如：幸福教養概念館）"]);
-    const slogan = safeText(card["理念標語（顯示在照片下方，精簡有力）"]);
-
-    const avatar = safeText(card["個人專業形象照（名片主圖）"]);
-
-    // 你表頭有兩種 LINE：私訊 / 官方帳號
-    // - 官方帳號：綠色主按鈕
-    const lineOA = safeText(card["​LINE 官方帳號連結（綠色主按鈕）"]);
-    // - 這欄你之前拿來當「直接訂製」入口（若你之後換成 Google Form 欄位，也可在此改）
-    const direct = safeText(card["私訊 LINE 連結（第一行填連結，換行填line名稱）"]);
-
-    // 你想當官網入口的欄位：先用 影音平台1（你可改成真正官網欄）
-    const site   = safeText(card["影音平台 1（如：YouTube或其他連結）"]);
-
-    $("#pname").textContent = name;
-    $("#ptitle").textContent = unit;
-    $("#pone").textContent = slogan;
-
-    // avatar
-    const img = $("#avatarImg");
-    const fb  = $("#avatarFallback");
-    if(avatar){
-      img.src = avatar;
-      img.style.display = "block";
-      fb.style.display = "none";
-    }else{
-      img.style.display = "none";
-      fb.style.display = "grid";
-      fb.textContent = (name || "小天使").slice(0,4);
-    }
-
-    // links show/hide
-    showLink("btnLine", lineOA);
-    showLink("btnSite", site);
-    showLink("btnForm", direct);
-
-    hint.textContent = "已讀取：小天使樣版";
-
-  }catch(err){
-    $("#hint").textContent = "讀取失敗：" + (err && err.message ? err.message : err);
-  }
-}
-
-function wireUI(){
-  // plan
-  $$(".seg__btn[data-plan]").forEach(b=>{
-    b.addEventListener("click", ()=> setPlan(b.dataset.plan));
-  });
-
-  // theme (free only)
-  $$(".seg__btn[data-theme]").forEach(b=>{
-    b.addEventListener("click", ()=> setTheme(b.dataset.theme));
-  });
-
-  // free color
-  $$(".sw[data-free-color]").forEach(b=>{
-    b.addEventListener("click", ()=> setFreeColor(b.dataset.freeColor));
-  });
-
-  // paper
-  $$(".chip[data-paper]").forEach(b=>{
-    b.addEventListener("click", ()=> setPaper(b.dataset.paper));
-  });
-
-  // pro color
-  $$(".sw[data-pro-color]").forEach(b=>{
-    b.addEventListener("click", ()=> setProColor(b.dataset.proColor));
-  });
-}
-
-document.addEventListener("DOMContentLoaded", ()=>{
-  wireUI();
-
-  // init from dataset
-  const app = $("#app");
-  setPlan(app.dataset.plan || "free");
-  setTheme(app.dataset.theme || "arch");
-  setFreeColor(app.dataset.freeColor || "blue");
-  setPaper(app.dataset.paper || "cotton");
-  setProColor(app.dataset.proColor || "deepSeaBlue");
-
-  loadAngelCard();
-});
-</script>
-
+    <script src="./app.js"></script>
 </body>
 </html>
