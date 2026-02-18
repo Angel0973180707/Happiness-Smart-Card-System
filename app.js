@@ -6,35 +6,35 @@ const CONFIG = {
 
 let state = { mode: 'free', theme: 'warm-pink', style: 'arch' };
 
-// 🛠 解決「按鈕不動」：將函數顯式掛載到全域 window
+// 核心連動函數
 window.handleMode = function(mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
   
-  // 更新點點狀態
+  // 1. 清除所有點點的 active 狀態
   document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
   el.classList.add('active');
 
-  const styleSelector = document.getElementById('style-selector');
-  if(mode === 'premium') {
-    styleSelector.style.display = 'none'; // 精品款鎖定排版
-    document.body.className = `mode-premium ${theme}`;
-  } else {
-    styleSelector.style.display = 'block';
+  // 2. 徹底重寫 Body 的 Class (這是解決不連動的關鍵)
+  // 如果是 free 模式，class 會是 "mode-free warm-pink style-arch"
+  // 如果是 premium 模式，class 會是 "mode-premium p-deep-green"
+  if (mode === 'free') {
+    state.style = localStorage.getItem('v358_style') || 'arch';
     document.body.className = `mode-free ${theme} style-${state.style}`;
+    document.getElementById('style-selector').style.display = 'block';
+  } else {
+    state.style = 'premium';
+    document.body.className = `mode-premium ${theme}`;
+    document.getElementById('style-selector').style.display = 'none';
   }
+
+  // 3. 更新瀏覽器頂部顏色
   updateThemeColor();
 };
 
-window.handleStyle = function(style, el) {
-  state.style = style;
-  document.querySelectorAll('.btn-mini').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  document.body.className = `mode-free ${state.theme} style-${style}`;
-};
-
-// 🛠 解決「自動讀取」：初始化抓取 GAS 資料
+// 自動讀取小天使資料 (TW0001)
 async function fetchAngelData() {
+  const nameEl = document.getElementById('u-name');
   try {
     const res = await fetch(`${CONFIG.GAS_API}?id=${CONFIG.ANGEL_ID}`);
     const data = await res.json();
@@ -45,22 +45,19 @@ async function fetchAngelData() {
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
   } catch (e) {
-    console.error("雲端資料讀取失敗");
+    nameEl.innerText = "小天使笑長";
   }
 }
-
-window.goFillForm = () => {
-  const finalUrl = `${CONFIG.FORM_BASE}?usp=pp_url&entry.12345=${state.theme}&entry.67890=${state.style}`;
-  window.open(finalUrl, '_blank');
-};
 
 function updateThemeColor() {
   const accent = getComputedStyle(document.documentElement).getPropertyValue('--p').trim();
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', accent);
 }
 
-// 頁面加載完成後執行
-window.addEventListener('DOMContentLoaded', () => {
+window.goFillForm = () => window.open(CONFIG.FORM_BASE, '_blank');
+
+// 頁面加載時執行
+window.onload = () => {
   fetchAngelData();
   updateThemeColor();
-});
+};
