@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Happiness Smart Card System</title>
+
+  <meta name="theme-color" content="#0c2a16" />
+  <meta name="description" content="智慧名片｜先選方案 → 選版型 → 預約訂製（LINE）→ 直接填表" />
+
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="dot"></div>
+      <div class="brandText">
+        <div class="brandTitle">天使幸福智慧名片</div>
+        <div class="brandSub">第一步選方案 → 第二步選版型 → 第三步預約訂製</div>
+      </div>
+    </div>
+
+    <div class="topActions">
+      <button id="btnHelp" class="btn ghost breathe-soft" type="button">填表前準備</button>
+      <button id="btnGoLineTop" class="btn primary" type="button">預約訂製（LINE）</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- Step 1 -->
+    <section class="panel">
+      <div class="panelHead">
+        <div class="h1">第一步：先選方案</div>
+        <div class="hint">A / B 只是門面參考；你選的方案會套用到下方「門面預覽」。</div>
+      </div>
+
+      <div class="planGrid">
+        <button class="planCard breathe" data-plan="A" type="button">
+          <div class="planTag">A</div>
+          <div class="planName">自由搭配款</div>
+          <div class="planDesc">排版固定（由上到下）<br/>只切換「頭像上方版型」三種</div>
+        </button>
+
+        <button class="planCard breathe" data-plan="B" type="button">
+          <div class="planTag">B</div>
+          <div class="planName">精品設計款</div>
+          <div class="planDesc">底色覆蓋整張名片<br/>玻璃質感更明顯（3 種排版預留）</div>
+        </button>
+      </div>
+
+      <div class="chosenBar">
+        <div>
+          <span class="label">已選方案：</span>
+          <span id="chosenPlan" class="chosenValue">尚未選擇</span>
+          <div id="chosenNote" class="chosenNote">請先點選 A 或 B（卡片會跳動提醒）。</div>
+        </div>
+
+        <div class="chosenBtns">
+          <button id="btnClear" class="btn ghost" type="button">清除</button>
+          <button id="btnNext" class="btn primary disabled" type="button" aria-disabled="true">請先選方案 ↑</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2 -->
+    <section id="panelLayout" class="panel" hidden>
+      <div class="panelHead">
+        <div class="h1">第二步：選版型（正拱／平直／晨曦）</div>
+        <div class="hint">自由款：顏色與版型做在「頭像上方區塊」。精品款：底色覆蓋整張。</div>
+      </div>
+
+      <div class="ctrlRow">
+        <div class="ctrlLabel">版型</div>
+        <div class="pills">
+          <button class="pill" data-layout="arch" type="button">正拱</button>
+          <button class="pill" data-layout="flat" type="button">平直</button>
+          <button class="pill" data-layout="dawn" type="button">晨曦</button>
+        </div>
+      </div>
+
+      <div class="ctrlRow">
+        <div class="ctrlLabel">顏色</div>
+        <div class="pills">
+          <button class="pill color" data-color="red" type="button" aria-label="粉紅"></button>
+          <button class="pill color" data-color="blue" type="button" aria-label="藍"></button>
+          <button class="pill color" data-color="orange" type="button" aria-label="橘"></button>
+          <button class="pill color" data-color="purple" type="button" aria-label="紫"></button>
+          <button class="pill color" data-color="green" type="button" aria-label="綠"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Preview -->
+    <section class="panel">
+      <div class="panelHead">
+        <div class="h1">門面預覽（示範：小天使 TW0001）</div>
+        <div class="hint">第三步：第一次預約請先加 LINE 官方帳號；底下也有「直接訂製填表」。</div>
+      </div>
+
+      <div id="facade" class="facade plan-none layout-arch theme-blue">
+        <div class="hero">
+          <div class="heroTop"></div>
+
+          <div class="avatarWrap">
+            <img id="avatarImg" class="avatar" alt="avatar" />
+          </div>
+
+          <div class="titleArea">
+            <div id="nameText" class="name">載入中…</div>
+            <div id="orgText" class="org"></div>
+            <div id="sloganText" class="slogan"></div>
+          </div>
+        </div>
+
+        <div class="content">
+          <div class="grid2">
+            <div class="card">
+              <div class="cardTitle">服務項目</div>
+              <div id="servicesText" class="cardBody"></div>
+            </div>
+
+            <div class="card">
+              <div class="cardTitle">重要頭銜 / 背書</div>
+              <div id="titlesText" class="cardBody muted"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardTitle">一鍵聯繫（這裡放小天使資料）</div>
+            <div class="ctaRow">
+              <a id="btnLineOA" class="btnCta line" href="#" target="_blank" rel="noopener">預約訂製（LINE 官方帳號）</a>
+              <a id="btnLineDM" class="btnCta ghost" href="#" target="_blank" rel="noopener">LINE 私訊</a>
+              <a id="btnEmail" class="btnCta ghost" href="#" target="_blank" rel="noopener">Email</a>
+              <a id="btnPhone" class="btnCta ghost" href="#" target="_blank" rel="noopener">電話</a>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="cardTitle">第三步：預約訂製（第一次一定要加 LINE）</div>
+            <div class="ctaRow">
+              <a id="btnGoLine" class="btnCta line" href="#" target="_blank" rel="noopener">先加 LINE 官方帳號</a>
+            </div>
+            <div class="miniNote">加完 LINE 再回來，或直接往下填表。</div>
+          </div>
+
+          <div class="bottomBar">
+            <button id="btnGoForm" class="btn primary big" type="button">直接訂製：填寫表單</button>
+            <div class="miniNote">提醒：填表時請寫你選的方案與版型（門面就照這樣做）。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Help Modal -->
+  <div id="helpModal" class="modal" hidden>
+    <div class="modalPanel" role="dialog" aria-modal="true" aria-label="填表前準備">
+      <div class="modalHead">
+        <div class="modalTitle">填表前準備</div>
+        <button id="btnHelpClose" class="iconBtn" type="button" data-close="1" aria-label="close">✕</button>
+      </div>
+
+      <div class="modalBody">
+        <div class="modalHint">不用懂規格，只要「清楚」就行。第一次預約請先加 LINE 官方帳號。</div>
+        <ul class="check">
+          <li><b>姓名/品牌名</b>：名片大標題</li>
+          <li><b>單位名稱</b>：公司/工作室/職稱</li>
+          <li><b>理念標語</b>：10～20 字</li>
+          <li><b>服務項目</b>：3～6 點條列</li>
+          <li><b>頭像/主照片</b>：臉清楚、光線別太暗</li>
+          <li><b>連結</b>：YouTube/IG/FB/LINE/Email/電話</li>
+        </ul>
+
+        <div class="modalFoot">
+          <button id="btnHelpOk" class="btn primary" type="button" data-close="1">知道了</button>
+        </div>
+      </div>
+
+      <div class="modalOverlay" data-close="1" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
