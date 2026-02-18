@@ -649,3 +649,17 @@ opacity:.9;
 }
 
 .app[data-plan="pro"].fx-magazine .preview{ box-shadow:0 18px 40px rgba(0,0,0,.22); }
+/* ===== DEBUG 顏色變數觀察器（測試用）===== */
+#app::before{
+  content:"p=" var(--p) " | s=" var(--s);
+  position: fixed;
+  left: 10px;
+  bottom: 10px;
+  background: black;
+  color: white;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+  z-index: 99999;
+  pointer-events: none;
+}
