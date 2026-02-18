@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Happiness Smart Card System</title>
+  <title>幸福智慧名片系統 v367</title>
 
   <meta name="theme-color" content="#0c2a16" />
-  <meta name="description" content="智慧名片｜先選方案 → 選版型 → 預約訂製（LINE）→ 直接填表" />
+  <meta name="description" content="智慧名片｜選方案 → 選版型 → 先加 LINE 官方帳號預約 → 直接填表訂製" />
 
   <link rel="manifest" href="./manifest.json" />
-  <link rel="icon" href="./icon-192.png" />
-  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,37 +24,37 @@
     <div class="brand">
       <div class="dot"></div>
       <div class="brandText">
-        <div class="brandTitle">天使幸福智慧名片</div>
-        <div class="brandSub">第一步選方案 → 第二步選版型 → 第三步預約訂製</div>
+        <div class="brandTitle">幸福智慧名片系統</div>
+        <div class="brandSub">①選方案 → ②選版型 → ③預約訂製（先加 LINE）→ ④直接填表</div>
       </div>
     </div>
 
     <div class="topActions">
       <button id="btnHelp" class="btn ghost breathe-soft" type="button">填表前準備</button>
-      <button id="btnGoLineTop" class="btn primary" type="button">預約訂製（LINE）</button>
+      <button id="btnGoLineTop" class="btn primary" type="button">預約訂製（先加 LINE）</button>
     </div>
   </header>
 
   <main class="wrap">
 
-    <!-- Step 1 -->
+    <!-- Step 1: Plan chooser -->
     <section class="panel">
       <div class="panelHead">
-        <div class="h1">第一步：先選方案</div>
-        <div class="hint">A / B 只是門面參考；你選的方案會套用到下方「門面預覽」。</div>
+        <div class="h1">第一步｜先選方案（A / B）</div>
+        <div class="hint">只是選「方向」，你選的方案會立刻套用到下方門面預覽。</div>
       </div>
 
       <div class="planGrid">
         <button class="planCard breathe" data-plan="A" type="button">
           <div class="planTag">A</div>
           <div class="planName">自由搭配款</div>
-          <div class="planDesc">排版固定（由上到下）<br/>只切換「頭像上方版型」三種</div>
+          <div class="planDesc">顏色做在版型上（正拱／平直／晨曦）<br/>頭像不立體，乾淨耐看</div>
         </button>
 
         <button class="planCard breathe" data-plan="B" type="button">
           <div class="planTag">B</div>
           <div class="planName">精品設計款</div>
-          <div class="planDesc">底色覆蓋整張名片<br/>玻璃質感更明顯（3 種排版預留）</div>
+          <div class="planDesc">整張底色鋪滿＋更強玻璃感<br/>排版風格保留 3 種（預留）</div>
         </button>
       </div>
 
@@ -62,7 +62,7 @@
         <div>
           <span class="label">已選方案：</span>
           <span id="chosenPlan" class="chosenValue">尚未選擇</span>
-          <div id="chosenNote" class="chosenNote">請先點選 A 或 B（卡片會跳動提醒）。</div>
+          <div id="chosenNote" class="chosenNote">請先點選上方其中一個方案。</div>
         </div>
 
         <div class="chosenBtns">
@@ -72,20 +72,11 @@
       </div>
     </section>
 
-    <!-- Step 2 -->
-    <section id="panelLayout" class="panel" hidden>
+    <!-- Step 2A: Free controls -->
+    <section id="panelA" class="panel" hidden>
       <div class="panelHead">
-        <div class="h1">第二步：選版型（正拱／平直／晨曦）</div>
-        <div class="hint">自由款：顏色與版型做在「頭像上方區塊」。精品款：底色覆蓋整張。</div>
-      </div>
-
-      <div class="ctrlRow">
-        <div class="ctrlLabel">版型</div>
-        <div class="pills">
-          <button class="pill" data-layout="arch" type="button">正拱</button>
-          <button class="pill" data-layout="flat" type="button">平直</button>
-          <button class="pill" data-layout="dawn" type="button">晨曦</button>
-        </div>
+        <div class="h1">第二步｜A 自由款：顏色（做在版型）＋版型＋紙感</div>
+        <div class="hint">顏色會影響「版型區塊」，不是頭像圈圈。頭像保持乾淨，跟精品版區分。</div>
       </div>
 
       <div class="ctrlRow">
@@ -98,18 +89,69 @@
           <button class="pill color" data-color="green" type="button" aria-label="綠"></button>
         </div>
       </div>
+
+      <div class="ctrlRow">
+        <div class="ctrlLabel">版型</div>
+        <div class="pills">
+          <button class="pill" data-layout="elegant" type="button">正拱</button>
+          <button class="pill" data-layout="clean" type="button">平直</button>
+          <button class="pill" data-layout="focus" type="button">晨曦</button>
+        </div>
+      </div>
+
+      <div class="ctrlRow">
+        <div class="ctrlLabel">紙感</div>
+        <div class="pills">
+          <button class="pill" data-paper="cotton" type="button">霧面棉紙</button>
+          <button class="pill" data-paper="grain" type="button">細顆粒紙</button>
+          <button class="pill" data-paper="linen" type="button">亞麻紋</button>
+          <button class="pill" data-paper="watercolor" type="button">水彩紙</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2B: Pro controls -->
+    <section id="panelB" class="panel" hidden>
+      <div class="panelHead">
+        <div class="h1">第二步｜B 精品版：整張底色＋排版風格（預留）</div>
+        <div class="hint">精品版底色會鋪滿整張卡片；玻璃感更明顯。</div>
+      </div>
+
+      <div class="ctrlRow">
+        <div class="ctrlLabel">底色</div>
+        <div class="pills">
+          <button class="pill color" data-procolor="inkgreen" type="button" aria-label="深墨綠"></button>
+          <button class="pill color" data-procolor="bluegray" type="button" aria-label="深藍灰"></button>
+          <button class="pill color" data-procolor="wine" type="button" aria-label="酒紅棕"></button>
+          <button class="pill color" data-procolor="caramel" type="button" aria-label="焦糖暖棕"></button>
+          <button class="pill color" data-procolor="morandi" type="button" aria-label="莫蘭迪藍"></button>
+          <button class="pill color" data-procolor="fogpurple" type="button" aria-label="霧紫灰"></button>
+          <button class="pill color" data-procolor="graphite" type="button" aria-label="深石墨黑"></button>
+        </div>
+      </div>
+
+      <div class="ctrlRow">
+        <div class="ctrlLabel">排版</div>
+        <div class="pills">
+          <button class="pill" data-prostyle="editorial" type="button">雜誌感</button>
+          <button class="pill" data-prostyle="gallery" type="button">藝廊感</button>
+          <button class="pill" data-prostyle="bold" type="button">主視覺</button>
+        </div>
+      </div>
     </section>
 
     <!-- Preview -->
     <section class="panel">
       <div class="panelHead">
-        <div class="h1">門面預覽（示範：小天使 TW0001）</div>
-        <div class="hint">第三步：第一次預約請先加 LINE 官方帳號；底下也有「直接訂製填表」。</div>
+        <div class="h1">預覽門面（示範資料）</div>
+        <div class="hint">這裡會載入示範名片資料，讓你看到完成後的樣子。</div>
       </div>
 
-      <div id="facade" class="facade plan-none layout-arch theme-blue">
+      <div id="facade" class="facade plan-free theme-blue layout-elegant paper-cotton">
         <div class="hero">
-          <div class="heroTop"></div>
+          <div class="heroTop">
+            <img id="logoImg" class="logo" alt="logo" hidden />
+          </div>
 
           <div class="avatarWrap">
             <img id="avatarImg" class="avatar" alt="avatar" />
@@ -123,6 +165,7 @@
         </div>
 
         <div class="content">
+
           <div class="grid2">
             <div class="card">
               <div class="cardTitle">服務項目</div>
@@ -136,28 +179,41 @@
           </div>
 
           <div class="card">
-            <div class="cardTitle">一鍵聯繫（這裡放小天使資料）</div>
-            <div class="ctaRow">
-              <a id="btnLineOA" class="btnCta line" href="#" target="_blank" rel="noopener">預約訂製（LINE 官方帳號）</a>
-              <a id="btnLineDM" class="btnCta ghost" href="#" target="_blank" rel="noopener">LINE 私訊</a>
-              <a id="btnEmail" class="btnCta ghost" href="#" target="_blank" rel="noopener">Email</a>
-              <a id="btnPhone" class="btnCta ghost" href="#" target="_blank" rel="noopener">電話</a>
+            <div class="cardTitle">產品 / 活動照片（左右滑・點圖看）</div>
+            <div id="gallery" class="gallery"></div>
+          </div>
+
+          <div class="grid2">
+            <div class="card">
+              <div class="cardTitle">影音平台</div>
+              <div id="videoLinks" class="links"></div>
+            </div>
+
+            <div class="card">
+              <div class="cardTitle">社群平台</div>
+              <div id="socialLinks" class="links"></div>
             </div>
           </div>
 
           <div class="card">
-            <div class="cardTitle">第三步：預約訂製（第一次一定要加 LINE）</div>
+            <div class="cardTitle">聯繫</div>
             <div class="ctaRow">
-              <a id="btnGoLine" class="btnCta line" href="#" target="_blank" rel="noopener">先加 LINE 官方帳號</a>
+              <a id="btnLineOA" class="btnCta line" href="#" target="_blank" rel="noopener">預約訂製（先加 LINE 官方帳號）</a>
+              <a id="btnEmail" class="btnCta ghost" href="#" target="_blank" rel="noopener">Email</a>
+              <a id="btnPhone" class="btnCta ghost" href="#" target="_blank" rel="noopener">電話</a>
+              <a id="btnMap" class="btnCta ghost" href="#" target="_blank" rel="noopener" hidden>導航</a>
             </div>
-            <div class="miniNote">加完 LINE 再回來，或直接往下填表。</div>
           </div>
 
           <div class="bottomBar">
-            <button id="btnGoForm" class="btn primary big" type="button">直接訂製：填寫表單</button>
-            <div class="miniNote">提醒：填表時請寫你選的方案與版型（門面就照這樣做）。</div>
+            <button id="btnGoLine" class="btn primary big" type="button">第三步：預約訂製（先加 LINE 官方帳號）</button>
+            <button id="btnGoForm" class="btn ghost big" type="button">第四步：直接訂製（填表）</button>
+            <div class="miniNote">提醒：第一次一定先加 LINE 官方帳號（預約訂製），再來填表。</div>
           </div>
+
         </div>
+
+        <div class="paperOverlay" aria-hidden="true"></div>
       </div>
     </section>
 
@@ -172,14 +228,18 @@
       </div>
 
       <div class="modalBody">
-        <div class="modalHint">不用懂規格，只要「清楚」就行。第一次預約請先加 LINE 官方帳號。</div>
+        <div class="modalHint">不用懂規格，只要「清楚」就行。精品版更吃照片質感。</div>
+
         <ul class="check">
-          <li><b>姓名/品牌名</b>：名片大標題</li>
-          <li><b>單位名稱</b>：公司/工作室/職稱</li>
-          <li><b>理念標語</b>：10～20 字</li>
-          <li><b>服務項目</b>：3～6 點條列</li>
-          <li><b>頭像/主照片</b>：臉清楚、光線別太暗</li>
-          <li><b>連結</b>：YouTube/IG/FB/LINE/Email/電話</li>
+          <li><b>名片大標題</b>：姓名/品牌名</li>
+          <li><b>單位名稱</b>：工作室/概念館/公司/職稱</li>
+          <li><b>一句理念標語</b>：10～20 字，精簡有力</li>
+          <li><b>服務項目</b>：3～6 點條列（越清楚越好）</li>
+          <li><b>重要頭銜/背書</b>（可選）：獎項/證照/資歷</li>
+          <li><b>主照片</b>：臉清楚、光線別太暗</li>
+          <li><b>Logo</b>（可選）</li>
+          <li><b>連結</b>：YouTube / IG / FB / LINE / Email / 電話…</li>
+          <li><b>產品/活動照片</b>：最多 3 張</li>
         </ul>
 
         <div class="modalFoot">
@@ -188,6 +248,16 @@
       </div>
 
       <div class="modalOverlay" data-close="1" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <!-- Image Viewer -->
+  <div id="imgViewer" class="viewer" hidden>
+    <div class="viewerPanel" role="dialog" aria-modal="true" aria-label="圖片預覽">
+      <button class="iconBtn viewerClose" type="button" data-close="1" aria-label="close">✕</button>
+      <img id="viewerImg" class="viewerImg" alt="full" />
+      <div id="viewerCap" class="viewerCap"></div>
+      <div class="viewerOverlay" data-close="1" aria-hidden="true"></div>
     </div>
   </div>
 
