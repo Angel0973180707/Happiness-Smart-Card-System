@@ -1,50 +1,42 @@
-/* --- [修正] 自由搭配色系：強制亮色底 --- */
-.mode-free.warm-pink   { --p:#ee5253; --bg:#f5f6fa;/* V380 樣式隔離系統 */
+/* V380 隔離樣式系統 */
+:root { --font: 'Noto Sans TC', sans-serif; }
 
-/* --- 🎨 自由搭配：亮色連動定義 --- */
+/* 🎨 自由搭配：亮色連動 */
 .mode-free.warm-pink   { --p:#ee5253; --bg:#f5f6fa; --card-bg:#ffffff; --text:#2d3436; --ls:normal; }
 .mode-free.aurora-blue { --p:#00a8ff; --bg:#f5f6fa; --card-bg:#ffffff; --text:#2d3436; --ls:normal; }
 .mode-free.vivid-orange{ --p:#f0932b; --bg:#f5f6fa; --card-bg:#ffffff; --text:#2d3436; --ls:normal; }
 .mode-free.royal-purple{ --p:#6c5ce7; --bg:#f5f6fa; --card-bg:#ffffff; --text:#2d3436; --ls:normal; }
 .mode-free.teal-green  { --p:#20bf6b; --bg:#f5f6fa; --card-bg:#ffffff; --text:#2d3436; --ls:normal; }
 
-/* --- 🌿 精品設計：選色即選版語彙 --- */
+/* 🌿 精品設計：選色即選版 */
 .mode-premium.p-deep-green { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; --sh:0 40px 80px rgba(0,0,0,0.5); }
-.mode-premium.p-blue-gray  { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.08em; }
+.mode-premium.p-blue-gray  { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.1em; }
 .mode-premium.p-wine-red   { --p:#5d2525; --bg:#3d1616; --card-bg:#3d1616; --text:#fff5f5; --fx:radial-gradient(circle at 50% 20%, rgba(255,100,100,0.2), transparent 70%); }
 .mode-premium.p-graphite   { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; --ls:0.25em; }
 
-/* 基礎結構連動 */
-.card {
-  background: var(--card-bg) !important;
-  color: var(--text) !important;
-  box-shadow: var(--sh, 0 15px 35px rgba(0,0,0,0.1));
-  transition: all 0.5s ease;
+body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; }
+
+.card { 
+  width: 92%; max-width: 380px; height: 680px; background: var(--card-bg) !important; color: var(--text) !important;
+  border-radius: 40px; overflow: hidden; position: relative; margin: 20px 0; box-shadow: var(--sh, 0 15px 35px rgba(0,0,0,0.1)); transition: 0.5s;
 }
 
 .mode-premium .banner { display: none !important; }
+.mode-premium .avatar-wrap { top: 40px; }
+.mode-premium .info-scroll { padding-top: 50px; }
 .mode-premium .name { letter-spacing: var(--ls); font-weight: 900; }
 .mode-premium .content-box { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1); }
+.mode-premium .premium-fx { position: absolute; inset: 0; background: var(--fx, none); pointer-events: none; z-index: 1; }
 
-/* V358 拱型邏輯 */
 .style-arch .arch-overlay { background: var(--card-bg); height: 50px; border-radius: 60px 60px 0 0; position: absolute; bottom: 0; width: 100%; }
 .banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; }
- --card-bg:#ffffff; --text:#2d3436; --ls:normal; --shadow:0 15px 35px rgba(0,0,0,0.1); }
-.mode-free.aurora-blue { --p:#00a8ff; --bg:#f5f6fa; --card-bg:#ffffff; --text:#2d3436; --ls:normal; --shadow:0 15px 35px rgba(0,0,0,0.1); }
-.mode-free.vivid-orange{ --p:#f0932b; --bg:#f5f6fa; --card-bg:#ffffff; --text:#2d3436; --ls:normal; --shadow:0 15px 35px rgba(0,0,0,0.1); }
-.mode-free.royal-purple{ --p:#6c5ce7; --bg:#f5f6fa; --card-bg:#ffffff; --text:#2d3436; --ls:normal; --shadow:0 15px 35px rgba(0,0,0,0.1); }
-.mode-free.teal-green  { --p:#20bf6b; --bg:#f5f6fa; --card-bg:#ffffff; --text:#2d3436; --ls:normal; --shadow:0 15px 35px rgba(0,0,0,0.1); }
 
-/* --- [修正] 精品設計色系：強制深色底/特定氛圍 --- */
-.mode-premium.p-deep-green { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; --shadow:0 40px 80px rgba(0,0,0,0.5); }
-.mode-premium.p-blue-gray  { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.08em; }
-.mode-premium.p-wine-red   { --p:#5d2525; --bg:#3d1616; --card-bg:#3d1616; --text:#fff5f5; --fx:radial-gradient(circle at 50% 20%, rgba(255,100,100,0.2), transparent 70%); }
-.mode-premium.p-graphite   { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; --ls:0.25em; }
-/* ...其餘精品色以此類推 */
+/* 介面 UI */
+#admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #ddd; padding: 10px 0; }
+.dots-row { display: flex; justify-content: center; gap: 10px; margin: 8px 0; }
+.dot, .p-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.active { transform: scale(1.15); border-color: #333 !important; }
 
-/* 確保 Card 讀取的是對應的變數 */
-.card {
-    background: var(--card-bg) !important;
-    color: var(--text) !important;
-    box-shadow: var(--shadow);
-}
+/* 隱形入口抽屜 */
+#work-drawer { position: fixed; bottom: 0; width: 100%; max-width: 420px; background: #2d3436; color: white; transition: 0.5s; z-index: 2000; border-radius: 25px 25px 0 0; }
+.drawer-inner { padding: 30px; text-align: center; }
