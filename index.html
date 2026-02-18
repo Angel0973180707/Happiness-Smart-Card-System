@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>幸福智慧名片 V358.1</title>
+  <title>幸福智慧名片 V358.1 - 小天使樣板</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./style.css" />
@@ -11,9 +11,9 @@
 <body class="mode-free warm-pink style-arch">
 
   <div id="admin-panel">
-    <div class="picker-group">
+    <div class="picker-section">
       <span class="section-label">🎨 自由搭配：亮色親和款</span>
-      <div class="dots-row" id="free-dots">
+      <div class="dots-row">
         <div class="dot active" style="background:#ee5253" onclick="handleMode('free','warm-pink', this)"></div>
         <div class="dot" style="background:#00a8ff" onclick="handleMode('free','aurora-blue', this)"></div>
         <div class="dot" style="background:#f0932b" onclick="handleMode('free','vivid-orange', this)"></div>
@@ -26,16 +26,16 @@
       </div>
     </div>
 
-    <div class="picker-group">
+    <div class="picker-section">
       <span class="section-label">🌿 精品設計：七種氣質語彙</span>
-      <div class="dots-row" id="premium-dots">
+      <div class="dots-row">
         <div class="p-dot p-deep-green" title="深墨綠" onclick="handleMode('premium','p-deep-green', this)"></div>
         <div class="p-dot p-blue-gray" title="深藍灰" onclick="handleMode('premium','p-blue-gray', this)"></div>
-        <div class="p-dot p-wine-red" title="酒紅棕" onclick="setPremiumTheme('p-wine-red', this)"></div>
-        <div class="p-dot p-caramel" title="焦糖暖棕" onclick="setPremiumTheme('p-caramel', this)"></div>
-        <div class="p-dot p-morandi" title="莫蘭迪藍" onclick="setPremiumTheme('p-morandi', this)"></div>
-        <div class="p-dot p-misty" title="霧紫灰" onclick="setPremiumTheme('p-misty', this)"></div>
-        <div class="p-dot p-graphite" title="石墨黑" onclick="setPremiumTheme('p-graphite', this)"></div>
+        <div class="p-dot p-wine-red" title="酒紅棕" onclick="handleMode('premium','p-wine-red', this)"></div>
+        <div class="p-dot p-caramel" title="焦糖暖棕" onclick="handleMode('premium','p-caramel', this)"></div>
+        <div class="p-dot p-morandi" title="莫蘭迪藍" onclick="handleMode('premium','p-morandi', this)"></div>
+        <div class="p-dot p-misty" title="霧紫灰" onclick="handleMode('premium','p-misty', this)"></div>
+        <div class="p-dot p-graphite" title="石墨黑" onclick="handleMode('premium','p-graphite', this)"></div>
       </div>
     </div>
 
@@ -45,12 +45,22 @@
   <div id="card-container" class="card">
     <div class="premium-fx"></div>
     <div class="banner"><div class="arch-overlay"></div></div>
-    <div class="avatar-wrap"><img id="u-img" src="" class="avatar" alt="載入中" /></div>
+    <div class="avatar-wrap"><img id="u-img" src="" class="avatar" alt="頭像" /></div>
     <div class="info-scroll">
       <h1 id="u-name" class="name">讀取中...</h1>
       <div id="u-unit" class="unit">...</div>
-      <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">立即預約表單</div>
-      <div class="content-box"><div id="u-service" class="service-text">正在讀取雲端資料...</div></div>
+      
+      <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">
+        <div class="order-inner">
+          <span>立即預約訂製</span>
+          <i class="fa-solid fa-chevron-right"></i>
+        </div>
+      </div>
+
+      <div class="content-box">
+        <span class="label">服務項目</span>
+        <div id="u-service" class="service-text">正在讀取雲端資料...</div>
+      </div>
     </div>
   </div>
 
