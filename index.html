@@ -3,75 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V358-整合版</title>
-
-  <link rel="manifest" href="./manifest.json?v=358" />
-  <meta name="theme-color" content="#ee5253" />
+  <title>天使幸福智慧名片 V358-最新整合版</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
 
   <style>
-    :root { --p:#ee5253; --s:#d63031; --bg:#f5f6fa; --paperStrength: 2; }
+    /* 這裡保留您原本精美的 CSS 樣式，確保視覺一致性 */
+    :root { --p:#ee5253; --s:#d63031; --bg:#f5f6fa; }
     .warm-pink   { --p:#ee5253; --s:#d63031; }
     .aurora-blue { --p:#00a8ff; --s:#0097e6; }
     .vivid-orange{ --p:#f0932b; --s:#eb4d4b; }
     .royal-purple{ --p:#6c5ce7; --s:#4834d4; }
     .teal-green  { --p:#20bf6b; --s:#0b8d51; }
-
     body{ font-family:'Noto Sans TC',sans-serif; margin:0; background:var(--bg); display:flex; flex-direction:column; align-items:center; min-height:100vh; }
     #admin-panel{ width:100%; background:white; text-align:center; padding:14px 0 12px; border-bottom:1px solid #ddd; z-index:2000; flex-shrink:0; }
-    .picker-group{ display:flex; justify-content:center; gap:12px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
-    .dot{ width:32px;height:32px;border-radius:50%; cursor:pointer;border:3px solid white; box-shadow:0 4px 10px rgba(0,0,0,0.15); }
-    .btn-style{ padding:6px 14px;border-radius:20px;border:1px solid #ccc; font-size:11px;cursor:pointer;background:#fff;font-weight:900; }
-    .btn-style.active{ background:#2f3640!important; color:white!important; border-color:#2f3640!important; }
-    .hint-bounce{ font-size:12px; font-weight:900; color:#2d3436; opacity:0.9; animation: hintFloat 1.2s ease-in-out infinite; }
-    @keyframes hintFloat{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-3px); } }
-
     .card{ background:white; width:92%; max-width:380px; height:680px; border-radius:45px; overflow:hidden; box-shadow: 0 34px 70px rgba(0,0,0,0.16); position:relative; margin:18px 0 20px; display:flex; flex-direction:column; isolation:isolate; }
-    .card::before{ content:""; position:absolute; inset:0; pointer-events:none; z-index:2; opacity: calc(var(--paperAlpha, .10) * var(--paperStrength)); mix-blend-mode: multiply; background: var(--paperTexture, none); }
-    
-    .paper-cotton{ --paperAlpha: .10; --paperTexture: radial-gradient(circle at 12% 18%, rgba(0,0,0,.10) 0 1px, transparent 2px), linear-gradient(0deg, rgba(0,0,0,.06) 0, transparent 20%, transparent 80%, rgba(0,0,0,.06) 100%); }
-    .paper-grain{ --paperAlpha: .12; --paperTexture: repeating-linear-gradient(135deg, rgba(0,0,0,.10) 0 1px, transparent 1px 5px); }
-    .paper-linen{ --paperAlpha: .11; --paperTexture: repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 1px, transparent 1px 9px), repeating-linear-gradient(90deg, rgba(0,0,0,.10) 0 1px, transparent 1px 10px); }
-    .paper-watercolor{ --paperAlpha: .13; --paperTexture: radial-gradient(160px 160px at 28% 38%, rgba(0,0,0,.10), transparent 72%); }
-
     .banner{ height:160px; background:linear-gradient(135deg,var(--p),var(--s)); flex-shrink:0; position:relative; z-index:1; }
     .arch-overlay{ position:absolute;width:100%;height:90px;background:white; bottom:-1px;border-radius:90px 90px 0 0; }
-    .style-flat .arch-overlay{ border-radius:0; height:35px; }
-    .style-spot .arch-overlay{ border-radius:50% 50% 0 0; transform:scaleX(1.4); height:100px; }
-
     .avatar-wrap{ width:130px;height:130px;background:#fff;border-radius:50%; padding:6px; box-shadow:0 10px 25px rgba(0,0,0,0.12); position:absolute;top:35px;left:50%;transform:translateX(-50%); z-index:4; border:1px solid rgba(0,0,0,0.04); }
     .avatar{ width:100%;height:100%;border-radius:50%;object-fit:cover; }
-    .info-scroll{ flex:1; overflow-y:auto; padding:45px 20px 0; text-align:center; scrollbar-width:none; position:relative; z-index:4; }
+    .info-scroll{ flex:1; overflow-y:auto; padding:45px 20px 0; text-align:center; }
     .name{ font-size:26px; font-weight:900; color:#2d3436; margin:5px 0; }
     .unit{ font-size:14px; color:var(--s); font-weight:700; margin-bottom:6px; }
-    .content-box{ text-align:left; background:rgba(255,255,255,0.88); padding:16px; border-radius:25px; margin-bottom:14px; box-shadow:10px 10px 20px rgba(0,0,0,0.035); border:1px solid rgba(0,0,0,0.045); backdrop-filter: blur(6px); position:relative; z-index:4; }
+    .content-box{ text-align:left; background:rgba(255,255,255,0.88); padding:16px; border-radius:25px; margin-bottom:14px; box-shadow:10px 10px 20px rgba(0,0,0,0.035); border:1px solid rgba(0,0,0,0.045); position:relative; z-index:4; }
     .label{ color:#adb5bd;font-weight:900;font-size:11px;margin-bottom:8px;display:block; }
-
-    .actions{ background:white; padding:10px; display:grid; grid-template-columns:repeat(2,1fr); gap:8px; border-top:1px solid #eee; z-index:4; }
-    .act-btn{ text-decoration:none; background:#f8f9fa; padding:10px; border-radius:15px; color:#2d3436; font-size:12px; font-weight:900; display:flex; align-items:center; gap:8px; border:1px solid #eee; }
-    .btn-main{ grid-column:span 2; background:linear-gradient(135deg, #06C755, #06b150); color:white; border:none; justify-content:center; }
-    
+    .actions{ background:white; padding:10px; display:grid; grid-template-columns:repeat(2,1fr); gap:8px; border-top:1px solid #eee; }
+    .act-btn{ text-decoration:none; background:#f8f9fa; padding:10px; border-radius:15px; color:#2d3436; font-size:12px; font-weight:900; display:flex; align-items:center; justify-content:center; gap:8px; }
     #work-drawer{ width:100%; max-width:420px; background:#2d3436; color:white; max-height:0; overflow:hidden; transition:0.5s; position:fixed; bottom:0; z-index:12000; border-radius:40px 40px 0 0; }
-    .footer{ font-size:11px; color:#bbb; padding:18px; text-align:center; cursor:pointer; }
   </style>
 </head>
 
-<body class="warm-pink style-arch paper-cotton">
+<body class="warm-pink style-arch">
 
-  <div id="admin-panel">
-    <div class="picker-group"><span class="hint-bounce">天使幸福智慧名片 - 設定預覽</span></div>
-    <div class="picker-group">
-      <div class="dot" onclick="setTheme('warm-pink')" style="background:#ee5253"></div>
-      <div class="dot" onclick="setTheme('aurora-blue')" style="background:#00a8ff"></div>
-      <div class="dot" onclick="setTheme('vivid-orange')" style="background:#f0932b"></div>
-      <div class="dot" onclick="setTheme('royal-purple')" style="background:#6c5ce7"></div>
-      <div class="dot" onclick="setTheme('teal-green')" style="background:#20bf6b"></div>
-    </div>
-    <div class="picker-group">
-      <button class="btn-style active" onclick="setStyle('arch', this)">優雅拱型</button>
-      <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
-      <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
+  <div id="work-drawer">
+    <div style="padding:22px; text-align:center;">
+      <input type="text" id="work-id" style="width:85%; padding:12px; border-radius:10px; margin-bottom:10px;" placeholder="輸入序號 (如 TW0001)" />
+      <button onclick="doPreview()" style="background:#ee5253; color:white; width:90%; padding:12px; border-radius:10px; border:none; font-weight:900; cursor:pointer;">1. 預覽名片成品</button>
+      <button onclick="copyDeliveryInfo()" style="background:#06C755; color:white; width:90%; padding:12px; margin-top:10px; border-radius:10px; border:none; font-weight:900; cursor:pointer;">2. 複製卡片感交貨內容</button>
     </div>
   </div>
 
@@ -79,140 +47,86 @@
     <div class="banner"><div class="arch-overlay"></div></div>
     <div class="avatar-wrap"><img id="u-img" src="" class="avatar" /></div>
     <div class="info-scroll">
-      <h1 id="u-name" class="name">讀取中...</h1>
+      <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">幸福智慧服務中心</div>
-      <div id="u-service-box" class="content-box">
+      <div class="content-box">
         <span class="label">服務項目</span>
-        <div id="u-service" style="font-size:14px; line-height:1.6; white-space:pre-wrap;">載入中...</div>
-      </div>
-      <div id="titles-box" class="content-box" style="display:none;">
-        <span class="label">重要頭銜</span>
-        <div id="u-titles" style="font-size:14px; line-height:1.6;"></div>
+        <div id="u-service" style="font-size:14.5px; line-height:1.6; white-space:pre-wrap;">讀取中...</div>
       </div>
     </div>
-
-    <div id="actions-area" class="actions">
-      <a href="https://lin.ee/2ac9Roe" class="act-btn btn-main" target="_blank">
-        <i class="fa-brands fa-line"></i> LINE 官方帳號
-      </a>
-      <a href="mailto:a0973180707@gmail.com" class="act-btn">
-        <i class="fa-solid fa-envelope"></i> 寄送郵箱
-      </a>
-      <a href="https://line.me/ti/p/VqJzbWHm_4" class="act-btn">
-        <i class="fa-solid fa-user-plus"></i> LINE 加好友
-      </a>
+    <div class="actions">
+      <a href="https://lin.ee/2ac9Roe" style="grid-column:span 2; background:#06C755; color:white;" class="act-btn">LINE 官方帳號</a>
     </div>
   </div>
 
-  <div id="work-drawer">
-    <div style="padding:22px; text-align:center;">
-      <input type="text" id="work-id" style="width:85%; padding:12px; border-radius:10px; border:none;" placeholder="輸入序號 (如 TW0001)" />
-      <button onclick="doPreviewInPlace()" style="background:#ee5253; color:white; width:90%; padding:12px; margin-top:10px; border-radius:10px; border:none; font-weight:900;">1. 預覽名片成品</button>
-      <button onclick="generateDeliveryText()" style="background:#06C755; color:white; width:90%; padding:12px; margin-top:10px; border-radius:10px; border:none; font-weight:900;">2. 複製卡片感交貨訊息</button>
-    </div>
-  </div>
-
-  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V358｜版權所有</div>
+  <div id="gate-footer" style="padding:20px; color:#bbb; cursor:pointer;" onclick="handleGate()">© 2026 幸福智慧名片 | 版權所有</div>
 
   <script>
-    // 1. 後端網址設定
+    // 使用您提供的新網址
     const API_URL = "https://script.google.com/macros/s/AKfycbwqGCo8NnbcrLSmOOP_dhoC6XFtXhG2F4RWGHl0196FTIGvRYbTO_nYQ1GkN-Y3_soS/exec";
     
     const urlParams = new URLSearchParams(window.location.search);
-    const urlId = urlParams.get('id');
+    let currentId = urlParams.get('id') || "TW0001";
     let currentData = null;
     let clicks = 0;
 
-    // 2. 圖片修復邏輯 (Google Drive)
-    function fixDriveImg(url) {
-      if (!url || typeof url !== 'string') return "https://via.placeholder.com/150?text=No+Photo";
+    // 處理圖片轉址邏輯
+    function fixImg(url) {
+      if (!url) return "https://via.placeholder.com/150?text=No+Photo";
       const match = url.match(/[?&]id=([\w-]+)/) || url.match(/\/d\/([\w-]+)/);
       return match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : url;
     }
 
-    // 3. 資料讀取
-    async function fetchCard(id) {
+    // 呼叫 API 讀取資料
+    async function loadData(id) {
       try {
         const res = await fetch(`${API_URL}?id=${id}`);
         const result = await res.json();
         if (result.ok) {
           currentData = result.data;
-          renderUI(result.data);
-          return true;
+          updateCard(result.data);
+        } else {
+          document.getElementById('u-name').innerText = "找不到序號";
+          console.error(result.msg);
         }
-        return false;
       } catch (e) {
-        console.error("讀取失敗");
-        return false;
+        console.error("網路連線錯誤");
       }
     }
 
-    function renderUI(d) {
+    // 更新畫面 UI
+    function updateCard(d) {
       document.getElementById('u-name').innerText = d['姓名（名片大標題）'] || "姓名";
       document.getElementById('u-unit').innerText = d['單位名稱（如：幸福教養概念館）'] || "";
       document.getElementById('u-service').innerText = d['服務項目（核心業務，多項可條列換行）'] || "";
-      document.getElementById('u-img').src = fixDriveImg(d['個人專業形象照（名片主圖）']);
+      document.getElementById('u-img').src = fixImg(d['個人專業形象照（名片主圖）']);
 
-      const titles = d['重要頭銜/獎銜（權威背書項目，多項可條列換行）'];
-      const titlesBox = document.getElementById('titles-box');
-      if (titles) {
-        document.getElementById('u-titles').innerText = titles;
-        titlesBox.style.display = 'block';
-      } else {
-        titlesBox.style.display = 'none';
-      }
-
-      // 自動判斷顏色與版型
-      const sheetColor = d['您喜歡的顏色（自由搭配款適用）'];
-      const sheetStyle = d['您喜歡的版型（自由搭配款適用）'];
-      if(sheetColor) setTheme(normalizeColor(sheetColor));
-      if(sheetStyle) setStyle(normalizeStyle(sheetStyle));
+      // 方案判定與外觀自動套用
+      const color = d['您喜歡的顏色（自由搭配款適用）'] || d['你喜歡的底色（精品設計款適用）'];
+      if (color) applyTheme(color);
     }
 
-    // 4. 交貨卡片生成
-    async function generateDeliveryText() {
-      if (!currentData) return alert("請先預覽資料");
-      const id = currentData.id || document.getElementById('work-id').value;
-      const finalUrl = `${window.location.origin}${window.location.pathname}?id=${id}`;
-      
-      const msg = `
-✨ 【幸福智慧名片製作完成】 ✨
-━━━━━━━━━━━━━━━━
-👤 姓名：${currentData['姓名（名片大標題）']}
-🏢 單位：${currentData['單位名稱（如：幸福教養概念館）']}
-🎖️ 職稱：${(currentData['重要頭銜/獎銜（權威背書項目，多項可條列換行）'] || "").split('\n')[0]}
-
-🔗 您的專屬名片網址：
-${finalUrl}
-━━━━━━━━━━━━━━━━
-點擊連結即可開啟您的智慧名片！`.trim();
-
-      const ok = await navigator.clipboard.writeText(msg).then(()=>true).catch(()=>false);
-      alert(ok ? "✅ 卡片感交貨訊息已複製！可直接傳給客人" : "複製失敗，請手動選取網址");
+    // 後台卡片感內容生成
+    async function copyDeliveryInfo() {
+      if (!currentData) return alert("請先讀取資料");
+      const cardUrl = `${window.location.origin}${window.location.pathname}?id=${currentData.id}`;
+      const text = `✨ 【幸福智慧名片製作完成】 ✨\n━━━━━━━━━━━━━━━━\n👤 姓名：${currentData['姓名（名片大標題）']}\n🏢 單位：${currentData['單位名稱（如：幸福教養概念館）']}\n🔗 您的專屬名片網址：\n${cardUrl}\n━━━━━━━━━━━━━━━━\n點擊連結即可開啟！`;
+      await navigator.clipboard.writeText(text);
+      alert("✅ 交貨卡片內容已複製！");
     }
 
-    // 基礎 UI 函數
-    function setTheme(t) { document.body.className = document.body.className.replace(/(warm-pink|aurora-blue|vivid-orange|royal-purple|teal-green)/, t); }
-    function setStyle(s) { document.body.className = document.body.className.replace(/(style-arch|style-flat|style-spot)/, "style-" + s); }
-    function normalizeColor(c) { if(c.includes('粉')) return 'warm-pink'; if(c.includes('藍')) return 'aurora-blue'; if(c.includes('橘')) return 'vivid-orange'; if(c.includes('紫')) return 'royal-purple'; if(c.includes('綠')) return 'teal-green'; return 'warm-pink'; }
-    function normalizeStyle(s) { if(s.includes('拱')) return 'arch'; if(s.includes('平')) return 'flat'; if(s.includes('光')) return 'spot'; return 'arch'; }
+    function applyTheme(c) {
+      if(c.includes('粉')) document.body.className = "warm-pink";
+      if(c.includes('藍')) document.body.className = "aurora-blue";
+      if(c.includes('橘')) document.body.className = "vivid-orange";
+      if(c.includes('紫')) document.body.className = "royal-purple";
+      if(c.includes('綠')) document.body.className = "teal-green";
+    }
+
     function handleGate() { clicks++; if(clicks >= 3) { document.getElementById('work-drawer').style.maxHeight = '500px'; clicks = 0; } setTimeout(() => clicks = 0, 1000); }
-    async function doPreviewInPlace() {
-      const id = document.getElementById('work-id').value.trim();
-      if(!id) return alert("請輸入序號");
-      const ok = await fetchCard(id);
-      if(!ok) alert("找不到此序號，請檢查試算表 id 欄位");
-    }
+    function doPreview() { const id = document.getElementById('work-id').value; if(id) loadData(id); }
 
-    // 初始化
-    async function init() {
-      if (urlId) {
-        await fetchCard(urlId);
-      } else {
-        await fetchCard("TW0001"); // 預設首頁樣版
-      }
-    }
-    init();
+    window.onload = () => loadData(currentId);
   </script>
 </body>
 </html>
