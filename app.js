@@ -1,587 +1,76 @@
-/**
- * Angel Card Frontend v377.2 (Complete Overwrite)
- * - Fix Google Drive photo links (open?id= / file/d/ / uc?id= / thumbnail)
- * - Add <img> onerror fallback
- * - Keep v377 ultra-robust fetch + your UI logic
- */
-
-const VERSION = 377.2;
-const API_URL = "https://script.google.com/macros/s/AKfycby74ta4CUFzkWcEfyPfoOMV9K93f-sIUzAxP6yECiadpVEzFUmk_JiHCFG_s2-ePHvJ/exec";
-const SAMPLE_ID_CANDIDATES = ["TW0001", "小天使"];
-
-const state = {
-  plan: "free",
-  theme: "arch",
-  freeColor: "blue",
-  paper: "cotton",
-  proColor: "deepSeaBlue",
-  dataRaw: null,
-  card: null
+const CONFIG = {
+    // 您提供的 GAS 網址
+    GAS_API: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
+    // 您提供的 Google 表單網址
+    FORM_BASE: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
+    // 指定讀取小天使 ID
+    TARGET_ID: "TW0001" 
 };
 
-const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-const $  = (sel, root = document) => root.querySelector(sel);
+let state = {
+    mode: 'free',
+    theme: 'warm-pink',
+    style: 'arch'
+};
 
-function normalize(v){ return (v == null ? "" : String(v)).trim(); }
-
-/** ---------- URL helpers ---------- */
-
-function safeUrl(u){
-  let s = normalize(u);
-  if(!s) return "";
-
-  if(/^www\./i.test(s)) s = "https://" + s;
-  if(/^line\.me\//i.test(s)) s = "https://" + s;
-  if(/^lin\.ee\//i.test(s)) s = "https://" + s;
-  if(/^t\.me\//i.test(s)) s = "https://" + s;
-
-  if(/^https?:\/\//i.test(s)) return s;
-  if(/^mailto:/i.test(s) || /^tel:/i.test(s) || /^line:/i.test(s)) return s;
-
-  return "";
-}
-
-/**
- * Extract Google Drive fileId from common share urls:
- * - https://drive.google.com/open?id=FILEID
- * - https://drive.google.com/file/d/FILEID/view
- * - https://drive.google.com/uc?id=FILEID&export=download
- * - https://drive.google.com/thumbnail?id=FILEID&sz=w800
- */
-function driveFileId_(url){
-  const s = normalize(url);
-  if(!s) return "";
-
-  // open?id=
-  let m = s.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
-  if(m && m[1]) return m[1];
-
-  // file/d/ID
-  m = s.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
-  if(m && m[1]) return m[1];
-
-  // direct googleusercontent? sometimes has id too
-  return "";
-}
-
-/**
- * Convert Drive share link into a direct image-friendly url.
- * Prefer thumbnail (works well for <img>) then fallback uc?export=download.
- * Note: file MUST be shared as "anyone with link" or public, otherwise still won’t load.
- */
-function driveToImageUrl_(url){
-  const s = safeUrl(url);
-  if(!s) return "";
-
-  // Already a direct image host (including googleusercontent)
-  if(/googleusercontent\.com/i.test(s)) return s;
-
-  // Drive links -> thumbnail
-  if(/drive\.google\.com/i.test(s)){
-    const id = driveFileId_(s);
-    if(id){
-      // thumbnail is usually most reliable for embedding
-      return `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w800`;
-      // (backup option) return `https://drive.google.com/uc?id=${encodeURIComponent(id)}&export=download`;
-    }
-  }
-
-  return s;
-}
-
-function splitMulti_(v){
-  const s = normalize(v);
-  if(!s) return [];
-  return s.split(/\n|\r|,\s*/).map(x=>x.trim()).filter(Boolean);
-}
-
-function pickField_(row, testers){
-  if(!row) return "";
-  const keys = Object.keys(row);
-  for(const t of testers){
-    for(const k of keys){
-      try{
-        if(typeof t === "string"){
-          if(k === t){
-            const val = row[k];
-            if(val != null && normalize(val) !== "") return val;
-          }
-        }else if(t instanceof RegExp){
-          if(t.test(k)){
-            const val = row[k];
-            if(val != null && normalize(val) !== "") return val;
-          }
-        }else if(typeof t === "function"){
-          if(t(k)){
-            const val = row[k];
-            if(val != null && normalize(val) !== "") return val;
-          }
+// 初始化：自動讀取小天使資料
+async function fetchAngelData() {
+    try {
+        const response = await fetch(`${CONFIG.GAS_API}?id=${CONFIG.TARGET_ID}`);
+        const data = await response.json();
+        
+        if (data) {
+            document.getElementById('u-name').innerText = data.姓名 || "小天使笑長";
+            document.getElementById('u-unit').innerText = data.單位 || "幸福智慧教養館";
+            document.getElementById('u-service').innerText = data.服務項目 || "載入中...";
+            if (data.形象照) document.getElementById('u-img').src = data.形象照;
         }
-      }catch(e){}
+    } catch (error) {
+        console.error("無法讀取雲端資料，改用預設值", error);
+        document.getElementById('u-service').innerText = "致力推廣幸福教養，陪伴家長共好。";
     }
-  }
-  return "";
 }
 
-function toMapUrlFromAddress(addr){
-  const a = normalize(addr);
-  if(!a) return "";
-  if(/^https?:\/\//i.test(a)) return a;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}`;
-}
+// 模式切換邏輯
+function setAppMode(mode, theme, el) {
+    state.mode = mode;
+    state.theme = theme;
+    
+    // UI 反饋
+    document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
+    el.classList.add('active');
 
-function mapRowToCard_(row){
-  const name = pickField_(row, [/姓名/, /暱稱/, /稱呼/]);
-  const title = pickField_(row, [/重要頭銜/, /頭銜/, /職稱/, /身份/]);
-  const org = pickField_(row, [/單位名稱/, /單位/, /機構/, /品牌/]);
+    const styleSelector = document.getElementById('style-selector');
 
-  const oneLine = pickField_(row, [
-    /一句話定位/,
-    /理念標語/,
-    /標語/,
-    /定位/,
-    /一句話/,
-    /你想服務誰/,
-    /我想服務誰/
-  ]);
-
-  const tagsRaw = pickField_(row, [/服務項目/, /關鍵字/, /標籤/]);
-  const tags = splitMulti_(tagsRaw).slice(0, 6);
-
-  const photoRaw = pickField_(row, [/個人專業形象照/, /形象照/, /頭像/, /主圖/]);
-  const photo = driveToImageUrl_(photoRaw);
-
-  const note = pickField_(row, [/備註/, /補充說明/, /簡介/, /自我介紹/]);
-
-  const lineOA = safeUrl(pickField_(row, [/LINE\s*官方帳號連結/, /LINE.*官方/, /官方帳號/, /LINE\s*OA/]));
-  const site   = safeUrl(pickField_(row, [/官網/, /網站/, /首頁/, /概念館/, /入口/]));
-  const form   = safeUrl(pickField_(row, [/表單/, /訂製表單/, /預約表單/, /填表/, /Google\s*Form/]));
-
-  const v1 = safeUrl(pickField_(row, [/影音平台\s*1/, /YouTube/]));
-  const v2 = safeUrl(pickField_(row, [/影音平台\s*2/, /抖音/, /TikTok/]));
-  const v3 = pickField_(row, [/影音平台\s*3/, /地址/, /地點/]);
-  const s1 = safeUrl(pickField_(row, [/社群平台\s*1/, /Facebook/]));
-  const s2 = safeUrl(pickField_(row, [/社群平台\s*2/, /Instagram/]));
-  const s3 = safeUrl(pickField_(row, [/社群平台\s*3/, /Thread/, /部落格/]));
-
-  let address = "";
-  let link3 = "";
-  const v3n = normalize(v3);
-  if(v3n && !/^https?:\/\//i.test(v3n)) address = v3n;
-  else link3 = safeUrl(v3n);
-
-  const links = [v1, v2, link3, s1, s2, s3].filter(Boolean).slice(0, 6);
-
-  return {
-    name, title, org,
-    oneLine,
-    tags,
-    photo,
-    note,
-    lineOA,
-    site,
-    form,
-    address,
-    mapUrl: toMapUrlFromAddress(address),
-    links
-  };
-}
-
-/** ---------- Fetch (ultra-robust) ---------- */
-
-async function fetchJson_(url){
-  const res = await fetch(url, { cache: "no-store" });
-  const text = await res.text();
-  try{
-    return JSON.parse(text);
-  }catch(e){
-    throw new Error(`JSON parse failed. url=${url}\n${text.slice(0,200)}`);
-  }
-}
-
-function rowsToObjects_(headers, rows){
-  if(!Array.isArray(headers) || !Array.isArray(rows)) return [];
-  return rows.map(r=>{
-    const obj = {};
-    headers.forEach((h, i)=>{ obj[h] = (r && r[i] != null) ? r[i] : ""; });
-    return obj;
-  });
-}
-
-function pickSampleRow_(arr){
-  if(!Array.isArray(arr) || !arr.length) return null;
-  const hit = arr.find(row=>{
-    const id = normalize(pickField_(row, [/編號/, /^id$/i, /ID/]));
-    const name = normalize(pickField_(row, [/姓名/, /暱稱/, /稱呼/]));
-    return SAMPLE_ID_CANDIDATES.includes(id) || SAMPLE_ID_CANDIDATES.includes(name);
-  });
-  return hit || arr[0];
-}
-
-function normalizeApiResponse_(json){
-  if(!json) return null;
-  const ok = (json.ok === undefined) ? true : !!json.ok;
-  if(!ok) return null;
-
-  if(json.card && typeof json.card === "object"){
-    return { mode:"card", payload: json.card, raw: json };
-  }
-
-  if(json.data && typeof json.data === "object" && !Array.isArray(json.data)){
-    return { mode:"row", payload: json.data, raw: json };
-  }
-
-  if(Array.isArray(json.data)){
-    const row = pickSampleRow_(json.data);
-    if(row) return { mode:"row", payload: row, raw: json };
-  }
-
-  if(Array.isArray(json.headers) && Array.isArray(json.rows)){
-    const arr = rowsToObjects_(json.headers, json.rows);
-    const row = pickSampleRow_(arr);
-    if(row) return { mode:"row", payload: row, raw: json };
-  }
-
-  if(Array.isArray(json.rows) && json.rows.length && typeof json.rows[0] === "object"){
-    const row = pickSampleRow_(json.rows);
-    if(row) return { mode:"row", payload: row, raw: json };
-  }
-
-  if(typeof json === "object" && !Array.isArray(json) && (json.name || json.lineOA || json.site || json.form)){
-    return { mode:"card", payload: json, raw: json };
-  }
-
-  return null;
-}
-
-async function fetchCardPreferred(){
-  const tries = [
-    API_URL + "?action=card",
-    API_URL + "?action=public",
-    API_URL + "?action=list",
-    API_URL
-  ];
-
-  const errors = [];
-  for(const url of tries){
-    try{
-      const json = await fetchJson_(url);
-      const norm = normalizeApiResponse_(json);
-      if(norm) return norm;
-      errors.push(`no usable payload: ${url}`);
-    }catch(e){
-      errors.push(String(e.message || e));
+    if (mode === 'premium') {
+        state.style = 'premium';
+        styleSelector.style.display = 'none'; // 精品款鎖定版型
+        document.body.className = `mode-premium ${theme}`;
+    } else {
+        state.style = localStorage.getItem('v358_style') || 'arch';
+        styleSelector.style.display = 'block';
+        document.body.className = `mode-free ${theme} style-${state.style}`;
     }
-  }
-  throw new Error("All fetch attempts failed:\n" + errors.join("\n---\n"));
+    updateThemeColor();
 }
 
-/** ---------- Visual state ---------- */
-
-function applyVisualState(){
-  const app = $("#app");
-  const preview = $("#preview");
-
-  if(app){
-    app.dataset.plan = state.plan;
-    app.dataset.theme = state.theme;
-
-    if(state.plan === "free"){
-      app.dataset.freeColor = state.freeColor;
-      app.dataset.paper = state.paper;
-      app.removeAttribute("data-pro-color");
-      app.classList.remove("fx-glow","fx-rounded","fx-float","fx-glass","fx-stage","fx-magazine");
-    }else{
-      app.dataset.proColor = state.proColor;
-      app.removeAttribute("data-free-color");
-      app.removeAttribute("data-paper");
-    }
-  }
-
-  if(preview) preview.dataset.theme = state.theme;
+function setFreeStyle(style, el) {
+    state.style = style;
+    localStorage.setItem('v358_style', style);
+    document.querySelectorAll('.btn-mini').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    document.body.className = `mode-free ${state.theme} style-${style}`;
 }
 
-function applyPremiumPack(){
-  const app = $("#app");
-  if(app){
-    ["fx-glow","fx-rounded","fx-float","fx-glass","fx-stage","fx-magazine"].forEach(c=>app.classList.remove(c));
-  }
-
-  const map = {
-    deepSeaBlue:    { theme:"arch", fx:["fx-glow","fx-stage"] },
-    creamyMist:     { theme:"flat", fx:["fx-rounded","fx-magazine"] },
-    graphiteGray:   { theme:"flat", fx:["fx-float"] },
-    mistPurpleGray: { theme:"dawn", fx:["fx-glow"] },
-    caramelBrown:   { theme:"arch", fx:["fx-rounded","fx-magazine"] },
-    inkGreen:       { theme:"dawn", fx:["fx-glow","fx-glass"] },
-    warmGrayBlue:   { theme:"flat", fx:["fx-float","fx-glass"] },
-  };
-
-  const pack = map[state.proColor] || map.deepSeaBlue;
-  state.theme = pack.theme;
-
-  if(app){
-    app.dataset.theme = state.theme;
-    pack.fx.forEach(c=>app.classList.add(c));
-  }
-
-  const preview = $("#preview");
-  if(preview) preview.dataset.theme = state.theme;
-
-  $$(".seg__btn[data-theme]").forEach(b=>{
-    b.classList.toggle("is-on", b.dataset.theme === state.theme);
-  });
+function updateThemeColor() {
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--p').trim();
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', accent);
 }
 
-/** ---------- Render ---------- */
-
-function renderCard(){
-  const o = state.card || {};
-
-  const pname = $("#pname");
-  if(pname) pname.textContent = normalize(o.name) || "—";
-
-  const ptitle = $("#ptitle");
-  if(ptitle){
-    const t = [normalize(o.title), normalize(o.org)].filter(Boolean).join("｜");
-    ptitle.textContent = t || "—";
-  }
-
-  const ptags = $("#ptags");
-  if(ptags){
-    ptags.innerHTML = (o.tags || []).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("");
-  }
-
-  const pone = $("#pone");
-  if(pone) pone.textContent = normalize(o.oneLine) || "—";
-
-  // ✅ photo: Drive share links => thumbnail url, + onerror fallback
-  const img = $("#avatarImg");
-  const fb = $("#avatarFallback");
-  if(img){
-    const u = driveToImageUrl_(o.photo);
-    img.onerror = () => {
-      img.removeAttribute("src");
-      img.style.display = "none";
-      if(fb) fb.style.display = "";
-    };
-
-    if(u){
-      img.src = u;
-      img.style.display = "";
-      if(fb) fb.style.display = "none";
-    }else{
-      img.removeAttribute("src");
-      img.style.display = "none";
-      if(fb) fb.style.display = "";
-    }
-  }
-
-  const btnLine = $("#btnLine");
-  if(btnLine){
-    if(o.lineOA){
-      btnLine.href = o.lineOA;
-      btnLine.style.display = "";
-    }else btnLine.style.display = "none";
-  }
-
-  const btnSite = $("#btnSite");
-  if(btnSite){
-    if(o.site){
-      btnSite.href = o.site;
-      btnSite.style.display = "";
-    }else btnSite.style.display = "none";
-  }
-
-  const btnForm = $("#btnForm");
-  if(btnForm){
-    if(o.form){
-      btnForm.href = o.form;
-      btnForm.style.display = "";
-    }else btnForm.style.display = "none";
-  }
-
-  const btnMap = $("#btnMap");
-  if(btnMap){
-    if(o.mapUrl){
-      btnMap.style.display = "";
-      btnMap.onclick = ()=> window.open(o.mapUrl, "_blank", "noopener");
-    }else{
-      btnMap.style.display = "none";
-      btnMap.onclick = null;
-    }
-  }
-
-  const platforms = $("#platforms");
-  if(platforms){
-    const links = (o.links || []).filter(Boolean).slice(0,6);
-    platforms.innerHTML = links.map((url, i)=>{
-      const label = (i < 3) ? `影音 ${i+1}` : `社群 ${i-2}`;
-      return `<a class="linkchip" href="${escapeAttr(url)}" target="_blank" rel="noopener">${label}</a>`;
-    }).join("");
-  }
-
-  const pnote = $("#pnote");
-  if(pnote) pnote.textContent = normalize(o.note) || "";
+function goFillForm() {
+    // 根據目前選擇的氣質與版型，預填入表單
+    const prefillUrl = `${CONFIG.FORM_BASE}?entry.12345=${state.theme}&entry.67890=${state.style}`;
+    window.open(prefillUrl, '_blank');
 }
 
-/** Copy */
-function bindCopy(){
-  const btn = $("#btnCopy");
-  if(!btn) return;
-  btn.addEventListener("click", async ()=>{
-    const o = state.card || {};
-    const lines = [
-      normalize(o.name),
-      normalize(o.oneLine),
-      o.lineOA ? `LINE OA：${o.lineOA}` : "",
-      o.site ? `官網：${o.site}` : "",
-      o.form ? `填表：${o.form}` : ""
-    ].filter(Boolean).join("\n");
-
-    try{
-      await navigator.clipboard.writeText(lines);
-      btn.classList.add("is-copied");
-      setTimeout(()=>btn.classList.remove("is-copied"), 900);
-    }catch(e){
-      const ta = document.createElement("textarea");
-      ta.value = lines;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-    }
-  });
-}
-
-/** Delegated controls */
-function bindDelegatedControls(){
-  document.addEventListener("click", (ev)=>{
-    const planBtn = ev.target.closest(".seg__btn[data-plan]");
-    if(planBtn){
-      state.plan = planBtn.dataset.plan;
-      $$(".seg__btn[data-plan]").forEach(b=>b.classList.toggle("is-on", b === planBtn));
-      if(state.plan === "pro") applyPremiumPack();
-      applyVisualState();
-      renderCard();
-      return;
-    }
-
-    const themeBtn = ev.target.closest(".seg__btn[data-theme]");
-    if(themeBtn){
-      if(state.plan !== "free") return;
-      state.theme = themeBtn.dataset.theme;
-      $$(".seg__btn[data-theme]").forEach(b=>b.classList.toggle("is-on", b === themeBtn));
-      applyVisualState();
-      return;
-    }
-
-    const freeColorBtn = ev.target.closest(".sw[data-free-color]");
-    if(freeColorBtn){
-      state.freeColor = freeColorBtn.dataset.freeColor;
-      $$(".sw[data-free-color]").forEach(b=>b.classList.toggle("is-on", b === freeColorBtn));
-      applyVisualState();
-      return;
-    }
-
-    const paperBtn = ev.target.closest(".chip[data-paper]");
-    if(paperBtn){
-      state.paper = paperBtn.dataset.paper;
-      $$(".chip[data-paper]").forEach(b=>b.classList.toggle("is-on", b === paperBtn));
-      applyVisualState();
-      return;
-    }
-
-    const proColorBtn = ev.target.closest(".sw[data-pro-color]");
-    if(proColorBtn){
-      state.proColor = proColorBtn.dataset.proColor;
-      $$(".sw[data-pro-color]").forEach(b=>b.classList.toggle("is-on", b === proColorBtn));
-      applyPremiumPack();
-      applyVisualState();
-      return;
-    }
-  }, true);
-}
-
-/** Hidden admin tap */
-function bindHiddenAdmin(){
-  const el = $("#versionTap");
-  if(!el) return;
-  let taps = 0;
-  let t0 = 0;
-  el.addEventListener("click", ()=>{
-    const now = Date.now();
-    if(now - t0 > 1500) taps = 0;
-    t0 = now;
-    taps += 1;
-    if(taps >= 7){
-      taps = 0;
-      location.href = "./admin.html";
-    }
-  });
-}
-
-/** Utilities */
-function escapeHtml(s){
-  return String(s ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;");
-}
-function escapeAttr(s){ return escapeHtml(s).replace(/'/g,"&#39;"); }
-
-/** Init */
-async function init(){
-  const app = $("#app");
-  if(app){
-    state.plan = app.dataset.plan || state.plan;
-    state.theme = app.dataset.theme || state.theme;
-    state.freeColor = app.dataset.freeColor || state.freeColor;
-    state.paper = app.dataset.paper || state.paper;
-    state.proColor = app.dataset.proColor || state.proColor;
-  }
-
-  applyVisualState();
-  bindDelegatedControls();
-  bindHiddenAdmin();
-  bindCopy();
-
-  const hint = $("#hint");
-
-  try{
-    if(hint) hint.textContent = "門面資料讀取中…（試算表：小天使）";
-
-    const got = await fetchCardPreferred();
-    state.dataRaw = got.payload;
-
-    if(got.mode === "card"){
-      const c = got.payload || {};
-      state.card = {
-        name: normalize(c.name),
-        org: normalize(c.org),
-        title: normalize(c.titles || c.title || ""),
-        oneLine: normalize(c.tagline || c.oneLine || ""),
-        tags: splitMulti_(c.services || "").slice(0, 6),
-        photo: driveToImageUrl_(c.photo),          // ✅ 這行最關鍵
-        note: normalize(c.note || ""),
-        lineOA: safeUrl(c.lineOA || c.line_oa || ""),
-        site: safeUrl(c.site || c.home || ""),
-        form: safeUrl(c.form || c.orderForm || ""),
-        address: normalize(c.address || ""),
-        mapUrl: toMapUrlFromAddress(c.address || ""),
-        links: (c.links || []).map(safeUrl).filter(Boolean).slice(0, 6)
-      };
-    }else{
-      state.card = mapRowToCard_(state.dataRaw);
-    }
-
-    renderCard();
-    if(hint) hint.textContent = "門面資料已載入（樣版＝小天使）";
-  }catch(e){
-    console.error(e);
-    if(hint) hint.textContent = "門面讀取失敗（請開 F12 Console 看錯誤）";
-  }
-}
-
-document.addEventListener("DOMContentLoaded", init);
+window.onload = fetchAngelData;
