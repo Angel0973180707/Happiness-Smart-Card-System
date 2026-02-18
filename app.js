@@ -1,4 +1,4 @@
-/* Angel Card v368 (Complete Overwrite)
+/* Angel Card v369 (Complete Overwrite)
  * Fixes:
  * 1) 晨曦(dawn) / 正拱(arch) 不再錯置
  * 2) 自由版色彩更飽和（CSS variables）
@@ -122,8 +122,7 @@ function renderCard(o){
   const tagsRaw = pickField(o, ["tags","標籤","tag","hashtag"], "");
 
   const avatarUrl = safeUrl(pickField(o, ["avatar","photo","頭像","avatar_url","image"], ""));
-  const lineUrl   = safeUrl(pickField(o, ["line_oa","LINE 官方帳號","line_oa_url","line_oa","line_official","line_official_url"], state.config.fallbackLineUrl || ""));
-  const lineFriendUrl = safeUrl(pickField(o, ["line_friend","line_add","line_personal","line_friend_url","line_personal_url","line_id","line_id_url","line_me"], ""));
+  const lineUrl   = safeUrl(pickField(o, ["line_oa","line","LINE 官方帳號","line_url","line_oa_url"], state.config.fallbackLineUrl || ""));
   const siteUrl   = safeUrl(pickField(o, ["site","website","官網","門面","homepage","home_url"], state.config.fallbackSiteUrl || ""));
   const formUrl   = safeUrl(pickField(o, ["form","google_form","填表","order_form","form_url"], state.config.fallbackFormUrl || ""));
 
@@ -157,24 +156,15 @@ function renderCard(o){
 
   // links
   const btnLine = $("#btnLine");
-  const btnLineFriend = $("#btnLineFriend");
   const btnSite = $("#btnSite");
   const btnForm = $("#btnForm");
 
   btnLine.href = lineUrl || "#";
   btnSite.href = siteUrl || "#";
   btnForm.href = formUrl || "#";
-  if(btnLineFriend){
-    btnLineFriend.href = lineFriendUrl || "#";
-    btnLineFriend.style.display = (lineFriendUrl && lineFriendUrl !== "#") ? "" : "none";
-  }
-
-  // dynamic icons for web/map/video etc (main buttons)
-  setBtnIcon(btnSite, $("#icoSite"), btnSite.href);
-  setBtnIcon(btnForm, $("#icoForm"), btnForm.href);
 
   // disable if empty
-  [btnLine,btnLineFriend,btnSite,btnForm].filter(Boolean).forEach(a=>{
+  [btnLine,btnSite,btnForm].forEach(a=>{
     const ok = a.getAttribute("href") && a.getAttribute("href") !== "#";
     a.classList.toggle("is-disabled", !ok);
     if(!ok){
@@ -193,8 +183,7 @@ function renderCard(o){
     const txt = [
       `姓名/稱呼：${name || ""}`,
       `一句話：${one || ""}`,
-      lineUrl ? `LINE OA：${lineUrl}` : "",
-      lineFriendUrl ? `LINE 加好友：${lineFriendUrl}` : "",
+      lineUrl ? `LINE：${lineUrl}` : "",
       siteUrl ? `官網：${siteUrl}` : "",
       formUrl ? `填表：${formUrl}` : ""
     ].filter(Boolean).join("\n");
@@ -254,7 +243,7 @@ async function loadCardFromApi(){
   const cfg = state.config;
 
   if(!cfg.apiUrl || cfg.apiUrl.includes("YOUR_APPS_SCRIPT_URL")){
-    hint.textContent = "門面已就位：目前以小天使樣板顯示（尚未設定 API）。";
+    hint.textContent = "請先到 data/config.json 填入 apiUrl（Apps Script /exec），目前顯示預設資料。";
     // fallback demo
     renderCard({
       "name":"小天使",
@@ -282,7 +271,7 @@ async function loadCardFromApi(){
   const card = findMatchCard(objs, cfg);
 
   if(!card){
-    hint.textContent = "門面已就位：已顯示小天使樣板。";
+    hint.textContent = "找不到小天使資料，已顯示空白。";
     renderCard({ name:"小天使", title:"（找不到資料）", one_liner:"—" });
     return;
   }
