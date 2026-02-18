@@ -1,13 +1,12 @@
 /**
- * Angel Card Frontend v377.1 (Complete Overwrite)
- * - Remove "Copy card info" feature entirely
- * - Default fields empty (ready for sheet data)
- * - Keep ultra-robust fetch + row/card mapping
+ * Angel Card Frontend v377.2 (Complete Overwrite)
+ * - Fix Google Drive photo links (open?id= / file/d/ / uc?id= / thumbnail)
+ * - Add <img> onerror fallback
+ * - Keep v377 ultra-robust fetch + your UI logic
  */
 
-const VERSION = 3771;
+const VERSION = 377.2;
 const API_URL = "https://script.google.com/macros/s/AKfycby74ta4CUFzkWcEfyPfoOMV9K93f-sIUzAxP6yECiadpVEzFUmk_JiHCFG_s2-ePHvJ/exec";
-
 const SAMPLE_ID_CANDIDATES = ["TW0001", "小天使"];
 
 const state = {
@@ -25,7 +24,8 @@ const $  = (sel, root = document) => root.querySelector(sel);
 
 function normalize(v){ return (v == null ? "" : String(v)).trim(); }
 
-/** More tolerant URL normalize */
+/** ---------- URL helpers ---------- */
+
 function safeUrl(u){
   let s = normalize(u);
   if(!s) return "";
@@ -39,6 +39,54 @@ function safeUrl(u){
   if(/^mailto:/i.test(s) || /^tel:/i.test(s) || /^line:/i.test(s)) return s;
 
   return "";
+}
+
+/**
+ * Extract Google Drive fileId from common share urls:
+ * - https://drive.google.com/open?id=FILEID
+ * - https://drive.google.com/file/d/FILEID/view
+ * - https://drive.google.com/uc?id=FILEID&export=download
+ * - https://drive.google.com/thumbnail?id=FILEID&sz=w800
+ */
+function driveFileId_(url){
+  const s = normalize(url);
+  if(!s) return "";
+
+  // open?id=
+  let m = s.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if(m && m[1]) return m[1];
+
+  // file/d/ID
+  m = s.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
+  if(m && m[1]) return m[1];
+
+  // direct googleusercontent? sometimes has id too
+  return "";
+}
+
+/**
+ * Convert Drive share link into a direct image-friendly url.
+ * Prefer thumbnail (works well for <img>) then fallback uc?export=download.
+ * Note: file MUST be shared as "anyone with link" or public, otherwise still won’t load.
+ */
+function driveToImageUrl_(url){
+  const s = safeUrl(url);
+  if(!s) return "";
+
+  // Already a direct image host (including googleusercontent)
+  if(/googleusercontent\.com/i.test(s)) return s;
+
+  // Drive links -> thumbnail
+  if(/drive\.google\.com/i.test(s)){
+    const id = driveFileId_(s);
+    if(id){
+      // thumbnail is usually most reliable for embedding
+      return `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w800`;
+      // (backup option) return `https://drive.google.com/uc?id=${encodeURIComponent(id)}&export=download`;
+    }
+  }
+
+  return s;
 }
 
 function splitMulti_(v){
@@ -100,31 +148,14 @@ function mapRowToCard_(row){
   const tagsRaw = pickField_(row, [/服務項目/, /關鍵字/, /標籤/]);
   const tags = splitMulti_(tagsRaw).slice(0, 6);
 
-  const photo = pickField_(row, [/個人專業形象照/, /形象照/, /頭像/, /主圖/]);
+  const photoRaw = pickField_(row, [/個人專業形象照/, /形象照/, /頭像/, /主圖/]);
+  const photo = driveToImageUrl_(photoRaw);
+
   const note = pickField_(row, [/備註/, /補充說明/, /簡介/, /自我介紹/]);
 
-  const lineOA = safeUrl(pickField_(row, [
-    /LINE\s*官方帳號連結/,
-    /LINE.*官方/,
-    /官方帳號/,
-    /LINE\s*OA/
-  ]));
-
-  const site = safeUrl(pickField_(row, [
-    /官網/,
-    /網站/,
-    /首頁/,
-    /概念館/,
-    /入口/
-  ]));
-
-  const form = safeUrl(pickField_(row, [
-    /表單/,
-    /訂製表單/,
-    /預約表單/,
-    /填表/,
-    /Google\s*Form/
-  ]));
+  const lineOA = safeUrl(pickField_(row, [/LINE\s*官方帳號連結/, /LINE.*官方/, /官方帳號/, /LINE\s*OA/]));
+  const site   = safeUrl(pickField_(row, [/官網/, /網站/, /首頁/, /概念館/, /入口/]));
+  const form   = safeUrl(pickField_(row, [/表單/, /訂製表單/, /預約表單/, /填表/, /Google\s*Form/]));
 
   const v1 = safeUrl(pickField_(row, [/影音平台\s*1/, /YouTube/]));
   const v2 = safeUrl(pickField_(row, [/影音平台\s*2/, /抖音/, /TikTok/]));
@@ -136,11 +167,8 @@ function mapRowToCard_(row){
   let address = "";
   let link3 = "";
   const v3n = normalize(v3);
-  if(v3n && !/^https?:\/\//i.test(v3n)){
-    address = v3n;
-  }else{
-    link3 = safeUrl(v3n);
-  }
+  if(v3n && !/^https?:\/\//i.test(v3n)) address = v3n;
+  else link3 = safeUrl(v3n);
 
   const links = [v1, v2, link3, s1, s2, s3].filter(Boolean).slice(0, 6);
 
@@ -159,7 +187,7 @@ function mapRowToCard_(row){
   };
 }
 
-/** ---------- Ultra-robust fetch ---------- */
+/** ---------- Fetch (ultra-robust) ---------- */
 
 async function fetchJson_(url){
   const res = await fetch(url, { cache: "no-store" });
@@ -182,7 +210,6 @@ function rowsToObjects_(headers, rows){
 
 function pickSampleRow_(arr){
   if(!Array.isArray(arr) || !arr.length) return null;
-
   const hit = arr.find(row=>{
     const id = normalize(pickField_(row, [/編號/, /^id$/i, /ID/]));
     const name = normalize(pickField_(row, [/姓名/, /暱稱/, /稱呼/]));
@@ -193,7 +220,6 @@ function pickSampleRow_(arr){
 
 function normalizeApiResponse_(json){
   if(!json) return null;
-
   const ok = (json.ok === undefined) ? true : !!json.ok;
   if(!ok) return null;
 
@@ -237,7 +263,6 @@ async function fetchCardPreferred(){
   ];
 
   const errors = [];
-
   for(const url of tries){
     try{
       const json = await fetchJson_(url);
@@ -248,7 +273,6 @@ async function fetchCardPreferred(){
       errors.push(String(e.message || e));
     }
   }
-
   throw new Error("All fetch attempts failed:\n" + errors.join("\n---\n"));
 }
 
@@ -274,9 +298,7 @@ function applyVisualState(){
     }
   }
 
-  if(preview){
-    preview.dataset.theme = state.theme;
-  }
+  if(preview) preview.dataset.theme = state.theme;
 }
 
 function applyPremiumPack(){
@@ -311,32 +333,39 @@ function applyPremiumPack(){
   });
 }
 
-/** ---------- Render (default empty) ---------- */
+/** ---------- Render ---------- */
 
 function renderCard(){
   const o = state.card || {};
 
   const pname = $("#pname");
-  if(pname) pname.textContent = normalize(o.name) || "";
+  if(pname) pname.textContent = normalize(o.name) || "—";
 
   const ptitle = $("#ptitle");
   if(ptitle){
     const t = [normalize(o.title), normalize(o.org)].filter(Boolean).join("｜");
-    ptitle.textContent = t || "";
+    ptitle.textContent = t || "—";
   }
 
   const ptags = $("#ptags");
   if(ptags){
-    ptags.innerHTML = (o.tags || []).filter(Boolean).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("");
+    ptags.innerHTML = (o.tags || []).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("");
   }
 
   const pone = $("#pone");
-  if(pone) pone.textContent = normalize(o.oneLine) || "";
+  if(pone) pone.textContent = normalize(o.oneLine) || "—";
 
+  // ✅ photo: Drive share links => thumbnail url, + onerror fallback
   const img = $("#avatarImg");
   const fb = $("#avatarFallback");
   if(img){
-    const u = normalize(o.photo);
+    const u = driveToImageUrl_(o.photo);
+    img.onerror = () => {
+      img.removeAttribute("src");
+      img.style.display = "none";
+      if(fb) fb.style.display = "";
+    };
+
     if(u){
       img.src = u;
       img.style.display = "";
@@ -344,10 +373,7 @@ function renderCard(){
     }else{
       img.removeAttribute("src");
       img.style.display = "none";
-      if(fb){
-        fb.textContent = normalize(o.name) || "";
-        fb.style.display = fb.textContent ? "" : "none";
-      }
+      if(fb) fb.style.display = "";
     }
   }
 
@@ -399,6 +425,35 @@ function renderCard(){
   if(pnote) pnote.textContent = normalize(o.note) || "";
 }
 
+/** Copy */
+function bindCopy(){
+  const btn = $("#btnCopy");
+  if(!btn) return;
+  btn.addEventListener("click", async ()=>{
+    const o = state.card || {};
+    const lines = [
+      normalize(o.name),
+      normalize(o.oneLine),
+      o.lineOA ? `LINE OA：${o.lineOA}` : "",
+      o.site ? `官網：${o.site}` : "",
+      o.form ? `填表：${o.form}` : ""
+    ].filter(Boolean).join("\n");
+
+    try{
+      await navigator.clipboard.writeText(lines);
+      btn.classList.add("is-copied");
+      setTimeout(()=>btn.classList.remove("is-copied"), 900);
+    }catch(e){
+      const ta = document.createElement("textarea");
+      ta.value = lines;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+  });
+}
+
 /** Delegated controls */
 function bindDelegatedControls(){
   document.addEventListener("click", (ev)=>{
@@ -408,6 +463,7 @@ function bindDelegatedControls(){
       $$(".seg__btn[data-plan]").forEach(b=>b.classList.toggle("is-on", b === planBtn));
       if(state.plan === "pro") applyPremiumPack();
       applyVisualState();
+      renderCard();
       return;
     }
 
@@ -489,6 +545,7 @@ async function init(){
   applyVisualState();
   bindDelegatedControls();
   bindHiddenAdmin();
+  bindCopy();
 
   const hint = $("#hint");
 
@@ -506,7 +563,7 @@ async function init(){
         title: normalize(c.titles || c.title || ""),
         oneLine: normalize(c.tagline || c.oneLine || ""),
         tags: splitMulti_(c.services || "").slice(0, 6),
-        photo: safeUrl(c.photo),
+        photo: driveToImageUrl_(c.photo),          // ✅ 這行最關鍵
         note: normalize(c.note || ""),
         lineOA: safeUrl(c.lineOA || c.line_oa || ""),
         site: safeUrl(c.site || c.home || ""),
