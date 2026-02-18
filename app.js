@@ -1,5 +1,5 @@
 /**
- * Angel Card Frontend v372 (Complete Overwrite)
+ * Angel Card Frontend v373 (Complete Overwrite)
  * - Facade reads GAS public: https://script.google.com/macros/s/AKfycby74ta4CUFzkWcEfyPfoOMV9K93f-sIUzAxP6yECiadpVEzFUmk_JiHCFG_s2-ePHvJ/exec?action=public
  * - Uses STANDARDIZED keys from GAS v365+:
  *   name, org, tagline, photo, logo, links[6], address/map,
@@ -11,7 +11,7 @@
  * - Hidden admin entry reserved: tap version 7 times quickly -> /admin.html
  */
 
-const VERSION = 372;
+const VERSION = 373;
 const API_URL = "https://script.google.com/macros/s/AKfycby74ta4CUFzkWcEfyPfoOMV9K93f-sIUzAxP6yECiadpVEzFUmk_JiHCFG_s2-ePHvJ/exec";
 
 const state = {
@@ -52,6 +52,97 @@ function toMapUrlFromAddress(addr){
   if(!a) return "";
   if(/^https?:\/\//i.test(a)) return a;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}`;
+
+
+/**
+ * Normalize incoming GAS public payload.
+ * Supports:
+ *  - Standard keys (name/org/tagline/photo/logo/links/address/line_friend/line_oa/email/phone/q1/a1/q2/a2)
+ *  - Raw Google Form headers (Chinese column names)
+ */
+function normalizeIncomingData(raw){
+  const o = raw && typeof raw === "object" ? raw : {};
+  const pick = (k)=> normalize(o[k]);
+  const by = (candidates)=>{
+    for(const k of candidates){
+      const v = pick(k);
+      if(v) return v;
+    }
+    return "";
+  };
+
+  // Standard keys first, then fallback to Chinese headers
+  const name   = by(["name","姓名（名片大標題）"]);
+  const org    = by(["org","單位名稱（如：幸福教養概念館）"]);
+  const tagline= by(["tagline","理念標語（顯示在照片下方，精簡有力）"]);
+  const services = by(["services","服務項目（核心業務，多項可條列換行）"]);
+  const titles   = by(["titles","重要頭銜/獎銜（權威背書項目，多項可條列換行）"]);
+  const photo  = by(["photo","個人專業形象照（名片主圖）"]);
+  const logo   = by(["logo","品牌 Logo（右上角小圖標）"]);
+  const wechat = by(["wechat","微信 ID"]);
+
+  // address may be stored in "影音平台 3（或地址）" (as plain text)
+  const v3 = by(["video3","影音平台 3（或地址）"]);
+  const address = (()=>{
+    const a = by(["address","地址","地點"]);
+    if(a) return a;
+    // If v3 is not a url, treat it as address
+    if(v3 && !safeUrl(v3)) return v3;
+    return "";
+  })();
+
+  // photos: may be comma-separated urls
+  const photosRaw = by(["photos","產品或品牌或活動照片最多3張（內容區插圖）"]);
+  const photos = photosRaw
+    ? photosRaw.split(/[,
+]/).map(x=>normalize(x)).filter(Boolean).slice(0,3)
+    : [];
+
+  // links: accept standard links array OR build from columns
+  const linksStd = Array.isArray(o.links) ? o.links.map(x=>normalize(x)).filter(Boolean) : [];
+  const video1 = by(["video1","影音平台 1（如：YouTube或其他連結）"]);
+  const video2 = by(["video2","影音平台 2（如：TikTok / 抖音或其他連結）"]);
+  // v3 as url only
+  const video3 = safeUrl(v3) ? v3 : "";
+  const social1 = by(["social1","社群平台 1（如：Facebook 粉絲專頁或其他連結）"]);
+  const social2 = by(["social2","社群平台 2（如：Instagram或其他連結）"]);
+  const social3 = by(["social3","社群平台 3（如：Thread / 部落格或其他連結）"]);
+
+  const linksBuilt = [video1, video2, video3, social1, social2, social3]
+    .map(x=>safeUrl(x) || "")
+    .filter(Boolean);
+
+  const links = (linksStd.length ? linksStd : linksBuilt).slice(0,6);
+
+  const line_friend_raw = by(["line_friend","私訊 LINE 連結（第一行填連結，換行填line名稱）"]);
+  const line_friend = (()=>{
+    if(!line_friend_raw) return "";
+    const first = line_friend_raw.split(/[
+
+]/)[0];
+    return safeUrl(first) || first;
+  })();
+  const line_oa = by(["line_oa","​LINE 官方帳號連結（綠色主按鈕）","LINE 官方帳號連結（綠色主按鈕）"]);
+
+  const email  = by(["email","一鍵聯繫 Email"]);
+  const phone  = by(["phone","一鍵聯繫電話"]);
+  const q1 = by(["q1","客戶常見提問 1 (Q1)"]);
+  const a1 = by(["a1","專業解答 1 (A1)"]);
+  const q2 = by(["q2","客戶常見提問 2 (Q2)"]);
+  const a2 = by(["a2","專業解答2（A2）","專業解答 2 (A2)"]);
+
+  return {
+    name, org, tagline, services, titles,
+    photo, logo, wechat,
+    photos,
+    links,
+    address,
+    line_friend,
+    line_oa,
+    email, phone,
+    q1, a1, q2, a2
+  };
+}
 }
 
 // ===== Visual state =====
@@ -104,7 +195,7 @@ async function fetchPublic(){
   const res = await fetch(url, { cache: "no-store" });
   const json = await res.json();
   if(!json || !json.ok) throw new Error("public not ok");
-  return json.data || null;
+  return normalizeIncomingData(json.data || null);
 }
 
 // ===== Render =====
@@ -288,6 +379,11 @@ async function init(){
   bindThemeFree();
   bindComposer();
   bindHiddenAdmin();
+
+  // SW
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
 
   try {
     state.data = await fetchPublic();

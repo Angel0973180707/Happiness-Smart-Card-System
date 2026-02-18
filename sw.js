@@ -1,44 +1,42 @@
-/* Angel Card v367.1 Service Worker */
-const CACHE_NAME = "angel-card-v367.1";
+/* Angel Card SW v373 */
+const CACHE = 'angel-card-v373';
 const ASSETS = [
-  "./",
-  "./index.html",
-  "./style.css",
-  "./app.js",
-  "./manifest.json",
-  "./data/config.json",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+self.addEventListener('install', (e)=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
+});
+
+self.addEventListener('activate', (e)=>{
+  e.waitUntil(
+    caches.keys().then(keys=>Promise.all(keys.map(k=>k===CACHE?null:caches.delete(k))))
+      .then(()=>self.clients.claim())
   );
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))))
-    ).then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
+self.addEventListener('fetch', (e)=>{
+  const req = e.request;
   const url = new URL(req.url);
 
-  // Network-first for Apps Script API (so sheet updates show up)
-  if(url.href.includes("script.google.com") || url.searchParams.get("action")==="list"){
-    event.respondWith(
-      fetch(req).catch(() => caches.match(req))
-    );
+  // Network-first for API (GAS)
+  if (url.origin.includes('script.google.com')) {
+    e.respondWith(fetch(req).catch(()=>caches.match(req)));
     return;
   }
 
-  // Cache-first for app assets
-  event.respondWith(
-    caches.match(req).then((cached) => cached || fetch(req))
+  // Cache-first for static
+  e.respondWith(
+    caches.match(req).then(res=>res || fetch(req).then(net=>{
+      const copy = net.clone();
+      caches.open(CACHE).then(c=>c.put(req, copy));
+      return net;
+    }).catch(()=>res))
   );
 });
