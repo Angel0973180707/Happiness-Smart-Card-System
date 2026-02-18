@@ -1,4 +1,4 @@
-/* Angel Card v367.1 */
+/* Angel Card v372 */
 :root{
   --bg:#071b14;
   --card:#0b251c;
@@ -264,3 +264,131 @@ body{
   --a:#60a5fa;
   --glow:rgba(56,189,248,.28);
 }
+
+
+/* ===== v372 Composer UI ===== */
+.composer__title{
+  font-weight:900;
+  margin-bottom:10px;
+}
+.composer__block{ margin-top:10px; }
+.composer__k{ font-weight:700; margin:10px 0 8px; }
+.composer__k.mt{ margin-top:14px; }
+.composer__note{ font-size:12px; color:rgba(0,0,0,.55); margin-top:8px; line-height:1.4; }
+
+.swatches{ display:flex; flex-wrap:wrap; gap:8px; }
+.sw{
+  border:1px solid rgba(0,0,0,.12);
+  background:#fff;
+  border-radius:999px;
+  padding:8px 10px;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+}
+.sw.is-on{ box-shadow:0 0 0 3px rgba(21,94,75,.18); border-color:rgba(21,94,75,.35); }
+
+.chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.chip{
+  border:1px solid rgba(0,0,0,.12);
+  background:#fff;
+  border-radius:12px;
+  padding:8px 10px;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+}
+.chip.is-on{ box-shadow:0 0 0 3px rgba(21,94,75,.18); border-color:rgba(21,94,75,.35); }
+
+.composer [data-only="free"]{ display:none; }
+.composer [data-only="pro"]{ display:none; }
+.app[data-plan="free"] .composer [data-only="free"]{ display:block; }
+.app[data-plan="pro"]  .composer [data-only="pro"]{ display:block; }
+
+/* ===== v372 Theme: flat (平直) ===== */
+.app[data-theme="flat"] .arch{ display:none !important; }
+.app[data-theme="flat"] .preview__overlay{ opacity:.45; }
+.app[data-theme="flat"] .phead{ padding-top:18px; }
+
+/* ===== v372 Paper textures (free only) ===== */
+.app[data-plan="free"][data-paper="cotton"] .preview{
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255,255,255,.35), transparent 40%),
+    linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,.18));
+}
+.app[data-plan="free"][data-paper="grain"] .preview{
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255,255,255,.28), transparent 40%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.03), rgba(0,0,0,.03) 1px, transparent 1px, transparent 6px);
+}
+.app[data-plan="free"][data-paper="linen"] .preview{
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,.03), rgba(0,0,0,.03) 1px, transparent 1px, transparent 10px),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.02), rgba(0,0,0,.02) 1px, transparent 1px, transparent 10px);
+}
+.app[data-plan="free"][data-paper="watercolor"] .preview{
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,.35), transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(255,255,255,.25), transparent 55%),
+    linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,.14));
+}
+
+/* ===== v372 Free colors (5) ===== */
+.app[data-plan="free"][data-free-color="pink"]{ --p:#ee5253; --s:#d63031; }
+.app[data-plan="free"][data-free-color="blue"]{ --p:#00a8ff; --s:#0097e6; }
+.app[data-plan="free"][data-free-color="orange"]{ --p:#f0932b; --s:#e67e22; }
+.app[data-plan="free"][data-free-color="purple"]{ --p:#9c88ff; --s:#8c7ae6; }
+.app[data-plan="free"][data-free-color="green"]{ --p:#2ed573; --s:#20bf6b; }
+
+/* ===== v372 Premium: per-color built-in layout + avatar frame + effects ===== */
+.app[data-plan="pro"] .avatar__ring{ display:none; } /* pro uses auto styles */
+.app[data-plan="pro"].fx-glow .avatar__ring{ display:block; opacity:1; }
+.app[data-plan="pro"].fx-glow .avatar__ring{ box-shadow:0 0 0 2px rgba(255,255,255,.28), 0 0 18px rgba(255,255,255,.28), 0 0 28px rgba(0,0,0,.12); }
+.app[data-plan="pro"].fx-rounded .avatar__img{ border-radius:20px; }
+.app[data-plan="pro"].fx-float .avatar{ transform:translateY(-4px); filter: drop-shadow(0 12px 20px rgba(0,0,0,.18)); }
+
+.app[data-plan="pro"].fx-glass .preview{
+  backdrop-filter: blur(12px);
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.14);
+}
+.app[data-plan="pro"].fx-stage .preview__overlay{
+  background: radial-gradient(circle at 50% 20%, rgba(255,255,255,.22), transparent 55%),
+              radial-gradient(circle at 50% 10%, rgba(0,0,0,.30), transparent 60%);
+  opacity:.9;
+}
+.app[data-plan="pro"].fx-magazine .preview{
+  box-shadow:0 18px 40px rgba(0,0,0,.18);
+}
+.app[data-plan="pro"].fx-magazine .pname{ letter-spacing:.5px; }
+.app[data-plan="pro"].fx-magazine .pmeta{ opacity:.9; }
+
+.app[data-plan="pro"][data-pro-color="deepSeaBlue"]{ --p:#143a67; --s:#0e2a4a; }
+.app[data-plan="pro"][data-pro-color="creamyMist"]{ --p:#c9b9a3; --s:#a9967d; }
+.app[data-plan="pro"][data-pro-color="graphiteGray"]{ --p:#3d3f46; --s:#2a2c31; }
+.app[data-plan="pro"][data-pro-color="mistPurpleGray"]{ --p:#6f6a7a; --s:#514d5a; }
+.app[data-plan="pro"][data-pro-color="caramelBrown"]{ --p:#8b5a2b; --s:#6b431f; }
+.app[data-plan="pro"][data-pro-color="inkGreen"]{ --p:#155e4b; --s:#0c3a2e; }
+.app[data-plan="pro"][data-pro-color="warmGrayBlue"]{ --p:#6f7c8d; --s:#4f5866; }
+
+/* Hide API how-to block (v372) */
+.side__details{ display:none !important; }
+
+/* v372 platforms mini buttons */
+.platforms{ margin-top:10px; display:grid; grid-template-columns:1fr; gap:10px; }
+.pbtn--mini .pbtn__s{ font-size:11px; opacity:.85; word-break:break-all; }
+
+/* v372 footer + hidden admin tap target */
+.app__footer{ padding:18px 16px 28px; }
+.legal{ display:flex; gap:10px; justify-content:center; align-items:center; opacity:.72; font-size:12px; }
+.ver{ cursor:pointer; user-select:none; }
+.copy{ opacity:.85; }
+
+/* contacts */
+.contacts{ display:grid; grid-template-columns:1fr; gap:10px; margin-top:10px; }
+.pbtn--primary{
+  background: linear-gradient(180deg, rgba(46,213,115,1), rgba(32,191,107,1));
+  color:#fff;
+  border:0;
+}
+.pbtn--primary .pbtn__s{ color:rgba(255,255,255,.9); }
