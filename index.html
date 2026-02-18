@@ -1,76 +1,59 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>幸福智慧名片 V358.1 - 小天使自動化版</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>幸福智慧名片 V358.1</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body class="mode-free warm-pink style-arch">
 
-    <div id="admin-panel">
-        <div class="picker-section">
-            <span class="section-title">🎨 自由搭配：亮色親和款</span>
-            <div class="dots-row">
-                <div class="dot active" style="background:#ee5253" onclick="setAppMode('free','warm-pink', this)"></div>
-                <div class="dot" style="background:#00a8ff" onclick="setAppMode('free','aurora-blue', this)"></div>
-                <div class="dot" style="background:#f0932b" onclick="setAppMode('free','vivid-orange', this)"></div>
-                <div class="dot" style="background:#6c5ce7" onclick="setAppMode('free','royal-purple', this)"></div>
-                <div class="dot" style="background:#20bf6b" onclick="setAppMode('free','teal-green', this)"></div>
-            </div>
-            <div id="style-selector" class="btn-row">
-                <button class="btn-mini active" onclick="setFreeStyle('arch', this)">優雅拱型</button>
-                <button class="btn-mini" onclick="setFreeStyle('flat', this)">簡潔平直</button>
-                <button class="btn-mini" onclick="setFreeStyle('spot', this)">晨曦聚光</button>
-            </div>
-        </div>
-
-        <div class="picker-section">
-            <span class="section-title">🌿 精品設計：七種氣質語彙 (選色即選版)</span>
-            <div class="dots-row">
-                <div class="p-dot p-deep-green" title="深墨綠" onclick="setAppMode('premium','p-deep-green', this)"></div>
-                <div class="p-dot p-blue-gray" title="深藍灰" onclick="setAppMode('premium','p-blue-gray', this)"></div>
-                <div class="p-dot p-wine-red" title="酒紅棕" onclick="setAppMode('premium','p-wine-red', this)"></div>
-                <div class="p-dot p-caramel" title="焦糖暖棕" onclick="setAppMode('premium','p-caramel', this)"></div>
-                <div class="p-dot p-morandi" title="莫蘭迪藍" onclick="setAppMode('premium','p-morandi', this)"></div>
-                <div class="p-dot p-misty" title="霧紫灰" onclick="setAppMode('premium','p-misty', this)"></div>
-                <div class="p-dot p-graphite" title="石墨黑" onclick="setAppMode('premium','p-graphite', this)"></div>
-            </div>
-        </div>
-
-        <button class="btn-main-action" onclick="goFillForm()">
-            立即預約訂製名片 <i class="fa-solid fa-arrow-right"></i>
-        </button>
+  <div id="admin-panel">
+    <div class="picker-section">
+      <span class="section-title">🎨 自由搭配：亮色親和款</span>
+      <div class="dots-row">
+        <div class="dot active" style="background:#ee5253" onclick="setAppMode('free','warm-pink', this)"></div>
+        <div class="dot" style="background:#00a8ff" onclick="setAppMode('free','aurora-blue', this)"></div>
+        <div class="dot" style="background:#f0932b" onclick="setAppMode('free','vivid-orange', this)"></div>
+        <div class="dot" style="background:#6c5ce7" onclick="setAppMode('free','royal-purple', this)"></div>
+        <div class="dot" style="background:#20bf6b" onclick="setAppMode('free','teal-green', this)"></div>
+      </div>
+      <div id="style-selector" class="btn-row">
+        <button class="btn-mini active" onclick="setFreeStyle('arch', this)">優雅拱型</button>
+        <button class="btn-mini" onclick="setFreeStyle('flat', this)">簡潔平直</button>
+      </div>
     </div>
 
-    <div id="card-container" class="card">
-        <div class="premium-fx"></div>
-        <div class="banner"><div class="arch-overlay"></div></div>
-        
-        <div class="avatar-wrap">
-          <img id="u-img" src="" class="avatar" alt="頭像" />
-        </div>
-
-        <div class="info-scroll">
-          <h1 id="u-name" class="name">讀取中...</h1>
-          <div id="u-unit" class="unit">...</div>
-          
-          <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">
-            <div class="order-inner">
-              <span>立即預約訂製</span>
-              <i class="fa-solid fa-chevron-right"></i>
-            </div>
-          </div>
-
-          <div class="content-box glass-box">
-            <span class="label">服務項目</span>
-            <div id="u-service" class="service-text">正在從雲端讀取小天使最新資料...</div>
-          </div>
-        </div>
+    <div class="picker-section">
+      <span class="section-title">🌿 精品設計：七種氣質語彙</span>
+      <div class="dots-row">
+        <div class="p-dot p-deep-green" onclick="setAppMode('premium','p-deep-green', this)"></div>
+        <div class="p-dot p-blue-gray" onclick="setAppMode('premium','p-blue-gray', this)"></div>
+        <div class="p-dot p-wine-red" onclick="setAppMode('premium','p-wine-red', this)"></div>
+        <div class="p-dot p-caramel" onclick="setAppMode('premium','p-caramel', this)"></div>
+        <div class="p-dot p-morandi" onclick="setAppMode('premium','p-morandi', this)"></div>
+        <div class="p-dot p-misty" onclick="setAppMode('premium','p-misty', this)"></div>
+        <div class="p-dot p-graphite" onclick="setAppMode('premium','p-graphite', this)"></div>
+      </div>
     </div>
 
-    <script src="./app.js"></script>
+    <button class="btn-main-action" onclick="goFillForm()">立即預約訂製</button>
+  </div>
+
+  <div id="card-container" class="card">
+    <div class="premium-fx"></div>
+    <div class="banner"><div class="arch-overlay"></div></div>
+    <div class="avatar-wrap"><img id="u-img" src="" class="avatar" /></div>
+    <div class="info-scroll">
+      <h1 id="u-name" class="name">載入中...</h1>
+      <div id="u-unit" class="unit">...</div>
+      <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">立即預約表單</div>
+      <div class="content-box"><div id="u-service">讀取小天使資料中...</div></div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
 </body>
 </html>
