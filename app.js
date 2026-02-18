@@ -1,17 +1,13 @@
 /**
- * Angel Card Frontend v377 (Complete Overwrite)
- * - Ultra-robust fetch:
- *   1) ?action=card
- *   2) ?action=public
- *   3) ?action=list
- *   4) no action
- * - Accept multiple response shapes and auto-pick sample row.
+ * Angel Card Frontend v377.1 (Complete Overwrite)
+ * - Remove "Copy card info" feature entirely
+ * - Default fields empty (ready for sheet data)
+ * - Keep ultra-robust fetch + row/card mapping
  */
 
-console.log("[AngelCard] app.js loaded v377");
-
-const VERSION = 377;
+const VERSION = 3771;
 const API_URL = "https://script.google.com/macros/s/AKfycby74ta4CUFzkWcEfyPfoOMV9K93f-sIUzAxP6yECiadpVEzFUmk_JiHCFG_s2-ePHvJ/exec";
+
 const SAMPLE_ID_CANDIDATES = ["TW0001", "小天使"];
 
 const state = {
@@ -29,9 +25,11 @@ const $  = (sel, root = document) => root.querySelector(sel);
 
 function normalize(v){ return (v == null ? "" : String(v)).trim(); }
 
+/** More tolerant URL normalize */
 function safeUrl(u){
   let s = normalize(u);
   if(!s) return "";
+
   if(/^www\./i.test(s)) s = "https://" + s;
   if(/^line\.me\//i.test(s)) s = "https://" + s;
   if(/^lin\.ee\//i.test(s)) s = "https://" + s;
@@ -39,6 +37,7 @@ function safeUrl(u){
 
   if(/^https?:\/\//i.test(s)) return s;
   if(/^mailto:/i.test(s) || /^tel:/i.test(s) || /^line:/i.test(s)) return s;
+
   return "";
 }
 
@@ -160,7 +159,7 @@ function mapRowToCard_(row){
   };
 }
 
-/* ---------- fetch ---------- */
+/** ---------- Ultra-robust fetch ---------- */
 
 async function fetchJson_(url){
   const res = await fetch(url, { cache: "no-store" });
@@ -183,6 +182,7 @@ function rowsToObjects_(headers, rows){
 
 function pickSampleRow_(arr){
   if(!Array.isArray(arr) || !arr.length) return null;
+
   const hit = arr.find(row=>{
     const id = normalize(pickField_(row, [/編號/, /^id$/i, /ID/]));
     const name = normalize(pickField_(row, [/姓名/, /暱稱/, /稱呼/]));
@@ -193,31 +193,38 @@ function pickSampleRow_(arr){
 
 function normalizeApiResponse_(json){
   if(!json) return null;
+
   const ok = (json.ok === undefined) ? true : !!json.ok;
   if(!ok) return null;
 
   if(json.card && typeof json.card === "object"){
     return { mode:"card", payload: json.card, raw: json };
   }
+
   if(json.data && typeof json.data === "object" && !Array.isArray(json.data)){
     return { mode:"row", payload: json.data, raw: json };
   }
+
   if(Array.isArray(json.data)){
     const row = pickSampleRow_(json.data);
     if(row) return { mode:"row", payload: row, raw: json };
   }
+
   if(Array.isArray(json.headers) && Array.isArray(json.rows)){
     const arr = rowsToObjects_(json.headers, json.rows);
     const row = pickSampleRow_(arr);
     if(row) return { mode:"row", payload: row, raw: json };
   }
+
   if(Array.isArray(json.rows) && json.rows.length && typeof json.rows[0] === "object"){
     const row = pickSampleRow_(json.rows);
     if(row) return { mode:"row", payload: row, raw: json };
   }
+
   if(typeof json === "object" && !Array.isArray(json) && (json.name || json.lineOA || json.site || json.form)){
     return { mode:"card", payload: json, raw: json };
   }
+
   return null;
 }
 
@@ -241,10 +248,11 @@ async function fetchCardPreferred(){
       errors.push(String(e.message || e));
     }
   }
+
   throw new Error("All fetch attempts failed:\n" + errors.join("\n---\n"));
 }
 
-/* ---------- visual state ---------- */
+/** ---------- Visual state ---------- */
 
 function applyVisualState(){
   const app = $("#app");
@@ -265,6 +273,7 @@ function applyVisualState(){
       app.removeAttribute("data-paper");
     }
   }
+
   if(preview){
     preview.dataset.theme = state.theme;
   }
@@ -302,27 +311,27 @@ function applyPremiumPack(){
   });
 }
 
-/* ---------- render ---------- */
+/** ---------- Render (default empty) ---------- */
 
 function renderCard(){
   const o = state.card || {};
 
   const pname = $("#pname");
-  if(pname) pname.textContent = normalize(o.name) || "—";
+  if(pname) pname.textContent = normalize(o.name) || "";
 
   const ptitle = $("#ptitle");
   if(ptitle){
     const t = [normalize(o.title), normalize(o.org)].filter(Boolean).join("｜");
-    ptitle.textContent = t || "—";
+    ptitle.textContent = t || "";
   }
 
   const ptags = $("#ptags");
   if(ptags){
-    ptags.innerHTML = (o.tags || []).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("");
+    ptags.innerHTML = (o.tags || []).filter(Boolean).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join("");
   }
 
   const pone = $("#pone");
-  if(pone) pone.textContent = normalize(o.oneLine) || "—";
+  if(pone) pone.textContent = normalize(o.oneLine) || "";
 
   const img = $("#avatarImg");
   const fb = $("#avatarFallback");
@@ -335,7 +344,10 @@ function renderCard(){
     }else{
       img.removeAttribute("src");
       img.style.display = "none";
-      if(fb) fb.style.display = "";
+      if(fb){
+        fb.textContent = normalize(o.name) || "";
+        fb.style.display = fb.textContent ? "" : "none";
+      }
     }
   }
 
@@ -387,34 +399,7 @@ function renderCard(){
   if(pnote) pnote.textContent = normalize(o.note) || "";
 }
 
-function bindCopy(){
-  const btn = $("#btnCopy");
-  if(!btn) return;
-  btn.addEventListener("click", async ()=>{
-    const o = state.card || {};
-    const lines = [
-      normalize(o.name),
-      normalize(o.oneLine),
-      o.lineOA ? `LINE OA：${o.lineOA}` : "",
-      o.site ? `官網：${o.site}` : "",
-      o.form ? `填表：${o.form}` : ""
-    ].filter(Boolean).join("\n");
-
-    try{
-      await navigator.clipboard.writeText(lines);
-      btn.classList.add("is-copied");
-      setTimeout(()=>btn.classList.remove("is-copied"), 900);
-    }catch(e){
-      const ta = document.createElement("textarea");
-      ta.value = lines;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-    }
-  });
-}
-
+/** Delegated controls */
 function bindDelegatedControls(){
   document.addEventListener("click", (ev)=>{
     const planBtn = ev.target.closest(".seg__btn[data-plan]");
@@ -423,7 +408,6 @@ function bindDelegatedControls(){
       $$(".seg__btn[data-plan]").forEach(b=>b.classList.toggle("is-on", b === planBtn));
       if(state.plan === "pro") applyPremiumPack();
       applyVisualState();
-      renderCard();
       return;
     }
 
@@ -463,6 +447,7 @@ function bindDelegatedControls(){
   }, true);
 }
 
+/** Hidden admin tap */
 function bindHiddenAdmin(){
   const el = $("#versionTap");
   if(!el) return;
@@ -480,6 +465,7 @@ function bindHiddenAdmin(){
   });
 }
 
+/** Utilities */
 function escapeHtml(s){
   return String(s ?? "")
     .replace(/&/g,"&amp;")
@@ -489,6 +475,7 @@ function escapeHtml(s){
 }
 function escapeAttr(s){ return escapeHtml(s).replace(/'/g,"&#39;"); }
 
+/** Init */
 async function init(){
   const app = $("#app");
   if(app){
@@ -502,7 +489,6 @@ async function init(){
   applyVisualState();
   bindDelegatedControls();
   bindHiddenAdmin();
-  bindCopy();
 
   const hint = $("#hint");
 
@@ -536,8 +522,8 @@ async function init(){
     renderCard();
     if(hint) hint.textContent = "門面資料已載入（樣版＝小天使）";
   }catch(e){
-    console.error("[AngelCard] init failed:", e);
-    if(hint) hint.textContent = "門面讀取失敗（請開 Console 看錯誤）";
+    console.error(e);
+    if(hint) hint.textContent = "門面讀取失敗（請開 F12 Console 看錯誤）";
   }
 }
 
