@@ -1,4 +1,4 @@
-const CACHE = "angel-card-v374-clean";
+const CACHE = "angel-card-v376-clean";
 const ASSETS = [
   "./",
   "./index.html",
