@@ -1,456 +1,326 @@
-/* app.js — Happiness Smart Card System v367 (Complete Overwrite)
-   Based on v366 flow, fixes:
-   - Free(A): color applies to layout area (hero overlay), avatar stays flat (CSS)
-   - Layout mapping fixed (正拱=elegant, 平直=clean, 晨曦=focus)
-   - Pro(B): full facade color classes, no overlay covering content (CSS)
-   - Flow: Step 3 line first, Step 4 form second
-*/
-(() => {
-  const VERSION = 367;
+/* Angel Card v367.1 (Complete Overwrite)
+ * Fixes:
+ * 1) 晨曦(dawn) / 正拱(arch) 不再錯置
+ * 2) 自由版色彩更飽和（CSS variables）
+ * 3) 門面讀取試算表：優先取「小天使」那一列（matchValue）
+ */
 
-  // ✅ GAS public endpoint (public fixed to TW0001 on backend)
-  const API_PUBLIC = "https://script.google.com/macros/s/AKfycbwjEhMQJRT7CUte2jJd7BzZfU1cwl0PfyInnH3zvbYU8IMZt4TnbTwPZftssW0OGva8/exec";
-  const FORM_URL   = "https://forms.gle/B13z5M2mwwv9ZKME8";
+const $ = (sel, el=document) => el.querySelector(sel);
+const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
 
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+const state = {
+  plan: "free",
+  theme: "dawn",
+  card: null,
+  config: null,
+};
 
-  function driveToViewUrl(url){
-    if(!url) return "";
-    try{
-      const u = String(url).trim();
-      const m1 = u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-      if(m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
-      const m2 = u.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
-      if(m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
-      return u;
-    }catch(e){ return String(url||""); }
-  }
-  function toMapsLink(address){
-    if(!address) return "";
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-  }
-  function splitTags(s){
-    if(!s) return [];
-    return String(s).split(/[,，、\n]/g).map(x=>x.trim()).filter(Boolean).slice(0,6);
-  }
-  function pick(data, keys){
-    for(const k of keys){
-      if(data && data[k]!=null && String(data[k]).trim()!=="") return String(data[k]).trim();
-    }
-    return "";
-  }
-  function normalizeCardData(raw){
-    const data = raw || {};
-    return {
-      org: pick(data, ["單位名稱（如：幸福教養概念館）","單位名稱","品牌/單位","公司","組織"]),
-      name: pick(data, ["姓名（名片大標題）","姓名","名字","稱呼"]),
-      slogan: pick(data, ["理念標語（顯示在照片下方，精簡有力）","理念標語","標語","一句話"]),
-      service: pick(data, ["服務項目（核心業務，多項可條列換行）","服務項目","核心服務"]),
-      honors: pick(data, ["重要頭銜/獎銜（權威背書項目，多項可條列換行）","重要頭銜/獎銜","頭銜","獎項"]),
-      avatarUrl: driveToViewUrl(pick(data, ["個人專業形象照（名片主圖）","形象照","頭像","照片","photo"])),
-      logoUrl: driveToViewUrl(pick(data, ["Logo（可選）","logo","Logo"])),
-      tags: splitTags(pick(data, ["標籤","標籤（可多個）","自我標籤","tag"])),
-      phone: pick(data, ["電話","手機","聯絡電話"]),
-      email: pick(data, ["Email","email","信箱","電子郵件"]),
-      line: pick(data, ["LINE 官方帳號","LINE OA","LINE@","LINE","Line","line"]),
-      website: pick(data, ["網站","個人網站","官網","Website"]),
-      address: pick(data, ["地址","住址","工作地址","location"]),
-      p1: driveToViewUrl(pick(data, ["產品或品牌或活動照片-1","產品照片1","產品照1","活動照1"])),
-      p2: driveToViewUrl(pick(data, ["產品或品牌或活動照片-2","產品照片2","產品照2","活動照2"])),
-      p3: driveToViewUrl(pick(data, ["產品或品牌或活動照片-3","產品照片3","產品照3","活動照3"])),
-      youtube: pick(data, ["YouTube","Youtube","YT","youtube"]),
-      ig: pick(data, ["IG","Instagram","instagram","ig"]),
-      fb: pick(data, ["FB","Facebook","facebook","fb"]),
-    };
-  }
+async function loadConfig(){
+  const res = await fetch("./data/config.json", { cache: "no-store" });
+  if(!res.ok) throw new Error("config.json 讀取失敗");
+  state.config = await res.json();
+}
 
-  async function fetchPublic(){
-    const url = `${API_PUBLIC}?action=public&_=${Date.now()}`;
-    const r = await fetch(url, { cache: "no-store" });
-    const j = await r.json();
-    if(!j || !j.ok) throw new Error((j && (j.message||j.error)) || "API error");
-    return normalizeCardData(j.data || {});
+function setPlan(plan){
+  state.plan = plan;
+  const app = $("#app");
+  app.dataset.plan = plan;
+
+  $$(".seg__btn[data-plan]").forEach(b=>b.classList.toggle("is-on", b.dataset.plan===plan));
+
+  // Optional: pro can unlock extra note
+  renderNote();
+}
+
+function setTheme(theme){
+  state.theme = theme;
+  const app = $("#app");
+  app.dataset.theme = theme;
+
+  const preview = $("#preview");
+  preview.dataset.theme = theme;
+
+  $$(".seg__btn[data-theme]").forEach(b=>b.classList.toggle("is-on", b.dataset.theme===theme));
+}
+
+function normalize(s){
+  return String(s ?? "").trim();
+}
+
+function rowsToObjects(headers, rows){
+  const hs = headers.map(h => normalize(h));
+  return rows.map(r => {
+    const o = {};
+    hs.forEach((h, i) => o[h] = r[i]);
+    return o;
+  });
+}
+
+/** Find the "小天使" row robustly:
+ * - matchValue exists in ANY cell (string contains)
+ * - else, matchKey field equals matchValue
+ */
+function findMatchCard(objs, cfg){
+  const mv = normalize(cfg.matchValue || "小天使");
+  const mk = normalize(cfg.matchKey || "");
+
+  // 1) strict key match
+  if(mk){
+    const hit = objs.find(o => normalize(o[mk]) === mv);
+    if(hit) return hit;
   }
 
-  // ===== State =====
-  const state = {
-    plan: null, // "A" | "B"
-    // Free(A)
-    color: "blue",
-    layout: "elegant",
-    paper: "cotton",
-    // Pro(B)
-    proColor: "inkgreen",
-    proStyle: "editorial",
-    data: null,
-  };
-
-  // ===== DOM refs =====
-  const dom = {};
-
-  function cacheDom(){
-    dom.facade = $("#facade");
-    dom.panelA = $("#panelA");
-    dom.panelB = $("#panelB");
-    dom.chosenPlan = $("#chosenPlan");
-    dom.chosenNote = $("#chosenNote");
-    dom.btnNext = $("#btnNext");
-    dom.btnClear = $("#btnClear");
-
-    dom.btnHelp = $("#btnHelp");
-    dom.helpModal = $("#helpModal");
-    dom.btnHelpClose = $("#btnHelpClose");
-    dom.btnHelpOk = $("#btnHelpOk");
-
-    dom.btnGoLineTop = $("#btnGoLineTop");
-    dom.btnGoLine = $("#btnGoLine");
-    dom.btnGoForm = $("#btnGoForm");
-
-    dom.logoImg = $("#logoImg");
-    dom.avatarImg = $("#avatarImg");
-    dom.nameText = $("#nameText");
-    dom.orgText = $("#orgText");
-    dom.sloganText = $("#sloganText");
-    dom.servicesText = $("#servicesText");
-    dom.titlesText = $("#titlesText");
-    dom.gallery = $("#gallery");
-    dom.videoLinks = $("#videoLinks");
-    dom.socialLinks = $("#socialLinks");
-    dom.btnLineOA = $("#btnLineOA");
-    dom.btnEmail = $("#btnEmail");
-    dom.btnPhone = $("#btnPhone");
-    dom.btnMap = $("#btnMap");
-
-    dom.imgViewer = $("#imgViewer");
-    dom.viewerImg = $("#viewerImg");
-    dom.viewerCap = $("#viewerCap");
-  }
-
-  // ===== UI helpers =====
-  function openModal(el){
-    if(!el) return;
-    el.hidden = false;
-    document.body.style.overflow = "hidden";
-  }
-  function closeModal(el){
-    if(!el) return;
-    el.hidden = true;
-    document.body.style.overflow = "";
-  }
-
-  function applyFacadeClasses(){
-    const f = dom.facade;
-    if(!f) return;
-
-    // base classes keep: plan-*, theme-*, layout-*, paper-*
-    f.classList.toggle("plan-free", state.plan !== "B");
-    f.classList.toggle("plan-pro", state.plan === "B");
-
-    // remove old theme/layout/paper/pro classes
-    f.className = f.className
-      .split(/\s+/)
-      .filter(c => !c.startsWith("theme-") && !c.startsWith("layout-") && !c.startsWith("paper-") && !c.startsWith("pro-") && c !== "plan-free" && c !== "plan-pro")
-      .concat([ state.plan === "B" ? "plan-pro" : "plan-free" ])
-      .join(" ");
-
-    if(state.plan === "B"){
-      f.classList.add(`pro-${state.proColor}`);
-      f.classList.add(`pro-style-${state.proStyle}`);
-      // Pro still uses a layout (hero shape) but no color overlay there.
-      f.classList.add(`layout-${state.layout}`);
-      f.classList.add(`paper-${state.paper}`); // allow paper texture on Pro too (light)
-    }else{
-      f.classList.add(`theme-${state.color}`);
-      f.classList.add(`layout-${state.layout}`);
-      f.classList.add(`paper-${state.paper}`);
+  // 2) any cell contains matchValue
+  for(const o of objs){
+    for(const k of Object.keys(o)){
+      const v = normalize(o[k]);
+      if(v && (v === mv || v.includes(mv))) return o;
     }
   }
 
-  function setSelected(rootSel, matchFn){
-    $$(rootSel).forEach(btn => {
-      btn.classList.toggle("on", matchFn(btn));
-    });
-  }
+  // 3) fallback: first row
+  return objs[0] || null;
+}
 
-  function setPlan(plan){
-    state.plan = plan;
-    // show proper panel
-    dom.panelA.hidden = plan !== "A";
-    dom.panelB.hidden = plan !== "B";
-
-    // chosen bar
-    dom.chosenPlan.textContent = plan ? (plan === "A" ? "A｜自由搭配款" : "B｜精品設計款") : "尚未選擇";
-    dom.chosenNote.textContent = plan ? "下一步：到下方選版型/顏色，再看門面預覽。" : "請先點選上方其中一個方案。";
-
-    // next button
-    dom.btnNext.classList.toggle("disabled", !plan);
-    dom.btnNext.setAttribute("aria-disabled", plan ? "false" : "true");
-    dom.btnNext.textContent = plan ? "下一步：往下選版型" : "請先選方案 ↑";
-
-    // plan cards UI
-    $$(".planCard").forEach(c => c.classList.toggle("selected", c.dataset.plan === plan));
-
-    applyFacadeClasses();
-  }
-
-  function scrollToPreview(){
-    const el = dom.facade;
-    if(!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function openLine(){
-    const line = (state.data && state.data.line) ? String(state.data.line).trim() : "";
-    if(line){
-      window.open(line, "_blank", "noopener");
-    }else{
-      // fallback: do nothing but keep user in page
-      alert("目前示範資料沒有提供 LINE 官方帳號連結。");
+function pickField(o, keys, fallback=""){
+  for(const k of keys){
+    if(o && Object.prototype.hasOwnProperty.call(o, k)){
+      const v = normalize(o[k]);
+      if(v) return v;
     }
   }
+  return fallback;
+}
 
-  function openForm(){
-    window.open(FORM_URL, "_blank", "noopener");
-  }
+function splitTags(raw){
+  const s = normalize(raw);
+  if(!s) return [];
+  // allow separators: , / 、 | # newline
+  return s
+    .replace(/[#]/g, " ")
+    .split(/[,/、|\n]+/g)
+    .map(x=>x.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
 
-  // ===== Render data =====
-  function renderLinks(container, items){
-    container.innerHTML = "";
-    const valid = items.filter(x => x && x.url);
-    if(valid.length === 0){
-      container.innerHTML = "<span class='muted'>（尚未提供）</span>";
-      return;
-    }
-    for(const it of valid){
-      const a = document.createElement("a");
-      a.className = "linkPill";
-      a.href = it.url;
-      a.target = "_blank";
-      a.rel = "noopener";
-      a.textContent = it.label;
-      container.appendChild(a);
-    }
-  }
+function safeUrl(u){
+  const s = normalize(u);
+  if(!s) return "";
+  if(/^https?:\/\//i.test(s)) return s;
+  // allow LINE OA short links etc
+  if(/^line:\/\//i.test(s)) return s;
+  return s; // keep as-is; user controls their sheet
+}
 
-  function renderGallery(urls){
-    dom.gallery.innerHTML = "";
-    const list = urls.filter(Boolean);
-    if(list.length === 0){
-      dom.gallery.innerHTML = "<span class='muted'>（尚未提供）</span>";
-      return;
-    }
-    list.forEach((u, idx) => {
-      const div = document.createElement("div");
-      div.className = "gItem";
-      const img = document.createElement("img");
-      img.src = u;
-      img.alt = `photo-${idx+1}`;
-      div.appendChild(img);
-      div.addEventListener("click", () => {
-        dom.viewerImg.src = u;
-        dom.viewerCap.textContent = `照片 ${idx+1}`;
-        openModal(dom.imgViewer);
-      });
-      dom.gallery.appendChild(div);
-    });
-  }
+function renderCard(o){
+  state.card = o;
 
-  function setContactButtons(data){
-    const line = data.line || "";
-    const email = data.email || "";
-    const phone = data.phone || "";
-    const map = data.address ? toMapsLink(data.address) : "";
+  const name = pickField(o, ["name","姓名","稱呼","display_name","暱稱","nickname"], "小天使");
+  const title = pickField(o, ["title","頭銜","一句話","tagline","subtitle","職稱"], "");
+  const one  = pickField(o, ["one_liner","一句話定位","定位","positioning","bio","簡介"], "—");
+  const tagsRaw = pickField(o, ["tags","標籤","tag","hashtag"], "");
 
-    // LINE OA
-    if(line){
-      dom.btnLineOA.href = line;
-      dom.btnGoLineTop.onclick = openLine;
-      dom.btnGoLine.onclick = openLine;
-    }else{
-      dom.btnLineOA.href = "#";
-      dom.btnGoLineTop.onclick = () => alert("目前示範資料沒有提供 LINE 官方帳號連結。");
-      dom.btnGoLine.onclick = () => alert("目前示範資料沒有提供 LINE 官方帳號連結。");
-    }
+  const avatarUrl = safeUrl(pickField(o, ["avatar","photo","頭像","avatar_url","image"], ""));
+  const lineUrl   = safeUrl(pickField(o, ["line_oa","line","LINE 官方帳號","line_url","line_oa_url"], state.config.fallbackLineUrl || ""));
+  const siteUrl   = safeUrl(pickField(o, ["site","website","官網","門面","homepage","home_url"], state.config.fallbackSiteUrl || ""));
+  const formUrl   = safeUrl(pickField(o, ["form","google_form","填表","order_form","form_url"], state.config.fallbackFormUrl || ""));
 
-    // Email
-    dom.btnEmail.href = email ? `mailto:${email}` : "#";
-    dom.btnEmail.onclick = (e) => { if(!email){ e.preventDefault(); alert("尚未提供 Email"); } };
+  $("#pname").textContent = name || "小天使";
+  $("#ptitle").textContent = title || "（來自試算表）";
+  $("#pone").textContent = one || "—";
 
-    // Phone
-    dom.btnPhone.href = phone ? `tel:${phone}` : "#";
-    dom.btnPhone.onclick = (e) => { if(!phone){ e.preventDefault(); alert("尚未提供電話"); } };
+  // tags
+  const tags = splitTags(tagsRaw);
+  const ptags = $("#ptags");
+  ptags.innerHTML = "";
+  tags.forEach(t=>{
+    const span = document.createElement("span");
+    span.className = "tag";
+    span.textContent = t;
+    ptags.appendChild(span);
+  });
 
-    // Map
-    if(map){
-      dom.btnMap.hidden = false;
-      dom.btnMap.href = map;
-    }else{
-      dom.btnMap.hidden = true;
-    }
-  }
-
-  function renderCard(data){
-    dom.nameText.textContent = data.name || "（未提供姓名）";
-    dom.orgText.textContent = data.org || "";
-    dom.sloganText.textContent = data.slogan || "";
-    dom.servicesText.textContent = data.service || "（尚未提供）";
-    dom.titlesText.textContent = data.honors || "（尚未提供）";
-
-    // images
-    dom.avatarImg.src = data.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Crect width='240' height='240' fill='%23eef2ff'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='18' fill='%23334155'%3EAvatar%3C/text%3E%3C/svg%3E";
-    if(data.logoUrl){
-      dom.logoImg.hidden = false;
-      dom.logoImg.src = data.logoUrl;
-    }else{
-      dom.logoImg.hidden = true;
-      dom.logoImg.removeAttribute("src");
-    }
-
-    renderGallery([data.p1, data.p2, data.p3]);
-
-    renderLinks(dom.videoLinks, [
-      { label: "YouTube", url: data.youtube || "" },
-      { label: "網站", url: data.website || "" },
-    ]);
-
-    renderLinks(dom.socialLinks, [
-      { label: "IG", url: data.ig || "" },
-      { label: "FB", url: data.fb || "" },
-      { label: "LINE", url: data.line || "" },
-    ]);
-
-    setContactButtons(data);
-  }
-
-  // ===== Bind events =====
-  function bind(){
-    // plan choose
-    $$(".planCard").forEach(btn => {
-      btn.addEventListener("click", () => setPlan(btn.dataset.plan));
-    });
-
-    dom.btnClear.addEventListener("click", () => {
-      state.plan = null;
-      setPlan(null);
-    });
-
-    dom.btnNext.addEventListener("click", () => {
-      if(!state.plan) return;
-      // scroll to controls panel
-      const target = state.plan === "A" ? dom.panelA : dom.panelB;
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-
-    // A: color
-    $$("#panelA .pill.color").forEach(btn => {
-      btn.addEventListener("click", () => {
-        state.color = btn.dataset.color; // red/blue/orange/purple/green
-        setSelected("#panelA .pill.color", b => b.dataset.color === state.color);
-        applyFacadeClasses();
-        scrollToPreview();
-      });
-    });
-
-    // A: layout (mapping fixed)
-    $$("#panelA .pill[data-layout]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const v = btn.dataset.layout; // elegant/clean/focus
-        state.layout = v;
-        setSelected("#panelA .pill[data-layout]", b => b.dataset.layout === state.layout);
-        applyFacadeClasses();
-        scrollToPreview();
-      });
-    });
-
-    // A: paper
-    $$("#panelA .pill[data-paper]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        state.paper = btn.dataset.paper;
-        setSelected("#panelA .pill[data-paper]", b => b.dataset.paper === state.paper);
-        applyFacadeClasses();
-        scrollToPreview();
-      });
-    });
-
-    // B: pro color
-    $$("#panelB .pill.color").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const v = btn.dataset.procolor;
-        if(!v) return;
-        state.proColor = v;
-        setSelected("#panelB .pill.color", b => b.dataset.procolor === state.proColor);
-        applyFacadeClasses();
-        scrollToPreview();
-      });
-    });
-
-    // B: pro style
-    $$("#panelB .pill[data-prostyle]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        state.proStyle = btn.dataset.prostyle;
-        setSelected("#panelB .pill[data-prostyle]", b => b.dataset.prostyle === state.proStyle);
-        applyFacadeClasses();
-        scrollToPreview();
-      });
-    });
-
-    // top/bottom CTAs
-    dom.btnGoLineTop.addEventListener("click", openLine);
-    dom.btnGoLine.addEventListener("click", openLine);
-    dom.btnGoForm.addEventListener("click", openForm);
-
-    // help modal
-    dom.btnHelp.addEventListener("click", () => openModal(dom.helpModal));
-    [dom.btnHelpClose, dom.btnHelpOk].forEach(b => b.addEventListener("click", () => closeModal(dom.helpModal)));
-    dom.helpModal.addEventListener("click", (e) => {
-      const t = e.target;
-      if(t && t.dataset && t.dataset.close) closeModal(dom.helpModal);
-    });
-
-    // viewer close
-    dom.imgViewer.addEventListener("click", (e) => {
-      const t = e.target;
-      if(t && t.dataset && t.dataset.close) closeModal(dom.imgViewer);
-    });
-    const closeBtn = $(".viewerClose");
-    if(closeBtn) closeBtn.addEventListener("click", () => closeModal(dom.imgViewer));
-  }
-
-  function initDefaults(){
-    // default plan A (so preview works immediately, but user can switch)
-    setPlan("A");
-
-    // default selections UI
-    setSelected("#panelA .pill.color", b => b.dataset.color === state.color);
-    setSelected("#panelA .pill[data-layout]", b => b.dataset.layout === state.layout);
-    setSelected("#panelA .pill[data-paper]", b => b.dataset.paper === state.paper);
-
-    setSelected("#panelB .pill.color", b => b.dataset.procolor === state.proColor);
-    setSelected("#panelB .pill[data-prostyle]", b => b.dataset.prostyle === state.proStyle);
-
-    applyFacadeClasses();
-  }
-
-  async function boot(){
-    cacheDom();
-    bind();
-    initDefaults();
-
-    try{
-      const data = await fetchPublic();
-      state.data = data;
-      renderCard(data);
-    }catch(err){
-      console.error(err);
-      dom.nameText.textContent = "載入失敗";
-      dom.orgText.textContent = "請稍後再試";
-    }
-  }
-
-  if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", boot);
+  // avatar
+  const img = $("#avatarImg");
+  const fb = $("#avatarFallback");
+  if(avatarUrl){
+    img.src = avatarUrl;
+    img.onload = ()=>{ img.style.display="block"; fb.style.display="none"; };
+    img.onerror = ()=>{ img.style.display="none"; fb.style.display="grid"; };
   }else{
-    boot();
+    img.style.display="none";
+    fb.style.display="grid";
+    fb.textContent = (name || "小天使").slice(0,4);
   }
+
+  // links
+  const btnLine = $("#btnLine");
+  const btnSite = $("#btnSite");
+  const btnForm = $("#btnForm");
+
+  btnLine.href = lineUrl || "#";
+  btnSite.href = siteUrl || "#";
+  btnForm.href = formUrl || "#";
+
+  // disable if empty
+  [btnLine,btnSite,btnForm].forEach(a=>{
+    const ok = a.getAttribute("href") && a.getAttribute("href") !== "#";
+    a.classList.toggle("is-disabled", !ok);
+    if(!ok){
+      a.removeAttribute("target");
+      a.removeAttribute("rel");
+    }else{
+      a.setAttribute("target","_blank");
+      a.setAttribute("rel","noopener");
+    }
+  });
+
+  renderNote();
+
+  // copy
+  $("#btnCopy").onclick = async ()=>{
+    const txt = [
+      `姓名/稱呼：${name || ""}`,
+      `一句話：${one || ""}`,
+      lineUrl ? `LINE：${lineUrl}` : "",
+      siteUrl ? `官網：${siteUrl}` : "",
+      formUrl ? `填表：${formUrl}` : ""
+    ].filter(Boolean).join("\n");
+    try{
+      await navigator.clipboard.writeText(txt);
+      toast("已複製到剪貼簿");
+    }catch(e){
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = txt;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      toast("已複製（備援）");
+    }
+  };
+}
+
+function renderNote(){
+  const note = $("#pnote");
+  const isPro = state.plan === "pro";
+  const msg = isPro
+    ? "專業版：可擴充多頁、更多模組入口（預留架構）"
+    : "自由版：色彩更飽和、保留核心三步驟與門面入口";
+  note.textContent = msg;
+}
+
+function toast(msg){
+  let t = $("#__toast");
+  if(!t){
+    t = document.createElement("div");
+    t.id="__toast";
+    t.style.position="fixed";
+    t.style.left="50%";
+    t.style.bottom="22px";
+    t.style.transform="translateX(-50%)";
+    t.style.padding="10px 14px";
+    t.style.borderRadius="999px";
+    t.style.background="rgba(0,0,0,.55)";
+    t.style.border="1px solid rgba(255,255,255,.12)";
+    t.style.color="rgba(236,255,247,.92)";
+    t.style.fontWeight="900";
+    t.style.zIndex="9999";
+    t.style.backdropFilter="blur(10px)";
+    t.style.boxShadow="0 16px 30px rgba(0,0,0,.35)";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity="1";
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>{ t.style.opacity="0"; }, 1500);
+}
+
+async function loadCardFromApi(){
+  const hint = $("#hint");
+  const cfg = state.config;
+
+  if(!cfg.apiUrl || cfg.apiUrl.includes("YOUR_APPS_SCRIPT_URL")){
+    hint.textContent = "請先到 data/config.json 填入 apiUrl（Apps Script /exec），目前顯示預設資料。";
+    // fallback demo
+    renderCard({
+      "name":"小天使",
+      "title":"（請設定 API）",
+      "one_liner":"把你的 apiUrl 填入 config.json，就會讀到試算表的小天使那一列。",
+      "tags":"智慧名片, 陪伴式, 溫柔清晰",
+      "line_oa_url": cfg.fallbackLineUrl || "",
+      "home_url": cfg.fallbackSiteUrl || "",
+      "form_url": cfg.fallbackFormUrl || ""
+    });
+    return;
+  }
+
+  hint.textContent = "門面資料讀取中…（試算表：小天使）";
+
+  const url = cfg.apiUrl + (cfg.apiUrl.includes("?") ? "&" : "?") + "action=list&ts=" + Date.now();
+  const res = await fetch(url, { cache:"no-store" });
+  if(!res.ok) throw new Error("API 連線失敗");
+  const data = await res.json();
+  if(!data || !data.ok) throw new Error(data && data.error ? data.error : "API 回傳異常");
+
+  const headers = data.headers || [];
+  const rows = data.rows || [];
+  const objs = rowsToObjects(headers, rows);
+  const card = findMatchCard(objs, cfg);
+
+  if(!card){
+    hint.textContent = "找不到小天使資料，已顯示空白。";
+    renderCard({ name:"小天使", title:"（找不到資料）", one_liner:"—" });
+    return;
+  }
+
+  hint.textContent = "門面已就位：已讀取試算表「小天使」資料。";
+  renderCard(card);
+}
+
+function wireUI(){
+  // plan buttons
+  $$(".seg__btn[data-plan]").forEach(btn=>{
+    btn.addEventListener("click", ()=> setPlan(btn.dataset.plan));
+  });
+
+  // theme buttons
+  $$(".seg__btn[data-theme]").forEach(btn=>{
+    btn.addEventListener("click", ()=> setTheme(btn.dataset.theme));
+  });
+
+  // init preview theme dataset
+  $("#preview").dataset.theme = state.theme;
+}
+
+async function registerSW(){
+  if(!("serviceWorker" in navigator)) return;
+  try{
+    await navigator.serviceWorker.register("./sw.js");
+  }catch(e){
+    // ignore
+  }
+}
+
+(async function init(){
+  wireUI();
+  setPlan("free");
+  setTheme("dawn");
+
+  try{
+    await loadConfig();
+    await loadCardFromApi();
+  }catch(e){
+    $("#hint").textContent = "讀取失敗：已顯示預設資料。";
+    renderCard({
+      "name":"小天使",
+      "title":"（讀取失敗）",
+      "one_liner": String(e && e.message ? e.message : e),
+      "tags":"請檢查 apiUrl / 權限 / 部署"
+    });
+  }
+
+  registerSW();
 })();

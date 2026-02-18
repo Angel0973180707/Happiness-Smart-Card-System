@@ -1,10 +1,10 @@
 {
-  "name": "幸福智慧名片系統",
-  "short_name": "幸福名片",
+  "name": "天使幸福智慧名片",
+  "short_name": "AngelCard",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0b1220",
-  "theme_color": "#0c2a16",
+  "background_color": "#071b14",
+  "theme_color": "#155e4b",
   "icons": [
     {
       "src": "./icons/icon-192.png",
