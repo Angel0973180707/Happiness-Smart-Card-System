@@ -1,203 +1,218 @@
-<!doctype html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>天使幸福智慧名片 v377.1-clean</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>天使幸福智慧名片 V358-整合版</title>
 
-  <meta name="theme-color" content="#155e4b" />
-  <meta name="description" content="天使幸福智慧名片｜方案A自由款｜方案B精品款｜選版展示｜讀取小天使樣版" />
+  <link rel="manifest" href="./manifest.json?v=358" />
+  <meta name="theme-color" content="#ee5253" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
 
-  <link rel="manifest" href="./manifest.json?v=3771" />
-  <link rel="icon" href="./icons/icon-192.png" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <style>
+    :root { --p:#ee5253; --s:#d63031; --bg:#f5f6fa; --paperStrength: 2; }
+    .warm-pink   { --p:#ee5253; --s:#d63031; }
+    .aurora-blue { --p:#00a8ff; --s:#0097e6; }
+    .vivid-orange{ --p:#f0932b; --s:#eb4d4b; }
+    .royal-purple{ --p:#6c5ce7; --s:#4834d4; }
+    .teal-green  { --p:#20bf6b; --s:#0b8d51; }
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;900&display=swap" rel="stylesheet">
+    body{ font-family:'Noto Sans TC',sans-serif; margin:0; background:var(--bg); display:flex; flex-direction:column; align-items:center; min-height:100vh; }
+    #admin-panel{ width:100%; background:white; text-align:center; padding:14px 0 12px; border-bottom:1px solid #ddd; z-index:2000; flex-shrink:0; }
+    .picker-group{ display:flex; justify-content:center; gap:12px; margin-bottom:8px; align-items:center; flex-wrap:wrap; }
+    .dot{ width:32px;height:32px;border-radius:50%; cursor:pointer;border:3px solid white; box-shadow:0 4px 10px rgba(0,0,0,0.15); }
+    .btn-style{ padding:6px 14px;border-radius:20px;border:1px solid #ccc; font-size:11px;cursor:pointer;background:#fff;font-weight:900; }
+    .btn-style.active{ background:#2f3640!important; color:white!important; border-color:#2f3640!important; }
+    .hint-bounce{ font-size:12px; font-weight:900; color:#2d3436; opacity:0.9; animation: hintFloat 1.2s ease-in-out infinite; }
+    @keyframes hintFloat{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-3px); } }
 
-  <link rel="stylesheet" href="./style.css?v=3771" />
+    .card{ background:white; width:92%; max-width:380px; height:680px; border-radius:45px; overflow:hidden; box-shadow: 0 34px 70px rgba(0,0,0,0.16); position:relative; margin:18px 0 20px; display:flex; flex-direction:column; isolation:isolate; }
+    .card::before{ content:""; position:absolute; inset:0; pointer-events:none; z-index:2; opacity: calc(var(--paperAlpha, .10) * var(--paperStrength)); mix-blend-mode: multiply; background: var(--paperTexture, none); }
+    
+    .paper-cotton{ --paperAlpha: .10; --paperTexture: radial-gradient(circle at 12% 18%, rgba(0,0,0,.10) 0 1px, transparent 2px), linear-gradient(0deg, rgba(0,0,0,.06) 0, transparent 20%, transparent 80%, rgba(0,0,0,.06) 100%); }
+    .paper-grain{ --paperAlpha: .12; --paperTexture: repeating-linear-gradient(135deg, rgba(0,0,0,.10) 0 1px, transparent 1px 5px); }
+    .paper-linen{ --paperAlpha: .11; --paperTexture: repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 1px, transparent 1px 9px), repeating-linear-gradient(90deg, rgba(0,0,0,.10) 0 1px, transparent 1px 10px); }
+    .paper-watercolor{ --paperAlpha: .13; --paperTexture: radial-gradient(160px 160px at 28% 38%, rgba(0,0,0,.10), transparent 72%); }
+
+    .banner{ height:160px; background:linear-gradient(135deg,var(--p),var(--s)); flex-shrink:0; position:relative; z-index:1; }
+    .arch-overlay{ position:absolute;width:100%;height:90px;background:white; bottom:-1px;border-radius:90px 90px 0 0; }
+    .style-flat .arch-overlay{ border-radius:0; height:35px; }
+    .style-spot .arch-overlay{ border-radius:50% 50% 0 0; transform:scaleX(1.4); height:100px; }
+
+    .avatar-wrap{ width:130px;height:130px;background:#fff;border-radius:50%; padding:6px; box-shadow:0 10px 25px rgba(0,0,0,0.12); position:absolute;top:35px;left:50%;transform:translateX(-50%); z-index:4; border:1px solid rgba(0,0,0,0.04); }
+    .avatar{ width:100%;height:100%;border-radius:50%;object-fit:cover; }
+    .info-scroll{ flex:1; overflow-y:auto; padding:45px 20px 0; text-align:center; scrollbar-width:none; position:relative; z-index:4; }
+    .name{ font-size:26px; font-weight:900; color:#2d3436; margin:5px 0; }
+    .unit{ font-size:14px; color:var(--s); font-weight:700; margin-bottom:6px; }
+    .content-box{ text-align:left; background:rgba(255,255,255,0.88); padding:16px; border-radius:25px; margin-bottom:14px; box-shadow:10px 10px 20px rgba(0,0,0,0.035); border:1px solid rgba(0,0,0,0.045); backdrop-filter: blur(6px); position:relative; z-index:4; }
+    .label{ color:#adb5bd;font-weight:900;font-size:11px;margin-bottom:8px;display:block; }
+
+    .actions{ background:white; padding:10px; display:grid; grid-template-columns:repeat(2,1fr); gap:8px; border-top:1px solid #eee; z-index:4; }
+    .act-btn{ text-decoration:none; background:#f8f9fa; padding:10px; border-radius:15px; color:#2d3436; font-size:12px; font-weight:900; display:flex; align-items:center; gap:8px; border:1px solid #eee; }
+    .btn-main{ grid-column:span 2; background:linear-gradient(135deg, #06C755, #06b150); color:white; border:none; justify-content:center; }
+    
+    #work-drawer{ width:100%; max-width:420px; background:#2d3436; color:white; max-height:0; overflow:hidden; transition:0.5s; position:fixed; bottom:0; z-index:12000; border-radius:40px 40px 0 0; }
+    .footer{ font-size:11px; color:#bbb; padding:18px; text-align:center; cursor:pointer; }
+  </style>
 </head>
 
-<body>
-  <div class="app" id="app"
-    data-plan="free"
-    data-theme="arch"
-    data-free-color="blue"
-    data-paper="cotton"
-    data-pro-color="deepSeaBlue">
+<body class="warm-pink style-arch paper-cotton">
 
-    <!-- Top -->
-    <header class="top">
-      <div class="top__bg" aria-hidden="true"></div>
-
-      <div class="top__inner">
-        <div class="brand">
-          <div class="brand__mark" aria-hidden="true">A</div>
-          <div class="brand__txt">
-            <div class="brand__title">天使幸福智慧名片</div>
-            <div class="brand__sub">v377.1-clean｜選方案 →（A選版型/顏色/紙感｜B選七色）→ 預覽</div>
-          </div>
-        </div>
-
-        <div class="top__controls">
-          <!-- Plan -->
-          <div class="seg" role="group" aria-label="方案選擇">
-            <button class="seg__btn is-on" data-plan="free">方案 A｜自由款</button>
-            <button class="seg__btn" data-plan="pro">方案 B｜精品款</button>
-          </div>
-
-          <!-- Theme -->
-          <div class="seg" role="group" aria-label="版型選擇（自由款）">
-            <button class="seg__btn is-on" data-theme="arch">正拱</button>
-            <button class="seg__btn" data-theme="flat">平直</button>
-            <button class="seg__btn" data-theme="dawn">晨曦（倒拱）</button>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <main class="main">
-      <!-- Stepper -->
-      <section class="card stepper">
-        <div class="stepper__row">
-          <div class="step is-done"><span class="step__no">1</span><span class="step__txt">選方案 A / B</span></div>
-          <div class="step is-done"><span class="step__no">2</span><span class="step__txt">A：選版型/顏色/紙感｜B：選七色</span></div>
-          <div class="step"><span class="step__no">3</span><span class="step__txt">預覽（讀取：小天使樣版）</span></div>
-        </div>
-        <div class="hint" id="hint">門面資料讀取中…（試算表：小天使 TW0001）</div>
-      </section>
-
-      <!-- Composer -->
-      <section class="card composer" id="composer">
-        <div class="composer__title">設定區</div>
-
-        <!-- A Free controls -->
-        <div class="composer__block" data-only="free">
-          <div class="composer__k">自由款｜五色</div>
-          <div class="swatches" role="group" aria-label="自由款顏色">
-            <button class="sw" data-free-color="pink">粉</button>
-            <button class="sw is-on" data-free-color="blue">藍</button>
-            <button class="sw" data-free-color="orange">橘</button>
-            <button class="sw" data-free-color="purple">紫</button>
-            <button class="sw" data-free-color="green">綠</button>
-          </div>
-
-          <div class="composer__k mt">自由款｜紙感四種</div>
-          <div class="chips" role="group" aria-label="紙感">
-            <button class="chip is-on" data-paper="cotton">霧面棉紙</button>
-            <button class="chip" data-paper="grain">細顆粒紙</button>
-            <button class="chip" data-paper="linen">亞麻紋</button>
-            <button class="chip" data-paper="watercolor">水彩紙</button>
-          </div>
-
-          <div class="composer__note">
-            自由款規則：<b>版型可選 3 種</b>｜<b>頭像固定圓形</b>｜無光暈｜無浮動｜不做高階特效
-          </div>
-        </div>
-
-        <!-- B Pro controls -->
-        <div class="composer__block" data-only="pro">
-          <div class="composer__k">精品款｜七色（只選色；排版/頭像框/特效由系統決定）</div>
-          <div class="swatches swatches--pro" role="group" aria-label="精品款七色">
-            <button class="sw is-on" data-pro-color="deepSeaBlue">深海藍</button>
-            <button class="sw" data-pro-color="creamyMist">奶油霧</button>
-            <button class="sw" data-pro-color="graphiteGray">石墨灰</button>
-            <button class="sw" data-pro-color="mistPurpleGray">霧紫灰</button>
-            <button class="sw" data-pro-color="caramelBrown">焦糖棕</button>
-            <button class="sw" data-pro-color="inkGreen">青墨綠</button>
-            <button class="sw" data-pro-color="warmGrayBlue">暖灰藍</button>
-          </div>
-
-          <div class="composer__note">
-            精品款規則：<b>不讓使用者選版型</b>｜不選頭像框｜不選特效｜只選七色；每一色自動套用（三架構之一）
-          </div>
-        </div>
-      </section>
-
-      <!-- Preview -->
-      <section class="preview-wrap">
-        <div class="preview" id="preview" aria-live="polite">
-          <div class="preview__overlay" aria-hidden="true"></div>
-
-          <div class="curve" aria-hidden="true">
-            <div class="curve__shape"></div>
-          </div>
-
-          <div class="phead">
-            <div class="avatar" id="avatar">
-              <div class="avatar__ring" aria-hidden="true"></div>
-              <img class="avatar__img" id="avatarImg" alt="頭像" />
-              <div class="avatar__fallback" id="avatarFallback"></div>
-            </div>
-
-            <div class="pmeta">
-              <!-- ✅ 預設全部空白，等待試算表 -->
-              <div class="pname" id="pname"></div>
-              <div class="ptitle" id="ptitle"></div>
-              <div class="ptags" id="ptags"></div>
-            </div>
-          </div>
-
-          <div class="pbody">
-            <div class="pblock">
-              <div class="pblock__title">一句話定位</div>
-              <div class="pblock__text" id="pone"></div>
-            </div>
-
-            <div class="pgrid" id="pgrid">
-              <a class="pbtn" id="btnLine" href="#" target="_blank" rel="noopener" style="display:none">
-                <span class="pbtn__icon">💚</span>
-                <span class="pbtn__txt">
-                  <span class="pbtn__t">LINE 官方帳號</span>
-                  <span class="pbtn__s">第一次預約｜一定要先加</span>
-                </span>
-              </a>
-
-              <a class="pbtn" id="btnSite" href="#" target="_blank" rel="noopener" style="display:none">
-                <span class="pbtn__icon">🏠</span>
-                <span class="pbtn__txt">
-                  <span class="pbtn__t">門面｜官網入口</span>
-                  <span class="pbtn__s">回概念館／總入口</span>
-                </span>
-              </a>
-
-              <!-- ✅ 填表鈕放官網下 -->
-              <a class="pbtn pbtn--lite" id="btnForm" href="#" target="_blank" rel="noopener" style="display:none">
-                <span class="pbtn__icon">📝</span>
-                <span class="pbtn__txt">
-                  <span class="pbtn__t">直接訂製｜填表</span>
-                  <span class="pbtn__s">已加 LINE 或老客可直接填</span>
-                </span>
-              </a>
-            </div>
-
-            <div class="links" id="platforms" aria-label="links"></div>
-
-            <button class="pbtn pbtn--ghost" id="btnMap" type="button" style="display:none">
-              <span class="pbtn__icon">🗺️</span>
-              <span class="pbtn__txt">
-                <span class="pbtn__t">地址導航</span>
-                <span class="pbtn__s">自動轉地圖</span>
-              </span>
-            </button>
-
-            <div class="pnote" id="pnote"></div>
-          </div>
-        </div>
-
-        <div class="card side" style="display:none"></div>
-      </section>
-
-      <footer class="app__footer">
-        <div class="legal">
-          <span id="versionTap" class="ver">Angel Card v377.1-clean</span>
-          <span class="copy">© Angel</span>
-        </div>
-      </footer>
-    </main>
+  <div id="admin-panel">
+    <div class="picker-group"><span class="hint-bounce">天使幸福智慧名片 - 設定預覽</span></div>
+    <div class="picker-group">
+      <div class="dot" onclick="setTheme('warm-pink')" style="background:#ee5253"></div>
+      <div class="dot" onclick="setTheme('aurora-blue')" style="background:#00a8ff"></div>
+      <div class="dot" onclick="setTheme('vivid-orange')" style="background:#f0932b"></div>
+      <div class="dot" onclick="setTheme('royal-purple')" style="background:#6c5ce7"></div>
+      <div class="dot" onclick="setTheme('teal-green')" style="background:#20bf6b"></div>
+    </div>
+    <div class="picker-group">
+      <button class="btn-style active" onclick="setStyle('arch', this)">優雅拱型</button>
+      <button class="btn-style" onclick="setStyle('flat', this)">簡潔平直</button>
+      <button class="btn-style" onclick="setStyle('spot', this)">晨曦聚光</button>
+    </div>
   </div>
 
-  <script src="./app.js?v=3771"></script>
+  <div id="card-container" class="card">
+    <div class="banner"><div class="arch-overlay"></div></div>
+    <div class="avatar-wrap"><img id="u-img" src="" class="avatar" /></div>
+    <div class="info-scroll">
+      <h1 id="u-name" class="name">讀取中...</h1>
+      <div id="u-unit" class="unit">幸福智慧服務中心</div>
+      <div id="u-service-box" class="content-box">
+        <span class="label">服務項目</span>
+        <div id="u-service" style="font-size:14px; line-height:1.6; white-space:pre-wrap;">載入中...</div>
+      </div>
+      <div id="titles-box" class="content-box" style="display:none;">
+        <span class="label">重要頭銜</span>
+        <div id="u-titles" style="font-size:14px; line-height:1.6;"></div>
+      </div>
+    </div>
+
+    <div id="actions-area" class="actions">
+      <a href="https://lin.ee/2ac9Roe" class="act-btn btn-main" target="_blank">
+        <i class="fa-brands fa-line"></i> LINE 官方帳號
+      </a>
+      <a href="mailto:a0973180707@gmail.com" class="act-btn">
+        <i class="fa-solid fa-envelope"></i> 寄送郵箱
+      </a>
+      <a href="https://line.me/ti/p/VqJzbWHm_4" class="act-btn">
+        <i class="fa-solid fa-user-plus"></i> LINE 加好友
+      </a>
+    </div>
+  </div>
+
+  <div id="work-drawer">
+    <div style="padding:22px; text-align:center;">
+      <input type="text" id="work-id" style="width:85%; padding:12px; border-radius:10px; border:none;" placeholder="輸入序號 (如 TW0001)" />
+      <button onclick="doPreviewInPlace()" style="background:#ee5253; color:white; width:90%; padding:12px; margin-top:10px; border-radius:10px; border:none; font-weight:900;">1. 預覽名片成品</button>
+      <button onclick="generateDeliveryText()" style="background:#06C755; color:white; width:90%; padding:12px; margin-top:10px; border-radius:10px; border:none; font-weight:900;">2. 複製卡片感交貨訊息</button>
+    </div>
+  </div>
+
+  <div id="gate-footer" class="footer" onclick="handleGate()">© 2026 幸福智慧名片 V358｜版權所有</div>
+
+  <script>
+    // 1. 後端網址設定
+    const API_URL = "https://script.google.com/macros/s/AKfycbwqGCo8NnbcrLSmOOP_dhoC6XFtXhG2F4RWGHl0196FTIGvRYbTO_nYQ1GkN-Y3_soS/exec";
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlId = urlParams.get('id');
+    let currentData = null;
+    let clicks = 0;
+
+    // 2. 圖片修復邏輯 (Google Drive)
+    function fixDriveImg(url) {
+      if (!url || typeof url !== 'string') return "https://via.placeholder.com/150?text=No+Photo";
+      const match = url.match(/[?&]id=([\w-]+)/) || url.match(/\/d\/([\w-]+)/);
+      return match ? `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000` : url;
+    }
+
+    // 3. 資料讀取
+    async function fetchCard(id) {
+      try {
+        const res = await fetch(`${API_URL}?id=${id}`);
+        const result = await res.json();
+        if (result.ok) {
+          currentData = result.data;
+          renderUI(result.data);
+          return true;
+        }
+        return false;
+      } catch (e) {
+        console.error("讀取失敗");
+        return false;
+      }
+    }
+
+    function renderUI(d) {
+      document.getElementById('u-name').innerText = d['姓名（名片大標題）'] || "姓名";
+      document.getElementById('u-unit').innerText = d['單位名稱（如：幸福教養概念館）'] || "";
+      document.getElementById('u-service').innerText = d['服務項目（核心業務，多項可條列換行）'] || "";
+      document.getElementById('u-img').src = fixDriveImg(d['個人專業形象照（名片主圖）']);
+
+      const titles = d['重要頭銜/獎銜（權威背書項目，多項可條列換行）'];
+      const titlesBox = document.getElementById('titles-box');
+      if (titles) {
+        document.getElementById('u-titles').innerText = titles;
+        titlesBox.style.display = 'block';
+      } else {
+        titlesBox.style.display = 'none';
+      }
+
+      // 自動判斷顏色與版型
+      const sheetColor = d['您喜歡的顏色（自由搭配款適用）'];
+      const sheetStyle = d['您喜歡的版型（自由搭配款適用）'];
+      if(sheetColor) setTheme(normalizeColor(sheetColor));
+      if(sheetStyle) setStyle(normalizeStyle(sheetStyle));
+    }
+
+    // 4. 交貨卡片生成
+    async function generateDeliveryText() {
+      if (!currentData) return alert("請先預覽資料");
+      const id = currentData.id || document.getElementById('work-id').value;
+      const finalUrl = `${window.location.origin}${window.location.pathname}?id=${id}`;
+      
+      const msg = `
+✨ 【幸福智慧名片製作完成】 ✨
+━━━━━━━━━━━━━━━━
+👤 姓名：${currentData['姓名（名片大標題）']}
+🏢 單位：${currentData['單位名稱（如：幸福教養概念館）']}
+🎖️ 職稱：${(currentData['重要頭銜/獎銜（權威背書項目，多項可條列換行）'] || "").split('\n')[0]}
+
+🔗 您的專屬名片網址：
+${finalUrl}
+━━━━━━━━━━━━━━━━
+點擊連結即可開啟您的智慧名片！`.trim();
+
+      const ok = await navigator.clipboard.writeText(msg).then(()=>true).catch(()=>false);
+      alert(ok ? "✅ 卡片感交貨訊息已複製！可直接傳給客人" : "複製失敗，請手動選取網址");
+    }
+
+    // 基礎 UI 函數
+    function setTheme(t) { document.body.className = document.body.className.replace(/(warm-pink|aurora-blue|vivid-orange|royal-purple|teal-green)/, t); }
+    function setStyle(s) { document.body.className = document.body.className.replace(/(style-arch|style-flat|style-spot)/, "style-" + s); }
+    function normalizeColor(c) { if(c.includes('粉')) return 'warm-pink'; if(c.includes('藍')) return 'aurora-blue'; if(c.includes('橘')) return 'vivid-orange'; if(c.includes('紫')) return 'royal-purple'; if(c.includes('綠')) return 'teal-green'; return 'warm-pink'; }
+    function normalizeStyle(s) { if(s.includes('拱')) return 'arch'; if(s.includes('平')) return 'flat'; if(s.includes('光')) return 'spot'; return 'arch'; }
+    function handleGate() { clicks++; if(clicks >= 3) { document.getElementById('work-drawer').style.maxHeight = '500px'; clicks = 0; } setTimeout(() => clicks = 0, 1000); }
+    async function doPreviewInPlace() {
+      const id = document.getElementById('work-id').value.trim();
+      if(!id) return alert("請輸入序號");
+      const ok = await fetchCard(id);
+      if(!ok) alert("找不到此序號，請檢查試算表 id 欄位");
+    }
+
+    // 初始化
+    async function init() {
+      if (urlId) {
+        await fetchCard(urlId);
+      } else {
+        await fetchCard("TW0001"); // 預設首頁樣版
+      }
+    }
+    init();
+  </script>
 </body>
 </html>
