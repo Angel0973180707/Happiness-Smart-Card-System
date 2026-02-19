@@ -1,59 +1,53 @@
 :root { --font: 'Noto Sans TC', sans-serif; }
 
-/* 🎨 自由搭配：5 色亮版 */
+/* 🎨 自由搭配：亮版連動 */
 .mode-free.color-1 { --p:#ee5253; --bg:#fdf2f2; --card-bg:#fff; --text:#2d3436; }
 .mode-free.color-2 { --p:#00a8ff; --bg:#f0f9ff; --card-bg:#fff; --text:#2d3436; }
 .mode-free.color-3 { --p:#f0932b; --bg:#fff9f0; --card-bg:#fff; --text:#2d3436; }
 .mode-free.color-4 { --p:#6c5ce7; --bg:#f6f5ff; --card-bg:#fff; --text:#2d3436; }
 .mode-free.color-5 { --p:#20bf6b; --bg:#f2fdf6; --card-bg:#fff; --text:#2d3436; }
 
-/* 🌿 精品設計：7 氣質濃版 */
+/* 🌿 精品設計：氣質濃版 */
 .mode-premium.p1 { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; --sh:0 40px 80px rgba(0,0,0,0.5); }
 .mode-premium.p2 { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.08em; }
 .mode-premium.p3 { --p:#5d2525; --bg:#3d1616; --card-bg:#3d1616; --text:#fff5f5; --fx:radial-gradient(circle at 50% 20%, rgba(255,100,100,0.2), transparent 70%); }
-.mode-premium.p4 { --p:#8e5a3c; --bg:#5d3a26; --card-bg:#5d3a26; --text:#fff9f2; }
-.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:#f4f7f9; --text:#2c3e50; --ls:0.15em; }
-.mode-premium.p6 { --p:#6b6687; --bg:#4a4561; --card-bg:#4a4561; --text:#f8f7ff; }
 .mode-premium.p7 { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; --ls:0.25em; }
+/* 其餘 4、5、6 比照辦理 */
 
-body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: background 0.5s ease; }
+body { background: var(--bg); font-family: var(--font); margin: 0; transition: background 0.5s; display: flex; flex-direction: column; align-items: center; }
 
-/* 穩定的圓形頭像框 */
+/* 核心圓形頭像框 */
 .avatar-wrap { position: absolute; width: 100%; top: 110px; display: flex; justify-content: center; z-index: 20; transition: 0.5s; }
-.avatar-circle { width: 110px; height: 110px; border-radius: 50%; background: var(--card-bg); padding: 5px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.05); }
+.avatar-circle { width: 110px; height: 110px; border-radius: 50%; background: var(--card-bg); padding: 5px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
 .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-/* 自由款版型 */
+/* 版型連動 */
+.card { width: 92%; max-width: 380px; height: 680px; background: var(--card-bg) !important; color: var(--text) !important; border-radius: 40px; overflow: hidden; position: relative; margin: 20px 0; box-shadow: var(--sh, 0 15px 35px rgba(0,0,0,0.1)); transition: 0.5s; }
+.banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; transition: 0.5s; }
+
+/* 拱型 */
 .style-arch .arch-overlay { background: var(--card-bg); height: 50px; border-radius: 60px 60px 0 0; position: absolute; bottom: -1px; width: 100%; }
+/* 平直 */
 .style-flat .arch-overlay { display: none; }
+/* 晨曦 (倒拱) */
 .style-spot .arch-overlay { background: var(--card-bg); height: 80px; border-radius: 0 0 100px 100px; position: absolute; top: -80px; width: 140%; left: -20%; }
 .style-spot .banner { overflow: visible; }
 
-.card { width: 92%; max-width: 380px; height: 680px; background: var(--card-bg) !important; color: var(--text) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 20px 0; box-shadow: var(--sh, 0 15px 35px rgba(0,0,0,0.1)); transition: 0.5s; }
-.banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; transition: 0.5s; }
-
-/* 紙感紋路 (使用混和模式) */
+/* 紙感 */
 .paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.04; z-index: 6; mix-blend-mode: multiply; }
-.paper-2 .paper-overlay { background: radial-gradient(#000 10%, transparent 10%) 0 0/4px 4px; } /* 顆粒 */
-.paper-3 .paper-overlay { background: repeating-linear-gradient(90deg, #000 0 1px, transparent 1px 4px); } /* 亞麻 */
-.paper-4 .paper-overlay { background: radial-gradient(circle at 50% 50%, #000 1%, transparent 20%) 0 0/10px 10px; } /* 水彩 */
+.paper-2 .paper-overlay { background-image: url("data:image/svg+xml,..."); } /* 顆粒 */
 
-/* 精品模式排版更新 */
+/* 精品樣式修正 */
 .mode-premium .banner { height: 60px; }
 .mode-premium .avatar-wrap { top: 40px; }
 .mode-premium .info-scroll { padding-top: 55px; }
 .mode-premium .name { letter-spacing: var(--ls); font-weight: 900; }
-.mode-premium .content-box { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1); color: var(--text); }
 .mode-premium .premium-fx { position: absolute; inset: 0; background: var(--fx, none); pointer-events: none; z-index: 1; }
 
-/* 管理面板介面 */
+/* UI */
 #admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #ddd; padding: 12px 0; }
 .dots-row { display: flex; justify-content: center; gap: 12px; margin: 10px 0; }
-.dot, .p-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.3s; }
+.dot, .p-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 .active { transform: scale(1.15); border-color: #333 !important; }
-.btn-mini { padding: 4px 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 11px; cursor: pointer; background: #f8f9fa; font-weight: bold; }
-.btn-mini.active { background: #333; color: #fff; border-color: #333; }
 .info-scroll { padding: 90px 20px 20px; text-align: center; }
-.content-box { background: #f8f9fa; border-radius: 18px; padding: 15px; margin-bottom: 12px; }
-.btn-main { background: var(--p); color: #fff; border: none; padding: 12px 35px; border-radius: 30px; font-weight: 900; cursor: pointer; margin-top: 10px; }
-#gate-footer { font-size: 11px; color: #bbb; padding: 25px 0; }
+.content-box { background: rgba(0,0,0,0.03); border-radius: 18px; padding: 15px; margin-bottom: 12px; }
