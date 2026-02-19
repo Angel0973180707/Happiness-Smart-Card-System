@@ -4,45 +4,58 @@ const CONFIG = {
   ANGEL: "TW0001"
 };
 
-let state = { mode: 'free', theme: 'color-1', style: 'arch', paper: '1' };
-
-window.setV381 = function(mode, theme, el) {
-  state.mode = mode;
-  state.theme = mode === 'free' ? `color-${theme}` : theme;
-  document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
-  el.classList.add('active');
-  applyV381();
+let state = {
+  mode: 'free',
+  theme: 'color-1',
+  style: 'arch',
+  paper: 'paper-1'
 };
 
-window.setV381Style = function(style, el) {
+// 🟢 切換模式與顏色：解決按鈕失靈核心
+window.setV382 = function(mode, theme, el) {
+  state.mode = mode;
+  state.theme = theme;
+  
+  // 更新點點 UI (不分區全部清除再更新)
+  document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+  
+  applyV382();
+};
+
+// 🟢 自由款選版
+window.setV382Style = function(style, el) {
   state.style = style;
   el.parentElement.querySelectorAll('.btn-neo').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
-  applyV381();
+  applyV382();
 };
 
-window.setV381Paper = function(p, el) {
-  state.paper = p;
+// 🟢 自由款選紙
+window.setV382Paper = function(paper, el) {
+  state.paper = paper;
   el.parentElement.querySelectorAll('.btn-neo').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
-  applyV381();
+  applyV382();
 };
 
-function applyV381() {
+function applyV382() {
   const isFree = state.mode === 'free';
-  document.getElementById('free-controls').style.visibility = isFree ? 'visible' : 'hidden';
+  const controlBox = document.getElementById('free-controls');
+  controlBox.style.display = isFree ? 'block' : 'none';
   
-  const classNames = [
+  // 核心：全量重構 className。這會徹底清除舊的 class 堆疊，解決連動問題。
+  const classList = [
     `mode-${state.mode}`,
     state.theme,
     isFree ? `style-${state.style}` : '',
-    isFree ? `paper-${state.paper}` : ''
+    isFree ? state.paper : ''
   ];
-  document.body.className = classNames.filter(Boolean).join(' ');
+  document.body.className = classList.filter(Boolean).join(' ');
   updateThemeColor();
 }
 
-async function fetchV381() {
+async function loadV382Data() {
   try {
     const res = await fetch(`${CONFIG.GAS}?id=${CONFIG.ANGEL}`);
     const data = await res.json();
@@ -52,7 +65,7 @@ async function fetchV381() {
       document.getElementById('u-service').innerText = data.服務項目 || "載入資訊中...";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch(e) { console.error("GAS Error"); }
+  } catch(e) { console.error("GAS 讀取失敗"); }
 }
 
 function updateThemeColor() {
@@ -61,4 +74,4 @@ function updateThemeColor() {
 }
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
-window.onload = () => { fetchV381(); applyV381(); };
+window.onload = () => { loadV382Data(); applyV382(); };
