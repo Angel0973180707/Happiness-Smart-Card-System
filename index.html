@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V382.1</title>
+  <title>幸福智慧名片 V382.2</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./style.css" />
@@ -12,7 +12,7 @@
 
   <div id="admin-panel">
     <div class="picker-section">
-      <span class="section-label"><i class="fa-solid fa-palette"></i> 自由搭配：親和亮色</span>
+      <span class="section-label"><i class="fa-solid fa-palette"></i> 自由搭配：亮色親和 (5色)</span>
       <div class="dots-row">
         <div class="dot active" style="background:#ee5253" onclick="window.setV382('free', 'color-1', this)"></div>
         <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
@@ -21,7 +21,7 @@
         <div class="dot" style="background:#20bf6b" onclick="window.setV382('free', 'color-5', this)"></div>
       </div>
       
-      <div id="free-controls" class="panel-glass">
+      <div id="free-controls" class="panel-box">
         <div class="control-row">
           <span class="row-tag">版型</span>
           <div class="btn-stack">
@@ -43,24 +43,24 @@
     </div>
 
     <div class="picker-section">
-      <span class="section-label"><i class="fa-solid fa-leaf"></i> 精品氣質：七種設計語彙</span>
+      <span class="section-label"><i class="fa-solid fa-leaf"></i> 精品氣質：七種語彙 (方案 B)</span>
       <div class="dots-row">
         <div class="p-dot" style="background:#1a2f27" onclick="window.setV382('premium', 'p1', this)"></div>
         <div class="p-dot" style="background:#2c3e50" onclick="window.setV382('premium', 'p2', this)"></div>
         <div class="p-dot" style="background:#5d2525" onclick="window.setV382('premium', 'p3', this)"></div>
-        <div class="p-dot" style="background:#8e5a3c" onclick="window.setV382('premium', 'p4', this)"></div>
-        <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
-        <div class="p-dot" style="background:#6b6687" onclick="window.setV382('premium', 'p6', this)"></div>
-        <div class="p-dot" style="background:#1a1a1a" onclick="window.setV382('premium', 'p7', this)"></div>
+        <div class="p-dot" style="background:#8e5a3c" onclick="setV382('premium', 'p4', this)"></div>
+        <div class="p-dot" style="background:#7a94a6" onclick="setV382('premium', 'p5', this)"></div>
+        <div class="p-dot" style="background:#6b6687" onclick="setV382('premium', 'p6', this)"></div>
+        <div class="p-dot" style="background:#1a1a1a" onclick="setV382('premium', 'p7', this)"></div>
       </div>
     </div>
 
-    <button class="btn-main-action" onclick="window.goFillForm()">立即預約訂製 <i class="fa-solid fa-arrow-right"></i></button>
+    <button class="btn-main-cta" onclick="window.goFillForm()">立即預約訂製 <i class="fa-solid fa-arrow-right"></i></button>
   </div>
 
   <div id="card-container" class="card">
-    <div class="paper-fx-layer"></div>
-    <div class="premium-fx-layer"></div>
+    <div class="paper-fx-overlay"></div>
+    <div class="premium-fx-overlay"></div>
     
     <div class="banner">
       <div class="arch-mask"></div>
@@ -78,13 +78,13 @@
       <div id="order-box" class="content-box bounce-box" onclick="window.goFillForm()">立即填寫預約表單</div>
       <div class="content-box">
         <div class="label">服務項目</div>
-        <div id="u-service">同步雲端資料中...</div>
+        <div id="u-service">正在載入雲端資料...</div>
       </div>
     </div>
   </div>
 
   <footer id="gate-footer" onclick="window.handleHiddenGate()">
-    © 2026 幸福智慧名片 V382.1｜版權所有
+    © 2026 幸福智慧名片 V382.2｜版權所有
   </footer>
 
   <script src="./app.js"></script>
