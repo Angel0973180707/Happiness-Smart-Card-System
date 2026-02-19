@@ -1,134 +1,20 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V385</title>
-
-  <meta name="theme-color" content="#ee5253" />
-  <meta name="description" content="幸福智慧名片｜個人品牌入口" />
-
-  <!-- Fonts / Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=385" />
-
-  <!-- App -->
-  <link rel="stylesheet" href="style.css?v=385" />
-
-  <!-- Open Graph (通用小卡) -->
-  <meta property="og:title" content="天使幸福智慧名片" />
-  <meta property="og:description" content="一貼就能開啟的個人品牌入口" />
-  <meta property="og:type" content="website" />
-  <meta property="og:image" content="./og-cover.png" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="manifest" href="./manifest.json">
+<link rel="stylesheet" href="./style.css">
+<title>幸福智慧名片 V385.1</title>
 </head>
-
-<body class="mode-free color-1 style-arch paper-1">
-  <!-- Admin Panel (可做隱藏版，但先保留) -->
-  <div id="admin-panel">
-    <div class="dots-row">
-      <div class="dot active" style="background:#ff5e5e" onclick="window.setV385('free','color-1',this)"></div>
-      <div class="dot" style="background:#00a8ff" onclick="window.setV385('free','color-2',this)"></div>
-      <div class="dot" style="background:#ffa502" onclick="window.setV385('free','color-3',this)"></div>
-      <div class="dot" style="background:#7d5fff" onclick="window.setV385('free','color-4',this)"></div>
-      <div class="dot" style="background:#2ecc71" onclick="window.setV385('free','color-5',this)"></div>
-    </div>
-
-    <div id="free-controls">
-      <div class="control-row">
-        <button class="btn-neo active" onclick="window.setV385Style('arch',this)">優雅正拱</button>
-        <button class="btn-neo" onclick="window.setV385Style('flat',this)">簡潔平直</button>
-        <button class="btn-neo" onclick="window.setV385Style('spot',this)">晨曦款</button>
-      </div>
-      <div class="control-row" style="margin-top:8px;">
-        <button class="btn-neo active" onclick="window.setV385Paper('paper-1',this)">棉紙</button>
-        <button class="btn-neo" onclick="window.setV385Paper('paper-2',this)">顆粒</button>
-        <button class="btn-neo" onclick="window.setV385Paper('paper-3',this)">亞麻</button>
-      </div>
-    </div>
-
-    <div class="dots-row">
-      <div class="p-dot" style="background:#722f37" onclick="window.setV385('premium','p1',this)"></div>
-      <div class="p-dot" style="background:#1c2e42" onclick="window.setV385('premium','p2',this)"></div>
-      <div class="p-dot" style="background:#5e548e" onclick="window.setV385('premium','p3',this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="window.setV385('premium','p4',this)"></div>
-      <div class="p-dot" style="background:#7a94a6" onclick="window.setV385('premium','p5',this)"></div>
-      <div class="p-dot" style="background:#a36d6d" onclick="window.setV385('premium','p6',this)"></div>
-      <div class="p-dot" style="background:#444444" onclick="window.setV385('premium','p7',this)"></div>
-    </div>
-
-    <div class="id-row">
-      <input id="id-input" class="input-id" placeholder="輸入序號（例：TW0001）" />
-      <button class="btn-mini" onclick="window.loadByInputId()">載入</button>
-      <button class="btn-mini" onclick="window.copyShareLink()">複製交貨連結</button>
-    </div>
-
-    <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
-  </div>
-
-  <!-- Card -->
-  <div id="card-container" class="card">
-    <div class="paper-overlay"></div>
-    <div class="premium-fx-layer"></div>
-
-    <div class="banner"><div class="dynamic-mask"></div></div>
-
-    <div class="logo-float">
-      <img id="u-logo" alt="品牌Logo" />
-    </div>
-
-    <div class="avatar-wrap">
-      <div class="avatar-circle">
-        <img id="u-img" src="" class="avatar" alt="形象照" />
-      </div>
-    </div>
-
-    <div class="info-scroll">
-      <h1 id="u-name" class="name">載入中...</h1>
-      <div id="u-unit" class="unit">同步中...</div>
-
-      <div id="u-slogan" class="slogan" style="display:none;"></div>
-
-      <div id="u-titles" class="badge-row" style="display:none;"></div>
-
-      <div id="u-service" class="content-box">正在同步雲端服務項目...</div>
-
-      <!-- Product slider -->
-      <section id="product-section" class="section" style="display:none;">
-        <div class="section-title"><i class="fa-regular fa-images"></i> 作品展示</div>
-        <div id="product-slider" class="product-slider" aria-label="產品照片左右滑動"></div>
-      </section>
-
-      <!-- Contact + Links -->
-      <section class="section">
-        <div class="section-title"><i class="fa-solid fa-link"></i> 一鍵連結</div>
-        <div id="link-matrix" class="link-matrix"></div>
-      </section>
-
-      <!-- Q&A -->
-      <section id="qa-section" class="section" style="display:none;">
-        <div class="section-title"><i class="fa-regular fa-circle-question"></i> 常見問答</div>
-        <div id="qa-box" class="qa-box"></div>
-      </section>
-    </div>
-
-    <div class="version-tag" id="ver-tag">V385</div>
-  </div>
-
-  <footer class="footer">幸福智慧名片 V385</footer>
-
-  <!-- Lightbox -->
-  <div id="lightbox" class="lightbox" aria-hidden="true">
-    <div class="lb-backdrop" onclick="window.closeLightbox()"></div>
-    <div class="lb-panel">
-      <button class="lb-close" onclick="window.closeLightbox()" aria-label="關閉"><i class="fa-solid fa-xmark"></i></button>
-      <img id="lb-img" alt="全圖預覽" />
-      <div id="lb-cap" class="lb-cap"></div>
-    </div>
-  </div>
-
-  <script src="app.js?v=385"></script>
+<body>
+<div class="card">
+  <img id="u-img" class="avatar">
+  <h1 id="u-name"></h1>
+  <div id="u-unit"></div>
+  <div id="u-service"></div>
+</div>
+<script src="./app.js"></script>
 </body>
 </html>
