@@ -1,94 +1,71 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>幸福智慧名片 V385.3</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=385.3">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>幸福智慧名片 V384</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=384" />
 </head>
 <body class="mode-free color-1 style-arch paper-1">
 
-  <div id="front-controls" class="admin-panel">
-    <div class="panel-row">
-      <button onclick="setMode('free')" class="btn-tab">自由款樣式</button>
-      <button onclick="setMode('premium')" class="btn-tab">精品款樣式</button>
+  <div id="admin-panel">
+    <div class="dots-row">
+      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
+      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
+      <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
+      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free', 'color-4', this)"></div>
+      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
     </div>
-    <div id="free-ui" class="sub-ctrl">
-      <div class="dot-row">
-        <div class="dot active" style="background:#ff5e5e" onclick="setColor('color-1',this)"></div>
-        <div class="dot" style="background:#00a8ff" onclick="setColor('color-2',this)"></div>
-        <div class="dot" style="background:#ffa502" onclick="setColor('color-3',this)"></div>
-        <div class="dot" style="background:#7d5fff" onclick="setColor('color-4',this)"></div>
-        <div class="dot" style="background:#2ecc71" onclick="setColor('color-5',this)"></div>
-      </div>
-    </div>
-    <div id="premium-ui" class="sub-ctrl" style="display:none;">
-      <div class="dot-row">
-        <div class="p-dot" style="background:#722f37" onclick="setColor('p1',this)"></div>
-        <div class="p-dot" style="background:#1c2e42" onclick="setColor('p2',this)"></div>
-        <div class="p-dot" style="background:#bf953f" onclick="setColor('p4',this)"></div>
-        <div class="p-dot" style="background:#444444" onclick="setColor('p7',this)"></div>
-      </div>
-    </div>
-  </div>
 
-  <div id="lock-mask" class="lock-mask" style="display:none;">
-    <div class="lock-box">
-      <h3 style="margin-top:0">交貨管理系統</h3>
-      <input type="password" id="pass-input" placeholder="請輸入管理密碼">
-      <div class="btn-group">
-        <button onclick="verifyLock()" class="btn-black">解鎖後台</button>
-        <button onclick="closeLock()">取消</button>
+    <div id="free-controls">
+      <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
+          <button class="btn-neo active" onclick="window.setV382Style('arch', this)">優雅正拱</button>
+          <button class="btn-neo" onclick="window.setV382Style('flat', this)">簡潔平直</button>
+          <button class="btn-neo" onclick="window.setV382Style('spot', this)">晨曦款</button>
+      </div>
+      <div class="control-row" style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
+          <button class="btn-neo active" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
+          <button class="btn-neo" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
+          <button class="btn-neo" onclick="window.setV382Paper('paper-3', this)">亞麻</button>
       </div>
     </div>
-  </div>
 
-  <div id="delivery-panel" style="display:none;" class="delivery-bar">
-    <input type="text" id="id-input" placeholder="輸入序號或姓名">
-    <button onclick="loadV385Data()">載入成品</button>
-    <button onclick="copyUrl()" id="btn-copy" style="background:#2ecc71; color:#fff;">複製交貨網址</button>
+    <div class="dots-row">
+      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div> 
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div> 
+      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p3', this)"></div>
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div> 
+      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
+      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p6', this)"></div>
+      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
+    </div>
+    
+    <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
   <div id="card-container" class="card">
+    <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
     <div class="banner"><div class="dynamic-mask"></div></div>
     
     <div class="avatar-wrap">
-      <div class="avatar-circle"><img id="u-img" src="" class="avatar"></div>
+      <div class="avatar-circle">
+        <img id="u-img" src="" class="avatar" alt="形象照" />
+      </div>
     </div>
 
     <div class="info-scroll">
-      <h1 id="u-name">姓名 (名片大標題)</h1>
-      <div id="u-unit">單位名稱</div>
-      <div id="u-slogan" class="slogan-text"></div>
-      
-      <div id="u-titles" class="titles-row"></div>
-
-      <div class="content-box">
-        <span class="label-box">服務項目</span>
-        <div id="u-service" style="white-space: pre-wrap;"></div>
-      </div>
-
-      <div class="product-slider" id="u-slider"></div>
-
-      <a id="u-line-oa" href="#" class="btn-line-main" target="_blank">LINE 官方帳號</a>
-      
-      <div class="action-grid">
-        <a id="u-call" class="btn-icon"><i class="fa-solid fa-phone"></i></a>
-        <a id="u-map" class="btn-icon" target="_blank"><i class="fa-solid fa-location-dot"></i></a>
-        <a id="u-yt" class="btn-icon" target="_blank"><i class="fa-brands fa-youtube"></i></a>
-        <a id="u-fb" class="btn-icon" target="_blank"><i class="fa-brands fa-facebook"></i></a>
-      </div>
+      <h1 id="u-name" class="name">載入中...</h1>
+      <div id="u-unit" class="unit">同步中...</div>
+      <div class="content-box" style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;" onclick="window.goFillForm()">立即填寫預約表單</div>
+      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在同步雲端服務項目...</div>
     </div>
-
-    <div class="footer-area">
-      <span class="cp-text">版權所有</span>
-      <span class="version-tag" onclick="triggerLock()">V385.3</span>
-    </div>
+    <div class="version-tag">V384</div>
   </div>
 
-  <script src="app.js?v=385.3"></script>
+  <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">幸福智慧名片 V384</footer>
+  <script src="app.js?v=384"></script>
 </body>
 </html>
