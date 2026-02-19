@@ -3,75 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>幸福智慧名片 V385.1</title>
+  <title>幸福智慧名片 V385</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=385.1">
+  <link rel="stylesheet" href="style.css?v=385">
 </head>
 <body class="mode-free color-1 style-arch paper-1">
 
-  <div class="lock-mask" id="lock-mask" style="display:none;">
+  <div class="lock-mask" id="lock-mask">
     <div class="lock-box">
       <h3 style="margin-top:0">管理員驗證</h3>
-      <input type="password" id="pass-input" placeholder="請輸入管理密碼">
+      <input type="password" id="pass-input" placeholder="請輸入密碼">
       <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
-        <button onclick="verifyLock()" class="btn-lock-confirm">解鎖</button>
-        <button onclick="closeLock()" class="btn-lock-cancel">取消</button>
+        <button onclick="verifyLock()" style="background:#2d3436; color:#fff; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">進入</button>
+        <button onclick="closeLock()" style="background:#eee; color:#333; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">取消</button>
       </div>
     </div>
   </div>
 
-  <div id="admin-panel" style="display:none;">
-    <div class="admin-inner">
-      <input type="text" id="id-input" placeholder="輸入序號或姓名">
-      <button onclick="loadV385Data()">載入數據</button>
+  <div id="admin-panel">
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <input type="text" id="id-input" placeholder="輸入序號取得成品">
+      <button onclick="loadV385Data()" style="background:var(--p); color:#fff; border:none; padding:8px 15px; border-radius:8px;">取得成品</button>
     </div>
   </div>
 
   <div id="card-container" class="card">
     <div class="premium-fx-layer"></div>
     <div class="banner"><div class="dynamic-mask"></div></div>
-    <img id="u-logo" src="" class="logo-overlay" style="display:none;">
     
     <div class="avatar-wrap">
-      <div class="avatar-circle">
-        <img id="u-img" src="" class="avatar" alt="形象照">
-      </div>
+      <div class="avatar-circle"><img id="u-img" src="" class="avatar"></div>
     </div>
 
-    <div class="info-scroll" id="scroll-area">
+    <div class="info-scroll" id="scroll-area" style="overflow-y:auto; height: 100%;">
       <h1 id="u-name" class="name">載入中...</h1>
-      <div id="u-unit" class="unit-text">同步中...</div>
-      <div id="u-slogan" class="slogan-text"></div>
-      <div id="u-titles" class="titles-row"></div>
+      <div id="u-unit" style="font-size:14px; font-weight:700;">同步中...</div>
+      <div id="u-slogan" style="font-size:12px; opacity:0.7; margin:8px 0;"></div>
+      
+      <div id="u-titles" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:15px;"></div>
 
       <div class="content-box">
-        <span class="label-small">服務項目</span>
-        <div id="u-service" class="service-content"></div>
+        <span style="font-size:10px; font-weight:900; color:#adb5bd; margin-bottom:5px; display:block;">核心業務</span>
+        <div id="u-service" style="white-space: pre-wrap; font-size:14px; line-height:1.6;"></div>
       </div>
 
       <div class="product-slider" id="u-slider"></div>
 
-      <a id="u-line-oa" href="#" class="btn-main-line" target="_blank">LINE 官方帳號連結</a>
+      <a id="u-line-oa" href="#" class="btn-main-line" target="_blank">LINE 官方帳號</a>
       
       <div class="action-grid">
         <a id="u-call" class="btn-icon"><i class="fa-solid fa-phone"></i></a>
         <a id="u-mail" class="btn-icon"><i class="fa-solid fa-envelope"></i></a>
         <a id="u-map" class="btn-icon" target="_blank"><i class="fa-solid fa-location-dot"></i></a>
+        <a id="u-wechat" class="btn-icon"><i class="fa-brands fa-weixin"></i></a>
         <a id="u-yt" class="btn-icon" target="_blank"><i class="fa-brands fa-youtube"></i></a>
         <a id="u-tiktok" class="btn-icon" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
         <a id="u-fb" class="btn-icon" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+        <a id="u-ig" class="btn-icon" target="_blank"><i class="fa-brands fa-instagram"></i></a>
       </div>
 
-      <div id="u-qa-area"></div>
+      <div id="u-qa"></div>
     </div>
     
-    <div class="footer-area">
-      <span class="cp-text">版權所有</span>
-      <span class="version-tag" onclick="triggerLock()">V385.1</span>
-    </div>
+    <div class="version-tag" onclick="triggerLock()">V385</div>
   </div>
 
-  <script src="app.js?v=385.1"></script>
+  <script src="app.js?v=385"></script>
 </body>
 </html>
