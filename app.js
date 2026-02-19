@@ -4,79 +4,67 @@ const CONFIG = {
   ANGEL: "TW0001"
 };
 
-let state = { plan: 'free', theme: 'p-deep-green', style: 'arch' };
-let gateClicks = 0;
-
-// 🌿 核心切換：解決不連動問題
-window.setAppMode = function(theme, el) {
-  state.theme = theme;
-  document.querySelectorAll('.p-dot').forEach(d => d.classList.remove('active'));
-  if(el) el.classList.add('active');
-  applyState();
+let state = {
+  mode: 'free',
+  theme: 'color-1',
+  style: 'arch',
+  paper: '1'
 };
 
-window.setPlan = function(plan) {
-  state.plan = plan;
-  document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
-  document.getElementById(`btn-${plan}`).classList.add('active');
-  applyState();
-};
-
-window.setFreeStyle = function(style, el) {
-  state.style = style;
-  document.querySelectorAll('.btn-mini').forEach(b => b.classList.remove('active'));
-  if(el) el.classList.add('active');
-  applyState();
-};
-
-function applyState() {
-  const card = document.getElementById('card-container');
-  const styleSelector = document.getElementById('free-styles');
+window.setV381 = function(mode, theme, el) {
+  state.mode = mode;
+  state.theme = mode === 'free' ? `color-${theme}` : theme;
   
-  // 徹底更新 Body Class
-  if (state.plan === 'free') {
-    document.body.className = `mode-free ${state.theme} style-${state.style}`;
-    styleSelector.style.display = 'block';
-  } else {
-    document.body.className = `mode-premium ${state.theme}`;
-    styleSelector.style.display = 'none';
-  }
-  updateThemeMeta();
+  document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+  applyV381();
+};
+
+window.setV381Style = function(style, el) {
+  state.style = style;
+  document.querySelectorAll('#free-controls .btn-mini').forEach(b => b.classList.remove('active')); // 修正：只選版型那列
+  el.classList.add('active');
+  applyV381();
+};
+
+window.setV381Paper = function(paper, el) {
+  state.paper = paper;
+  applyV381();
+};
+
+function applyV381() {
+  const isFree = state.mode === 'free';
+  const selector = document.getElementById('free-controls');
+  selector.style.display = isFree ? 'block' : 'none';
+  
+  // 核心：全量重寫 Class，徹底解決連動問題
+  const classList = [
+    `mode-${state.mode}`,
+    state.theme,
+    isFree ? `style-${state.style}` : '',
+    isFree ? `paper-${state.paper}` : ''
+  ];
+  document.body.className = classList.filter(Boolean).join(' ');
+  updateThemeColor();
 }
 
-window.handleHiddenGate = function() {
-  gateClicks++;
-  if(gateClicks >= 3) {
-    document.getElementById('work-drawer').style.maxHeight = '500px';
-    gateClicks = 0;
-  }
-  setTimeout(() => gateClicks = 0, 1000);
-};
-
-window.doPreviewById = () => {
-  const id = document.getElementById('work-id').value.trim();
-  if(id) { fetchData(id); document.getElementById('work-drawer').style.maxHeight = '0'; }
-};
-
-async function fetchData(id) {
+async function fetchAngelV381() {
   try {
-    const res = await fetch(`${CONFIG.GAS}?id=${id}`);
+    const res = await fetch(`${CONFIG.GAS}?id=${CONFIG.ANGEL}`);
     const data = await res.json();
     if(data) {
-      document.getElementById('u-name').innerText = data.姓名 || "無資料";
-      document.getElementById('u-unit').innerText = data.單位 || "";
-      document.getElementById('u-service').innerText = data.服務項目 || "";
+      document.getElementById('u-name').innerText = data.姓名 || "小天使笑長";
+      document.getElementById('u-unit').innerText = data.單位 || "幸福智慧教養館";
+      document.getElementById('u-service').innerText = data.服務項目 || "載入資訊中...";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch (e) { console.error("GAS 讀取失敗"); }
+  } catch(e) { console.error("GAS Error"); }
 }
 
-function updateThemeMeta() {
-  setTimeout(() => {
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--p').trim();
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', accent);
-  }, 100);
+function updateThemeColor() {
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--p').trim();
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', accent);
 }
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
-window.onload = () => { fetchData(CONFIG.ANGEL); applyState(); };
+window.onload = () => { fetchAngelV381(); applyV381(); };
