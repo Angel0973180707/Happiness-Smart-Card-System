@@ -1,4 +1,4 @@
-/* V380 Logic - Pure 連動 & 自動讀取 */
+/* V380 Logic: 連動修正 & 小天使自動讀取 */
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
@@ -8,26 +8,23 @@ const CONFIG = {
 let state = { mode: 'free', theme: 'warm-pink', style: 'arch' };
 let gateClicks = 0;
 
-// 🟢 切換模式：徹底解決選色不連動
+// 🟢 切換模式：核心連動邏輯
 window.setAppMode = function(mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
   
-  // 更新點點 UI
   document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
   if(el) el.classList.add('active');
 
-  const selector = document.getElementById('style-selector');
-  
-  // 全量重寫 Body Class，防止舊類別殘留
+  // 全量重寫 className，徹底清除舊類別，解決不連動問題
   if (mode === 'free') {
     state.style = localStorage.getItem('v380_style') || 'arch';
     document.body.className = `mode-free ${theme} style-${state.style}`;
-    selector.style.display = 'block';
+    document.getElementById('style-selector').style.display = 'block';
   } else {
     state.style = 'premium';
     document.body.className = `mode-premium ${theme}`;
-    selector.style.display = 'none';
+    document.getElementById('style-selector').style.display = 'none';
   }
   updateThemeMeta();
 };
@@ -41,14 +38,14 @@ window.setFreeStyle = function(style, el) {
   document.body.className = `mode-free ${state.theme} style-${style}`;
 };
 
-// 🟢 隱形入口邏輯
+// 🟢 隱形入口：連點 3 次開啟管理抽屜
 window.handleHiddenGate = function() {
   gateClicks++;
   if(gateClicks >= 3) {
     document.getElementById('work-drawer').style.maxHeight = '500px';
     gateClicks = 0;
   }
-  setTimeout(() => gateClicks = 0, 1000);
+  setTimeout(() => { gateClicks = 0; }, 1000);
 };
 
 window.doPreviewById = () => {
@@ -59,7 +56,7 @@ window.doPreviewById = () => {
   }
 };
 
-// 🟢 自動抓取 GAS 資料
+// 🟢 資料抓取
 async function fetchData(id) {
   try {
     const res = await fetch(`${CONFIG.GAS}?id=${id}`);
@@ -70,7 +67,7 @@ async function fetchData(id) {
       document.getElementById('u-service').innerText = data.服務項目 || "";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch (e) { console.error("GAS 載入異常"); }
+  } catch (e) { console.error("GAS API Error"); }
 }
 
 function updateThemeMeta() {
