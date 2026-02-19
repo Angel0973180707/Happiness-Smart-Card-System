@@ -1,11 +1,11 @@
-/* Angel Card SW v382.8 - cache-busted */
-const CACHE = "angel-card-v382.8";
+/* Angel Card SW v384- cache-busted */
+const CACHE = "angel-card-v384";
 const ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=377",
-  "./app.js?v=377",
-  "./manifest.json?v=377",
+  "./style.css?v=384",
+  "./app.js?v=384",
+  "./manifest.json?v=384",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
