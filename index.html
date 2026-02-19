@@ -3,75 +3,83 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V380</title>
+  <title>幸福智慧名片 V381</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./style.css" />
 </head>
-<body class="mode-free p-deep-green style-arch">
+<body class="mode-free color-1 style-arch paper-1">
 
   <div id="admin-panel">
     <div class="picker-section">
-      <span class="section-label">🌿 七種氣質設計語彙（點選切換）</span>
+      <span class="label">🎨 自由搭配：親和亮色款</span>
       <div class="dots-row">
-        <div class="p-dot active" style="background:#1a2f27" onclick="setAppMode('p-deep-green', this)"></div>
-        <div class="p-dot" style="background:#2c3e50" onclick="setAppMode('p-blue-gray', this)"></div>
-        <div class="p-dot" style="background:#5d2525" onclick="setAppMode('p-wine-red', this)"></div>
-        <div class="p-dot" style="background:#8e5a3c" onclick="setAppMode('p-caramel', this)"></div>
-        <div class="p-dot" style="background:#7a94a6" onclick="setAppMode('p-morandi', this)"></div>
-        <div class="p-dot" style="background:#6b6687" onclick="setAppMode('p-misty', this)"></div>
-        <div class="p-dot" style="background:#1a1a1a" onclick="setAppMode('p-graphite', this)"></div>
+        <div class="dot active" style="background:#ee5253" onclick="setV381('free', 1, this)"></div>
+        <div class="dot" style="background:#00a8ff" onclick="setV381('free', 2, this)"></div>
+        <div class="dot" style="background:#f0932b" onclick="setV381('free', 3, this)"></div>
+        <div class="dot" style="background:#6c5ce7" onclick="setV381('free', 4, this)"></div>
+        <div class="dot" style="background:#20bf6b" onclick="setV381('free', 5, this)"></div>
+      </div>
+      <div class="btn-row sub-row" id="free-controls">
+        <div class="group">
+          <span>版型：</span>
+          <button class="btn-mini active" onclick="setV381Style('arch', this)">正拱</button>
+          <button class="btn-mini" onclick="setV381Style('flat', this)">平直</button>
+          <button class="btn-mini" onclick="setV381Style('spot', this)">晨曦</button>
+        </div>
+        <div class="group">
+          <span>紙感：</span>
+          <button class="btn-mini active" onclick="setV381Paper(1, this)">棉紙</button>
+          <button class="btn-mini" onclick="setV381Paper(2, this)">顆粒</button>
+          <button class="btn-mini" onclick="setV381Paper(3, this)">亞麻</button>
+          <button class="btn-mini" onclick="setV381Paper(4, this)">水彩</button>
+        </div>
       </div>
     </div>
 
     <div class="picker-section">
-      <div class="mode-toggle">
-        <button id="btn-free" class="btn-mode active" onclick="setPlan('free')">自由搭配 (淺底)</button>
-        <button id="btn-premium" class="btn-mode" onclick="setPlan('premium')">精品設計 (主色)</button>
-      </div>
-      
-      <div id="free-styles" class="btn-row">
-        <button class="btn-mini active" onclick="setFreeStyle('arch', this)">優雅拱型</button>
-        <button class="btn-mini" onclick="setFreeStyle('flat', this)">簡潔平直</button>
+      <span class="label">🌿 精品設計：七種氣質語彙（方案 B）</span>
+      <div class="dots-row">
+        <div class="p-dot" style="background:#1a2f27" onclick="setV381('premium', 'p1', this)"></div>
+        <div class="p-dot" style="background:#2c3e50" onclick="setV381('premium', 'p2', this)"></div>
+        <div class="p-dot" style="background:#5d2525" onclick="setV381('premium', 'p3', this)"></div>
+        <div class="p-dot" style="background:#8e5a3c" onclick="setV381('premium', 'p4', this)"></div>
+        <div class="p-dot" style="background:#7a94a6" onclick="setV381('premium', 'p5', this)"></div>
+        <div class="p-dot" style="background:#6b6687" onclick="setV381('premium', 'p6', this)"></div>
+        <div class="p-dot" style="background:#1a1a1a" onclick="setV381('premium', 'p7', this)"></div>
       </div>
     </div>
-
-    <button class="btn-main-action" onclick="goFillForm()">立即預約訂製</button>
+    
+    <button class="btn-main" onclick="goFillForm()">立即預約訂製</button>
   </div>
 
   <div id="card-container" class="card">
-    <div class="premium-glow"></div>
-    <div class="banner"><div class="arch-overlay"></div></div>
+    <div class="paper-overlay"></div>
+    <div class="premium-fx"></div>
+    <div class="banner">
+      <div class="arch-overlay"></div>
+    </div>
     
     <div class="avatar-wrap">
-        <div class="avatar-border">
-            <img id="u-img" src="" class="avatar" alt="頭像" />
-        </div>
+      <div class="avatar-circle">
+        <img id="u-img" src="" class="avatar" alt="頭像" />
+      </div>
     </div>
 
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">...</div>
-      
       <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">立即預約表單</div>
-      
       <div class="content-box">
-        <span class="label">服務項目</span>
+        <div class="label">服務項目</div>
         <div id="u-service">讀取小天使資料中...</div>
       </div>
     </div>
   </div>
 
-  <footer id="gate-footer" style="font-size:11px; color:#bbb; padding:25px 0; text-align:center; cursor:default; user-select:none;" onclick="handleHiddenGate()">
-    © 2026 幸福智慧名片 V380｜版權所有
+  <footer id="gate-footer" onclick="handleHiddenGate()">
+    © 2026 幸福智慧名片 V381｜版權所有
   </footer>
-
-  <div id="work-drawer" style="max-height:0; overflow:hidden; transition:0.5s; position:fixed; bottom:0; width:100%; max-width:420px; background:#2d3436; color:white; border-radius:30px 30px 0 0; z-index:2000;">
-    <div style="padding:30px; text-align:center;">
-      <input type="text" id="work-id" placeholder="輸入 ID" style="padding:10px; border-radius:8px; border:none; width:150px;" />
-      <button onclick="doPreviewById()" style="background:#ee5253; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">調用資料</button>
-    </div>
-  </div>
 
   <script src="./app.js"></script>
 </body>
