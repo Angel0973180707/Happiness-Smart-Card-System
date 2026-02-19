@@ -11,28 +11,25 @@ let state = {
   paper: '1'
 };
 
-// 🔵 選色與模式連動
-window.setV381 = function(mode, theme, el) {
+// 🔵 核心：模式與顏色切換
+window.setV381Mode = function(mode, theme, el) {
   state.mode = mode;
   state.theme = mode === 'free' ? `color-${theme}` : theme;
   
-  // 更新點點 UI
   document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
   el.classList.add('active');
-  
   applyV381();
 };
 
-// 🔵 自由款版型切換
+// 🔵 核心：版型切換 (正拱/平直/晨曦)
 window.setV381Style = function(style, el) {
   state.style = style;
-  // 修正：只更新版型按鈕
   el.parentElement.querySelectorAll('.btn-mini').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   applyV381();
 };
 
-// 🔵 自由款紙感切換
+// 🔵 核心：紙感切換
 window.setV381Paper = function(paper, el) {
   state.paper = paper;
   el.parentElement.querySelectorAll('.btn-mini').forEach(b => b.classList.remove('active'));
@@ -42,32 +39,31 @@ window.setV381Paper = function(paper, el) {
 
 function applyV381() {
   const isFree = state.mode === 'free';
-  const controlBox = document.getElementById('free-controls');
-  controlBox.style.display = isFree ? 'block' : 'none';
+  document.getElementById('free-controls').style.display = isFree ? 'block' : 'none';
   
-  // 核心：徹底清除並重新賦值，解決不連動問題
-  const classNames = [
+  // 重寫 className，洗掉舊樣式，確保連動
+  const classes = [
     `mode-${state.mode}`,
     state.theme,
     isFree ? `style-${state.style}` : '',
     isFree ? `paper-${state.paper}` : ''
   ];
-  document.body.className = classNames.filter(Boolean).join(' ');
+  document.body.className = classes.filter(Boolean).join(' ');
   updateThemeColor();
 }
 
-// 🟢 自動讀取小天使樣板
+// 🟢 自動讀取小天使樣板資料
 async function loadV381Data() {
   try {
     const res = await fetch(`${CONFIG.GAS}?id=${CONFIG.ANGEL}`);
     const data = await res.json();
-    if(data) {
+    if (data) {
       document.getElementById('u-name').innerText = data.姓名 || "小天使笑長";
       document.getElementById('u-unit').innerText = data.單位 || "幸福智慧教養館";
       document.getElementById('u-service').innerText = data.服務項目 || "致力實踐幸福教養。";
-      if(data.形象照) document.getElementById('u-img').src = data.形象照;
+      if (data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch(e) { console.error("GAS 讀取失敗"); }
+  } catch (e) { console.error("資料讀取異常"); }
 }
 
 function updateThemeColor() {
@@ -77,73 +73,3 @@ function updateThemeColor() {
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
 window.onload = () => { loadV381Data(); applyV381(); };
-const CONFIG = {
-  GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
-  FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
-  ANGEL: "TW0001"
-};
-
-let state = {
-  mode: 'free',
-  theme: 'color-1',
-  style: 'arch',
-  paper: '1'
-};
-
-window.setV381 = function(mode, theme, el) {
-  state.mode = mode;
-  state.theme = mode === 'free' ? `color-${theme}` : theme;
-  
-  document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
-  el.classList.add('active');
-  applyV381();
-};
-
-window.setV381Style = function(style, el) {
-  state.style = style;
-  document.querySelectorAll('#free-controls .btn-mini').forEach(b => b.classList.remove('active')); // 修正：只選版型那列
-  el.classList.add('active');
-  applyV381();
-};
-
-window.setV381Paper = function(paper, el) {
-  state.paper = paper;
-  applyV381();
-};
-
-function applyV381() {
-  const isFree = state.mode === 'free';
-  const selector = document.getElementById('free-controls');
-  selector.style.display = isFree ? 'block' : 'none';
-  
-  // 核心：全量重寫 Class，徹底解決連動問題
-  const classList = [
-    `mode-${state.mode}`,
-    state.theme,
-    isFree ? `style-${state.style}` : '',
-    isFree ? `paper-${state.paper}` : ''
-  ];
-  document.body.className = classList.filter(Boolean).join(' ');
-  updateThemeColor();
-}
-
-async function fetchAngelV381() {
-  try {
-    const res = await fetch(`${CONFIG.GAS}?id=${CONFIG.ANGEL}`);
-    const data = await res.json();
-    if(data) {
-      document.getElementById('u-name').innerText = data.姓名 || "小天使笑長";
-      document.getElementById('u-unit').innerText = data.單位 || "幸福智慧教養館";
-      document.getElementById('u-service').innerText = data.服務項目 || "載入資訊中...";
-      if(data.形象照) document.getElementById('u-img').src = data.形象照;
-    }
-  } catch(e) { console.error("GAS Error"); }
-}
-
-function updateThemeColor() {
-  const accent = getComputedStyle(document.documentElement).getPropertyValue('--p').trim();
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', accent);
-}
-
-window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
-window.onload = () => { fetchAngelV381(); applyV381(); };
