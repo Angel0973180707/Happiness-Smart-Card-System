@@ -1,50 +1,29 @@
-// sw.js (V386 complete overwrite)
-const CACHE_NAME = "angel-card-v386";
-const CORE_ASSETS = [
+/* sw.js (V385.3 minimal) */
+const CACHE_NAME = "angel-card-v3853";
+const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
   "./manifest.json",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./og-card.png",
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(CORE_ASSETS))
-  );
-  self.skipWaiting();
+self.addEventListener("install", (e)=>{
+  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null)))
-    )
-  );
-  self.clients.claim();
+self.addEventListener("activate", (e)=>{
+  e.waitUntil(self.clients.claim());
 });
 
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
-
-  // 不快取 GAS API（永遠走網路）
-  if (url.href.includes("script.google.com/macros/s/")) {
-    event.respondWith(fetch(req));
-    return;
-  }
-
-  // 其餘：cache-first + 更新
-  event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((resp) => {
-        const copy = resp.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(req, copy)).catch(()=>{});
-        return resp;
-      });
-    })
+self.addEventListener("fetch", (e)=>{
+  const req = e.request;
+  e.respondWith(
+    caches.match(req).then(cached => cached || fetch(req).then(res=>{
+      const copy = res.clone();
+      caches.open(CACHE_NAME).then(c=>c.put(req, copy)).catch(()=>{});
+      return res;
+    }).catch(()=>cached))
   );
 });
