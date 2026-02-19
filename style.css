@@ -1,61 +1,56 @@
-/* V380 Design Language */
 :root { --font: 'Noto Sans TC', sans-serif; }
 
-/* --- 🌿 七種氣質設計語言 (方案 B) --- */
-/* ① 深墨綠 (穩重) */
-.p-deep-green { --p:#1a2f27; --bg-f:#f1f4f2; --bg-p:#0d1a15; --sh-p:0 30px 60px rgba(0,0,0,0.5); --ls:0.12em; }
-/* ② 深藍灰 (理性) */
-.p-blue-gray  { --p:#2c3e50; --bg-f:#f0f2f5; --bg-p:#1a252f; --sh-p:0 20px 40px rgba(0,0,0,0.4); --ls:0.08em; }
-/* ③ 酒紅棕 (暖高級) */
-.p-wine-red   { --p:#5d2525; --bg-f:#f9f4f4; --bg-p:#3d1616; --fx:radial-gradient(circle at 50% 20%, rgba(255,100,100,0.18), transparent 70%); }
-/* ④ 焦糖暖棕 (人味) */
-.p-caramel    { --p:#8e5a3c; --bg-f:#f7f3f0; --bg-p:#5d3a26; --ls:0.04em; }
-/* ⑤ 莫蘭迪藍 (清爽) */
-.p-morandi    { --p:#7a94a6; --bg-f:#f4f7f9; --bg-p:#f4f7f9; --text-p:#2c3e50; --ls:0.15em; }
-/* ⑥ 霧紫灰 (氣質) */
-.p-misty      { --p:#6b6687; --bg-f:#f5f4f7; --bg-p:#4a4561; }
-/* ⑦ 深石墨黑 (極簡) */
-.p-graphite   { --p:#1a1a1a; --bg-f:#f0f0f0; --bg-p:#000000; --ls:0.25em; --sh-p:0 0 50px rgba(255,255,255,0.05); }
+/* --- 🎨 自由搭配：淡版 5 色 --- */
+.mode-free.color-1 { --p:#ee5253; --bg:#fdf2f2; --card-bg:#fff; --text:#2d3436; }
+.mode-free.color-2 { --p:#00a8ff; --bg:#f0f9ff; --card-bg:#fff; --text:#2d3436; }
+.mode-free.color-3 { --p:#f0932b; --bg:#fff9f0; --card-bg:#fff; --text:#2d3436; }
+.mode-free.color-4 { --p:#6c5ce7; --bg:#f6f5ff; --card-bg:#fff; --text:#2d3436; }
+.mode-free.color-5 { --p:#20bf6b; --bg:#f2fdf6; --card-bg:#fff; --text:#2d3436; }
 
-/* --- 模式切換邏輯 --- */
-.mode-free { --bg: var(--bg-f); --card-bg: #ffffff; --text: #2d3436; --sh: 0 15px 35px rgba(0,0,0,0.1); }
-.mode-premium { --bg: var(--bg-p); --card-bg: var(--bg-p); --text: var(--text-p, #ffffff); --sh: var(--sh-p, 0 20px 50px rgba(0,0,0,0.3)); }
+/* --- 🌿 精品設計：濃版 7 氣質 --- */
+.mode-premium.p1 { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; }
+.mode-premium.p2 { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.08em; }
+.mode-premium.p3 { --p:#5d2525; --bg:#3d1616; --card-bg:#3d1616; --text:#fff5f5; --fx:radial-gradient(circle at 50% 20%, rgba(255,100,100,0.2), transparent 70%); }
+.mode-premium.p4 { --p:#8e5a3c; --bg:#5d3a26; --card-bg:#5d3a26; --text:#fff9f2; }
+.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:#f4f7f9; --text:#2c3e50; --ls:0.15em; }
+.mode-premium.p6 { --p:#6b6687; --bg:#4a4561; --card-bg:#4a4561; --text:#f8f7ff; }
+.mode-premium.p7 { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; --ls:0.25em; }
 
-body { background: var(--bg); font-family: var(--font); margin:0; transition: 0.5s; display: flex; flex-direction: column; align-items: center; }
+body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; }
 
-/* 名片結構 */
-.card { 
-    width: 92%; max-width: 380px; height: 680px; background: var(--card-bg) !important; color: var(--text) !important;
-    border-radius: 40px; overflow: hidden; position: relative; margin: 20px 0; box-shadow: var(--sh); transition: 0.5s;
-}
-
-/* 頭像框 */
+/* 核心：圓形頭像框 */
 .avatar-wrap { position: absolute; width: 100%; top: 110px; display: flex; justify-content: center; z-index: 20; transition: 0.5s; }
-.avatar-border { width: 110px; height: 110px; border-radius: 50%; background: var(--card-bg); padding: 5px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+.avatar-circle { width: 110px; height: 110px; border-radius: 50%; background: var(--card-bg); padding: 5px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
 .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-/* 自由款 Banner */
-.banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; transition: 0.5s; }
+/* 自由款版型：正拱 / 平直 / 晨曦(倒拱) */
 .style-arch .arch-overlay { background: var(--card-bg); height: 50px; border-radius: 60px 60px 0 0; position: absolute; bottom: -1px; width: 100%; }
 .style-flat .arch-overlay { display: none; }
+.style-spot .arch-overlay { background: var(--card-bg); height: 70px; border-radius: 0 0 80px 80px; position: absolute; top: -70px; width: 120%; left: -10%; }
+.style-spot .banner { overflow: visible; }
 
-/* 精品款語彙切換 */
+.card { width: 92%; max-width: 380px; height: 680px; background: var(--card-bg) !important; color: var(--text) !important; border-radius: 40px; overflow: hidden; position: relative; margin: 20px 0; box-shadow: 0 20px 50px rgba(0,0,0,0.1); transition: 0.5s; }
+.banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; transition: 0.5s; }
+
+/* 紙感疊加 */
+.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.05; z-index: 5; mix-blend-mode: multiply; }
+.paper-2 .paper-overlay { background-image: url("data:image/svg+xml,..."); } /* 顆粒紋 */
+.paper-3 .paper-overlay { background: repeating-linear-gradient(0deg, #000 0 1px, transparent 1px 5px); opacity: 0.03; } /* 亞麻 */
+
+/* 精品模式調整 */
 .mode-premium .banner { height: 60px; }
-.mode-premium .arch-overlay { display: none; }
 .mode-premium .avatar-wrap { top: 40px; }
-.mode-premium .avatar-border { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); }
 .mode-premium .info-scroll { padding-top: 50px; }
 .mode-premium .name { letter-spacing: var(--ls); font-weight: 900; }
-.mode-premium .content-box { background: rgba(255,255,255,0.05) !important; border: 1px solid rgba(255,255,255,0.1); color: var(--text); }
-.mode-premium .premium-glow { position: absolute; inset: 0; background: var(--fx, none); pointer-events: none; z-index: 1; }
+.mode-premium .premium-fx { position: absolute; inset: 0; background: var(--fx, none); pointer-events: none; z-index: 1; }
 
-/* UI 面板 */
-#admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #ddd; padding: 10px 0; z-index: 100; }
-.btn-mode { padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; background: #f8f9fa; cursor: pointer; margin: 0 5px; font-weight: bold; }
-.btn-mode.active { background: #2d3436; color: #fff; border-color: #2d3436; }
-.dots-row { display: flex; justify-content: center; gap: 12px; margin: 10px 0; }
-.p-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.3s; }
-.p-dot.active { transform: scale(1.2); border-color: #333 !important; }
-.info-scroll { padding: 80px 20px 20px; text-align: center; }
-.content-box { background: #f8f9fa; border-radius: 18px; padding: 15px; margin-bottom: 12px; }
-.btn-main-action { background: var(--p); color: #fff; border: none; padding: 12px 40px; border-radius: 30px; font-weight: 900; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+/* UI */
+#admin-panel { background: white; width: 100%; padding: 10px 0; text-align: center; border-bottom: 1px solid #ddd; }
+.dots-row { display: flex; justify-content: center; gap: 12px; margin: 8px 0; }
+.dot, .p-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.3s; }
+.active { transform: scale(1.15); border-color: #333 !important; }
+.btn-mini { padding: 4px 10px; border-radius: 10px; border: 1px solid #ddd; font-size: 11px; cursor: pointer; background: #f8f9fa; }
+.btn-mini.active { background: #333; color: #fff; }
+.info-scroll { padding: 85px 20px 20px; text-align: center; }
+.content-box { background: rgba(0,0,0,0.03); border-radius: 15px; padding: 15px; margin-bottom: 12px; }
+#gate-footer { font-size: 11px; color: #bbb; padding: 20px 0; cursor: default; }
