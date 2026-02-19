@@ -4,7 +4,6 @@ const CONFIG = {
 };
 
 let clickCount = 0;
-// 🔒 隱形入口觸發
 window.triggerLock = () => {
   clickCount++;
   if (clickCount >= 3) {
@@ -15,57 +14,55 @@ window.triggerLock = () => {
 
 window.verifyLock = () => {
   if (document.getElementById('pass-input').value === CONFIG.PASS) {
-    document.getElementById('admin-panel').style.display = 'block';
+    document.getElementById('delivery-panel').style.display = 'flex';
     document.getElementById('lock-mask').style.display = 'none';
-    document.getElementById('pass-input').value = "";
-  } else { alert('驗證失敗'); }
+  } else { alert("驗證失敗"); }
 };
 
-window.closeLock = () => {
-  document.getElementById('lock-mask').style.display = 'none';
+window.closeLock = () => document.getElementById('lock-mask').style.display = 'none';
+
+// --- 複製交貨網址邏輯 ---
+window.copyUrl = () => {
+  const id = document.getElementById('id-input').value.trim();
+  if(!id) return alert("請先載入成品");
+  // 這裡假設您的交貨網址格式如下，可根據實際部署微調
+  const finalUrl = `${window.location.origin}${window.location.pathname}?id=${id}`;
+  navigator.clipboard.writeText(finalUrl).then(() => {
+    alert(`交貨網址已複製：\n${finalUrl}`);
+  });
 };
 
-// 🚀 GAS 數據全自動載入 (V385 版)
 async function loadV385Data() {
   const id = document.getElementById('id-input').value.trim();
-  if(!id) return alert("請輸入序號");
-
   try {
     const res = await fetch(`${CONFIG.GAS}?id=${id}`);
     const json = await res.json();
-    if(!json.ok) return alert("找不到序號");
     const d = json.data;
 
-    // 1. 映射基礎欄位
+    // 映射所有欄位 (同 V385 邏輯)
     document.getElementById('u-name').innerText = d["姓名（名片大標題）"];
-    document.getElementById('u-unit').innerText = d["單位名稱（如：幸福教養概念館）"] || "";
-    document.getElementById('u-slogan').innerText = d["理念標語（顯示在照片下方，精簡有力）"] || "";
     document.getElementById('u-img').src = d["個人專業形象照（名片主圖）"];
-    document.getElementById('u-service').innerText = d["服務項目（核心業務，多項可條列換行）"];
-
-    // 2. 頭銜解析 (勳章標籤)
-    const titlesDiv = document.getElementById('u-titles');
-    titlesDiv.innerHTML = "";
-    const titles = (d["重要頭銜/獎銜（權威背書項目，多項可條列換行）"] || "").split("\n");
-    titles.forEach(t => { if(t) titlesDiv.innerHTML += `<span style="background:rgba(0,0,0,0.05); padding:4px 10px; border-radius:15px; font-size:10px; font-weight:700;">${t}</span>`; });
-
-    // 3. 左右滑動展示圖 (3張)
+    
+    // 滑動相簿
     const slider = document.getElementById('u-slider');
     slider.innerHTML = "";
-    const imgs = [d["產品圖1"], d["產品圖2"], d["產品圖3"]]; // 假設欄位名
-    imgs.forEach(src => { if(src) slider.innerHTML += `<img src="${src}" class="product-img">`; });
+    const pImgs = (d["產品或品牌或活動照片最多3張（內容區插圖）"] || "").split("\n");
+    pImgs.forEach(img => { if(img) slider.innerHTML += `<img src="${img}" class="product-img">`; });
 
-    // 4. 地址自動導航
+    // 自動導航
     const addr = d["影音平台 3（或地址）"];
-    if(addr && (addr.includes("市") || addr.includes("路"))) {
-      document.getElementById('u-map').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
-    }
-
-    // 5. 自動切換方案
-    const isPremium = d["請選擇製作方案？"] === "b.精品設計款";
-    document.body.className = `mode-${isPremium ? 'premium' : 'free'} ${isPremium ? 'p4' : 'color-1'}`;
+    if(addr) document.getElementById('u-map').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
 
   } catch(e) { alert("讀取異常"); }
 }
 
-window.onload = () => { /* 預設載入 logic */ };
+window.setMode = (m) => {
+  document.body.className = document.body.className.replace(/mode-\w+/g, '').trim();
+  document.body.classList.add(`mode-${m}`);
+  document.getElementById('free-ui').style.display = m==='free' ? 'block' : 'none';
+  document.getElementById('premium-ui').style.display = m==='premium' ? 'block' : 'none';
+};
+window.setColor = (c, el) => {
+  document.body.className = document.body.className.replace(/(color-\d|p\d)/g, '').trim();
+  document.body.classList.add(c);
+};
