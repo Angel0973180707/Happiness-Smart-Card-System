@@ -56,7 +56,7 @@ async function loadV382Data() {
       document.getElementById('u-service').innerText = data.服務項目 || "";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch(e) { console.error("雲端載入失敗"); }
+  } catch(e) { console.error("雲端同步異常"); }
 }
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
