@@ -1,85 +1,67 @@
-/* --- 幸福智慧名片 V382.9 質感巔峰版 --- */
+/* --- 幸福智慧名片 V382.9.1 旗艦版 --- */
 :root { --font: 'Noto Sans TC', sans-serif; }
 
-/* 🎨 自由搭配：亮色定義 */
+/* 🎨 自由搭配款 */
 .mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-/* 🌿 精品設計：材質性格化定義 (P1-P7) */
-
-/* P1: 墨綠 - 高級皮革 (Premium Leather) */
+/* 🌿 精品設計款 (P1-P7) 材質差異化 */
+/* P1: 酒紅 - 絲絨紋理 */
 .mode-premium.p1 { 
-  --p:#1a3028; --bg:#f0f2f1; --card-bg:#1a3028; --text:#e0e7e5; 
-  --fx-img: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
-  --fx-op: 0.15; --fx-blend: overlay;
+  --p:#722f37; --bg:#f8f4f4; --card-bg:#722f37; --text:#f5e6e8; 
+  --fx-img: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 80%);
+  --fx-op: 0.4; --fx-blend: screen;
 }
-
-/* P2: 深海藍 - 磨砂天鵝絨 (Velvet Matte) */
+/* P2: 深藍 - 磨砂顆粒 */
 .mode-premium.p2 { 
   --p:#1c2e42; --bg:#eef1f5; --card-bg:#1c2e42; --text:#ffffff; 
-  --fx-img: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08) 0%, transparent 60%);
-  --fx-op: 0.6; --fx-blend: screen;
+  --fx-img: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --fx-op: 0.1;
 }
+/* P3: 晨霧紫 - 毛玻璃 */
+.mode-premium.p3 { --p:#5e548e; --bg:#f4f3f7; --card-bg:#5e548e; --text:#ffffff; --blur: blur(15px); }
 
-/* P3: 晨霧紫 - 毛玻璃 (Frosted Glass) */
-.mode-premium.p3 { 
-  --p:#5e548e; --bg:#f4f3f7; --card-bg:#5e548e; --text:#ffffff; 
-  --blur: blur(18px); --fx-img: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 100%);
-  --fx-op: 0.3;
-}
-
-/* P4: 晶綻金 - 金箔玻璃感修正 (不再突兀死亮) */
+/* P4: 金箔款 - 平滑金屬感 (移除凹凸) */
 .mode-premium.p4 { 
   --p:#bf953f; --bg:#f9f7f0; 
-  /* 多段式流金背景 */
   --card-bg: linear-gradient(135deg, #bf953f 0%, #fcf6ba 45%, #b38728 50%, #fbf5b7 55%, #aa771c 100%); 
-  --text:#4d3700; --blur: blur(10px); 
-  /* 柔和的漫反射光，取代死高光 */
-  --fx-img: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.5) 0%, transparent 70%);
-  --fx-op: 0.35; --fx-blend: soft-light;
+  --text:#4d3700; --fx-op: 0.3; --fx-blend: soft-light;
+  --fx-img: linear-gradient(90deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%);
 }
 
-/* P5: 亞麻灰藍 - 編織質感 (Woven Textile) */
-.mode-premium.p5 { 
-  --p:#7a94a6; --bg:#f4f7f9; --card-bg:#7a94a6; --text:#ffffff; 
-  --fx-img: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 4px);
-  --fx-op: 0.2;
-}
+body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; padding-bottom: 40px; }
 
-/* 🔴 通用結構佈局 (封存版本基準) */
-body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; }
-
+/* 🔴 行政面板：與截圖同步的小方塊設計 */
 #admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 15px 0; z-index: 100; }
+.control-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 0; }
 .btn-neo { padding: 6px 12px; border-radius: 10px; border: 1.5px solid #eee; background: #fff; font-size: 11px; font-weight: 900; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
 .btn-neo.active { background: #2d3436; color: #fff; border-color: #2d3436; }
 
+/* 🔴 通用卡片容器 */
 .card { width: 92%; max-width: 380px; height: 660px; background: var(--card-bg) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.06); transition: 0.5s; }
 
-/* 💎 精品專屬名片留邊與排版 */
+/* 💎 精品專屬名片留邊感 */
 .mode-premium .card {
   width: 86%; height: 580px; margin: 30px auto;
-  border: 12px solid #ffffff; box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+  border: 12px solid #ffffff; box-shadow: 0 25px 50px rgba(0,0,0,0.12);
   backdrop-filter: var(--blur, none);
 }
 .mode-premium .banner { height: 40px; background: transparent; }
 .mode-premium .dynamic-mask { display: none !important; }
 .mode-premium .avatar-wrap { top: 40px; left: 25px; justify-content: flex-start; }
-.mode-premium .avatar-circle { width: 85px; height: 85px; border: 2.5px solid rgba(255,255,255,0.3); }
 .mode-premium .info-scroll { padding: 90px 25px 25px; text-align: left; }
-.mode-premium .name { font-size: 26px; font-weight: 900; border-bottom: 2px solid rgba(255,255,255,0.2); display: inline-block; padding-bottom: 8px; margin-bottom: 12px; }
+.mode-premium .name { font-size: 26px; font-weight: 900; border-bottom: 2px solid rgba(255,255,255,0.2); display: inline-block; padding-bottom: 8px; }
 
-/* 🔴 質感層與紙感防髒優化 */
+/* 🔴 質感層與版號 */
 .premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: var(--fx-blend, overlay); }
-.paper-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; mix-blend-mode: multiply; }
+.version-tag { font-size: 10px; color: rgba(128,128,128,0.5); position: absolute; bottom: 15px; right: 25px; font-family: monospace; }
 
-/* 自由款極輕量質感 */
-.mode-free .paper-overlay { opacity: 0.08; } 
+/* 紙感加強 */
+.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.1; z-index: 5; mix-blend-mode: multiply; }
 .paper-1 .paper-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
-.paper-2 .paper-overlay { background: radial-gradient(#000 15%, transparent 15%) 0 0/6px 6px; }
-.paper-3 .paper-overlay { background: repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 4px); }
 
 /* 🔴 自由款地平線結構 (封存基準) */
 .banner { height: 125px; background: var(--p); position: relative; transition: 0.5s; overflow: visible; }
@@ -88,12 +70,6 @@ body { background: var(--bg); font-family: var(--font); margin: 0; display: flex
 .style-flat .dynamic-mask { background: #fff; height: 10px; border-radius: 0; }
 .style-spot .dynamic-mask { height: 85px; bottom: -84px; background: var(--p); left: 0; width: 100%; clip-path: ellipse(50% 80% at 50% 0%); z-index: 10; }
 
-/* UI 內容 */
-.avatar-wrap { position: absolute; width: 100%; top: 65px; display: flex; justify-content: center; z-index: 30; }
-.avatar-circle { width: 105px; height: 105px; border-radius: 50% !important; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
-.info-scroll { padding: 90px 20px 20px; text-align: center; }
-.content-box { background: rgba(0,0,0,0.02); border-radius: 20px; padding: 18px; margin-bottom: 12px; text-align: left; }
 .dots-row { display: flex; justify-content: center; gap: 12px; margin: 10px 0; }
-.dot, .p-dot { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
+.dot, .p-dot { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.08); transition: 0.2s; }
 .active { border-color: #2d3436 !important; transform: scale(1.1); }
-.btn-cta { background: var(--p); color: #fff; border: none; padding: 12px 40px; border-radius: 40px; font-weight: 900; cursor: pointer; }
