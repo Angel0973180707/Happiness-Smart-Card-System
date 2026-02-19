@@ -1,19 +1,19 @@
-<!-- index.html (V385.3 complete overwrite) -->
+<!-- index.html (V385.4 complete overwrite) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V385.3</title>
+  <title>幸福智慧名片 V385.4</title>
 
-  <link rel="manifest" href="./manifest.json?v=3853" />
+  <link rel="manifest" href="./manifest.json?v=3854" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <link rel="icon" href="./icons/icon-192.png" />
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=3853" />
+  <link rel="stylesheet" href="style.css?v=3854" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
@@ -150,12 +150,12 @@
       </div>
     </div>
 
-    <div class="version-tag" id="versionTag">V385.3</div>
+    <div class="version-tag" id="versionTag">V385.4</div>
   </div>
 
   <!-- ⑤ 後台入口改到版權處：點 3 下輸密碼 -->
   <footer class="foot">
-    <span id="adminEntry" class="foot-entry">© 幸福智慧名片 V385.3</span>
+    <span id="adminEntry" class="foot-entry">© 幸福智慧名片 V385.4</span>
   </footer>
 
   <!-- 原圖檢視 -->
@@ -171,6 +171,17 @@
       <button class="lb-arrow" id="lb-next">›</button>
     </div>
   </div>
+
+  <!-- 文字詳閱 -->
+<div class="info-modal" id="infoModal" aria-hidden="true">
+  <div class="info-card">
+    <div class="info-head">
+      <div class="info-title" id="infoTitle">內容</div>
+      <button class="info-x" id="infoClose">×</button>
+    </div>
+    <div class="info-body" id="infoBody"></div>
+  </div>
+</div>
 
   <!-- 隱形後台 -->
   <div class="admin-modal" id="adminModal">
@@ -211,6 +222,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=3853"></script>
+  <script src="app.js?v=3854"></script>
 </body>
 </html>

@@ -1,9 +1,11 @@
-/* app.js (V385.3 complete overwrite) */
+/* app.js (V385.4 complete overwrite) */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
+  DELIVERY_PAGE: "share.html",
+  ADMIN_PASS: "angel385",
   ADMIN_PASS: "angel", // ⑤ 你要的密碼：可改成你自己的
   OG_IMAGE: "og-card.png", // ⑤ 已上傳 GitHub 的 OG 圖檔
 };
@@ -14,6 +16,23 @@ let galleryUrls = [];
 let galleryIndex = 0;
 
 // ---------- helpers ----------
+function baseDirUrl(){
+  try{
+    const u = new URL(location.href);
+    // ensure trailing slash to directory
+    return new URL("./", u).toString();
+  }catch(e){
+    return "./";
+  }
+}
+function deliveryUrlFor(id){
+  const base = baseDirUrl();
+  const u = new URL(CONFIG.DELIVERY_PAGE, base);
+  u.searchParams.set("id", id);
+  return u.toString();
+}
+
+
 const byId = (id) => document.getElementById(id);
 const safeText = (el, v) => { if(el) el.innerText = (v ?? "").toString(); };
 
@@ -167,14 +186,31 @@ function applyV382(){
 window.goFillForm = ()=> window.open(CONFIG.FORM, "_blank");
 
 // ---------- render ----------
-function setMultiline(el, text){
+function setSectionVisible(id, visible){
+  const el = byId(id);
   if(!el) return;
+  el.style.display = visible ? "" : "none";
+}
+function makeExpandButton(label, title, text){
+  const btn = document.createElement("button");
+  btn.className = "btn-expand";
+  btn.type = "button";
+  btn.innerHTML = `<span>${escapeHtml(label)}</span>`;
+  btn.onclick = ()=> openInfoModal(title, text);
+  return btn;
+}
+
+
+function setMultiline(el, text){
+  if(!el) return { has:false, lines:0, raw:"" };
   const s = String(text||"").trim();
-  const html = s
-    .split(/\r?\n/g)
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => `• ${escapeHtml(line)}`)
+  const lines = s ? s.split(/
+?
+/g).map(x=>x.trim()).filter(Boolean) : [];
+  const html = lines.map(line => `• ${escapeHtml(line)}`).join("<br/>");
+  el.innerHTML = html || "";
+  return { has: !!lines.length, lines: lines.length, raw: s };
+}`)
     .join("<br/>");
   el.innerHTML = html || "";
 }
@@ -385,6 +421,22 @@ function setGalleryActive(i){
   dots.querySelectorAll(".g-dot").forEach((d, idx)=> d.classList.toggle("active", idx===i));
 }
 
+// ---------- info modal ----------
+function openInfoModal(title, text){
+  const m = byId("infoModal");
+  const t = byId("infoTitle");
+  const b = byId("infoBody");
+  if(t) t.innerText = title || "內容";
+  if(b) b.textContent = String(text||"");
+  m?.classList.add("show");
+  m?.setAttribute("aria-hidden","false");
+}
+function closeInfoModal(){
+  const m = byId("infoModal");
+  m?.classList.remove("show");
+  m?.setAttribute("aria-hidden","true");
+}
+
 // ---------- lightbox ----------
 function openLightbox(i){
   if(!galleryUrls.length) return;
@@ -414,30 +466,29 @@ let tapCount = 0;
 let tapTimer = null;
 
 function bindHiddenAdmin(){
-  // ⑤ 改：版權處點 3 下 → 輸密碼 → 開後台
-  const entry = byId("adminEntry");
-  if(entry){
-    entry.addEventListener("click", ()=>{
-      tapCount++;
-      if(tapTimer) clearTimeout(tapTimer);
-      tapTimer = setTimeout(()=> tapCount=0, 800);
+  const vtag = byId("versionTag");
+  if(!vtag) return;
 
-      if(tapCount >= 3){
-        tapCount = 0;
-        const p = prompt("輸入後臺密碼");
-        if(p === null) return;
-        if(String(p).trim() !== CONFIG.ADMIN_PASS){
-          noteAdmin("密碼錯誤。");
-          return;
-        }
-        openAdmin();
+  let t = 0;
+  let timer = null;
+
+  vtag.addEventListener("click", ()=>{
+    t++;
+    if(timer) clearTimeout(timer);
+    timer = setTimeout(()=> t=0, 650);
+
+    if(t >= 3){
+      t = 0;
+      const pass = prompt("輸入後台密碼");
+      if(String(pass||"") !== String(CONFIG.ADMIN_PASS||"")){
+        noteAdmin("密碼錯誤");
+        return;
       }
-    });
-  }
+      openAdmin();
+    }
+  });
 
   byId("adminClose").onclick = closeAdmin;
-  byId("adminBack").onclick = closeAdmin;
-
   byId("adminModal").addEventListener("click", (e)=>{
     if(e.target && e.target.id === "adminModal") closeAdmin();
   });
@@ -451,17 +502,20 @@ function bindHiddenAdmin(){
     location.href = withIdParam(id);
   };
 
-  // ⑦（後台也放）複製名片分享連結
-  byId("adminCopyShare").onclick = async ()=>{
+  byId("adminCopyDelivery").onclick = async ()=>{
     const id = (byId("adminIdInput").value || "").trim() || getIdFromUrl();
-    const url = withIdParam(id);
-    await copyToClipboard(url, "已複製名片連結");
+    const name = (byId("adminNameInput")?.value || "").trim();
+    const url = deliveryUrlFor(id);
+    const pack = name ? `${name}｜${id}
+${url}` : `${id}
+${url}`;
+    await copyToClipboard(pack, "已複製交貨連結");
   };
 
-  // ⑤ 一鍵複製交貨（OG 圖連結）
-  byId("adminCopyDeliver").onclick = async ()=>{
-    const og = buildOgImageUrl();
-    await copyToClipboard(og, "已複製交貨（OG 圖連結）");
+  byId("adminCopyUrl").onclick = async ()=>{
+    const id = (byId("adminIdInput").value || "").trim() || getIdFromUrl();
+    const url = withIdParam(id);
+    await copyToClipboard(url, "已複製名片網址");
   };
 
   byId("adminCopyId").onclick = async ()=>{
@@ -481,8 +535,10 @@ function bindHiddenAdmin(){
 }
 
 function openAdmin(){
+(){
   byId("adminModal")?.classList.add("show");
   byId("adminIdInput").value = getIdFromUrl();
+  byId("adminNameInput") && (byId("adminNameInput").value = String(byId("u-name")?.innerText || "").trim());
   byId("adminNameInput").value = ""; // 只是給你交貨備註用
   noteAdmin("已進入後臺：可複製分享連結 / OG 圖交貨連結。");
 }
@@ -573,11 +629,34 @@ async function loadCardDataFromListAPI(){
 
     safeText(byId("u-name"), name || "（未填姓名）");
     safeText(byId("u-unit"), unit || "");
+    if(!String(unit||"").trim()) byId("u-unit") && (byId("u-unit").style.display="none"); else byId("u-unit") && (byId("u-unit").style.display="");
     safeText(byId("u-slogan"), slogan || "");
+    if(!String(slogan||"").trim()) byId("u-slogan") && (byId("u-slogan").style.display="none"); else byId("u-slogan") && (byId("u-slogan").style.display="");
 
     safeText(byId("u-name-p"), name || "（未填姓名）");
     safeText(byId("u-unit-p"), unit || "");
+    if(!String(unit||"").trim()) byId("u-unit-p") && (byId("u-unit-p").style.display="none"); else byId("u-unit-p") && (byId("u-unit-p").style.display="");
     safeText(byId("u-slogan-p"), slogan || "");
+// 精品：理念標語若過長（>2行或>40字）→ 顯示「閱讀理念標語」按鈕，避免擠到 Logo
+const sloganLines = String(slogan||"").trim().split(/\r?\n/g).filter(Boolean);
+const sloganLong = (sloganLines.length > 2) || (String(slogan||"").trim().length > 40);
+const pSloganEl = byId("u-slogan-p");
+const pMore = byId("p-slogan-more");
+if(state.mode === "premium"){
+  if(sloganLong){
+    if(pSloganEl) pSloganEl.style.display = "none";
+    if(pMore){
+      pMore.style.display = "";
+      pMore.onclick = ()=> openInfoModal("理念標語", String(slogan||""));
+    }
+  }else{
+    if(pSloganEl) pSloganEl.style.display = "";
+    if(pMore) pMore.style.display = "none";
+  }
+}else{
+  if(pMore) pMore.style.display = "none";
+}
+
 
     if(avatar) setImgWithFallback(byId("u-img"), avatar);
     if(logo){
@@ -589,13 +668,38 @@ async function loadCardDataFromListAPI(){
       logoEl.style.display = "none";
     }
 
-    setMultiline(byId("u-service"), service);
-    setMultiline(byId("u-title"), titles);
+    const svcInfo = setMultiline(byId("u-service"), service);
+const titleInfo = setMultiline(byId("u-title"), titles);
+
+// 動態平衡：沒填就自動收起區塊（自由款/精品款都適用）
+setSectionVisible("sec-service", svcInfo.has);
+setSectionVisible("sec-title", titleInfo.has);
+
+// 精品款：超過 2 行 → 變成可點開的金邊立體按鈕（呼吸感）
+if(state.mode === "premium"){
+  if(svcInfo.lines > 2){
+    const box = byId("u-service");
+    box.innerHTML = "";
+    box.appendChild(makeExpandButton("閱讀服務項目", "服務項目", svcInfo.raw));
+  }
+  if(titleInfo.lines > 2){
+    const box = byId("u-title");
+    box.innerHTML = "";
+    box.appendChild(makeExpandButton("閱讀重要頭銜 / 獎銜", "重要頭銜 / 獎銜", titleInfo.raw));
+  }
+}
+
 
     renderQA(idx);
+    // 若兩組 Q&A 都空，仍顯示提示（renderQA 會補預設），所以保持顯示
+    setSectionVisible("sec-qa", true);
+
     renderLinks(idx);
 
-    renderGallery(parseGalleryUrls(idx));
+    const gurls = parseGalleryUrls(idx);
+renderGallery(gurls);
+setSectionVisible("sec-gallery", !!(gurls && gurls.length));
+
 
     const preferStyle = findByIncludes(idx, ["您喜歡的版型"]);
     const preferColor = findByIncludes(idx, ["您喜歡的顏色"]);
@@ -675,6 +779,9 @@ window.addEventListener("load", ()=>{
   });
   byId("lb-prev").onclick = ()=> stepLightbox(-1);
   byId("lb-next").onclick = ()=> stepLightbox(+1);
+
+  byId("infoClose") && (byId("infoClose").onclick = closeInfoModal);
+  byId("infoModal")?.addEventListener("click",(e)=>{ if(e.target && e.target.id==="infoModal") closeInfoModal();});
 
   bindHiddenAdmin();
   bindShareCopy();
