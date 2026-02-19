@@ -7,16 +7,20 @@
  *  - 精品版字形更好、卡片位置不重疊
  */
 
-const APP_VERSION = '385';
+const APP_VERSION = '3851';
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
-  DEFAULT_ID: "TW0001"
+  DEFAULT_ID: "TW0001",
+  // 你的管理用預設 token（給你自己的 TW0001 用；其他客戶交貨時會從後台輸入 token）
+  DEFAULT_TOKEN: "2d0e8ff827044774",
+  ADMIN_PASSWORD: "167777"
 };
 
 let state = { mode: 'free', theme: 'color-1', style: 'arch', paper: 'paper-1' };
 let currentId = CONFIG.DEFAULT_ID;
+let currentToken = '';
 
 function qs(sel){ return document.querySelector(sel); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
@@ -89,6 +93,11 @@ function safeUrl(url){
   // If user pasted naked domain
   if(/^[a-z0-9.-]+\.[a-z]{2,}/i.test(u)) return 'https://' + u;
   return u;
+}
+
+function getTokenFromUrl(){
+  const sp = new URLSearchParams(location.search);
+  return (sp.get('token') || '').trim();
 }
 
 function applyV385(){
@@ -376,35 +385,7 @@ function getIdFromUrl(){
   return CONFIG.DEFAULT_ID;
 }
 
-window.loadByInputId = () => {
-  const el = qs('#id-input');
-  const id = String(el?.value || '').trim();
-  if(!id) return;
-  currentId = id;
-  const u = new URL(location.href);
-  u.searchParams.set('id', id);
-  history.replaceState({}, '', u.toString());
-  loadCard(id);
-};
-
-window.copyShareLink = async () => {
-  const u = new URL(location.href);
-  u.searchParams.set('id', currentId || CONFIG.DEFAULT_ID);
-  const link = u.toString();
-  try{
-    await navigator.clipboard.writeText(link);
-    toast('已複製交貨連結');
-  }catch(e){
-    // fallback
-    const ta = document.createElement('textarea');
-    ta.value = link;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
-    toast('已複製交貨連結');
-  }
-};
+//（loadByInputId / copyShareLink 於下方已改為支援 token + 隱形後台版本）
 
 function toast(msg){
   const d = document.createElement('div');
@@ -430,7 +411,8 @@ async function loadCard(id){
     setText('u-unit','同步中...');
     setText('u-service','正在同步雲端服務項目...');
 
-    const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}`;
+    const tokenParam = (currentToken || '').trim();
+    const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}${tokenParam ? `&token=${encodeURIComponent(tokenParam)}` : ''}`;
     const res = await fetch(url, { cache: 'no-store' });
     const json = await res.json();
 
@@ -482,6 +464,9 @@ async function loadCard(id){
     const input = qs('#id-input');
     if(input && !input.value) input.value = id;
 
+    const tinput = qs('#token-input');
+    if(tinput && !tinput.value) tinput.value = currentToken || '';
+
   }catch(err){
     console.error(err);
     setText('u-name', '讀取失敗');
@@ -489,6 +474,66 @@ async function loadCard(id){
     setText('u-service', '請確認：GAS 是否已部署、工作表欄位是否完整、該 id 是否存在。');
   }
 }
+
+// ---- 隱形後台：三連點版號 -> 密碼 ----
+function setupHiddenAdmin(){
+  const admin = qs('#admin-panel');
+  const trigger = qs('#ver-tag');
+  if(!admin || !trigger) return;
+
+  // 預設隱藏
+  admin.classList.add('admin-hidden');
+
+  let taps = 0;
+  let timer = null;
+  trigger.addEventListener('click', () => {
+    taps++;
+    clearTimeout(timer);
+    timer = setTimeout(()=>{ taps = 0; }, 500);
+    if(taps >= 3){
+      taps = 0;
+      const pw = prompt('輸入後台密碼');
+      if(String(pw||'').trim() === CONFIG.ADMIN_PASSWORD){
+        admin.classList.toggle('admin-hidden');
+        toast(admin.classList.contains('admin-hidden') ? '後台已隱藏' : '後台已開啟');
+      }else{
+        toast('密碼錯誤');
+      }
+    }
+  });
+}
+
+// ---- 交貨連結：含 id + token（若有） ----
+window.copyShareLink = async function(){
+  const id = (qs('#id-input')?.value || currentId || '').trim();
+  const token = (qs('#token-input')?.value || currentToken || '').trim();
+  const base = location.origin + location.pathname;
+  const url = `${base}?id=${encodeURIComponent(id)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+  try{
+    await navigator.clipboard.writeText(url);
+    toast('已複製交貨連結');
+  }catch(e){
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    toast('已複製交貨連結');
+  }
+};
+
+window.loadByInputId = () => {
+  const id = String(qs('#id-input')?.value || '').trim();
+  const token = String(qs('#token-input')?.value || '').trim();
+  if(!id){ toast('請輸入序號'); return; }
+  currentId = id;
+  currentToken = token;
+  const base = location.origin + location.pathname;
+  history.replaceState({},'', `${base}?id=${encodeURIComponent(currentId)}${currentToken?`&token=${encodeURIComponent(currentToken)}`:''}`);
+  loadCard(currentId);
+};
 
 // ---- Service Worker registration (cache-safe) ----
 async function registerSW(){
@@ -504,5 +549,11 @@ window.addEventListener('load', () => {
   applyV385();
   registerSW();
   currentId = getIdFromUrl();
+  currentToken = getTokenFromUrl();
+  // 如果是你的預設名片且網址沒帶 token，就自動補上（避免後端 token 驗證擋住）
+  if(!currentToken && currentId === CONFIG.DEFAULT_ID){
+    currentToken = CONFIG.DEFAULT_TOKEN;
+  }
+  setupHiddenAdmin();
   loadCard(currentId);
 });

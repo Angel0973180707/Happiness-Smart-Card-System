@@ -1,5 +1,5 @@
-/* Angel Card Service Worker — V385 (cache-safe) */
-const VERSION = '385.0';
+/* Angel Card Service Worker — V385.1 (cache-safe) */
+const VERSION = '385.1';
 const CACHE_NAME = `angel-card-v${VERSION.replace(/\./g,'_')}`;
 const CORE_ASSETS = ['./','./index.html','./style.css','./app.js','./manifest.json'];
 
