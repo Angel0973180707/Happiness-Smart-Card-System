@@ -1,5 +1,3 @@
-/** 幸福智慧名片 V382.7 - 穩定掛載版 **/
-
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
@@ -8,7 +6,6 @@ const CONFIG = {
 
 let state = { mode: 'free', theme: 'color-1', style: 'arch', paper: 'paper-1' };
 
-// 🔵 核心：強制掛載至全域
 window.setV382 = function(mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
@@ -38,18 +35,14 @@ window.setV382Paper = function(paper, el) {
 function applyV382() {
   const isFree = state.mode === 'free';
   const controlPanel = document.getElementById('free-controls');
-  if (controlPanel) {
-    controlPanel.style.display = isFree ? 'block' : 'none';
-  }
+  if (controlPanel) controlPanel.style.display = isFree ? 'block' : 'none';
 
-  // 重構 Body Class
   const classList = [
     `mode-${state.mode}`,
     state.theme,
     isFree ? `style-${state.style}` : '',
     isFree ? state.paper : ''
   ];
-  
   document.body.className = classList.filter(Boolean).join(' ');
   updateThemeColor();
 }
@@ -61,10 +54,10 @@ async function loadV382Data() {
     if(data) {
       document.getElementById('u-name').innerText = data.姓名 || "小天使笑長";
       document.getElementById('u-unit').innerText = data.單位 || "幸福智慧教養館";
-      document.getElementById('u-service').innerText = data.服務項目 || "載入中...";
+      document.getElementById('u-service').innerText = data.服務項目 || "";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch(e) { console.error("資料載入失敗"); }
+  } catch(e) { console.error("資料載入異常"); }
 }
 
 function updateThemeColor() {
@@ -73,9 +66,4 @@ function updateThemeColor() {
 }
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
-
-// 初始化
-window.onload = () => {
-  loadV382Data();
-  applyV382();
-};
+window.onload = () => { loadV382Data(); applyV382(); };
