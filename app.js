@@ -1,573 +1,508 @@
-/* =========================================================
- * 幸福智慧名片｜app.js（V384.2｜Complete Overwrite）
- * ✅ GAS v1.1 action=list：從整表撈出指定 id
- * ✅ 欄位名容錯：去引號/換行/零寬字元
- * ✅ 功能：產品照左右滑動 + 點全圖、影音/社群/聯繫矩陣、Q&A
- * ========================================================= */
+/**
+ * 幸福智慧名片 V385 — 完整覆蓋版
+ * 目標：
+ *  - 圖片都能進來（支援 Google Drive open?id / file/d / uc）
+ *  - 影音/聯繫/社群資料都能映射（30+ 欄位）
+ *  - 作品照左右滑動 + 點開全圖
+ *  - 精品版字形更好、卡片位置不重疊
+ */
+
+const APP_VERSION = '385';
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
-  ANGEL: "TW0001"
+  DEFAULT_ID: "TW0001"
 };
 
-let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
+let state = { mode: 'free', theme: 'color-1', style: 'arch', paper: 'paper-1' };
+let currentId = CONFIG.DEFAULT_ID;
 
-// ------------------------ helpers ------------------------
-function byId_(id){ return document.getElementById(id); }
+function qs(sel){ return document.querySelector(sel); }
+function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 
-function safeText_(el, text){
-  if (!el) return;
-  el.innerText = (text === null || text === undefined) ? "" : String(text);
+function normKey(k){
+  return String(k || '')
+    .replace(/\u200B/g,'')
+    .replace(/"/g,'')
+    .replace(/[\n\r\t]/g,'')
+    .replace(/\s+/g,'')
+    .trim()
+    .toLowerCase();
 }
 
-function getIdFromUrl_() {
-  try {
-    const u = new URL(location.href);
-    return (u.searchParams.get("id") || CONFIG.ANGEL || "TW0001").trim();
-  } catch (e) {
-    return (CONFIG.ANGEL || "TW0001").trim();
-  }
-}
-
-function stripZeroWidth_(s){
-  return String(s || "").replace(/[\u200B-\u200D\uFEFF]/g, "");
-}
-
-function normKey_(s){
-  let t = stripZeroWidth_(s);
-  t = t.replace(/"/g, "");
-  t = t.replace(/\r?\n/g, " ");
-  t = t.replace(/\s+/g, " ");
-  t = t.trim();
-  return t;
-}
-
-function buildRowIndex_(rowObj){
-  const idx = new Map();
-  Object.keys(rowObj || {}).forEach(k => {
-    const nk = normKey_(k);
-    if (!idx.has(nk)) idx.set(nk, rowObj[k]);
-  });
-  return idx;
-}
-
-function findByIncludes_(indexMap, patterns){
-  if (!indexMap || !(indexMap instanceof Map)) return "";
-  const keys = Array.from(indexMap.keys());
-  for (const p of patterns) {
-    const np = normKey_(p);
-    for (const k of keys) {
-      if (k.includes(np)) {
-        const v = indexMap.get(k);
-        if (v !== null && v !== undefined && String(v).trim() !== "") return v;
+function pick(data, patterns, fallback=''){
+  if(!data) return fallback;
+  const keys = Object.keys(data);
+  for(const p of patterns){
+    const pn = normKey(p);
+    // exact / contains
+    for(const k of keys){
+      const kn = normKey(k);
+      if(kn === pn || kn.includes(pn)) {
+        const v = data[k];
+        if(v !== undefined && v !== null && String(v).trim() !== '') return v;
       }
     }
   }
-  return "";
+  return fallback;
 }
 
-function rowToObject_(row, headers) {
-  if (!row) return null;
-  if (typeof row === "object" && !Array.isArray(row)) return row;
-  if (Array.isArray(row) && Array.isArray(headers) && headers.length) {
-    const obj = {};
-    headers.forEach((h, i) => { obj[String(h)] = row[i]; });
-    return obj;
-  }
+function splitLines(v){
+  const s = String(v || '').trim();
+  if(!s) return [];
+  return s.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+}
+
+function splitByCommaOrNewline(v){
+  const s = String(v || '').trim();
+  if(!s) return [];
+  return s.split(/[\n,]+/).map(x=>x.trim()).filter(Boolean);
+}
+
+function extractDriveId(url){
+  const u = String(url||'').trim();
+  if(!u) return null;
+  // open?id=
+  let m = u.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if(m) return m[1];
+  // file/d/ID/
+  m = u.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})\//);
+  if(m) return m[1];
+  // uc?id=
+  m = u.match(/\/uc\?[^#]*id=([a-zA-Z0-9_-]{10,})/);
+  if(m) return m[1];
   return null;
 }
 
-// ------------------------ Drive image ------------------------
-function extractDriveId_(url) {
-  const s = String(url || "").trim();
-  if (!s) return "";
-  const m1 = s.match(/[?&]id=([^&]+)/i);
-  const m2 = s.match(/\/d\/([^/]+)/i);
-  const m3 = s.match(/\/file\/d\/([^/]+)/i);
-  if (m1) return m1[1];
-  if (m3) return m3[1];
-  if (m2) return m2[1];
-  return "";
+function toDriveView(url){
+  const id = extractDriveId(url);
+  if(!id) return String(url||'').trim();
+  return `https://drive.google.com/uc?export=view&id=${id}`;
 }
 
-function driveImageCandidates_(url) {
-  const raw = String(url || "").trim();
-  const id = extractDriveId_(raw);
-  if (!id) return [raw];
-  return [
-    `https://drive.google.com/uc?export=view&id=${id}`,
-    `https://drive.google.com/thumbnail?id=${id}&sz=w1200`,
-    `https://lh3.googleusercontent.com/d/${id}`,
-    raw
-  ];
+function safeUrl(url){
+  const u = String(url||'').trim();
+  if(!u) return '';
+  // Allow tel/mailto/https/http/line/wechat
+  if(/^mailto:|^tel:|^https?:\/\//i.test(u)) return u;
+  // If user pasted naked domain
+  if(/^[a-z0-9.-]+\.[a-z]{2,}/i.test(u)) return 'https://' + u;
+  return u;
 }
 
-function setImgWithFallback_(imgEl, url) {
-  if (!imgEl) return;
-  const candidates = driveImageCandidates_(url);
-  let idx = 0;
+function applyV385(){
+  const isFree = state.mode === 'free';
+  const controlPanel = qs('#free-controls');
+  if (controlPanel) controlPanel.style.display = isFree ? 'block' : 'none';
 
-  const tryNext = () => {
-    if (idx >= candidates.length) return;
-    imgEl.src = candidates[idx++];
-  };
-
-  imgEl.onerror = () => tryNext();
-  tryNext();
-}
-
-// ------------------------ UI controls ------------------------
-window.setV382 = function(mode, theme, el) {
-  state.mode = mode;
-  state.theme = theme;
-  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
-  if (el) el.classList.add("active");
-  applyV382();
-};
-
-window.setV382Style = function(style, el) {
-  state.style = style;
-  if (el && el.parentElement) {
-    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
-    el.classList.add("active");
-  }
-  applyV382();
-};
-
-window.setV382Paper = function(paper, el) {
-  state.paper = paper;
-  if (el && el.parentElement) {
-    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
-    el.classList.add("active");
-  }
-  applyV382();
-};
-
-function applyV382() {
-  const isFree = state.mode === "free";
-  const controlPanel = byId_("free-controls");
-  if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
-  const classList = [
+  const cls = [
     `mode-${state.mode}`,
     state.theme,
-    isFree ? `style-${state.style}` : "",
-    isFree ? state.paper : ""
-  ];
-  document.body.className = classList.filter(Boolean).join(" ");
+    isFree ? `style-${state.style}` : '',
+    isFree ? state.paper : ''
+  ].filter(Boolean).join(' ');
+  document.body.className = cls;
 }
 
-window.goFillForm = () => window.open(CONFIG.FORM, "_blank');
+window.setV385 = function(mode, theme, el){
+  state.mode = mode;
+  state.theme = theme;
+  qsa('.dot,.p-dot').forEach(d => d.classList.remove('active'));
+  if(el) el.classList.add('active');
+  applyV385();
+};
 
-// ------------------------ link helpers ------------------------
-function normalizeUrl_(s){
-  const v = String(s || "").trim();
-  if (!v) return "";
-  if (/^https?:\/\//i.test(v)) return v;
-  // allow line.me, www, etc.
-  if (v.startsWith("www.")) return "https://" + v;
-  if (v.startsWith("line.me/") || v.startsWith("lin.ee/")) return "https://" + v;
-  if (v.startsWith("mailto:") || v.startsWith("tel:")) return v;
-  // treat as plain
-  return v;
+window.setV385Style = function(style, el){
+  state.style = style;
+  if(el && el.parentElement){
+    el.parentElement.querySelectorAll('.btn-neo').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+  applyV385();
+};
+
+window.setV385Paper = function(paper, el){
+  state.paper = paper;
+  if(el && el.parentElement){
+    el.parentElement.querySelectorAll('.btn-neo').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+  applyV385();
+};
+
+// Backward compatibility (你 HTML 若還有 setV382)
+window.setV382 = window.setV385;
+window.setV382Style = window.setV385Style;
+window.setV382Paper = window.setV385Paper;
+
+window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
+
+function setText(id, text){
+  const el = qs('#'+id);
+  if(!el) return;
+  el.textContent = text;
 }
 
-function isProbablyAddress_(s){
-  const v = String(s || "").trim();
-  if (!v) return false;
-  if (/^https?:\/\//i.test(v)) return false;
-  // 台灣地址常見特徵：市/區/路/街/號
-  return /[市縣區鄉鎮村里路街大道巷弄號樓]/.test(v);
+function setHtml(id, html){
+  const el = qs('#'+id);
+  if(!el) return;
+  el.innerHTML = html;
 }
 
-function mapUrlFromAddress_(addr){
-  const q = encodeURIComponent(String(addr || "").trim());
-  return `https://www.google.com/maps/search/?api=1&query=${q}`;
+function setShow(id, yes){
+  const el = qs('#'+id);
+  if(!el) return;
+  el.style.display = yes ? '' : 'none';
 }
 
-function iconBtn_(href, iconClass, label){
-  const a = document.createElement("a");
-  a.className = "icon-btn";
-  a.href = href;
-  a.target = "_blank";
-  a.rel = "noopener";
-  a.innerHTML = `<i class="${iconClass}"></i><span>${label}</span>`;
-  return a;
+function setLogo(url){
+  const img = qs('#u-logo');
+  const box = qs('.logo-float');
+  const u = safeUrl(url);
+  if(!img || !box) return;
+  if(!u){ box.style.display = 'none'; img.removeAttribute('src'); return; }
+  img.src = toDriveView(u);
+  box.style.display = 'block';
 }
 
-// ------------------------ Lightbox ------------------------
-function setupLightbox_(){
-  const lb = byId_("lightbox");
-  const img = byId_("lb-img");
-  const closeBtn = byId_("lb-close");
-  const backdrop = byId_("lb-backdrop");
-  const close = () => { if (lb) lb.style.display = "none"; if (img) img.src = ""; };
+function setAvatar(url){
+  const img = qs('#u-img');
+  if(!img) return;
+  const u = safeUrl(url);
+  if(!u){ img.removeAttribute('src'); return; }
+  img.src = toDriveView(u);
+  img.onerror = () => { /* keep circle */ };
+}
 
-  if (closeBtn) closeBtn.addEventListener("click", close);
-  if (backdrop) backdrop.addEventListener("click", close);
-  document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") close(); });
+function parseLineLink(v){
+  // 允許「第一行連結，第二行名稱」
+  const lines = splitLines(v);
+  if(lines.length === 0) return null;
+  const href = safeUrl(lines[0]);
+  const label = (lines[1] || '').trim();
+  return { href, label };
+}
 
-  return {
-    open: (src) => {
-      if (!lb || !img) return;
-      img.src = src;
-      lb.style.display = "block";
+function makeTile({icon, title, href, kind}){
+  if(!href) return '';
+  const safe = safeUrl(href);
+
+  // Special: address -> maps search
+  let finalHref = safe;
+  if(kind === 'map'){
+    finalHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(href)}`;
+  }
+  const t = title || '';
+  const ic = icon || 'fa-link';
+
+  return `
+    <div class="link-tile" role="button" tabindex="0" onclick="window.openLink('${encodeURIComponent(finalHref)}')" onkeydown="if(event.key==='Enter'){window.openLink('${encodeURIComponent(finalHref)}')}">
+      <i class="fa-solid ${ic}"></i>
+      <div class="t">${escapeHtml(t)}</div>
+    </div>
+  `;
+}
+
+function escapeHtml(s){
+  return String(s||'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+}
+
+window.openLink = (encoded) => {
+  try{
+    const href = decodeURIComponent(encoded);
+    window.open(href, '_blank');
+  }catch(e){}
+};
+
+function renderLinks(data){
+  const matrix = qs('#link-matrix');
+  if(!matrix) return;
+
+  const wechat = pick(data, ['微信ID','微信id','wechatid'], '');
+  const v1 = pick(data, ['影音平台1','影音平台 1'], '');
+  const v2 = pick(data, ['影音平台2','影音平台 2'], '');
+  const v3 = pick(data, ['影音平台3','影音平台 3','影音平台3（或地址）','影音平台 3（或地址）'], '');
+
+  const s1 = pick(data, ['社群平台1','社群平台 1'], '');
+  const s2 = pick(data, ['社群平台2','社群平台 2'], '');
+  const s3 = pick(data, ['社群平台3','社群平台 3'], '');
+
+  const lineDmRaw = pick(data, ['私訊LINE連結','私訊 LINE 連結'], '');
+  const lineOa = pick(data, ['LINE官方帳號連結','LINE 官方帳號連結'], '');
+  const email = pick(data, ['一鍵聯繫Email','Email','一鍵聯繫 Email'], '');
+  const phone = pick(data, ['一鍵聯繫電話','電話','一鍵聯繫 電話'], '');
+
+  // line DM supports two lines (href + label)
+  const lineDm = parseLineLink(lineDmRaw);
+
+  const tiles = [];
+
+  if(lineOa) tiles.push(makeTile({icon:'fa-comments', title:'LINE官帳', href: lineOa}));
+  if(lineDm && lineDm.href) tiles.push(makeTile({icon:'fa-paper-plane', title: lineDm.label || '私訊LINE', href: lineDm.href}));
+
+  if(phone) tiles.push(makeTile({icon:'fa-phone', title:'電話', href: phone.startsWith('tel:')?phone:`tel:${String(phone).trim()}`}));
+  if(email) tiles.push(makeTile({icon:'fa-envelope', title:'Email', href: email.startsWith('mailto:')?email:`mailto:${String(email).trim()}`}));
+
+  if(wechat) tiles.push(makeTile({icon:'fa-weixin', title:'微信', href: `https://www.google.com/search?q=${encodeURIComponent('WeChat '+wechat)}`}));
+
+  // Video/social URL heuristics
+  if(v1) tiles.push(makeTile({icon:'fa-youtube', title:'影音1', href: v1}));
+  if(v2) tiles.push(makeTile({icon:'fa-tiktok', title:'影音2', href: v2}));
+
+  // v3 might be address (no protocol, contains 市/區/路/號 etc)
+  if(v3){
+    const s = String(v3).trim();
+    const looksLikeUrl = /^https?:\/\//i.test(s) || /^[a-z0-9.-]+\.[a-z]{2,}/i.test(s);
+    const looksLikeAddr = /[市縣區鄉鎮路街巷弄號樓]/.test(s) && !looksLikeUrl;
+    if(looksLikeAddr){
+      tiles.push(makeTile({icon:'fa-location-dot', title:'導航', href: s, kind:'map'}));
+    }else{
+      tiles.push(makeTile({icon:'fa-link', title:'連結3', href: s}));
     }
-  };
+  }
+
+  if(s1) tiles.push(makeTile({icon:'fa-facebook', title:'社群1', href: s1}));
+  if(s2) tiles.push(makeTile({icon:'fa-instagram', title:'社群2', href: s2}));
+  if(s3) tiles.push(makeTile({icon:'fa-link', title:'社群3', href: s3}));
+
+  matrix.innerHTML = tiles.join('');
 }
 
-// ------------------------ Slider ------------------------
-function setupSlider_(trackEl, dotsEl){
-  let index = 0;
-  let total = 0;
-  let startX = 0;
-  let currentX = 0;
-  let dragging = false;
-
-  const setIndex = (i) => {
-    if (total <= 0) return;
-    index = Math.max(0, Math.min(total - 1, i));
-    trackEl.style.transform = `translateX(${-index * 100}%)`;
-    if (dotsEl) {
-      dotsEl.querySelectorAll(".dot2").forEach((d, di) => d.classList.toggle("active", di === index));
-    }
-  };
-
-  const onStart = (x) => {
-    dragging = true;
-    startX = x;
-    currentX = x;
-    trackEl.style.transition = "none";
-  };
-
-  const onMove = (x) => {
-    if (!dragging) return;
-    currentX = x;
-    const dx = currentX - startX;
-    const pct = (dx / trackEl.clientWidth) * 100;
-    trackEl.style.transform = `translateX(calc(${-index * 100}% + ${pct}%))`;
-  };
-
-  const onEnd = () => {
-    if (!dragging) return;
-    dragging = false;
-    trackEl.style.transition = "";
-    const dx = currentX - startX;
-    const threshold = 40;
-    if (dx < -threshold) setIndex(index + 1);
-    else if (dx > threshold) setIndex(index - 1);
-    else setIndex(index);
-  };
-
-  trackEl.addEventListener("touchstart", (e)=> onStart(e.touches[0].clientX), {passive:true});
-  trackEl.addEventListener("touchmove", (e)=> onMove(e.touches[0].clientX), {passive:true});
-  trackEl.addEventListener("touchend", onEnd);
-
-  // mouse fallback
-  trackEl.addEventListener("mousedown", (e)=> { e.preventDefault(); onStart(e.clientX); });
-  window.addEventListener("mousemove", (e)=> onMove(e.clientX));
-  window.addEventListener("mouseup", onEnd);
-
-  return {
-    mount: (n) => { total = n; setIndex(0); }
-  };
+function renderBadges(titlesRaw){
+  const arr = splitByCommaOrNewline(titlesRaw);
+  const box = qs('#u-titles');
+  if(!box) return;
+  if(arr.length === 0){
+    box.innerHTML = '';
+    setShow('u-titles', false);
+    return;
+  }
+  const html = arr.slice(0, 8).map(t => `<span class="badge"><i class="fa-solid fa-award"></i>${escapeHtml(t)}</span>`).join('');
+  box.innerHTML = html;
+  setShow('u-titles', true);
 }
 
-// ------------------------ main loader ------------------------
-async function loadCard_() {
-  const id = getIdFromUrl_();
+function renderProducts(productRaw){
+  const urls = splitByCommaOrNewline(productRaw).slice(0, 3).map(safeUrl).filter(Boolean);
+  const sec = qs('#product-section');
+  const slider = qs('#product-slider');
+  if(!sec || !slider) return;
 
-  const nameEl = byId_("u-name");
-  const unitEl = byId_("u-unit");
-  const imgEl = byId_("u-img");
-  const sloganEl = byId_("u-slogan");
-  const titlesEl = byId_("u-titles");
-  const serviceEl = byId_("u-service");
+  if(urls.length === 0){
+    sec.style.display = 'none';
+    slider.innerHTML = '';
+    return;
+  }
 
-  safeText_(nameEl, "載入中...");
-  safeText_(unitEl, "同步中...");
+  sec.style.display = '';
+  slider.innerHTML = urls.map((u, idx) => {
+    const src = toDriveView(u);
+    const cap = `作品 ${idx+1}`;
+    return `
+      <div class="slide">
+        <img src="${src}" alt="${cap}" loading="lazy" onclick="window.openLightbox('${encodeURIComponent(src)}','${encodeURIComponent(cap)}')" />
+        <div class="cap">${cap}　<span style="opacity:.65;">點圖看全圖</span></div>
+      </div>
+    `;
+  }).join('');
+}
 
-  try {
-    const res = await fetch(`${CONFIG.GAS}?action=list`, { cache: "no-store" });
+window.openLightbox = (srcEnc, capEnc) => {
+  const lb = qs('#lightbox');
+  const img = qs('#lb-img');
+  const cap = qs('#lb-cap');
+  if(!lb || !img) return;
+  const src = decodeURIComponent(srcEnc);
+  const title = capEnc ? decodeURIComponent(capEnc) : '';
+  img.src = src;
+  if(cap) cap.textContent = title || '';
+  lb.classList.add('show');
+  lb.setAttribute('aria-hidden','false');
+};
+
+window.closeLightbox = () => {
+  const lb = qs('#lightbox');
+  const img = qs('#lb-img');
+  if(lb) {
+    lb.classList.remove('show');
+    lb.setAttribute('aria-hidden','true');
+  }
+  if(img) img.removeAttribute('src');
+};
+
+function renderQA(q1, a1, q2, a2){
+  const sec = qs('#qa-section');
+  const box = qs('#qa-box');
+  if(!sec || !box) return;
+
+  const items = [];
+  if(String(q1||'').trim() || String(a1||'').trim()) items.push({q:q1, a:a1});
+  if(String(q2||'').trim() || String(a2||'').trim()) items.push({q:q2, a:a2});
+
+  if(items.length === 0){
+    sec.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  sec.style.display = '';
+  box.innerHTML = items.map((it, idx) => `
+    <div class="qa-item">
+      <div class="qa-q" onclick="window.toggleQA(${idx})">
+        <div>${escapeHtml(it.q || '常見問題')}</div>
+        <div style="opacity:.7;"><i class="fa-solid fa-chevron-down"></i></div>
+      </div>
+      <div class="qa-a" id="qa-a-${idx}">${escapeHtml(it.a || '')}</div>
+    </div>
+  `).join('');
+}
+
+window.toggleQA = (idx) => {
+  const el = qs('#qa-a-'+idx);
+  if(!el) return;
+  const show = (el.style.display !== 'block');
+  el.style.display = show ? 'block' : 'none';
+};
+
+function getIdFromUrl(){
+  const u = new URL(location.href);
+  const id = (u.searchParams.get('id') || '').trim();
+  if(id) return id;
+  return CONFIG.DEFAULT_ID;
+}
+
+window.loadByInputId = () => {
+  const el = qs('#id-input');
+  const id = String(el?.value || '').trim();
+  if(!id) return;
+  currentId = id;
+  const u = new URL(location.href);
+  u.searchParams.set('id', id);
+  history.replaceState({}, '', u.toString());
+  loadCard(id);
+};
+
+window.copyShareLink = async () => {
+  const u = new URL(location.href);
+  u.searchParams.set('id', currentId || CONFIG.DEFAULT_ID);
+  const link = u.toString();
+  try{
+    await navigator.clipboard.writeText(link);
+    toast('已複製交貨連結');
+  }catch(e){
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = link;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    toast('已複製交貨連結');
+  }
+};
+
+function toast(msg){
+  const d = document.createElement('div');
+  d.textContent = msg;
+  d.style.position='fixed';
+  d.style.left='50%';
+  d.style.bottom='18px';
+  d.style.transform='translateX(-50%)';
+  d.style.padding='10px 14px';
+  d.style.borderRadius='14px';
+  d.style.background='rgba(0,0,0,0.70)';
+  d.style.color='#fff';
+  d.style.fontWeight='900';
+  d.style.zIndex='99999';
+  d.style.fontSize='12px';
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(), 1200);
+}
+
+async function loadCard(id){
+  try{
+    setText('u-name','載入中...');
+    setText('u-unit','同步中...');
+    setText('u-service','正在同步雲端服務項目...');
+
+    const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}`;
+    const res = await fetch(url, { cache: 'no-store' });
     const json = await res.json();
-    if (!json || json.ok !== true) throw new Error("GAS return not ok");
 
-    const headers = Array.isArray(json.headers) ? json.headers : [];
-    const rows = Array.isArray(json.rows) ? json.rows : [];
-
-    let rowObj = null;
-    for (const r of rows) {
-      const obj = rowToObject_(r, headers);
-      if (!obj) continue;
-      const rid = String(obj.id || obj.ID || obj["id"] || obj["ID"] || "").trim();
-      if (rid === id) { rowObj = obj; break; }
-    }
-    if (!rowObj) throw new Error("Row not found");
-
-    const idx = buildRowIndex_(rowObj);
-
-    const name = findByIncludes_(idx, ["姓名（名片大標題）", "姓名"]);
-    const unit = findByIncludes_(idx, ["單位名稱", "單位"]);
-    const slogan = findByIncludes_(idx, ["理念標語"]);
-    const service = findByIncludes_(idx, ["服務項目"]);
-    const titles = findByIncludes_(idx, ["重要頭銜", "獎銜"]);
-    const avatar = findByIncludes_(idx, ["個人專業形象照", "名片主圖", "形象照", "頭像"]);
-
-    safeText_(nameEl, name || "（未填姓名）");
-    safeText_(unitEl, unit || "");
-    safeText_(serviceEl, service || "");
-
-    // slogan
-    if (sloganEl) {
-      const s = String(slogan || "").trim();
-      if (s) { sloganEl.style.display = "block"; sloganEl.innerText = s; }
-      else { sloganEl.style.display = "none"; }
+    // GAS v385.2 回傳 {ok:true, id, data:{...}}
+    const data = json && json.data ? json.data : (json || {});
+    // 若後端有包 ok
+    if(json && json.ok === false){
+      throw new Error(json.message || json.error || '讀取失敗');
     }
 
-    // titles → badges
-    if (titlesEl) {
-      const t = String(titles || "").trim();
-      if (t) {
-        titlesEl.style.display = "flex";
-        titlesEl.innerHTML = "";
-        const parts = t.split(/\n|,|，|；|;/).map(x=>x.trim()).filter(Boolean);
-        parts.forEach(p=>{
-          const b = document.createElement("div");
-          b.className = "badge";
-          b.textContent = p;
-          titlesEl.appendChild(b);
-        });
-      } else {
-        titlesEl.style.display = "none";
-      }
+    // 映射欄位（用模糊匹配，避免欄位標題有換行/引號）
+    const name = pick(data, ['姓名（名片大標題）','姓名','name'], '（未命名）');
+    const unit = pick(data, ['單位名稱（如：幸福教養概念館）','單位名稱','單位','unit'], '');
+    const slogan = pick(data, ['理念標語（顯示在照片下方，精簡有力）','理念標語','slogan'], '');
+    const service = pick(data, ['服務項目（核心業務，多項可條列換行）','服務項目','service'], '');
+    const titles = pick(data, ['重要頭銜/獎銜（權威背書項目，多項可條列換行）','重要頭銜','獎銜','titles'], '');
+    const avatar = pick(data, ['個人專業形象照（名片主圖）','形象照','avatar'], '');
+    const products = pick(data, ['產品或品牌或活動照片最多3張（內容區插圖）','產品照','活動照片','作品照','products'], '');
+    const logo = pick(data, ['品牌Logo（右上角小圖標）','品牌Logo','logo'], '');
+
+    const q1 = pick(data, ['客戶常見提問1(Q1)','客戶常見提問 1 (Q1)','Q1'], '');
+    const a1 = pick(data, ['專業解答1(A1)','專業解答 1 (A1)','A1'], '');
+    const q2 = pick(data, ['客戶常見提問2(Q2)','客戶常見提問 2 (Q2)','Q2'], '');
+    const a2 = pick(data, ['專業解答2（A2）','專業解答2(A2)','A2'], '');
+
+    setText('u-name', String(name).trim() || '（未命名）');
+    setText('u-unit', String(unit).trim());
+
+    const s = String(slogan||'').trim();
+    if(s){
+      setShow('u-slogan', true);
+      setText('u-slogan', s);
+    }else{
+      setShow('u-slogan', false);
     }
 
-    // avatar
-    if (imgEl && avatar) setImgWithFallback_(imgEl, avatar);
+    renderBadges(titles);
 
-    // product photos (up to 3)
-    const productRaw = findByIncludes_(idx, ["產品或品牌或活動照片最多3張", "產品", "活動照片"]);
-    const productBlock = byId_("product-block");
-    const track = byId_("product-track");
-    const dots = byId_("product-dots");
-    const lb = setupLightbox_();
-    const slider = (track && dots) ? setupSlider_(track, dots) : null;
+    setText('u-service', String(service||'').trim() || '');
 
-    if (productBlock && track && dots) {
-      const urls = String(productRaw || "")
-        .split(/\n|,|，/)
-        .map(s=>s.trim())
-        .filter(Boolean)
-        .slice(0,3);
+    setAvatar(avatar);
+    setLogo(logo);
 
-      if (urls.length) {
-        productBlock.style.display = "block";
-        track.innerHTML = "";
-        dots.innerHTML = "";
+    renderProducts(products);
+    renderLinks(data);
+    renderQA(q1,a1,q2,a2);
 
-        urls.forEach((u, i)=>{
-          const slide = document.createElement("div");
-          slide.className = "slide";
-          const img = document.createElement("img");
-          // 用同一套 drive fallback 產出「最可能成功」的 src（先給 uc）
-          const cand = driveImageCandidates_(u);
-          img.src = cand[0];
-          img.onerror = () => {
-            // fallback chain
-            let ci = 1;
-            img.onerror = () => {
-              if (ci < cand.length) img.src = cand[ci++];
-            };
-            if (ci < cand.length) img.src = cand[ci++];
-          };
+    // set id input
+    const input = qs('#id-input');
+    if(input && !input.value) input.value = id;
 
-          img.addEventListener("click", ()=> {
-            // 全圖：用 googleusercontent/thumbnail 優先，較適合大圖
-            const big = cand[2] || cand[1] || cand[0] || u;
-            lb.open(big);
-          });
-
-          slide.appendChild(img);
-          track.appendChild(slide);
-
-          const d = document.createElement("div");
-          d.className = "dot2" + (i === 0 ? " active" : "");
-          d.addEventListener("click", ()=> {
-            track.style.transition = "";
-            track.style.transform = `translateX(${-i * 100}%)`;
-            dots.querySelectorAll(".dot2").forEach((x, xi)=>x.classList.toggle("active", xi===i));
-          });
-          dots.appendChild(d);
-        });
-
-        if (slider) slider.mount(urls.length);
-      } else {
-        productBlock.style.display = "none";
-      }
-    }
-
-    // contact + links
-    const linePrivateRaw = findByIncludes_(idx, ["私訊 LINE 連結"]);
-    const lineOARaw = findByIncludes_(idx, ["LINE 官方帳號連結"]);
-    const email = findByIncludes_(idx, ["一鍵聯繫 Email"]);
-    const phone = findByIncludes_(idx, ["一鍵聯繫電話"]);
-    const wechat = findByIncludes_(idx, ["微信 ID"]);
-    const v1 = findByIncludes_(idx, ["影音平台 1"]);
-    const v2 = findByIncludes_(idx, ["影音平台 2"]);
-    const v3 = findByIncludes_(idx, ["影音平台 3"]);
-    const s1 = findByIncludes_(idx, ["社群平台 1"]);
-    const s2 = findByIncludes_(idx, ["社群平台 2"]);
-    const s3 = findByIncludes_(idx, ["社群平台 3"]);
-
-    // LINE OA big button
-    const btnOA = byId_("btn-lineoa");
-    const btnOAText = byId_("btn-lineoa-text");
-    if (btnOA) {
-      const oa = normalizeUrl_(lineOARaw);
-      if (oa && /^https?:\/\//i.test(oa)) {
-        btnOA.style.display = "flex";
-        btnOA.href = oa;
-        if (btnOAText) btnOAText.innerText = "LINE 官方帳號";
-      } else {
-        btnOA.style.display = "none";
-      }
-    }
-
-    // Private LINE: first line link, second line name
-    let privateLineLink = "";
-    let privateLineName = "";
-    if (linePrivateRaw) {
-      const parts = String(linePrivateRaw).split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-      privateLineLink = normalizeUrl_(parts[0] || "");
-      privateLineName = parts[1] || "私訊 LINE";
-    }
-
-    const contactMatrix = byId_("contact-matrix");
-    if (contactMatrix) {
-      contactMatrix.innerHTML = "";
-      let any = false;
-
-      if (privateLineLink && /^https?:\/\//i.test(privateLineLink)) {
-        contactMatrix.appendChild(iconBtn_(privateLineLink, "fa-brands fa-line", privateLineName || "私訊 LINE"));
-        any = true;
-      }
-      if (email) {
-        const e = String(email).trim();
-        if (e) { contactMatrix.appendChild(iconBtn_(`mailto:${e}`, "fa-solid fa-envelope", "Email")); any = true; }
-      }
-      if (phone) {
-        const p = String(phone).trim();
-        if (p) { contactMatrix.appendChild(iconBtn_(`tel:${p}`, "fa-solid fa-phone", "電話")); any = true; }
-      }
-      if (wechat) {
-        const w = String(wechat).trim();
-        if (w) {
-          // wechat 沒有通用跳轉：用複製提示（開新頁顯示）
-          const href = `data:text/plain;charset=utf-8,WeChat%20ID%3A%20${encodeURIComponent(w)}`;
-          contactMatrix.appendChild(iconBtn_(href, "fa-brands fa-weixin", "微信"));
-          any = true;
-        }
-      }
-
-      contactMatrix.style.display = any ? "grid" : "none";
-    }
-
-    // links matrix (maps/video/social)
-    const linksMatrix = byId_("links-matrix");
-    if (linksMatrix) {
-      linksMatrix.innerHTML = "";
-      let any = false;
-
-      // v3 might be address or url
-      if (v3) {
-        const vv3 = String(v3).trim();
-        if (vv3) {
-          if (isProbablyAddress_(vv3)) {
-            linksMatrix.appendChild(iconBtn_(mapUrlFromAddress_(vv3), "fa-solid fa-map-location-dot", "導航"));
-          } else {
-            linksMatrix.appendChild(iconBtn_(normalizeUrl_(vv3), "fa-solid fa-link", "連結"));
-          }
-          any = true;
-        }
-      }
-
-      const addVideo = (url, label, icon) => {
-        const u = normalizeUrl_(url);
-        if (u && /^https?:\/\//i.test(u)) {
-          linksMatrix.appendChild(iconBtn_(u, icon, label));
-          return true;
-        }
-        return false;
-      };
-
-      any = addVideo(v1, "影音1", "fa-brands fa-youtube") || any;
-      any = addVideo(v2, "影音2", "fa-brands fa-tiktok") || any;
-
-      const addSocial = (url, label, icon) => {
-        const u = normalizeUrl_(url);
-        if (u && /^https?:\/\//i.test(u)) {
-          linksMatrix.appendChild(iconBtn_(u, icon, label));
-          return true;
-        }
-        return false;
-      };
-
-      any = addSocial(s1, "社群1", "fa-brands fa-facebook") || any;
-      any = addSocial(s2, "社群2", "fa-brands fa-instagram") || any;
-      any = addSocial(s3, "社群3", "fa-brands fa-threads") || any;
-
-      linksMatrix.style.display = any ? "grid" : "none";
-    }
-
-    // Q&A
-    const q1 = findByIncludes_(idx, ["客戶常見提問 1"]);
-    const a1 = findByIncludes_(idx, ["專業解答 1"]);
-    const q2 = findByIncludes_(idx, ["客戶常見提問 2"]);
-    const a2 = findByIncludes_(idx, ["專業解答2", "專業解答 2"]);
-
-    const qaBlock = byId_("qa-block");
-    const qa1 = byId_("qa1");
-    const qa2 = byId_("qa2");
-    const qa1q = byId_("qa1-q");
-    const qa1a = byId_("qa1-a");
-    const qa2q = byId_("qa2-q");
-    const qa2a = byId_("qa2-a");
-
-    let anyQA = false;
-
-    if (qa1 && qa1q && qa1a) {
-      const qq = String(q1||"").trim();
-      const aa = String(a1||"").trim();
-      if (qq || aa) {
-        qa1.style.display = "block";
-        qa1q.innerText = qq || "常見提問 1";
-        qa1a.innerText = aa || "";
-        anyQA = true;
-      } else qa1.style.display = "none";
-    }
-
-    if (qa2 && qa2q && qa2a) {
-      const qq = String(q2||"").trim();
-      const aa = String(a2||"").trim();
-      if (qq || aa) {
-        qa2.style.display = "block";
-        qa2q.innerText = qq || "常見提問 2";
-        qa2a.innerText = aa || "";
-        anyQA = true;
-      } else qa2.style.display = "none";
-    }
-
-    if (qaBlock) qaBlock.style.display = anyQA ? "block" : "none";
-
-  } catch (e) {
-    console.error(e);
-    safeText_(byId_("u-name"), "雲端同步異常");
-    safeText_(byId_("u-unit"), "請稍後再試");
+  }catch(err){
+    console.error(err);
+    setText('u-name', '讀取失敗');
+    setText('u-unit', String(err.message || err));
+    setText('u-service', '請確認：GAS 是否已部署、工作表欄位是否完整、該 id 是否存在。');
   }
 }
 
-// boot
-window.addEventListener("load", () => {
-  applyV382();
-  loadCard_();
+// ---- Service Worker registration (cache-safe) ----
+async function registerSW(){
+  if(!('serviceWorker' in navigator)) return;
+  try{
+    await navigator.serviceWorker.register(`./sw.js?v=${APP_VERSION}`);
+  }catch(e){
+    // ignore
+  }
+}
+
+window.addEventListener('load', () => {
+  applyV385();
+  registerSW();
+  currentId = getIdFromUrl();
+  loadCard(currentId);
 });

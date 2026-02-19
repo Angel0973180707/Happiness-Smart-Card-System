@@ -1,13 +1,9 @@
 {
-  "name": "天使幸福智慧名片",
-  "short_name": "AngelCard",
-  "start_url": "./index.html?v=377",
-  "scope": "./",
+  "name": "幸福智慧名片 V385",
+  "short_name": "幸福名片",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f5f6fa",
-  "theme_color": "#155e4b",
-  "icons": [
-    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
+  "background_color": "#ffffff",
+  "theme_color": "#ee5253",
+  "icons": []
 }

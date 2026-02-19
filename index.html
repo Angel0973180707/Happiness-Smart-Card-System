@@ -3,54 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V384</title>
+  <title>幸福智慧名片 V385</title>
+
+  <meta name="theme-color" content="#ee5253" />
+  <meta name="description" content="幸福智慧名片｜個人品牌入口" />
+
+  <!-- Fonts / Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=384.2" />
-</head>
-<body class="mode-free color-1 style-arch paper-1">
 
-  <!-- 控制面板 -->
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json?v=385" />
+
+  <!-- App -->
+  <link rel="stylesheet" href="style.css?v=385" />
+
+  <!-- Open Graph (通用小卡) -->
+  <meta property="og:title" content="天使幸福智慧名片" />
+  <meta property="og:description" content="一貼就能開啟的個人品牌入口" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="./og-cover.png" />
+</head>
+
+<body class="mode-free color-1 style-arch paper-1">
+  <!-- Admin Panel (可做隱藏版，但先保留) -->
   <div id="admin-panel">
     <div class="dots-row">
-      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
-      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
-      <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
-      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free', 'color-4', this)"></div>
-      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
+      <div class="dot active" style="background:#ff5e5e" onclick="window.setV385('free','color-1',this)"></div>
+      <div class="dot" style="background:#00a8ff" onclick="window.setV385('free','color-2',this)"></div>
+      <div class="dot" style="background:#ffa502" onclick="window.setV385('free','color-3',this)"></div>
+      <div class="dot" style="background:#7d5fff" onclick="window.setV385('free','color-4',this)"></div>
+      <div class="dot" style="background:#2ecc71" onclick="window.setV385('free','color-5',this)"></div>
     </div>
 
     <div id="free-controls">
-      <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
-          <button class="btn-neo active" onclick="window.setV382Style('arch', this)">優雅正拱</button>
-          <button class="btn-neo" onclick="window.setV382Style('flat', this)">簡潔平直</button>
-          <button class="btn-neo" onclick="window.setV382Style('spot', this)">晨曦款</button>
+      <div class="control-row">
+        <button class="btn-neo active" onclick="window.setV385Style('arch',this)">優雅正拱</button>
+        <button class="btn-neo" onclick="window.setV385Style('flat',this)">簡潔平直</button>
+        <button class="btn-neo" onclick="window.setV385Style('spot',this)">晨曦款</button>
       </div>
-      <div class="control-row" style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
-          <button class="btn-neo active" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
-          <button class="btn-neo" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
-          <button class="btn-neo" onclick="window.setV382Paper('paper-3', this)">亞麻</button>
+      <div class="control-row" style="margin-top:8px;">
+        <button class="btn-neo active" onclick="window.setV385Paper('paper-1',this)">棉紙</button>
+        <button class="btn-neo" onclick="window.setV385Paper('paper-2',this)">顆粒</button>
+        <button class="btn-neo" onclick="window.setV385Paper('paper-3',this)">亞麻</button>
       </div>
     </div>
 
     <div class="dots-row">
-      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div>
-      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div>
-      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p3', this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div>
-      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
-      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p6', this)"></div>
-      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
+      <div class="p-dot" style="background:#722f37" onclick="window.setV385('premium','p1',this)"></div>
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV385('premium','p2',this)"></div>
+      <div class="p-dot" style="background:#5e548e" onclick="window.setV385('premium','p3',this)"></div>
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV385('premium','p4',this)"></div>
+      <div class="p-dot" style="background:#7a94a6" onclick="window.setV385('premium','p5',this)"></div>
+      <div class="p-dot" style="background:#a36d6d" onclick="window.setV385('premium','p6',this)"></div>
+      <div class="p-dot" style="background:#444444" onclick="window.setV385('premium','p7',this)"></div>
+    </div>
+
+    <div class="id-row">
+      <input id="id-input" class="input-id" placeholder="輸入序號（例：TW0001）" />
+      <button class="btn-mini" onclick="window.loadByInputId()">載入</button>
+      <button class="btn-mini" onclick="window.copyShareLink()">複製交貨連結</button>
     </div>
 
     <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
-  <!-- 名片 -->
+  <!-- Card -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
+
     <div class="banner"><div class="dynamic-mask"></div></div>
+
+    <div class="logo-float">
+      <img id="u-logo" alt="品牌Logo" />
+    </div>
 
     <div class="avatar-wrap">
       <div class="avatar-circle">
@@ -64,65 +91,44 @@
 
       <div id="u-slogan" class="slogan" style="display:none;"></div>
 
-      <!-- 重要頭銜/獎銜 -->
-      <div id="u-titles" class="badges" style="display:none;"></div>
+      <div id="u-titles" class="badge-row" style="display:none;"></div>
 
-      <!-- 服務項目 -->
-      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在同步雲端服務項目...</div>
+      <div id="u-service" class="content-box">正在同步雲端服務項目...</div>
 
-      <!-- 產品照：左右滑動 -->
-      <div id="product-block" class="product-block" style="display:none;">
-        <div class="section-title">樣品展示</div>
-        <div class="product-slider" id="product-slider" aria-label="Product slider">
-          <div class="track" id="product-track"></div>
-          <div class="dots" id="product-dots" aria-hidden="true"></div>
-        </div>
-        <div class="hint">左右滑動查看，點照片看全圖</div>
-      </div>
+      <!-- Product slider -->
+      <section id="product-section" class="section" style="display:none;">
+        <div class="section-title"><i class="fa-regular fa-images"></i> 作品展示</div>
+        <div id="product-slider" class="product-slider" aria-label="產品照片左右滑動"></div>
+      </section>
 
-      <!-- 聯繫主按鈕（LINE 官方帳號） -->
-      <a id="btn-lineoa" class="btn-lineoa" href="#" target="_blank" rel="noopener" style="display:none;">
-        <i class="fa-brands fa-line"></i>
-        <span id="btn-lineoa-text">LINE 官方帳號</span>
-      </a>
-
-      <!-- 聯繫矩陣 -->
-      <div id="contact-matrix" class="icon-matrix" style="display:none;"></div>
-
-      <!-- 影音/社群矩陣 -->
-      <div id="links-matrix" class="icon-matrix" style="display:none;"></div>
+      <!-- Contact + Links -->
+      <section class="section">
+        <div class="section-title"><i class="fa-solid fa-link"></i> 一鍵連結</div>
+        <div id="link-matrix" class="link-matrix"></div>
+      </section>
 
       <!-- Q&A -->
-      <div id="qa-block" class="qa-block" style="display:none;">
-        <div class="section-title">Q&A</div>
-        <details class="qa-item" id="qa1" style="display:none;">
-          <summary id="qa1-q">Q1</summary>
-          <div class="qa-a" id="qa1-a"></div>
-        </details>
-        <details class="qa-item" id="qa2" style="display:none;">
-          <summary id="qa2-q">Q2</summary>
-          <div class="qa-a" id="qa2-a"></div>
-        </details>
-      </div>
-
-      <div class="content-box center-cta" onclick="window.goFillForm()">立即填寫預約表單</div>
+      <section id="qa-section" class="section" style="display:none;">
+        <div class="section-title"><i class="fa-regular fa-circle-question"></i> 常見問答</div>
+        <div id="qa-box" class="qa-box"></div>
+      </section>
     </div>
 
-    <div class="version-tag" id="version-tag">V384</div>
+    <div class="version-tag" id="ver-tag">V385</div>
   </div>
 
-  <!-- Lightbox full image -->
-  <div class="lightbox" id="lightbox" style="display:none;">
-    <div class="lb-backdrop" id="lb-backdrop"></div>
-    <div class="lb-content" role="dialog" aria-modal="true" aria-label="全圖預覽">
-      <button class="lb-close" id="lb-close" aria-label="關閉">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-      <img id="lb-img" alt="全圖" />
+  <footer class="footer">幸福智慧名片 V385</footer>
+
+  <!-- Lightbox -->
+  <div id="lightbox" class="lightbox" aria-hidden="true">
+    <div class="lb-backdrop" onclick="window.closeLightbox()"></div>
+    <div class="lb-panel">
+      <button class="lb-close" onclick="window.closeLightbox()" aria-label="關閉"><i class="fa-solid fa-xmark"></i></button>
+      <img id="lb-img" alt="全圖預覽" />
+      <div id="lb-cap" class="lb-cap"></div>
     </div>
   </div>
 
-  <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">幸福智慧名片 V384</footer>
-  <script src="app.js?v=384.2"></script>
+  <script src="app.js?v=385"></script>
 </body>
 </html>
