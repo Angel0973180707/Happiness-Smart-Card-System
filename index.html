@@ -1,45 +1,22 @@
-<div class="lock-mask" id="lock-mask">
+<div class="lock-mask" id="lock-mask" style="display:none;">
   <div class="lock-box">
-    <h3>管理員驗證</h3>
-    <input type="password" id="pass-input" placeholder="請輸入密碼 167777">
-    <button onclick="verifyLock()">解鎖後台</button>
+    <h3 style="margin-top:0">管理員驗證</h3>
+    <input type="password" id="pass-input" placeholder="請輸入管理密碼" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px;">
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button onclick="verifyLock()" style="background:#2d3436; color:#fff; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">進入</button>
+      <button onclick="closeLock()" style="background:#eee; color:#333; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">取消</button>
+    </div>
   </div>
 </div>
 
-<div id="admin-panel">
-  <input type="text" id="id-input" placeholder="輸入序號">
-  <button onclick="loadV385Data()">載入數據</button>
+<div id="admin-panel" style="display:none;">
+  <div style="display:flex; gap:10px; justify-content:center; padding:15px; background:#fff; border-bottom:1px solid #eee;">
+    <input type="text" id="id-input" placeholder="輸入序號取得成品" style="padding:8px; border-radius:8px; border:1px solid #ddd; flex:1;">
+    <button onclick="loadV385Data()" style="background:var(--p); color:#fff; border:none; padding:8px 15px; border-radius:8px;">載入</button>
+  </div>
 </div>
 
 <div id="card-container" class="card">
-  <div class="premium-fx-layer"></div>
-  <div class="banner"><div class="dynamic-mask"></div></div>
-  <img id="u-logo" style="position:absolute; top:20px; right:20px; width:40px; z-index:40; display:none;">
-  
-  <div class="avatar-wrap">
-    <div class="avatar-circle"><img id="u-img" src="" class="avatar"></div>
-  </div>
-
-  <div class="info-scroll">
-    <h1 id="u-name">姓名載入中</h1>
-    <div id="u-unit" style="font-weight:700;"></div>
-    <div id="u-slogan" class="slogan"></div>
-    <div class="content-box"><div id="u-service" style="white-space: pre-wrap;"></div></div>
-    
-    <div class="product-slider" id="u-slider"></div>
-
-    <a id="u-line-oa" href="#" class="btn-main-line" target="_blank">LINE 官方帳號</a>
-    
-    <div class="action-grid">
-      <a id="u-map" class="btn-icon" target="_blank"><i class="fa-solid fa-location-dot"></i></a>
-      <a id="u-yt" class="btn-icon" target="_blank"><i class="fa-brands fa-youtube"></i></a>
-      <a id="u-tiktok" class="btn-icon" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
-      <a id="u-fb" class="btn-icon" target="_blank"><i class="fa-brands fa-facebook"></i></a>
-    </div>
-  </div>
-
-  <div class="copyright-area">
-    <span class="cp-text">版權所有</span>
-    <span class="version-tag" onclick="triggerLock()">V385</span>
-  </div>
+  ...
+  <div class="version-tag" onclick="triggerLock()">V385.1</div>
 </div>
