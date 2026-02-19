@@ -1,59 +1,48 @@
-:root { --font: 'Noto Sans TC', sans-serif; }
+/* --- 🔴 版型地平線定義 --- */
 
-/* 🎨 自由搭配 (亮底) */
-.mode-free.color-1 { --p:#ee5253; --bg:#fdf2f2; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-2 { --p:#00a8ff; --bg:#f0f9ff; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-3 { --p:#f0932b; --bg:#fff9f0; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-4 { --p:#6c5ce7; --bg:#f6f5ff; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-5 { --p:#20bf6b; --bg:#f2fdf6; --card-bg:#fff; --text:#2d3436; }
+/* 1. 正拱型 (Arch): 向上圓弧 */
+.style-arch .arch-mask { 
+  background: var(--card-bg); 
+  height: 55px; 
+  border-radius: 80px 80px 0 0; 
+  position: absolute; 
+  bottom: -1px; 
+  width: 100%; 
+}
 
-/* 🌿 精品設計 (濃底) */
-.mode-premium.p1 { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; --sh:0 40px 80px rgba(0,0,0,0.5); }
-.mode-premium.p2 { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.08em; }
-.mode-premium.p3 { --p:#5d2525; --bg:#3d1616; --card-bg:#3d1616; --text:#fff5f5; --fx:radial-gradient(circle at 50% 20%, rgba(255,100,100,0.2), transparent 70%); }
-.mode-premium.p7 { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; --ls:0.25em; }
+/* 2. 平直型 (Flat): 橫直線 */
+.style-flat .arch-mask { 
+  background: var(--card-bg); 
+  height: 20px; /* 僅留一小條直線過渡 */
+  position: absolute; 
+  bottom: -1px; 
+  width: 100%; 
+}
+.style-flat .banner { height: 140px; } /* 平直款稍微縮短 Banner */
 
-body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; }
-
-/* 🔴 頭像框精修：再次上移 10px */
-.avatar-wrap { position: absolute; width: 100%; top: 85px; display: flex; justify-content: center; z-index: 20; transition: 0.5s; }
-.avatar-circle { width: 112px; height: 112px; border-radius: 50%; background: var(--card-bg); padding: 4px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1.5px solid rgba(0,0,0,0.05); }
-.avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-
-/* 🔴 晨曦 (倒拱形) 視覺修正 */
-.spot-mask { display: none; }
+/* 3. 晨曦款 (Spot): 向下弧線 (倒拱) */
 .style-spot .spot-mask { 
-  display: block; position: absolute; width: 140%; height: 100px; bottom: -50px; left: -20%;
-  background: var(--card-bg); clip-path: ellipse(50% 40% at 50% 100%);
+  display: block; 
+  position: absolute; 
+  width: 120%; 
+  height: 100px; 
+  bottom: -60px; /* 讓弧線露出來 */
+  left: -10%;
+  background: var(--card-bg); 
+  /* 關鍵：clip-path 畫出向下凹的圓弧 */
+  clip-path: ellipse(50% 40% at 50% 100%); 
 }
 .style-spot .arch-mask { display: none; }
-
-/* 🔴 紙感突顯：強化對比 */
-.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.1; z-index: 5; mix-blend-mode: multiply; }
-.paper-1 .paper-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.5'/%3E%3C/svg%3E"); }
-.paper-2 .paper-overlay { background: radial-gradient(#000 10%, transparent 10%) 0 0/5px 5px; opacity: 0.05; }
-
-/* 🔴 按鈕美化：新復古主義 */
-.btn-neo {
-  padding: 8px 16px; border-radius: 12px; border: 2.5px solid #eee; background: #fff;
-  font-size: 11px; font-weight: 900; cursor: pointer; color: #555; transition: 0.15s;
-  box-shadow: 0 4px 0 #eee;
+.style-spot .banner {
+  background: radial-gradient(circle at 50% -20%, var(--p) 30%, #333 100%);
 }
-.btn-neo.active { background: #2d3436; color: #fff; border-color: #2d3436; box-shadow: 0 0 15px rgba(0,0,0,0.15); transform: translateY(2px); }
 
-/* 基礎卡片 */
-.card { width: 92%; max-width: 380px; height: 680px; background: var(--card-bg) !important; color: var(--text) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: var(--sh, 0 15px 40px rgba(0,0,0,0.12)); transition: 0.5s; }
-.banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; }
-.arch-mask { background: var(--card-bg); height: 50px; border-radius: 60px 60px 0 0; position: absolute; bottom: -1px; width: 100%; }
-
-.mode-premium .banner { height: 60px; }
-.mode-premium .avatar-wrap { top: 35px; }
-.mode-premium .name { letter-spacing: var(--ls); font-weight: 900; }
-.mode-premium .content-box { background: rgba(255,255,255,0.06) !important; color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
-.mode-premium .premium-fx { position: absolute; inset: 0; background: var(--fx, none); pointer-events: none; z-index: 1; }
-
-#admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #ddd; padding: 15px 0; }
-.dots-row { display: flex; justify-content: center; gap: 14px; margin: 10px 0; }
-.dot, .p-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
-.active { border-color: #333 !important; transform: scale(1.1); }
-.btn-main-cta { background: var(--p); color: #fff; border: none; padding: 14px 50px; border-radius: 40px; font-weight: 900; cursor: pointer; margin-top: 5px; }
+/* 🔵 頭像定位精修 (確保不被晨曦弧線遮擋) */
+.avatar-wrap { 
+  position: absolute; 
+  width: 100%; 
+  top: 85px; /* 再上移，讓視覺更輕盈 */
+  display: flex; 
+  justify-content: center; 
+  z-index: 30; 
+}
