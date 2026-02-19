@@ -1,4 +1,4 @@
-/* Angel Smart Card V382.1 - FULL GLOBAL MOUNT */
+/* Angel Smart Card V382.2 - Logic Fix */
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
@@ -7,12 +7,15 @@ const CONFIG = {
 
 let state = { mode: 'free', theme: 'color-1', style: 'arch', paper: 'paper-1' };
 
-// ✅ 強制掛載到 window，解決 HTML 無法識別的問題
+// ✅ 核心連動：解決失靈問題
 window.setV382 = function(mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
+  
+  // 更新點點狀態
   document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
   el.classList.add('active');
+  
   applyV382();
 };
 
@@ -34,7 +37,7 @@ function applyV382() {
   const isFree = state.mode === 'free';
   document.getElementById('free-controls').style.display = isFree ? 'block' : 'none';
   
-  // 核心：全量重構 className
+  // 核心：全量重構 className，徹底洗掉舊模式，解決不連動。
   const classList = [
     `mode-${state.mode}`,
     state.theme,
@@ -45,7 +48,7 @@ function applyV382() {
   updateThemeMeta();
 }
 
-async function loadV382() {
+async function initV382() {
   try {
     const res = await fetch(`${CONFIG.GAS}?id=${CONFIG.ANGEL}`);
     const data = await res.json();
@@ -55,7 +58,7 @@ async function loadV382() {
       document.getElementById('u-service').innerText = data.服務項目 || "載入資訊中...";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch(e) { console.error("GAS 載入異常"); }
+  } catch(e) { console.error("GAS 載入失敗"); }
 }
 
 function updateThemeMeta() {
@@ -64,7 +67,6 @@ function updateThemeMeta() {
 }
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
-window.handleHiddenGate = () => { /* 隱形入口邏輯 */ };
+window.handleHiddenGate = () => { /* 隱形入口 */ };
 
-// 初始化
-window.onload = () => { loadV382(); applyV382(); };
+window.onload = () => { initV382(); applyV382(); };
