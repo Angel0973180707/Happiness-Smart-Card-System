@@ -1,194 +1,70 @@
-/* 幸福智慧名片 V385.8 旗艦終極版 */
+/* --- 幸福智慧名片 V384 玻璃幻鏡穩定版 --- */
+:root { --font: 'Noto Sans TC', sans-serif; }
 
-:root {
-  --primary-red: #d32f2f;
-  --primary-blue: #1976d2;
-  --primary-orange: #f57c00;
-  --primary-purple: #7b1fa2;
-  --primary-green: #388e3c;
-  
-  --p1-wine: #800020;
-  --p2-navy: #000080;
-  --p3-purple: #4B0082;
-  --p4-gold: #D4AF37;
-  --p5-bluegray: #6699CC;
-  --p6-rouge: #A52A2A;
-  --p7-carbon: #333333;
+/* 🎨 自由搭配款 (純淨亮彩 5 色) */
+.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-  --glass: rgba(255, 255, 255, 0.85);
-  --neo-shadow: 6px 6px 12px #bebebe, -6px -6px 12px #ffffff;
-}
+/* 🌿 精品設計款 (玻璃幻鏡 7 色) */
+.mode-premium .card { backdrop-filter: blur(25px); border: 12px solid #ffffff; }
 
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans TC', sans-serif; }
+/* P1: 酒紅玻璃 */
+.mode-premium.p1 { --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,0.95), rgba(114,47,55,0.85)); --text:#f5e6e8; --fx-op:0.4; --fx-img:radial-gradient(circle at 20% 20%, rgba(255,255,255,0.3) 0%, transparent 60%); }
+/* P2: 深藍玻璃 */
+.mode-premium.p2 { --p:#1c2e42; --bg:#eef1f5; --card-bg: linear-gradient(135deg, rgba(28,46,66,0.95), rgba(44,62,80,0.85)); --text:#ffffff; --fx-op:0.25; }
+/* P3: 霧紫玻璃 */
+.mode-premium.p3 { --p:#5e548e; --bg:#f4f3f7; --card-bg: linear-gradient(135deg, rgba(94,84,142,0.92), rgba(159,134,192,0.8)); --text:#ffffff; --fx-op:0.2; }
+/* P4: 金箔玻璃 (光感强化) */
+.mode-premium.p4 { --p:#bf953f; --bg:#f9f7f0; --card-bg: linear-gradient(135deg, rgba(191,149,63,0.95), rgba(252,246,186,0.85), rgba(170,119,28,0.95)); --text:#4d3700; --fx-op:0.6; --fx-img:linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%); }
+/* P5: 藍灰玻璃 */
+.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg: linear-gradient(135deg, rgba(122,148,166,0.95), rgba(100,120,135,0.8)); --text:#ffffff; --fx-op:0.25; }
+/* P6: 胭脂玻璃 */
+.mode-premium.p6 { --p:#a36d6d; --bg:#fdf5f5; --card-bg: linear-gradient(135deg, rgba(163,109,109,0.95), rgba(142,90,90,0.85)); --text:#ffffff; --fx-op:0.35; }
+/* P7: 褐碳玻璃 */
+.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg: linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.2; }
 
-body {
-  background: #f0f2f5;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 20px;
-  transition: background 0.5s ease;
-}
+body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; padding-bottom: 40px; }
 
-/* --- 核心容器與毛玻璃 --- */
-.card-container {
-  width: 100%;
-  max-width: 400px;
-  background: var(--glass);
-  backdrop-filter: blur(10px);
-  border-radius: 30px;
-  padding: 30px;
-  box-shadow: var(--neo-shadow);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.4s ease;
-}
+/* 🔴 控制面板 */
+#admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 15px 0; z-index: 100; }
+.dots-row { display: flex; justify-content: center; gap: 10px; margin: 10px 0; }
+.dot, .p-dot { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.08); transition: 0.2s; }
+.active { border-color: #2d3436 !important; transform: scale(1.1); }
 
-/* --- 1. 自由搭配款：三種版型切換 (核心修復) --- */
+/* 🔴 通用卡片結構 */
+.card { width: 92%; max-width: 380px; height: 660px; background: var(--card-bg) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.06); transition: 0.5s; }
 
-/* 拱形 (Arch) - 頂部大圓角 */
-.mode-free.style-arch .card-container { border-radius: 80px 80px 30px 30px; }
+/* 🔴 自由款地平線 (封存) */
+.banner { height: 125px; background: var(--p); position: relative; transition: 0.5s; overflow: visible; }
+.dynamic-mask { position: absolute; width: 100%; bottom: -1px; transition: 0.3s; }
+.style-arch .dynamic-mask { background: #fff; height: 45px; border-radius: 60px 60px 0 0; }
+.style-flat .dynamic-mask { background: #fff; height: 10px; border-radius: 0; }
+.style-spot .dynamic-mask { height: 85px; bottom: -84px; background: var(--p); left: 0; width: 100%; clip-path: ellipse(50% 80% at 50% 0%); z-index: 10; }
 
-/* 平直 (Flat) - 俐落直角感 */
-.mode-free.style-flat .card-container { border-radius: 10px; }
+/* 💎 精品款：留邊名片感 */
+.mode-premium .card { width: 86%; height: 580px; margin: 30px auto; box-shadow: 0 25px 50px rgba(0,0,0,0.12); }
+.mode-premium .banner, .mode-premium .dynamic-mask { display: none !important; }
 
-/* 晨曦 (Spot) - 圓潤且帶有漸層光暈 */
-.mode-free.style-spot .card-container { 
-  border-radius: 50px; 
-  background: linear-gradient(145deg, #ffffff, #e6e6e6);
-}
+/* 🔴 頭像穩定定位 */
+.avatar-wrap { position: absolute; width: 100%; display: flex; justify-content: center; z-index: 30; transition: 0.4s; }
+.mode-free .avatar-wrap { top: 75px; } 
+.mode-premium .avatar-wrap { top: 40px; left: 25px; justify-content: flex-start; }
+.avatar-circle { width: 105px; height: 105px; border-radius: 50% !important; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
+.mode-premium .avatar-circle { width: 85px; height: 85px; border: 2.5px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); }
+.avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-/* --- 2. 顏色連動 (自由款) --- */
-.color-1 .user-name { color: var(--primary-red); }
-.color-2 .user-name { color: var(--primary-blue); }
-.color-3 .user-name { color: var(--primary-orange); }
-.color-4 .user-name { color: var(--primary-purple); }
-.color-5 .user-name { color: var(--primary-green); }
+/* 🔴 內容方塊 */
+.info-scroll { transition: 0.4s; }
+.mode-free .info-scroll { padding: 100px 20px 20px; text-align: center; }
+.mode-premium .info-scroll { padding: 90px 25px 25px; text-align: left; }
+.content-box { background: rgba(0,0,0,0.02); border-radius: 20px; padding: 18px; margin-bottom: 12px; text-align: left; }
+.mode-premium .content-box { background: rgba(255,255,255,0.18) !important; border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(10px); border-radius: 15px; }
 
-/* --- 3. 精品設計款顏色 --- */
-.p1 .card-container { border-top: 8px solid var(--p1-wine); }
-.p2 .card-container { border-top: 8px solid var(--p2-navy); }
-.p4 .card-container { border-top: 8px solid var(--p4-gold); }
-.mode-premium .user-name { font-weight: 700; letter-spacing: 2px; }
-
-/* --- 元件樣式 --- */
-.brand-logo { position: absolute; top: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; }
-
-.photo-frame {
-  width: 150px;
-  height: 150px;
-  margin: 0 auto 20px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 5px solid #fff;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-}
-.profile-photo { width: 100%; height: 100%; object-fit: cover; }
-
-.user-name { text-align: center; font-size: 1.8rem; margin-bottom: 5px; }
-.unit-name { text-align: center; color: #666; font-size: 0.9rem; margin-bottom: 15px; }
-.slogan-tag { text-align: center; font-style: italic; color: #888; margin-bottom: 25px; }
-
-/* 滑動相簿 */
-.product-slider {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding: 10px 0;
-  scrollbar-width: none;
-}
-.product-img { width: 120px; height: 120px; border-radius: 15px; object-fit: cover; flex-shrink: 0; }
-
-/* 社交按鈕 Grid */
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  margin-top: 25px;
-}
-.action-item {
-  background: #fff;
-  padding: 12px;
-  text-align: center;
-  text-decoration: none;
-  color: #333;
-  border-radius: 15px;
-  font-size: 0.9rem;
-  box-shadow: 3px 3px 6px #d1d1d1;
-  transition: transform 0.2s;
-}
-.action-item:active { transform: scale(0.95); }
-
-/* --- 控制面板 UI --- */
-.style-panel {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  padding: 15px;
-  border-radius: 20px;
-  box-shadow: 0 -5px 20px rgba(0,0,0,0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  z-index: 100;
-  width: 90%;
-  max-width: 380px;
-}
-
-.color-picker { display: flex; justify-content: center; gap: 10px; margin-bottom: 5px; }
-.dot, .p-dot { width: 25px; height: 25px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
-.dot.active, .p-dot.active { border-color: #333; transform: scale(1.2); }
-
-.c1 { background: var(--primary-red); }
-.c2 { background: var(--primary-blue); }
-.c3 { background: var(--primary-orange); }
-.p4 { background: var(--p4-gold); }
-
-.button-group { display: flex; gap: 8px; justify-content: center; }
-.btn-neo {
-  padding: 8px 15px;
-  border: none;
-  background: #f0f0f0;
-  border-radius: 10px;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-.btn-neo.active { background: #333; color: white; }
-
-/* 管理列 */
-.admin-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background: #2e7d32;
-  padding: 10px;
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  z-index: 1000;
-}
-.admin-bar input { padding: 5px; border-radius: 5px; border: none; }
-
-/* 隱形鎖遮罩 */
-.mask-layer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-.lock-box { background: white; padding: 30px; border-radius: 20px; text-align: center; }
-.lock-box h3 { margin-bottom: 15px; }
-.lock-box input { width: 100%; padding: 10px; margin-bottom: 15px; text-align: center; font-size: 1.2rem; }
-
-.footer { text-align: center; margin-top: 20px; font-size: 0.7rem; color: #999; }
-.version-tag { cursor: pointer; margin-top: 5px; display: inline-block; padding: 5px; }
+/* 🔴 質感層與版號 (V384) */
+.premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: overlay; }
+.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.15; z-index: 5; mix-blend-mode: multiply; }
+.version-tag { font-size: 10px; opacity: 0.3; position: absolute; bottom: 15px; right: 25px; font-family: monospace; }
+.btn-cta { background: var(--p); color: #fff; border: none; padding: 12px 40px; border-radius: 40px; font-weight: 900; cursor: pointer; margin-top: 5px; }
