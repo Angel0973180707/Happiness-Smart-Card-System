@@ -7,67 +7,59 @@
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-/* 🌿 精品設計款：氣質語彙 (P1-P7) */
+/* 🌿 精品設計款：氣質語彙 (重新設計不暗沉色系) */
 .mode-premium.p1 { --p:#1e3d33; --bg:#f2f4f3; --card-bg:#1e3d33; --text:#e0e7e5; } /* 墨綠 */
 .mode-premium.p2 { --p:#243b55; --bg:#eef1f5; --card-bg:#243b55; --text:#ffffff; } /* 深海藍 */
-.mode-premium.p3 { --p:#6b6687; --bg:#f2f1f5; --card-bg:#6b6687; --text:#ffffff; --blur:blur(10px); } /* 晨霧紫 */
+.mode-premium.p3 { --p:#6b6687; --bg:#f2f1f5; --card-bg:#6b6687; --text:#ffffff; --blur:blur(10px); } /* 晨霧紫玻璃 */
 .mode-premium.p4 { --p:#8e5a3c; --bg:#f9f5f2; --card-bg:#8e5a3c; --text:#fff9f2; } /* 琥珀暖棕 */
 .mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:#7a94a6; --text:#ffffff; } /* 亞麻灰藍 */
 .mode-premium.p6 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, #a36d6d, #8e5a5a); --text:#ffffff; } /* 胭脂漸層 */
-.mode-premium.p7 { --p:#2c2c2c; --bg:#f0f0f0; --card-bg:#2c2c2c; --text:#d4af37; } /* 炭金 */
+.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:#444444; --text:#d4af37; } /* 炭金(不使用死黑) */
 
 body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; }
 
-/* 🔴 通用卡片容器 */
-.card { 
-  width: 92%; max-width: 380px; height: 660px; 
-  background: var(--card-bg) !important; 
-  border-radius: 45px; overflow: hidden; position: relative; margin: 20px 0; 
-  box-shadow: 0 15px 40px rgba(0,0,0,0.06); transition: 0.5s; 
-}
+/* 🔴 通用卡片基礎 */
+.card { width: 92%; max-width: 380px; height: 660px; background: var(--card-bg) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 20px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.06); transition: 0.5s; }
 
-/* 🔴 封存 V382.7：自由款版型遮罩 */
+/* 🔴 自由款：版型遮罩 (V382.7 封存結構) */
 .banner { height: 125px; background: var(--p); position: relative; transition: 0.5s; overflow: visible; }
 .dynamic-mask { position: absolute; width: 100%; bottom: -1px; transition: 0.3s; }
 .style-arch .dynamic-mask { background: #fff; height: 45px; border-radius: 60px 60px 0 0; }
 .style-flat .dynamic-mask { background: #fff; height: 10px; border-radius: 0; }
 .style-spot .dynamic-mask { height: 85px; bottom: -84px; background: var(--p); left: 0; width: 100%; clip-path: ellipse(50% 80% at 50% 0%); z-index: 10; }
 
-/* 🔴 強化紙感明顯度 */
-.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.15; z-index: 5; mix-blend-mode: multiply; }
-.paper-1 .paper-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
-.paper-2 .paper-overlay { background: radial-gradient(#000 15%, transparent 15%) 0 0/4px 4px; opacity: 0.12; }
-.paper-3 .paper-overlay { background: repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 4px), repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 4px); }
-
-/* 💎 V382.8 精品設計專屬排版：留邊名片感 */
+/* 💎 V382.8 精品設計款專屬：留邊名片感與左對齊排版 */
 .mode-premium .card {
   width: 86%; height: 580px; margin: 40px auto;
-  border: 10px solid #ffffff; /* 厚白邊名片感 */
+  border: 12px solid #ffffff; /* 關鍵：厚白邊框創造名片感 */
   box-shadow: 0 30px 60px rgba(0,0,0,0.1);
   backdrop-filter: var(--blur, none);
 }
-.mode-premium .banner { height: 40px; background: transparent; }
-.mode-premium .dynamic-mask { display: none !important; }
-.mode-premium .avatar-wrap { top: 40px; left: 30px; justify-content: flex-start; }
+.mode-premium .banner { height: 40px; background: transparent; } /* 移除精品款大色塊橫幅 */
+.mode-premium .dynamic-mask { display: none !important; } /* 隔離自由款版型 */
+.mode-premium .avatar-wrap { top: 40px; left: 30px; justify-content: flex-start; } /* 頭像靠左 */
 .mode-premium .avatar-circle { width: 90px; height: 90px; border: 2px solid rgba(255,255,255,0.2); }
-.mode-premium .info-scroll { padding: 90px 30px 30px; text-align: left; }
+.mode-premium .info-scroll { padding: 90px 30px 30px; text-align: left; } /* 文字靠左 */
 .mode-premium .name { 
   font-size: 26px; font-weight: 900; letter-spacing: 0.1em; border-bottom: 2px solid rgba(255,255,255,0.15); 
   display: inline-block; padding-bottom: 8px; margin-bottom: 12px;
 }
 .mode-premium .unit { margin-bottom: 25px; color: rgba(255,255,255,0.7); }
 .mode-premium .content-box { background: rgba(255,255,255,0.08) !important; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; }
+.mode-premium .label { color: rgba(255,255,255,0.5); }
 
-/* 🔵 自由款通用 UI */
+/* 🔴 強化紙感 */
+.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.15; z-index: 5; mix-blend-mode: multiply; }
+.paper-1 .paper-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
+.paper-2 .paper-overlay { background: radial-gradient(#000 15%, transparent 15%) 0 0/4px 4px; opacity: 0.12; }
+
+/* 🔵 自由款通用 UI (維持 V382.7) */
 .avatar-wrap { position: absolute; width: 100%; top: 65px; display: flex; justify-content: center; z-index: 30; transition: 0.5s; }
 .avatar-circle { width: 105px; height: 105px; border-radius: 50% !important; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
 .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .info-scroll { padding: 90px 20px 20px; text-align: center; }
-.order-link-box { background: rgba(0,0,0,0.03); padding: 12px; border-radius: 15px; margin-bottom: 15px; font-weight: 900; color: var(--p); cursor: pointer; }
-.mode-premium .order-link-box { background: rgba(255,255,255,0.1); color: #fff; }
 .content-box { background: rgba(0,0,0,0.02); border-radius: 20px; padding: 18px; margin-bottom: 12px; text-align: left; }
 .label { font-size: 10px; font-weight: 900; color: #adb5bd; margin-bottom: 5px; display: block; }
-
 #admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 15px 0; }
 .btn-neo { padding: 7px 15px; border-radius: 12px; border: 1.5px solid #eee; background: #fff; font-size: 11px; font-weight: 900; cursor: pointer; }
 .btn-neo.active { background: #2d3436; color: #fff; }
