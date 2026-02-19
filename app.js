@@ -6,7 +6,6 @@ const CONFIG = {
 
 let state = { mode: 'free', theme: 'color-1', style: 'arch', paper: 'paper-1' };
 
-// 🔵 核心：全域掛載，確保按鈕永不失靈
 window.setV382 = function(mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
@@ -38,7 +37,6 @@ function applyV382() {
   const controlPanel = document.getElementById('free-controls');
   if (controlPanel) controlPanel.style.display = isFree ? 'block' : 'none';
 
-  // 全量重構 ClassName
   const classList = [
     `mode-${state.mode}`,
     state.theme,
@@ -59,7 +57,7 @@ async function loadV382Data() {
       document.getElementById('u-service').innerText = data.服務項目 || "";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch(e) { console.error("資料同步異常"); }
+  } catch(e) { console.error("資料載入異常"); }
 }
 
 function updateThemeColor() {
