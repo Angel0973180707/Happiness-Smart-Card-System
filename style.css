@@ -1,32 +1,23 @@
-/* 幸福智慧名片 V386 - 完整覆蓋版
-  更新內容：
-  1. 自由款 Logo 緊貼頭像
-  2. 僅姓名主標題描邊，其餘文字取消特效
-  3. 精品款姓名下移避開 Logo
-  4. 精品款按鈕縮小並加入金邊立體感
-  5. 相簿區支援 1-10 張，動態隱藏無照片區塊
+/* 幸福智慧名片 V386 - 完整覆蓋版 
+   1. 自由款 Logo 緊貼頭像
+   2. 姓名描邊優化：解決切割破碎感
+   3. 精品款按鈕：金邊立體、更小精緻
+   4. 相簿區：1-10張動態平衡，無相片不留黑框
 */
 
-:root {
+:root{
   --font: 'Noto Sans TC', sans-serif;
-  --p: #ff5e5e; 
-  --bg: #fff5f5; 
-  --card-bg: #fff; 
-  --text: #2d3436;
-  --fx-op: 0.0; 
-  --fx-img: none;
+  --p: #ff5e5e; --bg: #fff5f5; --card-bg: #fff; --text: #2d3436;
+  --fx-op: 0.0; --fx-img: none;
 }
 
-/* --- 方案色彩定義 --- */
-
-/* 自由搭配款 (Mode-Free) 5 色 */
+/* 方案配色 */
 .mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-/* 精品設計款 (Mode-Premium) 7 色 */
 .mode-premium .card { backdrop-filter: blur(25px); border: 12px solid #ffffff; }
 .mode-premium.p1 { --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,0.95), rgba(114,47,55,0.85)); --text:#f5e6e8; --fx-op:0.35; --fx-img:radial-gradient(circle at 20% 20%, rgba(255,255,255,0.25) 0%, transparent 60%); }
 .mode-premium.p2 { --p:#1c2e42; --bg:#eef1f5; --card-bg: linear-gradient(135deg, rgba(28,46,66,0.95), rgba(44,62,80,0.85)); --text:#ffffff; --fx-op:0.22; }
@@ -36,168 +27,120 @@
 .mode-premium.p6 { --p:#a36d6d; --bg:#fdf5f5; --card-bg: linear-gradient(135deg, rgba(163,109,109,0.95), rgba(142,90,90,0.85)); --text:#ffffff; --fx-op:0.28; }
 .mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg: linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
 
-/* --- 基礎設定 --- */
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  background: var(--bg);
-  font-family: var(--font);
-  color: var(--text);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-bottom: 50px;
-  transition: .35s;
-}
+*{ box-sizing:border-box; outline: none; }
+body{ margin:0; background:var(--bg); font-family:var(--font); color:var(--text); display:flex; flex-direction:column; align-items:center; padding-bottom:50px; transition:.35s; }
 
 /* 控制面板 */
-#admin-panel {
-  width: 100%;
-  background: #fff;
-  border-bottom: 1px solid #eee;
-  padding: 14px 0 16px;
-  text-align: center;
-  position: sticky;
-  top: 0;
-  z-index: 50;
+#admin-panel{ width:100%; background:#fff; border-bottom:1px solid #eee; padding:14px 0 16px; text-align:center; position:sticky; top:0; z-index:50; }
+.dots-row{ display:flex; justify-content:center; gap:10px; margin:10px 0; }
+.dot, .p-dot{ width:34px; height:34px; border-radius:50%; cursor:pointer; border:3px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,.08); transition:.2s; }
+.dot.active, .p-dot.active{ border-color:#2d3436 !important; transform:scale(1.1); }
+.plan-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:420px; margin:0 auto 10px; padding:0 14px; }
+.plan-btn{ border:2px solid #e9ecef; background:#fff; border-radius:16px; padding:10px; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.05); text-align:left; transition:.2s; }
+.plan-btn.active{ border-color:#2d3436; transform:translateY(-1px); }
+.plan-title{ font-weight:900; }
+.plan-sub{ font-size:11px; opacity:.7; }
+.control-row{ display:flex; justify-content:center; gap:8px; margin-top:8px; }
+.btn-neo{ border:2px solid #d0d0d0; background:#fff; border-radius:14px; padding:8px 14px; font-weight:800; cursor:pointer; transition:.15s; }
+.btn-neo.active{ border-color:#222; box-shadow:0 4px 0 rgba(0,0,0,.1); }
+.btn-cta{ margin-top:10px; border:none; background:var(--p); color:#fff; border-radius:40px; padding:12px 40px; font-weight:900; cursor:pointer; box-shadow:0 12px 25px rgba(0,0,0,.1); }
+
+/* 卡片與容器 */
+.card{ width:92%; max-width:390px; background:var(--card-bg) !important; border-radius:44px; overflow:hidden; position:relative; margin:16px 0; box-shadow:0 15px 40px rgba(0,0,0,.06); transition:.35s; }
+.banner{ height:126px; background:var(--p); position:relative; overflow:visible; }
+.dynamic-mask{ position:absolute; width:100%; bottom:-1px; transition:.25s; }
+.style-arch .dynamic-mask{ background:#fff; height:46px; border-radius:64px 64px 0 0; }
+.style-flat .dynamic-mask{ background:#fff; height:10px; border-radius:0; }
+.style-spot .dynamic-mask{ height:86px; bottom:-85px; background:var(--p); left:0; width:100%; clip-path: ellipse(50% 80% at 50% 0%); z-index:10; }
+.mode-premium .banner, .mode-premium .dynamic-mask{ display:none !important; }
+
+/* 頭像與 Logo (優化 1: 距離拉近) */
+.avatar-wrap{ position:absolute; width:100%; display:flex; justify-content:center; align-items:center; z-index:20; transition:.25s; }
+.mode-free .avatar-wrap{ top:62px; flex-direction:column; gap:8px; }
+.mode-premium .avatar-wrap{ top:30px; left:18px; justify-content:flex-start; flex-direction:row; }
+.avatar-circle{ width:104px; height:104px; border-radius:50%; background:#fff; padding:4px; box-shadow:0 10px 22px rgba(0,0,0,.12); overflow:hidden; }
+.mode-premium .avatar-circle{ width:78px; height:78px; border:2px solid rgba(255,255,255,.25); background:rgba(255,255,255,.10); }
+.avatar{ width:100%; height:100%; object-fit:cover; border-radius:50%; }
+
+.logo{ position:relative; width:52px; height:52px; border-radius:14px; object-fit:cover; z-index:21; border:2px solid #fff; box-shadow:0 5px 15px rgba(0,0,0,0.1); display:none; }
+.mode-free .logo{ margin:125px auto 0; display:block; } /* 距離頭像更近 */
+.mode-premium .logo{ position:absolute; top:18px; right:18px; width:44px; height:44px; display:block; }
+
+/* 文字 (優化 2: 移除特效，僅姓名描邊) */
+.info-scroll{ padding:150px 18px 20px; }
+.mode-premium .info-scroll{ padding:120px 18px 22px; }
+
+.name{ margin:0; font-size:40px; font-weight:900; letter-spacing:1px; text-align:center; line-height:1.2; }
+.stroke{ 
+  -webkit-text-stroke: 1.5px rgba(255,255,255,0.8);
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1)); /* 改用 filter 避免切割感 */
 }
-.dots-row { display: flex; justify-content: center; gap: 10px; margin: 10px 0; }
-.dot, .p-dot { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,.08); transition: .2s; }
-.dot.active, .p-dot.active { border-color: #2d3436 !important; transform: scale(1.1); }
+.unit{ margin-top:10px; font-size:20px; font-weight:700; text-align:center; opacity:.9; text-shadow:none; }
+.slogan{ margin-top:10px; font-size:16px; font-weight:800; text-align:center; color:var(--p); text-shadow:none; }
 
-.plan-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 400px; margin: 0 auto 10px; padding: 0 15px; }
-.plan-btn { border: 2px solid #e9ecef; background: #fff; border-radius: 16px; padding: 10px; cursor: pointer; text-align: left; }
-.plan-btn.active { border-color: #222; }
-.plan-title { font-weight: 900; }
-.plan-sub { font-size: 11px; opacity: 0.6; }
+/* 精品款姓名區 (優化 3: 位置下移避開 Logo) */
+.premium-nameblock{ display:none; padding-left:12px; }
+.mode-premium .premium-nameblock{ display:block; }
+.p-name{ font-size:20px; font-weight:900; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,0.3); }
+.p-unit{ margin-top:4px; font-size:13px; opacity:.9; color:#fff; }
+.p-slogan{ margin-top:6px; font-size:13px; opacity:.85; color:#fff; }
+.mode-premium .name, .mode-premium .unit, .mode-premium .slogan{ display:none; }
 
-.control-row { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
-.btn-neo { border: 2px solid #d0d0d0; background: #fff; border-radius: 12px; padding: 8px 12px; font-weight: 800; cursor: pointer; }
-.btn-neo.active { border-color: #222; background: #f8f9fa; }
+/* 按鈕 (優化 4: 金邊立體、精緻) */
+.btn-main{ width:100%; border:none; background:#1fa24a; color:#fff; border-radius:26px; padding:14px; font-size:18px; font-weight:900; display:flex; justify-content:center; align-items:center; gap:10px; cursor:pointer; margin:14px 0; box-shadow:0 12px 20px rgba(0,0,0,0.1); }
+.btn-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.btn-mini{ border-radius:18px; padding:11px 10px; background:#fff; border:1px solid #eee; font-weight:800; display:flex; justify-content:center; align-items:center; gap:8px; cursor:pointer; transition:.2s; }
+.btn-wide{ grid-column:1 / -1; }
 
-.btn-cta { margin-top: 10px; border: none; background: var(--p); color: #fff; border-radius: 30px; padding: 12px 40px; font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-
-/* --- 名片卡片主體 --- */
-.card {
-  width: 92%;
-  max-width: 390px;
-  background: var(--card-bg) !important;
-  border-radius: 44px;
-  overflow: hidden;
-  position: relative;
-  margin: 16px 0;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.08);
-  transition: .35s;
-}
-
-/* 自由款 Banner */
-.banner { height: 126px; background: var(--p); position: relative; }
-.dynamic-mask { position: absolute; width: 100%; bottom: -1px; transition: .25s; }
-.style-arch .dynamic-mask { background: #fff; height: 46px; border-radius: 64px 64px 0 0; }
-.style-flat .dynamic-mask { background: #fff; height: 10px; }
-.style-spot .dynamic-mask { height: 86px; bottom: -85px; background: var(--p); clip-path: ellipse(50% 80% at 50% 0%); z-index: 10; }
-
-.mode-premium .banner { display: none; }
-
-/* 頭像與 Logo (需求 1: 距離拉近) */
-.avatar-wrap {
-  position: absolute;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 20;
-}
-.mode-free .avatar-wrap { top: 60px; flex-direction: column; gap: 4px; }
-.mode-premium .avatar-wrap { top: 40px; left: 20px; width: auto; gap: 12px; }
-
-.avatar-circle { width: 104px; height: 104px; border-radius: 50%; background: #fff; padding: 4px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); overflow: hidden; }
-.mode-premium .avatar-circle { width: 80px; height: 80px; border: 1.5px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); }
-.avatar { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-
-.logo {
-  position: relative;
-  width: 50px; height: 50px;
-  border-radius: 12px;
-  object-fit: cover;
-  z-index: 21;
-  border: 2px solid #fff;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-.mode-free .logo { margin: 130px auto 10px; display: block; }
-.mode-premium .logo { position: absolute; top: 18px; right: 18px; width: 42px; height: 42px; margin: 0; }
-
-/* --- 文字樣式 (需求 2: 僅主標題描邊) --- */
-.info-scroll { padding: 140px 20px 30px; }
-.mode-premium .info-scroll { padding: 135px 22px 30px; }
-
-.name { margin: 0; font-size: 38px; font-weight: 900; text-align: center; line-height: 1.1; }
-.stroke-name {
-  -webkit-text-stroke: 1.2px rgba(255,255,255,0.85);
-  text-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.unit { margin-top: 8px; font-size: 20px; font-weight: 700; text-align: center; opacity: 0.9; }
-.slogan { margin-top: 8px; font-size: 16px; font-weight: 800; text-align: center; color: var(--p); }
-
-/* 精品款姓名區 (需求 3: 位置低一點) */
-.premium-nameblock { display: none; }
-.mode-premium .premium-nameblock { display: block; padding-top: 10px; }
-.mode-premium .p-name { font-size: 20px; font-weight: 900; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-.mode-premium .p-unit { font-size: 13px; color: rgba(255,255,255,0.85); }
-.mode-premium .p-slogan { font-size: 13px; color: rgba(255,255,255,0.8); margin-top: 4px; }
-.mode-premium .name, .mode-premium .unit, .mode-premium .slogan { display: none; }
-
-/* --- 按鈕系統 (需求 4: 精品款金邊立體) --- */
-.btn-main {
-  width: 100%; border: none; background: #1fa24a; color: #fff;
-  border-radius: 25px; padding: 14px; font-size: 18px; font-weight: 900;
-  display: flex; justify-content: center; align-items: center; gap: 10px;
-  cursor: pointer; margin: 15px 0; box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-}
-.btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.btn-mini {
-  border-radius: 16px; padding: 12px; background: #fff; border: 1px solid #eee;
-  font-weight: 800; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 6px; cursor: pointer;
-}
-.btn-wide { grid-column: 1 / -1; }
-
-/* 精品款專用按鈕 (精緻、金邊) */
-.mode-premium .btn-mini {
-  padding: 10px; font-size: 13px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
-  border: 1px solid rgba(212, 175, 55, 0.7); /* 金邊 */
-  color: #fff;
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.2), 0 5px 15px rgba(0,0,0,0.2);
+.mode-premium .btn-mini{ 
+  padding:9px; font-size:13px; 
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05)); 
+  border: 1px solid rgba(212, 175, 55, 0.6); /* 金邊 */
+  color:#fff; 
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 10px rgba(0,0,0,0.2);
   backdrop-filter: blur(5px);
 }
-.mode-premium .btn-main {
-  background: #1fa24a;
-  border: 1px solid rgba(212, 175, 55, 0.9);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+.mode-premium .btn-main{ 
+  border: 1px solid rgba(212,175,55,0.8); 
+  box-shadow: 0 15px 30px rgba(0,0,0,0.2); 
 }
 
-/* --- 內容區塊 --- */
-.section { margin-top: 20px; }
-.section-title { font-weight: 900; margin-bottom: 8px; opacity: 0.9; font-size: 15px; }
-.section-box { background: rgba(255,255,255,0.8); border-radius: 18px; padding: 15px; line-height: 1.6; font-weight: 600; font-size: 14px; }
-.mode-premium .section-box { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.15); }
+/* 區塊與相簿 (優化 9: 動態平衡) */
+.section{ margin-top:14px; display:none; } /* 預設隱藏，由 JS 判斷顯示 */
+.section-title{ font-weight:900; margin:10px 0 8px; opacity:.92; font-size:15px; }
+.section-box{ background:rgba(255,255,255,.86); border-radius:18px; padding:12px; line-height:1.6; font-weight:700; font-size:14px; color:#2d3436; }
+.mode-premium .section-box{ background:rgba(255,255,255,.14); color:rgba(255,255,255,.95); border:1px solid rgba(255,255,255,.15); backdrop-filter: blur(10px); }
 
-/* 相簿區 (需求 9: 動態平衡) */
-.gallery { position: relative; border-radius: 18px; overflow: hidden; }
-.g-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.gallery{ position:relative; border-radius:18px; overflow:hidden; }
+.g-track{ display:flex; overflow:auto; scroll-snap-type:x mandatory; scrollbar-width: none; }
 .g-track::-webkit-scrollbar { display: none; }
-.g-item { min-width: 100%; height: 220px; scroll-snap-align: center; }
-.g-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; border-radius: 18px; }
+.g-item{ min-width:100%; height:230px; scroll-snap-align:center; position:relative; }
+.g-item img{ width:100%; height:100%; object-fit:cover; display:block; }
 
-/* --- 隱格特效與後台 --- */
-.premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op,0); background: var(--fx-img); z-index: 2; mix-blend-mode: overlay; }
-.version-tag { position: absolute; right: 20px; bottom: 15px; font-size: 10px; opacity: 0.3; }
-.foot { margin-top: 20px; font-size: 12px; color: #999; cursor: pointer; padding: 10px; }
+.g-dots{ display:flex; justify-content:center; gap:6px; margin-top:8px; }
+.g-dot{ width:7px; height:7px; border-radius:50%; background:rgba(0,0,0,.2); }
+.mode-premium .g-dot{ background:rgba(255,255,255,.3); }
+.g-dot.active{ background:var(--p); }
 
-/* Lightbox & Admin Modal */
-.admin-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-.admin-modal.show { display: flex; }
-.admin-card { background: #fff; width: 100%; max-width: 360px; border-radius: 24px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); }
-.admin-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.admin-btn { border: none; border-radius: 12px; padding: 12px; font-weight: 800; cursor: pointer; width: 100%; margin-top: 10px; }
-.admin-input { width: 100%; border: 2px solid #eee; border-radius: 12px; padding: 12px; margin-bottom: 10px; font-weight: 700; }
+.qa-box .qa{ margin:10px 0; padding:12px; border-radius:16px; background:rgba(255,255,255,.86); }
+.mode-premium .qa-box .qa{ background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.15); }
+.qa-q{ font-weight:900; margin-bottom:6px; }
+.qa-a{ opacity:.9; line-height:1.6; }
+
+/* 版本與頁尾 */
+.version-tag{ position:absolute; right:18px; bottom:14px; font-size:10px; opacity:.3; z-index:30; cursor:pointer; }
+.foot{ font-size:11px; color:#bbb; margin-top:20px; cursor:pointer; padding:10px; }
+
+/* 隱形後台 Modal */
+.admin-modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); z-index:250; padding:18px; }
+.admin-modal.show{ display:flex; }
+.admin-card{ width:100%; max-width:350px; background:#fff; border-radius:24px; padding:20px; box-shadow:0 25px 60px rgba(0,0,0,0.2); }
+.admin-input{ width:100%; border:1px solid #ddd; border-radius:14px; padding:12px; margin-bottom:10px; font-weight:700; }
+.admin-btn{ width:100%; border:none; border-radius:14px; padding:12px; font-weight:900; cursor:pointer; background:#222; color:#fff; margin-top:8px; }
+.admin-row.two{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.admin-divider{ height:1px; background:#eee; margin:15px 0; }
+
+/* 其他 (Lightbox等) */
+.lightbox{ position:fixed; inset:0; background:rgba(0,0,0,.9); display:none; flex-direction:column; z-index:200; }
+.lightbox.show{ display:flex; }
+.lb-body img{ max-width:90vw; max-height:80vh; border-radius:10px; }
