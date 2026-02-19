@@ -1,4 +1,4 @@
-/* --- 幸福智慧名片 V382.6 淨化連動版 --- */
+/* --- 幸福智慧名片 V382.6 淨化連動完整版 --- */
 
 :root {
   --font-main: 'Noto Sans TC', sans-serif;
@@ -11,7 +11,7 @@
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --text:#2d3436; }
 
-/* 🌿 精品設計：七種氣質濃版 */
+/* 🌿 精品設計：七種氣質語彙 */
 .mode-premium.p1 { --p:#1a2f27; --bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; }
 .mode-premium.p2 { --p:#2c3e50; --bg:#1a252f; --text:#ffffff; --ls:0.08em; }
 .mode-premium.p3 { --p:#5d2525; --bg:#3d1616; --text:#fff5f5; }
@@ -32,7 +32,7 @@ body {
   width: 92%;
   max-width: 380px;
   height: 680px;
-  background: #ffffff !important; /* 強制自由款為純白底 */
+  background: #ffffff !important;
   border-radius: 45px;
   overflow: hidden;
   position: relative;
@@ -41,17 +41,13 @@ body {
   transition: 0.5s;
 }
 
-/* 精品模式強制換底色 */
-.mode-premium .card {
-  background: var(--bg) !important;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-}
+.mode-premium .card { background: var(--bg) !important; }
 
 /* 🔴 頭像框：穩定圓形與定位 */
 .avatar-wrap {
   position: absolute;
   width: 100%;
-  top: 85px;
+  top: 90px;
   display: flex;
   justify-content: center;
   z-index: 30;
@@ -69,23 +65,19 @@ body {
   overflow: hidden;
 }
 
-.avatar {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
+.avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-/* 🔴 橫幅與遮罩 (正拱、平直、晨曦) */
+/* 🔴 橫幅與版型地平線 (重點修正區) */
 .banner {
   height: 160px;
   background: var(--p);
   background-image: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.05) 100%);
   position: relative;
   transition: 0.5s;
+  overflow: visible; /* 允許晨曦半圓鼓出 */
 }
 
-/* 正拱：向上圓弧 */
+/* 1. 優雅正拱：底線向上弧線 (白色背景頂上來) */
 .arch-mask {
   background: #ffffff;
   height: 55px;
@@ -93,142 +85,68 @@ body {
   position: absolute;
   bottom: -1px;
   width: 100%;
+  transition: 0.3s;
 }
 
-/* 平直：橫直線 */
+/* 2. 簡潔平直：底線為橫直線 */
 .style-flat .arch-mask {
   height: 15px;
   border-radius: 0;
 }
+.style-flat .banner { height: 145px; }
 
-/* 晨曦：向下圓弧 (倒拱) */
+/* 3. 晨曦款：底線向下弧線 (色塊向下半圓形) */
 .spot-mask { display: none; }
 .style-spot .spot-mask {
   display: block;
   position: absolute;
-  width: 140%;
-  height: 100px;
-  bottom: -60px;
-  left: -20%;
-  background: #ffffff;
-  clip-path: ellipse(50% 40% at 50% 100%);
+  width: 100%;
+  height: 120px; /* 控制鼓出的半圓深度 */
+  bottom: -100px; /* 讓半圓向下突出 */
+  left: 0;
+  background: var(--p);
+  /* 關鍵：使用 clip-path 畫出向下延伸的半圓形 */
+  clip-path: ellipse(50% 80% at 50% 0%);
+  z-index: 10;
 }
-.style-spot .arch-mask { display: none; }
+.style-spot .arch-mask { display: none; } /* 隱藏白色遮罩 */
+.style-spot .banner { background: var(--p); }
 
 /* 🔴 紙感強化 (Soft-Light 淨化模式) */
 .paper-overlay {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.03; /* 低透明度防止髒色 */
+  opacity: 0.03;
   z-index: 5;
   mix-blend-mode: soft-light;
 }
+.paper-1 .paper-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
+.paper-2 .paper-overlay { background: radial-gradient(#000 12%, transparent 12%) 0 0/6px 6px; opacity: 0.05; }
+.paper-3 .paper-overlay { background: repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 4px); opacity: 0.1; }
 
-/* 棉紙 */
-.paper-1 .paper-overlay {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
-}
-/* 顆粒 */
-.paper-2 .paper-overlay {
-  background: radial-gradient(#000 12%, transparent 12%) 0 0/6px 6px;
-  opacity: 0.05;
-}
-/* 亞麻 */
-.paper-3 .paper-overlay {
-  background: repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 4px);
-  opacity: 0.1;
-}
-/* 水彩 */
-.paper-4 .paper-overlay {
-  background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.1) 2%, transparent 20%) 0 0/12px 12px;
-}
-
-/* 🔴 選擇鈕美化 (Neo-Brutalism) */
-#admin-panel {
-  background: #ffffff;
-  width: 100%;
-  text-align: center;
-  border-bottom: 1px solid #eeeeee;
-  padding: 15px 0;
-}
-
-.dots-row {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-  margin: 10px 0;
-}
-
-.dot, .p-dot {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 3px solid #ffffff;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-  transition: 0.3s;
-}
-
-.active {
-  border-color: #2d3436 !important;
-  transform: scale(1.15);
-}
+/* 🔴 選擇鈕美化 */
+#admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 15px 0; }
+.dots-row { display: flex; justify-content: center; gap: 14px; margin: 10px 0; }
+.dot, .p-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.08); transition: 0.3s; }
+.active { border-color: #2d3436 !important; transform: scale(1.15); }
 
 .btn-neo {
-  padding: 7px 15px;
-  border-radius: 12px;
-  border: 1.5px solid #eeeeee;
-  background: #ffffff;
-  font-size: 11px;
-  font-weight: 900;
-  cursor: pointer;
-  color: #555555;
-  margin: 0 2px;
-  transition: 0.2s;
+  padding: 7px 15px; border-radius: 12px; border: 1.5px solid #eee; background: #fff;
+  font-size: 11px; font-weight: 900; cursor: pointer; color: #555; transition: 0.2s;
 }
+.btn-neo.active { background: #2d3436; color: #fff; border-color: #2d3436; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 
-.btn-neo.active {
-  background: #2d3436;
-  color: #ffffff;
-  border-color: #2d3436;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-/* 🔴 精品模式排版調整 */
-.mode-premium .banner { height: 60px; }
-.mode-premium .avatar-wrap { top: 35px; }
-.mode-premium .arch-mask, .mode-premium .spot-mask { display: none !important; }
-.mode-premium .name { letter-spacing: var(--ls); font-weight: 900; }
-.mode-premium .content-box {
-  background: rgba(255,255,255,0.05) !important;
-  border: 1px solid rgba(255,255,255,0.1);
-  color: var(--text);
-}
-
-/* 內容資訊 */
+/* 內容區 */
 .info-scroll { padding: 90px 20px 20px; text-align: center; }
 .name { font-size: 26px; font-weight: 900; margin: 0; }
 .unit { font-size: 14px; opacity: 0.6; margin: 5px 0 15px; }
-.content-box {
-  background: rgba(0,0,0,0.02);
-  border-radius: 20px;
-  padding: 18px;
-  margin-bottom: 12px;
-  text-align: left;
-}
+.content-box { background: rgba(0,0,0,0.02); border-radius: 20px; padding: 18px; margin-bottom: 12px; text-align: left; }
 .label { font-size: 10px; font-weight: 900; color: #adb5bd; margin-bottom: 5px; display: block; }
 
 .btn-cta {
-  background: var(--p);
-  color: #ffffff;
-  border: none;
-  padding: 14px 45px;
-  border-radius: 40px;
-  font-weight: 900;
-  cursor: pointer;
-  margin-top: 5px;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  background: var(--p); color: #fff; border: none; padding: 14px 45px; border-radius: 40px; 
+  font-weight: 900; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
 footer { font-size: 11px; color: #adb5bd; padding: 25px 0; text-align: center; cursor: pointer; }
