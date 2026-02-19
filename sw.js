@@ -1,29 +1,44 @@
-/* sw.js (V385.3 minimal) */
-const CACHE_NAME = "angel-card-v3853";
+
+/* sw.js - V385.5_fix (Complete Overwrite) */
+"use strict";
+
+const CACHE_NAME = "angel-card-v3855-fix";
 const ASSETS = [
   "./",
-  "./index.html",
-  "./style.css",
-  "./app.js",
-  "./manifest.json",
+  "./index.html?v=3855",
+  "./style.css?v=3855",
+  "./app.js?v=3855",
+  "./manifest.json?v=3855",
   "./og-card.png",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
 ];
 
-self.addEventListener("install", (e)=>{
-  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(()=>self.skipWaiting())
+  );
 });
 
-self.addEventListener("activate", (e)=>{
-  e.waitUntil(self.clients.claim());
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(k => (k===CACHE_NAME)?null:caches.delete(k))))
+      .then(()=>self.clients.claim())
+  );
 });
 
-self.addEventListener("fetch", (e)=>{
-  const req = e.request;
-  e.respondWith(
-    caches.match(req).then(cached => cached || fetch(req).then(res=>{
-      const copy = res.clone();
-      caches.open(CACHE_NAME).then(c=>c.put(req, copy)).catch(()=>{});
-      return res;
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  // Network-first for API requests
+  if (req.url.includes("script.google.com/macros/s/")) {
+    event.respondWith(fetch(req).catch(()=>caches.match(req)));
+    return;
+  }
+  event.respondWith(
+    caches.match(req).then((cached) => cached || fetch(req).then((resp)=>{
+      const copy = resp.clone();
+      caches.open(CACHE_NAME).then(cache=>cache.put(req, copy)).catch(()=>{});
+      return resp;
     }).catch(()=>cached))
   );
 });
