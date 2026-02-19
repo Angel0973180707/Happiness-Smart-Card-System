@@ -37,6 +37,7 @@ function applyV382() {
   const controlPanel = document.getElementById('free-controls');
   if (controlPanel) controlPanel.style.display = isFree ? 'block' : 'none';
 
+  // 全量 className 切換
   const classList = [
     `mode-${state.mode}`,
     state.theme,
@@ -44,6 +45,7 @@ function applyV382() {
     isFree ? state.paper : ''
   ];
   document.body.className = classList.filter(Boolean).join(' ');
+  updateThemeColor();
 }
 
 async function loadV382Data() {
@@ -56,7 +58,12 @@ async function loadV382Data() {
       document.getElementById('u-service').innerText = data.服務項目 || "";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch(e) { console.error("資料載入失敗"); }
+  } catch(e) { console.error("雲端同步異常"); }
+}
+
+function updateThemeColor() {
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--p').trim();
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', accent);
 }
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
