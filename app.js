@@ -4,9 +4,8 @@ const CONFIG = {
   ANGEL: "TW0001"
 };
 
-let state = { mode: 'free', theme: 'color-1', style: 'arch', paper: 'paper-1' };
+let state = { mode: 'free', theme: 'color-1', style: 'arch' };
 
-// ✅ 全域掛載：解決 onclick 找不到函數
 window.setV382 = function(mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
@@ -22,23 +21,15 @@ window.setV382Style = function(style, el) {
   applyV382();
 };
 
-window.setV382Paper = function(paper, el) {
-  state.paper = paper;
-  el.parentElement.querySelectorAll('.btn-neo').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  applyV382();
-};
-
 function applyV382() {
   const isFree = state.mode === 'free';
   document.getElementById('free-controls').style.display = isFree ? 'block' : 'none';
   
-  // 核心：直接重寫 className，洗掉舊類別防止衝突
+  // 核心：全量重構 className
   const classList = [
     `mode-${state.mode}`,
     state.theme,
-    isFree ? `style-${state.style}` : '',
-    isFree ? state.paper : ''
+    isFree ? `style-${state.style}` : ''
   ];
   document.body.className = classList.filter(Boolean).join(' ');
   updateThemeColor();
@@ -51,7 +42,7 @@ async function loadV382Data() {
     if(data) {
       document.getElementById('u-name').innerText = data.姓名 || "小天使笑長";
       document.getElementById('u-unit').innerText = data.單位 || "幸福智慧教養館";
-      document.getElementById('u-service').innerText = data.服務項目 || "載入資訊中...";
+      document.getElementById('u-service').innerText = data.服務項目 || "";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
   } catch(e) { console.error("GAS 載入異常"); }
@@ -63,6 +54,6 @@ function updateThemeColor() {
 }
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
-window.handleHiddenGate = () => { /* 預留隱形入口 */ };
+window.handleHiddenGate = () => { console.log("V382.5 系統檢查正常"); };
 
 window.onload = () => { loadV382Data(); applyV382(); };
