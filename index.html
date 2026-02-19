@@ -1,22 +1,77 @@
-<div class="lock-mask" id="lock-mask" style="display:none;">
-  <div class="lock-box">
-    <h3 style="margin-top:0">管理員驗證</h3>
-    <input type="password" id="pass-input" placeholder="請輸入管理密碼" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px;">
-    <div style="display:flex; gap:10px; justify-content:center;">
-      <button onclick="verifyLock()" style="background:#2d3436; color:#fff; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">進入</button>
-      <button onclick="closeLock()" style="background:#eee; color:#333; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">取消</button>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>幸福智慧名片 V385.1</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=385.1">
+</head>
+<body class="mode-free color-1 style-arch paper-1">
+
+  <div class="lock-mask" id="lock-mask" style="display:none;">
+    <div class="lock-box">
+      <h3 style="margin-top:0">管理員驗證</h3>
+      <input type="password" id="pass-input" placeholder="請輸入管理密碼">
+      <div style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
+        <button onclick="verifyLock()" class="btn-lock-confirm">解鎖</button>
+        <button onclick="closeLock()" class="btn-lock-cancel">取消</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div id="admin-panel" style="display:none;">
-  <div style="display:flex; gap:10px; justify-content:center; padding:15px; background:#fff; border-bottom:1px solid #eee;">
-    <input type="text" id="id-input" placeholder="輸入序號取得成品" style="padding:8px; border-radius:8px; border:1px solid #ddd; flex:1;">
-    <button onclick="loadV385Data()" style="background:var(--p); color:#fff; border:none; padding:8px 15px; border-radius:8px;">載入</button>
+  <div id="admin-panel" style="display:none;">
+    <div class="admin-inner">
+      <input type="text" id="id-input" placeholder="輸入序號或姓名">
+      <button onclick="loadV385Data()">載入數據</button>
+    </div>
   </div>
-</div>
 
-<div id="card-container" class="card">
-  ...
-  <div class="version-tag" onclick="triggerLock()">V385.1</div>
-</div>
+  <div id="card-container" class="card">
+    <div class="premium-fx-layer"></div>
+    <div class="banner"><div class="dynamic-mask"></div></div>
+    <img id="u-logo" src="" class="logo-overlay" style="display:none;">
+    
+    <div class="avatar-wrap">
+      <div class="avatar-circle">
+        <img id="u-img" src="" class="avatar" alt="形象照">
+      </div>
+    </div>
+
+    <div class="info-scroll" id="scroll-area">
+      <h1 id="u-name" class="name">載入中...</h1>
+      <div id="u-unit" class="unit-text">同步中...</div>
+      <div id="u-slogan" class="slogan-text"></div>
+      <div id="u-titles" class="titles-row"></div>
+
+      <div class="content-box">
+        <span class="label-small">服務項目</span>
+        <div id="u-service" class="service-content"></div>
+      </div>
+
+      <div class="product-slider" id="u-slider"></div>
+
+      <a id="u-line-oa" href="#" class="btn-main-line" target="_blank">LINE 官方帳號連結</a>
+      
+      <div class="action-grid">
+        <a id="u-call" class="btn-icon"><i class="fa-solid fa-phone"></i></a>
+        <a id="u-mail" class="btn-icon"><i class="fa-solid fa-envelope"></i></a>
+        <a id="u-map" class="btn-icon" target="_blank"><i class="fa-solid fa-location-dot"></i></a>
+        <a id="u-yt" class="btn-icon" target="_blank"><i class="fa-brands fa-youtube"></i></a>
+        <a id="u-tiktok" class="btn-icon" target="_blank"><i class="fa-brands fa-tiktok"></i></a>
+        <a id="u-fb" class="btn-icon" target="_blank"><i class="fa-brands fa-facebook"></i></a>
+      </div>
+
+      <div id="u-qa-area"></div>
+    </div>
+    
+    <div class="footer-area">
+      <span class="cp-text">版權所有</span>
+      <span class="version-tag" onclick="triggerLock()">V385.1</span>
+    </div>
+  </div>
+
+  <script src="app.js?v=385.1"></script>
+</body>
+</html>
