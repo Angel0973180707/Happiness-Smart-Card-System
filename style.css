@@ -1,27 +1,27 @@
-/* --- 幸福智慧名片 V382.9 質感差異化版 --- */
+/* --- 幸福智慧名片 V382.9 質感巔峰版 --- */
 :root { --font: 'Noto Sans TC', sans-serif; }
 
-/* 🎨 自由搭配款 (維持純淨) */
+/* 🎨 自由搭配：亮色定義 */
 .mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-/* 🌿 精品設計：材質差異化定義 (P1-P7) */
+/* 🌿 精品設計：材質性格化定義 (P1-P7) */
 
-/* P1: 墨綠 - 皮革質感 (Leather) */
+/* P1: 墨綠 - 高級皮革 (Premium Leather) */
 .mode-premium.p1 { 
   --p:#1a3028; --bg:#f0f2f1; --card-bg:#1a3028; --text:#e0e7e5; 
   --fx-img: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
   --fx-op: 0.15; --fx-blend: overlay;
 }
 
-/* P2: 深海藍 - 絲絨磨砂 (Velvet) */
+/* P2: 深海藍 - 磨砂天鵝絨 (Velvet Matte) */
 .mode-premium.p2 { 
   --p:#1c2e42; --bg:#eef1f5; --card-bg:#1c2e42; --text:#ffffff; 
-  --fx-img: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 100%);
-  --fx-op: 0.5; --fx-blend: screen;
+  --fx-img: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08) 0%, transparent 60%);
+  --fx-op: 0.6; --fx-blend: screen;
 }
 
 /* P3: 晨霧紫 - 毛玻璃 (Frosted Glass) */
@@ -31,25 +31,25 @@
   --fx-op: 0.3;
 }
 
-/* P4: 晶綻金 - 黃金感修正 (Gold Leaf) */
+/* P4: 晶綻金 - 金箔玻璃感修正 (不再突兀死亮) */
 .mode-premium.p4 { 
-  --p:#bf953f; 
-  --bg:#f9f7f0; 
+  --p:#bf953f; --bg:#f9f7f0; 
+  /* 多段式流金背景 */
   --card-bg: linear-gradient(135deg, #bf953f 0%, #fcf6ba 45%, #b38728 50%, #fbf5b7 55%, #aa771c 100%); 
-  --text:#4d3700; 
-  --blur: blur(8px); /* 輕微玻璃感 */
-  --fx-img: linear-gradient(90deg, transparent 40%, rgba(255,255,255,0.6) 50%, transparent 60%);
-  --fx-op: 0.4; --fx-blend: overlay;
+  --text:#4d3700; --blur: blur(10px); 
+  /* 柔和的漫反射光，取代死高光 */
+  --fx-img: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.5) 0%, transparent 70%);
+  --fx-op: 0.35; --fx-blend: soft-light;
 }
 
-/* P6: 胭脂 - 絲綢漸層 (Silk) */
-.mode-premium.p6 { 
-  --p:#a36d6d; --bg:#fdf5f5; 
-  --card-bg: linear-gradient(45deg, #a36d6d 0%, #d4a5a5 50%, #8e5a5a 100%); 
-  --text:#ffffff; --fx-op: 0.1;
+/* P5: 亞麻灰藍 - 編織質感 (Woven Textile) */
+.mode-premium.p5 { 
+  --p:#7a94a6; --bg:#f4f7f9; --card-bg:#7a94a6; --text:#ffffff; 
+  --fx-img: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 4px);
+  --fx-op: 0.2;
 }
 
-/* 🔴 通用結構佈局 (維持 V382.7 穩定結構) */
+/* 🔴 通用結構佈局 (封存版本基準) */
 body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; }
 
 #admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 15px 0; z-index: 100; }
@@ -71,24 +71,24 @@ body { background: var(--bg); font-family: var(--font); margin: 0; display: flex
 .mode-premium .info-scroll { padding: 90px 25px 25px; text-align: left; }
 .mode-premium .name { font-size: 26px; font-weight: 900; border-bottom: 2px solid rgba(255,255,255,0.2); display: inline-block; padding-bottom: 8px; margin-bottom: 12px; }
 
-/* 🔴 核心質感層 (差異化關鍵) */
+/* 🔴 質感層與紙感防髒優化 */
 .premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: var(--fx-blend, overlay); }
-
-/* 🔴 紙感控制 (去髒優化) */
 .paper-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; mix-blend-mode: multiply; }
-.mode-free .paper-overlay { opacity: 0.08; } /* 自由款極輕量，防止髒色 */
+
+/* 自由款極輕量質感 */
+.mode-free .paper-overlay { opacity: 0.08; } 
 .paper-1 .paper-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
 .paper-2 .paper-overlay { background: radial-gradient(#000 15%, transparent 15%) 0 0/6px 6px; }
 .paper-3 .paper-overlay { background: repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 4px); }
 
-/* 🔴 自由款地平線結構 (封存不可動) */
+/* 🔴 自由款地平線結構 (封存基準) */
 .banner { height: 125px; background: var(--p); position: relative; transition: 0.5s; overflow: visible; }
 .dynamic-mask { position: absolute; width: 100%; bottom: -1px; transition: 0.3s; }
 .style-arch .dynamic-mask { background: #fff; height: 45px; border-radius: 60px 60px 0 0; }
 .style-flat .dynamic-mask { background: #fff; height: 10px; border-radius: 0; }
 .style-spot .dynamic-mask { height: 85px; bottom: -84px; background: var(--p); left: 0; width: 100%; clip-path: ellipse(50% 80% at 50% 0%); z-index: 10; }
 
-/* UI 其餘樣式 */
+/* UI 內容 */
 .avatar-wrap { position: absolute; width: 100%; top: 65px; display: flex; justify-content: center; z-index: 30; }
 .avatar-circle { width: 105px; height: 105px; border-radius: 50% !important; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
 .info-scroll { padding: 90px 20px 20px; text-align: center; }
