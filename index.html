@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V380</title>
+  <title>幸福智慧名片 V380.5</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./style.css" />
@@ -12,7 +12,7 @@
 
   <div id="admin-panel">
     <div class="picker-section">
-      <span class="section-label">🎨 自由搭配：亮色親和款</span>
+      <span class="section-label">🎨 自由搭配：親和亮色</span>
       <div class="dots-row">
         <div class="dot active" style="background:#ee5253" onclick="setAppMode('free','warm-pink', this)"></div>
         <div class="dot" style="background:#00a8ff" onclick="setAppMode('free','aurora-blue', this)"></div>
@@ -27,15 +27,15 @@
     </div>
 
     <div class="picker-section">
-      <span class="section-label">🌿 精品設計：七種氣質語彙</span>
+      <span class="section-label">🌿 精品設計：七種氣質（選色即選版）</span>
       <div class="dots-row">
-        <div class="p-dot p-deep-green" onclick="setAppMode('premium','p-deep-green', this)"></div>
-        <div class="p-dot p-blue-gray" onclick="setAppMode('premium','p-blue-gray', this)"></div>
-        <div class="p-dot p-wine-red" onclick="setAppMode('premium','p-wine-red', this)"></div>
-        <div class="p-dot p-caramel" onclick="setAppMode('premium','p-caramel', this)"></div>
-        <div class="p-dot p-morandi" onclick="setAppMode('premium','p-morandi', this)"></div>
-        <div class="p-dot p-misty" onclick="setAppMode('premium','p-misty', this)"></div>
-        <div class="p-dot p-graphite" onclick="setAppMode('premium','p-graphite', this)"></div>
+        <div class="p-dot" style="background:#1a2f27" title="深墨綠" onclick="setAppMode('premium','p-deep-green', this)"></div>
+        <div class="p-dot" style="background:#2c3e50" title="深藍灰" onclick="setAppMode('premium','p-blue-gray', this)"></div>
+        <div class="p-dot" style="background:#5d2525" title="酒紅棕" onclick="setAppMode('premium','p-wine-red', this)"></div>
+        <div class="p-dot" style="background:#8e5a3c" title="焦糖暖棕" onclick="setAppMode('premium','p-caramel', this)"></div>
+        <div class="p-dot" style="background:#7a94a6" title="莫蘭迪藍" onclick="setAppMode('premium','p-morandi', this)"></div>
+        <div class="p-dot" style="background:#6b6687" title="霧紫灰" onclick="setAppMode('premium','p-misty', this)"></div>
+        <div class="p-dot" style="background:#1a1a1a" title="石墨黑" onclick="setAppMode('premium','p-graphite', this)"></div>
       </div>
     </div>
 
@@ -45,26 +45,36 @@
   <div id="card-container" class="card">
     <div class="premium-fx"></div>
     <div class="banner"><div class="arch-overlay"></div></div>
-    <div class="avatar-wrap"><img id="u-img" src="" class="avatar" alt="頭像" /></div>
+    
+    <div class="avatar-wrap">
+        <div class="avatar-border">
+            <img id="u-img" src="" class="avatar" alt="頭像" />
+        </div>
+    </div>
+
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">...</div>
+      
       <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">立即預約表單</div>
-      <div class="content-box"><div id="u-service">讀取小天使資料中...</div></div>
-    </div>
-  </div>
-
-  <div id="work-drawer" style="max-height:0; overflow:hidden; transition:0.5s; position:fixed; bottom:0; width:100%; max-width:420px; background:#2d3436; color:white; border-radius:30px 30px 0 0; z-index:2000;">
-    <div style="padding:30px; text-align:center;">
-      <h3 style="margin:0 0 15px;">管理預覽</h3>
-      <input type="text" id="work-id" placeholder="輸入編號 (例: TW0001)" style="width:80%; padding:10px; border-radius:10px; border:none;" />
-      <button onclick="doPreviewById()" style="margin-top:10px; background:var(--p); color:white; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">調用資料</button>
+      
+      <div class="content-box">
+        <span class="label">服務項目</span>
+        <div id="u-service">讀取小天使資料中...</div>
+      </div>
     </div>
   </div>
 
   <footer id="gate-footer" style="font-size:11px; color:#bbb; padding:25px 0; text-align:center; cursor:default; user-select:none;" onclick="handleHiddenGate()">
-    © 2026 幸福智慧名片 V380｜版權所有
+    © 2026 幸福智慧名片 V380.5｜版權所有
   </footer>
+
+  <div id="work-drawer" style="max-height:0; overflow:hidden; transition:0.5s; position:fixed; bottom:0; width:100%; max-width:420px; background:#2d3436; color:white; border-radius:30px 30px 0 0; z-index:2000;">
+    <div style="padding:30px; text-align:center;">
+      <input type="text" id="work-id" placeholder="輸入 ID" style="padding:10px; border-radius:8px; border:none;" />
+      <button onclick="doPreviewById()" style="background:#ee5253; color:#white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">調用資料</button>
+    </div>
+  </div>
 
   <script src="./app.js"></script>
 </body>
