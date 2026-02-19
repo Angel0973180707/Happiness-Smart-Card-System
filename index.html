@@ -21,7 +21,6 @@
 
     <div id="free-controls">
       <div class="control-row">
-        <span class="row-tag">版型</span>
         <div class="btn-stack">
           <button class="btn-neo active" onclick="window.setV382Style('arch', this)">優雅正拱</button>
           <button class="btn-neo" onclick="window.setV382Style('flat', this)">簡潔平直</button>
@@ -29,7 +28,6 @@
         </div>
       </div>
       <div class="control-row">
-        <span class="row-tag">紙感</span>
         <div class="btn-stack">
           <button class="btn-neo active" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
           <button class="btn-neo" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
@@ -53,28 +51,23 @@
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
-    <div class="banner">
-        <div class="dynamic-mask"></div>
-    </div>
-    <div class="bottom-banner"></div> <div class="avatar-wrap">
-      <div class="avatar-circle">
-        <img id="u-img" src="" class="avatar" alt="形象照" />
-      </div>
+    <div class="banner"><div class="dynamic-mask"></div></div>
+    <div class="bottom-banner"></div>
+    
+    <div class="avatar-wrap">
+      <div class="avatar-circle"><img id="u-img" src="" class="avatar" alt="形象照" /></div>
     </div>
 
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
       <div class="content-box" style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;" onclick="window.goFillForm()">立即填寫預約表單</div>
-      <div class="content-box">
-        <span class="label">服務項目</span>
-        <div id="u-service">同步中...</div>
-      </div>
+      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在同步雲端服務項目...</div>
     </div>
     <div class="version-tag">V382.9.1</div>
   </div>
 
-  <footer style="font-size: 10px; color: #ccc; margin: 20px 0; text-align: center;">V382.9.1</footer>
+  <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">V382.9.1</footer>
   <script src="app.js?v=382.9.1"></script>
 </body>
 </html>
