@@ -8,28 +8,28 @@
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-/* 🌿 精品設計：多元質感分流 (P1-P7) */
-.mode-premium.p1 { --p:#1e3d33; --bg:#f2f4f3; --card-bg:#1e3d33; --text:#e0e7e5; --fx-op: 0.1; --fx-img: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); } /* 墨綠皮革 */
-.mode-premium.p2 { --p:#243b55; --bg:#eef1f5; --card-bg:#243b55; --text:#ffffff; --fx-op: 0.08; } /* 深海絲絨 */
-.mode-premium.p3 { --p:#6b6687; --bg:#f2f1f5; --card-bg:#6b6687; --text:#ffffff; --blur:blur(12px); } /* 晨霧玻璃 */
-.mode-premium.p4 { --p:#d4af37; --bg:#f9f7f0; --card-bg:#d4af37; --text:#3d2b00; --fx-op: 0.2; --fx-img: linear-gradient(90deg, transparent 45%, rgba(255,255,255,0.2) 50%, transparent 55%); } /* 晶綻金色髮絲 */
-.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:#7a94a6; --text:#ffffff; } /* 亞麻灰藍 */
+/* 🌿 精品設計：分流質感 (P1-P7) */
+.mode-premium.p1 { --p:#1e3d33; --bg:#f2f4f3; --card-bg:#1e3d33; --text:#e0e7e5; --fx-op: 0.15; --fx-img: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); } /* 墨綠皮革 */
+.mode-premium.p2 { --p:#243b55; --bg:#eef1f5; --card-bg:#243b55; --text:#ffffff; --fx-op: 0.12; } /* 深海絲絨 */
+.mode-premium.p3 { --p:#6b6687; --bg:#f2f1f5; --card-bg:#6b6687; --text:#ffffff; --blur:blur(15px); } /* 晨霧玻璃 */
+.mode-premium.p4 { --p:#d4af37; --bg:#f9f7f0; --card-bg:#d4af37; --text:#3d2b00; --blur:blur(10px); --fx-op: 0.25; --fx-img: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4) 0%, transparent 60%); } /* 金箔玻璃感 */
+.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:#7a94a6; --text:#ffffff; --fx-op: 0.2; } /* 亞麻灰藍 */
 .mode-premium.p6 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, #a36d6d, #8e5a5a); --text:#ffffff; } /* 胭脂流沙 */
 .mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:#444444; --text:#d4af37; } /* 炭金織紋 */
 
 body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; }
 
-/* 🔴 控制面板：防擠壓 */
+/* 🔴 控制面板 */
 #admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 15px 0; z-index: 100; }
 .control-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 8px 0; }
 .btn-stack { display: flex; gap: 6px; flex-wrap: nowrap; }
 .btn-neo { padding: 6px 12px; border-radius: 10px; border: 1.5px solid #eee; background: #fff; font-size: 11px; font-weight: 900; white-space: nowrap; flex-shrink: 0; cursor: pointer; }
 .btn-neo.active { background: #2d3436; color: #fff; border-color: #2d3436; }
 
-/* 🔴 通用卡片容器 */
+/* 🔴 通用卡片 */
 .card { width: 92%; max-width: 380px; height: 660px; background: var(--card-bg) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.06); transition: 0.5s; }
 
-/* 🔴 自由款版型結構 */
+/* 🔴 自由款版型結構 (封存 V382.7) */
 .banner { height: 125px; background: var(--p); position: relative; transition: 0.5s; overflow: visible; }
 .dynamic-mask { position: absolute; width: 100%; bottom: -1px; transition: 0.3s; }
 .style-arch .dynamic-mask { background: #fff; height: 45px; border-radius: 60px 60px 0 0; }
@@ -48,29 +48,31 @@ body { background: var(--bg); font-family: var(--font); margin: 0; display: flex
 .mode-premium .avatar-circle { width: 85px; height: 85px; border: 2.5px solid rgba(255,255,255,0.2); }
 .mode-premium .info-scroll { padding: 90px 25px 25px; text-align: left; }
 .mode-premium .name { font-size: 26px; font-weight: 900; border-bottom: 2px solid rgba(255,255,255,0.2); display: inline-block; padding-bottom: 8px; margin-bottom: 12px; }
-.mode-premium .order-link-box { background: rgba(255,255,255,0.1); color: #fff; text-align: center; }
-.mode-premium .content-box { background: rgba(255,255,255,0.08) !important; border: 1px solid rgba(255,255,255,0.1); }
 
-/* 🔴 質感層：精品專屬不同設計 */
+/* 🔴 質感層控制 */
 .premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: overlay; }
 
-/* 🔴 紙感強化 (3款限定) */
-.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.25; z-index: 5; mix-blend-mode: multiply; }
-/* 棉紙 */
-.paper-1 .paper-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); opacity: 0.3; }
-/* 顆粒 */
-.paper-2 .paper-overlay { background: radial-gradient(#000 20%, transparent 20%) 0 0/5px 5px; opacity: 0.18; }
-/* 亞麻 */
-.paper-3 .paper-overlay { background: repeating-linear-gradient(90deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 4px), repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0 1px, transparent 1px 4px); opacity: 0.25; }
+/* 🔴 紙感控制：自由款調低(防髒)，精品款調高(精緻) */
+.paper-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; mix-blend-mode: multiply; }
 
-/* UI 基礎樣式 */
+/* 自由款紙感 (Opacity 調低至 0.08-0.12 避免髒感) */
+.mode-free .paper-overlay { opacity: 0.1; }
+.mode-free.paper-1 .paper-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
+.mode-free.paper-2 .paper-overlay { background: radial-gradient(#000 15%, transparent 15%) 0 0/6px 6px; }
+.mode-free.paper-3 .paper-overlay { background: repeating-linear-gradient(90deg, rgba(0,0,0,0.08) 0 1px, transparent 1px 4px); }
+
+/* 精品款紙感 (Opacity 調高至 0.25-0.35 提升質感) */
+.mode-premium .paper-overlay { opacity: 0.3; mix-blend-mode: soft-light; }
+.mode-premium.paper-1 .paper-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
+
+/* UI 基礎 */
 .avatar-wrap { position: absolute; width: 100%; top: 65px; display: flex; justify-content: center; z-index: 30; }
 .avatar-circle { width: 105px; height: 105px; border-radius: 50% !important; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
 .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .info-scroll { padding: 90px 20px 20px; text-align: center; }
 .order-link-box { background: rgba(0,0,0,0.03); padding: 12px; border-radius: 15px; margin-bottom: 15px; font-weight: 900; color: var(--p); cursor: pointer; }
+.mode-premium .order-link-box { background: rgba(255,255,255,0.1); color: #fff; text-align: center; }
 .content-box { background: rgba(0,0,0,0.02); border-radius: 20px; padding: 18px; margin-bottom: 12px; text-align: left; }
-.label { font-size: 10px; font-weight: 900; color: #adb5bd; margin-bottom: 5px; display: block; }
 .dots-row { display: flex; justify-content: center; gap: 12px; margin: 10px 0; }
 .dot, .p-dot { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.08); transition: 0.2s; }
 .active { border-color: #2d3436 !important; transform: scale(1.1); }
