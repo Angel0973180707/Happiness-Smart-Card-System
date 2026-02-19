@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V382.5</title>
+  <title>幸福智慧名片 V382.6</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=382.5" />
+  <link rel="stylesheet" href="style.css?v=382.6" />
 </head>
 <body class="mode-free color-1 style-arch paper-1">
 
   <div id="admin-panel">
     <div class="picker-section">
-      <span class="section-label">🎨 自由搭配：亮色淨化款</span>
+      <span class="section-label">🎨 自由搭配：親和亮色 (5色)</span>
       <div class="dots-row">
         <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
         <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
@@ -21,17 +21,29 @@
         <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
       </div>
       
-      <div id="free-controls">
+      <div id="free-controls" class="panel-box-neo">
         <div class="control-row">
-          <button class="btn-neo active" onclick="window.setV382Style('arch', this)">優雅正拱</button>
-          <button class="btn-neo" onclick="window.setV382Style('flat', this)">簡潔平直</button>
-          <button class="btn-neo" onclick="window.setV382Style('spot', this)">晨曦倒拱</button>
+          <span class="row-tag">版型</span>
+          <div class="btn-stack">
+            <button class="btn-neo active" onclick="window.setV382Style('arch', this)">優雅正拱</button>
+            <button class="btn-neo" onclick="window.setV382Style('flat', this)">簡潔平直</button>
+            <button class="btn-neo" onclick="window.setV382Style('spot', this)">晨曦倒拱</button>
+          </div>
+        </div>
+        <div class="control-row">
+          <span class="row-tag">紙感</span>
+          <div class="btn-stack">
+            <button class="btn-neo active" onclick="window.setV382Paper('paper-1', this)">霧面棉</button>
+            <button class="btn-neo" onclick="window.setV382Paper('paper-2', this)">細顆粒</button>
+            <button class="btn-neo" onclick="window.setV382Paper('paper-3', this)">亞麻紋</button>
+            <button class="btn-neo" onclick="window.setV382Paper('paper-4', this)">水彩紙</button>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="picker-section">
-      <span class="section-label">🌿 精品設計：七種氣質設計語彙</span>
+      <span class="section-label">🌿 精品設計：七種氣質語彙</span>
       <div class="dots-row">
         <div class="p-dot" style="background:#1a2f27" onclick="window.setV382('premium', 'p1', this)"></div>
         <div class="p-dot" style="background:#2c3e50" onclick="window.setV382('premium', 'p2', this)"></div>
@@ -62,17 +74,17 @@
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">...</div>
-      <div id="order-box" class="content-box bounce-box" onclick="window.goFillForm()">立即預約</div>
+      <div id="order-box" class="content-box bounce-box" onclick="window.goFillForm()">立即填寫預約</div>
       <div class="content-box">
-        <div id="u-service">正在載入雲端資料...</div>
+        <div id="u-service">正在從雲端載入小天使最新資料...</div>
       </div>
     </div>
   </div>
 
-  <footer onclick="window.handleHiddenGate()">
-    © 2026 幸福智慧名片 V382.5｜版權所有
+  <footer id="gate-footer" onclick="window.handleHiddenGate()">
+    © 2026 幸福智慧名片 V382.6｜版權所有
   </footer>
 
-  <script src="app.js?v=382.5"></script>
+  <script src="app.js?v=382.6"></script>
 </body>
 </html>
