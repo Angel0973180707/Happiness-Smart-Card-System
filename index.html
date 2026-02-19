@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V383.1</title>
+  <title>幸福智慧名片 V384</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=383.1" />
+  <link rel="stylesheet" href="style.css?v=384" />
 </head>
 <body class="mode-free color-1 style-arch paper-1">
 
@@ -20,19 +20,15 @@
     </div>
 
     <div id="free-controls">
-      <div class="control-row">
-        <div class="btn-stack">
+      <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
           <button class="btn-neo active" onclick="window.setV382Style('arch', this)">優雅正拱</button>
           <button class="btn-neo" onclick="window.setV382Style('flat', this)">簡潔平直</button>
           <button class="btn-neo" onclick="window.setV382Style('spot', this)">晨曦款</button>
-        </div>
       </div>
-      <div class="control-row">
-        <div class="btn-stack">
+      <div class="control-row" style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
           <button class="btn-neo active" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
           <button class="btn-neo" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
           <button class="btn-neo" onclick="window.setV382Paper('paper-3', this)">亞麻</button>
-        </div>
       </div>
     </div>
 
@@ -45,6 +41,7 @@
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p6', this)"></div>
       <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
     </div>
+    
     <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
@@ -63,12 +60,12 @@
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
       <div class="content-box" style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;" onclick="window.goFillForm()">立即填寫預約表單</div>
-      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在讀取雲端服務項目...</div>
+      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在同步雲端服務項目...</div>
     </div>
-    <div class="version-tag">V383.1</div>
+    <div class="version-tag">V384</div>
   </div>
 
-  <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">幸福智慧教養館 V383.1</footer>
-  <script src="app.js?v=383.1"></script>
+  <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">幸福智慧名片 V384</footer>
+  <script src="app.js?v=384"></script>
 </body>
 </html>
