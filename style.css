@@ -1,304 +1,90 @@
 /* =========================================================
- * 幸福智慧名片｜style.css（V385.1 前台｜卡片排版美化穩定版）
- * 目標：
- * - 精品版：姓名字形變好看、不爆版、不壓頭像
- * - 卡片空間：內容區更清楚（上：身份/標語；中：按鈕；下：資訊盒）
- * - 手機優先：避免重疊、避免字太大、留白更舒服
+ * 幸福智慧名片｜style.css（V385.1）
+ * 基底：V384 玻璃幻鏡穩定版
+ * 新增：卡片空間規劃（標語 / 聯繫按鈕 / 影音社群 / FAQ / 3張照片 / Logo）
  * ========================================================= */
-
-/* --- base tokens --- */
-:root{
-  --font: 'Noto Sans TC', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  --p:#ff5e5e;
-  --bg:#f5f6fa;
-  --card-bg:#ffffff;
-  --text:#2d3436;
+:root { --font: 'Noto Sans TC', sans-serif; }
+/* 🎨 自由搭配款 (純淨亮彩 5 色) */
+.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
+/* 🌿 精品設計款 (玻璃幻鏡 7 色) */
+.mode-premium .card { backdrop-filter: blur(25px); border: 12px solid #ffffff; }
+.mode-premium.p1 { --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,0.95), rgba(114,47,55,0.85)); --text:#f5e6e8; --fx-op:0.4; --fx-img:radial-gradient(circle at 20% 20%, rgba(255,255,255,0.3) 0%, transparent 60%); }
+.mode-premium.p2 { --p:#1c2e42; --bg:#eef1f5; --card-bg: linear-gradient(135deg, rgba(28,46,66,0.95), rgba(44,62,80,0.85)); --text:#ffffff; --fx-op:0.25; }
+.mode-premium.p3 { --p:#5e548e; --bg:#f4f3f7; --card-bg: linear-gradient(135deg, rgba(94,84,142,0.92), rgba(159,134,192,0.8)); --text:#ffffff; --fx-op:0.2; }
+.mode-premium.p4 { --p:#bf953f; --bg:#f9f7f0; --card-bg: linear-gradient(135deg, rgba(191,149,63,0.95), rgba(252,246,186,0.85), rgba(170,119,28,0.95)); --text:#4d3700; --fx-op:0.6; --fx-img:linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%); }
+.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg: linear-gradient(135deg, rgba(122,148,166,0.95), rgba(100,120,135,0.8)); --text:#ffffff; --fx-op:0.25; }
+.mode-premium.p6 { --p:#a36d6d; --bg:#fdf5f5; --card-bg: linear-gradient(135deg, rgba(163,109,109,0.95), rgba(142,90,90,0.85)); --text:#ffffff; --fx-op:0.35; }
+.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg: linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.2; }
+* { box-sizing: border-box; }
+body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.35s; padding-bottom: 40px; color: var(--text); }
+#admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 14px 0 12px; z-index: 100; position: sticky; top: 0; }
+.dots-row { display: flex; justify-content: center; gap: 10px; margin: 10px 0; }
+.dot, .p-dot { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,0.08); transition: 0.2s; }
+.active { border-color: #2d3436 !important; transform: scale(1.08); }
+.control-row { display:flex; justify-content:center; gap:8px; }
+.btn-neo { border: 1.5px solid rgba(0,0,0,0.25); background: #fff; padding: 8px 12px; border-radius: 10px; font-weight: 800; cursor: pointer; transition: 0.15s; }
+.btn-neo.active { border-color: #111; box-shadow: 0 4px 0 rgba(0,0,0,0.2); transform: translateY(-1px); }
+.btn-cta { background: var(--p); color: #fff; border: none; padding: 12px 44px; border-radius: 40px; font-weight: 900; cursor: pointer; margin-top: 6px; box-shadow: 0 12px 20px rgba(0,0,0,0.12); }
+.card { width: 92%; max-width: 380px; height: 660px; background: var(--card-bg) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.08); transition: 0.35s; }
+.mode-premium .card { width: 86%; height: 600px; margin: 24px auto; box-shadow: 0 25px 50px rgba(0,0,0,0.12); }
+.mode-premium .banner, .mode-premium .dynamic-mask { display: none !important; }
+.banner { height: 125px; background: var(--p); position: relative; transition: 0.35s; overflow: visible; }
+.dynamic-mask { position: absolute; width: 100%; bottom: -1px; transition: 0.25s; }
+.style-arch .dynamic-mask { background: #fff; height: 45px; border-radius: 60px 60px 0 0; }
+.style-flat .dynamic-mask { background: #fff; height: 10px; border-radius: 0; }
+.style-spot .dynamic-mask { height: 85px; bottom: -84px; background: var(--p); left: 0; width: 100%; clip-path: ellipse(50% 80% at 50% 0%); z-index: 10; }
+.brand-logo { position:absolute; top: 14px; right: 16px; width: 46px; height: 46px; border-radius: 12px; object-fit: cover; z-index: 40; box-shadow: 0 10px 18px rgba(0,0,0,0.14); border: 2px solid rgba(255,255,255,0.7); }
+.mode-premium .brand-logo { top: 16px; right: 16px; border-color: rgba(255,255,255,0.35); }
+.avatar-wrap { position: absolute; width: 100%; display: flex; justify-content: center; z-index: 30; transition: 0.35s; }
+.mode-free .avatar-wrap { top: 75px; }
+.mode-premium .avatar-wrap { top: 40px; left: 25px; justify-content: flex-start; }
+.avatar-circle { width: 105px; height: 105px; border-radius: 50% !important; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.12); overflow: hidden; }
+.mode-premium .avatar-circle { width: 85px; height: 85px; border: 2.5px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); }
+.avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.info-scroll { transition: 0.35s; overflow: auto; height: calc(100% - 20px); padding-bottom: 20px; }
+.mode-free .info-scroll { padding: 100px 18px 18px; text-align: center; }
+.mode-premium .info-scroll { padding: 90px 22px 22px; text-align: left; }
+.name { margin: 0; font-weight: 900; font-size: 34px; letter-spacing: 0.5px; line-height: 1.05; }
+.unit { margin-top: 10px; font-weight: 800; opacity: 0.9; }
+.slogan { margin: 10px 0 12px; font-weight: 900; color: var(--p); letter-spacing: 0.3px; }
+.mode-premium .slogan { color: rgba(255,255,255,0.95); }
+.btn-main { width: 100%; border: none; background: #16a34a; color: #fff; font-weight: 900; border-radius: 16px; padding: 14px 12px; cursor: pointer; margin: 10px 0 10px; box-shadow: 0 12px 18px rgba(0,0,0,0.14); display:flex; gap:10px; align-items:center; justify-content:center; }
+.mode-premium .btn-main { background: rgba(22,163,74,0.92); }
+.btn-row { display:flex; flex-wrap: wrap; gap: 10px; justify-content:center; margin-bottom: 12px; }
+.btn-mini { border: none; background: rgba(0,0,0,0.06); padding: 10px 12px; border-radius: 14px; font-weight: 800; cursor: pointer; display:flex; gap:8px; align-items:center; }
+.mode-premium .btn-mini { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.25); color: #fff; }
+.content-box { background: rgba(0,0,0,0.02); border-radius: 18px; padding: 14px 14px; margin-bottom: 12px; text-align: left; }
+.mode-premium .content-box { background: rgba(255,255,255,0.18) !important; border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(10px); border-radius: 15px; }
+.content-box h3 { margin: 0 0 10px; font-size: 14px; letter-spacing: 0.2px; }
+.content-box .kv { display:flex; gap:10px; align-items:center; margin: 8px 0; }
+.content-box .kv i { width: 18px; text-align:center; opacity: 0.9; }
+.content-box a { color: inherit; text-decoration: none; font-weight: 800; }
+.content-box a:hover { text-decoration: underline; }
+.links-grid { display:grid; grid-template-columns: 1fr; gap: 10px; }
+.link-pill { display:flex; gap:10px; align-items:center; justify-content:space-between; background: rgba(0,0,0,0.04); padding: 10px 12px; border-radius: 14px; }
+.mode-premium .link-pill { background: rgba(255,255,255,0.14); }
+.link-pill .left { display:flex; gap:10px; align-items:center; }
+.link-pill .tag { font-size: 12px; opacity: 0.75; font-weight: 700; }
+.faq-item { border-radius: 14px; overflow:hidden; margin-top: 10px; border: 1px solid rgba(0,0,0,0.08); }
+.mode-premium .faq-item { border-color: rgba(255,255,255,0.22); }
+.faq-q { width:100%; text-align:left; border:none; background: rgba(0,0,0,0.03); padding: 12px 12px; font-weight: 900; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.mode-premium .faq-q { background: rgba(255,255,255,0.12); color:#fff; }
+.faq-a { display:none; padding: 12px 12px; line-height: 1.7; }
+.gallery { margin-top: 6px; display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.gallery img { width: 100%; height: 92px; object-fit: cover; border-radius: 14px; box-shadow: 0 10px 18px rgba(0,0,0,0.12); }
+.premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: overlay; }
+.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.15; z-index: 5; mix-blend-mode: multiply; background:
+  radial-gradient(circle at 15% 25%, rgba(0,0,0,0.05) 0, transparent 45%),
+  radial-gradient(circle at 80% 65%, rgba(0,0,0,0.04) 0, transparent 50%),
+  repeating-linear-gradient(45deg, rgba(0,0,0,0.012), rgba(0,0,0,0.012) 2px, transparent 2px, transparent 6px);
 }
-
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
-body{
-  background: var(--bg);
-  font-family: var(--font);
-  margin:0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  transition:.4s;
-  padding-bottom:40px;
-  color:var(--text);
-}
-
-/* ---------------------------------------------------------
- * THEME: Free (5)
- * --------------------------------------------------------- */
-.mode-free.color-1{ --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-2{ --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-3{ --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-4{ --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-5{ --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
-
-/* ---------------------------------------------------------
- * THEME: Premium (7) - 玻璃幻鏡
- * --------------------------------------------------------- */
-.mode-premium .card{
-  backdrop-filter: blur(25px);
-  border: 12px solid rgba(255,255,255,.92);
-}
-
-.mode-premium.p1{ --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,.95), rgba(114,47,55,.85)); --text:#f5e6e8; --fx-op:.40; --fx-img:radial-gradient(circle at 20% 20%, rgba(255,255,255,.30) 0%, transparent 60%); }
-.mode-premium.p2{ --p:#1c2e42; --bg:#eef1f5; --card-bg: linear-gradient(135deg, rgba(28,46,66,.95), rgba(44,62,80,.85)); --text:#ffffff; --fx-op:.25; }
-.mode-premium.p3{ --p:#5e548e; --bg:#f4f3f7; --card-bg: linear-gradient(135deg, rgba(94,84,142,.92), rgba(159,134,192,.80)); --text:#ffffff; --fx-op:.20; }
-.mode-premium.p4{ --p:#bf953f; --bg:#f9f7f0; --card-bg: linear-gradient(135deg, rgba(191,149,63,.95), rgba(252,246,186,.85), rgba(170,119,28,.95)); --text:#4d3700; --fx-op:.60; --fx-img:linear-gradient(105deg, transparent 40%, rgba(255,255,255,.80) 50%, transparent 60%); }
-.mode-premium.p5{ --p:#7a94a6; --bg:#f4f7f9; --card-bg: linear-gradient(135deg, rgba(122,148,166,.95), rgba(100,120,135,.80)); --text:#ffffff; --fx-op:.25; }
-.mode-premium.p6{ --p:#a36d6d; --bg:#fdf5f5; --card-bg: linear-gradient(135deg, rgba(163,109,109,.95), rgba(142,90,90,.85)); --text:#ffffff; --fx-op:.35; }
-.mode-premium.p7{ --p:#444444; --bg:#f0f0f0; --card-bg: linear-gradient(135deg, rgba(68,68,68,.98), rgba(30,30,30,.95)); --text:#d4af37; --fx-op:.20; }
-
-/* ---------------------------------------------------------
- * Admin panel
- * --------------------------------------------------------- */
-#admin-panel{
-  background:#fff;
-  width:100%;
-  text-align:center;
-  border-bottom:1px solid rgba(0,0,0,.06);
-  padding:14px 0;
-  z-index:100;
-  position:sticky;
-  top:0;
-}
-
-.dots-row{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin:10px 0;
-  padding:0 10px;
-  flex-wrap:wrap;
-}
-
-.dot,.p-dot{
-  width:34px;height:34px;border-radius:50%;
-  cursor:pointer;
-  border:3px solid #fff;
-  box-shadow:0 3px 10px rgba(0,0,0,.10);
-  transition:.18s;
-}
-.active{ border-color:#2d3436 !important; transform:scale(1.08); }
-
-/* CTA top */
-.btn-cta{
-  background:var(--p);
-  color:#fff;
-  border:none;
-  padding:12px 34px;
-  border-radius:999px;
-  font-weight:900;
-  cursor:pointer;
-  margin-top:6px;
-  box-shadow:0 12px 28px rgba(0,0,0,.12);
-}
-.btn-cta:active{ transform:translateY(1px); }
-
-/* ---------------------------------------------------------
- * Card layout
- * --------------------------------------------------------- */
-.card{
-  width:92%;
-  max-width:380px;
-  height:660px;
-  background: var(--card-bg) !important;
-  border-radius:45px;
-  overflow:hidden;
-  position:relative;
-  margin:14px 0;
-  box-shadow:0 15px 40px rgba(0,0,0,.08);
-  transition:.35s;
-}
-
-.paper-overlay{
-  position:absolute; inset:0;
-  pointer-events:none;
-  opacity:.12;
-  z-index:5;
-  mix-blend-mode:multiply;
-}
-.premium-fx-layer{
-  position:absolute; inset:0;
-  pointer-events:none;
-  opacity:var(--fx-op,0);
-  background:var(--fx-img);
-  z-index:6;
-  mix-blend-mode:overlay;
-}
-
-/* Free banner */
-.banner{ height:125px; background:var(--p); position:relative; overflow:visible; }
-.dynamic-mask{ position:absolute; width:100%; bottom:-1px; transition:.25s; }
-.style-arch .dynamic-mask{ background:#fff; height:45px; border-radius:60px 60px 0 0; }
-.style-flat .dynamic-mask{ background:#fff; height:10px; border-radius:0; }
-.style-spot .dynamic-mask{
-  height:85px; bottom:-84px; background:var(--p);
-  left:0; width:100%;
-  clip-path: ellipse(50% 80% at 50% 0%);
-  z-index:10;
-}
-
-/* Premium: business-card proportions */
-.mode-premium .card{
-  width:88%;
-  height:590px;
-  margin:22px auto;
-  border-radius:36px;
-  box-shadow:0 25px 55px rgba(0,0,0,.14);
-}
-.mode-premium .banner,
-.mode-premium .dynamic-mask{ display:none !important; }
-
-/* ---------------------------------------------------------
- * Avatar positioning (重點：避免跟姓名重疊)
- * --------------------------------------------------------- */
-.avatar-wrap{
-  position:absolute;
-  width:100%;
-  display:flex;
-  justify-content:center;
-  z-index:30;
-  transition:.25s;
-}
-
-/* Free */
-.mode-free .avatar-wrap{ top:75px; }
-
-/* Premium: 左上縮小，留出右側文字區 */
-.mode-premium .avatar-wrap{
-  top:26px;
-  left:22px;
-  width:auto;
-  justify-content:flex-start;
-}
-
-.avatar-circle{
-  width:108px;height:108px;
-  border-radius:50%;
-  background:#fff;
-  padding:4px;
-  box-shadow:0 10px 22px rgba(0,0,0,.16);
-  overflow:hidden;
-}
-.mode-premium .avatar-circle{
-  width:82px;height:82px;
-  border:2.5px solid rgba(255,255,255,.28);
-  background:rgba(255,255,255,.16);
-  box-shadow:0 10px 24px rgba(0,0,0,.22);
-}
-.avatar{
-  width:100%;height:100%;
-  border-radius:50%;
-  object-fit:cover;
-}
-
-/* ---------------------------------------------------------
- * Content area
- * --------------------------------------------------------- */
-.info-scroll{ transition:.25s; }
-
-/* Free: 讓名字出現在頭像下方、不卡住 */
-.mode-free .info-scroll{
-  padding: 108px 20px 20px;
-  text-align:center;
-}
-
-/* Premium: 右側文字區（關鍵：padding-left 讓出頭像寬度） */
-.mode-premium .info-scroll{
-  padding: 26px 18px 18px 118px; /* left room for avatar */
-  text-align:left;
-}
-
-/* Name + Unit typography (重點：字形變好看、可換行、不爆版) */
-.name{
-  margin: 0;
-  font-weight: 900;
-  letter-spacing: .02em;
-  line-height: 1.1;
-  color: var(--text);
-  word-break: break-word;
-}
-
-/* Free name size */
-.mode-free .name{
-  font-size: 40px;
-  margin-top: 18px;
-}
-
-/* Premium name size (原本太大 → 降低 + 自動縮) */
-.mode-premium .name{
-  font-size: 30px;
-  margin-top: 6px;
-}
-
-/* Unit */
-.unit{
-  margin-top: 8px;
-  font-weight: 700;
-  opacity: .92;
-  line-height: 1.35;
-  word-break: break-word;
-}
-
-/* Premium: unit 更精緻 */
-.mode-premium .unit{
-  font-size: 14px;
-  opacity: .88;
-}
-
-/* Content boxes */
-.content-box{
-  background: rgba(0,0,0,.02);
-  border-radius: 20px;
-  padding: 16px 16px;
-  margin: 12px 0;
-  text-align:left;
-  border: 1px solid rgba(0,0,0,.04);
-}
-.mode-free .content-box{ font-size:13px; line-height:1.65; }
-
-.mode-premium .content-box{
-  background: rgba(255,255,255,.16) !important;
-  border: 1px solid rgba(255,255,255,.22);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  color: var(--text);
-}
-
-/* Make the “立即填寫預約表單” bar look clickable */
-.content-box[onclick]{ transition:.15s; }
-.content-box[onclick]:active{ transform: translateY(1px); opacity:.9; }
-
-/* Version tag */
-.version-tag{
-  font-size:10px;
-  opacity:.28;
-  position:absolute;
-  bottom:14px;
-  right:22px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-}
-
-/* Footer */
-footer{ user-select:none; }
-
-/* ---------------------------------------------------------
- * Responsive tuning (small phones)
- * --------------------------------------------------------- */
-@media (max-width: 360px){
-  .card{ height: 640px; border-radius:38px; }
-  .mode-free .name{ font-size: 36px; }
-  .mode-premium .name{ font-size: 28px; }
-  .mode-premium .info-scroll{ padding-left: 112px; }
-}
-
-@media (max-width: 330px){
-  .mode-free .name{ font-size: 34px; }
-  .mode-premium .name{ font-size: 26px; }
-}
+.paper-2 .paper-overlay { opacity: 0.18; }
+.paper-3 .paper-overlay { opacity: 0.22; }
+.version-tag { font-size: 10px; opacity: 0.35; position: absolute; bottom: 15px; right: 22px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; z-index: 50; color: rgba(0,0,0,0.5); }
+.mode-premium .version-tag { color: rgba(255,255,255,0.55); }
+.footer { font-size: 11px; color: rgba(0,0,0,0.35); margin-top: 10px; text-align: center; }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(0,0,0,0.82); color:#fff; padding: 10px 12px; border-radius: 12px; font-weight: 800; z-index: 9999; }

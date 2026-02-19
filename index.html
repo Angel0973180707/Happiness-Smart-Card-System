@@ -3,53 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V384</title>
+  <title>幸福智慧名片 V385.1</title>
+
+  <link rel="manifest" href="./manifest.json?v=3851" />
+  <meta name="theme-color" content="#ff5e5e" />
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=384" />
+  <link rel="stylesheet" href="./style.css?v=3851" />
 </head>
-<body class="mode-free color-1 style-arch paper-1">
 
+<body class="mode-free color-1 style-arch paper-1">
   <div id="admin-panel">
     <div class="dots-row">
-      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
-      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
-      <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
-      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free', 'color-4', this)"></div>
-      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
+      <div class="dot active" data-mode="free" data-theme="color-1" style="background:#ff5e5e" onclick="window.setV382('free','color-1',this)"></div>
+      <div class="dot" data-mode="free" data-theme="color-2" style="background:#00a8ff" onclick="window.setV382('free','color-2',this)"></div>
+      <div class="dot" data-mode="free" data-theme="color-3" style="background:#ffa502" onclick="window.setV382('free','color-3',this)"></div>
+      <div class="dot" data-mode="free" data-theme="color-4" style="background:#7d5fff" onclick="window.setV382('free','color-4',this)"></div>
+      <div class="dot" data-mode="free" data-theme="color-5" style="background:#2ecc71" onclick="window.setV382('free','color-5',this)"></div>
     </div>
 
     <div id="free-controls">
-      <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
-          <button class="btn-neo active" onclick="window.setV382Style('arch', this)">優雅正拱</button>
-          <button class="btn-neo" onclick="window.setV382Style('flat', this)">簡潔平直</button>
-          <button class="btn-neo" onclick="window.setV382Style('spot', this)">晨曦款</button>
+      <div class="control-row">
+        <button class="btn-neo active" data-style="arch" onclick="window.setV382Style('arch',this)">優雅正拱</button>
+        <button class="btn-neo" data-style="flat" onclick="window.setV382Style('flat',this)">簡潔平直</button>
+        <button class="btn-neo" data-style="spot" onclick="window.setV382Style('spot',this)">晨曦款</button>
       </div>
-      <div class="control-row" style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
-          <button class="btn-neo active" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
-          <button class="btn-neo" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
-          <button class="btn-neo" onclick="window.setV382Paper('paper-3', this)">亞麻</button>
+      <div class="control-row" style="margin-top:8px;">
+        <button class="btn-neo active" data-paper="paper-1" onclick="window.setV382Paper('paper-1',this)">棉紙</button>
+        <button class="btn-neo" data-paper="paper-2" onclick="window.setV382Paper('paper-2',this)">顆粒</button>
+        <button class="btn-neo" data-paper="paper-3" onclick="window.setV382Paper('paper-3',this)">亞麻</button>
       </div>
     </div>
 
     <div class="dots-row">
-      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div> 
-      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div> 
-      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p3', this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div> 
-      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
-      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p6', this)"></div>
-      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
+      <div class="p-dot" data-mode="premium" data-theme="p1" style="background:#722f37" onclick="window.setV382('premium','p1',this)"></div>
+      <div class="p-dot" data-mode="premium" data-theme="p2" style="background:#1c2e42" onclick="window.setV382('premium','p2',this)"></div>
+      <div class="p-dot" data-mode="premium" data-theme="p3" style="background:#5e548e" onclick="window.setV382('premium','p3',this)"></div>
+      <div class="p-dot" data-mode="premium" data-theme="p4" style="background:#bf953f" onclick="window.setV382('premium','p4',this)"></div>
+      <div class="p-dot" data-mode="premium" data-theme="p5" style="background:#7a94a6" onclick="window.setV382('premium','p5',this)"></div>
+      <div class="p-dot" data-mode="premium" data-theme="p6" style="background:#a36d6d" onclick="window.setV382('premium','p6',this)"></div>
+      <div class="p-dot" data-mode="premium" data-theme="p7" style="background:#444444" onclick="window.setV382('premium','p7',this)"></div>
     </div>
-    
+
     <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
+
+    <img id="u-logo" class="brand-logo" alt="品牌Logo" style="display:none;" />
+
     <div class="banner"><div class="dynamic-mask"></div></div>
-    
+
     <div class="avatar-wrap">
       <div class="avatar-circle">
         <img id="u-img" src="" class="avatar" alt="形象照" />
@@ -59,14 +66,52 @@
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
-      <div class="content-box" style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;" onclick="window.goFillForm()">立即填寫預約表單</div>
-      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在同步雲端服務項目...</div>
+
+      <div id="u-slogan" class="slogan" style="display:none;"></div>
+
+      <button id="btn-lineoa" class="btn-main" style="display:none;" onclick="window.goLineOA()">
+        <i class="fa-brands fa-line"></i> LINE 官方帳號
+      </button>
+
+      <div id="btn-row" class="btn-row" style="display:none;">
+        <button id="btn-line" class="btn-mini" style="display:none;" onclick="window.goLine()">
+          <i class="fa-brands fa-line"></i> 私訊
+        </button>
+        <button id="btn-wechat" class="btn-mini" style="display:none;" onclick="window.copyWeChat()">
+          <i class="fa-brands fa-weixin"></i> 微信ID
+        </button>
+        <button id="btn-phone" class="btn-mini" style="display:none;" onclick="window.callPhone()">
+          <i class="fa-solid fa-phone"></i> 電話
+        </button>
+        <button id="btn-email" class="btn-mini" style="display:none;" onclick="window.sendEmail()">
+          <i class="fa-solid fa-envelope"></i> Email
+        </button>
+        <button id="btn-map" class="btn-mini" style="display:none;" onclick="window.goMap()">
+          <i class="fa-solid fa-location-dot"></i> 地圖
+        </button>
+      </div>
+
+      <div id="u-service" class="content-box">正在同步雲端服務項目...</div>
+      <div id="u-titles" class="content-box" style="display:none;"></div>
+      <div id="u-links" class="content-box links" style="display:none;"></div>
+      <div id="u-faq" class="content-box faq" style="display:none;"></div>
+      <div id="u-gallery" class="gallery" style="display:none;"></div>
     </div>
-    <div class="version-tag">V384</div>
+
+    <div class="version-tag">V385.1</div>
   </div>
 
-  <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">幸福智慧名片 V384</footer>
-  <script src="app.js?v=384"></script>
+  <footer class="footer">幸福智慧名片 V385.1</footer>
+
+  <div id="toast" class="toast" style="display:none;"></div>
+
+  <script src="./app.js?v=3851"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js?v=3851").catch(()=>{});
+      });
+    }
+  </script>
 </body>
 </html>
-

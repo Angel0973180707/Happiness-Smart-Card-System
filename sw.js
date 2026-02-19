@@ -1,53 +1,38 @@
-/* =========================
-   Angel Card SW v385.1
-   穩定正式版（不復活舊快取）
-========================= */
-
+/* 幸福智慧名片｜sw.js（V385.1） */
 const CACHE_NAME = "angel-card-v3851";
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./style.css",
-  "./app.js",
-  "./manifest.json",
-  "./data/card.json"
-];
+const CORE_ASSETS = ["./","./index.html","./style.css","./app.js","./manifest.json","./icons/icon-192.png","./icons/icon-512.png"];
 
-// 安裝 → 強制更新快取
-self.addEventListener("install", event => {
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)));
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
-  );
 });
 
-// 啟用 → 刪除所有舊版 cache
-self.addEventListener("activate", event => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      )
-    )
+    caches.keys().then((keys) => Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve()))))
   );
   self.clients.claim();
 });
 
-// 請求策略 → 網路優先（避免舊資料卡住）
-self.addEventListener("fetch", event => {
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  const isSameOrigin = url.origin === self.location.origin;
+
+  if (!isSameOrigin) {
+    event.respondWith(fetch(req).catch(() => caches.match(req)));
+    return;
+  }
+
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, clone);
-        });
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(req).then((cached) => {
+      if (cached) return cached;
+      return fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(()=>{});
+        return res;
+      }).catch(() => caches.match("./index.html"));
+    })
   );
 });
