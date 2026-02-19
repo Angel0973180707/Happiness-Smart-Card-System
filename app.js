@@ -1,258 +1,151 @@
-/* =========================================================
- * 幸福智慧名片｜app.js（V384 前台｜Stable Overwrite v3）
- * 目的：修掉「圖進不來」+「按鈕失效」的根因（欄位名含引號/換行/零寬字元）
- *
- * ✅ 保留：選色/選版型/選紙感（window.setV382...）
- * ✅ 對接：GAS v1.1 action=list（回傳 headers + rows）
- * ✅ 支援：網址參數 id，例如 index.html?id=TW0001
- * ✅ 圖片：Drive open?id / file/d / uc?id 皆可，自動轉直連 + fallback
- * ========================================================= */
+/**
+ * Angel Card v385.1 — Stable Frontend app.js (Complete Overwrite)
+ * Fixes:
+ * - Works with BOTH GAS formats:
+ *   A) action=card&id=TW0001 => {ok:true, data:{...}}
+ *   B) action=list (or no action) => {ok:true, headers:[...], rows:[[...], ...]}  OR {ok:true, headers:[...], rows:[{...}, ...]}
+ * - No-cache fetch to avoid SW/Chrome stale JS/data
+ * - Google Drive image link normalization (open?id= / file/d/ / uc?id=)
+ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
-  FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
-  ANGEL: "TW0001"
+  DEFAULT_ID: "TW0001",
+  DEFAULT_TOKEN: ""
 };
 
-let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
-
-// ------------------------ small helpers ------------------------
-function byId_(id){ return document.getElementById(id); }
-
-function safeText_(el, text){
+// ---------- helpers ----------
+function qs(name) {
+  return new URLSearchParams(location.search).get(name);
+}
+function $(id) {
+  return document.getElementById(id);
+}
+function setText(id, value) {
+  const el = $(id);
   if (!el) return;
-  el.innerText = (text === null || text === undefined) ? "" : String(text);
+  const v = (value == null) ? "" : String(value);
+  el.textContent = v.trim();
+}
+function setImg(id, url) {
+  const el = $(id);
+  if (!el) return;
+  const u = normalizeDriveUrl(url);
+  if (u) el.src = u;
 }
 
-function getIdFromUrl_() {
-  try {
-    const u = new URL(location.href);
-    return (u.searchParams.get("id") || CONFIG.ANGEL || "TW0001").trim();
-  } catch (e) {
-    return (CONFIG.ANGEL || "TW0001").trim();
-  }
+// Google Drive link → direct view link
+function normalizeDriveUrl(url) {
+  if (!url) return "";
+  let u = String(url).trim();
+  if (!u) return "";
+
+  // If multiple URLs separated by comma/newline, take first
+  u = u.split(/\s*,\s*|\n+/)[0].trim();
+
+  // already a direct uc
+  if (u.includes("drive.google.com/uc?") || u.includes("googleusercontent.com")) return u;
+
+  // open?id=FILEID
+  const m1 = u.match(/drive\.google\.com\/open\?id=([^&]+)/i);
+  if (m1) return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
+
+  // file/d/FILEID/view
+  const m2 = u.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+  if (m2) return `https://drive.google.com/uc?export=view&id=${m2[1]}`;
+
+  // uc?id=FILEID
+  const m3 = u.match(/drive\.google\.com\/uc\?id=([^&]+)/i);
+  if (m3) return `https://drive.google.com/uc?export=view&id=${m3[1]}`;
+
+  return u;
 }
 
-// ------------------------ header normalization (關鍵) ------------------------
-function stripZeroWidth_(s){
-  // 移除零寬空白 / BOM 等
-  return String(s || "").replace(/[\u200B-\u200D\uFEFF]/g, "");
-}
-
-function normKey_(s){
-  // GAS headers 可能含：引號、換行、尾端空白
-  let t = stripZeroWidth_(s);
-  t = t.replace(/"/g, "");
-  t = t.replace(/\r?\n/g, " ");
-  t = t.replace(/\s+/g, " ");
-  t = t.trim();
-  return t;
-}
-
-function buildRowIndex_(rowObj){
-  // 建立「normalizedKey -> value」索引，提升容錯
-  const idx = new Map();
-  Object.keys(rowObj || {}).forEach(k => {
-    const nk = normKey_(k);
-    if (!idx.has(nk)) idx.set(nk, rowObj[k]);
+async function fetchJsonNoStore(url) {
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: { "Cache-Control": "no-cache" }
   });
-  return idx;
+  return await res.json();
 }
 
-function findByIncludes_(indexMap, patterns){
-  // patterns: ["個人專業形象照", "名片主圖"]
-  if (!indexMap || !(indexMap instanceof Map)) return "";
-  const keys = Array.from(indexMap.keys());
-  for (const p of patterns) {
-    const np = normKey_(p);
-    for (const k of keys) {
-      if (k.includes(np)) {
-        const v = indexMap.get(k);
-        if (v !== null && v !== undefined && String(v).trim() !== "") return v;
-      }
-    }
+// ---------- GAS adapters ----------
+async function fetchCardObject(id, token) {
+  // Try action=card first
+  const urlCard = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}${token ? `&token=${encodeURIComponent(token)}` : ""}`;
+  try {
+    const j = await fetchJsonNoStore(urlCard);
+    if (j && j.ok && (j.data || j.row || j.card)) return (j.data || j.row || j.card);
+    // Some deployments return {ok:false, error:"Unknown action"} etc.
+  } catch (e) {
+    // ignore & fallback
   }
-  return "";
-}
 
-/** rows 可能是「物件陣列」或「二維陣列」，統一轉成物件（並保留原 headers） */
-function rowToObject_(row, headers) {
-  if (!row) return null;
+  // Fallback to action=list (or default)
+  const urlList = `${CONFIG.GAS}?action=list`;
+  const j2 = await fetchJsonNoStore(urlList);
 
-  // 已是物件
-  if (typeof row === "object" && !Array.isArray(row)) return row;
+  if (!j2 || !j2.ok) throw new Error((j2 && (j2.error || j2.message)) || "GAS list failed");
 
-  // 二維陣列 → 用 headers 組成物件
-  if (Array.isArray(row) && Array.isArray(headers) && headers.length) {
-    const obj = {};
-    headers.forEach((h, i) => { obj[String(h)] = row[i]; });
-    return obj;
+  const headers = Array.isArray(j2.headers) ? j2.headers : [];
+  const rows = Array.isArray(j2.rows) ? j2.rows : [];
+
+  // Case 1: rows are objects
+  if (rows.length && typeof rows[0] === "object" && !Array.isArray(rows[0])) {
+    const found = rows.find(r => String(r.id || r.ID || r.Id || "").trim() === id);
+    if (!found) throw new Error("ID not found in list");
+    return found;
   }
-  return null;
+
+  // Case 2: rows are arrays + headers
+  if (!headers.length) throw new Error("No headers in list response");
+  const idColIdx = headers.findIndex(h => String(h).trim().toLowerCase() === "id");
+  if (idColIdx === -1) throw new Error("No id column in headers");
+
+  const foundRow = rows.find(r => Array.isArray(r) && String(r[idColIdx] || "").trim() === id);
+  if (!foundRow) throw new Error("ID not found in list");
+
+  const obj = {};
+  headers.forEach((h, i) => {
+    const key = String(h || "").replace(/"/g, "").trim();
+    if (key) obj[key] = foundRow[i];
+  });
+  return obj;
 }
 
-// ------------------------ Drive image handling ------------------------
-function extractDriveId_(url) {
-  const s = String(url || "").trim();
-  if (!s) return "";
+// ---------- render ----------
+function renderCard(d) {
+  // Your sheet headers are Chinese; keep both map + fallback
+  const name = d["姓名（名片大標題）"] || d["姓名"] || d["name"] || "（未填姓名）";
+  const unit = d["單位名稱（如：幸福教養概念館）"] || d["單位"] || d["unit"] || "";
+  const service = d["服務項目（核心業務，多項可條列換行）"] || d["服務項目"] || d["service"] || "";
 
-  const m1 = s.match(/[?&]id=([^&]+)/i);        // open?id= / uc?id=
-  const m2 = s.match(/\/d\/([^/]+)/i);          // /file/d/<id>/
-  const m3 = s.match(/\/file\/d\/([^/]+)/i);    // /file/d/<id>/
+  const avatar = d["個人專業形象照（名片主圖）"] || d["形象照"] || d["avatar"] || d["photo"] || "";
 
-  if (m1) return m1[1];
-  if (m3) return m3[1];
-  if (m2) return m2[1];
-  return "";
+  setText("u-name", name);
+  setText("u-unit", unit);
+  setText("u-service", service);
+  setImg("u-img", avatar);
 }
 
-function driveImageCandidates_(url) {
-  const raw = String(url || "").trim();
-  const id = extractDriveId_(raw);
-  if (!id) return [raw];
+async function boot() {
+  const id = qs("id") || CONFIG.DEFAULT_ID;
+  const token = qs("token") || CONFIG.DEFAULT_TOKEN;
 
-  return [
-    `https://drive.google.com/uc?export=view&id=${id}`,
-    `https://drive.google.com/thumbnail?id=${id}&sz=w1000`,
-    `https://lh3.googleusercontent.com/d/${id}`,
-    raw
-  ];
-}
-
-function setImgWithFallback_(imgEl, url) {
-  if (!imgEl) return;
-  const candidates = driveImageCandidates_(url);
-  let idx = 0;
-
-  const tryNext = () => {
-    if (idx >= candidates.length) return;
-    imgEl.src = candidates[idx++];
-  };
-
-  imgEl.onerror = () => tryNext();
-
-  tryNext();
-}
-
-// ------------------------ UI controls (保留選版功能) ------------------------
-window.setV382 = function(mode, theme, el) {
-  state.mode = mode;
-  state.theme = theme;
-
-  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
-  if (el) el.classList.add("active");
-
-  applyV382();
-};
-
-window.setV382Style = function(style, el) {
-  state.style = style;
-
-  if (el && el.parentElement) {
-    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
-    el.classList.add("active");
-  }
-  applyV382();
-};
-
-window.setV382Paper = function(paper, el) {
-  state.paper = paper;
-
-  if (el && el.parentElement) {
-    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
-    el.classList.add("active");
-  }
-  applyV382();
-};
-
-function applyV382() {
-  const isFree = state.mode === "free";
-  const controlPanel = byId_("free-controls");
-  if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
-
-  const classList = [
-    `mode-${state.mode}`,
-    state.theme,
-    isFree ? `style-${state.style}` : "",
-    isFree ? state.paper : ""
-  ];
-
-  document.body.className = classList.filter(Boolean).join(" ");
-}
-
-window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
-
-// ------------------------ data loader (對接 GAS v1.1 list) ------------------------
-async function loadCardDataFromListAPI_() {
-  const id = getIdFromUrl_();
-
-  const nameEl = byId_("u-name");
-  const unitEl = byId_("u-unit");
-  const serviceEl = byId_("u-service");
-  const imgEl = byId_("u-img");
-
-  safeText_(nameEl, "載入中...");
-  safeText_(unitEl, "同步中...");
+  // Basic placeholders (avoid blank look)
+  setText("u-name", "載入中…");
+  setText("u-unit", "");
+  setText("u-service", "");
 
   try {
-    // 重要：你這支 GAS「不帶 action」會回 Unknown action，所以一定要 action=list
-    const res = await fetch(`${CONFIG.GAS}?action=list`, { cache: "no-store" });
-    const json = await res.json();
-
-    if (!json || json.ok !== true) {
-      console.warn("GAS return:", json);
-      safeText_(nameEl, "雲端同步失敗");
-      safeText_(unitEl, "請確認 GAS 回傳");
-      return;
-    }
-
-    const headers = Array.isArray(json.headers) ? json.headers : [];
-    const rows = Array.isArray(json.rows) ? json.rows : [];
-
-    let rowObj = null;
-    for (const r of rows) {
-      const obj = rowToObject_(r, headers);
-      if (!obj) continue;
-
-      // id 欄位通常叫 id（小寫），但也可能 ID
-      const rid = String(obj.id || obj.ID || obj["id"] || obj["ID"] || "").trim();
-      if (rid === id) { rowObj = obj; break; }
-    }
-
-    if (!rowObj) {
-      safeText_(nameEl, "找不到此序號");
-      safeText_(unitEl, id);
-      safeText_(serviceEl, "請確認該列是否有填入 id（例如 TW0001）。");
-      return;
-    }
-
-    // 建索引（修掉：headers 含引號/換行/零寬字元）
-    const idx = buildRowIndex_(rowObj);
-
-    // 依「包含關鍵字」抓欄位（最穩，不怕你表單欄位變動）
-    const name = findByIncludes_(idx, ["姓名（名片大標題）", "姓名"]);
-    const unit = findByIncludes_(idx, ["單位名稱", "單位"]);
-    const service = findByIncludes_(idx, ["服務項目", "核心業務"]);
-    const avatar = findByIncludes_(idx, ["個人專業形象照", "名片主圖", "形象照", "頭像", "照片"]);
-
-    safeText_(nameEl, name || "（未填姓名）");
-    safeText_(unitEl, unit || "");
-    safeText_(serviceEl, service || "");
-
-    // 圖片：Drive 直連候選 + onerror fallback
-    if (imgEl && avatar) setImgWithFallback_(imgEl, avatar);
-
+    const obj = await fetchCardObject(id, token);
+    renderCard(obj);
   } catch (e) {
-    console.error("loadCardDataFromListAPI_ error:", e);
-    safeText_(nameEl, "雲端同步異常");
-    safeText_(unitEl, "請稍後再試");
+    console.error(e);
+    setText("u-name", "讀取失敗");
+    setText("u-unit", "請確認 GAS / 權限 / id");
+    setText("u-service", String(e && e.message ? e.message : e));
   }
 }
 
-// ------------------------ boot ------------------------
-window.addEventListener("load", () => {
-  // 先套用你 HTML body 預設 class
-  applyV382();
-  // 再抓雲端資料
-  loadCardDataFromListAPI_();
-});
+window.addEventListener("load", boot);
