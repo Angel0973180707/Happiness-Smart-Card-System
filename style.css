@@ -1,44 +1,48 @@
-/* --- 幸福智慧名片 V385 旗艦版 --- */
+/* --- 幸福智慧名片 V385.1 旗艦版 --- */
 :root { --font: 'Noto Sans TC', sans-serif; }
 
-/* 🎨 自由搭配款 (亮色) & 🌿 精品設計款 (玻璃) 變數繼承 V384 */
+/* 🎨 自由款 5 色 & 🌿 精品款 7 色玻璃質感 (V384 基準) */
 .mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
-.mode-premium.p1 { --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,0.95), rgba(114,47,55,0.85)); --text:#f5e6e8; }
+.mode-premium.p1 { --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,0.95), rgba(114,47,55,0.8)); --text:#f5e6e8; }
 .mode-premium.p4 { --p:#bf953f; --bg:#f9f7f0; --card-bg: linear-gradient(135deg, rgba(191,149,63,0.95), rgba(252,246,186,0.85), rgba(170,119,28,0.95)); --text:#4d3700; --fx-op:0.6; --fx-img:linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%); }
 
-body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; padding-bottom: 40px; overflow-x: hidden; }
+body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; padding-bottom: 20px; overflow-x: hidden; }
 
-/* 🔴 隱形後台密碼層 */
-#admin-panel { display: none; background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 15px; z-index: 1000; position: sticky; top: 0; }
-.lock-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-.lock-box { background: #fff; padding: 25px; border-radius: 20px; text-align: center; width: 280px; }
+/* 🔒 密碼鎖與行政面板隱藏邏輯 */
+.lock-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+.lock-box { background: #fff; padding: 30px; border-radius: 25px; text-align: center; width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+.lock-box input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; }
+.btn-lock-confirm { background: #2d3436; color: #fff; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
+.btn-lock-cancel { background: #eee; color: #333; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
 
-/* 🔴 名片基礎與頭像定位修正 */
-.card { width: 92%; max-width: 380px; height: 720px; background: var(--card-bg) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.1); transition: 0.5s; display: flex; flex-direction: column; }
+#admin-panel { width: 100%; background: #fff; border-bottom: 1px solid #eee; z-index: 900; position: sticky; top: 0; }
+.admin-inner { padding: 15px; display: flex; gap: 10px; justify-content: center; }
+.admin-inner input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #ddd; }
+.admin-inner button { background: var(--p); color: #fff; border: none; padding: 8px 15px; border-radius: 8px; font-weight: 700; }
+
+/* 🎴 卡片與頭像定位 (守住 V384) */
+.card { width: 92%; max-width: 380px; height: 740px; background: var(--card-bg) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.1); transition: 0.5s; display: flex; flex-direction: column; }
 .avatar-wrap { position: absolute; width: 100%; display: flex; justify-content: center; z-index: 30; transition: 0.4s; }
 .mode-free .avatar-wrap { top: 75px; } 
 .mode-premium .avatar-wrap { top: 40px; left: 25px; justify-content: flex-start; }
 .avatar-circle { width: 105px; height: 105px; border-radius: 50%; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
-.mode-premium .avatar-circle { width: 85px; height: 85px; border: 2.5px solid rgba(255,255,255,0.3); }
+.mode-premium .avatar-circle { width: 85px; height: 85px; border: 2px solid rgba(255,255,255,0.3); }
 .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-/* 🔴 內容空間規劃 */
+/* 🔴 展示區與功能塊 */
 .info-scroll { flex: 1; overflow-y: auto; padding: 100px 20px 60px; scrollbar-width: none; }
 .info-scroll::-webkit-scrollbar { display: none; }
 .mode-premium .info-scroll { padding: 95px 25px 60px; text-align: left; }
-.name { font-size: 26px; font-weight: 900; margin: 0; }
-.slogan { font-size: 13px; opacity: 0.7; margin: 8px 0 15px; }
 
-/* 🔴 左右滑動展示區 */
 .product-slider { display: flex; overflow-x: auto; gap: 12px; padding: 10px 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
 .product-img { flex-shrink: 0; width: 220px; height: 130px; border-radius: 15px; object-fit: cover; scroll-snap-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 2px solid #fff; }
 
-/* 🔴 底部資訊與版權 */
-.copyright-area { position: absolute; bottom: 12px; width: 100%; text-align: center; pointer-events: none; }
-.cp-text { font-size: 9px; color: rgba(128,128,128,0.4); letter-spacing: 1px; }
-.version-tag { font-size: 10px; color: rgba(128,128,128,0.3); cursor: pointer; pointer-events: auto; padding: 5px; }
-
-/* 社群按鈕矩陣 */
 .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
 .btn-icon { background: rgba(0,0,0,0.05); aspect-ratio: 1; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--p); text-decoration: none; }
 .mode-premium .btn-icon { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); color: #fff; }
+
+.footer-area { position: absolute; bottom: 12px; width: 100%; text-align: center; pointer-events: none; }
+.cp-text { font-size: 9px; color: rgba(128,128,128,0.4); letter-spacing: 1px; display: block; }
+.version-tag { font-size: 10px; color: rgba(128,128,128,0.3); cursor: pointer; pointer-events: auto; padding: 5px; }
+
+/* 其餘 Banner, Mask, TitleTag 樣式維持 V384... */
