@@ -12,68 +12,79 @@
 
   <div id="admin-panel">
     <div class="picker-section">
-      <span class="label">🎨 自由搭配：親和亮色款</span>
+      <span class="section-label">🎨 自由搭配：亮色親和選區</span>
       <div class="dots-row">
-        <div class="dot active" style="background:#ee5253" onclick="setV381Mode('free', 1, this)"></div>
-        <div class="dot" style="background:#00a8ff" onclick="setV381Mode('free', 2, this)"></div>
-        <div class="dot" style="background:#f0932b" onclick="setV381Mode('free', 3, this)"></div>
-        <div class="dot" style="background:#6c5ce7" onclick="setV381Mode('free', 4, this)"></div>
-        <div class="dot" style="background:#20bf6b" onclick="setV381Mode('free', 5, this)"></div>
+        <div class="dot active" style="background:#ee5253" onclick="setV381('free', 1, this)"></div>
+        <div class="dot" style="background:#00a8ff" onclick="setV381('free', 2, this)"></div>
+        <div class="dot" style="background:#f0932b" onclick="setV381('free', 3, this)"></div>
+        <div class="dot" style="background:#6c5ce7" onclick="setV381('free', 4, this)"></div>
+        <div class="dot" style="background:#20bf6b" onclick="setV381('free', 5, this)"></div>
       </div>
       
-      <div id="free-controls" class="btn-row">
-        <div class="group">
-          <span>版型：</span>
-          <button class="btn-mini active" onclick="setV381Style('arch', this)">正拱</button>
-          <button class="btn-mini" onclick="setV381Style('flat', this)">平直</button>
-          <button class="btn-mini" onclick="setV381Style('spot', this)">晨曦</button>
+      <div id="free-controls" class="btn-row-group">
+        <div class="control-row">
+          <span class="row-tag">版型</span>
+          <div class="btn-stack">
+            <button class="btn-neo active" onclick="setV381Style('arch', this)">正拱型</button>
+            <button class="btn-neo" onclick="setV381Style('flat', this)">平直型</button>
+            <button class="btn-neo" onclick="setV381Style('spot', this)">晨曦款</button>
+          </div>
         </div>
-        <div class="group" style="margin-top:8px;">
-          <span>紙感：</span>
-          <button class="btn-mini active" onclick="setV381Paper(1, this)">霧面</button>
-          <button class="btn-mini" onclick="setV381Paper(2, this)">顆粒</button>
-          <button class="btn-mini" onclick="setV381Paper(3, this)">亞麻</button>
-          <button class="btn-mini" onclick="setV381Paper(4, this)">水彩</button>
+        <div class="control-row">
+          <span class="row-tag">紙感</span>
+          <div class="btn-stack">
+            <button class="btn-neo active" onclick="setV381Paper(1, this)">霧面棉</button>
+            <button class="btn-neo" onclick="setV381Paper(2, this)">細顆粒</button>
+            <button class="btn-neo" onclick="setV381Paper(3, this)">亞麻紋</button>
+            <button class="btn-neo" onclick="setV381Paper(4, this)">水彩紙</button>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="picker-section">
-      <span class="label">🌿 精品設計：七種氣質語彙</span>
+      <span class="section-label">🌿 精品設計：七種氣質語彙（方案 B）</span>
       <div class="dots-row">
-        <div class="p-dot" style="background:#1a2f27" onclick="setV381Mode('premium', 'p1', this)"></div>
-        <div class="p-dot" style="background:#2c3e50" onclick="setV381Mode('premium', 'p2', this)"></div>
-        <div class="p-dot" style="background:#5d2525" onclick="setV381Mode('premium', 'p3', this)"></div>
-        <div class="p-dot" style="background:#8e5a3c" onclick="setV381Mode('premium', 'p4', this)"></div>
-        <div class="p-dot" style="background:#7a94a6" onclick="setV381Mode('premium', 'p5', this)"></div>
-        <div class="p-dot" style="background:#6b6687" onclick="setV381Mode('premium', 'p6', this)"></div>
-        <div class="p-dot" style="background:#1a1a1a" onclick="setV381Mode('premium', 'p7', this)"></div>
+        <div class="p-dot" style="background:#1a2f27" onclick="setV381('premium', 'p1', this)"></div>
+        <div class="p-dot" style="background:#2c3e50" onclick="setV381('premium', 'p2', this)"></div>
+        <div class="p-dot" style="background:#5d2525" onclick="setV381('premium', 'p3', this)"></div>
+        <div class="p-dot" style="background:#8e5a3c" onclick="setV381('premium', 'p4', this)"></div>
+        <div class="p-dot" style="background:#7a94a6" onclick="setV381('premium', 'p5', this)"></div>
+        <div class="p-dot" style="background:#6b6687" onclick="setV381('premium', 'p6', this)"></div>
+        <div class="p-dot" style="background:#1a1a1a" onclick="setV381('premium', 'p7', this)"></div>
       </div>
     </div>
-    
-    <button class="btn-main" onclick="goFillForm()">立即預約訂製</button>
+
+    <button class="btn-cta" onclick="goFillForm()">
+      <span>立即預約訂製</span>
+      <i class="fa-solid fa-arrow-right"></i>
+    </button>
   </div>
 
   <div id="card-container" class="card">
-    <div class="paper-overlay"></div>
+    <div class="paper-fx-layer"></div>
     <div class="premium-fx"></div>
+    
     <div class="banner">
-        <div class="arch-overlay"></div>
+      <div class="arch-overlay"></div>
+      <div class="spot-overlay"></div>
     </div>
     
     <div class="avatar-wrap">
       <div class="avatar-circle">
-        <img id="u-img" src="" class="avatar" alt="頭像" />
+        <img id="u-img" src="" class="avatar" alt="樣板" />
       </div>
     </div>
 
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">...</div>
-      <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">立即預約表單</div>
+      
+      <div id="order-box" class="content-box bounce-box" onclick="goFillForm()">立即填寫預約表單</div>
+      
       <div class="content-box">
         <div class="label">服務項目</div>
-        <div id="u-service">正在讀取雲端資料...</div>
+        <div id="u-service">正在同步雲端資料...</div>
       </div>
     </div>
   </div>
