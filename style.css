@@ -1,67 +1,68 @@
-/* --- 幸福智慧名片 V382.4 核心樣式表 --- */
+/* --- 幸福智慧名片 V382.5 淨化質感版 --- */
 :root { --font: 'Noto Sans TC', sans-serif; }
 
-/* 🔴 顏色定義：方案 B (自由亮、精品濃) */
-.mode-free.color-1 { --p:#ee5253; --bg:#fdf2f2; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-2 { --p:#00a8ff; --bg:#f0f9ff; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-3 { --p:#f0932b; --bg:#fff9f0; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-4 { --p:#6c5ce7; --bg:#f6f5ff; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-5 { --p:#20bf6b; --bg:#f2fdf6; --card-bg:#fff; --text:#2d3436; }
+/* 🎨 自由搭配：亮色淨化定義 (調高明度與純度) */
+.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-.mode-premium.p1 { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; --sh:0 40px 80px rgba(0,0,0,0.5); }
-.mode-premium.p3 { --p:#5d2525; --bg:#3d1616; --card-bg:#3d1616; --text:#fff5f5; }
-.mode-premium.p7 { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; --ls:0.25em; }
+/* 🌿 精品氣質 (維持濃郁) */
+.mode-premium.p1 { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; }
+.mode-premium.p7 { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; }
 
 body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; }
 
-/* 🔴 頭像框穩定器 */
-.avatar-wrap { position: absolute; width: 100%; top: 85px; display: flex; justify-content: center; z-index: 30; transition: 0.5s; }
-.avatar-circle { width: 112px; height: 112px; border-radius: 50% !important; background: var(--card-bg); padding: 5px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1.5px solid rgba(0,0,0,0.05); overflow: hidden; }
+/* 🔴 解決「髒髒感」的核心：紙感優化 */
+.paper-overlay { 
+  position: absolute; inset: 0; pointer-events: none; 
+  opacity: 0.03; /* 大幅調低透明度，只留觸感不留髒色 */
+  z-index: 5; 
+  mix-blend-mode: soft-light; /* 改用柔光模式，讓顏色更通透 */
+}
+.paper-1 .paper-overlay { background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"); }
+
+/* 🔴 解決髒邊：Banner 與背景的過渡 */
+.banner { 
+  height: 160px; 
+  background: var(--p); /* 預設改為純色，避免漸層過渡產生的灰色區塊 */
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0.1) 100%);
+  position: relative; transition: 0.5s; 
+}
+
+/* 🔴 陰影淨化 */
+.card { 
+  width: 92%; max-width: 380px; height: 680px; 
+  background: var(--card-bg) !important; 
+  color: var(--text) !important; 
+  border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; 
+  box-shadow: 0 20px 40px rgba(0,0,0,0.06); /* 調淡陰影，增加空氣感 */
+  transition: 0.5s; 
+}
+
+/* 頭像框與定位 */
+.avatar-wrap { position: absolute; width: 100%; top: 85px; display: flex; justify-content: center; z-index: 30; }
+.avatar-circle { width: 112px; height: 112px; border-radius: 50%; background: #fff; padding: 5px; box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
 .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-/* 🔴 版型地平線：正拱/平直/晨曦倒拱 */
-.banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; transition: 0.5s; }
-
-/* 正拱 */
-.style-arch .arch-mask { background: var(--card-bg); height: 55px; border-radius: 80px 80px 0 0; position: absolute; bottom: -1px; width: 100%; }
-
-/* 平直 */
-.style-flat .arch-mask { background: var(--card-bg); height: 15px; position: absolute; bottom: -1px; width: 100%; }
-.style-flat .banner { height: 140px; }
-
-/* 晨曦 (向下圓弧) */
+/* 版型 */
+.arch-mask { background: #fff; height: 55px; border-radius: 80px 80px 0 0; position: absolute; bottom: -1px; width: 100%; }
+.style-flat .arch-mask { height: 15px; border-radius: 0; }
 .spot-mask { display: none; }
 .style-spot .spot-mask { 
     display: block; position: absolute; width: 140%; height: 100px; bottom: -60px; left: -20%;
-    background: var(--card-bg); clip-path: ellipse(50% 40% at 50% 100%); 
+    background: #fff; clip-path: ellipse(50% 40% at 50% 100%); 
 }
 .style-spot .arch-mask { display: none; }
 
-/* 🔴 紙感突顯 */
-.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.12; z-index: 5; mix-blend-mode: multiply; }
-.paper-1 .paper-overlay { background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.4'/%3E%3C/svg%3E"); }
-.paper-2 .paper-overlay { background: radial-gradient(#000 12%, transparent 12%) 0 0/6px 6px; opacity: 0.06; }
-
-/* 🔴 按鈕美化 (Neo) */
+/* 選擇鈕美化 (更簡潔的 Neo 風格) */
 .btn-neo {
-    padding: 8px 16px; border-radius: 12px; border: 2.5px solid #eee; background: #fff;
-    font-size: 11px; font-weight: 900; cursor: pointer; color: #555; transition: 0.15s;
-    box-shadow: 0 4px 0 #eee;
+    padding: 8px 16px; border-radius: 12px; border: 1px solid #eee; background: #fff;
+    font-size: 11px; font-weight: 900; cursor: pointer; color: #555; transition: 0.2s;
 }
-.btn-neo.active { background: #2d3436; color: #fff; border-color: #2d3436; box-shadow: 0 0 15px rgba(0,0,0,0.15); transform: translateY(2px); }
+.btn-neo.active { background: #2d3436; color: #fff; border-color: #2d3436; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 
-/* 精品模式調整 */
-.mode-premium .banner { height: 60px; }
-.mode-premium .avatar-wrap { top: 35px; }
-.mode-premium .name { letter-spacing: var(--ls); font-weight: 900; }
-.mode-premium .content-box { background: rgba(255,255,255,0.06) !important; color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
-
-/* UI 基礎 */
-#admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #ddd; padding: 15px 0; }
-.dots-row { display: flex; justify-content: center; gap: 14px; margin: 10px 0; }
-.dot, .p-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
-.active { border-color: #333 !important; transform: scale(1.1); }
-.card { width: 92%; max-width: 380px; height: 680px; background: var(--card-bg) !important; color: var(--text) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 20px 50px rgba(0,0,0,0.12); transition: 0.5s; }
+/* 內容區 */
 .info-scroll { padding: 90px 20px 20px; text-align: center; }
-.content-box { background: rgba(0,0,0,0.04); border-radius: 18px; padding: 15px; margin-bottom: 12px; }
-.btn-cta { background: var(--p); color: #fff; border: none; padding: 14px 45px; border-radius: 40px; font-weight: 900; cursor: pointer; margin-top: 5px; }
+.content-box { background: rgba(0,0,0,0.02); border-radius: 20px; padding: 18px; margin-bottom: 12px; }
