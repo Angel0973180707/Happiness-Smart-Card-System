@@ -6,10 +6,11 @@
   <title>幸福智慧名片 V384</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=384" />
+  <link rel="stylesheet" href="style.css?v=384.2" />
 </head>
 <body class="mode-free color-1 style-arch paper-1">
 
+  <!-- 控制面板 -->
   <div id="admin-panel">
     <div class="dots-row">
       <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
@@ -33,23 +34,24 @@
     </div>
 
     <div class="dots-row">
-      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div> 
-      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div> 
+      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div>
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div>
       <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p3', this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div> 
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div>
       <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p6', this)"></div>
       <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
     </div>
-    
+
     <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
+  <!-- 名片 -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
     <div class="banner"><div class="dynamic-mask"></div></div>
-    
+
     <div class="avatar-wrap">
       <div class="avatar-circle">
         <img id="u-img" src="" class="avatar" alt="形象照" />
@@ -59,13 +61,68 @@
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
-      <div class="content-box" style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;" onclick="window.goFillForm()">立即填寫預約表單</div>
+
+      <div id="u-slogan" class="slogan" style="display:none;"></div>
+
+      <!-- 重要頭銜/獎銜 -->
+      <div id="u-titles" class="badges" style="display:none;"></div>
+
+      <!-- 服務項目 -->
       <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在同步雲端服務項目...</div>
+
+      <!-- 產品照：左右滑動 -->
+      <div id="product-block" class="product-block" style="display:none;">
+        <div class="section-title">樣品展示</div>
+        <div class="product-slider" id="product-slider" aria-label="Product slider">
+          <div class="track" id="product-track"></div>
+          <div class="dots" id="product-dots" aria-hidden="true"></div>
+        </div>
+        <div class="hint">左右滑動查看，點照片看全圖</div>
+      </div>
+
+      <!-- 聯繫主按鈕（LINE 官方帳號） -->
+      <a id="btn-lineoa" class="btn-lineoa" href="#" target="_blank" rel="noopener" style="display:none;">
+        <i class="fa-brands fa-line"></i>
+        <span id="btn-lineoa-text">LINE 官方帳號</span>
+      </a>
+
+      <!-- 聯繫矩陣 -->
+      <div id="contact-matrix" class="icon-matrix" style="display:none;"></div>
+
+      <!-- 影音/社群矩陣 -->
+      <div id="links-matrix" class="icon-matrix" style="display:none;"></div>
+
+      <!-- Q&A -->
+      <div id="qa-block" class="qa-block" style="display:none;">
+        <div class="section-title">Q&A</div>
+        <details class="qa-item" id="qa1" style="display:none;">
+          <summary id="qa1-q">Q1</summary>
+          <div class="qa-a" id="qa1-a"></div>
+        </details>
+        <details class="qa-item" id="qa2" style="display:none;">
+          <summary id="qa2-q">Q2</summary>
+          <div class="qa-a" id="qa2-a"></div>
+        </details>
+      </div>
+
+      <div class="content-box center-cta" onclick="window.goFillForm()">立即填寫預約表單</div>
     </div>
-    <div class="version-tag">V384</div>
+
+    <div class="version-tag" id="version-tag">V384</div>
+  </div>
+
+  <!-- Lightbox full image -->
+  <div class="lightbox" id="lightbox" style="display:none;">
+    <div class="lb-backdrop" id="lb-backdrop"></div>
+    <div class="lb-content" role="dialog" aria-modal="true" aria-label="全圖預覽">
+      <button class="lb-close" id="lb-close" aria-label="關閉">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+      <img id="lb-img" alt="全圖" />
+    </div>
   </div>
 
   <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">幸福智慧名片 V384</footer>
-  <script src="app.js?v=384"></script>
+  <script src="app.js?v=384.2"></script>
 </body>
 </html>
