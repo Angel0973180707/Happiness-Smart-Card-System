@@ -1,535 +1,491 @@
-/* =========================================================
- * 幸福智慧名片｜app.js（V385.1｜Stable Complete Overwrite）
- * ========================================================= */
+/* app.js (V385.2 complete overwrite) */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
-  DEFAULT_ID: "TW0001"
+  DEFAULT_ID: "TW0001",
 };
 
 let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
-let current = { id: CONFIG.DEFAULT_ID, wechat: "", phone: "", email: "", map: "", line: "", lineText: "", lineOA: "" };
+let currentRow = null;
+let galleryUrls = [];
+let galleryIndex = 0;
 
-function byId_(id){ return document.getElementById(id); }
+// ---------- helpers ----------
+const byId = (id) => document.getElementById(id);
+const safeText = (el, v) => { if(el) el.innerText = (v ?? "").toString(); };
 
-function toast_(msg){
-  const t = byId_("toast");
-  if (!t) return;
-  t.textContent = String(msg || "");
-  t.style.display = "block";
-  clearTimeout(toast_._tm);
-  toast_._tm = setTimeout(()=>{ t.style.display = "none"; }, 1600);
-}
-
-function safeText_(el, text){
-  if (!el) return;
-  el.textContent = (text === null || text === undefined) ? "" : String(text);
-}
-function safeHTML_(el, html){
-  if (!el) return;
-  el.innerHTML = html || "";
-}
-
-function getIdFromUrl_() {
+function getIdFromUrl() {
   try {
     const u = new URL(location.href);
-    return (u.searchParams.get("id") || CONFIG.DEFAULT_ID || "TW0001").trim();
+    return (u.searchParams.get("id") || CONFIG.DEFAULT_ID).trim();
   } catch (e) {
-    return (CONFIG.DEFAULT_ID || "TW0001").trim();
+    return CONFIG.DEFAULT_ID;
   }
 }
 
-function stripZeroWidth_(s){ return String(s || "").replace(/[\u200B-\u200D\uFEFF]/g, ""); }
-function normKey_(s){
-  let t = stripZeroWidth_(s);
+function stripZeroWidth(s){ return String(s||"").replace(/[\u200B-\u200D\uFEFF]/g, ""); }
+function normKey(s){
+  let t = stripZeroWidth(s);
   t = t.replace(/"/g, "");
   t = t.replace(/\r?\n/g, " ");
-  t = t.replace(/\s+/g, " ");
-  return t.trim();
+  t = t.replace(/\s+/g, " ").trim();
+  return t;
 }
-function buildRowIndex_(rowObj){
+function buildRowIndex(rowObj){
   const idx = new Map();
-  Object.keys(rowObj || {}).forEach(k => {
-    const nk = normKey_(k);
-    if (!idx.has(nk)) idx.set(nk, rowObj[k]);
+  Object.keys(rowObj||{}).forEach(k=>{
+    const nk = normKey(k);
+    if(!idx.has(nk)) idx.set(nk, rowObj[k]);
   });
   return idx;
 }
-function findByIncludes_(indexMap, patterns){
-  if (!indexMap || !(indexMap instanceof Map)) return "";
+function findByIncludes(indexMap, patterns){
+  if(!indexMap || !(indexMap instanceof Map)) return "";
   const keys = Array.from(indexMap.keys());
-  for (const p of patterns) {
-    const np = normKey_(p);
-    for (const k of keys) {
-      if (k.includes(np)) {
+  for(const p of patterns){
+    const np = normKey(p);
+    for(const k of keys){
+      if(k.includes(np)){
         const v = indexMap.get(k);
-        if (v !== null && v !== undefined && String(v).trim() !== "") return v;
+        if(v !== null && v !== undefined && String(v).trim() !== "") return v;
       }
     }
   }
   return "";
 }
-function rowToObject_(row, headers) {
-  if (!row) return null;
-  if (typeof row === "object" && !Array.isArray(row)) return row;
-  if (Array.isArray(row) && Array.isArray(headers) && headers.length) {
+function rowToObject(row, headers){
+  if(!row) return null;
+  if(typeof row === "object" && !Array.isArray(row)) return row;
+  if(Array.isArray(row) && Array.isArray(headers) && headers.length){
     const obj = {};
-    headers.forEach((h, i) => { obj[String(h)] = row[i]; });
+    headers.forEach((h,i)=> obj[String(h)] = row[i]);
     return obj;
   }
   return null;
 }
 
-function normalizeMultiline_(s){
-  return String(s || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
-}
-function toLines_(s){
-  const t = normalizeMultiline_(s);
-  if (!t) return [];
-  return t.split(/\n+/).map(x => x.trim()).filter(Boolean);
-}
-function escapeHtml_(s){
-  return String(s || "").replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function toBulletsHTML_(s){
-  const lines = toLines_(s);
-  if (!lines.length) return "";
-  if (lines.length === 1) return `<div style="line-height:1.7;">${escapeHtml_(lines[0])}</div>`;
-  return `<ul style="margin:0; padding-left:18px; line-height:1.7;">` + lines.map(li => `<li>${escapeHtml_(li)}</li>`).join("") + `</ul>`;
-}
-function escapeAttr_(s){
-  return String(s || "").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
-
-function extractDriveId_(url) {
-  const s = String(url || "").trim();
-  if (!s) return "";
+// ---------- Drive image ----------
+function extractDriveId(url){
+  const s = String(url||"").trim();
+  if(!s) return "";
   const m1 = s.match(/[?&]id=([^&]+)/i);
   const m2 = s.match(/\/d\/([^/]+)/i);
   const m3 = s.match(/\/file\/d\/([^/]+)/i);
-  if (m1) return m1[1];
-  if (m3) return m3[1];
-  if (m2) return m2[1];
+  if(m1) return m1[1];
+  if(m3) return m3[1];
+  if(m2) return m2[1];
   return "";
 }
-function driveImageCandidates_(url) {
-  const raw = String(url || "").trim();
-  const id = extractDriveId_(raw);
-  if (!id) return [raw];
+function driveCandidates(url){
+  const raw = String(url||"").trim();
+  const id = extractDriveId(raw);
+  if(!id) return [raw];
   return [
     `https://drive.google.com/uc?export=view&id=${id}`,
-    `https://drive.google.com/thumbnail?id=${id}&sz=w1000`,
+    `https://drive.google.com/thumbnail?id=${id}&sz=w1200`,
     `https://lh3.googleusercontent.com/d/${id}`,
     raw
   ];
 }
-function setImgWithFallback_(imgEl, url) {
-  if (!imgEl) return;
-  const candidates = driveImageCandidates_(url);
-  let idx = 0;
-  const tryNext = () => {
-    if (idx >= candidates.length) return;
-    imgEl.src = candidates[idx++];
+function setImgWithFallback(imgEl, url){
+  if(!imgEl) return;
+  const candidates = driveCandidates(url);
+  let i=0;
+  const tryNext = ()=>{
+    if(i>=candidates.length) return;
+    imgEl.src = candidates[i++];
   };
-  imgEl.onerror = () => tryNext();
+  imgEl.onerror = ()=> tryNext();
   tryNext();
 }
 
-window.setV382 = function(mode, theme, el) {
+// ---------- plan & theme ----------
+window.setPlan = function(plan){
+  if(plan === "premium"){
+    state.mode = "premium";
+    // 若目前是自由色，預設給 p1
+    if(!/^p\d$/.test(state.theme)) state.theme = "p1";
+  } else {
+    state.mode = "free";
+    if(!/^color-\d$/.test(state.theme)) state.theme = "color-1";
+  }
+
+  byId("btn-plan-free")?.classList.toggle("active", state.mode==="free");
+  byId("btn-plan-premium")?.classList.toggle("active", state.mode==="premium");
+
+  applyV382();
+};
+
+window.setV382 = function(mode, theme, el){
   state.mode = mode;
   state.theme = theme;
-  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
-  if (el) el.classList.add("active");
-  applyV382_();
+
+  document.querySelectorAll(".dot, .p-dot").forEach(d=>d.classList.remove("active"));
+  if(el) el.classList.add("active");
+
+  // 同步方案按鈕狀態
+  byId("btn-plan-free")?.classList.toggle("active", state.mode==="free");
+  byId("btn-plan-premium")?.classList.toggle("active", state.mode==="premium");
+
+  applyV382();
 };
 
-window.setV382Style = function(style, el) {
+window.setV382Style = function(style, el){
   state.style = style;
-  if (el && el.parentElement) {
-    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+  if(el && el.parentElement){
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b=>b.classList.remove("active"));
     el.classList.add("active");
   }
-  applyV382_();
+  applyV382();
 };
 
-window.setV382Paper = function(paper, el) {
+window.setV382Paper = function(paper, el){
   state.paper = paper;
-  if (el && el.parentElement) {
-    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+  if(el && el.parentElement){
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b=>b.classList.remove("active"));
     el.classList.add("active");
   }
-  applyV382_();
+  applyV382();
 };
 
-function applyV382_() {
+function applyV382(){
   const isFree = state.mode === "free";
-  const controlPanel = byId_("free-controls");
-  if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
-  const classList = [
+  const freeControls = byId("free-controls");
+  if(freeControls) freeControls.style.display = isFree ? "block" : "none";
+
+  const classes = [
     `mode-${state.mode}`,
     state.theme,
     isFree ? `style-${state.style}` : "",
     isFree ? state.paper : ""
-  ];
-  document.body.className = classList.filter(Boolean).join(" ");
+  ].filter(Boolean).join(" ");
+
+  document.body.className = classes;
 }
 
-function syncPanelActive_(){
-  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
-  const sel = document.querySelector(`[data-mode="${state.mode}"][data-theme="${state.theme}"]`);
-  if (sel) sel.classList.add("active");
-  document.querySelectorAll('#free-controls .control-row:first-child .btn-neo').forEach(b => {
-    b.classList.toggle("active", b.getAttribute("data-style") === state.style);
-  });
-  document.querySelectorAll('#free-controls .control-row:nth-child(2) .btn-neo').forEach(b => {
-    b.classList.toggle("active", b.getAttribute("data-paper") === state.paper);
-  });
+window.goFillForm = ()=> window.open(CONFIG.FORM, "_blank");
+
+// ---------- render ----------
+function setMultiline(el, text){
+  if(!el) return;
+  const s = String(text||"").trim();
+  // 支援換行/條列
+  const html = s
+    .split(/\r?\n/g)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => `• ${escapeHtml(line)}`)
+    .join("<br/>");
+  el.innerHTML = html || "";
 }
 
-window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
-window.goLineOA = () => { if (current.lineOA) window.open(current.lineOA, "_blank"); };
-window.goLine = () => { if (current.line) window.open(current.line, "_blank"); };
-window.goMap = () => { if (current.map) window.open(current.map, "_blank"); };
-window.callPhone = () => { if (current.phone) window.location.href = `tel:${current.phone}`; };
-window.sendEmail = () => { if (current.email) window.location.href = `mailto:${current.email}`; };
-
-window.copyWeChat = async () => {
-  if (!current.wechat) return;
-  try {
-    await navigator.clipboard.writeText(current.wechat);
-    toast_("已複製微信ID");
-  } catch (e) {
-    const ta = document.createElement("textarea");
-    ta.value = current.wechat;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    toast_("已複製微信ID");
-  }
-};
-
-function setVisible_(el, yes){ if (el) el.style.display = yes ? "" : "none"; }
-
-function setThemeFromPrefs_(idx){
-  const prefStyle = findByIncludes_(idx, ["您喜歡的版型","你喜歡的版型"]);
-  const prefColor = findByIncludes_(idx, ["您喜歡的顏色","你喜歡的顏色"]);
-  const prefPaper = findByIncludes_(idx, ["您喜歡的紙感","你喜歡的紙感"]);
-  const prefPremium = findByIncludes_(idx, ["你喜歡的底色","您喜歡的底色"]);
-
-  const styleMap = { "優雅正拱":"arch", "簡潔平直":"flat", "晨曦款":"spot", "arch":"arch", "flat":"flat", "spot":"spot" };
-  const paperMap = { "棉紙":"paper-1", "顆粒":"paper-2", "亞麻":"paper-3", "paper-1":"paper-1", "paper-2":"paper-2", "paper-3":"paper-3" };
-  const colorMap = { "紅":"color-1", "藍":"color-2", "橘":"color-3", "紫":"color-4", "綠":"color-5", "color-1":"color-1", "color-2":"color-2", "color-3":"color-3", "color-4":"color-4", "color-5":"color-5" };
-  const premiumMap = { "p1":"p1","p2":"p2","p3":"p3","p4":"p4","p5":"p5","p6":"p6","p7":"p7" };
-
-  if (prefPremium && premiumMap[prefPremium]) {
-    state.mode = "premium";
-    state.theme = premiumMap[prefPremium];
-  } else {
-    state.mode = "free";
-    const c = colorMap[prefColor] || (prefColor ? colorMap[prefColor.trim()] : "");
-    if (c) state.theme = c;
-    const st = styleMap[prefStyle] || (prefStyle ? styleMap[prefStyle.trim()] : "");
-    if (st) state.style = st;
-    const pa = paperMap[prefPaper] || (prefPaper ? paperMap[prefPaper.trim()] : "");
-    if (pa) state.paper = pa;
-  }
-  applyV382_();
-  syncPanelActive_();
+function escapeHtml(s){
+  return String(s||"")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
 }
 
-function renderLinks_(links){
-  const box = byId_("u-links");
-  if (!box) return;
+function renderQA(idx){
+  const q1 = findByIncludes(idx, ["客戶常見提問 1", "Q1"]);
+  const a1 = findByIncludes(idx, ["專業解答 1", "A1"]);
+  const q2 = findByIncludes(idx, ["客戶常見提問 2", "Q2"]);
+  const a2 = findByIncludes(idx, ["專業解答2", "專業解答 2", "A2"]);
+
+  const box = byId("qa-box");
+  if(!box) return;
+
   const items = [];
-  for (const it of links) {
-    if (!it.url) continue;
-    items.push(`
-      <div class="link-pill" onclick="window.open('${escapeAttr_(it.url)}','_blank')">
-        <div class="left">
-          <i class="${escapeAttr_(it.icon || 'fa-solid fa-link')}"></i>
-          <div>
-            <div style="font-weight:900;">${escapeHtml_(it.label)}</div>
-            ${it.tag ? `<div class="tag">${escapeHtml_(it.tag)}</div>` : ``}
-          </div>
-        </div>
-        <i class="fa-solid fa-chevron-right" style="opacity:.55;"></i>
-      </div>
-    `);
+  if(q1 || a1){
+    items.push(`<div class="qa"><div class="qa-q">Q：${escapeHtml(q1||"")}</div><div class="qa-a">${escapeHtml(a1||"")}</div></div>`);
   }
-  if (!items.length) { setVisible_(box, false); return; }
-  safeHTML_(box, `<h3>影音 / 社群</h3><div class="links-grid">${items.join("")}</div>`);
-  setVisible_(box, true);
+  if(q2 || a2){
+    items.push(`<div class="qa"><div class="qa-q">Q：${escapeHtml(q2||"")}</div><div class="qa-a">${escapeHtml(a2||"")}</div></div>`);
+  }
+  box.innerHTML = items.join("") || `<div class="qa"><div class="qa-q">（尚未填寫）</div><div class="qa-a">你可以在表單中補上 Q&A。</div></div>`;
 }
 
-function renderFAQ_(q1,a1,q2,a2){
-  const box = byId_("u-faq");
-  if (!box) return;
-  const pairs = [];
-  if (q1 && a1) pairs.push([q1,a1]);
-  if (q2 && a2) pairs.push([q2,a2]);
-  if (!pairs.length) { setVisible_(box,false); return; }
-
-  const html = pairs.map((p, i) => `
-    <div class="faq-item">
-      <button class="faq-q" data-i="${i}">
-        <span>${escapeHtml_(p[0])}</span>
-        <i class="fa-solid fa-plus"></i>
-      </button>
-      <div class="faq-a">${toBulletsHTML_(p[1])}</div>
-    </div>
-  `).join("");
-
-  safeHTML_(box, `<h3>常見提問</h3>${html}`);
-  setVisible_(box,true);
-
-  box.querySelectorAll(".faq-q").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const a = btn.parentElement.querySelector(".faq-a");
-      const icon = btn.querySelector("i");
-      const open = a.style.display === "block";
-      a.style.display = open ? "none" : "block";
-      icon.className = open ? "fa-solid fa-plus" : "fa-solid fa-minus";
-    });
-  });
-}
-
-
-function splitUrls_(v){
-  const s = String(v || "").trim();
-  if (!s) return [];
-  // 支援：換行、逗號、全形逗號、分號
-  return s.split(/\r?\n|,|，|;|；/g).map(x=>String(x||"").trim()).filter(Boolean);
-}
-
-function collectProductImages_(idx){
-  // 允許：同一欄位多行、或多個欄位（照片1~照片5 / 任意包含關鍵字）
-  const out = [];
-  const pushMany = (val)=>{
-    splitUrls_(val).forEach(u=>{
-      if (u && !out.includes(u)) out.push(u);
-    });
-  };
-
-  // 1) 任何「包含」產品照片字樣的欄位（可能同一欄位多行）
-  const keys = Array.from(idx.keys());
-  keys.forEach(k=>{
-    if (k.includes("產品或品牌或活動照片")) pushMany(idx.get(k));
-  });
-
-  // 2) 兼容：產品照片1~5（你未來可能拆欄）
-  keys.forEach(k=>{
-    if (/產品.*照片\s*\d+/i.test(k) || /活動.*照片\s*\d+/i.test(k)) pushMany(idx.get(k));
-  });
-
-  return out.slice(0,5);
-}
-
-// ------------------------ gallery + lightbox ------------------------
-let __lb = null;
-function ensureLightbox_(){
-  if (__lb) return __lb;
-  const el = document.createElement("div");
-  el.id = "lightbox";
-  el.className = "lightbox hidden";
-  el.innerHTML = `
-    <div class="lb-backdrop"></div>
-    <div class="lb-shell" role="dialog" aria-modal="true">
-      <button class="lb-close" aria-label="關閉"><i class="fa-solid fa-xmark"></i></button>
-      <button class="lb-nav lb-prev" aria-label="上一張"><i class="fa-solid fa-chevron-left"></i></button>
-      <button class="lb-nav lb-next" aria-label="下一張"><i class="fa-solid fa-chevron-right"></i></button>
-      <div class="lb-stage">
-        <img class="lb-img" alt="原尺寸圖片" />
-      </div>
-      <div class="lb-count"></div>
-    </div>
-  `;
-  document.body.appendChild(el);
-
-  const close = ()=> el.classList.add("hidden");
-  el.querySelector(".lb-backdrop").addEventListener("click", close);
-  el.querySelector(".lb-close").addEventListener("click", close);
-
-  // ESC 關閉
-  window.addEventListener("keydown", (e)=>{
-    if (!el.classList.contains("hidden") && e.key === "Escape") close();
-  });
-
-  __lb = { el, img: el.querySelector(".lb-img"), count: el.querySelector(".lb-count"), close };
-  return __lb;
-}
-
-function openLightbox_(urls, startIndex){
-  const lb = ensureLightbox_();
-  const list = (urls || []).filter(Boolean);
-  if (!list.length) return;
-
-  let i = Math.max(0, Math.min(list.length-1, Number(startIndex)||0));
-
-  const set = ()=>{
-    lb.el.classList.remove("hidden");
-    lb.count.textContent = `${i+1} / ${list.length}`;
-    setImgWithFallback_(lb.img, list[i]);
-  };
-
-  const prev = ()=>{ i = (i - 1 + list.length) % list.length; set(); };
-  const next = ()=>{ i = (i + 1) % list.length; set(); };
-
-  lb.el.querySelector(".lb-prev").onclick = prev;
-  lb.el.querySelector(".lb-next").onclick = next;
-
-  // 簡單滑動：左右切換
-  let x0 = null;
-  const stage = lb.el.querySelector(".lb-stage");
-  stage.ontouchstart = (e)=>{ x0 = e.touches && e.touches[0] ? e.touches[0].clientX : null; };
-  stage.ontouchend = (e)=>{
-    if (x0 === null) return;
-    const x1 = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : null;
-    if (x1 === null) return;
-    const dx = x1 - x0;
-    if (Math.abs(dx) > 40) (dx > 0 ? prev() : next());
-    x0 = null;
-  };
-
-  set();
-}
-
-function renderGallery_(urls){
-  const box = byId_("u-gallery");
-  if (!box) return;
-
-  const u = (urls || []).filter(Boolean).slice(0,5);
-  if (!u.length) { setVisible_(box,false); return; }
-
-  setVisible_(box,true);
-  const isFree = state.mode === "free";
-
-  // layout class for premium (1~5)
-  box.classList.remove("layout-1","layout-2","layout-3","layout-4","layout-5","free-carousel","premium-grid");
-  if (isFree) {
-    box.classList.add("free-carousel");
-  } else {
-    box.classList.add("premium-grid", `layout-${u.length}`);
+function renderLinks(idx){
+  // LINE 私訊：一行 link、一行名稱（可選）
+  const lineRaw = findByIncludes(idx, ["私訊 LINE 連結"]);
+  let lineLink = "", lineName = "";
+  if(lineRaw){
+    const parts = String(lineRaw).split(/\r?\n/g).map(s=>s.trim()).filter(Boolean);
+    lineLink = parts[0] || "";
+    lineName = parts[1] || "";
   }
 
-  box.innerHTML = "";
+  const lineOA = findByIncludes(idx, ["LINE 官方帳號連結"]);
+  const email = findByIncludes(idx, ["一鍵聯繫 Email", "Email"]);
+  const tel = findByIncludes(idx, ["一鍵聯繫電話", "電話"]);
+  const wechat = findByIncludes(idx, ["微信 ID"]);
+  const addrOrMap = findByIncludes(idx, ["影音平台 3（或地址）", "地址", "地圖"]);
 
-  u.forEach((url, idx)=>{
-    const item = document.createElement("button");
-    item.type = "button";
+  // 綁定
+  const btnLineOA = byId("btn-lineoa");
+  if(btnLineOA){
+    btnLineOA.onclick = ()=>{
+      if(lineOA) window.open(lineOA, "_blank");
+      else alert("尚未填寫 LINE 官方帳號連結");
+    };
+  }
+
+  const btnLine = byId("btn-line");
+  if(btnLine){
+    btnLine.onclick = ()=>{
+      if(lineLink) window.open(lineLink, "_blank");
+      else alert("尚未填寫 私訊 LINE 連結");
+    };
+  }
+
+  const btnWechat = byId("btn-wechat");
+  if(btnWechat){
+    btnWechat.onclick = async ()=>{
+      if(!wechat){ alert("尚未填寫 微信ID"); return; }
+      try{
+        await navigator.clipboard.writeText(String(wechat).trim());
+        alert(`已複製微信ID：${String(wechat).trim()}`);
+      }catch(e){
+        alert(`微信ID：${String(wechat).trim()}`);
+      }
+    };
+  }
+
+  const btnEmail = byId("btn-email");
+  if(btnEmail){
+    btnEmail.onclick = ()=>{
+      if(!email){ alert("尚未填寫 Email"); return; }
+      location.href = `mailto:${String(email).trim()}`;
+    };
+  }
+
+  const btnTel = byId("btn-tel");
+  if(btnTel){
+    btnTel.onclick = ()=>{
+      if(!tel){ alert("尚未填寫電話"); return; }
+      location.href = `tel:${String(tel).trim()}`;
+    };
+  }
+
+  const btnMap = byId("btn-map");
+  if(btnMap){
+    btnMap.onclick = ()=>{
+      if(!addrOrMap){ alert("尚未填寫地址/地圖"); return; }
+      // 若使用者直接填的是連結就開連結；否則用 Google Maps 搜尋
+      const s = String(addrOrMap).trim();
+      if(/^https?:\/\//i.test(s)) window.open(s, "_blank");
+      else window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s)}`, "_blank");
+    };
+  }
+}
+
+// ---------- gallery (max 5) ----------
+function parseGalleryUrls(idx){
+  // 支援：同一欄多行連結（最多 5）
+  const raw = findByIncludes(idx, ["產品或品牌或活動照片最多3張", "產品或品牌或活動照片", "產品照片", "活動照片"]);
+  const urls = [];
+  if(raw){
+    String(raw).split(/\r?\n/g).map(s=>s.trim()).filter(Boolean).forEach(u=>urls.push(u));
+  }
+
+  // 兼容：有人會拆 1~5 欄（未來可用）
+  for(let i=1;i<=5;i++){
+    const u = findByIncludes(idx, [`產品照片${i}`, `活動照片${i}`, `品牌照片${i}`]);
+    if(u) urls.push(String(u).trim());
+  }
+
+  // 去重 & 取前 5
+  const uniq = [];
+  for(const u of urls){
+    if(u && !uniq.includes(u)) uniq.push(u);
+  }
+  return uniq.slice(0,5);
+}
+
+function renderGallery(urls){
+  galleryUrls = urls || [];
+  galleryIndex = 0;
+
+  const track = byId("g-track");
+  const dots = byId("g-dots");
+  if(!track || !dots) return;
+
+  track.innerHTML = "";
+  dots.innerHTML = "";
+
+  if(!galleryUrls.length){
+    track.innerHTML = `<div class="g-item" style="display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.08);color:rgba(255,255,255,.85);font-weight:900;">
+      尚未提供照片（可填 1~5 張）
+    </div>`;
+    return;
+  }
+
+  galleryUrls.forEach((u, i)=>{
+    const item = document.createElement("div");
     item.className = "g-item";
-    item.setAttribute("aria-label", `查看圖片 ${idx+1}`);
-    item.innerHTML = `<img class="g-img" alt="產品照片" />`;
-    const img = item.querySelector("img");
-    setImgWithFallback_(img, url);
-    item.addEventListener("click", ()=> openLightbox_(u, idx));
-    box.appendChild(item);
+    const img = document.createElement("img");
+    img.alt = `photo-${i+1}`;
+    img.loading = "lazy";
+    img.onclick = ()=> openLightbox(i);
+    setImgWithFallback(img, u);
+    item.appendChild(img);
+    track.appendChild(item);
+
+    const d = document.createElement("div");
+    d.className = "g-dot" + (i===0 ? " active" : "");
+    d.onclick = ()=> scrollToGallery(i);
+    dots.appendChild(d);
   });
+
+  track.addEventListener("scroll", ()=>{
+    const w = track.clientWidth;
+    const idx = Math.round(track.scrollLeft / w);
+    setGalleryActive(idx);
+  });
+
+  byId("g-prev").onclick = ()=> scrollToGallery(Math.max(0, galleryIndex-1));
+  byId("g-next").onclick = ()=> scrollToGallery(Math.min(galleryUrls.length-1, galleryIndex+1));
 }
 
-
-function renderCard_(idx){
-  const nameEl = byId_("u-name");
-  const unitEl = byId_("u-unit");
-  const sloganEl = byId_("u-slogan");
-  const serviceEl = byId_("u-service");
-  const titlesEl = byId_("u-titles");
-  const logoEl = byId_("u-logo");
-  const avatarEl = byId_("u-img");
-
-  const name = findByIncludes_(idx, ["姓名（名片大標題）","姓名"]);
-  const unit = findByIncludes_(idx, ["單位名稱（如：幸福教養概念館）","單位名稱","單位"]);
-  const slogan = findByIncludes_(idx, ["理念標語（顯示在照片下方，精簡有力）","理念標語","標語"]);
-  const service = findByIncludes_(idx, ["服務項目（核心業務，多項可條列換行）","服務項目","核心業務"]);
-  const titles = findByIncludes_(idx, ["重要頭銜/獎銜（權威背書項目，多項可條列換行）","重要頭銜","獎銜","頭銜"]);
-  const avatar = findByIncludes_(idx, ["個人專業形象照（名片主圖）","個人專業形象照","名片主圖","形象照","頭像","照片"]);
-  const logo = findByIncludes_(idx, ["品牌 Logo（右上角小圖標）","品牌 Logo","Logo"]);
-
-  current.wechat = findByIncludes_(idx, ["微信 ID","微信ID"]);
-  current.lineOA = findByIncludes_(idx, ["LINE 官方帳號連結（綠色主按鈕）","LINE 官方帳號連結","LINE官方帳號"]);
-  const lineMulti = findByIncludes_(idx, ["私訊 LINE 連結（第一行填連結，換行填line名稱）","私訊 LINE 連結","私訊LINE"]);
-  const lineLines = toLines_(lineMulti);
-  current.line = lineLines[0] || "";
-  current.lineText = lineLines[1] || "";
-  current.email = findByIncludes_(idx, ["一鍵聯繫 Email","Email","電子郵件"]);
-  current.phone = findByIncludes_(idx, ["一鍵聯繫電話","電話"]);
-  current.map = findByIncludes_(idx, ["影音平台 3（或地址）","地址","地圖","地圖連結","Google 地圖","Google Map"]);
-
-  safeText_(nameEl, name || "（未填姓名）");
-  safeText_(unitEl, unit || "");
-
-  if (slogan && sloganEl) { safeText_(sloganEl, slogan); setVisible_(sloganEl, true); }
-  else setVisible_(sloganEl, false);
-
-  if (serviceEl) safeHTML_(serviceEl, `<h3>服務項目</h3>${toBulletsHTML_(service) || '<div style="opacity:.6;">（未填）</div>'}`);
-  if (titles && titlesEl) { safeHTML_(titlesEl, `<h3>重要頭銜 / 獎銜</h3>${toBulletsHTML_(titles)}`); setVisible_(titlesEl, true); }
-  else setVisible_(titlesEl, false);
-
-  if (avatarEl && avatar) setImgWithFallback_(avatarEl, avatar);
-  if (logoEl && logo) { setVisible_(logoEl, true); setImgWithFallback_(logoEl, logo); } else setVisible_(logoEl, false);
-
-  const btnRow = byId_("btn-row");
-  const btnLineOA = byId_("btn-lineoa");
-  const btnLine = byId_("btn-line");
-  const btnWe = byId_("btn-wechat");
-  const btnPhone = byId_("btn-phone");
-  const btnEmail = byId_("btn-email");
-  const btnMap = byId_("btn-map");
-
-  setVisible_(btnLineOA, !!current.lineOA);
-  setVisible_(btnLine, !!current.line);
-  setVisible_(btnWe, !!current.wechat);
-  setVisible_(btnPhone, !!current.phone);
-  setVisible_(btnEmail, !!current.email);
-  setVisible_(btnMap, !!current.map);
-
-  const anyMini = (!!current.line) || (!!current.wechat) || (!!current.phone) || (!!current.email) || (!!current.map);
-  setVisible_(btnRow, anyMini);
-
-  const v1 = findByIncludes_(idx, ["影音平台 1（如：YouTube或其他連結）","影音平台 1","影音平台1"]);
-  const v2 = findByIncludes_(idx, ["影音平台 2（如：TikTok / 抖音或其他連結）","影音平台 2","影音平台2"]);
-  const v3 = findByIncludes_(idx, ["影音平台 3（或地址）","影音平台 3","影音平台3"]);
-  const s1 = findByIncludes_(idx, ["社群平台 1（如：Facebook 粉絲專頁或其他連結）","社群平台 1","社群平台1"]);
-  const s2 = findByIncludes_(idx, ["社群平台 2（如：Instagram或其他連結）","社群平台 2","社群平台2"]);
-  const s3 = findByIncludes_(idx, ["社群平台 3（如：Thread / 部落格或其他連結）","社群平台 3","社群平台3"]);
-
-  const links = [];
-  if (v1) links.push({ label: "影音平台 1", url: v1, icon: "fa-brands fa-youtube", tag: "YouTube/影音" });
-  if (v2) links.push({ label: "影音平台 2", url: v2, icon: "fa-brands fa-tiktok", tag: "TikTok/抖音" });
-  if (v3) links.push({ label: "影音平台 3", url: v3, icon: "fa-solid fa-link", tag: "其他/地址" });
-  if (s1) links.push({ label: "社群平台 1", url: s1, icon: "fa-brands fa-facebook", tag: "Facebook" });
-  if (s2) links.push({ label: "社群平台 2", url: s2, icon: "fa-brands fa-instagram", tag: "Instagram" });
-  if (s3) links.push({ label: "社群平台 3", url: s3, icon: "fa-brands fa-threads", tag: "Threads/部落格" });
-
-  renderLinks_(links);
-
-  const q1 = findByIncludes_(idx, ["客戶常見提問 1 (Q1)","Q1","提問 1"]);
-  const a1 = findByIncludes_(idx, ["專業解答 1 (A1)","A1","解答 1"]);
-  const q2 = findByIncludes_(idx, ["客戶常見提問 2 (Q2)","Q2","提問 2"]);
-  const a2 = findByIncludes_(idx, ["專業解答2（A2）","專業解答 2","A2","解答 2"]);
-  renderFAQ_(q1,a1,q2,a2);
-
-  const imgs = collectProductImages_(idx);
-  renderGallery_(imgs);
-
-  if (current.lineText) toast_(`LINE：${current.lineText}`);
+function scrollToGallery(i){
+  const track = byId("g-track");
+  if(!track) return;
+  const w = track.clientWidth;
+  track.scrollTo({ left: w*i, behavior:"smooth" });
+  setGalleryActive(i);
 }
 
-async function loadCardDataFromListAPI_() {
-  current.id = getIdFromUrl_();
-  safeText_(byId_("u-name"), "載入中...");
-  safeText_(byId_("u-unit"), "同步中...");
-  safeText_(byId_("u-service"), "正在同步雲端服務項目...");
+function setGalleryActive(i){
+  galleryIndex = i;
+  const dots = byId("g-dots");
+  if(!dots) return;
+  dots.querySelectorAll(".g-dot").forEach((d, idx)=> d.classList.toggle("active", idx===i));
+}
 
-  try {
-    const res = await fetch(`${CONFIG.GAS}?action=list`, { cache: "no-store" });
+// ---------- lightbox ----------
+function openLightbox(i){
+  if(!galleryUrls.length) return;
+  galleryIndex = i;
+  const lb = byId("lightbox");
+  const img = byId("lb-img");
+  const title = byId("lb-title");
+  if(!lb || !img) return;
+
+  title && (title.innerText = `第 ${i+1} 張 / 共 ${galleryUrls.length} 張`);
+  setImgWithFallback(img, galleryUrls[i]);
+  lb.classList.add("show");
+
+  byId("lb-open").onclick = ()=> window.open(galleryUrls[galleryIndex], "_blank");
+}
+function closeLightbox(){
+  byId("lightbox")?.classList.remove("show");
+}
+function stepLightbox(dir){
+  if(!galleryUrls.length) return;
+  galleryIndex = (galleryIndex + dir + galleryUrls.length) % galleryUrls.length;
+  openLightbox(galleryIndex);
+}
+
+// ---------- admin hidden backend ----------
+let tapCount = 0;
+let tapTimer = null;
+
+function bindHiddenAdmin(){
+  const vtag = byId("versionTag");
+  if(!vtag) return;
+
+  vtag.addEventListener("click", ()=>{
+    tapCount++;
+    if(tapTimer) clearTimeout(tapTimer);
+    tapTimer = setTimeout(()=> tapCount=0, 900);
+
+    if(tapCount >= 7){
+      tapCount = 0;
+      openAdmin();
+    }
+  });
+
+  byId("adminClose").onclick = closeAdmin;
+  byId("adminModal").addEventListener("click", (e)=>{
+    if(e.target && e.target.id === "adminModal") closeAdmin();
+  });
+
+  byId("adminPreset").onclick = ()=>{
+    byId("adminIdInput").value = CONFIG.DEFAULT_ID;
+  };
+
+  byId("adminOpen").onclick = ()=>{
+    const id = (byId("adminIdInput").value || "").trim() || CONFIG.DEFAULT_ID;
+    location.href = withIdParam(id);
+  };
+
+  byId("adminCopyUrl").onclick = async ()=>{
+    const id = (byId("adminIdInput").value || "").trim() || getIdFromUrl();
+    const url = withIdParam(id);
+    await copyToClipboard(url, "已複製網址");
+  };
+
+  byId("adminCopyId").onclick = async ()=>{
+    const id = (byId("adminIdInput").value || "").trim() || getIdFromUrl();
+    await copyToClipboard(id, "已複製ID");
+  };
+
+  byId("adminCopyToken").onclick = async ()=>{
+    const id = (byId("adminIdInput").value || "").trim() || getIdFromUrl();
+    const token = await getTokenByIdFromListAPI(id);
+    if(!token){
+      noteAdmin("該序號沒有 token（或尚未填寫 token 欄位）。");
+      return;
+    }
+    await copyToClipboard(token, "已複製 Token");
+  };
+}
+
+function openAdmin(){
+  byId("adminModal")?.classList.add("show");
+  byId("adminIdInput").value = getIdFromUrl();
+  noteAdmin("提示：連點版本字 7 次可呼叫此後台。");
+}
+function closeAdmin(){
+  byId("adminModal")?.classList.remove("show");
+}
+function noteAdmin(msg){
+  const el = byId("adminNote");
+  if(el) el.innerText = msg || "";
+}
+
+function withIdParam(id){
+  const u = new URL(location.href);
+  u.searchParams.set("id", id);
+  return u.toString();
+}
+async function copyToClipboard(text, okMsg){
+  try{
+    await navigator.clipboard.writeText(text);
+    noteAdmin(okMsg || "已複製");
+  }catch(e){
+    // fallback
+    alert(text);
+  }
+}
+
+// ---------- data load ----------
+async function loadCardDataFromListAPI(){
+  const id = getIdFromUrl();
+
+  // placeholder
+  safeText(byId("u-name"), "載入中...");
+  safeText(byId("u-unit"), "同步中...");
+
+  try{
+    const res = await fetch(`${CONFIG.GAS}?action=list`, { cache:"no-store" });
     const json = await res.json();
-
-    if (!json || json.ok !== true) {
-      console.warn("GAS return:", json);
-      safeText_(byId_("u-name"), "雲端同步失敗");
-      safeText_(byId_("u-unit"), "請確認 GAS 回傳");
+    if(!json || json.ok !== true){
+      safeText(byId("u-name"), "雲端同步失敗");
+      safeText(byId("u-unit"), "請確認 GAS 回傳");
       return;
     }
 
@@ -537,33 +493,131 @@ async function loadCardDataFromListAPI_() {
     const rows = Array.isArray(json.rows) ? json.rows : [];
 
     let rowObj = null;
-    for (const r of rows) {
-      const obj = rowToObject_(r, headers);
-      if (!obj) continue;
+    for(const r of rows){
+      const obj = rowToObject(r, headers);
+      if(!obj) continue;
       const rid = String(obj.id || obj.ID || obj["id"] || obj["ID"] || "").trim();
-      if (rid === current.id) { rowObj = obj; break; }
+      if(rid === id){ rowObj = obj; break; }
     }
 
-    if (!rowObj) {
-      safeText_(byId_("u-name"), "找不到此序號");
-      safeText_(byId_("u-unit"), current.id);
-      safeText_(byId_("u-service"), "請確認該列是否有填入 id（例如 TW0001）。");
+    if(!rowObj){
+      safeText(byId("u-name"), "找不到此序號");
+      safeText(byId("u-unit"), id);
+      safeText(byId("u-service"), "請確認該列是否有填入 id（例如 TW0001）。");
       return;
     }
 
-    const idx = buildRowIndex_(rowObj);
-    setThemeFromPrefs_(idx);
-    renderCard_(idx);
+    currentRow = rowObj;
+    const idx = buildRowIndex(rowObj);
 
-  } catch (e) {
+    // 字段
+    const name = findByIncludes(idx, ["姓名（名片大標題）", "姓名"]);
+    const unit = findByIncludes(idx, ["單位名稱", "單位"]);
+    const slogan = findByIncludes(idx, ["理念標語", "標語"]);
+    const service = findByIncludes(idx, ["服務項目", "核心業務"]);
+    const titles = findByIncludes(idx, ["重要頭銜/獎銜", "獎銜", "頭銜"]);
+    const avatar = findByIncludes(idx, ["個人專業形象照", "名片主圖", "形象照", "頭像", "照片"]);
+    const logo = findByIncludes(idx, ["品牌 Logo", "Logo"]);
+
+    // 自由款文字
+    safeText(byId("u-name"), name || "（未填姓名）");
+    safeText(byId("u-unit"), unit || "");
+    safeText(byId("u-slogan"), slogan || "");
+
+    // 精品款：頭像右邊名字（縮小精緻）
+    safeText(byId("u-name-p"), name || "（未填姓名）");
+    safeText(byId("u-unit-p"), unit || "");
+    safeText(byId("u-slogan-p"), slogan || "");
+
+    // 圖
+    if(avatar) setImgWithFallback(byId("u-img"), avatar);
+    if(logo){
+      const logoEl = byId("u-logo");
+      logoEl.style.display = "block";
+      setImgWithFallback(logoEl, logo);
+    } else {
+      const logoEl = byId("u-logo");
+      logoEl.style.display = "none";
+    }
+
+    // 多行區
+    setMultiline(byId("u-service"), service);
+    setMultiline(byId("u-title"), titles);
+
+    // Q&A
+    renderQA(idx);
+
+    // 連結按鈕
+    renderLinks(idx);
+
+    // Gallery：最多 5
+    renderGallery(parseGalleryUrls(idx));
+
+    // 使用者偏好（若有填喜好）→ 套到自由款預設
+    const preferStyle = findByIncludes(idx, ["您喜歡的版型"]);
+    const preferColor = findByIncludes(idx, ["您喜歡的顏色"]);
+    const preferPaper = findByIncludes(idx, ["您喜歡的紙感"]);
+    const preferPremium = findByIncludes(idx, ["你喜歡的底色（精品設計款適用）", "你喜歡的底色"]);
+
+    // 只在沒帶 query 的情況下才套（避免你測試 id 切換時亂跳）
+    // 你要更嚴格我也可以改
+    if(state.mode === "free"){
+      if(preferStyle && /arch|flat|spot/i.test(preferStyle)) state.style = preferStyle.toLowerCase();
+      if(preferPaper && /paper-\d/i.test(preferPaper)) state.paper = preferPaper.toLowerCase();
+    }
+    if(state.mode === "premium" && preferPremium && /^p\d$/i.test(preferPremium.trim())) state.theme = preferPremium.trim().toLowerCase();
+
+    applyV382();
+
+  }catch(e){
     console.error(e);
-    safeText_(byId_("u-name"), "雲端同步異常");
-    safeText_(byId_("u-unit"), "請稍後再試");
+    safeText(byId("u-name"), "雲端同步異常");
+    safeText(byId("u-unit"), "請稍後再試");
   }
 }
 
-window.addEventListener("load", () => {
-  applyV382_();
-  syncPanelActive_();
-  loadCardDataFromListAPI_();
+// 後台 copy token 用（從 list API 找 token）
+async function getTokenByIdFromListAPI(id){
+  try{
+    const res = await fetch(`${CONFIG.GAS}?action=list`, { cache:"no-store" });
+    const json = await res.json();
+    if(!json || json.ok !== true) return "";
+    const headers = Array.isArray(json.headers) ? json.headers : [];
+    const rows = Array.isArray(json.rows) ? json.rows : [];
+    for(const r of rows){
+      const obj = rowToObject(r, headers);
+      if(!obj) continue;
+      const rid = String(obj.id || obj.ID || "").trim();
+      if(rid === id){
+        const idx = buildRowIndex(obj);
+        const token = findByIncludes(idx, ["token", "Token"]);
+        return String(token||"").trim();
+      }
+    }
+    return "";
+  }catch(e){
+    return "";
+  }
+}
+
+// ---------- boot ----------
+window.addEventListener("load", ()=>{
+  // 預設：自由方案按鈕 active
+  byId("btn-plan-free")?.classList.add("active");
+  byId("btn-plan-premium")?.classList.remove("active");
+
+  // lightbox binds
+  byId("lb-close").onclick = closeLightbox;
+  byId("lightbox").addEventListener("click", (e)=>{
+    if(e.target && e.target.id === "lightbox") closeLightbox();
+  });
+  byId("lb-prev").onclick = ()=> stepLightbox(-1);
+  byId("lb-next").onclick = ()=> stepLightbox(+1);
+
+  bindHiddenAdmin();
+
+  // 初次套 class
+  applyV382();
+  // 拉資料
+  loadCardDataFromListAPI();
 });
