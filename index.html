@@ -39,8 +39,11 @@
     </div>
 
     <div class="dots-row">
-      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div> <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div> <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p3', this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div> <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
+      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div> 
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div> 
+      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p3', this)"></div>
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div> 
+      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p6', this)"></div>
       <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
     </div>
@@ -50,20 +53,28 @@
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
-    <div class="banner"><div class="dynamic-mask"></div></div>
-    <div class="avatar-wrap">
-      <div class="avatar-circle"><img id="u-img" src="" class="avatar" alt="形象照" /></div>
+    <div class="banner">
+        <div class="dynamic-mask"></div>
     </div>
+    <div class="bottom-banner"></div> <div class="avatar-wrap">
+      <div class="avatar-circle">
+        <img id="u-img" src="" class="avatar" alt="形象照" />
+      </div>
+    </div>
+
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
       <div class="content-box" style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;" onclick="window.goFillForm()">立即填寫預約表單</div>
-      <div class="content-box"><span class="label">服務項目</span><div id="u-service">同步中...</div></div>
+      <div class="content-box">
+        <span class="label">服務項目</span>
+        <div id="u-service">同步中...</div>
+      </div>
     </div>
     <div class="version-tag">V382.9.1</div>
   </div>
 
-  <footer style="font-size: 10px; color: #ccc; margin-top: 20px;">V382.9.1</footer>
+  <footer style="font-size: 10px; color: #ccc; margin: 20px 0; text-align: center;">V382.9.1</footer>
   <script src="app.js?v=382.9.1"></script>
 </body>
 </html>
