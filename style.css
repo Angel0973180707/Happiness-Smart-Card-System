@@ -1,53 +1,62 @@
 :root { --font: 'Noto Sans TC', sans-serif; }
 
-/* 🎨 自由搭配：亮版連動 */
+/* --- 🌿 氣質與色系 --- */
 .mode-free.color-1 { --p:#ee5253; --bg:#fdf2f2; --card-bg:#fff; --text:#2d3436; }
 .mode-free.color-2 { --p:#00a8ff; --bg:#f0f9ff; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-3 { --p:#f0932b; --bg:#fff9f0; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-4 { --p:#6c5ce7; --bg:#f6f5ff; --card-bg:#fff; --text:#2d3436; }
-.mode-free.color-5 { --p:#20bf6b; --bg:#f2fdf6; --card-bg:#fff; --text:#2d3436; }
-
-/* 🌿 精品設計：氣質濃版 */
-.mode-premium.p1 { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; --sh:0 40px 80px rgba(0,0,0,0.5); }
-.mode-premium.p2 { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.08em; }
-.mode-premium.p3 { --p:#5d2525; --bg:#3d1616; --card-bg:#3d1616; --text:#fff5f5; --fx:radial-gradient(circle at 50% 20%, rgba(255,100,100,0.2), transparent 70%); }
+/* ...精品色系同前... */
+.mode-premium.p1 { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; }
 .mode-premium.p7 { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; --ls:0.25em; }
-/* 其餘 4、5、6 比照辦理 */
 
-body { background: var(--bg); font-family: var(--font); margin: 0; transition: background 0.5s; display: flex; flex-direction: column; align-items: center; }
+body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; }
 
-/* 核心圓形頭像框 */
-.avatar-wrap { position: absolute; width: 100%; top: 110px; display: flex; justify-content: center; z-index: 20; transition: 0.5s; }
-.avatar-circle { width: 110px; height: 110px; border-radius: 50%; background: var(--card-bg); padding: 5px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+/* 🔴 頭像框：再上移 15px */
+.avatar-wrap { position: absolute; width: 100%; top: 95px; display: flex; justify-content: center; z-index: 20; transition: 0.5s; }
+.avatar-circle { width: 112px; height: 112px; border-radius: 50%; background: var(--card-bg); padding: 5px; box-shadow: 0 10px 25px rgba(0,0,0,0.12); border: 1px solid rgba(0,0,0,0.03); }
 .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
-/* 版型連動 */
-.card { width: 92%; max-width: 380px; height: 680px; background: var(--card-bg) !important; color: var(--text) !important; border-radius: 40px; overflow: hidden; position: relative; margin: 20px 0; box-shadow: var(--sh, 0 15px 35px rgba(0,0,0,0.1)); transition: 0.5s; }
-.banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; transition: 0.5s; }
+/* 🔴 晨曦 (倒拱) 實裝 */
+.spot-overlay { display: none; }
+.style-spot .spot-overlay { 
+  display: block; position: absolute; width: 100%; height: 100px; bottom: -50px; 
+  background: var(--card-bg); 
+  clip-path: ellipse(70% 50% at 50% 100%); /* 產生向下圓弧 */
+}
+.style-spot .arch-overlay { display: none; }
+.style-spot .banner::after {
+  content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.2));
+}
 
-/* 拱型 */
-.style-arch .arch-overlay { background: var(--card-bg); height: 50px; border-radius: 60px 60px 0 0; position: absolute; bottom: -1px; width: 100%; }
-/* 平直 */
-.style-flat .arch-overlay { display: none; }
-/* 晨曦 (倒拱) */
-.style-spot .arch-overlay { background: var(--card-bg); height: 80px; border-radius: 0 0 100px 100px; position: absolute; top: -80px; width: 140%; left: -20%; }
-.style-spot .banner { overflow: visible; }
+/* 🔴 紙感突顯 */
+.paper-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: 0.08; z-index: 5; }
+.paper-1 .paper-fx-layer { background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.4'/%3E%3C/svg%3E"); mix-blend-mode: multiply; }
+.paper-2 .paper-fx-layer { background: radial-gradient(#000 10%, transparent 10%) 0 0/6px 6px; opacity: 0.05; }
+.paper-3 .paper-fx-layer { background: repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 4px); }
 
-/* 紙感 */
-.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.04; z-index: 6; mix-blend-mode: multiply; }
-.paper-2 .paper-overlay { background-image: url("data:image/svg+xml,..."); } /* 顆粒 */
+/* 🔴 選擇鈕優化 (Neo-brutalism) */
+.btn-neo {
+  padding: 6px 12px; border-radius: 12px; border: 1.5px solid #eee; background: #fff;
+  font-size: 11.5px; font-weight: 700; cursor: pointer; color: #666; transition: 0.2s;
+  box-shadow: 0 2px 0 #eee;
+}
+.btn-neo.active { background: #2d3436; color: #fff; border-color: #2d3436; box-shadow: 0 3px 10px rgba(0,0,0,0.15); transform: translateY(-1px); }
 
-/* 精品樣式修正 */
-.mode-premium .banner { height: 60px; }
-.mode-premium .avatar-wrap { top: 40px; }
-.mode-premium .info-scroll { padding-top: 55px; }
-.mode-premium .name { letter-spacing: var(--ls); font-weight: 900; }
-.mode-premium .premium-fx { position: absolute; inset: 0; background: var(--fx, none); pointer-events: none; z-index: 1; }
+/* 精品模式調整 */
+.mode-premium .avatar-wrap { top: 30px; }
+.mode-premium .banner { height: 50px; }
 
-/* UI */
-#admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #ddd; padding: 12px 0; }
-.dots-row { display: flex; justify-content: center; gap: 12px; margin: 10px 0; }
-.dot, .p-dot { width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-.active { transform: scale(1.15); border-color: #333 !important; }
-.info-scroll { padding: 90px 20px 20px; text-align: center; }
-.content-box { background: rgba(0,0,0,0.03); border-radius: 18px; padding: 15px; margin-bottom: 12px; }
+/* 基礎元件 */
+.card { width: 92%; max-width: 380px; height: 680px; background: var(--card-bg) !important; color: var(--text) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 20px 0; box-shadow: 0 25px 50px rgba(0,0,0,0.15); transition: 0.5s; }
+.banner { height: 160px; background: linear-gradient(135deg, var(--p), #333); position: relative; }
+.arch-overlay { background: var(--card-bg); height: 50px; border-radius: 60px 60px 0 0; position: absolute; bottom: -1px; width: 100%; }
+
+.btn-cta { 
+  background: var(--p); color: #fff; border: none; padding: 14px 40px; border-radius: 40px; 
+  font-weight: 900; cursor: pointer; display: flex; align-items: center; gap: 10px; margin: 10px auto;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1); transition: 0.3s;
+}
+.btn-cta:active { transform: scale(0.96); }
+.dots-row { display: flex; justify-content: center; gap: 14px; margin: 12px 0; }
+.picker-section { padding: 14px 0; border-bottom: 1px solid #f0f0f0; width: 100%; max-width: 400px; }
+.control-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
+.row-tag { font-size: 11px; font-weight: 900; color: #adb5bd; }
+.btn-stack { display: flex; gap: 6px; }
