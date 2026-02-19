@@ -1,48 +1,251 @@
-/* --- 🔴 版型地平線定義 --- */
+/* --- 幸福智慧名片 V382.3 核心樣式表 --- */
+
+:root {
+  --font-main: 'Noto Sans TC', sans-serif;
+  --ls: normal;
+  --p: #ee5253;
+  --bg: #f5f6fa;
+  --card-bg: #fff;
+  --text: #2d3436;
+  --sh: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+/* 🎨 自由搭配：五色亮版設計語彙 (方案 B：淡色背景) */
+.mode-free.color-1 { --p:#ee5253; --bg:#fdf2f2; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-2 { --p:#00a8ff; --bg:#f0f9ff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-3 { --p:#f0932b; --bg:#fff9f0; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-4 { --p:#6c5ce7; --bg:#f6f5ff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-5 { --p:#20bf6b; --bg:#f2fdf6; --card-bg:#ffffff; --text:#2d3436; }
+
+/* 🌿 精品設計：七種氣質設計語彙 (方案 B：主色背景) */
+.mode-premium.p1 { --p:#1a2f27; --bg:#0d1a15; --card-bg:#0d1a15; --text:#f2f2f2; --ls:0.12em; --sh:0 40px 80px rgba(0,0,0,0.5); }
+.mode-premium.p2 { --p:#2c3e50; --bg:#1a252f; --card-bg:#1a252f; --text:#ffffff; --ls:0.08em; }
+.mode-premium.p3 { --p:#5d2525; --bg:#3d1616; --card-bg:#3d1616; --text:#fff5f5; --fx:radial-gradient(circle at 50% 20%, rgba(255,100,100,0.2), transparent 70%); }
+.mode-premium.p4 { --p:#8e5a3c; --bg:#5d3a26; --card-bg:#5d3a26; --text:#fff9f2; }
+.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:#f4f7f9; --text:#2c3e50; --ls:0.15em; }
+.mode-premium.p6 { --p:#6b6687; --bg:#4a4561; --card-bg:#4a4561; --text:#f8f7ff; }
+.mode-premium.p7 { --p:#1a1a1a; --bg:#000000; --card-bg:#000000; --text:#ffffff; --ls:0.25em; }
+
+/* ----------------------------------
+   🔴 基礎版面與動畫
+---------------------------------- */
+body {
+  background: var(--bg);
+  font-family: var(--font-main);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: background 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-x: hidden;
+}
+
+.card {
+  width: 92%;
+  max-width: 380px;
+  height: 680px;
+  background: var(--card-bg) !important;
+  color: var(--text) !important;
+  border-radius: 45px;
+  overflow: hidden;
+  position: relative;
+  margin: 20px 0;
+  box-shadow: var(--sh);
+  transition: all 0.5s ease;
+}
+
+/* ----------------------------------
+   🔴 頭像與 Banner 定位 (V382.3 精修)
+---------------------------------- */
+.banner {
+  height: 160px;
+  background: linear-gradient(135deg, var(--p), #333);
+  position: relative;
+  transition: 0.5s;
+}
+
+.avatar-wrap {
+  position: absolute;
+  width: 100%;
+  top: 85px; /* 上移後視覺更挺拔 */
+  display: flex;
+  justify-content: center;
+  z-index: 30;
+  transition: 0.5s ease-in-out;
+}
+
+.avatar-circle {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  padding: 5px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  border: 1px solid rgba(0,0,0,0.03);
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ----------------------------------
+   🔴 版型地平線實裝 (核心修正)
+---------------------------------- */
 
 /* 1. 正拱型 (Arch): 向上圓弧 */
-.style-arch .arch-mask { 
-  background: var(--card-bg); 
-  height: 55px; 
-  border-radius: 80px 80px 0 0; 
-  position: absolute; 
-  bottom: -1px; 
-  width: 100%; 
+.style-arch .arch-mask {
+  background: var(--card-bg);
+  height: 55px;
+  border-radius: 60px 60px 0 0;
+  position: absolute;
+  bottom: -1px;
+  width: 100%;
 }
 
-/* 2. 平直型 (Flat): 橫直線 */
-.style-flat .arch-mask { 
-  background: var(--card-bg); 
-  height: 20px; /* 僅留一小條直線過渡 */
-  position: absolute; 
-  bottom: -1px; 
-  width: 100%; 
+/* 2. 平直型 (Flat): 水平直線 */
+.style-flat .arch-mask {
+  background: var(--card-bg);
+  height: 15px; /* 僅留窄條過渡 */
+  position: absolute;
+  bottom: -1px;
+  width: 100%;
 }
-.style-flat .banner { height: 140px; } /* 平直款稍微縮短 Banner */
+.style-flat .banner { height: 140px; }
 
 /* 3. 晨曦款 (Spot): 向下弧線 (倒拱) */
-.style-spot .spot-mask { 
-  display: block; 
-  position: absolute; 
-  width: 120%; 
-  height: 100px; 
-  bottom: -60px; /* 讓弧線露出來 */
-  left: -10%;
-  background: var(--card-bg); 
-  /* 關鍵：clip-path 畫出向下凹的圓弧 */
-  clip-path: ellipse(50% 40% at 50% 100%); 
+.spot-mask { display: none; }
+.style-spot .spot-mask {
+  display: block;
+  position: absolute;
+  width: 130%;
+  height: 100px;
+  bottom: -60px;
+  left: -15%;
+  background: var(--card-bg);
+  /* clip-path 畫出向下圓弧 */
+  clip-path: ellipse(50% 40% at 50% 100%);
 }
 .style-spot .arch-mask { display: none; }
-.style-spot .banner {
-  background: radial-gradient(circle at 50% -20%, var(--p) 30%, #333 100%);
+.style-spot .banner { background: radial-gradient(circle at 50% -10%, var(--p) 40%, #222 100%); }
+
+/* ----------------------------------
+   🔴 紙感強化 (Paper FX)
+---------------------------------- */
+.paper-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.1;
+  z-index: 5;
+  mix-blend-mode: multiply;
 }
 
-/* 🔵 頭像定位精修 (確保不被晨曦弧線遮擋) */
-.avatar-wrap { 
-  position: absolute; 
-  width: 100%; 
-  top: 85px; /* 再上移，讓視覺更輕盈 */
-  display: flex; 
-  justify-content: center; 
-  z-index: 30; 
+/* 霧面棉紙 */
+.paper-1 .paper-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.4'/%3E%3C/svg%3E");
 }
+
+/* 細顆粒紙 */
+.paper-2 .paper-overlay {
+  background: radial-gradient(#000 12%, transparent 12%) 0 0/5px 5px;
+  opacity: 0.06;
+}
+
+/* 亞麻紋 */
+.paper-3 .paper-overlay {
+  background: repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 4px);
+  opacity: 0.15;
+}
+
+/* 水彩紙 */
+.paper-4 .paper-overlay {
+  background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.1) 1%, transparent 20%) 0 0/12px 12px;
+}
+
+/* ----------------------------------
+   🔴 精品設計款專屬調整
+---------------------------------- */
+.mode-premium .banner { height: 60px; }
+.mode-premium .avatar-wrap { top: 35px; }
+.mode-premium .arch-mask, .mode-premium .spot-mask { display: none !important; }
+.mode-premium .name { letter-spacing: var(--ls); font-weight: 900; }
+.mode-premium .content-box {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text);
+}
+.mode-premium .premium-fx {
+  position: absolute;
+  inset: 0;
+  background: var(--fx, none);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ----------------------------------
+   🔴 選擇鈕美化 (Neo-brutalism)
+---------------------------------- */
+#admin-panel {
+  background: #fff;
+  width: 100%;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+  padding: 15px 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.picker-section { padding: 12px 0; border-bottom: 1px solid #f8f9fa; }
+.dots-row { display: flex; justify-content: center; gap: 14px; margin: 10px 0; }
+.dot, .p-dot { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+.active { border-color: #2d3436 !important; transform: scale(1.1); transition: 0.2s; }
+
+.btn-neo {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 900;
+  cursor: pointer;
+  color: #495057;
+  transition: all 0.15s;
+  box-shadow: 0 4px 0 #e9ecef;
+}
+
+.btn-neo:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #e9ecef;
+}
+
+.btn-neo.active {
+  background: #2d3436;
+  color: #fff;
+  border-color: #2d3436;
+  box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+/* ----------------------------------
+   🔴 內容資訊區
+---------------------------------- */
+.info-scroll { padding: 90px 20px 20px; text-align: center; }
+.name { font-size: 26px; margin: 0; font-weight: 900; }
+.unit { font-size: 14px; opacity: 0.7; margin: 5px 0 20px; }
+.content-box { background: rgba(0,0,0,0.04); border-radius: 20px; padding: 18px; margin-bottom: 15px; text-align: left; }
+.label { font-size: 11px; font-weight: 900; color: #adb5bd; margin-bottom: 8px; display: block; text-transform: uppercase; }
+
+.btn-main-cta {
+  background: var(--p);
+  color: #fff;
+  border: none;
+  padding: 15px 50px;
+  border-radius: 40px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  margin-top: 5px;
+}
+
+footer { font-size: 11px; color: #adb5bd; padding: 30px 0; text-align: center; }
