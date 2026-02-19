@@ -295,16 +295,139 @@ function renderFAQ_(q1,a1,q2,a2){
   });
 }
 
+
+function splitUrls_(v){
+  const s = String(v || "").trim();
+  if (!s) return [];
+  // 支援：換行、逗號、全形逗號、分號
+  return s.split(/\r?\n|,|，|;|；/g).map(x=>String(x||"").trim()).filter(Boolean);
+}
+
+function collectProductImages_(idx){
+  // 允許：同一欄位多行、或多個欄位（照片1~照片5 / 任意包含關鍵字）
+  const out = [];
+  const pushMany = (val)=>{
+    splitUrls_(val).forEach(u=>{
+      if (u && !out.includes(u)) out.push(u);
+    });
+  };
+
+  // 1) 任何「包含」產品照片字樣的欄位（可能同一欄位多行）
+  const keys = Array.from(idx.keys());
+  keys.forEach(k=>{
+    if (k.includes("產品或品牌或活動照片")) pushMany(idx.get(k));
+  });
+
+  // 2) 兼容：產品照片1~5（你未來可能拆欄）
+  keys.forEach(k=>{
+    if (/產品.*照片\s*\d+/i.test(k) || /活動.*照片\s*\d+/i.test(k)) pushMany(idx.get(k));
+  });
+
+  return out.slice(0,5);
+}
+
+// ------------------------ gallery + lightbox ------------------------
+let __lb = null;
+function ensureLightbox_(){
+  if (__lb) return __lb;
+  const el = document.createElement("div");
+  el.id = "lightbox";
+  el.className = "lightbox hidden";
+  el.innerHTML = `
+    <div class="lb-backdrop"></div>
+    <div class="lb-shell" role="dialog" aria-modal="true">
+      <button class="lb-close" aria-label="關閉"><i class="fa-solid fa-xmark"></i></button>
+      <button class="lb-nav lb-prev" aria-label="上一張"><i class="fa-solid fa-chevron-left"></i></button>
+      <button class="lb-nav lb-next" aria-label="下一張"><i class="fa-solid fa-chevron-right"></i></button>
+      <div class="lb-stage">
+        <img class="lb-img" alt="原尺寸圖片" />
+      </div>
+      <div class="lb-count"></div>
+    </div>
+  `;
+  document.body.appendChild(el);
+
+  const close = ()=> el.classList.add("hidden");
+  el.querySelector(".lb-backdrop").addEventListener("click", close);
+  el.querySelector(".lb-close").addEventListener("click", close);
+
+  // ESC 關閉
+  window.addEventListener("keydown", (e)=>{
+    if (!el.classList.contains("hidden") && e.key === "Escape") close();
+  });
+
+  __lb = { el, img: el.querySelector(".lb-img"), count: el.querySelector(".lb-count"), close };
+  return __lb;
+}
+
+function openLightbox_(urls, startIndex){
+  const lb = ensureLightbox_();
+  const list = (urls || []).filter(Boolean);
+  if (!list.length) return;
+
+  let i = Math.max(0, Math.min(list.length-1, Number(startIndex)||0));
+
+  const set = ()=>{
+    lb.el.classList.remove("hidden");
+    lb.count.textContent = `${i+1} / ${list.length}`;
+    setImgWithFallback_(lb.img, list[i]);
+  };
+
+  const prev = ()=>{ i = (i - 1 + list.length) % list.length; set(); };
+  const next = ()=>{ i = (i + 1) % list.length; set(); };
+
+  lb.el.querySelector(".lb-prev").onclick = prev;
+  lb.el.querySelector(".lb-next").onclick = next;
+
+  // 簡單滑動：左右切換
+  let x0 = null;
+  const stage = lb.el.querySelector(".lb-stage");
+  stage.ontouchstart = (e)=>{ x0 = e.touches && e.touches[0] ? e.touches[0].clientX : null; };
+  stage.ontouchend = (e)=>{
+    if (x0 === null) return;
+    const x1 = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : null;
+    if (x1 === null) return;
+    const dx = x1 - x0;
+    if (Math.abs(dx) > 40) (dx > 0 ? prev() : next());
+    x0 = null;
+  };
+
+  set();
+}
+
 function renderGallery_(urls){
   const box = byId_("u-gallery");
   if (!box) return;
-  const u = (urls || []).filter(Boolean).slice(0,3);
+
+  const u = (urls || []).filter(Boolean).slice(0,5);
   if (!u.length) { setVisible_(box,false); return; }
-  safeHTML_(box, u.map((_,i)=>`<img alt="照片${i+1}" />`).join(""));
+
   setVisible_(box,true);
-  const imgEls = Array.from(box.querySelectorAll("img"));
-  imgEls.forEach((imgEl, i) => setImgWithFallback_(imgEl, u[i]));
+  const isFree = state.mode === "free";
+
+  // layout class for premium (1~5)
+  box.classList.remove("layout-1","layout-2","layout-3","layout-4","layout-5","free-carousel","premium-grid");
+  if (isFree) {
+    box.classList.add("free-carousel");
+  } else {
+    box.classList.add("premium-grid", `layout-${u.length}`);
+  }
+
+  box.innerHTML = "";
+
+  u.forEach((url, idx)=>{
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "g-item";
+    item.setAttribute("aria-label", `查看圖片 ${idx+1}`);
+    item.innerHTML = `<img class="g-img" alt="產品照片" />`;
+    const img = item.querySelector("img");
+    setImgWithFallback_(img, url);
+    item.addEventListener("click", ()=> openLightbox_(u, idx));
+    box.appendChild(item);
+  });
 }
+
 
 function renderCard_(idx){
   const nameEl = byId_("u-name");
@@ -387,8 +510,8 @@ function renderCard_(idx){
   const a2 = findByIncludes_(idx, ["專業解答2（A2）","專業解答 2","A2","解答 2"]);
   renderFAQ_(q1,a1,q2,a2);
 
-  const galleryRaw = findByIncludes_(idx, ["產品或品牌或活動照片最多3張（內容區插圖）","產品或品牌或活動照片","活動照片","插圖"]);
-  renderGallery_(toLines_(galleryRaw));
+  const imgs = collectProductImages_(idx);
+  renderGallery_(imgs);
 
   if (current.lineText) toast_(`LINE：${current.lineText}`);
 }

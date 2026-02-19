@@ -88,3 +88,251 @@ body { background: var(--bg); font-family: var(--font); margin: 0; display: flex
 .mode-premium .version-tag { color: rgba(255,255,255,0.55); }
 .footer { font-size: 11px; color: rgba(0,0,0,0.35); margin-top: 10px; text-align: center; }
 .toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); background: rgba(0,0,0,0.82); color:#fff; padding: 10px 12px; border-radius: 12px; font-weight: 800; z-index: 9999; }
+
+
+
+/* =========================
+   V385.1 UI Tuning (Feb 2026)
+   - paper effect stronger (free)
+   - logo placement rule
+   - premium header typography + icon sizing
+   - premium buttons: gold rim
+   - gallery: free carousel / premium flexible grid + lightbox
+========================= */
+
+/* 1) Free paper texture stronger */
+.mode-free .paper-overlay{ opacity: .28; }
+.mode-free.paper-1 .paper-overlay{
+  background:
+    radial-gradient(circle at 20% 10%, rgba(0,0,0,.05) 0%, transparent 60%),
+    radial-gradient(circle at 80% 30%, rgba(0,0,0,.04) 0%, transparent 55%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.020) 0, rgba(0,0,0,.020) 1px, transparent 1px, transparent 6px);
+}
+.mode-free.paper-2 .paper-overlay{
+  background:
+    radial-gradient(circle at 30% 20%, rgba(0,0,0,.06) 0%, transparent 55%),
+    radial-gradient(circle at 60% 70%, rgba(0,0,0,.05) 0%, transparent 50%),
+    radial-gradient(circle at 15% 80%, rgba(0,0,0,.04) 0%, transparent 45%);
+  filter: contrast(1.05);
+}
+.mode-free.paper-3 .paper-overlay{
+  background:
+    repeating-linear-gradient(45deg, rgba(0,0,0,.030) 0, rgba(0,0,0,.030) 2px, transparent 2px, transparent 9px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,.018) 0, rgba(0,0,0,.018) 1px, transparent 1px, transparent 10px);
+  opacity:.24;
+}
+
+/* 2) Logo placement
+   - Free: under avatar (center)
+   - Premium: top-right (existing) */
+.mode-free .brand-logo{
+  top: 198px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+}
+.mode-premium .brand-logo{
+  top: 22px;
+  right: 22px;
+  left: auto;
+  transform: none;
+  width: 44px;
+  height: 44px;
+}
+
+/* 3) Premium name to the right of avatar + refined type */
+.mode-premium .info-scroll{ padding-top: 160px; }
+.mode-premium .name{
+  position:absolute;
+  top: 54px;
+  left: 122px;
+  text-align:left;
+  font-size: 22px;
+  letter-spacing: .4px;
+  margin:0;
+  max-width: calc(100% - 175px);
+}
+.mode-premium .unit{
+  position:absolute;
+  top: 86px;
+  left: 122px;
+  max-width: calc(100% - 175px);
+  text-align:left;
+  font-size: 13px;
+  opacity: .92;
+}
+.mode-premium .slogan{
+  position:absolute;
+  top: 112px;
+  left: 122px;
+  max-width: calc(100% - 175px);
+  text-align:left;
+  font-size: 12.5px;
+  opacity: .9;
+  font-weight: 700;
+}
+.mode-premium .avatar-wrap{ top: 44px; left: 22px; }
+.mode-premium .avatar-circle{ width: 84px; height: 84px; }
+
+/* 4) Premium icons smaller (avoid crowded) */
+.mode-premium .btn-mini{
+  padding: 11px 14px;
+  font-size: 13px;
+  border-radius: 18px;
+}
+.mode-premium .btn-mini i{ font-size: 14px; }
+.mode-premium .btn-main{
+  padding: 14px 18px;
+  font-size: 16px;
+}
+.mode-premium .btn-main i{ font-size: 18px; }
+
+/* 5) Premium buttons gold rim + subtle 3D */
+.mode-premium .btn-main,
+.mode-premium .btn-mini{
+  border: 1px solid rgba(212,175,55,.65);
+  box-shadow:
+    0 10px 26px rgba(0,0,0,.14),
+    inset 0 1px 0 rgba(255,255,255,.22);
+}
+.mode-premium .btn-main:active,
+.mode-premium .btn-mini:active{
+  transform: translateY(1px);
+  box-shadow:
+    0 8px 18px rgba(0,0,0,.12),
+    inset 0 1px 0 rgba(255,255,255,.18);
+}
+
+/* 6) Gallery
+   - Free: horizontal swipe carousel
+   - Premium: flexible grid layout (1~5) */
+.gallery.free-carousel{
+  display:flex;
+  overflow-x:auto;
+  -webkit-overflow-scrolling: touch;
+  gap: 12px;
+  padding: 4px 2px 10px;
+  scroll-snap-type: x mandatory;
+}
+.gallery.free-carousel .g-item{
+  flex: 0 0 76%;
+  scroll-snap-align: start;
+}
+.gallery.premium-grid{
+  display:grid;
+  gap: 10px;
+}
+.gallery .g-item{
+  border: 0;
+  padding:0;
+  background: transparent;
+  cursor:pointer;
+}
+.gallery .g-img{
+  width:100%;
+  height:100%;
+  display:block;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 10px 22px rgba(0,0,0,.10);
+}
+.gallery.free-carousel .g-img{ height: 160px; }
+.gallery.premium-grid .g-img{ height: 140px; }
+
+/* Premium grid templates */
+.gallery.premium-grid.layout-1{ grid-template-columns: 1fr; }
+.gallery.premium-grid.layout-1 .g-item{ height: 180px; }
+
+.gallery.premium-grid.layout-2{
+  grid-template-columns: 1fr 1fr;
+}
+.gallery.premium-grid.layout-2 .g-item{ height: 150px; }
+
+.gallery.premium-grid.layout-3{
+  grid-template-columns: 1.2fr .8fr;
+  grid-template-rows: 150px 150px;
+}
+.gallery.premium-grid.layout-3 .g-item:nth-child(1){ grid-row: 1 / span 2; height: 310px; }
+.gallery.premium-grid.layout-3 .g-item:nth-child(2),
+.gallery.premium-grid.layout-3 .g-item:nth-child(3){ height:150px; }
+
+.gallery.premium-grid.layout-4{
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 160px 160px;
+}
+.gallery.premium-grid.layout-4 .g-item{ height: 160px; }
+
+.gallery.premium-grid.layout-5{
+  grid-template-columns: 1.15fr .85fr;
+  grid-template-rows: 140px 140px 140px;
+}
+.gallery.premium-grid.layout-5 .g-item:nth-child(1){ grid-row: 1 / span 2; height: 290px; }
+.gallery.premium-grid.layout-5 .g-item:nth-child(2){ height: 140px; }
+.gallery.premium-grid.layout-5 .g-item:nth-child(3){ height: 140px; }
+.gallery.premium-grid.layout-5 .g-item:nth-child(4),
+.gallery.premium-grid.layout-5 .g-item:nth-child(5){ grid-column: 1 / span 2; height: 140px; }
+
+/* Lightbox */
+.lightbox.hidden{ display:none; }
+.lightbox{
+  position:fixed; inset:0;
+  z-index: 9999;
+}
+.lb-backdrop{
+  position:absolute; inset:0;
+  background: rgba(0,0,0,.72);
+}
+.lb-shell{
+  position:absolute; inset: 12px;
+  display:flex; flex-direction:column;
+  border-radius: 18px;
+  background: rgba(20,20,20,.85);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  overflow:hidden;
+}
+.lb-stage{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 12px;
+}
+.lb-img{
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 14px;
+}
+.lb-close{
+  position:absolute; top:10px; right:10px;
+  width:42px; height:42px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.10);
+  color:#fff;
+}
+.lb-nav{
+  position:absolute; top:50%;
+  transform: translateY(-50%);
+  width:44px; height:44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.10);
+  color:#fff;
+}
+.lb-prev{ left: 10px; }
+.lb-next{ right: 10px; }
+.lb-count{
+  position:absolute; bottom:10px; left:50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: rgba(255,255,255,.85);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.10);
+}
