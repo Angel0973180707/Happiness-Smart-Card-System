@@ -3,39 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V380.5</title>
+  <title>幸福智慧名片 V380</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./style.css" />
 </head>
-<body class="mode-free warm-pink style-arch">
+<body class="mode-free p-deep-green style-arch">
 
   <div id="admin-panel">
     <div class="picker-section">
-      <span class="section-label">🎨 自由搭配：親和亮色</span>
+      <span class="section-label">🌿 七種氣質設計語彙（點選切換）</span>
       <div class="dots-row">
-        <div class="dot active" style="background:#ee5253" onclick="setAppMode('free','warm-pink', this)"></div>
-        <div class="dot" style="background:#00a8ff" onclick="setAppMode('free','aurora-blue', this)"></div>
-        <div class="dot" style="background:#f0932b" onclick="setAppMode('free','vivid-orange', this)"></div>
-        <div class="dot" style="background:#6c5ce7" onclick="setAppMode('free','royal-purple', this)"></div>
-        <div class="dot" style="background:#20bf6b" onclick="setAppMode('free','teal-green', this)"></div>
-      </div>
-      <div id="style-selector" class="btn-row">
-        <button class="btn-mini active" onclick="setFreeStyle('arch', this)">優雅拱型</button>
-        <button class="btn-mini" onclick="setFreeStyle('flat', this)">簡潔平直</button>
+        <div class="p-dot active" style="background:#1a2f27" onclick="setAppMode('p-deep-green', this)"></div>
+        <div class="p-dot" style="background:#2c3e50" onclick="setAppMode('p-blue-gray', this)"></div>
+        <div class="p-dot" style="background:#5d2525" onclick="setAppMode('p-wine-red', this)"></div>
+        <div class="p-dot" style="background:#8e5a3c" onclick="setAppMode('p-caramel', this)"></div>
+        <div class="p-dot" style="background:#7a94a6" onclick="setAppMode('p-morandi', this)"></div>
+        <div class="p-dot" style="background:#6b6687" onclick="setAppMode('p-misty', this)"></div>
+        <div class="p-dot" style="background:#1a1a1a" onclick="setAppMode('p-graphite', this)"></div>
       </div>
     </div>
 
     <div class="picker-section">
-      <span class="section-label">🌿 精品設計：七種氣質（選色即選版）</span>
-      <div class="dots-row">
-        <div class="p-dot" style="background:#1a2f27" title="深墨綠" onclick="setAppMode('premium','p-deep-green', this)"></div>
-        <div class="p-dot" style="background:#2c3e50" title="深藍灰" onclick="setAppMode('premium','p-blue-gray', this)"></div>
-        <div class="p-dot" style="background:#5d2525" title="酒紅棕" onclick="setAppMode('premium','p-wine-red', this)"></div>
-        <div class="p-dot" style="background:#8e5a3c" title="焦糖暖棕" onclick="setAppMode('premium','p-caramel', this)"></div>
-        <div class="p-dot" style="background:#7a94a6" title="莫蘭迪藍" onclick="setAppMode('premium','p-morandi', this)"></div>
-        <div class="p-dot" style="background:#6b6687" title="霧紫灰" onclick="setAppMode('premium','p-misty', this)"></div>
-        <div class="p-dot" style="background:#1a1a1a" title="石墨黑" onclick="setAppMode('premium','p-graphite', this)"></div>
+      <div class="mode-toggle">
+        <button id="btn-free" class="btn-mode active" onclick="setPlan('free')">自由搭配 (淺底)</button>
+        <button id="btn-premium" class="btn-mode" onclick="setPlan('premium')">精品設計 (主色)</button>
+      </div>
+      
+      <div id="free-styles" class="btn-row">
+        <button class="btn-mini active" onclick="setFreeStyle('arch', this)">優雅拱型</button>
+        <button class="btn-mini" onclick="setFreeStyle('flat', this)">簡潔平直</button>
       </div>
     </div>
 
@@ -43,7 +40,7 @@
   </div>
 
   <div id="card-container" class="card">
-    <div class="premium-fx"></div>
+    <div class="premium-glow"></div>
     <div class="banner"><div class="arch-overlay"></div></div>
     
     <div class="avatar-wrap">
@@ -66,13 +63,13 @@
   </div>
 
   <footer id="gate-footer" style="font-size:11px; color:#bbb; padding:25px 0; text-align:center; cursor:default; user-select:none;" onclick="handleHiddenGate()">
-    © 2026 幸福智慧名片 V380.5｜版權所有
+    © 2026 幸福智慧名片 V380｜版權所有
   </footer>
 
   <div id="work-drawer" style="max-height:0; overflow:hidden; transition:0.5s; position:fixed; bottom:0; width:100%; max-width:420px; background:#2d3436; color:white; border-radius:30px 30px 0 0; z-index:2000;">
     <div style="padding:30px; text-align:center;">
-      <input type="text" id="work-id" placeholder="輸入 ID" style="padding:10px; border-radius:8px; border:none;" />
-      <button onclick="doPreviewById()" style="background:#ee5253; color:#white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">調用資料</button>
+      <input type="text" id="work-id" placeholder="輸入 ID" style="padding:10px; border-radius:8px; border:none; width:150px;" />
+      <button onclick="doPreviewById()" style="background:#ee5253; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer;">調用資料</button>
     </div>
   </div>
 
