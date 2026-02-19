@@ -1,678 +1,603 @@
-/* Angel Card PWA - V385.6_fix (Complete Overwrite)
- * Goals:
- * 1) Fix "buttons not working" by keeping JS zero-error + event delegation.
- * 2) Plan split:
- *    - Free: color dots (pink/blue/orange/purple/green) + layout (arch/flat/dawn) + paper (cotton_matte/fine_grain/linen)
- *    - Premium: premium_color p1~p7 only (no layout/paper interaction; hidden in UI)
- * 3) Load card data from GAS (including images) with robust field mapping + image URL normalization.
- * 4) Built-in big form (no jump to Google Form). Submit to GAS with graceful fallback.
+/* Angel Card — V385.7_fix (Complete Overwrite)
+ * Focus:
+ * - Fix JS errors (zero syntax errors)
+ * - Robustly fetch sample data (TW0001) from GAS API (supports multiple response shapes)
+ * - Preview card switches by plan/color/frame/paper/premium
+ * - Contact buttons, gallery prev/next, lightbox
+ * - Built-in form (big inputs), submit to GAS (POST->GET fallback)
+ * - Hidden admin (tap version 3x + password)
  */
-"use strict";
 
-const APP = {
-  VERSION: "385.6_fix",
-  STORAGE_KEY: "angel_card_v385",
-  GAS_URL: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
-  ADMIN_PASS: "angel385",
-  ADMIN_LIST_LIMIT: 50,
-};
+(() => {
+  'use strict';
 
-const state = {
-  plan: "free",                  // free | premium
-  freeColor: "pink",             // pink | blue | orange | purple | green
-  premiumColor: "p1",            // p1..p7
-  layout: "arch",                // arch | flat | dawn
-  paper: "cotton_matte",         // cotton_matte | fine_grain | linen
-  card: null,
-  gallery: [],
-  gIndex: 0,
-  lastToken: "",
-  lastId: "",
-  debug: [],
-};
+  const APP_VER = '385.7_fix';
+  const API_BASE = 'https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec';
+  const SAMPLE_ID = 'TW0001';
 
-function $(sel, root=document){ return root.querySelector(sel); }
-function $all(sel, root=document){ return Array.from(root.querySelectorAll(sel)); }
+  // NOTE: front-end only protection
+  const ADMIN_PASS = 'angel';
 
-function logDebug(msg){
-  state.debug.push(String(msg));
-  const pre = $("#debugText");
-  const box = $("#debugBox");
-  if (!pre || !box) return;
-  pre.textContent = state.debug.slice(-30).join("\n");
-  box.hidden = false;
-}
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
-let toastTimer = null;
-function toast(msg){
-  let el = $("#toast");
-  if (!el){
-    el = document.createElement("div");
-    el.id="toast";
-    el.style.position="fixed";
-    el.style.left="50%";
-    el.style.bottom="18px";
-    el.style.transform="translateX(-50%)";
-    el.style.background="rgba(0,0,0,.72)";
-    el.style.color="#fff";
-    el.style.padding="10px 12px";
-    el.style.borderRadius="14px";
-    el.style.fontWeight="900";
-    el.style.zIndex="9999";
-    el.style.maxWidth="86vw";
-    el.style.textAlign="center";
-    el.style.backdropFilter="blur(10px)";
-    document.body.appendChild(el);
-  }
-  el.textContent = msg;
-  el.style.display="block";
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{ el.style.display="none"; }, 1200);
-}
-
-function savePrefs(){
-  const v = {
-    plan: state.plan,
-    freeColor: state.freeColor,
-    premiumColor: state.premiumColor,
-    layout: state.layout,
-    paper: state.paper,
-  };
-  localStorage.setItem(APP.STORAGE_KEY, JSON.stringify(v));
-}
-
-function loadPrefs(){
-  try{
-    const raw = localStorage.getItem(APP.STORAGE_KEY);
-    if (!raw) return;
-    const v = JSON.parse(raw);
-    if (v.plan) state.plan = v.plan;
-    if (v.freeColor) state.freeColor = v.freeColor;
-    if (v.premiumColor) state.premiumColor = v.premiumColor;
-    if (v.layout) state.layout = v.layout;
-    if (v.paper) state.paper = v.paper;
-  }catch(e){}
-}
-
-function applyTheme(){
-  document.body.dataset.plan = state.plan;
-
-  $all(".segBtn[data-plan]").forEach(b=> b.classList.toggle("is-on", b.dataset.plan===state.plan));
-  $all(".dot[data-free-color]").forEach(b=> b.classList.toggle("is-on", b.dataset.freeColor===state.freeColor));
-  $all(".segBtn[data-layout]").forEach(b=> b.classList.toggle("is-on", b.dataset.layout===state.layout));
-  $all(".segBtn[data-paper]").forEach(b=> b.classList.toggle("is-on", b.dataset.paper===state.paper));
-  $all(".sw[data-premium-color]").forEach(b=> b.classList.toggle("is-on", b.dataset.premiumColor===state.premiumColor));
-
-  document.body.dataset.freeColor = state.freeColor;
-  document.body.dataset.premiumColor = state.premiumColor;
-  document.body.dataset.layout = state.layout;
-  document.body.dataset.paper = state.paper;
-}
-
-function setPlan(plan){
-  state.plan = (plan==="premium") ? "premium" : "free";
-  savePrefs(); applyTheme();
-}
-function setFreeColor(c){ state.freeColor=c; savePrefs(); applyTheme(); }
-function setPremiumColor(c){ state.premiumColor=c; savePrefs(); applyTheme(); }
-function setLayout(l){ state.layout=l; savePrefs(); applyTheme(); }
-function setPaper(p){ state.paper=p; savePrefs(); applyTheme(); }
-
-function openUrl(url){
-  try{ window.open(url, "_blank", "noopener"); }catch(e){ location.href = url; }
-}
-
-async function copyText(text){
-  try{
-    await navigator.clipboard.writeText(text);
-    return true;
-  }catch(e){
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    try{ document.execCommand("copy"); }catch(_){}
-    ta.remove();
-    return true;
-  }
-}
-
-function getUrlParams(){
-  const u = new URL(location.href);
-  return { token: u.searchParams.get("token") || "", id: u.searchParams.get("id") || "" };
-}
-
-/* -------- Image URL normalization -------- */
-function normalizeDriveUrl(u){
-  const url = String(u||"").trim();
-  if (!url) return "";
-  const m1 = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
-  if (m1) return "https://drive.google.com/uc?export=view&id=" + m1[1];
-  const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
-  if (m2) return "https://drive.google.com/uc?export=view&id=" + m2[1];
-  const m3 = url.match(/drive\.google\.com\/uc\?id=([^&]+)/);
-  if (m3) return "https://drive.google.com/uc?export=view&id=" + m3[1];
-  return url;
-}
-
-function parseGallery(val){
-  if (!val) return [];
-  if (Array.isArray(val)) return val.map(String).filter(Boolean);
-  const s = String(val).trim();
-  if (!s) return [];
-  return s.split(/\n|\||,|；|;/).map(x=>x.trim()).filter(Boolean);
-}
-
-function pickFirst(obj, keys){
-  for (const k of keys){
-    if (obj && obj[k] != null && String(obj[k]).trim() !== "") return obj[k];
-  }
-  return "";
-}
-
-function normalizeCard(raw){
-  const c = raw || {};
-  const card = {
-    id: pickFirst(c, ["id","ID","Id"]),
-    token: pickFirst(c, ["token","Token"]),
-    status: pickFirst(c, ["status","Status"]),
-    name: pickFirst(c, ["name","姓名","暱稱"]),
-    title: pickFirst(c, ["title","頭銜","定位","position"]),
-    tagline: pickFirst(c, ["tagline","slogan","引言","一句話"]),
-    phone: pickFirst(c, ["phone","tel","電話"]),
-    email: pickFirst(c, ["email","Email","信箱"]),
-    line: pickFirst(c, ["line","line_id","LINE","lineUrl","line_url"]),
-    wechat: pickFirst(c, ["wechat","wechat_id","WeChat","微信"]),
-    map_url: pickFirst(c, ["map_url","map","地圖","mapUrl"]),
-    avatar: pickFirst(c, ["avatar","avatar_url","photo","頭像","image"]),
+  const state = {
+    plan: 'free',                // free | premium
+    freeColor: 'pink',           // pink blue orange purple green
+    frame: 'arch',               // arch flat dawn
+    paper: 'cotton',             // cotton grain linen
+    premium: 'p1',               // p1..p7
+    // sample data
+    sample: null,
     gallery: [],
+    gIndex: 0,
+    // contact links extracted from sample
+    links: { line:'', wechat:'', phone:'', email:'', map:'' },
+    // admin
+    verTapCount: 0,
+    verTapTimer: null,
   };
 
-  const g1 = pickFirst(c, ["gallery","gallery_urls","images","作品圖"]);
-  let g = parseGallery(g1);
-  for (let i=1;i<=12;i++){
-    const v = pickFirst(c, [`gallery_${i}`, `gallery${i}`, `img${i}`, `image${i}`]);
-    if (v) g.push(String(v));
+  // ---------- Helpers ----------
+  function setMsg(text){
+    const el = $('#sysMsg');
+    if (!el) return;
+    el.textContent = text || '';
   }
 
-  card.avatar = normalizeDriveUrl(card.avatar) || "./icons/icon-512.png";
-  card.gallery = Array.from(new Set(g.map(normalizeDriveUrl))).filter(Boolean);
-  return card;
-}
+  function safeURL(u){
+    if (!u) return '';
+    let s = String(u).trim();
+    if (!s) return '';
 
-/* -------- Render Card -------- */
-function renderCard(raw){
-  const card = normalizeCard(raw);
-  state.card = card;
+    // Normalize common Google Drive share links to direct view
+    // file/d/<id>/view
+    let m = s.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+    // open?id=<id>
+    m = s.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+    // uc?id=<id>
+    m = s.match(/drive\.google\.com\/uc\?id=([a-zA-Z0-9_-]+)/);
+    if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
 
-  const id = card.id ? String(card.id) : "TW----";
-  const token = card.token ? String(card.token) : "";
-  state.lastId = id;
-  state.lastToken = token;
-
-  const idBadge = $("#idBadge");
-  if (idBadge) idBadge.textContent = id;
-
-  $("#name").textContent = card.name || "小天使";
-  $("#title").textContent = card.title || "天使幸福智慧名片";
-  $("#tagline").textContent = card.tagline || "一點，就看見彼此的價值";
-
-  const avatarEl = $("#avatar");
-  if (avatarEl) avatarEl.src = card.avatar || "./icons/icon-512.png";
-
-  // gallery
-  state.gallery = (card.gallery && card.gallery.length) ? card.gallery : ["./og-card.png"];
-  state.gIndex = 0;
-  renderGallery();
-
-  // version text in card foot (for admin tap)
-  const ver = $("#ver");
-  if (ver) ver.textContent = "V" + APP.VERSION;
-}
-
-function renderGallery(){
-  const img = $("#gImg");
-  if (!img) return;
-  const total = state.gallery.length;
-  const i = Math.max(0, Math.min(state.gIndex, total-1));
-  state.gIndex = i;
-  img.src = state.gallery[i];
-}
-
-function openLightbox(){
-  const lb = $("#lightbox");
-  const lbImg = $("#lbImg");
-  if (!lb || !lbImg) return;
-  lbImg.src = state.gallery[state.gIndex] || "./og-card.png";
-  lb.classList.add("is-on");
-  lb.setAttribute("aria-hidden","false");
-}
-function closeLightbox(){
-  const lb = $("#lightbox");
-  if (!lb) return;
-  lb.classList.remove("is-on");
-  lb.setAttribute("aria-hidden","true");
-}
-
-async function fetchJson(url){
-  const r = await fetch(url, { cache: "no-store" });
-  if (!r.ok) throw new Error("HTTP " + r.status);
-  return await r.json();
-}
-
-async function loadCardFromApi(){
-  const {token, id} = getUrlParams();
-  if (!token && !id) return false;
-
-  const u = new URL(APP.GAS_URL);
-  u.searchParams.set("action", "card");
-  if (token) u.searchParams.set("token", token);
-  if (id) u.searchParams.set("id", id);
-
-  try{
-    const data = await fetchJson(u.toString());
-    if (!data || data.ok===false) throw new Error(data?.error || "API error");
-    const raw = data.card || data.row || data.data || data;
-    renderCard(raw);
-    return true;
-  }catch(e){
-    logDebug("API load fail: " + e);
-    toast("載入名片失敗（使用預設小卡）");
-    return false;
-  }
-}
-
-/* -------- Built-in Form -------- */
-function openForm(){
-  const modal = $("#formModal");
-  const form = $("#cardForm");
-  if (!modal || !form) return;
-
-  form.plan.value = state.plan;
-  form.free_color.value = state.freeColor;
-  form.layout.value = state.layout;
-  form.paper.value = state.paper;
-  form.premium_color.value = state.premiumColor;
-
-  const c = state.card || {};
-  form.name.value = c.name || "";
-  form.title.value = c.title || "";
-  form.tagline.value = c.tagline || "";
-  form.phone.value = c.phone || "";
-  form.email.value = c.email || "";
-  form.line.value = c.line || "";
-  form.wechat.value = c.wechat || "";
-  form.map_url.value = c.map_url || "";
-  form.avatar.value = (c.avatar && !c.avatar.includes("./icons/")) ? c.avatar : "";
-  form.gallery.value = (c.gallery && c.gallery.length) ? c.gallery.join("\n") : "";
-
-  modal.hidden = false;
-}
-
-function closeForm(){
-  const modal = $("#formModal");
-  if (modal) modal.hidden = true;
-}
-
-function setFormHint(msg){
-  const el = $("#formHint");
-  if (!el) return;
-  el.textContent = msg || "";
-}
-
-async function submitToGAS(payload){
-  // 1) Try POST JSON (requires GAS doPost)
-  try{
-    const r = await fetch(APP.GAS_URL + "?action=submit", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(payload),
-    });
-    const j = await r.json().catch(()=>null);
-    if (r.ok && j && j.ok!==false) return j;
-  }catch(e){
-    logDebug("POST submit fail: " + e);
+    // If it's a LINE OA link, keep
+    // If missing scheme for phone/email/map/line/wechat, later builder will add
+    return s;
   }
 
-  // 2) Fallback GET query
-  try{
-    const u = new URL(APP.GAS_URL);
-    u.searchParams.set("action","submit");
-    Object.entries(payload).forEach(([k,v])=>{
-      if (v==null) return;
-      const s = String(v).trim();
-      if (!s) return;
-      u.searchParams.set(k, s);
-    });
-    const j = await fetchJson(u.toString());
-    if (j && j.ok!==false) return j;
-  }catch(e){
-    logDebug("GET submit fail: " + e);
+  function openUrl(url){
+    const u = safeURL(url);
+    if (!u) return;
+    window.open(u, '_blank', 'noopener,noreferrer');
   }
 
-  throw new Error("submit_failed");
-}
-
-/* -------- Contact Actions -------- */
-function handleContact(action){
-  const c = state.card || {};
-  const phone = c.phone || "";
-  const email = c.email || "";
-  const line = c.line || c.line_url || "";
-  const wechat = c.wechat || "";
-  const map = c.map_url || "";
-
-  if (action==="line"){
-    if (!line) return toast("未設定 LINE");
-    if (/^https?:\/\//i.test(line)) openUrl(line);
-    else openUrl("https://line.me/R/ti/p/" + encodeURIComponent(line.replace(/^@/,"@")));
-    return;
+  function copyText(text){
+    const t = String(text || '').trim();
+    if (!t) return false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(t).then(()=>true).catch(()=>fallbackCopy(t));
+    }
+    return Promise.resolve(fallbackCopy(t));
   }
-  if (action==="wechat"){
-    if (!wechat) return toast("未設定微信");
-    copyText(wechat).then(()=>toast("已複製微信ID"));
-    return;
+  function fallbackCopy(text){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    }catch(e){
+      return false;
+    }
   }
-  if (action==="tel"){
-    if (!phone) return toast("未設定電話");
-    location.href = "tel:" + phone.replace(/\s/g,"");
-    return;
-  }
-  if (action==="email"){
-    if (!email) return toast("未設定 Email");
-    location.href = "mailto:" + email;
-    return;
-  }
-  if (action==="map"){
-    if (!map) return toast("未設定地圖");
-    openUrl(map);
-    return;
-  }
-}
 
-/* -------- Hidden Admin -------- */
-let adminTap = 0;
-let adminTapTimer = null;
-
-function onVersionTap(){
-  adminTap += 1;
-  clearTimeout(adminTapTimer);
-  adminTapTimer = setTimeout(()=>{ adminTap=0; }, 900);
-  if (adminTap >= 3){
-    adminTap = 0;
-    openAdmin();
+  function withTimeout(promise, ms){
+    let t;
+    const timeout = new Promise((_, rej)=>{ t=setTimeout(()=>rej(new Error('timeout')), ms); });
+    return Promise.race([promise.finally(()=>clearTimeout(t)), timeout]);
   }
-}
 
-async function openAdmin(){
-  const pass = prompt("後台密碼：");
-  if (!pass) return;
-  if (String(pass) !== String(APP.ADMIN_PASS)){
-    toast("密碼錯誤");
-    return;
+  async function fetchJson(url){
+    const res = await withTimeout(fetch(url, { method:'GET', cache:'no-store' }), 12000);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
   }
-  toast("載入後台…");
-  const u = new URL(APP.GAS_URL);
-  u.searchParams.set("action","admin_list");
-  u.searchParams.set("key", APP.ADMIN_PASS);
-  u.searchParams.set("limit", String(APP.ADMIN_LIST_LIMIT));
-  try{
-    const data = await fetchJson(u.toString());
-    const list = data.rows || data.list || [];
-    showAdminList(list);
-  }catch(e){
-    logDebug("admin fail: "+e);
-    toast("後台載入失敗");
+
+  function pickFirst(obj, keys){
+    for (const k of keys){
+      if (obj && obj[k] != null && String(obj[k]).trim() !== '') return obj[k];
+    }
+    return '';
   }
-}
 
-function showAdminList(list){
-  const panel = $("#admin");
-  const box = $("#adminList");
-  if (!panel || !box) return toast("後台區塊不存在");
-  box.innerHTML = "";
-  if (!Array.isArray(list) || list.length===0){
-    box.innerHTML = `<div class="empty">沒有資料</div>`;
-  }else{
-    const frag = document.createDocumentFragment();
-    list.forEach((row)=>{
-      const c = normalizeCard(row);
-      const div = document.createElement("div");
-      div.className = "adminItem";
-      div.innerHTML = `
-        <div class="adminMeta">
-          <div class="adminId">${c.id || ""}</div>
-          <div class="adminName">${c.name || ""}</div>
-        </div>
-        <div class="adminBtns">
-          <button class="btn ghost mini" data-admin="copy_share" data-id="${encodeURIComponent(c.id||"")}" data-token="${encodeURIComponent(c.token||"")}">複製交貨連結</button>
-          <button class="btn ghost mini" data-admin="open" data-id="${encodeURIComponent(c.id||"")}" data-token="${encodeURIComponent(c.token||"")}">開啟</button>
-        </div>
-      `;
-      frag.appendChild(div);
-    });
-    box.appendChild(frag);
+  function normalizeRow(row){
+    // Accept both flat objects and nested row.data
+    const r = row && row.data ? row.data : row;
+    if (!r || typeof r !== 'object') return null;
+
+    // Normalize common field aliases
+    const name = pickFirst(r, ['name','姓名','display_name','full_name','title_name']);
+    const title = pickFirst(r, ['role','職稱','subtitle','tagline','about','介紹','bio']);
+    const avatar = safeURL(pickFirst(r, ['avatar','頭像','photo','photo_url','img','image']));
+
+    // Contacts
+    const line = safeURL(pickFirst(r, ['line','LINE','line_url','line_link','lineOA','line_oa','line_official']));
+    const wechat = safeURL(pickFirst(r, ['wechat','微信','weixin','wx']));
+    const phone = pickFirst(r, ['phone','電話','tel','mobile']);
+    const email = pickFirst(r, ['email','Email','mail']);
+    const map = safeURL(pickFirst(r, ['map','地圖','map_url','address','地址','location']));
+
+    // Gallery: allow array fields or delimited strings
+    let gallery = [];
+    const g1 = r.gallery || r.Gallery || r.samples || r.作品 || r.images || r.imgs || r.photos;
+    if (Array.isArray(g1)) gallery = g1;
+    const g2 = pickFirst(r, ['gallery_urls','gallery_url','作品連結','作品圖','images_url','imgs_url']);
+    if (!gallery.length && g2){
+      const parts = String(g2).split(/[\n,;]+/).map(s=>s.trim()).filter(Boolean);
+      gallery = parts;
+    }
+    gallery = gallery.map(safeURL).filter(Boolean);
+
+    return { raw:r, name, title, avatar, links:{line,wechat,phone,email,map}, gallery };
   }
-  panel.classList.add("is-on");
-  panel.setAttribute("aria-hidden","false");
-}
 
-function closeAdmin(){
-  const panel = $("#admin");
-  if (panel){
-    panel.classList.remove("is-on");
-    panel.setAttribute("aria-hidden","true");
+  async function fetchSampleRow(){
+    // Try several likely API shapes/actions. We DO NOT assume one specific backend.
+    const candidates = [
+      `${API_BASE}?action=card&id=${encodeURIComponent(SAMPLE_ID)}`,
+      `${API_BASE}?action=get&id=${encodeURIComponent(SAMPLE_ID)}`,
+      `${API_BASE}?action=row&id=${encodeURIComponent(SAMPLE_ID)}`,
+      `${API_BASE}?action=one&id=${encodeURIComponent(SAMPLE_ID)}`,
+      `${API_BASE}?action=list`,
+      `${API_BASE}?action=data`,
+      `${API_BASE}?`,
+    ];
+
+    let lastErr = null;
+    for (const url of candidates){
+      try{
+        const j = await fetchJson(url);
+        // Possible shapes:
+        // 1) {ok:true, row:{...}}
+        // 2) {ok:true, data:{...}}
+        // 3) {ok:true, rows:[...]}
+        // 4) {rows:[...]} or {data:[...]}
+        const maybeRow = j && (j.row || j.data && !Array.isArray(j.data) ? j.data : null);
+        if (maybeRow){
+          const nr = normalizeRow(maybeRow);
+          if (nr) return nr;
+        }
+
+        const rows = (j && (j.rows || j.data || j.items)) || [];
+        if (Array.isArray(rows) && rows.length){
+          // find by id (support variants)
+          const found = rows.find(x => {
+            const r = x && (x.data ? x.data : x);
+            const id = pickFirst(r, ['id','ID','card_id','編號']);
+            return String(id||'').trim().toUpperCase() === SAMPLE_ID;
+          }) || rows[0];
+          const nr = normalizeRow(found);
+          if (nr) return nr;
+        }
+      }catch(e){
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error('Unable to fetch sample');
   }
-}
 
-/* -------- Share URL -------- */
-function makeShareUrl(){
-  const base = location.origin + location.pathname;
-  const params = new URLSearchParams();
-  if (state.lastToken) params.set("token", state.lastToken);
-  else if (state.lastId) params.set("id", state.lastId);
-  const q = params.toString();
-  return q ? (base + "?" + q) : base;
-}
+  function applyPreviewState(){
+    const card = $('#sampleCard');
+    if (!card) return;
 
-/* -------- Wire Events -------- */
-function wireEvents(){
-  document.addEventListener("click", (ev)=>{
-    const t = ev.target;
+    card.dataset.plan = state.plan;
+    card.dataset.freeColor = state.freeColor;
+    card.dataset.frame = state.frame;
+    card.dataset.paper = state.paper;
+    card.dataset.premium = state.premium;
 
-    // plan
-    const planBtn = t.closest?.(".segBtn[data-plan]");
-    if (planBtn){
-      setPlan(planBtn.dataset.plan);
+    // meta pills in form
+    const metaPlan = $('#metaPlan');
+    const metaStyle = $('#metaStyle');
+    if (metaPlan) metaPlan.textContent = `方案：${state.plan==='free' ? '自由搭配款' : '精品設計款'}`;
+
+    if (metaStyle){
+      if (state.plan === 'free'){
+        const cMap = { pink:'粉（紅）', blue:'藍', orange:'橘', purple:'紫', green:'綠' };
+        const fMap = { arch:'正拱', flat:'平直', dawn:'晨曦' };
+        const pMap = { cotton:'霧面棉紙', grain:'細顆粒紙', linen:'亞麻紋' };
+        metaStyle.textContent = `樣式：${cMap[state.freeColor]} / ${fMap[state.frame]} / ${pMap[state.paper]}`;
+      } else {
+        const pm = { p1:'p1 胭脂', p2:'p2 酒紅', p3:'p3 深藍', p4:'p4 霧紫', p5:'p5 藍灰', p6:'p6 金箔', p7:'p7 褐碳' };
+        metaStyle.textContent = `樣式：${pm[state.premium]}`;
+      }
+    }
+  }
+
+  function renderSample(){
+    const s = state.sample;
+    if (!s) return;
+
+    $('#sampleName').textContent = s.name || 'TW0001';
+    $('#sampleTitle').textContent = s.title || '（樣品資料）';
+
+    const av = $('#sampleAvatar');
+    if (av){
+      if (s.avatar){
+        av.src = s.avatar;
+        av.style.display = 'block';
+      }else{
+        av.removeAttribute('src');
+        av.style.display = 'none';
+      }
+    }
+
+    state.links = s.links || state.links;
+    state.gallery = (s.gallery && s.gallery.length) ? s.gallery : [];
+    state.gIndex = 0;
+
+    const gi = $('#sampleGalleryImg');
+    if (gi){
+      if (state.gallery.length){
+        gi.src = state.gallery[state.gIndex];
+        gi.style.display = 'block';
+      }else{
+        gi.removeAttribute('src');
+        gi.style.display = 'none';
+      }
+    }
+
+    applyPreviewState();
+    setMsg(state.gallery.length ? `已載入樣品作品 ${state.gallery.length} 張` : '已載入樣品資料（未提供作品圖）');
+  }
+
+  function galleryMove(delta){
+    if (!state.gallery.length) return;
+    state.gIndex = (state.gIndex + delta + state.gallery.length) % state.gallery.length;
+    const gi = $('#sampleGalleryImg');
+    if (gi) gi.src = state.gallery[state.gIndex];
+  }
+
+  function openLightbox(){
+    const gi = $('#sampleGalleryImg');
+    if (!gi || !gi.src) return;
+    const dlg = $('#imgDlg');
+    const img = $('#imgDlgImg');
+    if (!dlg || !img) return;
+    img.src = gi.src;
+    dlg.showModal();
+  }
+
+  function openContact(kind){
+    const links = state.links || {};
+    if (kind === 'line'){
+      // Accept line url or id
+      const v = links.line || '';
+      if (!v) return setMsg('此樣品未提供 LINE 連結');
+      return openUrl(v.startsWith('http') ? v : `https://line.me/R/ti/p/${encodeURIComponent(v)}`);
+    }
+    if (kind === 'wechat'){
+      const v = links.wechat || '';
+      if (!v) return setMsg('此樣品未提供 微信');
+      // WeChat doesn't have universal open url; copy instead
+      copyText(v).then(()=>setMsg(`已複製微信：${v}`));
+      return;
+    }
+    if (kind === 'phone'){
+      const v = (links.phone || '').trim();
+      if (!v) return setMsg('此樣品未提供 電話');
+      location.href = `tel:${v}`;
+      return;
+    }
+    if (kind === 'email'){
+      const v = (links.email || '').trim();
+      if (!v) return setMsg('此樣品未提供 Email');
+      location.href = `mailto:${v}`;
+      return;
+    }
+    if (kind === 'map'){
+      const v = (links.map || '').trim();
+      if (!v) return setMsg('此樣品未提供 地圖');
+      // If address only, use Google Maps search
+      if (!/^https?:\/\//i.test(v)){
+        openUrl(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v)}`);
+      }else{
+        openUrl(v);
+      }
+      return;
+    }
+  }
+
+  function showPanelByPlan(){
+    const freePanel = $('[data-panel="free"]');
+    const premiumPanel = $('[data-panel="premium"]');
+    if (!freePanel || !premiumPanel) return;
+
+    if (state.plan === 'free'){
+      freePanel.classList.remove('is-hidden');
+      premiumPanel.classList.add('is-hidden');
+    }else{
+      premiumPanel.classList.remove('is-hidden');
+      freePanel.classList.add('is-hidden');
+    }
+    applyPreviewState();
+  }
+
+  // Delivery link:
+  // - For OG share, best is GAS action=share (server outputs OG meta)
+  // - Fallback to current page url with querystring
+  function buildDeliveryLink(){
+    const qs = new URLSearchParams();
+    qs.set('plan', state.plan);
+    if (state.plan === 'free'){
+      qs.set('free_color', state.freeColor);
+      qs.set('frame', state.frame);
+      qs.set('paper', state.paper);
+    }else{
+      qs.set('premium', state.premium);
+    }
+    // Recommend server OG page
+    const share = `${API_BASE}?action=share&sample=${encodeURIComponent(SAMPLE_ID)}&${qs.toString()}`;
+    return share;
+  }
+
+  // Built-in form submit
+  async function submitForm(){
+    const payload = {
+      // core
+      name: ($('#f_name').value || '').trim(),
+      title: ($('#f_title').value || '').trim(),
+      phone: ($('#f_phone').value || '').trim(),
+      email: ($('#f_email').value || '').trim(),
+      line: ($('#f_line').value || '').trim(),
+      wechat: ($('#f_wechat').value || '').trim(),
+      map: ($('#f_map').value || '').trim(),
+      note: ($('#f_note').value || '').trim(),
+      // selections
+      plan: state.plan,
+      free_color: state.freeColor,
+      frame: state.frame,
+      paper: state.paper,
+      premium: state.premium,
+      status: 'new',
+    };
+
+    const btn = $('#btnSubmit');
+    if (btn) { btn.disabled = true; btn.textContent = '送出中…'; }
+
+    try{
+      // Try POST JSON
+      const res = await withTimeout(fetch(API_BASE, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ action:'submit', ...payload }),
+      }), 15000);
+
+      let ok = false;
+      try{
+        const j = await res.json();
+        ok = !!(j && (j.ok || j.status===200));
+      }catch(_){
+        ok = res.ok;
+      }
+
+      if (!ok) throw new Error('POST submit failed');
+
+      setMsg('已送出！我們會盡快與你聯繫。');
+      const dlg = $('#formDlg'); if (dlg) dlg.close();
+      return;
+    }catch(e){
+      // Fallback GET (querystring)
+      try{
+        const qs = new URLSearchParams();
+        qs.set('action','submit');
+        Object.entries(payload).forEach(([k,v]) => qs.set(k, String(v ?? '')));
+        const url = `${API_BASE}?${qs.toString()}`;
+        const j = await fetchJson(url);
+        if (!(j && (j.ok || j.status===200))) throw new Error('GET fallback failed');
+        setMsg('已送出！我們會盡快與你聯繫。');
+        const dlg = $('#formDlg'); if (dlg) dlg.close();
+        return;
+      }catch(e2){
+        console.error(e, e2);
+        setMsg('送出失敗：目前後台未回應。請先用 LINE 官方帳號預約。');
+        return;
+      }
+    }finally{
+      if (btn) { btn.disabled = false; btn.textContent = '送出'; }
+    }
+  }
+
+  // Admin
+  async function adminList(){
+    const pass = ($('#adminPass').value || '').trim();
+    if (pass !== ADMIN_PASS){
+      $('#adminLog').textContent = '密碼錯誤';
+      return;
+    }
+    $('#adminLog').textContent = '讀取中…';
+    const candidates = [
+      `${API_BASE}?action=admin_list&limit=50&key=${encodeURIComponent(pass)}`,
+      `${API_BASE}?action=admin_list&limit=50&pass=${encodeURIComponent(pass)}`,
+      `${API_BASE}?action=list&limit=50`,
+    ];
+    for (const url of candidates){
+      try{
+        const j = await fetchJson(url);
+        $('#adminLog').textContent = JSON.stringify(j, null, 2);
+        return;
+      }catch(e){
+        // continue
+      }
+    }
+    $('#adminLog').textContent = '後台清單讀取失敗（API 端未開啟 admin_list 或限制權限）';
+  }
+
+  function tryOpenAdminByTripleTap(){
+    state.verTapCount++;
+    clearTimeout(state.verTapTimer);
+    state.verTapTimer = setTimeout(()=>{ state.verTapCount = 0; }, 900);
+
+    if (state.verTapCount >= 3){
+      state.verTapCount = 0;
+      const dlg = $('#adminDlg');
+      if (dlg) dlg.showModal();
+    }
+  }
+
+  // ---------- Event Delegation ----------
+  function onClick(e){
+    const t = e.target.closest('[data-action], #btnCopyDelivery, #openAdmin, #btnSubmit, #btnAdminList');
+    if (!t) return;
+
+    const action = t.dataset.action || t.id;
+
+    if (action === 'pick-plan'){
+      const plan = t.dataset.plan;
+      state.plan = (plan === 'premium') ? 'premium' : 'free';
+      // toggle seg active
+      $$('.seg__btn').forEach(b => b.classList.toggle('is-active', b.dataset.plan === state.plan));
+      showPanelByPlan();
+      applyPreviewState();
       return;
     }
 
-    // free color dots
-    const dot = t.closest?.(".dot[data-free-color]");
-    if (dot){
-      setFreeColor(dot.dataset.freeColor);
+    if (action === 'pick-free-color'){
+      state.freeColor = t.dataset.value;
+      $$('.dot').forEach(b => b.classList.toggle('is-selected', b === t));
+      applyPreviewState();
       return;
     }
 
-    // premium color buttons
-    const sw = t.closest?.(".sw[data-premium-color]");
-    if (sw){
-      setPremiumColor(sw.dataset.premiumColor);
+    if (action === 'pick-frame'){
+      state.frame = t.dataset.value;
+      $$('.chips [data-action="pick-frame"]').forEach(b => b.classList.toggle('is-selected', b === t));
+      applyPreviewState();
       return;
     }
 
-    // layout
-    const lay = t.closest?.(".segBtn[data-layout]");
-    if (lay){
-      setLayout(lay.dataset.layout);
+    if (action === 'pick-paper'){
+      state.paper = t.dataset.value;
+      $$('.chips [data-action="pick-paper"]').forEach(b => b.classList.toggle('is-selected', b === t));
+      applyPreviewState();
       return;
     }
 
-    // paper
-    const pap = t.closest?.(".segBtn[data-paper]");
-    if (pap){
-      setPaper(pap.dataset.paper);
+    if (action === 'pick-premium'){
+      state.premium = t.dataset.value;
+      $$('.pbtn').forEach(b => b.classList.toggle('is-selected', b === t));
+      applyPreviewState();
       return;
     }
 
-    // top buttons
-    if (t.id==="btnCopyShare"){
-      copyText(makeShareUrl()).then(()=>toast("已複製名片網址"));
-      return;
-    }
-    if (t.id==="btnOpenCard"){
-      openUrl(makeShareUrl());
-      return;
-    }
-
-    // form open/close
-    if (t.id==="btnForm"){
-      openForm();
-      return;
-    }
-    if (t.dataset.close==="form"){
-      closeForm();
+    if (action === 'open-line'){
+      e.preventDefault();
+      // Prefer sample line OA if provided; otherwise copy placeholder
+      const line = (state.links && state.links.line) ? state.links.line : '';
+      if (line){
+        openUrl(line);
+      }else{
+        setMsg('尚未取得 LINE 連結（請確認試算表欄位是否有 line/LINE/line_url）');
+      }
       return;
     }
 
-    // lightbox
-    if (t.id==="gImg"){
+    if (action === 'open-form'){
+      e.preventDefault();
+      const dlg = $('#formDlg');
+      if (dlg) dlg.showModal();
+      applyPreviewState();
+      return;
+    }
+
+    if (action === 'btnSubmit' || action === 'btnSubmit'.toLowerCase()){
+      submitForm();
+      return;
+    }
+
+    if (action === 'contact'){
+      const kind = t.dataset.kind;
+      openContact(kind);
+      return;
+    }
+
+    if (action === 'gallery-prev'){
+      galleryMove(-1);
+      return;
+    }
+    if (action === 'gallery-next'){
+      galleryMove(1);
+      return;
+    }
+
+    // lightbox open by clicking gallery image
+    if (t.id === 'sampleGalleryImg' || (t.tagName === 'IMG' && t.closest('.gframe'))){
       openLightbox();
       return;
     }
-    if (t.dataset.lb==="close"){
-      closeLightbox();
+
+    if (action === 'btnCopyDelivery' || t.id === 'btnCopyDelivery'){
+      const link = buildDeliveryLink();
+      Promise.resolve(copyText(link)).then(()=> setMsg('已複製一鍵交貨連結（貼出去會出 OG 卡）'));
       return;
     }
 
-    // gallery nav
-    const gnav = t.closest?.("[data-g]");
-    if (gnav){
-      const dir = gnav.dataset.g;
-      if (dir==="prev"){
-        state.gIndex = (state.gIndex - 1 + state.gallery.length) % state.gallery.length;
-      }else if (dir==="next"){
-        state.gIndex = (state.gIndex + 1) % state.gallery.length;
-      }
-      renderGallery();
+    if (action === 'openAdmin' || t.id === 'openAdmin'){
+      tryOpenAdminByTripleTap();
       return;
     }
 
-    // contacts
-    const act = t.closest?.("[data-action]");
-    if (act){
-      handleContact(act.dataset.action);
+    if (action === 'btnAdminList' || t.id === 'btnAdminList'){
+      adminList();
       return;
     }
-
-    // version triple tap
-    if (t.id==="ver"){
-      onVersionTap();
-      return;
-    }
-
-    // admin open/close
-    if (t.dataset.admin==="close"){
-      closeAdmin();
-      return;
-    }
-    if (t.id==="btnAdminList"){
-      openAdmin();
-      return;
-    }
-    if (t.id==="btnAdminCopyShare"){
-      copyText(makeShareUrl()).then(()=>toast("已複製目前交貨連結"));
-      return;
-    }
-    const adminBtn = t.closest?.("button[data-admin]");
-    if (adminBtn){
-      const action = adminBtn.dataset.admin;
-      const id = decodeURIComponent(adminBtn.dataset.id||"");
-      const token = decodeURIComponent(adminBtn.dataset.token||"");
-      if (action==="copy_share"){
-        const base = location.origin + location.pathname;
-        const u = new URL(base);
-        if (token) u.searchParams.set("token", token);
-        else if (id) u.searchParams.set("id", id);
-        copyText(u.toString()).then(()=>toast("已複製交貨連結"));
-      }else if (action==="open"){
-        const base = location.origin + location.pathname;
-        const u = new URL(base);
-        if (token) u.searchParams.set("token", token);
-        else if (id) u.searchParams.set("id", id);
-        openUrl(u.toString());
-      }
-      return;
-    }
-  });
-
-  // built-in form submit
-  const form = $("#cardForm");
-  if (form){
-    form.addEventListener("submit", async (ev)=>{
-      ev.preventDefault();
-      setFormHint("送出中…");
-      const fd = new FormData(form);
-      const payload = Object.fromEntries(fd.entries());
-
-      payload.plan = state.plan;
-      payload.free_color = state.freeColor;
-      payload.layout = state.layout;
-      payload.paper = state.paper;
-      payload.premium_color = state.premiumColor;
-
-      const gallery = parseGallery(payload.gallery);
-      payload.gallery = gallery.join("|");
-
-      try{
-        const res = await submitToGAS(payload);
-        if (res && (res.id || res.token)){
-          state.lastId = res.id || state.lastId;
-          state.lastToken = res.token || state.lastToken;
-          const idBadge = $("#idBadge");
-          if (idBadge) idBadge.textContent = state.lastId;
-        }
-        setFormHint("✅ 已送出！你可以按「一鍵複製名片網址」交給客戶。");
-        toast("送出完成");
-        closeForm();
-      }catch(e){
-        logDebug("submit error: " + e);
-        setFormHint("❌ 送出失敗：請確認 GAS 有開啟 submit（doPost 或 doGet action=submit）。");
-        toast("送出失敗");
-      }
-    });
   }
-}
 
-/* -------- SW -------- */
-function registerSW(){
-  if (!("serviceWorker" in navigator)) return;
-  navigator.serviceWorker.register("./sw.js?v=3856").catch(()=>{});
-}
+  // ---------- Init ----------
+  async function init(){
+    // PWA SW
+    if ('serviceWorker' in navigator){
+      navigator.serviceWorker.register('./sw.js?v=3857').catch(()=>{});
+    }
 
-/* -------- Init -------- */
-async function init(){
-  try{
-    loadPrefs();
-    applyTheme();
-    wireEvents();
-    registerSW();
+    // click delegation
+    document.addEventListener('click', onClick, { passive:false });
 
-    // default card baseline
-    renderCard({
-      id: "TW----",
-      name: "小天使",
-      title: "天使幸福智慧名片",
-      tagline: "一點，就看見彼此的價值",
-      avatar: "./icons/icon-512.png",
-      gallery: ["./og-card.png"],
-    });
+    // triple tap on version text
+    const ver = $('#ver');
+    if (ver){
+      ver.addEventListener('click', (e)=>{ e.preventDefault(); tryOpenAdminByTripleTap(); });
+    }
 
-    await loadCardFromApi();
-  }catch(e){
-    console.error(e);
-    logDebug("init fail: " + e);
+    // also allow click on gallery image
+    const gimg = $('#sampleGalleryImg');
+    if (gimg){
+      gimg.addEventListener('click', (e)=>{ e.preventDefault(); openLightbox(); });
+    }
+
+    // Load sample data
+    setMsg('讀取樣品資料（TW0001）…');
+    try{
+      const row = await fetchSampleRow();
+      state.sample = row;
+      renderSample();
+    }catch(err){
+      console.error(err);
+      setMsg('無法讀取樣品資料：請確認 GAS 已允許匿名讀取、且 action/list/card 端點存在。');
+      // Still allow preview switching without data
+      state.sample = { name:'TW0001', title:'（未讀取到資料）', avatar:'', links:{}, gallery:[] };
+      renderSample();
+    }
+
+    showPanelByPlan();
+    applyPreviewState();
   }
-}
 
-document.addEventListener("DOMContentLoaded", init);
+  init();
+})();
