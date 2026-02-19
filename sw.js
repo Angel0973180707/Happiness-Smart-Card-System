@@ -1,5 +1,5 @@
-/* Angel Card SW v377 - cache-busted */
-const CACHE = "angel-card-v377";
+/* Angel Card SW v382.3 - cache-busted */
+const CACHE = "angel-card-v382.3";
 const ASSETS = [
   "./",
   "./index.html",
