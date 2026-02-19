@@ -57,7 +57,7 @@ async function loadV382Data() {
       document.getElementById('u-service').innerText = data.服務項目 || "";
       if(data.形象照) document.getElementById('u-img').src = data.形象照;
     }
-  } catch(e) { console.error("資料載入失敗"); }
+  } catch(e) { console.error("資料載入異常"); }
 }
 
 function updateThemeColor() {
