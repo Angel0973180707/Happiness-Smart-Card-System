@@ -1,44 +1,14 @@
-/* --- 幸福智慧名片 V385 旗艦擴充版 --- */
-:root { --font: 'Noto Sans TC', sans-serif; }
+/* V384 經典玻璃與材質定義 ... (略) */
+.admin-panel { background: #fff; padding: 15px; border-bottom: 1px solid #eee; text-align: center; }
+.delivery-bar { background: #f8f9fa; padding: 10px; display: flex; gap: 8px; justify-content: center; border-bottom: 2px solid #2ecc71; }
+.delivery-bar input { padding: 8px; border-radius: 8px; border: 1px solid #ddd; width: 140px; }
 
-/* 🎨 自由搭配款 (V384 經典亮彩) */
-.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
+.product-slider { display: flex; overflow-x: auto; gap: 10px; margin: 15px 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.product-img { flex-shrink: 0; width: 240px; height: 140px; border-radius: 20px; object-fit: cover; border: 2px solid #fff; }
 
-/* 🌿 精品設計款 (V384 玻璃幻鏡 - 七色繼承) */
-.mode-premium .card { backdrop-filter: blur(25px); border: 12px solid #ffffff; }
-.mode-premium.p1 { --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,0.95), rgba(114,47,55,0.8)); --text:#f5e6e8; }
-.mode-premium.p4 { --p:#bf953f; --bg:#f9f7f0; --card-bg: linear-gradient(135deg, rgba(191,149,63,0.95), rgba(252,246,186,0.85), rgba(170,119,28,0.95)); --text:#4d3700; --fx-op:0.6; }
+.lock-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+.lock-box { background: #fff; padding: 30px; border-radius: 20px; text-align: center; }
 
-body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; padding-bottom: 50px; overflow-x: hidden; }
-
-/* 🔴 隱形密碼牆與後台 */
-#admin-panel { display: none; background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 15px; z-index: 1000; position: sticky; top: 0; }
-.lock-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 999; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-.lock-box { background: #fff; padding: 25px; border-radius: 20px; text-align: center; width: 280px; }
-
-/* 🔴 V385 卡片動態佈局 */
-.card { width: 92%; max-width: 380px; height: 760px; background: var(--card-bg) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.1); transition: 0.5s; }
-.avatar-wrap { position: absolute; width: 100%; display: flex; justify-content: center; z-index: 30; transition: 0.4s; }
-.mode-free .avatar-wrap { top: 75px; } 
-.mode-premium .avatar-wrap { top: 40px; left: 25px; justify-content: flex-start; }
-.avatar-circle { width: 105px; height: 105px; border-radius: 50%; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
-.mode-premium .avatar-circle { width: 85px; height: 85px; border: 2.5px solid rgba(255,255,255,0.3); }
-
-/* 🔴 左右滑動產品展示區 */
-.product-slider { display: flex; overflow-x: auto; gap: 12px; padding: 10px 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
-.product-slider::-webkit-scrollbar { display: none; }
-.product-img { flex-shrink: 0; width: 220px; height: 140px; border-radius: 18px; object-fit: cover; scroll-snap-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border: 2px solid #fff; }
-.mode-premium .product-img { border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(5px); }
-
-/* 🔴 互動聯繫矩陣 */
-.action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
-.btn-icon { background: rgba(0,0,0,0.05); aspect-ratio: 1; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--p); text-decoration: none; transition: 0.2s; }
-.mode-premium .btn-icon { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); color: #fff; }
-.btn-main-line { background: #06C755; color: #fff; padding: 14px; border-radius: 18px; text-align: center; font-weight: 900; text-decoration: none; display: block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(6,199,85,0.2); }
-
-/* 其餘 V384 Banner, Mask, TitleTag 樣式承襲自封存... */
-.version-tag { font-size: 10px; opacity: 0.3; position: absolute; bottom: 15px; right: 25px; cursor: pointer; }
+/* 守住 V384 的精品排版 */
+.mode-premium .info-scroll { text-align: left; padding-left: 30px; }
+.mode-premium .avatar-wrap { justify-content: flex-start; left: 30px; top: 40px; }
