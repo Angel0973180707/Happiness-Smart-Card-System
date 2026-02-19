@@ -4,39 +4,45 @@ const CONFIG = {
   ANGEL: "TW0001"
 };
 
-let state = { mode: 'free', theme: 'warm-pink', style: 'arch' };
+let state = { plan: 'free', theme: 'p-deep-green', style: 'arch' };
 let gateClicks = 0;
 
-// 全域掛載函數
-window.setAppMode = function(mode, theme, el) {
-  state.mode = mode;
+// 🌿 核心切換：解決不連動問題
+window.setAppMode = function(theme, el) {
   state.theme = theme;
-  
-  document.querySelectorAll('.dot, .p-dot').forEach(d => d.classList.remove('active'));
+  document.querySelectorAll('.p-dot').forEach(d => d.classList.remove('active'));
   if(el) el.classList.add('active');
+  applyState();
+};
 
-  const selector = document.getElementById('style-selector');
-  
-  if (mode === 'free') {
-    state.style = localStorage.getItem('v380_style') || 'arch';
-    document.body.className = `mode-free ${theme} style-${state.style}`;
-    selector.style.display = 'block';
-  } else {
-    // 精品模式：選顏色即選版型
-    document.body.className = `mode-premium ${theme}`;
-    selector.style.display = 'none';
-  }
-  updateThemeMeta();
+window.setPlan = function(plan) {
+  state.plan = plan;
+  document.querySelectorAll('.btn-mode').forEach(b => b.classList.remove('active'));
+  document.getElementById(`btn-${plan}`).classList.add('active');
+  applyState();
 };
 
 window.setFreeStyle = function(style, el) {
-  if (state.mode !== 'free') return;
   state.style = style;
-  localStorage.setItem('v380_style', style);
   document.querySelectorAll('.btn-mini').forEach(b => b.classList.remove('active'));
   if(el) el.classList.add('active');
-  document.body.className = `mode-free ${state.theme} style-${style}`;
+  applyState();
 };
+
+function applyState() {
+  const card = document.getElementById('card-container');
+  const styleSelector = document.getElementById('free-styles');
+  
+  // 徹底更新 Body Class
+  if (state.plan === 'free') {
+    document.body.className = `mode-free ${state.theme} style-${state.style}`;
+    styleSelector.style.display = 'block';
+  } else {
+    document.body.className = `mode-premium ${state.theme}`;
+    styleSelector.style.display = 'none';
+  }
+  updateThemeMeta();
+}
 
 window.handleHiddenGate = function() {
   gateClicks++;
@@ -66,9 +72,11 @@ async function fetchData(id) {
 }
 
 function updateThemeMeta() {
-  const accent = getComputedStyle(document.documentElement).getPropertyValue('--p').trim();
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', accent);
+  setTimeout(() => {
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--p').trim();
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', accent);
+  }, 100);
 }
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
-window.onload = () => { fetchData(CONFIG.ANGEL); updateThemeMeta(); };
+window.onload = () => { fetchData(CONFIG.ANGEL); applyState(); };
