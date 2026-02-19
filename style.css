@@ -1,13 +1,14 @@
-/* --- 幸福智慧名片 V385 旗艦完整架構版 --- */
+/* --- 幸福智慧名片 V385.2 旗艦完整架構版 --- */
 :root {
   --font: 'Noto Sans TC', sans-serif;
   --r-lg: 45px;
   --r-md: 20px;
   --r-sm: 12px;
+  --transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* =========================================
-   1. 自由搭配款 (V384 基準：5色 x 3版型 x 3紙感)
+   1. 自由搭配款 (V384 經典：5色 x 3版型 x 3紙感)
    ========================================= */
 .mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
@@ -15,54 +16,72 @@
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-/* 📐 自由款版型 (地平線) */
+/* 📐 自由款版型 (地平線高度與形狀) */
 .style-arch .banner { height: 125px; clip-path: ellipse(110% 100% at 50% 0%); }
 .style-flat .banner { height: 125px; clip-path: none; }
 .style-spot .banner { height: 100px; clip-path: none; }
 
-/* 📄 自由款紙質感 (透明度 0.15) */
+/* 📄 自由款紙質感 (V384 基準：透明度 0.15) */
 .paper-1 .paper-overlay { display: none; }
 .paper-2 .paper-overlay { background-image: url('https://www.transparenttextures.com/patterns/handmade-paper.png'); opacity: 0.15; }
 .paper-3 .paper-overlay { background-image: url('https://www.transparenttextures.com/patterns/linen-design.png'); opacity: 0.15; }
 
 /* =========================================
-   2. 精品設計款 (V384 基準：7色玻璃幻鏡)
+   2. 精品設計款 (V384 旗艦：七色玻璃幻鏡)
    ========================================= */
-.mode-premium .card { backdrop-filter: blur(25px); border: 12px solid #ffffff; }
+.mode-premium .card { backdrop-filter: blur(25px); border: 12px solid #ffffff; box-shadow: 0 25px 50px rgba(0,0,0,0.15); }
 .mode-premium .banner, .mode-premium .dynamic-mask { display: none !important; }
 
+/* P1: 酒紅玻璃 */
 .p1 { --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,0.95), rgba(114,47,55,0.85)); --text:#f5e6e8; --fx-op:0.4; }
+/* P2: 深藍玻璃 */
 .p2 { --p:#1c2e42; --bg:#eef1f5; --card-bg: linear-gradient(135deg, rgba(28,46,66,0.95), rgba(44,62,80,0.85)); --text:#ffffff; --fx-op:0.25; }
+/* P3: 霧紫玻璃 */
 .p3 { --p:#5e548e; --bg:#f4f3f7; --card-bg: linear-gradient(135deg, rgba(94,84,142,0.92), rgba(159,134,192,0.8)); --text:#ffffff; --fx-op:0.2; }
+/* P4: 金箔玻璃 (最強光感) */
 .p4 { --p:#bf953f; --bg:#f9f7f0; --card-bg: linear-gradient(135deg, rgba(191,149,63,0.95), rgba(252,246,186,0.85), rgba(170,119,28,0.95)); --text:#4d3700; --fx-op:0.6; }
+/* P5: 藍灰玻璃 */
 .p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg: linear-gradient(135deg, rgba(122,148,166,0.95), rgba(100,120,135,0.8)); --text:#ffffff; --fx-op:0.25; }
+/* P6: 胭脂玻璃 */
 .p6 { --p:#a36d6d; --bg:#fdf5f5; --card-bg: linear-gradient(135deg, rgba(163,109,109,0.95), rgba(142,90,90,0.85)); --text:#ffffff; --fx-op:0.35; }
+/* P7: 褐碳玻璃 */
 .p7 { --p:#444444; --bg:#f0f0f0; --card-bg: linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.2; }
 
 /* =========================================
-   3. 基礎結構與後台樣式 (V385 功能擴充)
+   3. 基礎結構與行政面板 (V385 功能擴充)
    ========================================= */
-body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; padding-bottom: 50px; }
+body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: var(--transition); padding-bottom: 50px; }
 
-/* 🔒 隱形後台與解鎖層 */
+/* 🔒 隱形密碼牆與交貨列 */
 .lock-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
 .lock-box { background: #fff; padding: 30px; border-radius: 25px; text-align: center; width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-.lock-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; }
+.lock-box input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 12px; box-sizing: border-box; font-size: 16px; }
 
-/* ⚙️ 行政控制面板樣式 */
 #admin-panel { background: #fff; width: 100%; padding: 15px 0; border-bottom: 1px solid #eee; text-align: center; z-index: 100; }
 .delivery-bar { background: #f8f9fa; padding: 12px; display: flex; gap: 8px; justify-content: center; border-bottom: 2px solid #2ecc71; }
 .delivery-bar input { padding: 8px; border-radius: 8px; border: 1px solid #ddd; width: 140px; }
 
 /* =========================================
-   4. 名片主體樣式 (V384 + V385 空間規劃)
+   4. 名片主體樣式 (V384 魂 + V385 骨)
    ========================================= */
-.card { width: 92%; max-width: 380px; height: 740px; background: var(--card-bg) !important; border-radius: var(--r-lg); overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.1); transition: 0.5s; display: flex; flex-direction: column; }
-.paper-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; mix-blend-mode: multiply; }
-.premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%); z-index: 6; mix-blend-mode: overlay; }
+.card { 
+  width: 92%; max-width: 380px; height: 740px; 
+  background: var(--card-bg) !important; border-radius: var(--r-lg); 
+  overflow: hidden; position: relative; margin: 15px 0; 
+  box-shadow: 0 15px 40px rgba(0,0,0,0.1); transition: var(--transition); 
+  display: flex; flex-direction: column; 
+}
 
-/* 👤 頭像定位 */
-.avatar-wrap { position: absolute; width: 100%; display: flex; justify-content: center; z-index: 30; transition: 0.4s; }
+.paper-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; mix-blend-mode: multiply; }
+.premium-fx-layer { 
+  position: absolute; inset: 0; pointer-events: none; 
+  opacity: var(--fx-op, 0); 
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%); 
+  z-index: 6; mix-blend-mode: overlay; 
+}
+
+/* 👤 頭像與定位 */
+.avatar-wrap { position: absolute; width: 100%; display: flex; justify-content: center; z-index: 30; transition: var(--transition); }
 .mode-free .avatar-wrap { top: 75px; } 
 .mode-premium .avatar-wrap { top: 40px; left: 25px; justify-content: flex-start; }
 .avatar-circle { width: 105px; height: 105px; border-radius: 50%; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
@@ -70,7 +89,7 @@ body { background: var(--bg); font-family: var(--font); margin: 0; display: flex
 .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
 /* 📝 內容佈局 */
-.info-scroll { flex: 1; overflow-y: auto; scrollbar-width: none; transition: 0.4s; }
+.info-scroll { flex: 1; overflow-y: auto; scrollbar-width: none; transition: var(--transition); }
 .info-scroll::-webkit-scrollbar { display: none; }
 .mode-free .info-scroll { padding: 110px 20px 60px; text-align: center; }
 .mode-premium .info-scroll { padding: 95px 25px 60px; text-align: left; color: var(--text); }
@@ -81,21 +100,28 @@ body { background: var(--bg); font-family: var(--font); margin: 0; display: flex
 .mode-premium .content-box { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px); }
 
 /* 🖼️ V385 左右滑動相簿 */
-.product-slider { display: flex; overflow-x: auto; gap: 12px; padding: 5px 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
-.product-img { flex-shrink: 0; width: 240px; height: 145px; border-radius: var(--r-md); object-fit: cover; scroll-snap-align: center; border: 2px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 
-/* 🔘 聯繫按鈕與社群矩陣 */
+.product-slider { display: flex; overflow-x: auto; gap: 12px; padding: 5px 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.product-img { 
+  flex-shrink: 0; width: 240px; height: 145px; border-radius: var(--r-md); 
+  object-fit: cover; scroll-snap-align: center; border: 2px solid #fff; 
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+}
+
+/* 🔘 聯繫與社群按鈕 */
 .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0; }
 .btn-icon { background: rgba(0,0,0,0.05); aspect-ratio: 1; border-radius: var(--r-sm); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--p); text-decoration: none; }
 .mode-premium .btn-icon { background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
 .btn-line-main { background: #06C755; color: #fff; padding: 14px; border-radius: 18px; text-align: center; font-weight: 900; text-decoration: none; display: block; margin-top: 15px; }
 
-/* 🏷️ 頁尾版號與版權 */
+/* 🏷️ 頁尾版權與入口 */
 .footer-area { position: absolute; bottom: 12px; width: 100%; text-align: center; pointer-events: none; }
 .cp-text { font-size: 9px; color: rgba(128,128,128,0.4); letter-spacing: 1px; display: block; }
 .version-tag { font-size: 10px; color: rgba(128,128,128,0.3); cursor: pointer; pointer-events: auto; padding: 5px; }
 
-/* 🎨 控制按鈕 (點選球) */
+/* 🎨 前台按鈕 (點選球與方塊) */
 .dots-row { display: flex; justify-content: center; gap: 10px; margin: 10px 0; }
 .dot, .p-dot { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.1); transition: 0.2s; }
 .active { border-color: #2d3436 !important; transform: scale(1.1); }
+.btn-neo { padding: 6px 12px; border-radius: 8px; border: 1px solid #ddd; background: #fff; font-size: 11px; font-weight: 700; cursor: pointer; margin: 0 4px; }
+.btn-neo.active { background: var(--p); color: #fff; border-color: var(--p); }
