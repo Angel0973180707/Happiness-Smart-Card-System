@@ -1,56 +1,44 @@
-<!-- index.html (V385.2 complete overwrite) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V385.2</title>
-
-  <link rel="manifest" href="./manifest.json?v=3852" />
+  <title>幸福智慧名片 V386</title>
+  <link rel="manifest" href="./manifest.json?v=386" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <link rel="icon" href="./icons/icon-192.png" />
-
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=3852" />
+  <link rel="stylesheet" href="style.css?v=386" />
 </head>
-
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- 控制面板 -->
   <div id="admin-panel">
-
-    <!-- ① 方案選擇 -->
     <div class="plan-row">
       <button class="plan-btn active" id="btn-plan-free" onclick="window.setPlan('free')">
         <div class="plan-title">自由搭配款</div>
         <div class="plan-sub">選色｜選版型｜選紙感</div>
       </button>
-
       <button class="plan-btn" id="btn-plan-premium" onclick="window.setPlan('premium')">
         <div class="plan-title">精品設計款</div>
         <div class="plan-sub">玻璃質感｜金邊按鈕</div>
       </button>
     </div>
 
-    <!-- 自由款顏色 5 -->
-    <div class="dots-row">
-      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free','color-1',this)"></div>
-      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free','color-2',this)"></div>
-      <div class="dot" style="background:#ffa502" onclick="window.setV382('free','color-3',this)"></div>
-      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free','color-4',this)"></div>
-      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free','color-5',this)"></div>
-    </div>
-
-    <!-- 自由款控制 -->
     <div id="free-controls">
+      <div class="dots-row">
+        <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free','color-1',this)"></div>
+        <div class="dot" style="background:#00a8ff" onclick="window.setV382('free','color-2',this)"></div>
+        <div class="dot" style="background:#ffa502" onclick="window.setV382('free','color-3',this)"></div>
+        <div class="dot" style="background:#7d5fff" onclick="window.setV382('free','color-4',this)"></div>
+        <div class="dot" style="background:#2ecc71" onclick="window.setV382('free','color-5',this)"></div>
+      </div>
       <div class="control-row">
         <button class="btn-neo active" onclick="window.setV382Style('arch',this)">優雅正拱</button>
         <button class="btn-neo" onclick="window.setV382Style('flat',this)">簡潔平直</button>
         <button class="btn-neo" onclick="window.setV382Style('spot',this)">晨曦款</button>
       </div>
-
       <div class="control-row">
         <button class="btn-neo active" onclick="window.setV382Paper('paper-1',this)">棉紙</button>
         <button class="btn-neo" onclick="window.setV382Paper('paper-2',this)">顆粒</button>
@@ -58,36 +46,34 @@
       </div>
     </div>
 
-    <!-- 精品款顏色 7 -->
-    <div class="dots-row premium-dots">
-      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium','p1',this)"></div>
-      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium','p2',this)"></div>
-      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium','p3',this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium','p4',this)"></div>
-      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium','p5',this)"></div>
-      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium','p6',this)"></div>
-      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium','p7',this)"></div>
+    <div id="premium-controls" style="display:none">
+      <div class="dots-row">
+        <div class="p-dot active" style="background:#722f37" onclick="window.setV382('premium','p1',this)"></div>
+        <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium','p2',this)"></div>
+        <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium','p3',this)"></div>
+        <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium','p4',this)"></div>
+        <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium','p5',this)"></div>
+        <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium','p6',this)"></div>
+        <div class="p-dot" style="background:#444444" onclick="window.setV382('premium','p7',this)"></div>
+      </div>
     </div>
 
     <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
-  <!-- 名片卡 -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
-
+    
     <div class="banner">
       <div class="dynamic-mask"></div>
     </div>
 
-    <!-- 頭像列 -->
     <div class="avatar-wrap">
       <div class="avatar-circle">
         <img id="u-img" src="" class="avatar" alt="形象照" />
       </div>
 
-      <!-- 精品款：名字在頭像右邊 -->
       <div class="premium-nameblock">
         <div id="u-name-p" class="p-name">載入中...</div>
         <div id="u-unit-p" class="p-unit"></div>
@@ -95,69 +81,66 @@
       </div>
     </div>
 
-    <!-- logo：自由款放頭像下方｜精品款右上角 -->
-    <img id="u-logo" class="logo" alt="Logo" />
+    <img id="u-logo" class="logo" alt="Logo" style="display:none;" />
 
-    <!-- 內容 -->
     <div class="info-scroll">
-      <!-- 自由款：姓名在中間、下排順序 -->
-      <h1 id="u-name" class="name stroke">載入中...</h1>
-      <div id="u-unit" class="unit stroke">同步中...</div>
-      <div id="u-slogan" class="slogan stroke"></div>
+      <h1 id="u-name" class="name stroke-name">載入中...</h1>
+      <div id="u-unit" class="unit">同步中...</div>
+      <div id="u-slogan" class="slogan"></div>
 
-      <!-- 主要按鈕：LINE OA -->
       <button id="btn-lineoa" class="btn-main">
         <i class="fa-brands fa-line"></i><span>LINE 官方帳號</span>
       </button>
 
-      <!-- 小按鈕區 -->
       <div class="btn-grid">
         <button id="btn-line" class="btn-mini"><i class="fa-brands fa-line"></i><span>私訊</span></button>
         <button id="btn-wechat" class="btn-mini"><i class="fa-brands fa-weixin"></i><span>微信ID</span></button>
         <button id="btn-tel" class="btn-mini"><i class="fa-solid fa-phone"></i><span>電話</span></button>
         <button id="btn-email" class="btn-mini"><i class="fa-solid fa-envelope"></i><span>Email</span></button>
-        <button id="btn-map" class="btn-mini btn-wide"><i class="fa-solid fa-location-dot"></i><span>地圖</span></button>
+        <button id="btn-map" class="btn-mini btn-wide"><i class="fa-solid fa-location-dot"></i><span>開啟導航地圖</span></button>
+        <button id="btn-share" class="btn-mini btn-wide" style="background:var(--p); color:#fff; border:none;">
+          <i class="fa-solid fa-share-nodes"></i><span>複製分享名片連結</span>
+        </button>
       </div>
 
-      <div class="section">
+      <div class="section" id="sec-service" style="display:none;">
         <div class="section-title">服務項目</div>
         <div id="u-service" class="section-box"></div>
       </div>
 
-      <div class="section">
+      <div class="section" id="sec-title" style="display:none;">
         <div class="section-title">重要頭銜 / 獎銜</div>
         <div id="u-title" class="section-box"></div>
       </div>
 
-      <!-- 產品圖（最多 5） -->
-      <div class="section">
+      <div class="section" id="sec-gallery" style="display:none;">
         <div class="section-title">作品 / 產品 / 活動</div>
         <div class="gallery">
-          <button class="g-nav left" id="g-prev" aria-label="prev">‹</button>
+          <button class="g-nav left" id="g-prev">‹</button>
           <div class="g-track" id="g-track"></div>
-          <button class="g-nav right" id="g-next" aria-label="next">›</button>
+          <button class="g-nav right" id="g-next">›</button>
         </div>
         <div class="g-dots" id="g-dots"></div>
       </div>
 
-      <!-- Q&A -->
-      <div class="section">
+      <div class="section" id="sec-qa" style="display:none;">
         <div class="section-title">客戶常見提問</div>
         <div id="qa-box" class="qa-box"></div>
       </div>
     </div>
 
-    <div class="version-tag" id="versionTag">V385.2</div>
+    <div class="version-tag" id="versionTag">V386</div>
   </div>
 
-  <footer class="foot">幸福智慧名片 V385.2</footer>
+  <footer class="foot" id="footer-trigger">
+    © 2026 幸福教養概念館 | 天使笑長推薦
+  </footer>
 
-  <!-- 原圖檢視 -->
   <div class="lightbox" id="lightbox">
     <div class="lb-bar">
       <button class="lb-btn" id="lb-close">關閉</button>
-      <div class="lb-title" id="lb-title">圖片</div>
-      <button class="lb-btn" id="lb-open">開新分頁</button>
+      <div class="lb-title" id="lb-title">圖片預覽</div>
+      <button class="lb-btn" id="lb-open">查看原圖</button>
     </div>
     <div class="lb-body">
       <button class="lb-arrow" id="lb-prev">‹</button>
@@ -166,39 +149,34 @@
     </div>
   </div>
 
-  <!-- 隱形後台 -->
   <div class="admin-modal" id="adminModal">
     <div class="admin-card">
       <div class="admin-head">
-        <div class="admin-title">隱形後臺</div>
+        <div class="admin-title">隱形管理後臺</div>
         <button class="admin-x" id="adminClose">×</button>
       </div>
-
+      
       <div class="admin-row">
-        <input id="adminIdInput" class="admin-input" placeholder="輸入序號，例如 TW0001" />
+        <input id="adminIdInput" class="admin-input" placeholder="請輸入序號 (如 TW0001)" />
         <button class="admin-btn" id="adminOpen">開啟</button>
       </div>
 
       <div class="admin-row two">
-        <button class="admin-btn" id="adminCopyUrl">複製網址</button>
-        <button class="admin-btn" id="adminCopyId">複製ID</button>
-      </div>
-
-      <div class="admin-row">
-        <button class="admin-btn" id="adminCopyToken">複製Token（若有）</button>
+        <button class="admin-btn" id="adminCopyUrl" style="background:#2ecc71">一鍵複製分享</button>
+        <button class="admin-btn" id="adminDeliver" style="background:#f1c40f; color:#000;">一鍵複製交貨</button>
       </div>
 
       <div class="admin-divider"></div>
 
       <div class="admin-preset">
-        <div class="preset-title">名片預設卡</div>
-        <button class="admin-btn" id="adminPreset">天使幸福智慧名片（TW0001）</button>
+        <div class="preset-title" style="font-size:12px; margin-bottom:5px; opacity:0.7;">常用操作</div>
+        <button class="admin-btn" id="adminBackFront" style="background:#666;">返回前臺名片</button>
       </div>
 
-      <div class="admin-note" id="adminNote"></div>
+      <div class="admin-note" id="adminNote" style="color:#e74c3c; margin-top:10px; font-size:12px;"></div>
     </div>
   </div>
 
-  <script src="app.js?v=3852"></script>
+  <script src="app.js?v=386"></script>
 </body>
 </html>
