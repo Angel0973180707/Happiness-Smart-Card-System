@@ -1,14 +1,14 @@
 
-/* sw.js - V385.5_fix (Complete Overwrite) */
+/* sw.js - V385.6_fix (Complete Overwrite) */
 "use strict";
 
-const CACHE_NAME = "angel-card-v3855-fix";
+const CACHE_NAME = "angel-card-v3856-fix";
 const ASSETS = [
   "./",
-  "./index.html?v=3855",
-  "./style.css?v=3855",
-  "./app.js?v=3855",
-  "./manifest.json?v=3855",
+  "./index.html?v=3856",
+  "./style.css?v=3856",
+  "./app.js?v=3856",
+  "./manifest.json?v=3856",
   "./og-card.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",

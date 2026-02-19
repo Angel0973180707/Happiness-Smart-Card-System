@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>天使幸福智慧名片 V385.5_fix</title>
+  <title>天使幸福智慧名片 V385.6_fix</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=3855" />
+  <link rel="manifest" href="./manifest.json?v=3856" />
   <meta name="theme-color" content="#ee5253" />
 
   <!-- OG -->
@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="./style.css?v=3855" />
+  <link rel="stylesheet" href="./style.css?v=3856" />
 </head>
 <body class="theme-warm">
   <header class="topbar">
@@ -66,26 +66,28 @@
             <div class="stepBd grid2">
               <div class="panel">
                 <div class="panelTitle">自由搭配｜顏色</div>
-                <div class="dots" id="freeColorDots">
-                  <button class="dot" data-free-color="warm" aria-label="暖粉" type="button"></button>
-                  <button class="dot" data-free-color="aurora" aria-label="極光藍" type="button"></button>
-                  <button class="dot" data-free-color="orange" aria-label="橘子" type="button"></button>
-                  <button class="dot" data-free-color="mint" aria-label="薄荷" type="button"></button>
-                  <button class="dot" data-free-color="grape" aria-label="葡萄" type="button"></button>
+                
+                <div class="dots only-free" id="freeColorDots">
+                  <button class="dot" data-free-color="pink" aria-label="粉（紅）" type="button"></button>
+                  <button class="dot" data-free-color="blue" aria-label="藍" type="button"></button>
+                  <button class="dot" data-free-color="orange" aria-label="橘" type="button"></button>
+                  <button class="dot" data-free-color="purple" aria-label="紫" type="button"></button>
+                  <button class="dot" data-free-color="green" aria-label="綠" type="button"></button>
                 </div>
                 <div class="panelSub">（點圓點可切換）</div>
               </div>
 
               <div class="panel">
                 <div class="panelTitle">精品設計｜底色</div>
-                <div class="swatches" id="premiumSwatches">
-                  <button class="sw" data-premium-bg="champagne" type="button">香檳</button>
-                  <button class="sw" data-premium-bg="pearl" type="button">珍珠灰</button>
-                  <button class="sw" data-premium-bg="night" type="button">夜幕</button>
-                  <button class="sw" data-premium-bg="sage" type="button">鼠尾草</button>
-                  <button class="sw" data-premium-bg="rose" type="button">玫瑰</button>
-                  <button class="sw" data-premium-bg="ocean" type="button">海霧</button>
-                  <button class="sw" data-premium-bg="sand" type="button">沙金</button>
+                
+                <div class="swatches only-premium" id="premiumSwatches">
+                  <button class="sw" data-premium-color="p1" type="button">p1 胭脂</button>
+                  <button class="sw" data-premium-color="p2" type="button">p2 酒紅</button>
+                  <button class="sw" data-premium-color="p3" type="button">p3 深藍</button>
+                  <button class="sw" data-premium-color="p4" type="button">p4 霧紫</button>
+                  <button class="sw" data-premium-color="p5" type="button">p5 藍灰</button>
+                  <button class="sw" data-premium-color="p6" type="button">p6 金箔</button>
+                  <button class="sw" data-premium-color="p7" type="button">p7 褐碳</button>
                 </div>
                 <div class="panelSub">（點按鈕可切換）</div>
               </div>
@@ -93,31 +95,20 @@
               <div class="panel">
                 <div class="panelTitle">版型</div>
                 <div class="seg small">
-                  <button class="segBtn" data-layout="classic" type="button">經典</button>
-                  <button class="segBtn" data-layout="compact" type="button">精簡</button>
-                  <button class="segBtn" data-layout="air" type="button">留白</button>
+                  <button class="segBtn" data-layout="arch" type="button">正拱</button>
+                  <button class="segBtn" data-layout="flat" type="button">平直</button>
+                  <button class="segBtn" data-layout="dawn" type="button">晨曦</button>
                 </div>
               </div>
 
               <div class="panel">
-                <div class="panelTitle">紙感</div>
-                <div class="seg small">
-                  <button class="segBtn" data-paper="smooth" type="button">滑面</button>
-                  <button class="segBtn" data-paper="linen" type="button">亞麻</button>
-                  <button class="segBtn" data-paper="grain" type="button">微顆粒</button>
+                <div class="panelTitle only-free">紙感</div>
+                <div class="seg small only-free" role="group" aria-label="紙感選擇">
+                  <button class="segBtn" data-paper="cotton_matte" type="button">霧面棉紙</button>
+                  <button class="segBtn" data-paper="fine_grain" type="button">細顆粒紙</button>
+                  <button class="segBtn" data-paper="linen" type="button">亞麻紋</button>
                 </div>
-              </div>
-            </div>
-          </li>
-
-          <li>
-            <div class="stepHd">第三步｜預約訂製 / 直接訂製</div>
-            <div class="stepBd">
-              <div class="ctaRow">
-                <a class="btn wide" id="btnLine" href="#" rel="noopener" target="_blank">LINE 官方帳號｜預約溝通（第一次一定要加）</a>
-                <a class="btn ghost wide" id="btnForm" href="#" rel="noopener" target="_blank">直接訂製｜填名片資料表單</a>
-              </div>
-              <div class="panelSub">（填表鈕放在官網下面：已照做）</div>
+                <div class="panelSub">（填表鈕放在官網下面：已照做）</div>
             </div>
           </li>
         </ol>
@@ -161,7 +152,7 @@
             </div>
 
             <div class="cardFoot">
-              <div class="ver" id="ver">V385.5_fix</div>
+              <div class="ver" id="ver">V385.6_fix</div>
               <div class="miniActions">
                 <button class="miniBtn" id="btnCopyId" type="button">複製ID</button>
                 <button class="miniBtn" id="btnCopyToken" type="button">複製Token</button>
@@ -209,6 +200,82 @@
     </div>
   </div>
 
-  <script src="./app.js?v=3855"></script>
+  <script src="./app.js?v=3856"></script>
+
+  <!-- Built-in Form Modal -->
+  <div class="modal" id="formModal" hidden>
+    <div class="modalBackdrop" data-close="form"></div>
+    <div class="modalSheet" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+      <div class="modalHd">
+        <div class="modalTitle" id="formTitle">填名片資料（系統內建）</div>
+        <button class="iconBtn" type="button" data-close="form" aria-label="關閉">✕</button>
+      </div>
+
+      <form id="cardForm" class="bigForm" autocomplete="on">
+        <div class="formGrid">
+          <label class="f">
+            <div class="fLabel">姓名 / 暱稱</div>
+            <input class="fInput" name="name" placeholder="例如：小天使" required />
+          </label>
+          <label class="f">
+            <div class="fLabel">一句定位（頭銜）</div>
+            <input class="fInput" name="title" placeholder="例如：幸福教養陪伴者" />
+          </label>
+          <label class="f fFull">
+            <div class="fLabel">引言（想讓對方感受到）</div>
+            <textarea class="fInput fTextarea" name="tagline" rows="2" placeholder="例如：一點，就看見彼此的價值"></textarea>
+          </label>
+
+          <label class="f">
+            <div class="fLabel">電話</div>
+            <input class="fInput" name="phone" inputmode="tel" placeholder="09xx-xxx-xxx" />
+          </label>
+          <label class="f">
+            <div class="fLabel">Email</div>
+            <input class="fInput" name="email" inputmode="email" placeholder="name@example.com" />
+          </label>
+
+          <label class="f">
+            <div class="fLabel">LINE（連結或ID）</div>
+            <input class="fInput" name="line" placeholder="https://line.me/R/ti/p/@xxxx 或 @xxxx" />
+          </label>
+          <label class="f">
+            <div class="fLabel">微信 ID</div>
+            <input class="fInput" name="wechat" placeholder="WeChat ID" />
+          </label>
+
+          <label class="f fFull">
+            <div class="fLabel">地圖連結</div>
+            <input class="fInput" name="map_url" placeholder="Google Maps / 高德地圖 / 百度地圖 連結" />
+          </label>
+
+          <label class="f fFull">
+            <div class="fLabel">頭像圖片 URL</div>
+            <input class="fInput" name="avatar" placeholder="https://...（可貼 Google Drive 圖片分享連結）" />
+          </label>
+
+          <label class="f fFull">
+            <div class="fLabel">作品圖（多張）</div>
+            <textarea class="fInput fTextarea" name="gallery" rows="4" placeholder="一行一張 URL（或用逗號/| 分隔）"></textarea>
+          </label>
+
+          <!-- system fields -->
+          <input type="hidden" name="plan" />
+          <input type="hidden" name="free_color" />
+          <input type="hidden" name="layout" />
+          <input type="hidden" name="paper" />
+          <input type="hidden" name="premium_color" />
+        </div>
+
+        <div class="modalFt">
+          <button class="btn ghost" type="button" data-close="form">取消</button>
+          <button class="btn" id="btnSubmitForm" type="submit">送出（寫入試算表）</button>
+        </div>
+
+        <div class="formHint" id="formHint" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
 </body>
 </html>

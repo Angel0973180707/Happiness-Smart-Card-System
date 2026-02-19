@@ -1,33 +1,28 @@
-
-/* Angel Card PWA - V385.5_fix (Complete Overwrite)
- * Fix goal: JS zero errors -> all buttons clickable.
- * Features:
- * - Plan / color / layout / paper selection (saved to localStorage)
- * - Card preview (default / loaded via URL token or id)
- * - Contacts: LINE / WeChat / Tel / Email / Map
- * - Gallery with prev/next + lightbox
- * - Hidden Admin: click version text 3 times + password, then admin_list from GAS (if enabled)
- * - Copy share URL / copy id / copy token
- * - Service Worker register
+/* Angel Card PWA - V385.6_fix (Complete Overwrite)
+ * Goals:
+ * 1) Fix "buttons not working" by keeping JS zero-error + event delegation.
+ * 2) Plan split:
+ *    - Free: color dots (pink/blue/orange/purple/green) + layout (arch/flat/dawn) + paper (cotton_matte/fine_grain/linen)
+ *    - Premium: premium_color p1~p7 only (no layout/paper interaction; hidden in UI)
+ * 3) Load card data from GAS (including images) with robust field mapping + image URL normalization.
+ * 4) Built-in big form (no jump to Google Form). Submit to GAS with graceful fallback.
  */
 "use strict";
 
 const APP = {
-  VERSION: "385.5_fix",
+  VERSION: "385.6_fix",
   STORAGE_KEY: "angel_card_v385",
   GAS_URL: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
-  // ⚠️ If you already had a password in your old app.js, put it here.
-  // Keeping a default (change anytime):
   ADMIN_PASS: "angel385",
   ADMIN_LIST_LIMIT: 50,
 };
 
 const state = {
-  plan: "free",               // free | premium
-  freeColor: "warm",          // warm | aurora | orange | mint | grape
-  premiumBg: "champagne",     // 7 options
-  layout: "classic",          // classic | compact | air
-  paper: "smooth",            // smooth | linen | grain
+  plan: "free",                  // free | premium
+  freeColor: "pink",             // pink | blue | orange | purple | green
+  premiumColor: "p1",            // p1..p7
+  layout: "arch",                // arch | flat | dawn
+  paper: "cotton_matte",         // cotton_matte | fine_grain | linen
   card: null,
   gallery: [],
   gIndex: 0,
@@ -41,88 +36,17 @@ function $all(sel, root=document){ return Array.from(root.querySelectorAll(sel))
 
 function logDebug(msg){
   state.debug.push(String(msg));
-  const box = $("#debugBox");
   const pre = $("#debugText");
-  if (!box || !pre) return;
-  box.hidden = state.debug.length === 0;
-  pre.textContent = state.debug.slice(-12).join("\n");
-}
-
-function safeJsonParse(str, fallback=null){
-  try{ return JSON.parse(str); }catch(_){ return fallback; }
-}
-
-function loadPrefs(){
-  const raw = localStorage.getItem(APP.STORAGE_KEY);
-  const prefs = safeJsonParse(raw, {});
-  if (!prefs) return;
-  state.plan = prefs.plan || state.plan;
-  state.freeColor = prefs.freeColor || state.freeColor;
-  state.premiumBg = prefs.premiumBg || state.premiumBg;
-  state.layout = prefs.layout || state.layout;
-  state.paper = prefs.paper || state.paper;
-}
-
-function savePrefs(){
-  const prefs = {
-    plan: state.plan,
-    freeColor: state.freeColor,
-    premiumBg: state.premiumBg,
-    layout: state.layout,
-    paper: state.paper,
-  };
-  localStorage.setItem(APP.STORAGE_KEY, JSON.stringify(prefs));
-}
-
-function getUrlParams(){
-  const u = new URL(location.href);
-  return {
-    token: u.searchParams.get("token") || u.searchParams.get("t") || "",
-    id: u.searchParams.get("id") || "",
-  };
-}
-
-function buildShareUrl(){
-  const u = new URL(location.href);
-  if (state.lastToken) u.searchParams.set("token", state.lastToken);
-  if (state.lastId) u.searchParams.set("id", state.lastId);
-  // keep cache busting out of share url
-  u.searchParams.delete("v");
-  return u.toString();
-}
-
-async function copyText(text){
-  try{
-    await navigator.clipboard.writeText(text);
-    toast("已複製");
-    return true;
-  }catch(_){
-    // fallback
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position="fixed";
-    ta.style.left="-9999px";
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    try{
-      document.execCommand("copy");
-      toast("已複製");
-      return true;
-    }catch(e){
-      toast("複製失敗");
-      logDebug("copy fail: "+e);
-      return false;
-    }finally{
-      ta.remove();
-    }
-  }
+  const box = $("#debugBox");
+  if (!pre || !box) return;
+  pre.textContent = state.debug.slice(-30).join("\n");
+  box.hidden = false;
 }
 
 let toastTimer = null;
 function toast(msg){
   let el = $("#toast");
-  if(!el){
+  if (!el){
     el = document.createElement("div");
     el.id="toast";
     el.style.position="fixed";
@@ -146,142 +70,188 @@ function toast(msg){
   toastTimer = setTimeout(()=>{ el.style.display="none"; }, 1200);
 }
 
+function savePrefs(){
+  const v = {
+    plan: state.plan,
+    freeColor: state.freeColor,
+    premiumColor: state.premiumColor,
+    layout: state.layout,
+    paper: state.paper,
+  };
+  localStorage.setItem(APP.STORAGE_KEY, JSON.stringify(v));
+}
+
+function loadPrefs(){
+  try{
+    const raw = localStorage.getItem(APP.STORAGE_KEY);
+    if (!raw) return;
+    const v = JSON.parse(raw);
+    if (v.plan) state.plan = v.plan;
+    if (v.freeColor) state.freeColor = v.freeColor;
+    if (v.premiumColor) state.premiumColor = v.premiumColor;
+    if (v.layout) state.layout = v.layout;
+    if (v.paper) state.paper = v.paper;
+  }catch(e){}
+}
+
 function applyTheme(){
-  // primary color is fixed for now; plan affects background flavor.
   document.body.dataset.plan = state.plan;
 
-  // mark selected buttons
   $all(".segBtn[data-plan]").forEach(b=> b.classList.toggle("is-on", b.dataset.plan===state.plan));
   $all(".dot[data-free-color]").forEach(b=> b.classList.toggle("is-on", b.dataset.freeColor===state.freeColor));
-  $all(".sw[data-premium-bg]").forEach(b=> b.classList.toggle("is-on", b.dataset.premiumBg===state.premiumBg));
   $all(".segBtn[data-layout]").forEach(b=> b.classList.toggle("is-on", b.dataset.layout===state.layout));
   $all(".segBtn[data-paper]").forEach(b=> b.classList.toggle("is-on", b.dataset.paper===state.paper));
+  $all(".sw[data-premium-color]").forEach(b=> b.classList.toggle("is-on", b.dataset.premiumColor===state.premiumColor));
 
-  // subtle body background tweaks
-  const root = document.documentElement;
-  const map = {
-    warm: ["#ee5253","#d63031"],
-    aurora: ["#00a8ff","#0097e6"],
-    orange: ["#f0932b","#e17055"],
-    mint: ["#00b894","#00a884"],
-    grape: ["#6c5ce7","#4834d4"],
-  };
-  const pick = map[state.freeColor] || map.warm;
-  root.style.setProperty("--p", pick[0]);
-  root.style.setProperty("--s", pick[1]);
+  document.body.dataset.freeColor = state.freeColor;
+  document.body.dataset.premiumColor = state.premiumColor;
+  document.body.dataset.layout = state.layout;
+  document.body.dataset.paper = state.paper;
 }
 
-function setDefaultCard(){
-  // Default is your "小天使" card; can be overridden by API/card.json later.
-  const placeholder = {
-    id: "TW0000",
-    token: "",
-    status: "active",
-    name: "小天使",
-    title: "天使幸福智慧名片",
-    tagline: "一點，就看見彼此的價值",
-    avatar: "./icons/icon-512.png",
-    line_url: "https://line.me/R/ti/p/@",   // replace with your OA if needed
-    form_url: "#",                          // replace with your Google Form
-    wechat: "",
-    tel: "",
-    email: "",
-    map_url: "",
-    gallery: ["./og-card.png"],
-  };
-  renderCard(placeholder);
+function setPlan(plan){
+  state.plan = (plan==="premium") ? "premium" : "free";
+  savePrefs(); applyTheme();
+}
+function setFreeColor(c){ state.freeColor=c; savePrefs(); applyTheme(); }
+function setPremiumColor(c){ state.premiumColor=c; savePrefs(); applyTheme(); }
+function setLayout(l){ state.layout=l; savePrefs(); applyTheme(); }
+function setPaper(p){ state.paper=p; savePrefs(); applyTheme(); }
+
+function openUrl(url){
+  try{ window.open(url, "_blank", "noopener"); }catch(e){ location.href = url; }
 }
 
-function renderCard(card){
-  state.card = card || state.card;
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    return true;
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand("copy"); }catch(_){}
+    ta.remove();
+    return true;
+  }
+}
 
-  const id = (card && card.id) ? String(card.id) : "TW----";
-  const token = (card && card.token) ? String(card.token) : "";
+function getUrlParams(){
+  const u = new URL(location.href);
+  return { token: u.searchParams.get("token") || "", id: u.searchParams.get("id") || "" };
+}
+
+/* -------- Image URL normalization -------- */
+function normalizeDriveUrl(u){
+  const url = String(u||"").trim();
+  if (!url) return "";
+  const m1 = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (m1) return "https://drive.google.com/uc?export=view&id=" + m1[1];
+  const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+  if (m2) return "https://drive.google.com/uc?export=view&id=" + m2[1];
+  const m3 = url.match(/drive\.google\.com\/uc\?id=([^&]+)/);
+  if (m3) return "https://drive.google.com/uc?export=view&id=" + m3[1];
+  return url;
+}
+
+function parseGallery(val){
+  if (!val) return [];
+  if (Array.isArray(val)) return val.map(String).filter(Boolean);
+  const s = String(val).trim();
+  if (!s) return [];
+  return s.split(/\n|\||,|；|;/).map(x=>x.trim()).filter(Boolean);
+}
+
+function pickFirst(obj, keys){
+  for (const k of keys){
+    if (obj && obj[k] != null && String(obj[k]).trim() !== "") return obj[k];
+  }
+  return "";
+}
+
+function normalizeCard(raw){
+  const c = raw || {};
+  const card = {
+    id: pickFirst(c, ["id","ID","Id"]),
+    token: pickFirst(c, ["token","Token"]),
+    status: pickFirst(c, ["status","Status"]),
+    name: pickFirst(c, ["name","姓名","暱稱"]),
+    title: pickFirst(c, ["title","頭銜","定位","position"]),
+    tagline: pickFirst(c, ["tagline","slogan","引言","一句話"]),
+    phone: pickFirst(c, ["phone","tel","電話"]),
+    email: pickFirst(c, ["email","Email","信箱"]),
+    line: pickFirst(c, ["line","line_id","LINE","lineUrl","line_url"]),
+    wechat: pickFirst(c, ["wechat","wechat_id","WeChat","微信"]),
+    map_url: pickFirst(c, ["map_url","map","地圖","mapUrl"]),
+    avatar: pickFirst(c, ["avatar","avatar_url","photo","頭像","image"]),
+    gallery: [],
+  };
+
+  const g1 = pickFirst(c, ["gallery","gallery_urls","images","作品圖"]);
+  let g = parseGallery(g1);
+  for (let i=1;i<=12;i++){
+    const v = pickFirst(c, [`gallery_${i}`, `gallery${i}`, `img${i}`, `image${i}`]);
+    if (v) g.push(String(v));
+  }
+
+  card.avatar = normalizeDriveUrl(card.avatar) || "./icons/icon-512.png";
+  card.gallery = Array.from(new Set(g.map(normalizeDriveUrl))).filter(Boolean);
+  return card;
+}
+
+/* -------- Render Card -------- */
+function renderCard(raw){
+  const card = normalizeCard(raw);
+  state.card = card;
+
+  const id = card.id ? String(card.id) : "TW----";
+  const token = card.token ? String(card.token) : "";
   state.lastId = id;
   state.lastToken = token;
 
-  $("#idBadge").textContent = id || "TW----";
-  $("#name").textContent = card?.name || "小天使";
-  $("#title").textContent = card?.title || "天使幸福智慧名片";
-  $("#tagline").textContent = card?.tagline || "一點，就看見彼此的價值";
+  const idBadge = $("#idBadge");
+  if (idBadge) idBadge.textContent = id;
 
-  const avatar = card?.avatar || "./icons/icon-512.png";
-  $("#avatar").src = avatar;
+  $("#name").textContent = card.name || "小天使";
+  $("#title").textContent = card.title || "天使幸福智慧名片";
+  $("#tagline").textContent = card.tagline || "一點，就看見彼此的價值";
 
-  // links
-  const lineUrl = card?.line_url || "https://line.me/R/ti/p/@";
-  const formUrl = card?.form_url || "#";
-  const btnLine = $("#btnLine");
-  const btnForm = $("#btnForm");
-  if (btnLine) btnLine.href = lineUrl;
-  if (btnForm) btnForm.href = formUrl;
+  const avatarEl = $("#avatar");
+  if (avatarEl) avatarEl.src = card.avatar || "./icons/icon-512.png";
 
   // gallery
-  const g = Array.isArray(card?.gallery) && card.gallery.length ? card.gallery : ["./og-card.png"];
-  state.gallery = g.map(String);
+  state.gallery = (card.gallery && card.gallery.length) ? card.gallery : ["./og-card.png"];
   state.gIndex = 0;
   renderGallery();
+
+  // version text in card foot (for admin tap)
+  const ver = $("#ver");
+  if (ver) ver.textContent = "V" + APP.VERSION;
 }
 
 function renderGallery(){
-  const src = state.gallery[state.gIndex] || "./og-card.png";
-  const gImg = $("#gImg");
-  if (gImg) gImg.src = src;
-}
-
-function nextGallery(delta){
-  if (!state.gallery.length) return;
-  state.gIndex = (state.gIndex + delta + state.gallery.length) % state.gallery.length;
-  renderGallery();
+  const img = $("#gImg");
+  if (!img) return;
+  const total = state.gallery.length;
+  const i = Math.max(0, Math.min(state.gIndex, total-1));
+  state.gIndex = i;
+  img.src = state.gallery[i];
 }
 
 function openLightbox(){
   const lb = $("#lightbox");
-  const img = $("#lbImg");
-  if (!lb || !img) return;
-  img.src = state.gallery[state.gIndex] || $("#gImg")?.src || "";
+  const lbImg = $("#lbImg");
+  if (!lb || !lbImg) return;
+  lbImg.src = state.gallery[state.gIndex] || "./og-card.png";
   lb.classList.add("is-on");
   lb.setAttribute("aria-hidden","false");
 }
-
 function closeLightbox(){
   const lb = $("#lightbox");
   if (!lb) return;
   lb.classList.remove("is-on");
   lb.setAttribute("aria-hidden","true");
-}
-
-function openUrl(url){
-  if (!url) return;
-  window.open(url, "_blank", "noopener");
-}
-
-function contactAction(action){
-  const c = state.card || {};
-  if (action==="tel"){
-    if (!c.tel) return toast("未設定電話");
-    location.href = "tel:" + String(c.tel).replace(/\s+/g,"");
-    return;
-  }
-  if (action==="email"){
-    if (!c.email) return toast("未設定 Email");
-    location.href = "mailto:" + String(c.email);
-    return;
-  }
-  if (action==="wechat"){
-    // WeChat doesn't support universal deeplink well; copy it.
-    const val = c.wechat || "";
-    if (!val) return toast("未設定微信");
-    copyText(String(val));
-    toast("已複製微信ID");
-    return;
-  }
-  if (action==="map"){
-    const url = c.map_url || "";
-    if (!url) return toast("未設定地圖");
-    openUrl(String(url));
-    return;
-  }
 }
 
 async function fetchJson(url){
@@ -302,9 +272,8 @@ async function loadCardFromApi(){
   try{
     const data = await fetchJson(u.toString());
     if (!data || data.ok===false) throw new Error(data?.error || "API error");
-    // accept either {card:{...}} or direct row
-    const card = data.card || data.row || data;
-    renderCard(card);
+    const raw = data.card || data.row || data.data || data;
+    renderCard(raw);
     return true;
   }catch(e){
     logDebug("API load fail: " + e);
@@ -313,39 +282,202 @@ async function loadCardFromApi(){
   }
 }
 
-function setPlan(plan){
-  state.plan = plan;
-  savePrefs();
-  applyTheme();
+/* -------- Built-in Form -------- */
+function openForm(){
+  const modal = $("#formModal");
+  const form = $("#cardForm");
+  if (!modal || !form) return;
+
+  form.plan.value = state.plan;
+  form.free_color.value = state.freeColor;
+  form.layout.value = state.layout;
+  form.paper.value = state.paper;
+  form.premium_color.value = state.premiumColor;
+
+  const c = state.card || {};
+  form.name.value = c.name || "";
+  form.title.value = c.title || "";
+  form.tagline.value = c.tagline || "";
+  form.phone.value = c.phone || "";
+  form.email.value = c.email || "";
+  form.line.value = c.line || "";
+  form.wechat.value = c.wechat || "";
+  form.map_url.value = c.map_url || "";
+  form.avatar.value = (c.avatar && !c.avatar.includes("./icons/")) ? c.avatar : "";
+  form.gallery.value = (c.gallery && c.gallery.length) ? c.gallery.join("\n") : "";
+
+  modal.hidden = false;
 }
 
-function setFreeColor(c){
-  state.freeColor = c;
-  savePrefs();
-  applyTheme();
+function closeForm(){
+  const modal = $("#formModal");
+  if (modal) modal.hidden = true;
 }
 
-function setPremiumBg(bg){
-  state.premiumBg = bg;
-  savePrefs();
-  applyTheme();
+function setFormHint(msg){
+  const el = $("#formHint");
+  if (!el) return;
+  el.textContent = msg || "";
 }
 
-function setLayout(layout){
-  state.layout = layout;
-  savePrefs();
-  applyTheme();
+async function submitToGAS(payload){
+  // 1) Try POST JSON (requires GAS doPost)
+  try{
+    const r = await fetch(APP.GAS_URL + "?action=submit", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(payload),
+    });
+    const j = await r.json().catch(()=>null);
+    if (r.ok && j && j.ok!==false) return j;
+  }catch(e){
+    logDebug("POST submit fail: " + e);
+  }
+
+  // 2) Fallback GET query
+  try{
+    const u = new URL(APP.GAS_URL);
+    u.searchParams.set("action","submit");
+    Object.entries(payload).forEach(([k,v])=>{
+      if (v==null) return;
+      const s = String(v).trim();
+      if (!s) return;
+      u.searchParams.set(k, s);
+    });
+    const j = await fetchJson(u.toString());
+    if (j && j.ok!==false) return j;
+  }catch(e){
+    logDebug("GET submit fail: " + e);
+  }
+
+  throw new Error("submit_failed");
 }
 
-function setPaper(paper){
-  state.paper = paper;
-  savePrefs();
-  applyTheme();
+/* -------- Contact Actions -------- */
+function handleContact(action){
+  const c = state.card || {};
+  const phone = c.phone || "";
+  const email = c.email || "";
+  const line = c.line || c.line_url || "";
+  const wechat = c.wechat || "";
+  const map = c.map_url || "";
+
+  if (action==="line"){
+    if (!line) return toast("未設定 LINE");
+    if (/^https?:\/\//i.test(line)) openUrl(line);
+    else openUrl("https://line.me/R/ti/p/" + encodeURIComponent(line.replace(/^@/,"@")));
+    return;
+  }
+  if (action==="wechat"){
+    if (!wechat) return toast("未設定微信");
+    copyText(wechat).then(()=>toast("已複製微信ID"));
+    return;
+  }
+  if (action==="tel"){
+    if (!phone) return toast("未設定電話");
+    location.href = "tel:" + phone.replace(/\s/g,"");
+    return;
+  }
+  if (action==="email"){
+    if (!email) return toast("未設定 Email");
+    location.href = "mailto:" + email;
+    return;
+  }
+  if (action==="map"){
+    if (!map) return toast("未設定地圖");
+    openUrl(map);
+    return;
+  }
 }
 
+/* -------- Hidden Admin -------- */
+let adminTap = 0;
+let adminTapTimer = null;
+
+function onVersionTap(){
+  adminTap += 1;
+  clearTimeout(adminTapTimer);
+  adminTapTimer = setTimeout(()=>{ adminTap=0; }, 900);
+  if (adminTap >= 3){
+    adminTap = 0;
+    openAdmin();
+  }
+}
+
+async function openAdmin(){
+  const pass = prompt("後台密碼：");
+  if (!pass) return;
+  if (String(pass) !== String(APP.ADMIN_PASS)){
+    toast("密碼錯誤");
+    return;
+  }
+  toast("載入後台…");
+  const u = new URL(APP.GAS_URL);
+  u.searchParams.set("action","admin_list");
+  u.searchParams.set("key", APP.ADMIN_PASS);
+  u.searchParams.set("limit", String(APP.ADMIN_LIST_LIMIT));
+  try{
+    const data = await fetchJson(u.toString());
+    const list = data.rows || data.list || [];
+    showAdminList(list);
+  }catch(e){
+    logDebug("admin fail: "+e);
+    toast("後台載入失敗");
+  }
+}
+
+function showAdminList(list){
+  const panel = $("#admin");
+  const box = $("#adminList");
+  if (!panel || !box) return toast("後台區塊不存在");
+  box.innerHTML = "";
+  if (!Array.isArray(list) || list.length===0){
+    box.innerHTML = `<div class="empty">沒有資料</div>`;
+  }else{
+    const frag = document.createDocumentFragment();
+    list.forEach((row)=>{
+      const c = normalizeCard(row);
+      const div = document.createElement("div");
+      div.className = "adminItem";
+      div.innerHTML = `
+        <div class="adminMeta">
+          <div class="adminId">${c.id || ""}</div>
+          <div class="adminName">${c.name || ""}</div>
+        </div>
+        <div class="adminBtns">
+          <button class="btn ghost mini" data-admin="copy_share" data-id="${encodeURIComponent(c.id||"")}" data-token="${encodeURIComponent(c.token||"")}">複製交貨連結</button>
+          <button class="btn ghost mini" data-admin="open" data-id="${encodeURIComponent(c.id||"")}" data-token="${encodeURIComponent(c.token||"")}">開啟</button>
+        </div>
+      `;
+      frag.appendChild(div);
+    });
+    box.appendChild(frag);
+  }
+  panel.classList.add("is-on");
+  panel.setAttribute("aria-hidden","false");
+}
+
+function closeAdmin(){
+  const panel = $("#admin");
+  if (panel){
+    panel.classList.remove("is-on");
+    panel.setAttribute("aria-hidden","true");
+  }
+}
+
+/* -------- Share URL -------- */
+function makeShareUrl(){
+  const base = location.origin + location.pathname;
+  const params = new URLSearchParams();
+  if (state.lastToken) params.set("token", state.lastToken);
+  else if (state.lastId) params.set("id", state.lastId);
+  const q = params.toString();
+  return q ? (base + "?" + q) : base;
+}
+
+/* -------- Wire Events -------- */
 function wireEvents(){
-  // Delegation: one listener handles most clicks, preventing "buttons dead" due to binding timing.
-  document.addEventListener("click", (ev) => {
+  document.addEventListener("click", (ev)=>{
     const t = ev.target;
 
     // plan
@@ -362,216 +494,185 @@ function wireEvents(){
       return;
     }
 
-    // premium bg
-    const sw = t.closest?.(".sw[data-premium-bg]");
+    // premium color buttons
+    const sw = t.closest?.(".sw[data-premium-color]");
     if (sw){
-      setPremiumBg(sw.dataset.premiumBg);
+      setPremiumColor(sw.dataset.premiumColor);
       return;
     }
 
-    // layout/paper
-    const layoutBtn = t.closest?.(".segBtn[data-layout]");
-    if (layoutBtn){
-      setLayout(layoutBtn.dataset.layout);
-      return;
-    }
-    const paperBtn = t.closest?.(".segBtn[data-paper]");
-    if (paperBtn){
-      setPaper(paperBtn.dataset.paper);
+    // layout
+    const lay = t.closest?.(".segBtn[data-layout]");
+    if (lay){
+      setLayout(lay.dataset.layout);
       return;
     }
 
-    // contact icons
-    const icon = t.closest?.(".iconBtn[data-action]");
-    if (icon){
-      contactAction(icon.dataset.action);
+    // paper
+    const pap = t.closest?.(".segBtn[data-paper]");
+    if (pap){
+      setPaper(pap.dataset.paper);
+      return;
+    }
+
+    // top buttons
+    if (t.id==="btnCopyShare"){
+      copyText(makeShareUrl()).then(()=>toast("已複製名片網址"));
+      return;
+    }
+    if (t.id==="btnOpenCard"){
+      openUrl(makeShareUrl());
+      return;
+    }
+
+    // form open/close
+    if (t.id==="btnForm"){
+      openForm();
+      return;
+    }
+    if (t.dataset.close==="form"){
+      closeForm();
+      return;
+    }
+
+    // lightbox
+    if (t.id==="gImg"){
+      openLightbox();
+      return;
+    }
+    if (t.dataset.lb==="close"){
+      closeLightbox();
       return;
     }
 
     // gallery nav
-    const gNav = t.closest?.(".gNav[data-g]");
-    if (gNav){
-      nextGallery(gNav.dataset.g === "next" ? 1 : -1);
+    const gnav = t.closest?.("[data-g]");
+    if (gnav){
+      const dir = gnav.dataset.g;
+      if (dir==="prev"){
+        state.gIndex = (state.gIndex - 1 + state.gallery.length) % state.gallery.length;
+      }else if (dir==="next"){
+        state.gIndex = (state.gIndex + 1) % state.gallery.length;
+      }
+      renderGallery();
       return;
     }
 
-    // gallery open
-    const gImg = t.closest?.("#gImg");
-    if (gImg){
-      openLightbox();
+    // contacts
+    const act = t.closest?.("[data-action]");
+    if (act){
+      handleContact(act.dataset.action);
       return;
     }
 
-    // lightbox close
-    const lbClose = t.closest?.('[data-lb="close"]');
-    if (lbClose){
-      closeLightbox();
+    // version triple tap
+    if (t.id==="ver"){
+      onVersionTap();
       return;
     }
 
     // admin open/close
-    const adminClose = t.closest?.('[data-admin="close"]');
-    if (adminClose){
+    if (t.dataset.admin==="close"){
       closeAdmin();
+      return;
+    }
+    if (t.id==="btnAdminList"){
+      openAdmin();
+      return;
+    }
+    if (t.id==="btnAdminCopyShare"){
+      copyText(makeShareUrl()).then(()=>toast("已複製目前交貨連結"));
+      return;
+    }
+    const adminBtn = t.closest?.("button[data-admin]");
+    if (adminBtn){
+      const action = adminBtn.dataset.admin;
+      const id = decodeURIComponent(adminBtn.dataset.id||"");
+      const token = decodeURIComponent(adminBtn.dataset.token||"");
+      if (action==="copy_share"){
+        const base = location.origin + location.pathname;
+        const u = new URL(base);
+        if (token) u.searchParams.set("token", token);
+        else if (id) u.searchParams.set("id", id);
+        copyText(u.toString()).then(()=>toast("已複製交貨連結"));
+      }else if (action==="open"){
+        const base = location.origin + location.pathname;
+        const u = new URL(base);
+        if (token) u.searchParams.set("token", token);
+        else if (id) u.searchParams.set("id", id);
+        openUrl(u.toString());
+      }
       return;
     }
   });
 
-  // top actions
-  $("#btnCopyShare")?.addEventListener("click", () => copyText(buildShareUrl()));
-  $("#btnOpenCard")?.addEventListener("click", () => {
-    // Scroll to preview card
-    $("#card")?.scrollIntoView({behavior:"smooth", block:"center"});
-  });
+  // built-in form submit
+  const form = $("#cardForm");
+  if (form){
+    form.addEventListener("submit", async (ev)=>{
+      ev.preventDefault();
+      setFormHint("送出中…");
+      const fd = new FormData(form);
+      const payload = Object.fromEntries(fd.entries());
 
-  $("#btnCopyId")?.addEventListener("click", () => copyText(state.lastId || ""));
-  $("#btnCopyToken")?.addEventListener("click", () => copyText(state.lastToken || ""));
+      payload.plan = state.plan;
+      payload.free_color = state.freeColor;
+      payload.layout = state.layout;
+      payload.paper = state.paper;
+      payload.premium_color = state.premiumColor;
 
-  $("#btnAdminCopyShare")?.addEventListener("click", () => copyText(buildShareUrl()));
-  $("#btnAdminList")?.addEventListener("click", adminList);
+      const gallery = parseGallery(payload.gallery);
+      payload.gallery = gallery.join("|");
 
-  // hidden admin trigger: click version 3 times within 1.2s
-  const ver = $("#ver");
-  if (ver){
-    let clicks = 0;
-    let timer = null;
-    ver.addEventListener("click", () => {
-      clicks += 1;
-      clearTimeout(timer);
-      timer = setTimeout(()=>{ clicks = 0; }, 1200);
-      if (clicks >= 3){
-        clicks = 0;
-        askAdminPassThenOpen();
+      try{
+        const res = await submitToGAS(payload);
+        if (res && (res.id || res.token)){
+          state.lastId = res.id || state.lastId;
+          state.lastToken = res.token || state.lastToken;
+          const idBadge = $("#idBadge");
+          if (idBadge) idBadge.textContent = state.lastId;
+        }
+        setFormHint("✅ 已送出！你可以按「一鍵複製名片網址」交給客戶。");
+        toast("送出完成");
+        closeForm();
+      }catch(e){
+        logDebug("submit error: " + e);
+        setFormHint("❌ 送出失敗：請確認 GAS 有開啟 submit（doPost 或 doGet action=submit）。");
+        toast("送出失敗");
       }
-    }, {passive:true});
-  }
-
-  // Close lightbox with ESC
-  document.addEventListener("keydown",(e)=>{
-    if (e.key === "Escape"){
-      closeLightbox();
-      closeAdmin();
-    }
-  });
-}
-
-function openAdmin(){
-  const el = $("#admin");
-  if (!el) return;
-  el.classList.add("is-on");
-  el.setAttribute("aria-hidden","false");
-}
-
-function closeAdmin(){
-  const el = $("#admin");
-  if (!el) return;
-  el.classList.remove("is-on");
-  el.setAttribute("aria-hidden","true");
-}
-
-function askAdminPassThenOpen(){
-  const pass = prompt("輸入後台密碼");
-  if (pass === null) return;
-  if (pass !== APP.ADMIN_PASS){
-    toast("密碼錯誤");
-    return;
-  }
-  openAdmin();
-}
-
-function rowHtml(row){
-  const id = row.id || row.ID || row.card_id || "";
-  const token = row.token || "";
-  const status = row.status || "";
-  const name = row.name || row.title || "";
-  const url = new URL(location.href);
-  url.searchParams.set("id", id);
-  if (token) url.searchParams.set("token", token);
-  url.searchParams.delete("v");
-  const share = url.toString();
-
-  return `
-    <div class="rowItem">
-      <div class="rowItemHd">
-        <div class="rowItemId">${escapeHtml(id)} <span style="font-weight:700;color:#6b7280;">${escapeHtml(status)}</span></div>
-        <div class="rowItemBtns">
-          <button class="miniBtn" data-copy="${escapeAttr(share)}" type="button">複製交貨連結</button>
-          <button class="miniBtn" data-open="${escapeAttr(share)}" type="button">開啟</button>
-        </div>
-      </div>
-      <div class="rowItemMeta">token: ${escapeHtml(token)}<br>${escapeHtml(name)}</div>
-    </div>
-  `;
-}
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g, (c)=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
-}
-function escapeAttr(s){
-  return escapeHtml(s).replace(/"/g, "&quot;");
-}
-
-async function adminList(){
-  const list = $("#adminList");
-  if (!list) return;
-  list.innerHTML = "<div class='rowItem'>載入中...</div>";
-
-  const u = new URL(APP.GAS_URL);
-  u.searchParams.set("action","admin_list");
-  u.searchParams.set("limit", String(APP.ADMIN_LIST_LIMIT));
-
-  try{
-    const data = await fetchJson(u.toString());
-    const rows = data.rows || data.data || [];
-    if (!Array.isArray(rows)) throw new Error("rows not array");
-    if (rows.length === 0){
-      list.innerHTML = "<div class='rowItem'>（清單為空）</div>";
-    }else{
-      list.innerHTML = rows.map(rowHtml).join("");
-    }
-
-    // bind copy/open buttons in admin panel (simple)
-    list.querySelectorAll("[data-copy]").forEach(btn=>{
-      btn.addEventListener("click", ()=> copyText(btn.getAttribute("data-copy") || ""));
     });
-    list.querySelectorAll("[data-open]").forEach(btn=>{
-      btn.addEventListener("click", ()=> openUrl(btn.getAttribute("data-open") || ""));
-    });
-
-  }catch(e){
-    list.innerHTML = "<div class='rowItem'>載入失敗（請確認 GAS admin_list 已啟用且允許 CORS）</div>";
-    logDebug("admin_list fail: " + e);
   }
 }
 
+/* -------- SW -------- */
 function registerSW(){
   if (!("serviceWorker" in navigator)) return;
-  navigator.serviceWorker.register("./sw.js?v=3855").catch(e=>logDebug("SW register fail: "+e));
+  navigator.serviceWorker.register("./sw.js?v=3856").catch(()=>{});
 }
 
-function hardenTouchForiOS(){
-  // iOS sometimes needs CSS pointer-events + prevent ghost clicks.
-  // Here we only ensure buttons are not disabled by overlays.
-  document.body.style.webkitTapHighlightColor = "transparent";
-}
-
-function boot(){
+/* -------- Init -------- */
+async function init(){
   try{
     loadPrefs();
     applyTheme();
-    hardenTouchForiOS();
-    setDefaultCard();
     wireEvents();
     registerSW();
 
-    // try load from API (non-blocking)
-    loadCardFromApi().then(()=>{ /* noop */ });
+    // default card baseline
+    renderCard({
+      id: "TW----",
+      name: "小天使",
+      title: "天使幸福智慧名片",
+      tagline: "一點，就看見彼此的價值",
+      avatar: "./icons/icon-512.png",
+      gallery: ["./og-card.png"],
+    });
 
+    await loadCardFromApi();
   }catch(e){
-    // If anything goes wrong, show debug box so you can see the error quickly.
-    logDebug("BOOT ERROR: " + e);
-    $("#debugBox")?.removeAttribute("hidden");
+    console.error(e);
+    logDebug("init fail: " + e);
   }
 }
 
-document.addEventListener("DOMContentLoaded", boot);
+document.addEventListener("DOMContentLoaded", init);

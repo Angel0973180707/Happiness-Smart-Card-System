@@ -1,7 +1,7 @@
 {
   "name": "天使幸福智慧名片",
   "short_name": "幸福名片",
-  "start_url": "./index.html?v=3855",
+  "start_url": "./index.html?v=3856",
   "display": "standalone",
   "background_color": "#f5f6fa",
   "theme_color": "#ee5253",
