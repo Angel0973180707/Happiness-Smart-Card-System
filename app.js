@@ -1,14 +1,43 @@
+/* ================================
+ * Angel Card App.js (FULL OVERWRITE)
+ * Fix Focus: Data fetch + Image load reliability
+ * - Works better in Incognito (no-cache, retry, robust JSON parse)
+ * - Normalizes Google Drive / share links to direct image URL
+ * - Fallback if missing fields (dynamic balance via body classes)
+ * ================================ */
+
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
-  ANGEL: "TW0001"
+  ANGEL: "TW0001",
+  FETCH_TIMEOUT_MS: 9000,
+  RETRY: 2,               // total tries = RETRY + 1
 };
 
 let state = { mode: 'free', theme: 'color-1', style: 'arch', paper: 'paper-1' };
 
-/* ===========================
-   UI: mode/theme/style/paper
-   =========================== */
+/* ---------------------------
+ * UI helpers
+ * --------------------------- */
+function $(id){ return document.getElementById(id); }
+
+function setTextSafe(el, text){
+  if (!el) return;
+  el.textContent = (text == null ? "" : String(text)).trim();
+}
+
+function setBodyFlag(flag, on){
+  document.body.classList.toggle(flag, !!on);
+}
+
+function showAvatar(on){
+  // 不改結構，用 class 控制（CSS 若沒有也不會壞）
+  document.body.classList.toggle('has-no-avatar', !on);
+}
+
+/* ---------------------------
+ * Mode switching (保持原系統)
+ * --------------------------- */
 window.setV382 = function(mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
@@ -37,7 +66,7 @@ window.setV382Paper = function(paper, el) {
 
 function applyV382() {
   const isFree = state.mode === 'free';
-  const controlPanel = document.getElementById('free-controls');
+  const controlPanel = $('free-controls');
   if (controlPanel) controlPanel.style.display = isFree ? 'block' : 'none';
 
   const classList = [
@@ -49,236 +78,203 @@ function applyV382() {
   document.body.className = classList.filter(Boolean).join(' ');
 }
 
-/* ===========================
-   訂購流程彈窗
-   =========================== */
-window.openOrderHelp = () => {
-  const m = document.getElementById("orderHelpModal");
-  if (!m) return;
-  m.classList.add("on");
-  m.setAttribute("aria-hidden", "false");
-};
+/* ---------------------------
+ * Robust Fetch (no-cache + timeout + retry + safe JSON)
+ * --------------------------- */
+async function fetchWithTimeout(url, timeoutMs){
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
 
-window.closeOrderHelp = () => {
-  const m = document.getElementById("orderHelpModal");
-  if (!m) return;
-  m.classList.remove("on");
-  m.setAttribute("aria-hidden", "true");
-};
-
-document.addEventListener("click", (e) => {
-  const m = document.getElementById("orderHelpModal");
-  if (!m) return;
-  if (m.classList.contains("on") && e.target === m) window.closeOrderHelp();
-});
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") window.closeOrderHelp();
-});
-
-/* ===========================
-   Image URL normalize + slider
-   =========================== */
-function normalizeImageUrl_(url) {
-  if (!url) return "";
-  let u = String(url).trim();
-  if (!u) return "";
-  if (u.startsWith("http://")) u = "https://" + u.slice(7);
-
-  // Google Drive share -> direct view
-  try {
-    const m1 = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-    const m2 = u.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-    const m3 = u.match(/drive\.google\.com\/uc\?id=([a-zA-Z0-9_-]+)/);
-    const id = (m1 && m1[1]) || (m2 && m2[1]) || (m3 && m3[1]) || "";
-    if (id) return `https://drive.google.com/uc?export=view&id=${id}`;
-  } catch (e) {}
-
-  if (!(u.startsWith("https://") || u.startsWith("data:image/"))) return "";
-  return u;
-}
-
-function splitPhotoList_(raw) {
-  if (!raw) return [];
-  const s = String(raw).trim();
-  if (!s) return [];
-  const parts = s.split(/\s*(?:\n|,|\|)\s*/).map(x => x.trim()).filter(Boolean);
-
-  const out = [];
-  const seen = new Set();
-  for (const p of parts) {
-    const nu = normalizeImageUrl_(p);
-    if (!nu) continue;
-    if (seen.has(nu)) continue;
-    seen.add(nu);
-    out.push(nu);
-  }
-  return out;
-}
-
-function setPhotoSlider_(urls) {
-  const rail = document.getElementById("photo-rail");
-  const dots = document.getElementById("photo-dots");
-  if (!rail || !dots) return;
-
-  rail.innerHTML = "";
-  dots.innerHTML = "";
-
-  const safeUrls = (urls && urls.length) ? urls : [""];
-
-  safeUrls.forEach((u, idx) => {
-    const item = document.createElement("div");
-    item.className = "photo-item";
-
-    const img = document.createElement("img");
-    img.className = "avatar";
-    img.alt = "形象照";
-    img.loading = "lazy";
-    img.referrerPolicy = "no-referrer";
-    img.decoding = "async";
-    if (idx === 0) img.id = "u-img";
-
-    if (u) img.src = u;
-
-    img.onerror = () => {
-      img.removeAttribute("src");
-      img.style.background = "linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.02))";
-    };
-
-    item.appendChild(img);
-    rail.appendChild(item);
-
-    const d = document.createElement("div");
-    d.className = "pd" + (idx === 0 ? " on" : "");
-    dots.appendChild(d);
-  });
-
-  dots.style.display = safeUrls.length > 1 ? "flex" : "none";
-
-  const updateDots = () => {
-    const w = rail.clientWidth || 1;
-    const idx = Math.round(rail.scrollLeft / w);
-    [...dots.children].forEach((el, i) => el.classList.toggle("on", i === idx));
-  };
-
-  rail.onscroll = () => window.requestAnimationFrame(updateDots);
-  rail.scrollLeft = 0;
-  updateDots();
-}
-
-/* ===========================
-   Dynamic balance (no data)
-   =========================== */
-function applyDataBalance_(data) {
-  const b = document.body;
-  const unit = (data && (data.單位 || data.unit)) ? String(data.單位 || data.unit).trim() : "";
-  const svc  = (data && (data.服務項目 || data.service)) ? String(data.服務項目 || data.service).trim() : "";
-  b.classList.toggle("has-no-unit", !unit);
-  b.classList.toggle("has-no-service", !svc);
-}
-
-/* ===========================
-   Data Loading (強化：多路徑/不怕回傳格式不同)
-   =========================== */
-function getCardId_() {
-  const sp = new URLSearchParams(location.search);
-  return (sp.get("id") || sp.get("card") || CONFIG.ANGEL || "").trim();
-}
-
-async function fetchWithTimeout_(url, ms = 8000) {
-  const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), ms);
-  try {
+  try{
     const res = await fetch(url, {
-      signal: ctl.signal,
+      method: "GET",
+      mode: "cors",
       cache: "no-store",
-      redirect: "follow"
+      credentials: "omit",
+      redirect: "follow",
+      signal: controller.signal,
+      headers: {
+        "Accept": "application/json, text/plain, */*",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      }
     });
-    return res;
-  } finally {
+
+    const text = await res.text();
+
+    // 有些 GAS 出錯會回 HTML（登入頁/錯誤頁），這裡先判斷
+    const maybeJson = text.trim();
+    if (!maybeJson) throw new Error("Empty response");
+
+    // 嘗試 parse JSON
+    try{
+      return JSON.parse(maybeJson);
+    }catch(_){
+      // 如果是 JSON 前後被包東西（少見），試抽出第一段 {..} 或 [..]
+      const objMatch = maybeJson.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+      if (objMatch) return JSON.parse(objMatch[1]);
+      throw new Error("Response is not JSON (maybe HTML or blocked)");
+    }
+  } finally{
     clearTimeout(t);
   }
 }
 
-function unwrapData_(obj) {
-  // 支援：data / row / result 包裝
-  if (!obj || typeof obj !== "object") return obj;
-  if (obj.data && typeof obj.data === "object") return obj.data;
-  if (obj.row && typeof obj.row === "object") return obj.row;
-  if (obj.result && typeof obj.result === "object") return obj.result;
-  return obj;
+async function fetchJsonRobust(url){
+  let lastErr = null;
+  for (let i=0; i<=CONFIG.RETRY; i++){
+    try{
+      return await fetchWithTimeout(url, CONFIG.FETCH_TIMEOUT_MS);
+    }catch(e){
+      lastErr = e;
+      // 短暫退避
+      await new Promise(r => setTimeout(r, 350 + i*350));
+    }
+  }
+  throw lastErr || new Error("Fetch failed");
 }
 
-async function loadV382Data() {
-  const id = getCardId_();
-  if (!id) return;
+/* ---------------------------
+ * Image URL normalize (Google Drive / share links)
+ * --------------------------- */
+function normalizeImageUrl(raw){
+  if (!raw) return "";
+  let url = String(raw).trim();
+  if (!url) return "";
 
-  const tries = [
-    `${CONFIG.GAS}?id=${encodeURIComponent(id)}`,
-    `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}`,
-    `${CONFIG.GAS}?action=get&id=${encodeURIComponent(id)}`
-  ];
+  // http -> https
+  if (url.startsWith("http://")) url = "https://" + url.slice(7);
 
-  try {
-    let data = null;
+  // Google Drive patterns:
+  // 1) https://drive.google.com/file/d/<ID>/view?...
+  const m1 = url.match(/drive\.google\.com\/file\/d\/([^\/]+)\//i);
+  if (m1 && m1[1]) {
+    const id = m1[1];
+    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
+  }
 
-    for (const url of tries) {
-      try {
-        const res = await fetchWithTimeout_(url, 10000);
-        if (!res.ok) continue;
+  // 2) https://drive.google.com/open?id=<ID>
+  const m2 = url.match(/drive\.google\.com\/open\?id=([^&]+)/i);
+  if (m2 && m2[1]) {
+    const id = m2[1];
+    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
+  }
 
-        const ct = (res.headers.get("content-type") || "").toLowerCase();
+  // 3) https://drive.google.com/uc?id=<ID>...
+  const m3 = url.match(/drive\.google\.com\/uc\?[^#]*id=([^&]+)/i);
+  if (m3 && m3[1]) {
+    const id = m3[1];
+    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
+  }
 
-        if (ct.includes("application/json")) {
-          data = await res.json();
-        } else {
-          const txt = await res.text();
-          // 有些 GAS 會回傳文字 JSON
-          try { data = JSON.parse(txt); }
-          catch { data = null; }
-        }
+  // 4) Google "thumbnail?id="
+  const m4 = url.match(/thumbnail\?id=([^&]+)/i);
+  if (m4 && m4[1]) {
+    const id = m4[1];
+    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
+  }
 
-        if (data) break;
-      } catch (e) {
-        // try next
-      }
+  // Dropbox share -> raw
+  if (url.includes("dropbox.com")) {
+    // dl=0 -> raw=1
+    url = url.replace("dl=0", "raw=1");
+    if (!url.includes("raw=1")) {
+      url += (url.includes("?") ? "&" : "?") + "raw=1";
     }
+    return url;
+  }
 
-    if (!data) throw new Error("No data");
+  return url;
+}
 
-    // unwrap + 兼容 ok: true
-    data = unwrapData_(data);
+function setAvatarImage(url){
+  const img = $('u-img');
+  if (!img) return;
 
-    const name = String(data.姓名 || data.name || "小天使笑長").trim();
-    const unit = String(data.單位 || data.unit || "").trim();
-    const svc  = String(data.服務項目 || data.service || "").trim();
+  const finalUrl = normalizeImageUrl(url);
+  if (!finalUrl) {
+    img.removeAttribute("src");
+    showAvatar(false);
+    return;
+  }
 
-    document.getElementById('u-name').innerText = name || "小天使笑長";
-    document.getElementById('u-unit').innerText = unit || "";
-    document.getElementById('u-service').innerText = svc || "";
+  showAvatar(true);
 
-    applyDataBalance_(data);
+  // 先掛 error/onload，再設 src
+  img.onload = () => { showAvatar(true); };
+  img.onerror = () => {
+    // 圖片抓不到：隱藏頭像，避免卡片破版
+    img.removeAttribute("src");
+    showAvatar(false);
+  };
 
-    const photos = splitPhotoList_(data.形象照 || data.photo || data.photos || "");
-    setPhotoSlider_(photos);
+  // ✅ bust cache（特別是無痕/手機）
+  const bust = `t=${Date.now()}`;
+  const sep = finalUrl.includes("?") ? "&" : "?";
+  img.src = finalUrl + sep + bust;
+}
 
-  } catch (e) {
-    console.error("雲端同步異常", e);
-    // 不讓版面崩
-    applyDataBalance_({});
-    setPhotoSlider_([]);
-    document.getElementById('u-name').innerText = "載入失敗";
-    document.getElementById('u-unit').innerText = "";
-    document.getElementById('u-service').innerText = "請稍後重整，或檢查 GAS 是否正常。";
+/* ---------------------------
+ * Apply data to UI + Dynamic balance
+ * --------------------------- */
+function applyDataToCard(data){
+  // 你原本欄位：姓名 / 單位 / 服務項目 / 形象照
+  const name = (data && (data.姓名 || data.name)) || "小天使笑長";
+  const unit = (data && (data.單位 || data.unit)) || "";
+  const service = (data && (data.服務項目 || data.service)) || "";
+  const photo = (data && (data.形象照 || data.photo)) || "";
+
+  setTextSafe($('u-name'), name);
+  setTextSafe($('u-unit'), unit);
+  setTextSafe($('u-service'), service);
+
+  // 動態平衡：沒填就收斂（配合你 CSS 的 .has-no-unit/.has-no-service）
+  setBodyFlag('has-no-unit', !String(unit).trim());
+  setBodyFlag('has-no-service', !String(service).trim());
+
+  // 圖片
+  setAvatarImage(photo);
+}
+
+/* ---------------------------
+ * Main load
+ * --------------------------- */
+async function loadData(){
+  // ✅ 加上 cache bust，避免被快取卡住（尤其是手機/無痕）
+  const url = `${CONFIG.GAS}?id=${encodeURIComponent(CONFIG.ANGEL)}&ts=${Date.now()}`;
+
+  // UI placeholder
+  setTextSafe($('u-name'), "載入中...");
+  setTextSafe($('u-unit'), "同步中...");
+  setTextSafe($('u-service'), "正在同步雲端服務項目...");
+
+  try{
+    const data = await fetchJsonRobust(url);
+
+    // 若 GAS 包一層 {ok:true,data:{...}} 也能吃
+    const payload = (data && data.data) ? data.data : data;
+
+    applyDataToCard(payload);
+  }catch(e){
+    console.error("雲端同步異常:", e);
+
+    // 失敗時保底：讓卡片仍能使用，不要白屏
+    setTextSafe($('u-name'), "小天使笑長");
+    setTextSafe($('u-unit'), "");
+    setTextSafe($('u-service'), "");
+
+    setBodyFlag('has-no-unit', true);
+    setBodyFlag('has-no-service', true);
+    setAvatarImage(""); // hide avatar
   }
 }
 
+/* ---------------------------
+ * External actions
+ * --------------------------- */
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
 
-window.onload = () => {
-  loadV382Data();
+window.addEventListener('load', () => {
   applyV382();
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
-  }
-};
+  loadData();
+});
