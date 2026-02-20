@@ -46,17 +46,166 @@ function applyV382() {
   document.body.className = classList.filter(Boolean).join(' ');
 }
 
+/* ===========================
+   Image URL normalize + slider
+   =========================== */
+
+function normalizeImageUrl_(url) {
+  if (!url) return "";
+  let u = String(url).trim();
+  if (!u) return "";
+  // enforce https if possible
+  if (u.startsWith("http://")) u = "https://" + u.slice(7);
+
+  // Google Drive share -> direct view
+  // patterns:
+  // 1) https://drive.google.com/file/d/<ID>/view?...
+  // 2) https://drive.google.com/open?id=<ID>
+  // 3) https://drive.google.com/uc?id=<ID>&export=download
+  try {
+    const m1 = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    const m2 = u.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+    const m3 = u.match(/drive\.google\.com\/uc\?id=([a-zA-Z0-9_-]+)/);
+    const id = (m1 && m1[1]) || (m2 && m2[1]) || (m3 && m3[1]) || "";
+    if (id) {
+      // best-effort direct view
+      return `https://drive.google.com/uc?export=view&id=${id}`;
+    }
+  } catch(e) {}
+
+  // Basic allow-list: must be https or data
+  if (!(u.startsWith("https://") || u.startsWith("data:image/"))) return "";
+
+  return u;
+}
+
+function splitPhotoList_(raw) {
+  if (!raw) return [];
+  const s = String(raw).trim();
+  if (!s) return [];
+  // allow separators: newline, comma, pipe
+  const parts = s.split(/\s*(?:\n|,|\|)\s*/).map(x => x.trim()).filter(Boolean);
+  // normalize + dedupe
+  const out = [];
+  const seen = new Set();
+  for (const p of parts) {
+    const nu = normalizeImageUrl_(p);
+    if (!nu) continue;
+    if (seen.has(nu)) continue;
+    seen.add(nu);
+    out.push(nu);
+  }
+  return out;
+}
+
+function setPhotoSlider_(urls) {
+  const rail = document.getElementById("photo-rail");
+  const dots = document.getElementById("photo-dots");
+  const firstImg = document.getElementById("u-img");
+  if (!rail || !dots || !firstImg) return;
+
+  // Clear extra slides, keep the first item (contains #u-img) as template
+  const templateItem = rail.querySelector(".photo-item");
+  rail.innerHTML = "";
+  dots.innerHTML = "";
+
+  const safeUrls = (urls && urls.length) ? urls : [""];
+
+  safeUrls.forEach((u, idx) => {
+    const item = document.createElement("div");
+    item.className = "photo-item";
+    const img = document.createElement("img");
+    img.className = "avatar";
+    img.alt = "形象照";
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    img.decoding = "async";
+
+    if (idx === 0) img.id = "u-img";
+
+    if (u) img.src = u;
+
+    // fallback: keep circle clean (no broken icon)
+    img.onerror = () => {
+      img.removeAttribute("src");
+      img.style.background = "linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.02))";
+    };
+
+    item.appendChild(img);
+    rail.appendChild(item);
+
+    const d = document.createElement("div");
+    d.className = "pd" + (idx === 0 ? " on" : "");
+    dots.appendChild(d);
+  });
+
+  // Show dots only if >1
+  dots.style.display = safeUrls.length > 1 ? "flex" : "none";
+
+  // Update dots on scroll
+  const updateDots = () => {
+    const w = rail.clientWidth || 1;
+    const idx = Math.round(rail.scrollLeft / w);
+    [...dots.children].forEach((el, i) => el.classList.toggle("on", i === idx));
+  };
+
+  rail.onscroll = () => { window.requestAnimationFrame(updateDots); };
+  // Reset to first
+  rail.scrollLeft = 0;
+  updateDots();
+}
+
+/* ===========================
+   Dynamic balance (no data)
+   =========================== */
+function applyDataBalance_(data) {
+  const b = document.body;
+
+  const unit = (data && (data.單位 || data.unit)) ? String(data.單位 || data.unit).trim() : "";
+  const svc  = (data && (data.服務項目 || data.service)) ? String(data.服務項目 || data.service).trim() : "";
+
+  b.classList.toggle("has-no-unit", !unit);
+  b.classList.toggle("has-no-service", !svc);
+}
+
+/* ===========================
+   Data Loading
+   =========================== */
+
 async function loadV382Data() {
   try {
-    const res = await fetch(`${CONFIG.GAS}?id=${CONFIG.ANGEL}`);
+    const res = await fetch(`${CONFIG.GAS}?id=${CONFIG.ANGEL}`, { cache: "no-store" });
     const data = await res.json();
-    if(data) {
-      document.getElementById('u-name').innerText = data.姓名 || "小天使笑長";
-      document.getElementById('u-unit').innerText = data.單位 || "幸福智慧教養館";
-      document.getElementById('u-service').innerText = data.服務項目 || "";
-      if(data.形象照) document.getElementById('u-img').src = data.形象照;
+
+    if (data) {
+      const name = String(data.姓名 || data.name || "小天使笑長").trim();
+      const unit = String(data.單位 || data.unit || "").trim();
+      const svc  = String(data.服務項目 || data.service || "").trim();
+
+      document.getElementById('u-name').innerText = name || "小天使笑長";
+      document.getElementById('u-unit').innerText = unit || "";
+      document.getElementById('u-service').innerText = svc || "";
+
+      // Dynamic balance
+      applyDataBalance_(data);
+
+      // Photos: support multi urls
+      const photos = splitPhotoList_(data.形象照 || data.photo || data.photos || "");
+      setPhotoSlider_(photos);
+
+      // If only one photo and already exists, ensure it's normalized
+      const img0 = document.getElementById("u-img");
+      if (img0 && img0.getAttribute("src")) {
+        const nu = normalizeImageUrl_(img0.getAttribute("src"));
+        if (nu) img0.src = nu;
+      }
     }
-  } catch(e) { console.error("雲端同步異常", e); }
+  } catch(e) {
+    console.error("雲端同步異常", e);
+    // keep layout stable even on failure
+    applyDataBalance_({});
+    setPhotoSlider_([]);
+  }
 }
 
 window.goFillForm = () => window.open(CONFIG.FORM, '_blank');

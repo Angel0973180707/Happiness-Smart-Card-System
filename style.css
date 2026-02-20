@@ -84,3 +84,129 @@ body { background: var(--bg); font-family: var(--font); margin: 0; display: flex
 .paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.15; z-index: 5; mix-blend-mode: multiply; }
 .version-tag { font-size: 10px; opacity: 0.3; position: absolute; bottom: 15px; right: 25px; font-family: monospace; }
 .btn-cta { background: var(--p); color: #fff; border: none; padding: 12px 40px; border-radius: 40px; font-weight: 900; cursor: pointer; margin-top: 5px; }
+
+/* ================================
+   V384 外觀鎖定｜功能升級補丁
+   - 照片區左右滑動（scroll-snap）
+   - 內容動態平衡（無資料自動收斂）
+   - 精品款按鈕精緻化（金邊立體、尺寸更小）
+   ================================ */
+
+/* 讓卡片內區塊不因少資料顯得空洞：由 JS 加 class 控制 */
+.has-no-unit .unit { display: none !important; }
+.has-no-unit .name { margin-bottom: 12px; }
+
+.has-no-service #u-service { display: none !important; }
+
+/* 服務內容存在時，維持卡內舒服滾動（卡高度不變） */
+.info-scroll{
+  max-height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.info-scroll::-webkit-scrollbar{ width:0; height:0; }
+
+/* ---------- Photo Slider (inside avatar-circle) ---------- */
+.avatar-circle{
+  position: relative;
+}
+
+/* 橫向滑動軌道 */
+.photo-rail{
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.photo-rail::-webkit-scrollbar{ width:0; height:0; }
+
+.photo-item{
+  flex: 0 0 100%;
+  height: 100%;
+  scroll-snap-align: center;
+  display: flex;
+}
+
+/* dots */
+.photo-dots{
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 40;
+  pointer-events: none;
+}
+.photo-dots .pd{
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.18);
+}
+.mode-premium .photo-dots .pd{
+  background: rgba(255,255,255,0.35);
+}
+.photo-dots .pd.on{
+  background: rgba(0,0,0,0.55);
+}
+.mode-premium .photo-dots .pd.on{
+  background: rgba(255,255,255,0.75);
+}
+
+/* ---------- Premium Buttons Refinement ---------- */
+.mode-premium .btn-neo{
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.95);
+}
+
+.mode-premium .btn-neo.active{
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.28);
+}
+
+/* 精品 CTA：更小、更精緻、金邊立體 */
+.mode-premium .btn-cta{
+  padding: 10px 28px;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+
+  /* 金邊立體 */
+  background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+  border: 1px solid rgba(212,175,55,0.85);
+  color: rgba(255,255,255,0.95);
+
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    inset 0 -1px 0 rgba(0,0,0,0.12);
+}
+
+.mode-premium .btn-cta:active{
+  transform: translateY(1px);
+  box-shadow:
+    0 6px 16px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.38),
+    inset 0 -1px 0 rgba(0,0,0,0.16);
+}
+
+/* 自由款 CTA 維持原尺寸，不跟精品混 */
+.mode-free .btn-cta{
+  transform: none;
+}
+
+/* 小螢幕：控制面板更省高，但保持 V384 外觀語言 */
+@media (max-width: 420px){
+  #admin-panel{ padding: 12px 0; }
+  .dot, .p-dot{ width: 32px; height: 32px; }
+}
