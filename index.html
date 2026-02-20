@@ -3,80 +3,51 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片｜PWA V386</title>
-  <meta name="description" content="幸福智慧名片｜成品預覽卡（TW0001）＋方案分流（自由/精品）＋一鍵複製交貨連結" />
-  <meta name="theme-color" content="#ee5253" />
-  <link rel="manifest" href="./manifest.json?v=386" />
-  <link rel="icon" href="./icons/icon-192.png" />
+  <title>幸福智慧名片 V384</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./style.css?v=386" />
+  <link rel="stylesheet" href="style.css?v=384" />
+  <link rel="manifest" href="manifest.json?v=384" />
+  <meta name="theme-color" content="#ff5e5e" />
 </head>
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- 管理／門面控制區（你自己操作） -->
   <div id="admin-panel">
-    <div class="admin-title">
-      <div class="t1">幸福智慧名片｜成品預覽</div>
-      <div class="t2">預設：TW0001（資料不變，只切外觀）</div>
+    <div class="dots-row">
+      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
+      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
+      <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
+      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free', 'color-4', this)"></div>
+      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
     </div>
 
-    <!-- 方案分流 -->
-    <div class="plan-row">
-      <button class="btn-plan active" id="btn-plan-free" onclick="AngelCard.setMode('free', null, this)">
-        自由搭配款
-      </button>
-      <button class="btn-plan" id="btn-plan-premium" onclick="AngelCard.setMode('premium', 'p1', this)">
-        精品設計款
-      </button>
-    </div>
-
-    <!-- 自由搭配：色點 -->
-    <div class="dots-row" id="free-colors">
-      <div class="dot active" style="background:#ff5e5e" onclick="AngelCard.setTheme('color-1', this)"></div>
-      <div class="dot" style="background:#00a8ff" onclick="AngelCard.setTheme('color-2', this)"></div>
-      <div class="dot" style="background:#ffa502" onclick="AngelCard.setTheme('color-3', this)"></div>
-      <div class="dot" style="background:#7d5fff" onclick="AngelCard.setTheme('color-4', this)"></div>
-      <div class="dot" style="background:#2ecc71" onclick="AngelCard.setTheme('color-5', this)"></div>
-    </div>
-
-    <!-- 自由搭配：版型／紙感 -->
     <div id="free-controls">
-      <div class="control-row">
-        <button class="btn-neo active" onclick="AngelCard.setStyle('arch', this)">優雅正拱</button>
-        <button class="btn-neo" onclick="AngelCard.setStyle('flat', this)">簡潔平直</button>
-        <button class="btn-neo" onclick="AngelCard.setStyle('spot', this)">晨曦款</button>
+      <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
+          <button class="btn-neo active" onclick="window.setV382Style('arch', this)">優雅正拱</button>
+          <button class="btn-neo" onclick="window.setV382Style('flat', this)">簡潔平直</button>
+          <button class="btn-neo" onclick="window.setV382Style('spot', this)">晨曦款</button>
       </div>
-      <div class="control-row">
-        <button class="btn-neo active" onclick="AngelCard.setPaper('paper-1', this)">棉紙</button>
-        <button class="btn-neo" onclick="AngelCard.setPaper('paper-2', this)">顆粒</button>
-        <button class="btn-neo" onclick="AngelCard.setPaper('paper-3', this)">亞麻</button>
+      <div class="control-row" style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
+          <button class="btn-neo active" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
+          <button class="btn-neo" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
+          <button class="btn-neo" onclick="window.setV382Paper('paper-3', this)">亞麻</button>
       </div>
     </div>
 
-    <!-- 精品設計：p1~p7 -->
-    <div class="dots-row" id="premium-colors">
-      <div class="p-dot" style="background:#722f37" onclick="AngelCard.setMode('premium','p1', this)"></div>
-      <div class="p-dot" style="background:#1c2e42" onclick="AngelCard.setMode('premium','p2', this)"></div>
-      <div class="p-dot" style="background:#5e548e" onclick="AngelCard.setMode('premium','p3', this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="AngelCard.setMode('premium','p4', this)"></div>
-      <div class="p-dot" style="background:#7a94a6" onclick="AngelCard.setMode('premium','p5', this)"></div>
-      <div class="p-dot" style="background:#a36d6d" onclick="AngelCard.setMode('premium','p6', this)"></div>
-      <div class="p-dot" style="background:#444444" onclick="AngelCard.setMode('premium','p7', this)"></div>
+    <div class="dots-row">
+      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div> 
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div> 
+      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p3', this)"></div>
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div> 
+      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
+      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p6', this)"></div>
+      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
     </div>
 
-    <div class="cta-row">
-      <button class="btn-cta" onclick="AngelCard.openForm()">立即預約訂製名片 →</button>
-      <button class="btn-cta ghost" onclick="AngelCard.copyDeliveryLink()">一鍵複製交貨連結</button>
-    </div>
-
-    <div class="hint">
-      交貨連結（OG）：建議使用 <b>GAS share 入口</b>（社群才抓得到動態預覽）。PWA 內會自動幫你組好連結。
-    </div>
+    <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
-  <!-- 成品名片（外觀切換；資料不變） -->
-  <div id="card-container" class="card" aria-label="幸福智慧名片成品預覽卡">
+  <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
     <div class="banner"><div class="dynamic-mask"></div></div>
@@ -90,21 +61,13 @@
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
-
-      <div class="content-box center strong-link" onclick="AngelCard.openForm()">
-        立即填寫預約表單
-      </div>
-
-      <div id="u-service" class="content-box small">
-        正在同步雲端服務項目...
-      </div>
+      <div class="content-box" style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;" onclick="window.goFillForm()">立即填寫預約表單</div>
+      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在同步雲端服務項目...</div>
     </div>
-
-    <div class="version-tag">V386</div>
+    <div class="version-tag">V384</div>
   </div>
 
-  <footer class="footer">幸福智慧名片｜PWA V386</footer>
-
-  <script src="./app.js?v=386"></script>
+  <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">幸福智慧名片 V384</footer>
+  <script src="app.js?v=384"></script>
 </body>
 </html>
