@@ -101,7 +101,7 @@ async function fetchWithTimeout(url, timeoutMs){
     try{
       return JSON.parse(maybe);
     }catch(_){
-      const m = maybe.match(/(\{[\s\S]*\}|[\s\S]*)/);
+      const m = maybe.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
       if (m) return JSON.parse(m[1]);
       throw new Error("Not JSON (maybe HTML/blocked)");
     }
@@ -137,4 +137,83 @@ function normalizeImageUrl(raw){
   if (m2 && m2[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m2[1])}`;
 
   const m3 = url.match(/drive\.google\.com\/uc\?[^#]*id=([^&]+)/i);
-  if (m3 && m3[1]) return `https://drive.google.com/
+  if (m3 && m3[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m3[1])}`;
+
+  const m4 = url.match(/thumbnail\?id=([^&]+)/i);
+  if (m4 && m4[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m4[1])}`;
+
+  if (url.includes("dropbox.com")) {
+    url = url.replace("dl=0", "raw=1");
+    if (!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
+    return url;
+  }
+  return url;
+}
+
+function setAvatarImage(url){
+  const img = $('u-img');
+  if (!img) return;
+  const finalUrl = normalizeImageUrl(url);
+  if (!finalUrl) {
+    img.removeAttribute("src");
+    setBodyFlag('has-no-avatar', true);
+    return;
+  }
+
+  img.onload = () => setBodyFlag('has-no-avatar', false);
+  img.onerror = () => {
+    img.removeAttribute("src");
+    setBodyFlag('has-no-avatar', true);
+  };
+
+  const sep = finalUrl.includes("?") ? "&" : "?";
+  img.src = finalUrl + sep + `t=${Date.now()}`;
+  setBodyFlag('has-no-avatar', false);
+}
+
+/* ---------- apply data ---------- */
+function applyDataToCard(data){
+  const name = (data && (data.姓名 || data.name)) || "小天使笑長";
+  const unit = (data && (data.單位 || data.unit)) || "";
+  const service = (data && (data.服務項目 || data.service)) || "";
+  const photo = (data && (data.形象照 || data.photo)) || "";
+
+  setTextSafe($('u-name'), name);
+  setTextSafe($('u-unit'), unit);
+  setTextSafe($('u-service'), service);
+
+  setBodyFlag('has-no-unit', !String(unit).trim());
+  setBodyFlag('has-no-service', !String(service).trim());
+
+  setAvatarImage(photo);
+}
+
+async function loadData(){
+  const url = `${CONFIG.GAS}?id=${encodeURIComponent(CONFIG.ANGEL)}&ts=${Date.now()}`;
+
+  setTextSafe($('u-name'), "載入中...");
+  setTextSafe($('u-unit'), "同步中...");
+  setTextSafe($('u-service'), "正在同步雲端服務項目...");
+
+  try{
+    const data = await fetchJsonRobust(url);
+    const payload = (data && data.data) ? data.data : data;
+    applyDataToCard(payload);
+  }catch(e){
+    console.error("雲端同步異常:", e);
+    // 保底：不白屏
+    setTextSafe($('u-name'), "小天使笑長");
+    setTextSafe($('u-unit'), "");
+    setTextSafe($('u-service'), "");
+    setBodyFlag('has-no-unit', true);
+    setBodyFlag('has-no-service', true);
+    setAvatarImage("");
+  }
+}
+
+window.goFillForm = () => window.open(CONFIG.FORM, '_blank');
+
+window.addEventListener('load', () => {
+  applyV382();
+  loadData();
+});
