@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V384</title>
+  <title>幸福智慧名片 V385.3</title>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=3853" />
@@ -14,49 +15,59 @@
 <body class="mode-free color-1 style-arch paper-1">
 
   <div id="admin-panel">
+    <!-- 自由搭配：5 色 -->
     <div class="dots-row">
-      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
-      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
-      <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
-      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free', 'color-4', this)"></div>
-      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
+      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free','color-1',this)"></div>
+      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free','color-2',this)"></div>
+      <div class="dot" style="background:#ffa502" onclick="window.setV382('free','color-3',this)"></div>
+      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free','color-4',this)"></div>
+      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free','color-5',this)"></div>
     </div>
 
     <div id="free-controls">
       <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
-          <button class="btn-neo active" onclick="window.setV382Style('arch', this)">優雅正拱</button>
-          <button class="btn-neo" onclick="window.setV382Style('flat', this)">簡潔平直</button>
-          <button class="btn-neo" onclick="window.setV382Style('spot', this)">晨曦款</button>
+        <button class="btn-neo active" onclick="window.setV382Style('arch',this)">優雅正拱</button>
+        <button class="btn-neo" onclick="window.setV382Style('flat',this)">簡潔平直</button>
+        <button class="btn-neo" onclick="window.setV382Style('spot',this)">晨曦款</button>
       </div>
       <div class="control-row" style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
-          <button class="btn-neo active" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
-          <button class="btn-neo" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
-          <button class="btn-neo" onclick="window.setV382Paper('paper-3', this)">亞麻</button>
+        <button class="btn-neo active" onclick="window.setV382Paper('paper-1',this)">棉紙</button>
+        <button class="btn-neo" onclick="window.setV382Paper('paper-2',this)">顆粒</button>
+        <button class="btn-neo" onclick="window.setV382Paper('paper-3',this)">亞麻</button>
       </div>
     </div>
 
+    <!-- ✅ 精品設計：p1~p7 順序（你指定） -->
     <div class="dots-row">
-      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div>
-      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div>
-      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p3', this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div>
-      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
-      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p6', this)"></div>
-      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
+      <!-- p1 胭脂 -->
+      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium','p1',this)"></div>
+      <!-- p2 酒紅 -->
+      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium','p2',this)"></div>
+      <!-- p3 深藍 -->
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium','p3',this)"></div>
+      <!-- p4 霧紫 -->
+      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium','p4',this)"></div>
+      <!-- p5 藍灰 -->
+      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium','p5',this)"></div>
+      <!-- p6 金箔 -->
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium','p6',this)"></div>
+      <!-- p7 褐碳 -->
+      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium','p7',this)"></div>
     </div>
 
-    <!-- ✅ 新增：說明鈕（放在選版區內） -->
-    <div class="control-row" style="display:flex; justify-content:center; gap:10px; margin-top: 8px;">
-      <button class="btn-help" onclick="window.openOrderHelp()" aria-label="查看訂購流程說明">
+    <!-- ✅ 說明鈕（在選版區） -->
+    <div class="control-row" style="display:flex; justify-content:center; margin-top: 8px;">
+      <button class="btn-help" onclick="window.openOrderHelp()" type="button">
         <i class="fa-regular fa-circle-question"></i>
         訂購流程說明
       </button>
     </div>
 
-    <!-- 填表鈕維持在這裡（你指定位置） -->
+    <!-- ✅ 填表鈕維持位置 -->
     <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
+  <!-- 成品卡 -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
@@ -64,12 +75,7 @@
 
     <div class="avatar-wrap">
       <div class="avatar-circle">
-        <div class="photo-rail" id="photo-rail" aria-label="形象照輪播" role="group">
-          <div class="photo-item">
-            <img id="u-img" src="" class="avatar" alt="形象照" referrerpolicy="no-referrer" loading="lazy" />
-          </div>
-        </div>
-        <div class="photo-dots" id="photo-dots" aria-hidden="true"></div>
+        <img id="u-img" src="" class="avatar" alt="形象照" referrerpolicy="no-referrer" loading="lazy" />
       </div>
     </div>
 
@@ -77,26 +83,22 @@
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
 
-      <div class="content-box"
-           style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;"
-           onclick="window.goFillForm()">
-        立即填寫預約表單
-      </div>
+      <div class="content-box cta-box" onclick="window.goFillForm()">立即填寫預約表單</div>
 
-      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">
+      <div id="u-service" class="content-box service-box">
         正在同步雲端服務項目...
       </div>
     </div>
 
-    <div class="version-tag">V384</div>
+    <div class="version-tag">V385.3</div>
   </div>
 
-  <!-- ✅ 訂購流程彈窗（不改流程，只是說明） -->
+  <!-- ✅ 訂購流程彈窗 -->
   <div class="modal-backdrop" id="orderHelpModal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="訂購流程說明">
       <div class="modal-head">
         <div class="modal-title">訂購流程</div>
-        <button class="modal-x" onclick="window.closeOrderHelp()" aria-label="關閉">✕</button>
+        <button class="modal-x" onclick="window.closeOrderHelp()" aria-label="關閉" type="button">✕</button>
       </div>
 
       <div class="modal-body">
@@ -115,12 +117,12 @@
       </div>
 
       <div class="modal-foot">
-        <button class="btn-cta mini" onclick="window.goFillForm()">前往填表 →</button>
+        <button class="btn-cta mini" onclick="window.goFillForm()" type="button">前往填表 →</button>
       </div>
     </div>
   </div>
 
-  <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">幸福智慧名片 V384</footer>
+  <footer class="footer">幸福智慧名片 V385.3</footer>
   <script src="app.js?v=3853"></script>
 </body>
 </html>
