@@ -6,6 +6,9 @@ const CONFIG = {
 
 let state = { mode: 'free', theme: 'color-1', style: 'arch', paper: 'paper-1' };
 
+/* ===========================
+   UI: mode/theme/style/paper
+   =========================== */
 window.setV382 = function(mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
@@ -47,35 +50,50 @@ function applyV382() {
 }
 
 /* ===========================
+   訂購流程彈窗
+   =========================== */
+window.openOrderHelp = () => {
+  const m = document.getElementById("orderHelpModal");
+  if (!m) return;
+  m.classList.add("on");
+  m.setAttribute("aria-hidden", "false");
+};
+
+window.closeOrderHelp = () => {
+  const m = document.getElementById("orderHelpModal");
+  if (!m) return;
+  m.classList.remove("on");
+  m.setAttribute("aria-hidden", "true");
+};
+
+document.addEventListener("click", (e) => {
+  const m = document.getElementById("orderHelpModal");
+  if (!m) return;
+  if (m.classList.contains("on") && e.target === m) window.closeOrderHelp();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") window.closeOrderHelp();
+});
+
+/* ===========================
    Image URL normalize + slider
    =========================== */
-
 function normalizeImageUrl_(url) {
   if (!url) return "";
   let u = String(url).trim();
   if (!u) return "";
-  // enforce https if possible
   if (u.startsWith("http://")) u = "https://" + u.slice(7);
 
   // Google Drive share -> direct view
-  // patterns:
-  // 1) https://drive.google.com/file/d/<ID>/view?...
-  // 2) https://drive.google.com/open?id=<ID>
-  // 3) https://drive.google.com/uc?id=<ID>&export=download
   try {
     const m1 = u.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
     const m2 = u.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
     const m3 = u.match(/drive\.google\.com\/uc\?id=([a-zA-Z0-9_-]+)/);
     const id = (m1 && m1[1]) || (m2 && m2[1]) || (m3 && m3[1]) || "";
-    if (id) {
-      // best-effort direct view
-      return `https://drive.google.com/uc?export=view&id=${id}`;
-    }
-  } catch(e) {}
+    if (id) return `https://drive.google.com/uc?export=view&id=${id}`;
+  } catch (e) {}
 
-  // Basic allow-list: must be https or data
   if (!(u.startsWith("https://") || u.startsWith("data:image/"))) return "";
-
   return u;
 }
 
@@ -83,9 +101,8 @@ function splitPhotoList_(raw) {
   if (!raw) return [];
   const s = String(raw).trim();
   if (!s) return [];
-  // allow separators: newline, comma, pipe
   const parts = s.split(/\s*(?:\n|,|\|)\s*/).map(x => x.trim()).filter(Boolean);
-  // normalize + dedupe
+
   const out = [];
   const seen = new Set();
   for (const p of parts) {
@@ -101,11 +118,8 @@ function splitPhotoList_(raw) {
 function setPhotoSlider_(urls) {
   const rail = document.getElementById("photo-rail");
   const dots = document.getElementById("photo-dots");
-  const firstImg = document.getElementById("u-img");
-  if (!rail || !dots || !firstImg) return;
+  if (!rail || !dots) return;
 
-  // Clear extra slides, keep the first item (contains #u-img) as template
-  const templateItem = rail.querySelector(".photo-item");
   rail.innerHTML = "";
   dots.innerHTML = "";
 
@@ -114,18 +128,17 @@ function setPhotoSlider_(urls) {
   safeUrls.forEach((u, idx) => {
     const item = document.createElement("div");
     item.className = "photo-item";
+
     const img = document.createElement("img");
     img.className = "avatar";
     img.alt = "形象照";
     img.loading = "lazy";
     img.referrerPolicy = "no-referrer";
     img.decoding = "async";
-
     if (idx === 0) img.id = "u-img";
 
     if (u) img.src = u;
 
-    // fallback: keep circle clean (no broken icon)
     img.onerror = () => {
       img.removeAttribute("src");
       img.style.background = "linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.02))";
@@ -139,18 +152,15 @@ function setPhotoSlider_(urls) {
     dots.appendChild(d);
   });
 
-  // Show dots only if >1
   dots.style.display = safeUrls.length > 1 ? "flex" : "none";
 
-  // Update dots on scroll
   const updateDots = () => {
     const w = rail.clientWidth || 1;
     const idx = Math.round(rail.scrollLeft / w);
     [...dots.children].forEach((el, i) => el.classList.toggle("on", i === idx));
   };
 
-  rail.onscroll = () => { window.requestAnimationFrame(updateDots); };
-  // Reset to first
+  rail.onscroll = () => window.requestAnimationFrame(updateDots);
   rail.scrollLeft = 0;
   updateDots();
 }
@@ -160,51 +170,105 @@ function setPhotoSlider_(urls) {
    =========================== */
 function applyDataBalance_(data) {
   const b = document.body;
-
   const unit = (data && (data.單位 || data.unit)) ? String(data.單位 || data.unit).trim() : "";
   const svc  = (data && (data.服務項目 || data.service)) ? String(data.服務項目 || data.service).trim() : "";
-
   b.classList.toggle("has-no-unit", !unit);
   b.classList.toggle("has-no-service", !svc);
 }
 
 /* ===========================
-   Data Loading
+   Data Loading (強化：多路徑/不怕回傳格式不同)
    =========================== */
+function getCardId_() {
+  const sp = new URLSearchParams(location.search);
+  return (sp.get("id") || sp.get("card") || CONFIG.ANGEL || "").trim();
+}
+
+async function fetchWithTimeout_(url, ms = 8000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const res = await fetch(url, {
+      signal: ctl.signal,
+      cache: "no-store",
+      redirect: "follow"
+    });
+    return res;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function unwrapData_(obj) {
+  // 支援：data / row / result 包裝
+  if (!obj || typeof obj !== "object") return obj;
+  if (obj.data && typeof obj.data === "object") return obj.data;
+  if (obj.row && typeof obj.row === "object") return obj.row;
+  if (obj.result && typeof obj.result === "object") return obj.result;
+  return obj;
+}
 
 async function loadV382Data() {
+  const id = getCardId_();
+  if (!id) return;
+
+  const tries = [
+    `${CONFIG.GAS}?id=${encodeURIComponent(id)}`,
+    `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}`,
+    `${CONFIG.GAS}?action=get&id=${encodeURIComponent(id)}`
+  ];
+
   try {
-    const res = await fetch(`${CONFIG.GAS}?id=${CONFIG.ANGEL}`, { cache: "no-store" });
-    const data = await res.json();
+    let data = null;
 
-    if (data) {
-      const name = String(data.姓名 || data.name || "小天使笑長").trim();
-      const unit = String(data.單位 || data.unit || "").trim();
-      const svc  = String(data.服務項目 || data.service || "").trim();
+    for (const url of tries) {
+      try {
+        const res = await fetchWithTimeout_(url, 10000);
+        if (!res.ok) continue;
 
-      document.getElementById('u-name').innerText = name || "小天使笑長";
-      document.getElementById('u-unit').innerText = unit || "";
-      document.getElementById('u-service').innerText = svc || "";
+        const ct = (res.headers.get("content-type") || "").toLowerCase();
 
-      // Dynamic balance
-      applyDataBalance_(data);
+        if (ct.includes("application/json")) {
+          data = await res.json();
+        } else {
+          const txt = await res.text();
+          // 有些 GAS 會回傳文字 JSON
+          try { data = JSON.parse(txt); }
+          catch { data = null; }
+        }
 
-      // Photos: support multi urls
-      const photos = splitPhotoList_(data.形象照 || data.photo || data.photos || "");
-      setPhotoSlider_(photos);
-
-      // If only one photo and already exists, ensure it's normalized
-      const img0 = document.getElementById("u-img");
-      if (img0 && img0.getAttribute("src")) {
-        const nu = normalizeImageUrl_(img0.getAttribute("src"));
-        if (nu) img0.src = nu;
+        if (data) break;
+      } catch (e) {
+        // try next
       }
     }
-  } catch(e) {
+
+    if (!data) throw new Error("No data");
+
+    // unwrap + 兼容 ok: true
+    data = unwrapData_(data);
+
+    const name = String(data.姓名 || data.name || "小天使笑長").trim();
+    const unit = String(data.單位 || data.unit || "").trim();
+    const svc  = String(data.服務項目 || data.service || "").trim();
+
+    document.getElementById('u-name').innerText = name || "小天使笑長";
+    document.getElementById('u-unit').innerText = unit || "";
+    document.getElementById('u-service').innerText = svc || "";
+
+    applyDataBalance_(data);
+
+    const photos = splitPhotoList_(data.形象照 || data.photo || data.photos || "");
+    setPhotoSlider_(photos);
+
+  } catch (e) {
     console.error("雲端同步異常", e);
-    // keep layout stable even on failure
+    // 不讓版面崩
     applyDataBalance_({});
     setPhotoSlider_([]);
+    document.getElementById('u-name').innerText = "載入失敗";
+    document.getElementById('u-unit').innerText = "";
+    document.getElementById('u-service').innerText = "請稍後重整，或檢查 GAS 是否正常。";
   }
 }
 
@@ -214,7 +278,6 @@ window.onload = () => {
   loadV382Data();
   applyV382();
 
-  // basic PWA registration (safe; no logic change)
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
