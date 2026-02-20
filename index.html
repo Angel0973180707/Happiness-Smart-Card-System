@@ -6,10 +6,11 @@
   <title>幸福智慧名片 V384</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=384" />
-  <link rel="manifest" href="manifest.json?v=384" />
+  <link rel="stylesheet" href="style.css?v=3853" />
+  <link rel="manifest" href="manifest.json?v=3853" />
   <meta name="theme-color" content="#ff5e5e" />
 </head>
+
 <body class="mode-free color-1 style-arch paper-1">
 
   <div id="admin-panel">
@@ -35,15 +36,24 @@
     </div>
 
     <div class="dots-row">
-      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div> 
-      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div> 
+      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p1', this)"></div>
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p2', this)"></div>
       <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p3', this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div> 
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p4', this)"></div>
       <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p6', this)"></div>
       <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
     </div>
 
+    <!-- ✅ 新增：說明鈕（放在選版區內） -->
+    <div class="control-row" style="display:flex; justify-content:center; gap:10px; margin-top: 8px;">
+      <button class="btn-help" onclick="window.openOrderHelp()" aria-label="查看訂購流程說明">
+        <i class="fa-regular fa-circle-question"></i>
+        訂購流程說明
+      </button>
+    </div>
+
+    <!-- 填表鈕維持在這裡（你指定位置） -->
     <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
@@ -54,25 +64,63 @@
 
     <div class="avatar-wrap">
       <div class="avatar-circle">
-  <div class="photo-rail" id="photo-rail" aria-label="形象照輪播" role="group">
-    <div class="photo-item">
-      <img id="u-img" src="" class="avatar" alt="形象照" referrerpolicy="no-referrer" loading="lazy" />
-    </div>
-  </div>
-  <div class="photo-dots" id="photo-dots" aria-hidden="true"></div>
-</div>
+        <div class="photo-rail" id="photo-rail" aria-label="形象照輪播" role="group">
+          <div class="photo-item">
+            <img id="u-img" src="" class="avatar" alt="形象照" referrerpolicy="no-referrer" loading="lazy" />
+          </div>
+        </div>
+        <div class="photo-dots" id="photo-dots" aria-hidden="true"></div>
+      </div>
     </div>
 
     <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
-      <div class="content-box" style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;" onclick="window.goFillForm()">立即填寫預約表單</div>
-      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在同步雲端服務項目...</div>
+
+      <div class="content-box"
+           style="text-align:center; font-weight:900; color:var(--p); cursor:pointer;"
+           onclick="window.goFillForm()">
+        立即填寫預約表單
+      </div>
+
+      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">
+        正在同步雲端服務項目...
+      </div>
     </div>
+
     <div class="version-tag">V384</div>
   </div>
 
+  <!-- ✅ 訂購流程彈窗（不改流程，只是說明） -->
+  <div class="modal-backdrop" id="orderHelpModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="訂購流程說明">
+      <div class="modal-head">
+        <div class="modal-title">訂購流程</div>
+        <button class="modal-x" onclick="window.closeOrderHelp()" aria-label="關閉">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <ol class="modal-ol">
+          <li><b>先選方案</b>（自由搭配 或 精品設計）</li>
+          <li><b>再選模版</b></li>
+          <li><b>到 LINE 官網預約</b></li>
+          <li><b>確認預約訊息</b>（報價、取貨方式及時間）</li>
+        </ol>
+
+        <div class="modal-note">
+          <b>交貨：</b>填完表單後 <b>三天內交貨</b>。<br/>
+          <b>急件：</b>急件費用另計。<br/>
+          <b>疑問：</b>可透過 LINE 官網或加 LINE 好友詢問。
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn-cta mini" onclick="window.goFillForm()">前往填表 →</button>
+      </div>
+    </div>
+  </div>
+
   <footer style="font-size: 10px; color: #ccc; margin-top: 20px; text-align: center;">幸福智慧名片 V384</footer>
-  <script src="app.js?v=384"></script>
+  <script src="app.js?v=3853"></script>
 </body>
 </html>
