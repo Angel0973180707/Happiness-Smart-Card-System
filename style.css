@@ -1,5 +1,35 @@
-/* --- 幸福智慧名片 V385.x｜控制區 ≤ 1/4 螢幕｜樣品預覽區在下 --- */
-:root { --font: 'Noto Sans TC', sans-serif; }
+/* ================================
+   幸福智慧名片｜V385.3 視覺微調版
+   （完整覆蓋 style.css）
+   規則：不改 JS / 不改流程 / 不改配色策略
+   目標：控制區 ≤ 1/4；樣品名片區為主體且更舒展
+   ================================ */
+
+/* ---------- Root / Themes ---------- */
+:root{
+  --font: "Noto Sans TC", sans-serif;
+  --p:#ff5e5e;
+  --bg:#fff5f5;
+  --card-bg:#ffffff;
+  --text:#2d3436;
+
+  /* 視覺呼吸（只調間距/高度） */
+  --panel-max: 24vh;        /* 控制區高度上限（約 1/4） */
+  --panel-pad-y: 10px;
+  --panel-pad-x: 12px;
+
+  --card-w: 92%;
+  --card-maxw: 380px;
+
+  /* 名片高度主控（手機優先） */
+  --card-h-free: 72vh;
+  --card-h-premium: 66vh;
+
+  /* 卡片圓角與陰影維持語言，只微調呼吸 */
+  --card-radius: 45px;
+  --shadow-card: 0 15px 40px rgba(0,0,0,0.06);
+  --shadow-dot: 0 3px 8px rgba(0,0,0,0.08);
+}
 
 /* 🎨 自由搭配款 (純淨亮彩 5 色) */
 .mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
@@ -26,136 +56,330 @@
 /* P7: 褐碳玻璃 */
 .mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg: linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.2; }
 
-/* ===== 版面分區：上 1/4 控制區 + 下方樣品預覽區 ===== */
-html, body { height: 100%; }
-body {
+/* ---------- Page Layout (核心：控制區不擠壓樣品區) ---------- */
+html, body{
+  width:100%;
+  height:100%;
+  margin:0;
+  padding:0;
+  font-family:var(--font);
+}
+
+body{
   background: var(--bg);
-  font-family: var(--font);
-  margin: 0;
+  color: var(--text);
+
+  /* 讓下方名片吃滿剩餘高度 */
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  /* 防止整頁被 footer 撐開擠壓名片 */
+  overflow: hidden;
+  padding-bottom: 0;
   transition: 0.5s;
-  padding-bottom: 18px;
-  min-height: 100vh;
 }
 
-/* 🔴 控制面板：固定在上方，最多 1/4 螢幕 */
-#admin-panel {
-  background: #fff;
+/* ---------- Admin Panel (控制區 ≤ 1/4 高度 + 更緊湊) ---------- */
+#admin-panel{
   width: 100%;
+  background: rgba(255,255,255,0.92);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
   text-align: center;
-  border-bottom: 1px solid #eee;
   z-index: 100;
 
+  /* 高度控制：不超過 1/4 螢幕 */
+  max-height: var(--panel-max);
+  flex: 0 0 auto;
+
+  padding: var(--panel-pad-y) var(--panel-pad-x);
+  box-sizing: border-box;
+
+  /* 內容可在面板內部滾動，不把名片往下擠 */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* 手機上視覺更穩：貼頂 */
   position: sticky;
   top: 0;
-
-  /* ✅ 核心：控制在上面 1/4 以內 */
-  max-height: 25vh;
-  overflow: auto;
-
-  /* ✅ 讓它更緊湊（不撐高） */
-  padding: 10px 0 8px;
-  -webkit-overflow-scrolling: touch;
 }
 
-/* ✅ 控制區滾動時，底部有一點視覺分隔 */
-#admin-panel::after{
-  content:"";
-  display:block;
-  height: 8px;
+/* 控制區的列：稍微縮緊，留給名片更大呼吸 */
+.dots-row{
+  display:flex;
+  justify-content:center;
+  gap: 10px;
+  margin: 8px 0;
 }
 
-/* 控制面板內元件壓縮高度 */
-.dots-row { display: flex; justify-content: center; gap: 10px; margin: 8px 0; }
-.dot, .p-dot {
-  width: 34px; height: 34px; border-radius: 50%;
-  cursor: pointer; border: 3px solid #fff;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+.control-row{
+  display:flex;
+  justify-content:center;
+  gap: 8px;
+  margin: 6px 0;
+  flex-wrap: wrap;
+}
+
+/* dots / active */
+.dot, .p-dot{
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: var(--shadow-dot);
   transition: 0.2s;
-  flex: 0 0 auto;
 }
-.active { border-color: #2d3436 !important; transform: scale(1.1); }
 
-.btn-cta {
+.active{
+  border-color: #2d3436 !important;
+  transform: scale(1.08);
+}
+
+/* CTA 按鈕：保留語言，只讓面板更省高 */
+.btn-cta{
   background: var(--p);
   color: #fff;
   border: none;
-  padding: 12px 40px;
+  padding: 11px 34px;
   border-radius: 40px;
   font-weight: 900;
   cursor: pointer;
-  margin: 8px 0 4px;
+  margin-top: 6px;
 }
 
-/* 如果你有 btn-neo（你 HTML 有用到），補上基本樣式避免大小亂跳 */
-.btn-neo{
-  border: 1px solid rgba(0,0,0,0.08);
-  background:#fff;
-  border-radius: 16px;
-  padding: 10px 14px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.btn-neo.active{
-  outline: 2px solid rgba(0,0,0,0.10);
-}
+/* 讓面板內滾動時不顯示捲軸（手機更乾淨） */
+#admin-panel::-webkit-scrollbar{ width:0; height:0; }
 
-/* ===== 样品名片：下方预览区（自适应高度，不被推到底） ===== */
-.card {
-  width: 92%;
-  max-width: 380px;
+/* ---------- Preview Zone (名片為主體) ---------- */
+#card-container.card{
+  width: var(--card-w);
+  max-width: var(--card-maxw);
 
-  /* ✅ 核心：卡片高度自适应（确保预览区在下方可见） */
-  height: min(660px, calc(100vh - 25vh - 24px));
+  /* ✅ 由固定 px 改為「vh 主導 + 上限」：強化高度存在感 */
+  height: min(var(--card-h-free), 660px);
 
   background: var(--card-bg) !important;
-  border-radius: 45px;
+  border-radius: var(--card-radius);
   overflow: hidden;
   position: relative;
 
-  /* ✅ 卡片贴近控制区，不要太低 */
-  margin: 10px 0 10px;
+  /* ✅ 重要：名片區吃滿剩餘空間，避免被控制區擠壓 */
+  flex: 1 1 auto;
+  min-height: 0;
 
-  box-shadow: 0 15px 40px rgba(0,0,0,0.06);
+  /* ✅ 視覺呼吸：縮短上下 margin，讓高度更顯著 */
+  margin: 10px 0 12px;
+
+  box-shadow: var(--shadow-card);
   transition: 0.5s;
+
+  /* 名片內部若內容過長，改在卡片內滾，不擠壓整體高度 */
+  display: block;
 }
 
-/* 🔴 自由款地平線（保留） */
-.banner { height: 125px; background: var(--p); position: relative; transition: 0.5s; overflow: visible; }
-.dynamic-mask { position: absolute; width: 100%; bottom: -1px; transition: 0.3s; }
-.style-arch .dynamic-mask { background: #fff; height: 45px; border-radius: 60px 60px 0 0; }
-.style-flat .dynamic-mask { background: #fff; height: 10px; border-radius: 0; }
-.style-spot .dynamic-mask { height: 85px; bottom: -84px; background: var(--p); left: 0; width: 100%; clip-path: ellipse(50% 80% at 50% 0%); z-index: 10; }
-
-/* 💎 精品款：留邊名片感（也自適應高度） */
-.mode-premium .card {
+/* 精品款：保持留邊名片感，只調高度/間距 */
+.mode-premium #card-container.card{
   width: 86%;
-  height: min(580px, calc(100vh - 25vh - 24px));
-  margin: 12px auto 10px;
+  height: min(var(--card-h-premium), 580px);
+  margin: 14px auto 14px;
   box-shadow: 0 25px 50px rgba(0,0,0,0.12);
 }
-.mode-premium .banner, .mode-premium .dynamic-mask { display: none !important; }
 
-/* 🔴 頭像穩定定位 */
-.avatar-wrap { position: absolute; width: 100%; display: flex; justify-content: center; z-index: 30; transition: 0.4s; }
-.mode-free .avatar-wrap { top: 75px; }
-.mode-premium .avatar-wrap { top: 40px; left: 25px; justify-content: flex-start; }
-.avatar-circle { width: 105px; height: 105px; border-radius: 50% !important; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
-.mode-premium .avatar-circle { width: 85px; height: 85px; border: 2.5px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); }
-.avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+/* ---------- Banner / Masks (保留原語言，不改設計策略) ---------- */
+.banner{
+  height: 125px;
+  background: var(--p);
+  position: relative;
+  transition: 0.5s;
+  overflow: visible;
+}
 
-/* 🔴 內容方塊 */
-.info-scroll { transition: 0.4s; height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
-.mode-free .info-scroll { padding: 100px 20px 20px; text-align: center; }
-.mode-premium .info-scroll { padding: 90px 25px 25px; text-align: left; }
-.content-box { background: rgba(0,0,0,0.02); border-radius: 20px; padding: 18px; margin-bottom: 12px; text-align: left; }
-.mode-premium .content-box { background: rgba(255,255,255,0.18) !important; border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(10px); border-radius: 15px; }
+.dynamic-mask{
+  position: absolute;
+  width: 100%;
+  bottom: -1px;
+  transition: 0.3s;
+}
 
-/* 🔴 質感層與版號 */
-.premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: overlay; }
-.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.15; z-index: 5; mix-blend-mode: multiply; }
-.version-tag { font-size: 10px; opacity: 0.3; position: absolute; bottom: 15px; right: 25px; font-family: monospace; }
+.style-arch .dynamic-mask{
+  background: #fff;
+  height: 45px;
+  border-radius: 60px 60px 0 0;
+}
 
-footer { font-size: 10px; color: #ccc; margin-top: 6px; text-align: center; }
+.style-flat .dynamic-mask{
+  background: #fff;
+  height: 10px;
+  border-radius: 0;
+}
+
+.style-spot .dynamic-mask{
+  height: 85px;
+  bottom: -84px;
+  background: var(--p);
+  left: 0;
+  width: 100%;
+  clip-path: ellipse(50% 80% at 50% 0%);
+  z-index: 10;
+}
+
+/* 精品：隱藏 banner / mask */
+.mode-premium .banner,
+.mode-premium .dynamic-mask{
+  display: none !important;
+}
+
+/* ---------- Avatar Positioning (只穩定呼吸/不改語言) ---------- */
+.avatar-wrap{
+  position: absolute;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 30;
+  transition: 0.4s;
+}
+
+.mode-free .avatar-wrap{ top: 75px; }
+.mode-premium .avatar-wrap{
+  top: 40px;
+  left: 25px;
+  justify-content: flex-start;
+}
+
+.avatar-circle{
+  width: 105px;
+  height: 105px;
+  border-radius: 50% !important;
+  background: #fff;
+  padding: 4px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.mode-premium .avatar-circle{
+  width: 85px;
+  height: 85px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.15);
+}
+
+.avatar{
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ---------- Content (卡內滾動，避免外部被撐高) ---------- */
+.info-scroll{
+  transition: 0.4s;
+  height: 100%;
+  box-sizing: border-box;
+
+  /* ✅ 卡內捲動，保持卡片高度存在感 */
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mode-free .info-scroll{
+  padding: 100px 20px 20px;
+  text-align: center;
+}
+
+.mode-premium .info-scroll{
+  padding: 90px 25px 25px;
+  text-align: left;
+}
+
+.info-scroll::-webkit-scrollbar{ width:0; height:0; }
+
+.name{
+  margin: 0 0 6px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+
+.unit{
+  margin: 0 0 14px;
+  opacity: 0.9;
+  font-weight: 700;
+}
+
+.content-box{
+  background: rgba(0,0,0,0.02);
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.mode-premium .content-box{
+  background: rgba(255,255,255,0.18) !important;
+  border: 1px solid rgba(255,255,255,0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 15px;
+}
+
+/* ---------- FX / Paper / Version Tag ---------- */
+.premium-fx-layer{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--fx-op, 0);
+  background: var(--fx-img);
+  z-index: 6;
+  mix-blend-mode: overlay;
+}
+
+.paper-overlay{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.15;
+  z-index: 5;
+  mix-blend-mode: multiply;
+}
+
+.version-tag{
+  font-size: 10px;
+  opacity: 0.3;
+  position: absolute;
+  bottom: 12px;   /* 微調呼吸 */
+  right: 22px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+/* ---------- Footer（不再把版面撐高擠壓名片） ---------- */
+footer{
+  display: none; /* 版號已在卡內，footer 隱藏避免壓縮主體 */
+}
+
+/* ---------- Mobile Fine-Tune ---------- */
+@media (max-width: 420px){
+  :root{
+    --panel-pad-y: 8px;
+    --panel-pad-x: 10px;
+    --card-h-free: 74vh;     /* 手機再強一點存在感 */
+    --card-h-premium: 68vh;
+  }
+
+  .dot, .p-dot{ width: 30px; height: 30px; }
+  .btn-cta{ padding: 10px 30px; }
+
+  /* 小螢幕控制區更省高 */
+  #admin-panel{ max-height: 22vh; }
+}
+
+/* ---------- Short Height Devices ---------- */
+@media (max-height: 740px){
+  :root{
+    --card-h-free: 76vh;     /* 短螢幕時，仍確保卡片主體 */
+    --card-h-premium: 70vh;
+  }
+
+  #admin-panel{ max-height: 23vh; }
+}
