@@ -1,4 +1,4 @@
-/* --- 幸福智慧名片 V384 基底（保持成品卡形式不變）--- */
+/* --- 幸福智慧名片 V385.x｜控制區 ≤ 1/4 螢幕｜樣品預覽區在下 --- */
 :root { --font: 'Noto Sans TC', sans-serif; }
 
 /* 🎨 自由搭配款 (純淨亮彩 5 色) */
@@ -26,26 +26,116 @@
 /* P7: 褐碳玻璃 */
 .mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg: linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.2; }
 
-body { background: var(--bg); font-family: var(--font); margin: 0; display: flex; flex-direction: column; align-items: center; transition: 0.5s; padding-bottom: 40px; }
+/* ===== 版面分區：上 1/4 控制區 + 下方樣品預覽區 ===== */
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  font-family: var(--font);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: 0.5s;
+  padding-bottom: 18px;
+  min-height: 100vh;
+}
 
-/* 🔴 控制面板 */
-#admin-panel { background: #fff; width: 100%; text-align: center; border-bottom: 1px solid #eee; padding: 15px 0; z-index: 100; }
-.dots-row { display: flex; justify-content: center; gap: 10px; margin: 10px 0; }
-.dot, .p-dot { width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.08); transition: 0.2s; }
+/* 🔴 控制面板：固定在上方，最多 1/4 螢幕 */
+#admin-panel {
+  background: #fff;
+  width: 100%;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  z-index: 100;
+
+  position: sticky;
+  top: 0;
+
+  /* ✅ 核心：控制在上面 1/4 以內 */
+  max-height: 25vh;
+  overflow: auto;
+
+  /* ✅ 讓它更緊湊（不撐高） */
+  padding: 10px 0 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ✅ 控制區滾動時，底部有一點視覺分隔 */
+#admin-panel::after{
+  content:"";
+  display:block;
+  height: 8px;
+}
+
+/* 控制面板內元件壓縮高度 */
+.dots-row { display: flex; justify-content: center; gap: 10px; margin: 8px 0; }
+.dot, .p-dot {
+  width: 34px; height: 34px; border-radius: 50%;
+  cursor: pointer; border: 3px solid #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  transition: 0.2s;
+  flex: 0 0 auto;
+}
 .active { border-color: #2d3436 !important; transform: scale(1.1); }
 
-/* 🔴 通用卡片結構 */
-.card { width: 92%; max-width: 380px; height: 660px; background: var(--card-bg) !important; border-radius: 45px; overflow: hidden; position: relative; margin: 15px 0; box-shadow: 0 15px 40px rgba(0,0,0,0.06); transition: 0.5s; }
+.btn-cta {
+  background: var(--p);
+  color: #fff;
+  border: none;
+  padding: 12px 40px;
+  border-radius: 40px;
+  font-weight: 900;
+  cursor: pointer;
+  margin: 8px 0 4px;
+}
 
-/* 🔴 自由款地平線 */
+/* 如果你有 btn-neo（你 HTML 有用到），補上基本樣式避免大小亂跳 */
+.btn-neo{
+  border: 1px solid rgba(0,0,0,0.08);
+  background:#fff;
+  border-radius: 16px;
+  padding: 10px 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.btn-neo.active{
+  outline: 2px solid rgba(0,0,0,0.10);
+}
+
+/* ===== 样品名片：下方预览区（自适应高度，不被推到底） ===== */
+.card {
+  width: 92%;
+  max-width: 380px;
+
+  /* ✅ 核心：卡片高度自适应（确保预览区在下方可见） */
+  height: min(660px, calc(100vh - 25vh - 24px));
+
+  background: var(--card-bg) !important;
+  border-radius: 45px;
+  overflow: hidden;
+  position: relative;
+
+  /* ✅ 卡片贴近控制区，不要太低 */
+  margin: 10px 0 10px;
+
+  box-shadow: 0 15px 40px rgba(0,0,0,0.06);
+  transition: 0.5s;
+}
+
+/* 🔴 自由款地平線（保留） */
 .banner { height: 125px; background: var(--p); position: relative; transition: 0.5s; overflow: visible; }
 .dynamic-mask { position: absolute; width: 100%; bottom: -1px; transition: 0.3s; }
 .style-arch .dynamic-mask { background: #fff; height: 45px; border-radius: 60px 60px 0 0; }
 .style-flat .dynamic-mask { background: #fff; height: 10px; border-radius: 0; }
 .style-spot .dynamic-mask { height: 85px; bottom: -84px; background: var(--p); left: 0; width: 100%; clip-path: ellipse(50% 80% at 50% 0%); z-index: 10; }
 
-/* 💎 精品款：留邊名片感 */
-.mode-premium .card { width: 86%; height: 580px; margin: 30px auto; box-shadow: 0 25px 50px rgba(0,0,0,0.12); }
+/* 💎 精品款：留邊名片感（也自適應高度） */
+.mode-premium .card {
+  width: 86%;
+  height: min(580px, calc(100vh - 25vh - 24px));
+  margin: 12px auto 10px;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.12);
+}
 .mode-premium .banner, .mode-premium .dynamic-mask { display: none !important; }
 
 /* 🔴 頭像穩定定位 */
@@ -57,7 +147,7 @@ body { background: var(--bg); font-family: var(--font); margin: 0; display: flex
 .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 
 /* 🔴 內容方塊 */
-.info-scroll { transition: 0.4s; }
+.info-scroll { transition: 0.4s; height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
 .mode-free .info-scroll { padding: 100px 20px 20px; text-align: center; }
 .mode-premium .info-scroll { padding: 90px 25px 25px; text-align: left; }
 .content-box { background: rgba(0,0,0,0.02); border-radius: 20px; padding: 18px; margin-bottom: 12px; text-align: left; }
@@ -67,34 +157,5 @@ body { background: var(--bg); font-family: var(--font); margin: 0; display: flex
 .premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: overlay; }
 .paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.15; z-index: 5; mix-blend-mode: multiply; }
 .version-tag { font-size: 10px; opacity: 0.3; position: absolute; bottom: 15px; right: 25px; font-family: monospace; }
-.btn-cta { background: var(--p); color: #fff; border: none; padding: 12px 40px; border-radius: 40px; font-weight: 900; cursor: pointer; margin-top: 5px; }
 
-/* =========================================================
-   ✅ 385.3「樣品區太低」修正（只做往上提，不改形式）
-   1) 控制面板下方留白減少
-   2) 卡片上緣往上提（margin-top 變小）
-   3)（可選）自由款卡片高度略加高，呈現「樣品區更高」
-   ========================================================= */
-
-/* 1) 控制面板縮一點，下方少佔位 */
-#admin-panel{
-  padding: 10px 0 10px; /* 原本 15px 0 → 改小 */
-}
-
-/* 2) 名片卡往上提（關鍵：把卡片與面板之間距離縮小） */
-#card-container.card{
-  margin-top: 8px;   /* 原本 margin:15px 0 會偏低；這裡固定拉上來 */
-  margin-bottom: 16px;
-}
-
-/* 3) 讓「樣品展示」視覺更高（只加自由款，避免精品款破比例） */
-.mode-free .card{
-  height: 700px;     /* 原本 660px → 拉高一點，更像你 385.3 那張的視覺高度 */
-}
-
-/* 小螢幕再微調，避免被擠 */
-@media (max-width: 420px){
-  #admin-panel{ padding: 8px 0 8px; }
-  #card-container.card{ margin-top: 6px; }
-  .mode-free .card{ height: 690px; }
-}
+footer { font-size: 10px; color: #ccc; margin-top: 6px; text-align: center; }
