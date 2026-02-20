@@ -192,4 +192,135 @@ body {
 .info-scroll { transition: 0.4s; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .info-scroll::-webkit-scrollbar{ width:0; height:0; }
 
-.mode-free .info-scroll { padding: 100px 20px 20px
+.mode-free .info-scroll { padding: 100px 20px 20px; text-align: center; }
+.mode-premium .info-scroll { padding: 90px 25px 25px; text-align: left; }
+
+.content-box {
+  background: rgba(0,0,0,0.02);
+  border-radius: 20px;
+  padding: 18px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+.mode-premium .content-box {
+  background: rgba(255,255,255,0.18) !important;
+  border: 1px solid rgba(255,255,255,0.25);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+}
+
+/* ✅ 動態平衡：沒填資料就收斂 */
+.has-no-unit .unit { display: none !important; }
+.has-no-unit .name { margin-bottom: 12px; }
+.has-no-service #u-service { display: none !important; }
+
+/* 🔴 質感層與版號 */
+.premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: overlay; }
+.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.15; z-index: 5; mix-blend-mode: multiply; }
+.version-tag { font-size: 10px; opacity: 0.3; position: absolute; bottom: 15px; right: 25px; font-family: monospace; }
+
+/* ✅ 精品款：按鈕更精緻 + 金邊立體 CTA */
+.mode-premium .btn-neo{
+  padding: 8px 12px;
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.95);
+}
+.mode-premium .btn-neo.active{
+  background: rgba(255,255,255,0.22);
+  border-color: rgba(255,255,255,0.28);
+}
+
+/* 精品 CTA：小一點 + 金邊立體 */
+.mode-premium .btn-cta{
+  padding: 10px 28px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.06));
+  border: 1px solid rgba(212,175,55,0.85);
+  color: rgba(255,255,255,0.95);
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    inset 0 -1px 0 rgba(0,0,0,0.12);
+}
+.mode-premium .btn-cta:active{
+  transform: translateY(1px);
+  box-shadow:
+    0 6px 16px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.38),
+    inset 0 -1px 0 rgba(0,0,0,0.16);
+}
+
+/* ✅ 訂購流程彈窗 */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 18px;
+}
+.modal-backdrop.on{ display:flex; }
+
+.modal-card{
+  width: min(420px, 100%);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.5);
+  backdrop-filter: blur(10px);
+}
+
+.modal-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+}
+.modal-title{
+  font-weight: 900;
+  font-size: 16px;
+  color:#2d3436;
+}
+.modal-x{
+  border:none;
+  background: rgba(0,0,0,0.04);
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor:pointer;
+  font-weight: 900;
+}
+.modal-body{
+  padding: 0 16px 14px;
+  color:#2d3436;
+}
+.modal-ol{
+  margin: 10px 0 12px;
+  padding-left: 18px;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.modal-note{
+  background: rgba(0,0,0,0.03);
+  border-radius: 14px;
+  padding: 12px 12px;
+  line-height: 1.7;
+  font-size: 13px;
+}
+.modal-foot{
+  padding: 0 16px 16px;
+  display:flex;
+  justify-content: flex-end;
+}
+
+/* 小螢幕細調 */
+@media (max-width: 420px){
+  #admin-panel{ padding: 12px 0; }
+  .dot, .p-dot{ width: 32px; height: 32px; }
+}
