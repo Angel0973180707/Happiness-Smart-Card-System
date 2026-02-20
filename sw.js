@@ -1,4 +1,4 @@
-const CACHE_NAME = 'angel-card-v384-cache-v2';
+const CACHE_NAME = 'angel-card-v384-cache-v5';
 const ASSETS = [
   './',
   './index.html',
