@@ -1,18 +1,15 @@
-
-/* --- 幸福智慧名片｜V384 外觀鎖定（含：紙感加強＋方案註記＋精品按鈕精緻化＋P順序修正） --- */
+/* --- 幸福智慧名片｜V384 外觀鎖定｜V385.3 UI補齊（modal/help/premium空間） --- */
 :root { --font: 'Noto Sans TC', sans-serif; }
 
-/* 🎨 自由搭配款 (純淨亮彩 5 色) */
+/* 🎨 自由搭配款 */
 .mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-/* 🌿 精品設計款 (玻璃幻鏡 7 色) */
+/* ✅ 精品順序：p1胭脂 p2酒紅 p3深藍 p4霧紫 p5藍灰 p6金箔 p7褐碳 */
 .mode-premium .card { backdrop-filter: blur(25px); border: 12px solid #ffffff; }
-
-/* ✅【P 順序】p1胭脂 p2酒紅 p3深藍 p4霧紫 p5藍灰 p6金箔 p7褐碳 */
 .mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg: linear-gradient(135deg, rgba(163,109,109,0.95), rgba(142,90,90,0.85)); --text:#ffffff; --fx-op:0.35; --fx-img:none; }
 .mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,0.95), rgba(114,47,55,0.85)); --text:#f5e6e8; --fx-op:0.4; --fx-img:radial-gradient(circle at 20% 20%, rgba(255,255,255,0.3) 0%, transparent 60%); }
 .mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg: linear-gradient(135deg, rgba(28,46,66,0.95), rgba(44,62,80,0.85)); --text:#ffffff; --fx-op:0.25; --fx-img:none; }
@@ -21,7 +18,6 @@
 .mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg: linear-gradient(135deg, rgba(191,149,63,0.95), rgba(252,246,186,0.85), rgba(170,119,28,0.95)); --text:#4d3700; --fx-op:0.6; --fx-img:linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%); }
 .mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg: linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.2; --fx-img:none; }
 
-/* base */
 *{ box-sizing:border-box; }
 body{
   background: var(--bg);
@@ -35,7 +31,7 @@ body{
   color: var(--text);
 }
 
-/* 🔴 控制面板 */
+/* 控制面板 */
 #admin-panel{
   background: #fff;
   width: 100%;
@@ -45,13 +41,12 @@ body{
   z-index: 100;
 }
 
-/* ✅ 方案註記：自由搭配 / 精品設計（不改 HTML，用 CSS 加註） */
+/* 方案註記 */
 #admin-panel > .dots-row{
   position: relative;
   padding-top: 18px;
 }
 #admin-panel > .dots-row::before{
-  content:"";
   position: absolute;
   top: 0;
   left: 50%;
@@ -78,7 +73,7 @@ body{
 }
 .active{ border-color:#2d3436 !important; transform: scale(1.1); }
 
-/* 按鈕（V384 neo 感） */
+/* 按鈕 */
 .btn-neo{
   border:none;
   background: rgba(0,0,0,0.04);
@@ -93,7 +88,7 @@ body{
 .btn-neo:active{ transform: translateY(1px); }
 .btn-neo.active{ background: rgba(0,0,0,0.08); }
 
-/* 🔴 CTA */
+/* CTA */
 .btn-cta{
   background: var(--p);
   color: #fff;
@@ -102,11 +97,28 @@ body{
   border-radius: 40px;
   font-weight: 900;
   cursor: pointer;
-  margin-top: 5px;
+  margin-top: 10px;
 }
+.btn-cta.mini{ padding: 10px 22px; border-radius: 999px; }
 .btn-cta:active{ transform: translateY(1px); }
 
-/* 🔴 通用卡片結構 */
+/* ✅ 說明鈕 */
+.btn-help{
+  border: none;
+  background: rgba(0,0,0,0.04);
+  color: #2d3436;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-help:active{ transform: translateY(1px); }
+
+/* 卡片 */
 .card{
   width: 92%;
   max-width: 380px;
@@ -120,7 +132,7 @@ body{
   transition: 0.5s;
 }
 
-/* 🔴 自由款地平線 */
+/* 自由款 banner */
 .banner{ height:125px; background: var(--p); position:relative; transition:0.5s; overflow: visible; }
 .dynamic-mask{ position:absolute; width:100%; bottom:-1px; transition:0.3s; }
 .style-arch .dynamic-mask{ background:#fff; height:45px; border-radius:60px 60px 0 0; }
@@ -132,19 +144,19 @@ body{
   z-index: 10;
 }
 
-/* 💎 精品款：留邊名片感 */
+/* ✅ 精品卡：把內容空間放大（解你第4點） */
 .mode-premium .card{
   width: 86%;
-  height: 580px;
-  margin: 30px auto;
+  height: 610px;              /* 原 580 太擠，往上拉一點 */
+  margin: 22px auto;
   box-shadow: 0 25px 50px rgba(0,0,0,0.12);
 }
 .mode-premium .banner, .mode-premium .dynamic-mask{ display:none !important; }
 
-/* 🔴 頭像穩定定位 */
+/* 頭像定位 */
 .avatar-wrap{ position:absolute; width:100%; display:flex; justify-content:center; z-index:30; transition:0.4s; }
 .mode-free .avatar-wrap{ top: 75px; }
-.mode-premium .avatar-wrap{ top: 40px; left: 25px; justify-content:flex-start; }
+.mode-premium .avatar-wrap{ top: 28px; left: 22px; justify-content:flex-start; }
 
 .avatar-circle{
   width:105px; height:105px;
@@ -155,19 +167,29 @@ body{
   overflow:hidden;
 }
 .mode-premium .avatar-circle{
-  width:85px; height:85px;
+  width:82px; height:82px;   /* 精品縮一點，讓文字區更寬敞 */
   border: 2.5px solid rgba(255,255,255,0.3);
   background: rgba(255,255,255,0.15);
 }
 .avatar{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
 
-/* 🔴 內容 */
+/* 內容區 */
 .name{ margin: 0; font-weight: 900; letter-spacing: .5px; }
 .unit{ margin-top: 8px; opacity: .75; font-weight: 700; }
-.info-scroll{ transition:0.4s; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+
+.info-scroll{
+  transition:0.4s;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
 .info-scroll::-webkit-scrollbar{ width:0; height:0; }
 .mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
-.mode-premium .info-scroll{ padding: 90px 25px 25px; text-align:left; }
+
+/* ✅ 精品：把文字區往下移，並加大可用高度 */
+.mode-premium .info-scroll{
+  padding: 120px 22px 22px;  /* 原 90 太靠上，塞爆 */
+  text-align:left;
+}
 
 .content-box{
   background: rgba(0,0,0,0.02);
@@ -181,12 +203,24 @@ body{
   border: 1px solid rgba(255,255,255,0.25);
   backdrop-filter: blur(10px);
   border-radius: 15px;
+  padding: 14px;            /* 精品縮緊，內容更放得下 */
+  margin-bottom: 10px;
 }
 
-/* 🔴 質感層與版號 */
+/* 填表引導字：更大更好點 */
+.cta-box{
+  text-align:center;
+  font-weight:900;
+  color: var(--p);
+  cursor:pointer;
+  user-select:none;
+  font-size: 16px;
+}
+.service-box{ font-size: 14px; line-height: 1.7; }
+
 .premium-fx-layer{ position:absolute; inset:0; pointer-events:none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: overlay; }
 
-/* ✅ 紙感加強：更明顯（棉紙/顆粒/亞麻） */
+/* 紙感加強 */
 .paper-overlay{
   position:absolute; inset:0; pointer-events:none;
   z-index: 5;
@@ -222,7 +256,7 @@ body{
 
 .version-tag{ font-size:10px; opacity:0.3; position:absolute; bottom:15px; right:25px; font-family: monospace; }
 
-/* ✅ 精品款：按鈕更精緻 + 金邊立體 CTA */
+/* 精品按鈕精緻 + 金邊立體 CTA */
 .mode-premium .btn-neo{
   padding: 8px 12px;
   border-radius: 14px;
@@ -247,15 +281,69 @@ body{
     inset 0 1px 0 rgba(255,255,255,0.45),
     inset 0 -1px 0 rgba(0,0,0,0.12);
 }
-.mode-premium .btn-cta:active{
-  transform: translateY(1px);
-  box-shadow:
-    0 6px 16px rgba(0,0,0,0.18),
-    inset 0 1px 0 rgba(255,255,255,0.38),
-    inset 0 -1px 0 rgba(0,0,0,0.16);
+
+/* ✅ modal（你缺這段所以內容掉到底） */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 9999;
+}
+.modal-backdrop.show{ display:flex; }
+
+.modal-card{
+  width: 100%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.modal-head{
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.modal-title{ font-weight: 900; font-size: 16px; }
+.modal-x{
+  border:none;
+  background: rgba(0,0,0,0.06);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  cursor:pointer;
+  font-weight: 900;
+}
+.modal-body{ padding: 14px 16px 10px; }
+.modal-ol{ margin: 0; padding-left: 18px; line-height: 1.9; }
+.modal-note{
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.04);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.modal-foot{
+  padding: 12px 16px 16px;
+  display:flex;
+  justify-content: flex-end;
 }
 
-/* 小螢幕細調 */
+/* footer */
+.footer{
+  font-size: 10px;
+  color: #ccc;
+  margin-top: 20px;
+  text-align: center;
+}
+
 @media (max-width: 420px){
   #admin-panel{ padding: 12px 0; }
   #admin-panel > .dots-row{ padding-top: 16px; }
