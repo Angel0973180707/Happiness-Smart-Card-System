@@ -1,11 +1,10 @@
 /* ================================
  * Angel Card App.js (FULL OVERWRITE)
- * - Gallery: dynamic aspect ratio (no fixed 16:9)
- * - Gallery: contain preview (no crop), click to open original
+ * - Step flow: choose plan first, then branch controls
+ * - Contact block: LINE / website / phone / email / address
+ * - Gallery: dynamic aspect ratio + contain (no crop) + click open original
  * - Keep: no custom headers (avoid CORS preflight)
- * - Keep: robust key normalization + mobile re-apply
- * - Keep: image fallback chain
- * - Keep: auto-detect photo keys contains 照/照片/相片/作品/圖
+ * - Keep: robust key normalization + image fallback chain + auto-detect photos
  * ================================ */
 
 const CONFIG = {
@@ -21,9 +20,8 @@ const CONFIG = {
   DOM_WAIT_MS: 2400,
   DOM_POLL_MS: 80,
 
-  // ✅ Gallery dynamic layout
-  GALLERY_MIN_RATIO: 1 / 1.6, // very tall => 0.625
-  GALLERY_MAX_RATIO: 1.9,     // very wide
+  GALLERY_MIN_RATIO: 1 / 1.6,
+  GALLERY_MAX_RATIO: 1.9,
   GALLERY_MAX_WIDTH: 520,
 
   DEBUG: true
@@ -72,6 +70,49 @@ function getCardId() {
 }
 
 /* ---------------------------
+ * ✅ Step flow: plan branching UI
+ * --------------------------- */
+function syncPlanUi_() {
+  const rowFree = $("rowFreeDots");
+  const rowPremium = $("rowPremiumDots");
+  const freeControls = $("free-controls");
+  const btnFree = $("btnPlanFree");
+  const btnPremium = $("btnPlanPremium");
+
+  const isFree = state.mode === "free";
+
+  if (rowFree) rowFree.style.display = isFree ? "flex" : "none";
+  if (rowPremium) rowPremium.style.display = isFree ? "none" : "flex";
+  if (freeControls) freeControls.style.display = isFree ? "block" : "none";
+
+  if (btnFree) btnFree.style.opacity = isFree ? "1" : ".55";
+  if (btnPremium) btnPremium.style.opacity = isFree ? ".55" : "1";
+}
+
+window.setPlan = function(mode){
+  const m = (mode === "premium") ? "premium" : "free";
+  state.mode = m;
+
+  // default theme when switching
+  if (m === "free") state.theme = state.theme && state.theme.startsWith("color-") ? state.theme : "color-1";
+  if (m === "premium") state.theme = state.theme && state.theme.startsWith("p") ? state.theme : "p1";
+
+  // clear active dots then re-activate a reasonable one
+  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
+  if (m === "free") {
+    const first = document.querySelector(".dot");
+    if (first) first.classList.add("active");
+  } else {
+    const first = document.querySelector(".p-dot");
+    if (first) first.classList.add("active");
+  }
+
+  applyV382();
+  syncPlanUi_();
+  refreshGalleryMode_();
+};
+
+/* ---------------------------
  * Keep existing switching system
  * --------------------------- */
 window.setV382 = function (mode, theme, el) {
@@ -82,6 +123,7 @@ window.setV382 = function (mode, theme, el) {
   if (el) el.classList.add("active");
 
   applyV382();
+  syncPlanUi_();
   refreshGalleryMode_();
 };
 
@@ -105,9 +147,6 @@ window.setV382Paper = function (paper, el) {
 
 function applyV382() {
   const isFree = state.mode === "free";
-  const controlPanel = $("free-controls");
-  if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
-
   const classList = [
     `mode-${state.mode}`,
     state.theme,
@@ -138,7 +177,7 @@ function coreUiReady_() {
 }
 
 /* ---------------------------
- * Fetch (NO custom headers => avoid CORS preflight)
+ * Fetch (NO custom headers)
  * --------------------------- */
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
@@ -170,7 +209,7 @@ async function fetchWithTimeout(url, timeoutMs) {
     try {
       return JSON.parse(body);
     } catch {
-      const m = body.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+      const m = body.match(/(\{[\s\S]*\}|[\s\S]*)/);
       if (m) return JSON.parse(m[1]);
       throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
     }
@@ -370,7 +409,7 @@ function setAvatarImage(url) {
 }
 
 /* ---------------------------
- * Photos array parsing + AUTO DETECT
+ * Photos parsing + AUTO DETECT
  * --------------------------- */
 function splitLinks_(v) {
   if (v == null) return [];
@@ -380,7 +419,6 @@ function splitLinks_(v) {
   return s.split(/[\n,，;；]+/).map(x => text(x)).filter(Boolean);
 }
 
-// ✅ NEW: scan all fields for possible photo URLs
 function autoDetectPhotos_(payload) {
   if (!payload || typeof payload !== "object") return [];
   const out = [];
@@ -397,7 +435,6 @@ function autoDetectPhotos_(payload) {
     }
   }
 
-  // de-dupe
   const uniq = [];
   const seen = new Set();
   for (const u of out) {
@@ -429,16 +466,14 @@ function getPhotosArray_(payload) {
 }
 
 /* ---------------------------
- * Gallery DOM (dynamic ratio + click to open original)
+ * Gallery DOM (dynamic ratio + contain + click open original)
  * --------------------------- */
 function clamp_(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
 function setGalleryRatio_(ratio) {
   const box = $("galleryBox");
   if (!box) return;
-
   const r = clamp_(ratio || (16/9), CONFIG.GALLERY_MIN_RATIO, CONFIG.GALLERY_MAX_RATIO);
-  // ✅ modern: aspect-ratio
   box.style.aspectRatio = String(r);
 }
 
@@ -469,7 +504,6 @@ function ensureGalleryDom_() {
   const box = document.createElement("div");
   box.id = "galleryBox";
   box.style.width = "100%";
-  // ✅ default ratio, will be overwritten by first loaded image
   box.style.aspectRatio = "16 / 9";
   box.style.position = "relative";
   box.style.background = "rgba(0,0,0,.03)";
@@ -484,18 +518,15 @@ function ensureGalleryDom_() {
   img.style.inset = "0";
   img.style.width = "100%";
   img.style.height = "100%";
-  // ✅ 你要的：不裁切，比例縮小顯示
-  img.style.objectFit = "contain";
+  img.style.objectFit = "contain";   /* ✅ 等比例縮小看全貌 */
   img.style.objectPosition = "center";
   img.style.opacity = "0";
   img.style.transition = "opacity 520ms ease";
   img.style.cursor = "zoom-in";
-  img.onerror = () => { img.style.opacity = "0"; };
 
-  // ✅ click open original
   img.addEventListener("click", () => {
     const u = __gallery.lastShownUrl || (__gallery.list[__gallery.index] || "");
-    openUrlNewTab_(u);
+    openUrlNewTab_(u);               /* ✅ 點進去看原圖 */
   });
 
   box.appendChild(img);
@@ -585,15 +616,10 @@ function setGalleryImage_(url) {
   __gallery.lastShownUrl = normalizeImageUrl(url);
 
   img.style.opacity = "0";
-  img.style.transition = "opacity 520ms ease";
   setImgWithFallback_(img, candidates, (loadedImg) => {
-    // ✅ dynamic ratio: use naturalWidth/Height
     const w = loadedImg.naturalWidth || 0;
     const h = loadedImg.naturalHeight || 0;
-    if (w > 0 && h > 0) {
-      const ratio = w / h;
-      setGalleryRatio_(ratio);
-    }
+    if (w > 0 && h > 0) setGalleryRatio_(w / h);   /* ✅ 動態平衡容器比例 */
   });
 }
 
@@ -607,152 +633,4 @@ function galleryPrev_() {
   if (!__gallery.list.length) return;
   __gallery.index = (__gallery.index - 1 + __gallery.list.length) % __gallery.list.length;
   setGalleryImage_(__gallery.list[__gallery.index]);
-  renderGalleryDots_(__gallery.list.length);
-}
-
-function stopAutoplay_() {
-  if (__gallery.timer) {
-    clearInterval(__gallery.timer);
-    __gallery.timer = null;
-  }
-}
-function startAutoplay_() {
-  stopAutoplay_();
-  if (state.mode !== "premium") return;
-  if (__gallery.list.length <= 1) return;
-  __gallery.timer = setInterval(() => galleryNext_(), CONFIG.GALLERY_AUTOPLAY_MS);
-}
-function refreshGalleryMode_() {
-  if (!__gallery.inited) return;
-
-  if (__gallery.lastMode !== state.mode) {
-    stopAutoplay_();
-    __gallery.lastMode = state.mode;
-  }
-  if (state.mode === "premium") startAutoplay_();
-  else stopAutoplay_();
-}
-
-/* ---------------------------
- * Apply data to card
- * --------------------------- */
-function applyDataToCard(payloadNorm) {
-  const name = pick(payloadNorm, ["姓名（名片大標題）", "姓名", "name", "Name"]);
-  const unit = pick(payloadNorm, ["單位名稱（如：幸福教養概念館）", "單位名稱", "單位", "unit", "Unit"]);
-  const service = pick(payloadNorm, ["服務項目（核心業務，多項可條列換行）", "服務項目", "service", "Service"]);
-
-  setText("u-name", name || "（尚未讀到姓名）");
-  setText("u-unit", unit || "");
-  setText("u-service", service || "");
-
-  const avatar = pick(payloadNorm, ["avatar_img","個人照_fast","個人照","形象照","avatar","photo","image"]);
-  setAvatarImage(avatar);
-
-  const photos = getPhotosArray_(payloadNorm);
-  __gallery.list = photos;
-  __gallery.index = 0;
-
-  ensureGalleryDom_();
-  if (__gallery.inited) {
-    const g = $("photoGallery");
-    if (photos.length) {
-      if (g) g.style.display = "block";
-      setGalleryImage_(photos[0]);
-      renderGalleryDots_(photos.length);
-      refreshGalleryMode_();
-    } else {
-      if (g) g.style.display = "none";
-      stopAutoplay_();
-    }
-  }
-}
-
-/* --------------------------- */
-window.openOrderHelp = function () {
-  const modal = $("orderHelpModal");
-  if (!modal) return;
-  modal.classList.add("show");
-  modal.setAttribute("aria-hidden", "false");
-};
-window.closeOrderHelp = function () {
-  const modal = $("orderHelpModal");
-  if (!modal) return;
-  modal.classList.remove("show");
-  modal.setAttribute("aria-hidden", "true");
-};
-document.addEventListener("click", (e) => {
-  const modal = $("orderHelpModal");
-  if (!modal) return;
-  if (e.target === modal) window.closeOrderHelp();
-});
-
-/* --------------------------- */
-function setLoadingUi_() {
-  setText("u-name", "載入中...");
-  setText("u-unit", "同步中...");
-  setText("u-service", "正在同步雲端服務項目...");
-}
-function setFailUi_(msg) {
-  setText("u-name", "（同步失敗）");
-  setText("u-unit", msg || "請確認網址 ?id=TW000X 或檢查 GAS 權限");
-  setText("u-service", "");
-  setAvatarImage("");
-
-  const g = $("photoGallery");
-  if (g) g.style.display = "none";
-  stopAutoplay_();
-}
-
-async function loadData() {
-  const id = getCardId();
-  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
-  __lastLoad = { id, ts: Date.now(), url };
-
-  await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
-  setLoadingUi_();
-
-  log_("loadData start:", { id, time: nowIso_() });
-
-  try {
-    const data = await fetchJsonRobust(url);
-
-    if (!data || typeof data !== "object") throw new Error("Invalid payload");
-    if (data.ok === false) throw new Error(data.error || "Not found");
-    if (Object.keys(data).length === 0) throw new Error("Empty object");
-
-    __payloadRaw = data;
-    __payload = buildNormalizedPayload_(data);
-
-    applyDataToCard(__payload);
-
-    await sleep(120);
-    const n = text($("u-name") ? $("u-name").textContent : "");
-    if (!coreUiReady_() || n === "載入中..." || n === "（同步失敗）") {
-      await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
-      applyDataToCard(__payload);
-    }
-
-    log_("loadData success:", {
-      id,
-      keys: Object.keys(data).length,
-      photos: (__gallery.list || []).length
-    });
-
-  } catch (e) {
-    err_("雲端同步異常:", e);
-    setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
-  }
-}
-
-/* --------------------------- */
-window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
-
-function boot_() {
-  try { applyV382(); } catch {}
-  try { loadData(); } catch (e) { err_("boot loadData error:", e); }
-}
-
-document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
-window.addEventListener("load", () => {
-  if (!__lastLoad.ts) boot_();
-});
+  renderGalleryDots_
