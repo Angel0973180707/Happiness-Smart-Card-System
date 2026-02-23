@@ -1,4 +1,4 @@
-<!-- index.html (V385.3 UI complete overwrite - FIX: add #card-container for gallery mount) -->
+<!-- index.html (V385.3 UI complete overwrite - Step flow + contact section + gallery mount id) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -19,72 +19,94 @@
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
-  <!-- 控制區（方案/顏色/版型/紙感） -->
+
+  <!-- ✅ Step 1: 先選方案（分流入口） -->
   <header id="admin-panel">
-    <!-- 自由搭配：顏色 -->
-    <div class="dots-row">
-      <button class="dot active" style="background:#ff5e5e" onclick="setV382('free','color-1',this)" aria-label="自由-粉紅"></button>
-      <button class="dot" style="background:#00a8ff" onclick="setV382('free','color-2',this)" aria-label="自由-藍"></button>
-      <button class="dot" style="background:#ffa502" onclick="setV382('free','color-3',this)" aria-label="自由-橘"></button>
-      <button class="dot" style="background:#7d5fff" onclick="setV382('free','color-4',this)" aria-label="自由-紫"></button>
-      <button class="dot" style="background:#2ecc71" onclick="setV382('free','color-5',this)" aria-label="自由-綠"></button>
-    </div>
+    <div style="max-width:820px;margin:0 auto;padding:10px 12px 0;">
+      <div style="font-weight:900;font-size:14px;opacity:.75;text-align:center;margin:6px 0 8px;">
+        第一步：先選方案
+      </div>
 
-    <!-- 精品設計：顏色 -->
-    <div class="dots-row">
-      <button class="p-dot" style="background:#a36d6d" onclick="setV382('premium','p1',this)" aria-label="精品-p1 胭脂"></button>
-      <button class="p-dot" style="background:#722f37" onclick="setV382('premium','p2',this)" aria-label="精品-p2 酒紅"></button>
-      <button class="p-dot" style="background:#1c2e42" onclick="setV382('premium','p3',this)" aria-label="精品-p3 深藍"></button>
-      <button class="p-dot" style="background:#5e548e" onclick="setV382('premium','p4',this)" aria-label="精品-p4 霧紫"></button>
-      <button class="p-dot" style="background:#7a94a6" onclick="setV382('premium','p5',this)" aria-label="精品-p5 藍灰"></button>
-      <button class="p-dot" style="background:#bf953f" onclick="setV382('premium','p6',this)" aria-label="精品-p6 金箔"></button>
-      <button class="p-dot" style="background:#444444" onclick="setV382('premium','p7',this)" aria-label="精品-p7 褐碳"></button>
-    </div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+        <button class="btn-cta mini" id="btnPlanFree" onclick="setPlan('free')" style="min-width:160px;">
+          自由搭配
+        </button>
+        <button class="btn-cta mini" id="btnPlanPremium" onclick="setPlan('premium')" style="min-width:160px;">
+          精品設計
+        </button>
+      </div>
 
-    <!-- 自由搭配 controls -->
-    <div id="free-controls" style="margin-top:12px;">
-      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:0 12px;">
-        <button class="btn-neo active" onclick="setV382Style('arch',this)">正拱</button>
-        <button class="btn-neo" onclick="setV382Style('flat',this)">平直</button>
-        <button class="btn-neo" onclick="setV382Style('spot',this)">晨曦</button>
-
-        <span style="width:10px;"></span>
-
-        <button class="btn-neo active" onclick="setV382Paper('paper-1',this)">霧面棉紙</button>
-        <button class="btn-neo" onclick="setV382Paper('paper-2',this)">細顆粒紙</button>
-        <button class="btn-neo" onclick="setV382Paper('paper-3',this)">亞麻紋</button>
+      <div style="font-size:12px;opacity:.7;text-align:center;margin-top:6px;">
+        選了方案後，下面才會出現對應的顏色 / 版型 / 紙感
       </div>
     </div>
 
-    <!-- 說明 / CTA -->
-    <div style="margin-top:12px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-      <button class="btn-help" onclick="openOrderHelp()">
-        <span aria-hidden="true">?</span> 訂購流程說明
-      </button>
-      <button class="btn-cta mini" onclick="goFillForm()">立即填寫預約表單</button>
+    <!-- ✅ Step 2: 依方案顯示控制區 -->
+    <div style="max-width:820px;margin:0 auto;padding:12px 12px 0;">
+      <div style="font-weight:900;font-size:14px;opacity:.75;text-align:center;margin:6px 0 10px;">
+        第二步：挑選外觀
+      </div>
+
+      <!-- 自由搭配：顏色 -->
+      <div class="dots-row" id="rowFreeDots" style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+        <button class="dot active" style="background:#ff5e5e" onclick="setV382('free','color-1',this)" aria-label="自由-粉紅"></button>
+        <button class="dot" style="background:#00a8ff" onclick="setV382('free','color-2',this)" aria-label="自由-藍"></button>
+        <button class="dot" style="background:#ffa502" onclick="setV382('free','color-3',this)" aria-label="自由-橘"></button>
+        <button class="dot" style="background:#7d5fff" onclick="setV382('free','color-4',this)" aria-label="自由-紫"></button>
+        <button class="dot" style="background:#2ecc71" onclick="setV382('free','color-5',this)" aria-label="自由-綠"></button>
+      </div>
+
+      <!-- 精品設計：顏色 -->
+      <div class="dots-row" id="rowPremiumDots" style="display:none;justify-content:center;gap:12px;flex-wrap:wrap;">
+        <button class="p-dot" style="background:#a36d6d" onclick="setV382('premium','p1',this)" aria-label="精品-p1 胭脂"></button>
+        <button class="p-dot" style="background:#722f37" onclick="setV382('premium','p2',this)" aria-label="精品-p2 酒紅"></button>
+        <button class="p-dot" style="background:#1c2e42" onclick="setV382('premium','p3',this)" aria-label="精品-p3 深藍"></button>
+        <button class="p-dot" style="background:#5e548e" onclick="setV382('premium','p4',this)" aria-label="精品-p4 霧紫"></button>
+        <button class="p-dot" style="background:#7a94a6" onclick="setV382('premium','p5',this)" aria-label="精品-p5 藍灰"></button>
+        <button class="p-dot" style="background:#bf953f" onclick="setV382('premium','p6',this)" aria-label="精品-p6 金箔"></button>
+        <button class="p-dot" style="background:#444444" onclick="setV382('premium','p7',this)" aria-label="精品-p7 褐碳"></button>
+      </div>
+
+      <!-- 自由搭配 controls（版型/紙感） -->
+      <div id="free-controls" style="margin-top:12px; display:block;">
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:0 12px;">
+          <button class="btn-neo active" onclick="setV382Style('arch',this)">正拱</button>
+          <button class="btn-neo" onclick="setV382Style('flat',this)">平直</button>
+          <button class="btn-neo" onclick="setV382Style('spot',this)">晨曦</button>
+
+          <span style="width:10px;"></span>
+
+          <button class="btn-neo active" onclick="setV382Paper('paper-1',this)">霧面棉紙</button>
+          <button class="btn-neo" onclick="setV382Paper('paper-2',this)">細顆粒紙</button>
+          <button class="btn-neo" onclick="setV382Paper('paper-3',this)">亞麻紋</button>
+        </div>
+      </div>
+
+      <!-- Step 3 CTA -->
+      <div style="margin-top:12px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+        <button class="btn-help" onclick="openOrderHelp()">
+          <span aria-hidden="true">?</span> 訂購流程說明
+        </button>
+        <button class="btn-cta mini" onclick="goFillForm()">立即填寫預約表單</button>
+      </div>
     </div>
   </header>
 
-  <!-- 名片卡 -->
-  <!-- FIX: add id="card-container" for gallery mount -->
+  <!-- 名片卡（✅ id="card-container" for gallery mount） -->
   <main id="card-container" class="card" role="main" aria-label="智慧名片">
-    <!-- premium fx + paper -->
     <div class="premium-fx-layer"></div>
     <div class="paper-overlay"></div>
 
-    <!-- free banner -->
     <div class="banner">
       <div class="dynamic-mask"></div>
     </div>
 
-    <!-- avatar -->
     <div class="avatar-wrap">
       <div class="avatar-circle">
         <img id="u-img" class="avatar" alt="形象照" />
       </div>
     </div>
 
-    <!-- content -->
     <section class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
@@ -96,6 +118,31 @@
       <div class="content-box">
         <div style="font-weight:900; margin-bottom:8px;">服務項目</div>
         <div id="u-service" class="service-box">正在同步雲端服務項目...</div>
+      </div>
+
+      <!-- ✅ 新增：聯繫區 -->
+      <div class="content-box">
+        <div style="font-weight:900; margin-bottom:8px;">聯繫方式</div>
+
+        <div id="contactBlock" style="display:grid;gap:10px;">
+          <a id="u-line" class="cta-box" href="javascript:void(0)" style="text-decoration:none;">
+            LINE 官方帳號（同步中...）
+          </a>
+          <a id="u-web" class="cta-box" href="javascript:void(0)" style="text-decoration:none;">
+            官網／作品連結（同步中...）
+          </a>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <a id="u-phone" class="cta-box" href="javascript:void(0)" style="flex:1;min-width:160px;text-decoration:none;">
+              電話（同步中...）
+            </a>
+            <a id="u-email" class="cta-box" href="javascript:void(0)" style="flex:1;min-width:160px;text-decoration:none;">
+              Email（同步中...）
+            </a>
+          </div>
+        </div>
+
+        <div id="u-addr" style="margin-top:10px; opacity:.75; font-size:13px;"></div>
       </div>
 
       <div class="version-tag">V385.3</div>
