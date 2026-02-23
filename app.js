@@ -3,11 +3,10 @@
  * - Load by URL ?id=TW000X
  * - use GAS: ?action=card&id=...
  * - robust fetch + safe JSON
- * - FIX: weird headers with quotes/newlines (normalize keys)
- * - NEW: prefer avatar_img / photos_img (fallback to *_fast / photos / raw)
- * - NEW: Gallery
- *   - free  : manual swipe left/right
- *   - premium: autoplay carousel + fade-in
+ * - FIX: weird headers with quotes/newlines/zero-width chars (normalize keys)
+ * - FIX: mobile fetch success but UI not updated (wait DOM + re-apply once)
+ * - FIX: Drive/Dropbox image fallback + onerror chain
+ * - FIX: Gallery mode switch stability (timer/state)
  * ================================ */
 
 const CONFIG = {
@@ -19,7 +18,14 @@ const CONFIG = {
 
   // gallery behavior
   GALLERY_AUTOPLAY_MS: 3200,
-  GALLERY_MAX: 5
+  GALLERY_MAX: 5,
+
+  // DOM wait (mobile safety)
+  DOM_WAIT_MS: 2400,
+  DOM_POLL_MS: 80,
+
+  // debug
+  DEBUG: true
 };
 
 let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
@@ -27,24 +33,37 @@ let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
 // runtime
 let __payloadRaw = null;
 let __payload = null;
+
 let __gallery = {
   list: [],
   index: 0,
   timer: null,
-  inited: false
+  inited: false,
+  lastMode: null
 };
+
+let __lastLoad = { id: "", ts: 0, url: "" };
 
 /* ---------------------------
  * Small helpers
  * --------------------------- */
 function $(id) { return document.getElementById(id); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
+function log_() { if (CONFIG.DEBUG) console.log("[AngelCard]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[AngelCard]", ...arguments); }
+function err_() { console.error("[AngelCard]", ...arguments); }
+
 function setText(id, v) {
   const el = typeof id === "string" ? $(id) : id;
-  if (!el) return;
+  if (!el) return false;
   el.textContent = text(v);
+  return true;
 }
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function nowIso_() {
+  try { return new Date().toISOString(); } catch { return String(Date.now()); }
+}
 
 /* ---------------------------
  * Read URL params
@@ -110,7 +129,31 @@ function applyV382() {
 }
 
 /* ---------------------------
+ * DOM readiness guard (mobile: prevent "fetch OK but UI not updated")
+ * --------------------------- */
+async function waitForDom_(ids, timeoutMs = CONFIG.DOM_WAIT_MS) {
+  const need = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    let ok = true;
+    for (const id of need) {
+      if (!$(id)) { ok = false; break; }
+    }
+    if (ok) return true;
+    await sleep(CONFIG.DOM_POLL_MS);
+  }
+  return false;
+}
+
+function coreUiReady_() {
+  // minimum UI targets we must be able to write
+  return !!$("u-name") && !!$("u-unit") && !!$("u-service");
+}
+
+/* ---------------------------
  * Robust fetch (no-store + timeout + retry + safe JSON)
+ * - Add diagnostics: status, content-type, short body head
  * --------------------------- */
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
@@ -131,16 +174,30 @@ async function fetchWithTimeout(url, timeoutMs) {
       }
     });
 
+    const status = res.status;
+    const ct = (res.headers && res.headers.get) ? (res.headers.get("content-type") || "") : "";
     const txt = await res.text();
     const body = (txt || "").trim();
+
+    if (CONFIG.DEBUG) {
+      const head = body.slice(0, 180).replace(/\s+/g, " ");
+      log_("fetch:", { status, ct, len: body.length, head });
+    }
+
+    if (!res.ok) {
+      // still try JSON parse if GAS returns error JSON with 4xx
+      if (!body) throw new Error(`HTTP ${status} (empty)`);
+    }
+
     if (!body) throw new Error("Empty response");
 
     try {
       return JSON.parse(body);
     } catch {
+      // try to salvage JSON embedded in HTML
       const m = body.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
       if (m) return JSON.parse(m[1]);
-      throw new Error("Not JSON (maybe HTML/login/blocked)");
+      throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
     }
   } finally {
     clearTimeout(t);
@@ -154,6 +211,7 @@ async function fetchJsonRobust(url) {
       return await fetchWithTimeout(url, CONFIG.FETCH_TIMEOUT_MS);
     } catch (e) {
       lastErr = e;
+      warn_("fetch retry:", i, "err:", e && e.message ? e.message : e);
       await sleep(450 + i * 450);
     }
   }
@@ -161,55 +219,87 @@ async function fetchJsonRobust(url) {
 }
 
 /* ---------------------------
- * Key normalize (fix: weird headers with quotes/newlines)
+ * Key normalize (fix: weird headers with quotes/newlines/zero-width)
  * --------------------------- */
 function cleanKey_(k) {
   return String(k ?? "")
+    // BOM / zero-width / direction marks
+    .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
+    // full-width space
     .replace(/\u3000/g, " ")
+    // normalize line breaks then remove all line breaks within header
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
-    .replace(/\n+/g, "")         // remove all newlines inside header
-    .replace(/^[\s"“”']+|[\s"“”']+$/g, "") // trim quotes/spaces
+    .replace(/\n+/g, "")
+    // trim quotes and spaces
+    .replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "")
     .trim();
 }
 
 function buildNormalizedPayload_(obj) {
   if (!obj || typeof obj !== "object") return obj;
   const out = { __raw: obj };
+
+  // also build a lower-cased alias map for fallback (safe, not changing keys)
+  const lowerMap = Object.create(null);
+
   for (const k of Object.keys(obj)) {
     const nk = cleanKey_(k);
     if (!nk) continue;
+
     // keep first non-empty value priority
-    if (out[nk] == null || text(out[nk]) === "") out[nk] = obj[k];
+    const v = obj[k];
+    if (out[nk] == null || text(out[nk]) === "") out[nk] = v;
+
+    const lk = nk.toLowerCase();
+    if (lowerMap[lk] == null || text(lowerMap[lk]) === "") lowerMap[lk] = v;
   }
+
+  out.__lower = lowerMap;
   return out;
 }
 
 /* ---------------------------
  * Field mapping (support your headers)
  * - pick() will look in normalized payload first
+ * - then __lower (case-insensitive)
+ * - then raw object original keys (rare)
  * --------------------------- */
 function pick(obj, keys) {
   if (!obj) return "";
+  const raw = obj.__raw || null;
+  const lower = obj.__lower || null;
+
   for (const k of keys) {
     if (k == null) continue;
     const kk = cleanKey_(k);
-    const v = obj[kk];
-    if (v != null && text(v) !== "") return v;
+
+    // exact normalized key
+    const v1 = obj[kk];
+    if (v1 != null && text(v1) !== "") return v1;
+
+    // case-insensitive fallback
+    if (lower) {
+      const v2 = lower[String(kk).toLowerCase()];
+      if (v2 != null && text(v2) !== "") return v2;
+    }
   }
-  // as last resort, check raw object with original keys (rare)
-  const raw = obj.__raw || null;
+
+  // last resort: raw object original keys (as provided)
   if (raw) {
     for (const k of keys) {
       const v = raw[k];
       if (v != null && text(v) !== "") return v;
     }
   }
+
   return "";
 }
 
 /* ---------------------------
  * Image helpers
+ * - Build fallback candidates (Drive uc/thumbnail/original)
+ * - Chain onerror to next candidate
  * --------------------------- */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
@@ -218,56 +308,130 @@ function normalizeImageUrl(raw) {
 
   if (url.startsWith("http://")) url = "https://" + url.slice(7);
 
-  const mFile = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/i);
-  if (mFile && mFile[1]) {
-    const id = mFile[1];
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
-  }
-
-  const mId = url.match(/(?:\?|&)id=([^&]+)/i);
-  if (mId && mId[1]) {
-    const id = mId[1];
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
-  }
-
-  const mThumb = url.match(/thumbnail\?id=([^&]+)/i);
-  if (mThumb && mThumb[1]) {
-    const id = mThumb[1];
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
-  }
-
+  // Dropbox
   if (url.includes("dropbox.com")) {
     url = url.replace("dl=0", "raw=1");
     if (!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
     return url;
   }
 
+  // Drive file/d/<id>
+  const mFile = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/i);
+  if (mFile && mFile[1]) {
+    const id = mFile[1];
+    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
+  }
+
+  // Drive ?id=<id>
+  const mId = url.match(/(?:\?|&)id=([^&]+)/i);
+  if (mId && mId[1]) {
+    const id = mId[1];
+    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
+  }
+
+  // Drive thumbnail?id=<id>
+  const mThumb = url.match(/thumbnail\?id=([^&]+)/i);
+  if (mThumb && mThumb[1]) {
+    const id = mThumb[1];
+    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
+  }
+
   return url;
+}
+
+function buildImageCandidates_(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return [];
+
+  const original = s.startsWith("http://") ? "https://" + s.slice(7) : s;
+
+  // If it's drive id or drive file link, build multiple
+  let driveId = "";
+  const mFile = original.match(/drive\.google\.com\/file\/d\/([^\/]+)/i);
+  const mId = original.match(/(?:\?|&)id=([^&]+)/i);
+  const mThumb = original.match(/thumbnail\?id=([^&]+)/i);
+
+  if (mFile && mFile[1]) driveId = mFile[1];
+  else if (mId && mId[1]) driveId = mId[1];
+  else if (mThumb && mThumb[1]) driveId = mThumb[1];
+
+  // Dropbox already handled by normalize
+  if (original.includes("dropbox.com")) {
+    return [normalizeImageUrl(original)];
+  }
+
+  if (driveId) {
+    // uc view, thumbnail (often works when uc fails), and original as last
+    return [
+      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(driveId)}`,
+      `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w1200`,
+      original
+    ];
+  }
+
+  return [normalizeImageUrl(original)];
+}
+
+function setImgWithFallback_(imgEl, candidates) {
+  if (!imgEl) return;
+  const list = (candidates || []).map(text).filter(Boolean);
+  if (!list.length) {
+    imgEl.removeAttribute("src");
+    return;
+  }
+
+  // force reflow-safe: assign a loader token
+  const token = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
+  imgEl.dataset.loadToken = token;
+
+  let idx = 0;
+
+  imgEl.referrerPolicy = "no-referrer";
+  imgEl.decoding = "async";
+  imgEl.loading = "lazy";
+
+  const tryNext = () => {
+    if (imgEl.dataset.loadToken !== token) return; // outdated
+    if (idx >= list.length) {
+      imgEl.style.opacity = "0";
+      imgEl.removeAttribute("src");
+      return;
+    }
+    const u = list[idx++];
+    const sep = u.includes("?") ? "&" : "?";
+    imgEl.src = u + sep + "t=" + Date.now();
+  };
+
+  imgEl.onload = () => {
+    if (imgEl.dataset.loadToken !== token) return;
+    requestAnimationFrame(() => (imgEl.style.opacity = "1"));
+  };
+  imgEl.onerror = () => {
+    if (imgEl.dataset.loadToken !== token) return;
+    // try next candidate
+    tryNext();
+  };
+
+  // start
+  imgEl.style.opacity = "0";
+  tryNext();
 }
 
 function setAvatarImage(url) {
   const img = $("u-img");
   if (!img) return;
 
-  const finalUrl = normalizeImageUrl(url);
-  if (!finalUrl) {
+  const cands = buildImageCandidates_(url);
+  if (!cands.length) {
     img.removeAttribute("src");
     return;
   }
 
-  // premium fade-in feel (only visual, safe for both)
+  // soft fade-in
   img.style.opacity = "0";
   img.style.transition = "opacity 420ms ease";
 
-  img.onerror = () => img.removeAttribute("src");
-
-  const sep = finalUrl.includes("?") ? "&" : "?";
-  img.src = finalUrl + sep + "t=" + Date.now();
-
-  // fade in on load
-  img.onload = () => {
-    requestAnimationFrame(() => (img.style.opacity = "1"));
-  };
+  setImgWithFallback_(img, cands);
 }
 
 /* ---------------------------
@@ -284,10 +448,6 @@ function splitLinks_(v) {
 
 function getPhotosArray_(payload) {
   // ✅ prefer compressed/cropped output
-  // - photos_img : array or comma string
-  // - 照片_fast  : comma string
-  // - photos     : array from GAS
-  // - 照片       : raw cell
   const v =
     pick(payload, ["photos_img"]) ||
     pick(payload, ["照片_fast", "照片_fast "]) ||
@@ -295,8 +455,9 @@ function getPhotosArray_(payload) {
     pick(payload, ["photos"]) ||
     pick(payload, ["照片"]);
 
-  const arr = splitLinks_(v)
-    .map(normalizeImageUrl)
+  const rawArr = splitLinks_(v).filter(Boolean);
+  const arr = rawArr
+    .map(u => normalizeImageUrl(u))
     .filter(Boolean)
     .slice(0, CONFIG.GALLERY_MAX);
 
@@ -318,7 +479,7 @@ function ensureGalleryDom_() {
   const wrap = document.createElement("div");
   wrap.id = "photoGallery";
   wrap.setAttribute("aria-label", "產品照片預覽");
-  // basic inline style so it works without extra CSS
+  // inline style so it works without extra CSS
   wrap.style.margin = "12px auto 0";
   wrap.style.width = "min(92vw, 520px)";
   wrap.style.borderRadius = "18px";
@@ -339,6 +500,7 @@ function ensureGalleryDom_() {
   img.id = "galleryImg";
   img.alt = "產品照";
   img.loading = "lazy";
+  img.decoding = "async";
   img.referrerPolicy = "no-referrer";
   img.style.position = "absolute";
   img.style.inset = "0";
@@ -369,8 +531,7 @@ function ensureGalleryDom_() {
   box.appendChild(dots);
   wrap.appendChild(box);
 
-  // Insert gallery into card (below info-scroll for better layout)
-  // Try to place before version-tag if exists
+  // Insert gallery into card
   const vtag = card.querySelector(".version-tag");
   if (vtag && vtag.parentElement === card) {
     card.insertBefore(wrap, vtag);
@@ -398,7 +559,6 @@ function ensureGalleryDom_() {
   }, { passive: true });
 
   wrap.addEventListener("touchend", (e) => {
-    // only for free mode manual
     if (state.mode !== "free") return;
     if (!moved) return;
     const end = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
@@ -410,6 +570,7 @@ function ensureGalleryDom_() {
   });
 
   __gallery.inited = true;
+  __gallery.lastMode = state.mode;
 }
 
 function renderGalleryDots_(count) {
@@ -434,18 +595,17 @@ function renderGalleryDots_(count) {
 function setGalleryImage_(url) {
   const img = $("galleryImg");
   if (!img) return;
-  const u = normalizeImageUrl(url);
-  if (!u) {
+
+  const candidates = buildImageCandidates_(url);
+  if (!candidates.length) {
     img.removeAttribute("src");
     img.style.opacity = "0";
     return;
   }
+
   img.style.opacity = "0";
-  const sep = u.includes("?") ? "&" : "?";
-  img.src = u + sep + "t=" + Date.now();
-  img.onload = () => {
-    requestAnimationFrame(() => (img.style.opacity = "1"));
-  };
+  img.style.transition = "opacity 520ms ease";
+  setImgWithFallback_(img, candidates);
 }
 
 function galleryNext_() {
@@ -480,6 +640,13 @@ function startAutoplay_() {
 function refreshGalleryMode_() {
   // called after mode switch
   if (!__gallery.inited) return;
+
+  // prevent weird duplicated timers on rapid toggles
+  if (__gallery.lastMode !== state.mode) {
+    stopAutoplay_();
+    __gallery.lastMode = state.mode;
+  }
+
   if (state.mode === "premium") startAutoplay_();
   else stopAutoplay_();
 }
@@ -492,9 +659,13 @@ function applyDataToCard(payloadNorm) {
   const unit = pick(payloadNorm, ["單位名稱（如：幸福教養概念館）", "單位名稱", "單位", "unit", "Unit"]);
   const service = pick(payloadNorm, ["服務項目（核心業務，多項可條列換行）", "服務項目", "service", "Service"]);
 
-  setText("u-name", name || "（尚未讀到姓名）");
-  setText("u-unit", unit || "");
-  setText("u-service", service || "");
+  const ok1 = setText("u-name", name || "（尚未讀到姓名）");
+  const ok2 = setText("u-unit", unit || "");
+  const ok3 = setText("u-service", service || "");
+
+  if (CONFIG.DEBUG && (!ok1 || !ok2 || !ok3)) {
+    warn_("applyDataToCard: some UI nodes missing, will rely on re-apply pass");
+  }
 
   // ✅ avatar: prefer processed/compressed
   const avatar = pick(payloadNorm, [
@@ -513,16 +684,16 @@ function applyDataToCard(payloadNorm) {
   __gallery.list = photos;
   __gallery.index = 0;
 
-  // build gallery UI only if there are photos
+  // build gallery UI
   ensureGalleryDom_();
   if (__gallery.inited) {
+    const g = $("photoGallery");
     if (photos.length) {
+      if (g) g.style.display = "block";
       setGalleryImage_(photos[0]);
       renderGalleryDots_(photos.length);
       refreshGalleryMode_();
     } else {
-      // no photos -> hide gallery
-      const g = $("photoGallery");
       if (g) g.style.display = "none";
       stopAutoplay_();
     }
@@ -555,13 +726,33 @@ document.addEventListener("click", (e) => {
 /* ---------------------------
  * Main load (✅ load by URL id)
  * --------------------------- */
-async function loadData() {
-  const id = getCardId();
-  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
-
+function setLoadingUi_() {
   setText("u-name", "載入中...");
   setText("u-unit", "同步中...");
   setText("u-service", "正在同步雲端服務項目...");
+}
+
+function setFailUi_(msg) {
+  setText("u-name", "（同步失敗）");
+  setText("u-unit", msg || "請確認網址 ?id=TW000X 或檢查 GAS 權限");
+  setText("u-service", "");
+  setAvatarImage("");
+
+  const g = $("photoGallery");
+  if (g) g.style.display = "none";
+  stopAutoplay_();
+}
+
+async function loadData() {
+  const id = getCardId();
+  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+  __lastLoad = { id, ts: Date.now(), url };
+
+  // ensure UI nodes exist before showing loading text (mobile)
+  await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
+  setLoadingUi_();
+
+  log_("loadData start:", { id, time: nowIso_() });
 
   try {
     const data = await fetchJsonRobust(url);
@@ -569,27 +760,40 @@ async function loadData() {
     // ✅ your GAS returns row object directly (no ok:true)
     if (!data || typeof data !== "object") throw new Error("Invalid payload");
     if (data.ok === false) throw new Error(data.error || "Not found");
-
-    // ✅ success rule: has at least one key
     if (Object.keys(data).length === 0) throw new Error("Empty object");
 
     __payloadRaw = data;
     __payload = buildNormalizedPayload_(data);
 
-    // in case keys are weird, normalized payload will have clean keys
+    // Apply once
     applyDataToCard(__payload);
 
+    // ✅ Mobile safety: sometimes DOM is not fully ready when data arrives,
+    // re-apply once after a short wait if core UI still looks like loading
+    await sleep(120);
+    if (!coreUiReady_()) {
+      // if even nodes missing, wait and re-apply
+      await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
+      applyDataToCard(__payload);
+    } else {
+      // nodes exist; detect "stuck loading" text
+      const n = text($("u-name") ? $("u-name").textContent : "");
+      if (n === "載入中..." || n === "（同步失敗）") {
+        await sleep(180);
+        applyDataToCard(__payload);
+      }
+    }
+
+    log_("loadData success:", {
+      id,
+      keys: Object.keys(data).length,
+      hasAvatar: !!pick(__payload, ["avatar_img", "個人照_fast", "個人照", "形象照", "avatar", "photo", "image"]),
+      photos: (__gallery.list || []).length
+    });
+
   } catch (e) {
-    console.error("雲端同步異常:", e);
-
-    setText("u-name", "（同步失敗）");
-    setText("u-unit", "請確認網址 ?id=TW000X 或檢查 GAS 權限");
-    setText("u-service", "");
-    setAvatarImage("");
-
-    const g = $("photoGallery");
-    if (g) g.style.display = "none";
-    stopAutoplay_();
+    err_("雲端同步異常:", e);
+    setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
   }
 }
 
@@ -598,7 +802,17 @@ async function loadData() {
  * --------------------------- */
 window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
 
+/* ---------------------------
+ * Boot (do not change model)
+ * --------------------------- */
+function boot_() {
+  try { applyV382(); } catch {}
+  try { loadData(); } catch (e) { err_("boot loadData error:", e); }
+}
+
+// Use DOMContentLoaded first (mobile stability), fallback to load
+document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
 window.addEventListener("load", () => {
-  applyV382();
-  loadData();
+  // if DOMContentLoaded missed (very rare), still ensure boot runs once
+  if (!__lastLoad.ts) boot_();
 });
