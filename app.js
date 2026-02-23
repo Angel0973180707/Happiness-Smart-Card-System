@@ -379,7 +379,6 @@ function autoDetectPhotos_(payload) {
   const keys = Object.keys(payload).filter(k => k && !k.startsWith("__"));
   for (const k of keys) {
     const kk = String(k);
-    // key name hints
     if (!/(照片|相片|作品|圖|照)/.test(kk)) continue;
 
     const v = payload[k];
@@ -389,7 +388,6 @@ function autoDetectPhotos_(payload) {
     }
   }
 
-  // de-dupe
   const uniq = [];
   const seen = new Set();
   for (const u of out) {
@@ -403,7 +401,6 @@ function autoDetectPhotos_(payload) {
 }
 
 function getPhotosArray_(payload) {
-  // keep your original priority first
   const v =
     pick(payload, ["photos_img"]) ||
     pick(payload, ["照片_fast", "照片_fast "]) ||
@@ -416,7 +413,6 @@ function getPhotosArray_(payload) {
     .map(u => normalizeImageUrl(u))
     .filter(Boolean);
 
-  // ✅ if base empty, auto-detect from all fields
   const auto = base.length ? [] : autoDetectPhotos_(payload);
 
   return (base.length ? base : auto).slice(0, CONFIG.GALLERY_MAX);
