@@ -11,7 +11,7 @@
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-  FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
+  FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
   DEFAULT_ID: "TW0001",
   FETCH_TIMEOUT_MS: 10000,
   RETRY: 2,
@@ -261,9 +261,6 @@ function buildNormalizedPayload_(obj) {
 
 /* ---------------------------
  * Field mapping (support your headers)
- * - pick() will look in normalized payload first
- * - then __lower (case-insensitive)
- * - then raw object original keys (rare)
  * --------------------------- */
 function pick(obj, keys) {
   if (!obj) return "";
@@ -298,8 +295,6 @@ function pick(obj, keys) {
 
 /* ---------------------------
  * Image helpers
- * - Build fallback candidates (Drive uc/thumbnail/original)
- * - Chain onerror to next candidate
  * --------------------------- */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
@@ -345,7 +340,6 @@ function buildImageCandidates_(raw) {
 
   const original = s.startsWith("http://") ? "https://" + s.slice(7) : s;
 
-  // If it's drive id or drive file link, build multiple
   let driveId = "";
   const mFile = original.match(/drive\.google\.com\/file\/d\/([^\/]+)/i);
   const mId = original.match(/(?:\?|&)id=([^&]+)/i);
@@ -355,13 +349,11 @@ function buildImageCandidates_(raw) {
   else if (mId && mId[1]) driveId = mId[1];
   else if (mThumb && mThumb[1]) driveId = mThumb[1];
 
-  // Dropbox already handled by normalize
   if (original.includes("dropbox.com")) {
     return [normalizeImageUrl(original)];
   }
 
   if (driveId) {
-    // uc view, thumbnail (often works when uc fails), and original as last
     return [
       `https://drive.google.com/uc?export=view&id=${encodeURIComponent(driveId)}`,
       `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w1200`,
@@ -380,7 +372,6 @@ function setImgWithFallback_(imgEl, candidates) {
     return;
   }
 
-  // force reflow-safe: assign a loader token
   const token = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
   imgEl.dataset.loadToken = token;
 
@@ -391,7 +382,7 @@ function setImgWithFallback_(imgEl, candidates) {
   imgEl.loading = "lazy";
 
   const tryNext = () => {
-    if (imgEl.dataset.loadToken !== token) return; // outdated
+    if (imgEl.dataset.loadToken !== token) return;
     if (idx >= list.length) {
       imgEl.style.opacity = "0";
       imgEl.removeAttribute("src");
@@ -408,11 +399,9 @@ function setImgWithFallback_(imgEl, candidates) {
   };
   imgEl.onerror = () => {
     if (imgEl.dataset.loadToken !== token) return;
-    // try next candidate
     tryNext();
   };
 
-  // start
   imgEl.style.opacity = "0";
   tryNext();
 }
@@ -427,7 +416,6 @@ function setAvatarImage(url) {
     return;
   }
 
-  // soft fade-in
   img.style.opacity = "0";
   img.style.transition = "opacity 420ms ease";
 
@@ -436,7 +424,6 @@ function setAvatarImage(url) {
 
 /* ---------------------------
  * Photos array parsing
- * - accept array / comma / newline / Chinese comma
  * --------------------------- */
 function splitLinks_(v) {
   if (v == null) return [];
@@ -447,7 +434,6 @@ function splitLinks_(v) {
 }
 
 function getPhotosArray_(payload) {
-  // ✅ prefer compressed/cropped output
   const v =
     pick(payload, ["photos_img"]) ||
     pick(payload, ["照片_fast", "照片_fast "]) ||
@@ -465,9 +451,7 @@ function getPhotosArray_(payload) {
 }
 
 /* ---------------------------
- * Gallery DOM (created dynamically)
- * - free  : swipe
- * - premium: autoplay + fade
+ * Gallery DOM
  * --------------------------- */
 function ensureGalleryDom_() {
   if (__gallery.inited) return;
@@ -475,11 +459,9 @@ function ensureGalleryDom_() {
   const card = $("card-container");
   if (!card) return;
 
-  // Create container
   const wrap = document.createElement("div");
   wrap.id = "photoGallery";
   wrap.setAttribute("aria-label", "產品照片預覽");
-  // inline style so it works without extra CSS
   wrap.style.margin = "12px auto 0";
   wrap.style.width = "min(92vw, 520px)";
   wrap.style.borderRadius = "18px";
@@ -489,7 +471,6 @@ function ensureGalleryDom_() {
   wrap.style.background = "rgba(255,255,255,.35)";
   wrap.style.backdropFilter = "blur(6px)";
 
-  // 16:9 box
   const box = document.createElement("div");
   box.style.width = "100%";
   box.style.aspectRatio = "16 / 9";
@@ -513,7 +494,6 @@ function ensureGalleryDom_() {
 
   box.appendChild(img);
 
-  // dots
   const dots = document.createElement("div");
   dots.id = "galleryDots";
   dots.style.position = "absolute";
@@ -531,7 +511,7 @@ function ensureGalleryDom_() {
   box.appendChild(dots);
   wrap.appendChild(box);
 
-  // Insert gallery into card
+  // Insert gallery before version-tag if exists
   const vtag = card.querySelector(".version-tag");
   if (vtag && vtag.parentElement === card) {
     card.insertBefore(wrap, vtag);
@@ -638,10 +618,8 @@ function startAutoplay_() {
 }
 
 function refreshGalleryMode_() {
-  // called after mode switch
   if (!__gallery.inited) return;
 
-  // prevent weird duplicated timers on rapid toggles
   if (__gallery.lastMode !== state.mode) {
     stopAutoplay_();
     __gallery.lastMode = state.mode;
@@ -667,7 +645,6 @@ function applyDataToCard(payloadNorm) {
     warn_("applyDataToCard: some UI nodes missing, will rely on re-apply pass");
   }
 
-  // ✅ avatar: prefer processed/compressed
   const avatar = pick(payloadNorm, [
     "avatar_img",
     "個人照_fast",
@@ -679,12 +656,10 @@ function applyDataToCard(payloadNorm) {
   ]);
   setAvatarImage(avatar);
 
-  // ✅ photos: prefer processed/compressed
   const photos = getPhotosArray_(payloadNorm);
   __gallery.list = photos;
   __gallery.index = 0;
 
-  // build gallery UI
   ensureGalleryDom_();
   if (__gallery.inited) {
     const g = $("photoGallery");
@@ -724,7 +699,7 @@ document.addEventListener("click", (e) => {
 });
 
 /* ---------------------------
- * Main load (✅ load by URL id)
+ * Main load
  * --------------------------- */
 function setLoadingUi_() {
   setText("u-name", "載入中...");
@@ -748,7 +723,6 @@ async function loadData() {
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
   __lastLoad = { id, ts: Date.now(), url };
 
-  // ensure UI nodes exist before showing loading text (mobile)
   await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
   setLoadingUi_();
 
@@ -757,7 +731,6 @@ async function loadData() {
   try {
     const data = await fetchJsonRobust(url);
 
-    // ✅ your GAS returns row object directly (no ok:true)
     if (!data || typeof data !== "object") throw new Error("Invalid payload");
     if (data.ok === false) throw new Error(data.error || "Not found");
     if (Object.keys(data).length === 0) throw new Error("Empty object");
@@ -765,18 +738,14 @@ async function loadData() {
     __payloadRaw = data;
     __payload = buildNormalizedPayload_(data);
 
-    // Apply once
     applyDataToCard(__payload);
 
-    // ✅ Mobile safety: sometimes DOM is not fully ready when data arrives,
-    // re-apply once after a short wait if core UI still looks like loading
+    // mobile safety re-apply once
     await sleep(120);
     if (!coreUiReady_()) {
-      // if even nodes missing, wait and re-apply
       await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
       applyDataToCard(__payload);
     } else {
-      // nodes exist; detect "stuck loading" text
       const n = text($("u-name") ? $("u-name").textContent : "");
       if (n === "載入中..." || n === "（同步失敗）") {
         await sleep(180);
@@ -787,7 +756,6 @@ async function loadData() {
     log_("loadData success:", {
       id,
       keys: Object.keys(data).length,
-      hasAvatar: !!pick(__payload, ["avatar_img", "個人照_fast", "個人照", "形象照", "avatar", "photo", "image"]),
       photos: (__gallery.list || []).length
     });
 
@@ -803,16 +771,14 @@ async function loadData() {
 window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
 
 /* ---------------------------
- * Boot (do not change model)
+ * Boot
  * --------------------------- */
 function boot_() {
   try { applyV382(); } catch {}
   try { loadData(); } catch (e) { err_("boot loadData error:", e); }
 }
 
-// Use DOMContentLoaded first (mobile stability), fallback to load
 document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
 window.addEventListener("load", () => {
-  // if DOMContentLoaded missed (very rare), still ensure boot runs once
   if (!__lastLoad.ts) boot_();
 });
