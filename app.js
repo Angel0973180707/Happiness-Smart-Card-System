@@ -1,9 +1,11 @@
 /* ================================
  * Angel Card App.js (FULL OVERWRITE)
- * - FIX: remove custom headers to avoid CORS preflight
- * - FIX: robust key normalization + mobile re-apply
- * - FIX: image fallback chain
- * - FIX: Gallery photo auto-detect (scan keys contains 照/照片/相片/作品)
+ * - Gallery: dynamic aspect ratio (no fixed 16:9)
+ * - Gallery: contain preview (no crop), click to open original
+ * - Keep: no custom headers (avoid CORS preflight)
+ * - Keep: robust key normalization + mobile re-apply
+ * - Keep: image fallback chain
+ * - Keep: auto-detect photo keys contains 照/照片/相片/作品/圖
  * ================================ */
 
 const CONFIG = {
@@ -19,6 +21,11 @@ const CONFIG = {
   DOM_WAIT_MS: 2400,
   DOM_POLL_MS: 80,
 
+  // ✅ Gallery dynamic layout
+  GALLERY_MIN_RATIO: 1 / 1.6, // very tall => 0.625
+  GALLERY_MAX_RATIO: 1.9,     // very wide
+  GALLERY_MAX_WIDTH: 520,
+
   DEBUG: true
 };
 
@@ -32,7 +39,8 @@ let __gallery = {
   index: 0,
   timer: null,
   inited: false,
-  lastMode: null
+  lastMode: null,
+  lastShownUrl: ""
 };
 
 let __lastLoad = { id: "", ts: 0, url: "" };
@@ -303,7 +311,7 @@ function buildImageCandidates_(raw) {
   return [normalizeImageUrl(original)];
 }
 
-function setImgWithFallback_(imgEl, candidates) {
+function setImgWithFallback_(imgEl, candidates, onLoaded) {
   if (!imgEl) return;
   const list = (candidates || []).map(text).filter(Boolean);
   if (!list.length) {
@@ -335,6 +343,7 @@ function setImgWithFallback_(imgEl, candidates) {
   imgEl.onload = () => {
     if (imgEl.dataset.loadToken !== token) return;
     requestAnimationFrame(() => (imgEl.style.opacity = "1"));
+    try { onLoaded && onLoaded(imgEl); } catch {}
   };
   imgEl.onerror = () => {
     if (imgEl.dataset.loadToken !== token) return;
@@ -388,6 +397,7 @@ function autoDetectPhotos_(payload) {
     }
   }
 
+  // de-dupe
   const uniq = [];
   const seen = new Set();
   for (const u of out) {
@@ -419,8 +429,25 @@ function getPhotosArray_(payload) {
 }
 
 /* ---------------------------
- * Gallery DOM
+ * Gallery DOM (dynamic ratio + click to open original)
  * --------------------------- */
+function clamp_(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function setGalleryRatio_(ratio) {
+  const box = $("galleryBox");
+  if (!box) return;
+
+  const r = clamp_(ratio || (16/9), CONFIG.GALLERY_MIN_RATIO, CONFIG.GALLERY_MAX_RATIO);
+  // ✅ modern: aspect-ratio
+  box.style.aspectRatio = String(r);
+}
+
+function openUrlNewTab_(url) {
+  const u = text(url);
+  if (!u) return;
+  try { window.open(u, "_blank", "noopener,noreferrer"); } catch { window.open(u, "_blank"); }
+}
+
 function ensureGalleryDom_() {
   if (__gallery.inited) return;
 
@@ -431,7 +458,7 @@ function ensureGalleryDom_() {
   wrap.id = "photoGallery";
   wrap.setAttribute("aria-label", "產品照片預覽");
   wrap.style.margin = "12px auto 0";
-  wrap.style.width = "min(92vw, 520px)";
+  wrap.style.width = `min(92vw, ${CONFIG.GALLERY_MAX_WIDTH}px)`;
   wrap.style.borderRadius = "18px";
   wrap.style.overflow = "hidden";
   wrap.style.boxShadow = "0 10px 30px rgba(0,0,0,.08)";
@@ -440,7 +467,9 @@ function ensureGalleryDom_() {
   wrap.style.backdropFilter = "blur(6px)";
 
   const box = document.createElement("div");
+  box.id = "galleryBox";
   box.style.width = "100%";
+  // ✅ default ratio, will be overwritten by first loaded image
   box.style.aspectRatio = "16 / 9";
   box.style.position = "relative";
   box.style.background = "rgba(0,0,0,.03)";
@@ -455,10 +484,19 @@ function ensureGalleryDom_() {
   img.style.inset = "0";
   img.style.width = "100%";
   img.style.height = "100%";
-  img.style.objectFit = "cover";
+  // ✅ 你要的：不裁切，比例縮小顯示
+  img.style.objectFit = "contain";
+  img.style.objectPosition = "center";
   img.style.opacity = "0";
   img.style.transition = "opacity 520ms ease";
+  img.style.cursor = "zoom-in";
   img.onerror = () => { img.style.opacity = "0"; };
+
+  // ✅ click open original
+  img.addEventListener("click", () => {
+    const u = __gallery.lastShownUrl || (__gallery.list[__gallery.index] || "");
+    openUrlNewTab_(u);
+  });
 
   box.appendChild(img);
 
@@ -544,9 +582,19 @@ function setGalleryImage_(url) {
     return;
   }
 
+  __gallery.lastShownUrl = normalizeImageUrl(url);
+
   img.style.opacity = "0";
   img.style.transition = "opacity 520ms ease";
-  setImgWithFallback_(img, candidates);
+  setImgWithFallback_(img, candidates, (loadedImg) => {
+    // ✅ dynamic ratio: use naturalWidth/Height
+    const w = loadedImg.naturalWidth || 0;
+    const h = loadedImg.naturalHeight || 0;
+    if (w > 0 && h > 0) {
+      const ratio = w / h;
+      setGalleryRatio_(ratio);
+    }
+  });
 }
 
 function galleryNext_() {
