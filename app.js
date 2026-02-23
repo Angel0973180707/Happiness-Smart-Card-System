@@ -1,16 +1,9 @@
 /* ================================
  * Angel Card App.js (FULL OVERWRITE)
- * - Load by URL ?id=TW000X
- * - use GAS: ?action=card&id=...
- * - robust fetch + safe JSON
- * - FIX: weird headers with quotes/newlines/zero-width chars (normalize keys)
- * - FIX: mobile fetch success but UI not updated (wait DOM + re-apply once)
- * - FIX: Drive/Dropbox image fallback + onerror chain
- * - FIX: Gallery mode switch stability (timer/state)
- *
- * IMPORTANT FIX:
- * - Remove custom request headers (Cache-Control/Pragma) to avoid CORS preflight.
- *   Apps Script WebApp often doesn't handle OPTIONS => "Failed to fetch".
+ * - FIX: remove custom headers to avoid CORS preflight
+ * - FIX: robust key normalization + mobile re-apply
+ * - FIX: image fallback chain
+ * - FIX: Gallery photo auto-detect (scan keys contains 照/照片/相片/作品)
  * ================================ */
 
 const CONFIG = {
@@ -20,21 +13,17 @@ const CONFIG = {
   FETCH_TIMEOUT_MS: 10000,
   RETRY: 2,
 
-  // gallery behavior
   GALLERY_AUTOPLAY_MS: 3200,
   GALLERY_MAX: 5,
 
-  // DOM wait (mobile safety)
   DOM_WAIT_MS: 2400,
   DOM_POLL_MS: 80,
 
-  // debug
   DEBUG: true
 };
 
 let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
 
-// runtime
 let __payloadRaw = null;
 let __payload = null;
 
@@ -48,9 +37,7 @@ let __gallery = {
 
 let __lastLoad = { id: "", ts: 0, url: "" };
 
-/* ---------------------------
- * Small helpers
- * --------------------------- */
+/* --------------------------- */
 function $(id) { return document.getElementById(id); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
 function log_() { if (CONFIG.DEBUG) console.log("[AngelCard]", ...arguments); }
@@ -64,21 +51,12 @@ function setText(id, v) {
   return true;
 }
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function nowIso_() { try { return new Date().toISOString(); } catch { return String(Date.now()); } }
 
-function nowIso_() {
-  try { return new Date().toISOString(); } catch { return String(Date.now()); }
-}
-
-/* ---------------------------
- * Read URL params
- * --------------------------- */
+/* --------------------------- */
 function getParam(name) {
-  try {
-    const p = new URLSearchParams(window.location.search);
-    return p.get(name);
-  } catch {
-    return null;
-  }
+  try { return new URLSearchParams(window.location.search).get(name); }
+  catch { return null; }
 }
 function getCardId() {
   const id = text(getParam("id"));
@@ -131,9 +109,7 @@ function applyV382() {
   document.body.className = classList.filter(Boolean).join(" ");
 }
 
-/* ---------------------------
- * DOM readiness guard
- * --------------------------- */
+/* --------------------------- */
 async function waitForDom_(ids, timeoutMs = CONFIG.DOM_WAIT_MS) {
   const need = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
   const started = Date.now();
@@ -154,8 +130,7 @@ function coreUiReady_() {
 }
 
 /* ---------------------------
- * Robust fetch (no-store + timeout + retry + safe JSON)
- * IMPORTANT FIX: no custom headers => avoid CORS preflight
+ * Fetch (NO custom headers => avoid CORS preflight)
  * --------------------------- */
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
@@ -164,13 +139,11 @@ async function fetchWithTimeout(url, timeoutMs) {
   try {
     const res = await fetch(url, {
       method: "GET",
-      // mode:"cors" is fine, but don't add non-simple headers
       mode: "cors",
       cache: "no-store",
       credentials: "omit",
       redirect: "follow",
       signal: controller.signal
-      // ✅ DO NOT set Cache-Control / Pragma headers here
     });
 
     const status = res.status;
@@ -183,10 +156,7 @@ async function fetchWithTimeout(url, timeoutMs) {
       log_("fetch:", { status, ct, len: body.length, head });
     }
 
-    if (!res.ok) {
-      if (!body) throw new Error(`HTTP ${status} (empty)`);
-    }
-
+    if (!res.ok && !body) throw new Error(`HTTP ${status} (empty)`);
     if (!body) throw new Error("Empty response");
 
     try {
@@ -237,8 +207,8 @@ function buildNormalizedPayload_(obj) {
   for (const k of Object.keys(obj)) {
     const nk = cleanKey_(k);
     if (!nk) continue;
-
     const v = obj[k];
+
     if (out[nk] == null || text(out[nk]) === "") out[nk] = v;
 
     const lk = nk.toLowerCase();
@@ -249,9 +219,6 @@ function buildNormalizedPayload_(obj) {
   return out;
 }
 
-/* ---------------------------
- * Field mapping
- * --------------------------- */
 function pick(obj, keys) {
   if (!obj) return "";
   const raw = obj.__raw || null;
@@ -297,22 +264,13 @@ function normalizeImageUrl(raw) {
   }
 
   const mFile = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/i);
-  if (mFile && mFile[1]) {
-    const id = mFile[1];
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
-  }
+  if (mFile && mFile[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
 
   const mId = url.match(/(?:\?|&)id=([^&]+)/i);
-  if (mId && mId[1]) {
-    const id = mId[1];
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
-  }
+  if (mId && mId[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mId[1])}`;
 
   const mThumb = url.match(/thumbnail\?id=([^&]+)/i);
-  if (mThumb && mThumb[1]) {
-    const id = mThumb[1];
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
-  }
+  if (mThumb && mThumb[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mThumb[1])}`;
 
   return url;
 }
@@ -399,12 +357,11 @@ function setAvatarImage(url) {
 
   img.style.opacity = "0";
   img.style.transition = "opacity 420ms ease";
-
   setImgWithFallback_(img, cands);
 }
 
 /* ---------------------------
- * Photos array parsing
+ * Photos array parsing + AUTO DETECT
  * --------------------------- */
 function splitLinks_(v) {
   if (v == null) return [];
@@ -414,7 +371,39 @@ function splitLinks_(v) {
   return s.split(/[\n,，;；]+/).map(x => text(x)).filter(Boolean);
 }
 
+// ✅ NEW: scan all fields for possible photo URLs
+function autoDetectPhotos_(payload) {
+  if (!payload || typeof payload !== "object") return [];
+  const out = [];
+
+  const keys = Object.keys(payload).filter(k => k && !k.startsWith("__"));
+  for (const k of keys) {
+    const kk = String(k);
+    // key name hints
+    if (!/(照片|相片|作品|圖|照)/.test(kk)) continue;
+
+    const v = payload[k];
+    const parts = splitLinks_(v);
+    for (const p of parts) {
+      if (/^https?:\/\//i.test(p)) out.push(p);
+    }
+  }
+
+  // de-dupe
+  const uniq = [];
+  const seen = new Set();
+  for (const u of out) {
+    const nu = normalizeImageUrl(u);
+    if (!nu) continue;
+    if (seen.has(nu)) continue;
+    seen.add(nu);
+    uniq.push(nu);
+  }
+  return uniq;
+}
+
 function getPhotosArray_(payload) {
+  // keep your original priority first
   const v =
     pick(payload, ["photos_img"]) ||
     pick(payload, ["照片_fast", "照片_fast "]) ||
@@ -422,11 +411,15 @@ function getPhotosArray_(payload) {
     pick(payload, ["photos"]) ||
     pick(payload, ["照片"]);
 
-  const rawArr = splitLinks_(v).filter(Boolean);
-  return rawArr
-    .map(u => normalizeImageUrl(u))
+  const base = splitLinks_(v)
     .filter(Boolean)
-    .slice(0, CONFIG.GALLERY_MAX);
+    .map(u => normalizeImageUrl(u))
+    .filter(Boolean);
+
+  // ✅ if base empty, auto-detect from all fields
+  const auto = base.length ? [] : autoDetectPhotos_(payload);
+
+  return (base.length ? base : auto).slice(0, CONFIG.GALLERY_MAX);
 }
 
 /* ---------------------------
@@ -494,9 +487,7 @@ function ensureGalleryDom_() {
   if (vtag && vtag.parentElement === card) card.insertBefore(wrap, vtag);
   else card.appendChild(wrap);
 
-  let startX = 0;
-  let startY = 0;
-  let moved = false;
+  let startX = 0, startY = 0, moved = false;
 
   wrap.addEventListener("touchstart", (e) => {
     if (!e.touches || !e.touches[0]) return;
@@ -581,14 +572,12 @@ function stopAutoplay_() {
     __gallery.timer = null;
   }
 }
-
 function startAutoplay_() {
   stopAutoplay_();
   if (state.mode !== "premium") return;
   if (__gallery.list.length <= 1) return;
   __gallery.timer = setInterval(() => galleryNext_(), CONFIG.GALLERY_AUTOPLAY_MS);
 }
-
 function refreshGalleryMode_() {
   if (!__gallery.inited) return;
 
@@ -596,7 +585,6 @@ function refreshGalleryMode_() {
     stopAutoplay_();
     __gallery.lastMode = state.mode;
   }
-
   if (state.mode === "premium") startAutoplay_();
   else stopAutoplay_();
 }
@@ -609,23 +597,11 @@ function applyDataToCard(payloadNorm) {
   const unit = pick(payloadNorm, ["單位名稱（如：幸福教養概念館）", "單位名稱", "單位", "unit", "Unit"]);
   const service = pick(payloadNorm, ["服務項目（核心業務，多項可條列換行）", "服務項目", "service", "Service"]);
 
-  const ok1 = setText("u-name", name || "（尚未讀到姓名）");
-  const ok2 = setText("u-unit", unit || "");
-  const ok3 = setText("u-service", service || "");
+  setText("u-name", name || "（尚未讀到姓名）");
+  setText("u-unit", unit || "");
+  setText("u-service", service || "");
 
-  if (CONFIG.DEBUG && (!ok1 || !ok2 || !ok3)) {
-    warn_("applyDataToCard: some UI nodes missing, will rely on re-apply pass");
-  }
-
-  const avatar = pick(payloadNorm, [
-    "avatar_img",
-    "個人照_fast",
-    "個人照",
-    "形象照",
-    "avatar",
-    "photo",
-    "image"
-  ]);
+  const avatar = pick(payloadNorm, ["avatar_img","個人照_fast","個人照","形象照","avatar","photo","image"]);
   setAvatarImage(avatar);
 
   const photos = getPhotosArray_(payloadNorm);
@@ -647,38 +623,31 @@ function applyDataToCard(payloadNorm) {
   }
 }
 
-/* ---------------------------
- * Order help modal (if exists)
- * --------------------------- */
+/* --------------------------- */
 window.openOrderHelp = function () {
   const modal = $("orderHelpModal");
   if (!modal) return;
   modal.classList.add("show");
   modal.setAttribute("aria-hidden", "false");
 };
-
 window.closeOrderHelp = function () {
   const modal = $("orderHelpModal");
   if (!modal) return;
   modal.classList.remove("show");
   modal.setAttribute("aria-hidden", "true");
 };
-
 document.addEventListener("click", (e) => {
   const modal = $("orderHelpModal");
   if (!modal) return;
   if (e.target === modal) window.closeOrderHelp();
 });
 
-/* ---------------------------
- * Main load
- * --------------------------- */
+/* --------------------------- */
 function setLoadingUi_() {
   setText("u-name", "載入中...");
   setText("u-unit", "同步中...");
   setText("u-service", "正在同步雲端服務項目...");
 }
-
 function setFailUi_(msg) {
   setText("u-name", "（同步失敗）");
   setText("u-unit", msg || "請確認網址 ?id=TW000X 或檢查 GAS 權限");
@@ -712,17 +681,11 @@ async function loadData() {
 
     applyDataToCard(__payload);
 
-    // mobile safety re-apply once
     await sleep(120);
-    if (!coreUiReady_()) {
+    const n = text($("u-name") ? $("u-name").textContent : "");
+    if (!coreUiReady_() || n === "載入中..." || n === "（同步失敗）") {
       await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
       applyDataToCard(__payload);
-    } else {
-      const n = text($("u-name") ? $("u-name").textContent : "");
-      if (n === "載入中..." || n === "（同步失敗）") {
-        await sleep(180);
-        applyDataToCard(__payload);
-      }
     }
 
     log_("loadData success:", {
@@ -737,14 +700,9 @@ async function loadData() {
   }
 }
 
-/* ---------------------------
- * External actions
- * --------------------------- */
+/* --------------------------- */
 window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
 
-/* ---------------------------
- * Boot
- * --------------------------- */
 function boot_() {
   try { applyV382(); } catch {}
   try { loadData(); } catch (e) { err_("boot loadData error:", e); }
