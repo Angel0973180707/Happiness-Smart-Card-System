@@ -7,6 +7,10 @@
  * - FIX: mobile fetch success but UI not updated (wait DOM + re-apply once)
  * - FIX: Drive/Dropbox image fallback + onerror chain
  * - FIX: Gallery mode switch stability (timer/state)
+ *
+ * IMPORTANT FIX:
+ * - Remove custom request headers (Cache-Control/Pragma) to avoid CORS preflight.
+ *   Apps Script WebApp often doesn't handle OPTIONS => "Failed to fetch".
  * ================================ */
 
 const CONFIG = {
@@ -92,7 +96,6 @@ window.setV382 = function (mode, theme, el) {
   if (el) el.classList.add("active");
 
   applyV382();
-  // ✅ mode switch affects gallery behavior
   refreshGalleryMode_();
 };
 
@@ -129,7 +132,7 @@ function applyV382() {
 }
 
 /* ---------------------------
- * DOM readiness guard (mobile: prevent "fetch OK but UI not updated")
+ * DOM readiness guard
  * --------------------------- */
 async function waitForDom_(ids, timeoutMs = CONFIG.DOM_WAIT_MS) {
   const need = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
@@ -147,13 +150,12 @@ async function waitForDom_(ids, timeoutMs = CONFIG.DOM_WAIT_MS) {
 }
 
 function coreUiReady_() {
-  // minimum UI targets we must be able to write
   return !!$("u-name") && !!$("u-unit") && !!$("u-service");
 }
 
 /* ---------------------------
  * Robust fetch (no-store + timeout + retry + safe JSON)
- * - Add diagnostics: status, content-type, short body head
+ * IMPORTANT FIX: no custom headers => avoid CORS preflight
  * --------------------------- */
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
@@ -162,16 +164,13 @@ async function fetchWithTimeout(url, timeoutMs) {
   try {
     const res = await fetch(url, {
       method: "GET",
+      // mode:"cors" is fine, but don't add non-simple headers
       mode: "cors",
       cache: "no-store",
       credentials: "omit",
       redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        "Accept": "application/json, text/plain, */*",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache"
-      }
+      signal: controller.signal
+      // ✅ DO NOT set Cache-Control / Pragma headers here
     });
 
     const status = res.status;
@@ -185,7 +184,6 @@ async function fetchWithTimeout(url, timeoutMs) {
     }
 
     if (!res.ok) {
-      // still try JSON parse if GAS returns error JSON with 4xx
       if (!body) throw new Error(`HTTP ${status} (empty)`);
     }
 
@@ -194,7 +192,6 @@ async function fetchWithTimeout(url, timeoutMs) {
     try {
       return JSON.parse(body);
     } catch {
-      // try to salvage JSON embedded in HTML
       const m = body.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
       if (m) return JSON.parse(m[1]);
       throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
@@ -219,19 +216,15 @@ async function fetchJsonRobust(url) {
 }
 
 /* ---------------------------
- * Key normalize (fix: weird headers with quotes/newlines/zero-width)
+ * Key normalize
  * --------------------------- */
 function cleanKey_(k) {
   return String(k ?? "")
-    // BOM / zero-width / direction marks
     .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
-    // full-width space
     .replace(/\u3000/g, " ")
-    // normalize line breaks then remove all line breaks within header
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .replace(/\n+/g, "")
-    // trim quotes and spaces
     .replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "")
     .trim();
 }
@@ -239,15 +232,12 @@ function cleanKey_(k) {
 function buildNormalizedPayload_(obj) {
   if (!obj || typeof obj !== "object") return obj;
   const out = { __raw: obj };
-
-  // also build a lower-cased alias map for fallback (safe, not changing keys)
   const lowerMap = Object.create(null);
 
   for (const k of Object.keys(obj)) {
     const nk = cleanKey_(k);
     if (!nk) continue;
 
-    // keep first non-empty value priority
     const v = obj[k];
     if (out[nk] == null || text(out[nk]) === "") out[nk] = v;
 
@@ -260,7 +250,7 @@ function buildNormalizedPayload_(obj) {
 }
 
 /* ---------------------------
- * Field mapping (support your headers)
+ * Field mapping
  * --------------------------- */
 function pick(obj, keys) {
   if (!obj) return "";
@@ -271,18 +261,15 @@ function pick(obj, keys) {
     if (k == null) continue;
     const kk = cleanKey_(k);
 
-    // exact normalized key
     const v1 = obj[kk];
     if (v1 != null && text(v1) !== "") return v1;
 
-    // case-insensitive fallback
     if (lower) {
       const v2 = lower[String(kk).toLowerCase()];
       if (v2 != null && text(v2) !== "") return v2;
     }
   }
 
-  // last resort: raw object original keys (as provided)
   if (raw) {
     for (const k of keys) {
       const v = raw[k];
@@ -303,28 +290,24 @@ function normalizeImageUrl(raw) {
 
   if (url.startsWith("http://")) url = "https://" + url.slice(7);
 
-  // Dropbox
   if (url.includes("dropbox.com")) {
     url = url.replace("dl=0", "raw=1");
     if (!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
     return url;
   }
 
-  // Drive file/d/<id>
   const mFile = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/i);
   if (mFile && mFile[1]) {
     const id = mFile[1];
     return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
   }
 
-  // Drive ?id=<id>
   const mId = url.match(/(?:\?|&)id=([^&]+)/i);
   if (mId && mId[1]) {
     const id = mId[1];
     return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
   }
 
-  // Drive thumbnail?id=<id>
   const mThumb = url.match(/thumbnail\?id=([^&]+)/i);
   if (mThumb && mThumb[1]) {
     const id = mThumb[1];
@@ -349,9 +332,7 @@ function buildImageCandidates_(raw) {
   else if (mId && mId[1]) driveId = mId[1];
   else if (mThumb && mThumb[1]) driveId = mThumb[1];
 
-  if (original.includes("dropbox.com")) {
-    return [normalizeImageUrl(original)];
-  }
+  if (original.includes("dropbox.com")) return [normalizeImageUrl(original)];
 
   if (driveId) {
     return [
@@ -442,12 +423,10 @@ function getPhotosArray_(payload) {
     pick(payload, ["照片"]);
 
   const rawArr = splitLinks_(v).filter(Boolean);
-  const arr = rawArr
+  return rawArr
     .map(u => normalizeImageUrl(u))
     .filter(Boolean)
     .slice(0, CONFIG.GALLERY_MAX);
-
-  return arr;
 }
 
 /* ---------------------------
@@ -511,15 +490,10 @@ function ensureGalleryDom_() {
   box.appendChild(dots);
   wrap.appendChild(box);
 
-  // Insert gallery before version-tag if exists
   const vtag = card.querySelector(".version-tag");
-  if (vtag && vtag.parentElement === card) {
-    card.insertBefore(wrap, vtag);
-  } else {
-    card.appendChild(wrap);
-  }
+  if (vtag && vtag.parentElement === card) card.insertBefore(wrap, vtag);
+  else card.appendChild(wrap);
 
-  // swipe events (free mode)
   let startX = 0;
   let startY = 0;
   let moved = false;
@@ -612,9 +586,7 @@ function startAutoplay_() {
   stopAutoplay_();
   if (state.mode !== "premium") return;
   if (__gallery.list.length <= 1) return;
-  __gallery.timer = setInterval(() => {
-    galleryNext_();
-  }, CONFIG.GALLERY_AUTOPLAY_MS);
+  __gallery.timer = setInterval(() => galleryNext_(), CONFIG.GALLERY_AUTOPLAY_MS);
 }
 
 function refreshGalleryMode_() {
