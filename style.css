@@ -172,16 +172,24 @@ body{
   background: rgba(255,255,255,0.15);
 }
 
-/* ✅ 頭像圖片：自由 cover、精品 contain（不裁切） */
-.avatar{
+/* ✅ 這裡是關鍵：用 id 精準鎖定，避免 class 變動失效
+   - 自由款：cover（滿版，可能裁切）
+   - 精品：contain（不裁切，可能留白） */
+#u-img{
   width:100%;
   height:100%;
   border-radius:50%;
-  object-fit:cover;            /* 自由款維持滿版 */
+  object-fit: cover;         /* 預設自由款 */
+  object-position: center;
+  display:block;
 }
-.mode-premium .avatar{
-  object-fit:contain;          /* ✅ 精品改成不裁切 */
+.mode-premium #u-img{
+  object-fit: contain;       /* 精品不裁切 */
+  background: rgba(255,255,255,0.08); /* 讓留白不突兀，可留可刪 */
 }
+
+/*（保留你原本 class，避免你其他地方用到）*/
+.avatar{ width:100%; height:100%; border-radius:50%; object-position:center; }
 
 /* 內容區 */
 .name{ margin: 0; font-weight: 900; letter-spacing: .5px; }
