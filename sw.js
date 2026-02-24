@@ -1,6 +1,6 @@
-/* sw.js (V386 complete overwrite) */
+/* sw.js (V386.2 complete overwrite) */
 
-const CACHE_NAME = "angel-card-v386";
+const CACHE_NAME = "angel-card-v386.2";
 const CORE_ASSETS = [
   "./",
   "./index.html",
