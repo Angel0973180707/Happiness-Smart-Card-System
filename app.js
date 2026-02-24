@@ -1,16 +1,18 @@
 /* ================================
-Happiness Smart Card System — app.js (v393 COMPLETE OVERWRITE)
+Happiness Smart Card System — app.js (v394 COMPLETE OVERWRITE)
 
-v393 GOALS:
-- Clean homepage: NO visible backend on top
-- Hidden admin entry only
+v394 GOALS:
+- Keep archived UI (no visual redesign)
+- Fix data fetch robustness
+- Layout stability handled by CSS (not here)
 - Toggle dots UI:
   * Free mode => show free dots-row (.dot), hide premium dots-row (.p-dot)
   * Premium mode => show premium dots-row (.p-dot), hide free dots-row + hide free-controls
+- Hidden admin entry only (long press)
 ================================ */
 
 const CONFIG = {
-  VERSION: 393,
+  VERSION: 394,
 
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
@@ -20,7 +22,6 @@ const CONFIG = {
   RETRY: 2,
 
   ADMIN_LONGPRESS_MS: 1200,
-
   DEBUG: true
 };
 
@@ -36,9 +37,9 @@ function $(id) { return document.getElementById(id); }
 function q(sel, root = document) { return root.querySelector(sel); }
 function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
-function log_() { if (CONFIG.DEBUG) console.log("[HSC-v393]", ...arguments); }
-function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v393]", ...arguments); }
-function err_() { console.error("[HSC-v393]", ...arguments); }
+function log_() { if (CONFIG.DEBUG) console.log("[HSC-v394]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v394]", ...arguments); }
+function err_() { console.error("[HSC-v394]", ...arguments); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function setText(elOrId, v) {
@@ -209,20 +210,21 @@ async function fetchWithTimeout(url, timeoutMs) {
     const body = (txt || "").trim();
 
     if (CONFIG.DEBUG) {
-      const head = body.slice(0, 180).replace(/\s+/g, " ");
+      const head = body.slice(0, 220).replace(/\s+/g, " ");
       log_("fetch:", { status, ct, len: body.length, head });
     }
 
     if (!res.ok && !body) throw new Error(`HTTP ${status} (empty)`);
     if (!body) throw new Error("Empty response");
 
-    try {
-      return JSON.parse(body);
-    } catch {
-      const m = body.match(/\{[\s\S]*\}/);
-      if (m) return JSON.parse(m[0]);
-      throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
-    }
+    // 1) direct JSON
+    try { return JSON.parse(body); } catch {}
+
+    // 2) try extract first JSON object
+    const m = body.match(/\{[\s\S]*\}/);
+    if (m) return JSON.parse(m[0]);
+
+    throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
   } finally {
     clearTimeout(t);
   }
@@ -300,7 +302,6 @@ function pick(obj, keys) {
       if (v != null && text(v) !== "") return v;
     }
   }
-
   return "";
 }
 
@@ -408,7 +409,6 @@ function applyDataToCard(payloadNorm) {
   const name = pick(payloadNorm, ["姓名", "name", "Name"]);
   const unit = pick(payloadNorm, ["單位", "unit", "Unit"]);
   const service = pick(payloadNorm, ["服務項目", "service", "Service"]);
-
   const avatar = pick(payloadNorm, ["個人照_fast", "個人照", "形象照_fast", "形象照", "avatar_fast", "avatar"]);
 
   setText("u-name", name || "（尚未讀到姓名）");
@@ -443,7 +443,10 @@ Load card
 --------------------------- */
 async function loadCardById_(id) {
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+
+  // ✅ 你 GAS 是 webapp：用 action=card&id=TW0001
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
+
   __lastLoad = { id: cid, ts: Date.now(), url };
   __resolvedId = cid;
 
@@ -463,6 +466,7 @@ async function loadCardById_(id) {
     await sleep(120);
     applyDataToCard(__payload);
 
+    // ✅ 讓網址固定帶 id，方便你複製檢查
     try {
       const u = new URL(window.location.href);
       u.searchParams.set("id", cid);
@@ -476,6 +480,21 @@ async function loadCardById_(id) {
     throw e;
   }
 }
+
+/* ===========================
+CTA
+=========================== */
+window.goFillForm = function(){
+  try{
+    const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
+    const u = new URL(CONFIG.FORM);
+    // 先不要硬塞預填欄位（避免表單換題就壞），只帶 id 當參數備用
+    u.searchParams.set("id", id);
+    window.open(u.toString(), "_blank");
+  }catch{
+    window.open(CONFIG.FORM, "_blank");
+  }
+};
 
 /* ===========================
 Hidden Admin Entry (no visible backend)
@@ -558,11 +577,7 @@ Boot
 function boot_() {
   try { applyV382_(); } catch {}
   try { syncPlanButtons_(); } catch {}
-
-  // Ensure correct initial visibility for dots-row
   try { toggleDotsRows_(); } catch {}
-
-  // ONLY hidden admin entry
   try { bindAdminHiddenEntry_(); } catch {}
 
   const id = getCardIdFromUrl_();
