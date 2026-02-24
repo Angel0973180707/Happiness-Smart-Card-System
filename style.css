@@ -1,10 +1,7 @@
 /* ================================
- * 幸福智慧名片｜style.css（V387.4 FULL OVERWRITE）
- * 目標：維持 v385 門面+樣品區手感，修正：
- * - 精品模式頭像/姓名重疊
- * - Logo 自動圓角化
- * - 精品按鈕立體描邊 + 呼吸感
- * - 聯繫區 / 相片牆的必要樣式
+ * 幸福智慧名片｜style.css（v391 FULL OVERWRITE）
+ * Base: V387.4 FULL OVERWRITE (kept)
+ * Add: v391 Toolbar styles (4 buttons + input)
  * ================================ */
 
 :root{
@@ -244,7 +241,7 @@ body{
 .info-scroll{ transition:0.4s; overflow:auto; height:100%; }
 .mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
 .mode-premium .info-scroll{
-  padding: 102px 22px 22px; /* ✅ 往下挪，避免壓到頭像 */
+  padding: 102px 22px 22px;
   text-align:left;
 }
 
@@ -254,7 +251,7 @@ body{
   letter-spacing: 0.5px;
 }
 .mode-premium .name{
-  margin-top: 8px; /* ✅ 保險 */
+  margin-top: 8px;
   color: rgba(255,255,255,0.96);
   text-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
@@ -289,7 +286,7 @@ body{
   color: rgba(52,34,0,0.92);
 }
 
-/* Box title（如果 app.js 有注入標題，也要漂亮） */
+/* Box title */
 .box-title{
   font-weight: 900;
   margin-bottom: 8px;
@@ -329,7 +326,7 @@ body{
 .card-logo{
   width: 56px;
   height: 56px;
-  border-radius: 16px;         /* ✅ 自動圓角 */
+  border-radius: 16px;
   object-fit: cover;
   overflow:hidden;
   box-shadow: 0 10px 24px rgba(0,0,0,0.14);
@@ -444,4 +441,77 @@ body{
   font-weight: 900;
   background: rgba(255,255,255,0.18);
   color: rgba(255,255,255,0.95);
+}
+
+/* =========================================
+ * v391: Top toolbar (input + 4 function keys)
+ * Will be injected by app.js into #topControls
+ * IDs used: #v391Toolbar #v391Input #v391Hint
+ * ========================================= */
+.v391-top{
+  padding: 0 12px 8px;
+}
+
+#v391Toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:10px;
+  margin: 6px auto 4px;
+}
+
+#v391Input{
+  flex: 1 1 240px;
+  min-width: 220px;
+  max-width: 520px;
+  padding: 11px 12px;
+  border-radius: 18px;
+  border: 2px solid rgba(0,0,0,0.08);
+  background: #fff;
+  color: #2d3436;
+  font-weight: 900;
+  outline: none;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.06);
+}
+
+#v391Input::placeholder{
+  color: rgba(45,52,54,0.55);
+  font-weight: 800;
+}
+
+#v391Hint{
+  flex: 1 1 100%;
+  font-size: 12px;
+  opacity: .72;
+  margin-top: 2px;
+}
+
+.v391-btn{
+  border:none;
+  cursor:pointer;
+  font-weight:900;
+  padding: 11px 14px;
+  border-radius: 18px;
+  background: rgba(0,0,0,0.04);
+  color: rgba(45,52,54,0.92);
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.06),
+    inset 0 2px 0 rgba(255,255,255,0.95),
+    inset 0 -2px 0 rgba(0,0,0,0.05);
+  transition: transform .18s, filter .18s, box-shadow .18s;
+}
+
+.v391-btn.primary{
+  background: var(--p);
+  color:#fff;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.12);
+}
+
+.v391-btn:hover{ transform: translateY(-1px); }
+.v391-btn:active{ transform: translateY(1px) scale(0.99); }
+
+@media (max-width:420px){
+  #v391Input{ min-width: 190px; }
+  .v391-btn{ padding: 10px 12px; border-radius: 16px; }
 }
