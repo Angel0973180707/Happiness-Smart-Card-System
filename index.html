@@ -1,4 +1,6 @@
-<!-- index.html (v395 COMPLETE OVERWRITE) -->
+<!-- =========================
+index.html (v395 COMPLETE OVERWRITE)
+========================= -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -93,48 +95,54 @@
       </div>
     </div>
 
-    <div class="info-scroll" id="infoScroll">
+    <!-- ✅ 卡片空間規劃：上固定、下可捲 -->
+    <div class="info-scroll">
 
-      <!-- 固定頂部：定位/標語 -->
-      <div id="u-slogan" class="content-box slogan" style="display:none;"></div>
-
-      <h1 id="u-name" class="name">載入中...</h1>
-      <div id="u-unit" class="unit">同步中...</div>
-
-      <!-- 服務/介紹 -->
-      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">
-        正在同步雲端服務項目...
+      <!-- A) 主資訊（固定） -->
+      <div class="card-head">
+        <h1 id="u-name" class="name">載入中...</h1>
+        <div id="u-unit" class="unit">同步中...</div>
       </div>
 
-      <!-- 照片輪播牆 -->
-      <div id="galleryBox" class="content-box" style="display:none;">
-        <div class="box-title">照片輪播牆</div>
-        <div class="gallery">
-          <div id="galleryTrack" class="gallery-track" aria-label="gallery"></div>
+      <!-- B) 內容區（可捲動） -->
+      <div class="card-body" id="cardBody">
+
+        <!-- ① 一句話/定位/標語 -->
+        <div class="content-box" id="blk-tagline" style="display:none;">
+          <div class="box-title">一句話</div>
+          <div class="box-text" id="u-tagline"></div>
         </div>
-        <div id="galleryDots" class="gallery-dots" aria-label="gallery-dots"></div>
+
+        <!-- ② 服務項目/介紹 -->
+        <div class="content-box" id="blk-service">
+          <div class="box-title">服務介紹</div>
+          <div class="box-text" id="u-service">正在同步雲端內容...</div>
+        </div>
+
+        <!-- ③ 照片輪播牆 -->
+        <div class="content-box" id="blk-gallery" style="display:none;">
+          <div class="box-title">作品照片</div>
+          <div class="gallery-wrap" id="galleryWrap"></div>
+          <div class="gallery-dots" id="galleryDots"></div>
+        </div>
+
+        <!-- ④ 聯繫區 -->
+        <div class="content-box" id="blk-contact" style="display:none;">
+          <div class="box-title">聯繫方式</div>
+          <div class="contact-row" id="contactRow"></div>
+        </div>
+
+        <!-- ⑤ 地址 -->
+        <div class="content-box" id="blk-address" style="display:none;">
+          <div class="box-title">地址</div>
+          <div class="addr" id="u-address"></div>
+          <button class="btn-mini" id="btnNav" type="button">一鍵導航</button>
+        </div>
+
+        <!-- ⑥ 其餘欄位自動生成 -->
+        <div id="blk-extra" class="extra-stack"></div>
+
       </div>
-
-      <!-- 聯繫區 -->
-      <div id="contactBox" class="content-box" style="display:none;">
-        <div class="box-title">聯繫方式</div>
-        <div id="contactRow" class="contact-row"></div>
-      </div>
-
-      <!-- 地址（導航） -->
-      <div id="addrBox" class="content-box" style="display:none;">
-        <div class="box-title">地址</div>
-        <a id="addrLink" class="addr-link" href="#" target="_blank" rel="noopener">
-          <i class="fa-solid fa-location-dot"></i>
-          <span id="addrText"></span>
-          <span class="addr-go">導航</span>
-        </a>
-      </div>
-
-      <!-- 其餘欄位自動生成 -->
-      <div id="extraBox" class="extra-box" style="display:none;"></div>
-
-      <div class="footer-mini" id="cardFooterMini" style="opacity:.65;"></div>
     </div>
 
     <!-- ✅ 後台隱形入口：長按 1.2s -->
@@ -145,44 +153,14 @@
     Happiness Smart Card System v395
   </footer>
 
-  <!-- ====== 後台工作區骨架（隱形，只給 admin=1） ====== -->
-  <div id="adminWorkspace" class="admin-workspace" style="display:none;">
-    <div class="admin-card">
-      <div class="admin-title">Workspace（骨架）</div>
-      <div class="admin-sub">預留：預覽/複製名片連結、讀取 id/token、完整欄位、照片牆排序、OG 交付頁（一鍵產生）</div>
-
-      <div class="admin-section">
-        <div class="admin-h">目前名片</div>
-        <div class="admin-row">
-          <div class="admin-k">ID</div>
-          <div class="admin-v" id="admId">-</div>
-        </div>
-        <div class="admin-row">
-          <div class="admin-k">Link</div>
-          <div class="admin-v">
-            <input id="admLink" class="admin-input" readonly value="" />
-            <button class="btn-neo admin-btn" type="button" onclick="window.adminCopyLink()">複製</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="admin-section">
-        <div class="admin-h">權限保留位</div>
-        <div class="admin-sub">目前只做入口＋骨架，不做完整管理功能（避免改太多）。</div>
-      </div>
-
-      <div class="admin-section">
-        <button class="btn-cta" type="button" onclick="window.adminClose()">返回前台</button>
-      </div>
-    </div>
-  </div>
-
   <script src="app.js?v=395"></script>
 
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=395').then(reg => reg.update()).catch(()=>{});
+        navigator.serviceWorker.register('./sw.js?v=395')
+          .then(reg => reg.update())
+          .catch(()=>{});
       });
     }
   </script>
