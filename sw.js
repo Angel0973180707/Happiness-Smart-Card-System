@@ -1,7 +1,9 @@
-/* sw.js (V387 complete overwrite) */
+/* sw.js (v391 FULL OVERWRITE) */
 
-const CACHE_NAME = "angel-card-v387";
-const CORE_ASSETS = [
+const VERSION = "v391";
+const CACHE = `hsc-${VERSION}`;
+
+const PRECACHE = [
   "./",
   "./index.html",
   "./style.css",
@@ -11,49 +13,47 @@ const CORE_ASSETS = [
   "./icons/icon-512.png"
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(CORE_ASSETS.map(u => u + "?v=386"));
-    self.skipWaiting();
-  })());
+self.addEventListener("install", (e) => {
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(PRECACHE))
+      .then(() => self.skipWaiting())
+  );
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil((async () => {
+self.addEventListener("activate", (e) => {
+  e.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())));
-    self.clients.claim();
+    await Promise.all(keys.map(k => (k === CACHE ? null : caches.delete(k))));
+    await self.clients.claim();
   })());
 });
 
-self.addEventListener("fetch", (event) => {
-  const req = event.request;
+self.addEventListener("fetch", (e) => {
+  const req = e.request;
   if (req.method !== "GET") return;
 
   const url = new URL(req.url);
-  const sameOrigin = url.origin === self.location.origin;
 
-  // Only cache same-origin (GitHub Pages). Avoid caching GAS / fonts / drive images.
-  if (!sameOrigin) return;
+  // Same-origin: cache-first (ignoreSearch so ?v=391 works)
+  if (url.origin === self.location.origin) {
+    e.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      const cached = await cache.match(req, { ignoreSearch: true });
+      if (cached) return cached;
 
-  event.respondWith((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(req, { ignoreSearch: true });
-    if (cached) return cached;
-
-    try {
-      const res = await fetch(req);
-      // cache only ok responses
-      if (res && res.ok) cache.put(req, res.clone());
-      return res;
-    } catch (e) {
-      // fallback: try cached index for navigations
-      if (req.mode === "navigate") {
+      try {
+        const fresh = await fetch(req);
+        if (fresh && fresh.ok) cache.put(req, fresh.clone());
+        return fresh;
+      } catch {
         const fallback = await cache.match("./index.html", { ignoreSearch: true });
-        if (fallback) return fallback;
+        return fallback || new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
       }
-      throw e;
-    }
-  })());
+    })());
+    return;
+  }
+
+  // Cross-origin (GAS): network-first
+  e.respondWith(fetch(req).catch(() => new Response("", { status: 504 })));
 });
