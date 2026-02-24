@@ -3,7 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Happiness Smart Card System v397</title>
+
+  <title>Happiness Smart Card System</title>
+  <meta name="description" content="幸福智慧名片｜點擊查看專屬名片" />
+
+  <!-- ✅ OG 固定封面圖（最重要） -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="幸福智慧名片" />
+  <meta property="og:description" content="點擊查看智慧名片" />
+  <meta property="og:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <!-- Twitter / LINE 相容 -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
   <link rel="manifest" href="./manifest.json?v=397" />
   <meta name="theme-color" content="#ee5253" />
@@ -14,11 +28,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css?v=397" />
-</head>
+</head><body class="mode-free color-1 style-arch paper-1">
 
-<body class="mode-free color-1 style-arch paper-1">
-
-  <!-- ================= 前台：門面區 ================= -->
   <div id="admin-panel">
 
     <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
@@ -38,14 +49,14 @@
       <div style="font-weight:900;">選擇方案</div>
     </div>
 
-    <!-- 自由搭配色點 -->
     <div class="dots-row">
       <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
       <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
       <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
       <div class="dot" style="background:#7d5fff" onclick="window.setV382('free', 'color-4', this)"></div>
       <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
-    </div><!-- 自由搭配控制 -->
+    </div>
+
     <div id="free-controls">
       <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
         <button class="btn-neo active" type="button" onclick="window.setV382Style('arch', this)">優雅正拱</button>
@@ -60,7 +71,6 @@
       </div>
     </div>
 
-    <!-- 精品設計色點 -->
     <div class="dots-row">
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p1', this)"></div>
       <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p2', this)"></div>
@@ -71,9 +81,9 @@
       <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
     </div>
 
-    <!-- CTA -->
     <button class="btn-cta" type="button" onclick="window.goFillForm()">立即預約訂製名片 →</button>
-  </div><!-- ================= 名片樣品區 ================= -->
+  </div>
+
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
@@ -86,7 +96,6 @@
     </div>
 
     <div class="info-scroll">
-
       <h1 id="u-name" class="name">載入中...</h1>
 
       <div id="u-unitline" class="unitline">
@@ -96,24 +105,19 @@
 
       <div id="u-slogan" class="slogan"></div>
 
-      <!-- 動態內容 -->
       <div id="dynamicFields" class="dynamic-fields"></div>
 
-      <!-- 聯繫 Dock -->
       <div id="contactDock" class="contact-dock">
         <div class="dock-title">聯繫與平台</div>
         <div id="contactButtons" class="dock-buttons"></div>
       </div>
 
-      <!-- 照片牆 -->
       <div id="photoWall" class="photo-wall">
         <div class="wall-title">照片牆</div>
         <div id="photoGrid" class="photo-grid"></div>
       </div>
-
     </div>
 
-    <!-- 隱形後台入口 -->
     <div class="version-tag" id="versionTag">v397</div>
   </div>
 
