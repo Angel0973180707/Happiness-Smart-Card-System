@@ -1,34 +1,33 @@
-/* ================================
- * Angel Card app.js (V387 FULL OVERWRITE)
- * Goal:
- * - KEEP V385 look/structure (門面/樣品區/自由款只影響 banner、精品卡樣貌不變)
- * - MERGE V386.2 capabilities (auto-read ALL headers, robust fetch, contacts, photo wall, full-text modal)
- * - Respect premium color order: p1胭脂 p2酒紅 p3深藍 p4霧紫 p5藍灰 p6金箔 p7褐碳 (handled by HTML dots order)
- * ================================ */
+/* app.js (V387 FULL OVERWRITE)
+ * ✅ 融合 V386.2 的「強韌讀欄位 / 自動區塊 / 聯繫方式 / 照片牆」能力
+ * ✅ 改成：吃你門面上的 A/B 按鈕（不再自行注入）
+ * ✅ 保持 V385 視覺規則：自由款顏色只影響 banner；精品整卡玻璃
+ * ✅ 長文字一律自動變「看全文」鈕（點開全文視窗）
+ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
   DEFAULT_ID: "TW0001",
-
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
-
-  DOM_WAIT_MS: 2600,
-  DOM_POLL_MS: 80,
-
   GALLERY_MAX: 12,
-
-  // full-text preview
-  PREVIEW_CHARS: 60,
-
+  THUMB_MIN_COL: 3,
+  THUMB_MAX_COL: 4,
+  DOM_WAIT_MS: 2800,
+  DOM_POLL_MS: 80,
+  READMORE_LIMIT: 120,
   DEBUG: true
 };
 
 let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
+
 let __payloadRaw = null;
 let __payload = null;
+let __gallery = { list: [], inited: false };
+let __lastLoad = { id: "", ts: 0, url: "" };
 
+/* --------------------------- */
 function $(id) { return document.getElementById(id); }
 function q(sel, root = document) { return root.querySelector(sel); }
 function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
@@ -36,7 +35,6 @@ function text(v) { return (v == null ? "" : String(v)).trim(); }
 function log_() { if (CONFIG.DEBUG) console.log("[AngelCard]", ...arguments); }
 function warn_() { if (CONFIG.DEBUG) console.warn("[AngelCard]", ...arguments); }
 function err_() { console.error("[AngelCard]", ...arguments); }
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function setText(elOrId, v) {
   const el = typeof elOrId === "string" ? $(elOrId) : elOrId;
@@ -44,7 +42,9 @@ function setText(elOrId, v) {
   el.textContent = text(v);
   return true;
 }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+/* --------------------------- */
 function getParam(name) {
   try { return new URLSearchParams(window.location.search).get(name); }
   catch { return null; }
@@ -54,21 +54,9 @@ function getCardId() {
   return id || CONFIG.DEFAULT_ID;
 }
 
-async function waitForDom_(ids, timeoutMs = CONFIG.DOM_WAIT_MS) {
-  const need = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    let ok = true;
-    for (const id of need) { if (!$(id)) { ok = false; break; } }
-    if (ok) return true;
-    await sleep(CONFIG.DOM_POLL_MS);
-  }
-  return false;
-}
-
-/* =========================================================
- * V385 switching (KEEP) — do NOT change layout, only body classes
- * ========================================================= */
+/* ---------------------------
+ * V382 switching system (keep)
+ * --------------------------- */
 window.setV382 = function (mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
@@ -78,7 +66,7 @@ window.setV382 = function (mode, theme, el) {
 
   applyV382();
   applyPlanSplitUi_();
-  syncControlsActiveUi_();
+  updatePlanButtonsActive_();
 };
 
 window.setV382Style = function (style, el) {
@@ -113,58 +101,26 @@ function applyV382() {
   document.body.className = classList.filter(Boolean).join(" ");
 }
 
-function applyPlanSplitUi_() {
-  const panel = $("admin-panel");
-  if (!panel) return;
-
-  // expectation: panel has 2 dots-row (free row then premium row) + #free-controls
-  const rows = qa(".dots-row", panel);
-  const freeDotsRow = rows[0] || null;
-  const premiumDotsRow = rows[1] || null;
-
-  const freeControls = $("free-controls");
-  const isFree = state.mode === "free";
-
-  if (freeDotsRow) freeDotsRow.style.display = isFree ? "flex" : "none";
-  if (premiumDotsRow) premiumDotsRow.style.display = isFree ? "none" : "flex";
-  if (freeControls) freeControls.style.display = isFree ? "block" : "none";
+/* --------------------------- */
+async function waitForDom_(ids, timeoutMs = CONFIG.DOM_WAIT_MS) {
+  const need = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    let ok = true;
+    for (const id of need) { if (!$(id)) { ok = false; break; } }
+    if (ok) return true;
+    await sleep(CONFIG.DOM_POLL_MS);
+  }
+  return false;
 }
 
-function syncControlsActiveUi_() {
-  // keep active state for style & paper buttons if present
-  const styleMap = { arch: "優雅正拱", flat: "簡潔平直", spot: "晨曦款" };
-  const paperMap = { "paper-1": "棉紙", "paper-2": "顆粒", "paper-3": "亞麻" };
-
-  const freeControls = $("free-controls");
-  if (!freeControls) return;
-
-  // style row = first .control-row inside free-controls
-  const rows = qa(".control-row", freeControls);
-  const styleRow = rows[0] || null;
-  const paperRow = rows[1] || null;
-
-  if (styleRow) {
-    const btns = qa(".btn-neo", styleRow);
-    btns.forEach(b => b.classList.remove("active"));
-    const want = styleMap[state.style];
-    const hit = btns.find(b => text(b.textContent) === want);
-    if (hit) hit.classList.add("active");
-  }
-
-  if (paperRow) {
-    const btns = qa(".btn-neo", paperRow);
-    btns.forEach(b => b.classList.remove("active"));
-    const want = paperMap[state.paper];
-    const hit = btns.find(b => text(b.textContent) === want);
-    if (hit) hit.classList.add("active");
-  }
+function coreUiReady_() {
+  return !!$("u-name") && !!$("u-unit") && !!$("u-service");
 }
 
-window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
-
-/* =========================================================
- * Robust fetch (NO custom headers) — keep stable in mobile
- * ========================================================= */
+/* ---------------------------
+ * Fetch JSON (NO custom headers)
+ * --------------------------- */
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
@@ -218,9 +174,9 @@ async function fetchJsonRobust(url) {
   throw lastErr || new Error("Fetch failed");
 }
 
-/* =========================================================
- * Header normalize + pick (AUTO read ALL headers)
- * ========================================================= */
+/* ---------------------------
+ * Key normalize + pick helpers
+ * --------------------------- */
 function cleanKey_(k) {
   return String(k ?? "")
     .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
@@ -280,9 +236,23 @@ function pick(obj, keys) {
   return "";
 }
 
-/* =========================================================
- * Image helpers (Drive / Dropbox safe)
- * ========================================================= */
+function pickByHeaderRegex_(payloadNorm, regexList) {
+  if (!payloadNorm || typeof payloadNorm !== "object") return "";
+  const keys = Object.keys(payloadNorm).filter(k => k && !k.startsWith("__"));
+  for (const rx of regexList) {
+    for (const k of keys) {
+      if (rx.test(String(k))) {
+        const v = payloadNorm[k];
+        if (v != null && text(v) !== "") return v;
+      }
+    }
+  }
+  return "";
+}
+
+/* ---------------------------
+ * Image helpers
+ * --------------------------- */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
   let url = String(raw).trim();
@@ -379,9 +349,9 @@ function setImgWithFallback_(imgEl, candidates) {
   tryNext();
 }
 
-/* =========================================================
- * Photos parsing (multi links)
- * ========================================================= */
+/* ---------------------------
+ * Split links for photos
+ * --------------------------- */
 function splitLinks_(v) {
   if (v == null) return [];
   if (Array.isArray(v)) return v.map(x => text(x)).filter(Boolean);
@@ -390,222 +360,379 @@ function splitLinks_(v) {
   return s.split(/[\n,，;；]+/).map(x => text(x)).filter(Boolean);
 }
 
+function autoDetectPhotos_(payload) {
+  if (!payload || typeof payload !== "object") return [];
+  const out = [];
+  const keys = Object.keys(payload).filter(k => k && !k.startsWith("__"));
+  for (const k of keys) {
+    const kk = String(k);
+    if (!/(照片|相片|作品|圖|照|photo|image|img)/i.test(kk)) continue;
+    const v = payload[k];
+    const parts = splitLinks_(v);
+    for (const p of parts) {
+      if (/^https?:\/\//i.test(p)) out.push(p);
+    }
+  }
+  const uniq = [];
+  const seen = new Set();
+  for (const u of out) {
+    const nu = normalizeImageUrl(u);
+    if (!nu) continue;
+    if (seen.has(nu)) continue;
+    seen.add(nu);
+    uniq.push(nu);
+  }
+  return uniq;
+}
+
 function getPhotosArray_(payload) {
   const v =
-    pick(payload, ["照片_fast", "照片_fast ", "photos_fast"]) ||
-    pick(payload, ["照片", "作品照片", "相片", "photos"]);
+    pick(payload, ["照片_fast", "照片_fast ", "photos_fast", "photos_img"]) ||
+    pick(payload, ["照片", "photos", "作品照片", "相片"]) ||
+    payload.photos;
 
   const base = splitLinks_(v)
     .filter(Boolean)
     .map(u => normalizeImageUrl(u))
     .filter(Boolean);
 
-  // uniq + limit
-  const uniq = [];
-  const seen = new Set();
-  for (const u of base) {
-    if (seen.has(u)) continue;
-    seen.add(u);
-    uniq.push(u);
-    if (uniq.length >= CONFIG.GALLERY_MAX) break;
+  const auto = base.length ? [] : autoDetectPhotos_(payload);
+  return (base.length ? base : auto).slice(0, CONFIG.GALLERY_MAX);
+}
+
+/* ===========================
+ * Plan selector UI (use existing buttons in HTML)
+ * =========================== */
+function bindPlanButtons_() {
+  const btnFree = $("btnPlanFree");
+  const btnPremium = $("btnPlanPremium");
+  if (btnFree) {
+    btnFree.addEventListener("click", () => {
+      state.mode = "free";
+      if (!String(state.theme || "").startsWith("color-")) state.theme = "color-1";
+      applyV382();
+      applyPlanSplitUi_();
+      updatePlanButtonsActive_();
+    });
   }
-  return uniq;
+  if (btnPremium) {
+    btnPremium.addEventListener("click", () => {
+      state.mode = "premium";
+      if (!String(state.theme || "").startsWith("p")) state.theme = "p1";
+      applyV382();
+      applyPlanSplitUi_();
+      updatePlanButtonsActive_();
+    });
+  }
+  updatePlanButtonsActive_();
 }
 
-/* =========================================================
- * V387: Full-text modal (NO CSS changes to v385; we inject needed styles)
- * ========================================================= */
-function injectV387Styles_() {
-  if (q("#v387-style")) return;
-  const style = document.createElement("style");
-  style.id = "v387-style";
-  style.textContent = `
-    .v387-more-btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      gap:6px; padding:8px 12px; border-radius:999px;
-      border:1px solid rgba(0,0,0,0.12);
-      background:rgba(255,255,255,0.65);
-      font-weight:900; cursor:pointer;
-      margin-top:10px;
-    }
-    .mode-premium .v387-more-btn{
-      border:1px solid rgba(255,255,255,0.25);
-      background:rgba(255,255,255,0.16);
-      color:rgba(255,255,255,0.92);
-      backdrop-filter: blur(8px);
-    }
-    .v387-modal{
-      position:fixed; inset:0; display:none;
-      align-items:center; justify-content:center;
-      background:rgba(0,0,0,0.45);
-      z-index:9999;
-      padding:16px;
-    }
-    .v387-modal-card{
-      width:min(560px, 96vw);
-      max-height:88vh;
-      overflow:auto;
-      border-radius:18px;
-      background:rgba(255,255,255,0.95);
-      box-shadow:0 18px 60px rgba(0,0,0,0.25);
-      padding:16px 16px 14px;
-    }
-    .mode-premium .v387-modal-card{
-      background:rgba(20,20,20,0.68);
-      border:1px solid rgba(255,255,255,0.18);
-      color:rgba(255,255,255,0.92);
-      backdrop-filter: blur(12px);
-    }
-    .v387-modal-title{
-      font-weight:1000;
-      font-size:14px;
-      opacity:0.9;
-      margin-bottom:10px;
-    }
-    .v387-modal-body{
-      white-space:pre-line;
-      line-height:1.75;
-      font-weight:700;
-      font-size:13px;
-    }
-    .v387-modal-actions{
-      display:flex;
-      justify-content:flex-end;
-      gap:10px;
-      margin-top:12px;
-    }
-    .v387-modal-close{
-      padding:8px 12px;
-      border-radius:12px;
-      border:none;
-      cursor:pointer;
-      font-weight:900;
-      background:rgba(0,0,0,0.08);
-    }
-    .mode-premium .v387-modal-close{
-      background:rgba(255,255,255,0.16);
-      color:rgba(255,255,255,0.92);
-    }
-  `;
-  document.head.appendChild(style);
+function updatePlanButtonsActive_() {
+  const a = $("btnPlanFree");
+  const b = $("btnPlanPremium");
+  if (!a || !b) return;
+  if (state.mode === "free") {
+    a.classList.add("active");
+    b.classList.remove("active");
+  } else {
+    b.classList.add("active");
+    a.classList.remove("active");
+  }
 }
 
-function ensureModal_() {
-  if ($("v387Modal")) return;
+function applyPlanSplitUi_() {
+  const freeDots = $("dotsFree");
+  const premiumDots = $("dotsPremium");
+  const freeControls = $("free-controls");
+  const isFree = state.mode === "free";
+
+  if (freeDots) freeDots.style.display = isFree ? "flex" : "none";
+  if (premiumDots) premiumDots.style.display = isFree ? "none" : "flex";
+  if (freeControls) freeControls.style.display = isFree ? "block" : "none";
+}
+
+/* ===========================
+ * Text lightbox + ReadMore
+ * =========================== */
+function ensureTextLightbox_() {
+  if ($("txtLightbox")) return;
 
   const overlay = document.createElement("div");
-  overlay.id = "v387Modal";
-  overlay.className = "v387-modal";
+  overlay.id = "txtLightbox";
+  overlay.className = "txt-lightbox";
+  overlay.style.display = "none";
 
-  const card = document.createElement("div");
-  card.className = "v387-modal-card";
-
-  const title = document.createElement("div");
-  title.id = "v387ModalTitle";
-  title.className = "v387-modal-title";
-
-  const body = document.createElement("div");
-  body.id = "v387ModalBody";
-  body.className = "v387-modal-body";
-
-  const actions = document.createElement("div");
-  actions.className = "v387-modal-actions";
+  const inner = document.createElement("div");
+  inner.className = "txt-lightbox-inner";
 
   const close = document.createElement("button");
   close.type = "button";
-  close.className = "v387-modal-close";
-  close.textContent = "關閉";
+  close.className = "txt-lightbox-close";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "關閉");
 
-  actions.appendChild(close);
-  card.appendChild(title);
-  card.appendChild(body);
-  card.appendChild(actions);
-  overlay.appendChild(card);
+  const title = document.createElement("div");
+  title.id = "txtLightboxTitle";
+  title.className = "txt-lightbox-title";
+
+  const body = document.createElement("div");
+  body.id = "txtLightboxBody";
+  body.className = "txt-lightbox-body";
+
+  inner.appendChild(close);
+  inner.appendChild(title);
+  inner.appendChild(body);
+
+  overlay.appendChild(inner);
   document.body.appendChild(overlay);
 
-  const hide = () => (overlay.style.display = "none");
-  close.addEventListener("click", hide);
+  const hide = () => {
+    overlay.style.display = "none";
+    title.textContent = "";
+    body.textContent = "";
+  };
+
   overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
+  close.addEventListener("click", hide);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && overlay.style.display !== "none") hide();
   });
 }
 
-function openModal_(title, content) {
-  ensureModal_();
-  const overlay = $("v387Modal");
-  const t = $("v387ModalTitle");
-  const b = $("v387ModalBody");
+function openTextLightbox_(title, content) {
+  ensureTextLightbox_();
+  const overlay = $("txtLightbox");
+  const t = $("txtLightboxTitle");
+  const b = $("txtLightboxBody");
   if (!overlay || !t || !b) return;
-
-  t.textContent = title || "內容";
-  b.textContent = text(content) || "";
+  t.textContent = text(title);
+  b.textContent = text(content);
   overlay.style.display = "flex";
 }
 
-function applyFullTextBtn_(containerEl, title, content) {
-  if (!containerEl) return;
-  const s = text(content);
-  if (!s) return;
+function applyReadMore_(el, title) {
+  if (!el) return;
+  const full = text(el.textContent);
+  if (!full) return;
 
-  // keep original look: only add a button at the end, do not change the box style
-  const short = s.length > CONFIG.PREVIEW_CHARS ? (s.slice(0, CONFIG.PREVIEW_CHARS) + "…") : s;
+  // 已經處理過就跳過
+  if (el.dataset.readmoreDone === "1") return;
+  el.dataset.readmoreDone = "1";
+  el.dataset.fulltext = full;
 
-  // If element is plain text container (like #u-service), replace with preview + btn
-  // but keep it SIMPLE to avoid breaking sample area.
-  containerEl.textContent = short;
+  if (full.length <= CONFIG.READMORE_LIMIT) return;
 
-  if (s.length <= CONFIG.PREVIEW_CHARS) return;
+  const short = full.slice(0, CONFIG.READMORE_LIMIT) + "…";
+  el.textContent = short;
 
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "v387-more-btn";
-  btn.innerHTML = `<i class="fa-solid fa-circle-info"></i><span>查看全文</span>`;
-  btn.addEventListener("click", () => openModal_(title, s));
+  btn.className = "readmore-btn";
+  btn.textContent = "看全文";
+  btn.addEventListener("click", () => openTextLightbox_(title, full));
 
-  containerEl.appendChild(document.createElement("div"));
-  containerEl.appendChild(btn);
+  el.appendChild(btn);
 }
 
-/* =========================================================
- * Contact box + Photo wall (inject AFTER existing content — do not touch admin/sample area)
- * ========================================================= */
+/* ===========================
+ * Photo wall (same as v386.x)
+ * =========================== */
+function ensurePhotoWallDom_() {
+  if (__gallery.inited) return;
+  const card = $("card-container");
+  if (!card) return;
+
+  const vtag = card.querySelector(".version-tag");
+
+  const wrap = document.createElement("section");
+  wrap.id = "photoWall";
+  wrap.className = "photo-wall content-box";
+  wrap.style.display = "none";
+
+  const head = document.createElement("div");
+  head.className = "box-title";
+  head.textContent = "照片作品（點一下看原圖）";
+
+  const grid = document.createElement("div");
+  grid.id = "photoWallGrid";
+  grid.className = "photo-wall-grid";
+
+  wrap.appendChild(head);
+  wrap.appendChild(grid);
+
+  if (vtag && vtag.parentElement) vtag.parentElement.insertBefore(wrap, vtag);
+  else card.appendChild(wrap);
+
+  const setCols = () => {
+    const w = Math.min(window.innerWidth, 560);
+    const cols = w >= 420 ? CONFIG.THUMB_MAX_COL : CONFIG.THUMB_MIN_COL;
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  };
+  setCols();
+  window.addEventListener("resize", setCols);
+
+  // photo wall grid style injection (no CSS file edit needed)
+  grid.style.display = "grid";
+  grid.style.gap = "10px";
+
+  __gallery.inited = true;
+}
+
+function ensureLightbox_() {
+  if ($("imgLightbox")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "imgLightbox";
+  overlay.style.display = "none";
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.zIndex = "9998";
+  overlay.style.background = "rgba(0,0,0,0.60)";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.padding = "18px";
+
+  const inner = document.createElement("div");
+  inner.style.width = "min(860px, 96vw)";
+  inner.style.maxHeight = "86vh";
+  inner.style.borderRadius = "18px";
+  inner.style.overflow = "hidden";
+  inner.style.background = "rgba(255,255,255,0.06)";
+  inner.style.backdropFilter = "blur(10px)";
+  inner.style.position = "relative";
+
+  const img = document.createElement("img");
+  img.id = "imgLightboxImg";
+  img.alt = "原圖";
+  img.style.width = "100%";
+  img.style.height = "86vh";
+  img.style.objectFit = "contain";
+  img.style.display = "block";
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "關閉");
+  close.style.position = "absolute";
+  close.style.top = "10px";
+  close.style.right = "10px";
+  close.style.width = "42px";
+  close.style.height = "42px";
+  close.style.borderRadius = "14px";
+  close.style.border = "none";
+  close.style.cursor = "pointer";
+  close.style.fontSize = "24px";
+  close.style.background = "rgba(255,255,255,0.16)";
+  close.style.color = "#fff";
+
+  inner.appendChild(img);
+  inner.appendChild(close);
+  overlay.appendChild(inner);
+  document.body.appendChild(overlay);
+
+  const hide = () => {
+    overlay.style.display = "none";
+    img.removeAttribute("src");
+  };
+
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
+  close.addEventListener("click", hide);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.style.display !== "none") hide();
+  });
+}
+
+function openLightbox_(url) {
+  ensureLightbox_();
+  const overlay = $("imgLightbox");
+  const img = $("imgLightboxImg");
+  if (!overlay || !img) return;
+  overlay.style.display = "flex";
+  const cands = buildImageCandidates_(url);
+  setImgWithFallback_(img, cands.length ? cands : [url]);
+}
+
+function renderPhotoWall_(urls) {
+  ensurePhotoWallDom_();
+  const wrap = $("photoWall");
+  const grid = $("photoWallGrid");
+  if (!wrap || !grid) return;
+
+  const list = (urls || []).map(text).filter(Boolean);
+  if (!list.length) {
+    wrap.style.display = "none";
+    grid.innerHTML = "";
+    return;
+  }
+
+  wrap.style.display = "block";
+  grid.innerHTML = "";
+
+  for (const u of list) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "photo-thumb";
+    btn.setAttribute("aria-label", "點擊查看原圖");
+    btn.style.border = "none";
+    btn.style.padding = "0";
+    btn.style.borderRadius = "14px";
+    btn.style.overflow = "hidden";
+    btn.style.cursor = "pointer";
+    btn.style.background = "rgba(0,0,0,0.06)";
+
+    const img = document.createElement("img");
+    img.alt = "縮圖";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+    img.style.width = "100%";
+    img.style.height = "92px";
+    img.style.objectFit = "contain";
+    img.style.background = "rgba(0,0,0,0.08)";
+
+    setImgWithFallback_(img, buildImageCandidates_(u));
+    btn.addEventListener("click", () => openLightbox_(u));
+
+    btn.appendChild(img);
+    grid.appendChild(btn);
+  }
+}
+
+/* ===========================
+ * Contact + Extra blocks (AUTO INJECT)
+ * =========================== */
 function ensureInfoScroll_() {
   return q(".info-scroll") || $("card-container") || document.body;
 }
 
-function ensureContactBox_() {
-  const scroll = ensureInfoScroll_();
-  if ($("contactBox")) return $("contactBox");
+function ensureBoxAfter_(anchorEl, boxId, titleText) {
+  const root = ensureInfoScroll_();
+  if ($(boxId)) return $(boxId);
 
   const box = document.createElement("div");
-  box.id = "contactBox";
+  box.id = boxId;
   box.className = "content-box";
 
   const t = document.createElement("div");
   t.className = "box-title";
-  t.textContent = "聯繫方式";
+  t.style.fontWeight = "900";
+  t.style.marginBottom = "8px";
+  t.textContent = titleText;
 
-  const main = document.createElement("div");
-  main.className = "contact-main";
-  main.id = "contactMain";
-
-  const sub = document.createElement("div");
-  sub.className = "contact-sub";
-  sub.id = "contactSub";
+  const body = document.createElement("div");
+  body.id = boxId + "_body";
+  body.style.whiteSpace = "pre-line";
+  body.style.fontWeight = "700";
+  body.style.lineHeight = "1.7";
 
   box.appendChild(t);
-  box.appendChild(main);
-  box.appendChild(sub);
+  box.appendChild(body);
 
-  // insert after #u-service box (existing v385 structure)
-  const serviceEl = $("u-service");
-  const anchorBox = serviceEl ? serviceEl.closest(".content-box") : null;
-  if (anchorBox && anchorBox.parentElement) {
-    if (anchorBox.nextSibling) anchorBox.parentElement.insertBefore(box, anchorBox.nextSibling);
-    else anchorBox.parentElement.appendChild(box);
+  if (anchorEl && anchorEl.parentElement) {
+    if (anchorEl.nextSibling) anchorEl.parentElement.insertBefore(box, anchorEl.nextSibling);
+    else anchorEl.parentElement.appendChild(box);
   } else {
-    scroll.appendChild(box);
+    root.appendChild(box);
   }
 
   return box;
@@ -626,7 +753,7 @@ function normalizeUrl_(v) {
   if (!s) return "";
   if (/^https?:\/\//i.test(s)) return s;
   if (/^line:\/\//i.test(s)) return s;
-  return "https://" + s; // allow lin.ee / line.me without scheme
+  return "https://" + s;
 }
 
 function makeMainBtn_(label, urlOrFn) {
@@ -634,6 +761,8 @@ function makeMainBtn_(label, urlOrFn) {
   b.type = "button";
   b.className = "btn-cta mini";
   b.textContent = label;
+  b.style.width = "100%";
+  b.style.marginBottom = "10px";
   b.addEventListener("click", async () => {
     if (typeof urlOrFn === "function") return urlOrFn();
     const u = text(urlOrFn);
@@ -649,6 +778,16 @@ function makeChip_(label, url) {
   a.href = url;
   a.target = "_blank";
   a.rel = "noopener noreferrer";
+  a.style.display = "inline-flex";
+  a.style.alignItems = "center";
+  a.style.gap = "6px";
+  a.style.padding = "10px 12px";
+  a.style.borderRadius = "14px";
+  a.style.textDecoration = "none";
+  a.style.fontWeight = "900";
+  a.style.margin = "6px 6px 0 0";
+  a.style.background = "rgba(0,0,0,0.06)";
+  a.style.color = "#2d3436";
   return a;
 }
 async function copyText_(s) {
@@ -660,6 +799,42 @@ async function copyText_(s) {
   } catch {
     prompt("請複製：", v);
   }
+}
+
+function ensureContactBox_() {
+  const scroll = ensureInfoScroll_();
+  if ($("contactBox")) return $("contactBox");
+
+  const box = document.createElement("div");
+  box.id = "contactBox";
+  box.className = "content-box";
+
+  const t = document.createElement("div");
+  t.className = "box-title";
+  t.style.fontWeight = "900";
+  t.style.marginBottom = "10px";
+  t.textContent = "聯繫方式";
+
+  const main = document.createElement("div");
+  main.id = "contactMain";
+
+  const sub = document.createElement("div");
+  sub.id = "contactSub";
+
+  box.appendChild(t);
+  box.appendChild(main);
+  box.appendChild(sub);
+
+  const serviceEl = $("u-service");
+  const serviceBox = serviceEl ? serviceEl.closest(".content-box") : null;
+  if (serviceBox && serviceBox.parentElement) {
+    if (serviceBox.nextSibling) serviceBox.parentElement.insertBefore(box, serviceBox.nextSibling);
+    else serviceBox.parentElement.appendChild(box);
+  } else {
+    scroll.appendChild(box);
+  }
+
+  return box;
 }
 
 function renderContacts_(payloadNorm) {
@@ -688,7 +863,6 @@ function renderContacts_(payloadNorm) {
   const social2 = pick(payloadNorm, ["社群平台2", "social2"]);
   const social3 = pick(payloadNorm, ["社群平台3", "social3"]);
 
-  // Main actions
   const bestLine = text(lineLink) ? normalizeUrl_(lineLink) : (text(lineOA) ? normalizeUrl_(lineOA) : "");
   if (bestLine) main.appendChild(makeMainBtn_("加 LINE / 聯繫", bestLine));
 
@@ -697,11 +871,8 @@ function renderContacts_(payloadNorm) {
 
   main.appendChild(makeMainBtn_("填寫預約表單", () => window.open(CONFIG.FORM, "_blank")));
 
-  if (wechat) {
-    main.appendChild(makeMainBtn_("微信聯繫（複製）", () => copyText_(wechat)));
-  }
+  if (wechat) main.appendChild(makeMainBtn_("微信聯繫（複製）", () => copyText_(wechat)));
 
-  // Sub chips
   if (phone) {
     const t = normalizeTel_(phone);
     if (t) sub.appendChild(makeChip_("電話：" + t, "tel:" + t));
@@ -737,350 +908,121 @@ function renderContacts_(payloadNorm) {
   }
 }
 
-/* -------- Photo wall (simple + safe) -------- */
-function ensurePhotoWallDom_() {
-  if ($("photoWall")) return;
-  const card = $("card-container");
-  if (!card) return;
-
-  const vtag = card.querySelector(".version-tag");
-
-  const wrap = document.createElement("section");
-  wrap.id = "photoWall";
-  wrap.className = "photo-wall content-box";
-  wrap.style.display = "none";
-
-  const head = document.createElement("div");
-  head.className = "box-title";
-  head.textContent = "照片作品（點一下看原圖）";
-
-  const grid = document.createElement("div");
-  grid.id = "photoWallGrid";
-  grid.className = "photo-wall-grid";
-  grid.style.display = "grid";
-  grid.style.gridTemplateColumns = "repeat(3, 1fr)";
-  grid.style.gap = "10px";
-
-  wrap.appendChild(head);
-  wrap.appendChild(grid);
-
-  // insert near bottom, before version tag (keep v385 sample area untouched)
-  if (vtag && vtag.parentElement) vtag.parentElement.insertBefore(wrap, vtag);
-  else card.appendChild(wrap);
-
-  const setCols = () => {
-    const w = Math.min(window.innerWidth, 560);
-    const cols = w >= 420 ? 4 : 3;
-    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  };
-  setCols();
-  window.addEventListener("resize", setCols);
-}
-
-function ensureLightbox_() {
-  if ($("imgLightbox")) return;
-
-  const overlay = document.createElement("div");
-  overlay.id = "imgLightbox";
-  overlay.style.position = "fixed";
-  overlay.style.inset = "0";
-  overlay.style.display = "none";
-  overlay.style.alignItems = "center";
-  overlay.style.justifyContent = "center";
-  overlay.style.background = "rgba(0,0,0,0.55)";
-  overlay.style.zIndex = "9998";
-  overlay.style.padding = "14px";
-
-  const inner = document.createElement("div");
-  inner.style.width = "min(720px, 96vw)";
-  inner.style.maxHeight = "90vh";
-  inner.style.borderRadius = "18px";
-  inner.style.overflow = "hidden";
-  inner.style.background = "rgba(255,255,255,0.06)";
-  inner.style.border = "1px solid rgba(255,255,255,0.18)";
-  inner.style.backdropFilter = "blur(10px)";
-  inner.style.position = "relative";
-
-  const img = document.createElement("img");
-  img.id = "imgLightboxImg";
-  img.alt = "原圖";
-  img.style.width = "100%";
-  img.style.height = "auto";
-  img.style.maxHeight = "90vh";
-  img.style.objectFit = "contain";
-  img.style.display = "block";
-  img.style.background = "rgba(0,0,0,0.18)";
-
-  const close = document.createElement("button");
-  close.type = "button";
-  close.textContent = "×";
-  close.setAttribute("aria-label", "關閉");
-  close.style.position = "absolute";
-  close.style.top = "10px";
-  close.style.right = "10px";
-  close.style.width = "40px";
-  close.style.height = "40px";
-  close.style.borderRadius = "999px";
-  close.style.border = "none";
-  close.style.cursor = "pointer";
-  close.style.fontSize = "26px";
-  close.style.fontWeight = "900";
-  close.style.background = "rgba(255,255,255,0.2)";
-  close.style.color = "rgba(255,255,255,0.92)";
-
-  inner.appendChild(img);
-  inner.appendChild(close);
-  overlay.appendChild(inner);
-  document.body.appendChild(overlay);
-
-  const hide = () => {
-    overlay.style.display = "none";
-    img.removeAttribute("src");
-  };
-
-  overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
-  close.addEventListener("click", hide);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && overlay.style.display !== "none") hide();
-  });
-}
-
-function openLightbox_(url) {
-  ensureLightbox_();
-  const overlay = $("imgLightbox");
-  const img = $("imgLightboxImg");
-  if (!overlay || !img) return;
-  overlay.style.display = "flex";
-  setImgWithFallback_(img, buildImageCandidates_(url));
-}
-
-function renderPhotoWall_(urls) {
-  ensurePhotoWallDom_();
-  const wrap = $("photoWall");
-  const grid = $("photoWallGrid");
-  if (!wrap || !grid) return;
-
-  const list = (urls || []).map(text).filter(Boolean);
-  if (!list.length) {
-    wrap.style.display = "none";
-    grid.innerHTML = "";
-    return;
-  }
-
-  wrap.style.display = "block";
-  grid.innerHTML = "";
-
-  for (const u of list) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.style.padding = "0";
-    btn.style.border = "none";
-    btn.style.borderRadius = "14px";
-    btn.style.overflow = "hidden";
-    btn.style.cursor = "pointer";
-    btn.style.background = "rgba(0,0,0,0.06)";
-
-    const img = document.createElement("img");
-    img.alt = "縮圖";
-    img.loading = "lazy";
-    img.decoding = "async";
-    img.referrerPolicy = "no-referrer";
-    img.style.width = "100%";
-    img.style.height = "92px";
-    img.style.objectFit = "contain";
-    img.style.display = "block";
-    img.style.background = "rgba(0,0,0,0.06)";
-
-    setImgWithFallback_(img, buildImageCandidates_(u));
-    btn.addEventListener("click", () => openLightbox_(u));
-
-    btn.appendChild(img);
-    grid.appendChild(btn);
-  }
-}
-
-/* =========================================================
- * V387: Read sheet selections -> set initial UI state (keep v385 dots order)
- * ========================================================= */
-function parsePlanSelections_(payloadNorm) {
-  const plan = pick(payloadNorm, ["選擇名片製作方案", "方案", "plan"]);
-  const color = pick(payloadNorm, ["選擇名片顏色", "顏色", "color"]);
-  const style = pick(payloadNorm, ["選擇版型風格", "版型", "style"]);
-  const paper = pick(payloadNorm, ["選擇紙感質地", "紙感", "paper"]);
-  const premium = pick(payloadNorm, ["選擇精品底色", "精品底色", "premium"]);
-
-  // plan: "1自由搭配款" or "2精品設計款"
-  if (/精品|2/i.test(String(plan || ""))) state.mode = "premium";
-  else state.mode = "free";
-
-  // free colors: c1~c5 -> color-1~color-5
-  const mC = String(color || "").match(/c(\d)/i);
-  if (mC && mC[1]) state.theme = `color-${mC[1]}`;
-
-  // premium colors: p1~p7
-  const mP = String(premium || "").match(/p(\d)/i);
-  if (mP && mP[1]) state.theme = `p${mP[1]}`;
-
-  // styles: s1正拱 / s2平直 / s3晨曦
-  const mS = String(style || "").match(/s(\d)/i);
-  if (mS && mS[1]) {
-    if (mS[1] === "1") state.style = "arch";
-    if (mS[1] === "2") state.style = "flat";
-    if (mS[1] === "3") state.style = "spot";
-  }
-
-  // paper: f1棉紙 / f2顆粒 / f3亞麻
-  const mF = String(paper || "").match(/f(\d)/i);
-  if (mF && mF[1]) state.paper = `paper-${mF[1]}`;
-}
-
-function syncDotActiveByState_() {
-  const panel = $("admin-panel");
-  if (!panel) return;
-
-  // free dots row
-  const rows = qa(".dots-row", panel);
-  const freeRow = rows[0] || null;
-  const premiumRow = rows[1] || null;
-
-  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
-
-  if (state.mode === "free" && freeRow) {
-    const idx = Math.max(1, Math.min(5, parseInt(String(state.theme).replace("color-", ""), 10) || 1));
-    const dots = qa(".dot", freeRow);
-    const el = dots[idx - 1];
-    if (el) el.classList.add("active");
-  }
-
-  if (state.mode === "premium" && premiumRow) {
-    const idx = Math.max(1, Math.min(7, parseInt(String(state.theme).replace("p", ""), 10) || 1));
-    const dots = qa(".p-dot", premiumRow);
-    const el = dots[idx - 1];
-    if (el) el.classList.add("active");
-  }
-
-  syncControlsActiveUi_();
-}
-
-/* =========================================================
- * Apply all data to card (KEEP v385 DOM)
- * - Read all your headers: 單位、頭銜、理念標語、經歷…等
- * - Do NOT remove sample area or restructure
- * ========================================================= */
+/* ---------------------------
+ * Avatar + basic fields
+ * --------------------------- */
 function setAvatarImage(url) {
   const img = $("u-img");
   if (!img) return;
   const cands = buildImageCandidates_(url);
-  if (!cands.length) {
-    img.removeAttribute("src");
-    return;
-  }
+  if (!cands.length) { img.removeAttribute("src"); return; }
   setImgWithFallback_(img, cands);
 }
 
+/* ---------------------------
+ * Apply all data to card (AUTO)
+ * --------------------------- */
 function applyDataToCard(payloadNorm) {
-  // core fields
-  const name = pick(payloadNorm, ["姓名", "name", "Name"]);
-  const unit = pick(payloadNorm, ["單位", "unit", "Unit"]);
+  const name = pick(payloadNorm, ["姓名", "姓名（名片大標題）", "name", "Name"]);
+  const unit = pick(payloadNorm, ["單位", "單位名稱", "unit", "Unit"]);
   const title = pick(payloadNorm, ["頭銜", "職稱", "title", "Title"]);
   const slogan = pick(payloadNorm, ["理念標語", "標語", "slogan", "tagline"]);
   const service = pick(payloadNorm, ["服務項目", "service", "Service"]);
   const exp = pick(payloadNorm, ["經歷", "學經歷", "experience", "Experience"]);
 
-  // images
   const avatar =
-    pick(payloadNorm, ["個人照_fast", "個人照", "形象照_fast", "形象照", "個人照_fast "]) ||
-    pick(payloadNorm, ["個人照", "形象照", "照片", "photo"]);
+    pick(payloadNorm, ["個人照_fast", "個人照", "形象照_fast", "形象照", "avatar_img", "avatar"]) ||
+    pickByHeaderRegex_(payloadNorm, [/個人照/i, /形象照/i, /avatar/i]);
 
-  // apply plan selections -> state -> class (do it BEFORE writing UI)
-  parsePlanSelections_(payloadNorm);
-  applyV382();
-  applyPlanSplitUi_();
-  syncDotActiveByState_();
+  const logo =
+    pick(payloadNorm, ["Logo_fast", "Logo", "logo", "LOGO"]) ||
+    pickByHeaderRegex_(payloadNorm, [/logo/i, /LOGO/i, /標誌/i]);
 
-  // write existing DOM
+  const photos = getPhotosArray_(payloadNorm);
+
   setText("u-name", name || "（尚未讀到姓名）");
   setText("u-unit", unit || "");
+  setText("u-service", service || "");
 
-  // #u-service is a content-box in v385: keep it, but apply full-text button
-  const serviceEl = $("u-service");
-  if (serviceEl) {
-    applyFullTextBtn_(serviceEl, "服務項目", service || "");
-  } else {
-    // if missing, don't inject anything (protect v385 layout)
-  }
-
-  // avatar
   setAvatarImage(avatar);
 
-  // Optional: if your v385 HTML later has these ids, we fill them (safe)
-  if ($("u-title")) setText("u-title", title || "");
-  if ($("u-slogan")) applyFullTextBtn_($("u-slogan"), "理念標語", slogan || "");
-  if ($("u-exp")) applyFullTextBtn_($("u-exp"), "經歷", exp || "");
+  // ✅ 長文字：服務項目也做「看全文」
+  applyReadMore_($("u-service"), "服務項目");
 
-  // If v385 doesn't have u-slogan/u-exp containers, we STILL respect your rule:
-  // "所有說明都設一個鈕，點進去看全文" — we do it by adding small buttons ONLY,
-  // and we place them in existing content flow after service box, but never touch the sample area.
   const scroll = ensureInfoScroll_();
+  const serviceEl = $("u-service");
   const serviceBox = serviceEl ? serviceEl.closest(".content-box") : null;
 
-  // slogan box (only if not already present)
-  if (!$("v387SloganBox") && text(slogan)) {
-    const box = document.createElement("div");
-    box.id = "v387SloganBox";
-    box.className = "content-box";
-    const body = document.createElement("div");
-    box.appendChild(body);
-    applyFullTextBtn_(body, "理念標語", slogan);
-
-    if (serviceBox && serviceBox.parentElement) {
-      if (serviceBox.nextSibling) serviceBox.parentElement.insertBefore(box, serviceBox.nextSibling);
-      else serviceBox.parentElement.appendChild(box);
-    } else {
-      scroll.appendChild(box);
-    }
+  // 頭銜
+  if ($("u-title")) {
+    setText("u-title", title || "");
+    applyReadMore_($("u-title"), "頭銜");
+  } else if (text(title)) {
+    const unitEl = $("u-unit");
+    const anchor = unitEl ? unitEl : (scroll.firstChild || null);
+    const box = ensureBoxAfter_(anchor, "boxTitle", "頭銜");
+    setText("boxTitle_body", title);
+    applyReadMore_($("boxTitle_body"), "頭銜");
+  } else {
+    if ($("boxTitle")) $("boxTitle").style.display = "none";
   }
 
-  // exp box
-  if (!$("v387ExpBox") && text(exp)) {
-    const box = document.createElement("div");
-    box.id = "v387ExpBox";
-    box.className = "content-box";
-    const body = document.createElement("div");
-    box.appendChild(body);
-    applyFullTextBtn_(body, "經歷", exp);
-
-    const anchor = $("v387SloganBox") || serviceBox;
-    if (anchor && anchor.parentElement) {
-      if (anchor.nextSibling) anchor.parentElement.insertBefore(box, anchor.nextSibling);
-      else anchor.parentElement.appendChild(box);
-    } else {
-      scroll.appendChild(box);
-    }
+  // 標語
+  if ($("u-slogan")) {
+    setText("u-slogan", slogan || "");
+    applyReadMore_($("u-slogan"), "理念標語");
+  } else if (text(slogan)) {
+    const box = ensureBoxAfter_(serviceBox || scroll, "boxSlogan", "理念標語");
+    setText("boxSlogan_body", slogan);
+    applyReadMore_($("boxSlogan_body"), "理念標語");
+  } else {
+    if ($("boxSlogan")) $("boxSlogan").style.display = "none";
   }
 
-  // contacts + photos
+  // 經歷
+  if ($("u-exp")) {
+    setText("u-exp", exp || "");
+    applyReadMore_($("u-exp"), "經歷");
+  } else if (text(exp)) {
+    const box = ensureBoxAfter_(serviceBox || scroll, "boxExp", "經歷");
+    setText("boxExp_body", exp);
+    applyReadMore_($("boxExp_body"), "經歷");
+  } else {
+    if ($("boxExp")) $("boxExp").style.display = "none";
+  }
+
+  // contacts
   renderContacts_(payloadNorm);
-  const photos = getPhotosArray_(payloadNorm);
+
+  // photo wall
+  __gallery.list = photos;
   renderPhotoWall_(photos);
+
+  // optional logo fill
+  if ($("u-logo")) {
+    const img = $("u-logo");
+    const cands = buildImageCandidates_(logo);
+    if (cands.length) setImgWithFallback_(img, cands);
+    else img.removeAttribute("src");
+  }
 }
 
-/* =========================================================
- * Loading / fail UI (keep gentle)
- * ========================================================= */
+/* --------------------------- */
+window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
+
+/* ---------------------------
+ * Loading / Fail UI
+ * --------------------------- */
 function setLoadingUi_() {
   setText("u-name", "載入中...");
   setText("u-unit", "同步中...");
-  const s = $("u-service");
-  if (s) s.textContent = "正在同步雲端服務項目...";
+  setText("u-service", "正在同步雲端服務項目...");
 }
 
 function setFailUi_(msg) {
   setText("u-name", "（同步失敗）");
   setText("u-unit", msg || "請確認網址 ?id=TW000X 或檢查 GAS 權限");
-  const s = $("u-service");
-  if (s) s.textContent = "";
-
+  setText("u-service", "");
   const img = $("u-img");
   if (img) img.removeAttribute("src");
 
@@ -1089,53 +1031,50 @@ function setFailUi_(msg) {
 
   if ($("contactMain")) $("contactMain").innerHTML = "";
   if ($("contactSub")) $("contactSub").innerHTML = "";
+
+  if ($("boxTitle")) $("boxTitle").style.display = "none";
+  if ($("boxSlogan")) $("boxSlogan").style.display = "none";
+  if ($("boxExp")) $("boxExp").style.display = "none";
 }
 
-/* =========================================================
- * Load data (action=card&id=...)
- * Supports:
- * - direct row object OR {ok:true, data:{...}} OR {row:{...}}
- * ========================================================= */
-function unwrapPayload_(data) {
-  if (!data || typeof data !== "object") return null;
-  if (data.ok === false) return null;
-
-  // common wrappers
-  if (data.data && typeof data.data === "object") return data.data;
-  if (data.row && typeof data.row === "object") return data.row;
-  if (data.item && typeof data.item === "object") return data.item;
-
-  // if it already looks like row fields, use it
-  return data;
-}
-
+/* ---------------------------
+ * Load data
+ * --------------------------- */
 async function loadData() {
   const id = getCardId();
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+  __lastLoad = { id, ts: Date.now(), url };
 
-  await waitForDom_(["u-name", "u-unit"], CONFIG.DOM_WAIT_MS);
+  await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
   setLoadingUi_();
 
   log_("loadData start:", { id });
 
   try {
     const data = await fetchJsonRobust(url);
-    const rawRow = unwrapPayload_(data);
-    if (!rawRow || typeof rawRow !== "object") throw new Error("Invalid payload");
 
-    __payloadRaw = rawRow;
-    __payload = buildNormalizedPayload_(rawRow);
+    if (!data || typeof data !== "object") throw new Error("Invalid payload");
+    if (data.ok === false) throw new Error(data.error || "Not found");
+    if (Object.keys(data).length === 0) throw new Error("Empty object");
 
-    // apply
+    __payloadRaw = data;
+    __payload = buildNormalizedPayload_(data);
+
     applyDataToCard(__payload);
 
-    // mobile settle re-apply once
-    await sleep(180);
-    if (text($("u-name")?.textContent) === "載入中...") {
+    // mobile re-apply
+    await sleep(160);
+    const n = text($("u-name") ? $("u-name").textContent : "");
+    if (!coreUiReady_() || n === "載入中..." || n === "（同步失敗）") {
+      await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
       applyDataToCard(__payload);
     }
 
-    log_("loadData success:", { id, keys: Object.keys(rawRow).length });
+    log_("loadData success:", {
+      id,
+      keys: Object.keys(data).length,
+      photos: (__gallery.list || []).length
+    });
 
   } catch (e) {
     err_("雲端同步異常:", e);
@@ -1143,21 +1082,17 @@ async function loadData() {
   }
 }
 
-/* =========================================================
+/* ---------------------------
  * Boot
- * ========================================================= */
+ * --------------------------- */
 function boot_() {
-  injectV387Styles_();
-  ensureModal_();
-
   try { applyV382(); } catch {}
-  try { applyPlanSplitUi_(); } catch {}
-
-  loadData();
+  try {
+    bindPlanButtons_();
+    applyPlanSplitUi_();
+  } catch {}
+  try { loadData(); } catch (e) { err_("boot loadData error:", e); }
 }
 
 document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
-window.addEventListener("load", () => {
-  // fallback if DOMContentLoaded missed
-  if (!__payload) boot_();
-});
+window.addEventListener("load", () => { if (!__lastLoad.ts) boot_(); });
