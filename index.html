@@ -1,19 +1,28 @@
-<!-- index.html (V387.4 COMPLETE OVERWRITE) -->
+<!-- index.html (v391 COMPLETE OVERWRITE) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V387.4</title>
+  <title>幸福智慧名片 v391</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json?v=391" />
+  <meta name="theme-color" content="#ee5253" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="icon" href="./icons/icon-192.png" />
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=385" />
+  <link rel="stylesheet" href="style.css?v=391" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
   <div id="admin-panel">
+
+    <!-- ✅ v391：四顆功能鍵（置頂工具列） -->
+    <div id="topControls" class="v391-top"></div>
 
     <!-- 方案 A/B（只保留一組） -->
     <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
@@ -73,7 +82,7 @@
     <button class="btn-cta" type="button" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
-  <!-- 名片展示區（保持 v385 样貌架构） -->
+  <!-- 名片展示區（保持原样貌架构） -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
@@ -89,20 +98,30 @@
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
 
-      <!-- ✅ 已移除：卡內「立即填寫預約表單」重複鈕 -->
-
       <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">
         正在同步雲端服務項目...
       </div>
     </div>
 
-    <div class="version-tag">V387.4</div>
+    <!-- ✅ v391：版本 tag（長按進後台，由 app.js 綁定） -->
+    <div class="version-tag" id="versionTag">v391</div>
   </div>
 
   <footer style="font-size:10px; color:#ccc; margin-top:20px; text-align:center;">
-    幸福智慧名片 V387.4
+    幸福智慧名片 v391
   </footer>
 
-  <script src="app.js?v=3874"></script>
+  <script>
+    // SW
+    (function(){
+      if(!("serviceWorker" in navigator)) return;
+      window.addEventListener("load", function(){
+        navigator.serviceWorker.register("./sw.js?v=391").catch(function(){});
+      });
+    })();
+  </script>
+
+  <!-- ✅ v391 -->
+  <script src="app.js?v=391"></script>
 </body>
 </html>
