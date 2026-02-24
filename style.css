@@ -1,0 +1,417 @@
+:root{
+  --font: 'Noto Sans TC', sans-serif;
+
+  --p:#ff5e5e;
+  --bg:#fff5f5;
+  --card-bg:#ffffff;
+  --text:#2d3436;
+
+  --shadow: 0 15px 40px rgba(0,0,0,0.06);
+  --soft: rgba(0,0,0,0.04);
+  --soft2: rgba(0,0,0,0.02);
+
+  --radius-card: 45px;
+  --radius-box: 20px;
+
+  --fx-op: 0;
+  --fx-img: none;
+}
+
+/* ========= 自由搭配款 ========= */
+.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; }
+.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; }
+.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; }
+.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; }
+.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; }
+
+/* ========= 精品設計款 ========= */
+.mode-premium.p1 { --p:#a36d6d; --card-bg:linear-gradient(135deg, rgba(163,109,109,0.96), rgba(142,90,90,0.86)); --text:#fff; }
+.mode-premium.p2 { --p:#722f37; --card-bg:linear-gradient(135deg, rgba(114,47,55,0.96), rgba(114,47,55,0.86)); --text:#f5e6e8; }
+.mode-premium.p3 { --p:#1c2e42; --card-bg:linear-gradient(135deg, rgba(28,46,66,0.96), rgba(44,62,80,0.86)); --text:#fff; }
+.mode-premium.p4 { --p:#5e548e; --card-bg:linear-gradient(135deg, rgba(94,84,142,0.93), rgba(159,134,192,0.82)); --text:#fff; }
+.mode-premium.p5 { --p:#7a94a6; --card-bg:linear-gradient(135deg, rgba(122,148,166,0.96), rgba(100,120,135,0.82)); --text:#fff; }
+.mode-premium.p6 { --p:#bf953f; --card-bg:linear-gradient(135deg, rgba(191,149,63,0.96), rgba(252,246,186,0.86), rgba(170,119,28,0.96)); --text:#4d3700; }
+.mode-premium.p7 { --p:#444444; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; }
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:var(--font);
+  color:var(--text);
+  display:block;
+  transition:.35s;
+}/* ================= 名片卡 ================= */
+
+#card-container{
+  width:92%;
+  max-width:380px;
+  height:660px;
+  margin:16px auto;
+  background: var(--card-bg);
+  border-radius: var(--radius-card);
+  overflow:hidden;
+  position:relative;
+  box-shadow: var(--shadow);
+  transition:.4s;
+}
+
+.card{
+  background: var(--card-bg);
+}
+
+/* Banner */
+.banner{
+  height:125px;
+  background: var(--p);
+  position:relative;
+}
+
+.dynamic-mask{
+  position:absolute;
+  width:100%;
+  bottom:-1px;
+}
+
+.style-arch .dynamic-mask{
+  background:#fff;
+  height:45px;
+  border-radius:60px 60px 0 0;
+}
+
+.style-flat .dynamic-mask{
+  background:#fff;
+  height:10px;
+}
+
+.style-spot .dynamic-mask{
+  height:85px;
+  bottom:-84px;
+  background: var(--p);
+  clip-path: ellipse(50% 80% at 50% 0%);
+}
+
+/* Avatar */
+.avatar-wrap{
+  position:absolute;
+  width:100%;
+  display:flex;
+  justify-content:center;
+  top:75px;
+  z-index:10;
+}
+
+.avatar-circle{
+  width:105px;
+  height:105px;
+  border-radius:50%;
+  background:#fff;
+  padding:4px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  overflow:hidden;
+}
+
+.avatar{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  object-fit:cover;
+}
+
+/* Scroll Content */
+.info-scroll{
+  padding:100px 20px 20px;
+  text-align:center;
+  overflow:auto;
+  height:100%;
+}
+
+/* 基本資訊 */
+.name{
+  margin:0 0 6px;
+  font-weight:900;
+}
+
+.unitline{
+  font-weight:900;
+  opacity:.85;
+  margin-bottom:10px;
+}
+
+.title{
+  margin-left:6px;
+  opacity:.7;
+}
+
+.slogan{
+  font-size:13px;
+  opacity:.7;
+  margin-bottom:14px;
+}/* ================= 動態內容卡片 ================= */
+
+.dynamic-fields{
+  text-align:left;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:10px;
+}
+
+.field-card{
+  background: var(--soft2);
+  border-radius: var(--radius-box);
+  padding:14px 14px;
+}
+
+.field-title{
+  font-weight:900;
+  opacity:.88;
+  margin-bottom:6px;
+}
+
+.field-body{
+  font-size:13px;
+  line-height:1.65;
+  opacity:.92;
+  white-space:pre-wrap;
+}
+
+/* ================= Dock：聯繫與平台（Dock=B） ================= */
+
+.contact-dock{
+  margin-top:14px;
+  text-align:left;
+}
+
+.dock-title{
+  font-weight:900;
+  opacity:.85;
+  margin:8px 2px 10px;
+}
+
+.dock-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.dock-btn{
+  border:none;
+  cursor:pointer;
+  padding:10px 12px;
+  border-radius:16px;
+  background: rgba(255,255,255,0.65);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight:900;
+  font-size:13px;
+  color:#2d3436;
+}
+
+.dock-btn i{
+  font-size:15px;
+  opacity:.9;
+}
+
+/* ================= 照片牆 ================= */
+
+.photo-wall{
+  margin-top:16px;
+  text-align:left;
+}
+
+.wall-title{
+  font-weight:900;
+  opacity:.85;
+  margin:8px 2px 10px;
+}
+
+.photo-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:8px;
+}
+
+.photo-item{
+  width:100%;
+  aspect-ratio: 1 / 1;
+  border-radius:16px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+  cursor:pointer;
+}
+
+.photo-item img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* ================= 精品模式調整 ================= */
+
+.mode-premium #card-container{
+  width:86%;
+  height:580px;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.12);
+  border: 12px solid rgba(255,255,255,0.92);
+  backdrop-filter: blur(25px);
+}
+
+.mode-premium .banner,
+.mode-premium .dynamic-mask{ display:none; }
+
+.mode-premium .avatar-wrap{
+  top:34px;
+  left:20px;
+  width:auto;
+  justify-content:flex-start;
+}
+
+.mode-premium .avatar-circle{
+  width:86px;
+  height:86px;
+  border: 2.5px solid rgba(255,255,255,0.30);
+  background: rgba(255,255,255,0.14);
+}
+
+.mode-premium .info-scroll{
+  padding:102px 22px 22px;
+  text-align:left;
+}
+
+.mode-premium .name{ color: rgba(255,255,255,0.96); }
+.mode-premium.p6 .name{ color: rgba(52,34,0,0.92); }
+
+.mode-premium .unitline{ color: rgba(255,255,255,0.88); }
+.mode-premium.p6 .unitline{ color: rgba(52,34,0,0.82); }
+
+.mode-premium .field-card{
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.25);
+  backdrop-filter: blur(10px);
+  color: rgba(255,255,255,0.92);
+}
+
+.mode-premium.p6 .field-card{
+  background: rgba(255,255,255,0.32);
+  border: 1px solid rgba(255,255,255,0.40);
+  color: rgba(52,34,0,0.92);
+}
+
+.mode-premium .dock-btn{
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: rgba(255,255,255,0.92);
+}
+
+.mode-premium.p6 .dock-btn{
+  background: rgba(255,255,255,0.30);
+  border: 1px solid rgba(255,255,255,0.38);
+  color: rgba(52,34,0,0.92);
+}
+
+/* 質感層 */
+.premium-fx-layer{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity: var(--fx-op, 0);
+  background: var(--fx-img);
+  z-index:6;
+  mix-blend-mode: overlay;
+}
+
+.paper-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity: .12;
+  z-index:5;
+  mix-blend-mode: multiply;
+}
+
+/* 版本字（隱形後台入口用） */
+.version-tag{
+  font-size:10px;
+  opacity:0.3;
+  position:absolute;
+  bottom: 15px;
+  right: 25px;
+  font-family: monospace;
+  user-select:none;
+}
+
+/* ================= 按鈕（沿用 v393 語感） ================= */
+
+.btn-neo{
+  border:none;
+  cursor:pointer;
+  font-weight:900;
+  padding:12px 16px;
+  border-radius:26px;
+  background:#f4f5f7;
+  color:#2d3436;
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.08),
+    inset 0 2px 0 rgba(255,255,255,0.95),
+    inset 0 -2px 0 rgba(0,0,0,0.06);
+  transition: transform .18s, box-shadow .18s, filter .18s;
+}
+
+.btn-neo.pill{ min-width:156px; }
+.btn-neo:hover{ transform: translateY(-1px); }
+.btn-neo:active{ transform: translateY(1px) scale(0.99); }
+
+.btn-neo.active{
+  outline: 2px solid rgba(0,0,0,0.12);
+  filter: saturate(1.02);
+}
+
+.dot, .p-dot{
+  width:34px; height:34px;
+  border-radius:50%;
+  cursor:pointer;
+  border:3px solid #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  transition:.2s;
+}
+
+.dots-row{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin:10px 0;
+}
+
+.dot.active, .p-dot.active{
+  border-color:#2d3436 !important;
+  transform:scale(1.1);
+}
+
+.btn-cta{
+  background: var(--p);
+  color:#fff;
+  border:none;
+  padding: 14px 44px;
+  border-radius: 44px;
+  font-weight: 900;
+  cursor:pointer;
+  margin-top: 6px;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.12);
+}
+
+/* 門面區 */
+#admin-panel{
+  background:#fff;
+  border-bottom:1px solid #eee;
+  text-align:center;
+  padding:14px 0 16px;
+  position:sticky;
+  top:0;
+  z-index:1000;
+}
