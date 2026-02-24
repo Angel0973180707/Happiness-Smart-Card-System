@@ -1,55 +1,39 @@
 /* ================================
 Happiness Smart Card System
-app.js (v391 FULL OVERWRITE) — Rescue + Compatibility
+app.js (v392 FULL OVERWRITE)
 
-✅ Fix: restore legacy UI handlers used by index.html:
-- window.setV382(mode, theme, el)
-- window.setV382Style(style, el)
-- window.setV382Paper(paper, el)
-- window.goFillForm()
+v392 GOALS
+- 防舊快取：配合 sw.js 版本快取清理
+- Toolbar:
+  1) Input: ID (TW0001) or Chinese name
+  2) Preview: load by id OR search->id then load
+  3) Home: reset to GitHub Pages home + default card
+  4) Deliver: copy GAS share link (?action=share&id=TWxxxx)
 
-✅ Keep v391 toolbar:
-1) input id/name
-2) preview
-3) home
-4) deliver (copy GAS share link)
-
-✅ Hidden admin entry: long-press version tag/footer => admin.html?id=...
-
+- Keep robust header normalize + flexible field pick
+- Hidden admin entry: long-press footer/version tag 1.2s => admin.html
 ================================ */
 
 const CONFIG = {
-  VERSION: 391,
+  VERSION: 392,
 
-  // ✅ Your GAS WebApp
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-
-  // ✅ Your GitHub Pages home
   HOME_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-
-  // ✅ Google Form (index.html 的「立即預約訂製名片」會用到)
-  // 你若有固定表單，換成你的真實表單網址
-  FORM: "",
-
-  // Default card
   DEFAULT_ID: "TW0001",
 
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
 
   ADMIN_LONGPRESS_MS: 1200,
-
   DEBUG: true,
 };
 
-/* --------------------------- */
 function $(id) { return document.getElementById(id); }
 function q(sel, root = document) { return root.querySelector(sel); }
-function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
-function log_() { if (CONFIG.DEBUG) console.log("[v391]", ...arguments); }
-function warn_() { if (CONFIG.DEBUG) console.warn("[v391]", ...arguments); }
-function err_() { console.error("[v391]", ...arguments); }
+function log_() { if (CONFIG.DEBUG) console.log("[v392]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[v392]", ...arguments); }
+function err_() { console.error("[v392]", ...arguments); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function setText(elOrId, v) {
@@ -60,18 +44,7 @@ function setText(elOrId, v) {
 }
 
 /* ---------------------------
-State (mode/theme/style/paper)
---------------------------- */
-let state = {
-  mode: "free",      // free | premium
-  theme: "color-1",  // color-1..5 | p1..p7
-  style: "arch",     // arch | flat | spot
-  paper: "paper-1",  // paper-1..3
-};
-let __currentId = "";
-
-/* ---------------------------
-URL helpers
+Query param helpers
 --------------------------- */
 function getParam(name) {
   try { return new URLSearchParams(window.location.search).get(name); }
@@ -88,7 +61,8 @@ function setUrlParams_(paramsObj = {}) {
   history.pushState({}, "", u.toString());
 }
 function getCardIdFromUrl_() {
-  return text(getParam("id")) || "";
+  const id = text(getParam("id"));
+  return id || "";
 }
 
 /* ---------------------------
@@ -208,13 +182,12 @@ function pick(obj, keys) {
 }
 
 /* ---------------------------
-Image helpers
+Image helpers (Drive/Dropbox)
 --------------------------- */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
   let url = String(raw).trim();
   if (!url) return "";
-
   if (url.startsWith("http://")) url = "https://" + url.slice(7);
 
   if (url.includes("dropbox.com")) {
@@ -311,7 +284,6 @@ Clipboard helper
 async function copyText_(s, okMsg = "") {
   const v = text(s);
   if (!v) return false;
-
   try {
     await navigator.clipboard.writeText(v);
     if (okMsg) alert(okMsg);
@@ -323,59 +295,54 @@ async function copyText_(s, okMsg = "") {
 }
 
 /* ===========================
-UI: top toolbar (auto-inject)
+v392 Toolbar (auto-inject)
 =========================== */
-function ensureV391Toolbar_() {
-  if ($("v391Toolbar")) return;
+function ensureV392Toolbar_() {
+  if ($("v392Toolbar")) return;
 
-  const host = q("#topControls") || q("#admin-panel") || document.body;
+  const host =
+    q("#topControls") ||
+    q(".top-controls") ||
+    q(".facade") ||
+    q("main") ||
+    document.body;
 
   const bar = document.createElement("section");
-  bar.id = "v391Toolbar";
+  bar.id = "v392Toolbar";
   bar.style.display = "flex";
   bar.style.gap = "10px";
   bar.style.alignItems = "center";
   bar.style.flexWrap = "wrap";
-  bar.style.padding = "10px 12px";
-  bar.style.margin = "0 auto";
-  bar.style.maxWidth = "980px";
+  bar.style.margin = "10px 0 14px 0";
 
   const input = document.createElement("input");
-  input.id = "v391Input";
+  input.id = "v392Input";
   input.type = "text";
   input.placeholder = "輸入 TW0001 或 姓名（例：王小明）";
   input.autocomplete = "off";
   input.inputMode = "text";
-  input.style.flex = "1 1 220px";
-  input.style.minWidth = "220px";
-  input.style.padding = "10px 12px";
-  input.style.borderRadius = "12px";
-  input.style.border = "1px solid rgba(0,0,0,.15)";
-  input.style.outline = "none";
 
+  // 用你既有 btn-cta 視覺（不另做樣式）
   const btnPreview = document.createElement("button");
-  btnPreview.id = "v391BtnPreview";
+  btnPreview.id = "v392BtnPreview";
   btnPreview.type = "button";
   btnPreview.textContent = "成品預覽";
   btnPreview.className = "btn-cta";
 
   const btnHome = document.createElement("button");
-  btnHome.id = "v391BtnHome";
+  btnHome.id = "v392BtnHome";
   btnHome.type = "button";
   btnHome.textContent = "回首頁";
   btnHome.className = "btn-cta";
 
   const btnDeliver = document.createElement("button");
-  btnDeliver.id = "v391BtnDeliver";
+  btnDeliver.id = "v392BtnDeliver";
   btnDeliver.type = "button";
   btnDeliver.textContent = "一鍵交貨";
   btnDeliver.className = "btn-cta";
 
   const hint = document.createElement("div");
-  hint.id = "v391Hint";
-  hint.style.fontSize = "12px";
-  hint.style.opacity = "0.7";
-  hint.style.flex = "1 1 100%";
+  hint.id = "v392Hint";
   hint.textContent = "提示：輸入 TW0001 直接預覽；輸入姓名會先搜尋，再帶入預覽。";
 
   bar.appendChild(input);
@@ -396,103 +363,7 @@ function ensureV391Toolbar_() {
 }
 
 /* ===========================
-Legacy UI functions (救前臺)
-index.html 內 onclick 直接在用
-=========================== */
-function applyBodyClasses_() {
-  const body = document.body;
-  if (!body) return;
-
-  // reset known classes
-  const keep = new Set();
-  body.className
-    .split(/\s+/)
-    .filter(Boolean)
-    .forEach(c => {
-      // keep unrelated classes (e.g., share-page)
-      if (!/^mode-|^color-|^style-|^paper-|^p\d$/.test(c)) keep.add(c);
-    });
-
-  keep.add(`mode-${state.mode}`);
-  keep.add(state.mode === "premium" ? state.theme : state.theme); // theme is already like color-1 or p1
-  keep.add(`style-${state.style}`);
-  keep.add(state.paper);
-
-  body.className = Array.from(keep).join(" ");
-
-  // Toggle free/premium controls visibility if exists
-  const freeControls = $("free-controls");
-  if (freeControls) freeControls.style.display = (state.mode === "free") ? "" : "none";
-
-  // Activate plan buttons if exist
-  const btnFree = $("btnPlanFree");
-  const btnPremium = $("btnPlanPremium");
-  if (btnFree && btnPremium) {
-    btnFree.classList.toggle("active", state.mode === "free");
-    btnPremium.classList.toggle("active", state.mode === "premium");
-  }
-}
-
-function setActiveInGroup_(el, selector) {
-  if (!el) return;
-  const group = el.parentElement;
-  if (!group) return;
-  qa(selector, group).forEach(x => x.classList.remove("active"));
-  el.classList.add("active");
-}
-
-// index.html calls: window.setV382('free','color-1', this)
-window.setV382 = function(mode, theme, el) {
-  state.mode = (mode === "premium") ? "premium" : "free";
-  state.theme = text(theme) || (state.mode === "premium" ? "p1" : "color-1");
-
-  // dot active visuals: free uses .dot, premium uses .p-dot (they are separate rows)
-  if (el) {
-    if (el.classList.contains("dot")) {
-      qa(".dot").forEach(d => d.classList.remove("active"));
-      el.classList.add("active");
-    }
-    if (el.classList.contains("p-dot")) {
-      qa(".p-dot").forEach(d => d.classList.remove("active"));
-      el.classList.add("active");
-    }
-
-    // plan buttons may pass themselves too
-    if (el.id === "btnPlanFree" || el.id === "btnPlanPremium") {
-      // do nothing extra
-    }
-  }
-
-  applyBodyClasses_();
-};
-
-// index.html calls: window.setV382Style('arch', this)
-window.setV382Style = function(style, el) {
-  const s = text(style);
-  state.style = (s === "flat" || s === "spot") ? s : "arch";
-  if (el) setActiveInGroup_(el, "button");
-  applyBodyClasses_();
-};
-
-// index.html calls: window.setV382Paper('paper-1', this)
-window.setV382Paper = function(paper, el) {
-  const p = text(paper);
-  state.paper = (p === "paper-2" || p === "paper-3") ? p : "paper-1";
-  if (el) setActiveInGroup_(el, "button");
-  applyBodyClasses_();
-};
-
-// index.html CTA
-window.goFillForm = function() {
-  if (CONFIG.FORM && /^https?:\/\//i.test(CONFIG.FORM)) {
-    window.open(CONFIG.FORM, "_blank");
-  } else {
-    alert("尚未設定表單網址（請在 app.js 的 CONFIG.FORM 填入你的 Google 表單連結）");
-  }
-};
-
-/* ===========================
-Card UI helpers
+Core UI hooks
 =========================== */
 function setLoadingUi_() {
   setText("u-name", "載入中...");
@@ -515,6 +386,9 @@ function setAvatarImage_(url) {
   setImgWithFallback_(img, cands);
 }
 
+/* ===========================
+Apply card data to UI
+=========================== */
 function applyCardToUi_(payloadNorm) {
   const id = pick(payloadNorm, ["id", "ID"]);
   const name = pick(payloadNorm, ["姓名", "name", "Name"]);
@@ -523,20 +397,17 @@ function applyCardToUi_(payloadNorm) {
   const avatar =
     pick(payloadNorm, ["個人照_fast", "個人照", "形象照_fast", "形象照", "avatar_fast", "avatar"]);
 
-  setText("u-name", name || "（尚未讀到姓名）");
-  setText("u-unit", unit || "");
-  setText("u-service", service || "");
-
+  if ($("u-name")) setText("u-name", name || "（尚未讀到姓名）");
+  if ($("u-unit")) setText("u-unit", unit || "");
+  if ($("u-service")) setText("u-service", service || "");
   if (avatar) setAvatarImage_(avatar);
 
-  __currentId = text(id).toUpperCase() || __currentId || CONFIG.DEFAULT_ID;
+  // 若你未來加了 #u-id 也能顯示
+  if ($("u-id")) setText("u-id", id || "");
 }
 
 /* ===========================
 GAS actions
-- card:   ?action=card&id=TW0001
-- search: ?action=search&q=王  (or name=王)
-- share:  ?action=share&id=TW0001
 =========================== */
 function gasUrl_(action, params = {}) {
   const u = new URL(CONFIG.GAS);
@@ -546,6 +417,7 @@ function gasUrl_(action, params = {}) {
     if (v == null || text(v) === "") continue;
     u.searchParams.set(k, String(v));
   }
+  // 防中間層快取
   u.searchParams.set("ts", String(Date.now()));
   return u.toString();
 }
@@ -560,16 +432,23 @@ async function gasCard_(id) {
 
 function extractFirstIdFromSearch_(data) {
   if (!data || typeof data !== "object") return "";
-
   if (text(data.id)) return text(data.id);
   if (data.row && text(data.row.id)) return text(data.row.id);
 
-  const listKeys = ["rows", "results", "items", "list"];
-  for (const k of listKeys) {
-    if (Array.isArray(data[k]) && data[k].length) {
-      const r = data[k][0];
-      if (r && text(r.id)) return text(r.id);
-    }
+  // 你的 GAS 是 { ok:true, count, items:[{id...}] } 這種形狀
+  if (Array.isArray(data.items) && data.items.length) {
+    const r = data.items[0];
+    if (r && text(r.id)) return text(r.id);
+  }
+
+  if (Array.isArray(data.rows) && data.rows.length) {
+    const r = data.rows[0];
+    if (r && text(r.id)) return text(r.id);
+  }
+
+  if (Array.isArray(data.results) && data.results.length) {
+    const r = data.results[0];
+    if (r && text(r.id)) return text(r.id);
   }
 
   for (const k of Object.keys(data)) {
@@ -589,38 +468,45 @@ async function gasSearchToId_(qOrNameOrId) {
 
   if (/^TW\d{4}$/i.test(v)) return v.toUpperCase();
 
-  // try q
-  let data = await fetchJsonRobust(gasUrl_("search", { q: v }));
+  // 先用 q
+  const url = gasUrl_("search", { q: v });
+  let data = await fetchJsonRobust(url);
+
   if (data && data.ok === false) {
-    // try name
-    data = await fetchJsonRobust(gasUrl_("search", { name: v }));
+    // 再試 name
+    const url2 = gasUrl_("search", { name: v });
+    data = await fetchJsonRobust(url2);
   }
 
   if (!data || typeof data !== "object") throw new Error("Search invalid payload");
   if (data.ok === false) throw new Error(data.error || "Search failed");
 
   const id = extractFirstIdFromSearch_(data);
-  if (!id) throw new Error("找不到符合的 id（請輸入更完整姓名或直接用 TW0001）");
+  if (!id) throw new Error("找不到符合的 id（請改用 TW0001 或輸入更完整姓名）");
   return id.toUpperCase();
 }
 
 /* ===========================
 Main flows
 =========================== */
+let __currentId = "";
+
 async function loadAndRenderById_(id) {
   const safeId = text(id).toUpperCase();
   if (!safeId) throw new Error("Missing id");
 
   __currentId = safeId;
-  setLoadingUi_();
+
+  if ($("u-name")) setLoadingUi_();
 
   const data = await gasCard_(safeId);
   const payloadNorm = buildNormalizedPayload_(data);
+
   applyCardToUi_(payloadNorm);
 }
 
 async function previewFromInput_() {
-  const inputEl = $("v391Input");
+  const inputEl = $("v392Input") || $("searchInput") || $("qInput");
   const raw = inputEl ? text(inputEl.value) : "";
 
   const target = raw || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
@@ -631,7 +517,8 @@ async function previewFromInput_() {
     await loadAndRenderById_(id);
   } catch (e) {
     err_(e);
-    setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
+    if ($("u-name")) setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
+    else alert(e && e.message ? e.message : "同步失敗");
   }
 }
 
@@ -643,7 +530,7 @@ function goHomeReset_() {
     return;
   }
 
-  const inputEl = $("v391Input");
+  const inputEl = $("v392Input") || $("searchInput") || $("qInput");
   if (inputEl) inputEl.value = "";
 
   __currentId = CONFIG.DEFAULT_ID;
@@ -663,7 +550,8 @@ async function deliverCopyLink_() {
 Hidden Admin Entry (long-press)
 =========================== */
 function bindAdminLongPress_() {
-  const target = q("#versionTag") || q(".version-tag") || q("footer");
+  const target =
+    q(".version-tag") || q("#versionTag") || q("footer") || q("#footer") || null;
   if (!target) return;
 
   let timer = null;
@@ -675,7 +563,8 @@ function bindAdminLongPress_() {
     timer = setTimeout(() => {
       fired = true;
       const id = getCardIdFromUrl_() || __currentId || CONFIG.DEFAULT_ID;
-      window.open(`admin.html?id=${encodeURIComponent(id)}`, "_blank");
+      const u = `admin.html?id=${encodeURIComponent(id)}`;
+      window.open(u, "_blank");
     }, CONFIG.ADMIN_LONGPRESS_MS);
   };
 
@@ -703,10 +592,10 @@ function bindAdminLongPress_() {
 /* ===========================
 Bind toolbar buttons
 =========================== */
-function bindV391ToolbarActions_() {
-  const btnPreview = $("v391BtnPreview");
-  const btnHome = $("v391BtnHome");
-  const btnDeliver = $("v391BtnDeliver");
+function bindV392ToolbarActions_() {
+  const btnPreview = $("v392BtnPreview");
+  const btnHome = $("v392BtnHome");
+  const btnDeliver = $("v392BtnDeliver");
 
   if (btnPreview) btnPreview.addEventListener("click", previewFromInput_);
   if (btnHome) btnHome.addEventListener("click", goHomeReset_);
@@ -714,35 +603,54 @@ function bindV391ToolbarActions_() {
 }
 
 /* ===========================
+SW update hint (optional but helpful)
+=========================== */
+function bindSwUpdateHint_() {
+  if (!("serviceWorker" in navigator)) return;
+
+  navigator.serviceWorker.ready.then((reg) => {
+    // 主動檢查更新
+    try { reg.update(); } catch {}
+
+    // 若有新 SW 等待中，提示使用者刷新
+    if (reg.waiting) {
+      log_("SW waiting (new version). You may refresh.");
+    }
+
+    reg.addEventListener("updatefound", () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener("statechange", () => {
+        if (nw.state === "installed" && navigator.serviceWorker.controller) {
+          log_("SW updated. Refresh suggested.");
+        }
+      });
+    });
+  }).catch(()=>{});
+}
+
+/* ===========================
 Boot
 =========================== */
-function bootV391_() {
-  // 1) inject toolbar
-  ensureV391Toolbar_();
-
-  // 2) bind
-  bindV391ToolbarActions_();
+function bootV392_() {
+  ensureV392Toolbar_();
+  bindV392ToolbarActions_();
   bindAdminLongPress_();
+  bindSwUpdateHint_();
 
-  // 3) apply default classes so UI not blank
-  applyBodyClasses_();
-
-  // 4) init with url id
   const idFromUrl = getCardIdFromUrl_();
-  const inputEl = $("v391Input");
+  const inputEl = $("v392Input");
   if (inputEl && idFromUrl) inputEl.value = idFromUrl;
 
   const initial = idFromUrl || CONFIG.DEFAULT_ID;
   setUrlParams_({ id: initial });
   __currentId = initial;
 
-  // 5) first render
   previewFromInput_();
-
   log_("boot ok", { version: CONFIG.VERSION, initial });
 }
 
-document.addEventListener("DOMContentLoaded", () => bootV391_(), { once: true });
+document.addEventListener("DOMContentLoaded", () => bootV392_(), { once: true });
 window.addEventListener("load", () => {
-  if (!__currentId) bootV391_();
+  if (!__currentId) bootV392_();
 });
