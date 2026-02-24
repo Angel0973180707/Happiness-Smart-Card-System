@@ -303,4 +303,40 @@ body{
   right: 25px;
   font-family: monospace;
   user-select:none;
+}/* =========================
+v393 Layout Hard Fix
+解決「隱藏但佔位」問題
+========================= */
+
+/* 步驟標題區完全消失（不是透明） */
+.step-label,
+.step-row,
+.step-title {
+  display: none !important;
+}
+
+/* 自由搭配控制區 */
+.mode-premium #free-controls {
+  display: none !important;
+}
+
+/* 自由搭配色點列 */
+.mode-premium .dots-row:has(.dot) {
+  display: none !important;
+}
+
+/* 精品模式只顯示七色 */
+.mode-premium .dots-row:has(.p-dot) {
+  display: flex !important;
+}
+
+/* 防止殘留間距 */
+#free-controls {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 避免 ghost spacing */
+.control-row:empty {
+  display: none !important;
 }
