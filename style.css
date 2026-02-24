@@ -1,7 +1,7 @@
 /* ================================
- * 幸福智慧名片｜style.css（v393FULL OVERWRITE）
- * Base: your V387.4
- * Fix: ensure facade top + sample card visible
+ * Happiness Smart Card System — style.css (v394 COMPLETE OVERWRITE)
+ * Base: user archived look (keep)
+ * Fix: layout stability + small capsule buttons
  * ================================ */
 
 :root{
@@ -49,7 +49,6 @@ body{
   font-family:var(--font);
   color:var(--text);
   transition: 0.45s;
-  /* ✅ 保險：避免 flex 造成樣品區被擠掉/不顯示 */
   display:block;
 }
 
@@ -61,15 +60,35 @@ body{
   border-bottom:1px solid #eee;
   padding:14px 0 16px;
   z-index:1000;
-  /* ✅ 保險：門面固定在上面，但不遮樣品 */
   position: sticky;
   top: 0;
+
+  /* ✅ 關鍵：不讓門面吃掉整頁 */
+  max-height: 26vh;
+  overflow:auto;
 }
 
-/* 中央容器（讓樣品區回到正中） */
-#card-container{
-  display:block;           /* ✅ 保險：防止被其他樣式覆蓋成 none */
-  margin: 16px auto 8px;
+.plan-row{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:10px 12px 4px;
+}
+
+.step-row{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  padding:2px 12px 8px;
+}
+.step-badge{
+  font-weight:900;
+  opacity:.85;
+}
+.step-title{
+  font-weight:900;
 }
 
 .dots-row{
@@ -89,19 +108,21 @@ body{
   box-shadow: 0 3px 8px rgba(0,0,0,0.08);
   transition: 0.2s;
 }
-.dot.active, .p-dot.active,
-.active{
+.dot.active, .p-dot.active{
   border-color:#2d3436 !important;
   transform:scale(1.1);
 }
 
-/* 立體按鈕 */
+/* 立體按鈕（膠囊小一點） */
 .btn-neo{
   border:none;
   cursor:pointer;
   font-weight:900;
-  padding:12px 16px;
-  border-radius:26px;
+
+  /* ✅ 小一點 */
+  padding:10px 14px;
+  border-radius:22px;
+
   background:#f4f5f7;
   color:#2d3436;
   box-shadow:
@@ -110,9 +131,14 @@ body{
     inset 0 -2px 0 rgba(0,0,0,0.06);
   transition: transform .18s, box-shadow .18s, filter .18s;
 }
-.btn-neo.pill{ min-width: 156px; }
+
+.btn-neo.pill{
+  min-width: 148px; /* ✅ 小一點 */
+}
+
 .btn-neo:hover{ transform: translateY(-1px); }
 .btn-neo:active{ transform: translateY(1px) scale(0.99); }
+
 .btn-neo.active{
   outline: 2px solid rgba(0,0,0,0.12);
   filter: saturate(1.02);
@@ -134,7 +160,7 @@ body{
   background: var(--p);
   color:#fff;
   border:none;
-  padding: 14px 44px;
+  padding: 12px 38px;
   border-radius: 44px;
   font-weight: 900;
   cursor:pointer;
@@ -146,10 +172,18 @@ body{
 .btn-cta:active{ transform: translateY(1px) scale(0.99); }
 
 /* ================= 名片卡（樣品區） ================= */
+#card-container{
+  display:block;
+  margin: 16px auto 8px;
+}
+
 .card{
   width:92%;
   max-width:380px;
-  height:660px;
+
+  /* ✅ 關鍵：小手機也能看見 */
+  height: min(660px, calc(100vh - 220px));
+
   background: var(--card-bg) !important;
   border-radius: var(--radius-card);
   overflow:hidden;
@@ -187,7 +221,7 @@ body{
 /* 精品款 */
 .mode-premium .card{
   width:86%;
-  height:580px;
+  height: min(580px, calc(100vh - 220px));
   box-shadow: 0 25px 50px rgba(0,0,0,0.12);
   border: 12px solid rgba(255,255,255,0.92);
   backdrop-filter: blur(25px);
@@ -273,8 +307,6 @@ body{
   color: rgba(52,34,0,0.92);
 }
 
-.box-title{ font-weight: 900; margin-bottom: 8px; opacity: 0.92; }
-
 /* 質感層 */
 .premium-fx-layer{
   position:absolute;
@@ -303,4 +335,12 @@ body{
   right: 25px;
   font-family: monospace;
   user-select:none;
+}
+
+/* footer */
+.footer-mini{
+  font-size:10px;
+  color:#ccc;
+  margin-top:12px;
+  text-align:center;
 }
