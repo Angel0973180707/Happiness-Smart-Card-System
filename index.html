@@ -1,4 +1,4 @@
-<!-- index.html (V387 complete overwrite) -->
+<!-- index.html (V387 COMPLETE OVERWRITE) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -7,152 +7,106 @@
   <title>幸福智慧名片 V387</title>
 
   <link rel="manifest" href="./manifest.json?v=387" />
-  <meta name="theme-color" content="#ff5e5e" />
+  <meta name="theme-color" content="#ee5253" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <link rel="icon" href="./icons/icon-192.png" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-
-  <link rel="stylesheet" href="./style.css?v=387" />
+  <link rel="stylesheet" href="style.css?v=387" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- 控制區（Step Flow） -->
-  <header id="admin-panel">
-    <div class="step-wrap">
-      <!-- Step 1 -->
-      <div class="step-head" aria-label="Step 1">
-        <span class="step-badge">STEP 1</span>
-        <span class="step-title">先選方案</span>
+  <!-- ================= 门面控制区（保持 V385 逻辑） ================= -->
+  <div id="admin-panel">
+
+    <!-- ✅ 方案 A/B：方案 2（Badge） -->
+    <div class="plan-row">
+      <span class="step-badge">步驟一</span>
+      <span class="step-title">選擇方案</span>
+    </div>
+
+    <div class="plan-buttons">
+      <button id="btnPlanFree" type="button" class="btn-neo pill active">自由搭配款 A</button>
+      <button id="btnPlanPremium" type="button" class="btn-neo pill">精品設計款 B</button>
+    </div>
+
+    <!-- 自由搭配款 dots（5色） -->
+    <div class="dots-row" id="dotsFree">
+      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free','color-1',this)"></div>
+      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free','color-2',this)"></div>
+      <div class="dot" style="background:#ffa502" onclick="window.setV382('free','color-3',this)"></div>
+      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free','color-4',this)"></div>
+      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free','color-5',this)"></div>
+    </div>
+
+    <!-- 自由款：版型/紙感 -->
+    <div id="free-controls">
+      <div class="control-row">
+        <button class="btn-neo active" onclick="window.setV382Style('arch',this)">優雅正拱</button>
+        <button class="btn-neo" onclick="window.setV382Style('flat',this)">簡潔平直</button>
+        <button class="btn-neo" onclick="window.setV382Style('spot',this)">晨曦款</button>
       </div>
-      <div class="step-sub">先選「自由搭配 / 精品設計」，下面才會切換對應外觀。</div>
-      <!-- ✅ 方案按鈕由 app.js 注入到 #admin-panel 最上方（plan-selector） -->
-
-      <!-- Step 2 -->
-      <div style="height:10px;"></div>
-      <div class="step-head" aria-label="Step 2">
-        <span class="step-badge">STEP 2</span>
-        <span class="step-title">挑選外觀</span>
-      </div>
-      <div class="step-sub">自由：色點 + 版型 + 紙感｜精品：精品色點（隱藏自由控制）。</div>
-
-      <!-- 自由搭配：顏色 dots（由 app.js 分流顯示） -->
-      <div class="dots-row" id="rowFreeDots" style="justify-content:center;">
-        <button class="dot active" style="background:#ff5e5e" onclick="setV382('free','color-1',this)" aria-label="自由-粉紅"></button>
-        <button class="dot" style="background:#00a8ff" onclick="setV382('free','color-2',this)" aria-label="自由-藍"></button>
-        <button class="dot" style="background:#ffa502" onclick="setV382('free','color-3',this)" aria-label="自由-橘"></button>
-        <button class="dot" style="background:#7d5fff" onclick="setV382('free','color-4',this)" aria-label="自由-紫"></button>
-        <button class="dot" style="background:#2ecc71" onclick="setV382('free','color-5',this)" aria-label="自由-綠"></button>
-      </div>
-
-      <!-- 精品設計：顏色 dots（由 app.js 分流顯示） -->
-      <div class="dots-row" id="rowPremiumDots" style="display:none;justify-content:center;">
-        <button class="p-dot" style="background:#a36d6d" onclick="setV382('premium','p1',this)" aria-label="精品-p1 胭脂"></button>
-        <button class="p-dot" style="background:#722f37" onclick="setV382('premium','p2',this)" aria-label="精品-p2 酒紅"></button>
-        <button class="p-dot" style="background:#1c2e42" onclick="setV382('premium','p3',this)" aria-label="精品-p3 深藍"></button>
-        <button class="p-dot" style="background:#5e548e" onclick="setV382('premium','p4',this)" aria-label="精品-p4 霧紫"></button>
-        <button class="p-dot" style="background:#7a94a6" onclick="setV382('premium','p5',this)" aria-label="精品-p5 藍灰"></button>
-        <button class="p-dot" style="background:#bf953f" onclick="setV382('premium','p6',this)" aria-label="精品-p6 金箔"></button>
-        <button class="p-dot" style="background:#444444" onclick="setV382('premium','p7',this)" aria-label="精品-p7 褐碳"></button>
-      </div>
-
-      <!-- 自由搭配 controls（由 app.js 分流顯示/隱藏） -->
-      <div id="free-controls" style="margin-top:10px; display:block;">
-        <div class="controls-row" aria-label="自由搭配：版型與紙感">
-          <button class="btn-neo active" onclick="setV382Style('arch',this)">正拱</button>
-          <button class="btn-neo" onclick="setV382Style('flat',this)">平直</button>
-          <button class="btn-neo" onclick="setV382Style('spot',this)">晨曦</button>
-
-          <span style="width:10px;"></span>
-
-          <button class="btn-neo active" onclick="setV382Paper('paper-1',this)">霧面棉紙</button>
-          <button class="btn-neo" onclick="setV382Paper('paper-2',this)">細顆粒紙</button>
-          <button class="btn-neo" onclick="setV382Paper('paper-3',this)">亞麻紋</button>
-        </div>
-      </div>
-
-      <!-- Step 3 -->
-      <div style="height:8px;"></div>
-      <div class="step-head" aria-label="Step 3">
-        <span class="step-badge">STEP 3</span>
-        <span class="step-title">預約訂製</span>
-      </div>
-      <div class="step-sub">第一次預約建議先加 LINE 官方帳號，溝通更順暢。</div>
-
-      <div class="step-actions">
-        <button class="btn-help" onclick="openOrderHelp()">
-          <span aria-hidden="true">?</span> 訂購流程說明
-        </button>
-        <button class="btn-cta mini" onclick="goFillForm()">立即填寫預約表單</button>
+      <div class="control-row" style="margin-top:8px;">
+        <button class="btn-neo active" onclick="window.setV382Paper('paper-1',this)">棉紙</button>
+        <button class="btn-neo" onclick="window.setV382Paper('paper-2',this)">顆粒</button>
+        <button class="btn-neo" onclick="window.setV382Paper('paper-3',this)">亞麻</button>
       </div>
     </div>
-  </header>
 
-  <!-- 名片卡（mount point：#card-container 供照片牆插入） -->
-  <main id="card-container" class="card" role="main" aria-label="智慧名片">
-    <div class="premium-fx-layer"></div>
+    <!-- ✅ 精品設計款 dots（按你指定順序） -->
+    <div class="dots-row" id="dotsPremium" style="display:none;">
+      <!-- p1 胭脂 -->
+      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium','p1',this)"></div>
+      <!-- p2 酒紅 -->
+      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium','p2',this)"></div>
+      <!-- p3 深藍 -->
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium','p3',this)"></div>
+      <!-- p4 霧紫 -->
+      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium','p4',this)"></div>
+      <!-- p5 藍灰 -->
+      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium','p5',this)"></div>
+      <!-- p6 金箔 -->
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium','p6',this)"></div>
+      <!-- p7 褐碳 -->
+      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium','p7',this)"></div>
+    </div>
+
+    <button class="btn-cta" onclick="window.goFillForm()">立即預約訂製名片 →</button>
+  </div>
+
+  <!-- ================= 样品区（保持你 V385 的门面/样品结构） ================= -->
+  <div id="card-container" class="card">
     <div class="paper-overlay"></div>
+    <div class="premium-fx-layer"></div>
 
-    <div class="banner">
-      <div class="dynamic-mask"></div>
-    </div>
+    <!-- ✅ 自由款 banner：顏色變化只在 banner（CSS已鎖） -->
+    <div class="banner"><div class="dynamic-mask"></div></div>
 
     <div class="avatar-wrap">
       <div class="avatar-circle">
-        <img id="u-img" class="avatar" alt="形象照" />
+        <img id="u-img" src="" class="avatar" alt="形象照" />
       </div>
     </div>
 
-    <section class="info-scroll">
+    <div class="info-scroll">
       <h1 id="u-name" class="name">載入中...</h1>
       <div id="u-unit" class="unit">同步中...</div>
 
-      <div class="content-box" style="margin-top:14px;">
-        <div class="cta-box" onclick="goFillForm()">立即預約訂製名片 →</div>
+      <div class="content-box cta-box" onclick="window.goFillForm()">
+        立即填寫預約表單
       </div>
 
-      <div class="content-box">
-        <div style="font-weight:900; margin-bottom:8px;">服務項目</div>
-        <div id="u-service" class="service-box">正在同步雲端服務項目...</div>
-      </div>
-
-      <!-- ✅ 聯繫方式：由 app.js 動態插入 contactBox（避免重複） -->
-
-      <div class="version-tag">V386</div>
-    </section>
-  </main>
-
-  <div class="footer">© Angel Card</div>
-
-  <!-- 訂購流程 modal -->
-  <div id="orderHelpModal" class="modal-backdrop" aria-hidden="true">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-label="訂購流程說明">
-      <div class="modal-head">
-        <div class="modal-title">訂購流程說明</div>
-        <button class="modal-x" onclick="closeOrderHelp()" aria-label="關閉">×</button>
-      </div>
-
-      <div class="modal-body">
-        <ol class="modal-ol">
-          <li>先選擇方案（自由搭配 / 精品設計）與喜歡的外觀。</li>
-          <li>點「立即填寫預約表單」，送出你的名片資料。</li>
-          <li>我們會依你選擇的方案進行設計製作，完成後提供專屬名片連結。</li>
-        </ol>
-
-        <div class="modal-note">
-          小提醒：如果你是第一次預約，建議先加 LINE 官方帳號，溝通更順暢。
-        </div>
-      </div>
-
-      <div class="modal-foot">
-        <button class="btn-cta mini" onclick="goFillForm()">我知道了，去填表</button>
-      </div>
+      <!-- 服務項目：會自動加「看全文」 -->
+      <div id="u-service" class="content-box" style="font-size:13px; line-height:1.6;">正在同步雲端服務項目...</div>
     </div>
+
+    <div class="version-tag">V387</div>
   </div>
 
-  <script src="./app.js?v=386"></script>
+  <footer class="footer">幸福智慧名片 V387</footer>
+
+  <script src="app.js?v=387"></script>
 </body>
 </html>
