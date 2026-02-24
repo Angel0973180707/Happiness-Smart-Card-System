@@ -1,59 +1,60 @@
-/* sw.js (v391 FULL OVERWRITE) */
+/* sw.js (v392 FULL OVERWRITE) */
+const SW_VERSION = "v392";
+const CACHE_NAME = `hsc-${SW_VERSION}`;
 
-const VERSION = "v391";
-const CACHE = `hsc-${VERSION}`;
-
-const PRECACHE = [
+const CORE = [
   "./",
-  "./index.html",
-  "./style.css",
-  "./app.js",
-  "./manifest.json",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./index.html?v=392",
+  "./style.css?v=392",
+  "./app.js?v=392",
+  "./manifest.json?v=392",
+  "./icons/icon-192.png?v=392",
+  "./icons/icon-512.png?v=392"
 ];
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE)
-      .then(cache => cache.addAll(PRECACHE))
-      .then(() => self.skipWaiting())
-  );
-});
-
-self.addEventListener("activate", (e) => {
-  e.waitUntil((async () => {
-    const keys = await caches.keys();
-    await Promise.all(keys.map(k => (k === CACHE ? null : caches.delete(k))));
-    await self.clients.claim();
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
+    try {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.addAll(CORE);
+    } catch (e) {}
+    self.skipWaiting();
   })());
 });
 
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
+self.addEventListener("activate", (event) => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => {
+      if (k !== CACHE_NAME && k.startsWith("hsc-")) return caches.delete(k);
+    }));
+    self.clients.claim();
+  })());
+});
+
+// 網路優先，失敗才走 cache（避免永遠停在舊版）
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
   if (req.method !== "GET") return;
 
   const url = new URL(req.url);
 
-  // Same-origin: cache-first (ignoreSearch so ?v=391 works)
-  if (url.origin === self.location.origin) {
-    e.respondWith((async () => {
-      const cache = await caches.open(CACHE);
-      const cached = await cache.match(req, { ignoreSearch: true });
+  // 只處理同源（GitHub Pages）資源；GAS / Drive 不接管
+  if (url.origin !== self.location.origin) return;
+
+  event.respondWith((async () => {
+    try {
+      const fresh = await fetch(req, { cache: "no-store" });
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(req, fresh.clone()).catch(()=>{});
+      return fresh;
+    } catch (e) {
+      const cached = await caches.match(req, { ignoreSearch: false });
       if (cached) return cached;
 
-      try {
-        const fresh = await fetch(req);
-        if (fresh && fresh.ok) cache.put(req, fresh.clone());
-        return fresh;
-      } catch {
-        const fallback = await cache.match("./index.html", { ignoreSearch: true });
-        return fallback || new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain; charset=utf-8" } });
-      }
-    })());
-    return;
-  }
-
-  // Cross-origin (GAS): network-first
-  e.respondWith(fetch(req).catch(() => new Response("", { status: 504 })));
+      // fallback：至少嘗試回首頁
+      const cachedHome = await caches.match("./index.html?v=392");
+      return cachedHome || new Response("Offline", { status: 503, statusText: "Offline" });
+    }
+  })());
 });
