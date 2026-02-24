@@ -1,18 +1,18 @@
 /* ================================
-Happiness Smart Card System — app.js (v394 COMPLETE OVERWRITE)
+Happiness Smart Card System — app.js (v395 COMPLETE OVERWRITE)
 
-v394 GOALS:
-- Keep archived UI (no visual redesign)
-- Fix data fetch robustness
-- Layout stability handled by CSS (not here)
-- Toggle dots UI:
-  * Free mode => show free dots-row (.dot), hide premium dots-row (.p-dot)
-  * Premium mode => show premium dots-row (.p-dot), hide free dots-row + hide free-controls
-- Hidden admin entry only (long press)
+v395 FIX:
+- Solve “card content cannot read” by supporting multiple GAS payload shapes:
+  A) { ...fields } single object
+  B) { ok:true, data:{...fields} }
+  C) { ok:true, row:{...fields} }
+  D) { ok:true, headers:[...], rows:[[...],[...]] }  (list table)
+  E) { ok:true, rows:[{...},{...}] }  (list objects)
+- Keep archived UI / switching logic unchanged
 ================================ */
 
 const CONFIG = {
-  VERSION: 394,
+  VERSION: 395,
 
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
@@ -37,9 +37,9 @@ function $(id) { return document.getElementById(id); }
 function q(sel, root = document) { return root.querySelector(sel); }
 function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
-function log_() { if (CONFIG.DEBUG) console.log("[HSC-v394]", ...arguments); }
-function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v394]", ...arguments); }
-function err_() { console.error("[HSC-v394]", ...arguments); }
+function log_() { if (CONFIG.DEBUG) console.log("[HSC-v395]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v395]", ...arguments); }
+function err_() { console.error("[HSC-v395]", ...arguments); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function setText(elOrId, v) {
@@ -74,9 +74,6 @@ function getCardIdFromUrl_() {
 
 /* ---------------------------
 UI toggle: dots rows (free vs premium)
-No HTML changes needed:
-- free dots row contains ".dot"
-- premium dots row contains ".p-dot"
 --------------------------- */
 function toggleDotsRows_() {
   const rows = qa(".dots-row");
@@ -91,7 +88,6 @@ function toggleDotsRows_() {
   }
 
   const isFree = state.mode === "free";
-
   if (freeRow) freeRow.style.display = isFree ? "flex" : "none";
   if (premiumRow) premiumRow.style.display = isFree ? "none" : "flex";
 }
@@ -103,7 +99,6 @@ window.setV382 = function (mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
 
-  // active dot (global clear)
   document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
   if (el && (el.classList.contains("dot") || el.classList.contains("p-dot"))) el.classList.add("active");
 
@@ -132,15 +127,10 @@ window.setV382Paper = function (paper, el) {
 
 function applyV382_() {
   const isFree = state.mode === "free";
-
-  // free controls show/hide
   const controlPanel = $("free-controls");
   if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
-
-  // dots show/hide
   toggleDotsRows_();
 
-  // apply body classes
   const classList = [
     `mode-${state.mode}`,
     state.theme,
@@ -210,7 +200,7 @@ async function fetchWithTimeout(url, timeoutMs) {
     const body = (txt || "").trim();
 
     if (CONFIG.DEBUG) {
-      const head = body.slice(0, 220).replace(/\s+/g, " ");
+      const head = body.slice(0, 260).replace(/\s+/g, " ");
       log_("fetch:", { status, ct, len: body.length, head });
     }
 
@@ -220,7 +210,14 @@ async function fetchWithTimeout(url, timeoutMs) {
     // 1) direct JSON
     try { return JSON.parse(body); } catch {}
 
-    // 2) try extract first JSON object
+    // 2) JSONP: callback(...)
+    const jsonp = body.match(/^[\w$]+\(([\s\S]*)\)\s*;?\s*$/);
+    if (jsonp && jsonp[1]) {
+      const inner = jsonp[1].trim().replace(/;$/, "");
+      return JSON.parse(inner);
+    }
+
+    // 3) try extract first JSON object
     const m = body.match(/\{[\s\S]*\}/);
     if (m) return JSON.parse(m[0]);
 
@@ -303,6 +300,85 @@ function pick(obj, keys) {
     }
   }
   return "";
+}
+
+/* ---------------------------
+Payload adapters (核心修復)
+--------------------------- */
+function isPlainObject_(x) {
+  return !!x && typeof x === "object" && !Array.isArray(x);
+}
+
+function rowToObjectFromHeaders_(headers, rowArr) {
+  const o = {};
+  (headers || []).forEach((h, i) => {
+    const key = cleanKey_(h);
+    if (!key) return;
+    o[key] = (rowArr && i < rowArr.length) ? rowArr[i] : "";
+  });
+  return o;
+}
+
+function findRowByIdInTable_(headers, rows, id) {
+  if (!Array.isArray(rows) || !rows.length) return null;
+
+  // case1: rows = [ [..], [..] ]
+  if (Array.isArray(rows[0])) {
+    // try find id column index
+    const h = (headers || []).map(x => cleanKey_(x));
+    let idIdx = h.findIndex(x => x.toLowerCase() === "id" || x === "編號" || x === "ID" || x === "id");
+    if (idIdx < 0) idIdx = 0;
+
+    const target = String(id || "").toUpperCase();
+    for (const r of rows) {
+      const v = (r && r[idIdx] != null) ? String(r[idIdx]).toUpperCase().trim() : "";
+      if (v === target) return rowToObjectFromHeaders_(headers, r);
+    }
+    return null;
+  }
+
+  // case2: rows = [ {..}, {..} ]
+  if (isPlainObject_(rows[0])) {
+    const target = String(id || "").toUpperCase();
+    for (const r of rows) {
+      const rid = String(r.id ?? r.ID ?? r.編號 ?? r["編號"] ?? "").toUpperCase().trim();
+      if (rid === target) return r;
+    }
+    return null;
+  }
+
+  return null;
+}
+
+function normalizeGASPayloadToFields_(data, id) {
+  // 0) if array, try take first object
+  if (Array.isArray(data)) {
+    const firstObj = data.find(isPlainObject_);
+    if (firstObj) return firstObj;
+    return null;
+  }
+
+  if (!isPlainObject_(data)) return null;
+
+  // 1) common wrappers
+  if (isPlainObject_(data.data)) return data.data;
+  if (isPlainObject_(data.row)) return data.row;
+  if (isPlainObject_(data.card)) return data.card;
+
+  // 2) list-table shape: {headers, rows}
+  if (Array.isArray(data.headers) && Array.isArray(data.rows)) {
+    const found = findRowByIdInTable_(data.headers, data.rows, id);
+    if (found) return found;
+  }
+
+  // 3) list-object shape: {rows:[{..}]}
+  if (Array.isArray(data.rows)) {
+    const found = findRowByIdInTable_(data.headers || [], data.rows, id);
+    if (found) return found;
+  }
+
+  // 4) if it already looks like fields (contains name/姓名 etc.), return as is
+  return data;
 }
 
 /* ---------------------------
@@ -439,46 +515,65 @@ function setFailUi_(msg) {
 }
 
 /* ---------------------------
-Load card
+Load card (robust multi-endpoint)
 --------------------------- */
+function buildTryUrls_(cid) {
+  const base = CONFIG.GAS;
+  const ts = Date.now();
+  return [
+    `${base}?action=card&id=${encodeURIComponent(cid)}&ts=${ts}`,
+    `${base}?action=get&id=${encodeURIComponent(cid)}&ts=${ts}`,
+    `${base}?id=${encodeURIComponent(cid)}&ts=${ts}`,
+    `${base}?action=list&ts=${ts}` // last fallback: list then find row by id
+  ];
+}
+
 async function loadCardById_(id) {
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-
-  // ✅ 你 GAS 是 webapp：用 action=card&id=TW0001
-  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
-
-  __lastLoad = { id: cid, ts: Date.now(), url };
   __resolvedId = cid;
 
   await waitForDom_(["u-name", "u-unit", "u-service"], 2400);
   setLoadingUi_();
 
-  try {
-    const data = await fetchJsonRobust(url);
-    if (!data || typeof data !== "object") throw new Error("Invalid payload");
-    if (data.ok === false) throw new Error(data.error || "Not found");
-    if (Object.keys(data).length === 0) throw new Error("Empty object");
+  const urls = buildTryUrls_(cid);
+  let lastErr = null;
 
-    __payloadRaw = data;
-    __payload = buildNormalizedPayload_(data);
-
-    applyDataToCard(__payload);
-    await sleep(120);
-    applyDataToCard(__payload);
-
-    // ✅ 讓網址固定帶 id，方便你複製檢查
+  for (const url of urls) {
+    __lastLoad = { id: cid, ts: Date.now(), url };
     try {
-      const u = new URL(window.location.href);
-      u.searchParams.set("id", cid);
-      history.replaceState({}, "", u.toString());
-    } catch {}
+      const data = await fetchJsonRobust(url);
+      if (!data || typeof data !== "object") throw new Error("Invalid payload");
+      if (data.ok === false) throw new Error(data.error || "Not found");
+      if (Object.keys(data).length === 0) throw new Error("Empty object");
 
-    return cid;
-  } catch (e) {
-    err_("loadCard error:", e);
-    setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
-    throw e;
+      const fields = normalizeGASPayloadToFields_(data, cid);
+      if (!fields || typeof fields !== "object") throw new Error("No usable fields");
+
+      __payloadRaw = data;
+      __payload = buildNormalizedPayload_(fields);
+
+      applyDataToCard(__payload);
+      await sleep(120);
+      applyDataToCard(__payload);
+
+      // keep URL id for sharing/debug
+      try {
+        const u = new URL(window.location.href);
+        u.searchParams.set("id", cid);
+        history.replaceState({}, "", u.toString());
+      } catch {}
+
+      log_("loadCard ok via:", url);
+      return cid;
+    } catch (e) {
+      lastErr = e;
+      warn_("loadCard try failed:", url, e && e.message ? e.message : e);
+    }
   }
+
+  err_("loadCard all failed:", lastErr);
+  setFailUi_(lastErr && lastErr.message ? `同步失敗：${lastErr.message}` : "同步失敗");
+  throw lastErr || new Error("Load failed");
 }
 
 /* ===========================
@@ -488,7 +583,6 @@ window.goFillForm = function(){
   try{
     const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
     const u = new URL(CONFIG.FORM);
-    // 先不要硬塞預填欄位（避免表單換題就壞），只帶 id 當參數備用
     u.searchParams.set("id", id);
     window.open(u.toString(), "_blank");
   }catch{
