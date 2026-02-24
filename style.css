@@ -1,342 +1,482 @@
 /* ================================
- * 幸福智慧名片｜style.css（v393FULL OVERWRITE）
- * Base: your V387.4
- * Fix: ensure facade top + sample card visible
- * ================================ */
+Happiness Smart Card System — style.css (v393 COMPLETE OVERWRITE)
 
+v393 GOALS (CSS):
+- Clean homepage: NO visible backend on top
+- Hidden admin entry only (CSS: no admin UI shown)
+- Toggle dots UI:
+  * Free mode => show free dots-row (.dot), hide premium dots-row (.p-dot)
+  * Premium mode => show premium dots-row (.p-dot), hide free dots-row + hide free-controls
+- Layout: top controls within ~1/4 screen, preview area tall and clear
+================================ */
+
+/* ---------- Reset / Base ---------- */
 :root{
-  --font: 'Noto Sans TC', sans-serif;
+  --bg:#f6f7fb;
+  --panel:#ffffff;
+  --card:#0f2237;
+  --card2:#152e48;
+  --text:#0f172a;
+  --muted:#6b7280;
 
-  --p:#ff5e5e;
-  --bg:#fff5f5;
-  --card-bg:#ffffff;
-  --text:#2d3436;
+  --p:#ee5253;   /* primary */
+  --s:#d63031;   /* secondary */
+  --ring:rgba(17,24,39,.12);
+  --shadow:0 16px 44px rgba(17,24,39,.12);
+  --shadow2:0 10px 26px rgba(17,24,39,.12);
 
-  --shadow: 0 15px 40px rgba(0,0,0,0.06);
-  --soft: rgba(0,0,0,0.04);
-  --soft2: rgba(0,0,0,0.02);
+  --radius:22px;
+  --radius2:18px;
 
-  --radius-card: 45px;
-  --radius-box: 20px;
-
-  --fx-op: 0;
-  --fx-img: none;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
-
-/* ========= 自由搭配款：5 色 ========= */
-.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
-
-/* ========= 精品設計款 ========= */
-.mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, rgba(163,109,109,0.96), rgba(142,90,90,0.86)); --text:#ffffff; --fx-op:0.35; }
-.mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg:linear-gradient(135deg, rgba(114,47,55,0.96), rgba(114,47,55,0.86)); --text:#f5e6e8; --fx-op:0.38; }
-.mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg:linear-gradient(135deg, rgba(28,46,66,0.96), rgba(44,62,80,0.86)); --text:#ffffff; --fx-op:0.25; }
-.mode-premium.p4 { --p:#5e548e; --bg:#f4f3f7; --card-bg:linear-gradient(135deg, rgba(94,84,142,0.93), rgba(159,134,192,0.82)); --text:#ffffff; --fx-op:0.22; }
-.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:linear-gradient(135deg, rgba(122,148,166,0.96), rgba(100,120,135,0.82)); --text:#ffffff; --fx-op:0.25; }
-.mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg:linear-gradient(135deg, rgba(191,149,63,0.96), rgba(252,246,186,0.86), rgba(170,119,28,0.96)); --text:#4d3700; --fx-op:0.55; }
-.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
-
 body{
   margin:0;
-  padding-bottom:40px;
-  background:var(--bg);
-  font-family:var(--font);
+  font-family: "Noto Sans TC", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: radial-gradient(1200px 700px at 50% -120px, rgba(255,255,255,.95), rgba(246,247,251,1)) , var(--bg);
   color:var(--text);
-  transition: 0.45s;
-  /* ✅ 保險：避免 flex 造成樣品區被擠掉/不顯示 */
-  display:block;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  padding-bottom: calc(18px + var(--safe-bottom));
 }
 
-/* ================= 控制面板（門面） ================= */
-#admin-panel{
+a{ color:inherit; text-decoration:none; }
+button{ font-family:inherit; }
+img{ max-width:100%; display:block; }
+.hidden{ display:none !important; }
+
+/* ---------- Global Layout ---------- */
+/* Works with most wrappers: main, .wrap, .container */
+main, .wrap, .container{
+  width:min(980px, 94vw);
+  margin:0 auto;
+}
+
+header{
+  padding: calc(10px + var(--safe-top)) 0 6px;
+}
+header .title,
+header h1{
+  margin:0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing:.4px;
+}
+
+/* If you have a subtitle */
+header .subtitle{
+  margin:6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ---------- Remove any visible backend/admin blocks (defensive) ---------- */
+#adminPanel, #backendPanel, .admin-panel, .backend-panel, .admin-bar, .backend-bar,
+#adminTop, #backendTop, .top-admin, .top-backend{
+  display:none !important;
+}
+
+/* ---------- Step labels: MUST NOT occupy space ---------- */
+.step-label, .step-row, .step-title, .step, .steps,
+[data-step], .label-step{
+  display:none !important;
+}
+
+/* ---------- Panels ---------- */
+.panel{
+  background: var(--panel);
+  border: 1px solid rgba(17,24,39,.08);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow2);
+}
+
+/* Top control zone: keep within ~1/4 screen */
+#controls, .controls, .control-panel, .top-panel{
+  margin: 10px auto 10px;
+  padding: 14px 14px 12px;
+  max-height: 28vh;
+}
+
+/* Inner spacing helpers */
+.row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.col{ display:flex; flex-direction:column; gap:10px; }
+
+/* ---------- Plan Buttons (A/B) ---------- */
+.plan-buttons, .plan-row, .plan-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+#btnPlanFree, #btnPlanPremium,
+.btn-plan{
   width:100%;
-  background:#fff;
-  text-align:center;
-  border-bottom:1px solid #eee;
-  padding:14px 0 16px;
-  z-index:1000;
-  /* ✅ 保險：門面固定在上面，但不遮樣品 */
-  position: sticky;
-  top: 0;
+  padding: 14px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(17,24,39,.12);
+  background: rgba(255,255,255,.88);
+  color: #0f172a;
+  font-weight: 900;
+  letter-spacing:.4px;
+  box-shadow: 0 10px 22px rgba(17,24,39,.10);
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
 }
 
-/* 中央容器（讓樣品區回到正中） */
-#card-container{
-  display:block;           /* ✅ 保險：防止被其他樣式覆蓋成 none */
-  margin: 16px auto 8px;
+#btnPlanFree:active, #btnPlanPremium:active,
+.btn-plan:active{ transform: scale(.99); }
+
+#btnPlanFree.active, #btnPlanPremium.active,
+.btn-plan.active{
+  border-color: rgba(17,24,39,.18);
+  box-shadow: 0 18px 34px rgba(17,24,39,.14);
 }
 
+/* Slight premium feel for B */
+#btnPlanPremium{
+  background: rgba(255,255,255,.9);
+  border-color: rgba(17,24,39,.16);
+}
+
+/* ---------- Dots Rows ---------- */
 .dots-row{
   display:flex;
-  justify-content:center;
   gap:10px;
-  margin:10px 0;
-}
-
-/* 色點 */
-.dot, .p-dot{
-  width:34px;
-  height:34px;
-  border-radius:50%;
-  cursor:pointer;
-  border:3px solid #fff;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-  transition: 0.2s;
-}
-.dot.active, .p-dot.active,
-.active{
-  border-color:#2d3436 !important;
-  transform:scale(1.1);
-}
-
-/* 立體按鈕 */
-.btn-neo{
-  border:none;
-  cursor:pointer;
-  font-weight:900;
-  padding:12px 16px;
-  border-radius:26px;
-  background:#f4f5f7;
-  color:#2d3436;
-  box-shadow:
-    0 10px 22px rgba(0,0,0,0.08),
-    inset 0 2px 0 rgba(255,255,255,0.95),
-    inset 0 -2px 0 rgba(0,0,0,0.06);
-  transition: transform .18s, box-shadow .18s, filter .18s;
-}
-.btn-neo.pill{ min-width: 156px; }
-.btn-neo:hover{ transform: translateY(-1px); }
-.btn-neo:active{ transform: translateY(1px) scale(0.99); }
-.btn-neo.active{
-  outline: 2px solid rgba(0,0,0,0.12);
-  filter: saturate(1.02);
-  animation: breatheNeo 1.65s ease-in-out infinite;
-}
-@keyframes breatheNeo{
-  0%,100%{ box-shadow:
-    0 10px 22px rgba(0,0,0,0.10),
-    inset 0 2px 0 rgba(255,255,255,0.95),
-    inset 0 -2px 0 rgba(0,0,0,0.06); }
-  50%{ box-shadow:
-    0 14px 28px rgba(0,0,0,0.14),
-    inset 0 2px 0 rgba(255,255,255,0.97),
-    inset 0 -2px 0 rgba(0,0,0,0.05); }
-}
-
-/* CTA */
-.btn-cta{
-  background: var(--p);
-  color:#fff;
-  border:none;
-  padding: 14px 44px;
-  border-radius: 44px;
-  font-weight: 900;
-  cursor:pointer;
-  margin-top: 6px;
-  box-shadow: 0 14px 28px rgba(0,0,0,0.12);
-  transition: transform .18s, box-shadow .18s, filter .18s;
-}
-.btn-cta:hover{ transform: translateY(-1px); filter: brightness(1.01); }
-.btn-cta:active{ transform: translateY(1px) scale(0.99); }
-
-/* ================= 名片卡（樣品區） ================= */
-.card{
-  width:92%;
-  max-width:380px;
-  height:660px;
-  background: var(--card-bg) !important;
-  border-radius: var(--radius-card);
-  overflow:hidden;
-  position:relative;
-  box-shadow: var(--shadow);
-  transition: 0.45s;
-}
-
-/* 自由款 banner */
-.banner{
-  height:125px;
-  background: var(--p);
-  position:relative;
-  transition: 0.45s;
-  overflow:visible;
-}
-.dynamic-mask{
-  position:absolute;
-  width:100%;
-  bottom:-1px;
-  transition:0.3s;
-}
-.style-arch .dynamic-mask{ background:#fff; height:45px; border-radius:60px 60px 0 0; }
-.style-flat .dynamic-mask{ background:#fff; height:10px; border-radius:0; }
-.style-spot .dynamic-mask{
-  height:85px;
-  bottom:-84px;
-  background: var(--p);
-  left:0;
-  width:100%;
-  clip-path: ellipse(50% 80% at 50% 0%);
-  z-index:10;
-}
-
-/* 精品款 */
-.mode-premium .card{
-  width:86%;
-  height:580px;
-  box-shadow: 0 25px 50px rgba(0,0,0,0.12);
-  border: 12px solid rgba(255,255,255,0.92);
-  backdrop-filter: blur(25px);
-}
-.mode-premium .banner,
-.mode-premium .dynamic-mask{ display:none !important; }
-
-/* 頭像 */
-.avatar-wrap{
-  position:absolute;
-  width:100%;
-  display:flex;
+  align-items:center;
   justify-content:center;
-  z-index:30;
-  transition:0.4s;
-}
-.mode-free .avatar-wrap{ top: 75px; }
-.mode-premium .avatar-wrap{
-  top: 34px;
-  left: 20px;
-  width:auto;
-  justify-content:flex-start;
+  padding: 10px 0 2px;
 }
 
-.avatar-circle{
-  width:105px;
-  height:105px;
-  border-radius:50% !important;
-  background:#fff;
-  padding:4px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  overflow:hidden;
+.dot, .p-dot{
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.92);
+  box-shadow: 0 10px 18px rgba(17,24,39,.14);
+  cursor:pointer;
+  transform: translateZ(0);
+  transition: transform .12s ease, box-shadow .12s ease, outline-color .12s ease;
 }
-.mode-premium .avatar-circle{
-  width:86px;
-  height:86px;
-  border: 2.5px solid rgba(255,255,255,0.30);
-  background: rgba(255,255,255,0.14);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+.dot:active, .p-dot:active{ transform: scale(.96); }
+.dot.active, .p-dot.active{
+  outline: 3px solid rgba(255,255,255,.72);
+  box-shadow: 0 18px 34px rgba(17,24,39,.16);
 }
 
-.avatar{
+/* Show/Hide dots rows by mode (NO ghost spacing) */
+.mode-free .dots-row:has(.dot){ display:flex !important; }
+.mode-free .dots-row:has(.p-dot){ display:none !important; }
+
+.mode-premium .dots-row:has(.dot){ display:none !important; }
+.mode-premium .dots-row:has(.p-dot){ display:flex !important; }
+
+/* ---------- Free controls (style/paper) ---------- */
+#free-controls{
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(17,24,39,.10);
+}
+
+/* Hard hide in premium mode */
+.mode-premium #free-controls{ display:none !important; }
+
+.control-group{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top: 10px;
+}
+.control-title{
+  font-size: 12px;
+  font-weight: 900;
+  color: rgba(15,23,42,.72);
+  letter-spacing:.2px;
+}
+
+/* Buttons used for style/paper selectors */
+.btn-neo{
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(17,24,39,.12);
+  background: rgba(255,255,255,.86);
+  font-weight: 800;
+  color: rgba(15,23,42,.90);
+  cursor:pointer;
+  box-shadow: 0 10px 18px rgba(17,24,39,.10);
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  white-space:nowrap;
+}
+.btn-neo:active{ transform: scale(.99); }
+.btn-neo.active{
+  border-color: rgba(17,24,39,.20);
+  box-shadow: 0 18px 34px rgba(17,24,39,.14);
+}
+
+/* ---------- CTA Button ---------- */
+.cta, .btn-cta, #btnCta, #btnBook{
   width:100%;
-  height:100%;
-  border-radius:50%;
-  object-fit:cover;
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: 999px;
+  border: 0;
+  background: linear-gradient(180deg, rgba(15,34,55,1), rgba(12,26,42,1));
+  color: #fff;
+  font-weight: 900;
+  letter-spacing:.6px;
+  box-shadow: 0 20px 40px rgba(15,34,55,.20);
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.cta:active, .btn-cta:active, #btnCta:active, #btnBook:active{
+  transform: scale(.99);
+  box-shadow: 0 16px 34px rgba(15,34,55,.18);
 }
 
-/* 內容 */
-.info-scroll{ transition:0.4s; overflow:auto; height:100%; }
-.mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
-.mode-premium .info-scroll{ padding: 102px 22px 22px; text-align:left; }
-
-.name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; }
-.mode-premium .name{
-  margin-top: 8px;
-  color: rgba(255,255,255,0.96);
-  text-shadow: 0 2px 10px rgba(0,0,0,0.18);
+/* ---------- Preview Area ---------- */
+#preview, .preview, .preview-area, .card-area{
+  margin: 10px auto 18px;
+  padding: 0;
 }
-.mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
 
-.unit{ font-weight: 900; opacity: 0.86; margin-bottom: 12px; }
-.mode-premium .unit{ color: rgba(255,255,255,0.88); }
-.mode-premium.p6 .unit{ color: rgba(52,34,0,0.82); }
-
-.content-box{
-  background: var(--soft2);
-  border-radius: var(--radius-box);
-  padding: 16px;
-  margin-bottom: 12px;
-  text-align:left;
+/* Ensure preview is tall + centered */
+.preview-shell{
+  margin-top: 10px;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(17,24,39,.08);
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.72));
 }
-.mode-premium .content-box{
-  background: rgba(255,255,255,0.18) !important;
-  border: 1px solid rgba(255,255,255,0.25);
+
+/* If your preview card container is #cardPreview */
+#cardPreview, .card-preview, .card{
+  position: relative;
+  min-height: 58vh;
+  border-radius: 28px;
+  overflow:hidden;
+  background: linear-gradient(180deg, var(--card), var(--card2));
+}
+
+/* Soft vignette / premium glow */
+#cardPreview::before, .card-preview::before, .card::before{
+  content:"";
+  position:absolute;
+  inset:-40px;
+  background:
+    radial-gradient(520px 420px at 18% 16%, rgba(255,255,255,.14), transparent 60%),
+    radial-gradient(600px 520px at 80% 0%, rgba(255,255,255,.10), transparent 60%),
+    radial-gradient(800px 700px at 50% 110%, rgba(0,0,0,.25), transparent 55%);
+  pointer-events:none;
+}
+
+/* Content padding inside card */
+.card-inner, .card-content, .u-wrap{
+  position: relative;
+  z-index: 2;
+  padding: 18px 18px 16px;
+}
+
+/* Avatar */
+#u-img, .u-img, .avatar img, .avatar{
+  width: 90px;
+  height: 90px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 3px solid rgba(255,255,255,.30);
+  box-shadow: 0 18px 34px rgba(0,0,0,.18);
+  background: rgba(255,255,255,.10);
+}
+
+/* Name / Unit / Service */
+#u-name, .u-name{
+  margin: 12px 0 4px;
+  font-size: 44px;
+  line-height: 1.05;
+  font-weight: 1000;
+  letter-spacing: .6px;
+  color: rgba(255,255,255,.92);
+  text-shadow: 0 8px 22px rgba(0,0,0,.25);
+}
+#u-unit, .u-unit{
+  margin: 6px 0 0;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: .4px;
+  color: rgba(255,255,255,.80);
+}
+#u-service, .u-service{
+  margin: 12px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255,255,255,.78);
+  line-height: 1.45;
+}
+
+/* Service pill */
+.service-pill, .pill, .tag{
+  margin-top: 14px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.16);
+  color: rgba(255,255,255,.92);
+  font-weight: 900;
+  letter-spacing:.3px;
   backdrop-filter: blur(10px);
-  border-radius: 16px;
-  color: rgba(255,255,255,0.92);
-}
-.mode-premium.p6 .content-box{
-  background: rgba(255,255,255,0.32) !important;
-  border: 1px solid rgba(255,255,255,0.40);
-  color: rgba(52,34,0,0.92);
 }
 
-.box-title{ font-weight: 900; margin-bottom: 8px; opacity: 0.92; }
+/* ---------- Paper effects (Free mode only) ---------- */
+.mode-free #cardPreview,
+.mode-free .card-preview,
+.mode-free .card{
+  /* slightly brighter base for paper feeling */
+  filter: saturate(1.02);
+}
 
-/* 質感層 */
-.premium-fx-layer{
+/* Paper-1: matte cotton (subtle fibers) */
+.mode-free.paper-1 #cardPreview::after,
+.mode-free.paper-1 .card-preview::after,
+.mode-free.paper-1 .card::after{
+  content:"";
   position:absolute;
   inset:0;
-  pointer-events:none;
-  opacity: var(--fx-op, 0);
-  background: var(--fx-img);
-  z-index:6;
+  background:
+    radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,.10), transparent 60%),
+    radial-gradient(1px 1px at 60% 35%, rgba(255,255,255,.10), transparent 60%),
+    radial-gradient(1px 1px at 80% 70%, rgba(255,255,255,.09), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.10));
+  opacity: .55;
   mix-blend-mode: overlay;
+  pointer-events:none;
 }
-.paper-overlay{
+
+/* Paper-2: fine grain */
+.mode-free.paper-2 #cardPreview::after,
+.mode-free.paper-2 .card-preview::after,
+.mode-free.paper-2 .card::after{
+  content:"";
   position:absolute;
   inset:0;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 1px, transparent 1px 6px),
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.12));
+  opacity:.30;
+  mix-blend-mode: overlay;
   pointer-events:none;
-  opacity: 0.12;
-  z-index:5;
-  mix-blend-mode: multiply;
 }
 
-/* 版本字（長按進後台） */
-.version-tag{
-  font-size:10px;
-  opacity:0.3;
+/* Paper-3: linen weave */
+.mode-free.paper-3 #cardPreview::after,
+.mode-free.paper-3 .card-preview::after,
+.mode-free.paper-3 .card::after{
+  content:"";
   position:absolute;
-  bottom: 15px;
-  right: 25px;
-  font-family: monospace;
+  inset:0;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.07) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 9px),
+    linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.12));
+  opacity:.30;
+  mix-blend-mode: overlay;
+  pointer-events:none;
+}
+
+/* Premium mode: no paper overlay */
+.mode-premium #cardPreview::after,
+.mode-premium .card-preview::after,
+.mode-premium .card::after{
+  content:none !important;
+}
+
+/* ---------- Themes (Free) ---------- */
+/* Free themes are mapped to "color-1 ... color-5" (your JS uses state.theme) */
+body.color-1{ --p:#ee5253; --s:#d63031; } /* pink/red */
+body.color-2{ --p:#00a8ff; --s:#0097e6; } /* blue */
+body.color-3{ --p:#f0932b; --s:#e67e22; } /* orange */
+body.color-4{ --p:#6c5ce7; --s:#5f27cd; } /* purple */
+body.color-5{ --p:#20bf6b; --s:#10ac84; } /* green */
+
+/* Apply theme to card base in Free mode */
+.mode-free.color-1 #cardPreview, .mode-free.color-1 .card-preview, .mode-free.color-1 .card{ --card:#2a2b46; --card2:#1d1e36; }
+.mode-free.color-2 #cardPreview, .mode-free.color-2 .card-preview, .mode-free.color-2 .card{ --card:#0f2b4a; --card2:#0a1f34; }
+.mode-free.color-3 #cardPreview, .mode-free.color-3 .card-preview, .mode-free.color-3 .card{ --card:#3b2410; --card2:#261708; }
+.mode-free.color-4 #cardPreview, .mode-free.color-4 .card-preview, .mode-free.color-4 .card{ --card:#221a3e; --card2:#17112b; }
+.mode-free.color-5 #cardPreview, .mode-free.color-5 .card-preview, .mode-free.color-5 .card{ --card:#0f2f2a; --card2:#0a1f1b; }
+
+/* Style variants (Free) */
+.mode-free.style-arch #u-name, .mode-free.style-arch .u-name{
+  letter-spacing: .9px;
+}
+.mode-free.style-straight #u-name, .mode-free.style-straight .u-name{
+  letter-spacing: .3px;
+}
+.mode-free.style-dawn #u-name, .mode-free.style-dawn .u-name{
+  letter-spacing: 1.2px;
+}
+
+/* ---------- Premium palette (7 dots) ---------- */
+/* When premium dots are clicked, JS sets theme to classes like p1..p7 OR keep your theme naming.
+   This CSS supports BOTH:
+   - body.p1 / body.p2 ... body.p7
+   - body.p-1 / body.p-2 ... body.p-7 (defensive)
+*/
+body.p1, body.p-1{ --card:#3a1f22; --card2:#1f1012; } /* wine */
+body.p2, body.p-2{ --card:#2b2a2a; --card2:#161616; } /* graphite */
+body.p3, body.p-3{ --card:#0f2237; --card2:#0b1a2a; } /* night blue */
+body.p4, body.p-4{ --card:#2a2448; --card2:#17142b; } /* deep violet */
+body.p5, body.p-5{ --card:#203442; --card2:#12212b; } /* steel */
+body.p6, body.p-6{ --card:#3a3219; --card2:#1f1a0d; } /* gold-brown */
+body.p7, body.p-7{ --card:#2a2a2a; --card2:#111111; } /* black */
+
+/* Premium mode: card uses the premium palette directly */
+.mode-premium #cardPreview,
+.mode-premium .card-preview,
+.mode-premium .card{
+  background: linear-gradient(180deg, var(--card), var(--card2));
+}
+
+/* Premium name safety: avoid blur / flicker on some phones */
+.mode-premium #u-name, .mode-premium .u-name{
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* ---------- Footer / Version Tag ---------- */
+footer{
+  margin: 14px auto 0;
+  padding: 12px 0 0;
+  color: rgba(107,114,128,.85);
+  font-size: 12px;
+  text-align:center;
+}
+
+/* If you have a .version-tag visible, keep it subtle (also serves as hidden long-press hook) */
+.version-tag, #versionTag{
+  display:inline-block;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(17,24,39,.10);
+  background: rgba(255,255,255,.60);
+  box-shadow: 0 10px 22px rgba(17,24,39,.08);
   user-select:none;
-}/* =========================
-v393 Layout Hard Fix
-解決「隱藏但佔位」問題
-========================= */
-
-/* 步驟標題區完全消失（不是透明） */
-.step-label,
-.step-row,
-.step-title {
-  display: none !important;
 }
 
-/* 自由搭配控制區 */
-.mode-premium #free-controls {
-  display: none !important;
+/* ---------- Responsive tweaks ---------- */
+@media (max-width: 420px){
+  #u-name, .u-name{ font-size: 40px; }
+  #u-img, .u-img, .avatar, .avatar img{ width: 84px; height:84px; }
+  #controls, .controls, .control-panel, .top-panel{ padding: 12px 12px 10px; }
 }
 
-/* 自由搭配色點列 */
-.mode-premium .dots-row:has(.dot) {
-  display: none !important;
-}
-
-/* 精品模式只顯示七色 */
-.mode-premium .dots-row:has(.p-dot) {
-  display: flex !important;
-}
-
-/* 防止殘留間距 */
-#free-controls {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* 避免 ghost spacing */
-.control-row:empty {
-  display: none !important;
+@media (min-width: 900px){
+  /* On large screens, still keep controls compact */
+  #controls, .controls, .control-panel, .top-panel{ max-height: 260px; }
+  #cardPreview, .card-preview, .card{ min-height: 560px; }
 }
