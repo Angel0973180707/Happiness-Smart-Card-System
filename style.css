@@ -1,482 +1,361 @@
 /* ================================
 Happiness Smart Card System — style.css (v393 COMPLETE OVERWRITE)
-
-v393 GOALS (CSS):
-- Clean homepage: NO visible backend on top
-- Hidden admin entry only (CSS: no admin UI shown)
-- Toggle dots UI:
-  * Free mode => show free dots-row (.dot), hide premium dots-row (.p-dot)
-  * Premium mode => show premium dots-row (.p-dot), hide free dots-row + hide free-controls
-- Layout: top controls within ~1/4 screen, preview area tall and clear
+GOAL: 保持封存版（v390/v391）原來樣式，不做新版重設計
+- 上方控制區 ≈ 1/4 內
+- 下方樣品預覽區 大且穩定
+- Free / Premium 色點列切換（.dot / .p-dot）
 ================================ */
 
-/* ---------- Reset / Base ---------- */
-:root{
-  --bg:#f6f7fb;
-  --panel:#ffffff;
-  --card:#0f2237;
-  --card2:#152e48;
-  --text:#0f172a;
-  --muted:#6b7280;
-
-  --p:#ee5253;   /* primary */
-  --s:#d63031;   /* secondary */
-  --ring:rgba(17,24,39,.12);
-  --shadow:0 16px 44px rgba(17,24,39,.12);
-  --shadow2:0 10px 26px rgba(17,24,39,.12);
-
-  --radius:22px;
-  --radius2:18px;
-
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
-body{
-  margin:0;
-  font-family: "Noto Sans TC", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
-  background: radial-gradient(1200px 700px at 50% -120px, rgba(255,255,255,.95), rgba(246,247,251,1)) , var(--bg);
-  color:var(--text);
+/* ---------- Base Reset ---------- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: "Noto Sans TC", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  color: #0d1b2a;
+  background: radial-gradient(1200px 600px at 50% 0%, #ffffff 0%, #f6f8fb 55%, #eef2f7 100%);
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  padding-bottom: calc(18px + var(--safe-bottom));
+  -moz-osx-font-smoothing: grayscale;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-a{ color:inherit; text-decoration:none; }
-button{ font-family:inherit; }
-img{ max-width:100%; display:block; }
-.hidden{ display:none !important; }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+button { font-family: inherit; }
 
-/* ---------- Global Layout ---------- */
-/* Works with most wrappers: main, .wrap, .container */
-main, .wrap, .container{
-  width:min(980px, 94vw);
-  margin:0 auto;
+/* ---------- Layout (封存版比例) ---------- */
+.container,
+.wrap,
+main {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 16px 14px 18px;
 }
 
-header{
-  padding: calc(10px + var(--safe-top)) 0 6px;
-}
-header .title,
-header h1{
-  margin:0;
-  font-size: 18px;
-  font-weight: 900;
-  letter-spacing:.4px;
+.hero,
+.top-panel,
+.controls-panel {
+  position: relative;
+  padding: 18px 14px 10px;
 }
 
-/* If you have a subtitle */
-header .subtitle{
-  margin:6px 0 0;
-  font-size: 13px;
-  color: var(--muted);
+/* 上方控制區：限制高度感（約四分之一） */
+.hero::after,
+.top-panel::after,
+.controls-panel::after {
+  content: "";
+  display: block;
+  height: 1px;
+  margin-top: 14px;
+  background: linear-gradient(90deg, rgba(0,0,0,0), rgba(15,23,42,0.10), rgba(0,0,0,0));
 }
 
-/* ---------- Remove any visible backend/admin blocks (defensive) ---------- */
-#adminPanel, #backendPanel, .admin-panel, .backend-panel, .admin-bar, .backend-bar,
-#adminTop, #backendTop, .top-admin, .top-backend{
-  display:none !important;
+/* ---------- Plan Buttons (方案 A/B) ---------- */
+.plan-row,
+.plan-buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin: 6px 0 12px;
 }
 
-/* ---------- Step labels: MUST NOT occupy space ---------- */
-.step-label, .step-row, .step-title, .step, .steps,
-[data-step], .label-step{
-  display:none !important;
-}
-
-/* ---------- Panels ---------- */
-.panel{
-  background: var(--panel);
-  border: 1px solid rgba(17,24,39,.08);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow2);
-}
-
-/* Top control zone: keep within ~1/4 screen */
-#controls, .controls, .control-panel, .top-panel{
-  margin: 10px auto 10px;
-  padding: 14px 14px 12px;
-  max-height: 28vh;
-}
-
-/* Inner spacing helpers */
-.row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-.col{ display:flex; flex-direction:column; gap:10px; }
-
-/* ---------- Plan Buttons (A/B) ---------- */
-.plan-buttons, .plan-row, .plan-wrap{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
-
-#btnPlanFree, #btnPlanPremium,
-.btn-plan{
-  width:100%;
+.btn-plan,
+#btnPlanFree,
+#btnPlanPremium {
+  appearance: none;
+  border: none;
+  width: 100%;
   padding: 14px 16px;
   border-radius: 999px;
-  border: 1px solid rgba(17,24,39,.12);
-  background: rgba(255,255,255,.88);
-  color: #0f172a;
-  font-weight: 900;
-  letter-spacing:.4px;
-  box-shadow: 0 10px 22px rgba(17,24,39,.10);
-  cursor:pointer;
-  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-}
-
-#btnPlanFree:active, #btnPlanPremium:active,
-.btn-plan:active{ transform: scale(.99); }
-
-#btnPlanFree.active, #btnPlanPremium.active,
-.btn-plan.active{
-  border-color: rgba(17,24,39,.18);
-  box-shadow: 0 18px 34px rgba(17,24,39,.14);
-}
-
-/* Slight premium feel for B */
-#btnPlanPremium{
-  background: rgba(255,255,255,.9);
-  border-color: rgba(17,24,39,.16);
-}
-
-/* ---------- Dots Rows ---------- */
-.dots-row{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  justify-content:center;
-  padding: 10px 0 2px;
-}
-
-.dot, .p-dot{
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  border: 2px solid rgba(255,255,255,.92);
-  box-shadow: 0 10px 18px rgba(17,24,39,.14);
-  cursor:pointer;
-  transform: translateZ(0);
-  transition: transform .12s ease, box-shadow .12s ease, outline-color .12s ease;
-}
-.dot:active, .p-dot:active{ transform: scale(.96); }
-.dot.active, .p-dot.active{
-  outline: 3px solid rgba(255,255,255,.72);
-  box-shadow: 0 18px 34px rgba(17,24,39,.16);
-}
-
-/* Show/Hide dots rows by mode (NO ghost spacing) */
-.mode-free .dots-row:has(.dot){ display:flex !important; }
-.mode-free .dots-row:has(.p-dot){ display:none !important; }
-
-.mode-premium .dots-row:has(.dot){ display:none !important; }
-.mode-premium .dots-row:has(.p-dot){ display:flex !important; }
-
-/* ---------- Free controls (style/paper) ---------- */
-#free-controls{
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(17,24,39,.10);
-}
-
-/* Hard hide in premium mode */
-.mode-premium #free-controls{ display:none !important; }
-
-.control-group{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  margin-top: 10px;
-}
-.control-title{
-  font-size: 12px;
-  font-weight: 900;
-  color: rgba(15,23,42,.72);
-  letter-spacing:.2px;
-}
-
-/* Buttons used for style/paper selectors */
-.btn-neo{
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(17,24,39,.12);
-  background: rgba(255,255,255,.86);
+  background: rgba(255,255,255,0.78);
+  box-shadow:
+    0 18px 40px rgba(15,23,42,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  color: #111827;
   font-weight: 800;
-  color: rgba(15,23,42,.90);
-  cursor:pointer;
-  box-shadow: 0 10px 18px rgba(17,24,39,.10);
-  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
-  white-space:nowrap;
-}
-.btn-neo:active{ transform: scale(.99); }
-.btn-neo.active{
-  border-color: rgba(17,24,39,.20);
-  box-shadow: 0 18px 34px rgba(17,24,39,.14);
+  letter-spacing: 0.5px;
+  cursor: pointer;
 }
 
-/* ---------- CTA Button ---------- */
-.cta, .btn-cta, #btnCta, #btnBook{
-  width:100%;
-  margin-top: 10px;
-  padding: 14px 16px;
-  border-radius: 999px;
-  border: 0;
-  background: linear-gradient(180deg, rgba(15,34,55,1), rgba(12,26,42,1));
-  color: #fff;
+.btn-plan.active,
+#btnPlanFree.active,
+#btnPlanPremium.active {
+  outline: 0;
+  box-shadow:
+    0 24px 54px rgba(15,23,42,0.14),
+    0 0 0 2px rgba(17,24,39,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.95);
+}
+
+/* ---------- Step Title (封存版淡字，不搶戲) ---------- */
+.step-title,
+.step-label,
+.steps {
+  margin: 8px 0 10px;
+  text-align: center;
   font-weight: 900;
-  letter-spacing:.6px;
-  box-shadow: 0 20px 40px rgba(15,34,55,.20);
-  cursor:pointer;
-  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
-}
-.cta:active, .btn-cta:active, #btnCta:active, #btnBook:active{
-  transform: scale(.99);
-  box-shadow: 0 16px 34px rgba(15,34,55,.18);
+  letter-spacing: 1px;
+  color: rgba(17,24,39,0.20);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.9);
+  user-select: none;
 }
 
-/* ---------- Preview Area ---------- */
-#preview, .preview, .preview-area, .card-area{
-  margin: 10px auto 18px;
-  padding: 0;
+/* ---------- Dots Rows (Free vs Premium) ---------- */
+.dots-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 12px;
 }
 
-/* Ensure preview is tall + centered */
-.preview-shell{
+.dot,
+.p-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 3px solid rgba(255,255,255,0.95);
+  box-shadow: 0 12px 24px rgba(15,23,42,0.14);
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.dot:active,
+.p-dot:active { transform: translateY(1px) scale(0.98); }
+
+.dot.active,
+.p-dot.active {
+  box-shadow:
+    0 16px 32px rgba(15,23,42,0.18),
+    0 0 0 3px rgba(17,24,39,0.10);
+}
+
+/* Free 色點（封存版 5 色） */
+body.color-1 .dot { background: #e56b6f; } /* 粉/紅 */
+body.color-2 .dot { background: #4aa3ff; } /* 藍 */
+body.color-3 .dot { background: #f2b04a; } /* 橘 */
+body.color-4 .dot { background: #6d5bd0; } /* 紫 */
+body.color-5 .dot { background: #53c07f; } /* 綠 */
+
+/* Premium 色點（封存版 7 色：示意，若你的 HTML 有 7 顆 p-dot 會自動套） */
+body.p1 .p-dot { background: #a85b6a; }
+body.p2 .p-dot { background: #1f3a56; }
+body.p3 .p-dot { background: #b4862c; }
+body.p4 .p-dot { background: #5b5f7a; }
+body.p5 .p-dot { background: #2f6b5a; }
+body.p6 .p-dot { background: #7a3a2f; }
+body.p7 .p-dot { background: #3f3f46; }
+
+/* ---------- Free Controls (版型 / 紙感) ---------- */
+#free-controls,
+.free-controls {
+  margin-top: 6px;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  justify-content: center;
+  margin: 10px auto 14px;
+}
+
+/* 封存版：圓潤膠囊按鈕 */
+.btn-neo {
+  appearance: none;
+  border: 1px solid rgba(17,24,39,0.10);
+  background: rgba(255,255,255,0.80);
+  border-radius: 999px;
+  padding: 12px 10px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #111827;
+  box-shadow:
+    0 18px 40px rgba(15,23,42,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.95);
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+  text-align: center;
+}
+
+.btn-neo:active { transform: translateY(1px); }
+
+.btn-neo.active {
+  box-shadow:
+    0 24px 56px rgba(15,23,42,0.14),
+    0 0 0 2px rgba(17,24,39,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.98);
+}
+
+/* ---------- CTA Button (預約訂製) ---------- */
+.cta-row { margin: 10px 0 14px; display: flex; justify-content: center; }
+.btn-cta,
+#btnReserve {
+  appearance: none;
+  border: none;
+  width: min(720px, 100%);
+  padding: 16px 18px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #0f2236 0%, #0b1a2a 100%);
+  color: rgba(255,255,255,0.92);
+  font-weight: 900;
+  letter-spacing: 1px;
+  box-shadow: 0 22px 52px rgba(15,23,42,0.22);
+  cursor: pointer;
+}
+
+.btn-cta:active,
+#btnReserve:active { transform: translateY(1px); }
+
+/* ---------- Preview Area (封存版：大張名片、穩定不被蓋) ---------- */
+.preview-wrap,
+.preview-shell,
+.preview-area,
+#preview {
   margin-top: 10px;
+}
+
+.card-preview,
+#cardPreview {
+  position: relative;
   border-radius: 28px;
   overflow: hidden;
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(17,24,39,.08);
-  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.72));
+  background: linear-gradient(180deg, #1b2a3d 0%, #162235 45%, #121a2a 100%);
+  box-shadow:
+    0 26px 70px rgba(15,23,42,0.26),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  min-height: 390px; /* 讓樣品區夠高 */
 }
 
-/* If your preview card container is #cardPreview */
-#cardPreview, .card-preview, .card{
-  position: relative;
-  min-height: 58vh;
-  border-radius: 28px;
-  overflow:hidden;
-  background: linear-gradient(180deg, var(--card), var(--card2));
+/* 外框白色柔光（封存版那種亮邊） */
+.card-preview::before,
+#cardPreview::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 30px;
+  background: radial-gradient(900px 420px at 50% 0%, rgba(255,255,255,0.18), rgba(255,255,255,0) 60%);
+  pointer-events: none;
+  z-index: 1;
 }
 
-/* Soft vignette / premium glow */
-#cardPreview::before, .card-preview::before, .card::before{
-  content:"";
-  position:absolute;
-  inset:-40px;
-  background:
-    radial-gradient(520px 420px at 18% 16%, rgba(255,255,255,.14), transparent 60%),
-    radial-gradient(600px 520px at 80% 0%, rgba(255,255,255,.10), transparent 60%),
-    radial-gradient(800px 700px at 50% 110%, rgba(0,0,0,.25), transparent 55%);
-  pointer-events:none;
-}
-
-/* Content padding inside card */
-.card-inner, .card-content, .u-wrap{
+/* 內容層 */
+.card-inner,
+.card-content,
+.u-wrap {
   position: relative;
   z-index: 2;
   padding: 18px 18px 16px;
+  color: rgba(255,255,255,0.92);
 }
 
-/* Avatar */
-#u-img, .u-img, .avatar img, .avatar{
-  width: 90px;
-  height: 90px;
+/* avatar */
+.avatar,
+.u-avatar {
+  width: 98px;
+  height: 98px;
   border-radius: 999px;
+  overflow: hidden;
+  border: 4px solid rgba(255,255,255,0.18);
+  box-shadow: 0 18px 44px rgba(0,0,0,0.35);
+  background: rgba(255,255,255,0.08);
+}
+
+#u-img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border: 3px solid rgba(255,255,255,.30);
-  box-shadow: 0 18px 34px rgba(0,0,0,.18);
-  background: rgba(255,255,255,.10);
 }
 
-/* Name / Unit / Service */
-#u-name, .u-name{
-  margin: 12px 0 4px;
-  font-size: 44px;
+/* text */
+#u-name {
+  margin-top: 12px;
+  font-size: 48px;
   line-height: 1.05;
-  font-weight: 1000;
-  letter-spacing: .6px;
-  color: rgba(255,255,255,.92);
-  text-shadow: 0 8px 22px rgba(0,0,0,.25);
-}
-#u-unit, .u-unit{
-  margin: 6px 0 0;
-  font-size: 16px;
   font-weight: 900;
-  letter-spacing: .4px;
-  color: rgba(255,255,255,.80);
-}
-#u-service, .u-service{
-  margin: 12px 0 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: rgba(255,255,255,.78);
-  line-height: 1.45;
+  letter-spacing: 2px;
+  text-shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
 
-/* Service pill */
-.service-pill, .pill, .tag{
+#u-unit {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.74);
+  letter-spacing: 1px;
+}
+
+#u-service {
   margin-top: 14px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding: 12px 14px;
-  border-radius: 18px;
-  background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.16);
-  color: rgba(255,255,255,.92);
-  font-weight: 900;
-  letter-spacing:.3px;
-  backdrop-filter: blur(10px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.14);
+  color: rgba(255,255,255,0.86);
+  font-weight: 800;
+  letter-spacing: 1px;
+  min-width: min(520px, 100%);
 }
 
-/* ---------- Paper effects (Free mode only) ---------- */
-.mode-free #cardPreview,
-.mode-free .card-preview,
-.mode-free .card{
-  /* slightly brighter base for paper feeling */
-  filter: saturate(1.02);
-}
+/* ---------- Free style variants (arch / flat / dawn) ---------- */
+body.style-arch #u-service { border-radius: 18px; }
+body.style-flat #u-service { border-radius: 12px; }
+body.style-dawn #u-service { border-radius: 22px; }
 
-/* Paper-1: matte cotton (subtle fibers) */
-.mode-free.paper-1 #cardPreview::after,
-.mode-free.paper-1 .card-preview::after,
-.mode-free.paper-1 .card::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:
-    radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,.10), transparent 60%),
-    radial-gradient(1px 1px at 60% 35%, rgba(255,255,255,.10), transparent 60%),
-    radial-gradient(1px 1px at 80% 70%, rgba(255,255,255,.09), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.10));
-  opacity: .55;
-  mix-blend-mode: overlay;
-  pointer-events:none;
-}
+/* ---------- Paper variants (paper-1..3) — 封存版：只是質感差，不改版型 ---------- */
+body.paper-1 #u-service { background: rgba(255,255,255,0.12); }
+body.paper-2 #u-service { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.18); }
+body.paper-3 #u-service { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.12); }
 
-/* Paper-2: fine grain */
-.mode-free.paper-2 #cardPreview::after,
-.mode-free.paper-2 .card-preview::after,
-.mode-free.paper-2 .card::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:
-    repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 1px, transparent 1px 6px),
-    linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.12));
-  opacity:.30;
-  mix-blend-mode: overlay;
-  pointer-events:none;
-}
-
-/* Paper-3: linen weave */
-.mode-free.paper-3 #cardPreview::after,
-.mode-free.paper-3 .card-preview::after,
-.mode-free.paper-3 .card::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:
-    repeating-linear-gradient(0deg, rgba(255,255,255,.07) 0 1px, transparent 1px 7px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 9px),
-    linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.12));
-  opacity:.30;
-  mix-blend-mode: overlay;
-  pointer-events:none;
-}
-
-/* Premium mode: no paper overlay */
-.mode-premium #cardPreview::after,
-.mode-premium .card-preview::after,
-.mode-premium .card::after{
-  content:none !important;
-}
-
-/* ---------- Themes (Free) ---------- */
-/* Free themes are mapped to "color-1 ... color-5" (your JS uses state.theme) */
-body.color-1{ --p:#ee5253; --s:#d63031; } /* pink/red */
-body.color-2{ --p:#00a8ff; --s:#0097e6; } /* blue */
-body.color-3{ --p:#f0932b; --s:#e67e22; } /* orange */
-body.color-4{ --p:#6c5ce7; --s:#5f27cd; } /* purple */
-body.color-5{ --p:#20bf6b; --s:#10ac84; } /* green */
-
-/* Apply theme to card base in Free mode */
-.mode-free.color-1 #cardPreview, .mode-free.color-1 .card-preview, .mode-free.color-1 .card{ --card:#2a2b46; --card2:#1d1e36; }
-.mode-free.color-2 #cardPreview, .mode-free.color-2 .card-preview, .mode-free.color-2 .card{ --card:#0f2b4a; --card2:#0a1f34; }
-.mode-free.color-3 #cardPreview, .mode-free.color-3 .card-preview, .mode-free.color-3 .card{ --card:#3b2410; --card2:#261708; }
-.mode-free.color-4 #cardPreview, .mode-free.color-4 .card-preview, .mode-free.color-4 .card{ --card:#221a3e; --card2:#17112b; }
-.mode-free.color-5 #cardPreview, .mode-free.color-5 .card-preview, .mode-free.color-5 .card{ --card:#0f2f2a; --card2:#0a1f1b; }
-
-/* Style variants (Free) */
-.mode-free.style-arch #u-name, .mode-free.style-arch .u-name{
-  letter-spacing: .9px;
-}
-.mode-free.style-straight #u-name, .mode-free.style-straight .u-name{
-  letter-spacing: .3px;
-}
-.mode-free.style-dawn #u-name, .mode-free.style-dawn .u-name{
-  letter-spacing: 1.2px;
-}
-
-/* ---------- Premium palette (7 dots) ---------- */
-/* When premium dots are clicked, JS sets theme to classes like p1..p7 OR keep your theme naming.
-   This CSS supports BOTH:
-   - body.p1 / body.p2 ... body.p7
-   - body.p-1 / body.p-2 ... body.p-7 (defensive)
-*/
-body.p1, body.p-1{ --card:#3a1f22; --card2:#1f1012; } /* wine */
-body.p2, body.p-2{ --card:#2b2a2a; --card2:#161616; } /* graphite */
-body.p3, body.p-3{ --card:#0f2237; --card2:#0b1a2a; } /* night blue */
-body.p4, body.p-4{ --card:#2a2448; --card2:#17142b; } /* deep violet */
-body.p5, body.p-5{ --card:#203442; --card2:#12212b; } /* steel */
-body.p6, body.p-6{ --card:#3a3219; --card2:#1f1a0d; } /* gold-brown */
-body.p7, body.p-7{ --card:#2a2a2a; --card2:#111111; } /* black */
-
-/* Premium mode: card uses the premium palette directly */
-.mode-premium #cardPreview,
-.mode-premium .card-preview,
-.mode-premium .card{
-  background: linear-gradient(180deg, var(--card), var(--card2));
-}
-
-/* Premium name safety: avoid blur / flicker on some phones */
-.mode-premium #u-name, .mode-premium .u-name{
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
+/* ---------- Mode switching safety ---------- */
+body.mode-premium #free-controls { display: none; }
 
 /* ---------- Footer / Version Tag ---------- */
-footer{
-  margin: 14px auto 0;
-  padding: 12px 0 0;
-  color: rgba(107,114,128,.85);
-  font-size: 12px;
-  text-align:center;
+footer {
+  margin-top: 14px;
+  padding: 10px 0 2px;
+  text-align: center;
+  color: rgba(17,24,39,0.32);
+  font-weight: 800;
 }
 
-/* If you have a .version-tag visible, keep it subtle (also serves as hidden long-press hook) */
-.version-tag, #versionTag{
-  display:inline-block;
-  padding: 8px 12px;
+.version-tag,
+#versionTag {
+  display: inline-block;
+  padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(17,24,39,.10);
-  background: rgba(255,255,255,.60);
-  box-shadow: 0 10px 22px rgba(17,24,39,.08);
-  user-select:none;
+  background: rgba(255,255,255,0.70);
+  border: 1px solid rgba(17,24,39,0.10);
+  box-shadow: 0 14px 34px rgba(15,23,42,0.10);
 }
 
-/* ---------- Responsive tweaks ---------- */
-@media (max-width: 420px){
-  #u-name, .u-name{ font-size: 40px; }
-  #u-img, .u-img, .avatar, .avatar img{ width: 84px; height:84px; }
-  #controls, .controls, .control-panel, .top-panel{ padding: 12px 12px 10px; }
+/* ---------- Hidden Admin (保持隱形) ---------- */
+#adminPanel,
+.admin-panel,
+#backendPanel,
+.backend-panel {
+  display: none !important;
 }
 
-@media (min-width: 900px){
-  /* On large screens, still keep controls compact */
-  #controls, .controls, .control-panel, .top-panel{ max-height: 260px; }
-  #cardPreview, .card-preview, .card{ min-height: 560px; }
+/* ---------- Responsive ---------- */
+@media (max-width: 520px) {
+  .controls-grid { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .btn-neo { padding: 11px 8px; font-size: 15px; }
+  #u-name { font-size: 44px; }
+  .avatar, .u-avatar { width: 92px; height: 92px; }
+  .card-preview, #cardPreview { min-height: 380px; }
+}
+
+@media (max-width: 380px) {
+  #u-name { font-size: 40px; }
+  #u-unit { font-size: 18px; }
+  #u-service { padding: 12px 14px; }
+}
+
+/* ---------- Reduce Motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .dot, .p-dot, .btn-neo, .btn-cta, #btnReserve { transition: none !important; }
 }
