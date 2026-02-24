@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Happiness Smart Card System v397</title>
+
+  <link rel="manifest" href="./manifest.json?v=397" />
+  <meta name="theme-color" content="#ee5253" />
+
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="icon" href="./icons/icon-192.png" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=397" />
+</head>
+
+<body class="mode-free color-1 style-arch paper-1">
+
+  <!-- ================= 前台：門面區 ================= -->
+  <div id="admin-panel">
+
+    <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
+      <button id="btnPlanFree" class="btn-neo pill active" type="button"
+        onclick="window.setV382('free','color-1', this)">
+        方案 A｜自由搭配
+      </button>
+
+      <button id="btnPlanPremium" class="btn-neo pill" type="button"
+        onclick="window.setV382('premium','p1', this)">
+        方案 B｜精品設計
+      </button>
+    </div>
+
+    <div style="display:flex; justify-content:center; align-items:center; gap:10px; padding:2px 12px 8px;">
+      <div style="font-weight:900; opacity:.85;">步驟一</div>
+      <div style="font-weight:900;">選擇方案</div>
+    </div>
+
+    <!-- 自由搭配色點 -->
+    <div class="dots-row">
+      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
+      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
+      <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
+      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free', 'color-4', this)"></div>
+      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
+    </div><!-- 自由搭配控制 -->
+    <div id="free-controls">
+      <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
+        <button class="btn-neo active" type="button" onclick="window.setV382Style('arch', this)">優雅正拱</button>
+        <button class="btn-neo" type="button" onclick="window.setV382Style('flat', this)">簡潔平直</button>
+        <button class="btn-neo" type="button" onclick="window.setV382Style('spot', this)">晨曦款</button>
+      </div>
+
+      <div class="control-row" style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
+        <button class="btn-neo active" type="button" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
+        <button class="btn-neo" type="button" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
+        <button class="btn-neo" type="button" onclick="window.setV382Paper('paper-3', this)">亞麻</button>
+      </div>
+    </div>
+
+    <!-- 精品設計色點 -->
+    <div class="dots-row">
+      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p1', this)"></div>
+      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p2', this)"></div>
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p3', this)"></div>
+      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p4', this)"></div>
+      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p6', this)"></div>
+      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
+    </div>
+
+    <!-- CTA -->
+    <button class="btn-cta" type="button" onclick="window.goFillForm()">立即預約訂製名片 →</button>
+  </div><!-- ================= 名片樣品區 ================= -->
+  <div id="card-container" class="card">
+    <div class="paper-overlay"></div>
+    <div class="premium-fx-layer"></div>
+    <div class="banner"><div class="dynamic-mask"></div></div>
+
+    <div class="avatar-wrap">
+      <div class="avatar-circle">
+        <img id="u-img" src="" class="avatar" alt="形象照" />
+      </div>
+    </div>
+
+    <div class="info-scroll">
+
+      <h1 id="u-name" class="name">載入中...</h1>
+
+      <div id="u-unitline" class="unitline">
+        <span id="u-unit" class="unit">同步中...</span>
+        <span id="u-title" class="title"></span>
+      </div>
+
+      <div id="u-slogan" class="slogan"></div>
+
+      <!-- 動態內容 -->
+      <div id="dynamicFields" class="dynamic-fields"></div>
+
+      <!-- 聯繫 Dock -->
+      <div id="contactDock" class="contact-dock">
+        <div class="dock-title">聯繫與平台</div>
+        <div id="contactButtons" class="dock-buttons"></div>
+      </div>
+
+      <!-- 照片牆 -->
+      <div id="photoWall" class="photo-wall">
+        <div class="wall-title">照片牆</div>
+        <div id="photoGrid" class="photo-grid"></div>
+      </div>
+
+    </div>
+
+    <!-- 隱形後台入口 -->
+    <div class="version-tag" id="versionTag">v397</div>
+  </div>
+
+  <footer id="footerTag" style="font-size:10px; color:#ccc; margin-top:12px; text-align:center;">
+    Happiness Smart Card System v397
+  </footer>
+
+  <script src="app.js?v=397"></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?v=397').catch(()=>{});
+      });
+    }
+  </script>
+
+</body>
+</html>
