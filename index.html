@@ -1,12 +1,12 @@
-<!-- index.html (V385.3 UI complete overwrite - Step flow + contact section + gallery mount id) -->
+<!-- index.html (V386 complete overwrite) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 V385.3</title>
+  <title>幸福智慧名片 V386</title>
 
-  <link rel="manifest" href="./manifest.json?v=3853" />
+  <link rel="manifest" href="./manifest.json?v=386" />
   <meta name="theme-color" content="#ff5e5e" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <link rel="icon" href="./icons/icon-192.png" />
@@ -15,40 +15,32 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./style.css?v=3853" />
+  <link rel="stylesheet" href="./style.css?v=386" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- ✅ Step 1: 先選方案（分流入口） -->
+  <!-- 控制區（Step Flow） -->
   <header id="admin-panel">
-    <div style="max-width:820px;margin:0 auto;padding:10px 12px 0;">
-      <div style="font-weight:900;font-size:14px;opacity:.75;text-align:center;margin:6px 0 8px;">
-        第一步：先選方案
+    <div class="step-wrap">
+      <!-- Step 1 -->
+      <div class="step-head" aria-label="Step 1">
+        <span class="step-badge">STEP 1</span>
+        <span class="step-title">先選方案</span>
       </div>
+      <div class="step-sub">先選「自由搭配 / 精品設計」，下面才會切換對應外觀。</div>
+      <!-- ✅ 方案按鈕由 app.js 注入到 #admin-panel 最上方（plan-selector） -->
 
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-        <button class="btn-cta mini" id="btnPlanFree" onclick="setPlan('free')" style="min-width:160px;">
-          自由搭配
-        </button>
-        <button class="btn-cta mini" id="btnPlanPremium" onclick="setPlan('premium')" style="min-width:160px;">
-          精品設計
-        </button>
+      <!-- Step 2 -->
+      <div style="height:10px;"></div>
+      <div class="step-head" aria-label="Step 2">
+        <span class="step-badge">STEP 2</span>
+        <span class="step-title">挑選外觀</span>
       </div>
+      <div class="step-sub">自由：色點 + 版型 + 紙感｜精品：精品色點（隱藏自由控制）。</div>
 
-      <div style="font-size:12px;opacity:.7;text-align:center;margin-top:6px;">
-        選了方案後，下面才會出現對應的顏色 / 版型 / 紙感
-      </div>
-    </div>
-
-    <!-- ✅ Step 2: 依方案顯示控制區 -->
-    <div style="max-width:820px;margin:0 auto;padding:12px 12px 0;">
-      <div style="font-weight:900;font-size:14px;opacity:.75;text-align:center;margin:6px 0 10px;">
-        第二步：挑選外觀
-      </div>
-
-      <!-- 自由搭配：顏色 -->
-      <div class="dots-row" id="rowFreeDots" style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;">
+      <!-- 自由搭配：顏色 dots（由 app.js 分流顯示） -->
+      <div class="dots-row" id="rowFreeDots" style="justify-content:center;">
         <button class="dot active" style="background:#ff5e5e" onclick="setV382('free','color-1',this)" aria-label="自由-粉紅"></button>
         <button class="dot" style="background:#00a8ff" onclick="setV382('free','color-2',this)" aria-label="自由-藍"></button>
         <button class="dot" style="background:#ffa502" onclick="setV382('free','color-3',this)" aria-label="自由-橘"></button>
@@ -56,8 +48,8 @@
         <button class="dot" style="background:#2ecc71" onclick="setV382('free','color-5',this)" aria-label="自由-綠"></button>
       </div>
 
-      <!-- 精品設計：顏色 -->
-      <div class="dots-row" id="rowPremiumDots" style="display:none;justify-content:center;gap:12px;flex-wrap:wrap;">
+      <!-- 精品設計：顏色 dots（由 app.js 分流顯示） -->
+      <div class="dots-row" id="rowPremiumDots" style="display:none;justify-content:center;">
         <button class="p-dot" style="background:#a36d6d" onclick="setV382('premium','p1',this)" aria-label="精品-p1 胭脂"></button>
         <button class="p-dot" style="background:#722f37" onclick="setV382('premium','p2',this)" aria-label="精品-p2 酒紅"></button>
         <button class="p-dot" style="background:#1c2e42" onclick="setV382('premium','p3',this)" aria-label="精品-p3 深藍"></button>
@@ -67,9 +59,9 @@
         <button class="p-dot" style="background:#444444" onclick="setV382('premium','p7',this)" aria-label="精品-p7 褐碳"></button>
       </div>
 
-      <!-- 自由搭配 controls（版型/紙感） -->
-      <div id="free-controls" style="margin-top:12px; display:block;">
-        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:0 12px;">
+      <!-- 自由搭配 controls（由 app.js 分流顯示/隱藏） -->
+      <div id="free-controls" style="margin-top:10px; display:block;">
+        <div class="controls-row" aria-label="自由搭配：版型與紙感">
           <button class="btn-neo active" onclick="setV382Style('arch',this)">正拱</button>
           <button class="btn-neo" onclick="setV382Style('flat',this)">平直</button>
           <button class="btn-neo" onclick="setV382Style('spot',this)">晨曦</button>
@@ -82,8 +74,15 @@
         </div>
       </div>
 
-      <!-- Step 3 CTA -->
-      <div style="margin-top:12px; display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+      <!-- Step 3 -->
+      <div style="height:8px;"></div>
+      <div class="step-head" aria-label="Step 3">
+        <span class="step-badge">STEP 3</span>
+        <span class="step-title">預約訂製</span>
+      </div>
+      <div class="step-sub">第一次預約建議先加 LINE 官方帳號，溝通更順暢。</div>
+
+      <div class="step-actions">
         <button class="btn-help" onclick="openOrderHelp()">
           <span aria-hidden="true">?</span> 訂購流程說明
         </button>
@@ -92,7 +91,7 @@
     </div>
   </header>
 
-  <!-- 名片卡（✅ id="card-container" for gallery mount） -->
+  <!-- 名片卡（mount point：#card-container 供照片牆插入） -->
   <main id="card-container" class="card" role="main" aria-label="智慧名片">
     <div class="premium-fx-layer"></div>
     <div class="paper-overlay"></div>
@@ -120,32 +119,9 @@
         <div id="u-service" class="service-box">正在同步雲端服務項目...</div>
       </div>
 
-      <!-- ✅ 新增：聯繫區 -->
-      <div class="content-box">
-        <div style="font-weight:900; margin-bottom:8px;">聯繫方式</div>
+      <!-- ✅ 聯繫方式：由 app.js 動態插入 contactBox（避免重複） -->
 
-        <div id="contactBlock" style="display:grid;gap:10px;">
-          <a id="u-line" class="cta-box" href="javascript:void(0)" style="text-decoration:none;">
-            LINE 官方帳號（同步中...）
-          </a>
-          <a id="u-web" class="cta-box" href="javascript:void(0)" style="text-decoration:none;">
-            官網／作品連結（同步中...）
-          </a>
-
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <a id="u-phone" class="cta-box" href="javascript:void(0)" style="flex:1;min-width:160px;text-decoration:none;">
-              電話（同步中...）
-            </a>
-            <a id="u-email" class="cta-box" href="javascript:void(0)" style="flex:1;min-width:160px;text-decoration:none;">
-              Email（同步中...）
-            </a>
-          </div>
-        </div>
-
-        <div id="u-addr" style="margin-top:10px; opacity:.75; font-size:13px;"></div>
-      </div>
-
-      <div class="version-tag">V385.3</div>
+      <div class="version-tag">V386</div>
     </section>
   </main>
 
@@ -177,6 +153,6 @@
     </div>
   </div>
 
-  <script src="./app.js?v=3853"></script>
+  <script src="./app.js?v=386"></script>
 </body>
 </html>
