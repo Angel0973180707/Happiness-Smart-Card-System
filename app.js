@@ -1,10 +1,13 @@
 /* ================================
- * Angel Card App.js (V386.2 FULL OVERWRITE)
+ * Angel Card App.js (V386.3 FULL OVERWRITE)
+ * - Keep: V382 switching (setV382 / setV382Style / setV382Paper)
+ * - Keep: sample area + plan area coexist (DO NOT remove any existing DOM)
+ * - NEW: Free plan theme affects BANNER ONLY (card body style stays "free")
+ * - NEW: All long-text blocks render as "摘要 + 看全文" with modal
  * - Robust header auto-pick for ALL sheet fields
  * - Auto inject blocks: Unit/Title/Slogan/Experience/Contacts/Logo/PhotoWall
- * - Keep V382 switching: setV382 / setV382Style / setV382Paper
  * - Mobile-safe: re-apply after layout settle
- * - NO custom headers (avoid CORS preflight)
+ * - Fetch: NO custom headers (avoid CORS preflight)
  * ================================ */
 
 const CONFIG = {
@@ -21,6 +24,9 @@ const CONFIG = {
 
   DOM_WAIT_MS: 2800,
   DOM_POLL_MS: 80,
+
+  // "摘要" 行數（以字數粗略）
+  SUMMARY_CHARS: 48,
 
   DEBUG: true
 };
@@ -60,9 +66,9 @@ function getCardId() {
   return id || CONFIG.DEFAULT_ID;
 }
 
-/* ---------------------------
- * Existing switching system (keep)
- * --------------------------- */
+/* ===========================
+ * V382 switching system (KEEP)
+ * =========================== */
 window.setV382 = function (mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
@@ -73,6 +79,7 @@ window.setV382 = function (mode, theme, el) {
   applyV382();
   applyPlanSplitUi_();
   updatePlanButtonsActive_();
+  applyThemeBannerOnly_(); // ✅ NEW
 };
 
 window.setV382Style = function (style, el) {
@@ -98,6 +105,10 @@ function applyV382() {
   const controlPanel = $("free-controls");
   if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
 
+  // ✅ IMPORTANT:
+  // - Keep mode/theme classes on body for existing CSS.
+  // - But free-plan theme color should NOT recolor the whole card body.
+  //   We'll "move" theme effect to banner via applyThemeBannerOnly_().
   const classList = [
     `mode-${state.mode}`,
     state.theme,
@@ -105,6 +116,66 @@ function applyV382() {
     isFree ? state.paper : ""
   ];
   document.body.className = classList.filter(Boolean).join(" ");
+
+  // NEW: enforce banner-only theme after body class applied
+  applyThemeBannerOnly_();
+}
+
+/* ===========================
+ * Banner-only theme (NEW)
+ * - Free plan: color-* applies ONLY to banner/header area
+ * - Premium plan: keep existing premium theme behavior (p1/p2... usually applies whole)
+ * =========================== */
+function applyThemeBannerOnly_() {
+  // Try to locate your "banner" container.
+  // We won't rename anything; we just add classes to known candidates.
+  const candidates = [
+    $("top-banner"),
+    q(".top-banner"),
+    q(".banner"),
+    q(".hero"),
+    q(".admin-hero"),
+    q(".header"),
+    q("#admin-panel .hero"),
+  ].filter(Boolean);
+
+  // If no banner found, do nothing (safe).
+  if (!candidates.length) return;
+
+  // Remove any previous banner theme classes
+  for (const el of candidates) {
+    el.classList.remove(
+      "banner-theme-color-1", "banner-theme-color-2", "banner-theme-color-3", "banner-theme-color-4", "banner-theme-color-5",
+      "banner-theme-c1", "banner-theme-c2", "banner-theme-c3", "banner-theme-c4", "banner-theme-c5",
+      "banner-theme-p1","banner-theme-p2","banner-theme-p3","banner-theme-p4","banner-theme-p5","banner-theme-p6","banner-theme-p7"
+    );
+  }
+
+  const t = String(state.theme || "").trim();
+
+  if (state.mode === "free") {
+    // Map: support "color-1" OR "c2藍" etc if theme string comes from sheet later
+    // For your UI dots: likely "color-1..color-5"
+    const m = t.match(/color-(\d+)/i);
+    const n = m ? Number(m[1]) : null;
+
+    // Try also c1/c2...
+    const m2 = t.match(/\bc(\d)\b/i);
+    const n2 = m2 ? Number(m2[1]) : null;
+
+    const idx = (n || n2 || 1);
+    for (const el of candidates) el.classList.add(`banner-theme-color-${idx}`);
+  } else {
+    // premium: p1..p7
+    const mp = t.match(/\bp(\d+)\b/i);
+    const p = mp ? Number(mp[1]) : 1;
+    for (const el of candidates) el.classList.add(`banner-theme-p${p}`);
+  }
+
+  // Optional: protect card body from being recolored by free theme
+  // Add helper class on body to let CSS gate it if needed.
+  if (state.mode === "free") document.body.classList.add("free-theme-banner-only");
+  else document.body.classList.remove("free-theme-banner-only");
 }
 
 /* --------------------------- */
@@ -124,9 +195,9 @@ function coreUiReady_() {
   return !!$("u-name") && !!$("u-unit") && !!$("u-service");
 }
 
-/* ---------------------------
+/* ===========================
  * Fetch JSON (NO custom headers)
- * --------------------------- */
+ * =========================== */
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
@@ -180,9 +251,9 @@ async function fetchJsonRobust(url) {
   throw lastErr || new Error("Fetch failed");
 }
 
-/* ---------------------------
+/* ===========================
  * Key normalize + pick helpers
- * --------------------------- */
+ * =========================== */
 function cleanKey_(k) {
   return String(k ?? "")
     .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
@@ -258,9 +329,156 @@ function pickByHeaderRegex_(payloadNorm, regexList) {
   return "";
 }
 
-/* ---------------------------
+/* ===========================
+ * Modal (NEW) for "看全文"
+ * =========================== */
+function ensureTextModal_() {
+  if ($("textModal")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "textModal";
+  overlay.className = "text-modal";
+  overlay.style.display = "none";
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.zIndex = "9999";
+  overlay.style.background = "rgba(0,0,0,0.55)";
+  overlay.style.backdropFilter = "blur(6px)";
+  overlay.style.webkitBackdropFilter = "blur(6px)";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.padding = "18px";
+
+  const panel = document.createElement("div");
+  panel.className = "text-modal-panel";
+  panel.style.width = "min(720px, 92vw)";
+  panel.style.maxHeight = "82vh";
+  panel.style.overflow = "auto";
+  panel.style.borderRadius = "18px";
+  panel.style.background = "rgba(20,20,20,0.78)";
+  panel.style.border = "1px solid rgba(255,255,255,0.12)";
+  panel.style.boxShadow = "0 18px 60px rgba(0,0,0,0.35)";
+  panel.style.padding = "16px 16px 14px";
+
+  const head = document.createElement("div");
+  head.style.display = "flex";
+  head.style.alignItems = "center";
+  head.style.justifyContent = "space-between";
+  head.style.gap = "10px";
+  head.style.marginBottom = "10px";
+
+  const title = document.createElement("div");
+  title.id = "textModalTitle";
+  title.style.fontWeight = "900";
+  title.style.fontSize = "16px";
+  title.style.letterSpacing = "0.5px";
+  title.style.color = "rgba(255,255,255,0.92)";
+
+  const close = document.createElement("button");
+  close.id = "textModalClose";
+  close.type = "button";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "關閉");
+  close.style.width = "42px";
+  close.style.height = "42px";
+  close.style.borderRadius = "14px";
+  close.style.border = "1px solid rgba(255,255,255,0.16)";
+  close.style.background = "rgba(255,255,255,0.06)";
+  close.style.color = "rgba(255,255,255,0.92)";
+  close.style.fontSize = "24px";
+  close.style.cursor = "pointer";
+
+  const body = document.createElement("div");
+  body.id = "textModalBody";
+  body.style.whiteSpace = "pre-line";
+  body.style.lineHeight = "1.85";
+  body.style.fontWeight = "700";
+  body.style.color = "rgba(255,255,255,0.9)";
+  body.style.padding = "8px 2px 0";
+
+  head.appendChild(title);
+  head.appendChild(close);
+  panel.appendChild(head);
+  panel.appendChild(body);
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  const hide = () => {
+    overlay.style.display = "none";
+    setText("textModalTitle", "");
+    setText("textModalBody", "");
+  };
+
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) hide(); });
+  close.addEventListener("click", hide);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.style.display !== "none") hide();
+  });
+}
+
+function openTextModal_(title, fullText) {
+  ensureTextModal_();
+  const overlay = $("textModal");
+  if (!overlay) return;
+  setText("textModalTitle", title || "");
+  setText("textModalBody", fullText || "");
+  overlay.style.display = "flex";
+}
+
+/* summary helper */
+function toSummary_(s, n = CONFIG.SUMMARY_CHARS) {
+  const v = text(s);
+  if (!v) return "";
+  const one = v.replace(/\s+/g, " ").trim();
+  if (one.length <= n) return one;
+  return one.slice(0, n) + "…";
+}
+
+function renderSummaryWithMoreBtn_(mountEl, title, fullText) {
+  if (!mountEl) return;
+  const v = text(fullText);
+  mountEl.innerHTML = "";
+  if (!v) return;
+
+  const row = document.createElement("div");
+  row.className = "summary-row";
+  row.style.display = "flex";
+  row.style.alignItems = "flex-start";
+  row.style.justifyContent = "space-between";
+  row.style.gap = "10px";
+
+  const p = document.createElement("div");
+  p.className = "summary-text";
+  p.style.whiteSpace = "pre-line";
+  p.style.flex = "1";
+  p.style.fontWeight = "800";
+  p.style.lineHeight = "1.7";
+  p.style.color = "rgba(255,255,255,0.9)";
+  p.textContent = toSummary_(v);
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "btn-more";
+  btn.textContent = "看全文";
+  btn.style.flex = "0 0 auto";
+  btn.style.padding = "10px 12px";
+  btn.style.borderRadius = "999px";
+  btn.style.border = "1px solid rgba(255,255,255,0.16)";
+  btn.style.background = "rgba(255,255,255,0.07)";
+  btn.style.color = "rgba(255,255,255,0.92)";
+  btn.style.fontWeight = "900";
+  btn.style.cursor = "pointer";
+
+  btn.addEventListener("click", () => openTextModal_(title, v));
+
+  row.appendChild(p);
+  row.appendChild(btn);
+  mountEl.appendChild(row);
+}
+
+/* ===========================
  * Image helpers
- * --------------------------- */
+ * =========================== */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
   let url = String(raw).trim();
@@ -409,7 +627,7 @@ function getPhotosArray_(payload) {
 }
 
 /* ===========================
- * Plan selector UI (safe inject)
+ * Plan selector UI (safe inject) (KEEP)
  * =========================== */
 function ensurePlanSelectorUi_() {
   const panel = $("admin-panel");
@@ -612,7 +830,6 @@ function renderPhotoWall_(urls) {
     img.loading = "lazy";
     img.decoding = "async";
     img.referrerPolicy = "no-referrer";
-    // ✅ 這裡用 contain：看到全貌（不裁切）
     img.style.objectFit = "contain";
     img.style.background = "rgba(0,0,0,0.08)";
 
@@ -646,9 +863,6 @@ function ensureBoxAfter_(anchorEl, boxId, titleText) {
   const body = document.createElement("div");
   body.id = boxId + "_body";
   body.style.whiteSpace = "pre-line";
-  body.style.fontWeight = "700";
-  body.style.color = "rgba(255,255,255,0.88)";
-  body.style.lineHeight = "1.7";
 
   box.appendChild(t);
   box.appendChild(body);
@@ -679,7 +893,6 @@ function normalizeUrl_(v) {
   if (!s) return "";
   if (/^https?:\/\//i.test(s)) return s;
   if (/^line:\/\//i.test(s)) return s;
-  // allow lin.ee or line.me without scheme
   return "https://" + s;
 }
 
@@ -740,7 +953,6 @@ function ensureContactBox_() {
   box.appendChild(main);
   box.appendChild(sub);
 
-  // insert after service box if exists
   const serviceEl = $("u-service");
   const serviceBox = serviceEl ? serviceEl.closest(".content-box") : null;
   if (serviceBox && serviceBox.parentElement) {
@@ -764,14 +976,12 @@ function renderContacts_(payloadNorm) {
   main.innerHTML = "";
   sub.innerHTML = "";
 
-  // ✅ 你的表頭：微信 / LINE連結 / LINE官方帳號 / Email / 電話 / 地址 / 影音平台1~3 / 社群平台1~3
   const wechat = pick(payloadNorm, ["微信", "WeChat", "wechat"]);
   const lineLink = pick(payloadNorm, ["LINE連結", "line_link", "LINE link", "line"]);
   const lineOA = pick(payloadNorm, ["LINE官方帳號", "LINE 官方帳號", "line_oa", "lin.ee"]);
   const email = pick(payloadNorm, ["Email", "email", "E-mail", "信箱"]);
   const phone = pick(payloadNorm, ["電話", "phone", "tel", "mobile", "手機"]);
   const addr = pick(payloadNorm, ["地址", "address", "住址", "地點"]);
-  const logo = pick(payloadNorm, ["Logo_fast", "Logo", "logo", "LOGO"]);
 
   const media1 = pick(payloadNorm, ["影音平台1", "video1", "media1"]);
   const media2 = pick(payloadNorm, ["影音平台2", "video2", "media2"]);
@@ -781,11 +991,9 @@ function renderContacts_(payloadNorm) {
   const social2 = pick(payloadNorm, ["社群平台2", "social2"]);
   const social3 = pick(payloadNorm, ["社群平台3", "social3"]);
 
-  // ---- Main actions: LINE / 官網(影音1優先) / 填表 / 微信(複製)
   const bestLine = text(lineLink) ? normalizeUrl_(lineLink) : (text(lineOA) ? normalizeUrl_(lineOA) : "");
   if (bestLine) main.appendChild(makeMainBtn_("加 LINE / 聯繫", bestLine));
 
-  // 官網行為：優先用影音平台1（你放 YouTube），沒有就用社群1
   const bestWeb = text(media1) ? normalizeUrl_(media1) : (text(social1) ? normalizeUrl_(social1) : "");
   if (bestWeb) main.appendChild(makeMainBtn_("前往官網 / 作品", bestWeb));
 
@@ -795,7 +1003,6 @@ function renderContacts_(payloadNorm) {
     main.appendChild(makeMainBtn_("微信聯繫（複製）", () => copyText_(wechat)));
   }
 
-  // ---- Sub chips: phone/email/address + others
   if (phone) {
     const t = normalizeTel_(phone);
     if (t) sub.appendChild(makeChip_("電話：" + t, "tel:" + t));
@@ -805,14 +1012,12 @@ function renderContacts_(payloadNorm) {
     if (e) sub.appendChild(makeChip_("Email：" + e, "mailto:" + e));
   }
 
-  // 地址：做「導航」(Google Maps query)；若你之後要改成 Apple Maps 也可以
   if (addr) {
     const a = text(addr);
     const maps = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a);
     sub.appendChild(makeChip_("地址導航", maps));
   }
 
-  // 影音 2/3 + 社群 2/3
   const extraLinks = [
     ["影音平台2", media2],
     ["影音平台3", media3],
@@ -823,11 +1028,6 @@ function renderContacts_(payloadNorm) {
   for (const [label, v] of extraLinks) {
     if (!text(v)) continue;
     sub.appendChild(makeChip_(label, normalizeUrl_(v)));
-  }
-
-  // Logo：若你要把 Logo 也放在聯繫區（可有可無）
-  if (logo) {
-    // 不直接顯示圖在這，交給卡片上方（你想放哪裡再說）
   }
 
   if (!main.children.length && !sub.children.length) {
@@ -853,11 +1053,11 @@ function setAvatarImage(url) {
   setImgWithFallback_(img, cands);
 }
 
-/* ---------------------------
+/* ===========================
  * Apply all data to card (AUTO)
- * --------------------------- */
+ * - NEW: long texts => summary + modal
+ * =========================== */
 function applyDataToCard(payloadNorm) {
-  // ✅ core
   const name = pick(payloadNorm, ["姓名", "姓名（名片大標題）", "name", "Name"]);
   const unit = pick(payloadNorm, ["單位", "單位名稱", "unit", "Unit"]);
   const title = pick(payloadNorm, ["頭銜", "職稱", "title", "Title"]);
@@ -865,7 +1065,6 @@ function applyDataToCard(payloadNorm) {
   const service = pick(payloadNorm, ["服務項目", "service", "Service"]);
   const exp = pick(payloadNorm, ["經歷", "學經歷", "experience", "Experience"]);
 
-  // ✅ images
   const avatar =
     pick(payloadNorm, ["個人照_fast", "個人照", "形象照_fast", "形象照", "avatar_img", "avatar"]) ||
     pickByHeaderRegex_(payloadNorm, [/個人照/i, /形象照/i, /avatar/i]);
@@ -874,82 +1073,87 @@ function applyDataToCard(payloadNorm) {
     pick(payloadNorm, ["Logo_fast", "Logo", "logo", "LOGO"]) ||
     pickByHeaderRegex_(payloadNorm, [/logo/i, /LOGO/i, /標誌/i]);
 
-  // ✅ photos
   const photos = getPhotosArray_(payloadNorm);
 
-  // ---- write into existing DOM if present
+  // ---- core existing DOM
   setText("u-name", name || "（尚未讀到姓名）");
   setText("u-unit", unit || "");
   setText("u-service", service || "");
 
   setAvatarImage(avatar);
 
-  // ---- Inject “頭銜 / 標語 / 經歷” blocks (won't break your existing layout)
-  const scroll = ensureInfoScroll_();
+  // Ensure modal ready (NEW)
+  ensureTextModal_();
 
-  // Find anchor: service box preferred
+  // ---- Inject blocks safely
+  const scroll = ensureInfoScroll_();
   const serviceEl = $("u-service");
   const serviceBox = serviceEl ? serviceEl.closest(".content-box") : null;
 
-  // 頭銜（放在姓名/單位下方）
-  // 如果你 index 已有獨立欄位（例如 #u-title），就直接寫入；沒有就自動加 box
+  // 頭銜：如果 index 有 #u-title，直接寫摘要 + 看全文（不破壞原區）
   if ($("u-title")) {
-    setText("u-title", title || "");
+    const mount = $("u-title");
+    renderSummaryWithMoreBtn_(mount, "頭銜", title || "");
   } else if (text(title)) {
-    // Create a small box near top (after unit)
     const unitEl = $("u-unit");
     const anchor = unitEl ? unitEl : (scroll.firstChild || null);
     const box = ensureBoxAfter_(anchor, "boxTitle", "頭銜");
-    setText("boxTitle_body", title);
+    renderSummaryWithMoreBtn_($("boxTitle_body"), "頭銜", title);
+    box.style.display = "block";
   } else {
-    // no title: hide if exists
     if ($("boxTitle")) $("boxTitle").style.display = "none";
   }
 
   // 標語
   if ($("u-slogan")) {
-    setText("u-slogan", slogan || "");
+    renderSummaryWithMoreBtn_($("u-slogan"), "理念標語", slogan || "");
   } else if (text(slogan)) {
-    const anchor = serviceBox ? serviceBox.previousSibling : null;
     const box = ensureBoxAfter_(serviceBox || scroll, "boxSlogan", "理念標語");
-    setText("boxSlogan_body", slogan);
+    renderSummaryWithMoreBtn_($("boxSlogan_body"), "理念標語", slogan);
+    box.style.display = "block";
   } else {
     if ($("boxSlogan")) $("boxSlogan").style.display = "none";
   }
 
   // 經歷
   if ($("u-exp")) {
-    setText("u-exp", exp || "");
+    renderSummaryWithMoreBtn_($("u-exp"), "經歷", exp || "");
   } else if (text(exp)) {
     const box = ensureBoxAfter_(serviceBox || scroll, "boxExp", "經歷");
-    setText("boxExp_body", exp);
+    renderSummaryWithMoreBtn_($("boxExp_body"), "經歷", exp);
+    box.style.display = "block";
   } else {
     if ($("boxExp")) $("boxExp").style.display = "none";
   }
 
-  // ---- Contacts (auto)
+  // 服務項目：若未來你也要「看全文」，可直接把 #u-service 的父層換成摘要模式
+  // 目前：保留原本顯示（避免你說的“降級”風險）
+
+  // ---- Contacts
   renderContacts_(payloadNorm);
 
   // ---- Photo wall
   __gallery.list = photos;
   renderPhotoWall_(photos);
 
-  // ---- Logo (optional: inject small logo near name if container exists)
-  // If your HTML has #u-logo, we fill it; otherwise do nothing (safe).
+  // ---- Logo fill if exists
   if ($("u-logo")) {
     const img = $("u-logo");
     const cands = buildImageCandidates_(logo);
     if (cands.length) setImgWithFallback_(img, cands);
     else img.removeAttribute("src");
   }
+
+  // ---- Theme apply once more (important when sheet drives selections later)
+  applyThemeBannerOnly_();
 }
 
 /* --------------------------- */
 window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
 
-/* ---------------------------
+/* ===========================
  * Loading / Fail UI
- * --------------------------- */
+ * =========================== */
 function setLoadingUi_() {
   setText("u-name", "載入中...");
   setText("u-unit", "同步中...");
@@ -974,9 +1178,9 @@ function setFailUi_(msg) {
   if ($("boxExp")) $("boxExp").style.display = "none";
 }
 
-/* ---------------------------
+/* ===========================
  * Load data
- * --------------------------- */
+ * =========================== */
 async function loadData() {
   const id = getCardId();
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
@@ -1019,15 +1223,17 @@ async function loadData() {
   }
 }
 
-/* ---------------------------
+/* ===========================
  * Boot
- * --------------------------- */
+ * =========================== */
 function boot_() {
   try { applyV382(); } catch {}
   try {
     ensurePlanSelectorUi_();
     applyPlanSplitUi_();
+    updatePlanButtonsActive_();
   } catch {}
+  try { ensureTextModal_(); } catch {}
   try { loadData(); } catch (e) { err_("boot loadData error:", e); }
 }
 
