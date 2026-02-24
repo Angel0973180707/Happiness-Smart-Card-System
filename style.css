@@ -503,3 +503,10 @@ button, .btn-plan, .btn-neo, .dot, .p-dot{
 ::selection{
   background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
+/* v393 小按鈕版 — plan buttons */
+
+.btn-plan{
+  padding: 10px 14px !important;
+  font-size: 16px !important;
+  border-radius: 999px;
+}
