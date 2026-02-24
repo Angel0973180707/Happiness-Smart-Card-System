@@ -1,44 +1,36 @@
-<!-- index.html (v392 COMPLETE OVERWRITE) -->
+<!-- index.html (v393 COMPLETE OVERWRITE) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片 v392</title>
+  <title>Happiness Smart Card System v391</title>
 
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=392" />
+  <link rel="manifest" href="./manifest.json?v=393" />
   <meta name="theme-color" content="#ee5253" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=392" />
-  <link rel="icon" href="./icons/icon-192.png?v=392" />
 
-  <!-- 防快取（輔助用，主力在 SW） -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="icon" href="./icons/icon-192.png" />
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=392" />
+  <link rel="stylesheet" href="style.css?v=391" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- 門面 / 控制區 -->
+  <!-- ================= 前台：門面區（只留前台，不放任何後台面板） ================= -->
   <div id="admin-panel">
 
-    <!-- v392：頂部工具列 host（app.js 會注入輸入框+3鍵） -->
-    <div id="topControls" class="v391-top"></div>
-
-    <!-- 方案 A/B -->
+    <!-- 方案 A/B（只保留一組） -->
     <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
       <button id="btnPlanFree" class="btn-neo pill active" type="button"
-        onclick="window.setV382 && window.setV382('free','color-1', this)">
+        onclick="window.setV382('free','color-1', this)">
         方案 A｜自由搭配
       </button>
 
       <button id="btnPlanPremium" class="btn-neo pill" type="button"
-        onclick="window.setV382 && window.setV382('premium','p1', this)">
+        onclick="window.setV382('premium','p1', this)">
         方案 B｜精品設計
       </button>
     </div>
@@ -51,44 +43,44 @@
 
     <!-- 自由搭配：5 色點 -->
     <div class="dots-row">
-      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382 && window.setV382('free', 'color-1', this)"></div>
-      <div class="dot" style="background:#00a8ff" onclick="window.setV382 && window.setV382('free', 'color-2', this)"></div>
-      <div class="dot" style="background:#ffa502" onclick="window.setV382 && window.setV382('free', 'color-3', this)"></div>
-      <div class="dot" style="background:#7d5fff" onclick="window.setV382 && window.setV382('free', 'color-4', this)"></div>
-      <div class="dot" style="background:#2ecc71" onclick="window.setV382 && window.setV382('free', 'color-5', this)"></div>
+      <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
+      <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
+      <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
+      <div class="dot" style="background:#7d5fff" onclick="window.setV382('free', 'color-4', this)"></div>
+      <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
     </div>
 
     <!-- 自由搭配：版型 + 紙感 -->
     <div id="free-controls">
       <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
-        <button class="btn-neo active" type="button" onclick="window.setV382Style && window.setV382Style('arch', this)">優雅正拱</button>
-        <button class="btn-neo" type="button" onclick="window.setV382Style && window.setV382Style('flat', this)">簡潔平直</button>
-        <button class="btn-neo" type="button" onclick="window.setV382Style && window.setV382Style('spot', this)">晨曦款</button>
+        <button class="btn-neo active" type="button" onclick="window.setV382Style('arch', this)">優雅正拱</button>
+        <button class="btn-neo" type="button" onclick="window.setV382Style('flat', this)">簡潔平直</button>
+        <button class="btn-neo" type="button" onclick="window.setV382Style('spot', this)">晨曦款</button>
       </div>
 
       <div class="control-row" style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
-        <button class="btn-neo active" type="button" onclick="window.setV382Paper && window.setV382Paper('paper-1', this)">棉紙</button>
-        <button class="btn-neo" type="button" onclick="window.setV382Paper && window.setV382Paper('paper-2', this)">顆粒</button>
-        <button class="btn-neo" type="button" onclick="window.setV382Paper && window.setV382Paper('paper-3', this)">亞麻</button>
+        <button class="btn-neo active" type="button" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
+        <button class="btn-neo" type="button" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
+        <button class="btn-neo" type="button" onclick="window.setV382Paper('paper-3', this)">亞麻</button>
       </div>
     </div>
 
     <!-- 精品設計：色點 -->
     <div class="dots-row">
-      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382 && window.setV382('premium', 'p1', this)"></div>
-      <div class="p-dot" style="background:#722f37" onclick="window.setV382 && window.setV382('premium', 'p2', this)"></div>
-      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382 && window.setV382('premium', 'p3', this)"></div>
-      <div class="p-dot" style="background:#5e548e" onclick="window.setV382 && window.setV382('premium', 'p4', this)"></div>
-      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382 && window.setV382('premium', 'p5', this)"></div>
-      <div class="p-dot" style="background:#bf953f" onclick="window.setV382 && window.setV382('premium', 'p6', this)"></div>
-      <div class="p-dot" style="background:#444444" onclick="window.setV382 && window.setV382('premium', 'p7', this)"></div>
+      <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p1', this)"></div>
+      <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p2', this)"></div>
+      <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p3', this)"></div>
+      <div class="p-dot" style="background:#5e548e" onclick="window.setV382('premium', 'p4', this)"></div>
+      <div class="p-dot" style="background:#7a94a6" onclick="window.setV382('premium', 'p5', this)"></div>
+      <div class="p-dot" style="background:#bf953f" onclick="window.setV382('premium', 'p6', this)"></div>
+      <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
     </div>
 
-    <!-- 表單 CTA（保留） -->
-    <button class="btn-cta" type="button" onclick="window.goFillForm && window.goFillForm()">立即預約訂製名片 →</button>
+    <!-- 表單 CTA：只保留一顆 -->
+    <button class="btn-cta" type="button" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
-  <!-- 名片展示區（前台） -->
+  <!-- ================= 前台：樣品區（一定要顯示） ================= -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
@@ -109,24 +101,24 @@
       </div>
     </div>
 
-    <!-- 長按進後台（app.js 綁定） -->
-    <div class="version-tag" id="versionTag">v392</div>
+    <!-- ✅ 後台隱形入口：長按這個版本字 1.2s 進 admin.html -->
+    <div class="version-tag" id="versionTag">v391</div>
   </div>
 
-  <footer style="font-size:10px; color:#ccc; margin-top:20px; text-align:center;">
-    幸福智慧名片 v392
+  <!-- footer 也保留長按入口（app.js 會綁定 footer 或 version-tag） -->
+  <footer id="footerTag" style="font-size:10px; color:#ccc; margin-top:12px; text-align:center;">
+    Happiness Smart Card System v391
   </footer>
 
-  <script>
-    // v392：SW（版本化，避免吃舊）
-    (function(){
-      if(!("serviceWorker" in navigator)) return;
-      window.addEventListener("load", function(){
-        navigator.serviceWorker.register("./sw.js?v=392").catch(function(){});
-      });
-    })();
-  </script>
+  <script src="app.js?v=391"></script>
 
-  <script src="app.js?v=392"></script>
+  <script>
+    // PWA register (safe)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?v=391').catch(()=>{});
+      });
+    }
+  </script>
 </body>
 </html>
