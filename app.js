@@ -562,7 +562,7 @@ function ensureAdminHotspot_() {
 
 function bindAdminHiddenEntry_() {
   const versionTag = q(".version-tag") || $("versionTag") || null;
-  const footer = q("footer") || null;
+  const footer = q("footer") || $("footerTag") || null;
 
   if (versionTag) bindLongPress_(versionTag, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
   else if (footer) bindLongPress_(footer, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
