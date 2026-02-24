@@ -1,205 +1,51 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>交貨卡｜Angel Share v388</title>
-  <style>
-    :root{
-      --bg1:#0b0c10; --bg2:#0f1220;
-      --card: rgba(255,255,255,.08);
-      --bd: rgba(255,255,255,.14);
-      --txt: #f3f6fb;
-      --muted: rgba(243,246,251,.70);
-      --p: #7dd3fc;
-      --shadow: 0 30px 70px rgba(0,0,0,.45);
-    }
-    *{ box-sizing:border-box; }
-    body{
-      margin:0; min-height:100vh;
-      display:flex; align-items:center; justify-content:center;
-      font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif;
-      background: radial-gradient(1100px 700px at 30% 20%, rgba(125,211,252,.15), transparent 60%),
-                  radial-gradient(900px 600px at 80% 70%, rgba(167,139,250,.14), transparent 60%),
-                  linear-gradient(180deg, var(--bg1), var(--bg2));
-      color:var(--txt);
-      padding:18px;
-    }
-    .frame{
-      width:min(980px, 100%);
-      aspect-ratio: 1200 / 630;
-      border-radius: 28px;
-      background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
-      border:1px solid var(--bd);
-      box-shadow: var(--shadow);
-      display:flex;
-      overflow:hidden;
-      position:relative;
-    }
-    .left{
-      width:42%;
-      display:flex; align-items:center; justify-content:center;
-      padding:26px;
-      background: linear-gradient(135deg, rgba(125,211,252,.14), rgba(255,255,255,0));
-    }
-    .photo{
-      width:min(240px, 80%);
-      aspect-ratio: 1/1;
-      border-radius: 28px;
-      overflow:hidden;
-      border:1px solid rgba(255,255,255,.22);
-      background: rgba(255,255,255,.06);
-      box-shadow: 0 18px 40px rgba(0,0,0,.35);
-      display:flex; align-items:center; justify-content:center;
-    }
-    .photo img{ width:100%; height:100%; object-fit:cover; display:block; }
-    .right{
-      width:58%;
-      padding:34px 34px 28px;
-      display:flex; flex-direction:column; justify-content:center;
-      gap:14px;
-    }
-    .name{ font-size:34px; font-weight:900; letter-spacing:.5px; }
-    .slogan{
-      font-size:16px; line-height:1.7;
-      color:var(--muted);
-      max-width: 24em;
-      white-space: pre-line;
-    }
-    .btn{
-      margin-top:8px;
-      display:inline-flex; align-items:center; justify-content:center;
-      gap:10px;
-      padding: 14px 18px;
-      border-radius: 16px;
-      text-decoration:none;
-      font-weight:900;
-      color: #071018;
-      background: linear-gradient(90deg, rgba(125,211,252,1), rgba(167,139,250,1));
-      box-shadow: 0 16px 30px rgba(0,0,0,.22);
-      width: fit-content;
-    }
-    .sub{
-      font-size:12px; color:rgba(243,246,251,.55);
-      margin-top:10px;
-    }
-    .corner{
-      position:absolute;
-      right:18px; bottom:14px;
-      font-size:11px; color:rgba(243,246,251,.35);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      user-select:none;
-    }
-    @media (max-width:780px){
-      .frame{ aspect-ratio: auto; flex-direction:column; border-radius:22px; }
-      .left,.right{ width:100%; }
-      .right{ padding:18px 18px 22px; }
-      .name{ font-size:26px; }
-      .photo{ width:160px; border-radius:22px; }
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>幸福智慧名片｜交貨頁</title>
+  <meta name="description" content="照片＋姓名，一鍵開啟名片工具。" />
+  <meta name="theme-color" content="#ee5253" />
+
+  <!-- OG (static) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="幸福智慧名片｜交貨頁" />
+  <meta property="og:description" content="照片＋姓名，一鍵開啟名片工具。" />
+  <!-- ✅ 你目前 og-card.png 在根目錄，所以用 ./og-card.png -->
+  <meta property="og:image" content="./og-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="./og-card.png" />
+
+  <link rel="stylesheet" href="./style.css?v=388" />
 </head>
-<body>
-  <div class="frame" role="article" aria-label="交貨卡">
-    <div class="left">
-      <div class="photo"><img id="img" alt="個人照" /></div>
+
+<body class="share-page">
+  <div class="share-wrap">
+    <div class="share-card">
+      <div class="share-title">幸福智慧名片｜交貨頁</div>
+      <div class="share-sub">照片 + 姓名（由資料載入）</div>
+
+      <div class="share-photo">
+        <img id="s-img" alt="專業形象照" />
+      </div>
+
+      <div id="s-name" class="share-name">載入中...</div>
+
+      <div class="share-actions">
+        <button class="btn-cta" onclick="SharePage.openCard()">開啟名片工具 →</button>
+        <button class="btn-cta ghost" onclick="SharePage.copyDeliveryLink()">複製交貨連結</button>
+      </div>
+
+      <div class="share-note">
+        若你要「貼 LINE/FB 就顯示同一張交貨封面圖」，請用上面複製的交貨連結。<br/>
+        （點進來後會看到這位客戶的姓名與大頭照）
+      </div>
     </div>
-    <div class="right">
-      <div class="name" id="name">載入中…</div>
-      <div class="slogan" id="slogan"></div>
-      <a class="btn" id="btn" href="#" target="_blank" rel="noopener noreferrer">點我看完整名片 / 相片牆</a>
-      <div class="sub" id="sub"></div>
-    </div>
-    <div class="corner" id="corner"></div>
   </div>
 
-<script>
-  const CONFIG = {
-    GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-    DEFAULT_ID: "TW0001",
-    TIMEOUT: 12000
-  };
-
-  const $ = (id)=>document.getElementById(id);
-  const text = (v)=>(v==null?"":String(v)).trim();
-
-  function getParam(name){
-    try{ return new URLSearchParams(location.search).get(name); }catch{ return null; }
-  }
-  function getId(){
-    return text(getParam("id")) || CONFIG.DEFAULT_ID;
-  }
-  function basePath(){
-    const u = new URL(location.href);
-    u.pathname = u.pathname.replace(/\/[^\/]*$/, "/");
-    u.search=""; u.hash="";
-    return u.toString();
-  }
-  function cardUrl(id){
-    return basePath() + "index.html?id=" + encodeURIComponent(id);
-  }
-
-  function normalizeImageUrl(raw){
-    const s = text(raw);
-    if(!s) return "";
-    let url = s.startsWith("http://") ? "https://" + s.slice(7) : s;
-    const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-    if(mFile && mFile[1]) return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(mFile[1]);
-    const mId = url.match(/(?:\?|&)id=([^&]+)/i);
-    if(mId && mId[1]) return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(mId[1]);
-    return url;
-  }
-
-  async function fetchJson(url){
-    const ctl = new AbortController();
-    const t = setTimeout(()=>ctl.abort(), CONFIG.TIMEOUT);
-    try{
-      const r = await fetch(url, { cache:"no-store", credentials:"omit", signal:ctl.signal });
-      const txt = await r.text();
-      const body = (txt||"").trim();
-      if(!body) throw new Error("Empty response");
-      try{ return JSON.parse(body); }catch{
-        const m = body.match(/\{[\s\S]*\}/);
-        if(m) return JSON.parse(m[0]);
-        throw new Error("Not JSON");
-      }
-    }finally{ clearTimeout(t); }
-  }
-
-  async function main(){
-    const id = getId();
-    $("corner").textContent = "share v388 · " + id;
-    $("btn").href = cardUrl(id);
-    $("sub").textContent = "交貨卡連結：share.html?id=" + id;
-
-    try{
-      const url = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now();
-      const data = await fetchJson(url);
-      if(data && data.ok === false) throw new Error(data.error || "not found");
-
-      const name = data["姓名"] || data.name || "（未提供姓名）";
-      const slogan = data["理念標語"] || data["標語"] || data.slogan || data.tagline || "";
-
-      const imgRaw = data["個人照_fast"] || data["個人照"] || data["形象照_fast"] || data["形象照"] || "";
-      const img = normalizeImageUrl(imgRaw);
-
-      $("name").textContent = name;
-      $("slogan").textContent = slogan ? slogan : "";
-
-      if(img){
-        $("img").src = img + (img.includes("?") ? "&" : "?") + "t=" + Date.now();
-      }else{
-        $("img").removeAttribute("src");
-      }
-    }catch(e){
-      $("name").textContent = "（載入失敗）";
-      $("slogan").textContent = "請確認 id 或 GAS 權限";
-      $("sub").textContent = (e && e.message) ? e.message : "error";
-      $("img").removeAttribute("src");
-    }
-  }
-
-  main();
-</script>
+  <!-- ✅ 用同一支 app.js，裡面會自動判斷 share-page -->
+  <script src="./app.js?v=388"></script>
 </body>
 </html>
