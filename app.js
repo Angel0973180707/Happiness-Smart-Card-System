@@ -1,17 +1,20 @@
 /* ================================
 Happiness Smart Card System
-app.js (v391 FULL OVERWRITE)
+app.js (v391 FULL OVERWRITE) — Rescue + Compatibility
 
-v391 GOALS
-- Homepage adds 4 functions:
-  1) Input: ID (TW0001) or Chinese name
-  2) Preview: load card by id OR search->id then load
-  3) Home: reset to GitHub Pages "home state" + default card
-  4) Deliver: generate/copy GAS share link (?action=share&id=TWxxxx)
+✅ Fix: restore legacy UI handlers used by index.html:
+- window.setV382(mode, theme, el)
+- window.setV382Style(style, el)
+- window.setV382Paper(paper, el)
+- window.goFillForm()
 
-- Keep robust header normalize + flexible field pick
-- Keep hidden admin entry: long-press footer/version tag 1.2s => admin.html
-- Compatible with existing HTML: will auto-inject toolbar if missing
+✅ Keep v391 toolbar:
+1) input id/name
+2) preview
+3) home
+4) deliver (copy GAS share link)
+
+✅ Hidden admin entry: long-press version tag/footer => admin.html?id=...
 
 ================================ */
 
@@ -24,17 +27,18 @@ const CONFIG = {
   // ✅ Your GitHub Pages home
   HOME_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
 
-  // Default card to show on load / reset
+  // ✅ Google Form (index.html 的「立即預約訂製名片」會用到)
+  // 你若有固定表單，換成你的真實表單網址
+  FORM: "",
+
+  // Default card
   DEFAULT_ID: "TW0001",
 
-  // Fetch behavior
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
 
-  // Admin entry
   ADMIN_LONGPRESS_MS: 1200,
 
-  // Debug
   DEBUG: true,
 };
 
@@ -56,7 +60,18 @@ function setText(elOrId, v) {
 }
 
 /* ---------------------------
-Query param helpers
+State (mode/theme/style/paper)
+--------------------------- */
+let state = {
+  mode: "free",      // free | premium
+  theme: "color-1",  // color-1..5 | p1..p7
+  style: "arch",     // arch | flat | spot
+  paper: "paper-1",  // paper-1..3
+};
+let __currentId = "";
+
+/* ---------------------------
+URL helpers
 --------------------------- */
 function getParam(name) {
   try { return new URLSearchParams(window.location.search).get(name); }
@@ -64,20 +79,16 @@ function getParam(name) {
 }
 function setUrlParams_(paramsObj = {}) {
   const u = new URL(window.location.href);
-  // clear all first
   u.search = "";
-  // set provided
   for (const k of Object.keys(paramsObj)) {
     const v = paramsObj[k];
     if (v == null || text(v) === "") continue;
     u.searchParams.set(k, String(v));
   }
-  // push (no reload)
   history.pushState({}, "", u.toString());
 }
 function getCardIdFromUrl_() {
-  const id = text(getParam("id"));
-  return id || "";
+  return text(getParam("id")) || "";
 }
 
 /* ---------------------------
@@ -113,7 +124,6 @@ async function fetchWithTimeout(url, timeoutMs) {
     try {
       return JSON.parse(body);
     } catch {
-      // GAS sometimes wraps; try extract first {...}
       const m = body.match(/\{[\s\S]*\}/);
       if (m) return JSON.parse(m[0]);
       throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
@@ -142,11 +152,11 @@ Header normalize + pick helpers
 --------------------------- */
 function cleanKey_(k) {
   return String(k ?? "")
-    .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "") // zero-width
+    .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
     .replace(/\u3000/g, " ")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
-    .replace(/\n+/g, "") // remove newlines inside header
+    .replace(/\n+/g, "")
     .replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "")
     .trim();
 }
@@ -194,12 +204,11 @@ function pick(obj, keys) {
       if (v != null && text(v) !== "") return v;
     }
   }
-
   return "";
 }
 
 /* ---------------------------
-Image helpers (Drive/Dropbox)
+Image helpers
 --------------------------- */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
@@ -314,19 +323,12 @@ async function copyText_(s, okMsg = "") {
 }
 
 /* ===========================
-v391 Toolbar (auto-inject)
+UI: top toolbar (auto-inject)
 =========================== */
 function ensureV391Toolbar_() {
-  // If user already built toolbar, do nothing.
   if ($("v391Toolbar")) return;
 
-  // Prefer a known top container; fallback to body.
-  const host =
-    q("#topControls") ||
-    q(".top-controls") ||
-    q(".facade") ||
-    q("main") ||
-    document.body;
+  const host = q("#topControls") || q("#admin-panel") || document.body;
 
   const bar = document.createElement("section");
   bar.id = "v391Toolbar";
@@ -334,12 +336,14 @@ function ensureV391Toolbar_() {
   bar.style.gap = "10px";
   bar.style.alignItems = "center";
   bar.style.flexWrap = "wrap";
-  bar.style.margin = "10px 0 14px 0";
+  bar.style.padding = "10px 12px";
+  bar.style.margin = "0 auto";
+  bar.style.maxWidth = "980px";
 
   const input = document.createElement("input");
   input.id = "v391Input";
   input.type = "text";
-  input.placeholder = "輸入 TW0001 或 姓名（例：王）";
+  input.placeholder = "輸入 TW0001 或 姓名（例：王小明）";
   input.autocomplete = "off";
   input.inputMode = "text";
   input.style.flex = "1 1 220px";
@@ -367,13 +371,12 @@ function ensureV391Toolbar_() {
   btnDeliver.textContent = "一鍵交貨";
   btnDeliver.className = "btn-cta";
 
-  // small hint label
   const hint = document.createElement("div");
   hint.id = "v391Hint";
   hint.style.fontSize = "12px";
   hint.style.opacity = "0.7";
   hint.style.flex = "1 1 100%";
-  hint.textContent = "提示：可直接輸入 TW0001，或輸入姓名（會先搜尋再帶入預覽）。";
+  hint.textContent = "提示：輸入 TW0001 直接預覽；輸入姓名會先搜尋，再帶入預覽。";
 
   bar.appendChild(input);
   bar.appendChild(btnPreview);
@@ -381,11 +384,9 @@ function ensureV391Toolbar_() {
   bar.appendChild(btnDeliver);
   bar.appendChild(hint);
 
-  // Insert near top
   if (host.firstChild) host.insertBefore(bar, host.firstChild);
   else host.appendChild(bar);
 
-  // Enter key => preview
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -395,7 +396,103 @@ function ensureV391Toolbar_() {
 }
 
 /* ===========================
-Core UI hooks (existing ids)
+Legacy UI functions (救前臺)
+index.html 內 onclick 直接在用
+=========================== */
+function applyBodyClasses_() {
+  const body = document.body;
+  if (!body) return;
+
+  // reset known classes
+  const keep = new Set();
+  body.className
+    .split(/\s+/)
+    .filter(Boolean)
+    .forEach(c => {
+      // keep unrelated classes (e.g., share-page)
+      if (!/^mode-|^color-|^style-|^paper-|^p\d$/.test(c)) keep.add(c);
+    });
+
+  keep.add(`mode-${state.mode}`);
+  keep.add(state.mode === "premium" ? state.theme : state.theme); // theme is already like color-1 or p1
+  keep.add(`style-${state.style}`);
+  keep.add(state.paper);
+
+  body.className = Array.from(keep).join(" ");
+
+  // Toggle free/premium controls visibility if exists
+  const freeControls = $("free-controls");
+  if (freeControls) freeControls.style.display = (state.mode === "free") ? "" : "none";
+
+  // Activate plan buttons if exist
+  const btnFree = $("btnPlanFree");
+  const btnPremium = $("btnPlanPremium");
+  if (btnFree && btnPremium) {
+    btnFree.classList.toggle("active", state.mode === "free");
+    btnPremium.classList.toggle("active", state.mode === "premium");
+  }
+}
+
+function setActiveInGroup_(el, selector) {
+  if (!el) return;
+  const group = el.parentElement;
+  if (!group) return;
+  qa(selector, group).forEach(x => x.classList.remove("active"));
+  el.classList.add("active");
+}
+
+// index.html calls: window.setV382('free','color-1', this)
+window.setV382 = function(mode, theme, el) {
+  state.mode = (mode === "premium") ? "premium" : "free";
+  state.theme = text(theme) || (state.mode === "premium" ? "p1" : "color-1");
+
+  // dot active visuals: free uses .dot, premium uses .p-dot (they are separate rows)
+  if (el) {
+    if (el.classList.contains("dot")) {
+      qa(".dot").forEach(d => d.classList.remove("active"));
+      el.classList.add("active");
+    }
+    if (el.classList.contains("p-dot")) {
+      qa(".p-dot").forEach(d => d.classList.remove("active"));
+      el.classList.add("active");
+    }
+
+    // plan buttons may pass themselves too
+    if (el.id === "btnPlanFree" || el.id === "btnPlanPremium") {
+      // do nothing extra
+    }
+  }
+
+  applyBodyClasses_();
+};
+
+// index.html calls: window.setV382Style('arch', this)
+window.setV382Style = function(style, el) {
+  const s = text(style);
+  state.style = (s === "flat" || s === "spot") ? s : "arch";
+  if (el) setActiveInGroup_(el, "button");
+  applyBodyClasses_();
+};
+
+// index.html calls: window.setV382Paper('paper-1', this)
+window.setV382Paper = function(paper, el) {
+  const p = text(paper);
+  state.paper = (p === "paper-2" || p === "paper-3") ? p : "paper-1";
+  if (el) setActiveInGroup_(el, "button");
+  applyBodyClasses_();
+};
+
+// index.html CTA
+window.goFillForm = function() {
+  if (CONFIG.FORM && /^https?:\/\//i.test(CONFIG.FORM)) {
+    window.open(CONFIG.FORM, "_blank");
+  } else {
+    alert("尚未設定表單網址（請在 app.js 的 CONFIG.FORM 填入你的 Google 表單連結）");
+  }
+};
+
+/* ===========================
+Card UI helpers
 =========================== */
 function setLoadingUi_() {
   setText("u-name", "載入中...");
@@ -418,10 +515,6 @@ function setAvatarImage_(url) {
   setImgWithFallback_(img, cands);
 }
 
-/* ===========================
-Apply card data to UI
-(Keep it flexible: only fill what exists)
-=========================== */
 function applyCardToUi_(payloadNorm) {
   const id = pick(payloadNorm, ["id", "ID"]);
   const name = pick(payloadNorm, ["姓名", "name", "Name"]);
@@ -430,22 +523,20 @@ function applyCardToUi_(payloadNorm) {
   const avatar =
     pick(payloadNorm, ["個人照_fast", "個人照", "形象照_fast", "形象照", "avatar_fast", "avatar"]);
 
-  // Base v385 hooks
-  if ($("u-name")) setText("u-name", name || "（尚未讀到姓名）");
-  if ($("u-unit")) setText("u-unit", unit || "");
-  if ($("u-service")) setText("u-service", service || "");
+  setText("u-name", name || "（尚未讀到姓名）");
+  setText("u-unit", unit || "");
+  setText("u-service", service || "");
 
   if (avatar) setAvatarImage_(avatar);
 
-  // Optional: show id somewhere if you have it
-  if ($("u-id")) setText("u-id", id || "");
+  __currentId = text(id).toUpperCase() || __currentId || CONFIG.DEFAULT_ID;
 }
 
 /* ===========================
 GAS actions
-- card: ?action=card&id=TW0001
-- search: ?action=search&q=王  (or name=王 / id=TW0001)
-- share: ?action=share&id=TW0001
+- card:   ?action=card&id=TW0001
+- search: ?action=search&q=王  (or name=王)
+- share:  ?action=share&id=TW0001
 =========================== */
 function gasUrl_(action, params = {}) {
   const u = new URL(CONFIG.GAS);
@@ -470,26 +561,17 @@ async function gasCard_(id) {
 function extractFirstIdFromSearch_(data) {
   if (!data || typeof data !== "object") return "";
 
-  // common shapes:
-  // { ok:true, id:"TW0001" }
   if (text(data.id)) return text(data.id);
-
-  // { ok:true, row:{id:"TW0001"} }
   if (data.row && text(data.row.id)) return text(data.row.id);
 
-  // { ok:true, rows:[{id:"TW0001"}, ...] }
-  if (Array.isArray(data.rows) && data.rows.length) {
-    const r = data.rows[0];
-    if (r && text(r.id)) return text(r.id);
+  const listKeys = ["rows", "results", "items", "list"];
+  for (const k of listKeys) {
+    if (Array.isArray(data[k]) && data[k].length) {
+      const r = data[k][0];
+      if (r && text(r.id)) return text(r.id);
+    }
   }
 
-  // { ok:true, results:[{id:"TW0001"}] }
-  if (Array.isArray(data.results) && data.results.length) {
-    const r = data.results[0];
-    if (r && text(r.id)) return text(r.id);
-  }
-
-  // fallback: scan any object array field
   for (const k of Object.keys(data)) {
     const v = data[k];
     if (Array.isArray(v) && v.length && v[0] && typeof v[0] === "object") {
@@ -505,82 +587,66 @@ async function gasSearchToId_(qOrNameOrId) {
   const v = text(qOrNameOrId);
   if (!v) return "";
 
-  // If already looks like TW0001, accept.
   if (/^TW\d{4}$/i.test(v)) return v.toUpperCase();
 
-  // Try search endpoints: q, name
-  // (You said both work: ?action=search&name=王 OR &q=王)
-  const url = gasUrl_("search", { q: v });
-  let data = await fetchJsonRobust(url);
+  // try q
+  let data = await fetchJsonRobust(gasUrl_("search", { q: v }));
   if (data && data.ok === false) {
-    // try name param
-    const url2 = gasUrl_("search", { name: v });
-    data = await fetchJsonRobust(url2);
+    // try name
+    data = await fetchJsonRobust(gasUrl_("search", { name: v }));
   }
 
   if (!data || typeof data !== "object") throw new Error("Search invalid payload");
   if (data.ok === false) throw new Error(data.error || "Search failed");
 
   const id = extractFirstIdFromSearch_(data);
-  if (!id) throw new Error("找不到符合的 id（請改用 TW0001 或輸入更完整姓名）");
+  if (!id) throw new Error("找不到符合的 id（請輸入更完整姓名或直接用 TW0001）");
   return id.toUpperCase();
 }
 
 /* ===========================
-v391 Main flows
+Main flows
 =========================== */
-let __currentId = "";
-
 async function loadAndRenderById_(id) {
   const safeId = text(id).toUpperCase();
   if (!safeId) throw new Error("Missing id");
 
   __currentId = safeId;
-
-  if ($("u-name")) setLoadingUi_();
+  setLoadingUi_();
 
   const data = await gasCard_(safeId);
   const payloadNorm = buildNormalizedPayload_(data);
-
   applyCardToUi_(payloadNorm);
 }
 
 async function previewFromInput_() {
-  const inputEl = $("v391Input") || $("searchInput") || $("qInput");
+  const inputEl = $("v391Input");
   const raw = inputEl ? text(inputEl.value) : "";
 
-  // If input empty -> use url id -> default id
   const target = raw || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
 
   try {
-    // If not TW0001, search first
     const id = /^TW\d{4}$/i.test(target) ? target.toUpperCase() : await gasSearchToId_(target);
-    // sync url param for share button consistency
     setUrlParams_({ id });
     await loadAndRenderById_(id);
   } catch (e) {
     err_(e);
-    if ($("u-name")) setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
-    else alert(e && e.message ? e.message : "同步失敗");
+    setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
   }
 }
 
 function goHomeReset_() {
-  // Hard reset: go to HOME_URL (no params) then default render
-  // (Single-page style: pushState + re-render)
   try {
     history.pushState({}, "", CONFIG.HOME_URL);
   } catch {
-    // If pushState blocked, fallback to assign
     window.location.href = CONFIG.HOME_URL;
     return;
   }
 
-  const inputEl = $("v391Input") || $("searchInput") || $("qInput");
+  const inputEl = $("v391Input");
   if (inputEl) inputEl.value = "";
 
   __currentId = CONFIG.DEFAULT_ID;
-  // Ensure UI shows default
   setUrlParams_({ id: CONFIG.DEFAULT_ID });
   previewFromInput_();
 
@@ -588,21 +654,16 @@ function goHomeReset_() {
 }
 
 async function deliverCopyLink_() {
-  // Use current url id first, then __currentId, else default
   const id = getCardIdFromUrl_() || __currentId || CONFIG.DEFAULT_ID;
-
-  // Deliver link is GAS share endpoint (server-side OG title contains name)
   const link = `${CONFIG.GAS}?action=share&id=${encodeURIComponent(id)}`;
-
   await copyText_(link, "已複製交貨連結（share link）！");
 }
 
 /* ===========================
-Hidden Admin Entry (long-press footer/version tag)
+Hidden Admin Entry (long-press)
 =========================== */
 function bindAdminLongPress_() {
-  const target =
-    q(".version-tag") || q("#versionTag") || q("footer") || q("#footer") || null;
+  const target = q("#versionTag") || q(".version-tag") || q("footer");
   if (!target) return;
 
   let timer = null;
@@ -614,8 +675,7 @@ function bindAdminLongPress_() {
     timer = setTimeout(() => {
       fired = true;
       const id = getCardIdFromUrl_() || __currentId || CONFIG.DEFAULT_ID;
-      const u = `admin.html?id=${encodeURIComponent(id)}`;
-      window.open(u, "_blank");
+      window.open(`admin.html?id=${encodeURIComponent(id)}`, "_blank");
     }, CONFIG.ADMIN_LONGPRESS_MS);
   };
 
@@ -644,9 +704,9 @@ function bindAdminLongPress_() {
 Bind toolbar buttons
 =========================== */
 function bindV391ToolbarActions_() {
-  const btnPreview = $("v391BtnPreview") || $("btnPreview") || $("btnCardPreview");
-  const btnHome = $("v391BtnHome") || $("btnHome");
-  const btnDeliver = $("v391BtnDeliver") || $("btnDeliver") || $("btnShare");
+  const btnPreview = $("v391BtnPreview");
+  const btnHome = $("v391BtnHome");
+  const btnDeliver = $("v391BtnDeliver");
 
   if (btnPreview) btnPreview.addEventListener("click", previewFromInput_);
   if (btnHome) btnHome.addEventListener("click", goHomeReset_);
@@ -657,24 +717,26 @@ function bindV391ToolbarActions_() {
 Boot
 =========================== */
 function bootV391_() {
-  // Inject toolbar if missing
+  // 1) inject toolbar
   ensureV391Toolbar_();
 
-  // Bind actions
+  // 2) bind
   bindV391ToolbarActions_();
   bindAdminLongPress_();
 
-  // Init input with current URL id if present
+  // 3) apply default classes so UI not blank
+  applyBodyClasses_();
+
+  // 4) init with url id
   const idFromUrl = getCardIdFromUrl_();
   const inputEl = $("v391Input");
   if (inputEl && idFromUrl) inputEl.value = idFromUrl;
 
-  // First render: url id -> default
   const initial = idFromUrl || CONFIG.DEFAULT_ID;
   setUrlParams_({ id: initial });
   __currentId = initial;
 
-  // Load
+  // 5) first render
   previewFromInput_();
 
   log_("boot ok", { version: CONFIG.VERSION, initial });
@@ -682,6 +744,5 @@ function bootV391_() {
 
 document.addEventListener("DOMContentLoaded", () => bootV391_(), { once: true });
 window.addEventListener("load", () => {
-  // safety: if DOMContentLoaded missed
   if (!__currentId) bootV391_();
 });
