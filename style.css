@@ -1,7 +1,8 @@
-/************************************************
- * 幸福智慧名片｜style.css（v392 FULL OVERWRITE）
- * v392：配合 SW 防舊快取（視覺維持 v391）
- ************************************************/
+/* ================================
+ * 幸福智慧名片｜style.css（v393FULL OVERWRITE）
+ * Base: your V387.4
+ * Fix: ensure facade top + sample card visible
+ * ================================ */
 
 :root{
   --font: 'Noto Sans TC', sans-serif;
@@ -40,16 +41,16 @@
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
+
 body{
   margin:0;
   padding-bottom:40px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
   background:var(--bg);
   font-family:var(--font);
   color:var(--text);
   transition: 0.45s;
+  /* ✅ 保險：避免 flex 造成樣品區被擠掉/不顯示 */
+  display:block;
 }
 
 /* ================= 控制面板（門面） ================= */
@@ -59,7 +60,16 @@ body{
   text-align:center;
   border-bottom:1px solid #eee;
   padding:14px 0 16px;
-  z-index:100;
+  z-index:1000;
+  /* ✅ 保險：門面固定在上面，但不遮樣品 */
+  position: sticky;
+  top: 0;
+}
+
+/* 中央容器（讓樣品區回到正中） */
+#card-container{
+  display:block;           /* ✅ 保險：防止被其他樣式覆蓋成 none */
+  margin: 16px auto 8px;
 }
 
 .dots-row{
@@ -79,8 +89,6 @@ body{
   box-shadow: 0 3px 8px rgba(0,0,0,0.08);
   transition: 0.2s;
 }
-
-/* active 統一 */
 .dot.active, .p-dot.active,
 .active{
   border-color:#2d3436 !important;
@@ -102,18 +110,14 @@ body{
     inset 0 -2px 0 rgba(0,0,0,0.06);
   transition: transform .18s, box-shadow .18s, filter .18s;
 }
-
 .btn-neo.pill{ min-width: 156px; }
-
 .btn-neo:hover{ transform: translateY(-1px); }
 .btn-neo:active{ transform: translateY(1px) scale(0.99); }
-
 .btn-neo.active{
   outline: 2px solid rgba(0,0,0,0.12);
   filter: saturate(1.02);
   animation: breatheNeo 1.65s ease-in-out infinite;
 }
-
 @keyframes breatheNeo{
   0%,100%{ box-shadow:
     0 10px 22px rgba(0,0,0,0.10),
@@ -125,7 +129,7 @@ body{
     inset 0 -2px 0 rgba(0,0,0,0.05); }
 }
 
-/* CTA（門面大按鈕） */
+/* CTA */
 .btn-cta{
   background: var(--p);
   color:#fff;
@@ -150,7 +154,6 @@ body{
   border-radius: var(--radius-card);
   overflow:hidden;
   position:relative;
-  margin: 15px 0;
   box-shadow: var(--shadow);
   transition: 0.45s;
 }
@@ -169,8 +172,6 @@ body{
   bottom:-1px;
   transition:0.3s;
 }
-
-/* 版型 */
 .style-arch .dynamic-mask{ background:#fff; height:45px; border-radius:60px 60px 0 0; }
 .style-flat .dynamic-mask{ background:#fff; height:10px; border-radius:0; }
 .style-spot .dynamic-mask{
@@ -187,7 +188,6 @@ body{
 .mode-premium .card{
   width:86%;
   height:580px;
-  margin: 26px auto;
   box-shadow: 0 25px 50px rgba(0,0,0,0.12);
   border: 12px solid rgba(255,255,255,0.92);
   backdrop-filter: blur(25px);
@@ -195,7 +195,7 @@ body{
 .mode-premium .banner,
 .mode-premium .dynamic-mask{ display:none !important; }
 
-/* 頭像區 */
+/* 頭像 */
 .avatar-wrap{
   position:absolute;
   width:100%;
@@ -236,16 +236,12 @@ body{
   object-fit:cover;
 }
 
-/* 內容區 */
+/* 內容 */
 .info-scroll{ transition:0.4s; overflow:auto; height:100%; }
 .mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
 .mode-premium .info-scroll{ padding: 102px 22px 22px; text-align:left; }
 
-.name{
-  margin: 0 0 6px;
-  font-weight: 900;
-  letter-spacing: 0.5px;
-}
+.name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; }
 .mode-premium .name{
   margin-top: 8px;
   color: rgba(255,255,255,0.96);
@@ -253,15 +249,10 @@ body{
 }
 .mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
 
-.unit{
-  font-weight: 900;
-  opacity: 0.86;
-  margin-bottom: 12px;
-}
+.unit{ font-weight: 900; opacity: 0.86; margin-bottom: 12px; }
 .mode-premium .unit{ color: rgba(255,255,255,0.88); }
 .mode-premium.p6 .unit{ color: rgba(52,34,0,0.82); }
 
-/* 內容盒 */
 .content-box{
   background: var(--soft2);
   border-radius: var(--radius-box);
@@ -282,6 +273,8 @@ body{
   color: rgba(52,34,0,0.92);
 }
 
+.box-title{ font-weight: 900; margin-bottom: 8px; opacity: 0.92; }
+
 /* 質感層 */
 .premium-fx-layer{
   position:absolute;
@@ -301,6 +294,7 @@ body{
   mix-blend-mode: multiply;
 }
 
+/* 版本字（長按進後台） */
 .version-tag{
   font-size:10px;
   opacity:0.3;
@@ -308,46 +302,5 @@ body{
   bottom: 15px;
   right: 25px;
   font-family: monospace;
-}
-
-/* ========== v392 工具列（由 app.js 注入） ========== */
-.v391-top{ padding: 0 12px 8px; }
-
-#v392Toolbar{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-wrap:wrap;
-  gap:10px;
-  margin: 6px auto 4px;
-}
-
-#v392Input{
-  flex: 1 1 240px;
-  min-width: 220px;
-  max-width: 520px;
-  padding: 11px 12px;
-  border-radius: 18px;
-  border: 2px solid rgba(0,0,0,0.08);
-  background: #fff;
-  color: #2d3436;
-  font-weight: 900;
-  outline: none;
-  box-shadow: 0 10px 22px rgba(0,0,0,0.06);
-}
-
-#v392Input::placeholder{
-  color: rgba(45,52,54,0.55);
-  font-weight: 800;
-}
-
-#v392Hint{
-  flex: 1 1 100%;
-  font-size: 12px;
-  opacity: .72;
-  margin-top: 2px;
-}
-
-@media (max-width:420px){
-  #v392Input{ min-width: 190px; }
+  user-select:none;
 }
