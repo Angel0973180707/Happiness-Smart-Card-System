@@ -1,28 +1,28 @@
 /* ================================
  * Angel Card App.js (FULL OVERWRITE)
- * - Step flow: choose plan first, then branch controls
- * - Contact block: LINE / website / phone / email / address
- * - Gallery: dynamic aspect ratio + contain (no crop) + click open original
- * - Keep: no custom headers (avoid CORS preflight)
- * - Keep: robust key normalization + image fallback chain + auto-detect photos
+ * - FIX: remove custom headers to avoid CORS preflight
+ * - FIX: robust key normalization + mobile re-apply
+ * - FIX: image fallback chain
+ * - NEW: Step1 choose plan (free/premium) -> UI split
+ * - NEW: Photo thumbnails grid (contain) + click to open original (lightbox)
+ * - NEW: Contact section injected into card (LINE/WEB/PHONE/EMAIL/SOCIAL)
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
   DEFAULT_ID: "TW0001",
+
   FETCH_TIMEOUT_MS: 10000,
   RETRY: 2,
 
-  GALLERY_AUTOPLAY_MS: 3200,
-  GALLERY_MAX: 5,
+  // gallery
+  GALLERY_MAX: 12,           // ✅ 照片牆最多抓幾張（你可調）
+  THUMB_MIN_COL: 3,          // ✅ 手機最少 3 欄
+  THUMB_MAX_COL: 4,          // ✅ 寬一點可到 4 欄
 
-  DOM_WAIT_MS: 2400,
+  DOM_WAIT_MS: 2600,
   DOM_POLL_MS: 80,
-
-  GALLERY_MIN_RATIO: 1 / 1.6,
-  GALLERY_MAX_RATIO: 1.9,
-  GALLERY_MAX_WIDTH: 520,
 
   DEBUG: true
 };
@@ -34,17 +34,15 @@ let __payload = null;
 
 let __gallery = {
   list: [],
-  index: 0,
-  timer: null,
-  inited: false,
-  lastMode: null,
-  lastShownUrl: ""
+  inited: false
 };
 
 let __lastLoad = { id: "", ts: 0, url: "" };
 
 /* --------------------------- */
 function $(id) { return document.getElementById(id); }
+function q(sel, root = document) { return root.querySelector(sel); }
+function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
 function log_() { if (CONFIG.DEBUG) console.log("[AngelCard]", ...arguments); }
 function warn_() { if (CONFIG.DEBUG) console.warn("[AngelCard]", ...arguments); }
@@ -56,7 +54,7 @@ function setText(id, v) {
   el.textContent = text(v);
   return true;
 }
-function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function nowIso_() { try { return new Date().toISOString(); } catch { return String(Date.now()); } }
 
 /* --------------------------- */
@@ -70,50 +68,7 @@ function getCardId() {
 }
 
 /* ---------------------------
- * ✅ Step flow: plan branching UI
- * --------------------------- */
-function syncPlanUi_() {
-  const rowFree = $("rowFreeDots");
-  const rowPremium = $("rowPremiumDots");
-  const freeControls = $("free-controls");
-  const btnFree = $("btnPlanFree");
-  const btnPremium = $("btnPlanPremium");
-
-  const isFree = state.mode === "free";
-
-  if (rowFree) rowFree.style.display = isFree ? "flex" : "none";
-  if (rowPremium) rowPremium.style.display = isFree ? "none" : "flex";
-  if (freeControls) freeControls.style.display = isFree ? "block" : "none";
-
-  if (btnFree) btnFree.style.opacity = isFree ? "1" : ".55";
-  if (btnPremium) btnPremium.style.opacity = isFree ? ".55" : "1";
-}
-
-window.setPlan = function(mode){
-  const m = (mode === "premium") ? "premium" : "free";
-  state.mode = m;
-
-  // default theme when switching
-  if (m === "free") state.theme = state.theme && state.theme.startsWith("color-") ? state.theme : "color-1";
-  if (m === "premium") state.theme = state.theme && state.theme.startsWith("p") ? state.theme : "p1";
-
-  // clear active dots then re-activate a reasonable one
-  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
-  if (m === "free") {
-    const first = document.querySelector(".dot");
-    if (first) first.classList.add("active");
-  } else {
-    const first = document.querySelector(".p-dot");
-    if (first) first.classList.add("active");
-  }
-
-  applyV382();
-  syncPlanUi_();
-  refreshGalleryMode_();
-};
-
-/* ---------------------------
- * Keep existing switching system
+ * Existing switching system
  * --------------------------- */
 window.setV382 = function (mode, theme, el) {
   state.mode = mode;
@@ -123,8 +78,8 @@ window.setV382 = function (mode, theme, el) {
   if (el) el.classList.add("active");
 
   applyV382();
-  syncPlanUi_();
-  refreshGalleryMode_();
+  applyPlanSplitUi_();     // ✅ NEW: 分流 UI
+  updatePlanButtonsActive_();
 };
 
 window.setV382Style = function (style, el) {
@@ -147,6 +102,9 @@ window.setV382Paper = function (paper, el) {
 
 function applyV382() {
   const isFree = state.mode === "free";
+  const controlPanel = $("free-controls");
+  if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
+
   const classList = [
     `mode-${state.mode}`,
     state.theme,
@@ -177,7 +135,7 @@ function coreUiReady_() {
 }
 
 /* ---------------------------
- * Fetch (NO custom headers)
+ * Fetch (NO custom headers => avoid CORS preflight)
  * --------------------------- */
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
@@ -209,7 +167,7 @@ async function fetchWithTimeout(url, timeoutMs) {
     try {
       return JSON.parse(body);
     } catch {
-      const m = body.match(/(\{[\s\S]*\}|[\s\S]*)/);
+      const m = body.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
       if (m) return JSON.parse(m[1]);
       throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
     }
@@ -350,7 +308,7 @@ function buildImageCandidates_(raw) {
   return [normalizeImageUrl(original)];
 }
 
-function setImgWithFallback_(imgEl, candidates, onLoaded) {
+function setImgWithFallback_(imgEl, candidates) {
   if (!imgEl) return;
   const list = (candidates || []).map(text).filter(Boolean);
   if (!list.length) {
@@ -382,7 +340,6 @@ function setImgWithFallback_(imgEl, candidates, onLoaded) {
   imgEl.onload = () => {
     if (imgEl.dataset.loadToken !== token) return;
     requestAnimationFrame(() => (imgEl.style.opacity = "1"));
-    try { onLoaded && onLoaded(imgEl); } catch {}
   };
   imgEl.onerror = () => {
     if (imgEl.dataset.loadToken !== token) return;
@@ -409,7 +366,7 @@ function setAvatarImage(url) {
 }
 
 /* ---------------------------
- * Photos parsing + AUTO DETECT
+ * Photos parsing + auto detect
  * --------------------------- */
 function splitLinks_(v) {
   if (v == null) return [];
@@ -426,7 +383,7 @@ function autoDetectPhotos_(payload) {
   const keys = Object.keys(payload).filter(k => k && !k.startsWith("__"));
   for (const k of keys) {
     const kk = String(k);
-    if (!/(照片|相片|作品|圖|照)/.test(kk)) continue;
+    if (!/(照片|相片|作品|圖|照|photo|image|img)/i.test(kk)) continue;
 
     const v = payload[k];
     const parts = splitLinks_(v);
@@ -461,176 +418,570 @@ function getPhotosArray_(payload) {
     .filter(Boolean);
 
   const auto = base.length ? [] : autoDetectPhotos_(payload);
-
   return (base.length ? base : auto).slice(0, CONFIG.GALLERY_MAX);
 }
 
-/* ---------------------------
- * Gallery DOM (dynamic ratio + contain + click open original)
- * --------------------------- */
-function clamp_(n, a, b){ return Math.max(a, Math.min(b, n)); }
+/* ===========================
+ * NEW: Plan selector UI
+ * =========================== */
+function ensurePlanSelectorUi_() {
+  const panel = $("admin-panel");
+  if (!panel) return;
 
-function setGalleryRatio_(ratio) {
-  const box = $("galleryBox");
-  if (!box) return;
-  const r = clamp_(ratio || (16/9), CONFIG.GALLERY_MIN_RATIO, CONFIG.GALLERY_MAX_RATIO);
-  box.style.aspectRatio = String(r);
+  if ($("plan-selector")) return;
+
+  const wrap = document.createElement("div");
+  wrap.id = "plan-selector";
+  wrap.style.display = "flex";
+  wrap.style.justifyContent = "center";
+  wrap.style.gap = "10px";
+  wrap.style.padding = "10px 12px 4px";
+  wrap.style.flexWrap = "wrap";
+
+  const btnFree = document.createElement("button");
+  btnFree.id = "btnPlanFree";
+  btnFree.type = "button";
+  btnFree.textContent = "先選方案：自由搭配款";
+  btnFree.className = "btn-neo";
+  btnFree.style.borderRadius = "999px";
+  btnFree.style.fontWeight = "900";
+
+  const btnPremium = document.createElement("button");
+  btnPremium.id = "btnPlanPremium";
+  btnPremium.type = "button";
+  btnPremium.textContent = "精品設計款";
+  btnPremium.className = "btn-neo";
+  btnPremium.style.borderRadius = "999px";
+  btnPremium.style.fontWeight = "900";
+
+  btnFree.addEventListener("click", () => {
+    // 保留當前自由色或回預設
+    state.mode = "free";
+    if (!state.theme || !String(state.theme).startsWith("color-")) state.theme = "color-1";
+    applyV382();
+    applyPlanSplitUi_();
+    updatePlanButtonsActive_();
+    // ✅ 自動讓使用者看到下一步
+    try { $("free-controls")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch {}
+  });
+
+  btnPremium.addEventListener("click", () => {
+    state.mode = "premium";
+    if (!state.theme || !String(state.theme).startsWith("p")) state.theme = "p1";
+    applyV382();
+    applyPlanSplitUi_();
+    updatePlanButtonsActive_();
+  });
+
+  wrap.appendChild(btnFree);
+  wrap.appendChild(btnPremium);
+
+  // 插在 panel 最上方
+  panel.insertBefore(wrap, panel.firstChild);
+  updatePlanButtonsActive_();
 }
 
-function openUrlNewTab_(url) {
-  const u = text(url);
-  if (!u) return;
-  try { window.open(u, "_blank", "noopener,noreferrer"); } catch { window.open(u, "_blank"); }
+function updatePlanButtonsActive_() {
+  const a = $("btnPlanFree");
+  const b = $("btnPlanPremium");
+  if (!a || !b) return;
+
+  if (state.mode === "free") {
+    a.classList.add("active");
+    b.classList.remove("active");
+  } else {
+    b.classList.add("active");
+    a.classList.remove("active");
+  }
 }
 
-function ensureGalleryDom_() {
+function applyPlanSplitUi_() {
+  const panel = $("admin-panel");
+  if (!panel) return;
+
+  // 依你 index.html：第1個 dots-row = 自由色；第2個 dots-row = 精品色
+  const rows = qa(".dots-row", panel);
+  const freeDotsRow = rows[0] || null;
+  const premiumDotsRow = rows[1] || null;
+
+  const freeControls = $("free-controls");
+
+  const isFree = state.mode === "free";
+
+  if (freeDotsRow) freeDotsRow.style.display = isFree ? "flex" : "none";
+  if (premiumDotsRow) premiumDotsRow.style.display = isFree ? "none" : "flex";
+  if (freeControls) freeControls.style.display = isFree ? "block" : "none";
+
+  // CTA 區不用動，保持一直可見（你要）
+}
+
+/* ===========================
+ * NEW: Lightbox (view original)
+ * =========================== */
+function ensureLightbox_() {
+  if ($("imgLightbox")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "imgLightbox";
+  overlay.style.position = "fixed";
+  overlay.style.inset = "0";
+  overlay.style.background = "rgba(0,0,0,0.72)";
+  overlay.style.display = "none";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.padding = "18px";
+  overlay.style.zIndex = "10000";
+
+  const img = document.createElement("img");
+  img.id = "imgLightboxImg";
+  img.alt = "原圖";
+  img.style.maxWidth = "95vw";
+  img.style.maxHeight = "92vh";
+  img.style.objectFit = "contain";
+  img.style.borderRadius = "14px";
+  img.style.boxShadow = "0 18px 60px rgba(0,0,0,0.35)";
+  img.style.background = "rgba(255,255,255,0.06)";
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "關閉");
+  close.style.position = "fixed";
+  close.style.top = "14px";
+  close.style.right = "14px";
+  close.style.width = "44px";
+  close.style.height = "44px";
+  close.style.borderRadius = "12px";
+  close.style.border = "none";
+  close.style.background = "rgba(255,255,255,0.15)";
+  close.style.color = "#fff";
+  close.style.fontSize = "28px";
+  close.style.cursor = "pointer";
+
+  overlay.appendChild(img);
+  overlay.appendChild(close);
+  document.body.appendChild(overlay);
+
+  const hide = () => {
+    overlay.style.display = "none";
+    img.removeAttribute("src");
+  };
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) hide();
+  });
+  close.addEventListener("click", hide);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && overlay.style.display === "flex") hide();
+  });
+}
+
+function openLightbox_(url) {
+  ensureLightbox_();
+  const overlay = $("imgLightbox");
+  const img = $("imgLightboxImg");
+  if (!overlay || !img) return;
+
+  overlay.style.display = "flex";
+  // 原圖：用候選串避免部分平台縮圖
+  const cands = buildImageCandidates_(url);
+  setImgWithFallback_(img, cands.length ? cands : [url]);
+}
+
+/* ===========================
+ * NEW: Photo thumbnails grid (contain)
+ * =========================== */
+function ensurePhotoWallDom_() {
   if (__gallery.inited) return;
 
   const card = $("card-container");
   if (!card) return;
 
-  const wrap = document.createElement("div");
-  wrap.id = "photoGallery";
-  wrap.setAttribute("aria-label", "產品照片預覽");
+  // 插在 version-tag 前（你原本插 gallery 的位置）
+  const vtag = card.querySelector(".version-tag");
+
+  const wrap = document.createElement("section");
+  wrap.id = "photoWall";
+  wrap.setAttribute("aria-label", "多張照片預覽");
   wrap.style.margin = "12px auto 0";
-  wrap.style.width = `min(92vw, ${CONFIG.GALLERY_MAX_WIDTH}px)`;
+  wrap.style.width = "min(92vw, 520px)";
   wrap.style.borderRadius = "18px";
   wrap.style.overflow = "hidden";
   wrap.style.boxShadow = "0 10px 30px rgba(0,0,0,.08)";
-  wrap.style.position = "relative";
   wrap.style.background = "rgba(255,255,255,.35)";
   wrap.style.backdropFilter = "blur(6px)";
+  wrap.style.display = "none";
 
-  const box = document.createElement("div");
-  box.id = "galleryBox";
-  box.style.width = "100%";
-  box.style.aspectRatio = "16 / 9";
-  box.style.position = "relative";
-  box.style.background = "rgba(0,0,0,.03)";
+  const title = document.createElement("div");
+  title.textContent = "照片作品（點一下看原圖）";
+  title.style.fontWeight = "900";
+  title.style.fontSize = "14px";
+  title.style.padding = "12px 12px 8px";
+  title.style.opacity = "0.85";
 
-  const img = document.createElement("img");
-  img.id = "galleryImg";
-  img.alt = "產品照";
-  img.loading = "lazy";
-  img.decoding = "async";
-  img.referrerPolicy = "no-referrer";
-  img.style.position = "absolute";
-  img.style.inset = "0";
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.objectFit = "contain";   /* ✅ 等比例縮小看全貌 */
-  img.style.objectPosition = "center";
-  img.style.opacity = "0";
-  img.style.transition = "opacity 520ms ease";
-  img.style.cursor = "zoom-in";
+  const grid = document.createElement("div");
+  grid.id = "photoWallGrid";
+  grid.style.display = "grid";
+  grid.style.gap = "8px";
+  grid.style.padding = "10px 12px 14px";
+  grid.style.gridTemplateColumns = `repeat(${CONFIG.THUMB_MIN_COL}, 1fr)`;
 
-  img.addEventListener("click", () => {
-    const u = __gallery.lastShownUrl || (__gallery.list[__gallery.index] || "");
-    openUrlNewTab_(u);               /* ✅ 點進去看原圖 */
-  });
+  wrap.appendChild(title);
+  wrap.appendChild(grid);
 
-  box.appendChild(img);
+  if (vtag && vtag.parentElement) {
+    vtag.parentElement.insertBefore(wrap, vtag);
+  } else {
+    card.appendChild(wrap);
+  }
 
-  const dots = document.createElement("div");
-  dots.id = "galleryDots";
-  dots.style.position = "absolute";
-  dots.style.left = "50%";
-  dots.style.bottom = "10px";
-  dots.style.transform = "translateX(-50%)";
-  dots.style.display = "flex";
-  dots.style.gap = "6px";
-  dots.style.padding = "6px 10px";
-  dots.style.borderRadius = "999px";
-  dots.style.background = "rgba(255,255,255,.55)";
-  dots.style.backdropFilter = "blur(6px)";
-  dots.style.pointerEvents = "none";
-
-  box.appendChild(dots);
-  wrap.appendChild(box);
-
-  const vtag = card.querySelector(".version-tag");
-  if (vtag && vtag.parentElement === card) card.insertBefore(wrap, vtag);
-  else card.appendChild(wrap);
-
-  let startX = 0, startY = 0, moved = false;
-
-  wrap.addEventListener("touchstart", (e) => {
-    if (!e.touches || !e.touches[0]) return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    moved = false;
-  }, { passive: true });
-
-  wrap.addEventListener("touchmove", (e) => {
-    if (!e.touches || !e.touches[0]) return;
-    const dx = e.touches[0].clientX - startX;
-    const dy = e.touches[0].clientY - startY;
-    if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) moved = true;
-  }, { passive: true });
-
-  wrap.addEventListener("touchend", (e) => {
-    if (state.mode !== "free") return;
-    if (!moved) return;
-    const end = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
-    if (!end) return;
-    const dx = end.clientX - startX;
-    if (Math.abs(dx) < 28) return;
-    if (dx < 0) galleryNext_();
-    else galleryPrev_();
-  });
+  // 依寬度調欄數
+  const setCols = () => {
+    const w = Math.min(window.innerWidth, 520);
+    const cols = w >= 420 ? CONFIG.THUMB_MAX_COL : CONFIG.THUMB_MIN_COL;
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  };
+  setCols();
+  window.addEventListener("resize", setCols);
 
   __gallery.inited = true;
-  __gallery.lastMode = state.mode;
 }
 
-function renderGalleryDots_(count) {
-  const dots = $("galleryDots");
-  if (!dots) return;
-  dots.innerHTML = "";
-  if (count <= 1) {
-    dots.style.display = "none";
+function renderPhotoWall_(urls) {
+  ensurePhotoWallDom_();
+  const wrap = $("photoWall");
+  const grid = $("photoWallGrid");
+  if (!wrap || !grid) return;
+
+  const list = (urls || []).map(text).filter(Boolean);
+
+  if (!list.length) {
+    wrap.style.display = "none";
+    grid.innerHTML = "";
     return;
   }
-  dots.style.display = "flex";
-  for (let i = 0; i < count; i++) {
-    const d = document.createElement("span");
-    d.style.width = "7px";
-    d.style.height = "7px";
-    d.style.borderRadius = "999px";
-    d.style.background = (i === __gallery.index) ? "rgba(0,0,0,.55)" : "rgba(0,0,0,.18)";
-    dots.appendChild(d);
-  }
-}
 
-function setGalleryImage_(url) {
-  const img = $("galleryImg");
-  if (!img) return;
+  wrap.style.display = "block";
+  grid.innerHTML = "";
 
-  const candidates = buildImageCandidates_(url);
-  if (!candidates.length) {
-    img.removeAttribute("src");
+  for (const u of list) {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.style.border = "none";
+    item.style.padding = "0";
+    item.style.background = "rgba(255,255,255,0.22)";
+    item.style.borderRadius = "12px";
+    item.style.overflow = "hidden";
+    item.style.cursor = "pointer";
+    item.style.position = "relative";
+    item.style.aspectRatio = "1 / 1"; // ✅ 縮圖框：正方形，圖用 contain 看到全貌
+    item.setAttribute("aria-label", "點擊查看原圖");
+
+    const img = document.createElement("img");
+    img.alt = "縮圖";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+    img.style.position = "absolute";
+    img.style.inset = "0";
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "contain";     // ✅ 不裁切：看到全貌
+    img.style.background = "rgba(0,0,0,0.03)";
     img.style.opacity = "0";
-    return;
+    img.style.transition = "opacity 320ms ease";
+
+    setImgWithFallback_(img, buildImageCandidates_(u));
+
+    item.addEventListener("click", () => openLightbox_(u));
+
+    item.appendChild(img);
+    grid.appendChild(item);
+  }
+}
+
+/* ===========================
+ * NEW: Contact section
+ * =========================== */
+function normalizeTel_(v) {
+  const s = text(v);
+  if (!s) return "";
+  return s.replace(/[^\d+]/g, "");
+}
+function normalizeEmail_(v) {
+  const s = text(v);
+  if (!s) return "";
+  return s.replace(/\s+/g, "");
+}
+function normalizeUrl_(v) {
+  const s = text(v);
+  if (!s) return "";
+  if (/^https?:\/\//i.test(s)) return s;
+  // 允許只填 domain
+  return "https://" + s;
+}
+function makeBtn_(label, onClick) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "btn-cta mini";
+  b.textContent = label;
+  b.style.marginTop = "8px";
+  b.addEventListener("click", onClick);
+  return b;
+}
+function makeMiniLink_(label, url) {
+  const a = document.createElement("a");
+  a.textContent = label;
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  a.style.display = "inline-block";
+  a.style.padding = "8px 10px";
+  a.style.borderRadius = "999px";
+  a.style.background = "rgba(0,0,0,0.04)";
+  a.style.fontWeight = "800";
+  a.style.fontSize = "13px";
+  a.style.textDecoration = "none";
+  a.style.color = "inherit";
+  return a;
+}
+
+function ensureContactDom_() {
+  const scroll = q(".info-scroll");
+  if (!scroll) return null;
+  if ($("contactBox")) return $("contactBox");
+
+  const box = document.createElement("div");
+  box.id = "contactBox";
+  box.className = "content-box";
+
+  const h = document.createElement("div");
+  h.textContent = "聯繫方式";
+  h.style.fontWeight = "900";
+  h.style.marginBottom = "8px";
+
+  const main = document.createElement("div");
+  main.id = "contactMain";
+  main.style.display = "flex";
+  main.style.gap = "10px";
+  main.style.flexWrap = "wrap";
+
+  const sub = document.createElement("div");
+  sub.id = "contactSub";
+  sub.style.marginTop = "10px";
+  sub.style.display = "flex";
+  sub.style.gap = "8px";
+  sub.style.flexWrap = "wrap";
+
+  box.appendChild(h);
+  box.appendChild(main);
+  box.appendChild(sub);
+
+  // 插在「服務項目」盒子後面（比較合理）
+  const serviceBox = scroll.querySelector("#u-service")?.closest(".content-box");
+  if (serviceBox && serviceBox.nextSibling) {
+    scroll.insertBefore(box, serviceBox.nextSibling);
+  } else {
+    scroll.appendChild(box);
   }
 
-  __gallery.lastShownUrl = normalizeImageUrl(url);
-
-  img.style.opacity = "0";
-  setImgWithFallback_(img, candidates, (loadedImg) => {
-    const w = loadedImg.naturalWidth || 0;
-    const h = loadedImg.naturalHeight || 0;
-    if (w > 0 && h > 0) setGalleryRatio_(w / h);   /* ✅ 動態平衡容器比例 */
-  });
+  return box;
 }
 
-function galleryNext_() {
-  if (!__gallery.list.length) return;
-  __gallery.index = (__gallery.index + 1) % __gallery.list.length;
-  setGalleryImage_(__gallery.list[__gallery.index]);
-  renderGalleryDots_(__gallery.list.length);
+function renderContacts_(payloadNorm) {
+  const box = ensureContactDom_();
+  if (!box) return;
+
+  const main = $("contactMain");
+  const sub = $("contactSub");
+  if (!main || !sub) return;
+
+  main.innerHTML = "";
+  sub.innerHTML = "";
+
+  // 常見欄位：你表單/試算表不一定叫這些，所以用 pick 多抓幾種
+  const line = pick(payloadNorm, ["LINE 官方帳號", "line_oa", "line", "LINE", "Line"]);
+  const wechat = pick(payloadNorm, ["微信", "wechat", "WeChat"]);
+  const web = pick(payloadNorm, ["官網", "網站", "website", "web", "url", "網址"]);
+  const phone = pick(payloadNorm, ["電話", "手機", "phone", "tel", "mobile"]);
+  const email = pick(payloadNorm, ["Email", "email", "信箱", "e-mail"]);
+  const youtube = pick(payloadNorm, ["YouTube", "youtube"]);
+  const ig = pick(payloadNorm, ["IG", "Instagram", "instagram", "insta"]);
+  const fb = pick(payloadNorm, ["FB", "Facebook", "facebook"]);
+
+  // 主行為（大按鈕）：LINE / 官網 / 預約
+  if (line) {
+    const u = normalizeUrl_(line);
+    main.appendChild(makeBtn_("加 LINE 官方帳號", () => window.open(u, "_blank")));
+  }
+  if (wechat) {
+    // 微信如果不是網址，先用複製比較穩
+    const w = text(wechat);
+    const b = makeBtn_("微信聯繫", async () => {
+      try {
+        await navigator.clipboard.writeText(w);
+        alert("已複製微信資訊：" + w);
+      } catch {
+        prompt("請複製微信資訊：", w);
+      }
+    });
+    main.appendChild(b);
+  }
+  if (web) {
+    const u = normalizeUrl_(web);
+    main.appendChild(makeBtn_("前往官網 / 預約", () => window.open(u, "_blank")));
+  }
+
+  // 固定保留：填表
+  main.appendChild(makeBtn_("填寫預約表單", () => window.open(CONFIG.FORM, "_blank")));
+
+  // 次要資訊：電話/Email/社群（小膠囊）
+  if (phone) {
+    const t = normalizeTel_(phone);
+    if (t) sub.appendChild(makeMiniLink_("電話：" + t, "tel:" + t));
+  }
+  if (email) {
+    const e = normalizeEmail_(email);
+    if (e) sub.appendChild(makeMiniLink_("Email：" + e, "mailto:" + e));
+  }
+  if (youtube) {
+    sub.appendChild(makeMiniLink_("YouTube", normalizeUrl_(youtube)));
+  }
+  if (ig) {
+    sub.appendChild(makeMiniLink_("IG", normalizeUrl_(ig)));
+  }
+  if (fb) {
+    sub.appendChild(makeMiniLink_("FB", normalizeUrl_(fb)));
+  }
+
+  // 如果真的什麼都沒有，避免空白
+  if (!main.children.length && !sub.children.length) {
+    const note = document.createElement("div");
+    note.style.opacity = "0.75";
+    note.style.fontSize = "13px";
+    note.textContent = "（尚未提供聯繫方式）";
+    main.appendChild(note);
+  }
 }
-function galleryPrev_() {
-  if (!__gallery.list.length) return;
-  __gallery.index = (__gallery.index - 1 + __gallery.list.length) % __gallery.list.length;
-  setGalleryImage_(__gallery.list[__gallery.index]);
-  renderGalleryDots_
+
+/* ---------------------------
+ * Apply data to card
+ * --------------------------- */
+function applyDataToCard(payloadNorm) {
+  const name = pick(payloadNorm, ["姓名（名片大標題）", "姓名", "name", "Name"]);
+  const unit = pick(payloadNorm, ["單位名稱（如：幸福教養概念館）", "單位名稱", "單位", "unit", "Unit"]);
+  const service = pick(payloadNorm, ["服務項目（核心業務，多項可條列換行）", "服務項目", "service", "Service"]);
+
+  setText("u-name", name || "（尚未讀到姓名）");
+  setText("u-unit", unit || "");
+  setText("u-service", service || "");
+
+  const avatar = pick(payloadNorm, ["avatar_img", "個人照_fast", "個人照", "形象照", "avatar", "photo", "image"]);
+  setAvatarImage(avatar);
+
+  // ✅ 多照片：縮圖牆 + 點看原圖
+  const photos = getPhotosArray_(payloadNorm);
+  __gallery.list = photos;
+  renderPhotoWall_(photos);
+
+  // ✅ 聯繫區：注入
+  renderContacts_(payloadNorm);
+}
+
+/* --------------------------- */
+window.openOrderHelp = function () {
+  const modal = $("orderHelpModal");
+  if (!modal) return;
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+};
+window.closeOrderHelp = function () {
+  const modal = $("orderHelpModal");
+  if (!modal) return;
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+};
+document.addEventListener("click", (e) => {
+  const modal = $("orderHelpModal");
+  if (!modal) return;
+  if (e.target === modal) window.closeOrderHelp();
+});
+
+/* --------------------------- */
+function setLoadingUi_() {
+  setText("u-name", "載入中...");
+  setText("u-unit", "同步中...");
+  setText("u-service", "正在同步雲端服務項目...");
+}
+function setFailUi_(msg) {
+  setText("u-name", "（同步失敗）");
+  setText("u-unit", msg || "請確認網址 ?id=TW000X 或檢查 GAS 權限");
+  setText("u-service", "");
+  setAvatarImage("");
+
+  // 清掉照片牆/聯繫
+  $("photoWall") && ($("photoWall").style.display = "none");
+  $("photoWallGrid") && ($("photoWallGrid").innerHTML = "");
+  $("contactMain") && ($("contactMain").innerHTML = "");
+  $("contactSub") && ($("contactSub").innerHTML = "");
+}
+
+async function loadData() {
+  const id = getCardId();
+  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+  __lastLoad = { id, ts: Date.now(), url };
+
+  await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
+  setLoadingUi_();
+
+  log_("loadData start:", { id, time: nowIso_() });
+
+  try {
+    const data = await fetchJsonRobust(url);
+
+    if (!data || typeof data !== "object") throw new Error("Invalid payload");
+    if (data.ok === false) throw new Error(data.error || "Not found");
+    if (Object.keys(data).length === 0) throw new Error("Empty object");
+
+    __payloadRaw = data;
+    __payload = buildNormalizedPayload_(data);
+
+    applyDataToCard(__payload);
+
+    // mobile 再套一次，避免某些機型 DOM 還在排版
+    await sleep(140);
+    const n = text($("u-name") ? $("u-name").textContent : "");
+    if (!coreUiReady_() || n === "載入中..." || n === "（同步失敗）") {
+      await waitForDom_(["u-name", "u-unit", "u-service"], CONFIG.DOM_WAIT_MS);
+      applyDataToCard(__payload);
+    }
+
+    log_("loadData success:", {
+      id,
+      keys: Object.keys(data).length,
+      photos: (__gallery.list || []).length
+    });
+
+  } catch (e) {
+    err_("雲端同步異常:", e);
+    setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
+  }
+}
+
+/* --------------------------- */
+window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
+
+function boot_() {
+  try { applyV382(); } catch {}
+  try {
+    ensurePlanSelectorUi_();  // ✅ 先選方案按鈕
+    applyPlanSplitUi_();      // ✅ 分流
+  } catch {}
+  try { loadData(); } catch (e) { err_("boot loadData error:", e); }
+}
+
+document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
+window.addEventListener("load", () => {
+  if (!__lastLoad.ts) boot_();
+});
