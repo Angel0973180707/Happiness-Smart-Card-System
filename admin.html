@@ -1,274 +1,125 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>隱形後臺｜Angel Card Admin v388</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>幸福智慧名片｜後台</title>
+  <link rel="stylesheet" href="./style.css?v=389" />
+
   <style>
-    :root{ --bg:#0e1014; --card:#151922; --txt:#e9ecf1; --muted:#9aa3b2; --p:#7dd3fc; --bd:rgba(255,255,255,.10); }
-    *{ box-sizing:border-box; }
-    body{ margin:0; font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif; background:var(--bg); color:var(--txt); }
-    .wrap{ max-width:920px; margin:0 auto; padding:18px 14px 40px; }
-    .top{
-      display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;
+    body {
+      font-family: sans-serif;
+      background: #f5f6fa;
+      padding: 30px 20px;
+      text-align: center;
     }
-    .tag{ font-size:12px; color:var(--muted); opacity:.9; }
-    .panel{
-      background:var(--card); border:1px solid var(--bd); border-radius:16px; padding:14px;
+
+    .admin-box {
+      max-width: 420px;
+      margin: auto;
+      background: white;
+      border-radius: 16px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
     }
-    .row{ display:flex; gap:10px; flex-wrap:wrap; }
-    input{
-      flex:1; min-width:240px;
-      background:#0f1320; border:1px solid var(--bd); border-radius:12px;
-      padding:12px 12px; color:var(--txt); outline:none;
+
+    input {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      margin-bottom: 18px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      text-align: center;
     }
-    button{
-      border:0; border-radius:12px; padding:12px 14px; cursor:pointer; font-weight:800;
-      background:rgba(125,211,252,.18); color:var(--txt);
-      border:1px solid rgba(125,211,252,.25);
+
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 15px;
+      border: none;
+      border-radius: 12px;
+      margin-top: 10px;
+      cursor: pointer;
     }
-    button:active{ transform: translateY(1px); }
-    .hint{ margin-top:10px; color:var(--muted); font-size:13px; line-height:1.5; }
-    .result{
-      margin-top:14px; display:none;
-      background:#0f1320; border:1px solid var(--bd); border-radius:16px; padding:14px;
-    }
-    .person{ display:flex; gap:12px; align-items:center; }
-    .avatar{
-      width:64px; height:64px; border-radius:14px; overflow:hidden;
-      background:rgba(255,255,255,.06); border:1px solid var(--bd);
-      display:flex; align-items:center; justify-content:center;
-    }
-    .avatar img{ width:100%; height:100%; object-fit:cover; }
-    .name{ font-weight:900; font-size:18px; }
-    .sub{ color:var(--muted); font-size:13px; margin-top:2px; }
-    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
-    .btns a{ text-decoration:none; }
-    .btn-strong{ background:rgba(125,211,252,.26); border-color:rgba(125,211,252,.38); }
-    .toast{ margin-top:10px; font-size:13px; color:var(--muted); }
-    .err{ color:#ffb4b4; }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .sep{ height:1px; background:rgba(255,255,255,.08); margin:14px 0; }
-    .small{ font-size:12px; color:var(--muted); }
+
+    .primary { background: #ee5253; color: white; }
+    .ghost   { background: #dfe6e9; }
   </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="top">
-      <div>
-        <div style="font-weight:900;">隱形後臺</div>
-        <div class="tag">長按 footer 1.2 秒進來｜Admin v388</div>
-      </div>
-      <div class="tag mono" id="baseInfo"></div>
-    </div>
 
-    <div class="panel">
-      <div class="row">
-        <input id="q" placeholder="輸入 id（TW0001）或姓名關鍵字" />
-        <button id="btnSearch">搜尋</button>
-        <button id="btnOpenCard" class="btn-strong">開啟目前名片</button>
-      </div>
-      <div class="hint">
-        - 你可以只輸入 <span class="mono">TW000X</span>；或輸入姓名一部分。<br/>
-        - 找到後可一鍵複製：<b>交貨卡</b>（share.html）與<b>名片網址</b>（index.html）。<br/>
-        - 若你的 GAS 尚未做 <span class="mono">action=search</span>，本頁會自動 fallback 用 <span class="mono">action=list</span> 拉回前 200 筆在前端篩。
-      </div>
+  <div class="admin-box">
+    <h2>幸福智慧名片｜後台</h2>
 
-      <div class="result" id="result">
-        <div class="person">
-          <div class="avatar"><img id="img" alt="thumb" /></div>
-          <div>
-            <div class="name" id="name">—</div>
-            <div class="sub">ID：<span class="mono" id="pid">—</span></div>
-          </div>
-        </div>
+    <input id="admin-input" placeholder="輸入序號或姓名" />
 
-        <div class="sep"></div>
+    <button class="primary" onclick="Admin.preview()">成品預覽</button>
+    <button class="ghost" onclick="Admin.goHome()">回首頁</button>
+    <button class="primary" onclick="Admin.delivery()">一鍵交貨</button>
 
-        <div class="btns">
-          <button id="btnCopyShare">複製交貨卡網址</button>
-          <button id="btnCopyCard">複製名片網址</button>
-          <a id="aShare" target="_blank" rel="noopener noreferrer"><button class="btn-strong">開啟交貨卡</button></a>
-          <a id="aCard" target="_blank" rel="noopener noreferrer"><button class="btn-strong">開啟名片</button></a>
-        </div>
-
-        <div class="toast" id="toast"></div>
-      </div>
-
-      <div class="toast small" id="msg"></div>
-    </div>
+    <div id="admin-msg" style="margin-top:15px;color:#999;font-size:13px;"></div>
   </div>
 
-<script>
-  const CONFIG = {
-    GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-    DEFAULT_ID: "TW0001",
-    TIMEOUT: 12000
-  };
+  <script src="./app.js?v=388"></script>
 
-  const $ = (id) => document.getElementById(id);
-  const text = (v) => (v == null ? "" : String(v)).trim();
+  <script>
+    const Admin = {
 
-  function getParam(name){
-    try { return new URLSearchParams(location.search).get(name); } catch { return null; }
-  }
-  function currentId(){
-    return text(getParam("id")) || CONFIG.DEFAULT_ID;
-  }
-  function basePath(){
-    // same folder
-    const u = new URL(location.href);
-    u.pathname = u.pathname.replace(/\/[^\/]*$/, "/");
-    u.search = "";
-    u.hash = "";
-    return u.toString();
-  }
-  function makeCardUrl(id){
-    return basePath() + "index.html?id=" + encodeURIComponent(id);
-  }
-  function makeShareUrl(id){
-    return basePath() + "share.html?id=" + encodeURIComponent(id);
-  }
+      resolveId() {
+        const val = document.getElementById("admin-input").value.trim();
+        if (!val) return null;
 
-  async function fetchJson(url){
-    const ctl = new AbortController();
-    const t = setTimeout(()=>ctl.abort(), CONFIG.TIMEOUT);
-    try{
-      const r = await fetch(url, { cache:"no-store", credentials:"omit", signal:ctl.signal });
-      const txt = await r.text();
-      const body = (txt||"").trim();
-      if(!body) throw new Error("Empty response");
-      try{ return JSON.parse(body); }catch{
-        const m = body.match(/\{[\s\S]*\}/);
-        if(m) return JSON.parse(m[0]);
-        throw new Error("Not JSON");
+        if (val.toUpperCase().startsWith("TW")) return val.toUpperCase();
+
+        return val; // 當姓名處理
+      },
+
+      async preview() {
+        const val = this.resolveId();
+        if (!val) return alert("請輸入資料");
+
+        if (val.startsWith("TW")) {
+          location.href = `./index.html?id=${val}`;
+          return;
+        }
+
+        // 姓名 → 查 GAS
+        try {
+          const res = await fetch(`${CONFIG.GAS}?action=search&name=${val}`);
+          const data = await res.json();
+
+          if (!data.ok || !data.id) {
+            document.getElementById("admin-msg").textContent = "找不到資料";
+            return;
+          }
+
+          location.href = `./index.html?id=${data.id}`;
+
+        } catch (err) {
+          alert("搜尋失敗");
+        }
+      },
+
+      goHome() {
+        location.href = "./index.html";
+      },
+
+      delivery() {
+        const val = this.resolveId();
+        if (!val) return alert("請輸入序號");
+
+        const id = val.startsWith("TW") ? val : null;
+        if (!id) return alert("交貨請輸入序號");
+
+        const link = `${location.origin}/angel-card/share.html?id=${id}`;
+
+        navigator.clipboard.writeText(link);
+        alert("交貨連結已複製");
       }
-    }finally{ clearTimeout(t); }
-  }
+    };
+  </script>
 
-  function normalizeImageUrl(raw){
-    const s = text(raw);
-    if(!s) return "";
-    let url = s.startsWith("http://") ? "https://" + s.slice(7) : s;
-    const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-    if(mFile && mFile[1]) return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(mFile[1]);
-    const mId = url.match(/(?:\?|&)id=([^&]+)/i);
-    if(mId && mId[1]) return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(mId[1]);
-    return url;
-  }
-
-  function showResult(row){
-    $("result").style.display = "block";
-    $("name").textContent = text(row.name || row["姓名"] || "—");
-    $("pid").textContent = text(row.id || row["id"] || "—");
-
-    const img = $("img");
-    const pic = normalizeImageUrl(row.avatar || row["個人照_fast"] || row["個人照"] || "");
-    if(pic){ img.src = pic + (pic.includes("?") ? "&" : "?") + "t=" + Date.now(); }
-    else{ img.removeAttribute("src"); }
-
-    const id = $("pid").textContent;
-    $("aShare").href = makeShareUrl(id);
-    $("aCard").href = makeCardUrl(id);
-
-    $("toast").textContent = "";
-  }
-
-  async function copyText(v){
-    const s = text(v);
-    if(!s) return;
-    try{
-      await navigator.clipboard.writeText(s);
-      $("toast").textContent = "已複製：" + s;
-    }catch{
-      prompt("請複製：", s);
-    }
-  }
-
-  async function trySearch(q){
-    const query = text(q);
-    if(!query) return null;
-
-    // 1) action=card if looks like TW000X
-    if(/^tw\d{4}$/i.test(query)){
-      const url = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(query) + "&ts=" + Date.now();
-      const data = await fetchJson(url);
-      if(data && data.ok !== false){
-        return {
-          id: query.toUpperCase(),
-          name: data["姓名"] || data.name || "",
-          avatar: data["個人照_fast"] || data["個人照"] || ""
-        };
-      }
-    }
-
-    // 2) action=search (if exists)
-    try{
-      const url = CONFIG.GAS + "?action=search&q=" + encodeURIComponent(query) + "&ts=" + Date.now();
-      const data = await fetchJson(url);
-      // expected: {ok:true, rows:[{id,name,avatar...}]} or {rows:[...]}
-      const rows = (data && (data.rows || data.data || data.list)) || [];
-      if(Array.isArray(rows) && rows.length){
-        return rows[0];
-      }
-    }catch{}
-
-    // 3) fallback action=list&limit=200 then filter
-    const listUrl = CONFIG.GAS + "?action=list&limit=200&ts=" + Date.now();
-    const list = await fetchJson(listUrl);
-    const rows = (list && (list.rows || list.data || list.list)) || [];
-    if(!Array.isArray(rows) || !rows.length) return null;
-
-    const key = query.toLowerCase();
-    const hit = rows.find(r => {
-      const id = text(r.id || r["id"] || "").toLowerCase();
-      const name = text(r.name || r["姓名"] || "").toLowerCase();
-      return id.includes(key) || name.includes(key);
-    });
-
-    return hit || null;
-  }
-
-  function setMsg(s, isErr=false){
-    $("msg").textContent = s;
-    $("msg").className = "toast small" + (isErr ? " err" : "");
-  }
-
-  async function doSearch(){
-    setMsg("搜尋中…");
-    $("result").style.display = "none";
-    try{
-      const row = await trySearch($("q").value);
-      if(!row){
-        setMsg("找不到資料：請改用 TW000X 搜尋，或確認 GAS 是否提供 action=search / action=list", true);
-        return;
-      }
-      showResult(row);
-      setMsg("已找到：可複製交貨卡與名片網址");
-    }catch(e){
-      setMsg("搜尋失敗：" + (e && e.message ? e.message : e), true);
-    }
-  }
-
-  // init
-  $("baseInfo").textContent = "目前ID=" + currentId();
-  $("q").value = currentId();
-
-  $("btnSearch").addEventListener("click", doSearch);
-  $("q").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doSearch(); });
-
-  $("btnOpenCard").addEventListener("click", ()=>{
-    window.open(makeCardUrl(currentId()), "_blank");
-  });
-
-  $("btnCopyShare").addEventListener("click", ()=>{
-    const id = $("pid").textContent || currentId();
-    copyText(makeShareUrl(id));
-  });
-  $("btnCopyCard").addEventListener("click", ()=>{
-    const id = $("pid").textContent || currentId();
-    copyText(makeCardUrl(id));
-  });
-</script>
 </body>
 </html>
