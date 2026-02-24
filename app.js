@@ -1,22 +1,15 @@
 /* ================================
-app.js (v395 COMPLETE OVERWRITE)
+app.js (v396 COMPLETE OVERWRITE)
 
-v395 GOALS:
-- Keep archived UI (no visual redesign)
-- Card space planning: fill blocks into planned sections
-- Robust JSON fetch + support multiple GAS payload shapes
-- Auto mapping:
-  * Tagline (一句話/定位/標語/slogan/tagline)
-  * Service/About (服務/介紹/簡介/about)
-  * Gallery from photo/image keys or multi-url fields
-  * Contact auto buttons (phone/line/website/email/ig/fb/wechat...)
-  * Address -> Google Maps nav
-  * Remaining fields -> auto info boxes (skip empties)
-- Hidden admin entry (long press)
+v396 FIX:
+- Front card must NOT show system / form selection / backend fields:
+  timestamp, token, status, 選擇名片顏色, 選擇版型風格, 選擇名片製作方案, etc.
+- Keep archived UI (no redesign)
+- Robust payload resolving stays
 ================================ */
 
 const CONFIG = {
-  VERSION: 395,
+  VERSION: 396,
 
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
@@ -48,9 +41,9 @@ function $(id) { return document.getElementById(id); }
 function q(sel, root = document) { return root.querySelector(sel); }
 function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
-function log_() { if (CONFIG.DEBUG) console.log("[HSC-v395]", ...arguments); }
-function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v395]", ...arguments); }
-function err_() { console.error("[HSC-v395]", ...arguments); }
+function log_() { if (CONFIG.DEBUG) console.log("[HSC-v396]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v396]", ...arguments); }
+function err_() { console.error("[HSC-v396]", ...arguments); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function setText(elOrId, v) {
   const el = typeof elOrId === "string" ? $(elOrId) : elOrId;
@@ -220,17 +213,14 @@ async function fetchWithTimeout(url, timeoutMs) {
     if (!res.ok && !body) throw new Error(`HTTP ${status} (empty)`);
     if (!body) throw new Error("Empty response");
 
-    // 1) direct JSON
     try { return JSON.parse(body); } catch {}
 
-    // 2) JSONP: callback(...)
     const jsonp = body.match(/^[\w$]+\(([\s\S]*)\)\s*;?\s*$/);
     if (jsonp && jsonp[1]) {
       const inner = jsonp[1].trim().replace(/;$/, "");
       return JSON.parse(inner);
     }
 
-    // 3) try extract first JSON object
     const m = body.match(/\{[\s\S]*\}/);
     if (m) return JSON.parse(m[0]);
 
@@ -252,7 +242,9 @@ async function fetchJsonRobust(url) {
     }
   }
   throw lastErr || new Error("Fetch failed");
-}/* ===========================
+}
+
+/* ===========================
 Normalize + pick
 =========================== */
 function cleanKey_(k) {
@@ -327,21 +319,11 @@ function firstNonEmpty_(arr) {
 
 /* ===========================
 Resolve GAS payload shapes
-- supports:
-  1) { ...fields }  (direct row)
-  2) { ok:true, card:{...} }
-  3) { ok:true, data:{...} }
-  4) { ok:true, row:{...} }
-  5) { ok:true, rows:[...], headers:[...] }  -> find by id
-  6) { ok:true, result:{ card:{...}} }
 =========================== */
 function resolveCardObject_(data, cid) {
   if (!data || typeof data !== "object") return null;
-
-  // if API explicitly says not ok
   if (data.ok === false) return null;
 
-  // direct object likely a card row
   const directLooksLikeRow =
     ("姓名" in data) || ("name" in data) || ("Name" in data) ||
     ("單位" in data) || ("unit" in data) || ("Unit" in data) ||
@@ -350,7 +332,6 @@ function resolveCardObject_(data, cid) {
 
   if (directLooksLikeRow && !("rows" in data)) return data;
 
-  // common wrappers
   const candidates = [];
   if (isPlainObject_(data.card)) candidates.push(data.card);
   if (isPlainObject_(data.data)) candidates.push(data.data);
@@ -360,16 +341,12 @@ function resolveCardObject_(data, cid) {
 
   for (const c of candidates) {
     if (!c) continue;
-    // if id matches or no id needed
     const nid = normalizeId_(c.id || c.ID || c.Id || pick(buildNormalizedPayload_(c), ["id", "ID", "編號", "卡號"]));
     if (!cid || !nid || nid === cid) return c;
-    // if no id field, still accept
     if (!("id" in c) && !("ID" in c) && !("Id" in c)) return c;
   }
 
-  // table shape
   if (Array.isArray(data.rows) && data.rows.length) {
-    // rows may be array of objects
     if (isPlainObject_(data.rows[0])) {
       const list = data.rows;
       if (cid) {
@@ -379,7 +356,6 @@ function resolveCardObject_(data, cid) {
       return list[0];
     }
 
-    // rows may be array of arrays + headers
     if (Array.isArray(data.headers) && data.headers.length && Array.isArray(data.rows[0])) {
       const headers = data.headers.map(h => cleanKey_(h));
       const idxId = headers.findIndex(h => String(h).toLowerCase() === "id" || h === "編號" || h === "卡號");
@@ -403,7 +379,6 @@ function resolveCardObject_(data, cid) {
     }
   }
 
-  // last resort: find first nested object that looks like a row
   for (const k of Object.keys(data)) {
     const v = data[k];
     if (isPlainObject_(v)) {
@@ -426,14 +401,12 @@ function normalizeImageUrl(raw) {
   if (!url) return "";
   if (url.startsWith("http://")) url = "https://" + url.slice(7);
 
-  // dropbox
   if (url.includes("dropbox.com")) {
     url = url.replace("dl=0", "raw=1");
     if (!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
     return url;
   }
 
-  // google drive file id patterns
   const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   if (mFile && mFile[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
 
@@ -513,33 +486,23 @@ function setImgWithFallback_(imgEl, candidates) {
 }
 
 /* ===========================
-Parse gallery URLs from payload
-- support:
-  photo_1..photo_n, image_1..image_n, gallery, images, 作品照, 照片牆
-  values can be:
-    - single url
-    - multi urls separated by \n , ; | space
-    - JSON array string ["url1","url2"]
+Gallery parse
 =========================== */
 function splitUrls_(raw) {
   const s = text(raw);
   if (!s) return [];
-  // json array string
   if ((s.startsWith("[") && s.endsWith("]")) || (s.startsWith("{") && s.endsWith("}"))) {
     try {
       const j = JSON.parse(s);
       if (Array.isArray(j)) return j.map(normalizeImageUrl).filter(Boolean);
-      // object with urls
       if (isPlainObject_(j)) {
         const vals = Object.values(j).map(v => text(v)).filter(Boolean);
         return vals.flatMap(v => splitUrls_(v));
       }
     } catch {}
   }
-  // split by newline / comma / semicolon / pipe
   const parts = s.split(/[\n,;|]+/g).map(v => text(v)).filter(Boolean);
   if (parts.length > 1) return parts.map(normalizeImageUrl).filter(Boolean);
-  // also allow whitespace-separated multiple http
   if ((s.match(/https?:\/\//g) || []).length >= 2) {
     const ps = s.split(/\s+/g).map(v => text(v)).filter(Boolean);
     return ps.map(normalizeImageUrl).filter(Boolean);
@@ -561,7 +524,6 @@ function extractGalleryUrls_(payloadNorm) {
     );
   };
 
-  // 1) structured keys (photo_1..n etc)
   for (const k of keys) {
     if (!keyLikePhoto(k)) continue;
     const v = raw[k];
@@ -569,13 +531,11 @@ function extractGalleryUrls_(payloadNorm) {
     for (const u of arr) if (u) urls.push(u);
   }
 
-  // 2) explicit preferred keys
   const more = [
     pick(payloadNorm, ["gallery", "Gallery", "images", "Images", "照片牆", "作品照", "作品照片", "相簿", "輪播牆"]),
   ].flatMap(v => splitUrls_(v));
   for (const u of more) if (u) urls.push(u);
 
-  // de-dup
   const seen = new Set();
   const out = [];
   for (const u of urls) {
@@ -586,8 +546,10 @@ function extractGalleryUrls_(payloadNorm) {
     out.push(nu);
   }
   return out;
-}/* ===========================
-Avatar / Head Image
+}
+
+/* ===========================
+Avatar
 =========================== */
 function setAvatarImage_(payloadNorm) {
   const img = $("u-img");
@@ -607,7 +569,7 @@ function setAvatarImage_(payloadNorm) {
 }
 
 /* ===========================
-Contact Buttons Auto Builder
+Contact Buttons
 =========================== */
 function buildContactButtons_(payloadNorm) {
   const row = $("contactRow");
@@ -649,7 +611,6 @@ Gallery Renderer
 function renderGallery_(urls) {
   const wrap = $("galleryWrap");
   const dots = $("galleryDots");
-
   if (!wrap || !dots) return;
 
   wrap.innerHTML = "";
@@ -678,7 +639,40 @@ function renderGallery_(urls) {
 
 /* ===========================
 Extra Fields Auto Boxes
+v396: STRICT FILTER — hide system/form selection/back-end fields
 =========================== */
+function shouldHideField_(key, value) {
+  const k = cleanKey_(key);
+  const lk = k.toLowerCase();
+  const v = text(value);
+
+  if (!k || !v) return true;
+
+  // never show internal keys
+  if (lk.startsWith("__") || lk.startsWith("_")) return true;
+
+  // do not show primary identifiers
+  if (lk === "id" || k === "編號" || k === "卡號") return true;
+
+  // blacklist by exact known keys (Chinese + English)
+  const exactHide = new Set([
+    "時間戳記", "timestamp", "Timestamp", "提交時間", "建立時間", "更新時間",
+    "token", "status", "Status", "狀態",
+    "選擇名片顏色", "選擇版型風格", "選擇名片製作方案",
+    "選擇方案", "選擇顏色", "選擇版型", "選擇紙感", "選擇紙張", "選擇風格",
+  ]);
+  if (exactHide.has(k) || exactHide.has(lk) || exactHide.has(key)) return true;
+
+  // regex hide: anything about selection/config/form meta
+  const rx = /(token|status|timestamp|time\s*stamp|created|updated|submit|submitted|選擇|方案|名片顏色|版型|紙感|紙張|風格|製作方案|紀錄|記錄)/i;
+  if (rx.test(k) || rx.test(lk)) return true;
+
+  // if the value looks like ISO time, treat as meta
+  if (/^\d{4}-\d{2}-\d{2}t\d{2}:\d{2}:\d{2}(\.\d+)?z$/i.test(v)) return true;
+
+  return false;
+}
+
 function renderExtraFields_(payloadNorm) {
   const host = $("blk-extra");
   if (!host) return;
@@ -686,18 +680,42 @@ function renderExtraFields_(payloadNorm) {
   host.innerHTML = "";
 
   const raw = payloadNorm.__raw || {};
-  const skipKeys = ["姓名","name","單位","unit","服務項目","service"];
+  const usedKeyHints = [
+    "姓名","name","Name",
+    "單位","unit","Unit",
+    "服務項目","service","Service",
+    "一句話","標語","tagline","slogan",
+    "phone","電話","手機",
+    "line","LINE","line_id",
+    "website","網址","官網",
+    "email","Email",
+    "instagram","ig",
+    "facebook","fb",
+    "wechat","weixin",
+    "address","地址","公司地址","住址",
+    "個人照","形象照","avatar","photo",
+    "gallery","images","照片牆","作品照","相簿","輪播牆"
+  ].map(s => String(s).toLowerCase());
+
+  const boxes = [];
 
   for (const k of Object.keys(raw)) {
-    if (skipKeys.includes(k)) continue;
-    const v = text(raw[k]);
-    if (!v) continue;
+    const v = raw[k];
+    if (shouldHideField_(k, v)) continue;
+
+    const lk = cleanKey_(k).toLowerCase();
+    // skip fields already used in main sections (roughly)
+    if (usedKeyHints.some(h => lk.includes(h))) continue;
 
     const box = document.createElement("div");
     box.className = "content-box";
-    box.innerHTML = `<div class="box-title">${k}</div><div class="box-text">${v}</div>`;
-    host.appendChild(box);
+    box.innerHTML = `<div class="box-title">${cleanKey_(k)}</div><div class="box-text">${text(v)}</div>`;
+    boxes.push(box);
   }
+
+  // render
+  boxes.forEach(b => host.appendChild(b));
+  showEl("blk-extra", boxes.length > 0);
 }
 
 /* ===========================
@@ -706,13 +724,13 @@ Apply Data To Card
 function applyDataToCard_(fields) {
   const norm = buildNormalizedPayload_(fields);
 
-  setText("u-name", pick(norm, ["姓名", "name", "Name"]));
-  setText("u-unit", pick(norm, ["單位", "unit", "Unit"]));
-  setText("u-service", pick(norm, ["服務項目", "service", "Service"]));
+  setText("u-name", pick(norm, ["姓名", "name", "Name"]) || "（尚未讀到姓名）");
+  setText("u-unit", pick(norm, ["單位", "unit", "Unit"]) || "");
+  setText("u-service", pick(norm, ["服務項目", "service", "Service"]) || "");
 
-  const tagline = pick(norm, ["一句話", "標語", "tagline", "slogan"]);
+  const tagline = pick(norm, ["一句話", "定位", "標語", "tagline", "slogan"]);
   setText("u-tagline", tagline);
-  showEl("blk-tagline", !!tagline);
+  showEl("blk-tagline", !!text(tagline));
 
   setAvatarImage_(norm);
 
@@ -732,12 +750,12 @@ async function loadCardById_(id) {
 
   await waitForDom_(["u-name","u-unit","u-service"], 2400);
 
-  const url = `${CONFIG.GAS}?action=card&id=${cid}&ts=${Date.now()}`;
+  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
+  __lastLoad = { id: cid, ts: Date.now(), url };
 
   try {
     const data = await fetchJsonRobust(url);
     const fields = resolveCardObject_(data, cid);
-
     if (!fields) throw new Error("No card fields");
 
     __payloadRaw = data;
@@ -745,22 +763,124 @@ async function loadCardById_(id) {
 
     applyDataToCard_(fields);
 
+    // keep URL id
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set("id", cid);
+      history.replaceState({}, "", u.toString());
+    } catch {}
+
   } catch (e) {
     err_("loadCard failed:", e);
-    setText("u-name", "讀取失敗");
-    setText("u-unit", e.message || "");
+    setText("u-name", "（同步失敗）");
+    setText("u-unit", e && e.message ? `同步失敗：${e.message}` : "請確認 GAS 權限/ID");
+    setText("u-service", "");
+    const img = $("u-img");
+    if (img) img.removeAttribute("src");
   }
+}
+
+/* ===========================
+CTA
+=========================== */
+window.goFillForm = function(){
+  try{
+    const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
+    const u = new URL(CONFIG.FORM);
+    u.searchParams.set("id", id);
+    window.open(u.toString(), "_blank");
+  }catch{
+    window.open(CONFIG.FORM, "_blank");
+  }
+};
+
+/* ===========================
+Hidden Admin Entry
+=========================== */
+function openAdmin_() {
+  const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
+  const u = `admin.html?id=${encodeURIComponent(id)}`;
+  window.open(u, "_blank");
+}
+
+function bindLongPress_(target, ms, onFire) {
+  if (!target) return;
+
+  let timer = null;
+  let fired = false;
+
+  const start = () => {
+    fired = false;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      fired = true;
+      try { onFire(); } catch {}
+    }, ms);
+  };
+
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+  };
+
+  target.addEventListener("touchstart", start, { passive: true });
+  target.addEventListener("touchend", cancel, { passive: true });
+  target.addEventListener("touchcancel", cancel, { passive: true });
+
+  target.addEventListener("mousedown", start);
+  target.addEventListener("mouseup", cancel);
+  target.addEventListener("mouseleave", cancel);
+
+  target.addEventListener("click", (e) => {
+    if (fired) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+}
+
+function ensureAdminHotspot_() {
+  if ($("adminHotspot")) return;
+
+  const hs = document.createElement("div");
+  hs.id = "adminHotspot";
+  hs.setAttribute("aria-label", "admin-hotspot");
+  hs.style.position = "fixed";
+  hs.style.top = "6px";
+  hs.style.right = "6px";
+  hs.style.width = "28px";
+  hs.style.height = "28px";
+  hs.style.opacity = "0";
+  hs.style.zIndex = "99999";
+  hs.style.background = "transparent";
+  hs.style.borderRadius = "10px";
+  hs.style.pointerEvents = "auto";
+  document.body.appendChild(hs);
+}
+
+function bindAdminHiddenEntry_() {
+  const versionTag = q(".version-tag") || $("versionTag") || null;
+  const footer = q("footer") || $("footerTag") || null;
+
+  if (versionTag) bindLongPress_(versionTag, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
+  else if (footer) bindLongPress_(footer, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
+
+  ensureAdminHotspot_();
+  bindLongPress_($("adminHotspot"), CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
 }
 
 /* ===========================
 Boot
 =========================== */
 function boot_() {
-  applyV382_();
-  syncPlanButtons_();
+  try { applyV382_(); } catch {}
+  try { syncPlanButtons_(); } catch {}
+  try { toggleDotsRows_(); } catch {}
+  try { bindAdminHiddenEntry_(); } catch {}
 
   const id = getCardIdFromUrl_();
-  loadCardById_(id);
+  loadCardById_(id).catch(() => {});
 }
 
-document.addEventListener("DOMContentLoaded", boot_);
+document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
+window.addEventListener("load", () => { if (!__lastLoad.ts) boot_(); });
