@@ -1,5 +1,5 @@
 /* ================================
- * Happiness Smart Card System — sw.js (v395 COMPLETE OVERWRITE)
+ * Happiness Smart Card System — sw.js (v397COMPLETE OVERWRITE)
  * - Safe cache-first for static assets
  * - Network-first for GAS API (avoid stale card data)
  * - Auto cleanup old caches
