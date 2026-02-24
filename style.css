@@ -1,7 +1,8 @@
 /* ================================
  * Happiness Smart Card System — style.css (v394 COMPLETE OVERWRITE)
- * Base: user archived look (keep)
+ * Base: archived look (keep)
  * Fix: layout stability + small capsule buttons
+ * Note: keep visuals; only adjust spacing/sizing and add future-ready blocks.
  * ================================ */
 
 :root{
@@ -52,6 +53,12 @@ body{
   display:block;
 }
 
+/* 讓滑動更順（iOS） */
+.info-scroll,
+#admin-panel{
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ================= 控制面板（門面） ================= */
 #admin-panel{
   width:100%;
@@ -66,6 +73,15 @@ body{
   /* ✅ 關鍵：不讓門面吃掉整頁 */
   max-height: 26vh;
   overflow:auto;
+}
+
+/* 控制列通用 */
+.control-row{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  flex-wrap:wrap;
+  padding: 0 12px;
 }
 
 .plan-row{
@@ -107,6 +123,7 @@ body{
   border:3px solid #fff;
   box-shadow: 0 3px 8px rgba(0,0,0,0.08);
   transition: 0.2s;
+  flex: 0 0 auto;
 }
 .dot.active, .p-dot.active{
   border-color:#2d3436 !important;
@@ -144,6 +161,7 @@ body{
   filter: saturate(1.02);
   animation: breatheNeo 1.65s ease-in-out infinite;
 }
+
 @keyframes breatheNeo{
   0%,100%{ box-shadow:
     0 10px 22px rgba(0,0,0,0.10),
@@ -177,6 +195,8 @@ body{
   margin: 16px auto 8px;
 }
 
+/* 注意：你的 HTML 現在 #card-container 同時有 class="card"
+   這裡用 .card 才能套到 */
 .card{
   width:92%;
   max-width:380px;
@@ -271,11 +291,25 @@ body{
 }
 
 /* 內容 */
-.info-scroll{ transition:0.4s; overflow:auto; height:100%; }
-.mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
-.mode-premium .info-scroll{ padding: 102px 22px 22px; text-align:left; }
+.info-scroll{
+  transition:0.4s;
+  overflow:auto;
+  height:100%;
+}
+.mode-free .info-scroll{
+  padding: 100px 20px 20px;
+  text-align:center;
+}
+.mode-premium .info-scroll{
+  padding: 102px 22px 22px;
+  text-align:left;
+}
 
-.name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; }
+.name{
+  margin: 0 0 6px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
 .mode-premium .name{
   margin-top: 8px;
   color: rgba(255,255,255,0.96);
@@ -283,7 +317,11 @@ body{
 }
 .mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
 
-.unit{ font-weight: 900; opacity: 0.86; margin-bottom: 12px; }
+.unit{
+  font-weight: 900;
+  opacity: 0.86;
+  margin-bottom: 12px;
+}
 .mode-premium .unit{ color: rgba(255,255,255,0.88); }
 .mode-premium.p6 .unit{ color: rgba(52,34,0,0.82); }
 
@@ -306,6 +344,135 @@ body{
   border: 1px solid rgba(255,255,255,0.40);
   color: rgba(52,34,0,0.92);
 }
+
+/* ================= 先預留：欄位平均分配的資訊方塊（v395 會用到） ================= */
+.info-block{
+  background: var(--soft2);
+  border-radius: 16px;
+  padding: 14px 14px;
+  margin-bottom: 10px;
+  text-align:left;
+}
+.info-block .ib-title{
+  font-weight: 900;
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+.info-block .ib-value{
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mode-premium .info-block{
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.92);
+}
+.mode-premium.p6 .info-block{
+  background: rgba(255,255,255,0.30);
+  border: 1px solid rgba(255,255,255,0.35);
+  color: rgba(52,34,0,0.92);
+}
+
+/* ================= 先預留：聯繫按鈕列（v395 會用到） ================= */
+.contact-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  margin: 8px 0 6px;
+}
+.mode-premium .contact-row{ justify-content:flex-start; }
+
+.contact-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: #fff;
+  color:#2d3436;
+  text-decoration:none;
+  font-weight: 900;
+  font-size: 13px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+}
+.contact-btn i{ width:16px; text-align:center; }
+
+.mode-premium .contact-btn{
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.24);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.14);
+  color: rgba(255,255,255,0.92);
+}
+.mode-premium.p6 .contact-btn{
+  background: rgba(255,255,255,0.30);
+  border: 1px solid rgba(255,255,255,0.36);
+  color: rgba(52,34,0,0.92);
+}
+
+/* ================= 先預留：照片輪播牆（v395 會用到） ================= */
+.gallery{
+  margin: 10px 0 12px;
+}
+.gallery-track{
+  display:flex;
+  gap:10px;
+  overflow:auto;
+  scroll-snap-type:x mandatory;
+  padding: 4px 2px;
+}
+.gallery-track::-webkit-scrollbar{ height: 6px; }
+.gallery-track::-webkit-scrollbar-thumb{ background: rgba(0,0,0,0.12); border-radius: 10px; }
+
+.gallery-item{
+  flex: 0 0 78%;
+  max-width: 78%;
+  height: 160px;
+  border-radius: 18px;
+  overflow:hidden;
+  scroll-snap-align:center;
+  box-shadow: 0 12px 26px rgba(0,0,0,0.10);
+  background: rgba(0,0,0,0.03);
+}
+.gallery-item img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.mode-premium .gallery-item{
+  box-shadow: 0 18px 34px rgba(0,0,0,0.18);
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.18);
+}
+.mode-premium.p6 .gallery-item{
+  background: rgba(255,255,255,0.26);
+  border: 1px solid rgba(255,255,255,0.28);
+}
+
+/* 點點（可選） */
+.gallery-dots{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin-top: 8px;
+}
+.mode-premium .gallery-dots{ justify-content:flex-start; }
+
+.gdot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background: rgba(0,0,0,0.20);
+}
+.mode-premium .gdot{ background: rgba(255,255,255,0.35); }
+.gdot.active{ background: var(--p); }
+.mode-premium.p7 .gdot.active{ background: rgba(212,175,55,0.92); }
 
 /* 質感層 */
 .premium-fx-layer{
@@ -343,4 +510,15 @@ body{
   color:#ccc;
   margin-top:12px;
   text-align:center;
+}
+
+/* ================= 小螢幕再保護（避免門面吃太多） ================= */
+@media (max-height: 700px){
+  #admin-panel{ max-height: 28vh; }
+  .card{ height: min(640px, calc(100vh - 210px)); }
+}
+@media (max-height: 620px){
+  #admin-panel{ max-height: 30vh; }
+  .card{ height: min(600px, calc(100vh - 200px)); }
+  .mode-free .info-scroll{ padding-top: 92px; }
 }
