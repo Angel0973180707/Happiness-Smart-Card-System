@@ -5,7 +5,7 @@
  * - Auto cleanup old caches
  * ================================ */
 
-const VERSION = "v395";
+const VERSION = "v397";
 const CACHE_NAME = `hsc-cache-${VERSION}`;
 const RUNTIME_CACHE = `hsc-runtime-${VERSION}`;
 
