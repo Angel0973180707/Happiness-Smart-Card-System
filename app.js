@@ -1,11 +1,14 @@
 /* ================================
- * Angel Card app.js（V387.4 FULL OVERWRITE）
- * - Keep v385/v384 front layout intact (NO extra plan buttons injected)
- * - Robust header auto-pick for ALL sheet fields
- * - Auto inject: Logo (top-right), Title/Slogan/Experience, Contacts, PhotoWall
- * - Fix: premium overlap by safer paddings + delayed re-apply
- * - No custom headers (avoid preflight)
- * ================================ */
+Angel Card app.js (V388 FULL OVERWRITE)
+
+GOALS (per v387-AdminShare):
+- Keep v385 front layout intact (NO duplicated plan buttons / NO duplicated form button)
+- Bring back v386.2 abilities: robust auto field pick, logo, contacts, photo wall
+- Add hidden admin entry: long-press footer/version-tag 1.2s => admin.html
+- Add share card page: share.html?id=TW000X (OG-like delivery card, not dynamic OG image)
+- Robust header normalize (quote/newline/zero-width)
+- Support photos field (comma/newline split) + Drive link normalization
+================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
@@ -22,6 +25,8 @@ const CONFIG = {
   DOM_WAIT_MS: 2800,
   DOM_POLL_MS: 80,
 
+  ADMIN_LONGPRESS_MS: 1200,
+
   DEBUG: true
 };
 
@@ -29,7 +34,6 @@ let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
 
 let __payloadRaw = null;
 let __payload = null;
-
 let __gallery = { list: [], inited: false };
 let __lastLoad = { id: "", ts: 0, url: "" };
 
@@ -61,8 +65,8 @@ function getCardId() {
 }
 
 /* ---------------------------
- * Switching system (keep existing HTML hooks)
- * --------------------------- */
+Switching system (keep existing HTML hooks)
+--------------------------- */
 window.setV382 = function (mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
@@ -71,9 +75,7 @@ window.setV382 = function (mode, theme, el) {
   document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
   if (el && (el.classList.contains("dot") || el.classList.contains("p-dot"))) el.classList.add("active");
 
-  // active plan button (if exists)
   syncPlanButtons_();
-
   applyV382();
   refreshPremiumSafety_();
 };
@@ -101,6 +103,7 @@ function applyV382() {
   const controlPanel = $("free-controls");
   if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
 
+  // IMPORTANT: keep v385 classes expectations
   const classList = [
     `mode-${state.mode}`,
     state.theme,
@@ -112,6 +115,7 @@ function applyV382() {
 
 /* --------------------------- */
 function syncPlanButtons_() {
+  // v385 usually has one pair. If not found, ignore.
   const a = $("btnPlanFree");
   const b = $("btnPlanPremium");
   if (!a || !b) return;
@@ -127,12 +131,11 @@ function syncPlanButtons_() {
 
 /* ---- premium safety: avoid overlap on some phones ---- */
 function refreshPremiumSafety_() {
-  // 你要的是：保持 v385 外觀；這裡只做「保險 reflow」
   if (state.mode !== "premium") return;
   const nameEl = $("u-name");
   if (!nameEl) return;
 
-  // 某些手機第一次計算高度會晚一拍，延遲再刷一次
+  // small reflow insurance
   requestAnimationFrame(() => {
     nameEl.style.transform = "translateZ(0)";
     setTimeout(() => { nameEl.style.transform = ""; }, 120);
@@ -153,8 +156,8 @@ async function waitForDom_(ids, timeoutMs = CONFIG.DOM_WAIT_MS) {
 }
 
 /* ---------------------------
- * Fetch JSON (NO custom headers)
- * --------------------------- */
+Fetch JSON (NO custom headers)
+--------------------------- */
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
@@ -185,8 +188,9 @@ async function fetchWithTimeout(url, timeoutMs) {
     try {
       return JSON.parse(body);
     } catch {
-      const m = body.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-      if (m) return JSON.parse(m[1]);
+      // Some GAS setups wrap JSON; try to extract the first {...}
+      const m = body.match(/\{[\s\S]*\}/);
+      if (m) return JSON.parse(m[0]);
       throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
     }
   } finally {
@@ -209,15 +213,15 @@ async function fetchJsonRobust(url) {
 }
 
 /* ---------------------------
- * Key normalize + pick helpers
- * --------------------------- */
+Key normalize + pick helpers
+--------------------------- */
 function cleanKey_(k) {
   return String(k ?? "")
-    .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
+    .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "") // zero-width
     .replace(/\u3000/g, " ")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
-    .replace(/\n+/g, "")
+    .replace(/\n+/g, "") // remove newlines inside header
     .replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "")
     .trim();
 }
@@ -285,8 +289,8 @@ function pickByHeaderRegex_(payloadNorm, regexList) {
 }
 
 /* ---------------------------
- * URL helpers
- * --------------------------- */
+URL helpers
+--------------------------- */
 function normalizeUrl_(v) {
   const s = text(v);
   if (!s) return "";
@@ -308,8 +312,8 @@ function normalizeEmail_(v) {
 }
 
 /* ---------------------------
- * Image helpers (Drive/Dropbox)
- * --------------------------- */
+Image helpers (Drive/Dropbox)
+--------------------------- */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
   let url = String(raw).trim();
@@ -323,7 +327,7 @@ function normalizeImageUrl(raw) {
     return url;
   }
 
-  const mFile = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/i);
+  const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   if (mFile && mFile[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
 
   const mId = url.match(/(?:\?|&)id=([^&]+)/i);
@@ -342,7 +346,7 @@ function buildImageCandidates_(raw) {
   const original = s.startsWith("http://") ? "https://" + s.slice(7) : s;
 
   let driveId = "";
-  const mFile = original.match(/drive\.google\.com\/file\/d\/([^\/]+)/i);
+  const mFile = original.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   const mId = original.match(/(?:\?|&)id=([^&]+)/i);
   const mThumb = original.match(/thumbnail\?id=([^&]+)/i);
 
@@ -356,11 +360,11 @@ function buildImageCandidates_(raw) {
     return [
       `https://drive.google.com/uc?export=view&id=${encodeURIComponent(driveId)}`,
       `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w1200`,
-      original
-    ];
+      normalizeImageUrl(original)
+    ].filter(Boolean);
   }
 
-  return [normalizeImageUrl(original)];
+  return [normalizeImageUrl(original)].filter(Boolean);
 }
 
 function setImgWithFallback_(imgEl, candidates) {
@@ -407,8 +411,8 @@ function setImgWithFallback_(imgEl, candidates) {
 }
 
 /* ---------------------------
- * Photos split
- * --------------------------- */
+Photos split
+--------------------------- */
 function splitLinks_(v) {
   if (v == null) return [];
   if (Array.isArray(v)) return v.map(x => text(x)).filter(Boolean);
@@ -422,12 +426,11 @@ function autoDetectPhotos_(payload) {
   const out = [];
   const keys = Object.keys(payload).filter(k => k && !k.startsWith("__"));
   for (const k of keys) {
-    const kk = String(k);
-    if (!/(照片|相片|作品|圖|照|photo|image|img)/i.test(kk)) continue;
-    const v = payload[k];
-    const parts = splitLinks_(v);
+    if (!/(照片|相片|作品|photo|image|img)/i.test(String(k))) continue;
+    const parts = splitLinks_(payload[k]);
     for (const p of parts) if (/^https?:\/\//i.test(p)) out.push(p);
   }
+  // uniq
   const uniq = [];
   const seen = new Set();
   for (const u of out) {
@@ -442,12 +445,11 @@ function autoDetectPhotos_(payload) {
 
 function getPhotosArray_(payload) {
   const v =
-    pick(payload, ["照片_fast", "photos_fast", "photos_img"]) ||
+    pick(payload, ["照片_fast", "photo_fast", "photos_fast"]) ||
     pick(payload, ["照片", "相片", "作品照片", "作品"]) ||
     payload.photos;
 
   const base = splitLinks_(v)
-    .filter(Boolean)
     .map(u => normalizeImageUrl(u))
     .filter(Boolean);
 
@@ -456,14 +458,13 @@ function getPhotosArray_(payload) {
 }
 
 /* ===========================
- * Logo inject (top-right)
- * =========================== */
+Logo inject (top-right)
+=========================== */
 function ensureLogoDom_() {
-  const card = $("card-container");
+  const card = $("card-container") || q(".card") || q("#card") || q(".card-container");
   if (!card) return null;
 
-  // If user already has #u-logo, just use it
-  const exist = $("u-logo");
+  const exist = $("u-logo") || card.querySelector("img.card-logo");
   if (exist) return exist;
 
   let wrap = card.querySelector(".card-logo-wrap");
@@ -473,20 +474,16 @@ function ensureLogoDom_() {
     card.appendChild(wrap);
   }
 
-  let img = card.querySelector("img.card-logo");
-  if (!img) {
-    img = document.createElement("img");
-    img.className = "card-logo";
-    img.alt = "Logo";
-    wrap.appendChild(img);
-  }
-
+  const img = document.createElement("img");
+  img.className = "card-logo";
+  img.alt = "Logo";
+  wrap.appendChild(img);
   return img;
 }
 
 /* ===========================
- * Lightbox
- * =========================== */
+Lightbox
+=========================== */
 function ensureLightbox_() {
   if ($("imgLightbox")) return;
 
@@ -536,16 +533,15 @@ function openLightbox_(url) {
   const img = $("imgLightboxImg");
   if (!overlay || !img) return;
   overlay.style.display = "flex";
-  const cands = buildImageCandidates_(url);
-  setImgWithFallback_(img, cands.length ? cands : [url]);
+  setImgWithFallback_(img, buildImageCandidates_(url));
 }
 
 /* ===========================
- * Photo wall inject
- * =========================== */
+Photo wall inject
+=========================== */
 function ensurePhotoWallDom_() {
   if (__gallery.inited) return;
-  const card = $("card-container");
+  const card = $("card-container") || q(".card") || q("#card");
   if (!card) return;
 
   const scroll = card.querySelector(".info-scroll") || card;
@@ -616,10 +612,10 @@ function renderPhotoWall_(urls) {
 }
 
 /* ===========================
- * Contact box inject
- * =========================== */
+Contact box inject
+=========================== */
 function ensureContactBox_() {
-  const card = $("card-container");
+  const card = $("card-container") || q(".card") || q("#card");
   if (!card) return null;
 
   const scroll = card.querySelector(".info-scroll") || card;
@@ -694,32 +690,42 @@ function renderContacts_(payloadNorm) {
   sub.innerHTML = "";
 
   const wechat = pick(payloadNorm, ["微信", "WeChat", "wechat"]);
-  const lineLink = pick(payloadNorm, ["LINE連結", "line_link", "LINE link", "line"]);
+  const lineLink = pick(payloadNorm, ["LINE連結", "line_link", "LINE link"]);
   const lineOA = pick(payloadNorm, ["LINE官方帳號", "LINE 官方帳號", "line_oa", "lin.ee"]);
   const email = pick(payloadNorm, ["Email", "email", "E-mail", "信箱"]);
   const phone = pick(payloadNorm, ["電話", "phone", "tel", "mobile", "手機"]);
   const addr = pick(payloadNorm, ["地址", "address", "住址", "地點"]);
 
-  const media1 = pick(payloadNorm, ["影音平台1", "video1", "media1"]);
-  const media2 = pick(payloadNorm, ["影音平台2", "video2", "media2"]);
-  const media3 = pick(payloadNorm, ["影音平台3", "video3", "media3"]);
+  // allow 1~3 media & social (per spec; extend ok)
+  const medias = [
+    pick(payloadNorm, ["影音平台1", "video1", "media1"]),
+    pick(payloadNorm, ["影音平台2", "video2", "media2"]),
+    pick(payloadNorm, ["影音平台3", "video3", "media3"])
+  ].filter(v => text(v));
 
-  const social1 = pick(payloadNorm, ["社群平台1", "social1"]);
-  const social2 = pick(payloadNorm, ["社群平台2", "social2"]);
-  const social3 = pick(payloadNorm, ["社群平台3", "social3"]);
+  const socials = [
+    pick(payloadNorm, ["社群平台1", "social1"]),
+    pick(payloadNorm, ["社群平台2", "social2"]),
+    pick(payloadNorm, ["社群平台3", "social3"])
+  ].filter(v => text(v));
 
-  // 主動作：LINE / 官網(影音1優先) / 表單 / 微信(複製)
+  // Main CTA: LINE / 官網作品 / 表單 / 微信複製
   const bestLine = text(lineLink) ? normalizeUrl_(lineLink) : (text(lineOA) ? normalizeUrl_(lineOA) : "");
   if (bestLine) main.appendChild(makeMainBtn_("加 LINE / 聯繫", bestLine));
 
-  const bestWeb = text(media1) ? normalizeUrl_(media1) : (text(social1) ? normalizeUrl_(social1) : "");
+  const bestWeb = medias.length ? normalizeUrl_(medias[0]) : (socials.length ? normalizeUrl_(socials[0]) : "");
   if (bestWeb) main.appendChild(makeMainBtn_("前往官網 / 作品", bestWeb));
 
-  main.appendChild(makeMainBtn_("填寫預約表單", () => window.open(CONFIG.FORM, "_blank")));
+  // IMPORTANT: only one form CTA should exist on facade (v385).
+  // Here we provide "fill form" inside contact box (not duplicated on facade).
+  // If you want "ONLY facade CTA", set data attribute on body to disable inner button.
+  if (!document.body.hasAttribute("data-disable-inner-form")) {
+    main.appendChild(makeMainBtn_("填寫預約表單", () => window.open(CONFIG.FORM, "_blank")));
+  }
 
   if (wechat) main.appendChild(makeMainBtn_("微信（複製）", () => copyText_(wechat)));
 
-  // 次要 chips
+  // chips
   if (phone) {
     const t = normalizeTel_(phone);
     if (t) sub.appendChild(makeChip_(t, "tel:" + t));
@@ -734,14 +740,12 @@ function renderContacts_(payloadNorm) {
     sub.appendChild(makeChip_("地址導航", maps));
   }
 
-  const extraLinks = [
-    ["影音2", media2],
-    ["影音3", media3],
-    ["社群1", social1],
-    ["社群2", social2],
-    ["社群3", social3],
-  ];
-  for (const [label, v] of extraLinks) {
+  // Extra links
+  const extra = [];
+  for (let i = 0; i < medias.length; i++) extra.push([`影音${i + 1}`, medias[i]]);
+  for (let i = 0; i < socials.length; i++) extra.push([`社群${i + 1}`, socials[i]]);
+
+  for (const [label, v] of extra) {
     if (!text(v)) continue;
     sub.appendChild(makeChip_(label, normalizeUrl_(v)));
   }
@@ -756,8 +760,8 @@ function renderContacts_(payloadNorm) {
 }
 
 /* ---------------------------
- * Avatar + core fields
- * --------------------------- */
+Avatar + core fields
+--------------------------- */
 function setAvatarImage(url) {
   const img = $("u-img");
   if (!img) return;
@@ -767,10 +771,10 @@ function setAvatarImage(url) {
 }
 
 /* ---------------------------
- * Auto inject blocks: Title/Slogan/Experience
- * --------------------------- */
+Auto inject blocks: Title/Slogan/Experience
+--------------------------- */
 function ensureBox_(boxId, titleText) {
-  const scroll = q(".info-scroll") || $("card-container") || document.body;
+  const scroll = q(".info-scroll") || $("card-container") || q(".card") || document.body;
   let box = $(boxId);
   if (!box) {
     box = document.createElement("div");
@@ -796,19 +800,19 @@ function ensureBox_(boxId, titleText) {
 
 function setBox_(boxId, titleText, value) {
   const v = text(value);
+  const box = $(boxId);
   if (!v) {
-    const box = $(boxId);
     if (box) box.style.display = "none";
     return;
   }
-  const box = ensureBox_(boxId, titleText);
-  box.style.display = "block";
+  const b = ensureBox_(boxId, titleText);
+  b.style.display = "block";
   setText(boxId + "_body", v);
 }
 
 /* ---------------------------
- * Apply all data to card
- * --------------------------- */
+Apply all data to card
+--------------------------- */
 function applyDataToCard(payloadNorm) {
   // core
   const name = pick(payloadNorm, ["姓名", "name", "Name"]);
@@ -825,11 +829,11 @@ function applyDataToCard(payloadNorm) {
 
   const logo =
     pick(payloadNorm, ["Logo_fast", "Logo", "logo", "LOGO"]) ||
-    pickByHeaderRegex_(payloadNorm, [/logo/i, /LOGO/i, /標誌/i]);
+    pickByHeaderRegex_(payloadNorm, [/logo/i, /標誌/i]);
 
   const photos = getPhotosArray_(payloadNorm);
 
-  // write
+  // write: keep v385 target ids
   setText("u-name", name || "（尚未讀到姓名）");
   setText("u-unit", unit || "");
   setText("u-service", service || "");
@@ -861,8 +865,8 @@ function applyDataToCard(payloadNorm) {
 window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
 
 /* ---------------------------
- * Loading / Fail UI
- * --------------------------- */
+Loading / Fail UI
+--------------------------- */
 function setLoadingUi_() {
   setText("u-name", "載入中...");
   setText("u-unit", "同步中...");
@@ -884,9 +888,9 @@ function setFailUi_(msg) {
 }
 
 /* ---------------------------
- * Load data
- * --------------------------- */
-async function loadData() {
+Load data
+--------------------------- */
+async function loadData_() {
   const id = getCardId();
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
   __lastLoad = { id, ts: Date.now(), url };
@@ -917,23 +921,68 @@ async function loadData() {
       keys: Object.keys(data).length,
       photos: (__gallery.list || []).length
     });
-
   } catch (e) {
     err_("雲端同步異常:", e);
     setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
   }
 }
 
+/* ===========================
+Hidden Admin Entry (long-press footer/version tag)
+=========================== */
+function bindAdminLongPress_() {
+  // Prefer version-tag (most invisible), else footer
+  const target = q(".version-tag") || q("#versionTag") || q("footer") || null;
+  if (!target) return;
+
+  let timer = null;
+  let fired = false;
+
+  const start = (e) => {
+    fired = false;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      fired = true;
+      const id = getCardId();
+      const u = `admin.html?id=${encodeURIComponent(id)}`;
+      window.open(u, "_blank");
+    }, CONFIG.ADMIN_LONGPRESS_MS);
+  };
+
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+  };
+
+  target.addEventListener("touchstart", start, { passive: true });
+  target.addEventListener("touchend", cancel, { passive: true });
+  target.addEventListener("touchcancel", cancel, { passive: true });
+
+  target.addEventListener("mousedown", start);
+  target.addEventListener("mouseup", cancel);
+  target.addEventListener("mouseleave", cancel);
+
+  // Avoid accidental click actions if long-pressed
+  target.addEventListener("click", (e) => {
+    if (fired) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+}
+
 /* ---------------------------
- * Boot
- * --------------------------- */
+Boot
+--------------------------- */
 function boot_() {
   try { applyV382(); } catch {}
   try { syncPlanButtons_(); } catch {}
-  try { loadData(); } catch (e) { err_("boot loadData error:", e); }
+  try { bindAdminLongPress_(); } catch {}
+  try { loadData_(); } catch (e) { err_("boot loadData error:", e); }
 }
 
 document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
 window.addEventListener("load", () => {
+  // If DOMContentLoaded missed (rare), re-run once
   if (!__lastLoad.ts) boot_();
 });
