@@ -1,256 +1,447 @@
-/* style.css (V387 COMPLETE OVERWRITE)
-   ✅ 保持 V385 既有視覺邏輯：自由/精品差異 + 样品卡样貌
-   ✅ 只新增：門面「步驟一 badge + 方案 A/B」樣式 + 看全文按鈕/文字視窗
-*/
+/* ================================
+ * 幸福智慧名片｜style.css（V387.4 FULL OVERWRITE）
+ * 目標：維持 v385 門面+樣品區手感，修正：
+ * - 精品模式頭像/姓名重疊
+ * - Logo 自動圓角化
+ * - 精品按鈕立體描邊 + 呼吸感
+ * - 聯繫區 / 相片牆的必要樣式
+ * ================================ */
 
-/* --- base --- */
-:root { --font: 'Noto Sans TC', sans-serif; }
-* { box-sizing: border-box; }
-body {
-  background: var(--bg);
-  font-family: var(--font);
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: 0.5s;
-  padding-bottom: 40px;
+:root{
+  --font: 'Noto Sans TC', sans-serif;
+
+  --p:#ff5e5e;
+  --bg:#fff5f5;
+  --card-bg:#ffffff;
+  --text:#2d3436;
+
+  --shadow: 0 15px 40px rgba(0,0,0,0.06);
+  --soft: rgba(0,0,0,0.04);
+  --soft2: rgba(0,0,0,0.02);
+
+  --radius-card: 45px;
+  --radius-box: 20px;
+
+  --fx-op: 0;
+  --fx-img: none;
 }
 
-/* 🎨 自由搭配款 (5 色) */
+/* ========= 自由搭配款：5 色（只影響 banner 與主色） ========= */
 .mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-/* 🌿 精品設計款 (7 色) */
-.mode-premium .card { backdrop-filter: blur(25px); border: 12px solid #ffffff; }
+/* ========= 精品設計款：色序固定（p1胭脂 p2酒紅 p3深藍 p4霧紫 p5藍灰 p6金箔 p7褐碳） ========= */
+.mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, rgba(163,109,109,0.96), rgba(142,90,90,0.86)); --text:#ffffff; --fx-op:0.35; }
+.mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg:linear-gradient(135deg, rgba(114,47,55,0.96), rgba(114,47,55,0.86)); --text:#f5e6e8; --fx-op:0.38; }
+.mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg:linear-gradient(135deg, rgba(28,46,66,0.96), rgba(44,62,80,0.86)); --text:#ffffff; --fx-op:0.25; }
+.mode-premium.p4 { --p:#5e548e; --bg:#f4f3f7; --card-bg:linear-gradient(135deg, rgba(94,84,142,0.93), rgba(159,134,192,0.82)); --text:#ffffff; --fx-op:0.22; }
+.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:linear-gradient(135deg, rgba(122,148,166,0.96), rgba(100,120,135,0.82)); --text:#ffffff; --fx-op:0.25; }
+.mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg:linear-gradient(135deg, rgba(191,149,63,0.96), rgba(252,246,186,0.86), rgba(170,119,28,0.96)); --text:#4d3700; --fx-op:0.55; }
+.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
 
-/* p1 胭脂 */
-.mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg: linear-gradient(135deg, rgba(163,109,109,0.95), rgba(142,90,90,0.85)); --text:#ffffff; --fx-op:0.35; }
-/* p2 酒紅 */
-.mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg: linear-gradient(135deg, rgba(114,47,55,0.95), rgba(114,47,55,0.85)); --text:#f5e6e8; --fx-op:0.4; --fx-img:radial-gradient(circle at 20% 20%, rgba(255,255,255,0.3) 0%, transparent 60%); }
-/* p3 深藍 */
-.mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg: linear-gradient(135deg, rgba(28,46,66,0.95), rgba(44,62,80,0.85)); --text:#ffffff; --fx-op:0.25; }
-/* p4 霧紫 */
-.mode-premium.p4 { --p:#5e548e; --bg:#f4f3f7; --card-bg: linear-gradient(135deg, rgba(94,84,142,0.92), rgba(159,134,192,0.8)); --text:#ffffff; --fx-op:0.2; }
-/* p5 藍灰 */
-.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg: linear-gradient(135deg, rgba(122,148,166,0.95), rgba(100,120,135,0.8)); --text:#ffffff; --fx-op:0.25; }
-/* p6 金箔 */
-.mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg: linear-gradient(135deg, rgba(191,149,63,0.95), rgba(252,246,186,0.85), rgba(170,119,28,0.95)); --text:#4d3700; --fx-op:0.6; --fx-img:linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.8) 50%, transparent 60%); }
-/* p7 褐碳 */
-.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg: linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.2; }
-
-/* 🔴 控制面板 */
-#admin-panel {
-  background: #fff;
-  width: 100%;
-  text-align: center;
-  border-bottom: 1px solid #eee;
-  padding: 14px 0 12px;
-  z-index: 100;
-}
-
-.dots-row { display: flex; justify-content: center; gap: 10px; margin: 10px 0; }
-.dot, .p-dot {
-  width: 34px; height: 34px; border-radius: 50%;
-  cursor: pointer;
-  border: 3px solid #fff;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-  transition: 0.2s;
-}
-.dot.active, .p-dot.active, .active { border-color: #2d3436 !important; transform: scale(1.1); }
-
-/* ✅ 方案 2：步驟 badge */
-.plan-row{
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  padding-bottom:40px;
   display:flex;
+  flex-direction:column;
   align-items:center;
-  justify-content:center;
-  gap:8px;
-  margin: 2px 0 10px;
-}
-.step-badge{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(0,0,0,0.06);
-  color:#2d3436;
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: .5px;
-}
-.step-title{
-  font-weight: 900;
-  color:#2d3436;
-  font-size: 13px;
-  opacity: .9;
+  background:var(--bg);
+  font-family:var(--font);
+  color:var(--text);
+  transition: 0.45s;
 }
 
-/* ✅ 方案 A/B 兩顆按鈕 */
-.plan-buttons{
+/* ================= 控制面板（門面） ================= */
+#admin-panel{
+  width:100%;
+  background:#fff;
+  text-align:center;
+  border-bottom:1px solid #eee;
+  padding:14px 0 16px;
+  z-index:100;
+}
+
+.dots-row{
   display:flex;
   justify-content:center;
   gap:10px;
-  padding: 0 12px 6px;
-  flex-wrap:wrap;
+  margin:10px 0;
 }
 
-/* 控制列 */
-.control-row { display:flex; justify-content:center; gap:8px; }
+/* 色點 */
+.dot, .p-dot{
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  cursor:pointer;
+  border:3px solid #fff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  transition: 0.2s;
+}
 
-/* 按鈕（沿用你 btn-neo 風格） */
+/* active 統一 */
+.dot.active, .p-dot.active,
+.active{
+  border-color:#2d3436 !important;
+  transform:scale(1.1);
+}
+
+/* 立體按鈕：精品感（呼吸） */
 .btn-neo{
-  border: none;
-  padding: 10px 14px;
-  border-radius: 14px;
-  font-weight: 900;
-  cursor: pointer;
-  background: rgba(0,0,0,0.04);
-  color: #2d3436;
-  transition: .2s;
+  border:none;
+  cursor:pointer;
+  font-weight:900;
+  padding:12px 16px;
+  border-radius:26px;
+  background:#f4f5f7;
+  color:#2d3436;
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.08),
+    inset 0 2px 0 rgba(255,255,255,0.95),
+    inset 0 -2px 0 rgba(0,0,0,0.06);
+  transition: transform .18s, box-shadow .18s, filter .18s;
 }
-.btn-neo:hover { transform: translateY(-1px); }
-.btn-neo.active { outline: 2px solid rgba(0,0,0,0.10); }
-.btn-neo.pill{ border-radius: 999px; padding: 10px 16px; }
 
-/* CTA */
-.btn-cta {
+.btn-neo.pill{ min-width: 156px; }
+
+.btn-neo:hover{ transform: translateY(-1px); }
+.btn-neo:active{ transform: translateY(1px) scale(0.99); }
+
+.btn-neo.active{
+  outline: 2px solid rgba(0,0,0,0.12);
+  filter: saturate(1.02);
+  animation: breatheNeo 1.65s ease-in-out infinite;
+}
+
+@keyframes breatheNeo{
+  0%,100%{ box-shadow:
+    0 10px 22px rgba(0,0,0,0.10),
+    inset 0 2px 0 rgba(255,255,255,0.95),
+    inset 0 -2px 0 rgba(0,0,0,0.06); }
+  50%{ box-shadow:
+    0 14px 28px rgba(0,0,0,0.14),
+    inset 0 2px 0 rgba(255,255,255,0.97),
+    inset 0 -2px 0 rgba(0,0,0,0.05); }
+}
+
+/* CTA（門面大按鈕） */
+.btn-cta{
   background: var(--p);
-  color: #fff;
-  border: none;
-  padding: 12px 40px;
-  border-radius: 40px;
+  color:#fff;
+  border:none;
+  padding: 14px 44px;
+  border-radius: 44px;
   font-weight: 900;
-  cursor: pointer;
-  margin-top: 5px;
+  cursor:pointer;
+  margin-top: 6px;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.12);
+  transition: transform .18s, box-shadow .18s, filter .18s;
 }
+.btn-cta:hover{ transform: translateY(-1px); filter: brightness(1.01); }
+.btn-cta:active{ transform: translateY(1px) scale(0.99); }
 
-/* 🔴 卡片结构（样品区） */
-.card {
-  width: 92%;
-  max-width: 380px;
-  height: 660px;
+/* ================= 名片卡（樣品區） ================= */
+.card{
+  width:92%;
+  max-width:380px;
+  height:660px;
   background: var(--card-bg) !important;
-  border-radius: 45px;
-  overflow: hidden;
-  position: relative;
+  border-radius: var(--radius-card);
+  overflow:hidden;
+  position:relative;
   margin: 15px 0;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.06);
-  transition: 0.5s;
+  box-shadow: var(--shadow);
+  transition: 0.45s;
 }
 
-/* 自由款 banner（顏色只在 banner） */
-.banner { height: 125px; background: var(--p); position: relative; transition: 0.5s; overflow: visible; }
-.dynamic-mask { position: absolute; width: 100%; bottom: -1px; transition: 0.3s; }
-.style-arch .dynamic-mask { background: #fff; height: 45px; border-radius: 60px 60px 0 0; }
-.style-flat .dynamic-mask { background: #fff; height: 10px; border-radius: 0; }
-.style-spot .dynamic-mask { height: 85px; bottom: -84px; background: var(--p); left: 0; width: 100%; clip-path: ellipse(50% 80% at 50% 0%); z-index: 10; }
+/* 自由款 banner（只變色） */
+.banner{
+  height:125px;
+  background: var(--p);
+  position:relative;
+  transition: 0.45s;
+  overflow:visible;
+}
+.dynamic-mask{
+  position:absolute;
+  width:100%;
+  bottom:-1px;
+  transition:0.3s;
+}
 
-/* 精品款：整卡精品（不顯示 banner） */
-.mode-premium .card { width: 86%; height: 580px; margin: 30px auto; box-shadow: 0 25px 50px rgba(0,0,0,0.12); }
-.mode-premium .banner, .mode-premium .dynamic-mask { display:none !important; }
+/* 版型：正拱/平直/晨曦 */
+.style-arch .dynamic-mask{ background:#fff; height:45px; border-radius:60px 60px 0 0; }
+.style-flat .dynamic-mask{ background:#fff; height:10px; border-radius:0; }
+.style-spot .dynamic-mask{
+  height:85px;
+  bottom:-84px;
+  background: var(--p);
+  left:0;
+  width:100%;
+  clip-path: ellipse(50% 80% at 50% 0%);
+  z-index:10;
+}
 
-/* 頭像 */
-.avatar-wrap { position: absolute; width: 100%; display: flex; justify-content: center; z-index: 30; transition: 0.4s; }
-.mode-free .avatar-wrap { top: 75px; }
-.mode-premium .avatar-wrap { top: 40px; left: 25px; justify-content: flex-start; }
-.avatar-circle { width: 105px; height: 105px; border-radius: 50% !important; background: #fff; padding: 4px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); overflow: hidden; }
-.mode-premium .avatar-circle { width: 85px; height: 85px; border: 2.5px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); }
-.avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+/* 精品款：名片感 + 隱藏 banner */
+.mode-premium .card{
+  width:86%;
+  height:580px;
+  margin: 26px auto;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.12);
+  border: 12px solid rgba(255,255,255,0.92);
+  backdrop-filter: blur(25px);
+}
+.mode-premium .banner,
+.mode-premium .dynamic-mask{ display:none !important; }
 
-/* 内容 */
-.info-scroll { transition: 0.4s; }
-.mode-free .info-scroll { padding: 100px 20px 20px; text-align: center; }
-.mode-premium .info-scroll { padding: 90px 25px 25px; text-align: left; }
+/* 頭像區 */
+.avatar-wrap{
+  position:absolute;
+  width:100%;
+  display:flex;
+  justify-content:center;
+  z-index:30;
+  transition:0.4s;
+}
+.mode-free .avatar-wrap{ top: 75px; }
+.mode-premium .avatar-wrap{
+  top: 34px;
+  left: 20px;
+  width:auto;
+  justify-content:flex-start;
+}
 
-.name { margin: 0 0 6px; font-weight: 900; color: var(--text); letter-spacing: .5px; }
-.unit { font-weight: 900; opacity: .82; margin-bottom: 12px; color: var(--text); }
+.avatar-circle{
+  width:105px;
+  height:105px;
+  border-radius:50% !important;
+  background:#fff;
+  padding:4px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  overflow:hidden;
+}
+.mode-premium .avatar-circle{
+  width:86px;
+  height:86px;
+  border: 2.5px solid rgba(255,255,255,0.30);
+  background: rgba(255,255,255,0.14);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+}
 
-.content-box { background: rgba(0,0,0,0.02); border-radius: 20px; padding: 18px; margin-bottom: 12px; text-align: left; }
-.mode-premium .content-box { background: rgba(255,255,255,0.18) !important; border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(10px); border-radius: 15px; color: rgba(255,255,255,0.92); }
+.avatar{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  object-fit:cover;
+}
 
-.cta-box{
-  text-align:center;
+/* 修正：精品模式姓名/頭像重疊（padding + name margin） */
+.info-scroll{ transition:0.4s; overflow:auto; height:100%; }
+.mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
+.mode-premium .info-scroll{
+  padding: 102px 22px 22px; /* ✅ 往下挪，避免壓到頭像 */
+  text-align:left;
+}
+
+.name{
+  margin: 0 0 6px;
   font-weight: 900;
-  color: var(--p);
-  cursor: pointer;
+  letter-spacing: 0.5px;
+}
+.mode-premium .name{
+  margin-top: 8px; /* ✅ 保險 */
+  color: rgba(255,255,255,0.96);
+  text-shadow: 0 2px 10px rgba(0,0,0,0.18);
+}
+.mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
+
+.unit{
+  font-weight: 900;
+  opacity: 0.86;
+  margin-bottom: 12px;
+}
+.mode-premium .unit{ color: rgba(255,255,255,0.88); }
+.mode-premium.p6 .unit{ color: rgba(52,34,0,0.82); }
+
+/* 內容盒 */
+.content-box{
+  background: var(--soft2);
+  border-radius: var(--radius-box);
+  padding: 16px;
+  margin-bottom: 12px;
+  text-align:left;
+}
+.mode-premium .content-box{
+  background: rgba(255,255,255,0.18) !important;
+  border: 1px solid rgba(255,255,255,0.25);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  color: rgba(255,255,255,0.92);
+}
+.mode-premium.p6 .content-box{
+  background: rgba(255,255,255,0.32) !important;
+  border: 1px solid rgba(255,255,255,0.40);
+  color: rgba(52,34,0,0.92);
 }
 
-/* 层 */
-.premium-fx-layer { position: absolute; inset: 0; pointer-events: none; opacity: var(--fx-op, 0); background: var(--fx-img); z-index: 6; mix-blend-mode: overlay; }
-.paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0.15; z-index: 5; mix-blend-mode: multiply; }
-.version-tag { font-size: 10px; opacity: 0.3; position: absolute; bottom: 15px; right: 25px; font-family: monospace; }
-
-.footer{
-  font-size: 10px;
-  color: #ccc;
-  margin-top: 20px;
-  text-align: center;
+/* Box title（如果 app.js 有注入標題，也要漂亮） */
+.box-title{
+  font-weight: 900;
+  margin-bottom: 8px;
+  opacity: 0.92;
 }
 
-/* ✅ 看全文按钮（自动注入用） */
-.readmore-btn{
+/* 質感層 */
+.premium-fx-layer{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity: var(--fx-op, 0);
+  background: var(--fx-img);
+  z-index:6;
+  mix-blend-mode: overlay;
+}
+.paper-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity: 0.12;
+  z-index:5;
+  mix-blend-mode: multiply;
+}
+
+.version-tag{
+  font-size:10px;
+  opacity:0.3;
+  position:absolute;
+  bottom: 15px;
+  right: 25px;
+  font-family: monospace;
+}
+
+/* ================= Logo（自動圓角化） ================= */
+#u-logo,
+.card-logo{
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;         /* ✅ 自動圓角 */
+  object-fit: cover;
+  overflow:hidden;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+  border: 2px solid rgba(255,255,255,0.85);
+  background: rgba(255,255,255,0.28);
+}
+.card-logo-wrap{
+  position:absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 40;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ================= 聯繫區 ================= */
+.contact-main{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:flex-start;
+}
+.btn-cta.mini{
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 13px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.12);
+}
+.contact-sub{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
   margin-top: 10px;
-  width: 100%;
-  border: none;
-  border-radius: 14px;
-  padding: 10px 12px;
-  font-weight: 900;
-  cursor: pointer;
-  background: rgba(0,0,0,0.06);
-  color: #2d3436;
 }
-.mode-premium .readmore-btn{
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  text-decoration:none;
+  font-weight: 900;
+  font-size: 12px;
+  background: rgba(0,0,0,0.04);
+  color: rgba(0,0,0,0.72);
+}
+.mode-premium .chip{
   background: rgba(255,255,255,0.18);
-  border: 1px solid rgba(255,255,255,0.20);
-  color: rgba(255,255,255,0.95);
+  color: rgba(255,255,255,0.92);
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.mode-premium.p6 .chip{
+  background: rgba(255,255,255,0.32);
+  color: rgba(52,34,0,0.88);
+  border: 1px solid rgba(255,255,255,0.40);
 }
 
-/* ✅ 全文视窗（文字 lightbox） */
-.txt-lightbox{
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.55);
-  z-index: 9999;
+/* ================= 相片牆 ================= */
+.photo-wall{ margin-top: 4px; }
+.photo-wall-grid{
+  display:grid;
+  gap:10px;
+  margin-top: 10px;
+}
+.photo-thumb{
+  border:none;
+  background: transparent;
+  padding:0;
+  border-radius: 16px;
+  overflow:hidden;
+  cursor:pointer;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.10);
+}
+.photo-thumb img{
+  width:100%;
+  height:100%;
+  aspect-ratio: 1 / 1;
+  display:block;
+  border-radius: 16px;
+  object-fit: contain;
+}
+
+/* lightbox */
+.img-lightbox{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  background: rgba(0,0,0,0.72);
   padding: 18px;
 }
-.txt-lightbox-inner{
-  width: min(560px, 94vw);
-  max-height: 82vh;
-  overflow: auto;
+.img-lightbox-inner{
+  position: relative;
+  max-width: 92vw;
+  width: 560px;
   border-radius: 18px;
-  background: rgba(255,255,255,0.96);
-  box-shadow: 0 18px 60px rgba(0,0,0,0.25);
-  padding: 16px 14px 14px;
+  overflow:hidden;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.18);
+  backdrop-filter: blur(10px);
 }
-.txt-lightbox-title{
-  font-weight: 900;
-  font-size: 14px;
-  color: #2d3436;
-  margin: 0 0 10px;
-}
-.txt-lightbox-body{
-  white-space: pre-line;
-  line-height: 1.8;
-  font-weight: 700;
-  color: #2d3436;
-  font-size: 13px;
-}
-.txt-lightbox-close{
-  position: sticky;
-  top: 0;
-  float: right;
-  border: none;
-  background: rgba(0,0,0,0.06);
-  border-radius: 12px;
-  width: 38px;
-  height: 38px;
+#imgLightboxClose{
+  position:absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border:none;
+  cursor:pointer;
   font-size: 22px;
-  cursor: pointer;
+  font-weight: 900;
+  background: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.95);
 }
