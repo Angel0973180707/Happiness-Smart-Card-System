@@ -2,12 +2,11 @@
 Happiness Smart Card System — app.js (v393 COMPLETE OVERWRITE)
 
 v393 GOALS:
-- Make homepage CLEAN: NO backend/admin panel shown on top
-- Keep existing facade + sample card layout intact
-- Hidden admin entry only:
-  (A) Long-press .version-tag 1.2s => admin.html?id=TWxxxx
-  (B) Invisible hotspot (top-right 28x28) long-press 1.2s => admin.html?id=TWxxxx
-- Robust fetch/parse
+- Clean homepage: NO visible backend on top
+- Hidden admin entry only
+- Toggle dots UI:
+  * Free mode => show free dots-row (.dot), hide premium dots-row (.p-dot)
+  * Premium mode => show premium dots-row (.p-dot), hide free dots-row + hide free-controls
 ================================ */
 
 const CONFIG = {
@@ -73,12 +72,37 @@ function getCardIdFromUrl_() {
 }
 
 /* ---------------------------
+UI toggle: dots rows (free vs premium)
+No HTML changes needed:
+- free dots row contains ".dot"
+- premium dots row contains ".p-dot"
+--------------------------- */
+function toggleDotsRows_() {
+  const rows = qa(".dots-row");
+  if (!rows.length) return;
+
+  let freeRow = null;
+  let premiumRow = null;
+
+  for (const row of rows) {
+    if (!freeRow && row.querySelector(".dot")) freeRow = row;
+    if (!premiumRow && row.querySelector(".p-dot")) premiumRow = row;
+  }
+
+  const isFree = state.mode === "free";
+
+  if (freeRow) freeRow.style.display = isFree ? "flex" : "none";
+  if (premiumRow) premiumRow.style.display = isFree ? "none" : "flex";
+}
+
+/* ---------------------------
 Switching system (keep existing HTML hooks)
 --------------------------- */
 window.setV382 = function (mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
 
+  // active dot (global clear)
   document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
   if (el && (el.classList.contains("dot") || el.classList.contains("p-dot"))) el.classList.add("active");
 
@@ -107,9 +131,15 @@ window.setV382Paper = function (paper, el) {
 
 function applyV382_() {
   const isFree = state.mode === "free";
+
+  // free controls show/hide
   const controlPanel = $("free-controls");
   if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
 
+  // dots show/hide
+  toggleDotsRows_();
+
+  // apply body classes
   const classList = [
     `mode-${state.mode}`,
     state.theme,
@@ -123,6 +153,7 @@ function syncPlanButtons_() {
   const a = $("btnPlanFree");
   const b = $("btnPlanPremium");
   if (!a || !b) return;
+
   if (state.mode === "free") {
     a.classList.add("active");
     b.classList.remove("active");
@@ -432,7 +463,6 @@ async function loadCardById_(id) {
     await sleep(120);
     applyDataToCard(__payload);
 
-    // keep URL id synced
     try {
       const u = new URL(window.location.href);
       u.searchParams.set("id", cid);
@@ -449,8 +479,6 @@ async function loadCardById_(id) {
 
 /* ===========================
 Hidden Admin Entry (no visible backend)
-(A) long-press version-tag/footer
-(B) invisible hotspot top-right
 =========================== */
 function openAdmin_() {
   const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
@@ -514,14 +542,12 @@ function ensureAdminHotspot_() {
 }
 
 function bindAdminHiddenEntry_() {
-  // A) version-tag first
   const versionTag = q(".version-tag") || $("versionTag") || null;
   const footer = q("footer") || null;
 
   if (versionTag) bindLongPress_(versionTag, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
   else if (footer) bindLongPress_(footer, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
 
-  // B) invisible hotspot
   ensureAdminHotspot_();
   bindLongPress_($("adminHotspot"), CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
 }
@@ -533,7 +559,10 @@ function boot_() {
   try { applyV382_(); } catch {}
   try { syncPlanButtons_(); } catch {}
 
-  // ONLY hidden admin entry (no visible backend)
+  // Ensure correct initial visibility for dots-row
+  try { toggleDotsRows_(); } catch {}
+
+  // ONLY hidden admin entry
   try { bindAdminHiddenEntry_(); } catch {}
 
   const id = getCardIdFromUrl_();
