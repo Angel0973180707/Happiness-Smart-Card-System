@@ -1,8 +1,11 @@
 /* ================================
  * Happiness Smart Card System — style.css
- * v399.9 COMPLETE OVERWRITE
- * Base: v398.3/v399 + premium polish + logo fix + dock polish
- * MUST KEEP: v393 dynamic-mask system (free mode arch/flat/spot)
+ * v399.10 COMPLETE OVERWRITE
+ * FIX:
+ * 1) Free mode: logo above avatar (center)
+ * 2) Premium mode: name right, unit/title under avatar (no overlap)
+ * 3) Premium logo: smaller + circle
+ * 4) Ensure dock buttons not hidden + refined UI
  * ================================ */
 
 :root{
@@ -15,25 +18,20 @@
 
   --shadow: 0 15px 40px rgba(0,0,0,0.06);
   --soft: rgba(0,0,0,0.04);
-  --soft2: rgba(0,0,0,0.02);
 
   --radius-card: 45px;
   --radius-box: 20px;
 
-  /* premium fx */
-  --fx-op: 0;
-  --fx-img: none;
-
-  /* v398 blocks */
   --soft-border: rgba(0,0,0,0.08);
-  --soft-border-2: rgba(0,0,0,0.10);
   --soft-shadow: 0 10px 24px rgba(0,0,0,0.08);
 
   --muted: rgba(45,52,54,0.55);
   --block-bg: rgba(255,255,255,0.86);
 
-  /* typography polish */
   --ts: 0 2px 10px rgba(0,0,0,0.08);
+
+  --fx-op: 0;
+  --fx-img: none;
 }
 
 *{ box-sizing:border-box; }
@@ -46,19 +44,18 @@ body{
   font-family:var(--font);
   color:var(--text);
   transition: 0.45s;
-  display:block;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* ========= 自由搭配款：5 色（維持 v393） ========= */
+/* ========= Free colors ========= */
 .mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
 .mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
 
-/* ========= 精品設計款（維持 v393） ========= */
+/* ========= Premium palettes ========= */
 .mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, rgba(163,109,109,0.96), rgba(142,90,90,0.86)); --text:#ffffff; --fx-op:0.35; }
 .mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg:linear-gradient(135deg, rgba(114,47,55,0.96), rgba(114,47,55,0.86)); --text:#f5e6e8; --fx-op:0.38; }
 .mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg:linear-gradient(135deg, rgba(28,46,66,0.96), rgba(44,62,80,0.86)); --text:#ffffff; --fx-op:0.25; }
@@ -68,8 +65,7 @@ body{
 .mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
 
 /* =========================================
-   v399：上方隱形入口熱區（不破壞門面）
-   - app.js 綁三擊/多擊
+   隱形入口熱區（上方）
 ========================================= */
 #adminHotspotTop{
   position: fixed;
@@ -83,7 +79,7 @@ body{
   pointer-events: auto;
 }
 
-/* ================= 控制面板（門面） ================= */
+/* ================= 控制面板 ================= */
 #admin-panel{
   width:100%;
   background:#fff;
@@ -96,7 +92,6 @@ body{
   backdrop-filter: blur(8px);
 }
 
-/* 中央容器 */
 #card-container{
   display:block;
   margin: 16px auto 8px;
@@ -120,7 +115,7 @@ body{
 }
 .dot.active, .p-dot.active{ border-color:rgba(0,0,0,0.65) !important; transform:scale(1.08); }
 
-/* 立體按鈕（精品化） */
+/* 立體按鈕 */
 .btn-neo{
   border:none;
   cursor:pointer;
@@ -172,7 +167,7 @@ body{
 .btn-cta:hover{ transform: translateY(-1px); filter: brightness(1.02); }
 .btn-cta:active{ transform: translateY(1px) scale(0.99); }
 
-/* ================= 名片卡（樣品區） ================= */
+/* ================= 名片卡 ================= */
 .card{
   width:92%;
   max-width:380px;
@@ -185,7 +180,7 @@ body{
   transition: 0.45s;
 }
 
-/* ================= 自由款 banner + dynamic-mask（維持 v393 原樣！） ================= */
+/* ===== free banner + mask (keep v393) ===== */
 .banner{
   height:125px;
   background: var(--p);
@@ -211,7 +206,7 @@ body{
   z-index:10;
 }
 
-/* ================= 精品款（維持 v393 版型） ================= */
+/* ===== premium card (keep v393) ===== */
 .mode-premium .card{
   width:86%;
   height:580px;
@@ -222,7 +217,7 @@ body{
 .mode-premium .banner,
 .mode-premium .dynamic-mask{ display:none !important; }
 
-/* 頭像 */
+/* ===== avatar wrap ===== */
 .avatar-wrap{
   position:absolute;
   width:100%;
@@ -231,7 +226,9 @@ body{
   z-index:30;
   transition:0.4s;
 }
-.mode-free .avatar-wrap{ top: 75px; }
+/* free avatar slightly lower (because logo now above it) */
+.mode-free .avatar-wrap{ top: 92px; }
+
 .mode-premium .avatar-wrap{
   top: 34px;
   left: 20px;
@@ -263,68 +260,69 @@ body{
   object-fit:cover;
 }
 
-/* ✅ Logo（修正：不再被 display:none 永久封死）
-   - 空 src 不顯示（看不到方塊）
-   - 有 src 才顯示（視覺上等於「有 Logo 才出現」）
-*/
+/* ===== Logo wrap ===== */
 .logo-wrap{
   position:absolute;
   z-index:40;
   pointer-events:none;
   opacity: 1;
 }
+
+/* ✅ Free: logo above avatar (center) */
 .mode-free .logo-wrap{
-  top: 188px;
+  top: 26px;
   left: 50%;
   transform: translateX(-50%);
 }
+
+/* Premium: right top */
 .mode-premium .logo-wrap{
   top: 26px;
-  right: 22px;
+  right: 18px;
   left: auto;
   transform: none;
 }
 
-/* 預設：看不到（避免空 Logo 方塊） */
+/* default hidden if empty */
 #u-logo{
   width: 56px;
   height: 56px;
   border-radius: 16px;
   object-fit: cover;
   opacity: 0;
-  transform: translateZ(0);
   transition: opacity 220ms ease, transform 220ms ease;
   background: transparent;
 }
 
-/* 有 src 才顯示 + 上陰影（Logo 真的進得來） */
+/* show only if has src */
 #u-logo:not([src=""]){
   opacity: 1;
   box-shadow: 0 14px 30px rgba(0,0,0,0.18);
   background: rgba(255,255,255,0.92);
 }
 
-/* 精品款 Logo 微調（更精品） */
+/* ✅ Premium logo: smaller + circle */
 .mode-premium #u-logo{
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.18);
-  border: 1px solid rgba(255,255,255,0.22);
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(255,255,255,0.24);
   box-shadow: 0 16px 34px rgba(0,0,0,0.22);
 }
 
-/* 內容滾動區 */
+/* ===== scroll area ===== */
 .info-scroll{
   transition:0.4s;
   overflow:auto;
   height:100%;
   -webkit-overflow-scrolling: touch;
 }
-.mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
-.mode-premium .info-scroll{ padding: 184px 22px 22px; text-align:left; } /* ✅ 下移：讓單位/頭銜不貼頭像 */
+.mode-free .info-scroll{ padding: 110px 20px 20px; text-align:center; }
+/* ✅ Premium: extra top padding so unit/title never collide with blocks */
+.mode-premium .info-scroll{ padding: 210px 22px 22px; text-align:left; }
 
-/* 標題字形 */
+/* ===== typography base ===== */
 .name{
   margin: 0 0 6px;
   font-weight: 900;
@@ -340,18 +338,18 @@ body{
 }
 
 /* =========================
-   ✅ 精品版排版核心（你要的）
-   - 姓名：右邊獨立
-   - 單位/頭銜：頭像下方（留呼吸）
+   ✅ Premium header layout (NO OVERLAP)
+   - name: right, independent
+   - unit/title: under avatar, breathing space
 ========================= */
-.mode-premium #v398-unit-structure{ position: relative; }
+.mode-premium #v398-unit-structure{ position: relative; min-height: 170px; }
 
-/* 姓名 → 右上獨立區（避開 Logo） */
+/* Name (right) */
 .mode-premium .name{
   position: absolute;
   top: 44px;
-  right: 88px; /* ✅ 預留 Logo 空間 */
-  left: 132px; /* ✅ 避開頭像 */
+  right: 72px; /* keep space before logo */
+  left: 130px; /* keep space after avatar */
   text-align: right;
   font-size: 26px;
   font-weight: 900;
@@ -362,28 +360,31 @@ body{
   z-index: 60;
   text-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
-/* 有 Logo → 姓名自動往下（動態平衡） */
-.mode-premium.has-logo .name{ top: 78px; }
 
-/* 單位/頭銜 → 固定在頭像下方（距離更舒服） */
+/* If logo exists -> slightly lower name (dynamic balance) */
+.mode-premium.has-logo .name{ top: 70px; }
+
+/* Unit under avatar */
 .mode-premium .unit{
   position: absolute;
-  top: 122px;
-  left: 4px;
-  right: 88px;
+  top: 128px;
+  left: 22px;   /* ✅ leave breathing from avatar edge */
+  right: 72px;
   text-align: left;
   font-size: 15px;
   font-weight: 700;
   line-height: 1.35;
   white-space: normal;
   z-index: 55;
-  opacity: .88;
+  opacity: .90;
 }
+
+/* Title under unit */
 .mode-premium .title{
   position: absolute;
-  top: 148px;
-  left: 4px;
-  right: 88px;
+  top: 154px;
+  left: 22px;
+  right: 72px;
   text-align: left;
   font-size: 15px;
   font-weight: 900;
@@ -393,37 +394,13 @@ body{
   opacity: .92;
 }
 
-/* 精品色彩安全 */
+/* Premium color safe */
 .mode-premium .name{ color: rgba(255,255,255,0.96); }
 .mode-premium .unit, .mode-premium .title{ color: rgba(255,255,255,0.88); }
 .mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
 .mode-premium.p6 .unit, .mode-premium.p6 .title{ color: rgba(52,34,0,0.82); }
 
-/* slogan（如果有） */
-.slogan{
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.72);
-  border: 1px solid var(--soft-border);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
-  font-size: 14px;
-  line-height: 1.75;
-  letter-spacing: .3px;
-}
-.mode-premium .slogan{
-  background: rgba(255,255,255,0.18);
-  border: 1px solid rgba(255,255,255,0.25);
-  backdrop-filter: blur(10px);
-  color: rgba(255,255,255,0.92);
-}
-.mode-premium.p6 .slogan{
-  background: rgba(255,255,255,0.32);
-  border: 1px solid rgba(255,255,255,0.40);
-  color: rgba(52,34,0,0.92);
-}
-
-/* v398：兩大區塊容器（服務 / 經歷） */
+/* ========= blocks ========= */
 #v398-blocks{
   margin-top: 12px;
   display: grid;
@@ -467,17 +444,12 @@ body{
 
 .preline{ white-space: pre-line; word-break: normal; overflow-wrap: break-word; }
 
-/* Dock */
-.contact-dock{ margin-top:12px; }
-.dock-buttons{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  justify-content:center;
-}
+/* ========= Dock buttons (ensure visible) ========= */
+.contact-dock{ margin-top:12px; display:block !important; }
+.dock-buttons{ display:flex !important; flex-wrap:wrap; gap:10px; justify-content:center; }
 .mode-premium .dock-buttons{ justify-content:flex-start; }
 
-/* ✅ Dock 按鈕精緻化（排列平衡） */
+/* refined dock */
 .dock-btn{
   border:none;
   background: linear-gradient(180deg, color-mix(in srgb, var(--p) 80%, #fff 20%), var(--p));
@@ -489,14 +461,12 @@ body{
   cursor:pointer;
   box-shadow:0 14px 30px rgba(0,0,0,0.16);
   transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
-  display:inline-flex;
+  display:inline-flex !important;
   align-items:center;
   justify-content:center;
   gap:10px;
   min-height: 44px;
   letter-spacing: .2px;
-
-  /* 平衡：兩欄自動排 */
   flex: 1 1 calc(50% - 10px);
 }
 .dock-btn i{ opacity:.95; }
@@ -506,13 +476,11 @@ body{
   transform: translateY(1px) scale(0.99);
   box-shadow:0 10px 22px rgba(0,0,0,0.18);
 }
-
-/* 手機極窄時自動一欄（更穩） */
 @media (max-width: 360px){
   .dock-btn{ flex: 1 1 100%; }
 }
 
-/* 照片牆 */
+/* ========= Photo wall ========= */
 .photo-wall{ margin-top:14px; padding-bottom: 12px; }
 .photo-grid{
   display:grid;
@@ -529,10 +497,10 @@ body{
 }
 .photo-grid img:active{ transform: scale(0.98); }
 
-/* 極簡：隱藏標題（但服務/經歷仍顯示） */
+/* keep minimal titles off (精品極簡) */
 .dock-title, .wall-title{ display:none !important; }
 
-/* premium fx layer / paper overlay */
+/* fx layers */
 .premium-fx-layer{
   position:absolute;
   inset:0;
@@ -551,7 +519,6 @@ body{
   mix-blend-mode: multiply;
 }
 
-/* version tag */
 .version-tag{
   font-size:10px;
   opacity:0.25;
@@ -562,10 +529,5 @@ body{
   user-select:none;
 }
 
-/* footer */
-#footerTag{
-  user-select:none;
-}
-
-/* focus safety */
+#footerTag{ user-select:none; }
 button:focus{ outline: none; }
