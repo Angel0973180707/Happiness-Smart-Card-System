@@ -1,6 +1,6 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v400.1 (COMPLETE OVERWRITE)
+ * app.js v400.2 (COMPLETE OVERWRITE)
  * - Fix: GAS url empty bug
  * - Fix: payload row extraction (data.data / data.row / direct row)
  * - Keep: theme switch / docks / blocks / photo wall + lightbox
