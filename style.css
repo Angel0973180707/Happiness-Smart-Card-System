@@ -587,4 +587,28 @@ body{
 @media (max-width: 360px){
   .mode-premium #u-name{ left: 110px !important; right: 86px !important; }
   .mode-premium .photo-grid{ grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)) !important; }
+}/* ===== HOTFIX: lock v400 header avatar size ===== */
+.card-head .avatar-wrap{
+  position: relative !important;
+  width: 86px !important;
+  height: 86px !important;
+  flex: 0 0 86px !important;
+  border-radius: 999px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  background: rgba(255,255,255,0.96) !important;
+}
+
+.card-head #u-img{
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: cover !important;
+  border-radius: 999px !important;
+}
+
+.mode-premium .card-head .avatar-wrap{
+  width: 78px !important;
+  height: 78px !important;
+  flex: 0 0 78px !important;
 }
