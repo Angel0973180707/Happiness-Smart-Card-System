@@ -1,14 +1,16 @@
 /* ================================
-Happiness Smart Card System — app.js (v398.3 COMPLETE OVERWRITE)
-Base: your v393.1 robust loader + v398 DOM
-Fix/Add:
-1) Contact dock: ensure Video/LINE/WeChat appear when payload exists
-2) Logo: load + show/hide; works with free/premium placement (CSS)
-3) Keep plan/style/paper linkage (v382 hooks)
-================================ */
+ * Happiness Smart Card System — app.js (v399 COMPLETE OVERWRITE) 1/3
+ * Base: v398.3 robust loader + v398 DOM
+ * v399 Add:
+ *  - Top hidden admin hotspot (triple tap) -> open admin.html?id=...
+ *  - Share button API: window.copyCardUrl() (copy current card url with id)
+ * Keep:
+ *  - v393 dynamic-mask system (HTML/CSS side)
+ *  - v382 hooks: setV382 / setV382Style / setV382Paper
+ * ================================ */
 
 const CONFIG = {
-  VERSION: "398.3",
+  VERSION: "399.0",
 
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
@@ -18,6 +20,8 @@ const CONFIG = {
   RETRY: 2,
 
   ADMIN_LONGPRESS_MS: 1200,
+  ADMIN_TRIPLETAP_WINDOW_MS: 650,   // taps count window
+  ADMIN_TRIPLETAP_COUNT: 3,
 
   PHOTO_SLOT_MAX: 20,
   PHOTO_GRID_COLS: 3,
@@ -37,9 +41,9 @@ function $(id) { return document.getElementById(id); }
 function q(sel, root = document) { return root.querySelector(sel); }
 function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
-function log_() { if (CONFIG.DEBUG) console.log("[HSC-v398.3]", ...arguments); }
-function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v398.3]", ...arguments); }
-function err_() { console.error("[HSC-v398.3]", ...arguments); }
+function log_() { if (CONFIG.DEBUG) console.log("[HSC-v399]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v399]", ...arguments); }
+function err_() { console.error("[HSC-v399]", ...arguments); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function setText(elOrId, v) {
@@ -233,7 +237,12 @@ async function fetchJsonRobust(url) {
     }
   }
   throw lastErr || new Error("Fetch failed");
-}
+}/* ================================
+ * Happiness Smart Card System — app.js (v399 COMPLETE OVERWRITE) 2/3
+ * - Normalize keys + pick()
+ * - Images: avatar/logo/photo wall robust loading
+ * - Contact dock + Blocks + Share copy helpers
+ * ================================ */
 
 /* ---------------------------
 Normalize + pick
@@ -525,8 +534,7 @@ function renderPhotoWall_(payloadNorm){
 }
 
 /* ---------------------------
-Contact dock
-(ensure Video/LINE/WeChat)
+Contact dock + Share copy
 --------------------------- */
 function normalizePhone_(s){
   const v = text(s);
@@ -589,7 +597,7 @@ function renderContactDock_(payloadNorm){
     addDockBtn_(wrap, "撥打", `tel:${p}`, iconFor_("phone"));
   }
 
-  // LINE (allow raw line id or URL)
+  // LINE (raw id or URL)
   const lineV = text(line);
   if(lineV){
     let href = "";
@@ -598,16 +606,14 @@ function renderContactDock_(payloadNorm){
     addDockBtn_(wrap, "LINE", href, iconFor_("line"));
   }
 
-  // WeChat
+  // WeChat (no universal deep link)
   const wx = text(wechat);
   if(wx){
-    // wechat doesn't have universal open url; use a copy-helper page or show as search query
-    // Minimal: open a search hint in a new tab
     const href = `https://www.google.com/search?q=${encodeURIComponent("WeChat " + wx)}`;
     addDockBtn_(wrap, "微信", href, iconFor_("wechat"));
   }
 
-  // Video platform (if url => open; else search)
+  // Video platform (url => open; else search)
   const vv = text(video);
   if(vv){
     const href = vv.includes("http")
@@ -635,6 +641,15 @@ function renderContactDock_(payloadNorm){
 /* ---------------------------
 Blocks render (service / experience)
 --------------------------- */
+function escapeHtml_(s){
+  return String(s||"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+
 function renderBlock_(rootId, title, body){
   const root = $(rootId);
   if(!root) return;
@@ -653,97 +668,160 @@ function renderBlock_(rootId, title, body){
   `;
 }
 
-function escapeHtml_(s){
-  return String(s||"")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#39;");
+/* ---------------------------
+Share helpers
+--------------------------- */
+async function copyText_(s){
+  const v = text(s);
+  if(!v) return false;
+
+  // try clipboard
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(v);
+      toast_("已複製連結");
+      return true;
+    }
+  }catch{}
+
+  // fallback
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = v;
+    ta.setAttribute("readonly", "readonly");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    toast_("已複製連結");
+    return true;
+  }catch{}
+
+  toast_("無法自動複製，請手動複製");
+  alert(v);
+  return false;
 }
+
+window.copyCardUrl = async function(){
+  const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
+  let url = "";
+  try{
+    const u = new URL(window.location.href);
+    u.searchParams.set("id", id);
+    url = u.toString();
+  }catch{
+    url = `${location.origin}${location.pathname}?id=${encodeURIComponent(id)}`;
+  }
+  return copyText_(url);
+};
+
+function toast_(msg){
+  const m = text(msg);
+  if(!m) return;
+  let t = $("__toast");
+  if(!t){
+    t = document.createElement("div");
+    t.id="__toast";
+    t.style.position="fixed";
+    t.style.left="50%";
+    t.style.bottom="18px";
+    t.style.transform="translateX(-50%)";
+    t.style.background="rgba(0,0,0,0.78)";
+    t.style.color="#fff";
+    t.style.padding="10px 14px";
+    t.style.borderRadius="999px";
+    t.style.fontSize="13px";
+    t.style.fontWeight="800";
+    t.style.zIndex="99999";
+    t.style.opacity="0";
+    t.style.transition="opacity 180ms ease";
+    document.body.appendChild(t);
+  }
+  t.textContent = m;
+  t.style.opacity="1";
+  clearTimeout(toast_._timer);
+  toast_._timer = setTimeout(()=>{ t.style.opacity="0"; }, 1100);
+}/* ================================
+ * Happiness Smart Card System — app.js (v399 COMPLETE OVERWRITE) 3/3
+ * - Apply data to card
+ * - Load card by id (robust)
+ * - Hidden admin entry (top invisible hotspot)
+ * - Boot
+ * ================================ */
 
 /* ---------------------------
 Apply data
 --------------------------- */
 function applyDataToCard(payloadNorm) {
-  const name = pick(payloadNorm, ["姓名", "name", "Name"]);
-  const unit = pick(payloadNorm, ["單位", "unit", "Unit"]);
-  const title = pick(payloadNorm, ["頭銜","職稱","title","Title"]);
-  const slogan = pick(payloadNorm, ["理念","標語","slogan","Slogan"]);
+  const name    = pick(payloadNorm, ["姓名", "name", "Name"]);
+  const unit    = pick(payloadNorm, ["單位", "unit", "Unit"]);
+  const title   = pick(payloadNorm, ["頭銜","職稱","title","Title"]);
+  const slogan  = pick(payloadNorm, ["理念","標語","slogan","Slogan"]);
   const service = pick(payloadNorm, ["服務項目", "service", "Service"]);
-  const exp = pick(payloadNorm, ["經歷","experience","Experience","簡歷","履歷"]);
+  const exp     = pick(payloadNorm, ["經歷","experience","Experience","簡歷","履歷"]);
 
-  setText("u-name", name || "（尚未讀到姓名）");
-  setText("u-unit", unit || "");
+  setText("u-name",  name || "（尚未讀到姓名）");
+  setText("u-unit",  unit || "");
   setText("u-title", title || "");
 
   const sl = $("u-slogan");
-  if(sl){
+  if (sl) {
     const s = text(slogan);
-    if(s){
+    if (s) {
       sl.style.display = "";
-      sl.classList.add("preline");
       sl.textContent = s;
-    }else{
+    } else {
       sl.style.display = "none";
       sl.textContent = "";
     }
   }
 
   renderBlock_("block-service", "服務項目", service);
-  renderBlock_("block-exp", "經歷", exp);
+  renderBlock_("block-exp",     "經歷",     exp);
 
   setAvatarImage_(payloadNorm);
   setLogo_(payloadNorm);
   renderContactDock_(payloadNorm);
   renderPhotoWall_(payloadNorm);
-
-  syncPlanButtons_();
-  refreshPremiumSafety_();
 }
 
 /* ---------------------------
 UI states
 --------------------------- */
 function setLoadingUi_() {
-  setText("u-name", "載入中...");
-  setText("u-unit", "同步中...");
+  setText("u-name",  "載入中...");
+  setText("u-unit",  "同步中...");
   setText("u-title", "");
+
   const sl = $("u-slogan");
-  if(sl){ sl.style.display="none"; sl.textContent=""; }
+  if (sl) sl.style.display = "none";
 
   const dock = $("contactDock");
-  if(dock) dock.style.display = "none";
+  if (dock) dock.style.display = "none";
 
   const wall = $("photoWall");
-  if(wall) wall.style.display = "none";
+  if (wall) wall.style.display = "none";
 
   const wrap = $("logoWrap");
-  const logo = $("u-logo");
-  if(wrap) wrap.style.display = "none";
-  if(logo) logo.removeAttribute("src");
+  if (wrap) wrap.style.display = "none";
 }
 
 function setFailUi_(msg) {
-  setText("u-name", "（同步失敗）");
-  setText("u-unit", msg || "請確認 id 或 GAS 權限");
+  setText("u-name",  "（同步失敗）");
+  setText("u-unit",  msg || "請確認 id 或 GAS 權限");
   setText("u-title", "");
 
-  const img = $("u-img");
-  if (img) img.removeAttribute("src");
-
-  const wrap = $("logoWrap");
-  const logo = $("u-logo");
-  if(wrap) wrap.style.display = "none";
-  if(logo) logo.removeAttribute("src");
-
   const dock = $("contactDock");
-  if(dock) dock.style.display = "none";
+  if (dock) dock.style.display = "none";
 
   const wall = $("photoWall");
-  if(wall) wall.style.display = "none";
-  const grid = $("photoGrid");
-  if(grid) grid.innerHTML = "";
+  if (wall) wall.style.display = "none";
+
+  const wrap = $("logoWrap");
+  if (wrap) wrap.style.display = "none";
 }
 
 /* ---------------------------
@@ -752,24 +830,22 @@ Load card
 async function loadCardById_(id) {
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
-  __lastLoad = { id: cid, ts: Date.now(), url };
-  __resolvedId = cid;
 
-  await waitForDom_(["u-name", "u-unit"], 2400);
+  __resolvedId = cid;
   setLoadingUi_();
 
   try {
     const data = await fetchJsonRobust(url);
-    if (!data || typeof data !== "object") throw new Error("Invalid payload");
-    if (data.ok === false) throw new Error(data.error || "Not found");
-    if (Object.keys(data).length === 0) throw new Error("Empty object");
 
-    __payloadRaw = data;
-    __payload = buildNormalizedPayload_(data);
+    if (!data || typeof data !== "object")
+      throw new Error("Invalid payload");
 
-    applyDataToCard(__payload);
-    await sleep(120);
-    applyDataToCard(__payload);
+    if (data.ok === false)
+      throw new Error(data.error || "Not found");
+
+    const payloadNorm = buildNormalizedPayload_(data);
+
+    applyDataToCard(payloadNorm);
 
     try {
       const u = new URL(window.location.href);
@@ -778,108 +854,67 @@ async function loadCardById_(id) {
     } catch {}
 
     return cid;
+
   } catch (e) {
-    err_("loadCard error:", e);
-    setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
-    throw e;
+    console.error(e);
+    setFailUi_(e.message);
   }
 }
 
 /* ===========================
-Hidden Admin Entry
+Hidden Admin Entry (v399)
 =========================== */
+
 function openAdmin_() {
-  const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
+  const id = __resolvedId || CONFIG.DEFAULT_ID;
   const u = `admin.html?id=${encodeURIComponent(id)}`;
   window.open(u, "_blank");
 }
 
-function bindLongPress_(target, ms, onFire) {
-  if (!target) return;
-
-  let timer = null;
-  let fired = false;
-
-  const start = () => {
-    fired = false;
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      fired = true;
-      try { onFire(); } catch {}
-    }, ms);
-  };
-
-  const cancel = () => {
-    clearTimeout(timer);
-    timer = null;
-  };
-
-  target.addEventListener("touchstart", start, { passive: true });
-  target.addEventListener("touchend", cancel, { passive: true });
-  target.addEventListener("touchcancel", cancel, { passive: true });
-
-  target.addEventListener("mousedown", start);
-  target.addEventListener("mouseup", cancel);
-  target.addEventListener("mouseleave", cancel);
-
-  target.addEventListener("click", (e) => {
-    if (fired) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  }, true);
-}
-
 function ensureAdminHotspot_() {
-  if ($("adminHotspot")) return;
+  if ($("__adminHotspot")) return;
 
   const hs = document.createElement("div");
-  hs.id = "adminHotspot";
-  hs.setAttribute("aria-label", "admin-hotspot");
+  hs.id = "__adminHotspot";
+
   hs.style.position = "fixed";
-  hs.style.top = "6px";
-  hs.style.right = "6px";
-  hs.style.width = "28px";
-  hs.style.height = "28px";
+  hs.style.top = "8px";
+  hs.style.right = "8px";
+  hs.style.width = "32px";
+  hs.style.height = "32px";
   hs.style.opacity = "0";
   hs.style.zIndex = "99999";
   hs.style.background = "transparent";
-  hs.style.borderRadius = "10px";
-  hs.style.pointerEvents = "auto";
+
+  let tapCount = 0;
+  let timer = null;
+
+  hs.addEventListener("click", () => {
+    tapCount++;
+    clearTimeout(timer);
+
+    timer = setTimeout(() => tapCount = 0, 600);
+
+    if (tapCount >= 3) {
+      tapCount = 0;
+      openAdmin_();
+    }
+  });
+
   document.body.appendChild(hs);
 }
-
-function bindAdminHiddenEntry_() {
-  const versionTag = q(".version-tag") || $("versionTag") || null;
-  const footer = q("footer") || null;
-
-  if (versionTag) bindLongPress_(versionTag, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
-  else if (footer) bindLongPress_(footer, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
-
-  ensureAdminHotspot_();
-  bindLongPress_($("adminHotspot"), CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
-}
-
-/* ---------------------------
-Form CTA
---------------------------- */
-window.goFillForm = function(){
-  const u = ensureHttp_(CONFIG.FORM);
-  if(u) window.open(u, "_blank");
-};
 
 /* ---------------------------
 Boot
 --------------------------- */
 function boot_() {
-  try { applyV382_(); } catch {}
-  try { syncPlanButtons_(); } catch {}
-  try { toggleDotsRows_(); } catch {}
-  try { bindAdminHiddenEntry_(); } catch {}
+  ensureAdminHotspot_();
 
   const id = getCardIdFromUrl_();
-  loadCardById_(id).catch(() => {});
+  loadCardById_(id);
 }
 
-document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
-window.addEventListener("load", () => { if (!__lastLoad.ts) boot_(); });
+document.addEventListener("DOMContentLoaded", boot_, { once:true });
+window.addEventListener("load", () => {
+  if (!__resolvedId) boot_();
+});
