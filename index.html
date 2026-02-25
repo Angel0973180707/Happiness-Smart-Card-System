@@ -1,14 +1,14 @@
-<!-- index.html (v399 COMPLETE OVERWRITE) -->
+<!-- index.html (v399.2 COMPLETE OVERWRITE) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <title>Happiness Smart Card System v399</title>
+  <title>Happiness Smart Card System v399.2</title>
   <meta name="description" content="幸福智慧名片｜點擊查看專屬名片" />
 
-  <!-- ✅ OG（預設封面） -->
+  <!-- OG 固定封面（用既有 og-card.png） -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="幸福智慧名片" />
   <meta property="og:description" content="點擊查看智慧名片" />
@@ -19,21 +19,19 @@
   <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=3990" />
+  <link rel="manifest" href="./manifest.json?v=3992" />
   <meta name="theme-color" content="#ee5253" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=3990" />
-  <link rel="icon" href="./icons/icon-192.png?v=3990" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=3992" />
+  <link rel="icon" href="./icons/icon-192.png?v=3992" />
 
-  <!-- Fonts / Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-
-  <link rel="stylesheet" href="style.css?v=3990" />
+  <link rel="stylesheet" href="style.css?v=3992" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- ✅ 門面（可見） -->
+  <!-- ✅ 門面控制區（維持 v398.3 結構） -->
   <div id="admin-panel">
 
     <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
@@ -53,8 +51,8 @@
       <div style="font-weight:900;">選擇方案</div>
     </div>
 
-    <!-- free dots -->
-    <div class="dots-row">
+    <!-- 自由 5 色 -->
+    <div class="dots-row" id="freeDots">
       <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
       <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
       <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
@@ -76,8 +74,8 @@
       </div>
     </div>
 
-    <!-- premium dots -->
-    <div class="dots-row">
+    <!-- 精品 7 色 -->
+    <div class="dots-row" id="premiumDots">
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p1', this)"></div>
       <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p2', this)"></div>
       <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p3', this)"></div>
@@ -87,50 +85,54 @@
       <div class="p-dot" style="background:#444444" onclick="window.setV382('premium', 'p7', this)"></div>
     </div>
 
-    <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
-      <button class="btn-cta" type="button" onclick="window.goFillForm()">立即預約訂製名片 →</button>
-      <button class="btn-neo pill" type="button" onclick="window.copyCardUrl()">點我分享名片（複製連結）</button>
-    </div>
+    <button class="btn-cta" type="button" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
-  <!-- 名片本體 -->
+  <!-- 名片容器 -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
 
-    <!-- ✅ v399：Logo（自由款：頭像下方置中；精品款：右上角） -->
+    <!-- Logo -->
     <div class="logo-wrap" id="logoWrap" aria-label="logo">
       <img id="u-logo" class="logo-img" src="" alt="Logo" />
     </div>
 
+    <!-- free banner + dynamic-mask (維持 v393) -->
     <div class="banner"><div class="dynamic-mask"></div></div>
 
-    <!-- 👤 頭像區 -->
+    <!-- 头像 -->
     <div class="avatar-wrap">
       <div class="avatar-circle">
         <img id="u-img" src="" class="avatar" alt="形象照" />
       </div>
     </div>
 
+    <!-- 內容 -->
     <div class="info-scroll">
 
+      <!-- ✅ v399.2：精品款的排版會由 CSS 控制：
+           姓名（右側）/ 單位頭銜（留在頭像下方） -->
       <div id="v398-unit-structure">
         <h1 id="u-name" class="name">載入中...</h1>
-        <div id="u-unit" class="unit">同步中...</div>
+        <div id="u-unit" class="unit"></div>
         <div id="u-title" class="title"></div>
         <div id="u-slogan" class="slogan"></div>
       </div>
 
+      <!-- 服務 / 經歷 -->
       <div id="v398-blocks">
         <div id="block-service" class="info-block"></div>
         <div id="block-exp" class="info-block"></div>
       </div>
 
+      <!-- Dock：聯繫 + LINE + 影音 + 社群 -->
       <div id="contactDock" class="contact-dock">
         <div class="dock-title">聯繫與平台</div>
         <div id="contactButtons" class="dock-buttons"></div>
       </div>
 
+      <!-- 照片牆 -->
       <div id="photoWall" class="photo-wall">
         <div class="wall-title">照片牆</div>
         <div id="photoGrid" class="photo-grid"></div>
@@ -138,19 +140,41 @@
 
     </div>
 
-    <div class="version-tag" id="versionTag">v399</div>
+    <!-- 版本字（保留，但不當入口；入口改右上隱形熱區長按） -->
+    <div class="version-tag" id="versionTag">v399.2</div>
   </div>
 
   <footer id="footerTag" style="font-size:10px; color:#ccc; margin-top:12px; text-align:center;">
-    Happiness Smart Card System v399
+    Happiness Smart Card System v399.2
   </footer>
 
-  <script src="app.js?v=3990"></script>
+  <!-- ✅ 浮動分享鈕（右下角） -->
+  <button id="shareFab" class="fab-share" type="button" aria-label="share">
+    <i class="fa-solid fa-share-nodes"></i>
+  </button>
+
+  <!-- ✅ 分享小面板（兩個：名片 / 交貨） -->
+  <div id="shareSheet" class="share-sheet" aria-hidden="true">
+    <div class="sheet-card">
+      <div class="sheet-title">分享名片</div>
+      <div class="sheet-actions">
+        <button id="btnShareCard" class="sheet-btn" type="button">
+          <i class="fa-solid fa-link"></i><span>複製名片網址</span>
+        </button>
+        <button id="btnShareDelivery" class="sheet-btn" type="button">
+          <i class="fa-solid fa-box"></i><span>複製交貨網址</span>
+        </button>
+      </div>
+      <button id="btnShareClose" class="sheet-close" type="button">關閉</button>
+    </div>
+  </div>
+
+  <script src="app.js?v=3992"></script>
 
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=3990').catch(()=>{});
+        navigator.serviceWorker.register('./sw.js?v=3992').catch(()=>{});
       });
     }
   </script>
