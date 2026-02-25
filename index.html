@@ -7,7 +7,7 @@
   <title>Happiness Smart Card System</title>
   <meta name="description" content="幸福智慧名片｜點擊查看專屬名片" />
 
-  <!-- OG 固定封面圖 -->
+  <!-- ✅ OG 固定封面圖（最重要） -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="幸福智慧名片" />
   <meta property="og:description" content="點擊查看智慧名片" />
@@ -15,14 +15,15 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
 
+  <!-- Twitter / LINE 相容 -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
   <link rel="manifest" href="./manifest.json?v=3983" />
   <meta name="theme-color" content="#ee5253" />
 
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=3983" />
-  <link rel="icon" href="./icons/icon-192.png?v=3983" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="icon" href="./icons/icon-192.png" />
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
@@ -31,7 +32,7 @@
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- 門面區 -->
+  <!-- ✅ v398：門面必須可見（不再預設隱藏） -->
   <div id="admin-panel">
 
     <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
@@ -51,7 +52,6 @@
       <div style="font-weight:900;">選擇方案</div>
     </div>
 
-    <!-- Free dots -->
     <div class="dots-row">
       <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
       <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
@@ -74,7 +74,6 @@
       </div>
     </div>
 
-    <!-- Premium dots -->
     <div class="dots-row">
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p1', this)"></div>
       <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p2', this)"></div>
@@ -88,17 +87,18 @@
     <button class="btn-cta" type="button" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
-  <!-- 名片 -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
 
-    <!-- ✅ 回到 v393：banner + dynamic-mask（弧形/平直/晨曦都靠遮罩） -->
-    <div class="banner">
-      <div class="dynamic-mask"></div>
+    <!-- ✅ v398.3：Logo（自由款在頭像下；精品款在右上角） -->
+    <div class="logo-wrap" id="logoWrap" aria-label="logo">
+      <img id="u-logo" class="logo-img" src="" alt="Logo" />
     </div>
 
-    <!-- 頭像 -->
+    <div class="banner"><div class="dynamic-mask"></div></div>
+
+    <!-- 👤 頭像區（不動） -->
     <div class="avatar-wrap">
       <div class="avatar-circle">
         <img id="u-img" src="" class="avatar" alt="形象照" />
@@ -107,6 +107,7 @@
 
     <div class="info-scroll">
 
+      <!-- ✅ v398：unitline 拆解正式結構 -->
       <div id="v398-unit-structure">
         <h1 id="u-name" class="name">載入中...</h1>
         <div id="u-unit" class="unit">同步中...</div>
@@ -114,16 +115,19 @@
         <div id="u-slogan" class="slogan"></div>
       </div>
 
+      <!-- ✅ v398：固定兩大容器（服務項目 / 經歷） -->
       <div id="v398-blocks">
         <div id="block-service" class="info-block"></div>
         <div id="block-exp" class="info-block"></div>
       </div>
 
+      <!-- ✅ Dock 區（不動） -->
       <div id="contactDock" class="contact-dock">
         <div class="dock-title">聯繫與平台</div>
         <div id="contactButtons" class="dock-buttons"></div>
       </div>
 
+      <!-- ✅ 照片牆（不動） -->
       <div id="photoWall" class="photo-wall">
         <div class="wall-title">照片牆</div>
         <div id="photoGrid" class="photo-grid"></div>
@@ -131,7 +135,7 @@
 
     </div>
 
-    <!-- 右下角版本字（長按/三擊入口由 app.js 綁定） -->
+    <!-- ✅ v398：隱形入口熱區（右下角三擊）會由 app.js 建立 invisible hotzone -->
     <div class="version-tag" id="versionTag">v398.3</div>
   </div>
 
