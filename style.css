@@ -1,6 +1,7 @@
 :root{
   --font:'Noto Sans TC', sans-serif;
 
+  /* default theme (free color-1) */
   --p:#ff5e5e;
   --bg:#fff5f5;
   --card-bg:#ffffff;
@@ -19,6 +20,10 @@
   --muted-2: rgba(45,52,54,0.42);
 
   --block-bg: rgba(255,255,255,0.86);
+
+  /* paper overlay control */
+  --paper-opacity: .16;
+  --paper-tex: none;
 }
 
 /* ===== 基本結構 ===== */
@@ -30,6 +35,23 @@ body{
   background:var(--bg);
   color:var(--text);
 }
+
+/* ===== 方案/顏色：真正連動變數 ===== */
+/* Free colors */
+body.color-1{ --p:#ff5e5e; --bg:#fff5f5; }
+body.color-2{ --p:#00a8ff; --bg:#f2fbff; }
+body.color-3{ --p:#ffa502; --bg:#fff7ea; }
+body.color-4{ --p:#7d5fff; --bg:#f6f2ff; }
+body.color-5{ --p:#2ecc71; --bg:#f1fff6; }
+
+/* Premium palette p1~p7（可依你後續再微調） */
+body.p1{ --p:#a36d6d; --bg:#120f10; --text:#ffffff; }
+body.p2{ --p:#722f37; --bg:#0f0b0c; --text:#ffffff; }
+body.p3{ --p:#1c2e42; --bg:#070b10; --text:#ffffff; }
+body.p4{ --p:#5e548e; --bg:#0b0910; --text:#ffffff; }
+body.p5{ --p:#7a94a6; --bg:#070a0d; --text:#ffffff; }
+body.p6{ --p:#bf953f; --bg:#0c0a07; --text:#ffffff; }
+body.p7{ --p:#444444; --bg:#060606; --text:#ffffff; }
 
 /* ===== 門面區 ===== */
 #admin-panel{
@@ -63,6 +85,31 @@ body{
   filter: brightness(0.98);
 }
 
+/* CTA */
+.btn-cta{
+  width: min(92%, 420px);
+  margin: 10px auto 0;
+  display:block;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 999px;
+  font-weight: 900;
+  font-size: 14px;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(0,0,0,0.10)), var(--p);
+  box-shadow:
+    0 16px 30px rgba(0,0,0,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.28);
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
+}
+.btn-cta:active{
+  transform: translateY(1px) scale(0.99);
+  box-shadow:
+    0 12px 22px rgba(0,0,0,0.18),
+    inset 0 2px 0 rgba(0,0,0,0.10);
+}
+
 /* ===== 色點 ===== */
 .dots-row{
   display:flex;
@@ -81,9 +128,7 @@ body{
   transition: transform .12s ease, box-shadow .18s ease;
 }
 
-.dot:active,.p-dot:active{
-  transform: scale(0.98);
-}
+.dot:active,.p-dot:active{ transform: scale(0.98); }
 
 .dot.active,.p-dot.active{
   transform:scale(1.08);
@@ -103,14 +148,36 @@ body{
   position:relative;
 }
 
+/* paper overlay（用 HTML 的 .paper-overlay） */
+.paper-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity: var(--paper-opacity);
+  background: var(--paper-tex);
+  mix-blend-mode: multiply;
+}
+
 /* ===== Banner ===== */
 .banner{
   height:120px;
   background:var(--p);
+  position: relative;
 }
 
-.style-arch .banner{
-  border-radius:0 0 50px 50px;
+/* 三種版型 */
+body.style-arch .banner{ border-radius:0 0 50px 50px; }
+body.style-flat .banner{ border-radius:0 0 18px 18px; }
+body.style-spot .banner{ border-radius:0 0 44px 44px; }
+
+/* spot：加一點柔光（不改你的世界觀，只是細節） */
+body.style-spot .banner:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: radial-gradient(320px 180px at 70% 40%, rgba(255,255,255,0.22), transparent 62%);
+  pointer-events:none;
+  opacity:.9;
 }
 
 /* ===== 頭像 ===== */
@@ -120,6 +187,7 @@ body{
   width:100%;
   display:flex;
   justify-content:center;
+  z-index: 2;
 }
 
 .avatar-circle{
@@ -136,6 +204,7 @@ body{
   height:100%;
   border-radius:50%;
   object-fit:cover;
+  background: rgba(0,0,0,0.04);
 }
 
 /* ===== 內容區 ===== */
@@ -143,11 +212,11 @@ body{
   padding:110px 22px 22px;
   height:100%;
   overflow:auto;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
-#v398-unit-structure{
-  text-align:center;
-}
+#v398-unit-structure{ text-align:center; }
 
 .name{
   margin:0 0 8px;
@@ -157,19 +226,13 @@ body{
   letter-spacing: .4px;
 }
 
-.unit{
+.unit, .title{
   font-weight:800;
   font-size: 14px;
   opacity: .9;
   margin-top: 2px;
 }
-
-.title{
-  font-weight:800;
-  font-size: 14px;
-  opacity: .88;
-  margin-top: 2px;
-}
+.title{ opacity:.88; }
 
 .slogan{
   margin-top: 10px;
@@ -183,7 +246,7 @@ body{
   letter-spacing: .3px;
 }
 
-/* ===== v398 blocks：淡框立體分區 ===== */
+/* ===== v398 blocks ===== */
 #v398-blocks{
   margin-top: 10px;
   display: grid;
@@ -197,6 +260,17 @@ body{
   padding: 12px 14px;
   box-shadow: var(--soft-shadow);
   backdrop-filter: blur(6px);
+  position: relative;
+}
+
+.info-block:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:18px;
+  pointer-events:none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+  opacity:.65;
 }
 
 .block-title{
@@ -212,86 +286,22 @@ body{
   line-height: 1.75;
   letter-spacing: .3px;
   color: rgba(45,52,54,0.92);
-}
-
-/* 保留顧客分行 + 防落單骨架（進階調整在後段） */
-.preline{ white-space: pre-line; }
-
-#u-slogan.preline,
-#block-service .block-body.preline,
-#block-exp .block-body.preline{
   word-break: normal;
   overflow-wrap: break-word;
   line-break: strict;
-  text-wrap: balance;
 }
 
-/* ===== Dock（先保留，按鈕美化在第 2/3） ===== */
-.contact-dock{
-  margin-top:12px;
-}
+.preline{ white-space: pre-line; }
 
+/* ===== Dock ===== */
+.contact-dock{ margin-top:12px; }
 .dock-buttons{
   display:flex;
   flex-wrap:wrap;
   gap:10px;
 }
 
-/* v398.2 會在第 2/3 改成 icon pill */
-.dock-btn{
-  border:none;
-  background:var(--p);
-  color:#fff;
-  padding:10px 14px;
-  border-radius:22px;
-  font-size:13px;
-  font-weight:900;
-  cursor:pointer;
-  box-shadow:0 10px 22px rgba(0,0,0,0.14);
-  transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
-}
-
-.dock-btn:active{
-  transform: translateY(1px) scale(0.99);
-  box-shadow:0 8px 18px rgba(0,0,0,0.18);
-}
-
-/* ===== 照片牆 ===== */
-.photo-wall{
-  margin-top:14px;
-}
-
-.photo-grid{
-  display:grid;
-  grid-template-columns:repeat(3, 1fr);
-  gap:8px;
-}
-
-.photo-grid img{
-  width:100%;
-  aspect-ratio:1/1;
-  object-fit:cover;
-  border-radius:14px;
-  box-shadow: 0 10px 22px rgba(0,0,0,0.10);
-  transition: transform .12s ease, box-shadow .18s ease;
-}
-
-.photo-grid img:active{
-  transform: scale(0.98);
-}
-
-/* v397 legacy titles hidden (keep minimal) */
-.dock-title,
-.wall-title{
-  display:none !important;
-}/* ========================================
-v398.2 — Dock icon pills + Premium glass deepen
-======================================== */
-
-/* ===== Dock icon pill (圖示＋文字) =====
-app.js 會把 dock-btn 內部改成 <i class="fa..."></i><span>文字</span>
-這裡先把樣式準備好
-*/
+/* Dock icon pill */
 .dock-btn{
   display:inline-flex;
   align-items:center;
@@ -309,20 +319,10 @@ app.js 會把 dock-btn 內部改成 <i class="fa..."></i><span>文字</span>
   cursor:pointer;
   transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
 }
+.dock-btn i{ font-size:14px; opacity:.98; }
+.dock-btn span{ transform: translateY(.2px); }
 
-.dock-btn i{
-  font-size: 14px;
-  opacity: .98;
-}
-
-.dock-btn span{
-  transform: translateY(.2px);
-}
-
-.dock-btn:hover{
-  filter: brightness(1.02);
-}
-
+.dock-btn:hover{ filter: brightness(1.02); }
 .dock-btn:active{
   transform: translateY(1px) scale(0.99);
   box-shadow:
@@ -330,15 +330,104 @@ app.js 會把 dock-btn 內部改成 <i class="fa..."></i><span>文字</span>
     inset 0 2px 0 rgba(0,0,0,0.10);
 }
 
-/* 讓 dock 在文字多時更好排版 */
-.dock-buttons{
-  gap:10px;
+/* ===== 照片牆：dense + auto-fit（動態平衡） ===== */
+.photo-wall{ margin-top:14px; padding-bottom: 12px; }
+
+.photo-grid{
+  display:grid;
+  /* ✅ 自動適配列數：螢幕寬就多列、窄就少列 */
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap:8px;
+  /* ✅ 填洞 */
+  grid-auto-flow: dense;
 }
 
-/* ===== Premium 模式：玻璃感加深（更精品） ===== */
+.photo-grid img{
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+  border-radius:14px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.10);
+  transition: transform .12s ease, box-shadow .18s ease;
+  background: rgba(0,0,0,0.04);
+}
+.photo-grid img:active{ transform: scale(0.98); }
+
+/* ===== Read More ===== */
+.readmore-btn{
+  margin-top: 10px;
+  width: 100%;
+  border: 1px solid var(--soft-border-2);
+  background: rgba(255,255,255,0.70);
+  color: rgba(45,52,54,0.86);
+  font-weight: 900;
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.55);
+  transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
+}
+.readmore-btn:active{
+  transform: translateY(1px) scale(0.99);
+  box-shadow:
+    0 8px 18px rgba(0,0,0,0.12),
+    inset 0 2px 0 rgba(0,0,0,0.08);
+}
+
+.block-body.is-collapsed{
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: var(--clamp-lines, 6);
+}
+.slogan.is-collapsed{
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: var(--clamp-lines, 4);
+}
+
+/* ===== v397 legacy titles hidden（極簡） ===== */
+.dock-title,
+.wall-title{ display:none !important; }
+
+/* ===== 右下角版本 ===== */
+.version-tag{
+  position:absolute;
+  right:14px;
+  bottom:12px;
+  font-size:11px;
+  opacity:.25;
+  user-select:none;
+}
+
+/* ===== 紙感（paper-1/2/3） ===== */
+body.paper-1{
+  --paper-opacity: .14;
+  --paper-tex: radial-gradient(circle at 20% 20%, rgba(0,0,0,0.06), transparent 45%),
+               radial-gradient(circle at 80% 30%, rgba(0,0,0,0.05), transparent 48%),
+               radial-gradient(circle at 40% 80%, rgba(0,0,0,0.04), transparent 55%);
+}
+body.paper-2{
+  --paper-opacity: .16;
+  --paper-tex: repeating-radial-gradient(circle at 30% 30%,
+               rgba(0,0,0,0.06) 0 1px,
+               transparent 1px 6px);
+}
+body.paper-3{
+  --paper-opacity: .16;
+  --paper-tex: repeating-linear-gradient(45deg,
+               rgba(0,0,0,0.05) 0 1px,
+               transparent 1px 7px);
+}
+
+/* ===== Premium 模式（玻璃感） ===== */
 .mode-premium{
-  /* premium 背景更沉穩 */
-  --block-bg: rgba(255,255,255,0.16);
+  --card-bg: rgba(255,255,255,0.08);
+  --block-bg: rgba(255,255,255,0.10);
   --soft-border: rgba(255,255,255,0.18);
   --soft-border-2: rgba(255,255,255,0.22);
 
@@ -355,7 +444,6 @@ app.js 會把 dock-btn 內部改成 <i class="fa..."></i><span>文字</span>
   backdrop-filter: blur(26px);
 }
 
-/* premium 內層「精緻動態感」：光影層 */
 .mode-premium .premium-fx-layer{
   position:absolute;
   inset:-40px;
@@ -375,7 +463,6 @@ app.js 會把 dock-btn 內部改成 <i class="fa..."></i><span>文字</span>
   100%{ transform: translate3d(0,0,0) scale(1); opacity:.88; }
 }
 
-/* premium 文字顏色更高級 */
 .mode-premium .name,
 .mode-premium .unit,
 .mode-premium .title{
@@ -401,21 +488,20 @@ app.js 會把 dock-btn 內部改成 <i class="fa..."></i><span>文字</span>
     inset 0 1px 0 rgba(255,255,255,0.18);
   backdrop-filter: blur(18px);
 }
-
-.mode-premium .block-title{
-  color: rgba(255,255,255,0.70);
+.mode-premium .info-block:before{
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
+  opacity:.9;
 }
 
-.mode-premium .block-body{
-  color: rgba(255,255,255,0.90);
-}
+.mode-premium .block-title{ color: rgba(255,255,255,0.70); }
+.mode-premium .block-body{ color: rgba(255,255,255,0.90); }
 
-/* ===== Premium 按鈕：金邊立體 + 呼吸 ===== */
+/* Premium 按鈕：金邊立體 + 呼吸 */
 .mode-premium .dock-btn{
   background:
     linear-gradient(180deg, rgba(255,255,255,0.14), rgba(0,0,0,0.16)),
     rgba(255,255,255,0.12);
-  border: 1px solid rgba(191,149,63,0.55); /* 金邊 */
+  border: 1px solid rgba(191,149,63,0.55);
   box-shadow:
     0 18px 46px rgba(0,0,0,0.28),
     inset 0 1px 0 rgba(255,255,255,0.20);
@@ -452,7 +538,6 @@ app.js 會把 dock-btn 內部改成 <i class="fa..."></i><span>文字</span>
   animation: none;
 }
 
-/* premium 照片牆更精緻 */
 .mode-premium .photo-grid img{
   border-radius: 16px;
   box-shadow:
@@ -460,55 +545,6 @@ app.js 會把 dock-btn 內部改成 <i class="fa..."></i><span>文字</span>
     inset 0 1px 0 rgba(255,255,255,0.10);
 }
 
-/* ===== subtle separators: keep sections breathable ===== */
-#v398-blocks{
-  margin-top: 12px;
-}
-
-/* 手機長文更好讀 */
-.block-body{
-  word-break: normal;
-  overflow-wrap: break-word;
-  line-break: strict;
-}
-
-/* 防落單進階：讓支援的瀏覽器自動平衡行長 */
-#u-slogan.preline,
-#block-service .block-body.preline,
-#block-exp .block-body.preline{
-  text-wrap: balance;
-}/* ========================================
-v398.2 — Read more + polish + mobile tweaks
-======================================== */
-
-/* ===== Read More (讀全文/收起) 按鈕樣式 =====
-app.js v398.2 會自動在 block-body 後面插入 .readmore-btn
-*/
-.readmore-btn{
-  margin-top: 10px;
-  width: 100%;
-  border: 1px solid var(--soft-border-2);
-  background: rgba(255,255,255,0.70);
-  color: rgba(45,52,54,0.86);
-  font-weight: 900;
-  font-size: 13px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  cursor: pointer;
-  box-shadow:
-    0 10px 22px rgba(0,0,0,0.10),
-    inset 0 1px 0 rgba(255,255,255,0.55);
-  transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
-}
-
-.readmore-btn:active{
-  transform: translateY(1px) scale(0.99);
-  box-shadow:
-    0 8px 18px rgba(0,0,0,0.12),
-    inset 0 2px 0 rgba(0,0,0,0.08);
-}
-
-/* premium 的讀全文：更玻璃、更金邊 */
 .mode-premium .readmore-btn{
   background: rgba(255,255,255,0.10);
   color: rgba(255,255,255,0.92);
@@ -518,81 +554,11 @@ app.js v398.2 會自動在 block-body 後面插入 .readmore-btn
     inset 0 1px 0 rgba(255,255,255,0.18);
 }
 
-/* ===== 折疊狀態（app.js 會切 class） ===== */
-.block-body.is-collapsed{
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+.mode-premium .version-tag{ opacity:.18; }
 
-/* app.js 會用 --clamp-lines 設定可見行數 */
-.block-body.is-collapsed{
-  -webkit-line-clamp: var(--clamp-lines, 6);
-}
-
-/* slogan 若太長也可折疊（app.js 可選擇套用） */
-.slogan.is-collapsed{
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  -webkit-line-clamp: var(--clamp-lines, 4);
-}
-
-/* ===== 分區更立體：微邊緣高光 ===== */
-.info-block{
-  position: relative;
-}
-
-.info-block:before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:18px;
-  pointer-events:none;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
-  opacity:.65;
-}
-
-.mode-premium .info-block:before{
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18);
-  opacity:.9;
-}
-
-/* ===== 長文閱讀：行距與段落更舒服 ===== */
-.block-body.preline{
-  line-height: 1.8;
-}
-
-#u-slogan.preline{
-  line-height: 1.85;
-}
-
-/* 若內容太擠，可稍微縮字（小螢幕） */
+/* 小螢幕微調 */
 @media (max-width: 380px){
   .name{ font-size: 21px; }
   .block-body{ font-size: 13.6px; }
   .dock-btn{ font-size: 12.6px; }
 }
-
-/* ===== 視覺收尾 ===== */
-.version-tag{
-  position:absolute;
-  right:14px;
-  bottom:12px;
-  font-size:11px;
-  opacity:.25;
-  user-select:none;
-}
-
-.mode-premium .version-tag{
-  opacity:.18;
-}
-
-/* 讓 info-scroll 捲動更順 */
-.info-scroll{
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* 避免圖片牆把底部擠太緊 */
-.photo-wall{ padding-bottom: 12px; }
