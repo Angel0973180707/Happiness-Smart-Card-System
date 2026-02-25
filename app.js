@@ -1,14 +1,16 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v400 (1/3)
- * Core Fix Layer
+ * app.js v400.1 (COMPLETE OVERWRITE)
+ * - Fix: GAS url empty bug
+ * - Fix: payload row extraction (data.data / data.row / direct row)
+ * - Keep: theme switch / docks / blocks / photo wall + lightbox
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v400"
+  VERSION: "v400.1"
 };
 
 let currentRow = null;
@@ -18,7 +20,7 @@ let currentRow = null;
 function qs(id){ return document.getElementById(id); }
 
 function normalizeKey(k){
-  return String(k)
+  return String(k ?? "")
     .replace(/[\n\r"]/g, "")
     .trim()
     .toLowerCase();
@@ -28,99 +30,26 @@ function pick(row, keys){
   if(!row) return "";
   const map = {};
   Object.keys(row).forEach(k => map[normalizeKey(k)] = row[k]);
-
   for(const key of keys){
     const v = map[normalizeKey(key)];
-    if(v) return String(v).trim();
+    if(v != null && String(v).trim() !== "") return String(v).trim();
   }
   return "";
 }
 
-/* ---------- Theme Switching ---------- */
-
-function setV382(mode, theme, el){
-  document.body.className = "";
-
-  if(mode === "free"){
-    document.body.classList.add("mode-free", theme);
-    qs("free-controls").style.display = "block";
-    qs("premiumDotsRow").style.display = "none";
-  }else{
-    document.body.classList.add("mode-premium", theme);
-    qs("free-controls").style.display = "none";
-    qs("premiumDotsRow").style.display = "flex";
-  }
-
-  document.querySelectorAll(".btn-neo, .dot, .p-dot")
-    .forEach(b => b.classList.remove("active"));
-
-  if(el) el.classList.add("active");
-}
-
-function setV382Style(style, el){
-  document.body.classList.remove("style-arch","style-flat","style-spot");
-  document.body.classList.add("style-" + style);
-
-  document.querySelectorAll(".btn-neo")
-    .forEach(b => b.classList.remove("active"));
-
-  if(el) el.classList.add("active");
-}
-
-function setV382Paper(paper, el){
-  document.body.classList.remove("paper-1","paper-2","paper-3");
-  document.body.classList.add(paper);
-
-  document.querySelectorAll(".btn-neo")
-    .forEach(b => b.classList.remove("active"));
-
-  if(el) el.classList.add("active");
-}
-
-/* ---------- Navigation ---------- */
-
-function goFillForm(){
-  window.open(CONFIG.FORM, "_blank");
-}
-
-/* ---------- Data Load ---------- */
-
-async function loadCard(){
-  const params = new URLSearchParams(location.search);
-  const id = params.get("id") || CONFIG.DEFAULT_ID;
-
-  const url = `${CONFIG.GAS}?action=card&id=${id}&ts=${Date.now()}`;
-
-  try{
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if(!data || !data.ok) throw new Error("Invalid payload");
-
-    currentRow = data.data;
-
-    renderCard(currentRow);
-
-  }catch(err){
-    console.error("LOAD FAIL:", err);
-    qs("u-name").innerText = "讀取失敗";
-  }
-
-  qs("versionTag").innerText = CONFIG.VERSION;
-}/* ================================
- * app.js v400 (2/3)
- * Render Card + Docks + Address Navigation + Logo
- * ================================ */
-
-function safeSetText(id, text){
+function safeSetText(id, txt){
   const el = qs(id);
   if(!el) return;
-  el.textContent = (text || "").trim();
+  el.textContent = (txt || "").trim();
 }
 
-function safeShow(el, yes){
-  if(!el) return;
-  el.style.display = yes ? "" : "none";
+function escapeHtml(s){
+  return String(s||"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 }
 
 function isUrl(s){
@@ -131,24 +60,82 @@ function normalizeUrl(s){
   const v = String(s||"").trim();
   if(!v) return "";
   if(isUrl(v)) return v;
-  // allow "www.xxx.com"
   if(/^www\./i.test(v)) return "https://" + v;
   return v;
 }
 
-function openUrl(url){
-  const u = normalizeUrl(url);
-  if(!u) return;
-  window.open(u, "_blank");
+/* ---------- Theme Switching ---------- */
+
+function setV382(mode, theme, el){
+  document.body.className = "";
+
+  if(mode === "free"){
+    document.body.classList.add("mode-free", theme);
+    if(qs("free-controls")) qs("free-controls").style.display = "block";
+    if(qs("premiumDotsRow")) qs("premiumDotsRow").style.display = "none";
+  }else{
+    document.body.classList.add("mode-premium", theme);
+    if(qs("free-controls")) qs("free-controls").style.display = "none";
+    if(qs("premiumDotsRow")) qs("premiumDotsRow").style.display = "flex";
+  }
+
+  document.querySelectorAll(".btn-neo, .dot, .p-dot").forEach(b => b.classList.remove("active"));
+  if(el) el.classList.add("active");
 }
 
-function openMapByAddress(addr){
-  const a = String(addr||"").trim();
-  if(!a) return;
-  const q = encodeURIComponent(a);
-  // Google Maps
-  window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
+function setV382Style(style, el){
+  document.body.classList.remove("style-arch","style-flat","style-spot");
+  document.body.classList.add("style-" + style);
+  document.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+  if(el) el.classList.add("active");
 }
+
+function setV382Paper(paper, el){
+  document.body.classList.remove("paper-1","paper-2","paper-3");
+  document.body.classList.add(paper);
+  document.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+  if(el) el.classList.add("active");
+}
+
+/* ---------- Navigation ---------- */
+
+function goFillForm(){
+  window.open(CONFIG.FORM, "_blank");
+}
+
+/* ---------- Data Fetch (robust) ---------- */
+
+async function fetchJsonRobust(url){
+  const res = await fetch(url, { cache:"no-store" });
+  const txt = await res.text();
+  const body = (txt||"").trim();
+  if(!body) throw new Error("Empty response");
+  try{
+    return JSON.parse(body);
+  }catch{
+    const m = body.match(/\{[\s\S]*\}/);
+    if(m) return JSON.parse(m[0]);
+    throw new Error("Not JSON");
+  }
+}
+
+/* ✅ 支援：{ok:true,data:{...}} / {ok:true,row:{...}} / 直接 row */
+function extractRow_(payload){
+  if(!payload || typeof payload !== "object") return null;
+
+  if(payload.ok === false) return null;
+
+  const row =
+    (payload.data && typeof payload.data === "object") ? payload.data :
+    (payload.row  && typeof payload.row  === "object") ? payload.row  :
+    payload;
+
+  // 如果 row 還是包著 ok/data 這種，擋一下
+  if(row && row.ok !== undefined && row.data !== undefined) return row.data;
+  return row;
+}
+
+/* ---------- Render: Logo / Avatar / Blocks ---------- */
 
 function renderLogo(row){
   const logoUrl =
@@ -214,16 +201,20 @@ function renderBlocks(row){
   }
 }
 
-function escapeHtml(s){
-  return String(s||"")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
+/* ---------- Docks ---------- */
+
+function openUrl(url){
+  const u = normalizeUrl(url);
+  if(!u) return;
+  window.open(u, "_blank");
 }
 
-/* ---------- Docks ---------- */
+function openMapByAddress(addr){
+  const a = String(addr||"").trim();
+  if(!a) return;
+  const q = encodeURIComponent(a);
+  window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
+}
 
 function buildBtn({label, icon, onClick}){
   const b = document.createElement("button");
@@ -242,7 +233,7 @@ function renderDocks(row){
   if(mediaBtns) mediaBtns.innerHTML = "";
   if(cBtns) cBtns.innerHTML = "";
 
-  // ---- Media (影音/社群) ----
+  // ---- Media ----
   const mediaItems = [
     { k: ["影音平台1","影音1","video1","youtube1"], label:"影音1", icon:"fa-solid fa-play" },
     { k: ["影音平台2","影音2","video2","youtube2"], label:"影音2", icon:"fa-solid fa-play" },
@@ -255,165 +246,56 @@ function renderDocks(row){
     const v = pick(row, it.k);
     if(!v) return;
     hasMedia = true;
-    mediaBtns.appendChild(buildBtn({
-      label: it.label,
-      icon: it.icon,
-      onClick: ()=> openUrl(v)
-    }));
+    if(mediaBtns){
+      mediaBtns.appendChild(buildBtn({
+        label: it.label,
+        icon: it.icon,
+        onClick: ()=> openUrl(v)
+      }));
+    }
   });
   if(mediaDock) mediaDock.style.display = hasMedia ? "" : "none";
 
-  // ---- Contacts (電話/Email/官網/導航/LINE/微信) ----
-  const phone = pick(row, ["電話","phone","mobile"]);
-  const email = pick(row, ["email","Email","信箱"]);
-  const lineOA = pick(row, ["line官方帳號","line_oa","line官方","line官網"]);
-  const lineLink = pick(row, ["line連結","line_link","line"]);
-  const wechat = pick(row, ["微信","微信id","wechat","wechat_id"]);
+  // ---- Contacts ----
+  const phone   = pick(row, ["電話","phone","mobile"]);
+  const email   = pick(row, ["email","Email","信箱"]);
+  const lineOA  = pick(row, ["line官方帳號","line_oa","line官方","line官網"]);
+  const lineLink= pick(row, ["line連結","line_link","line"]);
+  const wechat  = pick(row, ["微信","微信id","wechat","wechat_id"]);
   const address = pick(row, ["地址","address","導航地址"]);
 
   const contactList = [];
 
-  if(lineOA) contactList.push({
-    label:"LINE官網", icon:"fa-brands fa-line",
-    action: ()=> openUrl(lineOA)
-  });
+  if(lineOA) contactList.push({ label:"LINE官網", icon:"fa-brands fa-line", action: ()=> openUrl(lineOA) });
 
   if(wechat) contactList.push({
     label:"微信ID", icon:"fa-brands fa-weixin",
-    action: ()=> { navigator.clipboard?.writeText(wechat).catch(()=>{}); alert("已複製微信ID"); }
+    action: ()=>{
+      try{ navigator.clipboard?.writeText(wechat); }catch{}
+      alert("已複製微信ID");
+    }
   });
 
-  if(phone) contactList.push({
-    label:"電話", icon:"fa-solid fa-phone",
-    action: ()=> { window.location.href = `tel:${String(phone).trim()}`; }
-  });
+  if(phone) contactList.push({ label:"電話", icon:"fa-solid fa-phone", action: ()=> location.href = `tel:${String(phone).trim()}` });
 
-  if(email) contactList.push({
-    label:"Email", icon:"fa-solid fa-envelope",
-    action: ()=> { window.location.href = `mailto:${String(email).trim()}`; }
-  });
+  if(email) contactList.push({ label:"Email", icon:"fa-solid fa-envelope", action: ()=> location.href = `mailto:${String(email).trim()}` });
 
-  // ✅ 你指定：導航表頭＝地址
-  if(address) contactList.push({
-    label:"地址", icon:"fa-solid fa-location-dot",
-    action: ()=> openMapByAddress(address)
-  });
+  if(address) contactList.push({ label:"地址", icon:"fa-solid fa-location-dot", action: ()=> openMapByAddress(address) });
 
-  // lineLink（個人line）如果有，也補上
-  if(lineLink && !lineOA) contactList.push({
-    label:"LINE", icon:"fa-brands fa-line",
-    action: ()=> openUrl(lineLink)
-  });
+  if(lineLink && !lineOA) contactList.push({ label:"LINE", icon:"fa-brands fa-line", action: ()=> openUrl(lineLink) });
 
   let hasContact = false;
   contactList.forEach(x=>{
     hasContact = true;
-    cBtns.appendChild(buildBtn({ label:x.label, icon:x.icon, onClick:x.action }));
+    if(cBtns) cBtns.appendChild(buildBtn({ label:x.label, icon:x.icon, onClick:x.action }));
   });
   if(cDock) cDock.style.display = hasContact ? "" : "none";
 }
 
-/* ---------- Main render ---------- */
-
-function renderCard(row){
-  // name / unit / title
-  const name = pick(row, ["姓名","name"]);
-  const unit = pick(row, ["單位","unit"]);
-  const title = pick(row, ["頭銜","職稱","title"]);
-
-  safeSetText("u-name", name || "未命名");
-  safeSetText("u-unit", unit);
-  safeSetText("u-title", title);
-
-  // slogan
-  const slogan = pick(row, ["slogan","簡介","一句話","引言"]);
-  const sEl = qs("u-slogan");
-  if(sEl){
-    if(slogan){
-      sEl.style.display = "";
-      sEl.textContent = slogan;
-    }else{
-      sEl.style.display = "none";
-    }
-  }
-
-  renderAvatar(row);
-  renderLogo(row);
-  renderBlocks(row);
-  renderDocks(row);
-
-  // photo wall 會在 3/3 做「動態平衡」處理
-}/* ================================
- * app.js v400 (3/3)
- * Photo Wall dynamic-balance + Lightbox + Boot
- * ================================ */
-
-/* ---- fallback helpers (if not defined in 1/3) ---- */
-if (typeof qs !== "function") {
-  window.qs = (id) => document.getElementById(id);
-}
-if (typeof pick !== "function") {
-  // pick(row, ["a","b"]) => first non-empty value
-  window.pick = (row, keys) => {
-    if (!row || !keys) return "";
-    for (const k of keys) {
-      const v = row[k];
-      if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
-    }
-    return "";
-  };
-}
-if (typeof normalizeId_ !== "function") {
-  window.normalizeId_ = (s) => String(s || "").trim();
-}
-if (typeof fetchJsonRobust !== "function") {
-  window.fetchJsonRobust = async (url) => {
-    const res = await fetch(url, { cache: "no-store" });
-    const txt = await res.text();
-    try { return JSON.parse(txt); } catch { return {}; }
-  };
-}
-
-/* ---------- Photo Parsing ---------- */
-
-function collectPhotoUrls(row){
-  // 1) single field list (comma/newline)
-  const bulk = pick(row, ["photos_img", "photos", "相片", "照片牆", "photo_wall"]);
-  let urls = [];
-
-  if (bulk) {
-    urls = urls.concat(
-      bulk
-        .split(/[\n,，;]/g)
-        .map(s => String(s).trim())
-        .filter(Boolean)
-    );
-  }
-
-  // 2) photo1..photo12
-  for (let i = 1; i <= 12; i++) {
-    const v = pick(row, [`photo${i}`, `photo_${i}`, `照片${i}`, `相片${i}`, `photo${i}_img`]);
-    if (v) urls.push(v);
-  }
-
-  // 3) remove duplicates
-  const seen = new Set();
-  const out = [];
-  urls.forEach(u=>{
-    const nu = normalizeUrl(u);
-    if(!nu) return;
-    if(seen.has(nu)) return;
-    seen.add(nu);
-    out.push(nu);
-  });
-
-  return out;
-}
-
-/* ---------- Lightbox (contain) ---------- */
+/* ---------- Photo Wall + Lightbox ---------- */
 
 function ensureLightbox_(){
-  if (qs("lightboxOverlay")) return;
+  if(qs("lightboxOverlay")) return;
 
   const overlay = document.createElement("div");
   overlay.id = "lightboxOverlay";
@@ -451,18 +333,14 @@ function ensureLightbox_(){
   overlay.appendChild(close);
   document.body.appendChild(overlay);
 
-  function hide(){
+  const hide = ()=>{
     overlay.style.display = "none";
     img.removeAttribute("src");
-  }
+  };
 
-  overlay.addEventListener("click", (e)=>{
-    if (e.target === overlay) hide();
-  });
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) hide(); });
   close.addEventListener("click", hide);
-  document.addEventListener("keydown", (e)=>{
-    if (e.key === "Escape") hide();
-  });
+  document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") hide(); });
 }
 
 function openLightbox(url){
@@ -474,29 +352,39 @@ function openLightbox(url){
   overlay.style.display = "flex";
 }
 
-/* ---------- Photo Wall dynamic balance ---------- */
+function collectPhotoUrls(row){
+  const bulk = pick(row, ["photos_img", "photos", "相片", "照片牆", "photo_wall"]);
+  let urls = [];
+
+  if(bulk){
+    urls = urls.concat(
+      bulk.split(/[\n,，;]/g).map(s=>String(s).trim()).filter(Boolean)
+    );
+  }
+
+  for(let i=1;i<=12;i++){
+    const v = pick(row, [`photo${i}`, `photo_${i}`, `照片${i}`, `相片${i}`, `photo${i}_img`]);
+    if(v) urls.push(v);
+  }
+
+  const seen = new Set();
+  const out = [];
+  urls.forEach(u=>{
+    const nu = normalizeUrl(u);
+    if(!nu) return;
+    if(seen.has(nu)) return;
+    seen.add(nu);
+    out.push(nu);
+  });
+  return out;
+}
 
 function setPhotoGridBalance_(gridEl, n){
-  // ✅ 動態平衡：1=1欄、2=2欄、3+=3欄
   let cols = 3;
-  if (n <= 1) cols = 1;
-  else if (n === 2) cols = 2;
-  else cols = 3;
+  if(n <= 1) cols = 1;
+  else if(n === 2) cols = 2;
 
   gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-
-  // 1 張時給它更好看：略長方（避免空白感）
-  if (n === 1) {
-    gridEl.querySelectorAll("img").forEach(im=>{
-      im.style.aspectRatio = "16 / 10";
-      im.style.objectFit = "cover";
-    });
-  } else {
-    gridEl.querySelectorAll("img").forEach(im=>{
-      im.style.aspectRatio = "1 / 1";
-      im.style.objectFit = "cover";
-    });
-  }
 }
 
 function renderPhotoWall(row){
@@ -505,7 +393,6 @@ function renderPhotoWall(row){
   if(!wall || !grid) return;
 
   grid.innerHTML = "";
-
   const urls = collectPhotoUrls(row);
 
   if(!urls.length){
@@ -524,53 +411,79 @@ function renderPhotoWall(row){
   });
 
   wall.style.display = "";
-
-  // ✅ 關鍵：避免「空白」— 用 JS 依數量調整欄位
   setPhotoGridBalance_(grid, urls.length);
 }
 
-/* ---------- Load + Boot ---------- */
+/* ---------- Main Render ---------- */
 
-async function loadAndRenderById(id){
-  const cid = normalizeId_(id) || (window.CONFIG && CONFIG.DEFAULT_ID) || "TW0001";
-  const gas = (window.CONFIG && CONFIG.GAS) ? CONFIG.GAS : "";
+function renderCard(row){
+  const name  = pick(row, ["姓名","name"]);
+  const unit  = pick(row, ["單位","unit"]);
+  const title = pick(row, ["頭銜","職稱","title"]);
 
-  if(!gas){
-    console.warn("CONFIG.GAS missing");
-    return;
+  safeSetText("u-name", name || "未命名");
+  safeSetText("u-unit", unit);
+  safeSetText("u-title", title);
+
+  const slogan = pick(row, ["slogan","簡介","一句話","引言"]);
+  const sEl = qs("u-slogan");
+  if(sEl){
+    if(slogan){
+      sEl.style.display = "";
+      sEl.textContent = slogan;
+    }else{
+      sEl.style.display = "none";
+    }
   }
 
-  const url = `${gas}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
-
-  try{
-    const data = await fetchJsonRobust(url);
-
-    // allow payload shapes: {ok:true,row:{...}} OR {...directRow}
-    const row = (data && data.row && typeof data.row === "object") ? data.row : data;
-
-    renderCard(row);
-    renderPhotoWall(row);
-
-    // version tag
-    const v = qs("versionTag");
-    if(v) v.textContent = "v400";
-
-  }catch(err){
-    console.error(err);
-    safeSetText("u-name", "載入失敗");
-  }
+  renderAvatar(row);
+  renderLogo(row);
+  renderBlocks(row);
+  renderDocks(row);
 }
+
+/* ---------- Boot ---------- */
 
 function getIdFromUrl(){
   const sp = new URLSearchParams(location.search);
   return sp.get("id") || sp.get("cid") || "";
 }
 
-/* boot */
+async function loadAndRenderById(id){
+  const cid = String(id || "").trim() || CONFIG.DEFAULT_ID;
+
+  // ✅ FIX#1：永遠要有 GAS
+  const gas = (window.CONFIG && window.CONFIG.GAS) ? window.CONFIG.GAS : CONFIG.GAS;
+
+  const url = `${gas}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
+
+  try{
+    const payload = await fetchJsonRobust(url);
+
+    // ✅ FIX#2：支援 data.data / data.row / direct row
+    const row = extractRow_(payload);
+    if(!row) throw new Error("Invalid payload row");
+
+    currentRow = row;
+
+    renderCard(row);
+    renderPhotoWall(row);
+
+    const v = qs("versionTag");
+    if(v) v.textContent = CONFIG.VERSION;
+
+  }catch(err){
+    console.error("LOAD FAIL:", err);
+    safeSetText("u-name", "讀取失敗");
+    const v = qs("versionTag");
+    if(v) v.textContent = CONFIG.VERSION;
+  }
+}
+
 (function boot(){
   try{
     ensureLightbox_();
-    const id = getIdFromUrl() || (window.CONFIG && CONFIG.DEFAULT_ID) || "TW0001";
+    const id = getIdFromUrl() || CONFIG.DEFAULT_ID;
     loadAndRenderById(id);
   }catch(e){
     console.error(e);
