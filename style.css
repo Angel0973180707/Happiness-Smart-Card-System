@@ -4,6 +4,10 @@
  * MUST KEEP: v393 dynamic-mask system for free mode arch/flat/spot
  * Add: v399 top hidden admin hotspot (triple tap) — no visual impact
  * Keep: v398 blocks (#block-service/#block-exp) + dock + photo wall
+ * FIX v399.1:
+ * - Free: logo circle in banner center (NOT under avatar)
+ * - Premium: name horizontal at right of avatar (safe, no cut)
+ * - Keep dynamic breathing + hide empty blocks by JS
  * ================================ */
 
 :root{
@@ -73,7 +77,7 @@ body{
   top: 0;
   left: 0;
   width: 100%;
-  height: 44px;        /* 上方好點的位置 */
+  height: 44px;
   opacity: 0;
   z-index: 99999;
   background: transparent;
@@ -258,36 +262,48 @@ body{
   object-fit:cover;
 }
 
-/* ✅ Logo（自由款在頭像下方；精品款右上角） */
+/* ✅ Logo（v399.1 FIX）
+ * - Free: inside banner center, circle
+ * - Premium: right-top, keep luxe frame
+ */
 .logo-wrap{
   position:absolute;
   z-index:40;
   display:none;
   pointer-events:none;
 }
+
+/* Free: 放在 banner 中間（視覺穩、上方不空） */
 .mode-free .logo-wrap{
-  top: 188px;
+  top: 62px;                 /* banner(125px) 的視覺中心 */
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
 }
+
+/* Premium: 右上角（維持） */
 .mode-premium .logo-wrap{
   top: 26px;
   right: 22px;
   left: auto;
   transform: none;
 }
-.logo-img{
+
+/* Free logo: 圓形 */
+.mode-free .logo-img{
   width: 56px;
   height: 56px;
-  border-radius: 16px;
+  border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 10px 22px rgba(0,0,0,0.14);
   background: rgba(255,255,255,0.92);
 }
+
+/* Premium logo: 維持精品框 */
 .mode-premium .logo-img{
   width: 52px;
   height: 52px;
   border-radius: 16px;
+  object-fit: cover;
   background: rgba(255,255,255,0.18);
   border: 1px solid rgba(255,255,255,0.22);
   box-shadow: 0 14px 30px rgba(0,0,0,0.20);
@@ -300,19 +316,46 @@ body{
   height:100%;
   -webkit-overflow-scrolling: touch;
 }
-.mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
-.mode-premium .info-scroll{ padding: 102px 22px 22px; text-align:left; }
 
+/* Free：因 Logo 移入 banner，內容上邊界可以更穩 */
+.mode-free .info-scroll{
+  padding: 104px 20px 20px; /* 兼容頭像疊在 banner 下方 */
+  text-align:center;
+}
+
+/* Premium：保留頭像區，內容往下讓出安全邊界（避免右側被切/擠） */
+.mode-premium .info-scroll{
+  padding: 138px 22px 22px; /* ✅ 讓姓名橫排區（絕對定位）有空間 */
+  text-align:left;
+}
+
+/* 基本文字 */
 .name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; font-size:22px; }
 .unit, .title{ font-weight: 900; opacity: 0.86; margin-top: 2px; font-size:14px; }
 
-/* 精品：名字與頭像同區域的視覺安全 */
+/* ✅ Premium：姓名「橫向」放在個人照右側（不用改 DOM 也能先救版面）
+ * - 不切字：ellipsis
+ * - 不壓到 logo：右邊留出 92px
+ */
 .mode-premium .name{
-  margin-top: 8px;
+  position:absolute;
+  top: 52px;                 /* 與頭像中心對齊 */
+  left: 122px;               /* 20 + 86 + 16 */
+  right: 92px;               /* 給右上 logo 與安全邊界 */
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
   color: rgba(255,255,255,0.96);
   text-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
-.mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
+.mode-premium.p6 .name{
+  color: rgba(52,34,0,0.92);
+  text-shadow:none;
+}
+
+/* Premium：單位/頭銜顏色（維持） */
 .mode-premium .unit, .mode-premium .title{ color: rgba(255,255,255,0.88); }
 .mode-premium.p6 .unit, .mode-premium.p6 .title{ color: rgba(52,34,0,0.82); }
 
@@ -407,24 +450,54 @@ body{
 .dock-btn:active{
   transform: translateY(1px) scale(0.99);
   box-shadow:0 8px 18px rgba(0,0,0,0.18);
+}/* =========================
+   照片牆（v399.1 FIX）
+   - 改成「橫向滑動輪播牆」
+   - 不破壞點擊開原圖（img 照舊）
+   - Free / Premium 都適用
+========================= */
+.photo-wall{
+  margin-top:14px;
+  padding-bottom: 12px;
 }
 
-/* 照片牆 */
-.photo-wall{ margin-top:14px; padding-bottom: 12px; }
+/* 舊 photo-grid 仍保留（如果舊 JS/DOM 還在用），但預設改成橫向輪播 */
 .photo-grid{
-  display:grid;
-  grid-template-columns:repeat(3, 1fr);
-  gap:8px;
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
 }
+
+/* 讓每張縮圖在橫向滑動時有「卡片感」與 snap */
 .photo-grid img{
-  width:100%;
-  aspect-ratio:1/1;
-  object-fit:cover;
-  border-radius:14px;
+  flex: 0 0 auto;
+  width: 108px;
+  height: 108px;
+  border-radius: 14px;
+  object-fit: cover;
   box-shadow: 0 10px 22px rgba(0,0,0,0.10);
   transition: transform .12s ease, box-shadow .18s ease;
+  scroll-snap-align: start;
 }
-.photo-grid img:active{ transform: scale(0.98); }
+
+/* 小螢幕再小一點，避免擠壓 */
+@media (max-width: 360px){
+  .photo-grid img{ width: 98px; height: 98px; }
+}
+
+/* 點按回饋 */
+.photo-grid img:active{ transform: scale(0.985); }
+
+/* 讓捲軸更乾淨（可視需要保留） */
+.photo-grid::-webkit-scrollbar{ height: 8px; }
+.photo-grid::-webkit-scrollbar-track{ background: transparent; }
+.photo-grid::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,0.12);
+  border-radius: 999px;
+}
 
 /* 極簡：隱藏標題（但服務/經歷仍顯示） */
 .dock-title, .wall-title{ display:none !important; }
