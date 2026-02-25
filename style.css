@@ -1,13 +1,11 @@
 /* ================================
- * Happiness Smart Card System — style.css (v399 COMPLETE OVERWRITE)
- * Base: v398.3 / v398.4
+ * Happiness Smart Card System — style.css (v399.4 COMPLETE OVERWRITE)
+ * Base: v399
+ * Fix v399.4:
+ * 1) Dock buttons dynamic-average (2 cols -> 3 cols on wider)
+ * 2) Logo smaller + move up (free mode)
  * MUST KEEP: v393 dynamic-mask system for free mode arch/flat/spot
- * Add: v399 top hidden admin hotspot (triple tap) — no visual impact
- * Keep: v398 blocks (#block-service/#block-exp) + dock + photo wall
- * FIX v399.1:
- * - Free: logo circle in banner center (NOT under avatar)
- * - Premium: name horizontal at right of avatar (safe, no cut)
- * - Keep dynamic breathing + hide empty blocks by JS
+ * Keep: v398 blocks + dock + photo wall
  * ================================ */
 
 :root{
@@ -69,8 +67,6 @@ body{
 
 /* =========================================
    v399：上方隱形入口熱區（不破壞門面）
-   - app.js 綁三擊/多擊
-   - 可點擊但不可見
 ========================================= */
 #adminHotspotTop{
   position: fixed;
@@ -262,48 +258,36 @@ body{
   object-fit:cover;
 }
 
-/* ✅ Logo（v399.1 FIX）
- * - Free: inside banner center, circle
- * - Premium: right-top, keep luxe frame
- */
+/* ✅ Logo（free：縮小+上移；premium：右上） */
 .logo-wrap{
   position:absolute;
   z-index:40;
   display:none;
   pointer-events:none;
 }
-
-/* Free: 放在 banner 中間（視覺穩、上方不空） */
 .mode-free .logo-wrap{
-  top: 62px;                 /* banner(125px) 的視覺中心 */
+  top: 150px;               /* ⬅️ 上移 */
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
-
-/* Premium: 右上角（維持） */
 .mode-premium .logo-wrap{
   top: 26px;
   right: 22px;
   left: auto;
   transform: none;
 }
-
-/* Free logo: 圓形 */
-.mode-free .logo-img{
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+.logo-img{
+  width: 46px;              /* ⬅️ 縮小 */
+  height: 46px;             /* ⬅️ 縮小 */
+  border-radius: 14px;
   object-fit: cover;
   box-shadow: 0 10px 22px rgba(0,0,0,0.14);
   background: rgba(255,255,255,0.92);
 }
-
-/* Premium logo: 維持精品框 */
 .mode-premium .logo-img{
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 16px;
-  object-fit: cover;
   background: rgba(255,255,255,0.18);
   border: 1px solid rgba(255,255,255,0.22);
   box-shadow: 0 14px 30px rgba(0,0,0,0.20);
@@ -316,46 +300,19 @@ body{
   height:100%;
   -webkit-overflow-scrolling: touch;
 }
+.mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
+.mode-premium .info-scroll{ padding: 102px 22px 22px; text-align:left; }
 
-/* Free：因 Logo 移入 banner，內容上邊界可以更穩 */
-.mode-free .info-scroll{
-  padding: 104px 20px 20px; /* 兼容頭像疊在 banner 下方 */
-  text-align:center;
-}
-
-/* Premium：保留頭像區，內容往下讓出安全邊界（避免右側被切/擠） */
-.mode-premium .info-scroll{
-  padding: 138px 22px 22px; /* ✅ 讓姓名橫排區（絕對定位）有空間 */
-  text-align:left;
-}
-
-/* 基本文字 */
 .name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; font-size:22px; }
 .unit, .title{ font-weight: 900; opacity: 0.86; margin-top: 2px; font-size:14px; }
 
-/* ✅ Premium：姓名「橫向」放在個人照右側（不用改 DOM 也能先救版面）
- * - 不切字：ellipsis
- * - 不壓到 logo：右邊留出 92px
- */
+/* 精品：名字與頭像同區域的視覺安全 */
 .mode-premium .name{
-  position:absolute;
-  top: 52px;                 /* 與頭像中心對齊 */
-  left: 122px;               /* 20 + 86 + 16 */
-  right: 92px;               /* 給右上 logo 與安全邊界 */
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
+  margin-top: 8px;
   color: rgba(255,255,255,0.96);
   text-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
-.mode-premium.p6 .name{
-  color: rgba(52,34,0,0.92);
-  text-shadow:none;
-}
-
-/* Premium：單位/頭銜顏色（維持） */
+.mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
 .mode-premium .unit, .mode-premium .title{ color: rgba(255,255,255,0.88); }
 .mode-premium.p6 .unit, .mode-premium.p6 .title{ color: rgba(52,34,0,0.82); }
 
@@ -429,9 +386,14 @@ body{
 
 /* Dock */
 .contact-dock{ margin-top:12px; }
-.dock-buttons{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
-.mode-premium .dock-buttons{ justify-content:flex-start; }
 
+/* ✅ 動態平均：2 欄平均，寬一點自動 3 欄 */
+.dock-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:space-between; /* 平均鋪滿 */
+}
 .dock-btn{
   border:none;
   background: var(--p);
@@ -446,58 +408,35 @@ body{
   display:inline-flex;
   align-items:center;
   gap:10px;
+
+  flex: 1 1 calc(50% - 10px);  /* 兩欄平均 */
+  justify-content:center;
+  min-width: 140px;
+}
+@media (min-width: 420px){
+  .dock-btn{ flex: 1 1 calc(33.33% - 10px); } /* 變三欄 */
 }
 .dock-btn:active{
   transform: translateY(1px) scale(0.99);
   box-shadow:0 8px 18px rgba(0,0,0,0.18);
-}/* =========================
-   照片牆（v399.1 FIX）
-   - 改成「橫向滑動輪播牆」
-   - 不破壞點擊開原圖（img 照舊）
-   - Free / Premium 都適用
-========================= */
-.photo-wall{
-  margin-top:14px;
-  padding-bottom: 12px;
 }
 
-/* 舊 photo-grid 仍保留（如果舊 JS/DOM 還在用），但預設改成橫向輪播 */
+/* 照片牆 */
+.photo-wall{ margin-top:14px; padding-bottom: 12px; }
 .photo-grid{
-  display:flex;
-  gap:10px;
-  overflow-x:auto;
-  padding: 2px 2px 8px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:8px;
 }
-
-/* 讓每張縮圖在橫向滑動時有「卡片感」與 snap */
 .photo-grid img{
-  flex: 0 0 auto;
-  width: 108px;
-  height: 108px;
-  border-radius: 14px;
-  object-fit: cover;
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+  border-radius:14px;
   box-shadow: 0 10px 22px rgba(0,0,0,0.10);
   transition: transform .12s ease, box-shadow .18s ease;
-  scroll-snap-align: start;
 }
-
-/* 小螢幕再小一點，避免擠壓 */
-@media (max-width: 360px){
-  .photo-grid img{ width: 98px; height: 98px; }
-}
-
-/* 點按回饋 */
-.photo-grid img:active{ transform: scale(0.985); }
-
-/* 讓捲軸更乾淨（可視需要保留） */
-.photo-grid::-webkit-scrollbar{ height: 8px; }
-.photo-grid::-webkit-scrollbar-track{ background: transparent; }
-.photo-grid::-webkit-scrollbar-thumb{
-  background: rgba(0,0,0,0.12);
-  border-radius: 999px;
-}
+.photo-grid img:active{ transform: scale(0.98); }
 
 /* 極簡：隱藏標題（但服務/經歷仍顯示） */
 .dock-title, .wall-title{ display:none !important; }
@@ -520,7 +459,57 @@ body{
   z-index:5;
   mix-blend-mode: multiply;
 }
+/* ================================
+ * style.css (v399.4) 2/2
+ * - keep: premium text safety / hide titles / fx layers
+ * - no more changes below
+ * ================================ */
 
+/* premium：dock 按鈕靠左（維持精品閱讀習慣） */
+.mode-premium .dock-buttons{
+  justify-content:flex-start;
+}
+.mode-premium .dock-btn{
+  justify-content:center;          /* 文字仍置中，視覺更精品 */
+}
+
+/* premium：文字顏色微穩定（避免某些底色太亮吃字） */
+.mode-premium .name,
+.mode-premium .unit,
+.mode-premium .title,
+.mode-premium .block-body{
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 小螢幕：避免 dock 太擠（仍維持平均） */
+@media (max-width: 360px){
+  .dock-btn{
+    min-width: 128px;
+    font-size: 12.5px;
+    padding: 10px 12px;
+  }
+}
+
+/* 照片牆：圖片載入中淡入（更精品） */
+.photo-grid img{
+  opacity: 1;
+  transition: opacity .35s ease, transform .12s ease, box-shadow .18s ease;
+}
+
+/* 互動安全：按鈕 focus 不要出現醜框 */
+.dock-btn:focus,
+.btn-neo:focus,
+.btn-cta:focus{
+  outline: none;
+}
+
+/* ✅ 保底：logoWrap 在沒資料時一定隱藏，避免佔位 */
+#logoWrap[style*="display: none"]{
+  pointer-events:none;
+}
+
+/* End of v399.4 */
 /* version tag */
 .version-tag{
   font-size:10px;
