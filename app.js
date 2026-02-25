@@ -1,7 +1,9 @@
-/* ================================================
- * Happiness Smart Card System — app.js (v400 COMPLETE)
- * Part A: Config, States, and Robust Helpers
- * ================================================ */
+/* ============================================================
+ * Happiness Smart Card System — app.js (v400 FULL OVERWRITE)
+ * 1. 核心邏輯：支援三擊隱形入口、序號/姓名自動識別
+ * 2. 排版控制：實現自由款與精品款雙重 DOM 渲染
+ * 3. 健壯系統：自動修復 Google Drive 圖片連結、超時重試
+ * ============================================================ */
 
 const CONFIG = {
   VERSION: "400.0",
@@ -11,37 +13,34 @@ const CONFIG = {
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
   ADMIN_TRIPLETAP_WINDOW: 650,
-  PHOTO_SLOT_MAX: 20,
-  DEBUG: true
+  PHOTO_SLOT_MAX: 20
 };
 
-let state = { 
-  mode: "free", 
-  theme: "color-1", 
-  style: "arch", 
+let state = {
+  mode: "free",
+  theme: "color-1",
+  style: "arch",
   paper: "paper-1",
-  resolvedId: CONFIG.DEFAULT_ID 
+  resolvedId: CONFIG.DEFAULT_ID
 };
 
-// 基礎 DOM 工具
+// --- 基礎工具 ---
 const $ = (id) => document.getElementById(id);
 const qa = (sel) => Array.from(document.querySelectorAll(sel));
 const text = (v) => (v == null ? "" : String(v)).trim();
-const log = () => CONFIG.DEBUG && console.log("[HSC-v400]", ...arguments);
 
 function setText(id, v) {
   const el = $(id);
   if (el) el.textContent = text(v);
 }
 
-// 取得參數
 function getParam(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
-// 序號正規化
+// 序號正規化 (如: 0001 -> TW0001)
 function normalizeId(s) {
-  const v = text(s).toUpperCase();
+  let v = text(s).toUpperCase();
   if (!v) return "";
   if (/^TW\d{4}$/.test(v)) return v;
   if (/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4, "0");
@@ -51,7 +50,21 @@ function normalizeId(s) {
   return v;
 }
 
-// 健壯的資料抓取
+// 圖片連結修復邏輯
+function normalizeImageUrl(raw) {
+  if (!raw) return "";
+  let url = text(raw);
+  if (url.includes("dropbox.com")) return url.replace("dl=0", "raw=1");
+  
+  // 處理 Google Drive 連結
+  const driveId = url.match(/id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
+  if (driveId) return `https://drive.google.com/uc?export=view&id=${driveId[1]}`;
+  
+  return url;
+}
+
+// --- 資料抓取與渲染 ---
+
 async function fetchJsonRobust(url) {
   for (let i = 0; i <= CONFIG.RETRY; i++) {
     const controller = new AbortController();
@@ -60,33 +73,24 @@ async function fetchJsonRobust(url) {
       const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
       const body = await res.text();
       clearTimeout(t);
-      return JSON.parse(body.match(/\{[\s\S]*\}/)[0]);
+      // 利用正則抓取 JSON 內容
+      const match = body.match(/\{[\s\S]*\}/);
+      if (match) return JSON.parse(match[0]);
+      throw new Error("No JSON found");
     } catch (e) {
       if (i === CONFIG.RETRY) throw e;
-      await new Promise(r => setTimeout(r, 500 + i * 500));
+      await new Promise(r => setTimeout(r, 600 + i * 500));
     }
   }
 }
 
-// 圖片處理工具
-function normalizeImageUrl(raw) {
-  if (!raw) return "";
-  let url = text(raw);
-  if (url.includes("dropbox.com")) return url.replace("dl=0", "raw=1");
-  const driveId = url.match(/id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
-  if (driveId) return `https://drive.google.com/uc?export=view&id=${driveId[1]}`;
-  return url;
-}
-/* ================================================
- * Happiness Smart Card System — app.js (v400 COMPLETE)
- * Part B: Data Rendering & Flow Control
- * ================================================ */
-
-// 資料正規化與選取 (Pick)
 function buildNormalizedPayload(obj) {
   if (!obj || typeof obj !== "object") return obj;
   const lower = {};
-  for (let k in obj) { lower[k.trim().toLowerCase()] = obj[k]; }
+  for (let k in obj) {
+    const cleanK = k.replace(/[\uFEFF\u200B-\u200D\u2060]/g, "").trim().toLowerCase();
+    lower[cleanK] = obj[k];
+  }
   return { __raw: obj, __lower: lower };
 }
 
@@ -99,104 +103,78 @@ function pick(p, keys) {
   return "";
 }
 
-// 核心渲染：根據 v400 排序邏輯填入資料
+// 核心渲染：落實 v400 要求的所有排序與模式位置
 function applyDataToCard(payload) {
   const p = buildNormalizedPayload(payload);
   
-  // 1. 取得基礎資料
   const name    = pick(p, ["姓名", "name"]);
   const unit    = pick(p, ["單位", "unit"]);
   const title   = pick(p, ["頭銜", "職稱", "title"]);
-  const service = pick(p, ["服務項目", "service"]);
-  const exp     = pick(p, ["經歷", "experience"]);
-  const avatar  = pick(p, ["個人照", "形象照", "avatar"]);
-  const logo    = pick(p, ["logo", "品牌logo"]);
+  const service = pick(p, ["服務項目", "service", "經營項目"]);
+  const exp     = pick(p, ["經歷", "experience", "簡歷"]);
+  const avatar  = pick(p, ["個人照", "形象照", "avatar", "photo"]);
+  const logo    = pick(p, ["logo", "品牌logo", "商標"]);
 
-  // 2. 姓名與單位頭銜處理 (自由款 vs 精品款)
-  // 自由款：單位在 Banner，姓名與頭銜在下方
+  // 1. 模式資料分發
+  // 自由款：單位在 Banner
   setText("u-unit-banner", unit);
-  setText("u-name-free", name);
+  setText("u-name-free", name || "（請設定姓名）");
   
-  // 精品款：頭像姓名並列，單位在姓名下方
-  setText("u-name-premium", name);
+  // 精品款：單位在內容區
+  setText("u-name-premium", name || "（請設定姓名）");
   setText("u-unit-main", unit);
   
-  // 共同：頭銜
   setText("u-title", title);
 
-  // 3. 圖片處理 (自由款與精品款頭像同步更新)
+  // 2. 圖片處理 (自由/精品同步)
   const avatarUrl = normalizeImageUrl(avatar);
-  const avatarCands = [avatarUrl, avatarUrl + "&sz=w500"].filter(Boolean);
   if (avatarUrl) {
-    setImgWithFallback($("u-img-free"), avatarCands);
-    setImgWithFallback($("u-img-premium"), avatarCands);
+    const cands = [avatarUrl, avatarUrl + "&sz=w600"];
+    setImgWithFallback($("u-img-free"), cands);
+    setImgWithFallback($("u-img-premium"), cands);
   }
 
-  // 4. Logo 渲染 (根據要求：自由款放在頭銜下方，精品款在右上)
+  // 3. Logo 處理：自由款置於頭銜下方
   const logoUrl = normalizeImageUrl(logo);
-  const logoImg = $("u-logo");
   if (logoUrl) {
     $("logoWrap").style.display = "flex";
-    setImgWithFallback(logoImg, [logoUrl]);
-    // v400 自由款額外邏輯：複製一份到內容流中 (若需要)
+    setImgWithFallback($("u-logo"), [logoUrl]);
     const midLogo = $("logo-mid-wrap");
-    if (midLogo) {
-      midLogo.innerHTML = `<img src="${logoUrl}" class="logo-img" style="margin: 0 auto;">`;
-    }
+    if (midLogo) midLogo.innerHTML = `<img src="${logoUrl}" class="logo-img">`;
   } else {
     $("logoWrap").style.display = "none";
   }
 
-  // 5. 服務項目與經歷 (Block)
+  // 4. 服務與經歷
   renderInfoBlock("block-service", "服務項目", service);
   renderInfoBlock("block-exp", "經歷", exp);
 
-  // 6. 照片牆
+  // 5. 照片牆
   renderPhotoWall(p);
 
-  // 7. 聯絡與平台連結
+  // 6. Dock 按鈕
   renderContactDock(p);
 }
 
-// 區塊渲染工具
 function renderInfoBlock(id, title, body) {
   const el = $(id);
-  if (!el || !text(body)) {
-    if (el) el.style.display = "none";
-    return;
-  }
+  if (!el) return;
+  const content = text(body);
+  if (!content) { el.style.display = "none"; return; }
   el.style.display = "block";
-  el.innerHTML = `<div class="block-title">${title}</div><div class="block-body preline">${body}</div>`;
+  el.innerHTML = `<div class="block-title">${title}</div><div class="block-body preline">${content}</div>`;
 }
 
-// 圖片落實工具
-function setImgWithFallback(imgEl, list) {
-  if (!imgEl || !list.length) return;
-  let idx = 0;
-  const tryLoad = () => {
-    if (idx >= list.length) return;
-    imgEl.src = list[idx++] + "?t=" + Date.now();
-  };
-  imgEl.onerror = tryLoad;
-  tryLoad();
-}
-/* ================================================
- * Happiness Smart Card System — app.js (v400 COMPLETE)
- * Part C: Final Rendering & Admin Engine
- * ================================================ */
-
-// 8. 照片牆渲染
 function renderPhotoWall(p) {
   const grid = $("photoGrid");
   if (!grid) return;
   grid.innerHTML = "";
   let count = 0;
   for (let i = 1; i <= CONFIG.PHOTO_SLOT_MAX; i++) {
-    const url = normalizeImageUrl(pick(p, [`照片${i}`, `photo${i}`]));
+    const url = normalizeImageUrl(pick(p, [`照片${i}`, `photo${i}`, `圖片${i}`]));
     if (url) {
       const img = document.createElement("img");
       img.src = url;
-      img.loading = "lazy";
       img.onclick = () => window.open(url, "_blank");
       grid.appendChild(img);
       count++;
@@ -205,7 +183,6 @@ function renderPhotoWall(p) {
   $("photoWall").style.display = count > 0 ? "block" : "none";
 }
 
-// 9. 聯繫與社群按鈕渲染 (Dock)
 function renderContactDock(p) {
   const socialBar = $("socialButtons");
   const contactBar = $("contactButtons");
@@ -214,26 +191,25 @@ function renderContactDock(p) {
   contactBar.innerHTML = "";
 
   const links = [
-    { key: ["line"], icon: "fa-brands fa-line", label: "LINE", type: "contact" },
-    { key: ["電話", "phone"], icon: "fa-solid fa-phone", label: "電話", type: "contact" },
-    { key: ["fb", "facebook"], icon: "fa-brands fa-facebook", label: "FB", type: "social" },
-    { key: ["ig", "instagram"], icon: "fa-brands fa-instagram", label: "IG", type: "social" },
-    { key: ["yt", "youtube"], icon: "fa-brands fa-youtube", label: "YouTube", type: "social" },
-    { key: ["tiktok"], icon: "fa-brands fa-tiktok", label: "TikTok", type: "social" },
-    { key: ["官網", "website"], icon: "fa-solid fa-globe", label: "官網", type: "social" }
+    { keys: ["line官網", "line oa", "line_oa"], icon: "fa-solid fa-building-circle-check", label: "LINE官網", type: "contact" },
+    { keys: ["line"], icon: "fa-brands fa-line", label: "LINE", type: "contact" },
+    { keys: ["微信", "wechat"], icon: "fa-brands fa-weixin", label: "微信", type: "contact" },
+    { keys: ["電話", "手機", "phone"], icon: "fa-solid fa-phone", label: "電話", type: "contact" },
+    { keys: ["email", "郵件"], icon: "fa-solid fa-envelope", label: "Email", type: "contact" },
+    { keys: ["地址", "導航", "location"], icon: "fa-solid fa-location-dot", label: "導航", type: "contact" },
+    { keys: ["影音社群平台", "youtube", "ig", "tiktok", "fb"], icon: "fa-solid fa-display", label: "影音平台", type: "social" }
   ];
 
   links.forEach(item => {
-    let val = pick(p, item.key);
+    let val = pick(p, item.keys);
     if (!val) return;
-    
     let href = val;
-    if (item.label === "LINE" && !val.includes("http")) href = `https://line.me/ti/p/${val}`;
-    if (item.label === "電話" && !val.includes("tel:")) href = `tel:${val}`;
+    if (item.label === "電話") href = `tel:${val.replace(/[^\d+]/g, "")}`;
+    if (item.label === "導航") href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val)}`;
+    if (!href.startsWith("http") && !href.startsWith("tel")) href = "https://" + href;
 
     const btn = document.createElement("button");
     btn.className = "dock-btn";
-    btn.type = "button";
     btn.innerHTML = `<i class="${item.icon}"></i> <span>${item.label}</span>`;
     btn.onclick = () => window.open(href, "_blank");
 
@@ -242,94 +218,99 @@ function renderContactDock(p) {
   });
 }
 
-// 10. 模式與風格控制核心 (v400 動態切換)
+function setImgWithFallback(el, list) {
+  if (!el || !list.length) return;
+  let idx = 0;
+  const load = () => {
+    if (idx >= list.length) return;
+    el.src = list[idx++] + (list[idx-1].includes("?") ? "&" : "?") + "v=" + Date.now();
+  };
+  el.onerror = load;
+  load();
+}
+
+// --- 介面控制 ---
+
 window.setV382 = function(mode, theme, btn) {
   state.mode = mode;
   state.theme = theme;
   document.body.className = `mode-${mode} ${theme} style-${state.style} ${state.paper}`;
   
-  // 切換按鈕狀態
-  if (btn && btn.classList.contains("pill")) {
+  if (btn) {
     qa(".btn-neo.pill").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
   }
   
-  // 同步色點
-  const isFree = mode === "free";
+  const isFree = (mode === "free");
   $("freeDotsRow").style.display = isFree ? "flex" : "none";
   $("premiumDotsRow").style.display = isFree ? "none" : "flex";
   $("free-controls").style.display = isFree ? "block" : "none";
-  
-  log(`Switch to ${mode} mode with ${theme}`);
 };
 
-window.setV382Style = function(sty, btn) {
+window.setV382Style = (sty, btn) => {
   state.style = sty;
   window.setV382(state.mode, state.theme);
   if (btn) {
-    const row = btn.parentElement;
-    Array.from(row.children).forEach(b => b.classList.remove("active"));
+    qa(btn.parentElement.children).forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
   }
 };
 
-window.setV382Paper = function(pap, btn) {
+window.setV382Paper = (pap, btn) => {
   state.paper = pap;
   window.setV382(state.mode, state.theme);
   if (btn) {
-    const row = btn.parentElement;
-    Array.from(row.children).forEach(b => b.classList.remove("active"));
+    qa(btn.parentElement.children).forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
   }
 };
 
-// 11. 隱形入口：三擊觸發
-let lastTap = 0;
-let tapCount = 0;
-$("adminHotspotTop").addEventListener("click", (e) => {
+// 三擊隱形入口
+let lastTap = 0, tapCount = 0;
+$("adminHotspotTop").addEventListener("click", () => {
   const now = Date.now();
-  if (now - lastTap < CONFIG.ADMIN_TRIPLETAP_WINDOW) {
-    tapCount++;
-  } else {
-    tapCount = 1;
-  }
+  if (now - lastTap < CONFIG.ADMIN_TRIPLETAP_WINDOW) tapCount++;
+  else tapCount = 1;
   lastTap = now;
   if (tapCount >= 3) {
-    const panel = $("admin-panel");
-    panel.style.display = (panel.style.display === "block") ? "none" : "block";
+    const p = $("admin-panel");
+    p.style.display = (p.style.display === "block") ? "none" : "block";
     tapCount = 0;
   }
 });
 
-// 12. 分享名片功能
-window.copyCardUrl = function() {
-  const url = window.location.href;
-  navigator.clipboard.writeText(url).then(() => {
-    alert("名片連結已複製，可直接分享給好友！");
-  }).catch(() => {
-    alert("請複製網址列連結進行分享");
-  });
+window.copyCardUrl = async () => {
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    alert("名片連結已複製！");
+  } catch {
+    alert("請手動複製網址列連結");
+  }
 };
 
-window.goFillForm = function() { window.open(CONFIG.FORM, "_blank"); };
+window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
 
-// 13. 初始化啟動
-async function initV400() {
-  const queryId = getParam("id") || getParam("ID");
-  state.resolvedId = normalizeId(queryId || CONFIG.DEFAULT_ID);
+// --- 啟動 ---
+
+async function bootV400() {
+  const qId = normalizeId(getParam("id") || getParam("ID"));
+  state.resolvedId = qId || CONFIG.DEFAULT_ID;
   
+  // 顯示載入動畫
+  setText("u-name-free", "同步資料中...");
+  setText("u-name-premium", "同步資料中...");
+
   try {
     const data = await fetchJsonRobust(`${CONFIG.GAS}?id=${state.resolvedId}`);
-    if (data && data.success !== false) {
+    if (data && data.ok !== false) {
       applyDataToCard(data);
     } else {
-      alert("查無此序號資料，將顯示預設名片。");
-      const defaultData = await fetchJsonRobust(`${CONFIG.GAS}?id=${CONFIG.DEFAULT_ID}`);
-      applyDataToCard(defaultData);
+      throw new Error("No data");
     }
   } catch (err) {
-    console.error("Init Error:", err);
+    console.error(err);
+    setText("u-name-free", "連線失敗，請檢查網路");
   }
 }
 
-document.addEventListener("DOMContentLoaded", initV400);
+document.addEventListener("DOMContentLoaded", bootV400);
