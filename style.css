@@ -1,9 +1,11 @@
 /* ================================
- * Happiness Smart Card System — style.css (v399 COMPLETE OVERWRITE)
- * Base: v398.3 / v398.4
- * MUST KEEP: v393 dynamic-mask system for free mode arch/flat/spot
- * Add: v399 top hidden admin hotspot (triple tap) — no visual impact
- * Keep: v398 blocks (#block-service/#block-exp) + dock + photo wall
+ * Happiness Smart Card System — style.css (v399 COMPLETE OVERWRITE) 2/3
+ * FIX:
+ * 1) Logo 顯示（含 free / premium 位置）
+ * 2) 精品：姓名移到右側，與右上 Logo 動態平衡（不撞）
+ * Keep:
+ * - v393 free dynamic-mask (arch/flat/spot)
+ * - v398 blocks + dock + photo wall
  * ================================ */
 
 :root{
@@ -61,23 +63,6 @@ body{
   color:var(--text);
   transition: 0.45s;
   display:block;
-}
-
-/* =========================================
-   v399：上方隱形入口熱區（不破壞門面）
-   - app.js 綁三擊/多擊
-   - 可點擊但不可見
-========================================= */
-#adminHotspotTop{
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 44px;        /* 上方好點的位置 */
-  opacity: 0;
-  z-index: 99999;
-  background: transparent;
-  pointer-events: auto;
 }
 
 /* ================= 控制面板（門面） ================= */
@@ -156,7 +141,7 @@ body{
   background: var(--p);
   color:#fff;
   border:none;
-  padding: 14px 44px;
+  padding: 14px 34px;
   border-radius: 44px;
   font-weight: 900;
   cursor:pointer;
@@ -217,7 +202,55 @@ body{
 .mode-premium .banner,
 .mode-premium .dynamic-mask{ display:none !important; }
 
-/* 頭像 */
+/* ================= Logo（v399 FIX） ================= */
+.logo-wrap{
+  position:absolute;
+  z-index:50;
+  display:none; /* 沒資料就不顯示；app.js 有資料會打開 */
+  pointer-events:none;
+}
+.logo-img{
+  display:block;
+  width:56px;
+  height:56px;
+  object-fit:contain;
+  border-radius:14px;
+  opacity:0.96;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.12));
+}
+
+/* 自由款：頭像下方置中（不擋 banner） */
+.mode-free .logo-wrap{
+  top: 176px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.mode-free .logo-img{
+  width:52px;
+  height:52px;
+  background: rgba(255,255,255,0.92);
+  padding:6px;
+  border-radius:16px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.10);
+}
+
+/* 精品款：右上角 */
+.mode-premium .logo-wrap{
+  top: 18px;
+  right: 18px;
+  left: auto;
+  transform:none;
+}
+.mode-premium .logo-img{
+  width:54px;
+  height:54px;
+  background: rgba(255,255,255,0.14);
+  padding:7px;
+  border: 1px solid rgba(255,255,255,0.28);
+  box-shadow: 0 12px 26px rgba(0,0,0,0.18);
+}
+
+/* ================= 頭像 ================= */
 .avatar-wrap{
   position:absolute;
   width:100%;
@@ -258,65 +291,45 @@ body{
   object-fit:cover;
 }
 
-/* ✅ Logo（自由款在頭像下方；精品款右上角） */
-.logo-wrap{
-  position:absolute;
-  z-index:40;
-  display:none;
-  pointer-events:none;
-}
-.mode-free .logo-wrap{
-  top: 188px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.mode-premium .logo-wrap{
-  top: 26px;
-  right: 22px;
-  left: auto;
-  transform: none;
-}
-.logo-img{
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  object-fit: cover;
-  box-shadow: 0 10px 22px rgba(0,0,0,0.14);
-  background: rgba(255,255,255,0.92);
-}
-.mode-premium .logo-img{
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.18);
-  border: 1px solid rgba(255,255,255,0.22);
-  box-shadow: 0 14px 30px rgba(0,0,0,0.20);
-}
-
-/* 內容滾動區 */
+/* ================= 內容滾動區 ================= */
 .info-scroll{
   transition:0.4s;
   overflow:auto;
   height:100%;
   -webkit-overflow-scrolling: touch;
 }
-.mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
-.mode-premium .info-scroll{ padding: 102px 22px 22px; text-align:left; }
 
+/* 自由款：置中 */
+.mode-free .info-scroll{ padding: 112px 20px 20px; text-align:center; }
+
+/* 精品款：左對齊，讓上方形成「左頭像＋右姓名」的平衡 */
+.mode-premium .info-scroll{
+  padding: 28px 22px 22px; /* ✅ 關鍵：把內容往上拉，讓姓名可在右側上方區 */
+  text-align:left;
+}
+
+/* ================= 名稱 / 單位 / 頭銜 ================= */
 .name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; font-size:22px; }
 .unit, .title{ font-weight: 900; opacity: 0.86; margin-top: 2px; font-size:14px; }
 
-/* 精品：名字與頭像同區域的視覺安全 */
+/* ✅ 精品：姓名獨立放在名片右邊（與 Logo 動態平衡，避免撞） */
 .mode-premium .name{
-  margin-top: 8px;
+  margin: 18px 72px 6px 118px; /* left = 頭像區，right = Logo 區 */
+  font-size: 22px;
   color: rgba(255,255,255,0.96);
   text-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
 .mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
-.mode-premium .unit, .mode-premium .title{ color: rgba(255,255,255,0.88); }
+
+/* ✅ 精品：單位/職稱仍在姓名下方，但保持右區視覺 */
+.mode-premium .unit, .mode-premium .title{
+  margin-left: 118px;
+  margin-right: 18px;
+  color: rgba(255,255,255,0.88);
+}
 .mode-premium.p6 .unit, .mode-premium.p6 .title{ color: rgba(52,34,0,0.82); }
 
-/* slogan（如果有） */
+/* slogan */
 .slogan{
   margin-top: 10px;
   padding: 10px 12px;
@@ -386,8 +399,7 @@ body{
 
 /* Dock */
 .contact-dock{ margin-top:12px; }
-.dock-buttons{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
-.mode-premium .dock-buttons{ justify-content:flex-start; }
+.dock-buttons{ display:flex; flex-wrap:wrap; gap:10px; }
 
 .dock-btn{
   border:none;
@@ -426,7 +438,7 @@ body{
 }
 .photo-grid img:active{ transform: scale(0.98); }
 
-/* 極簡：隱藏標題（但服務/經歷仍顯示） */
+/* 極簡：隱藏標題 */
 .dock-title, .wall-title{ display:none !important; }
 
 /* premium fx layer / paper overlay */
