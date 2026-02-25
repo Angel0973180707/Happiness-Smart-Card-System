@@ -1,5 +1,5 @@
 /* ================================
- * share.js (v399.1 COMPLETE OVERWRITE)
+ * share.js (v399.1 COMPLETE OVERWRITE) 1/2
  * - share.html?id=TW0001
  * - OG meta uses fixed og-card.png (for LINE/FB crawler)
  * - Page overlays NAME + AVATAR for humans
@@ -7,7 +7,10 @@
  * ================================ */
 
 const SHARE_CONFIG = {
-  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+  // ✅ prefer window.CONFIG.GAS if exists (keep compatibility)
+  GAS: (window.CONFIG && window.CONFIG.GAS)
+    ? window.CONFIG.GAS
+    : "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   DEFAULT_ID: "TW0001",
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
@@ -125,9 +128,7 @@ function buildImageCandidates_(raw){
     ].filter(Boolean);
   }
   return [normalizeImageUrl(original)].filter(Boolean);
-}
-
-async function fetchWithTimeout(url, timeoutMs){
+}async function fetchWithTimeout(url, timeoutMs){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
@@ -253,9 +254,9 @@ async function boot(){
   const cardUrl = buildCardUrl_(id);
   const shareUrl = buildShareUrl_(id);
 
-  btnOpenCard.onclick = () => location.href = cardUrl;
-  btnCopyShare.onclick = () => copyText_(shareUrl);
-  btnCopyCard.onclick = () => copyText_(cardUrl);
+  if(btnOpenCard) btnOpenCard.onclick = () => location.href = cardUrl;
+  if(btnCopyShare) btnCopyShare.onclick = () => copyText_(shareUrl);
+  if(btnCopyCard) btnCopyCard.onclick = () => copyText_(cardUrl);
 
   if(debug) debug.textContent = `id=${id}`;
 
