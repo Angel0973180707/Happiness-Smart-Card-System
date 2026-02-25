@@ -1,9 +1,10 @@
 /* ================================
- * Happiness Smart Card System — style.css (v399 COMPLETE OVERWRITE)
- * Base: v398.3 / v398.4
- * MUST KEEP: v393 dynamic-mask system for free mode arch/flat/spot
- * Add: v399 top hidden admin hotspot (triple tap) — no visual impact
- * Keep: v398 blocks (#block-service/#block-exp) + dock + photo wall
+ * Happiness Smart Card System — style.css (v399.1 COMPLETE OVERWRITE)
+ * Base: your v399
+ * FIX:
+ * 1) Premium: name horizontal beside avatar (top area)
+ * 2) Premium: unit/title each line, no squeeze
+ * 3) Use #adminHotspotTop as real invisible hotspot (already in HTML)
  * ================================ */
 
 :root{
@@ -65,15 +66,13 @@ body{
 
 /* =========================================
    v399：上方隱形入口熱區（不破壞門面）
-   - app.js 綁三擊/多擊
-   - 可點擊但不可見
 ========================================= */
 #adminHotspotTop{
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  height: 44px;        /* 上方好點的位置 */
+  height: 44px;
   opacity: 0;
   z-index: 99999;
   background: transparent;
@@ -167,7 +166,7 @@ body{
 .btn-cta:hover{ transform: translateY(-1px); filter: brightness(1.01); }
 .btn-cta:active{ transform: translateY(1px) scale(0.99); }
 
-/* ================= 名片卡（樣品區） ================= */
+/* ================= 名片卡 ================= */
 .card{
   width:92%;
   max-width:380px;
@@ -180,7 +179,7 @@ body{
   transition: 0.45s;
 }
 
-/* ================= 自由款 banner + dynamic-mask（維持 v393 原樣！） ================= */
+/* ================= 自由款 banner + dynamic-mask（維持 v393 原樣） ================= */
 .banner{
   height:125px;
   background: var(--p);
@@ -299,16 +298,53 @@ body{
   overflow:auto;
   height:100%;
   -webkit-overflow-scrolling: touch;
+  position:relative;
 }
 .mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
-.mode-premium .info-scroll{ padding: 102px 22px 22px; text-align:left; }
 
+/* ✅ 精品：上方先留出「頭像+姓名列」的空間 */
+.mode-premium .info-scroll{
+  padding: 150px 22px 22px;
+  text-align:left;
+}
+
+/* 基本文字 */
 .name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; font-size:22px; }
 .unit, .title{ font-weight: 900; opacity: 0.86; margin-top: 2px; font-size:14px; }
 
-/* 精品：名字與頭像同區域的視覺安全 */
+/* ✅ 你要的：單位/頭銜各佔一行 */
+.unit, .title{ display:block; }
+
+/* ========== ✅ 精品頂部資訊列：名字橫在頭像旁邊 ========== */
+.mode-premium #v398-unit-structure{
+  position:absolute;
+  top: 34px;
+  left: 118px;   /* 頭像 86 + padding + 呼吸 */
+  right: 86px;   /* 右側留給 Logo */
+  text-align:left;
+  z-index:35;
+}
+.mode-premium #u-name{
+  margin: 2px 0 4px;
+  font-size: 20px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+.mode-premium #u-unit,
+.mode-premium #u-title{
+  font-size: 12.5px;
+  line-height: 1.25;
+  margin: 0;
+  opacity: .90;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+}
+
+/* 精品文字顏色安全 */
 .mode-premium .name{
-  margin-top: 8px;
   color: rgba(255,255,255,0.96);
   text-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
@@ -316,7 +352,7 @@ body{
 .mode-premium .unit, .mode-premium .title{ color: rgba(255,255,255,0.88); }
 .mode-premium.p6 .unit, .mode-premium.p6 .title{ color: rgba(52,34,0,0.82); }
 
-/* slogan（如果有） */
+/* slogan */
 .slogan{
   margin-top: 10px;
   padding: 10px 12px;
@@ -340,7 +376,7 @@ body{
   color: rgba(52,34,0,0.92);
 }
 
-/* v398：兩大區塊容器（服務 / 經歷） */
+/* v398：兩大區塊 */
 #v398-blocks{
   margin-top: 12px;
   display: grid;
@@ -426,7 +462,7 @@ body{
 }
 .photo-grid img:active{ transform: scale(0.98); }
 
-/* 極簡：隱藏標題（但服務/經歷仍顯示） */
+/* 極簡：隱藏標題（服務/經歷仍顯示） */
 .dock-title, .wall-title{ display:none !important; }
 
 /* premium fx layer / paper overlay */
