@@ -1,7 +1,12 @@
 /* ========================================
 Happiness Smart Card System — v398
 STRUCTURE REFACTOR (UI frame + renderer)
-COMPLETE OVERWRITE (1/3)
+COMPLETE OVERWRITE
+- v398 unit/title split + blocks renderer
+- Photo wall data-driven
+- Dock adds Video link
+- Facade plan/theme/style/paper sync (restore v382 APIs)
+- Hidden backend panel via bottom-right triple tap (500ms)
 ======================================== */
 
 const CONFIG = {
@@ -26,6 +31,9 @@ function text(v){ return (v==null ? "" : String(v)).trim(); }
 function show(el, yes){ if(el) el.style.display = yes ? "" : "none"; }
 function log_(){ if(CONFIG.DEBUG) console.log("[HSC]", ...arguments); }
 
+/* ---------------------------
+ID helpers
+--------------------------- */
 function normalizeId_(s){
   const v = text(s).toUpperCase();
   if(!v) return "";
@@ -44,6 +52,9 @@ function getCardIdFromUrl_(){
   }
 }
 
+/* ---------------------------
+Payload key normalization
+--------------------------- */
 function cleanKey_(k){
   return String(k ?? "")
     .replace(/[\uFEFF\u200B-\u200D\u2060]/g,"")
@@ -71,22 +82,25 @@ function pick(obj, keys){
 }
 
 /* ---------------------------
-Image URL normalize
+Image URL normalize (stable GitHub + Drive)
 --------------------------- */
 function normalizeImageUrl(raw){
   if(!raw) return "";
   let url = String(raw).trim();
   if(!url) return "";
+
   if(url.startsWith("http://")) url = "https://" + url.slice(7);
 
   const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   if(mFile && mFile[1]){
     return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
   }
+
   const mId = url.match(/[?&]id=([^&]+)/i);
   if(mId && mId[1]){
     return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mId[1])}`;
   }
+
   return url;
 }
 
@@ -104,7 +118,7 @@ function setImg_(imgEl, url){
 
 /* ---------------------------
 v398 Hidden Backend Panel (default hidden)
-- NOT the facade (admin-panel remains visible)
+- facade (admin-panel) remains visible
 - opened by bottom-right triple tap within 500ms
 --------------------------- */
 function ensureHiddenBackendPanel_(){
@@ -159,7 +173,6 @@ function ensureHiddenBackendPanel_(){
 
   document.body.appendChild(panel);
 
-  // wire actions
   panel.querySelector("#hbClose").onclick = () => show(panel, false);
 
   panel.querySelector("#hbCopyId").onclick = async () => {
@@ -167,7 +180,6 @@ function ensureHiddenBackendPanel_(){
       await navigator.clipboard.writeText(__resolvedId || "");
       log_("Copied ID:", __resolvedId);
     }catch{
-      // fallback
       const ta = document.createElement("textarea");
       ta.value = __resolvedId || "";
       document.body.appendChild(ta);
@@ -198,7 +210,6 @@ function updateHiddenBackendInfo_(){
 
 /* ---------------------------
 v398 Triple Tap Hotzone (bottom-right inside card-container)
-- invisible, 500ms triple tap opens hidden backend panel
 --------------------------- */
 function setupTripleTapEntry_(){
   const card = $("card-container");
@@ -235,7 +246,121 @@ function setupTripleTapEntry_(){
       updateHiddenBackendInfo_();
       log_("Hidden backend:", isHidden ? "OPEN" : "CLOSE");
     }
-  }/* ---------------------------
+  }
+
+  hot.addEventListener("click", trigger_);
+  hot.addEventListener("touchend", (e)=>{ e.preventDefault(); trigger_(); }, { passive:false });
+}/* ---------------------------
+v398: Facade plan/theme/style/paper sync (restore v382 APIs)
+- keeps your existing HTML onclick="window.setV382(...)"
+- updates body class + active UI
+- persists to localStorage
+--------------------------- */
+const STORAGE_KEY_UI = "hsc_ui_state_v398";
+
+function saveUIState_(){
+  try{ localStorage.setItem(STORAGE_KEY_UI, JSON.stringify(state)); }catch{}
+}
+
+function loadUIState_(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY_UI);
+    if(!raw) return;
+    const obj = JSON.parse(raw);
+    if(obj && typeof obj === "object"){
+      state = { ...state, ...obj };
+    }
+  }catch{}
+}
+
+function setActive_(el, yes){
+  if(!el) return;
+  el.classList.toggle("active", !!yes);
+}
+
+function syncPlanButtons_(){
+  setActive_($("btnPlanFree"), state.mode === "free");
+  setActive_($("btnPlanPremium"), state.mode === "premium");
+}
+
+function syncDots_(){
+  const freeDots = qa("#admin-panel .dot");
+  freeDots.forEach((d, idx) => {
+    const theme = `color-${idx+1}`;
+    setActive_(d, state.mode === "free" && state.theme === theme);
+  });
+
+  const pDots = qa("#admin-panel .p-dot");
+  pDots.forEach((d, idx) => {
+    const theme = `p${idx+1}`;
+    setActive_(d, state.mode === "premium" && state.theme === theme);
+  });
+}
+
+function syncStyleButtons_(){
+  const btns = qa("#free-controls .control-row:nth-of-type(1) .btn-neo");
+  const styles = ["arch","flat","spot"];
+  btns.forEach((b, i) => setActive_(b, state.style === styles[i]));
+}
+
+function syncPaperButtons_(){
+  const btns = qa("#free-controls .control-row:nth-of-type(2) .btn-neo");
+  const papers = ["paper-1","paper-2","paper-3"];
+  btns.forEach((b, i) => setActive_(b, state.paper === papers[i]));
+}
+
+function syncFreeControlsVisibility_(){
+  const fc = $("free-controls");
+  if(!fc) return;
+  fc.style.display = (state.mode === "free") ? "" : "none";
+}
+
+function applyUIClasses_(){
+  const body = document.body;
+  if(!body) return;
+
+  body.classList.remove("mode-free","mode-premium");
+  body.classList.add(state.mode === "premium" ? "mode-premium" : "mode-free");
+
+  for(let i=1;i<=5;i++) body.classList.remove(`color-${i}`);
+  for(let i=1;i<=7;i++) body.classList.remove(`p${i}`);
+  if(state.theme) body.classList.add(state.theme);
+
+  body.classList.remove("style-arch","style-flat","style-spot");
+  body.classList.add(`style-${state.style || "arch"}`);
+
+  body.classList.remove("paper-1","paper-2","paper-3");
+  body.classList.add(state.paper || "paper-1");
+}
+
+function syncFacadeUI_(){
+  applyUIClasses_();
+  syncPlanButtons_();
+  syncDots_();
+  syncStyleButtons_();
+  syncPaperButtons_();
+  syncFreeControlsVisibility_();
+  saveUIState_();
+}
+
+/* Restore old API names used by your HTML */
+window.setV382 = function(mode, theme, el){
+  state.mode = (mode === "premium") ? "premium" : "free";
+  state.theme = theme || (state.mode === "premium" ? "p1" : "color-1");
+  syncFacadeUI_();
+};
+
+window.setV382Style = function(style, el){
+  state.style = (style === "flat" || style === "spot") ? style : "arch";
+  syncFacadeUI_();
+};
+
+window.setV382Paper = function(paper, el){
+  state.paper = (paper === "paper-2" || paper === "paper-3") ? paper : "paper-1";
+  syncFacadeUI_();
+};
+
+/* ---------------------------
 v398: Text blocks renderer
 - fixed containers: #block-service, #block-exp
 - titles allowed only: 服務項目 / 經歷
@@ -253,7 +378,6 @@ function setInfoBlock_(host, titleText, content, opts={}){
 
   host.style.display = "";
 
-  // minimal title (small, grey) — CSS will style .block-title
   const title = document.createElement("div");
   title.className = "block-title";
   title.textContent = titleText;
@@ -274,7 +398,6 @@ supports separators: newline / comma / whitespace
 function splitPhotoList_(raw){
   const s = text(raw);
   if(!s) return [];
-  // normalize separators to newline
   const normalized = s
     .replace(/\r\n/g, "\n")
     .replace(/[,，]+/g, "\n")
@@ -318,7 +441,7 @@ function renderPhotoWall_(payload){
 }
 
 /* ---------------------------
-Dock Buttons
+Dock Buttons + video normalize
 --------------------------- */
 function makeBtn_(label, url){
   const btn = document.createElement("button");
@@ -331,7 +454,6 @@ function makeBtn_(label, url){
 function normalizeVideoUrl_(raw){
   const u = text(raw);
   if(!u) return "";
-  // if someone pasted youtube short link without scheme
   if(/^www\./i.test(u)) return "https://" + u;
   if(/^(youtube\.com|youtu\.be)/i.test(u)) return "https://" + u;
   return u;
@@ -360,23 +482,19 @@ function renderContactDock_(payload){
     host.appendChild(makeBtn_("LINE", line));
     count++;
   }
-
   if(text(email)){
     host.appendChild(makeBtn_("Email", `mailto:${text(email)}`));
     count++;
   }
-
   if(text(phone)){
     host.appendChild(makeBtn_("電話", `tel:${text(phone)}`));
     count++;
   }
-
   if(text(addr)){
     const map = `https://www.google.com/maps?q=${encodeURIComponent(text(addr))}`;
     host.appendChild(makeBtn_("地址", map));
     count++;
   }
-
   if(text(video)){
     host.appendChild(makeBtn_("影音", normalizeVideoUrl_(video)));
     count++;
@@ -387,18 +505,18 @@ function renderContactDock_(payload){
 
 /* ---------------------------
 v398: Apply Payload → Card
-- name as main visual
-- unit and title split lines (no unitline)
-- slogan: optional show
-- fixed blocks: service/exp
+- name main visual
+- unit/title split lines
+- slogan optional
+- fixed blocks: service/exp (exp preline)
 - dock + photo wall
 --------------------------- */
 function applyDataToCard(payload){
-
   const name   = pick(payload, ["姓名", "name", "Name"]);
   const unit   = pick(payload, ["單位", "unit", "Unit"]);
   const title  = pick(payload, ["頭銜", "title", "Title"]);
   const slogan = pick(payload, ["理念標語", "標語", "slogan", "Slogan"]);
+
   const service = pick(payload, ["服務項目", "服務", "service", "Service"]);
   const exp     = pick(payload, ["經歷", "experience", "Experience", "簡歷"]);
 
@@ -423,15 +541,12 @@ function applyDataToCard(payload){
 
   if(sloganEl){
     sloganEl.textContent = text(slogan);
-    // v398: slogan is optional; show only when has value
     show(sloganEl, !!text(slogan));
   }
 
   setImg_($("u-img"), avatar);
 
-  // v398 fixed blocks
   setInfoBlock_($("block-service"), "服務項目", service, { preline:false });
-  // exp must support newline from GAS
   setInfoBlock_($("block-exp"), "經歷", exp, { preline:true });
 
   renderContactDock_(payload);
@@ -494,7 +609,7 @@ async function loadCardById_(id){
 }
 
 /* ---------------------------
-Expose existing facade actions (keep old buttons working)
+Expose facade actions (keep existing buttons working)
 --------------------------- */
 window.goFillForm = function(){
   window.open(CONFIG.FORM, "_blank");
@@ -504,15 +619,16 @@ window.goFillForm = function(){
 Boot
 --------------------------- */
 function boot_(){
-  // v398: enable hidden backend entry (triple tap) — facade remains visible
+  // v398: enable hidden backend entry (triple tap)
   setupTripleTapEntry_();
 
+  // v398: restore facade UI state and sync active buttons
+  loadUIState_();
+  syncFacadeUI_();
+
+  // load card
   const id = getCardIdFromUrl_();
   loadCardById_(id);
 }
 
 document.addEventListener("DOMContentLoaded", boot_, { once:true });
-
-  hot.addEventListener("click", trigger_);
-  hot.addEventListener("touchend", (e)=>{ e.preventDefault(); trigger_(); }, { passive:false });
-}
