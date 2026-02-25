@@ -1,10 +1,10 @@
-/* ================================
- * Happiness Smart Card System — style.css (v399 COMPLETE OVERWRITE)
- * Base: v398.3 / v398.4
- * MUST KEEP: v393 dynamic-mask system for free mode arch/flat/spot
- * Add: v399 top hidden admin hotspot (triple tap) — no visual impact
- * Keep: v398 blocks (#block-service/#block-exp) + dock + photo wall
- * ================================ */
+/* style.css (v399.x COMPLETE OVERWRITE) — PART 1/2
+ * Base: v399 (keep v393 dynamic-mask)
+ * FIX layout:
+ * 1) Free: unit in banner center; order: avatar -> name -> title -> logo -> service -> exp -> carousel -> platforms -> contacts -> share
+ * 2) Premium: top row (avatar left, name right), logo top-right; then unit/title/service/exp/...
+ * 3) Dynamic balance: auto-hide empty blocks; elastic spacing; no squeeze
+ */
 
 :root{
   --font: 'Noto Sans TC', sans-serif;
@@ -25,7 +25,7 @@
   --fx-op: 0;
   --fx-img: none;
 
-  /* v398 blocks */
+  /* blocks */
   --soft-border: rgba(0,0,0,0.08);
   --soft-border-2: rgba(0,0,0,0.10);
   --soft-shadow: 0 10px 24px rgba(0,0,0,0.08);
@@ -33,22 +33,6 @@
   --muted: rgba(45,52,54,0.55);
   --block-bg: rgba(255,255,255,0.86);
 }
-
-/* ========= 自由搭配款：5 色（維持 v393） ========= */
-.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
-
-/* ========= 精品設計款（維持 v393） ========= */
-.mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, rgba(163,109,109,0.96), rgba(142,90,90,0.86)); --text:#ffffff; --fx-op:0.35; }
-.mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg:linear-gradient(135deg, rgba(114,47,55,0.96), rgba(114,47,55,0.86)); --text:#f5e6e8; --fx-op:0.38; }
-.mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg:linear-gradient(135deg, rgba(28,46,66,0.96), rgba(44,62,80,0.86)); --text:#ffffff; --fx-op:0.25; }
-.mode-premium.p4 { --p:#5e548e; --bg:#f4f3f7; --card-bg:linear-gradient(135deg, rgba(94,84,142,0.93), rgba(159,134,192,0.82)); --text:#ffffff; --fx-op:0.22; }
-.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:linear-gradient(135deg, rgba(122,148,166,0.96), rgba(100,120,135,0.82)); --text:#ffffff; --fx-op:0.25; }
-.mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg:linear-gradient(135deg, rgba(191,149,63,0.96), rgba(252,246,186,0.86), rgba(170,119,28,0.96)); --text:#4d3700; --fx-op:0.55; }
-.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
@@ -63,24 +47,35 @@ body{
   display:block;
 }
 
-/* =========================================
-   v399：上方隱形入口熱區（不破壞門面）
-   - app.js 綁三擊/多擊
-   - 可點擊但不可見
-========================================= */
+/* ========= Free 5 colors ========= */
+.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
+
+/* ========= Premium 7 ========= */
+.mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, rgba(163,109,109,0.96), rgba(142,90,90,0.86)); --text:#ffffff; --fx-op:0.35; }
+.mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg:linear-gradient(135deg, rgba(114,47,55,0.96), rgba(114,47,55,0.86)); --text:#f5e6e8; --fx-op:0.38; }
+.mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg:linear-gradient(135deg, rgba(28,46,66,0.96), rgba(44,62,80,0.86)); --text:#ffffff; --fx-op:0.25; }
+.mode-premium.p4 { --p:#5e548e; --bg:#f4f3f7; --card-bg:linear-gradient(135deg, rgba(94,84,142,0.93), rgba(159,134,192,0.82)); --text:#ffffff; --fx-op:0.22; }
+.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:linear-gradient(135deg, rgba(122,148,166,0.96), rgba(100,120,135,0.82)); --text:#ffffff; --fx-op:0.25; }
+.mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg:linear-gradient(135deg, rgba(191,149,63,0.96), rgba(252,246,186,0.86), rgba(170,119,28,0.96)); --text:#4d3700; --fx-op:0.55; }
+.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
+
+/* v399: top hotspot */
 #adminHotspotTop{
   position: fixed;
-  top: 0;
-  left: 0;
+  top: 0; left: 0;
   width: 100%;
-  height: 44px;        /* 上方好點的位置 */
+  height: 44px;
   opacity: 0;
   z-index: 99999;
   background: transparent;
   pointer-events: auto;
 }
 
-/* ================= 控制面板（門面） ================= */
+/* ============ Admin panel ============ */
 #admin-panel{
   width:100%;
   background:#fff;
@@ -92,20 +87,17 @@ body{
   top: 0;
 }
 
-/* 中央容器 */
 #card-container{
   display:block;
   margin: 16px auto 8px;
 }
 
-/* dots row */
 .dots-row{
   display:flex;
   justify-content:center;
   gap:10px;
   margin:10px 0;
 }
-
 .dot, .p-dot{
   width:34px;
   height:34px;
@@ -115,9 +107,12 @@ body{
   box-shadow: 0 3px 8px rgba(0,0,0,0.08);
   transition: 0.2s;
 }
-.dot.active, .p-dot.active{ border-color:#2d3436 !important; transform:scale(1.1); }
+.dot.active, .p-dot.active{
+  border-color:#2d3436 !important;
+  transform:scale(1.1);
+}
 
-/* 立體按鈕 */
+/* neo buttons */
 .btn-neo{
   border:none;
   cursor:pointer;
@@ -151,7 +146,6 @@ body{
     inset 0 -2px 0 rgba(0,0,0,0.05); }
 }
 
-/* CTA */
 .btn-cta{
   background: var(--p);
   color:#fff;
@@ -167,7 +161,7 @@ body{
 .btn-cta:hover{ transform: translateY(-1px); filter: brightness(1.01); }
 .btn-cta:active{ transform: translateY(1px) scale(0.99); }
 
-/* ================= 名片卡（樣品區） ================= */
+/* ============ Card ============ */
 .card{
   width:92%;
   max-width:380px;
@@ -180,7 +174,7 @@ body{
   transition: 0.45s;
 }
 
-/* ================= 自由款 banner + dynamic-mask（維持 v393 原樣！） ================= */
+/* ===== v393 dynamic-mask (KEEP) ===== */
 .banner{
   height:125px;
   background: var(--p);
@@ -206,7 +200,27 @@ body{
   z-index:10;
 }
 
-/* ================= 精品款（維持 v393 版型） ================= */
+/* ✅ Free: Unit in banner center (dynamic balance) */
+.banner-unit{
+  position:absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%,-50%);
+  width: 86%;
+  text-align:center;
+  font-weight: 900;
+  letter-spacing: .4px;
+  color: rgba(255,255,255,0.96);
+  text-shadow: 0 2px 10px rgba(0,0,0,0.18);
+  font-size: 14px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  padding: 0 6px;
+}
+
+/* ============ Premium shell ============ */
 .mode-premium .card{
   width:86%;
   height:580px;
@@ -217,7 +231,7 @@ body{
 .mode-premium .banner,
 .mode-premium .dynamic-mask{ display:none !important; }
 
-/* 頭像 */
+/* ============ Avatar ============ */
 .avatar-wrap{
   position:absolute;
   width:100%;
@@ -258,25 +272,34 @@ body{
   object-fit:cover;
 }
 
-/* ✅ Logo（自由款在頭像下方；精品款右上角） */
-.logo-wrap{
+/* ============ Logo positions ============ */
+/* premium: top-right */
+#logoWrapPremium{
   position:absolute;
   z-index:40;
-  display:none;
-  pointer-events:none;
-}
-.mode-free .logo-wrap{
-  top: 188px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.mode-premium .logo-wrap{
   top: 26px;
   right: 22px;
   left: auto;
-  transform: none;
+  display:none; /* show when has logo */
+  pointer-events:none;
 }
-.logo-img{
+#logoWrapPremium .logo-img{
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  object-fit: cover;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.20);
+}
+
+/* free: inline below title */
+.logo-inline{
+  display:none;
+  margin-top: 10px;
+  justify-content:center;
+}
+.logo-inline .logo-img{
   width: 56px;
   height: 56px;
   border-radius: 16px;
@@ -284,39 +307,92 @@ body{
   box-shadow: 0 10px 22px rgba(0,0,0,0.14);
   background: rgba(255,255,255,0.92);
 }
-.mode-premium .logo-img{
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.18);
-  border: 1px solid rgba(255,255,255,0.22);
-  box-shadow: 0 14px 30px rgba(0,0,0,0.20);
-}
 
-/* 內容滾動區 */
+/* ============ Scroll area ============ */
 .info-scroll{
   transition:0.4s;
   overflow:auto;
   height:100%;
   -webkit-overflow-scrolling: touch;
 }
-.mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
-.mode-premium .info-scroll{ padding: 102px 22px 22px; text-align:left; }
+.mode-free .info-scroll{
+  padding: 100px 20px 20px;
+  text-align:center;
+}
+.mode-premium .info-scroll{
+  padding: 102px 22px 22px;
+  text-align:left;
+}
 
-.name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; font-size:22px; }
-.unit, .title{ font-weight: 900; opacity: 0.86; margin-top: 2px; font-size:14px; }
+/* ============ Headers ============ */
+.free-header-stack{ display:block; }
+.premium-header-row{ display:none; }
 
-/* 精品：名字與頭像同區域的視覺安全 */
-.mode-premium .name{
+.name{
+  margin: 0 0 6px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  font-size:22px;
+}
+.title{
+  font-weight: 900;
+  opacity: 0.86;
+  margin-top: 2px;
+  font-size:14px;
+}
+.unit{
+  font-weight: 900;
+  opacity: 0.86;
   margin-top: 8px;
+  font-size:14px;
+}
+
+/* Premium header row (avatar left, name right) */
+.mode-premium .free-header-stack{ display:none; }
+.mode-premium .premium-header-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:flex-end;
+  min-height: 88px; /* keeps space for avatar */
+}
+.premium-name-wrap{
+  margin-left: 108px; /* leave room for avatar */
+  width: calc(100% - 108px);
+}
+.premium-name{
+  margin-top: 6px;
+  font-size: 20px;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  text-align:left;
   color: rgba(255,255,255,0.96);
   text-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
-.mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
-.mode-premium .unit, .mode-premium .title{ color: rgba(255,255,255,0.88); }
-.mode-premium.p6 .unit, .mode-premium.p6 .title{ color: rgba(52,34,0,0.82); }
+.mode-premium.p6 .premium-name{
+  color: rgba(52,34,0,0.92);
+  text-shadow:none;
+}
 
-/* slogan（如果有） */
+/* meta blocks area */
+.meta-blocks{
+  margin-top: 6px;
+  display:grid;
+  gap: 6px;
+}
+.mode-free .meta-blocks{
+  /* free: unit is in banner, so keep this area very light */
+  margin-top: 6px;
+}
+.mode-premium .unit{
+  color: rgba(255,255,255,0.88);
+}
+.mode-premium.p6 .unit{
+  color: rgba(52,34,0,0.82);
+}/* style.css (v399.x COMPLETE OVERWRITE) — PART 2/2 */
+
+/* slogan */
 .slogan{
   margin-top: 10px;
   padding: 10px 12px;
@@ -340,7 +416,7 @@ body{
   color: rgba(52,34,0,0.92);
 }
 
-/* v398：兩大區塊容器（服務 / 經歷） */
+/* v398 blocks */
 #v398-blocks{
   margin-top: 12px;
   display: grid;
@@ -382,11 +458,22 @@ body{
 .mode-premium .block-body{ color: rgba(255,255,255,0.90); }
 .mode-premium.p6 .block-body{ color: rgba(52,34,0,0.92); }
 
-.preline{ white-space: pre-line; word-break: normal; overflow-wrap: break-word; }
+.preline{
+  white-space: pre-line;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
 
-/* Dock */
-.contact-dock{ margin-top:12px; }
-.dock-buttons{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+/* platform + contact docks */
+.contact-dock{
+  margin-top:12px;
+}
+.dock-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+}
 .mode-premium .dock-buttons{ justify-content:flex-start; }
 
 .dock-btn{
@@ -409,27 +496,41 @@ body{
   box-shadow:0 8px 18px rgba(0,0,0,0.18);
 }
 
-/* 照片牆 */
-.photo-wall{ margin-top:14px; padding-bottom: 12px; }
+/* ✅ Photo wall => horizontal carousel (swipe) */
+.photo-wall{
+  margin-top:14px;
+  padding-bottom: 6px;
+}
 .photo-grid{
-  display:grid;
-  grid-template-columns:repeat(3, 1fr);
-  gap:8px;
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding: 2px 2px 10px;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.photo-grid::-webkit-scrollbar{ height: 8px; }
+.photo-grid::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,0.15);
+  border-radius: 999px;
 }
 .photo-grid img{
-  width:100%;
-  aspect-ratio:1/1;
+  flex: 0 0 auto;
+  width: 118px;
+  height: 118px;
   object-fit:cover;
-  border-radius:14px;
+  border-radius: 16px;
   box-shadow: 0 10px 22px rgba(0,0,0,0.10);
   transition: transform .12s ease, box-shadow .18s ease;
+  scroll-snap-align: start;
 }
 .photo-grid img:active{ transform: scale(0.98); }
 
-/* 極簡：隱藏標題（但服務/經歷仍顯示） */
+/* minimalist: hide internal titles (layout-only) */
 .dock-title, .wall-title{ display:none !important; }
 
-/* premium fx layer / paper overlay */
+/* premium fx & paper overlay */
 .premium-fx-layer{
   position:absolute;
   inset:0;
@@ -448,13 +549,54 @@ body{
   mix-blend-mode: multiply;
 }
 
-/* version tag */
+/* footer + version tag */
+.footer{
+  margin-top: 12px;
+  text-align:center;
+  font-size: 10px;
+  color: rgba(0,0,0,0.28);
+}
+.mode-premium .footer{
+  color: rgba(255,255,255,0.35);
+}
 .version-tag{
   font-size:10px;
-  opacity:0.3;
+  opacity:0.32;
   position:absolute;
   bottom: 15px;
   right: 25px;
   font-family: monospace;
   user-select:none;
+}
+
+/* ===== Dynamic balance helpers (visual) ===== */
+/* allow sections to collapse nicely when empty */
+#u-unit-banner:empty{ display:none; }
+#u-unit:empty{ display:none; }
+#u-title:empty{ display:none; }
+#u-slogan:empty{ display:none; }
+#platformButtons:empty{ display:none; }
+#platformDock:has(#platformButtons:empty){ display:none; } /* modern browsers */
+#contactButtons:empty{ display:none; }
+#photoGrid:empty{ display:none; }
+#photoWall:has(#photoGrid:empty){ display:none; } /* modern browsers */
+
+/* free: if banner unit empty, keep banner height stable (do nothing) */
+.mode-free #u-unit{ display:none !important; } /* free unit lives in banner */
+
+/* show logo wrap only when populated (JS will toggle display) */
+#logoWrapFree{ display:flex; }
+#logoWrapPremium{ display:block; }
+.logo-inline:has(img[src=""]){ display:none; } /* best-effort */
+
+/* responsive */
+@media (max-width: 360px){
+  .card{ height: 640px; }
+  .photo-grid img{ width: 108px; height: 108px; }
+  .premium-name-wrap{ margin-left: 96px; width: calc(100% - 96px); }
+}
+
+/* iOS safe */
+@supports(padding: max(0px)){
+  body{ padding-bottom: max(40px, env(safe-area-inset-bottom)); }
 }
