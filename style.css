@@ -587,4 +587,42 @@ body{
 @media (max-width: 360px){
   .mode-premium #u-name{ left: 110px !important; right: 86px !important; }
   .mode-premium .photo-grid{ grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)) !important; }
+}/* ================================
+ * v400 PREMIUM NAME SAFE LAYOUT (PASTE AT END)
+ * - Name: right of avatar
+ * - Reserve space for top-right logo
+ * ================================ */
+
+.mode-premium .avatar-wrap{
+  top: 28px !important;
+  left: 18px !important;
+}
+
+.mode-premium #u-name{
+  position: absolute !important;
+  top: 38px !important;
+
+  /* ✅ 左邊讓出頭像、右邊讓出 Logo */
+  left: 112px !important;
+  right: 92px !important;
+
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.15 !important;
+  z-index: 60 !important;
+}
+
+/* ✅ 內容區往下推，避免壓到 unit/title/service */
+.mode-premium .info-scroll{
+  padding-top: 124px !important;
+}
+
+/* 超小螢幕再多讓一點 */
+@media (max-width: 360px){
+  .mode-premium #u-name{
+    left: 106px !important;
+    right: 88px !important;
+  }
 }
