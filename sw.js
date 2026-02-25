@@ -1,12 +1,12 @@
 /* ================================
- * sw.js (v39910 COMPLETE OVERWRITE)
+ * sw.js (v39911 COMPLETE OVERWRITE)
  * - App shell cache
  * - Stale-while-revalidate for static assets
  * - Network-first for HTML navigations (fallback to cache)
  * - Works with ?id=TW0001 style URLs
  * ================================ */
 
-const SW_VERSION = "v39910";
+const SW_VERSION = "v39911";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
 // ✅ 只快取「穩定不變」的殼（不要把 ?id 帶進去）
