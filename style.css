@@ -1,11 +1,8 @@
 /* ================================
- * Happiness Smart Card System — style.css (v399 COMPLETE OVERWRITE) 2/3
- * FIX:
- * 1) Logo 顯示（含 free / premium 位置）
- * 2) 精品：姓名移到右側，與右上 Logo 動態平衡（不撞）
- * Keep:
- * - v393 free dynamic-mask (arch/flat/spot)
- * - v398 blocks + dock + photo wall
+ * Happiness Smart Card System — style.css (v399.2 COMPLETE OVERWRITE)
+ * KEEP: v393 dynamic-mask system (free arch/flat/spot)
+ * FIX: Premium layout -> name on right, unit+title under avatar (left)
+ * ADD: Share FAB (bottom-right) + share sheet
  * ================================ */
 
 :root{
@@ -27,30 +24,13 @@
   --fx-op: 0;
   --fx-img: none;
 
-  /* v398 blocks */
+  /* blocks */
   --soft-border: rgba(0,0,0,0.08);
-  --soft-border-2: rgba(0,0,0,0.10);
   --soft-shadow: 0 10px 24px rgba(0,0,0,0.08);
 
   --muted: rgba(45,52,54,0.55);
   --block-bg: rgba(255,255,255,0.86);
 }
-
-/* ========= 自由搭配款：5 色（維持 v393） ========= */
-.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
-
-/* ========= 精品設計款（維持 v393） ========= */
-.mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, rgba(163,109,109,0.96), rgba(142,90,90,0.86)); --text:#ffffff; --fx-op:0.35; }
-.mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg:linear-gradient(135deg, rgba(114,47,55,0.96), rgba(114,47,55,0.86)); --text:#f5e6e8; --fx-op:0.38; }
-.mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg:linear-gradient(135deg, rgba(28,46,66,0.96), rgba(44,62,80,0.86)); --text:#ffffff; --fx-op:0.25; }
-.mode-premium.p4 { --p:#5e548e; --bg:#f4f3f7; --card-bg:linear-gradient(135deg, rgba(94,84,142,0.93), rgba(159,134,192,0.82)); --text:#ffffff; --fx-op:0.22; }
-.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:linear-gradient(135deg, rgba(122,148,166,0.96), rgba(100,120,135,0.82)); --text:#ffffff; --fx-op:0.25; }
-.mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg:linear-gradient(135deg, rgba(191,149,63,0.96), rgba(252,246,186,0.86), rgba(170,119,28,0.96)); --text:#4d3700; --fx-op:0.55; }
-.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
@@ -62,8 +42,23 @@ body{
   font-family:var(--font);
   color:var(--text);
   transition: 0.45s;
-  display:block;
 }
+
+/* ========= 自由搭配款：5 色 ========= */
+.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
+.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
+
+/* ========= 精品設計款：7 色 ========= */
+.mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, rgba(163,109,109,0.96), rgba(142,90,90,0.86)); --text:#ffffff; --fx-op:0.35; }
+.mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg:linear-gradient(135deg, rgba(114,47,55,0.96), rgba(114,47,55,0.86)); --text:#f5e6e8; --fx-op:0.38; }
+.mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg:linear-gradient(135deg, rgba(28,46,66,0.96), rgba(44,62,80,0.86)); --text:#ffffff; --fx-op:0.25; }
+.mode-premium.p4 { --p:#5e548e; --bg:#f4f3f7; --card-bg:linear-gradient(135deg, rgba(94,84,142,0.93), rgba(159,134,192,0.82)); --text:#ffffff; --fx-op:0.22; }
+.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:linear-gradient(135deg, rgba(122,148,166,0.96), rgba(100,120,135,0.82)); --text:#ffffff; --fx-op:0.25; }
+.mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg:linear-gradient(135deg, rgba(191,149,63,0.96), rgba(252,246,186,0.86), rgba(170,119,28,0.96)); --text:#4d3700; --fx-op:0.55; }
+.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
 
 /* ================= 控制面板（門面） ================= */
 #admin-panel{
@@ -77,7 +72,6 @@ body{
   top: 0;
 }
 
-/* 中央容器 */
 #card-container{
   display:block;
   margin: 16px auto 8px;
@@ -141,7 +135,7 @@ body{
   background: var(--p);
   color:#fff;
   border:none;
-  padding: 14px 34px;
+  padding: 14px 44px;
   border-radius: 44px;
   font-weight: 900;
   cursor:pointer;
@@ -165,7 +159,36 @@ body{
   transition: 0.45s;
 }
 
-/* ================= 自由款 banner + dynamic-mask（維持 v393 原樣！） ================= */
+/* ===== Logo ===== */
+.logo-wrap{
+  position:absolute;
+  top: 16px;
+  right: 18px;
+  width: 58px;
+  height: 58px;
+  z-index: 40;
+  display:none;
+}
+.logo-img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius: 16px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.12);
+}
+.mode-premium .logo-wrap{
+  top: 16px;
+  right: 16px;
+  width: 62px;
+  height: 62px;
+  display:none;
+}
+.mode-premium .logo-img{
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.20);
+}
+
+/* ================= 自由款 banner + dynamic-mask（維持 v393 原樣） ================= */
 .banner{
   height:125px;
   background: var(--p);
@@ -191,7 +214,7 @@ body{
   z-index:10;
 }
 
-/* ================= 精品款（維持 v393 版型） ================= */
+/* ================= 精品款（維持 v393 基底） ================= */
 .mode-premium .card{
   width:86%;
   height:580px;
@@ -202,55 +225,7 @@ body{
 .mode-premium .banner,
 .mode-premium .dynamic-mask{ display:none !important; }
 
-/* ================= Logo（v399 FIX） ================= */
-.logo-wrap{
-  position:absolute;
-  z-index:50;
-  display:none; /* 沒資料就不顯示；app.js 有資料會打開 */
-  pointer-events:none;
-}
-.logo-img{
-  display:block;
-  width:56px;
-  height:56px;
-  object-fit:contain;
-  border-radius:14px;
-  opacity:0.96;
-  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.12));
-}
-
-/* 自由款：頭像下方置中（不擋 banner） */
-.mode-free .logo-wrap{
-  top: 176px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.mode-free .logo-img{
-  width:52px;
-  height:52px;
-  background: rgba(255,255,255,0.92);
-  padding:6px;
-  border-radius:16px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.10);
-}
-
-/* 精品款：右上角 */
-.mode-premium .logo-wrap{
-  top: 18px;
-  right: 18px;
-  left: auto;
-  transform:none;
-}
-.mode-premium .logo-img{
-  width:54px;
-  height:54px;
-  background: rgba(255,255,255,0.14);
-  padding:7px;
-  border: 1px solid rgba(255,255,255,0.28);
-  box-shadow: 0 12px 26px rgba(0,0,0,0.18);
-}
-
-/* ================= 頭像 ================= */
+/* 頭像 */
 .avatar-wrap{
   position:absolute;
   width:100%;
@@ -260,6 +235,8 @@ body{
   transition:0.4s;
 }
 .mode-free .avatar-wrap{ top: 75px; }
+
+/* Premium: avatar at left */
 .mode-premium .avatar-wrap{
   top: 34px;
   left: 20px;
@@ -291,43 +268,55 @@ body{
   object-fit:cover;
 }
 
-/* ================= 內容滾動區 ================= */
-.info-scroll{
-  transition:0.4s;
-  overflow:auto;
-  height:100%;
-  -webkit-overflow-scrolling: touch;
-}
+/* 內容滾動區 */
+.info-scroll{ transition:0.4s; overflow:auto; height:100%; -webkit-overflow-scrolling: touch; }
 
-/* 自由款：置中 */
-.mode-free .info-scroll{ padding: 112px 20px 20px; text-align:center; }
+/* Free: center */
+.mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
 
-/* 精品款：左對齊，讓上方形成「左頭像＋右姓名」的平衡 */
-.mode-premium .info-scroll{
-  padding: 28px 22px 22px; /* ✅ 關鍵：把內容往上拉，讓姓名可在右側上方區 */
-  text-align:left;
-}
+/* Premium: left base, but we will position name on right via CSS below */
+.mode-premium .info-scroll{ padding: 22px 22px 22px; text-align:left; }
 
-/* ================= 名稱 / 單位 / 頭銜 ================= */
+/* ========== 基本文字 ========= */
 .name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; font-size:22px; }
 .unit, .title{ font-weight: 900; opacity: 0.86; margin-top: 2px; font-size:14px; }
 
-/* ✅ 精品：姓名獨立放在名片右邊（與 Logo 動態平衡，避免撞） */
+/* ===== Premium name on RIGHT (dynamic balance with Logo) ===== */
 .mode-premium .name{
-  margin: 18px 72px 6px 118px; /* left = 頭像區，right = Logo 區 */
+  position:absolute;
+  top: 42px;
+  left: 124px;     /* start after avatar */
+  right: 92px;     /* reserve for logo */
+  margin: 0;
   font-size: 22px;
+  line-height: 1.25;
   color: rgba(255,255,255,0.96);
-  text-shadow: 0 2px 10px rgba(0,0,0,0.18);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.20);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
+
+/* Premium p6 adjust */
 .mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
 
-/* ✅ 精品：單位/職稱仍在姓名下方，但保持右區視覺 */
-.mode-premium .unit, .mode-premium .title{
-  margin-left: 118px;
-  margin-right: 18px;
-  color: rgba(255,255,255,0.88);
+/* ===== Premium unit + title UNDER avatar (LEFT) ===== */
+.mode-premium .unit,
+.mode-premium .title{
+  position:absolute;
+  left: 20px;
+  width: 96px;      /* align with avatar zone */
+  text-align:left;
+  color: rgba(255,255,255,0.86);
+  text-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
-.mode-premium.p6 .unit, .mode-premium.p6 .title{ color: rgba(52,34,0,0.82); }
+.mode-premium .unit{ top: 128px; }
+.mode-premium .title{ top: 150px; }
+
+.mode-premium.p6 .unit,
+.mode-premium.p6 .title{
+  color: rgba(52,34,0,0.82);
+  text-shadow:none;
+}
 
 /* slogan */
 .slogan{
@@ -342,6 +331,7 @@ body{
   letter-spacing: .3px;
 }
 .mode-premium .slogan{
+  margin-top: 148px; /* push below premium header area */
   background: rgba(255,255,255,0.18);
   border: 1px solid rgba(255,255,255,0.25);
   backdrop-filter: blur(10px);
@@ -353,7 +343,9 @@ body{
   color: rgba(52,34,0,0.92);
 }
 
-/* v398：兩大區塊容器（服務 / 經歷） */
+.preline{ white-space: pre-line; word-break: normal; overflow-wrap: break-word; }
+
+/* blocks */
 #v398-blocks{
   margin-top: 12px;
   display: grid;
@@ -395,8 +387,6 @@ body{
 .mode-premium .block-body{ color: rgba(255,255,255,0.90); }
 .mode-premium.p6 .block-body{ color: rgba(52,34,0,0.92); }
 
-.preline{ white-space: pre-line; word-break: normal; overflow-wrap: break-word; }
-
 /* Dock */
 .contact-dock{ margin-top:12px; }
 .dock-buttons{ display:flex; flex-wrap:wrap; gap:10px; }
@@ -420,6 +410,7 @@ body{
   transform: translateY(1px) scale(0.99);
   box-shadow:0 8px 18px rgba(0,0,0,0.18);
 }
+.dock-btn i{ font-size: 15px; }
 
 /* 照片牆 */
 .photo-wall{ margin-top:14px; padding-bottom: 12px; }
@@ -438,7 +429,7 @@ body{
 }
 .photo-grid img:active{ transform: scale(0.98); }
 
-/* 極簡：隱藏標題 */
+/* 極簡：隱藏 dock / wall 標題（維持精品極簡） */
 .dock-title, .wall-title{ display:none !important; }
 
 /* premium fx layer / paper overlay */
@@ -463,10 +454,91 @@ body{
 /* version tag */
 .version-tag{
   font-size:10px;
-  opacity:0.3;
+  opacity:0.26;
   position:absolute;
   bottom: 15px;
   right: 25px;
   font-family: monospace;
   user-select:none;
 }
+
+/* =============================
+ * Share FAB + Share Sheet
+ * ============================= */
+.fab-share{
+  position: fixed;
+  right: 14px;
+  bottom: 16px;
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.92);
+  color: #2d3436;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.16);
+  z-index: 99999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  backdrop-filter: blur(10px);
+}
+.fab-share:active{ transform: translateY(1px) scale(0.99); }
+.fab-share i{ font-size: 18px; }
+
+.share-sheet{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.28);
+  z-index: 99998;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  padding: 18px;
+}
+.share-sheet.show{ display:flex; }
+
+.sheet-card{
+  width: 100%;
+  max-width: 420px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 22px 60px rgba(0,0,0,0.18);
+  padding: 14px 14px 12px;
+  backdrop-filter: blur(12px);
+}
+.sheet-title{
+  font-weight: 900;
+  font-size: 14px;
+  opacity: .85;
+  padding: 6px 8px 10px;
+}
+.sheet-actions{
+  display:grid;
+  gap: 10px;
+  padding: 0 6px 10px;
+}
+.sheet-btn{
+  width:100%;
+  border: none;
+  border-radius: 16px;
+  padding: 12px 12px;
+  background: #f4f5f7;
+  font-weight: 900;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+.sheet-btn i{ opacity: .9; }
+.sheet-btn:active{ transform: translateY(1px) scale(0.99); }
+.sheet-close{
+  width:100%;
+  border:none;
+  border-radius: 16px;
+  padding: 12px 12px;
+  background: rgba(45,52,54,0.08);
+  font-weight: 900;
+  cursor:pointer;
+}
+.sheet-close:active{ transform: translateY(1px) scale(0.99); }
