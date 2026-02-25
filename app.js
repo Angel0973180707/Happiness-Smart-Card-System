@@ -1,13 +1,16 @@
 /* ================================
- * Happiness Smart Card System — app.js (v399.1 COMPLETE OVERWRITE) 1/3
- * FIXES:
- * - window.CONFIG exposure (admin.html)
- * - Premium name layout safety container
- * - Logo visibility bug (CSS override safe)
+ * Happiness Smart Card System — app.js (v399.2 COMPLETE OVERWRITE) 1/3
+ * Fix v399.1:
+ * 1) Premium button always works (bind fallback)
+ * 2) Line官網: accept dedicated fields OR if line is URL -> treat as 官網
+ * 3) Free logo auto nudge (temp inline tweak)
+ * Keep:
+ * - robust loader
+ * - v382 hooks: setV382 / setV382Style / setV382Paper
  * ================================ */
 
 const CONFIG = {
-  VERSION: "399.1",
+  VERSION: "399.2",
 
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
@@ -24,19 +27,25 @@ const CONFIG = {
   DEBUG: true
 };
 
-/* ✅ v399 必要：給 admin.html / 其他頁用 */
-window.CONFIG = CONFIG;
-
 let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
 
 let __resolvedId = CONFIG.DEFAULT_ID;
 
 /* --------------------------- */
 function $(id) { return document.getElementById(id); }
+function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
 function log_() { if (CONFIG.DEBUG) console.log("[HSC-v399]", ...arguments); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+function setText(elOrId, v) {
+  const el = typeof elOrId === "string" ? $(elOrId) : elOrId;
+  if (!el) return false;
+  el.textContent = text(v);
+  return true;
+}
+
+/* --------------------------- */
 function getParam(name) {
   try { return new URLSearchParams(window.location.search).get(name); }
   catch { return null; }
@@ -47,6 +56,10 @@ function normalizeId_(s) {
   if (!v) return "";
   if (/^TW\d{4}$/i.test(v)) return v;
   if (/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4, "0");
+  if (/^TW\d{1,4}$/i.test(v)) {
+    const n = v.replace(/^TW/i, "");
+    return "TW" + n.padStart(4, "0");
+  }
   return v;
 }
 
@@ -56,45 +69,118 @@ function getCardIdFromUrl_() {
 }
 
 /* ---------------------------
-Premium layout safety (核心止血)
+UI: dots rows (free vs premium)
 --------------------------- */
-function refreshPremiumSafety_() {
-  if (state.mode !== "premium") return;
+function toggleDotsRows_() {
+  const rows = qa(".dots-row");
+  if (!rows.length) return;
 
-  const scroll = $("infoScroll");
-  if (scroll) {
-    scroll.style.position = "relative";   // ✅ 關鍵修正
+  let freeRow = null;
+  let premiumRow = null;
+
+  for (const row of rows) {
+    if (!freeRow && row.querySelector(".dot")) freeRow = row;
+    if (!premiumRow && row.querySelector(".p-dot")) premiumRow = row;
   }
 
-  const nameEl = $("u-name");
-  if (nameEl) {
-    nameEl.style.maxWidth = "none";       // ✅ 防止被舊 inline 限制
-  }
+  const isFree = state.mode === "free";
+  if (freeRow) freeRow.style.display = isFree ? "flex" : "none";
+  if (premiumRow) premiumRow.style.display = isFree ? "none" : "flex";
 }
 
 /* ---------------------------
-Logo（核心修正）
+Switching system (keep HTML hooks)
 --------------------------- */
-function setLogo_(payloadNorm){
-  const wrap = $("logoWrap");
-  const img = $("u-logo");
-  if(!wrap || !img) return;
+window.setV382 = function (mode, theme, el) {
+  state.mode = (mode === "premium") ? "premium" : "free";
+  state.theme = theme || (state.mode === "premium" ? "p1" : "color-1");
 
-  const raw = payloadNorm?.logo || payloadNorm?.LOGO || "";
+  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
+  if (el && (el.classList.contains("dot") || el.classList.contains("p-dot"))) el.classList.add("active");
 
-  if(!raw){
-    wrap.style.display = "none";
-    img.removeAttribute("src");
-    return;
+  syncPlanButtons_();
+  applyV382_();
+  refreshPremiumSafety_();
+};
+
+window.setV382Style = function (style, el) {
+  state.style = style || "arch";
+  if (el && el.parentElement) {
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
   }
+  applyV382_();
+};
 
-  wrap.style.display = "block";   // ✅ 修正 display:none 壓制問題
-  img.src = raw;
+window.setV382Paper = function (paper, el) {
+  state.paper = paper || "paper-1";
+  if (el && el.parentElement) {
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+  }
+  applyV382_();
+};
+
+function applyV382_() {
+  const isFree = state.mode === "free";
+
+  const controlPanel = $("free-controls");
+  if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
+
+  toggleDotsRows_();
+
+  const classList = [
+    `mode-${state.mode}`,
+    state.theme,
+    isFree ? `style-${state.style}` : "",
+    isFree ? state.paper : ""
+  ];
+  document.body.className = classList.filter(Boolean).join(" ");
+
+  // ✅ TEMP: 自由款 logo 縮小上移（等你確認後再回到 CSS 做最終）
+  nudgeFreeLogo_();
+}
+
+function syncPlanButtons_() {
+  const a = $("btnPlanFree");
+  const b = $("btnPlanPremium");
+  if (!a || !b) return;
+
+  if (state.mode === "free") {
+    a.classList.add("active");
+    b.classList.remove("active");
+  } else {
+    b.classList.add("active");
+    a.classList.remove("active");
+  }
+}
+
+function refreshPremiumSafety_() {
+  if (state.mode !== "premium") return;
+  const nameEl = $("u-name");
+  if (!nameEl) return;
+  requestAnimationFrame(() => {
+    nameEl.style.transform = "translateZ(0)";
+    setTimeout(() => { nameEl.style.transform = ""; }, 120);
+  });
+}
+
+/* ✅ TEMP: 自由款 logo 微調（不動 CSS 世界觀） */
+function nudgeFreeLogo_(){
+  if (state.mode !== "free") return;
+  const wrap = $("logoWrap");
+  const img  = $("u-logo");
+  if (!wrap || !img) return;
+
+  // 你要「縮小 + 上移」
+  wrap.style.top = "154px";
+  img.style.width = "46px";
+  img.style.height = "46px";
 }/* ================================
- * Happiness Smart Card System — app.js (v399.1 COMPLETE OVERWRITE) 2/3
+ * Happiness Smart Card System — app.js (v399.2 COMPLETE OVERWRITE) 2/3
  * - Normalize keys + pick()
- * - Images: robust candidates + fallback loader
- * - Avatar / Logo / Photo wall renderer
+ * - Images: avatar/logo/photo wall robust loading
+ * - Contact dock ORDER FIX + Line官網 fallback from line(URL)
  * ================================ */
 
 /* ---------------------------
@@ -160,7 +246,7 @@ function pick(obj, keys) {
 }
 
 /* ---------------------------
-Images helpers
+Images
 --------------------------- */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
@@ -250,7 +336,7 @@ function setImgWithFallback_(imgEl, candidates) {
 }
 
 /* ---------------------------
-Avatar
+Avatar / Logo
 --------------------------- */
 function getAvatarUrl_(payloadNorm){
   const keys = [
@@ -285,11 +371,6 @@ function setAvatarImage_(payloadNorm){
   setImgWithFallback_(img, cands);
 }
 
-/* ---------------------------
-Logo (v399.1 FIX)
-- must override CSS display:none by forcing wrap display:block
-- support multiple keys
---------------------------- */
 function getLogoUrl_(payloadNorm){
   return pick(payloadNorm, [
     "logo_fast","logo",
@@ -317,7 +398,7 @@ function setLogo_(payloadNorm){
     return;
   }
 
-  wrap.style.display = "block";     // ✅ 關鍵：壓過 CSS display:none
+  wrap.style.display = "";
   setImgWithFallback_(img, cands);
 }
 
@@ -389,13 +470,126 @@ function renderPhotoWall_(payloadNorm){
     img.onclick = ()=> window.open(openUrl || raw, "_blank");
     grid.appendChild(img);
   }
+}
+
+/* ---------------------------
+Contact dock (ORDER + Line官網 fallback)
+order: LINE官網, LINE, 微信, 電話, Email, 導航
+--------------------------- */
+function normalizePhone_(s){
+  const v = text(s);
+  if(!v) return "";
+  return v.replace(/[^\d+]/g, "");
+}
+function ensureHttp_(u){
+  let v = text(u);
+  if(!v) return "";
+  if(/^https?:\/\//i.test(v)) return v;
+  if(v.startsWith("www.")) return "https://" + v;
+  return v;
+}
+function addDockBtn_(wrap, label, href, iconClass){
+  if(!wrap || !href) return;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "dock-btn";
+  btn.innerHTML = `<i class="${iconClass}"></i><span>${label}</span>`;
+  btn.onclick = ()=> window.open(href, "_blank");
+  wrap.appendChild(btn);
+}
+function iconFor_(type){
+  const t = String(type||"").toLowerCase();
+  if(t === "phone") return "fa-solid fa-phone";
+  if(t === "email") return "fa-solid fa-envelope";
+  if(t === "web") return "fa-solid fa-globe";
+  if(t === "map") return "fa-solid fa-location-dot";
+  if(t === "line") return "fa-brands fa-line";
+  if(t === "wechat") return "fa-brands fa-weixin";
+  return "fa-solid fa-link";
+}
+
+function renderContactDock_(payloadNorm){
+  const wrap = $("contactButtons");
+  const dock = $("contactDock");
+  if(!wrap || !dock) return;
+
+  wrap.innerHTML = "";
+
+  const phone = pick(payloadNorm, ["電話","手機","phone","mobile","tel"]);
+  const email = pick(payloadNorm, ["Email","E-mail","email","信箱","電子郵件","mail"]);
+  const wechat = pick(payloadNorm, ["wechat","weixin","微信","微信號","weixin_id","wx","wxid"]);
+  const addr = pick(payloadNorm, ["地址","address","所在地","location"]);
+
+  // ✅ 先抓 line官網欄位
+  let lineSite = pick(payloadNorm, [
+    "line官網","line官網預約","line官網預約溝通","line官網預約溝通網址",
+    "line官方預約","line預約","預約網址","預約連結",
+    "line_website","line_site","booking_url","booking"
+  ]);
+
+  // ✅ 再抓 line（可能是 ID 或 URL）
+  const line = pick(payloadNorm, [
+    "line","Line","LINE",
+    "line_id","line oa","line_oa","LINE_OA",
+    "line官方","line官方帳號","line官方帳號網址"
+  ]);
+
+  const lineRaw = text(line);
+  const lineLooksLikeUrl = /^https?:\/\//i.test(lineRaw) || (lineRaw.includes("http") && lineRaw.includes("://"));
+
+  // ✅ 若 line官網沒填，但 line 是 URL，就把 line 當官網（並保留 line 本體給第二顆按鈕）
+  if(!text(lineSite) && lineLooksLikeUrl){
+    lineSite = lineRaw;
+  }
+
+  // 1) LINE官網（只接受 URL）
+  const ls = ensureHttp_(lineSite);
+  if(ls && /^https?:\/\//i.test(ls)){
+    addDockBtn_(wrap, "LINE官網", ls, iconFor_("web"));
+  }
+
+  // 2) LINE（URL->開啟；ID->line.me）
+  if(lineRaw){
+    let href = "";
+    if(lineLooksLikeUrl) href = ensureHttp_(lineRaw);
+    else href = `https://line.me/R/ti/p/${encodeURIComponent(lineRaw)}`;
+    addDockBtn_(wrap, "LINE", href, iconFor_("line"));
+  }
+
+  // 3) 微信
+  const wx = text(wechat);
+  if(wx){
+    const href = `https://www.google.com/search?q=${encodeURIComponent("WeChat " + wx)}`;
+    addDockBtn_(wrap, "微信", href, iconFor_("wechat"));
+  }
+
+  // 4) 電話
+  const p = normalizePhone_(phone);
+  if(p){
+    addDockBtn_(wrap, "電話", `tel:${p}`, iconFor_("phone"));
+  }
+
+  // 5) Email
+  const em = text(email);
+  if(em){
+    addDockBtn_(wrap, "Email", `mailto:${encodeURIComponent(em)}`, iconFor_("email"));
+  }
+
+  // 6) 導航
+  const a = text(addr);
+  if(a){
+    const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}`;
+    addDockBtn_(wrap, "導航", href, iconFor_("map"));
+  }
+
+  dock.style.display = wrap.children.length ? "" : "none";
 }/* ================================
- * Happiness Smart Card System — app.js (v399.1 COMPLETE OVERWRITE) 3/3
- * - Fetch robust
- * - Apply payload to card
- * - Contact dock order fix (line官網, line, 微信, 電話, Email, 導航)
- * - Hidden admin hotspot top (triple tap)
- * - Boot
+ * Happiness Smart Card System — app.js (v399.2 COMPLETE OVERWRITE) 3/3
+ * - Fetch JSON robust
+ * - Apply data to card
+ * - Blocks render
+ * - Hidden admin entry (top invisible hotspot)
+ * - Boot + Plan buttons fallback bind
  * ================================ */
 
 /* ---------------------------
@@ -447,119 +641,11 @@ async function fetchJsonRobust(url) {
       return await fetchWithTimeout(url, CONFIG.FETCH_TIMEOUT_MS);
     } catch (e) {
       lastErr = e;
-      console.warn("[HSC-v399] fetch retry:", i, e && e.message ? e.message : e);
+      if (CONFIG.DEBUG) console.warn("[HSC-v399] fetch retry:", i, e && e.message ? e.message : e);
       await sleep(520 + i * 520);
     }
   }
   throw lastErr || new Error("Fetch failed");
-}
-
-/* ---------------------------
-Contact dock helpers
---------------------------- */
-function normalizePhone_(s){
-  const v = text(s);
-  if(!v) return "";
-  return v.replace(/[^\d+]/g, "");
-}
-function ensureHttp_(u){
-  let v = text(u);
-  if(!v) return "";
-  if(/^https?:\/\//i.test(v)) return v;
-  if(v.startsWith("www.")) return "https://" + v;
-  return v;
-}
-function iconFor_(type){
-  const t = String(type||"").toLowerCase();
-  if(t === "phone") return "fa-solid fa-phone";
-  if(t === "email") return "fa-solid fa-envelope";
-  if(t === "web") return "fa-solid fa-globe";
-  if(t === "map") return "fa-solid fa-location-dot";
-  if(t === "line") return "fa-brands fa-line";
-  if(t === "wechat") return "fa-brands fa-weixin";
-  return "fa-solid fa-link";
-}
-function addDockBtn_(wrap, label, href, iconClass){
-  if(!wrap || !href) return;
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.className = "dock-btn";
-  btn.innerHTML = `<i class="${iconClass}"></i><span>${label}</span>`;
-  btn.onclick = ()=> window.open(href, "_blank");
-  wrap.appendChild(btn);
-}
-
-/* ---------------------------
-Contact dock (ORDER FIX)
-order: line官網, line, 微信, 電話, Email, 導航
---------------------------- */
-function renderContactDock_(payloadNorm){
-  const wrap = $("contactButtons");
-  const dock = $("contactDock");
-  if(!wrap || !dock) return;
-
-  wrap.innerHTML = "";
-
-  const phone = pick(payloadNorm, ["電話","手機","phone","mobile","tel"]);
-  const email = pick(payloadNorm, ["Email","E-mail","email","信箱","電子郵件","mail"]);
-  const wechat = pick(payloadNorm, ["wechat","weixin","微信","微信號","weixin_id","wx","wxid"]);
-  const addr  = pick(payloadNorm, ["地址","address","所在地","location"]);
-
-  // ✅ LINE 官網/預約（優先 URL）
-  const lineSite = pick(payloadNorm, [
-    "line官網","line官網預約","line官網預約溝通","line官網預約溝通網址",
-    "line官方預約","line預約","預約網址","預約連結",
-    "line_website","line_site","booking_url"
-  ]);
-
-  // ✅ LINE（ID 或 URL）
-  const line = pick(payloadNorm, [
-    "line","Line","LINE",
-    "line_id","line oa","line_oa","LINE_OA","line官方","line官方帳號"
-  ]);
-
-  // 1) line官網（若是 URL 就開）
-  const ls = ensureHttp_(lineSite);
-  if(ls && /^https?:\/\//i.test(ls)){
-    addDockBtn_(wrap, "LINE官網", ls, iconFor_("web"));
-  }
-
-  // 2) line（URL or ID）
-  const lineV = text(line);
-  if(lineV){
-    let href = "";
-    if(/^https?:\/\//i.test(lineV) || lineV.includes("http")) href = ensureHttp_(lineV);
-    else href = `https://line.me/R/ti/p/${encodeURIComponent(lineV)}`;
-    addDockBtn_(wrap, "LINE", href, iconFor_("line"));
-  }
-
-  // 3) wechat（無通用 deep link：用搜尋）
-  const wx = text(wechat);
-  if(wx){
-    const href = `https://www.google.com/search?q=${encodeURIComponent("WeChat " + wx)}`;
-    addDockBtn_(wrap, "微信", href, iconFor_("wechat"));
-  }
-
-  // 4) phone
-  const p = normalizePhone_(phone);
-  if(p){
-    addDockBtn_(wrap, "電話", `tel:${p}`, iconFor_("phone"));
-  }
-
-  // 5) email
-  const em = text(email);
-  if(em){
-    addDockBtn_(wrap, "Email", `mailto:${encodeURIComponent(em)}`, iconFor_("email"));
-  }
-
-  // 6) map
-  const a = text(addr);
-  if(a){
-    const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}`;
-    addDockBtn_(wrap, "導航", href, iconFor_("map"));
-  }
-
-  dock.style.display = wrap.children.length ? "" : "none";
 }
 
 /* ---------------------------
@@ -593,83 +679,7 @@ function renderBlock_(rootId, title, body){
 }
 
 /* ---------------------------
-Share helpers
---------------------------- */
-async function copyText_(s){
-  const v = text(s);
-  if(!v) return false;
-
-  try{
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      await navigator.clipboard.writeText(v);
-      toast_("已複製連結");
-      return true;
-    }
-  }catch{}
-
-  try{
-    const ta = document.createElement("textarea");
-    ta.value = v;
-    ta.setAttribute("readonly", "readonly");
-    ta.style.position = "fixed";
-    ta.style.left = "-9999px";
-    ta.style.top = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    toast_("已複製連結");
-    return true;
-  }catch{}
-
-  toast_("無法自動複製，請手動複製");
-  alert(v);
-  return false;
-}
-
-window.copyCardUrl = async function(){
-  const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
-  let url = "";
-  try{
-    const u = new URL(window.location.href);
-    u.searchParams.set("id", id);
-    url = u.toString();
-  }catch{
-    url = `${location.origin}${location.pathname}?id=${encodeURIComponent(id)}`;
-  }
-  return copyText_(url);
-};
-
-function toast_(msg){
-  const m = text(msg);
-  if(!m) return;
-  let t = $("__toast");
-  if(!t){
-    t = document.createElement("div");
-    t.id="__toast";
-    t.style.position="fixed";
-    t.style.left="50%";
-    t.style.bottom="18px";
-    t.style.transform="translateX(-50%)";
-    t.style.background="rgba(0,0,0,0.78)";
-    t.style.color="#fff";
-    t.style.padding="10px 14px";
-    t.style.borderRadius="999px";
-    t.style.fontSize="13px";
-    t.style.fontWeight="800";
-    t.style.zIndex="99999";
-    t.style.opacity="0";
-    t.style.transition="opacity 180ms ease";
-    document.body.appendChild(t);
-  }
-  t.textContent = m;
-  t.style.opacity="1";
-  clearTimeout(toast_._timer);
-  toast_._timer = setTimeout(()=>{ t.style.opacity="0"; }, 1100);
-}
-
-/* ---------------------------
-Apply data to card
+Apply data
 --------------------------- */
 function applyDataToCard(payloadNorm) {
   const name    = pick(payloadNorm, ["姓名", "name", "Name"]);
@@ -679,20 +689,20 @@ function applyDataToCard(payloadNorm) {
   const service = pick(payloadNorm, ["服務項目", "service", "Service"]);
   const exp     = pick(payloadNorm, ["經歷","experience","Experience","簡歷","履歷"]);
 
-  const nameEl = $("u-name");
-  if (nameEl) nameEl.textContent = text(name) || "（尚未讀到姓名）";
-
-  const unitEl = $("u-unit");
-  if (unitEl) unitEl.textContent = text(unit);
-
-  const titleEl = $("u-title");
-  if (titleEl) titleEl.textContent = text(title);
+  setText("u-name",  name || "（尚未讀到姓名）");
+  setText("u-unit",  unit || "");
+  setText("u-title", title || "");
 
   const sl = $("u-slogan");
   if (sl) {
     const s = text(slogan);
-    if (s) { sl.style.display = ""; sl.textContent = s; }
-    else { sl.style.display = "none"; sl.textContent = ""; }
+    if (s) {
+      sl.style.display = "";
+      sl.textContent = s;
+    } else {
+      sl.style.display = "none";
+      sl.textContent = "";
+    }
   }
 
   renderBlock_("block-service", "服務項目", service);
@@ -700,35 +710,47 @@ function applyDataToCard(payloadNorm) {
 
   setAvatarImage_(payloadNorm);
   setLogo_(payloadNorm);
-  renderPhotoWall_(payloadNorm);
   renderContactDock_(payloadNorm);
+  renderPhotoWall_(payloadNorm);
 
-  // premium safety (fix "小..")
-  refreshPremiumSafety_();
+  // 方案切換後，logo 仍維持你要的「自由款縮小上移」
+  nudgeFreeLogo_();
 }
 
 /* ---------------------------
-UI: loading/fail
+UI states
 --------------------------- */
 function setLoadingUi_() {
-  const nameEl = $("u-name"); if (nameEl) nameEl.textContent = "載入中...";
-  const unitEl = $("u-unit"); if (unitEl) unitEl.textContent = "同步中...";
-  const titleEl = $("u-title"); if (titleEl) titleEl.textContent = "";
+  setText("u-name",  "載入中...");
+  setText("u-unit",  "同步中...");
+  setText("u-title", "");
 
-  const sl = $("u-slogan"); if (sl) sl.style.display = "none";
-  const dock = $("contactDock"); if (dock) dock.style.display = "none";
-  const wall = $("photoWall"); if (wall) wall.style.display = "none";
-  const wrap = $("logoWrap"); if (wrap) wrap.style.display = "none";
+  const sl = $("u-slogan");
+  if (sl) sl.style.display = "none";
+
+  const dock = $("contactDock");
+  if (dock) dock.style.display = "none";
+
+  const wall = $("photoWall");
+  if (wall) wall.style.display = "none";
+
+  const wrap = $("logoWrap");
+  if (wrap) wrap.style.display = "none";
 }
 
 function setFailUi_(msg) {
-  const nameEl = $("u-name"); if (nameEl) nameEl.textContent = "（同步失敗）";
-  const unitEl = $("u-unit"); if (unitEl) unitEl.textContent = msg || "請確認 id 或 GAS 權限";
-  const titleEl = $("u-title"); if (titleEl) titleEl.textContent = "";
+  setText("u-name",  "（同步失敗）");
+  setText("u-unit",  msg || "請確認 id 或 GAS 權限");
+  setText("u-title", "");
 
-  const dock = $("contactDock"); if (dock) dock.style.display = "none";
-  const wall = $("photoWall"); if (wall) wall.style.display = "none";
-  const wrap = $("logoWrap"); if (wrap) wrap.style.display = "none";
+  const dock = $("contactDock");
+  if (dock) dock.style.display = "none";
+
+  const wall = $("photoWall");
+  if (wall) wall.style.display = "none";
+
+  const wrap = $("logoWrap");
+  if (wrap) wrap.style.display = "none";
 }
 
 /* ---------------------------
@@ -744,10 +766,14 @@ async function loadCardById_(id) {
   try {
     const data = await fetchJsonRobust(url);
 
-    if (!data || typeof data !== "object") throw new Error("Invalid payload");
-    if (data.ok === false) throw new Error(data.error || "Not found");
+    if (!data || typeof data !== "object")
+      throw new Error("Invalid payload");
+
+    if (data.ok === false)
+      throw new Error(data.error || "Not found");
 
     const payloadNorm = buildNormalizedPayload_(data);
+
     applyDataToCard(payloadNorm);
 
     try {
@@ -757,6 +783,7 @@ async function loadCardById_(id) {
     } catch {}
 
     return cid;
+
   } catch (e) {
     console.error(e);
     setFailUi_(e.message);
@@ -764,23 +791,27 @@ async function loadCardById_(id) {
 }
 
 /* ===========================
-Hidden Admin Entry (TOP Hotspot)
-- uses #adminHotspotTop if exists, else create it
+Hidden Admin Entry (v399)
 =========================== */
-
 function openAdmin_() {
   const id = __resolvedId || CONFIG.DEFAULT_ID;
-  window.open(`admin.html?id=${encodeURIComponent(id)}`, "_blank");
+  const u = `admin.html?id=${encodeURIComponent(id)}`;
+  window.open(u, "_blank");
 }
 
-function ensureAdminHotspotTop_() {
-  let hs = $("adminHotspotTop");
-  if (!hs) {
-    hs = document.createElement("div");
-    hs.id = "adminHotspotTop";
-    // CSS 會控制透明與高度；這邊只確保存在
-    document.body.appendChild(hs);
-  }
+function ensureAdminHotspot_() {
+  if ($("__adminHotspot")) return;
+
+  const hs = document.createElement("div");
+  hs.id = "__adminHotspot";
+  hs.style.position = "fixed";
+  hs.style.top = "8px";
+  hs.style.right = "8px";
+  hs.style.width = "32px";
+  hs.style.height = "32px";
+  hs.style.opacity = "0";
+  hs.style.zIndex = "99999";
+  hs.style.background = "transparent";
 
   let tapCount = 0;
   let timer = null;
@@ -788,27 +819,58 @@ function ensureAdminHotspotTop_() {
   hs.addEventListener("click", () => {
     tapCount++;
     clearTimeout(timer);
-
-    timer = setTimeout(() => { tapCount = 0; }, CONFIG.ADMIN_TRIPLETAP_WINDOW_MS);
+    timer = setTimeout(() => (tapCount = 0), CONFIG.ADMIN_TRIPLETAP_WINDOW_MS);
 
     if (tapCount >= CONFIG.ADMIN_TRIPLETAP_COUNT) {
       tapCount = 0;
       openAdmin_();
     }
-  }, { passive: true });
+  });
+
+  document.body.appendChild(hs);
+}
+
+/* ===========================
+Fix: Premium plan button not working
+- bind fallback for #btnPlanFree / #btnPlanPremium
+=========================== */
+function bindPlanButtonsFallback_(){
+  const a = $("btnPlanFree");
+  const b = $("btnPlanPremium");
+  if(!a || !b) return;
+
+  // 避免重綁
+  if(a.dataset.bound === "1" && b.dataset.bound === "1") return;
+
+  a.addEventListener("click", (e)=>{
+    // 切自由：保留目前 free 色 / 版型 / 紙感
+    const theme = (state.theme && state.theme.startsWith("color-")) ? state.theme : "color-1";
+    window.setV382("free", theme, a);
+  });
+
+  b.addEventListener("click", (e)=>{
+    // 切精品：如果目前 theme 不是 p1~p7，就用 p1
+    const theme = (state.theme && /^p[1-7]$/.test(state.theme)) ? state.theme : "p1";
+    window.setV382("premium", theme, b);
+  });
+
+  a.dataset.bound = "1";
+  b.dataset.bound = "1";
 }
 
 /* ---------------------------
 Boot
 --------------------------- */
 function boot_() {
-  // infoScroll 兼容：若你的 HTML 用 class 而不是 id，這裡補一個 id 讓 premium safety 可用
-  if (!$("infoScroll")) {
-    const node = document.querySelector(".info-scroll");
-    if (node) node.id = "infoScroll";
-  }
+  // ✅ 讓 admin.html 可用 window.CONFIG.GAS
+  window.CONFIG = CONFIG;
 
-  ensureAdminHotspotTop_();
+  ensureAdminHotspot_();
+  bindPlanButtonsFallback_();
+
+  // 初次套一次 class（避免某些機型第一次沒有 mode-premium/mode-free）
+  applyV382_();
+  syncPlanButtons_();
 
   const id = getCardIdFromUrl_();
   loadCardById_(id);
