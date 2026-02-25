@@ -519,4 +519,16 @@ body{
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
+}/* v400 hotfix: free card bottom line */
+.mode-free .card,
+.mode-free .preview-card,
+.mode-free .card-shell {
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+}
+
+.mode-free .card::after,
+.mode-free .preview-card::after,
+.mode-free .card-shell::after{
+  display:none !important;
 }
