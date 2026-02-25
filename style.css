@@ -519,4 +519,72 @@ body{
   right: 25px;
   font-family: monospace;
   user-select:none;
+}/* ================================
+ * v399.6 CSS OVERRIDE PATCH
+ * paste at END of style.css
+ * ================================ */
+
+/* ✅ Logo 一律圓形 */
+.logo-img{
+  border-radius: 999px !important;
+}
+
+/* ✅ 自由款：Logo 放 banner 正中間（垂直+水平居中） */
+.mode-free .logo-wrap{
+  display: block !important;
+  top: 50px !important;           /* banner 125px 的視覺中心 */
+  left: 50% !important;
+  right: auto !important;
+  transform: translate(-50%, -50%) !important;
+  pointer-events: none;
+  z-index: 35;
+}
+
+/* ✅ 精品款：Logo 右上角（保留） */
+.mode-premium .logo-wrap{
+  display: block !important;
+  top: 22px !important;
+  right: 18px !important;
+  left: auto !important;
+  transform: none !important;
+  z-index: 50;
+}
+
+/* ✅ 精品：姓名移到右邊，與 Logo 動態平衡（右側留出 logo 空間） */
+.mode-premium #u-name{
+  position: absolute !important;
+  top: 44px !important;
+  left: 120px !important;         /* 讓出左邊頭像 */
+  right: 92px !important;         /* 讓出右上 logo */
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.15;
+  z-index: 40;
+}
+
+/* ✅ 精品：unit/title 仍在內容區，但不要被姓名壓到 */
+.mode-premium .info-scroll{
+  padding-top: 118px !important;  /* 把內容往下推，避開絕對定位的姓名 */
+}
+
+/* ✅ 精品相片牆：動態平衡平均（自動欄位，不硬卡 3 欄） */
+.mode-premium .photo-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)) !important;
+  gap: 10px !important;
+  align-items: stretch;
+}
+
+.mode-premium .photo-grid img{
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+/* 超小螢幕保底 */
+@media (max-width: 360px){
+  .mode-premium #u-name{ left: 110px !important; right: 86px !important; }
+  .mode-premium .photo-grid{ grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)) !important; }
 }
