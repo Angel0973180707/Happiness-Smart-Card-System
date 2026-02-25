@@ -1,125 +1,325 @@
+<!-- admin.html (v399.x COMPLETE OVERWRITE) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>幸福智慧名片｜後台</title>
-  <link rel="stylesheet" href="./style.css?v=389" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Happiness Smart Card System｜隱形工作臺</title>
+
+  <!-- 沿用主站風格（可留可不留，不影響功能） -->
+  <link rel="stylesheet" href="./style.css?v=399" />
 
   <style>
-    body {
-      font-family: sans-serif;
-      background: #f5f6fa;
-      padding: 30px 20px;
-      text-align: center;
+    body{
+      font-family: system-ui, -apple-system, "Noto Sans TC", "Segoe UI", Roboto, Arial, sans-serif;
+      background:#f5f6fa;
+      padding: 28px 18px;
+      text-align:center;
     }
-
-    .admin-box {
-      max-width: 420px;
+    .admin-box{
+      max-width: 440px;
       margin: auto;
-      background: white;
-      border-radius: 16px;
-      padding: 25px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      background: #fff;
+      border-radius: 18px;
+      padding: 22px 18px 18px;
+      box-shadow: 0 12px 34px rgba(0,0,0,.10);
     }
-
-    input {
-      width: 100%;
-      padding: 14px;
+    h2{
+      margin: 6px 0 14px;
+      font-size: 18px;
+      letter-spacing: .4px;
+    }
+    .sub{
+      margin: 0 0 14px;
+      font-size: 12px;
+      color: rgba(0,0,0,.45);
+    }
+    input{
+      width:100%;
+      padding: 14px 12px;
       font-size: 16px;
-      margin-bottom: 18px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      text-align: center;
+      margin: 8px 0 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(0,0,0,.12);
+      text-align:center;
+      outline: none;
     }
-
-    button {
-      width: 100%;
-      padding: 14px;
+    .row{
+      display:grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    button{
+      width:100%;
+      padding: 14px 14px;
       font-size: 15px;
       border: none;
       border-radius: 12px;
-      margin-top: 10px;
-      cursor: pointer;
+      cursor:pointer;
+      font-weight: 900;
+      letter-spacing:.2px;
+      box-shadow: 0 10px 22px rgba(0,0,0,.10);
+      transition: transform .12s ease;
     }
+    button:active{ transform: translateY(1px) scale(.99); }
+    .primary{ background:#1f2d2a; color:#fff; }
+    .ghost{ background:#dfe6e9; color:#1f2d2a; box-shadow:none; }
+    .danger{ background:#ee5253; color:#fff; }
 
-    .primary { background: #ee5253; color: white; }
-    .ghost   { background: #dfe6e9; }
+    .msg{
+      margin-top: 12px;
+      color: rgba(0,0,0,.55);
+      font-size: 13px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+    .mini{
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(0,0,0,.42);
+    }
+    .chip{
+      display:inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.05);
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .hint{
+      font-size: 12px;
+      color: rgba(0,0,0,.45);
+      margin-top: 10px;
+      line-height: 1.6;
+    }
   </style>
 </head>
 
 <body>
-
   <div class="admin-box">
-    <h2>幸福智慧名片｜後台</h2>
+    <h2>隱形工作臺（v399）</h2>
+    <div class="sub">輸入序號 TW0001（最穩）｜姓名查詢會嘗試 search API（若無則提示改輸入序號）</div>
 
-    <input id="admin-input" placeholder="輸入序號或姓名" />
+    <input id="adminInput" placeholder="輸入序號（TW0001）或姓名" inputmode="text" autocomplete="off" />
 
-    <button class="primary" onclick="Admin.preview()">成品預覽</button>
-    <button class="ghost" onclick="Admin.goHome()">回首頁</button>
-    <button class="primary" onclick="Admin.delivery()">一鍵交貨</button>
+    <div class="row">
+      <button class="primary" type="button" onclick="Admin.preview()">成品預覽（開名片）</button>
+      <button class="ghost" type="button" onclick="Admin.goHome()">回首頁</button>
 
-    <div id="admin-msg" style="margin-top:15px;color:#999;font-size:13px;"></div>
+      <!-- ✅ 交貨都放後臺 -->
+      <button class="danger" type="button" onclick="Admin.copyDelivery()">一鍵交貨（複製 OG 交貨卡連結）</button>
+      <button class="primary" type="button" onclick="Admin.copyCard()">複製名片連結（純名片）</button>
+      <button class="ghost" type="button" onclick="Admin.openDelivery()">開啟交貨卡預覽（share.html）</button>
+    </div>
+
+    <div class="msg" id="adminMsg"></div>
+    <div class="mini" id="adminMini"></div>
+    <div class="chip" id="adminBase"></div>
+
+    <div class="hint">
+      交貨連結格式：share.html?id=TW0001（貼出去＝OG 卡）<br/>
+      點進交貨卡後，可按「查看名片」進入 index.html?id=TW0001
+    </div>
   </div>
 
-  <script src="./app.js?v=388"></script>
+  <!-- ✅ 沿用你主站 app.js 的 CONFIG.GAS（避免重複寫死） -->
+  <script src="./app.js?v=399"></script>
 
   <script>
     const Admin = {
+      elMsg: null,
+      elMini: null,
+      elBase: null,
 
-      resolveId() {
-        const val = document.getElementById("admin-input").value.trim();
-        if (!val) return null;
+      init(){
+        this.elMsg = document.getElementById("adminMsg");
+        this.elMini = document.getElementById("adminMini");
+        this.elBase = document.getElementById("adminBase");
 
-        if (val.toUpperCase().startsWith("TW")) return val.toUpperCase();
+        const base = this.getProjectBase_();
+        this.elBase.textContent = "專案根路徑：" + base;
 
-        return val; // 當姓名處理
+        // 預填：若網址帶 id，就放入 input
+        const id = this.getIdFromUrl_();
+        if(id) document.getElementById("adminInput").value = id;
+
+        // Enter 直接預覽
+        document.getElementById("adminInput").addEventListener("keydown", (e)=>{
+          if(e.key === "Enter") this.preview();
+        });
       },
 
-      async preview() {
-        const val = this.resolveId();
-        if (!val) return alert("請輸入資料");
+      setMsg_(s){ if(this.elMsg) this.elMsg.textContent = s || ""; },
+      setMini_(s){ if(this.elMini) this.elMini.textContent = s || ""; },
 
-        if (val.startsWith("TW")) {
-          location.href = `./index.html?id=${val}`;
+      text_(v){ return (v==null ? "" : String(v)).trim(); },
+
+      normalizeId_(s){
+        const v = this.text_(s).toUpperCase();
+        if(!v) return "";
+        if(/^TW\\d{4}$/.test(v)) return v;
+        if(/^\\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
+        if(/^TW\\d{1,4}$/.test(v)){
+          const n = v.replace(/^TW/i,"");
+          return "TW" + n.padStart(4,"0");
+        }
+        return v;
+      },
+
+      resolveInput_(){
+        const raw = this.text_(document.getElementById("adminInput").value);
+        if(!raw) return { type:"empty", value:"" };
+
+        const id = this.normalizeId_(raw);
+        if(/^TW\\d{4}$/.test(id)) return { type:"id", value:id };
+
+        // 其他當姓名
+        return { type:"name", value: raw };
+      },
+
+      getIdFromUrl_(){
+        try{
+          const u = new URL(location.href);
+          const id = u.searchParams.get("id");
+          const nid = this.normalizeId_(id);
+          return /^TW\\d{4}$/.test(nid) ? nid : "";
+        }catch{ return ""; }
+      },
+
+      // ✅ 這是關鍵：自動抓「目前專案根目錄」
+      // 例如：https://angel097.../Happiness-Smart-Card-System/admin.html
+      // base => https://angel097.../Happiness-Smart-Card-System/
+      getProjectBase_(){
+        try{
+          const u = new URL(location.href);
+          // 去掉檔名（admin.html / index.html / share.html）
+          u.hash = "";
+          u.search = "";
+          const p = u.pathname;
+          const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
+          return u.origin + dir;
+        }catch{
+          return location.origin + "/";
+        }
+      },
+
+      buildCardUrl_(id){
+        const base = this.getProjectBase_();
+        return base + "index.html?id=" + encodeURIComponent(id);
+      },
+
+      buildShareUrl_(id){
+        const base = this.getProjectBase_();
+        return base + "share.html?id=" + encodeURIComponent(id);
+      },
+
+      async copy_(s){
+        const v = this.text_(s);
+        if(!v) return false;
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(v);
+            return true;
+          }
+        }catch{}
+        const ta = document.createElement("textarea");
+        ta.value = v;
+        ta.setAttribute("readonly","readonly");
+        ta.style.position="fixed";
+        ta.style.left="-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        try{ document.execCommand("copy"); }catch{}
+        document.body.removeChild(ta);
+        return true;
+      },
+
+      async preview(){
+        this.setMsg_("");
+        this.setMini_("");
+
+        const r = this.resolveInput_();
+        if(r.type === "empty") return alert("請輸入序號或姓名");
+
+        if(r.type === "id"){
+          location.href = "./index.html?id=" + encodeURIComponent(r.value);
           return;
         }
 
-        // 姓名 → 查 GAS
-        try {
-          const res = await fetch(`${CONFIG.GAS}?action=search&name=${val}`);
+        // ✅ 姓名 → 嘗試 search API；若不存在就提示改輸入序號
+        const name = r.value;
+        const gas = (window.CONFIG && window.CONFIG.GAS) ? window.CONFIG.GAS : "";
+        if(!gas){
+          this.setMsg_("目前抓不到 CONFIG.GAS，請用序號（TW0001）");
+          return;
+        }
+
+        try{
+          const url = gas + "?action=search&name=" + encodeURIComponent(name) + "&ts=" + Date.now();
+          const res = await fetch(url, { method:"GET", cache:"no-store" });
           const data = await res.json();
 
-          if (!data.ok || !data.id) {
-            document.getElementById("admin-msg").textContent = "找不到資料";
+          if(!data || data.ok === false || !data.id){
+            this.setMsg_("找不到資料，或 search API 尚未提供。請改輸入序號（TW0001）");
             return;
           }
 
-          location.href = `./index.html?id=${data.id}`;
+          const id = this.normalizeId_(data.id);
+          if(!/^TW\\d{4}$/.test(id)){
+            this.setMsg_("search 回傳的 id 格式不正確，請改輸入序號（TW0001）");
+            return;
+          }
 
-        } catch (err) {
-          alert("搜尋失敗");
+          location.href = "./index.html?id=" + encodeURIComponent(id);
+        }catch(e){
+          this.setMsg_("search 查詢失敗（可能尚未提供 API）。請改輸入序號（TW0001）");
         }
       },
 
-      goHome() {
-        location.href = "./index.html";
+      goHome(){
+        // ✅ 回首頁保留 id（若有）
+        const id = this.getIdFromUrl_();
+        location.href = id ? ("./index.html?id=" + encodeURIComponent(id)) : "./index.html";
       },
 
-      delivery() {
-        const val = this.resolveId();
-        if (!val) return alert("請輸入序號");
+      async copyDelivery(){
+        this.setMsg_("");
+        this.setMini_("");
 
-        const id = val.startsWith("TW") ? val : null;
-        if (!id) return alert("交貨請輸入序號");
+        const r = this.resolveInput_();
+        if(r.type !== "id") return alert("交貨請輸入序號（TW0001）");
 
-        const link = `${location.origin}/angel-card/share.html?id=${id}`;
+        const shareUrl = this.buildShareUrl_(r.value);
+        await this.copy_(shareUrl);
 
-        navigator.clipboard.writeText(link);
-        alert("交貨連結已複製");
+        this.setMsg_("✅ OG 交貨卡連結已複製（貼出去＝OG 卡）");
+        this.setMini_(shareUrl);
+        alert("✅ 交貨連結已複製（貼出去＝OG 卡）");
+      },
+
+      async copyCard(){
+        this.setMsg_("");
+        this.setMini_("");
+
+        const r = this.resolveInput_();
+        if(r.type !== "id") return alert("請輸入序號（TW0001）");
+
+        const cardUrl = this.buildCardUrl_(r.value);
+        await this.copy_(cardUrl);
+
+        this.setMsg_("✅ 名片連結已複製（純名片）");
+        this.setMini_(cardUrl);
+        alert("✅ 名片連結已複製");
+      },
+
+      openDelivery(){
+        const r = this.resolveInput_();
+        if(r.type !== "id") return alert("請輸入序號（TW0001）");
+        location.href = "./share.html?id=" + encodeURIComponent(r.value);
       }
     };
-  </script>
 
+    Admin.init();
+  </script>
 </body>
 </html>
