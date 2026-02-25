@@ -1,4 +1,4 @@
-<!-- admin.html (v399.x COMPLETE OVERWRITE) -->
+<!-- admin.html (v399.x COMPLETE OVERWRITE) — PART 1/2 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -6,8 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Happiness Smart Card System｜隱形工作臺</title>
 
-  <!-- 沿用主站風格（可留可不留，不影響功能） -->
-  <link rel="stylesheet" href="./style.css?v=399" />
+  <link rel="stylesheet" href="./style.css?v=3990" />
 
   <style>
     body{
@@ -33,6 +32,7 @@
       margin: 0 0 14px;
       font-size: 12px;
       color: rgba(0,0,0,.45);
+      line-height: 1.6;
     }
     input{
       width:100%;
@@ -106,7 +106,6 @@
       <button class="primary" type="button" onclick="Admin.preview()">成品預覽（開名片）</button>
       <button class="ghost" type="button" onclick="Admin.goHome()">回首頁</button>
 
-      <!-- ✅ 交貨都放後臺 -->
       <button class="danger" type="button" onclick="Admin.copyDelivery()">一鍵交貨（複製 OG 交貨卡連結）</button>
       <button class="primary" type="button" onclick="Admin.copyCard()">複製名片連結（純名片）</button>
       <button class="ghost" type="button" onclick="Admin.openDelivery()">開啟交貨卡預覽（share.html）</button>
@@ -122,8 +121,8 @@
     </div>
   </div>
 
-  <!-- ✅ 沿用你主站 app.js 的 CONFIG.GAS（避免重複寫死） -->
-  <script src="./app.js?v=399"></script>
+  <!-- ✅ 先載入 app.js，取得 window.CONFIG.GAS -->
+  <script src="./app.js?v=3990"></script>
 
   <script>
     const Admin = {
@@ -173,7 +172,6 @@
         const id = this.normalizeId_(raw);
         if(/^TW\\d{4}$/.test(id)) return { type:"id", value:id };
 
-        // 其他當姓名
         return { type:"name", value: raw };
       },
 
@@ -186,13 +184,9 @@
         }catch{ return ""; }
       },
 
-      // ✅ 這是關鍵：自動抓「目前專案根目錄」
-      // 例如：https://angel097.../Happiness-Smart-Card-System/admin.html
-      // base => https://angel097.../Happiness-Smart-Card-System/
       getProjectBase_(){
         try{
           const u = new URL(location.href);
-          // 去掉檔名（admin.html / index.html / share.html）
           u.hash = "";
           u.search = "";
           const p = u.pathname;
@@ -232,21 +226,20 @@
         try{ document.execCommand("copy"); }catch{}
         document.body.removeChild(ta);
         return true;
-      },
-
-      async preview(){
+      },async preview(){
         this.setMsg_("");
         this.setMini_("");
 
         const r = this.resolveInput_();
         if(r.type === "empty") return alert("請輸入序號或姓名");
 
+        // ✅ id 直接開名片
         if(r.type === "id"){
           location.href = "./index.html?id=" + encodeURIComponent(r.value);
           return;
         }
 
-        // ✅ 姓名 → 嘗試 search API；若不存在就提示改輸入序號
+        // ✅ 姓名 → 嘗試 search API
         const name = r.value;
         const gas = (window.CONFIG && window.CONFIG.GAS) ? window.CONFIG.GAS : "";
         if(!gas){
@@ -277,7 +270,6 @@
       },
 
       goHome(){
-        // ✅ 回首頁保留 id（若有）
         const id = this.getIdFromUrl_();
         location.href = id ? ("./index.html?id=" + encodeURIComponent(id)) : "./index.html";
       },
