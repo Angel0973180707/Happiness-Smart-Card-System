@@ -1,16 +1,16 @@
 /* ================================
- * Happiness Smart Card System — app.js (v399 COMPLETE OVERWRITE) 1/3
- * Base: v398.3 robust loader + v398 DOM
- * v399 Add:
- *  - Top hidden admin hotspot (triple tap) -> open admin.html?id=...
- *  - Share button API: window.copyCardUrl() (copy current card url with id)
+ * Happiness Smart Card System — app.js (v399.1 COMPLETE OVERWRITE)
+ * FIX:
+ * 1) Use #adminHotspotTop as the ONLY hidden admin entry (triple tap)
+ * 2) Safe URL building for GitHub Pages subpath
+ * 3) Share: try Web Share API then fallback to copy
  * Keep:
- *  - v393 dynamic-mask system (HTML/CSS side)
- *  - v382 hooks: setV382 / setV382Style / setV382Paper
+ * - v382 hooks: setV382 / setV382Style / setV382Paper
+ * - robust loader + normalize/pick + images + dock + blocks + photo wall
  * ================================ */
 
 const CONFIG = {
-  VERSION: "399.0",
+  VERSION: "399.1",
 
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
@@ -19,21 +19,15 @@ const CONFIG = {
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
 
-  ADMIN_LONGPRESS_MS: 1200,
-  ADMIN_TRIPLETAP_WINDOW_MS: 650,   // taps count window
+  ADMIN_TRIPLETAP_WINDOW_MS: 650,
   ADMIN_TRIPLETAP_COUNT: 3,
 
   PHOTO_SLOT_MAX: 20,
-  PHOTO_GRID_COLS: 3,
-
   DEBUG: true
 };
 
 let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
 
-let __payloadRaw = null;
-let __payload = null;
-let __lastLoad = { id: "", ts: 0, url: "" };
 let __resolvedId = CONFIG.DEFAULT_ID;
 
 /* --------------------------- */
@@ -43,7 +37,6 @@ function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)
 function text(v) { return (v == null ? "" : String(v)).trim(); }
 function log_() { if (CONFIG.DEBUG) console.log("[HSC-v399]", ...arguments); }
 function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v399]", ...arguments); }
-function err_() { console.error("[HSC-v399]", ...arguments); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function setText(elOrId, v) {
@@ -53,7 +46,6 @@ function setText(elOrId, v) {
   return true;
 }
 
-/* --------------------------- */
 function getParam(name) {
   try { return new URLSearchParams(window.location.search).get(name); }
   catch { return null; }
@@ -96,6 +88,20 @@ function toggleDotsRows_() {
   if (premiumRow) premiumRow.style.display = isFree ? "none" : "flex";
 }
 
+function syncPlanButtons_() {
+  const a = $("btnPlanFree");
+  const b = $("btnPlanPremium");
+  if (!a || !b) return;
+
+  if (state.mode === "free") {
+    a.classList.add("active");
+    b.classList.remove("active");
+  } else {
+    b.classList.add("active");
+    a.classList.remove("active");
+  }
+}
+
 /* ---------------------------
 Switching system (keep HTML hooks)
 --------------------------- */
@@ -108,7 +114,6 @@ window.setV382 = function (mode, theme, el) {
 
   syncPlanButtons_();
   applyV382_();
-  refreshPremiumSafety_();
 };
 
 window.setV382Style = function (style, el) {
@@ -144,30 +149,6 @@ function applyV382_() {
     isFree ? state.paper : ""
   ];
   document.body.className = classList.filter(Boolean).join(" ");
-}
-
-function syncPlanButtons_() {
-  const a = $("btnPlanFree");
-  const b = $("btnPlanPremium");
-  if (!a || !b) return;
-
-  if (state.mode === "free") {
-    a.classList.add("active");
-    b.classList.remove("active");
-  } else {
-    b.classList.add("active");
-    a.classList.remove("active");
-  }
-}
-
-function refreshPremiumSafety_() {
-  if (state.mode !== "premium") return;
-  const nameEl = $("u-name");
-  if (!nameEl) return;
-  requestAnimationFrame(() => {
-    nameEl.style.transform = "translateZ(0)";
-    setTimeout(() => { nameEl.style.transform = ""; }, 120);
-  });
 }
 
 /* --------------------------- */
@@ -237,12 +218,7 @@ async function fetchJsonRobust(url) {
     }
   }
   throw lastErr || new Error("Fetch failed");
-}/* ================================
- * Happiness Smart Card System — app.js (v399 COMPLETE OVERWRITE) 2/3
- * - Normalize keys + pick()
- * - Images: avatar/logo/photo wall robust loading
- * - Contact dock + Blocks + Share copy helpers
- * ================================ */
+}
 
 /* ---------------------------
 Normalize + pick
@@ -376,7 +352,11 @@ function setImgWithFallback_(imgEl, candidates) {
 
   const tryNext = () => {
     if (imgEl.dataset.loadToken !== token) return;
-    if (idx >= list.length) { imgEl.style.opacity = "0"; imgEl.removeAttribute("src"); return; }
+    if (idx >= list.length) {
+      imgEl.style.opacity = "0";
+      imgEl.removeAttribute("src");
+      return;
+    }
     const u = list[idx++];
     const sep = u.includes("?") ? "&" : "?";
     imgEl.src = u + sep + "t=" + Date.now();
@@ -399,7 +379,7 @@ function setImgWithFallback_(imgEl, candidates) {
 /* ---------------------------
 Avatar / Logo
 --------------------------- */
-function getAvatarUrl_(payloadNorm){
+function getAvatarUrl_(p){
   const keys = [
     "個人照_fast","個人照",
     "形象照_fast","形象照",
@@ -407,33 +387,29 @@ function getAvatarUrl_(payloadNorm){
     "photo_fast","photo",
     "image"
   ];
-
-  let v = pick(payloadNorm, keys);
+  let v = pick(p, keys);
   if(text(v)) return v;
 
   for(let i=1;i<=3;i++){
-    v = pick(payloadNorm, [`個人照${i}`, `形象照${i}`, `avatar${i}`, `photo${i}`, `image${i}`]);
+    v = pick(p, [`個人照${i}`, `形象照${i}`, `avatar${i}`, `photo${i}`, `image${i}`]);
     if(text(v)) return v;
   }
   return "";
 }
 
-function setAvatarImage_(payloadNorm){
+function setAvatarImage_(p){
   const img = $("u-img");
   if(!img) return;
 
-  const raw = getAvatarUrl_(payloadNorm);
+  const raw = getAvatarUrl_(p);
   const cands = buildImageCandidates_(raw);
 
-  if(!cands.length){
-    img.removeAttribute("src");
-    return;
-  }
+  if(!cands.length){ img.removeAttribute("src"); return; }
   setImgWithFallback_(img, cands);
 }
 
-function getLogoUrl_(payloadNorm){
-  return pick(payloadNorm, [
+function getLogoUrl_(p){
+  return pick(p, [
     "logo_fast","logo",
     "品牌logo_fast","品牌logo",
     "品牌Logo_fast","品牌Logo",
@@ -445,12 +421,12 @@ function getLogoUrl_(payloadNorm){
   ]);
 }
 
-function setLogo_(payloadNorm){
+function setLogo_(p){
   const wrap = $("logoWrap");
   const img = $("u-logo");
   if(!wrap || !img) return;
 
-  const raw = getLogoUrl_(payloadNorm);
+  const raw = getLogoUrl_(p);
   const cands = buildImageCandidates_(raw);
 
   if(!cands.length){
@@ -473,24 +449,19 @@ function splitPhotoList_(raw){
     .replace(/\r\n/g, "\n")
     .replace(/[,，]+/g, "\n")
     .replace(/[ \t]+/g, "\n");
-
-  return normalized
-    .split("\n")
-    .map(x => x.trim())
-    .filter(Boolean);
+  return normalized.split("\n").map(x => x.trim()).filter(Boolean);
 }
 
-function collectPhotoUrls_(payloadNorm){
+function collectPhotoUrls_(p){
   const urls = [];
-
-  const main = pick(payloadNorm, ["照片_fast","照片","images","image","photo","照片牆","相片牆","圖片","相簿"]);
+  const main = pick(p, ["照片_fast","照片","照片牆","相片牆","圖片","相簿","images","photos"]);
   urls.push(...splitPhotoList_(main));
 
   for(let i=1;i<=CONFIG.PHOTO_SLOT_MAX;i++){
-    urls.push(...splitPhotoList_(payloadNorm[`照片${i}`]));
-    urls.push(...splitPhotoList_(payloadNorm[`圖片${i}`]));
-    urls.push(...splitPhotoList_(payloadNorm[`photo${i}`]));
-    urls.push(...splitPhotoList_(payloadNorm[`image${i}`]));
+    urls.push(...splitPhotoList_(p[`照片${i}`]));
+    urls.push(...splitPhotoList_(p[`圖片${i}`]));
+    urls.push(...splitPhotoList_(p[`photo${i}`]));
+    urls.push(...splitPhotoList_(p[`image${i}`]));
   }
 
   const cleaned = [];
@@ -504,29 +475,24 @@ function collectPhotoUrls_(payloadNorm){
     seen.add(key);
     cleaned.push(r);
   }
-
   return cleaned;
 }
 
-function renderPhotoWall_(payloadNorm){
+function renderPhotoWall_(p){
   const wall = $("photoWall");
   const grid = $("photoGrid");
   if(!wall || !grid) return;
 
   grid.innerHTML = "";
-  const list = collectPhotoUrls_(payloadNorm);
+  const list = collectPhotoUrls_(p);
 
-  if(!list.length){
-    wall.style.display = "none";
-    return;
-  }
+  if(!list.length){ wall.style.display = "none"; return; }
   wall.style.display = "";
 
   for(const raw of list){
     const img = document.createElement("img");
     img.alt = "照片";
-    const cands = buildImageCandidates_(raw);
-    setImgWithFallback_(img, cands);
+    setImgWithFallback_(img, buildImageCandidates_(raw));
     const openUrl = normalizeImageUrl(raw);
     img.onclick = ()=> window.open(openUrl || raw, "_blank");
     grid.appendChild(img);
@@ -534,7 +500,7 @@ function renderPhotoWall_(payloadNorm){
 }
 
 /* ---------------------------
-Contact dock + Share copy
+Contact dock + Share
 --------------------------- */
 function normalizePhone_(s){
   const v = text(s);
@@ -548,11 +514,9 @@ function ensureHttp_(u){
   if(v.startsWith("www.")) return "https://" + v;
   return v;
 }
-
 function iconFor_(type){
   const t = String(type||"").toLowerCase();
   if(t === "phone") return "fa-solid fa-phone";
-  if(t === "sms") return "fa-solid fa-comment-sms";
   if(t === "email") return "fa-solid fa-envelope";
   if(t === "web") return "fa-solid fa-globe";
   if(t === "map") return "fa-solid fa-location-dot";
@@ -566,7 +530,6 @@ function iconFor_(type){
   if(t === "bilibili") return "fa-brands fa-bilibili";
   return "fa-solid fa-link";
 }
-
 function addDockBtn_(wrap, label, href, iconClass){
   if(!wrap || !href) return;
   const btn = document.createElement("button");
@@ -577,58 +540,44 @@ function addDockBtn_(wrap, label, href, iconClass){
   wrap.appendChild(btn);
 }
 
-function renderContactDock_(payloadNorm){
+function renderContactDock_(p){
   const wrap = $("contactButtons");
   const dock = $("contactDock");
   if(!wrap || !dock) return;
 
   wrap.innerHTML = "";
 
-  const phone = pick(payloadNorm, ["電話","手機","phone","mobile","tel"]);
-  const line = pick(payloadNorm, ["line","line_id","line oa","line_oa","Line","LINE","line官方","line官網","line官網預約"]);
-  const wechat = pick(payloadNorm, ["wechat","weixin","微信","微信號","weixin_id","wx","wxid"]);
-  const video = pick(payloadNorm, ["影音平台","video","video_url","影片","youtube","YouTube","yt","頻道","channel"]);
-  const web = pick(payloadNorm, ["網站","官網","website","url","link"]);
-  const addr = pick(payloadNorm, ["地址","address","所在地","location"]);
+  const phone = pick(p, ["電話","手機","phone","mobile","tel"]);
+  const line = pick(p, ["line","line_id","line oa","line_oa","LINE","Line"]);
+  const wechat = pick(p, ["wechat","weixin","微信","微信號","wx","wxid"]);
+  const video = pick(p, ["影音平台","video","video_url","影片","youtube","YouTube","yt","頻道","channel"]);
+  const web = pick(p, ["網站","官網","website","url","link"]);
+  const addr = pick(p, ["地址","address","所在地","location"]);
 
-  // phone
-  const p = normalizePhone_(phone);
-  if(p){
-    addDockBtn_(wrap, "撥打", `tel:${p}`, iconFor_("phone"));
-  }
+  const p1 = normalizePhone_(phone);
+  if(p1) addDockBtn_(wrap, "撥打", `tel:${p1}`, iconFor_("phone"));
 
-  // LINE (raw id or URL)
   const lineV = text(line);
   if(lineV){
-    let href = "";
-    if(lineV.includes("http")) href = ensureHttp_(lineV);
-    else href = `https://line.me/R/ti/p/${encodeURIComponent(lineV)}`;
+    const href = lineV.includes("http") ? ensureHttp_(lineV) : `https://line.me/R/ti/p/${encodeURIComponent(lineV)}`;
     addDockBtn_(wrap, "LINE", href, iconFor_("line"));
   }
 
-  // WeChat (no universal deep link)
   const wx = text(wechat);
   if(wx){
     const href = `https://www.google.com/search?q=${encodeURIComponent("WeChat " + wx)}`;
     addDockBtn_(wrap, "微信", href, iconFor_("wechat"));
   }
 
-  // Video platform (url => open; else search)
   const vv = text(video);
   if(vv){
-    const href = vv.includes("http")
-      ? ensureHttp_(vv)
-      : `https://www.google.com/search?q=${encodeURIComponent(vv)}`;
+    const href = vv.includes("http") ? ensureHttp_(vv) : `https://www.google.com/search?q=${encodeURIComponent(vv)}`;
     addDockBtn_(wrap, "影音平台", href, iconFor_("video"));
   }
 
-  // web
   const w = ensureHttp_(web);
-  if(w && /^https?:\/\//i.test(w)){
-    addDockBtn_(wrap, "官網", w, iconFor_("web"));
-  }
+  if(w && /^https?:\/\//i.test(w)) addDockBtn_(wrap, "官網", w, iconFor_("web"));
 
-  // map
   const a = text(addr);
   if(a){
     const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}`;
@@ -649,7 +598,6 @@ function escapeHtml_(s){
     .replace(/"/g,"&quot;")
     .replace(/'/g,"&#39;");
 }
-
 function renderBlock_(rootId, title, body){
   const root = $(rootId);
   if(!root) return;
@@ -661,7 +609,6 @@ function renderBlock_(rootId, title, body){
     return;
   }
   root.style.display = "";
-
   root.innerHTML = `
     <div class="block-title">${title}</div>
     <div class="block-body preline">${escapeHtml_(b)}</div>
@@ -669,55 +616,8 @@ function renderBlock_(rootId, title, body){
 }
 
 /* ---------------------------
-Share helpers
+Toast + Copy
 --------------------------- */
-async function copyText_(s){
-  const v = text(s);
-  if(!v) return false;
-
-  // try clipboard
-  try{
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      await navigator.clipboard.writeText(v);
-      toast_("已複製連結");
-      return true;
-    }
-  }catch{}
-
-  // fallback
-  try{
-    const ta = document.createElement("textarea");
-    ta.value = v;
-    ta.setAttribute("readonly", "readonly");
-    ta.style.position = "fixed";
-    ta.style.left = "-9999px";
-    ta.style.top = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    toast_("已複製連結");
-    return true;
-  }catch{}
-
-  toast_("無法自動複製，請手動複製");
-  alert(v);
-  return false;
-}
-
-window.copyCardUrl = async function(){
-  const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
-  let url = "";
-  try{
-    const u = new URL(window.location.href);
-    u.searchParams.set("id", id);
-    url = u.toString();
-  }catch{
-    url = `${location.origin}${location.pathname}?id=${encodeURIComponent(id)}`;
-  }
-  return copyText_(url);
-};
-
 function toast_(msg){
   const m = text(msg);
   if(!m) return;
@@ -744,24 +644,85 @@ function toast_(msg){
   t.style.opacity="1";
   clearTimeout(toast_._timer);
   toast_._timer = setTimeout(()=>{ t.style.opacity="0"; }, 1100);
-}/* ================================
- * Happiness Smart Card System — app.js (v399 COMPLETE OVERWRITE) 3/3
- * - Apply data to card
- * - Load card by id (robust)
- * - Hidden admin entry (top invisible hotspot)
- * - Boot
- * ================================ */
+}
+
+async function copyText_(s){
+  const v = text(s);
+  if(!v) return false;
+
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(v);
+      toast_("已複製連結");
+      return true;
+    }
+  }catch{}
+
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = v;
+    ta.setAttribute("readonly", "readonly");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    toast_("已複製連結");
+    return true;
+  }catch{}
+
+  toast_("無法自動複製，請手動複製");
+  alert(v);
+  return false;
+}
+
+function projectBase_(){
+  try{
+    const u = new URL(location.href);
+    u.hash = "";
+    u.search = "";
+    const p = u.pathname;
+    const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
+    return u.origin + dir;
+  }catch{
+    return location.origin + "/";
+  }
+}
+
+function buildCardUrl_(id){
+  return projectBase_() + "index.html?id=" + encodeURIComponent(id);
+}
+
+window.copyCardUrl = async function(){
+  const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
+  const url = buildCardUrl_(id);
+
+  // ✅ Web Share API (手機更順)
+  try{
+    if(navigator.share){
+      await navigator.share({ title:"幸福智慧名片", text:"點擊查看名片", url });
+      return true;
+    }
+  }catch{}
+  return copyText_(url);
+};
+
+window.goFillForm = function(){
+  window.open(CONFIG.FORM, "_blank");
+};
 
 /* ---------------------------
 Apply data
 --------------------------- */
-function applyDataToCard(payloadNorm) {
-  const name    = pick(payloadNorm, ["姓名", "name", "Name"]);
-  const unit    = pick(payloadNorm, ["單位", "unit", "Unit"]);
-  const title   = pick(payloadNorm, ["頭銜","職稱","title","Title"]);
-  const slogan  = pick(payloadNorm, ["理念","標語","slogan","Slogan"]);
-  const service = pick(payloadNorm, ["服務項目", "service", "Service"]);
-  const exp     = pick(payloadNorm, ["經歷","experience","Experience","簡歷","履歷"]);
+function applyDataToCard(p) {
+  const name    = pick(p, ["姓名", "name", "Name"]);
+  const unit    = pick(p, ["單位", "unit", "Unit"]);
+  const title   = pick(p, ["頭銜","職稱","title","Title"]);
+  const slogan  = pick(p, ["理念","標語","slogan","Slogan"]);
+  const service = pick(p, ["服務項目", "service", "Service"]);
+  const exp     = pick(p, ["經歷","experience","Experience","簡歷","履歷"]);
 
   setText("u-name",  name || "（尚未讀到姓名）");
   setText("u-unit",  unit || "");
@@ -770,27 +731,19 @@ function applyDataToCard(payloadNorm) {
   const sl = $("u-slogan");
   if (sl) {
     const s = text(slogan);
-    if (s) {
-      sl.style.display = "";
-      sl.textContent = s;
-    } else {
-      sl.style.display = "none";
-      sl.textContent = "";
-    }
+    if (s) { sl.style.display = ""; sl.textContent = s; }
+    else { sl.style.display = "none"; sl.textContent = ""; }
   }
 
   renderBlock_("block-service", "服務項目", service);
   renderBlock_("block-exp",     "經歷",     exp);
 
-  setAvatarImage_(payloadNorm);
-  setLogo_(payloadNorm);
-  renderContactDock_(payloadNorm);
-  renderPhotoWall_(payloadNorm);
+  setAvatarImage_(p);
+  setLogo_(p);
+  renderContactDock_(p);
+  renderPhotoWall_(p);
 }
 
-/* ---------------------------
-UI states
---------------------------- */
 function setLoadingUi_() {
   setText("u-name",  "載入中...");
   setText("u-unit",  "同步中...");
@@ -824,9 +777,6 @@ function setFailUi_(msg) {
   if (wrap) wrap.style.display = "none";
 }
 
-/* ---------------------------
-Load card
---------------------------- */
 async function loadCardById_(id) {
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
@@ -837,14 +787,10 @@ async function loadCardById_(id) {
   try {
     const data = await fetchJsonRobust(url);
 
-    if (!data || typeof data !== "object")
-      throw new Error("Invalid payload");
-
-    if (data.ok === false)
-      throw new Error(data.error || "Not found");
+    if (!data || typeof data !== "object") throw new Error("Invalid payload");
+    if (data.ok === false) throw new Error(data.error || "Not found");
 
     const payloadNorm = buildNormalizedPayload_(data);
-
     applyDataToCard(payloadNorm);
 
     try {
@@ -862,29 +808,18 @@ async function loadCardById_(id) {
 }
 
 /* ===========================
-Hidden Admin Entry (v399)
+Hidden Admin Entry (v399.1)
+- bind to #adminHotspotTop (triple tap)
 =========================== */
-
 function openAdmin_() {
   const id = __resolvedId || CONFIG.DEFAULT_ID;
-  const u = `admin.html?id=${encodeURIComponent(id)}`;
-  window.open(u, "_blank");
+  const url = projectBase_() + "admin.html?id=" + encodeURIComponent(id);
+  window.open(url, "_blank");
 }
 
-function ensureAdminHotspot_() {
-  if ($("__adminHotspot")) return;
-
-  const hs = document.createElement("div");
-  hs.id = "__adminHotspot";
-
-  hs.style.position = "fixed";
-  hs.style.top = "8px";
-  hs.style.right = "8px";
-  hs.style.width = "32px";
-  hs.style.height = "32px";
-  hs.style.opacity = "0";
-  hs.style.zIndex = "99999";
-  hs.style.background = "transparent";
+function bindAdminHotspotTop_(){
+  const hs = $("adminHotspotTop");
+  if(!hs) return;
 
   let tapCount = 0;
   let timer = null;
@@ -893,22 +828,24 @@ function ensureAdminHotspot_() {
     tapCount++;
     clearTimeout(timer);
 
-    timer = setTimeout(() => tapCount = 0, 600);
+    timer = setTimeout(() => (tapCount = 0), CONFIG.ADMIN_TRIPLETAP_WINDOW_MS);
 
-    if (tapCount >= 3) {
+    if (tapCount >= CONFIG.ADMIN_TRIPLETAP_COUNT) {
       tapCount = 0;
       openAdmin_();
     }
-  });
-
-  document.body.appendChild(hs);
+  }, { passive:true });
 }
 
 /* ---------------------------
 Boot
 --------------------------- */
 function boot_() {
-  ensureAdminHotspot_();
+  bindAdminHotspotTop_();
+
+  // init state default
+  applyV382_();
+  syncPlanButtons_();
 
   const id = getCardIdFromUrl_();
   loadCardById_(id);
