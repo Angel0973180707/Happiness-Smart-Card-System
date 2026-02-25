@@ -7,7 +7,7 @@
   <title>Happiness Smart Card System</title>
   <meta name="description" content="幸福智慧名片｜點擊查看專屬名片" />
 
-  <!-- ✅ OG 固定封面圖 -->
+  <!-- OG 固定封面圖 -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="幸福智慧名片" />
   <meta property="og:description" content="點擊查看智慧名片" />
@@ -15,27 +15,23 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
 
-  <!-- Twitter / LINE 相容 -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=3982" />
+  <link rel="manifest" href="./manifest.json?v=3983" />
   <meta name="theme-color" content="#ee5253" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=3982" />
-  <link rel="icon" href="./icons/icon-192.png?v=3982" />
 
-  <!-- Fonts / Icons -->
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=3983" />
+  <link rel="icon" href="./icons/icon-192.png?v=3983" />
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-
-  <!-- CSS -->
-  <link rel="stylesheet" href="style.css?v=3982" />
+  <link rel="stylesheet" href="style.css?v=3983" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- ✅ v398：門面必須可見 -->
+  <!-- 門面區 -->
   <div id="admin-panel">
 
     <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
@@ -55,7 +51,7 @@
       <div style="font-weight:900;">選擇方案</div>
     </div>
 
-    <!-- Free colors -->
+    <!-- Free dots -->
     <div class="dots-row">
       <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
       <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
@@ -64,7 +60,6 @@
       <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
     </div>
 
-    <!-- Free controls -->
     <div id="free-controls">
       <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
         <button class="btn-neo active" type="button" onclick="window.setV382Style('arch', this)">優雅正拱</button>
@@ -79,7 +74,7 @@
       </div>
     </div>
 
-    <!-- Premium colors -->
+    <!-- Premium dots -->
     <div class="dots-row">
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p1', this)"></div>
       <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p2', this)"></div>
@@ -93,12 +88,17 @@
     <button class="btn-cta" type="button" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
+  <!-- 名片 -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
-    <div class="banner"><div class="dynamic-mask"></div></div>
 
-    <!-- Avatar -->
+    <!-- ✅ 回到 v393：banner + dynamic-mask（弧形/平直/晨曦都靠遮罩） -->
+    <div class="banner">
+      <div class="dynamic-mask"></div>
+    </div>
+
+    <!-- 頭像 -->
     <div class="avatar-wrap">
       <div class="avatar-circle">
         <img id="u-img" src="" class="avatar" alt="形象照" />
@@ -131,20 +131,20 @@
 
     </div>
 
-    <!-- ✅ 隱形入口：app.js 會在右下角建立三擊熱區 -->
-    <div class="version-tag" id="versionTag">v398.2</div>
+    <!-- 右下角版本字（長按/三擊入口由 app.js 綁定） -->
+    <div class="version-tag" id="versionTag">v398.3</div>
   </div>
 
   <footer id="footerTag" style="font-size:10px; color:#ccc; margin-top:12px; text-align:center;">
-    Happiness Smart Card System v398.2
+    Happiness Smart Card System v398.3
   </footer>
 
-  <script src="app.js?v=3982"></script>
+  <script src="app.js?v=3983"></script>
 
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=3982').catch(()=>{});
+        navigator.serviceWorker.register('./sw.js?v=3983').catch(()=>{});
       });
     }
   </script>
