@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
   <title>Happiness Smart Card System v400</title>
   <meta name="description" content="Happiness Smart Card System｜點擊查看專屬名片" />
 
@@ -10,7 +11,12 @@
   <meta property="og:title" content="Happiness Smart Card System" />
   <meta property="og:description" content="點擊查看智慧名片" />
   <meta property="og:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
-  
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
+
   <link rel="manifest" href="./manifest.json?v=400" />
   <meta name="theme-color" content="#ee5253" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
@@ -27,12 +33,19 @@
 
   <div id="admin-panel">
     <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
-      <button id="btnPlanFree" class="btn-neo pill active" type="button" onclick="window.setV382('free','color-1', this)">
+      <button id="btnPlanFree" class="btn-neo pill active" type="button"
+        onclick="window.setV382('free','color-1', this)">
         方案 A｜自由搭配
       </button>
-      <button id="btnPlanPremium" class="btn-neo pill" type="button" onclick="window.setV382('premium','p1', this)">
+
+      <button id="btnPlanPremium" class="btn-neo pill" type="button"
+        onclick="window.setV382('premium','p1', this)">
         方案 B｜精品設計
       </button>
+    </div>
+
+    <div style="display:flex; justify-content:center; align-items:center; gap:10px; padding:2px 12px 8px;">
+      <div style="font-weight:900; opacity:.85; font-size:14px;">步驟一：選擇您的專屬風格</div>
     </div>
 
     <div class="dots-row" id="freeDotsRow">
@@ -49,6 +62,7 @@
         <button class="btn-neo" type="button" onclick="window.setV382Style('flat', this)">簡潔平直</button>
         <button class="btn-neo" type="button" onclick="window.setV382Style('spot', this)">晨曦款</button>
       </div>
+
       <div class="control-row" style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
         <button class="btn-neo active" type="button" onclick="window.setV382Paper('paper-1', this)">棉紙</button>
         <button class="btn-neo" type="button" onclick="window.setV382Paper('paper-2', this)">顆粒</button>
@@ -75,14 +89,14 @@
 
     <div class="banner">
       <div class="dynamic-mask"></div>
-      <div id="u-unit-banner" class="unit-on-banner"></div>
+      <div id="u-unit-banner" class="unit-on-banner free-only"></div>
     </div>
 
     <div class="logo-wrap" id="logoWrap">
       <img id="u-logo" class="logo-img" src="" alt="Logo" />
     </div>
 
-    <div class="premium-header-row">
+    <div class="premium-header-row premium-only">
       <div class="p-avatar-box">
         <img id="u-img-premium" src="" class="avatar" alt="形象照" />
       </div>
@@ -98,45 +112,52 @@
     </div>
 
     <div class="info-scroll">
-      <div class="main-content-flow">
-        
-        <div class="identity-block">
-          <h1 id="u-name-free" class="name free-only">載入中...</h1>
-          <div id="u-unit-main" class="unit premium-only"></div>
-          <div id="u-title" class="title"></div>
-        </div>
-
-        <div id="logo-mid-wrap" class="free-only logo-in-flow"></div>
-
-        <div id="block-service" class="info-block"></div>
-
-        <div id="block-exp" class="info-block"></div>
-
-        <div id="photoWall" class="photo-wall">
-          <div id="photoGrid" class="photo-grid"></div>
-        </div>
-
-        <div id="contactDock" class="contact-dock">
-          <div id="socialButtons" class="dock-buttons"></div>
-          <div id="contactButtons" class="dock-buttons" style="margin-top:10px;"></div>
-          <div class="dock-buttons" style="margin-top:10px;">
-            <button class="dock-btn share-btn" type="button" onclick="window.copyCardUrl && window.copyCardUrl()">
-              <i class="fa-solid fa-share-nodes"></i>
-              <span>分享名片</span>
-            </button>
-          </div>
-        </div>
-
+      
+      <div class="identity-block">
+        <h1 id="u-name-free" class="name free-only">載入中...</h1>
+        <div id="u-unit-main" class="unit premium-only"></div>
+        <div id="u-title" class="title"></div>
       </div>
+
+      <div id="logo-mid-wrap" class="free-only logo-in-flow"></div>
+
+      <div id="v400-blocks">
+        <div id="block-service" class="info-block"></div>
+        <div id="block-exp" class="info-block"></div>
+      </div>
+
+      <div id="photoWall" class="photo-wall">
+        <div id="photoGrid" class="photo-grid"></div>
+      </div>
+
+      <div id="contactDock" class="contact-dock">
+        <div id="socialButtons" class="dock-buttons"></div>
+        <div id="contactButtons" class="dock-buttons" style="margin-top:10px;"></div>
+        
+        <div class="dock-buttons" style="margin-top:10px;">
+          <button class="dock-btn share-btn" type="button" onclick="window.copyCardUrl && window.copyCardUrl()">
+            <i class="fa-solid fa-share-nodes"></i>
+            <span>分享名片</span>
+          </button>
+        </div>
+      </div>
+
     </div>
 
     <div class="version-tag">v400</div>
   </div>
 
-  <footer style="font-size:10px; color:#ccc; margin-top:12px; text-align:center;">
+  <footer id="footerTag" style="font-size:10px; color:#ccc; margin-top:12px; text-align:center;">
     Happiness Smart Card System v400
   </footer>
 
   <script src="app.js?v=400"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?v=400').catch(()=>{});
+      });
+    }
+  </script>
 </body>
 </html>
