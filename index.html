@@ -33,8 +33,7 @@
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- ✅ v399.8：上方隱形入口熱區（不破壞門面視覺；三擊開工作臺）
-       NOTE: 觸發邏輯由 app.js 綁定（triple tap / multi tap） -->
+  <!-- ✅ v399.8：上方隱形入口熱區（不破壞門面視覺；三擊開工作臺） -->
   <div id="adminHotspotTop" aria-label="admin-hotspot-top"></div>
 
   <!-- ✅ 門面控制區（維持 v398.3 結構） -->
@@ -130,8 +129,20 @@
         <div id="block-exp" class="info-block"></div>
       </div>
 
+      <!-- ✅ 照片牆（依定錨：先照片牆，再影音/社群/網頁，再聯繫列） -->
+      <div id="photoWall" class="photo-wall" style="display:none;">
+        <div class="wall-title">照片牆</div>
+        <div id="photoGrid" class="photo-grid"></div>
+      </div>
+
+      <!-- ✅ v399：影音 / 社群 / 個人網頁（新增容器給 app.js 渲染） -->
+      <section id="socialBox" class="info-block" style="display:none;">
+        <div class="block-title">影音社群平台 / 個人網頁</div>
+        <div id="socialButtons" class="dock-buttons"></div>
+      </section>
+
       <!-- Dock -->
-      <div id="contactDock" class="contact-dock">
+      <div id="contactDock" class="contact-dock" style="display:none;">
         <div class="dock-title">聯繫與平台</div>
         <div id="contactButtons" class="dock-buttons"></div>
 
@@ -142,12 +153,6 @@
             <span>分享名片</span>
           </button>
         </div>
-      </div>
-
-      <!-- 照片牆 -->
-      <div id="photoWall" class="photo-wall">
-        <div class="wall-title">照片牆</div>
-        <div id="photoGrid" class="photo-grid"></div>
       </div>
 
     </div>
