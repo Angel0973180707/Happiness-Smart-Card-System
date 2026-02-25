@@ -1,10 +1,12 @@
-/* style.css (v399.x COMPLETE OVERWRITE) — PART 1/2
- * Base: v399 (keep v393 dynamic-mask)
- * FIX layout:
- * 1) Free: unit in banner center; order: avatar -> name -> title -> logo -> service -> exp -> carousel -> platforms -> contacts -> share
- * 2) Premium: top row (avatar left, name right), logo top-right; then unit/title/service/exp/...
- * 3) Dynamic balance: auto-hide empty blocks; elastic spacing; no squeeze
- */
+/* ================================
+ * Happiness Smart Card System — style.css (v399.2 COMPLETE OVERWRITE)
+ * Base: v398.3 / v398.4
+ * MUST KEEP: v393 dynamic-mask system for free mode arch/flat/spot
+ * Add: v399 top hidden admin hotspot (triple tap) — no visual impact
+ * Keep: v398 blocks (#block-service/#block-exp) + dock + photo wall
+ * FIX: avatar sizing runaway (free)
+ * TUNE: banner center text / premium name horizontal / logo circular / dock 3D + breath
+ * ================================ */
 
 :root{
   --font: 'Noto Sans TC', sans-serif;
@@ -14,154 +16,95 @@
   --card-bg:#ffffff;
   --text:#2d3436;
 
-  --shadow: 0 15px 40px rgba(0,0,0,0.06);
-  --soft: rgba(0,0,0,0.04);
-  --soft2: rgba(0,0,0,0.02);
-
-  --radius-card: 45px;
-  --radius-box: 20px;
-
-  /* premium fx */
-  --fx-op: 0;
-  --fx-img: none;
-
-  /* blocks */
-  --soft-border: rgba(0,0,0,0.08);
-  --soft-border-2: rgba(0,0,0,0.10);
-  --soft-shadow: 0 10px 24px rgba(0,0,0,0.08);
-
-  --muted: rgba(45,52,54,0.55);
-  --block-bg: rgba(255,255,255,0.86);
+  --shadow: 0 18px 55px rgba(0,0,0,0.12);
+  --radius-card: 26px;
 }
 
+/* reset */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
-
 body{
   margin:0;
-  padding-bottom:40px;
-  background:var(--bg);
-  font-family:var(--font);
-  color:var(--text);
-  transition: 0.45s;
-  display:block;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* ========= Free 5 colors ========= */
-.mode-free.color-1 { --p:#ff5e5e; --bg:#fff5f5; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-2 { --p:#00a8ff; --bg:#f0faff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-3 { --p:#ffa502; --bg:#fffaf0; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-4 { --p:#7d5fff; --bg:#f7f6ff; --card-bg:#ffffff; --text:#2d3436; }
-.mode-free.color-5 { --p:#2ecc71; --bg:#f2fff7; --card-bg:#ffffff; --text:#2d3436; }
-
-/* ========= Premium 7 ========= */
-.mode-premium.p1 { --p:#a36d6d; --bg:#fdf5f5; --card-bg:linear-gradient(135deg, rgba(163,109,109,0.96), rgba(142,90,90,0.86)); --text:#ffffff; --fx-op:0.35; }
-.mode-premium.p2 { --p:#722f37; --bg:#f8f4f4; --card-bg:linear-gradient(135deg, rgba(114,47,55,0.96), rgba(114,47,55,0.86)); --text:#f5e6e8; --fx-op:0.38; }
-.mode-premium.p3 { --p:#1c2e42; --bg:#eef1f5; --card-bg:linear-gradient(135deg, rgba(28,46,66,0.96), rgba(44,62,80,0.86)); --text:#ffffff; --fx-op:0.25; }
-.mode-premium.p4 { --p:#5e548e; --bg:#f4f3f7; --card-bg:linear-gradient(135deg, rgba(94,84,142,0.93), rgba(159,134,192,0.82)); --text:#ffffff; --fx-op:0.22; }
-.mode-premium.p5 { --p:#7a94a6; --bg:#f4f7f9; --card-bg:linear-gradient(135deg, rgba(122,148,166,0.96), rgba(100,120,135,0.82)); --text:#ffffff; --fx-op:0.25; }
-.mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg:linear-gradient(135deg, rgba(191,149,63,0.96), rgba(252,246,186,0.86), rgba(170,119,28,0.96)); --text:#4d3700; --fx-op:0.55; }
-.mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
-
-/* v399: top hotspot */
+/* ================= 上方隱形入口熱區（三擊） ================= */
 #adminHotspotTop{
   position: fixed;
-  top: 0; left: 0;
-  width: 100%;
-  height: 44px;
-  opacity: 0;
-  z-index: 99999;
-  background: transparent;
-  pointer-events: auto;
-}
-
-/* ============ Admin panel ============ */
-#admin-panel{
-  width:100%;
-  background:#fff;
-  text-align:center;
-  border-bottom:1px solid #eee;
-  padding:14px 0 16px;
-  z-index:1000;
-  position: sticky;
   top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  z-index: 9999;
+  background: transparent;
 }
 
-#card-container{
+/* ================= 控制面板（門面） ================= */
+#admin-panel{
+  width: 100%;
+  padding: 12px 0 10px;
+}
+
+/* 按鈕（保留既有） */
+.btn-neo{
+  border:none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 900;
+  cursor:pointer;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.10);
+  background: rgba(255,255,255,0.92);
+  color: #1f2d2a;
+  transition: transform .12s ease, filter .18s ease;
+}
+.btn-neo:active{ transform: translateY(1px) scale(0.99); }
+.btn-neo.active{
+  background: #1f2d2a;
+  color: #fff;
+}
+
+/* pill CTA */
+.btn-cta{
+  width: 92%;
+  max-width: 380px;
   display:block;
-  margin: 16px auto 8px;
+  margin: 10px auto 0;
+  border:none;
+  border-radius: 999px;
+  padding: 14px 16px;
+  font-weight: 900;
+  letter-spacing: .2px;
+  cursor:pointer;
+  background: var(--p);
+  color:#fff;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.14);
 }
+.btn-cta:active{ transform: translateY(1px) scale(0.99); }
 
+/* dots */
 .dots-row{
   display:flex;
   justify-content:center;
-  gap:10px;
-  margin:10px 0;
+  gap: 12px;
+  padding: 6px 12px 4px;
 }
 .dot, .p-dot{
-  width:34px;
-  height:34px;
-  border-radius:50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.14);
   cursor:pointer;
-  border:3px solid #fff;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-  transition: 0.2s;
+  border: 2px solid rgba(255,255,255,0.85);
 }
 .dot.active, .p-dot.active{
-  border-color:#2d3436 !important;
-  transform:scale(1.1);
+  outline: 2px solid rgba(0,0,0,0.10);
 }
 
-/* neo buttons */
-.btn-neo{
-  border:none;
-  cursor:pointer;
-  font-weight:900;
-  padding:12px 16px;
-  border-radius:26px;
-  background:#f4f5f7;
-  color:#2d3436;
-  box-shadow:
-    0 10px 22px rgba(0,0,0,0.08),
-    inset 0 2px 0 rgba(255,255,255,0.95),
-    inset 0 -2px 0 rgba(0,0,0,0.06);
-  transition: transform .18s, box-shadow .18s, filter .18s;
-}
-.btn-neo.pill{ min-width: 156px; }
-.btn-neo:hover{ transform: translateY(-1px); }
-.btn-neo:active{ transform: translateY(1px) scale(0.99); }
-.btn-neo.active{
-  outline: 2px solid rgba(0,0,0,0.12);
-  filter: saturate(1.02);
-  animation: breatheNeo 1.65s ease-in-out infinite;
-}
-@keyframes breatheNeo{
-  0%,100%{ box-shadow:
-    0 10px 22px rgba(0,0,0,0.10),
-    inset 0 2px 0 rgba(255,255,255,0.95),
-    inset 0 -2px 0 rgba(0,0,0,0.06); }
-  50%{ box-shadow:
-    0 14px 28px rgba(0,0,0,0.14),
-    inset 0 2px 0 rgba(255,255,255,0.97),
-    inset 0 -2px 0 rgba(0,0,0,0.05); }
-}
-
-.btn-cta{
-  background: var(--p);
-  color:#fff;
-  border:none;
-  padding: 14px 44px;
-  border-radius: 44px;
-  font-weight: 900;
-  cursor:pointer;
-  margin-top: 6px;
-  box-shadow: 0 14px 28px rgba(0,0,0,0.12);
-  transition: transform .18s, box-shadow .18s, filter .18s;
-}
-.btn-cta:hover{ transform: translateY(-1px); filter: brightness(1.01); }
-.btn-cta:active{ transform: translateY(1px) scale(0.99); }
-
-/* ============ Card ============ */
+/* ================= 名片卡（樣品區） ================= */
 .card{
   width:92%;
   max-width:380px;
@@ -174,7 +117,7 @@ body{
   transition: 0.45s;
 }
 
-/* ===== v393 dynamic-mask (KEEP) ===== */
+/* ================= 自由款 banner + dynamic-mask（維持 v393 原樣！） ================= */
 .banner{
   height:125px;
   background: var(--p);
@@ -182,6 +125,30 @@ body{
   transition: 0.45s;
   overflow:visible;
 }
+
+/* v399.x banner center text (unit in banner middle) */
+.banner .banner-unit{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%, -50%);
+  max-width: 86%;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: .4px;
+  color: rgba(255,255,255,0.96);
+  text-align:center;
+  line-height:1.1;
+  white-space: nowrap;
+  overflow:hidden;
+  text-overflow: ellipsis;
+  background: rgba(0,0,0,0.12);
+  border: 1px solid rgba(255,255,255,0.20);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+  backdrop-filter: blur(6px);
+}
+
 .dynamic-mask{
   position:absolute;
   width:100%;
@@ -191,36 +158,14 @@ body{
 .style-arch .dynamic-mask{ background:#fff; height:45px; border-radius:60px 60px 0 0; }
 .style-flat .dynamic-mask{ background:#fff; height:10px; border-radius:0; }
 .style-spot .dynamic-mask{
-  height:85px;
-  bottom:-84px;
-  background: var(--p);
-  left:0;
-  width:100%;
-  clip-path: ellipse(50% 80% at 50% 0%);
-  z-index:10;
+  height:80px;
+  background:#fff;
+  border-radius: 0;
+  clip-path: polygon(0 64%, 6% 52%, 13% 62%, 20% 50%, 27% 61%, 34% 51%, 41% 63%, 48% 52%, 56% 64%, 64% 52%, 72% 66%, 80% 52%, 88% 66%, 94% 56%, 100% 66%, 100% 100%, 0 100%);
 }
 
-/* ✅ Free: Unit in banner center (dynamic balance) */
-.banner-unit{
-  position:absolute;
-  left: 50%;
-  top: 52%;
-  transform: translate(-50%,-50%);
-  width: 86%;
-  text-align:center;
-  font-weight: 900;
-  letter-spacing: .4px;
-  color: rgba(255,255,255,0.96);
-  text-shadow: 0 2px 10px rgba(0,0,0,0.18);
-  font-size: 14px;
-  line-height: 1.15;
-  white-space: nowrap;
-  overflow:hidden;
-  text-overflow: ellipsis;
-  padding: 0 6px;
-}
-
-/* ============ Premium shell ============ */
+/* ================= 模式切換 ================= */
+.mode-free .card{ }
 .mode-premium .card{
   width:86%;
   height:580px;
@@ -231,7 +176,7 @@ body{
 .mode-premium .banner,
 .mode-premium .dynamic-mask{ display:none !important; }
 
-/* ============ Avatar ============ */
+/* ================= 頭像（兼容舊 DOM + 新 DOM） ================= */
 .avatar-wrap{
   position:absolute;
   width:100%;
@@ -265,338 +210,292 @@ body{
   box-shadow: 0 10px 24px rgba(0,0,0,0.18);
 }
 
-.avatar{
+img.avatar{
   width:100%;
   height:100%;
   border-radius:50%;
   object-fit:cover;
+  display:block;
 }
 
-/* ============ Logo positions ============ */
-/* premium: top-right */
-#logoWrapPremium{
+/* v399.x NEW DOM support (index.html v399.x): <div class="avatar"><img id="u-img"></div> */
+div.avatar{
+  width:116px;
+  height:116px;
+  border-radius:999px;
+  overflow:hidden;
+  background:#fff;
+  padding:4px;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.14);
+  margin: -64px auto 10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.mode-premium div.avatar{
+  width:92px;
+  height:92px;
+  margin: 0;
+  padding:4px;
+  background: rgba(255,255,255,0.14);
+  border: 2.5px solid rgba(255,255,255,0.30);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+}
+div.avatar > img{
+  width:100%;
+  height:100%;
+  border-radius:999px;
+  object-fit:cover;
+  display:block;
+}
+
+/* ✅ Logo（自由款在頭像下方；精品款右上角） */
+.logo-wrap{
   position:absolute;
   z-index:40;
+  display:none;
+  pointer-events:none;
+}
+.mode-free .logo-wrap{
+  top: 188px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.mode-premium .logo-wrap{
   top: 26px;
   right: 22px;
   left: auto;
-  display:none; /* show when has logo */
-  pointer-events:none;
+  transform: none;
 }
-#logoWrapPremium .logo-img{
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  object-fit: cover;
-  background: rgba(255,255,255,0.18);
-  border: 1px solid rgba(255,255,255,0.22);
-  box-shadow: 0 14px 30px rgba(0,0,0,0.20);
-}
-
-/* free: inline below title */
-.logo-inline{
-  display:none;
-  margin-top: 10px;
-  justify-content:center;
-}
-.logo-inline .logo-img{
+.logo-img{
   width: 56px;
   height: 56px;
-  border-radius: 16px;
+  border-radius: 999px; /* ✅ 圓形 logo */
   object-fit: cover;
   box-shadow: 0 10px 22px rgba(0,0,0,0.14);
   background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(0,0,0,0.06);
 }
 
-/* ============ Scroll area ============ */
-.info-scroll{
-  transition:0.4s;
+/* 內容區 */
+.content{
+  position:relative;
+  padding: 86px 18px 16px;
+  height: calc(100% - 0px);
   overflow:auto;
-  height:100%;
-  -webkit-overflow-scrolling: touch;
-}
-.mode-free .info-scroll{
-  padding: 100px 20px 20px;
-  text-align:center;
-}
-.mode-premium .info-scroll{
-  padding: 102px 22px 22px;
-  text-align:left;
 }
 
-/* ============ Headers ============ */
-.free-header-stack{ display:block; }
-.premium-header-row{ display:none; }
-
+/* 名稱/頭銜/單位（既有） */
 .name{
-  margin: 0 0 6px;
   font-weight: 900;
-  letter-spacing: 0.5px;
-  font-size:22px;
+  font-size: 22px;
+  text-align:center;
+  margin-top: 8px;
 }
 .title{
-  font-weight: 900;
-  opacity: 0.86;
-  margin-top: 2px;
-  font-size:14px;
+  font-weight: 800;
+  text-align:center;
+  opacity:.9;
+  margin-top: 6px;
 }
 .unit{
-  font-weight: 900;
-  opacity: 0.86;
-  margin-top: 8px;
-  font-size:14px;
+  font-weight: 800;
+  text-align:center;
+  opacity:.85;
+  margin-top: 6px;
+}
+.slogan{
+  text-align:center;
+  opacity:.75;
+  margin-top: 6px;
 }
 
-/* Premium header row (avatar left, name right) */
-.mode-premium .free-header-stack{ display:none; }
-.mode-premium .premium-header-row{
-  display:flex;
-  align-items:flex-start;
-  justify-content:flex-end;
-  min-height: 88px; /* keeps space for avatar */
+/* v398 blocks container */
+#v398-blocks{ margin-top: 12px; }
+.info-block{
+  background: rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 18px;
+  padding: 12px 12px;
+  margin-top: 10px;
+  line-height: 1.65;
+  font-weight: 700;
+}/* ================= 精品姓名橫排（個人照左、姓名右） ================= */
+.premium-header{
+  display:none;
+  align-items:center;
+  gap: 12px;
+  margin: 8px 0 6px;
 }
+.mode-premium .premium-header{ display:flex; }
+
 .premium-name-wrap{
-  margin-left: 108px; /* leave room for avatar */
-  width: calc(100% - 108px);
+  flex:1;
+  min-width: 0;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
 }
 .premium-name{
-  margin-top: 6px;
-  font-size: 20px;
-  line-height: 1.05;
+  font-weight: 900;
+  font-size: 22px;
+  letter-spacing: .2px;
   white-space: nowrap;
   overflow:hidden;
   text-overflow: ellipsis;
-  text-align:left;
-  color: rgba(255,255,255,0.96);
-  text-shadow: 0 2px 10px rgba(0,0,0,0.18);
-}
-.mode-premium.p6 .premium-name{
-  color: rgba(52,34,0,0.92);
-  text-shadow:none;
+  line-height: 1.1;
 }
 
-/* meta blocks area */
-.meta-blocks{
-  margin-top: 6px;
-  display:grid;
-  gap: 6px;
-}
-.mode-free .meta-blocks{
-  /* free: unit is in banner, so keep this area very light */
-  margin-top: 6px;
-}
-.mode-premium .unit{
-  color: rgba(255,255,255,0.88);
-}
-.mode-premium.p6 .unit{
-  color: rgba(52,34,0,0.82);
-}/* style.css (v399.x COMPLETE OVERWRITE) — PART 2/2 */
-
-/* slogan */
-.slogan{
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 16px;
-  background: rgba(255,255,255,0.72);
-  border: 1px solid var(--soft-border);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.06);
-  font-size: 14px;
-  line-height: 1.75;
-  letter-spacing: .3px;
-}
-.mode-premium .slogan{
-  background: rgba(255,255,255,0.18);
-  border: 1px solid rgba(255,255,255,0.25);
-  backdrop-filter: blur(10px);
-  color: rgba(255,255,255,0.92);
-}
-.mode-premium.p6 .slogan{
-  background: rgba(255,255,255,0.32);
-  border: 1px solid rgba(255,255,255,0.40);
-  color: rgba(52,34,0,0.92);
+/* 自由款 header（不占位，只保留結構，不讓它撐爆） */
+.free-header{
+  display:block;
+  height: 0;
+  overflow: visible;
 }
 
-/* v398 blocks */
-#v398-blocks{
+/* ✅ 修掉「照片失控放大」的核心：任何 img 不可參與撐高 */
+#u-img{
+  max-width:100%;
+  max-height:100%;
+}
+
+/* ================= 照片牆 ================= */
+.photo-wall{
   margin-top: 12px;
-  display: grid;
-  gap: 10px;
 }
-.info-block{
-  background: var(--block-bg);
-  border: 1px solid var(--soft-border);
+.photo-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.photo-grid img{
+  width:100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  border-radius: 14px;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.10);
+  background: rgba(0,0,0,0.04);
+}
+
+/* Lightbox（若 app.js 有用到） */
+.lightbox{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,0.72);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 99999;
+  padding: 18px;
+}
+.lightbox img{
+  max-width: 92vw;
+  max-height: 86vh;
+  object-fit: contain;
   border-radius: 18px;
-  padding: 12px 14px;
-  box-shadow: var(--soft-shadow);
-  backdrop-filter: blur(6px);
-}
-.mode-premium .info-block{
-  background: rgba(255,255,255,0.18);
-  border: 1px solid rgba(255,255,255,0.25);
-  color: rgba(255,255,255,0.92);
-}
-.mode-premium.p6 .info-block{
-  background: rgba(255,255,255,0.32);
-  border: 1px solid rgba(255,255,255,0.40);
-  color: rgba(52,34,0,0.92);
-}
-.block-title{
-  font-size: 12px;
-  font-weight: 900;
-  color: var(--muted);
-  letter-spacing: .6px;
-  margin-bottom: 6px;
-}
-.mode-premium .block-title{ color: rgba(255,255,255,0.72); }
-.mode-premium.p6 .block-title{ color: rgba(52,34,0,0.70); }
-.block-body{
-  font-size: 14px;
-  line-height: 1.75;
-  letter-spacing: .3px;
-  color: rgba(45,52,54,0.92);
-}
-.mode-premium .block-body{ color: rgba(255,255,255,0.90); }
-.mode-premium.p6 .block-body{ color: rgba(52,34,0,0.92); }
-
-.preline{
-  white-space: pre-line;
-  word-break: normal;
-  overflow-wrap: break-word;
+  background:#111;
 }
 
-/* platform + contact docks */
+/* ================= Dock（平台 / 聯繫） ================= */
+/* 外殼 */
 .contact-dock{
-  margin-top:12px;
+  margin-top: 12px;
+  background: rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 18px;
+  padding: 10px 10px;
 }
+
+/* 按鈕區 */
 .dock-buttons{
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
+  gap: 10px;
   justify-content:center;
+  align-items:center;
 }
-.mode-premium .dock-buttons{ justify-content:flex-start; }
 
+/* ✅ 立體按鈕 + 呼吸感 */
 .dock-btn{
-  border:none;
-  background: var(--p);
-  color:#fff;
-  padding:10px 14px;
-  border-radius:999px;
-  font-size:13px;
-  font-weight:900;
-  cursor:pointer;
-  box-shadow:0 10px 22px rgba(0,0,0,0.14);
-  transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
   display:inline-flex;
   align-items:center;
-  gap:10px;
-}
-.dock-btn:active{
-  transform: translateY(1px) scale(0.99);
-  box-shadow:0 8px 18px rgba(0,0,0,0.18);
-}
+  justify-content:center;
+  gap: 8px;
 
-/* ✅ Photo wall => horizontal carousel (swipe) */
-.photo-wall{
-  margin-top:14px;
-  padding-bottom: 6px;
-}
-.photo-grid{
-  display:flex;
-  gap:10px;
-  overflow-x:auto;
-  overflow-y:hidden;
-  padding: 2px 2px 10px;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-}
-.photo-grid::-webkit-scrollbar{ height: 8px; }
-.photo-grid::-webkit-scrollbar-thumb{
-  background: rgba(0,0,0,0.15);
+  padding: 10px 12px;
   border-radius: 999px;
-}
-.photo-grid img{
-  flex: 0 0 auto;
-  width: 118px;
-  height: 118px;
-  object-fit:cover;
-  border-radius: 16px;
-  box-shadow: 0 10px 22px rgba(0,0,0,0.10);
-  transition: transform .12s ease, box-shadow .18s ease;
-  scroll-snap-align: start;
-}
-.photo-grid img:active{ transform: scale(0.98); }
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.92);
 
-/* minimalist: hide internal titles (layout-only) */
-.dock-title, .wall-title{ display:none !important; }
+  font-weight: 900;
+  font-size: 13px;
+  color:#1f2d2a;
+  text-decoration:none;
 
-/* premium fx & paper overlay */
-.premium-fx-layer{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity: var(--fx-op, 0);
-  background: var(--fx-img);
-  z-index:6;
-  mix-blend-mode: overlay;
+  box-shadow:
+    0 14px 28px rgba(0,0,0,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.7);
+
+  transform: translateZ(0);
+  animation: dockBreath 2.6s ease-in-out infinite;
 }
-.paper-overlay{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity: 0.12;
-  z-index:5;
-  mix-blend-mode: multiply;
+.dock-btn i{ font-size: 14px; opacity: .92; }
+
+.dock-btn:active{
+  transform: translateY(1px) scale(.99);
+  animation: none;
 }
 
-/* footer + version tag */
+@keyframes dockBreath{
+  0%{ filter: brightness(1); transform: translateY(0); }
+  50%{ filter: brightness(1.02); transform: translateY(-1px); }
+  100%{ filter: brightness(1); transform: translateY(0); }
+}
+
+/* 精品模式更精緻 */
+.mode-premium .dock-btn{
+  background: rgba(255,255,255,0.86);
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow:
+    0 18px 34px rgba(0,0,0,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.65);
+}
+
+/* ================= 分享區 ================= */
+.share-zone{
+  margin-top: 14px;
+  display:flex;
+  justify-content:center;
+}
+.btn-share{
+  width: 92%;
+  border:none;
+  border-radius: 999px;
+  padding: 12px 14px;
+  font-weight: 900;
+  cursor:pointer;
+  background: #1f2d2a;
+  color:#fff;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.14);
+}
+.btn-share:active{ transform: translateY(1px) scale(.99); }
+
+/* ================= Footer / 版本字 ================= */
 .footer{
-  margin-top: 12px;
-  text-align:center;
-  font-size: 10px;
-  color: rgba(0,0,0,0.28);
-}
-.mode-premium .footer{
-  color: rgba(255,255,255,0.35);
+  margin-top: 10px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding-bottom: 10px;
 }
 .version-tag{
-  font-size:10px;
-  opacity:0.32;
-  position:absolute;
-  bottom: 15px;
-  right: 25px;
-  font-family: monospace;
-  user-select:none;
+  font-size: 11px;
+  opacity: .42;
 }
 
-/* ===== Dynamic balance helpers (visual) ===== */
-/* allow sections to collapse nicely when empty */
-#u-unit-banner:empty{ display:none; }
-#u-unit:empty{ display:none; }
-#u-title:empty{ display:none; }
-#u-slogan:empty{ display:none; }
-#platformButtons:empty{ display:none; }
-#platformDock:has(#platformButtons:empty){ display:none; } /* modern browsers */
-#contactButtons:empty{ display:none; }
-#photoGrid:empty{ display:none; }
-#photoWall:has(#photoGrid:empty){ display:none; } /* modern browsers */
-
-/* free: if banner unit empty, keep banner height stable (do nothing) */
-.mode-free #u-unit{ display:none !important; } /* free unit lives in banner */
-
-/* show logo wrap only when populated (JS will toggle display) */
-#logoWrapFree{ display:flex; }
-#logoWrapPremium{ display:block; }
-.logo-inline:has(img[src=""]){ display:none; } /* best-effort */
-
-/* responsive */
-@media (max-width: 360px){
-  .card{ height: 640px; }
-  .photo-grid img{ width: 108px; height: 108px; }
-  .premium-name-wrap{ margin-left: 96px; width: calc(100% - 96px); }
-}
-
-/* iOS safe */
-@supports(padding: max(0px)){
-  body{ padding-bottom: max(40px, env(safe-area-inset-bottom)); }
+/* ================= 滾動條（手機可忽略） ================= */
+.content::-webkit-scrollbar{ width: 6px; }
+.content::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,0.12);
+  border-radius: 999px;
 }
