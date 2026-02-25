@@ -1,11 +1,11 @@
 /* ================================
- * Happiness Smart Card System — sw.js (v3983COMPLETE OVERWRITE)
+ * Happiness Smart Card System — sw.js (v3984COMPLETE OVERWRITE)
  * - Safe cache-first for static assets
  * - Network-first for GAS API (avoid stale card data)
  * - Auto cleanup old caches
  * ================================ */
 
-const VERSION = "v3983";
+const VERSION = "v3984";
 const CACHE_NAME = `hsc-cache-${VERSION}`;
 const RUNTIME_CACHE = `hsc-runtime-${VERSION}`;
 
