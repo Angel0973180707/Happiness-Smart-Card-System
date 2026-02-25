@@ -1,15 +1,15 @@
 /* ================================
- * Happiness Smart Card System — app.js (v399.3 COMPLETE OVERWRITE)
+ * Happiness Smart Card System — app.js (v399.6 COMPLETE OVERWRITE)
  * FIX:
- * 1) setV382 / setV382Style / setV382Paper linkage restored (版型連動OK)
- * 2) Delivery URL GitHub Pages subpath SAFE (交貨在後台 admin.html)
- * 3) Auto-hide empty blocks/dock/photos for dynamic balance
- * 4) Premium: name ALWAYS horizontal; unit/title under avatar; name+logo dynamic balance
- * 5) Share button: robust clipboard fallback + Web Share
+ * 1) Premium name horizontal + unit/title stable via CSS class mode-premium
+ * 2) Logo must show: ensure ids match + stronger pick keys
+ * 3) Hidden admin entry: adminHotspot long-press / triple-tap
+ * 4) Share: try navigator.share, then clipboard, then fallback textarea
+ * 5) Do NOT overwrite body.className (preserve other classes)
  * ================================ */
 
 const CONFIG = {
-  VERSION: "399.3",
+  VERSION: "399.6",
 
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
@@ -30,16 +30,16 @@ let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
 let __payloadRaw = null;
 let __payload = null;
 let __resolvedId = CONFIG.DEFAULT_ID;
-let __lastLoad = { id: "", ts: 0, url: "" };
 
+/* --------------------------- */
 function $(id) { return document.getElementById(id); }
 function q(sel, root = document) { return root.querySelector(sel); }
 function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
 
-function log_() { if (CONFIG.DEBUG) console.log("[HSC-v399.3]", ...arguments); }
-function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v399.3]", ...arguments); }
-function err_() { console.error("[HSC-v399.3]", ...arguments); }
+function log_() { if (CONFIG.DEBUG) console.log("[HSC-v399.6]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v399.6]", ...arguments); }
+function err_() { console.error("[HSC-v399.6]", ...arguments); }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -81,16 +81,30 @@ function ensureHttp_(u) {
 }
 
 /* ---------------------------
-UI linkage (HTML onclick hooks)
+Base directory helper (GitHub subpath safe)
+--------------------------- */
+function getBaseDir_() {
+  try {
+    const u = new URL(window.location.href);
+    u.hash = "";
+    const p = u.pathname;
+    const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
+    return u.origin + dir;
+  } catch {
+    return window.location.origin + "/";
+  }
+}
+
+/* ---------------------------
+UI linkage (onclick hooks)
+- DO NOT overwrite body.className entirely
 --------------------------- */
 function toggleDotsRows_() {
-  const freeRow = q(".dots-free");
-  const premiumRow = q(".dots-premium");
-  if (!freeRow || !premiumRow) return;
+  const rows = qa(".dots-row");
+  if (!rows.length) return;
 
   const isFree = state.mode === "free";
-  freeRow.style.display = isFree ? "flex" : "none";
-  premiumRow.style.display = isFree ? "none" : "flex";
+  rows.forEach(row => (row.style.display = isFree ? "flex" : "none"));
 }
 
 function syncPlanButtons_() {
@@ -107,6 +121,30 @@ function syncPlanButtons_() {
   }
 }
 
+function clearActive_(selector) {
+  qa(selector).forEach(el => el.classList.remove("active"));
+}
+
+function applyModeClasses_() {
+  const body = document.body;
+  if (!body) return;
+
+  const keep = [];
+  for (const c of Array.from(body.classList)) {
+    if (/^(mode-|color-|pcolor-|style-|paper-)/.test(c)) continue;
+    keep.push(c);
+  }
+
+  const isFree = state.mode === "free";
+  keep.push(`mode-${state.mode}`);
+  if (state.theme) keep.push(state.theme);
+
+  if (isFree && state.style) keep.push(`style-${state.style}`);
+  if (isFree && state.paper) keep.push(state.paper);
+
+  body.className = keep.join(" ").trim();
+}
+
 function applyV382_() {
   const isFree = state.mode === "free";
 
@@ -114,16 +152,7 @@ function applyV382_() {
   if (freeControls) freeControls.style.display = isFree ? "block" : "none";
 
   toggleDotsRows_();
-
-  // ✅ Premium 只吃 theme，不吃 style/paper（避免把自由款的直排/版型误套进来）
-  const classList = [
-    `mode-${state.mode}`,
-    state.theme,
-    isFree ? `style-${state.style}` : "",
-    isFree ? state.paper : ""
-  ];
-
-  document.body.className = classList.filter(Boolean).join(" ");
+  applyModeClasses_();
 }
 
 /* --- HTML onclick hooks --- */
@@ -131,8 +160,8 @@ window.setV382 = function (mode, theme, el) {
   state.mode = mode;
   state.theme = theme;
 
-  qa(".dot, .p-dot").forEach(d => d.classList.remove("active"));
-  if (el && (el.classList.contains("dot") || el.classList.contains("p-dot"))) el.classList.add("active");
+  clearActive_(".dot, .p-dot");
+  if (el) el.classList.add("active");
 
   syncPlanButtons_();
   applyV382_();
@@ -140,23 +169,19 @@ window.setV382 = function (mode, theme, el) {
 
 window.setV382Style = function (style, el) {
   state.style = style;
-  if (el && el.parentElement) {
-    qa(".btn-neo", el.parentElement).forEach(b => b.classList.remove("active"));
-    el.classList.add("active");
-  }
+  clearActive_("[data-style], .btn-style, .style-buttons .btn-neo");
+  if (el) el.classList.add("active");
   applyV382_();
 };
 
 window.setV382Paper = function (paper, el) {
   state.paper = paper;
-  if (el && el.parentElement) {
-    qa(".btn-neo", el.parentElement).forEach(b => b.classList.remove("active"));
-    el.classList.add("active");
-  }
+  clearActive_("[data-paper], .btn-paper, .paper-buttons .btn-neo");
+  if (el) el.classList.add("active");
   applyV382_();
 };/* =========================
  * app.js Part 2/3
- * Payload normalize + Images + Dock + Blocks + Auto-hide
+ * Normalize keys + Images + Dock + Blocks + Auto-hide
  * ========================= */
 
 function escapeHtml_(s) {
@@ -320,14 +345,9 @@ function setImgWithFallback_(imgEl, candidates) {
 function setAvatarImage_(p){
   const img = $("u-img");
   if(!img) return;
-
-  const raw = pick(p, ["個人照_fast","個人照"]);
+  const raw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar"]);
   const cands = buildImageCandidates_(raw);
-
-  if(!cands.length){
-    img.removeAttribute("src");
-    return;
-  }
+  if(!cands.length){ img.removeAttribute("src"); return; }
   setImgWithFallback_(img, cands);
 }
 
@@ -336,7 +356,8 @@ function setLogo_(p){
   const img = $("u-logo");
   if(!wrap || !img) return;
 
-  const raw = pick(p, ["Logo_fast","Logo"]);
+  // ✅ 強化容錯：Logo_fast / Logo / logo / LOGO
+  const raw = pick(p, ["Logo_fast","Logo","logo_fast","logo","LOGO"]);
   const cands = buildImageCandidates_(raw);
 
   if(!cands.length){
@@ -348,7 +369,7 @@ function setLogo_(p){
   setImgWithFallback_(img, cands);
 }
 
-/* Photo wall */
+/* Photos */
 function splitPhotoList_(raw){
   const s = text(raw);
   if(!s) return [];
@@ -363,12 +384,8 @@ function splitPhotoList_(raw){
 
 function collectPhotoUrls_(p){
   const urls = [];
-  const main = pick(p, ["照片_fast","照片"]);
+  const main = pick(p, ["照片_fast","照片","photos_fast","photos"]);
   urls.push(...splitPhotoList_(main));
-
-  for(let i=1;i<=CONFIG.PHOTO_SLOT_MAX;i++){
-    urls.push(...splitPhotoList_(p[`照片${i}`]));
-  }
 
   const cleaned = [];
   const seen = new Set();
@@ -432,49 +449,41 @@ function renderContactDock_(p){
 
   wrap.innerHTML = "";
 
-  // LINE（好友/官帳）
   const lineFriend = asUrlOrSearch_(pick(p, ["LINE連結"]));
   const lineOA = asUrlOrSearch_(pick(p, ["LINE官方帳號"]));
   if(lineFriend) addDockBtn_(wrap, "LINE（好友）", lineFriend);
   if(lineOA) addDockBtn_(wrap, "LINE（官帳）", lineOA);
 
-  // 影音1~3
   for(let i=1;i<=3;i++){
     const href = asUrlOrSearch_(pick(p, [`影音平台${i}`]));
     if(href) addDockBtn_(wrap, `影音平台${i}`, href);
   }
 
-  // 社群1~3
   for(let i=1;i<=3;i++){
     const href = asUrlOrSearch_(pick(p, [`社群平台${i}`]));
     if(href) addDockBtn_(wrap, `社群平台${i}`, href);
   }
 
-  // Email/電話/地址/微信
   const email = text(pick(p, ["Email"]));
   const phone = text(pick(p, ["電話"]));
   const addr  = text(pick(p, ["地址"]));
   const wx    = text(pick(p, ["微信"]));
 
   if(email) addDockBtn_(wrap, "Email", `mailto:${email}`);
-
   if(phone){
     const pnum = phone.replace(/[^\d+]/g, "");
     if(pnum) addDockBtn_(wrap, "撥打", `tel:${pnum}`);
   }
-
   if(addr) addDockBtn_(wrap, "導航", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`);
-
   if(wx) addDockBtn_(wrap, "微信", `https://www.google.com/search?q=${encodeURIComponent("WeChat " + wx)}`);
 
   dock.style.display = wrap.children.length ? "" : "none";
 }
 
-/* Blocks auto-hide */
+/* Blocks */
 function renderBlock_(rootId, title, body){
   const root = $(rootId);
   if(!root) return;
-
   const b = text(body);
   if(!b){
     root.innerHTML = "";
@@ -488,12 +497,12 @@ function renderBlock_(rootId, title, body){
   `;
 }/* =========================
  * app.js Part 3/3
- * Load + Share + Hidden Admin + Boot
+ * Load + Share + Admin + Boot
  * ========================= */
 
 function setLoadingUi_() {
   setText("u-name", "載入中...");
-  setText("u-unit", "");
+  setText("u-unit", "同步中...");
   setText("u-title", "");
 
   const sl = $("u-slogan");
@@ -543,7 +552,6 @@ function setFailUi_(msg) {
   if (grid) grid.innerHTML = "";
 }
 
-/* Fetch JSON (robust) */
 async function fetchWithTimeout(url, timeoutMs) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), timeoutMs);
@@ -559,13 +567,12 @@ async function fetchWithTimeout(url, timeoutMs) {
     });
 
     const status = res.status;
-    const ct = (res.headers && res.headers.get) ? (res.headers.get("content-type") || "") : "";
     const txt = await res.text();
     const body = (txt || "").trim();
 
     if (CONFIG.DEBUG) {
       const head = body.slice(0, 180).replace(/\s+/g, " ");
-      log_("fetch:", { status, ct, len: body.length, head });
+      log_("fetch:", { status, len: body.length, head });
     }
 
     if (!res.ok && !body) throw new Error(`HTTP ${status} (empty)`);
@@ -576,7 +583,7 @@ async function fetchWithTimeout(url, timeoutMs) {
     } catch {
       const m = body.match(/\{[\s\S]*\}/);
       if (m) return JSON.parse(m[0]);
-      throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
+      throw new Error(`Not JSON (status=${status})`);
     }
   } finally {
     clearTimeout(t);
@@ -597,7 +604,7 @@ async function fetchJsonRobust(url) {
   throw lastErr || new Error("Fetch failed");
 }
 
-/* Apply data (auto-hide) */
+/* Apply data */
 function applyDataToCard(p) {
   const name   = pick(p, ["姓名"]);
   const unit   = pick(p, ["單位"]);
@@ -634,14 +641,11 @@ function applyDataToCard(p) {
   syncPlanButtons_();
 }
 
-/* Load card */
 async function loadCardById_(id) {
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
 
   __resolvedId = cid;
-  __lastLoad = { id: cid, ts: Date.now(), url };
-
   setLoadingUi_();
 
   try {
@@ -669,28 +673,26 @@ async function loadCardById_(id) {
   }
 }
 
-/* URLs */
+/* Share/Delivery URLs */
 function buildCardUrl_() {
-  const u = new URL(window.location.href);
+  const base = getBaseDir_();
+  const u = new URL("index.html", base);
+  u.searchParams.set("id", __resolvedId || CONFIG.DEFAULT_ID);
+  u.hash = "";
+  return u.toString();
+}
+function buildDeliveryUrl_() {
+  const base = getBaseDir_();
+  const u = new URL("share.html", base);
   u.searchParams.set("id", __resolvedId || CONFIG.DEFAULT_ID);
   u.hash = "";
   return u.toString();
 }
 
-/* Robust copy */
 async function copyText_(s) {
   const v = text(s);
   if (!v) return false;
 
-  // Web Share (best UX on mobile)
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: "名片", text: "我的名片連結", url: v });
-      return true;
-    }
-  } catch {}
-
-  // Clipboard API
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(v);
@@ -698,46 +700,47 @@ async function copyText_(s) {
     }
   } catch {}
 
-  // execCommand fallback
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = v;
-    ta.setAttribute("readonly", "readonly");
-    ta.style.position = "fixed";
-    ta.style.left = "-9999px";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    return true;
-  } catch {}
-
-  // last resort prompt
-  try {
-    window.prompt("複製名片網址（長按全選複製）", v);
-    return true;
-  } catch {}
-
-  return false;
+  const ta = document.createElement("textarea");
+  ta.value = v;
+  ta.setAttribute("readonly", "readonly");
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch {}
+  document.body.removeChild(ta);
+  return true;
 }
 
-/* Share button */
+/* ✅ Share FAB */
 function bindShareUi_() {
   const btn = $("btnShareCard");
   if (!btn) return;
 
   btn.addEventListener("click", async () => {
     const url = buildCardUrl_();
+
+    // 1) try native share (best on mobile)
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: document.title, text: "這是我的名片", url });
+        return;
+      }
+    } catch {
+      // ignore -> fallback to copy
+    }
+
+    // 2) copy
     const ok = await copyText_(url);
-    if (ok) alert("✅ 已複製名片網址");
-    else alert("⚠️ 這台手機限制剪貼簿，已改用手動複製視窗");
+    alert(ok ? "✅ 已複製名片網址" : "⚠️ 複製失敗，請長按網址手動複製");
   });
 }
 
-/* Hidden Admin Entry (右下角：三擊 + 長按備援) */
+/* ✅ Hidden Admin entry */
 function openAdmin_() {
+  const base = getBaseDir_();
   const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
-  const u = new URL("admin.html", window.location.href);
+  const u = new URL("admin.html", base);
   u.searchParams.set("id", id);
   window.open(u.toString(), "_blank");
 }
@@ -759,7 +762,6 @@ function bindHiddenAdmin_() {
     timer = null;
   };
 
-  // touch
   hs.addEventListener("touchstart", start, { passive: true });
   hs.addEventListener("touchend", () => {
     cancel();
@@ -773,9 +775,9 @@ function bindHiddenAdmin_() {
       openAdmin_();
     }
   }, { passive: true });
+
   hs.addEventListener("touchcancel", cancel, { passive: true });
 
-  // desktop
   hs.addEventListener("mousedown", start);
   hs.addEventListener("mouseup", cancel);
   hs.addEventListener("mouseleave", cancel);
