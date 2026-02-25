@@ -1,5 +1,5 @@
 /* ================================
- * Happiness Smart Card System — app.js (v399.3 COMPLETE OVERWRITE)
+ * Happiness Smart Card System — app.js (v399.4 COMPLETE OVERWRITE)
  * FIX:
  * 1) Restore v382 hooks: setV382 / setV382Style / setV382Paper (button linkage works)
  * 2) Delivery URL correct for GitHub Pages subpath (new URL)
@@ -7,7 +7,7 @@
  * ================================ */
 
 const CONFIG = {
-  VERSION: "399.3",
+  VERSION: "399.4",
 
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
