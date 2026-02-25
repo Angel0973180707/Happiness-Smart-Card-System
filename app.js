@@ -1,12 +1,12 @@
 /* ============================================================
- * Happiness Smart Card System — app.js (v400 FULL OVERWRITE)
+ * Happiness Smart Card System — app.js (v400.1 FULL OVERWRITE)
  * 1. 核心邏輯：支援三擊隱形入口、序號/姓名自動識別
  * 2. 排版控制：實現自由款與精品款雙重 DOM 渲染
  * 3. 健壯系統：自動修復 Google Drive 圖片連結、超時重試
  * ============================================================ */
 
 const CONFIG = {
-  VERSION: "400.0",
+  VERSION: "400.1",
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
   DEFAULT_ID: "TW0001",
