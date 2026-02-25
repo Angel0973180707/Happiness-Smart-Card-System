@@ -501,4 +501,22 @@ body{
   right: 25px;
   font-family: monospace;
   user-select:none;
+}/* ================================
+ * v400 HOTFIX: photo grid dynamic balance (FREE)
+ * paste at END of style.css
+ * ================================ */
+
+.mode-free .photo-grid{
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)) !important;
+  gap: 10px !important;
+  align-items: stretch;
+  justify-items: stretch;
+  grid-auto-flow: dense;
+}
+
+.mode-free .photo-grid img{
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
 }
