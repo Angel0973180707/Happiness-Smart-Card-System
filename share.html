@@ -1,51 +1,210 @@
+<!-- share.html (v399.x COMPLETE OVERWRITE) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>幸福智慧名片｜交貨頁</title>
-  <meta name="description" content="照片＋姓名，一鍵開啟名片工具。" />
-  <meta name="theme-color" content="#ee5253" />
+  <title>OG 交貨卡｜Happiness Smart Card System</title>
+  <meta name="description" content="一貼就是 OG 卡｜點擊查看名片" />
 
-  <!-- OG (static) -->
+  <!-- ✅ OG：永遠固定用你的 og-card.png（一貼就是一張 OG 卡） -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="幸福智慧名片｜交貨頁" />
-  <meta property="og:description" content="照片＋姓名，一鍵開啟名片工具。" />
-  <!-- ✅ 你目前 og-card.png 在根目錄，所以用 ./og-card.png -->
-  <meta property="og:image" content="./og-card.png" />
+  <meta property="og:title" content="幸福智慧名片" />
+  <meta property="og:description" content="點擊查看名片" />
+  <meta property="og:image" content="og-card.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="./og-card.png" />
 
-  <link rel="stylesheet" href="./style.css?v=388" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="og-card.png" />
+
+  <link rel="icon" href="./icons/icon-192.png" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      --bg:#0f1412;
+      --card:#ffffff;
+      --shadow: 0 18px 60px rgba(0,0,0,.28);
+      --radius: 22px;
+      --btn:#2d3436;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family:'Noto Sans TC', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 500px at 50% 10%, rgba(255,255,255,.10), rgba(0,0,0,0)) , var(--bg);
+      color:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px 14px;
+    }
+
+    .wrap{
+      width:min(920px, 100%);
+      display:grid;
+      gap:14px;
+      justify-items:center;
+    }
+
+    .og-shell{
+      width:min(860px, 100%);
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--radius);
+      padding: 12px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    /* 16:9 stage */
+    .stage{
+      position:relative;
+      width:100%;
+      aspect-ratio: 1200 / 630;
+      border-radius: calc(var(--radius) - 6px);
+      overflow:hidden;
+      background:#111;
+    }
+
+    /* 底圖：你上傳的 og-card.png */
+    #ogBase{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      transform: translateZ(0);
+    }
+
+    /* ✅ A：HTML 疊字 + 疊照片（不靠 canvas） */
+    .overlay{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+
+    /* 依你這張模板的視覺：左上大圓頭像、右上姓名 */
+    .avatar{
+      position:absolute;
+      left: 11%;
+      top: 18%;
+      width: 18%;
+      aspect-ratio: 1/1;
+      border-radius: 999px;
+      overflow:hidden;
+      background: rgba(255,255,255,.55);
+      box-shadow: 0 10px 30px rgba(0,0,0,.18);
+    }
+    .avatar img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      border-radius:999px;
+      display:block;
+    }
+
+    .name{
+      position:absolute;
+      right: 10%;
+      top: 22%;
+      font-weight: 900;
+      letter-spacing: .5px;
+      font-size: clamp(18px, 4.0vw, 54px);
+      color: #1d1d1d;
+      text-shadow: 0 2px 0 rgba(255,255,255,.35);
+      max-width: 44%;
+      text-align:right;
+      line-height:1.05;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hint{
+      text-align:center;
+      opacity:.9;
+      font-size: 13px;
+      letter-spacing:.4px;
+      margin-top: 8px;
+    }
+
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      justify-content:center;
+      margin-top: 6px;
+    }
+    .btn{
+      border:none;
+      cursor:pointer;
+      padding: 12px 16px;
+      border-radius: 999px;
+      font-weight: 900;
+      letter-spacing:.2px;
+      background: rgba(255,255,255,.92);
+      color:#1f2d2a;
+      box-shadow: 0 12px 28px rgba(0,0,0,.22);
+      transition: transform .12s ease;
+    }
+    .btn:active{ transform: translateY(1px) scale(.99); }
+
+    .btn.primary{
+      background: #1f2d2a;
+      color:#fff;
+    }
+
+    .small{
+      font-size:12px;
+      opacity:.85;
+      text-align:center;
+      margin-top: 2px;
+    }
+
+    /* loading */
+    .loading{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      background: rgba(0,0,0,.35);
+      font-weight:900;
+      letter-spacing:.5px;
+    }
+  </style>
 </head>
 
-<body class="share-page">
-  <div class="share-wrap">
-    <div class="share-card">
-      <div class="share-title">幸福智慧名片｜交貨頁</div>
-      <div class="share-sub">照片 + 姓名（由資料載入）</div>
-
-      <div class="share-photo">
-        <img id="s-img" alt="專業形象照" />
+<body>
+  <div class="wrap">
+    <div class="og-shell">
+      <div class="stage" aria-label="og-delivery-card">
+        <img id="ogBase" src="og-card.png" alt="OG 卡底圖" />
+        <div class="overlay">
+          <div class="avatar" id="avatarBox" style="display:none;">
+            <img id="avatarImg" src="" alt="個人照" />
+          </div>
+          <div class="name" id="nameText" style="display:none;"></div>
+          <div class="loading" id="loadingLayer">載入交貨資料中…</div>
+        </div>
       </div>
 
-      <div id="s-name" class="share-name">載入中...</div>
+      <div class="hint">✅ 這張是交貨卡（貼出去會顯示 OG 預覽）｜點下方進入名片</div>
 
-      <div class="share-actions">
-        <button class="btn-cta" onclick="SharePage.openCard()">開啟名片工具 →</button>
-        <button class="btn-cta ghost" onclick="SharePage.copyDeliveryLink()">複製交貨連結</button>
+      <div class="actions">
+        <button class="btn primary" id="btnOpenCard" type="button">查看名片 →</button>
+        <button class="btn" id="btnCopyShare" type="button">一鍵複製交貨連結</button>
+        <button class="btn" id="btnCopyCard" type="button">一鍵複製名片連結</button>
       </div>
-
-      <div class="share-note">
-        若你要「貼 LINE/FB 就顯示同一張交貨封面圖」，請用上面複製的交貨連結。<br/>
-        （點進來後會看到這位客戶的姓名與大頭照）
-      </div>
+      <div class="small" id="debugText"></div>
     </div>
   </div>
 
-  <!-- ✅ 用同一支 app.js，裡面會自動判斷 share-page -->
-  <script src="./app.js?v=388"></script>
+  <script src="share.js?v=399"></script>
 </body>
 </html>
