@@ -1,9 +1,9 @@
 /* ================================
- * Happiness Smart Card System — style.css (v400 COMPLETE OVERWRITE)
- * Base: v399 (KEEP DOM: #card-container + banner/dynamic-mask + avatar-circle + info-scroll)
- * Fix:
+ * Happiness Smart Card System — style.css (v39910COMPLETE OVERWRITE)
+ * Base: v399
+ * Fix v399.8:
  * 1) Dock buttons dynamic-average (2 cols -> 3 cols on wider)
- * 2) Logo position rules (free center on banner; premium top-right) — but display is controlled by app.js
+ * 2) Logo smaller + move up (free mode)
  * MUST KEEP: v393 dynamic-mask system for free mode arch/flat/spot
  * Keep: v398 blocks + dock + photo wall
  * ================================ */
@@ -66,7 +66,7 @@ body{
 }
 
 /* =========================================
-   上方隱形入口熱區（不破壞門面）
+   v399：上方隱形入口熱區（不破壞門面）
 ========================================= */
 #adminHotspotTop{
   position: fixed;
@@ -167,7 +167,7 @@ body{
 .btn-cta:hover{ transform: translateY(-1px); filter: brightness(1.01); }
 .btn-cta:active{ transform: translateY(1px) scale(0.99); }
 
-/* ================= 名片卡 ================= */
+/* ================= 名片卡（樣品區） ================= */
 .card{
   width:92%;
   max-width:380px;
@@ -217,7 +217,7 @@ body{
 .mode-premium .banner,
 .mode-premium .dynamic-mask{ display:none !important; }
 
-/* 頭像（v399 絕對定位系統） */
+/* 頭像 */
 .avatar-wrap{
   position:absolute;
   width:100%;
@@ -258,29 +258,28 @@ body{
   object-fit:cover;
 }
 
-/* ✅ Logo（位置規則：顯示由 app.js 控制，不強制 display） */
+/* ✅ Logo（free：縮小+上移；premium：右上） */
 .logo-wrap{
   position:absolute;
   z-index:40;
-  display:none;          /* ✅ 預設隱藏，避免沒資料也硬出現 */
+  display:none;
   pointer-events:none;
 }
 .mode-free .logo-wrap{
-  top: 50px;             /* banner 視覺中心 */
+  top: 150px;               /* ⬅️ 上移 */
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
 }
 .mode-premium .logo-wrap{
-  top: 22px;
-  right: 18px;
+  top: 26px;
+  right: 22px;
   left: auto;
   transform: none;
-  z-index: 50;
 }
 .logo-img{
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;  /* ✅ 一律圓形 */
+  width: 46px;              /* ⬅️ 縮小 */
+  height: 46px;             /* ⬅️ 縮小 */
+  border-radius: 14px;
   object-fit: cover;
   box-shadow: 0 10px 22px rgba(0,0,0,0.14);
   background: rgba(255,255,255,0.92);
@@ -288,7 +287,7 @@ body{
 .mode-premium .logo-img{
   width: 48px;
   height: 48px;
-  border-radius: 999px;
+  border-radius: 16px;
   background: rgba(255,255,255,0.18);
   border: 1px solid rgba(255,255,255,0.22);
   box-shadow: 0 14px 30px rgba(0,0,0,0.20);
@@ -307,7 +306,7 @@ body{
 .name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; font-size:22px; }
 .unit, .title{ font-weight: 900; opacity: 0.86; margin-top: 2px; font-size:14px; }
 
-/* 精品：文字安全 */
+/* 精品：名字與頭像同區域的視覺安全 */
 .mode-premium .name{
   margin-top: 8px;
   color: rgba(255,255,255,0.96);
@@ -393,7 +392,7 @@ body{
   display:flex;
   flex-wrap:wrap;
   gap:10px;
-  justify-content:space-between;
+  justify-content:space-between; /* 平均鋪滿 */
 }
 .dock-btn{
   border:none;
@@ -410,21 +409,17 @@ body{
   align-items:center;
   gap:10px;
 
-  flex: 1 1 calc(50% - 10px);
+  flex: 1 1 calc(50% - 10px);  /* 兩欄平均 */
   justify-content:center;
   min-width: 140px;
 }
 @media (min-width: 420px){
-  .dock-btn{ flex: 1 1 calc(33.33% - 10px); }
+  .dock-btn{ flex: 1 1 calc(33.33% - 10px); } /* 變三欄 */
 }
 .dock-btn:active{
   transform: translateY(1px) scale(0.99);
   box-shadow:0 8px 18px rgba(0,0,0,0.18);
 }
-
-/* premium：dock 按鈕靠左（維持精品閱讀習慣） */
-.mode-premium .dock-buttons{ justify-content:flex-start; }
-.mode-premium .dock-btn{ justify-content:center; }
 
 /* 照片牆 */
 .photo-wall{ margin-top:14px; padding-bottom: 12px; }
@@ -439,20 +434,9 @@ body{
   object-fit:cover;
   border-radius:14px;
   box-shadow: 0 10px 22px rgba(0,0,0,0.10);
-  opacity: 1;
-  transition: opacity .35s ease, transform .12s ease, box-shadow .18s ease;
+  transition: transform .12s ease, box-shadow .18s ease;
 }
 .photo-grid img:active{ transform: scale(0.98); }
-
-/* ✅ 精品相片牆：動態平均（不硬卡 3 欄） */
-.mode-premium .photo-grid{
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-  gap: 10px;
-  align-items: stretch;
-}
-@media (max-width: 360px){
-  .mode-premium .photo-grid{ grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
-}
 
 /* 極簡：隱藏標題（但服務/經歷仍顯示） */
 .dock-title, .wall-title{ display:none !important; }
@@ -475,12 +459,27 @@ body{
   z-index:5;
   mix-blend-mode: multiply;
 }
+/* ================================
+ * style.css (v399.4) 2/2
+ * - keep: premium text safety / hide titles / fx layers
+ * - no more changes below
+ * ================================ */
 
-/* 互動安全：按鈕 focus 不要出現醜框 */
-.dock-btn:focus,
-.btn-neo:focus,
-.btn-cta:focus{
-  outline: none;
+/* premium：dock 按鈕靠左（維持精品閱讀習慣） */
+.mode-premium .dock-buttons{
+  justify-content:flex-start;
+}
+.mode-premium .dock-btn{
+  justify-content:center;          /* 文字仍置中，視覺更精品 */
+}
+
+/* premium：文字顏色微穩定（避免某些底色太亮吃字） */
+.mode-premium .name,
+.mode-premium .unit,
+.mode-premium .title,
+.mode-premium .block-body{
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* 小螢幕：避免 dock 太擠（仍維持平均） */
@@ -492,6 +491,25 @@ body{
   }
 }
 
+/* 照片牆：圖片載入中淡入（更精品） */
+.photo-grid img{
+  opacity: 1;
+  transition: opacity .35s ease, transform .12s ease, box-shadow .18s ease;
+}
+
+/* 互動安全：按鈕 focus 不要出現醜框 */
+.dock-btn:focus,
+.btn-neo:focus,
+.btn-cta:focus{
+  outline: none;
+}
+
+/* ✅ 保底：logoWrap 在沒資料時一定隱藏，避免佔位 */
+#logoWrap[style*="display: none"]{
+  pointer-events:none;
+}
+
+/* End of v399.4 */
 /* version tag */
 .version-tag{
   font-size:10px;
@@ -502,33 +520,71 @@ body{
   font-family: monospace;
   user-select:none;
 }/* ================================
- * v400 HOTFIX: photo grid dynamic balance (FREE)
+ * v399.6 CSS OVERRIDE PATCH
  * paste at END of style.css
  * ================================ */
 
-.mode-free .photo-grid{
-  display: grid !important;
+/* ✅ Logo 一律圓形 */
+.logo-img{
+  border-radius: 999px !important;
+}
+
+/* ✅ 自由款：Logo 放 banner 正中間（垂直+水平居中） */
+.mode-free .logo-wrap{
+  display: block !important;
+  top: 50px !important;           /* banner 125px 的視覺中心 */
+  left: 50% !important;
+  right: auto !important;
+  transform: translate(-50%, -50%) !important;
+  pointer-events: none;
+  z-index: 35;
+}
+
+/* ✅ 精品款：Logo 右上角（保留） */
+.mode-premium .logo-wrap{
+  display: block !important;
+  top: 22px !important;
+  right: 18px !important;
+  left: auto !important;
+  transform: none !important;
+  z-index: 50;
+}
+
+/* ✅ 精品：姓名移到右邊，與 Logo 動態平衡（右側留出 logo 空間） */
+.mode-premium #u-name{
+  position: absolute !important;
+  top: 44px !important;
+  left: 120px !important;         /* 讓出左邊頭像 */
+  right: 92px !important;         /* 讓出右上 logo */
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.15;
+  z-index: 40;
+}
+
+/* ✅ 精品：unit/title 仍在內容區，但不要被姓名壓到 */
+.mode-premium .info-scroll{
+  padding-top: 118px !important;  /* 把內容往下推，避開絕對定位的姓名 */
+}
+
+/* ✅ 精品相片牆：動態平衡平均（自動欄位，不硬卡 3 欄） */
+.mode-premium .photo-grid{
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)) !important;
   gap: 10px !important;
   align-items: stretch;
-  justify-items: stretch;
-  grid-auto-flow: dense;
 }
 
-.mode-free .photo-grid img{
-  width: 100%;
+.mode-premium .photo-grid img{
   aspect-ratio: 1 / 1;
   object-fit: cover;
-}/* v400 hotfix: free card bottom line */
-.mode-free .card,
-.mode-free .preview-card,
-.mode-free .card-shell {
-  border-bottom: 0 !important;
-  box-shadow: none !important;
+  border-radius: 14px;
 }
 
-.mode-free .card::after,
-.mode-free .preview-card::after,
-.mode-free .card-shell::after{
-  display:none !important;
+/* 超小螢幕保底 */
+@media (max-width: 360px){
+  .mode-premium #u-name{ left: 110px !important; right: 86px !important; }
+  .mode-premium .photo-grid{ grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)) !important; }
 }
