@@ -1,748 +1,765 @@
-/* ========================================
-Happiness Smart Card System — app.js v398.2.1
-COMPLETE OVERWRITE (1/3)
+/* ================================
+Happiness Smart Card System — app.js (v393.1 COMPLETE OVERWRITE)
 
-Fix:
-1) 版型/紙感按鈕同步：不靠順位，改解析 onclick 參數（永不錯置）
-2) 隱形後台新增「輸入序號/姓名」載入
-3) 照片牆強容錯（主欄位 + slots 1~20 + 多分隔符）
+Base on v393:
+- Keep plan/style/paper linkage (已驗證 OK)
+Add/Fix:
+- Avatar image more robust (key priority + stronger candidates)
+- Photo wall (multi photos) robust: primary keys + slots 1~20 + separators + per-image fallback
+- Auto create photo wall DOM if missing (so no HTML change required)
 
-Keep:
-- v398 structure + blocks + read more + dock icons
-======================================== */
+================================ */
 
 const CONFIG = {
-  VERSION: "398.2.1",
+  VERSION: 393.1,
+
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
   DEFAULT_ID: "TW0001",
+
+  FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
-  DEBUG: true,
 
-  TRIPLE_TAP_WINDOW_MS: 500,
+  ADMIN_LONGPRESS_MS: 1200,
 
-  CLAMP_LINES_BLOCK: 6,
-  CLAMP_LINES_SLOGAN: 4
+  // Photo wall
+  PHOTO_SLOT_MAX: 20,
+  PHOTO_GRID_COLS: 3,
+
+  DEBUG: true
 };
 
 let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
+
+let __payloadRaw = null;
 let __payload = null;
+let __lastLoad = { id: "", ts: 0, url: "" };
 let __resolvedId = CONFIG.DEFAULT_ID;
 
-function $(id){ return document.getElementById(id); }
-function qa(sel){ return Array.from(document.querySelectorAll(sel)); }
-function text(v){ return (v==null ? "" : String(v)).trim(); }
-function show(el, yes){ if(el) el.style.display = yes ? "" : "none"; }
-function log_(){ if(CONFIG.DEBUG) console.log("[HSC]", ...arguments); }
+/* --------------------------- */
+function $(id) { return document.getElementById(id); }
+function q(sel, root = document) { return root.querySelector(sel); }
+function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
+function text(v) { return (v == null ? "" : String(v)).trim(); }
+function log_() { if (CONFIG.DEBUG) console.log("[HSC-v393.1]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v393.1]", ...arguments); }
+function err_() { console.error("[HSC-v393.1]", ...arguments); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function normalizeId_(s){
+function setText(elOrId, v) {
+  const el = typeof elOrId === "string" ? $(elOrId) : elOrId;
+  if (!el) return false;
+  el.textContent = text(v);
+  return true;
+}
+
+/* --------------------------- */
+function getParam(name) {
+  try { return new URLSearchParams(window.location.search).get(name); }
+  catch { return null; }
+}
+
+function normalizeId_(s) {
   const v = text(s).toUpperCase();
-  if(!v) return "";
-  if(/^TW\d{4}$/.test(v)) return v;
-  if(/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
-  if(/^TW\d{1,4}$/.test(v)) return "TW" + v.replace(/^TW/,"").padStart(4,"0");
+  if (!v) return "";
+  if (/^TW\d{4}$/i.test(v)) return v;
+  if (/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4, "0");
+  if (/^TW\d{1,4}$/i.test(v)) {
+    const n = v.replace(/^TW/i, "");
+    return "TW" + n.padStart(4, "0");
+  }
   return v;
 }
 
-function getCardIdFromUrl_(){
-  try{
-    const id = new URLSearchParams(window.location.search).get("id");
-    return normalizeId_(id) || CONFIG.DEFAULT_ID;
-  }catch{
-    return CONFIG.DEFAULT_ID;
-  }
+function getCardIdFromUrl_() {
+  const id = normalizeId_(getParam("id"));
+  return id || CONFIG.DEFAULT_ID;
 }
 
 /* ---------------------------
-Payload normalization
+UI toggle: dots rows (free vs premium)
 --------------------------- */
-function cleanKey_(k){
+function toggleDotsRows_() {
+  const rows = qa(".dots-row");
+  if (!rows.length) return;
+
+  let freeRow = null;
+  let premiumRow = null;
+
+  for (const row of rows) {
+    if (!freeRow && row.querySelector(".dot")) freeRow = row;
+    if (!premiumRow && row.querySelector(".p-dot")) premiumRow = row;
+  }
+
+  const isFree = state.mode === "free";
+
+  if (freeRow) freeRow.style.display = isFree ? "flex" : "none";
+  if (premiumRow) premiumRow.style.display = isFree ? "none" : "flex";
+}
+
+/* ---------------------------
+Switching system (keep existing HTML hooks)
+--------------------------- */
+window.setV382 = function (mode, theme, el) {
+  state.mode = mode;
+  state.theme = theme;
+
+  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
+  if (el && (el.classList.contains("dot") || el.classList.contains("p-dot"))) el.classList.add("active");
+
+  syncPlanButtons_();
+  applyV382_();
+  refreshPremiumSafety_();
+};
+
+window.setV382Style = function (style, el) {
+  state.style = style;
+  if (el && el.parentElement) {
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+  }
+  applyV382_();
+};
+
+window.setV382Paper = function (paper, el) {
+  state.paper = paper;
+  if (el && el.parentElement) {
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+  }
+  applyV382_();
+};
+
+function applyV382_() {
+  const isFree = state.mode === "free";
+
+  const controlPanel = $("free-controls");
+  if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
+
+  toggleDotsRows_();
+
+  const classList = [
+    `mode-${state.mode}`,
+    state.theme,
+    isFree ? `style-${state.style}` : "",
+    isFree ? state.paper : ""
+  ];
+  document.body.className = classList.filter(Boolean).join(" ");
+}
+
+function syncPlanButtons_() {
+  const a = $("btnPlanFree");
+  const b = $("btnPlanPremium");
+  if (!a || !b) return;
+
+  if (state.mode === "free") {
+    a.classList.add("active");
+    b.classList.remove("active");
+  } else {
+    b.classList.add("active");
+    a.classList.remove("active");
+  }
+}
+
+function refreshPremiumSafety_() {
+  if (state.mode !== "premium") return;
+  const nameEl = $("u-name");
+  if (!nameEl) return;
+  requestAnimationFrame(() => {
+    nameEl.style.transform = "translateZ(0)";
+    setTimeout(() => { nameEl.style.transform = ""; }, 120);
+  });
+}
+
+/* --------------------------- */
+async function waitForDom_(ids, timeoutMs = 2400) {
+  const need = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    let ok = true;
+    for (const id of need) { if (!$(id)) { ok = false; break; } }
+    if (ok) return true;
+    await sleep(60);
+  }
+  return false;
+}
+
+/* ---------------------------
+Fetch JSON (robust)
+--------------------------- */
+async function fetchWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+      credentials: "omit",
+      redirect: "follow",
+      signal: controller.signal
+    });
+
+    const status = res.status;
+    const ct = (res.headers && res.headers.get) ? (res.headers.get("content-type") || "") : "";
+    const txt = await res.text();
+    const body = (txt || "").trim();
+
+    if (CONFIG.DEBUG) {
+      const head = body.slice(0, 180).replace(/\s+/g, " ");
+      log_("fetch:", { status, ct, len: body.length, head });
+    }
+
+    if (!res.ok && !body) throw new Error(`HTTP ${status} (empty)`);
+    if (!body) throw new Error("Empty response");
+
+    try {
+      return JSON.parse(body);
+    } catch {
+      const m = body.match(/\{[\s\S]*\}/);
+      if (m) return JSON.parse(m[0]);
+      throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
+    }
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function fetchJsonRobust(url) {
+  let lastErr = null;
+  for (let i = 0; i <= CONFIG.RETRY; i++) {
+    try {
+      return await fetchWithTimeout(url, CONFIG.FETCH_TIMEOUT_MS);
+    } catch (e) {
+      lastErr = e;
+      warn_("fetch retry:", i, "err:", e && e.message ? e.message : e);
+      await sleep(520 + i * 520);
+    }
+  }
+  throw lastErr || new Error("Fetch failed");
+}
+
+/* ---------------------------
+Normalize + pick
+--------------------------- */
+function cleanKey_(k) {
   return String(k ?? "")
-    .replace(/[\uFEFF\u200B-\u200D\u2060]/g,"")
+    .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
+    .replace(/\u3000/g, " ")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n+/g, "")
+    .replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "")
     .trim();
 }
 
-function buildNormalizedPayload_(obj){
-  if(!obj || typeof obj!=="object") return obj;
-  const out = {};
-  for(const k of Object.keys(obj)){
+function buildNormalizedPayload_(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  const out = { __raw: obj };
+  const lowerMap = Object.create(null);
+
+  for (const k of Object.keys(obj)) {
     const nk = cleanKey_(k);
-    if(!nk) continue;
-    if(out[nk]==null || text(out[nk])==="") out[nk]=obj[k];
+    if (!nk) continue;
+    const v = obj[k];
+
+    if (out[nk] == null || text(out[nk]) === "") out[nk] = v;
+
+    const lk = nk.toLowerCase();
+    if (lowerMap[lk] == null || text(lowerMap[lk]) === "") lowerMap[lk] = v;
   }
+
+  out.__lower = lowerMap;
   return out;
 }
 
-function pick(obj, keys){
-  if(!obj) return "";
-  for(const k of keys){
-    const v = obj[k];
-    if(v!=null && text(v)!=="") return v;
+function pick(obj, keys) {
+  if (!obj) return "";
+  const raw = obj.__raw || null;
+  const lower = obj.__lower || null;
+
+  for (const k of keys) {
+    if (k == null) continue;
+    const kk = cleanKey_(k);
+
+    const v1 = obj[kk];
+    if (v1 != null && text(v1) !== "") return v1;
+
+    if (lower) {
+      const v2 = lower[String(kk).toLowerCase()];
+      if (v2 != null && text(v2) !== "") return v2;
+    }
   }
+
+  if (raw) {
+    for (const k of keys) {
+      const v = raw[k];
+      if (v != null && text(v) !== "") return v;
+    }
+  }
+
   return "";
 }
 
 /* ---------------------------
-Clipboard helper
+Images (strong)
+- Drive / Dropbox / normal URL
+- candidates include drive uc + thumbnail
 --------------------------- */
-async function copyText_(s){
-  const v = text(s);
-  if(!v) return;
-  try{
-    await navigator.clipboard.writeText(v);
-  }catch{
-    const ta = document.createElement("textarea");
-    ta.value = v;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    ta.remove();
-  }
-}
-
-/* ---------------------------
-Image helpers
---------------------------- */
-function normalizeImageUrl(raw){
-  if(!raw) return "";
+function normalizeImageUrl(raw) {
+  if (!raw) return "";
   let url = String(raw).trim();
-  if(!url) return "";
+  if (!url) return "";
+  if (url.startsWith("http://")) url = "https://" + url.slice(7);
 
-  if(url.startsWith("http://")) url = "https://" + url.slice(7);
+  if (url.includes("dropbox.com")) {
+    url = url.replace("dl=0", "raw=1");
+    if (!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
+    return url;
+  }
 
   const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-  if(mFile && mFile[1]){
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
-  }
-  const mId = url.match(/[?&]id=([^&]+)/i);
-  if(mId && mId[1]){
-    return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mId[1])}`;
-  }
+  if (mFile && mFile[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
+
+  const mId = url.match(/(?:\?|&)id=([^&]+)/i);
+  if (mId && mId[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mId[1])}`;
+
+  const mThumb = url.match(/thumbnail\?id=([^&]+)/i);
+  if (mThumb && mThumb[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mThumb[1])}`;
+
   return url;
 }
 
-function setImg_(imgEl, url){
-  if(!imgEl) return;
-  const u = normalizeImageUrl(url);
-  if(!u){ imgEl.removeAttribute("src"); return; }
+function buildImageCandidates_(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return [];
+  const original = s.startsWith("http://") ? "https://" + s.slice(7) : s;
 
-  imgEl.style.opacity = "0";
-  imgEl.onload = () => imgEl.style.opacity = "1";
-  imgEl.onerror = () => imgEl.style.opacity = "0";
+  let driveId = "";
+  const mFile = original.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+  const mId = original.match(/(?:\?|&)id=([^&]+)/i);
+  const mThumb = original.match(/thumbnail\?id=([^&]+)/i);
 
-  imgEl.src = u + (u.includes("?") ? "&" : "?") + "t=" + Date.now();
+  if (mFile && mFile[1]) driveId = mFile[1];
+  else if (mId && mId[1]) driveId = mId[1];
+  else if (mThumb && mThumb[1]) driveId = mThumb[1];
+
+  if (original.includes("dropbox.com")) return [normalizeImageUrl(original)];
+
+  if (driveId) {
+    return [
+      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(driveId)}`,
+      `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w1200`,
+      `https://drive.google.com/uc?export=download&id=${encodeURIComponent(driveId)}`,
+      normalizeImageUrl(original)
+    ].filter(Boolean);
+  }
+
+  return [normalizeImageUrl(original)].filter(Boolean);
 }
 
-/* ---------------------------
-Hidden backend (triple tap)
-Add: input (ID or Name) + load button
-- ID: normalize + loadCardById_
-- Name: try GAS action=search&name=... (if supported)
---------------------------- */
-function ensureHiddenBackendPanel_(){
-  let panel = $("hiddenBackendPanel");
-  if(panel) return panel;
+function setImgWithFallback_(imgEl, candidates) {
+  if (!imgEl) return;
+  const list = (candidates || []).map(text).filter(Boolean);
+  if (!list.length) { imgEl.removeAttribute("src"); return; }
 
-  panel = document.createElement("div");
-  panel.id = "hiddenBackendPanel";
-  panel.style.position = "fixed";
-  panel.style.left = "12px";
-  panel.style.right = "12px";
-  panel.style.bottom = "12px";
-  panel.style.zIndex = "9999";
-  panel.style.background = "rgba(255,255,255,0.96)";
-  panel.style.border = "1px solid rgba(0,0,0,0.08)";
-  panel.style.borderRadius = "18px";
-  panel.style.boxShadow = "0 15px 40px rgba(0,0,0,0.12)";
-  panel.style.padding = "12px";
-  panel.style.display = "none";
+  const token = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
+  imgEl.dataset.loadToken = token;
+  let idx = 0;
 
-  panel.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-      <div style="font-weight:900;">隱形後台（v398.2.1）</div>
-      <button id="hbClose" type="button"
-        style="border:none; padding:8px 12px; border-radius:12px; font-weight:900; cursor:pointer;">
-        關閉
-      </button>
-    </div>
+  imgEl.referrerPolicy = "no-referrer";
+  imgEl.decoding = "async";
+  imgEl.loading = "lazy";
 
-    <div style="margin-top:10px; display:flex; gap:8px;">
-      <input id="hbQuery" placeholder="輸入序號(TW0001/0001) 或 姓名"
-        style="flex:1; padding:10px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.12); font-weight:700; outline:none;">
-      <button id="hbLoad" type="button"
-        style="border:none; padding:10px 12px; border-radius:14px; font-weight:900; cursor:pointer;">
-        載入
-      </button>
-    </div>
-
-    <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
-      <button id="hbCopyId" type="button"
-        style="border:none; padding:10px 12px; border-radius:14px; font-weight:900; cursor:pointer;">
-        複製名片ID
-      </button>
-      <button id="hbCopyUrl" type="button"
-        style="border:none; padding:10px 12px; border-radius:14px; font-weight:900; cursor:pointer;">
-        複製名片網址
-      </button>
-      <button id="hbOpenForm" type="button"
-        style="border:none; padding:10px 12px; border-radius:14px; font-weight:900; cursor:pointer;">
-        開啟訂製表單
-      </button>
-      <button id="hbToggleDebug" type="button"
-        style="border:none; padding:10px 12px; border-radius:14px; font-weight:900; cursor:pointer;">
-        切換 DEBUG
-      </button>
-    </div>
-
-    <div id="hbInfo" style="margin-top:10px; font-size:12px; opacity:.75; line-height:1.5;">
-      ID：<span id="hbIdText"></span>
-      <br/>Keys：<span id="hbKeys"></span>
-      <br/>UI：<span id="hbUi"></span>
-      <br/><span id="hbMsg"></span>
-    </div>
-  `;
-
-  document.body.appendChild(panel);
-
-  panel.querySelector("#hbClose").onclick = () => show(panel, false);
-  panel.querySelector("#hbCopyId").onclick = () => copyText_(__resolvedId || "");
-  panel.querySelector("#hbCopyUrl").onclick = () => copyText_(location.href);
-  panel.querySelector("#hbOpenForm").onclick = () => window.open(CONFIG.FORM, "_blank");
-  panel.querySelector("#hbToggleDebug").onclick = () => { CONFIG.DEBUG = !CONFIG.DEBUG; };
-
-  panel.querySelector("#hbLoad").onclick = async () => {
-    const q = text(panel.querySelector("#hbQuery").value);
-    const msg = panel.querySelector("#hbMsg");
-    if(msg) msg.textContent = "";
-
-    if(!q) return;
-
-    const asId = normalizeId_(q);
-    if(/^TW\d{4}$/.test(asId)){
-      if(msg) msg.textContent = `載入序號：${asId}`;
-      await loadCardById_(asId);
-      return;
-    }
-
-    // try name search (if GAS supports)
-    try{
-      if(msg) msg.textContent = `查詢姓名：${q} ...`;
-      const url = `${CONFIG.GAS}?action=search&name=${encodeURIComponent(q)}&ts=${Date.now()}`;
-      const data = await fetchJsonRobust(url);
-
-      // accept formats: {id:"TW0001"} or {results:[{id:"TW0001"}]} or [{id:"TW0001"}]
-      let found = "";
-      if(data && typeof data === "object" && typeof data.id === "string") found = normalizeId_(data.id);
-      else if(Array.isArray(data) && data[0]?.id) found = normalizeId_(data[0].id);
-      else if(data?.results && Array.isArray(data.results) && data.results[0]?.id) found = normalizeId_(data.results[0].id);
-
-      if(found){
-        if(msg) msg.textContent = `找到：${found}，載入中...`;
-        await loadCardById_(found);
-      }else{
-        if(msg) msg.textContent = "找不到對應序號（若 GAS 尚未支援姓名查詢，可改輸入序號）";
-      }
-    }catch(e){
-      if(msg) msg.textContent = "姓名查詢目前未啟用（可改輸入序號）";
-      console.error(e);
-    }
+  const tryNext = () => {
+    if (imgEl.dataset.loadToken !== token) return;
+    if (idx >= list.length) { imgEl.style.opacity = "0"; imgEl.removeAttribute("src"); return; }
+    const u = list[idx++];
+    const sep = u.includes("?") ? "&" : "?";
+    imgEl.src = u + sep + "t=" + Date.now();
   };
 
-  return panel;
+  imgEl.onload = () => {
+    if (imgEl.dataset.loadToken !== token) return;
+    requestAnimationFrame(() => (imgEl.style.opacity = "1"));
+  };
+  imgEl.onerror = () => {
+    if (imgEl.dataset.loadToken !== token) return;
+    tryNext();
+  };
+
+  imgEl.style.opacity = "0";
+  imgEl.style.transition = "opacity 420ms ease";
+  tryNext();
 }
-
-function updateHiddenBackendInfo_(){
-  const panel = $("hiddenBackendPanel");
-  if(!panel) return;
-  const idText = panel.querySelector("#hbIdText");
-  const keys = panel.querySelector("#hbKeys");
-  const ui = panel.querySelector("#hbUi");
-  if(idText) idText.textContent = __resolvedId || "";
-  if(keys) keys.textContent = __payload ? String(Object.keys(__payload).length) : "0";
-  if(ui) ui.textContent = `${state.mode}/${state.theme}/${state.style}/${state.paper}`;
-}
-
-function setupTripleTapEntry_(){
-  const card = $("card-container");
-  if(!card) return;
-
-  const panel = ensureHiddenBackendPanel_();
-
-  let hot = $("hiddenHotzone");
-  if(!hot){
-    hot = document.createElement("div");
-    hot.id = "hiddenHotzone";
-    hot.style.position = "absolute";
-    hot.style.right = "0";
-    hot.style.bottom = "0";
-    hot.style.width = "84px";
-    hot.style.height = "84px";
-    hot.style.opacity = "0";
-    hot.style.pointerEvents = "auto";
-    hot.style.zIndex = "60";
-    card.appendChild(hot);
-  }
-
-  let taps = [];
-  function trigger_(){
-    const now = Date.now();
-    taps = taps.filter(t => now - t <= CONFIG.TRIPLE_TAP_WINDOW_MS);
-    taps.push(now);
-    if(taps.length >= 3){
-      taps = [];
-      const isHidden = (panel.style.display === "none" || getComputedStyle(panel).display === "none");
-      show(panel, isHidden);
-      updateHiddenBackendInfo_();
-    }
-  }
-
-  hot.addEventListener("click", trigger_);
-  hot.addEventListener("touchend", (e)=>{ e.preventDefault(); trigger_(); }, { passive:false });
-}/* ---------------------------
-Facade sync (plan/theme/style/paper) + persistence
-Fix#1: 版型選擇連動不行 → 不靠順位，改解析 onclick 參數做同步
---------------------------- */
-const STORAGE_KEY_UI = "hsc_ui_state_v398_2_1";
-
-function saveUIState_(){ try{ localStorage.setItem(STORAGE_KEY_UI, JSON.stringify(state)); }catch{} }
-function loadUIState_(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY_UI);
-    if(!raw) return;
-    const obj = JSON.parse(raw);
-    if(obj && typeof obj === "object") state = { ...state, ...obj };
-  }catch{}
-}
-
-function setActive_(el, yes){ if(el) el.classList.toggle("active", !!yes); }
-
-function applyUIClasses_(){
-  const body = document.body;
-  if(!body) return;
-
-  body.classList.remove("mode-free","mode-premium");
-  body.classList.add(state.mode === "premium" ? "mode-premium" : "mode-free");
-
-  for(let i=1;i<=5;i++) body.classList.remove(`color-${i}`);
-  for(let i=1;i<=7;i++) body.classList.remove(`p${i}`);
-  if(state.theme) body.classList.add(state.theme);
-
-  body.classList.remove("style-arch","style-flat","style-spot");
-  body.classList.add(`style-${state.style || "arch"}`);
-
-  body.classList.remove("paper-1","paper-2","paper-3");
-  body.classList.add(state.paper || "paper-1");
-}
-
-function syncPlanButtons_(){
-  setActive_($("btnPlanFree"), state.mode === "free");
-  setActive_($("btnPlanPremium"), state.mode === "premium");
-}
-
-function syncDots_(){
-  const freeDots = qa("#admin-panel .dot");
-  freeDots.forEach((d, idx) => setActive_(d, state.mode==="free" && state.theme===`color-${idx+1}`));
-
-  const pDots = qa("#admin-panel .p-dot");
-  pDots.forEach((d, idx) => setActive_(d, state.mode==="premium" && state.theme===`p${idx+1}`));
-}
-
-function syncDotsRowVisibility_(){
-  const rows = qa("#admin-panel .dots-row");
-  if(!rows.length) return;
-
-  rows.forEach(row=>{
-    const hasFree = row.querySelector(".dot");
-    const hasPremium = row.querySelector(".p-dot");
-
-    if(hasFree) row.style.display = (state.mode === "free") ? "flex" : "none";
-    if(hasPremium) row.style.display = (state.mode === "premium") ? "flex" : "none";
-  });
-}
-
-function syncFreeControlsVisibility_(){
-  const fc = $("free-controls");
-  if(!fc) return;
-  fc.style.display = (state.mode === "free") ? "" : "none";
-}
-
-/* ✅ 핵심：從 onclick 取參數，完全避免錯置 */
-function getOnclickArgs_(btn){
-  const raw = btn?.getAttribute?.("onclick") || "";
-  // ex: window.setV382Style('arch', this)
-  const m = raw.match(/\(\s*'([^']+)'\s*(?:,\s*'([^']+)')?/);
-  return { a: m ? m[1] : "", b: m ? (m[2] || "") : "" };
-}
-
-function syncStyleButtons_(){
-  // 不用 nth-of-type，直接抓 free-controls 下所有呼叫 setV382Style 的按鈕
-  const btns = qa("#free-controls .btn-neo").filter(b => (b.getAttribute("onclick") || "").includes("setV382Style"));
-  btns.forEach(b=>{
-    const { a } = getOnclickArgs_(b); // arch/flat/spot
-    setActive_(b, state.style === a);
-  });
-}
-
-function syncPaperButtons_(){
-  // 不用 nth-of-type，直接抓 free-controls 下所有呼叫 setV382Paper 的按鈕
-  const btns = qa("#free-controls .btn-neo").filter(b => (b.getAttribute("onclick") || "").includes("setV382Paper"));
-  btns.forEach(b=>{
-    const { a } = getOnclickArgs_(b); // paper-1/2/3
-    setActive_(b, state.paper === a);
-  });
-}
-
-function syncFacadeUI_(){
-  applyUIClasses_();
-  syncPlanButtons_();
-  syncDots_();
-  syncDotsRowVisibility_();
-  syncStyleButtons_();
-  syncPaperButtons_();
-  syncFreeControlsVisibility_();
-  saveUIState_();
-  updateHiddenBackendInfo_();
-}
-
-/* Restore old API names used by your HTML onclick */
-window.setV382 = function(mode, theme){
-  state.mode = (mode === "premium") ? "premium" : "free";
-  state.theme = theme || (state.mode === "premium" ? "p1" : "color-1");
-  syncFacadeUI_();
-};
-
-window.setV382Style = function(style){
-  state.style = (style === "flat" || style === "spot") ? style : "arch";
-  syncFacadeUI_();
-};
-
-window.setV382Paper = function(paper){
-  state.paper = (paper === "paper-2" || paper === "paper-3") ? paper : "paper-1";
-  syncFacadeUI_();
-};
 
 /* ---------------------------
-Read more / collapse helper
+Photo wall DOM ensure (no HTML change)
+Creates:
+<div id="photoWall" class="photo-wall">
+  <div class="wall-title">照片牆</div>
+  <div id="photoGrid" class="photo-grid"></div>
+</div>
 --------------------------- */
-function enableReadMore_(bodyEl, lines, btnTextMore="讀全文", btnTextLess="收起"){
-  if(!bodyEl) return;
+function ensurePhotoWallDom_(){
+  let wall = $("photoWall");
+  let grid = $("photoGrid");
 
-  // remove existing button if any
-  const oldBtn = bodyEl.parentElement?.querySelector?.(".readmore-btn");
-  if(oldBtn) oldBtn.remove();
+  if (wall && grid) return { wall, grid };
 
-  bodyEl.style.setProperty("--clamp-lines", String(lines));
-  bodyEl.classList.add("is-collapsed");
+  // try mount inside info scroll
+  const mount = q(".info-scroll") || $("card-container") || document.body;
 
-  requestAnimationFrame(()=>{
-    const isOverflow = bodyEl.scrollHeight - bodyEl.clientHeight > 2;
-    if(!isOverflow){
-      bodyEl.classList.remove("is-collapsed");
-      return;
-    }
-
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "readmore-btn";
-    btn.textContent = btnTextMore;
-
-    btn.onclick = () => {
-      const collapsed = bodyEl.classList.contains("is-collapsed");
-      if(collapsed){
-        bodyEl.classList.remove("is-collapsed");
-        btn.textContent = btnTextLess;
-      }else{
-        bodyEl.classList.add("is-collapsed");
-        btn.textContent = btnTextMore;
-        bodyEl.parentElement?.scrollIntoView?.({ behavior:"smooth", block:"start" });
-      }
-    };
-
-    bodyEl.parentElement?.appendChild(btn);
-  });
-}
-
-function setInfoBlock_(host, titleText, content, opts={}){
-  if(!host) return;
-  const c = text(content);
-
-  if(!c){
-    host.innerHTML = "";
-    host.style.display = "none";
-    return;
-  }
-  host.style.display = "";
+  wall = document.createElement("div");
+  wall.id = "photoWall";
+  wall.className = "photo-wall";
 
   const title = document.createElement("div");
-  title.className = "block-title";
-  title.textContent = titleText;
+  title.className = "wall-title";
+  title.textContent = "照片牆";
 
-  const body = document.createElement("div");
-  body.className = "block-body" + (opts.preline ? " preline" : "");
-  body.textContent = c;
+  grid = document.createElement("div");
+  grid.id = "photoGrid";
+  grid.className = "photo-grid";
 
-  host.innerHTML = "";
-  host.appendChild(title);
-  host.appendChild(body);
+  wall.appendChild(title);
+  wall.appendChild(grid);
+  mount.appendChild(wall);
 
-  if(opts.readMore){
-    enableReadMore_(body, opts.clampLines || CONFIG.CLAMP_LINES_BLOCK);
-  }
+  return { wall, grid };
 }/* ---------------------------
-Dock icon buttons
+Avatar (personal photo) — stronger key priority
+Priority:
+個人照_fast > 個人照 > 形象照_fast > 形象照 > avatar_fast > avatar > photo_fast > photo > image
+Also try slot style: 個人照1..3 / 形象照1..3
 --------------------------- */
-function makeBtn_(label, url, icon){
-  const btn = document.createElement("button");
-  btn.className = "dock-btn";
-  btn.type = "button";
+function getAvatarUrl_(payloadNorm){
+  const keys = [
+    "個人照_fast","個人照",
+    "形象照_fast","形象照",
+    "avatar_fast","avatar",
+    "photo_fast","photo",
+    "image"
+  ];
 
-  const i = document.createElement("i");
-  i.className = icon;
+  let v = pick(payloadNorm, keys);
+  if(text(v)) return v;
 
-  const span = document.createElement("span");
-  span.textContent = label;
-
-  btn.appendChild(i);
-  btn.appendChild(span);
-
-  btn.onclick = () => window.open(url, "_blank");
-
-  return btn;
-}
-
-function normalizeVideoUrl_(raw){
-  const u = text(raw);
-  if(!u) return "";
-  if(/^www\./i.test(u)) return "https://" + u;
-  if(/^(youtube\.com|youtu\.be)/i.test(u)) return "https://" + u;
-  return u;
-}
-
-function renderContactDock_(payload){
-  const dock = $("contactDock");
-  const host = $("contactButtons");
-  if(!dock || !host) return;
-
-  host.innerHTML = "";
-  let count = 0;
-
-  const line  = pick(payload, ["LINE連結","LINE","Line","line"]);
-  const email = pick(payload, ["Email","email","E-mail"]);
-  const phone = pick(payload, ["電話","手機","phone","tel"]);
-  const addr  = pick(payload, ["地址","住址","address"]);
-  const web   = pick(payload, ["網站","網頁","Website","website","URL","url"]);
-  const video = pick(payload, ["影音連結","影片連結","影片","YouTube","youtube","Video","video","YT"]);
-
-  if(text(line)){ host.appendChild(makeBtn_("LINE", line, "fa-brands fa-line")); count++; }
-  if(text(email)){ host.appendChild(makeBtn_("Email", `mailto:${text(email)}`, "fa-solid fa-envelope")); count++; }
-  if(text(phone)){ host.appendChild(makeBtn_("電話", `tel:${text(phone)}`, "fa-solid fa-phone")); count++; }
-
-  if(text(addr)){
-    const map = `https://www.google.com/maps?q=${encodeURIComponent(text(addr))}`;
-    host.appendChild(makeBtn_("導航", map, "fa-solid fa-location-arrow"));
-    count++;
+  for(let i=1;i<=3;i++){
+    v = pick(payloadNorm, [`個人照${i}`, `形象照${i}`, `avatar${i}`, `photo${i}`, `image${i}`]);
+    if(text(v)) return v;
   }
 
-  if(text(web)){ host.appendChild(makeBtn_("網站", text(web), "fa-solid fa-globe")); count++; }
-  if(text(video)){ host.appendChild(makeBtn_("影音", normalizeVideoUrl_(video), "fa-brands fa-youtube")); count++; }
+  return "";
+}
 
-  show(dock, count > 0);
+function setAvatarImage_(payloadNorm){
+  const img = $("u-img");
+  if(!img) return;
+
+  const raw = getAvatarUrl_(payloadNorm);
+  const cands = buildImageCandidates_(raw);
+
+  if(!cands.length){
+    img.removeAttribute("src");
+    return;
+  }
+
+  setImgWithFallback_(img, cands);
 }
 
 /* ---------------------------
-Photo wall (Fix#3: stronger extraction + separators)
-Priority:
-照片_fast > 照片 > image > photo
-Slots: 照片1..20 / photo1..20 / image1..20
-Separators: newline / comma / whitespace
+Photo wall (multi photos) — extraction rules
+Priority main fields:
+照片_fast > 照片 > images > image > photo
+Also support:
+照片牆 / 相片牆 / 圖片 / 相簿
+Slots:
+照片1..20, photo1..20, image1..20, 圖片1..20
+Separators:
+newline / comma / whitespace
 --------------------------- */
 function splitPhotoList_(raw){
   const s = text(raw);
   if(!s) return [];
+
+  // normalize separators to newline
   const normalized = s
     .replace(/\r\n/g, "\n")
     .replace(/[,，]+/g, "\n")
-    .replace(/\s+/g, "\n");
+    .replace(/[ \t]+/g, "\n");
 
   return normalized
     .split("\n")
     .map(x => x.trim())
-    .filter(Boolean)
-    .map(normalizeImageUrl);
+    .filter(Boolean);
 }
 
-function collectPhotoUrls_(payload){
+function collectPhotoUrls_(payloadNorm){
   const urls = [];
 
-  // primary fields
-  const raw = pick(payload, ["照片_fast","照片","image","photo","Photo","Images"]);
-  urls.push(...splitPhotoList_(raw));
+  // main fields
+  const main = pick(payloadNorm, ["照片_fast","照片","images","image","photo","照片牆","相片牆","圖片","相簿"]);
+  urls.push(...splitPhotoList_(main));
 
   // slots
-  for(let i=1;i<=20;i++){
-    urls.push(...splitPhotoList_(payload[`照片${i}`]));
-    urls.push(...splitPhotoList_(payload[`photo${i}`]));
-    urls.push(...splitPhotoList_(payload[`image${i}`]));
+  for(let i=1;i<=CONFIG.PHOTO_SLOT_MAX;i++){
+    urls.push(...splitPhotoList_(payloadNorm[`照片${i}`]));
+    urls.push(...splitPhotoList_(payloadNorm[`圖片${i}`]));
+    urls.push(...splitPhotoList_(payloadNorm[`photo${i}`]));
+    urls.push(...splitPhotoList_(payloadNorm[`image${i}`]));
   }
 
-  // de-dup
-  const uniq = [];
+  // normalize urls + candidates: pick first normalized, but keep raw for candidate generation in render
+  const cleaned = [];
   const seen = new Set();
-  for(const u of urls){
-    const key = String(u||"").trim();
-    if(!key) continue;
+
+  for(const raw of urls){
+    const r = text(raw);
+    if(!r) continue;
+
+    // keep original but de-dup by normalized url
+    const norm = normalizeImageUrl(r);
+    const key = norm || r;
     if(seen.has(key)) continue;
     seen.add(key);
-    uniq.push(key);
+    cleaned.push(r);
   }
-  return uniq;
+
+  return cleaned;
 }
 
-function renderPhotoWall_(payload){
-  const wall = $("photoWall");
-  const grid = $("photoGrid");
+function renderPhotoWall_(payloadNorm){
+  const { wall, grid } = ensurePhotoWallDom_();
   if(!wall || !grid) return;
 
   grid.innerHTML = "";
 
-  const urls = collectPhotoUrls_(payload);
-  if(!urls.length){
-    show(wall, false);
+  const list = collectPhotoUrls_(payloadNorm);
+
+  if(!list.length){
+    wall.style.display = "none";
     return;
   }
 
-  urls.forEach(u=>{
+  wall.style.display = "";
+
+  // Ensure grid columns even if css not set
+  grid.style.display = "grid";
+  grid.style.gridTemplateColumns = `repeat(${CONFIG.PHOTO_GRID_COLS}, 1fr)`;
+  grid.style.gap = "6px";
+
+  for(const raw of list){
     const img = document.createElement("img");
-    img.loading = "lazy";
     img.alt = "照片";
-    img.src = u + (u.includes("?") ? "&" : "?") + "t=" + Date.now();
-    img.onclick = ()=> window.open(u, "_blank");
+    img.style.width = "100%";
+    img.style.aspectRatio = "1/1";
+    img.style.objectFit = "cover";
+    img.style.borderRadius = "12px";
+    img.style.cursor = "pointer";
+    img.style.opacity = "0";
+    img.style.transition = "opacity 420ms ease";
+
+    const cands = buildImageCandidates_(raw);
+    setImgWithFallback_(img, cands);
+
+    // click open (use normalized url)
+    const openUrl = normalizeImageUrl(raw);
+    img.onclick = ()=> window.open(openUrl || raw, "_blank");
+
     grid.appendChild(img);
-  });
-
-  show(wall, true);
-}
-
-/* ---------------------------
-Apply Payload → Card
---------------------------- */
-function applyDataToCard(payload){
-  const name   = pick(payload, ["姓名","name","Name"]);
-  const unit   = pick(payload, ["單位","unit","Unit"]);
-  const title  = pick(payload, ["頭銜","title","Title"]);
-  const slogan = pick(payload, ["理念標語","標語","slogan","Slogan"]);
-
-  const service = pick(payload, ["服務項目","服務","service","Service"]);
-  const exp     = pick(payload, ["經歷","experience","Experience","簡歷"]);
-
-  const avatar = pick(payload, ["個人照_fast","個人照","形象照","avatar","photo_fast","photo"]);
-
-  const nameEl = $("u-name");
-  const unitEl = $("u-unit");
-  const titleEl = $("u-title");
-  const sloganEl = $("u-slogan");
-
-  if(nameEl) nameEl.textContent = text(name);
-
-  if(unitEl){ unitEl.textContent = text(unit); show(unitEl, !!text(unit)); }
-  if(titleEl){ titleEl.textContent = text(title); show(titleEl, !!text(title)); }
-
-  if(sloganEl){
-    sloganEl.textContent = text(slogan);
-    sloganEl.classList.add("preline");
-    enableReadMore_(sloganEl, CONFIG.CLAMP_LINES_SLOGAN);
-    show(sloganEl, !!text(slogan));
   }
+}/* ---------------------------
+Render
+- Keep v393 text fields behavior
+- Add: avatar + photo wall
+--------------------------- */
+function applyDataToCard(payloadNorm) {
+  const name = pick(payloadNorm, ["姓名", "name", "Name"]);
+  const unit = pick(payloadNorm, ["單位", "unit", "Unit"]);
+  const service = pick(payloadNorm, ["服務項目", "service", "Service"]);
 
-  setImg_($("u-img"), avatar);
+  setText("u-name", name || "（尚未讀到姓名）");
+  setText("u-unit", unit || "");
+  setText("u-service", service || "");
 
-  setInfoBlock_($("block-service"), "服務項目", service, { preline:true, readMore:true });
-  setInfoBlock_($("block-exp"), "經歷", exp, { preline:true, readMore:true });
+  // ✅ avatar + photo wall (new)
+  setAvatarImage_(payloadNorm);
+  renderPhotoWall_(payloadNorm);
 
-  renderContactDock_(payload);
-  renderPhotoWall_(payload);
-
-  updateHiddenBackendInfo_();
+  syncPlanButtons_();
+  refreshPremiumSafety_();
 }
 
 /* ---------------------------
-Fetch JSON robust
+UI states
 --------------------------- */
-async function fetchJsonRobust(url){
-  let lastErr = null;
+function setLoadingUi_() {
+  setText("u-name", "載入中...");
+  setText("u-unit", "同步中...");
+  setText("u-service", "正在同步雲端內容...");
 
-  for(let i=0;i<=CONFIG.RETRY;i++){
-    try{
-      const res = await fetch(url, { cache:"no-store" });
-      const txt = await res.text();
-      const body = (txt || "").trim();
-      if(!body) throw new Error("Empty response");
-
-      try{
-        return JSON.parse(body);
-      }catch{
-        const m = body.match(/\{[\s\S]*\}/);
-        if(m) return JSON.parse(m[0]);
-        throw new Error("Not JSON");
-      }
-    }catch(e){
-      lastErr = e;
-      await new Promise(r=>setTimeout(r, 450));
-    }
-  }
-
-  throw lastErr;
+  // while loading: hide photo wall
+  try{
+    const wall = $("photoWall");
+    if(wall) wall.style.display = "none";
+  }catch{}
 }
 
-/* ---------------------------
-Load Card
---------------------------- */
-async function loadCardById_(id){
-  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  __resolvedId = cid;
+function setFailUi_(msg) {
+  setText("u-name", "（同步失敗）");
+  setText("u-unit", msg || "請確認 id 或 GAS 權限");
+  setText("u-service", "");
+
+  const img = $("u-img");
+  if (img) img.removeAttribute("src");
 
   try{
-    const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
-    const data = await fetchJsonRobust(url);
-
-    if(!data || typeof data !== "object") throw new Error("Invalid payload");
-
-    __payload = buildNormalizedPayload_(data);
-    applyDataToCard(__payload);
-
-    log_("Loaded:", cid);
-
-  }catch(e){
-    console.error(e);
-  }finally{
-    updateHiddenBackendInfo_();
-  }
+    const wall = $("photoWall");
+    if(wall) wall.style.display = "none";
+    const grid = $("photoGrid");
+    if(grid) grid.innerHTML = "";
+  }catch{}
 }
 
 /* ---------------------------
-Expose
+Load card
 --------------------------- */
-window.goFillForm = function(){
-  window.open(CONFIG.FORM, "_blank");
-};
+async function loadCardById_(id) {
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
+  __lastLoad = { id: cid, ts: Date.now(), url };
+  __resolvedId = cid;
+
+  // v393 needed ids: u-name/u-unit/u-service. We keep it.
+  await waitForDom_(["u-name", "u-unit", "u-service"], 2400);
+  setLoadingUi_();
+
+  // ensure photo wall dom exists early (no HTML changes required)
+  try{ ensurePhotoWallDom_(); }catch{}
+
+  try {
+    const data = await fetchJsonRobust(url);
+    if (!data || typeof data !== "object") throw new Error("Invalid payload");
+    if (data.ok === false) throw new Error(data.error || "Not found");
+    if (Object.keys(data).length === 0) throw new Error("Empty object");
+
+    __payloadRaw = data;
+    __payload = buildNormalizedPayload_(data);
+
+    // render twice (same as v393) to stabilize layout / images
+    applyDataToCard(__payload);
+    await sleep(120);
+    applyDataToCard(__payload);
+
+    // keep url id in place
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set("id", cid);
+      history.replaceState({}, "", u.toString());
+    } catch {}
+
+    return cid;
+  } catch (e) {
+    err_("loadCard error:", e);
+    setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
+    throw e;
+  }
+}
+
+/* ===========================
+Hidden Admin Entry (no visible backend)
+=========================== */
+function openAdmin_() {
+  const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
+  const u = `admin.html?id=${encodeURIComponent(id)}`;
+  window.open(u, "_blank");
+}
+
+function bindLongPress_(target, ms, onFire) {
+  if (!target) return;
+
+  let timer = null;
+  let fired = false;
+
+  const start = () => {
+    fired = false;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      fired = true;
+      try { onFire(); } catch {}
+    }, ms);
+  };
+
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = null;
+  };
+
+  target.addEventListener("touchstart", start, { passive: true });
+  target.addEventListener("touchend", cancel, { passive: true });
+  target.addEventListener("touchcancel", cancel, { passive: true });
+
+  target.addEventListener("mousedown", start);
+  target.addEventListener("mouseup", cancel);
+  target.addEventListener("mouseleave", cancel);
+
+  target.addEventListener("click", (e) => {
+    if (fired) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+}
+
+function ensureAdminHotspot_() {
+  if ($("adminHotspot")) return;
+
+  const hs = document.createElement("div");
+  hs.id = "adminHotspot";
+  hs.setAttribute("aria-label", "admin-hotspot");
+  hs.style.position = "fixed";
+  hs.style.top = "6px";
+  hs.style.right = "6px";
+  hs.style.width = "28px";
+  hs.style.height = "28px";
+  hs.style.opacity = "0";
+  hs.style.zIndex = "99999";
+  hs.style.background = "transparent";
+  hs.style.borderRadius = "10px";
+  hs.style.pointerEvents = "auto";
+  document.body.appendChild(hs);
+}
+
+function bindAdminHiddenEntry_() {
+  const versionTag = q(".version-tag") || $("versionTag") || null;
+  const footer = q("footer") || null;
+
+  if (versionTag) bindLongPress_(versionTag, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
+  else if (footer) bindLongPress_(footer, CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
+
+  ensureAdminHotspot_();
+  bindLongPress_($("adminHotspot"), CONFIG.ADMIN_LONGPRESS_MS, openAdmin_);
+}
 
 /* ---------------------------
 Boot
 --------------------------- */
-function boot_(){
-  setupTripleTapEntry_();
+function boot_() {
+  try { applyV382_(); } catch {}
+  try { syncPlanButtons_(); } catch {}
+  try { toggleDotsRows_(); } catch {}
 
-  loadUIState_();
-  // validate
-  if(state.mode === "free" && !/^color-\d$/.test(state.theme)) state.theme = "color-1";
-  if(state.mode === "premium" && !/^p\d$/.test(state.theme)) state.theme = "p1";
-  if(!state.style) state.style = "arch";
-  if(!state.paper) state.paper = "paper-1";
+  // ONLY hidden admin entry
+  try { bindAdminHiddenEntry_(); } catch {}
 
-  syncFacadeUI_(); // ✅ ensures facade buttons sync correctly
+  // ensure photo wall dom exists even before load (safe)
+  try{ ensurePhotoWallDom_(); }catch{}
 
   const id = getCardIdFromUrl_();
-  loadCardById_(id);
+  loadCardById_(id).catch(() => {});
 }
 
-document.addEventListener("DOMContentLoaded", boot_, { once:true });
+document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
+window.addEventListener("load", () => { if (!__lastLoad.ts) boot_(); });
