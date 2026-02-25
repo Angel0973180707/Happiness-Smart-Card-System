@@ -625,4 +625,22 @@ body{
     left: 106px !important;
     right: 88px !important;
   }
+}/* ================================
+ * v400 LOGO SIZE REDEFINE (FINAL OVERRIDE)
+ * ================================ */
+
+/* 所有模式統一小 Logo */
+.logo-img,
+#u-logo{
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 999px !important;
+  object-fit: cover !important;
+}
+
+/* 精品款位置微調（右上角視覺平衡） */
+.mode-premium .logo-wrap{
+  top: 26px !important;
+  right: 18px !important;
+  z-index: 90 !important;
 }
