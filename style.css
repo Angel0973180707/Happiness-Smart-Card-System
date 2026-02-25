@@ -1,4 +1,52 @@
-/* ================================
+/* =========================
+   v399 門面鎖定（方案分流）
+   目標：固定右圖那種門面比例
+   ========================= */
+
+/* 門面容器：維持粉底、不要被其他區塊蓋掉 */
+#admin-panel{
+  position: relative !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  padding: 14px 0 10px !important;
+  z-index: 50 !important;
+}
+
+/* 步驟文字：不要淡掉、不要被透明度影響 */
+#admin-panel .step-title,
+#admin-panel .step-sub,
+#admin-panel .step-text,
+#admin-panel .step{
+  opacity: 1 !important;
+  color: rgba(0,0,0,.75) !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.55) !important;
+  letter-spacing: .6px !important;
+  font-weight: 900 !important;
+}
+
+/* 門面按鈕/色點區：維持 v399 的呼吸間距 */
+#admin-panel .plan-row,
+#admin-panel .dots-row,
+#admin-panel .control-row{
+  margin-left: auto !important;
+  margin-right: auto !important;
+  gap: 10px !important;
+}
+
+/* 預約大鈕：維持 v399 的寬厚比例 */
+#btnReserve,
+.btn-reserve,
+.reserve-btn{
+  border-radius: 999px !important;
+  padding: 16px 18px !important;
+  box-shadow: 0 14px 34px rgba(0,0,0,.14) !important;
+}
+
+/* 樣品區：永遠在門面下面，不要被「上移」或「黏住」 */
+#card-container{
+  margin: 12px auto 10px !important;
+  padding-top: 0 !important;
+}/* ================================
  * Happiness Smart Card System — style.css (v399.2 COMPLETE OVERWRITE)
  * Base: v398.3 / v398.4
  * MUST KEEP: v393 dynamic-mask system for free mode arch/flat/spot
