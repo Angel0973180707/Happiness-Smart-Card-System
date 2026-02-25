@@ -1,12 +1,12 @@
 /* ================================
- * Happiness Smart Card System — app.js (v399.3 COMPLETE OVERWRITE) 1/3
- * Fix v399.2:
+ * Happiness Smart Card System — app.js (v399.4 COMPLETE OVERWRITE) 1/3
+ * Fix v399.4:
  * 1) Photos/Avatar/Logo not showing -> DOM id mismatch tolerant getters
- * 2) Keep v382 hooks + v399 admin hotspot + share helper
+ * 2) Keep v382 hooks + v3994 admin hotspot + share helper
  * ================================ */
 
 const CONFIG = {
-  VERSION: "399.3",
+  VERSION: "399.4",
 
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
