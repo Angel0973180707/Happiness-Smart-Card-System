@@ -1,0 +1,499 @@
+/* ================================
+ * style.css (v399.10 COMPLETE OVERWRITE) 1/2
+ * FIX:
+ * 1) 還原 v399 門面：修正「晨曦(spot)」dynamic-mask 位置/形狀（不再走山）
+ * 2) 精品設計鈕不動：把 adminHotspotTop 改成右下角小熱點（不再蓋住選版區）
+ * 3) 隱形工作臺：熱點維持完全透明
+ * ================================ */
+
+:root{
+  --bg:#fff2df;
+  --card:#ffffff;
+  --text:#1f2d2a;
+
+  --p:#ee5253; /* default accent */
+  --shadow: 0 18px 60px rgba(0,0,0,.16);
+  --shadow2: 0 10px 24px rgba(0,0,0,.12);
+
+  --radius: 22px;
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family:'Noto Sans TC', system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ----------------
+  Layout shell
+---------------- */
+.page{
+  min-height:100vh;
+  padding: 14px 12px 40px;
+  display:flex;
+  justify-content:center;
+}
+
+.container{
+  width:min(980px, 100%);
+}
+
+/* ----------------
+  Plan / controls
+---------------- */
+.plan-wrap{
+  display:grid;
+  gap:10px;
+  justify-items:center;
+}
+
+.plan-buttons{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.plan-btn{
+  border: none;
+  cursor:pointer;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 900;
+  letter-spacing:.4px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 10px 24px rgba(0,0,0,.10);
+  color:#1f2d2a;
+  transition: transform .12s ease, filter .12s ease;
+}
+.plan-btn:active{ transform: translateY(1px) scale(.99); }
+.plan-btn.active{
+  background: #1f2d2a;
+  color:#fff;
+}
+
+/* step title */
+.step-title{
+  font-weight: 900;
+  letter-spacing:.6px;
+  opacity:.85;
+  margin-top:4px;
+}
+
+/* dots row */
+.dots-row{
+  display:flex;
+  gap:14px;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.dot, .p-dot{
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 3px solid rgba(255,255,255,.9);
+  box-shadow: 0 10px 20px rgba(0,0,0,.12);
+  cursor:pointer;
+}
+.dot.active, .p-dot.active{
+  outline: 4px solid rgba(0,0,0,.28);
+  outline-offset: 2px;
+}
+
+/* free controls: style + paper */
+#free-controls{
+  width:min(720px, 100%);
+  display:grid;
+  gap:10px;
+  justify-items:center;
+}
+
+.control-row{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.btn-neo{
+  border:none;
+  cursor:pointer;
+  border-radius: 999px;
+  padding: 12px 18px;
+  font-weight: 900;
+  letter-spacing:.4px;
+  background: rgba(255,255,255,.9);
+  color:#1f2d2a;
+  box-shadow: 0 10px 24px rgba(0,0,0,.10);
+  transition: transform .12s ease, filter .12s ease;
+}
+.btn-neo:active{ transform: translateY(1px) scale(.99); }
+.btn-neo.active{
+  background:#1f2d2a;
+  color:#fff;
+}
+
+/* primary CTA */
+.cta{
+  width:min(720px, 100%);
+  border:none;
+  cursor:pointer;
+  border-radius: 999px;
+  padding: 16px 18px;
+  font-weight: 900;
+  letter-spacing:.6px;
+  background: var(--p);
+  color:#fff;
+  box-shadow: 0 18px 40px rgba(0,0,0,.18);
+  margin-top: 6px;
+}
+.cta:active{ transform: translateY(1px) scale(.99); }
+
+/* ----------------
+  Card shell
+---------------- */
+.card{
+  margin-top: 14px;
+  background: rgba(255,255,255,.65);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow:hidden;
+}
+
+/* Banner */
+.banner{
+  position:relative;
+  padding: 18px 16px 54px;
+  background: rgba(0,0,0,0.02);
+}
+.dynamic-mask{
+  position:absolute;
+  left:0;
+  width:100%;
+  bottom:-1px;
+  height:56px;
+  background: var(--p);
+  z-index:10;
+}
+
+/* ✅ FIX: 晨曦(spot) 還原 v399 的視覺（不走山、不挖洞） */
+.style-spot .dynamic-mask{
+  height:56px;
+  bottom:-1px;
+  background: var(--p);
+  left:0;
+  width:100%;
+  clip-path: ellipse(60% 110% at 50% 0%);
+  z-index:10;
+}
+
+/* arch / flat keep */
+.style-arch .dynamic-mask{
+  clip-path: ellipse(70% 120% at 50% 0%);
+}
+.style-flat .dynamic-mask{
+  clip-path: inset(0 round 0);
+}
+
+/* Banner center title */
+.banner-title{
+  position:relative;
+  z-index:20;
+  text-align:center;
+  font-weight: 900;
+  letter-spacing:.6px;
+  color:#fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,.18);
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.14);
+  display:inline-block;
+}
+
+/* optional banner unit (JS will inject if needed) */
+#u-unit-banner{
+  position:relative;
+  z-index:20;
+  display:block;
+  text-align:center;
+  margin-top: 10px;
+  font-weight: 900;
+  letter-spacing:.6px;
+  color:#fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,.18);
+  opacity:.96;
+}
+
+/* ----------------
+  Content
+---------------- */
+.content{
+  background:#fff;
+  padding: 18px 16px 18px;
+}
+
+.hero{
+  display:grid;
+  justify-items:center;
+  gap:10px;
+}
+
+.avatar{
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  overflow:hidden;
+  background:#f3f3f3;
+  box-shadow: 0 18px 40px rgba(0,0,0,.14);
+}
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+.logo-circle{
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  overflow:hidden;
+  background:#fff;
+  box-shadow: 0 12px 26px rgba(0,0,0,.12);
+}
+.logo-circle img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* free stack */
+#u-name{
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing:.8px;
+  margin-top: 6px;
+}
+#u-title{
+  font-size: 18px;
+  font-weight: 800;
+  opacity:.9;
+}
+
+/* premium header area (kept) */
+.premium-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+#u-name-premium{
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing:.8px;
+  text-align:right;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#logoWrapPremium{
+  display:none;
+}
+
+/* blocks */
+.block{
+  margin-top: 14px;
+}
+.block-title{
+  font-weight: 900;
+  letter-spacing:.5px;
+  margin-bottom: 6px;
+}
+.block-body{
+  line-height:1.55;
+  opacity:.92;
+}
+.preline{ white-space: pre-line; }
+
+/* photo wall (carousel feel, CSS only) */
+#photoWall{ margin-top: 14px; }
+#photoGrid{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  padding: 8px 2px 2px;
+  scroll-snap-type: x mandatory;
+}
+#photoGrid img{
+  width: 168px;
+  height: 126px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 12px 26px rgba(0,0,0,.12);
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+/* docks */
+.dock{
+  margin-top: 16px;
+}
+.dock-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+/* ✅ dock 立體按鈕＋呼吸感（不改結構，只改質感） */
+.dock-btn{
+  border:none;
+  cursor:pointer;
+  border-radius: 999px;
+  padding: 12px 14px;
+  font-weight: 900;
+  letter-spacing:.2px;
+  background: rgba(255,255,255,.92);
+  color:#1f2d2a;
+  box-shadow: 0 10px 22px rgba(0,0,0,.14);
+  transition: transform .12s ease, box-shadow .12s ease;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.dock-btn:active{ transform: translateY(1px) scale(.99); }
+.dock-btn i{ font-size: 18px; }
+
+/* share row */
+.share-row{
+  margin-top: 16px;
+  display:flex;
+  justify-content:center;
+}
+
+/* version tag */
+#versionTag{
+  margin-top: 10px;
+  font-size: 12px;
+  opacity:.5;
+  text-align:center;
+}
+
+/* ----------------
+  ✅ Admin hotspot (INVISIBLE)
+  - FIX: 不再蓋住選版區，精品設計鈕可正常點
+---------------- */
+#adminHotspotTop{
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  width: 54px;
+  height: 54px;
+  opacity: 0;
+  z-index: 99999;
+  background: transparent;
+  pointer-events: auto;
+  border-radius: 999px;
+}
+
+/* Responsive tweaks */
+@media (max-width: 420px){
+  #u-name{ font-size: 36px; }
+  #u-name-premium{ font-size: 30px; }
+  .avatar{ width: 110px; height:110px; }
+  .logo-circle{ width: 66px; height:66px; }
+}/* ================================
+ * style.css (v399.10 COMPLETE OVERWRITE) 2/2
+ * 補齊細節優化（延續上一段，不可單貼）
+ * ================================ */
+
+/* subtle entrance rhythm */
+.card{
+  animation: cardFade .35s ease-out;
+}
+@keyframes cardFade{
+  from{ transform: translateY(4px) scale(.995); opacity:.0; }
+  to{ transform:none; opacity:1; }
+}
+
+/* banner visual polish */
+.banner{
+  display:flex;
+  justify-content:center;
+}
+
+.banner-title{
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* premium name strictly horizontal */
+#u-name-premium{
+  writing-mode: horizontal-tb;
+  transform: none;
+}
+
+/* logo always perfectly circular */
+.logo-circle,
+.logo-circle img{
+  border-radius: 999px;
+}
+
+/* photo wall momentum feel */
+#photoGrid{
+  scrollbar-width: none;
+}
+#photoGrid::-webkit-scrollbar{
+  display:none;
+}
+
+/* dock breathing effect (very gentle, premium feel) */
+.dock-btn{
+  position:relative;
+}
+.dock-btn::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:999px;
+  opacity:.0;
+  box-shadow: 0 0 0 0 rgba(0,0,0,0.18);
+  animation: dockBreath 2.6s ease-out infinite;
+}
+
+@keyframes dockBreath{
+  0%{ opacity:.0; box-shadow: 0 0 0 0 rgba(0,0,0,0.00); }
+  70%{ opacity:.18; box-shadow: 0 0 0 10px rgba(0,0,0,0.00); }
+  100%{ opacity:.0; box-shadow: 0 0 0 0 rgba(0,0,0,0.00); }
+}
+
+/* button press tactile feel */
+.plan-btn,
+.btn-neo,
+.cta{
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* safer text wrapping for long CJK content */
+.block-body{
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* avoid accidental selection on mobile */
+.plan-btn,
+.btn-neo,
+.dock-btn,
+.cta{
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* invisible hotspot must never affect layout */
+#adminHotspotTop{
+  transform: translateZ(0);
+}
