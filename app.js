@@ -1,38 +1,28 @@
 /* ================================
- * Happiness Smart Card System — app.js (v399.2 COMPLETE OVERWRITE)
- * - Keep v393 free dynamic-mask (HTML/CSS already)
- * - Fix: LINE(好友/官帳) + 影音1~3 + 社群1~3
- * - Fix: fast fields priority (個人照_fast / Logo_fast / 照片_fast)
- * - Add: Share button (copy card url / copy delivery url)
- * - Hidden admin entry: top hotspot long-press (1.2s) + triple-tap backup
+ * Happiness Smart Card System — app.js (v399.3 COMPLETE OVERWRITE)
+ * FIX:
+ * 1) Restore v382 hooks: setV382 / setV382Style / setV382Paper (button linkage works)
+ * 2) Delivery URL correct for GitHub Pages subpath (new URL)
+ * 3) Auto-hide empty sections for dynamic balance
  * ================================ */
 
 const CONFIG = {
-  VERSION: "399.2",
+  VERSION: "399.3",
 
-  // ✅ 你的 GAS WebApp（action=card&id=TW0001）
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-
-  // ✅ 你的表單
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
-
   DEFAULT_ID: "TW0001",
 
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
 
-  // 隱形入口（你先要討論，我這裡先做「可用」：右上熱區長按 + 三擊備援）
   ADMIN_LONGPRESS_MS: 1200,
   ADMIN_TRIPLE_TAP_MS: 650,
 
   PHOTO_SLOT_MAX: 20,
-
   DEBUG: true
 };
 
-/* ---------------------------
-State
---------------------------- */
 let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
 
 let __payloadRaw = null;
@@ -40,17 +30,15 @@ let __payload = null;
 let __resolvedId = CONFIG.DEFAULT_ID;
 let __lastLoad = { id: "", ts: 0, url: "" };
 
-/* ---------------------------
-DOM helpers
---------------------------- */
+/* --------------------------- */
 function $(id) { return document.getElementById(id); }
 function q(sel, root = document) { return root.querySelector(sel); }
 function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
 function text(v) { return (v == null ? "" : String(v)).trim(); }
 
-function log_() { if (CONFIG.DEBUG) console.log("[HSC-v399.2]", ...arguments); }
-function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v399.2]", ...arguments); }
-function err_() { console.error("[HSC-v399.2]", ...arguments); }
+function log_() { if (CONFIG.DEBUG) console.log("[HSC-v399.3]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v399.3]", ...arguments); }
+function err_() { console.error("[HSC-v399.3]", ...arguments); }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -61,9 +49,6 @@ function setText(elOrId, v) {
   return true;
 }
 
-/* ---------------------------
-URL helpers
---------------------------- */
 function getParam(name) {
   try { return new URLSearchParams(window.location.search).get(name); }
   catch { return null; }
@@ -87,64 +72,110 @@ function getCardIdFromUrl_() {
 }
 
 /* ---------------------------
-Fetch JSON (robust)
+UI linkage (MUST exist because HTML uses onclick=window.setV382...)
 --------------------------- */
-async function fetchWithTimeout(url, timeoutMs) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
+function toggleDotsRows_() {
+  const rows = qa(".dots-row");
+  if (!rows.length) return;
 
-  try {
-    const res = await fetch(url, {
-      method: "GET",
-      mode: "cors",
-      cache: "no-store",
-      credentials: "omit",
-      redirect: "follow",
-      signal: controller.signal
-    });
+  let freeRow = null;
+  let premiumRow = null;
 
-    const status = res.status;
-    const ct = (res.headers && res.headers.get) ? (res.headers.get("content-type") || "") : "";
-    const txt = await res.text();
-    const body = (txt || "").trim();
+  for (const row of rows) {
+    if (!freeRow && row.querySelector(".dot")) freeRow = row;
+    if (!premiumRow && row.querySelector(".p-dot")) premiumRow = row;
+  }
 
-    if (CONFIG.DEBUG) {
-      const head = body.slice(0, 160).replace(/\s+/g, " ");
-      log_("fetch:", { status, ct, len: body.length, head });
-    }
+  const isFree = state.mode === "free";
+  if (freeRow) freeRow.style.display = isFree ? "flex" : "none";
+  if (premiumRow) premiumRow.style.display = isFree ? "none" : "flex";
+}
 
-    if (!res.ok && !body) throw new Error(`HTTP ${status} (empty)`);
-    if (!body) throw new Error("Empty response");
+function syncPlanButtons_() {
+  const a = $("btnPlanFree");
+  const b = $("btnPlanPremium");
+  if (!a || !b) return;
 
-    try {
-      return JSON.parse(body);
-    } catch {
-      const m = body.match(/\{[\s\S]*\}/);
-      if (m) return JSON.parse(m[0]);
-      throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
-    }
-  } finally {
-    clearTimeout(t);
+  if (state.mode === "free") {
+    a.classList.add("active");
+    b.classList.remove("active");
+  } else {
+    b.classList.add("active");
+    a.classList.remove("active");
   }
 }
 
-async function fetchJsonRobust(url) {
-  let lastErr = null;
-  for (let i = 0; i <= CONFIG.RETRY; i++) {
-    try {
-      return await fetchWithTimeout(url, CONFIG.FETCH_TIMEOUT_MS);
-    } catch (e) {
-      lastErr = e;
-      warn_("fetch retry:", i, "err:", e && e.message ? e.message : e);
-      await sleep(520 + i * 520);
-    }
+function applyV382_() {
+  const isFree = state.mode === "free";
+
+  const freeControls = $("free-controls");
+  if (freeControls) freeControls.style.display = isFree ? "block" : "none";
+
+  toggleDotsRows_();
+
+  const classList = [
+    `mode-${state.mode}`,
+    state.theme,
+    isFree ? `style-${state.style}` : "",
+    isFree ? state.paper : ""
+  ];
+
+  document.body.className = classList.filter(Boolean).join(" ");
+}
+
+/* --- HTML onclick hooks --- */
+window.setV382 = function (mode, theme, el) {
+  state.mode = mode;
+  state.theme = theme;
+
+  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
+  if (el && (el.classList.contains("dot") || el.classList.contains("p-dot"))) el.classList.add("active");
+
+  syncPlanButtons_();
+  applyV382_();
+};
+
+window.setV382Style = function (style, el) {
+  state.style = style;
+  if (el && el.parentElement) {
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
   }
-  throw lastErr || new Error("Fetch failed");
+  applyV382_();
+};
+
+window.setV382Paper = function (paper, el) {
+  state.paper = paper;
+  if (el && el.parentElement) {
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+  }
+  applyV382_();
+};
+
+function ensureHttp_(u) {
+  let v = text(u);
+  if (!v) return "";
+  if (/^https?:\/\//i.test(v)) return v;
+  if (v.startsWith("www.")) return "https://" + v;
+  return v;
+}
+/* =========================
+ * app.js Part 2/3
+ * Images + Dock + Blocks + Auto-hide (dynamic balance)
+ * ========================= */
+
+function escapeHtml_(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /* ---------------------------
 Normalize keys + pick
-(你的表頭很乾淨，但仍保留容錯：去除 BOM/引號/換行/全形空白)
 --------------------------- */
 function cleanKey_(k) {
   return String(k ?? "")
@@ -204,30 +235,8 @@ function pick(obj, keys) {
   return "";
 }
 
-function ensureHttp_(u) {
-  let v = text(u);
-  if (!v) return "";
-  if (/^https?:\/\//i.test(v)) return v;
-  if (v.startsWith("www.")) return "https://" + v;
-  return v;
-}
-
-function escapeHtml_(s) {
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-/* =========================
- * app.js Part 2/3
- * Images + Photo wall + Dock + Blocks
- * ========================= */
-
 /* ---------------------------
-Images: normalize + candidates
-(支援 dropbox / google drive)
+Images
 --------------------------- */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
@@ -296,11 +305,7 @@ function setImgWithFallback_(imgEl, candidates) {
 
   const tryNext = () => {
     if (imgEl.dataset.loadToken !== token) return;
-    if (idx >= list.length) {
-      imgEl.style.opacity = "0";
-      imgEl.removeAttribute("src");
-      return;
-    }
+    if (idx >= list.length) { imgEl.style.opacity = "0"; imgEl.removeAttribute("src"); return; }
     const u = list[idx++];
     const sep = u.includes("?") ? "&" : "?";
     imgEl.src = u + sep + "t=" + Date.now();
@@ -323,22 +328,17 @@ function setImgWithFallback_(imgEl, candidates) {
 /* ---------------------------
 Avatar / Logo (fast priority)
 --------------------------- */
-function getAvatarUrl_(p){
-  // ✅ 你的表頭：個人照 / 個人照_fast
-  return pick(p, ["個人照_fast","個人照"]);
-}
-
-function getLogoUrl_(p){
-  // ✅ 你的表頭：Logo / Logo_fast
-  return pick(p, ["Logo_fast","Logo"]);
-}
-
 function setAvatarImage_(p){
   const img = $("u-img");
   if(!img) return;
-  const raw = getAvatarUrl_(p);
+
+  const raw = pick(p, ["個人照_fast","個人照"]);
   const cands = buildImageCandidates_(raw);
-  if(!cands.length){ img.removeAttribute("src"); return; }
+
+  if(!cands.length){
+    img.removeAttribute("src");
+    return;
+  }
   setImgWithFallback_(img, cands);
 }
 
@@ -347,7 +347,7 @@ function setLogo_(p){
   const img = $("u-logo");
   if(!wrap || !img) return;
 
-  const raw = getLogoUrl_(p);
+  const raw = pick(p, ["Logo_fast","Logo"]);
   const cands = buildImageCandidates_(raw);
 
   if(!cands.length){
@@ -360,19 +360,15 @@ function setLogo_(p){
 }
 
 /* ---------------------------
-Photo wall
-- 優先：照片_fast
-- 其次：照片
+Photo wall (auto-hide)
 --------------------------- */
 function splitPhotoList_(raw){
   const s = text(raw);
   if(!s) return [];
-  const normalized = s
+  return s
     .replace(/\r\n/g, "\n")
     .replace(/[,，]+/g, "\n")
-    .replace(/[ \t]+/g, "\n");
-
-  return normalized
+    .replace(/[ \t]+/g, "\n")
     .split("\n")
     .map(x => x.trim())
     .filter(Boolean);
@@ -383,7 +379,6 @@ function collectPhotoUrls_(p){
   const main = pick(p, ["照片_fast","照片"]);
   urls.push(...splitPhotoList_(main));
 
-  // 預留：若未來你又加 照片1/2/3 也不會壞
   for(let i=1;i<=CONFIG.PHOTO_SLOT_MAX;i++){
     urls.push(...splitPhotoList_(p[`照片${i}`]));
   }
@@ -393,8 +388,7 @@ function collectPhotoUrls_(p){
   for(const raw of urls){
     const r = text(raw);
     if(!r) continue;
-    const norm = normalizeImageUrl(r);
-    const key = norm || r;
+    const key = normalizeImageUrl(r) || r;
     if(seen.has(key)) continue;
     seen.add(key);
     cleaned.push(r);
@@ -419,22 +413,14 @@ function renderPhotoWall_(p){
   for(const raw of list){
     const img = document.createElement("img");
     img.alt = "照片";
-    const cands = buildImageCandidates_(raw);
-    setImgWithFallback_(img, cands);
-
-    const openUrl = normalizeImageUrl(raw);
-    img.onclick = ()=> window.open(openUrl || raw, "_blank");
+    setImgWithFallback_(img, buildImageCandidates_(raw));
+    img.onclick = ()=> window.open(normalizeImageUrl(raw) || raw, "_blank");
     grid.appendChild(img);
   }
 }
 
 /* ---------------------------
-Dock: LINE / 影音 / 社群
-你的乾淨表頭：
-- LINE連結
-- LINE官方帳號
-- 影音平台1/2/3
-- 社群平台1/2/3
+Dock: LINE / 影音 / 社群 (auto-hide)
 --------------------------- */
 function addDockBtn_(wrap, label, href){
   if(!wrap || !href) return;
@@ -451,7 +437,6 @@ function asUrlOrSearch_(v){
   if(!s) return "";
   if(/^https?:\/\//i.test(s)) return s;
   if(s.startsWith("www.")) return "https://" + s;
-  // 非 URL：用搜尋 fallback（避免假功能）
   return `https://www.google.com/search?q=${encodeURIComponent(s)}`;
 }
 
@@ -462,47 +447,47 @@ function renderContactDock_(p){
 
   wrap.innerHTML = "";
 
-  // LINE（兩種分開顯示）
+  // LINE
   const lineFriend = asUrlOrSearch_(pick(p, ["LINE連結"]));
   const lineOA = asUrlOrSearch_(pick(p, ["LINE官方帳號"]));
   if(lineFriend) addDockBtn_(wrap, "LINE（好友）", lineFriend);
   if(lineOA) addDockBtn_(wrap, "LINE（官帳）", lineOA);
 
-  // 影音 1~3
+  // 影音1~3
   for(let i=1;i<=3;i++){
-    const v = pick(p, [`影音平台${i}`]);
-    const href = asUrlOrSearch_(v);
+    const href = asUrlOrSearch_(pick(p, [`影音平台${i}`]));
     if(href) addDockBtn_(wrap, `影音平台${i}`, href);
   }
 
-  // 社群 1~3
+  // 社群1~3
   for(let i=1;i<=3;i++){
-    const v = pick(p, [`社群平台${i}`]);
-    const href = asUrlOrSearch_(v);
+    const href = asUrlOrSearch_(pick(p, [`社群平台${i}`]));
     if(href) addDockBtn_(wrap, `社群平台${i}`, href);
   }
 
-  // 基本聯繫（你的表頭也有）
+  // Email/電話/地址/微信
   const email = text(pick(p, ["Email"]));
   const phone = text(pick(p, ["電話"]));
-  const addr = text(pick(p, ["地址"]));
+  const addr  = text(pick(p, ["地址"]));
+  const wx    = text(pick(p, ["微信"]));
 
   if(email) addDockBtn_(wrap, "Email", `mailto:${email}`);
+
   if(phone){
     const pnum = phone.replace(/[^\d+]/g, "");
     if(pnum) addDockBtn_(wrap, "撥打", `tel:${pnum}`);
   }
+
   if(addr) addDockBtn_(wrap, "導航", `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`);
 
-  // WeChat（微信）— 無通用 scheme，給搜尋 fallback
-  const wx = text(pick(p, ["微信"]));
   if(wx) addDockBtn_(wrap, "微信", `https://www.google.com/search?q=${encodeURIComponent("WeChat " + wx)}`);
 
   dock.style.display = wrap.children.length ? "" : "none";
 }
 
 /* ---------------------------
-Blocks render (服務 / 經歷)
+Blocks: slogan/service/exp auto-hide
+注意：這裡你用的是 v398 blocks：block-service / block-exp
 --------------------------- */
 function renderBlock_(rootId, title, body){
   const root = $(rootId);
@@ -515,7 +500,6 @@ function renderBlock_(rootId, title, body){
     return;
   }
   root.style.display = "";
-
   root.innerHTML = `
     <div class="block-title">${escapeHtml_(title)}</div>
     <div class="block-body preline">${escapeHtml_(b)}</div>
@@ -523,155 +507,350 @@ function renderBlock_(rootId, title, body){
 }
 /* =========================
  * app.js Part 3/3
- * Load + Apply + Share + Hidden Admin + Boot
+ * Load + Share/Delivery (GitHub subpath safe) + Hidden Admin + Boot
  * ========================= */
 
 /* ---------------------------
-Apply Data To UI
-⚠️ id 不顯示在名片
-⚠️ 精品款：姓名 / 單位 / 頭銜視覺分離（CSS 已處理）
+UI states
 --------------------------- */
-function applyDataToUi_(p){
+function setLoadingUi_() {
+  setText("u-name", "載入中...");
+  setText("u-unit", "同步中...");
+  setText("u-title", "");
 
-  const name  = pick(p, ["姓名"]);
-  const unit  = pick(p, ["單位"]);
-  const title = pick(p, ["頭銜"]);
+  const sl = $("u-slogan");
+  if (sl) { sl.style.display = "none"; sl.textContent = ""; }
 
-  setText("u-name", name);
-  setText("u-unit", unit);
-  setText("u-title", title);
+  const bs = $("block-service");
+  const be = $("block-exp");
+  if (bs) bs.style.display = "none";
+  if (be) be.style.display = "none";
 
-  renderBlock_("u-slogan", "理念標語", pick(p, ["理念標語"]));
-  renderBlock_("u-service", "服務項目", pick(p, ["服務項目"]));
-  renderBlock_("u-exp", "經歷", pick(p, ["經歷"]));
+  const dock = $("contactDock");
+  if (dock) dock.style.display = "none";
 
+  const wall = $("photoWall");
+  if (wall) wall.style.display = "none";
+
+  const wrap = $("logoWrap");
+  const logo = $("u-logo");
+  if (wrap) wrap.style.display = "none";
+  if (logo) logo.removeAttribute("src");
+}
+
+function setFailUi_(msg) {
+  setText("u-name", "（同步失敗）");
+  setText("u-unit", msg || "請確認 id 或 GAS 權限");
+  setText("u-title", "");
+
+  const img = $("u-img");
+  if (img) img.removeAttribute("src");
+
+  const wrap = $("logoWrap");
+  const logo = $("u-logo");
+  if (wrap) wrap.style.display = "none";
+  if (logo) logo.removeAttribute("src");
+
+  const bs = $("block-service");
+  const be = $("block-exp");
+  if (bs) bs.style.display = "none";
+  if (be) be.style.display = "none";
+
+  const dock = $("contactDock");
+  if (dock) dock.style.display = "none";
+
+  const wall = $("photoWall");
+  const grid = $("photoGrid");
+  if (wall) wall.style.display = "none";
+  if (grid) grid.innerHTML = "";
+}
+
+/* ---------------------------
+Fetch JSON (robust)
+--------------------------- */
+async function fetchWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+      credentials: "omit",
+      redirect: "follow",
+      signal: controller.signal
+    });
+
+    const status = res.status;
+    const ct = (res.headers && res.headers.get) ? (res.headers.get("content-type") || "") : "";
+    const txt = await res.text();
+    const body = (txt || "").trim();
+
+    if (CONFIG.DEBUG) {
+      const head = body.slice(0, 180).replace(/\s+/g, " ");
+      log_("fetch:", { status, ct, len: body.length, head });
+    }
+
+    if (!res.ok && !body) throw new Error(`HTTP ${status} (empty)`);
+    if (!body) throw new Error("Empty response");
+
+    try {
+      return JSON.parse(body);
+    } catch {
+      const m = body.match(/\{[\s\S]*\}/);
+      if (m) return JSON.parse(m[0]);
+      throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
+    }
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function fetchJsonRobust(url) {
+  let lastErr = null;
+  for (let i = 0; i <= CONFIG.RETRY; i++) {
+    try {
+      return await fetchWithTimeout(url, CONFIG.FETCH_TIMEOUT_MS);
+    } catch (e) {
+      lastErr = e;
+      warn_("fetch retry:", i, "err:", e && e.message ? e.message : e);
+      await sleep(520 + i * 520);
+    }
+  }
+  throw lastErr || new Error("Fetch failed");
+}
+
+/* ---------------------------
+Apply data to card
+(空欄位自動隱藏：動態平衡)
+--------------------------- */
+function applyDataToCard(p) {
+  // 你的乾淨表頭
+  const name   = pick(p, ["姓名"]);
+  const unit   = pick(p, ["單位"]);
+  const title  = pick(p, ["頭銜"]);
+  const slogan = pick(p, ["理念標語"]);
+  const service = pick(p, ["服務項目"]);
+  const exp     = pick(p, ["經歷"]);
+
+  setText("u-name", name || "（尚未讀到姓名）");
+  setText("u-unit", unit || "");
+  setText("u-title", title || "");
+
+  // slogan auto-hide（若你 HTML 仍有 u-slogan）
+  const sl = $("u-slogan");
+  if (sl) {
+    const s = text(slogan);
+    if (s) {
+      sl.style.display = "";
+      sl.classList.add("preline");
+      sl.textContent = s;
+    } else {
+      sl.style.display = "none";
+      sl.textContent = "";
+    }
+  }
+
+  // v398 blocks auto-hide
+  renderBlock_("block-service", "服務項目", service);
+  renderBlock_("block-exp", "經歷", exp);
+
+  // images + dock + photos (all have auto-hide)
   setAvatarImage_(p);
   setLogo_(p);
-  renderPhotoWall_(p);
   renderContactDock_(p);
+  renderPhotoWall_(p);
+
+  // plan buttons sync
+  syncPlanButtons_();
 }
 
 /* ---------------------------
-Load Card From GAS
+Load card
 --------------------------- */
-async function loadCardById_(id){
-
+async function loadCardById_(id) {
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  __resolvedId = cid;
-
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
+
+  __resolvedId = cid;
   __lastLoad = { id: cid, ts: Date.now(), url };
 
-  log_("loadCard:", url);
+  setLoadingUi_();
 
-  const data = await fetchJsonRobust(url);
+  try {
+    const data = await fetchJsonRobust(url);
+    if (!data || typeof data !== "object") throw new Error("Invalid payload");
+    if (data.ok === false) throw new Error(data.error || "Not found");
+    if (Object.keys(data).length === 0) throw new Error("Empty object");
 
-  if(!data || typeof data !== "object"){
-    throw new Error("Invalid GAS payload");
-  }
-  if(data.ok === false){
-    throw new Error(data.error || "Card load failed");
-  }
+    __payloadRaw = data;
+    __payload = buildNormalizedPayload_(data);
 
-  __payloadRaw = data;
-  __payload = buildNormalizedPayload_(data);
+    applyDataToCard(__payload);
 
-  applyDataToUi_(__payload);
-}
+    // update URL (keep id)
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set("id", cid);
+      history.replaceState({}, "", u.toString());
+    } catch {}
 
-/* ---------------------------
-Share Sheet Logic
---------------------------- */
-function bindShareSheet_(){
-
-  const fab = $("fabShare");
-  const sheet = $("shareSheet");
-
-  if(!fab || !sheet) return;
-
-  fab.onclick = ()=> sheet.classList.add("show");
-
-  const close = $("sheetClose");
-  if(close) close.onclick = ()=> sheet.classList.remove("show");
-
-  const copyCard = $("copyCardUrl");
-  if(copyCard){
-    copyCard.onclick = ()=>{
-      const url = `${location.origin}${location.pathname}?id=${__resolvedId}`;
-      navigator.clipboard.writeText(url);
-      sheet.classList.remove("show");
-    };
-  }
-
-  const copyDelivery = $("copyDeliveryUrl");
-  if(copyDelivery){
-    copyDelivery.onclick = ()=>{
-      const url = `${location.origin}/share.html?id=${__resolvedId}`;
-      navigator.clipboard.writeText(url);
-      sheet.classList.remove("show");
-    };
+    return cid;
+  } catch (e) {
+    err_("loadCard error:", e);
+    setFailUi_(e && e.message ? `同步失敗：${e.message}` : "同步失敗");
+    throw e;
   }
 }
 
 /* ---------------------------
-Hidden Admin Entry
-方案：
-① 右上角熱區長按 1.2 秒（主入口）
-② 三擊備援（避免某些手機長按被吃掉）
+Share + Delivery (GitHub subpath SAFE)
+✅ 用 new URL() 生成：不會丟 repo path
 --------------------------- */
-function bindHiddenAdmin_(){
+function buildCardUrl_() {
+  const u = new URL(window.location.href);
+  u.searchParams.set("id", __resolvedId || CONFIG.DEFAULT_ID);
+  // 只保留 index.html 路徑（去掉 hash）
+  u.hash = "";
+  return u.toString();
+}
 
-  const hotspot = $("adminHotspot");
-  if(!hotspot) return;
+function buildDeliveryUrl_() {
+  // share.html 相對於「目前頁面所在資料夾」
+  const u = new URL("share.html", window.location.href);
+  u.searchParams.set("id", __resolvedId || CONFIG.DEFAULT_ID);
+  u.hash = "";
+  return u.toString();
+}
 
-  let pressTimer = null;
+async function copyText_(s) {
+  const v = text(s);
+  if (!v) return false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(v);
+      return true;
+    }
+  } catch {}
+  // fallback
+  const ta = document.createElement("textarea");
+  ta.value = v;
+  ta.setAttribute("readonly", "readonly");
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch {}
+  document.body.removeChild(ta);
+  return true;
+}
+
+function bindShareUi_() {
+  const btn = $("btnShareCard");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    const url = buildCardUrl_();
+    await copyText_(url);
+    alert("✅ 已複製名片網址");
+  });
+}
+
+function bindDeliveryUi_() {
+  const btn = $("btnDelivery");
+  if (!btn) return;
+
+  btn.addEventListener("click", async () => {
+    const url = buildDeliveryUrl_();
+    await copyText_(url);
+    // 也幫你順便開啟交貨頁（可關）
+    window.open(url, "_blank");
+  });
+}
+
+/* ---------------------------
+Hidden Admin Entry (top hotspot)
+主：長按 1.2s
+備援：三擊
+--------------------------- */
+function openAdmin_() {
+  const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
+  const u = new URL("admin.html", window.location.href);
+  u.searchParams.set("id", id);
+  window.open(u.toString(), "_blank");
+}
+
+function bindHiddenAdmin_() {
+  const hs = $("adminHotspot");
+  if (!hs) return;
+
+  let timer = null;
   let tapCount = 0;
   let tapTimer = null;
 
-  const openAdmin = ()=>{
-    const url = `${location.origin}/admin.html?id=${__resolvedId}`;
-    window.open(url, "_blank");
+  const start = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => openAdmin_(), CONFIG.ADMIN_LONGPRESS_MS);
+  };
+  const cancel = () => {
+    clearTimeout(timer);
+    timer = null;
   };
 
-  hotspot.addEventListener("touchstart", ()=>{
-    pressTimer = setTimeout(openAdmin, CONFIG.ADMIN_LONGPRESS_MS);
-  });
-
-  hotspot.addEventListener("touchend", ()=>{
-    clearTimeout(pressTimer);
+  hs.addEventListener("touchstart", start, { passive: true });
+  hs.addEventListener("touchend", () => {
+    cancel();
 
     tapCount++;
     clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => { tapCount = 0; }, CONFIG.ADMIN_TRIPLE_TAP_MS);
 
-    tapTimer = setTimeout(()=> tapCount = 0, CONFIG.ADMIN_TRIPLE_TAP_MS);
-
-    if(tapCount >= 3){
+    if (tapCount >= 3) {
       tapCount = 0;
-      openAdmin();
+      openAdmin_();
     }
-  });
+  }, { passive: true });
+
+  hs.addEventListener("touchcancel", cancel, { passive: true });
+
+  // desktop
+  hs.addEventListener("mousedown", start);
+  hs.addEventListener("mouseup", cancel);
+  hs.addEventListener("mouseleave", cancel);
 }
+
+/* ---------------------------
+CTA
+--------------------------- */
+window.goFillForm = function () {
+  const u = ensureHttp_(CONFIG.FORM);
+  if (u) window.open(u, "_blank");
+};
 
 /* ---------------------------
 Boot
 --------------------------- */
-window.addEventListener("DOMContentLoaded", async ()=>{
+function boot_() {
+  try { applyV382_(); } catch {}
+  try { syncPlanButtons_(); } catch {}
+  try { toggleDotsRows_(); } catch {}
 
   const id = getCardIdFromUrl_();
+  loadCardById_(id).catch(() => {});
 
-  try{
-    await loadCardById_(id);
-  }catch(e){
-    err_("Boot load error:", e);
-  }
+  // ✅ 分享鈕/交貨鈕（要在你的 index.html 內有對應 id）
+  bindShareUi_();
+  bindDeliveryUi_();
 
-  bindShareSheet_();
+  // ✅ 隱形入口
   bindHiddenAdmin_();
-});
 
-/* ---------------------------
-Global actions
---------------------------- */
-window.goFillForm = function(){
-  window.open(CONFIG.FORM, "_blank");
-};
+  // version tag
+  const vt = $("versionTag");
+  if (vt) vt.textContent = "v" + CONFIG.VERSION;
+  const ft = $("footerTag");
+  if (ft) ft.textContent = "Happiness Smart Card System v" + CONFIG.VERSION;
+}
+
+document.addEventListener("DOMContentLoaded", () => boot_(), { once: true });
