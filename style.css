@@ -494,3 +494,62 @@ body{
   font-family: monospace;
   user-select:none;
 }
+/* =========================================
+ * v399 PREMIUM LAYOUT FIX
+ * 結構：
+ * 左 = Avatar 下方 → Unit + Title
+ * 右 = 姓名獨立浮動
+ * ========================================= */
+
+/* 🌿 姓名 → 右上獨立區（不再參與左側流） */
+.mode-premium .name{
+  position: absolute;
+  top: 38px;
+  right: 26px;
+  left: 140px;              /* 避開頭像區 */
+  text-align: right;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 60;
+}
+
+/* 🌿 單位 / 頭銜 → 固定在頭像下方 */
+.mode-premium .unit{
+  position: absolute;
+  top: 118px;
+  left: 26px;
+  right: 110px;             /* 避開 Logo */
+  text-align: left;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: normal;
+  z-index: 55;
+}
+
+.mode-premium .title{
+  position: absolute;
+  top: 142px;
+  left: 26px;
+  right: 110px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.4;
+  white-space: normal;
+  z-index: 55;
+}
+
+/* 🌿 滾動內容往下讓位（避免撞到頭像資訊） */
+.mode-premium .info-scroll{
+  padding-top: 175px;
+}
+
+/* 🌿 防止任何 inline 排版殘留影響 */
+.mode-premium #v398-unit-structure{
+  position: static;
+}
