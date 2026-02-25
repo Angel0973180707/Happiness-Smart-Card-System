@@ -7,7 +7,7 @@
   <title>Happiness Smart Card System</title>
   <meta name="description" content="幸福智慧名片｜點擊查看專屬名片" />
 
-  <!-- ✅ OG 固定封面圖（最重要） -->
+  <!-- ✅ OG 固定封面圖 -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="幸福智慧名片" />
   <meta property="og:description" content="點擊查看智慧名片" />
@@ -19,20 +19,23 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
-  <link rel="manifest" href="./manifest.json?v=398" />
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json?v=3982" />
   <meta name="theme-color" content="#ee5253" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=3982" />
+  <link rel="icon" href="./icons/icon-192.png?v=3982" />
 
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <link rel="icon" href="./icons/icon-192.png" />
-
+  <!-- Fonts / Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=398" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css?v=3982" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- ✅ v398：門面必須可見（不再預設隱藏） -->
+  <!-- ✅ v398：門面必須可見 -->
   <div id="admin-panel">
 
     <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
@@ -52,13 +55,17 @@
       <div style="font-weight:900;">選擇方案</div>
     </div>
 
+    <!-- Free colors -->
     <div class="dots-row">
       <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
       <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
       <div class="dot" style="background:#ffa502" onclick="window.setV382('free', 'color-3', this)"></div>
       <div class="dot" style="background:#7d5fff" onclick="window.setV382('free', 'color-4', this)"></div>
       <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
-    </div><div id="free-controls">
+    </div>
+
+    <!-- Free controls -->
+    <div id="free-controls">
       <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
         <button class="btn-neo active" type="button" onclick="window.setV382Style('arch', this)">優雅正拱</button>
         <button class="btn-neo" type="button" onclick="window.setV382Style('flat', this)">簡潔平直</button>
@@ -72,6 +79,7 @@
       </div>
     </div>
 
+    <!-- Premium colors -->
     <div class="dots-row">
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p1', this)"></div>
       <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p2', this)"></div>
@@ -90,7 +98,7 @@
     <div class="premium-fx-layer"></div>
     <div class="banner"><div class="dynamic-mask"></div></div>
 
-    <!-- 👤 頭像區（不動） -->
+    <!-- Avatar -->
     <div class="avatar-wrap">
       <div class="avatar-circle">
         <img id="u-img" src="" class="avatar" alt="形象照" />
@@ -99,50 +107,44 @@
 
     <div class="info-scroll">
 
-      <!-- ✅ v398：unitline 拆解正式結構 -->
       <div id="v398-unit-structure">
         <h1 id="u-name" class="name">載入中...</h1>
-
         <div id="u-unit" class="unit">同步中...</div>
         <div id="u-title" class="title"></div>
-
-        <!-- ✅ 理念標語回歸（可選顯示，Renderer 控制 display） -->
         <div id="u-slogan" class="slogan"></div>
       </div>
 
-      <!-- ✅ v398：固定兩大容器（服務項目 / 經歷） -->
       <div id="v398-blocks">
         <div id="block-service" class="info-block"></div>
         <div id="block-exp" class="info-block"></div>
       </div>
 
-      <!-- ✅ Dock 區（不動） -->
       <div id="contactDock" class="contact-dock">
         <div class="dock-title">聯繫與平台</div>
         <div id="contactButtons" class="dock-buttons"></div>
       </div>
 
-      <!-- ✅ 照片牆（不動） -->
       <div id="photoWall" class="photo-wall">
         <div class="wall-title">照片牆</div>
         <div id="photoGrid" class="photo-grid"></div>
       </div>
 
-    </div><!-- ✅ v398：隱形入口熱區（右下角三擊）會由 app.js 建立 invisible hotzone -->
-    <div class="version-tag" id="versionTag">v398</div>
+    </div>
 
+    <!-- ✅ 隱形入口：app.js 會在右下角建立三擊熱區 -->
+    <div class="version-tag" id="versionTag">v398.2</div>
   </div>
 
   <footer id="footerTag" style="font-size:10px; color:#ccc; margin-top:12px; text-align:center;">
-    Happiness Smart Card System v398
+    Happiness Smart Card System v398.2
   </footer>
 
-  <script src="app.js?v=398"></script>
+  <script src="app.js?v=3982"></script>
 
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=398').catch(()=>{});
+        navigator.serviceWorker.register('./sw.js?v=3982').catch(()=>{});
       });
     }
   </script>
