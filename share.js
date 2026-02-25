@@ -1,6 +1,5 @@
 /* ================================
- * share.js (v399.x COMPLETE OVERWRITE)
- * Purpose:
+ * share.js (v399.1 COMPLETE OVERWRITE)
  * - share.html?id=TW0001
  * - OG meta uses fixed og-card.png (for LINE/FB crawler)
  * - Page overlays NAME + AVATAR for humans
@@ -102,21 +101,48 @@ function normalizeImageUrl(raw){
   return url;
 }
 
+function buildImageCandidates_(raw){
+  const s = text(raw);
+  if(!s) return [];
+  const original = s.startsWith("http://") ? "https://" + s.slice(7) : s;
+
+  if(original.includes("dropbox.com")) return [normalizeImageUrl(original)];
+
+  let driveId = "";
+  const mFile = original.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+  const mId = original.match(/(?:\?|&)id=([^&]+)/i);
+  const mThumb = original.match(/thumbnail\?id=([^&]+)/i);
+  if(mFile && mFile[1]) driveId = mFile[1];
+  else if(mId && mId[1]) driveId = mId[1];
+  else if(mThumb && mThumb[1]) driveId = mThumb[1];
+
+  if(driveId){
+    return [
+      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(driveId)}`,
+      `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w1200`,
+      `https://drive.google.com/uc?export=download&id=${encodeURIComponent(driveId)}`,
+      normalizeImageUrl(original)
+    ].filter(Boolean);
+  }
+  return [normalizeImageUrl(original)].filter(Boolean);
+}
+
 async function fetchWithTimeout(url, timeoutMs){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
-    const res = await fetch(url, { method:"GET", mode:"cors", cache:"no-store", credentials:"omit", signal: controller.signal });
+    const res = await fetch(url, { method:"GET", cache:"no-store", redirect:"follow", signal: controller.signal });
     const txt = await res.text();
     const body = (txt||"").trim();
     if(!body) throw new Error("Empty response");
-    try { return JSON.parse(body); }
-    catch {
+    try{
+      return JSON.parse(body);
+    }catch{
       const m = body.match(/\{[\s\S]*\}/);
       if(m) return JSON.parse(m[0]);
       throw new Error("Not JSON");
     }
-  } finally {
+  }finally{
     clearTimeout(t);
   }
 }
@@ -124,35 +150,55 @@ async function fetchWithTimeout(url, timeoutMs){
 async function fetchJsonRobust(url){
   let last = null;
   for(let i=0;i<=SHARE_CONFIG.RETRY;i++){
-    try { return await fetchWithTimeout(url, SHARE_CONFIG.FETCH_TIMEOUT_MS); }
-    catch(e){ last=e; warn("retry", i, e && e.message); await new Promise(r=>setTimeout(r, 520+i*520)); }
+    try{
+      return await fetchWithTimeout(url, SHARE_CONFIG.FETCH_TIMEOUT_MS);
+    }catch(e){
+      last = e;
+      warn("retry", i, e && e.message ? e.message : e);
+      await new Promise(r=>setTimeout(r, 520 + i*520));
+    }
   }
   throw last || new Error("Fetch failed");
 }
 
-function buildCardUrl_(id){
-  const u = new URL("index.html", window.location.href);
-  u.searchParams.set("id", id);
-  u.hash = "";
-  return u.toString();
+function projectBase_(){
+  try{
+    const u = new URL(location.href);
+    u.hash = "";
+    u.search = "";
+    const p = u.pathname;
+    const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
+    return u.origin + dir;
+  }catch{
+    return location.origin + "/";
+  }
 }
-
+function buildCardUrl_(id){
+  return projectBase_() + "index.html?id=" + encodeURIComponent(id);
+}
 function buildShareUrl_(id){
-  const u = new URL("share.html", window.location.href);
-  u.searchParams.set("id", id);
-  u.hash = "";
-  return u.toString();
+  return projectBase_() + "share.html?id=" + encodeURIComponent(id);
 }
 
 async function copyText_(s){
   const v = text(s);
   if(!v) return false;
+
+  try{
+    if(navigator.share){
+      await navigator.share({ title:"幸福智慧名片", text:"點擊查看名片", url:v });
+      return true;
+    }
+  }catch{}
+
   try{
     if(navigator.clipboard && navigator.clipboard.writeText){
       await navigator.clipboard.writeText(v);
+      alert("✅ 已複製連結");
       return true;
     }
-  } catch {}
+  }catch{}
+
   const ta = document.createElement("textarea");
   ta.value = v;
   ta.setAttribute("readonly","readonly");
@@ -162,83 +208,81 @@ async function copyText_(s){
   ta.select();
   try{ document.execCommand("copy"); }catch{}
   document.body.removeChild(ta);
+  alert("✅ 已複製連結");
   return true;
 }
 
-function setLoading_(on, msg){
-  const layer = $("loadingLayer");
-  if(!layer) return;
-  layer.style.display = on ? "flex" : "none";
-  if(msg) layer.textContent = msg;
+function setImgWithFallback_(imgEl, candidates){
+  if(!imgEl) return;
+  const list = (candidates||[]).map(text).filter(Boolean);
+  if(!list.length){ imgEl.removeAttribute("src"); return; }
+
+  const token = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
+  imgEl.dataset.loadToken = token;
+  let idx = 0;
+
+  imgEl.referrerPolicy = "no-referrer";
+  imgEl.decoding = "async";
+  imgEl.loading = "eager";
+
+  const tryNext = () => {
+    if(imgEl.dataset.loadToken !== token) return;
+    if(idx >= list.length){ imgEl.removeAttribute("src"); return; }
+    const u = list[idx++];
+    const sep = u.includes("?") ? "&" : "?";
+    imgEl.src = u + sep + "t=" + Date.now();
+  };
+
+  imgEl.onerror = () => tryNext();
+  tryNext();
 }
 
-function applyToOverlay_(p){
-  const name = text(pick(p, ["姓名"])) || "";
-  const avatarRaw = pick(p, ["個人照_fast","個人照"]);
-  const avatarUrl = normalizeImageUrl(avatarRaw);
+async function boot(){
+  const id = normalizeId_(getParam("id")) || SHARE_CONFIG.DEFAULT_ID;
 
+  const loading = $("loadingLayer");
   const nameEl = $("nameText");
   const avatarBox = $("avatarBox");
   const avatarImg = $("avatarImg");
+  const debug = $("debugText");
 
-  if(nameEl){
-    if(name){
-      nameEl.style.display = "";
-      nameEl.textContent = name;
-    }else{
-      nameEl.style.display = "none";
-      nameEl.textContent = "";
-    }
-  }
-
-  if(avatarBox && avatarImg){
-    if(avatarUrl){
-      avatarBox.style.display = "";
-      avatarImg.referrerPolicy = "no-referrer";
-      avatarImg.decoding = "async";
-      avatarImg.src = avatarUrl + (avatarUrl.includes("?")?"&":"?") + "t=" + Date.now();
-    }else{
-      avatarBox.style.display = "none";
-      avatarImg.removeAttribute("src");
-    }
-  }
-}
-
-async function boot_(){
-  const id = normalizeId_(getParam("id")) || SHARE_CONFIG.DEFAULT_ID;
-
-  // buttons
-  const btnOpen = $("btnOpenCard");
+  const btnOpenCard = $("btnOpenCard");
   const btnCopyShare = $("btnCopyShare");
   const btnCopyCard = $("btnCopyCard");
-  const debug = $("debugText");
 
   const cardUrl = buildCardUrl_(id);
   const shareUrl = buildShareUrl_(id);
 
-  if(btnOpen) btnOpen.onclick = ()=> window.location.href = cardUrl;
-  if(btnCopyShare) btnCopyShare.onclick = async ()=>{ await copyText_(shareUrl); alert("✅ 已複製交貨連結（貼出去＝OG 卡）"); };
-  if(btnCopyCard) btnCopyCard.onclick = async ()=>{ await copyText_(cardUrl); alert("✅ 已複製名片連結"); };
+  btnOpenCard.onclick = () => location.href = cardUrl;
+  btnCopyShare.onclick = () => copyText_(shareUrl);
+  btnCopyCard.onclick = () => copyText_(cardUrl);
 
-  if(debug) debug.textContent = `ID：${id}`;
-
-  setLoading_(true, "載入交貨資料中…");
+  if(debug) debug.textContent = `id=${id}`;
 
   try{
-    const api = `${SHARE_CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
-    const data = await fetchJsonRobust(api);
+    const url = `${SHARE_CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+    const data = await fetchJsonRobust(url);
     if(!data || typeof data !== "object") throw new Error("Invalid payload");
     if(data.ok === false) throw new Error(data.error || "Not found");
 
-    const norm = buildNormalizedPayload_(data);
-    applyToOverlay_(norm);
+    const p = buildNormalizedPayload_(data);
+    const name = text(pick(p, ["姓名","name","Name"]));
+    const avatarRaw = pick(p, ["個人照_fast","個人照","形象照_fast","形象照","avatar_fast","avatar","photo_fast","photo","image"]);
 
-    setLoading_(false);
-    log("ok", { id });
+    if(name){
+      nameEl.style.display = "";
+      nameEl.textContent = name;
+    }
+    if(text(avatarRaw)){
+      avatarBox.style.display = "";
+      setImgWithFallback_(avatarImg, buildImageCandidates_(avatarRaw));
+    }
+
+    if(loading) loading.style.display = "none";
   }catch(e){
-    setLoading_(true, "交貨資料載入失敗（請回後臺確認 id / GAS）");
+    if(loading) loading.textContent = "交貨資料載入失敗（可直接點下方進入名片）";
     warn(e);
   }
 }
 
-document.addEventListener("DOMContentLoaded", boot_, { once:true });
+document.addEventListener("DOMContentLoaded", boot, { once:true });
