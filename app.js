@@ -1,5 +1,5 @@
 /* ================================
- * Happiness Smart Card System — app.js (v399.11 COMPLETE OVERWRITE) 1/3
+ * Happiness Smart Card System — app.js (v400 COMPLETE OVERWRITE) 1/3
  * ✅ Use NEW API (your latest GAS)
  * ✅ Keep v382 hooks: setV382 / setV382Style / setV382Paper  (index.html onclick)
  * ✅ Robust loader + normalize keys + pick()
@@ -8,7 +8,7 @@
  * ================================ */
 
 const CONFIG = {
-  VERSION: "399.11",
+  VERSION: "400",
 
   // ✅ NEW API (你剛剛給的最新)
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
