@@ -1,14 +1,12 @@
 /* ================================
- * Happiness Smart Card System — style.css (v399.1 COMPLETE OVERWRITE)
- * Base: your v399
- * FIX:
- * 1) Premium: name horizontal beside avatar (top area)
- * 2) Premium: unit/title each line, no squeeze
- * 3) Use #adminHotspotTop as real invisible hotspot (already in HTML)
+ * Happiness Smart Card System — style.css
+ * v399.9 COMPLETE OVERWRITE
+ * Base: v398.3/v399 + premium polish + logo fix + dock polish
+ * MUST KEEP: v393 dynamic-mask system (free mode arch/flat/spot)
  * ================================ */
 
 :root{
-  --font: 'Noto Sans TC', sans-serif;
+  --font: 'Noto Sans TC', system-ui, -apple-system, "PingFang TC", "Segoe UI", Roboto, Arial, sans-serif;
 
   --p:#ff5e5e;
   --bg:#fff5f5;
@@ -33,6 +31,24 @@
 
   --muted: rgba(45,52,54,0.55);
   --block-bg: rgba(255,255,255,0.86);
+
+  /* typography polish */
+  --ts: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+
+body{
+  margin:0;
+  padding-bottom:40px;
+  background:var(--bg);
+  font-family:var(--font);
+  color:var(--text);
+  transition: 0.45s;
+  display:block;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 /* ========= 自由搭配款：5 色（維持 v393） ========= */
@@ -51,21 +67,9 @@
 .mode-premium.p6 { --p:#bf953f; --bg:#f9f7f0; --card-bg:linear-gradient(135deg, rgba(191,149,63,0.96), rgba(252,246,186,0.86), rgba(170,119,28,0.96)); --text:#4d3700; --fx-op:0.55; }
 .mode-premium.p7 { --p:#444444; --bg:#f0f0f0; --card-bg:linear-gradient(135deg, rgba(68,68,68,0.98), rgba(30,30,30,0.95)); --text:#d4af37; --fx-op:0.18; }
 
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
-
-body{
-  margin:0;
-  padding-bottom:40px;
-  background:var(--bg);
-  font-family:var(--font);
-  color:var(--text);
-  transition: 0.45s;
-  display:block;
-}
-
 /* =========================================
    v399：上方隱形入口熱區（不破壞門面）
+   - app.js 綁三擊/多擊
 ========================================= */
 #adminHotspotTop{
   position: fixed;
@@ -84,11 +88,12 @@ body{
   width:100%;
   background:#fff;
   text-align:center;
-  border-bottom:1px solid #eee;
+  border-bottom:1px solid rgba(0,0,0,0.06);
   padding:14px 0 16px;
   z-index:1000;
   position: sticky;
   top: 0;
+  backdrop-filter: blur(8px);
 }
 
 /* 中央容器 */
@@ -104,7 +109,6 @@ body{
   gap:10px;
   margin:10px 0;
 }
-
 .dot, .p-dot{
   width:34px;
   height:34px;
@@ -112,61 +116,63 @@ body{
   cursor:pointer;
   border:3px solid #fff;
   box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-  transition: 0.2s;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
-.dot.active, .p-dot.active{ border-color:#2d3436 !important; transform:scale(1.1); }
+.dot.active, .p-dot.active{ border-color:rgba(0,0,0,0.65) !important; transform:scale(1.08); }
 
-/* 立體按鈕 */
+/* 立體按鈕（精品化） */
 .btn-neo{
   border:none;
   cursor:pointer;
   font-weight:900;
   padding:12px 16px;
   border-radius:26px;
-  background:#f4f5f7;
+  background: linear-gradient(180deg, #fbfbfc, #f1f3f6);
   color:#2d3436;
   box-shadow:
-    0 10px 22px rgba(0,0,0,0.08),
-    inset 0 2px 0 rgba(255,255,255,0.95),
+    0 12px 26px rgba(0,0,0,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.95),
     inset 0 -2px 0 rgba(0,0,0,0.06);
   transition: transform .18s, box-shadow .18s, filter .18s;
+  letter-spacing: .2px;
 }
 .btn-neo.pill{ min-width: 156px; }
 .btn-neo:hover{ transform: translateY(-1px); }
 .btn-neo:active{ transform: translateY(1px) scale(0.99); }
 .btn-neo.active{
-  outline: 2px solid rgba(0,0,0,0.12);
+  outline: 2px solid rgba(0,0,0,0.10);
   filter: saturate(1.02);
-  animation: breatheNeo 1.65s ease-in-out infinite;
+  animation: breatheNeo 1.75s ease-in-out infinite;
 }
 @keyframes breatheNeo{
   0%,100%{ box-shadow:
-    0 10px 22px rgba(0,0,0,0.10),
-    inset 0 2px 0 rgba(255,255,255,0.95),
+    0 12px 26px rgba(0,0,0,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.95),
     inset 0 -2px 0 rgba(0,0,0,0.06); }
   50%{ box-shadow:
-    0 14px 28px rgba(0,0,0,0.14),
-    inset 0 2px 0 rgba(255,255,255,0.97),
+    0 16px 34px rgba(0,0,0,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.97),
     inset 0 -2px 0 rgba(0,0,0,0.05); }
 }
 
 /* CTA */
 .btn-cta{
-  background: var(--p);
+  background: linear-gradient(180deg, var(--p), color-mix(in srgb, var(--p) 78%, #000 22%));
   color:#fff;
   border:none;
   padding: 14px 44px;
-  border-radius: 44px;
+  border-radius: 999px;
   font-weight: 900;
   cursor:pointer;
   margin-top: 6px;
-  box-shadow: 0 14px 28px rgba(0,0,0,0.12);
+  box-shadow: 0 16px 34px rgba(0,0,0,0.14);
   transition: transform .18s, box-shadow .18s, filter .18s;
+  letter-spacing: .2px;
 }
-.btn-cta:hover{ transform: translateY(-1px); filter: brightness(1.01); }
+.btn-cta:hover{ transform: translateY(-1px); filter: brightness(1.02); }
 .btn-cta:active{ transform: translateY(1px) scale(0.99); }
 
-/* ================= 名片卡 ================= */
+/* ================= 名片卡（樣品區） ================= */
 .card{
   width:92%;
   max-width:380px;
@@ -179,7 +185,7 @@ body{
   transition: 0.45s;
 }
 
-/* ================= 自由款 banner + dynamic-mask（維持 v393 原樣） ================= */
+/* ================= 自由款 banner + dynamic-mask（維持 v393 原樣！） ================= */
 .banner{
   height:125px;
   background: var(--p);
@@ -209,7 +215,7 @@ body{
 .mode-premium .card{
   width:86%;
   height:580px;
-  box-shadow: 0 25px 50px rgba(0,0,0,0.12);
+  box-shadow: 0 28px 60px rgba(0,0,0,0.14);
   border: 12px solid rgba(255,255,255,0.92);
   backdrop-filter: blur(25px);
 }
@@ -239,7 +245,7 @@ body{
   border-radius:50% !important;
   background:#fff;
   padding:4px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.12);
   overflow:hidden;
 }
 .mode-premium .avatar-circle{
@@ -247,7 +253,7 @@ body{
   height:86px;
   border: 2.5px solid rgba(255,255,255,0.30);
   background: rgba(255,255,255,0.14);
-  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.20);
 }
 
 .avatar{
@@ -257,12 +263,15 @@ body{
   object-fit:cover;
 }
 
-/* ✅ Logo（自由款在頭像下方；精品款右上角） */
+/* ✅ Logo（修正：不再被 display:none 永久封死）
+   - 空 src 不顯示（看不到方塊）
+   - 有 src 才顯示（視覺上等於「有 Logo 才出現」）
+*/
 .logo-wrap{
   position:absolute;
   z-index:40;
-  display:none;
   pointer-events:none;
+  opacity: 1;
 }
 .mode-free .logo-wrap{
   top: 188px;
@@ -275,21 +284,34 @@ body{
   left: auto;
   transform: none;
 }
-.logo-img{
+
+/* 預設：看不到（避免空 Logo 方塊） */
+#u-logo{
   width: 56px;
   height: 56px;
   border-radius: 16px;
   object-fit: cover;
-  box-shadow: 0 10px 22px rgba(0,0,0,0.14);
+  opacity: 0;
+  transform: translateZ(0);
+  transition: opacity 220ms ease, transform 220ms ease;
+  background: transparent;
+}
+
+/* 有 src 才顯示 + 上陰影（Logo 真的進得來） */
+#u-logo:not([src=""]){
+  opacity: 1;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.18);
   background: rgba(255,255,255,0.92);
 }
-.mode-premium .logo-img{
+
+/* 精品款 Logo 微調（更精品） */
+.mode-premium #u-logo{
   width: 52px;
   height: 52px;
   border-radius: 16px;
   background: rgba(255,255,255,0.18);
   border: 1px solid rgba(255,255,255,0.22);
-  box-shadow: 0 14px 30px rgba(0,0,0,0.20);
+  box-shadow: 0 16px 34px rgba(0,0,0,0.22);
 }
 
 /* 內容滾動區 */
@@ -298,61 +320,86 @@ body{
   overflow:auto;
   height:100%;
   -webkit-overflow-scrolling: touch;
-  position:relative;
 }
 .mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
+.mode-premium .info-scroll{ padding: 184px 22px 22px; text-align:left; } /* ✅ 下移：讓單位/頭銜不貼頭像 */
 
-/* ✅ 精品：上方先留出「頭像+姓名列」的空間 */
-.mode-premium .info-scroll{
-  padding: 150px 22px 22px;
-  text-align:left;
+/* 標題字形 */
+.name{
+  margin: 0 0 6px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  font-size:22px;
+}
+.unit, .title{
+  font-weight: 900;
+  opacity: 0.86;
+  margin-top: 2px;
+  font-size:14px;
+  letter-spacing: .2px;
 }
 
-/* 基本文字 */
-.name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; font-size:22px; }
-.unit, .title{ font-weight: 900; opacity: 0.86; margin-top: 2px; font-size:14px; }
+/* =========================
+   ✅ 精品版排版核心（你要的）
+   - 姓名：右邊獨立
+   - 單位/頭銜：頭像下方（留呼吸）
+========================= */
+.mode-premium #v398-unit-structure{ position: relative; }
 
-/* ✅ 你要的：單位/頭銜各佔一行 */
-.unit, .title{ display:block; }
-
-/* ========== ✅ 精品頂部資訊列：名字橫在頭像旁邊 ========== */
-.mode-premium #v398-unit-structure{
-  position:absolute;
-  top: 34px;
-  left: 118px;   /* 頭像 86 + padding + 呼吸 */
-  right: 86px;   /* 右側留給 Logo */
-  text-align:left;
-  z-index:35;
-}
-.mode-premium #u-name{
-  margin: 2px 0 4px;
-  font-size: 20px;
-  line-height: 1.15;
-  white-space: nowrap;
-  overflow:hidden;
-  text-overflow: ellipsis;
-}
-.mode-premium #u-unit,
-.mode-premium #u-title{
-  font-size: 12.5px;
-  line-height: 1.25;
-  margin: 0;
-  opacity: .90;
-  white-space: nowrap;
-  overflow:hidden;
-  text-overflow: ellipsis;
-}
-
-/* 精品文字顏色安全 */
+/* 姓名 → 右上獨立區（避開 Logo） */
 .mode-premium .name{
-  color: rgba(255,255,255,0.96);
+  position: absolute;
+  top: 44px;
+  right: 88px; /* ✅ 預留 Logo 空間 */
+  left: 132px; /* ✅ 避開頭像 */
+  text-align: right;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: .8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  z-index: 60;
   text-shadow: 0 2px 10px rgba(0,0,0,0.18);
 }
-.mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
+/* 有 Logo → 姓名自動往下（動態平衡） */
+.mode-premium.has-logo .name{ top: 78px; }
+
+/* 單位/頭銜 → 固定在頭像下方（距離更舒服） */
+.mode-premium .unit{
+  position: absolute;
+  top: 122px;
+  left: 4px;
+  right: 88px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: normal;
+  z-index: 55;
+  opacity: .88;
+}
+.mode-premium .title{
+  position: absolute;
+  top: 148px;
+  left: 4px;
+  right: 88px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.4;
+  white-space: normal;
+  z-index: 55;
+  opacity: .92;
+}
+
+/* 精品色彩安全 */
+.mode-premium .name{ color: rgba(255,255,255,0.96); }
 .mode-premium .unit, .mode-premium .title{ color: rgba(255,255,255,0.88); }
+.mode-premium.p6 .name{ color: rgba(52,34,0,0.92); text-shadow:none; }
 .mode-premium.p6 .unit, .mode-premium.p6 .title{ color: rgba(52,34,0,0.82); }
 
-/* slogan */
+/* slogan（如果有） */
 .slogan{
   margin-top: 10px;
   padding: 10px 12px;
@@ -376,7 +423,7 @@ body{
   color: rgba(52,34,0,0.92);
 }
 
-/* v398：兩大區塊 */
+/* v398：兩大區塊容器（服務 / 經歷） */
 #v398-blocks{
   margin-top: 12px;
   display: grid;
@@ -404,45 +451,65 @@ body{
   font-size: 12px;
   font-weight: 900;
   color: var(--muted);
-  letter-spacing: .6px;
+  letter-spacing: .8px;
   margin-bottom: 6px;
 }
 .mode-premium .block-title{ color: rgba(255,255,255,0.72); }
 .mode-premium.p6 .block-title{ color: rgba(52,34,0,0.70); }
 .block-body{
   font-size: 14px;
-  line-height: 1.75;
+  line-height: 1.78;
   letter-spacing: .3px;
   color: rgba(45,52,54,0.92);
 }
-.mode-premium .block-body{ color: rgba(255,255,255,0.90); }
+.mode-premium .block-body{ color: rgba(255,255,255,0.92); }
 .mode-premium.p6 .block-body{ color: rgba(52,34,0,0.92); }
 
 .preline{ white-space: pre-line; word-break: normal; overflow-wrap: break-word; }
 
 /* Dock */
 .contact-dock{ margin-top:12px; }
-.dock-buttons{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+.dock-buttons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+}
 .mode-premium .dock-buttons{ justify-content:flex-start; }
 
+/* ✅ Dock 按鈕精緻化（排列平衡） */
 .dock-btn{
   border:none;
-  background: var(--p);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--p) 80%, #fff 20%), var(--p));
   color:#fff;
-  padding:10px 14px;
-  border-radius:999px;
+  padding:11px 14px;
+  border-radius: 16px;
   font-size:13px;
   font-weight:900;
   cursor:pointer;
-  box-shadow:0 10px 22px rgba(0,0,0,0.14);
+  box-shadow:0 14px 30px rgba(0,0,0,0.16);
   transition: transform .12s ease, box-shadow .18s ease, filter .18s ease;
   display:inline-flex;
   align-items:center;
+  justify-content:center;
   gap:10px;
+  min-height: 44px;
+  letter-spacing: .2px;
+
+  /* 平衡：兩欄自動排 */
+  flex: 1 1 calc(50% - 10px);
 }
+.dock-btn i{ opacity:.95; }
+.dock-btn span{ white-space:nowrap; }
+.dock-btn:hover{ transform: translateY(-1px); filter: brightness(1.02); }
 .dock-btn:active{
   transform: translateY(1px) scale(0.99);
-  box-shadow:0 8px 18px rgba(0,0,0,0.18);
+  box-shadow:0 10px 22px rgba(0,0,0,0.18);
+}
+
+/* 手機極窄時自動一欄（更穩） */
+@media (max-width: 360px){
+  .dock-btn{ flex: 1 1 100%; }
 }
 
 /* 照片牆 */
@@ -457,12 +524,12 @@ body{
   aspect-ratio:1/1;
   object-fit:cover;
   border-radius:14px;
-  box-shadow: 0 10px 22px rgba(0,0,0,0.10);
+  box-shadow: 0 12px 26px rgba(0,0,0,0.12);
   transition: transform .12s ease, box-shadow .18s ease;
 }
 .photo-grid img:active{ transform: scale(0.98); }
 
-/* 極簡：隱藏標題（服務/經歷仍顯示） */
+/* 極簡：隱藏標題（但服務/經歷仍顯示） */
 .dock-title, .wall-title{ display:none !important; }
 
 /* premium fx layer / paper overlay */
@@ -487,69 +554,18 @@ body{
 /* version tag */
 .version-tag{
   font-size:10px;
-  opacity:0.3;
+  opacity:0.25;
   position:absolute;
   bottom: 15px;
   right: 25px;
-  font-family: monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   user-select:none;
 }
-/* =========================================
- * v399 PREMIUM LAYOUT FIX
- * 結構：
- * 左 = Avatar 下方 → Unit + Title
- * 右 = 姓名獨立浮動
- * ========================================= */
 
-/* 🌿 姓名 → 右上獨立區（不再參與左側流） */
-.mode-premium .name{
-  position: absolute;
-  top: 38px;
-  right: 26px;
-  left: 140px;              /* 避開頭像區 */
-  text-align: right;
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  z-index: 60;
+/* footer */
+#footerTag{
+  user-select:none;
 }
 
-/* 🌿 單位 / 頭銜 → 固定在頭像下方 */
-.mode-premium .unit{
-  position: absolute;
-  top: 118px;
-  left: 26px;
-  right: 110px;             /* 避開 Logo */
-  text-align: left;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.35;
-  white-space: normal;
-  z-index: 55;
-}
-
-.mode-premium .title{
-  position: absolute;
-  top: 142px;
-  left: 26px;
-  right: 110px;
-  text-align: left;
-  font-size: 15px;
-  font-weight: 900;
-  line-height: 1.4;
-  white-space: normal;
-  z-index: 55;
-}
-
-/* 🌿 滾動內容往下讓位（避免撞到頭像資訊） */
-.mode-premium .info-scroll{
-  padding-top: 175px;
-}
-
-/* 🌿 防止任何 inline 排版殘留影響 */
-.mode-premium #v398-unit-structure{
-  position: static;
-}
+/* focus safety */
+button:focus{ outline: none; }
