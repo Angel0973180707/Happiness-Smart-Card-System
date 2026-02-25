@@ -1,12 +1,14 @@
+<!-- index.html (v399 COMPLETE OVERWRITE) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <title>Happiness Smart Card System v400.1</title>
+  <title>Happiness Smart Card System v399</title>
   <meta name="description" content="Happiness Smart Card System｜點擊查看專屬名片" />
 
+  <!-- OG (baseline fallback image; dynamic delivery uses share.html) -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Happiness Smart Card System" />
   <meta property="og:description" content="點擊查看智慧名片" />
@@ -17,21 +19,27 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
-  <link rel="manifest" href="./manifest.json?v=400" />
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json?v=3990" />
   <meta name="theme-color" content="#ee5253" />
+
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
   <link rel="icon" href="./icons/icon-192.png" />
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=400" />
+  <link rel="stylesheet" href="style.css?v=3990" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
+  <!-- ✅ v399：上方隱形入口熱區（不破壞門面視覺；三擊開工作臺）
+       NOTE: 觸發邏輯由 app.js 綁定（triple tap / multi tap） -->
   <div id="adminHotspotTop" aria-label="admin-hotspot-top"></div>
 
+  <!-- ✅ 門面控制區（維持 v398.3 結構） -->
   <div id="admin-panel">
+
     <div class="control-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:10px 12px 4px;">
       <button id="btnPlanFree" class="btn-neo pill active" type="button"
         onclick="window.setV382('free','color-1', this)">
@@ -45,9 +53,11 @@
     </div>
 
     <div style="display:flex; justify-content:center; align-items:center; gap:10px; padding:2px 12px 8px;">
-      <div style="font-weight:900; opacity:.85; font-size:14px;">步驟一：選擇您的專屬風格</div>
+      <div style="font-weight:900; opacity:.85;">步驟一</div>
+      <div style="font-weight:900;">選擇方案</div>
     </div>
 
+    <!-- 自由款色點 -->
     <div class="dots-row" id="freeDotsRow">
       <div class="dot active" style="background:#ff5e5e" onclick="window.setV382('free', 'color-1', this)"></div>
       <div class="dot" style="background:#00a8ff" onclick="window.setV382('free', 'color-2', this)"></div>
@@ -56,6 +66,7 @@
       <div class="dot" style="background:#2ecc71" onclick="window.setV382('free', 'color-5', this)"></div>
     </div>
 
+    <!-- 自由款控制 -->
     <div id="free-controls">
       <div class="control-row" style="display:flex; justify-content:center; gap:8px;">
         <button class="btn-neo active" type="button" onclick="window.setV382Style('arch', this)">優雅正拱</button>
@@ -70,7 +81,8 @@
       </div>
     </div>
 
-    <div class="dots-row" id="premiumDotsRow" style="display:none;">
+    <!-- 精品款色點 -->
+    <div class="dots-row" id="premiumDotsRow">
       <div class="p-dot" style="background:#a36d6d" onclick="window.setV382('premium', 'p1', this)"></div>
       <div class="p-dot" style="background:#722f37" onclick="window.setV382('premium', 'p2', this)"></div>
       <div class="p-dot" style="background:#1c2e42" onclick="window.setV382('premium', 'p3', this)"></div>
@@ -83,79 +95,75 @@
     <button class="btn-cta" type="button" onclick="window.goFillForm()">立即預約訂製名片 →</button>
   </div>
 
+  <!-- ✅ 名片卡（樣品區 / 成品區共用容器） -->
   <div id="card-container" class="card">
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
 
-    <div class="banner">
-      <div class="dynamic-mask"></div>
-      <div id="u-unit-banner" class="unit-on-banner free-only"></div>
-    </div>
-
-    <div class="logo-wrap" id="logoWrap">
+    <!-- ✅ Logo -->
+    <div class="logo-wrap" id="logoWrap" aria-label="logo">
       <img id="u-logo" class="logo-img" src="" alt="Logo" />
     </div>
 
-    <div class="premium-header-row premium-only">
-      <div class="p-avatar-box">
-        <img id="u-img-premium" src="" class="avatar" alt="形象照" />
-      </div>
-      <div class="p-name-box">
-        <h1 id="u-name-premium" class="name">載入中...</h1>
-      </div>
-    </div>
+    <!-- ✅ 自由款 banner + dynamic-mask（必須維持 v393 系統） -->
+    <div class="banner"><div class="dynamic-mask"></div></div>
 
-    <div class="avatar-wrap free-only">
+    <!-- 👤 頭像 -->
+    <div class="avatar-wrap">
       <div class="avatar-circle">
-        <img id="u-img-free" src="" class="avatar" alt="形象照" />
+        <img id="u-img" src="" class="avatar" alt="形象照" />
       </div>
     </div>
 
     <div class="info-scroll">
-      
-      <div class="identity-block">
-        <h1 id="u-name-free" class="name free-only">載入中...</h1>
-        <div id="u-unit-main" class="unit premium-only"></div>
+
+      <div id="v398-unit-structure">
+        <h1 id="u-name" class="name">載入中...</h1>
+        <div id="u-unit" class="unit">同步中...</div>
         <div id="u-title" class="title"></div>
+        <div id="u-slogan" class="slogan"></div>
       </div>
 
-      <div id="logo-mid-wrap" class="free-only logo-in-flow"></div>
-
-      <div id="v400-blocks">
+      <!-- 服務/經歷（這兩個要顯示標題） -->
+      <div id="v398-blocks">
         <div id="block-service" class="info-block"></div>
         <div id="block-exp" class="info-block"></div>
       </div>
 
-      <div id="photoWall" class="photo-wall">
-        <div id="photoGrid" class="photo-grid"></div>
-      </div>
-
+      <!-- Dock -->
       <div id="contactDock" class="contact-dock">
-        <div id="socialButtons" class="dock-buttons"></div>
-        <div id="contactButtons" class="dock-buttons" style="margin-top:10px;"></div>
-        
+        <div class="dock-title">聯繫與平台</div>
+        <div id="contactButtons" class="dock-buttons"></div>
+
+        <!-- ✅ v399：分享名片（複製名片網址） -->
         <div class="dock-buttons" style="margin-top:10px;">
-          <button class="dock-btn share-btn" type="button" onclick="window.copyCardUrl && window.copyCardUrl()">
+          <button class="dock-btn" type="button" onclick="window.copyCardUrl && window.copyCardUrl()">
             <i class="fa-solid fa-share-nodes"></i>
             <span>分享名片</span>
           </button>
         </div>
       </div>
 
+      <!-- 照片牆 -->
+      <div id="photoWall" class="photo-wall">
+        <div class="wall-title">照片牆</div>
+        <div id="photoGrid" class="photo-grid"></div>
+      </div>
+
     </div>
 
-    <div class="version-tag">v400</div>
+    <div class="version-tag" id="versionTag">v399</div>
   </div>
 
   <footer id="footerTag" style="font-size:10px; color:#ccc; margin-top:12px; text-align:center;">
-    Happiness Smart Card System v400
+    Happiness Smart Card System v399
   </footer>
 
-  <script src="app.js?v=400"></script>
+  <script src="app.js?v=3990"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=400').catch(()=>{});
+        navigator.serviceWorker.register('./sw.js?v=3990').catch(()=>{});
       });
     }
   </script>

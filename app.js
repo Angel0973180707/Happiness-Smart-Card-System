@@ -1,316 +1,920 @@
-/* ============================================================
- * Happiness Smart Card System — app.js (v400.1 FULL OVERWRITE)
- * 1. 核心邏輯：支援三擊隱形入口、序號/姓名自動識別
- * 2. 排版控制：實現自由款與精品款雙重 DOM 渲染
- * 3. 健壯系統：自動修復 Google Drive 圖片連結、超時重試
- * ============================================================ */
+/* ================================
+ * Happiness Smart Card System — app.js (v399 COMPLETE OVERWRITE) 1/3
+ * Base: v398.3 robust loader + v398 DOM
+ * v399 Add:
+ *  - Top hidden admin hotspot (triple tap) -> open admin.html?id=...
+ *  - Share button API: window.copyCardUrl() (copy current card url with id)
+ * Keep:
+ *  - v393 dynamic-mask system (HTML/CSS side)
+ *  - v382 hooks: setV382 / setV382Style / setV382Paper
+ * ================================ */
 
 const CONFIG = {
-  VERSION: "400.1",
+  VERSION: "399.0",
+
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://forms.gle/6A6LoEdT7mpfPeNJ7",
   DEFAULT_ID: "TW0001",
+
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
-  ADMIN_TRIPLETAP_WINDOW: 650,
-  PHOTO_SLOT_MAX: 20
+
+  ADMIN_LONGPRESS_MS: 1200,
+  ADMIN_TRIPLETAP_WINDOW_MS: 650,   // taps count window
+  ADMIN_TRIPLETAP_COUNT: 3,
+
+  PHOTO_SLOT_MAX: 20,
+  PHOTO_GRID_COLS: 3,
+
+  DEBUG: true
 };
 
-let state = {
-  mode: "free",
-  theme: "color-1",
-  style: "arch",
-  paper: "paper-1",
-  resolvedId: CONFIG.DEFAULT_ID
-};
+let state = { mode: "free", theme: "color-1", style: "arch", paper: "paper-1" };
 
-// --- 基礎工具 ---
-const $ = (id) => document.getElementById(id);
-const qa = (sel) => Array.from(document.querySelectorAll(sel));
-const text = (v) => (v == null ? "" : String(v)).trim();
+let __payloadRaw = null;
+let __payload = null;
+let __lastLoad = { id: "", ts: 0, url: "" };
+let __resolvedId = CONFIG.DEFAULT_ID;
 
-function setText(id, v) {
-  const el = $(id);
-  if (el) el.textContent = text(v);
+/* --------------------------- */
+function $(id) { return document.getElementById(id); }
+function q(sel, root = document) { return root.querySelector(sel); }
+function qa(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
+function text(v) { return (v == null ? "" : String(v)).trim(); }
+function log_() { if (CONFIG.DEBUG) console.log("[HSC-v399]", ...arguments); }
+function warn_() { if (CONFIG.DEBUG) console.warn("[HSC-v399]", ...arguments); }
+function err_() { console.error("[HSC-v399]", ...arguments); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setText(elOrId, v) {
+  const el = typeof elOrId === "string" ? $(elOrId) : elOrId;
+  if (!el) return false;
+  el.textContent = text(v);
+  return true;
 }
 
+/* --------------------------- */
 function getParam(name) {
-  return new URLSearchParams(window.location.search).get(name);
+  try { return new URLSearchParams(window.location.search).get(name); }
+  catch { return null; }
 }
 
-// 序號正規化 (如: 0001 -> TW0001)
-function normalizeId(s) {
-  let v = text(s).toUpperCase();
+function normalizeId_(s) {
+  const v = text(s).toUpperCase();
   if (!v) return "";
-  if (/^TW\d{4}$/.test(v)) return v;
+  if (/^TW\d{4}$/i.test(v)) return v;
   if (/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4, "0");
   if (/^TW\d{1,4}$/i.test(v)) {
-    return "TW" + v.replace(/^TW/i, "").padStart(4, "0");
+    const n = v.replace(/^TW/i, "");
+    return "TW" + n.padStart(4, "0");
   }
   return v;
 }
 
-// 圖片連結修復邏輯
+function getCardIdFromUrl_() {
+  const id = normalizeId_(getParam("id"));
+  return id || CONFIG.DEFAULT_ID;
+}
+
+/* ---------------------------
+UI: dots rows (free vs premium)
+--------------------------- */
+function toggleDotsRows_() {
+  const rows = qa(".dots-row");
+  if (!rows.length) return;
+
+  let freeRow = null;
+  let premiumRow = null;
+
+  for (const row of rows) {
+    if (!freeRow && row.querySelector(".dot")) freeRow = row;
+    if (!premiumRow && row.querySelector(".p-dot")) premiumRow = row;
+  }
+
+  const isFree = state.mode === "free";
+  if (freeRow) freeRow.style.display = isFree ? "flex" : "none";
+  if (premiumRow) premiumRow.style.display = isFree ? "none" : "flex";
+}
+
+/* ---------------------------
+Switching system (keep HTML hooks)
+--------------------------- */
+window.setV382 = function (mode, theme, el) {
+  state.mode = mode;
+  state.theme = theme;
+
+  document.querySelectorAll(".dot, .p-dot").forEach(d => d.classList.remove("active"));
+  if (el && (el.classList.contains("dot") || el.classList.contains("p-dot"))) el.classList.add("active");
+
+  syncPlanButtons_();
+  applyV382_();
+  refreshPremiumSafety_();
+};
+
+window.setV382Style = function (style, el) {
+  state.style = style;
+  if (el && el.parentElement) {
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+  }
+  applyV382_();
+};
+
+window.setV382Paper = function (paper, el) {
+  state.paper = paper;
+  if (el && el.parentElement) {
+    el.parentElement.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+    el.classList.add("active");
+  }
+  applyV382_();
+};
+
+function applyV382_() {
+  const isFree = state.mode === "free";
+
+  const controlPanel = $("free-controls");
+  if (controlPanel) controlPanel.style.display = isFree ? "block" : "none";
+
+  toggleDotsRows_();
+
+  const classList = [
+    `mode-${state.mode}`,
+    state.theme,
+    isFree ? `style-${state.style}` : "",
+    isFree ? state.paper : ""
+  ];
+  document.body.className = classList.filter(Boolean).join(" ");
+}
+
+function syncPlanButtons_() {
+  const a = $("btnPlanFree");
+  const b = $("btnPlanPremium");
+  if (!a || !b) return;
+
+  if (state.mode === "free") {
+    a.classList.add("active");
+    b.classList.remove("active");
+  } else {
+    b.classList.add("active");
+    a.classList.remove("active");
+  }
+}
+
+function refreshPremiumSafety_() {
+  if (state.mode !== "premium") return;
+  const nameEl = $("u-name");
+  if (!nameEl) return;
+  requestAnimationFrame(() => {
+    nameEl.style.transform = "translateZ(0)";
+    setTimeout(() => { nameEl.style.transform = ""; }, 120);
+  });
+}
+
+/* --------------------------- */
+async function waitForDom_(ids, timeoutMs = 2400) {
+  const need = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    let ok = true;
+    for (const id of need) { if (!$(id)) { ok = false; break; } }
+    if (ok) return true;
+    await sleep(60);
+  }
+  return false;
+}
+
+/* ---------------------------
+Fetch JSON (robust)
+--------------------------- */
+async function fetchWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+      credentials: "omit",
+      redirect: "follow",
+      signal: controller.signal
+    });
+
+    const status = res.status;
+    const ct = (res.headers && res.headers.get) ? (res.headers.get("content-type") || "") : "";
+    const txt = await res.text();
+    const body = (txt || "").trim();
+
+    if (CONFIG.DEBUG) {
+      const head = body.slice(0, 180).replace(/\s+/g, " ");
+      log_("fetch:", { status, ct, len: body.length, head });
+    }
+
+    if (!res.ok && !body) throw new Error(`HTTP ${status} (empty)`);
+    if (!body) throw new Error("Empty response");
+
+    try {
+      return JSON.parse(body);
+    } catch {
+      const m = body.match(/\{[\s\S]*\}/);
+      if (m) return JSON.parse(m[0]);
+      throw new Error(`Not JSON (status=${status}, ct=${ct || "?"})`);
+    }
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function fetchJsonRobust(url) {
+  let lastErr = null;
+  for (let i = 0; i <= CONFIG.RETRY; i++) {
+    try {
+      return await fetchWithTimeout(url, CONFIG.FETCH_TIMEOUT_MS);
+    } catch (e) {
+      lastErr = e;
+      warn_("fetch retry:", i, "err:", e && e.message ? e.message : e);
+      await sleep(520 + i * 520);
+    }
+  }
+  throw lastErr || new Error("Fetch failed");
+}/* ================================
+ * Happiness Smart Card System — app.js (v399 COMPLETE OVERWRITE) 2/3
+ * - Normalize keys + pick()
+ * - Images: avatar/logo/photo wall robust loading
+ * - Contact dock + Blocks + Share copy helpers
+ * ================================ */
+
+/* ---------------------------
+Normalize + pick
+--------------------------- */
+function cleanKey_(k) {
+  return String(k ?? "")
+    .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
+    .replace(/\u3000/g, " ")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n+/g, "")
+    .replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "")
+    .trim();
+}
+
+function buildNormalizedPayload_(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  const out = { __raw: obj };
+  const lowerMap = Object.create(null);
+
+  for (const k of Object.keys(obj)) {
+    const nk = cleanKey_(k);
+    if (!nk) continue;
+    const v = obj[k];
+
+    if (out[nk] == null || text(out[nk]) === "") out[nk] = v;
+
+    const lk = nk.toLowerCase();
+    if (lowerMap[lk] == null || text(lowerMap[lk]) === "") lowerMap[lk] = v;
+  }
+
+  out.__lower = lowerMap;
+  return out;
+}
+
+function pick(obj, keys) {
+  if (!obj) return "";
+  const raw = obj.__raw || null;
+  const lower = obj.__lower || null;
+
+  for (const k of keys) {
+    if (k == null) continue;
+    const kk = cleanKey_(k);
+
+    const v1 = obj[kk];
+    if (v1 != null && text(v1) !== "") return v1;
+
+    if (lower) {
+      const v2 = lower[String(kk).toLowerCase()];
+      if (v2 != null && text(v2) !== "") return v2;
+    }
+  }
+
+  if (raw) {
+    for (const k of keys) {
+      const v = raw[k];
+      if (v != null && text(v) !== "") return v;
+    }
+  }
+
+  return "";
+}
+
+/* ---------------------------
+Images
+--------------------------- */
 function normalizeImageUrl(raw) {
   if (!raw) return "";
-  let url = text(raw);
-  if (url.includes("dropbox.com")) return url.replace("dl=0", "raw=1");
-  
-  // 處理 Google Drive 連結
-  const driveId = url.match(/id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
-  if (driveId) return `https://drive.google.com/uc?export=view&id=${driveId[1]}`;
-  
+  let url = String(raw).trim();
+  if (!url) return "";
+  if (url.startsWith("http://")) url = "https://" + url.slice(7);
+
+  if (url.includes("dropbox.com")) {
+    url = url.replace("dl=0", "raw=1");
+    if (!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
+    return url;
+  }
+
+  const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+  if (mFile && mFile[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
+
+  const mId = url.match(/(?:\?|&)id=([^&]+)/i);
+  if (mId && mId[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mId[1])}`;
+
+  const mThumb = url.match(/thumbnail\?id=([^&]+)/i);
+  if (mThumb && mThumb[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mThumb[1])}`;
+
   return url;
 }
 
-// --- 資料抓取與渲染 ---
+function buildImageCandidates_(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return [];
+  const original = s.startsWith("http://") ? "https://" + s.slice(7) : s;
 
-async function fetchJsonRobust(url) {
-  for (let i = 0; i <= CONFIG.RETRY; i++) {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
-      const body = await res.text();
-      clearTimeout(t);
-      // 利用正則抓取 JSON 內容
-      const match = body.match(/\{[\s\S]*\}/);
-      if (match) return JSON.parse(match[0]);
-      throw new Error("No JSON found");
-    } catch (e) {
-      if (i === CONFIG.RETRY) throw e;
-      await new Promise(r => setTimeout(r, 600 + i * 500));
-    }
+  let driveId = "";
+  const mFile = original.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+  const mId = original.match(/(?:\?|&)id=([^&]+)/i);
+  const mThumb = original.match(/thumbnail\?id=([^&]+)/i);
+
+  if (mFile && mFile[1]) driveId = mFile[1];
+  else if (mId && mId[1]) driveId = mId[1];
+  else if (mThumb && mThumb[1]) driveId = mThumb[1];
+
+  if (original.includes("dropbox.com")) return [normalizeImageUrl(original)];
+
+  if (driveId) {
+    return [
+      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(driveId)}`,
+      `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w1200`,
+      `https://drive.google.com/uc?export=download&id=${encodeURIComponent(driveId)}`,
+      normalizeImageUrl(original)
+    ].filter(Boolean);
   }
+
+  return [normalizeImageUrl(original)].filter(Boolean);
 }
 
-function buildNormalizedPayload(obj) {
-  if (!obj || typeof obj !== "object") return obj;
-  const lower = {};
-  for (let k in obj) {
-    const cleanK = k.replace(/[\uFEFF\u200B-\u200D\u2060]/g, "").trim().toLowerCase();
-    lower[cleanK] = obj[k];
-  }
-  return { __raw: obj, __lower: lower };
+function setImgWithFallback_(imgEl, candidates) {
+  if (!imgEl) return;
+  const list = (candidates || []).map(text).filter(Boolean);
+  if (!list.length) { imgEl.removeAttribute("src"); return; }
+
+  const token = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
+  imgEl.dataset.loadToken = token;
+  let idx = 0;
+
+  imgEl.referrerPolicy = "no-referrer";
+  imgEl.decoding = "async";
+  imgEl.loading = "lazy";
+
+  const tryNext = () => {
+    if (imgEl.dataset.loadToken !== token) return;
+    if (idx >= list.length) { imgEl.style.opacity = "0"; imgEl.removeAttribute("src"); return; }
+    const u = list[idx++];
+    const sep = u.includes("?") ? "&" : "?";
+    imgEl.src = u + sep + "t=" + Date.now();
+  };
+
+  imgEl.onload = () => {
+    if (imgEl.dataset.loadToken !== token) return;
+    requestAnimationFrame(() => (imgEl.style.opacity = "1"));
+  };
+  imgEl.onerror = () => {
+    if (imgEl.dataset.loadToken !== token) return;
+    tryNext();
+  };
+
+  imgEl.style.opacity = "0";
+  imgEl.style.transition = "opacity 420ms ease";
+  tryNext();
 }
 
-function pick(p, keys) {
-  if (!p) return "";
-  for (let k of keys) {
-    const v = p.__lower[k.toLowerCase()];
-    if (v != null && String(v).trim() !== "") return v;
+/* ---------------------------
+Avatar / Logo
+--------------------------- */
+function getAvatarUrl_(payloadNorm){
+  const keys = [
+    "個人照_fast","個人照",
+    "形象照_fast","形象照",
+    "avatar_fast","avatar",
+    "photo_fast","photo",
+    "image"
+  ];
+
+  let v = pick(payloadNorm, keys);
+  if(text(v)) return v;
+
+  for(let i=1;i<=3;i++){
+    v = pick(payloadNorm, [`個人照${i}`, `形象照${i}`, `avatar${i}`, `photo${i}`, `image${i}`]);
+    if(text(v)) return v;
   }
   return "";
 }
 
-// 核心渲染：落實 v400 要求的所有排序與模式位置
-function applyDataToCard(payload) {
-  const p = buildNormalizedPayload(payload);
-  
-  const name    = pick(p, ["姓名", "name"]);
-  const unit    = pick(p, ["單位", "unit"]);
-  const title   = pick(p, ["頭銜", "職稱", "title"]);
-  const service = pick(p, ["服務項目", "service", "經營項目"]);
-  const exp     = pick(p, ["經歷", "experience", "簡歷"]);
-  const avatar  = pick(p, ["個人照", "形象照", "avatar", "photo"]);
-  const logo    = pick(p, ["logo", "品牌logo", "商標"]);
+function setAvatarImage_(payloadNorm){
+  const img = $("u-img");
+  if(!img) return;
 
-  // 1. 模式資料分發
-  // 自由款：單位在 Banner
-  setText("u-unit-banner", unit);
-  setText("u-name-free", name || "（請設定姓名）");
-  
-  // 精品款：單位在內容區
-  setText("u-name-premium", name || "（請設定姓名）");
-  setText("u-unit-main", unit);
-  
-  setText("u-title", title);
+  const raw = getAvatarUrl_(payloadNorm);
+  const cands = buildImageCandidates_(raw);
 
-  // 2. 圖片處理 (自由/精品同步)
-  const avatarUrl = normalizeImageUrl(avatar);
-  if (avatarUrl) {
-    const cands = [avatarUrl, avatarUrl + "&sz=w600"];
-    setImgWithFallback($("u-img-free"), cands);
-    setImgWithFallback($("u-img-premium"), cands);
+  if(!cands.length){
+    img.removeAttribute("src");
+    return;
   }
-
-  // 3. Logo 處理：自由款置於頭銜下方
-  const logoUrl = normalizeImageUrl(logo);
-  if (logoUrl) {
-    $("logoWrap").style.display = "flex";
-    setImgWithFallback($("u-logo"), [logoUrl]);
-    const midLogo = $("logo-mid-wrap");
-    if (midLogo) midLogo.innerHTML = `<img src="${logoUrl}" class="logo-img">`;
-  } else {
-    $("logoWrap").style.display = "none";
-  }
-
-  // 4. 服務與經歷
-  renderInfoBlock("block-service", "服務項目", service);
-  renderInfoBlock("block-exp", "經歷", exp);
-
-  // 5. 照片牆
-  renderPhotoWall(p);
-
-  // 6. Dock 按鈕
-  renderContactDock(p);
+  setImgWithFallback_(img, cands);
 }
 
-function renderInfoBlock(id, title, body) {
-  const el = $(id);
-  if (!el) return;
-  const content = text(body);
-  if (!content) { el.style.display = "none"; return; }
-  el.style.display = "block";
-  el.innerHTML = `<div class="block-title">${title}</div><div class="block-body preline">${content}</div>`;
+function getLogoUrl_(payloadNorm){
+  return pick(payloadNorm, [
+    "logo_fast","logo",
+    "品牌logo_fast","品牌logo",
+    "品牌Logo_fast","品牌Logo",
+    "LOGO_fast","LOGO",
+    "公司logo_fast","公司logo",
+    "公司Logo_fast","公司Logo",
+    "商標_fast","商標",
+    "mark_fast","mark"
+  ]);
 }
 
-function renderPhotoWall(p) {
+function setLogo_(payloadNorm){
+  const wrap = $("logoWrap");
+  const img = $("u-logo");
+  if(!wrap || !img) return;
+
+  const raw = getLogoUrl_(payloadNorm);
+  const cands = buildImageCandidates_(raw);
+
+  if(!cands.length){
+    wrap.style.display = "none";
+    img.removeAttribute("src");
+    return;
+  }
+
+  wrap.style.display = "";
+  setImgWithFallback_(img, cands);
+}
+
+/* ---------------------------
+Photo wall
+--------------------------- */
+function splitPhotoList_(raw){
+  const s = text(raw);
+  if(!s) return [];
+  const normalized = s
+    .replace(/\r\n/g, "\n")
+    .replace(/[,，]+/g, "\n")
+    .replace(/[ \t]+/g, "\n");
+
+  return normalized
+    .split("\n")
+    .map(x => x.trim())
+    .filter(Boolean);
+}
+
+function collectPhotoUrls_(payloadNorm){
+  const urls = [];
+
+  const main = pick(payloadNorm, ["照片_fast","照片","images","image","photo","照片牆","相片牆","圖片","相簿"]);
+  urls.push(...splitPhotoList_(main));
+
+  for(let i=1;i<=CONFIG.PHOTO_SLOT_MAX;i++){
+    urls.push(...splitPhotoList_(payloadNorm[`照片${i}`]));
+    urls.push(...splitPhotoList_(payloadNorm[`圖片${i}`]));
+    urls.push(...splitPhotoList_(payloadNorm[`photo${i}`]));
+    urls.push(...splitPhotoList_(payloadNorm[`image${i}`]));
+  }
+
+  const cleaned = [];
+  const seen = new Set();
+  for(const raw of urls){
+    const r = text(raw);
+    if(!r) continue;
+    const norm = normalizeImageUrl(r);
+    const key = norm || r;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    cleaned.push(r);
+  }
+
+  return cleaned;
+}
+
+function renderPhotoWall_(payloadNorm){
+  const wall = $("photoWall");
   const grid = $("photoGrid");
-  if (!grid) return;
+  if(!wall || !grid) return;
+
   grid.innerHTML = "";
-  let count = 0;
-  for (let i = 1; i <= CONFIG.PHOTO_SLOT_MAX; i++) {
-    const url = normalizeImageUrl(pick(p, [`照片${i}`, `photo${i}`, `圖片${i}`]));
-    if (url) {
-      const img = document.createElement("img");
-      img.src = url;
-      img.onclick = () => window.open(url, "_blank");
-      grid.appendChild(img);
-      count++;
+  const list = collectPhotoUrls_(payloadNorm);
+
+  if(!list.length){
+    wall.style.display = "none";
+    return;
+  }
+  wall.style.display = "";
+
+  for(const raw of list){
+    const img = document.createElement("img");
+    img.alt = "照片";
+    const cands = buildImageCandidates_(raw);
+    setImgWithFallback_(img, cands);
+    const openUrl = normalizeImageUrl(raw);
+    img.onclick = ()=> window.open(openUrl || raw, "_blank");
+    grid.appendChild(img);
+  }
+}
+
+/* ---------------------------
+Contact dock + Share copy
+--------------------------- */
+function normalizePhone_(s){
+  const v = text(s);
+  if(!v) return "";
+  return v.replace(/[^\d+]/g, "");
+}
+function ensureHttp_(u){
+  let v = text(u);
+  if(!v) return "";
+  if(/^https?:\/\//i.test(v)) return v;
+  if(v.startsWith("www.")) return "https://" + v;
+  return v;
+}
+
+function iconFor_(type){
+  const t = String(type||"").toLowerCase();
+  if(t === "phone") return "fa-solid fa-phone";
+  if(t === "sms") return "fa-solid fa-comment-sms";
+  if(t === "email") return "fa-solid fa-envelope";
+  if(t === "web") return "fa-solid fa-globe";
+  if(t === "map") return "fa-solid fa-location-dot";
+  if(t === "line") return "fa-brands fa-line";
+  if(t === "wechat") return "fa-brands fa-weixin";
+  if(t === "video") return "fa-solid fa-circle-play";
+  if(t === "youtube") return "fa-brands fa-youtube";
+  if(t === "ig") return "fa-brands fa-instagram";
+  if(t === "fb") return "fa-brands fa-facebook";
+  if(t === "tiktok") return "fa-brands fa-tiktok";
+  if(t === "bilibili") return "fa-brands fa-bilibili";
+  return "fa-solid fa-link";
+}
+
+function addDockBtn_(wrap, label, href, iconClass){
+  if(!wrap || !href) return;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "dock-btn";
+  btn.innerHTML = `<i class="${iconClass}"></i><span>${label}</span>`;
+  btn.onclick = ()=> window.open(href, "_blank");
+  wrap.appendChild(btn);
+}
+
+function renderContactDock_(payloadNorm){
+  const wrap = $("contactButtons");
+  const dock = $("contactDock");
+  if(!wrap || !dock) return;
+
+  wrap.innerHTML = "";
+
+  const phone = pick(payloadNorm, ["電話","手機","phone","mobile","tel"]);
+  const line = pick(payloadNorm, ["line","line_id","line oa","line_oa","Line","LINE","line官方","line官網","line官網預約"]);
+  const wechat = pick(payloadNorm, ["wechat","weixin","微信","微信號","weixin_id","wx","wxid"]);
+  const video = pick(payloadNorm, ["影音平台","video","video_url","影片","youtube","YouTube","yt","頻道","channel"]);
+  const web = pick(payloadNorm, ["網站","官網","website","url","link"]);
+  const addr = pick(payloadNorm, ["地址","address","所在地","location"]);
+
+  // phone
+  const p = normalizePhone_(phone);
+  if(p){
+    addDockBtn_(wrap, "撥打", `tel:${p}`, iconFor_("phone"));
+  }
+
+  // LINE (raw id or URL)
+  const lineV = text(line);
+  if(lineV){
+    let href = "";
+    if(lineV.includes("http")) href = ensureHttp_(lineV);
+    else href = `https://line.me/R/ti/p/${encodeURIComponent(lineV)}`;
+    addDockBtn_(wrap, "LINE", href, iconFor_("line"));
+  }
+
+  // WeChat (no universal deep link)
+  const wx = text(wechat);
+  if(wx){
+    const href = `https://www.google.com/search?q=${encodeURIComponent("WeChat " + wx)}`;
+    addDockBtn_(wrap, "微信", href, iconFor_("wechat"));
+  }
+
+  // Video platform (url => open; else search)
+  const vv = text(video);
+  if(vv){
+    const href = vv.includes("http")
+      ? ensureHttp_(vv)
+      : `https://www.google.com/search?q=${encodeURIComponent(vv)}`;
+    addDockBtn_(wrap, "影音平台", href, iconFor_("video"));
+  }
+
+  // web
+  const w = ensureHttp_(web);
+  if(w && /^https?:\/\//i.test(w)){
+    addDockBtn_(wrap, "官網", w, iconFor_("web"));
+  }
+
+  // map
+  const a = text(addr);
+  if(a){
+    const href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}`;
+    addDockBtn_(wrap, "導航", href, iconFor_("map"));
+  }
+
+  dock.style.display = wrap.children.length ? "" : "none";
+}
+
+/* ---------------------------
+Blocks render (service / experience)
+--------------------------- */
+function escapeHtml_(s){
+  return String(s||"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+
+function renderBlock_(rootId, title, body){
+  const root = $(rootId);
+  if(!root) return;
+
+  const b = text(body);
+  if(!b){
+    root.innerHTML = "";
+    root.style.display = "none";
+    return;
+  }
+  root.style.display = "";
+
+  root.innerHTML = `
+    <div class="block-title">${title}</div>
+    <div class="block-body preline">${escapeHtml_(b)}</div>
+  `;
+}
+
+/* ---------------------------
+Share helpers
+--------------------------- */
+async function copyText_(s){
+  const v = text(s);
+  if(!v) return false;
+
+  // try clipboard
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(v);
+      toast_("已複製連結");
+      return true;
     }
-  }
-  $("photoWall").style.display = count > 0 ? "block" : "none";
+  }catch{}
+
+  // fallback
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = v;
+    ta.setAttribute("readonly", "readonly");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    toast_("已複製連結");
+    return true;
+  }catch{}
+
+  toast_("無法自動複製，請手動複製");
+  alert(v);
+  return false;
 }
 
-function renderContactDock(p) {
-  const socialBar = $("socialButtons");
-  const contactBar = $("contactButtons");
-  if (!socialBar || !contactBar) return;
-  socialBar.innerHTML = "";
-  contactBar.innerHTML = "";
-
-  const links = [
-    { keys: ["line官網", "line oa", "line_oa"], icon: "fa-solid fa-building-circle-check", label: "LINE官網", type: "contact" },
-    { keys: ["line"], icon: "fa-brands fa-line", label: "LINE", type: "contact" },
-    { keys: ["微信", "wechat"], icon: "fa-brands fa-weixin", label: "微信", type: "contact" },
-    { keys: ["電話", "手機", "phone"], icon: "fa-solid fa-phone", label: "電話", type: "contact" },
-    { keys: ["email", "郵件"], icon: "fa-solid fa-envelope", label: "Email", type: "contact" },
-    { keys: ["地址", "導航", "location"], icon: "fa-solid fa-location-dot", label: "導航", type: "contact" },
-    { keys: ["影音社群平台", "youtube", "ig", "tiktok", "fb"], icon: "fa-solid fa-display", label: "影音平台", type: "social" }
-  ];
-
-  links.forEach(item => {
-    let val = pick(p, item.keys);
-    if (!val) return;
-    let href = val;
-    if (item.label === "電話") href = `tel:${val.replace(/[^\d+]/g, "")}`;
-    if (item.label === "導航") href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val)}`;
-    if (!href.startsWith("http") && !href.startsWith("tel")) href = "https://" + href;
-
-    const btn = document.createElement("button");
-    btn.className = "dock-btn";
-    btn.innerHTML = `<i class="${item.icon}"></i> <span>${item.label}</span>`;
-    btn.onclick = () => window.open(href, "_blank");
-
-    if (item.type === "social") socialBar.appendChild(btn);
-    else contactBar.appendChild(btn);
-  });
-}
-
-function setImgWithFallback(el, list) {
-  if (!el || !list.length) return;
-  let idx = 0;
-  const load = () => {
-    if (idx >= list.length) return;
-    el.src = list[idx++] + (list[idx-1].includes("?") ? "&" : "?") + "v=" + Date.now();
-  };
-  el.onerror = load;
-  load();
-}
-
-// --- 介面控制 ---
-
-window.setV382 = function(mode, theme, btn) {
-  state.mode = mode;
-  state.theme = theme;
-  document.body.className = `mode-${mode} ${theme} style-${state.style} ${state.paper}`;
-  
-  if (btn) {
-    qa(".btn-neo.pill").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+window.copyCardUrl = async function(){
+  const id = __resolvedId || getCardIdFromUrl_() || CONFIG.DEFAULT_ID;
+  let url = "";
+  try{
+    const u = new URL(window.location.href);
+    u.searchParams.set("id", id);
+    url = u.toString();
+  }catch{
+    url = `${location.origin}${location.pathname}?id=${encodeURIComponent(id)}`;
   }
-  
-  const isFree = (mode === "free");
-  $("freeDotsRow").style.display = isFree ? "flex" : "none";
-  $("premiumDotsRow").style.display = isFree ? "none" : "flex";
-  $("free-controls").style.display = isFree ? "block" : "none";
+  return copyText_(url);
 };
 
-window.setV382Style = (sty, btn) => {
-  state.style = sty;
-  window.setV382(state.mode, state.theme);
-  if (btn) {
-    qa(btn.parentElement.children).forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+function toast_(msg){
+  const m = text(msg);
+  if(!m) return;
+  let t = $("__toast");
+  if(!t){
+    t = document.createElement("div");
+    t.id="__toast";
+    t.style.position="fixed";
+    t.style.left="50%";
+    t.style.bottom="18px";
+    t.style.transform="translateX(-50%)";
+    t.style.background="rgba(0,0,0,0.78)";
+    t.style.color="#fff";
+    t.style.padding="10px 14px";
+    t.style.borderRadius="999px";
+    t.style.fontSize="13px";
+    t.style.fontWeight="800";
+    t.style.zIndex="99999";
+    t.style.opacity="0";
+    t.style.transition="opacity 180ms ease";
+    document.body.appendChild(t);
   }
-};
+  t.textContent = m;
+  t.style.opacity="1";
+  clearTimeout(toast_._timer);
+  toast_._timer = setTimeout(()=>{ t.style.opacity="0"; }, 1100);
+}/* ================================
+ * Happiness Smart Card System — app.js (v399 COMPLETE OVERWRITE) 3/3
+ * - Apply data to card
+ * - Load card by id (robust)
+ * - Hidden admin entry (top invisible hotspot)
+ * - Boot
+ * ================================ */
 
-window.setV382Paper = (pap, btn) => {
-  state.paper = pap;
-  window.setV382(state.mode, state.theme);
-  if (btn) {
-    qa(btn.parentElement.children).forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-  }
-};
+/* ---------------------------
+Apply data
+--------------------------- */
+function applyDataToCard(payloadNorm) {
+  const name    = pick(payloadNorm, ["姓名", "name", "Name"]);
+  const unit    = pick(payloadNorm, ["單位", "unit", "Unit"]);
+  const title   = pick(payloadNorm, ["頭銜","職稱","title","Title"]);
+  const slogan  = pick(payloadNorm, ["理念","標語","slogan","Slogan"]);
+  const service = pick(payloadNorm, ["服務項目", "service", "Service"]);
+  const exp     = pick(payloadNorm, ["經歷","experience","Experience","簡歷","履歷"]);
 
-// 三擊隱形入口
-let lastTap = 0, tapCount = 0;
-$("adminHotspotTop").addEventListener("click", () => {
-  const now = Date.now();
-  if (now - lastTap < CONFIG.ADMIN_TRIPLETAP_WINDOW) tapCount++;
-  else tapCount = 1;
-  lastTap = now;
-  if (tapCount >= 3) {
-    const p = $("admin-panel");
-    p.style.display = (p.style.display === "block") ? "none" : "block";
-    tapCount = 0;
-  }
-});
+  setText("u-name",  name || "（尚未讀到姓名）");
+  setText("u-unit",  unit || "");
+  setText("u-title", title || "");
 
-window.copyCardUrl = async () => {
-  try {
-    await navigator.clipboard.writeText(window.location.href);
-    alert("名片連結已複製！");
-  } catch {
-    alert("請手動複製網址列連結");
-  }
-};
-
-window.goFillForm = () => window.open(CONFIG.FORM, "_blank");
-
-// --- 啟動 ---
-
-async function bootV400() {
-  const qId = normalizeId(getParam("id") || getParam("ID"));
-  state.resolvedId = qId || CONFIG.DEFAULT_ID;
-  
-  // 顯示載入動畫
-  setText("u-name-free", "同步資料中...");
-  setText("u-name-premium", "同步資料中...");
-
-  try {
-    const data = await fetchJsonRobust(`${CONFIG.GAS}?id=${state.resolvedId}`);
-    if (data && data.ok !== false) {
-      applyDataToCard(data);
+  const sl = $("u-slogan");
+  if (sl) {
+    const s = text(slogan);
+    if (s) {
+      sl.style.display = "";
+      sl.textContent = s;
     } else {
-      throw new Error("No data");
+      sl.style.display = "none";
+      sl.textContent = "";
     }
-  } catch (err) {
-    console.error(err);
-    setText("u-name-free", "連線失敗，請檢查網路");
+  }
+
+  renderBlock_("block-service", "服務項目", service);
+  renderBlock_("block-exp",     "經歷",     exp);
+
+  setAvatarImage_(payloadNorm);
+  setLogo_(payloadNorm);
+  renderContactDock_(payloadNorm);
+  renderPhotoWall_(payloadNorm);
+}
+
+/* ---------------------------
+UI states
+--------------------------- */
+function setLoadingUi_() {
+  setText("u-name",  "載入中...");
+  setText("u-unit",  "同步中...");
+  setText("u-title", "");
+
+  const sl = $("u-slogan");
+  if (sl) sl.style.display = "none";
+
+  const dock = $("contactDock");
+  if (dock) dock.style.display = "none";
+
+  const wall = $("photoWall");
+  if (wall) wall.style.display = "none";
+
+  const wrap = $("logoWrap");
+  if (wrap) wrap.style.display = "none";
+}
+
+function setFailUi_(msg) {
+  setText("u-name",  "（同步失敗）");
+  setText("u-unit",  msg || "請確認 id 或 GAS 權限");
+  setText("u-title", "");
+
+  const dock = $("contactDock");
+  if (dock) dock.style.display = "none";
+
+  const wall = $("photoWall");
+  if (wall) wall.style.display = "none";
+
+  const wrap = $("logoWrap");
+  if (wrap) wrap.style.display = "none";
+}
+
+/* ---------------------------
+Load card
+--------------------------- */
+async function loadCardById_(id) {
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
+
+  __resolvedId = cid;
+  setLoadingUi_();
+
+  try {
+    const data = await fetchJsonRobust(url);
+
+    if (!data || typeof data !== "object")
+      throw new Error("Invalid payload");
+
+    if (data.ok === false)
+      throw new Error(data.error || "Not found");
+
+    const payloadNorm = buildNormalizedPayload_(data);
+
+    applyDataToCard(payloadNorm);
+
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.set("id", cid);
+      history.replaceState({}, "", u.toString());
+    } catch {}
+
+    return cid;
+
+  } catch (e) {
+    console.error(e);
+    setFailUi_(e.message);
   }
 }
 
-document.addEventListener("DOMContentLoaded", bootV400);
+/* ===========================
+Hidden Admin Entry (v399)
+=========================== */
+
+function openAdmin_() {
+  const id = __resolvedId || CONFIG.DEFAULT_ID;
+  const u = `admin.html?id=${encodeURIComponent(id)}`;
+  window.open(u, "_blank");
+}
+
+function ensureAdminHotspot_() {
+  if ($("__adminHotspot")) return;
+
+  const hs = document.createElement("div");
+  hs.id = "__adminHotspot";
+
+  hs.style.position = "fixed";
+  hs.style.top = "8px";
+  hs.style.right = "8px";
+  hs.style.width = "32px";
+  hs.style.height = "32px";
+  hs.style.opacity = "0";
+  hs.style.zIndex = "99999";
+  hs.style.background = "transparent";
+
+  let tapCount = 0;
+  let timer = null;
+
+  hs.addEventListener("click", () => {
+    tapCount++;
+    clearTimeout(timer);
+
+    timer = setTimeout(() => tapCount = 0, 600);
+
+    if (tapCount >= 3) {
+      tapCount = 0;
+      openAdmin_();
+    }
+  });
+
+  document.body.appendChild(hs);
+}
+
+/* ---------------------------
+Boot
+--------------------------- */
+function boot_() {
+  ensureAdminHotspot_();
+
+  const id = getCardIdFromUrl_();
+  loadCardById_(id);
+}
+
+document.addEventListener("DOMContentLoaded", boot_, { once:true });
+window.addEventListener("load", () => {
+  if (!__resolvedId) boot_();
+});
