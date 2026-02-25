@@ -1,4 +1,4 @@
-<!-- index.html (v399.x COMPLETE OVERWRITE) — PART 1/3 -->
+<!-- index.html (v399 COMPLETE OVERWRITE) -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -15,23 +15,26 @@
   <meta property="og:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
+
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json?v=3990" />
-  <meta name="theme-color" content="#1f2d2a" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=3990" />
-  <link rel="icon" href="./icons/icon-192.png?v=3990" />
+  <meta name="theme-color" content="#ee5253" />
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="./style.css?v=3990" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="icon" href="./icons/icon-192.png" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=3990" />
 </head>
 
-<body>
+<body class="mode-free color-1 style-arch paper-1">
 
-  <!-- ✅ v399：上方隱形入口熱區（三擊開工作臺） -->
+  <!-- ✅ v399：上方隱形入口熱區（不破壞門面視覺；三擊開工作臺）
+       NOTE: 觸發邏輯由 app.js 綁定（triple tap / multi tap） -->
   <div id="adminHotspotTop" aria-label="admin-hotspot-top"></div>
 
   <!-- ✅ 門面控制區（維持 v398.3 結構） -->
@@ -97,100 +100,72 @@
     <div class="paper-overlay"></div>
     <div class="premium-fx-layer"></div>
 
-    <!-- ✅ 精品款 logo（置頂用：你要「logo」在上方） -->
-    <div class="logo-wrap" id="logoWrapPremium" aria-label="logo-premium" style="display:none;">
-      <img id="u-logo-premium" class="logo-img" src="" alt="Logo" />
+    <!-- ✅ Logo -->
+    <div class="logo-wrap" id="logoWrap" aria-label="logo">
+      <img id="u-logo" class="logo-img" src="" alt="Logo" />
     </div>
 
-    <!-- ✅ banner（自由款：單位要放 banner 中間） -->
-    <div class="banner">
-      <div class="dynamic-mask"></div>
-      <div id="u-unit-banner" class="banner-unit" style="display:none;"></div>
-    </div><!-- index.html (v399.x COMPLETE OVERWRITE) — PART 2/3 -->
+    <!-- ✅ 自由款 banner + dynamic-mask（必須維持 v393 系統） -->
+    <div class="banner"><div class="dynamic-mask"></div></div>
 
-    <!-- ✅ 內容區（自由/精品共用） -->
-    <div class="content">
+    <!-- 👤 頭像 -->
+    <div class="avatar-wrap">
+      <div class="avatar-circle">
+        <img id="u-img" src="" class="avatar" alt="形象照" />
+      </div>
+    </div>
 
-      <!-- ✅ 精品款：左個人照、右姓名（水平） -->
-      <div class="premium-header" id="premiumHeader">
-        <div class="avatar premium-avatar">
-          <img id="u-img" src="" alt="Avatar" />
-        </div>
-        <div class="premium-name-wrap">
-          <div id="u-name-premium" class="premium-name"></div>
-        </div>
+    <div class="info-scroll">
+
+      <div id="v398-unit-structure">
+        <h1 id="u-name" class="name">載入中...</h1>
+        <div id="u-unit" class="unit">同步中...</div>
+        <div id="u-title" class="title"></div>
+        <div id="u-slogan" class="slogan"></div>
       </div>
 
-      <!-- ✅ 自由款：個人照在上方（CSS會在 free 模式顯示成直式） -->
-      <div class="free-header" id="freeHeader">
-        <div class="avatar">
-          <img id="u-img-free-mirror" src="" alt="" style="display:none;" />
-        </div>
-      </div>
-
-      <!-- ✅ 自由搭配款：個人照以下依序：
-           姓名 / 頭銜 / Logo / 服務項目 / 經歷 / 照片牆 / 平台 / 聯繫 / 分享
-           （精品款也共用同一組 block，僅 logoWrapPremium 在上方）
-      -->
-      <div id="u-name" class="name"></div>
-      <div id="u-title" class="title"></div>
-
-      <!-- ✅ 自由款 Logo：放在頭銜下方 -->
-      <div class="logo-inline" id="logoWrapFree" style="display:none;">
-        <img id="u-logo" class="logo-img" src="" alt="Logo" />
-      </div>
-
-      <!-- ✅ 精品款：單位/頭銜（你要各佔一行） -->
-      <div id="u-unit" class="unit"></div>
-      <div id="u-slogan" class="slogan"></div>
-
-      <!-- ✅ v398 blocks（服務項目 / 經歷） -->
+      <!-- 服務/經歷（這兩個要顯示標題） -->
       <div id="v398-blocks">
-        <div class="info-block" id="block-service" style="display:none;"></div>
-        <div class="info-block" id="block-exp" style="display:none;"></div>
+        <div id="block-service" class="info-block"></div>
+        <div id="block-exp" class="info-block"></div>
       </div>
 
-      <!-- ✅ 照片輪播牆 -->
-      <div class="photo-wall" id="photoWall" style="display:none;">
-        <div class="photo-grid" id="photoGrid"></div>
+      <!-- Dock -->
+      <div id="contactDock" class="contact-dock">
+        <div class="dock-title">聯繫與平台</div>
+        <div id="contactButtons" class="dock-buttons"></div>
+
+        <!-- ✅ v399：分享名片（複製名片網址） -->
+        <div class="dock-buttons" style="margin-top:10px;">
+          <button class="dock-btn" type="button" onclick="window.copyCardUrl && window.copyCardUrl()">
+            <i class="fa-solid fa-share-nodes"></i>
+            <span>分享名片</span>
+          </button>
+        </div>
       </div>
 
-      <!-- ✅ 影音社群平臺／個人網頁 -->
-      <div class="contact-dock" id="platformDock" style="display:none;">
-        <div class="dock-buttons" id="platformButtons"></div>
+      <!-- 照片牆 -->
+      <div id="photoWall" class="photo-wall">
+        <div class="wall-title">照片牆</div>
+        <div id="photoGrid" class="photo-grid"></div>
       </div>
 
-      <!-- ✅ line官網、line、微信、電話、Email、導航 -->
-      <div class="contact-dock" id="contactDock" style="display:none;">
-        <div class="dock-buttons" id="contactButtons"></div>
-      </div>
+    </div>
 
-      <!-- ✅ 名片分享（維持你原本 copyCardUrl 行為） -->
-      <div class="share-zone">
-        <button class="btn-share" type="button" onclick="window.copyCardUrl()">分享名片 →</button>
-      </div>
+    <div class="version-tag" id="versionTag">v399</div>
+  </div>
 
-      <div class="footer">
-        <span id="versionTag" class="version-tag"></span>
-      </div>
+  <footer id="footerTag" style="font-size:10px; color:#ccc; margin-top:12px; text-align:center;">
+    Happiness Smart Card System v399
+  </footer>
 
-    </div><!-- /content -->
-  </div><!-- /card-container --><!-- index.html (v399.x COMPLETE OVERWRITE) — PART 3/3 -->
-
-  <!-- ✅ 主程式 -->
-  <script src="./app.js?v=3990"></script>
-
+  <script src="app.js?v=3990"></script>
   <script>
-    /**
-     * 小修正：你目前 premiumHeader/freeHeader 都會引用個人照
-     * 我們實際只用 app.js 填 #u-img 這一張
-     * 這裡把 freeHeader 的鏡像圖禁用（避免兩張 src 打架）
-     */
-    (function(){
-      const mirror = document.getElementById("u-img-free-mirror");
-      if(mirror) mirror.remove();
-    })();
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js?v=3990').catch(()=>{});
+      });
+    }
   </script>
-
 </body>
 </html>
