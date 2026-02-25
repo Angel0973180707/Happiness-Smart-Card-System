@@ -1,8 +1,9 @@
 /* ================================
- * Happiness Smart Card System — style.css (v398.4 COMPLETE OVERWRITE)
- * FIX: Free mode arch/flat/spot MUST keep v393 dynamic-mask system
- * Keep: v393 color themes + premium base layout
- * Support: v398 blocks (#block-service/#block-exp) + dock + photo wall
+ * Happiness Smart Card System — style.css (v399 COMPLETE OVERWRITE)
+ * Base: v398.3 / v398.4
+ * MUST KEEP: v393 dynamic-mask system for free mode arch/flat/spot
+ * Add: v399 top hidden admin hotspot (triple tap) — no visual impact
+ * Keep: v398 blocks (#block-service/#block-exp) + dock + photo wall
  * ================================ */
 
 :root{
@@ -60,6 +61,23 @@ body{
   color:var(--text);
   transition: 0.45s;
   display:block;
+}
+
+/* =========================================
+   v399：上方隱形入口熱區（不破壞門面）
+   - app.js 綁三擊/多擊
+   - 可點擊但不可見
+========================================= */
+#adminHotspotTop{
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 44px;        /* 上方好點的位置 */
+  opacity: 0;
+  z-index: 99999;
+  background: transparent;
+  pointer-events: auto;
 }
 
 /* ================= 控制面板（門面） ================= */
@@ -186,7 +204,9 @@ body{
   width:100%;
   clip-path: ellipse(50% 80% at 50% 0%);
   z-index:10;
-}/* ================= 精品款（維持 v393 版型） ================= */
+}
+
+/* ================= 精品款（維持 v393 版型） ================= */
 .mode-premium .card{
   width:86%;
   height:580px;
@@ -238,14 +258,55 @@ body{
   object-fit:cover;
 }
 
+/* ✅ Logo（自由款在頭像下方；精品款右上角） */
+.logo-wrap{
+  position:absolute;
+  z-index:40;
+  display:none;
+  pointer-events:none;
+}
+.mode-free .logo-wrap{
+  top: 188px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.mode-premium .logo-wrap{
+  top: 26px;
+  right: 22px;
+  left: auto;
+  transform: none;
+}
+.logo-img{
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.14);
+  background: rgba(255,255,255,0.92);
+}
+.mode-premium .logo-img{
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.20);
+}
+
 /* 內容滾動區 */
-.info-scroll{ transition:0.4s; overflow:auto; height:100%; -webkit-overflow-scrolling: touch; }
+.info-scroll{
+  transition:0.4s;
+  overflow:auto;
+  height:100%;
+  -webkit-overflow-scrolling: touch;
+}
 .mode-free .info-scroll{ padding: 100px 20px 20px; text-align:center; }
 .mode-premium .info-scroll{ padding: 102px 22px 22px; text-align:left; }
 
 .name{ margin: 0 0 6px; font-weight: 900; letter-spacing: 0.5px; font-size:22px; }
 .unit, .title{ font-weight: 900; opacity: 0.86; margin-top: 2px; font-size:14px; }
 
+/* 精品：名字與頭像同區域的視覺安全 */
 .mode-premium .name{
   margin-top: 8px;
   color: rgba(255,255,255,0.96);
@@ -325,7 +386,8 @@ body{
 
 /* Dock */
 .contact-dock{ margin-top:12px; }
-.dock-buttons{ display:flex; flex-wrap:wrap; gap:10px; }
+.dock-buttons{ display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+.mode-premium .dock-buttons{ justify-content:flex-start; }
 
 .dock-btn{
   border:none;
@@ -364,7 +426,7 @@ body{
 }
 .photo-grid img:active{ transform: scale(0.98); }
 
-/* 極簡：隱藏標題 */
+/* 極簡：隱藏標題（但服務/經歷仍顯示） */
 .dock-title, .wall-title{ display:none !important; }
 
 /* premium fx layer / paper overlay */
