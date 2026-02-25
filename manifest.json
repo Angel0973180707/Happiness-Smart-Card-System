@@ -1,11 +1,11 @@
 {
   "name": "Happiness Smart Card System",
-  "short_name": "HSC v399",
+  "short_name": "HSC v400",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ee5253",
-  "description": "幸福智慧名片｜Happiness Smart Card System v399",
+  "description": "幸福智慧名片｜Happiness Smart Card System v400",
   "icons": [
     {
       "src": "./icons/icon-192.png",
