@@ -1,4 +1,4 @@
-<!-- share.html (v399.x COMPLETE OVERWRITE) -->
+<!-- share.html (v399.x COMPLETE OVERWRITE) — PART 1/2 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -19,7 +19,6 @@
   <meta name="twitter:image" content="og-card.png" />
 
   <link rel="icon" href="./icons/icon-192.png" />
-
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet" />
 
   <style>
@@ -60,7 +59,6 @@
       backdrop-filter: blur(10px);
     }
 
-    /* 16:9 stage */
     .stage{
       position:relative;
       width:100%;
@@ -70,7 +68,6 @@
       background:#111;
     }
 
-    /* 底圖：你上傳的 og-card.png */
     #ogBase{
       position:absolute;
       inset:0;
@@ -80,14 +77,12 @@
       transform: translateZ(0);
     }
 
-    /* ✅ A：HTML 疊字 + 疊照片（不靠 canvas） */
     .overlay{
       position:absolute;
       inset:0;
       pointer-events:none;
     }
 
-    /* 依你這張模板的視覺：左上大圓頭像、右上姓名 */
     .avatar{
       position:absolute;
       left: 11%;
@@ -165,7 +160,6 @@
       margin-top: 2px;
     }
 
-    /* loading */
     .loading{
       position:absolute;
       inset:0;
@@ -178,9 +172,7 @@
       letter-spacing:.5px;
     }
   </style>
-</head>
-
-<body>
+</head><body>
   <div class="wrap">
     <div class="og-shell">
       <div class="stage" aria-label="og-delivery-card">
@@ -205,6 +197,7 @@
     </div>
   </div>
 
-  <script src="share.js?v=399"></script>
+  <!-- ✅ 注意：share.js 必須是獨立檔案，不要貼在 share.html 下面 -->
+  <script src="./share.js?v=3990"></script>
 </body>
 </html>
