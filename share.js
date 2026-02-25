@@ -1,13 +1,12 @@
 /* ================================
- * share.js (v399.1 COMPLETE OVERWRITE) 1/2
- * - share.html?id=TW0001
- * - OG meta uses fixed og-card.png (for LINE/FB crawler)
- * - Page overlays NAME + AVATAR for humans
- * - Buttons: open card / copy share link / copy card link
+ * share.js v400.2 (COMPLETE OVERWRITE)
+ * - share.html?id=TW0001&mode=free|premium&theme=color-1|p3&style=arch|flat|spot&paper=paper-1...
+ * - OG meta uses fixed og-card.png (crawler)
+ * - Human overlay NAME + AVATAR
+ * - Buttons: open card / copy share link / copy card link (ALL carry params)
  * ================================ */
 
 const SHARE_CONFIG = {
-  // ✅ prefer window.CONFIG.GAS if exists (keep compatibility)
   GAS: (window.CONFIG && window.CONFIG.GAS)
     ? window.CONFIG.GAS
     : "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
@@ -18,8 +17,7 @@ const SHARE_CONFIG = {
 };
 
 function $(id){ return document.getElementById(id); }
-function text(v){ return (v==null?"":String(v)).trim(); }
-function log(){ if(SHARE_CONFIG.DEBUG) console.log("[share]", ...arguments); }
+function text(v){ return (v==null ? "" : String(v)).trim(); }
 function warn(){ if(SHARE_CONFIG.DEBUG) console.warn("[share]", ...arguments); }
 
 function getParam(name){
@@ -86,12 +84,14 @@ function normalizeImageUrl(raw){
   if(!url) return "";
   if(url.startsWith("http://")) url = "https://" + url.slice(7);
 
+  // dropbox
   if(url.includes("dropbox.com")){
     url = url.replace("dl=0","raw=1");
-    if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
+    if(!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
     return url;
   }
 
+  // google drive file link
   const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   if(mFile && mFile[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
 
@@ -127,14 +127,17 @@ function buildImageCandidates_(raw){
       normalizeImageUrl(original)
     ].filter(Boolean);
   }
+
   return [normalizeImageUrl(original)].filter(Boolean);
-}async function fetchWithTimeout(url, timeoutMs){
+}
+
+async function fetchWithTimeout(url, timeoutMs){
   const controller = new AbortController();
-  const t = setTimeout(()=>controller.abort(), timeoutMs);
+  const t = setTimeout(() => controller.abort(), timeoutMs);
   try{
     const res = await fetch(url, { method:"GET", cache:"no-store", redirect:"follow", signal: controller.signal });
     const txt = await res.text();
-    const body = (txt||"").trim();
+    const body = (txt || "").trim();
     if(!body) throw new Error("Empty response");
     try{
       return JSON.parse(body);
@@ -156,7 +159,7 @@ async function fetchJsonRobust(url){
     }catch(e){
       last = e;
       warn("retry", i, e && e.message ? e.message : e);
-      await new Promise(r=>setTimeout(r, 520 + i*520));
+      await new Promise(r => setTimeout(r, 520 + i*520));
     }
   }
   throw last || new Error("Fetch failed");
@@ -166,7 +169,7 @@ function projectBase_(){
   try{
     const u = new URL(location.href);
     u.hash = "";
-    u.search = "";
+    // 這裡不清空 search：我們要攜帶參數
     const p = u.pathname;
     const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
     return u.origin + dir;
@@ -174,11 +177,35 @@ function projectBase_(){
     return location.origin + "/";
   }
 }
-function buildCardUrl_(id){
-  return projectBase_() + "index.html?id=" + encodeURIComponent(id);
+
+/** 只允許帶這些參數，避免亂帶 */
+function getCarryParams_(){
+  const sp = new URLSearchParams(location.search);
+  const allow = ["mode","theme","style","paper"];
+  const out = new URLSearchParams();
+  for(const k of allow){
+    const v = sp.get(k);
+    if(v!=null && String(v).trim()!=="") out.set(k, String(v).trim());
+  }
+  return out;
 }
+
+function buildCardUrl_(id){
+  const base = projectBase_() + "index.html";
+  const sp = new URLSearchParams();
+  sp.set("id", id);
+  const carry = getCarryParams_();
+  for(const [k,v] of carry.entries()) sp.set(k, v);
+  return base + "?" + sp.toString();
+}
+
 function buildShareUrl_(id){
-  return projectBase_() + "share.html?id=" + encodeURIComponent(id);
+  const base = projectBase_() + "share.html";
+  const sp = new URLSearchParams();
+  sp.set("id", id);
+  const carry = getCarryParams_();
+  for(const [k,v] of carry.entries()) sp.set(k, v);
+  return base + "?" + sp.toString();
 }
 
 async function copyText_(s){
@@ -203,8 +230,8 @@ async function copyText_(s){
   const ta = document.createElement("textarea");
   ta.value = v;
   ta.setAttribute("readonly","readonly");
-  ta.style.position="fixed";
-  ta.style.left="-9999px";
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
   document.body.appendChild(ta);
   ta.select();
   try{ document.execCommand("copy"); }catch{}
@@ -258,7 +285,10 @@ async function boot(){
   if(btnCopyShare) btnCopyShare.onclick = () => copyText_(shareUrl);
   if(btnCopyCard) btnCopyCard.onclick = () => copyText_(cardUrl);
 
-  if(debug) debug.textContent = `id=${id}`;
+  if(debug){
+    const carry = getCarryParams_();
+    debug.textContent = `id=${id}` + (carry.toString() ? ` | ${carry.toString()}` : "");
+  }
 
   try{
     const url = `${SHARE_CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
