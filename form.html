@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Angel Smart Card｜v402 Form</title>
+
+  <link rel="stylesheet" href="./form.css?v=402" />
+</head>
+
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="brand-title">天使智慧名片系統</div>
+      <div class="brand-sub">v402 自建表單｜方案聯動｜一鍵交貨</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Step 0: GAS Endpoint -->
+    <section class="card">
+      <h2>0｜連線設定</h2>
+      <div class="row">
+        <label>GAS WebApp URL</label>
+        <input id="gasUrl" type="url" placeholder="貼上你的 GAS WebApp /exec 網址" />
+      </div>
+      <div class="hint">
+        建議直接填死在 form.js 也可以（現在先留 UI 可改）。
+      </div>
+    </section>
+
+    <!-- Step 1: Plan -->
+    <section class="card">
+      <h2>1｜選方案（分流）</h2>
+      <div class="seg" role="tablist">
+        <button class="seg-btn active" id="btnPlan1" type="button" data-plan="1">自由搭配款</button>
+        <button class="seg-btn" id="btnPlan2" type="button" data-plan="2">精品設計款</button>
+      </div>
+      <div class="hint">選完方案後，下方選項會自動聯動。</div>
+    </section>
+
+    <!-- Step 2A: Free -->
+    <section class="card" id="freeBox">
+      <h2>2A｜自由搭配款：選顏色／版型／紙感</h2>
+
+      <div class="sub">
+        <div class="sub-title">顏色（c）</div>
+        <div class="chips">
+          <button type="button" class="chip active" data-group="c" data-val="c1">c1 粉</button>
+          <button type="button" class="chip" data-group="c" data-val="c2">c2 藍</button>
+          <button type="button" class="chip" data-group="c" data-val="c3">c3 橘</button>
+          <button type="button" class="chip" data-group="c" data-val="c4">c4 紫</button>
+          <button type="button" class="chip" data-group="c" data-val="c5">c5 綠</button>
+        </div>
+      </div>
+
+      <div class="sub">
+        <div class="sub-title">版型（s）</div>
+        <div class="chips">
+          <button type="button" class="chip active" data-group="s" data-val="s1">s1 正拱</button>
+          <button type="button" class="chip" data-group="s" data-val="s2">s2 平直</button>
+          <button type="button" class="chip" data-group="s" data-val="s3">s3 晨曦</button>
+        </div>
+      </div>
+
+      <div class="sub">
+        <div class="sub-title">紙感（f）</div>
+        <div class="chips">
+          <button type="button" class="chip active" data-group="f" data-val="f1">f1 棉紙</button>
+          <button type="button" class="chip" data-group="f" data-val="f2">f2 顆粒</button>
+          <button type="button" class="chip" data-group="f" data-val="f3">f3 亞麻</button>
+        </div>
+      </div>
+
+      <div class="hint">
+        自由款：按鈕會跟著顏色淡淡聯動；預覽 banner 會更飽和（在名片端做）。
+      </div>
+    </section>
+
+    <!-- Step 2B: Premium -->
+    <section class="card" id="premiumBox" style="display:none;">
+      <h2>2B｜精品設計款：選底色（p）</h2>
+
+      <div class="sub">
+        <div class="sub-title">精品底色（p）</div>
+        <div class="chips">
+          <button type="button" class="chip active" data-group="p" data-val="p1">p1 胭脂紅</button>
+          <button type="button" class="chip" data-group="p" data-val="p2">p2 酒紅</button>
+          <button type="button" class="chip" data-group="p" data-val="p3">p3 深藍</button>
+          <button type="button" class="chip" data-group="p" data-val="p4">p4 霧紫</button>
+          <button type="button" class="chip" data-group="p" data-val="p5">p5 藍灰</button>
+          <button type="button" class="chip" data-group="p" data-val="p6">p6 金箔</button>
+          <button type="button" class="chip" data-group="p" data-val="p7">p7 褐碳</button>
+        </div>
+      </div>
+
+      <div class="hint">精品款：只選 p1~p7，不混色。</div>
+    </section>
+
+    <!-- Step 3: Customer fields -->
+    <section class="card">
+      <h2>3｜客戶資料</h2>
+
+      <div class="grid2">
+        <div class="row">
+          <label>姓名 *</label>
+          <input id="name" type="text" placeholder="必填" />
+        </div>
+        <div class="row">
+          <label>單位</label>
+          <input id="unit" type="text" />
+        </div>
+        <div class="row">
+          <label>頭銜</label>
+          <input id="title" type="text" />
+        </div>
+        <div class="row">
+          <label>理念標語</label>
+          <input id="slogan" type="text" />
+        </div>
+      </div>
+
+      <div class="row">
+        <label>服務項目</label>
+        <textarea id="service" rows="3" placeholder="可換行"></textarea>
+      </div>
+
+      <div class="row">
+        <label>經歷</label>
+        <textarea id="exp" rows="4" placeholder="可換行"></textarea>
+      </div>
+    </section>
+
+    <!-- Step 4: Contact -->
+    <section class="card">
+      <h2>4｜聯繫與平台</h2>
+
+      <div class="grid2">
+        <div class="row">
+          <label>微信</label>
+          <input id="wechat" type="text" />
+        </div>
+        <div class="row">
+          <label>LINE連結</label>
+          <input id="lineLink" type="url" placeholder="https://lin.ee/..." />
+        </div>
+        <div class="row">
+          <label>LINE官方帳號</label>
+          <input id="lineOA" type="url" placeholder="https://lin.ee/..." />
+        </div>
+        <div class="row">
+          <label>Email</label>
+          <input id="email" type="email" />
+        </div>
+        <div class="row">
+          <label>電話</label>
+          <input id="phone" type="tel" />
+        </div>
+        <div class="row">
+          <label>地址</label>
+          <input id="addr" type="text" />
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="row">
+          <label>影音平台1</label>
+          <input id="media1" type="url" />
+        </div>
+        <div class="row">
+          <label>影音平台2</label>
+          <input id="media2" type="url" />
+        </div>
+        <div class="row">
+          <label>影音平台3</label>
+          <input id="media3" type="url" />
+        </div>
+        <div class="row">
+          <label>社群平台1</label>
+          <input id="social1" type="url" />
+        </div>
+        <div class="row">
+          <label>社群平台2</label>
+          <input id="social2" type="url" />
+        </div>
+        <div class="row">
+          <label>社群平台3</label>
+          <input id="social3" type="url" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 5: Images -->
+    <section class="card">
+      <h2>5｜照片上傳（我們幫客戶壓縮）</h2>
+
+      <div class="row">
+        <label>個人照（會壓縮成 *_fast）</label>
+        <input id="avatarFile" type="file" accept="image/*" />
+      </div>
+
+      <div class="row">
+        <label>Logo（會壓縮成 *_fast）</label>
+        <input id="logoFile" type="file" accept="image/*" />
+      </div>
+
+      <div class="row">
+        <label>多張照片（最多 5 張，會壓縮成 *_fast）</label>
+        <input id="photosFile" type="file" accept="image/*" multiple />
+      </div>
+
+      <div class="hint">
+        壓縮規格：avatar 1024、logo 512、photos fit 1200×675（等比例不裁切）。  
+      </div>
+    </section>
+
+    <!-- Step 6: Submit -->
+    <section class="card">
+      <h2>6｜送出與交貨</h2>
+
+      <div class="actions">
+        <button id="btnSubmit" class="btn primary" type="button">送出建立名片</button>
+        <button id="btnCopyCard" class="btn" type="button" disabled>複製名片網址</button>
+        <button id="btnShareCard" class="btn" type="button" disabled>分享名片網址</button>
+      </div>
+
+      <div class="result" id="resultBox" style="display:none;">
+        <div class="kvs">
+          <div><span class="k">id</span><span class="v" id="rId">-</span></div>
+          <div><span class="k">token</span><span class="v" id="rToken">-</span></div>
+          <div><span class="k">card_url</span><a class="v link" id="rCardUrl" href="#" target="_blank" rel="noreferrer">-</a></div>
+        </div>
+        <div class="hint">
+          交貨：直接把 card_url 貼給客戶即可。  
+          （前台名片頁 v402 會再接：分享鍵＋OG 一鍵交貨卡）
+        </div>
+      </div>
+
+      <div class="msg" id="msg"></div>
+    </section>
+  </main>
+
+  <script src="./form.js?v=402"></script>
+</body>
+          </html>
