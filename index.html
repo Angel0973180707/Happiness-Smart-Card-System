@@ -1,7 +1,8 @@
 <!-- ================================
-     index.html v4030 (COMPLETE OVERWRITE)
-     - ADD: Share button (btnShare)
-     - KEEP: BR triple tap hotspot
+     index.html v4030.2 (SAFE FORM MODE)
+     - KEEP: v4030 DOM structure (no reflow / no card DOM change)
+     - ADD: form mode container + pushState mode switch
+     - DO NOT TOUCH: app.js / manifest / sw / adminHotspotBR / share logic
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -87,11 +88,12 @@
           <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
         </button>
 
+        <!-- SAFE: keep original button; mode script will override window.goFillForm() to switch to embedded form -->
         <button class="btn-cta subtle" id="btnFormCta" type="button" onclick="window.goFillForm()">
           <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
         </button>
 
-        <!-- NEW: share card -->
+        <!-- share card -->
         <button class="btn-cta btn-share" id="btnShare" type="button">
           <i class="fa-solid fa-share-nodes"></i> 分享客戶名片
         </button>
@@ -114,11 +116,12 @@
           <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
         </button>
 
+        <!-- SAFE: keep original button; mode script will override window.goFillForm() to switch to embedded form -->
         <button class="btn-cta subtle" id="btnFormCtaPremium" type="button" onclick="window.goFillForm()">
           <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
         </button>
 
-        <!-- NEW: share card -->
+        <!-- share card -->
         <button class="btn-cta btn-share" id="btnSharePremium" type="button" onclick="document.getElementById('btnShare')?.click()">
           <i class="fa-solid fa-share-nodes"></i> 分享智慧名片
         </button>
@@ -183,8 +186,207 @@
     </section>
   </main>
 
+  <!-- ================= Form Container (SAFE ADD) ================= -->
+  <main id="form-container" style="display:none;"></main>
+
   <script src="./app.js?v=4030"></script>
+
+  <!-- ================= SAFE MODE SCRIPT (no app.js change) ================= -->
+  <script>
+    (function () {
+      "use strict";
+
+      // ---- helpers (scoped) ----
+      function qs(id) { return document.getElementById(id); }
+
+      function getParams_() {
+        try { return new URLSearchParams(location.search || ""); }
+        catch (e) { return new URLSearchParams(); }
+      }
+
+      function buildUrl_(mode, id) {
+        const p = getParams_();
+        if (id) p.set("id", id);
+        if (mode) p.set("mode", mode);
+        else p.delete("mode");
+
+        const s = p.toString();
+        return location.pathname + (s ? ("?" + s) : "");
+      }
+
+      function getId_() {
+        const p = getParams_();
+        return (p.get("id") || "").trim();
+      }
+
+      // ---- form mount (created only once) ----
+      let __formMounted = false;
+
+      function mountFormOnce_() {
+        if (__formMounted) return;
+
+        const host = qs("form-container");
+        if (!host) return;
+
+        // Clear (just in case)
+        host.innerHTML = "";
+
+        // Sticky top bar (inline styles only; no CSS file changes)
+        const bar = document.createElement("div");
+        bar.setAttribute("role", "navigation");
+        bar.style.position = "sticky";
+        bar.style.top = "0";
+        bar.style.zIndex = "999";
+        bar.style.display = "flex";
+        bar.style.alignItems = "center";
+        bar.style.justifyContent = "space-between";
+        bar.style.gap = "10px";
+        bar.style.padding = "10px 12px";
+        bar.style.background = "rgba(17, 19, 24, 0.92)";
+        bar.style.backdropFilter = "blur(10px)";
+        bar.style.webkitBackdropFilter = "blur(10px)";
+        bar.style.borderBottom = "1px solid rgba(255,255,255,0.12)";
+
+        const left = document.createElement("div");
+        left.style.display = "flex";
+        left.style.alignItems = "center";
+        left.style.gap = "10px";
+
+        const btnBack = document.createElement("button");
+        btnBack.type = "button";
+        btnBack.textContent = "返回名片";
+        btnBack.setAttribute("aria-label", "返回名片");
+        btnBack.style.border = "1px solid rgba(255,255,255,0.18)";
+        btnBack.style.background = "rgba(255,255,255,0.06)";
+        btnBack.style.color = "#fff";
+        btnBack.style.padding = "10px 12px";
+        btnBack.style.borderRadius = "14px";
+        btnBack.style.fontWeight = "700";
+        btnBack.style.cursor = "pointer";
+        btnBack.addEventListener("click", function () {
+          setMode_("card");
+        });
+
+        const title = document.createElement("div");
+        title.textContent = "填寫名片資料";
+        title.style.color = "rgba(255,255,255,0.95)";
+        title.style.fontWeight = "800";
+        title.style.letterSpacing = "0.4px";
+
+        left.appendChild(btnBack);
+        left.appendChild(title);
+
+        const right = document.createElement("div");
+        right.style.display = "flex";
+        right.style.alignItems = "center";
+        right.style.gap = "10px";
+
+        // Optional: show current id (non-invasive)
+        const idNow = getId_();
+        if (idNow) {
+          const chip = document.createElement("div");
+          chip.textContent = idNow;
+          chip.style.color = "rgba(255,255,255,0.85)";
+          chip.style.fontWeight = "700";
+          chip.style.fontSize = "12px";
+          chip.style.padding = "8px 10px";
+          chip.style.borderRadius = "999px";
+          chip.style.border = "1px solid rgba(255,255,255,0.14)";
+          chip.style.background = "rgba(255,255,255,0.06)";
+          right.appendChild(chip);
+        }
+
+        bar.appendChild(left);
+        bar.appendChild(right);
+
+        const frame = document.createElement("iframe");
+        frame.setAttribute("title", "名片資料表單");
+        frame.setAttribute("loading", "lazy");
+        frame.src = "./form.html?v=402";
+        frame.style.width = "100%";
+        frame.style.height = "calc(100vh - 60px)";
+        frame.style.border = "0";
+        frame.style.display = "block";
+        frame.style.background = "transparent";
+
+        host.appendChild(bar);
+        host.appendChild(frame);
+
+        __formMounted = true;
+      }
+
+      // ---- mode switch ----
+      function applyMode_(mode) {
+        const cardMain = qs("card-container");
+        const adminPanel = qs("admin-panel");
+        const formMain = qs("form-container");
+
+        if (!cardMain || !adminPanel || !formMain) return;
+
+        if (mode === "form") {
+          mountFormOnce_();
+          cardMain.style.display = "none";
+          adminPanel.style.display = "none";
+          formMain.style.display = "block";
+          document.body.setAttribute("data-mode", "form");
+        } else {
+          formMain.style.display = "none";
+          cardMain.style.display = "block";
+          adminPanel.style.display = "";
+          document.body.setAttribute("data-mode", "card");
+        }
+      }
+
+      function setMode_(mode) {
+        const id = getId_();
+        const nextMode = (mode === "form") ? "form" : ""; // "" means card mode (no mode param)
+        const url = buildUrl_(nextMode, id);
+
+        try {
+          history.pushState({ mode: nextMode || "card" }, "", url);
+        } catch (e) {
+          // fallback: keep UI switch even if pushState fails
+        }
+
+        applyMode_(nextMode ? "form" : "card");
+      }
+
+      // ---- public hook (safe namespace-ish) ----
+      window.__safeFormMode = window.__safeFormMode || {};
+      window.__safeFormMode.setMode = setMode_;
+
+      // ---- override goFillForm safely (no app.js edit) ----
+      // keep reference if needed later
+      const __origGoFillForm = window.goFillForm;
+      window.goFillForm = function () {
+        // Spec: no reload, no jump
+        setMode_("form");
+        // return false for inline onclick safety
+        return false;
+      };
+      // expose original for debugging (not used by default)
+      window.__safeFormMode.__origGoFillForm = __origGoFillForm;
+
+      // ---- initial mode from URL ----
+      function boot_() {
+        const p = getParams_();
+        const mode = (p.get("mode") || "").trim().toLowerCase();
+        applyMode_(mode === "form" ? "form" : "card");
+      }
+
+      window.addEventListener("popstate", function () {
+        // Back/forward should update UI
+        const p = getParams_();
+        const mode = (p.get("mode") || "").trim().toLowerCase();
+        applyMode_(mode === "form" ? "form" : "card");
+      });
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot_, { once: true });
+      } else {
+        boot_();
+      }
+    })();
+  </script>
 </body>
 </html>
-
-  
