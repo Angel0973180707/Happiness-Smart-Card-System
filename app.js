@@ -1,10 +1,10 @@
 /* ================================
  * Happiness Smart Card System
  * app.js v401.1 (COMPLETE OVERWRITE) 1/3
- * - Robust fetch + payload normalize (keep v400.4 capability)
+ * - Align with index.html v401.1 API:
+ *   window.setPlan / setTheme / setStyle / setPaper / goLineIntro / goFillForm
+ * - Robust fetch + payload normalize
  * - Image normalize + fallback (Drive/Dropbox/http->https)
- * - State engine: free(c1-5 + s1-3 + f1-3) / premium(p1-7 full tone)
- * - Button active sync (no broken selection)
  * ================================ */
 
 const CONFIG = {
@@ -23,7 +23,7 @@ function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 function text(v){ return (v==null ? "" : String(v)).trim(); }
 
-/* ---------- Key normalize (keep v400.4 robustness) ---------- */
+/* ---------- Text / Key normalize ---------- */
 function cleanKey_(k){
   return String(k ?? "")
     .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
@@ -39,12 +39,11 @@ function buildNormalizedPayload_(obj){
   if(!obj || typeof obj !== "object") return obj;
   const out = { __raw: obj };
   const lower = Object.create(null);
-
   for(const k of Object.keys(obj)){
     const nk = cleanKey_(k);
     if(!nk) continue;
     const v = obj[k];
-    if(out[nk]==null || text(out[nk])==="") out[nk] = v;
+    if(out[nk]==null || text(out[nk])==="") out[nk]=v;
     lower[nk.toLowerCase()] = v;
   }
   out.__lower = lower;
@@ -54,7 +53,6 @@ function buildNormalizedPayload_(obj){
 function pick(p, keys){
   if(!p) return "";
   const lower = p.__lower || null;
-
   for(const k of keys){
     const kk = cleanKey_(k);
     const v1 = p[kk];
@@ -90,26 +88,31 @@ function getIdFromUrl_(){
 }
 
 /* ---------- Fetch (robust) ---------- */
+function safeJsonParse_(rawText){
+  let s = String(rawText||"").trim();
+  if(!s) return null;
+
+  // XSSI guard: )]}'
+  s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
+
+  try{ return JSON.parse(s); }catch{}
+
+  const m = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+  if(m){
+    try{ return JSON.parse(m[0]); }catch{}
+  }
+  return null;
+}
+
 async function fetchWithTimeout_(url, timeoutMs){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
     const res = await fetch(url, { method:"GET", cache:"no-store", redirect:"follow", signal: controller.signal });
     const txt = await res.text();
-    const body = (txt||"").trim();
-    if(!body) throw new Error("Empty response");
-
-    // XSSI guard
-    const clean = body.replace(/^\)\]\}'\s*\n?/, "").trim();
-
-    try{
-      return JSON.parse(clean);
-    }catch{
-      // fallback: extract first json block
-      const m = clean.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-      if(m) return JSON.parse(m[0]);
-      throw new Error("Not JSON");
-    }
+    const json = safeJsonParse_(txt);
+    if(!json) throw new Error("Not JSON");
+    return json;
   }finally{
     clearTimeout(t);
   }
@@ -207,106 +210,128 @@ function setImgWithFallback_(imgEl, candidates){
   imgEl.src = list[0] + (list[0].includes("?") ? "&" : "?") + "t=" + Date.now();
 }
 
-/* ================================
- * State Engine (v401.1)
- * - FREE : c1..c5 + style-s1..s3 + paper-f1..f3
- * - PREMIUM : p1..p7 full-tone (no banner-only switching)
- * ================================ */
-
-const STATE = {
-  mode: "free",  // free | premium
-  c: "c1",       // free color
-  s: "s1",       // free style
-  f: "f1",       // free paper
-  p: "p1"        // premium tone
-};
-
-function applyStateToBody_(){
-  const b = document.body;
-
-  // keep other classes but remove our controlled set cleanly
-  const removeList = [
-    "mode-free","mode-premium",
-    "c1","c2","c3","c4","c5",
-    "p1","p2","p3","p4","p5","p6","p7",
-    "style-s1","style-s2","style-s3",
-    "paper-f1","paper-f2","paper-f3"
-  ];
-  removeList.forEach(x=>b.classList.remove(x));
-
-  if(STATE.mode === "free"){
-    b.classList.add("mode-free", STATE.c, "style-" + STATE.s, "paper-" + STATE.f);
-  }else{
-    b.classList.add("mode-premium", STATE.p);
-  }
-
-  // show/hide controls blocks (match your existing HTML ids)
-  const fc = qs("free-controls");
-  const pr = qs("premiumDotsRow");
-  if(fc) fc.style.display = (STATE.mode === "free") ? "block" : "none";
-  if(pr) pr.style.display = (STATE.mode === "premium") ? "flex" : "none";
-}
-
-/* ---------- Active UI sync (do NOT kill all actives blindly) ---------- */
-function clearActive_(scopeSel){
-  qsa(scopeSel).forEach(el=>el.classList.remove("active"));
-}
-
-function setActive_(el){
+/* ---------- UI helpers: active by group ---------- */
+function setActiveInGroup_(group, el){
+  if(!group) return;
+  qsa(`[data-group="${group}"]`).forEach(x=>x.classList.remove("active"));
   if(el) el.classList.add("active");
 }
 
-/* ---------- Exposed APIs (called by HTML onclick) ---------- */
-/* mode: "free"/"premium"; theme: c1..c5 OR p1..p7 */
-function setV382(mode, theme, el){
-  if(mode === "free"){
-    STATE.mode = "free";
-    if(theme) STATE.c = theme; // c1..c5
-  }else{
-    STATE.mode = "premium";
-    if(theme) STATE.p = theme; // p1..p7
-  }
+/* ---------- State (match your HTML class system) ---------- */
+const STATE = {
+  mode: "free",         // free | premium
+  color: "color-1",     // free: color-1..5
+  style: "arch",        // free: arch/flat/spot
+  paper: "paper-1",     // free: paper-1..3
+  premium: "p1"         // premium: p1..p7
+};
 
-  applyStateToBody_();
+function applyModeUi_(){
+  const freeBlock = qs("free-controls");
+  const premBlock = qs("premium-controls");
+  const banner = qs("banner");
+  const paperOverlay = qs("paperOverlay");
+  const premBadge = qs("premiumBadge");
 
-  // active: plan buttons + dots separately
-  // plan buttons: .btn-neo.pill (you have two pills)
-  clearActive_(".plan-row .btn-neo");
-  if(el && el.classList.contains("btn-neo")) setActive_(el);
-
-  // dots: free dots & premium dots
   if(STATE.mode === "free"){
-    clearActive_(".dots-row .dot");
-    if(el && el.classList.contains("dot")) setActive_(el);
+    if(freeBlock) freeBlock.style.display = "";
+    if(premBlock) premBlock.style.display = "none";
+    if(banner) banner.style.display = "";
+    if(paperOverlay) paperOverlay.style.display = "";
+    if(premBadge) premBadge.style.display = "none";
   }else{
-    clearActive_(".dots-row .p-dot");
-    if(el && el.classList.contains("p-dot")) setActive_(el);
+    if(freeBlock) freeBlock.style.display = "none";
+    if(premBlock) premBlock.style.display = "";
+    if(banner) banner.style.display = "none";         // ✅ premium no banner
+    if(paperOverlay) paperOverlay.style.display = "none";
+    if(premBadge) premBadge.style.display = "none";   // keep minimal (as your note)
   }
 }
 
-/* style: s1/s2/s3 */
-function setV382Style(style, el){
-  STATE.s = style || STATE.s;
-  if(STATE.mode !== "free") STATE.mode = "free"; // style only for free
-  applyStateToBody_();
+function applyBodyClasses_(){
+  const b = document.body;
 
-  clearActive_("#free-controls .btn-row .btn-neo");
-  if(el && el.classList.contains("btn-neo")) setActive_(el);
+  // clear controlled classes
+  [
+    "mode-free","mode-premium",
+    "color-1","color-2","color-3","color-4","color-5",
+    "style-arch","style-flat","style-spot",
+    "paper-1","paper-2","paper-3",
+    "p1","p2","p3","p4","p5","p6","p7"
+  ].forEach(c=>b.classList.remove(c));
+
+  if(STATE.mode === "free"){
+    b.classList.add("mode-free", STATE.color, "style-" + STATE.style, STATE.paper);
+  }else{
+    // ✅ premium full tone (CSS should paint entire card by p1..p7)
+    b.classList.add("mode-premium", STATE.premium);
+  }
+
+  applyModeUi_();
 }
 
-/* paper: f1/f2/f3 */
-function setV382Paper(paper, el){
-  STATE.f = paper || STATE.f;
-  if(STATE.mode !== "free") STATE.mode = "free"; // paper only for free
-  applyStateToBody_();
+/* ---------- Exposed APIs (HTML calls these) ---------- */
+function setPlan(mode, el){
+  STATE.mode = (mode === "premium") ? "premium" : "free";
+  setActiveInGroup_("plan", el);
+  applyBodyClasses_();
 
-  // paper buttons are also in free controls; keep active in their row only if your HTML separates rows.
-  // safest: only toggle current element
-  if(el && el.classList.contains("btn-neo")){
-    // remove active from siblings in same parent
-    const parent = el.parentElement;
-    if(parent) Array.from(parent.querySelectorAll(".btn-neo")).forEach(x=>x.classList.remove("active"));
-    el.classList.add("active");
+  // breathe hint switch (optional): only keep "自由搭配" breathe when free
+  const btnFree = qs("btnPlanFree");
+  const btnPrem = qs("btnPlanPremium");
+  if(btnFree && btnPrem){
+    btnFree.classList.toggle("breathe", STATE.mode === "free");
+    btnPrem.classList.toggle("breathe", STATE.mode === "premium");
+  }
+}
+
+function setTheme(theme, el){
+  // free: color-1..5 / premium: p1..p7
+  if(String(theme||"").startsWith("p")){
+    STATE.mode = "premium";
+    STATE.premium = theme;
+    setActiveInGroup_("theme", el);
+  }else{
+    STATE.mode = "free";
+    STATE.color = theme;
+    setActiveInGroup_("theme", el);
+  }
+  applyBodyClasses_();
+
+  // also ensure plan pills reflect mode
+  const btnFree = qs("btnPlanFree");
+  const btnPrem = qs("btnPlanPremium");
+  if(btnFree && btnPrem){
+    btnFree.classList.toggle("active", STATE.mode === "free");
+    btnPrem.classList.toggle("active", STATE.mode === "premium");
+  }
+}
+
+function setStyle(style, el){
+  STATE.mode = "free";
+  STATE.style = style;
+  setActiveInGroup_("style", el);
+  applyBodyClasses_();
+
+  const btnFree = qs("btnPlanFree");
+  const btnPrem = qs("btnPlanPremium");
+  if(btnFree && btnPrem){
+    btnFree.classList.add("active");
+    btnPrem.classList.remove("active");
+  }
+}
+
+function setPaper(paper, el){
+  STATE.mode = "free";
+  STATE.paper = paper;
+  setActiveInGroup_("paper", el);
+  applyBodyClasses_();
+
+  const btnFree = qs("btnPlanFree");
+  const btnPrem = qs("btnPlanPremium");
+  if(btnFree && btnPrem){
+    btnFree.classList.add("active");
+    btnPrem.classList.remove("active");
   }
 }
 
@@ -314,19 +339,12 @@ function setV382Paper(paper, el){
 function goFillForm(){
   window.open(CONFIG.FORM, "_blank");
 }
-
-/* expose */
-window.setV382 = setV382;
-window.setV382Style = setV382Style;
-window.setV382Paper = setV382Paper;
-window.goFillForm = goFillForm;
 /* ================================
  * app.js v401.1 (2/3)
- * - Render Card: Name/Unit/Title/Slogan
- * - Logo always show (and auto circle)
- * - Blocks: service/experience (pre-line)
- * - Docks: media dock (影音/社群) + contact dock
- * - Wide balance rule for odd count
+ * Render Card + Docks + Blocks + Logo/Avatar
+ * - Logo must show + auto circle
+ * - Media buttons classify dock-yt/fb/ig/line/web
+ * - Contact buttons apply .wide when odd
  * ================================ */
 
 function safeSetText_(id, val){
@@ -357,7 +375,6 @@ function openMapByAddress_(addr){
   window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
 }
 
-/* Media classify for subtle styling (CSS uses these classes) */
 function classifyDockClass_(url){
   const u = String(url||"").toLowerCase();
   if(u.includes("youtube.com") || u.includes("youtu.be")) return "dock-yt";
@@ -368,7 +385,7 @@ function classifyDockClass_(url){
   return "dock-web";
 }
 
-/* ---------- Logo (must show) ---------- */
+/* ---------- Logo ---------- */
 function renderLogo_(p){
   const logoUrl = pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img"]);
   const wrap = qs("logoWrap");
@@ -382,10 +399,8 @@ function renderLogo_(p){
     return;
   }
 
-  // ALWAYS show if load ok
+  // ✅ logo show + auto circle
   wrap.style.display = "flex";
-
-  // ✅ auto circle (you requested)
   img.style.borderRadius = "999px";
   img.style.objectFit = "cover";
 
@@ -395,7 +410,7 @@ function renderLogo_(p){
   setImgWithFallback_(img, buildImgCandidates_(u));
 }
 
-/* ---------- Avatar (keep opaque bg from CSS; JS must not hide it) ---------- */
+/* ---------- Avatar ---------- */
 function renderAvatar_(p){
   const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","形象照","photo"]);
   const img = qs("u-img");
@@ -472,17 +487,14 @@ function renderDocks_(p){
   if(mediaBtns) mediaBtns.innerHTML = "";
   if(cBtns) cBtns.innerHTML = "";
 
-  /* ---- Media: 影音/社群（獨立區、不同 icon） ---- */
+  /* ---- Media: 影音/平台 ---- */
   const mediaItems = [
-    // 影音
-    { k:["影音平台1","影音1","YouTube","youtube"], label:"影音平台", icon:"fa-solid fa-play" },
+    { k:["影音平台1","影音1"], label:"影音", icon:"fa-solid fa-play" },
     { k:["影音平台2","影音2"], label:"官網/平台", icon:"fa-solid fa-globe" },
-    { k:["影音平台3","影音3"], label:"影音連結", icon:"fa-solid fa-circle-play" },
-
-    // 社群
-    { k:["社群平台1","社群1","Facebook","fb"], label:"社群平台", icon:"fa-solid fa-users" },
-    { k:["社群平台2","社群2","Instagram","ig"], label:"社群連結", icon:"fa-solid fa-hashtag" },
-    { k:["社群平台3","社群3"], label:"社群3", icon:"fa-solid fa-share-nodes" }
+    { k:["影音平台3","影音3"], label:"影音3", icon:"fa-solid fa-circle-play" },
+    { k:["社群平台1","社群1"], label:"社群", icon:"fa-solid fa-users" },
+    { k:["社群平台2","社群2"], label:"社群2", icon:"fa-solid fa-users" },
+    { k:["社群平台3","社群3"], label:"社群3", icon:"fa-solid fa-users" }
   ];
 
   let hasMedia = false;
@@ -597,12 +609,37 @@ function renderCard(row){
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
 }
+
+/* ---------- LINE CTA (needs payload) ---------- */
+function goLineIntro(){
+  const p = currentRow || null;
+  if(!p){
+    alert("⏳ 名片資料載入中，請稍等一下再點 LINE 官網。");
+    return;
+  }
+  const lineOA  = pick(p, ["LINE官方帳號","line_oa","line官網","LINE官網"]);
+  const lineLink= pick(p, ["LINE連結","line_link","line"]);
+  const url = text(lineOA) ? lineOA : lineLink;
+
+  if(!text(url)){
+    alert("⚠️ 這張名片尚未提供 LINE 官網連結");
+    return;
+  }
+  openUrl_(url);
+}
+
+/* expose */
+window.setPlan = setPlan;
+window.setTheme = setTheme;
+window.setStyle = setStyle;
+window.setPaper = setPaper;
+window.goLineIntro = goLineIntro;
+window.goFillForm = goFillForm;
 /* ================================
  * app.js v401.1 (3/3)
- * - Photo Wall: consistent thumbnail ratio + dynamic balance (no empty)
- * - Lightbox: contain
- * - Admin hotspot: BR triple tap (reserved)
- * - Robust Load/Boot
+ * Photo Wall + Lightbox + Admin hotspot BR + Robust Load/Boot
+ * - Thumbs consistent ratio
+ * - Grid dynamic balance (avoid lonely last)
  * ================================ */
 
 function extractRowFromPayload_(data){
@@ -707,20 +744,12 @@ function openLightbox_(url){
   overlay.style.display = "flex";
 }
 
-/* ---------- Photo wall balance (no empty) ---------- */
-/*
-  Rules:
-  - 1 => 1 col
-  - 2 => 2 col
-  - 4 => 2 col (avoid 3+1 empty look)
-  - n%3==1 => 2 col (e.g., 7,10) to avoid last row single in 3-col
-  - else => 3 col
-*/
+/* ---------- Photo wall dynamic balance (avoid lonely) ---------- */
 function computeCols_(n){
   if(n <= 1) return 1;
   if(n === 2) return 2;
   if(n === 4) return 2;
-  if(n % 3 === 1) return 2;
+  if(n % 3 === 1) return 2; // 7/10/13... avoid last lonely
   return 3;
 }
 
@@ -739,7 +768,7 @@ function renderPhotoWall_(row){
   }
 
   const cols = computeCols_(urls.length);
-  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
 
   urls.forEach(u=>{
     const img = document.createElement("img");
@@ -749,7 +778,7 @@ function renderPhotoWall_(row){
     img.decoding = "async";
     img.referrerPolicy = "no-referrer";
 
-    // ✅ consistent thumbnails ratio (even if CSS already, we harden it)
+    // ✅ consistent thumbnail ratio
     img.style.width = "100%";
     img.style.aspectRatio = "1 / 1";
     img.style.objectFit = "cover";
@@ -762,7 +791,7 @@ function renderPhotoWall_(row){
   wall.style.display = "";
 }
 
-/* ---------- Admin hotspot (bottom-right triple tap, reserved) ---------- */
+/* ---------- Admin hotspot (bottom-right triple tap) ---------- */
 function setupAdminHotspotBR_(){
   const spot = qs("adminHotspotBR");
   if(!spot) return;
@@ -777,8 +806,8 @@ function setupAdminHotspotBR_(){
 
     if(taps >= 3){
       taps = 0;
-      // ✅ reserved entry (later connect admin.html)
       alert("✅ 進入隱形後臺（v401.1 預留入口）");
+      // TODO: 之後接 admin.html
       // location.href = "admin.html?id=" + encodeURIComponent(getIdFromUrl_() || CONFIG.DEFAULT_ID);
     }
   });
@@ -808,8 +837,26 @@ async function loadAndRenderById_(id){
     ensureLightbox_();
     setupAdminHotspotBR_();
 
-    // initial state apply (prevents “選了沒反應/不連動”)
-    applyStateToBody_();
+    // ✅ ensure UI matches initial HTML class
+    // read from body initial classes if present
+    const b = document.body;
+    STATE.mode = b.classList.contains("mode-premium") ? "premium" : "free";
+
+    // free
+    ["color-1","color-2","color-3","color-4","color-5"].forEach(c=>{ if(b.classList.contains(c)) STATE.color = c; });
+    ["style-arch","style-flat","style-spot"].forEach(s=>{
+      if(b.classList.contains(s)) STATE.style = s.replace("style-","");
+    });
+    ["paper-1","paper-2","paper-3"].forEach(p=>{
+      if(b.classList.contains(p)) STATE.paper = p;
+    });
+
+    // premium
+    ["p1","p2","p3","p4","p5","p6","p7"].forEach(p=>{
+      if(b.classList.contains(p)) STATE.premium = p;
+    });
+
+    applyBodyClasses_();
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     loadAndRenderById_(id);
