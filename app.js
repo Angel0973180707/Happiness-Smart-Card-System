@@ -1,20 +1,16 @@
 /* ================================
  * Happiness Smart Card System
  * app.js v400.2 (COMPLETE OVERWRITE)
- * - Accept payload shapes:
- *   A) direct row {姓名:...} ✅你目前回傳
- *   B) {ok:true, data:{...}}
- *   C) {ok:true, row:{...}}
- * - Fix docks keys to your sheet:
- *   影音平台1/2/3, 社群平台1/2/3
- * - Photo wall supports:
- *   photos[] / photos_full[] / 照片(逗號或換行)
- * - Robust image URL for Drive/Dropbox + fallback
- * - Keep mode/theme/style/paper when switching
+ * - FIX: GAS payload could be direct row (no ok/data)
+ * - FIX: Use correct GAS endpoint (your working one)
+ * - Robust JSON parsing + safe rendering
+ * - Media / Social keys match your sheet: 影音平台1..3 / 社群平台1..3
+ * - Photo wall: photos[] / photos_full[] / 照片 CSV / photo1..12
  * ================================ */
 
 const CONFIG = {
-  GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
+  // ✅ 你目前「確定有回資料」的 GAS（你貼的那支）
+  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
   VERSION: "v400.2",
@@ -23,9 +19,20 @@ const CONFIG = {
 };
 
 function qs(id){ return document.getElementById(id); }
-function text(v){ return (v==null?"":String(v)).trim(); }
+function text(v){ return (v==null ? "" : String(v)).trim(); }
 
-/* ---------- Key normalize / pick ---------- */
+function normalizeId_(s){
+  const v = text(s).toUpperCase();
+  if(!v) return "";
+  if(/^TW\d{4}$/.test(v)) return v;
+  if(/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
+  if(/^TW\d{1,4}$/.test(v)){
+    const n = v.replace(/^TW/i,"");
+    return "TW" + n.padStart(4,"0");
+  }
+  return v;
+}
+
 function cleanKey_(k){
   return String(k ?? "")
     .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
@@ -67,113 +74,51 @@ function pick(p, keys){
   return "";
 }
 
-/* ---------- payload shape normalize ---------- */
-function unwrapRow_(data){
-  if(!data || typeof data !== "object") return null;
-  if(data.ok === true && data.data && typeof data.data === "object") return data.data;
-  if(data.ok === true && data.row && typeof data.row === "object") return data.row;
-  if(data.ok === undefined && Object.keys(data).length > 0) return data; // direct row
-  return null;
-}
+/* ---------- URL helpers ---------- */
 
-/* ---------- URL + params ---------- */
-function getParams_(){
-  try { return new URLSearchParams(location.search); }
-  catch { return new URLSearchParams(); }
-}
+function isUrl(s){ return /^https?:\/\//i.test(text(s)); }
 
-function normalizeId_(s){
-  const v = text(s).toUpperCase();
+function normalizeUrl(s){
+  const v = text(s);
   if(!v) return "";
-  if(/^TW\d{4}$/.test(v)) return v;
-  if(/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
-  if(/^TW\d{1,4}$/.test(v)){
-    const n = v.replace(/^TW/i,"");
-    return "TW" + n.padStart(4,"0");
-  }
+  if(v.startsWith("http://")) return "https://" + v.slice(7);
+  if(isUrl(v)) return v;
+  if(/^www\./i.test(v)) return "https://" + v;
   return v;
 }
 
-/* ---------- Theme switching (preserve other classes) ---------- */
-function removeByPrefix_(prefix){
-  document.body.classList.forEach(c=>{
-    if(c.startsWith(prefix)) document.body.classList.remove(c);
-  });
+function openUrl(url){
+  const u = normalizeUrl(url);
+  if(!u) return;
+  window.open(u, "_blank");
 }
 
-window.setV382 = function setV382(mode, theme, el){
-  // preserve style-* and paper-*; only change mode/theme
-  removeByPrefix_("mode-");
-  removeByPrefix_("color-");
-  removeByPrefix_("p"); // premium themes are p1..p7 (safe: only when exact)
-  // re-add
-  document.body.classList.add(mode === "premium" ? "mode-premium" : "mode-free");
-  if(theme) document.body.classList.add(theme);
-
-  // show/hide controls
-  const free = qs("free-controls");
-  const premRow = qs("premiumDotsRow");
-  if(free) free.style.display = (mode === "free") ? "block" : "none";
-  if(premRow) premRow.style.display = (mode === "premium") ? "flex" : "none";
-
-  // active UI
-  document.querySelectorAll(".btn-neo, .dot, .p-dot").forEach(b=>b.classList.remove("active"));
-  if(el) el.classList.add("active");
-
-  // write params
-  setParam_("mode", mode);
-  setParam_("theme", theme);
-};
-
-window.setV382Style = function setV382Style(style, el){
-  removeByPrefix_("style-");
-  document.body.classList.add("style-" + style);
-
-  document.querySelectorAll("#free-controls .btn-neo").forEach(b=>b.classList.remove("active"));
-  if(el) el.classList.add("active");
-
-  setParam_("style", style);
-};
-
-window.setV382Paper = function setV382Paper(paper, el){
-  removeByPrefix_("paper-");
-  document.body.classList.add(paper);
-
-  document.querySelectorAll("#free-controls .btn-neo").forEach(b=>b.classList.remove("active"));
-  if(el) el.classList.add("active");
-
-  setParam_("paper", paper);
-};
-
-function setParam_(k,v){
-  try{
-    const sp = new URLSearchParams(location.search);
-    if(v==null || String(v).trim()==="") sp.delete(k);
-    else sp.set(k, String(v).trim());
-    const newUrl = location.pathname + "?" + sp.toString() + location.hash;
-    history.replaceState(null, "", newUrl);
-  }catch{}
+function openMapByAddress(addr){
+  const a = text(addr);
+  if(!a) return;
+  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}`, "_blank");
 }
 
-window.goFillForm = function goFillForm(){
-  window.open(CONFIG.FORM, "_blank");
-};
+/* ---------- Robust fetch ---------- */
 
-/* ---------- fetch robust ---------- */
 async function fetchWithTimeout(url, timeoutMs){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
     const res = await fetch(url, { method:"GET", cache:"no-store", redirect:"follow", signal: controller.signal });
-    const txt = await res.text();
-    const body = (txt||"").trim();
+    const raw = await res.text();
+    const body = (raw||"").trim();
     if(!body) throw new Error("Empty response");
+
     try{
       return JSON.parse(body);
     }catch{
       const m = body.match(/\{[\s\S]*\}/);
       if(m) return JSON.parse(m[0]);
-      throw new Error("Not JSON");
+      // 把原文丟出去方便你 debug
+      const err = new Error("Not JSON");
+      err.rawText = body.slice(0, 400);
+      throw err;
     }
   }finally{
     clearTimeout(t);
@@ -193,11 +138,51 @@ async function fetchJsonRobust(url){
   throw last || new Error("Fetch failed");
 }
 
-/* ---------- common helpers ---------- */
-function safeSetText(id, t){
+/* ---------- Theme Switching (keep your existing hooks) ---------- */
+
+function setV382(mode, theme, el){
+  document.body.className = "";
+
+  if(mode === "free"){
+    document.body.classList.add("mode-free", theme);
+    qs("free-controls").style.display = "block";
+    qs("premiumDotsRow").style.display = "none";
+  }else{
+    document.body.classList.add("mode-premium", theme);
+    qs("free-controls").style.display = "none";
+    qs("premiumDotsRow").style.display = "flex";
+  }
+
+  document.querySelectorAll(".btn-neo, .dot, .p-dot")
+    .forEach(b => b.classList.remove("active"));
+
+  if(el) el.classList.add("active");
+}
+
+function setV382Style(style, el){
+  document.body.classList.remove("style-arch","style-flat","style-spot");
+  document.body.classList.add("style-" + style);
+
+  document.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+  if(el) el.classList.add("active");
+}
+
+function setV382Paper(paper, el){
+  document.body.classList.remove("paper-1","paper-2","paper-3");
+  document.body.classList.add(paper);
+
+  document.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
+  if(el) el.classList.add("active");
+}
+
+function goFillForm(){ window.open(CONFIG.FORM, "_blank"); }
+
+/* ---------- Render helpers ---------- */
+
+function safeSetText(id, val){
   const el = qs(id);
   if(!el) return;
-  el.textContent = text(t);
+  el.textContent = text(val);
 }
 
 function escapeHtml(s){
@@ -209,139 +194,32 @@ function escapeHtml(s){
     .replace(/'/g,"&#039;");
 }
 
-function isUrl(s){
-  return /^https?:\/\//i.test(String(s||"").trim());
-}
-
-function normalizeUrl(s){
-  const v = String(s||"").trim();
-  if(!v) return "";
-  if(isUrl(v)) return v;
-  if(/^www\./i.test(v)) return "https://" + v;
-  return v;
-}
-
-/* ---------- image helpers (Drive/Dropbox) ---------- */
-function normalizeImageUrl(raw){
-  if(!raw) return "";
-  let url = String(raw).trim();
-  if(!url) return "";
-  if(url.startsWith("http://")) url = "https://" + url.slice(7);
-
-  if(url.includes("dropbox.com")){
-    url = url.replace("dl=0","raw=1");
-    if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
-    return url;
-  }
-
-  const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-  if(mFile && mFile[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
-
-  const mId = url.match(/(?:\?|&)id=([^&]+)/i);
-  if(mId && mId[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mId[1])}`;
-
-  const mThumb = url.match(/thumbnail\?id=([^&]+)/i);
-  if(mThumb && mThumb[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mThumb[1])}`;
-
-  return url;
-}
-
-function buildImageCandidates_(raw){
-  const s = text(raw);
-  if(!s) return [];
-  const original = s.startsWith("http://") ? "https://" + s.slice(7) : s;
-
-  if(original.includes("dropbox.com")) return [normalizeImageUrl(original)];
-
-  let driveId = "";
-  const mFile = original.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-  const mId = original.match(/(?:\?|&)id=([^&]+)/i);
-  const mThumb = original.match(/thumbnail\?id=([^&]+)/i);
-  if(mFile && mFile[1]) driveId = mFile[1];
-  else if(mId && mId[1]) driveId = mId[1];
-  else if(mThumb && mThumb[1]) driveId = mThumb[1];
-
-  if(driveId){
-    return [
-      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(driveId)}`,
-      `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveId)}&sz=w1200`,
-      `https://drive.google.com/uc?export=download&id=${encodeURIComponent(driveId)}`,
-      normalizeImageUrl(original)
-    ].filter(Boolean);
-  }
-  return [normalizeImageUrl(original)].filter(Boolean);
-}
-
-function setImgWithFallback_(imgEl, candidates){
-  if(!imgEl) return;
-  const list = (candidates||[]).map(text).filter(Boolean);
-  if(!list.length){ imgEl.removeAttribute("src"); return; }
-
-  const token = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
-  imgEl.dataset.loadToken = token;
-  let idx = 0;
-
-  imgEl.referrerPolicy = "no-referrer";
-  imgEl.decoding = "async";
-  imgEl.loading = "eager";
-
-  const tryNext = () => {
-    if(imgEl.dataset.loadToken !== token) return;
-    if(idx >= list.length){ imgEl.removeAttribute("src"); return; }
-    const u = list[idx++];
-    const sep = u.includes("?") ? "&" : "?";
-    imgEl.src = u + sep + "t=" + Date.now();
-  };
-
-  imgEl.onerror = () => tryNext();
-  tryNext();
-}
-
-/* ---------- actions ---------- */
-function openUrl(url){
-  const u = normalizeUrl(url);
-  if(!u) return;
-  window.open(u, "_blank");
-}
-
-function openMapByAddress(addr){
-  const a = String(addr||"").trim();
-  if(!a) return;
-  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}`, "_blank");
-}
-
-/* ---------- render: logo/avatar/blocks ---------- */
 function renderLogo(p){
   const logoUrl =
-    pick(p, ["Logo_fast","logo_fast","logo_fast_img","Logo"]) ||
-    pick(p, ["logo","logo_img","logo圖片","logo圖片連結","logo連結"]);
+    pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img","logo圖片","logo圖片連結","logo連結"]);
 
   const wrap = qs("logoWrap");
   const img  = qs("u-logo");
-  if(!wrap || !img){ return; }
+  if(!wrap || !img) return;
 
-  if(logoUrl){
-    wrap.style.display = "block";
-    setImgWithFallback_(img, buildImageCandidates_(logoUrl));
-  }else{
-    wrap.style.display = "none";
-    img.removeAttribute("src");
-  }
+  const u = normalizeUrl(logoUrl);
+  if(!u){ wrap.style.display="none"; return; }
+
+  img.onload = ()=>{ wrap.style.display="block"; };
+  img.onerror = ()=>{ wrap.style.display="none"; };
+  img.src = u;
 }
 
 function renderAvatar(p){
-  const raw =
-    pick(p, ["個人照_fast","avatar_fast","photo_fast","個人照","avatar","avatar_img","photo","照片"]) ||
-    pick(p, ["avatar"]);
+  const avatar =
+    pick(p, ["個人照_fast","個人照","avatar_fast","avatar","avatar_img","photo_fast","photo","照片"]);
 
   const img = qs("u-img");
   if(!img) return;
 
-  if(raw){
-    setImgWithFallback_(img, buildImageCandidates_(raw));
-  }else{
-    img.removeAttribute("src");
-  }
+  const u = normalizeUrl(avatar);
+  if(!u){ img.removeAttribute("src"); return; }
+  img.src = u;
 }
 
 function renderBlocks(p){
@@ -352,7 +230,7 @@ function renderBlocks(p){
   const b2 = qs("block-exp");
 
   if(b1){
-    if(service){
+    if(text(service)){
       b1.style.display = "";
       b1.innerHTML = `
         <div class="block-title">服務項目</div>
@@ -362,7 +240,7 @@ function renderBlocks(p){
   }
 
   if(b2){
-    if(exp){
+    if(text(exp)){
       b2.style.display = "";
       b2.innerHTML = `
         <div class="block-title">經歷</div>
@@ -372,7 +250,8 @@ function renderBlocks(p){
   }
 }
 
-/* ---------- docks ---------- */
+/* ---------- Docks ---------- */
+
 function buildBtn({label, icon, onClick}){
   const b = document.createElement("button");
   b.className = "dock-btn";
@@ -386,88 +265,93 @@ function renderDocks(p){
   const mediaBtns = qs("mediaButtons");
   const cDock     = qs("contactDock");
   const cBtns     = qs("contactButtons");
+
   if(mediaBtns) mediaBtns.innerHTML = "";
   if(cBtns) cBtns.innerHTML = "";
 
-  // 影音 / 社群：對齊你回傳的 key
+  // ✅ 影音 / 社群（用你資料的表頭）
   const mediaItems = [
-    { k:["影音平台1","影音1"], label:"影音平台1", icon:"fa-solid fa-play" },
-    { k:["影音平台2","影音2"], label:"影音平台2", icon:"fa-solid fa-play" },
-    { k:["影音平台3","影音3"], label:"影音平台3", icon:"fa-solid fa-play" },
-    { k:["社群平台1","社群1"], label:"社群平台1", icon:"fa-solid fa-users" },
-    { k:["社群平台2","社群2"], label:"社群平台2", icon:"fa-solid fa-users" },
-    { k:["社群平台3","社群3"], label:"社群平台3", icon:"fa-solid fa-users" }
+    { k: ["影音平台1"], label:"影音平台", icon:"fa-solid fa-play" },
+    { k: ["影音平台2"], label:"官網/作品", icon:"fa-solid fa-link" },
+    { k: ["影音平台3"], label:"影音3",   icon:"fa-solid fa-play" },
+    { k: ["社群平台1"], label:"社群平台", icon:"fa-solid fa-users" },
+    { k: ["社群平台2"], label:"社群2",   icon:"fa-solid fa-users" },
+    { k: ["社群平台3"], label:"社群3",   icon:"fa-solid fa-users" }
   ];
 
   let hasMedia = false;
-  mediaItems.forEach(it=>{
-    const v = pick(p, it.k);
-    if(!v) return;
-    hasMedia = true;
-    mediaBtns.appendChild(buildBtn({
-      label: it.label,
-      icon: it.icon,
-      onClick: ()=> openUrl(v)
-    }));
-  });
+  if(mediaBtns){
+    mediaItems.forEach(it=>{
+      const v = pick(p, it.k);
+      if(!text(v)) return;
+      hasMedia = true;
+      mediaBtns.appendChild(buildBtn({
+        label: it.label,
+        icon: it.icon,
+        onClick: ()=> openUrl(v)
+      }));
+    });
+  }
   if(mediaDock) mediaDock.style.display = hasMedia ? "" : "none";
 
-  // Contacts
-  const phone  = pick(p, ["電話","phone","mobile"]);
-  const email  = pick(p, ["Email","email","信箱"]);
-  const lineOA = pick(p, ["LINE官方帳號","line_oa","line官方帳號"]);
-  const lineLink = pick(p, ["LINE連結","line_link","line"]);
-  const wechat = pick(p, ["微信","wechat","wechat_id"]);
+  // 聯繫：LINE/微信/電話/Email/地址
+  const phone   = pick(p, ["電話","phone","mobile"]);
+  const email   = pick(p, ["Email","email","信箱"]);
+  const lineOA  = pick(p, ["LINE官方帳號","line_oa","line官方帳號"]);
+  const lineLink= pick(p, ["LINE連結","line_link","line"]);
+  const wechat  = pick(p, ["微信","wechat","wechat_id"]);
   const address = pick(p, ["地址","address","導航地址"]);
 
   const contactList = [];
 
-  if(lineOA) contactList.push({
-    label:"LINE官方", icon:"fa-brands fa-line",
+  if(text(lineOA)) contactList.push({
+    label:"LINE官網", icon:"fa-brands fa-line",
     action: ()=> openUrl(lineOA)
   });
 
-  if(lineLink && !lineOA) contactList.push({
-    label:"LINE", icon:"fa-brands fa-line",
-    action: ()=> openUrl(lineLink)
-  });
-
-  if(wechat) contactList.push({
+  if(text(wechat)) contactList.push({
     label:"微信ID", icon:"fa-brands fa-weixin",
-    action: async ()=> {
-      try{
-        if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(String(wechat).trim());
-      }catch{}
-      alert("✅ 已複製微信ID");
+    action: ()=> {
+      (navigator.clipboard?.writeText(text(wechat)) || Promise.reject())
+        .catch(()=>{})
+        .finally(()=> alert("✅ 已複製微信ID"));
     }
   });
 
-  if(phone) contactList.push({
+  if(text(phone)) contactList.push({
     label:"電話", icon:"fa-solid fa-phone",
-    action: ()=> { location.href = `tel:${String(phone).trim()}`; }
+    action: ()=> { location.href = `tel:${text(phone)}`; }
   });
 
-  if(email) contactList.push({
+  if(text(email)) contactList.push({
     label:"Email", icon:"fa-solid fa-envelope",
-    action: ()=> { location.href = `mailto:${String(email).trim()}`; }
+    action: ()=> { location.href = `mailto:${text(email)}`; }
   });
 
-  if(address) contactList.push({
+  if(text(address)) contactList.push({
     label:"地址", icon:"fa-solid fa-location-dot",
     action: ()=> openMapByAddress(address)
   });
 
-  let hasContact = false;
-  contactList.forEach(x=>{
-    hasContact = true;
-    cBtns.appendChild(buildBtn({ label:x.label, icon:x.icon, onClick:x.action }));
+  if(text(lineLink) && !text(lineOA)) contactList.push({
+    label:"LINE", icon:"fa-brands fa-line",
+    action: ()=> openUrl(lineLink)
   });
+
+  let hasContact = false;
+  if(cBtns){
+    contactList.forEach(x=>{
+      hasContact = true;
+      cBtns.appendChild(buildBtn({ label:x.label, icon:x.icon, onClick:x.action }));
+    });
+  }
   if(cDock) cDock.style.display = hasContact ? "" : "none";
 }
 
-/* ---------- photo wall + lightbox ---------- */
+/* ---------- Photo Wall ---------- */
+
 function ensureLightbox_(){
-  if (qs("lightboxOverlay")) return;
+  if(qs("lightboxOverlay")) return;
 
   const overlay = document.createElement("div");
   overlay.id = "lightboxOverlay";
@@ -509,9 +393,10 @@ function ensureLightbox_(){
     overlay.style.display = "none";
     img.removeAttribute("src");
   }
-  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) hide(); });
+
+  overlay.addEventListener("click", (e)=>{ if(e.target===overlay) hide(); });
   close.addEventListener("click", hide);
-  document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") hide(); });
+  document.addEventListener("keydown", (e)=>{ if(e.key==="Escape") hide(); });
 }
 
 function openLightbox(url){
@@ -524,48 +409,48 @@ function openLightbox(url){
 }
 
 function collectPhotoUrls(p){
-  const out = [];
+  const urls = [];
 
-  // A) array
-  const arr1 = p && p.__raw && Array.isArray(p.__raw.photos) ? p.__raw.photos : null;
-  const arr2 = p && p.__raw && Array.isArray(p.__raw.photos_full) ? p.__raw.photos_full : null;
-  if(arr1) out.push(...arr1);
-  if(arr2) out.push(...arr2);
+  // ✅ 先吃陣列（你 GAS 其實已經給 photos / photos_full）
+  const arr1 = p.__raw && Array.isArray(p.__raw.photos) ? p.__raw.photos : null;
+  const arr2 = p.__raw && Array.isArray(p.__raw.photos_full) ? p.__raw.photos_full : null;
+  (arr2 || arr1 || []).forEach(u => { if(text(u)) urls.push(u); });
 
-  // B) "照片" field: comma/newline list
+  // ✅ 再吃「照片」欄位（CSV/換行）
   const bulk = pick(p, ["照片_fast","照片","photos_img","photos","相片","照片牆","photo_wall"]);
-  if(bulk){
-    out.push(...String(bulk).split(/[\n,，;]/g).map(s=>s.trim()).filter(Boolean));
+  if(text(bulk)){
+    bulk.split(/[\n,，;]/g).map(s=>text(s)).filter(Boolean).forEach(u=>urls.push(u));
   }
 
-  // C) photo1..photo12
+  // ✅ 再吃 photo1..12
   for(let i=1;i<=12;i++){
     const v = pick(p, [`photo${i}`, `photo_${i}`, `照片${i}`, `相片${i}`, `photo${i}_img`]);
-    if(v) out.push(v);
+    if(text(v)) urls.push(v);
   }
 
-  // normalize + dedupe
+  // 去重 + 正規化
   const seen = new Set();
-  const urls = [];
-  out.forEach(u=>{
-    const nu = normalizeImageUrl(u);
+  const out = [];
+  urls.forEach(u=>{
+    const nu = normalizeUrl(u);
     if(!nu) return;
     if(seen.has(nu)) return;
     seen.add(nu);
-    urls.push(nu);
+    out.push(nu);
   });
-
-  return urls;
+  return out;
 }
 
 function setPhotoGridBalance_(gridEl, n){
   let cols = 3;
-  if(n <= 1) cols = 1;
-  else if(n === 2) cols = 2;
+  if(n<=1) cols = 1;
+  else if(n===2) cols = 2;
+  else cols = 3;
+
   gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 
   gridEl.querySelectorAll("img").forEach(im=>{
-    im.style.aspectRatio = (n === 1) ? "16 / 10" : "1 / 1";
+    im.style.aspectRatio = (n===1) ? "16 / 10" : "1 / 1";
     im.style.objectFit = "cover";
   });
 }
@@ -583,13 +468,13 @@ function renderPhotoWall(p){
     return;
   }
 
-  urls.forEach((u)=>{
+  urls.forEach(u=>{
     const img = document.createElement("img");
+    img.src = u;
     img.alt = "照片";
     img.loading = "lazy";
     img.decoding = "async";
-    setImgWithFallback_(img, buildImageCandidates_(u));
-    img.addEventListener("click", ()=> openLightbox(normalizeImageUrl(u)));
+    img.addEventListener("click", ()=> openLightbox(u));
     grid.appendChild(img);
   });
 
@@ -597,27 +482,22 @@ function renderPhotoWall(p){
   setPhotoGridBalance_(grid, urls.length);
 }
 
-/* ---------- main render ---------- */
-function renderCard(row){
-  const p = buildNormalizedPayload_(row);
+/* ---------- Main render ---------- */
 
+function renderCard(p){
   const name  = pick(p, ["姓名","name"]);
   const unit  = pick(p, ["單位","unit"]);
   const title = pick(p, ["頭銜","職稱","title"]);
+  const slogan= pick(p, ["理念標語","標語","slogan","簡介","一句話","引言"]);
 
   safeSetText("u-name", name || "未命名");
   safeSetText("u-unit", unit);
   safeSetText("u-title", title);
 
-  const slogan = pick(p, ["理念標語","slogan","簡介","一句話","引言"]);
   const sEl = qs("u-slogan");
   if(sEl){
-    if(slogan){
-      sEl.style.display = "";
-      sEl.textContent = slogan;
-    }else{
-      sEl.style.display = "none";
-    }
+    if(text(slogan)){ sEl.style.display=""; sEl.textContent = text(slogan); }
+    else sEl.style.display="none";
   }
 
   renderAvatar(p);
@@ -630,56 +510,54 @@ function renderCard(row){
   if(v) v.textContent = CONFIG.VERSION;
 }
 
-/* ---------- boot ---------- */
-function applyInitialParams_(){
-  const sp = getParams_();
+/* ---------- Load + Boot ---------- */
 
-  const mode  = sp.get("mode") || "free";
-  const theme = sp.get("theme") || (mode === "premium" ? "p1" : "color-1");
-  const style = sp.get("style") || "arch";
-  const paper = sp.get("paper") || "paper-1";
-
-  // set body classes directly (avoid needing button elements)
-  removeByPrefix_("mode-");
-  removeByPrefix_("color-");
-  removeByPrefix_("p");
-  removeByPrefix_("style-");
-  removeByPrefix_("paper-");
-
-  document.body.classList.add(mode === "premium" ? "mode-premium" : "mode-free");
-  document.body.classList.add(theme);
-  document.body.classList.add("style-" + style);
-  document.body.classList.add(paper);
-
-  const free = qs("free-controls");
-  const premRow = qs("premiumDotsRow");
-  if(free) free.style.display = (mode === "free") ? "block" : "none";
-  if(premRow) premRow.style.display = (mode === "premium") ? "flex" : "none";
+function getIdFromUrl(){
+  const sp = new URLSearchParams(location.search);
+  return sp.get("id") || sp.get("cid") || "";
 }
 
-async function loadAndRender_(){
-  const sp = getParams_();
-  const id = normalizeId_(sp.get("id")) || CONFIG.DEFAULT_ID;
-  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+function unwrapRow_(data){
+  // ✅ 相容多種回傳：
+  // 1) 直接就是 row（你現在就是這種）
+  // 2) {ok:true, data:{...}}
+  // 3) {ok:true, row:{...}}
+  if(!data || typeof data!=="object") return null;
+  if(data.ok === true && data.data && typeof data.data === "object") return data.data;
+  if(data.ok === true && data.row  && typeof data.row  === "object") return data.row;
+
+  // 有些人會包成 {data:{...}} 但沒 ok
+  if(data.data && typeof data.data === "object") return data.data;
+  if(data.row  && typeof data.row  === "object") return data.row;
+
+  return data; // direct row
+}
+
+async function loadAndRenderById(id){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
 
   try{
     const data = await fetchJsonRobust(url);
     const row = unwrapRow_(data);
-    if(!row) throw new Error("Invalid payload shape");
-    renderCard(row);
-  }catch(e){
-    console.error(e);
-    safeSetText("u-name", "載入失敗");
+    if(!row) throw new Error("Empty row");
+
+    const p = buildNormalizedPayload_(row);
+    renderCard(p);
+  }catch(err){
+    console.error("LOAD FAIL:", err);
+    const nameEl = qs("u-name");
+    if(nameEl) nameEl.textContent = "載入失敗";
     const v = qs("versionTag");
-    if(v) v.textContent = CONFIG.VERSION;
+    if(v) v.textContent = CONFIG.VERSION + " | LOAD FAIL";
   }
 }
 
 (function boot(){
   try{
     ensureLightbox_();
-    applyInitialParams_();
-    loadAndRender_();
+    const id = getIdFromUrl() || CONFIG.DEFAULT_ID;
+    loadAndRenderById(id);
   }catch(e){
     console.error(e);
   }
