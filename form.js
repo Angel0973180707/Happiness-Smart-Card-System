@@ -1,11 +1,28 @@
 /* ================================
- * Angel Smart Card Form v402
+ * Angel Smart Card Form v405 (PAID-GATE)
  * - Plan split: 1=free (c/s/f), 2=premium (p)
  * - Client resize->JPEG base64, POST FormData to GAS doPost
- * - GAS returns {ok,id,token,card_url}
+ * - PAID GATE:
+ *   - Customer: NO card_url, NO copy/share.
+ *   - Customer sees id + "請聯繫客服開通" + "聯繫開通" (go LINE OA)
+ *   - Admin can enable ADMIN_MODE=true to reveal card_url/copy/share.
+ * - Header compat:
+ *   - WeChat: send both "微信ID" and "微信" (same value)
+ *   - Media/Social: send both old and new header names
  * ================================ */
 
-const DEFAULT_GAS = ""; // 你也可以直接把 GAS /exec 寫死在這裡
+/** =============================
+ * 你要寫死的內建參數（建議寫死，表單更乾淨）
+ * ============================= */
+const DEFAULT_GAS = "";      // ✅ 你的 GAS /exec（建議填死）
+const DEFAULT_LINE_OA = "";  // ✅ 你的 LINE 官方帳號連結（https://lin.ee/xxxx）
+
+/**
+ * ✅ 收費閘門
+ * - false：給客戶用（不顯示名片網址）
+ * - true ：你自己內部建檔/交貨用（會顯示名片網址 + copy/share）
+ */
+const ADMIN_MODE = false;
 
 const state = {
   plan: "1",
@@ -22,13 +39,14 @@ function qs(id){ return document.getElementById(id); }
 function text(v){ return (v==null?"":String(v)).trim(); }
 
 function setMsg(s){
-  qs("msg").textContent = s || "";
+  const el = qs("msg");
+  if (el) el.textContent = s || "";
 }
 
 function setPlan(plan){
   state.plan = (plan === "2") ? "2" : "1";
-  qs("btnPlan1").classList.toggle("active", state.plan==="1");
-  qs("btnPlan2").classList.toggle("active", state.plan==="2");
+  qs("btnPlan1")?.classList.toggle("active", state.plan==="1");
+  qs("btnPlan2")?.classList.toggle("active", state.plan==="2");
   qs("freeBox").style.display = (state.plan==="1") ? "" : "none";
   qs("premiumBox").style.display = (state.plan==="2") ? "" : "none";
 }
@@ -55,8 +73,15 @@ function bindPlan(){
 }
 
 function gasUrl_(){
-  const ui = text(qs("gasUrl").value);
+  // 若你已寫死 DEFAULT_GAS，就不需要 UI 欄位
+  const ui = qs("gasUrl") ? text(qs("gasUrl").value) : "";
   return ui || DEFAULT_GAS;
+}
+
+function lineOAUrl_(){
+  // 以表單欄位（LINE官方帳號）優先，否則用預設
+  const ui = qs("lineOA") ? text(qs("lineOA").value) : "";
+  return ui || DEFAULT_LINE_OA;
 }
 
 /* ---------- Image resize (no crop, keep ratio) -> JPEG base64 ---------- */
@@ -95,34 +120,59 @@ function getImageSize_(img){
 
 /* ---------- Build payload (match your Sheet headers) ---------- */
 function buildFields_(){
+  const wechatId = text(qs("wechat")?.value);
+
+  const media1 = text(qs("media1")?.value);
+  const media2 = text(qs("media2")?.value);
+  const media3 = text(qs("media3")?.value);
+
+  const social1 = text(qs("social1")?.value);
+  const social2 = text(qs("social2")?.value);
+  const social3 = text(qs("social3")?.value);
+
   const out = {
+    // 方案
     "選擇名片製作方案": state.plan,             // 1 or 2
     "選擇名片顏色": state.plan==="1" ? state.c : "",
     "選擇版型風格": state.plan==="1" ? state.s : "",
     "選擇紙感質地": state.plan==="1" ? state.f : "",
     "選擇精品底色": state.plan==="2" ? state.p : "",
 
-    "姓名": text(qs("name").value),
-    "單位": text(qs("unit").value),
-    "頭銜": text(qs("title").value),
-    "理念標語": text(qs("slogan").value),
-    "服務項目": text(qs("service").value),
-    "經歷": text(qs("exp").value),
+    // 客戶資料
+    "姓名": text(qs("name")?.value),
+    "單位": text(qs("unit")?.value),
+    "頭銜": text(qs("title")?.value),
+    "理念標語": text(qs("slogan")?.value),
+    "服務項目": text(qs("service")?.value),
+    "經歷": text(qs("exp")?.value),
 
-    "微信": text(qs("wechat").value),
-    "LINE連結": text(qs("lineLink").value),
-    "LINE官方帳號": text(qs("lineOA").value),
-    "Email": text(qs("email").value),
-    "電話": text(qs("phone").value),
-    "地址": text(qs("addr").value),
+    // 聯繫（你改表頭成 微信ID 了）
+    "微信ID": wechatId,
+    // ✅ 相容舊表頭（你就算漏改 GAS/Sheet，也不會壞）
+    "微信": wechatId,
 
-    "影音平台1": text(qs("media1").value),
-    "影音平台2": text(qs("media2").value),
-    "影音平台3": text(qs("media3").value),
-    "社群平台1": text(qs("social1").value),
-    "社群平台2": text(qs("social2").value),
-    "社群平台3": text(qs("social3").value),
+    "LINE連結": text(qs("lineLink")?.value),
+    "LINE官方帳號": text(qs("lineOA")?.value),
+    "Email": text(qs("email")?.value),
+    "電話": text(qs("phone")?.value),
+    "地址": text(qs("addr")?.value),
+
+    // 影音/社群：送新舊兩套表頭（你要不要改表頭都 OK）
+    "影音平台1": media1,
+    "影音平台2": media2,
+    "影音平台3": media3,
+    "影音平台連結1": media1,
+    "影音平台連結2": media2,
+    "影音平台連結3": media3,
+
+    "社群平台1": social1,
+    "社群平台2": social2,
+    "社群平台3": social3,
+    "社群平台連結1": social1,
+    "社群平台連結2": social2,
+    "社群平台連結3": social3,
   };
+
   return out;
 }
 
@@ -130,20 +180,65 @@ function must_(cond, msg){
   if(!cond) throw new Error(msg);
 }
 
+/* ---------- UI: Paid gate output ---------- */
+function showResultCustomer_(id){
+  state.id = id || "";
+  qs("resultBox").style.display = "";
+
+  qs("rId").textContent = state.id || "-";
+  qs("rToken").textContent = "—"; // 客戶不給 token（避免被當鑰匙）
+  const a = qs("rCardUrl");
+  a.textContent = "—";
+  a.href = "#";
+
+  // 交貨按鈕：關閉
+  qs("btnCopyCard").disabled = true;
+  qs("btnShareCard").disabled = true;
+
+  // 顯示「請聯繫客服開通」
+  setMsg("✅ 已送出。請聯繫客服開通。");
+
+  // 若你在 HTML 有放「聯繫開通」按鈕（建議），這裡啟用
+  const btnOpen = qs("btnOpenLineOA");
+  if (btnOpen){
+    btnOpen.style.display = "";
+    btnOpen.disabled = false;
+  }
+}
+
+function showResultAdmin_(data){
+  state.id = data.id || "";
+  state.token = data.token || "";
+  state.cardUrl = data.card_url || "";
+
+  qs("resultBox").style.display = "";
+  qs("rId").textContent = state.id || "-";
+  qs("rToken").textContent = state.token || "-";
+
+  const a = qs("rCardUrl");
+  a.textContent = state.cardUrl || "-";
+  a.href = state.cardUrl || "#";
+
+  qs("btnCopyCard").disabled = !state.cardUrl;
+  qs("btnShareCard").disabled = !state.cardUrl;
+
+  setMsg("✅ 建立完成（管理者模式：可交貨）。");
+}
+
 async function submit_(){
   setMsg("");
   const gas = gasUrl_();
-  must_(!!gas, "請先填入 GAS WebApp URL（/exec）。");
+  must_(!!gas, "請先設定 GAS WebApp URL（/exec）。");
   const fields = buildFields_();
   must_(!!fields["姓名"], "姓名為必填。");
 
   qs("btnSubmit").disabled = true;
-  setMsg("⏳ 壓縮照片中…");
+  setMsg("⏳ 處理中…");
 
   // files
-  const avatarFile = qs("avatarFile").files?.[0] || null;
-  const logoFile   = qs("logoFile").files?.[0] || null;
-  const photosList = Array.from(qs("photosFile").files || []).slice(0,5);
+  const avatarFile = qs("avatarFile")?.files?.[0] || null;
+  const logoFile   = qs("logoFile")?.files?.[0] || null;
+  const photosList = Array.from(qs("photosFile")?.files || []).slice(0,5);
 
   // resize specs (match your GAS CFG)
   const avatar_b64 = avatarFile ? await fileToJpegBase64Fit(avatarFile, 1024, 1024, 0.86) : "";
@@ -154,43 +249,32 @@ async function submit_(){
     if(b64) photo_b64s.push(b64);
   }
 
-  setMsg("⏳ 上傳與建檔中…");
-
   const fd = new FormData();
   fd.append("action", "submit"); // GAS doPost 分流用
-  // fields
+
   Object.keys(fields).forEach(k=>{
     fd.append(k, fields[k] || "");
   });
 
-  // images base64
   fd.append("avatar_b64", avatar_b64);
   fd.append("logo_b64", logo_b64);
-  fd.append("photos_b64", JSON.stringify(photo_b64s)); // array string
+  fd.append("photos_b64", JSON.stringify(photo_b64s));
 
-  // NOTE: 使用 FormData 可避免 CORS preflight（通常更穩）
+  // 讓 GAS 可辨識這是內部/管理者送出（可選）
+  fd.append("admin_mode", ADMIN_MODE ? "1" : "0");
+
   const res = await fetch(gas, { method:"POST", body: fd });
   const txt = await res.text();
   let data = null;
   try{ data = JSON.parse(txt); }catch{ data = null; }
   if(!data || data.ok !== true) throw new Error(data?.error || "GAS 回傳非 JSON 或失敗");
 
-  // show result
-  state.id = data.id || "";
-  state.token = data.token || "";
-  state.cardUrl = data.card_url || "";
-
-  qs("resultBox").style.display = "";
-  qs("rId").textContent = state.id || "-";
-  qs("rToken").textContent = state.token || "-";
-  const a = qs("rCardUrl");
-  a.textContent = state.cardUrl || "-";
-  a.href = state.cardUrl || "#";
-
-  qs("btnCopyCard").disabled = !state.cardUrl;
-  qs("btnShareCard").disabled = !state.cardUrl;
-
-  setMsg("✅ 建立完成，可以交貨了。");
+  // ✅ 收費閘門：客戶不顯示 card_url
+  if (ADMIN_MODE){
+    showResultAdmin_(data);
+  } else {
+    showResultCustomer_(data.id || "");
+  }
 
   qs("btnSubmit").disabled = false;
 }
@@ -202,7 +286,7 @@ async function copyCard_(){
     await navigator.clipboard.writeText(u);
     setMsg("✅ 已複製名片網址");
   }catch{
-    setMsg("⚠️ 你的瀏覽器不支援剪貼簿，請手動複製結果區的網址");
+    setMsg("⚠️ 無法自動複製，請手動複製結果區網址");
   }
 }
 
@@ -212,31 +296,36 @@ async function shareCard_(){
 
   if(navigator.share){
     try{
-      await navigator.share({ title: "智慧名片", text: "這是我的智慧名片", url: u });
+      await navigator.share({ title: "智慧名片", text: "這是智慧名片連結", url: u });
       setMsg("✅ 已呼叫系統分享");
       return;
     }catch{}
   }
-
-  // fallback: copy
   await copyCard_();
+}
+
+function openLineOA_(){
+  const u = lineOAUrl_();
+  if(!u){
+    setMsg("⚠️ 尚未設定 LINE 官方帳號連結。請回填或由管理者寫死 DEFAULT_LINE_OA。");
+    return;
+  }
+  window.open(u, "_blank", "noopener,noreferrer");
 }
 
 /* ---------- Boot ---------- */
 (function boot(){
-  // init plan
   setPlan("1");
   bindPlan();
   bindChips();
 
-  // set initial actives to state (already in HTML as active)
   setActiveChip("c","c1");
   setActiveChip("s","s1");
   setActiveChip("f","f1");
   setActiveChip("p","p1");
 
-  // init gas input
-  if(DEFAULT_GAS) qs("gasUrl").value = DEFAULT_GAS;
+  // 若你想表單更乾淨：寫死 DEFAULT_GAS 後，把 UI 欄位隱藏
+  if(DEFAULT_GAS && qs("gasUrl")) qs("gasUrl").value = DEFAULT_GAS;
 
   qs("btnSubmit").addEventListener("click", ()=>{
     submit_().catch(err=>{
@@ -248,4 +337,12 @@ async function shareCard_(){
 
   qs("btnCopyCard").addEventListener("click", copyCard_);
   qs("btnShareCard").addEventListener("click", shareCard_);
+
+  // 若你在 HTML 加一顆「聯繫開通」按鈕：id="btnOpenLineOA"
+  const btnOpen = qs("btnOpenLineOA");
+  if (btnOpen){
+    btnOpen.addEventListener("click", openLineOA_);
+    // 預設先隱藏，等送出成功再顯示
+    btnOpen.style.display = "none";
+  }
 })();
