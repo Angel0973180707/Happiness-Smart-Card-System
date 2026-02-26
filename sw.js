@@ -1,49 +1,39 @@
 /* ================================
- * sw.js (v405 COMPLETE OVERWRITE)
- * - App shell cache
- * - Stale-while-revalidate for static assets
- * - Network-first for HTML navigations (fallback to cache)
- * - version.json: ALWAYS network (no cache)  ✅核心防呆
- * - FORCE UPDATE broadcast on activate
+ * sw.js (v403 FORCE UPDATE)
+ * COMPLETE OVERWRITE
  * ================================ */
 
-const SW_VERSION = "v405";
+const SW_VERSION = "v403";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
+// ✅ 只快取殼（不帶 ?id）
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./share.html",
   "./style.css",
   "./app.js",
-  "./share.html",
   "./share.js",
-  "./form.html",
-  "./form.css",
-  "./form.js",
-  "./admin.html",
   "./manifest.json",
+  "./version.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
-  "./og-card.png",
-  // ❌ 不要把 version.json 加進 shell
+  "./og-card.png"
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    try {
-      await cache.addAll(APP_SHELL);
-    } catch {
-      for (const url of APP_SHELL) {
-        try { await cache.add(url); } catch {}
-      }
+    for (const url of APP_SHELL) {
+      try { await cache.add(url); } catch {}
     }
-    self.skipWaiting();
+    self.skipWaiting(); // ✅ 強制進入 waiting->active 流程
   })());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
+    // 清舊 cache
     const keys = await caches.keys();
     await Promise.all(keys.map((k) => {
       if (k !== CACHE_NAME && k.startsWith("hsc-cache-")) return caches.delete(k);
@@ -52,16 +42,12 @@ self.addEventListener("activate", (event) => {
 
     await self.clients.claim();
 
-    const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    for (const client of allClients) {
-      client.postMessage({ type: "SW_ACTIVATED", version: SW_VERSION });
-    }
+    // ✅ 主動通知所有頁面：SW 已更新到哪一版
+    const clients = await self.clients.matchAll({ includeUncontrolled: true });
+    clients.forEach((c) => {
+      try { c.postMessage({ type: "SW_VERSION", value: SW_VERSION }); } catch {}
+    });
   })());
-});
-
-self.addEventListener("message", (event) => {
-  const data = event.data || {};
-  if (data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 function isNavigationRequest(req) {
@@ -73,29 +59,17 @@ function isSameOrigin(url) {
   catch { return false; }
 }
 
-// ✅ version.json：永遠走網路、永遠不快取
-function isVersionJson(urlObj) {
-  return urlObj.pathname.endsWith("/version.json") || urlObj.pathname === "/version.json";
-}
-
-async function networkOnlyNoStore(request) {
-  return fetch(request, { cache: "no-store" });
-}
-
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {
-    const fresh = await fetch(request);
-    if (fresh && fresh.ok && isSameOrigin(request.url)) {
-      cache.put(request, fresh.clone());
-    }
+    const fresh = await fetch(request, { cache: "no-store" });
+    if (fresh && fresh.ok && isSameOrigin(request.url)) cache.put(request, fresh.clone());
     return fresh;
   } catch (e) {
     const cached = await cache.match(request, { ignoreSearch: true });
     if (cached) return cached;
-
     if (isNavigationRequest(request)) {
-      const shell = await cache.match("./index.html", { ignoreSearch: true });
+      const shell = await cache.match("./index.html");
       if (shell) return shell;
     }
     throw e;
@@ -107,9 +81,7 @@ async function staleWhileRevalidate(request) {
   const cached = await cache.match(request, { ignoreSearch: true });
 
   const fetchPromise = fetch(request).then((res) => {
-    if (res && res.ok && isSameOrigin(request.url)) {
-      cache.put(request, res.clone());
-    }
+    if (res && res.ok && isSameOrigin(request.url)) cache.put(request, res.clone());
     return res;
   }).catch(() => null);
 
@@ -121,22 +93,14 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
 
   if (req.method !== "GET") return;
-
-  // 第三方資源交給瀏覽器
   if (url.origin !== self.location.origin) return;
 
-  // ✅ 核心：version.json 永遠 network-only no-store
-  if (isVersionJson(url)) {
-    event.respondWith(networkOnlyNoStore(req));
-    return;
-  }
-
-  // HTML 導航：network-first
+  // HTML：Network-first
   if (isNavigationRequest(req)) {
     event.respondWith(networkFirst(req));
     return;
   }
 
-  // 靜態：stale-while-revalidate
+  // 靜態：SWR
   event.respondWith(staleWhileRevalidate(req));
 });
