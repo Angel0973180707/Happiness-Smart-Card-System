@@ -1,17 +1,16 @@
-<!-- index.html (v400.6 COMPLETE OVERWRITE) 1/2 -->
+<!-- index.html (v401 COMPLETE OVERWRITE) 1/2 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Happiness Smart Card System v401</title>
 
-  <title>Happiness Smart Card System v400.6</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=4004" />
+  <!-- PWA (保留你原本 manifest/sw，版本號可自行改) -->
+  <link rel="manifest" href="./manifest.json?v=4010" />
   <meta name="theme-color" content="#ff5e5e" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=4006" />
-  <link rel="icon" href="./icons/icon-192.png?v=4006" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=4010" />
+  <link rel="icon" href="./icons/icon-192.png?v=4010" />
 
   <!-- Fonts / Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,98 +18,90 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="./style.css?v=4004" />
+  <link rel="stylesheet" href="./style.css?v=4010" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- ✅ 右下角隱形入口（完全脫離版面流） -->
+  <!-- ✅ 右下角隱形入口（三擊、無密碼、預留後臺工作區） -->
   <div id="adminHotspotBR" aria-label="admin-hotspot"></div>
 
   <!-- 控制區（門面） -->
   <section id="admin-panel" aria-label="control-panel">
     <div class="panel-inner">
 
-      <!-- Plan buttons -->
+      <!-- Plan -->
       <div class="plan-row">
-        <button id="btnPlanFree" class="btn-neo pill active" type="button" onclick="setV382('free','color-1', this)">
+        <button id="btnPlanFree" class="btn-neo pill active" type="button" onclick="setTheme('free','color-1', this)">
           方案A｜自由搭配
         </button>
-        <button id="btnPlanPremium" class="btn-neo pill" type="button" onclick="setV382('premium','p1', this)">
+        <button id="btnPlanPremium" class="btn-neo pill" type="button" onclick="setTheme('premium','p1', this)">
           方案B｜精品設計
         </button>
       </div>
 
       <!-- Free controls -->
       <div id="free-controls" class="controls-block">
-
-        <!-- Free dots -->
         <div id="freeDotsRow" class="dots-row">
-          <button class="dot active" type="button" style="background:#ff5e5e" onclick="setV382('free','color-1', this)"></button>
-          <button class="dot" type="button" style="background:#00a8ff" onclick="setV382('free','color-2', this)"></button>
-          <button class="dot" type="button" style="background:#ffa502" onclick="setV382('free','color-3', this)"></button>
-          <button class="dot" type="button" style="background:#7d5fff" onclick="setV382('free','color-4', this)"></button>
-          <button class="dot" type="button" style="background:#2ecc71" onclick="setV382('free','color-5', this)"></button>
+          <button class="dot active" type="button" data-theme="color-1" onclick="setTheme('free','color-1', this)"></button>
+          <button class="dot" type="button" data-theme="color-2" onclick="setTheme('free','color-2', this)"></button>
+          <button class="dot" type="button" data-theme="color-3" onclick="setTheme('free','color-3', this)"></button>
+          <button class="dot" type="button" data-theme="color-4" onclick="setTheme('free','color-4', this)"></button>
+          <button class="dot" type="button" data-theme="color-5" onclick="setTheme('free','color-5', this)"></button>
         </div>
 
-        <!-- Style buttons -->
         <div class="btn-row">
-          <button class="btn-neo" type="button" onclick="setV382Style('arch', this)">正拱</button>
-          <button class="btn-neo" type="button" onclick="setV382Style('flat', this)">平直</button>
-          <button class="btn-neo" type="button" onclick="setV382Style('spot', this)">晨曦</button>
+          <button class="btn-neo" type="button" onclick="setStyle('arch', this)">正拱</button>
+          <button class="btn-neo" type="button" onclick="setStyle('flat', this)">平直</button>
+          <button class="btn-neo" type="button" onclick="setStyle('spot', this)">晨曦</button>
         </div>
 
-        <!-- Paper buttons -->
         <div class="btn-row">
-          <button class="btn-neo" type="button" onclick="setV382Paper('paper-1', this)">霧面棉紙</button>
-          <button class="btn-neo" type="button" onclick="setV382Paper('paper-2', this)">細顆粒紙</button>
-          <button class="btn-neo" type="button" onclick="setV382Paper('paper-3', this)">亞麻紋</button>
+          <button class="btn-neo" type="button" onclick="setPaper('paper-1', this)">霧面棉紙</button>
+          <button class="btn-neo" type="button" onclick="setPaper('paper-2', this)">細顆粒紙</button>
+          <button class="btn-neo" type="button" onclick="setPaper('paper-3', this)">亞麻紋</button>
         </div>
       </div>
 
       <!-- Premium dots -->
       <div id="premiumDotsRow" class="dots-row" style="display:none;">
-        <button class="p-dot active" type="button" style="background:#a36d6d" onclick="setV382('premium','p1', this)"></button>
-        <button class="p-dot" type="button" style="background:#722f37" onclick="setV382('premium','p2', this)"></button>
-        <button class="p-dot" type="button" style="background:#1c2e42" onclick="setV382('premium','p3', this)"></button>
-        <button class="p-dot" type="button" style="background:#5e548e" onclick="setV382('premium','p4', this)"></button>
-        <button class="p-dot" type="button" style="background:#7a94a6" onclick="setV382('premium','p5', this)"></button>
-        <button class="p-dot" type="button" style="background:#bf953f" onclick="setV382('premium','p6', this)"></button>
-        <button class="p-dot" type="button" style="background:#444444" onclick="setV382('premium','p7', this)"></button>
+        <button class="p-dot active" type="button" data-theme="p1" onclick="setTheme('premium','p1', this)"></button>
+        <button class="p-dot" type="button" data-theme="p2" onclick="setTheme('premium','p2', this)"></button>
+        <button class="p-dot" type="button" data-theme="p3" onclick="setTheme('premium','p3', this)"></button>
+        <button class="p-dot" type="button" data-theme="p4" onclick="setTheme('premium','p4', this)"></button>
+        <button class="p-dot" type="button" data-theme="p5" onclick="setTheme('premium','p5', this)"></button>
+        <button class="p-dot" type="button" data-theme="p6" onclick="setTheme('premium','p6', this)"></button>
+        <button class="p-dot" type="button" data-theme="p7" onclick="setTheme('premium','p7', this)"></button>
       </div>
 
       <button class="btn-cta" type="button" onclick="goFillForm()">立即預約訂製名片 →</button>
-
     </div>
   </section>
-<!-- index.html (v400.4 COMPLETE OVERWRITE) 2/2 -->
-  <!-- Card container -->
+<!-- index.html (v401 COMPLETE OVERWRITE) 2/2 -->
   <main id="card-container" aria-label="card">
     <div class="card">
 
-      <!-- premium FX layer (optional by CSS vars) -->
+      <!-- FX / paper -->
       <div class="premium-fx-layer" aria-hidden="true"></div>
       <div class="paper-overlay" aria-hidden="true"></div>
 
-      <!-- free mode banner + dynamic mask -->
+      <!-- Banner：✅ 會跟主題連動 -->
       <div class="banner" aria-hidden="true">
         <div class="dynamic-mask" aria-hidden="true"></div>
       </div>
 
-      <!-- avatar -->
+      <!-- Avatar -->
       <div class="avatar-wrap">
         <div class="avatar-circle">
           <img id="u-img" class="avatar" alt="個人照" />
         </div>
       </div>
 
-      <!-- logo -->
+      <!-- Logo 圓章 -->
       <div id="logoWrap" class="logo-wrap" style="display:none;">
         <img id="u-logo" class="logo-img" alt="Logo" />
       </div>
 
-      <!-- scroll content -->
       <section class="info-scroll">
         <h1 id="u-name" class="name">載入中...</h1>
         <div id="u-unit" class="unit"></div>
@@ -118,45 +109,43 @@
 
         <div id="u-slogan" class="slogan" style="display:none;"></div>
 
-        <!-- blocks -->
-        <div id="v398-blocks">
+        <div id="v401-blocks">
           <div id="block-service" class="info-block" style="display:none;"></div>
           <div id="block-exp" class="info-block" style="display:none;"></div>
         </div>
 
-        <!-- 影音 / 社群（獨立一區，JS 會做圖示變化） -->
-        <div id="mediaDock" class="contact-dock" style="display:none; margin-top:12px;">
+        <!-- ✅ 影音/社群獨立區（不同圖示＋自動平衡） -->
+        <div id="mediaDock" class="dock-shell" style="display:none;">
+          <div class="dock-title">影音｜社群｜平台</div>
           <div class="dock-buttons" id="mediaButtons"></div>
         </div>
 
-        <!-- 聯繫 Dock（JS 會做：一半並排、落單拉長） -->
-        <div id="contactDock" class="contact-dock" style="display:none;">
+        <!-- ✅ 聯繫區（一半並排、落單拉滿） -->
+        <div id="contactDock" class="dock-shell" style="display:none;">
+          <div class="dock-title">聯繫</div>
           <div class="dock-buttons" id="contactButtons"></div>
         </div>
 
-        <!-- Photo wall -->
+        <!-- ✅ 照片牆：等比例一致縮圖＋動態平衡不留空 -->
         <div id="photoWall" class="photo-wall" style="display:none;">
+          <div class="dock-title">照片牆</div>
           <div id="photoGrid" class="photo-grid"></div>
         </div>
 
-        <!-- version tag -->
-        <div id="versionTag" class="version-tag">v400.4</div>
+        <div id="versionTag" class="version-tag">v401</div>
       </section>
 
     </div>
   </main>
 
-  <!-- Scripts -->
-  <script src="./app.js?v=4004"></script>
-
-  <!-- Service Worker -->
+  <script src="./app.js?v=4010"></script>
   <script>
-    (function () {
-      try {
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.register("./sw.js?v=4004").catch(function(){});
+    (function(){
+      try{
+        if("serviceWorker" in navigator){
+          navigator.serviceWorker.register("./sw.js?v=4010").catch(function(){});
         }
-      } catch (e) {}
+      }catch(e){}
     })();
   </script>
 
