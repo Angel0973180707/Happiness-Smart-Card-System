@@ -1,11 +1,9 @@
 /* ================================
- * style.css v401.1 (COMPLETE OVERWRITE) 1/3
- * - Class align with index.html/app.js
- *   Free:  body.mode-free + color-1..5 + style-arch/flat/spot + paper-1..3
- *   Prem:  body.mode-premium + p1..p7 (FULL CARD TONE)
- * - Fix: premium scroll + avatar clipping
- * - Refined typography (boutique)
-================================ */
+ * style.css v402 (COMPLETE OVERWRITE)
+ * - Based on v401.1
+ * - ADD: Free mode subtle page background tint by selected color
+ * - ADD: Dots bigger + better hit area
+ * ================================ */
 
 :root{
   --bg:#f6f7fb;
@@ -19,7 +17,7 @@
   --card-white:rgba(255,255,255,.92);
   --line:rgba(0,0,0,.06);
 
-  /* theme base (overridden by classes) */
+  /* theme base */
   --p:#ff6b81;
   --s:#ff4757;
 
@@ -31,6 +29,9 @@
   --prem-ink: rgba(255,255,255,0.92);
   --prem-muted: rgba(255,255,255,0.74);
   --prem-soft: rgba(255,255,255,0.14);
+
+  /* NEW: free background tint */
+  --bgTint: rgba(255,255,255,0.0);
 }
 
 *{ box-sizing:border-box; }
@@ -45,20 +46,24 @@ html, body{
 body{
   margin:0;
   font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: var(--bg);
+
+  /* NEW: subtle tint */
+  background:
+    radial-gradient(1100px 700px at 20% 0%, var(--bgTint), transparent 62%),
+    radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.06), transparent 60%),
+    var(--bg);
+
   color: var(--ink);
 }
 
 /* ---------- Free colors (c1~c5) ---------- */
-/* c1粉 c2藍 c3橘 c4紫 c5綠 */
-body.color-1{ --p:#ff5f7b; --s:#ff2f45; }
-body.color-2{ --p:#1d88ff; --s:#2e3cff; }
-body.color-3{ --p:#ff9f1a; --s:#ff6f00; }
-body.color-4{ --p:#7a57ff; --s:#4f22d8; }
-body.color-5{ --p:#2bd46f; --s:#0ea97b; }
+body.color-1{ --p:#ff5f7b; --s:#ff2f45; --bgTint: rgba(255,95,123,0.16); }
+body.color-2{ --p:#1d88ff; --s:#2e3cff; --bgTint: rgba(29,136,255,0.14); }
+body.color-3{ --p:#ff9f1a; --s:#ff6f00; --bgTint: rgba(255,159,26,0.14); }
+body.color-4{ --p:#7a57ff; --s:#4f22d8; --bgTint: rgba(122,87,255,0.14); }
+body.color-5{ --p:#2bd46f; --s:#0ea97b; --bgTint: rgba(43,212,111,0.14); }
 
 /* ---------- Premium tones (p1~p7) ---------- */
-/* p1胭脂 p2酒紅 p3深藍 p4霧紫 p5藍灰 p6金箔 p7褐碳 */
 body.p1{ --p:#d96c6c; --s:#b23b3b; }
 body.p2{ --p:#722f37; --s:#4e1f25; }
 body.p3{ --p:#1c2e42; --s:#101d2b; }
@@ -110,18 +115,18 @@ body.mode-premium #admin-panel{
 .card{
   position:relative;
   border-radius: var(--radius);
-  overflow:hidden;                 /* 保持精品感，但頭像不再往外頂出 */
+  overflow:hidden;
   box-shadow: var(--shadow);
   border: 1px solid var(--line);
   background: var(--card-white);
 }
 
-/* Free vivid (thicker color impression) */
+/* Free vivid */
 body.mode-free .card{
   filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
 }
 
-/* Premium: FULL CARD TONE (no banner, whole card sync) */
+/* Premium: FULL CARD TONE */
 body.mode-premium .card{
   border: 1px solid rgba(255,255,255,0.12);
   box-shadow: 0 26px 80px rgba(0,0,0,0.56);
@@ -138,7 +143,7 @@ body.mode-premium .card{
   pointer-events:none !important;
   touch-action:none !important;
   opacity:0;
-  z-index: 1;                      /* ✅ 永遠在下面 */
+  z-index: 1;
 }
 body.mode-premium .premium-fx-layer{
   opacity:1;
@@ -147,14 +152,12 @@ body.mode-premium .premium-fx-layer{
     radial-gradient(700px 520px at 90% 0%, rgba(255,255,255,0.10), transparent 58%);
 }
 
-/* Content wrapper */
 .info-scroll{
   position: relative;
   z-index: 3;
   padding: 10px 18px 18px;
 }
 
-/* Title typography (boutique / smaller) */
 .name{
   margin: 10px 0 6px;
   font-size: 22px;
@@ -173,13 +176,6 @@ body.mode-premium .unit,
 body.mode-premium .title{
   color: var(--prem-muted);
 }
-/* ================================
- * style.css v401.1 (COMPLETE OVERWRITE) 2/3
- * - Banner styles (Free only): style-arch/flat/spot
- * - Avatar: opaque bg + FIX premium avatar clipped
- * - Logo circle
- * - Slogan centering fix
-================================ */
 
 /* ---------- Banner ---------- */
 .banner{
@@ -190,7 +186,6 @@ body.mode-premium .title{
 body.mode-free .banner{ display:block; }
 body.mode-premium .banner{ display:none !important; }
 
-/* dynamic mask */
 .dynamic-mask{
   position:absolute;
   inset:0;
@@ -201,12 +196,9 @@ body.mode-premium .banner{ display:none !important; }
   opacity: .55;
 }
 
-/* banner thickness (free) */
-body.mode-free .banner{
-  filter: saturate(1.18) contrast(1.06);
-}
+body.mode-free .banner{ filter: saturate(1.18) contrast(1.06); }
 
-/* style-arch (正拱) */
+/* style-arch */
 body.mode-free.style-arch .banner{
   background:
     radial-gradient(900px 320px at 50% -10%, rgba(255,255,255,0.55), transparent 70%),
@@ -226,7 +218,7 @@ body.mode-free.style-arch .banner::after{
   opacity: .95;
 }
 
-/* style-flat (平直) -> 保留 2 色、但更厚（你要求） */
+/* style-flat */
 body.mode-free.style-flat .banner{
   background:
     radial-gradient(780px 280px at 40% 0%, rgba(255,255,255,0.46), transparent 70%),
@@ -242,7 +234,7 @@ body.mode-free.style-flat .banner::after{
   opacity: .90;
 }
 
-/* style-spot (晨曦) -> 自然不死板 */
+/* style-spot */
 body.mode-free.style-spot .banner{
   background:
     radial-gradient(520px 220px at 20% 0%, rgba(255,255,255,0.55), transparent 72%),
@@ -273,7 +265,7 @@ body.mode-free.style-spot .banner::after{
 }
 body.mode-premium .paper-overlay{ display:none !important; }
 
-/* ---------- Avatar (opaque bg) ---------- */
+/* ---------- Avatar ---------- */
 .avatar-wrap{
   position: relative;
   display:flex;
@@ -281,17 +273,8 @@ body.mode-premium .paper-overlay{ display:none !important; }
   padding-bottom: 6px;
   z-index: 6;
 }
-
-/* Free: overlaps banner (OK) */
-body.mode-free .avatar-wrap{
-  margin-top: -58px;
-}
-
-/* Premium: FIX clipped -> do NOT push outside card top */
-body.mode-premium .avatar-wrap{
-  margin-top: 18px;     /* ✅ 不再被 card 的 overflow 裁掉 */
-  padding-top: 6px;
-}
+body.mode-free .avatar-wrap{ margin-top: -58px; }
+body.mode-premium .avatar-wrap{ margin-top: 18px; padding-top: 6px; }
 
 .avatar-circle{
   width: 112px;
@@ -318,7 +301,7 @@ body.mode-premium .avatar-circle{
   display:block;
 }
 
-/* ---------- Logo (auto circle) ---------- */
+/* ---------- Logo ---------- */
 .logo-wrap{
   display:flex;
   justify-content:center;
@@ -340,7 +323,7 @@ body.mode-premium .logo-img{
   box-shadow: 0 18px 45px rgba(0,0,0,0.55);
 }
 
-/* ---------- Slogan (center fix) ---------- */
+/* ---------- Slogan ---------- */
 #u-slogan{
   width: 100%;
   max-width: 420px;
@@ -353,24 +336,13 @@ body.mode-premium .logo-img{
   letter-spacing: .2px;
   word-break: break-word;
 }
-/* ================================
- * style.css v401.1 (COMPLETE OVERWRITE) 3/3
- * - Paper textures (paper-1..3) stronger but CLEAN
- * - Buttons: Free more 3D + Premium glass gold edge
- * - Premium content contrast boost (your request #1)
- * - Dots clearer
- * - Docks / Photo wall thumbs 1:1
- * - Share button style (your request #3)
-================================ */
 
-/* ---------- Paper textures (Free only) ---------- */
+/* ---------- Paper textures ---------- */
 :root{
   --paper-strength: 0.32;
   --paper-grain: 0.16;
   --paper-fiber: 0.12;
 }
-
-/* paper-1 = 棉紙 */
 body.mode-free.paper-1 .paper-overlay{
   background:
     radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 60%),
@@ -381,8 +353,6 @@ body.mode-free.paper-1 .paper-overlay{
   mix-blend-mode: soft-light;
   opacity: var(--paper-strength);
 }
-
-/* paper-2 = 顆粒 */
 body.mode-free.paper-2 .paper-overlay{
   background:
     radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.18), transparent 60%),
@@ -394,8 +364,6 @@ body.mode-free.paper-2 .paper-overlay{
   mix-blend-mode: overlay;
   opacity: calc(var(--paper-strength) + 0.08);
 }
-
-/* paper-3 = 亞麻 */
 body.mode-free.paper-3 .paper-overlay{
   background:
     repeating-linear-gradient(
@@ -443,9 +411,10 @@ body.mode-free.paper-3 .paper-overlay{
 }
 .dots-row{
   display:flex;
-  gap:10px;
+  gap:12px;
   align-items:center;
   justify-content:center;
+  padding: 2px 0 4px;
 }
 
 /* ---------- Buttons (Free: more 3D) ---------- */
@@ -461,20 +430,20 @@ body.mode-free.paper-3 .paper-overlay{
   background:
     linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.84));
   box-shadow:
-    0 10px 22px rgba(0,0,0,0.10),
+    0 11px 24px rgba(0,0,0,0.11),
     inset 0 1px 0 rgba(255,255,255,0.90);
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
 }
 .btn-neo:hover{
   transform: translateY(-1px);
   box-shadow:
-    0 14px 28px rgba(0,0,0,0.12),
+    0 15px 30px rgba(0,0,0,0.12),
     inset 0 1px 0 rgba(255,255,255,0.92);
 }
 .btn-neo:active{
   transform: translateY(0px) scale(0.985);
   box-shadow:
-    0 8px 16px rgba(0,0,0,0.10),
+    0 9px 18px rgba(0,0,0,0.10),
     inset 0 2px 6px rgba(0,0,0,0.08);
 }
 .btn-neo.pill{
@@ -486,7 +455,7 @@ body.mode-free.paper-3 .paper-overlay{
   border-color: rgba(0,0,0,0.18);
   filter: saturate(1.05);
   box-shadow:
-    0 16px 30px rgba(0,0,0,0.14),
+    0 17px 32px rgba(0,0,0,0.14),
     inset 0 1px 0 rgba(255,255,255,0.92);
 }
 
@@ -531,8 +500,13 @@ body.mode-premium .btn-neo.active{
 }
 .btn-cta:active{ transform: scale(0.99); }
 
-/* ---------- Share button (NEW) ---------- */
-/* 你之後在 HTML 放：<button class="btn-cta btn-share" id="btnShare">分享卡片</button> */
+.btn-cta.subtle{
+  background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.84));
+  color: rgba(31,36,48,0.92);
+  border: 1px solid rgba(0,0,0,0.10);
+}
+
+/* Share button */
 .btn-share{
   background:
     radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.20), transparent 62%),
@@ -548,21 +522,31 @@ body.mode-premium .btn-share{
   border: 1px solid rgba(255,255,255,0.14);
 }
 
-/* Also support id hook */
-#btnShare{}
-
-/* ---------- Dots clearer ---------- */
+/* ---------- Dots bigger + hit area ---------- */
 .dot,.p-dot{
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   border: 2px solid rgba(255,255,255,0.92);
   outline: 2px solid rgba(0,0,0,0.10);
   cursor:pointer;
   padding:0;
-  box-shadow: 0 10px 18px rgba(0,0,0,0.10);
+  box-shadow: 0 12px 22px rgba(0,0,0,0.12);
   transition: transform .12s ease;
+  position: relative;
 }
+
+/* bigger tap target without changing visual */
+.dot::before, .p-dot::before{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  width: 48px; height: 48px;
+  transform: translate(-50%,-50%);
+  border-radius: 999px;
+  background: transparent;
+}
+
 .dot.active,.p-dot.active{ transform: scale(1.18); }
 
 .dot-1{ background:#ff5f7b; }
@@ -578,7 +562,7 @@ body.mode-premium .btn-share{
 .p6{ background:#bf953f; }
 .p7{ background:#5a4a3f; }
 
-/* ---------- Premium content contrast boost (你的需求 #1) ---------- */
+/* ---------- Blocks ---------- */
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
@@ -600,7 +584,6 @@ body.mode-premium .btn-share{
 }
 .preline{ white-space: pre-line; }
 
-/* Premium: 讓內容「更亮更突顯」 */
 body.mode-premium .info-block{
   background: rgba(10,12,18,0.22);
   border-color: rgba(255,255,255,0.14);
@@ -721,11 +704,22 @@ body.mode-premium .photo-wall{
 }
 body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 
+/* ---------- BR admin hotspot ---------- */
+#adminHotspotBR{
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  width: 54px;
+  height: 54px;
+  z-index: 999999;
+  opacity: 0;
+}
+
 /* ---------- Small screens ---------- */
 @media (max-width: 360px){
   .name{ font-size: 21px; }
   .avatar-circle{ width: 108px; height: 108px; }
-  .dot,.p-dot{ width: 15px; height: 15px; }
+  .dot,.p-dot{ width: 21px; height: 21px; }
   .dock-buttons{ gap: 8px; }
   .dock-btn{ padding: 10px 8px; }
 }
