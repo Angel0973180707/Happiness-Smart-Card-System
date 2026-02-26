@@ -1,6 +1,6 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v401.1 (COMPLETE OVERWRITE) 1/3
+ * app.js v4030 (COMPLETE OVERWRITE) 1/3
  * - Align with index.html v401.1 API:
  *   window.setPlan / setTheme / setStyle / setPaper / goLineIntro / goFillForm
  * - Robust fetch + payload normalize
