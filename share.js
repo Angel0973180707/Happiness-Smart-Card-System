@@ -1,9 +1,13 @@
 /* ================================
  * share.js v400.2 (COMPLETE OVERWRITE)
- * - share.html?id=TW0001&mode=free|premium&theme=color-1|p3&style=arch|flat|spot&paper=paper-1...
+ * - share.html?id=TW0001&mode=free|premium&theme=...&style=...&paper=...
  * - OG meta uses fixed og-card.png (crawler)
  * - Human overlay NAME + AVATAR
- * - Buttons: open card / copy share link / copy card link (ALL carry params)
+ * - Buttons carry params (share/card)
+ * - Accept payload shapes:
+ *   A) {姓名:...}  (direct row)  ✅你的目前回傳
+ *   B) {ok:true, data:{...}}
+ *   C) {ok:true, row:{...}}
  * ================================ */
 
 const SHARE_CONFIG = {
@@ -17,7 +21,7 @@ const SHARE_CONFIG = {
 };
 
 function $(id){ return document.getElementById(id); }
-function text(v){ return (v==null ? "" : String(v)).trim(); }
+function text(v){ return (v==null?"":String(v)).trim(); }
 function warn(){ if(SHARE_CONFIG.DEBUG) console.warn("[share]", ...arguments); }
 
 function getParam(name){
@@ -78,20 +82,36 @@ function pick(p, keys){
   return "";
 }
 
+/* ---------- payload shape normalize ---------- */
+function unwrapRow_(data){
+  if(!data || typeof data !== "object") return null;
+
+  // B) {ok:true, data:{...}}
+  if(data.ok === true && data.data && typeof data.data === "object") return data.data;
+
+  // C) {ok:true, row:{...}}
+  if(data.ok === true && data.row && typeof data.row === "object") return data.row;
+
+  // A) direct row: must contain at least 姓名 or id or 任一欄位
+  if(data.ok === undefined && (data["姓名"] || data["name"] || data["id"] || Object.keys(data).length > 0)) return data;
+
+  // sometimes {ok:false,error:""} -> null
+  return null;
+}
+
+/* ---------- image helpers ---------- */
 function normalizeImageUrl(raw){
   if(!raw) return "";
   let url = String(raw).trim();
   if(!url) return "";
   if(url.startsWith("http://")) url = "https://" + url.slice(7);
 
-  // dropbox
   if(url.includes("dropbox.com")){
     url = url.replace("dl=0","raw=1");
-    if(!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
+    if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
     return url;
   }
 
-  // google drive file link
   const mFile = url.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   if(mFile && mFile[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
 
@@ -127,17 +147,42 @@ function buildImageCandidates_(raw){
       normalizeImageUrl(original)
     ].filter(Boolean);
   }
-
   return [normalizeImageUrl(original)].filter(Boolean);
 }
 
+function setImgWithFallback_(imgEl, candidates){
+  if(!imgEl) return;
+  const list = (candidates||[]).map(text).filter(Boolean);
+  if(!list.length){ imgEl.removeAttribute("src"); return; }
+
+  const token = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
+  imgEl.dataset.loadToken = token;
+  let idx = 0;
+
+  imgEl.referrerPolicy = "no-referrer";
+  imgEl.decoding = "async";
+  imgEl.loading = "eager";
+
+  const tryNext = () => {
+    if(imgEl.dataset.loadToken !== token) return;
+    if(idx >= list.length){ imgEl.removeAttribute("src"); return; }
+    const u = list[idx++];
+    const sep = u.includes("?") ? "&" : "?";
+    imgEl.src = u + sep + "t=" + Date.now();
+  };
+
+  imgEl.onerror = () => tryNext();
+  tryNext();
+}
+
+/* ---------- fetch robust ---------- */
 async function fetchWithTimeout(url, timeoutMs){
   const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
+  const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
     const res = await fetch(url, { method:"GET", cache:"no-store", redirect:"follow", signal: controller.signal });
     const txt = await res.text();
-    const body = (txt || "").trim();
+    const body = (txt||"").trim();
     if(!body) throw new Error("Empty response");
     try{
       return JSON.parse(body);
@@ -159,17 +204,17 @@ async function fetchJsonRobust(url){
     }catch(e){
       last = e;
       warn("retry", i, e && e.message ? e.message : e);
-      await new Promise(r => setTimeout(r, 520 + i*520));
+      await new Promise(r=>setTimeout(r, 520 + i*520));
     }
   }
   throw last || new Error("Fetch failed");
 }
 
+/* ---------- url builders (carry params) ---------- */
 function projectBase_(){
   try{
     const u = new URL(location.href);
     u.hash = "";
-    // 這裡不清空 search：我們要攜帶參數
     const p = u.pathname;
     const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
     return u.origin + dir;
@@ -178,7 +223,6 @@ function projectBase_(){
   }
 }
 
-/** 只允許帶這些參數，避免亂帶 */
 function getCarryParams_(){
   const sp = new URLSearchParams(location.search);
   const allow = ["mode","theme","style","paper"];
@@ -230,39 +274,14 @@ async function copyText_(s){
   const ta = document.createElement("textarea");
   ta.value = v;
   ta.setAttribute("readonly","readonly");
-  ta.style.position = "fixed";
-  ta.style.left = "-9999px";
+  ta.style.position="fixed";
+  ta.style.left="-9999px";
   document.body.appendChild(ta);
   ta.select();
   try{ document.execCommand("copy"); }catch{}
   document.body.removeChild(ta);
   alert("✅ 已複製連結");
   return true;
-}
-
-function setImgWithFallback_(imgEl, candidates){
-  if(!imgEl) return;
-  const list = (candidates||[]).map(text).filter(Boolean);
-  if(!list.length){ imgEl.removeAttribute("src"); return; }
-
-  const token = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
-  imgEl.dataset.loadToken = token;
-  let idx = 0;
-
-  imgEl.referrerPolicy = "no-referrer";
-  imgEl.decoding = "async";
-  imgEl.loading = "eager";
-
-  const tryNext = () => {
-    if(imgEl.dataset.loadToken !== token) return;
-    if(idx >= list.length){ imgEl.removeAttribute("src"); return; }
-    const u = list[idx++];
-    const sep = u.includes("?") ? "&" : "?";
-    imgEl.src = u + sep + "t=" + Date.now();
-  };
-
-  imgEl.onerror = () => tryNext();
-  tryNext();
 }
 
 async function boot(){
@@ -293,12 +312,16 @@ async function boot(){
   try{
     const url = `${SHARE_CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
     const data = await fetchJsonRobust(url);
-    if(!data || typeof data !== "object") throw new Error("Invalid payload");
-    if(data.ok === false) throw new Error(data.error || "Not found");
 
-    const p = buildNormalizedPayload_(data);
+    const row = unwrapRow_(data);
+    if(!row) throw new Error("Invalid payload shape");
+
+    const p = buildNormalizedPayload_(row);
+
     const name = text(pick(p, ["姓名","name","Name"]));
-    const avatarRaw = pick(p, ["個人照_fast","個人照","形象照_fast","形象照","avatar_fast","avatar","photo_fast","photo","image"]);
+    const avatarRaw =
+      pick(p, ["個人照_fast","個人照","形象照_fast","形象照","avatar_fast","avatar","photo_fast","photo","image"]) ||
+      pick(p, ["avatar_img","avatar"]);
 
     if(name){
       nameEl.style.display = "";
