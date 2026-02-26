@@ -130,6 +130,7 @@ function setUrlId_(id){
     history.replaceState({}, "", u.toString());
   }catch{}
 }
+
 /* ---------- Fetch (robust) ---------- */
 function safeJsonParse_(rawText){
   let s = String(rawText||"").trim();
@@ -217,10 +218,8 @@ function buildImgCandidates_(raw){
   const s = text(raw);
   if(!s) return [];
 
-  // 先把 raw 裡可能的 drive id 抽出來
   const did = driveIdFromUrl_(s);
   if(did){
-    // ✅ 多候選：view / thumbnail / download / 原始
     return [
       `https://drive.google.com/uc?export=view&id=${encodeURIComponent(did)}`,
       `https://drive.google.com/thumbnail?id=${encodeURIComponent(did)}&sz=w1200`,
@@ -238,7 +237,6 @@ function setImgWithFallback_(imgEl, candidates){
 
   let idx = 0;
 
-  // ✅ 避免某些手機對 referrer 敏感
   imgEl.referrerPolicy = "no-referrer";
 
   const tryNext = ()=>{
@@ -285,7 +283,7 @@ function applyModeUi_(){
     if(premBlock) premBlock.style.display = "";
     if(banner) banner.style.display = "none";
     if(paperOverlay) paperOverlay.style.display = "none";
-    if(premBadge) premBadge.style.display = "none";
+    if(premBadge) premBadge.style.display = ""; // ✅ 修正：Premium 要顯示 badge
   }
 }
 
@@ -413,13 +411,11 @@ function classifyDockClass_(url){
   if(u.includes("line.me") || u.includes("lin.ee")) return "dock-line";
   if(u.includes("google.com/maps") || u.includes("maps.app")) return "dock-map";
   return "dock-web";
-}/* ================================
- * app.js (v403-dev) 3/3
+}
+/* ================================
+ * app.js (v403-dev) 2/3
  * - Render Card (logo/avatar/blocks/docks)
  * - Photo Wall (thumb + lightbox)
- * - Admin Workspace (客戶展示模式：載入/複製整包/OG 動態圖)
- * - Drive 圖片超高容錯（沿用 buildImgCandidates_ / setImgWithFallback_）
- * - Boot (no SW)
  * ================================ */
 
 /* ---------- Logo ---------- */
@@ -671,6 +667,13 @@ function extractRowFromPayload_(data){
   if(data.id || data["姓名"] || data.name) return data;
   return null;
 }
+/* ================================
+ * app.js (v403-dev) 3/3
+ * - Photo Wall (dynamic) + Lightbox
+ * - Share
+ * - Admin Workspace (triple tap BR) + OG Preview (canvas)
+ * - Boot (no SW)
+ * ================================ */
 
 /* ---------- Photo collect ---------- */
 function collectPhotoUrls_(p){
@@ -835,7 +838,6 @@ async function shareCard_(){
     }
   }catch{}
 
-  // fallback: copy
   try{
     if(navigator.clipboard?.writeText){
       await navigator.clipboard.writeText(url);
@@ -932,7 +934,6 @@ function ensureAdminModal_(){
   modal.appendChild(sheet);
   document.body.appendChild(modal);
 
-  // inject mini button styles
   const style = document.createElement("style");
   style.textContent = `
     .admin-mini-btn{
@@ -1059,254 +1060,3 @@ function loadImageAsBitmap_(url){
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.referrerPolicy = "no-referrer";
-    img.onload = ()=> resolve(img);
-    img.onerror = reject;
-    img.src = url + (url.includes("?") ? "&" : "?") + "t=" + Date.now();
-  });
-}
-
-function getThemeColors_(){
-  const cs = getComputedStyle(document.body);
-  const p = cs.getPropertyValue("--p").trim() || "#ff5f7b";
-  const s = cs.getPropertyValue("--s").trim() || "#ff2f45";
-  return { p, s };
-}
-
-function roundRectFill_(ctx, x, y, w, h, r){
-  const rr = Math.min(r, w/2, h/2);
-  ctx.beginPath();
-  ctx.moveTo(x+rr, y);
-  ctx.arcTo(x+w, y, x+w, y+h, rr);
-  ctx.arcTo(x+w, y+h, x, y+h, rr);
-  ctx.arcTo(x, y+h, x, y, rr);
-  ctx.arcTo(x, y, x+w, y, rr);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function wrapText_(ctx, s, maxWidth){
-  const raw = String(s||"").trim();
-  if(!raw) return [""];
-  const out = [];
-  let line = "";
-  for(const ch of raw){
-    const test = line + ch;
-    const w = ctx.measureText(test).width;
-    if(w > maxWidth && line){
-      out.push(line);
-      line = ch;
-    }else{
-      line = test;
-    }
-  }
-  if(line) out.push(line);
-  return out;
-}
-
-function getAvatarCandidate_(){
-  const p = currentRow || null;
-  if(!p) return "";
-  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","形象照","photo"]);
-  const u = normalizeImageUrl_(avatarRaw);
-  return u || "";
-}
-
-async function buildOgPreview_(){
-  ensureAdminModal_();
-  const box = qs("ogPreviewBox");
-  const imgEl = qs("ogPreviewImg");
-  if(!box || !imgEl){
-    alert("OG 預覽元件不存在");
-    return;
-  }
-
-  const pRow = currentRow || null;
-  const name = pRow ? (pick(pRow, ["姓名","name"]) || "幸福智慧名片") : "幸福智慧名片";
-  const avatarUrl = getAvatarCandidate_();
-
-  const W = 1200, H = 630;
-  const canvas = document.createElement("canvas");
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext("2d");
-
-  const { p, s } = getThemeColors_();
-
-  const g = ctx.createLinearGradient(0, 0, W, H);
-  g.addColorStop(0, p);
-  g.addColorStop(1, s);
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, W, H);
-
-  const g2 = ctx.createRadialGradient(W*0.25, H*0.15, 10, W*0.25, H*0.15, 650);
-  g2.addColorStop(0, "rgba(255,255,255,0.26)");
-  g2.addColorStop(1, "rgba(255,255,255,0.00)");
-  ctx.fillStyle = g2;
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.fillStyle = "rgba(255,255,255,0.14)";
-  roundRectFill_(ctx, 56, 56, W-112, H-112, 36);
-
-  const cx = 150, cy = H/2;
-  const r = 120;
-
-  ctx.fillStyle = "rgba(255,255,255,0.92)";
-  ctx.beginPath(); ctx.arc(cx, cy, r+12, 0, Math.PI*2); ctx.fill();
-
-  let avatarImg = null;
-  if(avatarUrl){
-    try{ avatarImg = await loadImageAsBitmap_(avatarUrl); }catch{ avatarImg = null; }
-  }
-  if(!avatarImg){
-    try{ avatarImg = await loadImageAsBitmap_(CONFIG.OG_FALLBACK_IMG); }catch{ avatarImg = null; }
-  }
-
-  ctx.save();
-  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
-  if(avatarImg){
-    const iw = avatarImg.naturalWidth || avatarImg.width;
-    const ih = avatarImg.naturalHeight || avatarImg.height;
-    const scale = Math.max((r*2)/iw, (r*2)/ih);
-    const dw = iw*scale, dh = ih*scale;
-    const dx = cx - dw/2, dy = cy - dh/2;
-    ctx.drawImage(avatarImg, dx, dy, dw, dh);
-  }else{
-    ctx.fillStyle = "rgba(0,0,0,0.10)";
-    ctx.fillRect(cx-r, cy-r, r*2, r*2);
-  }
-  ctx.restore();
-
-  ctx.fillStyle = "rgba(255,255,255,0.94)";
-  ctx.font = "900 64px 'Noto Sans TC', system-ui, -apple-system, sans-serif";
-  ctx.textBaseline = "top";
-  ctx.shadowColor = "rgba(0,0,0,0.22)";
-  ctx.shadowBlur = 12;
-  ctx.shadowOffsetY = 2;
-
-  const tx = 320;
-  const ty = 210;
-  const lines = wrapText_(ctx, name, 740);
-  const show = lines.slice(0, 2);
-  show.forEach((ln, i)=> ctx.fillText(ln, tx, ty + i*78));
-
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = "rgba(255,255,255,0.82)";
-  ctx.font = "700 28px 'Noto Sans TC', system-ui, -apple-system, sans-serif";
-  ctx.fillText("Happiness Smart Card", tx, ty + show.length*78 + 20);
-
-  const dataUrl = canvas.toDataURL("image/png");
-  imgEl.src = dataUrl;
-  imgEl.dataset.png = dataUrl;
-
-  box.style.display = "";
-  qs("btnOgOpenNew")?.addEventListener("click", ()=>{
-    const w = window.open("", "_blank");
-    if(!w) return;
-    w.document.write(`<title>OG Preview</title><img src="${dataUrl}" style="width:100%;max-width:1200px;display:block;margin:0 auto;">`);
-  }, { once:true });
-
-  qs("btnOgDownload")?.addEventListener("click", ()=>{
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `${__resolvedId || "card"}-og.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }, { once:true });
-}
-
-/* ---------- Admin hotspot (bottom-right triple tap) ---------- */
-function setupAdminHotspotBR_(){
-  const spot = qs("adminHotspotBR");
-  if(!spot) return;
-
-  let taps = 0;
-  let timer = null;
-
-  spot.addEventListener("click", ()=>{
-    taps++;
-    clearTimeout(timer);
-    timer = setTimeout(()=>{ taps = 0; }, 900);
-
-    if(taps >= 3){
-      taps = 0;
-      ensureAdminModal_();
-      const modal = qs("adminModal");
-      if(modal) modal.style.display = "flex";
-      const input = qs("adminIdInput");
-      if(input){
-        input.value = __resolvedId || (getIdFromUrl_() || CONFIG.DEFAULT_ID);
-        input.focus();
-      }
-    }
-  });
-}
-
-/* ---------- Load + Boot ---------- */
-async function loadAndRenderById_(id){
-  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  __resolvedId = cid;
-
-  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
-
-  try{
-    const payload = await fetchJsonRobust_(url);
-    const row = extractRowFromPayload_(payload);
-    if(!row) throw new Error("Invalid payload shape");
-
-    renderCard(row);
-    renderPhotoWall_(row);
-
-  }catch(err){
-    console.error("LOAD FAIL:", err);
-    safeSetText_("u-name", "載入失敗");
-  }
-}
-
-function setupShareBtn_(){
-  const btn = qs("btnShare");
-  if(!btn) return;
-  btn.addEventListener("click", shareCard_);
-}
-
-(function boot_(){
-  try{
-    ensureLightbox_();
-    setupAdminHotspotBR_();
-    setupShareBtn_();
-
-    // read from body initial classes if present
-    const b = document.body;
-    STATE.mode = b.classList.contains("mode-premium") ? "premium" : "free";
-
-    // free
-    ["color-1","color-2","color-3","color-4","color-5"].forEach(c=>{ if(b.classList.contains(c)) STATE.color = c; });
-    ["style-arch","style-flat","style-spot"].forEach(s=>{
-      if(b.classList.contains(s)) STATE.style = s.replace("style-","");
-    });
-    ["paper-1","paper-2","paper-3"].forEach(p=>{
-      if(b.classList.contains(p)) STATE.paper = p;
-    });
-
-    // premium
-    ["p1","p2","p3","p4","p5","p6","p7"].forEach(p=>{
-      if(b.classList.contains(p)) STATE.premium = p;
-    });
-
-    applyBodyClasses_();
-
-    const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
-    __resolvedId = normalizeId_(id) || CONFIG.DEFAULT_ID;
-    loadAndRenderById_(__resolvedId);
-
-  }catch(e){
-    console.error(e);
-  }
-})();
-
-/* expose */
-window.setPlan = setPlan;
-window.setTheme = setTheme;
-window.setStyle = setStyle;
-window.setPaper = setPaper;
-window.goLineIntro = goLineIntro;
-window.goFillForm = goFillForm;
