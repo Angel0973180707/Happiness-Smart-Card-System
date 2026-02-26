@@ -1,16 +1,17 @@
+<!-- index.html (v400.4 COMPLETE OVERWRITE) 1/2 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
-  <title>Happiness Smart Card System v400.2</title>
+  <title>Happiness Smart Card System v400.4</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=4002" />
+  <link rel="manifest" href="./manifest.json?v=4004" />
   <meta name="theme-color" content="#ff5e5e" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=4002" />
-  <link rel="icon" href="./icons/icon-192.png?v=4002" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=4004" />
+  <link rel="icon" href="./icons/icon-192.png?v=4004" />
 
   <!-- Fonts / Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,23 +20,24 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <!-- CSS -->
-  <link rel="stylesheet" href="./style.css?v=4002" />
+  <link rel="stylesheet" href="./style.css?v=4004" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
 
-  <!-- ✅ 完全脫離版面流的隱形入口 -->
-  <div id="adminHotspotTop"></div>
+  <!-- ✅ 右下角隱形入口（完全脫離版面流） -->
+  <div id="adminHotspotBR" aria-label="admin-hotspot"></div>
 
-  <!-- 控制區 -->
-  <section id="admin-panel">
+  <!-- 控制區（門面） -->
+  <section id="admin-panel" aria-label="control-panel">
     <div class="panel-inner">
-<!-- Plan buttons -->
+
+      <!-- Plan buttons -->
       <div class="plan-row">
-        <button id="btnPlanFree" class="btn-neo pill active" onclick="setV382('free','color-1', this)">
+        <button id="btnPlanFree" class="btn-neo pill active" type="button" onclick="setV382('free','color-1', this)">
           方案A｜自由搭配
         </button>
-        <button id="btnPlanPremium" class="btn-neo pill" onclick="setV382('premium','p1', this)">
+        <button id="btnPlanPremium" class="btn-neo pill" type="button" onclick="setV382('premium','p1', this)">
           方案B｜精品設計
         </button>
       </div>
@@ -82,8 +84,9 @@
 
     </div>
   </section>
-<!-- Card container -->
-  <main id="card-container">
+<!-- index.html (v400.4 COMPLETE OVERWRITE) 2/2 -->
+  <!-- Card container -->
+  <main id="card-container" aria-label="card">
     <div class="card">
 
       <!-- premium FX layer (optional by CSS vars) -->
@@ -92,7 +95,7 @@
 
       <!-- free mode banner + dynamic mask -->
       <div class="banner" aria-hidden="true">
-        <div class="dynamic-mask"></div>
+        <div class="dynamic-mask" aria-hidden="true"></div>
       </div>
 
       <!-- avatar -->
@@ -121,12 +124,12 @@
           <div id="block-exp" class="info-block" style="display:none;"></div>
         </div>
 
-        <!-- 影音 / 社群 -->
+        <!-- 影音 / 社群（獨立一區，JS 會做圖示變化） -->
         <div id="mediaDock" class="contact-dock" style="display:none; margin-top:12px;">
           <div class="dock-buttons" id="mediaButtons"></div>
         </div>
 
-        <!-- 聯繫 Dock -->
+        <!-- 聯繫 Dock（JS 會做：一半並排、落單拉長） -->
         <div id="contactDock" class="contact-dock" style="display:none;">
           <div class="dock-buttons" id="contactButtons"></div>
         </div>
@@ -137,21 +140,21 @@
         </div>
 
         <!-- version tag -->
-        <div id="versionTag" class="version-tag">v400.2</div>
+        <div id="versionTag" class="version-tag">v400.4</div>
       </section>
 
     </div>
   </main>
 
   <!-- Scripts -->
-  <script src="./app.js?v=4002"></script>
+  <script src="./app.js?v=4004"></script>
 
   <!-- Service Worker -->
   <script>
     (function () {
       try {
         if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.register("./sw.js?v=4002").catch(function(){});
+          navigator.serviceWorker.register("./sw.js?v=4004").catch(function(){});
         }
       } catch (e) {}
     })();
