@@ -1,18 +1,21 @@
 /* ================================
- * sw.js (v403 FORCE UPDATE)
- * COMPLETE OVERWRITE
+ * sw.js (v403 COMPLETE OVERWRITE)
+ * - App shell cache
+ * - Stale-while-revalidate for static assets
+ * - Network-first for HTML navigations (fallback to cache)
+ * - Force update support: SKIP_WAITING + SW_ACTIVATED broadcast
  * ================================ */
 
 const SW_VERSION = "v403";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
-// ✅ 只快取殼（不帶 ?id）
+// ✅ 只快取「穩定不變」的殼（不要把 ?id 帶進去）
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./share.html",
   "./style.css",
   "./app.js",
+  "./share.html",
   "./share.js",
   "./manifest.json",
   "./version.json",
@@ -24,16 +27,19 @@ const APP_SHELL = [
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    for (const url of APP_SHELL) {
-      try { await cache.add(url); } catch {}
+    try {
+      await cache.addAll(APP_SHELL);
+    } catch (e) {
+      for (const url of APP_SHELL) {
+        try { await cache.add(url); } catch {}
+      }
     }
-    self.skipWaiting(); // ✅ 強制進入 waiting->active 流程
+    self.skipWaiting();
   })());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
-    // 清舊 cache
     const keys = await caches.keys();
     await Promise.all(keys.map((k) => {
       if (k !== CACHE_NAME && k.startsWith("hsc-cache-")) return caches.delete(k);
@@ -42,12 +48,20 @@ self.addEventListener("activate", (event) => {
 
     await self.clients.claim();
 
-    // ✅ 主動通知所有頁面：SW 已更新到哪一版
-    const clients = await self.clients.matchAll({ includeUncontrolled: true });
-    clients.forEach((c) => {
-      try { c.postMessage({ type: "SW_VERSION", value: SW_VERSION }); } catch {}
-    });
+    // ✅ 通知所有頁面：SW 已啟用（可用來自動 reload）
+    const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const client of clients) {
+      try { client.postMessage({ type: "SW_ACTIVATED", sw: SW_VERSION }); } catch {}
+    }
   })());
+});
+
+// ✅ 允許前端要求「跳過等待 → 立刻啟用新版 SW」
+self.addEventListener("message", (event) => {
+  const msg = event && event.data ? event.data : {};
+  if (msg && msg.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 function isNavigationRequest(req) {
@@ -62,12 +76,15 @@ function isSameOrigin(url) {
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {
-    const fresh = await fetch(request, { cache: "no-store" });
-    if (fresh && fresh.ok && isSameOrigin(request.url)) cache.put(request, fresh.clone());
+    const fresh = await fetch(request);
+    if (fresh && fresh.ok && isSameOrigin(request.url)) {
+      cache.put(request, fresh.clone());
+    }
     return fresh;
   } catch (e) {
     const cached = await cache.match(request, { ignoreSearch: true });
     if (cached) return cached;
+
     if (isNavigationRequest(request)) {
       const shell = await cache.match("./index.html");
       if (shell) return shell;
@@ -78,10 +95,12 @@ async function networkFirst(request) {
 
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request, { ignoreSearch: true });
 
+  const cached = await cache.match(request, { ignoreSearch: true });
   const fetchPromise = fetch(request).then((res) => {
-    if (res && res.ok && isSameOrigin(request.url)) cache.put(request, res.clone());
+    if (res && res.ok && isSameOrigin(request.url)) {
+      cache.put(request, res.clone());
+    }
     return res;
   }).catch(() => null);
 
@@ -95,12 +114,10 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET") return;
   if (url.origin !== self.location.origin) return;
 
-  // HTML：Network-first
   if (isNavigationRequest(req)) {
     event.respondWith(networkFirst(req));
     return;
   }
 
-  // 靜態：SWR
   event.respondWith(staleWhileRevalidate(req));
 });
