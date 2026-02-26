@@ -573,3 +573,46 @@ body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
   .dock-buttons{ gap: 8px; }
   .dock-btn{ padding: 10px 8px; }
 }
+/* ===== FIX v401.1: premium scroll stuck (mobile) ===== */
+body.mode-premium{
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.mode-premium #card-container{
+  min-height: calc(100vh - 140px);
+  padding-bottom: 80px;
+}
+
+body.mode-premium .card,
+body.mode-premium .info-scroll{
+  touch-action: pan-y;
+}
+
+/* premium layer 不准吃觸控 */
+body.mode-premium .premium-fx-layer{
+  pointer-events: none !important;
+  touch-action: none !important;
+}
+/* ===== FIX v401.1: slogan visual centering ===== */
+#u-slogan{
+  width: 100%;
+  max-width: 420px;
+  margin: 10px auto 0;
+  padding: 10px 14px;
+  text-align: center;
+  text-align-last: center;
+  white-space: pre-line;
+  line-height: 1.6;
+  letter-spacing: .2px;
+  word-break: break-word;
+}
+/* ===== PATCH v401.1: Free colors more vivid ===== */
+body.mode-free{
+  --free-sat: 1.18;     /* 飽和度提升 */
+  --free-contrast: 1.06;
+}
+
+body.mode-free .card{
+  filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
+}
