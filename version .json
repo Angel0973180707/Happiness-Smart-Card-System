@@ -1,5 +1,6 @@
 {
-  "app": "Happiness Smart Card System",
-  "version": "v405",
-  "ts": 1700000000000
+  "app": "v403",
+  "sw": "v403",
+  "share": "v403",
+  "updated_at": "2026-02-26T00:00:00Z"
 }
