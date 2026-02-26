@@ -1,25 +1,17 @@
 /* ================================
  * Happiness Smart Card System
  * app.js v400.4 (COMPLETE OVERWRITE) 1/3
- * - Keep ALL original functions (no trimming)
- * - Robust GAS payload support:
- *   A) direct row JSON
- *   B) { ok:true, data:{...} } or { ok:true, row:{...} } or { data:{...} }
- * - Theme switch: free/premium + theme/style/paper
- * - URL/Image normalize: Google Drive file/d -> uc?export=view&id=
- * - Admin hotspot: bottom-right triple-tap (no password)
+ * - Robust fetch + payload normalize
+ * - Theme switching (free/premium + style/paper)
+ * - Helpers (URL / image / fallback)
  * ================================ */
 
 const CONFIG = {
-  // ⚠️ 這裡請換成你「正在使用的」GAS API（你說的那支）
-  // 例如： "https://script.google.com/macros/s/AKfycby.../exec"
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
   VERSION: "v400.4",
-
-  FETCH_TIMEOUT_MS: 15000,
+  FETCH_TIMEOUT_MS: 12000,
   RETRY: 2,
 };
 
@@ -28,17 +20,16 @@ let currentRow = null;
 /* ---------- DOM ---------- */
 function qs(id){ return document.getElementById(id); }
 
-/* ---------- Basic utils ---------- */
+/* ---------- Text / Key normalize ---------- */
 function text(v){ return (v==null ? "" : String(v)).trim(); }
 
-function sleep_(ms){ return new Promise(r => setTimeout(r, ms)); }
-
-/* ---------- Key normalize (handles weird headers/quotes/newlines) ---------- */
 function cleanKey_(k){
   return String(k ?? "")
     .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
     .replace(/\u3000/g, " ")
-    .replace(/[\n\r"]/g, "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\n+/g, "")
     .replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "")
     .trim();
 }
@@ -47,19 +38,13 @@ function buildNormalizedPayload_(obj){
   if(!obj || typeof obj !== "object") return obj;
   const out = { __raw: obj };
   const lower = Object.create(null);
-
   for(const k of Object.keys(obj)){
     const nk = cleanKey_(k);
     if(!nk) continue;
     const v = obj[k];
-
-    // keep first non-empty
-    if(out[nk]==null || text(out[nk])==="") out[nk] = v;
-
-    // lower map
+    if(out[nk]==null || text(out[nk])==="") out[nk]=v;
     lower[nk.toLowerCase()] = v;
   }
-
   out.__lower = lower;
   return out;
 }
@@ -67,12 +52,10 @@ function buildNormalizedPayload_(obj){
 function pick(p, keys){
   if(!p) return "";
   const lower = p.__lower || null;
-
   for(const k of keys){
     const kk = cleanKey_(k);
     const v1 = p[kk];
     if(v1!=null && text(v1)!=="") return v1;
-
     if(lower){
       const v2 = lower[String(kk).toLowerCase()];
       if(v2!=null && text(v2)!=="") return v2;
@@ -81,7 +64,7 @@ function pick(p, keys){
   return "";
 }
 
-/* ---------- ID normalize ---------- */
+/* ---------- ID ---------- */
 function normalizeId_(s){
   const v = text(s).toUpperCase();
   if(!v) return "";
@@ -107,17 +90,14 @@ function getIdFromUrl_(){
 async function fetchWithTimeout_(url, timeoutMs){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
-
   try{
     const res = await fetch(url, { method:"GET", cache:"no-store", redirect:"follow", signal: controller.signal });
     const txt = await res.text();
     const body = (txt||"").trim();
     if(!body) throw new Error("Empty response");
-
     try{
       return JSON.parse(body);
     }catch{
-      // try extract JSON block if GAS mixed logs/html
       const m = body.match(/\{[\s\S]*\}/);
       if(m) return JSON.parse(m[0]);
       throw new Error("Not JSON");
@@ -134,13 +114,13 @@ async function fetchJsonRobust_(url){
       return await fetchWithTimeout_(url, CONFIG.FETCH_TIMEOUT_MS);
     }catch(e){
       last = e;
-      await sleep_(520 + i*680);
+      await new Promise(r=>setTimeout(r, 520 + i*520));
     }
   }
   throw last || new Error("Fetch failed");
 }
 
-/* ---------- URL normalize ---------- */
+/* ---------- URL / Images ---------- */
 function isUrl_(s){ return /^https?:\/\//i.test(String(s||"").trim()); }
 
 function normalizeUrl_(s){
@@ -152,55 +132,76 @@ function normalizeUrl_(s){
   return v;
 }
 
-/* ---------- Image URL normalize (Drive/Dropbox) ---------- */
-function normalizeDriveToUc_(url){
-  const u = String(url||"").trim();
-  if(!u) return "";
+function driveIdFromUrl_(u){
+  const s = String(u||"").trim();
+  if(!s) return "";
 
-  // file/d/<id>/view
-  const mFile = u.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-  if(mFile && mFile[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mFile[1])}`;
+  const mFile = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+  if(mFile && mFile[1]) return mFile[1];
 
-  // open?id=<id>
-  const mId = u.match(/(?:\?|&)id=([^&]+)/i);
-  if(mId && mId[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(mId[1])}`;
+  const mId = s.match(/(?:\?|&)id=([^&]+)/i);
+  if(mId && mId[1]) return decodeURIComponent(mId[1]);
 
-  // uc?export=view&id=...
-  if(u.includes("drive.google.com/uc?")) return u;
+  const mThumb = s.match(/thumbnail\?id=([^&]+)/i);
+  if(mThumb && mThumb[1]) return decodeURIComponent(mThumb[1]);
 
-  return u;
+  const mUc = s.match(/uc\?[^#]*id=([^&]+)/i);
+  if(mUc && mUc[1]) return decodeURIComponent(mUc[1]);
+
+  return "";
 }
 
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
   if(!url) return "";
 
-  // Dropbox share -> raw
   if(url.includes("dropbox.com")){
     url = url.replace("dl=0","raw=1");
     if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
     return url;
   }
 
-  // Google Drive to uc view
-  if(url.includes("drive.google.com")){
-    return normalizeDriveToUc_(url);
-  }
+  const did = driveIdFromUrl_(url);
+  if(did) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(did)}`;
 
   return url;
 }
 
-/* ---------- Theme Switching (HTML onclick uses these) ---------- */
-function setV382(mode, theme, el){
-  // ✅ 不要把 body.className 清空到「只剩 mode」，會讓紙感/版型掉光導致版面看起來歪
-  // 改成：保留既有 style-*/paper-*（如果有）
-  const keep = [];
-  document.body.classList.forEach(c=>{
-    if(c.startsWith("style-") || c.startsWith("paper-")) keep.push(c);
-  });
+function buildImgCandidates_(raw){
+  const s = text(raw);
+  if(!s) return [];
+  const did = driveIdFromUrl_(s);
+  if(did){
+    return [
+      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(did)}`,
+      `https://drive.google.com/thumbnail?id=${encodeURIComponent(did)}&sz=w1200`,
+      `https://drive.google.com/uc?export=download&id=${encodeURIComponent(did)}`,
+      normalizeUrl_(s)
+    ].filter(Boolean);
+  }
+  return [normalizeImageUrl_(s)].filter(Boolean);
+}
 
+function setImgWithFallback_(imgEl, candidates){
+  const list = (candidates || []).filter(Boolean);
+  if(!imgEl || !list.length) return;
+
+  let idx = 0;
+  imgEl.referrerPolicy = "no-referrer";
+
+  const tryNext = ()=>{
+    idx++;
+    if(idx >= list.length) return;
+    imgEl.src = list[idx] + (list[idx].includes("?") ? "&" : "?") + "t=" + Date.now();
+  };
+
+  imgEl.onerror = tryNext;
+  imgEl.src = list[0] + (list[0].includes("?") ? "&" : "?") + "t=" + Date.now();
+}
+
+/* ---------- Theme Switching (used by HTML onclick) ---------- */
+function setV382(mode, theme, el){
   document.body.className = "";
-  keep.forEach(c=>document.body.classList.add(c));
 
   if(mode === "free"){
     document.body.classList.add("mode-free", theme);
@@ -224,8 +225,6 @@ function setV382Style(style, el){
   document.body.classList.remove("style-arch","style-flat","style-spot");
   document.body.classList.add("style-" + style);
 
-  // 只處理 style 那排的 active：避免 plan/paper 被一起清掉
-  // 但你目前 HTML 都是 btn-neo，所以先保留全清，再把目前這顆設 active
   document.querySelectorAll(".btn-neo").forEach(b => b.classList.remove("active"));
   if(el) el.classList.add("active");
 }
@@ -241,39 +240,11 @@ function setV382Paper(paper, el){
 /* ---------- Navigation ---------- */
 function goFillForm(){
   window.open(CONFIG.FORM, "_blank");
-}
-
-/* expose for inline onclick */
-window.setV382 = setV382;
-window.setV382Style = setV382Style;
-window.setV382Paper = setV382Paper;
-window.goFillForm = goFillForm;
-
-/* ---------- Admin hotspot: bottom-right triple tap, no password ---------- */
-function setupAdminHotspot_(){
-  const spot = qs("adminHotspotBR");
-  if(!spot) return;
-
-  let taps = 0;
-  let timer = null;
-
-  spot.addEventListener("click", ()=>{
-    taps++;
-    clearTimeout(timer);
-    timer = setTimeout(()=>{ taps = 0; }, 900);
-
-    if(taps >= 3){
-      taps = 0;
-      // ✅ 不設密碼：先做預留入口（之後你要接工作區）
-      alert("✅ 進入隱形後臺（預留工作區）");
-    }
-  });
-}
 /* ================================
  * app.js v400.4 (2/3)
- * Render Card + Blocks + Media/Contact Docks (with variation)
- * - Media dock: platform detection => different button class
- * - Contact dock: 2-col grid + last odd button becomes wide
+ * Render Card + Docks (media/contact) + Blocks + Logo/Avatar
+ * - Media buttons auto classify to dock-yt/fb/ig/line/web
+ * - Contact buttons auto apply .wide when odd
  * ================================ */
 
 function safeSetText_(id, val){
@@ -304,76 +275,36 @@ function openMapByAddress_(addr){
   window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
 }
 
-/* ---------- Image set helpers ---------- */
-function setImgWithFallback_(imgEl, candidates){
-  if(!imgEl) return;
-  const list = (candidates||[]).map(text).filter(Boolean);
-  if(!list.length){ imgEl.removeAttribute("src"); return; }
-
-  const token = String(Date.now()) + "_" + Math.random().toString(16).slice(2);
-  imgEl.dataset.loadToken = token;
-  let idx = 0;
-
-  imgEl.referrerPolicy = "no-referrer";
-  imgEl.decoding = "async";
-  imgEl.loading = "eager";
-
-  const tryNext = () => {
-    if(imgEl.dataset.loadToken !== token) return;
-    if(idx >= list.length){ imgEl.removeAttribute("src"); return; }
-    const u = list[idx++];
-    const sep = u.includes("?") ? "&" : "?";
-    imgEl.src = u + sep + "t=" + Date.now();
-  };
-
-  imgEl.onerror = () => tryNext();
-  tryNext();
+function classifyDockClass_(url){
+  const u = String(url||"").toLowerCase();
+  if(u.includes("youtube.com") || u.includes("youtu.be")) return "dock-yt";
+  if(u.includes("facebook.com") || u.includes("fb.com")) return "dock-fb";
+  if(u.includes("instagram.com")) return "dock-ig";
+  if(u.includes("line.me") || u.includes("lin.ee")) return "dock-line";
+  if(u.includes("google.com/maps") || u.includes("maps.app")) return "dock-map";
+  return "dock-web";
 }
 
-function buildImageCandidates_(raw){
-  const s = text(raw);
-  if(!s) return [];
-
-  const original = s.startsWith("http://") ? "https://" + s.slice(7) : s;
-  const normalized = normalizeImageUrl_(original);
-
-  // Drive: also try thumbnail as fallback
-  const mId = normalized.match(/drive\.google\.com\/uc\?export=view&id=([^&]+)/i);
-  if(mId && mId[1]){
-    const id = decodeURIComponent(mId[1]);
-    return [
-      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`,
-      `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w1200`,
-      `https://drive.google.com/uc?export=download&id=${encodeURIComponent(id)}`,
-      normalized
-    ].filter(Boolean);
-  }
-
-  return [normalized].filter(Boolean);
-}
-
-/* ---------- Logo / Avatar ---------- */
 function renderLogo_(p){
-  const logoRaw = pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img","logo圖片","logo圖片連結","logo連結"]);
+  const logoUrl = pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img"]);
   const wrap = qs("logoWrap");
   const img  = qs("u-logo");
   if(!wrap || !img) return;
 
-  const u = normalizeImageUrl_(logoRaw);
+  const u = normalizeImageUrl_(logoUrl);
   if(!u){
     wrap.style.display = "none";
     img.removeAttribute("src");
     return;
   }
 
-  img.onload  = ()=>{ wrap.style.display = "block"; };
+  img.onload = ()=>{ wrap.style.display = "flex"; };
   img.onerror = ()=>{ wrap.style.display = "none"; };
-
-  setImgWithFallback_(img, buildImageCandidates_(u));
+  setImgWithFallback_(img, buildImgCandidates_(u));
 }
 
 function renderAvatar_(p){
-  const avatarRaw = pick(p, ["個人照_fast","個人照","形象照_fast","形象照","avatar_fast","avatar","photo_fast","photo","image"]);
+  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","形象照","photo"]);
   const img = qs("u-img");
   if(!img) return;
 
@@ -382,11 +313,9 @@ function renderAvatar_(p){
     img.removeAttribute("src");
     return;
   }
-
-  setImgWithFallback_(img, buildImageCandidates_(u));
+  setImgWithFallback_(img, buildImgCandidates_(u));
 }
 
-/* ---------- Blocks (服務項目/經歷) ---------- */
 function renderBlocks_(p){
   const service = pick(p, ["服務項目","service","services"]);
   const exp     = pick(p, ["經歷","experience","exp"]);
@@ -421,177 +350,121 @@ function renderBlocks_(p){
   }
 }
 
-/* ---------- Platform detection (影音/社群要有變化) ---------- */
-function detectPlatform_(url){
-  const u = String(url||"").toLowerCase();
-  if(u.includes("youtube.com") || u.includes("youtu.be")) return "yt";
-  if(u.includes("facebook.com") || u.includes("fb.com")) return "fb";
-  if(u.includes("instagram.com")) return "ig";
-  if(u.includes("line.me") || u.includes("lin.ee")) return "line";
-  return "web";
-}
-
-/* ---------- Dock button builder ---------- */
+/* ---------- Dock buttons ---------- */
 function buildDockBtn_({label, icon, onClick, extraClass}){
   const b = document.createElement("button");
-  b.className = `dock-btn ${extraClass||""}`.trim();
+  b.className = "dock-btn" + (extraClass ? (" " + extraClass) : "");
   b.type = "button";
   b.innerHTML = `<i class="${icon}"></i><span>${escapeHtml_(label)}</span>`;
   b.addEventListener("click", onClick);
   return b;
 }
 
-/* ---------- Media Dock ---------- */
-function renderMediaDock_(p){
-  const mediaDock = qs("mediaDock");
-  const mediaBtns = qs("mediaButtons");
-  if(!mediaDock || !mediaBtns) return;
-
-  mediaBtns.innerHTML = "";
-
-  // 你的回傳：影音平台1/2/3、社群平台1/2/3
-  const items = [
-    { k:["影音平台1","影音1","video1","youtube1"], label:"YouTube", icon:"fa-brands fa-youtube" },
-    { k:["影音平台2","影音2","video2","youtube2"], label:"影音2",  icon:"fa-solid fa-play" },
-    { k:["影音平台3","影音3","video3","youtube3"], label:"影音3",  icon:"fa-solid fa-play" },
-    { k:["社群平台1","社群1","social1"],           label:"社群1",  icon:"fa-solid fa-users" },
-    { k:["社群平台2","社群2","social2"],           label:"社群2",  icon:"fa-solid fa-users" },
-    { k:["社群平台3","社群3","social3"],           label:"社群3",  icon:"fa-solid fa-users" }
-  ];
-
-  let has = false;
-
-  items.forEach(it=>{
-    const v = pick(p, it.k);
-    if(!text(v)) return;
-
-    has = true;
-    const plat = detectPlatform_(v);
-
-    // ✅ 讓 CSS 可以做差異化：dock-yt / dock-fb / dock-ig / dock-line / dock-web
-    const extra = `dock-${plat}`;
-
-    // icon：依平台更合理
-    let icon = it.icon;
-    if(plat === "yt") icon = "fa-brands fa-youtube";
-    else if(plat === "fb") icon = "fa-brands fa-facebook";
-    else if(plat === "ig") icon = "fa-brands fa-instagram";
-    else if(plat === "line") icon = "fa-brands fa-line";
-    else icon = "fa-solid fa-globe";
-
-    // label：平台優先，其次原 label
-    let label = it.label;
-    if(plat === "yt") label = "YouTube";
-    else if(plat === "fb") label = "Facebook";
-    else if(plat === "ig") label = "Instagram";
-    else if(plat === "line") label = "LINE";
-    else label = (label || "網站");
-
-    mediaBtns.appendChild(buildDockBtn_({
-      label,
-      icon,
-      extraClass: extra,
-      onClick: ()=> openUrl_(v)
-    }));
-  });
-
-  mediaDock.style.display = has ? "" : "none";
+function applyWideRule_(container){
+  if(!container) return;
+  const btns = Array.from(container.querySelectorAll(".dock-btn"));
+  btns.forEach(b=>b.classList.remove("wide"));
+  if(btns.length % 2 === 1){
+    btns[btns.length - 1].classList.add("wide");
+  }
 }
 
-/* ---------- Contact Dock (2-col + last odd wide) ---------- */
-function renderContactDock_(p){
-  const cDock = qs("contactDock");
-  const cBtns = qs("contactButtons");
-  if(!cDock || !cBtns) return;
+function renderDocks_(p){
+  const mediaDock = qs("mediaDock");
+  const mediaBtns = qs("mediaButtons");
+  const cDock     = qs("contactDock");
+  const cBtns     = qs("contactButtons");
 
-  cBtns.innerHTML = "";
+  if(mediaBtns) mediaBtns.innerHTML = "";
+  if(cBtns) cBtns.innerHTML = "";
 
+  /* ---- Media: 影音/社群 ---- */
+  const mediaItems = [
+    { k:["影音平台1","影音1"], label:"影音", icon:"fa-solid fa-play" },
+    { k:["影音平台2","影音2"], label:"官網/平台", icon:"fa-solid fa-globe" },
+    { k:["影音平台3","影音3"], label:"影音3", icon:"fa-solid fa-play" },
+    { k:["社群平台1","社群1"], label:"社群", icon:"fa-solid fa-users" },
+    { k:["社群平台2","社群2"], label:"社群2", icon:"fa-solid fa-users" },
+    { k:["社群平台3","社群3"], label:"社群3", icon:"fa-solid fa-users" }
+  ];
+
+  let hasMedia = false;
+  mediaItems.forEach(it=>{
+    const v = pick(p, it.k);
+    if(!text(v)) return;
+    hasMedia = true;
+
+    const cls = classifyDockClass_(v);
+
+    if(mediaBtns){
+      mediaBtns.appendChild(buildDockBtn_({
+        label: it.label,
+        icon: it.icon,
+        extraClass: cls,
+        onClick: ()=> openUrl_(v)
+      }));
+    }
+  });
+  if(mediaDock) mediaDock.style.display = hasMedia ? "" : "none";
+  applyWideRule_(mediaBtns);
+
+  /* ---- Contact: LINE/微信/電話/Email/地址 ---- */
   const phone   = pick(p, ["電話","phone","mobile"]);
   const email   = pick(p, ["Email","email","信箱"]);
-  const lineOA  = pick(p, ["LINE官方帳號","line官方帳號","line_oa","line官網","line官方"]);
-  const lineLink= pick(p, ["LINE連結","line連結","line_link","line"]);
-  const wechat  = pick(p, ["微信","微信id","wechat","wechat_id"]);
-  const address = pick(p, ["地址","address","導航地址"]);
+  const lineOA  = pick(p, ["LINE官方帳號","line_oa","line官網"]);
+  const lineLink= pick(p, ["LINE連結","line_link","line"]);
+  const wechat  = pick(p, ["微信","wechat","wechat_id"]);
+  const address = pick(p, ["地址","address"]);
 
-  const list = [];
+  const contactList = [];
 
   if(text(lineOA)){
-    list.push({
-      label:"LINE 官網",
-      icon:"fa-brands fa-line",
-      onClick: ()=> openUrl_(lineOA),
-      extraClass:"dock-line"
-    });
-  }else if(text(lineLink)){
-    list.push({
-      label:"LINE",
-      icon:"fa-brands fa-line",
-      onClick: ()=> openUrl_(lineLink),
-      extraClass:"dock-line"
-    });
+    contactList.push({ label:"LINE 官網", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineOA) });
   }
 
   if(text(wechat)){
-    list.push({
+    contactList.push({
       label:"微信ID",
       icon:"fa-brands fa-weixin",
-      onClick: async ()=>{
+      cls:"dock-web",
+      action: async ()=>{
         try{
-          if(navigator.clipboard && navigator.clipboard.writeText){
-            await navigator.clipboard.writeText(text(wechat));
-          }
+          if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(text(wechat));
         }catch{}
         alert("✅ 已複製微信ID");
-      },
-      extraClass:"dock-wechat"
+      }
     });
   }
 
   if(text(phone)){
-    list.push({
-      label:"電話",
-      icon:"fa-solid fa-phone",
-      onClick: ()=> { location.href = `tel:${text(phone)}`; },
-      extraClass:"dock-phone"
-    });
+    contactList.push({ label:"電話", icon:"fa-solid fa-phone", cls:"dock-web", action: ()=> { location.href = `tel:${text(phone)}`; } });
   }
 
   if(text(email)){
-    list.push({
-      label:"Email",
-      icon:"fa-solid fa-envelope",
-      onClick: ()=> { location.href = `mailto:${text(email)}`; },
-      extraClass:"dock-email"
-    });
+    contactList.push({ label:"Email", icon:"fa-solid fa-envelope", cls:"dock-web", action: ()=> { location.href = `mailto:${text(email)}`; } });
   }
 
   if(text(address)){
-    list.push({
-      label:"地址",
-      icon:"fa-solid fa-location-dot",
-      onClick: ()=> openMapByAddress_(address),
-      extraClass:"dock-map"
-    });
+    contactList.push({ label:"地址", icon:"fa-solid fa-location-dot", cls:"dock-map", action: ()=> openMapByAddress_(address) });
   }
 
-  // render
-  list.forEach((x, idx)=>{
-    const btn = buildDockBtn_({
-      label: x.label,
-      icon: x.icon,
-      extraClass: x.extraClass || "",
-      onClick: x.onClick
-    });
-    cBtns.appendChild(btn);
+  // 沒有 LINE 官網才補個人 LINE
+  if(text(lineLink) && !text(lineOA)){
+    contactList.push({ label:"LINE", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineLink) });
+  }
+
+  let hasContact = false;
+  contactList.forEach(x=>{
+    hasContact = true;
+    if(cBtns){
+      cBtns.appendChild(buildDockBtn_({
+        label:x.label, icon:x.icon, extraClass:x.cls, onClick:x.action
+      }));
+    }
   });
 
-  // ✅ 動態平衡：落單的最後一顆拉滿
-  if(list.length % 2 === 1){
-    const last = cBtns.lastElementChild;
-    if(last) last.classList.add("wide");
-  }
-
-  cDock.style.display = list.length ? "" : "none";
+  if(cDock) cDock.style.display = hasContact ? "" : "none";
+  applyWideRule_(cBtns);
 }
 
 /* ---------- Main render ---------- */
@@ -622,93 +495,31 @@ function renderCard(row){
   renderAvatar_(p);
   renderLogo_(p);
   renderBlocks_(p);
+  renderDocks_(p);
 
-  // ✅ 影音/社群獨立區（有變化）
-  renderMediaDock_(p);
-
-  // ✅ 聯繫區：兩欄並排 + 落單拉滿
-  renderContactDock_(p);
-
-  // photo wall 在 3/3
-}/* ================================
+  const vt = qs("versionTag");
+  if(vt) vt.textContent = CONFIG.VERSION;
+}
+/* ================================
  * app.js v400.4 (3/3)
- * Photo Wall (Drive-safe) + Lightbox + Robust Load/Boot
- * + Admin hotspot bottom-right: triple-tap, no password
+ * Photo Wall + Lightbox + Admin hotspot BR + Robust Load/Boot
  * ================================ */
 
-/* ---------- Drive helpers ---------- */
-function driveIdFromUrl_(u){
-  const s = String(u||"").trim();
-  if(!s) return "";
-
-  // /file/d/<id>/
-  const mFile = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-  if(mFile && mFile[1]) return mFile[1];
-
-  // ?id=<id>
-  const mId = s.match(/(?:\?|&)id=([^&]+)/i);
-  if(mId && mId[1]) return decodeURIComponent(mId[1]);
-
-  // thumbnail?id=<id>
-  const mThumb = s.match(/thumbnail\?id=([^&]+)/i);
-  if(mThumb && mThumb[1]) return decodeURIComponent(mThumb[1]);
-
-  // uc?export=view&id=<id>
-  const mUc = s.match(/uc\?[^#]*id=([^&]+)/i);
-  if(mUc && mUc[1]) return decodeURIComponent(mUc[1]);
-
-  return "";
-}
-
-function normalizePhotoUrl_(raw){
-  const s = text(raw);
-  if(!s) return "";
-
-  // make https
-  let url = s.startsWith("http://") ? "https://" + s.slice(7) : s;
-
-  // dropbox raw
-  if(url.includes("dropbox.com")){
-    url = url.replace("dl=0","raw=1");
-    if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
-    return url;
-  }
-
-  // drive => uc view
-  const did = driveIdFromUrl_(url);
-  if(did) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(did)}`;
-
-  // otherwise keep
-  return normalizeUrl_(url);
-}
-
-function buildPhotoCandidates_(raw){
-  const u = text(raw);
-  if(!u) return [];
-
-  const did = driveIdFromUrl_(u);
-  if(did){
-    return [
-      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(did)}`,
-      `https://drive.google.com/thumbnail?id=${encodeURIComponent(did)}&sz=w1200`,
-      `https://drive.google.com/uc?export=download&id=${encodeURIComponent(did)}`,
-      normalizePhotoUrl_(u)
-    ].filter(Boolean);
-  }
-  return [normalizePhotoUrl_(u)].filter(Boolean);
+function extractRowFromPayload_(data){
+  if(!data || typeof data !== "object") return null;
+  if(data.data && typeof data.data === "object") return data.data;
+  if(data.row && typeof data.row === "object") return data.row;
+  if(data.id || data["姓名"] || data.name) return data;
+  return null;
 }
 
 /* ---------- Photo collect (support your payload) ---------- */
 function collectPhotoUrls_(p){
   let urls = [];
 
-  // 1) photos array
   if(Array.isArray(p.photos)) urls = urls.concat(p.photos);
-
-  // 2) photos_full array
   if(Array.isArray(p.photos_full)) urls = urls.concat(p.photos_full);
 
-  // 3) "照片" string (comma separated)
   const bulk = pick(p, ["照片_fast","照片","photos_img","photos","photo_wall"]);
   if(text(bulk)){
     urls = urls.concat(
@@ -719,17 +530,15 @@ function collectPhotoUrls_(p){
     );
   }
 
-  // 4) photo1..photo12
   for(let i=1;i<=12;i++){
     const v = pick(p, [`photo${i}`,`photo_${i}`,`照片${i}`,`相片${i}`]);
     if(text(v)) urls.push(v);
   }
 
-  // normalize + dedupe
   const seen = new Set();
   const out = [];
   urls.forEach(u=>{
-    const nu = normalizePhotoUrl_(u);
+    const nu = normalizeImageUrl_(u);
     if(!nu) return;
     if(seen.has(nu)) return;
     seen.add(nu);
@@ -739,7 +548,7 @@ function collectPhotoUrls_(p){
   return out;
 }
 
-/* ---------- Lightbox (contain) ---------- */
+/* ---------- Lightbox ---------- */
 function ensureLightbox_(){
   if(qs("lightboxOverlay")) return;
 
@@ -783,14 +592,9 @@ function ensureLightbox_(){
     overlay.style.display = "none";
     img.removeAttribute("src");
   }
-
-  overlay.addEventListener("click", (e)=>{
-    if(e.target === overlay) hide();
-  });
+  overlay.addEventListener("click",(e)=>{ if(e.target===overlay) hide(); });
   close.addEventListener("click", hide);
-  document.addEventListener("keydown", (e)=>{
-    if(e.key === "Escape") hide();
-  });
+  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") hide(); });
 }
 
 function openLightbox_(url){
@@ -799,20 +603,17 @@ function openLightbox_(url){
   const img = qs("lightboxImg");
   if(!overlay || !img) return;
 
-  // prefer candidates (drive thumbnail fallback)
-  const candidates = buildPhotoCandidates_(url);
-  setImgWithFallback_(img, candidates);
+  setImgWithFallback_(img, buildImgCandidates_(url));
   overlay.style.display = "flex";
 }
 
-/* ---------- Photo wall dynamic balance ---------- */
-function setPhotoGridBalance_(gridEl, n){
+/* ---------- Photo wall balance ---------- */
+function setPhotoGridBalance_(grid, n){
   let cols = 3;
   if(n <= 1) cols = 1;
   else if(n === 2) cols = 2;
   else cols = 3;
-
-  gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 }
 
 function renderPhotoWall_(row){
@@ -822,14 +623,14 @@ function renderPhotoWall_(row){
   if(!wall || !grid) return;
 
   grid.innerHTML = "";
-
   const urls = collectPhotoUrls_(p);
+
   if(!urls.length){
     wall.style.display = "none";
     return;
   }
 
-  urls.forEach((u)=>{
+  urls.forEach(u=>{
     const img = document.createElement("img");
     img.className = "wall-img";
     img.alt = "照片";
@@ -837,10 +638,8 @@ function renderPhotoWall_(row){
     img.decoding = "async";
     img.referrerPolicy = "no-referrer";
 
-    // ✅ 用 candidates 避免 drive link 偶發失敗
-    setImgWithFallback_(img, buildPhotoCandidates_(u));
+    setImgWithFallback_(img, buildImgCandidates_(u));
     img.addEventListener("click", ()=> openLightbox_(u));
-
     grid.appendChild(img);
   });
 
@@ -863,45 +662,24 @@ function setupAdminHotspotBR_(){
 
     if(taps >= 3){
       taps = 0;
-      // ✅ 不設密碼：直接進入（預留）
       alert("✅ 進入隱形後臺（預留工作區）");
-      // TODO: 之後在這裡開啟你的工作區 modal / page
+      // TODO: 之後在這裡打開你的工作區（輸入序號/姓名、一鍵交貨、預覽等）
     }
   });
 }
 
-/* ---------- Robust load + boot ---------- */
-function extractRowFromPayload_(data){
-  if(!data || typeof data !== "object") return null;
-
-  // shapes:
-  // A) direct row JSON (your pasted sample)
-  // B) { ok:true, data:{...} }
-  // C) { ok:true, row:{...} }
-  // D) { ok:true, ...fields... }
-  if(data.data && typeof data.data === "object") return data.data;
-  if(data.row && typeof data.row === "object") return data.row;
-
-  // if has id/name etc, treat as row
-  if(data.id || data["姓名"] || data.name) return data;
-
-  return null;
-}
-
+/* ---------- Load + Boot ---------- */
 async function loadAndRenderById_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
 
   try{
-    const payload = await fetchJsonRobust_(url); // ✅ 正確呼叫
+    const payload = await fetchJsonRobust_(url);
     const row = extractRowFromPayload_(payload);
     if(!row) throw new Error("Invalid payload shape");
 
     renderCard(row);
     renderPhotoWall_(row);
-
-    const vt = qs("versionTag");
-    if(vt) vt.textContent = CONFIG.VERSION;
 
   }catch(err){
     console.error("LOAD FAIL:", err);
@@ -916,7 +694,15 @@ async function loadAndRenderById_(id){
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     loadAndRenderById_(id);
+
   }catch(e){
     console.error(e);
   }
 })();
+}
+
+/* expose to window */
+window.setV382 = setV382;
+window.setV382Style = setV382Style;
+window.setV382Paper = setV382Paper;
+window.goFillForm = goFillForm;
