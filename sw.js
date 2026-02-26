@@ -7,7 +7,7 @@
  * - Works with ?id=TW0001 style URLs
  * ================================ */
 
-const SW_VERSION = "v402";
+const SW_VERSION = "v403";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
 // ✅ 只快取「穩定不變」的殼（不要把 ?id 帶進去）
