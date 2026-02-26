@@ -1,289 +1,299 @@
 /* ================================
- * share.js v401.1 (COMPLETE OVERWRITE) 1/3
- * - Load by id from GAS
- * - Render name/unit/title + avatar
- * - Copy card link / OG url
- * - FIX: DOM ready + null-guard
- * - FIX: safe JSON parse (handle XSSI prefix)
+ * share.js (v402 COMPLETE OVERWRITE)
+ * - 交貨卡頁：讀取 ?id=TW0001
+ * - 向 GAS 取卡：?action=card&id=...
+ * - 顯示：個人照 / 姓名 / 單位+頭銜
+ * - 產出：名片連結（前台）
+ * - 按鈕：返回名片 / 複製連結 / 打開 / 複製 OG 圖網址
+ * - Robust：容錯 key（含中文表頭、_fast 優先）
  * ================================ */
 
-const SHARE = {
-  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-  INDEX_PAGE: "index.html",
-  OG_DEFAULT: "og-card.png",
-  DEFAULT_ID: "TW0001",
-  TIMEOUT: 12000
-};
+(() => {
+  "use strict";
 
-function $(id){ return document.getElementById(id); }
-function text(v){ return (v==null ? "" : String(v)).trim(); }
+  /* ====== 你目前的 GAS WebApp ====== */
+  const CFG = {
+    GAS_WEBAPP_URL:
+      "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
 
-function normalizeId(s){
-  const v = text(s).toUpperCase();
-  if(!v) return "";
-  if(/^TW\d{4}$/.test(v)) return v;
-  if(/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
-  if(/^TW\d{1,4}$/.test(v)){
-    const n = v.replace(/^TW/i,"");
-    return "TW" + n.padStart(4,"0");
-  }
-  return v;
-}
+    // 名片前台（用來組名片連結）
+    CARD_BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
 
-function getParams(){
-  try{
-    const sp = new URLSearchParams(location.search);
-    return {
-      id: sp.get("id") || "",
-      mode: sp.get("mode") || "",
-      theme: sp.get("theme") || ""
-    };
-  }catch{
-    return { id:"", mode:"", theme:"" };
-  }
-}
+    // Share 交貨頁（通常同專案根目錄 share.html）
+    SHARE_BASE_URL:
+      "https://angel0973180707.github.io/Happiness-Smart-Card-System/share.html",
 
-function originBase(){
-  const o = location.origin;
-  const path = location.pathname.replace(/\/[^\/]*$/, "/");
-  return o + path;
-}
+    // 預設 OG 圖（放在專案根目錄：/og-card.png）
+    OG_IMAGE_NAME: "og-card.png",
+  };
 
-function buildCardUrl(id){
-  return originBase() + SHARE.INDEX_PAGE + "?id=" + encodeURIComponent(id);
-}
+  /* ====== DOM ====== */
+  const $ = (id) => document.getElementById(id);
 
-function buildOgUrl(){
-  return originBase() + SHARE.OG_DEFAULT;
-}
-
-async function copyText(t){
-  try{
-    if(navigator.clipboard?.writeText){
-      await navigator.clipboard.writeText(t);
-      return true;
-    }
-  }catch{}
-  const ta = document.createElement("textarea");
-  ta.value = t;
-  ta.setAttribute("readonly","readonly");
-  ta.style.position = "fixed";
-  ta.style.left = "-9999px";
-  ta.style.top = "-9999px";
-  document.body.appendChild(ta);
-  ta.select();
-  try{ document.execCommand("copy"); }catch{}
-  document.body.removeChild(ta);
-  return true;
-}
-
-function safeJsonParse_(rawText){
-  let s = String(rawText || "").trim();
-  if(!s) return null;
-
-  // GAS / some proxies may prepend XSSI guard like: )]}'
-  s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
-
-  // First try direct parse
-  try{ return JSON.parse(s); }catch{}
-
-  // Fallback: try extracting first JSON object/array block
-  const firstObj = s.indexOf("{");
-  const firstArr = s.indexOf("[");
-  let start = -1;
-  if(firstObj >= 0 && firstArr >= 0) start = Math.min(firstObj, firstArr);
-  else start = Math.max(firstObj, firstArr);
-
-  if(start >= 0){
-    const sliced = s.slice(start).trim();
-    try{ return JSON.parse(sliced); }catch{}
-  }
-  return null;
-}
-
-async function fetchJsonWithTimeout(url, timeout){
-  const controller = new AbortController();
-  const t = setTimeout(()=>controller.abort(), timeout);
-  try{
-    const res = await fetch(url, { cache:"no-store", signal: controller.signal });
-    const txt = await res.text();
-    const json = safeJsonParse_(txt);
-    if(!json) throw new Error("JSON parse failed");
-    return json;
-  }finally{
-    clearTimeout(t);
-  }
-}
-/* ================================
- * share.js v401.1 (COMPLETE OVERWRITE) 2/3
- * - key picker + image url normalize
- * - extract row payload
- * ================================ */
-
-/* lightweight key picker */
-function pick(obj, keys){
-  if(!obj) return "";
-  for(const k of keys){
-    if(obj[k]!=null && text(obj[k])!=="") return obj[k];
-  }
-  // try lower
-  const lower = {};
-  try{
-    Object.keys(obj).forEach(k=> lower[String(k).toLowerCase()] = obj[k]);
-  }catch{}
-  for(const k of keys){
-    const v = lower[String(k).toLowerCase()];
-    if(v!=null && text(v)!=="") return v;
-  }
-  return "";
-}
-
-function driveIdFromUrl(u){
-  const s = String(u||"").trim();
-  if(!s) return "";
-  const mFile = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-  if(mFile && mFile[1]) return mFile[1];
-  const mUc = s.match(/drive\.google\.com\/uc\?[^#]*id=([^&]+)/i);
-  if(mUc && mUc[1]) return decodeURIComponent(mUc[1]);
-  const mId = s.match(/(?:\?|&)id=([^&]+)/i);
-  if(mId && mId[1]) return decodeURIComponent(mId[1]);
-  return "";
-}
-
-function normalizeImageUrl(raw){
-  const s = String(raw||"").trim();
-  if(!s) return "";
-
-  if(s.includes("dropbox.com")){
-    let url = s.replace("dl=0","raw=1");
-    if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
-    return url;
-  }
-
-  const did = driveIdFromUrl(s);
-  if(did) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(did)}`;
-
-  if(s.startsWith("http://")) return "https://" + s.slice(7);
-  return s;
-}
-
-function extractRow(data){
-  if(!data || typeof data !== "object") return null;
-  if(data.data && typeof data.data === "object") return data.data;
-  if(data.row && typeof data.row === "object") return data.row;
-  if(data.id || data["姓名"] || data.name) return data;
-  return null;
-}
-
-function setMetaForHumanPreview_(name, desc){
-  // ⚠️ 只對“人看的”有效，爬蟲不吃 JS 改 meta
-  try{
-    document.title = `交貨卡｜${name || "幸福智慧名片"}`;
-    const ogt = document.querySelector('meta[property="og:title"]');
-    const ogd = document.querySelector('meta[property="og:description"]');
-    if(ogt) ogt.setAttribute("content", `幸福智慧名片｜${name || ""}`.trim());
-    if(ogd) ogd.setAttribute("content", desc || "一點，就看見彼此的價值");
-  }catch{}
-}
-
-function mustGetEls_(){
   const els = {
-    cardUrlBox: $("cardUrlBox"),
     btnBack: $("btnBack"),
+    avaImg: $("avaImg"),
+    name: $("name"),
+    sub: $("sub"),
+    cardUrlBox: $("cardUrlBox"),
     btnCopyCard: $("btnCopyCard"),
     btnOpenCard: $("btnOpenCard"),
     btnCopyOg: $("btnCopyOg"),
-    name: $("name"),
-    sub: $("sub"),
-    avaImg: $("avaImg")
   };
-  // allow missing btnCopyOg (optional), but most are required
-  const required = ["cardUrlBox","btnBack","btnCopyCard","btnOpenCard","name","sub","avaImg"];
-  for(const k of required){
-    if(!els[k]) throw new Error(`Missing element: #${k}`);
-  }
-  return els;
-}
-/* ================================
- * share.js v401.1 (COMPLETE OVERWRITE) 3/3
- * - main load + DOM ready boot
- * ================================ */
 
-async function load(){
-  const els = mustGetEls_();
-
-  const p = getParams();
-  const id = normalizeId(p.id) || SHARE.DEFAULT_ID;
-
-  const cardUrl = buildCardUrl(id);
-  els.cardUrlBox.textContent = cardUrl;
-
-  // back button (go back to index with same id)
-  els.btnBack.addEventListener("click", ()=>{
-    location.href = SHARE.INDEX_PAGE + "?id=" + encodeURIComponent(id);
-  });
-
-  els.btnCopyCard.addEventListener("click", async ()=>{
-    await copyText(cardUrl);
-    alert("✅ 已複製名片連結");
-  });
-
-  els.btnOpenCard.addEventListener("click", ()=>{
-    window.open(cardUrl, "_blank");
-  });
-
-  if(els.btnCopyOg){
-    els.btnCopyOg.addEventListener("click", async ()=>{
-      const og = buildOgUrl();
-      await copyText(og);
-      alert("✅ 已複製 OG 圖網址（預留）");
-    });
+  /* ====== Utils ====== */
+  function qs(name) {
+    try {
+      return new URLSearchParams(location.search).get(name) || "";
+    } catch {
+      return "";
+    }
   }
 
-  // fetch data for name/avatar
-  const url = `${SHARE.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
-  try{
-    const payload = await fetchJsonWithTimeout(url, SHARE.TIMEOUT);
-    const row = extractRow(payload);
-    if(!row) throw new Error("Invalid payload");
+  function normalizeId(id) {
+    const s = String(id || "").trim();
+    if (!s) return "";
+    // 只做基本清洗，不強制格式（避免你未來改 prefix）
+    return s.replace(/\s+/g, "");
+  }
 
-    const name = pick(row, ["姓名","name"]);
-    const unit = pick(row, ["單位","unit"]);
-    const title = pick(row, ["頭銜","職稱","title"]);
+  function baseDirUrl() {
+    // share.html 所在資料夾（GitHub Pages repo path）
+    const u = new URL(location.href);
+    u.hash = "";
+    u.search = "";
+    u.pathname = u.pathname.replace(/\/[^\/]*$/, "/");
+    return u.toString();
+  }
 
-    els.name.textContent = text(name) || "未命名";
-    els.sub.textContent = [text(unit), text(title)].filter(Boolean).join("\n");
+  function buildCardUrl(id) {
+    const base = String(CFG.CARD_BASE_URL || "").trim() || baseDirUrl();
+    const u = new URL(base, location.origin);
+    u.searchParams.set("id", id);
+    return u.toString();
+  }
 
-    setMetaForHumanPreview_(text(name), [text(unit), text(title)].filter(Boolean).join("｜"));
+  function buildOgUrl() {
+    // 以 share.html 同層的根目錄推導：/og-card.png
+    const dir = baseDirUrl();
+    return new URL(CFG.OG_IMAGE_NAME, dir).toString();
+  }
 
-    const avatar = pick(row, ["個人照_fast","個人照","avatar_fast","avatar","形象照","photo"]);
-    const u = normalizeImageUrl(avatar);
+  async function copyText(text) {
+    const t = String(text || "");
+    if (!t) return false;
 
-    if(u){
-      els.avaImg.referrerPolicy = "no-referrer";
-      els.avaImg.src = u + (u.includes("?") ? "&" : "?") + "t=" + Date.now();
-    }else{
-      // keep default avatar if share.html provides placeholder
+    // modern
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(t);
+        toast("已複製 ✅");
+        return true;
+      }
+    } catch {}
+
+    // fallback
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = t;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      ta.style.top = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      toast(ok ? "已複製 ✅" : "複製失敗");
+      return ok;
+    } catch {
+      toast("複製失敗");
+      return false;
+    }
+  }
+
+  function toast(msg) {
+    // 極簡提示：不改你既有 UI，只用 title 暫存
+    try {
+      document.title = msg;
+      setTimeout(() => {
+        document.title = "Angel Card Share v402";
+      }, 900);
+    } catch {}
+  }
+
+  function safeStr(v) {
+    if (v == null) return "";
+    return String(v).trim();
+  }
+
+  function cleanHeaderKey(k) {
+    let s = String(k == null ? "" : k);
+    s = s.replace(/\u3000/g, " ").trim();
+    s = s.replace(/^[\s"“”]+|[\s"“”]+$/g, "").trim();
+    return s;
+  }
+
+  function normalizeObjectKeys(obj) {
+    if (!obj || typeof obj !== "object") return obj;
+    const out = {};
+    for (const key of Object.keys(obj)) {
+      out[cleanHeaderKey(key)] = obj[key];
+    }
+    return out;
+  }
+
+  function pickFirst(obj, keys) {
+    for (const k of keys) {
+      const v = safeStr(obj[k]);
+      if (v) return v;
+    }
+    return "";
+  }
+
+  // 把「照片_fast / 照片」這種逗號或換行拆成第一張
+  function firstLinkFromCell(cell) {
+    const t = safeStr(cell);
+    if (!t) return "";
+    const parts = t.split(/[\n,，;；]+/).map((x) => x.trim()).filter(Boolean);
+    return parts[0] || "";
+  }
+
+  async function fetchJson(url, timeoutMs = 10000) {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        signal: ctrl.signal,
+      });
+      const txt = await res.text();
+      try {
+        return JSON.parse(txt);
+      } catch {
+        throw new Error("JSON 解析失敗");
+      }
+    } finally {
+      clearTimeout(to);
+    }
+  }
+
+  /* ====== Render ====== */
+  function setLoading() {
+    if (els.name) els.name.textContent = "載入中";
+    if (els.sub) els.sub.textContent = "";
+    if (els.cardUrlBox) els.cardUrlBox.textContent = "名片連結載入中…";
+    if (els.avaImg) els.avaImg.removeAttribute("src");
+  }
+
+  function setError(msg) {
+    if (els.name) els.name.textContent = "載入失敗";
+    if (els.sub) els.sub.textContent = safeStr(msg) || "請確認 id / GAS";
+    if (els.cardUrlBox) els.cardUrlBox.textContent = "—";
+  }
+
+  function renderCard(id, raw) {
+    const data = normalizeObjectKeys(raw || {});
+    const name = pickFirst(data, ["姓名", "name", "Name"]);
+    const unit = pickFirst(data, ["單位", "unit"]);
+    const title = pickFirst(data, ["頭銜", "title"]);
+    const slogan = pickFirst(data, ["理念標語", "slogan"]);
+
+    // avatar：*_fast 優先，其次 個人照
+    const avatar = pickFirst(data, ["個人照_fast", "avatar_fast", "個人照", "avatar"]);
+    const avatarUrl = avatar || "";
+
+    // 如果有人把圖片塞進 cell 多連結，抓第一個
+    const avatarFinal = firstLinkFromCell(avatarUrl);
+
+    // 顯示文字
+    if (els.name) els.name.textContent = name || id || "（未填姓名）";
+
+    const subLines = [];
+    if (unit) subLines.push(unit);
+    if (title) subLines.push(title);
+    if (slogan) subLines.push(slogan);
+    if (els.sub) els.sub.textContent = subLines.join("\n");
+
+    // 頭像
+    if (els.avaImg) {
+      if (avatarFinal) {
+        els.avaImg.src = avatarFinal;
+      } else {
+        // 沒頭像就給透明佔位，不報錯
+        els.avaImg.removeAttribute("src");
+      }
     }
 
-  }catch(e){
-    console.error(e);
-    els.name.textContent = "載入失敗";
-    els.sub.textContent = "請確認序號與 GAS 連線";
-  }
-}
-
-(function boot(){
-  function start(){
-    load().catch(err=>console.error(err));
-  }
-  try{
-    if(document.readyState === "loading"){
-      document.addEventListener("DOMContentLoaded", start);
-    }else{
-      start();
+    // 名片連結
+    const cardUrl = buildCardUrl(id);
+    if (els.cardUrlBox) {
+      els.cardUrlBox.textContent = cardUrl;
     }
-  }catch(e){
-    console.error(e);
+
+    // 事件
+    if (els.btnBack) {
+      els.btnBack.onclick = () => {
+        location.href = cardUrl;
+      };
+    }
+
+    if (els.btnCopyCard) {
+      els.btnCopyCard.onclick = () => copyText(cardUrl);
+    }
+
+    if (els.btnOpenCard) {
+      els.btnOpenCard.onclick = () => window.open(cardUrl, "_blank", "noopener,noreferrer");
+    }
+
+    if (els.btnCopyOg) {
+      // OG 圖網址（建議你 share.html meta og:image 也改成絕對路徑）
+      const ogUrl = buildOgUrl();
+      els.btnCopyOg.onclick = () => copyText(ogUrl);
+    }
+  }
+
+  /* ====== Boot ====== */
+  async function boot() {
+    setLoading();
+
+    const id = normalizeId(qs("id"));
+    if (!id) {
+      setError("缺少 ?id=TW0001");
+      return;
+    }
+
+    // 支援：網址帶 ?gas=... 覆蓋（必要時用）
+    const gasOverride = safeStr(qs("gas"));
+    const gasUrl = gasOverride || CFG.GAS_WEBAPP_URL;
+
+    if (!gasUrl) {
+      setError("CFG.GAS_WEBAPP_URL 未設定");
+      return;
+    }
+
+    const api = `${gasUrl}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+
+    try {
+      const payload = await fetchJson(api, 12000);
+
+      // 兼容：有些版本會回 {ok:false,...}
+      if (payload && typeof payload === "object" && payload.ok === false) {
+        setError(payload.error || "Not found");
+        return;
+      }
+
+      renderCard(id, payload);
+    } catch (err) {
+      setError(String(err && err.message ? err.message : err));
+    }
+  }
+
+  // DOM ready
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
   }
 })();
