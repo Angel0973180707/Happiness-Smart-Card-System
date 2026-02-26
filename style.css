@@ -1,55 +1,73 @@
 /* ================================
- * style.css v400.4 (COMPLETE OVERWRITE)
- * - Fix: banner/dynamic-mask anchor (prevent skew/overlay drift)
- * - Media dock: independent section + auto balance
- * - Keep: docks 2-col + .wide span full row
- * - Paper textures: stronger but clean
+ * style.css v400.6 (COMPLETE OVERWRITE) 1/3
+ * - Keep other buttons as v400.4 (do NOT enlarge)
+ * - Color dots: more obvious + clear active ring/glow
+ * - Natural gradients (not rigid)
+ * - Glass buttons + subtle gold edge
  * ================================ */
 
-/* ---------- Base ---------- */
 :root{
-  --bg: #f6f7fb;
+  --bg:#f4f6fb;
+  --ink:#1f2430;
+  --muted:rgba(31,36,48,0.68);
+
   --card: rgba(255,255,255,0.92);
-  --ink: #1f2430;
-  --muted: rgba(31,36,48,0.68);
   --line: rgba(0,0,0,0.10);
 
-  --p: #ff5e5e;       /* primary */
-  --s: #ff3b3b;       /* secondary */
-  --accent: rgba(255,255,255,0.18);
+  --p:#ff5e5e;
+  --s:#ff3b3b;
 
-  --radius: 24px;
-  --shadow: 0 18px 55px rgba(12,18,28,0.14);
-  --shadow-soft: 0 10px 26px rgba(12,18,28,0.10);
+  --radius:24px;
+  --shadow:0 18px 55px rgba(12,18,28,0.14);
+  --shadow-soft:0 10px 26px rgba(12,18,28,0.10);
 
-  --gap: 12px;
+  /* paper */
+  --paper-strength:0.22;
+  --paper-grain:0.14;
+  --paper-fiber:0.10;
 
-  --paper-strength: 0.22; /* overall paper texture visibility */
-  --paper-grain: 0.14;    /* dot grain visibility */
-  --paper-fiber: 0.10;    /* fiber lines visibility */
+  /* ✅ dot emphasis only */
+  --dot-size:18px;
+  --dot-ring: rgba(255,255,255,0.92);
+  --dot-outline: rgba(0,0,0,0.22);
+  --dot-glow: rgba(255,255,255,0.25);
+  --dot-active-glow: rgba(255,255,255,0.55);
+
+  /* ✅ glass + gold edge */
+  --glass-bg: rgba(255,255,255,0.12);
+  --glass-stroke: rgba(255,255,255,0.18);
+  --gold-1: rgba(222, 186, 120, 0.70);
+  --gold-2: rgba(255, 243, 210, 0.55);
+  --gold-3: rgba(165, 120, 55, 0.40);
 }
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
+
 body{
   margin:0;
   font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: radial-gradient(1200px 800px at 15% 0%, rgba(255,94,94,0.16), transparent 55%),
-              radial-gradient(900px 700px at 90% 8%, rgba(0,168,255,0.12), transparent 55%),
-              var(--bg);
-  color: var(--ink);
+  color:var(--ink);
   overflow-x:hidden;
+
+  /* ✅ Natural, breathing gradient (not rigid blocks) */
+  background:
+    radial-gradient(1200px 820px at 12% 0%, rgba(255,94,94,0.14), transparent 58%),
+    radial-gradient(980px 760px at 92% 6%, rgba(0,168,255,0.10), transparent 60%),
+    radial-gradient(900px 700px at 40% 112%, rgba(125,95,255,0.08), transparent 62%),
+    linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.00)),
+    var(--bg);
 }
 
 /* ---------- Theme sets ---------- */
-/* Free */
+/* Free dots */
 body.color-1{ --p:#ff5e5e; --s:#ff3b3b; }
 body.color-2{ --p:#00a8ff; --s:#0097e6; }
 body.color-3{ --p:#ffa502; --s:#ff7f00; }
 body.color-4{ --p:#7d5fff; --s:#5f27cd; }
 body.color-5{ --p:#2ecc71; --s:#10ac84; }
 
-/* Premium dots (p1..p7) */
+/* Premium dots */
 body.p1{ --p:#a36d6d; --s:#7a4a4a; }
 body.p2{ --p:#722f37; --s:#4e1f25; }
 body.p3{ --p:#1c2e42; --s:#101d2b; }
@@ -60,17 +78,25 @@ body.p7{ --p:#444444; --s:#222222; }
 
 /* Mode */
 body.mode-free{}
+
+/* ✅ Premium bg reacts to --p (so premium color switching is visible) */
 body.mode-premium{
-  background: radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.12), transparent 55%),
-              radial-gradient(900px 700px at 85% 10%, rgba(191,149,63,0.10), transparent 56%),
-              #0f1218;
   color: rgba(255,255,255,0.92);
+  background:
+    radial-gradient(1100px 720px at 20% 0%, rgba(255,255,255,0.10), transparent 58%),
+    radial-gradient(860px 640px at 86% 10%, color-mix(in srgb, var(--p) 22%, transparent), transparent 62%),
+    radial-gradient(900px 700px at 40% 120%, color-mix(in srgb, var(--s) 14%, transparent), transparent 64%),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.00)),
+    #0f1218;
 }
+
 body.mode-premium .muted,
 body.mode-premium .unit,
-body.mode-premium .title{ color: rgba(255,255,255,0.74); }
+body.mode-premium .title{
+  color: rgba(255,255,255,0.74);
+}
 
-/* ---------- Admin hotspot (bottom-right, non-intrusive) ---------- */
+/* ---------- Admin hotspot ---------- */
 #adminHotspotBR{
   position: fixed;
   right: 10px;
@@ -80,22 +106,26 @@ body.mode-premium .title{ color: rgba(255,255,255,0.74); }
   border-radius: 999px;
   z-index: 9999;
   background: transparent;
-  opacity: 0.001; /* still clickable but not visible */
+  opacity: 0.001;
   pointer-events: auto;
 }
 
-/* ---------- Control panel ---------- */
+/* ---------- Panel ---------- */
 #admin-panel{
   position: sticky;
   top: 0;
   z-index: 50;
   padding: 12px 12px 10px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.70));
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.86), rgba(255,255,255,0.70)),
+    radial-gradient(800px 220px at 50% 0%, rgba(255,255,255,0.24), transparent 60%);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 body.mode-premium #admin-panel{
-  background: linear-gradient(180deg, rgba(18,20,28,0.78), rgba(18,20,28,0.56));
+  background:
+    linear-gradient(180deg, rgba(18,20,28,0.78), rgba(18,20,28,0.56)),
+    radial-gradient(900px 240px at 50% 0%, rgba(255,255,255,0.10), transparent 62%);
   border-bottom: 1px solid rgba(255,255,255,0.10);
 }
 
@@ -138,14 +168,20 @@ body.mode-premium #admin-panel{
   justify-content:center;
   flex-wrap:wrap;
 }
+/* ================================
+ * style.css v400.6 (COMPLETE OVERWRITE) 2/3
+ * - Buttons: keep size as v400.4
+ * - Add glass feel + subtle gold edge
+ * - Color dots: more obvious + strong active state
+ * ================================ */
 
-/* ---------- Buttons ---------- */
+/* ---------- Buttons (KEEP size) ---------- */
 .btn-neo{
   border: 1px solid rgba(0,0,0,0.10);
   background: rgba(255,255,255,0.85);
   color: var(--ink);
-  padding: 10px 14px;
-  border-radius: 14px;
+  padding: 10px 14px;          /* keep */
+  border-radius: 14px;          /* keep */
   font-weight: 800;
   letter-spacing: 0.5px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.08);
@@ -153,21 +189,56 @@ body.mode-premium #admin-panel{
   user-select:none;
   transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
 }
-.btn-neo:hover{ transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,0.10); }
-.btn-neo:active{ transform: translateY(0px) scale(0.98); }
 
 .btn-neo.pill{
   flex:1;
   min-width: 0;
-  padding: 12px 10px;
+  padding: 12px 10px;          /* keep */
   border-radius: 999px;
 }
+
+/* ✅ glass + gold edge (doesn't change size) */
+.btn-neo{
+  position: relative;
+  backdrop-filter: blur(8px);
+}
+.btn-neo::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  /* subtle glass sheen */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.04));
+  opacity: 0.55;
+}
+.btn-neo::after{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius: inherit;
+  pointer-events:none;
+  /* gold edge */
+  background: linear-gradient(135deg, var(--gold-1), var(--gold-2), var(--gold-3));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 1px;
+  opacity: 0.26;
+}
+
+.btn-neo:hover{ transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,0.10); }
+.btn-neo:active{ transform: translateY(0px) scale(0.98); }
 
 .btn-neo.active{
   border-color: rgba(0,0,0,0.16);
   background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.78));
   box-shadow: 0 12px 26px rgba(0,0,0,0.12);
 }
+.btn-neo.active::after{ opacity: 0.42; } /* gold edge stronger when active */
 
 body.mode-premium .btn-neo{
   border: 1px solid rgba(255,255,255,0.14);
@@ -175,36 +246,25 @@ body.mode-premium .btn-neo{
   color: rgba(255,255,255,0.92);
   box-shadow: 0 10px 25px rgba(0,0,0,0.40);
 }
+body.mode-premium .btn-neo::before{
+  background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.02));
+  opacity: 0.55;
+}
+body.mode-premium .btn-neo::after{ opacity: 0.34; }
 body.mode-premium .btn-neo.active{
   border-color: rgba(255,255,255,0.22);
   background: rgba(255,255,255,0.14);
 }
+body.mode-premium .btn-neo.active::after{ opacity: 0.52; }
 
-.dot,.p-dot{
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  border: 2px solid rgba(255,255,255,0.88);
-  outline: 2px solid rgba(0,0,0,0.08);
-  cursor:pointer;
-  padding:0;
-}
-body.mode-premium .dot,
-body.mode-premium .p-dot{
-  border-color: rgba(255,255,255,0.72);
-  outline-color: rgba(255,255,255,0.10);
-}
-.dot.active,.p-dot.active{
-  transform: scale(1.15);
-}
-
+/* CTA */
 .btn-cta{
   width: 100%;
   max-width: 520px;
   padding: 12px 14px;
   border-radius: 16px;
   border: none;
-  background: linear-gradient(135deg, var(--p), var(--s));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--p) 92%, #fff 8%), var(--s));
   color: #fff;
   font-weight: 900;
   letter-spacing: 0.6px;
@@ -213,14 +273,53 @@ body.mode-premium .p-dot{
 }
 .btn-cta:active{ transform: scale(0.99); }
 
-/* ---------- Card container ---------- */
+/* ---------- ✅ Color dots more obvious ---------- */
+.dot,.p-dot{
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: 999px;
+  border: 2px solid var(--dot-ring);
+  outline: 2px solid var(--dot-outline);
+  cursor:pointer;
+  padding:0;
+
+  box-shadow:
+    0 6px 14px rgba(0,0,0,0.18),
+    0 0 0 7px rgba(255,255,255,0.10),
+    0 0 26px var(--dot-glow);
+  transition: transform .12s ease, box-shadow .12s ease, outline-color .12s ease;
+}
+
+body.mode-premium .dot,
+body.mode-premium .p-dot{
+  outline-color: rgba(255,255,255,0.16);
+  box-shadow:
+    0 10px 18px rgba(0,0,0,0.45),
+    0 0 0 7px rgba(255,255,255,0.10),
+    0 0 34px rgba(255,255,255,0.18);
+}
+
+.dot:hover,.p-dot:hover{
+  transform: translateY(-1px) scale(1.08);
+}
+
+.dot.active,.p-dot.active{
+  transform: translateY(-1px) scale(1.22);
+  outline-color: color-mix(in srgb, var(--p) 55%, rgba(255,255,255,0.26));
+  box-shadow:
+    0 12px 24px rgba(0,0,0,0.22),
+    0 0 0 8px rgba(255,255,255,0.12),
+    0 0 40px var(--dot-active-glow),
+    0 0 26px color-mix(in srgb, var(--p) 40%, transparent);
+}
+
+/* ---------- Layout shell ---------- */
 #card-container{
   max-width: 520px;
   margin: 0 auto;
   padding: 14px 12px 40px;
 }
 
-/* ✅ Fix “版面歪”：卡片永遠置中，不受 panel 影響 */
 .card{
   position: relative;
   border-radius: var(--radius);
@@ -228,61 +327,52 @@ body.mode-premium .p-dot{
   background: var(--card);
   box-shadow: var(--shadow);
   border: 1px solid rgba(0,0,0,0.06);
-  transform: translateZ(0); /* anti-jitter on mobile */
 }
-
 body.mode-premium .card{
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.12);
   box-shadow: 0 26px 80px rgba(0,0,0,0.56);
 }
 
-/* ---------- Premium FX layer ---------- */
-.premium-fx-layer{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity: 0;
-}
-body.mode-premium .premium-fx-layer{
-  opacity: 1;
-  background:
-    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.14), transparent 60%),
-    radial-gradient(700px 520px at 90% 0%, rgba(191,149,63,0.14), transparent 58%),
-    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.06));
-}
-
-/* ---------- Banner (✅ anchor fixed) ---------- */
+/* Banner */
 .banner{
-  position: relative;      /* ✅ 關鍵：讓 dynamic-mask 以 banner 為定位參考 */
-  overflow: hidden;        /* ✅ 遮罩不外溢，避免「亂蓋」 */
+  position: relative;
   height: 120px;
-  background: linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0.00)),
-              radial-gradient(600px 200px at 30% 0%, rgba(255,255,255,0.55), transparent 65%),
-              linear-gradient(135deg, rgba(255,255,255,0.55), rgba(255,255,255,0.0));
+  background:
+    radial-gradient(650px 220px at 30% 0%, rgba(255,255,255,0.55), transparent 65%),
+    linear-gradient(135deg, rgba(255,255,255,0.50), rgba(255,255,255,0.0));
 }
 body.mode-premium .banner{
-  background: radial-gradient(600px 220px at 20% 0%, rgba(255,255,255,0.16), transparent 68%),
-              linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.00));
+  background:
+    radial-gradient(640px 240px at 20% 0%, rgba(255,255,255,0.16), transparent 68%),
+    linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.00));
 }
+
 .dynamic-mask{
   position:absolute;
   inset:0;
-  z-index: 1;              /* ✅ 層級固定在 banner 內 */
   pointer-events:none;
-  background: radial-gradient(520px 200px at 50% 40%, rgba(0,0,0,0.05), transparent 72%);
+  background:
+    radial-gradient(540px 220px at 50% 40%, rgba(0,0,0,0.05), transparent 74%),
+    radial-gradient(520px 220px at 40% 0%, color-mix(in srgb, var(--p) 10%, transparent), transparent 70%);
 }
+/* ================================
+ * style.css v400.6 (COMPLETE OVERWRITE) 3/3
+ * - Avatar / Logo (logo must be visible when exists)
+ * - Blocks / Docks
+ * - Photo wall: consistent thumbnail ratio
+ * - Version tag
+ * ================================ */
 
-/* ---------- Paper overlay (stronger but clean) ---------- */
+/* Paper overlay */
 .paper-overlay{
   position:absolute;
   inset:0;
   pointer-events:none;
   opacity: 1;
-  z-index: 2;              /* ✅ 紙感層在 banner mask 上方，但仍在卡片內 */
 }
 
-/* paper-1: 霧面棉紙（柔霧 + 細微顆粒） */
+/* paper-1 */
 body.paper-1 .paper-overlay{
   background:
     radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 55%),
@@ -294,7 +384,7 @@ body.paper-1 .paper-overlay{
   opacity: var(--paper-strength);
 }
 
-/* paper-2: 細顆粒紙（顆粒更明顯，但不髒） */
+/* paper-2 */
 body.paper-2 .paper-overlay{
   background:
     radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.18), transparent 55%),
@@ -307,23 +397,11 @@ body.paper-2 .paper-overlay{
   opacity: calc(var(--paper-strength) + 0.06);
 }
 
-/* paper-3: 亞麻紋（纖維線條更明顯，但保持乾淨） */
+/* paper-3 */
 body.paper-3 .paper-overlay{
   background:
-    repeating-linear-gradient(
-      45deg,
-      rgba(0,0,0, var(--paper-fiber)) 0px,
-      rgba(0,0,0, var(--paper-fiber)) 1px,
-      transparent 1px,
-      transparent 7px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      rgba(0,0,0, calc(var(--paper-fiber) * 0.75)) 0px,
-      rgba(0,0,0, calc(var(--paper-fiber) * 0.75)) 1px,
-      transparent 1px,
-      transparent 9px
-    ),
+    repeating-linear-gradient(45deg, rgba(0,0,0,var(--paper-fiber)) 0px, rgba(0,0,0,var(--paper-fiber)) 1px, transparent 1px, transparent 7px),
+    repeating-linear-gradient(-45deg, rgba(0,0,0,calc(var(--paper-fiber) * 0.75)) 0px, rgba(0,0,0,calc(var(--paper-fiber) * 0.75)) 1px, transparent 1px, transparent 9px),
     linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
   mix-blend-mode: soft-light;
   opacity: calc(var(--paper-strength) + 0.08);
@@ -334,14 +412,13 @@ body.mode-premium .paper-overlay{
   opacity: 0.18;
 }
 
-/* ---------- Avatar ---------- */
+/* Avatar */
 .avatar-wrap{
   position: relative;
   margin-top: -58px;
   display:flex;
   justify-content:center;
   padding-bottom: 6px;
-  z-index: 5; /* ✅ 保證頭像不被 banner/mask 影響 */
 }
 .avatar-circle{
   width: 120px;
@@ -365,29 +442,27 @@ body.mode-premium .avatar-circle{
   display:block;
 }
 
-/* ---------- Logo ---------- */
-.logo-wrap{
-  display:flex;
+/* ✅ Logo (must show if exists) */
+#logoWrap, .logo-wrap{
+  display:flex;                 /* default show; JS can hide when truly empty */
   justify-content:center;
-  padding: 4px 0 0;
+  padding: 6px 0 0;
 }
-.logo-img{
+#u-logo, .logo-img{
   max-width: 180px;
-  max-height: 52px;
+  max-height: 56px;
   object-fit: contain;
   border-radius: 12px;
+  display:block;
   filter: drop-shadow(0 10px 18px rgba(0,0,0,0.10));
 }
+body.mode-premium #u-logo,
 body.mode-premium .logo-img{
   filter: drop-shadow(0 14px 26px rgba(0,0,0,0.45));
 }
 
-/* ---------- Info scroll ---------- */
-.info-scroll{
-  padding: 10px 18px 18px;
-  position: relative;
-  z-index: 6; /* ✅ 內容區永遠在紙感之上 */
-}
+/* Info */
+.info-scroll{ padding: 10px 18px 18px; }
 .name{
   margin: 8px 0 6px;
   font-size: 26px;
@@ -402,23 +477,9 @@ body.mode-premium .logo-img{
   color: var(--muted);
   line-height: 1.5;
 }
-.slogan{
-  margin: 10px auto 0;
-  max-width: 420px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.06);
-  background: rgba(255,255,255,0.65);
-  text-align:center;
-  font-weight: 800;
-  white-space: pre-line;
-}
-body.mode-premium .slogan{
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.12);
-}
+.preline{ white-space: pre-line; }
 
-/* ---------- Info blocks ---------- */
+/* Blocks */
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
@@ -430,18 +491,10 @@ body.mode-premium .info-block{
   background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.12);
 }
-.block-title{
-  font-weight: 900;
-  letter-spacing: 0.6px;
-  margin-bottom: 6px;
-}
-.block-body{
-  color: var(--muted);
-  font-weight: 700;
-}
-.preline{ white-space: pre-line; }
+.block-title{ font-weight: 900; letter-spacing: 0.6px; margin-bottom: 6px; }
+.block-body{ color: var(--muted); font-weight: 700; }
 
-/* ---------- Dock containers (shared) ---------- */
+/* Docks */
 .contact-dock{
   margin-top: 12px;
   border-radius: 18px;
@@ -454,21 +507,20 @@ body.mode-premium .contact-dock{
   border-color: rgba(255,255,255,0.12);
 }
 
-/* ✅ 關鍵：一半並排、動態平衡 */
 .dock-buttons{
-  display: grid;
+  display:grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-/* buttons */
 .dock-btn{
   display:flex;
   align-items:center;
   justify-content:center;
   gap: 8px;
-  padding: 10px 10px;
-  border-radius: 14px;
+  padding: 12px 12px;
+  min-height: 52px;
+  border-radius: 16px;
   border: 1px solid rgba(0,0,0,0.10);
   background: rgba(255,255,255,0.88);
   color: var(--ink);
@@ -476,83 +528,39 @@ body.mode-premium .contact-dock{
   cursor:pointer;
   box-shadow: 0 10px 18px rgba(0,0,0,0.08);
   transition: transform .12s ease, box-shadow .12s ease;
+
+  /* ✅ glass + gold edge for dock buttons too */
+  position: relative;
+  backdrop-filter: blur(8px);
+}
+.dock-btn::after{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius: inherit;
+  pointer-events:none;
+  background: linear-gradient(135deg, var(--gold-1), var(--gold-2), var(--gold-3));
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 1px;
+  opacity: 0.22;
 }
 .dock-btn:hover{ transform: translateY(-1px); box-shadow: 0 14px 22px rgba(0,0,0,0.10); }
 .dock-btn:active{ transform: scale(0.99); }
-
-.dock-btn i{ font-size: 18px; }
-.dock-btn span{ font-size: 14px; letter-spacing: 0.4px; }
-
-/* ✅ 落單拉長佔一排（JS 加 .wide） */
 .dock-btn.wide{ grid-column: 1 / -1; }
 
-/* Premium mode button contrast */
 body.mode-premium .dock-btn{
   border-color: rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.10);
   color: rgba(255,255,255,0.92);
   box-shadow: 0 18px 35px rgba(0,0,0,0.55);
 }
+body.mode-premium .dock-btn::after{ opacity: 0.30; }
 
-/* ---------- ✅ Media dock independent style ---------- */
-#mediaDock{
-  margin-top: 14px !important;
-  border: 1px solid rgba(0,0,0,0.08);
-  background:
-    radial-gradient(520px 220px at 20% 0%, rgba(255,94,94,0.10), transparent 60%),
-    radial-gradient(520px 220px at 90% 0%, rgba(0,168,255,0.10), transparent 60%),
-    rgba(255,255,255,0.72);
-}
-body.mode-premium #mediaDock{
-  background:
-    radial-gradient(520px 220px at 25% 0%, rgba(255,255,255,0.10), transparent 60%),
-    radial-gradient(520px 220px at 90% 0%, rgba(191,149,63,0.10), transparent 62%),
-    rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.14);
-}
-
-/* Media dock buttons slightly “showcase” */
-#mediaDock .dock-btn{
-  border-width: 1.2px;
-}
-
-/* ---------- Media dock visual variation (by kind class) ---------- */
-.dock-btn.dock-yt{
-  border-color: rgba(255,0,0,0.20);
-  background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,240,240,0.82));
-}
-.dock-btn.dock-fb{
-  border-color: rgba(24,119,242,0.20);
-  background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(235,244,255,0.82));
-}
-.dock-btn.dock-ig{
-  border-color: rgba(225,48,108,0.20);
-  background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,235,244,0.82));
-}
-.dock-btn.dock-line{
-  border-color: rgba(6,199,85,0.20);
-  background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(236,255,245,0.82));
-}
-.dock-btn.dock-map{
-  border-color: rgba(255,94,94,0.18);
-  background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,245,245,0.82));
-}
-.dock-btn.dock-web{
-  border-color: rgba(0,0,0,0.10);
-}
-
-/* Premium mode variations keep subtle */
-body.mode-premium .dock-btn.dock-yt,
-body.mode-premium .dock-btn.dock-fb,
-body.mode-premium .dock-btn.dock-ig,
-body.mode-premium .dock-btn.dock-line,
-body.mode-premium .dock-btn.dock-map,
-body.mode-premium .dock-btn.dock-web{
-  background: rgba(255,255,255,0.10);
-  border-color: rgba(255,255,255,0.16);
-}
-
-/* ---------- Photo wall ---------- */
+/* Photo wall (consistent thumbnails) */
 .photo-wall{
   margin-top: 14px;
   border-radius: 18px;
@@ -564,14 +572,12 @@ body.mode-premium .photo-wall{
   background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.12);
 }
+.photo-grid{ display:grid; gap:10px; grid-template-columns: repeat(3, minmax(0,1fr)); }
 
-.photo-grid{
-  display:grid;
-  gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr)); /* JS will override */
-}
+/* ✅ 縮圖比例一致：3:4（想改1:1就把這行改成 1/1） */
 .wall-img{
   width:100%;
+  aspect-ratio: 3 / 4;
   border-radius: 14px;
   object-fit: cover;
   display:block;
@@ -579,7 +585,7 @@ body.mode-premium .photo-wall{
   border: 1px solid rgba(0,0,0,0.06);
 }
 
-/* ---------- Version tag ---------- */
+/* Version */
 .version-tag{
   margin-top: 14px;
   text-align:center;
@@ -587,14 +593,12 @@ body.mode-premium .photo-wall{
   font-size: 12px;
   color: rgba(0,0,0,0.45);
 }
-body.mode-premium .version-tag{
-  color: rgba(255,255,255,0.46);
-}
+body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 
-/* ---------- Mobile tweaks ---------- */
+/* small phones */
 @media (max-width: 360px){
   .name{ font-size: 24px; }
   .avatar-circle{ width: 110px; height: 110px; }
   .dock-buttons{ gap: 8px; }
-  .dock-btn{ padding: 10px 8px; }
+  .dock-btn{ padding: 12px 10px; }
 }
