@@ -1,76 +1,57 @@
 /* ================================
  * style.css v401.1 (COMPLETE OVERWRITE) 1/3
- * Theme System Rebuild
- * - Free colors c1–c5
- * - Premium colors p1–p7 (FULL CARD SYNC)
+ * - CLASS ALIGN FIX (match index.html/app.js)
+ *   Free : body.mode-free + color-1..5 + style-arch/flat/spot + paper-1..3
+ *   Premium: body.mode-premium + p1..p7 (FULL CARD SYNC)
+ * - Refined typography (smaller, boutique)
  * ================================ */
 
 :root{
   --bg:#f6f7fb;
   --ink:#1f2430;
-  --muted:rgba(31,36,48,.65);
-
-  --p:#ff5e5e;
-  --s:#ff3b3b;
+  --muted:rgba(31,36,48,.66);
 
   --radius:26px;
   --shadow:0 20px 60px rgba(0,0,0,.12);
+  --shadow-soft:0 14px 34px rgba(0,0,0,.12);
+
+  --card-white:rgba(255,255,255,.92);
+  --line:rgba(0,0,0,.06);
+
+  /* theme base (will be overridden by classes) */
+  --p:#ff6b81;
+  --s:#ff4757;
 }
 
-/* ===== Free Colors (自由搭配款) ===== */
+/* ---------- Free colors (c1~c5) ---------- */
+/* c1粉 c2藍 c3橘 c4紫 c5綠 */
+body.color-1{ --p:#ff6b81; --s:#ff4757; }
+body.color-2{ --p:#1e90ff; --s:#3742fa; }
+body.color-3{ --p:#ffa502; --s:#ff7f00; }
+body.color-4{ --p:#7d5fff; --s:#5f27cd; }
+body.color-5{ --p:#2ed573; --s:#10ac84; }
 
-body.c1{ --p:#ff6b81; --s:#ff4757; }
-body.c2{ --p:#1e90ff; --s:#3742fa; }
-body.c3{ --p:#ffa502; --s:#ff7f00; }
-body.c4{ --p:#7d5fff; --s:#5f27cd; }
-body.c5{ --p:#2ed573; --s:#10ac84; }
-
-/* ===== Premium Colors (精品設計款) ===== */
-/* ⚠️ 重點：整張卡片同步，不只 banner */
-
-body.p1{ --p:#d96c6c; --s:#b23b3b; }  /* 胭脂 */
-body.p2{ --p:#722f37; --s:#4e1f25; }  /* 酒紅 */
-body.p3{ --p:#1c2e42; --s:#101d2b; }  /* 深藍 */
-body.p4{ --p:#5e548e; --s:#40376b; }  /* 霧紫 */
-body.p5{ --p:#8aa0b6; --s:#5f7489; }  /* 藍灰 */
-body.p6{ --p:#bf953f; --s:#8f6b1c; }  /* 金箔 */
-body.p7{ --p:#5a4a3f; --s:#2f2926; }  /* 褐碳 */
+/* ---------- Premium tones (p1~p7) ---------- */
+/* p1胭脂 p2酒紅 p3深藍 p4霧紫 p5藍灰 p6金箔 p7褐碳 */
+body.p1{ --p:#d96c6c; --s:#b23b3b; }
+body.p2{ --p:#722f37; --s:#4e1f25; }
+body.p3{ --p:#1c2e42; --s:#101d2b; }
+body.p4{ --p:#5e548e; --s:#40376b; }
+body.p5{ --p:#8aa0b6; --s:#5f7489; }
+body.p6{ --p:#bf953f; --s:#8f6b1c; }
+body.p7{ --p:#5a4a3f; --s:#2f2926; }
 
 *{ box-sizing:border-box; }
+html,body{ height:100%; }
 
 body{
   margin:0;
-  font-family:"Noto Sans TC", sans-serif;
-  background:var(--bg);
-  color:var(--ink);
+  font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
 }
 
-/* 卡片主體 */
-
-.card{
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  background:linear-gradient(135deg,var(--p),var(--s));
-  overflow:hidden;
-  position:relative;
-}
-
-/* Premium 模式更有玻璃光影 */
-
-body.mode-premium .card{
-  background:
-    radial-gradient(800px 400px at 20% 0%, rgba(255,255,255,.25), transparent 60%),
-    linear-gradient(135deg,var(--p),var(--s));
-}
-/* ================================
- * style.css v401.1 (COMPLETE OVERWRITE) 2/3
- * - Layout + Banner styles (s1/s2/s3)
- * - FIX: .banner position relative (dynamic-mask skew)
- * - Free: has banner
- * - Premium: NO banner (hide)
- * ================================ */
-
-/* ---------- Page frame ---------- */
+/* ---------- Sticky control panel ---------- */
 #admin-panel{
   position: sticky;
   top: 0;
@@ -100,103 +81,27 @@ body.mode-premium #admin-panel{
   padding: 14px 12px 40px;
 }
 
-/* ---------- Banner base ---------- */
-/* ✅ FIX: dynamic-mask absolute 需要參考點 */
-.banner{
-  position: relative;
-  height: 130px;
-  overflow:hidden;
-}
-
-/* 自由款：有 banner（s1/s2/s3 會切換） */
-body.mode-free .banner{ display:block; }
-
-/* 精品款：不要 banner */
-body.mode-premium .banner{ display:none !important; }
-
-/* dynamic mask */
-.dynamic-mask{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  background:
-    radial-gradient(520px 220px at 50% 35%, rgba(255,255,255,0.25), transparent 70%),
-    radial-gradient(680px 260px at 80% 20%, rgba(0,0,0,0.08), transparent 70%);
-  opacity: .55;
-}
-
-/* ---------- Style s1/s2/s3 (Free) ---------- */
-/* s1 正拱：上緣弧形 느낌（參考 v399） */
-body.s1 .banner{
-  background:
-    radial-gradient(900px 320px at 50% -10%, rgba(255,255,255,0.55), transparent 70%),
-    linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0.00)),
-    linear-gradient(135deg, var(--p), var(--s));
-}
-body.s1 .banner::after{
-  content:"";
-  position:absolute;
-  left:-25%;
-  right:-25%;
-  bottom:-66px;
-  height:140px;
-  background: rgba(255,255,255,0.92);
-  border-top-left-radius: 80% 100%;
-  border-top-right-radius: 80% 100%;
-  transform: translateY(0);
-  opacity: .95;
-}
-
-/* s2 平直：乾淨俐落 */
-body.s2 .banner{
-  background:
-    radial-gradient(780px 280px at 40% 0%, rgba(255,255,255,0.50), transparent 70%),
-    linear-gradient(135deg, var(--p), var(--s));
-}
-body.s2 .banner::after{
-  content:"";
-  position:absolute;
-  left:0; right:0;
-  bottom:0;
-  height:18px;
-  background: rgba(255,255,255,0.92);
-  opacity: .90;
-}
-
-/* s3 晨曦：更柔、更自然（漸層不死板） */
-body.s3 .banner{
-  background:
-    radial-gradient(520px 220px at 20% 0%, rgba(255,255,255,0.55), transparent 72%),
-    radial-gradient(620px 260px at 80% 10%, rgba(255,255,255,0.28), transparent 70%),
-    linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.05)),
-    linear-gradient(135deg, var(--p), var(--s));
-}
-body.s3 .banner::after{
-  content:"";
-  position:absolute;
-  left:-10%;
-  right:-10%;
-  bottom:-52px;
-  height:120px;
-  background: rgba(255,255,255,0.92);
-  border-top-left-radius: 60% 100%;
-  border-top-right-radius: 60% 100%;
-  opacity: .92;
-}
-
-/* ---------- Card inner surface (free vs premium) ---------- */
-.card-surface{
+/* ---------- Card (base) ---------- */
+.card{
   position:relative;
-  background: rgba(255,255,255,0.92);
-}
-body.mode-premium .card-surface{
-  background:
-    radial-gradient(900px 520px at 25% 10%, rgba(255,255,255,0.18), transparent 60%),
-    radial-gradient(700px 520px at 90% 0%, rgba(255,255,255,0.10), transparent 58%),
-    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.12));
+  border-radius: var(--radius);
+  overflow:hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+  background: var(--card-white);
 }
 
-/* Premium glass layer */
+/* Premium: FULL CARD SYNC (no banner, whole card tone) */
+body.mode-premium .card{
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 26px 80px rgba(0,0,0,0.56);
+  background:
+    radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.18), transparent 58%),
+    radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.10), transparent 60%),
+    linear-gradient(135deg, var(--p), var(--s));
+}
+
+/* Premium FX layer (exists in HTML) */
 .premium-fx-layer{
   position:absolute;
   inset:0;
@@ -210,47 +115,186 @@ body.mode-premium .premium-fx-layer{
     radial-gradient(700px 520px at 90% 0%, rgba(255,255,255,0.10), transparent 58%);
 }
 /* ================================
- * style.css v401.1 (COMPLETE OVERWRITE) 3/3
- * - Paper textures (f1/f2/f3) stronger but clean
- * - Buttons: glass + gold edge (premium), keep 400.4 feel
- * - Dots: c1~c5 + p1~p7 more visible
- * - Logo circle
- * - Photo wall: dynamic balance (no empty/odd gap feel)
+ * style.css v401.1 (COMPLETE OVERWRITE) 2/3
+ * - Banner styles (Free only): style-arch/flat/spot (s1/s2/s3)
+ * - Avatar bg opaque (both modes)
+ * - Layout blocks
  * ================================ */
 
-/* ---------- Card base ---------- */
-.card{
-  position: relative;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--card);
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(0,0,0,0.06);
-}
-body.mode-premium .card{
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: 0 26px 80px rgba(0,0,0,0.56);
+/* ---------- Banner (exists in HTML) ---------- */
+.banner{
+  position: relative; /* ✅ dynamic-mask reference */
+  height: 130px;
+  overflow:hidden;
 }
 
-/* Paper overlay sits inside card */
+/* Free: show banner */
+body.mode-free .banner{ display:block; }
+
+/* Premium: NO banner */
+body.mode-premium .banner{ display:none !important; }
+
+/* dynamic mask */
+.dynamic-mask{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(520px 220px at 50% 35%, rgba(255,255,255,0.25), transparent 70%),
+    radial-gradient(680px 260px at 80% 20%, rgba(0,0,0,0.08), transparent 70%);
+  opacity: .55;
+}
+
+/* ---------- Free banner styles ---------- */
+/* s1 正拱 => style-arch */
+body.mode-free.style-arch .banner{
+  background:
+    radial-gradient(900px 320px at 50% -10%, rgba(255,255,255,0.55), transparent 70%),
+    linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0.00)),
+    linear-gradient(135deg, var(--p), var(--s));
+}
+body.mode-free.style-arch .banner::after{
+  content:"";
+  position:absolute;
+  left:-25%;
+  right:-25%;
+  bottom:-66px;
+  height:140px;
+  background: rgba(255,255,255,0.92);
+  border-top-left-radius: 80% 100%;
+  border-top-right-radius: 80% 100%;
+  opacity: .95;
+}
+
+/* s2 平直 => style-flat */
+body.mode-free.style-flat .banner{
+  background:
+    radial-gradient(780px 280px at 40% 0%, rgba(255,255,255,0.50), transparent 70%),
+    linear-gradient(135deg, var(--p), var(--s));
+}
+body.mode-free.style-flat .banner::after{
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  bottom:0;
+  height:18px;
+  background: rgba(255,255,255,0.92);
+  opacity: .90;
+}
+
+/* s3 晨曦 => style-spot (more natural) */
+body.mode-free.style-spot .banner{
+  background:
+    radial-gradient(520px 220px at 20% 0%, rgba(255,255,255,0.55), transparent 72%),
+    radial-gradient(620px 260px at 80% 10%, rgba(255,255,255,0.28), transparent 70%),
+    linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.05)),
+    linear-gradient(135deg, var(--p), var(--s));
+}
+body.mode-free.style-spot .banner::after{
+  content:"";
+  position:absolute;
+  left:-10%;
+  right:-10%;
+  bottom:-52px;
+  height:120px;
+  background: rgba(255,255,255,0.92);
+  border-top-left-radius: 60% 100%;
+  border-top-right-radius: 60% 100%;
+  opacity: .92;
+}
+
+/* ---------- Paper overlay (Free only; premium uses glass tone) ---------- */
 .paper-overlay{
   position:absolute;
   inset:0;
   pointer-events:none;
-  opacity: 1;
+  opacity:1;
+}
+body.mode-premium .paper-overlay{ display:none !important; }
+
+/* ---------- Avatar (opaque bg; your requirement) ---------- */
+.avatar-wrap{
+  position: relative;
+  margin-top: -58px;
+  display:flex;
+  justify-content:center;
+  padding-bottom: 6px;
+}
+.avatar-circle{
+  width: 112px;
+  height: 112px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.92); /* ✅ opaque */
+  padding: 6px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+body.mode-premium .avatar-circle{
+  background: rgba(255,255,255,0.92); /* ✅ premium also opaque */
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.55);
+}
+.avatar{
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  object-fit: cover;
+  display:block;
 }
 
-/* ✅ 紙感再加重一點，但用 soft-light / overlay 控制「乾淨」 */
+/* ---------- Logo (auto circle) ---------- */
+.logo-wrap{
+  display:flex;
+  justify-content:center;
+  padding: 6px 0 0;
+}
+.logo-img{
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 14px 26px rgba(0,0,0,0.14);
+}
+body.mode-premium .logo-img{
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.55);
+}
+
+/* ---------- Info typography (refined / smaller) ---------- */
+.info-scroll{ padding: 10px 18px 18px; }
+.name{
+  margin: 8px 0 6px;
+  font-size: 22px;     /* ✅ smaller */
+  letter-spacing: 0.6px;
+  font-weight: 900;
+  text-align:center;
+}
+.unit, .title{
+  text-align:center;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+/* ================================
+ * style.css v401.1 (COMPLETE OVERWRITE) 3/3
+ * - Paper textures (paper-1..3) stronger but CLEAN
+ * - Buttons: keep 400.4 feel + Premium glass gold edge
+ * - Dots: clearer
+ * - Blocks / Docks / Photo wall (thumbs consistent 1:1)
+ * ================================ */
+
+/* ---------- Paper textures (clean, stronger, not dirty) ---------- */
 :root{
-  --paper-strength: 0.30; /* ↑ from 0.22 */
-  --paper-grain: 0.18;    /* ↑ from 0.14 */
-  --paper-fiber: 0.13;    /* ↑ from 0.10 */
+  --paper-strength: 0.32;
+  --paper-grain: 0.16;
+  --paper-fiber: 0.12;
 }
 
-/* f1 棉紙（柔霧＋細顆粒） */
-body.f1 .paper-overlay,
-body.paper-1 .paper-overlay{
+/* paper-1 = f1 棉紙 */
+body.mode-free.paper-1 .paper-overlay{
   background:
     radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 60%),
     radial-gradient(1px 1px at 38px 42px, rgba(0,0,0,calc(var(--paper-grain) * 0.88)), transparent 60%),
@@ -261,23 +305,21 @@ body.paper-1 .paper-overlay{
   opacity: var(--paper-strength);
 }
 
-/* f2 顆粒（顆粒更明顯） */
-body.f2 .paper-overlay,
-body.paper-2 .paper-overlay{
+/* paper-2 = f2 顆粒 */
+body.mode-free.paper-2 .paper-overlay{
   background:
-    radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.20), transparent 60%),
-    radial-gradient(1px 1px at 26px 44px, rgba(0,0,0,0.18), transparent 60%),
-    radial-gradient(1px 1px at 58px 30px, rgba(0,0,0,0.16), transparent 60%),
-    radial-gradient(1px 1px at 84px 62px, rgba(0,0,0,0.14), transparent 60%),
+    radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.18), transparent 60%),
+    radial-gradient(1px 1px at 26px 44px, rgba(0,0,0,0.16), transparent 60%),
+    radial-gradient(1px 1px at 58px 30px, rgba(0,0,0,0.14), transparent 60%),
+    radial-gradient(1px 1px at 84px 62px, rgba(0,0,0,0.12), transparent 60%),
     linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.03));
   background-size: 56px 56px, 74px 74px, 92px 92px, 110px 110px, auto;
   mix-blend-mode: overlay;
   opacity: calc(var(--paper-strength) + 0.08);
 }
 
-/* f3 亞麻（纖維線條） */
-body.f3 .paper-overlay,
-body.paper-3 .paper-overlay{
+/* paper-3 = f3 亞麻 */
+body.mode-free.paper-3 .paper-overlay{
   background:
     repeating-linear-gradient(
       45deg,
@@ -298,94 +340,6 @@ body.paper-3 .paper-overlay{
   opacity: calc(var(--paper-strength) + 0.10);
 }
 
-/* Premium：紙感更輕，避免髒 */
-body.mode-premium .paper-overlay{
-  mix-blend-mode: screen;
-  opacity: 0.16;
-}
-
-/* ---------- Avatar (no background transparent) ---------- */
-.avatar-wrap{
-  position: relative;
-  margin-top: -58px;
-  display:flex;
-  justify-content:center;
-  padding-bottom: 6px;
-}
-.avatar-circle{
-  width: 120px;
-  height: 120px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.92); /* ✅ 不透明 */
-  padding: 6px;
-  box-shadow: var(--shadow-soft);
-  border: 1px solid rgba(0,0,0,0.08);
-}
-body.mode-premium .avatar-circle{
-  background: rgba(255,255,255,0.92); /* ✅ 精品也不透明 */
-  border: 1px solid rgba(255,255,255,0.22);
-  box-shadow: 0 18px 45px rgba(0,0,0,0.55);
-}
-.avatar{
-  width: 100%;
-  height: 100%;
-  border-radius: 999px;
-  object-fit: cover;
-  display:block;
-}
-
-/* ---------- Logo (auto circle) ---------- */
-.logo-wrap{
-  display:flex;
-  justify-content:center;
-  padding: 6px 0 0;
-}
-.logo-img{
-  width: 64px;
-  height: 64px;
-  border-radius: 999px;          /* ✅ 圓形 */
-  object-fit: cover;             /* ✅ 置中裁切成圓 */
-  background: rgba(255,255,255,0.92);
-  border: 1px solid rgba(0,0,0,0.08);
-  box-shadow: 0 14px 26px rgba(0,0,0,0.14);
-}
-body.mode-premium .logo-img{
-  border: 1px solid rgba(255,255,255,0.22);
-  box-shadow: 0 18px 45px rgba(0,0,0,0.55);
-}
-
-/* ---------- Info ---------- */
-.info-scroll{ padding: 10px 18px 18px; }
-.name{
-  margin: 8px 0 6px;
-  font-size: 26px;
-  letter-spacing: 0.8px;
-  font-weight: 900;
-  text-align:center;
-}
-.unit, .title{
-  text-align:center;
-  font-weight: 800;
-  font-size: 14px;
-  color: var(--muted);
-  line-height: 1.5;
-}
-.slogan{
-  margin: 10px auto 0;
-  max-width: 420px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.06);
-  background: rgba(255,255,255,0.68);
-  text-align:center;
-  font-weight: 800;
-  white-space: pre-line;
-}
-body.mode-premium .slogan{
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.12);
-}
-
 /* ---------- Buttons (keep 400.4 feel) ---------- */
 .btn-neo{
   border: 1px solid rgba(0,0,0,0.10);
@@ -394,13 +348,13 @@ body.mode-premium .slogan{
   padding: 10px 14px;
   border-radius: 14px;
   font-weight: 900;
-  letter-spacing: 0.6px;
+  font-size: 14px;
+  letter-spacing: 0.4px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.08);
   cursor:pointer;
   user-select:none;
   transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
 }
-.btn-neo:hover{ transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,0.10); }
 .btn-neo:active{ transform: translateY(0px) scale(0.98); }
 .btn-neo.pill{ flex:1; min-width: 0; padding: 12px 10px; border-radius: 999px; }
 .btn-neo.active{
@@ -409,7 +363,7 @@ body.mode-premium .slogan{
   box-shadow: 0 12px 26px rgba(0,0,0,0.12);
 }
 
-/* ✅ 精品：玻璃 + 金邊 */
+/* Premium: glass + gold edge */
 body.mode-premium .btn-neo{
   position: relative;
   border: 1px solid rgba(255,255,255,0.14);
@@ -443,15 +397,17 @@ body.mode-premium .btn-neo.active{
   background: linear-gradient(135deg, var(--p), var(--s));
   color: #fff;
   font-weight: 900;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   box-shadow: 0 16px 32px rgba(0,0,0,0.16);
   cursor:pointer;
 }
-.btn-cta:active{ transform: scale(0.99); }
+.btn-cta.subtle{ background: rgba(0,0,0,0.10); color: rgba(255,255,255,0.92); }
+body.mode-free .btn-cta.subtle{ background: rgba(0,0,0,0.06); color: var(--ink); }
 
 /* ---------- Dots more visible ---------- */
+.dots-row{ display:flex; gap:10px; align-items:center; justify-content:center; }
 .dot,.p-dot{
-  width: 16px;                 /* ✅ 更明顯 */
+  width: 16px;
   height: 16px;
   border-radius: 999px;
   border: 2px solid rgba(255,255,255,0.92);
@@ -459,6 +415,7 @@ body.mode-premium .btn-neo.active{
   cursor:pointer;
   padding:0;
   box-shadow: 0 10px 18px rgba(0,0,0,0.10);
+  transition: transform .12s ease;
 }
 .dot.active,.p-dot.active{ transform: scale(1.18); }
 
@@ -469,7 +426,35 @@ body.mode-premium .p-dot{
   box-shadow: 0 14px 28px rgba(0,0,0,0.55);
 }
 
+/* color dots actual fill */
+.dot-1{ background:#ff6b81; }
+.dot-2{ background:#1e90ff; }
+.dot-3{ background:#ffa502; }
+.dot-4{ background:#7d5fff; }
+.dot-5{ background:#2ed573; }
+.p1{ background:#d96c6c; }
+.p2{ background:#722f37; }
+.p3{ background:#1c2e42; }
+.p4{ background:#5e548e; }
+.p5{ background:#8aa0b6; }
+.p6{ background:#bf953f; }
+.p7{ background:#5a4a3f; }
+
 /* ---------- Blocks / Docks / Photo wall ---------- */
+.section-title{
+  width:100%;
+  max-width: 520px;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .4px;
+  opacity:.82;
+  text-align:left;
+}
+
+.btn-row{ display:flex; gap:10px; width:100%; max-width:520px; }
+.plan-row{ display:flex; gap:10px; width:100%; max-width:520px; }
+.controls-block{ width:100%; max-width:520px; display:flex; flex-direction:column; gap:10px; align-items:center; }
+
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
@@ -481,8 +466,8 @@ body.mode-premium .info-block{
   background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.12);
 }
-.block-title{ font-weight: 900; letter-spacing: 0.6px; margin-bottom: 6px; }
-.block-body{ color: var(--muted); font-weight: 700; }
+.block-title{ font-weight: 900; letter-spacing: 0.5px; margin-bottom: 6px; font-size:13px; }
+.block-body{ color: var(--muted); font-weight: 700; font-size: 13px; }
 .preline{ white-space: pre-line; }
 
 .contact-dock{
@@ -496,13 +481,13 @@ body.mode-premium .contact-dock{
   background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.12);
 }
+.dock-title{ font-weight:900; font-size:13px; opacity:.86; margin: 2px 2px 10px; }
 
 .dock-buttons{
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
-
 .dock-btn{
   position: relative;
   display:flex;
@@ -519,10 +504,9 @@ body.mode-premium .contact-dock{
   box-shadow: 0 10px 18px rgba(0,0,0,0.08);
   transition: transform .12s ease, box-shadow .12s ease;
 }
-.dock-btn:hover{ transform: translateY(-1px); box-shadow: 0 14px 22px rgba(0,0,0,0.10); }
 .dock-btn:active{ transform: scale(0.99); }
-.dock-btn i{ font-size: 18px; }
-.dock-btn span{ font-size: 14px; letter-spacing: 0.4px; }
+.dock-btn i{ font-size: 17px; }
+.dock-btn span{ font-size: 13px; letter-spacing: 0.3px; }
 .dock-btn.wide{ grid-column: 1 / -1; }
 
 body.mode-premium .dock-btn{
@@ -531,7 +515,6 @@ body.mode-premium .dock-btn{
   color: rgba(255,255,255,0.92);
   box-shadow: 0 18px 35px rgba(0,0,0,0.55);
 }
-/* ✅ 精品 dock 也給金邊玻璃 */
 body.mode-premium .dock-btn::after{
   content:"";
   position:absolute; inset:-1px;
@@ -544,23 +527,7 @@ body.mode-premium .dock-btn::after{
   opacity: .85;
 }
 
-/* Media variations (keep) */
-.dock-btn.dock-yt{ border-color: rgba(255,0,0,0.20); }
-.dock-btn.dock-fb{ border-color: rgba(24,119,242,0.20); }
-.dock-btn.dock-ig{ border-color: rgba(225,48,108,0.20); }
-.dock-btn.dock-line{ border-color: rgba(6,199,85,0.20); }
-.dock-btn.dock-map{ border-color: rgba(255,94,94,0.18); }
-.dock-btn.dock-web{ border-color: rgba(0,0,0,0.10); }
-body.mode-premium .dock-btn.dock-yt,
-body.mode-premium .dock-btn.dock-fb,
-body.mode-premium .dock-btn.dock-ig,
-body.mode-premium .dock-btn.dock-line,
-body.mode-premium .dock-btn.dock-map,
-body.mode-premium .dock-btn.dock-web{
-  border-color: rgba(255,255,255,0.16);
-}
-
-/* ---------- Photo wall (dynamic balance, no "empty") ---------- */
+/* ---------- Photo wall (thumb ratio consistent) ---------- */
 .photo-wall{
   margin-top: 14px;
   border-radius: 18px;
@@ -572,17 +539,14 @@ body.mode-premium .photo-wall{
   background: rgba(255,255,255,0.08);
   border-color: rgba(255,255,255,0.12);
 }
-
 .photo-grid{
   display:grid;
   gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr)); /* JS 仍會覆蓋 */
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* JS can override */
 }
-
-/* ✅ 讓縮圖比例一致：統一 1:1，不會忽大忽小 */
 .wall-img{
   width:100%;
-  aspect-ratio: 1 / 1;      /* ✅ 一致比例縮圖 */
+  aspect-ratio: 1 / 1;
   border-radius: 14px;
   object-fit: cover;
   display:block;
@@ -591,7 +555,7 @@ body.mode-premium .photo-wall{
   background: rgba(255,255,255,0.55);
 }
 
-/* ---------- Version tag ---------- */
+/* Version tag */
 .version-tag{
   margin-top: 14px;
   text-align:center;
@@ -601,10 +565,10 @@ body.mode-premium .photo-wall{
 }
 body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 
-/* ---------- Mobile tweaks ---------- */
+/* Mobile */
 @media (max-width: 360px){
-  .name{ font-size: 24px; }
-  .avatar-circle{ width: 110px; height: 110px; }
+  .name{ font-size: 21px; }
+  .avatar-circle{ width: 108px; height: 108px; }
   .dot,.p-dot{ width: 15px; height: 15px; }
   .dock-buttons{ gap: 8px; }
   .dock-btn{ padding: 10px 8px; }
