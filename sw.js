@@ -1,19 +1,15 @@
 /* ================================
- * sw.js (v404 COMPLETE OVERWRITE)
+ * sw.js (v405 COMPLETE OVERWRITE)
  * - App shell cache
  * - Stale-while-revalidate for static assets
  * - Network-first for HTML navigations (fallback to cache)
- * - FORCE UPDATE:
- *   1) skipWaiting on install
- *   2) clients.claim on activate
- *   3) broadcast "SW_ACTIVATED" to all clients
- *   4) accept SKIP_WAITING message
+ * - version.json: ALWAYS network (no cache)  ✅核心防呆
+ * - FORCE UPDATE broadcast on activate
  * ================================ */
 
-const SW_VERSION = "v404";
+const SW_VERSION = "v405";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
-// ✅ 只快取穩定殼（不要帶 ?id）
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -29,26 +25,23 @@ const APP_SHELL = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./og-card.png",
+  // ❌ 不要把 version.json 加進 shell
 ];
 
-// ---- install: cache shell + takeover ASAP
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     try {
       await cache.addAll(APP_SHELL);
-    } catch (e) {
-      // 防單檔不存在導致 install 失敗：逐一加入
+    } catch {
       for (const url of APP_SHELL) {
         try { await cache.add(url); } catch {}
       }
     }
-    // ✅ 新 SW 安裝完成立刻進 waiting→active
     self.skipWaiting();
   })());
 });
 
-// ---- activate: clean old caches + claim clients + notify reload
 self.addEventListener("activate", (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
@@ -57,10 +50,8 @@ self.addEventListener("activate", (event) => {
       return Promise.resolve();
     }));
 
-    // ✅ 立刻接管所有 tabs
     await self.clients.claim();
 
-    // ✅ 通知所有開著的頁面：SW 已升級（讓前端自動 reload）
     const allClients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     for (const client of allClients) {
       client.postMessage({ type: "SW_ACTIVATED", version: SW_VERSION });
@@ -68,12 +59,9 @@ self.addEventListener("activate", (event) => {
   })());
 });
 
-// ---- allow page to request skipWaiting
 self.addEventListener("message", (event) => {
   const data = event.data || {};
-  if (data && data.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
+  if (data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 function isNavigationRequest(req) {
@@ -85,6 +73,15 @@ function isSameOrigin(url) {
   catch { return false; }
 }
 
+// ✅ version.json：永遠走網路、永遠不快取
+function isVersionJson(urlObj) {
+  return urlObj.pathname.endsWith("/version.json") || urlObj.pathname === "/version.json";
+}
+
+async function networkOnlyNoStore(request) {
+  return fetch(request, { cache: "no-store" });
+}
+
 async function networkFirst(request) {
   const cache = await caches.open(CACHE_NAME);
   try {
@@ -94,7 +91,6 @@ async function networkFirst(request) {
     }
     return fresh;
   } catch (e) {
-    // ✅ ignoreSearch 讓 /index.html?id=TW0001 也能吃到快取
     const cached = await cache.match(request, { ignoreSearch: true });
     if (cached) return cached;
 
@@ -108,8 +104,8 @@ async function networkFirst(request) {
 
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(CACHE_NAME);
-
   const cached = await cache.match(request, { ignoreSearch: true });
+
   const fetchPromise = fetch(request).then((res) => {
     if (res && res.ok && isSameOrigin(request.url)) {
       cache.put(request, res.clone());
@@ -129,7 +125,13 @@ self.addEventListener("fetch", (event) => {
   // 第三方資源交給瀏覽器
   if (url.origin !== self.location.origin) return;
 
-  // HTML 導航：network-first（確保更新快）
+  // ✅ 核心：version.json 永遠 network-only no-store
+  if (isVersionJson(url)) {
+    event.respondWith(networkOnlyNoStore(req));
+    return;
+  }
+
+  // HTML 導航：network-first
   if (isNavigationRequest(req)) {
     event.respondWith(networkFirst(req));
     return;
