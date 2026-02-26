@@ -1,3 +1,11 @@
+// ✅ receive SW version from Service Worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", (e) => {
+    if (e.data?.type === "SW_VERSION") {
+      localStorage.setItem("__hsc_sw_version", e.data.value);
+    }
+  });
+}
 /* ================================
  * Happiness Smart Card System
  * app.js v402 (COMPLETE OVERWRITE) 1/3
