@@ -10,7 +10,7 @@ const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v400.1"
+  VERSION: "v400.2"
 };
 
 let currentRow = null;
@@ -122,7 +122,6 @@ async function fetchJsonRobust(url){
 /* ✅ 支援：{ok:true,data:{...}} / {ok:true,row:{...}} / 直接 row */
 function extractRow_(payload){
   if(!payload || typeof payload !== "object") return null;
-
   if(payload.ok === false) return null;
 
   const row =
@@ -130,7 +129,6 @@ function extractRow_(payload){
     (payload.row  && typeof payload.row  === "object") ? payload.row  :
     payload;
 
-  // 如果 row 還是包著 ok/data 這種，擋一下
   if(row && row.ok !== undefined && row.data !== undefined) return row.data;
   return row;
 }
@@ -383,7 +381,6 @@ function setPhotoGridBalance_(gridEl, n){
   let cols = 3;
   if(n <= 1) cols = 1;
   else if(n === 2) cols = 2;
-
   gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
 }
 
@@ -452,15 +449,13 @@ function getIdFromUrl(){
 async function loadAndRenderById(id){
   const cid = String(id || "").trim() || CONFIG.DEFAULT_ID;
 
-  // ✅ FIX#1：永遠要有 GAS
+  // ✅ FIX：永遠要有 GAS（window.CONFIG 可覆蓋）
   const gas = (window.CONFIG && window.CONFIG.GAS) ? window.CONFIG.GAS : CONFIG.GAS;
 
   const url = `${gas}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
 
   try{
     const payload = await fetchJsonRobust(url);
-
-    // ✅ FIX#2：支援 data.data / data.row / direct row
     const row = extractRow_(payload);
     if(!row) throw new Error("Invalid payload row");
 
