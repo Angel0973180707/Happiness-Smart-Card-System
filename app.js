@@ -240,10 +240,11 @@ function setV382Paper(paper, el){
 /* ---------- Navigation ---------- */
 function goFillForm(){
   window.open(CONFIG.FORM, "_blank");
+}
 /* ================================
  * app.js v400.4 (2/3)
  * Render Card + Docks (media/contact) + Blocks + Logo/Avatar
- * - Media buttons auto classify to dock-yt/fb/ig/line/web
+ * - Media buttons auto classify + auto icon (YT/FB/IG/LINE/WEB/MAP)
  * - Contact buttons auto apply .wide when odd
  * ================================ */
 
@@ -283,6 +284,17 @@ function classifyDockClass_(url){
   if(u.includes("line.me") || u.includes("lin.ee")) return "dock-line";
   if(u.includes("google.com/maps") || u.includes("maps.app")) return "dock-map";
   return "dock-web";
+}
+
+function iconByDockClass_(cls){
+  switch(String(cls||"")){
+    case "dock-yt":  return "fa-brands fa-youtube";
+    case "dock-fb":  return "fa-brands fa-facebook";
+    case "dock-ig":  return "fa-brands fa-instagram";
+    case "dock-line":return "fa-brands fa-line";
+    case "dock-map": return "fa-solid fa-location-dot";
+    default:         return "fa-solid fa-globe";
+  }
 }
 
 function renderLogo_(p){
@@ -380,12 +392,12 @@ function renderDocks_(p){
 
   /* ---- Media: 影音/社群 ---- */
   const mediaItems = [
-    { k:["影音平台1","影音1"], label:"影音", icon:"fa-solid fa-play" },
-    { k:["影音平台2","影音2"], label:"官網/平台", icon:"fa-solid fa-globe" },
-    { k:["影音平台3","影音3"], label:"影音3", icon:"fa-solid fa-play" },
-    { k:["社群平台1","社群1"], label:"社群", icon:"fa-solid fa-users" },
-    { k:["社群平台2","社群2"], label:"社群2", icon:"fa-solid fa-users" },
-    { k:["社群平台3","社群3"], label:"社群3", icon:"fa-solid fa-users" }
+    { k:["影音平台1","影音1"], label:"影音平台" },
+    { k:["影音平台2","影音2"], label:"官網/平台" },
+    { k:["影音平台3","影音3"], label:"影音平台3" },
+    { k:["社群平台1","社群1"], label:"社群平台" },
+    { k:["社群平台2","社群2"], label:"社群平台2" },
+    { k:["社群平台3","社群3"], label:"社群平台3" }
   ];
 
   let hasMedia = false;
@@ -395,11 +407,12 @@ function renderDocks_(p){
     hasMedia = true;
 
     const cls = classifyDockClass_(v);
+    const icon = iconByDockClass_(cls);
 
     if(mediaBtns){
       mediaBtns.appendChild(buildDockBtn_({
         label: it.label,
-        icon: it.icon,
+        icon,
         extraClass: cls,
         onClick: ()=> openUrl_(v)
       }));
@@ -699,7 +712,6 @@ async function loadAndRenderById_(id){
     console.error(e);
   }
 })();
-}
 
 /* expose to window */
 window.setV382 = setV382;
