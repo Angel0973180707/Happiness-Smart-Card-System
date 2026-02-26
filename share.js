@@ -1,304 +1,291 @@
 /* ================================
  * share.js (v402 COMPLETE OVERWRITE)
- * - Robust load card by ?id=TW0001
- * - Build card url + share url
- * - Robust avatar picking + URL normalization
- * - Buttons: back / copy link / open / copy OG
+ * - Delivery card page: share.html?id=TW0001
+ * - Robust fetch from GAS
+ * - Robust avatar/logo image url normalization
+ * - Auto fallback when <img> fails to load
  * ================================ */
 
-(function () {
+(() => {
   "use strict";
 
-  // ✅ 你已提供的前台網址
-  const CFG = {
-    CARD_BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-    SHARE_PAGE: "share.html",
-    OG_IMAGE: "og-card.png",
-
-    // ✅ 你的 GAS WebApp（你已提供）
+  // ✅ 你提供的網址
+  const CONFIG = {
+    VERSION: "v402",
     GAS_WEBAPP_URL:
       "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-
-    DEFAULT_ID: "TW0001",
-    TIMEOUT_MS: 9000,
+    CARD_BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+    SHARE_BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/share.html",
+    OG_IMAGE_PATH: "og-card.png", // repo root 的 og-card.png
+    FETCH_TIMEOUT_MS: 12000,
   };
 
-  // ---------- DOM
   const $ = (id) => document.getElementById(id);
 
-  const elAva = $("avaImg");
-  const elName = $("name");
-  const elSub = $("sub");
-  const elCardBox = $("cardUrlBox");
-
-  const btnBack = $("btnBack");
-  const btnCopyCard = $("btnCopyCard");
-  const btnOpenCard = $("btnOpenCard");
-  const btnCopyOg = $("btnCopyOg");
-
-  // ---------- Helpers
-  function qs(name) {
-    try {
-      return new URL(location.href).searchParams.get(name);
-    } catch {
-      return null;
-    }
+  function getQueryParam(name) {
+    const u = new URL(location.href);
+    return (u.searchParams.get(name) || "").trim();
   }
 
-  function joinUrl(base, path) {
-    const b = String(base || "").trim();
-    const p = String(path || "").trim();
-    if (!b) return p;
-    if (!p) return b;
-    return b.replace(/\/+$/, "") + "/" + p.replace(/^\/+/, "");
+  function firstLink(text) {
+    if (text == null) return "";
+    const t = String(text).trim();
+    if (!t) return "";
+    // 可能是一格多連結：逗號/分號/換行
+    const parts = t.split(/[\n,，;；]+/).map((x) => x.trim()).filter(Boolean);
+    return parts[0] || "";
   }
 
-  function safeText(v) {
-    if (v == null) return "";
-    return String(v).trim();
-  }
-
-  function normalizeHttp(url) {
-    let u = safeText(url);
-    if (!u) return "";
-    if (u.startsWith("http://")) u = "https://" + u.slice(7);
-    return u;
-  }
-
-  // 把常見 Drive 連結轉成可直接顯示圖片的形式
-  function normalizeImageUrl(raw) {
-    let url = normalizeHttp(raw);
+  function extractDriveFileId(rawUrl) {
+    if (!rawUrl) return "";
+    const url = String(rawUrl).trim();
     if (!url) return "";
 
-    // drive file/d/ID
+    // /file/d/ID/
     let m = url.match(/drive\.google\.com\/file\/d\/([^\/]+)/i);
-    if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m[1])}`;
+    if (m && m[1]) return m[1];
 
-    // open?id=ID
+    // ?id=ID
     m = url.match(/[?&]id=([^&]+)/i);
-    if (m && m[1] && url.includes("drive.google.com")) {
-      return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m[1])}`;
-    }
-
-    // uc?id=ID
-    m = url.match(/drive\.google\.com\/uc\?[^#]*id=([^&]+)/i);
-    if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m[1])}`;
+    if (m && m[1]) return m[1];
 
     // thumbnail?id=ID
     m = url.match(/thumbnail\?id=([^&]+)/i);
-    if (m && m[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m[1])}`;
+    if (m && m[1]) return m[1];
 
-    // dropbox dl=0 -> raw=1
-    if (url.includes("dropbox.com")) {
-      url = url.replace("dl=0", "raw=1");
-      if (!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
-      return url;
-    }
+    // googleusercontent uc?id=
+    m = url.match(/googleusercontent\.com\/.*[?&]id=([^&]+)/i);
+    if (m && m[1]) return m[1];
 
-    return url;
+    // lh3 googleusercontent /d/ID
+    m = url.match(/googleusercontent\.com\/d\/([^\/\?]+)/i);
+    if (m && m[1]) return m[1];
+
+    return "";
   }
 
-  function pickFirstNonEmpty(...vals) {
-    for (const v of vals) {
-      const s = safeText(v);
-      if (s) return s;
+  /**
+   * 將各種可能的 Drive/Dropbox/一般網址，轉成「可直連圖片」候選清單
+   * 會回傳多個 candidates，給 <img> 失敗時輪流試
+   */
+  function buildImageCandidates(raw) {
+    const out = [];
+    let url = firstLink(raw);
+    if (!url) return out;
+
+    // normalize http -> https
+    if (url.startsWith("http://")) url = "https://" + url.slice(7);
+
+    // dropbox
+    if (url.includes("dropbox.com")) {
+      let u = url.replace("dl=0", "raw=1");
+      if (!u.includes("raw=1")) u += (u.includes("?") ? "&" : "?") + "raw=1";
+      out.push(u);
+      return uniq(out);
+    }
+
+    // Already looks direct (jpg/png/webp/gif etc.)
+    if (/\.(png|jpg|jpeg|webp|gif)(\?|#|$)/i.test(url)) {
+      out.push(url);
+    }
+
+    // Drive variants
+    const fileId = extractDriveFileId(url);
+    if (fileId) {
+      // 常見可用（有時 view 會被擋，download 更穩）
+      out.push(`https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`);
+      out.push(`https://drive.google.com/uc?export=download&id=${encodeURIComponent(fileId)}`);
+      out.push(`https://drive.googleusercontent.com/uc?id=${encodeURIComponent(fileId)}&export=view`);
+      // 近年最穩的直連之一
+      out.push(`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}`);
+
+      // 你原本可能已經是 uc?export=view，仍然把 download 也加進來
+      if (url.includes("drive.google.com/uc?") && url.includes("export=view")) {
+        out.push(url.replace("export=view", "export=download"));
+      }
+      if (url.includes("drive.google.com/uc?") && url.includes("export=download")) {
+        out.push(url.replace("export=download", "export=view"));
+      }
+    } else {
+      // 非 Drive：就把原網址也加進候選
+      out.push(url);
+    }
+
+    return uniq(out).filter(Boolean);
+  }
+
+  function uniq(arr) {
+    const s = new Set();
+    const out = [];
+    for (const x of arr) {
+      const k = String(x || "").trim();
+      if (!k) continue;
+      if (s.has(k)) continue;
+      s.add(k);
+      out.push(k);
+    }
+    return out;
+  }
+
+  function timeoutPromise(ms) {
+    return new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms));
+  }
+
+  async function fetchJson(url) {
+    const res = await Promise.race([fetch(url, { cache: "no-store" }), timeoutPromise(CONFIG.FETCH_TIMEOUT_MS)]);
+    const text = await res.text();
+
+    // 有時 GAS 失敗會回 HTML
+    if (!text || text.trim().startsWith("<")) throw new Error("GAS returned non-JSON");
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("JSON parse failed");
+    }
+    return data;
+  }
+
+  async function setImgWithFallback(imgEl, candidates) {
+    const list = (candidates || []).slice(0, 8);
+    if (!list.length) {
+      imgEl.removeAttribute("src");
+      imgEl.alt = "no image";
+      return false;
+    }
+
+    for (const src of list) {
+      const ok = await new Promise((resolve) => {
+        const t = setTimeout(() => resolve(false), 6000);
+        imgEl.onload = () => {
+          clearTimeout(t);
+          resolve(true);
+        };
+        imgEl.onerror = () => {
+          clearTimeout(t);
+          resolve(false);
+        };
+        imgEl.src = src;
+      });
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  function pickField(row, keys) {
+    for (const k of keys) {
+      if (row && row[k] != null && String(row[k]).trim() !== "") return row[k];
     }
     return "";
   }
 
-  function pickAvatarFromRow(row) {
-    if (!row || typeof row !== "object") return "";
-
-    // 1) 直接欄位（中英＋常見變體）
-    let avatar =
-      pickFirstNonEmpty(
-        row["個人照_fast"],
-        row["個人照"],
-        row["avatar_fast"],
-        row["avatar_img"],
-        row["avatar_url"],
-        row["avatar"],
-        row["avatarImg"],
-        row["avatarUrl"],
-        row["photo"],
-        row["photo_url"]
-      ) || "";
-
-    // 2) 若沒抓到，退一步用相簿第一張
-    const photosFull = Array.isArray(row.photos_full) ? row.photos_full : [];
-    const photosFast = Array.isArray(row.photos) ? row.photos : [];
-
-    if (!avatar) avatar = safeText(photosFull[0] || photosFast[0] || "");
-
-    // 3) 有時 cell 會是「多連結」逗號/換行
-    if (avatar && /[\n,，;；]/.test(avatar)) {
-      avatar = avatar.split(/[\n,，;；]+/)[0].trim();
-    }
-
-    return normalizeImageUrl(avatar);
+  function buildCardUrl(id) {
+    // CARD_BASE_URL 可能是資料夾結尾 /
+    const base = CONFIG.CARD_BASE_URL.endsWith("/") ? CONFIG.CARD_BASE_URL : CONFIG.CARD_BASE_URL + "/";
+    return `${base}?id=${encodeURIComponent(id)}`;
   }
 
-  function buildSub(row) {
-    // 你 share.html 的 sub 是多行顯示
-    const unit = safeText(row?.["單位"] || row?.unit || row?.org || "");
-    const title = safeText(row?.["頭銜"] || row?.title || "");
-    const slogan = safeText(row?.["理念標語"] || row?.slogan || "");
-    const lines = [];
-    if (unit) lines.push(unit);
-    if (title) lines.push(title);
-    if (slogan) lines.push(slogan);
-    return lines.join("\n");
-  }
-
-  async function fetchJsonWithTimeout(url, ms) {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), ms);
-    try {
-      const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
-      const txt = await res.text();
-      try {
-        return JSON.parse(txt);
-      } catch {
-        // 有些 GAS 可能回 HTML 或錯誤頁
-        return { ok: false, error: "Non-JSON response", raw: txt?.slice(0, 300) };
-      }
-    } finally {
-      clearTimeout(t);
-    }
+  function absOgUrl() {
+    const base = CONFIG.CARD_BASE_URL.endsWith("/") ? CONFIG.CARD_BASE_URL : CONFIG.CARD_BASE_URL + "/";
+    return base + CONFIG.OG_IMAGE_PATH;
   }
 
   async function copyText(text) {
     const t = String(text || "");
     if (!t) return false;
-
-    // clipboard API
     try {
       await navigator.clipboard.writeText(t);
       return true;
-    } catch {}
-
-    // fallback
-    try {
+    } catch {
+      // fallback
       const ta = document.createElement("textarea");
       ta.value = t;
       ta.style.position = "fixed";
       ta.style.left = "-9999px";
-      ta.style.top = "-9999px";
       document.body.appendChild(ta);
-      ta.focus();
       ta.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      return ok;
-    } catch {
-      return false;
+      try {
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        return true;
+      } catch {
+        document.body.removeChild(ta);
+        return false;
+      }
     }
   }
 
-  // ---------- Main
-  const id = safeText(qs("id")) || CFG.DEFAULT_ID;
+  async function boot() {
+    const id = getQueryParam("id");
+    const nameEl = $("name");
+    const subEl = $("sub");
+    const avaEl = $("avaImg");
+    const cardUrlBox = $("cardUrlBox");
 
-  const cardUrl = CFG.CARD_BASE_URL.replace(/\/+$/, "") + "/?id=" + encodeURIComponent(id);
-  const shareUrl =
-    joinUrl(CFG.CARD_BASE_URL, CFG.SHARE_PAGE) + "?id=" + encodeURIComponent(id);
-  const ogUrl = joinUrl(CFG.CARD_BASE_URL, CFG.OG_IMAGE);
-
-  elCardBox.textContent = cardUrl;
-
-  // buttons
-  btnBack?.addEventListener("click", () => {
-    location.href = cardUrl;
-  });
-
-  btnOpenCard?.addEventListener("click", () => {
-    window.open(cardUrl, "_blank");
-  });
-
-  btnCopyCard?.addEventListener("click", async () => {
-    const ok = await copyText(cardUrl);
-    toast_(ok ? "已複製名片連結" : "複製失敗");
-  });
-
-  btnCopyOg?.addEventListener("click", async () => {
-    const ok = await copyText(ogUrl);
-    toast_(ok ? "已複製 OG 圖網址" : "複製失敗");
-  });
-
-  // load row
-  (async () => {
-    elName.textContent = "載入中…";
-    elSub.textContent = "";
-
-    const api = `${CFG.GAS_WEBAPP_URL}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
-    const data = await fetchJsonWithTimeout(api, CFG.TIMEOUT_MS);
-
-    // 你的 GAS 回傳有時是 row object（不是 {ok:true,data:...}）
-    const row = (data && typeof data === "object" && data.ok === false) ? null : data;
-
-    if (!row) {
-      elName.textContent = "找不到資料";
-      elSub.textContent = safeText(data?.error || "請檢查 id 或 GAS");
-      console.warn("[share v402] load failed:", data);
+    if (!id) {
+      nameEl.textContent = "缺少 id";
+      subEl.textContent = "請用 share.html?id=TW0001";
+      cardUrlBox.textContent = "—";
       return;
     }
 
-    // name
-    const name = pickFirstNonEmpty(row["姓名"], row.name, row.fullname, row["Name"]);
-    elName.textContent = name || id;
+    const cardUrl = buildCardUrl(id);
+    cardUrlBox.textContent = cardUrl;
 
-    // sub
-    elSub.textContent = buildSub(row);
+    // buttons
+    $("btnBack")?.addEventListener("click", () => location.href = cardUrl);
+    $("btnOpenCard")?.addEventListener("click", () => window.open(cardUrl, "_blank"));
+    $("btnCopyCard")?.addEventListener("click", async () => {
+      const ok = await copyText(cardUrl);
+      $("btnCopyCard").innerHTML = ok ? '<i class="fa-solid fa-check"></i> 已複製' : '<i class="fa-solid fa-triangle-exclamation"></i> 失敗';
+      setTimeout(() => ($("btnCopyCard").innerHTML = '<i class="fa-solid fa-link"></i> 複製連結'), 1200);
+    });
 
-    // avatar
-    const avatarUrl = pickAvatarFromRow(row);
-    console.log("[share v402] id =", id);
-    console.log("[share v402] api =", api);
-    console.log("[share v402] avatarUrl =", avatarUrl);
+    $("btnCopyOg")?.addEventListener("click", async () => {
+      const og = absOgUrl();
+      const ok = await copyText(og);
+      $("btnCopyOg").innerHTML = ok ? '<i class="fa-solid fa-check"></i> 已複製' : '<i class="fa-solid fa-triangle-exclamation"></i> 失敗';
+      setTimeout(() => ($("btnCopyOg").innerHTML = '<i class="fa-solid fa-image"></i> OG 圖'), 1200);
+    });
 
-    if (elAva) {
-      // 有些外站會擋 referer
-      elAva.referrerPolicy = "no-referrer";
-      elAva.loading = "lazy";
+    // fetch row
+    nameEl.textContent = "載入中…";
+    subEl.textContent = "";
 
-      if (avatarUrl) {
-        elAva.src = avatarUrl;
-        elAva.onerror = () => {
-          console.warn("[share v402] avatar load error:", avatarUrl);
-          // fallback：不顯示破圖
-          elAva.removeAttribute("src");
-          elAva.alt = "avatar";
-        };
-      } else {
-        // 沒有圖就不要塞 src（避免破圖 icon）
-        elAva.removeAttribute("src");
-        elAva.alt = "avatar";
+    try {
+      const api = `${CONFIG.GAS_WEBAPP_URL}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+      const row = await fetchJson(api);
+
+      // name
+      const name = pickField(row, ["姓名", "name", "Name", "u_name"]) || id;
+      nameEl.textContent = String(name).trim();
+
+      // sub: unit/title/slogan
+      const unit = pickField(row, ["單位", "unit", "u_unit"]);
+      const title = pickField(row, ["頭銜", "title", "u_title"]);
+      const slogan = pickField(row, ["理念標語", "slogan", "tagline"]);
+      const lines = [unit, title, slogan].map((x) => String(x || "").trim()).filter(Boolean);
+      subEl.textContent = lines.join("\n");
+
+      // avatar candidates (最常失敗的地方：這裡加超多容錯)
+      const avatarRaw = pickField(row, ["個人照_fast", "個人照", "avatar_fast", "avatar", "avatar_img", "avatar_url"]);
+      const candidates = buildImageCandidates(avatarRaw);
+
+      // 如果還是空，試試 logo 當備援
+      if (!candidates.length) {
+        const logoRaw = pickField(row, ["Logo_fast", "Logo", "logo_fast", "logo", "logo_img", "logo_url"]);
+        candidates.push(...buildImageCandidates(logoRaw));
       }
+
+      await setImgWithFallback(avaEl, candidates);
+
+    } catch (e) {
+      nameEl.textContent = "載入失敗";
+      subEl.textContent = "請確認 GAS / 試算表 id 是否存在";
+      // 仍顯示交貨連結
     }
-
-    // 也把 shareUrl 放到 console，方便你檢查
-    console.log("[share v402] shareUrl =", shareUrl);
-    console.log("[share v402] cardUrl  =", cardUrl);
-    console.log("[share v402] ogUrl    =", ogUrl);
-  })();
-
-  // ---------- tiny toast (no CSS dependency)
-  function toast_(msg) {
-    const m = safeText(msg) || "OK";
-    const d = document.createElement("div");
-    d.textContent = m;
-    d.style.position = "fixed";
-    d.style.left = "50%";
-    d.style.bottom = "18px";
-    d.style.transform = "translateX(-50%)";
-    d.style.padding = "10px 12px";
-    d.style.borderRadius = "12px";
-    d.style.background = "rgba(0,0,0,0.65)";
-    d.style.color = "rgba(255,255,255,0.92)";
-    d.style.fontSize = "12px";
-    d.style.fontWeight = "900";
-    d.style.zIndex = "9999";
-    d.style.border = "1px solid rgba(255,255,255,0.12)";
-    document.body.appendChild(d);
-    setTimeout(() => d.remove(), 1400);
   }
+
+  document.addEventListener("DOMContentLoaded", boot);
 })();
