@@ -1,10 +1,11 @@
 /* ================================
  * style.css v401.1 (COMPLETE OVERWRITE) 1/3
- * - CLASS ALIGN FIX (match index.html/app.js)
- *   Free : body.mode-free + color-1..5 + style-arch/flat/spot + paper-1..3
- *   Premium: body.mode-premium + p1..p7 (FULL CARD SYNC)
- * - Refined typography (smaller, boutique)
- * ================================ */
+ * - Class align with index.html/app.js
+ *   Free:  body.mode-free + color-1..5 + style-arch/flat/spot + paper-1..3
+ *   Prem:  body.mode-premium + p1..p7 (FULL CARD TONE)
+ * - Fix: premium scroll + avatar clipping
+ * - Refined typography (boutique)
+================================ */
 
 :root{
   --bg:#f6f7fb;
@@ -18,18 +19,43 @@
   --card-white:rgba(255,255,255,.92);
   --line:rgba(0,0,0,.06);
 
-  /* theme base (will be overridden by classes) */
+  /* theme base (overridden by classes) */
   --p:#ff6b81;
   --s:#ff4757;
+
+  /* free vivid tuning */
+  --free-sat: 1.30;
+  --free-contrast: 1.08;
+
+  /* premium text contrast */
+  --prem-ink: rgba(255,255,255,0.92);
+  --prem-muted: rgba(255,255,255,0.74);
+  --prem-soft: rgba(255,255,255,0.14);
+}
+
+*{ box-sizing:border-box; }
+
+html, body{
+  height: auto;
+  min-height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+body{
+  margin:0;
+  font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
 }
 
 /* ---------- Free colors (c1~c5) ---------- */
 /* c1粉 c2藍 c3橘 c4紫 c5綠 */
-body.color-1{ --p:#ff6b81; --s:#ff4757; }
-body.color-2{ --p:#1e90ff; --s:#3742fa; }
-body.color-3{ --p:#ffa502; --s:#ff7f00; }
-body.color-4{ --p:#7d5fff; --s:#5f27cd; }
-body.color-5{ --p:#2ed573; --s:#10ac84; }
+body.color-1{ --p:#ff5f7b; --s:#ff2f45; }
+body.color-2{ --p:#1d88ff; --s:#2e3cff; }
+body.color-3{ --p:#ff9f1a; --s:#ff6f00; }
+body.color-4{ --p:#7a57ff; --s:#4f22d8; }
+body.color-5{ --p:#2bd46f; --s:#0ea97b; }
 
 /* ---------- Premium tones (p1~p7) ---------- */
 /* p1胭脂 p2酒紅 p3深藍 p4霧紫 p5藍灰 p6金箔 p7褐碳 */
@@ -41,16 +67,6 @@ body.p5{ --p:#8aa0b6; --s:#5f7489; }
 body.p6{ --p:#bf953f; --s:#8f6b1c; }
 body.p7{ --p:#5a4a3f; --s:#2f2926; }
 
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
-
-body{
-  margin:0;
-  font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-}
-
 /* ---------- Sticky control panel ---------- */
 #admin-panel{
   position: sticky;
@@ -61,6 +77,15 @@ body{
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
+
+body.mode-premium{
+  background:
+    radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.10), transparent 58%),
+    radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.06), transparent 60%),
+    #0f1218;
+  color: var(--prem-ink);
+}
+
 body.mode-premium #admin-panel{
   background: rgba(18,20,28,0.62);
   border-bottom: 1px solid rgba(255,255,255,0.10);
@@ -78,20 +103,25 @@ body.mode-premium #admin-panel{
 #card-container{
   max-width: 520px;
   margin: 0 auto;
-  padding: 14px 12px 40px;
+  padding: 14px 12px 70px;
 }
 
 /* ---------- Card (base) ---------- */
 .card{
   position:relative;
   border-radius: var(--radius);
-  overflow:hidden;
+  overflow:hidden;                 /* 保持精品感，但頭像不再往外頂出 */
   box-shadow: var(--shadow);
   border: 1px solid var(--line);
   background: var(--card-white);
 }
 
-/* Premium: FULL CARD SYNC (no banner, whole card tone) */
+/* Free vivid (thicker color impression) */
+body.mode-free .card{
+  filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
+}
+
+/* Premium: FULL CARD TONE (no banner, whole card sync) */
 body.mode-premium .card{
   border: 1px solid rgba(255,255,255,0.12);
   box-shadow: 0 26px 80px rgba(0,0,0,0.56);
@@ -101,12 +131,14 @@ body.mode-premium .card{
     linear-gradient(135deg, var(--p), var(--s));
 }
 
-/* Premium FX layer (exists in HTML) */
+/* Premium FX layer */
 .premium-fx-layer{
   position:absolute;
   inset:0;
-  pointer-events:none;
+  pointer-events:none !important;
+  touch-action:none !important;
   opacity:0;
+  z-index: 1;                      /* ✅ 永遠在下面 */
 }
 body.mode-premium .premium-fx-layer{
   opacity:1;
@@ -114,24 +146,48 @@ body.mode-premium .premium-fx-layer{
     radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.14), transparent 60%),
     radial-gradient(700px 520px at 90% 0%, rgba(255,255,255,0.10), transparent 58%);
 }
+
+/* Content wrapper */
+.info-scroll{
+  position: relative;
+  z-index: 3;
+  padding: 10px 18px 18px;
+}
+
+/* Title typography (boutique / smaller) */
+.name{
+  margin: 10px 0 6px;
+  font-size: 22px;
+  letter-spacing: 0.6px;
+  font-weight: 900;
+  text-align:center;
+}
+.unit, .title{
+  text-align:center;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+body.mode-premium .unit,
+body.mode-premium .title{
+  color: var(--prem-muted);
+}
 /* ================================
  * style.css v401.1 (COMPLETE OVERWRITE) 2/3
- * - Banner styles (Free only): style-arch/flat/spot (s1/s2/s3)
- * - Avatar bg opaque (both modes)
- * - Layout blocks
- * ================================ */
+ * - Banner styles (Free only): style-arch/flat/spot
+ * - Avatar: opaque bg + FIX premium avatar clipped
+ * - Logo circle
+ * - Slogan centering fix
+================================ */
 
-/* ---------- Banner (exists in HTML) ---------- */
+/* ---------- Banner ---------- */
 .banner{
-  position: relative; /* ✅ dynamic-mask reference */
+  position: relative;
   height: 130px;
   overflow:hidden;
 }
-
-/* Free: show banner */
 body.mode-free .banner{ display:block; }
-
-/* Premium: NO banner */
 body.mode-premium .banner{ display:none !important; }
 
 /* dynamic mask */
@@ -145,8 +201,12 @@ body.mode-premium .banner{ display:none !important; }
   opacity: .55;
 }
 
-/* ---------- Free banner styles ---------- */
-/* s1 正拱 => style-arch */
+/* banner thickness (free) */
+body.mode-free .banner{
+  filter: saturate(1.18) contrast(1.06);
+}
+
+/* style-arch (正拱) */
 body.mode-free.style-arch .banner{
   background:
     radial-gradient(900px 320px at 50% -10%, rgba(255,255,255,0.55), transparent 70%),
@@ -166,10 +226,10 @@ body.mode-free.style-arch .banner::after{
   opacity: .95;
 }
 
-/* s2 平直 => style-flat */
+/* style-flat (平直) -> 保留 2 色、但更厚（你要求） */
 body.mode-free.style-flat .banner{
   background:
-    radial-gradient(780px 280px at 40% 0%, rgba(255,255,255,0.50), transparent 70%),
+    radial-gradient(780px 280px at 40% 0%, rgba(255,255,255,0.46), transparent 70%),
     linear-gradient(135deg, var(--p), var(--s));
 }
 body.mode-free.style-flat .banner::after{
@@ -182,7 +242,7 @@ body.mode-free.style-flat .banner::after{
   opacity: .90;
 }
 
-/* s3 晨曦 => style-spot (more natural) */
+/* style-spot (晨曦) -> 自然不死板 */
 body.mode-free.style-spot .banner{
   background:
     radial-gradient(520px 220px at 20% 0%, rgba(255,255,255,0.55), transparent 72%),
@@ -203,37 +263,53 @@ body.mode-free.style-spot .banner::after{
   opacity: .92;
 }
 
-/* ---------- Paper overlay (Free only; premium uses glass tone) ---------- */
+/* ---------- Paper overlay (Free only) ---------- */
 .paper-overlay{
   position:absolute;
   inset:0;
   pointer-events:none;
   opacity:1;
+  z-index: 2;
 }
 body.mode-premium .paper-overlay{ display:none !important; }
 
-/* ---------- Avatar (opaque bg; your requirement) ---------- */
+/* ---------- Avatar (opaque bg) ---------- */
 .avatar-wrap{
   position: relative;
-  margin-top: -58px;
   display:flex;
   justify-content:center;
   padding-bottom: 6px;
+  z-index: 6;
 }
+
+/* Free: overlaps banner (OK) */
+body.mode-free .avatar-wrap{
+  margin-top: -58px;
+}
+
+/* Premium: FIX clipped -> do NOT push outside card top */
+body.mode-premium .avatar-wrap{
+  margin-top: 18px;     /* ✅ 不再被 card 的 overflow 裁掉 */
+  padding-top: 6px;
+}
+
 .avatar-circle{
   width: 112px;
   height: 112px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.92); /* ✅ opaque */
+  background: rgba(255,255,255,0.92);
   padding: 6px;
-  box-shadow: var(--shadow-soft);
   border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  z-index: 7;
 }
 body.mode-premium .avatar-circle{
-  background: rgba(255,255,255,0.92); /* ✅ premium also opaque */
+  background: rgba(255,255,255,0.92);
   border: 1px solid rgba(255,255,255,0.22);
   box-shadow: 0 18px 45px rgba(0,0,0,0.55);
 }
+
 .avatar{
   width: 100%;
   height: 100%;
@@ -247,6 +323,8 @@ body.mode-premium .avatar-circle{
   display:flex;
   justify-content:center;
   padding: 6px 0 0;
+  position: relative;
+  z-index: 6;
 }
 .logo-img{
   width: 56px;
@@ -262,38 +340,37 @@ body.mode-premium .logo-img{
   box-shadow: 0 18px 45px rgba(0,0,0,0.55);
 }
 
-/* ---------- Info typography (refined / smaller) ---------- */
-.info-scroll{ padding: 10px 18px 18px; }
-.name{
-  margin: 8px 0 6px;
-  font-size: 22px;     /* ✅ smaller */
-  letter-spacing: 0.6px;
-  font-weight: 900;
-  text-align:center;
-}
-.unit, .title{
-  text-align:center;
-  font-weight: 800;
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.5;
+/* ---------- Slogan (center fix) ---------- */
+#u-slogan{
+  width: 100%;
+  max-width: 420px;
+  margin: 10px auto 0;
+  padding: 10px 14px;
+  text-align: center;
+  text-align-last: center;
+  white-space: pre-line;
+  line-height: 1.6;
+  letter-spacing: .2px;
+  word-break: break-word;
 }
 /* ================================
  * style.css v401.1 (COMPLETE OVERWRITE) 3/3
  * - Paper textures (paper-1..3) stronger but CLEAN
- * - Buttons: keep 400.4 feel + Premium glass gold edge
- * - Dots: clearer
- * - Blocks / Docks / Photo wall (thumbs consistent 1:1)
- * ================================ */
+ * - Buttons: Free more 3D + Premium glass gold edge
+ * - Premium content contrast boost (your request #1)
+ * - Dots clearer
+ * - Docks / Photo wall thumbs 1:1
+ * - Share button style (your request #3)
+================================ */
 
-/* ---------- Paper textures (clean, stronger, not dirty) ---------- */
+/* ---------- Paper textures (Free only) ---------- */
 :root{
   --paper-strength: 0.32;
   --paper-grain: 0.16;
   --paper-fiber: 0.12;
 }
 
-/* paper-1 = f1 棉紙 */
+/* paper-1 = 棉紙 */
 body.mode-free.paper-1 .paper-overlay{
   background:
     radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 60%),
@@ -305,7 +382,7 @@ body.mode-free.paper-1 .paper-overlay{
   opacity: var(--paper-strength);
 }
 
-/* paper-2 = f2 顆粒 */
+/* paper-2 = 顆粒 */
 body.mode-free.paper-2 .paper-overlay{
   background:
     radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.18), transparent 60%),
@@ -318,7 +395,7 @@ body.mode-free.paper-2 .paper-overlay{
   opacity: calc(var(--paper-strength) + 0.08);
 }
 
-/* paper-3 = f3 亞麻 */
+/* paper-3 = 亞麻 */
 body.mode-free.paper-3 .paper-overlay{
   background:
     repeating-linear-gradient(
@@ -340,27 +417,77 @@ body.mode-free.paper-3 .paper-overlay{
   opacity: calc(var(--paper-strength) + 0.10);
 }
 
-/* ---------- Buttons (keep 400.4 feel) ---------- */
+/* ---------- Controls layout helpers ---------- */
+.section-title{
+  width:100%;
+  max-width: 520px;
+  font-weight: 900;
+  font-size: 13px;
+  letter-spacing: .4px;
+  opacity:.82;
+  text-align:left;
+}
+.btn-row, .plan-row{
+  display:flex;
+  gap:10px;
+  width:100%;
+  max-width:520px;
+}
+.controls-block{
+  width:100%;
+  max-width:520px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:center;
+}
+.dots-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:center;
+}
+
+/* ---------- Buttons (Free: more 3D) ---------- */
 .btn-neo{
-  border: 1px solid rgba(0,0,0,0.10);
-  background: rgba(255,255,255,0.86);
-  color: var(--ink);
-  padding: 10px 14px;
   border-radius: 14px;
   font-weight: 900;
   font-size: 14px;
   letter-spacing: 0.4px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
   cursor:pointer;
   user-select:none;
-  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  padding: 11px 14px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.84));
+  box-shadow:
+    0 10px 22px rgba(0,0,0,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.90);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
 }
-.btn-neo:active{ transform: translateY(0px) scale(0.98); }
-.btn-neo.pill{ flex:1; min-width: 0; padding: 12px 10px; border-radius: 999px; }
+.btn-neo:hover{
+  transform: translateY(-1px);
+  box-shadow:
+    0 14px 28px rgba(0,0,0,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.92);
+}
+.btn-neo:active{
+  transform: translateY(0px) scale(0.985);
+  box-shadow:
+    0 8px 16px rgba(0,0,0,0.10),
+    inset 0 2px 6px rgba(0,0,0,0.08);
+}
+.btn-neo.pill{
+  flex:1; min-width:0;
+  padding: 12px 10px;
+  border-radius: 999px;
+}
 .btn-neo.active{
-  border-color: rgba(0,0,0,0.16);
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.80));
-  box-shadow: 0 12px 26px rgba(0,0,0,0.12);
+  border-color: rgba(0,0,0,0.18);
+  filter: saturate(1.05);
+  box-shadow:
+    0 16px 30px rgba(0,0,0,0.14),
+    inset 0 1px 0 rgba(255,255,255,0.92);
 }
 
 /* Premium: glass + gold edge */
@@ -369,7 +496,8 @@ body.mode-premium .btn-neo{
   border: 1px solid rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.08);
   color: rgba(255,255,255,0.92);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.40);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.45);
+  backdrop-filter: blur(10px);
 }
 body.mode-premium .btn-neo::after{
   content:"";
@@ -398,14 +526,32 @@ body.mode-premium .btn-neo.active{
   color: #fff;
   font-weight: 900;
   letter-spacing: 0.5px;
-  box-shadow: 0 16px 32px rgba(0,0,0,0.16);
+  box-shadow: 0 18px 34px rgba(0,0,0,0.16);
   cursor:pointer;
 }
-.btn-cta.subtle{ background: rgba(0,0,0,0.10); color: rgba(255,255,255,0.92); }
-body.mode-free .btn-cta.subtle{ background: rgba(0,0,0,0.06); color: var(--ink); }
+.btn-cta:active{ transform: scale(0.99); }
 
-/* ---------- Dots more visible ---------- */
-.dots-row{ display:flex; gap:10px; align-items:center; justify-content:center; }
+/* ---------- Share button (NEW) ---------- */
+/* 你之後在 HTML 放：<button class="btn-cta btn-share" id="btnShare">分享卡片</button> */
+.btn-share{
+  background:
+    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.20), transparent 62%),
+    linear-gradient(135deg, rgba(255,233,168,0.80), rgba(191,149,63,0.90));
+  color:#1a1408;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+}
+body.mode-premium .btn-share{
+  color: rgba(255,255,255,0.95);
+  background:
+    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.18), transparent 62%),
+    linear-gradient(135deg, rgba(255,233,168,0.30), rgba(191,149,63,0.55));
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
+/* Also support id hook */
+#btnShare{}
+
+/* ---------- Dots clearer ---------- */
 .dot,.p-dot{
   width: 16px;
   height: 16px;
@@ -419,19 +565,11 @@ body.mode-free .btn-cta.subtle{ background: rgba(0,0,0,0.06); color: var(--ink);
 }
 .dot.active,.p-dot.active{ transform: scale(1.18); }
 
-body.mode-premium .dot,
-body.mode-premium .p-dot{
-  border-color: rgba(255,255,255,0.74);
-  outline-color: rgba(255,255,255,0.12);
-  box-shadow: 0 14px 28px rgba(0,0,0,0.55);
-}
-
-/* color dots actual fill */
-.dot-1{ background:#ff6b81; }
-.dot-2{ background:#1e90ff; }
-.dot-3{ background:#ffa502; }
-.dot-4{ background:#7d5fff; }
-.dot-5{ background:#2ed573; }
+.dot-1{ background:#ff5f7b; }
+.dot-2{ background:#1d88ff; }
+.dot-3{ background:#ff9f1a; }
+.dot-4{ background:#7a57ff; }
+.dot-5{ background:#2bd46f; }
 .p1{ background:#d96c6c; }
 .p2{ background:#722f37; }
 .p3{ background:#1c2e42; }
@@ -440,36 +578,43 @@ body.mode-premium .p-dot{
 .p6{ background:#bf953f; }
 .p7{ background:#5a4a3f; }
 
-/* ---------- Blocks / Docks / Photo wall ---------- */
-.section-title{
-  width:100%;
-  max-width: 520px;
-  font-weight: 900;
-  font-size: 13px;
-  letter-spacing: .4px;
-  opacity:.82;
-  text-align:left;
-}
-
-.btn-row{ display:flex; gap:10px; width:100%; max-width:520px; }
-.plan-row{ display:flex; gap:10px; width:100%; max-width:520px; }
-.controls-block{ width:100%; max-width:520px; display:flex; flex-direction:column; gap:10px; align-items:center; }
-
+/* ---------- Premium content contrast boost (你的需求 #1) ---------- */
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
   padding: 12px 12px;
   border: 1px solid rgba(0,0,0,0.06);
-  background: rgba(255,255,255,0.72);
+  background: rgba(255,255,255,0.74);
 }
-body.mode-premium .info-block{
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.12);
+.block-title{
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-size: 13px;
 }
-.block-title{ font-weight: 900; letter-spacing: 0.5px; margin-bottom: 6px; font-size:13px; }
-.block-body{ color: var(--muted); font-weight: 700; font-size: 13px; }
+.block-body{
+  color: var(--muted);
+  font-weight: 750;
+  font-size: 13px;
+  line-height: 1.7;
+}
 .preline{ white-space: pre-line; }
 
+/* Premium: 讓內容「更亮更突顯」 */
+body.mode-premium .info-block{
+  background: rgba(10,12,18,0.22);
+  border-color: rgba(255,255,255,0.14);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.28);
+}
+body.mode-premium .block-title{
+  color: rgba(255,255,255,0.92);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+}
+body.mode-premium .block-body{
+  color: rgba(255,255,255,0.84);
+}
+
+/* ---------- Docks ---------- */
 .contact-dock{
   margin-top: 12px;
   border-radius: 18px;
@@ -477,17 +622,18 @@ body.mode-premium .info-block{
   border: 1px solid rgba(0,0,0,0.06);
   background: rgba(255,255,255,0.70);
 }
-body.mode-premium .contact-dock{
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.12);
+.dock-title{
+  font-weight:900;
+  font-size:13px;
+  opacity:.86;
+  margin: 2px 2px 10px;
 }
-.dock-title{ font-weight:900; font-size:13px; opacity:.86; margin: 2px 2px 10px; }
-
 .dock-buttons{
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
+
 .dock-btn{
   position: relative;
   display:flex;
@@ -496,19 +642,29 @@ body.mode-premium .contact-dock{
   gap: 8px;
   padding: 10px 10px;
   border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.10);
-  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(0,0,0,0.12);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.86));
   color: var(--ink);
   font-weight: 900;
+  box-shadow:
+    0 12px 22px rgba(0,0,0,0.10),
+    inset 0 1px 0 rgba(255,255,255,0.90);
   cursor:pointer;
-  box-shadow: 0 10px 18px rgba(0,0,0,0.08);
-  transition: transform .12s ease, box-shadow .12s ease;
 }
 .dock-btn:active{ transform: scale(0.99); }
 .dock-btn i{ font-size: 17px; }
 .dock-btn span{ font-size: 13px; letter-spacing: 0.3px; }
 .dock-btn.wide{ grid-column: 1 / -1; }
 
+body.mode-premium .contact-dock{
+  background: rgba(10,12,18,0.18);
+  border-color: rgba(255,255,255,0.14);
+}
+body.mode-premium .dock-title{
+  color: rgba(255,255,255,0.88);
+  opacity: 1;
+}
 body.mode-premium .dock-btn{
   border-color: rgba(255,255,255,0.14);
   background: rgba(255,255,255,0.10);
@@ -527,7 +683,7 @@ body.mode-premium .dock-btn::after{
   opacity: .85;
 }
 
-/* ---------- Photo wall (thumb ratio consistent) ---------- */
+/* ---------- Photo wall ---------- */
 .photo-wall{
   margin-top: 14px;
   border-radius: 18px;
@@ -536,13 +692,13 @@ body.mode-premium .dock-btn::after{
   background: rgba(255,255,255,0.70);
 }
 body.mode-premium .photo-wall{
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.12);
+  background: rgba(10,12,18,0.18);
+  border-color: rgba(255,255,255,0.14);
 }
 .photo-grid{
   display:grid;
   gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr)); /* JS can override */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .wall-img{
   width:100%;
@@ -555,7 +711,7 @@ body.mode-premium .photo-wall{
   background: rgba(255,255,255,0.55);
 }
 
-/* Version tag */
+/* ---------- Version tag ---------- */
 .version-tag{
   margin-top: 14px;
   text-align:center;
@@ -565,54 +721,11 @@ body.mode-premium .photo-wall{
 }
 body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 
-/* Mobile */
+/* ---------- Small screens ---------- */
 @media (max-width: 360px){
   .name{ font-size: 21px; }
   .avatar-circle{ width: 108px; height: 108px; }
   .dot,.p-dot{ width: 15px; height: 15px; }
   .dock-buttons{ gap: 8px; }
   .dock-btn{ padding: 10px 8px; }
-}
-/* ===== FIX v401.1: premium scroll stuck (mobile) ===== */
-body.mode-premium{
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-body.mode-premium #card-container{
-  min-height: calc(100vh - 140px);
-  padding-bottom: 80px;
-}
-
-body.mode-premium .card,
-body.mode-premium .info-scroll{
-  touch-action: pan-y;
-}
-
-/* premium layer 不准吃觸控 */
-body.mode-premium .premium-fx-layer{
-  pointer-events: none !important;
-  touch-action: none !important;
-}
-/* ===== FIX v401.1: slogan visual centering ===== */
-#u-slogan{
-  width: 100%;
-  max-width: 420px;
-  margin: 10px auto 0;
-  padding: 10px 14px;
-  text-align: center;
-  text-align-last: center;
-  white-space: pre-line;
-  line-height: 1.6;
-  letter-spacing: .2px;
-  word-break: break-word;
-}
-/* ===== PATCH v401.1: Free colors more vivid ===== */
-body.mode-free{
-  --free-sat: 1.18;     /* 飽和度提升 */
-  --free-contrast: 1.06;
-}
-
-body.mode-free .card{
-  filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
 }
