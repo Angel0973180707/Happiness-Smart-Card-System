@@ -1,5 +1,5 @@
 /* ================================
- * sw.js (v401
+ * sw.js (v402
 1aCOMPLETE OVERWRITE)
  * - App shell cache
  * - Stale-while-revalidate for static assets
@@ -7,7 +7,7 @@
  * - Works with ?id=TW0001 style URLs
  * ================================ */
 
-const SW_VERSION = "v4011a";
+const SW_VERSION = "v402";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
 // ✅ 只快取「穩定不變」的殼（不要把 ?id 帶進去）
