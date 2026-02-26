@@ -1,359 +1,239 @@
 /* ================================
  * style.css v401.1 (COMPLETE OVERWRITE) 1/3
- * - Free: banner 3 styles (arch/flat/spot) (ref v399)
- * - Premium: NO banner, full glass gradient (p1~p7)
- * - Buttons: keep 400.4 vibe + premium gold edge
- * - Dots: more obvious
- * - Avatar bg opaque, Logo circular
- * - Photo wall: 1:1 thumbs + last wide when needed
- * - Hints: breathing + bounce guide
+ * Theme System Rebuild
+ * - Free colors c1–c5
+ * - Premium colors p1–p7 (FULL CARD SYNC)
  * ================================ */
 
 :root{
-  --bg: #0f1218;
-  --ink: rgba(255,255,255,0.92);
-  --muted: rgba(255,255,255,0.70);
+  --bg:#f6f7fb;
+  --ink:#1f2430;
+  --muted:rgba(31,36,48,.65);
 
-  --card: rgba(255,255,255,0.10);
-  --cardLine: rgba(255,255,255,0.14);
+  --p:#ff5e5e;
+  --s:#ff3b3b;
 
-  --p: #ff5e5e;
-  --s: #ff3b3b;
-
-  --radius: 26px;
-  --shadow: 0 26px 80px rgba(0,0,0,0.55);
-  --shadowSoft: 0 18px 45px rgba(0,0,0,0.35);
-
-  --gold1: rgba(191,149,63,0.80);
-  --gold2: rgba(255,233,168,0.70);
-  --glass: rgba(255,255,255,0.10);
-
-  --paper-strength: 0.22;
-  --paper-grain: 0.14;
-  --paper-fiber: 0.10;
-
-  --gap: 12px;
+  --radius:26px;
+  --shadow:0 20px 60px rgba(0,0,0,.12);
 }
+
+/* ===== Free Colors (自由搭配款) ===== */
+
+body.c1{ --p:#ff6b81; --s:#ff4757; }
+body.c2{ --p:#1e90ff; --s:#3742fa; }
+body.c3{ --p:#ffa502; --s:#ff7f00; }
+body.c4{ --p:#7d5fff; --s:#5f27cd; }
+body.c5{ --p:#2ed573; --s:#10ac84; }
+
+/* ===== Premium Colors (精品設計款) ===== */
+/* ⚠️ 重點：整張卡片同步，不只 banner */
+
+body.p1{ --p:#d96c6c; --s:#b23b3b; }  /* 胭脂 */
+body.p2{ --p:#722f37; --s:#4e1f25; }  /* 酒紅 */
+body.p3{ --p:#1c2e42; --s:#101d2b; }  /* 深藍 */
+body.p4{ --p:#5e548e; --s:#40376b; }  /* 霧紫 */
+body.p5{ --p:#8aa0b6; --s:#5f7489; }  /* 藍灰 */
+body.p6{ --p:#bf953f; --s:#8f6b1c; }  /* 金箔 */
+body.p7{ --p:#5a4a3f; --s:#2f2926; }  /* 褐碳 */
 
 *{ box-sizing:border-box; }
-html,body{ height:100%; }
+
 body{
   margin:0;
-  font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
-  background: radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.10), transparent 55%),
-              radial-gradient(900px 700px at 85% 10%, rgba(191,149,63,0.10), transparent 56%),
-              var(--bg);
-  color: var(--ink);
-  overflow-x:hidden;
+  font-family:"Noto Sans TC", sans-serif;
+  background:var(--bg);
+  color:var(--ink);
 }
 
-/* ---------- Theme sets ---------- */
-/* Free */
-body.color-1{ --p:#ff5e5e; --s:#ff3b3b; }
-body.color-2{ --p:#00a8ff; --s:#0097e6; }
-body.color-3{ --p:#ffa502; --s:#ff7f00; }
-body.color-4{ --p:#7d5fff; --s:#5f27cd; }
-body.color-5{ --p:#2ecc71; --s:#10ac84; }
+/* 卡片主體 */
 
-/* Premium palette (p1..p7) */
-body.p1{ --p:#a36d6d; --s:#7a4a4a; }
-body.p2{ --p:#722f37; --s:#4e1f25; }
-body.p3{ --p:#1c2e42; --s:#101d2b; }
-body.p4{ --p:#5e548e; --s:#40376b; }
-body.p5{ --p:#7a94a6; --s:#5b7383; }
-body.p6{ --p:#bf953f; --s:#8f6b1c; }
-body.p7{ --p:#444444; --s:#222222; }
-
-body.mode-free{
-  background: radial-gradient(1200px 800px at 15% 0%, rgba(255,94,94,0.12), transparent 55%),
-              radial-gradient(900px 700px at 90% 8%, rgba(0,168,255,0.10), transparent 55%),
-              #11151c;
+.card{
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  background:linear-gradient(135deg,var(--p),var(--s));
+  overflow:hidden;
+  position:relative;
 }
 
-body.mode-premium{
-  background: radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.12), transparent 55%),
-              radial-gradient(900px 700px at 85% 10%, rgba(191,149,63,0.12), transparent 56%),
-              linear-gradient(180deg, rgba(10,12,16,1), rgba(14,16,22,1));
-  color: rgba(255,255,255,0.92);
-}
+/* Premium 模式更有玻璃光影 */
 
-/* ---------- Admin hotspot ---------- */
-#adminHotspotBR{
-  position: fixed;
-  right: 10px;
-  bottom: 10px;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  z-index: 9999;
-  background: transparent;
-  opacity: 0.001;
-  pointer-events: auto;
+body.mode-premium .card{
+  background:
+    radial-gradient(800px 400px at 20% 0%, rgba(255,255,255,.25), transparent 60%),
+    linear-gradient(135deg,var(--p),var(--s));
 }
+/* ================================
+ * style.css v401.1 (COMPLETE OVERWRITE) 2/3
+ * - Layout + Banner styles (s1/s2/s3)
+ * - FIX: .banner position relative (dynamic-mask skew)
+ * - Free: has banner
+ * - Premium: NO banner (hide)
+ * ================================ */
 
-/* ---------- Panel ---------- */
+/* ---------- Page frame ---------- */
 #admin-panel{
   position: sticky;
   top: 0;
   z-index: 50;
-  padding: 14px 12px 12px;
-  backdrop-filter: blur(12px);
-  background: linear-gradient(180deg, rgba(10,12,16,0.72), rgba(10,12,16,0.46));
-  border-bottom: 1px solid rgba(255,255,255,0.10);
+  padding: 12px 12px 10px;
+  background: rgba(255,255,255,0.78);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
 }
-body.mode-free #admin-panel{
-  background: linear-gradient(180deg, rgba(10,12,16,0.70), rgba(10,12,16,0.44));
+body.mode-premium #admin-panel{
+  background: rgba(18,20,28,0.62);
+  border-bottom: 1px solid rgba(255,255,255,0.10);
 }
 
 .panel-inner{
-  max-width: 540px;
+  max-width: 520px;
   margin: 0 auto;
   display:flex;
   flex-direction:column;
-  gap: 12px;
+  gap: 10px;
   align-items:center;
 }
 
-.plan-row{
-  display:flex;
-  gap: 12px;
-  justify-content:center;
-  width:100%;
-}
-
-.controls-block{
-  width:100%;
-  display:flex;
-  flex-direction:column;
-  gap: 12px;
-  align-items:center;
-}
-
-.dots-row{
-  display:flex;
-  gap: 12px;
-  justify-content:center;
-  align-items:center;
-  flex-wrap:wrap;
-}
-.btn-row{
-  width:100%;
-  display:flex;
-  gap: 12px;
-  justify-content:center;
-  flex-wrap:wrap;
-}
-
-/* ---------- Buttons (keep 400.4 feeling) ---------- */
-.btn-neo{
-  border: 1px solid rgba(255,255,255,0.16);
-  background: rgba(255,255,255,0.10);
-  color: rgba(255,255,255,0.92);
-  padding: 12px 16px; /* ✅ 稍微大一點 */
-  border-radius: 16px;
-  font-weight: 900;
-  letter-spacing: 0.6px;
-  box-shadow: 0 14px 26px rgba(0,0,0,0.35);
-  cursor:pointer;
-  user-select:none;
-  transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
-}
-.btn-neo:hover{ transform: translateY(-1px); box-shadow: 0 18px 34px rgba(0,0,0,0.42); }
-.btn-neo:active{ transform: translateY(0px) scale(0.985); }
-
-.btn-neo.pill{
-  flex:1;
-  min-width: 0;
-  padding: 14px 14px;
-  border-radius: 999px;
-}
-
-.btn-neo.active{
-  border-color: rgba(255,255,255,0.30);
-  background: rgba(255,255,255,0.16);
-  box-shadow: 0 22px 44px rgba(0,0,0,0.48);
-}
-
-/* Premium gold edge */
-body.mode-premium .btn-neo{
-  border: 1px solid rgba(191,149,63,0.55);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.58);
-  position: relative;
-}
-body.mode-premium .btn-neo::after{
-  content:"";
-  position:absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(255,233,168,0.55), rgba(191,149,63,0.35), rgba(255,255,255,0.18));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  pointer-events:none;
-  opacity: 0.85;
-}
-
-/* Dots (more obvious) */
-.dot,.p-dot{
-  width: 18px;  /* ✅ 更明顯 */
-  height: 18px;
-  border-radius: 999px;
-  border: 3px solid rgba(255,255,255,0.80);
-  outline: 2px solid rgba(0,0,0,0.25);
-  cursor:pointer;
-  padding:0;
-  box-shadow: 0 10px 18px rgba(0,0,0,0.35);
-  transition: transform .12s ease, box-shadow .12s ease;
-}
-.dot:hover,.p-dot:hover{ transform: translateY(-1px) scale(1.05); }
-.dot.active,.p-dot.active{
-  transform: scale(1.18);
-  box-shadow: 0 16px 30px rgba(0,0,0,0.45);
-  outline-color: rgba(255,255,255,0.18);
-}
-
-.btn-cta{
-  width: 100%;
-  max-width: 540px;
-  padding: 14px 16px;
-  border-radius: 18px;
-  border: none;
-  background: linear-gradient(135deg, var(--p), var(--s));
-  color: #fff;
-  font-weight: 1000;
-  letter-spacing: 0.8px;
-  box-shadow: 0 22px 44px rgba(0,0,0,0.42);
-  cursor:pointer;
-  transition: transform .12s ease, filter .12s ease;
-}
-.btn-cta:active{ transform: scale(0.99); }
-/* ---------- Card container ---------- */
 #card-container{
-  max-width: 540px;
+  max-width: 520px;
   margin: 0 auto;
-  padding: 14px 12px 44px;
+  padding: 14px 12px 40px;
 }
 
-.card{
-  position: relative;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: rgba(255,255,255,0.10);
-  box-shadow: var(--shadow);
-  border: 1px solid rgba(255,255,255,0.12);
-}
-
-/* Premium full glass gradient (no dead blocks) */
-body.mode-premium .card{
-  background:
-    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.14), transparent 60%),
-    radial-gradient(700px 520px at 90% 0%, rgba(191,149,63,0.14), transparent 58%),
-    radial-gradient(900px 600px at 35% 70%, rgba(255,255,255,0.08), transparent 65%),
-    linear-gradient(135deg, rgba(255,255,255,0.06), rgba(0,0,0,0.14)),
-    linear-gradient(135deg, rgba(0,0,0,0.12), rgba(255,255,255,0.04));
-  border: 1px solid rgba(255,255,255,0.12);
-}
-
-/* Premium FX layer */
-.premium-fx-layer{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity: 0;
-}
-body.mode-premium .premium-fx-layer{
-  opacity: 1;
-  background:
-    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.12), transparent 60%),
-    radial-gradient(700px 520px at 90% 0%, rgba(191,149,63,0.12), transparent 58%),
-    linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.07));
-}
-
-/* ---------- Banner ---------- */
-/* ✅ 你指出的坑：dynamic-mask absolute 需要 banner relative */
+/* ---------- Banner base ---------- */
+/* ✅ FIX: dynamic-mask absolute 需要參考點 */
 .banner{
-  position: relative; /* ✅ FIX：避免 dynamic-mask 參考錯位 */
-  height: 132px;
-  background:
-    radial-gradient(600px 220px at 25% 0%, rgba(255,255,255,0.14), transparent 70%),
-    linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.18)),
-    linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0.04));
-  border-bottom: 1px solid rgba(255,255,255,0.12);
+  position: relative;
+  height: 130px;
+  overflow:hidden;
 }
 
+/* 自由款：有 banner（s1/s2/s3 會切換） */
+body.mode-free .banner{ display:block; }
+
+/* 精品款：不要 banner */
+body.mode-premium .banner{ display:none !important; }
+
+/* dynamic mask */
 .dynamic-mask{
   position:absolute;
   inset:0;
   pointer-events:none;
   background:
-    radial-gradient(560px 220px at 50% 45%, rgba(0,0,0,0.10), transparent 72%),
-    radial-gradient(520px 180px at 50% 20%, rgba(255,255,255,0.10), transparent 70%);
-  opacity: 0.95;
+    radial-gradient(520px 220px at 50% 35%, rgba(255,255,255,0.25), transparent 70%),
+    radial-gradient(680px 260px at 80% 20%, rgba(0,0,0,0.08), transparent 70%);
+  opacity: .55;
 }
 
-/* ✅ 自由款：三版型 Banner（參考 v399 的“肉眼可辨”差異） */
-body.mode-free.style-arch .banner{
+/* ---------- Style s1/s2/s3 (Free) ---------- */
+/* s1 正拱：上緣弧形 느낌（參考 v399） */
+body.s1 .banner{
   background:
-    radial-gradient(700px 240px at 30% 0%, rgba(255,255,255,0.18), transparent 68%),
-    linear-gradient(135deg, rgba(0,0,0,0.18), rgba(0,0,0,0.02)),
-    linear-gradient(135deg, color-mix(in srgb, var(--p) 45%, #111 55%), rgba(0,0,0,0.15));
+    radial-gradient(900px 320px at 50% -10%, rgba(255,255,255,0.55), transparent 70%),
+    linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0.00)),
+    linear-gradient(135deg, var(--p), var(--s));
 }
-body.mode-free.style-flat .banner{
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.06)),
-    linear-gradient(135deg, color-mix(in srgb, var(--p) 32%, #10131a 68%), rgba(0,0,0,0.10));
-}
-body.mode-free.style-spot .banner{
-  background:
-    radial-gradient(420px 220px at 20% 25%, rgba(255,255,255,0.20), transparent 70%),
-    radial-gradient(540px 260px at 78% 20%, rgba(255,255,255,0.12), transparent 72%),
-    radial-gradient(900px 520px at 50% -10%, color-mix(in srgb, var(--p) 50%, transparent 50%), transparent 60%),
-    linear-gradient(135deg, rgba(0,0,0,0.14), rgba(0,0,0,0.02));
-}
-
-/* ✅ 正拱：用遮罩做“拱形上緣” */
-body.mode-free.style-arch .banner::after{
+body.s1 .banner::after{
   content:"";
   position:absolute;
-  left:-20%;
-  right:-20%;
-  bottom:-40px;
-  height: 88px;
-  background: rgba(0,0,0,0.00);
-  border-radius: 0 0 100% 100% / 0 0 90% 90%;
-  box-shadow: 0 24px 0 0 rgba(0,0,0,0.00);
+  left:-25%;
+  right:-25%;
+  bottom:-66px;
+  height:140px;
+  background: rgba(255,255,255,0.92);
+  border-top-left-radius: 80% 100%;
+  border-top-right-radius: 80% 100%;
+  transform: translateY(0);
+  opacity: .95;
+}
+
+/* s2 平直：乾淨俐落 */
+body.s2 .banner{
+  background:
+    radial-gradient(780px 280px at 40% 0%, rgba(255,255,255,0.50), transparent 70%),
+    linear-gradient(135deg, var(--p), var(--s));
+}
+body.s2 .banner::after{
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  bottom:0;
+  height:18px;
+  background: rgba(255,255,255,0.92);
+  opacity: .90;
+}
+
+/* s3 晨曦：更柔、更自然（漸層不死板） */
+body.s3 .banner{
+  background:
+    radial-gradient(520px 220px at 20% 0%, rgba(255,255,255,0.55), transparent 72%),
+    radial-gradient(620px 260px at 80% 10%, rgba(255,255,255,0.28), transparent 70%),
+    linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.05)),
+    linear-gradient(135deg, var(--p), var(--s));
+}
+body.s3 .banner::after{
+  content:"";
+  position:absolute;
+  left:-10%;
+  right:-10%;
+  bottom:-52px;
+  height:120px;
+  background: rgba(255,255,255,0.92);
+  border-top-left-radius: 60% 100%;
+  border-top-right-radius: 60% 100%;
+  opacity: .92;
+}
+
+/* ---------- Card inner surface (free vs premium) ---------- */
+.card-surface{
+  position:relative;
+  background: rgba(255,255,255,0.92);
+}
+body.mode-premium .card-surface{
+  background:
+    radial-gradient(900px 520px at 25% 10%, rgba(255,255,255,0.18), transparent 60%),
+    radial-gradient(700px 520px at 90% 0%, rgba(255,255,255,0.10), transparent 58%),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.12));
+}
+
+/* Premium glass layer */
+.premium-fx-layer{
+  position:absolute;
+  inset:0;
   pointer-events:none;
+  opacity:0;
 }
-
-/* ✅ 平直：乾淨切面 */
-body.mode-free.style-flat .banner{
-  height: 120px;
-}
-body.mode-free.style-flat .banner::after{
-  content:"";
-  position:absolute;
-  inset:auto 0 0 0;
-  height: 1px;
-  background: rgba(255,255,255,0.10);
-}
-
-/* ✅ 晨曦：光束感更明顯 */
-body.mode-free.style-spot .dynamic-mask{
+body.mode-premium .premium-fx-layer{
+  opacity:1;
   background:
-    radial-gradient(520px 220px at 20% 25%, rgba(255,255,255,0.18), transparent 72%),
-    radial-gradient(520px 240px at 80% 18%, rgba(255,255,255,0.12), transparent 74%),
-    linear-gradient(105deg, rgba(255,255,255,0.10), transparent 45%),
-    linear-gradient(135deg, rgba(0,0,0,0.12), rgba(0,0,0,0.02));
+    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.14), transparent 60%),
+    radial-gradient(700px 520px at 90% 0%, rgba(255,255,255,0.10), transparent 58%);
+}
+/* ================================
+ * style.css v401.1 (COMPLETE OVERWRITE) 3/3
+ * - Paper textures (f1/f2/f3) stronger but clean
+ * - Buttons: glass + gold edge (premium), keep 400.4 feel
+ * - Dots: c1~c5 + p1~p7 more visible
+ * - Logo circle
+ * - Photo wall: dynamic balance (no empty/odd gap feel)
+ * ================================ */
+
+/* ---------- Card base ---------- */
+.card{
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+body.mode-premium .card{
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 26px 80px rgba(0,0,0,0.56);
 }
 
-/* ✅ 精品：不要 Banner */
-body.mode-premium #banner{
-  display:none;
-  height:0;
-}
-
-/* ---------- Paper overlay ---------- */
+/* Paper overlay sits inside card */
 .paper-overlay{
   position:absolute;
   inset:0;
@@ -361,32 +241,42 @@ body.mode-premium #banner{
   opacity: 1;
 }
 
-/* paper-1 */
+/* ✅ 紙感再加重一點，但用 soft-light / overlay 控制「乾淨」 */
+:root{
+  --paper-strength: 0.30; /* ↑ from 0.22 */
+  --paper-grain: 0.18;    /* ↑ from 0.14 */
+  --paper-fiber: 0.13;    /* ↑ from 0.10 */
+}
+
+/* f1 棉紙（柔霧＋細顆粒） */
+body.f1 .paper-overlay,
 body.paper-1 .paper-overlay{
   background:
-    radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 55%),
-    radial-gradient(1px 1px at 38px 42px, rgba(0,0,0,calc(var(--paper-grain) * 0.85)), transparent 55%),
-    radial-gradient(1px 1px at 64px 22px, rgba(0,0,0,calc(var(--paper-grain) * 0.75)), transparent 55%),
-    linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.02));
+    radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 60%),
+    radial-gradient(1px 1px at 38px 42px, rgba(0,0,0,calc(var(--paper-grain) * 0.88)), transparent 60%),
+    radial-gradient(1px 1px at 64px 22px, rgba(0,0,0,calc(var(--paper-grain) * 0.78)), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.03));
   background-size: 78px 78px, 92px 92px, 110px 110px, auto;
   mix-blend-mode: soft-light;
   opacity: var(--paper-strength);
 }
 
-/* paper-2 */
+/* f2 顆粒（顆粒更明顯） */
+body.f2 .paper-overlay,
 body.paper-2 .paper-overlay{
   background:
-    radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.18), transparent 55%),
-    radial-gradient(1px 1px at 26px 44px, rgba(0,0,0,0.16), transparent 55%),
-    radial-gradient(1px 1px at 58px 30px, rgba(0,0,0,0.14), transparent 55%),
-    radial-gradient(1px 1px at 84px 62px, rgba(0,0,0,0.12), transparent 55%),
-    linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02));
+    radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.20), transparent 60%),
+    radial-gradient(1px 1px at 26px 44px, rgba(0,0,0,0.18), transparent 60%),
+    radial-gradient(1px 1px at 58px 30px, rgba(0,0,0,0.16), transparent 60%),
+    radial-gradient(1px 1px at 84px 62px, rgba(0,0,0,0.14), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.03));
   background-size: 56px 56px, 74px 74px, 92px 92px, 110px 110px, auto;
   mix-blend-mode: overlay;
-  opacity: calc(var(--paper-strength) + 0.06);
+  opacity: calc(var(--paper-strength) + 0.08);
 }
 
-/* paper-3 */
+/* f3 亞麻（纖維線條） */
+body.f3 .paper-overlay,
 body.paper-3 .paper-overlay{
   background:
     repeating-linear-gradient(
@@ -398,45 +288,44 @@ body.paper-3 .paper-overlay{
     ),
     repeating-linear-gradient(
       -45deg,
-      rgba(0,0,0, calc(var(--paper-fiber) * 0.75)) 0px,
-      rgba(0,0,0, calc(var(--paper-fiber) * 0.75)) 1px,
+      rgba(0,0,0, calc(var(--paper-fiber) * 0.78)) 0px,
+      rgba(0,0,0, calc(var(--paper-fiber) * 0.78)) 1px,
       transparent 1px,
       transparent 9px
     ),
-    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+    linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03));
   mix-blend-mode: soft-light;
-  opacity: calc(var(--paper-strength) + 0.08);
+  opacity: calc(var(--paper-strength) + 0.10);
 }
 
-/* premium paper subtle */
+/* Premium：紙感更輕，避免髒 */
 body.mode-premium .paper-overlay{
   mix-blend-mode: screen;
   opacity: 0.16;
 }
-/* ---------- Avatar (bg opaque) ---------- */
+
+/* ---------- Avatar (no background transparent) ---------- */
 .avatar-wrap{
   position: relative;
-  margin-top: -62px;
+  margin-top: -58px;
   display:flex;
   justify-content:center;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
 }
-body.mode-premium .avatar-wrap{ margin-top: 18px; } /* premium has no banner */
-
 .avatar-circle{
-  width: 128px;
-  height: 128px;
+  width: 120px;
+  height: 120px;
   border-radius: 999px;
-  background: rgba(255,255,255,0.95); /* ✅ 不透明 */
-  padding: 7px;
-  box-shadow: var(--shadowSoft);
-  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.92); /* ✅ 不透明 */
+  padding: 6px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(0,0,0,0.08);
 }
 body.mode-premium .avatar-circle{
-  background: rgba(255,255,255,0.92); /* ✅ premium 也不透明 */
-  border: 1px solid rgba(255,255,255,0.20);
+  background: rgba(255,255,255,0.92); /* ✅ 精品也不透明 */
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.55);
 }
-
 .avatar{
   width: 100%;
   height: 100%;
@@ -445,92 +334,167 @@ body.mode-premium .avatar-circle{
   display:block;
 }
 
-/* ---------- Logo circular ---------- */
+/* ---------- Logo (auto circle) ---------- */
 .logo-wrap{
   display:flex;
   justify-content:center;
-  padding: 4px 0 4px;
-}
-.logo-circle{
-  width: 76px;
-  height: 76px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.92);
-  padding: 6px;
-  border: 1px solid rgba(255,255,255,0.16);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.32);
+  padding: 6px 0 0;
 }
 .logo-img{
-  width:100%;
-  height:100%;
-  border-radius: 999px;   /* ✅ 自動圓形 */
-  object-fit: cover;
-  display:block;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;          /* ✅ 圓形 */
+  object-fit: cover;             /* ✅ 置中裁切成圓 */
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 14px 26px rgba(0,0,0,0.14);
+}
+body.mode-premium .logo-img{
+  border: 1px solid rgba(255,255,255,0.22);
+  box-shadow: 0 18px 45px rgba(0,0,0,0.55);
 }
 
 /* ---------- Info ---------- */
-.info-scroll{
-  padding: 10px 18px 18px;
-}
+.info-scroll{ padding: 10px 18px 18px; }
 .name{
-  margin: 10px 0 6px;
-  font-size: 34px;
+  margin: 8px 0 6px;
+  font-size: 26px;
   letter-spacing: 0.8px;
-  font-weight: 1000;
+  font-weight: 900;
   text-align:center;
 }
 .unit, .title{
   text-align:center;
-  font-weight: 900;
-  font-size: 15px;
+  font-weight: 800;
+  font-size: 14px;
   color: var(--muted);
-  line-height: 1.55;
-  white-space: pre-line;
+  line-height: 1.5;
 }
 .slogan{
-  margin: 12px auto 0;
-  max-width: 460px;
-  padding: 12px 14px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.08);
+  margin: 10px auto 0;
+  max-width: 420px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.68);
   text-align:center;
-  font-weight: 900;
+  font-weight: 800;
   white-space: pre-line;
 }
+body.mode-premium .slogan{
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.12);
+}
 
-/* blocks */
+/* ---------- Buttons (keep 400.4 feel) ---------- */
+.btn-neo{
+  border: 1px solid rgba(0,0,0,0.10);
+  background: rgba(255,255,255,0.86);
+  color: var(--ink);
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  cursor:pointer;
+  user-select:none;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+}
+.btn-neo:hover{ transform: translateY(-1px); box-shadow: 0 10px 22px rgba(0,0,0,0.10); }
+.btn-neo:active{ transform: translateY(0px) scale(0.98); }
+.btn-neo.pill{ flex:1; min-width: 0; padding: 12px 10px; border-radius: 999px; }
+.btn-neo.active{
+  border-color: rgba(0,0,0,0.16);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.80));
+  box-shadow: 0 12px 26px rgba(0,0,0,0.12);
+}
+
+/* ✅ 精品：玻璃 + 金邊 */
+body.mode-premium .btn-neo{
+  position: relative;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.92);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.40);
+}
+body.mode-premium .btn-neo::after{
+  content:"";
+  position:absolute; inset:-1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,233,168,0.55), rgba(191,149,63,0.72), rgba(255,255,255,0.10));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events:none;
+  opacity: .90;
+}
+body.mode-premium .btn-neo.active{
+  border-color: rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.14);
+}
+
+/* CTA */
+.btn-cta{
+  width: 100%;
+  max-width: 520px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, var(--p), var(--s));
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  box-shadow: 0 16px 32px rgba(0,0,0,0.16);
+  cursor:pointer;
+}
+.btn-cta:active{ transform: scale(0.99); }
+
+/* ---------- Dots more visible ---------- */
+.dot,.p-dot{
+  width: 16px;                 /* ✅ 更明顯 */
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.92);
+  outline: 2px solid rgba(0,0,0,0.10);
+  cursor:pointer;
+  padding:0;
+  box-shadow: 0 10px 18px rgba(0,0,0,0.10);
+}
+.dot.active,.p-dot.active{ transform: scale(1.18); }
+
+body.mode-premium .dot,
+body.mode-premium .p-dot{
+  border-color: rgba(255,255,255,0.74);
+  outline-color: rgba(255,255,255,0.12);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.55);
+}
+
+/* ---------- Blocks / Docks / Photo wall ---------- */
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
   padding: 12px 12px;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.72);
+}
+body.mode-premium .info-block{
   background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.12);
 }
-.block-title{
-  font-weight: 1000;
-  letter-spacing: 0.6px;
-  margin-bottom: 6px;
-}
-.block-body{
-  color: rgba(255,255,255,0.78);
-  font-weight: 800;
-}
+.block-title{ font-weight: 900; letter-spacing: 0.6px; margin-bottom: 6px; }
+.block-body{ color: var(--muted); font-weight: 700; }
 .preline{ white-space: pre-line; }
 
-/* docks */
-.dock-wrap{
+.contact-dock{
   margin-top: 12px;
   border-radius: 18px;
   padding: 10px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.70);
 }
-.dock-title{
-  font-weight: 1000;
-  letter-spacing: 0.6px;
-  margin: 4px 6px 10px;
-  color: rgba(255,255,255,0.86);
+body.mode-premium .contact-dock{
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.12);
 }
 
 .dock-buttons{
@@ -539,106 +503,109 @@ body.mode-premium .avatar-circle{
   gap: 10px;
 }
 
-/* dock btn */
 .dock-btn{
+  position: relative;
   display:flex;
   align-items:center;
   justify-content:center;
-  gap: 10px;
-  padding: 12px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.10);
-  color: rgba(255,255,255,0.92);
-  font-weight: 1000;
+  gap: 8px;
+  padding: 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.10);
+  background: rgba(255,255,255,0.88);
+  color: var(--ink);
+  font-weight: 900;
   cursor:pointer;
-  box-shadow: 0 18px 35px rgba(0,0,0,0.45);
+  box-shadow: 0 10px 18px rgba(0,0,0,0.08);
   transition: transform .12s ease, box-shadow .12s ease;
-  position: relative;
 }
-.dock-btn:hover{ transform: translateY(-1px); box-shadow: 0 22px 42px rgba(0,0,0,0.52); }
+.dock-btn:hover{ transform: translateY(-1px); box-shadow: 0 14px 22px rgba(0,0,0,0.10); }
 .dock-btn:active{ transform: scale(0.99); }
 .dock-btn i{ font-size: 18px; }
-.dock-btn span{ font-size: 15px; letter-spacing: 0.4px; }
-
-body.mode-premium .dock-btn{
-  border: 1px solid rgba(191,149,63,0.40);
-}
-body.mode-premium .dock-btn::after{
-  content:"";
-  position:absolute;
-  inset:-1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(255,233,168,0.45), rgba(191,149,63,0.30), rgba(255,255,255,0.12));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  pointer-events:none;
-  opacity: 0.85;
-}
-
+.dock-btn span{ font-size: 14px; letter-spacing: 0.4px; }
 .dock-btn.wide{ grid-column: 1 / -1; }
 
-/* media visual variation */
-.dock-btn.dock-yt{ border-color: rgba(255,0,0,0.22); }
-.dock-btn.dock-fb{ border-color: rgba(24,119,242,0.22); }
-.dock-btn.dock-ig{ border-color: rgba(225,48,108,0.22); }
-.dock-btn.dock-line{ border-color: rgba(6,199,85,0.22); }
-.dock-btn.dock-map{ border-color: rgba(255,255,255,0.18); }
-.dock-btn.dock-web{ border-color: rgba(255,255,255,0.14); }
+body.mode-premium .dock-btn{
+  border-color: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.92);
+  box-shadow: 0 18px 35px rgba(0,0,0,0.55);
+}
+/* ✅ 精品 dock 也給金邊玻璃 */
+body.mode-premium .dock-btn::after{
+  content:"";
+  position:absolute; inset:-1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,233,168,0.45), rgba(191,149,63,0.62), rgba(255,255,255,0.10));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events:none;
+  opacity: .85;
+}
 
-/* photo wall */
+/* Media variations (keep) */
+.dock-btn.dock-yt{ border-color: rgba(255,0,0,0.20); }
+.dock-btn.dock-fb{ border-color: rgba(24,119,242,0.20); }
+.dock-btn.dock-ig{ border-color: rgba(225,48,108,0.20); }
+.dock-btn.dock-line{ border-color: rgba(6,199,85,0.20); }
+.dock-btn.dock-map{ border-color: rgba(255,94,94,0.18); }
+.dock-btn.dock-web{ border-color: rgba(0,0,0,0.10); }
+body.mode-premium .dock-btn.dock-yt,
+body.mode-premium .dock-btn.dock-fb,
+body.mode-premium .dock-btn.dock-ig,
+body.mode-premium .dock-btn.dock-line,
+body.mode-premium .dock-btn.dock-map,
+body.mode-premium .dock-btn.dock-web{
+  border-color: rgba(255,255,255,0.16);
+}
+
+/* ---------- Photo wall (dynamic balance, no "empty") ---------- */
 .photo-wall{
   margin-top: 14px;
   border-radius: 18px;
   padding: 10px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.70);
 }
+body.mode-premium .photo-wall{
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.12);
+}
+
 .photo-grid{
   display:grid;
   gap: 10px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr)); /* JS 仍會覆蓋 */
 }
+
+/* ✅ 讓縮圖比例一致：統一 1:1，不會忽大忽小 */
 .wall-img{
   width:100%;
-  aspect-ratio: 1 / 1; /* ✅ 1:1 一致縮圖 */
-  border-radius: 16px;
+  aspect-ratio: 1 / 1;      /* ✅ 一致比例縮圖 */
+  border-radius: 14px;
   object-fit: cover;
   display:block;
-  box-shadow: 0 14px 30px rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.10);
-  background: rgba(255,255,255,0.06);
-}
-.wall-img.wide{
-  grid-column: 1 / -1; /* ✅ 最後落單拉滿 */
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.14);
+  border: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.55);
 }
 
-/* version */
+/* ---------- Version tag ---------- */
 .version-tag{
-  margin-top: 16px;
+  margin-top: 14px;
   text-align:center;
-  font-weight: 1000;
+  font-weight: 900;
   font-size: 12px;
-  color: rgba(255,255,255,0.45);
+  color: rgba(0,0,0,0.45);
 }
+body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 
-/* ---------- Hint animations ---------- */
-@keyframes hintPulse{
-  0%{ transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(255,255,255,0.0); }
-  50%{ transform: translateY(-1px) scale(1.03); box-shadow: 0 0 22px rgba(255,255,255,0.22); }
-  100%{ transform: translateY(0) scale(1); box-shadow: 0 0 0 rgba(255,255,255,0.0); }
-}
-.hint{
-  animation: hintPulse 1.25s ease-in-out infinite;
-}
-
+/* ---------- Mobile tweaks ---------- */
 @media (max-width: 360px){
-  .name{ font-size: 30px; }
-  .avatar-circle{ width: 120px; height: 120px; }
-  .logo-circle{ width: 70px; height: 70px; }
-  .dock-btn{ padding: 12px 10px; }
+  .name{ font-size: 24px; }
+  .avatar-circle{ width: 110px; height: 110px; }
+  .dot,.p-dot{ width: 15px; height: 15px; }
+  .dock-buttons{ gap: 8px; }
+  .dock-btn{ padding: 10px 8px; }
 }
