@@ -1,11 +1,140 @@
-// ✅ receive SW version from Service Worker
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.addEventListener("message", (e) => {
-    if (e.data?.type === "SW_VERSION") {
-      localStorage.setItem("__hsc_sw_version", e.data.value);
+/* ================================
+ * app.js (v403 COMPLETE OVERWRITE - Force Update)
+ * - Check version.json (no-store + ts)
+ * - If build changed -> force SW update + reload
+ * - SW register + message handling
+ * - (You can append your existing app logic below)
+ * ================================ */
+
+const APP_BUILD = "v403"; // 你自己的人類可讀版本（可留）
+
+const VERSION_URL = "./version.json";
+
+// ---- Force update core ----
+function nowTs_() { return Date.now(); }
+
+async function fetchVersionJson_() {
+  const url = `${VERSION_URL}?ts=${nowTs_()}`;
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("version.json fetch failed");
+  return await res.json();
+}
+
+function getStoredBuild_() {
+  return localStorage.getItem("HSC_BUILD") || "";
+}
+function setStoredBuild_(b) {
+  localStorage.setItem("HSC_BUILD", String(b || ""));
+}
+
+async function forceUpdateAndReload_(reason) {
+  try {
+    // 1) 叫 SW 檢查更新
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) {
+      try { await reg.update(); } catch {}
+
+      // 2) 若有 waiting -> 直接跳過等待
+      if (reg.waiting) {
+        try { reg.waiting.postMessage({ type: "SKIP_WAITING" }); } catch {}
+      }
+    }
+  } catch {}
+
+  // 3) 清掉你前端自己可能加的 cache-bust 記錄（可留）
+  // localStorage.removeItem("...");
+
+  // 4) 直接重整進新版（A 模式）
+  // 加時間戳避免某些瀏覽器仍吃到舊 html
+  const u = new URL(location.href);
+  u.searchParams.set("r", String(nowTs_()));
+  location.replace(u.toString());
+}
+
+async function checkVersionAndMaybeReload_() {
+  try {
+    const v = await fetchVersionJson_();
+
+    // ✅ 你 version.json 可能是 build: 403 或 app: "v403"
+    const remoteBuild =
+      (v && (v.build != null)) ? String(v.build) :
+      (v && (v.app != null)) ? String(v.app) :
+      "";
+
+    if (!remoteBuild) {
+      // 沒有 build/app 欄位也別炸
+      return;
+    }
+
+    const localBuild = getStoredBuild_();
+    if (!localBuild) {
+      // 第一次：記住就好
+      setStoredBuild_(remoteBuild);
+      return;
+    }
+
+    if (String(localBuild) !== String(remoteBuild)) {
+      // ✅ 偵測到新版本：強制更新＋重整
+      await forceUpdateAndReload_("version_changed");
+    }
+  } catch {
+    // 版本檢查失敗也不要影響使用
+  }
+}
+
+// ---- SW register ----
+async function registerSw_() {
+  if (!("serviceWorker" in navigator)) return;
+
+  try {
+    const reg = await navigator.serviceWorker.register("./sw.js?v=403");
+    // 監聽 SW 啟用通知 → 直接 reload（雙保險）
+    navigator.serviceWorker.addEventListener("message", (e) => {
+      const msg = e && e.data ? e.data : {};
+      if (msg.type === "SW_ACTIVATED") {
+        const u = new URL(location.href);
+        u.searchParams.set("r", String(nowTs_()));
+        location.replace(u.toString());
+      }
+    });
+
+    // 有更新就立刻跳過等待
+    reg.addEventListener("updatefound", () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener("statechange", () => {
+        if (nw.state === "installed") {
+          if (reg.waiting) {
+            try { reg.waiting.postMessage({ type: "SKIP_WAITING" }); } catch {}
+          }
+        }
+      });
+    });
+  } catch {
+    // ignore
+  }
+}
+
+// ---- Visibility change (你前面提過) ----
+function bindVisibilityRecheck_() {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      checkVersionAndMaybeReload_();
     }
   });
 }
+
+// ---- Boot ----
+(async function boot_() {
+  await registerSw_();
+  bindVisibilityRecheck_();
+
+  // ✅ 開啟頁面就檢查一次
+  await checkVersionAndMaybeReload_();
+
+  // 你原本 app.js 的初始化請接在這裡（或整段覆蓋成你既有版本再把上面加進去）
+  // initYourOriginalApp();
+})();
 /* ================================
  * Happiness Smart Card System
  * app.js v402 (COMPLETE OVERWRITE) 1/3
