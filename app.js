@@ -1,5 +1,5 @@
 /* ================================
- * app.js (v403-dev COMPLETE OVERWRITE - NO SW)
+ * app.js (v4030-dev COMPLETE OVERWRITE - NO SW)
  * - Dev-friendly: NO service worker register
  * - One-time cleanup: unregister old SW + clear caches
  * - Keep: robust fetch + payload normalize + photo wall + docks
