@@ -1,22 +1,27 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v401.1 (COMPLETE OVERWRITE) 1/3
- * - Align with index.html v401.1 API:
- *   window.setPlan / setTheme / setStyle / setPaper / goLineIntro / goFillForm
- * - Robust fetch + payload normalize
- * - Image normalize + fallback (Drive/Dropbox/http->https)
+ * app.js v402 (COMPLETE OVERWRITE) 1/3
+ * - Based on v401.1
+ * - ADD: Admin Workspace modal (triple tap BR)
+ * - ADD: Share card button (Web Share + copy fallback)
+ * - ADD: One-click OG preview generator (name + avatar, fallback og-card.png)
+ * - KEEP: Robust fetch + payload normalize + photo wall + docks
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v401.1",
+  VERSION: "v402",
   FETCH_TIMEOUT_MS: 12000,
-  RETRY: 2
+  RETRY: 2,
+
+  // OG fallback image
+  OG_FALLBACK_IMG: "og-card.png"
 };
 
 let currentRow = null;
+let __resolvedId = CONFIG.DEFAULT_ID;
 
 /* ---------- DOM ---------- */
 function qs(id){ return document.getElementById(id); }
@@ -87,16 +92,21 @@ function getIdFromUrl_(){
   }
 }
 
+function setUrlId_(id){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  try{
+    const u = new URL(location.href);
+    u.searchParams.set("id", cid);
+    history.replaceState({}, "", u.toString());
+  }catch{}
+}
+
 /* ---------- Fetch (robust) ---------- */
 function safeJsonParse_(rawText){
   let s = String(rawText||"").trim();
   if(!s) return null;
-
-  // XSSI guard: )]}'
-  s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
-
+  s = s.replace(/^\)\]\}'\s*\n?/, "").trim(); // XSSI guard
   try{ return JSON.parse(s); }catch{}
-
   const m = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
   if(m){
     try{ return JSON.parse(m[0]); }catch{}
@@ -146,35 +156,27 @@ function normalizeUrl_(s){
 function driveIdFromUrl_(u){
   const s = String(u||"").trim();
   if(!s) return "";
-
   const mFile = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   if(mFile && mFile[1]) return mFile[1];
-
   const mUc = s.match(/drive\.google\.com\/uc\?[^#]*id=([^&]+)/i);
   if(mUc && mUc[1]) return decodeURIComponent(mUc[1]);
-
   const mThumb = s.match(/thumbnail\?id=([^&]+)/i);
   if(mThumb && mThumb[1]) return decodeURIComponent(mThumb[1]);
-
   const mId = s.match(/(?:\?|&)id=([^&]+)/i);
   if(mId && mId[1]) return decodeURIComponent(mId[1]);
-
   return "";
 }
 
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
   if(!url) return "";
-
   if(url.includes("dropbox.com")){
     url = url.replace("dl=0","raw=1");
     if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
     return url;
   }
-
   const did = driveIdFromUrl_(url);
   if(did) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(did)}`;
-
   return url;
 }
 
@@ -242,16 +244,15 @@ function applyModeUi_(){
   }else{
     if(freeBlock) freeBlock.style.display = "none";
     if(premBlock) premBlock.style.display = "";
-    if(banner) banner.style.display = "none";         // ✅ premium no banner
+    if(banner) banner.style.display = "none";
     if(paperOverlay) paperOverlay.style.display = "none";
-    if(premBadge) premBadge.style.display = "none";   // keep minimal (as your note)
+    if(premBadge) premBadge.style.display = "none";
   }
 }
 
 function applyBodyClasses_(){
   const b = document.body;
 
-  // clear controlled classes
   [
     "mode-free","mode-premium",
     "color-1","color-2","color-3","color-4","color-5",
@@ -263,7 +264,6 @@ function applyBodyClasses_(){
   if(STATE.mode === "free"){
     b.classList.add("mode-free", STATE.color, "style-" + STATE.style, STATE.paper);
   }else{
-    // ✅ premium full tone (CSS should paint entire card by p1..p7)
     b.classList.add("mode-premium", STATE.premium);
   }
 
@@ -276,7 +276,6 @@ function setPlan(mode, el){
   setActiveInGroup_("plan", el);
   applyBodyClasses_();
 
-  // breathe hint switch (optional): only keep "自由搭配" breathe when free
   const btnFree = qs("btnPlanFree");
   const btnPrem = qs("btnPlanPremium");
   if(btnFree && btnPrem){
@@ -286,7 +285,6 @@ function setPlan(mode, el){
 }
 
 function setTheme(theme, el){
-  // free: color-1..5 / premium: p1..p7
   if(String(theme||"").startsWith("p")){
     STATE.mode = "premium";
     STATE.premium = theme;
@@ -298,7 +296,6 @@ function setTheme(theme, el){
   }
   applyBodyClasses_();
 
-  // also ensure plan pills reflect mode
   const btnFree = qs("btnPlanFree");
   const btnPrem = qs("btnPlanPremium");
   if(btnFree && btnPrem){
@@ -339,12 +336,11 @@ function setPaper(paper, el){
 function goFillForm(){
   window.open(CONFIG.FORM, "_blank");
 }
+
 /* ================================
- * app.js v401.1 (2/3)
+ * app.js v402 (2/3)
  * Render Card + Docks + Blocks + Logo/Avatar
- * - Logo must show + auto circle
- * - Media buttons classify dock-yt/fb/ig/line/web
- * - Contact buttons apply .wide when odd
+ * + Share button
  * ================================ */
 
 function safeSetText_(id, val){
@@ -399,7 +395,6 @@ function renderLogo_(p){
     return;
   }
 
-  // ✅ logo show + auto circle
   wrap.style.display = "flex";
   img.style.borderRadius = "999px";
   img.style.objectFit = "cover";
@@ -557,7 +552,6 @@ function renderDocks_(p){
     contactList.push({ label:"地址導航", icon:"fa-solid fa-location-dot", cls:"dock-map", action: ()=> openMapByAddress_(address) });
   }
 
-  // 沒有 LINE 官網才補個人 LINE
   if(text(lineLink) && !text(lineOA)){
     contactList.push({ label:"LINE", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineLink) });
   }
@@ -628,18 +622,9 @@ function goLineIntro(){
   openUrl_(url);
 }
 
-/* expose */
-window.setPlan = setPlan;
-window.setTheme = setTheme;
-window.setStyle = setStyle;
-window.setPaper = setPaper;
-window.goLineIntro = goLineIntro;
-window.goFillForm = goFillForm;
 /* ================================
- * app.js v401.1 (3/3)
- * Photo Wall + Lightbox + Admin hotspot BR + Robust Load/Boot
- * - Thumbs consistent ratio
- * - Grid dynamic balance (avoid lonely last)
+ * app.js v402 (3/3)
+ * Photo Wall + Lightbox + Admin Workspace + OG Preview + Share
  * ================================ */
 
 function extractRowFromPayload_(data){
@@ -744,12 +729,12 @@ function openLightbox_(url){
   overlay.style.display = "flex";
 }
 
-/* ---------- Photo wall dynamic balance (avoid lonely) ---------- */
+/* ---------- Photo wall dynamic balance ---------- */
 function computeCols_(n){
   if(n <= 1) return 1;
   if(n === 2) return 2;
   if(n === 4) return 2;
-  if(n % 3 === 1) return 2; // 7/10/13... avoid last lonely
+  if(n % 3 === 1) return 2; // 7/10/13...
   return 3;
 }
 
@@ -778,7 +763,6 @@ function renderPhotoWall_(row){
     img.decoding = "async";
     img.referrerPolicy = "no-referrer";
 
-    // ✅ consistent thumbnail ratio
     img.style.width = "100%";
     img.style.aspectRatio = "1 / 1";
     img.style.objectFit = "cover";
@@ -789,6 +773,379 @@ function renderPhotoWall_(row){
   });
 
   wall.style.display = "";
+}
+
+/* ---------- Share card ---------- */
+function getCardShareUrl_(){
+  try{
+    const u = new URL(location.href);
+    u.searchParams.set("id", __resolvedId || CONFIG.DEFAULT_ID);
+    return u.toString();
+  }catch{
+    return location.href;
+  }
+}
+
+async function shareCard_(){
+  const p = currentRow || null;
+  const name = p ? (pick(p, ["姓名","name"]) || "幸福智慧名片") : "幸福智慧名片";
+  const url = getCardShareUrl_();
+
+  try{
+    if(navigator.share){
+      await navigator.share({ title: name, text: name, url });
+      return;
+    }
+  }catch{}
+
+  // fallback: copy
+  try{
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(url);
+      alert("✅ 已複製名片連結");
+      return;
+    }
+  }catch{}
+
+  prompt("複製名片連結：", url);
+}
+
+/* ---------- Admin Workspace modal ---------- */
+function ensureAdminModal_(){
+  if(qs("adminModal")) return;
+
+  const modal = document.createElement("div");
+  modal.id = "adminModal";
+  modal.style.cssText = `
+    position:fixed; inset:0; z-index:1000000;
+    display:none; align-items:flex-end; justify-content:center;
+    background: rgba(0,0,0,0.55);
+    padding: 14px;
+  `;
+
+  const sheet = document.createElement("div");
+  sheet.id = "adminSheet";
+  sheet.style.cssText = `
+    width: min(520px, 100%);
+    border-radius: 22px;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 30px 90px rgba(0,0,0,0.32);
+    border: 1px solid rgba(0,0,0,0.10);
+    overflow:hidden;
+    backdrop-filter: blur(10px);
+  `;
+
+  sheet.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 14px 10px;">
+      <div style="font-weight:900; letter-spacing:.4px;">隱形後臺｜工作台</div>
+      <button id="btnAdminClose" type="button" style="
+        width:38px;height:38px;border-radius:999px;border:none;cursor:pointer;
+        background:rgba(0,0,0,0.06); font-size:18px; font-weight:900;
+      ">✕</button>
+    </div>
+
+    <div style="padding:0 14px 14px; display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex; gap:10px;">
+        <input id="adminIdInput" placeholder="輸入序號（例 TW0008 或 8）" style="
+          flex:1; padding:12px 12px; border-radius:14px;
+          border:1px solid rgba(0,0,0,0.12); outline:none;
+          font-weight:800;
+        "/>
+        <button id="btnAdminLoad" type="button" style="
+          padding:12px 14px;border-radius:14px;border:none;cursor:pointer;
+          background: linear-gradient(135deg, rgba(255,95,123,1), rgba(255,47,69,1));
+          color:#fff;font-weight:900; letter-spacing:.4px;
+          box-shadow: 0 16px 30px rgba(0,0,0,0.18);
+        ">載入</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;">
+        <button id="btnAdminCopyLink" type="button" class="admin-mini-btn">複製名片連結</button>
+        <button id="btnAdminShareLink" type="button" class="admin-mini-btn">分享名片</button>
+        <button id="btnAdminOgPreview" type="button" class="admin-mini-btn admin-mini-btn-gold">一鍵交貨 OG 預覽</button>
+        <button id="btnAdminOpenCard" type="button" class="admin-mini-btn">成品預覽</button>
+      </div>
+
+      <div id="ogPreviewBox" style="display:none; margin-top:4px; border-radius:16px; overflow:hidden; border:1px solid rgba(0,0,0,0.10); background:#fff;">
+        <div style="padding:10px 10px 8px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="font-weight:900;">OG 預覽（1200×630）</div>
+          <button id="btnOgClose" type="button" style="border:none;background:rgba(0,0,0,0.06);border-radius:999px;width:34px;height:34px;cursor:pointer;font-weight:900;">✕</button>
+        </div>
+        <div style="padding:0 10px 10px;">
+          <img id="ogPreviewImg" alt="OG Preview" style="width:100%; display:block; border-radius:14px; background:rgba(0,0,0,0.04);" />
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <button id="btnOgOpenNew" type="button" class="admin-mini-btn">開新頁預覽</button>
+            <button id="btnOgDownload" type="button" class="admin-mini-btn admin-mini-btn-gold">下載 PNG</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="opacity:.72; font-size:12px; line-height:1.5;">
+        v402：三擊右下角進來；可載入客戶、分享名片、並一鍵產出 OG 預覽圖（沒照片用 og-card.png）。
+      </div>
+    </div>
+  `;
+
+  modal.appendChild(sheet);
+  document.body.appendChild(modal);
+
+  // inject mini button styles (scoped-ish)
+  const style = document.createElement("style");
+  style.textContent = `
+    .admin-mini-btn{
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.86));
+      font-weight: 900;
+      letter-spacing: .3px;
+      cursor: pointer;
+      box-shadow: 0 12px 22px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.90);
+    }
+    .admin-mini-btn:active{ transform: scale(0.99); }
+    .admin-mini-btn-gold{
+      border: 1px solid rgba(0,0,0,0.10);
+      background:
+        radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.20), transparent 62%),
+        linear-gradient(135deg, rgba(255,233,168,0.88), rgba(191,149,63,0.92));
+      color:#1a1408;
+      box-shadow: 0 18px 34px rgba(0,0,0,0.16);
+    }
+  `;
+  document.head.appendChild(style);
+
+  const close = ()=>{
+    modal.style.display = "none";
+    // close og preview too
+    const box = qs("ogPreviewBox");
+    if(box) box.style.display = "none";
+  };
+
+  modal.addEventListener("click",(e)=>{ if(e.target === modal) close(); });
+  qs("btnAdminClose")?.addEventListener("click", close);
+
+  qs("btnAdminLoad")?.addEventListener("click", async ()=>{
+    const v = qs("adminIdInput")?.value || "";
+    const cid = normalizeId_(v);
+    if(!cid){
+      alert("請輸入序號（例 TW0008 或 8）");
+      return;
+    }
+    await loadAndRenderById_(cid);
+    setUrlId_(cid);
+    alert("✅ 已載入：" + cid);
+  });
+
+  qs("btnAdminCopyLink")?.addEventListener("click", async ()=>{
+    const url = getCardShareUrl_();
+    try{
+      if(navigator.clipboard?.writeText){
+        await navigator.clipboard.writeText(url);
+        alert("✅ 已複製名片連結");
+        return;
+      }
+    }catch{}
+    prompt("複製名片連結：", url);
+  });
+
+  qs("btnAdminShareLink")?.addEventListener("click", shareCard_);
+
+  qs("btnAdminOpenCard")?.addEventListener("click", ()=>{
+    openUrl_(getCardShareUrl_());
+  });
+
+  qs("btnAdminOgPreview")?.addEventListener("click", async ()=>{
+    await buildOgPreview_();
+  });
+
+  qs("btnOgClose")?.addEventListener("click", ()=>{
+    const box = qs("ogPreviewBox");
+    if(box) box.style.display = "none";
+  });
+}
+
+/* ---------- OG Preview generator (canvas) ---------- */
+function loadImageAsBitmap_(url){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.referrerPolicy = "no-referrer";
+    img.onload = ()=> resolve(img);
+    img.onerror = reject;
+    img.src = url + (url.includes("?") ? "&" : "?") + "t=" + Date.now();
+  });
+}
+
+function getThemeColors_(){
+  // Use CSS vars from computed style
+  const cs = getComputedStyle(document.body);
+  const p = cs.getPropertyValue("--p").trim() || "#ff5f7b";
+  const s = cs.getPropertyValue("--s").trim() || "#ff2f45";
+  return { p, s };
+}
+
+function getAvatarCandidate_(){
+  const p = currentRow || null;
+  if(!p) return "";
+  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","形象照","photo"]);
+  const u = normalizeImageUrl_(avatarRaw);
+  return u || "";
+}
+
+async function buildOgPreview_(){
+  ensureAdminModal_();
+  const box = qs("ogPreviewBox");
+  const imgEl = qs("ogPreviewImg");
+  if(!box || !imgEl){
+    alert("OG 預覽元件不存在");
+    return;
+  }
+
+  const pRow = currentRow || null;
+  const name = pRow ? (pick(pRow, ["姓名","name"]) || "幸福智慧名片") : "幸福智慧名片";
+  const avatarUrl = getAvatarCandidate_();
+
+  const W = 1200, H = 630;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+
+  const { p, s } = getThemeColors_();
+
+  // background gradient
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, p);
+  g.addColorStop(1, s);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // soft highlight
+  const g2 = ctx.createRadialGradient(W*0.25, H*0.15, 10, W*0.25, H*0.15, 650);
+  g2.addColorStop(0, "rgba(255,255,255,0.26)");
+  g2.addColorStop(1, "rgba(255,255,255,0.00)");
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, 0, W, H);
+
+  // card glass
+  ctx.fillStyle = "rgba(255,255,255,0.14)";
+  roundRectFill_(ctx, 56, 56, W-112, H-112, 36);
+
+  // avatar circle
+  const cx = 150, cy = H/2;
+  const r = 120;
+
+  // avatar bg ring
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.beginPath(); ctx.arc(cx, cy, r+12, 0, Math.PI*2); ctx.fill();
+
+  // load avatar or fallback
+  let avatarImg = null;
+  if(avatarUrl){
+    try{
+      avatarImg = await loadImageAsBitmap_(avatarUrl);
+    }catch{
+      avatarImg = null;
+    }
+  }
+  if(!avatarImg){
+    try{
+      avatarImg = await loadImageAsBitmap_(CONFIG.OG_FALLBACK_IMG);
+    }catch{
+      avatarImg = null;
+    }
+  }
+
+  // draw avatar clipped
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.closePath(); ctx.clip();
+  if(avatarImg){
+    // cover draw
+    const iw = avatarImg.naturalWidth || avatarImg.width;
+    const ih = avatarImg.naturalHeight || avatarImg.height;
+    const scale = Math.max((r*2)/iw, (r*2)/ih);
+    const dw = iw*scale, dh = ih*scale;
+    const dx = cx - dw/2, dy = cy - dh/2;
+    ctx.drawImage(avatarImg, dx, dy, dw, dh);
+  }else{
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
+    ctx.fillRect(cx-r, cy-r, r*2, r*2);
+  }
+  ctx.restore();
+
+  // name text
+  ctx.fillStyle = "rgba(255,255,255,0.94)";
+  ctx.font = "900 64px 'Noto Sans TC', system-ui, -apple-system, sans-serif";
+  ctx.textBaseline = "top";
+  ctx.shadowColor = "rgba(0,0,0,0.22)";
+  ctx.shadowBlur = 12;
+  ctx.shadowOffsetY = 2;
+
+  const tx = 320;
+  const ty = 210;
+  const lines = wrapText_(ctx, name, 740);
+  const maxLines = 2;
+  const show = lines.slice(0, maxLines);
+  show.forEach((ln, i)=>{
+    ctx.fillText(ln, tx, ty + i*78);
+  });
+
+  // tagline
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "rgba(255,255,255,0.82)";
+  ctx.font = "700 28px 'Noto Sans TC', system-ui, -apple-system, sans-serif";
+  ctx.fillText("Happiness Smart Card", tx, ty + show.length*78 + 20);
+
+  // export
+  const dataUrl = canvas.toDataURL("image/png");
+  imgEl.src = dataUrl;
+  imgEl.dataset.png = dataUrl;
+
+  box.style.display = "";
+  qs("btnOgOpenNew")?.addEventListener("click", ()=>{
+    const w = window.open("", "_blank");
+    if(!w) return;
+    w.document.write(`<title>OG Preview</title><img src="${dataUrl}" style="width:100%;max-width:1200px;display:block;margin:0 auto;">`);
+  }, { once:true });
+
+  qs("btnOgDownload")?.addEventListener("click", ()=>{
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `${__resolvedId || "card"}-og.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, { once:true });
+}
+
+function roundRectFill_(ctx, x, y, w, h, r){
+  const rr = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.arcTo(x+w, y, x+w, y+h, rr);
+  ctx.arcTo(x+w, y+h, x, y+h, rr);
+  ctx.arcTo(x, y+h, x, y, rr);
+  ctx.arcTo(x, y, x+w, y, rr);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function wrapText_(ctx, s, maxWidth){
+  const raw = String(s||"").trim();
+  if(!raw) return [""];
+  const out = [];
+  let line = "";
+  for(const ch of raw){
+    const test = line + ch;
+    const w = ctx.measureText(test).width;
+    if(w > maxWidth && line){
+      out.push(line);
+      line = ch;
+    }else{
+      line = test;
+    }
+  }
+  if(line) out.push(line);
+  return out;
 }
 
 /* ---------- Admin hotspot (bottom-right triple tap) ---------- */
@@ -806,9 +1163,14 @@ function setupAdminHotspotBR_(){
 
     if(taps >= 3){
       taps = 0;
-      alert("✅ 進入隱形後臺（v401.1 預留入口）");
-      // TODO: 之後接 admin.html
-      // location.href = "admin.html?id=" + encodeURIComponent(getIdFromUrl_() || CONFIG.DEFAULT_ID);
+      ensureAdminModal_();
+      const modal = qs("adminModal");
+      if(modal) modal.style.display = "flex";
+      const input = qs("adminIdInput");
+      if(input){
+        input.value = __resolvedId || (getIdFromUrl_() || CONFIG.DEFAULT_ID);
+        input.focus();
+      }
     }
   });
 }
@@ -816,6 +1178,8 @@ function setupAdminHotspotBR_(){
 /* ---------- Load + Boot ---------- */
 async function loadAndRenderById_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  __resolvedId = cid;
+
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
 
   try{
@@ -832,12 +1196,18 @@ async function loadAndRenderById_(id){
   }
 }
 
+function setupShareBtn_(){
+  const btn = qs("btnShare");
+  if(!btn) return;
+  btn.addEventListener("click", shareCard_);
+}
+
 (function boot_(){
   try{
     ensureLightbox_();
     setupAdminHotspotBR_();
+    setupShareBtn_();
 
-    // ✅ ensure UI matches initial HTML class
     // read from body initial classes if present
     const b = document.body;
     STATE.mode = b.classList.contains("mode-premium") ? "premium" : "free";
@@ -859,9 +1229,18 @@ async function loadAndRenderById_(id){
     applyBodyClasses_();
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
-    loadAndRenderById_(id);
+    __resolvedId = normalizeId_(id) || CONFIG.DEFAULT_ID;
+    loadAndRenderById_(__resolvedId);
 
   }catch(e){
     console.error(e);
   }
 })();
+
+/* expose */
+window.setPlan = setPlan;
+window.setTheme = setTheme;
+window.setStyle = setStyle;
+window.setPaper = setPaper;
+window.goLineIntro = goLineIntro;
+window.goFillForm = goFillForm;
