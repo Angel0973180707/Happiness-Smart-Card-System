@@ -1,255 +1,367 @@
-/* =========================================
+/* ================================
  * share.js v402 (COMPLETE OVERWRITE)
- * - Auto load card data by id (from URL)
- * - Build card link & OG helper
- * - ✅ Drive image URL auto-normalize (anti-fail)
- * - ✅ referrerPolicy + safe fallbacks
- * ========================================= */
+ * - Angel Card Share Page (share.html)
+ * - Auto-foolproof image loading (Google Drive link variants)
+ * - Build Card URL / Share URL / OG URL
+ * - Copy link / Open link / Copy OG image link
+ * ================================ */
 
 (() => {
   "use strict";
 
-  // ===== Config (fill only if you want override) =====
+  /***************
+   * CONFIG (可改)
+   ***************/
   const CFG = {
-    // 你的名片前台（你已給我）
+    // 你的名片前台（你已提供）
     CARD_BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-
-    // 交貨頁自己的 base（通常同站）
+    // share.html 的網址（同站即可）
     SHARE_BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/share.html",
+    // 你的 GAS WebApp（你已提供）
+    GAS_WEBAPP_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
 
-    // 後端 GAS WebApp（如果你要 share 頁自己打 GAS 拿資料，才需要）
-    // 若你的 share.html 只是顯示「已由 index.html 產生的內容」，可留空
-    GAS_WEBAPP_URL: "", // e.g. "https://script.google.com/macros/s/XXXX/exec"
+    DEFAULT_ID: "TW0001",
+    OG_IMAGE: "og-card.png",
+
+    // 你 Code.gs 會回 photos / photos_full；也可能回「照片_fast」逗號字串
+    MAX_PHOTOS: 5,
+
+    // UI
+    TOAST_MS: 1600,
   };
 
-  // ===== DOM =====
+  /***************
+   * DOM
+   ***************/
   const $ = (id) => document.getElementById(id);
 
   const elAva = $("avaImg");
   const elName = $("name");
   const elSub = $("sub");
-  const elCardBox = $("cardUrlBox");
+  const elCardUrlBox = $("cardUrlBox");
 
   const btnBack = $("btnBack");
   const btnCopyCard = $("btnCopyCard");
   const btnOpenCard = $("btnOpenCard");
   const btnCopyOg = $("btnCopyOg");
 
-  // ===== Helpers =====
-  function qs(name) {
+  /***************
+   * URL helpers
+   ***************/
+  function getQueryParam_(k) {
     const u = new URL(location.href);
-    return (u.searchParams.get(name) || "").trim();
+    return (u.searchParams.get(k) || "").trim();
   }
 
-  function safeText(v) {
-    return String(v == null ? "" : v).trim();
+  function normalizeBaseUrl_(u) {
+    if (!u) return "";
+    try {
+      const url = new URL(u);
+      // ensure trailing slash for base
+      if (!url.pathname.endsWith("/")) url.pathname += "/";
+      url.search = "";
+      url.hash = "";
+      return url.toString();
+    } catch (e) {
+      return u;
+    }
   }
 
-  function joinLines(...arr) {
-    return arr
-      .map(safeText)
-      .filter(Boolean)
-      .join("\n")
-      .trim();
+  function buildCardUrl_(id) {
+    const base = normalizeBaseUrl_(CFG.CARD_BASE_URL);
+    return `${base}?id=${encodeURIComponent(id)}`;
   }
 
-  function normalizeHttp(url) {
-    let u = safeText(url);
+  function buildShareUrl_(id) {
+    return `${CFG.SHARE_BASE_URL}?id=${encodeURIComponent(id)}`;
+  }
+
+  function buildOgUrl_() {
+    // og-card.png 放在同層根目錄
+    try {
+      const u = new URL(CFG.SHARE_BASE_URL);
+      // keep directory
+      const dir = u.pathname.endsWith("/") ? u.pathname : u.pathname.split("/").slice(0, -1).join("/") + "/";
+      return `${u.origin}${dir}${CFG.OG_IMAGE}`;
+    } catch (e) {
+      return CFG.OG_IMAGE;
+    }
+  }
+
+  /***************
+   * Toast
+   ***************/
+  function toast_(msg) {
+    // minimal toast (no extra CSS dependency)
+    const t = document.createElement("div");
+    t.textContent = msg;
+    t.style.position = "fixed";
+    t.style.left = "50%";
+    t.style.bottom = "18px";
+    t.style.transform = "translateX(-50%)";
+    t.style.background = "rgba(0,0,0,0.72)";
+    t.style.color = "rgba(255,255,255,0.92)";
+    t.style.padding = "10px 12px";
+    t.style.borderRadius = "12px";
+    t.style.fontSize = "12px";
+    t.style.zIndex = "99999";
+    t.style.maxWidth = "92vw";
+    t.style.wordBreak = "break-word";
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), CFG.TOAST_MS);
+  }
+
+  /***************
+   * Clipboard
+   ***************/
+  async function copyText_(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast_("已複製");
+      return true;
+    } catch (e) {
+      // fallback
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        toast_("已複製");
+        return true;
+      } catch (e2) {
+        toast_("複製失敗（請長按手動複製）");
+        return false;
+      }
+    }
+  }
+
+  /***************
+   * Google Drive image foolproof
+   *
+   * Problem:
+   * - /file/d/.../view?usp=drivesdk often fails in <img>
+   * Fix:
+   * - Convert to a list of direct-ish variants and try sequentially
+   ***************/
+  function extractDriveId_(url) {
+    if (!url) return "";
+    const s = String(url).trim();
+
+    // file/d/<id>/
+    let m = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+    if (m && m[1]) return m[1];
+
+    // open?id=<id>
+    m = s.match(/[?&]id=([^&]+)/i);
+    if (m && m[1]) return m[1];
+
+    // uc?...id=<id>
+    m = s.match(/drive\.google\.com\/uc\?[^#]*id=([^&]+)/i);
+    if (m && m[1]) return m[1];
+
+    // thumbnail?id=<id>
+    m = s.match(/thumbnail\?id=([^&]+)/i);
+    if (m && m[1]) return m[1];
+
+    return "";
+  }
+
+  function normalizeHttp_(url) {
+    if (!url) return "";
+    let u = String(url).trim();
     if (!u) return "";
     if (u.startsWith("http://")) u = "https://" + u.slice(7);
     return u;
   }
 
-  // ✅ 核心：把各種 Drive 分享連結轉成可 <img> 直接顯示的格式
-  function toDirectImageUrl(raw) {
-    let url = normalizeHttp(raw);
-    if (!url) return "";
+  function driveVariants_(rawUrl) {
+    const u = normalizeHttp_(rawUrl);
+    const id = extractDriveId_(u);
+    if (!id) return [withCacheBust_(u)];
 
-    // 1) 如果是多連結，取第一個（避免有人亂貼多行）
-    url = url.split(/[\n,，;；\s]+/).map(s => s.trim()).filter(Boolean)[0] || "";
+    // Try 3 variants (view / download / thumbnail)
+    const v1 = `https://drive.google.com/uc?export=view&id=${encodeURIComponent(id)}`;
+    const v2 = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(id)}`;
+    const v3 = `https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w1024`;
 
-    // 2) Drive 常見格式抓 fileId
-    // - https://drive.google.com/file/d/<ID>/view?usp=...
-    // - https://drive.google.com/open?id=<ID>
-    // - https://drive.google.com/uc?export=view&id=<ID>
-    // - https://drive.google.com/uc?id=<ID>&export=download
-    // - https://drive.google.com/thumbnail?id=<ID>&sz=w1000
-    const m1 = url.match(/drive\.google\.com\/file\/d\/([^\/?#]+)/i);
-    const m2 = url.match(/drive\.google\.com\/open\?id=([^&?#]+)/i);
-    const m3 = url.match(/drive\.google\.com\/uc\?[^#]*id=([^&?#]+)/i);
-    const m4 = url.match(/drive\.google\.com\/uc\?id=([^&?#]+)/i);
-    const m5 = url.match(/drive\.google\.com\/thumbnail\?[^#]*id=([^&?#]+)/i);
-    const m6 = url.match(/[?&]id=([^&?#]+)/i); // 最後保底：網址裡有 id=
-
-    const fileId = (m1 && m1[1]) || (m2 && m2[1]) || (m3 && m3[1]) || (m4 && m4[1]) || (m5 && m5[1]) || (m6 && m6[1]) || "";
-    if (fileId) {
-      // ✅ 最穩的直出圖（公開可讀時）
-      return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`;
-    }
-
-    // 3) Dropbox 圖
-    if (url.includes("dropbox.com")) {
-      url = url.replace("dl=0", "raw=1");
-      if (!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
-      return url;
-    }
-
-    // 4) 其他網址就原樣（但確保 https）
-    return url;
+    return [withCacheBust_(v1), withCacheBust_(v2), withCacheBust_(v3)];
   }
 
-  function setImgSafe(imgEl, rawUrl) {
-    const u = toDirectImageUrl(rawUrl);
+  function withCacheBust_(url) {
+    if (!url) return "";
+    try {
+      const u = new URL(url);
+      u.searchParams.set("v", String(Date.now()));
+      return u.toString();
+    } catch (e) {
+      const join = url.includes("?") ? "&" : "?";
+      return `${url}${join}v=${Date.now()}`;
+    }
+  }
+
+  function splitLinks_(cell) {
+    if (!cell) return [];
+    const t = String(cell).trim();
+    if (!t) return [];
+    return t
+      .split(/[\n,，;；]+/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+  }
+
+  async function setImgWithFallback_(imgEl, rawUrl, placeholderText) {
     if (!imgEl) return;
 
-    imgEl.referrerPolicy = "no-referrer";
-    imgEl.loading = "lazy";
-    imgEl.decoding = "async";
-
-    if (!u) {
-      // 沒圖就清空（保持你現在的白圓）
+    if (!rawUrl) {
       imgEl.removeAttribute("src");
+      imgEl.alt = placeholderText || "no image";
       return;
     }
 
-    // 加防快取 ts，避免手機快取舊的 403/redirect
-    const withTs = u + (u.includes("?") ? "&" : "?") + "ts=" + Date.now();
-    imgEl.src = withTs;
+    const variants = driveVariants_(rawUrl);
 
-    // 失敗就再試一次（去掉 ts 或換一種 export=download 保底）
-    imgEl.onerror = () => {
-      imgEl.onerror = null;
-      const alt = u.includes("drive.google.com/uc?")
-        ? u.replace("export=view", "export=download")
-        : u;
-      imgEl.src = alt;
+    // sequential try
+    let idx = 0;
+    const tryOne = () => {
+      if (idx >= variants.length) {
+        // give up
+        imgEl.removeAttribute("src");
+        imgEl.alt = "image failed";
+        return;
+      }
+      const src = variants[idx++];
+      imgEl.src = src;
     };
+
+    imgEl.onerror = () => tryOne();
+    imgEl.onload = () => {
+      // ok
+    };
+
+    tryOne();
   }
 
-  async function fetchJson(url) {
+  /***************
+   * Fetch card data
+   ***************/
+  async function fetchCard_(id) {
+    const url = `${CFG.GAS_WEBAPP_URL}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
     const res = await fetch(url, { cache: "no-store" });
-    const txt = await res.text();
+    const text = await res.text();
+
+    // sometimes GAS returns HTML on error; try JSON parse safely
     try {
-      return JSON.parse(txt);
-    } catch {
-      throw new Error("Invalid JSON: " + txt.slice(0, 120));
+      const obj = JSON.parse(text);
+      return obj;
+    } catch (e) {
+      return { ok: false, error: "Invalid JSON", raw: text };
     }
   }
 
-  function buildCardUrl(id) {
-    const base = CFG.CARD_BASE_URL.replace(/\/+$/, "") + "/";
-    return base + `?id=${encodeURIComponent(id)}`;
-  }
-
-  function buildShareUrl(id) {
-    const base = CFG.SHARE_BASE_URL.replace(/\/+$/, "");
-    return base + `?id=${encodeURIComponent(id)}`;
-  }
-
-  async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast("已複製 ✅");
-    } catch {
-      // fallback
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      try {
-        document.execCommand("copy");
-        toast("已複製 ✅");
-      } catch {
-        toast("複製失敗，請長按手動複製");
-      }
-      document.body.removeChild(ta);
+  function pickFirst_(obj, keys) {
+    for (const k of keys) {
+      const v = obj && obj[k];
+      if (typeof v === "string" && v.trim()) return v.trim();
     }
+    return "";
   }
 
-  function toast(msg) {
-    // 極簡 toast
-    const d = document.createElement("div");
-    d.textContent = msg;
-    d.style.position = "fixed";
-    d.style.left = "50%";
-    d.style.bottom = "18px";
-    d.style.transform = "translateX(-50%)";
-    d.style.padding = "10px 12px";
-    d.style.borderRadius = "12px";
-    d.style.background = "rgba(0,0,0,0.75)";
-    d.style.color = "rgba(255,255,255,0.95)";
-    d.style.fontSize = "13px";
-    d.style.zIndex = "9999";
-    document.body.appendChild(d);
-    setTimeout(() => d.remove(), 1200);
+  function buildSubText_(row) {
+    const unit = pickFirst_(row, ["單位", "unit"]);
+    const title = pickFirst_(row, ["頭銜", "title"]);
+    const slogan = pickFirst_(row, ["理念標語", "slogan"]);
+    const lines = [];
+    if (unit) lines.push(unit);
+    if (title) lines.push(title);
+    if (slogan) lines.push(slogan);
+    return lines.join("\n");
   }
 
-  // ===== Main =====
-  async function boot() {
-    const id = qs("id");
-    if (!id) {
-      elName && (elName.textContent = "缺少 id");
-      elCardBox && (elCardBox.textContent = "請用 ?id=TW0001 開啟");
+  function pickAvatarUrl_(row) {
+    // priority: 個人照_fast -> 個人照 -> avatar
+    return (
+      pickFirst_(row, ["個人照_fast"]) ||
+      pickFirst_(row, ["個人照"]) ||
+      pickFirst_(row, ["avatar"]) ||
+      pickFirst_(row, ["avatar_img"])
+    );
+  }
+
+  function pickPhotos_(row) {
+    // prefer photos (array) -> 照片_fast (csv) -> 照片 (csv)
+    if (row && Array.isArray(row.photos) && row.photos.length) {
+      return row.photos.slice(0, CFG.MAX_PHOTOS);
+    }
+    const fast = pickFirst_(row, ["照片_fast"]);
+    if (fast) return splitLinks_(fast).slice(0, CFG.MAX_PHOTOS);
+
+    const raw = pickFirst_(row, ["照片"]);
+    if (raw) return splitLinks_(raw).slice(0, CFG.MAX_PHOTOS);
+
+    return [];
+  }
+
+  /***************
+   * Render
+   ***************/
+  async function render_() {
+    const id = getQueryParam_("id") || CFG.DEFAULT_ID;
+
+    // build URLs
+    const cardUrl = buildCardUrl_(id);
+    const ogUrl = buildOgUrl_();
+
+    // show link box first
+    elCardUrlBox.textContent = cardUrl;
+
+    // wire buttons
+    btnBack?.addEventListener("click", () => (location.href = cardUrl));
+    btnOpenCard?.addEventListener("click", () => window.open(cardUrl, "_blank", "noopener"));
+    btnCopyCard?.addEventListener("click", () => copyText_(cardUrl));
+    btnCopyOg?.addEventListener("click", () => copyText_(ogUrl));
+
+    // load data
+    const row = await fetchCard_(id);
+
+    // if your Code.gs returns {ok:false,...}
+    if (row && row.ok === false) {
+      elName.textContent = "找不到資料";
+      elSub.textContent = row.error ? String(row.error) : "error";
+      // still keep link box
       return;
     }
 
-    const cardUrl = buildCardUrl(id);
-    elCardBox && (elCardBox.textContent = cardUrl);
+    const name = pickFirst_(row, ["姓名", "name"]) || id;
+    elName.textContent = name;
 
-    // buttons
-    btnBack && btnBack.addEventListener("click", () => location.href = cardUrl);
-    btnOpenCard && btnOpenCard.addEventListener("click", () => window.open(cardUrl, "_blank"));
-    btnCopyCard && btnCopyCard.addEventListener("click", () => copyText(cardUrl));
+    elSub.textContent = buildSubText_(row);
 
-    // OG 圖：你現在是固定 og-card.png（同站）
-    btnCopyOg && btnCopyOg.addEventListener("click", async () => {
-      const ogUrl = new URL("og-card.png", location.href).toString();
-      await copyText(ogUrl);
-    });
+    // avatar
+    const avatarUrl = pickAvatarUrl_(row);
+    await setImgWithFallback_(elAva, avatarUrl, "avatar");
 
-    // 如果你有 GAS，就直接讀資料，把頭像/姓名/副標補滿
-    if (CFG.GAS_WEBAPP_URL) {
-      try {
-        const api = CFG.GAS_WEBAPP_URL.replace(/\/+$/, "");
-        const url = `${api}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
-        const data = await fetchJson(url);
+    // (optional) if you later want to show gallery preview on share page:
+    // const photos = pickPhotos_(row);
+    // console.log("photos:", photos);
 
-        // 後端如果回 ok:false
-        if (data && data.ok === false) throw new Error(data.error || "Load failed");
-
-        // 兼容欄位
-        const name = safeText(data["姓名"] || data.name || data.u_name || data["u-name"]);
-        const unit = safeText(data["單位"] || data.unit || data.u_unit || data["u-unit"]);
-        const title = safeText(data["頭銜"] || data.title || data.u_title || data["u-title"]);
-        const slogan = safeText(data["理念標語"] || data.slogan || data.tagline);
-
-        // 圖片欄位：個人照 / avatar / 個人照_fast 任何一個
-        const avatar =
-          safeText(data["個人照_fast"]) ||
-          safeText(data["個人照"]) ||
-          safeText(data.avatar_img) ||
-          safeText(data.avatar) ||
-          safeText(data.photo) ||
-          "";
-
-        elName && (elName.textContent = name || id);
-        elSub && (elSub.textContent = joinLines(unit, title, slogan));
-        setImgSafe(elAva, avatar);
-      } catch (e) {
-        // 讀不到資料也沒關係：至少連結能交貨
-        elSub && (elSub.textContent = "（資料載入失敗：仍可交付連結）");
-        setImgSafe(elAva, ""); // 留白
-      }
-    } else {
-      // 沒有 GAS：至少讓 name 顯示 id（或你也可用 localStorage 再補）
-      elName && (elName.textContent = id);
-      elSub && (elSub.textContent = "");
-      setImgSafe(elAva, ""); // 留白
-    }
+    // Replace linkbox with selectable content
+    elCardUrlBox.innerHTML = `名片連結：<br><strong>${escapeHtml_(cardUrl)}</strong>`;
   }
 
-  boot();
+  function escapeHtml_(s) {
+    return String(s || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  // boot
+  document.addEventListener("DOMContentLoaded", render_);
 })();
