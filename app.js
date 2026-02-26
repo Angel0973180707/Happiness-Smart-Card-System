@@ -1,13 +1,19 @@
 /* ================================
  * Happiness Smart Card System
  * app.js v400.2 (COMPLETE OVERWRITE) 1/3
- * - FIX: compatible with GAS payload (direct row JSON OR {ok,data/row})
+ * - FIX: GAS payload compatibility (direct row OR {ok,data/row})
+ * - FIX: robust fetch + timeout + retry
  * - Keep: theme switch (free/premium + theme/style/paper)
  * - Keep: goFillForm()
  * ================================ */
 
 const CONFIG = {
-  GAS: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
+  // ✅ 你目前正在用的這支 API（AMI-E）
+  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+
+  // ✅ 舊的備援（如果你要留）
+  GAS_BACKUP: "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec",
+
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
   VERSION: "v400.2",
@@ -95,10 +101,11 @@ async function fetchWithTimeout_(url, timeoutMs){
     const txt = await res.text();
     const body = (txt||"").trim();
     if(!body) throw new Error("Empty response");
+
     try{
       return JSON.parse(body);
     }catch{
-      // sometimes GAS logs/HTML mixed: try extract JSON block
+      // GAS 有時夾雜字元：抽出第一段 JSON
       const m = body.match(/\{[\s\S]*\}/);
       if(m) return JSON.parse(m[0]);
       throw new Error("Not JSON");
@@ -205,7 +212,7 @@ window.setV382Paper = setV382Paper;
 window.goFillForm = goFillForm;
 
 /* ========== 2/3 will add: renderCard (name/unit/title/slogan/logo/blocks/docks) ========== */
-/* ========== 3/3 will add: photo wall dynamic balance + lightbox + boot/load ========== */
+/* ========== 3/3 will add: photo wall + lightbox + load/boot + safer admin hotspot ========== */
 /* ================================
  * app.js v400.2 (2/3)
  * Render Card + Docks + Address Navigation + Logo + Blocks
@@ -215,11 +222,6 @@ function safeSetText(id, val){
   const el = qs(id);
   if(!el) return;
   el.textContent = text(val);
-}
-
-function safeShow(el, yes){
-  if(!el) return;
-  el.style.display = yes ? "" : "none";
 }
 
 function openUrl_(url){
@@ -244,19 +246,15 @@ function escapeHtml_(s){
     .replace(/'/g,"&#039;");
 }
 
+/* ---------- Logo / Avatar ---------- */
 function renderLogo_(p){
-  // your payload has: "Logo" and also "logo"
-  const logoUrl =
-    pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img","logo圖片","logo圖片連結","logo連結"]);
-
+  // 你的 payload 同時有：Logo / logo
+  const logoRaw = pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img","logo圖片","logo圖片連結","logo連結"]);
   const wrap = qs("logoWrap");
   const img  = qs("u-logo");
+  if(!wrap || !img) return;
 
-  if(!wrap || !img){
-    return;
-  }
-
-  const u = normalizeImageUrl_(logoUrl);
+  const u = normalizeImageUrl_(logoRaw);
   if(!u){
     wrap.style.display = "none";
     img.removeAttribute("src");
@@ -266,13 +264,12 @@ function renderLogo_(p){
   img.onload = () => { wrap.style.display = "block"; };
   img.onerror = () => { wrap.style.display = "none"; };
 
-  // cache-bust for mobile
   const sep = u.includes("?") ? "&" : "?";
   img.src = u + sep + "t=" + Date.now();
 }
 
 function renderAvatar_(p){
-  // your payload has: "個人照" and also "avatar"
+  // 你的 payload 同時有：個人照 / avatar
   const avatarRaw = pick(p, ["個人照_fast","個人照","形象照_fast","形象照","avatar_fast","avatar","photo_fast","photo","image"]);
   const img = qs("u-img");
   if(!img) return;
@@ -284,7 +281,6 @@ function renderAvatar_(p){
   }
 
   img.onerror = () => {
-    // if google drive uc link fails, try original raw value directly as fallback
     const u2 = normalizeUrl_(avatarRaw);
     if(u2 && u2 !== u) img.src = u2;
   };
@@ -293,8 +289,8 @@ function renderAvatar_(p){
   img.src = u + sep + "t=" + Date.now();
 }
 
+/* ---------- Blocks (服務項目 / 經歷) ---------- */
 function renderBlocks_(p){
-  // your payload has: "服務項目" "經歷"
   const service = pick(p, ["服務項目","service","services"]);
   const exp     = pick(p, ["經歷","experience","exp"]);
 
@@ -347,16 +343,14 @@ function renderDocks_(p){
   if(mediaBtns) mediaBtns.innerHTML = "";
   if(cBtns) cBtns.innerHTML = "";
 
-  /* ---- Media: 影音/社群 ----
-   * 你的回傳有：影音平台1/2/3、社群平台1/2/3
-   */
+  // ---- Media: 影音 / 社群 ----
   const mediaItems = [
     { k:["影音平台1","影音1","video1","youtube1"], label:"影音1", icon:"fa-solid fa-play" },
     { k:["影音平台2","影音2","video2","youtube2"], label:"影音2", icon:"fa-solid fa-play" },
     { k:["影音平台3","影音3","video3","youtube3"], label:"影音3", icon:"fa-solid fa-play" },
-    { k:["社群平台1","社群1","social1","ig","instagram"], label:"社群1", icon:"fa-solid fa-users" },
-    { k:["社群平台2","社群2","social2","fb","facebook"],  label:"社群2", icon:"fa-solid fa-users" },
-    { k:["社群平台3","社群3","social3"],                  label:"社群3", icon:"fa-solid fa-users" }
+    { k:["社群平台1","社群1","social1","ig","instagram","facebook","fb"], label:"社群1", icon:"fa-solid fa-users" },
+    { k:["社群平台2","社群2","social2"], label:"社群2", icon:"fa-solid fa-users" },
+    { k:["社群平台3","社群3","social3"], label:"社群3", icon:"fa-solid fa-users" }
   ];
 
   let hasMedia = false;
@@ -374,26 +368,28 @@ function renderDocks_(p){
   });
   if(mediaDock) mediaDock.style.display = hasMedia ? "" : "none";
 
-  /* ---- Contact: LINE/微信/電話/Email/地址 ---- */
-  const phone   = pick(p, ["電話","phone","mobile"]);
-  const email   = pick(p, ["Email","email","信箱"]);
-  const lineOA  = pick(p, ["LINE官方帳號","line官方帳號","line_oa","line官網"]);
-  const lineLink= pick(p, ["LINE連結","line連結","line_link","line"]);
-  const wechat  = pick(p, ["微信","微信id","wechat","wechat_id"]);
-  const address = pick(p, ["地址","address","導航地址"]);
+  // ---- Contact: LINE / 微信 / 電話 / Email / 地址 ----
+  const phone    = pick(p, ["電話","phone","mobile"]);
+  const email    = pick(p, ["Email","email","信箱"]);
+  const lineOA   = pick(p, ["LINE官方帳號","line官方帳號","line_oa","line官網"]);
+  const lineLink = pick(p, ["LINE連結","line連結","line_link","line"]);
+  const wechat   = pick(p, ["微信","微信id","wechat","wechat_id"]);
+  const address  = pick(p, ["地址","address","導航地址"]);
 
   const contactList = [];
 
   if(text(lineOA)){
     contactList.push({
-      label:"LINE 官網", icon:"fa-brands fa-line",
+      label:"LINE 官網",
+      icon:"fa-brands fa-line",
       action: ()=> openUrl_(lineOA)
     });
   }
 
   if(text(wechat)){
     contactList.push({
-      label:"微信ID", icon:"fa-brands fa-weixin",
+      label:"微信ID",
+      icon:"fa-brands fa-weixin",
       action: async ()=> {
         try{
           if(navigator.clipboard && navigator.clipboard.writeText){
@@ -407,29 +403,33 @@ function renderDocks_(p){
 
   if(text(phone)){
     contactList.push({
-      label:"電話", icon:"fa-solid fa-phone",
+      label:"電話",
+      icon:"fa-solid fa-phone",
       action: ()=> { location.href = `tel:${text(phone)}`; }
     });
   }
 
   if(text(email)){
     contactList.push({
-      label:"Email", icon:"fa-solid fa-envelope",
+      label:"Email",
+      icon:"fa-solid fa-envelope",
       action: ()=> { location.href = `mailto:${text(email)}`; }
     });
   }
 
   if(text(address)){
     contactList.push({
-      label:"地址", icon:"fa-solid fa-location-dot",
+      label:"地址",
+      icon:"fa-solid fa-location-dot",
       action: ()=> openMapByAddress_(address)
     });
   }
 
-  // 如果沒有 LINE 官網，才補個人 LINE
+  // 沒有 LINE 官網才補個人 LINE
   if(text(lineLink) && !text(lineOA)){
     contactList.push({
-      label:"LINE", icon:"fa-brands fa-line",
+      label:"LINE",
+      icon:"fa-brands fa-line",
       action: ()=> openUrl_(lineLink)
     });
   }
@@ -438,7 +438,11 @@ function renderDocks_(p){
   contactList.forEach(x=>{
     hasContact = true;
     if(cBtns){
-      cBtns.appendChild(buildDockBtn_({ label:x.label, icon:x.icon, onClick:x.action }));
+      cBtns.appendChild(buildDockBtn_({
+        label: x.label,
+        icon: x.icon,
+        onClick: x.action
+      }));
     }
   });
   if(cDock) cDock.style.display = hasContact ? "" : "none";
@@ -449,7 +453,6 @@ function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
 
-  // name / unit / title
   const name  = pick(p, ["姓名","name"]);
   const unit  = pick(p, ["單位","unit"]);
   const title = pick(p, ["頭銜","職稱","title"]);
@@ -458,7 +461,7 @@ function renderCard(row){
   safeSetText("u-unit", unit);
   safeSetText("u-title", title);
 
-  // slogan (你的回傳是「理念標語」)
+  // 你的回傳是「理念標語」
   const slogan = pick(p, ["理念標語","slogan","簡介","一句話","引言"]);
   const sEl = qs("u-slogan");
   if(sEl){
@@ -475,33 +478,21 @@ function renderCard(row){
   renderLogo_(p);
   renderBlocks_(p);
   renderDocks_(p);
-
-  // photo wall 在 3/3
 }
-
-/* ========== 3/3 will add: photo wall + lightbox + load/boot + admin hotspot safer ========== */
 /* ================================
  * app.js v400.2 (3/3)
  * Photo Wall + Lightbox + Robust Load + Safer Admin Hotspot
- * COMPLETE OVERWRITE
  * ================================ */
 
 /* ---------- Photo Parsing ---------- */
-
 function collectPhotoUrls_(p){
-
   let urls = [];
 
-  /* 你的 API 有三種來源：
-     ① photos (array)
-     ② 照片 (逗號字串)
-     ③ photo1/photo2...
-  */
+  // ① photos (array) / photos_full (array)
+  if (Array.isArray(p.photos)) urls = urls.concat(p.photos);
+  if (Array.isArray(p.photos_full)) urls = urls.concat(p.photos_full);
 
-  if (Array.isArray(p.photos)) {
-    urls = urls.concat(p.photos);
-  }
-
+  // ② 照片（逗號/換行字串）
   const bulk = pick(p, ["照片_fast","照片","photos_img","photos","photo_wall"]);
   if (bulk) {
     urls = urls.concat(
@@ -512,19 +503,19 @@ function collectPhotoUrls_(p){
     );
   }
 
+  // ③ photo1..photo12 / 照片1..照片12
   for (let i = 1; i <= 12; i++) {
-    const v = pick(p, [`photo${i}`, `photo_${i}`, `照片${i}`]);
+    const v = pick(p, [`photo${i}`, `photo_${i}`, `照片${i}`, `相片${i}`]);
     if (v) urls.push(v);
   }
 
-  /* 去重 + 正規化 */
+  // 去重 + 正規化（Drive/Dropbox）
   const seen = new Set();
   const out = [];
-
-  urls.forEach(u => {
+  urls.forEach(u=>{
     const nu = normalizeImageUrl_(u);
-    if (!nu) return;
-    if (seen.has(nu)) return;
+    if(!nu) return;
+    if(seen.has(nu)) return;
     seen.add(nu);
     out.push(nu);
   });
@@ -532,22 +523,16 @@ function collectPhotoUrls_(p){
   return out;
 }
 
-/* ---------- Lightbox ---------- */
-
+/* ---------- Lightbox (contain) ---------- */
 function ensureLightbox_(){
-
   if (qs("lightboxOverlay")) return;
 
   const overlay = document.createElement("div");
   overlay.id = "lightboxOverlay";
   overlay.style.cssText = `
-    position:fixed;
-    inset:0;
+    position:fixed; inset:0; z-index:999999;
     background:rgba(0,0,0,0.82);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:999999;
+    display:none; align-items:center; justify-content:center;
     padding:16px;
   `;
 
@@ -559,14 +544,36 @@ function ensureLightbox_(){
     object-fit:contain;
     border-radius:16px;
     box-shadow:0 20px 60px rgba(0,0,0,0.35);
+    background: rgba(255,255,255,0.06);
+  `;
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.textContent = "✕";
+  close.style.cssText = `
+    position:absolute; top:14px; right:14px;
+    width:42px; height:42px; border-radius:999px;
+    border:none; cursor:pointer;
+    background:rgba(255,255,255,0.18);
+    color:#fff; font-size:20px; font-weight:900;
+    backdrop-filter: blur(8px);
   `;
 
   overlay.appendChild(img);
+  overlay.appendChild(close);
   document.body.appendChild(overlay);
 
-  overlay.addEventListener("click", () => {
+  function hide(){
     overlay.style.display = "none";
     img.removeAttribute("src");
+  }
+
+  overlay.addEventListener("click", (e)=>{
+    if(e.target === overlay) hide();
+  });
+  close.addEventListener("click", hide);
+  document.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape") hide();
   });
 }
 
@@ -574,48 +581,48 @@ function openLightbox_(url){
   ensureLightbox_();
   const overlay = qs("lightboxOverlay");
   const img = qs("lightboxImg");
-  if (!overlay || !img) return;
-
+  if(!overlay || !img) return;
   img.src = url;
   overlay.style.display = "flex";
 }
 
-/* ---------- Photo Wall Balance ---------- */
-
+/* ---------- Photo Wall dynamic balance ---------- */
 function setPhotoGridBalance_(grid, n){
-
   let cols = 3;
-
-  if (n <= 1) cols = 1;
-  else if (n === 2) cols = 2;
+  if(n <= 1) cols = 1;
+  else if(n === 2) cols = 2;
   else cols = 3;
 
   grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+  // 1 張：更像展示（避免很空）
+  const imgs = grid.querySelectorAll("img");
+  imgs.forEach(im=>{
+    im.style.objectFit = "cover";
+    im.style.aspectRatio = (n === 1) ? "16 / 10" : "1 / 1";
+  });
 }
 
 function renderPhotoWall_(p){
-
   const wall = qs("photoWall");
   const grid = qs("photoGrid");
-
-  if (!wall || !grid) return;
+  if(!wall || !grid) return;
 
   grid.innerHTML = "";
 
   const urls = collectPhotoUrls_(p);
-
-  if (!urls.length) {
+  if(!urls.length){
     wall.style.display = "none";
     return;
   }
 
-  urls.forEach(u => {
+  urls.forEach(u=>{
     const img = document.createElement("img");
     img.src = u;
-    img.className = "wall-img";
+    img.alt = "照片";
     img.loading = "lazy";
     img.decoding = "async";
-    img.addEventListener("click", () => openLightbox_(u));
+    img.addEventListener("click", ()=> openLightbox_(u));
     grid.appendChild(img);
   });
 
@@ -623,79 +630,86 @@ function renderPhotoWall_(p){
   setPhotoGridBalance_(grid, urls.length);
 }
 
+/* ---------- Payload shape normalizer ---------- */
+function extractRow_(data){
+  // 你的實際回傳「可能是整包 row 直接 JSON」
+  // 也可能是 {ok:true, data:{...}} 或 {ok:true, row:{...}}
+  if(!data || typeof data !== "object") return null;
+
+  if(data.data && typeof data.data === "object") return data.data;
+  if(data.row && typeof data.row === "object") return data.row;
+
+  // 如果裡面就已經有「姓名/單位」這類欄位，當成 row
+  if(("姓名" in data) || ("name" in data) || ("單位" in data) || ("unit" in data)) return data;
+
+  // 如果是 {ok:true, ...但 row 放在其他 key}：最後退回整包
+  return data;
+}
+
 /* ---------- Robust Load ---------- */
-
 async function loadAndRenderById_(id){
-
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+
+  // ✅ 這次用你指定的 API（CONFIG.GAS）
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
 
-  try {
+  try{
+    const data = await fetchJsonRobust_(url);
 
-    const data = await fetchJsonRobust(url);
+    // ✅ 如果 GAS 有 ok=false，就判斷
+    if(data && data.ok === false) throw new Error(data.error || "ok=false");
 
-    const row =
-      (data && data.row && typeof data.row === "object")
-        ? data.row
-        : data;
+    const row = extractRow_(data);
+    if(!row) throw new Error("No row");
 
     renderCard(row);
-    renderPhotoWall_(buildNormalizedPayload_(row));
 
-  } catch (err) {
+    const p = buildNormalizedPayload_(row);
+    renderPhotoWall_(p);
 
+    const v = qs("versionTag");
+    if(v) v.textContent = CONFIG.VERSION;
+
+  }catch(err){
     console.error("LOAD FAIL:", err);
     safeSetText("u-name", "載入失敗");
   }
 }
 
-function getIdFromUrl_(){
-  const sp = new URLSearchParams(location.search);
-  return sp.get("id") || "";
-}
-
-/* ---------- Safer Admin Hotspot (三連點) ---------- */
-
+/* ---------- Safer Admin Hotspot (三連點 + 小區域) ---------- */
 function setupAdminHotspot_(){
-
   const spot = qs("adminHotspotTop");
-  if (!spot) return;
+  if(!spot) return;
 
+  // ✅ 小一點、最上方、完全不壓到方案鈕（位置靠 CSS）
   let taps = 0;
   let timer = null;
 
-  spot.addEventListener("click", () => {
-
+  spot.addEventListener("click", ()=>{
     taps++;
-
     clearTimeout(timer);
-    timer = setTimeout(() => taps = 0, 900);
+    timer = setTimeout(()=>{ taps = 0; }, 900);
 
-    if (taps >= 3) {
+    if(taps >= 3){
       taps = 0;
       const pass = prompt("管理入口");
-      if (pass === "angel") {
+      if(pass === "angel"){
         alert("進入後臺（預留）");
+        // TODO: 之後在這裡導向隱形工作區（例如 location.href='admin.html'）
       }
     }
-  });
+  }, { passive:true });
 }
 
 /* ---------- Boot ---------- */
-
-(function boot(){
-
-  try {
-
+document.addEventListener("DOMContentLoaded", ()=>{
+  try{
     ensureLightbox_();
     setupAdminHotspot_();
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
-
     loadAndRenderById_(id);
-
-  } catch (e) {
+  }catch(e){
     console.error(e);
   }
-
-})();
+}, { once:true });
