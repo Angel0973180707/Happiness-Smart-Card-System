@@ -1,160 +1,197 @@
-<!-- admin.html (v399.x COMPLETE OVERWRITE) — PART 1/2 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Happiness Smart Card System｜隱形工作臺</title>
+  <title>Angel Card Admin v401.1</title>
 
-  <link rel="stylesheet" href="./style.css?v=3990" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
   <style>
+    :root{
+      --bg:#0f1218;
+      --ink:rgba(255,255,255,0.92);
+      --muted:rgba(255,255,255,0.68);
+      --card:rgba(255,255,255,0.10);
+      --line:rgba(255,255,255,0.14);
+      --gold1:rgba(191,149,63,0.75);
+      --gold2:rgba(255,233,168,0.55);
+    }
+    *{ box-sizing:border-box; }
     body{
-      font-family: system-ui, -apple-system, "Noto Sans TC", "Segoe UI", Roboto, Arial, sans-serif;
-      background:#f5f6fa;
-      padding: 28px 18px;
-      text-align:center;
+      margin:0;
+      font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.10), transparent 55%),
+        radial-gradient(900px 700px at 85% 10%, rgba(191,149,63,0.10), transparent 56%),
+        var(--bg);
+      color:var(--ink);
     }
-    .admin-box{
-      max-width: 440px;
-      margin: auto;
-      background: #fff;
+    .wrap{
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 16px 12px 36px;
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 10px 10px;
       border-radius: 18px;
-      padding: 22px 18px 18px;
-      box-shadow: 0 12px 34px rgba(0,0,0,.10);
+      border:1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(10px);
     }
-    h2{
-      margin: 6px 0 14px;
-      font-size: 18px;
-      letter-spacing: .4px;
+    .title{
+      font-weight: 1000;
+      letter-spacing: 0.6px;
+      display:flex;
+      align-items:center;
+      gap:10px;
     }
-    .sub{
-      margin: 0 0 14px;
+    .pill{
+      padding: 8px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(191,149,63,0.55);
+      background: rgba(255,255,255,0.06);
+      font-weight: 900;
+      color: rgba(255,255,255,0.92);
       font-size: 12px;
-      color: rgba(0,0,0,.45);
-      line-height: 1.6;
     }
-    input{
-      width:100%;
-      padding: 14px 12px;
-      font-size: 16px;
-      margin: 8px 0 14px;
-      border-radius: 12px;
-      border: 1px solid rgba(0,0,0,.12);
-      text-align:center;
-      outline: none;
+    .card{
+      margin-top: 12px;
+      border-radius: 22px;
+      border:1px solid var(--line);
+      background: var(--card);
+      padding: 14px;
+      box-shadow: 0 26px 80px rgba(0,0,0,0.55);
     }
     .row{
-      display:grid;
+      display:flex;
       gap: 10px;
-      margin-top: 8px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top: 10px;
     }
-    button{
-      width:100%;
-      padding: 14px 14px;
-      font-size: 15px;
-      border: none;
-      border-radius: 12px;
-      cursor:pointer;
+    .input{
+      flex:1;
+      min-width: 220px;
+      padding: 12px 12px;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: var(--ink);
+      outline:none;
       font-weight: 900;
-      letter-spacing:.2px;
-      box-shadow: 0 10px 22px rgba(0,0,0,.10);
-      transition: transform .12s ease;
     }
-    button:active{ transform: translateY(1px) scale(.99); }
-    .primary{ background:#1f2d2a; color:#fff; }
-    .ghost{ background:#dfe6e9; color:#1f2d2a; box-shadow:none; }
-    .danger{ background:#ee5253; color:#fff; }
-
-    .msg{
-      margin-top: 12px;
-      color: rgba(0,0,0,.55);
-      font-size: 13px;
-      line-height: 1.6;
-      word-break: break-word;
+    .btn{
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(191,149,63,0.55);
+      background: rgba(255,255,255,0.08);
+      color: var(--ink);
+      font-weight: 1000;
+      cursor:pointer;
+      position: relative;
+      box-shadow: 0 18px 38px rgba(0,0,0,0.55);
     }
-    .mini{
-      margin-top: 8px;
-      font-size: 12px;
-      color: rgba(0,0,0,.42);
+    .btn::after{
+      content:"";
+      position:absolute; inset:-1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, var(--gold2), var(--gold1), rgba(255,255,255,0.12));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      pointer-events:none;
+      opacity: 0.85;
     }
-    .chip{
-      display:inline-block;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(0,0,0,.05);
-      font-size: 12px;
-      margin-top: 10px;
-    }
+    .btn:active{ transform: scale(0.99); }
     .hint{
-      font-size: 12px;
-      color: rgba(0,0,0,.45);
+      color: var(--muted);
       margin-top: 10px;
+      font-weight: 800;
       line-height: 1.6;
+    }
+    .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 12px;
+      color: rgba(255,255,255,0.80);
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: rgba(0,0,0,0.28);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media(min-width:640px){
+      .grid{ grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
-
 <body>
-  <div class="admin-box">
-    <h2>隱形工作臺（v399）</h2>
-    <div class="sub">輸入序號 TW0001（最穩）｜姓名查詢會嘗試 search API（若無則提示改輸入序號）</div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title"><i class="fa-solid fa-user-gear"></i> 隱形後臺工作區 <span class="pill">v401.1</span></div>
+      <button class="btn" id="btnBack" type="button"><i class="fa-solid fa-house"></i> 返回首頁</button>
+    </div>
+<div class="card">
+      <div style="font-weight:1000; letter-spacing:0.6px;">查詢 / 交貨</div>
 
-    <input id="adminInput" placeholder="輸入序號（TW0001）或姓名" inputmode="text" autocomplete="off" />
+      <div class="row">
+        <input id="inId" class="input" placeholder="輸入序號（TW0001 / 0001）" />
+        <button class="btn" id="btnLoad" type="button"><i class="fa-solid fa-magnifying-glass"></i> 載入</button>
+      </div>
 
-    <div class="row">
-      <button class="primary" type="button" onclick="Admin.preview()">成品預覽（開名片）</button>
-      <button class="ghost" type="button" onclick="Admin.goHome()">回首頁</button>
+      <div class="row">
+        <input id="inName" class="input" placeholder="輸入姓名（若 GAS 支援 find）" />
+        <button class="btn" id="btnFind" type="button"><i class="fa-solid fa-user-check"></i> 用姓名找</button>
+      </div>
 
-      <button class="danger" type="button" onclick="Admin.copyDelivery()">一鍵交貨（複製 OG 交貨卡連結）</button>
-      <button class="primary" type="button" onclick="Admin.copyCard()">複製名片連結（純名片）</button>
-      <button class="ghost" type="button" onclick="Admin.openDelivery()">開啟交貨卡預覽（share.html）</button>
+      <div class="grid">
+        <button class="btn" id="btnCopyCardLink" type="button"><i class="fa-solid fa-link"></i> 一鍵複製名片連結</button>
+        <button class="btn" id="btnCopyShareLink" type="button"><i class="fa-solid fa-share-nodes"></i> 一鍵複製交貨分享連結</button>
+        <button class="btn" id="btnOpenPreview" type="button"><i class="fa-solid fa-eye"></i> 成品預覽</button>
+        <button class="btn" id="btnOpenShare" type="button"><i class="fa-solid fa-image"></i> 交貨卡（share.html）</button>
+        <button class="btn" id="btnCopyOgUrl" type="button"><i class="fa-solid fa-copy"></i> 一鍵複製 OG 圖網址</button>
+        <button class="btn" id="btnCopyAll" type="button"><i class="fa-solid fa-box"></i> 一鍵交貨（複製整包文字）</button>
+      </div>
+
+      <div class="hint">
+        ✅ 說明：<br/>
+        - 「名片連結」：回到 index.html?id=TW000X<br/>
+        - 「交貨分享連結」：share.html?id=TW000X（可給客戶轉傳）<br/>
+        - 「OG 圖網址」：預留（若你有固定 og-card.png 或 per-id 生成，這裡可直接貼）<br/>
+        - 「用姓名找」：需 GAS 支援 action=find&name=（本頁已做容錯，不支援就提示）
+      </div>
+
+      <div class="mono" id="outBox">等待操作…</div>
     </div>
 
-    <div class="msg" id="adminMsg"></div>
-    <div class="mini" id="adminMini"></div>
-    <div class="chip" id="adminBase"></div>
+    <script>
+      const CFG = {
+        DEFAULT_ID: "TW0001",
+        VERSION: "v401.1",
+        GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+        INDEX_PAGE: "index.html",
+        SHARE_PAGE: "share.html",
+        OG_DEFAULT: "og-card.png" // 你若有 per-id OG，後續可改成 `og/TW0001.png` 等
+      };
 
-    <div class="hint">
-      交貨連結格式：share.html?id=TW0001（貼出去＝OG 卡）<br/>
-      點進交貨卡後，可按「查看名片」進入 index.html?id=TW0001
-    </div>
-  </div>
-
-  <!-- ✅ 先載入 app.js，取得 window.CONFIG.GAS -->
-  <script src="./app.js?v=3990"></script>
-
-  <script>
-    const Admin = {
-      elMsg: null,
-      elMini: null,
-      elBase: null,
-
-      init(){
-        this.elMsg = document.getElementById("adminMsg");
-        this.elMini = document.getElementById("adminMini");
-        this.elBase = document.getElementById("adminBase");
-
-        const base = this.getProjectBase_();
-        this.elBase.textContent = "專案根路徑：" + base;
-
-        // 預填：若網址帶 id，就放入 input
-        const id = this.getIdFromUrl_();
-        if(id) document.getElementById("adminInput").value = id;
-
-        // Enter 直接預覽
-        document.getElementById("adminInput").addEventListener("keydown", (e)=>{
-          if(e.key === "Enter") this.preview();
-        });
-      },
-
-      setMsg_(s){ if(this.elMsg) this.elMsg.textContent = s || ""; },
-      setMini_(s){ if(this.elMini) this.elMini.textContent = s || ""; },
-
-      text_(v){ return (v==null ? "" : String(v)).trim(); },
-
-      normalizeId_(s){
-        const v = this.text_(s).toUpperCase();
+      function $(id){ return document.getElementById(id); }
+      function text(v){ return (v==null? "" : String(v)).trim(); }
+      function normalizeId(s){
+        const v = text(s).toUpperCase();
         if(!v) return "";
         if(/^TW\\d{4}$/.test(v)) return v;
         if(/^\\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
@@ -163,155 +200,199 @@
           return "TW" + n.padStart(4,"0");
         }
         return v;
-      },
-
-      resolveInput_(){
-        const raw = this.text_(document.getElementById("adminInput").value);
-        if(!raw) return { type:"empty", value:"" };
-
-        const id = this.normalizeId_(raw);
-        if(/^TW\\d{4}$/.test(id)) return { type:"id", value:id };
-
-        return { type:"name", value: raw };
-      },
-
-      getIdFromUrl_(){
+      }
+      function getParams(){
         try{
-          const u = new URL(location.href);
-          const id = u.searchParams.get("id");
-          const nid = this.normalizeId_(id);
-          return /^TW\\d{4}$/.test(nid) ? nid : "";
-        }catch{ return ""; }
-      },
-
-      getProjectBase_(){
-        try{
-          const u = new URL(location.href);
-          u.hash = "";
-          u.search = "";
-          const p = u.pathname;
-          const dir = p.endsWith("/") ? p : p.substring(0, p.lastIndexOf("/") + 1);
-          return u.origin + dir;
+          const sp = new URLSearchParams(location.search);
+          return {
+            id: sp.get("id") || "",
+            mode: sp.get("mode") || "",
+            theme: sp.get("theme") || ""
+          };
         }catch{
-          return location.origin + "/";
+          return { id:"", mode:"", theme:"" };
         }
-      },
+      }
 
-      buildCardUrl_(id){
-        const base = this.getProjectBase_();
-        return base + "index.html?id=" + encodeURIComponent(id);
-      },
-
-      buildShareUrl_(id){
-        const base = this.getProjectBase_();
-        return base + "share.html?id=" + encodeURIComponent(id);
-      },
-
-      async copy_(s){
-        const v = this.text_(s);
-        if(!v) return false;
+      async function copyText(t){
         try{
-          if(navigator.clipboard && navigator.clipboard.writeText){
-            await navigator.clipboard.writeText(v);
+          if(navigator.clipboard?.writeText){
+            await navigator.clipboard.writeText(t);
             return true;
           }
         }catch{}
+        // fallback
         const ta = document.createElement("textarea");
-        ta.value = v;
-        ta.setAttribute("readonly","readonly");
-        ta.style.position="fixed";
-        ta.style.left="-9999px";
+        ta.value = t;
         document.body.appendChild(ta);
         ta.select();
         try{ document.execCommand("copy"); }catch{}
         document.body.removeChild(ta);
         return true;
-      },async preview(){
-        this.setMsg_("");
-        this.setMini_("");
-
-        const r = this.resolveInput_();
-        if(r.type === "empty") return alert("請輸入序號或姓名");
-
-        // ✅ id 直接開名片
-        if(r.type === "id"){
-          location.href = "./index.html?id=" + encodeURIComponent(r.value);
-          return;
-        }
-
-        // ✅ 姓名 → 嘗試 search API
-        const name = r.value;
-        const gas = (window.CONFIG && window.CONFIG.GAS) ? window.CONFIG.GAS : "";
-        if(!gas){
-          this.setMsg_("目前抓不到 CONFIG.GAS，請用序號（TW0001）");
-          return;
-        }
-
-        try{
-          const url = gas + "?action=search&name=" + encodeURIComponent(name) + "&ts=" + Date.now();
-          const res = await fetch(url, { method:"GET", cache:"no-store" });
-          const data = await res.json();
-
-          if(!data || data.ok === false || !data.id){
-            this.setMsg_("找不到資料，或 search API 尚未提供。請改輸入序號（TW0001）");
-            return;
-          }
-
-          const id = this.normalizeId_(data.id);
-          if(!/^TW\\d{4}$/.test(id)){
-            this.setMsg_("search 回傳的 id 格式不正確，請改輸入序號（TW0001）");
-            return;
-          }
-
-          location.href = "./index.html?id=" + encodeURIComponent(id);
-        }catch(e){
-          this.setMsg_("search 查詢失敗（可能尚未提供 API）。請改輸入序號（TW0001）");
-        }
-      },
-
-      goHome(){
-        const id = this.getIdFromUrl_();
-        location.href = id ? ("./index.html?id=" + encodeURIComponent(id)) : "./index.html";
-      },
-
-      async copyDelivery(){
-        this.setMsg_("");
-        this.setMini_("");
-
-        const r = this.resolveInput_();
-        if(r.type !== "id") return alert("交貨請輸入序號（TW0001）");
-
-        const shareUrl = this.buildShareUrl_(r.value);
-        await this.copy_(shareUrl);
-
-        this.setMsg_("✅ OG 交貨卡連結已複製（貼出去＝OG 卡）");
-        this.setMini_(shareUrl);
-        alert("✅ 交貨連結已複製（貼出去＝OG 卡）");
-      },
-
-      async copyCard(){
-        this.setMsg_("");
-        this.setMini_("");
-
-        const r = this.resolveInput_();
-        if(r.type !== "id") return alert("請輸入序號（TW0001）");
-
-        const cardUrl = this.buildCardUrl_(r.value);
-        await this.copy_(cardUrl);
-
-        this.setMsg_("✅ 名片連結已複製（純名片）");
-        this.setMini_(cardUrl);
-        alert("✅ 名片連結已複製");
-      },
-
-      openDelivery(){
-        const r = this.resolveInput_();
-        if(r.type !== "id") return alert("請輸入序號（TW0001）");
-        location.href = "./share.html?id=" + encodeURIComponent(r.value);
       }
-    };
 
-    Admin.init();
-  </script>
+      function originBase(){
+        // GitHub Pages base
+        const o = location.origin;
+        const path = location.pathname.replace(/\\/[^\\/]*$/, "/");
+        return o + path;
+      }
+
+      function buildCardUrl(id){
+        return originBase() + CFG.INDEX_PAGE + "?id=" + encodeURIComponent(id);
+      }
+      function buildShareUrl(id, mode, theme){
+        const sp = new URLSearchParams();
+        sp.set("id", id);
+        if(mode) sp.set("mode", mode);
+        if(theme) sp.set("theme", theme);
+        return originBase() + CFG.SHARE_PAGE + "?" + sp.toString();
+      }
+      function buildOgUrl(id){
+        // 預設：同一張 og-card.png（你若有 per-id 可改）
+        return originBase() + CFG.OG_DEFAULT;
+      }
+
+      function setOut(msg){
+        $("outBox").textContent = msg;
+      }
+
+      async function fetchJson(url){
+        const res = await fetch(url, { cache:"no-store" });
+        const txt = (await res.text()).trim();
+        return JSON.parse(txt);
+      }
+
+      function setInputsFromParams(){
+        const p = getParams();
+        const cid = normalizeId(p.id) || CFG.DEFAULT_ID;
+        $("inId").value = cid;
+      }
+
+      function getModeThemeFromParams(){
+        const p = getParams();
+        return {
+          mode: text(p.mode),
+          theme: text(p.theme)
+        };
+      }
+async function loadById(){
+        const raw = $("inId").value;
+        const id = normalizeId(raw) || CFG.DEFAULT_ID;
+        $("inId").value = id;
+
+        const url = `${CFG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+        try{
+          const data = await fetchJson(url);
+          setOut("✅ 已向 GAS 請求：\n" + url + "\n\n（若你要把 payload 顯示在此，可再擴）");
+        }catch(e){
+          console.error(e);
+          setOut("❌ 載入失敗：\n" + String(e));
+        }
+      }
+
+      async function findByName(){
+        const name = text($("inName").value);
+        if(!name){
+          setOut("請先輸入姓名（若 GAS 支援 action=find&name=）");
+          return;
+        }
+        const url = `${CFG.GAS}?action=find&name=${encodeURIComponent(name)}&ts=${Date.now()}`;
+        try{
+          const data = await fetchJson(url);
+          const id = normalizeId(data?.id || data?.data?.id || "");
+          if(!id){
+            setOut("⚠️ 找到了回應，但沒有 id 欄位：\n" + JSON.stringify(data,null,2));
+            return;
+          }
+          $("inId").value = id;
+          setOut("✅ 已找到並填入序號：" + id + "\n" + url);
+        }catch(e){
+          setOut("⚠️ 你的 GAS 可能尚未支援 action=find。\n\n嘗試網址：\n" + url + "\n\n錯誤：\n" + String(e));
+        }
+      }
+
+      function getCurrent(){
+        const id = normalizeId($("inId").value) || CFG.DEFAULT_ID;
+        const {mode, theme} = getModeThemeFromParams();
+        return { id, mode, theme };
+      }
+
+      async function copyCardLink(){
+        const {id} = getCurrent();
+        const u = buildCardUrl(id);
+        await copyText(u);
+        setOut("✅ 已複製名片連結：\n" + u);
+      }
+
+      async function copyShareLink(){
+        const {id, mode, theme} = getCurrent();
+        const u = buildShareUrl(id, mode, theme);
+        await copyText(u);
+        setOut("✅ 已複製交貨分享連結：\n" + u);
+      }
+
+      async function copyOgUrl(){
+        const {id} = getCurrent();
+        const u = buildOgUrl(id);
+        await copyText(u);
+        setOut("✅ 已複製 OG 圖網址：\n" + u);
+      }
+
+      function openPreview(){
+        const {id} = getCurrent();
+        location.href = CFG.INDEX_PAGE + "?id=" + encodeURIComponent(id);
+      }
+
+      function openShare(){
+        const {id, mode, theme} = getCurrent();
+        location.href = CFG.SHARE_PAGE + "?id=" + encodeURIComponent(id) + (mode?("&mode="+encodeURIComponent(mode)):"") + (theme?("&theme="+encodeURIComponent(theme)):"");
+      }
+
+      async function copyAllPackage(){
+        const {id, mode, theme} = getCurrent();
+        const card = buildCardUrl(id);
+        const share = buildShareUrl(id, mode, theme);
+        const og = buildOgUrl(id);
+
+        const pack =
+`📦 幸福智慧名片｜一鍵交貨
+序號：${id}
+
+① 名片連結：
+${card}
+
+② 交貨分享連結（可轉傳）：
+${share}
+
+③ OG 圖網址（預留）：
+${og}
+`;
+        await copyText(pack);
+        setOut("✅ 已複製【一鍵交貨整包文字】");
+      }
+
+      function backHome(){
+        const p = getParams();
+        const id = normalizeId(p.id) || CFG.DEFAULT_ID;
+        location.href = CFG.INDEX_PAGE + "?id=" + encodeURIComponent(id);
+      }
+
+      // bind
+      $("btnBack").addEventListener("click", backHome);
+      $("btnLoad").addEventListener("click", loadById);
+      $("btnFind").addEventListener("click", findByName);
+
+      $("btnCopyCardLink").addEventListener("click", copyCardLink);
+      $("btnCopyShareLink").addEventListener("click", copyShareLink);
+      $("btnCopyOgUrl").addEventListener("click", copyOgUrl);
+      $("btnOpenPreview").addEventListener("click", openPreview);
+      $("btnOpenShare").addEventListener("click", openShare);
+      $("btnCopyAll").addEventListener("click", copyAllPackage);
+
+      setInputsFromParams();
+      setOut("✅ 後臺就緒。請輸入序號或姓名，開始交貨。");
+    </script>
+  </div>
 </body>
 </html>
