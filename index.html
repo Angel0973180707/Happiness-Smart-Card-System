@@ -120,7 +120,7 @@
 
         <!-- NEW: share card -->
         <button class="btn-cta btn-share" id="btnSharePremium" type="button" onclick="document.getElementById('btnShare')?.click()">
-          <i class="fa-solid fa-share-nodes"></i> 分享客戶名片
+          <i class="fa-solid fa-share-nodes"></i> 分享智慧名片
         </button>
       </div>
 
@@ -186,18 +186,5 @@
   <script src="./app.js?v=4020"></script>
 </body>
 </html>
-<script>
-  (async () => {
-    if (!('serviceWorker' in navigator)) return;
-    try {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
-      // 清 cache（同源才清得掉）
-      if (window.caches) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map(k => caches.delete(k)));
-      }
-      console.log('SW cleared');
-    } catch (e) {}
-  })();
-</script>
+
+  
