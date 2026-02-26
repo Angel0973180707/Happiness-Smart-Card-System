@@ -1,3 +1,10 @@
+<!-- ================================
+     index.html v401.1 (COMPLETE OVERWRITE) 1/3
+     - Free: banner 3 styles (arch/flat/spot) + opaque avatar bg
+     - Premium: no banner + glass gradient by p1..p7
+     - Controls grouped (plan/theme/style/paper) to avoid active conflict
+     - Breathe hints (step flow)
+================================ -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -5,167 +12,193 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Happiness Smart Card System v401.1</title>
 
-  <!-- PWA basics (keep your existing if already) -->
-  <meta name="theme-color" content="#0f1218" />
-  <link rel="icon" href="./icons/icon-192.png" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json?v=4011" />
+  <meta name="theme-color" content="#111318" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=4011" />
+  <link rel="icon" href="./icons/icon-192.png?v=4011" />
 
-  <!-- Fonts + Icons -->
+  <!-- OG (static) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="幸福智慧名片" />
+  <meta property="og:description" content="一點，就看見彼此的價值" />
+  <meta property="og:image" content="og-card.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <!-- CSS -->
   <link rel="stylesheet" href="./style.css?v=4011" />
-
-  <!-- 防快取（輔助用，主力靠 SW / querystring） -->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
-
-  <!-- ✅ 隱形後臺入口（右下角三擊） -->
+  <!-- Hidden admin hotspot (bottom-right triple tap) -->
   <div id="adminHotspotBR" aria-hidden="true"></div>
 
-  <!-- ✅ 控制面板（上方） -->
+  <!-- ================= Control Panel (sticky) ================= -->
   <header id="admin-panel">
     <div class="panel-inner">
 
-      <!-- 方案 -->
+      <!-- Step 1: Plan -->
       <div class="plan-row" id="planRow">
-        <button class="btn-neo pill btn-plan" id="btnPlanFree"
-          onclick="setV382('free','color-1',this)" type="button">
-          方案A｜自由搭配
+        <button
+          class="btn-neo pill breathe"
+          data-group="plan"
+          id="btnPlanFree"
+          type="button"
+          onclick="window.setPlan('free', this)"
+        >
+          自由搭配
         </button>
-        <button class="btn-neo pill btn-plan" id="btnPlanPremium"
-          onclick="setV382('premium','p1',this)" type="button">
-          方案B｜精品設計
+        <button
+          class="btn-neo pill"
+          data-group="plan"
+          id="btnPlanPremium"
+          type="button"
+          onclick="window.setPlan('premium', this)"
+        >
+          精品設計
         </button>
       </div>
 
-      <!-- 自由款 controls -->
+      <!-- Step 2A: Free controls -->
       <div class="controls-block" id="free-controls">
-
-        <!-- 色點（自由5色） -->
-        <div class="dots-row" id="freeDotsRow" aria-label="自由款色點">
-          <button class="dot active" style="background:#ff5e5e" onclick="setV382('free','color-1',this)" type="button" aria-label="粉紅"></button>
-          <button class="dot" style="background:#00a8ff" onclick="setV382('free','color-2',this)" type="button" aria-label="藍"></button>
-          <button class="dot" style="background:#ffa502" onclick="setV382('free','color-3',this)" type="button" aria-label="橘"></button>
-          <button class="dot" style="background:#7d5fff" onclick="setV382('free','color-4',this)" type="button" aria-label="紫"></button>
-          <button class="dot" style="background:#2ecc71" onclick="setV382('free','color-5',this)" type="button" aria-label="綠"></button>
+        <!-- Theme dots -->
+        <div class="section-title">選顏色</div>
+        <div class="dots-row" id="freeDotsRow">
+          <button class="dot dot-1 active" data-group="theme" type="button" aria-label="粉" onclick="window.setTheme('color-1', this)"></button>
+          <button class="dot dot-2" data-group="theme" type="button" aria-label="藍" onclick="window.setTheme('color-2', this)"></button>
+          <button class="dot dot-3" data-group="theme" type="button" aria-label="橘" onclick="window.setTheme('color-3', this)"></button>
+          <button class="dot dot-4" data-group="theme" type="button" aria-label="紫" onclick="window.setTheme('color-4', this)"></button>
+          <button class="dot dot-5" data-group="theme" type="button" aria-label="綠" onclick="window.setTheme('color-5', this)"></button>
         </div>
 
-        <!-- 版型 -->
+        <!-- Style -->
+        <div class="section-title">選版型</div>
         <div class="btn-row" id="styleRow">
-          <button class="btn-neo btn-style active" id="btnStyleArch" onclick="setV382Style('arch',this)" type="button">正拱</button>
-          <button class="btn-neo btn-style" id="btnStyleFlat" onclick="setV382Style('flat',this)" type="button">平直</button>
-          <button class="btn-neo btn-style" id="btnStyleSpot" onclick="setV382Style('spot',this)" type="button">晨曦</button>
+          <button class="btn-neo active" data-group="style" type="button" onclick="window.setStyle('arch', this)">正拱</button>
+          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle('flat', this)">平直</button>
+          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle('spot', this)">晨曦</button>
         </div>
 
-        <!-- 紙感 -->
+        <!-- Paper -->
+        <div class="section-title">選紙感</div>
         <div class="btn-row" id="paperRow">
-          <button class="btn-neo btn-paper active" id="btnPaper1" onclick="setV382Paper('paper-1',this)" type="button">霧面棉紙</button>
-          <button class="btn-neo btn-paper" id="btnPaper2" onclick="setV382Paper('paper-2',this)" type="button">細顆粒紙</button>
-          <button class="btn-neo btn-paper" id="btnPaper3" onclick="setV382Paper('paper-3',this)" type="button">亞麻紋</button>
+          <button class="btn-neo active" data-group="paper" type="button" onclick="window.setPaper('paper-1', this)">霧面棉紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-2', this)">細顆粒紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-3', this)">亞麻紋</button>
         </div>
 
-      </div>
+        <!-- Step 3: LINE / Form -->
+        <button class="btn-cta breathe" id="btnLineCta" type="button" onclick="window.goLineIntro()">
+          <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
+        </button>
 
-      <!-- 精品款 dots -->
-      <div class="controls-block" id="premiumDotsRow" style="display:none;">
-        <div class="dots-row premium-dots" aria-label="精品款色點">
-          <button class="p-dot active" style="background:#a36d6d" onclick="setV382('premium','p1',this)" type="button" aria-label="p1"></button>
-          <button class="p-dot" style="background:#722f37" onclick="setV382('premium','p2',this)" type="button" aria-label="p2"></button>
-          <button class="p-dot" style="background:#1c2e42" onclick="setV382('premium','p3',this)" type="button" aria-label="p3"></button>
-          <button class="p-dot" style="background:#5e548e" onclick="setV382('premium','p4',this)" type="button" aria-label="p4"></button>
-          <button class="p-dot" style="background:#7a94a6" onclick="setV382('premium','p5',this)" type="button" aria-label="p5"></button>
-          <button class="p-dot" style="background:#bf953f" onclick="setV382('premium','p6',this)" type="button" aria-label="p6"></button>
-          <button class="p-dot" style="background:#444444" onclick="setV382('premium','p7',this)" type="button" aria-label="p7"></button>
+        <button class="btn-cta subtle" id="btnFormCta" type="button" onclick="window.goFillForm()">
+          <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
+        </button>
+      </div>
+<!-- ================================
+     index.html v401.1 (COMPLETE OVERWRITE) 2/3
+     - Premium controls (p1..p7)
+================================ -->
+      <!-- Step 2B: Premium controls -->
+      <div class="controls-block" id="premium-controls" style="display:none;">
+        <div class="section-title">選底色</div>
+        <div class="dots-row" id="premiumDotsRow">
+          <button class="p-dot p1 active" data-group="theme" type="button" aria-label="p1" onclick="window.setTheme('p1', this)"></button>
+          <button class="p-dot p2" data-group="theme" type="button" aria-label="p2" onclick="window.setTheme('p2', this)"></button>
+          <button class="p-dot p3" data-group="theme" type="button" aria-label="p3" onclick="window.setTheme('p3', this)"></button>
+          <button class="p-dot p4" data-group="theme" type="button" aria-label="p4" onclick="window.setTheme('p4', this)"></button>
+          <button class="p-dot p5" data-group="theme" type="button" aria-label="p5" onclick="window.setTheme('p5', this)"></button>
+          <button class="p-dot p6" data-group="theme" type="button" aria-label="p6" onclick="window.setTheme('p6', this)"></button>
+          <button class="p-dot p7" data-group="theme" type="button" aria-label="p7" onclick="window.setTheme('p7', this)"></button>
         </div>
-      </div>
 
-      <!-- CTA -->
-      <button class="btn-cta" id="btnCta" type="button" onclick="goFillForm()">
-        立即預約訂製名片 →
-      </button>
+        <button class="btn-cta breathe" id="btnLineCtaPremium" type="button" onclick="window.goLineIntro()">
+          <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
+        </button>
+
+        <button class="btn-cta subtle" id="btnFormCtaPremium" type="button" onclick="window.goFillForm()">
+          <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
+        </button>
+      </div>
 
     </div>
   </header>
-<!-- ✅ 卡片容器 -->
+
+  <!-- ================= Card Container ================= -->
   <main id="card-container">
     <section class="card" id="card">
+      <!-- Premium FX layer -->
+      <div class="premium-fx-layer"></div>
 
-      <!-- 精品 FX 層 -->
-      <div class="premium-fx-layer" aria-hidden="true"></div>
-
-      <!-- ✅ Banner（自由款要三版型，精品款要隱藏） -->
+      <!-- Banner (FREE only) -->
       <div class="banner" id="banner">
-        <div class="dynamic-mask" aria-hidden="true"></div>
+        <div class="dynamic-mask"></div>
       </div>
 
-      <!-- ✅ 紙感 -->
-      <div class="paper-overlay" aria-hidden="true"></div>
+      <!-- Paper overlay (FREE only; premium uses its own glass) -->
+      <div class="paper-overlay" id="paperOverlay"></div>
 
       <!-- Avatar -->
       <div class="avatar-wrap">
         <div class="avatar-circle">
-          <img id="u-img" class="avatar" alt="個人照" />
+          <img class="avatar" id="u-img" alt="個人照" />
         </div>
       </div>
 
-      <!-- Logo（圓形章） -->
+      <!-- Premium name badge area (optional): kept minimal -->
+      <div class="premium-badge" id="premiumBadge" style="display:none;">
+        <span class="badge-dot"></span>
+        <span class="badge-text">精品設計</span>
+      </div>
+
+      <!-- Logo -->
       <div class="logo-wrap" id="logoWrap" style="display:none;">
-        <div class="logo-circle">
-          <img id="u-logo" class="logo-img" alt="Logo" />
-        </div>
+        <img id="u-logo" class="logo-img" alt="Logo" />
       </div>
 
       <!-- Info -->
       <div class="info-scroll">
-        <div class="name" id="u-name">載入中</div>
+        <div class="name" id="u-name">載入中…</div>
         <div class="unit" id="u-unit"></div>
         <div class="title" id="u-title"></div>
 
         <div class="slogan" id="u-slogan" style="display:none;"></div>
 
-        <!-- Blocks -->
         <div class="info-block" id="block-service" style="display:none;"></div>
         <div class="info-block" id="block-exp" style="display:none;"></div>
 
-        <!-- ✅ Media Dock（影音平台區獨立） -->
-        <div class="dock-wrap" id="mediaDock" style="display:none;">
-          <div class="dock-title">影音/社群</div>
+        <!-- Media Dock -->
+        <div class="contact-dock" id="mediaDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／平台</div>
           <div class="dock-buttons" id="mediaButtons"></div>
         </div>
 
-        <!-- ✅ Contact Dock -->
-        <div class="dock-wrap" id="contactDock" style="display:none;">
-          <div class="dock-title">聯繫方式</div>
+        <!-- Contact Dock -->
+        <div class="contact-dock" id="contactDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
           <div class="dock-buttons" id="contactButtons"></div>
         </div>
 
         <!-- Photo wall -->
         <div class="photo-wall" id="photoWall" style="display:none;">
-          <div class="dock-title">照片牆</div>
+          <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
         <div class="version-tag" id="versionTag">v401.1</div>
       </div>
-
     </section>
   </main>
 
-  <!-- JS -->
   <script src="./app.js?v=4011"></script>
 </body>
 </html>
-<!--
-備註（保留）：
-- 右下角 #adminHotspotBR：三擊進入後臺（admin.html?id=TW0001&mode=...）
-- share.html 用於交貨：share.html?id=TW0001&theme=...&mode=...
-- 本檔只負責門面與卡片 DOM，所有互動/導引/串接在 app.js
--->
+<!-- ================================
+     index.html v401.1 (COMPLETE OVERWRITE) 3/3
+     Notes:
+     - #banner exists but JS/CSS hides it in premium mode
+     - Buttons grouped via data-group to avoid active conflicts
+================================ -->
