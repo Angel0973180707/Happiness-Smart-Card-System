@@ -705,3 +705,226 @@ window.setStyle = setStyle;
 window.setPaper = setPaper;
 window.goLineIntro = goLineIntro;
 window.goFillForm = goFillForm;
+/* ================================
+ * app.js v407 (3/3)
+ * Photo Wall + Lightbox + Admin hotspot BR + Robust Load/Boot
+ * ================================ */
+
+function extractRowFromPayload_(data){
+  if(!data || typeof data !== "object") return null;
+  if(data.data && typeof data.data === "object") return data.data;
+  if(data.row && typeof data.row === "object") return data.row;
+  if(data.id || data["姓名"] || data.name) return data;
+  return null;
+}
+
+/* ---------- Photo collect ---------- */
+function collectPhotoUrls_(p){
+  let urls = [];
+
+  if(Array.isArray(p.photos)) urls = urls.concat(p.photos);
+  if(Array.isArray(p.photos_full)) urls = urls.concat(p.photos_full);
+
+  const bulk = pick(p, ["照片_fast","照片","photos_img","photos","photo_wall"]);
+  if(text(bulk)){
+    urls = urls.concat(
+      String(bulk)
+        .split(/[\n,，;]/g)
+        .map(s => s.trim())
+        .filter(Boolean)
+    );
+  }
+
+  for(let i=1;i<=12;i++){
+    const v = pick(p, [`photo${i}`,`photo_${i}`,`照片${i}`,`相片${i}`]);
+    if(text(v)) urls.push(v);
+  }
+
+  const seen = new Set();
+  const out = [];
+  urls.forEach(u=>{
+    const nu = normalizeImageUrl_(u);
+    if(!nu) return;
+    if(seen.has(nu)) return;
+    seen.add(nu);
+    out.push(nu);
+  });
+
+  return out;
+}
+
+/* ---------- Lightbox ---------- */
+function ensureLightbox_(){
+  if(qs("lightboxOverlay")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "lightboxOverlay";
+  overlay.style.cssText = `
+    position:fixed; inset:0; z-index:999999;
+    background:rgba(0,0,0,0.82);
+    display:none; align-items:center; justify-content:center;
+    padding:16px;
+  `;
+
+  const img = document.createElement("img");
+  img.id = "lightboxImg";
+  img.style.cssText = `
+    max-width:100%;
+    max-height:100%;
+    object-fit:contain;
+    border-radius:16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    background: rgba(255,255,255,0.06);
+  `;
+
+  const close = document.createElement("button");
+  close.type = "button";
+  close.textContent = "✕";
+  close.style.cssText = `
+    position:absolute; top:14px; right:14px;
+    width:42px; height:42px; border-radius:999px;
+    border:none; cursor:pointer;
+    background:rgba(255,255,255,0.18);
+    color:#fff; font-size:20px; font-weight:900;
+    backdrop-filter: blur(8px);
+  `;
+
+  overlay.appendChild(img);
+  overlay.appendChild(close);
+  document.body.appendChild(overlay);
+
+  function hide(){
+    overlay.style.display = "none";
+    img.removeAttribute("src");
+  }
+  overlay.addEventListener("click",(e)=>{ if(e.target===overlay) hide(); });
+  close.addEventListener("click", hide);
+  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") hide(); });
+}
+
+function openLightbox_(url){
+  ensureLightbox_();
+  const overlay = qs("lightboxOverlay");
+  const img = qs("lightboxImg");
+  if(!overlay || !img) return;
+
+  setImgWithFallback_(img, buildImgCandidates_(url));
+  overlay.style.display = "flex";
+}
+
+/* ---------- Photo wall dynamic balance (avoid lonely) ---------- */
+function computeCols_(n){
+  if(n <= 1) return 1;
+  if(n === 2) return 2;
+  if(n === 4) return 2;
+  if(n % 3 === 1) return 2; // 7/10/13... avoid last lonely
+  return 3;
+}
+
+function renderPhotoWall_(row){
+  const p = buildNormalizedPayload_(row || {});
+  const wall = qs("photoWall");
+  const grid = qs("photoGrid");
+  if(!wall || !grid) return;
+
+  grid.innerHTML = "";
+  const urls = collectPhotoUrls_(p);
+
+  if(!urls.length){
+    wall.style.display = "none";
+    return;
+  }
+
+  const cols = computeCols_(urls.length);
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
+
+  urls.forEach(u=>{
+    const img = document.createElement("img");
+    img.className = "wall-img";
+    img.alt = "照片";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.referrerPolicy = "no-referrer";
+
+    img.style.width = "100%";
+    img.style.aspectRatio = "1 / 1";
+    img.style.objectFit = "cover";
+
+    setImgWithFallback_(img, buildImgCandidates_(u));
+    img.addEventListener("click", ()=> openLightbox_(u));
+    grid.appendChild(img);
+  });
+
+  wall.style.display = "";
+}
+
+/* ---------- Admin hotspot (bottom-right triple tap) ---------- */
+function setupAdminHotspotBR_(){
+  const spot = qs("adminHotspotBR");
+  if(!spot) return;
+
+  let taps = 0;
+  let timer = null;
+
+  spot.addEventListener("click", ()=>{
+    taps++;
+    clearTimeout(timer);
+    timer = setTimeout(()=>{ taps = 0; }, 900);
+
+    if(taps >= 3){
+      taps = 0;
+      alert("✅ 進入隱形後臺（v407 預留入口）");
+      // TODO later:
+      // location.href = "admin.html?id=" + encodeURIComponent(getIdFromUrl_() || CONFIG.DEFAULT_ID);
+    }
+  });
+}
+
+/* ---------- Load + Boot ---------- */
+async function loadAndRenderById_(id){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
+
+  try{
+    const payload = await fetchJsonRobust_(url);
+    const row = extractRowFromPayload_(payload);
+    if(!row) throw new Error("Invalid payload shape");
+
+    renderCard(row);
+    renderPhotoWall_(row);
+
+  }catch(err){
+    console.error("LOAD FAIL:", err);
+    safeSetText_("u-name", "載入失敗");
+  }
+}
+
+(function boot_(){
+  try{
+    ensureLightbox_();
+    setupAdminHotspotBR_();
+
+    const b = document.body;
+    STATE.mode = b.classList.contains("mode-premium") ? "premium" : "free";
+
+    ["color-1","color-2","color-3","color-4","color-5"].forEach(c=>{ if(b.classList.contains(c)) STATE.color = c; });
+    ["style-arch","style-flat","style-spot"].forEach(s=>{
+      if(b.classList.contains(s)) STATE.style = s.replace("style-","");
+    });
+    ["paper-1","paper-2","paper-3"].forEach(p=>{
+      if(b.classList.contains(p)) STATE.paper = p;
+    });
+
+    ["p1","p2","p3","p4","p5","p6","p7"].forEach(p=>{
+      if(b.classList.contains(p)) STATE.premium = p;
+    });
+
+    applyBodyClasses_();
+
+    const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
+    loadAndRenderById_(id);
+
+  }catch(e){
+    console.error(e);
+  }
+})();
