@@ -3,6 +3,7 @@
      - KEEP: v4030 DOM structure (no reflow / no card DOM change)
      - ADD: form mode container + robust mode switch + iframe loader/fallback
      - FIX: LINE button visibility guard (free/premium)
+     - FIX: Share button text => 分享此名片
      - DO NOT TOUCH: app.js / manifest logic / sw / adminHotspotBR / share logic
      - VERSION: unified ?v=407
 ================================ -->
@@ -170,14 +171,13 @@
           <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
         </button>
 
-        <!-- SAFE: keep original button; mode script will override window.goFillForm() to switch to embedded form -->
         <button class="btn-cta subtle" id="btnFormCta" type="button" onclick="window.goFillForm()">
           <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
         </button>
 
-        <!-- share card -->
+        <!-- ✅ text fixed -->
         <button class="btn-cta btn-share" id="btnShare" type="button">
-          <i class="fa-solid fa-share-nodes"></i> 分享客戶名片
+          <i class="fa-solid fa-share-nodes"></i> 分享此名片
         </button>
       </div>
 
@@ -198,14 +198,13 @@
           <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
         </button>
 
-        <!-- SAFE: keep original button; mode script will override window.goFillForm() to switch to embedded form -->
         <button class="btn-cta subtle" id="btnFormCtaPremium" type="button" onclick="window.goFillForm()">
           <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
         </button>
 
-        <!-- share card -->
+        <!-- ✅ text fixed -->
         <button class="btn-cta btn-share" id="btnSharePremium" type="button" onclick="document.getElementById('btnShare')?.click()">
-          <i class="fa-solid fa-share-nodes"></i> 分享智慧名片
+          <i class="fa-solid fa-share-nodes"></i> 分享此名片
         </button>
       </div>
 
@@ -287,13 +286,12 @@
   <script src="./app.js?v=407"></script>
 
   <!-- ================= SAFE MODE SCRIPT (no app.js change) ================= -->
-<script>
+  <script>
     (function () {
       "use strict";
 
-      var VERSION = "407"; // unified
+      var VERSION = "407";
 
-      // ---- helpers (scoped) ----
       function qs(id) { return document.getElementById(id); }
 
       function getParams_() {
@@ -306,7 +304,6 @@
         if (id) p.set("id", id);
         if (mode) p.set("mode", mode);
         else p.delete("mode");
-
         var s = p.toString();
         return location.pathname + (s ? ("?" + s) : "");
       }
@@ -316,33 +313,24 @@
         return (p.get("id") || "").trim();
       }
 
-      // ---- preserve original admin panel display ----
       var __adminPanelDisplay = null;
 
       function rememberAdminPanelDisplay_() {
         var adminPanel = qs("admin-panel");
         if (!adminPanel) return;
         if (__adminPanelDisplay === null) {
-          // record computed display as baseline
-          try {
-            __adminPanelDisplay = getComputedStyle(adminPanel).display || "";
-          } catch (e) {
-            __adminPanelDisplay = "";
-          }
+          try { __adminPanelDisplay = getComputedStyle(adminPanel).display || ""; }
+          catch (e) { __adminPanelDisplay = ""; }
         }
       }
 
       function restoreAdminPanelDisplay_() {
         var adminPanel = qs("admin-panel");
         if (!adminPanel) return;
-        if (__adminPanelDisplay && __adminPanelDisplay !== "none") {
-          adminPanel.style.display = __adminPanelDisplay;
-        } else {
-          adminPanel.style.display = "";
-        }
+        if (__adminPanelDisplay && __adminPanelDisplay !== "none") adminPanel.style.display = __adminPanelDisplay;
+        else adminPanel.style.display = "";
       }
 
-      // ---- form mount (created only once) ----
       var __formMounted = false;
       var __lastCardScrollTop = 0;
 
@@ -360,7 +348,6 @@
             return true;
           }
         } catch (e) {}
-        // fallback
         try {
           var ta = document.createElement("textarea");
           ta.value = t;
@@ -383,10 +370,8 @@
         var host = qs("form-container");
         if (!host) return;
 
-        // Clear (just in case)
         host.innerHTML = "";
 
-        // Sticky top bar (inline styles only; no CSS file changes)
         var bar = document.createElement("div");
         bar.setAttribute("role", "navigation");
         bar.style.position = "sticky";
@@ -419,9 +404,7 @@
         btnBack.style.fontWeight = "800";
         btnBack.style.cursor = "pointer";
         btnBack.style.webkitTapHighlightColor = "transparent";
-        btnBack.addEventListener("click", function () {
-          setMode_("card");
-        });
+        btnBack.addEventListener("click", function () { setMode_("card"); });
 
         var title = document.createElement("div");
         title.textContent = "填寫名片資料";
@@ -437,7 +420,6 @@
         right.style.alignItems = "center";
         right.style.gap = "10px";
 
-        // Optional: show current id (non-invasive)
         var idNow = getId_();
         if (idNow) {
           var chip = document.createElement("div");
@@ -468,14 +450,12 @@
         host.appendChild(bar);
         host.appendChild(frame);
 
-        // overlay controls
         var retryBtn = qs("safeFormRetryBtn");
         if (retryBtn) {
           retryBtn.onclick = function () {
             try { frame.src = "./form.html?v=" + VERSION + "&ts=" + Date.now(); } catch (e) {}
             showOverlay_(true);
-            // allow a short delay so WebView can start
-            setTimeout(function(){ /* no-op */ }, 150);
+            setTimeout(function(){}, 150);
           };
         }
         var copyBtn = qs("safeFormCopyBtn");
@@ -487,7 +467,6 @@
           };
         }
 
-        // iframe load handling + fallback timeout
         var loaded = false;
         var t0 = Date.now();
 
@@ -497,14 +476,10 @@
           showOverlay_(false);
         }
 
-        frame.addEventListener("load", function () {
-          markLoaded_();
-        });
+        frame.addEventListener("load", function () { markLoaded_(); });
 
-        // show overlay immediately for better webview stability
         showOverlay_(true);
 
-        // If still not loaded after 8.5s, show fallback hint & buttons stay visible
         setTimeout(function () {
           if (loaded) return;
           var hint = qs("safeFormHint");
@@ -518,18 +493,15 @@
         __formMounted = true;
       }
 
-      // ---- mode switch ----
       function applyMode_(mode) {
         var cardMain = qs("card-container");
         var adminPanel = qs("admin-panel");
         var formMain = qs("form-container");
-
         if (!cardMain || !adminPanel || !formMain) return;
 
         rememberAdminPanelDisplay_();
 
         if (mode === "form") {
-          // save scroll so returning feels like an APP
           try { __lastCardScrollTop = (document.scrollingElement || document.documentElement).scrollTop || 0; } catch (e) {}
           mountFormOnce_();
 
@@ -549,7 +521,6 @@
           document.documentElement.classList.add("mode-card");
           document.documentElement.classList.remove("mode-form");
 
-          // restore scroll
           try {
             var se = (document.scrollingElement || document.documentElement);
             se.scrollTop = __lastCardScrollTop || 0;
@@ -559,52 +530,38 @@
 
       function setMode_(mode) {
         var id = getId_();
-        var nextMode = (mode === "form") ? "form" : ""; // "" means card mode (no mode param)
+        var nextMode = (mode === "form") ? "form" : "";
         var url = buildUrl_(nextMode, id);
 
-        try {
-          history.pushState({ mode: nextMode || "card" }, "", url);
-        } catch (e) {
-          // fallback: keep UI switch even if pushState fails
-        }
+        try { history.pushState({ mode: nextMode || "card" }, "", url); }
+        catch (e) {}
 
         applyMode_(nextMode ? "form" : "card");
       }
 
-      // ---- public hook (safe namespace-ish) ----
       window.__safeFormMode = window.__safeFormMode || {};
       window.__safeFormMode.setMode = setMode_;
 
-      // ---- robust override goFillForm safely (no app.js edit) ----
       function safeGoFillForm_() {
         setMode_("form");
         return false;
       }
 
-      // 1) attempt defineProperty lock (best)
       try {
         Object.defineProperty(window, "goFillForm", {
           configurable: true,
           enumerable: true,
           get: function () { return safeGoFillForm_; },
-          set: function (_) {
-            // swallow future overwrites to keep SAFE behavior stable
-          }
+          set: function (_) {}
         });
       } catch (e) {
-        // 2) fallback: plain assignment
         window.goFillForm = safeGoFillForm_;
       }
 
-      // 3) extra guard: after window load, re-apply once (in case app.js rewrote late)
       window.addEventListener("load", function () {
         try { window.goFillForm = safeGoFillForm_; } catch (e) {}
       });
 
-      // keep reference if needed later
-      window.__safeFormMode.__origGoFillForm = window.__safeFormMode.__origGoFillForm || null;
-
-      // ---- ensure LINE CTA visible (in case runtime toggles it wrongly) ----
       function ensureLineCtaVisible_() {
         var a = qs("btnLineCta");
         if (a) { a.style.display = "inline-flex"; a.style.visibility = "visible"; a.style.opacity = "1"; }
@@ -612,12 +569,10 @@
         if (b) { b.style.display = "inline-flex"; b.style.visibility = "visible"; b.style.opacity = "1"; }
       }
 
-      // run early + after a short delay (some WebView apply CSS late)
       ensureLineCtaVisible_();
       setTimeout(ensureLineCtaVisible_, 300);
       setTimeout(ensureLineCtaVisible_, 1200);
 
-      // ---- initial mode from URL ----
       function boot_() {
         var p = getParams_();
         var mode = (p.get("mode") || "").trim().toLowerCase();
@@ -625,7 +580,6 @@
       }
 
       window.addEventListener("popstate", function () {
-        // Back/forward should update UI
         var p = getParams_();
         var mode = (p.get("mode") || "").trim().toLowerCase();
         applyMode_(mode === "form" ? "form" : "card");
