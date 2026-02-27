@@ -1,18 +1,18 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v408.2 (COMPLETE OVERWRITE)
- * - Base: v407.7
- * - Fix A: WeChat is CONTACT ONLY (never in media/social)
- * - Fix B: PhotoWall prefers *_fast only (photos_fast first, fallback to photos)
- * - Fix C: Support sheet keys 影音連結1~3 / 社群連結1~3 + synonym keys
- * - Debug: console log hit-key + final URL; warn if found but not mounted
+ * app.js v408.3 (COMPLETE OVERWRITE)
+ * - Base: v408.2
+ * - NEW: Real Hidden Admin Panel (triple tap bottom-right hotspot)
+ *   - input: id/name (id supported; name shows hint)
+ *   - buttons: Back Home / Copy Card Link / Copy OG Link / One-click Delivery / Preview
+ * - Keep ALL existing UI/feature behaviors
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v408.2",
+  VERSION: "v408.3",
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2
 };
@@ -557,8 +557,7 @@ function applyWideRule_(container){
 }
 
 /* ================================
- * Media/Social mapping (supports your sheet keys)
- * - WeChat/LINE excluded from social to avoid duplicate
+ * Media/Social (same as v408.2)
  * ================================ */
 function gatherByKeys_(p, keys){
   const hits = [];
@@ -631,7 +630,7 @@ const SOCIAL_SPECS = [
   { label:"Threads", icon:"fa-solid fa-at", keys:["threads","threads_url"], resolver:(v)=> resolveHandleUrl_("threads", v) },
   { label:"X", icon:"fa-brands fa-x-twitter", keys:["x","twitter","x_url","twitter_url"], resolver:(v)=> resolveHandleUrl_("x", v) },
 
-  // ❌ WeChat/LINE: contact only
+  // WeChat/LINE excluded here (contact only)
   { label:"WeChat", icon:"fa-brands fa-weixin", keys:["wechat","微信","wechat_id","wechat_url","微信ID"], resolver:(_v)=> "" },
   { label:"LINE", icon:"fa-brands fa-line", keys:["line","line_oa","line_id","line_url","LINE連結","LINE官方帳號"], resolver:(_v)=> "" },
 
@@ -644,7 +643,6 @@ function ensureMediaDockMount_(){
   let btns = qs("mediaButtons");
   if(dock && btns) return { dock, btns };
 
-  // minimal allowed if missing
   const ref = qs("contactDock") || qs("photoWall") || document.body;
 
   dock = document.createElement("div");
@@ -699,7 +697,7 @@ function renderSpecsToDock_(p, specs, tag){
         extraClass: cls,
         onClick: ()=> openUrl_(finalUrl)
       }));
-      break; // once per platform
+      break;
     }
   }
 
@@ -715,7 +713,6 @@ function renderDocks_(p){
   if(mediaBtns) mediaBtns.innerHTML = "";
   if(cBtns) cBtns.innerHTML = "";
 
-  // Media + Social -> in mediaDock
   const hasMedia = renderSpecsToDock_(p, MEDIA_SPECS, "MEDIA");
   const hasSocial = renderSpecsToDock_(p, SOCIAL_SPECS, "SOCIAL");
   if(mediaDock) mediaDock.style.display = (hasMedia || hasSocial) ? "" : "none";
@@ -726,7 +723,6 @@ function renderDocks_(p){
   const email   = pick(p, ["Email","email","信箱","E-mail","mail"]);
   const address = pick(p, ["地址","address","住址","工作地址"]);
 
-  // LINE (your sheet has LINE連結 + LINE官方帳號)
   const lineRaw =
     pick(p, [
       "LINE連結","LINE連結1","LINE Link","line_url","line_link",
@@ -739,7 +735,6 @@ function renderDocks_(p){
   let lineUrl = normalizeLineUrl_(lineRaw);
   if(!text(lineUrl)) lineUrl = scanAnyLineFromPayload_(p);
 
-  // WeChat (your sheet: 微信ID)
   const wechatUrlRaw = pick(p, ["wechat_url","WeChat URL","微信連結","微信網址"]);
   const wechatIdRaw  = pick(p, ["微信ID","微信","wechat","wechat_id","WeChat","WeChat ID"]);
   const wechatUrl = normalizeLink_(wechatUrlRaw);
@@ -862,9 +857,8 @@ window.goLineIntro = goLineIntro;
 window.goFillForm = goFillForm;
 
 /* ================================
- * Photo Wall + Lightbox + Admin hotspot + Load/Boot
+ * Photo Wall + Lightbox
  * ================================ */
-
 function extractRowFromPayload_(data){
   if(!data || typeof data !== "object") return null;
   if(data.data && typeof data.data === "object") return data.data;
@@ -873,18 +867,13 @@ function extractRowFromPayload_(data){
   return null;
 }
 
-/* ---------- Photo collect (FAST first; fallback only if fast empty) ---------- */
 function collectPhotoUrls_(p){
   let urls = [];
-
-  // if backend also provides arrays, keep them only when they are already fast-like
   if(Array.isArray(p.photos_fast)) urls = urls.concat(p.photos_fast);
 
-  // ✅ Your main requirement: use 照片_fast only
   const bulkFast = pick(p, ["照片_fast","photos_fast","photos_img_fast","photo_wall_fast"]);
   const bulkSlow = pick(p, ["照片","photos_img","photos","photo_wall"]);
-
-  const bulk = text(bulkFast) ? bulkFast : bulkSlow; // fallback only when fast empty
+  const bulk = text(bulkFast) ? bulkFast : bulkSlow;
 
   if(text(bulk)){
     urls = urls.concat(
@@ -895,7 +884,6 @@ function collectPhotoUrls_(p){
     );
   }
 
-  // photo1..12: prefer *_fast, fallback to normal
   for(let i=1;i<=12;i++){
     const vFast = pick(p, [`photo_fast${i}`,`photo${i}_fast`,`照片_fast${i}`,`照片${i}_fast`]);
     const v = text(vFast) ? vFast : pick(p, [`photo${i}`,`photo_${i}`,`照片${i}`,`相片${i}`]);
@@ -907,11 +895,9 @@ function collectPhotoUrls_(p){
   urls.forEach(u=>{
     const nu = normalizeImageUrl_(u);
     if(!nu) return;
-
     const key = canonicalImageKey_(nu);
     if(!key) return;
     if(seen.has(key)) return;
-
     seen.add(key);
     out.push(nu);
   });
@@ -919,7 +905,6 @@ function collectPhotoUrls_(p){
   return out;
 }
 
-/* ---------- Lightbox ---------- */
 function ensureLightbox_(){
   if(qs("lightboxOverlay")) return;
 
@@ -978,7 +963,6 @@ function openLightbox_(url){
   overlay.style.display = "flex";
 }
 
-/* ---------- Photo wall dynamic balance ---------- */
 function computeCols_(n){
   if(n <= 1) return 1;
   if(n === 2) return 2;
@@ -1024,6 +1008,258 @@ function renderPhotoWall_(row){
   wall.style.display = "";
 }
 
+/* ================================
+ * Hidden Admin Panel (NEW)
+ * - Trigger: bottom-right hotspot triple tap
+ * ================================ */
+function basePath_(){
+  // keep same directory; drop query/hash
+  return location.origin + location.pathname;
+}
+
+function homeUrl_(){
+  return basePath_(); // no query
+}
+
+function cardUrlById_(cid){
+  const id = normalizeId_(cid) || CONFIG.DEFAULT_ID;
+  return `${basePath_()}?id=${encodeURIComponent(id)}`;
+}
+
+function ogUrl_(){
+  // Default OG file in same folder. If you later switch to another filename, change here only.
+  return `${location.origin}${location.pathname.replace(/\/[^\/]*$/, "/")}og-card.png`;
+}
+
+async function copyText_(s){
+  const v = String(s||"");
+  try{
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(v);
+      return true;
+    }
+  }catch{}
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = v;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  }catch{
+    return false;
+  }
+}
+
+function ensureAdminPanel_(){
+  if(qs("adminPanelOverlay")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "adminPanelOverlay";
+  overlay.style.cssText = `
+    position:fixed; inset:0; z-index:999998;
+    background:rgba(0,0,0,0.55);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    padding:14px;
+  `;
+
+  const panel = document.createElement("div");
+  panel.id = "adminPanel";
+  panel.style.cssText = `
+    width:min(520px, 100%);
+    border-radius:18px;
+    background:rgba(255,255,255,0.92);
+    box-shadow:0 18px 60px rgba(0,0,0,0.28);
+    overflow:hidden;
+    backdrop-filter: blur(10px);
+  `;
+
+  const head = document.createElement("div");
+  head.style.cssText = `
+    padding:12px 14px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid rgba(0,0,0,0.08);
+  `;
+  head.innerHTML = `
+    <div style="font-weight:900; letter-spacing:0.5px;">隱形後臺</div>
+    <button id="adminCloseBtn" type="button"
+      style="width:36px;height:36px;border-radius:999px;border:none;cursor:pointer;
+             background:rgba(0,0,0,0.06);font-size:18px;font-weight:900;">✕</button>
+  `;
+
+  const body = document.createElement("div");
+  body.style.cssText = `padding:12px 14px;`;
+
+  body.innerHTML = `
+    <div style="font-size:13px; opacity:0.85; margin-bottom:8px;">
+      輸入 <b>序號（TW0001）</b> 或 姓名（目前以序號查詢為主）
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+      <input id="adminInput"
+        placeholder="TW0001 / 0001 / 小天使"
+        style="flex:1; height:42px; padding:0 12px; border-radius:12px;
+               border:1px solid rgba(0,0,0,0.18); outline:none; font-size:15px;" />
+      <button id="adminGoBtn" type="button"
+        style="height:42px; padding:0 14px; border-radius:12px; border:none; cursor:pointer;
+               background:rgba(0,0,0,0.08); font-weight:900;">套用</button>
+    </div>
+
+    <div id="adminHint" style="font-size:13px; color:#333; opacity:0.85; margin-bottom:10px;"></div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <button id="btnAdminHome" type="button"
+        style="height:42px; border-radius:12px; border:none; cursor:pointer;
+               background:rgba(0,0,0,0.08); font-weight:900;">返回首頁</button>
+
+      <button id="btnAdminPreview" type="button"
+        style="height:42px; border-radius:12px; border:none; cursor:pointer;
+               background:rgba(0,0,0,0.08); font-weight:900;">成品預覽</button>
+
+      <button id="btnCopyCard" type="button"
+        style="height:42px; border-radius:12px; border:none; cursor:pointer;
+               background:rgba(0,0,0,0.08); font-weight:900;">一鍵複製名片連結</button>
+
+      <button id="btnCopyOg" type="button"
+        style="height:42px; border-radius:12px; border:none; cursor:pointer;
+               background:rgba(0,0,0,0.08); font-weight:900;">一鍵複製 OG 圖卡</button>
+
+      <button id="btnDelivery" type="button"
+        style="grid-column:1 / -1; height:44px; border-radius:12px; border:none; cursor:pointer;
+               background:rgba(0,0,0,0.12); font-weight:900;">
+        一鍵交貨（複製 OG + 名片連結）
+      </button>
+    </div>
+
+    <div style="margin-top:10px; font-size:12px; opacity:0.7;">
+      版本：${escapeHtml_(CONFIG.VERSION)}
+    </div>
+  `;
+
+  panel.appendChild(head);
+  panel.appendChild(body);
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  const closeBtn = qs("adminCloseBtn");
+  const input = qs("adminInput");
+  const goBtn = qs("adminGoBtn");
+  const hint = qs("adminHint");
+
+  function getCurrentTargetId_(){
+    const v = text(input?.value) || getIdFromUrl_() || CONFIG.DEFAULT_ID;
+    const nid = normalizeId_(v);
+    return nid;
+  }
+
+  function setHint_(msg){
+    if(hint) hint.innerHTML = msg ? msg : "";
+  }
+
+  async function applyInput_(){
+    const raw = text(input?.value);
+    if(!raw){
+      setHint_("⚠️ 請輸入 TW0001 / 0001 / 姓名");
+      return;
+    }
+
+    const nid = normalizeId_(raw);
+    if(/^TW\d{4}$/.test(nid)){
+      setHint_(`✅ 已套用：<b>${escapeHtml_(nid)}</b>`);
+      console.log("[ADMIN] set target id:", nid);
+      return;
+    }
+
+    // name entered (not supported by current GAS card endpoint)
+    setHint_(`⚠️ 目前後端是用 <b>id</b> 取資料（例：TW0001）。<br>你輸入的是「${escapeHtml_(raw)}」，請改輸入序號。`);
+    console.warn("[ADMIN] name entered; id required:", raw);
+  }
+
+  async function doHome_(){
+    console.log("[ADMIN] home:", homeUrl_());
+    location.href = homeUrl_();
+  }
+
+  async function doPreview_(){
+    const nid = getCurrentTargetId_();
+    if(!/^TW\d{4}$/.test(nid)){
+      setHint_("⚠️ 預覽需要序號，例如 TW0001");
+      return;
+    }
+    const url = cardUrlById_(nid);
+    console.log("[ADMIN] preview:", url);
+    window.open(url, "_blank");
+  }
+
+  async function doCopyCard_(){
+    const nid = getCurrentTargetId_();
+    if(!/^TW\d{4}$/.test(nid)){
+      setHint_("⚠️ 複製名片連結需要序號，例如 TW0001");
+      return;
+    }
+    const url = cardUrlById_(nid);
+    const ok = await copyText_(url);
+    console.log("[ADMIN] copy card link:", url, "ok=", ok);
+    alert(ok ? "✅ 已複製名片連結" : "⚠️ 複製失敗（可手動長按複製網址）");
+  }
+
+  async function doCopyOg_(){
+    const url = ogUrl_();
+    const ok = await copyText_(url);
+    console.log("[ADMIN] copy og link:", url, "ok=", ok);
+    alert(ok ? "✅ 已複製 OG 圖卡網址" : "⚠️ 複製失敗（可手動複製 OG 圖卡網址）");
+  }
+
+  async function doDelivery_(){
+    const nid = getCurrentTargetId_();
+    if(!/^TW\d{4}$/.test(nid)){
+      setHint_("⚠️ 一鍵交貨需要序號，例如 TW0001");
+      return;
+    }
+    const pack = `OG 圖卡：${ogUrl_()}\n名片連結：${cardUrlById_(nid)}`;
+    const ok = await copyText_(pack);
+    console.log("[ADMIN] delivery pack copied. id=", nid, "ok=", ok);
+    alert(ok ? "✅ 已複製交貨內容（OG + 名片連結）" : "⚠️ 複製失敗（可手動複製）");
+  }
+
+  // bind
+  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) hideAdminPanel_(); });
+  closeBtn?.addEventListener("click", hideAdminPanel_);
+  goBtn?.addEventListener("click", applyInput_);
+  input?.addEventListener("keydown", (e)=>{ if(e.key === "Enter") applyInput_(); });
+
+  qs("btnAdminHome")?.addEventListener("click", doHome_);
+  qs("btnAdminPreview")?.addEventListener("click", doPreview_);
+  qs("btnCopyCard")?.addEventListener("click", doCopyCard_);
+  qs("btnCopyOg")?.addEventListener("click", doCopyOg_);
+  qs("btnDelivery")?.addEventListener("click", doDelivery_);
+}
+
+function showAdminPanel_(){
+  ensureAdminPanel_();
+  const overlay = qs("adminPanelOverlay");
+  if(overlay) overlay.style.display = "flex";
+
+  const input = qs("adminInput");
+  const currentId = normalizeId_(getIdFromUrl_() || CONFIG.DEFAULT_ID);
+  if(input && !text(input.value)) input.value = currentId;
+
+  console.log("[ADMIN] open panel. current=", currentId);
+}
+
+function hideAdminPanel_(){
+  const overlay = qs("adminPanelOverlay");
+  if(overlay) overlay.style.display = "none";
+  console.log("[ADMIN] close panel");
+}
+
 /* ---------- Admin hotspot (bottom-right triple tap) ---------- */
 function setupAdminHotspotBR_(){
   const spot = qs("adminHotspotBR");
@@ -1039,9 +1275,7 @@ function setupAdminHotspotBR_(){
 
     if(taps >= 3){
       taps = 0;
-      alert("✅ 進入隱形後臺（v408.2 預留入口）");
-      // TODO later:
-      // location.href = "admin.html?id=" + encodeURIComponent(getIdFromUrl_() || CONFIG.DEFAULT_ID);
+      showAdminPanel_();
     }
   });
 }
