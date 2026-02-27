@@ -1,248 +1,202 @@
-<!-- wechat.html — v407
-.1(COMPLETE OVERWRITE) -->
-<!DOCTYPE html>
-<html lang="zh-Hant">
+<!doctype html>
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Angel WeChat Card｜v406.2</title>
-  <meta name="robots" content="noindex,nofollow" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <title>WeChat Card</title>
+
   <style>
     :root{
-      --bg1:#3E2F6F;  /* default = p4 霧紫 */
-      --bg2:#5E4B8B;
-      --text:#ffffff;
-      --sub:#e7e1ff;
-      --glass: rgba(255,255,255,.14);
-      --glass2: rgba(255,255,255,.10);
-      --line: rgba(255,255,255,.18);
-      --shadow: 0 18px 46px rgba(0,0,0,.25);
+      --bg:#0b1220;
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.65);
+      --line:rgba(255,255,255,.10);
+      --shadow: 0 20px 70px rgba(0,0,0,.55);
+      --r:18px;
     }
-    *{box-sizing:border-box;margin:0;padding:0}
+    *{box-sizing:border-box}
     body{
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
-      background:linear-gradient(180deg,var(--bg1),var(--bg2));
-      color:var(--text);
+      margin:0;
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
       min-height:100vh;
-      display:flex;
-      justify-content:center;
     }
-    .wrapper{
-      width:100%;
-      max-width:720px;
-      padding:56px 22px 80px;
-      text-align:center;
+    .wrap{
+      width:min(980px, 94vw);
+      margin: 14px auto 26px;
     }
-    .topBadge{
-      display:inline-flex; gap:8px; align-items:center; justify-content:center;
-      padding:7px 12px; border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.10);
-      color:rgba(255,255,255,.9);
-      font-size:12px;
-      margin:0 auto 18px;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-    }
-    .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.08));
-      border:1px solid var(--line);
-      border-radius:22px;
-      padding:22px 18px 18px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      overflow:hidden;
-    }
-    .avatar{
-      width:168px;
-      height:168px;
-      border-radius:50%;
-      background:rgba(255,255,255,0.15);
-      margin:6px auto 18px;
-      overflow:hidden;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border:1px solid rgba(255,255,255,.20);
-    }
-    .avatar img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-    .name{
-      font-size:40px;
-      font-weight:800;
-      letter-spacing:.3px;
-      margin:6px 0 8px;
-      text-shadow: 0 10px 30px rgba(0,0,0,.22);
-    }
-    .title{
-      font-size:20px;
-      color:var(--sub);
-      margin-bottom:14px;
-      line-height:1.35;
-      opacity:.95;
-    }
-    .meta{
-      display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
-      margin:10px 0 6px;
-    }
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:7px 12px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.10);
-      font-size:12px;
-      color:rgba(255,255,255,.9);
-    }
-    .section{
-      margin-top:18px;
-      text-align:left;
-      background:rgba(0,0,0,.10);
-      border:1px solid rgba(255,255,255,.16);
-      border-radius:18px;
-      padding:14px 14px 10px;
-    }
-    .section h3{
-      font-size:15px;
-      margin-bottom:10px;
-      opacity:.9;
-      letter-spacing:.2px;
-    }
-    .list p{
-      font-size:16px;
-      line-height:1.65;
-      margin:0 0 8px;
-      color:rgba(255,255,255,.95);
-      word-break:break-word;
-    }
-    .muted{
-      color:rgba(255,255,255,.78);
-      font-size:14px;
-      line-height:1.6;
-    }
-    .actions{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap:12px;
-      margin-top:18px;
-    }
-    .button{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      width:100%;
-      padding:16px 14px;
-      border-radius:16px;
-      font-size:18px;
-      font-weight:800;
-      border:none;
-      cursor:pointer;
-      text-decoration:none;
+    .top{
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+      padding: 10px 6px;
       user-select:none;
       -webkit-tap-highlight-color: transparent;
     }
-    .primary{
-      background:#ffffff;
-      color:#1b102f;
-      box-shadow: 0 12px 32px rgba(0,0,0,.18);
+    .brand{display:flex; align-items:center; gap:10px;}
+    .dot{width:12px;height:12px;border-radius:99px;background:rgba(255,255,255,.7)}
+    .ttl{display:flex; flex-direction:column; gap:2px; line-height:1.1}
+    .ttl .t1{font-weight:900; font-size:14px}
+    .ttl .t2{font-weight:800; font-size:12px; color:rgba(255,255,255,.55)}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      font-weight:950;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
     }
-    .secondary{
-      background:rgba(255,255,255,0.16);
-      color:#fff;
-      border:1px solid rgba(255,255,255,.22);
+
+    .panel{
+      border-radius: calc(var(--r) + 10px);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      background: rgba(255,255,255,.05);
     }
-    .button[aria-disabled="true"]{
-      opacity:.55;
-      pointer-events:none;
-    }
-    .footer{
-      margin-top:18px;
-      font-size:12px;
-      opacity:.75;
+
+    .loading{
+      padding: 26px 16px;
       text-align:center;
     }
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:18px;
-      transform:translateX(-50%);
-      max-width:min(720px, calc(100% - 28px));
-      background:rgba(0,0,0,.55);
-      color:#fff;
-      border:1px solid rgba(255,255,255,.18);
-      padding:10px 12px;
-      border-radius:14px;
-      font-size:13px;
-      line-height:1.5;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      display:none;
-      z-index:50;
-    }
-    .toast.show{ display:block; }
+    .loading .big{font-weight:950; font-size:16px; margin-bottom:8px}
+    .loading .small{font-weight:800; color:var(--muted); line-height:1.6}
 
-    @media (min-width:520px){
-      .wrapper{ padding:64px 28px 88px; }
-      .actions{ grid-template-columns: 1fr 1fr; }
-      .button{ font-size:18px; }
+    .card{
+      padding: 18px 16px 16px;
+      display:none;
+    }
+    .head{
+      display:flex; align-items:center; gap:12px;
+      margin-bottom: 12px;
+    }
+    .av{
+      width:74px;height:74px;border-radius:18px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(0,0,0,.18);
+      overflow:hidden;
+      flex:0 0 74px;
+      position:relative;
+    }
+    .av img{width:100%;height:100%;object-fit:cover;display:none}
+    .av .ph{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:950; color:rgba(255,255,255,.75);
+      font-size:18px;
+    }
+    .nm{font-weight:950; font-size:20px; margin:0}
+    .meta{margin-top:4px; font-weight:800; color:var(--muted); white-space:pre-line; line-height:1.4}
+
+    .sec{
+      margin-top: 10px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      background: rgba(0,0,0,.18);
+      padding: 12px 12px 10px;
+    }
+    .sec h3{
+      margin:0 0 8px;
+      font-size:13px;
+      font-weight:950;
+      letter-spacing:.4px;
+    }
+    ul{margin:0; padding-left:18px; color:var(--muted); font-weight:800; line-height:1.65}
+    .para{white-space:pre-line; color:var(--muted); font-weight:800; line-height:1.7}
+
+    .hint{
+      margin-top: 10px;
+      color: rgba(255,255,255,.70);
+      font-weight:850;
+      font-size:12px;
+      line-height:1.6;
+      text-align:center;
+      padding: 8px 10px;
+    }
+
+    /* Debug */
+    .dbgMask{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; z-index:9998;}
+    .dbg{
+      position:fixed; left:50%; transform:translateX(-50%);
+      bottom:16px; width:min(920px, 92vw);
+      border-radius: 18px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(15,23,42,.92);
+      box-shadow: 0 20px 60px rgba(0,0,0,.55);
+      padding: 12px;
+      display:none; z-index:9999;
+      backdrop-filter: blur(10px);
+    }
+    .dbgTop{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+    .dbgTop .ttl{font-weight:950; font-size:13px;}
+    .dbgTop .x{padding: 8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); font-weight:950;}
+    .dbg pre{
+      margin:0; padding:10px; border-radius:14px;
+      background: rgba(0,0,0,.22);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:auto; max-height: 42vh;
+      color: rgba(255,255,255,.86);
+      font-size:12px; line-height:1.5; white-space:pre-wrap; word-break:break-word;
     }
   </style>
 </head>
 <body>
-  <div class="wrapper">
-    <div class="topBadge" id="badge">WeChat Long Card</div>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand" id="brand">
+        <div class="dot"></div>
+        <div class="ttl">
+          <div class="t1">WeChat Long Card</div>
+          <div class="t2">v407</div>
+        </div>
+      </div>
+      <button class="btn" id="btnZoom">放大</button>
+    </div>
 
-    <div class="card">
-      <div class="avatar" id="avatarBox" aria-label="avatar"></div>
-
-      <div class="name" id="name">幸福智慧名片</div>
-      <div class="title" id="title">Angel Smart Card</div>
-
-      <div class="meta" id="meta"></div>
-
-      <div class="section" id="serviceSection" style="display:none;">
-        <h3>服務項目</h3>
-        <div class="list" id="serviceContent"></div>
+    <div class="panel" id="panel">
+      <div class="loading" id="loading">
+        <div class="big">載入中...</div>
+        <div class="small">微信環境可能較慢，請稍候<br/>若仍空白，返回再重開一次通常會好。</div>
       </div>
 
-      <div class="section" id="expSection" style="display:none;">
-        <h3>經歷</h3>
-        <div class="list" id="expContent"></div>
-      </div>
+      <div class="card" id="card">
+        <div class="head">
+          <div class="av" id="av">
+            <img id="avImg" alt="avatar" />
+            <div class="ph" id="avPh">🙂</div>
+          </div>
+          <div>
+            <h1 class="nm" id="name">—</h1>
+            <div class="meta" id="meta"></div>
+          </div>
+        </div>
 
-      <div class="section" id="contactSection" style="display:none;">
-        <h3>聯繫</h3>
-        <div class="muted" id="contactContent"></div>
-      </div>
+        <div class="sec" id="secService" style="display:none">
+          <h3>服務項目</h3>
+          <ul id="service"></ul>
+        </div>
 
-      <div class="actions">
-        <!-- ✅ 你要：提高打開機率 → 指向 GitHub open.html（裡面再打 GAS 判斷） -->
-        <a id="btnOpen" class="button primary" href="#" rel="noreferrer">
-          開啟名片
-        </a>
+        <div class="sec" id="secExp" style="display:none">
+          <h3>經歷</h3>
+          <div class="para" id="exp"></div>
+        </div>
 
-        <button id="btnCopy" class="button secondary" type="button">
-          複製名片網址
-        </button>
-
-        <a id="btnContact" class="button secondary" href="#" target="_blank" rel="noopener,noreferrer" style="display:none;">
-          聯繫開通
-        </a>
-      </div>
-
-      <div class="footer">
-        © Angel0973180707 / Happiness Smart Card System
+        <div class="hint" id="hint"></div>
       </div>
     </div>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div class="dbgMask" id="dbgMask"></div>
+  <div class="dbg" id="dbg">
+    <div class="dbgTop">
+      <div class="ttl">Debug</div>
+      <div class="x" id="dbgClose">關閉</div>
+    </div>
+    <pre id="dbgPre"></pre>
+  </div>
 
-  <script src="./wechat.js?v=4062"></script>
+  <script src="./wechat.js?v=407"></script>
 </body>
 </html>
