@@ -1,21 +1,23 @@
 <!-- ================================
-     index.html v4030.2 (SAFE FORM MODE)
+     index.html v407 (SAFE FORM MODE + UX PATCH)
      - KEEP: v4030 DOM structure (no reflow / no card DOM change)
-     - ADD: form mode container + pushState mode switch
-     - DO NOT TOUCH: app.js / manifest / sw / adminHotspotBR / share logic
+     - ADD: form mode container + robust mode switch + iframe loader/fallback
+     - FIX: LINE button visibility guard (free/premium)
+     - DO NOT TOUCH: app.js / manifest logic / sw / adminHotspotBR / share logic
+     - VERSION: unified ?v=407
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Happiness Smart Card System v4030</title>
+  <title>Happiness Smart Card System v407</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=4030" />
+  <link rel="manifest" href="./manifest.json?v=407" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=4030" />
-  <link rel="icon" href="./icons/icon-192.png?v=4030" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=407" />
+  <link rel="icon" href="./icons/icon-192.png?v=407" />
 
   <!-- OG (static fallback; delivery uses admin OG preview image) -->
   <meta property="og:type" content="website" />
@@ -26,7 +28,87 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=4020" />
+  <link rel="stylesheet" href="./style.css?v=407" />
+
+  <!-- SAFE PATCH (HTML-only): guard CTA visibility + form mode helpers -->
+  <style>
+    /* ---- LINE / CTA visibility guard (in case CSS accidentally hides) ---- */
+    #btnLineCta,
+    #btnLineCtaPremium,
+    #btnFormCta,
+    #btnFormCtaPremium,
+    #btnShare,
+    #btnSharePremium {
+      display: inline-flex !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+
+    /* Avoid weird layout collapse if parent styles get altered */
+    #free-controls,
+    #premium-controls {
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    /* Form loader overlay (only used in form mode; inserted by SAFE script) */
+    .safe-form-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2147483000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(17, 19, 24, 0.86);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .safe-form-overlay .box {
+      width: min(520px, 92vw);
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      border-radius: 18px;
+      padding: 16px 14px;
+      color: rgba(255,255,255,0.92);
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .safe-form-overlay .spinner {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: 3px solid rgba(255,255,255,0.18);
+      border-top-color: rgba(255,255,255,0.75);
+      margin: 0 auto 10px;
+      animation: safeSpin 0.9s linear infinite;
+    }
+    @keyframes safeSpin { to { transform: rotate(360deg); } }
+    .safe-form-overlay .hint {
+      margin-top: 8px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.76);
+      line-height: 1.5;
+    }
+    .safe-form-overlay .row {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    .safe-form-overlay .btn {
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.95);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
@@ -181,7 +263,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v4030</div>
+        <div class="version-tag" id="versionTag">v407</div>
       </div>
     </section>
   </main>
@@ -189,12 +271,27 @@
   <!-- ================= Form Container (SAFE ADD) ================= -->
   <main id="form-container" style="display:none;"></main>
 
-  <script src="./app.js?v=4030"></script>
+  <!-- SAFE: overlay node (HTML-only) -->
+  <div class="safe-form-overlay" id="safeFormOverlay" aria-hidden="true">
+    <div class="box">
+      <div class="spinner" aria-hidden="true"></div>
+      <div style="font-weight:900; letter-spacing:.4px;">正在開啟表單…</div>
+      <div class="hint" id="safeFormHint">若在微信/LINE 內建瀏覽器較慢，請稍候。</div>
+      <div class="row">
+        <button class="btn" type="button" id="safeFormRetryBtn">重新載入</button>
+        <button class="btn" type="button" id="safeFormCopyBtn">複製連結</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js?v=407"></script>
 
   <!-- ================= SAFE MODE SCRIPT (no app.js change) ================= -->
-  <script>
+<script>
     (function () {
       "use strict";
+
+      var VERSION = "407"; // unified
 
       // ---- helpers (scoped) ----
       function qs(id) { return document.getElementById(id); }
@@ -205,34 +302,92 @@
       }
 
       function buildUrl_(mode, id) {
-        const p = getParams_();
+        var p = getParams_();
         if (id) p.set("id", id);
         if (mode) p.set("mode", mode);
         else p.delete("mode");
 
-        const s = p.toString();
+        var s = p.toString();
         return location.pathname + (s ? ("?" + s) : "");
       }
 
       function getId_() {
-        const p = getParams_();
+        var p = getParams_();
         return (p.get("id") || "").trim();
       }
 
+      // ---- preserve original admin panel display ----
+      var __adminPanelDisplay = null;
+
+      function rememberAdminPanelDisplay_() {
+        var adminPanel = qs("admin-panel");
+        if (!adminPanel) return;
+        if (__adminPanelDisplay === null) {
+          // record computed display as baseline
+          try {
+            __adminPanelDisplay = getComputedStyle(adminPanel).display || "";
+          } catch (e) {
+            __adminPanelDisplay = "";
+          }
+        }
+      }
+
+      function restoreAdminPanelDisplay_() {
+        var adminPanel = qs("admin-panel");
+        if (!adminPanel) return;
+        if (__adminPanelDisplay && __adminPanelDisplay !== "none") {
+          adminPanel.style.display = __adminPanelDisplay;
+        } else {
+          adminPanel.style.display = "";
+        }
+      }
+
       // ---- form mount (created only once) ----
-      let __formMounted = false;
+      var __formMounted = false;
+      var __lastCardScrollTop = 0;
+
+      function showOverlay_(on) {
+        var ov = qs("safeFormOverlay");
+        if (!ov) return;
+        ov.style.display = on ? "flex" : "none";
+        ov.setAttribute("aria-hidden", on ? "false" : "true");
+      }
+
+      function copyText_(t) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(t);
+            return true;
+          }
+        } catch (e) {}
+        // fallback
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = t;
+          ta.setAttribute("readonly", "readonly");
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          ta.style.top = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          return true;
+        } catch (e2) {}
+        return false;
+      }
 
       function mountFormOnce_() {
         if (__formMounted) return;
 
-        const host = qs("form-container");
+        var host = qs("form-container");
         if (!host) return;
 
         // Clear (just in case)
         host.innerHTML = "";
 
         // Sticky top bar (inline styles only; no CSS file changes)
-        const bar = document.createElement("div");
+        var bar = document.createElement("div");
         bar.setAttribute("role", "navigation");
         bar.style.position = "sticky";
         bar.style.top = "0";
@@ -247,12 +402,12 @@
         bar.style.webkitBackdropFilter = "blur(10px)";
         bar.style.borderBottom = "1px solid rgba(255,255,255,0.12)";
 
-        const left = document.createElement("div");
+        var left = document.createElement("div");
         left.style.display = "flex";
         left.style.alignItems = "center";
         left.style.gap = "10px";
 
-        const btnBack = document.createElement("button");
+        var btnBack = document.createElement("button");
         btnBack.type = "button";
         btnBack.textContent = "返回名片";
         btnBack.setAttribute("aria-label", "返回名片");
@@ -261,33 +416,34 @@
         btnBack.style.color = "#fff";
         btnBack.style.padding = "10px 12px";
         btnBack.style.borderRadius = "14px";
-        btnBack.style.fontWeight = "700";
+        btnBack.style.fontWeight = "800";
         btnBack.style.cursor = "pointer";
+        btnBack.style.webkitTapHighlightColor = "transparent";
         btnBack.addEventListener("click", function () {
           setMode_("card");
         });
 
-        const title = document.createElement("div");
+        var title = document.createElement("div");
         title.textContent = "填寫名片資料";
         title.style.color = "rgba(255,255,255,0.95)";
-        title.style.fontWeight = "800";
+        title.style.fontWeight = "900";
         title.style.letterSpacing = "0.4px";
 
         left.appendChild(btnBack);
         left.appendChild(title);
 
-        const right = document.createElement("div");
+        var right = document.createElement("div");
         right.style.display = "flex";
         right.style.alignItems = "center";
         right.style.gap = "10px";
 
         // Optional: show current id (non-invasive)
-        const idNow = getId_();
+        var idNow = getId_();
         if (idNow) {
-          const chip = document.createElement("div");
+          var chip = document.createElement("div");
           chip.textContent = idNow;
           chip.style.color = "rgba(255,255,255,0.85)";
-          chip.style.fontWeight = "700";
+          chip.style.fontWeight = "800";
           chip.style.fontSize = "12px";
           chip.style.padding = "8px 10px";
           chip.style.borderRadius = "999px";
@@ -299,10 +455,10 @@
         bar.appendChild(left);
         bar.appendChild(right);
 
-        const frame = document.createElement("iframe");
+        var frame = document.createElement("iframe");
         frame.setAttribute("title", "名片資料表單");
-        frame.setAttribute("loading", "lazy");
-        frame.src = "./form.html?v=402";
+        frame.setAttribute("loading", "eager");
+        frame.src = "./form.html?v=" + VERSION;
         frame.style.width = "100%";
         frame.style.height = "calc(100vh - 60px)";
         frame.style.border = "0";
@@ -312,35 +468,99 @@
         host.appendChild(bar);
         host.appendChild(frame);
 
+        // overlay controls
+        var retryBtn = qs("safeFormRetryBtn");
+        if (retryBtn) {
+          retryBtn.onclick = function () {
+            try { frame.src = "./form.html?v=" + VERSION + "&ts=" + Date.now(); } catch (e) {}
+            showOverlay_(true);
+            // allow a short delay so WebView can start
+            setTimeout(function(){ /* no-op */ }, 150);
+          };
+        }
+        var copyBtn = qs("safeFormCopyBtn");
+        if (copyBtn) {
+          copyBtn.onclick = function () {
+            copyText_(location.href);
+            var hint = qs("safeFormHint");
+            if (hint) hint.textContent = "已嘗試複製目前連結（若未成功，可長按網址列複製）。";
+          };
+        }
+
+        // iframe load handling + fallback timeout
+        var loaded = false;
+        var t0 = Date.now();
+
+        function markLoaded_() {
+          if (loaded) return;
+          loaded = true;
+          showOverlay_(false);
+        }
+
+        frame.addEventListener("load", function () {
+          markLoaded_();
+        });
+
+        // show overlay immediately for better webview stability
+        showOverlay_(true);
+
+        // If still not loaded after 8.5s, show fallback hint & buttons stay visible
+        setTimeout(function () {
+          if (loaded) return;
+          var hint = qs("safeFormHint");
+          if (hint) {
+            var sec = Math.max(1, Math.round((Date.now() - t0) / 1000));
+            hint.textContent = "載入較慢（" + sec + " 秒）— 可點「重新載入」或「複製連結」改用外部瀏覽器開啟。";
+          }
+          showOverlay_(true);
+        }, 8500);
+
         __formMounted = true;
       }
 
       // ---- mode switch ----
       function applyMode_(mode) {
-        const cardMain = qs("card-container");
-        const adminPanel = qs("admin-panel");
-        const formMain = qs("form-container");
+        var cardMain = qs("card-container");
+        var adminPanel = qs("admin-panel");
+        var formMain = qs("form-container");
 
         if (!cardMain || !adminPanel || !formMain) return;
 
+        rememberAdminPanelDisplay_();
+
         if (mode === "form") {
+          // save scroll so returning feels like an APP
+          try { __lastCardScrollTop = (document.scrollingElement || document.documentElement).scrollTop || 0; } catch (e) {}
           mountFormOnce_();
+
           cardMain.style.display = "none";
           adminPanel.style.display = "none";
           formMain.style.display = "block";
           document.body.setAttribute("data-mode", "form");
+          document.documentElement.classList.add("mode-form");
+          document.documentElement.classList.remove("mode-card");
         } else {
+          showOverlay_(false);
+
           formMain.style.display = "none";
           cardMain.style.display = "block";
-          adminPanel.style.display = "";
+          restoreAdminPanelDisplay_();
           document.body.setAttribute("data-mode", "card");
+          document.documentElement.classList.add("mode-card");
+          document.documentElement.classList.remove("mode-form");
+
+          // restore scroll
+          try {
+            var se = (document.scrollingElement || document.documentElement);
+            se.scrollTop = __lastCardScrollTop || 0;
+          } catch (e2) {}
         }
       }
 
       function setMode_(mode) {
-        const id = getId_();
-        const nextMode = (mode === "form") ? "form" : ""; // "" means card mode (no mode param)
-        const url = buildUrl_(nextMode, id);
+        var id = getId_();
+        var nextMode = (mode === "form") ? "form" : ""; // "" means card mode (no mode param)
+        var url = buildUrl_(nextMode, id);
 
         try {
           history.pushState({ mode: nextMode || "card" }, "", url);
@@ -355,29 +575,59 @@
       window.__safeFormMode = window.__safeFormMode || {};
       window.__safeFormMode.setMode = setMode_;
 
-      // ---- override goFillForm safely (no app.js edit) ----
-      // keep reference if needed later
-      const __origGoFillForm = window.goFillForm;
-      window.goFillForm = function () {
-        // Spec: no reload, no jump
+      // ---- robust override goFillForm safely (no app.js edit) ----
+      function safeGoFillForm_() {
         setMode_("form");
-        // return false for inline onclick safety
         return false;
-      };
-      // expose original for debugging (not used by default)
-      window.__safeFormMode.__origGoFillForm = __origGoFillForm;
+      }
+
+      // 1) attempt defineProperty lock (best)
+      try {
+        Object.defineProperty(window, "goFillForm", {
+          configurable: true,
+          enumerable: true,
+          get: function () { return safeGoFillForm_; },
+          set: function (_) {
+            // swallow future overwrites to keep SAFE behavior stable
+          }
+        });
+      } catch (e) {
+        // 2) fallback: plain assignment
+        window.goFillForm = safeGoFillForm_;
+      }
+
+      // 3) extra guard: after window load, re-apply once (in case app.js rewrote late)
+      window.addEventListener("load", function () {
+        try { window.goFillForm = safeGoFillForm_; } catch (e) {}
+      });
+
+      // keep reference if needed later
+      window.__safeFormMode.__origGoFillForm = window.__safeFormMode.__origGoFillForm || null;
+
+      // ---- ensure LINE CTA visible (in case runtime toggles it wrongly) ----
+      function ensureLineCtaVisible_() {
+        var a = qs("btnLineCta");
+        if (a) { a.style.display = "inline-flex"; a.style.visibility = "visible"; a.style.opacity = "1"; }
+        var b = qs("btnLineCtaPremium");
+        if (b) { b.style.display = "inline-flex"; b.style.visibility = "visible"; b.style.opacity = "1"; }
+      }
+
+      // run early + after a short delay (some WebView apply CSS late)
+      ensureLineCtaVisible_();
+      setTimeout(ensureLineCtaVisible_, 300);
+      setTimeout(ensureLineCtaVisible_, 1200);
 
       // ---- initial mode from URL ----
       function boot_() {
-        const p = getParams_();
-        const mode = (p.get("mode") || "").trim().toLowerCase();
+        var p = getParams_();
+        var mode = (p.get("mode") || "").trim().toLowerCase();
         applyMode_(mode === "form" ? "form" : "card");
       }
 
       window.addEventListener("popstate", function () {
         // Back/forward should update UI
-        const p = getParams_();
-        const mode = (p.get("mode") || "").trim().toLowerCase();
+        var p = getParams_();
+        var mode = (p.get("mode") || "").trim().toLowerCase();
         applyMode_(mode === "form" ? "form" : "card");
       });
 
