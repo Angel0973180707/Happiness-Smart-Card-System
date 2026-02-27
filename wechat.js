@@ -1,296 +1,318 @@
-/* wechat.js — v407.1 (COMPLETE OVERWRITE)
- * - 從 URL 取得 id / plan / p / c
- * - 套色：premium(p1~p7) 或 free(c1~c5)
- * - 打 GAS：?action=card&id=...
- * - 顯示：姓名/頭銜/服務/經歷/聯繫（微信/LINE/Email/電話）
- * - 圖片：優先用 data["個人照"]（GAS 已會優先 *_fast 回填到「個人照」）
- *         兼容 avatar_img / avatar
- * - 按鈕：
- *   - 開啟名片 → open.html?id=...
- *   - 複製名片網址 → BASE ?id=...
- *   - 聯繫開通 → LINE OA（只有 status 非 active 才顯示）
- * - ✅ QRCode 已拿掉
- */
+/* ================================
+ * wechat.js (v407 COMPLETE OVERWRITE)
+ * - WeChat UA detect -> long card mode
+ * - Stable background mapping p1~p7 inside wechat.js (no dependency on card)
+ * - Loading animation (avoid blank)
+ * - Zoom button
+ * - Unified Debug: long press brand 1.2s
+ * - Compatible fetch: action=card
+ * ================================ */
 
-const BASE = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
-const GAS  = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-const LINE_OA = "https://lin.ee/G3VJoRm";
+(() => {
+  const VERSION = 407;
 
-// 你前面已定：可開啟狀態
-const ALLOW_STATUSES = new Set(["active", "on", "enabled", "paid"]);
+  const DEFAULT_GAS =
+    "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec";
 
-const qs = (id)=>document.getElementById(id);
-const text = (v)=>(v==null?"":String(v)).trim();
-
-function getParam(name){
-  const u = new URL(location.href);
-  return text(u.searchParams.get(name));
-}
-
-function toast(msg){
-  const el = qs("toast");
-  if(!el) return;
-  el.textContent = msg || "";
-  el.classList.add("show");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(()=> el.classList.remove("show"), 1600);
-}
-
-function setThemeVars_(bg1,bg2){
-  document.documentElement.style.setProperty("--bg1", bg1);
-  document.documentElement.style.setProperty("--bg2", bg2);
-}
-
-/** premium p1~p7 */
-function setPremiumColor(code){
-  const map={
-    p1:["#7A2E3A","#B5455C"], // 胭脂紅
-    p2:["#5C1F2B","#9E364F"], // 酒紅
-    p3:["#0F2A4A","#1F4C7C"], // 深藍
-    p4:["#3E2F6F","#5E4B8B"], // 霧紫
-    p5:["#3C4B6E","#64799C"], // 藍灰
-    p6:["#9E8A5A","#D4B45F"], // 金箔
-    p7:["#3C2F28","#5E463A"]  // 褐碳
+  const CONFIG = {
+    GAS: DEFAULT_GAS,
+    DEFAULT_ID: "TW0001",
+    LONGPRESS_MS: 1200
   };
-  if(map[code]) setThemeVars_(map[code][0], map[code][1]);
-}
 
-/** free c1~c5（給長圖也有一致感） */
-function setFreeColor(code){
-  const map={
-    c1:["#C94B6A","#E07A96"], // 粉
-    c2:["#245A9B","#3E7BC9"], // 藍
-    c3:["#B85A2A","#E28A4E"], // 橘
-    c4:["#5A3B8A","#7B5BC2"], // 紫
-    c5:["#1F6B55","#3A9B7C"]  // 綠
+  // p1~p7 background map (stable for WeChat)
+  const P_BG = {
+    p1: "radial-gradient(900px 700px at 15% 10%, rgba(255,140,165,.22), transparent 55%), #0b1220",
+    p2: "radial-gradient(900px 700px at 15% 10%, rgba(160,35,60,.22), transparent 55%), #0b1220",
+    p3: "radial-gradient(900px 700px at 15% 10%, rgba(70,125,255,.18), transparent 55%), #071025",
+    p4: "radial-gradient(900px 700px at 15% 10%, rgba(190,140,255,.18), transparent 55%), #0b1220",
+    p5: "radial-gradient(900px 700px at 15% 10%, rgba(145,165,190,.20), transparent 55%), #0b1220",
+    p6: "radial-gradient(900px 700px at 15% 10%, rgba(255,210,120,.18), transparent 55%), #0b1220",
+    p7: "radial-gradient(900px 700px at 15% 10%, rgba(120,90,70,.22), transparent 55%), #0b1220"
   };
-  if(map[code]) setThemeVars_(map[code][0], map[code][1]);
-}
 
-async function fetchJson(url){
-  const res = await fetch(url, { method:"GET", cache:"no-store" });
-  const txt = await res.text();
-  try{ return JSON.parse(txt); }catch{ return null; }
-}
+  const el = (id) => document.getElementById(id);
 
-function splitLines_(s){
-  const t = text(s);
-  if(!t) return [];
-  return t.split(/[\n,，;；]+/).map(x=>x.trim()).filter(Boolean);
-}
+  const brand = el("brand");
+  const btnZoom = el("btnZoom");
+  const panel = el("panel");
+  const loading = el("loading");
+  const card = el("card");
 
-function setList_(boxId, lines){
-  const box = qs(boxId);
-  if(!box) return;
-  box.innerHTML = "";
-  lines.forEach(t=>{
-    const p = document.createElement("p");
-    p.textContent = "• " + t;
-    box.appendChild(p);
-  });
-}
+  const nameEl = el("name");
+  const metaEl = el("meta");
 
-function pickAvatarUrl_(d){
-  // 你舊版用 d.avatar_img；新版 GAS v402/v405 會回「個人照」與 avatar/logo
-  return (
-    text(d["個人照"]) ||
-    text(d["avatar_img"]) ||
-    text(d["avatar"]) ||
-    ""
-  );
-}
+  const secService = el("secService");
+  const serviceEl = el("service");
 
-function renderMeta_(d, plan, p, c){
-  const meta = qs("meta");
-  if(!meta) return;
-  meta.innerHTML = "";
+  const secExp = el("secExp");
+  const expEl = el("exp");
 
-  const pills = [];
+  const avImg = el("avImg");
+  const avPh = el("avPh");
 
-  const unit = text(d["單位"]);
-  if(unit) pills.push(`單位：${unit}`);
+  const hint = el("hint");
 
-  const wechat = text(d["微信ID"]) || text(d["微信"]);
-  if(wechat) pills.push(`微信ID：${wechat}`);
+  // Debug
+  const dbg = el("dbg");
+  const dbgMask = el("dbgMask");
+  const dbgPre = el("dbgPre");
+  const dbgClose = el("dbgClose");
 
-  // 顯示方案（讓長圖更「被選擇」）
-  if(plan === "2") pills.push(`精品：${p || "-"}`);
-  else pills.push(`自由：${c || "-"}`);
+  const state = {
+    id: "",
+    plan: "free",
+    pcsf: { p: "", c: "", s: "", f: "" },
+    gasUrl: "",
+    fetchStatus: "loading",
+    payloadMini: null,
+    zoomed: false
+  };
 
-  pills.slice(0, 4).forEach(t=>{
-    const el = document.createElement("div");
-    el.className = "pill";
-    el.textContent = t;
-    meta.appendChild(el);
-  });
-}
-
-function renderContact_(d){
-  const parts = [];
-
-  const wechat = text(d["微信ID"]) || text(d["微信"]);
-  const lineLink = text(d["LINE連結"]) || text(d["LINE官方帳號"]);
-  const email = text(d["Email"]);
-  const phone = text(d["電話"]);
-
-  if(wechat) parts.push(`微信ID：${wechat}`);
-  if(lineLink) parts.push(`LINE：${lineLink}`);
-  if(email) parts.push(`Email：${email}`);
-  if(phone) parts.push(`電話：${phone}`);
-
-  if(parts.length){
-    qs("contactSection").style.display = "";
-    qs("contactContent").innerHTML = parts.map(x=>`<div>${escapeHtml_(x)}</div>`).join("");
-  }else{
-    qs("contactSection").style.display = "none";
+  function qs(key) {
+    const v = new URLSearchParams(location.search).get(key);
+    return v ? String(v).trim() : "";
   }
-}
+  function normalizeId(s) {
+    if (!s) return "";
+    return String(s).trim().toUpperCase();
+  }
+  function safeText(x) {
+    if (x === null || x === undefined) return "";
+    return String(x).trim();
+  }
+  function normalizeKey(k) {
+    return String(k || "")
+      .trim()
+      .replace(/^"+|"+$/g, "")
+      .replace(/\s+/g, "_")
+      .replace(/[^\w\u4e00-\u9fff]+/g, "_")
+      .toLowerCase();
+  }
+  function normalizeObjKeys(obj) {
+    const out = {};
+    if (!obj || typeof obj !== "object") return out;
+    for (const [k, v] of Object.entries(obj)) out[normalizeKey(k)] = v;
+    return out;
+  }
+  function pick(obj, keys, fallback = "") {
+    for (const k of keys) {
+      if (k in obj && safeText(obj[k])) return safeText(obj[k]);
+    }
+    return fallback;
+  }
+  function parsePlan(obj) {
+    const raw = pick(obj, ["plan", "plan_type", "package", "mode"], "free").toLowerCase();
+    if (raw.includes("premium") || raw.includes("pro") || raw.includes("精品")) return "premium";
+    return "free";
+  }
+  function parsePCSf(obj) {
+    return {
+      p: pick(obj, ["p", "p_code", "premium_bg", "bg_p"], ""),
+      c: pick(obj, ["c", "c_code", "color_c"], ""),
+      s: pick(obj, ["s", "s_code", "style_s"], ""),
+      f: pick(obj, ["f", "f_code", "fiber_f"], "")
+    };
+  }
+  function toBullets(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val.map(safeText).filter(Boolean);
+    const s = safeText(val);
+    if (!s) return [];
+    return s
+      .split(/\r?\n|,|;|、|•|\u2022/g)
+      .map((x) => safeText(x))
+      .filter(Boolean);
+  }
+  function normalizeParagraph(val) {
+    const s = safeText(val);
+    if (!s) return "";
+    return s.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  }
+  async function fetchJson(url) {
+    const res = await fetch(url, { cache: "no-store" });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      const m = text.match(/\{[\s\S]*\}$/);
+      if (m) return JSON.parse(m[0]);
+      throw new Error("Invalid JSON");
+    }
+  }
+  async function fetchCard(id) {
+    const cid = normalizeId(id) || CONFIG.DEFAULT_ID;
+    const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&v=${VERSION}&ts=${Date.now()}`;
+    state.gasUrl = url;
+    const data = await fetchJson(url);
+    return data;
+  }
 
-function escapeHtml_(s){
-  return String(s||"")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
+  function setAvatar(url, name) {
+    const u = safeText(url);
+    avPh.textContent = (safeText(name) || "🙂").slice(0, 1);
+    if (!u) {
+      avImg.style.display = "none";
+      return;
+    }
+    avImg.onload = () => (avImg.style.display = "block");
+    avImg.onerror = () => (avImg.style.display = "none");
+    avImg.src = u;
+  }
 
-function setButtons_(id){
-  const openUrl = `${BASE}open.html?id=${encodeURIComponent(id)}`;
-  const cardUrl = `${BASE}?id=${encodeURIComponent(id)}`;
+  function applyBackground(pCode) {
+    const p = (pCode || "").toLowerCase();
+    const bg = P_BG[p] || "radial-gradient(900px 700px at 15% 10%, rgba(96,165,250,.18), transparent 55%), #0b1220";
+    document.body.style.background = bg;
+  }
 
-  const btnOpen = qs("btnOpen");
-  if(btnOpen) btnOpen.href = openUrl;
+  function showInactive() {
+    loading.style.display = "block";
+    card.style.display = "none";
+    loading.querySelector(".big").textContent = "此名片尚未啟用";
+    loading.querySelector(".small").textContent = "請聯繫客服開通";
+  }
 
-  const btnCopy = qs("btnCopy");
-  if(btnCopy){
-    btnCopy.addEventListener("click", async ()=>{
-      try{
-        await navigator.clipboard.writeText(cardUrl);
-        toast("✅ 已複製名片網址");
-      }catch{
-        toast("⚠️ 無法自動複製，請手動複製網址");
+  function showCard() {
+    loading.style.display = "none";
+    card.style.display = "block";
+  }
+
+  // Debug
+  function openDebug() {
+    const info = {
+      id: state.id,
+      plan: state.plan,
+      p: state.pcsf.p,
+      c: state.pcsf.c,
+      s: state.pcsf.s,
+      f: state.pcsf.f,
+      fetch: state.fetchStatus,
+      gas_url: state.gasUrl,
+      json: state.payloadMini
+    };
+    dbgPre.textContent = JSON.stringify(info, null, 2);
+    dbgMask.style.display = "block";
+    dbg.style.display = "block";
+  }
+  function closeDebug() {
+    dbg.style.display = "none";
+    dbgMask.style.display = "none";
+  }
+  function bindLongPress(node, ms, fn) {
+    let t = null;
+    const start = () => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(), ms);
+    };
+    const end = () => clearTimeout(t);
+
+    node.addEventListener("touchstart", start, { passive: true });
+    node.addEventListener("touchend", end);
+    node.addEventListener("touchcancel", end);
+    node.addEventListener("mousedown", start);
+    node.addEventListener("mouseup", end);
+    node.addEventListener("mouseleave", end);
+  }
+
+  function miniPayloadForDebug(raw) {
+    const obj = normalizeObjKeys(raw || {});
+    return {
+      ok: raw && raw.ok,
+      id: pick(obj, ["id", "card_id"], ""),
+      name: pick(obj, ["name", "u_name", "fullname"], ""),
+      plan: parsePlan(obj),
+      p: pick(obj, ["p", "p_code"], ""),
+      avatar: pick(obj, ["avatar_img", "avatar", "photo", "profile_img"], ""),
+      service: pick(obj, ["service", "services"], ""),
+      exp: pick(obj, ["experience", "exp"], "")
+    };
+  }
+
+  function setZoom(on) {
+    state.zoomed = on;
+    panel.style.transformOrigin = "top center";
+    panel.style.transform = on ? "scale(1.15)" : "scale(1)";
+    panel.style.transition = "transform .18s ease-out";
+    btnZoom.textContent = on ? "縮小" : "放大";
+  }
+
+  async function boot() {
+    state.id = normalizeId(qs("id")) || CONFIG.DEFAULT_ID;
+
+    bindLongPress(brand, CONFIG.LONGPRESS_MS, openDebug);
+    dbgClose.addEventListener("click", closeDebug);
+    dbgMask.addEventListener("click", closeDebug);
+
+    btnZoom.addEventListener("click", () => setZoom(!state.zoomed));
+    setZoom(false);
+
+    // WeChat hint
+    const isWx = navigator.userAgent.includes("MicroMessenger");
+    hint.textContent = isWx
+      ? "微信長圖模式：可直接截圖分享（如需更穩定，建議用 open.html 開啟）"
+      : "非微信環境：此頁仍可用（長圖展示版）";
+
+    try {
+      state.fetchStatus = "loading";
+      const data = await fetchCard(state.id);
+      if (!data || data.ok === false) {
+        state.fetchStatus = "inactive";
+        state.payloadMini = miniPayloadForDebug(data);
+        showInactive();
+        return;
       }
-    });
-  }
 
-  const btnContact = qs("btnContact");
-  if(btnContact) btnContact.href = LINE_OA;
-}
+      const obj = normalizeObjKeys(data);
+      state.plan = parsePlan(obj);
+      state.pcsf = parsePCSf(obj);
+      state.payloadMini = miniPayloadForDebug(data);
 
-function applyThemeFromParams_(){
-  const plan = getParam("plan"); // "1" or "2"
-  const p = getParam("p");
-  const c = getParam("c");
+      applyBackground(state.pcsf.p);
 
-  if(plan === "2" && p) setPremiumColor(p);
-  else if(plan === "1" && c) setFreeColor(c);
+      const nm = pick(obj, ["name", "fullname", "u_name"], "—");
+      const unit = pick(obj, ["unit", "company", "org", "u_unit"], "");
+      const title = pick(obj, ["title", "job_title", "position", "u_title"], "");
+      const av = pick(obj, ["avatar_img", "avatar", "photo", "profile_img"], "");
 
-  return { plan, p, c };
-}
+      nameEl.textContent = nm;
+      metaEl.textContent = [unit, title].filter(Boolean).join("\n");
 
-(async function boot(){
-  const id = getParam("id");
-  const { plan, p, c } = applyThemeFromParams_();
+      setAvatar(av, nm);
 
-  // badge
-  const badge = qs("badge");
-  if(badge){
-    badge.textContent = (plan === "2")
-      ? `Premium WeChat Card · ${p || ""}`.trim()
-      : `Free WeChat Card · ${c || ""}`.trim();
-  }
+      const bullets = toBullets(pick(obj, ["service", "services", "u_service"], ""));
+      if (bullets.length) {
+        secService.style.display = "block";
+        serviceEl.innerHTML = bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("");
+      } else {
+        secService.style.display = "none";
+      }
 
-  setButtons_(id || "");
+      const exp = normalizeParagraph(pick(obj, ["experience", "exp", "u_exp"], ""));
+      if (exp) {
+        secExp.style.display = "block";
+        expEl.textContent = exp;
+      } else {
+        secExp.style.display = "none";
+      }
 
-  if(!id){
-    qs("name").textContent = "缺少名片代碼";
-    qs("title").textContent = "請從分享連結重新開啟（需要帶 ?id=TW0001）";
-    qs("btnOpen").setAttribute("aria-disabled","true");
-    qs("btnOpen").href = "#";
-    qs("btnContact").style.display = "";
-    toast("網址缺少 id");
-    return;
-  }
-
-  // 拉資料
-  const url = `${GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
-  const data = await fetchJson(url);
-
-  if(!data || data.ok === false){
-    qs("name").textContent = "資料尚未可用";
-    qs("title").textContent = "請稍後再試，或聯繫客服協助。";
-    qs("btnContact").style.display = "";
-    return;
-  }
-
-  // 渲染
-  const d = data;
-
-  if(text(d["姓名"])) qs("name").textContent = text(d["姓名"]);
-  if(text(d["頭銜"])) qs("title").textContent = text(d["頭銜"]);
-
-  // avatar
-  const av = pickAvatarUrl_(d);
-  const box = qs("avatarBox");
-  if(box){
-    box.innerHTML = "";
-    if(av){
-      const img = document.createElement("img");
-      img.src = av;
-      img.alt = "avatar";
-      img.loading = "lazy";
-      box.appendChild(img);
+      state.fetchStatus = "ok";
+      showCard();
+    } catch (err) {
+      state.fetchStatus = "error";
+      state.payloadMini = { error: String(err && err.message ? err.message : err) };
+      showInactive();
     }
   }
 
-  // service
-  const svc = text(d["服務項目"]);
-  if(svc){
-    qs("serviceSection").style.display = "";
-    setList_("serviceContent", splitLines_(svc));
-  }else{
-    qs("serviceSection").style.display = "none";
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
-  // exp
-  const exp = text(d["經歷"]);
-  if(exp){
-    qs("expSection").style.display = "";
-    setList_("expContent", splitLines_(exp));
-  }else{
-    qs("expSection").style.display = "none";
-  }
-
-  // meta + contact
-  renderMeta_(d, plan, p, c);
-  renderContact_(d);
-
-  // 鎖定判斷：若 status 非可開啟 → 顯示「聯繫開通」
-  const status = text(d.status).toLowerCase();
-  const okOpen = ALLOW_STATUSES.has(status);
-
-  const btnOpen = qs("btnOpen");
-  const btnContact = qs("btnContact");
-
-  if(!okOpen){
-    if(btnOpen){
-      btnOpen.textContent = "尚未開通";
-      btnOpen.setAttribute("aria-disabled","true");
-      btnOpen.href = "#";
-    }
-    if(btnContact) btnContact.style.display = "";
-  }else{
-    if(btnOpen){
-      btnOpen.textContent = "開啟名片";
-      btnOpen.removeAttribute("aria-disabled");
-      btnOpen.href = `${BASE}open.html?id=${encodeURIComponent(id)}`;
-    }
-    if(btnContact) btnContact.style.display = "none";
-  }
-
-})().catch(()=>{
-  // 靜默失敗：保持頁面可用（聯繫開通）
-  const btnContact = qs("btnContact");
-  if(btnContact) btnContact.style.display = "";
-});
+  boot();
+})();
