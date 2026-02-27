@@ -1,18 +1,22 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v407 (COMPLETE OVERWRITE) 1/3
- * - Align with index.html v401.1 API:
- *   window.setPlan / setTheme / setStyle / setPaper / goLineIntro / goFillForm
- * - Robust fetch + payload normalize
- * - Image normalize + fallback (Drive/Dropbox/http->https)
- * - FIX v407: LINE robust pick + @ID => URL + scan fallback
+ * app.js v408 (COMPLETE OVERWRITE)
+ * - Base: v407.7 (keep ALL existing functions/UX)
+ * - FIX v408: Render Media + Social links from payload (robust key mapping)
+ *   ✅ 不改外觀/不改配色/不改區塊結構
+ *   ✅ 只修資料解析 / key 對應 / 生成按鈕邏輯（JS）
+ * - Console hooks:
+ *   [MEDIA] key -> finalUrl
+ *   [SOCIAL] key -> finalUrl
+ *   [MEDIA] found but not mounted
+ *   [SOCIAL] found but not mounted
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v407",
+  VERSION: "v408",
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2
 };
@@ -135,6 +139,7 @@ async function fetchJsonRobust_(url){
 /* ---------- URL / Images ---------- */
 function isUrl_(s){ return /^https?:\/\//i.test(String(s||"").trim()); }
 
+/** v407 normalizeUrl_ (kept) */
 function normalizeUrl_(s){
   let v = String(s||"").trim();
   if(!v) return "";
@@ -142,6 +147,35 @@ function normalizeUrl_(s){
   if(isUrl_(v)) return v;
   if(/^www\./i.test(v)) return "https://" + v;
   return v;
+}
+
+/** v408: stricter link normalize for social/media (auto add https:// for domains) */
+function normalizeLink_(s){
+  let v = String(s||"").trim();
+  if(!v) return "";
+
+  // drop surrounding quotes
+  v = v.replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "").trim();
+  if(!v) return "";
+
+  // handle protocol-relative
+  if(v.startsWith("//")) v = "https:" + v;
+
+  // already URL
+  if(v.startsWith("http://")) v = "https://" + v.slice(7);
+  if(/^https?:\/\//i.test(v)) return v;
+
+  // www.*
+  if(/^www\./i.test(v)) return "https://" + v;
+
+  // looks like a domain/path (has dot, no spaces)
+  const noSpace = !/\s/.test(v);
+  const hasDot = /\./.test(v);
+  if(noSpace && hasDot){
+    return "https://" + v;
+  }
+
+  return v; // maybe handle (@user etc.) by platform resolver later
 }
 
 function driveIdFromUrl_(u){
@@ -335,10 +369,10 @@ function setPaper(paper, el){
 function goFillForm(){
   window.open(CONFIG.FORM, "_blank");
 }
+
 /* ================================
- * app.js v407 (2/3)
  * Render Card + Docks + Blocks + Logo/Avatar
- * - LINE robust: key variants + @ID => URL + scan fallback
+ * - v408: Social/Media robust render
  * ================================ */
 
 function safeSetText_(id, val){
@@ -357,7 +391,7 @@ function escapeHtml_(s){
 }
 
 function openUrl_(url){
-  const u = normalizeUrl_(url);
+  const u = normalizeLink_(url);
   if(!u) return;
   window.open(u, "_blank");
 }
@@ -379,7 +413,7 @@ function classifyDockClass_(url){
   return "dock-web";
 }
 
-/* ---------- LINE helpers (v407) ---------- */
+/* ---------- LINE helpers (kept v407) ---------- */
 function looksLikeLineUrl_(v){
   const s = String(v||"").toLowerCase();
   return s.includes("lin.ee") || s.includes("line.me") || s.startsWith("line://");
@@ -390,7 +424,7 @@ function normalizeLineUrl_(raw){
   if(!v) return "";
 
   // already a URL
-  if(looksLikeLineUrl_(v)) return normalizeUrl_(v);
+  if(looksLikeLineUrl_(v)) return normalizeLink_(v);
 
   // handle LINE ID formats: @xxxx / xxxx
   let id = v;
@@ -399,7 +433,7 @@ function normalizeLineUrl_(raw){
   id = id.replace(/\s+/g,"").replace(/^line[:：]*/i,"");
 
   // if they pasted "https://", still normalize
-  if(isUrl_(id) || /^www\./i.test(id)) return normalizeUrl_(id);
+  if(isUrl_(id) || /^www\./i.test(id)) return normalizeLink_(id);
 
   // keep @
   if(id.startsWith("@")){
@@ -413,7 +447,7 @@ function normalizeLineUrl_(raw){
   }
 
   // last resort: if it's weird, just return as url-normalized (may still fail)
-  return normalizeUrl_(v);
+  return normalizeLink_(v);
 }
 
 function scanAnyLineFromPayload_(p){
@@ -425,7 +459,7 @@ function scanAnyLineFromPayload_(p){
     const v = raw[k];
     if(v==null) continue;
     const s = String(v);
-    if(looksLikeLineUrl_(s)) return normalizeUrl_(s);
+    if(looksLikeLineUrl_(s)) return normalizeLink_(s);
   }
 
   // scan keys containing 'line' and take any non-empty
@@ -533,6 +567,295 @@ function applyWideRule_(container){
   }
 }
 
+/* ================================
+ * v408: Social/Media key mapping + resolver
+ * ================================ */
+
+/** Gather all non-empty values by keys, return array with debug hits */
+function gatherByKeys_(p, keys){
+  const hits = [];
+  for(const k of keys){
+    const v = pick(p, [k]);
+    if(text(v)) hits.push({ key: cleanKey_(k), value: v });
+  }
+  return hits;
+}
+
+/** Platform resolvers */
+function resolveHandleUrl_(platform, raw){
+  const v0 = text(raw);
+  if(!v0) return "";
+
+  // if already URL / domain-ish
+  const asLink = normalizeLink_(v0);
+  if(/^https?:\/\//i.test(asLink)) return asLink;
+
+  // strip common prefixes
+  let v = v0.replace(/^[@\s]+/g, "@").trim();
+
+  // Sometimes users paste "IG: xxx" / "threads: @xxx" etc.
+  v = v.replace(/^(ig|instagram|threads|x|twitter|yt|youtube|tiktok|douyin|bili|bilibili)[:：\s]+/i, "").trim();
+  if(!v) return "";
+
+  // Normalize "@user" or "user"
+  const isAt = v.startsWith("@");
+  const handle = (isAt ? v.slice(1) : v).trim();
+  const safe = encodeURIComponent(handle);
+
+  if(platform === "instagram"){
+    return `https://instagram.com/${safe}`;
+  }
+  if(platform === "facebook"){
+    // FB can be page name; fallback
+    return `https://facebook.com/${safe}`;
+  }
+  if(platform === "threads"){
+    return `https://www.threads.net/@${safe}`;
+  }
+  if(platform === "x"){
+    return `https://x.com/${safe}`;
+  }
+  if(platform === "youtube"){
+    // @handle preferred; if they gave UC... treat as channel id
+    if(/^UC[A-Za-z0-9_-]{10,}$/.test(handle)) return `https://www.youtube.com/channel/${safe}`;
+    return `https://www.youtube.com/@${safe}`;
+  }
+  if(platform === "bilibili"){
+    // numeric uid -> space.bilibili.com
+    if(/^\d{3,}$/.test(handle)) return `https://space.bilibili.com/${safe}`;
+    return `https://www.bilibili.com/search?keyword=${safe}`;
+  }
+  if(platform === "tiktok"){
+    // prefer @user
+    if(isAt) return `https://www.tiktok.com/@${safe}`;
+    return `https://www.tiktok.com/@${safe}`;
+  }
+  if(platform === "douyin"){
+    // Douyin id formats vary; best effort
+    // If looks like share code / short string, still search
+    return `https://www.douyin.com/search/${safe}`;
+  }
+  if(platform === "xiaohongshu"){
+    // Rednote / 小紅書 best effort
+    return `https://www.xiaohongshu.com/search_result?keyword=${safe}`;
+  }
+
+  // website / generic
+  return normalizeLink_(v0);
+}
+
+/** For “website” field that is not URL but looks like domain */
+function resolveWebsite_(raw){
+  const v = text(raw);
+  if(!v) return "";
+  return normalizeLink_(v);
+}
+
+/** For podcasts: spotify/apple/soundon—if not url, keep as search keyword on google */
+function resolvePodcast_(raw){
+  const v = text(raw);
+  if(!v) return "";
+  const u = normalizeLink_(v);
+  if(/^https?:\/\//i.test(u)) return u;
+  return `https://www.google.com/search?q=${encodeURIComponent(v + " podcast")}`;
+}
+
+/** Media/Social mapping (容錯 key 對照表) */
+const MEDIA_SPECS = [
+  {
+    id: "youtube",
+    label: "YouTube",
+    icon: "fa-brands fa-youtube",
+    keys: ["youtube","yt","youtube_url","youtube_link"],
+    resolver: (v)=> resolveHandleUrl_("youtube", v)
+  },
+  {
+    id: "bilibili",
+    label: "B站",
+    icon: "fa-solid fa-play",
+    keys: ["bilibili","b站","bili","bilibili_url"],
+    resolver: (v)=> resolveHandleUrl_("bilibili", v)
+  },
+  {
+    id: "tiktok",
+    label: "TikTok",
+    icon: "fa-brands fa-tiktok",
+    keys: ["tiktok_video","tiktok"],
+    resolver: (v)=> resolveHandleUrl_("tiktok", v)
+  },
+  {
+    id: "douyin",
+    label: "抖音",
+    icon: "fa-solid fa-circle-play",
+    keys: ["douyin","抖音"],
+    resolver: (v)=> resolveHandleUrl_("douyin", v)
+  },
+  {
+    id: "podcast",
+    label: "Podcast",
+    icon: "fa-solid fa-podcast",
+    keys: ["podcast","soundon","spotify_podcast","apple_podcast"],
+    resolver: (v)=> resolvePodcast_(v)
+  },
+  {
+    id: "video",
+    label: "Video",
+    icon: "fa-solid fa-play",
+    keys: ["video","video_url","media_url"],
+    resolver: (v)=> normalizeLink_(v)
+  }
+];
+
+const SOCIAL_SPECS = [
+  {
+    id: "instagram",
+    label: "IG",
+    icon: "fa-brands fa-instagram",
+    keys: ["instagram","ig","ig_url"],
+    resolver: (v)=> resolveHandleUrl_("instagram", v)
+  },
+  {
+    id: "facebook",
+    label: "FB",
+    icon: "fa-brands fa-facebook",
+    keys: ["facebook","fb","fb_url"],
+    resolver: (v)=> resolveHandleUrl_("facebook", v)
+  },
+  {
+    id: "threads",
+    label: "Threads",
+    icon: "fa-solid fa-at",
+    keys: ["threads","threads_url"],
+    resolver: (v)=> resolveHandleUrl_("threads", v)
+  },
+  {
+    id: "x",
+    label: "X",
+    icon: "fa-brands fa-x-twitter",
+    keys: ["x","twitter","x_url","twitter_url"],
+    resolver: (v)=> resolveHandleUrl_("x", v)
+  },
+  {
+    id: "wechat",
+    label: "WeChat",
+    icon: "fa-brands fa-weixin",
+    keys: ["wechat","微信","wechat_id","wechat_url"],
+    // NOTE: WeChat ID already shown in Contact dock (copy). Here only show if it's URL.
+    resolver: (v)=>{
+      const u = normalizeLink_(v);
+      if(/^https?:\/\//i.test(u)) return u;
+      return ""; // avoid duplicate “微信ID” in social
+    }
+  },
+  {
+    id: "line",
+    label: "LINE",
+    icon: "fa-brands fa-line",
+    keys: ["line","line_oa","line_id","line_url"],
+    // NOTE: LINE already shown in Contact dock. Here always skip to avoid duplicates.
+    resolver: (_v)=> ""
+  },
+  {
+    id: "xiaohongshu",
+    label: "小紅書",
+    icon: "fa-solid fa-book",
+    keys: ["xiaohongshu","小紅書","rednote"],
+    resolver: (v)=> resolveHandleUrl_("xiaohongshu", v)
+  },
+  {
+    id: "website",
+    label: "官網",
+    icon: "fa-solid fa-globe",
+    keys: ["website","web","homepage","url"],
+    resolver: (v)=> resolveWebsite_(v)
+  }
+];
+
+/** Ensure mount points exist without changing UI unless missing */
+function ensureMediaDockMount_(){
+  // Prefer existing (v407):
+  let dock = qs("mediaDock");
+  let btns = qs("mediaButtons");
+
+  if(dock && btns) return { dock, btns, created:false };
+
+  // If v407.7 somehow missing, create minimal (allowed)
+  const ref = qs("contactDock") || qs("photoWall") || document.body;
+
+  dock = document.createElement("div");
+  dock.id = "mediaDock";
+  dock.className = "info-block"; // reuse existing style class (no new UI)
+  dock.style.display = "none";
+
+  btns = document.createElement("div");
+  btns.id = "mediaButtons";
+  dock.appendChild(btns);
+
+  // Insert: 聯繫區下方、照片牆上方（若可能）
+  if(qs("photoWall") && qs("photoWall").parentNode){
+    const ph = qs("photoWall");
+    ph.parentNode.insertBefore(dock, ph); // above photoWall
+  }else if(ref && ref.parentNode){
+    ref.parentNode.insertBefore(dock, ref.nextSibling); // below contactDock or ref
+  }else{
+    document.body.appendChild(dock);
+  }
+
+  return { dock, btns, created:true };
+}
+
+/** Collect + render from specs into a dock button container */
+function renderSpecsToDock_(p, specs, tag){
+  const mount = ensureMediaDockMount_();
+  const btns = mount.btns;
+  const dock = mount.dock;
+
+  if(!btns || !dock){
+    // If found but no mount -> warn
+    // (But this should never happen)
+    console.warn(`[${tag}] found but not mounted`);
+    return false;
+  }
+
+  // Append into existing mediaButtons without changing layout (same dock)
+  let hasAny = false;
+
+  for(const spec of specs){
+    // Scan all synonyms
+    const hits = gatherByKeys_(p, spec.keys);
+    if(!hits.length) continue;
+
+    // For one platform: use first non-empty, but still debug log exact hit key
+    for(const h of hits){
+      const rawVal = h.value;
+      const finalUrl = spec.resolver(rawVal);
+
+      // resolver may intentionally skip (e.g., LINE / wechat_id)
+      if(!text(finalUrl)) continue;
+
+      hasAny = true;
+
+      // console hook
+      console.log(`[${tag}] ${h.key} -> ${finalUrl}`);
+
+      // Build button
+      const cls = classifyDockClass_(finalUrl);
+      btns.appendChild(buildDockBtn_({
+        label: spec.label,
+        icon: spec.icon,
+        extraClass: cls,
+        onClick: ()=> openUrl_(finalUrl)
+      }));
+
+      // Only render once per platform (avoid duplicates across multiple keys)
+      break;
+    }
+  }
+
+  return hasAny;
+}
+
+/* ---------- Dock buttons (v408: keep Contact dock, enhance Media/Social dock) ---------- */
 function renderDocks_(p){
   const mediaDock = qs("mediaDock");
   const mediaBtns = qs("mediaButtons");
@@ -542,34 +865,14 @@ function renderDocks_(p){
   if(mediaBtns) mediaBtns.innerHTML = "";
   if(cBtns) cBtns.innerHTML = "";
 
-  /* ---- Media: 影音/平台 ---- */
-  const mediaItems = [
-    { k:["影音平台1","影音1"], label:"影音", icon:"fa-solid fa-play" },
-    { k:["影音平台2","影音2"], label:"官網/平台", icon:"fa-solid fa-globe" },
-    { k:["影音平台3","影音3"], label:"影音3", icon:"fa-solid fa-circle-play" },
-    { k:["社群平台1","社群1"], label:"社群", icon:"fa-solid fa-users" },
-    { k:["社群平台2","社群2"], label:"社群2", icon:"fa-solid fa-users" },
-    { k:["社群平台3","社群3"], label:"社群3", icon:"fa-solid fa-users" }
-  ];
+  /* ---- v408: Media + Social -> render into existing mediaDock (no UI change) ---- */
+  const hasMedia = renderSpecsToDock_(p, MEDIA_SPECS, "MEDIA");
+  const hasSocial = renderSpecsToDock_(p, SOCIAL_SPECS, "SOCIAL");
 
-  let hasMedia = false;
-  mediaItems.forEach(it=>{
-    const v = pick(p, it.k);
-    if(!text(v)) return;
-    hasMedia = true;
+  // If payload had values but mount missing: warn (covered in ensure function)
+  if(mediaDock) mediaDock.style.display = (hasMedia || hasSocial) ? "" : "none";
 
-    const cls = classifyDockClass_(v);
-    if(mediaBtns){
-      mediaBtns.appendChild(buildDockBtn_({
-        label: it.label,
-        icon: it.icon,
-        extraClass: cls,
-        onClick: ()=> openUrl_(v)
-      }));
-    }
-  });
-
-  if(mediaDock) mediaDock.style.display = hasMedia ? "" : "none";
+  // Apply wide rule (same as before)
   applyWideRule_(mediaBtns);
 
   /* ---- Contact: LINE/微信/電話/Email/地址 ---- */
@@ -705,8 +1008,8 @@ window.setStyle = setStyle;
 window.setPaper = setPaper;
 window.goLineIntro = goLineIntro;
 window.goFillForm = goFillForm;
+
 /* ================================
- * app.js v407 (3/3)
  * Photo Wall + Lightbox + Admin hotspot BR + Robust Load/Boot
  * ================================ */
 
@@ -873,7 +1176,7 @@ function setupAdminHotspotBR_(){
 
     if(taps >= 3){
       taps = 0;
-      alert("✅ 進入隱形後臺（v407 預留入口）");
+      alert("✅ 進入隱形後臺（v408 預留入口）");
       // TODO later:
       // location.href = "admin.html?id=" + encodeURIComponent(getIdFromUrl_() || CONFIG.DEFAULT_ID);
     }
