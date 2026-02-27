@@ -1,15 +1,12 @@
 /* ================================
- * style.css v407.4 (COMPLETE OVERWRITE) 1/2
- * BASE: your v407
- *
- * FIX:
- * - 主色跑掉：因為 .p1/.p2... 被用在 body class，background 直接套到 body
- *   => 移除「.p1{background...}」這類全域背景，改成「.p-dot.p1{...}」只影響色球
- *
- * ADD:
- * - Premium card 透明玻璃罩（不吃掉主色）
- * - 色球統一立體球 + 放大
- * - 方案鈕更立體（Free/Premium都更像3D）
+ * style.css v407.5 (COMPLETE OVERWRITE) 1/2
+ * BASE: v407.4
+ * UPDATE:
+ * 1) all selectors more 3D
+ * 2) CTA text center (reserve/fill/share)
+ * 3) Free info blocks: stronger decorative frame
+ * 4) Contact buttons: capsule + 3D
+ * 5) Premium sparkle: more natural / softer
  * ================================ */
 
 :root{
@@ -42,16 +39,10 @@
 
   /* accent for linkage (buttons/text) */
   --accentText: rgba(31,36,48,0.92);
-  --accentStroke: rgba(0,0,0,0.12);
-  --accentGlow: rgba(0,0,0,0.10);
 
-  /* free deco */
-  --freeFrame: rgba(0,0,0,0.06);
-  --freeFrameGlow: rgba(255,255,255,0.65);
-
-  /* NEW: dot sizes */
-  --dotFree: 34px;
-  --dotPrem: 30px;
+  /* dot sizes */
+  --dotFree: 36px; /* v407.5: bigger */
+  --dotPrem: 32px;
 }
 
 *{ box-sizing:border-box; }
@@ -82,20 +73,12 @@ body.color-3{ --p:#ff9f1a; --s:#ff6f00; --bgTint: rgba(255,159,26,0.14); --accen
 body.color-4{ --p:#7a57ff; --s:#4f22d8; --bgTint: rgba(122,87,255,0.14); --accentText: rgba(50,24,128,0.92); }
 body.color-5{ --p:#2bd46f; --s:#0ea97b; --bgTint: rgba(43,212,111,0.14); --accentText: rgba(0,92,64,0.92); }
 
-/* ---------- Premium tones (p1~p7) (只定義變數，不要寫 background!!) ---------- */
+/* ---------- Premium tones (p1~p7) (only vars) ---------- */
 body.p1{ --p:#d96c6c; --s:#b23b3b; }
 body.p2{ --p:#722f37; --s:#4e1f25; }
 body.p3{ --p:#1c2e42; --s:#101d2b; }
 body.p4{ --p:#5e548e; --s:#40376b; }
-
-/* v407: p5 => blue-gray base + gold sheen (保持你的設定) */
-body.p5{
-  --p:#a9b7c7;
-  --s:#5f7489;
-  --prem-soft: rgba(255,255,255,0.16);
-}
-
-/* gold */
+body.p5{ --p:#a9b7c7; --s:#5f7489; --prem-soft: rgba(255,255,255,0.16); }
 body.p6{ --p:#bf953f; --s:#8f6b1c; }
 body.p7{ --p:#5a4a3f; --s:#2f2926; }
 
@@ -111,7 +94,6 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
-/* Premium page */
 body.mode-premium{
   background:
     radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.12), transparent 56%),
@@ -139,7 +121,7 @@ body.mode-premium #admin-panel{
   padding: 14px 12px 70px;
 }
 
-/* ---------- Card (base) ---------- */
+/* ---------- Card ---------- */
 .card{
   position:relative;
   border-radius: var(--radius);
@@ -154,7 +136,7 @@ body.mode-free .card{
   filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
 }
 
-/* ✅ Premium: 玻璃底 + 主色只「輕染」(不吃掉主色、不整片變色) */
+/* Premium glass base (keep main color through FX layer) */
 body.mode-premium .card{
   border: 1px solid rgba(255,255,255,0.14);
   box-shadow: 0 28px 86px rgba(0,0,0,0.58);
@@ -166,7 +148,7 @@ body.mode-premium .card{
   -webkit-backdrop-filter: blur(14px);
 }
 
-/* Premium FX layer (你的結構保留，改成：主色柔光覆蓋 + 高光) */
+/* Premium color FX + sparkle (v407.5: more natural, less "dotty") */
 .premium-fx-layer{
   position:absolute;
   inset:0;
@@ -178,36 +160,41 @@ body.mode-premium .card{
 body.mode-premium .premium-fx-layer{
   opacity:1;
   background:
-    radial-gradient(900px 520px at 18% 8%, rgba(255,255,255,0.18), transparent 60%),
-    radial-gradient(700px 520px at 92% 0%, rgba(255,255,255,0.14), transparent 58%),
-    /* 主色「輕染」 */
-    radial-gradient(1200px 760px at 30% 20%, var(--p), transparent 66%),
-    radial-gradient(1200px 760px at 86% 10%, var(--s), transparent 70%);
+    /* big soft highlights */
+    radial-gradient(980px 560px at 16% 6%, rgba(255,255,255,0.14), transparent 62%),
+    radial-gradient(820px 560px at 94% 2%, rgba(255,255,255,0.10), transparent 64%),
+    /* main tone wash (soft) */
+    radial-gradient(1300px 820px at 28% 18%, var(--p), transparent 70%),
+    radial-gradient(1300px 820px at 86% 10%, var(--s), transparent 74%),
+    /* tiny sparkle now spread + softer */
+    radial-gradient(140px 140px at 74% 18%, rgba(255,255,255,0.18), transparent 70%),
+    radial-gradient(220px 220px at 62% 26%, rgba(255,233,168,0.10), transparent 72%);
   mix-blend-mode: screen;
-  opacity: .26;
-  filter: blur(14px) saturate(1.06);
+  opacity: .18;
+  filter: blur(22px) saturate(1.05);
 }
 
-/* p5 金箔：保留你的金箔斜光，但不覆蓋整體底色 */
+/* p5 gold foil: keep a gentle diagonal sheen */
 body.mode-premium.p5 .premium-fx-layer{
   background:
-    radial-gradient(900px 520px at 18% 8%, rgba(255,255,255,0.18), transparent 60%),
-    radial-gradient(700px 520px at 92% 0%, rgba(255,255,255,0.14), transparent 58%),
-    radial-gradient(1200px 760px at 30% 20%, var(--p), transparent 66%),
-    radial-gradient(1200px 760px at 86% 10%, var(--s), transparent 70%),
+    radial-gradient(980px 560px at 16% 6%, rgba(255,255,255,0.14), transparent 62%),
+    radial-gradient(820px 560px at 94% 2%, rgba(255,255,255,0.10), transparent 64%),
+    radial-gradient(1300px 820px at 28% 18%, var(--p), transparent 70%),
+    radial-gradient(1300px 820px at 86% 10%, var(--s), transparent 74%),
     linear-gradient(115deg,
       rgba(255,233,168,0.00) 0%,
-      rgba(255,233,168,0.18) 22%,
-      rgba(191,149,63,0.14) 38%,
-      rgba(255,255,255,0.06) 52%,
-      rgba(191,149,63,0.10) 66%,
+      rgba(255,233,168,0.14) 24%,
+      rgba(191,149,63,0.10) 40%,
+      rgba(255,255,255,0.05) 54%,
+      rgba(191,149,63,0.08) 68%,
       rgba(255,233,168,0.00) 100%
     );
   mix-blend-mode: screen;
-  opacity: .34;
+  opacity: .16;
+  filter: blur(20px) saturate(1.02);
 }
 
-/* ✅ Premium 玻璃罩：整張透明膜 + 邊緣高光 */
+/* Premium glass coat */
 body.mode-premium .card::before{
   content:"";
   position:absolute;
@@ -226,9 +213,8 @@ body.mode-premium .card::after{
   inset:0;
   pointer-events:none;
   z-index: 2;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.00) 36%);
-  opacity: .65;
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.00) 40%);
+  opacity: .55;
   mix-blend-mode: overlay;
 }
 
@@ -253,16 +239,10 @@ body.mode-premium .card::after{
   line-height: 1.55;
 }
 body.mode-premium .unit,
-body.mode-premium .title{
-  color: var(--prem-muted);
-}
+body.mode-premium .title{ color: var(--prem-muted); }
 
 /* ---------- Banner ---------- */
-.banner{
-  position: relative;
-  height: 130px;
-  overflow:hidden;
-}
+.banner{ position: relative; height: 130px; overflow:hidden; }
 body.mode-free .banner{ display:block; }
 body.mode-premium .banner{ display:none !important; }
 
@@ -275,7 +255,6 @@ body.mode-premium .banner{ display:none !important; }
     radial-gradient(680px 260px at 80% 20%, rgba(0,0,0,0.08), transparent 70%);
   opacity: .55;
 }
-
 body.mode-free .banner{ filter: saturate(1.18) contrast(1.06); }
 
 /* style-arch */
@@ -288,8 +267,7 @@ body.mode-free.style-arch .banner{
 body.mode-free.style-arch .banner::after{
   content:"";
   position:absolute;
-  left:-25%;
-  right:-25%;
+  left:-25%; right:-25%;
   bottom:-66px;
   height:140px;
   background: rgba(255,255,255,0.92);
@@ -325,8 +303,7 @@ body.mode-free.style-spot .banner{
 body.mode-free.style-spot .banner::after{
   content:"";
   position:absolute;
-  left:-10%;
-  right:-10%;
+  left:-10%; right:-10%;
   bottom:-52px;
   height:120px;
   background: rgba(255,255,255,0.92);
@@ -336,13 +313,7 @@ body.mode-free.style-spot .banner::after{
 }
 
 /* ---------- Paper overlay (Free only) ---------- */
-.paper-overlay{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity:1;
-  z-index: 2;
-}
+.paper-overlay{ position:absolute; inset:0; pointer-events:none; opacity:1; z-index: 2; }
 body.mode-premium .paper-overlay{ display:none !important; }
 
 /* ---------- Avatar ---------- */
@@ -384,13 +355,7 @@ body.mode-premium .avatar-circle{
 }
 
 /* ---------- Logo ---------- */
-.logo-wrap{
-  display:flex;
-  justify-content:center;
-  padding: 6px 0 0;
-  position: relative;
-  z-index: 6;
-}
+.logo-wrap{ display:flex; justify-content:center; padding: 6px 0 0; position: relative; z-index: 6; }
 .logo-img{
   width: 56px;
   height: 56px;
@@ -423,9 +388,7 @@ body.mode-premium .logo-img{
   font-weight: 900;
   text-shadow: 0 10px 24px rgba(0,0,0,0.12);
 }
-body.mode-premium #u-slogan{
-  text-shadow: 0 14px 30px rgba(0,0,0,0.42);
-}
+body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
 
 /* ---------- Paper textures ---------- */
 :root{
@@ -463,7 +426,7 @@ body.mode-free.paper-3 .paper-overlay{
   opacity: calc(var(--paper-strength) + 0.10);
 }
 
-/* ---------- Controls layout helpers ---------- */
+/* ---------- Controls layout ---------- */
 .section-title{
   width:100%;
   max-width: 520px;
@@ -495,7 +458,7 @@ body.mode-free.paper-3 .paper-overlay{
   padding: 2px 0 4px;
 }
 
-/* ---------- Buttons (Free: 立體加厚 + 方案pill更立體) ---------- */
+/* ---------- Selector Buttons (v407.5: more 3D) ---------- */
 .btn-neo{
   border-radius: 14px;
   font-weight: 900;
@@ -503,13 +466,15 @@ body.mode-free.paper-3 .paper-overlay{
   letter-spacing: 0.4px;
   cursor:pointer;
   user-select:none;
-  padding: 11px 14px;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.84));
+  padding: 12px 14px;
+  border: 1px solid rgba(0,0,0,0.14);
+  background:
+    radial-gradient(120% 160% at 20% 0%, rgba(255,255,255,0.92), rgba(255,255,255,0.76) 55%, rgba(255,255,255,0.72)),
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.82));
   box-shadow:
-    0 14px 30px rgba(0,0,0,0.14),
+    0 18px 40px rgba(0,0,0,0.16),
     inset 0 2px 0 rgba(255,255,255,0.92),
-    inset 0 -10px 18px rgba(0,0,0,0.10);
+    inset 0 -14px 18px rgba(0,0,0,0.12);
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
   text-align: center;
   display:flex;
@@ -518,42 +483,39 @@ body.mode-free.paper-3 .paper-overlay{
   line-height: 1.15;
   white-space: nowrap;
 }
-.btn-neo:hover{
-  transform: translateY(-1px);
-  box-shadow:
-    0 18px 38px rgba(0,0,0,0.15),
-    inset 0 2px 0 rgba(255,255,255,0.94),
-    inset 0 -10px 18px rgba(0,0,0,0.10);
-}
+.btn-neo:hover{ transform: translateY(-1px); }
 .btn-neo:active{
   transform: translateY(0px) scale(0.985);
   box-shadow:
-    0 10px 20px rgba(0,0,0,0.12),
-    inset 0 2px 8px rgba(0,0,0,0.10);
+    0 12px 26px rgba(0,0,0,0.14),
+    inset 0 3px 10px rgba(0,0,0,0.12);
 }
 .btn-neo.pill{
   flex:1; min-width:0;
-  padding: 13px 10px;
+  padding: 14px 10px;     /* v407.5: thicker */
   border-radius: 999px;
 }
 .btn-neo.active{
-  border-color: rgba(0,0,0,0.18);
-  filter: saturate(1.05);
+  border-color: rgba(0,0,0,0.20);
+  filter: saturate(1.06);
   box-shadow:
-    0 16px 30px rgba(0,0,0,0.13),
-    inset 0 2px 10px rgba(0,0,0,0.10),
+    0 18px 36px rgba(0,0,0,0.16),
+    inset 0 2px 10px rgba(0,0,0,0.12),
     inset 0 1px 0 rgba(255,255,255,0.70);
 }
 
-/* Premium: glass + gold edge (保留你v407風格) */
+/* Premium selector pill */
 body.mode-premium .btn-neo{
   position: relative;
   border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.08);
+  background:
+    radial-gradient(120% 160% at 20% 0%, rgba(255,255,255,0.14), rgba(255,255,255,0.06) 55%, rgba(255,255,255,0.05)),
+    rgba(255,255,255,0.06);
   color: rgba(255,255,255,0.92);
   box-shadow:
-    0 18px 42px rgba(0,0,0,0.58),
-    inset 0 2px 0 rgba(255,255,255,0.14);
+    0 22px 52px rgba(0,0,0,0.62),
+    inset 0 2px 0 rgba(255,255,255,0.12),
+    inset 0 -18px 22px rgba(0,0,0,0.26);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
@@ -562,7 +524,7 @@ body.mode-premium .btn-neo::after{
   position:absolute; inset:-1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255,233,168,0.55), rgba(191,149,63,0.72), rgba(255,255,255,0.10));
+  background: linear-gradient(135deg, rgba(255,233,168,0.52), rgba(191,149,63,0.70), rgba(255,255,255,0.10));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
   pointer-events:none;
@@ -570,14 +532,14 @@ body.mode-premium .btn-neo::after{
 }
 body.mode-premium .btn-neo.active{
   border-color: rgba(255,255,255,0.22);
-  background: rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.12);
 }
 
-/* CTA */
+/* ---------- CTA buttons: center text exactly ---------- */
 .btn-cta{
   width: 100%;
   max-width: 520px;
-  padding: 12px 14px;
+  padding: 13px 14px;
   border-radius: 16px;
   border: none;
   background: linear-gradient(135deg, var(--p), var(--s));
@@ -586,13 +548,15 @@ body.mode-premium .btn-neo.active{
   letter-spacing: 0.5px;
   box-shadow: 0 18px 34px rgba(0,0,0,0.16);
   cursor:pointer;
-  text-align:center;
-  display:flex;
+
+  display:flex;                 /* v407.5: always center */
   align-items:center;
   justify-content:center;
+  text-align:center;
   gap: 10px;
   line-height: 1.15;
 }
+.btn-cta i, .btn-cta svg{ flex: 0 0 auto; }
 .btn-cta:active{ transform: scale(0.99); }
 
 .btn-cta.subtle{
@@ -601,14 +565,13 @@ body.mode-premium .btn-neo.active{
   border: 1px solid rgba(0,0,0,0.10);
 }
 
-/* Share button */
+/* Share CTA */
 .btn-share{
   background:
     radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.20), transparent 62%),
     linear-gradient(135deg, rgba(255,233,168,0.80), rgba(191,149,63,0.90));
   color:#1a1408;
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
-  text-align:center;
 }
 body.mode-premium .btn-share{
   color: rgba(255,255,255,0.95);
@@ -618,7 +581,7 @@ body.mode-premium .btn-share{
   border: 1px solid rgba(255,255,255,0.14);
 }
 
-/* ---------- Dots: 統一立體球 + 放大 ---------- */
+/* ---------- Dots: 3D spheres + bigger ---------- */
 .dot, .p-dot{
   width: var(--dotPrem);
   height: var(--dotPrem);
@@ -629,10 +592,11 @@ body.mode-premium .btn-share{
   padding:0;
   position: relative;
   transition: transform .12s ease, box-shadow .12s ease;
+
   box-shadow:
-    0 14px 26px rgba(0,0,0,0.16),
-    inset 0 2px 6px rgba(255,255,255,0.45),
-    inset 0 -6px 10px rgba(0,0,0,0.18);
+    0 18px 34px rgba(0,0,0,0.18),
+    inset 0 2px 8px rgba(255,255,255,0.42),
+    inset 0 -10px 14px rgba(0,0,0,0.20);
 }
 body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
 
@@ -640,10 +604,10 @@ body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
   content:"";
   position:absolute;
   left:50%; top:50%;
-  width: 56px; height: 56px;
+  width: 60px; height: 60px;     /* hit area */
   transform: translate(-50%,-50%);
   border-radius: 999px;
-  background: transparent; /* hit area */
+  background: transparent;
 }
 .dot::after, .p-dot::after{
   content:"";
@@ -653,40 +617,40 @@ body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
   width: 34%;
   height: 34%;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(255,255,255,0.95), rgba(255,255,255,0.0) 70%);
-  opacity: .85;
+  background: radial-gradient(circle, rgba(255,255,255,0.82), rgba(255,255,255,0.00) 70%);
+  opacity: .70;                  /* v407.5: more natural */
   pointer-events:none;
 }
 .dot.active, .p-dot.active{
   transform: scale(1.18);
   box-shadow:
-    0 18px 32px rgba(0,0,0,0.18),
+    0 22px 40px rgba(0,0,0,0.20),
     0 0 0 4px rgba(255,255,255,0.22),
     0 0 0 1px rgba(0,0,0,0.10),
-    inset 0 2px 6px rgba(255,255,255,0.46),
-    inset 0 -6px 10px rgba(0,0,0,0.18);
+    inset 0 2px 8px rgba(255,255,255,0.44),
+    inset 0 -10px 14px rgba(0,0,0,0.20);
 }
 
-/* Free dots colors */
+/* Free dot colors */
 .dot.dot-1{ background:#ff5f7b; }
 .dot.dot-2{ background:#1d88ff; }
 .dot.dot-3{ background:#ff9f1a; }
 .dot.dot-4{ background:#7a57ff; }
 .dot.dot-5{ background:#2bd46f; }
-/* Premium dots colors (✅只作用在色球，不會影響 body 主色) */
+/* Premium dot colors (only dots, never body) */
 .p-dot.p1{ background:#d96c6c; }
 .p-dot.p2{ background:#722f37; }
 .p-dot.p3{ background:#1c2e42; }
 .p-dot.p4{ background:#5e548e; }
 .p-dot.p5{
   background:
-    radial-gradient(circle at 28% 30%, rgba(255,255,255,0.78), rgba(255,255,255,0.00) 46%),
-    linear-gradient(135deg, rgba(255,233,168,0.55), rgba(191,149,63,0.55), rgba(255,255,255,0.12));
+    radial-gradient(circle at 30% 28%, rgba(255,255,255,0.70), rgba(255,255,255,0.00) 46%),
+    linear-gradient(135deg, rgba(255,233,168,0.52), rgba(191,149,63,0.50), rgba(255,255,255,0.10));
 }
 .p-dot.p6{ background:#bf953f; }
 .p-dot.p7{ background:#5a4a3f; }
 
-/* ---------- Blocks (你v407保留) ---------- */
+/* ---------- Info blocks ---------- */
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
@@ -697,17 +661,19 @@ body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
   overflow: hidden;
 }
 
-/* Free only: subtle framed corners + inner glow */
+/* v407.5: Free field frame decoration stronger + corner accents */
 body.mode-free .info-block::before{
   content:"";
   position:absolute; inset:0;
   border-radius: inherit;
   pointer-events:none;
   background:
-    radial-gradient(14px 14px at 14px 14px, rgba(255,255,255,0.70), transparent 70%),
-    radial-gradient(14px 14px at calc(100% - 14px) 14px, rgba(255,255,255,0.62), transparent 70%),
-    radial-gradient(14px 14px at 14px calc(100% - 14px), rgba(255,255,255,0.62), transparent 70%),
-    radial-gradient(14px 14px at calc(100% - 14px) calc(100% - 14px), rgba(255,255,255,0.70), transparent 70%);
+    radial-gradient(16px 16px at 14px 14px, rgba(255,255,255,0.76), transparent 72%),
+    radial-gradient(16px 16px at calc(100% - 14px) 14px, rgba(255,255,255,0.68), transparent 72%),
+    radial-gradient(16px 16px at 14px calc(100% - 14px), rgba(255,255,255,0.68), transparent 72%),
+    radial-gradient(16px 16px at calc(100% - 14px) calc(100% - 14px), rgba(255,255,255,0.76), transparent 72%),
+    /* thin inner frame */
+    linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.00));
   opacity: .95;
 }
 body.mode-free .info-block::after{
@@ -715,9 +681,11 @@ body.mode-free .info-block::after{
   position:absolute; inset:0;
   border-radius: inherit;
   pointer-events:none;
-  border: 1px solid rgba(0,0,0,0.08);
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
-  opacity: .60;
+  border: 1px solid rgba(0,0,0,0.10);                 /* stronger */
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.62),
+    0 10px 24px rgba(0,0,0,0.06);
+  opacity: .55;
 }
 
 .block-title{
@@ -743,11 +711,9 @@ body.mode-premium .block-title{
   color: rgba(255,255,255,0.92);
   text-shadow: 0 1px 0 rgba(0,0,0,0.25);
 }
-body.mode-premium .block-body{
-  color: rgba(255,255,255,0.84);
-}
+body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
 
-/* ---------- Docks ---------- */
+/* ---------- Contact dock ---------- */
 .contact-dock{
   margin-top: 12px;
   border-radius: 18px;
@@ -757,8 +723,6 @@ body.mode-premium .block-body{
   position: relative;
   overflow: hidden;
 }
-
-/* small decoration ribbon */
 .contact-dock::before{
   content:"";
   position:absolute;
@@ -784,25 +748,37 @@ body.mode-premium .block-body{
   gap: 10px;
 }
 
+/* v407.5: capsule + 3D for contact buttons */
 .dock-btn{
   position: relative;
   display:flex;
   align-items:center;
   justify-content:center;
   gap: 8px;
-  padding: 10px 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.86));
+  padding: 12px 12px;
+  border-radius: 999px; /* capsule */
+  border: 1px solid rgba(0,0,0,0.14);
+  background:
+    radial-gradient(120% 170% at 22% 0%, rgba(255,255,255,0.95), rgba(255,255,255,0.80) 55%, rgba(255,255,255,0.76)),
+    linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.82));
   color: var(--accentText);
   font-weight: 900;
   box-shadow:
-    0 12px 22px rgba(0,0,0,0.10),
-    inset 0 1px 0 rgba(255,255,255,0.90);
+    0 18px 36px rgba(0,0,0,0.14),
+    inset 0 2px 0 rgba(255,255,255,0.92),
+    inset 0 -16px 18px rgba(0,0,0,0.12);
   cursor:pointer;
+
   text-align:center;
+  line-height: 1.15;
+  white-space: nowrap;
 }
-.dock-btn:active{ transform: scale(0.99); }
+.dock-btn:active{
+  transform: scale(0.99);
+  box-shadow:
+    0 12px 24px rgba(0,0,0,0.12),
+    inset 0 3px 10px rgba(0,0,0,0.14);
+}
 .dock-btn i{ font-size: 17px; }
 .dock-btn span{ font-size: 13px; letter-spacing: 0.3px; }
 .dock-btn.wide{ grid-column: 1 / -1; }
@@ -810,14 +786,13 @@ body.mode-premium .block-body{
 .dock-btn::after{
   content:"";
   position:absolute;
-  left:14px; right:14px;
-  bottom:8px;
+  left:18px; right:18px;
+  bottom:10px;
   height:2px;
   border-radius: 99px;
   background: linear-gradient(90deg, rgba(0,0,0,0.00), rgba(0,0,0,0.06), rgba(0,0,0,0.00));
-  opacity:.55;
+  opacity:.50;
 }
-body.mode-premium .dock-btn::after{ display:none; }
 
 body.mode-premium .contact-dock{
   background: rgba(10,12,18,0.18);
@@ -829,21 +804,29 @@ body.mode-premium .dock-title{
 }
 body.mode-premium .dock-btn{
   border-color: rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.10);
+  background:
+    radial-gradient(140% 180% at 20% 0%, rgba(255,255,255,0.16), rgba(255,255,255,0.08) 56%, rgba(255,255,255,0.06)),
+    rgba(255,255,255,0.08);
   color: rgba(255,255,255,0.92);
-  box-shadow: 0 18px 35px rgba(0,0,0,0.55);
+  box-shadow:
+    0 22px 52px rgba(0,0,0,0.65),
+    inset 0 2px 0 rgba(255,255,255,0.12),
+    inset 0 -18px 22px rgba(0,0,0,0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 body.mode-premium .dock-btn::before{
   content:"";
   position:absolute; inset:-1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255,233,168,0.45), rgba(191,149,63,0.62), rgba(255,255,255,0.10));
+  background: linear-gradient(135deg, rgba(255,233,168,0.42), rgba(191,149,63,0.62), rgba(255,255,255,0.10));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
   pointer-events:none;
-  opacity: .85;
+  opacity: .82;
 }
+body.mode-premium .dock-btn::after{ display:none; }
 
 /* ---------- Photo wall ---------- */
 .photo-wall{
@@ -898,7 +881,7 @@ body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 @media (max-width: 360px){
   .name{ font-size: 21px; }
   .avatar-circle{ width: 108px; height: 108px; }
-  :root{ --dotFree: 32px; --dotPrem: 28px; }
+  :root{ --dotFree: 34px; --dotPrem: 30px; }
   .dock-buttons{ gap: 8px; }
-  .dock-btn{ padding: 10px 8px; }
+  .dock-btn{ padding: 12px 10px; }
 }
