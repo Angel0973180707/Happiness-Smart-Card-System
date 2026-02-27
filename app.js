@@ -1,17 +1,18 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v407.1 (COMPLETE OVERWRITE) 1/3
+ * app.js v407 (COMPLETE OVERWRITE) 1/3
  * - Align with index.html v401.1 API:
  *   window.setPlan / setTheme / setStyle / setPaper / goLineIntro / goFillForm
  * - Robust fetch + payload normalize
  * - Image normalize + fallback (Drive/Dropbox/http->https)
+ * - FIX v407: LINE robust pick + @ID => URL + scan fallback
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v401.1",
+  VERSION: "v407",
   FETCH_TIMEOUT_MS: 12000,
   RETRY: 2
 };
@@ -242,16 +243,15 @@ function applyModeUi_(){
   }else{
     if(freeBlock) freeBlock.style.display = "none";
     if(premBlock) premBlock.style.display = "";
-    if(banner) banner.style.display = "none";         // ✅ premium no banner
+    if(banner) banner.style.display = "none";
     if(paperOverlay) paperOverlay.style.display = "none";
-    if(premBadge) premBadge.style.display = "none";   // keep minimal (as your note)
+    if(premBadge) premBadge.style.display = "none";
   }
 }
 
 function applyBodyClasses_(){
   const b = document.body;
 
-  // clear controlled classes
   [
     "mode-free","mode-premium",
     "color-1","color-2","color-3","color-4","color-5",
@@ -263,7 +263,6 @@ function applyBodyClasses_(){
   if(STATE.mode === "free"){
     b.classList.add("mode-free", STATE.color, "style-" + STATE.style, STATE.paper);
   }else{
-    // ✅ premium full tone (CSS should paint entire card by p1..p7)
     b.classList.add("mode-premium", STATE.premium);
   }
 
@@ -276,7 +275,6 @@ function setPlan(mode, el){
   setActiveInGroup_("plan", el);
   applyBodyClasses_();
 
-  // breathe hint switch (optional): only keep "自由搭配" breathe when free
   const btnFree = qs("btnPlanFree");
   const btnPrem = qs("btnPlanPremium");
   if(btnFree && btnPrem){
@@ -286,7 +284,6 @@ function setPlan(mode, el){
 }
 
 function setTheme(theme, el){
-  // free: color-1..5 / premium: p1..p7
   if(String(theme||"").startsWith("p")){
     STATE.mode = "premium";
     STATE.premium = theme;
@@ -298,7 +295,6 @@ function setTheme(theme, el){
   }
   applyBodyClasses_();
 
-  // also ensure plan pills reflect mode
   const btnFree = qs("btnPlanFree");
   const btnPrem = qs("btnPlanPremium");
   if(btnFree && btnPrem){
@@ -340,11 +336,9 @@ function goFillForm(){
   window.open(CONFIG.FORM, "_blank");
 }
 /* ================================
- * app.js v401.1 (2/3)
+ * app.js v407 (2/3)
  * Render Card + Docks + Blocks + Logo/Avatar
- * - Logo must show + auto circle
- * - Media buttons classify dock-yt/fb/ig/line/web
- * - Contact buttons apply .wide when odd
+ * - LINE robust: key variants + @ID => URL + scan fallback
  * ================================ */
 
 function safeSetText_(id, val){
@@ -385,6 +379,68 @@ function classifyDockClass_(url){
   return "dock-web";
 }
 
+/* ---------- LINE helpers (v407) ---------- */
+function looksLikeLineUrl_(v){
+  const s = String(v||"").toLowerCase();
+  return s.includes("lin.ee") || s.includes("line.me") || s.startsWith("line://");
+}
+
+function normalizeLineUrl_(raw){
+  const v = text(raw);
+  if(!v) return "";
+
+  // already a URL
+  if(looksLikeLineUrl_(v)) return normalizeUrl_(v);
+
+  // handle LINE ID formats: @xxxx / xxxx
+  let id = v;
+
+  // remove spaces + common wrappers
+  id = id.replace(/\s+/g,"").replace(/^line[:：]*/i,"");
+
+  // if they pasted "https://", still normalize
+  if(isUrl_(id) || /^www\./i.test(id)) return normalizeUrl_(id);
+
+  // keep @
+  if(id.startsWith("@")){
+    const handle = encodeURIComponent(id);
+    return `https://line.me/R/ti/p/${handle}`;
+  }
+
+  // plain id -> assume official id
+  if(/^[a-z0-9._-]{3,}$/i.test(id)){
+    return `https://line.me/R/ti/p/@${encodeURIComponent(id)}`;
+  }
+
+  // last resort: if it's weird, just return as url-normalized (may still fail)
+  return normalizeUrl_(v);
+}
+
+function scanAnyLineFromPayload_(p){
+  if(!p || !p.__raw) return "";
+  const raw = p.__raw;
+
+  // scan values first: any value containing lin.ee / line.me
+  for(const k of Object.keys(raw)){
+    const v = raw[k];
+    if(v==null) continue;
+    const s = String(v);
+    if(looksLikeLineUrl_(s)) return normalizeUrl_(s);
+  }
+
+  // scan keys containing 'line' and take any non-empty
+  for(const k of Object.keys(raw)){
+    const nk = cleanKey_(k).toLowerCase();
+    if(!nk.includes("line")) continue;
+    const v = raw[k];
+    const vv = text(v);
+    if(!vv) continue;
+    return normalizeLineUrl_(vv);
+  }
+
+  return "";
+}
+
 /* ---------- Logo ---------- */
 function renderLogo_(p){
   const logoUrl = pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img"]);
@@ -399,7 +455,6 @@ function renderLogo_(p){
     return;
   }
 
-  // ✅ logo show + auto circle
   wrap.style.display = "flex";
   img.style.borderRadius = "999px";
   img.style.objectFit = "cover";
@@ -518,17 +573,28 @@ function renderDocks_(p){
   applyWideRule_(mediaBtns);
 
   /* ---- Contact: LINE/微信/電話/Email/地址 ---- */
-  const phone   = pick(p, ["電話","phone","mobile"]);
-  const email   = pick(p, ["Email","email","信箱"]);
-  const lineOA  = pick(p, ["LINE官方帳號","line_oa","line官網","LINE官網"]);
-  const lineLink= pick(p, ["LINE連結","line_link","line"]);
-  const wechat  = pick(p, ["微信","wechat","wechat_id"]);
-  const address = pick(p, ["地址","address"]);
+  const phone   = pick(p, ["電話","phone","mobile","手機","cell"]);
+  const email   = pick(p, ["Email","email","信箱","E-mail","mail"]);
+  const wechat  = pick(p, ["微信","wechat","wechat_id","WeChat","微信ID","WeChat ID"]);
+  const address = pick(p, ["地址","address","住址","工作地址"]);
+
+  // LINE keys: expand a lot
+  const lineRaw =
+    pick(p, [
+      "LINE官方帳號","LINE 官方帳號","line_oa","line oa","Line OA","LINE OA",
+      "LINE官網","LINE 官網","line官網","Line官網","LINE連結","LINE 連結","line_link","line link",
+      "LINE","Line","line","LINE ID","Line ID","line id","LINE帳號","LINE 帳號","line_account",
+      "LINE@", "Line@", "line@"
+    ]);
+
+  // normalize + scan fallback
+  let lineUrl = normalizeLineUrl_(lineRaw);
+  if(!text(lineUrl)) lineUrl = scanAnyLineFromPayload_(p);
 
   const contactList = [];
 
-  if(text(lineOA)){
-    contactList.push({ label:"LINE 官網", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineOA) });
+  if(text(lineUrl)){
+    contactList.push({ label:"LINE", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineUrl) });
   }
 
   if(text(wechat)){
@@ -555,11 +621,6 @@ function renderDocks_(p){
 
   if(text(address)){
     contactList.push({ label:"地址導航", icon:"fa-solid fa-location-dot", cls:"dock-map", action: ()=> openMapByAddress_(address) });
-  }
-
-  // 沒有 LINE 官網才補個人 LINE
-  if(text(lineLink) && !text(lineOA)){
-    contactList.push({ label:"LINE", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineLink) });
   }
 
   let hasContact = false;
@@ -610,21 +671,30 @@ function renderCard(row){
   if(vt) vt.textContent = CONFIG.VERSION;
 }
 
-/* ---------- LINE CTA (needs payload) ---------- */
+/* ---------- LINE CTA (uses same resolver) ---------- */
 function goLineIntro(){
   const p = currentRow || null;
   if(!p){
-    alert("⏳ 名片資料載入中，請稍等一下再點 LINE 官網。");
+    alert("⏳ 名片資料載入中，請稍等一下再點 LINE。");
     return;
   }
-  const lineOA  = pick(p, ["LINE官方帳號","line_oa","line官網","LINE官網"]);
-  const lineLink= pick(p, ["LINE連結","line_link","line"]);
-  const url = text(lineOA) ? lineOA : lineLink;
+
+  const lineRaw =
+    pick(p, [
+      "LINE官方帳號","LINE 官方帳號","line_oa","line oa","Line OA","LINE OA",
+      "LINE官網","LINE 官網","line官網","Line官網","LINE連結","LINE 連結","line_link","line link",
+      "LINE","Line","line","LINE ID","Line ID","line id","LINE帳號","LINE 帳號","line_account",
+      "LINE@", "Line@", "line@"
+    ]);
+
+  let url = normalizeLineUrl_(lineRaw);
+  if(!text(url)) url = scanAnyLineFromPayload_(p);
 
   if(!text(url)){
-    alert("⚠️ 這張名片尚未提供 LINE 官網連結");
+    alert("⚠️ 這張名片尚未提供 LINE（連結或 @ID）");
     return;
   }
+
   openUrl_(url);
 }
 
@@ -635,233 +705,3 @@ window.setStyle = setStyle;
 window.setPaper = setPaper;
 window.goLineIntro = goLineIntro;
 window.goFillForm = goFillForm;
-/* ================================
- * app.js v401.1 (3/3)
- * Photo Wall + Lightbox + Admin hotspot BR + Robust Load/Boot
- * - Thumbs consistent ratio
- * - Grid dynamic balance (avoid lonely last)
- * ================================ */
-
-function extractRowFromPayload_(data){
-  if(!data || typeof data !== "object") return null;
-  if(data.data && typeof data.data === "object") return data.data;
-  if(data.row && typeof data.row === "object") return data.row;
-  if(data.id || data["姓名"] || data.name) return data;
-  return null;
-}
-
-/* ---------- Photo collect ---------- */
-function collectPhotoUrls_(p){
-  let urls = [];
-
-  if(Array.isArray(p.photos)) urls = urls.concat(p.photos);
-  if(Array.isArray(p.photos_full)) urls = urls.concat(p.photos_full);
-
-  const bulk = pick(p, ["照片_fast","照片","photos_img","photos","photo_wall"]);
-  if(text(bulk)){
-    urls = urls.concat(
-      String(bulk)
-        .split(/[\n,，;]/g)
-        .map(s => s.trim())
-        .filter(Boolean)
-    );
-  }
-
-  for(let i=1;i<=12;i++){
-    const v = pick(p, [`photo${i}`,`photo_${i}`,`照片${i}`,`相片${i}`]);
-    if(text(v)) urls.push(v);
-  }
-
-  const seen = new Set();
-  const out = [];
-  urls.forEach(u=>{
-    const nu = normalizeImageUrl_(u);
-    if(!nu) return;
-    if(seen.has(nu)) return;
-    seen.add(nu);
-    out.push(nu);
-  });
-
-  return out;
-}
-
-/* ---------- Lightbox ---------- */
-function ensureLightbox_(){
-  if(qs("lightboxOverlay")) return;
-
-  const overlay = document.createElement("div");
-  overlay.id = "lightboxOverlay";
-  overlay.style.cssText = `
-    position:fixed; inset:0; z-index:999999;
-    background:rgba(0,0,0,0.82);
-    display:none; align-items:center; justify-content:center;
-    padding:16px;
-  `;
-
-  const img = document.createElement("img");
-  img.id = "lightboxImg";
-  img.style.cssText = `
-    max-width:100%;
-    max-height:100%;
-    object-fit:contain;
-    border-radius:16px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-    background: rgba(255,255,255,0.06);
-  `;
-
-  const close = document.createElement("button");
-  close.type = "button";
-  close.textContent = "✕";
-  close.style.cssText = `
-    position:absolute; top:14px; right:14px;
-    width:42px; height:42px; border-radius:999px;
-    border:none; cursor:pointer;
-    background:rgba(255,255,255,0.18);
-    color:#fff; font-size:20px; font-weight:900;
-    backdrop-filter: blur(8px);
-  `;
-
-  overlay.appendChild(img);
-  overlay.appendChild(close);
-  document.body.appendChild(overlay);
-
-  function hide(){
-    overlay.style.display = "none";
-    img.removeAttribute("src");
-  }
-  overlay.addEventListener("click",(e)=>{ if(e.target===overlay) hide(); });
-  close.addEventListener("click", hide);
-  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") hide(); });
-}
-
-function openLightbox_(url){
-  ensureLightbox_();
-  const overlay = qs("lightboxOverlay");
-  const img = qs("lightboxImg");
-  if(!overlay || !img) return;
-
-  setImgWithFallback_(img, buildImgCandidates_(url));
-  overlay.style.display = "flex";
-}
-
-/* ---------- Photo wall dynamic balance (avoid lonely) ---------- */
-function computeCols_(n){
-  if(n <= 1) return 1;
-  if(n === 2) return 2;
-  if(n === 4) return 2;
-  if(n % 3 === 1) return 2; // 7/10/13... avoid last lonely
-  return 3;
-}
-
-function renderPhotoWall_(row){
-  const p = buildNormalizedPayload_(row || {});
-  const wall = qs("photoWall");
-  const grid = qs("photoGrid");
-  if(!wall || !grid) return;
-
-  grid.innerHTML = "";
-  const urls = collectPhotoUrls_(p);
-
-  if(!urls.length){
-    wall.style.display = "none";
-    return;
-  }
-
-  const cols = computeCols_(urls.length);
-  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
-
-  urls.forEach(u=>{
-    const img = document.createElement("img");
-    img.className = "wall-img";
-    img.alt = "照片";
-    img.loading = "lazy";
-    img.decoding = "async";
-    img.referrerPolicy = "no-referrer";
-
-    // ✅ consistent thumbnail ratio
-    img.style.width = "100%";
-    img.style.aspectRatio = "1 / 1";
-    img.style.objectFit = "cover";
-
-    setImgWithFallback_(img, buildImgCandidates_(u));
-    img.addEventListener("click", ()=> openLightbox_(u));
-    grid.appendChild(img);
-  });
-
-  wall.style.display = "";
-}
-
-/* ---------- Admin hotspot (bottom-right triple tap) ---------- */
-function setupAdminHotspotBR_(){
-  const spot = qs("adminHotspotBR");
-  if(!spot) return;
-
-  let taps = 0;
-  let timer = null;
-
-  spot.addEventListener("click", ()=>{
-    taps++;
-    clearTimeout(timer);
-    timer = setTimeout(()=>{ taps = 0; }, 900);
-
-    if(taps >= 3){
-      taps = 0;
-      alert("✅ 進入隱形後臺（v401.1 預留入口）");
-      // TODO: 之後接 admin.html
-      // location.href = "admin.html?id=" + encodeURIComponent(getIdFromUrl_() || CONFIG.DEFAULT_ID);
-    }
-  });
-}
-
-/* ---------- Load + Boot ---------- */
-async function loadAndRenderById_(id){
-  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
-
-  try{
-    const payload = await fetchJsonRobust_(url);
-    const row = extractRowFromPayload_(payload);
-    if(!row) throw new Error("Invalid payload shape");
-
-    renderCard(row);
-    renderPhotoWall_(row);
-
-  }catch(err){
-    console.error("LOAD FAIL:", err);
-    safeSetText_("u-name", "載入失敗");
-  }
-}
-
-(function boot_(){
-  try{
-    ensureLightbox_();
-    setupAdminHotspotBR_();
-
-    // ✅ ensure UI matches initial HTML class
-    // read from body initial classes if present
-    const b = document.body;
-    STATE.mode = b.classList.contains("mode-premium") ? "premium" : "free";
-
-    // free
-    ["color-1","color-2","color-3","color-4","color-5"].forEach(c=>{ if(b.classList.contains(c)) STATE.color = c; });
-    ["style-arch","style-flat","style-spot"].forEach(s=>{
-      if(b.classList.contains(s)) STATE.style = s.replace("style-","");
-    });
-    ["paper-1","paper-2","paper-3"].forEach(p=>{
-      if(b.classList.contains(p)) STATE.paper = p;
-    });
-
-    // premium
-    ["p1","p2","p3","p4","p5","p6","p7"].forEach(p=>{
-      if(b.classList.contains(p)) STATE.premium = p;
-    });
-
-    applyBodyClasses_();
-
-    const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
-    loadAndRenderById_(id);
-
-  }catch(e){
-    console.error(e);
-  }
-})();
