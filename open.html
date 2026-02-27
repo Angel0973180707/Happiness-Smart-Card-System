@@ -1,1 +1,180 @@
 
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>開啟名片</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    :root{
+      --bg:#0b0f14; --card:#111827; --text:#e5e7eb; --muted:#9ca3af;
+      --btn:#ffffff; --btnText:#111827; --danger:#ef4444;
+    }
+    body{ margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, "Noto Sans TC", sans-serif; }
+    .wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .box{ width:min(520px, 100%); background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10); border-radius:18px; padding:18px; }
+    h1{ font-size:18px; margin:0 0 10px; letter-spacing:.5px; }
+    .p{ color:var(--muted); line-height:1.6; font-size:14px; margin:0 0 14px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .btn{
+      appearance:none; border:0; border-radius:14px; padding:12px 14px;
+      background:var(--btn); color:var(--btnText); font-weight:700; cursor:pointer;
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+    .btn.secondary{ background:transparent; color:var(--text); border:1px solid rgba(255,255,255,.18); }
+    .badge{ display:inline-block; font-size:12px; color:var(--muted); border:1px solid rgba(255,255,255,.14); padding:6px 10px; border-radius:999px; }
+    .err{ color:#fecaca; background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25); padding:10px 12px; border-radius:14px; font-size:13px; line-height:1.6; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .small{ font-size:12px; color:var(--muted); margin-top:10px; }
+    .hide{ display:none; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="box">
+      <div class="badge" id="badge">Loading…</div>
+      <h1 id="title">正在開啟名片</h1>
+      <p class="p" id="desc">請稍候，我們正在確認名片狀態。</p>
+
+      <div id="alert" class="err hide"></div>
+
+      <div class="row">
+        <button class="btn" id="btnOpen" disabled>開啟名片</button>
+        <button class="btn secondary" id="btnContact" style="display:none;">聯繫開通</button>
+      </div>
+
+      <!-- v406.1：預設不顯示；只有 ?debug=1 才顯示 -->
+      <div class="small hide" id="debug"></div>
+    </div>
+  </div>
+
+<script>
+/** =============================
+ * v406.1（正式精品版）
+ * - debug 預設隱藏；只有 ?debug=1 才顯示
+ * - 其餘行為不變：查 GAS → 看 status → 開啟或導 LINE OA
+ * ============================= */
+
+/** 你要改的：GAS 與 LINE OA（已依你提供填好） */
+const GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+const LINE_OA = "https://lin.ee/G3VJoRm";
+
+/** 收費閘門：哪些 status 視為「可開啟」 */
+const ALLOW_STATUSES = new Set(["active", "on", "enabled", "paid"]);
+
+/** Helpers */
+const qs = (id)=>document.getElementById(id);
+function setBadge(t){ qs("badge").textContent = t || ""; }
+function setTitle(t){ qs("title").textContent = t || ""; }
+function setDesc(t){ qs("desc").textContent = t || ""; }
+function showAlert(msg){
+  const el = qs("alert");
+  if(!msg){ el.classList.add("hide"); el.textContent=""; return; }
+  el.classList.remove("hide");
+  el.textContent = msg;
+}
+function getParam(name){
+  const u = new URL(location.href);
+  return (u.searchParams.get(name) || "").trim();
+}
+function isWeChat(){
+  const ua = navigator.userAgent || "";
+  return /MicroMessenger/i.test(ua);
+}
+async function fetchJson(url){
+  const res = await fetch(url, { method:"GET", cache:"no-store" });
+  const txt = await res.text();
+  try{ return JSON.parse(txt); }catch{ return null; }
+}
+
+/** debug：只在 ?debug=1 顯示 */
+const DEBUG_ON = (() => {
+  const v = getParam("debug");
+  return v === "1" || v.toLowerCase() === "true";
+})();
+function setDebug(html){
+  const el = qs("debug");
+  if(!el) return;
+  if(!DEBUG_ON){ el.classList.add("hide"); el.innerHTML=""; return; }
+  el.classList.remove("hide");
+  el.innerHTML = html || "";
+}
+
+/** Core */
+(async function boot(){
+  const id = getParam("id");
+  if(!id){
+    setBadge("Missing id");
+    setTitle("缺少名片代碼");
+    setDesc("請從微信長圖或分享連結重新開啟（需要帶 ?id=TW0001）。");
+    showAlert("網址缺少 id 參數。例：open.html?id=TW0001");
+    setDebug(`<span class="mono">missing id</span>`);
+    return;
+  }
+
+  setBadge(isWeChat() ? "WeChat" : "Browser");
+  setTitle("正在確認名片狀態");
+  setDesc("請稍候…");
+  showAlert("");
+
+  const url = `${GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+  const data = await fetchJson(url);
+
+  if(!data){
+    setBadge("Error");
+    setTitle("無法取得資料");
+    setDesc("請稍後再試，或聯繫客服協助。");
+    showAlert("資料回傳異常（可能被網路阻擋或回傳非 JSON）。");
+    qs("btnContact").style.display = "";
+    qs("btnContact").onclick = ()=> window.open(LINE_OA, "_blank", "noopener,noreferrer");
+    setDebug(`<span class="mono">id=${id}</span>　<span class="mono">fetch=non-json</span>`);
+    return;
+  }
+
+  if(data.ok === false){
+    setBadge("Not found");
+    setTitle("找不到這張名片");
+    setDesc("請確認你輸入的 id 是否正確。");
+    showAlert(data.error || "Not found");
+    setDebug(`<span class="mono">id=${id}</span>　<span class="mono">ok=false</span>`);
+    return;
+  }
+
+  const status = String(data.status || "").trim().toLowerCase();
+  const cardUrl = (data.card_url || "").trim();
+
+  setDebug(`<span class="mono">id=${id}</span>　<span class="mono">status=${status || "-"}</span>`);
+
+  if(!ALLOW_STATUSES.has(status)){
+    setBadge("Locked");
+    setTitle("請聯繫客服開通");
+    setDesc("此名片尚未開通。點下方「聯繫開通」即可處理。");
+    showAlert("");
+    qs("btnOpen").disabled = true;
+
+    qs("btnContact").style.display = "";
+    qs("btnContact").onclick = ()=> window.open(LINE_OA, "_blank", "noopener,noreferrer");
+    return;
+  }
+
+  // 已開通：允許開啟
+  setBadge("Active");
+  setTitle("名片已開通");
+  setDesc("點「開啟名片」即可查看。");
+  showAlert("");
+  qs("btnOpen").disabled = false;
+
+  // fallback：若 GAS 沒回 card_url，就用 GitHub Pages 的 ?id=
+  const here = new URL(location.href);
+  const basePath = here.pathname.replace(/open\.html$/i, "");
+  const defaultCardUrl = here.origin + basePath + `?id=${encodeURIComponent(id)}`;
+  const finalUrl = cardUrl || defaultCardUrl;
+
+  qs("btnOpen").onclick = ()=> location.replace(finalUrl);
+
+})();
+</script>
+</body>
+</html>
