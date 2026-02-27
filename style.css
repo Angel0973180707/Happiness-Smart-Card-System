@@ -3,6 +3,13 @@
  * - Based on v401.1
  * - ADD: Free mode subtle page background tint by selected color
  * - ADD: Dots bigger + better hit area
+ * - UPDATE v407.1:
+ *   1) 예약/填表/分享鈕：字置中
+ *   2) Premium 底色：透明光感略提升（保留主色）
+ *   3) p5：改金箔透明金屬感（Premium tone）
+ *   4) Free：分區框框裝飾（細框＋角落光）
+ *   5) 標語：加粗＋陰影
+ *   6) 聯繫區：小裝飾＋按鈕字色跟選色聯動
  * ================================ */
 
 :root{
@@ -30,8 +37,17 @@
   --prem-muted: rgba(255,255,255,0.74);
   --prem-soft: rgba(255,255,255,0.14);
 
-  /* NEW: free background tint */
+  /* free background tint */
   --bgTint: rgba(255,255,255,0.0);
+
+  /* NEW: accent for linkage (buttons/text) */
+  --accentText: rgba(31,36,48,0.92);
+  --accentStroke: rgba(0,0,0,0.12);
+  --accentGlow: rgba(0,0,0,0.10);
+
+  /* NEW: free deco */
+  --freeFrame: rgba(0,0,0,0.06);
+  --freeFrameGlow: rgba(255,255,255,0.65);
 }
 
 *{ box-sizing:border-box; }
@@ -47,7 +63,6 @@ body{
   margin:0;
   font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* NEW: subtle tint */
   background:
     radial-gradient(1100px 700px at 20% 0%, var(--bgTint), transparent 62%),
     radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.06), transparent 60%),
@@ -57,18 +72,26 @@ body{
 }
 
 /* ---------- Free colors (c1~c5) ---------- */
-body.color-1{ --p:#ff5f7b; --s:#ff2f45; --bgTint: rgba(255,95,123,0.16); }
-body.color-2{ --p:#1d88ff; --s:#2e3cff; --bgTint: rgba(29,136,255,0.14); }
-body.color-3{ --p:#ff9f1a; --s:#ff6f00; --bgTint: rgba(255,159,26,0.14); }
-body.color-4{ --p:#7a57ff; --s:#4f22d8; --bgTint: rgba(122,87,255,0.14); }
-body.color-5{ --p:#2bd46f; --s:#0ea97b; --bgTint: rgba(43,212,111,0.14); }
+body.color-1{ --p:#ff5f7b; --s:#ff2f45; --bgTint: rgba(255,95,123,0.16); --accentText: rgba(126,20,44,0.92); }
+body.color-2{ --p:#1d88ff; --s:#2e3cff; --bgTint: rgba(29,136,255,0.14); --accentText: rgba(10,55,128,0.92); }
+body.color-3{ --p:#ff9f1a; --s:#ff6f00; --bgTint: rgba(255,159,26,0.14); --accentText: rgba(120,62,0,0.92); }
+body.color-4{ --p:#7a57ff; --s:#4f22d8; --bgTint: rgba(122,87,255,0.14); --accentText: rgba(50,24,128,0.92); }
+body.color-5{ --p:#2bd46f; --s:#0ea97b; --bgTint: rgba(43,212,111,0.14); --accentText: rgba(0,92,64,0.92); }
 
 /* ---------- Premium tones (p1~p7) ---------- */
 body.p1{ --p:#d96c6c; --s:#b23b3b; }
 body.p2{ --p:#722f37; --s:#4e1f25; }
 body.p3{ --p:#1c2e42; --s:#101d2b; }
 body.p4{ --p:#5e548e; --s:#40376b; }
-body.p5{ --p:#8aa0b6; --s:#5f7489; }
+
+/* v407.1: p5 => gold-foil transparent metallic */
+body.p5{
+  --p:#a9b7c7;               /* keep blue-gray base */
+  --s:#5f7489;
+  --prem-soft: rgba(255,255,255,0.16);
+}
+
+/* gold */
 body.p6{ --p:#bf953f; --s:#8f6b1c; }
 body.p7{ --p:#5a4a3f; --s:#2f2926; }
 
@@ -83,10 +106,11 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
+/* Premium page */
 body.mode-premium{
   background:
-    radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.10), transparent 58%),
-    radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.06), transparent 60%),
+    radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.12), transparent 56%),
+    radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.08), transparent 60%),
     #0f1218;
   color: var(--prem-ink);
 }
@@ -126,13 +150,14 @@ body.mode-free .card{
   filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
 }
 
-/* Premium: FULL CARD TONE */
+/* Premium: FULL CARD TONE (v407.1: more translucent glow, keep main color) */
 body.mode-premium .card{
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: 0 26px 80px rgba(0,0,0,0.56);
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 28px 86px rgba(0,0,0,0.58);
   background:
-    radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.18), transparent 58%),
-    radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.10), transparent 60%),
+    radial-gradient(1100px 700px at 18% 0%, rgba(255,255,255,0.22), transparent 56%),
+    radial-gradient(900px 700px at 86% 10%, rgba(255,255,255,0.14), transparent 60%),
+    linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.10)),
     linear-gradient(135deg, var(--p), var(--s));
 }
 
@@ -148,8 +173,26 @@ body.mode-premium .card{
 body.mode-premium .premium-fx-layer{
   opacity:1;
   background:
-    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.14), transparent 60%),
-    radial-gradient(700px 520px at 90% 0%, rgba(255,255,255,0.10), transparent 58%);
+    radial-gradient(900px 520px at 18% 8%, rgba(255,255,255,0.18), transparent 60%),
+    radial-gradient(700px 520px at 92% 0%, rgba(255,255,255,0.14), transparent 58%),
+    radial-gradient(520px 360px at 60% 30%, rgba(255,233,168,0.10), transparent 62%);
+}
+
+/* Premium special: p5 gold foil sheen */
+body.mode-premium.p5 .premium-fx-layer{
+  background:
+    radial-gradient(900px 520px at 18% 8%, rgba(255,255,255,0.18), transparent 60%),
+    radial-gradient(700px 520px at 92% 0%, rgba(255,255,255,0.14), transparent 58%),
+    linear-gradient(115deg,
+      rgba(255,233,168,0.00) 0%,
+      rgba(255,233,168,0.18) 22%,
+      rgba(191,149,63,0.14) 38%,
+      rgba(255,255,255,0.06) 52%,
+      rgba(191,149,63,0.10) 66%,
+      rgba(255,233,168,0.00) 100%
+    );
+  mix-blend-mode: screen;
+  opacity: .95;
 }
 
 .info-scroll{
@@ -323,7 +366,7 @@ body.mode-premium .logo-img{
   box-shadow: 0 18px 45px rgba(0,0,0,0.55);
 }
 
-/* ---------- Slogan ---------- */
+/* ---------- Slogan (v407.1: bold + shadow) ---------- */
 #u-slogan{
   width: 100%;
   max-width: 420px;
@@ -335,6 +378,12 @@ body.mode-premium .logo-img{
   line-height: 1.6;
   letter-spacing: .2px;
   word-break: break-word;
+
+  font-weight: 900;
+  text-shadow: 0 10px 24px rgba(0,0,0,0.12);
+}
+body.mode-premium #u-slogan{
+  text-shadow: 0 14px 30px rgba(0,0,0,0.42);
 }
 
 /* ---------- Paper textures ---------- */
@@ -433,6 +482,7 @@ body.mode-free.paper-3 .paper-overlay{
     0 11px 24px rgba(0,0,0,0.11),
     inset 0 1px 0 rgba(255,255,255,0.90);
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  text-align: center;               /* v407.1 */
 }
 .btn-neo:hover{
   transform: translateY(-1px);
@@ -467,6 +517,7 @@ body.mode-premium .btn-neo{
   color: rgba(255,255,255,0.92);
   box-shadow: 0 14px 30px rgba(0,0,0,0.45);
   backdrop-filter: blur(10px);
+  text-align: center;               /* v407.1 */
 }
 body.mode-premium .btn-neo::after{
   content:"";
@@ -497,6 +548,7 @@ body.mode-premium .btn-neo.active{
   letter-spacing: 0.5px;
   box-shadow: 0 18px 34px rgba(0,0,0,0.16);
   cursor:pointer;
+  text-align:center;                 /* v407.1: 預約/填表/分享字置中 */
 }
 .btn-cta:active{ transform: scale(0.99); }
 
@@ -513,6 +565,7 @@ body.mode-premium .btn-neo.active{
     linear-gradient(135deg, rgba(255,233,168,0.80), rgba(191,149,63,0.90));
   color:#1a1408;
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  text-align:center;                 /* v407.1 */
 }
 body.mode-premium .btn-share{
   color: rgba(255,255,255,0.95);
@@ -535,8 +588,6 @@ body.mode-premium .btn-share{
   transition: transform .12s ease;
   position: relative;
 }
-
-/* bigger tap target without changing visual */
 .dot::before, .p-dot::before{
   content:"";
   position:absolute;
@@ -546,7 +597,6 @@ body.mode-premium .btn-share{
   border-radius: 999px;
   background: transparent;
 }
-
 .dot.active,.p-dot.active{ transform: scale(1.18); }
 
 .dot-1{ background:#ff5f7b; }
@@ -558,18 +608,44 @@ body.mode-premium .btn-share{
 .p2{ background:#722f37; }
 .p3{ background:#1c2e42; }
 .p4{ background:#5e548e; }
-.p5{ background:#8aa0b6; }
+.p5{ background: linear-gradient(135deg, rgba(255,233,168,0.55), rgba(191,149,63,0.55), rgba(255,255,255,0.12)); } /* v407.1 gold foil dot */
 .p6{ background:#bf953f; }
 .p7{ background:#5a4a3f; }
 
-/* ---------- Blocks ---------- */
+/* ---------- Blocks (v407.1: Free frame decoration) ---------- */
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
   padding: 12px 12px;
   border: 1px solid rgba(0,0,0,0.06);
   background: rgba(255,255,255,0.74);
+  position: relative;
+  overflow: hidden;
 }
+
+/* Free only: subtle framed corners + inner glow */
+body.mode-free .info-block::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  background:
+    radial-gradient(14px 14px at 14px 14px, rgba(255,255,255,0.70), transparent 70%),
+    radial-gradient(14px 14px at calc(100% - 14px) 14px, rgba(255,255,255,0.62), transparent 70%),
+    radial-gradient(14px 14px at 14px calc(100% - 14px), rgba(255,255,255,0.62), transparent 70%),
+    radial-gradient(14px 14px at calc(100% - 14px) calc(100% - 14px), rgba(255,255,255,0.70), transparent 70%);
+  opacity: .95;
+}
+body.mode-free .info-block::after{
+  content:"";
+  position:absolute; inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
+  opacity: .60;
+}
+
 .block-title{
   font-weight: 900;
   letter-spacing: 0.5px;
@@ -597,14 +673,31 @@ body.mode-premium .block-body{
   color: rgba(255,255,255,0.84);
 }
 
-/* ---------- Docks ---------- */
+/* ---------- Docks (v407.1: contact deco + color-linked text) ---------- */
 .contact-dock{
   margin-top: 12px;
   border-radius: 18px;
   padding: 10px;
   border: 1px solid rgba(0,0,0,0.06);
   background: rgba(255,255,255,0.70);
+  position: relative;
+  overflow: hidden;
 }
+
+/* small decoration ribbon */
+.contact-dock::before{
+  content:"";
+  position:absolute;
+  left:-40px; top:-40px;
+  width:140px; height:140px;
+  border-radius: 999px;
+  background:
+    radial-gradient(closest-side, rgba(255,255,255,0.70), transparent 70%),
+    radial-gradient(closest-side, rgba(0,0,0,0.06), transparent 72%);
+  opacity: .65;
+  pointer-events:none;
+}
+
 .dock-title{
   font-weight:900;
   font-size:13px;
@@ -628,17 +721,38 @@ body.mode-premium .block-body{
   border: 1px solid rgba(0,0,0,0.12);
   background:
     linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.86));
-  color: var(--ink);
+
+  /* v407.1: text color link with selected color */
+  color: var(--accentText);
+
   font-weight: 900;
   box-shadow:
     0 12px 22px rgba(0,0,0,0.10),
     inset 0 1px 0 rgba(255,255,255,0.90);
   cursor:pointer;
+
+  text-align:center; /* safety */
 }
 .dock-btn:active{ transform: scale(0.99); }
 .dock-btn i{ font-size: 17px; }
 .dock-btn span{ font-size: 13px; letter-spacing: 0.3px; }
 .dock-btn.wide{ grid-column: 1 / -1; }
+
+/* a tiny accent underline */
+.dock-btn::after{
+  content:"";
+  position:absolute;
+  left:14px; right:14px;
+  bottom:8px;
+  height:2px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(0,0,0,0.00), rgba(0,0,0,0.06), rgba(0,0,0,0.00));
+  opacity:.55;
+}
+body.mode-free .dock-btn::after{
+  background: linear-gradient(90deg, rgba(0,0,0,0.00), rgba(0,0,0,0.06), rgba(0,0,0,0.00));
+}
+body.mode-premium .dock-btn::after{ display:none; }
 
 body.mode-premium .contact-dock{
   background: rgba(10,12,18,0.18);
@@ -654,7 +768,7 @@ body.mode-premium .dock-btn{
   color: rgba(255,255,255,0.92);
   box-shadow: 0 18px 35px rgba(0,0,0,0.55);
 }
-body.mode-premium .dock-btn::after{
+body.mode-premium .dock-btn::before{
   content:"";
   position:absolute; inset:-1px;
   border-radius: inherit;
