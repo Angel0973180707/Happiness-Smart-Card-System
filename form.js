@@ -1,5 +1,5 @@
 /* ================================
- * form.js — v407.1 (COMPLETE OVERWRITE)
+ * form.js — v408 (COMPLETE OVERWRITE)
  * - 延續 v406.2 功能不變
  * - ✅ 隱形 Debug（長按版）：長按「v407-UI｜極簡精品表單」(brand-sub) 1.2 秒 → 開/關 Debug 面板
  *   - 也支援網址 ?debug=1 直接開
