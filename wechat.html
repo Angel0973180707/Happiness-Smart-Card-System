@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -43,41 +42,14 @@ body{
   align-items:center;
   justify-content:center;
 }
+.avatar img{ width:100%; height:100%; object-fit:cover; }
 
-.avatar img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
+.name{ font-size:42px; font-weight:700; margin-bottom:10px; }
+.title{ font-size:22px; color:var(--sub); margin-bottom:40px; }
 
-.name{
-  font-size:42px;
-  font-weight:700;
-  margin-bottom:10px;
-}
-
-.title{
-  font-size:22px;
-  color:var(--sub);
-  margin-bottom:40px;
-}
-
-.section{
-  margin-bottom:40px;
-  text-align:left;
-}
-
-.section h3{
-  font-size:20px;
-  margin-bottom:12px;
-  opacity:.85;
-}
-
-.section p{
-  font-size:18px;
-  line-height:1.6;
-  margin-bottom:6px;
-}
+.section{ margin-bottom:40px; text-align:left; }
+.section h3{ font-size:20px; margin-bottom:12px; opacity:.85; }
+.section p{ font-size:18px; line-height:1.6; margin-bottom:6px; }
 
 .button{
   display:block;
@@ -90,32 +62,21 @@ body{
   border:none;
   cursor:pointer;
   text-decoration:none;
+  user-select:none;
+  -webkit-tap-highlight-color: transparent;
 }
+.primary{ background:#ffffff; color:#3E2F6F; }
+.secondary{ background:rgba(255,255,255,0.15); color:#fff; }
+.button[aria-disabled="true"]{ opacity:.55; pointer-events:none; }
 
-.primary{
-  background:#ffffff;
-  color:#3E2F6F;
-}
-
-.secondary{
-  background:rgba(255,255,255,0.15);
-  color:#fff;
-}
-
-.footer{
-  margin-top:60px;
-  font-size:14px;
-  opacity:.7;
-}
+.footer{ margin-top:60px; font-size:14px; opacity:.7; }
 </style>
 </head>
-<body>
 
+<body>
 <div class="wrapper">
 
-  <div class="avatar" id="avatarBox">
-    <!-- 可動態插入頭像 -->
-  </div>
+  <div class="avatar" id="avatarBox"></div>
 
   <div class="name" id="name">幸福智慧名片</div>
   <div class="title" id="title">Angel Smart Card</div>
@@ -125,7 +86,8 @@ body{
     <div id="serviceContent"></div>
   </div>
 
-  <a id="btnOpen" class="button primary" href="https://lin.ee/G3VJoRm" target="_blank">
+  <!-- v406.2：依 status 切換 -->
+  <a id="btnMain" class="button primary" href="https://lin.ee/G3VJoRm" target="_blank" rel="noopener noreferrer">
     聯繫開通
   </a>
 
@@ -140,14 +102,22 @@ body{
 </div>
 
 <script>
+/** ============ Config（你已給我填好） ============ */
 const BASE = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
-const GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+const OPEN = BASE + "open.html"; // 中繼頁（查 GAS → 再跳名片）
+const GAS  = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+const LINE_OA = "https://lin.ee/G3VJoRm";
 
-const url = new URLSearchParams(location.search);
-const id = url.get("id");
-const plan = url.get("plan");
-const p = url.get("p");
-const c = url.get("c");
+/** 收費閘門：哪些 status 視為可開啟 */
+const ALLOW_STATUSES = new Set(["active","on","enabled","paid"]);
+
+/** ============ Helpers ============ */
+const qs = (id)=>document.getElementById(id);
+function getParam(name){
+  const u = new URL(location.href);
+  return (u.searchParams.get(name) || "").trim();
+}
+function safeText(v){ return (v==null?"":String(v)).trim(); }
 
 function setPremiumColor(code){
   const map={
@@ -165,51 +135,159 @@ function setPremiumColor(code){
   }
 }
 
-if(plan==="2" && p){
-  setPremiumColor(p);
+// 自由款色（你若要更精準，我可再做一套 map）
+function setFreeColor(code){
+  const map={
+    c1:["#ee5253","#ff7a7a"], // 粉
+    c2:["#1e60ff","#63a5ff"], // 藍
+    c3:["#ff8a00","#ffb35c"], // 橘
+    c4:["#7c3aed","#a78bfa"], // 紫
+    c5:["#16a34a","#86efac"]  // 綠
+  };
+  if(map[code]){
+    document.documentElement.style.setProperty('--bg1',map[code][0]);
+    document.documentElement.style.setProperty('--bg2',map[code][1]);
+  }
 }
 
-if(id){
-  fetch(GAS+"?action=card&id="+id)
-  .then(r=>r.json())
-  .then(data=>{
-    if(!data || !data.ok) return;
-
-    const d = data;
-
-    if(d["姓名"]){
-      document.getElementById("name").textContent=d["姓名"];
-    }
-    if(d["頭銜"]){
-      document.getElementById("title").textContent=d["頭銜"];
-    }
-
-    if(d["服務項目"]){
-      document.getElementById("serviceSection").style.display="";
-      const lines=d["服務項目"].split(/\\n|,/);
-      const box=document.getElementById("serviceContent");
-      lines.forEach(t=>{
-        const p=document.createElement("p");
-        p.textContent="• "+t.trim();
-        box.appendChild(p);
-      });
-    }
-
-    if(d.avatar_img){
-      const img=document.createElement("img");
-      img.src=d.avatar_img;
-      document.getElementById("avatarBox").appendChild(img);
-    }
-
-  }).catch(()=>{});
+function clearNode(el){
+  while(el && el.firstChild) el.removeChild(el.firstChild);
 }
 
-document.getElementById("btnCopy").addEventListener("click",()=>{
-  const link=BASE+"?id="+id;
-  navigator.clipboard.writeText(link);
-  alert("已複製名片網址");
+async function fetchJson(url){
+  const res = await fetch(url, { method:"GET", cache:"no-store" });
+  const txt = await res.text();
+  try{ return JSON.parse(txt); }catch{ return null; }
+}
+
+/** ============ Params ============ */
+const id = getParam("id");
+const planParam = getParam("plan"); // "1" / "2"
+const pParam = getParam("p");       // p1~p7
+const cParam = getParam("c");       // c1~c5
+
+// 先用網址參數做底色（若有）
+if(planParam === "2" && pParam) setPremiumColor(pParam);
+if(planParam === "1" && cParam) setFreeColor(cParam);
+
+/** ============ UI: Buttons ============ */
+function setBtnLocked(){
+  const btn = qs("btnMain");
+  btn.textContent = "聯繫開通";
+  btn.href = LINE_OA;
+  btn.target = "_blank";
+  btn.rel = "noopener noreferrer";
+  btn.setAttribute("aria-disabled","false");
+}
+
+function setBtnActive(){
+  const btn = qs("btnMain");
+  btn.textContent = "開啟名片";
+  // 走 open.html（讓你統一用 GAS 判斷/導向）
+  btn.href = `${OPEN}?id=${encodeURIComponent(id)}`;
+  btn.target = "_self";
+  btn.removeAttribute("rel");
+  btn.setAttribute("aria-disabled","false");
+}
+
+function setBtnDisabled(){
+  const btn = qs("btnMain");
+  btn.textContent = "請帶入名片代碼";
+  btn.href = "javascript:void(0);";
+  btn.setAttribute("aria-disabled","true");
+}
+
+/** ============ Boot ============ */
+(async function boot(){
+  if(!id){
+    setBtnDisabled();
+    return;
+  }
+
+  // 讀 GAS
+  const api = `${GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+  const data = await fetchJson(api);
+
+  // 若被擋 / 非 JSON
+  if(!data){
+    // 先不炸：保持「聯繫開通」
+    setBtnLocked();
+    return;
+  }
+
+  // 若 GAS 明確回 ok:false
+  if(data.ok === false){
+    setBtnLocked();
+    return;
+  }
+
+  // ✅ 這裡是重點：成功時「不一定有 ok:true」，所以直接當作資料物件使用
+  const d = data;
+
+  // 名字/頭銜
+  const name = safeText(d["姓名"]);
+  const title = safeText(d["頭銜"]);
+  if(name) qs("name").textContent = name;
+  if(title) qs("title").textContent = title;
+
+  // 服務項目
+  const service = safeText(d["服務項目"]);
+  if(service){
+    qs("serviceSection").style.display = "";
+    const box = qs("serviceContent");
+    clearNode(box);
+    const lines = service.split(/\n|,|，|;|；/).map(s=>s.trim()).filter(Boolean);
+    lines.forEach(t=>{
+      const p=document.createElement("p");
+      p.textContent="• " + t;
+      box.appendChild(p);
+    });
+  }
+
+  // 頭像：優先「個人照」，其次 avatar（你 GAS 兼容輸出）
+  const avatarUrl = safeText(d["個人照"] || d.avatar || "");
+  if(avatarUrl){
+    const img=document.createElement("img");
+    img.src=avatarUrl;
+    img.alt="avatar";
+    clearNode(qs("avatarBox"));
+    qs("avatarBox").appendChild(img);
+  }
+
+  // 底色連動：若網址沒帶，就用表內選擇值
+  if(!(planParam === "2" && pParam) && !(planParam === "1" && cParam)){
+    const planSheet = safeText(d["選擇名片製作方案"]);
+    const pSheet = safeText(d["選擇精品底色"]);
+    const cSheet = safeText(d["選擇名片顏色"]);
+
+    if(planSheet === "2" && pSheet) setPremiumColor(pSheet);
+    if(planSheet === "1" && cSheet) setFreeColor(cSheet);
+  }
+
+  // 收費閘門：status
+  const status = safeText(d.status).toLowerCase();
+  if(ALLOW_STATUSES.has(status)){
+    setBtnActive();
+  }else{
+    setBtnLocked();
+  }
+})();
+
+/** Copy */
+qs("btnCopy").addEventListener("click", async ()=>{
+  if(!id){
+    alert("缺少 id，無法複製名片網址");
+    return;
+  }
+  const link = BASE + "?id=" + encodeURIComponent(id);
+  try{
+    await navigator.clipboard.writeText(link);
+    alert("已複製名片網址");
+  }catch{
+    // fallback
+    prompt("請長按複製名片網址：", link);
+  }
 });
 </script>
-
 </body>
 </html>
