@@ -1,1 +1,215 @@
-wechat.
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Angel WeChat Card</title>
+
+<style>
+:root{
+  --bg1:#3E2F6F;
+  --bg2:#5E4B8B;
+  --text:#ffffff;
+  --sub:#e7e1ff;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+  background:linear-gradient(180deg,var(--bg1),var(--bg2));
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+}
+
+.wrapper{
+  width:100%;
+  max-width:720px;
+  padding:60px 28px 80px;
+  text-align:center;
+}
+
+.avatar{
+  width:180px;
+  height:180px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.15);
+  margin:0 auto 28px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+.name{
+  font-size:42px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+.title{
+  font-size:22px;
+  color:var(--sub);
+  margin-bottom:40px;
+}
+
+.section{
+  margin-bottom:40px;
+  text-align:left;
+}
+
+.section h3{
+  font-size:20px;
+  margin-bottom:12px;
+  opacity:.85;
+}
+
+.section p{
+  font-size:18px;
+  line-height:1.6;
+  margin-bottom:6px;
+}
+
+.button{
+  display:block;
+  width:100%;
+  padding:18px;
+  margin-top:18px;
+  border-radius:14px;
+  font-size:20px;
+  font-weight:600;
+  border:none;
+  cursor:pointer;
+  text-decoration:none;
+}
+
+.primary{
+  background:#ffffff;
+  color:#3E2F6F;
+}
+
+.secondary{
+  background:rgba(255,255,255,0.15);
+  color:#fff;
+}
+
+.footer{
+  margin-top:60px;
+  font-size:14px;
+  opacity:.7;
+}
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <div class="avatar" id="avatarBox">
+    <!-- 可動態插入頭像 -->
+  </div>
+
+  <div class="name" id="name">幸福智慧名片</div>
+  <div class="title" id="title">Angel Smart Card</div>
+
+  <div class="section" id="serviceSection" style="display:none;">
+    <h3>服務項目</h3>
+    <div id="serviceContent"></div>
+  </div>
+
+  <a id="btnOpen" class="button primary" href="https://lin.ee/G3VJoRm" target="_blank">
+    聯繫開通
+  </a>
+
+  <a id="btnCopy" class="button secondary" href="javascript:void(0);">
+    複製名片網址
+  </a>
+
+  <div class="footer">
+    © Angel0973180707 / Happiness Smart Card System
+  </div>
+
+</div>
+
+<script>
+const BASE = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+const GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+const url = new URLSearchParams(location.search);
+const id = url.get("id");
+const plan = url.get("plan");
+const p = url.get("p");
+const c = url.get("c");
+
+function setPremiumColor(code){
+  const map={
+    p1:["#7A2E3A","#B5455C"],
+    p2:["#5C1F2B","#9E364F"],
+    p3:["#0F2A4A","#1F4C7C"],
+    p4:["#3E2F6F","#5E4B8B"],
+    p5:["#3C4B6E","#64799C"],
+    p6:["#9E8A5A","#D4B45F"],
+    p7:["#3C2F28","#5E463A"]
+  };
+  if(map[code]){
+    document.documentElement.style.setProperty('--bg1',map[code][0]);
+    document.documentElement.style.setProperty('--bg2',map[code][1]);
+  }
+}
+
+if(plan==="2" && p){
+  setPremiumColor(p);
+}
+
+if(id){
+  fetch(GAS+"?action=card&id="+id)
+  .then(r=>r.json())
+  .then(data=>{
+    if(!data || !data.ok) return;
+
+    const d = data;
+
+    if(d["姓名"]){
+      document.getElementById("name").textContent=d["姓名"];
+    }
+    if(d["頭銜"]){
+      document.getElementById("title").textContent=d["頭銜"];
+    }
+
+    if(d["服務項目"]){
+      document.getElementById("serviceSection").style.display="";
+      const lines=d["服務項目"].split(/\\n|,/);
+      const box=document.getElementById("serviceContent");
+      lines.forEach(t=>{
+        const p=document.createElement("p");
+        p.textContent="• "+t.trim();
+        box.appendChild(p);
+      });
+    }
+
+    if(d.avatar_img){
+      const img=document.createElement("img");
+      img.src=d.avatar_img;
+      document.getElementById("avatarBox").appendChild(img);
+    }
+
+  }).catch(()=>{});
+}
+
+document.getElementById("btnCopy").addEventListener("click",()=>{
+  const link=BASE+"?id="+id;
+  navigator.clipboard.writeText(link);
+  alert("已複製名片網址");
+});
+</script>
+
+</body>
+</html>
