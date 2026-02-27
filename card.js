@@ -1,5 +1,5 @@
 /* ================================
- * card.js (v407 COMPLETE OVERWRITE)
+ * card.js (v408 COMPLETE OVERWRITE)
  * - Loading skeleton + fade-in
  * - Robust data key normalize
  * - Service -> bullet
