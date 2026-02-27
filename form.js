@@ -1,17 +1,9 @@
 /* ================================
- * form.js — v406.2 (COMPLETE OVERWRITE)
- * - 固定 GAS / BASE / LINE_OA（不靠 UI）
- * - 方案分流：1=free (c/s/f), 2=premium (p)
- * - 送出：POST → 優先 JSON（?action=create）
- *   - 若 GAS 不吃 JSON，fallback：FormData（不手動設 Content-Type）
- * - 成功後：顯示三條交貨連結
- *   1) card_url   (GitHub ?id=)
- *   2) wechat_url (wechat.html?id=...&plan=...&p=...&c=...)
- *   3) open_url   (open.html?id=...)  ← 提高打開機率
- * - 隱形 debug：
- *   - 預設不顯示
- *   - ?debug=1 / true 顯示
- *   - 或長按 header brand 1.2s 切換顯示
+ * form.js — v407.1 (COMPLETE OVERWRITE)
+ * - 延續 v406.2 功能不變
+ * - ✅ 隱形 Debug（長按版）：長按「v407-UI｜極簡精品表單」(brand-sub) 1.2 秒 → 開/關 Debug 面板
+ *   - 也支援網址 ?debug=1 直接開
+ * - Debug 面板：只給你自己看（顧客不會看到）
  * ================================ */
 
 /** ====== 固定參數（已填好） ====== */
@@ -32,147 +24,16 @@ const state = {
 const qs = (id) => document.getElementById(id);
 const text = (v) => (v == null ? "" : String(v)).trim();
 
-/** ====== debug (hidden) ======
- * - URL ?debug=1|true 直接顯示
- * - 長按 header brand 1.2 秒切換
- */
-function getParam_(name){
-  try{
-    const u = new URL(location.href);
-    return (u.searchParams.get(name) || "").trim();
-  }catch{
-    return "";
-  }
-}
-const DEBUG_FORCE = (() => {
-  const v = getParam_("debug");
-  return v === "1" || String(v).toLowerCase() === "true";
-})();
-let DEBUG_ON = DEBUG_FORCE;
-
-let __debugLast = {
-  at: "",
-  phase: "",
-  requestUrl: "",
-  requestMode: "",
-  requestBodyPreview: "",
-  responseRaw: "",
-  responseJson: null,
-  error: ""
-};
-
-function ensureDebugPanel_(){
-  if (qs("debugPanel")) return;
-
-  const wrap = document.createElement("div");
-  wrap.id = "debugPanel";
-  wrap.style.cssText = `
-    position:fixed; left:12px; right:12px; bottom:12px;
-    background:rgba(0,0,0,.72); color:#fff;
-    border:1px solid rgba(255,255,255,.18);
-    border-radius:14px; padding:12px;
-    z-index:9999; font-size:12px; line-height:1.5;
-    max-height:42vh; overflow:auto;
-    display:none;
-  `;
-
-  const hd = document.createElement("div");
-  hd.style.cssText = `display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;`;
-  hd.innerHTML = `
-    <div style="font-weight:800; letter-spacing:.3px;">DEBUG（長按 header 切換）</div>
-    <button id="debugCloseBtn" style="
-      appearance:none;border:0;border-radius:10px;
-      padding:6px 10px; font-weight:800; cursor:pointer;
-    ">關閉</button>
-  `;
-
-  const pre = document.createElement("pre");
-  pre.id = "debugPre";
-  pre.style.cssText = `
-    white-space:pre-wrap; word-break:break-word;
-    margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  `;
-
-  wrap.appendChild(hd);
-  wrap.appendChild(pre);
-  document.body.appendChild(wrap);
-
-  qs("debugCloseBtn").addEventListener("click", ()=>{
-    DEBUG_ON = false;
-    renderDebug_();
-  });
-}
-
-function setDebug_(patch){
-  __debugLast = Object.assign({}, __debugLast, patch || {});
-  renderDebug_();
-}
-
-function renderDebug_(){
-  ensureDebugPanel_();
-  const panel = qs("debugPanel");
-  const pre = qs("debugPre");
-  if(!panel || !pre) return;
-
-  if(!DEBUG_ON){
-    panel.style.display = "none";
+function toast_(msg){
+  // 你目前表單有 msg 區塊就用它；沒有就用 alert
+  const el = qs("msg");
+  if (el){
+    el.textContent = msg || "";
     return;
   }
-  panel.style.display = "block";
-
-  const j = __debugLast.responseJson ? JSON.stringify(__debugLast.responseJson, null, 2) : "";
-  pre.textContent =
-`time: ${__debugLast.at}
-phase: ${__debugLast.phase}
-
-requestUrl: ${__debugLast.requestUrl}
-requestMode: ${__debugLast.requestMode}
-
-requestBodyPreview:
-${__debugLast.requestBodyPreview}
-
-responseRaw:
-${__debugLast.responseRaw}
-
-responseJson:
-${j}
-
-error:
-${__debugLast.error}
-`;
+  if (msg) alert(msg);
 }
 
-function bindHiddenDebugLongPress_(){
-  // 長按 header brand 1.2 秒切換
-  const brand = document.querySelector(".brand") || document.querySelector("header.top") || document.body;
-  if(!brand) return;
-
-  let t = null;
-  const holdMs = 1200;
-
-  const start = () => {
-    if (t) clearTimeout(t);
-    t = setTimeout(() => {
-      DEBUG_ON = !DEBUG_ON;
-      renderDebug_();
-      t = null;
-    }, holdMs);
-  };
-  const end = () => {
-    if (t) clearTimeout(t);
-    t = null;
-  };
-
-  brand.addEventListener("touchstart", start, { passive:true });
-  brand.addEventListener("touchend", end, { passive:true });
-  brand.addEventListener("touchcancel", end, { passive:true });
-
-  brand.addEventListener("mousedown", start);
-  brand.addEventListener("mouseup", end);
-  brand.addEventListener("mouseleave", end);
-}
-
-/** ====== UI ====== */
 function setPlan(plan){
   state.plan = (plan === "2") ? "2" : "1";
   qs("btnPlan1")?.classList.toggle("active", state.plan === "1");
@@ -202,10 +63,6 @@ function bindPlan(){
   qs("btnPlan2")?.addEventListener("click", ()=>setPlan("2"));
 }
 
-function must_(cond, msg){
-  if(!cond) throw new Error(msg);
-}
-
 /** ====== URL builders ====== */
 function buildCardUrl(id){
   return `${BASE}?id=${encodeURIComponent(id)}`;
@@ -222,11 +79,11 @@ function buildWeChatUrl(id){
   return u.toString();
 }
 
-/** ====== payload fields（對齊你最新表頭） ====== */
+/** ====== payload fields (對齊你目前表頭命名) ====== */
 function buildFields_(){
   const wechatId = text(qs("wechat")?.value);
 
-  const fields = {
+  return {
     // 方案
     "選擇名片製作方案": state.plan,
     "選擇名片顏色": state.plan === "1" ? state.c : "",
@@ -242,7 +99,7 @@ function buildFields_(){
     "服務項目": text(qs("service")?.value),
     "經歷": text(qs("exp")?.value),
 
-    // 聯繫（你表頭是 微信ID）
+    // 聯繫
     "微信ID": wechatId,
     "微信": wechatId, // 相容舊欄位（保險）
     "LINE連結": text(qs("lineLink")?.value),
@@ -251,83 +108,245 @@ function buildFields_(){
     "電話": text(qs("phone")?.value),
     "地址": text(qs("addr")?.value),
 
-    // 影音 / 社群（你表頭是 影音連結1/2/3、社群連結1/2/3）
-    "影音連結1": text(qs("media1")?.value),
-    "影音連結2": text(qs("media2")?.value),
-    "影音連結3": text(qs("media3")?.value),
-    "社群連結1": text(qs("social1")?.value),
-    "社群連結2": text(qs("social2")?.value),
-    "社群連結3": text(qs("social3")?.value),
+    // 平台（保留欄位，不會壞）
+    "影音平台1": text(qs("media1")?.value),
+    "影音平台2": text(qs("media2")?.value),
+    "影音平台3": text(qs("media3")?.value),
+    "社群平台1": text(qs("social1")?.value),
+    "社群平台2": text(qs("social2")?.value),
+    "社群平台3": text(qs("social3")?.value),
+  };
+}
+
+function must_(cond, msg){
+  if(!cond) throw new Error(msg);
+}
+
+/** ====== Debug (隱形面板) ====== */
+const DBG = (() => {
+  const u = new URL(location.href);
+  const q = (u.searchParams.get("debug") || "").trim();
+  const fromQuery = (q === "1" || q.toLowerCase() === "true");
+  const fromSession = sessionStorage.getItem("__angel_form_debug") === "1";
+  return { on: fromQuery || fromSession };
+})();
+
+let __dbgPanel = null;
+let __dbgLogBox = null;
+let __dbgStateBox = null;
+let __dbgLast = { url:"", req:null, resText:"", resJson:null, err:"" };
+
+function dbgEnable_(on){
+  DBG.on = !!on;
+  sessionStorage.setItem("__angel_form_debug", DBG.on ? "1" : "0");
+  if (DBG.on) dbgEnsurePanel_();
+  if (__dbgPanel) __dbgPanel.style.display = DBG.on ? "" : "none";
+  dbgState_();
+  if (DBG.on) dbgLog_("DEBUG ON");
+}
+
+function dbgEnsurePanel_(){
+  if (__dbgPanel) return;
+
+  const panel = document.createElement("div");
+  panel.id = "dbgPanel";
+  panel.style.cssText = [
+    "position:fixed",
+    "left:12px",
+    "right:12px",
+    "bottom:12px",
+    "z-index:99999",
+    "background:rgba(10,14,20,.92)",
+    "border:1px solid rgba(255,255,255,.16)",
+    "border-radius:16px",
+    "padding:12px",
+    "box-shadow:0 14px 50px rgba(0,0,0,.55)",
+    "backdrop-filter:blur(10px)",
+    "color:#e5e7eb",
+    "font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace",
+    "display:none",
+    "max-height:46vh",
+    "overflow:hidden"
+  ].join(";");
+
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="font-weight:800;letter-spacing:.4px;">Angel Debug</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <button type="button" data-act="copyReq" style="${dbgBtnCss_()}">Copy req</button>
+        <button type="button" data-act="copyRes" style="${dbgBtnCss_()}">Copy res</button>
+        <button type="button" data-act="clear"   style="${dbgBtnCss_()}">Clear</button>
+        <button type="button" data-act="close"   style="${dbgBtnCss_()}">Close</button>
+      </div>
+    </div>
+    <div id="dbgState" style="margin-top:8px;font-size:12px;opacity:.85;white-space:pre-wrap;"></div>
+    <div id="dbgLog" style="margin-top:8px;font-size:12px;line-height:1.45;overflow:auto;max-height:26vh;border-top:1px dashed rgba(255,255,255,.16);padding-top:8px;"></div>
+  `;
+
+  document.body.appendChild(panel);
+  __dbgPanel = panel;
+  __dbgLogBox = panel.querySelector("#dbgLog");
+  __dbgStateBox = panel.querySelector("#dbgState");
+
+  panel.addEventListener("click", async (e)=>{
+    const btn = e.target.closest("button[data-act]");
+    if(!btn) return;
+    const act = btn.getAttribute("data-act");
+
+    if (act === "close"){
+      dbgEnable_(false);
+      return;
+    }
+    if (act === "clear"){
+      if (__dbgLogBox) __dbgLogBox.textContent = "";
+      return;
+    }
+    if (act === "copyReq"){
+      const payload = __dbgLast?.req ? JSON.stringify(__dbgLast.req, null, 2) : "";
+      await dbgCopy_(payload || "(empty req)");
+      dbgLog_("copied req");
+      return;
+    }
+    if (act === "copyRes"){
+      const payload = __dbgLast?.resJson
+        ? JSON.stringify(__dbgLast.resJson, null, 2)
+        : (__dbgLast?.resText || "");
+      await dbgCopy_(payload || "(empty res)");
+      dbgLog_("copied res");
+      return;
+    }
+  });
+}
+
+function dbgBtnCss_(){
+  return [
+    "appearance:none",
+    "border:1px solid rgba(255,255,255,.18)",
+    "background:rgba(255,255,255,.06)",
+    "color:#e5e7eb",
+    "padding:8px 10px",
+    "border-radius:12px",
+    "font-weight:800",
+    "cursor:pointer",
+    "font-size:12px"
+  ].join(";");
+}
+
+async function dbgCopy_(txt){
+  try{
+    await navigator.clipboard.writeText(txt);
+    return true;
+  }catch{
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = txt;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand("copy"); }catch{}
+    ta.remove();
+    return true;
+  }
+}
+
+function dbgLog_(msg){
+  if(!DBG.on) return;
+  dbgEnsurePanel_();
+  const line = document.createElement("div");
+  const t = new Date();
+  const hh = String(t.getHours()).padStart(2,"0");
+  const mm = String(t.getMinutes()).padStart(2,"0");
+  const ss = String(t.getSeconds()).padStart(2,"0");
+  line.textContent = `[${hh}:${mm}:${ss}] ${msg}`;
+  __dbgLogBox?.appendChild(line);
+  if (__dbgLogBox) __dbgLogBox.scrollTop = __dbgLogBox.scrollHeight;
+}
+
+function dbgState_(){
+  if(!DBG.on) return;
+  dbgEnsurePanel_();
+  const s = [
+    `plan=${state.plan}  c=${state.c}  s=${state.s}  f=${state.f}  p=${state.p}`,
+    `GAS=${GAS}`,
+    `BASE=${BASE}`,
+  ].join("\n");
+  if (__dbgStateBox) __dbgStateBox.textContent = s;
+}
+
+/** 長按觸發（brand-sub） */
+function bindLongPressDebug_(){
+  const el = document.querySelector(".brand-sub");
+  if(!el) return;
+
+  let timer = null;
+  const HOLD_MS = 1200;
+  const start = (e)=>{
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(()=>{
+      dbgEnable_(!DBG.on);
+    }, HOLD_MS);
+  };
+  const end = ()=>{
+    if (timer) clearTimeout(timer);
+    timer = null;
   };
 
-  return fields;
+  el.addEventListener("touchstart", start, { passive:true });
+  el.addEventListener("touchend", end);
+  el.addEventListener("touchcancel", end);
+
+  el.addEventListener("mousedown", start);
+  el.addEventListener("mouseup", end);
+  el.addEventListener("mouseleave", end);
 }
 
 /** ====== POST helpers ====== */
 async function postCreateJson_(fields){
   const url = `${GAS}?action=create`;
-  const bodyObj = { fields };
-  const bodyStr = JSON.stringify(bodyObj);
+  const reqObj = { fields };
+  __dbgLast.url = url;
+  __dbgLast.req = reqObj;
 
-  setDebug_({
-    at: new Date().toISOString(),
-    phase: "POST JSON",
-    requestUrl: url,
-    requestMode: "json",
-    requestBodyPreview: bodyStr.slice(0, 1500),
-    responseRaw: "",
-    responseJson: null,
-    error: ""
-  });
+  dbgLog_(`POST JSON → ${url}`);
 
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type":"application/json" },
-    body: bodyStr
+    body: JSON.stringify(reqObj),
   });
 
   const txt = await res.text();
+  __dbgLast.resText = txt;
+
   let data = null;
   try { data = JSON.parse(txt); } catch { data = null; }
+  __dbgLast.resJson = data;
 
-  setDebug_({
-    responseRaw: txt.slice(0, 4000),
-    responseJson: data
-  });
-
+  dbgLog_(`JSON res (${res.status}) parsed=${!!data}`);
   return data;
 }
 
 async function postCreateFormData_(fields){
-  // ✅ 不要手動設 Content-Type，讓瀏覽器自己帶 boundary
+  // ✅ 不手動設定 multipart/form-data Content-Type（讓瀏覽器自己加 boundary）
   const fd = new FormData();
   fd.append("action", "create");
   Object.keys(fields).forEach(k => fd.append(k, fields[k] || ""));
 
-  // preview
-  const preview = Object.keys(fields).slice(0, 50).map(k => `${k}=${String(fields[k] || "").slice(0, 60)}`).join("\n");
+  __dbgLast.url = GAS;
+  __dbgLast.req = { action:"create", fields };
 
-  setDebug_({
-    at: new Date().toISOString(),
-    phase: "POST FormData (fallback)",
-    requestUrl: GAS,
-    requestMode: "formdata",
-    requestBodyPreview: preview,
-    responseRaw: "",
-    responseJson: null,
-    error: ""
-  });
+  dbgLog_(`POST FormData → ${GAS}`);
 
   const res = await fetch(GAS, { method:"POST", body: fd });
   const txt = await res.text();
+  __dbgLast.resText = txt;
+
   let data = null;
   try { data = JSON.parse(txt); } catch { data = null; }
+  __dbgLast.resJson = data;
 
-  setDebug_({
-    responseRaw: txt.slice(0, 4000),
-    responseJson: data
-  });
-
+  dbgLog_(`FormData res (${res.status}) parsed=${!!data}`);
   return data;
 }
 
@@ -337,16 +356,14 @@ function showResult_(id){
   const wechatUrl = buildWeChatUrl(id);
   const openUrl   = buildOpenUrl(id);
 
-  if (qs("resultBox")) qs("resultBox").style.display = "";
+  qs("resultBox").style.display = "";
 
-  // 你原本就有的
   const a1 = qs("rCardUrl");
   if (a1){
     a1.textContent = cardUrl;
     a1.href = cardUrl;
   }
 
-  // 你要在 form.html 補這兩個 id（rWechatUrl / rOpenUrl）
   const a2 = qs("rWechatUrl");
   if (a2){
     a2.textContent = wechatUrl;
@@ -359,109 +376,115 @@ function showResult_(id){
     a3.href = openUrl;
   }
 
-  // 同時把 id/token 顯示（如果存在）
-  if (qs("rId")) qs("rId").textContent = id;
+  // 交貨按鈕（若你前端仍保留）
+  qs("btnCopyCard")?.removeAttribute("disabled");
+  qs("btnShareCard")?.removeAttribute("disabled");
 
-  // 交貨按鈕（如果你有）
-  if (qs("btnCopyCard")) qs("btnCopyCard").disabled = false;
-  if (qs("btnShareCard")) qs("btnShareCard").disabled = false;
-}
-
-/** ====== copy / share ====== */
-async function copyText_(t){
-  try{
-    await navigator.clipboard.writeText(t);
-    return true;
-  }catch{
-    return false;
-  }
-}
-async function copyCard_(){
-  const a = qs("rCardUrl");
-  const u = a ? (a.href || a.textContent || "") : "";
-  if(!u) return alert("沒有名片網址可複製");
-  const ok = await copyText_(u);
-  alert(ok ? "✅ 已複製名片網址" : "⚠️ 無法自動複製，請手動複製");
-}
-async function shareCard_(){
-  const a = qs("rCardUrl");
-  const u = a ? (a.href || a.textContent || "") : "";
-  if(!u) return alert("沒有名片網址可分享");
-  if(navigator.share){
-    try{
-      await navigator.share({ title:"智慧名片", text:"這是智慧名片連結", url:u });
-      return;
-    }catch{}
-  }
-  await copyCard_();
+  toast_("✅ 建立完成");
+  dbgLog_(`OK id=${id}`);
 }
 
 /** ====== submit ====== */
 async function submit_(){
   const btn = qs("btnSubmit");
-  if (btn) btn.disabled = true;
+  if (!btn) return;
 
-  // 預設補 LINE OA
+  btn.disabled = true;
+  toast_("");
+
+  // 預設補 LINE OA（你要「幫我填」）
   if (qs("lineOA") && !text(qs("lineOA").value)) qs("lineOA").value = LINE_OA_DEFAULT;
 
   const fields = buildFields_();
   must_(!!fields["姓名"], "姓名為必填。");
 
+  dbgState_();
+
   // 先 JSON
   let data = await postCreateJson_(fields);
 
-  // fallback：JSON 不通 → FormData
+  // fallback：FormData
   if(!data || data.ok !== true){
+    dbgLog_("JSON failed → fallback FormData");
     data = await postCreateFormData_(fields);
   }
 
   if(!data || data.ok !== true){
-    setDebug_({ phase:"ERROR", error: (data?.error || "建立失敗：GAS 回傳非 ok 或非 JSON") });
-    if (btn) btn.disabled = false;
-    throw new Error(data?.error || "建立失敗：GAS 回傳非 ok 或非 JSON");
+    btn.disabled = false;
+    const err = data?.error || "建立失敗：GAS 回傳非 ok 或非 JSON";
+    __dbgLast.err = err;
+    dbgLog_("ERROR: " + err);
+    throw new Error(err);
   }
 
   const id = text(data.id) || "";
   must_(!!id, "建立成功但缺少 id（請檢查 GAS 回傳）");
 
   showResult_(id);
+  btn.disabled = false;
+}
 
-  // 如果你有 msg 區
-  if (qs("msg")) qs("msg").textContent = "✅ 建立完成，可交貨。";
+/** ====== copy / share（如果你有按鈕就能用） ====== */
+async function copyText_(t){
+  await dbgCopy_(t);
+}
 
-  if (btn) btn.disabled = false;
+async function copyCardUrl_(){
+  const a = qs("rCardUrl");
+  const u = a?.href || "";
+  if(!u) return toast_("⚠️ 尚無名片網址");
+  await copyText_(u);
+  toast_("✅ 已複製名片網址");
+}
+
+async function shareCardUrl_(){
+  const a = qs("rCardUrl");
+  const u = a?.href || "";
+  if(!u) return toast_("⚠️ 尚無名片網址");
+
+  if (navigator.share){
+    try{
+      await navigator.share({ title:"智慧名片", text:"這是你的智慧名片連結", url:u });
+      toast_("✅ 已呼叫系統分享");
+      return;
+    }catch{}
+  }
+  await copyText_(u);
+  toast_("✅ 已複製名片網址（可直接貼出）");
 }
 
 /** ====== boot ====== */
 (function boot(){
-  // hidden debug
-  bindHiddenDebugLongPress_();
-  renderDebug_();
-
-  // bind
+  // plan / chips
   bindPlan();
   bindChips();
 
-  // default state
+  // default
   setPlan("1");
   setActiveChip("c", "c1");
   setActiveChip("s", "s1");
   setActiveChip("f", "f1");
   setActiveChip("p", "p1");
 
-  // placeholders
+  // default line OA
   if (qs("lineOA")) qs("lineOA").placeholder = LINE_OA_DEFAULT;
 
+  // submit
   qs("btnSubmit")?.addEventListener("click", ()=>{
     submit_().catch(err=>{
       console.error(err);
-      setDebug_({ phase:"CATCH", error: (err?.message || String(err)) });
-      alert("❌ " + (err?.message || String(err)));
-      if (qs("btnSubmit")) qs("btnSubmit").disabled = false;
+      toast_("❌ " + (err?.message || String(err)));
+      qs("btnSubmit").disabled = false;
     });
   });
 
-  // optional buttons if exist
-  qs("btnCopyCard")?.addEventListener("click", copyCard_);
-  qs("btnShareCard")?.addEventListener("click", shareCard_);
+  // copy/share (可選)
+  qs("btnCopyCard")?.addEventListener("click", ()=>copyCardUrl_().catch(()=>{}));
+  qs("btnShareCard")?.addEventListener("click", ()=>shareCardUrl_().catch(()=>{}));
+
+  // 隱形 debug：長按 brand-sub
+  bindLongPressDebug_();
+
+  // 若 debug 原本就是開的（?debug=1 或 session），直接顯示面板
+  if (DBG.on) dbgEnable_(true);
 })();
