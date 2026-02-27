@@ -1,5 +1,5 @@
 /* ================================
- * share.js (v407.1 COMPLETE OVERWRITE)
+ * share.js (v408 COMPLETE OVERWRITE)
  * 幸福智慧名片｜交貨卡「客戶展示模式」
  * - 1️⃣ 照片牆（縮圖＋Lightbox）
  * - 2️⃣ 動態 OG 圖（姓名＋頭像）：用 Canvas 產出 dataURL（同頁顯示/複製）
