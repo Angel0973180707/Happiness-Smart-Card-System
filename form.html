@@ -1,37 +1,53 @@
-<!-- form.html — v406.2 (COMPLETE OVERWRITE) -->
+<!-- form.html — v407-UI (COMPLETE OVERWRITE) -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Angel Smart Card｜Form v406.2</title>
+  <title>天使智慧名片系統｜表單 v407-UI</title>
+
   <meta name="robots" content="noindex,nofollow" />
-  <link rel="stylesheet" href="./form.css?v=4062" />
+  <link rel="stylesheet" href="./form.css?v=407" />
 </head>
 
 <body>
   <header class="top">
-    <!-- ✅ v406.2：長按這塊 1.2 秒，開/關隱形 debug（由 form.js 建 panel） -->
-    <div class="brand" title="長按 1.2 秒切換 debug（隱形）">
-      <div class="brand-title">天使智慧名片系統</div>
-      <div class="brand-sub">v406.2｜方案聯動｜一鍵交貨</div>
+    <div class="top-inner">
+      <button class="back-btn" type="button" onclick="location.href='./index.html'">返回名片</button>
+
+      <div class="brand">
+        <div class="brand-title">天使智慧名片系統</div>
+        <div class="brand-sub">v407-UI｜極簡精品表單</div>
+      </div>
+
+      <div class="top-spacer"></div>
     </div>
   </header>
 
   <main class="wrap">
-    <!-- Step 1: Plan -->
+    <!-- 方案 -->
     <section class="card">
-      <h2>1｜選方案（分流）</h2>
-      <div class="seg" role="tablist" aria-label="選方案">
+      <div class="card-head">
+        <h2>選方案</h2>
+        <div class="chipline">
+          <span class="tag">必選</span>
+        </div>
+      </div>
+
+      <div class="seg" role="tablist" aria-label="Plan">
         <button class="seg-btn active" id="btnPlan1" type="button" data-plan="1">自由搭配款</button>
         <button class="seg-btn" id="btnPlan2" type="button" data-plan="2">精品設計款</button>
       </div>
-      <div class="hint">選完方案後，下方選項會自動聯動。</div>
     </section>
 
-    <!-- Step 2A: Free -->
+    <!-- 自由 -->
     <section class="card" id="freeBox">
-      <h2>2A｜自由搭配款：選顏色／版型／紙感</h2>
+      <div class="card-head">
+        <h2>自由搭配</h2>
+        <div class="chipline">
+          <span class="tag subtle">c / s / f</span>
+        </div>
+      </div>
 
       <div class="sub">
         <div class="sub-title">顏色（c）</div>
@@ -61,15 +77,16 @@
           <button type="button" class="chip" data-group="f" data-val="f3">f3 亞麻</button>
         </div>
       </div>
-
-      <div class="hint">
-        自由款：名片端會依 c/s/f 套用視覺；微信長圖會依 c 做底色聯動（若你有做對應）。
-      </div>
     </section>
 
-    <!-- Step 2B: Premium -->
+    <!-- 精品 -->
     <section class="card" id="premiumBox" style="display:none;">
-      <h2>2B｜精品設計款：選底色（p）</h2>
+      <div class="card-head">
+        <h2>精品設計</h2>
+        <div class="chipline">
+          <span class="tag subtle">p1～p7</span>
+        </div>
+      </div>
 
       <div class="sub">
         <div class="sub-title">精品底色（p）</div>
@@ -83,22 +100,25 @@
           <button type="button" class="chip" data-group="p" data-val="p7">p7 褐碳</button>
         </div>
       </div>
-
-      <div class="hint">精品款：只選 p1~p7，不混色。微信長圖會跟 p 聯動。</div>
     </section>
 
-    <!-- Step 3: Customer fields -->
+    <!-- 客戶資料 -->
     <section class="card">
-      <h2>3｜客戶資料</h2>
+      <div class="card-head">
+        <h2>名片資料</h2>
+        <div class="chipline">
+          <span class="tag">姓名必填</span>
+        </div>
+      </div>
 
       <div class="grid2">
         <div class="row">
           <label>姓名 *</label>
-          <input id="name" type="text" placeholder="必填" autocomplete="name" />
+          <input id="name" type="text" placeholder="必填" />
         </div>
         <div class="row">
           <label>單位</label>
-          <input id="unit" type="text" autocomplete="organization" />
+          <input id="unit" type="text" />
         </div>
         <div class="row">
           <label>頭銜</label>
@@ -121,73 +141,107 @@
       </div>
     </section>
 
-    <!-- Step 4: Contact -->
+    <!-- 聯繫與平台 -->
     <section class="card">
-      <h2>4｜聯繫與平台</h2>
+      <div class="card-head">
+        <h2>聯繫方式</h2>
+        <div class="chipline">
+          <span class="tag subtle">可留白</span>
+        </div>
+      </div>
 
       <div class="grid2">
         <div class="row">
-          <label>微信（請填微信ID）</label>
-          <input id="wechat" type="text" inputmode="text" />
+          <label>微信ID</label>
+          <input id="wechat" type="text" />
         </div>
         <div class="row">
-          <label>LINE連結</label>
+          <label>LINE 連結</label>
           <input id="lineLink" type="url" placeholder="https://lin.ee/..." />
         </div>
         <div class="row">
-          <label>LINE官方帳號（可留空，系統會自動補預設）</label>
+          <label>LINE 官方帳號</label>
           <input id="lineOA" type="url" placeholder="https://lin.ee/..." />
         </div>
         <div class="row">
           <label>Email</label>
-          <input id="email" type="email" autocomplete="email" />
+          <input id="email" type="email" />
         </div>
         <div class="row">
           <label>電話</label>
-          <input id="phone" type="tel" autocomplete="tel" />
+          <input id="phone" type="tel" />
         </div>
         <div class="row">
           <label>地址</label>
-          <input id="addr" type="text" autocomplete="street-address" />
+          <input id="addr" type="text" />
         </div>
       </div>
 
       <div class="grid2">
         <div class="row">
-          <label>影音連結1</label>
+          <label>影音平台1</label>
           <input id="media1" type="url" />
         </div>
         <div class="row">
-          <label>影音連結2</label>
+          <label>影音平台2</label>
           <input id="media2" type="url" />
         </div>
         <div class="row">
-          <label>影音連結3</label>
+          <label>影音平台3</label>
           <input id="media3" type="url" />
         </div>
-
         <div class="row">
-          <label>社群連結1</label>
+          <label>社群平台1</label>
           <input id="social1" type="url" />
         </div>
         <div class="row">
-          <label>社群連結2</label>
+          <label>社群平台2</label>
           <input id="social2" type="url" />
         </div>
         <div class="row">
-          <label>社群連結3</label>
+          <label>社群平台3</label>
           <input id="social3" type="url" />
         </div>
       </div>
+    </section>
 
-      <div class="hint">
-        v406.2：此表單已「寫死 GAS/BASE/LINE OA」在 form.js，不需要再貼 GAS。
+    <!-- 照片（保留欄位，不影響你現有 form.js；要啟用再接 v407.1） -->
+    <section class="card">
+      <div class="card-head">
+        <h2>照片上傳</h2>
+        <div class="chipline">
+          <span class="tag subtle">選填</span>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>個人照</label>
+        <input id="avatarFile" type="file" accept="image/*" />
+      </div>
+
+      <div class="row">
+        <label>Logo</label>
+        <input id="logoFile" type="file" accept="image/*" />
+      </div>
+
+      <div class="row">
+        <label>多張照片（最多 5 張）</label>
+        <input id="photosFile" type="file" accept="image/*" multiple />
+      </div>
+
+      <div class="hint minimal">
+        系統會自動壓縮（等比例不裁切）。
       </div>
     </section>
 
-    <!-- Step 6: Submit -->
+    <!-- 送出與交貨 -->
     <section class="card">
-      <h2>5｜送出與交貨</h2>
+      <div class="card-head">
+        <h2>送出與交貨</h2>
+        <div class="chipline">
+          <span class="tag gold">精品交付</span>
+        </div>
+      </div>
 
       <div class="actions">
         <button id="btnSubmit" class="btn primary" type="button">送出建立名片</button>
@@ -197,38 +251,39 @@
 
       <div class="result" id="resultBox" style="display:none;">
         <div class="kvs">
-          <div><span class="k">id</span><span class="v" id="rId">-</span></div>
-          <div><span class="k">token</span><span class="v" id="rToken">—</span></div>
-
-          <div>
-            <span class="k">card_url</span>
+          <div class="kv">
+            <span class="k">名片</span>
             <a class="v link" id="rCardUrl" href="#" target="_blank" rel="noreferrer">-</a>
           </div>
 
-          <div>
-            <span class="k">wechat_url</span>
+          <!-- 你的 v406.2 form.js 會用到這兩個 id（若你有加），這裡先保留 -->
+          <div class="kv">
+            <span class="k">微信長圖</span>
             <a class="v link" id="rWechatUrl" href="#" target="_blank" rel="noreferrer">-</a>
           </div>
-
-          <div>
-            <span class="k">open_url</span>
+          <div class="kv">
+            <span class="k">開啟頁</span>
             <a class="v link" id="rOpenUrl" href="#" target="_blank" rel="noreferrer">-</a>
           </div>
         </div>
 
-        <div class="hint">
-          ✅ 交貨建議：<br/>
-          1) 給「台灣/可直開」：card_url<br/>
-          2) 給「微信長圖」：wechat_url（方案與底色已聯動）<br/>
-          3) 提高打開機率：open_url（先打 GAS 檢查狀態再放行）
+        <div class="hint minimal">
+          交貨方式：把「名片 / 微信長圖 / 開啟頁」任一連結貼給客戶即可。
         </div>
       </div>
 
       <div class="msg" id="msg"></div>
     </section>
+
+    <footer class="foot">
+      <div class="foot-inner">
+        <div class="foot-left">© Angel0973180707 / Happiness Smart Card System</div>
+        <div class="foot-right">v407-UI</div>
+      </div>
+    </footer>
   </main>
 
-  <!-- ✅ v406.2：對齊 form.js -->
+  <!-- ✅ 沿用你既有 form.js（功能版） -->
   <script src="./form.js?v=4062"></script>
 </body>
 </html>
