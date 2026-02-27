@@ -1,5 +1,5 @@
 /* ================================
- * wechat.js (v407 COMPLETE OVERWRITE)
+ * wechat.js (v408 COMPLETE OVERWRITE)
  * - WeChat UA detect -> long card mode
  * - Stable background mapping p1~p7 inside wechat.js (no dependency on card)
  * - Loading animation (avoid blank)
