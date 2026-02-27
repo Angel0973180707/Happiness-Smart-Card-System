@@ -1,9 +1,11 @@
 /* ================================
  * style.css v407 (COMPLETE OVERWRITE)
- * - Free polish: clearer borders + refined blocks + colored buttons (tasteful)
- * - Premium glass upgrade: fix gradient "dirty" by using dark glass base + aura, not full tint
- * - p6 metallic gold foil (real metal feel)
- * - Buttons + Photo wall: responsive auto-fit balance
+ * - FIX: Premium tone base restored (no color-mix; iOS-safe) + clean glass (not dirty)
+ * - FIX: Plan buttons text perfectly centered
+ * - NEW: Free content typography depth (subtle light/dark shadow variation)
+ * - Keep: clearer borders + refined blocks + tasteful colored dock buttons
+ * - Keep: p6 metallic gold foil (real metal feel)
+ * - Keep: Buttons + Photo wall responsive auto-fit balance
  * ================================ */
 
 :root{
@@ -54,6 +56,10 @@
   --free-stroke-soft: rgba(0,0,0,0.06);
   --free-inset: rgba(255,255,255,0.78);
   --free-panel: rgba(255,255,255,0.78);
+
+  /* text depth knobs (Free) */
+  --txt-hi: rgba(255,255,255,0.72);
+  --txt-lo: rgba(0,0,0,0.14);
 }
 
 *{ box-sizing:border-box; }
@@ -92,10 +98,9 @@ body.p5{ --p:#8aa0b6; --s:#5f7489; }
 
 /* p6: metallic gold foil (more metal, less earthy) */
 body.p6{
-  --p:#f7e7a8;   /* highlight gold */
+  --p:#fff1b8;   /* highlight gold */
   --s:#c79a2a;   /* rich metallic gold */
 }
-
 body.p7{ --p:#5a4a3f; --s:#2f2926; }
 
 /* ---------- Sticky control panel ---------- */
@@ -112,12 +117,28 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
+/* ---------- Premium page background: restore tone (subtle), keep clean ---------- */
 body.mode-premium{
+  position: relative;
   background:
-    radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.10), transparent 58%),
+    radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.08), transparent 58%),
     radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.06), transparent 60%),
     #0f1218;
   color: var(--prem-ink);
+}
+body.mode-premium::before{
+  content:"";
+  position: fixed;
+  inset: -20%;
+  pointer-events:none;
+  z-index: -1;
+  background:
+    radial-gradient(900px 520px at 18% 10%, rgba(255,255,255,0.10), transparent 62%),
+    radial-gradient(1100px 720px at 30% 30%, var(--p), transparent 66%),
+    radial-gradient(1100px 720px at 80% 10%, var(--s), transparent 68%),
+    linear-gradient(135deg, var(--p), var(--s));
+  opacity: 0.18;              /* ✅ tone back, not “muddy” */
+  filter: blur(22px) saturate(1.05);
 }
 
 body.mode-premium #admin-panel{
@@ -150,14 +171,14 @@ body.mode-premium #admin-panel{
   background: var(--card-white);
 }
 
-/* free rim highlight + clearer edge */
+/* ---------- Free: clearer edge + rim highlight ---------- */
 body.mode-free .card{
   border-color: rgba(0,0,0,0.10);
   box-shadow:
     0 24px 70px rgba(0,0,0,0.14),
     0 0 0 1px rgba(255,255,255,0.60) inset;
+  filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
 }
-
 body.mode-free .card::before{
   content:"";
   position:absolute;
@@ -172,24 +193,19 @@ body.mode-free .card::before{
   z-index: 0;
 }
 
-/* Free vivid (but less “dirty”) */
-body.mode-free .card{
-  filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
-}
-
-/* Premium: FIX "dirty gradient" => dark glass base + aura (not full fill) */
+/* ---------- Premium: dark glass base + subtle tone film (clean) ---------- */
 body.mode-premium .card{
   border: 1px solid rgba(255,255,255,0.14);
   box-shadow: 0 34px 96px rgba(0,0,0,0.68);
   background:
     radial-gradient(1200px 700px at 20% 0%, rgba(255,255,255,0.10), transparent 62%),
     radial-gradient(900px 620px at 88% 0%, rgba(255,255,255,0.08), transparent 62%),
-    linear-gradient(180deg, rgba(12,14,20,0.78), rgba(12,14,20,0.62));
+    linear-gradient(180deg, rgba(12,14,20,0.82), rgba(12,14,20,0.62));
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
 
-/* Premium FX layer: use p/s as “aura film” */
+/* Premium FX layer: iOS-safe (NO color-mix) */
 .premium-fx-layer{
   position:absolute;
   inset:0;
@@ -203,13 +219,13 @@ body.mode-premium .premium-fx-layer{
   background:
     radial-gradient(900px 560px at 18% 10%, rgba(255,255,255,0.18), transparent 60%),
     radial-gradient(820px 560px at 92% 0%, rgba(255,255,255,0.12), transparent 60%),
-    radial-gradient(900px 560px at 30% 20%, color-mix(in srgb, var(--p) 24%, transparent), transparent 62%),
-    radial-gradient(900px 560px at 78% 10%, color-mix(in srgb, var(--s) 20%, transparent), transparent 62%),
-    linear-gradient(135deg,
-      color-mix(in srgb, var(--p) 16%, transparent),
-      color-mix(in srgb, var(--s) 12%, transparent));
+    /* ✅ tone film (restore premium base colors) */
+    radial-gradient(1200px 760px at 28% 30%, var(--p), transparent 66%),
+    radial-gradient(1200px 760px at 78% 12%, var(--s), transparent 68%),
+    linear-gradient(135deg, var(--p), var(--s));
+  opacity: 0.16;              /* ✅ key: prevent “dirty” */
   mix-blend-mode: screen;
-  filter: saturate(1.05) contrast(1.02);
+  filter: blur(10px) saturate(1.06) contrast(1.02);
 }
 
 /* premium glass rim highlight */
@@ -241,11 +257,12 @@ body.mode-premium.p6 .premium-fx-layer{
       rgba(143,107,28,0.14) 72%,
       rgba(0,0,0,0.10) 100%),
     radial-gradient(900px 560px at 40% 10%, rgba(255,255,255,0.16), transparent 60%);
+  opacity: 0.22;
   mix-blend-mode: screen;
-  filter: saturate(1.08) contrast(1.03);
+  filter: blur(8px) saturate(1.10) contrast(1.03);
 }
 
-/* main content */
+/* ---------- main content ---------- */
 .info-scroll{
   position: relative;
   z-index: 3;
@@ -259,6 +276,7 @@ body.mode-premium.p6 .premium-fx-layer{
   font-weight: 900;
   text-align:center;
 }
+
 .unit, .title{
   text-align:center;
   font-weight: 800;
@@ -266,9 +284,19 @@ body.mode-premium.p6 .premium-fx-layer{
   color: var(--muted);
   line-height: 1.55;
 }
+
+/* ✅ Free typography depth */
+body.mode-free .name{
+  text-shadow: 0 1px 0 var(--txt-hi), 0 2px 8px rgba(0,0,0,0.08);
+}
+body.mode-free .unit,
+body.mode-free .title{
+  text-shadow: 0 1px 0 rgba(255,255,255,0.55), 0 1px 6px rgba(0,0,0,0.08);
+}
 body.mode-premium .unit,
 body.mode-premium .title{
   color: var(--prem-muted);
+  text-shadow: 0 1px 10px rgba(0,0,0,0.35);
 }
 
 /* ---------- Banner ---------- */
@@ -375,8 +403,6 @@ body.mode-premium .avatar-wrap{ margin-top: 18px; padding-top: 6px; }
   border-radius: 999px;
   background: rgba(255,255,255,0.92);
   padding: 6px;
-
-  /* clearer edge */
   border: 1px solid rgba(0,0,0,0.10);
   box-shadow:
     0 18px 44px rgba(0,0,0,0.14),
@@ -449,8 +475,6 @@ body.mode-premium .logo-img{
   line-height: 1.6;
   letter-spacing: .2px;
   word-break: break-word;
-
-  /* clearer border for FREE */
   border-radius: 16px;
 }
 body.mode-free #u-slogan{
@@ -459,6 +483,7 @@ body.mode-free #u-slogan{
   box-shadow:
     0 14px 30px rgba(0,0,0,0.08),
     0 0 0 1px rgba(255,255,255,0.60) inset;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.70), 0 1px 8px rgba(0,0,0,0.08);
 }
 body.mode-premium #u-slogan{
   background: rgba(255,255,255,0.08);
@@ -557,7 +582,7 @@ body.mode-premium .controls-block::after{
   opacity: .50;
 }
 
-/* ---------- Buttons ---------- */
+/* ---------- Buttons (FIX: text center) ---------- */
 .btn-neo{
   border-radius: 14px;
   font-weight: 900;
@@ -573,6 +598,14 @@ body.mode-premium .controls-block::after{
     0 12px 26px rgba(0,0,0,0.12),
     inset 0 1px 0 rgba(255,255,255,0.92);
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+
+  /* ✅ perfect centering */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 .btn-neo:hover{
   transform: translateY(-1px);
@@ -620,11 +653,11 @@ body.mode-premium .btn-neo::after{
   position:absolute; inset:-1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,233,168,0.30), rgba(191,149,63,0.40), rgba(255,255,255,0.10));
+  background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,233,168,0.28), rgba(191,149,63,0.36), rgba(255,255,255,0.10));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
   pointer-events:none;
-  opacity: .86;
+  opacity: .80;
 }
 body.mode-premium .btn-neo.active{
   border-color: rgba(255,255,255,0.24);
@@ -675,6 +708,7 @@ body.mode-premium .btn-share{
     linear-gradient(135deg, rgba(255,233,168,0.24), rgba(191,149,63,0.50));
   border: 1px solid rgba(255,255,255,0.14);
 }
+
 /* ---------- Dots ---------- */
 .dot,.p-dot{
   width: 22px;
@@ -719,12 +753,11 @@ body.mode-premium .btn-share{
 }
 .p7{ background:#5a4a3f; }
 
-/* ---------- Blocks (Free: clearer borders + refined) ---------- */
+/* ---------- Blocks ---------- */
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
   padding: 12px 12px;
-
   border: 1px solid rgba(0,0,0,0.12);
   background: rgba(255,255,255,0.78);
   box-shadow:
@@ -738,15 +771,25 @@ body.mode-premium .btn-share{
   margin-bottom: 6px;
   font-size: 13px;
 }
+
+/* ✅ Free content text depth */
+body.mode-free .block-title{
+  color: rgba(31,36,48,0.92);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.74), 0 1px 10px rgba(0,0,0,0.10);
+}
 .block-body{
   color: var(--muted);
   font-weight: 750;
   font-size: 13px;
   line-height: 1.7;
 }
+body.mode-free .block-body{
+  color: rgba(31,36,48,0.74); /* 深淺變化 */
+  text-shadow: 0 1px 0 rgba(255,255,255,0.62), 0 1px 12px rgba(0,0,0,0.08);
+}
 .preline{ white-space: pre-line; }
 
-/* Premium blocks: clean glass (no muddy tint) */
+/* Premium blocks: clean glass */
 body.mode-premium .info-block{
   background:
     radial-gradient(700px 320px at 30% 0%, rgba(255,255,255,0.16), transparent 62%),
@@ -756,23 +799,26 @@ body.mode-premium .info-block{
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
-body.mode-premium .block-title{ color: rgba(255,255,255,0.92); }
-body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
+body.mode-premium .block-title{
+  color: rgba(255,255,255,0.92);
+  text-shadow: 0 1px 12px rgba(0,0,0,0.35);
+}
+body.mode-premium .block-body{
+  color: rgba(255,255,255,0.84);
+  text-shadow: 0 1px 12px rgba(0,0,0,0.30);
+}
 
 /* ---------- Docks ---------- */
 .contact-dock{
   margin-top: 12px;
   border-radius: 18px;
   padding: 10px;
-
-  /* clearer border */
   border: 1px solid rgba(0,0,0,0.12);
   background: rgba(255,255,255,0.76);
   box-shadow:
     0 16px 34px rgba(0,0,0,0.10),
     0 0 0 1px rgba(255,255,255,0.60) inset;
 }
-
 .dock-title{
   font-weight:900;
   font-size:13px;
@@ -795,9 +841,9 @@ body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
   gap: 8px;
   padding: 10px 10px;
   border-radius: 14px;
-
   border: 1px solid rgba(0,0,0,0.14);
   background:
+    radial-gradient(520px 260px at 18% 0%, rgba(255,255,255,0.78), transparent 62%),
     linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.86));
   color: var(--ink);
   font-weight: 900;
@@ -806,6 +852,7 @@ body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
     inset 0 1px 0 rgba(255,255,255,0.92);
   cursor:pointer;
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  text-align:center;
 }
 .dock-btn:hover{
   transform: translateY(-1px);
@@ -818,7 +865,7 @@ body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
 .dock-btn span{ font-size: 13px; letter-spacing: 0.3px; }
 .dock-btn.wide{ grid-column: 1 / -1; }
 
-/* ✅ 自由款 Dock「適當加顏色」：用細緻色條 + 淡彩膜，不花 */
+/* ✅ Free dock “適當加顏色”：細緻色條 + 超淡色膜（iOS-safe） */
 body.mode-free .dock-btn::before{
   content:"";
   position:absolute;
@@ -828,10 +875,14 @@ body.mode-free .dock-btn::before{
   background: linear-gradient(180deg, var(--p), var(--s));
   opacity: .92;
 }
-body.mode-free .dock-btn{
-  background:
-    radial-gradient(520px 260px at 18% 0%, rgba(255,255,255,0.75), transparent 62%),
-    linear-gradient(135deg, color-mix(in srgb, var(--p) 12%, rgba(255,255,255,0.92)), rgba(255,255,255,0.86));
+body.mode-free .dock-btn::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  background: linear-gradient(135deg, var(--p), var(--s));
+  opacity: 0.08;
 }
 
 /* Premium dock: clean glass */
@@ -875,15 +926,12 @@ body.mode-premium .dock-btn::after{
   margin-top: 14px;
   border-radius: 18px;
   padding: 10px;
-
-  /* clearer border */
   border: 1px solid rgba(0,0,0,0.12);
   background: rgba(255,255,255,0.76);
   box-shadow:
     0 16px 34px rgba(0,0,0,0.10),
     0 0 0 1px rgba(255,255,255,0.60) inset;
 }
-
 body.mode-premium .photo-wall{
   background:
     radial-gradient(700px 320px at 30% 0%, rgba(255,255,255,0.16), transparent 62%),
@@ -907,8 +955,6 @@ body.mode-premium .photo-wall{
   border-radius: 14px;
   object-fit: cover;
   display:block;
-
-  /* clearer edge + refined */
   border: 1px solid rgba(0,0,0,0.10);
   background: rgba(255,255,255,0.60);
   box-shadow: 0 14px 30px rgba(0,0,0,0.16);
