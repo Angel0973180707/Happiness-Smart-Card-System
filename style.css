@@ -1,5 +1,5 @@
 /* ================================
- * style.css v407.3 (COMPLETE OVERWRITE) 1/2
+ * style.css v407 (COMPLETE OVERWRITE) 1/2
  * FIX-ROOT:
  * - Premium colors "跑掉" root cause: `.p1/.p5...` applied to body (same class as tone).
  * - Solution: dot backgrounds MUST be scoped to `.p-dot.p1` etc (never `.p1` alone).
