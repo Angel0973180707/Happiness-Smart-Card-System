@@ -1,5 +1,5 @@
 /* ================================
- * style.css v408 (COMPLETE OVERWRITE)
+ * style.css v408.3 (COMPLETE OVERWRITE)
  * BASE: v407.6
  * TUNE (Avg / Balanced):
  * 1) Free "bullets" (dots + dock pills) emboss weaker (less plastic)
@@ -8,6 +8,8 @@
  * 4) Premium base linked OK, brighten base (less dark)
  * 5) Premium p6 metallic foil + stronger glass clarity
  * 6) Premium avatar white rim more obvious + floating depth
+ * + v408.3 ADD:
+ *   - #u-unit: 單行顯示 + 自動縮小 + 太長省略（避免難看斷行）
  * ================================ */
 
 :root{
@@ -263,6 +265,7 @@ body.mode-premium .card::after{
   font-weight: 900;
   text-align:center;
 }
+
 .unit, .title{
   text-align:center;
   font-weight: 800;
@@ -966,4 +969,36 @@ body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
   :root{ --dotFree: 34px; --dotPrem: 30px; }
   .dock-buttons{ gap: 8px; }
   .dock-btn{ padding: 12px 10px; }
+}
+
+/* =========================================================
+ * v408.3 ADD: Unit one-line auto fit
+ * - 需求：公司/單位不要難看斷行，要「一行」顯示
+ * - 做法：單行 + 自動縮小（clamp） + 太長省略（…）
+ * ========================================================= */
+#u-unit{
+  display:block;
+  width:100%;
+  max-width: 480px;
+  margin: 0 auto;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  /* 自動縮小字（手機/桌機都順） */
+  font-size: clamp(12px, 3.6vw, 16px);
+  line-height: 1.25;
+  letter-spacing: 0.2px;
+}
+
+body.mode-premium #u-unit{
+  font-size: clamp(12px, 3.4vw, 17px);
+  opacity: 0.92;
+}
+
+@media (max-width: 360px){
+  #u-unit{
+    font-size: clamp(11px, 3.8vw, 14px);
+  }
 }
