@@ -1,7 +1,6 @@
 {
   "name": "Happiness Smart Card System",
-  "short_name": "HSC v407
-.1",
+  "short_name": "HSC v4071",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
