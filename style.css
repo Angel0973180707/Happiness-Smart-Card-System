@@ -1,11 +1,15 @@
 /* ================================
- * style.css v407.2 (COMPLETE OVERWRITE) ONE FILE
- * - Premium “glass light” is WHOLE-CARD (no corner spotlight)
- * - FIX: CTA buttons (預約/填表/分享) text perfectly centered
- * - UPDATE: Premium p5 -> 金箔透明金屬感（主色仍可辨識）
- * - ADD: Free 分區框框裝飾（更精品但不搶）
- * - ADD: 標語加粗 + 陰影
- * - ADD: Free 聯繫區小裝飾 + dock 按鈕字色與選色聯動
+ * style.css v407.3 (COMPLETE OVERWRITE) 1/2
+ * FIX-ROOT:
+ * - Premium colors "跑掉" root cause: `.p1/.p5...` applied to body (same class as tone).
+ * - Solution: dot backgrounds MUST be scoped to `.p-dot.p1` etc (never `.p1` alone).
+ *
+ * UPDATE:
+ * 1) LINE 官網 CTA 跟底色連動（吃 --p/--s）
+ * 2) 選色鈕統一立體色球（全部一致）
+ * 3) 自由款色球更大
+ * 4) 方案鈕立體
+ * 5) 保留你原本的整卡玻璃光（whole-card）
  * ================================ */
 
 :root{
@@ -31,7 +35,6 @@
   /* premium text contrast */
   --prem-ink: rgba(255,255,255,0.92);
   --prem-muted: rgba(255,255,255,0.74);
-  --prem-soft: rgba(255,255,255,0.14);
 
   /* free background tint */
   --bgTint: rgba(255,255,255,0.0);
@@ -45,15 +48,7 @@
   --paper-grain: 0.18;
   --paper-fiber: 0.14;
 
-  /* premium glass knobs */
-  --glassA: rgba(255,255,255,0.18);
-  --glassB: rgba(255,255,255,0.08);
-  --glassEdge: rgba(255,255,255,0.16);
-  --glassShadow: rgba(0,0,0,0.62);
-
   /* Free refinement knobs */
-  --free-stroke: rgba(0,0,0,0.10);
-  --free-stroke-soft: rgba(0,0,0,0.06);
   --free-panel: rgba(255,255,255,0.78);
   --free-panel-2: rgba(255,255,255,0.70);
 
@@ -89,18 +84,14 @@ body.color-3{ --p:#ff9f1a; --s:#ff6f00; --bgTint: rgba(255,159,26,0.14); --pSoft
 body.color-4{ --p:#7a57ff; --s:#4f22d8; --bgTint: rgba(122,87,255,0.14); --pSoft: rgba(122,87,255,0.20); --pGlow: rgba(122,87,255,0.16); --dockText: rgba(79,34,216,0.96); --dockText2: rgba(79,34,216,0.84); }
 body.color-5{ --p:#2bd46f; --s:#0ea97b; --bgTint: rgba(43,212,111,0.14); --pSoft: rgba(43,212,111,0.20); --pGlow: rgba(43,212,111,0.16); --dockText: rgba(14,169,123,0.96); --dockText2: rgba(14,169,123,0.84); }
 
-/* ---------- Premium tones (p1~p7) ---------- */
+/* ---------- Premium tones (p1~p7) (ONLY VARS, NO BACKGROUND HERE) ---------- */
 body.p1{ --p:#d96c6c; --s:#b23b3b; }
 body.p2{ --p:#722f37; --s:#4e1f25; }
 body.p3{ --p:#1c2e42; --s:#101d2b; }
 body.p4{ --p:#5e548e; --s:#40376b; }
-
-/* ✅ p5 -> 金箔透明金屬感（主色保持） */
+/* p5 金箔透明金屬感（主色仍可辨識） */
 body.p5{ --p:#f6e7b2; --s:#caa34a; }
-
-/* p6: stronger metallic gold foil */
 body.p6{ --p:#fff1b8; --s:#c79a2a; }
-
 body.p7{ --p:#5a4a3f; --s:#2f2926; }
 
 /* ---------- Sticky control panel ---------- */
@@ -132,7 +123,7 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   padding: 14px 12px 70px;
 }
 
-/* ---------- Premium page background (clean) ---------- */
+/* ---------- Premium page background ---------- */
 body.mode-premium{
   position: relative;
   background:
@@ -160,17 +151,17 @@ body.mode-premium #admin-panel{
   border-bottom: 1px solid rgba(255,255,255,0.10);
 }
 
-/* ---------- Card (base) ---------- */
+/* ---------- Card base ---------- */
 .card{
   position:relative;
-  border-radius: var(--radius);
+  border-radius: 26px;
   overflow:hidden;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--line);
-  background: var(--card-white);
+  box-shadow: 0 20px 60px rgba(0,0,0,.12);
+  border: 1px solid rgba(0,0,0,.06);
+  background: rgba(255,255,255,.92);
 }
 
-/* ---------- Free: clearer edge + rim highlight + gentle section framing ---------- */
+/* Free card polish */
 body.mode-free .card{
   border-color: rgba(0,0,0,0.10);
   box-shadow:
@@ -192,7 +183,7 @@ body.mode-free .card::before{
   z-index: 0;
 }
 
-/* ---------- Premium: TRUE glass base on whole card (主色保持) ---------- */
+/* Premium glass base on whole card */
 body.mode-premium .card{
   border: 1px solid rgba(255,255,255,0.14);
   box-shadow: 0 34px 96px rgba(0,0,0,0.68);
@@ -205,12 +196,11 @@ body.mode-premium .card{
   -webkit-backdrop-filter: blur(14px);
 }
 
-/* Premium FX layer: WHOLE CARD glow film (no corner spotlight) */
+/* Whole-card glass light film */
 .premium-fx-layer{
   position:absolute;
   inset:0;
   pointer-events:none !important;
-  touch-action:none !important;
   opacity:0;
   z-index: 1;
 }
@@ -222,12 +212,11 @@ body.mode-premium .premium-fx-layer{
     radial-gradient(1200px 760px at 30% 30%, var(--p), transparent 66%),
     radial-gradient(1200px 760px at 78% 12%, var(--s), transparent 68%),
     linear-gradient(135deg, var(--p), var(--s));
-  opacity: 0.13;              /* ✅ glass light, not muddy */
+  opacity: 0.13;
   mix-blend-mode: screen;
   filter: blur(12px) saturate(1.06) contrast(1.02);
 }
 
-/* Premium glass rim highlight + diagonal sheen */
 body.mode-premium .card::after{
   content:"";
   position:absolute;
@@ -241,42 +230,6 @@ body.mode-premium .card::after{
   opacity: .85;
   z-index: 2;
   mix-blend-mode: soft-light;
-}
-
-/* p5: gold foil translucent film (lighter than p6) */
-body.mode-premium.p5 .premium-fx-layer{
-  background:
-    radial-gradient(860px 520px at 22% 18%, rgba(255,255,255,0.14), transparent 62%),
-    radial-gradient(920px 560px at 78% 14%, rgba(255,255,255,0.10), transparent 66%),
-    linear-gradient(135deg,
-      rgba(255,255,255,0.08) 0%,
-      rgba(246,231,178,0.18) 18%,
-      rgba(202,163,74,0.18) 42%,
-      rgba(255,255,255,0.06) 58%,
-      rgba(120,93,28,0.10) 78%,
-      rgba(0,0,0,0.08) 100%),
-    radial-gradient(900px 560px at 40% 10%, rgba(255,255,255,0.14), transparent 60%);
-  opacity: 0.18;
-  mix-blend-mode: screen;
-  filter: blur(10px) saturate(1.08) contrast(1.02);
-}
-
-/* p6: stronger foil sheen */
-body.mode-premium.p6 .premium-fx-layer{
-  background:
-    radial-gradient(860px 520px at 22% 18%, rgba(255,255,255,0.16), transparent 62%),
-    radial-gradient(920px 560px at 78% 14%, rgba(255,255,255,0.12), transparent 66%),
-    linear-gradient(135deg,
-      rgba(255,255,255,0.10) 0%,
-      rgba(255,241,190,0.22) 18%,
-      rgba(199,154,42,0.20) 38%,
-      rgba(255,255,255,0.08) 56%,
-      rgba(143,107,28,0.14) 72%,
-      rgba(0,0,0,0.10) 100%),
-    radial-gradient(900px 560px at 40% 10%, rgba(255,255,255,0.16), transparent 60%);
-  opacity: 0.22;
-  mix-blend-mode: screen;
-  filter: blur(9px) saturate(1.10) contrast(1.03);
 }
 
 /* ---------- main content ---------- */
@@ -306,93 +259,6 @@ body.mode-premium .title{
   color: var(--prem-muted);
   text-shadow: 0 1px 10px rgba(0,0,0,0.35);
 }
-
-/* ---------- Banner ---------- */
-.banner{
-  position: relative;
-  height: 130px;
-  overflow:hidden;
-}
-body.mode-free .banner{ display:block; }
-body.mode-premium .banner{ display:none !important; }
-
-.dynamic-mask{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  background:
-    radial-gradient(520px 220px at 50% 35%, rgba(255,255,255,0.25), transparent 70%),
-    radial-gradient(680px 260px at 80% 20%, rgba(0,0,0,0.08), transparent 70%);
-  opacity: .55;
-}
-body.mode-free .banner{ filter: saturate(1.18) contrast(1.06); }
-
-/* style-arch */
-body.mode-free.style-arch .banner{
-  background:
-    radial-gradient(900px 320px at 50% -10%, rgba(255,255,255,0.55), transparent 70%),
-    linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0.00)),
-    linear-gradient(135deg, var(--p), var(--s));
-}
-body.mode-free.style-arch .banner::after{
-  content:"";
-  position:absolute;
-  left:-25%;
-  right:-25%;
-  bottom:-66px;
-  height:140px;
-  background: rgba(255,255,255,0.92);
-  border-top-left-radius: 80% 100%;
-  border-top-right-radius: 80% 100%;
-  opacity: .95;
-}
-
-/* style-flat */
-body.mode-free.style-flat .banner{
-  background:
-    radial-gradient(780px 280px at 40% 0%, rgba(255,255,255,0.46), transparent 70%),
-    linear-gradient(135deg, var(--p), var(--s));
-}
-body.mode-free.style-flat .banner::after{
-  content:"";
-  position:absolute;
-  left:0; right:0;
-  bottom:0;
-  height:18px;
-  background: rgba(255,255,255,0.92);
-  opacity: .90;
-}
-
-/* style-spot */
-body.mode-free.style-spot .banner{
-  background:
-    radial-gradient(520px 220px at 20% 0%, rgba(255,255,255,0.55), transparent 72%),
-    radial-gradient(620px 260px at 80% 10%, rgba(255,255,255,0.28), transparent 70%),
-    linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.05)),
-    linear-gradient(135deg, var(--p), var(--s));
-}
-body.mode-free.style-spot .banner::after{
-  content:"";
-  position:absolute;
-  left:-10%;
-  right:-10%;
-  bottom:-52px;
-  height:120px;
-  background: rgba(255,255,255,0.92);
-  border-top-left-radius: 60% 100%;
-  border-top-right-radius: 60% 100%;
-  opacity: .92;
-}
-
-/* ---------- Paper overlay (Free only) ---------- */
-.paper-overlay{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity:1;
-  z-index: 2;
-}
-body.mode-premium .paper-overlay{ display:none !important; }
 
 /* ---------- Avatar ---------- */
 .avatar-wrap{
@@ -444,34 +310,7 @@ body.mode-premium .avatar-circle{
   display:block;
 }
 
-/* ---------- Logo ---------- */
-.logo-wrap{
-  display:flex;
-  justify-content:center;
-  padding: 6px 0 0;
-  position: relative;
-  z-index: 6;
-}
-.logo-img{
-  width: 56px;
-  height: 56px;
-  border-radius: 999px;
-  object-fit: cover;
-  background: rgba(255,255,255,0.92);
-  border: 1px solid rgba(0,0,0,0.10);
-  box-shadow:
-    0 16px 34px rgba(0,0,0,0.16),
-    0 0 0 1px rgba(255,255,255,0.60) inset;
-}
-body.mode-premium .logo-img{
-  border: 1px solid rgba(255,255,255,0.22);
-  background: rgba(255,255,255,0.10);
-  box-shadow: 0 22px 64px rgba(0,0,0,0.70);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-/* ---------- Slogan (加粗 + 陰影) ---------- */
+/* ---------- Slogan ---------- */
 #u-slogan{
   width: 100%;
   max-width: 420px;
@@ -504,49 +343,6 @@ body.mode-premium #u-slogan{
   text-shadow: 0 1px 16px rgba(0,0,0,0.40);
 }
 
-/* ---------- Paper textures ---------- */
-body.mode-free.paper-1 .paper-overlay{
-  background:
-    radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 60%),
-    radial-gradient(1px 1px at 38px 42px, rgba(0,0,0,calc(var(--paper-grain) * 0.88)), transparent 60%),
-    radial-gradient(1px 1px at 64px 22px, rgba(0,0,0,calc(var(--paper-grain) * 0.78)), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04));
-  background-size: 78px 78px, 92px 92px, 110px 110px, auto;
-  mix-blend-mode: soft-light;
-  opacity: var(--paper-strength);
-}
-body.mode-free.paper-2 .paper-overlay{
-  background:
-    radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.20), transparent 60%),
-    radial-gradient(1px 1px at 26px 44px, rgba(0,0,0,0.18), transparent 60%),
-    radial-gradient(1px 1px at 58px 30px, rgba(0,0,0,0.16), transparent 60%),
-    radial-gradient(1px 1px at 84px 62px, rgba(0,0,0,0.14), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.04));
-  background-size: 56px 56px, 74px 74px, 92px 92px, 110px 110px, auto;
-  mix-blend-mode: overlay;
-  opacity: calc(var(--paper-strength) + 0.10);
-}
-body.mode-free.paper-3 .paper-overlay{
-  background:
-    repeating-linear-gradient(
-      45deg,
-      rgba(0,0,0, var(--paper-fiber)) 0px,
-      rgba(0,0,0, var(--paper-fiber)) 1px,
-      transparent 1px,
-      transparent 7px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      rgba(0,0,0, calc(var(--paper-fiber) * 0.78)) 0px,
-      rgba(0,0,0, calc(var(--paper-fiber) * 0.78)) 1px,
-      transparent 1px,
-      transparent 9px
-    ),
-    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.04));
-  mix-blend-mode: soft-light;
-  opacity: calc(var(--paper-strength) + 0.12);
-}
-
 /* ---------- Controls layout helpers ---------- */
 .section-title{
   width:100%;
@@ -573,26 +369,31 @@ body.mode-free.paper-3 .paper-overlay{
 }
 .dots-row{
   display:flex;
-  gap:12px;
+  gap:14px;
   align-items:center;
   justify-content:center;
   padding: 2px 0 4px;
 }
-.controls-block::after{
-  content:"";
-  width: 100%;
-  max-width: 520px;
-  height: 1px;
-  margin-top: 2px;
-  background: linear-gradient(90deg, transparent, rgba(0,0,0,0.10), transparent);
-  opacity: .60;
+
+/* ---------- Plan buttons (3D) ---------- */
+.plan-row .btn-neo{
+  border-radius: 999px;
+  padding: 14px 14px;
+  border: 1px solid rgba(0,0,0,0.18);
+  box-shadow:
+    0 18px 36px rgba(0,0,0,0.18),
+    inset 0 2px 0 rgba(255,255,255,0.55),
+    inset 0 -10px 18px rgba(0,0,0,0.16);
 }
-body.mode-premium .controls-block::after{
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.14), transparent);
-  opacity: .50;
+.plan-row .btn-neo.active{
+  transform: translateY(1px) scale(0.99);
+  box-shadow:
+    0 14px 28px rgba(0,0,0,0.16),
+    inset 0 2px 10px rgba(0,0,0,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.22);
 }
 
-/* ---------- Buttons (FIX: text center) ---------- */
+/* ---------- Buttons (base) ---------- */
 .btn-neo{
   border-radius: 14px;
   font-weight: 900;
@@ -628,11 +429,8 @@ body.mode-premium .controls-block::after{
     0 9px 18px rgba(0,0,0,0.10),
     inset 0 2px 6px rgba(0,0,0,0.08);
 }
-.btn-neo.pill{
-  flex:1; min-width:0;
-  padding: 12px 10px;
-  border-radius: 999px;
-}
+.btn-neo.pill{ flex:1; min-width:0; padding: 12px 10px; border-radius: 999px; }
+
 body.mode-free .btn-neo.active{
   border-color: rgba(0,0,0,0.10);
   color: #fff;
@@ -643,7 +441,6 @@ body.mode-free .btn-neo.active{
     inset 0 1px 0 rgba(255,255,255,0.24);
 }
 body.mode-premium .btn-neo{
-  position: relative;
   border: 1px solid rgba(255,255,255,0.16);
   background:
     radial-gradient(520px 220px at 30% 0%, rgba(255,255,255,0.18), transparent 60%),
@@ -653,25 +450,8 @@ body.mode-premium .btn-neo{
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
-body.mode-premium .btn-neo::after{
-  content:"";
-  position:absolute; inset:-1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,233,168,0.28), rgba(191,149,63,0.36), rgba(255,255,255,0.10));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
-  pointer-events:none;
-  opacity: .80;
-}
-body.mode-premium .btn-neo.active{
-  border-color: rgba(255,255,255,0.24);
-  background:
-    radial-gradient(520px 220px at 30% 0%, rgba(255,255,255,0.22), transparent 60%),
-    rgba(255,255,255,0.12);
-}
 
-/* CTA (預約/填表/分享) — ✅ text centered */
+/* ---------- CTA buttons ---------- */
 .btn-cta{
   width: 100%;
   max-width: 520px;
@@ -705,7 +485,17 @@ body.mode-premium .btn-neo.active{
     inset 0 1px 0 rgba(255,255,255,0.92);
 }
 
-/* Share button */
+/* ✅ LINE 官網：一定跟底色走（吃 --p/--s） */
+.btn-line{
+  background: linear-gradient(135deg, var(--p), var(--s)) !important;
+  color:#fff !important;
+  border: none !important;
+  box-shadow:
+    0 18px 34px rgba(0,0,0,0.16),
+    0 18px 40px var(--pSoft) !important;
+}
+
+/* Share button (保留金箔感；若你要改跟底色走，我再幫你換) */
 .btn-share{
   background:
     radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.20), transparent 62%),
@@ -721,54 +511,72 @@ body.mode-premium .btn-share{
   border: 1px solid rgba(255,255,255,0.14);
 }
 
-/* ---------- Dots ---------- */
-.dot,.p-dot{
-  width: 22px;
-  height: 22px;
+/* ---------- Dots: unified 3D spheres ---------- */
+.dot, .p-dot{
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   border: 2px solid rgba(255,255,255,0.92);
-  outline: 2px solid rgba(0,0,0,0.10);
+  outline: 2px solid rgba(0,0,0,0.12);
   cursor:pointer;
   padding:0;
-  box-shadow: 0 12px 22px rgba(0,0,0,0.12);
-  transition: transform .12s ease, box-shadow .12s ease;
   position: relative;
+  transition: transform .12s ease, box-shadow .12s ease;
+
+  box-shadow:
+    0 14px 26px rgba(0,0,0,0.16),
+    inset 0 2px 6px rgba(255,255,255,0.45),
+    inset 0 -6px 10px rgba(0,0,0,0.18);
 }
-.dot::before, .p-dot::before{
+.dot::after, .p-dot::after{
   content:"";
   position:absolute;
-  left:50%; top:50%;
-  width: 48px; height: 48px;
-  transform: translate(-50%,-50%);
+  left: 22%;
+  top: 18%;
+  width: 34%;
+  height: 34%;
   border-radius: 999px;
-  background: transparent;
+  background: radial-gradient(circle, rgba(255,255,255,0.95), rgba(255,255,255,0.0) 70%);
+  opacity: .85;
+  pointer-events:none;
 }
-.dot.active,.p-dot.active{
+.dot.active, .p-dot.active{
   transform: scale(1.18);
-  box-shadow: 0 16px 30px var(--pSoft), 0 12px 22px rgba(0,0,0,0.12);
+  box-shadow:
+    0 18px 32px rgba(0,0,0,0.18),
+    0 0 0 4px rgba(255,255,255,0.22),
+    0 0 0 1px rgba(0,0,0,0.10),
+    inset 0 2px 6px rgba(255,255,255,0.46),
+    inset 0 -6px 10px rgba(0,0,0,0.18);
 }
-.dot-1{ background:#ff5f7b; }
-.dot-2{ background:#1d88ff; }
-.dot-3{ background:#ff9f1a; }
-.dot-4{ background:#7a57ff; }
-.dot-5{ background:#2bd46f; }
-.p1{ background:#d96c6c; }
-.p2{ background:#722f37; }
-.p3{ background:#1c2e42; }
-.p4{ background:#5e548e; }
-.p5{
+
+/* ✅ Free dots bigger */
+body.mode-free .dot{ width: 32px; height: 32px; }
+
+/* ✅ IMPORTANT: dot backgrounds MUST be scoped (never `.p1` alone!) */
+.dot.dot-1{ background:#ff5f7b; }
+.dot.dot-2{ background:#1d88ff; }
+.dot.dot-3{ background:#ff9f1a; }
+.dot.dot-4{ background:#7a57ff; }
+.dot.dot-5{ background:#2bd46f; }
+/* Premium dots (scoped to .p-dot only) */
+.p-dot.p1{ background:#d96c6c; }
+.p-dot.p2{ background:#722f37; }
+.p-dot.p3{ background:#1c2e42; }
+.p-dot.p4{ background:#5e548e; }
+.p-dot.p5{
   background:
     radial-gradient(circle at 28% 30%, rgba(255,255,255,0.78), rgba(255,255,255,0.00) 46%),
     linear-gradient(135deg, #f6e7b2, #f3dd8f 20%, #caa34a 52%, #7a5a1a 74%, #f1d67a);
 }
-.p6{
+.p-dot.p6{
   background:
     radial-gradient(circle at 28% 30%, rgba(255,255,255,0.78), rgba(255,255,255,0.00) 46%),
     linear-gradient(135deg, #fff1b8, #f7e7a8 20%, #c79a2a 52%, #8a6a16 74%, #f3db7d);
 }
-.p7{ background:#5a4a3f; }
+.p-dot.p7{ background:#5a4a3f; }
 
-/* ---------- Blocks (Free: 分區框框裝飾) ---------- */
+/* ---------- Blocks ---------- */
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
@@ -837,7 +645,7 @@ body.mode-premium .block-body{
   text-shadow: 0 1px 12px rgba(0,0,0,0.30);
 }
 
-/* ---------- Docks ---------- */
+/* ---------- Contact dock ---------- */
 .contact-dock{
   margin-top: 12px;
   border-radius: 18px;
@@ -906,7 +714,7 @@ body.mode-free .contact-dock::before{
 .dock-btn span{
   font-size: 13px;
   letter-spacing: 0.3px;
-  color: var(--dockText); /* ✅ link to selected free color */
+  color: var(--dockText);
   text-shadow: 0 1px 0 rgba(255,255,255,0.72);
 }
 .dock-btn.wide{ grid-column: 1 / -1; }
@@ -930,7 +738,7 @@ body.mode-free .dock-btn::after{
   opacity: 0.08;
 }
 
-/* Premium dock: glass — ✅ no corner spotlight */
+/* Premium dock: glass (no corner spotlight) */
 body.mode-premium .contact-dock{
   background:
     radial-gradient(700px 320px at 30% 0%, rgba(255,255,255,0.14), transparent 62%),
@@ -941,11 +749,8 @@ body.mode-premium .contact-dock{
   -webkit-backdrop-filter: blur(14px);
 }
 body.mode-premium .contact-dock::before{ display:none; }
+body.mode-premium .dock-title{ color: rgba(255,255,255,0.90); opacity: 1; }
 
-body.mode-premium .dock-title{
-  color: rgba(255,255,255,0.90);
-  opacity: 1;
-}
 body.mode-premium .dock-btn{
   border-color: rgba(255,255,255,0.16);
   background:
@@ -955,26 +760,10 @@ body.mode-premium .dock-btn{
   box-shadow: 0 26px 70px rgba(0,0,0,0.62);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
 }
 body.mode-premium .dock-btn span{
   color: rgba(255,255,255,0.92);
   text-shadow: 0 1px 10px rgba(0,0,0,0.35);
-}
-body.mode-premium .dock-btn::after{
-  content:"";
-  position:absolute; inset:-1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,233,168,0.28), rgba(191,149,63,0.36), rgba(255,255,255,0.10));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
-  pointer-events:none;
-  opacity: .80;
 }
 
 /* ---------- Photo wall ---------- */
@@ -1045,7 +834,8 @@ body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 @media (max-width: 360px){
   .name{ font-size: 21px; }
   .avatar-circle{ width: 108px; height: 108px; }
-  .dot,.p-dot{ width: 21px; height: 21px; }
+  .dot,.p-dot{ width: 26px; height: 26px; }
+  body.mode-free .dot{ width: 30px; height: 30px; }
   .dock-buttons{ gap: 8px; }
   .dock-btn{ padding: 10px 8px; }
   .photo-grid{ gap: 8px; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
