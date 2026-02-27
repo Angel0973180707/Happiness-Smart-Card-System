@@ -6,6 +6,11 @@
  *   - input: id/name (id supported; name shows hint)
  *   - buttons: Back Home / Copy Card Link / Copy OG Link / One-click Delivery / Preview
  * - Keep ALL existing UI/feature behaviors
+ *
+ * - NEW (Plan A): Unit/Company auto one-line + smart joining
+ *   - Multi-line or comma/semicolon separated company names will become ONE LINE
+ *   - Joined by " / "
+ *   - CSS should handle clamp + ellipsis (style.css add #u-unit rule)
  * ================================ */
 
 const CONFIG = {
@@ -786,13 +791,42 @@ function renderDocks_(p){
   applyWideRule_(cBtns);
 }
 
+/* ================================
+ * Text formatting helpers (NEW)
+ * ================================ */
+function normalizeMultiline_(s){
+  // normalize CRLF and keep intended line breaks
+  return String(s ?? "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/\u3000/g, " ")
+    .trim();
+}
+
+function toOneLine_(s){
+  // Plan A: force ONE LINE output for unit/company fields
+  // - split by newline/comma/semicolon/Chinese comma/Chinese semicolon/slash
+  // - join by " / "
+  const raw = normalizeMultiline_(s);
+  if(!raw) return "";
+  const parts = raw
+    .split(/[\n,，;；/]+/g)
+    .map(x=>x.trim())
+    .filter(Boolean);
+  return parts.join(" / ");
+}
+
 /* ---------- Main render ---------- */
 function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
 
   const name  = pick(p, ["姓名","name"]);
-  const unit  = pick(p, ["單位","unit"]);
+
+  // ✅ Plan A applied here:
+  const unitRaw = pick(p, ["單位","unit"]);
+  const unit = toOneLine_(unitRaw);
+
   const title = pick(p, ["頭銜","職稱","title"]);
 
   safeSetText_("u-name", name || "未命名");
