@@ -1,4 +1,4 @@
-/* wechat.js — v406.2 (COMPLETE OVERWRITE)
+/* wechat.js — v407.1 (COMPLETE OVERWRITE)
  * - 從 URL 取得 id / plan / p / c
  * - 套色：premium(p1~p7) 或 free(c1~c5)
  * - 打 GAS：?action=card&id=...
