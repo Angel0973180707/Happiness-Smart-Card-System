@@ -1,7 +1,6 @@
-/* form.css — v408-UI (COMPLETE OVERWRITE) */
-
+/* form.css — v408-UI.1 (COMPLETE OVERWRITE) */
 /* =========================
-   Luxury Minimal Theme
+   Luxury Minimal Theme + Mobile Big Input UX
    ========================= */
 :root{
   --bg0:#0b0f14;
@@ -26,10 +25,19 @@
 
   --shadow: 0 12px 40px rgba(0,0,0,.45);
   --shadow2: 0 8px 22px rgba(0,0,0,.35);
+
+  /* ✅ Mobile UX tuning */
+  --tap: rgba(255,255,255,.08);
+  --focusRing: rgba(229,193,120,.10);
+  --safeBottom: env(safe-area-inset-bottom, 0px);
 }
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
+html{
+  -webkit-text-size-adjust: 100%; /* ✅ iOS 防字體自動縮放 */
+  scroll-behavior: smooth;
+}
 body{
   margin:0;
   font-family: system-ui, -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
@@ -38,6 +46,7 @@ body{
     radial-gradient(900px 520px at 20% -10%, rgba(229,193,120,.10), transparent 60%),
     radial-gradient(900px 520px at 90% 10%, rgba(94,75,139,.12), transparent 55%),
     linear-gradient(180deg, var(--bg1), var(--bg0));
+  overscroll-behavior-y: none;
 }
 
 /* =========================
@@ -67,15 +76,16 @@ body{
   padding:10px 12px;
   border-radius: 999px;
   font-weight: 650;
-  font-size: 13px;
+  font-size: 14px;            /* ✅ 稍大 */
   letter-spacing:.2px;
+  -webkit-tap-highlight-color: transparent;
 }
 .back-btn:active{ transform: translateY(1px); }
 .top-spacer{ width:42px; height:1px; opacity:0; }
 
 .brand{ flex:1; min-width:0; text-align:left; }
 .brand-title{
-  font-weight: 850;
+  font-weight: 900;           /* ✅ 更穩 */
   letter-spacing:.8px;
   font-size: 16px;
   line-height:1.2;
@@ -93,7 +103,7 @@ body{
 .wrap{
   max-width: 880px;
   margin: 0 auto;
-  padding: 14px 16px 34px;
+  padding: 14px 16px calc(34px + var(--safeBottom));
 }
 
 .card{
@@ -116,7 +126,7 @@ h2{
   margin:0;
   font-size: 15px;
   letter-spacing:.7px;
-  font-weight: 850;
+  font-weight: 900;
 }
 .chipline{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 
@@ -158,8 +168,10 @@ h2{
   padding: 12px 10px;
   background: transparent;
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing:.2px;
+  font-size: 14px;            /* ✅ 稍大 */
+  -webkit-tap-highlight-color: transparent;
 }
 .seg-btn.active{
   background: rgba(255,255,255,.92);
@@ -189,9 +201,10 @@ h2{
   color: var(--text);
   padding: 10px 12px;
   border-radius: 999px;
-  font-weight: 750;
-  font-size: 13px;
+  font-weight: 850;
+  font-size: 14px;            /* ✅ 稍大 */
   letter-spacing:.2px;
+  -webkit-tap-highlight-color: transparent;
 }
 .chip:active{ transform: translateY(1px); }
 .chip.active{
@@ -201,31 +214,49 @@ h2{
 }
 
 /* =========================
-   Form rows
+   Form rows (Big & easy)
    ========================= */
-.row{ display:flex; flex-direction:column; gap:8px; margin-top: 12px; }
+.row{ display:flex; flex-direction:column; gap:8px; margin-top: 14px; }
 label{
   font-size: 13px;
   color: var(--muted);
   letter-spacing:.2px;
 }
-input, textarea{
+
+input, textarea, select{
   width:100%;
   appearance:none;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(0,0,0,.16);
   color: var(--text);
   border-radius: 14px;
-  padding: 12px 12px;
-  font-size: 15px;
+  padding: 14px 14px;         /* ✅ 更好點擊 */
+  font-size: 16px;            /* ✅ iOS 防自動放大：至少 16px */
   outline:none;
+  line-height: 1.35;
+  -webkit-tap-highlight-color: transparent;
 }
-textarea{ resize: vertical; min-height: 90px; }
+
+textarea{
+  resize: vertical;
+  min-height: 104px;          /* ✅ 更好寫 */
+}
+
 input::placeholder, textarea::placeholder{ color: rgba(167,176,195,.7); }
 
-input:focus, textarea:focus{
+input:focus, textarea:focus, select:focus{
   border-color: rgba(229,193,120,.35);
-  box-shadow: 0 0 0 4px rgba(229,193,120,.08);
+  box-shadow: 0 0 0 4px var(--focusRing);
+}
+
+/* ✅ Autofill 色彩修正（避免 Safari 黃底破壞質感） */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill{
+  -webkit-text-fill-color: var(--text);
+  transition: background-color 9999s ease-in-out 0s;
+  box-shadow: 0 0 0px 1000px rgba(0,0,0,.16) inset;
+  border: 1px solid rgba(255,255,255,.14);
 }
 
 .grid2{
@@ -256,13 +287,25 @@ input:focus, textarea:focus{
 }
 
 /* =========================
-   Actions
+   Actions (Flow clarity)
    ========================= */
 .actions{
   display:flex;
   flex-direction:column;
   gap:10px;
-  margin-top: 8px;
+  margin-top: 10px;
+}
+
+/* ✅ 固定底部「送出列」：流程更明確（可選）
+   - 如果你 HTML 有 <div class="actions sticky"> 就會生效
+*/
+.actions.sticky{
+  position: sticky;
+  bottom: 10px;
+  padding-bottom: calc(10px + var(--safeBottom));
+  background: linear-gradient(180deg, rgba(11,15,20,0), rgba(11,15,20,.72) 30%, rgba(11,15,20,.82));
+  border-radius: 18px;
+  z-index: 10;
 }
 
 .btn{
@@ -272,9 +315,10 @@ input:focus, textarea:focus{
   color: var(--text);
   border-radius: 16px;
   padding: 14px 14px;
-  font-size: 15px;
-  font-weight: 850;
+  font-size: 16px;            /* ✅ 大字 */
+  font-weight: 900;
   letter-spacing:.3px;
+  -webkit-tap-highlight-color: transparent;
 }
 .btn:active{ transform: translateY(1px); }
 .btn[disabled]{ opacity:.55; cursor:not-allowed; }
@@ -284,6 +328,15 @@ input:focus, textarea:focus{
   background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,255,255,.86));
   color: #0b0f14;
   box-shadow: 0 16px 40px rgba(0,0,0,.35);
+}
+
+/* ✅ 觸控回饋更穩 */
+.btn:focus-visible,
+.back-btn:focus-visible,
+.seg-btn:focus-visible,
+.chip:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(229,193,120,.12);
 }
 
 /* =========================
@@ -326,6 +379,24 @@ input:focus, textarea:focus{
   border-bottom: 1px dashed rgba(229,193,120,.35);
 }
 .link:active{ opacity:.8; }
+
+/* =========================
+   Safety: Hide delivery/result link row (if exists)
+   ========================= */
+/* ✅ 就算 HTML/JS 不小心有「成品連結」欄位，也直接不顯示 */
+#deliveryRow,
+#deliveryBox,
+#deliveryUrl,
+#shareUrl,
+#shareRow,
+.delivery,
+.delivery-row,
+.delivery-url,
+.share-url,
+.result .kv[data-k*="成品"],
+.result .kv[data-k*="連結"]{
+  display:none !important;
+}
 
 /* =========================
    Footer
