@@ -1,25 +1,20 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v408.3 (COMPLETE OVERWRITE)
- * - Base: v408.2
- * - NEW: Real Hidden Admin Panel (triple tap bottom-right hotspot)
- *   - input: id/name (id supported; name shows hint)
- *   - buttons: Back Home / Copy Card Link / Copy OG Link / One-click Delivery / Preview
+ * app.js v491 (COMPLETE OVERWRITE) 1/3
+ * - Base: v408.3
+ * - Align: v491 (version + fetch stronger)
  * - Keep ALL existing UI/feature behaviors
- *
- * - NEW (Plan A): Unit/Company auto one-line + smart joining
- *   - Multi-line or comma/semicolon separated company names will become ONE LINE
- *   - Joined by " / "
- *   - CSS should handle clamp + ellipsis (style.css add #u-unit rule)
+ * - NEW: Hidden Admin Panel (triple tap bottom-right hotspot)
+ * - Plan A: Unit/Company -> ONE LINE join by " / " (render)
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v408.3",
-  FETCH_TIMEOUT_MS: 12000,
-  RETRY: 2
+  VERSION: "v491",
+  FETCH_TIMEOUT_MS: 15000,
+  RETRY: 3
 };
 
 let currentRow = null;
@@ -311,7 +306,6 @@ function applyBodyClasses_(){
 
   applyModeUi_();
 }
-
 /* ---------- Exposed APIs ---------- */
 function setPlan(mode, el){
   STATE.mode = (mode === "premium") ? "premium" : "free";
@@ -562,7 +556,7 @@ function applyWideRule_(container){
 }
 
 /* ================================
- * Media/Social (same as v408.2)
+ * Media/Social (same as v408.3)
  * ================================ */
 function gatherByKeys_(p, keys){
   const hits = [];
@@ -708,7 +702,6 @@ function renderSpecsToDock_(p, specs, tag){
 
   return hasAny;
 }
-
 function renderDocks_(p){
   const mediaDock = qs("mediaDock");
   const mediaBtns = qs("mediaButtons");
@@ -792,10 +785,9 @@ function renderDocks_(p){
 }
 
 /* ================================
- * Text formatting helpers (NEW)
+ * Text formatting helpers (Plan A)
  * ================================ */
 function normalizeMultiline_(s){
-  // normalize CRLF and keep intended line breaks
   return String(s ?? "")
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
@@ -804,9 +796,6 @@ function normalizeMultiline_(s){
 }
 
 function toOneLine_(s){
-  // Plan A: force ONE LINE output for unit/company fields
-  // - split by newline/comma/semicolon/Chinese comma/Chinese semicolon/slash
-  // - join by " / "
   const raw = normalizeMultiline_(s);
   if(!raw) return "";
   const parts = raw
@@ -823,8 +812,8 @@ function renderCard(row){
 
   const name  = pick(p, ["姓名","name"]);
 
-  // ✅ Plan A applied here:
-  const unitRaw = pick(p, ["單位","unit"]);
+  // ✅ Plan A: unit ONE LINE
+  const unitRaw = pick(p, ["單位","unit","公司","company"]);
   const unit = toOneLine_(unitRaw);
 
   const title = pick(p, ["頭銜","職稱","title"]);
@@ -895,9 +884,17 @@ window.goFillForm = goFillForm;
  * ================================ */
 function extractRowFromPayload_(data){
   if(!data || typeof data !== "object") return null;
+
+  // v491 standard
+  if(data.ok === true && data.data && typeof data.data === "object"){
+    return data.data;
+  }
+
+  // fallbacks
   if(data.data && typeof data.data === "object") return data.data;
   if(data.row && typeof data.row === "object") return data.row;
   if(data.id || data["姓名"] || data.name) return data;
+
   return null;
 }
 
@@ -1043,16 +1040,15 @@ function renderPhotoWall_(row){
 }
 
 /* ================================
- * Hidden Admin Panel (NEW)
+ * Hidden Admin Panel
  * - Trigger: bottom-right hotspot triple tap
  * ================================ */
 function basePath_(){
-  // keep same directory; drop query/hash
   return location.origin + location.pathname;
 }
 
 function homeUrl_(){
-  return basePath_(); // no query
+  return basePath_();
 }
 
 function cardUrlById_(cid){
@@ -1061,7 +1057,6 @@ function cardUrlById_(cid){
 }
 
 function ogUrl_(){
-  // Default OG file in same folder. If you later switch to another filename, change here only.
   return `${location.origin}${location.pathname.replace(/\/[^\/]*$/, "/")}og-card.png`;
 }
 
@@ -1211,7 +1206,6 @@ function ensureAdminPanel_(){
       return;
     }
 
-    // name entered (not supported by current GAS card endpoint)
     setHint_(`⚠️ 目前後端是用 <b>id</b> 取資料（例：TW0001）。<br>你輸入的是「${escapeHtml_(raw)}」，請改輸入序號。`);
     console.warn("[ADMIN] name entered; id required:", raw);
   }
@@ -1263,7 +1257,6 @@ function ensureAdminPanel_(){
     alert(ok ? "✅ 已複製交貨內容（OG + 名片連結）" : "⚠️ 複製失敗（可手動複製）");
   }
 
-  // bind
   overlay.addEventListener("click", (e)=>{ if(e.target === overlay) hideAdminPanel_(); });
   closeBtn?.addEventListener("click", hideAdminPanel_);
   goBtn?.addEventListener("click", applyInput_);
@@ -1319,17 +1312,33 @@ async function loadAndRenderById_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
 
+  console.log("[LOAD] fetching:", url);
+
   try{
     const payload = await fetchJsonRobust_(url);
+
+    // ✅ ensure complete / expected
+    if(!payload || payload.ok !== true){
+      console.warn("[LOAD] GAS returned not ok:", payload);
+      throw new Error("GAS not ok");
+    }
+
     const row = extractRowFromPayload_(payload);
-    if(!row) throw new Error("Invalid payload shape");
+    if(!row || typeof row !== "object"){
+      console.warn("[LOAD] invalid row shape:", payload);
+      throw new Error("Invalid payload shape");
+    }
+
+    console.log("[LOAD] success id=", cid, row);
 
     renderCard(row);
     renderPhotoWall_(row);
 
   }catch(err){
     console.error("LOAD FAIL:", err);
-    safeSetText_("u-name", "載入失敗");
+    safeSetText_("u-name", "資料載入失敗");
+    safeSetText_("u-unit", "");
+    safeSetText_("u-title", "");
   }
 }
 
