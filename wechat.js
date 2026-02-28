@@ -1,21 +1,24 @@
 /* ================================
- * wechat.js (v408 COMPLETE OVERWRITE)
- * - WeChat UA detect -> long card mode
- * - Stable background mapping p1~p7 inside wechat.js (no dependency on card)
- * - Loading animation (avoid blank)
+ * wechat.js — v490 (COMPLETE OVERWRITE)
+ * - Read GAS URL from window.WECHAT_CFG.GAS_URL (fallback to DEFAULT_GAS)
+ * - Compatible with BOTH payload shapes:
+ *   A) { ok:true, id:"TW0001", data:{...row...} }
+ *   B) { ...row... }  (legacy direct row)
+ * - Status gate: inactive => show "請聯繫客服開通"
+ * - Prefer *_fast image fields (個人照_fast / Logo_fast / 照片_fast)
  * - Zoom button
  * - Unified Debug: long press brand 1.2s
- * - Compatible fetch: action=card
+ * - action=card fetch
  * ================================ */
 
 (() => {
-  const VERSION = 407;
+  const VERSION = 490;
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec";
 
   const CONFIG = {
-    GAS: DEFAULT_GAS,
+    GAS: (window.WECHAT_CFG && window.WECHAT_CFG.GAS_URL) ? String(window.WECHAT_CFG.GAS_URL).trim() : DEFAULT_GAS,
     DEFAULT_ID: "TW0001",
     LONGPRESS_MS: 1200
   };
@@ -81,6 +84,9 @@
     if (x === null || x === undefined) return "";
     return String(x).trim();
   }
+
+  // --- key normalize (keep Chinese headers usable) ---
+  // Keep original keys AND provide normalized-lowercase keys.
   function normalizeKey(k) {
     return String(k || "")
       .trim()
@@ -92,28 +98,40 @@
   function normalizeObjKeys(obj) {
     const out = {};
     if (!obj || typeof obj !== "object") return out;
-    for (const [k, v] of Object.entries(obj)) out[normalizeKey(k)] = v;
+    for (const [k, v] of Object.entries(obj)) {
+      out[k] = v; // preserve original
+      out[normalizeKey(k)] = v; // add normalized
+    }
     return out;
   }
+
   function pick(obj, keys, fallback = "") {
     for (const k of keys) {
+      // allow original & normalized lookup
       if (k in obj && safeText(obj[k])) return safeText(obj[k]);
+      const nk = normalizeKey(k);
+      if (nk in obj && safeText(obj[nk])) return safeText(obj[nk]);
     }
     return fallback;
   }
+
   function parsePlan(obj) {
-    const raw = pick(obj, ["plan", "plan_type", "package", "mode"], "free").toLowerCase();
-    if (raw.includes("premium") || raw.includes("pro") || raw.includes("精品")) return "premium";
+    const raw = pick(obj, ["plan", "plan_type", "package", "mode", "選擇名片製作方案"], "free").toLowerCase();
+    if (raw.includes("premium") || raw.includes("pro") || raw.includes("精品") || raw.includes("b")) return "premium";
     return "free";
   }
+
   function parsePCSf(obj) {
     return {
-      p: pick(obj, ["p", "p_code", "premium_bg", "bg_p"], ""),
-      c: pick(obj, ["c", "c_code", "color_c"], ""),
-      s: pick(obj, ["s", "s_code", "style_s"], ""),
-      f: pick(obj, ["f", "f_code", "fiber_f"], "")
+      // premium bg code
+      p: pick(obj, ["p", "p_code", "premium_bg", "bg_p", "選擇精品底色"], ""),
+      // free color/style/paper
+      c: pick(obj, ["c", "c_code", "color_c", "選擇名片顏色"], ""),
+      s: pick(obj, ["s", "s_code", "style_s", "選擇版型風格"], ""),
+      f: pick(obj, ["f", "f_code", "fiber_f", "選擇紙感質地"], "")
     };
   }
+
   function toBullets(val) {
     if (!val) return [];
     if (Array.isArray(val)) return val.map(safeText).filter(Boolean);
@@ -124,11 +142,13 @@
       .map((x) => safeText(x))
       .filter(Boolean);
   }
+
   function normalizeParagraph(val) {
     const s = safeText(val);
     if (!s) return "";
     return s.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
   }
+
   async function fetchJson(url) {
     const res = await fetch(url, { cache: "no-store" });
     const text = await res.text();
@@ -140,12 +160,27 @@
       throw new Error("Invalid JSON");
     }
   }
+
+  function unwrapRowPayload(raw) {
+    // Supports:
+    // A) { ok:true, id, data:{...row...} }
+    // B) {...row...} (legacy)
+    if (!raw || typeof raw !== "object") return { ok: false, row: null, raw };
+    if (raw.ok === false) return { ok: false, row: null, raw };
+    if (raw.ok === true && raw.data && typeof raw.data === "object") return { ok: true, row: raw.data, raw };
+    // If it looks like a row (has name/姓名 or id)
+    const n = raw["姓名"] || raw.name || raw.id || raw["id"];
+    if (n !== undefined) return { ok: true, row: raw, raw };
+    return { ok: false, row: null, raw };
+  }
+
   async function fetchCard(id) {
     const cid = normalizeId(id) || CONFIG.DEFAULT_ID;
-    const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&v=${VERSION}&ts=${Date.now()}`;
+    const base = CONFIG.GAS || DEFAULT_GAS;
+    const url = `${base}?action=card&id=${encodeURIComponent(cid)}&v=${VERSION}&ts=${Date.now()}`;
     state.gasUrl = url;
-    const data = await fetchJson(url);
-    return data;
+    const raw = await fetchJson(url);
+    return unwrapRowPayload(raw);
   }
 
   function setAvatar(url, name) {
@@ -166,11 +201,11 @@
     document.body.style.background = bg;
   }
 
-  function showInactive() {
+  function showInactive(msgTop, msgBottom) {
     loading.style.display = "block";
     card.style.display = "none";
-    loading.querySelector(".big").textContent = "此名片尚未啟用";
-    loading.querySelector(".small").textContent = "請聯繫客服開通";
+    loading.querySelector(".big").textContent = msgTop || "此名片尚未啟用";
+    loading.querySelector(".small").textContent = msgBottom || "請聯繫客服開通";
   }
 
   function showCard() {
@@ -181,6 +216,7 @@
   // Debug
   function openDebug() {
     const info = {
+      version: `v${VERSION}`,
       id: state.id,
       plan: state.plan,
       p: state.pcsf.p,
@@ -200,6 +236,7 @@
     dbgMask.style.display = "none";
   }
   function bindLongPress(node, ms, fn) {
+    if (!node) return;
     let t = null;
     const start = () => {
       clearTimeout(t);
@@ -215,17 +252,18 @@
     node.addEventListener("mouseleave", end);
   }
 
-  function miniPayloadForDebug(raw) {
-    const obj = normalizeObjKeys(raw || {});
+  function miniPayloadForDebug(raw, row) {
+    const obj = normalizeObjKeys(row || raw || {});
     return {
-      ok: raw && raw.ok,
-      id: pick(obj, ["id", "card_id"], ""),
-      name: pick(obj, ["name", "u_name", "fullname"], ""),
+      ok: !!raw,
+      id: pick(obj, ["id", "ID", "名片ID"], ""),
+      name: pick(obj, ["姓名", "name", "fullname", "u_name"], ""),
+      status: pick(obj, ["status", "狀態"], ""),
       plan: parsePlan(obj),
-      p: pick(obj, ["p", "p_code"], ""),
-      avatar: pick(obj, ["avatar_img", "avatar", "photo", "profile_img"], ""),
-      service: pick(obj, ["service", "services"], ""),
-      exp: pick(obj, ["experience", "exp"], "")
+      p: pick(obj, ["p", "p_code", "選擇精品底色"], ""),
+      avatar: pick(obj, ["個人照_fast","個人照","avatar_fast","avatar_img","avatar"], ""),
+      service: pick(obj, ["服務項目","service","services","u_service"], ""),
+      exp: pick(obj, ["經歷","experience","exp","u_exp"], "")
     };
   }
 
@@ -237,50 +275,75 @@
     btnZoom.textContent = on ? "縮小" : "放大";
   }
 
+  function escapeHtml(s) {
+    return String(s)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
   async function boot() {
     state.id = normalizeId(qs("id")) || CONFIG.DEFAULT_ID;
 
     bindLongPress(brand, CONFIG.LONGPRESS_MS, openDebug);
-    dbgClose.addEventListener("click", closeDebug);
-    dbgMask.addEventListener("click", closeDebug);
+    if (dbgClose) dbgClose.addEventListener("click", closeDebug);
+    if (dbgMask) dbgMask.addEventListener("click", closeDebug);
 
-    btnZoom.addEventListener("click", () => setZoom(!state.zoomed));
+    if (btnZoom) btnZoom.addEventListener("click", () => setZoom(!state.zoomed));
     setZoom(false);
 
     // WeChat hint
-    const isWx = navigator.userAgent.includes("MicroMessenger");
-    hint.textContent = isWx
-      ? "微信長圖模式：可直接截圖分享（如需更穩定，建議用 open.html 開啟）"
-      : "非微信環境：此頁仍可用（長圖展示版）";
+    const isWx = /MicroMessenger/i.test(navigator.userAgent);
+    if (hint) {
+      hint.textContent = isWx
+        ? "微信長圖模式：可直接截圖分享（如仍空白，返回再重開一次通常會好）"
+        : "非微信環境：此頁仍可用（長圖展示版）";
+    }
 
     try {
       state.fetchStatus = "loading";
-      const data = await fetchCard(state.id);
-      if (!data || data.ok === false) {
-        state.fetchStatus = "inactive";
-        state.payloadMini = miniPayloadForDebug(data);
-        showInactive();
+      const { ok, row, raw } = await fetchCard(state.id);
+
+      // Debug mini
+      state.payloadMini = miniPayloadForDebug(raw, row);
+
+      if (!ok || !row) {
+        state.fetchStatus = "not_found";
+        showInactive("找不到此名片", "請確認 ID 是否正確，或請聯繫客服");
         return;
       }
 
-      const obj = normalizeObjKeys(data);
+      const obj = normalizeObjKeys(row);
       state.plan = parsePlan(obj);
       state.pcsf = parsePCSf(obj);
-      state.payloadMini = miniPayloadForDebug(data);
 
+      // status gate
+      const status = pick(obj, ["status","狀態"], "").toLowerCase();
+      if (status && status !== "active") {
+        state.fetchStatus = "inactive";
+        showInactive("此名片尚未啟用", "請聯繫客服開通");
+        return;
+      }
+
+      // background: premium use p1~p7
       applyBackground(state.pcsf.p);
 
-      const nm = pick(obj, ["name", "fullname", "u_name"], "—");
-      const unit = pick(obj, ["unit", "company", "org", "u_unit"], "");
-      const title = pick(obj, ["title", "job_title", "position", "u_title"], "");
-      const av = pick(obj, ["avatar_img", "avatar", "photo", "profile_img"], "");
+      // fields: your sheet headers (Chinese first)
+      const nm = pick(obj, ["姓名", "name", "fullname", "u_name"], "—");
+      const unit = pick(obj, ["單位", "unit", "company", "org", "u_unit"], "");
+      const title = pick(obj, ["頭銜", "title", "job_title", "position", "u_title"], "");
+
+      // avatar prefer fast
+      const av = pick(obj, ["個人照_fast","avatar_fast","個人照","avatar_img","avatar","photo","profile_img"], "");
 
       nameEl.textContent = nm;
       metaEl.textContent = [unit, title].filter(Boolean).join("\n");
 
       setAvatar(av, nm);
 
-      const bullets = toBullets(pick(obj, ["service", "services", "u_service"], ""));
+      const bullets = toBullets(pick(obj, ["服務項目","service","services","u_service"], ""));
       if (bullets.length) {
         secService.style.display = "block";
         serviceEl.innerHTML = bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("");
@@ -288,7 +351,7 @@
         secService.style.display = "none";
       }
 
-      const exp = normalizeParagraph(pick(obj, ["experience", "exp", "u_exp"], ""));
+      const exp = normalizeParagraph(pick(obj, ["經歷","experience","exp","u_exp"], ""));
       if (exp) {
         secExp.style.display = "block";
         expEl.textContent = exp;
@@ -301,17 +364,8 @@
     } catch (err) {
       state.fetchStatus = "error";
       state.payloadMini = { error: String(err && err.message ? err.message : err) };
-      showInactive();
+      showInactive("載入失敗", "請返回再重開一次，或請聯繫客服");
     }
-  }
-
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
   }
 
   boot();
