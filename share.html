@@ -1,70 +1,368 @@
+<!-- share.html — v491 (COMPLETE OVERWRITE)
+ * Purpose:
+ * - Friendly share landing for humans
+ * - Fetch card data via GAS and show a clean preview
+ * - Auto-redirect to index.html?id=...
+ * Notes:
+ * - OG tags on static hosting are mostly "generic"; JS updates help humans but not all crawlers.
+ -->
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <title>天使幸福智慧名片</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Happiness Smart Card — Share</title>
   <meta name="description" content="點擊查看專屬智慧名片" />
 
-  <!-- OG -->
+  <!-- Generic OG fallback -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="天使幸福智慧名片" />
+  <meta property="og:title" content="Happiness Smart Card" />
   <meta property="og:description" content="點擊查看專屬智慧名片" />
   <meta property="og:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
   <style>
-    body {
-      margin: 0;
-      background: #f4efe6;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      font-family: sans-serif;
-      text-align: center;
+    :root{
+      --bg:#0b0f14;
+      --card:#111823;
+      --text:#eaf0ff;
+      --muted:rgba(234,240,255,.72);
+      --line:rgba(234,240,255,.12);
+      --btn:#1b2a3e;
+      --btn2:#132033;
+      --ok:#65d6a6;
+      --warn:#ffcc66;
+      --danger:#ff6b6b;
+      --radius:18px;
     }
-
-    .box {
-      padding: 40px;
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(80,160,255,.20), transparent 60%),
+                  radial-gradient(1000px 700px at 90% 30%, rgba(255,120,180,.18), transparent 55%),
+                  linear-gradient(180deg, #070a0f, #0b0f14);
+      color:var(--text);
+      padding: 18px 14px 26px;
     }
-
-    .btn {
-      display: inline-block;
-      margin-top: 20px;
-      padding: 12px 28px;
-      background: #4b6b4b;
-      color: #fff;
-      border-radius: 30px;
-      text-decoration: none;
-      font-size: 16px;
+    .wrap{max-width:520px;margin:0 auto}
+    .top{
+      display:flex;align-items:center;justify-content:space-between;
+      margin-top:6px;margin-bottom:12px;
     }
+    .brand{
+      display:flex;gap:10px;align-items:center;
+      font-weight:800;letter-spacing:.2px
+    }
+    .dot{
+      width:12px;height:12px;border-radius:999px;
+      background: linear-gradient(135deg, #7dd3fc, #fb7185);
+      box-shadow: 0 0 0 6px rgba(125,211,252,.10);
+    }
+    .chip{
+      font-size:12px;color:var(--muted);
+      border:1px solid var(--line);
+      padding:6px 10px;border-radius:999px;
+      background: rgba(255,255,255,.03);
+    }
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      overflow:hidden;
+      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    }
+    .hero{
+      padding: 18px 16px 12px;
+    }
+    .title{
+      font-size:18px;font-weight:900;margin:0 0 6px;
+    }
+    .sub{color:var(--muted);font-size:13px;line-height:1.55;margin:0}
+    .preview{
+      padding: 0 16px 16px;
+      display:flex;gap:12px;align-items:center;
+    }
+    .avatar{
+      width:58px;height:58px;border-radius:16px;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      overflow:hidden;flex:none;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .avatar img{width:100%;height:100%;object-fit:cover}
+    .meta{min-width:0}
+    .name{
+      font-size:16px;font-weight:900;margin:0 0 4px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .line2{
+      font-size:12px;color:var(--muted);
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .actions{
+      display:grid;grid-template-columns:1fr;gap:10px;
+      padding: 14px 16px 16px;
+      border-top: 1px solid var(--line);
+      background: rgba(0,0,0,.18);
+    }
+    .btn{
+      appearance:none;border:1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      color:var(--text);
+      font-weight:800;
+      display:flex;align-items:center;justify-content:space-between;
+      gap:10px;
+      cursor:pointer;
+    }
+    .btn:active{transform: translateY(1px)}
+    .btn small{font-weight:700;color:var(--muted)}
+    .row{
+      display:flex;gap:8px;flex-wrap:wrap;
+      padding: 0 16px 16px;
+    }
+    .mini{
+      flex:1;min-width: 150px;
+      border-radius: 14px;
+      padding:10px 12px;
+      border:1px dashed var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+    .status{
+      display:inline-flex;align-items:center;gap:8px;
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 10px;border-radius:999px;border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--muted);
+      font-weight:800;
+    }
+    .b-ok{border-color: rgba(101,214,166,.35); color: rgba(101,214,166,.95)}
+    .b-warn{border-color: rgba(255,204,102,.35); color: rgba(255,204,102,.95)}
+    .footer{
+      text-align:center;color:rgba(234,240,255,.55);
+      font-size:12px;margin-top:14px;
+    }
+    .hidden{display:none !important}
   </style>
 </head>
-
 <body>
-  <div class="box">
-    <h2>正在開啟智慧名片...</h2>
-    <a id="goBtn" class="btn" href="#">查看名片</a>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand"><span class="dot"></span>Happiness Smart Card</div>
+      <div class="chip" id="chipId">ID：—</div>
+    </div>
+
+    <div class="panel">
+      <div class="hero">
+        <p class="title" id="heroTitle">正在開啟你的名片…</p>
+        <p class="sub" id="heroSub">若你在微信/Line 內開啟，稍等一下會自動跳轉到名片。</p>
+        <div class="status">
+          <span class="badge b-warn" id="badge">Loading</span>
+          <span id="hint">正在讀取資料…</span>
+        </div>
+      </div>
+
+      <div class="preview">
+        <div class="avatar" id="avatarBox">👤</div>
+        <div class="meta">
+          <p class="name" id="pName">—</p>
+          <div class="line2" id="pLine2">—</div>
+          <div class="line2" id="pLine3">—</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="btnOpen">
+          <span>立即開啟名片</span>
+          <small id="openUrlHint">index.html</small>
+        </button>
+        <button class="btn" id="btnCopy">
+          <span>複製名片連結</span>
+          <small>Copy</small>
+        </button>
+        <button class="btn" id="btnWeChat">
+          <span>微信長圖交貨（Poster）</span>
+          <small>wechat.html</small>
+        </button>
+        <button class="btn" id="btnCancel" title="取消自動跳轉">
+          <span>取消自動跳轉</span>
+          <small>Stop</small>
+        </button>
+      </div>
+
+      <div class="row">
+        <div class="mini" id="mini1">提示：如果你想把這張名片交付給客戶，建議用「微信長圖交貨」讓客戶更好保存。</div>
+        <div class="mini" id="mini2">提醒：若名片狀態為 inactive，成品頁會顯示「請聯繫客服開通」。</div>
+      </div>
+    </div>
+
+    <div class="footer">v491 share · Powered by Angel · Mobile-first</div>
   </div>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id") || "TW0001";
+    // =========================
+    // CONFIG (single source of truth)
+    // =========================
+    const CONFIG = {
+      VERSION: "v491",
+      GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+      BASE: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+      INDEX: "index.html",
+      WECHAT: "wechat.html",
+      AUTO_REDIRECT_MS: 1400,
+      FETCH_TIMEOUT_MS: 12000
+    };
 
-    const target = `./index.html?id=${id}`;
+    // =========================
+    // Helpers
+    // =========================
+    const $ = (id) => document.getElementById(id);
+    const qs = (k) => new URLSearchParams(location.search).get(k);
 
-    document.getElementById("goBtn").href = target;
+    function normalizeId(id){
+      return String(id||"").trim().toUpperCase();
+    }
 
-    // 自動跳轉
-    setTimeout(() => {
-      window.location.href = target;
-    }, 1200);
+    function buildIndexUrl(id){
+      const base = CONFIG.BASE.endsWith("/") ? CONFIG.BASE : (CONFIG.BASE + "/");
+      return base + CONFIG.INDEX + "?id=" + encodeURIComponent(id);
+    }
+    function buildWeChatUrl(id){
+      const base = CONFIG.BASE.endsWith("/") ? CONFIG.BASE : (CONFIG.BASE + "/");
+      return base + CONFIG.WECHAT + "?id=" + encodeURIComponent(id);
+    }
+
+    async function fetchJson(url){
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), CONFIG.FETCH_TIMEOUT_MS);
+      try{
+        const res = await fetch(url, { cache:"no-store", signal: ctrl.signal });
+        const txt = await res.text();
+        let j = null;
+        try{ j = JSON.parse(txt); } catch(_){}
+        if (!res.ok) throw new Error("HTTP " + res.status + " " + (txt||""));
+        if (!j || typeof j !== "object") throw new Error("Invalid JSON");
+        return j;
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+    function pick(obj, keys, fallback=""){
+      for (const k of keys){
+        const v = obj && obj[k];
+        if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+      }
+      return fallback;
+    }
+
+    function setBadge(type, text){
+      const b = $("badge");
+      b.classList.remove("b-ok","b-warn");
+      b.classList.add(type === "ok" ? "b-ok" : "b-warn");
+      b.textContent = text;
+    }
+
+    // =========================
+    // Main
+    // =========================
+    (async function main(){
+      const id = normalizeId(qs("id") || qs("card") || "TW0001");
+      $("chipId").textContent = "ID：" + id;
+
+      const indexUrl = buildIndexUrl(id);
+      const wechatUrl = buildWeChatUrl(id);
+      $("openUrlHint").textContent = indexUrl.replace(CONFIG.BASE, "");
+
+      let cancelled = false;
+      let redirectTimer = null;
+
+      $("btnCancel").addEventListener("click", () => {
+        cancelled = true;
+        if (redirectTimer) clearTimeout(redirectTimer);
+        $("hint").textContent = "已取消自動跳轉（你仍可手動開啟名片）。";
+        setBadge("ok", "Ready");
+      });
+
+      $("btnOpen").addEventListener("click", () => location.href = indexUrl);
+      $("btnWeChat").addEventListener("click", () => location.href = wechatUrl);
+
+      $("btnCopy").addEventListener("click", async () => {
+        const link = indexUrl;
+        try{
+          await navigator.clipboard.writeText(link);
+          $("hint").textContent = "已複製名片連結 ✅";
+          setBadge("ok","Copied");
+        }catch(e){
+          // fallback prompt
+          const ok = prompt("複製失敗，請手動複製：", link);
+          $("hint").textContent = ok !== null ? "已顯示可複製連結" : "已取消";
+          setBadge("ok","Copy");
+        }
+      });
+
+      // Fetch card data (human preview)
+      try{
+        const api = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now();
+        const json = await fetchJson(api);
+
+        if (!json.ok) throw new Error(json.error || "API ok=false");
+        const card = json.data || {};
+        const name = pick(card, ["name","姓名"], "（未填姓名）");
+        const unit = pick(card, ["unit","單位"], "");
+        const title = pick(card, ["title","頭銜"], "");
+        const status = pick(card, ["status","狀態"], "");
+
+        $("heroTitle").textContent = "即將開啟名片";
+        $("pName").textContent = name;
+        $("pLine2").textContent = [unit, title].filter(Boolean).join("｜") || "（尚未填單位/頭銜）";
+        $("pLine3").textContent = "狀態：" + (status || "—");
+
+        // avatar (prefer *_fast then raw)
+        const avatar = pick(card, ["avatar_fast","avatar_img_fast","個人照_fast","avatar_img","個人照"], "");
+        if (avatar){
+          const img = new Image();
+          img.referrerPolicy = "no-referrer";
+          img.onload = () => {
+            const box = $("avatarBox");
+            box.innerHTML = "";
+            box.appendChild(img);
+          };
+          img.src = avatar;
+        }
+
+        // Update title/desc for humans
+        document.title = name + "｜Happiness Smart Card";
+        $("heroSub").textContent = "1～2 秒後會自動跳轉到名片（也可手動點按鈕）。";
+        $("hint").textContent = "讀取成功 ✅";
+        setBadge("ok","OK");
+
+      }catch(err){
+        $("heroTitle").textContent = "讀取失敗";
+        $("heroSub").textContent = "可能是資料不存在或權限/網路問題。你仍可嘗試直接開啟名片。";
+        $("hint").textContent = String(err && err.message ? err.message : err);
+        setBadge("warn","Error");
+      }
+
+      // Auto redirect to index
+      redirectTimer = setTimeout(() => {
+        if (cancelled) return;
+        location.href = indexUrl;
+      }, CONFIG.AUTO_REDIRECT_MS);
+    })();
   </script>
 </body>
 </html>
