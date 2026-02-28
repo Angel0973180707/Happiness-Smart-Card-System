@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Angel Card Admin v408</title>
+  <meta name="format-detection" content="telephone=no" />
+  <title>Angel Card Admin v490</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
@@ -18,6 +19,8 @@
       --line:rgba(255,255,255,0.14);
       --gold1:rgba(191,149,63,0.75);
       --gold2:rgba(255,233,168,0.55);
+      --danger: rgba(255, 120, 120, 0.85);
+      --ok: rgba(120, 255, 200, 0.80);
     }
     *{ box-sizing:border-box; }
     body{
@@ -60,6 +63,7 @@
       font-weight: 900;
       color: rgba(255,255,255,0.92);
       font-size: 12px;
+      white-space: nowrap;
     }
     .card{
       margin-top: 12px;
@@ -97,6 +101,8 @@
       cursor:pointer;
       position: relative;
       box-shadow: 0 18px 38px rgba(0,0,0,0.55);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
     .btn::after{
       content:"";
@@ -137,15 +143,29 @@
     @media(min-width:640px){
       .grid{ grid-template-columns: 1fr 1fr; }
     }
+    .tiny{
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.62);
+      font-weight: 800;
+      line-height: 1.6;
+    }
+    .ok{ color: var(--ok); }
+    .bad{ color: var(--danger); }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
-      <div class="title"><i class="fa-solid fa-user-gear"></i> 隱形後臺工作區 <span class="pill">v401.1</span></div>
+      <div class="title">
+        <i class="fa-solid fa-user-gear"></i>
+        隱形後臺工作區
+        <span class="pill">v490</span>
+      </div>
       <button class="btn" id="btnBack" type="button"><i class="fa-solid fa-house"></i> 返回首頁</button>
     </div>
-<div class="card">
+
+    <div class="card">
       <div style="font-weight:1000; letter-spacing:0.6px;">查詢 / 交貨</div>
 
       <div class="row">
@@ -169,19 +189,21 @@
 
       <div class="hint">
         ✅ 說明：<br/>
-        - 「名片連結」：回到 index.html?id=TW000X<br/>
-        - 「交貨分享連結」：share.html?id=TW000X（可給客戶轉傳）<br/>
+        - 「名片連結」：index.html?v=490&id=TW000X<br/>
+        - 「交貨分享連結」：share.html?v=490&id=TW000X（可給客戶轉傳）<br/>
         - 「OG 圖網址」：預留（若你有固定 og-card.png 或 per-id 生成，這裡可直接貼）<br/>
         - 「用姓名找」：需 GAS 支援 action=find&name=（本頁已做容錯，不支援就提示）
       </div>
 
+      <div class="tiny" id="envLine"></div>
       <div class="mono" id="outBox">等待操作…</div>
     </div>
 
     <script>
       const CFG = {
         DEFAULT_ID: "TW0001",
-        VERSION: "v401.1",
+        VERSION: "v490",
+        VERSION_Q: "490",
         GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
         INDEX_PAGE: "index.html",
         SHARE_PAGE: "share.html",
@@ -190,17 +212,19 @@
 
       function $(id){ return document.getElementById(id); }
       function text(v){ return (v==null? "" : String(v)).trim(); }
+
       function normalizeId(s){
         const v = text(s).toUpperCase();
         if(!v) return "";
-        if(/^TW\\d{4}$/.test(v)) return v;
-        if(/^\\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
-        if(/^TW\\d{1,4}$/.test(v)){
+        if(/^TW\d{4}$/.test(v)) return v;
+        if(/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
+        if(/^TW\d{1,4}$/.test(v)){
           const n = v.replace(/^TW/i,"");
           return "TW" + n.padStart(4,"0");
         }
         return v;
       }
+
       function getParams(){
         try{
           const sp = new URLSearchParams(location.search);
@@ -221,9 +245,12 @@
             return true;
           }
         }catch{}
-        // fallback
         const ta = document.createElement("textarea");
         ta.value = t;
+        ta.setAttribute("readonly","readonly");
+        ta.style.position="fixed";
+        ta.style.left="-9999px";
+        ta.style.top="0";
         document.body.appendChild(ta);
         ta.select();
         try{ document.execCommand("copy"); }catch{}
@@ -232,25 +259,29 @@
       }
 
       function originBase(){
-        // GitHub Pages base
+        // Preserve GitHub Pages subpath; ensures ends with "/"
         const o = location.origin;
-        const path = location.pathname.replace(/\\/[^\\/]*$/, "/");
-        return o + path;
+        const p = location.pathname;
+        const dir = p.endsWith("/") ? p : p.slice(0, p.lastIndexOf("/") + 1);
+        return o + dir;
       }
 
       function buildCardUrl(id){
-        return originBase() + CFG.INDEX_PAGE + "?id=" + encodeURIComponent(id);
+        return originBase() + CFG.INDEX_PAGE + "?v=" + CFG.VERSION_Q + "&id=" + encodeURIComponent(id);
       }
+
       function buildShareUrl(id, mode, theme){
         const sp = new URLSearchParams();
+        sp.set("v", CFG.VERSION_Q);
         sp.set("id", id);
         if(mode) sp.set("mode", mode);
         if(theme) sp.set("theme", theme);
         return originBase() + CFG.SHARE_PAGE + "?" + sp.toString();
       }
+
       function buildOgUrl(id){
-        // 預設：同一張 og-card.png（你若有 per-id 可改）
-        return originBase() + CFG.OG_DEFAULT;
+        // default: one og-card.png; if per-id later: return originBase() + "og/" + id + ".png";
+        return originBase() + CFG.OG_DEFAULT + "?v=" + CFG.VERSION_Q;
       }
 
       function setOut(msg){
@@ -259,8 +290,15 @@
 
       async function fetchJson(url){
         const res = await fetch(url, { cache:"no-store" });
-        const txt = (await res.text()).trim();
-        return JSON.parse(txt);
+        const raw = await res.text();
+        const txt = (raw || "").trim();
+
+        // GAS sometimes returns non-JSON (html error). Make it explicit.
+        try{
+          return JSON.parse(txt);
+        }catch(e){
+          throw new Error("非 JSON 回應（可能是 GAS 錯誤或權限問題）\n\n" + txt.slice(0, 600));
+        }
       }
 
       function setInputsFromParams(){
@@ -276,7 +314,14 @@
           theme: text(p.theme)
         };
       }
-async function loadById(){
+
+      function getCurrent(){
+        const id = normalizeId($("inId").value) || CFG.DEFAULT_ID;
+        const {mode, theme} = getModeThemeFromParams();
+        return { id, mode, theme };
+      }
+
+      async function loadById(){
         const raw = $("inId").value;
         const id = normalizeId(raw) || CFG.DEFAULT_ID;
         $("inId").value = id;
@@ -284,7 +329,29 @@ async function loadById(){
         const url = `${CFG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
         try{
           const data = await fetchJson(url);
-          setOut("✅ 已向 GAS 請求：\n" + url + "\n\n（若你要把 payload 顯示在此，可再擴）");
+
+          const card = buildCardUrl(id);
+          const {mode, theme} = getCurrent();
+          const share = buildShareUrl(id, mode, theme);
+          const og = buildOgUrl(id);
+
+          const brief =
+`✅ 已向 GAS 請求成功
+ID：${id}
+
+名片：
+${card}
+
+交貨（share）：
+${share}
+
+OG（預留）：
+${og}
+
+GAS 回應（摘要）：
+${JSON.stringify(data, null, 2).slice(0, 800)}
+`;
+          setOut(brief);
         }catch(e){
           console.error(e);
           setOut("❌ 載入失敗：\n" + String(e));
@@ -306,16 +373,10 @@ async function loadById(){
             return;
           }
           $("inId").value = id;
-          setOut("✅ 已找到並填入序號：" + id + "\n" + url);
+          setOut("✅ 已找到並填入序號：" + id + "\n\n" + "查詢：\n" + url);
         }catch(e){
           setOut("⚠️ 你的 GAS 可能尚未支援 action=find。\n\n嘗試網址：\n" + url + "\n\n錯誤：\n" + String(e));
         }
-      }
-
-      function getCurrent(){
-        const id = normalizeId($("inId").value) || CFG.DEFAULT_ID;
-        const {mode, theme} = getModeThemeFromParams();
-        return { id, mode, theme };
       }
 
       async function copyCardLink(){
@@ -341,12 +402,17 @@ async function loadById(){
 
       function openPreview(){
         const {id} = getCurrent();
-        location.href = CFG.INDEX_PAGE + "?id=" + encodeURIComponent(id);
+        location.href = CFG.INDEX_PAGE + "?v=" + CFG.VERSION_Q + "&id=" + encodeURIComponent(id);
       }
 
       function openShare(){
         const {id, mode, theme} = getCurrent();
-        location.href = CFG.SHARE_PAGE + "?id=" + encodeURIComponent(id) + (mode?("&mode="+encodeURIComponent(mode)):"") + (theme?("&theme="+encodeURIComponent(theme)):"");
+        const sp = new URLSearchParams();
+        sp.set("v", CFG.VERSION_Q);
+        sp.set("id", id);
+        if(mode) sp.set("mode", mode);
+        if(theme) sp.set("theme", theme);
+        location.href = CFG.SHARE_PAGE + "?" + sp.toString();
       }
 
       async function copyAllPackage(){
@@ -356,7 +422,7 @@ async function loadById(){
         const og = buildOgUrl(id);
 
         const pack =
-`📦 幸福智慧名片｜一鍵交貨
+`📦 幸福智慧名片｜一鍵交貨（v490）
 序號：${id}
 
 ① 名片連結：
@@ -374,8 +440,18 @@ ${og}
 
       function backHome(){
         const p = getParams();
-        const id = normalizeId(p.id) || CFG.DEFAULT_ID;
-        location.href = CFG.INDEX_PAGE + "?id=" + encodeURIComponent(id);
+        const id = normalizeId(p.id) || normalizeId($("inId").value) || CFG.DEFAULT_ID;
+        location.href = CFG.INDEX_PAGE + "?v=" + CFG.VERSION_Q + "&id=" + encodeURIComponent(id);
+      }
+
+      function setEnvLine(){
+        const base = originBase();
+        const p = getParams();
+        const id = normalizeId(p.id) || normalizeId($("inId").value) || CFG.DEFAULT_ID;
+        $("envLine").innerHTML =
+          `Base：<span class="mono" style="padding:2px 6px;border-radius:10px;">${base}</span><br/>` +
+          `Incoming id：<span class="${p.id? "ok":"bad"}">${p.id? normalizeId(p.id):"（未帶入）"}</span>　` +
+          `Current id：<span class="ok">${id}</span>`;
       }
 
       // bind
@@ -390,8 +466,10 @@ ${og}
       $("btnOpenShare").addEventListener("click", openShare);
       $("btnCopyAll").addEventListener("click", copyAllPackage);
 
+      // init
       setInputsFromParams();
-      setOut("✅ 後臺就緒。請輸入序號或姓名，開始交貨。");
+      setEnvLine();
+      setOut("✅ 後臺就緒（v490）。請輸入序號或姓名，開始交貨。");
     </script>
   </div>
 </body>
