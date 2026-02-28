@@ -1,274 +1,161 @@
-<!-- form.html v491 (COMPLETE OVERWRITE)
-  目標：大字好填、好滑動、好修改｜版面精簡｜流程明確
-  新增：照片自動上傳（前端 Canvas 壓縮 → 丟 GAS → 存 Drive → 表寫 URL）
-  規則：
-  - 不出現「成品連結」欄位
-  - 送出後只提示「去 LINE 官網確認」
-  - 自由搭配：選色/選版/選紙感 + 照片最多2張（精品底色不出現）
-  - 精品設計：選底色 + 照片最多5張（自由選樣不出現）
--->
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>填寫名片資料｜Happiness Smart Card</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800;900&display=swap" rel="stylesheet" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>Fill Card Form</title>
+
   <link rel="stylesheet" href="./form.css?v=491" />
 </head>
 
 <body>
   <div class="wrap">
+    <header class="topbar">
+      <div class="title">填寫名片資料</div>
+      <button class="btn ghost" type="button" id="btnBack">返回名片</button>
+    </header>
 
-    <div class="top">
-      <div class="titleRow">
-        <h1>填寫名片資料</h1>
+    <!-- PLAN -->
+    <section class="card">
+      <div class="section-title">方案（必選）</div>
+      <div class="seg">
+        <button type="button" class="seg-btn active" data-plan="free" id="planFree">自由搭配</button>
+        <button type="button" class="seg-btn" data-plan="premium" id="planPremium">精品設計</button>
       </div>
-    </div>
 
-    <div class="card">
-      <form id="cardForm" autocomplete="on">
-        <div class="grid">
+      <!-- FREE REQUIRED -->
+      <div id="freeBox" class="subbox">
+        <div class="row-title">自由款樣式（顏色／版型／紙感 皆必選）</div>
 
-          <!-- 1) Plan + Basics -->
-          <div class="row2">
-            <div>
-              <label>名片方案</label>
-              <select id="planSelect" name="選擇名片製作方案" required>
-                <option value="free">自由搭配</option>
-                <option value="premium">精品設計</option>
-              </select>
-            </div>
-            <div>
-              <label>姓名（或商家名稱）</label>
-              <input name="姓名" placeholder="例：王小明 / 幸福緣烘焙工作室" required />
-            </div>
+        <div class="field">
+          <div class="label">顏色（必選）</div>
+          <div class="dotrow" id="freeColors" role="group" aria-label="free colors">
+            <button type="button" class="dot dot-1" data-color="color-1" aria-label="粉"></button>
+            <button type="button" class="dot dot-2" data-color="color-2" aria-label="藍"></button>
+            <button type="button" class="dot dot-3" data-color="color-3" aria-label="橘"></button>
+            <button type="button" class="dot dot-4" data-color="color-4" aria-label="紫"></button>
+            <button type="button" class="dot dot-5" data-color="color-5" aria-label="綠"></button>
           </div>
-
-          <div class="row2">
-            <div>
-              <label>單位</label>
-              <input name="單位" placeholder="例：幸福緣 / XX公司" />
-            </div>
-            <div>
-              <label>頭銜</label>
-              <input name="頭銜" placeholder="例：創辦人 / 業務經理" />
-            </div>
-          </div>
-
-          <div>
-            <label>理念標語</label>
-            <input name="理念標語" placeholder="例：一點，就看見彼此的價值" />
-          </div>
-
-          <div class="divider"></div>
-
-          <!-- 2) Looks (Plan split) -->
-          <div id="looksFree" class="looksBlock">
-            <div class="row2">
-              <div>
-                <label>名片顏色</label>
-                <select name="選擇名片顏色">
-                  <option value="">（參考首頁樣版）</option>
-                  <option value="color-1">c1 粉</option>
-                  <option value="color-2">c2 藍</option>
-                  <option value="color-3">c3 橘</option>
-                  <option value="color-4">c4 紫</option>
-                  <option value="color-5">c5 綠</option>
-                </select>
-              </div>
-              <div>
-                <label>版型風格</label>
-                <select name="選擇版型風格">
-                  <option value="">（參考首頁樣版）</option>
-                  <option value="arch">s1 正拱</option>
-                  <option value="flat">s2 平直</option>
-                  <option value="spot">s3 晨曦</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row2">
-              <div>
-                <label>紙感質地</label>
-                <select name="選擇紙感質地">
-                  <option value="">（不選也可以）</option>
-                  <option value="paper-1">f1 霧面棉紙</option>
-                  <option value="paper-2">f2 細顆粒紙</option>
-                  <option value="paper-3">f3 亞麻紋</option>
-                </select>
-              </div>
-              <div></div>
-            </div>
-          </div>
-
-          <div id="looksPremium" class="looksBlock" style="display:none">
-            <div class="row2">
-              <div>
-                <label>精品底色</label>
-                <select name="選擇精品底色">
-                  <option value="">（不選也可以）</option>
-                  <option value="p1">p1 胭脂紅</option>
-                  <option value="p2">p2 酒紅</option>
-                  <option value="p3">p3 深藍</option>
-                  <option value="p4">p4 霧紫</option>
-                  <option value="p5">p5 藍灰</option>
-                  <option value="p6">p6 金箔</option>
-                  <option value="p7">p7 褐碳</option>
-                </select>
-              </div>
-              <div></div>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <!-- 3) Content -->
-          <div class="row2">
-            <div>
-              <label>服務項目</label>
-              <textarea name="服務項目" placeholder="例：\n健康手作麵包\n早餐設計\n親子烘焙體驗"></textarea>
-            </div>
-            <div>
-              <label>經歷</label>
-              <textarea name="經歷" placeholder="例：\n退休教師\n自學烘焙\n長時低溫發酵研發"></textarea>
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <!-- 3.5) Upload -->
-          <div class="uploader">
-            <input id="fileAvatar" type="file" accept="image/*" capture="environment" style="display:none" />
-            <input id="fileLogo" type="file" accept="image/*" style="display:none" />
-            <input id="filePhotos" type="file" accept="image/*" multiple style="display:none" />
-
-            <div class="uploadRow">
-              <div class="fileBtn" id="pickAvatar">📷 個人照（1張）</div>
-              <div class="fileBtn" id="pickLogo">🧩 Logo（1張）</div>
-            </div>
-
-            <div class="uploadRow">
-              <div class="fileBtn" id="pickPhotos">🖼️ 照片（最多<span id="maxPhotosText">2</span>張）</div>
-            </div>
-
-            <div class="fileMeta" id="uploadMeta"></div>
-
-            <div class="smallBtns">
-              <button class="miniBtn" type="button" id="btnClearImages">清除已選照片</button>
-            </div>
-
-            <div class="previewGrid" id="previewGrid"></div>
-
-            <!-- Advanced (optional) -->
-            <details class="adv">
-              <summary>進階（選填）：貼照片網址</summary>
-
-              <div class="row2">
-                <div>
-                  <label>個人照 URL</label>
-                  <input name="個人照" placeholder="例：https://...（Drive/Dropbox/https）" />
-                </div>
-                <div>
-                  <label>Logo URL</label>
-                  <input name="Logo" placeholder="例：https://...（Drive/Dropbox/https）" />
-                </div>
-              </div>
-
-              <div>
-                <label>照片 URL（多張）</label>
-                <textarea name="照片" placeholder="一行一張，或用逗號分隔"></textarea>
-              </div>
-            </details>
-          </div>
-          <!-- /Upload -->
-
-          <div class="divider"></div>
-
-          <!-- Media / Social -->
-          <div class="row2">
-            <div>
-              <label>影音連結1</label>
-              <input name="影音連結1" placeholder="例：https://youtu.be/xxxx" />
-            </div>
-            <div>
-              <label>社群連結1</label>
-              <input name="社群連結1" placeholder="例：https://instagram.com/xxxx" />
-            </div>
-          </div>
-
-          <div class="row2">
-            <div>
-              <label>影音連結2</label>
-              <input name="影音連結2" placeholder="例：https://youtu.be/xxxx" />
-            </div>
-            <div>
-              <label>社群連結2</label>
-              <input name="社群連結2" placeholder="例：https://facebook.com/xxxx" />
-            </div>
-          </div>
-
-          <div class="row2">
-            <div>
-              <label>影音連結3</label>
-              <input name="影音連結3" placeholder="例：https://v.douyin.com/xxxx" />
-            </div>
-            <div>
-              <label>社群連結3</label>
-              <input name="社群連結3" placeholder="例：https://www.xiaohongshu.com/user/profile/xxxx" />
-            </div>
-          </div>
-
-          <div class="divider"></div>
-
-          <!-- Contact -->
-          <div class="row2">
-            <div>
-              <label>LINE官方帳號（連結或 @ID）</label>
-              <input name="LINE官方帳號" placeholder="例：@angelshop 或 https://page.line.me/xxxx" />
-            </div>
-            <div>
-              <label>LINE連結（連結或 @ID）</label>
-              <input name="LINE連結" placeholder="例：@abc 或 https://lin.ee/xxxxx" />
-            </div>
-          </div>
-
-          <div class="row2">
-            <div>
-              <label>Email</label>
-              <input name="Email" type="email" inputmode="email" autocomplete="email" placeholder="例：example@gmail.com" />
-            </div>
-            <div>
-              <label>電話</label>
-              <input name="電話" type="tel" inputmode="tel" autocomplete="tel" placeholder="例：09xx-xxx-xxx" />
-            </div>
-          </div>
-
-          <div class="row2">
-            <div>
-              <label>地址</label>
-              <input name="地址" autocomplete="street-address" placeholder="例：高雄市…（名片會做導航）" />
-            </div>
-            <div>
-              <label>微信ID</label>
-              <input name="微信ID" placeholder="例：weixin123（ID，不是連結）" />
-            </div>
-          </div>
-
-          <div class="status" id="statusBox"></div>
-          <div class="mini" id="draftHint"></div>
-
         </div>
-      </form>
-    </div>
-  </div>
 
-  <div class="stickyBar">
-    <div class="inner">
-      <button class="btn secondary" type="button" id="btnClearDraft">清除草稿</button>
-      <button class="btn" type="button" id="btnSubmit">✅ 送出資料</button>
-    </div>
+        <div class="field">
+          <div class="label">版型（必選）</div>
+          <div class="btnrow" id="freeStyles">
+            <button type="button" class="btn pill" data-style="arch">正拱</button>
+            <button type="button" class="btn pill" data-style="flat">平直</button>
+            <button type="button" class="btn pill" data-style="spot">晨曦</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="label">紙感（必選）</div>
+          <div class="btnrow" id="freePapers">
+            <button type="button" class="btn pill" data-paper="paper-1">霧面棉紙</button>
+            <button type="button" class="btn pill" data-paper="paper-2">細顆粒紙</button>
+            <button type="button" class="btn pill" data-paper="paper-3">亞麻紋</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREMIUM REQUIRED -->
+      <div id="premiumBox" class="subbox" style="display:none;">
+        <div class="row-title">精品款底色（必選）</div>
+        <div class="dotrow prem" id="premiumThemes" role="group" aria-label="premium themes">
+          <button type="button" class="p-dot p1" data-premium="p1" aria-label="p1"></button>
+          <button type="button" class="p-dot p2" data-premium="p2" aria-label="p2"></button>
+          <button type="button" class="p-dot p3" data-premium="p3" aria-label="p3"></button>
+          <button type="button" class="p-dot p4" data-premium="p4" aria-label="p4"></button>
+          <button type="button" class="p-dot p5" data-premium="p5" aria-label="p5"></button>
+          <button type="button" class="p-dot p6" data-premium="p6" aria-label="p6"></button>
+          <button type="button" class="p-dot p7" data-premium="p7" aria-label="p7"></button>
+        </div>
+      </div>
+
+      <div class="hint" id="styleHint">請先完成必選樣式，才能送出。</div>
+    </section>
+
+    <!-- BASIC INFO -->
+    <section class="card">
+      <div class="section-title">基本資料</div>
+
+      <div class="field">
+        <div class="label">姓名</div>
+        <input id="name" class="input" placeholder="例：王小明" autocomplete="name" />
+      </div>
+
+      <div class="field">
+        <div class="label">單位／公司</div>
+        <input id="unit" class="input" placeholder="例：幸福緣 / Angel" />
+      </div>
+
+      <div class="field">
+        <div class="label">頭銜</div>
+        <input id="title" class="input" placeholder="例：創辦人 / 顧問" />
+      </div>
+
+      <div class="field">
+        <div class="label">一句話／簡介</div>
+        <textarea id="slogan" class="textarea" placeholder="例：一點，就看見彼此的價值"></textarea>
+      </div>
+    </section>
+
+    <!-- AVATAR UPLOAD (ONLY) -->
+    <section class="card">
+      <div class="section-title">個人照（只保留上傳）</div>
+
+      <label class="upload-btn" for="avatarFile">
+        <span>上傳個人照</span>
+        <input id="avatarFile" type="file" accept="image/*" />
+      </label>
+
+      <div class="preview">
+        <img id="avatarPreview" alt="個人照預覽" style="display:none;" />
+        <div class="mini" id="avatarMeta" style="display:none;"></div>
+      </div>
+
+      <div class="hint">
+        送出前會自動壓縮：<b>最長邊 1200px</b>、目標 <b>≤ 350KB</b>（避免 Failed to fetch）。
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="card">
+      <div class="section-title">聯繫方式</div>
+
+      <div class="field">
+        <div class="label">電話</div>
+        <input id="phone" class="input" inputmode="tel" placeholder="例：0912xxxxxx" autocomplete="tel" />
+      </div>
+
+      <div class="field">
+        <div class="label">Email</div>
+        <input id="email" class="input" inputmode="email" placeholder="例：abc@gmail.com" autocomplete="email" />
+      </div>
+
+      <div class="field">
+        <div class="label">地址</div>
+        <input id="address" class="input" placeholder="例：高雄市..." />
+      </div>
+
+      <div class="field">
+        <div class="label">微信ID</div>
+        <input id="wechatId" class="input" placeholder="例：a0973180707" />
+      </div>
+
+      <div class="field">
+        <div class="label">LINE（連結或 @ID）</div>
+        <input id="lineAny" class="input" placeholder="例：https://lin.ee/xxx 或 @yourid" />
+      </div>
+    </section>
+
+    <!-- ACTIONS -->
+    <section class="actions">
+      <button class="btn danger" type="button" id="btnClear">清除草稿</button>
+      <button class="btn primary" type="button" id="btnSubmit">✅ 送出資料</button>
+    </section>
+
+    <div class="status" id="statusBox" aria-live="polite"></div>
   </div>
 
   <script src="./form.js?v=491"></script>
