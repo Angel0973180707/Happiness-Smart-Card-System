@@ -1,9 +1,11 @@
-<!-- form.html v3 (COMPLETE OVERWRITE)
+<!-- form.html v491 (COMPLETE OVERWRITE)
   目標：大字好填、好滑動、好修改｜版面精簡｜流程明確
   新增：照片自動上傳（前端 Canvas 壓縮 → 丟 GAS → 存 Drive → 表寫 URL）
   規則：
   - 不出現「成品連結」欄位
-  - 送出後提示「去 LINE 官網確認」
+  - 送出後只提示「去 LINE 官網確認」
+  - 自由搭配：選色/選版/選紙感 + 照片最多2張（精品底色不出現）
+  - 精品設計：選底色 + 照片最多5張（自由選樣不出現）
 -->
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -13,333 +15,7 @@
   <title>填寫名片資料｜Happiness Smart Card</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800;900&display=swap" rel="stylesheet" />
-  <style>
-    :root{
-      --bg:#0f1218;
-      --card: rgba(255,255,255,0.08);
-      --line: rgba(255,255,255,0.14);
-      --text: rgba(255,255,255,0.94);
-      --muted: rgba(255,255,255,0.72);
-      --muted2: rgba(255,255,255,0.60);
-      --accent:#ff5f7b;
-      --accent2:#ff2f45;
-      --ok:#2bd46f;
-      --warn:#ffb020;
-      --radius:20px;
-
-      /* Big & comfy */
-      --fs-title: 20px;
-      --fs-sub: 14px;
-      --fs-label: 14px;
-      --fs-input: 18px; /* >=16 to avoid iOS zoom */
-      --pad-input: 14px 14px;
-      --gap: 12px;
-    }
-    *{ box-sizing:border-box; }
-    html, body{ height:auto; min-height:100%; }
-    body{
-      margin:0;
-      font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
-      background:
-        radial-gradient(1000px 600px at 18% 0%, rgba(255,255,255,0.11), transparent 56%),
-        radial-gradient(900px 650px at 92% 10%, rgba(255,255,255,0.09), transparent 60%),
-        var(--bg);
-      color: var(--text);
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    .wrap{
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 12px 12px 110px;
-    }
-    .top{
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      padding: 10px 0 12px;
-      background: linear-gradient(180deg, rgba(15,18,24,0.92), rgba(15,18,24,0.68), rgba(15,18,24,0));
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    .titleRow{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap: 10px;
-    }
-    h1{
-      margin:0;
-      font-size: var(--fs-title);
-      font-weight: 900;
-      letter-spacing:.4px;
-      line-height: 1.25;
-    }
-    .pill{
-      flex:0 0 auto;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding: 9px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.88);
-      font-weight: 900;
-      font-size: 12px;
-      user-select:none;
-    }
-    .sub{
-      margin-top: 8px;
-      font-size: var(--fs-sub);
-      color: var(--muted);
-      line-height: 1.65;
-    }
-    .sub b{ color: rgba(255,255,255,0.92); }
-
-    .card{
-      margin-top: 10px;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 14px;
-      box-shadow: 0 18px 70px rgba(0,0,0,0.42);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-    .step{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      margin: 2px 0 10px;
-      font-weight: 900;
-      letter-spacing: .3px;
-    }
-    .step .num{
-      width: 32px; height: 32px;
-      border-radius: 999px;
-      display:flex; align-items:center; justify-content:center;
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.16);
-      color: rgba(255,255,255,0.92);
-      font-size: 14px;
-    }
-    .step .txt{
-      font-size: 16px;
-      color: rgba(255,255,255,0.92);
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: var(--gap);
-    }
-    .row2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--gap);
-    }
-    @media (max-width: 560px){
-      .row2{ grid-template-columns: 1fr; }
-      :root{ --fs-input: 18px; }
-    }
-
-    label{
-      display:block;
-      margin: 0 0 7px;
-      font-size: var(--fs-label);
-      font-weight: 900;
-      color: rgba(255,255,255,0.92);
-      letter-spacing: .2px;
-    }
-
-    input, select, textarea{
-      width:100%;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.07);
-      color: rgba(255,255,255,0.94);
-      padding: var(--pad-input);
-      outline: none;
-      font-size: var(--fs-input);
-      line-height: 1.25;
-      box-shadow:
-        0 12px 28px rgba(0,0,0,0.22),
-        inset 0 1px 0 rgba(255,255,255,0.10);
-      -webkit-tap-highlight-color: transparent;
-    }
-    select{ appearance: none; -webkit-appearance:none; }
-    textarea{
-      min-height: 110px;
-      resize: vertical;
-      line-height: 1.5;
-    }
-    input::placeholder, textarea::placeholder{ color: rgba(255,255,255,0.46); }
-
-    .hint{
-      margin-top: 7px;
-      font-size: 13px;
-      color: var(--muted2);
-      line-height: 1.55;
-    }
-    .divider{
-      height:1px;
-      background: rgba(255,255,255,0.10);
-      margin: 14px 0;
-    }
-
-    /* Upload UI */
-    .uploader{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-    .uploadRow{
-      display:flex;
-      gap:10px;
-      align-items:stretch;
-      flex-wrap:wrap;
-    }
-    .fileBtn{
-      flex: 1 1 auto;
-      border-radius: 16px;
-      border: 1px dashed rgba(255,255,255,0.22);
-      background: rgba(255,255,255,0.06);
-      padding: 14px;
-      font-weight: 900;
-      letter-spacing:.2px;
-      color: rgba(255,255,255,0.92);
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:center;
-      cursor:pointer;
-      user-select:none;
-    }
-    .fileBtn:active{ transform: scale(0.99); }
-    .fileMeta{
-      font-size: 12px;
-      color: rgba(255,255,255,0.66);
-      line-height: 1.5;
-    }
-    .previewGrid{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 6px;
-    }
-    @media (max-width: 560px){
-      .previewGrid{ grid-template-columns: repeat(2, 1fr); }
-    }
-    .thumb{
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.18);
-      overflow:hidden;
-      aspect-ratio: 1/1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      position:relative;
-    }
-    .thumb img{
-      width:100%;
-      height:100%;
-      object-fit: cover;
-      display:block;
-    }
-    .badge{
-      position:absolute;
-      left:8px; top:8px;
-      font-size: 11px;
-      font-weight: 900;
-      padding: 6px 9px;
-      border-radius: 999px;
-      background: rgba(0,0,0,0.45);
-      border: 1px solid rgba(255,255,255,0.18);
-    }
-    .smallBtns{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top: 6px;
-    }
-    .miniBtn{
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.90);
-      border-radius: 14px;
-      padding: 12px 14px;
-      font-weight: 900;
-      font-size: 14px;
-      cursor:pointer;
-    }
-    .miniBtn:active{ transform: scale(0.99); }
-
-    .stickyBar{
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
-      z-index: 60;
-      padding: 12px;
-      background: rgba(15,18,24,0.86);
-      border-top: 1px solid rgba(255,255,255,0.12);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-    .stickyBar .inner{
-      max-width: 720px;
-      margin: 0 auto;
-      display:flex;
-      gap: 10px;
-      align-items:center;
-      justify-content:space-between;
-    }
-    .btn{
-      border: 0;
-      border-radius: 16px;
-      padding: 14px 16px;
-      font-weight: 900;
-      cursor:pointer;
-      color:#fff;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      box-shadow: 0 18px 40px rgba(0,0,0,0.34);
-      font-size: 16px;
-      letter-spacing: .3px;
-      flex: 1 1 auto;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap: 10px;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:active{ transform: scale(0.99); }
-    .btn.secondary{
-      flex: 0 0 auto;
-      background: rgba(255,255,255,0.10);
-      border: 1px solid rgba(255,255,255,0.16);
-      box-shadow: none;
-      color: rgba(255,255,255,0.92);
-      min-width: 116px;
-    }
-    .btn[disabled]{ opacity:.55; cursor:not-allowed; }
-
-    .status{
-      margin-top: 12px;
-      font-size: 14px;
-      line-height: 1.65;
-      color: rgba(255,255,255,0.88);
-      white-space: pre-line;
-    }
-    .status.ok{ color: rgba(210,255,224,0.95); }
-    .status.warn{ color: rgba(255,235,200,0.95); }
-
-    .mini{
-      font-size: 12px;
-      color: rgba(255,255,255,0.60);
-      line-height: 1.5;
-      margin-top: 6px;
-    }
-  </style>
+  <link rel="stylesheet" href="./form.css?v=491" />
 </head>
 
 <body>
@@ -347,31 +23,22 @@
 
     <div class="top">
       <div class="titleRow">
-        <div>
-          <h1>填寫名片資料</h1>
-          <div class="sub">
-            <b>所有欄位都可填寫</b>，不需要的欄位可留空。<br>
-            <b>自由搭配＝基礎展示</b>｜<b>精品設計＝品牌展示</b>
-          </div>
-        </div>
-        <div class="pill">📌 大字好填｜可儲存草稿</div>
+        <h1>填寫名片資料</h1>
       </div>
     </div>
 
     <div class="card">
-      <div class="step"><div class="num">1</div><div class="txt">選擇展示模式 & 基本資料</div></div>
-
       <form id="cardForm" autocomplete="on">
         <div class="grid">
 
+          <!-- 1) Plan + Basics -->
           <div class="row2">
             <div>
-              <label>選擇名片製作方案</label>
-              <select name="選擇名片製作方案" required>
-                <option value="free">自由搭配（基礎展示）</option>
-                <option value="premium">精品設計（品牌展示）</option>
+              <label>名片方案</label>
+              <select id="planSelect" name="選擇名片製作方案" required>
+                <option value="free">自由搭配</option>
+                <option value="premium">精品設計</option>
               </select>
-              <div class="hint">自由：照片/影音/社群以主要內容顯示｜精品：完整呈現照片牆/多影音/多社群</div>
             </div>
             <div>
               <label>姓名（或商家名稱）</label>
@@ -397,93 +64,96 @@
 
           <div class="divider"></div>
 
-          <div class="step"><div class="num">2</div><div class="txt">外觀選擇（可留空）</div></div>
-
-          <div class="row2">
-            <div>
-              <label>自由搭配｜名片顏色</label>
-              <select name="選擇名片顏色">
-                <option value="">（不選也可以）</option>
-                <option value="color-1">c1 粉</option>
-                <option value="color-2">c2 藍</option>
-                <option value="color-3">c3 橘</option>
-                <option value="color-4">c4 紫</option>
-                <option value="color-5">c5 綠</option>
-              </select>
+          <!-- 2) Looks (Plan split) -->
+          <div id="looksFree" class="looksBlock">
+            <div class="row2">
+              <div>
+                <label>名片顏色</label>
+                <select name="選擇名片顏色">
+                  <option value="">（不選也可以）</option>
+                  <option value="color-1">c1 粉</option>
+                  <option value="color-2">c2 藍</option>
+                  <option value="color-3">c3 橘</option>
+                  <option value="color-4">c4 紫</option>
+                  <option value="color-5">c5 綠</option>
+                </select>
+              </div>
+              <div>
+                <label>版型風格</label>
+                <select name="選擇版型風格">
+                  <option value="">（不選也可以）</option>
+                  <option value="arch">s1 正拱</option>
+                  <option value="flat">s2 平直</option>
+                  <option value="spot">s3 晨曦</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label>自由搭配｜版型風格</label>
-              <select name="選擇版型風格">
-                <option value="">（不選也可以）</option>
-                <option value="arch">s1 正拱</option>
-                <option value="flat">s2 平直</option>
-                <option value="spot">s3 晨曦</option>
-              </select>
+
+            <div class="row2">
+              <div>
+                <label>紙感質地</label>
+                <select name="選擇紙感質地">
+                  <option value="">（不選也可以）</option>
+                  <option value="paper-1">f1 霧面棉紙</option>
+                  <option value="paper-2">f2 細顆粒紙</option>
+                  <option value="paper-3">f3 亞麻紋</option>
+                </select>
+              </div>
+              <div></div>
             </div>
           </div>
 
-          <div class="row2">
-            <div>
-              <label>自由搭配｜紙感質地</label>
-              <select name="選擇紙感質地">
-                <option value="">（不選也可以）</option>
-                <option value="paper-1">f1 霧面棉紙</option>
-                <option value="paper-2">f2 細顆粒紙</option>
-                <option value="paper-3">f3 亞麻紋</option>
-              </select>
-            </div>
-            <div>
-              <label>精品設計｜精品底色</label>
-              <select name="選擇精品底色">
-                <option value="">（不選也可以）</option>
-                <option value="p1">p1 胭脂紅</option>
-                <option value="p2">p2 酒紅</option>
-                <option value="p3">p3 深藍</option>
-                <option value="p4">p4 霧紫</option>
-                <option value="p5">p5 藍灰</option>
-                <option value="p6">p6 金箔</option>
-                <option value="p7">p7 褐碳</option>
-              </select>
+          <div id="looksPremium" class="looksBlock" style="display:none">
+            <div class="row2">
+              <div>
+                <label>精品底色</label>
+                <select name="選擇精品底色">
+                  <option value="">（不選也可以）</option>
+                  <option value="p1">p1 胭脂紅</option>
+                  <option value="p2">p2 酒紅</option>
+                  <option value="p3">p3 深藍</option>
+                  <option value="p4">p4 霧紫</option>
+                  <option value="p5">p5 藍灰</option>
+                  <option value="p6">p6 金箔</option>
+                  <option value="p7">p7 褐碳</option>
+                </select>
+              </div>
+              <div></div>
             </div>
           </div>
 
           <div class="divider"></div>
 
-          <div class="step"><div class="num">3</div><div class="txt">內容資料（想填多少就填多少）</div></div>
-
+          <!-- 3) Content -->
           <div class="row2">
             <div>
               <label>服務項目</label>
-              <textarea name="服務項目" placeholder="可多行，每行一項"></textarea>
+              <textarea name="服務項目" placeholder="例：\n健康手作麵包\n早餐設計\n親子烘焙體驗"></textarea>
             </div>
             <div>
               <label>經歷</label>
-              <textarea name="經歷" placeholder="可多行，每行一段"></textarea>
-              <div class="hint">基礎展示：會精簡呈現｜精品設計：完整呈現</div>
+              <textarea name="經歷" placeholder="例：\n退休教師\n自學烘焙\n長時低溫發酵研發"></textarea>
             </div>
           </div>
 
           <div class="divider"></div>
 
-          <!-- NEW: Upload -->
-          <div class="step"><div class="num">3.5</div><div class="txt">上傳照片（自動壓縮上傳）</div></div>
-
+          <!-- 3.5) Upload -->
           <div class="uploader">
-            <!-- hidden file inputs -->
             <input id="fileAvatar" type="file" accept="image/*" capture="environment" style="display:none" />
             <input id="fileLogo" type="file" accept="image/*" style="display:none" />
             <input id="filePhotos" type="file" accept="image/*" multiple style="display:none" />
 
             <div class="uploadRow">
-              <div class="fileBtn" id="pickAvatar">📷 選個人照（1張）</div>
-              <div class="fileBtn" id="pickLogo">🧩 選 Logo（1張）</div>
+              <div class="fileBtn" id="pickAvatar">📷 個人照（1張）</div>
+              <div class="fileBtn" id="pickLogo">🧩 Logo（1張）</div>
             </div>
 
             <div class="uploadRow">
-              <div class="fileBtn" id="pickPhotos">🖼️ 選照片（最多5張）</div>
+              <div class="fileBtn" id="pickPhotos">🖼️ 照片（最多<span id="maxPhotosText">2</span>張）</div>
             </div>
 
-            <div class="fileMeta" id="uploadMeta">會自動壓縮（不裁切），再上傳到系統。</div>
+            <div class="fileMeta" id="uploadMeta"></div>
 
             <div class="smallBtns">
               <button class="miniBtn" type="button" id="btnClearImages">清除已選照片</button>
@@ -491,74 +161,75 @@
 
             <div class="previewGrid" id="previewGrid"></div>
 
-            <!-- NOTE: URL欄位仍保留（給進階用戶可貼 URL），但一般客戶只需要用上傳 -->
-            <div class="row2">
-              <div>
-                <label>（選填）個人照 URL</label>
-                <input name="個人照" placeholder="不會用上傳也可貼網址（Drive/Dropbox/https）" />
-              </div>
-              <div>
-                <label>（選填）Logo URL</label>
-                <input name="Logo" placeholder="不會用上傳也可貼網址（Drive/Dropbox/https）" />
-              </div>
-            </div>
+            <!-- Advanced (optional) -->
+            <details class="adv">
+              <summary>進階（選填）：貼照片網址</summary>
 
-            <div>
-              <label>（選填）照片 URL（多張）</label>
-              <textarea name="照片" placeholder="一行一張，或用逗號分隔（進階用）"></textarea>
-              <div class="hint">一般客戶不用填這裡，直接上傳即可。</div>
-            </div>
+              <div class="row2">
+                <div>
+                  <label>個人照 URL</label>
+                  <input name="個人照" placeholder="例：https://...（Drive/Dropbox/https）" />
+                </div>
+                <div>
+                  <label>Logo URL</label>
+                  <input name="Logo" placeholder="例：https://...（Drive/Dropbox/https）" />
+                </div>
+              </div>
 
+              <div>
+                <label>照片 URL（多張）</label>
+                <textarea name="照片" placeholder="一行一張，或用逗號分隔"></textarea>
+              </div>
+            </details>
           </div>
           <!-- /Upload -->
 
           <div class="divider"></div>
 
+          <!-- Media / Social -->
           <div class="row2">
             <div>
               <label>影音連結1</label>
-              <input name="影音連結1" placeholder="YouTube/影片連結或帳號" />
+              <input name="影音連結1" placeholder="例：https://youtu.be/xxxx" />
             </div>
             <div>
               <label>社群連結1</label>
-              <input name="社群連結1" placeholder="FB/IG/小紅書/官網（擇一）" />
+              <input name="社群連結1" placeholder="例：https://instagram.com/xxxx" />
             </div>
           </div>
 
           <div class="row2">
             <div>
-              <label>影音連結2（選填）</label>
-              <input name="影音連結2" placeholder="（選填）" />
+              <label>影音連結2</label>
+              <input name="影音連結2" placeholder="例：https://youtu.be/xxxx" />
             </div>
             <div>
-              <label>社群連結2（選填）</label>
-              <input name="社群連結2" placeholder="（選填）" />
+              <label>社群連結2</label>
+              <input name="社群連結2" placeholder="例：https://facebook.com/xxxx" />
             </div>
           </div>
 
           <div class="row2">
             <div>
-              <label>影音連結3（選填）</label>
-              <input name="影音連結3" placeholder="（選填）" />
+              <label>影音連結3</label>
+              <input name="影音連結3" placeholder="例：https://v.douyin.com/xxxx" />
             </div>
             <div>
-              <label>社群連結3（選填）</label>
-              <input name="社群連結3" placeholder="（選填）" />
+              <label>社群連結3</label>
+              <input name="社群連結3" placeholder="例：https://www.xiaohongshu.com/user/profile/xxxx" />
             </div>
           </div>
 
           <div class="divider"></div>
 
-          <div class="step"><div class="num">4</div><div class="txt">聯絡方式（可留空）</div></div>
-
+          <!-- Contact -->
           <div class="row2">
             <div>
-              <label>LINE官方帳號（可填 @ID 或網址）</label>
+              <label>LINE官方帳號（連結或 @ID）</label>
               <input name="LINE官方帳號" placeholder="例：@angelshop 或 https://page.line.me/xxxx" />
-              <div class="hint">送出後請到 LINE 官網確認是否正確。</div>
             </div>
             <div>
-              <label>LINE連結（可填 @ID 或網址）</label>
+              <label>LINE連結（連結或 @ID）</label>
               <input name="LINE連結" placeholder="例：@abc 或 https://lin.ee/xxxxx" />
             </div>
           </div>
@@ -566,11 +237,11 @@
           <div class="row2">
             <div>
               <label>Email</label>
-              <input name="Email" type="email" inputmode="email" autocomplete="email" placeholder="example@gmail.com" />
+              <input name="Email" type="email" inputmode="email" autocomplete="email" placeholder="例：example@gmail.com" />
             </div>
             <div>
               <label>電話</label>
-              <input name="電話" type="tel" inputmode="tel" autocomplete="tel" placeholder="09xx-xxx-xxx" />
+              <input name="電話" type="tel" inputmode="tel" autocomplete="tel" placeholder="例：09xx-xxx-xxx" />
             </div>
           </div>
 
@@ -581,12 +252,12 @@
             </div>
             <div>
               <label>微信ID</label>
-              <input name="微信ID" placeholder="例：weixin123" />
+              <input name="微信ID" placeholder="例：weixin123（ID，不是連結）" />
             </div>
           </div>
 
           <div class="status" id="statusBox"></div>
-          <div class="mini" id="draftHint">提示：系統會自動儲存草稿（可隨時回來修改）。</div>
+          <div class="mini" id="draftHint"></div>
 
         </div>
       </form>
@@ -600,6 +271,6 @@
     </div>
   </div>
 
-  <script src="./form.js?v=3"></script>
+  <script src="./form.js?v=491"></script>
 </body>
 </html>
