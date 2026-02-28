@@ -1,476 +1,132 @@
+<!-- ================================
+     admin.html v491 (COMPLETE OVERWRITE)
+     - Purpose: Delivery/Admin panel (clean preview + copy + WeChat poster 1080x1920)
+     - Entry: from index.html hotspot -> ./admin.html?v=491&id=TW0001
+================================== -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>Angel Card Admin v491</title>
+  <title>Admin｜Happiness Smart Card System v491</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <style>
-    :root{
-      --bg:#0f1218;
-      --ink:rgba(255,255,255,0.92);
-      --muted:rgba(255,255,255,0.68);
-      --card:rgba(255,255,255,0.10);
-      --line:rgba(255,255,255,0.14);
-      --gold1:rgba(191,149,63,0.75);
-      --gold2:rgba(255,233,168,0.55);
-      --danger: rgba(255, 120, 120, 0.85);
-      --ok: rgba(120, 255, 200, 0.80);
-    }
-    *{ box-sizing:border-box; }
-    body{
-      margin:0;
-      font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
-      background:
-        radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.10), transparent 55%),
-        radial-gradient(900px 700px at 85% 10%, rgba(191,149,63,0.10), transparent 56%),
-        var(--bg);
-      color:var(--ink);
-    }
-    .wrap{
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 16px 12px 36px;
-    }
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 10px 10px;
-      border-radius: 18px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,0.06);
-      backdrop-filter: blur(10px);
-    }
-    .title{
-      font-weight: 1000;
-      letter-spacing: 0.6px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .pill{
-      padding: 8px 10px;
-      border-radius: 999px;
-      border:1px solid rgba(191,149,63,0.55);
-      background: rgba(255,255,255,0.06);
-      font-weight: 900;
-      color: rgba(255,255,255,0.92);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-    .card{
-      margin-top: 12px;
-      border-radius: 22px;
-      border:1px solid var(--line);
-      background: var(--card);
-      padding: 14px;
-      box-shadow: 0 26px 80px rgba(0,0,0,0.55);
-    }
-    .row{
-      display:flex;
-      gap: 10px;
-      flex-wrap:wrap;
-      align-items:center;
-      margin-top: 10px;
-    }
-    .input{
-      flex:1;
-      min-width: 220px;
-      padding: 12px 12px;
-      border-radius: 16px;
-      border:1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.08);
-      color: var(--ink);
-      outline:none;
-      font-weight: 900;
-    }
-    .btn{
-      padding: 12px 14px;
-      border-radius: 16px;
-      border: 1px solid rgba(191,149,63,0.55);
-      background: rgba(255,255,255,0.08);
-      color: var(--ink);
-      font-weight: 1000;
-      cursor:pointer;
-      position: relative;
-      box-shadow: 0 18px 38px rgba(0,0,0,0.55);
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-    .btn::after{
-      content:"";
-      position:absolute; inset:-1px;
-      border-radius: inherit;
-      padding: 1px;
-      background: linear-gradient(135deg, var(--gold2), var(--gold1), rgba(255,255,255,0.12));
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude;
-      pointer-events:none;
-      opacity: 0.85;
-    }
-    .btn:active{ transform: scale(0.99); }
-    .hint{
-      color: var(--muted);
-      margin-top: 10px;
-      font-weight: 800;
-      line-height: 1.6;
-    }
-    .mono{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 12px;
-      color: rgba(255,255,255,0.80);
-      white-space: pre-wrap;
-      word-break: break-word;
-      background: rgba(0,0,0,0.28);
-      border:1px solid rgba(255,255,255,0.12);
-      border-radius: 16px;
-      padding: 12px;
-      margin-top: 10px;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    @media(min-width:640px){
-      .grid{ grid-template-columns: 1fr 1fr; }
-    }
-    .tiny{
-      margin-top: 8px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.62);
-      font-weight: 800;
-      line-height: 1.6;
-    }
-    .ok{ color: var(--ok); }
-    .bad{ color: var(--danger); }
-  </style>
+  <link rel="stylesheet" href="./admin.css?v=491" />
 </head>
+
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="title">
-        <i class="fa-solid fa-user-gear"></i>
-        隱形後臺工作區
-        <span class="pill">v491</span>
+  <header class="topbar">
+    <div class="topbar__left">
+      <div class="brand">
+        <div class="brand__title">隱形後臺｜交貨工作臺</div>
+        <div class="brand__sub">v491</div>
       </div>
-      <button class="btn" id="btnBack" type="button"><i class="fa-solid fa-house"></i> 返回首頁</button>
     </div>
 
-    <div class="card">
-      <div style="font-weight:1000; letter-spacing:0.6px;">查詢 / 交貨</div>
-
-      <div class="row">
-        <input id="inId" class="input" placeholder="輸入序號（TW0001 / 0001）" />
-        <button class="btn" id="btnLoad" type="button"><i class="fa-solid fa-magnifying-glass"></i> 載入</button>
-      </div>
-
-      <div class="row">
-        <input id="inName" class="input" placeholder="輸入姓名（若 GAS 支援 find）" />
-        <button class="btn" id="btnFind" type="button"><i class="fa-solid fa-user-check"></i> 用姓名找</button>
-      </div>
-
-      <div class="grid">
-        <button class="btn" id="btnCopyCardLink" type="button"><i class="fa-solid fa-link"></i> 一鍵複製名片連結</button>
-        <button class="btn" id="btnCopyShareLink" type="button"><i class="fa-solid fa-share-nodes"></i> 一鍵複製交貨分享連結</button>
-        <button class="btn" id="btnOpenPreview" type="button"><i class="fa-solid fa-eye"></i> 成品預覽</button>
-        <button class="btn" id="btnOpenShare" type="button"><i class="fa-solid fa-image"></i> 交貨卡（share.html）</button>
-        <button class="btn" id="btnCopyOgUrl" type="button"><i class="fa-solid fa-copy"></i> 一鍵複製 OG 圖網址</button>
-        <button class="btn" id="btnCopyAll" type="button"><i class="fa-solid fa-box"></i> 一鍵交貨（複製整包文字）</button>
-      </div>
-
-      <div class="hint">
-        ✅ 說明：<br/>
-        - 「名片連結」：index.html?v=491&id=TW000X<br/>
-        - 「交貨分享連結」：share.html?v=491&id=TW000X（可給客戶轉傳）<br/>
-        - 「OG 圖網址」：預留（若你有固定 og-card.png 或 per-id 生成，這裡可直接貼）<br/>
-        - 「用姓名找」：需 GAS 支援 action=find&name=（本頁已做容錯，不支援就提示）
-      </div>
-
-      <div class="tiny" id="envLine"></div>
-      <div class="mono" id="outBox">等待操作…</div>
+    <div class="topbar__right">
+      <button class="btn btn--ghost" id="btnBackHome" type="button">
+        <i class="fa-solid fa-house"></i><span>回名片首頁</span>
+      </button>
     </div>
+  </header>
 
-    <script>
-      const CFG = {
-        DEFAULT_ID: "TW0001",
-        VERSION: "v491",
-        VERSION_Q: "491",
-        GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-        INDEX_PAGE: "index.html",
-        SHARE_PAGE: "share.html",
-        OG_DEFAULT: "og-card.png" // 你若有 per-id OG，後續可改成 `og/TW0001.png` 等
-      };
+  <main class="wrap">
+    <!-- 控制區 -->
+    <section class="card">
+      <div class="row">
+        <label class="label">序號 / 姓名</label>
+        <div class="inputRow">
+          <input id="adminInput" class="input" placeholder="TW0001 / 0001 / 小天使（目前以序號為主）" />
+          <button class="btn" id="btnApply" type="button"><i class="fa-solid fa-check"></i><span>套用</span></button>
+        </div>
+        <div class="hint" id="adminHint"></div>
+      </div>
 
-      function $(id){ return document.getElementById(id); }
-      function text(v){ return (v==null? "" : String(v)).trim(); }
+      <div class="grid2">
+        <button class="btn" id="btnPreview" type="button">
+          <i class="fa-solid fa-up-right-from-square"></i><span>乾淨成品預覽</span>
+        </button>
 
-      function normalizeId(s){
-        const v = text(s).toUpperCase();
-        if(!v) return "";
-        if(/^TW\d{4}$/.test(v)) return v;
-        if(/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
-        if(/^TW\d{1,4}$/.test(v)){
-          const n = v.replace(/^TW/i,"");
-          return "TW" + n.padStart(4,"0");
-        }
-        return v;
-      }
+        <button class="btn" id="btnCopyCard" type="button">
+          <i class="fa-solid fa-link"></i><span>一鍵複製名片連結</span>
+        </button>
 
-      function getParams(){
-        try{
-          const sp = new URLSearchParams(location.search);
-          return {
-            id: sp.get("id") || "",
-            mode: sp.get("mode") || "",
-            theme: sp.get("theme") || ""
-          };
-        }catch{
-          return { id:"", mode:"", theme:"" };
-        }
-      }
+        <button class="btn" id="btnCopyShare" type="button">
+          <i class="fa-solid fa-share-nodes"></i><span>一鍵複製分享卡連結</span>
+        </button>
 
-      async function copyText(t){
-        try{
-          if(navigator.clipboard?.writeText){
-            await navigator.clipboard.writeText(t);
-            return true;
-          }
-        }catch{}
-        const ta = document.createElement("textarea");
-        ta.value = t;
-        ta.setAttribute("readonly","readonly");
-        ta.style.position="fixed";
-        ta.style.left="-9999px";
-        ta.style.top="0";
-        document.body.appendChild(ta);
-        ta.select();
-        try{ document.execCommand("copy"); }catch{}
-        document.body.removeChild(ta);
-        return true;
-      }
+        <button class="btn" id="btnCopyDelivery" type="button">
+          <i class="fa-solid fa-box"></i><span>一鍵交貨（只給這段）</span>
+        </button>
+      </div>
 
-      function originBase(){
-        // Preserve GitHub Pages subpath; ensures ends with "/"
-        const o = location.origin;
-        const p = location.pathname;
-        const dir = p.endsWith("/") ? p : p.slice(0, p.lastIndexOf("/") + 1);
-        return o + dir;
-      }
+      <div class="divider"></div>
 
-      function buildCardUrl(id){
-        return originBase() + CFG.INDEX_PAGE + "?v=" + CFG.VERSION_Q + "&id=" + encodeURIComponent(id);
-      }
+      <div class="row">
+        <div class="label">微信長圖（1080×1920）</div>
+        <div class="grid2">
+          <button class="btn btn--primary" id="btnWeChatPoster" type="button">
+            <i class="fa-solid fa-image"></i><span>一鍵生成微信長圖</span>
+          </button>
 
-      function buildShareUrl(id, mode, theme){
-        const sp = new URLSearchParams();
-        sp.set("v", CFG.VERSION_Q);
-        sp.set("id", id);
-        if(mode) sp.set("mode", mode);
-        if(theme) sp.set("theme", theme);
-        return originBase() + CFG.SHARE_PAGE + "?" + sp.toString();
-      }
+          <button class="btn" id="btnOpenPoster" type="button" disabled>
+            <i class="fa-solid fa-up-right-from-square"></i><span>開啟長圖（長按存圖）</span>
+          </button>
+        </div>
+        <div class="hint">
+          生成後：Android 通常會直接下載；iPhone 若未自動存檔，請點「開啟長圖」→ 長按圖片 → 儲存到相簿。
+        </div>
+      </div>
+    </section>
 
-      function buildOgUrl(id){
-        // default: one og-card.png; if per-id later: return originBase() + "og/" + id + ".png";
-        return originBase() + CFG.OG_DEFAULT + "?v=" + CFG.VERSION_Q;
-      }
+    <!-- 成品小預覽（乾淨卡面） -->
+    <section class="preview">
+      <div class="preview__title">成品預覽（乾淨版）</div>
+      <div class="previewCard">
+        <div class="avatarBox">
+          <img id="pvAvatar" alt="avatar" />
+        </div>
+        <div class="pvInfo">
+          <div class="pvName" id="pvName">—</div>
+          <div class="pvUnit" id="pvUnit"></div>
+          <div class="pvTitle" id="pvTitle"></div>
+          <div class="pvSlogan" id="pvSlogan" style="display:none;"></div>
+        </div>
+      </div>
 
-      function setOut(msg){
-        $("outBox").textContent = msg;
-      }
+      <div class="miniLinks">
+        <div class="miniLinks__row">
+          <span class="tag">Card（乾淨）</span>
+          <code id="txtCardUrl">—</code>
+          <button class="btn btn--tiny" id="btnCopyCard2" type="button"><i class="fa-regular fa-copy"></i></button>
+        </div>
+        <div class="miniLinks__row">
+          <span class="tag">Share（分享卡）</span>
+          <code id="txtShareUrl">—</code>
+          <button class="btn btn--tiny" id="btnCopyShare2" type="button"><i class="fa-regular fa-copy"></i></button>
+        </div>
+      </div>
+    </section>
 
-      async function fetchJson(url){
-        const res = await fetch(url, { cache:"no-store" });
-        const raw = await res.text();
-        const txt = (raw || "").trim();
+    <!-- Poster overlay -->
+    <div class="overlay" id="posterOverlay" aria-hidden="true">
+      <div class="overlay__box">
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="overlay__title" id="posterStatus">正在生成微信長圖…</div>
+        <div class="overlay__hint" id="posterHint">請稍候（照片多時會慢一點）。</div>
+        <div class="overlay__row">
+          <button class="btn" id="btnCancelOverlay" type="button">關閉</button>
+        </div>
+      </div>
+    </div>
+  </main>
 
-        // GAS sometimes returns non-JSON (html error). Make it explicit.
-        try{
-          return JSON.parse(txt);
-        }catch(e){
-          throw new Error("非 JSON 回應（可能是 GAS 錯誤或權限問題）\n\n" + txt.slice(0, 600));
-        }
-      }
-
-      function setInputsFromParams(){
-        const p = getParams();
-        const cid = normalizeId(p.id) || CFG.DEFAULT_ID;
-        $("inId").value = cid;
-      }
-
-      function getModeThemeFromParams(){
-        const p = getParams();
-        return {
-          mode: text(p.mode),
-          theme: text(p.theme)
-        };
-      }
-
-      function getCurrent(){
-        const id = normalizeId($("inId").value) || CFG.DEFAULT_ID;
-        const {mode, theme} = getModeThemeFromParams();
-        return { id, mode, theme };
-      }
-
-      async function loadById(){
-        const raw = $("inId").value;
-        const id = normalizeId(raw) || CFG.DEFAULT_ID;
-        $("inId").value = id;
-
-        const url = `${CFG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
-        try{
-          const data = await fetchJson(url);
-
-          const card = buildCardUrl(id);
-          const {mode, theme} = getCurrent();
-          const share = buildShareUrl(id, mode, theme);
-          const og = buildOgUrl(id);
-
-          const brief =
-`✅ 已向 GAS 請求成功
-ID：${id}
-
-名片：
-${card}
-
-交貨（share）：
-${share}
-
-OG（預留）：
-${og}
-
-GAS 回應（摘要）：
-${JSON.stringify(data, null, 2).slice(0, 800)}
-`;
-          setOut(brief);
-        }catch(e){
-          console.error(e);
-          setOut("❌ 載入失敗：\n" + String(e));
-        }
-      }
-
-      async function findByName(){
-        const name = text($("inName").value);
-        if(!name){
-          setOut("請先輸入姓名（若 GAS 支援 action=find&name=）");
-          return;
-        }
-        const url = `${CFG.GAS}?action=find&name=${encodeURIComponent(name)}&ts=${Date.now()}`;
-        try{
-          const data = await fetchJson(url);
-          const id = normalizeId(data?.id || data?.data?.id || "");
-          if(!id){
-            setOut("⚠️ 找到了回應，但沒有 id 欄位：\n" + JSON.stringify(data,null,2));
-            return;
-          }
-          $("inId").value = id;
-          setOut("✅ 已找到並填入序號：" + id + "\n\n" + "查詢：\n" + url);
-        }catch(e){
-          setOut("⚠️ 你的 GAS 可能尚未支援 action=find。\n\n嘗試網址：\n" + url + "\n\n錯誤：\n" + String(e));
-        }
-      }
-
-      async function copyCardLink(){
-        const {id} = getCurrent();
-        const u = buildCardUrl(id);
-        await copyText(u);
-        setOut("✅ 已複製名片連結：\n" + u);
-      }
-
-      async function copyShareLink(){
-        const {id, mode, theme} = getCurrent();
-        const u = buildShareUrl(id, mode, theme);
-        await copyText(u);
-        setOut("✅ 已複製交貨分享連結：\n" + u);
-      }
-
-      async function copyOgUrl(){
-        const {id} = getCurrent();
-        const u = buildOgUrl(id);
-        await copyText(u);
-        setOut("✅ 已複製 OG 圖網址：\n" + u);
-      }
-
-      function openPreview(){
-        const {id} = getCurrent();
-        location.href = CFG.INDEX_PAGE + "?v=" + CFG.VERSION_Q + "&id=" + encodeURIComponent(id);
-      }
-
-      function openShare(){
-        const {id, mode, theme} = getCurrent();
-        const sp = new URLSearchParams();
-        sp.set("v", CFG.VERSION_Q);
-        sp.set("id", id);
-        if(mode) sp.set("mode", mode);
-        if(theme) sp.set("theme", theme);
-        location.href = CFG.SHARE_PAGE + "?" + sp.toString();
-      }
-
-      async function copyAllPackage(){
-        const {id, mode, theme} = getCurrent();
-        const card = buildCardUrl(id);
-        const share = buildShareUrl(id, mode, theme);
-        const og = buildOgUrl(id);
-
-        const pack =
-`📦 幸福智慧名片｜一鍵交貨（v491）
-序號：${id}
-
-① 名片連結：
-${card}
-
-② 交貨分享連結（可轉傳）：
-${share}
-
-③ OG 圖網址（預留）：
-${og}
-`;
-        await copyText(pack);
-        setOut("✅ 已複製【一鍵交貨整包文字】");
-      }
-
-      function backHome(){
-        const p = getParams();
-        const id = normalizeId(p.id) || normalizeId($("inId").value) || CFG.DEFAULT_ID;
-        location.href = CFG.INDEX_PAGE + "?v=" + CFG.VERSION_Q + "&id=" + encodeURIComponent(id);
-      }
-
-      function setEnvLine(){
-        const base = originBase();
-        const p = getParams();
-        const id = normalizeId(p.id) || normalizeId($("inId").value) || CFG.DEFAULT_ID;
-        $("envLine").innerHTML =
-          `Base：<span class="mono" style="padding:2px 6px;border-radius:10px;">${base}</span><br/>` +
-          `Incoming id：<span class="${p.id? "ok":"bad"}">${p.id? normalizeId(p.id):"（未帶入）"}</span>　` +
-          `Current id：<span class="ok">${id}</span>`;
-      }
-
-      // bind
-      $("btnBack").addEventListener("click", backHome);
-      $("btnLoad").addEventListener("click", loadById);
-      $("btnFind").addEventListener("click", findByName);
-
-      $("btnCopyCardLink").addEventListener("click", copyCardLink);
-      $("btnCopyShareLink").addEventListener("click", copyShareLink);
-      $("btnCopyOgUrl").addEventListener("click", copyOgUrl);
-      $("btnOpenPreview").addEventListener("click", openPreview);
-      $("btnOpenShare").addEventListener("click", openShare);
-      $("btnCopyAll").addEventListener("click", copyAllPackage);
-
-      // init
-      setInputsFromParams();
-      setEnvLine();
-      setOut("✅ 後臺就緒（v491）。請輸入序號或姓名，開始交貨。");
-    </script>
-  </div>
+  <!-- QR lib -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script src="./admin.js?v=491"></script>
 </body>
 </html>
