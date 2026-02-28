@@ -1,22 +1,29 @@
-/* form.js v3 (COMPLETE OVERWRITE)
+/* form.js v491 (COMPLETE OVERWRITE)
+ * - Plan split UI:
+ *   free: show color/style/paper, photos max 2
+ *   premium: show premium color, photos max 5
  * - Auto draft save/restore/clear
- * - Image pick (avatar/logo/photos) -> Canvas compress (no crop) -> base64
+ * - Image pick -> Canvas compress (no crop) -> base64
  * - POST to GAS {action:"create", data:payload, images:{avatar,logo,photos}}
- * - After submit: show "go LINE official site to confirm"
+ * - After submit: only show "去 LINE 官網確認" (no delivery links, no product urls)
+ * - Optional redirect to LINE confirm page (set LINE_CONFIRM_URL or let GAS return redirect_url)
  */
 
 const FORM_CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   TIMEOUT_MS: 20000,
 
-  DRAFT_KEY: "hsc_form_draft_v3",
+  // ✅ 你要導回「LINE 官網確認頁」：把這裡改成你的確認頁 URL
+  // 例如：https://page.line.me/xxxx 或 你自己的 LINE 確認 landing page
+  LINE_CONFIRM_URL: "",
+
+  DRAFT_KEY: "hsc_form_draft_v491",
   AUTOSAVE_DEBOUNCE_MS: 450,
 
-  // Image rules (keep payload safe for Apps Script)
-  MAX_PHOTOS: 5,
-  MAX_EDGE: 1280,        // max width/height
-  JPEG_QUALITY: 0.82,    // 0~1
-  MAX_TOTAL_BASE64_CHARS: 2_500_000 // ~2.5MB chars (safety); adjust if needed
+  // Image rules (Apps Script safe)
+  MAX_EDGE: 1280,
+  JPEG_QUALITY: 0.82,
+  MAX_TOTAL_BASE64_CHARS: 2_500_000
 };
 
 function qs(id){ return document.getElementById(id); }
@@ -71,7 +78,6 @@ function collectDraft_(formEl){
     if(!key) continue;
     out[key] = String(v ?? "");
   }
-  // images draft is handled separately (we keep only names/count)
   out["__img_meta"] = getImageMeta_();
   return out;
 }
@@ -80,7 +86,7 @@ function saveDraft_(formEl){
     const draft = collectDraft_(formEl);
     localStorage.setItem(FORM_CONFIG.DRAFT_KEY, JSON.stringify(draft));
     const hint = qs("draftHint");
-    if(hint) hint.textContent = "提示：已自動儲存草稿（含已選照片狀態）。";
+    if(hint) hint.textContent = "已自動儲存草稿";
   }catch(e){}
 }
 function loadDraft_(formEl){
@@ -90,13 +96,10 @@ function loadDraft_(formEl){
     const obj = JSON.parse(raw);
     if(!obj || typeof obj !== "object") return false;
 
-    // restore fields
     objectToForm_(formEl, obj);
 
-    // note: for security, browsers do NOT allow restoring file inputs.
-    // so we only restore text fields; user needs re-select images if they left the page.
     const hint = qs("draftHint");
-    if(hint) hint.textContent = "提示：已載入上次草稿（若有照片，需重新選取一次）。";
+    if(hint) hint.textContent = "已載入上次草稿（照片需重新選取）";
     return true;
   }catch(e){
     return false;
@@ -106,9 +109,10 @@ function clearDraft_(formEl){
   try{ localStorage.removeItem(FORM_CONFIG.DRAFT_KEY); }catch(e){}
   try{ formEl.reset(); }catch(e){}
   clearImages_();
-  setStatus_("🧹 已清除草稿。你可以重新填寫。","warn");
+  applyPlanUi_(); // reset plan view
+  setStatus_("已清除草稿", "warn");
   const hint = qs("draftHint");
-  if(hint) hint.textContent = "提示：草稿已清除（系統會在你輸入時再次自動儲存）。";
+  if(hint) hint.textContent = "";
 }
 
 /* ---------------------------
@@ -132,12 +136,40 @@ async function postJson_(url, body){
 }
 
 /* ---------------------------
+   Plan split
+--------------------------- */
+function getPlan_(){
+  const v = (qs("planSelect")?.value || "free").toLowerCase();
+  return (v === "premium") ? "premium" : "free";
+}
+function getMaxPhotosByPlan_(plan){
+  return (plan === "premium") ? 5 : 2;
+}
+function applyPlanUi_(){
+  const plan = getPlan_();
+  const freeBox = qs("looksFree");
+  const premBox = qs("looksPremium");
+  if(freeBox) freeBox.style.display = (plan === "free") ? "" : "none";
+  if(premBox) premBox.style.display = (plan === "premium") ? "" : "none";
+
+  const max = getMaxPhotosByPlan_(plan);
+  const t = qs("maxPhotosText");
+  if(t) t.textContent = String(max);
+
+  // if user already selected photos > max, trim
+  if(IMG_STATE.photos.length > max){
+    IMG_STATE.photos = IMG_STATE.photos.slice(0, max);
+    renderPreviews_();
+  }
+}
+
+/* ---------------------------
    Image: compress (no crop)
 --------------------------- */
 const IMG_STATE = {
-  avatar: null, // {name, mime, dataUrl, width, height, bytesApprox}
+  avatar: null,
   logo: null,
-  photos: []    // array of above
+  photos: []
 };
 
 function getImageMeta_(){
@@ -153,12 +185,9 @@ function dataUrlToBase64_(dataUrl){
   if(i < 0) return "";
   return dataUrl.slice(i + 7);
 }
-
 function approxBytesFromBase64_(b64){
-  // rough: 3/4 of chars
   return Math.floor((b64.length * 3) / 4);
 }
-
 function calcTotalBase64Chars_(){
   let n = 0;
   if(IMG_STATE.avatar?.dataUrl) n += dataUrlToBase64_(IMG_STATE.avatar.dataUrl).length;
@@ -180,8 +209,6 @@ async function fileToCompressedDataUrl_(file, opts){
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d", { alpha:false });
-
-  // draw (no crop)
   ctx.drawImage(img, 0, 0, w, h);
 
   const dataUrl = canvas.toDataURL("image/jpeg", quality);
@@ -250,13 +277,17 @@ function renderPreviews_(){
     grid.appendChild(div);
   }
 
+  const plan = getPlan_();
+  const max = getMaxPhotosByPlan_(plan);
+
   const totalChars = calcTotalBase64Chars_();
   const totalKB = Math.round((totalChars * 0.75) / 1024);
+
   const note = [];
-  note.push(`已選：個人照 ${IMG_STATE.avatar? "1":"0"}｜Logo ${IMG_STATE.logo? "1":"0"}｜照片 ${IMG_STATE.photos.length}/${FORM_CONFIG.MAX_PHOTOS}`);
-  note.push(`預估上傳量：約 ${totalKB} KB（已自動壓縮）`);
+  note.push(`已選：個人照 ${IMG_STATE.avatar? "1":"0"}｜Logo ${IMG_STATE.logo? "1":"0"}｜照片 ${IMG_STATE.photos.length}/${max}`);
+  note.push(`預估：約 ${totalKB} KB`);
   if(totalChars > FORM_CONFIG.MAX_TOTAL_BASE64_CHARS){
-    note.push("⚠️ 照片總量偏大：請減少張數或換小一點的照片，避免送出失敗。");
+    note.push("⚠️ 照片總量偏大：請減少張數或換小一點的照片");
   }
   meta.textContent = note.join("｜");
 }
@@ -265,41 +296,45 @@ function clearImages_(){
   IMG_STATE.avatar = null;
   IMG_STATE.logo = null;
   IMG_STATE.photos = [];
-  // reset file inputs
+
   const fa = qs("fileAvatar"); if(fa) fa.value = "";
   const fl = qs("fileLogo"); if(fl) fl.value = "";
   const fp = qs("filePhotos"); if(fp) fp.value = "";
+
   renderPreviews_();
 }
 
 async function handlePickAvatar_(file){
   if(!file) return;
-  setStatus_("⏳ 正在處理個人照（壓縮中）…");
+  setStatus_("處理個人照中…");
   IMG_STATE.avatar = await fileToCompressedDataUrl_(file);
-  setStatus_("✅ 個人照已處理完成（會自動上傳）","ok");
+  setStatus_("個人照已選取", "ok");
   renderPreviews_();
 }
 async function handlePickLogo_(file){
   if(!file) return;
-  setStatus_("⏳ 正在處理 Logo（壓縮中）…");
+  setStatus_("處理 Logo 中…");
   IMG_STATE.logo = await fileToCompressedDataUrl_(file);
-  setStatus_("✅ Logo 已處理完成（會自動上傳）","ok");
+  setStatus_("Logo 已選取", "ok");
   renderPreviews_();
 }
 async function handlePickPhotos_(files){
   if(!files || !files.length) return;
-  const arr = Array.from(files).slice(0, FORM_CONFIG.MAX_PHOTOS);
-  setStatus_(`⏳ 正在處理照片（${arr.length} 張壓縮中）…`);
+
+  const plan = getPlan_();
+  const max = getMaxPhotosByPlan_(plan);
+  const arr = Array.from(files).slice(0, max);
+
+  setStatus_(`處理照片中（${arr.length} 張）…`);
 
   const out = [];
   for(let i=0;i<arr.length;i++){
-    const file = arr[i];
-    const item = await fileToCompressedDataUrl_(file);
+    const item = await fileToCompressedDataUrl_(arr[i]);
     out.push(item);
   }
   IMG_STATE.photos = out;
 
-  setStatus_("✅ 照片已處理完成（會自動上傳）","ok");
+  setStatus_("照片已選取", "ok");
   renderPreviews_();
 }
 
@@ -308,46 +343,35 @@ async function handlePickPhotos_(files){
 --------------------------- */
 function normalizePlan_(payload){
   const plan = (payload["選擇名片製作方案"] || "").toLowerCase();
-  if(plan !== "free" && plan !== "premium"){
-    payload["選擇名片製作方案"] = "free";
-  }
+  payload["選擇名片製作方案"] = (plan === "premium") ? "premium" : "free";
 }
 
 function buildImagesPayload_(){
-  // If user already filled URL fields, we still allow upload; GAS can prefer upload URLs.
   const pack = {};
-
   if(IMG_STATE.avatar?.dataUrl){
-    pack.avatar = {
-      name: IMG_STATE.avatar.name,
-      mime: IMG_STATE.avatar.mime,
-      base64: dataUrlToBase64_(IMG_STATE.avatar.dataUrl)
-    };
+    pack.avatar = { name: IMG_STATE.avatar.name, mime: IMG_STATE.avatar.mime, base64: dataUrlToBase64_(IMG_STATE.avatar.dataUrl) };
   }
   if(IMG_STATE.logo?.dataUrl){
-    pack.logo = {
-      name: IMG_STATE.logo.name,
-      mime: IMG_STATE.logo.mime,
-      base64: dataUrlToBase64_(IMG_STATE.logo.dataUrl)
-    };
+    pack.logo = { name: IMG_STATE.logo.name, mime: IMG_STATE.logo.mime, base64: dataUrlToBase64_(IMG_STATE.logo.dataUrl) };
   }
   if(IMG_STATE.photos?.length){
-    pack.photos = IMG_STATE.photos.map(p=>({
-      name: p.name,
-      mime: p.mime,
-      base64: dataUrlToBase64_(p.dataUrl)
-    }));
+    pack.photos = IMG_STATE.photos.map(p=>({ name: p.name, mime: p.mime, base64: dataUrlToBase64_(p.dataUrl) }));
   }
   return pack;
 }
 
+function computeLineConfirmUrl_(resp){
+  const fromResp = resp?.redirect_url || resp?.data?.redirect_url || "";
+  return text(fromResp) || text(FORM_CONFIG.LINE_CONFIRM_URL);
+}
+
 async function submit_(form){
-  setStatus_("⏳ 送出中…");
+  setStatus_("送出中…");
 
   const payload = formToObject_(form);
 
   if(!payload["姓名"]){
-    setStatus_("⚠️ 請至少填寫「姓名（或商家名稱）」","warn");
+    setStatus_("請填寫「姓名（或商家名稱）」", "warn");
     const nameEl = form.querySelector(`[name="姓名"]`);
     nameEl?.scrollIntoView?.({ behavior:"smooth", block:"center" });
     nameEl?.focus?.();
@@ -356,10 +380,9 @@ async function submit_(form){
 
   normalizePlan_(payload);
 
-  // prevent too-large payload
   const totalChars = calcTotalBase64Chars_();
   if(totalChars > FORM_CONFIG.MAX_TOTAL_BASE64_CHARS){
-    setStatus_("⚠️ 照片總量偏大，可能導致送出失敗。\n請減少張數或換小一點的照片後再送出。","warn");
+    setStatus_("照片總量偏大，請減少張數或換小一點的照片後再送出。", "warn");
     return;
   }
 
@@ -381,49 +404,23 @@ async function submit_(form){
 
     const ok = (resp && resp.ok !== false);
     if(ok){
-      // If GAS returns uploaded URLs, reflect them into fields for user visibility (optional)
-      // Expected: resp.uploaded = { avatarUrl, logoUrl, photoUrls:[] }
-      const up = resp.uploaded || resp.data?.uploaded || null;
-      if(up){
-        const avatarUrl = up.avatarUrl || up.avatar || "";
-        const logoUrl = up.logoUrl || up.logo || "";
-        const photoUrls = up.photoUrls || up.photos || [];
-
-        if(avatarUrl){
-          const el = form.querySelector(`[name="個人照"]`);
-          if(el) el.value = avatarUrl;
-        }
-        if(logoUrl){
-          const el = form.querySelector(`[name="Logo"]`);
-          if(el) el.value = logoUrl;
-        }
-        if(Array.isArray(photoUrls) && photoUrls.length){
-          const el = form.querySelector(`[name="照片"]`);
-          if(el) el.value = photoUrls.join("\n");
-        }
-      }
-
-      // clear draft after success
+      // ✅ 不顯示任何成品網址、不顯示交貨連結、不顯示序號
       try{ localStorage.removeItem(FORM_CONFIG.DRAFT_KEY); }catch(e){}
-
-      const id = resp.id || resp.card_id || resp.data?.id || "";
-      const lines = [];
-      lines.push("✅ 已送出成功！");
-      if(id) lines.push(`名片序號：${id}`);
-      lines.push("");
-      lines.push("📌 請到 LINE 官網確認你的 LINE 官方帳號 / LINE 連結是否正確。");
-      lines.push("若剛送出，名片資料寫入可能需要一點點時間，回到名片頁預覽時請刷新一次。");
-      setStatus_(lines.join("\n"), "ok");
-
-      // optional: clear image state (files can’t be restored anyway)
       clearImages_();
 
+      setStatus_("✅ 已送出成功。\n請到 LINE 官網確認 LINE / LINE OA 是否正確。", "ok");
       qs("statusBox")?.scrollIntoView?.({ behavior:"smooth", block:"center" });
+
+      // ✅ 自動導回 LINE 確認頁（你只要設定 URL 或讓 GAS 回 redirect_url）
+      const go = computeLineConfirmUrl_(resp);
+      if(go){
+        setTimeout(()=>{ window.location.href = go; }, 1200);
+      }
     }else{
-      setStatus_("⚠️ 送出失敗：\n" + (resp?.message || resp?.raw || "unknown error"), "warn");
+      setStatus_("送出失敗：\n" + (resp?.message || resp?.raw || "unknown error"), "warn");
     }
   }catch(err){
-    setStatus_("⚠️ 送出失敗（可能網路或後端超時）：\n" + String(err?.message || err), "warn");
+    setStatus_("送出失敗（可能網路或後端超時）：\n" + String(err?.message || err), "warn");
   }finally{
     if(btn) btn.disabled = false;
     if(btnClear) btnClear.disabled = false;
@@ -438,7 +435,6 @@ async function submit_(form){
   const form = qs("cardForm");
   if(!form) return;
 
-  // draft
   loadDraft_(form);
 
   let t = null;
@@ -452,6 +448,14 @@ async function submit_(form){
   // buttons
   qs("btnSubmit")?.addEventListener("click", ()=>submit_(form));
   qs("btnClearDraft")?.addEventListener("click", ()=>clearDraft_(form));
+
+  // plan split
+  qs("planSelect")?.addEventListener("change", ()=>{
+    applyPlanUi_();
+    renderPreviews_();
+    scheduleSave();
+  });
+  applyPlanUi_();
 
   // Enter submit (except textarea)
   form.addEventListener("keydown", (e)=>{
@@ -479,27 +483,29 @@ async function submit_(form){
     const f = e.target.files?.[0];
     if(!f) return;
     try{ await handlePickAvatar_(f); }catch(err){
-      setStatus_("⚠️ 個人照處理失敗：" + String(err?.message || err), "warn");
+      setStatus_("個人照處理失敗：" + String(err?.message || err), "warn");
     }
   });
+
   fileLogo?.addEventListener("change", async (e)=>{
     const f = e.target.files?.[0];
     if(!f) return;
     try{ await handlePickLogo_(f); }catch(err){
-      setStatus_("⚠️ Logo 處理失敗：" + String(err?.message || err), "warn");
+      setStatus_("Logo 處理失敗：" + String(err?.message || err), "warn");
     }
   });
+
   filePhotos?.addEventListener("change", async (e)=>{
     const fs = e.target.files;
     if(!fs || !fs.length) return;
     try{ await handlePickPhotos_(fs); }catch(err){
-      setStatus_("⚠️ 照片處理失敗：" + String(err?.message || err), "warn");
+      setStatus_("照片處理失敗：" + String(err?.message || err), "warn");
     }
   });
 
-  qs("btnClearImages")?.addEventListener("click", ()=> {
+  qs("btnClearImages")?.addEventListener("click", ()=>{
     clearImages_();
-    setStatus_("🧹 已清除已選照片。","warn");
+    setStatus_("已清除已選照片", "warn");
   });
 
   renderPreviews_();
