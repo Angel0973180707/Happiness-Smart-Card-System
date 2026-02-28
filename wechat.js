@@ -1,372 +1,228 @@
-/* ================================
- * wechat.js — v490 (COMPLETE OVERWRITE)
- * - Read GAS URL from window.WECHAT_CFG.GAS_URL (fallback to DEFAULT_GAS)
- * - Compatible with BOTH payload shapes:
- *   A) { ok:true, id:"TW0001", data:{...row...} }
- *   B) { ...row... }  (legacy direct row)
- * - Status gate: inactive => show "請聯繫客服開通"
- * - Prefer *_fast image fields (個人照_fast / Logo_fast / 照片_fast)
- * - Zoom button
- * - Unified Debug: long press brand 1.2s
- * - action=card fetch
- * ================================ */
+/* wechat.js — v491 (COMPLETE OVERWRITE)
+ * - Compatible with GAS response: { ok:true, id:"TW0001", data:{...} }
+ * - Robust field mapping (supports both snake_case English and legacy Chinese headers)
+ * - Prefer *_fast images first
+ * - Generate QR code that points to index.html?id=...
+ * - Render DOM poster to PNG via html2canvas
+ */
 
-(() => {
-  const VERSION = 490;
+const CONFIG = {
+  VERSION: "v491",
+  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+  BASE: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+  INDEX: "index.html",
+  FETCH_TIMEOUT_MS: 12000,
+};
 
-  const DEFAULT_GAS =
-    "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec";
+const $ = (id) => document.getElementById(id);
+const qs = (k) => new URLSearchParams(location.search).get(k);
 
-  const CONFIG = {
-    GAS: (window.WECHAT_CFG && window.WECHAT_CFG.GAS_URL) ? String(window.WECHAT_CFG.GAS_URL).trim() : DEFAULT_GAS,
-    DEFAULT_ID: "TW0001",
-    LONGPRESS_MS: 1200
+function normalizeId(id) {
+  return String(id || "").trim().toUpperCase();
+}
+
+function buildIndexUrl(id) {
+  const base = CONFIG.BASE.endsWith("/") ? CONFIG.BASE : (CONFIG.BASE + "/");
+  return base + CONFIG.INDEX + "?id=" + encodeURIComponent(id);
+}
+
+function pick(obj, keys, fallback = "") {
+  for (const k of keys) {
+    const v = obj && obj[k];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+  }
+  return fallback;
+}
+
+function setText(id, txt) {
+  const el = $(id);
+  if (!el) return;
+  el.textContent = (txt === undefined || txt === null || String(txt).trim() === "") ? "—" : String(txt);
+}
+
+async function fetchJson(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), CONFIG.FETCH_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { cache: "no-store", signal: ctrl.signal });
+    const txt = await res.text();
+    let j = null;
+    try { j = JSON.parse(txt); } catch (_) {}
+    if (!res.ok) throw new Error("HTTP " + res.status + " " + (txt || ""));
+    if (!j || typeof j !== "object") throw new Error("Invalid JSON");
+    return j;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+function safeUrl(u) {
+  const s = String(u || "").trim();
+  if (!s) return "";
+  // Prefer https
+  if (s.startsWith("http://")) return "https://" + s.slice(7);
+  if (/^www\./i.test(s)) return "https://" + s;
+  return s;
+}
+
+function loadAvatar(url) {
+  const box = $("avatarBox");
+  if (!box) return;
+  const u = safeUrl(url);
+  if (!u) return;
+
+  const img = new Image();
+  img.referrerPolicy = "no-referrer";
+  img.onload = () => {
+    box.innerHTML = "";
+    box.appendChild(img);
   };
+  img.onerror = () => {};
+  img.src = u;
+}
 
-  // p1~p7 background map (stable for WeChat)
-  const P_BG = {
-    p1: "radial-gradient(900px 700px at 15% 10%, rgba(255,140,165,.22), transparent 55%), #0b1220",
-    p2: "radial-gradient(900px 700px at 15% 10%, rgba(160,35,60,.22), transparent 55%), #0b1220",
-    p3: "radial-gradient(900px 700px at 15% 10%, rgba(70,125,255,.18), transparent 55%), #071025",
-    p4: "radial-gradient(900px 700px at 15% 10%, rgba(190,140,255,.18), transparent 55%), #0b1220",
-    p5: "radial-gradient(900px 700px at 15% 10%, rgba(145,165,190,.20), transparent 55%), #0b1220",
-    p6: "radial-gradient(900px 700px at 15% 10%, rgba(255,210,120,.18), transparent 55%), #0b1220",
-    p7: "radial-gradient(900px 700px at 15% 10%, rgba(120,90,70,.22), transparent 55%), #0b1220"
-  };
+function setBlockVisible(blockId, text) {
+  const blk = $(blockId);
+  if (!blk) return;
+  const t = String(text || "").trim();
+  if (!t) blk.classList.add("hidden");
+  else blk.classList.remove("hidden");
+}
 
-  const el = (id) => document.getElementById(id);
+function makeQr(containerId, text) {
+  const box = $(containerId);
+  if (!box) return;
 
-  const brand = el("brand");
-  const btnZoom = el("btnZoom");
-  const panel = el("panel");
-  const loading = el("loading");
-  const card = el("card");
-
-  const nameEl = el("name");
-  const metaEl = el("meta");
-
-  const secService = el("secService");
-  const serviceEl = el("service");
-
-  const secExp = el("secExp");
-  const expEl = el("exp");
-
-  const avImg = el("avImg");
-  const avPh = el("avPh");
-
-  const hint = el("hint");
-
-  // Debug
-  const dbg = el("dbg");
-  const dbgMask = el("dbgMask");
-  const dbgPre = el("dbgPre");
-  const dbgClose = el("dbgClose");
-
-  const state = {
-    id: "",
-    plan: "free",
-    pcsf: { p: "", c: "", s: "", f: "" },
-    gasUrl: "",
-    fetchStatus: "loading",
-    payloadMini: null,
-    zoomed: false
-  };
-
-  function qs(key) {
-    const v = new URLSearchParams(location.search).get(key);
-    return v ? String(v).trim() : "";
-  }
-  function normalizeId(s) {
-    if (!s) return "";
-    return String(s).trim().toUpperCase();
-  }
-  function safeText(x) {
-    if (x === null || x === undefined) return "";
-    return String(x).trim();
-  }
-
-  // --- key normalize (keep Chinese headers usable) ---
-  // Keep original keys AND provide normalized-lowercase keys.
-  function normalizeKey(k) {
-    return String(k || "")
-      .trim()
-      .replace(/^"+|"+$/g, "")
-      .replace(/\s+/g, "_")
-      .replace(/[^\w\u4e00-\u9fff]+/g, "_")
-      .toLowerCase();
-  }
-  function normalizeObjKeys(obj) {
-    const out = {};
-    if (!obj || typeof obj !== "object") return out;
-    for (const [k, v] of Object.entries(obj)) {
-      out[k] = v; // preserve original
-      out[normalizeKey(k)] = v; // add normalized
-    }
-    return out;
-  }
-
-  function pick(obj, keys, fallback = "") {
-    for (const k of keys) {
-      // allow original & normalized lookup
-      if (k in obj && safeText(obj[k])) return safeText(obj[k]);
-      const nk = normalizeKey(k);
-      if (nk in obj && safeText(obj[nk])) return safeText(obj[nk]);
-    }
-    return fallback;
-  }
-
-  function parsePlan(obj) {
-    const raw = pick(obj, ["plan", "plan_type", "package", "mode", "選擇名片製作方案"], "free").toLowerCase();
-    if (raw.includes("premium") || raw.includes("pro") || raw.includes("精品") || raw.includes("b")) return "premium";
-    return "free";
-  }
-
-  function parsePCSf(obj) {
-    return {
-      // premium bg code
-      p: pick(obj, ["p", "p_code", "premium_bg", "bg_p", "選擇精品底色"], ""),
-      // free color/style/paper
-      c: pick(obj, ["c", "c_code", "color_c", "選擇名片顏色"], ""),
-      s: pick(obj, ["s", "s_code", "style_s", "選擇版型風格"], ""),
-      f: pick(obj, ["f", "f_code", "fiber_f", "選擇紙感質地"], "")
-    };
-  }
-
-  function toBullets(val) {
-    if (!val) return [];
-    if (Array.isArray(val)) return val.map(safeText).filter(Boolean);
-    const s = safeText(val);
-    if (!s) return [];
-    return s
-      .split(/\r?\n|,|;|、|•|\u2022/g)
-      .map((x) => safeText(x))
-      .filter(Boolean);
-  }
-
-  function normalizeParagraph(val) {
-    const s = safeText(val);
-    if (!s) return "";
-    return s.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-  }
-
-  async function fetchJson(url) {
-    const res = await fetch(url, { cache: "no-store" });
-    const text = await res.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      const m = text.match(/\{[\s\S]*\}$/);
-      if (m) return JSON.parse(m[0]);
-      throw new Error("Invalid JSON");
-    }
-  }
-
-  function unwrapRowPayload(raw) {
-    // Supports:
-    // A) { ok:true, id, data:{...row...} }
-    // B) {...row...} (legacy)
-    if (!raw || typeof raw !== "object") return { ok: false, row: null, raw };
-    if (raw.ok === false) return { ok: false, row: null, raw };
-    if (raw.ok === true && raw.data && typeof raw.data === "object") return { ok: true, row: raw.data, raw };
-    // If it looks like a row (has name/姓名 or id)
-    const n = raw["姓名"] || raw.name || raw.id || raw["id"];
-    if (n !== undefined) return { ok: true, row: raw, raw };
-    return { ok: false, row: null, raw };
-  }
-
-  async function fetchCard(id) {
-    const cid = normalizeId(id) || CONFIG.DEFAULT_ID;
-    const base = CONFIG.GAS || DEFAULT_GAS;
-    const url = `${base}?action=card&id=${encodeURIComponent(cid)}&v=${VERSION}&ts=${Date.now()}`;
-    state.gasUrl = url;
-    const raw = await fetchJson(url);
-    return unwrapRowPayload(raw);
-  }
-
-  function setAvatar(url, name) {
-    const u = safeText(url);
-    avPh.textContent = (safeText(name) || "🙂").slice(0, 1);
-    if (!u) {
-      avImg.style.display = "none";
+  box.innerHTML = "";
+  // qrcode lib
+  QRCode.toCanvas(text, { width: 110, margin: 1 }, (err, canvas) => {
+    if (err) {
+      box.textContent = "QR 失敗";
       return;
     }
-    avImg.onload = () => (avImg.style.display = "block");
-    avImg.onerror = () => (avImg.style.display = "none");
-    avImg.src = u;
+    box.appendChild(canvas);
+  });
+}
+
+async function renderPosterToPng() {
+  const poster = $("poster");
+  const outWrap = $("outImg");
+  const outImg = $("outPng");
+  if (!poster || !outWrap || !outImg) return;
+
+  // Render (higher scale for better sharpness)
+  const canvas = await html2canvas(poster, {
+    backgroundColor: null,
+    scale: Math.min(2.2, window.devicePixelRatio ? (window.devicePixelRatio + 0.6) : 2),
+    useCORS: true,
+    allowTaint: true
+  });
+
+  const dataUrl = canvas.toDataURL("image/png", 1.0);
+  outImg.src = dataUrl;
+  outWrap.classList.remove("hidden");
+
+  // Hint: long-press save
+  outWrap.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function copyText(text) {
+  const t = String(text || "").trim();
+  if (!t) return Promise.resolve(false);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(t).then(() => true).catch(() => false);
   }
+  // fallback prompt
+  prompt("請手動複製：", t);
+  return Promise.resolve(true);
+}
 
-  function applyBackground(pCode) {
-    const p = (pCode || "").toLowerCase();
-    const bg = P_BG[p] || "radial-gradient(900px 700px at 15% 10%, rgba(96,165,250,.18), transparent 55%), #0b1220";
-    document.body.style.background = bg;
-  }
+// =========================
+// Main
+// =========================
+(async function main() {
+  const id = normalizeId(qs("id") || qs("card") || "TW0001");
+  $("chipId").textContent = "ID：" + id;
 
-  function showInactive(msgTop, msgBottom) {
-    loading.style.display = "block";
-    card.style.display = "none";
-    loading.querySelector(".big").textContent = msgTop || "此名片尚未啟用";
-    loading.querySelector(".small").textContent = msgBottom || "請聯繫客服開通";
-  }
+  const api = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now();
+  const indexUrl = buildIndexUrl(id);
 
-  function showCard() {
-    loading.style.display = "none";
-    card.style.display = "block";
-  }
-
-  // Debug
-  function openDebug() {
-    const info = {
-      version: `v${VERSION}`,
-      id: state.id,
-      plan: state.plan,
-      p: state.pcsf.p,
-      c: state.pcsf.c,
-      s: state.pcsf.s,
-      f: state.pcsf.f,
-      fetch: state.fetchStatus,
-      gas_url: state.gasUrl,
-      json: state.payloadMini
-    };
-    dbgPre.textContent = JSON.stringify(info, null, 2);
-    dbgMask.style.display = "block";
-    dbg.style.display = "block";
-  }
-  function closeDebug() {
-    dbg.style.display = "none";
-    dbgMask.style.display = "none";
-  }
-  function bindLongPress(node, ms, fn) {
-    if (!node) return;
-    let t = null;
-    const start = () => {
-      clearTimeout(t);
-      t = setTimeout(() => fn(), ms);
-    };
-    const end = () => clearTimeout(t);
-
-    node.addEventListener("touchstart", start, { passive: true });
-    node.addEventListener("touchend", end);
-    node.addEventListener("touchcancel", end);
-    node.addEventListener("mousedown", start);
-    node.addEventListener("mouseup", end);
-    node.addEventListener("mouseleave", end);
-  }
-
-  function miniPayloadForDebug(raw, row) {
-    const obj = normalizeObjKeys(row || raw || {});
-    return {
-      ok: !!raw,
-      id: pick(obj, ["id", "ID", "名片ID"], ""),
-      name: pick(obj, ["姓名", "name", "fullname", "u_name"], ""),
-      status: pick(obj, ["status", "狀態"], ""),
-      plan: parsePlan(obj),
-      p: pick(obj, ["p", "p_code", "選擇精品底色"], ""),
-      avatar: pick(obj, ["個人照_fast","個人照","avatar_fast","avatar_img","avatar"], ""),
-      service: pick(obj, ["服務項目","service","services","u_service"], ""),
-      exp: pick(obj, ["經歷","experience","exp","u_exp"], "")
-    };
-  }
-
-  function setZoom(on) {
-    state.zoomed = on;
-    panel.style.transformOrigin = "top center";
-    panel.style.transform = on ? "scale(1.15)" : "scale(1)";
-    panel.style.transition = "transform .18s ease-out";
-    btnZoom.textContent = on ? "縮小" : "放大";
-  }
-
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  async function boot() {
-    state.id = normalizeId(qs("id")) || CONFIG.DEFAULT_ID;
-
-    bindLongPress(brand, CONFIG.LONGPRESS_MS, openDebug);
-    if (dbgClose) dbgClose.addEventListener("click", closeDebug);
-    if (dbgMask) dbgMask.addEventListener("click", closeDebug);
-
-    if (btnZoom) btnZoom.addEventListener("click", () => setZoom(!state.zoomed));
-    setZoom(false);
-
-    // WeChat hint
-    const isWx = /MicroMessenger/i.test(navigator.userAgent);
-    if (hint) {
-      hint.textContent = isWx
-        ? "微信長圖模式：可直接截圖分享（如仍空白，返回再重開一次通常會好）"
-        : "非微信環境：此頁仍可用（長圖展示版）";
-    }
-
+  // Buttons
+  $("btnOpenCard").addEventListener("click", () => location.href = indexUrl);
+  $("btnCopy").addEventListener("click", async () => {
+    const ok = await copyText(indexUrl);
+    if (ok) $("btnCopy").querySelector("small").textContent = "Copied";
+    setTimeout(() => $("btnCopy").querySelector("small").textContent = "Copy", 1200);
+  });
+  $("btnMake").addEventListener("click", async () => {
+    $("btnMake").querySelector("small").textContent = "Working…";
     try {
-      state.fetchStatus = "loading";
-      const { ok, row, raw } = await fetchCard(state.id);
-
-      // Debug mini
-      state.payloadMini = miniPayloadForDebug(raw, row);
-
-      if (!ok || !row) {
-        state.fetchStatus = "not_found";
-        showInactive("找不到此名片", "請確認 ID 是否正確，或請聯繫客服");
-        return;
-      }
-
-      const obj = normalizeObjKeys(row);
-      state.plan = parsePlan(obj);
-      state.pcsf = parsePCSf(obj);
-
-      // status gate
-      const status = pick(obj, ["status","狀態"], "").toLowerCase();
-      if (status && status !== "active") {
-        state.fetchStatus = "inactive";
-        showInactive("此名片尚未啟用", "請聯繫客服開通");
-        return;
-      }
-
-      // background: premium use p1~p7
-      applyBackground(state.pcsf.p);
-
-      // fields: your sheet headers (Chinese first)
-      const nm = pick(obj, ["姓名", "name", "fullname", "u_name"], "—");
-      const unit = pick(obj, ["單位", "unit", "company", "org", "u_unit"], "");
-      const title = pick(obj, ["頭銜", "title", "job_title", "position", "u_title"], "");
-
-      // avatar prefer fast
-      const av = pick(obj, ["個人照_fast","avatar_fast","個人照","avatar_img","avatar","photo","profile_img"], "");
-
-      nameEl.textContent = nm;
-      metaEl.textContent = [unit, title].filter(Boolean).join("\n");
-
-      setAvatar(av, nm);
-
-      const bullets = toBullets(pick(obj, ["服務項目","service","services","u_service"], ""));
-      if (bullets.length) {
-        secService.style.display = "block";
-        serviceEl.innerHTML = bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("");
-      } else {
-        secService.style.display = "none";
-      }
-
-      const exp = normalizeParagraph(pick(obj, ["經歷","experience","exp","u_exp"], ""));
-      if (exp) {
-        secExp.style.display = "block";
-        expEl.textContent = exp;
-      } else {
-        secExp.style.display = "none";
-      }
-
-      state.fetchStatus = "ok";
-      showCard();
-    } catch (err) {
-      state.fetchStatus = "error";
-      state.payloadMini = { error: String(err && err.message ? err.message : err) };
-      showInactive("載入失敗", "請返回再重開一次，或請聯繫客服");
+      await renderPosterToPng();
+      $("btnMake").querySelector("small").textContent = "Done";
+    } catch (e) {
+      $("btnMake").querySelector("small").textContent = "Error";
+      alert("產生圖片失敗：" + String(e && e.message ? e.message : e));
+    } finally {
+      setTimeout(() => $("btnMake").querySelector("small").textContent = "PNG", 1200);
     }
-  }
+  });
 
-  boot();
+  try {
+    const json = await fetchJson(api);
+    if (!json.ok) throw new Error(json.error || "API ok=false");
+
+    const card = json.data || {};
+
+    // ---- Field mapping (robust) ----
+    const name   = pick(card, ["name", "姓名"], "（未填姓名）");
+    const unit   = pick(card, ["unit", "單位"], "");
+    const title  = pick(card, ["title", "頭銜"], "");
+    const slogan = pick(card, ["slogan", "理念標語"], "");
+    const service = pick(card, ["service", "服務項目"], "");
+    const exp    = pick(card, ["experience", "經歷"], "");
+
+    const phone  = pick(card, ["phone", "電話"], "");
+    const email  = pick(card, ["email", "Email"], "");
+    const line   = pick(card, ["line_oa", "LINE官方帳號", "line_url", "LINE連結"], "");
+    const wechat = pick(card, ["wechat_id", "微信ID", "微信"], "");
+
+    // Images (prefer fast first)
+    const avatar = pick(card, [
+      "avatar_fast", "avatar_img_fast", "個人照_fast",
+      "avatar_img", "個人照"
+    ], "");
+
+    // ---- Fill UI ----
+    setText("uName", name);
+    setText("uLine2", [unit, title].filter(Boolean).join("｜") || "—");
+    setText("uLine3", "狀態：" + pick(card, ["status","狀態"], "—"));
+
+    setText("uSlogan", slogan || "—");
+    setText("uService", service || "—");
+    setText("uExp", exp || "—");
+
+    setText("uPhone", phone || "—");
+    setText("uEmail", email || "—");
+    setText("uLine", line || "—");
+    setText("uWeChat", wechat || "—");
+
+    setBlockVisible("blkSlogan", slogan);
+    setBlockVisible("blkService", service);
+    setBlockVisible("blkExp", exp);
+
+    loadAvatar(avatar);
+
+    // QR -> index url
+    makeQr("qrBox", indexUrl);
+    setText("qrLink", indexUrl);
+
+    // Title
+    document.title = `${name}｜WeChat Poster`;
+
+  } catch (err) {
+    alert("讀取名片失敗：" + String(err && err.message ? err.message : err));
+    // Still show QR for index
+    makeQr("qrBox", indexUrl);
+    setText("qrLink", indexUrl);
+  }
 })();
