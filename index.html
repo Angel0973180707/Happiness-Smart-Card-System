@@ -37,7 +37,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=490" />
+
+  <!-- ✅ align v491 -->
+  <link rel="stylesheet" href="./style.css?v=491" />
 
   <!-- SAFE PATCH (HTML-only): guard CTA visibility + form mode helpers -->
   <style>
@@ -283,7 +285,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v490</div>
+        <div class="version-tag" id="versionTag">v491</div>
       </div>
     </section>
   </main>
@@ -304,14 +306,15 @@
     </div>
   </div>
 
-  <script src="./app.js?v=490"></script>
+  <!-- ✅ align v491 -->
+  <script src="./app.js?v=491"></script>
 
   <!-- ================= SAFE MODE SCRIPT (no app.js change) ================= -->
   <script>
     (function () {
       "use strict";
 
-      var VERSION = "490";
+      var VERSION = "491";
 
       function qs(id) { return document.getElementById(id); }
 
@@ -615,7 +618,7 @@
       /* =========================
          Admin hidden entry setup
          - Trigger: triple tap within 900ms OR long-press 1200ms
-         - Action: redirect to ./admin.html?v=490 (keep id if exists)
+         - Action: redirect to ./admin.html?v=491 (keep id if exists)
          ========================= */
       (function adminEntry_(){
         var hot = qs("adminHotspotBR");
@@ -637,7 +640,6 @@
         function registerTap_(){
           var now = Date.now();
           taps.push(now);
-          // keep only window
           taps = taps.filter(function(t){ return (now - t) <= TAP_WINDOW_MS; });
           if(taps.length >= 3){
             taps = [];
@@ -645,15 +647,13 @@
           }
         }
 
-        // tap / click
         hot.addEventListener("click", function(e){
           e.preventDefault();
           e.stopPropagation();
           registerTap_();
         }, { passive:false });
 
-        // long press (touch)
-        hot.addEventListener("touchstart", function(e){
+        hot.addEventListener("touchstart", function(){
           moved = false;
           if(pressTimer) clearTimeout(pressTimer);
           pressTimer = setTimeout(function(){
