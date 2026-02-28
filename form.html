@@ -1,289 +1,500 @@
-<!-- form.html — v408-UI (COMPLETE OVERWRITE) -->
+<!-- form.html v2 (COMPLETE OVERWRITE)
+  目標：大字好填、好滑動、好修改｜版面精簡｜流程明確
+  規則：
+  - 不出現「成品連結」欄位（本版完全沒有）
+  - 送出後提示「去 LINE 官網確認」
+-->
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>天使智慧名片系統｜表單 v407-UI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>填寫名片資料｜Happiness Smart Card</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;600;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#0f1218;
+      --card: rgba(255,255,255,0.08);
+      --line: rgba(255,255,255,0.14);
+      --text: rgba(255,255,255,0.94);
+      --muted: rgba(255,255,255,0.72);
+      --muted2: rgba(255,255,255,0.60);
+      --accent:#ff5f7b;
+      --accent2:#ff2f45;
+      --ok:#2bd46f;
+      --warn:#ffb020;
+      --radius:20px;
 
-  <meta name="robots" content="noindex,nofollow" />
-  <link rel="stylesheet" href="./form.css?v=407" />
+      /* Big & comfy */
+      --fs-title: 20px;
+      --fs-sub: 14px;
+      --fs-label: 14px;
+      --fs-input: 18px; /* >=16 to avoid iOS zoom */
+      --pad-input: 14px 14px;
+      --gap: 12px;
+    }
+
+    *{ box-sizing:border-box; }
+    html, body{ height:auto; min-height:100%; }
+    body{
+      margin:0;
+      font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(1000px 600px at 18% 0%, rgba(255,255,255,0.11), transparent 56%),
+        radial-gradient(900px 650px at 92% 10%, rgba(255,255,255,0.09), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .wrap{
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 12px 12px 110px;
+    }
+
+    .top{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 10px 0 12px;
+      background: linear-gradient(180deg, rgba(15,18,24,0.92), rgba(15,18,24,0.68), rgba(15,18,24,0));
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .titleRow{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 10px;
+    }
+
+    h1{
+      margin:0;
+      font-size: var(--fs-title);
+      font-weight: 900;
+      letter-spacing:.4px;
+      line-height: 1.25;
+    }
+
+    .pill{
+      flex:0 0 auto;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.88);
+      font-weight: 900;
+      font-size: 12px;
+      user-select:none;
+    }
+
+    .sub{
+      margin-top: 8px;
+      font-size: var(--fs-sub);
+      color: var(--muted);
+      line-height: 1.65;
+    }
+    .sub b{ color: rgba(255,255,255,0.92); }
+
+    .card{
+      margin-top: 10px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 18px 70px rgba(0,0,0,0.42);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .step{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      margin: 2px 0 10px;
+      font-weight: 900;
+      letter-spacing: .3px;
+    }
+    .step .num{
+      width: 32px; height: 32px;
+      border-radius: 999px;
+      display:flex; align-items:center; justify-content:center;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.16);
+      color: rgba(255,255,255,0.92);
+      font-size: 14px;
+    }
+    .step .txt{
+      font-size: 16px;
+      color: rgba(255,255,255,0.92);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+    }
+
+    .row2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+    }
+    @media (max-width: 560px){
+      .row2{ grid-template-columns: 1fr; }
+      :root{ --fs-input: 18px; }
+    }
+
+    label{
+      display:block;
+      margin: 0 0 7px;
+      font-size: var(--fs-label);
+      font-weight: 900;
+      color: rgba(255,255,255,0.92);
+      letter-spacing: .2px;
+    }
+
+    input, select, textarea{
+      width:100%;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.94);
+      padding: var(--pad-input);
+      outline: none;
+      font-size: var(--fs-input);
+      line-height: 1.25;
+      box-shadow:
+        0 12px 28px rgba(0,0,0,0.22),
+        inset 0 1px 0 rgba(255,255,255,0.10);
+      -webkit-tap-highlight-color: transparent;
+    }
+    select{ appearance: none; -webkit-appearance:none; }
+    textarea{
+      min-height: 110px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    input::placeholder, textarea::placeholder{ color: rgba(255,255,255,0.46); }
+
+    .hint{
+      margin-top: 7px;
+      font-size: 13px;
+      color: var(--muted2);
+      line-height: 1.55;
+    }
+
+    .divider{
+      height:1px;
+      background: rgba(255,255,255,0.10);
+      margin: 14px 0;
+    }
+
+    .stickyBar{
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 60;
+      padding: 12px;
+      background: rgba(15,18,24,0.86);
+      border-top: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .stickyBar .inner{
+      max-width: 720px;
+      margin: 0 auto;
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    .btn{
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 16px;
+      font-weight: 900;
+      cursor:pointer;
+      color:#fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 18px 40px rgba(0,0,0,0.34);
+      font-size: 16px;
+      letter-spacing: .3px;
+      flex: 1 1 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 10px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active{ transform: scale(0.99); }
+
+    .btn.secondary{
+      flex: 0 0 auto;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.16);
+      box-shadow: none;
+      color: rgba(255,255,255,0.92);
+      min-width: 116px;
+    }
+
+    .status{
+      margin-top: 12px;
+      font-size: 14px;
+      line-height: 1.65;
+      color: rgba(255,255,255,0.88);
+      white-space: pre-line;
+    }
+    .status.ok{ color: rgba(210,255,224,0.95); }
+    .status.warn{ color: rgba(255,235,200,0.95); }
+
+    .mini{
+      font-size: 12px;
+      color: rgba(255,255,255,0.60);
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+  </style>
 </head>
 
 <body>
-  <header class="top">
-    <div class="top-inner">
-      <button class="back-btn" type="button" onclick="location.href='./index.html'">返回名片</button>
+  <div class="wrap">
 
-      <div class="brand">
-        <div class="brand-title">天使智慧名片系統</div>
-        <div class="brand-sub">v407-UI｜極簡精品表單</div>
+    <div class="top">
+      <div class="titleRow">
+        <div>
+          <h1>填寫名片資料</h1>
+          <div class="sub">
+            <b>所有欄位都可填寫</b>，不需要的欄位可留空。<br>
+            <b>自由搭配＝基礎展示</b>（精簡呈現）｜<b>精品設計＝品牌展示</b>（照片牆/多影音/多社群完整呈現）
+          </div>
+        </div>
+        <div class="pill">📌 大字好填｜可儲存草稿</div>
       </div>
-
-      <div class="top-spacer"></div>
     </div>
-  </header>
 
-  <main class="wrap">
-    <!-- 方案 -->
-    <section class="card">
-      <div class="card-head">
-        <h2>選方案</h2>
-        <div class="chipline">
-          <span class="tag">必選</span>
-        </div>
-      </div>
+    <!-- Step 1 -->
+    <div class="card">
+      <div class="step"><div class="num">1</div><div class="txt">選擇展示模式 & 基本資料</div></div>
 
-      <div class="seg" role="tablist" aria-label="Plan">
-        <button class="seg-btn active" id="btnPlan1" type="button" data-plan="1">自由搭配款</button>
-        <button class="seg-btn" id="btnPlan2" type="button" data-plan="2">精品設計款</button>
-      </div>
-    </section>
+      <form id="cardForm" autocomplete="on">
+        <div class="grid">
 
-    <!-- 自由 -->
-    <section class="card" id="freeBox">
-      <div class="card-head">
-        <h2>自由搭配</h2>
-        <div class="chipline">
-          <span class="tag subtle">c / s / f</span>
-        </div>
-      </div>
-
-      <div class="sub">
-        <div class="sub-title">顏色（c）</div>
-        <div class="chips">
-          <button type="button" class="chip active" data-group="c" data-val="c1">c1 粉</button>
-          <button type="button" class="chip" data-group="c" data-val="c2">c2 藍</button>
-          <button type="button" class="chip" data-group="c" data-val="c3">c3 橘</button>
-          <button type="button" class="chip" data-group="c" data-val="c4">c4 紫</button>
-          <button type="button" class="chip" data-group="c" data-val="c5">c5 綠</button>
-        </div>
-      </div>
-
-      <div class="sub">
-        <div class="sub-title">版型（s）</div>
-        <div class="chips">
-          <button type="button" class="chip active" data-group="s" data-val="s1">s1 正拱</button>
-          <button type="button" class="chip" data-group="s" data-val="s2">s2 平直</button>
-          <button type="button" class="chip" data-group="s" data-val="s3">s3 晨曦</button>
-        </div>
-      </div>
-
-      <div class="sub">
-        <div class="sub-title">紙感（f）</div>
-        <div class="chips">
-          <button type="button" class="chip active" data-group="f" data-val="f1">f1 棉紙</button>
-          <button type="button" class="chip" data-group="f" data-val="f2">f2 顆粒</button>
-          <button type="button" class="chip" data-group="f" data-val="f3">f3 亞麻</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 精品 -->
-    <section class="card" id="premiumBox" style="display:none;">
-      <div class="card-head">
-        <h2>精品設計</h2>
-        <div class="chipline">
-          <span class="tag subtle">p1～p7</span>
-        </div>
-      </div>
-
-      <div class="sub">
-        <div class="sub-title">精品底色（p）</div>
-        <div class="chips">
-          <button type="button" class="chip active" data-group="p" data-val="p1">p1 胭脂紅</button>
-          <button type="button" class="chip" data-group="p" data-val="p2">p2 酒紅</button>
-          <button type="button" class="chip" data-group="p" data-val="p3">p3 深藍</button>
-          <button type="button" class="chip" data-group="p" data-val="p4">p4 霧紫</button>
-          <button type="button" class="chip" data-group="p" data-val="p5">p5 藍灰</button>
-          <button type="button" class="chip" data-group="p" data-val="p6">p6 金箔</button>
-          <button type="button" class="chip" data-group="p" data-val="p7">p7 褐碳</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- 客戶資料 -->
-    <section class="card">
-      <div class="card-head">
-        <h2>名片資料</h2>
-        <div class="chipline">
-          <span class="tag">姓名必填</span>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="row">
-          <label>姓名 *</label>
-          <input id="name" type="text" placeholder="必填" />
-        </div>
-        <div class="row">
-          <label>單位</label>
-          <input id="unit" type="text" />
-        </div>
-        <div class="row">
-          <label>頭銜</label>
-          <input id="title" type="text" />
-        </div>
-        <div class="row">
-          <label>理念標語</label>
-          <input id="slogan" type="text" />
-        </div>
-      </div>
-
-      <div class="row">
-        <label>服務項目</label>
-        <textarea id="service" rows="3" placeholder="可換行"></textarea>
-      </div>
-
-      <div class="row">
-        <label>經歷</label>
-        <textarea id="exp" rows="4" placeholder="可換行"></textarea>
-      </div>
-    </section>
-
-    <!-- 聯繫與平台 -->
-    <section class="card">
-      <div class="card-head">
-        <h2>聯繫方式</h2>
-        <div class="chipline">
-          <span class="tag subtle">可留白</span>
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="row">
-          <label>微信ID</label>
-          <input id="wechat" type="text" />
-        </div>
-        <div class="row">
-          <label>LINE 連結</label>
-          <input id="lineLink" type="url" placeholder="https://lin.ee/..." />
-        </div>
-        <div class="row">
-          <label>LINE 官方帳號</label>
-          <input id="lineOA" type="url" placeholder="https://lin.ee/..." />
-        </div>
-        <div class="row">
-          <label>Email</label>
-          <input id="email" type="email" />
-        </div>
-        <div class="row">
-          <label>電話</label>
-          <input id="phone" type="tel" />
-        </div>
-        <div class="row">
-          <label>地址</label>
-          <input id="addr" type="text" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="row">
-          <label>影音連結1</label>
-          <input id="media1" type="url" />
-        </div>
-        <div class="row">
-          <label>影音連結2</label>
-          <input id="media2" type="url" />
-        </div>
-        <div class="row">
-          <label>影音連結3</label>
-          <input id="media3" type="url" />
-        </div>
-        <div class="row">
-          <label>社群連結1</label>
-          <input id="social1" type="url" />
-        </div>
-        <div class="row">
-          <label>社群連結2</label>
-          <input id="social2" type="url" />
-        </div>
-        <div class="row">
-          <label>社群連結3</label>
-          <input id="social3" type="url" />
-        </div>
-      </div>
-    </section>
-
-    <!-- 照片（保留欄位，不影響你現有 form.js；要啟用再接 v407.1） -->
-    <section class="card">
-      <div class="card-head">
-        <h2>照片上傳</h2>
-        <div class="chipline">
-          <span class="tag subtle">選填</span>
-        </div>
-      </div>
-
-      <div class="row">
-        <label>個人照</label>
-        <input id="avatarFile" type="file" accept="image/*" />
-      </div>
-
-      <div class="row">
-        <label>Logo</label>
-        <input id="logoFile" type="file" accept="image/*" />
-      </div>
-
-      <div class="row">
-        <label>多張照片（最多 5 張）</label>
-        <input id="photosFile" type="file" accept="image/*" multiple />
-      </div>
-
-      <div class="hint minimal">
-        系統會自動壓縮（等比例不裁切）。
-      </div>
-    </section>
-
-    <!-- 送出與交貨 -->
-    <section class="card">
-      <div class="card-head">
-        <h2>送出與交貨</h2>
-        <div class="chipline">
-          <span class="tag gold">精品交付</span>
-        </div>
-      </div>
-
-      <div class="actions">
-        <button id="btnSubmit" class="btn primary" type="button">送出建立名片</button>
-        <button id="btnCopyCard" class="btn" type="button" disabled>複製名片網址</button>
-        <button id="btnShareCard" class="btn" type="button" disabled>分享名片網址</button>
-      </div>
-
-      <div class="result" id="resultBox" style="display:none;">
-        <div class="kvs">
-          <div class="kv">
-            <span class="k">名片</span>
-            <a class="v link" id="rCardUrl" href="#" target="_blank" rel="noreferrer">-</a>
+          <div class="row2">
+            <div>
+              <label>選擇名片製作方案</label>
+              <select name="選擇名片製作方案" required>
+                <option value="free">自由搭配（基礎展示）</option>
+                <option value="premium">精品設計（品牌展示）</option>
+              </select>
+              <div class="hint">自由：照片/影音/社群以主要內容顯示｜精品：完整呈現照片牆/多影音/多社群</div>
+            </div>
+            <div>
+              <label>姓名（或商家名稱）</label>
+              <input name="姓名" placeholder="例：王小明 / 幸福緣烘焙工作室" required />
+            </div>
           </div>
 
-          <!-- 你的 v406.2 form.js 會用到這兩個 id（若你有加），這裡先保留 -->
-          <div class="kv">
-            <span class="k">微信長圖</span>
-            <a class="v link" id="rWechatUrl" href="#" target="_blank" rel="noreferrer">-</a>
+          <div class="row2">
+            <div>
+              <label>單位</label>
+              <input name="單位" placeholder="例：幸福緣 / XX公司（可多行，系統會合併成一行）" />
+            </div>
+            <div>
+              <label>頭銜</label>
+              <input name="頭銜" placeholder="例：創辦人 / 業務經理" />
+            </div>
           </div>
-          <div class="kv">
-            <span class="k">開啟頁</span>
-            <a class="v link" id="rOpenUrl" href="#" target="_blank" rel="noreferrer">-</a>
+
+          <div>
+            <label>理念標語</label>
+            <input name="理念標語" placeholder="例：一點，就看見彼此的價值" />
           </div>
+
+          <div class="divider"></div>
+
+          <!-- Step 2 -->
+          <div class="step"><div class="num">2</div><div class="txt">外觀選擇（可留空）</div></div>
+
+          <div class="row2">
+            <div>
+              <label>自由搭配｜名片顏色</label>
+              <select name="選擇名片顏色">
+                <option value="">（不選也可以）</option>
+                <option value="color-1">c1 粉</option>
+                <option value="color-2">c2 藍</option>
+                <option value="color-3">c3 橘</option>
+                <option value="color-4">c4 紫</option>
+                <option value="color-5">c5 綠</option>
+              </select>
+            </div>
+            <div>
+              <label>自由搭配｜版型風格</label>
+              <select name="選擇版型風格">
+                <option value="">（不選也可以）</option>
+                <option value="arch">s1 正拱</option>
+                <option value="flat">s2 平直</option>
+                <option value="spot">s3 晨曦</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label>自由搭配｜紙感質地</label>
+              <select name="選擇紙感質地">
+                <option value="">（不選也可以）</option>
+                <option value="paper-1">f1 霧面棉紙</option>
+                <option value="paper-2">f2 細顆粒紙</option>
+                <option value="paper-3">f3 亞麻紋</option>
+              </select>
+            </div>
+            <div>
+              <label>精品設計｜精品底色</label>
+              <select name="選擇精品底色">
+                <option value="">（不選也可以）</option>
+                <option value="p1">p1 胭脂紅</option>
+                <option value="p2">p2 酒紅</option>
+                <option value="p3">p3 深藍</option>
+                <option value="p4">p4 霧紫</option>
+                <option value="p5">p5 藍灰</option>
+                <option value="p6">p6 金箔</option>
+                <option value="p7">p7 褐碳</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Step 3 -->
+          <div class="step"><div class="num">3</div><div class="txt">內容資料（想填多少就填多少）</div></div>
+
+          <div class="row2">
+            <div>
+              <label>服務項目</label>
+              <textarea name="服務項目" placeholder="可多行，每行一項"></textarea>
+            </div>
+            <div>
+              <label>經歷</label>
+              <textarea name="經歷" placeholder="可多行，每行一段"></textarea>
+              <div class="hint">基礎展示：會精簡呈現｜精品設計：完整呈現</div>
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label>個人照（圖片 URL）</label>
+              <input name="個人照" placeholder="貼圖片網址（Drive/Dropbox/https）" />
+            </div>
+            <div>
+              <label>Logo（圖片 URL）</label>
+              <input name="Logo" placeholder="貼圖片網址（Drive/Dropbox/https）" />
+            </div>
+          </div>
+
+          <div>
+            <label>照片（可貼多張圖片 URL）</label>
+            <textarea name="照片" placeholder="一行一張，或用逗號分隔"></textarea>
+            <div class="hint">基礎展示：只顯示第 1 張｜精品設計：啟用照片牆完整呈現</div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label>影音連結1</label>
+              <input name="影音連結1" placeholder="YouTube/影片連結或帳號" />
+            </div>
+            <div>
+              <label>社群連結1</label>
+              <input name="社群連結1" placeholder="FB/IG/小紅書/官網（擇一）" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label>影音連結2（選填）</label>
+              <input name="影音連結2" placeholder="（選填）" />
+            </div>
+            <div>
+              <label>社群連結2（選填）</label>
+              <input name="社群連結2" placeholder="（選填）" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label>影音連結3（選填）</label>
+              <input name="影音連結3" placeholder="（選填）" />
+            </div>
+            <div>
+              <label>社群連結3（選填）</label>
+              <input name="社群連結3" placeholder="（選填）" />
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Step 4 -->
+          <div class="step"><div class="num">4</div><div class="txt">聯絡方式（可留空）</div></div>
+
+          <div class="row2">
+            <div>
+              <label>LINE官方帳號（可填 @ID 或網址）</label>
+              <input name="LINE官方帳號" placeholder="例：@angelshop 或 https://page.line.me/xxxx" />
+              <div class="hint">沒有官方帳號也沒關係，可填下一欄「LINE連結」</div>
+            </div>
+            <div>
+              <label>LINE連結（可填 @ID 或網址）</label>
+              <input name="LINE連結" placeholder="例：@abc 或 https://lin.ee/xxxxx" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label>Email</label>
+              <input name="Email" placeholder="example@gmail.com" />
+            </div>
+            <div>
+              <label>電話</label>
+              <input name="電話" placeholder="09xx-xxx-xxx" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label>地址</label>
+              <input name="地址" placeholder="例：高雄市…（名片會做導航）" />
+            </div>
+            <div>
+              <label>微信ID</label>
+              <input name="微信ID" placeholder="例：weixin123" />
+            </div>
+          </div>
+
+          <div class="status" id="statusBox"></div>
+          <div class="mini" id="draftHint">提示：系統會自動儲存草稿（可隨時回來修改）。</div>
+
         </div>
+      </form>
+    </div>
+  </div>
 
-        <div class="hint minimal">
-          交貨方式：把「名片 / 微信長圖 / 開啟頁」任一連結貼給客戶即可。
-        </div>
-      </div>
+  <!-- Bottom sticky action bar -->
+  <div class="stickyBar">
+    <div class="inner">
+      <button class="btn secondary" type="button" id="btnClearDraft">清除草稿</button>
+      <button class="btn" type="button" id="btnSubmit">
+        ✅ 送出資料
+      </button>
+    </div>
+  </div>
 
-      <div class="msg" id="msg"></div>
-    </section>
-
-    <footer class="foot">
-      <div class="foot-inner">
-        <div class="foot-left">© Angel0973180707 / Happiness Smart Card System</div>
-        <div class="foot-right">v407-UI</div>
-      </div>
-    </footer>
-  </main>
-
-  <!-- ✅ 沿用你既有 form.js（功能版） -->
-  <script src="./form.js?v=4062"></script>
+  <script src="./form.js?v=2"></script>
 </body>
 </html>
