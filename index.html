@@ -1,24 +1,32 @@
 <!-- ================================
-     index.html v408 (SAFE FORM MODE + UX PATCH)
+     index.html v490 (SAFE FORM MODE + ADMIN HOTSPOT)
      - KEEP: v4030 DOM structure (no reflow / no card DOM change)
      - ADD: form mode container + robust mode switch + iframe loader/fallback
-     - FIX: LINE button visibility guard (free/premium)
+     - ADD: admin hidden entry (bottom-right triple tap OR long-press)
+     - FIX: LINE / CTA visibility guard
      - FIX: Share button text => 分享此名片
-     - DO NOT TOUCH: app.js / manifest logic / sw / adminHotspotBR / share logic
-     - VERSION: unified ?v=407
+     - DO NOT TOUCH: app.js / manifest logic / sw / share logic
+     - VERSION: unified ?v=490
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Happiness Smart Card System v407</title>
+  <meta name="format-detection" content="telephone=no" />
 
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=407" />
+  <title>Happiness Smart Card System v490</title>
+
+  <!-- PWA (install-ready) -->
+  <link rel="manifest" href="./manifest.json?v=490" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=407" />
-  <link rel="icon" href="./icons/icon-192.png?v=407" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=490" />
+  <link rel="icon" href="./icons/icon-192.png?v=490" />
+
+  <!-- iOS A2HS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="幸福智慧名片" />
 
   <!-- OG (static fallback; delivery uses admin OG preview image) -->
   <meta property="og:type" content="website" />
@@ -29,7 +37,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=407" />
+  <link rel="stylesheet" href="./style.css?v=490" />
 
   <!-- SAFE PATCH (HTML-only): guard CTA visibility + form mode helpers -->
   <style>
@@ -51,6 +59,21 @@
     #premium-controls {
       visibility: visible !important;
       opacity: 1 !important;
+    }
+
+    /* Hidden admin hotspot (bottom-right) */
+    #adminHotspotBR{
+      position: fixed;
+      right: 8px;
+      bottom: 8px;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: transparent;
+      z-index: 2147482000;
+      pointer-events: auto;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
 
     /* Form loader overlay (only used in form mode; inserted by SAFE script) */
@@ -113,7 +136,7 @@
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
-  <!-- Hidden admin hotspot (bottom-right triple tap) -->
+  <!-- Hidden admin hotspot (bottom-right triple tap / long-press) -->
   <div id="adminHotspotBR" aria-hidden="true"></div>
 
   <!-- ================= Control Panel (sticky) ================= -->
@@ -175,7 +198,6 @@
           <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
         </button>
 
-        <!-- ✅ text fixed -->
         <button class="btn-cta btn-share" id="btnShare" type="button">
           <i class="fa-solid fa-share-nodes"></i> 分享此名片
         </button>
@@ -202,7 +224,6 @@
           <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
         </button>
 
-        <!-- ✅ text fixed -->
         <button class="btn-cta btn-share" id="btnSharePremium" type="button" onclick="document.getElementById('btnShare')?.click()">
           <i class="fa-solid fa-share-nodes"></i> 分享此名片
         </button>
@@ -262,7 +283,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v407</div>
+        <div class="version-tag" id="versionTag">v490</div>
       </div>
     </section>
   </main>
@@ -283,14 +304,14 @@
     </div>
   </div>
 
-  <script src="./app.js?v=407"></script>
+  <script src="./app.js?v=490"></script>
 
   <!-- ================= SAFE MODE SCRIPT (no app.js change) ================= -->
   <script>
     (function () {
       "use strict";
 
-      var VERSION = "407";
+      var VERSION = "490";
 
       function qs(id) { return document.getElementById(id); }
 
@@ -590,6 +611,70 @@
       } else {
         boot_();
       }
+
+      /* =========================
+         Admin hidden entry setup
+         - Trigger: triple tap within 900ms OR long-press 1200ms
+         - Action: redirect to ./admin.html?v=490 (keep id if exists)
+         ========================= */
+      (function adminEntry_(){
+        var hot = qs("adminHotspotBR");
+        if(!hot) return;
+
+        var taps = [];
+        var TAP_WINDOW_MS = 900;
+        var LONG_PRESS_MS = 1200;
+        var pressTimer = null;
+        var moved = false;
+
+        function goAdmin_(){
+          var p = getParams_();
+          var id = (p.get("id") || "").trim();
+          var url = "./admin.html?v=" + VERSION + (id ? ("&id=" + encodeURIComponent(id)) : "");
+          try { location.href = url; } catch(e) {}
+        }
+
+        function registerTap_(){
+          var now = Date.now();
+          taps.push(now);
+          // keep only window
+          taps = taps.filter(function(t){ return (now - t) <= TAP_WINDOW_MS; });
+          if(taps.length >= 3){
+            taps = [];
+            goAdmin_();
+          }
+        }
+
+        // tap / click
+        hot.addEventListener("click", function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          registerTap_();
+        }, { passive:false });
+
+        // long press (touch)
+        hot.addEventListener("touchstart", function(e){
+          moved = false;
+          if(pressTimer) clearTimeout(pressTimer);
+          pressTimer = setTimeout(function(){
+            if(!moved) goAdmin_();
+          }, LONG_PRESS_MS);
+        }, { passive:true });
+
+        hot.addEventListener("touchmove", function(){
+          moved = true;
+          if(pressTimer) clearTimeout(pressTimer);
+        }, { passive:true });
+
+        hot.addEventListener("touchend", function(){
+          if(pressTimer) clearTimeout(pressTimer);
+        }, { passive:true });
+
+        hot.addEventListener("touchcancel", function(){
+          if(pressTimer) clearTimeout(pressTimer);
+        }, { passive:true });
+      })();
+
     })();
   </script>
 </body>
