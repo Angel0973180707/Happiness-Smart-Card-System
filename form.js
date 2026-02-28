@@ -1,31 +1,34 @@
-/* form.js v1.1 (COMPLETE OVERWRITE)
- * ✅ 依你要求：
- * - POST to GAS action=create (JSON body)
- * - 保留所有欄位 schema（不改欄位名、不刪欄位）
- * - 成品連結欄「不出現」：不在表單提供任何 delivery_url / share_url 欄位
- * - 送出後提示：去 LINE 官網確認（可一鍵開啟）
- * - 大字好填/好滑動/好修改：這是 form.html 的事，但這支 JS 會避免 iOS 放大、並加草稿功能（可選）
- *
- * 🔧 你只要改一個地方：
- * - LINE_OFFICIAL_URL 改成你的 LINE 官網 / OA 連結
+/* form.js v2 (COMPLETE OVERWRITE)
+ * Goal:
+ * - Big, easy, clear flow (pairs with form.html v2)
+ * - Auto draft save/restore/clear (localStorage)
+ * - Submit via sticky button (#btnSubmit) or Enter
+ * - After submit: show message + "go LINE official site to confirm"
+ * - NO "delivery link" field shown/created
  */
 
 const FORM_CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   TIMEOUT_MS: 15000,
-
-  // ✅ 送出後提示去 LINE 官網確認（請改成你的連結）
-  // 例：https://page.line.me/xxxxx 或 https://lin.ee/xxxxx
-  LINE_OFFICIAL_URL: "https://line.me/R/ti/p/@YOUR_LINE_ID",
-
-  // ✅ 可選：自動存草稿（若不想要，改成 false）
-  ENABLE_DRAFT: true,
-  DRAFT_KEY: "HSC_FORM_DRAFT_v1_1"
+  DRAFT_KEY: "hsc_form_draft_v2",
+  AUTOSAVE_DEBOUNCE_MS: 450
 };
 
 function qs(id){ return document.getElementById(id); }
 function text(v){ return (v==null ? "" : String(v)).trim(); }
 
+function setStatus_(msg, type){
+  const box = qs("statusBox");
+  if(!box) return;
+  box.classList.remove("ok","warn");
+  if(type === "ok") box.classList.add("ok");
+  if(type === "warn") box.classList.add("warn");
+  box.textContent = msg || "";
+}
+
+/* ---------------------------
+   Form <-> Object
+--------------------------- */
 function formToObject_(formEl){
   const fd = new FormData(formEl);
   const out = {};
@@ -39,6 +42,83 @@ function formToObject_(formEl){
   return out;
 }
 
+function objectToForm_(formEl, obj){
+  if(!obj || typeof obj !== "object") return;
+  for(const [k,v] of Object.entries(obj)){
+    // skip timestamp when restoring to inputs
+    if(k === "時間戳記") continue;
+    const el = formEl.querySelector(`[name="${CSS.escape(k)}"]`);
+    if(!el) continue;
+
+    // for selects: set only if option exists, else keep default
+    if(el.tagName === "SELECT"){
+      const has = Array.from(el.options).some(o => o.value === String(v));
+      if(has) el.value = String(v);
+      continue;
+    }
+
+    el.value = String(v ?? "");
+  }
+}
+
+/* ---------------------------
+   Draft
+--------------------------- */
+function collectDraft_(formEl){
+  const fd = new FormData(formEl);
+  const out = {};
+  for(const [k,v] of fd.entries()){
+    const key = String(k||"").trim();
+    if(!key) continue;
+    out[key] = String(v ?? "");
+  }
+  return out;
+}
+
+function saveDraft_(formEl){
+  try{
+    const draft = collectDraft_(formEl);
+    localStorage.setItem(FORM_CONFIG.DRAFT_KEY, JSON.stringify(draft));
+    const hint = qs("draftHint");
+    if(hint) hint.textContent = "提示：已自動儲存草稿（可隨時回來修改）。";
+  }catch(e){
+    // ignore
+  }
+}
+
+function loadDraft_(formEl){
+  try{
+    const raw = localStorage.getItem(FORM_CONFIG.DRAFT_KEY);
+    if(!raw) return false;
+    const obj = JSON.parse(raw);
+    if(!obj || typeof obj !== "object") return false;
+
+    objectToForm_(formEl, obj);
+
+    const hint = qs("draftHint");
+    if(hint) hint.textContent = "提示：已載入上次草稿（可直接修改後送出）。";
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function clearDraft_(formEl){
+  try{ localStorage.removeItem(FORM_CONFIG.DRAFT_KEY); }catch(e){}
+  try{
+    // reset form to defaults
+    formEl.reset();
+    // keep plan default to free (as your HTML first option already)
+  }catch(e){}
+  setStatus_("🧹 已清除草稿。你可以重新填寫。","warn");
+
+  const hint = qs("draftHint");
+  if(hint) hint.textContent = "提示：草稿已清除（系統會在你輸入時再次自動儲存）。";
+}
+
+/* ---------------------------
+   Network
+--------------------------- */
 async function postJson_(url, body){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), FORM_CONFIG.TIMEOUT_MS);
@@ -56,171 +136,115 @@ async function postJson_(url, body){
   }
 }
 
-function setStatus_(msg){
-  const box = qs("statusBox");
-  if(!box) return;
-  box.textContent = msg || "";
+/* ---------------------------
+   Submit
+--------------------------- */
+function normalizePlan_(payload){
+  const plan = (payload["選擇名片製作方案"] || "").toLowerCase();
+  if(plan !== "free" && plan !== "premium"){
+    payload["選擇名片製作方案"] = "free";
+  }
 }
 
-function openLineOfficial_(){
-  const u = text(FORM_CONFIG.LINE_OFFICIAL_URL);
-  if(!u || u.includes("@YOUR_LINE_ID")){
-    alert("⚠️ 請先在 form.js 設定 LINE_OFFICIAL_URL（你的 LINE 官網連結）。");
+async function submit_(form){
+  setStatus_("⏳ 送出中…");
+
+  const payload = formToObject_(form);
+
+  // minimal validation
+  if(!payload["姓名"]){
+    setStatus_("⚠️ 請至少填寫「姓名（或商家名稱）」","warn");
+    // scroll to name field
+    const nameEl = form.querySelector(`[name="姓名"]`);
+    nameEl?.scrollIntoView?.({ behavior:"smooth", block:"center" });
+    nameEl?.focus?.();
     return;
   }
-  window.open(u, "_blank");
-}
 
-function ensureGoLineButton_(){
-  const box = qs("statusBox");
-  if(!box) return;
-  if(qs("btnGoLineAfterSubmit")) return;
+  normalizePlan_(payload);
 
-  const btn = document.createElement("button");
-  btn.id = "btnGoLineAfterSubmit";
-  btn.type = "button";
-  btn.textContent = "前往 LINE 官網確認";
-  btn.style.marginTop = "10px";
-  btn.style.width = "100%";
-  btn.style.border = "0";
-  btn.style.borderRadius = "16px";
-  btn.style.padding = "14px 16px";
-  btn.style.fontWeight = "900";
-  btn.style.cursor = "pointer";
-  btn.style.color = "#0f1218";
-  btn.style.background = "rgba(255,255,255,0.92)";
-  btn.style.boxShadow = "0 18px 40px rgba(0,0,0,0.26)";
-  btn.addEventListener("click", openLineOfficial_);
-  box.appendChild(btn);
-}
+  // lock UI
+  const btn = qs("btnSubmit");
+  const btnClear = qs("btnClearDraft");
+  if(btn) btn.disabled = true;
+  if(btnClear) btnClear.disabled = true;
 
-/* ---------------- Draft (optional) ---------------- */
-function saveDraft_(form){
-  if(!FORM_CONFIG.ENABLE_DRAFT) return;
   try{
-    const payload = formToObject_(form);
-    delete payload["時間戳記"];
-    localStorage.setItem(FORM_CONFIG.DRAFT_KEY, JSON.stringify(payload));
-  }catch{}
-}
+    const resp = await postJson_(FORM_CONFIG.GAS, { action: "create", data: payload });
 
-function loadDraft_(form){
-  if(!FORM_CONFIG.ENABLE_DRAFT) return false;
-  try{
-    const raw = localStorage.getItem(FORM_CONFIG.DRAFT_KEY);
-    if(!raw) return false;
-    const data = JSON.parse(raw);
-    if(!data || typeof data !== "object") return false;
+    // interpret success (best-effort)
+    const ok = (resp && resp.ok !== false);
+    if(ok){
+      // success: clear draft (optional but recommended after create)
+      try{ localStorage.removeItem(FORM_CONFIG.DRAFT_KEY); }catch(e){}
 
-    for(const [k,v] of Object.entries(data)){
-      const el = form.querySelector(`[name="${CSS.escape(k)}"]`);
-      if(el) el.value = String(v ?? "");
+      const id = resp.id || resp.card_id || resp.data?.id || "";
+      // token is sensitive-ish; you can decide to show or not.
+      // Here we DO NOT display token by default to keep UX simple.
+      const lines = [];
+      lines.push("✅ 已送出成功！");
+      if(id) lines.push(`名片序號：${id}`);
+      lines.push("");
+      lines.push("📌 請到 LINE 官網確認你的 LINE 官方帳號 / LINE 連結是否正確。");
+      lines.push("若剛送出，名片資料寫入可能需要一點點時間，回到名片頁預覽時請刷新一次。");
+
+      setStatus_(lines.join("\n"), "ok");
+
+      // optional: scroll to status
+      qs("statusBox")?.scrollIntoView?.({ behavior:"smooth", block:"center" });
+    }else{
+      setStatus_("⚠️ 送出失敗：\n" + (resp?.message || resp?.raw || "unknown error"), "warn");
     }
-    return true;
-  }catch{
-    return false;
+  }catch(err){
+    setStatus_("⚠️ 送出失敗（可能網路或後端超時）：\n" + String(err?.message || err), "warn");
+  }finally{
+    if(btn) btn.disabled = false;
+    if(btnClear) btnClear.disabled = false;
   }
 }
 
-function debounce_(fn, ms){
-  let t = null;
-  return function(...args){
-    clearTimeout(t);
-    t = setTimeout(()=>fn.apply(this, args), ms);
-  };
-}
-
-/* ---------------- Demo fill (keep) ---------------- */
-function demoFill_(){
-  const f = qs("cardForm");
-  if(!f) return;
-  const set = (name, val)=>{
-    const el = f.querySelector(`[name="${CSS.escape(name)}"]`);
-    if(el) el.value = val;
-  };
-  set("選擇名片製作方案","free");
-  set("姓名","示範｜幸福緣烘焙工作室");
-  set("單位","幸福緣");
-  set("頭銜","主理人");
-  set("理念標語","在外奔波，心裡有個家的惦記是幸福的。");
-  set("服務項目","健康手作麵包\n親子早餐設計\n客製化禮盒");
-  set("經歷","退休教師\n自學烘焙\n長時低溫發酵研究");
-  set("LINE官方帳號","@angelshop");
-  set("電話","0912-333-444");
-  set("地址","高雄市（示範）");
-  set("照片","https://example.com/photo1.jpg\nhttps://example.com/photo2.jpg");
-  setStatus_("✅ 已填入範例（可直接修改後送出）");
-}
-
-/* ---------------- Boot ---------------- */
+/* ---------------------------
+   Boot
+--------------------------- */
 (function boot(){
   const form = qs("cardForm");
   if(!form) return;
 
-  // demo button optional
-  qs("btnFillDemo")?.addEventListener("click", demoFill_);
+  // Load draft if exists
+  loadDraft_(form);
 
-  // load draft once
-  const loaded = loadDraft_(form);
-  if(loaded){
-    setStatus_("✅ 已載入上次草稿（可直接修改後送出）");
-  }
+  // Autosave draft on input/change (debounced)
+  let t = null;
+  const scheduleSave = ()=>{
+    clearTimeout(t);
+    t = setTimeout(()=>saveDraft_(form), FORM_CONFIG.AUTOSAVE_DEBOUNCE_MS);
+  };
+  form.addEventListener("input", scheduleSave);
+  form.addEventListener("change", scheduleSave);
 
-  // auto-save draft
-  const saveDebounced = debounce_(()=>saveDraft_(form), 350);
-  form.addEventListener("input", saveDebounced, { passive:true });
-  form.addEventListener("change", saveDebounced, { passive:true });
+  // Submit by sticky button
+  qs("btnSubmit")?.addEventListener("click", ()=>{
+    submit_(form);
+  });
 
-  form.addEventListener("submit", async (e)=>{
+  // Clear draft
+  qs("btnClearDraft")?.addEventListener("click", ()=>{
+    clearDraft_(form);
+  });
+
+  // Enter key submit (except in textarea)
+  form.addEventListener("keydown", (e)=>{
+    if(e.key !== "Enter") return;
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : "";
+    if(tag === "TEXTAREA") return;
+    // prevent accidental submits in select/input
     e.preventDefault();
-    setStatus_("⏳ 送出中…");
+    submit_(form);
+  });
 
-    const payload = formToObject_(form);
-
-    // minimal validation
-    if(!payload["姓名"]){
-      setStatus_("⚠️ 請至少填寫「姓名（或商家名稱）」");
-      return;
-    }
-
-    // Normalize plan values for backend
-    const plan = (payload["選擇名片製作方案"] || "").toLowerCase();
-    if(plan !== "free" && plan !== "premium") payload["選擇名片製作方案"] = "free";
-
-    // ✅ 不送任何「成品連結」相關欄位（即使有人手動加在 DOM）
-    delete payload["成品連結"];
-    delete payload["delivery_url"];
-    delete payload["share_url"];
-    delete payload["成品網址"];
-    delete payload["名片連結"];
-
-    try{
-      const resp = await postJson_(FORM_CONFIG.GAS, { action: "create", data: payload });
-
-      if(resp && resp.ok !== false){
-        // 成功：不顯示任何成品連結欄位，改為引導去 LINE 官網確認
-        // （可保留 id/token 供你內部核對，但不顯示連結）
-        const id = resp.id || resp.card_id || resp.data?.id || "";
-        const token = resp.token || resp.data?.token || "";
-
-        // 清草稿
-        if(FORM_CONFIG.ENABLE_DRAFT){
-          try{ localStorage.removeItem(FORM_CONFIG.DRAFT_KEY); }catch{}
-        }
-
-        setStatus_(
-          "✅ 已送出成功！\n" +
-          (id ? `名片序號：${id}\n` : "") +
-          (token ? `token：${token}\n` : "") +
-          "\n下一步：請到「LINE 官網」確認。\n" +
-          "（若在 LINE/微信內建瀏覽器，建議用外部瀏覽器開啟）"
-        );
-        ensureGoLineButton_();
-      }else{
-        setStatus_("⚠️ 送出失敗：\n" + (resp?.message || resp?.raw || "unknown error"));
-      }
-    }catch(err){
-      setStatus_("⚠️ 送出失敗（可能網路或後端超時）：\n" + String(err?.message || err));
-    }
+  // Also allow native submit if user triggers it (safety)
+  form.addEventListener("submit", (e)=>{
+    e.preventDefault();
+    submit_(form);
   });
 })();
