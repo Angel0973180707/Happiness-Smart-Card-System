@@ -2,198 +2,69 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Angel Card Share v408</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <title>天使幸福智慧名片</title>
+  <meta name="description" content="點擊查看專屬智慧名片" />
+
+  <!-- OG -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="幸福智慧名片｜交貨卡" />
-  <meta property="og:description" content="一點，就看見彼此的價值" />
-  <meta property="og:image" content="og-card.png" />
+  <meta property="og:title" content="天使幸福智慧名片" />
+  <meta property="og:description" content="點擊查看專屬智慧名片" />
+  <meta property="og:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
 
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
   <style>
-    :root{
-      --bg:#0f1218;
-      --ink:rgba(255,255,255,0.92);
-      --muted:rgba(255,255,255,0.64);
-      --card:rgba(255,255,255,0.08);
-      --line:rgba(255,255,255,0.12);
-      --gold:rgba(191,149,63,0.55);
+    body {
+      margin: 0;
+      background: #f4efe6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: sans-serif;
+      text-align: center;
     }
 
-    *{ box-sizing:border-box; }
-
-    body{
-      margin:0;
-      font-family:"Noto Sans TC", system-ui, sans-serif;
-      background:
-        radial-gradient(900px 600px at 15% 0%, rgba(255,255,255,0.08), transparent 55%),
-        radial-gradient(700px 500px at 85% 10%, rgba(191,149,63,0.10), transparent 60%),
-        var(--bg);
-      color:var(--ink);
+    .box {
+      padding: 40px;
     }
 
-    .wrap{
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 14px 10px 36px;
-    }
-
-    .top{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding: 8px 10px;
-      border-radius: 16px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(8px);
-      font-size: 13px;
-    }
-
-    .title{
-      font-weight:900;
-      letter-spacing:.3px;
-      display:flex;
-      align-items:center;
-      gap:6px;
-    }
-
-    .btn{
-      padding: 8px 10px;
-      border-radius: 12px;
-      border:1px solid var(--gold);
-      background: rgba(255,255,255,0.06);
-      color:var(--ink);
-      font-size: 12px;
-      font-weight:900;
-      cursor:pointer;
-    }
-
-    .share-card{
-      margin-top: 10px;
-      border-radius: 22px;
-      border:1px solid var(--line);
-      background: var(--card);
-      backdrop-filter: blur(14px);
-      overflow:hidden;
-    }
-
-    .hero{
-      padding: 16px 14px 14px;
-      text-align:center;
-      border-bottom: 1px solid var(--line);
-      background:
-        radial-gradient(500px 200px at 20% 0%, rgba(255,255,255,0.10), transparent 70%),
-        linear-gradient(135deg, rgba(255,255,255,0.04), rgba(0,0,0,0.22));
-    }
-
-    .ava{
-      width: 84px;
-      height: 84px;
-      margin: 0 auto;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.92);
-      padding: 4px;
-    }
-
-    .ava img{
-      width:100%; height:100%;
-      border-radius:999px;
-      object-fit:cover;
-    }
-
-    .name{
-      margin-top: 10px;
-      font-size: 18px;
-      font-weight:900;
-      letter-spacing:.4px;
-    }
-
-    .sub{
-      margin-top: 4px;
-      font-size: 12px;
-      color:var(--muted);
-      white-space: pre-line;
-    }
-
-    .body{
-      padding: 12px;
-    }
-
-    .linkbox{
-      border-radius: 14px;
-      border:1px solid var(--line);
-      background: rgba(0,0,0,0.25);
-      padding: 10px;
-      font-size: 12px;
-      line-height: 1.5;
-      word-break: break-word;
-    }
-
-    .row{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top: 10px;
-    }
-
-    .note{
-      margin-top: 10px;
-      font-size: 11px;
-      color:var(--muted);
-      line-height:1.5;
+    .btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 12px 28px;
+      background: #4b6b4b;
+      color: #fff;
+      border-radius: 30px;
+      text-decoration: none;
+      font-size: 16px;
     }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-
-    <div class="top">
-      <div class="title">
-        <i class="fa-solid fa-box-open"></i>
-        交貨卡 Share · v401.1
-      </div>
-      <button class="btn" id="btnBack">
-        <i class="fa-solid fa-house"></i> 名片
-      </button>
-    </div>
-
-    <div class="share-card">
-
-      <div class="hero">
-        <div class="ava">
-          <img id="avaImg" alt="avatar"/>
-        </div>
-        <div class="name" id="name">載入中</div>
-        <div class="sub" id="sub"></div>
-      </div>
-
-      <div class="body">
-
-        <div class="linkbox" id="cardUrlBox">
-          名片連結載入中…
-        </div>
-
-        <div class="row">
-          <button class="btn" id="btnCopyCard"><i class="fa-solid fa-link"></i> 複製連結</button>
-          <button class="btn" id="btnOpenCard"><i class="fa-solid fa-arrow-up-right-from-square"></i> 打開</button>
-          <button class="btn" id="btnCopyOg"><i class="fa-solid fa-image"></i> OG 圖</button>
-        </div>
-
-        <div class="note">
-          這張頁面可直接交付客戶使用。<br/>
-          若需社群固定預覽圖，請確保 og-card.png 已公開可讀。
-        </div>
-
-      </div>
-    </div>
-
-    <script src="./share.js?v=4011"></script>
+  <div class="box">
+    <h2>正在開啟智慧名片...</h2>
+    <a id="goBtn" class="btn" href="#">查看名片</a>
   </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id") || "TW0001";
+
+    const target = `./index.html?id=${id}`;
+
+    document.getElementById("goBtn").href = target;
+
+    // 自動跳轉
+    setTimeout(() => {
+      window.location.href = target;
+    }, 1200);
+  </script>
 </body>
 </html>
