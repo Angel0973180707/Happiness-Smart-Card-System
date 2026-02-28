@@ -1,225 +1,256 @@
-<!doctype html>
-<html lang="zh-TW">
+<!-- wechat.html — v491 (COMPLETE OVERWRITE)
+ * Purpose:
+ * - Generate a WeChat-friendly long poster (image-like) for delivery
+ * - Uses DOM layout + "Render to image" via html2canvas for download/save
+ * - Fetch data from GAS: {ok:true, id, data:{...}}
+ -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <title>WeChat Long Card</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>WeChat Poster · Happiness Smart Card</title>
+  <meta name="description" content="微信長圖交貨｜長按保存" />
 
   <style>
     :root{
-      --bg:#0b1220;
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.65);
-      --line:rgba(255,255,255,.10);
-      --shadow: 0 20px 70px rgba(0,0,0,.55);
-      --r:18px;
+      --bg:#0b0f14;
+      --text:#eef3ff;
+      --muted:rgba(238,243,255,.72);
+      --line:rgba(238,243,255,.14);
+      --card:#101a26;
+      --radius:22px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height:100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial;
+      background: radial-gradient(1100px 780px at 15% 10%, rgba(0,168,255,.18), transparent 60%),
+                  radial-gradient(900px 650px at 90% 25%, rgba(255,94,94,.16), transparent 55%),
+                  linear-gradient(180deg, #070a0f, #0b0f14);
+      color:var(--text);
+      padding: 16px 12px 28px;
     }
-    .wrap{
-      width:min(980px, 94vw);
-      margin: 14px auto 26px;
-    }
+    .wrap{max-width:520px;margin:0 auto}
     .top{
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-      padding: 10px 6px;
-      user-select:none;
-      -webkit-tap-highlight-color: transparent;
+      display:flex;align-items:center;justify-content:space-between;
+      margin: 6px 2px 12px;
     }
-    .brand{display:flex; align-items:center; gap:10px;}
-    .dot{width:12px;height:12px;border-radius:99px;background:rgba(255,255,255,.7)}
-    .ttl{display:flex; flex-direction:column; gap:2px; line-height:1.1}
-    .ttl .t1{font-weight:900; font-size:14px}
-    .ttl .t2{font-weight:800; font-size:12px; color:rgba(255,255,255,.55)}
-    .btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      padding: 10px 12px;
-      border-radius: 14px;
+    .brand{font-weight:900;letter-spacing:.2px}
+    .chip{
+      font-size:12px;color:var(--muted);
+      border:1px solid var(--line);
+      padding:6px 10px;border-radius:999px;
+      background: rgba(255,255,255,.03);
+    }
+
+    /* Poster Canvas (DOM) */
+    .poster{
+      border-radius: var(--radius);
+      overflow:hidden;
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      box-shadow: 0 22px 60px rgba(0,0,0,.35);
+    }
+    .p-hero{
+      padding: 18px 16px 14px;
+      background:
+        radial-gradient(900px 420px at 20% 0%, rgba(125,211,252,.20), transparent 58%),
+        radial-gradient(800px 380px at 95% 10%, rgba(251,113,133,.18), transparent 55%),
+        rgba(0,0,0,.18);
+      border-bottom:1px solid var(--line);
+    }
+    .p-row{display:flex;gap:12px;align-items:center}
+    .avatar{
+      width:76px;height:76px;border-radius:20px;
       border:1px solid var(--line);
       background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.92);
-      font-weight:950;
-      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      overflow:hidden;flex:none;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow: 0 14px 30px rgba(0,0,0,.28);
+    }
+    .avatar img{width:100%;height:100%;object-fit:cover}
+    .meta{min-width:0}
+    .name{
+      font-size:20px;font-weight:1000;margin:0 0 6px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .line2,.line3{
+      font-size:13px;color:var(--muted);
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .line3{margin-top:4px}
+
+    .p-body{padding: 14px 16px 16px}
+    .block{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background: rgba(0,0,0,.14);
+      padding: 12px 12px;
+      margin-bottom: 10px;
+    }
+    .label{
+      font-size:12px;color:rgba(238,243,255,.6);
+      letter-spacing:.6px;
+      margin-bottom:6px;
+      font-weight:900;
+    }
+    .txt{
+      font-size:14px;line-height:1.6;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    .kv{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px 10px;
+      background: rgba(255,255,255,.03);
+    }
+    .kv .k{font-size:12px;color:rgba(238,243,255,.58);font-weight:900}
+    .kv .v{font-size:13px;margin-top:4px;word-break:break-word}
+
+    .p-footer{
+      display:flex;gap:12px;align-items:center;justify-content:space-between;
+      padding: 14px 16px;
+      border-top:1px solid var(--line);
+      background: rgba(0,0,0,.18);
+    }
+    .qrcode{
+      width:110px;height:110px;border-radius:16px;
+      background:#fff;
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+      border:1px solid rgba(0,0,0,.08);
+      flex:none;
+    }
+    .qrcode canvas, .qrcode img{width:100% !important;height:100% !important}
+    .footmeta{min-width:0}
+    .footmeta .t{font-weight:1000}
+    .footmeta .s{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.55}
+
+    /* Controls */
+    .controls{
+      display:grid;grid-template-columns:1fr;gap:10px;
+      margin-top:12px;
+    }
+    .btn{
+      appearance:none;border:1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      color:var(--text);
+      font-weight:900;
+      display:flex;align-items:center;justify-content:space-between;
+      gap:10px;
       cursor:pointer;
     }
+    .btn:active{transform: translateY(1px)}
+    .btn small{font-weight:800;color:var(--muted)}
 
-    .panel{
-      border-radius: calc(var(--r) + 10px);
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-      background: rgba(255,255,255,.05);
-    }
-
-    .loading{
-      padding: 26px 16px;
+    .note{
       text-align:center;
+      color:rgba(238,243,255,.58);
+      font-size:12px;margin-top:10px;line-height:1.6;
     }
-    .loading .big{font-weight:950; font-size:16px; margin-bottom:8px}
-    .loading .small{font-weight:800; color:var(--muted); line-height:1.6}
-
-    .card{
-      padding: 18px 16px 16px;
-      display:none;
-    }
-    .head{
-      display:flex; align-items:center; gap:12px;
-      margin-bottom: 12px;
-    }
-    .av{
-      width:74px;height:74px;border-radius:18px;
-      border:1px solid rgba(255,255,255,.12);
-      background: rgba(0,0,0,.18);
-      overflow:hidden;
-      flex:0 0 74px;
-      position:relative;
-    }
-    .av img{width:100%;height:100%;object-fit:cover;display:none}
-    .av .ph{
-      position:absolute; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      font-weight:950; color:rgba(255,255,255,.75);
-      font-size:18px;
-    }
-    .nm{font-weight:950; font-size:20px; margin:0}
-    .meta{margin-top:4px; font-weight:800; color:var(--muted); white-space:pre-line; line-height:1.4}
-
-    .sec{
-      margin-top: 10px;
-      border: 1px solid rgba(255,255,255,.10);
+    .outImg{
+      margin-top:12px;
       border-radius: 18px;
-      background: rgba(0,0,0,.18);
-      padding: 12px 12px 10px;
-    }
-    .sec h3{
-      margin:0 0 8px;
-      font-size:13px;
-      font-weight:950;
-      letter-spacing:.4px;
-    }
-    ul{margin:0; padding-left:18px; color:var(--muted); font-weight:800; line-height:1.65}
-    .para{white-space:pre-line; color:var(--muted); font-weight:800; line-height:1.7}
-
-    .hint{
-      margin-top: 10px;
-      color: rgba(255,255,255,.70);
-      font-weight:850;
-      font-size:12px;
-      line-height:1.6;
-      text-align:center;
-      padding: 8px 10px;
-    }
-
-    /* Debug */
-    .dbgMask{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; z-index:9998;}
-    .dbg{
-      position:fixed; left:50%; transform:translateX(-50%);
-      bottom:16px; width:min(920px, 92vw);
-      border-radius: 18px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(15,23,42,.92);
-      box-shadow: 0 20px 60px rgba(0,0,0,.55);
+      border:1px dashed var(--line);
       padding: 12px;
-      display:none; z-index:9999;
-      backdrop-filter: blur(10px);
+      background: rgba(0,0,0,.12);
     }
-    .dbgTop{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
-    .dbgTop .ttl{font-weight:950; font-size:13px;}
-    .dbgTop .x{padding: 8px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); font-weight:950; cursor:pointer;}
-    .dbg pre{
-      margin:0; padding:10px; border-radius:14px;
-      background: rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.10);
-      overflow:auto; max-height: 42vh;
-      color: rgba(255,255,255,.86);
-      font-size:12px; line-height:1.5; white-space:pre-wrap; word-break:break-word;
-    }
+    .outImg img{width:100%;height:auto;border-radius:14px;display:block}
+    .hidden{display:none !important}
   </style>
-
-  <script>
-    // ✅ v490 定錨：這裡改一次就好（之後升版只改 VERSION）
-    window.WECHAT_CFG = {
-      VERSION: "v490",
-      // ✅ 把這裡換成你「部署後」的 GAS /exec 連結（非常重要）
-      GAS_URL: "PASTE_YOUR_GAS_WEBAPP_EXEC_URL_HERE"
-      // 例：
-      // GAS_URL: "https://script.google.com/macros/s/xxxxxxxxxxxxxxxxxxxx/exec"
-    };
-  </script>
 </head>
-
 <body>
   <div class="wrap">
     <div class="top">
-      <div class="brand" id="brand">
-        <div class="dot"></div>
-        <div class="ttl">
-          <div class="t1">WeChat Long Card</div>
-          <div class="t2" id="ver">—</div>
-        </div>
-      </div>
-      <button class="btn" id="btnZoom" type="button">放大</button>
+      <div class="brand">WeChat Poster</div>
+      <div class="chip" id="chipId">ID：—</div>
     </div>
 
-    <div class="panel" id="panel">
-      <div class="loading" id="loading">
-        <div class="big">載入中...</div>
-        <div class="small">微信環境可能較慢，請稍候<br/>若仍空白，返回再重開一次通常會好。</div>
-      </div>
-
-      <div class="card" id="card">
-        <div class="head">
-          <div class="av" id="av">
-            <img id="avImg" alt="avatar" />
-            <div class="ph" id="avPh">🙂</div>
-          </div>
-          <div>
-            <h1 class="nm" id="name">—</h1>
-            <div class="meta" id="meta"></div>
+    <!-- Poster DOM (we will render this) -->
+    <div class="poster" id="poster">
+      <div class="p-hero">
+        <div class="p-row">
+          <div class="avatar" id="avatarBox">👤</div>
+          <div class="meta">
+            <p class="name" id="uName">（未填姓名）</p>
+            <div class="line2" id="uLine2">—</div>
+            <div class="line3" id="uLine3">—</div>
           </div>
         </div>
-
-        <div class="sec" id="secService" style="display:none">
-          <h3>服務項目</h3>
-          <ul id="service"></ul>
-        </div>
-
-        <div class="sec" id="secExp" style="display:none">
-          <h3>經歷</h3>
-          <div class="para" id="exp"></div>
-        </div>
-
-        <div class="hint" id="hint"></div>
       </div>
+
+      <div class="p-body">
+        <div class="block" id="blkSlogan">
+          <div class="label">理念標語</div>
+          <div class="txt" id="uSlogan">—</div>
+        </div>
+
+        <div class="block" id="blkService">
+          <div class="label">服務項目</div>
+          <div class="txt" id="uService">—</div>
+        </div>
+
+        <div class="block" id="blkExp">
+          <div class="label">經歷</div>
+          <div class="txt" id="uExp">—</div>
+        </div>
+
+        <div class="grid">
+          <div class="kv"><div class="k">電話</div><div class="v" id="uPhone">—</div></div>
+          <div class="kv"><div class="k">Email</div><div class="v" id="uEmail">—</div></div>
+          <div class="kv"><div class="k">LINE</div><div class="v" id="uLine">—</div></div>
+          <div class="kv"><div class="k">微信ID</div><div class="v" id="uWeChat">—</div></div>
+        </div>
+      </div>
+
+      <div class="p-footer">
+        <div class="qrcode" id="qrBox"></div>
+        <div class="footmeta">
+          <div class="t" id="qrTitle">掃描開啟名片</div>
+          <div class="s" id="qrSub">建議：長按保存此圖，或分享給對方。</div>
+          <div class="s" id="qrLink" style="margin-top:8px;opacity:.85;word-break:break-all;font-size:11px;">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="btnMake">
+        <span>產生可保存圖片（Render）</span>
+        <small>PNG</small>
+      </button>
+      <button class="btn" id="btnOpenCard">
+        <span>開啟名片（index）</span>
+        <small>Open</small>
+      </button>
+      <button class="btn" id="btnCopy">
+        <span>複製名片連結</span>
+        <small>Copy</small>
+      </button>
+    </div>
+
+    <div class="note">
+      交貨小技巧：在微信內「長按圖片」可直接保存。<br/>
+      若你先點「產生可保存圖片」，下方會出現一張真正的 PNG，最適合交付。
+    </div>
+
+    <div class="outImg hidden" id="outImg">
+      <img id="outPng" alt="Poster PNG" />
     </div>
   </div>
 
-  <div class="dbgMask" id="dbgMask"></div>
-  <div class="dbg" id="dbg">
-    <div class="dbgTop">
-      <div class="ttl">Debug</div>
-      <div class="x" id="dbgClose">關閉</div>
-    </div>
-    <pre id="dbgPre"></pre>
-  </div>
+  <!-- libs (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <script>
-    // ✅ 顯示版本（避免你每次忘了改畫面上還寫 v407）
-    (function(){
-      const v = (window.WECHAT_CFG && window.WECHAT_CFG.VERSION) ? window.WECHAT_CFG.VERSION : "—";
-      const el = document.getElementById("ver");
-      if (el) el.textContent = v;
-    })();
-  </script>
-
-  <!-- ✅ cache bust：升版只要改 v=490 -->
-  <script src="./wechat.js?v=490"></script>
+  <script src="./wechat.js?v=491"></script>
 </body>
 </html>
