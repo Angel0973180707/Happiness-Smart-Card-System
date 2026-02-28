@@ -1,512 +1,517 @@
-/* form.js v491 (COMPLETE OVERWRITE)
- * - Plan split UI:
- *   free: show color/style/paper, photos max 2
- *   premium: show premium color, photos max 5
- * - Auto draft save/restore/clear
- * - Image pick -> Canvas compress (no crop) -> base64
- * - POST to GAS {action:"create", data:payload, images:{avatar,logo,photos}}
- * - After submit: only show "去 LINE 官網確認" (no delivery links, no product urls)
- * - Optional redirect to LINE confirm page (set LINE_CONFIRM_URL or let GAS return redirect_url)
- */
+/* ================================
+ * form.js v491 (COMPLETE OVERWRITE)
+ * - Avatar upload only + Canvas compress
+ * - Fix "Failed to fetch": timeout + retry + smaller payload
+ * - Required: plan + (free: color/style/paper) OR (premium: p1~p7)
+ * - Draft autosave
+ * ================================ */
 
-const FORM_CONFIG = {
+const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-  TIMEOUT_MS: 20000,
-
-  // ✅ 你要導回「LINE 官網確認頁」：把這裡改成你的確認頁 URL
-  // 例如：https://page.line.me/xxxx 或 你自己的 LINE 確認 landing page
-  LINE_CONFIRM_URL: "",
-
-  DRAFT_KEY: "hsc_form_draft_v491",
-  AUTOSAVE_DEBOUNCE_MS: 450,
-
-  // Image rules (Apps Script safe)
-  MAX_EDGE: 1280,
-  JPEG_QUALITY: 0.82,
-  MAX_TOTAL_BASE64_CHARS: 2_500_000
+  FETCH_TIMEOUT_MS: 15000,
+  RETRY: 2,
+  VERSION: "v491",
+  // avatar compress targets:
+  MAX_W: 1200,
+  MAX_H: 1200,
+  TARGET_KB: 350,
+  MIN_QUALITY: 0.55
 };
 
 function qs(id){ return document.getElementById(id); }
 function text(v){ return (v==null ? "" : String(v)).trim(); }
 
-function setStatus_(msg, type){
-  const box = qs("statusBox");
-  if(!box) return;
-  box.classList.remove("ok","warn");
-  if(type === "ok") box.classList.add("ok");
-  if(type === "warn") box.classList.add("warn");
-  box.textContent = msg || "";
-}
-
-/* ---------------------------
-   Form <-> Object
---------------------------- */
-function formToObject_(formEl){
-  const fd = new FormData(formEl);
-  const out = {};
-  for(const [k,v] of fd.entries()){
-    const key = String(k||"").trim();
-    if(!key) continue;
-    out[key] = text(v);
-  }
-  out["時間戳記"] = new Date().toISOString();
-  return out;
-}
-function objectToForm_(formEl, obj){
-  if(!obj || typeof obj !== "object") return;
-  for(const [k,v] of Object.entries(obj)){
-    if(k === "時間戳記") continue;
-    const el = formEl.querySelector(`[name="${CSS.escape(k)}"]`);
-    if(!el) continue;
-    if(el.tagName === "SELECT"){
-      const has = Array.from(el.options).some(o => o.value === String(v));
-      if(has) el.value = String(v);
-      continue;
-    }
-    el.value = String(v ?? "");
-  }
-}
-
-/* ---------------------------
-   Draft
---------------------------- */
-function collectDraft_(formEl){
-  const fd = new FormData(formEl);
-  const out = {};
-  for(const [k,v] of fd.entries()){
-    const key = String(k||"").trim();
-    if(!key) continue;
-    out[key] = String(v ?? "");
-  }
-  out["__img_meta"] = getImageMeta_();
-  return out;
-}
-function saveDraft_(formEl){
-  try{
-    const draft = collectDraft_(formEl);
-    localStorage.setItem(FORM_CONFIG.DRAFT_KEY, JSON.stringify(draft));
-    const hint = qs("draftHint");
-    if(hint) hint.textContent = "已自動儲存草稿";
-  }catch(e){}
-}
-function loadDraft_(formEl){
-  try{
-    const raw = localStorage.getItem(FORM_CONFIG.DRAFT_KEY);
-    if(!raw) return false;
-    const obj = JSON.parse(raw);
-    if(!obj || typeof obj !== "object") return false;
-
-    objectToForm_(formEl, obj);
-
-    const hint = qs("draftHint");
-    if(hint) hint.textContent = "已載入上次草稿（照片需重新選取）";
-    return true;
-  }catch(e){
-    return false;
-  }
-}
-function clearDraft_(formEl){
-  try{ localStorage.removeItem(FORM_CONFIG.DRAFT_KEY); }catch(e){}
-  try{ formEl.reset(); }catch(e){}
-  clearImages_();
-  applyPlanUi_(); // reset plan view
-  setStatus_("已清除草稿", "warn");
-  const hint = qs("draftHint");
-  if(hint) hint.textContent = "";
-}
-
-/* ---------------------------
-   Network
---------------------------- */
-async function postJson_(url, body){
-  const controller = new AbortController();
-  const t = setTimeout(()=>controller.abort(), FORM_CONFIG.TIMEOUT_MS);
-  try{
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify(body),
-      signal: controller.signal
-    });
-    const txt = await res.text();
-    try{ return JSON.parse(txt); }catch{ return { ok: res.ok, raw: txt }; }
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-/* ---------------------------
-   Plan split
---------------------------- */
-function getPlan_(){
-  const v = (qs("planSelect")?.value || "free").toLowerCase();
-  return (v === "premium") ? "premium" : "free";
-}
-function getMaxPhotosByPlan_(plan){
-  return (plan === "premium") ? 5 : 2;
-}
-function applyPlanUi_(){
-  const plan = getPlan_();
-  const freeBox = qs("looksFree");
-  const premBox = qs("looksPremium");
-  if(freeBox) freeBox.style.display = (plan === "free") ? "" : "none";
-  if(premBox) premBox.style.display = (plan === "premium") ? "" : "none";
-
-  const max = getMaxPhotosByPlan_(plan);
-  const t = qs("maxPhotosText");
-  if(t) t.textContent = String(max);
-
-  // if user already selected photos > max, trim
-  if(IMG_STATE.photos.length > max){
-    IMG_STATE.photos = IMG_STATE.photos.slice(0, max);
-    renderPreviews_();
-  }
-}
-
-/* ---------------------------
-   Image: compress (no crop)
---------------------------- */
-const IMG_STATE = {
-  avatar: null,
-  logo: null,
-  photos: []
+const STATE = {
+  plan: "free",               // free | premium
+  color: "",                  // color-1..5 (required for free)
+  style: "",                  // arch|flat|spot (required for free)
+  paper: "",                  // paper-1..3 (required for free)
+  premium: "",                // p1..p7 (required for premium)
+  avatar: { file: null, blob: null, dataUrl: "", kb: 0, w: 0, h: 0 }
 };
 
-function getImageMeta_(){
-  return {
-    avatar: IMG_STATE.avatar ? IMG_STATE.avatar.name : "",
-    logo: IMG_STATE.logo ? IMG_STATE.logo.name : "",
-    photos: IMG_STATE.photos.map(p=>p.name)
-  };
+const DRAFT_KEY = "angel_card_form_draft_v491";
+
+function setStatus(msg){
+  const box = qs("statusBox");
+  if(box) box.textContent = msg || "";
 }
 
-function dataUrlToBase64_(dataUrl){
-  const i = dataUrl.indexOf("base64,");
-  if(i < 0) return "";
-  return dataUrl.slice(i + 7);
+function backToCard(){
+  // inside iframe form mode: call parent safe mode switch if exists
+  try{
+    if(window.parent && window.parent.__safeFormMode && typeof window.parent.__safeFormMode.setMode === "function"){
+      window.parent.__safeFormMode.setMode("card");
+      return;
+    }
+  }catch{}
+  // fallback: go parent page without mode
+  try{ location.href = "./index.html?v=491"; }catch{}
 }
-function approxBytesFromBase64_(b64){
-  return Math.floor((b64.length * 3) / 4);
+
+/* ---------- UI select helpers ---------- */
+function setActive(btns, matchFn){
+  btns.forEach(b=> b.classList.toggle("active", matchFn(b)));
 }
-function calcTotalBase64Chars_(){
-  let n = 0;
-  if(IMG_STATE.avatar?.dataUrl) n += dataUrlToBase64_(IMG_STATE.avatar.dataUrl).length;
-  if(IMG_STATE.logo?.dataUrl) n += dataUrlToBase64_(IMG_STATE.logo.dataUrl).length;
-  for(const p of IMG_STATE.photos){
-    if(p?.dataUrl) n += dataUrlToBase64_(p.dataUrl).length;
+function bySel(containerId, selector){
+  const root = qs(containerId);
+  if(!root) return [];
+  return Array.from(root.querySelectorAll(selector));
+}
+
+function applyPlanUi(){
+  const freeBox = qs("freeBox");
+  const premiumBox = qs("premiumBox");
+  if(freeBox) freeBox.style.display = (STATE.plan === "free") ? "" : "none";
+  if(premiumBox) premiumBox.style.display = (STATE.plan === "premium") ? "" : "none";
+
+  qs("planFree")?.classList.toggle("active", STATE.plan === "free");
+  qs("planPremium")?.classList.toggle("active", STATE.plan === "premium");
+
+  refreshStyleHint();
+}
+
+function refreshStyleHint(){
+  const hint = qs("styleHint");
+  if(!hint) return;
+
+  if(STATE.plan === "free"){
+    const ok = !!(STATE.color && STATE.style && STATE.paper);
+    hint.textContent = ok
+      ? "✅ 自由款樣式已完成，可送出。"
+      : "請先完成：自由款 顏色 / 版型 / 紙感（皆必選），才能送出。";
+  }else{
+    const ok = !!STATE.premium;
+    hint.textContent = ok
+      ? "✅ 精品款底色已完成，可送出。"
+      : "請先完成：精品款 底色（必選），才能送出。";
   }
-  return n;
 }
 
-async function fileToCompressedDataUrl_(file, opts){
-  const maxEdge = opts?.maxEdge ?? FORM_CONFIG.MAX_EDGE;
-  const quality = opts?.quality ?? FORM_CONFIG.JPEG_QUALITY;
+/* ---------- Draft ---------- */
+function saveDraft(){
+  const payload = {
+    plan: STATE.plan,
+    color: STATE.color,
+    style: STATE.style,
+    paper: STATE.paper,
+    premium: STATE.premium,
+    name: text(qs("name")?.value),
+    unit: text(qs("unit")?.value),
+    title: text(qs("title")?.value),
+    slogan: text(qs("slogan")?.value),
+    phone: text(qs("phone")?.value),
+    email: text(qs("email")?.value),
+    address: text(qs("address")?.value),
+    wechatId: text(qs("wechatId")?.value),
+    lineAny: text(qs("lineAny")?.value),
+    // avatar draft: store dataUrl (already compressed) to keep consistent
+    avatarDataUrl: STATE.avatar?.dataUrl || ""
+  };
+  try{ localStorage.setItem(DRAFT_KEY, JSON.stringify(payload)); }catch{}
+}
 
-  const img = await loadImageFromFile_(file);
-  const { w, h } = fitSize_(img.naturalWidth || img.width, img.naturalHeight || img.height, maxEdge);
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if(!raw) return;
+    const d = JSON.parse(raw);
+    if(!d || typeof d !== "object") return;
+
+    STATE.plan = d.plan === "premium" ? "premium" : "free";
+    STATE.color = d.color || "";
+    STATE.style = d.style || "";
+    STATE.paper = d.paper || "";
+    STATE.premium = d.premium || "";
+
+    qs("name").value = d.name || "";
+    qs("unit").value = d.unit || "";
+    qs("title").value = d.title || "";
+    qs("slogan").value = d.slogan || "";
+    qs("phone").value = d.phone || "";
+    qs("email").value = d.email || "";
+    qs("address").value = d.address || "";
+    qs("wechatId").value = d.wechatId || "";
+    qs("lineAny").value = d.lineAny || "";
+
+    // restore avatar preview if exists
+    if(d.avatarDataUrl){
+      STATE.avatar.dataUrl = d.avatarDataUrl;
+      const img = qs("avatarPreview");
+      const meta = qs("avatarMeta");
+      if(img){
+        img.src = d.avatarDataUrl;
+        img.style.display = "block";
+      }
+      if(meta){
+        meta.textContent = "（草稿）已載入壓縮後個人照";
+        meta.style.display = "block";
+      }
+    }
+
+  }catch{}
+}
+
+function clearDraft(){
+  try{ localStorage.removeItem(DRAFT_KEY); }catch{}
+  setStatus("✅ 已清除草稿");
+}
+
+/* ---------- Canvas compress ---------- */
+function readFileAsDataURL(file){
+  return new Promise((resolve, reject)=>{
+    const fr = new FileReader();
+    fr.onload = ()=>resolve(String(fr.result||""));
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+
+async function loadImageFromDataUrl(dataUrl){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.onload = ()=>resolve(img);
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+function calcFitSize(w,h,maxW,maxH){
+  const r = Math.min(1, maxW / w, maxH / h);
+  return { w: Math.max(1, Math.round(w * r)), h: Math.max(1, Math.round(h * r)) };
+}
+
+function blobToDataUrl(blob){
+  return new Promise((resolve, reject)=>{
+    const fr = new FileReader();
+    fr.onload = ()=>resolve(String(fr.result||""));
+    fr.onerror = reject;
+    fr.readAsDataURL(blob);
+  });
+}
+
+async function compressImageToJpegBlob(file, opts){
+  const maxW = opts.maxW || 1200;
+  const maxH = opts.maxH || 1200;
+  const targetKB = opts.targetKB || 350;
+  const minQ = opts.minQ || 0.55;
+
+  // read -> draw -> iterative quality
+  const dataUrl = await readFileAsDataURL(file);
+  const img = await loadImageFromDataUrl(dataUrl);
+
+  const fit = calcFitSize(img.naturalWidth || img.width, img.naturalHeight || img.height, maxW, maxH);
 
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d", { alpha:false });
-  ctx.drawImage(img, 0, 0, w, h);
+  canvas.width = fit.w;
+  canvas.height = fit.h;
+  const ctx = canvas.getContext("2d", { alpha:false, desynchronized:true });
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, fit.w, fit.h);
 
-  const dataUrl = canvas.toDataURL("image/jpeg", quality);
-  const b64 = dataUrlToBase64_(dataUrl);
-  const bytesApprox = approxBytesFromBase64_(b64);
+  let q = 0.86;
+  let blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", q));
+  if(!blob) throw new Error("Canvas toBlob failed");
 
-  return {
-    name: file.name || "image.jpg",
-    mime: "image/jpeg",
-    dataUrl,
-    width: w,
-    height: h,
-    bytesApprox
-  };
+  // try reduce until <= targetKB or reach minQ
+  while((blob.size/1024) > targetKB && q > minQ){
+    q = Math.max(minQ, q - 0.08);
+    blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", q));
+    if(!blob) break;
+  }
+
+  return { blob, w: fit.w, h: fit.h, kb: Math.round(blob.size/1024) };
 }
 
-function fitSize_(w, h, maxEdge){
-  if(!w || !h) return { w: maxEdge, h: maxEdge };
-  const long = Math.max(w, h);
-  if(long <= maxEdge) return { w, h };
-  const scale = maxEdge / long;
-  return { w: Math.round(w * scale), h: Math.round(h * scale) };
-}
+async function handleAvatarFile(file){
+  if(!file) return;
 
-function loadImageFromFile_(file){
-  return new Promise((resolve, reject)=>{
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = ()=>{
-      URL.revokeObjectURL(url);
-      resolve(img);
-    };
-    img.onerror = (e)=>{
-      URL.revokeObjectURL(url);
-      reject(e);
-    };
-    img.src = url;
+  setStatus("⏳ 正在壓縮個人照…");
+  const { blob, w, h, kb } = await compressImageToJpegBlob(file, {
+    maxW: CONFIG.MAX_W, maxH: CONFIG.MAX_H,
+    targetKB: CONFIG.TARGET_KB, minQ: CONFIG.MIN_QUALITY
   });
-}
 
-/* ---------------------------
-   Image UI
---------------------------- */
-function renderPreviews_(){
-  const grid = qs("previewGrid");
-  const meta = qs("uploadMeta");
-  if(!grid || !meta) return;
+  const dataUrl = await blobToDataUrl(blob);
 
-  grid.innerHTML = "";
+  STATE.avatar = { file, blob, dataUrl, w, h, kb };
 
-  const items = [];
-  if(IMG_STATE.avatar) items.push({ ...IMG_STATE.avatar, tag:"個人照" });
-  if(IMG_STATE.logo) items.push({ ...IMG_STATE.logo, tag:"Logo" });
-  IMG_STATE.photos.forEach((p,i)=>items.push({ ...p, tag:`照片${i+1}` }));
-
-  for(const it of items){
-    const div = document.createElement("div");
-    div.className = "thumb";
-    const img = document.createElement("img");
-    img.src = it.dataUrl;
-    const badge = document.createElement("div");
-    badge.className = "badge";
-    badge.textContent = it.tag;
-    div.appendChild(img);
-    div.appendChild(badge);
-    grid.appendChild(div);
+  const img = qs("avatarPreview");
+  const meta = qs("avatarMeta");
+  if(img){
+    img.src = dataUrl;
+    img.style.display = "block";
+  }
+  if(meta){
+    meta.textContent = `已壓縮：${w}×${h}，約 ${kb}KB`;
+    meta.style.display = "block";
   }
 
-  const plan = getPlan_();
-  const max = getMaxPhotosByPlan_(plan);
+  setStatus("✅ 個人照已壓縮完成（送出時會使用壓縮後版本）");
+  saveDraft();
+}
 
-  const totalChars = calcTotalBase64Chars_();
-  const totalKB = Math.round((totalChars * 0.75) / 1024);
-
-  const note = [];
-  note.push(`已選：個人照 ${IMG_STATE.avatar? "1":"0"}｜Logo ${IMG_STATE.logo? "1":"0"}｜照片 ${IMG_STATE.photos.length}/${max}`);
-  note.push(`預估：約 ${totalKB} KB`);
-  if(totalChars > FORM_CONFIG.MAX_TOTAL_BASE64_CHARS){
-    note.push("⚠️ 照片總量偏大：請減少張數或換小一點的照片");
+/* ---------- Fetch robust ---------- */
+async function fetchWithTimeout(url, options, timeoutMs){
+  const controller = new AbortController();
+  const t = setTimeout(()=>controller.abort(), timeoutMs);
+  try{
+    const res = await fetch(url, { ...options, signal: controller.signal, cache:"no-store", redirect:"follow" });
+    const txt = await res.text();
+    let json = null;
+    try{ json = JSON.parse(txt); }catch{
+      const m = String(txt||"").match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+      if(m){ try{ json = JSON.parse(m[0]); }catch{} }
+    }
+    if(!json) throw new Error("Not JSON");
+    return json;
+  }finally{
+    clearTimeout(t);
   }
-  meta.textContent = note.join("｜");
 }
 
-function clearImages_(){
-  IMG_STATE.avatar = null;
-  IMG_STATE.logo = null;
-  IMG_STATE.photos = [];
-
-  const fa = qs("fileAvatar"); if(fa) fa.value = "";
-  const fl = qs("fileLogo"); if(fl) fl.value = "";
-  const fp = qs("filePhotos"); if(fp) fp.value = "";
-
-  renderPreviews_();
-}
-
-async function handlePickAvatar_(file){
-  if(!file) return;
-  setStatus_("處理個人照中…");
-  IMG_STATE.avatar = await fileToCompressedDataUrl_(file);
-  setStatus_("個人照已選取", "ok");
-  renderPreviews_();
-}
-async function handlePickLogo_(file){
-  if(!file) return;
-  setStatus_("處理 Logo 中…");
-  IMG_STATE.logo = await fileToCompressedDataUrl_(file);
-  setStatus_("Logo 已選取", "ok");
-  renderPreviews_();
-}
-async function handlePickPhotos_(files){
-  if(!files || !files.length) return;
-
-  const plan = getPlan_();
-  const max = getMaxPhotosByPlan_(plan);
-  const arr = Array.from(files).slice(0, max);
-
-  setStatus_(`處理照片中（${arr.length} 張）…`);
-
-  const out = [];
-  for(let i=0;i<arr.length;i++){
-    const item = await fileToCompressedDataUrl_(arr[i]);
-    out.push(item);
+async function postJsonRobust(url, bodyObj){
+  let last = null;
+  for(let i=0;i<=CONFIG.RETRY;i++){
+    try{
+      const json = await fetchWithTimeout(url, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify(bodyObj)
+      }, CONFIG.FETCH_TIMEOUT_MS);
+      return json;
+    }catch(e){
+      last = e;
+      await new Promise(r=>setTimeout(r, 600 + i*600));
+    }
   }
-  IMG_STATE.photos = out;
-
-  setStatus_("照片已選取", "ok");
-  renderPreviews_();
+  throw last || new Error("Fetch failed");
 }
 
-/* ---------------------------
-   Submit
---------------------------- */
-function normalizePlan_(payload){
-  const plan = (payload["選擇名片製作方案"] || "").toLowerCase();
-  payload["選擇名片製作方案"] = (plan === "premium") ? "premium" : "free";
-}
-
-function buildImagesPayload_(){
-  const pack = {};
-  if(IMG_STATE.avatar?.dataUrl){
-    pack.avatar = { name: IMG_STATE.avatar.name, mime: IMG_STATE.avatar.mime, base64: dataUrlToBase64_(IMG_STATE.avatar.dataUrl) };
+/* ---------- Validate (required) ---------- */
+function validateRequired(){
+  if(STATE.plan === "free"){
+    if(!STATE.color) return "請先選：自由款顏色（必選）";
+    if(!STATE.style) return "請先選：自由款版型（必選）";
+    if(!STATE.paper) return "請先選：自由款紙感（必選）";
+  }else{
+    if(!STATE.premium) return "請先選：精品款底色（必選）";
   }
-  if(IMG_STATE.logo?.dataUrl){
-    pack.logo = { name: IMG_STATE.logo.name, mime: IMG_STATE.logo.mime, base64: dataUrlToBase64_(IMG_STATE.logo.dataUrl) };
-  }
-  if(IMG_STATE.photos?.length){
-    pack.photos = IMG_STATE.photos.map(p=>({ name: p.name, mime: p.mime, base64: dataUrlToBase64_(p.dataUrl) }));
-  }
-  return pack;
+  return "";
 }
 
-function computeLineConfirmUrl_(resp){
-  const fromResp = resp?.redirect_url || resp?.data?.redirect_url || "";
-  return text(fromResp) || text(FORM_CONFIG.LINE_CONFIRM_URL);
+/* ---------- Submit ---------- */
+function buildPayload(){
+  // 你後端欄位是 snake_case（你截圖 JSON 顯示 name/unit/title/...）
+  // 這裡用 snake_case 送，避免表頭對不上
+  const payload = {
+    action: "create",
+    version: CONFIG.VERSION,
+
+    // plan & theme
+    plan: STATE.plan,
+    color: STATE.plan === "free" ? STATE.color : "",
+    style: STATE.plan === "free" ? STATE.style : "",
+    paper: STATE.plan === "free" ? STATE.paper : "",
+    premium: STATE.plan === "premium" ? STATE.premium : "",
+
+    // fields
+    name: text(qs("name")?.value),
+    unit: text(qs("unit")?.value),
+    title: text(qs("title")?.value),
+    slogan: text(qs("slogan")?.value),
+
+    phone: text(qs("phone")?.value),
+    email: text(qs("email")?.value),
+    address: text(qs("address")?.value),
+
+    wechat_id: text(qs("wechatId")?.value),
+    line_any: text(qs("lineAny")?.value),
+
+    // avatar: send compressed dataURL (jpeg)
+    avatar_dataurl: STATE.avatar?.dataUrl || ""
+  };
+
+  return payload;
 }
 
-async function submit_(form){
-  setStatus_("送出中…");
-
-  const payload = formToObject_(form);
-
-  if(!payload["姓名"]){
-    setStatus_("請填寫「姓名（或商家名稱）」", "warn");
-    const nameEl = form.querySelector(`[name="姓名"]`);
-    nameEl?.scrollIntoView?.({ behavior:"smooth", block:"center" });
-    nameEl?.focus?.();
+async function submit(){
+  const err = validateRequired();
+  if(err){
+    setStatus("⚠️ " + err);
     return;
   }
-
-  normalizePlan_(payload);
-
-  const totalChars = calcTotalBase64Chars_();
-  if(totalChars > FORM_CONFIG.MAX_TOTAL_BASE64_CHARS){
-    setStatus_("照片總量偏大，請減少張數或換小一點的照片後再送出。", "warn");
-    return;
-  }
-
-  const images = buildImagesPayload_();
 
   const btn = qs("btnSubmit");
-  const btnClear = qs("btnClearDraft");
-  const btnClearImg = qs("btnClearImages");
-  if(btn) btn.disabled = true;
-  if(btnClear) btnClear.disabled = true;
-  if(btnClearImg) btnClearImg.disabled = true;
+  btn.disabled = true;
 
   try{
-    const resp = await postJson_(FORM_CONFIG.GAS, {
-      action: "create",
-      data: payload,
-      images
-    });
+    saveDraft();
 
-    const ok = (resp && resp.ok !== false);
-    if(ok){
-      // ✅ 不顯示任何成品網址、不顯示交貨連結、不顯示序號
-      try{ localStorage.removeItem(FORM_CONFIG.DRAFT_KEY); }catch(e){}
-      clearImages_();
+    setStatus("⏳ 送出中…（若在 LINE/微信 內建瀏覽器較慢，請稍候）");
 
-      setStatus_("✅ 已送出成功。\n請到 LINE 官網確認 LINE / LINE OA 是否正確。", "ok");
-      qs("statusBox")?.scrollIntoView?.({ behavior:"smooth", block:"center" });
+    const payload = buildPayload();
+    const url = CONFIG.GAS; // GAS should route by action in body
 
-      // ✅ 自動導回 LINE 確認頁（你只要設定 URL 或讓 GAS 回 redirect_url）
-      const go = computeLineConfirmUrl_(resp);
-      if(go){
-        setTimeout(()=>{ window.location.href = go; }, 1200);
-      }
-    }else{
-      setStatus_("送出失敗：\n" + (resp?.message || resp?.raw || "unknown error"), "warn");
+    const res = await postJsonRobust(url, payload);
+
+    // Expect {ok:true, id:"TW0001", ...}
+    if(!res || res.ok !== true){
+      const msg = (res && (res.message || res.error)) ? (res.message || res.error) : "未知錯誤";
+      throw new Error(msg);
     }
-  }catch(err){
-    setStatus_("送出失敗（可能網路或後端超時）：\n" + String(err?.message || err), "warn");
+
+    const id = res.id || (res.data && res.data.id) || "";
+    setStatus(`✅ 送出成功！\nID：${id || "（未回傳）"}\n你可以回到名片預覽。`);
+
+    // optional: clear draft on success
+    // clearDraft();
+
+  }catch(e){
+    // ✅ 這裡把「Failed to fetch」轉成人話
+    const msg = String(e?.message || e || "");
+    let human = msg;
+
+    if(/Failed to fetch/i.test(msg) || /NetworkError/i.test(msg) || /abort/i.test(msg)){
+      human =
+        "送出失敗（網路或後端超時 / 內建瀏覽器限制）。\n" +
+        "建議：\n" +
+        "1) 改用 Chrome/Safari 外部瀏覽器開啟再送\n" +
+        "2) 先等 5 秒再重試\n" +
+        "3) 個人照已壓縮，若仍失敗，多半是內建瀏覽器攔截跨網域\n";
+    }
+
+    setStatus("❌ " + human);
   }finally{
-    if(btn) btn.disabled = false;
-    if(btnClear) btnClear.disabled = false;
-    if(btnClearImg) btnClearImg.disabled = false;
+    btn.disabled = false;
   }
 }
 
-/* ---------------------------
-   Boot
---------------------------- */
+/* ---------- Bind ---------- */
+function bindPlan(){
+  qs("planFree")?.addEventListener("click", ()=>{
+    STATE.plan = "free";
+    applyPlanUi();
+    saveDraft();
+  });
+  qs("planPremium")?.addEventListener("click", ()=>{
+    STATE.plan = "premium";
+    applyPlanUi();
+    saveDraft();
+  });
+}
+
+function bindFreeRequired(){
+  // colors
+  const dots = bySel("freeColors", ".dot");
+  dots.forEach(d=>{
+    d.addEventListener("click", ()=>{
+      STATE.color = d.getAttribute("data-color") || "";
+      setActive(dots, x => x === d);
+      refreshStyleHint();
+      saveDraft();
+    });
+  });
+
+  // styles
+  const styles = bySel("freeStyles", ".btn");
+  styles.forEach(b=>{
+    b.addEventListener("click", ()=>{
+      STATE.style = b.getAttribute("data-style") || "";
+      setActive(styles, x => x === b);
+      refreshStyleHint();
+      saveDraft();
+    });
+  });
+
+  // papers
+  const papers = bySel("freePapers", ".btn");
+  papers.forEach(b=>{
+    b.addEventListener("click", ()=>{
+      STATE.paper = b.getAttribute("data-paper") || "";
+      setActive(papers, x => x === b);
+      refreshStyleHint();
+      saveDraft();
+    });
+  });
+}
+
+function bindPremiumRequired(){
+  const dots = bySel("premiumThemes", ".p-dot");
+  dots.forEach(d=>{
+    d.addEventListener("click", ()=>{
+      STATE.premium = d.getAttribute("data-premium") || "";
+      setActive(dots, x => x === d);
+      refreshStyleHint();
+      saveDraft();
+    });
+  });
+}
+
+function bindInputsAutosave(){
+  ["name","unit","title","slogan","phone","email","address","wechatId","lineAny"].forEach(id=>{
+    qs(id)?.addEventListener("input", ()=>{
+      saveDraft();
+    });
+  });
+}
+
+function applyDraftToUI(){
+  applyPlanUi();
+
+  // free ui
+  const freeDots = bySel("freeColors", ".dot");
+  setActive(freeDots, b => (b.getAttribute("data-color") === STATE.color));
+
+  const freeStyles = bySel("freeStyles", ".btn");
+  setActive(freeStyles, b => (b.getAttribute("data-style") === STATE.style));
+
+  const freePapers = bySel("freePapers", ".btn");
+  setActive(freePapers, b => (b.getAttribute("data-paper") === STATE.paper));
+
+  // premium ui
+  const premDots = bySel("premiumThemes", ".p-dot");
+  setActive(premDots, b => (b.getAttribute("data-premium") === STATE.premium));
+
+  refreshStyleHint();
+}
+
+function bindAvatar(){
+  const input = qs("avatarFile");
+  input?.addEventListener("change", async ()=>{
+    try{
+      const f = input.files?.[0];
+      if(!f) return;
+      await handleAvatarFile(f);
+    }catch(e){
+      console.error(e);
+      setStatus("❌ 個人照處理失敗（請換一張或重新選取）");
+    }
+  });
+}
+
+function bindButtons(){
+  qs("btnBack")?.addEventListener("click", backToCard);
+  qs("btnClear")?.addEventListener("click", clearDraft);
+  qs("btnSubmit")?.addEventListener("click", submit);
+}
+
+/* ---------- Boot ---------- */
 (function boot(){
-  const form = qs("cardForm");
-  if(!form) return;
+  try{
+    loadDraft();
+    bindPlan();
+    bindFreeRequired();
+    bindPremiumRequired();
+    bindInputsAutosave();
+    bindAvatar();
+    bindButtons();
+    applyDraftToUI();
 
-  loadDraft_(form);
-
-  let t = null;
-  const scheduleSave = ()=>{
-    clearTimeout(t);
-    t = setTimeout(()=>saveDraft_(form), FORM_CONFIG.AUTOSAVE_DEBOUNCE_MS);
-  };
-  form.addEventListener("input", scheduleSave);
-  form.addEventListener("change", scheduleSave);
-
-  // buttons
-  qs("btnSubmit")?.addEventListener("click", ()=>submit_(form));
-  qs("btnClearDraft")?.addEventListener("click", ()=>clearDraft_(form));
-
-  // plan split
-  qs("planSelect")?.addEventListener("change", ()=>{
-    applyPlanUi_();
-    renderPreviews_();
-    scheduleSave();
-  });
-  applyPlanUi_();
-
-  // Enter submit (except textarea)
-  form.addEventListener("keydown", (e)=>{
-    if(e.key !== "Enter") return;
-    const tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : "";
-    if(tag === "TEXTAREA") return;
-    e.preventDefault();
-    submit_(form);
-  });
-  form.addEventListener("submit", (e)=>{
-    e.preventDefault();
-    submit_(form);
-  });
-
-  // image pick wiring
-  const fileAvatar = qs("fileAvatar");
-  const fileLogo = qs("fileLogo");
-  const filePhotos = qs("filePhotos");
-
-  qs("pickAvatar")?.addEventListener("click", ()=>fileAvatar?.click());
-  qs("pickLogo")?.addEventListener("click", ()=>fileLogo?.click());
-  qs("pickPhotos")?.addEventListener("click", ()=>filePhotos?.click());
-
-  fileAvatar?.addEventListener("change", async (e)=>{
-    const f = e.target.files?.[0];
-    if(!f) return;
-    try{ await handlePickAvatar_(f); }catch(err){
-      setStatus_("個人照處理失敗：" + String(err?.message || err), "warn");
-    }
-  });
-
-  fileLogo?.addEventListener("change", async (e)=>{
-    const f = e.target.files?.[0];
-    if(!f) return;
-    try{ await handlePickLogo_(f); }catch(err){
-      setStatus_("Logo 處理失敗：" + String(err?.message || err), "warn");
-    }
-  });
-
-  filePhotos?.addEventListener("change", async (e)=>{
-    const fs = e.target.files;
-    if(!fs || !fs.length) return;
-    try{ await handlePickPhotos_(fs); }catch(err){
-      setStatus_("照片處理失敗：" + String(err?.message || err), "warn");
-    }
-  });
-
-  qs("btnClearImages")?.addEventListener("click", ()=>{
-    clearImages_();
-    setStatus_("已清除已選照片", "warn");
-  });
-
-  renderPreviews_();
+    setStatus("✅ 表單已就緒（樣式必選 + 個人照自動壓縮）");
+  }catch(e){
+    console.error(e);
+    setStatus("❌ 表單初始化失敗");
+  }
 })();
