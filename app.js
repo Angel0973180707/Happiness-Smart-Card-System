@@ -1,18 +1,23 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v491 (COMPLETE OVERWRITE) 1/3
- * - Base: v408.3
- * - Align: v491 (version + fetch stronger)
+ * app.js v492 (COMPLETE OVERWRITE)
+ * - Base: v491 (your current)
+ * - Upgrade to v492:
+ *   1) VERSION bump + stronger cache-bust (fetch + assets)
+ *   2) Status gate: status !== "active" => lock card UI
+ *      - Subtitle fixed: 「請聯繫客服開通」
+ *      - Button fixed: 「聯繫開通」(uses goFillForm as default contact)
+ *   3) Expiry hint (if payload provides expiry fields):
+ *      - <=30 days: show "即將到期" hint (non-blocking)
+ *      - expired: auto lock (same as inactive)
  * - Keep ALL existing UI/feature behaviors
- * - NEW: Hidden Admin Panel (triple tap bottom-right hotspot)
- * - Plan A: Unit/Company -> ONE LINE join by " / " (render)
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v491",
+  VERSION: "v492",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
@@ -218,11 +223,11 @@ function setImgWithFallback_(imgEl, candidates){
   const tryNext = ()=>{
     idx++;
     if(idx >= list.length) return;
-    imgEl.src = list[idx] + (list[idx].includes("?") ? "&" : "?") + "t=" + Date.now();
+    imgEl.src = list[idx] + (list[idx].includes("?") ? "&" : "?") + "t=" + Date.now() + "&v=" + encodeURIComponent(CONFIG.VERSION);
   };
 
   imgEl.onerror = tryNext;
-  imgEl.src = list[0] + (list[0].includes("?") ? "&" : "?") + "t=" + Date.now();
+  imgEl.src = list[0] + (list[0].includes("?") ? "&" : "?") + "t=" + Date.now() + "&v=" + encodeURIComponent(CONFIG.VERSION);
 }
 
 /* ---------- Canonical key for image de-dup ---------- */
@@ -306,6 +311,7 @@ function applyBodyClasses_(){
 
   applyModeUi_();
 }
+
 /* ---------- Exposed APIs ---------- */
 function setPlan(mode, el){
   STATE.mode = (mode === "premium") ? "premium" : "free";
@@ -370,6 +376,7 @@ function setPaper(paper, el){
 
 /* CTA */
 function goFillForm(){
+  // default "contact support" action (you can later swap to LINE OA / WhatsApp / etc.)
   window.open(CONFIG.FORM, "_blank");
 }
 
@@ -556,7 +563,7 @@ function applyWideRule_(container){
 }
 
 /* ================================
- * Media/Social (same as v408.3)
+ * Media/Social (same as v491)
  * ================================ */
 function gatherByKeys_(p, keys){
   const hits = [];
@@ -702,6 +709,7 @@ function renderSpecsToDock_(p, specs, tag){
 
   return hasAny;
 }
+
 function renderDocks_(p){
   const mediaDock = qs("mediaDock");
   const mediaBtns = qs("mediaButtons");
@@ -805,10 +813,160 @@ function toOneLine_(s){
   return parts.join(" / ");
 }
 
+/* ================================
+ * Expiry + Status gate (v492)
+ * ================================ */
+function parseAnyDate_(raw){
+  const v = text(raw);
+  if(!v) return null;
+
+  // epoch ms / sec
+  if(/^\d{13}$/.test(v)){
+    const ms = Number(v);
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if(/^\d{10}$/.test(v)){
+    const ms = Number(v) * 1000;
+    const d = new Date(ms);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // YYYY-MM-DD or YYYY/MM/DD
+  const m = v.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
+  if(m){
+    const yy = Number(m[1]);
+    const mm = Number(m[2]) - 1;
+    const dd = Number(m[3]);
+    const hh = m[4] ? Number(m[4]) : 0;
+    const mi = m[5] ? Number(m[5]) : 0;
+    const ss = m[6] ? Number(m[6]) : 0;
+    const d = new Date(yy, mm, dd, hh, mi, ss);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // ISO-ish
+  const d2 = new Date(v);
+  return isNaN(d2.getTime()) ? null : d2;
+}
+
+function getExpiryInfo_(p){
+  // try common keys
+  const raw = pick(p, [
+    "expire_at","expires_at","expiry","expiry_at","expire_date","expires","due_date","due",
+    "ExpireAt","ExpiresAt","Expiry","DueDate",
+    "到期日","到期","有效期限","到期日期","失效日"
+  ]);
+  const d = parseAnyDate_(raw);
+  if(!d) return { has:false, date:null, daysLeft:null };
+
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const daysLeft = Math.ceil((end - start) / (24*60*60*1000));
+  return { has:true, date:d, daysLeft };
+}
+
+function normalizeStatus_(p){
+  const s = text(pick(p, ["status","Status","狀態"])).toLowerCase();
+  return s || "";
+}
+
+function showLockedUi_(reasonText){
+  // Fixed copy per your anchor
+  safeSetText_("u-name", "請聯繫客服開通");
+  safeSetText_("u-unit", "請聯繫客服開通");
+  safeSetText_("u-title", "");
+
+  const sEl = qs("u-slogan");
+  if(sEl){
+    sEl.style.display = "";
+    sEl.textContent = text(reasonText) || "請聯繫客服開通";
+  }
+
+  // hide blocks
+  ["block-service","block-exp","mediaDock","photoWall"].forEach(id=>{
+    const el = qs(id);
+    if(el) el.style.display = "none";
+  });
+
+  // hide logo
+  const logoWrap = qs("logoWrap");
+  const logoImg = qs("u-logo");
+  if(logoWrap) logoWrap.style.display = "none";
+  if(logoImg) logoImg.removeAttribute("src");
+
+  // hide avatar (optional: keep placeholder)
+  const avatar = qs("u-img");
+  if(avatar) avatar.removeAttribute("src");
+
+  // contact dock becomes CTA only
+  const cDock = qs("contactDock");
+  const cBtns = qs("contactButtons");
+  if(cBtns) cBtns.innerHTML = "";
+  if(cDock) cDock.style.display = "";
+
+  if(cBtns){
+    cBtns.appendChild(buildDockBtn_({
+      label: "聯繫開通",
+      icon: "fa-solid fa-headset",
+      extraClass: "dock-web",
+      onClick: ()=> goFillForm()
+    }));
+    applyWideRule_(cBtns);
+  }
+}
+
+function applyStatusGate_(p){
+  const status = normalizeStatus_(p);
+  const expiry = getExpiryInfo_(p);
+
+  // expiry drives lock if expired
+  if(expiry.has && typeof expiry.daysLeft === "number" && expiry.daysLeft <= 0){
+    showLockedUi_("此名片已到期，請聯繫客服開通");
+    return { locked:true, expiry };
+  }
+
+  // status drives lock
+  if(status && status !== "active"){
+    showLockedUi_("請聯繫客服開通");
+    return { locked:true, expiry };
+  }
+
+  // status empty: treat as active (keep v491 behavior) BUT still show expiry hint if near
+  return { locked:false, expiry };
+}
+
+function applyExpiryHint_(p, expiryInfo){
+  if(!expiryInfo || !expiryInfo.has) return;
+  const days = expiryInfo.daysLeft;
+  if(!(typeof days === "number")) return;
+
+  // show hint only for 1..30 days
+  if(days >= 1 && days <= 30){
+    const sEl = qs("u-slogan");
+    const hint = `⏳ 名片即將到期（剩 ${days} 天）`;
+    if(sEl){
+      // if slogan exists, append; else show hint
+      const old = text(sEl.textContent);
+      sEl.style.display = "";
+      sEl.textContent = old ? (old + "｜" + hint) : hint;
+    }
+  }
+}
+
 /* ---------- Main render ---------- */
 function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
+
+  // v492: gate first (may lock & early exit)
+  const gate = applyStatusGate_(p);
+  if(gate.locked){
+    const vt = qs("versionTag");
+    if(vt) vt.textContent = CONFIG.VERSION;
+    return;
+  }
 
   const name  = pick(p, ["姓名","name"]);
 
@@ -834,6 +992,9 @@ function renderCard(row){
     }
   }
 
+  // v492: expiry hint (non-blocking)
+  applyExpiryHint_(p, gate.expiry);
+
   renderAvatar_(p);
   renderLogo_(p);
   renderBlocks_(p);
@@ -848,6 +1009,14 @@ function goLineIntro(){
   const p = currentRow || null;
   if(!p){
     alert("⏳ 名片資料載入中，請稍等一下再點 LINE。");
+    return;
+  }
+
+  // if locked, prevent opening
+  const status = normalizeStatus_(p);
+  const expiry = getExpiryInfo_(p);
+  if((status && status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
+    alert("⚠️ 此名片尚未開通或已到期，請聯繫客服開通。");
     return;
   }
 
@@ -1008,6 +1177,15 @@ function renderPhotoWall_(row){
   const grid = qs("photoGrid");
   if(!wall || !grid) return;
 
+  // v492: do not render when locked
+  const status = normalizeStatus_(p);
+  const expiry = getExpiryInfo_(p);
+  if((status && status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
+    wall.style.display = "none";
+    if(grid) grid.innerHTML = "";
+    return;
+  }
+
   grid.innerHTML = "";
   const urls = collectPhotoUrls_(p);
 
@@ -1053,11 +1231,12 @@ function homeUrl_(){
 
 function cardUrlById_(cid){
   const id = normalizeId_(cid) || CONFIG.DEFAULT_ID;
-  return `${basePath_()}?id=${encodeURIComponent(id)}`;
+  return `${basePath_()}?id=${encodeURIComponent(id)}&v=${encodeURIComponent(CONFIG.VERSION)}`;
 }
 
 function ogUrl_(){
-  return `${location.origin}${location.pathname.replace(/\/[^\/]*$/, "/")}og-card.png`;
+  // keep your original og-card.png, add version for cache-bust
+  return `${location.origin}${location.pathname.replace(/\/[^\/]*$/, "/")}og-card.png?v=${encodeURIComponent(CONFIG.VERSION)}`;
 }
 
 async function copyText_(s){
@@ -1310,7 +1489,9 @@ function setupAdminHotspotBR_(){
 /* ---------- Load + Boot ---------- */
 async function loadAndRenderById_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
+
+  // v492: cache-bust stronger
+  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}&v=${encodeURIComponent(CONFIG.VERSION)}`;
 
   console.log("[LOAD] fetching:", url);
 
