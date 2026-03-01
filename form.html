@@ -1,501 +1,619 @@
-<!-- ================================
-     form.html — v493-FORM-UI (COMPLETE OVERWRITE)
-     - Plan split: free / premium
-     - Field keys align with form.js v493-FORM
-     - Submit: handled by form.js
-================================== -->
+<!-- form.html (v493-FORM-UI COMPLETE OVERWRITE) -->
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Happiness Smart Card — Form v493</title>
-  <meta name="theme-color" content="#111111" />
+  <title>Happiness Smart Card｜開卡表單</title>
   <style>
     :root{
-      --bg:#0f1115;
-      --card:#151a22;
-      --card2:#11151c;
-      --text:#f5f7fb;
-      --muted:rgba(245,247,251,.72);
-      --line:rgba(255,255,255,.10);
-      --accent:#f0a04b;
-      --ok:#2dd4bf;
-      --bad:#fb7185;
-      --shadow: 0 10px 30px rgba(0,0,0,.45);
-      --r:18px;
+      --bg:#0e1116; --card:#141a22; --line:rgba(255,255,255,.08);
+      --text:#eef2ff; --muted:rgba(238,242,255,.72);
+      --btn:#2a3342; --btn2:#3a4760; --accent:#8aa7ff;
+      --radius:18px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
-      background: radial-gradient(1200px 600px at 50% -10%, rgba(240,160,75,.18), transparent 60%),
-                  radial-gradient(900px 500px at 10% 10%, rgba(45,212,191,.10), transparent 60%),
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+      background: radial-gradient(1200px 700px at 15% -10%, rgba(138,167,255,.18), transparent 60%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(255,179,107,.14), transparent 55%),
                   var(--bg);
       color:var(--text);
-      padding: 18px 14px 40px;
+      padding:18px 14px 42px;
     }
-    .wrap{max-width: 720px; margin:0 auto;}
-    .hero{
-      padding: 18px 16px;
-      border-radius: var(--r);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border:1px solid var(--line);
-      box-shadow: var(--shadow);
-    }
-    .title{
-      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
-    }
-    h1{
-      margin:0;
-      font-size: 18px;
-      letter-spacing:.2px;
-    }
-    .sub{
-      margin:6px 0 0;
-      color:var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    .chip{
-      font-size:12px;
-      padding:6px 10px;
-      border-radius: 999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.05);
-      color: rgba(255,255,255,.85);
-      white-space: nowrap;
-    }
-
-    form{
-      margin-top: 14px;
-      display:flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
+    .wrap{max-width:720px;margin:0 auto}
+    .hero{padding:8px 2px 12px}
+    .hero h1{margin:0;font-size:20px;letter-spacing:.5px}
+    .hero p{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
     .card{
-      border-radius: var(--r);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
       border:1px solid var(--line);
-      box-shadow: var(--shadow);
-      overflow:hidden;
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:0 18px 50px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      margin:12px 0;
     }
-    .card-h{
-      padding: 12px 14px;
-      background: rgba(0,0,0,.16);
-      border-bottom: 1px solid var(--line);
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    .section-title{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px;margin:2px 0 10px;
     }
-    .card-h b{font-size:14px}
-    .card-h span{font-size:12px; color:var(--muted)}
-    .card-b{ padding: 14px; }
-
-    .row{display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
-    @media (max-width:540px){ .row{grid-template-columns: 1fr;} }
-
-    label{
-      display:block;
-      font-size: 12px;
-      color: rgba(255,255,255,.86);
-      margin-bottom: 6px;
-    }
-    .hint{font-size:11px; color: var(--muted); margin-top:6px; line-height:1.45}
-    input, select, textarea{
+    .section-title b{font-size:14px}
+    .grid{display:grid;gap:10px}
+    @media (min-width:640px){ .grid.two{grid-template-columns:1fr 1fr} }
+    label{display:block;font-size:12px;color:var(--muted);margin:2px 0 6px}
+    input[type="text"],input[type="url"],input[type="tel"],input[type="email"],textarea,select{
       width:100%;
-      border-radius: 14px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.22);
-      color: var(--text);
-      padding: 11px 12px;
-      font-size: 14px;
+      background:rgba(0,0,0,.22);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px 12px;
+      color:var(--text);
       outline:none;
     }
-    textarea{ min-height: 92px; resize: vertical; }
-    input::placeholder, textarea::placeholder{ color: rgba(255,255,255,.35); }
-
-    .plan-grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
+    textarea{min-height:88px;resize:vertical}
+    input::placeholder,textarea::placeholder{color:rgba(238,242,255,.35)}
+    .seg{
+      display:flex;gap:10px;flex-wrap:wrap;
     }
-    .plan-btn{
-      padding: 12px 12px;
-      border-radius: 16px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.18);
-      color: rgba(255,255,255,.88);
-      text-align:left;
+    .pill{
+      flex:1;
+      min-width:130px;
+      background:rgba(0,0,0,.18);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px 12px;
       cursor:pointer;
-      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+      user-select:none;
+      display:flex;gap:10px;align-items:center;justify-content:space-between;
+      transition:.15s ease;
     }
-    .plan-btn:active{ transform: scale(.99); }
-    .plan-btn.is-active{
-      border-color: rgba(240,160,75,.55);
-      background: rgba(240,160,75,.12);
-      box-shadow: 0 10px 26px rgba(240,160,75,.12);
+    .pill.active{
+      border-color:rgba(138,167,255,.55);
+      box-shadow:0 0 0 3px rgba(138,167,255,.12) inset;
     }
-    .plan-btn .t{font-weight:800; font-size:14px;}
-    .plan-btn .d{margin-top:6px; font-size:12px; color:var(--muted); line-height:1.35;}
-
-    .req{color: var(--accent); font-weight:900; margin-left:6px; font-size:12px;}
-    .actions{
-      display:flex; gap:10px; flex-wrap:wrap;
-      padding: 14px;
-      border-top: 1px solid var(--line);
-      background: rgba(0,0,0,.14);
+    .pill small{color:var(--muted)}
+    .req{color:#ffb3b3;font-weight:700;margin-left:6px}
+    .file{
+      display:flex;gap:10px;align-items:center;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:14px;
+      padding:10px 10px;
+      background:rgba(0,0,0,.16);
     }
+    input[type="file"]{width:100%}
+    .preview{
+      width:54px;height:54px;border-radius:14px;
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      overflow:hidden;flex:0 0 auto;
+      display:grid;place-items:center;
+    }
+    .preview img{width:100%;height:100%;object-fit:cover;display:none}
+    .preview span{font-size:11px;color:rgba(238,242,255,.45)}
+    .btnbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
     .btn{
-      border:0;
-      border-radius: 16px;
-      padding: 12px 14px;
-      font-size: 14px;
-      font-weight: 800;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:16px;
       cursor:pointer;
-      transition: transform .12s ease, filter .12s ease;
+      font-weight:800;
+      letter-spacing:.4px;
     }
-    .btn:active{ transform: scale(.99); }
-    .btn-primary{
-      background: linear-gradient(180deg, rgba(240,160,75,1), rgba(220,130,55,1));
-      color: #1a120a;
-      box-shadow: 0 10px 26px rgba(240,160,75,.18);
+    .btn.primary{
+      border-color:rgba(138,167,255,.45);
+      box-shadow:0 0 0 3px rgba(138,167,255,.10) inset;
     }
-    .btn-ghost{
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.14);
-      color: rgba(255,255,255,.9);
+    .note{
+      color:var(--muted);font-size:12px;line-height:1.55;margin:10px 2px 0;
     }
-    .btn[disabled]{ opacity:.55; cursor:not-allowed; }
-
-    .toast{
-      display:none;
-      margin-top: 12px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.28);
-      color: rgba(255,255,255,.92);
-      font-size: 13px;
-      line-height:1.5;
-    }
-    .toast[data-type="success"]{ border-color: rgba(45,212,191,.4); }
-    .toast[data-type="error"]{ border-color: rgba(251,113,133,.45); }
-
-    pre{
-      margin:0;
-      padding: 12px;
-      border-radius: 16px;
-      background: rgba(0,0,0,.35);
-      border:1px solid rgba(255,255,255,.10);
-      color: rgba(255,255,255,.86);
-      overflow:auto;
-      max-height: 280px;
-      font-size: 12px;
-      line-height: 1.45;
-      white-space: pre-wrap;
-      word-break: break-word;
+    .hidden{display:none !important}
+    .result{
+      white-space:pre-wrap;word-break:break-word;
+      background:rgba(0,0,0,.25);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      color:rgba(238,242,255,.88);
+      font-size:12px;
+      margin-top:10px;
     }
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <div class="hero">
-      <div class="title">
-        <div>
-          <h1>Happiness Smart Card｜資料填寫（v493）</h1>
-          <p class="sub">
-            先選方案 → 系統只顯示該方案需要的欄位（避免填錯、也避免送出失敗）。
-            送出會顯示後端回傳結果與 debug（方便一次收斂）。
-          </p>
-        </div>
-        <div class="chip">Form v493</div>
-      </div>
+<div class="wrap">
+  <div class="hero">
+    <h1>Happiness Smart Card｜開卡表單</h1>
+    <p>外觀選項＋姓名＋個人照必填，其餘選填。</p>
+  </div>
 
-      <div class="plan-grid">
-        <button type="button" id="planFree" class="plan-btn">
-          <div class="t">A｜自搭配款（Free）</div>
-          <div class="d">必選：5色/3版/3紙、個人照、姓名/單位/頭銜/標語/服務<br>限制：影音×1、社群×1、照片×2</div>
-        </button>
-        <button type="button" id="planPremium" class="plan-btn">
-          <div class="t">B｜精品設計款（Premium）</div>
-          <div class="d">必選：7底色、個人照、姓名/單位/頭銜/標語/服務<br>限制：影音×3、社群×3、照片×5</div>
-        </button>
+  <!-- 方案 -->
+  <div class="card">
+    <div class="section-title"><b>方案<span class="req">*</span></b></div>
+    <div class="seg" id="planSeg">
+      <div class="pill active" data-plan="free" role="button" tabindex="0">
+        <div>
+          <div style="font-weight:900">自搭配款</div>
+          <small>5色｜3版｜3紙</small>
+        </div>
+        <div style="opacity:.9">A</div>
+      </div>
+      <div class="pill" data-plan="premium" role="button" tabindex="0">
+        <div>
+          <div style="font-weight:900">精品設計款</div>
+          <small>7底色</small>
+        </div>
+        <div style="opacity:.9">B</div>
+      </div>
+    </div>
+    <input type="hidden" name="plan" id="plan" value="free" required />
+  </div>
+
+  <!-- 外觀：Free -->
+  <div class="card" id="uiFree">
+    <div class="section-title"><b>外觀<span class="req">*</span></b></div>
+    <div class="grid two">
+      <div>
+        <label>顏色<span class="req">*</span></label>
+        <select name="theme_color" id="theme_color" required>
+          <option value="">請選擇</option>
+          <option value="c1">c1 粉</option>
+          <option value="c2">c2 藍</option>
+          <option value="c3">c3 橘</option>
+          <option value="c4">c4 紫</option>
+          <option value="c5">c5 綠</option>
+        </select>
+      </div>
+      <div>
+        <label>版型<span class="req">*</span></label>
+        <select name="banner_style" id="banner_style" required>
+          <option value="">請選擇</option>
+          <option value="s1">s1 正拱</option>
+          <option value="s2">s2 平直</option>
+          <option value="s3">s3 晨曦</option>
+        </select>
+      </div>
+      <div>
+        <label>紙感<span class="req">*</span></label>
+        <select name="paper_style" id="paper_style" required>
+          <option value="">請選擇</option>
+          <option value="f1">f1 棉紙</option>
+          <option value="f2">f2 顆粒</option>
+          <option value="f3">f3 亞麻</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 外觀：Premium -->
+  <div class="card hidden" id="uiPremium">
+    <div class="section-title"><b>外觀<span class="req">*</span></b></div>
+    <div>
+      <label>底色<span class="req">*</span></label>
+      <select name="premium_color" id="premium_color" required>
+        <option value="">請選擇</option>
+        <option value="p1">p1 胭脂紅</option>
+        <option value="p2">p2 酒紅</option>
+        <option value="p3">p3 深藍</option>
+        <option value="p4">p4 霧紫</option>
+        <option value="p5">p5 藍灰</option>
+        <option value="p6">p6 金箔</option>
+        <option value="p7">p7 褐碳</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 必填核心 -->
+  <div class="card">
+    <div class="section-title"><b>基本<span class="req">*</span></b></div>
+    <div class="grid two">
+      <div>
+        <label>姓名<span class="req">*</span></label>
+        <input type="text" name="name" id="name" placeholder="例：王小明" required />
+      </div>
+      <div>
+        <label>個人照<span class="req">*</span></label>
+        <div class="file">
+          <div class="preview" id="pv_avatar"><img alt=""><span>預覽</span></div>
+          <input type="file" name="avatar_file" id="avatar_file" accept="image/*" required />
+        </div>
       </div>
     </div>
 
-    <form id="hscForm">
-      <!-- Hidden system fields -->
-      <input type="hidden" name="plan" id="plan" value="" />
-      <input type="hidden" name="id" id="id" value="" />
-      <input type="hidden" name="token" id="token" value="" />
-
-      <!-- Common info -->
-      <div class="card">
-        <div class="card-h">
-          <b>基本資料</b>
-          <span>兩方案共用</span>
-        </div>
-        <div class="card-b">
-          <div class="row">
-            <div>
-              <label>個人照 URL <span class="req">必填</span></label>
-              <input name="avatar_img" id="avatar_img" placeholder="https://...（Drive/Dropbox/https 圖片連結）" />
-              <div class="hint">若是 Google Drive 圖片，貼「共用連結」也可（後端會轉成可顯示格式）。</div>
-            </div>
-            <div>
-              <label>Logo URL</label>
-              <input name="logo_img" id="logo_img" placeholder="https://...（logo 圖片連結）" />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>姓名 <span class="req">必填</span></label>
-              <input name="name" id="name" placeholder="例如：王小明" />
-            </div>
-            <div>
-              <label>單位 <span class="req">必填</span></label>
-              <input name="unit" id="unit" placeholder="例如：幸福緣 / Angel" />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>頭銜 <span class="req">必填</span></label>
-              <input name="title" id="title" placeholder="例如：創辦人 / 顧問" />
-            </div>
-            <div>
-              <label>標語 <span class="req">必填</span></label>
-              <input name="slogan" id="slogan" placeholder="例如：喚醒內在幸福感" />
-            </div>
-          </div>
-
-          <div style="margin-top:12px;">
-            <label>服務項目 <span class="req">必填</span></label>
-            <textarea name="services" id="services" placeholder="例如：品牌策略｜名片設計｜教養課程..."></textarea>
-          </div>
-        </div>
+    <div class="grid two">
+      <div>
+        <label>單位</label>
+        <input type="text" name="unit" placeholder="例：幸福緣" />
       </div>
-
-      <!-- FREE plan fields -->
-      <div class="card" data-plan="free">
-        <div class="card-h">
-          <b>自搭配款（Free）方案選項</b>
-          <span>必選：5色/3版/3紙</span>
-        </div>
-        <div class="card-b">
-          <div class="row">
-            <div>
-              <label>主色（5色）<span class="req">必選</span></label>
-              <select name="theme_color" id="theme_color">
-                <option value="">請選擇</option>
-                <option value="c1">c1 粉</option>
-                <option value="c2">c2 藍</option>
-                <option value="c3">c3 橘</option>
-                <option value="c4">c4 紫</option>
-                <option value="c5">c5 綠</option>
-              </select>
-            </div>
-            <div>
-              <label>Banner 版型（3版）<span class="req">必選</span></label>
-              <select name="banner_style" id="banner_style">
-                <option value="">請選擇</option>
-                <option value="s1">s1 正拱</option>
-                <option value="s2">s2 平直</option>
-                <option value="s3">s3 晨曦</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>紙感（3紙）<span class="req">必選</span></label>
-              <select name="paper_style" id="paper_style">
-                <option value="">請選擇</option>
-                <option value="f1">f1 棉紙</option>
-                <option value="f2">f2 顆粒</option>
-                <option value="f3">f3 亞麻</option>
-              </select>
-            </div>
-            <div>
-              <label>影音連結（最多 1）</label>
-              <input name="video1_url" id="video1_url" placeholder="https://..." />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>社群連結（最多 1）</label>
-              <input name="social1_url" id="social1_url" placeholder="https://..." />
-            </div>
-            <div>
-              <label>照片1（最多 2 張）</label>
-              <input name="photo1_img" id="photo1_img" placeholder="https://...（照片連結）" />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>照片2（最多 2 張）</label>
-              <input name="photo2_img" id="photo2_img" placeholder="https://...（照片連結）" />
-            </div>
-            <div class="hint">
-              Free 方案：影音×1、社群×1、照片×2（多填的欄位會被隱藏且送出前會清空）。
-            </div>
-          </div>
-        </div>
+      <div>
+        <label>頭銜</label>
+        <input type="text" name="title" placeholder="例：創辦人" />
       </div>
+    </div>
 
-      <!-- PREMIUM plan fields -->
-      <div class="card" data-plan="premium">
-        <div class="card-h">
-          <b>精品設計款（Premium）方案選項</b>
-          <span>必選：7 底色</span>
-        </div>
-        <div class="card-b">
-          <div class="row">
-            <div>
-              <label>精品底色（7 底色）<span class="req">必選</span></label>
-              <select name="premium_color" id="premium_color">
-                <option value="">請選擇</option>
-                <option value="p1">p1 胭脂紅</option>
-                <option value="p2">p2 酒紅</option>
-                <option value="p3">p3 深藍</option>
-                <option value="p4">p4 霧紫</option>
-                <option value="p5">p5 藍灰</option>
-                <option value="p6">p6 金箔</option>
-                <option value="p7">p7 褐碳</option>
-              </select>
-            </div>
-            <div>
-              <label>影音連結 1（最多 3）</label>
-              <input name="video1_url" id="p_video1_url" placeholder="https://..." />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>影音連結 2（最多 3）</label>
-              <input name="video2_url" id="video2_url" placeholder="https://..." />
-            </div>
-            <div>
-              <label>影音連結 3（最多 3）</label>
-              <input name="video3_url" id="video3_url" placeholder="https://..." />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>社群連結 1（最多 3）</label>
-              <input name="social1_url" id="social1_url_p" placeholder="https://..." />
-            </div>
-            <div>
-              <label>社群連結 2（最多 3）</label>
-              <input name="social2_url" id="social2_url" placeholder="https://..." />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>社群連結 3（最多 3）</label>
-              <input name="social3_url" id="social3_url" placeholder="https://..." />
-            </div>
-            <div class="hint">
-              Premium 方案：影音×3、社群×3、照片×5（你可以全填，也可以部分留空）。
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>照片1（最多 5 張）</label>
-              <input name="photo1_img" id="p_photo1_img" placeholder="https://...（照片連結）" />
-            </div>
-            <div>
-              <label>照片2（最多 5 張）</label>
-              <input name="photo2_img" id="p_photo2_img" placeholder="https://...（照片連結）" />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>照片3（最多 5 張）</label>
-              <input name="photo3_img" id="photo3_img" placeholder="https://...（照片連結）" />
-            </div>
-            <div>
-              <label>照片4（最多 5 張）</label>
-              <input name="photo4_img" id="photo4_img" placeholder="https://...（照片連結）" />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>照片5（最多 5 張）</label>
-              <input name="photo5_img" id="photo5_img" placeholder="https://...（照片連結）" />
-            </div>
-            <div class="hint">logo 仍在「基本資料」區（logo_img）。</div>
-          </div>
-        </div>
+    <div class="grid">
+      <div>
+        <label>標語</label>
+        <input type="text" name="slogan" placeholder="一句話讓人記住你" />
       </div>
-
-      <!-- Contact -->
-      <div class="card">
-        <div class="card-h">
-          <b>聯繫資訊</b>
-          <span>兩方案共用</span>
-        </div>
-        <div class="card-b">
-          <div class="row">
-            <div>
-              <label>電話</label>
-              <input name="phone" id="phone" placeholder="09xx-xxx-xxx" />
-            </div>
-            <div>
-              <label>LINE（連結或 @ID）</label>
-              <input name="line_url" id="line_url" placeholder="https://line.me/... 或 @yourid" />
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <div>
-              <label>官網</label>
-              <input name="website_url" id="website_url" placeholder="https://..." />
-            </div>
-            <div>
-              <label>Email</label>
-              <input name="email" id="email" placeholder="name@example.com" />
-            </div>
-          </div>
-
-          <div style="margin-top:12px;">
-            <label>導航地址</label>
-            <input name="address" id="address" placeholder="例如：高雄市..." />
-            <div class="hint">前台可將地址轉成 Google Maps 導航連結。</div>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button id="btnSubmit" class="btn btn-primary" type="submit">送出資料</button>
-          <button class="btn btn-ghost" type="reset">清空</button>
-        </div>
+      <div>
+        <label>服務項目</label>
+        <textarea name="services" placeholder="例：健康手作麵包｜親子早餐設計｜體驗課程"></textarea>
       </div>
-
-      <div id="toast" class="toast" data-ui="toast"></div>
-
-      <div class="card">
-        <div class="card-h">
-          <b>Debug 回傳</b>
-          <span>送出後會顯示</span>
-        </div>
-        <div class="card-b">
-          <pre id="debugBox" data-ui="debug">尚未送出</pre>
-        </div>
-      </div>
-    </form>
+    </div>
   </div>
 
-  <!-- JS -->
-  <script src="./form.js?v=493"></script>
+  <!-- Logo -->
+  <div class="card">
+    <div class="section-title"><b>Logo</b></div>
+    <div class="file">
+      <div class="preview" id="pv_logo"><img alt=""><span>預覽</span></div>
+      <input type="file" name="logo_file" id="logo_file" accept="image/*" />
+    </div>
+  </div>
+
+  <!-- 照片 -->
+  <div class="card">
+    <div class="section-title"><b>照片</b></div>
+
+    <!-- Free: 2 -->
+    <div id="photosFree" class="grid">
+      <div class="file">
+        <div class="preview" id="pv_p1"><img alt=""><span>預覽</span></div>
+        <input type="file" name="photo1_file" id="photo1_file" accept="image/*" />
+      </div>
+      <div class="file">
+        <div class="preview" id="pv_p2"><img alt=""><span>預覽</span></div>
+        <input type="file" name="photo2_file" id="photo2_file" accept="image/*" />
+      </div>
+    </div>
+
+    <!-- Premium: 5 -->
+    <div id="photosPremium" class="grid hidden">
+      <div class="file">
+        <div class="preview" id="pv_p1b"><img alt=""><span>預覽</span></div>
+        <input type="file" name="photo1_file_p" id="photo1_file_p" accept="image/*" />
+      </div>
+      <div class="file">
+        <div class="preview" id="pv_p2b"><img alt=""><span>預覽</span></div>
+        <input type="file" name="photo2_file_p" id="photo2_file_p" accept="image/*" />
+      </div>
+      <div class="file">
+        <div class="preview" id="pv_p3b"><img alt=""><span>預覽</span></div>
+        <input type="file" name="photo3_file_p" id="photo3_file_p" accept="image/*" />
+      </div>
+      <div class="file">
+        <div class="preview" id="pv_p4b"><img alt=""><span>預覽</span></div>
+        <input type="file" name="photo4_file_p" id="photo4_file_p" accept="image/*" />
+      </div>
+      <div class="file">
+        <div class="preview" id="pv_p5b"><img alt=""><span>預覽</span></div>
+        <input type="file" name="photo5_file_p" id="photo5_file_p" accept="image/*" />
+      </div>
+    </div>
+  </div>
+
+  <!-- 影音 / 社群 -->
+  <div class="card">
+    <div class="section-title"><b>影音</b></div>
+    <div id="videosFree" class="grid">
+      <input type="url" name="video1_url" placeholder="貼上影音連結" />
+    </div>
+    <div id="videosPremium" class="grid hidden">
+      <input type="url" name="video1_url_p" placeholder="貼上影音連結" />
+      <input type="url" name="video2_url_p" placeholder="貼上影音連結" />
+      <input type="url" name="video3_url_p" placeholder="貼上影音連結" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title"><b>社群</b></div>
+    <div id="socialFree" class="grid">
+      <input type="url" name="social1_url" placeholder="貼上社群連結" />
+    </div>
+    <div id="socialPremium" class="grid hidden">
+      <input type="url" name="social1_url_p" placeholder="貼上社群連結" />
+      <input type="url" name="social2_url_p" placeholder="貼上社群連結" />
+      <input type="url" name="social3_url_p" placeholder="貼上社群連結" />
+    </div>
+  </div>
+
+  <!-- 聯繫 -->
+  <div class="card">
+    <div class="section-title"><b>聯繫</b></div>
+    <div class="grid two">
+      <div>
+        <label>電話</label>
+        <input type="tel" name="phone" placeholder="例：0912xxxxxx" />
+      </div>
+      <div>
+        <label>LINE</label>
+        <input type="text" name="line_url" placeholder="ID 或連結都可" />
+      </div>
+    </div>
+    <div class="grid two">
+      <div>
+        <label>Email</label>
+        <input type="email" name="email" placeholder="例：you@example.com" />
+      </div>
+      <div>
+        <label>官網</label>
+        <input type="url" name="website_url" placeholder="https://..." />
+      </div>
+    </div>
+    <div>
+      <label>地址（導航）</label>
+      <input type="text" name="address" placeholder="例：高雄市..." />
+    </div>
+  </div>
+
+  <!-- 送出 -->
+  <div class="card">
+    <div class="section-title"><b>送出</b></div>
+    <div class="btnbar">
+      <button class="btn primary" id="btnSubmit" type="button">送出資料</button>
+      <button class="btn" id="btnTest" type="button">顯示送出內容</button>
+    </div>
+    <div class="note">
+      ※ 圖片會先轉成 base64 再送到 GAS，後端存到 Drive 後再寫回欄位。
+    </div>
+    <div id="result" class="result hidden"></div>
+  </div>
+</div>
+
+<script>
+  // ====== 你要填的：GAS WebApp URL ======
+  // 如果你原本 form.js 已經有 CONFIG.GAS，就把下面常數改成同一個即可
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+  const $ = (q)=>document.querySelector(q);
+  const planInput = $("#plan");
+  const uiFree = $("#uiFree");
+  const uiPremium = $("#uiPremium");
+
+  const photosFree = $("#photosFree");
+  const photosPremium = $("#photosPremium");
+  const videosFree = $("#videosFree");
+  const videosPremium = $("#videosPremium");
+  const socialFree = $("#socialFree");
+  const socialPremium = $("#socialPremium");
+
+  function setPlan(plan){
+    planInput.value = plan;
+
+    // toggle segment UI
+    document.querySelectorAll("#planSeg .pill").forEach(p=>{
+      p.classList.toggle("active", p.dataset.plan === plan);
+    });
+
+    // show/hide blocks
+    const isFree = plan === "free";
+    uiFree.classList.toggle("hidden", !isFree);
+    uiPremium.classList.toggle("hidden", isFree);
+
+    photosFree.classList.toggle("hidden", !isFree);
+    photosPremium.classList.toggle("hidden", isFree);
+
+    videosFree.classList.toggle("hidden", !isFree);
+    videosPremium.classList.toggle("hidden", isFree);
+
+    socialFree.classList.toggle("hidden", !isFree);
+    socialPremium.classList.toggle("hidden", isFree);
+
+    // required fields per plan
+    $("#theme_color").required = isFree;
+    $("#banner_style").required = isFree;
+    $("#paper_style").required = isFree;
+
+    $("#premium_color").required = !isFree;
+  }
+
+  // segment clicks
+  $("#planSeg").addEventListener("click", (e)=>{
+    const pill = e.target.closest(".pill");
+    if(!pill) return;
+    setPlan(pill.dataset.plan);
+  });
+
+  // ====== preview helpers ======
+  function bindPreview(fileInputId, previewId){
+    const inp = document.getElementById(fileInputId);
+    const pv = document.getElementById(previewId);
+    if(!inp || !pv) return;
+    const img = pv.querySelector("img");
+    const txt = pv.querySelector("span");
+    inp.addEventListener("change", ()=>{
+      const f = inp.files && inp.files[0];
+      if(!f){ img.style.display="none"; txt.style.display="block"; return; }
+      const url = URL.createObjectURL(f);
+      img.src = url;
+      img.style.display="block";
+      txt.style.display="none";
+    });
+  }
+
+  bindPreview("avatar_file","pv_avatar");
+  bindPreview("logo_file","pv_logo");
+  bindPreview("photo1_file","pv_p1");
+  bindPreview("photo2_file","pv_p2");
+
+  bindPreview("photo1_file_p","pv_p1b");
+  bindPreview("photo2_file_p","pv_p2b");
+  bindPreview("photo3_file_p","pv_p3b");
+  bindPreview("photo4_file_p","pv_p4b");
+  bindPreview("photo5_file_p","pv_p5b");
+
+  // ====== base64 encode (for GAS upload) ======
+  function fileToBase64(file){
+    return new Promise((resolve,reject)=>{
+      if(!file) return resolve(null);
+      const fr = new FileReader();
+      fr.onload = ()=> {
+        // dataURL: "data:image/jpeg;base64,....."
+        const dataUrl = String(fr.result || "");
+        resolve(dataUrl);
+      };
+      fr.onerror = ()=> reject(fr.error || new Error("read file failed"));
+      fr.readAsDataURL(file);
+    });
+  }
+
+  // ====== build payload (align to your DB keys) ======
+  async function buildPayload(){
+    const plan = planInput.value;
+
+    // basic text
+    const payload = {
+      action: "submit",  // 你若 GAS 端是 create/submit 都支援，這裡用 submit
+      plan: plan,
+
+      // free options
+      theme_color: $("#theme_color").value || "",
+      banner_style: $("#banner_style").value || "",
+      paper_style: $("#paper_style").value || "",
+
+      // premium option
+      premium_color: $("#premium_color").value || "",
+
+      name: $("#name").value.trim(),
+      unit: (document.querySelector('[name="unit"]').value || "").trim(),
+      title: (document.querySelector('[name="title"]').value || "").trim(),
+      slogan: (document.querySelector('[name="slogan"]').value || "").trim(),
+      services: (document.querySelector('[name="services"]').value || "").trim(),
+
+      phone: (document.querySelector('[name="phone"]').value || "").trim(),
+      line_url: (document.querySelector('[name="line_url"]').value || "").trim(),
+      email: (document.querySelector('[name="email"]').value || "").trim(),
+      website_url: (document.querySelector('[name="website_url"]').value || "").trim(),
+      address: (document.querySelector('[name="address"]').value || "").trim(),
+    };
+
+    // videos/social per plan (固定數量，但不顯示最多字樣)
+    if(plan === "free"){
+      payload.video1_url  = (document.querySelector('[name="video1_url"]').value || "").trim();
+      payload.social1_url = (document.querySelector('[name="social1_url"]').value || "").trim();
+    }else{
+      payload.video1_url  = (document.querySelector('[name="video1_url_p"]').value || "").trim();
+      payload.video2_url  = (document.querySelector('[name="video2_url_p"]').value || "").trim();
+      payload.video3_url  = (document.querySelector('[name="video3_url_p"]').value || "").trim();
+
+      payload.social1_url = (document.querySelector('[name="social1_url_p"]').value || "").trim();
+      payload.social2_url = (document.querySelector('[name="social2_url_p"]').value || "").trim();
+      payload.social3_url = (document.querySelector('[name="social3_url_p"]').value || "").trim();
+    }
+
+    // image files -> dataURL base64 (讓 GAS 存 Drive)
+    // 命名策略：*_b64 給後端判斷存檔後寫入 avatar_img/logo_img/photoX_img
+    const avatarFile = $("#avatar_file").files[0];
+    payload.avatar_b64 = await fileToBase64(avatarFile);
+    payload.avatar_name = avatarFile ? avatarFile.name : "";
+    payload.avatar_type = avatarFile ? avatarFile.type : "";
+
+    const logoFile = $("#logo_file").files[0];
+    payload.logo_b64 = await fileToBase64(logoFile);
+    payload.logo_name = logoFile ? logoFile.name : "";
+    payload.logo_type = logoFile ? logoFile.type : "";
+
+    if(plan === "free"){
+      const p1 = $("#photo1_file").files[0];
+      const p2 = $("#photo2_file").files[0];
+      payload.photo1_b64 = await fileToBase64(p1);
+      payload.photo1_name = p1 ? p1.name : "";
+      payload.photo1_type = p1 ? p1.type : "";
+      payload.photo2_b64 = await fileToBase64(p2);
+      payload.photo2_name = p2 ? p2.name : "";
+      payload.photo2_type = p2 ? p2.type : "";
+    }else{
+      const ids = [
+        ["photo1_file_p","photo1"],["photo2_file_p","photo2"],["photo3_file_p","photo3"],
+        ["photo4_file_p","photo4"],["photo5_file_p","photo5"]
+      ];
+      for(const [fid,key] of ids){
+        const f = document.getElementById(fid).files[0];
+        payload[key + "_b64"]  = await fileToBase64(f);
+        payload[key + "_name"] = f ? f.name : "";
+        payload[key + "_type"] = f ? f.type : "";
+      }
+    }
+
+    return payload;
+  }
+
+  // ====== lightweight validator (only required) ======
+  function validateRequired(){
+    const plan = planInput.value;
+    if(!$("#name").value.trim()) return "請填姓名";
+    if(!$("#avatar_file").files || !$("#avatar_file").files[0]) return "請上傳個人照";
+    if(plan === "free"){
+      if(!$("#theme_color").value) return "請選顏色";
+      if(!$("#banner_style").value) return "請選版型";
+      if(!$("#paper_style").value) return "請選紙感";
+    }else{
+      if(!$("#premium_color").value) return "請選底色";
+    }
+    return "";
+  }
+
+  // ====== submit (x-www-form-urlencoded to reduce preflight chance) ======
+  async function postForm(payload){
+    const form = new URLSearchParams();
+    Object.keys(payload).forEach(k=>{
+      const v = payload[k];
+      if(v === undefined || v === null) return;
+      // 大型 base64 字串也照樣塞進去（圖片請先壓縮：你若要我我會把壓縮加進來）
+      form.set(k, String(v));
+    });
+
+    const res = await fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+      body: form.toString()
+    });
+
+    const text = await res.text();
+    // 後端可能回非 JSON（例如被重導登入頁），這裡要保護
+    try { return JSON.parse(text); }
+    catch(e){ return { ok:false, error:"Non-JSON response", raw:text.slice(0,1200) }; }
+  }
+
+  function showResult(obj){
+    const box = $("#result");
+    box.classList.remove("hidden");
+    box.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+  }
+
+  $("#btnTest").addEventListener("click", async ()=>{
+    const err = validateRequired();
+    if(err) return showResult({ ok:false, error: err });
+    showResult("整理中…");
+    const payload = await buildPayload();
+    // 隱去超長 base64 讓畫面乾淨
+    const peek = Object.assign({}, payload);
+    Object.keys(peek).forEach(k=>{
+      if(/_b64$/.test(k) && peek[k]) peek[k] = String(peek[k]).slice(0,60) + "…";
+    });
+    showResult(peek);
+  });
+
+  $("#btnSubmit").addEventListener("click", async ()=>{
+    const err = validateRequired();
+    if(err) return showResult({ ok:false, error: err });
+
+    showResult("送出中…");
+    try{
+      const payload = await buildPayload();
+      const out = await postForm(payload);
+      showResult(out);
+    }catch(e){
+      showResult({ ok:false, error: String(e && e.message ? e.message : e) });
+    }
+  });
+
+  // init
+  setPlan("free");
+</script>
 </body>
 </html>
