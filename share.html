@@ -1,8 +1,9 @@
-<!-- share.html — v492(COMPLETE OVERWRITE)
+<!-- share.html — v492 (COMPLETE OVERWRITE)
  * Purpose:
  * - OG 交付連結（給客戶貼社群）：share.html?id=TW0001
  * - 自動導向乾淨成品（不含選樣版）：index.html?id=TW0001&view=1
- * - 讀 GAS 只為「人類預覽」；OG 仍是 generic fallback（靜態頁限制）
+ * - 讀 GAS 只為「人類預覽」：若 status=inactive，預覽不顯示個資，並停止自動跳轉
+ * - OG 仍是 generic fallback（靜態頁限制）
  -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -200,11 +201,11 @@
 
       <div class="row">
         <div class="mini">交付建議：客戶「貼社群」用 OG 交付連結；客戶「自己收藏」用乾淨成品連結。</div>
-        <div class="mini">提醒：若名片狀態 inactive，成品頁會顯示「請聯繫客服開通」。</div>
+        <div class="mini">提醒：若名片狀態 inactive，將顯示「請聯繫客服開通」，且本頁不顯示個資預覽。</div>
       </div>
     </div>
 
-    <div class="footer">v491 share · Powered by Angel · Mobile-first</div>
+    <div class="footer">v492 share · Powered by Angel · Mobile-first</div>
   </div>
 
   <script>
@@ -212,7 +213,7 @@
     // CONFIG
     // =========================
     const CONFIG = {
-      VERSION: "v491",
+      VERSION: "v492",
       GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
       BASE: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
       INDEX: "index.html",
@@ -227,8 +228,16 @@
     const $ = (id) => document.getElementById(id);
     const qs = (k) => new URLSearchParams(location.search).get(k);
 
-    function normalizeId(id){
-      return String(id||"").trim().toUpperCase();
+    function normalizeId(raw){
+      const s = String(raw||"").trim().toUpperCase();
+      if (!s) return "";
+      if (/^TW\d{4}$/.test(s)) return s;
+      if (/^\d{1,4}$/.test(s)) return "TW" + s.padStart(4,"0");
+      if (/^TW\d{1,4}$/.test(s)){
+        const n = s.replace(/^TW/i,"");
+        return "TW" + n.padStart(4,"0");
+      }
+      return s;
     }
 
     function base_(){
@@ -291,11 +300,19 @@
       }
     }
 
+    function setPreviewMasked_(statusText){
+      $("pName").textContent = "（未開通）";
+      $("pLine2").textContent = "請聯繫客服開通";
+      $("pLine3").textContent = "狀態：" + (statusText || "inactive");
+      const box = $("avatarBox");
+      if (box) box.textContent = "🔒";
+    }
+
     // =========================
     // Main
     // =========================
     (async function main(){
-      const id = normalizeId(qs("id") || qs("card") || "TW0001");
+      const id = normalizeId(qs("id") || qs("card") || "TW0001") || "TW0001";
       $("chipId").textContent = "ID：" + id;
 
       const ogUrl = buildOgUrl(id);
@@ -308,10 +325,14 @@
       let cancelled = false;
       let redirectTimer = null;
 
-      $("btnCancel").addEventListener("click", () => {
+      function cancelRedirect_(msg){
         cancelled = true;
         if (redirectTimer) clearTimeout(redirectTimer);
-        $("hint").textContent = "已取消自動跳轉（你仍可手動開啟乾淨成品）。";
+        $("hint").textContent = msg || "已取消自動跳轉（你仍可手動開啟乾淨成品）。";
+      }
+
+      $("btnCancel").addEventListener("click", () => {
+        cancelRedirect_("已取消自動跳轉（你仍可手動開啟乾淨成品）。");
         setBadge("ok", "Ready");
       });
 
@@ -331,6 +352,7 @@
       });
 
       // Fetch card data (human preview only)
+      let isInactive = false;
       try{
         const api = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now();
         const json = await fetchJson(api);
@@ -338,33 +360,44 @@
         if (!json.ok) throw new Error(json.error || "API ok=false");
         const card = json.data || {};
 
-        const name = pick(card, ["name","姓名"], "（未填姓名）");
-        const unit = pick(card, ["unit","單位"], "");
-        const title = pick(card, ["title","頭銜"], "");
-        const status = pick(card, ["status","狀態"], "");
+        const status = (pick(card, ["status","狀態"], "") || "").toLowerCase();
+        isInactive = (status === "inactive" || status === "locked" || status === "disabled");
 
-        $("heroTitle").textContent = "即將開啟乾淨成品";
-        $("pName").textContent = name;
-        $("pLine2").textContent = [unit, title].filter(Boolean).join("｜") || "（尚未填單位/頭銜）";
-        $("pLine3").textContent = "狀態：" + (status || "—");
+        if (isInactive){
+          $("heroTitle").textContent = "此名片尚未開通";
+          $("heroSub").textContent = "你仍可複製交付連結，或聯繫客服開通後再觀看成品。";
+          setBadge("warn", "Locked");
+          setPreviewMasked_(status || "inactive");
+          cancelRedirect_("已停止自動跳轉（名片狀態為 inactive）。");
+        }else{
+          const name = pick(card, ["name","姓名"], "（未填姓名）");
+          const unit = pick(card, ["unit","單位"], "");
+          const title = pick(card, ["title","頭銜"], "");
 
-        // avatar (prefer *_fast then raw)
-        const avatar = pick(card, ["avatar_fast","avatar_img_fast","個人照_fast","avatar_img","個人照"], "");
-        if (avatar){
-          const img = new Image();
-          img.referrerPolicy = "no-referrer";
-          img.onload = () => {
-            const box = $("avatarBox");
-            box.innerHTML = "";
-            box.appendChild(img);
-          };
-          img.src = avatar;
+          $("heroTitle").textContent = "即將開啟乾淨成品";
+          $("pName").textContent = name;
+          $("pLine2").textContent = [unit, title].filter(Boolean).join("｜") || "（尚未填單位/頭銜）";
+          $("pLine3").textContent = "狀態：" + (status || "active");
+
+          // avatar (prefer *_fast then raw)
+          const avatar = pick(card, ["avatar_fast","avatar_img_fast","個人照_fast","avatar_img","個人照"], "");
+          if (avatar){
+            const img = new Image();
+            img.referrerPolicy = "no-referrer";
+            img.onload = () => {
+              const box = $("avatarBox");
+              box.innerHTML = "";
+              box.appendChild(img);
+            };
+            img.src = avatar;
+          }
+
+          document.title = name + "｜Happiness Smart Card";
+          $("heroSub").textContent = "1～2 秒後自動跳轉（若在微信/Line 內開啟，請稍等一下）。";
+          $("hint").textContent = "讀取成功 ✅";
+          setBadge("ok","OK");
         }
 
-        document.title = name + "｜Happiness Smart Card";
-        $("heroSub").textContent = "1～2 秒後自動跳轉（若在微信/Line 內開啟，請稍等一下）。";
-        $("hint").textContent = "讀取成功 ✅";
-        setBadge("ok","OK");
       }catch(err){
         $("heroTitle").textContent = "讀取失敗，但仍可開啟";
         $("heroSub").textContent = "可能是資料不存在或權限/網路問題。你仍可直接開啟乾淨成品。";
@@ -372,9 +405,10 @@
         setBadge("warn","Error");
       }
 
-      // Auto redirect to CLEAN (view=1)
+      // Auto redirect to CLEAN (view=1) — only when not cancelled and not inactive
       redirectTimer = setTimeout(() => {
         if (cancelled) return;
+        if (isInactive) return;
         location.href = cleanUrl;
       }, CONFIG.AUTO_REDIRECT_MS);
     })();
