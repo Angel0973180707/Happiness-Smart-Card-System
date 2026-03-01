@@ -1,256 +1,429 @@
-<!-- wechat.html — v491 (COMPLETE OVERWRITE)
- * Purpose:
- * - Generate a WeChat-friendly long poster (image-like) for delivery
- * - Uses DOM layout + "Render to image" via html2canvas for download/save
- * - Fetch data from GAS: {ok:true, id, data:{...}}
- -->
+<!-- ================================
+     wechat.html — v495 (COMPLETE OVERWRITE)
+     - Fix: include QRCode lib (avoid "QRCode is not defined")
+     - Include html2canvas
+     - DOM ids aligned with wechat.js v495:
+       #wId #wName #wUnit #wTitle #wSlogan #wServices
+       #wAvatar #wLogo #wPhotos #wQR #wCleanUrl
+       #btnCopyLink #btnOpenLink #btnRender #btnBack
+       #capture #resultImg #toast
+================================== -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>WeChat Poster · Happiness Smart Card</title>
-  <meta name="description" content="微信長圖交貨｜長按保存" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>WeChat Poster | v495</title>
+  <meta name="description" content="WeChat Poster | Happiness Smart Card System" />
+  <meta name="theme-color" content="#0f172a" />
 
   <style>
     :root{
-      --bg:#0b0f14;
-      --text:#eef3ff;
-      --muted:rgba(238,243,255,.72);
-      --line:rgba(238,243,255,.14);
-      --card:#101a26;
-      --radius:22px;
+      --bg1:#07121f;
+      --bg2:#0b2a3d;
+      --glass: rgba(255,255,255,.10);
+      --glass2: rgba(255,255,255,.06);
+      --stroke: rgba(255,255,255,.14);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+      --shadow: 0 18px 60px rgba(0,0,0,.55);
+      --radius: 26px;
     }
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial;
-      background: radial-gradient(1100px 780px at 15% 10%, rgba(0,168,255,.18), transparent 60%),
-                  radial-gradient(900px 650px at 90% 25%, rgba(255,94,94,.16), transparent 55%),
-                  linear-gradient(180deg, #070a0f, #0b0f14);
+      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Heiti TC",Arial,sans-serif;
       color:var(--text);
-      padding: 16px 12px 28px;
+      min-height:100vh;
+      background:
+        radial-gradient(900px 480px at 25% 10%, rgba(86,162,255,.30), transparent 60%),
+        radial-gradient(900px 520px at 75% 25%, rgba(186,120,255,.22), transparent 60%),
+        radial-gradient(900px 560px at 45% 85%, rgba(53,211,255,.12), transparent 60%),
+        linear-gradient(160deg, var(--bg1), var(--bg2));
+      padding: 18px 14px 28px;
     }
-    .wrap{max-width:520px;margin:0 auto}
-    .top{
-      display:flex;align-items:center;justify-content:space-between;
-      margin: 6px 2px 12px;
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin: 4px 2px 16px;
     }
-    .brand{font-weight:900;letter-spacing:.2px}
-    .chip{
-      font-size:12px;color:var(--muted);
-      border:1px solid var(--line);
-      padding:6px 10px;border-radius:999px;
-      background: rgba(255,255,255,.03);
+    .title{
+      font-weight: 800;
+      letter-spacing:.4px;
+      font-size: 22px;
+      opacity:.95;
+    }
+    .idPill{
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 28px rgba(0,0,0,.25);
+      font-weight: 700;
+      color: rgba(255,255,255,.82);
+      font-size: 14px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .wrap{
+      max-width: 520px;
+      margin: 0 auto;
     }
 
-    /* Poster Canvas (DOM) */
+    /* Capture card (poster) */
     .poster{
       border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(255,255,255,.13), rgba(255,255,255,.06));
+      border: 1px solid rgba(255,255,255,.14);
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
       overflow:hidden;
-      border:1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-      box-shadow: 0 22px 60px rgba(0,0,0,.35);
     }
-    .p-hero{
-      padding: 18px 16px 14px;
-      background:
-        radial-gradient(900px 420px at 20% 0%, rgba(125,211,252,.20), transparent 58%),
-        radial-gradient(800px 380px at 95% 10%, rgba(251,113,133,.18), transparent 55%),
-        rgba(0,0,0,.18);
-      border-bottom:1px solid var(--line);
-    }
-    .p-row{display:flex;gap:12px;align-items:center}
-    .avatar{
-      width:76px;height:76px;border-radius:20px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.06);
-      overflow:hidden;flex:none;
-      display:flex;align-items:center;justify-content:center;
-      box-shadow: 0 14px 30px rgba(0,0,0,.28);
-    }
-    .avatar img{width:100%;height:100%;object-fit:cover}
-    .meta{min-width:0}
-    .name{
-      font-size:20px;font-weight:1000;margin:0 0 6px;
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    }
-    .line2,.line3{
-      font-size:13px;color:var(--muted);
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    }
-    .line3{margin-top:4px}
 
-    .p-body{padding: 14px 16px 16px}
-    .block{
-      border:1px solid var(--line);
-      border-radius:18px;
-      background: rgba(0,0,0,.14);
-      padding: 12px 12px;
-      margin-bottom: 10px;
+    .header{
+      display:flex;
+      gap:14px;
+      padding: 18px 18px 14px;
+      align-items:center;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .avatarBox{
+      width: 86px;
+      height: 86px;
+      border-radius: 22px;
+      overflow:hidden;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+    }
+    .avatarBox img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .headerText{
+      min-width:0;
+      flex:1;
+    }
+    .name{
+      font-weight: 900;
+      font-size: 30px;
+      line-height: 1.05;
+      letter-spacing: .5px;
+      margin: 0 0 6px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .subline{
+      font-size: 14px;
+      color: var(--muted);
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .subline span{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 100%;
+    }
+
+    .section{
+      padding: 14px 18px;
+      display:grid;
+      gap:12px;
+    }
+    .card{
+      padding: 14px 16px;
+      border-radius: 20px;
+      background: rgba(0,0,0,.10);
+      border: 1px solid rgba(255,255,255,.10);
     }
     .label{
-      font-size:12px;color:rgba(238,243,255,.6);
-      letter-spacing:.6px;
-      margin-bottom:6px;
-      font-weight:900;
+      font-weight: 800;
+      font-size: 14px;
+      color: rgba(255,255,255,.82);
+      margin: 0 0 8px;
+      letter-spacing:.3px;
     }
-    .txt{
-      font-size:14px;line-height:1.6;
-      white-space:pre-wrap;
-      word-break:break-word;
+    .value{
+      font-size: 15px;
+      color: rgba(255,255,255,.86);
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
-    .grid{
+    .value.muted{
+      color: rgba(255,255,255,.55);
+    }
+
+    .grid2{
       display:grid;
-      grid-template-columns:1fr 1fr;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 380px){
+      .grid2{ grid-template-columns: 1fr; }
+      .name{ font-size: 26px; }
+    }
+
+    .miniRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .logoMini{
+      width: 42px; height: 42px;
+      border-radius: 14px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.08);
+      flex: 0 0 auto;
+    }
+    .logoMini img{
+      width:100%; height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .qrWrap{
+      display:flex;
+      gap:14px;
+      align-items:center;
+    }
+    .qrBox{
+      width: 180px;
+      height: 180px;
+      background: rgba(255,255,255,.92);
+      border-radius: 18px;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex: 0 0 auto;
+    }
+    .qrHint{
+      flex:1;
+      min-width:0;
+    }
+    .cleanUrl{
+      font-size: 12px;
+      color: rgba(255,255,255,.70);
+      word-break: break-all;
+      line-height: 1.35;
+      margin-top: 8px;
+    }
+
+    .photos{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
       gap:10px;
     }
-    .kv{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:10px 10px;
-      background: rgba(255,255,255,.03);
+    .photos img{
+      width:100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
     }
-    .kv .k{font-size:12px;color:rgba(238,243,255,.58);font-weight:900}
-    .kv .v{font-size:13px;margin-top:4px;word-break:break-word}
 
-    .p-footer{
-      display:flex;gap:12px;align-items:center;justify-content:space-between;
-      padding: 14px 16px;
-      border-top:1px solid var(--line);
-      background: rgba(0,0,0,.18);
-    }
-    .qrcode{
-      width:110px;height:110px;border-radius:16px;
-      background:#fff;
-      display:flex;align-items:center;justify-content:center;
-      overflow:hidden;
-      border:1px solid rgba(0,0,0,.08);
-      flex:none;
-    }
-    .qrcode canvas, .qrcode img{width:100% !important;height:100% !important}
-    .footmeta{min-width:0}
-    .footmeta .t{font-weight:1000}
-    .footmeta .s{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.55}
-
-    /* Controls */
-    .controls{
-      display:grid;grid-template-columns:1fr;gap:10px;
-      margin-top:12px;
+    /* Buttons */
+    .actions{
+      display:flex;
+      gap:10px;
+      margin: 14px 0 0;
+      flex-wrap:wrap;
     }
     .btn{
-      appearance:none;border:1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px 12px;
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      color:var(--text);
-      font-weight:900;
-      display:flex;align-items:center;justify-content:space-between;
-      gap:10px;
+      appearance:none;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.10);
+      color: rgba(255,255,255,.92);
+      padding: 12px 14px;
+      border-radius: 16px;
+      font-weight: 800;
+      letter-spacing:.2px;
       cursor:pointer;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 12px 30px rgba(0,0,0,.30);
+      transition: transform .12s ease, background .12s ease;
     }
-    .btn:active{transform: translateY(1px)}
-    .btn small{font-weight:800;color:var(--muted)}
+    .btn:active{ transform: scale(.98); }
+    .btn.primary{
+      background: rgba(59,130,246,.22);
+      border-color: rgba(59,130,246,.35);
+    }
 
-    .note{
-      text-align:center;
-      color:rgba(238,243,255,.58);
-      font-size:12px;margin-top:10px;line-height:1.6;
+    /* Result image */
+    .result{
+      margin-top: 14px;
+      display:none;
     }
-    .outImg{
-      margin-top:12px;
-      border-radius: 18px;
-      border:1px dashed var(--line);
-      padding: 12px;
-      background: rgba(0,0,0,.12);
+    .result img{
+      width:100%;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: var(--shadow);
+      display:block;
+      background: rgba(255,255,255,.06);
     }
-    .outImg img{width:100%;height:auto;border-radius:14px;display:block}
-    .hidden{display:none !important}
+
+    /* Toast */
+    #toast{
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,.72);
+      color: rgba(255,255,255,.92);
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      font-weight: 800;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+      transform-origin: center;
+      z-index: 9999;
+    }
+    #toast.show{
+      opacity: 1;
+      transform: translateX(-50%) translateY(-2px);
+    }
   </style>
 </head>
+
 <body>
   <div class="wrap">
-    <div class="top">
-      <div class="brand">WeChat Poster</div>
-      <div class="chip" id="chipId">ID：—</div>
+    <div class="topbar">
+      <div class="title">WeChat Poster</div>
+      <div class="idPill"><span>ID :</span><span id="wId">—</span></div>
     </div>
 
-    <!-- Poster DOM (we will render this) -->
-    <div class="poster" id="poster">
-      <div class="p-hero">
-        <div class="p-row">
-          <div class="avatar" id="avatarBox">👤</div>
-          <div class="meta">
-            <p class="name" id="uName">（未填姓名）</p>
-            <div class="line2" id="uLine2">—</div>
-            <div class="line3" id="uLine3">—</div>
+    <!-- Capture target -->
+    <div id="capture" class="poster">
+      <div class="header">
+        <div class="avatarBox">
+          <img id="wAvatar" alt="avatar" style="display:none;" />
+          <div id="wAvatarFallback" style="opacity:.55;font-weight:900;">👤</div>
+        </div>
+
+        <div class="headerText">
+          <div id="wName" class="name">(未填姓名)</div>
+          <div class="subline">
+            <span id="wUnit">—</span>
+            <span id="wTitle">—</span>
+          </div>
+          <div class="miniRow" style="margin-top:10px;">
+            <div style="font-size:12px;color:rgba(255,255,255,.62);font-weight:800;">Happiness Smart Card</div>
+            <div class="logoMini">
+              <img id="wLogo" alt="logo" style="display:none;" />
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="p-body">
-        <div class="block" id="blkSlogan">
+      <div class="section">
+        <div class="card">
           <div class="label">理念標語</div>
-          <div class="txt" id="uSlogan">—</div>
+          <div id="wSlogan" class="value muted">—</div>
         </div>
 
-        <div class="block" id="blkService">
+        <div class="card">
           <div class="label">服務項目</div>
-          <div class="txt" id="uService">—</div>
+          <div id="wServices" class="value muted">—</div>
         </div>
 
-        <div class="block" id="blkExp">
-          <div class="label">經歷</div>
-          <div class="txt" id="uExp">—</div>
+        <!-- Photos -->
+        <div class="card" id="photosCard">
+          <div class="label">照片</div>
+          <div id="wPhotos" class="photos" style="display:none;"></div>
+          <div id="wPhotosEmpty" class="value muted">—</div>
         </div>
 
-        <div class="grid">
-          <div class="kv"><div class="k">電話</div><div class="v" id="uPhone">—</div></div>
-          <div class="kv"><div class="k">Email</div><div class="v" id="uEmail">—</div></div>
-          <div class="kv"><div class="k">LINE</div><div class="v" id="uLine">—</div></div>
-          <div class="kv"><div class="k">微信ID</div><div class="v" id="uWeChat">—</div></div>
-        </div>
-      </div>
-
-      <div class="p-footer">
-        <div class="qrcode" id="qrBox"></div>
-        <div class="footmeta">
-          <div class="t" id="qrTitle">掃描開啟名片</div>
-          <div class="s" id="qrSub">建議：長按保存此圖，或分享給對方。</div>
-          <div class="s" id="qrLink" style="margin-top:8px;opacity:.85;word-break:break-all;font-size:11px;">—</div>
+        <!-- QR -->
+        <div class="card">
+          <div class="label">掃碼看乾淨成品</div>
+          <div class="qrWrap">
+            <div id="wQR" class="qrBox"></div>
+            <div class="qrHint">
+              <div style="font-weight:900;letter-spacing:.2px;">Clean Card URL</div>
+              <div id="wCleanUrl" class="cleanUrl">—</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="controls">
-      <button class="btn" id="btnMake">
-        <span>產生可保存圖片（Render）</span>
-        <small>PNG</small>
-      </button>
-      <button class="btn" id="btnOpenCard">
-        <span>開啟名片（index）</span>
-        <small>Open</small>
-      </button>
-      <button class="btn" id="btnCopy">
-        <span>複製名片連結</span>
-        <small>Copy</small>
-      </button>
+    <!-- Actions -->
+    <div class="actions">
+      <button id="btnCopyLink" class="btn primary">複製連結</button>
+      <button id="btnOpenLink" class="btn">開啟成品</button>
+      <button id="btnRender" class="btn">產生 PNG</button>
+      <button id="btnBack" class="btn">返回</button>
     </div>
 
-    <div class="note">
-      交貨小技巧：在微信內「長按圖片」可直接保存。<br/>
-      若你先點「產生可保存圖片」，下方會出現一張真正的 PNG，最適合交付。
-    </div>
-
-    <div class="outImg hidden" id="outImg">
-      <img id="outPng" alt="Poster PNG" />
+    <!-- PNG output -->
+    <div class="result" id="resultBox">
+      <div style="margin:10px 0 8px; font-weight:900; letter-spacing:.2px;">PNG 預覽</div>
+      <img id="resultImg" alt="poster png" style="display:none;" />
     </div>
   </div>
 
-  <!-- libs (CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <div id="toast">—</div>
 
-  <script src="./wechat.js?v=491"></script>
+  <!-- IMPORTANT: libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- App -->
+  <script src="./wechat.js?v=495"></script>
+
+  <script>
+    // Small UI helpers (fallback avatar icon / show result box when PNG is produced)
+    (function(){
+      const av = document.getElementById("wAvatar");
+      const avFb = document.getElementById("wAvatarFallback");
+      if (av) {
+        av.addEventListener("load", () => { if (avFb) avFb.style.display="none"; });
+        av.addEventListener("error", () => { if (avFb) avFb.style.display=""; });
+      }
+
+      // Observe resultImg display changes
+      const resultImg = document.getElementById("resultImg");
+      const resultBox = document.getElementById("resultBox");
+      if (resultImg && resultBox) {
+        const obs = new MutationObserver(() => {
+          const show = (resultImg.style.display !== "none" && !!resultImg.src);
+          resultBox.style.display = show ? "" : "none";
+        });
+        obs.observe(resultImg, { attributes:true, attributeFilter:["style","src"] });
+      }
+
+      // Photos empty toggle
+      const photos = document.getElementById("wPhotos");
+      const empty = document.getElementById("wPhotosEmpty");
+      if (photos && empty) {
+        const obs2 = new MutationObserver(() => {
+          const has = photos.children && photos.children.length > 0 && photos.style.display !== "none";
+          empty.style.display = has ? "none" : "";
+          const card = document.getElementById("photosCard");
+          if (card) card.style.display = ""; // always keep, but toggle content
+        });
+        obs2.observe(photos, { childList:true, attributes:true, attributeFilter:["style"] });
+      }
+    })();
+  </script>
 </body>
 </html>
