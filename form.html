@@ -1,163 +1,501 @@
-<!DOCTYPE html>
+<!-- ================================
+     form.html — v493-FORM-UI (COMPLETE OVERWRITE)
+     - Plan split: free / premium
+     - Field keys align with form.js v493-FORM
+     - Submit: handled by form.js
+================================== -->
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="format-detection" content="telephone=no" />
-  <title>Fill Card Form</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Happiness Smart Card — Form v493</title>
+  <meta name="theme-color" content="#111111" />
+  <style>
+    :root{
+      --bg:#0f1115;
+      --card:#151a22;
+      --card2:#11151c;
+      --text:#f5f7fb;
+      --muted:rgba(245,247,251,.72);
+      --line:rgba(255,255,255,.10);
+      --accent:#f0a04b;
+      --ok:#2dd4bf;
+      --bad:#fb7185;
+      --shadow: 0 10px 30px rgba(0,0,0,.45);
+      --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+      background: radial-gradient(1200px 600px at 50% -10%, rgba(240,160,75,.18), transparent 60%),
+                  radial-gradient(900px 500px at 10% 10%, rgba(45,212,191,.10), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+      padding: 18px 14px 40px;
+    }
+    .wrap{max-width: 720px; margin:0 auto;}
+    .hero{
+      padding: 18px 16px;
+      border-radius: var(--r);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .title{
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    }
+    h1{
+      margin:0;
+      font-size: 18px;
+      letter-spacing:.2px;
+    }
+    .sub{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .chip{
+      font-size:12px;
+      padding:6px 10px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      color: rgba(255,255,255,.85);
+      white-space: nowrap;
+    }
 
-  <link rel="stylesheet" href="./form.css?v=491" />
+    form{
+      margin-top: 14px;
+      display:flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card{
+      border-radius: var(--r);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border:1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card-h{
+      padding: 12px 14px;
+      background: rgba(0,0,0,.16);
+      border-bottom: 1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .card-h b{font-size:14px}
+    .card-h span{font-size:12px; color:var(--muted)}
+    .card-b{ padding: 14px; }
+
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:12px;}
+    @media (max-width:540px){ .row{grid-template-columns: 1fr;} }
+
+    label{
+      display:block;
+      font-size: 12px;
+      color: rgba(255,255,255,.86);
+      margin-bottom: 6px;
+    }
+    .hint{font-size:11px; color: var(--muted); margin-top:6px; line-height:1.45}
+    input, select, textarea{
+      width:100%;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      padding: 11px 12px;
+      font-size: 14px;
+      outline:none;
+    }
+    textarea{ min-height: 92px; resize: vertical; }
+    input::placeholder, textarea::placeholder{ color: rgba(255,255,255,.35); }
+
+    .plan-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .plan-btn{
+      padding: 12px 12px;
+      border-radius: 16px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.88);
+      text-align:left;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+    .plan-btn:active{ transform: scale(.99); }
+    .plan-btn.is-active{
+      border-color: rgba(240,160,75,.55);
+      background: rgba(240,160,75,.12);
+      box-shadow: 0 10px 26px rgba(240,160,75,.12);
+    }
+    .plan-btn .t{font-weight:800; font-size:14px;}
+    .plan-btn .d{margin-top:6px; font-size:12px; color:var(--muted); line-height:1.35;}
+
+    .req{color: var(--accent); font-weight:900; margin-left:6px; font-size:12px;}
+    .actions{
+      display:flex; gap:10px; flex-wrap:wrap;
+      padding: 14px;
+      border-top: 1px solid var(--line);
+      background: rgba(0,0,0,.14);
+    }
+    .btn{
+      border:0;
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor:pointer;
+      transition: transform .12s ease, filter .12s ease;
+    }
+    .btn:active{ transform: scale(.99); }
+    .btn-primary{
+      background: linear-gradient(180deg, rgba(240,160,75,1), rgba(220,130,55,1));
+      color: #1a120a;
+      box-shadow: 0 10px 26px rgba(240,160,75,.18);
+    }
+    .btn-ghost{
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.9);
+    }
+    .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+
+    .toast{
+      display:none;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.28);
+      color: rgba(255,255,255,.92);
+      font-size: 13px;
+      line-height:1.5;
+    }
+    .toast[data-type="success"]{ border-color: rgba(45,212,191,.4); }
+    .toast[data-type="error"]{ border-color: rgba(251,113,133,.45); }
+
+    pre{
+      margin:0;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.10);
+      color: rgba(255,255,255,.86);
+      overflow:auto;
+      max-height: 280px;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
 </head>
 
 <body>
   <div class="wrap">
-    <header class="topbar">
-      <div class="title">填寫名片資料</div>
-      <button class="btn ghost" type="button" id="btnBack">返回名片</button>
-    </header>
-
-    <!-- PLAN -->
-    <section class="card">
-      <div class="section-title">方案（必選）</div>
-      <div class="seg">
-        <button type="button" class="seg-btn active" data-plan="free" id="planFree">自由搭配</button>
-        <button type="button" class="seg-btn" data-plan="premium" id="planPremium">精品設計</button>
+    <div class="hero">
+      <div class="title">
+        <div>
+          <h1>Happiness Smart Card｜資料填寫（v493）</h1>
+          <p class="sub">
+            先選方案 → 系統只顯示該方案需要的欄位（避免填錯、也避免送出失敗）。
+            送出會顯示後端回傳結果與 debug（方便一次收斂）。
+          </p>
+        </div>
+        <div class="chip">Form v493</div>
       </div>
 
-      <!-- FREE REQUIRED -->
-      <div id="freeBox" class="subbox">
-        <div class="row-title">自由款樣式（顏色／版型／紙感 皆必選）</div>
+      <div class="plan-grid">
+        <button type="button" id="planFree" class="plan-btn">
+          <div class="t">A｜自搭配款（Free）</div>
+          <div class="d">必選：5色/3版/3紙、個人照、姓名/單位/頭銜/標語/服務<br>限制：影音×1、社群×1、照片×2</div>
+        </button>
+        <button type="button" id="planPremium" class="plan-btn">
+          <div class="t">B｜精品設計款（Premium）</div>
+          <div class="d">必選：7底色、個人照、姓名/單位/頭銜/標語/服務<br>限制：影音×3、社群×3、照片×5</div>
+        </button>
+      </div>
+    </div>
 
-        <div class="field">
-          <div class="label">顏色（必選）</div>
-          <div class="dotrow" id="freeColors" role="group" aria-label="free colors">
-            <button type="button" class="dot dot-1" data-color="color-1" aria-label="粉"></button>
-            <button type="button" class="dot dot-2" data-color="color-2" aria-label="藍"></button>
-            <button type="button" class="dot dot-3" data-color="color-3" aria-label="橘"></button>
-            <button type="button" class="dot dot-4" data-color="color-4" aria-label="紫"></button>
-            <button type="button" class="dot dot-5" data-color="color-5" aria-label="綠"></button>
+    <form id="hscForm">
+      <!-- Hidden system fields -->
+      <input type="hidden" name="plan" id="plan" value="" />
+      <input type="hidden" name="id" id="id" value="" />
+      <input type="hidden" name="token" id="token" value="" />
+
+      <!-- Common info -->
+      <div class="card">
+        <div class="card-h">
+          <b>基本資料</b>
+          <span>兩方案共用</span>
+        </div>
+        <div class="card-b">
+          <div class="row">
+            <div>
+              <label>個人照 URL <span class="req">必填</span></label>
+              <input name="avatar_img" id="avatar_img" placeholder="https://...（Drive/Dropbox/https 圖片連結）" />
+              <div class="hint">若是 Google Drive 圖片，貼「共用連結」也可（後端會轉成可顯示格式）。</div>
+            </div>
+            <div>
+              <label>Logo URL</label>
+              <input name="logo_img" id="logo_img" placeholder="https://...（logo 圖片連結）" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>姓名 <span class="req">必填</span></label>
+              <input name="name" id="name" placeholder="例如：王小明" />
+            </div>
+            <div>
+              <label>單位 <span class="req">必填</span></label>
+              <input name="unit" id="unit" placeholder="例如：幸福緣 / Angel" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>頭銜 <span class="req">必填</span></label>
+              <input name="title" id="title" placeholder="例如：創辦人 / 顧問" />
+            </div>
+            <div>
+              <label>標語 <span class="req">必填</span></label>
+              <input name="slogan" id="slogan" placeholder="例如：喚醒內在幸福感" />
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label>服務項目 <span class="req">必填</span></label>
+            <textarea name="services" id="services" placeholder="例如：品牌策略｜名片設計｜教養課程..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- FREE plan fields -->
+      <div class="card" data-plan="free">
+        <div class="card-h">
+          <b>自搭配款（Free）方案選項</b>
+          <span>必選：5色/3版/3紙</span>
+        </div>
+        <div class="card-b">
+          <div class="row">
+            <div>
+              <label>主色（5色）<span class="req">必選</span></label>
+              <select name="theme_color" id="theme_color">
+                <option value="">請選擇</option>
+                <option value="c1">c1 粉</option>
+                <option value="c2">c2 藍</option>
+                <option value="c3">c3 橘</option>
+                <option value="c4">c4 紫</option>
+                <option value="c5">c5 綠</option>
+              </select>
+            </div>
+            <div>
+              <label>Banner 版型（3版）<span class="req">必選</span></label>
+              <select name="banner_style" id="banner_style">
+                <option value="">請選擇</option>
+                <option value="s1">s1 正拱</option>
+                <option value="s2">s2 平直</option>
+                <option value="s3">s3 晨曦</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>紙感（3紙）<span class="req">必選</span></label>
+              <select name="paper_style" id="paper_style">
+                <option value="">請選擇</option>
+                <option value="f1">f1 棉紙</option>
+                <option value="f2">f2 顆粒</option>
+                <option value="f3">f3 亞麻</option>
+              </select>
+            </div>
+            <div>
+              <label>影音連結（最多 1）</label>
+              <input name="video1_url" id="video1_url" placeholder="https://..." />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>社群連結（最多 1）</label>
+              <input name="social1_url" id="social1_url" placeholder="https://..." />
+            </div>
+            <div>
+              <label>照片1（最多 2 張）</label>
+              <input name="photo1_img" id="photo1_img" placeholder="https://...（照片連結）" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>照片2（最多 2 張）</label>
+              <input name="photo2_img" id="photo2_img" placeholder="https://...（照片連結）" />
+            </div>
+            <div class="hint">
+              Free 方案：影音×1、社群×1、照片×2（多填的欄位會被隱藏且送出前會清空）。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREMIUM plan fields -->
+      <div class="card" data-plan="premium">
+        <div class="card-h">
+          <b>精品設計款（Premium）方案選項</b>
+          <span>必選：7 底色</span>
+        </div>
+        <div class="card-b">
+          <div class="row">
+            <div>
+              <label>精品底色（7 底色）<span class="req">必選</span></label>
+              <select name="premium_color" id="premium_color">
+                <option value="">請選擇</option>
+                <option value="p1">p1 胭脂紅</option>
+                <option value="p2">p2 酒紅</option>
+                <option value="p3">p3 深藍</option>
+                <option value="p4">p4 霧紫</option>
+                <option value="p5">p5 藍灰</option>
+                <option value="p6">p6 金箔</option>
+                <option value="p7">p7 褐碳</option>
+              </select>
+            </div>
+            <div>
+              <label>影音連結 1（最多 3）</label>
+              <input name="video1_url" id="p_video1_url" placeholder="https://..." />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>影音連結 2（最多 3）</label>
+              <input name="video2_url" id="video2_url" placeholder="https://..." />
+            </div>
+            <div>
+              <label>影音連結 3（最多 3）</label>
+              <input name="video3_url" id="video3_url" placeholder="https://..." />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>社群連結 1（最多 3）</label>
+              <input name="social1_url" id="social1_url_p" placeholder="https://..." />
+            </div>
+            <div>
+              <label>社群連結 2（最多 3）</label>
+              <input name="social2_url" id="social2_url" placeholder="https://..." />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>社群連結 3（最多 3）</label>
+              <input name="social3_url" id="social3_url" placeholder="https://..." />
+            </div>
+            <div class="hint">
+              Premium 方案：影音×3、社群×3、照片×5（你可以全填，也可以部分留空）。
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>照片1（最多 5 張）</label>
+              <input name="photo1_img" id="p_photo1_img" placeholder="https://...（照片連結）" />
+            </div>
+            <div>
+              <label>照片2（最多 5 張）</label>
+              <input name="photo2_img" id="p_photo2_img" placeholder="https://...（照片連結）" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>照片3（最多 5 張）</label>
+              <input name="photo3_img" id="photo3_img" placeholder="https://...（照片連結）" />
+            </div>
+            <div>
+              <label>照片4（最多 5 張）</label>
+              <input name="photo4_img" id="photo4_img" placeholder="https://...（照片連結）" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>照片5（最多 5 張）</label>
+              <input name="photo5_img" id="photo5_img" placeholder="https://...（照片連結）" />
+            </div>
+            <div class="hint">logo 仍在「基本資料」區（logo_img）。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact -->
+      <div class="card">
+        <div class="card-h">
+          <b>聯繫資訊</b>
+          <span>兩方案共用</span>
+        </div>
+        <div class="card-b">
+          <div class="row">
+            <div>
+              <label>電話</label>
+              <input name="phone" id="phone" placeholder="09xx-xxx-xxx" />
+            </div>
+            <div>
+              <label>LINE（連結或 @ID）</label>
+              <input name="line_url" id="line_url" placeholder="https://line.me/... 或 @yourid" />
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:12px;">
+            <div>
+              <label>官網</label>
+              <input name="website_url" id="website_url" placeholder="https://..." />
+            </div>
+            <div>
+              <label>Email</label>
+              <input name="email" id="email" placeholder="name@example.com" />
+            </div>
+          </div>
+
+          <div style="margin-top:12px;">
+            <label>導航地址</label>
+            <input name="address" id="address" placeholder="例如：高雄市..." />
+            <div class="hint">前台可將地址轉成 Google Maps 導航連結。</div>
           </div>
         </div>
 
-        <div class="field">
-          <div class="label">版型（必選）</div>
-          <div class="btnrow" id="freeStyles">
-            <button type="button" class="btn pill" data-style="arch">正拱</button>
-            <button type="button" class="btn pill" data-style="flat">平直</button>
-            <button type="button" class="btn pill" data-style="spot">晨曦</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <div class="label">紙感（必選）</div>
-          <div class="btnrow" id="freePapers">
-            <button type="button" class="btn pill" data-paper="paper-1">霧面棉紙</button>
-            <button type="button" class="btn pill" data-paper="paper-2">細顆粒紙</button>
-            <button type="button" class="btn pill" data-paper="paper-3">亞麻紋</button>
-          </div>
+        <div class="actions">
+          <button id="btnSubmit" class="btn btn-primary" type="submit">送出資料</button>
+          <button class="btn btn-ghost" type="reset">清空</button>
         </div>
       </div>
 
-      <!-- PREMIUM REQUIRED -->
-      <div id="premiumBox" class="subbox" style="display:none;">
-        <div class="row-title">精品款底色（必選）</div>
-        <div class="dotrow prem" id="premiumThemes" role="group" aria-label="premium themes">
-          <button type="button" class="p-dot p1" data-premium="p1" aria-label="p1"></button>
-          <button type="button" class="p-dot p2" data-premium="p2" aria-label="p2"></button>
-          <button type="button" class="p-dot p3" data-premium="p3" aria-label="p3"></button>
-          <button type="button" class="p-dot p4" data-premium="p4" aria-label="p4"></button>
-          <button type="button" class="p-dot p5" data-premium="p5" aria-label="p5"></button>
-          <button type="button" class="p-dot p6" data-premium="p6" aria-label="p6"></button>
-          <button type="button" class="p-dot p7" data-premium="p7" aria-label="p7"></button>
+      <div id="toast" class="toast" data-ui="toast"></div>
+
+      <div class="card">
+        <div class="card-h">
+          <b>Debug 回傳</b>
+          <span>送出後會顯示</span>
+        </div>
+        <div class="card-b">
+          <pre id="debugBox" data-ui="debug">尚未送出</pre>
         </div>
       </div>
-
-      <div class="hint" id="styleHint">請先完成必選樣式，才能送出。</div>
-    </section>
-
-    <!-- BASIC INFO -->
-    <section class="card">
-      <div class="section-title">基本資料</div>
-
-      <div class="field">
-        <div class="label">姓名</div>
-        <input id="name" class="input" placeholder="例：王小明" autocomplete="name" />
-      </div>
-
-      <div class="field">
-        <div class="label">單位／公司</div>
-        <input id="unit" class="input" placeholder="例：幸福緣 / Angel" />
-      </div>
-
-      <div class="field">
-        <div class="label">頭銜</div>
-        <input id="title" class="input" placeholder="例：創辦人 / 顧問" />
-      </div>
-
-      <div class="field">
-        <div class="label">一句話／簡介</div>
-        <textarea id="slogan" class="textarea" placeholder="例：一點，就看見彼此的價值"></textarea>
-      </div>
-    </section>
-
-    <!-- AVATAR UPLOAD (ONLY) -->
-    <section class="card">
-      <div class="section-title">個人照（只保留上傳）</div>
-
-      <label class="upload-btn" for="avatarFile">
-        <span>上傳個人照</span>
-        <input id="avatarFile" type="file" accept="image/*" />
-      </label>
-
-      <div class="preview">
-        <img id="avatarPreview" alt="個人照預覽" style="display:none;" />
-        <div class="mini" id="avatarMeta" style="display:none;"></div>
-      </div>
-
-      <div class="hint">
-        送出前會自動壓縮：<b>最長邊 1200px</b>、目標 <b>≤ 350KB</b>（避免 Failed to fetch）。
-      </div>
-    </section>
-
-    <!-- CONTACT -->
-    <section class="card">
-      <div class="section-title">聯繫方式</div>
-
-      <div class="field">
-        <div class="label">電話</div>
-        <input id="phone" class="input" inputmode="tel" placeholder="例：0912xxxxxx" autocomplete="tel" />
-      </div>
-
-      <div class="field">
-        <div class="label">Email</div>
-        <input id="email" class="input" inputmode="email" placeholder="例：abc@gmail.com" autocomplete="email" />
-      </div>
-
-      <div class="field">
-        <div class="label">地址</div>
-        <input id="address" class="input" placeholder="例：高雄市..." />
-      </div>
-
-      <div class="field">
-        <div class="label">微信ID</div>
-        <input id="wechatId" class="input" placeholder="例：a0973180707" />
-      </div>
-
-      <div class="field">
-        <div class="label">LINE（連結或 @ID）</div>
-        <input id="lineAny" class="input" placeholder="例：https://lin.ee/xxx 或 @yourid" />
-      </div>
-    </section>
-
-    <!-- ACTIONS -->
-    <section class="actions">
-      <button class="btn danger" type="button" id="btnClear">清除草稿</button>
-      <button class="btn primary" type="button" id="btnSubmit">✅ 送出資料</button>
-    </section>
-
-    <div class="status" id="statusBox" aria-live="polite"></div>
+    </form>
   </div>
 
-  <script src="./form.js?v=491"></script>
+  <!-- JS -->
+  <script src="./form.js?v=493"></script>
 </body>
 </html>
