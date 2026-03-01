@@ -1,10 +1,8 @@
 <!-- share.html — v491 (COMPLETE OVERWRITE)
  * Purpose:
- * - Friendly share landing for humans
- * - Fetch card data via GAS and show a clean preview
- * - Auto-redirect to index.html?id=...
- * Notes:
- * - OG tags on static hosting are mostly "generic"; JS updates help humans but not all crawlers.
+ * - OG 交付連結（給客戶貼社群）：share.html?id=TW0001
+ * - 自動導向乾淨成品（不含選樣版）：index.html?id=TW0001&view=1
+ * - 讀 GAS 只為「人類預覽」；OG 仍是 generic fallback（靜態頁限制）
  -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -14,7 +12,7 @@
   <title>Happiness Smart Card — Share</title>
   <meta name="description" content="點擊查看專屬智慧名片" />
 
-  <!-- Generic OG fallback -->
+  <!-- Generic OG fallback (static hosting limitation) -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Happiness Smart Card" />
   <meta property="og:description" content="點擊查看專屬智慧名片" />
@@ -22,6 +20,7 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
 
   <style>
     :root{
@@ -30,11 +29,6 @@
       --text:#eaf0ff;
       --muted:rgba(234,240,255,.72);
       --line:rgba(234,240,255,.12);
-      --btn:#1b2a3e;
-      --btn2:#132033;
-      --ok:#65d6a6;
-      --warn:#ffcc66;
-      --danger:#ff6b6b;
       --radius:18px;
     }
     *{box-sizing:border-box}
@@ -75,13 +69,21 @@
       overflow:hidden;
       box-shadow: 0 18px 50px rgba(0,0,0,.35);
     }
-    .hero{
-      padding: 18px 16px 12px;
+    .hero{ padding: 18px 16px 12px; }
+    .title{ font-size:18px;font-weight:900;margin:0 0 6px; }
+    .sub{ color:var(--muted);font-size:13px;line-height:1.55;margin:0; }
+    .status{
+      display:inline-flex;align-items:center;gap:8px;
+      margin-top:10px;color:var(--muted);font-size:12px;
     }
-    .title{
-      font-size:18px;font-weight:900;margin:0 0 6px;
+    .badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:4px 10px;border-radius:999px;border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--muted);font-weight:800;
     }
-    .sub{color:var(--muted);font-size:13px;line-height:1.55;margin:0}
+    .b-ok{border-color: rgba(101,214,166,.35); color: rgba(101,214,166,.95)}
+    .b-warn{border-color: rgba(255,204,102,.35); color: rgba(255,204,102,.95)}
     .preview{
       padding: 0 16px 16px;
       display:flex;gap:12px;align-items:center;
@@ -136,28 +138,13 @@
       font-size:12px;
       line-height:1.5;
     }
-    .status{
-      display:inline-flex;align-items:center;gap:8px;
-      margin-top:10px;
-      color:var(--muted);
-      font-size:12px;
-    }
-    .badge{
-      display:inline-flex;align-items:center;gap:6px;
-      padding:4px 10px;border-radius:999px;border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color:var(--muted);
-      font-weight:800;
-    }
-    .b-ok{border-color: rgba(101,214,166,.35); color: rgba(101,214,166,.95)}
-    .b-warn{border-color: rgba(255,204,102,.35); color: rgba(255,204,102,.95)}
     .footer{
       text-align:center;color:rgba(234,240,255,.55);
       font-size:12px;margin-top:14px;
     }
-    .hidden{display:none !important}
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <div class="top">
@@ -168,7 +155,7 @@
     <div class="panel">
       <div class="hero">
         <p class="title" id="heroTitle">正在開啟你的名片…</p>
-        <p class="sub" id="heroSub">若你在微信/Line 內開啟，稍等一下會自動跳轉到名片。</p>
+        <p class="sub" id="heroSub">1～2 秒後會自動跳轉到「乾淨成品」（不含選樣版）。</p>
         <div class="status">
           <span class="badge b-warn" id="badge">Loading</span>
           <span id="hint">正在讀取資料…</span>
@@ -185,18 +172,26 @@
       </div>
 
       <div class="actions">
-        <button class="btn" id="btnOpen">
-          <span>立即開啟名片</span>
-          <small id="openUrlHint">index.html</small>
+        <button class="btn" id="btnOpenClean">
+          <span>立即開啟乾淨成品</span>
+          <small id="cleanUrlHint">index.html?view=1</small>
         </button>
-        <button class="btn" id="btnCopy">
-          <span>複製名片連結</span>
-          <small>Copy</small>
+
+        <button class="btn" id="btnCopyOg">
+          <span>複製 OG 交付連結</span>
+          <small id="ogUrlHint">share.html</small>
         </button>
+
+        <button class="btn" id="btnCopyClean">
+          <span>複製乾淨成品連結</span>
+          <small>view=1</small>
+        </button>
+
         <button class="btn" id="btnWeChat">
           <span>微信長圖交貨（Poster）</span>
           <small>wechat.html</small>
         </button>
+
         <button class="btn" id="btnCancel" title="取消自動跳轉">
           <span>取消自動跳轉</span>
           <small>Stop</small>
@@ -204,8 +199,8 @@
       </div>
 
       <div class="row">
-        <div class="mini" id="mini1">提示：如果你想把這張名片交付給客戶，建議用「微信長圖交貨」讓客戶更好保存。</div>
-        <div class="mini" id="mini2">提醒：若名片狀態為 inactive，成品頁會顯示「請聯繫客服開通」。</div>
+        <div class="mini">交付建議：客戶「貼社群」用 OG 交付連結；客戶「自己收藏」用乾淨成品連結。</div>
+        <div class="mini">提醒：若名片狀態 inactive，成品頁會顯示「請聯繫客服開通」。</div>
       </div>
     </div>
 
@@ -214,7 +209,7 @@
 
   <script>
     // =========================
-    // CONFIG (single source of truth)
+    // CONFIG
     // =========================
     const CONFIG = {
       VERSION: "v491",
@@ -236,13 +231,22 @@
       return String(id||"").trim().toUpperCase();
     }
 
-    function buildIndexUrl(id){
-      const base = CONFIG.BASE.endsWith("/") ? CONFIG.BASE : (CONFIG.BASE + "/");
-      return base + CONFIG.INDEX + "?id=" + encodeURIComponent(id);
+    function base_(){
+      return CONFIG.BASE.endsWith("/") ? CONFIG.BASE : (CONFIG.BASE + "/");
     }
+
+    // OG 交付連結（給客戶貼社群）
+    function buildOgUrl(id){
+      return base_() + "share.html?id=" + encodeURIComponent(id);
+    }
+
+    // 乾淨成品（不含選樣版）：view=1
+    function buildCleanUrl(id){
+      return base_() + CONFIG.INDEX + "?id=" + encodeURIComponent(id) + "&view=1";
+    }
+
     function buildWeChatUrl(id){
-      const base = CONFIG.BASE.endsWith("/") ? CONFIG.BASE : (CONFIG.BASE + "/");
-      return base + CONFIG.WECHAT + "?id=" + encodeURIComponent(id);
+      return base_() + CONFIG.WECHAT + "?id=" + encodeURIComponent(id);
     }
 
     async function fetchJson(url){
@@ -253,7 +257,7 @@
         const txt = await res.text();
         let j = null;
         try{ j = JSON.parse(txt); } catch(_){}
-        if (!res.ok) throw new Error("HTTP " + res.status + " " + (txt||""));
+        if (!res.ok) throw new Error("HTTP " + res.status);
         if (!j || typeof j !== "object") throw new Error("Invalid JSON");
         return j;
       } finally {
@@ -276,6 +280,17 @@
       b.textContent = text;
     }
 
+    async function copyText_(t){
+      const s = String(t||"");
+      try{
+        await navigator.clipboard.writeText(s);
+        return true;
+      }catch(e){
+        const ok = prompt("請手動複製：", s);
+        return ok !== null;
+      }
+    }
+
     // =========================
     // Main
     // =========================
@@ -283,9 +298,12 @@
       const id = normalizeId(qs("id") || qs("card") || "TW0001");
       $("chipId").textContent = "ID：" + id;
 
-      const indexUrl = buildIndexUrl(id);
+      const ogUrl = buildOgUrl(id);
+      const cleanUrl = buildCleanUrl(id);
       const wechatUrl = buildWeChatUrl(id);
-      $("openUrlHint").textContent = indexUrl.replace(CONFIG.BASE, "");
+
+      $("ogUrlHint").textContent = ogUrl.replace(CONFIG.BASE, "");
+      $("cleanUrlHint").textContent = cleanUrl.replace(CONFIG.BASE, "");
 
       let cancelled = false;
       let redirectTimer = null;
@@ -293,40 +311,39 @@
       $("btnCancel").addEventListener("click", () => {
         cancelled = true;
         if (redirectTimer) clearTimeout(redirectTimer);
-        $("hint").textContent = "已取消自動跳轉（你仍可手動開啟名片）。";
+        $("hint").textContent = "已取消自動跳轉（你仍可手動開啟乾淨成品）。";
         setBadge("ok", "Ready");
       });
 
-      $("btnOpen").addEventListener("click", () => location.href = indexUrl);
+      $("btnOpenClean").addEventListener("click", () => location.href = cleanUrl);
       $("btnWeChat").addEventListener("click", () => location.href = wechatUrl);
 
-      $("btnCopy").addEventListener("click", async () => {
-        const link = indexUrl;
-        try{
-          await navigator.clipboard.writeText(link);
-          $("hint").textContent = "已複製名片連結 ✅";
-          setBadge("ok","Copied");
-        }catch(e){
-          // fallback prompt
-          const ok = prompt("複製失敗，請手動複製：", link);
-          $("hint").textContent = ok !== null ? "已顯示可複製連結" : "已取消";
-          setBadge("ok","Copy");
-        }
+      $("btnCopyOg").addEventListener("click", async () => {
+        const ok = await copyText_(ogUrl);
+        $("hint").textContent = ok ? "已複製 OG 交付連結 ✅" : "已取消";
+        setBadge("ok", ok ? "Copied" : "Copy");
       });
 
-      // Fetch card data (human preview)
+      $("btnCopyClean").addEventListener("click", async () => {
+        const ok = await copyText_(cleanUrl);
+        $("hint").textContent = ok ? "已複製乾淨成品連結 ✅" : "已取消";
+        setBadge("ok", ok ? "Copied" : "Copy");
+      });
+
+      // Fetch card data (human preview only)
       try{
         const api = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now();
         const json = await fetchJson(api);
 
         if (!json.ok) throw new Error(json.error || "API ok=false");
         const card = json.data || {};
+
         const name = pick(card, ["name","姓名"], "（未填姓名）");
         const unit = pick(card, ["unit","單位"], "");
         const title = pick(card, ["title","頭銜"], "");
         const status = pick(card, ["status","狀態"], "");
 
-        $("heroTitle").textContent = "即將開啟名片";
+        $("heroTitle").textContent = "即將開啟乾淨成品";
         $("pName").textContent = name;
         $("pLine2").textContent = [unit, title].filter(Boolean).join("｜") || "（尚未填單位/頭銜）";
         $("pLine3").textContent = "狀態：" + (status || "—");
@@ -344,23 +361,21 @@
           img.src = avatar;
         }
 
-        // Update title/desc for humans
         document.title = name + "｜Happiness Smart Card";
-        $("heroSub").textContent = "1～2 秒後會自動跳轉到名片（也可手動點按鈕）。";
+        $("heroSub").textContent = "1～2 秒後自動跳轉（若在微信/Line 內開啟，請稍等一下）。";
         $("hint").textContent = "讀取成功 ✅";
         setBadge("ok","OK");
-
       }catch(err){
-        $("heroTitle").textContent = "讀取失敗";
-        $("heroSub").textContent = "可能是資料不存在或權限/網路問題。你仍可嘗試直接開啟名片。";
+        $("heroTitle").textContent = "讀取失敗，但仍可開啟";
+        $("heroSub").textContent = "可能是資料不存在或權限/網路問題。你仍可直接開啟乾淨成品。";
         $("hint").textContent = String(err && err.message ? err.message : err);
         setBadge("warn","Error");
       }
 
-      // Auto redirect to index
+      // Auto redirect to CLEAN (view=1)
       redirectTimer = setTimeout(() => {
         if (cancelled) return;
-        location.href = indexUrl;
+        location.href = cleanUrl;
       }, CONFIG.AUTO_REDIRECT_MS);
     })();
   </script>
