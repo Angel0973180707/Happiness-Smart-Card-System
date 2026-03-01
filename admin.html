@@ -1,132 +1,402 @@
-<!-- ================================
-     admin.html v491 (COMPLETE OVERWRITE)
-     - Purpose: Delivery/Admin panel (clean preview + copy + WeChat poster 1080x1920)
-     - Entry: from index.html hotspot -> ./admin.html?v=491&id=TW0001
-================================== -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="format-detection" content="telephone=no" />
-  <title>Admin｜Happiness Smart Card System v491</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-
-  <link rel="stylesheet" href="./admin.css?v=491" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>HSC Admin Console</title>
+  <meta name="theme-color" content="#111111" />
+  <style>
+    :root{
+      --bg:#0f1115; --card:#151923; --muted:#93a4b7; --text:#e9eef6;
+      --line:rgba(255,255,255,.12); --good:#2ecc71; --bad:#ff5e5e; --warn:#f0a04b;
+      --btn:#2d7ef7; --btn2:#3a4153;
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; background:linear-gradient(180deg,#0b0d12,#0f1115 40%,#0b0d12);
+      color:var(--text); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+      padding:16px 14px 28px;
+    }
+    .wrap{max-width:980px;margin:0 auto}
+    .top{
+      display:flex; gap:12px; align-items:flex-end; justify-content:space-between; flex-wrap:wrap;
+      margin:6px 0 14px;
+    }
+    .title{font-size:18px;font-weight:900;letter-spacing:.3px}
+    .sub{color:var(--muted); font-size:12px; margin-top:4px}
+    .pill{
+      padding:6px 10px; border:1px solid var(--line); border-radius:999px;
+      color:var(--muted); font-size:12px;
+    }
+    .grid{
+      display:grid; gap:12px;
+      grid-template-columns: 1fr;
+    }
+    @media(min-width:920px){
+      .grid{grid-template-columns: 360px 1fr;}
+    }
+    .card{
+      background:rgba(21,25,35,.9);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:0 10px 40px rgba(0,0,0,.35);
+      backdrop-filter: blur(8px);
+    }
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+    input, textarea{
+      width:100%;
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:12px;
+      padding:11px 12px;
+      outline:none;
+      font-size:14px;
+    }
+    input:focus, textarea:focus{border-color:rgba(45,126,247,.7)}
+    .row{display:flex; gap:10px}
+    .row > *{flex:1}
+    .btnRow{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+    .btn{
+      border:0; border-radius:12px;
+      padding:11px 12px; font-weight:800;
+      color:white; background:var(--btn);
+      cursor:pointer;
+      transition:transform .06s ease, filter .12s ease;
+      min-width:120px;
+    }
+    .btn:active{transform:scale(.98)}
+    .btn.secondary{background:var(--btn2); color:var(--text); border:1px solid var(--line)}
+    .btn.good{background:linear-gradient(180deg,#2ecc71,#23b862)}
+    .btn.bad{background:linear-gradient(180deg,#ff5e5e,#e84545)}
+    .btn.warn{background:linear-gradient(180deg,#f0a04b,#d9892f)}
+    .hint{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px}
+    .kpi{
+      display:grid; gap:10px; grid-template-columns: repeat(2, 1fr);
+      margin-top:12px;
+    }
+    .k{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px 10px;
+      background:rgba(255,255,255,.04);
+    }
+    .k .t{font-size:12px;color:var(--muted)}
+    .k .v{margin-top:6px;font-weight:900}
+    .badge{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:999px;
+      font-size:12px; font-weight:800;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+    }
+    .dot{width:8px;height:8px;border-radius:999px;background:#888}
+    .dot.good{background:var(--good)}
+    .dot.bad{background:var(--bad)}
+    .dot.warn{background:var(--warn)}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace}
+    pre{
+      margin:0; white-space:pre-wrap; word-break:break-word;
+      background:rgba(255,255,255,.04); border:1px solid var(--line);
+      padding:12px; border-radius:14px;
+      font-size:12px;
+    }
+    .links{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+    .linkBtn{
+      border:1px solid var(--line); background:rgba(255,255,255,.04);
+      color:var(--text); padding:9px 10px; border-radius:12px;
+      font-size:12px; cursor:pointer;
+    }
+    .small{font-size:12px;color:var(--muted)}
+  </style>
 </head>
 
 <body>
-  <header class="topbar">
-    <div class="topbar__left">
-      <div class="brand">
-        <div class="brand__title">隱形後臺｜交貨工作臺</div>
-        <div class="brand__sub">v491</div>
-      </div>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="title">HSC Admin Console（開卡 / 鎖卡 / 續期）</div>
+      <div class="sub">對接 GAS v492-SP：activate / deactivate / extend + card 查詢</div>
     </div>
+    <div class="pill mono" id="pillVer">GAS: (not set)</div>
+  </div>
 
-    <div class="topbar__right">
-      <button class="btn btn--ghost" id="btnBackHome" type="button">
-        <i class="fa-solid fa-house"></i><span>回名片首頁</span>
-      </button>
-    </div>
-  </header>
+  <div class="grid">
+    <!-- Left -->
+    <div class="card">
+      <label>GAS WebApp URL（/exec）</label>
+      <input id="gasUrl" class="mono" placeholder="https://script.google.com/macros/s/.../exec" />
 
-  <main class="wrap">
-    <!-- 控制區 -->
-    <section class="card">
-      <div class="row">
-        <label class="label">序號 / 姓名</label>
-        <div class="inputRow">
-          <input id="adminInput" class="input" placeholder="TW0001 / 0001 / 小天使（目前以序號為主）" />
-          <button class="btn" id="btnApply" type="button"><i class="fa-solid fa-check"></i><span>套用</span></button>
-        </div>
-        <div class="hint" id="adminHint"></div>
-      </div>
-
-      <div class="grid2">
-        <button class="btn" id="btnPreview" type="button">
-          <i class="fa-solid fa-up-right-from-square"></i><span>乾淨成品預覽</span>
-        </button>
-
-        <button class="btn" id="btnCopyCard" type="button">
-          <i class="fa-solid fa-link"></i><span>一鍵複製名片連結</span>
-        </button>
-
-        <button class="btn" id="btnCopyShare" type="button">
-          <i class="fa-solid fa-share-nodes"></i><span>一鍵複製分享卡連結</span>
-        </button>
-
-        <button class="btn" id="btnCopyDelivery" type="button">
-          <i class="fa-solid fa-box"></i><span>一鍵交貨（只給這段）</span>
-        </button>
-      </div>
-
-      <div class="divider"></div>
+      <label>ADMIN PIN（Script Properties: ADMIN_PIN）</label>
+      <input id="pin" type="password" class="mono" placeholder="輸入你的 ADMIN_PIN" />
 
       <div class="row">
-        <div class="label">微信長圖（1080×1920）</div>
-        <div class="grid2">
-          <button class="btn btn--primary" id="btnWeChatPoster" type="button">
-            <i class="fa-solid fa-image"></i><span>一鍵生成微信長圖</span>
-          </button>
-
-          <button class="btn" id="btnOpenPoster" type="button" disabled>
-            <i class="fa-solid fa-up-right-from-square"></i><span>開啟長圖（長按存圖）</span>
-          </button>
+        <div>
+          <label>Card ID</label>
+          <input id="cardId" class="mono" value="TW0001" />
         </div>
-        <div class="hint">
-          生成後：Android 通常會直接下載；iPhone 若未自動存檔，請點「開啟長圖」→ 長按圖片 → 儲存到相簿。
-        </div>
-      </div>
-    </section>
-
-    <!-- 成品小預覽（乾淨卡面） -->
-    <section class="preview">
-      <div class="preview__title">成品預覽（乾淨版）</div>
-      <div class="previewCard">
-        <div class="avatarBox">
-          <img id="pvAvatar" alt="avatar" />
-        </div>
-        <div class="pvInfo">
-          <div class="pvName" id="pvName">—</div>
-          <div class="pvUnit" id="pvUnit"></div>
-          <div class="pvTitle" id="pvTitle"></div>
-          <div class="pvSlogan" id="pvSlogan" style="display:none;"></div>
+        <div>
+          <label>續期天數（extend days）</label>
+          <input id="days" class="mono" value="365" />
         </div>
       </div>
 
-      <div class="miniLinks">
-        <div class="miniLinks__row">
-          <span class="tag">Card（乾淨）</span>
-          <code id="txtCardUrl">—</code>
-          <button class="btn btn--tiny" id="btnCopyCard2" type="button"><i class="fa-regular fa-copy"></i></button>
+      <div class="btnRow">
+        <button class="btn secondary" id="btnPing">Ping</button>
+        <button class="btn secondary" id="btnLoad">載入資料</button>
+      </div>
+
+      <div class="btnRow">
+        <button class="btn good" id="btnActivate">一鍵開卡</button>
+        <button class="btn bad" id="btnDeactivate">一鍵鎖卡</button>
+        <button class="btn warn" id="btnExtend">一鍵續期</button>
+      </div>
+
+      <div class="hint">
+        ✅ 你名片目前顯示不出來，多數是因為 status = <b>inactive</b><br/>
+        這裡「一鍵開卡」會把 status 改 active，並補齊 activated_at / expires_at / remind_at（依你的 GAS 規則）
+      </div>
+
+      <div class="kpi">
+        <div class="k">
+          <div class="t">狀態</div>
+          <div class="v" id="kStatus">-</div>
         </div>
-        <div class="miniLinks__row">
-          <span class="tag">Share（分享卡）</span>
-          <code id="txtShareUrl">—</code>
-          <button class="btn btn--tiny" id="btnCopyShare2" type="button"><i class="fa-regular fa-copy"></i></button>
+        <div class="k">
+          <div class="t">到期日</div>
+          <div class="v" id="kExpire">-</div>
+        </div>
+        <div class="k">
+          <div class="t">提醒日</div>
+          <div class="v" id="kRemind">-</div>
+        </div>
+        <div class="k">
+          <div class="t">activated_at</div>
+          <div class="v" id="kAct">-</div>
         </div>
       </div>
-    </section>
 
-    <!-- Poster overlay -->
-    <div class="overlay" id="posterOverlay" aria-hidden="true">
-      <div class="overlay__box">
-        <div class="spinner" aria-hidden="true"></div>
-        <div class="overlay__title" id="posterStatus">正在生成微信長圖…</div>
-        <div class="overlay__hint" id="posterHint">請稍候（照片多時會慢一點）。</div>
-        <div class="overlay__row">
-          <button class="btn" id="btnCancelOverlay" type="button">關閉</button>
-        </div>
+      <div class="links">
+        <button class="linkBtn" id="btnOpenCard">開名片</button>
+        <button class="linkBtn" id="btnOpenShare">開分享頁</button>
+        <button class="linkBtn" id="btnCopyCard">複製名片連結</button>
+        <button class="linkBtn" id="btnCopyShare">複製分享連結</button>
+      </div>
+
+      <div class="small" style="margin-top:10px;">
+        小技巧：你可以把 admin.html 當成「交貨工作台」，開卡後直接複製 share.html 交給客戶。
       </div>
     </div>
-  </main>
 
-  <!-- QR lib -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <script src="./admin.js?v=491"></script>
+    <!-- Right -->
+    <div class="card">
+      <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px;">
+        <div class="badge" id="badge">
+          <span class="dot" id="dot"></span>
+          <span id="badgeText">尚未載入</span>
+        </div>
+        <div class="small mono" id="timeText">-</div>
+      </div>
+
+      <label>最新回應（JSON）</label>
+      <pre id="out" class="mono">{ }</pre>
+
+      <label style="margin-top:14px;">Debug（你說「沒有 logs」時，用這裡看）</label>
+      <pre id="dbg" class="mono">Ready.</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================
+ * HSC Admin Console (front-end)
+ * - English file name: admin.html
+ * - Works with GAS v492-SP endpoints:
+ *   GET  ?action=ping
+ *   GET  ?action=card&id=TW0001
+ *   POST action=activate|deactivate|extend + admin_pin + id
+ * ========================= */
+
+const GHP_BASE = (location.origin + location.pathname).replace(/\/admin\.html.*$/i, "/");
+const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+const $ = (id) => document.getElementById(id);
+
+function logDbg(msg){
+  const t = new Date().toISOString();
+  $("dbg").textContent = `[${t}] ${msg}\n` + $("dbg").textContent;
+}
+
+function setBadge(kind, text){
+  const dot = $("dot");
+  dot.className = "dot" + (kind ? (" " + kind) : "");
+  $("badgeText").textContent = text || "";
+}
+
+function setKpi(card){
+  const st = String(card?.status || "").trim();
+  $("kStatus").textContent = st || "-";
+  $("kExpire").textContent = card?.expires_at || card?.expire_date || "-";
+  $("kRemind").textContent = card?.remind_at || "-";
+  $("kAct").textContent = card?.activated_at || "-";
+
+  if (!st) setBadge("", "尚未載入");
+  else if (st === "active") setBadge("good", "ACTIVE（可顯示）");
+  else setBadge("bad", "INACTIVE（鎖卡）");
+}
+
+function urlsFor(id){
+  const base = GHP_BASE;
+  return {
+    card: base + "index.html?id=" + encodeURIComponent(id),
+    share: base + "share.html?id=" + encodeURIComponent(id),
+  };
+}
+
+async function fetchJson(url, opts={}){
+  const controller = new AbortController();
+  const t = setTimeout(() => controller.abort(), 12000);
+  try{
+    const res = await fetch(url, { ...opts, signal: controller.signal });
+    const text = await res.text();
+    try { return JSON.parse(text); } catch(e){ return { ok:false, error:"Non-JSON response", raw:text }; }
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function ping(){
+  const gas = $("gasUrl").value.trim();
+  if (!gas) return alert("請先填 GAS URL");
+  logDbg("ping -> " + gas);
+  const j = await fetchJson(gas + "?action=ping&ts=" + Date.now());
+  $("out").textContent = JSON.stringify(j, null, 2);
+  $("timeText").textContent = new Date().toLocaleString();
+  if (j && j.ok){
+    $("pillVer").textContent = "GAS: " + (j.version || "OK");
+    setBadge("good", "Ping OK");
+  } else {
+    setBadge("bad", "Ping 失敗");
+  }
+  return j;
+}
+
+async function loadCard(){
+  const gas = $("gasUrl").value.trim();
+  const id = $("cardId").value.trim();
+  if (!gas) return alert("請先填 GAS URL");
+  if (!id) return alert("請輸入 Card ID");
+  logDbg("load card -> " + id);
+  const j = await fetchJson(gas + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now());
+  $("out").textContent = JSON.stringify(j, null, 2);
+  $("timeText").textContent = new Date().toLocaleString();
+  if (j && j.ok){
+    setKpi(j.data || {});
+    setBadge((String(j.data?.status||"")==="active") ? "good" : "bad", "載入成功");
+  } else {
+    setBadge("bad", "載入失敗");
+  }
+  return j;
+}
+
+async function adminPost(action){
+  const gas = $("gasUrl").value.trim();
+  const id = $("cardId").value.trim();
+  const pin = $("pin").value.trim();
+  if (!gas) return alert("請先填 GAS URL");
+  if (!id) return alert("請輸入 Card ID");
+  if (!pin) return alert("請輸入 ADMIN PIN");
+
+  const payload = { action, admin_pin: pin, id };
+  if (action === "extend"){
+    payload.days = parseInt($("days").value.trim() || "365", 10);
+  }
+
+  logDbg(`POST ${action} -> ${id}`);
+
+  const j = await fetchJson(gas + "?ts=" + Date.now(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  $("out").textContent = JSON.stringify(j, null, 2);
+  $("timeText").textContent = new Date().toLocaleString();
+
+  if (j && j.ok){
+    setBadge("good", `成功：${action}`);
+    // action 成功後，馬上 reload card
+    await loadCard();
+  } else {
+    setBadge("bad", `失敗：${action}`);
+  }
+
+  return j;
+}
+
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    logDbg("copied: " + text);
+    alert("已複製");
+  }catch(e){
+    // fallback
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    alert("已複製（fallback）");
+  }
+}
+
+/* Wiring */
+$("gasUrl").value = localStorage.getItem("HSC_GAS_URL") || DEFAULT_GAS;
+$("pin").value = localStorage.getItem("HSC_ADMIN_PIN") || "";
+$("cardId").value = localStorage.getItem("HSC_ADMIN_LAST_ID") || "TW0001";
+$("days").value = localStorage.getItem("HSC_ADMIN_DAYS") || "365";
+
+$("gasUrl").addEventListener("change", ()=>localStorage.setItem("HSC_GAS_URL", $("gasUrl").value.trim()));
+$("pin").addEventListener("change", ()=>localStorage.setItem("HSC_ADMIN_PIN", $("pin").value.trim()));
+$("cardId").addEventListener("change", ()=>localStorage.setItem("HSC_ADMIN_LAST_ID", $("cardId").value.trim()));
+$("days").addEventListener("change", ()=>localStorage.setItem("HSC_ADMIN_DAYS", $("days").value.trim()));
+
+$("btnPing").addEventListener("click", ping);
+$("btnLoad").addEventListener("click", loadCard);
+$("btnActivate").addEventListener("click", ()=>adminPost("activate"));
+$("btnDeactivate").addEventListener("click", ()=>adminPost("deactivate"));
+$("btnExtend").addEventListener("click", ()=>adminPost("extend"));
+
+$("btnOpenCard").addEventListener("click", ()=>{
+  const id = $("cardId").value.trim();
+  if (!id) return;
+  window.open(urlsFor(id).card, "_blank");
+});
+$("btnOpenShare").addEventListener("click", ()=>{
+  const id = $("cardId").value.trim();
+  if (!id) return;
+  window.open(urlsFor(id).share, "_blank");
+});
+$("btnCopyCard").addEventListener("click", ()=>{
+  const id = $("cardId").value.trim();
+  if (!id) return;
+  copyText(urlsFor(id).card);
+});
+$("btnCopyShare").addEventListener("click", ()=>{
+  const id = $("cardId").value.trim();
+  if (!id) return;
+  copyText(urlsFor(id).share);
+});
+
+/* Boot */
+(async ()=>{
+  setBadge("", "Ready（建議先 Ping）");
+  $("pillVer").textContent = "GAS: " + (new URL($("gasUrl").value).pathname.includes("/exec") ? "exec" : "check url");
+  logDbg("Admin console ready. Base=" + GHP_BASE);
+})();
+</script>
 </body>
 </html>
