@@ -1,17 +1,20 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v495 (COMPLETE OVERWRITE)
- * - Base: your posted v495 draft
- * - FIX: Support payload { ok:true, item:{...} } (new API)
- * - FIX: CONFIG.VERSION sync to v495
- * - Keep ALL existing UI/feature behaviors
+ * app.js v496.2 (COMPLETE OVERWRITE)
+ *
+ * Base: app.js v495 (your provided)
+ * Align to GAS v496.2:
+ * ✅ New API payload: { ok:true, item:{...} }
+ * ✅ HARD LOCK RULE: status !== "active" => lock
+ * ✅ Expiry key align: expires_at / expired_at / expired_at / expired_at (and legacy)
+ * ✅ Keep ALL existing UI/feature behaviors
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v495",
+  VERSION: "v496.2",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
@@ -489,7 +492,7 @@ function renderLogo_(p){
 
 /* ---------- Avatar ---------- */
 function renderAvatar_(p){
-  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","形象照","photo"]);
+  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","avatar_img","形象照","photo"]);
   const img = qs("u-img");
   if(!img) return;
 
@@ -615,7 +618,7 @@ function resolvePodcast_(raw){
 }
 
 const MEDIA_SPECS = [
-  { label:"YouTube", icon:"fa-brands fa-youtube", keys:["影音連結1","影音連結2","影音連結3","youtube","yt","youtube_url","youtube_link"], resolver:(v)=> resolveHandleUrl_("youtube", v) },
+  { label:"YouTube", icon:"fa-brands fa-youtube", keys:["影音連結1","影音連結2","影音連結3","video1","video2","video3","youtube","yt","youtube_url","youtube_link"], resolver:(v)=> resolveHandleUrl_("youtube", v) },
   { label:"B站", icon:"fa-solid fa-play", keys:["bilibili","b站","bili","bilibili_url"], resolver:(v)=> resolveHandleUrl_("bilibili", v) },
   { label:"TikTok", icon:"fa-brands fa-tiktok", keys:["tiktok_video","tiktok"], resolver:(v)=> resolveHandleUrl_("tiktok", v) },
   { label:"抖音", icon:"fa-solid fa-circle-play", keys:["douyin","抖音"], resolver:(v)=> resolveHandleUrl_("douyin", v) },
@@ -624,7 +627,7 @@ const MEDIA_SPECS = [
 ];
 
 const SOCIAL_SPECS = [
-  { label:"FB", icon:"fa-brands fa-facebook", keys:["社群連結1","社群連結2","社群連結3","facebook","fb","fb_url"], resolver:(v)=> resolveHandleUrl_("facebook", v) },
+  { label:"FB", icon:"fa-brands fa-facebook", keys:["社群連結1","社群連結2","社群連結3","social1","social2","social3","facebook","fb","fb_url"], resolver:(v)=> resolveHandleUrl_("facebook", v) },
   { label:"IG", icon:"fa-brands fa-instagram", keys:["instagram","ig","ig_url"], resolver:(v)=> resolveHandleUrl_("instagram", v) },
   { label:"Threads", icon:"fa-solid fa-at", keys:["threads","threads_url"], resolver:(v)=> resolveHandleUrl_("threads", v) },
   { label:"X", icon:"fa-brands fa-x-twitter", keys:["x","twitter","x_url","twitter_url"], resolver:(v)=> resolveHandleUrl_("x", v) },
@@ -724,8 +727,8 @@ function renderDocks_(p){
 
   const lineRaw =
     pick(p, [
-      "LINE連結","LINE連結1","LINE Link","line_url","line_link",
-      "LINE官方帳號","LINE 官方帳號","line_oa","line oa","Line OA","LINE OA",
+      "line_url","line_oa","LINE連結","LINE連結1","LINE Link","line_link",
+      "LINE官方帳號","LINE 官方帳號","line oa","Line OA","LINE OA",
       "LINE官網","LINE 官網","line官網","Line官網",
       "LINE","Line","line","LINE ID","Line ID","line id","LINE帳號","LINE 帳號","line_account",
       "LINE@", "Line@", "line@"
@@ -735,7 +738,7 @@ function renderDocks_(p){
   if(!text(lineUrl)) lineUrl = scanAnyLineFromPayload_(p);
 
   const wechatUrlRaw = pick(p, ["wechat_url","WeChat URL","微信連結","微信網址"]);
-  const wechatIdRaw  = pick(p, ["微信ID","微信","wechat","wechat_id","WeChat","WeChat ID"]);
+  const wechatIdRaw  = pick(p, ["wechat_id","微信ID","微信","wechat","WeChat","WeChat ID"]);
   const wechatUrl = normalizeLink_(wechatUrlRaw);
   const wechatId = text(wechatIdRaw);
 
@@ -807,7 +810,7 @@ function toOneLine_(s){
 }
 
 /* ================================
- * Expiry + Status gate (v492)
+ * Expiry + Status gate (ALIGN v496.2)
  * ================================ */
 function parseAnyDate_(raw){
   const v = text(raw);
@@ -841,9 +844,10 @@ function parseAnyDate_(raw){
 }
 
 function getExpiryInfo_(p){
+  // ✅ Align to DB keys: expires_at (primary), expired_at (legacy), expire_at (legacy)
   const raw = pick(p, [
-    "expire_at","expires_at","expiry","expiry_at","expire_date","expires","due_date","due",
-    "ExpireAt","ExpiresAt","Expiry","DueDate",
+    "expires_at","expired_at","expire_at","expiry_at","expiry","expire_date","expires","due_date","due",
+    "ExpireAt","ExpiresAt","ExpiredAt","Expiry","DueDate",
     "到期日","到期","有效期限","到期日期","失效日"
   ]);
   const d = parseAnyDate_(raw);
@@ -901,16 +905,24 @@ function showLockedUi_(reasonText){
   }
 }
 
+/* ================================
+ * 🔐 HARD LOCK RULE (v496.2 anchor)
+ * status !== "active" => LOCK
+ * expires_at <= today => LOCK
+ * empty status => treated as inactive => LOCK
+ * ================================ */
 function applyStatusGate_(p){
   const status = normalizeStatus_(p);
   const expiry = getExpiryInfo_(p);
 
+  // Expired first (even if status not updated yet)
   if(expiry.has && typeof expiry.daysLeft === "number" && expiry.daysLeft <= 0){
     showLockedUi_("此名片已到期，請聯繫客服開通");
     return { locked:true, expiry };
   }
 
-  if(status && status !== "active"){
+  // Hard lock by status (empty means not active)
+  if(!status || status !== "active"){
     showLockedUi_("請聯繫客服開通");
     return { locked:true, expiry };
   }
@@ -946,18 +958,16 @@ function renderCard(row){
     return;
   }
 
-  const name  = pick(p, ["姓名","name"]);
-
-  const unitRaw = pick(p, ["單位","unit","公司","company"]);
+  const name  = pick(p, ["name","姓名"]);
+  const unitRaw = pick(p, ["unit","單位","公司","company"]);
   const unit = toOneLine_(unitRaw);
-
-  const title = pick(p, ["頭銜","職稱","title"]);
+  const title = pick(p, ["title","頭銜","職稱"]);
 
   safeSetText_("u-name", name || "未命名");
   safeSetText_("u-unit", unit);
   safeSetText_("u-title", title);
 
-  const slogan = pick(p, ["理念標語","slogan","簡介","一句話","引言"]);
+  const slogan = pick(p, ["slogan","理念標語","簡介","一句話","引言"]);
   const sEl = qs("u-slogan");
   if(sEl){
     if(text(slogan)){
@@ -990,15 +1000,16 @@ function goLineIntro(){
 
   const status = normalizeStatus_(p);
   const expiry = getExpiryInfo_(p);
-  if((status && status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
+  if((!status || status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
     alert("⚠️ 此名片尚未開通或已到期，請聯繫客服開通。");
     return;
   }
 
   const lineRaw =
     pick(p, [
-      "LINE連結","LINE連結1","line_url","line_link",
-      "LINE官方帳號","LINE 官方帳號","line_oa","line oa","Line OA","LINE OA",
+      "line_url","line_oa",
+      "LINE連結","LINE連結1","line_link",
+      "LINE官方帳號","LINE 官方帳號","line oa","Line OA","LINE OA",
       "LINE官網","LINE 官網","line官網","Line官網",
       "LINE","Line","line","LINE ID","Line ID","line id","LINE帳號","LINE 帳號","line_account",
       "LINE@", "Line@", "line@"
@@ -1162,7 +1173,7 @@ function renderPhotoWall_(row){
 
   const status = normalizeStatus_(p);
   const expiry = getExpiryInfo_(p);
-  if((status && status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
+  if((!status || status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
     wall.style.display = "none";
     if(grid) grid.innerHTML = "";
     return;
