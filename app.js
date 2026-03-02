@@ -1,9 +1,9 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v496.2 (COMPLETE OVERWRITE)
+ * app.js v497 (COMPLETE OVERWRITE)
  *
- * Base: app.js v495 (your provided)
- * Align to GAS v496.2:
+ * Base: app.js v497 (your provided)
+ * Align to GAS v497:
  * ✅ New API payload: { ok:true, item:{...} }
  * ✅ HARD LOCK RULE: status !== "active" => lock
  * ✅ Expiry key align: expires_at / expired_at / expired_at / expired_at (and legacy)
@@ -14,7 +14,7 @@ const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v496.2",
+  VERSION: "v497",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
