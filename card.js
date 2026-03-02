@@ -1,507 +1,406 @@
 /* ================================
- * card.js (v408 COMPLETE OVERWRITE)
- * - Loading skeleton + fade-in
- * - Robust data key normalize
- * - Service -> bullet
- * - Experience -> paragraph
- * - Unified contact icons
- * - Inactive guard: !data || !data.ok
- * - Unified Debug: long press brand 1.2s
- * - Do NOT change GAS API format
- * - Compatibility: try multiple actions if needed
+ * card.js — v497 (COMPLETE OVERWRITE)
+ * - Fetch: GAS action=card&id=TWxxxx
+ * - Robust render for your v407 HTML ids
+ * - Drive image URL normalize (file/d, open?id, pure id)
+ * - Inactive handling (show empty CTA)
  * ================================ */
 
 (() => {
-  const VERSION = 407;
-
-  // ✅ Use your real GAS from recent conversation (v406.2 era)
-  const DEFAULT_GAS =
-    "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec";
+  "use strict";
 
   const CONFIG = {
-    GAS: DEFAULT_GAS,
-    DEFAULT_ID: "TW0001",
-    SUPPORT_LINE: "https://lin.ee/G3VJoRm", // fallback support contact
-    LONGPRESS_MS: 1200
+    VERSION: "v497",
+
+    // ✅ 改成你現在這支（你貼的 /exec）
+    GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+
+    // 你前台的固定客服開通（你之前定錨）
+    SUPPORT_URL: "https://lin.ee/G3VJoRm",
+
+    FETCH_TIMEOUT_MS: 20000
   };
 
-  // ---------- DOM ----------
-  const el = (id) => document.getElementById(id);
+  const $ = (sel) => document.querySelector(sel);
 
-  const heroSk = el("hero-skeleton");
-  const hero = el("hero");
-  const sections = el("sections");
+  // UI nodes (match your HTML)
+  const elHeroSk = $("#hero-skeleton");
+  const elHero = $("#hero");
+  const elSections = $("#sections");
+  const elEmpty = $("#empty");
 
-  const empty = el("empty");
-  const btnSupport = el("btn-open-support");
+  const pillText = $("#pill-text");
+  const pill = $("#status-pill");
 
-  const statusPill = el("status-pill");
-  const pillText = el("pill-text");
+  const elName = $("#u-name");
+  const elUnit = $("#u-unit");
+  const elTitle = $("#u-title");
 
-  const avatarWrap = el("avatarWrap");
-  const avatar = el("avatar");
-  const avatarPh = el("avatarPh");
+  const planText = $("#plan-text");
+  const idText = $("#id-text");
 
-  const uName = el("u-name");
-  const uUnit = el("u-unit");
-  const uTitle = el("u-title");
-  const planText = el("plan-text");
-  const idText = el("id-text");
+  const avatarWrap = $("#avatarWrap");
+  const avatar = $("#avatar");
+  const avatarPh = $("#avatarPh");
 
-  const secService = el("sec-service");
-  const uService = el("u-service");
+  const secService = $("#sec-service");
+  const secExp = $("#sec-exp");
+  const secContact = $("#sec-contact");
 
-  const secExp = el("sec-exp");
-  const uExp = el("u-exp");
+  const uService = $("#u-service");
+  const uExp = $("#u-exp");
+  const uContact = $("#u-contact");
 
-  const secContact = el("sec-contact");
-  const uContact = el("u-contact");
+  const btnSupport = $("#btn-open-support");
 
-  // Debug
-  const brand = el("brand");
-  const dbg = el("dbg");
-  const dbgMask = el("dbgMask");
-  const dbgPre = el("dbgPre");
-  const dbgClose = el("dbgClose");
+  // debug (optional)
+  const brand = $("#brand");
+  const dbg = $("#dbg");
+  const dbgMask = $("#dbgMask");
+  const dbgPre = $("#dbgPre");
+  const dbgClose = $("#dbgClose");
 
-  // ---------- State ----------
   const state = {
-    id: null,
-    plan: "free",
-    pcsf: { p: "", c: "", s: "", f: "" },
-    gasUrl: "",
-    fetchStatus: "loading",
-    payloadMini: null
+    last: null
   };
 
-  // ---------- Helpers ----------
-  function qs(key) {
-    const v = new URLSearchParams(location.search).get(key);
-    return v ? String(v).trim() : "";
+  function setPill(msg) {
+    if (pillText) pillText.textContent = msg;
   }
 
-  function normalizeId(s) {
-    if (!s) return "";
-    return String(s).trim().toUpperCase();
+  function getIdFromUrl() {
+    const sp = new URLSearchParams(location.search);
+    return (sp.get("id") || "").trim();
   }
 
-  function safeText(x) {
-    if (x === null || x === undefined) return "";
-    return String(x).replace(/\u0000/g, "").trim();
-  }
-
-  function isMicroMessenger() {
-    return navigator.userAgent.includes("MicroMessenger");
-  }
-
-  function normalizeKey(k) {
-    return String(k || "")
-      .trim()
-      .replace(/^"+|"+$/g, "")
-      .replace(/\s+/g, "_")
-      .replace(/[^\w\u4e00-\u9fff]+/g, "_")
-      .toLowerCase();
-  }
-
-  function normalizeObjKeys(obj) {
-    const out = {};
-    if (!obj || typeof obj !== "object") return out;
-    for (const [k, v] of Object.entries(obj)) {
-      out[normalizeKey(k)] = v;
-    }
-    return out;
-  }
-
-  function pick(obj, keys, fallback = "") {
-    for (const k of keys) {
-      if (k in obj && safeText(obj[k])) return safeText(obj[k]);
-    }
-    return fallback;
-  }
-
-  function parsePlan(obj) {
-    const raw = pick(obj, ["plan", "plan_type", "package", "mode"], "free").toLowerCase();
-    if (raw.includes("premium") || raw.includes("pro") || raw.includes("精品")) return "premium";
-    return "free";
-  }
-
-  function parsePCSf(obj) {
+  function withTimeout(fetchPromise, ms) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
     return {
-      p: pick(obj, ["p", "p_code", "premium_bg", "bg_p"], ""),
-      c: pick(obj, ["c", "c_code", "color_c"], ""),
-      s: pick(obj, ["s", "s_code", "style_s"], ""),
-      f: pick(obj, ["f", "f_code", "fiber_f"], "")
+      signal: ctrl.signal,
+      promise: fetchPromise.finally(() => clearTimeout(t))
     };
   }
 
-  function setPill(text, good = false) {
-    pillText.textContent = text;
-    statusPill.style.borderColor = good ? "rgba(34,197,94,.35)" : "rgba(255,255,255,.10)";
+  function trimOrEmpty(v) {
+    return (v ?? "").toString().trim();
   }
 
-  function showInactive() {
-    heroSk.style.display = "none";
-    hero.style.display = "none";
-    sections.style.display = "none";
-    empty.style.display = "block";
-    empty.classList.add("fade-in");
-    setPill("inactive", false);
+  function normalizeDriveImageUrl(raw) {
+    const s = trimOrEmpty(raw);
+    if (!s) return "";
 
-    const link = CONFIG.SUPPORT_LINE;
-    btnSupport.href = link;
+    // http -> https
+    let u = s.replace(/^http:\/\//i, "https://");
+
+    // pure fileId
+    if (/^[a-zA-Z0-9_-]{15,}$/.test(u)) {
+      return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(u)}`;
+    }
+
+    // extract id from /file/d/ID or ?id=ID
+    const m =
+      u.match(/\/file\/d\/([a-zA-Z0-9_-]{15,})/i) ||
+      u.match(/[?&]id=([a-zA-Z0-9_-]{15,})/i);
+
+    if (m && m[1]) {
+      return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m[1])}`;
+    }
+
+    // otherwise keep url
+    if (/^https?:\/\//i.test(u)) return u;
+    return s;
   }
 
-  function showLoaded() {
-    heroSk.style.display = "none";
-    hero.style.display = "flex";
-    sections.style.display = "grid";
-    hero.classList.add("fade-in");
-    sections.classList.add("fade-in");
+  function safeShow(el, show) {
+    if (!el) return;
+    el.style.display = show ? "" : "none";
   }
 
-  function setAvatar(url, name) {
-    const u = safeText(url);
-    const n = safeText(name) || "🙂";
-    avatarPh.textContent = n.slice(0, 1);
-    if (!u) {
-      avatar.style.display = "none";
+  function setText(el, text) {
+    if (!el) return;
+    el.textContent = text;
+  }
+
+  function setLine(el, text) {
+    if (!el) return;
+    const t = trimOrEmpty(text);
+    el.textContent = t;
+    el.style.display = t ? "" : "none";
+  }
+
+  function renderServices(services) {
+    const s = trimOrEmpty(services);
+    if (!uService || !secService) return;
+
+    uService.innerHTML = "";
+    if (!s) {
+      safeShow(secService, false);
       return;
     }
-    avatar.onload = () => {
-      avatar.style.display = "block";
-    };
-    avatar.onerror = () => {
-      avatar.style.display = "none";
-    };
-    avatar.src = u;
-  }
 
-  function toBullets(val) {
-    if (!val) return [];
-    if (Array.isArray(val)) return val.map(safeText).filter(Boolean);
-
-    const s = safeText(val);
-    if (!s) return [];
-    // Split by newline / comma / semicolon / 、 / •
-    return s
-      .split(/\r?\n|,|;|、|•|\u2022/g)
-      .map((x) => safeText(x))
+    // support comma / newline
+    const items = s
+      .split(/[,，\n]/g)
+      .map((x) => x.trim())
       .filter(Boolean);
+
+    if (!items.length) {
+      safeShow(secService, false);
+      return;
+    }
+
+    for (const it of items) {
+      const li = document.createElement("li");
+      li.textContent = it;
+      uService.appendChild(li);
+    }
+    safeShow(secService, true);
   }
 
-  function normalizeParagraph(val) {
-    const s = safeText(val);
+  function renderExp(exp) {
+    const s = trimOrEmpty(exp);
+    if (!uExp || !secExp) return;
+
+    if (!s) {
+      safeShow(secExp, false);
+      return;
+    }
+    uExp.textContent = s;
+    safeShow(secExp, true);
+  }
+
+  function addContact(title, value, href) {
+    if (!uContact) return;
+
+    const wrap = document.createElement("a");
+    wrap.className = "contact";
+    wrap.href = href || "#";
+    wrap.rel = "noopener";
+    wrap.target = href ? "_blank" : "_self";
+
+    const ico = document.createElement("div");
+    ico.className = "ico";
+    ico.textContent = title.slice(0, 1);
+
+    const body = document.createElement("div");
+    body.className = "cBody";
+
+    const t = document.createElement("div");
+    t.className = "cTitle";
+    t.textContent = title;
+
+    const v = document.createElement("div");
+    v.className = "cVal";
+    v.textContent = value;
+
+    const go = document.createElement("div");
+    go.className = "cGo";
+    go.textContent = "開啟";
+
+    body.appendChild(t);
+    body.appendChild(v);
+
+    wrap.appendChild(ico);
+    wrap.appendChild(body);
+    wrap.appendChild(go);
+
+    uContact.appendChild(wrap);
+  }
+
+  function normalizeLine(raw) {
+    const s = trimOrEmpty(raw);
     if (!s) return "";
-    // keep line breaks, but remove too many blank lines
-    return s.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    // allow @id
+    if (s.startsWith("@")) return `https://line.me/R/ti/p/${encodeURIComponent(s)}`;
+    // url
+    return s.replace(/^http:\/\//i, "https://");
   }
 
-  function buildContactItems(obj) {
-    // robust mapping
-    const phone = pick(obj, ["phone", "mobile", "tel"], "");
-    const email = pick(obj, ["email", "mail"], "");
-    const line = pick(obj, ["line_oa", "line", "line_id", "line_url"], "");
-    const wechat = pick(obj, ["wechat", "wechat_id", "weixin"], "");
-    const website = pick(obj, ["website", "url", "web"], "");
-    const address = pick(obj, ["address", "addr", "location"], "");
+  function renderContacts(item) {
+    if (!uContact || !secContact) return;
 
-    const items = [];
+    uContact.innerHTML = "";
 
-    if (phone) items.push({ type: "phone", title: "Phone", value: phone, href: `tel:${phone}` });
-    if (email) items.push({ type: "email", title: "Email", value: email, href: `mailto:${email}` });
+    const line = normalizeLine(item.line_url || "");
+    const wechat = trimOrEmpty(item.wechat_id || "");
+    const email = trimOrEmpty(item.email || "");
+    const phone = trimOrEmpty(item.phone || "");
+    const address = trimOrEmpty(item.address || "");
+    const lineOA = trimOrEmpty(item.line_oa || CONFIG.SUPPORT_URL);
+
+    let count = 0;
 
     if (line) {
-      const href = line.startsWith("http") ? line : `https://line.me/R/ti/p/${encodeURIComponent(line)}`;
-      items.push({ type: "line", title: "LINE", value: line, href });
+      addContact("LINE", line, line);
+      count++;
     }
-
-    if (wechat) items.push({ type: "wechat", title: "WeChat", value: wechat, href: "" });
-
-    if (website) {
-      const href = website.startsWith("http") ? website : `https://${website}`;
-      items.push({ type: "web", title: "Website", value: website, href });
+    if (wechat) {
+      // wechat can't open directly; copy-like UX not in this v407 UI, so just show
+      addContact("微信", wechat, "");
+      count++;
     }
-
+    if (email) {
+      addContact("Email", email, `mailto:${email}`);
+      count++;
+    }
+    if (phone) {
+      const p = phone.replace(/\s+/g, "");
+      addContact("Phone", phone, `tel:${p}`);
+      count++;
+    }
     if (address) {
       const q = encodeURIComponent(address);
-      const href = `https://www.google.com/maps/search/?api=1&query=${q}`;
-      items.push({ type: "addr", title: "Address", value: address, href });
+      addContact("地址", address, `https://www.google.com/maps/search/?api=1&query=${q}`);
+      count++;
     }
 
-    return items;
+    // always provide support OA when inactive (or when nothing)
+    if (!count && lineOA) {
+      addContact("客服", lineOA, lineOA);
+      count++;
+    }
+
+    safeShow(secContact, count > 0);
   }
 
-  function iconChar(type) {
-    switch (type) {
-      case "phone": return "☎";
-      case "email": return "✉";
-      case "line": return "L";
-      case "wechat": return "W";
-      case "web": return "⌁";
-      case "addr": return "⌖";
-      default: return "•";
+  function renderAvatar(item) {
+    const url = normalizeDriveImageUrl(item.avatar_img_fast || item.avatar_img || "");
+    if (!avatar || !avatarPh) return;
+
+    if (url) {
+      avatar.src = url;
+      avatar.style.display = "";
+      avatarPh.style.display = "none";
+      avatar.onerror = () => {
+        avatar.style.display = "none";
+        avatarPh.style.display = "";
+      };
+    } else {
+      avatar.style.display = "none";
+      avatarPh.style.display = "";
     }
   }
 
-  function renderContacts(items) {
-    uContact.innerHTML = "";
-    items.forEach((it) => {
-      const row = document.createElement("div");
-      row.className = "contact";
+  function render(item) {
+    const id = trimOrEmpty(item.id || "");
+    const status = trimOrEmpty(item.status || "");
+    const plan = trimOrEmpty(item.plan || "");
 
-      const ico = document.createElement("div");
-      ico.className = "ico";
-      ico.textContent = iconChar(it.type);
+    setText(idText, id || "—");
+    setText(planText, plan || "—");
 
-      const body = document.createElement("div");
-      body.className = "cBody";
+    setText(elName, trimOrEmpty(item.name) || "—");
+    setLine(elUnit, item.unit || "");
+    setLine(elTitle, item.title || "");
 
-      const t = document.createElement("div");
-      t.className = "cTitle";
-      t.textContent = it.title;
+    renderAvatar(item);
+    renderServices(item.services || "");
+    renderExp(item.experience || "");
+    renderContacts(item);
 
-      const v = document.createElement("div");
-      v.className = "cVal";
-      v.textContent = it.value;
+    // sections visible if active
+    const isActive = status.toLowerCase() === "active";
 
-      body.appendChild(t);
-      body.appendChild(v);
+    // 你現在 create 預設 inactive，所以會進 empty
+    // ✅ 如果你希望 inactive 也能預覽內容，把下面改成 true
+    const allowPreviewWhenInactive = false;
 
-      const go = document.createElement("a");
-      go.className = "cGo";
-      go.textContent = it.href ? "開啟" : "複製";
+    if (isActive || allowPreviewWhenInactive) {
+      safeShow(elEmpty, false);
+      safeShow(elHero, true);
+      safeShow(elSections, true);
+      setPill(isActive ? "Active" : "Inactive preview");
+    } else {
+      safeShow(elHero, true);       // 仍顯示頭部基本資料（你比較好辨識）
+      safeShow(elSections, false);  // 不給內容
+      safeShow(elEmpty, true);
+      setPill("Inactive");
+    }
 
-      if (it.href) {
-        go.href = it.href;
-        go.target = "_blank";
-        go.rel = "noopener";
-      } else {
-        go.href = "javascript:void(0)";
-        go.addEventListener("click", async () => {
-          try {
-            await navigator.clipboard.writeText(it.value);
-            go.textContent = "已複製";
-            setTimeout(() => (go.textContent = "複製"), 900);
-          } catch {
-            // fallback
-            prompt("複製這段：", it.value);
-          }
-        });
-      }
+    safeShow(elHeroSk, false);
 
-      row.appendChild(ico);
-      row.appendChild(body);
-      row.appendChild(go);
-
-      uContact.appendChild(row);
-    });
-  }
-
-  function miniPayloadForDebug(raw) {
-    const obj = normalizeObjKeys(raw || {});
-    const out = {
-      ok: raw && raw.ok,
-      id: pick(obj, ["id", "card_id"], ""),
-      name: pick(obj, ["name", "u_name", "fullname"], ""),
-      plan: parsePlan(obj),
-      p: pick(obj, ["p", "p_code"], ""),
-      c: pick(obj, ["c", "c_code"], ""),
-      s: pick(obj, ["s", "s_code"], ""),
-      f: pick(obj, ["f", "f_code"], ""),
-      avatar: pick(obj, ["avatar_img", "avatar", "photo", "profile_img"], ""),
-      service: pick(obj, ["service", "services", "u_service"], ""),
-      exp: pick(obj, ["experience", "exp", "u_exp"], "")
-    };
-    return out;
-  }
-
-  // ---------- Fetch ----------
-  async function fetchJson(url) {
-    const res = await fetch(url, { cache: "no-store" });
-    const text = await res.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      // Some GAS returns JSON with leading junk - try to extract
-      const m = text.match(/\{[\s\S]*\}$/);
-      if (m) return JSON.parse(m[0]);
-      throw new Error("Invalid JSON");
+    if (btnSupport) {
+      btnSupport.href = CONFIG.SUPPORT_URL;
     }
   }
 
   async function fetchCard(id) {
-    const cid = normalizeId(id) || CONFIG.DEFAULT_ID;
-    const gas = CONFIG.GAS;
-    const base = `${gas}?action=card&id=${encodeURIComponent(cid)}&v=${VERSION}&ts=${Date.now()}`;
-    state.gasUrl = base;
-    state.fetchStatus = "loading";
-    setPill("Loading skeleton", false);
+    const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
 
-    const data = await fetchJson(base);
-    return data;
+    const { signal, promise } = withTimeout(fetch(url, { method: "GET", signal }), CONFIG.FETCH_TIMEOUT_MS);
+
+    const res = await promise;
+    const text = await res.text();
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      throw new Error("JSON parse failed: " + text.slice(0, 180));
+    }
+    state.last = { url, json };
+    if (!json || json.ok !== true || !json.item) {
+      throw new Error("Card not found or invalid payload");
+    }
+    return json.item;
   }
 
-  // ---------- Render ----------
-  function render(data) {
-    if (!data || data.ok === false) {
-      state.fetchStatus = "inactive";
-      state.payloadMini = miniPayloadForDebug(data);
-      showInactive();
-      return;
-    }
-
-    // Normalize keys
-    const obj = normalizeObjKeys(data);
-
-    state.plan = parsePlan(obj);
-    state.pcsf = parsePCSf(obj);
-
-    const name = pick(obj, ["name", "fullname", "u_name"], "—");
-    const unit = pick(obj, ["unit", "company", "org", "u_unit"], "");
-    const title = pick(obj, ["title", "job_title", "position", "u_title"], "");
-    const avatarUrl = pick(obj, ["avatar_img", "avatar", "photo", "profile_img"], "");
-
-    // premium halo
-    if (state.plan === "premium") avatarWrap.classList.add("premiumHalo");
-    else avatarWrap.classList.remove("premiumHalo");
-
-    uName.textContent = name;
-    uUnit.textContent = unit ? unit : " ";
-    uTitle.textContent = title ? title : " ";
-    planText.textContent = state.plan === "premium" ? "premium" : "free";
-    idText.textContent = normalizeId(pick(obj, ["id", "card_id"], state.id || "")) || state.id || "—";
-
-    setAvatar(avatarUrl, name);
-
-    // Service bullet
-    const serviceRaw = pick(obj, ["service", "services", "u_service"], "");
-    const bullets = toBullets(serviceRaw);
-    if (bullets.length) {
-      secService.style.display = "block";
-      uService.innerHTML = bullets.map((b) => `<li>${escapeHtml(b)}</li>`).join("");
-    } else {
-      secService.style.display = "none";
-    }
-
-    // Experience paragraphs
-    const expRaw = pick(obj, ["experience", "exp", "u_exp", "career"], "");
-    const exp = normalizeParagraph(expRaw);
-    if (exp) {
-      secExp.style.display = "block";
-      uExp.textContent = exp;
-    } else {
-      secExp.style.display = "none";
-    }
-
-    // Contacts
-    const contacts = buildContactItems(obj);
-    if (contacts.length) {
-      secContact.style.display = "block";
-      renderContacts(contacts);
-    } else {
-      secContact.style.display = "none";
-    }
-
-    state.fetchStatus = "ok";
-    state.payloadMini = miniPayloadForDebug(data);
-
-    showLoaded();
-    setPill("ready", true);
-
-    // If opened inside WeChat, hint user to use open.html (optional)
-    if (isMicroMessenger()) {
-      // keep subtle: no popup, only pill
-      setPill("ready (WeChat)", true);
-    }
-  }
-
-  function escapeHtml(s) {
-    return String(s)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
-
-  // ---------- Debug (Unified) ----------
   function openDebug() {
-    const info = {
-      id: state.id,
-      plan: state.plan,
-      p: state.pcsf.p,
-      c: state.pcsf.c,
-      s: state.pcsf.s,
-      f: state.pcsf.f,
-      fetch: state.fetchStatus,
-      gas_url: state.gasUrl,
-      json: state.payloadMini
-    };
-    dbgPre.textContent = JSON.stringify(info, null, 2);
-    dbgMask.style.display = "block";
-    dbg.style.display = "block";
+    if (!dbg || !dbgPre || !dbgMask) return;
+    dbgPre.textContent = JSON.stringify(state.last, null, 2);
+    dbg.style.display = "";
+    dbgMask.style.display = "";
   }
 
   function closeDebug() {
+    if (!dbg || !dbgMask) return;
     dbg.style.display = "none";
     dbgMask.style.display = "none";
   }
 
-  function bindLongPress(node, ms, fn) {
-    let t = null;
-    const start = () => {
-      clearTimeout(t);
-      t = setTimeout(() => fn(), ms);
-    };
-    const end = () => clearTimeout(t);
-
-    node.addEventListener("touchstart", start, { passive: true });
-    node.addEventListener("touchend", end);
-    node.addEventListener("touchcancel", end);
-
-    node.addEventListener("mousedown", start);
-    node.addEventListener("mouseup", end);
-    node.addEventListener("mouseleave", end);
-  }
-
-  // ---------- Boot ----------
   async function boot() {
-    // Determine id
-    const id = normalizeId(qs("id")) || CONFIG.DEFAULT_ID;
-    state.id = id;
+    const id = getIdFromUrl() || "TW0001";
 
-    // init UI
-    empty.style.display = "none";
-    heroSk.style.display = "flex";
-    hero.style.display = "none";
-    sections.style.display = "none";
-    setPill("Loading skeleton", false);
-
-    // support link always available
-    btnSupport.href = CONFIG.SUPPORT_LINE;
-
-    // debug
-    bindLongPress(brand, CONFIG.LONGPRESS_MS, openDebug);
-    dbgClose.addEventListener("click", closeDebug);
-    dbgMask.addEventListener("click", closeDebug);
+    setPill("Loading…");
+    safeShow(elHeroSk, true);
+    safeShow(elHero, false);
+    safeShow(elSections, false);
+    safeShow(elEmpty, false);
 
     try {
-      const data = await fetchCard(id);
-      // Required guard per spec:
-      // !data || !data.ok → inactive
-      if (!data || data.ok === false) {
-        showInactive();
-        state.payloadMini = miniPayloadForDebug(data);
-        state.fetchStatus = "inactive";
-        return;
-      }
-      render(data);
+      const item = await fetchCard(id);
+      render(item);
+      pill.classList.add("fade-in");
     } catch (err) {
-      state.fetchStatus = "error";
-      state.payloadMini = { error: String(err && err.message ? err.message : err) };
-      showInactive(); // fail-safe: treat as inactive to keep UX clean
-      setPill("network/error", false);
+      safeShow(elHeroSk, false);
+      safeShow(elHero, false);
+      safeShow(elSections, false);
+      safeShow(elEmpty, true);
+      setPill("Load failed");
+      if ($("#empty p")) $("#empty p").textContent = "載入失敗\n請確認名片序號與 GAS action=card 可用";
+      state.last = { error: String(err) };
     }
+
+    // long press brand to open debug
+    if (brand) {
+      let t = null;
+      brand.addEventListener("touchstart", () => {
+        t = setTimeout(openDebug, 900);
+      }, { passive: true });
+      brand.addEventListener("touchend", () => {
+        if (t) clearTimeout(t);
+      }, { passive: true });
+
+      brand.addEventListener("mousedown", () => {
+        t = setTimeout(openDebug, 900);
+      });
+      brand.addEventListener("mouseup", () => {
+        if (t) clearTimeout(t);
+      });
+    }
+
+    if (dbgClose) dbgClose.addEventListener("click", closeDebug);
+    if (dbgMask) dbgMask.addEventListener("click", closeDebug);
   }
 
   boot();
