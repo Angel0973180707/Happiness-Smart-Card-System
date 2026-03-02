@@ -1,9 +1,3 @@
-<!-- ================================
-     form.html — v498 (COMPLETE OVERWRITE)
-     - Adds full options for free/premium
-     - Photo limits: free max 2, premium max 5 (UI + submit checks in form.js next)
-     - Keeps your v497 structure & image upload blocks
-================================== -->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -39,65 +33,63 @@
         <b>自由搭配：</b>5色 × 3版型 × 3紙感；照片牆最多 2 張
       </div>
 
-      <div class="status" id="statusBox">請先選擇方案，填寫基本資料與照片即可送出。</div>
-
-      <form id="cardForm" class="form" autocomplete="on">
-        <!-- ✅ v498 方案選項 -->
-        <div class="optBox" id="optionsBox">
-          <div class="optHead">
-            <div class="optTitle">外觀選擇</div>
-            <div class="optSub" id="optSub">自由搭配：顏色 / 版型 / 紙感</div>
-          </div>
-
-          <!-- Free options -->
-          <div id="freeOptions" class="optGrid">
-            <label class="field">
-              <span class="lbl">顏色（free）</span>
-              <select id="color" name="color">
-                <option value="c1">c1 粉</option>
-                <option value="c2">c2 藍</option>
-                <option value="c3" selected>c3 橘</option>
-                <option value="c4">c4 紫</option>
-                <option value="c5">c5 綠</option>
-              </select>
-            </label>
-
-            <label class="field">
-              <span class="lbl">版型（free）</span>
-              <select id="style" name="style">
-                <option value="s1" selected>s1 正拱</option>
-                <option value="s2">s2 平直</option>
-                <option value="s3">s3 晨曦</option>
-              </select>
-            </label>
-
-            <label class="field">
-              <span class="lbl">紙感（free）</span>
-              <select id="paper" name="paper">
-                <option value="f1" selected>f1 棉紙</option>
-                <option value="f2">f2 顆粒</option>
-                <option value="f3">f3 亞麻</option>
-              </select>
-            </label>
-          </div>
-
-          <!-- Premium options -->
-          <div id="premiumOptions" class="optGrid" style="display:none;">
-            <label class="field" style="grid-column: 1 / -1;">
-              <span class="lbl">底色（premium）</span>
-              <select id="premium_color" name="premium_color">
-                <option value="p1">p1 胭脂紅</option>
-                <option value="p2">p2 酒紅</option>
-                <option value="p3">p3 深藍</option>
-                <option value="p4">p4 霧紫</option>
-                <option value="p5">p5 藍灰</option>
-                <option value="p6" selected>p6 金箔</option>
-                <option value="p7">p7 褐碳</option>
-              </select>
-            </label>
-          </div>
+      <!-- v498: 外觀選項 -->
+      <div class="optBox">
+        <div class="optHead">
+          <div class="optTitle">外觀選擇</div>
+          <div class="optSub" id="optSub">自由搭配：顏色 / 版型 / 紙感</div>
         </div>
 
+        <!-- free options -->
+        <div class="optGrid" id="freeOptions">
+          <label class="field">
+            <span class="lbl">顏色（free）</span>
+            <select id="color" name="color">
+              <option value="c1">c1 粉</option>
+              <option value="c2">c2 藍</option>
+              <option value="c3" selected>c3 橘</option>
+              <option value="c4">c4 紫</option>
+              <option value="c5">c5 綠</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="lbl">版型（free）</span>
+            <select id="style" name="style">
+              <option value="s1" selected>s1 正拱</option>
+              <option value="s2">s2 平直</option>
+              <option value="s3">s3 晨曦</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="lbl">紙感（free）</span>
+            <select id="paper" name="paper">
+              <option value="f1" selected>f1 棉紙</option>
+              <option value="f2">f2 顆粒</option>
+              <option value="f3">f3 亞麻</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- premium options -->
+        <div class="optGrid" id="premiumOptions" style="display:none;">
+          <label class="field">
+            <span class="lbl">底色（premium）</span>
+            <select id="premium_color" name="premium_color">
+              <option value="p1">p1 胭脂紅</option>
+              <option value="p2">p2 酒紅</option>
+              <option value="p3">p3 深藍</option>
+              <option value="p4">p4 霧紫</option>
+              <option value="p5">p5 藍灰</option>
+              <option value="p6" selected>p6 金箔</option>
+              <option value="p7">p7 褐碳</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <form id="cardForm" class="form" autocomplete="on">
         <!-- 基本資料 -->
         <div class="grid2">
           <label class="field">
@@ -175,13 +167,13 @@
           <div class="imgGrid">
             <div class="imgItem">
               <div class="imgLbl">個人照</div>
-              <input id="avatar_file" type="file" accept="image/*" />
+              <input id="avatar_file" name="avatar_file" type="file" accept="image/*" />
               <img id="avatarPreview" class="preview" alt="avatar preview" />
             </div>
 
             <div class="imgItem">
               <div class="imgLbl">Logo（選填）</div>
-              <input id="logo_file" type="file" accept="image/*" />
+              <input id="logo_file" name="logo_file" type="file" accept="image/*" />
               <img id="logoPreview" class="preview" alt="logo preview" />
             </div>
           </div>
@@ -189,29 +181,29 @@
           <div class="imgGrid" id="photosGrid">
             <div class="imgItem">
               <div class="imgLbl">照片 1</div>
-              <input id="photo1_file" type="file" accept="image/*" />
+              <input id="photo1_file" name="photo1_file" type="file" accept="image/*" />
               <img id="photo1Preview" class="preview" alt="photo1 preview" />
             </div>
             <div class="imgItem">
               <div class="imgLbl">照片 2</div>
-              <input id="photo2_file" type="file" accept="image/*" />
+              <input id="photo2_file" name="photo2_file" type="file" accept="image/*" />
               <img id="photo2Preview" class="preview" alt="photo2 preview" />
             </div>
 
             <!-- 下面三張：只有精品設計才顯示 -->
             <div class="imgItem morePhotos" id="morePhoto3">
               <div class="imgLbl">照片 3（精品）</div>
-              <input id="photo3_file" type="file" accept="image/*" />
+              <input id="photo3_file" name="photo3_file" type="file" accept="image/*" />
               <img id="photo3Preview" class="preview" alt="photo3 preview" />
             </div>
             <div class="imgItem morePhotos" id="morePhoto4">
               <div class="imgLbl">照片 4（精品）</div>
-              <input id="photo4_file" type="file" accept="image/*" />
+              <input id="photo4_file" name="photo4_file" type="file" accept="image/*" />
               <img id="photo4Preview" class="preview" alt="photo4 preview" />
             </div>
             <div class="imgItem morePhotos" id="morePhoto5">
               <div class="imgLbl">照片 5（精品）</div>
-              <input id="photo5_file" type="file" accept="image/*" />
+              <input id="photo5_file" name="photo5_file" type="file" accept="image/*" />
               <img id="photo5Preview" class="preview" alt="photo5 preview" />
             </div>
           </div>
@@ -222,33 +214,36 @@
           <button class="btn ghost" id="btnFillDemo" type="button">一鍵填入示範</button>
           <button class="btn danger" id="btnReset" type="button">清空</button>
         </div>
+
+        <!-- ✅ v498：狀態移到最下面（送出中/成功/失敗都在底） -->
+        <div class="status" id="statusBox">請先選擇方案，填寫基本資料與照片即可送出。</div>
+
+        <!-- ✅ v498：結果也在最下面 -->
+        <section class="card result" id="resultBox" style="display:none; margin-top:12px;">
+          <div class="resultTitle">已建立名片 ✅</div>
+
+          <div class="kv">
+            <div class="k">ID</div>
+            <div class="v" id="r_id">—</div>
+          </div>
+          <div class="kv">
+            <div class="k">TOKEN</div>
+            <div class="v" id="r_token">—</div>
+          </div>
+
+          <div class="kv">
+            <div class="k">智慧名片成品連結</div>
+            <div class="v" id="r_card">—</div>
+            <button class="btn mini" id="btnCopyCard" type="button">複製</button>
+          </div>
+
+          <div class="kv">
+            <div class="k">OG 交付連結（share）</div>
+            <div class="v" id="r_og">—</div>
+            <button class="btn mini" id="btnCopyOg" type="button">複製</button>
+          </div>
+        </section>
       </form>
-    </section>
-
-    <!-- 結果 -->
-    <section class="card result" id="resultBox" style="display:none;">
-      <div class="resultTitle">已建立名片 ✅</div>
-
-      <div class="kv">
-        <div class="k">ID</div>
-        <div class="v" id="r_id">—</div>
-      </div>
-      <div class="kv">
-        <div class="k">TOKEN</div>
-        <div class="v" id="r_token">—</div>
-      </div>
-
-      <div class="kv">
-        <div class="k">智慧名片成品連結</div>
-        <div class="v" id="r_card">—</div>
-        <button class="btn mini" id="btnCopyCard" type="button">複製</button>
-      </div>
-
-      <div class="kv">
-        <div class="k">OG 交付連結（share）</div>
-        <div class="v" id="r_og">—</div>
-        <button class="btn mini" id="btnCopyOg" type="button">複製</button>
-      </div>
     </section>
 
     <footer class="foot">
