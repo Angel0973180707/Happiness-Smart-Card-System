@@ -1,5 +1,5 @@
 /* ================================
-   admin.js v492.1 (COMPLETE OVERWRITE)
+   admin.js v495 (COMPLETE OVERWRITE)
    FIX: "Failed to fetch" on POST to GAS (CORS/preflight)
    - Use text/plain JSON body (avoid preflight)
    - Add GET fallback if POST still blocked
