@@ -1,24 +1,29 @@
 /* ================================
- * form.js — v497 (COMPLETE OVERWRITE)
- * - 清爽 UI / 分流明確（free / premium）
- * - 圖片：file -> dataURL(base64) -> GAS create
- * - POST: x-www-form-urlencoded (data=JSON) 避免 preflight
- * - Draft autosave (localStorage)
+ * form.js — v498 (COMPLETE OVERWRITE)
+ * - ✅ 保留 v497 全部功能：UI/分流、base64→GAS、避 preflight、Draft autosave、Result 複製、Ping、Timeout/Retry
+ * - ⭐ 新增：前端 Canvas 壓縮（不裁切、等比縮放）
+ * - ⭐ 新增：版型欄位寫入 plan/color/style/paper/premium_color（Draft 也記）
+ * - ⭐ 文案：乾淨成品 → 智慧名片成品
  * ================================ */
 
 (() => {
   "use strict";
 
   const CONFIG = {
-    VERSION: "v497",
+    VERSION: "v498",
     GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     DEFAULT_LINE_OA: "https://lin.ee/G3VJoRm",
     FETCH_TIMEOUT_MS: 20000,
     RETRY: 1,
-    DRAFT_KEY: "angel_card_draft_v497",
+    DRAFT_KEY: "angel_card_draft_v498",
     AUTOSAVE_DEBOUNCE_MS: 380,
-    MAX_FILE_BYTES: 2.8 * 1024 * 1024
+
+    // ✅ 原檔 2.8MB 是「未壓縮」時用來避免爆炸
+    // v498 已壓縮後再送，因此可放寬原檔限制（仍保守）
+    MAX_ORIGINAL_FILE_BYTES: 10 * 1024 * 1024, // 10MB 原檔上限（避免手機超大圖）
+    MAX_EDGE: 1200,                             // 壓縮最大邊長
+    JPEG_QUALITY: 0.82                          // JPEG 品質（商業穩定值）
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -45,6 +50,10 @@
   const btnCopyCard = $("#btnCopyCard");
   const btnCopyOg = $("#btnCopyOg");
 
+  // v498：方案選項區（若 HTML 有）
+  const freeOptionsBox = $("#freeOptions");
+  const premiumOptionsBox = $("#premiumOptions");
+
   const FILE_FIELDS = [
     { key: "avatar", file: "#avatar_file", preview: "#avatarPreview" },
     { key: "logo",   file: "#logo_file",   preview: "#logoPreview"   },
@@ -58,6 +67,7 @@
   const fileState = {}; // key -> {dataUrl, filename, mime, bytes}
 
   function setStatus(msg, type = "info") {
+    if (!elStatus) return;
     elStatus.classList.remove("ok", "err");
     if (type === "ok") elStatus.classList.add("ok");
     if (type === "err") elStatus.classList.add("err");
@@ -78,8 +88,7 @@
     const s = trimOrEmpty(raw);
     if (!s) return "";
     if (/^https?:\/\//i.test(s)) return s.replace(/^http:\/\//i, "https://");
-    // allow @id (keep)
-    return s;
+    return s; // allow @id
   }
 
   function normalizeUrl(raw) {
@@ -96,17 +105,65 @@
     return { clean_card_url, og_page_url };
   }
 
-  async function fileToDataURL(file) {
+  // ================================
+  // ⭐ v498：Canvas 壓縮（不裁切、等比）
+  // - avatar / photos：轉 JPEG（較省）
+  // - logo：若是 PNG，保留 PNG（避免透明背景變黑）
+  // ================================
+  async function compressToDataURL_(file, fieldKey) {
     if (!file) return null;
-    if (file.size > CONFIG.MAX_FILE_BYTES) {
-      throw new Error(`圖片太大（${(file.size/1024/1024).toFixed(1)}MB）。目前先限制 ${(CONFIG.MAX_FILE_BYTES/1024/1024).toFixed(1)}MB，避免送出失敗。`);
+
+    if (file.size > CONFIG.MAX_ORIGINAL_FILE_BYTES) {
+      throw new Error(`原圖太大（${(file.size/1024/1024).toFixed(1)}MB）。目前上限 ${(CONFIG.MAX_ORIGINAL_FILE_BYTES/1024/1024).toFixed(0)}MB，請換小一點的圖。`);
     }
-    return new Promise((resolve, reject) => {
+
+    const srcDataUrl = await new Promise((resolve, reject) => {
       const fr = new FileReader();
       fr.onload = () => resolve(fr.result);
       fr.onerror = () => reject(new Error("讀取圖片失敗"));
       fr.readAsDataURL(file);
     });
+
+    const img = await new Promise((resolve, reject) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => reject(new Error("圖片載入失敗"));
+      i.src = srcDataUrl;
+    });
+
+    const ow = img.naturalWidth || img.width || 0;
+    const oh = img.naturalHeight || img.height || 0;
+    if (!ow || !oh) throw new Error("圖片尺寸讀取失敗");
+
+    const max = CONFIG.MAX_EDGE;
+    const ratio = Math.min(1, max / ow, max / oh);
+    const w = Math.max(1, Math.round(ow * ratio));
+    const h = Math.max(1, Math.round(oh * ratio));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, w, h);
+
+    const isPng = (file.type || "").toLowerCase() === "image/png";
+    const wantPng = (fieldKey === "logo" && isPng);
+
+    let outDataUrl;
+    if (wantPng) {
+      outDataUrl = canvas.toDataURL("image/png");
+    } else {
+      outDataUrl = canvas.toDataURL("image/jpeg", CONFIG.JPEG_QUALITY);
+    }
+    return outDataUrl;
+  }
+
+  // v498：取代 v497 的 fileToDataURL（改為壓縮後的 dataURL）
+  async function fileToDataURL(file, fieldKey) {
+    return compressToDataURL_(file, fieldKey);
   }
 
   function setPreview(previewSel, dataUrl) {
@@ -132,41 +189,58 @@
       return;
     }
 
-    const dataUrl = await fileToDataURL(f);
+    setStatus("圖片處理中…（壓縮）", "info");
+
+    const dataUrl = await fileToDataURL(f, fieldKey);
     fileState[fieldKey] = {
       dataUrl,
       filename: f.name || `${fieldKey}.jpg`,
-      mime: f.type || "image/jpeg",
-      bytes: f.size || 0
+      mime: (fieldKey === "logo" && (f.type || "").toLowerCase() === "image/png") ? "image/png" : "image/jpeg",
+      bytes: dataUrl ? dataUrl.length : (f.size || 0)
     };
+
     setPreview(previewSel, dataUrl);
+    setStatus("圖片已處理完成 ✅", "ok");
     saveDraftSoon_();
   }
 
   function setPlan(plan) {
     const p = (plan === "premium") ? "premium" : "free";
-    elPlan.value = p;
+    if (elPlan) elPlan.value = p;
 
-    segFree.classList.toggle("on", p === "free");
-    segPremium.classList.toggle("on", p === "premium");
+    if (segFree) segFree.classList.toggle("on", p === "free");
+    if (segPremium) segPremium.classList.toggle("on", p === "premium");
 
     // UI: premium 才顯示 photo3~5
     document.querySelectorAll(".morePhotos").forEach(el => {
       el.style.display = (p === "premium") ? "" : "none";
     });
 
-    planHint.innerHTML = (p === "premium")
-      ? "<b>精品設計：</b>7 底色；照片牆最多 5 張"
-      : "<b>自由搭配：</b>5色 × 3版型 × 3紙感；照片牆最多 2 張";
+    // v498：方案選項區同步顯示
+    if (freeOptionsBox) freeOptionsBox.style.display = (p === "free") ? "" : "none";
+    if (premiumOptionsBox) premiumOptionsBox.style.display = (p === "premium") ? "" : "none";
+
+    if (planHint) {
+      planHint.innerHTML = (p === "premium")
+        ? "<b>精品設計：</b>7 底色；照片牆最多 5 張"
+        : "<b>自由搭配：</b>5色 × 3版型 × 3紙感；照片牆最多 2 張";
+    }
 
     setStatus("已切換方案：" + (p === "premium" ? "精品設計" : "自由搭配"), "ok");
     saveDraftSoon_();
   }
 
-  function collectFormData_() {
-    const plan = elPlan.value || "free";
+  function getSelectValue_(id, fallback = "") {
+    const el = document.getElementById(id);
+    if (!el) return fallback;
+    const v = trimOrEmpty(el.value);
+    return v || fallback;
+  }
 
-    // 基本欄位
+  function collectFormData_() {
+    const plan = (elPlan && elPlan.value) ? elPlan.value : "free";
+
+    // 基本欄位（保留 v497）
     const payload = {
       plan,
       name: trimOrEmpty($("#name")?.value),
@@ -183,8 +257,25 @@
       line_oa: normalizeUrl($("#line_oa")?.value) || CONFIG.DEFAULT_LINE_OA
     };
 
-    // 方案分流：free 只允許 photo1~2
-    const allowPhotos = (plan === "premium") ? ["photo1","photo2","photo3","photo4","photo5"] : ["photo1","photo2"];
+    // ⭐ v498：版型欄位寫入
+    if (plan === "premium") {
+      payload.premium_color = getSelectValue_("premium_color", "");
+      // 兼容：有些人會叫 p
+      if (!payload.premium_color) payload.premium_color = getSelectValue_("p", "");
+    } else {
+      payload.color = getSelectValue_("color", "");
+      payload.style = getSelectValue_("style", "");
+      payload.paper = getSelectValue_("paper", "");
+      // 兼容：有些人會叫 c/s/f
+      if (!payload.color) payload.color = getSelectValue_("c", "");
+      if (!payload.style) payload.style = getSelectValue_("s", "");
+      if (!payload.paper) payload.paper = getSelectValue_("f", "");
+    }
+
+    // 方案分流：free 只允許 photo1~2；premium 允許 photo1~5
+    const allowPhotos = (plan === "premium")
+      ? ["photo1","photo2","photo3","photo4","photo5"]
+      : ["photo1","photo2"];
 
     const files = {};
     // avatar/logo 一直允許
@@ -192,7 +283,6 @@
     allowPhotos.forEach(k => { if (fileState[k]?.dataUrl) files[k] = fileState[k]; });
 
     payload.files = files;
-
     return payload;
   }
 
@@ -252,9 +342,18 @@
   }
 
   function saveDraftNow_() {
-    const plan = elPlan.value || "free";
+    const plan = (elPlan && elPlan.value) ? elPlan.value : "free";
     const draft = {
       plan,
+
+      // ⭐ v498：把版型欄位也存進草稿
+      styleFields: {
+        color: getSelectValue_("color", "c1"),
+        style: getSelectValue_("style", "s1"),
+        paper: getSelectValue_("paper", "f1"),
+        premium_color: getSelectValue_("premium_color", "p1")
+      },
+
       fields: {
         name: $("#name")?.value || "",
         unit: $("#unit")?.value || "",
@@ -284,6 +383,13 @@
 
       setPlan(d.plan || "free");
 
+      // 先回填版型欄位
+      const sf = d.styleFields || {};
+      if (document.getElementById("color") && sf.color) document.getElementById("color").value = sf.color;
+      if (document.getElementById("style") && sf.style) document.getElementById("style").value = sf.style;
+      if (document.getElementById("paper") && sf.paper) document.getElementById("paper").value = sf.paper;
+      if (document.getElementById("premium_color") && sf.premium_color) document.getElementById("premium_color").value = sf.premium_color;
+
       const f = (d.fields || {});
       Object.keys(f).forEach(k => {
         const el = document.getElementById(k);
@@ -300,6 +406,12 @@
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
+
+    // 清版型欄位（回到預設）
+    if (document.getElementById("color")) document.getElementById("color").value = "c1";
+    if (document.getElementById("style")) document.getElementById("style").value = "s1";
+    if (document.getElementById("paper")) document.getElementById("paper").value = "f1";
+    if (document.getElementById("premium_color")) document.getElementById("premium_color").value = "p1";
 
     // 清圖片
     FILE_FIELDS.forEach(ff => {
@@ -322,6 +434,13 @@
     $("#line_oa").value = CONFIG.DEFAULT_LINE_OA;
     $("#services").value = "打造個人品牌智慧名片\n名片交付／代管";
     $("#slogan").value = "把心站穩，活得自在。";
+
+    // v498：示範也填版型
+    if (document.getElementById("color")) document.getElementById("color").value = "c3";
+    if (document.getElementById("style")) document.getElementById("style").value = "s2";
+    if (document.getElementById("paper")) document.getElementById("paper").value = "f1";
+    if (document.getElementById("premium_color")) document.getElementById("premium_color").value = "p6";
+
     saveDraftSoon_();
     setStatus("已填入示範資料（圖片請自行選）。", "ok");
   }
@@ -330,15 +449,29 @@
     ev.preventDefault();
 
     try {
-      elBtnSubmit.disabled = true;
+      if (elBtnSubmit) elBtnSubmit.disabled = true;
       setStatus("送出中…（包含圖片會稍久）", "info");
 
       const payload = collectFormData_();
 
-      // 最基本檢查：free/premium 分流要明確
+      // 最基本檢查
       if (!payload.name) {
         setStatus("請至少填寫：姓名", "err");
-        elBtnSubmit.disabled = false;
+        if (elBtnSubmit) elBtnSubmit.disabled = false;
+        return;
+      }
+
+      // ⭐ v498：照片張數硬性限制（以「已選且壓縮成功」為準）
+      const plan = payload.plan || "free";
+      const selectedPhotos = ["photo1","photo2","photo3","photo4","photo5"].filter(k => !!payload.files?.[k]);
+      if (plan !== "premium" && selectedPhotos.length > 2) {
+        setStatus("自由搭配：照片牆最多 2 張（請移除照片 3~5）", "err");
+        if (elBtnSubmit) elBtnSubmit.disabled = false;
+        return;
+      }
+      if (plan === "premium" && selectedPhotos.length > 5) {
+        setStatus("精品設計：照片牆最多 5 張", "err");
+        if (elBtnSubmit) elBtnSubmit.disabled = false;
         return;
       }
 
@@ -364,20 +497,24 @@
       const { clean_card_url, og_page_url } = deriveUrls(id || "TW0001", token);
 
       // 顯示結果
-      r_id.textContent = id || "—";
-      r_token.textContent = token || "—";
-      r_card.textContent = clean_card_url;
-      r_og.textContent = og_page_url;
-      elResultBox.style.display = "";
+      if (r_id) r_id.textContent = id || "—";
+      if (r_token) r_token.textContent = token || "—";
+      if (r_card) r_card.textContent = clean_card_url;
+      if (r_og) r_og.textContent = og_page_url;
+      if (elResultBox) elResultBox.style.display = "";
 
-      btnCopyCard.onclick = async () => {
-        const ok = await copyText_(clean_card_url);
-        setStatus(ok ? "已複製乾淨成品連結 ✅" : "已取消", ok ? "ok" : "info");
-      };
-      btnCopyOg.onclick = async () => {
-        const ok = await copyText_(og_page_url);
-        setStatus(ok ? "已複製 OG 交付連結 ✅" : "已取消", ok ? "ok" : "info");
-      };
+      if (btnCopyCard) {
+        btnCopyCard.onclick = async () => {
+          const ok = await copyText_(clean_card_url);
+          setStatus(ok ? "已複製智慧名片成品連結 ✅" : "已取消", ok ? "ok" : "info");
+        };
+      }
+      if (btnCopyOg) {
+        btnCopyOg.onclick = async () => {
+          const ok = await copyText_(og_page_url);
+          setStatus(ok ? "已複製 OG 交付連結 ✅" : "已取消", ok ? "ok" : "info");
+        };
+      }
 
       setStatus("建立成功 ✅（若你已設定後台開通流程，名片狀態可能先是 inactive）", "ok");
       saveDraftNow_();
@@ -386,7 +523,7 @@
       console.error(err);
       setStatus("送出失敗：" + (err && err.message ? err.message : String(err)), "err");
     } finally {
-      elBtnSubmit.disabled = false;
+      if (elBtnSubmit) elBtnSubmit.disabled = false;
     }
   }
 
@@ -404,8 +541,7 @@
   }
 
   function bindTextAutosave_() {
-    // 所有 input/textarea 變動就 autosave
-    document.querySelectorAll("input,textarea").forEach(el => {
+    document.querySelectorAll("input,textarea,select").forEach(el => {
       el.addEventListener("input", saveDraftSoon_);
       el.addEventListener("change", saveDraftSoon_);
     });
@@ -413,8 +549,8 @@
 
   function boot_() {
     // plan buttons
-    segFree.addEventListener("click", () => setPlan("free"));
-    segPremium.addEventListener("click", () => setPlan("premium"));
+    if (segFree) segFree.addEventListener("click", () => setPlan("free"));
+    if (segPremium) segPremium.addEventListener("click", () => setPlan("premium"));
 
     // defaults
     setPlan("free");
@@ -423,22 +559,24 @@
     // bind
     bindFiles_();
     bindTextAutosave_();
-    elForm.addEventListener("submit", onSubmit_);
+    if (elForm) elForm.addEventListener("submit", onSubmit_);
 
-    elBtnReset.addEventListener("click", clearAll_);
-    elBtnDemo.addEventListener("click", fillDemo_);
+    if (elBtnReset) elBtnReset.addEventListener("click", clearAll_);
+    if (elBtnDemo) elBtnDemo.addEventListener("click", fillDemo_);
 
-    elBtnPing.addEventListener("click", async () => {
-      try {
-        setStatus("測試連線中…", "info");
-        const j = await ping_();
-        setStatus((j && (j.ok || j.status)) ? "連線正常 ✅" : "已回應（請看 console）", "ok");
-        console.log("PING:", j);
-      } catch (e) {
-        console.error(e);
-        setStatus("連線失敗：" + (e.message || e), "err");
-      }
-    });
+    if (elBtnPing) {
+      elBtnPing.addEventListener("click", async () => {
+        try {
+          setStatus("測試連線中…", "info");
+          const j = await ping_();
+          setStatus((j && (j.ok || j.status)) ? "連線正常 ✅" : "已回應（請看 console）", "ok");
+          console.log("PING:", j);
+        } catch (e) {
+          console.error(e);
+          setStatus("連線失敗：" + (e.message || e), "err");
+        }
+      });
+    }
 
     // load draft
     loadDraft_();
