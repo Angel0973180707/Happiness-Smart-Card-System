@@ -1,208 +1,276 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Happiness Smart Card｜建立智慧名片 v498</title>
-<link rel="stylesheet" href="form.css?v=498" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <title>天使幸福智慧名片</title>
+
+  <!-- v498 -->
+  <link rel="stylesheet" href="./form.css?v=498" />
 </head>
 
 <body>
+  <main class="wrap">
+    <header class="top">
+      <div class="brand">
+        <div class="dot"></div>
+        <div class="titleBox">
+          <div class="t1">天使幸福智慧名片</div>
+          <div class="t2">自建表單（v498）</div>
+        </div>
+      </div>
+      <button class="btn ghost" id="btnTestPing" type="button">測試連線</button>
+    </header>
 
-<div class="wrap">
+    <section class="card">
+      <div class="seg">
+        <button class="segBtn on" id="segFree" type="button">自由搭配</button>
+        <button class="segBtn" id="segPremium" type="button">精品設計</button>
+        <input type="hidden" id="plan" name="plan" value="free" />
+      </div>
 
-<h1>建立智慧名片</h1>
+      <div class="hint" id="planHint">
+        <b>自由搭配：</b>5色 × 3版型 × 3紙感；照片牆最多 2 張
+      </div>
 
-<div id="statusBox" class="status"></div>
+      <!-- ✅ v498：方案選項（JS 會切換顯示） -->
+      <div class="divider"></div>
 
-<form id="cardForm">
+      <div id="freeOptions" class="imgBlock" style="padding:12px;margin-bottom:12px;">
+        <div class="imgHead">
+          <div class="imgTitle">自由搭配設定</div>
+          <div class="imgTip">顏色／版型／紙感（必選）</div>
+        </div>
 
-<!-- ===================== -->
-<!-- 方案切換 -->
-<!-- ===================== -->
-<div class="segBox">
-  <button type="button" id="segFree" class="seg on">自由搭配</button>
-  <button type="button" id="segPremium" class="seg">精品設計</button>
-  <input type="hidden" id="plan" value="free" />
-</div>
+        <div class="imgGrid">
+          <label class="field" style="gap:6px;">
+            <span class="lbl">顏色（5色）</span>
+            <select id="color" name="color">
+              <option value="c1">c1 粉</option>
+              <option value="c2">c2 藍</option>
+              <option value="c3">c3 橘</option>
+              <option value="c4">c4 紫</option>
+              <option value="c5">c5 綠</option>
+            </select>
+          </label>
 
-<div id="planHint" class="planHint"></div>
+          <label class="field" style="gap:6px;">
+            <span class="lbl">版型（3款）</span>
+            <select id="style" name="style">
+              <option value="s1">s1 正拱</option>
+              <option value="s2">s2 平直</option>
+              <option value="s3">s3 晨曦</option>
+            </select>
+          </label>
+        </div>
 
-<!-- ===================== -->
-<!-- 自由款選項 -->
-<!-- ===================== -->
-<div id="freeOptions" class="styleBox">
-  <h3>自由搭配設定</h3>
+        <div class="imgGrid" style="margin-top:10px;">
+          <label class="field" style="gap:6px;">
+            <span class="lbl">紙感（3種）</span>
+            <select id="paper" name="paper">
+              <option value="f1">f1 棉紙</option>
+              <option value="f2">f2 顆粒</option>
+              <option value="f3">f3 亞麻</option>
+            </select>
+          </label>
 
-  <label>顏色
-    <select id="color">
-      <option value="c1">粉</option>
-      <option value="c2">藍</option>
-      <option value="c3">橘</option>
-      <option value="c4">紫</option>
-      <option value="c5">綠</option>
-    </select>
-  </label>
+          <div class="field" style="gap:6px;">
+            <span class="lbl">照片牆限制</span>
+            <input type="text" value="最多 2 張（照片1～2）" readonly />
+          </div>
+        </div>
+      </div>
 
-  <label>版型
-    <select id="style">
-      <option value="s1">正拱</option>
-      <option value="s2">平直</option>
-      <option value="s3">晨曦</option>
-    </select>
-  </label>
+      <div id="premiumOptions" class="imgBlock" style="padding:12px;margin-bottom:12px;display:none;">
+        <div class="imgHead">
+          <div class="imgTitle">精品設計設定</div>
+          <div class="imgTip">底色（必選）</div>
+        </div>
 
-  <label>紙感
-    <select id="paper">
-      <option value="f1">棉紙</option>
-      <option value="f2">顆粒</option>
-      <option value="f3">亞麻</option>
-    </select>
-  </label>
-</div>
+        <div class="imgGrid">
+          <label class="field" style="gap:6px;">
+            <span class="lbl">精品底色（7色）</span>
+            <select id="premium_color" name="premium_color">
+              <option value="p1">p1 胭脂紅</option>
+              <option value="p2">p2 酒紅</option>
+              <option value="p3">p3 深藍</option>
+              <option value="p4">p4 霧紫</option>
+              <option value="p5">p5 藍灰</option>
+              <option value="p6">p6 金箔</option>
+              <option value="p7">p7 褐碳</option>
+            </select>
+          </label>
 
-<!-- ===================== -->
-<!-- 精品款選項 -->
-<!-- ===================== -->
-<div id="premiumOptions" class="styleBox" style="display:none;">
-  <h3>精品底色</h3>
-  <select id="premium_color">
-    <option value="p1">胭脂紅</option>
-    <option value="p2">酒紅</option>
-    <option value="p3">深藍</option>
-    <option value="p4">霧紫</option>
-    <option value="p5">藍灰</option>
-    <option value="p6">金箔</option>
-    <option value="p7">褐碳</option>
-  </select>
-</div>
+          <div class="field" style="gap:6px;">
+            <span class="lbl">照片牆限制</span>
+            <input type="text" value="最多 5 張（照片1～5）" readonly />
+          </div>
+        </div>
+      </div>
 
-<hr/>
+      <div class="status" id="statusBox">請先選擇方案，填寫基本資料與照片即可送出。</div>
 
-<!-- ===================== -->
-<!-- 基本資料 -->
-<!-- ===================== -->
+      <form id="cardForm" class="form" autocomplete="on">
+        <!-- 基本資料 -->
+        <div class="grid2">
+          <label class="field">
+            <span class="lbl">姓名</span>
+            <input id="name" name="name" type="text" placeholder="例：小天使" />
+          </label>
+          <label class="field">
+            <span class="lbl">單位</span>
+            <input id="unit" name="unit" type="text" placeholder="例：天使幸福智慧名片館" />
+          </label>
+        </div>
 
-<label>姓名
-  <input type="text" id="name" required />
-</label>
+        <div class="grid2">
+          <label class="field">
+            <span class="lbl">頭銜</span>
+            <input id="title" name="title" type="text" placeholder="例：館長" />
+          </label>
+          <label class="field">
+            <span class="lbl">手機</span>
+            <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="例：0973xxxxxx" />
+          </label>
+        </div>
 
-<label>單位
-  <input type="text" id="unit" />
-</label>
+        <div class="grid2">
+          <label class="field">
+            <span class="lbl">Email</span>
+            <input id="email" name="email" type="email" inputmode="email" placeholder="例：name@example.com" />
+          </label>
+          <label class="field">
+            <span class="lbl">官網</span>
+            <input id="website" name="website" type="url" inputmode="url" placeholder="https://..." />
+          </label>
+        </div>
 
-<label>職稱
-  <input type="text" id="title" />
-</label>
+        <div class="grid2">
+          <label class="field">
+            <span class="lbl">LINE（URL 或 @ID）</span>
+            <input id="line_url" name="line_url" type="text" placeholder="https://line.me/ti/p/... 或 @angel" />
+          </label>
+          <label class="field">
+            <span class="lbl">LINE 官方帳號（選填）</span>
+            <input id="line_oa" name="line_oa" type="url" inputmode="url" placeholder="https://lin.ee/..." />
+          </label>
+        </div>
 
-<label>電話
-  <input type="text" id="phone" />
-</label>
+        <label class="field">
+          <span class="lbl">地址（選填）</span>
+          <input id="address" name="address" type="text" placeholder="例：高雄市..." />
+        </label>
 
-<label>Email
-  <input type="text" id="email" />
-</label>
+        <label class="field">
+          <span class="lbl">理念標語（選填）</span>
+          <input id="slogan" name="slogan" type="text" placeholder="例：喚醒內在幸福感" />
+        </label>
 
-<label>網站
-  <input type="text" id="website" />
-</label>
+        <label class="field">
+          <span class="lbl">服務項目（可分行）</span>
+          <textarea id="services" name="services" rows="3" placeholder="例：&#10;打造個人品牌智慧名片&#10;名片交付/代管"></textarea>
+        </label>
 
-<label>地址
-  <input type="text" id="address" />
-</label>
+        <label class="field">
+          <span class="lbl">經歷（可分行，選填）</span>
+          <textarea id="experience" name="experience" rows="3" placeholder="例：&#10;退休教師&#10;品牌顧問"></textarea>
+        </label>
 
-<label>標語
-  <input type="text" id="slogan" />
-</label>
+        <div class="divider"></div>
 
-<label>服務項目
-  <textarea id="services"></textarea>
-</label>
+        <!-- 圖片上傳 -->
+        <div class="imgBlock">
+          <div class="imgHead">
+            <div class="imgTitle">照片上傳</div>
+            <div class="imgTip" id="imgTip">建議單張 ≤ 10MB（v498 會先壓縮再送）</div>
+          </div>
 
-<label>經歷
-  <textarea id="experience"></textarea>
-</label>
+          <div class="imgGrid">
+            <div class="imgItem">
+              <div class="imgLbl">個人照</div>
+              <input id="avatar_file" type="file" accept="image/*" />
+              <img id="avatarPreview" class="preview" alt="avatar preview" />
+            </div>
 
-<label>LINE 連結或 @ID
-  <input type="text" id="line_url" />
-</label>
+            <div class="imgItem">
+              <div class="imgLbl">Logo（選填）</div>
+              <input id="logo_file" type="file" accept="image/*" />
+              <img id="logoPreview" class="preview" alt="logo preview" />
+            </div>
+          </div>
 
-<label>LINE 官方帳號
-  <input type="text" id="line_oa" />
-</label>
+          <div class="imgGrid" id="photosGrid">
+            <div class="imgItem">
+              <div class="imgLbl">照片 1</div>
+              <input id="photo1_file" type="file" accept="image/*" />
+              <img id="photo1Preview" class="preview" alt="photo1 preview" />
+            </div>
+            <div class="imgItem">
+              <div class="imgLbl">照片 2</div>
+              <input id="photo2_file" type="file" accept="image/*" />
+              <img id="photo2Preview" class="preview" alt="photo2 preview" />
+            </div>
 
-<hr/>
+            <!-- 下面三張：只有精品設計才顯示（JS 會切換 morePhotos display） -->
+            <div class="imgItem morePhotos" id="morePhoto3">
+              <div class="imgLbl">照片 3（精品）</div>
+              <input id="photo3_file" type="file" accept="image/*" />
+              <img id="photo3Preview" class="preview" alt="photo3 preview" />
+            </div>
+            <div class="imgItem morePhotos" id="morePhoto4">
+              <div class="imgLbl">照片 4（精品）</div>
+              <input id="photo4_file" type="file" accept="image/*" />
+              <img id="photo4Preview" class="preview" alt="photo4 preview" />
+            </div>
+            <div class="imgItem morePhotos" id="morePhoto5">
+              <div class="imgLbl">照片 5（精品）</div>
+              <input id="photo5_file" type="file" accept="image/*" />
+              <img id="photo5Preview" class="preview" alt="photo5 preview" />
+            </div>
+          </div>
+        </div>
 
-<!-- ===================== -->
-<!-- 圖片區 -->
-<!-- ===================== -->
+        <div class="actions">
+          <button class="btn" id="btnSubmit" type="submit">送出表單</button>
+          <button class="btn ghost" id="btnFillDemo" type="button">一鍵填入示範</button>
+          <button class="btn danger" id="btnReset" type="button">清空</button>
+        </div>
+      </form>
+    </section>
 
-<h3>頭像</h3>
-<input type="file" id="avatar_file" accept="image/*" />
-<img id="avatarPreview" class="preview" />
+    <!-- 結果 -->
+    <section class="card result" id="resultBox" style="display:none;">
+      <div class="resultTitle">已建立名片 ✅</div>
 
-<h3>Logo</h3>
-<input type="file" id="logo_file" accept="image/*" />
-<img id="logoPreview" class="preview" />
+      <div class="kv">
+        <div class="k">ID</div>
+        <div class="v" id="r_id">—</div>
+      </div>
+      <div class="kv">
+        <div class="k">TOKEN</div>
+        <div class="v" id="r_token">—</div>
+      </div>
 
-<h3>照片牆</h3>
+      <div class="kv">
+        <div class="k">智慧名片成品連結</div>
+        <div class="v" id="r_card">—</div>
+        <button class="btn mini" id="btnCopyCard" type="button">複製</button>
+      </div>
 
-<input type="file" id="photo1_file" accept="image/*" />
-<img id="photo1Preview" class="preview" />
+      <div class="kv">
+        <div class="k">OG 交付連結（share）</div>
+        <div class="v" id="r_og">—</div>
+        <button class="btn mini" id="btnCopyOg" type="button">複製</button>
+      </div>
+    </section>
 
-<input type="file" id="photo2_file" accept="image/*" />
-<img id="photo2Preview" class="preview" />
+    <footer class="foot">
+      Powered by Angel · Mobile-first
+    </footer>
+  </main>
 
-<div class="morePhotos">
-<input type="file" id="photo3_file" accept="image/*" />
-<img id="photo3Preview" class="preview" />
-
-<input type="file" id="photo4_file" accept="image/*" />
-<img id="photo4Preview" class="preview" />
-
-<input type="file" id="photo5_file" accept="image/*" />
-<img id="photo5Preview" class="preview" />
-</div>
-
-<hr/>
-
-<!-- ===================== -->
-<!-- 操作按鈕 -->
-<!-- ===================== -->
-
-<div class="btnRow">
-  <button type="submit" id="btnSubmit">建立名片</button>
-  <button type="button" id="btnFillDemo">示範資料</button>
-  <button type="button" id="btnTestPing">測試連線</button>
-  <button type="button" id="btnReset">清空</button>
-</div>
-
-</form>
-
-<!-- ===================== -->
-<!-- 結果區 -->
-<!-- ===================== -->
-
-<div id="resultBox" class="result" style="display:none;">
-
-<h2>建立完成</h2>
-
-<p>名片 ID：<span id="r_id"></span></p>
-<p>Token：<span id="r_token"></span></p>
-
-<p>智慧名片成品：</p>
-<p id="r_card" class="linkBox"></p>
-<button id="btnCopyCard">複製成品連結</button>
-
-<p>OG 交付頁：</p>
-<p id="r_og" class="linkBox"></p>
-<button id="btnCopyOg">複製 OG 連結</button>
-
-</div>
-
-</div>
-
-<script src="form.js?v=498"></script>
-
+  <!-- v498 -->
+  <script src="./form.js?v=498&ts=20260303a"></script>
 </body>
 </html>
