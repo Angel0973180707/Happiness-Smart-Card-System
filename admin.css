@@ -1,6 +1,4 @@
-/* ================================
-   admin.css v495 (COMPLETE OVERWRITE)
-================================== */
+/* admin.css — v497 (COMPLETE OVERWRITE) */
 
 :root{
   --bg:#0f1116;
@@ -16,12 +14,14 @@
 
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
+
 body{
   margin:0;
   font-family:"Noto Sans TC", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-  background: radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 55%),
-              radial-gradient(1000px 700px at 110% 10%, rgba(255,165,210,.12), transparent 55%),
-              var(--bg);
+  background:
+    radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 55%),
+    radial-gradient(1000px 700px at 110% 10%, rgba(255,165,210,.12), transparent 55%),
+    var(--bg);
   color:var(--text);
 }
 
@@ -233,7 +233,6 @@ code{
   background: rgba(255,255,255,.06);
 }
 
-/* Overlay */
 .overlay{
   position:fixed;
   inset:0;
@@ -268,7 +267,7 @@ code{
 .overlay__title{ font-weight:900; letter-spacing:.2px; }
 .overlay__hint{ margin-top:8px; font-size:13px; color: rgba(255,255,255,.72); line-height:1.5; }
 .overlay__row{ margin-top:12px; display:flex; justify-content:center; }
-/* v492 add-ons */
+
 #txtStatus{ font-weight:900; }
 #txtStatus[data-st="active"]{ color: rgba(46, 204, 113, .95); }
 #txtStatus[data-st="inactive"]{ color: rgba(255, 94, 94, .95); }
