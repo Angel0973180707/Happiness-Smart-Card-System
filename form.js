@@ -1,9 +1,10 @@
 /* ================================
- * form.js — v496 (COMPLETE OVERWRITE)
+ * form.js — v496.1 (COMPLETE OVERWRITE)
  * Goal: Form -> GAS (POST ?action=create) -> card_db
  * - Keys strictly English (align DB standard)
  * - Images: accept Drive share URL or File ID (no frontend compression)
  * - Default: status=inactive, billing_status=unpaid (can be adjusted in GAS)
+ * - FIX v496.1: Avoid CORS preflight by using x-www-form-urlencoded (data=JSON)
  * - Success UI: id/token/clean_card_url/og_page_url + copy
  * ================================ */
 
@@ -11,8 +12,8 @@
   "use strict";
 
   const CONFIG = {
-    VERSION: "v496",
-    // ✅ TODO: replace with your deployed GAS v496 WebApp /exec
+    VERSION: "v496.1",
+    // ✅ Your deployed GAS v496 WebApp /exec
     GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     DEFAULT_LINE_OA: "https://lin.ee/G3VJoRm",
@@ -65,28 +66,16 @@
     return (v ?? "").toString().trim();
   }
 
-  // Accept:
-  // - Drive share URL
-  // - Drive file id (no http, long token-like)
-  // - http -> https normalize
   function normalizeImageInput(raw) {
     const s = trimOrEmpty(raw);
     if (!s) return "";
 
-    // http -> https
     if (/^http:\/\//i.test(s)) return s.replace(/^http:\/\//i, "https://");
-
-    // Already a URL
     if (/^https?:\/\//i.test(s)) return s;
 
-    // Looks like Drive file id
-    // (Drive file id usually 20~60 chars, letters numbers _ -)
     if (/^[a-zA-Z0-9_-]{15,}$/.test(s)) {
-      // Use uc?export=view&id=... (easy for <img>)
       return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(s)}`;
     }
-
-    // fallback as-is
     return s;
   }
 
@@ -95,17 +84,15 @@
     if (!s) return "";
     if (/^http:\/\//i.test(s)) return s.replace(/^http:\/\//i, "https://");
     if (/^https:\/\//i.test(s)) return s;
-    // Allow @id → keep, let GAS normalize if needed
-    // Allow plain id → keep
     return s;
   }
 
   function buildPayload() {
     const payload = {
       // System / billing
-      id: "",                  // let GAS assign
-      token: "",               // let GAS assign
-      status: "inactive",      // ✅ default inactive (safer)
+      id: "",
+      token: "",
+      status: "inactive",
       tenant: trimOrEmpty($("#tenant").value),
       billing_status: "unpaid",
       created_at: "",
@@ -159,37 +146,33 @@
       social3: trimOrEmpty($("#social3").value)
     };
 
-    // Ensure required minimal fields
     if (!payload.name) throw new Error("name（姓名）必填");
-
     return payload;
   }
 
   function deriveUrls(id, token) {
     const base = CONFIG.BASE_URL.replace(/\/+$/, "/");
-
-    // Most common pattern: index.html reads ?id=...
     const clean_card_url = `${base}?id=${encodeURIComponent(id)}`;
-
-    // OG page often via share.html (you already use it in your system)
     const og_page_url = `${base}share.html?id=${encodeURIComponent(id)}&token=${encodeURIComponent(token || "")}`;
-
     return { clean_card_url, og_page_url };
   }
 
   async function postCreate(payload) {
-    if (!CONFIG.GAS || CONFIG.GAS.includes("PUT_YOUR_GAS")) {
-      throw new Error("請先在 form.js 設定 CONFIG.GAS 為你的 GAS v496 WebApp /exec");
-    }
+    const gas = trimOrEmpty(CONFIG.GAS);
+    if (!gas) throw new Error("請先在 form.js 設定 CONFIG.GAS 為你的 GAS WebApp /exec");
 
-    const url = `${CONFIG.GAS}${CONFIG.GAS.includes("?") ? "&" : "?"}action=create`;
+    const url = `${gas}${gas.includes("?") ? "&" : "?"}action=create`;
+
+    // ✅ FIX v496.1: use form-urlencoded to avoid CORS preflight
+    // GAS side should read: JSON.parse(e.parameter.data)
+    const body = new URLSearchParams();
+    body.append("data", JSON.stringify(payload));
 
     for (let attempt = 0; attempt <= CONFIG.RETRY; attempt++) {
       try {
         const req = withTimeout(fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body
         }), CONFIG.FETCH_TIMEOUT_MS);
 
         const res = await req.promise;
@@ -198,18 +181,15 @@
         let data;
         try { data = JSON.parse(text); }
         catch {
-          // Sometimes GAS returns text/html on errors; show snippet
-          throw new Error(`回應不是 JSON：${text.slice(0, 180)}`);
+          throw new Error(`回應不是 JSON：${text.slice(0, 220)}`);
         }
 
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}: ${data?.message || "Request failed"}`);
         }
-
         if (!data || data.ok !== true) {
           throw new Error(data?.message || "create 失敗（ok!=true）");
         }
-
         return data;
       } catch (err) {
         if (attempt < CONFIG.RETRY) {
@@ -238,7 +218,6 @@
       await navigator.clipboard.writeText(s);
       return true;
     } catch {
-      // fallback
       const ta = document.createElement("textarea");
       ta.value = s;
       ta.style.position = "fixed";
@@ -297,17 +276,18 @@
   }
 
   async function ping() {
-    if (!CONFIG.GAS || CONFIG.GAS.includes("PUT_YOUR_GAS")) {
+    const gas = trimOrEmpty(CONFIG.GAS);
+    if (!gas) {
       setStatus("請先在 form.js 設定 CONFIG.GAS。", "err");
       return;
     }
-    const url = `${CONFIG.GAS}${CONFIG.GAS.includes("?") ? "&" : "?"}action=ping`;
+    const url = `${gas}${gas.includes("?") ? "&" : "?"}action=ping`;
     try {
       setStatus("測試 ping 中...");
       const req = withTimeout(fetch(url, { method: "GET" }), 12000);
       const res = await req.promise;
       const t = await res.text();
-      setStatus(`ping 回應：\n${t.slice(0, 400)}`, "ok");
+      setStatus(`ping 回應：\n${t.slice(0, 500)}`, "ok");
     } catch (e) {
       setStatus(`ping 失敗：${e.message}`, "err");
     }
@@ -321,17 +301,15 @@
       elBtnSubmit.textContent = "送出中...";
 
       fillDefaultLineOA();
-
       const payload = buildPayload();
 
       setStatus(
         "送出 create 中...\n" +
-        "（提醒：圖片欄位填 Drive 連結/ID 即可，先不壓縮）"
+        "（v496.1：改用 form-urlencoded 避免 CORS 預檢）"
       );
 
       const data = await postCreate(payload);
 
-      // Expected: { ok:true, item:{ id, token, ... }, clean_card_url?, og_page_url? }
       const item = data.item || {};
       const id = item.id || data.id || "";
       const token = item.token || data.token || "";
@@ -377,7 +355,7 @@
     setStatus(
       "準備就緒。\n" +
       `版本：${CONFIG.VERSION}\n` +
-      "下一步：把 CONFIG.GAS 換成你的 GAS v496 /exec，然後送出測 create。"
+      "下一步：按「一鍵填示範」→「送出建立」測 create。"
     );
   }
 
