@@ -1,12 +1,16 @@
 <!-- ================================
-     index.html v495 (SAFE FORM MODE + ADMIN HOTSPOT)
-     - KEEP: v4030 DOM structure (no reflow / no card DOM change)
-     - ADD: form mode container + robust mode switch + iframe loader/fallback
-     - ADD: admin hidden entry (bottom-right triple tap OR long-press)
-     - FIX: LINE / CTA visibility guard
-     - FIX: Share button text => 分享此名片
-     - DO NOT TOUCH: app.js / manifest logic / sw / share logic
-     - VERSION: unified ?v=495
+     index.html v495.2 (SHOWROOM FIXED ID + CLEAN DELIVERY SHARE)
+     A) Showroom (default):
+        - Always read TW0001
+        - Keep chooser + CTA + form
+        - You give customers this link for booking
+     B) Delivery/Clean (?view=1 or ?clean=1):
+        - Read customer id from URL
+        - Hide chooser/admin-panel
+        - Add floating share button (share/copy link)
+        - Still keep admin hotspot (bottom-right triple tap / long-press)
+
+     DO NOT TOUCH: app.js / manifest logic / sw / share logic
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -17,18 +21,15 @@
 
   <title>Happiness Smart Card System v495</title>
 
-  <!-- PWA (install-ready) -->
   <link rel="manifest" href="./manifest.json?v=495" />
   <meta name="theme-color" content="#111318" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png?v=491" />
   <link rel="icon" href="./icons/icon-192.png?v=491" />
 
-  <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="幸福智慧名片" />
 
-  <!-- OG (static fallback; delivery uses admin OG preview image) -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="幸福智慧名片" />
   <meta property="og:description" content="一點，就看見彼此的價值" />
@@ -37,13 +38,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-
-  <!-- ✅ align v491 -->
   <link rel="stylesheet" href="./style.css?v=495" />
 
-  <!-- SAFE PATCH (HTML-only): guard CTA visibility + form mode helpers -->
   <style>
-    /* ---- LINE / CTA visibility guard (in case CSS accidentally hides) ---- */
+    /* ---- CTA visibility guard ---- */
     #btnLineCta,
     #btnLineCtaPremium,
     #btnFormCta,
@@ -56,11 +54,15 @@
       pointer-events: auto !important;
     }
 
-    /* Avoid weird layout collapse if parent styles get altered */
     #free-controls,
     #premium-controls {
       visibility: visible !important;
       opacity: 1 !important;
+    }
+
+    /* ✅ CLEAN DELIVERY MODE: hide chooser panel */
+    html.is-clean #admin-panel{
+      display:none !important;
     }
 
     /* Hidden admin hotspot (bottom-right) */
@@ -78,7 +80,33 @@
       user-select: none;
     }
 
-    /* Form loader overlay (only used in form mode; inserted by SAFE script) */
+    /* ✅ Clean share floating button (only shown in clean view) */
+    #cleanShareFab{
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 2147482100;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(20,24,34,0.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: rgba(255,255,255,0.92);
+      font-weight: 900;
+      letter-spacing: .3px;
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    #cleanShareFab i{ opacity:.9; }
+    html.is-clean #cleanShareFab{ display: inline-flex; }
+
+    /* Form overlay */
     .safe-form-overlay {
       position: fixed;
       inset: 0;
@@ -138,36 +166,21 @@
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
-  <!-- Hidden admin hotspot (bottom-right triple tap / long-press) -->
   <div id="adminHotspotBR" aria-hidden="true"></div>
+
+  <!-- ✅ clean share floating btn (clean view only) -->
+  <button id="cleanShareFab" type="button" aria-label="分享名片">
+    <i class="fa-solid fa-share-nodes"></i> 分享名片
+  </button>
 
   <!-- ================= Control Panel (sticky) ================= -->
   <header id="admin-panel">
     <div class="panel-inner">
-
-      <!-- Step 1: Plan -->
       <div class="plan-row" id="planRow">
-        <button
-          class="btn-neo pill breathe"
-          data-group="plan"
-          id="btnPlanFree"
-          type="button"
-          onclick="window.setPlan('free', this)"
-        >
-          自由搭配
-        </button>
-        <button
-          class="btn-neo pill"
-          data-group="plan"
-          id="btnPlanPremium"
-          type="button"
-          onclick="window.setPlan('premium', this)"
-        >
-          精品設計
-        </button>
+        <button class="btn-neo pill breathe" data-group="plan" id="btnPlanFree" type="button" onclick="window.setPlan('free', this)">自由搭配</button>
+        <button class="btn-neo pill" data-group="plan" id="btnPlanPremium" type="button" onclick="window.setPlan('premium', this)">精品設計</button>
       </div>
 
-      <!-- Step 2A: Free controls -->
       <div class="controls-block" id="free-controls">
         <div class="section-title">選顏色</div>
         <div class="dots-row" id="freeDotsRow">
@@ -205,7 +218,6 @@
         </button>
       </div>
 
-      <!-- Step 2B: Premium controls -->
       <div class="controls-block" id="premium-controls" style="display:none;">
         <div class="section-title">選底色</div>
         <div class="dots-row" id="premiumDotsRow">
@@ -230,7 +242,6 @@
           <i class="fa-solid fa-share-nodes"></i> 分享此名片
         </button>
       </div>
-
     </div>
   </header>
 
@@ -293,7 +304,6 @@
   <!-- ================= Form Container (SAFE ADD) ================= -->
   <main id="form-container" style="display:none;"></main>
 
-  <!-- SAFE: overlay node (HTML-only) -->
   <div class="safe-form-overlay" id="safeFormOverlay" aria-hidden="true">
     <div class="box">
       <div class="spinner" aria-hidden="true"></div>
@@ -309,12 +319,12 @@
   <!-- ✅ align v491 -->
   <script src="./app.js?v=491"></script>
 
-  <!-- ================= SAFE MODE SCRIPT (no app.js change) ================= -->
   <script>
     (function () {
       "use strict";
 
       var VERSION = "491";
+      var SHOWROOM_ID = "TW0001"; // ✅ front showroom ALWAYS reads this record
 
       function qs(id) { return document.getElementById(id); }
 
@@ -323,18 +333,51 @@
         catch (e) { return new URLSearchParams(); }
       }
 
-      function buildUrl_(mode, id) {
-        var p = getParams_();
-        if (id) p.set("id", id);
-        if (mode) p.set("mode", mode);
-        else p.delete("mode");
-        var s = p.toString();
-        return location.pathname + (s ? ("?" + s) : "");
+      function isCleanView_(){
+        try{
+          var p = getParams_();
+          return (p.get("view") === "1") || (p.get("clean") === "1");
+        }catch(e){
+          return false;
+        }
       }
 
-      function getId_() {
+      function effectiveId_(){
         var p = getParams_();
-        return (p.get("id") || "").trim();
+        var raw = (p.get("id") || "").trim();
+        // ✅ clean: use URL id (customer)
+        if (isCleanView_()) return raw;
+        // ✅ showroom: force TW0001
+        return SHOWROOM_ID;
+      }
+
+      function enforceShowroomIdInUrl_(){
+        // In showroom mode, ensure URL id is TW0001 (so app.js fetches the right record)
+        if (isCleanView_()) return;
+        var p = getParams_();
+        if ((p.get("id") || "").trim() !== SHOWROOM_ID){
+          p.set("id", SHOWROOM_ID);
+          // keep other params (mode/view/etc), but showroom blocks clean anyway
+          var s = p.toString();
+          var url = location.pathname + (s ? ("?" + s) : "");
+          try { history.replaceState({ showroom: true }, "", url); } catch(e) {}
+        }
+      }
+
+      function buildUrl_(mode) {
+        var p = getParams_();
+
+        // ✅ always set id based on mode
+        var id = effectiveId_();
+        if (id) p.set("id", id); else p.delete("id");
+
+        // mode=form only for showroom
+        if (mode) p.set("mode", mode);
+        else p.delete("mode");
+
+        // keep view/clean as-is (if clean, mode switching is blocked anyway)
+        var s = p.toString();
+        return location.pathname + (s ? ("?" + s) : "");
       }
 
       var __adminPanelDisplay = null;
@@ -351,6 +394,12 @@
       function restoreAdminPanelDisplay_() {
         var adminPanel = qs("admin-panel");
         if (!adminPanel) return;
+
+        if (isCleanView_()){
+          adminPanel.style.display = "none";
+          return;
+        }
+
         if (__adminPanelDisplay && __adminPanelDisplay !== "none") adminPanel.style.display = __adminPanelDisplay;
         else adminPanel.style.display = "";
       }
@@ -418,8 +467,8 @@
 
         var btnBack = document.createElement("button");
         btnBack.type = "button";
-        btnBack.textContent = "返回名片";
-        btnBack.setAttribute("aria-label", "返回名片");
+        btnBack.textContent = "返回門面";
+        btnBack.setAttribute("aria-label", "返回門面");
         btnBack.style.border = "1px solid rgba(255,255,255,0.18)";
         btnBack.style.background = "rgba(255,255,255,0.06)";
         btnBack.style.color = "#fff";
@@ -439,27 +488,7 @@
         left.appendChild(btnBack);
         left.appendChild(title);
 
-        var right = document.createElement("div");
-        right.style.display = "flex";
-        right.style.alignItems = "center";
-        right.style.gap = "10px";
-
-        var idNow = getId_();
-        if (idNow) {
-          var chip = document.createElement("div");
-          chip.textContent = idNow;
-          chip.style.color = "rgba(255,255,255,0.85)";
-          chip.style.fontWeight = "800";
-          chip.style.fontSize = "12px";
-          chip.style.padding = "8px 10px";
-          chip.style.borderRadius = "999px";
-          chip.style.border = "1px solid rgba(255,255,255,0.14)";
-          chip.style.background = "rgba(255,255,255,0.06)";
-          right.appendChild(chip);
-        }
-
         bar.appendChild(left);
-        bar.appendChild(right);
 
         var frame = document.createElement("iframe");
         frame.setAttribute("title", "名片資料表單");
@@ -479,7 +508,6 @@
           retryBtn.onclick = function () {
             try { frame.src = "./form.html?v=" + VERSION + "&ts=" + Date.now(); } catch (e) {}
             showOverlay_(true);
-            setTimeout(function(){}, 150);
           };
         }
         var copyBtn = qs("safeFormCopyBtn");
@@ -525,6 +553,14 @@
 
         rememberAdminPanelDisplay_();
 
+        var clean = isCleanView_();
+        if (clean) {
+          document.documentElement.classList.add("is-clean");
+          mode = "card"; // clean forbids form mode
+        } else {
+          document.documentElement.classList.remove("is-clean");
+        }
+
         if (mode === "form") {
           try { __lastCardScrollTop = (document.scrollingElement || document.documentElement).scrollTop || 0; } catch (e) {}
           mountFormOnce_();
@@ -550,12 +586,19 @@
             se.scrollTop = __lastCardScrollTop || 0;
           } catch (e2) {}
         }
+
+        if(clean){
+          adminPanel.style.display = "none";
+        }
       }
 
       function setMode_(mode) {
-        var id = getId_();
+        if (isCleanView_()) return;
+
+        enforceShowroomIdInUrl_();
+
         var nextMode = (mode === "form") ? "form" : "";
-        var url = buildUrl_(nextMode, id);
+        var url = buildUrl_(nextMode);
 
         try { history.pushState({ mode: nextMode || "card" }, "", url); }
         catch (e) {}
@@ -582,28 +625,21 @@
         window.goFillForm = safeGoFillForm_;
       }
 
-      window.addEventListener("load", function () {
-        try { window.goFillForm = safeGoFillForm_; } catch (e) {}
-      });
-
-      function ensureLineCtaVisible_() {
-        var a = qs("btnLineCta");
-        if (a) { a.style.display = "inline-flex"; a.style.visibility = "visible"; a.style.opacity = "1"; }
-        var b = qs("btnLineCtaPremium");
-        if (b) { b.style.display = "inline-flex"; b.style.visibility = "visible"; b.style.opacity = "1"; }
-      }
-
-      ensureLineCtaVisible_();
-      setTimeout(ensureLineCtaVisible_, 300);
-      setTimeout(ensureLineCtaVisible_, 1200);
-
       function boot_() {
+        // ✅ showroom: force TW0001 into URL before app.js runs fetch logic
+        if (!isCleanView_()) {
+          enforceShowroomIdInUrl_();
+        } else {
+          document.documentElement.classList.add("is-clean");
+        }
+
         var p = getParams_();
         var mode = (p.get("mode") || "").trim().toLowerCase();
         applyMode_(mode === "form" ? "form" : "card");
       }
 
       window.addEventListener("popstate", function () {
+        if (!isCleanView_()) enforceShowroomIdInUrl_();
         var p = getParams_();
         var mode = (p.get("mode") || "").trim().toLowerCase();
         applyMode_(mode === "form" ? "form" : "card");
@@ -616,9 +652,45 @@
       }
 
       /* =========================
+         Clean view share FAB
+         ========================= */
+      (function cleanShare_(){
+        var fab = qs("cleanShareFab");
+        if(!fab) return;
+
+        function shareOrCopy_(){
+          var url = location.href;
+          // try native share
+          try{
+            if(navigator.share){
+              navigator.share({ title: document.title || "名片", url: url }).catch(function(){});
+              return;
+            }
+          }catch(e){}
+          // fallback copy
+          var ok = copyText_(url);
+          try{
+            fab.innerHTML = '<i class="fa-solid fa-check"></i> 已複製連結';
+            setTimeout(function(){
+              fab.innerHTML = '<i class="fa-solid fa-share-nodes"></i> 分享名片';
+            }, ok ? 1600 : 2200);
+          }catch(e2){}
+        }
+
+        fab.addEventListener("click", function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          shareOrCopy_();
+        });
+
+        // only meaningful in clean view
+        if(!isCleanView_()){
+          fab.style.display = "none";
+        }
+      })();
+
+      /* =========================
          Admin hidden entry setup
-         - Trigger: triple tap within 900ms OR long-press 1200ms
-         - Action: redirect to ./admin.html?v=491 (keep id if exists)
          ========================= */
       (function adminEntry_(){
         var hot = qs("adminHotspotBR");
@@ -632,7 +704,8 @@
 
         function goAdmin_(){
           var p = getParams_();
-          var id = (p.get("id") || "").trim();
+          // ✅ pass id currently used by app (showroom => TW0001, clean => URL id)
+          var id = effectiveId_();
           var url = "./admin.html?v=" + VERSION + (id ? ("&id=" + encodeURIComponent(id)) : "");
           try { location.href = url; } catch(e) {}
         }
