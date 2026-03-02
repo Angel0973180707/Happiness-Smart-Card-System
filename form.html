@@ -1,821 +1,97 @@
-<!-- ================================
-     form.html — v495 (COMPLETE OVERWRITE)
-     Dark Glass UI + A1 stable prefill -> Google Form iframe
-     - Uses form.js v495 (external) to build prefill URL and load iframe on submit
-     - Facade UI (seg/dots/buttons) syncs to hidden real inputs with required ids
-     - File uploads are done inside Google Form (cannot prefill)
-     ================================ -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>HSC Form v495</title>
-  <meta name="description" content="Happiness Smart Card System｜名片表單" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>填寫名片資料</title>
+<meta name="theme-color" content="#0f1115" />
 
-  <style>
-    :root{
-      --bg:#0f1115;
-      --card:rgba(255,255,255,0.06);
-      --bd:rgba(255,255,255,0.12);
-      --tx:rgba(255,255,255,0.92);
-      --muted:rgba(255,255,255,0.68);
-      --btn:rgba(255,255,255,0.10);
-      --btn2:rgba(255,255,255,0.16);
-      --danger:#ff5b6a;
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      background: radial-gradient(1200px 600px at 20% 0%, rgba(255,255,255,0.06), transparent 60%),
-                  radial-gradient(900px 500px at 80% 10%, rgba(255,255,255,0.05), transparent 55%),
-                  var(--bg);
-      color:var(--tx);
-      font-family: system-ui, -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
-    }
-
-    .wrap{
-      width:min(980px, 92vw);
-      margin: 18px auto 24px;
-      padding-bottom: 24px;
-    }
-
-    .topbar{
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
-      gap:12px;
-      padding: 14px 14px 8px;
-    }
-    .topbar .title{
-      font-size:18px;
-      font-weight:900;
-      letter-spacing:.4px;
-    }
-    .topbar .sub{
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.5;
-      margin-top:6px;
-    }
-    .topbar .right{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-
-    .card{
-      border:1px solid var(--bd);
-      background: var(--card);
-      border-radius:18px;
-      padding:14px;
-      margin: 10px 0;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.28);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-
-    .section-title{
-      font-weight:900;
-      letter-spacing:.4px;
-      margin-bottom:10px;
-      opacity:.95;
-    }
-
-    .subbox{
-      border:1px solid rgba(255,255,255,0.10);
-      background: rgba(255,255,255,0.04);
-      border-radius:16px;
-      padding:12px;
-      margin-top:10px;
-    }
-
-    .row-title{
-      font-size:13px;
-      font-weight:900;
-      opacity:.9;
-      margin-bottom:10px;
-    }
-
-    .field{ margin: 10px 0; }
-    .label{
-      font-size:13px;
-      font-weight:800;
-      opacity:.86;
-      margin-bottom:6px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .tag{
-      font-size:12px;
-      padding:3px 10px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.06);
-      color: rgba(255,255,255,0.88);
-      font-weight:900;
-    }
-    .tag.req{ border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.10); }
-
-    .input, .textarea{
-      width:100%;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,0.14);
-      background: rgba(0,0,0,0.18);
-      color: var(--tx);
-      padding: 12px 12px;
-      outline:none;
-      font-size:15px;
-    }
-    .textarea{
-      min-height: 92px;
-      resize: vertical;
-      line-height:1.5;
-    }
-
-    .hint{
-      margin-top:10px;
-      font-size:12px;
-      color: var(--muted);
-      line-height:1.5;
-    }
-
-    .seg{
-      display:flex;
-      gap:10px;
-    }
-    .seg-btn{
-      flex:1;
-      height:44px;
-      border-radius:16px;
-      border:1px solid var(--bd);
-      background: rgba(255,255,255,0.06);
-      color: var(--tx);
-      font-weight:900;
-      cursor:pointer;
-    }
-    .seg-btn.active{
-      background: rgba(255,255,255,0.14);
-      border-color: rgba(255,255,255,0.22);
-    }
-
-    .btnrow{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .btn{
-      border:1px solid var(--bd);
-      background: var(--btn);
-      color: var(--tx);
-      border-radius:16px;
-      padding: 12px 14px;
-      font-weight:900;
-      cursor:pointer;
-    }
-    .btn.pill{ border-radius:999px; padding:10px 14px; }
-    .btn.active{
-      background: var(--btn2);
-      border-color: rgba(255,255,255,0.24);
-    }
-
-    .dotrow{
-      display:flex;
-      gap:12px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .dot{
-      width:44px;
-      height:44px;
-      border-radius:999px;
-      border:2px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.08);
-      cursor:pointer;
-    }
-    .dot.active{ border-color: rgba(255,255,255,0.55); box-shadow: 0 10px 24px rgba(0,0,0,0.25); }
-
-    .dot-1{ background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.45), transparent 40%), #ff7aa6; }
-    .dot-2{ background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.45), transparent 40%), #3fb3ff; }
-    .dot-3{ background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.45), transparent 40%), #ffb24a; }
-    .dot-4{ background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.45), transparent 40%), #b58cff; }
-    .dot-5{ background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.45), transparent 40%), #46d39b; }
-
-    .p-dot{
-      width:44px; height:44px; border-radius:14px;
-      border:2px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.06);
-      cursor:pointer;
-    }
-    .p-dot.active{ border-color: rgba(255,255,255,0.55); box-shadow: 0 10px 24px rgba(0,0,0,0.25); }
-    .p1{ background:#c72f4a; }
-    .p2{ background:#6b1c2b; }
-    .p3{ background:#203c74; }
-    .p4{ background:#6a5aa6; }
-    .p5{ background:#6f7f9b; }
-    .p6{ background: linear-gradient(135deg, #a9822a, #f0d27a, #7a5a18); }
-    .p7{ background:#3a2f2b; }
-
-    .actions{
-      display:flex;
-      gap:12px;
-      margin-top:12px;
-      flex-wrap:wrap;
-    }
-    .actions .btn{ flex:1; height:48px; min-width: 180px; }
-    .btn.primary{
-      background: linear-gradient(135deg, rgba(255,94,94,0.95), rgba(255,122,166,0.95));
-      border: none;
-    }
-    .btn.ghost{
-      background: rgba(255,255,255,0.06);
-      border:1px solid rgba(255,255,255,0.14);
-    }
-    .btn.danger{
-      background: rgba(255,255,255,0.08);
-      border:1px solid rgba(255,255,255,0.14);
-      color: rgba(255,255,255,0.92);
-    }
-    .btn[disabled]{
-      opacity: .55;
-      cursor:not-allowed;
-    }
-
-    .status{
-      margin-top: 12px;
-      padding: 12px 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(0,0,0,0.18);
-      color: rgba(255,255,255,0.86);
-      font-size: 13px;
-      line-height: 1.5;
-      white-space: pre-line;
-    }
-
-    .layout{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-    @media (min-width: 980px){
-      .layout{ grid-template-columns: 460px 1fr; align-items:start; }
-    }
-
-    iframe{
-      width:100%;
-      min-height: 74vh;
-      border:1px solid rgba(255,255,255,0.12);
-      border-radius:18px;
-      background: rgba(0,0,0,0.22);
-      box-shadow: 0 16px 40px rgba(0,0,0,0.28);
-    }
-
-    /* hide real selects/inputs that form.js needs (we sync values into them) */
-    .hidden-real{
-      position:absolute !important;
-      left:-9999px !important;
-      top:auto !important;
-      width:1px !important;
-      height:1px !important;
-      overflow:hidden !important;
-      opacity:0 !important;
-      pointer-events:none !important;
-    }
-  </style>
+<style>
+:root{
+  --bg:#0f1115;
+  --card:rgba(255,255,255,0.06);
+  --bd:rgba(255,255,255,0.12);
+  --tx:rgba(255,255,255,0.92);
+  --btn:linear-gradient(135deg,#ff5e5e,#ff7aa6);
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--tx);
+  font-family:-apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif;
+}
+.wrap{
+  width:min(600px,92vw);
+  margin:60px auto;
+}
+.card{
+  background:var(--card);
+  border:1px solid var(--bd);
+  border-radius:20px;
+  padding:30px 20px;
+  text-align:center;
+  backdrop-filter:blur(12px);
+}
+h1{
+  margin:0 0 16px;
+  font-size:20px;
+  font-weight:900;
+}
+p{
+  opacity:.75;
+  font-size:14px;
+  line-height:1.6;
+}
+.btn{
+  margin-top:24px;
+  width:100%;
+  height:52px;
+  border-radius:18px;
+  border:none;
+  background:var(--btn);
+  color:white;
+  font-weight:900;
+  font-size:16px;
+  cursor:pointer;
+}
+.back{
+  margin-top:18px;
+  background:transparent;
+  border:1px solid var(--bd);
+  color:var(--tx);
+}
+</style>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div>
-        <div class="title">門面表單 v495</div>
-        <div class="sub">先在此填資料 ；照片/Logo/個人照請在 Google 表單內上傳。</div>
-      </div>
-      <div class="right">
-        <button class="btn pill ghost" type="button" id="btnResetDraft">清除草稿</button>
-        <a class="btn pill" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">回首頁</a>
-      </div>
-    </div>
+<div class="wrap">
+  <div class="card">
+    <h1>填寫專屬智慧名片資料</h1>
+    <p>
+      請依序填寫資料並上傳照片。<br>
+      提交後將由系統處理與設計確認。<br><br>
+      ※ 提交完成不代表立即開通
+    </p>
 
-    <div class="layout">
-      <!-- LEFT: Facade -->
-      <div class="card" id="formArea">
-        <div class="section-title">1) 選擇方案</div>
+    <button class="btn" onclick="openForm()">
+      前往填寫 Google 表單
+    </button>
 
-        <form id="innerForm">
-          <!-- Seg (plan) -->
-          <div class="seg" role="tablist" aria-label="plan">
-            <button type="button" class="seg-btn" id="uiPlanFree" data-plan="1自由搭配款">1 自由搭配款</button>
-            <button type="button" class="seg-btn" id="uiPlanPremium" data-plan="2精品設計款">2 精品設計款</button>
-          </div>
-
-          <div class="hint">方案必填：自由款需選「顏色/版型/紙感」；精品款需選「精品底色」。</div>
-
-          <!-- FREE block -->
-          <div class="subbox" id="uiFreeBox">
-            <div class="row-title">自由搭配外觀</div>
-
-            <div class="field">
-              <div class="label">選擇名片顏色 <span class="tag req">自由必填</span></div>
-              <div class="dotrow" id="uiColorRow">
-                <button type="button" class="dot dot-1" data-color="c1粉" aria-label="c1粉"></button>
-                <button type="button" class="dot dot-2" data-color="c2藍" aria-label="c2藍"></button>
-                <button type="button" class="dot dot-3" data-color="c3橘" aria-label="c3橘"></button>
-                <button type="button" class="dot dot-4" data-color="c4紫" aria-label="c4紫"></button>
-                <button type="button" class="dot dot-5" data-color="c5綠" aria-label="c5綠"></button>
-              </div>
-            </div>
-
-            <div class="field">
-              <div class="label">選擇版型風格 <span class="tag req">自由必填</span></div>
-              <div class="btnrow" id="uiShapeRow">
-                <button type="button" class="btn" data-shape="s1正拱">s1 正拱</button>
-                <button type="button" class="btn" data-shape="s2平直">s2 平直</button>
-                <button type="button" class="btn" data-shape="s3晨曦">s3 晨曦</button>
-              </div>
-            </div>
-
-            <div class="field">
-              <div class="label">選擇紙感質地 <span class="tag req">自由必填</span></div>
-              <div class="btnrow" id="uiPaperRow">
-                <button type="button" class="btn" data-paper="f1霧面棉紙">f1 霧面棉紙</button>
-                <button type="button" class="btn" data-paper="f2顆粒">f2 顆粒</button>
-                <button type="button" class="btn" data-paper="f3亞麻">f3 亞麻</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- PREMIUM block -->
-          <div class="subbox" id="uiPremiumBox">
-            <div class="row-title">精品設計外觀</div>
-
-            <div class="field">
-              <div class="label">選擇精品底色 <span class="tag req">精品必填</span></div>
-              <div class="dotrow" id="uiPremiumRow">
-                <button type="button" class="p-dot p1" data-premium="p1胭脂" aria-label="p1胭脂"></button>
-                <button type="button" class="p-dot p2" data-premium="p2酒紅" aria-label="p2酒紅"></button>
-                <button type="button" class="p-dot p3" data-premium="p3深藍" aria-label="p3深藍"></button>
-                <button type="button" class="p-dot p4" data-premium="p4霧紫" aria-label="p4霧紫"></button>
-                <button type="button" class="p-dot p5" data-premium="p5藍灰" aria-label="p5藍灰"></button>
-                <button type="button" class="p-dot p6" data-premium="p6金箔" aria-label="p6金箔"></button>
-                <button type="button" class="p-dot p7" data-premium="p7褐碳" aria-label="p7褐碳"></button>
-              </div>
-            </div>
-          </div>
-
-          <div class="section-title" style="margin-top:14px;">2) 名片內容</div>
-
-          <div class="subbox">
-            <div class="row-title">基本資料</div>
-
-            <div class="field">
-              <div class="label">姓名 <span class="tag req">必填</span></div>
-              <input class="input" id="uiName" type="text" placeholder="例如：小天使" />
-            </div>
-
-            <div class="field">
-              <div class="label">單位</div>
-              <input class="input" id="uiUnit" type="text" placeholder="例如：天使幸福智慧名片館" />
-            </div>
-
-            <div class="field">
-              <div class="label">頭銜</div>
-              <input class="input" id="uiTitle" type="text" placeholder="例如：幸福智慧名片館館長" />
-            </div>
-
-            <div class="field">
-              <div class="label">理念標語</div>
-              <input class="input" id="uiSlogan" type="text" placeholder="例如：認識自己的價值｜從一張名片開始" />
-            </div>
-
-            <div class="field">
-              <div class="label">服務項目</div>
-              <input class="input" id="uiServices" type="text" placeholder="例如：打造個人品牌智慧名片" />
-            </div>
-
-            <div class="field">
-              <div class="label">經歷（多行）</div>
-              <textarea class="textarea" id="uiExperience" placeholder="例如：幸福教養概念館館長&#10;幸福智慧名片館館長"></textarea>
-            </div>
-          </div>
-
-          <div class="subbox">
-            <div class="row-title">聯絡資訊</div>
-
-            <div class="field">
-              <div class="label">微信ID</div>
-              <input class="input" id="uiWechatId" type="text" placeholder="例如：a0973180707" />
-            </div>
-
-            <div class="field">
-              <div class="label">LINE連結</div>
-              <input class="input" id="uiLineLink" type="url" placeholder="https://line.me/ti/p/..." />
-            </div>
-
-            <div class="field">
-              <div class="label">LINE官方帳號</div>
-              <input class="input" id="uiLineOa" type="url" placeholder="https://lin.ee/..." />
-            </div>
-
-            <div class="field">
-              <div class="label">Email</div>
-              <input class="input" id="uiEmail" type="email" placeholder="name@example.com" />
-            </div>
-
-            <div class="field">
-              <div class="label">電話</div>
-              <input class="input" id="uiPhone" type="tel" placeholder="0912345678" />
-            </div>
-
-            <div class="field">
-              <div class="label">地址</div>
-              <input class="input" id="uiAddress" type="text" placeholder="例如：高雄市..." />
-            </div>
-          </div>
-
-          <div class="subbox">
-            <div class="row-title">影音 / 社群</div>
-
-            <div class="field">
-              <div class="label">影音連結 1</div>
-              <input class="input" id="uiVideo1" type="url" placeholder="YouTube/影片網址" />
-            </div>
-            <div class="field">
-              <div class="label">影音連結 2</div>
-              <input class="input" id="uiVideo2" type="url" placeholder="影片/網站網址" />
-            </div>
-            <div class="field">
-              <div class="label">影音連結 3</div>
-              <input class="input" id="uiVideo3" type="url" placeholder="影片網址" />
-            </div>
-
-            <div class="field">
-              <div class="label">社群連結 1</div>
-              <input class="input" id="uiSocial1" type="url" placeholder="Facebook/IG..." />
-            </div>
-            <div class="field">
-              <div class="label">社群連結 2</div>
-              <input class="input" id="uiSocial2" type="url" placeholder="社群網址" />
-            </div>
-            <div class="field">
-              <div class="label">社群連結 3</div>
-              <input class="input" id="uiSocial3" type="url" placeholder="社群網址" />
-            </div>
-
-            <div class="hint">
-              上傳：個人照 / 照片 / Logo 會在右側 Google 表單內完成（最穩）。
-            </div>
-          </div>
-
-          <div class="actions">
-            <button class="btn primary" type="submit" id="btnSubmit">預填並載入 Google 表單</button>
-            <button class="btn ghost" type="button" id="btnOpenPrefill">另開預填表單</button>
-          </div>
-
-          <div class="status" id="uiStatus">狀態：等待填寫</div>
-
-          <!-- ===== Hidden REAL inputs/selects required by form.js v495 ===== -->
-          <select class="hidden-real" id="planSelect">
-            <option value=""></option>
-            <option value="1自由搭配款">1自由搭配款</option>
-            <option value="2精品設計款">2精品設計款</option>
-          </select>
-
-          <select class="hidden-real" id="freeColorSelect">
-            <option value=""></option>
-            <option value="c1粉">c1粉</option>
-            <option value="c2藍">c2藍</option>
-            <option value="c3橘">c3橘</option>
-            <option value="c4紫">c4紫</option>
-            <option value="c5綠">c5綠</option>
-          </select>
-
-          <select class="hidden-real" id="freeShapeSelect">
-            <option value=""></option>
-            <option value="s1正拱">s1正拱</option>
-            <option value="s2平直">s2平直</option>
-            <option value="s3晨曦">s3晨曦</option>
-          </select>
-
-          <select class="hidden-real" id="freePaperSelect">
-            <option value=""></option>
-            <option value="f1霧面棉紙">f1霧面棉紙</option>
-            <option value="f2顆粒">f2顆粒</option>
-            <option value="f3亞麻">f3亞麻</option>
-          </select>
-
-          <select class="hidden-real" id="premiumColorSelect">
-            <option value=""></option>
-            <option value="p1胭脂">p1胭脂</option>
-            <option value="p2酒紅">p2酒紅</option>
-            <option value="p3深藍">p3深藍</option>
-            <option value="p4霧紫">p4霧紫</option>
-            <option value="p5藍灰">p5藍灰</option>
-            <option value="p6金箔">p6金箔</option>
-            <option value="p7褐碳">p7褐碳</option>
-          </select>
-
-          <input class="hidden-real" id="nameInput" type="text" />
-          <input class="hidden-real" id="unitInput" type="text" />
-          <input class="hidden-real" id="titleInput" type="text" />
-          <input class="hidden-real" id="sloganInput" type="text" />
-          <input class="hidden-real" id="servicesInput" type="text" />
-          <textarea class="hidden-real" id="experienceInput"></textarea>
-
-          <input class="hidden-real" id="wechatIdInput" type="text" />
-          <input class="hidden-real" id="lineLinkInput" type="text" />
-          <input class="hidden-real" id="lineOaInput" type="text" />
-          <input class="hidden-real" id="emailInput" type="text" />
-          <input class="hidden-real" id="phoneInput" type="text" />
-          <input class="hidden-real" id="addressInput" type="text" />
-
-          <input class="hidden-real" id="video1Input" type="text" />
-          <input class="hidden-real" id="video2Input" type="text" />
-          <input class="hidden-real" id="video3Input" type="text" />
-
-          <input class="hidden-real" id="social1Input" type="text" />
-          <input class="hidden-real" id="social2Input" type="text" />
-          <input class="hidden-real" id="social3Input" type="text" />
-        </form>
-
-        <!-- Done area used by form.js -->
-        <div class="subbox" id="doneArea" style="display:none;">
-          <div class="row-title">已產生預填表單</div>
-          <div class="hint">
-            <a id="doneLink" href="#" target="_blank" style="color:rgba(255,255,255,0.92); font-weight:900; text-decoration:none;">
-              打開已預填表單（上傳照片）
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- RIGHT: Google Form iframe -->
-      <div class="card">
-        <div class="section-title">Google 表單（預填 / 上傳照片）</div>
-        <iframe id="formIframe" title="Google Form"></iframe>
-        <div class="hint">若 iframe 右側沒顯示，按左側「預填並載入 Google 表單」即可。</div>
-      </div>
-    </div>
+    <button class="btn back" onclick="history.back()">
+      返回名片
+    </button>
   </div>
+</div>
 
-  <script>
-    /* ================================
-     * UI Sync layer (Facade -> hidden real inputs for form.js v495)
-     * ================================ */
-    (function(){
-      const $ = (id) => document.getElementById(id);
+<script>
+function openForm(){
+  window.open(
+    "https://docs.google.com/forms/d/e/1FAIpQLSeCKY_oLKUMgnQUaJmCUfxIBRv0JdwQO7t3KAi5tJvLMKUGSQ/viewform",
+    "_blank"
+  );
+}
+</script>
 
-      const ui = {
-        planFree: $("uiPlanFree"),
-        planPrem: $("uiPlanPremium"),
-        freeBox: $("uiFreeBox"),
-        premBox: $("uiPremiumBox"),
-        colorRow: $("uiColorRow"),
-        shapeRow: $("uiShapeRow"),
-        paperRow: $("uiPaperRow"),
-        premRow: $("uiPremiumRow"),
-        status: $("uiStatus"),
-        btnOpenPrefill: $("btnOpenPrefill"),
-
-        name: $("uiName"),
-        unit: $("uiUnit"),
-        title: $("uiTitle"),
-        slogan: $("uiSlogan"),
-        services: $("uiServices"),
-        exp: $("uiExperience"),
-
-        wechat: $("uiWechatId"),
-        lineLink: $("uiLineLink"),
-        lineOa: $("uiLineOa"),
-        email: $("uiEmail"),
-        phone: $("uiPhone"),
-        address: $("uiAddress"),
-
-        v1: $("uiVideo1"),
-        v2: $("uiVideo2"),
-        v3: $("uiVideo3"),
-
-        s1: $("uiSocial1"),
-        s2: $("uiSocial2"),
-        s3: $("uiSocial3"),
-      };
-
-      const real = {
-        plan: $("planSelect"),
-        color: $("freeColorSelect"),
-        shape: $("freeShapeSelect"),
-        paper: $("freePaperSelect"),
-        premium: $("premiumColorSelect"),
-        name: $("nameInput"),
-        unit: $("unitInput"),
-        title: $("titleInput"),
-        slogan: $("sloganInput"),
-        services: $("servicesInput"),
-        exp: $("experienceInput"),
-
-        wechat: $("wechatIdInput"),
-        lineLink: $("lineLinkInput"),
-        lineOa: $("lineOaInput"),
-        email: $("emailInput"),
-        phone: $("phoneInput"),
-        address: $("addressInput"),
-
-        v1: $("video1Input"),
-        v2: $("video2Input"),
-        v3: $("video3Input"),
-
-        s1: $("social1Input"),
-        s2: $("social2Input"),
-        s3: $("social3Input"),
-      };
-
-      function planType(planText){
-        const t = (planText||"").toLowerCase();
-        if (!t) return "";
-        if (t.includes("自由") || t.includes("free") || t.startsWith("1")) return "free";
-        if (t.includes("精品") || t.includes("premium") || t.startsWith("2")) return "premium";
-        return "";
-      }
-
-      function setStatus(msg){
-        if (ui.status) ui.status.textContent = msg;
-      }
-
-      function setActive(el, on){
-        if (!el) return;
-        el.classList.toggle("active", !!on);
-      }
-
-      function pickPlan(v){
-        real.plan.value = v || "";
-        const type = planType(v);
-
-        setActive(ui.planFree, type === "free");
-        setActive(ui.planPrem, type === "premium");
-
-        if (ui.freeBox) ui.freeBox.style.display = (type === "free") ? "" : "none";
-        if (ui.premBox) ui.premBox.style.display = (type === "premium") ? "" : "none";
-
-        setStatus(type ? `狀態：已選方案（${v}）` : "狀態：等待填寫");
-        dispatchChange(real.plan);
-      }
-
-      function pickFromRow(rowEl, selector, value, realEl){
-        if (!rowEl) return;
-        const items = Array.from(rowEl.querySelectorAll(selector));
-        items.forEach(btn => {
-          const v = btn.getAttribute(value);
-          setActive(btn, v === realEl.value);
-        });
-      }
-
-      function dispatchChange(el){
-        if (!el) return;
-        try { el.dispatchEvent(new Event("change", { bubbles:true })); } catch (_) {}
-      }
-
-      // ---- Plan buttons
-      ui.planFree?.addEventListener("click", () => pickPlan("1自由搭配款"));
-      ui.planPrem?.addEventListener("click", () => pickPlan("2精品設計款"));
-
-      // ---- Free color dots
-      ui.colorRow?.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-color]");
-        if (!btn) return;
-        real.color.value = btn.getAttribute("data-color") || "";
-        dispatchChange(real.color);
-        pickFromRow(ui.colorRow, "[data-color]", "data-color", real.color);
-        setStatus(`狀態：自由顏色 = ${real.color.value}`);
-      });
-
-      // ---- Shape buttons
-      ui.shapeRow?.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-shape]");
-        if (!btn) return;
-        real.shape.value = btn.getAttribute("data-shape") || "";
-        dispatchChange(real.shape);
-        Array.from(ui.shapeRow.querySelectorAll("[data-shape]")).forEach(x => setActive(x, x.getAttribute("data-shape") === real.shape.value));
-        setStatus(`狀態：版型 = ${real.shape.value}`);
-      });
-
-      // ---- Paper buttons
-      ui.paperRow?.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-paper]");
-        if (!btn) return;
-        real.paper.value = btn.getAttribute("data-paper") || "";
-        dispatchChange(real.paper);
-        Array.from(ui.paperRow.querySelectorAll("[data-paper]")).forEach(x => setActive(x, x.getAttribute("data-paper") === real.paper.value));
-        setStatus(`狀態：紙感 = ${real.paper.value}`);
-      });
-
-      // ---- Premium color dots
-      ui.premRow?.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-premium]");
-        if (!btn) return;
-        real.premium.value = btn.getAttribute("data-premium") || "";
-        dispatchChange(real.premium);
-        Array.from(ui.premRow.querySelectorAll("[data-premium]")).forEach(x => setActive(x, x.getAttribute("data-premium") === real.premium.value));
-        setStatus(`狀態：精品底色 = ${real.premium.value}`);
-      });
-
-      // ---- Text fields sync
-      function bindInput(uiEl, realEl, label){
-        if (!uiEl || !realEl) return;
-        const sync = () => {
-          realEl.value = uiEl.value || "";
-          dispatchChange(realEl);
-          if (label) setStatus(`狀態：已填寫 ${label}`);
-        };
-        uiEl.addEventListener("input", sync);
-        uiEl.addEventListener("change", sync);
-      }
-
-      bindInput(ui.name, real.name, "姓名");
-      bindInput(ui.unit, real.unit, "單位");
-      bindInput(ui.title, real.title, "頭銜");
-      bindInput(ui.slogan, real.slogan, "理念標語");
-      bindInput(ui.services, real.services, "服務項目");
-      bindInput(ui.exp, real.exp, "經歷");
-
-      bindInput(ui.wechat, real.wechat, "微信ID");
-      bindInput(ui.lineLink, real.lineLink, "LINE連結");
-      bindInput(ui.lineOa, real.lineOa, "LINE官方帳號");
-      bindInput(ui.email, real.email, "Email");
-      bindInput(ui.phone, real.phone, "電話");
-      bindInput(ui.address, real.address, "地址");
-
-      bindInput(ui.v1, real.v1, "影音連結1");
-      bindInput(ui.v2, real.v2, "影音連結2");
-      bindInput(ui.v3, real.v3, "影音連結3");
-
-      bindInput(ui.s1, real.s1, "社群連結1");
-      bindInput(ui.s2, real.s2, "社群連結2");
-      bindInput(ui.s3, real.s3, "社群連結3");
-
-      // "另開預填表單"：利用 form.js 建立的 doneLink（若已生成），否則先提示使用者按提交
-      ui.btnOpenPrefill?.addEventListener("click", () => {
-        const link = $("doneLink");
-        if (link && link.href && link.href !== "#") {
-          window.open(link.href, "_blank");
-          return;
-        }
-        alert("請先按「預填並載入 Google 表單」，生成預填連結後再另開。");
-      });
-
-      // Init (restore draft by form.js, then reflect active state)
-      document.addEventListener("DOMContentLoaded", () => {
-        // default: hide both until plan chosen
-        if (ui.freeBox) ui.freeBox.style.display = "none";
-        if (ui.premBox) ui.premBox.style.display = "none";
-
-        // if form.js restored values, reflect UI after a short tick
-        setTimeout(() => {
-          const pv = real.plan.value || "";
-          if (pv) pickPlan(pv);
-
-          // restore active selections
-          pickFromRow(ui.colorRow, "[data-color]", "data-color", real.color);
-          Array.from(ui.shapeRow?.querySelectorAll("[data-shape]")||[]).forEach(x => setActive(x, x.getAttribute("data-shape") === real.shape.value));
-          Array.from(ui.paperRow?.querySelectorAll("[data-paper]")||[]).forEach(x => setActive(x, x.getAttribute("data-paper") === real.paper.value));
-          Array.from(ui.premRow?.querySelectorAll("[data-premium]")||[]).forEach(x => setActive(x, x.getAttribute("data-premium") === real.premium.value));
-
-          // restore text UI from real (if any)
-          ui.name && (ui.name.value = real.name.value || "");
-          ui.unit && (ui.unit.value = real.unit.value || "");
-          ui.title && (ui.title.value = real.title.value || "");
-          ui.slogan && (ui.slogan.value = real.slogan.value || "");
-          ui.services && (ui.services.value = real.services.value || "");
-          ui.exp && (ui.exp.value = real.exp.value || "");
-
-          ui.wechat && (ui.wechat.value = real.wechat.value || "");
-          ui.lineLink && (ui.lineLink.value = real.lineLink.value || "");
-          ui.lineOa && (ui.lineOa.value = real.lineOa.value || "");
-          ui.email && (ui.email.value = real.email.value || "");
-          ui.phone && (ui.phone.value = real.phone.value || "");
-          ui.address && (ui.address.value = real.address.value || "");
-
-          ui.v1 && (ui.v1.value = real.v1.value || "");
-          ui.v2 && (ui.v2.value = real.v2.value || "");
-          ui.v3 && (ui.v3.value = real.v3.value || "");
-
-          ui.s1 && (ui.s1.value = real.s1.value || "");
-          ui.s2 && (ui.s2.value = real.s2.value || "");
-          ui.s3 && (ui.s3.value = real.s3.value || "");
-
-          if (!pv) setStatus("狀態：等待填寫（請先選方案）");
-        }, 120);
-      });
-    })();
-  </script>
-
-  <!-- Your existing form.js v495 (complete overwrite) -->
-  <script src="./form.js?v=495"></script>
 </body>
 </html>
