@@ -1,193 +1,208 @@
-<!doctype html>
-<html lang="zh-Hant">
+<!DOCTYPE html>
+<html lang="zh-TW">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="color-scheme" content="light" />
-  <title>天使幸福智慧名片｜自建表單 v498</title>
-
-  <link rel="stylesheet" href="./form.css?v=498" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Happiness Smart Card｜建立智慧名片 v498</title>
+<link rel="stylesheet" href="form.css?v=498" />
 </head>
 
 <body>
-  <main class="wrap">
-    <header class="top">
-      <div class="brand">
-        <div class="dot"></div>
-        <div class="titleBox">
-          <div class="t1">天使幸福智慧名片</div>
-          <div class="t2">自建表單（v498）</div>
-        </div>
-      </div>
-      <button class="btn ghost" id="btnTestPing" type="button">測試連線</button>
-    </header>
 
-    <section class="card">
+<div class="wrap">
 
-      <!-- 方案切換 -->
-      <div class="seg">
-        <button class="segBtn on" id="segFree" type="button">自由搭配</button>
-        <button class="segBtn" id="segPremium" type="button">精品設計</button>
-        <input type="hidden" id="plan" name="plan" value="free" />
-      </div>
+<h1>建立智慧名片</h1>
 
-      <!-- ⭐ v498 新增版型設定區 -->
-      <div id="freeOptions">
-        <div class="grid2">
-          <label class="field">
-            <span class="lbl">顏色（free）</span>
-            <select id="color" name="color">
-              <option value="c1">c1 粉</option>
-              <option value="c2">c2 藍</option>
-              <option value="c3">c3 橘</option>
-              <option value="c4">c4 紫</option>
-              <option value="c5">c5 綠</option>
-            </select>
-          </label>
+<div id="statusBox" class="status"></div>
 
-          <label class="field">
-            <span class="lbl">版型</span>
-            <select id="style" name="style">
-              <option value="s1">s1 正拱</option>
-              <option value="s2">s2 平直</option>
-              <option value="s3">s3 晨曦</option>
-            </select>
-          </label>
-        </div>
+<form id="cardForm">
 
-        <label class="field">
-          <span class="lbl">紙感</span>
-          <select id="paper" name="paper">
-            <option value="f1">f1 棉紙</option>
-            <option value="f2">f2 顆粒</option>
-            <option value="f3">f3 亞麻</option>
-          </select>
-        </label>
-      </div>
+<!-- ===================== -->
+<!-- 方案切換 -->
+<!-- ===================== -->
+<div class="segBox">
+  <button type="button" id="segFree" class="seg on">自由搭配</button>
+  <button type="button" id="segPremium" class="seg">精品設計</button>
+  <input type="hidden" id="plan" value="free" />
+</div>
 
-      <div id="premiumOptions" style="display:none;">
-        <label class="field">
-          <span class="lbl">精品底色</span>
-          <select id="premium_color" name="premium_color">
-            <option value="p1">p1 胭脂紅</option>
-            <option value="p2">p2 酒紅</option>
-            <option value="p3">p3 深藍</option>
-            <option value="p4">p4 霧紫</option>
-            <option value="p5">p5 藍灰</option>
-            <option value="p6">p6 金箔</option>
-            <option value="p7">p7 褐碳</option>
-          </select>
-        </label>
-      </div>
+<div id="planHint" class="planHint"></div>
 
-      <div class="divider"></div>
+<!-- ===================== -->
+<!-- 自由款選項 -->
+<!-- ===================== -->
+<div id="freeOptions" class="styleBox">
+  <h3>自由搭配設定</h3>
 
-      <!-- 表單 -->
-      <form id="cardForm" class="form" autocomplete="on">
+  <label>顏色
+    <select id="color">
+      <option value="c1">粉</option>
+      <option value="c2">藍</option>
+      <option value="c3">橘</option>
+      <option value="c4">紫</option>
+      <option value="c5">綠</option>
+    </select>
+  </label>
 
-        <!-- 原本所有基本資料欄位保留 -->
-        <!-- 以下與你 v497 相同 -->
+  <label>版型
+    <select id="style">
+      <option value="s1">正拱</option>
+      <option value="s2">平直</option>
+      <option value="s3">晨曦</option>
+    </select>
+  </label>
 
-        <div class="grid2">
-          <label class="field">
-            <span class="lbl">姓名</span>
-            <input id="name" name="name" type="text" />
-          </label>
-          <label class="field">
-            <span class="lbl">單位</span>
-            <input id="unit" name="unit" type="text" />
-          </label>
-        </div>
+  <label>紙感
+    <select id="paper">
+      <option value="f1">棉紙</option>
+      <option value="f2">顆粒</option>
+      <option value="f3">亞麻</option>
+    </select>
+  </label>
+</div>
 
-        <div class="grid2">
-          <label class="field">
-            <span class="lbl">頭銜</span>
-            <input id="title" name="title" type="text" />
-          </label>
-          <label class="field">
-            <span class="lbl">手機</span>
-            <input id="phone" name="phone" type="tel" />
-          </label>
-        </div>
+<!-- ===================== -->
+<!-- 精品款選項 -->
+<!-- ===================== -->
+<div id="premiumOptions" class="styleBox" style="display:none;">
+  <h3>精品底色</h3>
+  <select id="premium_color">
+    <option value="p1">胭脂紅</option>
+    <option value="p2">酒紅</option>
+    <option value="p3">深藍</option>
+    <option value="p4">霧紫</option>
+    <option value="p5">藍灰</option>
+    <option value="p6">金箔</option>
+    <option value="p7">褐碳</option>
+  </select>
+</div>
 
-        <div class="grid2">
-          <label class="field">
-            <span class="lbl">Email</span>
-            <input id="email" name="email" type="email" />
-          </label>
-          <label class="field">
-            <span class="lbl">官網</span>
-            <input id="website" name="website" type="url" />
-          </label>
-        </div>
+<hr/>
 
-        <label class="field">
-          <span class="lbl">地址</span>
-          <input id="address" name="address" type="text" />
-        </label>
+<!-- ===================== -->
+<!-- 基本資料 -->
+<!-- ===================== -->
 
-        <label class="field">
-          <span class="lbl">理念標語</span>
-          <input id="slogan" name="slogan" type="text" />
-        </label>
+<label>姓名
+  <input type="text" id="name" required />
+</label>
 
-        <label class="field">
-          <span class="lbl">服務項目</span>
-          <textarea id="services" name="services" rows="3"></textarea>
-        </label>
+<label>單位
+  <input type="text" id="unit" />
+</label>
 
-        <label class="field">
-          <span class="lbl">經歷</span>
-          <textarea id="experience" name="experience" rows="3"></textarea>
-        </label>
+<label>職稱
+  <input type="text" id="title" />
+</label>
 
-        <div class="divider"></div>
+<label>電話
+  <input type="text" id="phone" />
+</label>
 
-        <!-- 圖片區：完全保留 -->
-        <!-- 你原本 v497 的圖片區 그대로 유지 -->
-        <!-- 不刪減，不簡化 -->
+<label>Email
+  <input type="text" id="email" />
+</label>
 
-        <div class="actions">
-          <button class="btn" type="submit">送出表單</button>
-          <button class="btn ghost" id="btnFillDemo" type="button">一鍵填入示範</button>
-          <button class="btn danger" id="btnReset" type="button">清空</button>
-        </div>
+<label>網站
+  <input type="text" id="website" />
+</label>
 
-      </form>
-    </section>
+<label>地址
+  <input type="text" id="address" />
+</label>
 
-    <!-- 結果區（保留） -->
-    <section class="card result" id="resultBox" style="display:none;">
-      <div class="resultTitle">已建立名片 ✅</div>
+<label>標語
+  <input type="text" id="slogan" />
+</label>
 
-      <div class="kv">
-        <div class="k">ID</div>
-        <div class="v" id="r_id">—</div>
-      </div>
+<label>服務項目
+  <textarea id="services"></textarea>
+</label>
 
-      <div class="kv">
-        <div class="k">TOKEN</div>
-        <div class="v" id="r_token">—</div>
-      </div>
+<label>經歷
+  <textarea id="experience"></textarea>
+</label>
 
-      <div class="kv">
-        <div class="k">智慧名片成品連結</div>
-        <div class="v" id="r_card">—</div>
-        <button class="btn mini" id="btnCopyCard" type="button">複製</button>
-      </div>
+<label>LINE 連結或 @ID
+  <input type="text" id="line_url" />
+</label>
 
-      <div class="kv">
-        <div class="k">OG 交付連結</div>
-        <div class="v" id="r_og">—</div>
-        <button class="btn mini" id="btnCopyOg" type="button">複製</button>
-      </div>
-    </section>
+<label>LINE 官方帳號
+  <input type="text" id="line_oa" />
+</label>
 
-    <footer class="foot">
-      Powered by Angel · Mobile-first · v498
-    </footer>
-  </main>
+<hr/>
 
-  <script src="./form.js?v=498"></script>
+<!-- ===================== -->
+<!-- 圖片區 -->
+<!-- ===================== -->
+
+<h3>頭像</h3>
+<input type="file" id="avatar_file" accept="image/*" />
+<img id="avatarPreview" class="preview" />
+
+<h3>Logo</h3>
+<input type="file" id="logo_file" accept="image/*" />
+<img id="logoPreview" class="preview" />
+
+<h3>照片牆</h3>
+
+<input type="file" id="photo1_file" accept="image/*" />
+<img id="photo1Preview" class="preview" />
+
+<input type="file" id="photo2_file" accept="image/*" />
+<img id="photo2Preview" class="preview" />
+
+<div class="morePhotos">
+<input type="file" id="photo3_file" accept="image/*" />
+<img id="photo3Preview" class="preview" />
+
+<input type="file" id="photo4_file" accept="image/*" />
+<img id="photo4Preview" class="preview" />
+
+<input type="file" id="photo5_file" accept="image/*" />
+<img id="photo5Preview" class="preview" />
+</div>
+
+<hr/>
+
+<!-- ===================== -->
+<!-- 操作按鈕 -->
+<!-- ===================== -->
+
+<div class="btnRow">
+  <button type="submit" id="btnSubmit">建立名片</button>
+  <button type="button" id="btnFillDemo">示範資料</button>
+  <button type="button" id="btnTestPing">測試連線</button>
+  <button type="button" id="btnReset">清空</button>
+</div>
+
+</form>
+
+<!-- ===================== -->
+<!-- 結果區 -->
+<!-- ===================== -->
+
+<div id="resultBox" class="result" style="display:none;">
+
+<h2>建立完成</h2>
+
+<p>名片 ID：<span id="r_id"></span></p>
+<p>Token：<span id="r_token"></span></p>
+
+<p>智慧名片成品：</p>
+<p id="r_card" class="linkBox"></p>
+<button id="btnCopyCard">複製成品連結</button>
+
+<p>OG 交付頁：</p>
+<p id="r_og" class="linkBox"></p>
+<button id="btnCopyOg">複製 OG 連結</button>
+
+</div>
+
+</div>
+
+<script src="form.js?v=498"></script>
+
 </body>
 </html>
