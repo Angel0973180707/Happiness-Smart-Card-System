@@ -86,7 +86,6 @@
     .kv .k{font-weight:950; font-size:12px; color: rgba(255,255,255,.86)}
     .kv .v{margin-top: 4px; font-weight:800; font-size:12px; color: rgba(255,255,255,.78); word-break:break-all}
 
-    /* Debug */
     .dbgMask{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; z-index:9998;}
     .dbg{
       position:fixed; left:50%; transform:translateX(-50%);
@@ -119,7 +118,7 @@
         <div class="dot"></div>
         <div class="ttl">
           <div class="t1">Open</div>
-          <div class="t2">v407</div>
+          <div class="t2">v497</div>
         </div>
       </div>
     </div>
@@ -131,7 +130,7 @@
       <div class="row" id="actions" style="display:none">
         <button class="btn" id="btnRetry">重新嘗試</button>
         <button class="btn" id="btnCopy">複製連結</button>
-        <button class="btn" id="btnGoCard">前往名片（card）</button>
+        <button class="btn" id="btnGoCard">前往名片（index）</button>
         <button class="btn" id="btnGoWeChat">前往微信長圖（wechat）</button>
       </div>
 
@@ -152,26 +151,14 @@
   </div>
 
   <script>
-    /* ================================
-     * open.html (v407 COMPLETE OVERWRITE)
-     * - 1) ping GAS
-     * - 2) if active -> route to card/wechat
-     * - 3) if inactive -> show "此名片尚未啟用 / 請聯繫客服開通"
-     * - 4) fallback: copy link / retry
-     * - Unified Debug: long press brand 1.2s
-     * - Compatibility: try action=ping or action=status
-     * ================================ */
-
     (function(){
-      const VERSION = 407;
-
-      const DEFAULT_GAS =
-        "https://script.google.com/macros/s/AKfycbwALQLscdoompGvO3iphBgcgn3nYIhVfYghirifzu2PYBaeCZWWzSkw3SaGoJZRbKU/exec";
+      const VERSION = "v497";
 
       const CONFIG = {
-        GAS: DEFAULT_GAS,
+        GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
         DEFAULT_ID: "TW0001",
-        LONGPRESS_MS: 1200
+        LONGPRESS_MS: 1200,
+        FETCH_TIMEOUT_MS: 12000
       };
 
       const el = (id) => document.getElementById(id);
@@ -188,7 +175,6 @@
       const btnGoCard = el("btnGoCard");
       const btnGoWeChat = el("btnGoWeChat");
 
-      // Debug
       const dbg = el("dbg");
       const dbgMask = el("dbgMask");
       const dbgPre = el("dbgPre");
@@ -196,70 +182,72 @@
 
       const state = {
         id: "",
-        plan: "",
         gasUrl: "",
         fetchStatus: "loading",
-        pingRespMini: null
+        respMini: null
       };
 
       function qs(key){
         const v = new URLSearchParams(location.search).get(key);
         return v ? String(v).trim() : "";
       }
-      function normalizeId(s){
-        if(!s) return "";
-        return String(s).trim().toUpperCase();
+      function normalizeId(raw){
+        const s = String(raw||"").trim().toUpperCase();
+        if (!s) return "";
+        if (/^TW\d{4}$/.test(s)) return s;
+        if (/^\d{1,4}$/.test(s)) return "TW" + s.padStart(4,"0");
+        if (/^TW\d{1,4}$/.test(s)){
+          const n = s.replace(/^TW/i,"");
+          return "TW" + n.padStart(4,"0");
+        }
+        return s;
       }
       function isWeChat(){
-        return navigator.userAgent.includes("MicroMessenger");
+        return /MicroMessenger/i.test(navigator.userAgent || "");
       }
-      function buildBase(){
+      function base_(){
         return location.origin + location.pathname.replace(/\/[^/]*$/, "/");
       }
-      function urlCard(id){ return `${buildBase()}card.html?id=${encodeURIComponent(id)}&v=${VERSION}`; }
-      function urlWeChat(id){ return `${buildBase()}wechat.html?id=${encodeURIComponent(id)}&v=${VERSION}`; }
-      function urlOpen(id){ return `${buildBase()}open.html?id=${encodeURIComponent(id)}&v=${VERSION}`; }
+
+      // ✅ 你的正式名片入口：index.html（或直接 /?id=）
+      function urlIndex(id){ return `${base_()}index.html?id=${encodeURIComponent(id)}&ts=${Date.now()}`; }
+      function urlWeChat(id){ return `${base_()}wechat.html?id=${encodeURIComponent(id)}&ts=${Date.now()}`; }
+      function urlOpen(id){ return `${base_()}open.html?id=${encodeURIComponent(id)}&ts=${Date.now()}`; }
 
       async function fetchJson(url){
-        const res = await fetch(url, { cache:"no-store" });
-        const text = await res.text();
-        try{ return JSON.parse(text); }
-        catch{
-          const m = text.match(/\{[\s\S]*\}$/);
-          if(m) return JSON.parse(m[0]);
-          throw new Error("Invalid JSON");
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), CONFIG.FETCH_TIMEOUT_MS);
+        try{
+          const res = await fetch(url, { cache:"no-store", signal: ctrl.signal });
+          const text = await res.text();
+          let j = null;
+          try{ j = JSON.parse(text); }
+          catch{
+            const m = text.match(/\{[\s\S]*\}$/);
+            if(m) j = JSON.parse(m[0]);
+          }
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          if (!j || typeof j !== "object") throw new Error("Invalid JSON");
+          return j;
+        } finally {
+          clearTimeout(t);
         }
       }
 
-      async function ping(id){
-        // Compatibility: try ping/status without changing backend
-        const acts = ["ping", "status"];
-        let lastErr = null;
-
-        for(const a of acts){
-          const url = `${CONFIG.GAS}?action=${encodeURIComponent(a)}&id=${encodeURIComponent(id)}&v=${VERSION}&ts=${Date.now()}`;
-          state.gasUrl = url;
-          try{
-            const resp = await fetchJson(url);
-            if(resp && (resp.ok === true || resp.active === true || resp.status)) return resp;
-          }catch(e){ lastErr = e; }
-        }
-        throw lastErr || new Error("ping failed");
-      }
-
-      function miniPing(resp){
-        if(!resp) return null;
-        return {
-          ok: resp.ok,
-          active: resp.active,
-          status: resp.status,
-          id: resp.id
-        };
+      // ✅ 最穩：直接用 action=card 拿 status
+      async function getStatusByCard(id){
+        const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
+        state.gasUrl = url;
+        const json = await fetchJson(url);
+        if (!json.ok) throw new Error(json.error || "ok=false");
+        const card = json.item || json.data || {};
+        const status = String(card.status || card["狀態"] || "").trim().toLowerCase();
+        return { ok:true, id, status, cardMini:{ name: card.name || "", plan: card.plan || "" } };
       }
 
       function showFallback(text){
         title.textContent = "開啟失敗";
-        msg.textContent = text || "可能是網路 / 微信限制 / 快取造成。你可以重新嘗試，或先複製連結再貼到瀏覽器開啟。";
+        msg.textContent = text || "可能是網路 / 快取 / GAS 狀態造成。你可以重新嘗試，或先複製連結再貼到瀏覽器開啟。";
         actions.style.display = "grid";
         kv.style.display = "block";
         openUrlEl.textContent = urlOpen(state.id);
@@ -274,18 +262,18 @@
       }
 
       function routeToBest(){
-        const target = isWeChat() ? urlWeChat(state.id) : urlCard(state.id);
+        const target = isWeChat() ? urlWeChat(state.id) : urlIndex(state.id);
         location.replace(target);
       }
 
-      // Debug
       function openDebug(){
         const info = {
+          version: VERSION,
           id: state.id,
           fetch: state.fetchStatus,
           gas_url: state.gasUrl,
-          ping: state.pingRespMini,
-          target: isWeChat() ? "wechat" : "card"
+          resp: state.respMini,
+          target: isWeChat() ? "wechat.html" : "index.html"
         };
         dbgPre.textContent = JSON.stringify(info, null, 2);
         dbgMask.style.display = "block";
@@ -314,12 +302,11 @@
         dbgClose.addEventListener("click", closeDebug);
         dbgMask.addEventListener("click", closeDebug);
 
-        // Bind buttons
         btnRetry.addEventListener("click", () => location.reload());
-        btnGoCard.addEventListener("click", () => location.href = urlCard(state.id));
+        btnGoCard.addEventListener("click", () => location.href = urlIndex(state.id));
         btnGoWeChat.addEventListener("click", () => location.href = urlWeChat(state.id));
         btnCopy.addEventListener("click", async () => {
-          const txt = `card_url: ${urlCard(state.id)}\nwechat_url: ${urlWeChat(state.id)}\nopen_url: ${urlOpen(state.id)}`;
+          const txt = `index_url: ${urlIndex(state.id)}\nwechat_url: ${urlWeChat(state.id)}\nopen_url: ${urlOpen(state.id)}`;
           try{
             await navigator.clipboard.writeText(txt);
             btnCopy.textContent = "已複製";
@@ -334,30 +321,30 @@
 
         try{
           state.fetchStatus = "loading";
-          const resp = await ping(state.id);
-          state.pingRespMini = miniPing(resp);
+          const s = await getStatusByCard(state.id);
+          state.respMini = s;
 
-          // Interpret active
-          const active = resp && (resp.active === true || resp.ok === true || String(resp.status||"").toLowerCase()==="active");
-          const inactive = resp && (resp.active === false || String(resp.status||"").toLowerCase()==="inactive");
+          const status = String(s.status || "").toLowerCase();
+          const inactive = (status === "inactive" || status === "locked" || status === "disabled");
+          const active = (status === "active" || status === "");
 
           state.fetchStatus = "ok";
 
-          if(active){
-            routeToBest();
-            return;
-          }
-          if(inactive){
+          if (inactive){
             showInactive();
             return;
           }
+          if (active){
+            routeToBest();
+            return;
+          }
 
-          // Unknown -> still route, but keep a fallback possibility
+          // Unknown => still go best
           routeToBest();
         }catch(err){
           state.fetchStatus = "error";
-          state.pingRespMini = { error: String(err && err.message ? err.message : err) };
-          showFallback("開啟失敗：請檢查網路 / GAS 狀態，或稍後再試。");
+          state.respMini = { error: String(err && err.message ? err.message : err) };
+          showFallback("開啟失敗：請檢查網路 / GAS action=card 是否可用，或稍後再試。");
         }
       }
 
