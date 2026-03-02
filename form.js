@@ -1,263 +1,384 @@
 /* ================================
- * form.js — v495 (COMPLETE OVERWRITE)
- * A1 Stable Flow (Best for weak mobile network):
- * - Frontend only: build Google Form prefill URL -> load in iframe
- * - No direct GAS create (avoid CORS/preflight/timeout)
- * - File uploads (avatar/photos/logo) cannot be prefilled -> user uploads inside Google Form
- *
- * Rules (per user):
- * - Plan REQUIRED
- * - LINE link NOT required
- * - Free requires: color/shape/paper
- * - Premium requires: premiumColor
- *
- * Google Form entry mapping (CONFIRMED):
- * - plan                entry.2073123905
- * - color               entry.899536690
- * - shape               entry.592720036
- * - paper               entry.828167336
- * - premiumColor        entry.451721166
- * - name                entry.1846399517
- * - unit                entry.201959359
- * - title               entry.1104496974
- * - slogan              entry.1290724918
- * - services            entry.352462771
- * - experience          entry.541223865   (multiline)
- * - wechat_id           entry.945116102
- * - line_link           entry.1670617576  (optional)
- * - line_oa             entry.1578950478
- * - email               entry.761610421
- * - phone               entry.1884717686
- * - address             entry.484337571
- * - video1              entry.1314883527
- * - video2              entry.1543530124
- * - video3              entry.1080795785
- * - social1             entry.1200061658
- * - social2             entry.1872322138
- * - social3             entry.243633274
+ * form.js — v496 (COMPLETE OVERWRITE)
+ * Goal: Form -> GAS (POST ?action=create) -> card_db
+ * - Keys strictly English (align DB standard)
+ * - Images: accept Drive share URL or File ID (no frontend compression)
+ * - Default: status=inactive, billing_status=unpaid (can be adjusted in GAS)
+ * - Success UI: id/token/clean_card_url/og_page_url + copy
  * ================================ */
 
 (() => {
   "use strict";
 
   const CONFIG = {
-    VERSION: "v495",
-    FORM_BASE:
-      "https://docs.google.com/forms/d/e/1FAIpQLSeCKY_oLKUMgnQUaJmCUfxIBRv0JdwQO7t3KAi5tJvLMKUGSQ/viewform?usp=pp_url",
-    STORAGE_KEY: "HSC_FORM_DRAFT_V495"
+    VERSION: "v496",
+    // ✅ TODO: replace with your deployed GAS v496 WebApp /exec
+    GAS: "PUT_YOUR_GAS_V496_WEBAPP_EXEC_URL_HERE",
+    BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+    DEFAULT_LINE_OA: "https://lin.ee/G3VJoRm",
+    FETCH_TIMEOUT_MS: 15000,
+    RETRY: 1
   };
 
-  // ===== Frontend DOM ids (your facade inputs/selects should use these ids) =====
-  // Selects:
-  // - planSelect, freeColorSelect, freeShapeSelect, freePaperSelect, premiumColorSelect
-  // Inputs:
-  // - nameInput, unitInput, titleInput, sloganInput
-  // - servicesInput, experienceInput (textarea)
-  // - wechatIdInput, lineLinkInput, lineOaInput
-  // - emailInput, phoneInput, addressInput
-  // - video1Input, video2Input, video3Input
-  // - social1Input, social2Input, social3Input
+  const $ = (sel) => document.querySelector(sel);
 
-  const FIELD_MAP = [
-    // Core
-    { key: "plan",         entry: "entry.2073123905", dom: "planSelect" },          // required
-    { key: "name",         entry: "entry.1846399517", dom: "nameInput" },           // required
+  const elForm = $("#cardForm");
+  const elStatus = $("#statusBox");
+  const elResult = $("#resultKVs");
+  const elBtnSubmit = $("#btnSubmit");
+  const elBtnReset = $("#btnReset");
+  const elBtnPing = $("#btnTestPing");
+  const elBtnDemo = $("#btnFillDemo");
 
-    // Free appearance (required when plan=free)
-    { key: "color",        entry: "entry.899536690",  dom: "freeColorSelect" },
-    { key: "shape",        entry: "entry.592720036",  dom: "freeShapeSelect" },
-    { key: "paper",        entry: "entry.828167336",  dom: "freePaperSelect" },
+  // result fields
+  const r_id = $("#r_id");
+  const r_token = $("#r_token");
+  const r_card = $("#r_card");
+  const r_og = $("#r_og");
 
-    // Premium appearance (required when plan=premium)
-    { key: "premiumColor", entry: "entry.451721166",  dom: "premiumColorSelect" },
-
-    // Profile
-    { key: "unit",         entry: "entry.201959359",  dom: "unitInput" },
-    { key: "title",        entry: "entry.1104496974", dom: "titleInput" },
-    { key: "slogan",       entry: "entry.1290724918", dom: "sloganInput" },
-    { key: "services",     entry: "entry.352462771",  dom: "servicesInput" },
-    { key: "experience",   entry: "entry.541223865",  dom: "experienceInput" }, // multiline textarea
-
-    // Contacts
-    { key: "wechat_id",    entry: "entry.945116102",  dom: "wechatIdInput" },
-    { key: "line_link",    entry: "entry.1670617576", dom: "lineLinkInput" },   // optional
-    { key: "line_oa",      entry: "entry.1578950478", dom: "lineOaInput" },
-    { key: "email",        entry: "entry.761610421",  dom: "emailInput" },
-    { key: "phone",        entry: "entry.1884717686", dom: "phoneInput" },
-    { key: "address",      entry: "entry.484337571",  dom: "addressInput" },
-
-    // Video links
-    { key: "video1",       entry: "entry.1314883527", dom: "video1Input" },
-    { key: "video2",       entry: "entry.1543530124", dom: "video2Input" },
-    { key: "video3",       entry: "entry.1080795785", dom: "video3Input" },
-
-    // Social links
-    { key: "social1",      entry: "entry.1200061658", dom: "social1Input" },
-    { key: "social2",      entry: "entry.1872322138", dom: "social2Input" },
-    { key: "social3",      entry: "entry.243633274",  dom: "social3Input" }
-  ];
-
-  const DOM = {
-    form: "innerForm",
-    iframe: "formIframe",
-    panelFill: "formArea",
-    panelDone: "doneArea",
-    doneLink: "doneLink",
-    btnReset: "btnResetDraft"
-  };
-
-  const $id = (id) => document.getElementById(id);
-
-  function planType(planText) {
-    const t = (planText || "").toLowerCase();
-    if (!t) return "";
-    if (t.includes("自由") || t.includes("free") || t.startsWith("1")) return "free";
-    if (t.includes("精品") || t.includes("premium") || t.startsWith("2")) return "premium";
-    return "";
+  function setStatus(msg, type = "info") {
+    elStatus.classList.remove("ok", "err");
+    if (type === "ok") elStatus.classList.add("ok");
+    if (type === "err") elStatus.classList.add("err");
+    elStatus.textContent = msg;
   }
 
-  function getVal(domId) {
-    const el = $id(domId);
-    if (!el) return "";
-    return String(el.value || "").trim();
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms));
   }
 
-  function setVal(domId, v) {
-    const el = $id(domId);
-    if (!el) return;
-    el.value = v ?? "";
+  function withTimeout(promise, ms) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    return {
+      signal: ctrl.signal,
+      promise: Promise.race([
+        promise,
+        new Promise((_, rej) => {
+          ctrl.signal.addEventListener("abort", () => rej(new Error("Fetch timeout")));
+        })
+      ]).finally(() => clearTimeout(t))
+    };
   }
 
-  function collect() {
-    const out = {};
-    for (const f of FIELD_MAP) out[f.key] = getVal(f.dom);
-    return out;
+  function trimOrEmpty(v) {
+    return (v ?? "").toString().trim();
   }
 
-  function saveDraft(vals) {
+  // Accept:
+  // - Drive share URL
+  // - Drive file id (no http, long token-like)
+  // - http -> https normalize
+  function normalizeImageInput(raw) {
+    const s = trimOrEmpty(raw);
+    if (!s) return "";
+
+    // http -> https
+    if (/^http:\/\//i.test(s)) return s.replace(/^http:\/\//i, "https://");
+
+    // Already a URL
+    if (/^https?:\/\//i.test(s)) return s;
+
+    // Looks like Drive file id
+    // (Drive file id usually 20~60 chars, letters numbers _ -)
+    if (/^[a-zA-Z0-9_-]{15,}$/.test(s)) {
+      // Use uc?export=view&id=... (easy for <img>)
+      return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(s)}`;
+    }
+
+    // fallback as-is
+    return s;
+  }
+
+  function normalizeLineUrl(raw) {
+    const s = trimOrEmpty(raw);
+    if (!s) return "";
+    if (/^http:\/\//i.test(s)) return s.replace(/^http:\/\//i, "https://");
+    if (/^https:\/\//i.test(s)) return s;
+    // Allow @id → keep, let GAS normalize if needed
+    // Allow plain id → keep
+    return s;
+  }
+
+  function buildPayload() {
+    const payload = {
+      // System / billing
+      id: "",                  // let GAS assign
+      token: "",               // let GAS assign
+      status: "inactive",      // ✅ default inactive (safer)
+      tenant: trimOrEmpty($("#tenant").value),
+      billing_status: "unpaid",
+      created_at: "",
+      updated_at: "",
+      activated_at: "",
+      inactivated_at: "",
+      expired_at: "",
+      expires_at: "",
+      remind_at: "",
+      reminded_at: "",
+      form_ts: new Date().toISOString(),
+
+      // Plan/theme
+      plan: trimOrEmpty($("#plan").value) || "free",
+      color: trimOrEmpty($("#color").value) || "",
+      style: trimOrEmpty($("#style").value) || "",
+      paper: trimOrEmpty($("#paper").value) || "",
+      premium_color: trimOrEmpty($("#premium_color").value) || "",
+
+      // Content
+      name: trimOrEmpty($("#name").value),
+      unit: trimOrEmpty($("#unit").value),
+      title: trimOrEmpty($("#title").value),
+      slogan: trimOrEmpty($("#slogan").value),
+      services: trimOrEmpty($("#services").value),
+      experience: trimOrEmpty($("#experience").value),
+
+      // Images
+      avatar_img: normalizeImageInput($("#avatar_img").value),
+      logo_img: normalizeImageInput($("#logo_img").value),
+      photo1_img: normalizeImageInput($("#photo1_img").value),
+      photo2_img: normalizeImageInput($("#photo2_img").value),
+      photo3_img: normalizeImageInput($("#photo3_img").value),
+      photo4_img: normalizeImageInput($("#photo4_img").value),
+      photo5_img: normalizeImageInput($("#photo5_img").value),
+
+      // Contacts
+      wechat_id: trimOrEmpty($("#wechat_id").value),
+      line_url: normalizeLineUrl($("#line_url").value),
+      line_oa: trimOrEmpty($("#line_oa").value) || CONFIG.DEFAULT_LINE_OA,
+      email: trimOrEmpty($("#email").value),
+      phone: trimOrEmpty($("#phone").value),
+      address: trimOrEmpty($("#address").value),
+
+      // Media/social
+      video1: trimOrEmpty($("#video1").value),
+      video2: trimOrEmpty($("#video2").value),
+      video3: trimOrEmpty($("#video3").value),
+      social1: trimOrEmpty($("#social1").value),
+      social2: trimOrEmpty($("#social2").value),
+      social3: trimOrEmpty($("#social3").value)
+    };
+
+    // Ensure required minimal fields
+    if (!payload.name) throw new Error("name（姓名）必填");
+
+    return payload;
+  }
+
+  function deriveUrls(id, token) {
+    const base = CONFIG.BASE_URL.replace(/\/+$/, "/");
+
+    // Most common pattern: index.html reads ?id=...
+    const clean_card_url = `${base}?id=${encodeURIComponent(id)}`;
+
+    // OG page often via share.html (you already use it in your system)
+    const og_page_url = `${base}share.html?id=${encodeURIComponent(id)}&token=${encodeURIComponent(token || "")}`;
+
+    return { clean_card_url, og_page_url };
+  }
+
+  async function postCreate(payload) {
+    if (!CONFIG.GAS || CONFIG.GAS.includes("PUT_YOUR_GAS")) {
+      throw new Error("請先在 form.js 設定 CONFIG.GAS 為你的 GAS v496 WebApp /exec");
+    }
+
+    const url = `${CONFIG.GAS}${CONFIG.GAS.includes("?") ? "&" : "?"}action=create`;
+
+    for (let attempt = 0; attempt <= CONFIG.RETRY; attempt++) {
+      try {
+        const req = withTimeout(fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }), CONFIG.FETCH_TIMEOUT_MS);
+
+        const res = await req.promise;
+        const text = await res.text();
+
+        let data;
+        try { data = JSON.parse(text); }
+        catch {
+          // Sometimes GAS returns text/html on errors; show snippet
+          throw new Error(`回應不是 JSON：${text.slice(0, 180)}`);
+        }
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${data?.message || "Request failed"}`);
+        }
+
+        if (!data || data.ok !== true) {
+          throw new Error(data?.message || "create 失敗（ok!=true）");
+        }
+
+        return data;
+      } catch (err) {
+        if (attempt < CONFIG.RETRY) {
+          await sleep(350);
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error("create 失敗（unknown）");
+  }
+
+  function showResult({ id, token, clean_card_url, og_page_url }) {
+    r_id.textContent = id || "-";
+    r_token.textContent = token || "-";
+    r_card.textContent = clean_card_url || "-";
+    r_og.textContent = og_page_url || "-";
+    elResult.style.display = "";
+  }
+
+  async function copyText(text) {
+    const s = trimOrEmpty(text);
+    if (!s) return false;
+
     try {
-      localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify({
-        v: CONFIG.VERSION, ts: Date.now(), data: vals
-      }));
-    } catch (_) {}
+      await navigator.clipboard.writeText(s);
+      return true;
+    } catch {
+      // fallback
+      const ta = document.createElement("textarea");
+      ta.value = s;
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      ta.style.top = "-9999px";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch { ok = false; }
+      document.body.removeChild(ta);
+      return ok;
+    }
   }
 
-  function loadDraft() {
+  function wireCopyPills() {
+    document.addEventListener("click", async (e) => {
+      const pill = e.target.closest(".pill");
+      if (!pill) return;
+      const sel = pill.getAttribute("data-copy");
+      if (!sel) return;
+      const el = $(sel);
+      if (!el) return;
+      const ok = await copyText(el.textContent || "");
+      setStatus(ok ? "✅ 已複製到剪貼簿" : "⚠️ 複製失敗（請手動複製）", ok ? "ok" : "err");
+    });
+  }
+
+  function fillDefaultLineOA() {
+    const el = $("#line_oa");
+    if (el && !trimOrEmpty(el.value)) el.value = CONFIG.DEFAULT_LINE_OA;
+  }
+
+  function fillDemo() {
+    $("#tenant").value = "T001";
+    $("#plan").value = "free";
+    $("#color").value = "c1";
+    $("#style").value = "s3";
+    $("#paper").value = "f1";
+    $("#premium_color").value = "p6";
+    $("#name").value = "王小明";
+    $("#unit").value = "幸福緣";
+    $("#title").value = "創辦人";
+    $("#slogan").value = "心裡有愛，家永遠在";
+    $("#services").value = "幸福教養, 健康手作, 顧問";
+    $("#experience").value = "把幸福感做成可被分享的日常。\n用一張名片，把信賴與接納帶回家。";
+    $("#wechat_id").value = "wechat123";
+    $("#line_url").value = "@mylineid";
+    $("#email").value = "hello@example.com";
+    $("#phone").value = "0912-345-678";
+    $("#address").value = "高雄市";
+    $("#video1").value = "https://www.youtube.com/";
+    $("#social1").value = "https://www.instagram.com/";
+    fillDefaultLineOA();
+    setStatus("已填入示範資料（你可直接送出測 create）。");
+  }
+
+  async function ping() {
+    if (!CONFIG.GAS || CONFIG.GAS.includes("PUT_YOUR_GAS")) {
+      setStatus("請先在 form.js 設定 CONFIG.GAS。", "err");
+      return;
+    }
+    const url = `${CONFIG.GAS}${CONFIG.GAS.includes("?") ? "&" : "?"}action=ping`;
     try {
-      const raw = localStorage.getItem(CONFIG.STORAGE_KEY);
-      if (!raw) return null;
-      const j = JSON.parse(raw);
-      return j && j.data ? j.data : null;
-    } catch (_) { return null; }
-  }
-
-  function clearDraft() {
-    try { localStorage.removeItem(CONFIG.STORAGE_KEY); } catch (_) {}
-  }
-
-  function applyDraft(vals) {
-    if (!vals) return;
-    for (const f of FIELD_MAP) {
-      if (Object.prototype.hasOwnProperty.call(vals, f.key)) setVal(f.dom, vals[f.key]);
+      setStatus("測試 ping 中...");
+      const req = withTimeout(fetch(url, { method: "GET" }), 12000);
+      const res = await req.promise;
+      const t = await res.text();
+      setStatus(`ping 回應：\n${t.slice(0, 400)}`, "ok");
+    } catch (e) {
+      setStatus(`ping 失敗：${e.message}`, "err");
     }
   }
 
-  function validate(vals) {
-    if (!vals.plan) return "請先選擇名片製作方案（必填）";
-    if (!vals.name) return "請填寫姓名（必填）";
+  async function handleSubmit(e) {
+    e.preventDefault();
 
-    const type = planType(vals.plan);
+    try {
+      elBtnSubmit.disabled = true;
+      elBtnSubmit.textContent = "送出中...";
 
-    if (type === "free") {
-      if (!vals.color) return "自由搭配款：請選擇名片顏色（必填）";
-      if (!vals.shape) return "自由搭配款：請選擇版型風格（必填）";
-      if (!vals.paper) return "自由搭配款：請選擇紙感質地（必填）";
-    }
+      fillDefaultLineOA();
 
-    if (type === "premium") {
-      if (!vals.premiumColor) return "精品設計款：請選擇精品底色（必填）";
-    }
+      const payload = buildPayload();
 
-    // LINE link is optional now -> no validation
+      setStatus(
+        "送出 create 中...\n" +
+        "（提醒：圖片欄位填 Drive 連結/ID 即可，先不壓縮）"
+      );
 
-    return "";
-  }
+      const data = await postCreate(payload);
 
-  function buildPrefillUrl(vals) {
-    const params = [];
+      // Expected: { ok:true, item:{ id, token, ... }, clean_card_url?, og_page_url? }
+      const item = data.item || {};
+      const id = item.id || data.id || "";
+      const token = item.token || data.token || "";
 
-    for (const f of FIELD_MAP) {
-      const v = (vals[f.key] || "").trim();
-      if (!v) continue;
-      params.push(`${encodeURIComponent(f.entry)}=${encodeURIComponent(v)}`);
-    }
+      const derived = deriveUrls(id, token);
+      const clean_card_url = data.clean_card_url || item.clean_card_url || derived.clean_card_url;
+      const og_page_url = data.og_page_url || item.og_page_url || derived.og_page_url;
 
-    return params.length ? `${CONFIG.FORM_BASE}&${params.join("&")}` : CONFIG.FORM_BASE;
-  }
+      showResult({ id, token, clean_card_url, og_page_url });
 
-  function loadIframe(url) {
-    const iframe = $id(DOM.iframe);
-    if (iframe) iframe.src = url;
-  }
-
-  function showDone(url) {
-    const fill = $id(DOM.panelFill);
-    const done = $id(DOM.panelDone);
-    const link = $id(DOM.doneLink);
-
-    if (fill) fill.style.display = "none";
-    if (done) done.style.display = "";
-
-    if (link) {
-      link.href = url;
-      link.target = "_blank";
-      link.textContent = "打開已預填表單（可檢查/修改 + 上傳照片）";
+      setStatus(
+        "✅ 建立成功（create）\n" +
+        `id: ${id}\n` +
+        `token: ${token}\n` +
+        `clean_card_url: ${clean_card_url}\n` +
+        `og_page_url: ${og_page_url}`,
+        "ok"
+      );
+    } catch (err) {
+      setStatus(`❌ 建立失敗：${err.message}`, "err");
+    } finally {
+      elBtnSubmit.disabled = false;
+      elBtnSubmit.textContent = "送出建立（create）";
     }
   }
 
-  function wireAutosave() {
-    const handler = () => saveDraft(collect());
-    for (const f of FIELD_MAP) {
-      const el = $id(f.dom);
-      if (!el) continue;
-      el.addEventListener("change", handler);
-      el.addEventListener("input", handler);
-    }
+  function handleReset() {
+    elForm.reset();
+    fillDefaultLineOA();
+    elResult.style.display = "none";
+    setStatus("已清空。");
   }
 
   function init() {
-    const draft = loadDraft();
-    if (draft) applyDraft(draft);
+    fillDefaultLineOA();
+    wireCopyPills();
 
-    wireAutosave();
+    elForm.addEventListener("submit", handleSubmit);
+    elBtnReset.addEventListener("click", handleReset);
+    elBtnPing.addEventListener("click", ping);
+    elBtnDemo.addEventListener("click", fillDemo);
 
-    const form = $id(DOM.form);
-    if (form) {
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-
-        const vals = collect();
-        saveDraft(vals);
-
-        const err = validate(vals);
-        if (err) return alert(err);
-
-        const url = buildPrefillUrl(vals);
-        loadIframe(url);
-        showDone(url);
-      });
-    }
-
-    const reset = $id(DOM.btnReset);
-    if (reset) {
-      reset.addEventListener("click", () => {
-        if (!confirm("要清除草稿嗎？")) return;
-        clearDraft();
-        // clear UI
-        for (const f of FIELD_MAP) setVal(f.dom, "");
-        alert("草稿已清除");
-      });
-    }
+    setStatus(
+      "準備就緒。\n" +
+      `版本：${CONFIG.VERSION}\n` +
+      "下一步：把 CONFIG.GAS 換成你的 GAS v496 /exec，然後送出測 create。"
+    );
   }
 
   document.addEventListener("DOMContentLoaded", init);
