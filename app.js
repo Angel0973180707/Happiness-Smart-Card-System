@@ -1,15 +1,9 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v495(COMPLETE OVERWRITE)
- * - Base: v491 (your current)
- * - Upgrade to v492:
- *   1) VERSION bump + stronger cache-bust (fetch + assets)
- *   2) Status gate: status !== "active" => lock card UI
- *      - Subtitle fixed: 「請聯繫客服開通」
- *      - Button fixed: 「聯繫開通」(uses goFillForm as default contact)
- *   3) Expiry hint (if payload provides expiry fields):
- *      - <=30 days: show "即將到期" hint (non-blocking)
- *      - expired: auto lock (same as inactive)
+ * app.js v495 (COMPLETE OVERWRITE)
+ * - Base: your posted v495 draft
+ * - FIX: Support payload { ok:true, item:{...} } (new API)
+ * - FIX: CONFIG.VERSION sync to v495
  * - Keep ALL existing UI/feature behaviors
  * ================================ */
 
@@ -17,7 +11,7 @@ const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
   DEFAULT_ID: "TW0001",
-  VERSION: "v492",
+  VERSION: "v495",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
@@ -376,7 +370,6 @@ function setPaper(paper, el){
 
 /* CTA */
 function goFillForm(){
-  // default "contact support" action (you can later swap to LINE OA / WhatsApp / etc.)
   window.open(CONFIG.FORM, "_blank");
 }
 
@@ -820,7 +813,6 @@ function parseAnyDate_(raw){
   const v = text(raw);
   if(!v) return null;
 
-  // epoch ms / sec
   if(/^\d{13}$/.test(v)){
     const ms = Number(v);
     const d = new Date(ms);
@@ -832,7 +824,6 @@ function parseAnyDate_(raw){
     return isNaN(d.getTime()) ? null : d;
   }
 
-  // YYYY-MM-DD or YYYY/MM/DD
   const m = v.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
   if(m){
     const yy = Number(m[1]);
@@ -845,13 +836,11 @@ function parseAnyDate_(raw){
     return isNaN(d.getTime()) ? null : d;
   }
 
-  // ISO-ish
   const d2 = new Date(v);
   return isNaN(d2.getTime()) ? null : d2;
 }
 
 function getExpiryInfo_(p){
-  // try common keys
   const raw = pick(p, [
     "expire_at","expires_at","expiry","expiry_at","expire_date","expires","due_date","due",
     "ExpireAt","ExpiresAt","Expiry","DueDate",
@@ -873,7 +862,6 @@ function normalizeStatus_(p){
 }
 
 function showLockedUi_(reasonText){
-  // Fixed copy per your anchor
   safeSetText_("u-name", "請聯繫客服開通");
   safeSetText_("u-unit", "請聯繫客服開通");
   safeSetText_("u-title", "");
@@ -884,23 +872,19 @@ function showLockedUi_(reasonText){
     sEl.textContent = text(reasonText) || "請聯繫客服開通";
   }
 
-  // hide blocks
   ["block-service","block-exp","mediaDock","photoWall"].forEach(id=>{
     const el = qs(id);
     if(el) el.style.display = "none";
   });
 
-  // hide logo
   const logoWrap = qs("logoWrap");
   const logoImg = qs("u-logo");
   if(logoWrap) logoWrap.style.display = "none";
   if(logoImg) logoImg.removeAttribute("src");
 
-  // hide avatar (optional: keep placeholder)
   const avatar = qs("u-img");
   if(avatar) avatar.removeAttribute("src");
 
-  // contact dock becomes CTA only
   const cDock = qs("contactDock");
   const cBtns = qs("contactButtons");
   if(cBtns) cBtns.innerHTML = "";
@@ -921,19 +905,16 @@ function applyStatusGate_(p){
   const status = normalizeStatus_(p);
   const expiry = getExpiryInfo_(p);
 
-  // expiry drives lock if expired
   if(expiry.has && typeof expiry.daysLeft === "number" && expiry.daysLeft <= 0){
     showLockedUi_("此名片已到期，請聯繫客服開通");
     return { locked:true, expiry };
   }
 
-  // status drives lock
   if(status && status !== "active"){
     showLockedUi_("請聯繫客服開通");
     return { locked:true, expiry };
   }
 
-  // status empty: treat as active (keep v491 behavior) BUT still show expiry hint if near
   return { locked:false, expiry };
 }
 
@@ -942,12 +923,10 @@ function applyExpiryHint_(p, expiryInfo){
   const days = expiryInfo.daysLeft;
   if(!(typeof days === "number")) return;
 
-  // show hint only for 1..30 days
   if(days >= 1 && days <= 30){
     const sEl = qs("u-slogan");
     const hint = `⏳ 名片即將到期（剩 ${days} 天）`;
     if(sEl){
-      // if slogan exists, append; else show hint
       const old = text(sEl.textContent);
       sEl.style.display = "";
       sEl.textContent = old ? (old + "｜" + hint) : hint;
@@ -960,7 +939,6 @@ function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
 
-  // v492: gate first (may lock & early exit)
   const gate = applyStatusGate_(p);
   if(gate.locked){
     const vt = qs("versionTag");
@@ -970,7 +948,6 @@ function renderCard(row){
 
   const name  = pick(p, ["姓名","name"]);
 
-  // ✅ Plan A: unit ONE LINE
   const unitRaw = pick(p, ["單位","unit","公司","company"]);
   const unit = toOneLine_(unitRaw);
 
@@ -992,7 +969,6 @@ function renderCard(row){
     }
   }
 
-  // v492: expiry hint (non-blocking)
   applyExpiryHint_(p, gate.expiry);
 
   renderAvatar_(p);
@@ -1012,7 +988,6 @@ function goLineIntro(){
     return;
   }
 
-  // if locked, prevent opening
   const status = normalizeStatus_(p);
   const expiry = getExpiryInfo_(p);
   if((status && status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
@@ -1054,14 +1029,22 @@ window.goFillForm = goFillForm;
 function extractRowFromPayload_(data){
   if(!data || typeof data !== "object") return null;
 
-  // v491 standard
+  // ✅ NEW API: { ok:true, item:{...} }
+  if(data.ok === true && data.item && typeof data.item === "object"){
+    return data.item;
+  }
+
+  // ✅ OLD API: { ok:true, data:{...} }
   if(data.ok === true && data.data && typeof data.data === "object"){
     return data.data;
   }
 
   // fallbacks
+  if(data.item && typeof data.item === "object") return data.item;
   if(data.data && typeof data.data === "object") return data.data;
   if(data.row && typeof data.row === "object") return data.row;
+
+  // sometimes backend returns flat row
   if(data.id || data["姓名"] || data.name) return data;
 
   return null;
@@ -1177,7 +1160,6 @@ function renderPhotoWall_(row){
   const grid = qs("photoGrid");
   if(!wall || !grid) return;
 
-  // v492: do not render when locked
   const status = normalizeStatus_(p);
   const expiry = getExpiryInfo_(p);
   if((status && status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
@@ -1235,7 +1217,6 @@ function cardUrlById_(cid){
 }
 
 function ogUrl_(){
-  // keep your original og-card.png, add version for cache-bust
   return `${location.origin}${location.pathname.replace(/\/[^\/]*$/, "/")}og-card.png?v=${encodeURIComponent(CONFIG.VERSION)}`;
 }
 
@@ -1490,7 +1471,6 @@ function setupAdminHotspotBR_(){
 async function loadAndRenderById_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
 
-  // v492: cache-bust stronger
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}&v=${encodeURIComponent(CONFIG.VERSION)}`;
 
   console.log("[LOAD] fetching:", url);
@@ -1498,7 +1478,6 @@ async function loadAndRenderById_(id){
   try{
     const payload = await fetchJsonRobust_(url);
 
-    // ✅ ensure complete / expected
     if(!payload || payload.ok !== true){
       console.warn("[LOAD] GAS returned not ok:", payload);
       throw new Error("GAS not ok");
