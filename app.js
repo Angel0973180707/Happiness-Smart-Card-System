@@ -1,6 +1,6 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v492 (COMPLETE OVERWRITE)
+ * app.js v495(COMPLETE OVERWRITE)
  * - Base: v491 (your current)
  * - Upgrade to v492:
  *   1) VERSION bump + stronger cache-bust (fetch + assets)
