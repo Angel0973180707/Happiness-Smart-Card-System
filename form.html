@@ -1,12 +1,17 @@
+<!-- ================================
+     form.html — v498 (COMPLETE OVERWRITE)
+     - Adds full options for free/premium
+     - Photo limits: free max 2, premium max 5 (UI + submit checks in form.js next)
+     - Keeps your v497 structure & image upload blocks
+================================== -->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="color-scheme" content="light" />
-  <title>天使幸福智慧名片</title>
+  <title>天使幸福智慧名片｜自建表單 v498</title>
 
-  <!-- v498 -->
   <link rel="stylesheet" href="./form.css?v=498" />
 </head>
 
@@ -34,84 +39,65 @@
         <b>自由搭配：</b>5色 × 3版型 × 3紙感；照片牆最多 2 張
       </div>
 
-      <!-- ✅ v498：方案選項（JS 會切換顯示） -->
-      <div class="divider"></div>
-
-      <div id="freeOptions" class="imgBlock" style="padding:12px;margin-bottom:12px;">
-        <div class="imgHead">
-          <div class="imgTitle">自由搭配設定</div>
-          <div class="imgTip">顏色／版型／紙感（必選）</div>
-        </div>
-
-        <div class="imgGrid">
-          <label class="field" style="gap:6px;">
-            <span class="lbl">顏色（5色）</span>
-            <select id="color" name="color">
-              <option value="c1">c1 粉</option>
-              <option value="c2">c2 藍</option>
-              <option value="c3">c3 橘</option>
-              <option value="c4">c4 紫</option>
-              <option value="c5">c5 綠</option>
-            </select>
-          </label>
-
-          <label class="field" style="gap:6px;">
-            <span class="lbl">版型（3款）</span>
-            <select id="style" name="style">
-              <option value="s1">s1 正拱</option>
-              <option value="s2">s2 平直</option>
-              <option value="s3">s3 晨曦</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="imgGrid" style="margin-top:10px;">
-          <label class="field" style="gap:6px;">
-            <span class="lbl">紙感（3種）</span>
-            <select id="paper" name="paper">
-              <option value="f1">f1 棉紙</option>
-              <option value="f2">f2 顆粒</option>
-              <option value="f3">f3 亞麻</option>
-            </select>
-          </label>
-
-          <div class="field" style="gap:6px;">
-            <span class="lbl">照片牆限制</span>
-            <input type="text" value="最多 2 張（照片1～2）" readonly />
-          </div>
-        </div>
-      </div>
-
-      <div id="premiumOptions" class="imgBlock" style="padding:12px;margin-bottom:12px;display:none;">
-        <div class="imgHead">
-          <div class="imgTitle">精品設計設定</div>
-          <div class="imgTip">底色（必選）</div>
-        </div>
-
-        <div class="imgGrid">
-          <label class="field" style="gap:6px;">
-            <span class="lbl">精品底色（7色）</span>
-            <select id="premium_color" name="premium_color">
-              <option value="p1">p1 胭脂紅</option>
-              <option value="p2">p2 酒紅</option>
-              <option value="p3">p3 深藍</option>
-              <option value="p4">p4 霧紫</option>
-              <option value="p5">p5 藍灰</option>
-              <option value="p6">p6 金箔</option>
-              <option value="p7">p7 褐碳</option>
-            </select>
-          </label>
-
-          <div class="field" style="gap:6px;">
-            <span class="lbl">照片牆限制</span>
-            <input type="text" value="最多 5 張（照片1～5）" readonly />
-          </div>
-        </div>
-      </div>
-
       <div class="status" id="statusBox">請先選擇方案，填寫基本資料與照片即可送出。</div>
 
       <form id="cardForm" class="form" autocomplete="on">
+        <!-- ✅ v498 方案選項 -->
+        <div class="optBox" id="optionsBox">
+          <div class="optHead">
+            <div class="optTitle">外觀選擇</div>
+            <div class="optSub" id="optSub">自由搭配：顏色 / 版型 / 紙感</div>
+          </div>
+
+          <!-- Free options -->
+          <div id="freeOptions" class="optGrid">
+            <label class="field">
+              <span class="lbl">顏色（free）</span>
+              <select id="color" name="color">
+                <option value="c1">c1 粉</option>
+                <option value="c2">c2 藍</option>
+                <option value="c3" selected>c3 橘</option>
+                <option value="c4">c4 紫</option>
+                <option value="c5">c5 綠</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="lbl">版型（free）</span>
+              <select id="style" name="style">
+                <option value="s1" selected>s1 正拱</option>
+                <option value="s2">s2 平直</option>
+                <option value="s3">s3 晨曦</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="lbl">紙感（free）</span>
+              <select id="paper" name="paper">
+                <option value="f1" selected>f1 棉紙</option>
+                <option value="f2">f2 顆粒</option>
+                <option value="f3">f3 亞麻</option>
+              </select>
+            </label>
+          </div>
+
+          <!-- Premium options -->
+          <div id="premiumOptions" class="optGrid" style="display:none;">
+            <label class="field" style="grid-column: 1 / -1;">
+              <span class="lbl">底色（premium）</span>
+              <select id="premium_color" name="premium_color">
+                <option value="p1">p1 胭脂紅</option>
+                <option value="p2">p2 酒紅</option>
+                <option value="p3">p3 深藍</option>
+                <option value="p4">p4 霧紫</option>
+                <option value="p5">p5 藍灰</option>
+                <option value="p6" selected>p6 金箔</option>
+                <option value="p7">p7 褐碳</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
         <!-- 基本資料 -->
         <div class="grid2">
           <label class="field">
@@ -183,7 +169,7 @@
         <div class="imgBlock">
           <div class="imgHead">
             <div class="imgTitle">照片上傳</div>
-            <div class="imgTip" id="imgTip">建議單張 ≤ 10MB（v498 會先壓縮再送）</div>
+            <div class="imgTip" id="imgTip">建議單張 ≤ 2.8MB（避免送出失敗）</div>
           </div>
 
           <div class="imgGrid">
@@ -212,7 +198,7 @@
               <img id="photo2Preview" class="preview" alt="photo2 preview" />
             </div>
 
-            <!-- 下面三張：只有精品設計才顯示（JS 會切換 morePhotos display） -->
+            <!-- 下面三張：只有精品設計才顯示 -->
             <div class="imgItem morePhotos" id="morePhoto3">
               <div class="imgLbl">照片 3（精品）</div>
               <input id="photo3_file" type="file" accept="image/*" />
@@ -270,7 +256,6 @@
     </footer>
   </main>
 
-  <!-- v498 -->
   <script src="./form.js?v=498&ts=20260303a"></script>
 </body>
 </html>
