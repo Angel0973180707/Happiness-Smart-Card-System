@@ -1,10 +1,10 @@
 /* ================================
  * form.js — v498 (COMPLETE OVERWRITE)
- * - v498: 補回外觀選項（free: color/style/paper, premium: premium_color）
- * - v498: free 照片牆最多 2 張；premium 最多 5 張（UI + submit 前檢查）
- * - 圖片：file -> dataURL(base64) -> GAS create（避免 preflight）
- * - POST: x-www-form-urlencoded (data=JSON)
- * - Draft autosave（不存圖片 dataURL，避免爆 localStorage）
+ * - v498: 外觀選項（free: color/style/paper, premium: premium_color）
+ * - v498: 照片牆限制（free<=2, premium<=5）UI+submit 檢查
+ * - v498: 圖片「雙通道」送出（files + *_img(base64)）確保能進 GAS/card_db
+ * - POST: x-www-form-urlencoded (data=JSON) 避免 preflight
+ * - Draft autosave（不存圖片 dataURL）
  * ================================ */
 
 (() => {
@@ -71,10 +71,13 @@
   const fileState = {}; // key -> {dataUrl, filename, mime, bytes}
 
   function setStatus(msg, type = "info") {
+    if (!elStatus) return;
     elStatus.classList.remove("ok", "err");
     if (type === "ok") elStatus.classList.add("ok");
     if (type === "err") elStatus.classList.add("err");
     elStatus.textContent = msg;
+    // ✅ 狀態在底部，送出時自動捲到底更直觀
+    try { elStatus.scrollIntoView({ behavior:"smooth", block:"center" }); } catch(_) {}
   }
 
   function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
@@ -91,8 +94,7 @@
     const s = trimOrEmpty(raw);
     if (!s) return "";
     if (/^https?:\/\//i.test(s)) return s.replace(/^http:\/\//i, "https://");
-    // allow @id (keep)
-    return s;
+    return s; // allow @id
   }
 
   function normalizeUrl(raw) {
@@ -117,10 +119,10 @@
   }
 
   function updateImgTip_() {
+    if (!elImgTip) return;
     const plan = elPlan.value || "free";
     const max = (plan === "premium") ? 5 : 2;
     const picked = countPickedPhotos_();
-    if (!elImgTip) return;
     elImgTip.textContent = `建議單張 ≤ ${(CONFIG.MAX_FILE_BYTES/1024/1024).toFixed(1)}MB；照片牆 ${picked}/${max}`;
   }
 
@@ -157,7 +159,6 @@
   }
 
   function enforcePhotoLimitOnPick_(plan) {
-    // 當 free 狀態時，若已選到 >2 張照片牆，直接清掉超出的（photo3~5）
     if (plan !== "premium") {
       ["photo3","photo4","photo5"].forEach(k => {
         if (fileState[k]?.dataUrl) {
@@ -190,7 +191,6 @@
     };
     setPreview(previewSel, dataUrl);
 
-    // v498: 即時限制
     const plan = elPlan.value || "free";
     enforcePhotoLimitOnPick_(plan);
 
@@ -204,34 +204,27 @@
     segFree.classList.toggle("on", p === "free");
     segPremium.classList.toggle("on", p === "premium");
 
-    // UI: premium 才顯示 photo3~5
     document.querySelectorAll(".morePhotos").forEach(el => {
       el.style.display = (p === "premium") ? "" : "none";
     });
 
-    // v498: options toggle
     if (elFreeOptions) elFreeOptions.style.display = (p === "free") ? "" : "none";
     if (elPremiumOptions) elPremiumOptions.style.display = (p === "premium") ? "" : "none";
     if (elOptSub) elOptSub.textContent = (p === "premium") ? "精品設計：底色（p1~p7）" : "自由搭配：顏色 / 版型 / 紙感";
 
-    // hint
     planHint.innerHTML = (p === "premium")
       ? "<b>精品設計：</b>7 底色；照片牆最多 5 張"
       : "<b>自由搭配：</b>5色 × 3版型 × 3紙感；照片牆最多 2 張";
 
-    // free 時清掉 photo3~5
     enforcePhotoLimitOnPick_(p);
 
     setStatus("已切換方案：" + (p === "premium" ? "精品設計" : "自由搭配"), "ok");
     saveDraftSoon_();
-    updateImgTip_();
   }
 
   function normalizeSelections_(payload) {
-    // v498: 依 plan 補齊外觀欄位
     if (payload.plan === "premium") {
       payload.premium_color = trimOrEmpty(elPremiumColor?.value) || "p6";
-      // free 欄位清空（避免誤存）
       payload.color = "";
       payload.style = "";
       payload.paper = "";
@@ -239,16 +232,46 @@
       payload.color = trimOrEmpty(elColor?.value) || "c3";
       payload.style = trimOrEmpty(elStyle?.value) || "s1";
       payload.paper = trimOrEmpty(elPaper?.value) || "f1";
-      // premium 欄位清空（避免誤存）
       payload.premium_color = "";
     }
+    return payload;
+  }
+
+  function buildFilesPayload_(plan) {
+    const allowPhotos = (plan === "premium")
+      ? ["photo1","photo2","photo3","photo4","photo5"]
+      : ["photo1","photo2"];
+
+    const files = {};
+    ["avatar","logo"].forEach(k => { if (fileState[k]?.dataUrl) files[k] = fileState[k]; });
+    allowPhotos.forEach(k => { if (fileState[k]?.dataUrl) files[k] = fileState[k]; });
+
+    return { files, allowPhotos };
+  }
+
+  function attachBase64ImgFields_(payload, allowPhotos) {
+    // ✅ 雙通道：同時送 files 與 *_img(base64)
+    if (fileState.avatar?.dataUrl) payload.avatar_img = fileState.avatar.dataUrl;
+    if (fileState.logo?.dataUrl) payload.logo_img = fileState.logo.dataUrl;
+
+    allowPhotos.forEach(k => {
+      const v = fileState[k]?.dataUrl || "";
+      payload[`${k}_img`] = v;
+    });
+
+    // 也把不允許的照片欄位補空（避免舊資料殘留）
+    if (payload.plan !== "premium") {
+      payload.photo3_img = "";
+      payload.photo4_img = "";
+      payload.photo5_img = "";
+    }
+
     return payload;
   }
 
   function collectFormData_() {
     const plan = elPlan.value || "free";
 
-    // 基本欄位
     const payload = {
       plan,
       name: trimOrEmpty($("#name")?.value),
@@ -265,20 +288,12 @@
       line_oa: normalizeUrl($("#line_oa")?.value) || CONFIG.DEFAULT_LINE_OA
     };
 
-    // v498: 外觀選項
     normalizeSelections_(payload);
 
-    // 方案分流：free 只允許 photo1~2；premium 允許 photo1~5
-    const allowPhotos = (plan === "premium")
-      ? ["photo1","photo2","photo3","photo4","photo5"]
-      : ["photo1","photo2"];
-
-    const files = {};
-    // avatar/logo 一直允許
-    ["avatar","logo"].forEach(k => { if (fileState[k]?.dataUrl) files[k] = fileState[k]; });
-    allowPhotos.forEach(k => { if (fileState[k]?.dataUrl) files[k] = fileState[k]; });
-
+    const { files, allowPhotos } = buildFilesPayload_(plan);
     payload.files = files;
+
+    attachBase64ImgFields_(payload, allowPhotos);
 
     return payload;
   }
@@ -286,7 +301,6 @@
   function validateBeforeSubmit_(payload) {
     if (!payload.name) return "請至少填寫：姓名";
 
-    // v498: 外觀欄位基本檢查
     if (payload.plan === "premium") {
       if (!payload.premium_color) return "請選擇：精品底色（p1~p7）";
     } else {
@@ -295,7 +309,6 @@
       if (!payload.paper) return "請選擇：紙感（f1~f3）";
     }
 
-    // v498: 照片牆張數限制（只算 photo1~5，不含 avatar/logo）
     const picked = countPickedPhotos_();
     const max = (payload.plan === "premium") ? 5 : 2;
     if (picked > max) return `照片牆最多 ${max} 張（你目前選了 ${picked} 張）。`;
@@ -304,7 +317,6 @@
   }
 
   async function postCreate_(payload) {
-    // 為避免 preflight：x-www-form-urlencoded
     const body = new URLSearchParams();
     body.set("action", "create");
     body.set("data", JSON.stringify(payload));
@@ -362,7 +374,6 @@
     const plan = elPlan.value || "free";
     const draft = {
       plan,
-      // v498: options
       options: {
         color: elColor?.value || "c3",
         style: elStyle?.value || "s1",
@@ -383,7 +394,6 @@
         line_url: $("#line_url")?.value || "",
         line_oa: $("#line_oa")?.value || ""
       },
-      // file dataURL 很大，不進 draft（避免爆 localStorage）
       savedAt: Date.now()
     };
     try { localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify(draft)); } catch(_) {}
@@ -398,14 +408,13 @@
 
       setPlan(d.plan || "free");
 
-      // options
       const o = d.options || {};
       if (elColor && o.color) elColor.value = o.color;
       if (elStyle && o.style) elStyle.value = o.style;
       if (elPaper && o.paper) elPaper.value = o.paper;
       if (elPremiumColor && o.premium_color) elPremiumColor.value = o.premium_color;
 
-      const f = (d.fields || {});
+      const f = d.fields || {};
       Object.keys(f).forEach(k => {
         const el = document.getElementById(k);
         if (el) el.value = f[k] || "";
@@ -417,19 +426,16 @@
   }
 
   function clearAll_() {
-    // 清欄位
     ["name","unit","title","phone","email","website","address","slogan","services","experience","line_url","line_oa"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
 
-    // options reset
     if (elColor) elColor.value = "c3";
     if (elStyle) elStyle.value = "s1";
     if (elPaper) elPaper.value = "f1";
     if (elPremiumColor) elPremiumColor.value = "p6";
 
-    // 清圖片
     FILE_FIELDS.forEach(ff => {
       const inp = $(ff.file);
       if (inp) inp.value = "";
@@ -438,6 +444,7 @@
     });
 
     try { localStorage.removeItem(CONFIG.DRAFT_KEY); } catch(_) {}
+    if (elResultBox) elResultBox.style.display = "none";
     setStatus("已清空。", "ok");
     updateImgTip_();
   }
@@ -451,16 +458,6 @@
     $("#line_oa").value = CONFIG.DEFAULT_LINE_OA;
     $("#services").value = "打造個人品牌智慧名片\n名片交付／代管";
     $("#slogan").value = "把心站穩，活得自在。";
-
-    // demo options
-    if (elPlan.value === "premium") {
-      if (elPremiumColor) elPremiumColor.value = "p6";
-    } else {
-      if (elColor) elColor.value = "c3";
-      if (elStyle) elStyle.value = "s1";
-      if (elPaper) elPaper.value = "f1";
-    }
-
     saveDraftSoon_();
     setStatus("已填入示範資料（圖片請自行選）。", "ok");
   }
@@ -481,7 +478,6 @@
         return;
       }
 
-      // 送出
       let lastErr = null;
       let json = null;
       for (let i = 0; i <= CONFIG.RETRY; i++) {
@@ -502,24 +498,26 @@
 
       const { clean_card_url, og_page_url } = deriveUrls(id || "TW0001", token);
 
-      // 顯示結果
-      r_id.textContent = id || "—";
-      r_token.textContent = token || "—";
-      r_card.textContent = clean_card_url;
-      r_og.textContent = og_page_url;
-      elResultBox.style.display = "";
+      if (r_id) r_id.textContent = id || "—";
+      if (r_token) r_token.textContent = token || "—";
+      if (r_card) r_card.textContent = clean_card_url;
+      if (r_og) r_og.textContent = og_page_url;
+      if (elResultBox) elResultBox.style.display = "";
 
-      btnCopyCard.onclick = async () => {
+      if (btnCopyCard) btnCopyCard.onclick = async () => {
         const ok = await copyText_(clean_card_url);
         setStatus(ok ? "已複製智慧名片成品連結 ✅" : "已取消", ok ? "ok" : "info");
       };
-      btnCopyOg.onclick = async () => {
+      if (btnCopyOg) btnCopyOg.onclick = async () => {
         const ok = await copyText_(og_page_url);
         setStatus(ok ? "已複製 OG 交付連結 ✅" : "已取消", ok ? "ok" : "info");
       };
 
-      setStatus("建立成功 ✅（若你已設定後台開通流程，名片狀態可能先是 inactive）", "ok");
+      setStatus("建立成功 ✅（已包含外觀參數與照片資料）", "ok");
       saveDraftNow_();
+
+      // ✅ 結果在底部，送出成功後也滾到底
+      try { elResultBox.scrollIntoView({ behavior:"smooth", block:"start" }); } catch(_) {}
 
     } catch (err) {
       console.error(err);
@@ -542,8 +540,7 @@
     });
   }
 
-  function bindTextAutosave_() {
-    // 所有 input/textarea/select 變動就 autosave
+  function bindAutosave_() {
     document.querySelectorAll("input,textarea,select").forEach(el => {
       el.addEventListener("input", saveDraftSoon_);
       el.addEventListener("change", () => {
@@ -554,17 +551,14 @@
   }
 
   function boot_() {
-    // plan buttons
     segFree.addEventListener("click", () => setPlan("free"));
     segPremium.addEventListener("click", () => setPlan("premium"));
 
-    // defaults
     setPlan("free");
     if ($("#line_oa") && !$("#line_oa").value) $("#line_oa").value = CONFIG.DEFAULT_LINE_OA;
 
-    // bind
     bindFiles_();
-    bindTextAutosave_();
+    bindAutosave_();
     elForm.addEventListener("submit", onSubmit_);
 
     elBtnReset.addEventListener("click", clearAll_);
@@ -582,10 +576,7 @@
       }
     });
 
-    // load draft
     loadDraft_();
-
-    // init img tip
     updateImgTip_();
   }
 
