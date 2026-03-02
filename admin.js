@@ -1,15 +1,18 @@
 /* ================================
-   admin.js v495 (COMPLETE OVERWRITE)
-   FIX: "Failed to fetch" on POST to GAS (CORS/preflight)
-   - Use text/plain JSON body (avoid preflight)
-   - Add GET fallback if POST still blocked
-   - Keep: delivery copy + WeChat poster + robust fetch + image fallback
+   admin.js v497 (COMPLETE OVERWRITE)
+   FIX:
+   1) action=card payload compat: item/data/row
+   2) POST to GAS "Failed to fetch" (CORS/preflight)
+      - Prefer POST with text/plain JSON body (avoid preflight)
+      - Retry + GET fallback if POST blocked
+   Keep:
+   - delivery copy + WeChat poster + robust fetch + image fallback
 ================================== */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   DEFAULT_ID: "TW0001",
-  VERSION: "492.1",
+  VERSION: "497.0",
   TIMEOUT_MS: 12000,
   RETRY: 2,
   POSTER_W: 1080,
@@ -67,8 +70,10 @@ function homeUrl_(){
 function safeJsonParse_(rawText){
   let s = String(rawText||"").trim();
   if(!s) return null;
+  // strip XSSI prefix
   s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
   try{ return JSON.parse(s); }catch{}
+  // try find a json object/array substring
   const m = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
   if(m){ try{ return JSON.parse(m[0]); }catch{} }
   return null;
@@ -79,10 +84,17 @@ async function fetchWithTimeout_(url, timeoutMs){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
-    const res = await fetch(url, { method:"GET", cache:"no-store", redirect:"follow", signal: controller.signal });
+    const res = await fetch(url, {
+      method:"GET",
+      cache:"no-store",
+      redirect:"follow",
+      signal: controller.signal
+    });
     const txt = await res.text();
     const json = safeJsonParse_(txt);
     if(!json) throw new Error("Not JSON");
+    // attach raw for debug if needed
+    if(json && typeof json === "object" && !json.__raw) json.__raw = txt;
     return json;
   } finally {
     clearTimeout(t);
@@ -102,22 +114,28 @@ async function fetchJsonRobust_(url){
 
 /* ---------- POST (avoid preflight) + GET fallback ---------- */
 async function postPlainJson_(bodyObj){
-  // ✅ 不設 headers，讓瀏覽器用 text/plain (simple request) 避免 preflight
+  // ✅ Use text/plain to keep it a "simple request" (avoid CORS preflight)
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), CONFIG.TIMEOUT_MS);
+
   try{
     const res = await fetch(`${CONFIG.GAS}?ts=${Date.now()}`, {
       method: "POST",
       cache: "no-store",
       redirect: "follow",
-      // mode 預設就是 cors；這裡明寫更清楚
       mode: "cors",
-      body: JSON.stringify(bodyObj),
+      headers: {
+        // safelisted
+        "Content-Type": "text/plain;charset=UTF-8"
+      },
+      body: JSON.stringify(bodyObj || {}),
       signal: controller.signal
     });
+
     const txt = await res.text();
     const json = safeJsonParse_(txt);
     if(!json) throw new Error("Not JSON");
+    if(json && typeof json === "object" && !json.__raw) json.__raw = txt;
     return json;
   } finally {
     clearTimeout(t);
@@ -125,7 +143,7 @@ async function postPlainJson_(bodyObj){
 }
 
 async function getFallback_(bodyObj){
-  // ⚠️ 若 POST 仍被擋，改走 GET query（前提：GAS 端有支援 doGet 的 action）
+  // ⚠️ fallback: encode as query string (admin_pin will appear in URL)
   const u = new URL(CONFIG.GAS);
   u.searchParams.set("ts", String(Date.now()));
   Object.keys(bodyObj || {}).forEach(k=>{
@@ -137,8 +155,9 @@ async function getFallback_(bodyObj){
 }
 
 async function callAdminAction_(bodyObj){
-  // 先 POST（text/plain JSON），失敗再 GET fallback
+  // prefer POST; retry; then GET fallback
   let lastErr = null;
+
   for(let i=0;i<=CONFIG.RETRY;i++){
     try{
       return await postPlainJson_(bodyObj);
@@ -147,30 +166,47 @@ async function callAdminAction_(bodyObj){
       await new Promise(r=>setTimeout(r, 520 + i*520));
     }
   }
-  // POST 全掛 → 試 GET fallback
+
   try{
     return await getFallback_(bodyObj);
   }catch(e){
-    // 把 POST 的錯也保留
     const msg = `POST失敗(${lastErr?.message || "unknown"}); GET也失敗(${e?.message || "unknown"})`;
     throw new Error(msg);
   }
 }
 
 /* ---------- row extract & pick ---------- */
-function extractRow_(data){
-  if(!data || typeof data !== "object") return null;
-  if(data.data && typeof data.data === "object") return data.data;
-  if(data.row && typeof data.row === "object") return data.row;
-  if(data.id || data["姓名"] || data.name) return data;
+function extractRow_(payload){
+  // Accept:
+  // - {ok:true,item:{...}} (your current action=card)
+  // - {ok:true,data:{...}}
+  // - {ok:true,row:{...}}
+  // - {id:"TW0002", ...}
+  if(!payload || typeof payload !== "object") return null;
+
+  // unwrap ok envelope
+  if(payload.ok === true){
+    const cand = payload.item || payload.data || payload.row || payload.card || null;
+    if(cand && typeof cand === "object") return cand;
+  }
+
+  // direct object
+  if(payload.id || payload["姓名"] || payload.name) return payload;
+
+  // nested unknown
+  if(payload.data && typeof payload.data === "object") return payload.data;
+  if(payload.row && typeof payload.row === "object") return payload.row;
+
   return null;
 }
+
 function pick_(obj, keys){
   if(!obj) return "";
   for(const k of keys){
     const v = obj[k];
     if(v!=null && text(v)!=="") return v;
   }
+  // case-insensitive fallback
   const lower = Object.create(null);
   Object.keys(obj).forEach(k=> lower[String(k).toLowerCase()] = obj[k]);
   for(const k of keys){
@@ -271,9 +307,9 @@ function fillPreview_(row){
   const title = text(pick_(row, ["頭銜","職稱","title"]));
   const slogan = text(pick_(row, ["理念標語","slogan","簡介","一句話","引言"]));
 
-  qs("pvName").textContent = name;
-  qs("pvUnit").textContent = unit;
-  qs("pvTitle").textContent = title;
+  if(qs("pvName"))  qs("pvName").textContent = name;
+  if(qs("pvUnit"))  qs("pvUnit").textContent = unit;
+  if(qs("pvTitle")) qs("pvTitle").textContent = title;
 
   const sEl = qs("pvSlogan");
   if(sEl){
@@ -294,8 +330,8 @@ function fillPreview_(row){
     else pv.removeAttribute("src");
   }
 
-  qs("txtCardUrl").textContent = cardCleanUrl_(currentId);
-  qs("txtShareUrl").textContent = shareUrl_(currentId);
+  if(qs("txtCardUrl"))  qs("txtCardUrl").textContent = cardCleanUrl_(currentId);
+  if(qs("txtShareUrl")) qs("txtShareUrl").textContent = shareUrl_(currentId);
   setStatusView_(row);
 }
 
@@ -331,15 +367,15 @@ function showOverlay_(on, title, hint){
   if(!ov) return;
   ov.style.display = on ? "flex" : "none";
   ov.setAttribute("aria-hidden", on ? "false" : "true");
-  if(title) qs("posterStatus").textContent = title;
-  if(hint) qs("posterHint").textContent = hint;
+  if(title && qs("posterStatus")) qs("posterStatus").textContent = title;
+  if(hint && qs("posterHint")) qs("posterHint").textContent = hint;
 }
 
 /* ---------- Load row ---------- */
 async function loadRowById_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
   currentId = cid;
-  qs("adminInput").value = cid;
+  if(qs("adminInput")) qs("adminInput").value = cid;
 
   setHint_(`⏳ 讀取中：<b>${cid}</b>`);
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}`;
@@ -347,7 +383,7 @@ async function loadRowById_(id){
   try{
     const payload = await fetchJsonRobust_(url);
     const row = extractRow_(payload);
-    if(!row) throw new Error("Invalid payload");
+    if(!row) throw new Error("Invalid payload (missing item/data/row)");
     currentRow = row;
 
     setHint_(`✅ 已載入：<b>${cid}</b>（可直接交貨）`);
@@ -356,9 +392,9 @@ async function loadRowById_(id){
     console.error(e);
     currentRow = null;
     setHint_(`⚠️ 載入失敗：<b>${cid}</b>（請確認 GAS action=card 可用）`);
-    qs("pvName").textContent = "載入失敗";
-    qs("pvUnit").textContent = "";
-    qs("pvTitle").textContent = "";
+    if(qs("pvName"))  qs("pvName").textContent = "載入失敗";
+    if(qs("pvUnit"))  qs("pvUnit").textContent = "";
+    if(qs("pvTitle")) qs("pvTitle").textContent = "";
     setStatusView_({});
   }
 }
@@ -383,6 +419,14 @@ async function requireLoaded_(){
   return true;
 }
 
+function unwrapOk_(r){
+  // accept {ok:true} / {success:true}
+  if(!r || typeof r !== "object") return { ok:false, msg:"No response" };
+  if(r.ok === true) return { ok:true, msg:"ok" };
+  if(r.success === true) return { ok:true, msg:"success" };
+  return { ok:false, msg: String(r.error || r.message || "unknown") };
+}
+
 async function doActivate_(){
   if(!(await requireLoaded_())) return;
   const pin = getPin_();
@@ -392,12 +436,13 @@ async function doActivate_(){
   setHint_(`⏳ 開卡中：<b>${currentId}</b>`);
   try{
     const r = await callAdminAction_({ action:"activate", admin_pin: pin, id: currentId });
-    if(r && r.ok){
+    const u = unwrapOk_(r);
+    if(u.ok){
       setHint_(`✅ 已開卡：<b>${currentId}</b>`);
       await loadRowById_(currentId);
     }else{
       setHint_(`⚠️ 開卡失敗：<b>${currentId}</b>`);
-      alert("開卡失敗：" + (r?.error || r?.message || "unknown"));
+      alert("開卡失敗：" + u.msg);
     }
   }catch(e){
     console.error(e);
@@ -415,12 +460,13 @@ async function doDeactivate_(){
   setHint_(`⏳ 鎖卡中：<b>${currentId}</b>`);
   try{
     const r = await callAdminAction_({ action:"deactivate", admin_pin: pin, id: currentId });
-    if(r && r.ok){
+    const u = unwrapOk_(r);
+    if(u.ok){
       setHint_(`✅ 已鎖卡：<b>${currentId}</b>`);
       await loadRowById_(currentId);
     }else{
       setHint_(`⚠️ 鎖卡失敗：<b>${currentId}</b>`);
-      alert("鎖卡失敗：" + (r?.error || r?.message || "unknown"));
+      alert("鎖卡失敗：" + u.msg);
     }
   }catch(e){
     console.error(e);
@@ -445,12 +491,13 @@ async function doExtend_(){
   setHint_(`⏳ 續期中：<b>${currentId}</b>（+${days}天）`);
   try{
     const r = await callAdminAction_({ action:"extend", admin_pin: pin, id: currentId, days });
-    if(r && r.ok){
+    const u = unwrapOk_(r);
+    if(u.ok){
       setHint_(`✅ 已續期：<b>${currentId}</b>（+${days}天）`);
       await loadRowById_(currentId);
     }else{
       setHint_(`⚠️ 續期失敗：<b>${currentId}</b>`);
-      alert("續期失敗：" + (r?.error || r?.message || "unknown"));
+      alert("續期失敗：" + u.msg);
     }
   }catch(e){
     console.error(e);
@@ -461,6 +508,7 @@ async function doExtend_(){
 
 /* ================================
    WeChat Poster (keep your existing logic)
+   NOTE: requires QRious in admin.html
 ================================== */
 function pickPosterPhotos_(row){
   const urls = [];
@@ -505,6 +553,10 @@ function roundRect_(ctx, x, y, w, h, r){
 async function generateWeChatPoster_(){
   if(!currentRow){
     alert("⚠️ 請先載入資料（輸入 TW0001 再按套用）");
+    return;
+  }
+  if(!window.QRious){
+    alert("⚠️ 缺少 QRious（請在 admin.html 引入 QRious lib）");
     return;
   }
 
@@ -554,6 +606,7 @@ async function generateWeChatPoster_(){
   const ay = cardY + 56;
   const ar = 92;
 
+  // avatar placeholder circle
   ctx.save();
   ctx.beginPath();
   ctx.arc(ax+ar, ay+ar, ar, 0, Math.PI*2);
@@ -600,6 +653,7 @@ async function generateWeChatPoster_(){
   if(title) ctx.fillText(title, tx, ty + 170);
 
   let yCursor = ay + ar*2 + 48;
+
   if(slogan){
     const bx = cardX + 56;
     const bw = cardW - 112;
@@ -618,10 +672,10 @@ async function generateWeChatPoster_(){
     ctx.font = "800 34px 'Noto Sans TC', sans-serif";
 
     const maxW = bw - 44;
-    const words = slogan.split("");
+    const chars = slogan.split("");
     let line = "";
-    let lines = [];
-    for(const ch of words){
+    const lines = [];
+    for(const ch of chars){
       const t = line + ch;
       if(ctx.measureText(t).width > maxW){
         lines.push(line);
@@ -689,7 +743,6 @@ async function generateWeChatPoster_(){
   const qrSize = 300;
   const qx = cardX + 56;
   const qy = cardY + cardH - 56 - qrSize;
-
   const cardUrl = cardCleanUrl_(currentId);
 
   const qrCanvas = document.createElement("canvas");
@@ -739,7 +792,7 @@ async function generateWeChatPoster_(){
     try{ URL.revokeObjectURL(posterObjectUrl); }catch{}
   }
   posterObjectUrl = URL.createObjectURL(blob);
-  qs("btnOpenPoster").disabled = false;
+  if(qs("btnOpenPoster")) qs("btnOpenPoster").disabled = false;
 
   const filename = `wechat-poster-${currentId}.png`;
   let downloaded = false;
@@ -762,7 +815,7 @@ async function generateWeChatPoster_(){
 
 /* ---------- misc actions ---------- */
 async function applyInput_(){
-  const raw = text(qs("adminInput").value);
+  const raw = text(qs("adminInput")?.value);
   if(!raw){
     setHint_("⚠️ 請輸入 TW0001 / 0001");
     return;
@@ -825,28 +878,30 @@ async function doCopyStatus_(){
     if(qs("adminPin")) qs("adminPin").value = saved;
   }catch{}
 
-  qs("btnBackHome").addEventListener("click", doBackHome_);
-  qs("btnApply").addEventListener("click", applyInput_);
-  qs("adminInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") applyInput_(); });
+  // Buttons (keep your IDs)
+  if(qs("btnBackHome")) qs("btnBackHome").addEventListener("click", doBackHome_);
+  if(qs("btnApply")) qs("btnApply").addEventListener("click", applyInput_);
+  if(qs("adminInput")) qs("adminInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") applyInput_(); });
 
-  qs("btnLoad").addEventListener("click", ()=> loadRowById_(currentId || CONFIG.DEFAULT_ID));
-  qs("btnPreview").addEventListener("click", doPreview_);
-  qs("btnCopyCard").addEventListener("click", doCopyCard_);
-  qs("btnCopyShare").addEventListener("click", doCopyShare_);
-  qs("btnCopyDelivery").addEventListener("click", doCopyDelivery_);
-  qs("btnCopyCard2").addEventListener("click", doCopyCard_);
-  qs("btnCopyShare2").addEventListener("click", doCopyShare_);
-  qs("btnCopyStatus").addEventListener("click", doCopyStatus_);
+  if(qs("btnLoad")) qs("btnLoad").addEventListener("click", ()=> loadRowById_(currentId || CONFIG.DEFAULT_ID));
+  if(qs("btnPreview")) qs("btnPreview").addEventListener("click", doPreview_);
+  if(qs("btnCopyCard")) qs("btnCopyCard").addEventListener("click", doCopyCard_);
+  if(qs("btnCopyShare")) qs("btnCopyShare").addEventListener("click", doCopyShare_);
+  if(qs("btnCopyDelivery")) qs("btnCopyDelivery").addEventListener("click", doCopyDelivery_);
+  if(qs("btnCopyCard2")) qs("btnCopyCard2").addEventListener("click", doCopyCard_);
+  if(qs("btnCopyShare2")) qs("btnCopyShare2").addEventListener("click", doCopyShare_);
+  if(qs("btnCopyStatus")) qs("btnCopyStatus").addEventListener("click", doCopyStatus_);
 
-  qs("btnWeChatPoster").addEventListener("click", generateWeChatPoster_);
-  qs("btnOpenPoster").addEventListener("click", openPoster_);
-  qs("btnCancelOverlay").addEventListener("click", ()=> showOverlay_(false));
+  if(qs("btnWeChatPoster")) qs("btnWeChatPoster").addEventListener("click", generateWeChatPoster_);
+  if(qs("btnOpenPoster")) qs("btnOpenPoster").addEventListener("click", openPoster_);
+  if(qs("btnCancelOverlay")) qs("btnCancelOverlay").addEventListener("click", ()=> showOverlay_(false));
 
-  qs("btnRememberPin").addEventListener("click", rememberPin_);
-  qs("btnActivate").addEventListener("click", doActivate_);
-  qs("btnDeactivate").addEventListener("click", doDeactivate_);
-  qs("btnExtend").addEventListener("click", doExtend_);
+  if(qs("btnRememberPin")) qs("btnRememberPin").addEventListener("click", rememberPin_);
+  if(qs("btnActivate")) qs("btnActivate").addEventListener("click", doActivate_);
+  if(qs("btnDeactivate")) qs("btnDeactivate").addEventListener("click", doDeactivate_);
+  if(qs("btnExtend")) qs("btnExtend").addEventListener("click", doExtend_);
 
+  // Initial load
   const id = normalizeId_(getIdFromUrl_() || CONFIG.DEFAULT_ID);
   loadRowById_(id);
 })();
