@@ -13,7 +13,8 @@
   const CONFIG = {
     VERSION: "v496",
     // ✅ TODO: replace with your deployed GAS v496 WebApp /exec
-    GAS: "PUT_YOUR_GAS_V496_WEBAPP_EXEC_URL_HERE",
+    GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec
+",
     BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     DEFAULT_LINE_OA: "https://lin.ee/G3VJoRm",
     FETCH_TIMEOUT_MS: 15000,
