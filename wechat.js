@@ -1,5 +1,5 @@
 /* ================================
- * wechat.js — v496 (COMPLETE OVERWRITE)
+ * wechat.js — v497 (COMPLETE OVERWRITE)
  * - Fetch GAS: action=card (unified)
  * - Accept payload: {ok:true, data:{...}} OR {ok:true, item:{...}}
  * - Robust image URL normalize (Drive/Dropbox/http->https)
@@ -12,7 +12,7 @@
   "use strict";
 
   const CONFIG = {
-    VERSION: "v496",
+    VERSION: "v497",
     DEFAULT_ID: "TW0001",
     GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     FETCH_TIMEOUT_MS: 12000,
