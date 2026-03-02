@@ -1,18 +1,14 @@
-/* ================================
-   admin.js v497 (COMPLETE OVERWRITE)
-   FIX:
-   1) action=card payload compat: item/data/row
-   2) POST to GAS "Failed to fetch" (CORS/preflight)
-      - Prefer POST with text/plain JSON body (avoid preflight)
-      - Retry + GET fallback if POST blocked
-   Keep:
-   - delivery copy + WeChat poster + robust fetch + image fallback
-================================== */
+/* admin.js — v497 (COMPLETE OVERWRITE)
+   - Delivery workflow: preview / copy clean / copy share / one-key delivery
+   - Admin actions: activate / deactivate / extend (ADMIN_PIN; text/plain POST to avoid preflight)
+   - action=card payload compat: item/data/row
+   - WeChat poster: QRious required (loaded in admin.html)
+*/
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   DEFAULT_ID: "TW0001",
-  VERSION: "497.0",
+  VERSION: "497",
   TIMEOUT_MS: 12000,
   RETRY: 2,
   POSTER_W: 1080,
@@ -23,8 +19,8 @@ let currentId = "";
 let currentRow = null;
 let posterObjectUrl = "";
 
-function qs(id){ return document.getElementById(id); }
-function text(v){ return (v==null ? "" : String(v)).trim(); }
+const qs = (id) => document.getElementById(id);
+const text = (v) => (v == null ? "" : String(v)).trim();
 
 function normalizeId_(s){
   const v = text(s).toUpperCase();
@@ -60,20 +56,20 @@ function cardCleanUrl_(id){
 }
 function shareUrl_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  return `${baseDir_()}/share.html?id=${encodeURIComponent(cid)}&view=1`;
+  return `${baseDir_()}/share.html?id=${encodeURIComponent(cid)}`;
 }
-function homeUrl_(){
-  return `${baseDir_()}/index.html`;
+function wechatUrl_(id){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  return `${baseDir_()}/wechat.html?id=${encodeURIComponent(cid)}`;
 }
+function homeUrl_(){ return `${baseDir_()}/index.html`; }
 
 /* ---------- robust parse ---------- */
 function safeJsonParse_(rawText){
   let s = String(rawText||"").trim();
   if(!s) return null;
-  // strip XSSI prefix
   s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
   try{ return JSON.parse(s); }catch{}
-  // try find a json object/array substring
   const m = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
   if(m){ try{ return JSON.parse(m[0]); }catch{} }
   return null;
@@ -84,16 +80,10 @@ async function fetchWithTimeout_(url, timeoutMs){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
-    const res = await fetch(url, {
-      method:"GET",
-      cache:"no-store",
-      redirect:"follow",
-      signal: controller.signal
-    });
+    const res = await fetch(url, { method:"GET", cache:"no-store", redirect:"follow", signal: controller.signal });
     const txt = await res.text();
     const json = safeJsonParse_(txt);
     if(!json) throw new Error("Not JSON");
-    // attach raw for debug if needed
     if(json && typeof json === "object" && !json.__raw) json.__raw = txt;
     return json;
   } finally {
@@ -114,36 +104,26 @@ async function fetchJsonRobust_(url){
 
 /* ---------- POST (avoid preflight) + GET fallback ---------- */
 async function postPlainJson_(bodyObj){
-  // ✅ Use text/plain to keep it a "simple request" (avoid CORS preflight)
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), CONFIG.TIMEOUT_MS);
-
   try{
     const res = await fetch(`${CONFIG.GAS}?ts=${Date.now()}`, {
       method: "POST",
       cache: "no-store",
       redirect: "follow",
       mode: "cors",
-      headers: {
-        // safelisted
-        "Content-Type": "text/plain;charset=UTF-8"
-      },
+      headers: { "Content-Type": "text/plain;charset=UTF-8" },
       body: JSON.stringify(bodyObj || {}),
       signal: controller.signal
     });
-
     const txt = await res.text();
     const json = safeJsonParse_(txt);
     if(!json) throw new Error("Not JSON");
     if(json && typeof json === "object" && !json.__raw) json.__raw = txt;
     return json;
-  } finally {
-    clearTimeout(t);
-  }
+  } finally { clearTimeout(t); }
 }
-
 async function getFallback_(bodyObj){
-  // ⚠️ fallback: encode as query string (admin_pin will appear in URL)
   const u = new URL(CONFIG.GAS);
   u.searchParams.set("ts", String(Date.now()));
   Object.keys(bodyObj || {}).forEach(k=>{
@@ -153,50 +133,31 @@ async function getFallback_(bodyObj){
   });
   return await fetchJsonRobust_(u.toString());
 }
-
 async function callAdminAction_(bodyObj){
-  // prefer POST; retry; then GET fallback
   let lastErr = null;
-
   for(let i=0;i<=CONFIG.RETRY;i++){
-    try{
-      return await postPlainJson_(bodyObj);
-    }catch(e){
+    try{ return await postPlainJson_(bodyObj); }
+    catch(e){
       lastErr = e;
       await new Promise(r=>setTimeout(r, 520 + i*520));
     }
   }
-
-  try{
-    return await getFallback_(bodyObj);
-  }catch(e){
-    const msg = `POST失敗(${lastErr?.message || "unknown"}); GET也失敗(${e?.message || "unknown"})`;
-    throw new Error(msg);
+  try{ return await getFallback_(bodyObj); }
+  catch(e){
+    throw new Error(`POST失敗(${lastErr?.message || "unknown"}); GET也失敗(${e?.message || "unknown"})`);
   }
 }
 
-/* ---------- row extract & pick ---------- */
+/* ---------- payload extract ---------- */
 function extractRow_(payload){
-  // Accept:
-  // - {ok:true,item:{...}} (your current action=card)
-  // - {ok:true,data:{...}}
-  // - {ok:true,row:{...}}
-  // - {id:"TW0002", ...}
   if(!payload || typeof payload !== "object") return null;
-
-  // unwrap ok envelope
   if(payload.ok === true){
     const cand = payload.item || payload.data || payload.row || payload.card || null;
     if(cand && typeof cand === "object") return cand;
   }
-
-  // direct object
-  if(payload.id || payload["姓名"] || payload.name) return payload;
-
-  // nested unknown
+  if(payload.id || payload.name || payload["姓名"]) return payload;
   if(payload.data && typeof payload.data === "object") return payload.data;
   if(payload.row && typeof payload.row === "object") return payload.row;
-
   return null;
 }
 
@@ -206,7 +167,6 @@ function pick_(obj, keys){
     const v = obj[k];
     if(v!=null && text(v)!=="") return v;
   }
-  // case-insensitive fallback
   const lower = Object.create(null);
   Object.keys(obj).forEach(k=> lower[String(k).toLowerCase()] = obj[k]);
   for(const k of keys){
@@ -216,7 +176,7 @@ function pick_(obj, keys){
   return "";
 }
 
-/* ---------- image normalize (keep) ---------- */
+/* ---------- image normalize ---------- */
 function isUrl_(s){ return /^https?:\/\//i.test(String(s||"").trim()); }
 function normalizeUrl_(s){
   let v = String(s||"").trim();
@@ -288,7 +248,7 @@ function loadImageWithFallback_(candidates){
   });
 }
 
-/* ---------- UI ---------- */
+/* ---------- UI helpers ---------- */
 function setHint_(html){
   const el = qs("adminHint");
   if(el) el.innerHTML = html || "";
@@ -332,6 +292,7 @@ function fillPreview_(row){
 
   if(qs("txtCardUrl"))  qs("txtCardUrl").textContent = cardCleanUrl_(currentId);
   if(qs("txtShareUrl")) qs("txtShareUrl").textContent = shareUrl_(currentId);
+
   setStatusView_(row);
 }
 
@@ -399,9 +360,7 @@ async function loadRowById_(id){
   }
 }
 
-/* ================================
-   Admin PIN + actions
-================================== */
+/* ---------- Admin PIN + actions ---------- */
 function getPin_(){ return text(qs("adminPin")?.value); }
 
 function rememberPin_(){
@@ -410,7 +369,6 @@ function rememberPin_(){
   localStorage.setItem("HSC_ADMIN_PIN", pin);
   alert("✅ 已記住（存在本機）");
 }
-
 async function requireLoaded_(){
   if(!/^TW\d{4}$/.test(currentId)) {
     alert("⚠️ 請先載入序號");
@@ -418,9 +376,7 @@ async function requireLoaded_(){
   }
   return true;
 }
-
 function unwrapOk_(r){
-  // accept {ok:true} / {success:true}
   if(!r || typeof r !== "object") return { ok:false, msg:"No response" };
   if(r.ok === true) return { ok:true, msg:"ok" };
   if(r.success === true) return { ok:true, msg:"success" };
@@ -480,7 +436,8 @@ async function doExtend_(){
   const pin = getPin_();
   if(!pin){ alert("⚠️ 請輸入 ADMIN_PIN"); return; }
 
-  const days = parseInt(text(qs("extendDays")?.value) || "365", 10);
+  const rawDays = text(qs("extendDays")?.value);
+  const days = parseInt(rawDays || "365", 10);
   if(!Number.isFinite(days) || days <= 0){
     alert("⚠️ days 請輸入正整數");
     return;
@@ -506,10 +463,49 @@ async function doExtend_(){
   }
 }
 
-/* ================================
-   WeChat Poster (keep your existing logic)
-   NOTE: requires QRious in admin.html
-================================== */
+/* ---------- Delivery ---------- */
+async function doCopyCard_(){
+  if(!/^TW\d{4}$/.test(currentId)){ alert("⚠️ 請先載入序號"); return; }
+  const ok = await copyText_(cardCleanUrl_(currentId));
+  alert(ok ? "✅ 已複製名片連結（乾淨版）" : "⚠️ 複製失敗");
+}
+async function doCopyShare_(){
+  if(!/^TW\d{4}$/.test(currentId)){ alert("⚠️ 請先載入序號"); return; }
+  const ok = await copyText_(shareUrl_(currentId));
+  alert(ok ? "✅ 已複製分享卡連結" : "⚠️ 複製失敗");
+}
+async function doCopyDelivery_(){
+  if(!/^TW\d{4}$/.test(currentId)){ alert("⚠️ 請先載入序號"); return; }
+  const share = shareUrl_(currentId);
+  const card  = cardCleanUrl_(currentId);
+  const wechat = wechatUrl_(currentId);
+
+  const pack =
+`【Happiness Smart Card 交付】（ID：${currentId}）
+✅ 分享卡（貼社群 / 有OG圖卡）：
+${share}
+
+✅ 乾淨成品（自己收藏）：
+${card}
+
+✅ 微信長圖（Poster）：
+${wechat}
+`;
+  const ok = await copyText_(pack);
+  alert(ok ? "✅ 已一鍵交貨（文字+連結已複製）" : "⚠️ 複製失敗");
+}
+function doPreview_(){
+  if(!/^TW\d{4}$/.test(currentId)){ alert("⚠️ 請先載入序號"); return; }
+  window.open(cardCleanUrl_(currentId), "_blank");
+}
+async function doCopyStatus_(){
+  const st = text(qs("txtStatus")?.textContent);
+  const ok = await copyText_(st || "");
+  alert(ok ? "✅ 已複製 status" : "⚠️ 複製失敗");
+}
+function doBackHome_(){ location.href = homeUrl_(); }
+
+/* ---------- WeChat Poster ---------- */
 function pickPosterPhotos_(row){
   const urls = [];
   const bulkFast = pick_(row, ["照片_fast","photos_fast","photos_img_fast","photo_wall_fast"]);
@@ -538,7 +534,6 @@ function pickPosterPhotos_(row){
   }
   return out;
 }
-
 function roundRect_(ctx, x, y, w, h, r){
   const rr = Math.min(r, w/2, h/2);
   ctx.beginPath();
@@ -552,11 +547,11 @@ function roundRect_(ctx, x, y, w, h, r){
 
 async function generateWeChatPoster_(){
   if(!currentRow){
-    alert("⚠️ 請先載入資料（輸入 TW0001 再按套用）");
+    alert("⚠️ 請先載入資料");
     return;
   }
   if(!window.QRious){
-    alert("⚠️ 缺少 QRious（請在 admin.html 引入 QRious lib）");
+    alert("⚠️ 缺少 QRious（admin.html 需要引入）");
     return;
   }
 
@@ -564,8 +559,7 @@ async function generateWeChatPoster_(){
 
   const W = CONFIG.POSTER_W, H = CONFIG.POSTER_H;
   const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext("2d");
 
   ctx.fillStyle = "#ffffff";
@@ -606,11 +600,9 @@ async function generateWeChatPoster_(){
   const ay = cardY + 56;
   const ar = 92;
 
-  // avatar placeholder circle
   ctx.save();
   ctx.beginPath();
   ctx.arc(ax+ar, ay+ar, ar, 0, Math.PI*2);
-  ctx.closePath();
   ctx.clip();
   ctx.fillStyle = "rgba(0,0,0,0.04)";
   ctx.fillRect(ax, ay, ar*2, ar*2);
@@ -813,7 +805,12 @@ async function generateWeChatPoster_(){
   );
 }
 
-/* ---------- misc actions ---------- */
+function openPoster_(){
+  if(!posterObjectUrl){ alert("⚠️ 先生成微信長圖"); return; }
+  window.open(posterObjectUrl, "_blank");
+}
+
+/* ---------- apply input ---------- */
 async function applyInput_(){
   const raw = text(qs("adminInput")?.value);
   if(!raw){
@@ -833,44 +830,6 @@ async function applyInput_(){
   await loadRowById_(nid);
 }
 
-async function doCopyCard_(){
-  if(!/^TW\d{4}$/.test(currentId)){ alert("⚠️ 請先載入序號"); return; }
-  const ok = await copyText_(cardCleanUrl_(currentId));
-  alert(ok ? "✅ 已複製名片連結（乾淨版）" : "⚠️ 複製失敗");
-}
-async function doCopyShare_(){
-  if(!/^TW\d{4}$/.test(currentId)){ alert("⚠️ 請先載入序號"); return; }
-  const ok = await copyText_(shareUrl_(currentId));
-  alert(ok ? "✅ 已複製分享卡連結" : "⚠️ 複製失敗");
-}
-async function doCopyDelivery_(){
-  if(!/^TW\d{4}$/.test(currentId)){ alert("⚠️ 請先載入序號"); return; }
-  const share = shareUrl_(currentId);
-  const card  = cardCleanUrl_(currentId);
-  const pack =
-`【交付給您】（建議直接轉貼這個）
-分享卡連結：${share}
-
-（備用）乾淨成品名片：${card}
-`;
-  const ok = await copyText_(pack);
-  alert(ok ? "✅ 已複製交貨內容（直接貼給客戶就好）" : "⚠️ 複製失敗");
-}
-function doPreview_(){
-  if(!/^TW\d{4}$/.test(currentId)){ alert("⚠️ 請先載入序號"); return; }
-  window.open(cardCleanUrl_(currentId), "_blank");
-}
-function doBackHome_(){ location.href = homeUrl_(); }
-function openPoster_(){
-  if(!posterObjectUrl){ alert("⚠️ 先生成微信長圖"); return; }
-  window.open(posterObjectUrl, "_blank");
-}
-async function doCopyStatus_(){
-  const st = text(qs("txtStatus")?.textContent);
-  const ok = await copyText_(st || "");
-  alert(ok ? "✅ 已複製 status" : "⚠️ 複製失敗");
-}
-
 /* ---------- boot ---------- */
 (function boot_(){
   try{
@@ -878,30 +837,30 @@ async function doCopyStatus_(){
     if(qs("adminPin")) qs("adminPin").value = saved;
   }catch{}
 
-  // Buttons (keep your IDs)
   if(qs("btnBackHome")) qs("btnBackHome").addEventListener("click", doBackHome_);
   if(qs("btnApply")) qs("btnApply").addEventListener("click", applyInput_);
   if(qs("adminInput")) qs("adminInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") applyInput_(); });
 
-  if(qs("btnLoad")) qs("btnLoad").addEventListener("click", ()=> loadRowById_(currentId || CONFIG.DEFAULT_ID));
+  if(qs("btnRememberPin")) qs("btnRememberPin").addEventListener("click", rememberPin_);
+
+  if(qs("btnLoad")) qs("btnLoad").addEventListener("click", ()=> loadRowById_(normalizeId_(qs("adminInput")?.value) || currentId || CONFIG.DEFAULT_ID));
   if(qs("btnPreview")) qs("btnPreview").addEventListener("click", doPreview_);
   if(qs("btnCopyCard")) qs("btnCopyCard").addEventListener("click", doCopyCard_);
   if(qs("btnCopyShare")) qs("btnCopyShare").addEventListener("click", doCopyShare_);
   if(qs("btnCopyDelivery")) qs("btnCopyDelivery").addEventListener("click", doCopyDelivery_);
+
   if(qs("btnCopyCard2")) qs("btnCopyCard2").addEventListener("click", doCopyCard_);
   if(qs("btnCopyShare2")) qs("btnCopyShare2").addEventListener("click", doCopyShare_);
   if(qs("btnCopyStatus")) qs("btnCopyStatus").addEventListener("click", doCopyStatus_);
+
+  if(qs("btnActivate")) qs("btnActivate").addEventListener("click", doActivate_);
+  if(qs("btnDeactivate")) qs("btnDeactivate").addEventListener("click", doDeactivate_);
+  if(qs("btnExtend")) qs("btnExtend").addEventListener("click", doExtend_);
 
   if(qs("btnWeChatPoster")) qs("btnWeChatPoster").addEventListener("click", generateWeChatPoster_);
   if(qs("btnOpenPoster")) qs("btnOpenPoster").addEventListener("click", openPoster_);
   if(qs("btnCancelOverlay")) qs("btnCancelOverlay").addEventListener("click", ()=> showOverlay_(false));
 
-  if(qs("btnRememberPin")) qs("btnRememberPin").addEventListener("click", rememberPin_);
-  if(qs("btnActivate")) qs("btnActivate").addEventListener("click", doActivate_);
-  if(qs("btnDeactivate")) qs("btnDeactivate").addEventListener("click", doDeactivate_);
-  if(qs("btnExtend")) qs("btnExtend").addEventListener("click", doExtend_);
-
-  // Initial load
   const id = normalizeId_(getIdFromUrl_() || CONFIG.DEFAULT_ID);
   loadRowById_(id);
 })();
