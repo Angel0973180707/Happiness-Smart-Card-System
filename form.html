@@ -1,619 +1,339 @@
-<!-- form.html (v493-FORM-UI COMPLETE OVERWRITE) -->
-<!doctype html>
-<html lang="zh-TW">
+<!-- ================================
+     form.html — v495 (COMPLETE OVERWRITE)
+     A1 Stable Flow Facade:
+     - Collect inputs locally + build Google Form prefill URL
+     - Load prefilled Google Form in iframe (user uploads files there)
+     - Draft saved in localStorage
+     ================================ -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Happiness Smart Card｜開卡表單</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>HSC Form v495</title>
+  <meta name="description" content="Happiness Smart Card System｜門面表單（A1 穩定路線）" />
   <style>
     :root{
-      --bg:#0e1116; --card:#141a22; --line:rgba(255,255,255,.08);
-      --text:#eef2ff; --muted:rgba(238,242,255,.72);
-      --btn:#2a3342; --btn2:#3a4760; --accent:#8aa7ff;
-      --radius:18px;
+      --bg:#fff7ef;
+      --card:#ffffff;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --btn:#111827;
+      --btnText:#ffffff;
+      --pill:#f3f4f6;
+      --shadow: 0 12px 30px rgba(17,24,39,.08);
+      --radius: 18px;
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
-      background: radial-gradient(1200px 700px at 15% -10%, rgba(138,167,255,.18), transparent 60%),
-                  radial-gradient(900px 600px at 90% 10%, rgba(255,179,107,.14), transparent 55%),
-                  var(--bg);
-      color:var(--text);
-      padding:18px 14px 42px;
+    body{ margin:0; font-family: system-ui, -apple-system, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif; background:var(--bg); color:var(--text); }
+    .wrap{ max-width: 980px; margin: 0 auto; padding: 18px 14px 26px; }
+    .header{
+      background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.75));
+      border: 1px solid rgba(229,231,235,.8);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 16px 12px;
+      margin-bottom: 12px;
     }
-    .wrap{max-width:720px;margin:0 auto}
-    .hero{padding:8px 2px 12px}
-    .hero h1{margin:0;font-size:20px;letter-spacing:.5px}
-    .hero p{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.5}
+    .header h1{ font-size: 18px; margin: 0 0 6px; letter-spacing:.3px; }
+    .header p{ margin:0; color:var(--muted); font-size: 13px; line-height: 1.5; }
+    .grid{ display:grid; grid-template-columns: 1fr; gap: 12px; }
+    @media(min-width: 880px){
+      .grid{ grid-template-columns: 420px 1fr; align-items:start; }
+    }
     .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      padding:14px;
-      box-shadow:0 18px 50px rgba(0,0,0,.35);
-      backdrop-filter: blur(10px);
-      margin:12px 0;
+      background: var(--card);
+      border: 1px solid rgba(229,231,235,.9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
     }
-    .section-title{
-      display:flex;align-items:center;justify-content:space-between;
-      gap:12px;margin:2px 0 10px;
-    }
-    .section-title b{font-size:14px}
-    .grid{display:grid;gap:10px}
-    @media (min-width:640px){ .grid.two{grid-template-columns:1fr 1fr} }
-    label{display:block;font-size:12px;color:var(--muted);margin:2px 0 6px}
-    input[type="text"],input[type="url"],input[type="tel"],input[type="email"],textarea,select{
+    .card .inner{ padding: 14px; }
+    .secTitle{ font-size: 14px; margin: 0 0 10px; letter-spacing:.2px; }
+    .hint{ color:var(--muted); font-size: 12px; margin: 0 0 10px; line-height: 1.5; }
+    .field{ margin: 10px 0; }
+    .label{ display:flex; align-items:center; gap:8px; margin: 0 0 6px; font-size: 12px; color:var(--muted); }
+    .req{ font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--pill); color: #111827; border: 1px solid rgba(17,24,39,.08); }
+    input, select, textarea{
       width:100%;
-      background:rgba(0,0,0,.22);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:12px 12px;
-      color:var(--text);
+      box-sizing:border-box;
+      border: 1px solid rgba(229,231,235,.95);
+      border-radius: 14px;
+      padding: 11px 12px;
+      font-size: 14px;
+      background:#fff;
       outline:none;
     }
-    textarea{min-height:88px;resize:vertical}
-    input::placeholder,textarea::placeholder{color:rgba(238,242,255,.35)}
-    .seg{
-      display:flex;gap:10px;flex-wrap:wrap;
-    }
-    .pill{
-      flex:1;
-      min-width:130px;
-      background:rgba(0,0,0,.18);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px 12px;
-      cursor:pointer;
-      user-select:none;
-      display:flex;gap:10px;align-items:center;justify-content:space-between;
-      transition:.15s ease;
-    }
-    .pill.active{
-      border-color:rgba(138,167,255,.55);
-      box-shadow:0 0 0 3px rgba(138,167,255,.12) inset;
-    }
-    .pill small{color:var(--muted)}
-    .req{color:#ffb3b3;font-weight:700;margin-left:6px}
-    .file{
-      display:flex;gap:10px;align-items:center;
-      border:1px dashed rgba(255,255,255,.18);
-      border-radius:14px;
-      padding:10px 10px;
-      background:rgba(0,0,0,.16);
-    }
-    input[type="file"]{width:100%}
-    .preview{
-      width:54px;height:54px;border-radius:14px;
-      background:rgba(255,255,255,.06);
-      border:1px solid var(--line);
-      overflow:hidden;flex:0 0 auto;
-      display:grid;place-items:center;
-    }
-    .preview img{width:100%;height:100%;object-fit:cover;display:none}
-    .preview span{font-size:11px;color:rgba(238,242,255,.45)}
-    .btnbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    textarea{ min-height: 84px; resize: vertical; }
+    .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .row3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .actions{ display:flex; gap:10px; margin-top: 12px; }
     .btn{
-      border:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
-      color:var(--text);
-      padding:12px 14px;
-      border-radius:16px;
-      cursor:pointer;
-      font-weight:800;
-      letter-spacing:.4px;
+      appearance:none; border:0; border-radius: 14px;
+      padding: 12px 14px; font-size: 14px; cursor:pointer;
+      background: var(--btn); color: var(--btnText);
+      box-shadow: 0 10px 22px rgba(17,24,39,.18);
+      flex:1;
     }
-    .btn.primary{
-      border-color:rgba(138,167,255,.45);
-      box-shadow:0 0 0 3px rgba(138,167,255,.10) inset;
+    .btn.secondary{
+      background:#fff;
+      color:#111827;
+      border:1px solid rgba(17,24,39,.12);
+      box-shadow:none;
     }
-    .note{
-      color:var(--muted);font-size:12px;line-height:1.55;margin:10px 2px 0;
+    .divider{ height:1px; background: rgba(229,231,235,.9); margin: 12px 0; }
+
+    .doneBox{
+      padding: 12px 14px;
+      border-top: 1px solid rgba(229,231,235,.9);
+      background: rgba(243,244,246,.55);
     }
-    .hidden{display:none !important}
-    .result{
-      white-space:pre-wrap;word-break:break-word;
-      background:rgba(0,0,0,.25);
-      border:1px solid var(--line);
-      border-radius:14px;
-      padding:12px;
-      color:rgba(238,242,255,.88);
-      font-size:12px;
-      margin-top:10px;
+    .doneBox a{ color:#111827; text-decoration:none; font-weight:700; }
+    .doneBox .small{ color:var(--muted); font-size: 12px; margin-top: 6px; line-height:1.45; }
+
+    iframe{
+      width:100%;
+      min-height: 78vh;
+      border:0;
+      border-radius: var(--radius);
+      background:#fff;
+      box-shadow: var(--shadow);
     }
   </style>
 </head>
+
 <body>
-<div class="wrap">
-  <div class="hero">
-    <h1>Happiness Smart Card｜開卡表單</h1>
-    <p>外觀選項＋姓名＋個人照必填，其餘選填。</p>
-  </div>
-
-  <!-- 方案 -->
-  <div class="card">
-    <div class="section-title"><b>方案<span class="req">*</span></b></div>
-    <div class="seg" id="planSeg">
-      <div class="pill active" data-plan="free" role="button" tabindex="0">
-        <div>
-          <div style="font-weight:900">自搭配款</div>
-          <small>5色｜3版｜3紙</small>
-        </div>
-        <div style="opacity:.9">A</div>
-      </div>
-      <div class="pill" data-plan="premium" role="button" tabindex="0">
-        <div>
-          <div style="font-weight:900">精品設計款</div>
-          <small>7底色</small>
-        </div>
-        <div style="opacity:.9">B</div>
-      </div>
-    </div>
-    <input type="hidden" name="plan" id="plan" value="free" required />
-  </div>
-
-  <!-- 外觀：Free -->
-  <div class="card" id="uiFree">
-    <div class="section-title"><b>外觀<span class="req">*</span></b></div>
-    <div class="grid two">
-      <div>
-        <label>顏色<span class="req">*</span></label>
-        <select name="theme_color" id="theme_color" required>
-          <option value="">請選擇</option>
-          <option value="c1">c1 粉</option>
-          <option value="c2">c2 藍</option>
-          <option value="c3">c3 橘</option>
-          <option value="c4">c4 紫</option>
-          <option value="c5">c5 綠</option>
-        </select>
-      </div>
-      <div>
-        <label>版型<span class="req">*</span></label>
-        <select name="banner_style" id="banner_style" required>
-          <option value="">請選擇</option>
-          <option value="s1">s1 正拱</option>
-          <option value="s2">s2 平直</option>
-          <option value="s3">s3 晨曦</option>
-        </select>
-      </div>
-      <div>
-        <label>紙感<span class="req">*</span></label>
-        <select name="paper_style" id="paper_style" required>
-          <option value="">請選擇</option>
-          <option value="f1">f1 棉紙</option>
-          <option value="f2">f2 顆粒</option>
-          <option value="f3">f3 亞麻</option>
-        </select>
-      </div>
-    </div>
-  </div>
-
-  <!-- 外觀：Premium -->
-  <div class="card hidden" id="uiPremium">
-    <div class="section-title"><b>外觀<span class="req">*</span></b></div>
-    <div>
-      <label>底色<span class="req">*</span></label>
-      <select name="premium_color" id="premium_color" required>
-        <option value="">請選擇</option>
-        <option value="p1">p1 胭脂紅</option>
-        <option value="p2">p2 酒紅</option>
-        <option value="p3">p3 深藍</option>
-        <option value="p4">p4 霧紫</option>
-        <option value="p5">p5 藍灰</option>
-        <option value="p6">p6 金箔</option>
-        <option value="p7">p7 褐碳</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- 必填核心 -->
-  <div class="card">
-    <div class="section-title"><b>基本<span class="req">*</span></b></div>
-    <div class="grid two">
-      <div>
-        <label>姓名<span class="req">*</span></label>
-        <input type="text" name="name" id="name" placeholder="例：王小明" required />
-      </div>
-      <div>
-        <label>個人照<span class="req">*</span></label>
-        <div class="file">
-          <div class="preview" id="pv_avatar"><img alt=""><span>預覽</span></div>
-          <input type="file" name="avatar_file" id="avatar_file" accept="image/*" required />
-        </div>
-      </div>
-    </div>
-
-    <div class="grid two">
-      <div>
-        <label>單位</label>
-        <input type="text" name="unit" placeholder="例：幸福緣" />
-      </div>
-      <div>
-        <label>頭銜</label>
-        <input type="text" name="title" placeholder="例：創辦人" />
-      </div>
+  <div class="wrap">
+    <div class="header">
+      <h1>門面表單（A1 最穩路線）</h1>
+      <p>
+        你在這裡先填「方案/外觀/內容」→ 系統自動預填到 Google Form。<br>
+        <b>個人照/照片/Logo</b> 會在右側 Google Form 內上傳（Google Form 檔案欄位無法預填，這樣最穩）。
+      </p>
     </div>
 
     <div class="grid">
+      <!-- Left: Facade -->
+      <div class="card" id="formArea">
+        <div class="inner">
+          <h2 class="secTitle">基本資料</h2>
+          <p class="hint">方案必填；LINE 連結已非必填。自由/精品外觀欄位依方案才顯示。</p>
+
+          <form id="innerForm">
+            <!-- Plan -->
+            <div class="field">
+              <div class="label">選擇名片製作方案 <span class="req">必填</span></div>
+              <select id="planSelect" required>
+                <option value="">請選擇</option>
+                <option value="1自由搭配款">1自由搭配款</option>
+                <option value="2精品設計款">2精品設計款</option>
+              </select>
+            </div>
+
+            <!-- Free appearance -->
+            <div class="field" id="freeBlock">
+              <div class="label">自由搭配外觀（顏色/版型/紙感） <span class="req">自由款必填</span></div>
+              <div class="row3">
+                <select id="freeColorSelect">
+                  <option value="">顏色</option>
+                  <option value="c1粉">c1粉</option>
+                  <option value="c2藍">c2藍</option>
+                  <option value="c3橘">c3橘</option>
+                  <option value="c4紫">c4紫</option>
+                  <option value="c5綠">c5綠</option>
+                </select>
+
+                <select id="freeShapeSelect">
+                  <option value="">版型</option>
+                  <option value="s1正拱">s1正拱</option>
+                  <option value="s2平直">s2平直</option>
+                  <option value="s3晨曦">s3晨曦</option>
+                </select>
+
+                <select id="freePaperSelect">
+                  <option value="">紙感</option>
+                  <option value="f1霧面棉紙">f1霧面棉紙</option>
+                  <option value="f2顆粒">f2顆粒</option>
+                  <option value="f3亞麻">f3亞麻</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Premium appearance -->
+            <div class="field" id="premiumBlock">
+              <div class="label">選擇精品底色 <span class="req">精品款必填</span></div>
+              <select id="premiumColorSelect">
+                <option value="">請選擇</option>
+                <option value="p1胭脂">p1胭脂</option>
+                <option value="p2酒紅">p2酒紅</option>
+                <option value="p3深藍">p3深藍</option>
+                <option value="p4霧紫">p4霧紫</option>
+                <option value="p5藍灰">p5藍灰</option>
+                <option value="p6金箔">p6金箔</option>
+                <option value="p7褐碳">p7褐碳</option>
+              </select>
+            </div>
+
+            <div class="divider"></div>
+
+            <h2 class="secTitle">名片內容</h2>
+
+            <div class="row2">
+              <div class="field">
+                <div class="label">姓名 <span class="req">必填</span></div>
+                <input id="nameInput" type="text" placeholder="例如：小天使" required />
+              </div>
+
+              <div class="field">
+                <div class="label">單位</div>
+                <input id="unitInput" type="text" placeholder="例如：天使幸福智慧名片館" />
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="field">
+                <div class="label">頭銜</div>
+                <input id="titleInput" type="text" placeholder="例如：幸福智慧名片館館長" />
+              </div>
+              <div class="field">
+                <div class="label">微信ID</div>
+                <input id="wechatIdInput" type="text" placeholder="例如：a0973180707" />
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label">理念標語</div>
+              <input id="sloganInput" type="text" placeholder="例如：認識自己的價值｜從一張名片開始" />
+            </div>
+
+            <div class="field">
+              <div class="label">服務項目</div>
+              <input id="servicesInput" type="text" placeholder="例如：打造個人品牌智慧名片" />
+            </div>
+
+            <div class="field">
+              <div class="label">經歷（可多行）</div>
+              <textarea id="experienceInput" placeholder="例如：幸福教養概念館館長&#10;幸福智慧名片館館長"></textarea>
+            </div>
+
+            <div class="divider"></div>
+
+            <h2 class="secTitle">聯絡方式</h2>
+
+            <div class="row2">
+              <div class="field">
+                <div class="label">LINE連結（非必填）</div>
+                <input id="lineLinkInput" type="url" placeholder="https://line.me/ti/p/..." />
+              </div>
+              <div class="field">
+                <div class="label">LINE官方帳號</div>
+                <input id="lineOaInput" type="url" placeholder="https://lin.ee/..." />
+              </div>
+            </div>
+
+            <div class="row2">
+              <div class="field">
+                <div class="label">Email</div>
+                <input id="emailInput" type="email" placeholder="name@example.com" />
+              </div>
+              <div class="field">
+                <div class="label">電話</div>
+                <input id="phoneInput" type="tel" placeholder="0912345678" />
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label">地址</div>
+              <input id="addressInput" type="text" placeholder="例如：高雄市三民區..." />
+            </div>
+
+            <div class="divider"></div>
+
+            <h2 class="secTitle">影音 / 社群連結</h2>
+
+            <div class="row3">
+              <div class="field">
+                <div class="label">影音連結1</div>
+                <input id="video1Input" type="url" placeholder="YouTube/影片網址" />
+              </div>
+              <div class="field">
+                <div class="label">影音連結2</div>
+                <input id="video2Input" type="url" placeholder="影片/網站網址" />
+              </div>
+              <div class="field">
+                <div class="label">影音連結3</div>
+                <input id="video3Input" type="url" placeholder="影片網址" />
+              </div>
+            </div>
+
+            <div class="row3">
+              <div class="field">
+                <div class="label">社群連結1</div>
+                <input id="social1Input" type="url" placeholder="Facebook/IG..." />
+              </div>
+              <div class="field">
+                <div class="label">社群連結2</div>
+                <input id="social2Input" type="url" placeholder="社群網址" />
+              </div>
+              <div class="field">
+                <div class="label">社群連結3</div>
+                <input id="social3Input" type="url" placeholder="社群網址" />
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="btn" type="submit">預填並開啟 Google 表單（上傳照片）</button>
+              <button class="btn secondary" type="button" id="btnResetDraft">清除草稿</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="doneBox" id="doneArea" style="display:none;">
+          <div><a id="doneLink" href="#" target="_blank">打開已預填表單</a></div>
+          <div class="small">
+            請在 Google 表單內完成 <b>個人照 / 照片 / Logo</b> 上傳後送出。<br>
+            送出後 GAS 會自動入庫 card_db、產生 id/token/status=inactive、並建立 fast 圖。
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Google Form iframe -->
       <div>
-        <label>標語</label>
-        <input type="text" name="slogan" placeholder="一句話讓人記住你" />
-      </div>
-      <div>
-        <label>服務項目</label>
-        <textarea name="services" placeholder="例：健康手作麵包｜親子早餐設計｜體驗課程"></textarea>
+        <iframe id="formIframe" title="Google Form"></iframe>
       </div>
     </div>
   </div>
 
-  <!-- Logo -->
-  <div class="card">
-    <div class="section-title"><b>Logo</b></div>
-    <div class="file">
-      <div class="preview" id="pv_logo"><img alt=""><span>預覽</span></div>
-      <input type="file" name="logo_file" id="logo_file" accept="image/*" />
-    </div>
-  </div>
-
-  <!-- 照片 -->
-  <div class="card">
-    <div class="section-title"><b>照片</b></div>
-
-    <!-- Free: 2 -->
-    <div id="photosFree" class="grid">
-      <div class="file">
-        <div class="preview" id="pv_p1"><img alt=""><span>預覽</span></div>
-        <input type="file" name="photo1_file" id="photo1_file" accept="image/*" />
-      </div>
-      <div class="file">
-        <div class="preview" id="pv_p2"><img alt=""><span>預覽</span></div>
-        <input type="file" name="photo2_file" id="photo2_file" accept="image/*" />
-      </div>
-    </div>
-
-    <!-- Premium: 5 -->
-    <div id="photosPremium" class="grid hidden">
-      <div class="file">
-        <div class="preview" id="pv_p1b"><img alt=""><span>預覽</span></div>
-        <input type="file" name="photo1_file_p" id="photo1_file_p" accept="image/*" />
-      </div>
-      <div class="file">
-        <div class="preview" id="pv_p2b"><img alt=""><span>預覽</span></div>
-        <input type="file" name="photo2_file_p" id="photo2_file_p" accept="image/*" />
-      </div>
-      <div class="file">
-        <div class="preview" id="pv_p3b"><img alt=""><span>預覽</span></div>
-        <input type="file" name="photo3_file_p" id="photo3_file_p" accept="image/*" />
-      </div>
-      <div class="file">
-        <div class="preview" id="pv_p4b"><img alt=""><span>預覽</span></div>
-        <input type="file" name="photo4_file_p" id="photo4_file_p" accept="image/*" />
-      </div>
-      <div class="file">
-        <div class="preview" id="pv_p5b"><img alt=""><span>預覽</span></div>
-        <input type="file" name="photo5_file_p" id="photo5_file_p" accept="image/*" />
-      </div>
-    </div>
-  </div>
-
-  <!-- 影音 / 社群 -->
-  <div class="card">
-    <div class="section-title"><b>影音</b></div>
-    <div id="videosFree" class="grid">
-      <input type="url" name="video1_url" placeholder="貼上影音連結" />
-    </div>
-    <div id="videosPremium" class="grid hidden">
-      <input type="url" name="video1_url_p" placeholder="貼上影音連結" />
-      <input type="url" name="video2_url_p" placeholder="貼上影音連結" />
-      <input type="url" name="video3_url_p" placeholder="貼上影音連結" />
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="section-title"><b>社群</b></div>
-    <div id="socialFree" class="grid">
-      <input type="url" name="social1_url" placeholder="貼上社群連結" />
-    </div>
-    <div id="socialPremium" class="grid hidden">
-      <input type="url" name="social1_url_p" placeholder="貼上社群連結" />
-      <input type="url" name="social2_url_p" placeholder="貼上社群連結" />
-      <input type="url" name="social3_url_p" placeholder="貼上社群連結" />
-    </div>
-  </div>
-
-  <!-- 聯繫 -->
-  <div class="card">
-    <div class="section-title"><b>聯繫</b></div>
-    <div class="grid two">
-      <div>
-        <label>電話</label>
-        <input type="tel" name="phone" placeholder="例：0912xxxxxx" />
-      </div>
-      <div>
-        <label>LINE</label>
-        <input type="text" name="line_url" placeholder="ID 或連結都可" />
-      </div>
-    </div>
-    <div class="grid two">
-      <div>
-        <label>Email</label>
-        <input type="email" name="email" placeholder="例：you@example.com" />
-      </div>
-      <div>
-        <label>官網</label>
-        <input type="url" name="website_url" placeholder="https://..." />
-      </div>
-    </div>
-    <div>
-      <label>地址（導航）</label>
-      <input type="text" name="address" placeholder="例：高雄市..." />
-    </div>
-  </div>
-
-  <!-- 送出 -->
-  <div class="card">
-    <div class="section-title"><b>送出</b></div>
-    <div class="btnbar">
-      <button class="btn primary" id="btnSubmit" type="button">送出資料</button>
-      <button class="btn" id="btnTest" type="button">顯示送出內容</button>
-    </div>
-    <div class="note">
-      ※ 圖片會先轉成 base64 再送到 GAS，後端存到 Drive 後再寫回欄位。
-    </div>
-    <div id="result" class="result hidden"></div>
-  </div>
-</div>
-
-<script>
-  // ====== 你要填的：GAS WebApp URL ======
-  // 如果你原本 form.js 已經有 CONFIG.GAS，就把下面常數改成同一個即可
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-
-  const $ = (q)=>document.querySelector(q);
-  const planInput = $("#plan");
-  const uiFree = $("#uiFree");
-  const uiPremium = $("#uiPremium");
-
-  const photosFree = $("#photosFree");
-  const photosPremium = $("#photosPremium");
-  const videosFree = $("#videosFree");
-  const videosPremium = $("#videosPremium");
-  const socialFree = $("#socialFree");
-  const socialPremium = $("#socialPremium");
-
-  function setPlan(plan){
-    planInput.value = plan;
-
-    // toggle segment UI
-    document.querySelectorAll("#planSeg .pill").forEach(p=>{
-      p.classList.toggle("active", p.dataset.plan === plan);
-    });
-
-    // show/hide blocks
-    const isFree = plan === "free";
-    uiFree.classList.toggle("hidden", !isFree);
-    uiPremium.classList.toggle("hidden", isFree);
-
-    photosFree.classList.toggle("hidden", !isFree);
-    photosPremium.classList.toggle("hidden", isFree);
-
-    videosFree.classList.toggle("hidden", !isFree);
-    videosPremium.classList.toggle("hidden", isFree);
-
-    socialFree.classList.toggle("hidden", !isFree);
-    socialPremium.classList.toggle("hidden", isFree);
-
-    // required fields per plan
-    $("#theme_color").required = isFree;
-    $("#banner_style").required = isFree;
-    $("#paper_style").required = isFree;
-
-    $("#premium_color").required = !isFree;
-  }
-
-  // segment clicks
-  $("#planSeg").addEventListener("click", (e)=>{
-    const pill = e.target.closest(".pill");
-    if(!pill) return;
-    setPlan(pill.dataset.plan);
-  });
-
-  // ====== preview helpers ======
-  function bindPreview(fileInputId, previewId){
-    const inp = document.getElementById(fileInputId);
-    const pv = document.getElementById(previewId);
-    if(!inp || !pv) return;
-    const img = pv.querySelector("img");
-    const txt = pv.querySelector("span");
-    inp.addEventListener("change", ()=>{
-      const f = inp.files && inp.files[0];
-      if(!f){ img.style.display="none"; txt.style.display="block"; return; }
-      const url = URL.createObjectURL(f);
-      img.src = url;
-      img.style.display="block";
-      txt.style.display="none";
-    });
-  }
-
-  bindPreview("avatar_file","pv_avatar");
-  bindPreview("logo_file","pv_logo");
-  bindPreview("photo1_file","pv_p1");
-  bindPreview("photo2_file","pv_p2");
-
-  bindPreview("photo1_file_p","pv_p1b");
-  bindPreview("photo2_file_p","pv_p2b");
-  bindPreview("photo3_file_p","pv_p3b");
-  bindPreview("photo4_file_p","pv_p4b");
-  bindPreview("photo5_file_p","pv_p5b");
-
-  // ====== base64 encode (for GAS upload) ======
-  function fileToBase64(file){
-    return new Promise((resolve,reject)=>{
-      if(!file) return resolve(null);
-      const fr = new FileReader();
-      fr.onload = ()=> {
-        // dataURL: "data:image/jpeg;base64,....."
-        const dataUrl = String(fr.result || "");
-        resolve(dataUrl);
-      };
-      fr.onerror = ()=> reject(fr.error || new Error("read file failed"));
-      fr.readAsDataURL(file);
-    });
-  }
-
-  // ====== build payload (align to your DB keys) ======
-  async function buildPayload(){
-    const plan = planInput.value;
-
-    // basic text
-    const payload = {
-      action: "submit",  // 你若 GAS 端是 create/submit 都支援，這裡用 submit
-      plan: plan,
-
-      // free options
-      theme_color: $("#theme_color").value || "",
-      banner_style: $("#banner_style").value || "",
-      paper_style: $("#paper_style").value || "",
-
-      // premium option
-      premium_color: $("#premium_color").value || "",
-
-      name: $("#name").value.trim(),
-      unit: (document.querySelector('[name="unit"]').value || "").trim(),
-      title: (document.querySelector('[name="title"]').value || "").trim(),
-      slogan: (document.querySelector('[name="slogan"]').value || "").trim(),
-      services: (document.querySelector('[name="services"]').value || "").trim(),
-
-      phone: (document.querySelector('[name="phone"]').value || "").trim(),
-      line_url: (document.querySelector('[name="line_url"]').value || "").trim(),
-      email: (document.querySelector('[name="email"]').value || "").trim(),
-      website_url: (document.querySelector('[name="website_url"]').value || "").trim(),
-      address: (document.querySelector('[name="address"]').value || "").trim(),
-    };
-
-    // videos/social per plan (固定數量，但不顯示最多字樣)
-    if(plan === "free"){
-      payload.video1_url  = (document.querySelector('[name="video1_url"]').value || "").trim();
-      payload.social1_url = (document.querySelector('[name="social1_url"]').value || "").trim();
-    }else{
-      payload.video1_url  = (document.querySelector('[name="video1_url_p"]').value || "").trim();
-      payload.video2_url  = (document.querySelector('[name="video2_url_p"]').value || "").trim();
-      payload.video3_url  = (document.querySelector('[name="video3_url_p"]').value || "").trim();
-
-      payload.social1_url = (document.querySelector('[name="social1_url_p"]').value || "").trim();
-      payload.social2_url = (document.querySelector('[name="social2_url_p"]').value || "").trim();
-      payload.social3_url = (document.querySelector('[name="social3_url_p"]').value || "").trim();
-    }
-
-    // image files -> dataURL base64 (讓 GAS 存 Drive)
-    // 命名策略：*_b64 給後端判斷存檔後寫入 avatar_img/logo_img/photoX_img
-    const avatarFile = $("#avatar_file").files[0];
-    payload.avatar_b64 = await fileToBase64(avatarFile);
-    payload.avatar_name = avatarFile ? avatarFile.name : "";
-    payload.avatar_type = avatarFile ? avatarFile.type : "";
-
-    const logoFile = $("#logo_file").files[0];
-    payload.logo_b64 = await fileToBase64(logoFile);
-    payload.logo_name = logoFile ? logoFile.name : "";
-    payload.logo_type = logoFile ? logoFile.type : "";
-
-    if(plan === "free"){
-      const p1 = $("#photo1_file").files[0];
-      const p2 = $("#photo2_file").files[0];
-      payload.photo1_b64 = await fileToBase64(p1);
-      payload.photo1_name = p1 ? p1.name : "";
-      payload.photo1_type = p1 ? p1.type : "";
-      payload.photo2_b64 = await fileToBase64(p2);
-      payload.photo2_name = p2 ? p2.name : "";
-      payload.photo2_type = p2 ? p2.type : "";
-    }else{
-      const ids = [
-        ["photo1_file_p","photo1"],["photo2_file_p","photo2"],["photo3_file_p","photo3"],
-        ["photo4_file_p","photo4"],["photo5_file_p","photo5"]
-      ];
-      for(const [fid,key] of ids){
-        const f = document.getElementById(fid).files[0];
-        payload[key + "_b64"]  = await fileToBase64(f);
-        payload[key + "_name"] = f ? f.name : "";
-        payload[key + "_type"] = f ? f.type : "";
+  <!-- IMPORTANT: include your form.js v495 (the one I gave you just before) -->
+  <script>
+    // Small UI toggle by plan (free/premium blocks)
+    (function(){
+      function planType(t){
+        t = (t||"").toLowerCase();
+        if (!t) return "";
+        if (t.includes("自由") || t.includes("free") || t.startsWith("1")) return "free";
+        if (t.includes("精品") || t.includes("premium") || t.startsWith("2")) return "premium";
+        return "";
       }
-    }
+      function sync(){
+        const plan = document.getElementById("planSelect")?.value || "";
+        const type = planType(plan);
 
-    return payload;
-  }
+        const freeBlock = document.getElementById("freeBlock");
+        const premiumBlock = document.getElementById("premiumBlock");
 
-  // ====== lightweight validator (only required) ======
-  function validateRequired(){
-    const plan = planInput.value;
-    if(!$("#name").value.trim()) return "請填姓名";
-    if(!$("#avatar_file").files || !$("#avatar_file").files[0]) return "請上傳個人照";
-    if(plan === "free"){
-      if(!$("#theme_color").value) return "請選顏色";
-      if(!$("#banner_style").value) return "請選版型";
-      if(!$("#paper_style").value) return "請選紙感";
-    }else{
-      if(!$("#premium_color").value) return "請選底色";
-    }
-    return "";
-  }
+        if (freeBlock) freeBlock.style.display = (type === "free") ? "" : "none";
+        if (premiumBlock) premiumBlock.style.display = (type === "premium") ? "" : "none";
+      }
+      document.addEventListener("DOMContentLoaded", ()=>{
+        const p = document.getElementById("planSelect");
+        if (p) p.addEventListener("change", sync);
+        sync();
+      });
+    })();
+  </script>
 
-  // ====== submit (x-www-form-urlencoded to reduce preflight chance) ======
-  async function postForm(payload){
-    const form = new URLSearchParams();
-    Object.keys(payload).forEach(k=>{
-      const v = payload[k];
-      if(v === undefined || v === null) return;
-      // 大型 base64 字串也照樣塞進去（圖片請先壓縮：你若要我我會把壓縮加進來）
-      form.set(k, String(v));
-    });
-
-    const res = await fetch(GAS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-      body: form.toString()
-    });
-
-    const text = await res.text();
-    // 後端可能回非 JSON（例如被重導登入頁），這裡要保護
-    try { return JSON.parse(text); }
-    catch(e){ return { ok:false, error:"Non-JSON response", raw:text.slice(0,1200) }; }
-  }
-
-  function showResult(obj){
-    const box = $("#result");
-    box.classList.remove("hidden");
-    box.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
-  }
-
-  $("#btnTest").addEventListener("click", async ()=>{
-    const err = validateRequired();
-    if(err) return showResult({ ok:false, error: err });
-    showResult("整理中…");
-    const payload = await buildPayload();
-    // 隱去超長 base64 讓畫面乾淨
-    const peek = Object.assign({}, payload);
-    Object.keys(peek).forEach(k=>{
-      if(/_b64$/.test(k) && peek[k]) peek[k] = String(peek[k]).slice(0,60) + "…";
-    });
-    showResult(peek);
-  });
-
-  $("#btnSubmit").addEventListener("click", async ()=>{
-    const err = validateRequired();
-    if(err) return showResult({ ok:false, error: err });
-
-    showResult("送出中…");
-    try{
-      const payload = await buildPayload();
-      const out = await postForm(payload);
-      showResult(out);
-    }catch(e){
-      showResult({ ok:false, error: String(e && e.message ? e.message : e) });
-    }
-  });
-
-  // init
-  setPlan("free");
-</script>
+  <!-- Paste/keep your form.js file as separate file in repo and reference it -->
+  <script src="./form.js?v=495"></script>
 </body>
 </html>
