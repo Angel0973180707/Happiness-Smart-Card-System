@@ -1,9 +1,7 @@
-<!-- share.html — v495 (COMPLETE OVERWRITE)
- * Purpose:
- * - OG 交付連結（給客戶貼社群）：share.html?id=TW0001
- * - 自動導向乾淨成品（不含選樣版）：index.html?id=TW0001&view=1
- * - 讀 GAS 只為「人類預覽」：若 status=inactive，預覽不顯示個資，並停止自動跳轉
- * - OG 仍是 generic fallback（靜態頁限制）
+<!-- share.html — v497 (COMPLETE OVERWRITE)
+ * - Fix payload: json.item (current GAS)
+ * - Drive image URL normalize (file/d, open?id, pure id)
+ * - Keep your UX: inactive => mask & stop redirect
  -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -205,15 +203,12 @@
       </div>
     </div>
 
-    <div class="footer">v492 share · Powered by Angel · Mobile-first</div>
+    <div class="footer">v497 share · Powered by Angel · Mobile-first</div>
   </div>
 
   <script>
-    // =========================
-    // CONFIG
-    // =========================
     const CONFIG = {
-      VERSION: "v492",
+      VERSION: "v497",
       GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
       BASE: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
       INDEX: "index.html",
@@ -222,18 +217,15 @@
       FETCH_TIMEOUT_MS: 12000
     };
 
-    // =========================
-    // Helpers
-    // =========================
     const $ = (id) => document.getElementById(id);
     const qs = (k) => new URLSearchParams(location.search).get(k);
 
     function normalizeId(raw){
       const s = String(raw||"").trim().toUpperCase();
       if (!s) return "";
-      if (/^TW\d{4}$/.test(s)) return s;
-      if (/^\d{1,4}$/.test(s)) return "TW" + s.padStart(4,"0");
-      if (/^TW\d{1,4}$/.test(s)){
+      if (/^TW\\d{4}$/.test(s)) return s;
+      if (/^\\d{1,4}$/.test(s)) return "TW" + s.padStart(4,"0");
+      if (/^TW\\d{1,4}$/.test(s)){
         const n = s.replace(/^TW/i,"");
         return "TW" + n.padStart(4,"0");
       }
@@ -244,12 +236,10 @@
       return CONFIG.BASE.endsWith("/") ? CONFIG.BASE : (CONFIG.BASE + "/");
     }
 
-    // OG 交付連結（給客戶貼社群）
     function buildOgUrl(id){
       return base_() + "share.html?id=" + encodeURIComponent(id);
     }
 
-    // 乾淨成品（不含選樣版）：view=1
     function buildCleanUrl(id){
       return base_() + CONFIG.INDEX + "?id=" + encodeURIComponent(id) + "&view=1";
     }
@@ -300,6 +290,23 @@
       }
     }
 
+    function normalizeDriveImageUrl(raw){
+      const s = String(raw||"").trim();
+      if (!s) return "";
+      let u = s.replace(/^http:\\/\\//i, "https://");
+      if (/^[a-zA-Z0-9_-]{15,}$/.test(u)) {
+        return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(u);
+      }
+      const m =
+        u.match(/\\/file\\/d\\/([a-zA-Z0-9_-]{15,})/i) ||
+        u.match(/[?&]id=([a-zA-Z0-9_-]{15,})/i);
+      if (m && m[1]) {
+        return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(m[1]);
+      }
+      if (/^https?:\\/\\//i.test(u)) return u;
+      return s;
+    }
+
     function setPreviewMasked_(statusText){
       $("pName").textContent = "（未開通）";
       $("pLine2").textContent = "請聯繫客服開通";
@@ -308,9 +315,6 @@
       if (box) box.textContent = "🔒";
     }
 
-    // =========================
-    // Main
-    // =========================
     (async function main(){
       const id = normalizeId(qs("id") || qs("card") || "TW0001") || "TW0001";
       $("chipId").textContent = "ID：" + id;
@@ -324,6 +328,7 @@
 
       let cancelled = false;
       let redirectTimer = null;
+      let isInactive = false;
 
       function cancelRedirect_(msg){
         cancelled = true;
@@ -351,14 +356,15 @@
         setBadge("ok", ok ? "Copied" : "Copy");
       });
 
-      // Fetch card data (human preview only)
-      let isInactive = false;
       try{
         const api = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now();
         const json = await fetchJson(api);
 
         if (!json.ok) throw new Error(json.error || "API ok=false");
-        const card = json.data || {};
+
+        // ✅ FIX: support json.item (current GAS)
+        const card = json.item || json.data || {};
+        if (!card || typeof card !== "object") throw new Error("Empty card payload");
 
         const status = (pick(card, ["status","狀態"], "") || "").toLowerCase();
         isInactive = (status === "inactive" || status === "locked" || status === "disabled");
@@ -379,8 +385,9 @@
           $("pLine2").textContent = [unit, title].filter(Boolean).join("｜") || "（尚未填單位/頭銜）";
           $("pLine3").textContent = "狀態：" + (status || "active");
 
-          // avatar (prefer *_fast then raw)
-          const avatar = pick(card, ["avatar_fast","avatar_img_fast","個人照_fast","avatar_img","個人照"], "");
+          const avatarRaw = pick(card, ["avatar_img_fast","個人照_fast","avatar_img","個人照"], "");
+          const avatar = normalizeDriveImageUrl(avatarRaw);
+
           if (avatar){
             const img = new Image();
             img.referrerPolicy = "no-referrer";
@@ -405,7 +412,6 @@
         setBadge("warn","Error");
       }
 
-      // Auto redirect to CLEAN (view=1) — only when not cancelled and not inactive
       redirectTimer = setTimeout(() => {
         if (cancelled) return;
         if (isInactive) return;
