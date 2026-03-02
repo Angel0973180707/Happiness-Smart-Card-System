@@ -1,3 +1,4 @@
+<!-- admin.html — v497 (COMPLETE OVERWRITE) -->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
@@ -5,498 +6,136 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>HSC Admin Workspace v497</title>
   <meta name="theme-color" content="#0f172a" />
-  <style>
-    :root{
-      --bg:#0b1220;
-      --card:#0f172a;
-      --card2:#0b162c;
-      --line:rgba(255,255,255,.10);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.65);
-      --dim:rgba(255,255,255,.45);
-      --accent:#7bdcff;
-      --ok:#22c55e;
-      --warn:#f59e0b;
-      --err:#ef4444;
-      --shadow: 0 18px 60px rgba(0,0,0,.55);
-      --r:18px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans TC","PingFang TC","Microsoft JhengHei",Arial,sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(1000px 650px at 20% -10%, rgba(123,220,255,.20), transparent 60%),
-        radial-gradient(900px 600px at 90% 10%, rgba(34,197,94,.12), transparent 60%),
-        radial-gradient(900px 650px at 40% 110%, rgba(245,158,11,.10), transparent 60%),
-        var(--bg);
-      padding: 16px 14px 28px;
-    }
-    .wrap{max-width:760px;margin:0 auto}
-    .top{
-      display:flex;align-items:flex-end;justify-content:space-between;gap:10px;
-      padding: 10px 2px 12px;
-    }
-    .brand{display:flex;align-items:center;gap:10px}
-    .dot{
-      width:12px;height:12px;border-radius:999px;
-      background: linear-gradient(135deg, #7bdcff, #fb7185);
-      box-shadow: 0 0 0 6px rgba(123,220,255,.08);
-    }
-    .ttl{display:flex;flex-direction:column;gap:2px;line-height:1.1}
-    .ttl .t1{font-weight:950;letter-spacing:.3px}
-    .ttl .t2{font-weight:850;font-size:12px;color:var(--dim)}
-    .pill{
-      display:inline-flex;align-items:center;gap:8px;
-      padding: 8px 12px;border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      font-weight:850;font-size:12px;
-    }
-    .miniDot{width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.35)}
-    .miniDot.ok{background:rgba(34,197,94,.95)}
-    .miniDot.warn{background:rgba(245,158,11,.95)}
-    .miniDot.err{background:rgba(239,68,68,.95)}
 
-    .panel{
-      border:1px solid var(--line);
-      border-radius: calc(var(--r) + 10px);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
+  <!-- CSS -->
+  <link rel="stylesheet" href="./admin.css?v=497" />
 
-    .sec{
-      padding: 14px 14px 12px;
-      border-top: 1px solid rgba(255,255,255,.08);
-    }
-    .sec:first-child{border-top:none}
-    .sec h2{
-      margin:0 0 10px;
-      font-size:14px;
-      font-weight:950;
-      letter-spacing:.3px;
-      color: rgba(255,255,255,.88);
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-    }
-    .sec h2 span{font-size:11px;color:var(--dim);font-weight:900}
-
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .field{
-      flex:1;min-width:220px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.16);
-      border-radius: 16px;
-      padding: 10px 10px;
-    }
-    .label{font-size:12px;color:var(--dim);font-weight:900;margin-bottom:6px}
-    input{
-      width:100%;
-      border:none;outline:none;
-      background: transparent;
-      color: var(--text);
-      font-weight:950;
-      font-size:16px;
-      letter-spacing:.4px;
-    }
-    input::placeholder{color:rgba(255,255,255,.35);font-weight:800}
-    .hint{font-size:12px;color:var(--muted);font-weight:800;line-height:1.5;margin-top:10px}
-
-    .btns{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-      margin-top: 12px;
-    }
-    @media (max-width:520px){
-      .btns{grid-template-columns:1fr}
-    }
-    .btn{
-      appearance:none;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.16);
-      color: rgba(255,255,255,.92);
-      padding: 13px 14px;
-      border-radius: 16px;
-      font-weight:950;
-      letter-spacing:.3px;
-      cursor:pointer;
-      box-shadow: 0 14px 30px rgba(0,0,0,.30);
-    }
-    .btn:active{transform: translateY(1px)}
-    .btn.primary{
-      background: rgba(123,220,255,.16);
-      border-color: rgba(123,220,255,.28);
-    }
-    .btn.big{
-      grid-column: 1 / -1;
-      padding: 14px 14px;
-      background: rgba(125, 211, 252, .14);
-      border-color: rgba(125, 211, 252, .26);
-    }
-
-    .msg{
-      margin-top: 12px;
-      padding: 12px 12px;
-      border-radius: 16px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(0,0,0,.16);
-      color: var(--muted);
-      font-weight:850;
-      line-height:1.55;
-      white-space:pre-line;
-    }
-    .msg.ok{border-color: rgba(34,197,94,.25)}
-    .msg.warn{border-color: rgba(245,158,11,.25)}
-    .msg.err{border-color: rgba(239,68,68,.25)}
-
-    details{
-      margin-top:10px;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius: 16px;
-      background: rgba(0,0,0,.14);
-      padding: 10px 10px;
-    }
-    summary{
-      cursor:pointer;
-      font-weight:950;
-      color: rgba(255,255,255,.86);
-    }
-    pre{
-      margin:10px 0 0;
-      padding: 10px;
-      border-radius: 14px;
-      background: rgba(0,0,0,.22);
-      border:1px solid rgba(255,255,255,.08);
-      color: rgba(255,255,255,.80);
-      overflow:auto;
-      max-height: 42vh;
-      font-size:12px;
-      line-height:1.5;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-  </style>
+  <!-- QR (WeChat poster needs this) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="top">
-      <div class="brand">
-        <div class="dot"></div>
-        <div class="ttl">
-          <div class="t1">Happiness Smart Card · Admin</div>
-          <div class="t2">v497 · Workspace</div>
-        </div>
-      </div>
-      <div class="pill" id="pill">
-        <span class="miniDot warn" id="pillDot"></span>
-        <span id="pillText">Ready</span>
-      </div>
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand__title">Happiness Smart Card · Admin</div>
+      <div class="brand__sub">v497 · Workspace</div>
     </div>
 
-    <div class="panel">
-      <div class="sec">
-        <h2>序號 <span>(TW0001 / 0001)</span></h2>
+    <button class="btn btn--ghost" id="btnBackHome" type="button">返回首頁</button>
+  </div>
 
-        <div class="row">
-          <div class="field" style="min-width:260px;flex:2">
-            <div class="label">ID</div>
-            <input id="inpId" placeholder="TW0001 或 0001" />
-          </div>
-
-          <button class="btn primary" id="btnApply" style="flex:0 0 auto;min-width:96px;height:56px;align-self:flex-end;">套用</button>
+  <div class="wrap">
+    <!-- Left: Controls -->
+    <section class="card">
+      <div class="row">
+        <div class="label">序號（TW0001 / 0001）</div>
+        <div class="inputRow">
+          <input class="input" id="adminInput" placeholder="TW0001 或 0001" />
+          <button class="btn btn--primary" id="btnApply" type="button">套用</button>
         </div>
-
-        <div class="hint" id="idHint">提示：可輸入 0002（會自動補成 TW0002）。</div>
+        <div class="hint" id="adminHint">提示：可輸入 0002（會自動補成 TW0002）。</div>
       </div>
 
-      <div class="sec">
-        <h2>管理 PIN <span>(localStorage)</span></h2>
+      <div class="divider"></div>
 
-        <div class="row">
-          <div class="field" style="min-width:260px;flex:2">
-            <div class="label">ADMIN_PIN</div>
-            <input id="inpPin" type="password" placeholder="••••••" />
+      <div class="row">
+        <div class="label">管理 PIN（ADMIN_PIN，存在本機 localStorage）</div>
+        <div class="inputRow">
+          <input class="input" id="adminPin" type="password" placeholder="••••••" />
+          <button class="btn" id="btnRememberPin" type="button">記住</button>
+        </div>
+        <div class="hint">PIN 只用於「開卡/鎖卡/續期」的 POST 指令；載入資料不需要 PIN。</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="row">
+        <div class="label">交付工具</div>
+        <div class="grid2">
+          <button class="btn btn--primary" id="btnLoad" type="button">載入資料</button>
+          <button class="btn" id="btnPreview" type="button">成品預覽</button>
+
+          <button class="btn" id="btnCopyCard" type="button">複製乾淨名片</button>
+          <button class="btn" id="btnCopyShare" type="button">複製分享連結</button>
+
+          <button class="btn btn--primary" id="btnCopyDelivery" type="button" style="grid-column:1/-1">一鍵交貨（複製給客戶）</button>
+
+          <button class="btn" id="btnWeChatPoster" type="button">生成微信長圖</button>
+          <button class="btn" id="btnOpenPoster" type="button" disabled>開啟長圖</button>
+        </div>
+        <div class="hint">
+          ✅ 建議交付順序：先「複製分享連結」給客戶貼社群 → 再給「乾淨成品」收藏 → 如需微信再給長圖。
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="row">
+        <div class="label">狀態與續期</div>
+        <div class="grid2">
+          <button class="btn btn--primary" id="btnActivate" type="button">開卡</button>
+          <button class="btn" id="btnDeactivate" type="button">鎖卡</button>
+
+          <div class="inputRow" style="grid-column:1/-1">
+            <input class="input" id="extendDays" inputmode="numeric" placeholder="續期天數（預設 365）" />
+            <button class="btn btn--primary" id="btnExtend" type="button" style="min-width:120px">續期</button>
           </div>
-          <button class="btn" id="btnRemember" style="flex:0 0 auto;min-width:96px;height:56px;align-self:flex-end;">記住</button>
         </div>
-
-        <div class="hint">PIN 只用於你未來「開卡/鎖卡/續期」的 POST 指令；此頁載入資料不需要 PIN。</div>
-
-        <div class="btns">
-          <button class="btn primary" id="btnLoad">載入資料</button>
-          <button class="btn" id="btnPreview">成品預覽</button>
-          <button class="btn" id="btnCopyClean">複製乾淨名片</button>
-          <button class="btn" id="btnCopyShare">複製分享連結</button>
-          <button class="btn big" id="btnDeliver">一鍵交貨（複製給客戶）</button>
+        <div class="hint">
+          status：<span id="txtStatus" data-st="">—</span>
+          <button class="btn btn--tiny" id="btnCopyStatus" type="button" title="複製 status">⧉</button>
         </div>
+      </div>
+    </section>
 
-        <div class="msg warn" id="msg">尚未載入。</div>
+    <!-- Right: Preview -->
+    <section class="preview">
+      <div class="preview__title">資料預覽（載入後更新）</div>
 
-        <details>
-          <summary>Debug（最後一次 API 回應）</summary>
-          <pre id="dbg">—</pre>
-        </details>
+      <div class="previewCard">
+        <div class="avatarBox">
+          <img id="pvAvatar" alt="" />
+        </div>
+        <div class="pvInfo">
+          <div class="pvName" id="pvName">尚未載入</div>
+          <div class="pvUnit" id="pvUnit"></div>
+          <div class="pvTitle" id="pvTitle"></div>
+        </div>
+      </div>
+
+      <div class="pvSlogan" id="pvSlogan" style="display:none"></div>
+
+      <div class="miniLinks">
+        <div class="miniLinks__row">
+          <span class="tag">乾淨名片</span>
+          <code id="txtCardUrl">—</code>
+          <button class="btn btn--tiny" id="btnCopyCard2" type="button" title="複製">⧉</button>
+        </div>
+        <div class="miniLinks__row">
+          <span class="tag">分享連結</span>
+          <code id="txtShareUrl">—</code>
+          <button class="btn btn--tiny" id="btnCopyShare2" type="button" title="複製">⧉</button>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-top:12px">
+        提醒：若「載入成功但名片沒更新」，通常是客戶資料未寫入 card_db 或 ID 不存在。
+      </div>
+    </section>
+  </div>
+
+  <!-- Overlay -->
+  <div class="overlay" id="posterOverlay" aria-hidden="true">
+    <div class="overlay__box">
+      <div class="spinner"></div>
+      <div class="overlay__title" id="posterStatus">處理中…</div>
+      <div class="overlay__hint" id="posterHint">請稍候</div>
+      <div class="overlay__row">
+        <button class="btn" id="btnCancelOverlay" type="button">關閉</button>
       </div>
     </div>
   </div>
 
-  <script>
-    /* ================================
-     * admin.html v497 (COMPLETE OVERWRITE)
-     * - Fix: accept GAS payload {ok:true,item:{...}} OR {ok:true,data:{...}}
-     * - Fix: better error output
-     * - Fix: ID normalize (0002 -> TW0002)
-     * - Features: preview / copy clean / copy share / one-key delivery
-     * ================================ */
-
-    const CONFIG = {
-      VERSION: "v497",
-      GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-      BASE: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-      INDEX: "index.html",
-      SHARE: "share.html",
-      WECHAT: "wechat.html",
-      FETCH_TIMEOUT_MS: 12000
-    };
-
-    const $ = (id) => document.getElementById(id);
-
-    function base_(){
-      return CONFIG.BASE.endsWith("/") ? CONFIG.BASE : (CONFIG.BASE + "/");
-    }
-    function normalizeId(raw){
-      const s = String(raw||"").trim().toUpperCase();
-      if (!s) return "";
-      if (/^TW\d{4}$/.test(s)) return s;
-      if (/^\d{1,4}$/.test(s)) return "TW" + s.padStart(4,"0");
-      if (/^TW\d{1,4}$/.test(s)){
-        const n = s.replace(/^TW/i,"");
-        return "TW" + n.padStart(4,"0");
-      }
-      return s;
-    }
-    function qs(k){
-      return new URLSearchParams(location.search).get(k);
-    }
-    function setQsId(id){
-      const u = new URL(location.href);
-      u.searchParams.set("id", id);
-      history.replaceState(null, "", u.toString());
-    }
-
-    function urlClean(id){ return base_() + CONFIG.INDEX + "?id=" + encodeURIComponent(id) + "&view=1"; }
-    function urlShare(id){ return base_() + CONFIG.SHARE + "?id=" + encodeURIComponent(id); }
-    function urlWechat(id){ return base_() + CONFIG.WECHAT + "?id=" + encodeURIComponent(id); }
-
-    function setPill(type, text){
-      const dot = $("pillDot");
-      const t = $("pillText");
-      dot.classList.remove("ok","warn","err");
-      if (type === "ok") dot.classList.add("ok");
-      else if (type === "err") dot.classList.add("err");
-      else dot.classList.add("warn");
-      t.textContent = text || "—";
-    }
-
-    function setMsg(type, text){
-      const m = $("msg");
-      m.classList.remove("ok","warn","err");
-      if (type) m.classList.add(type);
-      m.textContent = text || "—";
-    }
-
-    async function fetchText(url){
-      const ctrl = new AbortController();
-      const t = setTimeout(()=>ctrl.abort(), CONFIG.FETCH_TIMEOUT_MS);
-      try{
-        const res = await fetch(url, { cache:"no-store", signal: ctrl.signal });
-        const txt = await res.text();
-        return { ok: res.ok, status: res.status, txt };
-      } finally {
-        clearTimeout(t);
-      }
-    }
-
-    function parseJsonLoose(txt){
-      try{ return JSON.parse(txt); }catch(_){}
-      // allow trailing logs (rare): try match last {...}
-      const m = String(txt||"").match(/\{[\s\S]*\}\s*$/);
-      if (m){
-        try{ return JSON.parse(m[0]); }catch(_){}
-      }
-      return null;
-    }
-
-    // IMPORTANT: accept item OR data
-    function unwrapCardPayload(json){
-      if (!json || typeof json !== "object") return { ok:false, reason:"Invalid JSON object", card:null };
-
-      const ok = (json.ok === true);
-      if (!ok) {
-        const err = json.error || json.message || "ok=false";
-        return { ok:false, reason: String(err), card:null };
-      }
-
-      const card = json.item || json.data || json.card || null;
-      if (!card || typeof card !== "object") {
-        return { ok:false, reason:"ok=true but missing item/data", card:null };
-      }
-
-      return { ok:true, reason:"ok", card };
-    }
-
-    function pick(card, keys, fallback=""){
-      for (const k of keys){
-        const v = card && card[k];
-        if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
-      }
-      return fallback;
-    }
-
-    async function copyText_(t){
-      const s = String(t||"");
-      try{
-        await navigator.clipboard.writeText(s);
-        return true;
-      }catch(e){
-        const ok = prompt("請手動複製：", s);
-        return ok !== null;
-      }
-    }
-
-    async function loadCard(id){
-      const api = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now();
-      setPill("warn","Loading");
-      setMsg("warn","讀取中…");
-      const r = await fetchText(api);
-      const json = parseJsonLoose(r.txt);
-
-      $("dbg").textContent = JSON.stringify({
-        api,
-        http_ok: r.ok,
-        http_status: r.status,
-        parsed: !!json,
-        json
-      }, null, 2);
-
-      if (!r.ok){
-        setPill("err","HTTP " + r.status);
-        setMsg("err","HTTP 失敗：" + r.status + "\n" + (r.txt||"").slice(0,200));
-        return null;
-      }
-
-      if (!json){
-        setPill("err","Bad JSON");
-        setMsg("err","回傳不是合法 JSON（可能被插入文字/錯誤頁）。");
-        return null;
-      }
-
-      const u = unwrapCardPayload(json);
-      if (!u.ok){
-        setPill("err","API Error");
-        setMsg("err","載入失敗：" + u.reason + "\n（請確認 GAS action=card 可用，且此 ID 存在於 card_db）");
-        return null;
-      }
-
-      const card = u.card;
-      const status = (pick(card, ["status","狀態"], "") || "").toLowerCase();
-      const name = pick(card, ["name","姓名"], "（未填姓名）");
-      const tenant = pick(card, ["tenant"], "");
-      const token = pick(card, ["token"], "");
-
-      setPill("ok","OK");
-      setMsg("ok",
-        "載入成功 ✅\n" +
-        "ID：" + id + "\n" +
-        "姓名：" + name + "\n" +
-        "status：" + (status || "—") + "\n" +
-        "tenant：" + (tenant || "—") + (token ? ("\n(token 已存在)") : "")
-      );
-      return card;
-    }
-
-    function init(){
-      // init inputs
-      const id0 = normalizeId(qs("id") || "TW0001") || "TW0001";
-      $("inpId").value = id0;
-
-      // pin
-      const saved = localStorage.getItem("HSC_ADMIN_PIN") || "";
-      $("inpPin").value = saved;
-
-      $("btnApply").addEventListener("click", () => {
-        const id = normalizeId($("inpId").value);
-        if (!id){ setMsg("warn","請輸入 ID"); return; }
-        $("inpId").value = id;
-        setQsId(id);
-        setMsg("warn","已套用：" + id);
-      });
-
-      $("btnRemember").addEventListener("click", () => {
-        localStorage.setItem("HSC_ADMIN_PIN", $("inpPin").value || "");
-        setMsg("ok","已記住 ADMIN_PIN（只存在此裝置 localStorage）");
-      });
-
-      $("btnLoad").addEventListener("click", async () => {
-        const id = normalizeId($("inpId").value);
-        if (!id){ setMsg("warn","請輸入 ID"); return; }
-        $("inpId").value = id;
-        setQsId(id);
-        await loadCard(id);
-      });
-
-      $("btnPreview").addEventListener("click", () => {
-        const id = normalizeId($("inpId").value);
-        if (!id){ setMsg("warn","請輸入 ID"); return; }
-        location.href = urlClean(id);
-      });
-
-      $("btnCopyClean").addEventListener("click", async () => {
-        const id = normalizeId($("inpId").value);
-        if (!id){ setMsg("warn","請輸入 ID"); return; }
-        const ok = await copyText_(urlClean(id));
-        setMsg(ok ? "ok" : "warn", ok ? "已複製乾淨名片連結 ✅" : "已取消");
-      });
-
-      $("btnCopyShare").addEventListener("click", async () => {
-        const id = normalizeId($("inpId").value);
-        if (!id){ setMsg("warn","請輸入 ID"); return; }
-        const ok = await copyText_(urlShare(id));
-        setMsg(ok ? "ok" : "warn", ok ? "已複製分享連結 ✅" : "已取消");
-      });
-
-      $("btnDeliver").addEventListener("click", async () => {
-        const id = normalizeId($("inpId").value);
-        if (!id){ setMsg("warn","請輸入 ID"); return; }
-        const text =
-`【Happiness Smart Card 交付】（ID：${id}）
-✅ 客戶貼社群（OG 分享連結）：
-${urlShare(id)}
-
-✅ 客戶自己收藏（乾淨成品）：
-${urlClean(id)}
-
-✅ 微信長圖（Poster）：
-${urlWechat(id)}
-`;
-        const ok = await copyText_(text);
-        setMsg(ok ? "ok" : "warn", ok ? "已一鍵交貨（文字+連結已複製）✅" : "已取消");
-      });
-
-      // auto load if ?autoload=1
-      if (qs("autoload") === "1"){
-        loadCard(id0);
-      } else {
-        setMsg("warn","尚未載入。\n提示：按「載入資料」會直接用 action=card 讀取，且同時支援 item/data。");
-      }
-    }
-
-    init();
-  </script>
+  <script src="./admin.js?v=497"></script>
 </body>
 </html>
