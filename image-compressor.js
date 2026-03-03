@@ -1,92 +1,67 @@
 /* ======================================================
-HSC v502
-Firebase Upload Module
-====================================================== */
+ * Happiness Smart Card System — image-compressor.js
+ * v502 (COMPLETE OVERWRITE)
+ *
+ * Exports:
+ * - compressToJpeg(file, maxPx, quality?)
+ *
+ * Usage:
+ * - avatar: compressToJpeg(file, 512)
+ * - cover : compressToJpeg(file, 1200)
+ * ====================================================== */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import {
-  getAuth,
-  signInAnonymously
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+export async function compressToJpeg(file, maxPx = 1200, quality = 0.85) {
+  if (!file) throw new Error("compressToJpeg: missing file");
 
-import {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+  const img = await loadImageFromFile(file);
 
-/* =============================
-FIREBASE CONFIG
-============================= */
+  // keep aspect ratio
+  let w = img.naturalWidth || img.width;
+  let h = img.naturalHeight || img.height;
 
-const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_BUCKET",
-  appId: "YOUR_APP_ID"
-};
+  if (!w || !h) throw new Error("compressToJpeg: invalid image");
 
-/* =============================
-INIT
-============================= */
+  const scale = calcScale(w, h, maxPx);
+  const tw = Math.max(1, Math.round(w * scale));
+  const th = Math.max(1, Math.round(h * scale));
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const storage = getStorage(app);
+  const canvas = document.createElement("canvas");
+  canvas.width = tw;
+  canvas.height = th;
 
-/* =============================
-ANONYMOUS LOGIN
-============================= */
+  const ctx = canvas.getContext("2d", { alpha: false });
+  ctx.drawImage(img, 0, 0, tw, th);
 
-export async function initFirebase() {
+  const blob = await canvasToBlob(canvas, "image/jpeg", quality);
+  if (!blob) throw new Error("compressToJpeg: toBlob failed");
 
-  if (!auth.currentUser) {
-    await signInAnonymously(auth);
-  }
-
-  return auth.currentUser;
+  return blob;
 }
 
-/* =============================
-UPLOAD AVATAR
-============================= */
-
-export async function uploadAvatar(cardId, blob) {
-
-  await initFirebase();
-
-  const path = `hsc_cards/angel/${cardId}/avatar.jpg`;
-
-  const storageRef = ref(storage, path);
-
-  await uploadBytes(storageRef, blob, {
-    contentType: "image/jpeg"
-  });
-
-  const url = await getDownloadURL(storageRef);
-
-  return url;
+function calcScale(w, h, maxPx) {
+  const m = Math.max(w, h);
+  if (m <= maxPx) return 1;
+  return maxPx / m;
 }
 
-/* =============================
-UPLOAD COVER
-============================= */
-
-export async function uploadCover(cardId, blob) {
-
-  await initFirebase();
-
-  const path = `hsc_cards/angel/${cardId}/cover.jpg`;
-
-  const storageRef = ref(storage, path);
-
-  await uploadBytes(storageRef, blob, {
-    contentType: "image/jpeg"
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve) => {
+    canvas.toBlob((b) => resolve(b), type, quality);
   });
+}
 
-  const url = await getDownloadURL(storageRef);
-
-  return url;
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (e) => {
+      URL.revokeObjectURL(url);
+      reject(new Error("compressToJpeg: image load error"));
+    };
+    img.src = url;
+  });
 }
