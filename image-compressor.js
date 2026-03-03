@@ -1,86 +1,92 @@
-/* =========================================================
+/* ======================================================
 HSC v502
-Image Compressor Module
+Firebase Upload Module
+====================================================== */
 
-avatar → 512px
-cover  → 1200px
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getAuth,
+  signInAnonymously
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
-Output:
-JPEG
-quality 0.85
-========================================================= */
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
-export async function compressImage(file, type = "avatar") {
+/* =============================
+FIREBASE CONFIG
+============================= */
 
-  const MAX_SIZE = {
-    avatar: 512,
-    cover: 1200
-  };
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_BUCKET",
+  appId: "YOUR_APP_ID"
+};
 
-  const maxSize = MAX_SIZE[type] || 512;
+/* =============================
+INIT
+============================= */
 
-  const img = await loadImage(file);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const storage = getStorage(app);
 
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
+/* =============================
+ANONYMOUS LOGIN
+============================= */
 
-  let width = img.width;
-  let height = img.height;
+export async function initFirebase() {
 
-  if (width > height) {
-    if (width > maxSize) {
-      height *= maxSize / width;
-      width = maxSize;
-    }
-  } else {
-    if (height > maxSize) {
-      width *= maxSize / height;
-      height = maxSize;
-    }
+  if (!auth.currentUser) {
+    await signInAnonymously(auth);
   }
 
-  canvas.width = width;
-  canvas.height = height;
-
-  ctx.drawImage(img, 0, 0, width, height);
-
-  const blob = await canvasToBlob(canvas, 0.85);
-
-  return blob;
+  return auth.currentUser;
 }
 
-/* =============================== */
+/* =============================
+UPLOAD AVATAR
+============================= */
 
-function loadImage(file) {
-  return new Promise((resolve, reject) => {
+export async function uploadAvatar(cardId, blob) {
 
-    const reader = new FileReader();
+  await initFirebase();
 
-    reader.onload = () => {
+  const path = `hsc_cards/angel/${cardId}/avatar.jpg`;
 
-      const img = new Image();
+  const storageRef = ref(storage, path);
 
-      img.onload = () => resolve(img);
-
-      img.onerror = reject;
-
-      img.src = reader.result;
-    };
-
-    reader.onerror = reject;
-
-    reader.readAsDataURL(file);
+  await uploadBytes(storageRef, blob, {
+    contentType: "image/jpeg"
   });
+
+  const url = await getDownloadURL(storageRef);
+
+  return url;
 }
 
-/* =============================== */
+/* =============================
+UPLOAD COVER
+============================= */
 
-function canvasToBlob(canvas, quality) {
-  return new Promise((resolve) => {
-    canvas.toBlob(
-      blob => resolve(blob),
-      "image/jpeg",
-      quality
-    );
+export async function uploadCover(cardId, blob) {
+
+  await initFirebase();
+
+  const path = `hsc_cards/angel/${cardId}/cover.jpg`;
+
+  const storageRef = ref(storage, path);
+
+  await uploadBytes(storageRef, blob, {
+    contentType: "image/jpeg"
   });
+
+  const url = await getDownloadURL(storageRef);
+
+  return url;
 }
