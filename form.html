@@ -1,393 +1,107 @@
-<!-- ================================
-     form.html — v501 (COMPLETE OVERWRITE)
-     - exp+sig entry
-     - GAS URL filled (WebApp exec)
-     - Loads form.js as module
-     - Fix: GAS URL missing (guarantee window.HSC_GAS_URL set BEFORE form.js)
-================================== -->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Happiness Smart Card — Fill Form</title>
-  <meta name="theme-color" content="#0b1220" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>HSC Form v503</title>
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="stylesheet" href="./form.css" />
   <style>
-    :root{
-      --bg:#0b1220;
-      --card:rgba(255,255,255,.06);
-      --line:rgba(255,255,255,.10);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.70);
-      --accent:#7bdcff;
-      --btn:rgba(255,255,255,.10);
-      --btn2:rgba(255,255,255,.14);
-      --danger:#ff6b6b;
-      --ok:#4cd964;
-    }
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family:"Noto Sans TC",system-ui,-apple-system,"Segoe UI",Roboto,Arial;
-      background: radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.22), transparent 55%),
-                  radial-gradient(900px 700px at 120% 10%, rgba(255,255,255,.10), transparent 60%),
-                  var(--bg);
-      color:var(--text);
-    }
-    .wrap{
-      max-width:860px;
-      margin:0 auto;
-      padding:18px 14px 40px;
-    }
-    .top{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:12px;
-    }
-    .brand{
-      font-weight:800;
-      letter-spacing:.4px;
-      font-size:16px;
-      opacity:.92;
-    }
-    .pill{
-      font-size:12px;
-      padding:6px 10px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      background:rgba(0,0,0,.18);
-      color:var(--muted);
-      white-space:nowrap;
-    }
-    .card{
-      border:1px solid var(--line);
-      background:var(--card);
-      border-radius:16px;
-      padding:14px;
-      box-shadow:0 10px 40px rgba(0,0,0,.22);
-      margin-bottom:12px;
-    }
-    .title{
-      font-size:15px;
-      font-weight:800;
-      margin:0 0 8px;
-    }
-    .muted{
-      color:var(--muted);
-      font-size:13px;
-      white-space:pre-line;
-      line-height:1.5;
-    }
-    .grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:10px;
-      margin-top:12px;
-    }
-    @media (max-width: 720px){
-      .grid{ grid-template-columns:1fr; }
-    }
-    label{
-      display:block;
-      font-size:12px;
-      color:var(--muted);
-      margin:0 0 6px;
-    }
-    input, textarea, select{
-      width:100%;
-      padding:10px 10px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.18);
-      color:var(--text);
-      outline:none;
-    }
-    textarea{ min-height:92px; resize:vertical; }
-    .row2{ grid-column: span 2; }
-    @media (max-width: 720px){ .row2{ grid-column: span 1; } }
-
-    .hint{
-      margin-top:8px;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px dashed rgba(123,220,255,.35);
-      background:rgba(123,220,255,.08);
-      color:var(--muted);
-      font-size:12px;
-      white-space:pre-line;
-      line-height:1.5;
-    }
-    .btns{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top:10px;
-    }
-    .btn{
-      border:1px solid var(--line);
-      background:var(--btn);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:700;
-      font-size:13px;
-      text-decoration:none;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      min-width:132px;
-    }
-    .btn.primary{
-      background:linear-gradient(180deg, rgba(123,220,255,.18), rgba(123,220,255,.10));
-      border-color:rgba(123,220,255,.35);
-    }
-    .btn:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-    }
-    .sep{ height:1px; background:var(--line); margin:10px 0; opacity:.7; }
-    .tiny{
-      font-size:12px;
-      color:var(--muted);
-      white-space:pre-line;
-      line-height:1.5;
-    }
-    .warn{
-      margin-top:8px;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid rgba(255,107,107,.35);
-      background:rgba(255,107,107,.08);
-      color:var(--muted);
-      font-size:12px;
-      white-space:pre-line;
-      line-height:1.5;
-      display:none;
-    }
+    body{ font-family: system-ui,-apple-system,"Noto Sans TC",Arial; padding:18px; }
+    .box{ max-width:720px; margin:0 auto; }
+    label{ display:block; margin:10px 0 6px; font-weight:700; }
+    input,select,button{ width:100%; padding:10px; border-radius:10px; border:1px solid rgba(0,0,0,.15); }
+    button{ font-weight:900; margin-top:14px; }
+    .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    @media (max-width:720px){ .row{ grid-template-columns:1fr; } }
+    .mono{ font-family: ui-monospace, Menlo, Consolas, monospace; font-size:12px; white-space:pre-wrap; }
+    .pill{ display:inline-block; padding:6px 10px; border-radius:999px; background:#eef; margin:6px 0; }
   </style>
-
-  <!-- ✅ Fix: Make sure GAS URL exists BEFORE module loads -->
-  <script>
-    window.HSC_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-  </script>
 </head>
 <body>
-  <div class="wrap">
-    <div class="top">
-      <div class="brand">Happiness Smart Card｜自建表單</div>
-      <div id="pill" class="pill">v501</div>
-    </div>
+  <div class="box">
+    <h2>HSC 自建表單 <span class="pill" id="status">Ready</span></h2>
+    <div>版本：<b id="ver">-</b></div>
+    <div>cardId：<b id="cardId">-</b></div>
 
-    <div class="card">
-      <div class="title">填表連結驗證</div>
-      <div id="verifyStatus" class="muted">等待驗證…</div>
-
-      <div id="gasWarn" class="warn"></div>
-
-      <div class="hint">
-✅ 入口參數：?exp=...&sig=...
-✅ 這個填表連結已鎖定方案（free/premium）
-✅ 圖片會先在手機/電腦端壓縮後上傳到 Firebase Storage
-✅ 表單送出到 GAS 只包含文字 + 圖片網址（不含 base64）
-      </div>
-    </div>
-
-    <div id="formCard" class="card" style="display:none;">
-      <div class="title">基本資料</div>
-      <div id="planStatus" class="muted">方案：—</div>
-      <div id="photoLimitHint" class="tiny" style="margin-top:6px;">照片限制：—</div>
-
-      <div class="grid" style="margin-top:12px;">
+    <form>
+      <div class="row">
         <div>
-          <label>姓名 *</label>
+          <label>姓名</label>
           <input id="name" placeholder="例如：小天使" />
-        </div>
-        <div>
-          <label>單位 / 品牌</label>
-          <input id="unit" placeholder="例如：幸福智慧名片館" />
         </div>
         <div>
           <label>職稱</label>
           <input id="title" placeholder="例如：館長" />
         </div>
-        <div>
-          <label>一句話標語</label>
-          <input id="slogan" placeholder="例如：把幸福帶回生活裡" />
-        </div>
+      </div>
 
-        <div class="row2">
-          <label>服務內容</label>
-          <textarea id="services" placeholder="例如：打造個人品牌智慧名片 / 預約體驗 / 專屬設計"></textarea>
-        </div>
-        <div class="row2">
-          <label>經歷</label>
-          <textarea id="experience" placeholder="可填簡短重點即可"></textarea>
-        </div>
+      <label>單位</label>
+      <input id="unit" placeholder="例如：幸福智慧名片館" />
 
+      <div class="row">
         <div>
-          <label>手機</label>
-          <input id="phone" inputmode="tel" placeholder="例如：0973xxxxxx" />
+          <label>電話</label>
+          <input id="phone" inputmode="tel" placeholder="09xx..." />
         </div>
         <div>
           <label>Email</label>
-          <input id="email" inputmode="email" placeholder="例如：abc@gmail.com" />
+          <input id="email" inputmode="email" placeholder="xxx@gmail.com" />
         </div>
-        <div>
-          <label>網站</label>
-          <input id="website" placeholder="https://..." />
-        </div>
-        <div>
-          <label>地址</label>
-          <input id="address" placeholder="例如：高雄市..." />
-        </div>
+      </div>
 
+      <div class="row">
         <div>
-          <label>LINE ID</label>
-          <input id="line_id" placeholder="@xxxx" />
-        </div>
-        <div>
-          <label>LINE 個人連結</label>
+          <label>LINE 連結</label>
           <input id="line_url" placeholder="https://line.me/ti/p/..." />
         </div>
         <div>
-          <label>LINE OA（預設已填）</label>
-          <input id="line_oa" placeholder="https://lin.ee/..." />
-        </div>
-        <div>
-          <label>微信 ID</label>
-          <input id="wechat_id" placeholder="wechat id" />
-        </div>
-
-        <div class="row2">
-          <div class="sep"></div>
-          <div class="title" style="margin:0 0 8px;">圖片上傳（會先壓縮再上傳）</div>
-          <div class="tiny">建議：頭像/Logo 用清晰近照；照片牆可用作品/場景照。</div>
-        </div>
-
-        <div>
-          <label>頭像（必填）*</label>
-          <input id="avatarFile" type="file" accept="image/*" />
-          <div class="tiny" style="margin-top:6px;">壓縮：長邊 900px、品質 0.82</div>
-        </div>
-
-        <div>
-          <label>Logo（選填）</label>
-          <input id="logoFile" type="file" accept="image/*" />
-          <div class="tiny" style="margin-top:6px;">壓縮：長邊 900px、品質 0.82</div>
-        </div>
-
-        <div class="row2">
-          <label>照片牆（free 最多 2 張 / premium 最多 5 張）</label>
-          <input id="photosFile" type="file" accept="image/*" multiple />
-          <div class="tiny" style="margin-top:6px;">壓縮：長邊 1600px、品質 0.80</div>
-        </div>
-
-        <div id="freeBox" class="row2" style="display:none;">
-          <div class="sep"></div>
-          <div class="title" style="margin:0 0 8px;">自由搭配（free）</div>
-          <div class="grid">
-            <div>
-              <label>顏色（c1~c5）*</label>
-              <select id="free_color">
-                <option value="">請選擇</option>
-                <option value="c1">c1（粉）</option>
-                <option value="c2">c2（藍）</option>
-                <option value="c3">c3（橘）</option>
-                <option value="c4">c4（紫）</option>
-                <option value="c5">c5（綠）</option>
-              </select>
-            </div>
-            <div>
-              <label>版型（s1~s3）*</label>
-              <select id="free_style">
-                <option value="">請選擇</option>
-                <option value="s1">s1（正拱）</option>
-                <option value="s2">s2（平直）</option>
-                <option value="s3">s3（晨曦）</option>
-              </select>
-            </div>
-            <div>
-              <label>紙感（f1~f3）*</label>
-              <select id="free_paper">
-                <option value="">請選擇</option>
-                <option value="f1">f1（棉紙）</option>
-                <option value="f2">f2（顆粒）</option>
-                <option value="f3">f3（亞麻）</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div id="premiumBox" class="row2" style="display:none;">
-          <div class="sep"></div>
-          <div class="title" style="margin:0 0 8px;">精品設計（premium）</div>
-          <div>
-            <label>底色（p1~p7）*</label>
-            <select id="premium_color">
-              <option value="">請選擇</option>
-              <option value="p1">p1（胭脂紅）</option>
-              <option value="p2">p2（酒紅）</option>
-              <option value="p3">p3（深藍）</option>
-              <option value="p4">p4（霧紫）</option>
-              <option value="p5">p5（藍灰）</option>
-              <option value="p6">p6（金箔）</option>
-              <option value="p7">p7（褐碳）</option>
-            </select>
-            <div class="tiny" style="margin-top:6px;">premium：照片牆最多 5 張</div>
-          </div>
-        </div>
-
-        <div class="row2">
-          <div class="sep"></div>
-          <div class="btns">
-            <button id="btnSubmit" class="btn primary" type="button">送出表單</button>
-          </div>
-          <div id="submitStatus" class="tiny" style="margin-top:8px;"></div>
+          <label>官網</label>
+          <input id="website" placeholder="https://..." />
         </div>
       </div>
+
+      <label>微信ID</label>
+      <input id="wechat_id" placeholder="a0973..." />
+
+      <div class="row">
+        <div>
+          <label>方案</label>
+          <select id="plan">
+            <option value="">（可略）</option>
+            <option value="free">自由搭配</option>
+            <option value="premium">精品設計</option>
+          </select>
+        </div>
+        <div>
+          <label>主題/顏色代碼</label>
+          <input id="theme" placeholder="例如：c1 / p3" />
+        </div>
+      </div>
+
+      <label>頭像（會壓縮到 512px）</label>
+      <input id="avatar" type="file" accept="image/*" />
+
+      <label>封面（會壓縮到 1200px）</label>
+      <input id="cover" type="file" accept="image/*" />
+
+      <button id="btnSubmit">送出（reserve → upload → create）</button>
+    </form>
+
+    <div style="margin-top:14px;">
+      <div>avatarURL：</div>
+      <div class="mono" id="avatarURL">-</div>
+      <div style="margin-top:10px;">coverURL：</div>
+      <div class="mono" id="coverURL">-</div>
     </div>
 
-    <div id="resultBox" class="card" style="display:none;">
-      <div class="title">完成</div>
-      <div id="resultStatus" class="muted"></div>
-      <div class="btns" style="margin-top:10px;">
-        <a id="btnPreview" class="btn" target="_blank" rel="noopener">預覽成品</a>
-        <button id="btnConfirm" class="btn primary" type="button">確認資料</button>
-      </div>
-      <div class="hint" style="margin-top:10px;">
-✅ 「確認資料」只會寫入 confirmed_at，不會啟用
-✅ 啟用（active）由管理端 adminSetStatus 完成交貨啟用
-      </div>
-    </div>
+    <div style="margin-top:14px; font-weight:800;" id="result"></div>
 
-    <div class="card">
-      <div class="title">使用聲明</div>
-      <div class="tiny">
-- 本表單僅供被授權客戶填寫（連結含 exp + sig）
-- 圖片會先在本機壓縮後上傳至 Firebase Storage
-- 名片未啟用前屬於「預覽狀態」，需由管理端完成交貨啟用
-      </div>
+    <div style="margin-top:14px;">
+      <div class="mono" id="log">（log）</div>
     </div>
   </div>
 
-  <!-- ✅ Tiny guard: if somehow missing, show message (should NOT happen now) -->
-  <script>
-    (function(){
-      const warn = document.getElementById("gasWarn");
-      if (!window.HSC_GAS_URL) {
-        warn.style.display = "block";
-        warn.textContent =
-          "⚠️ GAS URL missing：window.HSC_GAS_URL 未設定。\n" +
-          "請確認 form.html 內已填入你的 WebApp exec URL，且要在 form.js 之前。";
-      }
-    })();
-  </script>
-
-  <!-- ✅ form.js is an ES module -->
   <script type="module" src="./form.js"></script>
 </body>
 </html>
