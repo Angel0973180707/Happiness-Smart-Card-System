@@ -1,140 +1,281 @@
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>HSC Form v498</title>
-  <meta name="theme-color" content="#0f172a" />
-  <link rel="stylesheet" href="./form.css?v=498" />
-</head>
-<body>
-  <main class="wrap">
-    <header class="top">
-      <div class="brand">
-        <div class="dot"></div>
-        <div class="titles">
-          <div class="h1">幸福智慧名片｜自建表單</div>
-          <div class="h2">v498｜B優先（reserve→Firebase）｜無reserve自動改A（dataURL→GAS）</div>
-        </div>
-      </div>
+:root{
+  --bg:#0b1220;
+  --card:#0f172a;
+  --line:rgba(255,255,255,.10);
+  --text:rgba(255,255,255,.92);
+  --muted:rgba(255,255,255,.65);
+  --soft:rgba(255,255,255,.06);
+  --good:#22c55e;
+  --bad:#ef4444;
+  --warn:#f59e0b;
+  --accent:#7bdcff;
 
-      <div class="status">
-        <div class="k">狀態</div>
-        <div class="v" id="statusText">等待填寫</div>
-        <div class="mini" id="modeText">模式：未開始</div>
-      </div>
-    </header>
+  --r:16px;
+  --shadow: 0 18px 60px rgba(0,0,0,.35);
+  --shadow2: 0 10px 30px rgba(0,0,0,.28);
+}
 
-    <section class="card">
-      <div class="grid2">
-        <div class="row">
-          <label>tenant</label>
-          <input id="tenant" value="angel" autocomplete="off" />
-          <small>多租戶用（預設 angel）。</small>
-        </div>
-        <div class="row">
-          <label>plan</label>
-          <select id="plan">
-            <option value="free" selected>free（自由搭配）</option>
-            <option value="premium">premium（精品設計）</option>
-          </select>
-          <small>寫入 card_db 的 plan 欄位。</small>
-        </div>
-      </div>
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, "Noto Sans TC", Segoe UI, Roboto, Arial;
+  background:
+    radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.15), transparent 60%),
+    radial-gradient(900px 700px at 90% 10%, rgba(245,158,11,.12), transparent 55%),
+    var(--bg);
+  color:var(--text);
+}
 
-      <div class="grid2">
-        <div class="row">
-          <label>姓名（必填）</label>
-          <input id="name" placeholder="例：小天使" autocomplete="name" />
-        </div>
-        <div class="row">
-          <label>職稱</label>
-          <input id="title" placeholder="例：館長" autocomplete="organization-title" />
-        </div>
-      </div>
+.wrap{
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 18px 14px 60px;
+}
 
-      <div class="row">
-        <label>單位</label>
-        <input id="unit" placeholder="例：天使幸福智慧名片館" autocomplete="organization" />
-      </div>
+.top{
+  display:flex;
+  gap:12px;
+  align-items:stretch;
+  justify-content:space-between;
+  margin: 10px 0 14px;
+}
 
-      <div class="grid2">
-        <div class="row">
-          <label>電話</label>
-          <input id="phone" placeholder="例：0973180707" inputmode="tel" autocomplete="tel" />
-        </div>
-        <div class="row">
-          <label>Email</label>
-          <input id="email" placeholder="例：xxx@gmail.com" inputmode="email" autocomplete="email" />
-        </div>
-      </div>
+.brand{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  padding: 14px 16px;
+  background: rgba(255,255,255,.04);
+  border:1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow2);
+  flex:1;
+}
+.dot{
+  width:12px;height:12px;border-radius:999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 6px rgba(123,220,255,.12);
+}
+.h1{ font-weight:800; letter-spacing:.5px; }
+.h2{ margin-top:4px; color:var(--muted); font-size:12px; }
 
-      <div class="grid2">
-        <div class="row">
-          <label>LINE（可填網址或 @ID）</label>
-          <input id="line_url" placeholder="https://line.me/ti/p/... 或 @a0973..." autocomplete="off" />
-        </div>
-        <div class="row">
-          <label>LINE OA（可空）</label>
-          <input id="line_oa" placeholder="https://lin.ee/..." autocomplete="off" />
-        </div>
-      </div>
+.status{
+  width: 260px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,.04);
+  border:1px solid var(--line);
+  border-radius: var(--r);
+  box-shadow: var(--shadow2);
+}
+.status .k{ color:var(--muted); font-size:12px; }
+.status .v{ margin-top:6px; font-weight:800; }
+.status .mini{ margin-top:6px; color:var(--muted); font-size:12px; }
 
-      <div class="row">
-        <label>地址</label>
-        <input id="address" placeholder="例：高雄市..." autocomplete="street-address" />
-      </div>
+.card{
+  padding: 16px;
+  background: rgba(255,255,255,.04);
+  border:1px solid var(--line);
+  border-radius: calc(var(--r) + 2px);
+  box-shadow: var(--shadow);
+}
 
-      <div class="row">
-        <label>官網</label>
-        <input id="website" placeholder="https://..." inputmode="url" autocomplete="url" />
-      </div>
+.row{ margin: 12px 0; }
+.grid2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
 
-      <hr class="sep" />
+label{
+  display:block;
+  font-weight:800;
+  font-size:13px;
+  margin-bottom:8px;
+}
+small{
+  display:block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 6px;
+}
 
-      <div class="row">
-        <label>個人照（avatar）</label>
-        <input id="avatarFile" type="file" accept="image/*" />
-        <div class="preview"><img id="avatarPrev" alt="avatar preview" /></div>
-        <small>會壓縮成 JPG。若走 A（dataURL）會再檢查 ≤ 650KB。</small>
-      </div>
+input, select{
+  width:100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.22);
+  color: var(--text);
+  outline: none;
+}
+input::placeholder{ color: rgba(255,255,255,.45); }
 
-      <div class="row">
-        <label>Logo</label>
-        <input id="logoFile" type="file" accept="image/*" />
-        <div class="preview"><img id="logoPrev" alt="logo preview" /></div>
-      </div>
+.sep{
+  border:0;
+  height:1px;
+  background: var(--line);
+  margin: 16px 0;
+}
 
-      <div class="row">
-        <label>照片牆（最多 5 張）</label>
-        <input id="photosFile" type="file" accept="image/*" multiple />
-        <div class="preview-grid" id="photosPrev"></div>
-        <small>free/premium 你後面要限制張數也可以（我這版先最大 5）。</small>
-      </div>
+.actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top: 8px;
+}
 
-      <hr class="sep" />
+.btn{
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 14px;
+  cursor:pointer;
+  font-weight:800;
+}
+.btn:disabled{ opacity:.55; cursor:not-allowed; }
 
-      <div class="actions">
-        <button id="btnSubmit" class="btn primary">送出</button>
-        <button id="btnPing" class="btn">測試 ping</button>
-        <button id="btnReset" class="btn danger">清空</button>
-      </div>
+.btn.primary{
+  background: linear-gradient(180deg, rgba(123,220,255,.22), rgba(123,220,255,.10));
+  border-color: rgba(123,220,255,.32);
+}
+.btn.danger{
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.28);
+}
 
-      <div class="log">
-        <div class="log-h">Log</div>
-        <pre id="logBox"></pre>
-      </div>
+.preview{
+  margin-top: 10px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255,255,255,.16);
+  background: rgba(255,255,255,.04);
+  padding: 10px;
+}
+.preview img{
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  display:none;
+  border-radius: 12px;
+}
 
-      <div class="note">
-        <b>說明：</b>
-        <ul>
-          <li>若 GAS 有 <code>action=reserve</code> → 走 B（reserve → Firebase → create(純URL)）。</li>
-          <li>若沒有 reserve（你目前 v497）→ 自動走 A（create 直接帶 dataURL）。</li>
-        </ul>
-      </div>
-    </section>
-  </main>
+.preview-grid{
+  margin-top: 10px;
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.preview-grid img{
+  width:100%;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 12px;
+  border:1px solid rgba(255,255,255,.10);
+}
 
-  <script type="module" src="./form.js?v=498"></script>
-</body>
-</html>
+.log{
+  margin-top: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.24);
+  overflow:hidden;
+}
+.log-h{
+  padding: 10px 12px;
+  font-weight: 800;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+pre{
+  margin:0;
+  padding: 12px;
+  color: rgba(255,255,255,.82);
+  font-size: 12px;
+  line-height: 1.55;
+  overflow:auto;
+  max-height: 320px;
+}
+
+.planBox{
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+}
+.planTitle{
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+.hint{
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chipRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap: 8px;
+}
+.chip{
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  font-weight: 900;
+  cursor:pointer;
+  user-select:none;
+}
+.chip.active{
+  border-color: rgba(123,220,255,.38);
+  background: rgba(123,220,255,.12);
+  box-shadow: 0 0 0 4px rgba(123,220,255,.08) inset;
+}
+
+.confirmBox{
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(34,197,94,.22);
+  background: rgba(34,197,94,.08);
+}
+.confirmTitle{
+  font-weight: 1000;
+  margin-bottom: 10px;
+}
+.confirmRow{
+  display:flex;
+  gap: 12px;
+  flex-wrap:wrap;
+}
+.kv{
+  flex:1;
+  min-width: 180px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.18);
+}
+.kv .k{ color: var(--muted); font-size: 12px; }
+.kv .v{ margin-top: 6px; font-weight: 1000; font-size: 16px; }
+
+.confirmBtns{
+  display:flex;
+  gap: 10px;
+  flex-wrap:wrap;
+  margin-top: 12px;
+}
+.confirmHint{
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 820px){
+  .top{ flex-direction:column; }
+  .status{ width:100%; }
+  .grid2{ grid-template-columns: 1fr; }
+  .preview-grid{ grid-template-columns: repeat(2, 1fr); }
+}
