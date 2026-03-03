@@ -1,41 +1,81 @@
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Firebase Storage Test</title>
+</head>
+<body style="font-family:system-ui; padding:16px;">
+  <h2>Firebase Storage Test</h2>
+  <button id="btnLogin">1) 匿名登入</button>
+  <button id="btnUpload" disabled>2) 測試上傳</button>
+  <pre id="log" style="white-space:pre-wrap; background:#111; color:#0f0; padding:12px; border-radius:8px;"></pre>
 
-const firebaseConfig = {
-  apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
-  authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
-  projectId: "happiness-smart-card-pro-7389a",
-  storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
-  messagingSenderId: "143313936007",
-  appId: "1:143313936007:web:7c948563c51e8a47d3a222"
-};
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const storage = getStorage(app);
+    const logEl = document.getElementById("log");
+    const log = (...a) => { logEl.textContent += a.join(" ") + "\n"; console.log(...a); };
 
-// 🔥 自動匿名登入
-await signInAnonymously(auth);
+    // ✅ 改這裡：storageBucket 用 appspot.com
+    const firebaseConfig = {
+      apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
+      authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
+      projectId: "happiness-smart-card-pro-7389a",
+      storageBucket: "happiness-smart-card-pro-7389a.appspot.com",
+      messagingSenderId: "143313936007",
+      appId: "1:143313936007:web:7c948563c51e8a47d3a222"
+    };
 
-onAuthStateChanged(auth, (user)=>{
-  if(user){
-    console.log("✅ 匿名登入成功:", user.uid);
-  }else{
-    console.log("⚠️ 尚未登入");
-  }
-});
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const storage = getStorage(app);
 
-// 🔥 上傳測試函式
-window.testUpload = async function(file){
-  const path = `hsc_cards/angel/TW0001/test_${Date.now()}_${file.name}`;
-  const r = ref(storage, path);
+    const btnLogin = document.getElementById("btnLogin");
+    const btnUpload = document.getElementById("btnUpload");
 
-  await uploadBytes(r, file);
-  const url = await getDownloadURL(r);
+    btnLogin.onclick = async () => {
+      try{
+        const cred = await signInAnonymously(auth);
+        log("✅ 匿名登入成功 UID:", cred.user.uid);
+        btnUpload.disabled = false;
+      }catch(err){
+        log("❌ 匿名登入失敗:", err.code, err.message);
+      }
+    };
 
-  console.log("✅ 上傳成功:", url);
-  return url;
-};
-</script>
+    btnUpload.onclick = async () => {
+      try{
+        const u = auth.currentUser;
+        if(!u) throw new Error("Not logged in");
+        const tenant = "angel";
+        const cardId = "TEST001";
+        const path = `hsc_cards/${tenant}/${cardId}/_test_${Date.now()}.txt`;
+
+        const fileRef = ref(storage, path);
+        const blob = new Blob([`hello firebase ${new Date().toISOString()}`], {type:"text/plain"});
+        const snap = await uploadBytes(fileRef, blob);
+        const url = await getDownloadURL(snap.ref);
+
+        log("✅ 上傳成功:", path);
+        log("✅ downloadURL:", url);
+      }catch(err){
+        log("❌ 上傳失敗:", err.code || "", err.message || err);
+      }
+    };
+
+    // 自動嘗試登入（可省一步）
+    (async()=>{
+      try{
+        const cred = await signInAnonymously(auth);
+        log("✅ 自動匿名登入 UID:", cred.user.uid);
+        btnUpload.disabled = false;
+      }catch(err){
+        log("⚠️ 自動登入失敗（可按按鈕再試）:", err.code, err.message);
+      }
+    })();
+  </script>
+</body>
+</html>
