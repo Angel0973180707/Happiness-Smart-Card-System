@@ -1,10 +1,10 @@
 /* ================================
  * form.js — v498 (COMPLETE OVERWRITE)
- * - v498: 外觀選項（free: color/style/paper, premium: premium_color）
- * - v498: 照片牆限制（free<=2, premium<=5）UI+submit 檢查
- * - v498: 圖片「雙通道」送出（files + *_img(base64)）確保能進 GAS/card_db
- * - POST: x-www-form-urlencoded (data=JSON) 避免 preflight
- * - Draft autosave（不存圖片 dataURL）
+ * FIX v498:
+ * 1) Mobile 上傳圖常超時 -> 改「前端壓縮」+「有圖時 timeout 拉長」
+ * 2) 圖片：file -> (compress) -> dataURL(base64) -> GAS create
+ * 3) POST: x-www-form-urlencoded (data=JSON) 避免 preflight
+ * 4) Draft autosave（不存圖片 dataURL）
  * ================================ */
 
 (() => {
@@ -12,14 +12,28 @@
 
   const CONFIG = {
     VERSION: "v498",
+
     GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     BASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     DEFAULT_LINE_OA: "https://lin.ee/G3VJoRm",
-    FETCH_TIMEOUT_MS: 20000,
+
+    // ✅ 沒圖：20s；有圖：90s（手機才不會被 abort）
+    FETCH_TIMEOUT_MS_NOIMG: 20000,
+    FETCH_TIMEOUT_MS_IMG: 90000,
     RETRY: 1,
+
     DRAFT_KEY: "angel_card_draft_v498",
     AUTOSAVE_DEBOUNCE_MS: 380,
-    MAX_FILE_BYTES: 2.8 * 1024 * 1024
+
+    // ✅ 原始檔容許更大（會壓縮），避免你手機照片常常 > 2.8MB
+    MAX_ORIGINAL_BYTES: 12 * 1024 * 1024, // 12MB
+
+    // ✅ 壓縮輸出目標（可再調）
+    COMPRESS: {
+      avatar: { maxW: 900,  maxH: 900,  quality: 0.82 },
+      logo:   { maxW: 900,  maxH: 900,  quality: 0.85 },
+      photo:  { maxW: 1280, maxH: 1280, quality: 0.82 }
+    }
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -38,17 +52,11 @@
   const elPlan = $("#plan");
   const planHint = $("#planHint");
 
-  // v498 options
-  const elFreeOptions = $("#freeOptions");
-  const elPremiumOptions = $("#premiumOptions");
-  const elOptSub = $("#optSub");
-
+  // v498 options (如果你的 form.html 沒有這些 select，也不會壞)
   const elColor = $("#color");
   const elStyle = $("#style");
   const elPaper = $("#paper");
   const elPremiumColor = $("#premium_color");
-
-  const elImgTip = $("#imgTip");
 
   const r_id = $("#r_id");
   const r_token = $("#r_token");
@@ -68,7 +76,8 @@
     { key: "photo5", file: "#photo5_file", preview: "#photo5Preview" }
   ];
 
-  const fileState = {}; // key -> {dataUrl, filename, mime, bytes}
+  // key -> {dataUrl, filename, mime, bytes, note}
+  const fileState = {};
 
   function setStatus(msg, type = "info") {
     if (!elStatus) return;
@@ -76,7 +85,6 @@
     if (type === "ok") elStatus.classList.add("ok");
     if (type === "err") elStatus.classList.add("err");
     elStatus.textContent = msg;
-    // ✅ 狀態在底部，送出時自動捲到底更直觀
     try { elStatus.scrollIntoView({ behavior:"smooth", block:"center" }); } catch(_) {}
   }
 
@@ -111,33 +119,7 @@
     return { clean_card_url, og_page_url };
   }
 
-  function countPickedPhotos_() {
-    const keys = ["photo1","photo2","photo3","photo4","photo5"];
-    let n = 0;
-    keys.forEach(k => { if (fileState[k]?.dataUrl) n++; });
-    return n;
-  }
-
-  function updateImgTip_() {
-    if (!elImgTip) return;
-    const plan = elPlan.value || "free";
-    const max = (plan === "premium") ? 5 : 2;
-    const picked = countPickedPhotos_();
-    elImgTip.textContent = `建議單張 ≤ ${(CONFIG.MAX_FILE_BYTES/1024/1024).toFixed(1)}MB；照片牆 ${picked}/${max}`;
-  }
-
-  async function fileToDataURL(file) {
-    if (!file) return null;
-    if (file.size > CONFIG.MAX_FILE_BYTES) {
-      throw new Error(`圖片太大（${(file.size/1024/1024).toFixed(1)}MB）。目前先限制 ${(CONFIG.MAX_FILE_BYTES/1024/1024).toFixed(1)}MB，避免送出失敗。`);
-    }
-    return new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = () => reject(new Error("讀取圖片失敗"));
-      fr.readAsDataURL(file);
-    });
-  }
+  function bytesToMB(n) { return (n / 1024 / 1024).toFixed(2); }
 
   function setPreview(previewSel, dataUrl) {
     const img = $(previewSel);
@@ -151,23 +133,94 @@
     img.style.display = "";
   }
 
-  function clearFile_(fieldKey, fileInputSel, previewSel) {
-    const inp = $(fileInputSel);
-    if (inp) inp.value = "";
-    fileState[fieldKey] = null;
-    setPreview(previewSel, "");
+  function hasAnyImage_() {
+    return Object.values(fileState).some(v => v && v.dataUrl);
   }
 
-  function enforcePhotoLimitOnPick_(plan) {
-    if (plan !== "premium") {
-      ["photo3","photo4","photo5"].forEach(k => {
-        if (fileState[k]?.dataUrl) {
-          const ff = FILE_FIELDS.find(x => x.key === k);
-          if (ff) clearFile_(k, ff.file, ff.preview);
-        }
-      });
+  function countPickedPhotos_() {
+    const keys = ["photo1","photo2","photo3","photo4","photo5"];
+    let n = 0;
+    keys.forEach(k => { if (fileState[k]?.dataUrl) n++; });
+    return n;
+  }
+
+  // ---------- Image compress ----------
+  function dataUrlByteLength_(dataUrl) {
+    try {
+      const i = dataUrl.indexOf(",");
+      if (i < 0) return 0;
+      const b64 = dataUrl.slice(i + 1);
+      // base64 -> bytes approx
+      const pad = (b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0);
+      return Math.max(0, Math.floor(b64.length * 3 / 4) - pad);
+    } catch (_) { return 0; }
+  }
+
+  async function readFileAsDataURL_(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = () => reject(new Error("讀取圖片失敗"));
+      fr.readAsDataURL(file);
+    });
+  }
+
+  async function loadImageBitmap_(file) {
+    // Prefer createImageBitmap (faster, less memory)
+    if ("createImageBitmap" in window) {
+      try {
+        return await createImageBitmap(file);
+      } catch (_) {}
     }
-    updateImgTip_();
+    // Fallback: Image + objectURL
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = () => reject(new Error("圖片載入失敗"));
+        im.src = url;
+      });
+      return img;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  async function compressImageToDataURL_(file, preset) {
+    // 若不是圖片，直接原樣
+    if (!file || !file.type || !file.type.startsWith("image/")) {
+      return await readFileAsDataURL_(file);
+    }
+
+    const bmp = await loadImageBitmap_(file);
+    const sw = bmp.width || bmp.naturalWidth || 0;
+    const sh = bmp.height || bmp.naturalHeight || 0;
+    if (!sw || !sh) return await readFileAsDataURL_(file);
+
+    const maxW = preset.maxW;
+    const maxH = preset.maxH;
+    const scale = Math.min(1, maxW / sw, maxH / sh);
+    const tw = Math.max(1, Math.round(sw * scale));
+    const th = Math.max(1, Math.round(sh * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = tw;
+    canvas.height = th;
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    // 更穩定的縮圖品質
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    // draw
+    ctx.drawImage(bmp, 0, 0, tw, th);
+
+    // 統一輸出 JPEG（更小）
+    const q = preset.quality;
+    const dataUrl = canvas.toDataURL("image/jpeg", q);
+
+    return dataUrl;
   }
 
   async function handlePickFile(fieldKey, fileInputSel, previewSel) {
@@ -178,25 +231,38 @@
       fileState[fieldKey] = null;
       setPreview(previewSel, "");
       saveDraftSoon_();
-      updateImgTip_();
       return;
     }
 
-    const dataUrl = await fileToDataURL(f);
+    if (f.size > CONFIG.MAX_ORIGINAL_BYTES) {
+      throw new Error(`原圖太大（${bytesToMB(f.size)}MB），請換小一點的檔案（上限 ${bytesToMB(CONFIG.MAX_ORIGINAL_BYTES)}MB）。`);
+    }
+
+    const preset =
+      fieldKey === "avatar" ? CONFIG.COMPRESS.avatar :
+      fieldKey === "logo"   ? CONFIG.COMPRESS.logo :
+      CONFIG.COMPRESS.photo;
+
+    setStatus(`圖片處理中…（${fieldKey}）`, "info");
+
+    const dataUrl = await compressImageToDataURL_(f, preset);
+    const outBytes = dataUrlByteLength_(dataUrl);
+
     fileState[fieldKey] = {
       dataUrl,
-      filename: f.name || `${fieldKey}.jpg`,
-      mime: f.type || "image/jpeg",
-      bytes: f.size || 0
+      filename: (f.name || `${fieldKey}.jpg`).replace(/\.\w+$/, "") + ".jpg",
+      mime: "image/jpeg",
+      bytes: outBytes,
+      note: `原圖 ${bytesToMB(f.size)}MB → 壓縮後 ${bytesToMB(outBytes)}MB`
     };
-    setPreview(previewSel, dataUrl);
 
-    const plan = elPlan.value || "free";
-    enforcePhotoLimitOnPick_(plan);
+    setPreview(previewSel, dataUrl);
+    setStatus(`已壓縮完成：${fileState[fieldKey].note}`, "ok");
 
     saveDraftSoon_();
   }
 
+  // ---------- Plan ----------
   function setPlan(plan) {
     const p = (plan === "premium") ? "premium" : "free";
     elPlan.value = p;
@@ -204,69 +270,32 @@
     segFree.classList.toggle("on", p === "free");
     segPremium.classList.toggle("on", p === "premium");
 
+    // UI: premium 才顯示 photo3~5
     document.querySelectorAll(".morePhotos").forEach(el => {
       el.style.display = (p === "premium") ? "" : "none";
     });
-
-    if (elFreeOptions) elFreeOptions.style.display = (p === "free") ? "" : "none";
-    if (elPremiumOptions) elPremiumOptions.style.display = (p === "premium") ? "" : "none";
-    if (elOptSub) elOptSub.textContent = (p === "premium") ? "精品設計：底色（p1~p7）" : "自由搭配：顏色 / 版型 / 紙感";
 
     planHint.innerHTML = (p === "premium")
       ? "<b>精品設計：</b>7 底色；照片牆最多 5 張"
       : "<b>自由搭配：</b>5色 × 3版型 × 3紙感；照片牆最多 2 張";
 
-    enforcePhotoLimitOnPick_(p);
+    // free 模式時，保險清掉 photo3~5（避免送出夾帶）
+    if (p !== "premium") {
+      ["photo3","photo4","photo5"].forEach(k => {
+        if (fileState[k]?.dataUrl) {
+          const ff = FILE_FIELDS.find(x => x.key === k);
+          if (ff) {
+            const inp = $(ff.file);
+            if (inp) inp.value = "";
+            fileState[k] = null;
+            setPreview(ff.preview, "");
+          }
+        }
+      });
+    }
 
     setStatus("已切換方案：" + (p === "premium" ? "精品設計" : "自由搭配"), "ok");
     saveDraftSoon_();
-  }
-
-  function normalizeSelections_(payload) {
-    if (payload.plan === "premium") {
-      payload.premium_color = trimOrEmpty(elPremiumColor?.value) || "p6";
-      payload.color = "";
-      payload.style = "";
-      payload.paper = "";
-    } else {
-      payload.color = trimOrEmpty(elColor?.value) || "c3";
-      payload.style = trimOrEmpty(elStyle?.value) || "s1";
-      payload.paper = trimOrEmpty(elPaper?.value) || "f1";
-      payload.premium_color = "";
-    }
-    return payload;
-  }
-
-  function buildFilesPayload_(plan) {
-    const allowPhotos = (plan === "premium")
-      ? ["photo1","photo2","photo3","photo4","photo5"]
-      : ["photo1","photo2"];
-
-    const files = {};
-    ["avatar","logo"].forEach(k => { if (fileState[k]?.dataUrl) files[k] = fileState[k]; });
-    allowPhotos.forEach(k => { if (fileState[k]?.dataUrl) files[k] = fileState[k]; });
-
-    return { files, allowPhotos };
-  }
-
-  function attachBase64ImgFields_(payload, allowPhotos) {
-    // ✅ 雙通道：同時送 files 與 *_img(base64)
-    if (fileState.avatar?.dataUrl) payload.avatar_img = fileState.avatar.dataUrl;
-    if (fileState.logo?.dataUrl) payload.logo_img = fileState.logo.dataUrl;
-
-    allowPhotos.forEach(k => {
-      const v = fileState[k]?.dataUrl || "";
-      payload[`${k}_img`] = v;
-    });
-
-    // 也把不允許的照片欄位補空（避免舊資料殘留）
-    if (payload.plan !== "premium") {
-      payload.photo3_img = "";
-      payload.photo4_img = "";
-      payload.photo5_img = "";
-    }
-
-    return payload;
   }
 
   function collectFormData_() {
@@ -274,6 +303,14 @@
 
     const payload = {
       plan,
+
+      // ✅ 外觀參數：一定帶（成品連動靠它）
+      color: plan === "free" ? trimOrEmpty(elColor?.value) : "",
+      style: plan === "free" ? trimOrEmpty(elStyle?.value) : "",
+      paper: plan === "free" ? trimOrEmpty(elPaper?.value) : "",
+      premium_color: plan === "premium" ? trimOrEmpty(elPremiumColor?.value) : "",
+
+      // 基本欄位
       name: trimOrEmpty($("#name")?.value),
       unit: trimOrEmpty($("#unit")?.value),
       title: trimOrEmpty($("#title")?.value),
@@ -288,17 +325,31 @@
       line_oa: normalizeUrl($("#line_oa")?.value) || CONFIG.DEFAULT_LINE_OA
     };
 
-    normalizeSelections_(payload);
+    const allowPhotos = (plan === "premium")
+      ? ["photo1","photo2","photo3","photo4","photo5"]
+      : ["photo1","photo2"];
 
-    const { files, allowPhotos } = buildFilesPayload_(plan);
+    const files = {};
+    // avatar/logo always
+    ["avatar","logo"].forEach(k => { if (fileState[k]?.dataUrl) files[k] = fileState[k]; });
+    allowPhotos.forEach(k => { if (fileState[k]?.dataUrl) files[k] = fileState[k]; });
     payload.files = files;
 
-    attachBase64ImgFields_(payload, allowPhotos);
+    // ✅ 雙通道：同時提供 *_img（有些 GAS 只吃這種欄位）
+    if (fileState.avatar?.dataUrl) payload.avatar_img = fileState.avatar.dataUrl;
+    if (fileState.logo?.dataUrl) payload.logo_img = fileState.logo.dataUrl;
+    allowPhotos.forEach(k => payload[`${k}_img`] = (fileState[k]?.dataUrl || ""));
+
+    if (plan !== "premium") {
+      payload.photo3_img = "";
+      payload.photo4_img = "";
+      payload.photo5_img = "";
+    }
 
     return payload;
   }
 
-  function validateBeforeSubmit_(payload) {
+  function validate_(payload) {
     if (!payload.name) return "請至少填寫：姓名";
 
     if (payload.plan === "premium") {
@@ -321,7 +372,9 @@
     body.set("action", "create");
     body.set("data", JSON.stringify(payload));
 
-    const { signal, done } = withTimeout(CONFIG.FETCH_TIMEOUT_MS);
+    const timeoutMs = hasAnyImage_() ? CONFIG.FETCH_TIMEOUT_MS_IMG : CONFIG.FETCH_TIMEOUT_MS_NOIMG;
+    const { signal, done } = withTimeout(timeoutMs);
+
     try {
       const res = await fetch(CONFIG.GAS, {
         method: "POST",
@@ -330,6 +383,7 @@
         cache: "no-store",
         signal
       });
+
       const text = await res.text();
       let json = null;
       try { json = JSON.parse(text); } catch (_) { json = { ok:false, raw:text }; }
@@ -414,14 +468,13 @@
       if (elPaper && o.paper) elPaper.value = o.paper;
       if (elPremiumColor && o.premium_color) elPremiumColor.value = o.premium_color;
 
-      const f = d.fields || {};
+      const f = (d.fields || {});
       Object.keys(f).forEach(k => {
         const el = document.getElementById(k);
         if (el) el.value = f[k] || "";
       });
 
       setStatus("已載入上次草稿（不含圖片）。", "ok");
-      updateImgTip_();
     } catch(_) {}
   }
 
@@ -430,11 +483,6 @@
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
-
-    if (elColor) elColor.value = "c3";
-    if (elStyle) elStyle.value = "s1";
-    if (elPaper) elPaper.value = "f1";
-    if (elPremiumColor) elPremiumColor.value = "p6";
 
     FILE_FIELDS.forEach(ff => {
       const inp = $(ff.file);
@@ -446,7 +494,6 @@
     try { localStorage.removeItem(CONFIG.DRAFT_KEY); } catch(_) {}
     if (elResultBox) elResultBox.style.display = "none";
     setStatus("已清空。", "ok");
-    updateImgTip_();
   }
 
   function fillDemo_() {
@@ -467,16 +514,17 @@
 
     try {
       elBtnSubmit.disabled = true;
-      setStatus("送出中…（包含圖片會稍久）", "info");
 
       const payload = collectFormData_();
-
-      const errMsg = validateBeforeSubmit_(payload);
-      if (errMsg) {
-        setStatus(errMsg, "err");
+      const err = validate_(payload);
+      if (err) {
+        setStatus(err, "err");
         elBtnSubmit.disabled = false;
         return;
       }
+
+      const timeoutMs = hasAnyImage_() ? CONFIG.FETCH_TIMEOUT_MS_IMG : CONFIG.FETCH_TIMEOUT_MS_NOIMG;
+      setStatus(`送出中…（${hasAnyImage_() ? "含圖片" : "無圖片"}｜timeout=${Math.round(timeoutMs/1000)}s）`, "info");
 
       let lastErr = null;
       let json = null;
@@ -513,15 +561,18 @@
         setStatus(ok ? "已複製 OG 交付連結 ✅" : "已取消", ok ? "ok" : "info");
       };
 
-      setStatus("建立成功 ✅（已包含外觀參數與照片資料）", "ok");
+      setStatus("建立成功 ✅（已壓縮圖片並送出）", "ok");
       saveDraftNow_();
 
-      // ✅ 結果在底部，送出成功後也滾到底
       try { elResultBox.scrollIntoView({ behavior:"smooth", block:"start" }); } catch(_) {}
 
     } catch (err) {
       console.error(err);
-      setStatus("送出失敗：" + (err && err.message ? err.message : String(err)), "err");
+      // ✅ AbortError 友善提示
+      const msg = (err && err.name === "AbortError")
+        ? "送出超時（手機網路/圖片仍偏大）。已改壓縮後，請再送一次。"
+        : ("送出失敗：" + (err && err.message ? err.message : String(err)));
+      setStatus(msg, "err");
     } finally {
       elBtnSubmit.disabled = false;
     }
@@ -534,19 +585,16 @@
       inp.addEventListener("change", () => {
         handlePickFile(ff.key, ff.file, ff.preview).catch(e => {
           console.error(e);
-          setStatus(e.message || "讀取圖片失敗", "err");
+          setStatus(e.message || "讀取/壓縮圖片失敗", "err");
         });
       });
     });
   }
 
-  function bindAutosave_() {
+  function bindTextAutosave_() {
     document.querySelectorAll("input,textarea,select").forEach(el => {
       el.addEventListener("input", saveDraftSoon_);
-      el.addEventListener("change", () => {
-        saveDraftSoon_();
-        updateImgTip_();
-      });
+      el.addEventListener("change", saveDraftSoon_);
     });
   }
 
@@ -558,7 +606,7 @@
     if ($("#line_oa") && !$("#line_oa").value) $("#line_oa").value = CONFIG.DEFAULT_LINE_OA;
 
     bindFiles_();
-    bindAutosave_();
+    bindTextAutosave_();
     elForm.addEventListener("submit", onSubmit_);
 
     elBtnReset.addEventListener("click", clearAll_);
@@ -577,7 +625,6 @@
     });
 
     loadDraft_();
-    updateImgTip_();
   }
 
   document.addEventListener("DOMContentLoaded", boot_);
