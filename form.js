@@ -3,65 +3,86 @@
  * v503 (COMPLETE OVERWRITE)
  *
  * Flow:
- * 1) reserve  -> { cardId, token, uploadPath? }
+ * 1) reserve  -> { cardId, token }
  * 2) compress -> avatar 512 / cover 1200
  * 3) upload   -> Firebase Storage -> downloadURL
  * 4) create   -> GAS (text + downloadURL only)
+ *
+ * Notes:
+ * - All files are in repo ROOT (same level as index.html)
+ * - image-compressor.js must export: compressToJpeg(file, maxPx)
+ * - firebase.js must export: uploadAvatar(cardId, blob), uploadCover(cardId, blob)
  * ====================================================== */
 
 import { uploadAvatar, uploadCover } from "./firebase.js";
-import { compressToJpeg } from "./image-compressor.js"; // 你說已建好（根目錄）
+import { compressToJpeg } from "./image-compressor.js";
 
 const VERSION = "v503";
 
-// 🔧 這行你只要改成「你的 GAS Web App /exec」即可（v500 那支）
-const GAS_URL = "PASTE_YOUR_GAS_WEBAPP_URL_HERE"; // e.g. https://script.google.com/macros/s/XXXX/exec
+// ✅ 這行一定要是字串（要有引號）
+const GAS_URL =
+  "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+// ✅ 成品預覽頁（你根目錄有 card.html）
+const PREVIEW_PAGE = "./card.html?id=";
 
 const $ = (id) => document.getElementById(id);
 
-function qs(key){
+function qs(key) {
   return new URL(location.href).searchParams.get(key) || "";
 }
 
-function setText(id, text){ const el=$(id); if(el) el.textContent = String(text ?? ""); }
-function setHTML(id, html){ const el=$(id); if(el) el.innerHTML = html; }
+function setText(id, text) {
+  const el = $(id);
+  if (el) el.textContent = String(text ?? "");
+}
 
-function log(msg){
+function setHTML(id, html) {
+  const el = $(id);
+  if (el) el.innerHTML = html;
+}
+
+function log(msg) {
   const el = $("log");
-  if(!el) return;
+  if (!el) return;
   el.textContent = `• ${msg}\n` + (el.textContent || "");
 }
 
-function setStatus(ok, text){
+function setStatus(ok, text) {
   const el = $("status");
-  if(!el) return;
+  if (!el) return;
   el.textContent = text;
   el.style.color = ok ? "rgba(53,208,127,.95)" : "rgba(255,94,94,.95)";
 }
 
-async function postJSON(url, payload){
+async function postJSON(url, payload) {
   const r = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type":"application/json" },
-    body: JSON.stringify(payload)
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
+
   const txt = await r.text();
   let json;
-  try{ json = JSON.parse(txt); }catch(e){ throw new Error("GAS response not JSON: " + txt.slice(0,200)); }
-  if(!r.ok) throw new Error(`HTTP ${r.status}: ${txt.slice(0,200)}`);
-  if(!json.ok) throw new Error(json.error || "GAS returned ok:false");
+  try {
+    json = JSON.parse(txt);
+  } catch (e) {
+    throw new Error("GAS response not JSON: " + txt.slice(0, 200));
+  }
+
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${txt.slice(0, 200)}`);
+  if (!json.ok) throw new Error(json.error || "GAS returned ok:false");
   return json;
 }
 
-function readFileInput(id){
+function readFileInput(id) {
   const el = $(id);
   const f = el && el.files && el.files[0];
   return f || null;
 }
 
-function readFormText(){
-  // 這裡用「你表單目前的 input id」
-  // 先給一個最常用的骨架（你可以依你的 form.html 欄位補齊）
+/** 讀取表單文字欄位（依你 form.html 的 input id） */
+function readFormText() {
   return {
     name: ($("name")?.value || "").trim(),
     unit: ($("unit")?.value || "").trim(),
@@ -71,15 +92,17 @@ function readFormText(){
     line_url: ($("line_url")?.value || "").trim(),
     website: ($("website")?.value || "").trim(),
     wechat_id: ($("wechat_id")?.value || "").trim(),
-    // 方案/風格（如果你有）
+
+    // 若你有方案/風格（沒有也沒關係，會送空字串）
     plan: ($("plan")?.value || "").trim(), // free / premium
-    theme: ($("theme")?.value || "").trim() // c1/p1... 等
+    theme: ($("theme")?.value || "").trim(), // c1/p1...
   };
 }
 
-async function doReserve(){
-  if(GAS_URL.includes("PASTE_YOUR_GAS_WEBAPP_URL_HERE")){
-    throw new Error("請先在 form.js 把 GAS_URL 改成你的 v500 WebApp /exec");
+/** Step1 reserve */
+async function doReserve() {
+  if (!/^https:\/\/script\.google\.com\/macros\/s\//.test(GAS_URL)) {
+    throw new Error("form.js: GAS_URL 看起來不是 WebApp /exec 網址");
   }
 
   const exp = qs("exp");
@@ -88,16 +111,19 @@ async function doReserve(){
   setStatus(true, "Reserve…");
   log("reserve: sending request");
 
-  const payload = { action:"reserve" };
-  if(exp && sig){ payload.exp = exp; payload.sig = sig; } // 讓 v500 驗簽
+  const payload = { action: "reserve" };
+  if (exp && sig) {
+    payload.exp = exp;
+    payload.sig = sig;
+  }
 
   const json = await postJSON(GAS_URL, payload);
   const item = json.item || {};
 
   const cardId = item.cardId || item.id || "";
-  const token  = item.token || "";
+  const token = item.token || "";
 
-  if(!cardId || !token) throw new Error("reserve missing cardId/token");
+  if (!cardId || !token) throw new Error("reserve missing cardId/token");
 
   setText("cardId", cardId);
   log(`reserve OK: cardId=${cardId}`);
@@ -105,31 +131,36 @@ async function doReserve(){
   return { cardId, token, exp, sig };
 }
 
-async function doUploadImages(cardId){
-  const avatarFile = readFileInput("avatar");
-  const coverFile  = readFileInput("cover");
+/** Step2+3 compress & upload */
+async function doUploadImages(cardId) {
+  const avatarFile = readFileInput("avatar"); // <input type="file" id="avatar">
+  const coverFile = readFileInput("cover"); // <input type="file" id="cover">
 
   let avatarURL = "";
   let coverURL = "";
 
-  if(avatarFile){
+  if (avatarFile) {
     setStatus(true, "Compress avatar (512)…");
     log("compress avatar 512px");
     const avatarBlob = await compressToJpeg(avatarFile, 512);
+
     setStatus(true, "Upload avatar…");
-    log(`upload avatar: ${Math.round(avatarBlob.size/1024)} KB`);
+    log(`upload avatar: ${Math.round(avatarBlob.size / 1024)} KB`);
     avatarURL = await uploadAvatar(cardId, avatarBlob);
+
     setText("avatarURL", avatarURL);
     log("avatar upload OK");
   }
 
-  if(coverFile){
+  if (coverFile) {
     setStatus(true, "Compress cover (1200)…");
     log("compress cover 1200px");
     const coverBlob = await compressToJpeg(coverFile, 1200);
+
     setStatus(true, "Upload cover…");
-    log(`upload cover: ${Math.round(coverBlob.size/1024)} KB`);
+    log(`upload cover: ${Math.round(coverBlob.size / 1024)} KB`);
     coverURL = await uploadCover(cardId, coverBlob);
+
     setText("coverURL", coverURL);
     log("cover upload OK");
   }
@@ -137,7 +168,10 @@ async function doUploadImages(cardId){
   return { avatarURL, coverURL };
 }
 
-async function doCreate({ cardId, token, exp, sig }, textData, imageURLs){
+/** Step4 create (text + downloadURL only) */
+async function doCreate(reserve, textData, imageURLs) {
+  const { cardId, token, exp, sig } = reserve;
+
   setStatus(true, "Create…");
   log("create: sending to GAS (text + downloadURL only)");
 
@@ -147,22 +181,30 @@ async function doCreate({ cardId, token, exp, sig }, textData, imageURLs){
     token,
     data: {
       ...textData,
-      // ✅ 這裡是重點：只送 URL，不送 base64
+
+      // ✅ 只送 URL，不送 base64
       avatar_img: imageURLs.avatarURL || "",
-      cover_img: imageURLs.coverURL || ""
-    }
+
+      // ✅ 你目前沒有明確的 cover 欄位：先寫入 photo1_img（最通用、不必改表頭）
+      photo1_img: imageURLs.coverURL || "",
+    },
   };
 
-  if(exp && sig){ payload.exp = exp; payload.sig = sig; }
+  if (exp && sig) {
+    payload.exp = exp;
+    payload.sig = sig;
+  }
 
   const json = await postJSON(GAS_URL, payload);
   log("create OK");
   return json;
 }
 
-async function mainSubmit(){
-  try{
-    $("btnSubmit").disabled = true;
+async function mainSubmit() {
+  try {
+    const btn = $("btnSubmit");
+    if (btn) btn.disabled = true;
+
     setStatus(true, `Submitting (${VERSION})…`);
     log(`start submit ${VERSION}`);
 
@@ -170,28 +212,37 @@ async function mainSubmit(){
     const textData = readFormText();
     const imageURLs = await doUploadImages(reserve.cardId);
 
-    const json = await doCreate(reserve, textData, imageURLs);
+    await doCreate(reserve, textData, imageURLs);
 
-    // 成功後：提供「成品預覽」連結（用 card.html?id=xxx 之類）
-    // 你現有的成品頁如果是 card.html 或 index.html?card=，在這裡改掉即可
-    const preview = `./card.html?id=${encodeURIComponent(reserve.cardId)}`;
-    setHTML("result", `✅ 已建立<br/><a href="${preview}" target="_blank">打開成品預覽</a>`);
+    // ✅ 成功後：成品預覽
+    const preview = `${PREVIEW_PAGE}${encodeURIComponent(reserve.cardId)}`;
+    setHTML(
+      "result",
+      `✅ 已建立<br/><a href="${preview}" target="_blank" rel="noopener">打開成品預覽</a>`
+    );
     setStatus(true, "Done ✅");
-  }catch(err){
+  } catch (err) {
     console.error(err);
     setStatus(false, "Failed");
-    setHTML("result", `❌ ${String(err.message || err)}`);
-    log("ERROR: " + String(err.message || err));
-  }finally{
-    $("btnSubmit").disabled = false;
+    setHTML("result", `❌ ${String(err?.message || err)}`);
+    log("ERROR: " + String(err?.message || err));
+  } finally {
+    const btn = $("btnSubmit");
+    if (btn) btn.disabled = false;
   }
 }
 
 // bind
 window.addEventListener("DOMContentLoaded", () => {
   setText("ver", VERSION);
-  $("btnSubmit")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    mainSubmit();
-  });
+
+  const btn = $("btnSubmit");
+  if (btn) {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      mainSubmit();
+    });
+  } else {
+    log("WARN: 找不到 #btnSubmit（請確認 form.html 送出按鈕 id）");
+  }
 });
