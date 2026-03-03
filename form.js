@@ -1,295 +1,375 @@
-/* form.js — v499 (COMPLETE OVERWRITE)
- * - Auth: exp + sig (no invite)
- * - Flow: reserve -> create
- * - Plan split:
- *   free: color/style/paper required, photos <= 2
- *   premium: premium_color required, photos <= 5
- * - Reject base64 dataURL for images
- */
+/* ================================
+ * form.js — v500.1 (COMPLETE OVERWRITE)
+ * - Adds client-side image compression BEFORE Firebase upload
+ * - Keeps v500 flow unchanged (exp+sig -> reserve -> upload -> create -> confirm)
+ * ================================ */
 
-const CONFIG = {
-  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-  VERSION: "v499"
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
+
+/* ========= CONFIG ========= */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
+  authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
+  projectId: "happiness-smart-card-pro-7389a",
+  storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
+  messagingSenderId: "143313936007",
+  appId: "1:143313936007:web:7c948563c51e8a47d3a222"
 };
 
-const qs = (id) => document.getElementById(id);
-const text = (v) => (v == null ? "" : String(v)).trim();
+// ✅ 填你的 GAS WebApp exec URL
+const GAS_URL = window.HSC_GAS_URL || "";
 
-function getParam(name){
-  try{
-    const p = new URLSearchParams(location.search || "");
-    return text(p.get(name));
-  }catch{
-    return "";
-  }
-}
+const DEFAULT_LINE_OA = "https://lin.ee/G3VJoRm";
 
-function setMsg(type, msg){
-  const el = qs("msg");
-  el.className = "msg " + (type ? `msg--${type}` : "");
-  el.textContent = msg || "";
-  el.style.display = msg ? "block" : "none";
-}
+/* ========= Compression presets ========= */
+// NOTE: You can tune these later without touching GAS.
+const COMPRESS = {
+  avatar: { maxEdge: 900, quality: 0.82, mime: "image/jpeg" },
+  logo:   { maxEdge: 900, quality: 0.82, mime: "image/jpeg" },
+  photo:  { maxEdge: 1600, quality: 0.80, mime: "image/jpeg" }
+};
 
-function isDataUrl_(v){
-  return /^data:image\//i.test(String(v || "").trim());
-}
-function rejectDataUrl_(v, field){
-  const s = text(v);
-  if(!s) return;
-  if(isDataUrl_(s)) throw new Error(`❌ ${field} 禁止 base64（data:image）。請改貼 Firebase downloadURL`);
-}
+/* ========= DOM ========= */
 
-async function postJson_(bodyObj){
-  const res = await fetch(`${CONFIG.GAS}?ts=${Date.now()}`, {
-    method:"POST",
-    cache:"no-store",
-    redirect:"follow",
-    headers:{ "Content-Type":"text/plain;charset=UTF-8" }, // avoid preflight
-    body: JSON.stringify(bodyObj || {})
-  });
-  const raw = await res.text();
-  // tolerate ")]}'" etc.
-  const cleaned = raw.replace(/^\)\]\}'\s*\n?/, "").trim();
-  return JSON.parse(cleaned);
-}
+const $ = (id) => document.getElementById(id);
 
-/* ---------------- Plan UI ---------------- */
-let currentPlan = "free";
+const pill = $("pill");
+const verifyStatus = $("verifyStatus");
+const formCard = $("formCard");
+const planStatus = $("planStatus");
+const freeBox = $("freeBox");
+const premiumBox = $("premiumBox");
+const photoLimitHint = $("photoLimitHint");
 
-function setPlan_(plan){
-  currentPlan = plan === "premium" ? "premium" : "free";
+const submitStatus = $("submitStatus");
+const btnSubmit = $("btnSubmit");
 
-  // chips
-  qs("chipFree").setAttribute("data-on", currentPlan === "free" ? "1" : "0");
-  qs("chipPremium").setAttribute("data-on", currentPlan === "premium" ? "1" : "0");
+const resultBox = $("resultBox");
+const resultStatus = $("resultStatus");
+const btnPreview = $("btnPreview");
+const btnConfirm = $("btnConfirm");
 
-  // boxes
-  qs("freeBox").classList.toggle("hide", currentPlan !== "free");
-  qs("premiumBox").classList.toggle("hide", currentPlan !== "premium");
+/* ========= State ========= */
 
-  // photo fields 3~5 lock
-  const premiumOn = currentPlan === "premium";
-  qs("p3Field").classList.toggle("hide", !premiumOn);
-  qs("p4Field").classList.toggle("hide", !premiumOn);
-  qs("p5Field").classList.toggle("hide", !premiumOn);
+const state = {
+  exp: 0,
+  sig: "",
+  tenant: "",
+  uid: "",
+  plan: "",
+  invite: "",
 
-  // hint
-  qs("photoLimitHint").textContent = premiumOn
-    ? "精品設計款：最多 5 張（photo1~photo5）"
-    : "自由搭配款：最多 2 張（photo1~photo2）";
+  id: "",
+  token: "",
+  uploadPath: "",
 
-  // when switch to free, clear photo3~5 to prevent accidental send
-  if(!premiumOn){
-    qs("photo3_img").value = "";
-    qs("photo4_img").value = "";
-    qs("photo5_img").value = "";
-    qs("premium_color").value = "";
-  }else{
-    qs("color").value = "";
-    qs("style").value = "";
-    qs("paper").value = "";
-  }
-}
+  clean_card_url: "",
+  og_page_url: ""
+};
 
-/* ---------------- Validation ---------------- */
-function collectPayload_(){
-  const tenant = text(getParam("tenant")) || "angel";
-  const uid = text(getParam("uid"));
-  const exp = text(getParam("exp"));
-  const sig = text(getParam("sig"));
+/* ========= Boot ========= */
 
-  if(!uid || !exp || !sig){
-    throw new Error("連結無效或已過期（缺少 tenant/uid/exp/sig）");
-  }
-
-  const name = text(qs("name").value);
-  if(!name) throw new Error("請填寫：姓名（必填）");
-
-  const plan = currentPlan;
-
-  // Plan specific required fields
-  let color="", style="", paper="", premium_color="";
-
-  if(plan === "free"){
-    color = text(qs("color").value);
-    style = text(qs("style").value);
-    paper = text(qs("paper").value);
-    if(!color) throw new Error("自由搭配款請選擇：color（c1~c5）");
-    if(!style) throw new Error("自由搭配款請選擇：style（s1~s3）");
-    if(!paper) throw new Error("自由搭配款請選擇：paper（f1~f3）");
-  }else{
-    premium_color = text(qs("premium_color").value);
-    if(!premium_color) throw new Error("精品設計款請選擇：premium_color（p1~p7）");
-  }
-
-  // Images (downloadURL only)
-  const avatar_img = text(qs("avatar_img").value);
-  const logo_img   = text(qs("logo_img").value);
-
-  const photo1_img = text(qs("photo1_img").value);
-  const photo2_img = text(qs("photo2_img").value);
-  const photo3_img = text(qs("photo3_img").value);
-  const photo4_img = text(qs("photo4_img").value);
-  const photo5_img = text(qs("photo5_img").value);
-
-  rejectDataUrl_(avatar_img, "avatar_img");
-  rejectDataUrl_(logo_img, "logo_img");
-  rejectDataUrl_(photo1_img, "photo1_img");
-  rejectDataUrl_(photo2_img, "photo2_img");
-  rejectDataUrl_(photo3_img, "photo3_img");
-  rejectDataUrl_(photo4_img, "photo4_img");
-  rejectDataUrl_(photo5_img, "photo5_img");
-
-  // Photo limits
-  if(plan === "free"){
-    if(photo3_img || photo4_img || photo5_img){
-      throw new Error("自由搭配款照片牆最多 2 張（請清空 photo3~photo5）");
-    }
-  }
-
-  const payload = {
-    tenant, uid, exp, sig,
-    plan,
-    // plan fields
-    color: plan === "free" ? color : "",
-    style: plan === "free" ? style : "",
-    paper: plan === "free" ? paper : "",
-    premium_color: plan === "premium" ? premium_color : "",
-
-    // text fields
-    name,
-    unit: text(qs("unit").value),
-    title: text(qs("title").value),
-    slogan: text(qs("slogan").value),
-    services: text(qs("services").value),
-
-    // contact
-    phone: text(qs("phone").value),
-    email: text(qs("email").value),
-    address: text(qs("address").value),
-    line_url: text(qs("line_url").value),
-    wechat_id: text(qs("wechat_id").value),
-
-    // images
-    avatar_img,
-    logo_img,
-    photo1_img,
-    photo2_img,
-    photo3_img: plan === "premium" ? photo3_img : "",
-    photo4_img: plan === "premium" ? photo4_img : "",
-    photo5_img: plan === "premium" ? photo5_img : ""
-  };
-
-  return payload;
-}
-
-/* ---------------- Submit: reserve -> create ---------------- */
-async function submit_(){
-  try{
-    setMsg("info", "⏳ 送出中：reserve → create ...");
-
-    const payload = collectPayload_();
-
-    // 1) reserve
-    const r1 = await postJson_({
-      action:"reserve",
-      tenant: payload.tenant,
-      uid: payload.uid,
-      exp: payload.exp,
-      sig: payload.sig
-    });
-
-    if(!r1 || r1.ok !== true){
-      throw new Error("reserve 失敗：" + (r1?.message || "unknown"));
+(async function init() {
+  try {
+    if (!GAS_URL) {
+      pill.textContent = "GAS URL missing";
+      verifyStatus.textContent = "請在 form.js 填入 GAS_URL（你的 WebApp exec URL）。";
+      return;
     }
 
-    const cardId = text(r1.cardId || r1.card_id);
-    const token  = text(r1.token);
-    if(!cardId || !token){
-      throw new Error("reserve 回傳缺少 cardId/token");
+    const qs = new URLSearchParams(location.search);
+    state.exp = Number(qs.get("exp") || 0);
+    state.sig = String(qs.get("sig") || "").trim();
+
+    if (!state.exp || !state.sig) {
+      pill.textContent = "Invalid link";
+      verifyStatus.textContent = "缺少 exp 或 sig，請用後台產生的填表連結進入。";
+      return;
     }
 
-    // 2) create (text + downloadURL only)
-    const r2 = await postJson_({
-      action:"create",
-      tenant: payload.tenant,
-      id: cardId,
-      uid: payload.uid,
-      exp: payload.exp,
-      sig: payload.sig,
-      token,
+    setPill("Verifying…");
+    verifyStatus.textContent = "正在驗證 exp + sig…";
 
-      plan: payload.plan,
-      color: payload.color,
-      style: payload.style,
-      paper: payload.paper,
-      premium_color: payload.premium_color,
+    const v = await api("verifyFillLink", { exp: state.exp, sig: state.sig }, "GET");
+    if (!v.ok) throw new Error(v.error || "verify failed");
 
-      name: payload.name,
-      unit: payload.unit,
-      title: payload.title,
-      slogan: payload.slogan,
-      services: payload.services,
+    state.tenant = v.tenant;
+    state.uid = v.uid;
+    state.plan = v.plan;
+    state.invite = v.invite || "";
 
-      phone: payload.phone,
-      email: payload.email,
-      address: payload.address,
-      line_url: payload.line_url,
-      wechat_id: payload.wechat_id,
+    setPill(`OK • ${state.plan}`);
+    verifyStatus.textContent =
+      `驗證成功 ✅\n` +
+      `tenant: ${state.tenant}\n` +
+      `uid: ${state.uid}\n` +
+      `plan: ${state.plan}\n` +
+      (state.invite ? `invite: ${state.invite}\n` : "");
 
-      avatar_img: payload.avatar_img,
-      logo_img: payload.logo_img,
-      photo1_img: payload.photo1_img,
-      photo2_img: payload.photo2_img,
-      photo3_img: payload.photo3_img,
-      photo4_img: payload.photo4_img,
-      photo5_img: payload.photo5_img
-    });
+    formCard.style.display = "block";
 
-    if(!r2 || r2.ok !== true){
-      throw new Error("create 失敗：" + (r2?.message || "unknown"));
-    }
+    planStatus.textContent = `系統方案：${state.plan}（此連結已鎖定，無法自行更改）`;
+    freeBox.style.display = state.plan === "free" ? "block" : "none";
+    premiumBox.style.display = state.plan === "premium" ? "block" : "none";
+    photoLimitHint.textContent = state.plan === "free" ? "照片限制：最多 2 張" : "照片限制：最多 5 張";
 
-    setMsg("ok", `✅ 送出成功！\n你的序號：${cardId}\n請把序號回傳給館長，安排預覽核對與交付。`);
-  }catch(err){
-    setMsg("err", "⚠️ " + (err?.message || String(err)));
-  }
-}
+    if (!$("line_oa").value) $("line_oa").value = DEFAULT_LINE_OA;
 
-function reset_(){
-  [
-    "name","unit","title","slogan","services",
-    "avatar_img","logo_img",
-    "photo1_img","photo2_img","photo3_img","photo4_img","photo5_img",
-    "phone","email","address","line_url","wechat_id",
-    "color","style","paper","premium_color"
-  ].forEach(id=>{
-    const el = qs(id);
-    if(el) el.value = "";
-  });
-  setPlan_("free");
-  setMsg("", "");
-}
+    btnSubmit.addEventListener("click", onSubmit);
 
-/* ---------------- Boot ---------------- */
-(function boot_(){
-  // plan chips
-  qs("chipFree").addEventListener("click", ()=> setPlan_("free"));
-  qs("chipPremium").addEventListener("click", ()=> setPlan_("premium"));
-
-  // buttons
-  qs("btnSubmit").addEventListener("click", submit_);
-  qs("btnReset").addEventListener("click", reset_);
-
-  // default
-  setPlan_("free");
-
-  // basic link validity hint (no blocking here; submit will block)
-  const uid = getParam("uid");
-  const exp = getParam("exp");
-  const sig = getParam("sig");
-  if(!uid || !exp || !sig){
-    setMsg("err", "連結無效或已過期（缺少 uid / exp / sig）。請向館長索取新的表單連結。");
+  } catch (err) {
+    setPill("Verify failed");
+    verifyStatus.textContent = `驗證失敗：${String(err.message || err)}`;
   }
 })();
+
+/* ========= Submit ========= */
+
+async function onSubmit() {
+  try {
+    btnSubmit.disabled = true;
+    submitStatus.textContent = "開始處理…";
+
+    submitStatus.textContent = "Step 1/4：建立預約（reserve）…";
+    const r = await api("reserve", {
+      tenant: state.tenant,
+      uid: state.uid,
+      plan: state.plan,
+      invite: state.invite
+    });
+
+    if (!r.ok) throw new Error(r.error || "reserve failed");
+
+    state.id = r.id;
+    state.token = r.token;
+    state.uploadPath = r.uploadPath;
+    state.clean_card_url = r.clean_card_url;
+    state.og_page_url = r.og_page_url;
+
+    submitStatus.textContent = "Step 2/4：壓縮並上傳圖片到 Firebase Storage…";
+    const urls = await uploadAllImages_();
+
+    submitStatus.textContent = "Step 3/4：送出文字 + 圖片網址（create）…";
+    const payload = buildCreatePayload_(urls);
+
+    const c = await api("create", payload);
+    if (!c.ok) throw new Error(c.error || "create failed");
+
+    state.clean_card_url = c.clean_card_url || state.clean_card_url;
+    state.og_page_url = c.og_page_url || state.og_page_url;
+
+    submitStatus.textContent = "Step 4/4：完成 ✅";
+    showResult_();
+
+  } catch (err) {
+    submitStatus.textContent = `送出失敗：${String(err.message || err)}`;
+  } finally {
+    btnSubmit.disabled = false;
+  }
+}
+
+/* ========= Build payload ========= */
+
+function buildCreatePayload_(urls) {
+  const plan = state.plan;
+
+  const common = {
+    tenant: state.tenant,
+    uid: state.uid,
+    plan,
+    invite: state.invite,
+    id: state.id,
+    token: state.token,
+
+    name: $("name").value.trim(),
+    unit: $("unit").value.trim(),
+    title: $("title").value.trim(),
+    slogan: $("slogan").value.trim(),
+    services: $("services").value.trim(),
+    experience: $("experience").value.trim(),
+
+    phone: $("phone").value.trim(),
+    email: $("email").value.trim(),
+    website: $("website").value.trim(),
+    address: $("address").value.trim(),
+    line_id: $("line_id").value.trim(),
+    line_url: $("line_url").value.trim(),
+    line_oa: $("line_oa").value.trim(),
+    wechat_id: $("wechat_id").value.trim(),
+
+    avatar_url: urls.avatar_url || "",
+    logo_url: urls.logo_url || "",
+    photos: urls.photos || []
+  };
+
+  if (plan === "free") {
+    common.free_color = $("free_color").value.trim();
+    common.free_style = $("free_style").value.trim();
+    common.free_paper = $("free_paper").value.trim();
+  } else {
+    common.premium_color = $("premium_color").value.trim();
+  }
+
+  return common;
+}
+
+/* ========= Firebase upload (with compression) ========= */
+
+async function uploadAllImages_() {
+  const app = initializeApp(firebaseConfig);
+  const storage = getStorage(app);
+
+  const avatarFile = $("avatarFile").files && $("avatarFile").files[0] ? $("avatarFile").files[0] : null;
+  const logoFile = $("logoFile").files && $("logoFile").files[0] ? $("logoFile").files[0] : null;
+  const photosFiles = $("photosFile").files ? Array.from($("photosFile").files) : [];
+
+  if (!avatarFile) throw new Error("請上傳頭像（avatar）");
+
+  const maxPhotos = state.plan === "free" ? 2 : 5;
+  if (photosFiles.length > maxPhotos) throw new Error(`照片最多 ${maxPhotos} 張，請重新選擇`);
+
+  const base = state.uploadPath; // e.g. hsc_cards/tenant/uid/cardId/
+  const urls = { avatar_url: "", logo_url: "", photos: [] };
+
+  // avatar
+  const avatarBlob = await compressImageToBlob_(avatarFile, COMPRESS.avatar);
+  urls.avatar_url = await uploadBlob_(storage, base + "avatar.jpg", avatarBlob, "image/jpeg");
+
+  // logo (optional)
+  if (logoFile) {
+    const logoBlob = await compressImageToBlob_(logoFile, COMPRESS.logo);
+    urls.logo_url = await uploadBlob_(storage, base + "logo.jpg", logoBlob, "image/jpeg");
+  }
+
+  // photos
+  for (let i = 0; i < photosFiles.length; i++) {
+    const f = photosFiles[i];
+    const photoBlob = await compressImageToBlob_(f, COMPRESS.photo);
+    const path = base + `photo${i + 1}.jpg`;
+    const u = await uploadBlob_(storage, path, photoBlob, "image/jpeg");
+    urls.photos.push(u);
+  }
+
+  return urls;
+}
+
+async function uploadBlob_(storage, path, blob, contentType) {
+  const r = ref(storage, path);
+  const snap = await uploadBytes(r, blob, {
+    contentType: contentType || blob.type || "image/jpeg",
+    cacheControl: "public,max-age=31536000"
+  });
+  return await getDownloadURL(snap.ref);
+}
+
+/* ========= Compression core ========= */
+
+async function compressImageToBlob_(file, opt) {
+  const { maxEdge, quality, mime } = opt;
+
+  const img = await fileToImage_(file);
+
+  // original size
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+
+  // scale
+  const scale = Math.min(1, maxEdge / Math.max(iw, ih));
+  const w = Math.max(1, Math.round(iw * scale));
+  const h = Math.max(1, Math.round(ih * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+
+  const ctx = canvas.getContext("2d", { alpha: false });
+  // fill white background to avoid black for transparent PNG
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+
+  const blob = await canvasToBlob_(canvas, mime || "image/jpeg", quality || 0.8);
+
+  // Safety: if compression somehow bigger than original, use original file
+  if (blob && blob.size > file.size) {
+    return file;
+  }
+  return blob;
+}
+
+function fileToImage_(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = (e) => { URL.revokeObjectURL(url); reject(new Error("圖片讀取失敗")); };
+    img.src = url;
+  });
+}
+
+function canvasToBlob_(canvas, mime, quality) {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), mime, quality);
+  });
+}
+
+/* ========= Result ========= */
+
+function showResult_() {
+  resultBox.style.display = "block";
+
+  resultStatus.textContent =
+    `名片已建立（狀態：inactive）\n` +
+    `id: ${state.id}\n` +
+    `你可先預覽成品並確認資料，確認不等於啟用。\n` +
+    `啟用需由管理端 adminSetStatus 完成交貨。`;
+
+  btnPreview.href = state.clean_card_url;
+
+  btnConfirm.onclick = async () => {
+    try {
+      btnConfirm.textContent = "確認中…";
+      btnConfirm.style.pointerEvents = "none";
+
+      const res = await api("confirm", { id: state.id, token: state.token });
+      if (!res.ok) throw new Error(res.error || "confirm failed");
+
+      btnConfirm.textContent = "已確認 ✅（等待交貨啟用）";
+    } catch (err) {
+      btnConfirm.textContent = "確認資料";
+      btnConfirm.style.pointerEvents = "auto";
+      alert("確認失敗：" + String(err.message || err));
+    }
+  };
+}
+
+function setPill(t) {
+  pill.textContent = t;
+}
+
+/* ========= API helper ========= */
+
+async function api(action, payload, method) {
+  const m = method || "POST";
+
+  if (m === "GET") {
+    const u = new URL(GAS_URL);
+    u.searchParams.set("action", action);
+    Object.keys(payload || {}).forEach(k => u.searchParams.set(k, String(payload[k])));
+    const res = await fetch(u.toString(), { method: "GET" });
+    return await res.json();
+  }
+
+  const u = new URL(GAS_URL);
+  u.searchParams.set("action", action);
+
+  const res = await fetch(u.toString(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {})
+  });
+
+  return await res.json();
+}
