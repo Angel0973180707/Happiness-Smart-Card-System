@@ -1,13 +1,17 @@
 /* ================================
- * form.js — v500.2 (COMPLETE OVERWRITE)
- * - Client-side image compression BEFORE Firebase upload
- * - Align with GAS v500.2:
- *   - verifyFillLink: exp included inside sig payload (exp in query is optional)
- *   - reserve returns final plan (invite may override); front-end follows reserve plan
- *   - reserve does NOT write to sheet; create writes to sheet
+ * form.js — v500.3 (COMPLETE OVERWRITE)
+ * - Anonymous Auth (auto sign-in once)
+ * - uid ALWAYS = auth.currentUser.uid
+ * - v500.3 GAS align: verifyFillLink -> reserve(uid) -> compress -> Firebase upload -> create(text+urls) -> confirm(token)
+ * - Images NEVER go to GAS (base64 rejected server-side)
  * ================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInAnonymously
+} from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
 
 /* ========= CONFIG ========= */
@@ -21,20 +25,21 @@ const firebaseConfig = {
   appId: "1:143313936007:web:7c948563c51e8a47d3a222"
 };
 
-// ✅ 建議你在 form.html 用 <script> 設定 window.HSC_GAS_URL = "https://script.google.com/macros/s/.../exec"
-const GAS_URL = window.HSC_GAS_URL || "";
+// ✅ 你已給的 GAS WebApp exec URL
+const GAS_URL =
+  window.HSC_GAS_URL ||
+  "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
 const DEFAULT_LINE_OA = "https://lin.ee/G3VJoRm";
 
 /* ========= Compression presets ========= */
 const COMPRESS = {
   avatar: { maxEdge: 900, quality: 0.82, mime: "image/jpeg" },
-  logo:   { maxEdge: 900, quality: 0.82, mime: "image/jpeg" },
-  photo:  { maxEdge: 1600, quality: 0.80, mime: "image/jpeg" }
+  logo: { maxEdge: 900, quality: 0.82, mime: "image/jpeg" },
+  photo: { maxEdge: 1600, quality: 0.8, mime: "image/jpeg" }
 };
 
 /* ========= DOM ========= */
-
 const $ = (id) => document.getElementById(id);
 
 const pill = $("pill");
@@ -54,112 +59,169 @@ const btnPreview = $("btnPreview");
 const btnConfirm = $("btnConfirm");
 
 /* ========= State ========= */
-
 const state = {
-  exp: 0,
   sig: "",
   tenant: "",
-  uid: "",
   plan: "",
   invite: "",
 
+  // auth
+  uid: "",
+
+  // reservation
   id: "",
   token: "",
   uploadPath: "",
 
+  // result
   clean_card_url: "",
   og_page_url: ""
 };
 
-/* ========= Boot ========= */
+/* ========= Firebase singletons ========= */
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const storage = getStorage(fbApp);
 
-(async function init() {
+/* ================================
+ * Boot
+ * ================================ */
+
+init_();
+
+async function init_() {
   try {
     if (!GAS_URL) {
-      pill.textContent = "GAS URL missing";
-      verifyStatus.textContent = "請在 form.html 設定 window.HSC_GAS_URL（你的 WebApp exec URL）。";
+      setPill_("GAS URL missing");
+      verifyStatus.textContent =
+        "請在 form.html 設定 window.HSC_GAS_URL（你的 WebApp exec URL），或確認 form.js 的 GAS_URL 常數。";
       return;
     }
 
+    // 1) Parse query: sig only (v500.3)
     const qs = new URLSearchParams(location.search);
-    state.exp = Number(qs.get("exp") || 0);
     state.sig = String(qs.get("sig") || "").trim();
-
     if (!state.sig) {
-      pill.textContent = "Invalid link";
+      setPill_("Invalid link");
       verifyStatus.textContent = "缺少 sig，請用後台產生的填表連結進入。";
       return;
     }
 
-    setPill("Verifying…");
-    verifyStatus.textContent = "正在驗證填表連結（sig）…";
+    // 2) Verify fill link first (does not include uid)
+    setPill_("Verifying…");
+    verifyStatus.textContent = "正在驗證連結 sig…";
 
-    // ✅ exp 在 v500.2 已納入 sig payload，這裡保留 exp 只是方便 debug；就算 exp 被改也無法延長
-    const v = await api("verifyFillLink", { exp: state.exp || "", sig: state.sig }, "GET");
+    const v = await api_("verifyFillLink", { sig: state.sig }, "GET");
     if (!v.ok) throw new Error(v.error || "verify failed");
 
     state.tenant = v.tenant;
-    state.uid = v.uid;
     state.plan = v.plan;
     state.invite = v.invite || "";
 
-    setPill(`OK • ${state.plan}`);
+    setPill_(`OK • ${state.plan}`);
     verifyStatus.textContent =
       `驗證成功 ✅\n` +
       `tenant: ${state.tenant}\n` +
-      `uid: ${state.uid}\n` +
       `plan: ${state.plan}\n` +
-      (state.invite ? `invite: ${state.invite}\n` : "");
+      (state.invite ? `invite: ${state.invite}\n` : "") +
+      `\n接著會自動匿名登入，取得 uid…`;
 
+    // 3) Anonymous sign-in (auto)
+    await ensureAnonAuth_();
+
+    // 4) Render form
     formCard.style.display = "block";
-
-    applyPlanUI_(state.plan);
+    planStatus.textContent = `系統方案：${state.plan}（此連結已鎖定，無法自行更改）`;
+    freeBox.style.display = state.plan === "free" ? "block" : "none";
+    premiumBox.style.display = state.plan === "premium" ? "block" : "none";
+    photoLimitHint.textContent =
+      state.plan === "free" ? "照片限制：最多 2 張" : "照片限制：最多 5 張";
 
     if ($("line_oa") && !$("line_oa").value) $("line_oa").value = DEFAULT_LINE_OA;
 
-    btnSubmit.addEventListener("click", onSubmit);
+    btnSubmit.addEventListener("click", onSubmit_);
+
+    // Show uid
+    verifyStatus.textContent += `\nuid(auth.uid): ${state.uid}\n`;
 
   } catch (err) {
-    setPill("Verify failed");
-    verifyStatus.textContent = `驗證失敗：${String(err.message || err)}`;
+    setPill_("Init failed");
+    verifyStatus.textContent = `初始化失敗：${String(err.message || err)}`;
   }
-})();
-
-function applyPlanUI_(plan) {
-  planStatus.textContent = `系統方案：${plan}（此連結已鎖定，無法自行更改）`;
-  freeBox.style.display = plan === "free" ? "block" : "none";
-  premiumBox.style.display = plan === "premium" ? "block" : "none";
-  photoLimitHint.textContent = plan === "free" ? "照片限制：最多 2 張" : "照片限制：最多 5 張";
 }
 
-/* ========= Submit ========= */
+/* ================================
+ * Anonymous Auth
+ * ================================ */
 
-async function onSubmit() {
+async function ensureAnonAuth_() {
+  // If already signed in
+  if (auth.currentUser && auth.currentUser.uid) {
+    state.uid = auth.currentUser.uid;
+    return;
+  }
+
+  // Try signInAnonymously and wait for onAuthStateChanged
+  let resolved = false;
+
+  const waiter = new Promise((resolve, reject) => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user && user.uid) {
+        unsub();
+        resolved = true;
+        state.uid = user.uid;
+        resolve(user);
+      }
+    });
+
+    // Safety timeout
+    setTimeout(() => {
+      if (!resolved) {
+        try { unsub(); } catch (_) {}
+        reject(new Error("匿名登入逾時。請確認 Firebase Authentication 已啟用 Anonymous。"));
+      }
+    }, 15000);
+  });
+
+  try {
+    await signInAnonymously(auth);
+  } catch (e) {
+    // Most common: Anonymous not enabled
+    throw new Error(
+      "匿名登入失敗：請到 Firebase Console → Authentication → Sign-in method → Anonymous → Enable"
+    );
+  }
+
+  await waiter;
+}
+
+/* ================================
+ * Submit Flow
+ * ================================ */
+
+async function onSubmit_() {
   try {
     btnSubmit.disabled = true;
     submitStatus.textContent = "開始處理…";
 
+    // Ensure auth (again)
+    if (!state.uid) await ensureAnonAuth_();
+
     submitStatus.textContent = "Step 1/4：建立預約（reserve）…";
-    const r = await api("reserve", {
+    const r = await api_("reserve", {
       tenant: state.tenant,
-      uid: state.uid,
-      plan: state.plan,     // still send, but backend may override using invite.plan
-      invite: state.invite
+      uid: state.uid,           // ✅ uid=auth.uid
+      plan: state.plan,
+      invite: state.invite || ""
     });
 
     if (!r.ok) throw new Error(r.error || "reserve failed");
 
     state.id = r.id;
     state.token = r.token;
-    state.uploadPath = ensureSlash_(r.uploadPath || "");
+    state.uploadPath = r.uploadPath;
     state.clean_card_url = r.clean_card_url;
     state.og_page_url = r.og_page_url;
-
-    // ✅ 上線穩：以 reserve 回傳的 plan 為準（避免 invite 設定覆蓋造成前端限制錯）
-    if (r.plan && r.plan !== state.plan) {
-      state.plan = r.plan;
-      applyPlanUI_(state.plan);
-    }
 
     submitStatus.textContent = "Step 2/4：壓縮並上傳圖片到 Firebase Storage…";
     const urls = await uploadAllImages_();
@@ -167,7 +229,7 @@ async function onSubmit() {
     submitStatus.textContent = "Step 3/4：送出文字 + 圖片網址（create）…";
     const payload = buildCreatePayload_(urls);
 
-    const c = await api("create", payload);
+    const c = await api_("create", payload);
     if (!c.ok) throw new Error(c.error || "create failed");
 
     state.clean_card_url = c.clean_card_url || state.clean_card_url;
@@ -175,7 +237,6 @@ async function onSubmit() {
 
     submitStatus.textContent = "Step 4/4：完成 ✅";
     showResult_();
-
   } catch (err) {
     submitStatus.textContent = `送出失敗：${String(err.message || err)}`;
   } finally {
@@ -183,16 +244,18 @@ async function onSubmit() {
   }
 }
 
-/* ========= Build payload ========= */
+/* ================================
+ * Build create payload
+ * ================================ */
 
 function buildCreatePayload_(urls) {
   const plan = state.plan;
 
   const common = {
     tenant: state.tenant,
-    uid: state.uid,
+    uid: state.uid,     // ✅ uid=auth.uid
     plan,
-    invite: state.invite,
+    invite: state.invite || "",
     id: state.id,
     token: state.token,
 
@@ -228,12 +291,11 @@ function buildCreatePayload_(urls) {
   return common;
 }
 
-/* ========= Firebase upload (with compression) ========= */
+/* ================================
+ * Firebase upload (with compression)
+ * ================================ */
 
 async function uploadAllImages_() {
-  const app = initializeApp(firebaseConfig);
-  const storage = getStorage(app);
-
   const avatarFile = $("avatarFile")?.files?.[0] || null;
   const logoFile = $("logoFile")?.files?.[0] || null;
   const photosFiles = $("photosFile")?.files ? Array.from($("photosFile").files) : [];
@@ -243,19 +305,17 @@ async function uploadAllImages_() {
   const maxPhotos = state.plan === "free" ? 2 : 5;
   if (photosFiles.length > maxPhotos) throw new Error(`照片最多 ${maxPhotos} 張，請重新選擇`);
 
-  const base = ensureSlash_(state.uploadPath); // e.g. hsc_cards/tenant/uid/cardId/
-  if (!base) throw new Error("uploadPath missing (reserve failed?)");
-
+  const base = state.uploadPath; // e.g. hsc_cards/tenant/uid/cardId/
   const urls = { avatar_url: "", logo_url: "", photos: [] };
 
   // avatar
   const avatarBlob = await compressImageToBlob_(avatarFile, COMPRESS.avatar);
-  urls.avatar_url = await uploadBlob_(storage, base + "avatar.jpg", avatarBlob, "image/jpeg");
+  urls.avatar_url = await uploadBlob_(base + "avatar.jpg", avatarBlob, "image/jpeg");
 
   // logo (optional)
   if (logoFile) {
     const logoBlob = await compressImageToBlob_(logoFile, COMPRESS.logo);
-    urls.logo_url = await uploadBlob_(storage, base + "logo.jpg", logoBlob, "image/jpeg");
+    urls.logo_url = await uploadBlob_(base + "logo.jpg", logoBlob, "image/jpeg");
   }
 
   // photos
@@ -263,14 +323,14 @@ async function uploadAllImages_() {
     const f = photosFiles[i];
     const photoBlob = await compressImageToBlob_(f, COMPRESS.photo);
     const path = base + `photo${i + 1}.jpg`;
-    const u = await uploadBlob_(storage, path, photoBlob, "image/jpeg");
+    const u = await uploadBlob_(path, photoBlob, "image/jpeg");
     urls.photos.push(u);
   }
 
   return urls;
 }
 
-async function uploadBlob_(storage, path, blob, contentType) {
+async function uploadBlob_(path, blob, contentType) {
   const r = ref(storage, path);
   const snap = await uploadBytes(r, blob, {
     contentType: contentType || blob.type || "image/jpeg",
@@ -279,13 +339,14 @@ async function uploadBlob_(storage, path, blob, contentType) {
   return await getDownloadURL(snap.ref);
 }
 
-/* ========= Compression core ========= */
+/* ================================
+ * Compression core
+ * ================================ */
 
 async function compressImageToBlob_(file, opt) {
   const { maxEdge, quality, mime } = opt;
 
   const img = await fileToImage_(file);
-
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
 
@@ -298,25 +359,29 @@ async function compressImageToBlob_(file, opt) {
   canvas.height = h;
 
   const ctx = canvas.getContext("2d", { alpha: false });
-  // fill white background to avoid black for transparent PNG
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#ffffff"; // avoid black for transparent PNG
   ctx.fillRect(0, 0, w, h);
   ctx.drawImage(img, 0, 0, w, h);
 
-  const blob = await canvasToBlob_(canvas, mime || "image/jpeg", quality || 0.8);
-  if (!blob) throw new Error("圖片壓縮失敗（toBlob 回傳空值）");
+  const outBlob = await canvasToBlob_(canvas, mime || "image/jpeg", quality || 0.8);
 
-  // Safety: if compressed bigger than original, use original file
-  if (blob.size > file.size) return file;
-  return blob;
+  // If compressed somehow larger, fallback original file
+  if (outBlob && outBlob.size > file.size) return file;
+  return outBlob;
 }
 
 function fileToImage_(file) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("圖片讀取失敗")); };
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("圖片讀取失敗"));
+    };
     img.src = url;
   });
 }
@@ -327,7 +392,9 @@ function canvasToBlob_(canvas, mime, quality) {
   });
 }
 
-/* ========= Result ========= */
+/* ================================
+ * Result + Confirm
+ * ================================ */
 
 function showResult_() {
   resultBox.style.display = "block";
@@ -335,8 +402,9 @@ function showResult_() {
   resultStatus.textContent =
     `名片已建立（狀態：inactive）\n` +
     `id: ${state.id}\n` +
-    `你可先預覽成品並確認資料，確認不等於啟用。\n` +
-    `啟用需由管理端 adminSetStatus 完成交貨。`;
+    `uid(auth.uid): ${state.uid}\n` +
+    `你可先預覽成品並確認資料。\n` +
+    `確認不等於啟用，啟用需由管理端 adminSetStatus 完成交貨。`;
 
   btnPreview.href = state.clean_card_url;
 
@@ -345,7 +413,7 @@ function showResult_() {
       btnConfirm.textContent = "確認中…";
       btnConfirm.style.pointerEvents = "none";
 
-      const res = await api("confirm", { id: state.id, token: state.token });
+      const res = await api_("confirm", { id: state.id, token: state.token });
       if (!res.ok) throw new Error(res.error || "confirm failed");
 
       btnConfirm.textContent = "已確認 ✅（等待交貨啟用）";
@@ -357,23 +425,25 @@ function showResult_() {
   };
 }
 
-function setPill(t) {
-  pill.textContent = t;
+/* ================================
+ * UI helper
+ * ================================ */
+
+function setPill_(t) {
+  if (pill) pill.textContent = t;
 }
 
-/* ========= API helper ========= */
+/* ================================
+ * API helper
+ * ================================ */
 
-async function api(action, payload, method) {
+async function api_(action, payload, method) {
   const m = method || "POST";
 
   if (m === "GET") {
     const u = new URL(GAS_URL);
     u.searchParams.set("action", action);
-    Object.keys(payload || {}).forEach(k => {
-      if (payload[k] !== undefined && payload[k] !== null && String(payload[k]) !== "") {
-        u.searchParams.set(k, String(payload[k]));
-      }
-    });
+    Object.keys(payload || {}).forEach((k) => u.searchParams.set(k, String(payload[k])));
     const res = await fetch(u.toString(), { method: "GET" });
     return await res.json();
   }
@@ -388,12 +458,4 @@ async function api(action, payload, method) {
   });
 
   return await res.json();
-}
-
-/* ========= misc ========= */
-
-function ensureSlash_(p) {
-  const s = String(p || "").trim();
-  if (!s) return "";
-  return s.endsWith("/") ? s : (s + "/");
 }
