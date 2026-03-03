@@ -1,81 +1,419 @@
+<!-- firebase-test.html — COMPLETE OVERWRITE
+  Purpose:
+  - Test Firebase Auth (anonymous) + Firebase Storage upload from GitHub Pages
+  - Fix CORS issue by using the correct bucket: *.firebasestorage.app (NOT *.appspot.com)
+
+  How to use:
+  1) Put this file at repo root (same level as index.html)
+  2) Open: https://angel0973180707.github.io/Happiness-Smart-Card-System/firebase-test.html
+  3) Click: 1) 匿名登入  →  2) 選擇檔案  →  3) 測試上傳
+-->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Firebase Storage Test</title>
+  <meta name="theme-color" content="#0f172a" />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.12);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.70);
+      --ok:#35d07f;
+      --bad:#ff5e5e;
+      --btn:rgba(255,255,255,.10);
+      --btn2:rgba(255,255,255,.16);
+      --accent:#7bdcff;
+      --shadow:0 20px 80px rgba(0,0,0,.55);
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans TC", Arial;
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 55%),
+                  radial-gradient(1000px 700px at 90% 10%, rgba(255,140,102,.12), transparent 60%),
+                  linear-gradient(180deg, #0b1220, #070b14);
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:24px 14px 60px;
+    }
+    .wrap{ width:min(980px,100%); }
+    .top{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; margin-bottom:14px;
+    }
+    .title{
+      font-size:20px; font-weight:800; letter-spacing:.5px;
+    }
+    .tag{
+      font-size:12px; padding:6px 10px; border-radius:999px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .cardHead{
+      padding:14px 16px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .cardHead b{ font-size:14px; }
+    .hint{ color:var(--muted); font-size:12px; }
+    .cardBody{ padding:16px; }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width:860px){
+      .grid{ grid-template-columns:1fr; }
+    }
+    .panel{
+      background:rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:14px;
+    }
+    .panel h3{
+      margin:0 0 10px; font-size:14px; letter-spacing:.2px;
+    }
+    .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .btn{
+      appearance:none; border:1px solid rgba(255,255,255,.14);
+      background:var(--btn);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:700;
+      cursor:pointer;
+      transition:transform .06s ease, background .15s ease;
+      user-select:none;
+    }
+    .btn:hover{ background:var(--btn2); }
+    .btn:active{ transform:translateY(1px); }
+    .btn.primary{
+      border-color:rgba(123,220,255,.35);
+      background:rgba(123,220,255,.12);
+    }
+    .btn.danger{
+      border-color:rgba(255,94,94,.35);
+      background:rgba(255,94,94,.10);
+    }
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      transform:none;
+    }
+    input[type="file"]{
+      width:100%;
+      padding:10px;
+      border-radius:12px;
+      border:1px dashed rgba(255,255,255,.18);
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+    }
+    .kv{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns: 140px 1fr;
+      gap:8px 10px;
+      font-size:13px;
+    }
+    .k{ color:var(--muted); }
+    .v{ word-break:break-all; }
+    .log{
+      margin-top:12px;
+      padding:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.35);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      font-size:12px;
+      line-height:1.45;
+      white-space:pre-wrap;
+      word-break:break-word;
+      min-height:90px;
+    }
+    .ok{ color:var(--ok); font-weight:800; }
+    .bad{ color:var(--bad); font-weight:800; }
+    .mini{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+    .footer{
+      margin-top:14px;
+      color:rgba(255,255,255,.60);
+      font-size:12px;
+    }
+    a{ color:var(--accent); }
+  </style>
 </head>
-<body style="font-family:system-ui; padding:16px;">
-  <h2>Firebase Storage Test</h2>
-  <button id="btnLogin">1) 匿名登入</button>
-  <button id="btnUpload" disabled>2) 測試上傳</button>
-  <pre id="log" style="white-space:pre-wrap; background:#111; color:#0f0; padding:12px; border-radius:8px;"></pre>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="title">Firebase Storage Test</div>
+      <div class="tag" id="statusTag">Not initialized</div>
+    </div>
 
+    <div class="card">
+      <div class="cardHead">
+        <b>Happiness Smart Card — Firebase 連線測試</b>
+        <span class="hint">匿名登入 → 選檔 → 上傳</span>
+      </div>
+
+      <div class="cardBody">
+        <div class="grid">
+          <div class="panel">
+            <h3>1) 身分 / Auth</h3>
+            <div class="row">
+              <button class="btn primary" id="btnLogin">匿名登入</button>
+              <button class="btn danger" id="btnLogout" disabled>登出</button>
+            </div>
+
+            <div class="kv">
+              <div class="k">Auth 狀態</div><div class="v" id="authState">-</div>
+              <div class="k">UID</div><div class="v" id="uid">-</div>
+              <div class="k">Project</div><div class="v" id="pid">-</div>
+              <div class="k">Bucket</div><div class="v" id="bucket">-</div>
+            </div>
+
+            <div class="mini">
+              ✅ 你目前 Firebase Console 看到的 bucket 是 <b>*.firebasestorage.app</b><br/>
+              ❌ 若用成 *.appspot.com 常會導致上傳被擋 / CORS 問題
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>2) Storage 上傳</h3>
+            <input type="file" id="file" />
+            <div class="row" style="margin-top:10px;">
+              <button class="btn primary" id="btnUpload" disabled>測試上傳</button>
+              <button class="btn" id="btnCopy" disabled>複製 downloadURL</button>
+            </div>
+
+            <div class="kv">
+              <div class="k">上傳路徑</div><div class="v" id="path">-</div>
+              <div class="k">downloadURL</div><div class="v" id="url">-</div>
+            </div>
+
+            <div class="mini">
+              測試會上傳到：<br/>
+              <b>hsc_cards/angel/TEST001/</b> 底下（用時間戳命名）
+            </div>
+          </div>
+        </div>
+
+        <div class="log" id="log">（log）</div>
+
+        <div class="footer">
+          若仍出現 CORS / ERR_FAILED：請確認 <b>storageBucket</b> 一定是 <b>firebasestorage.app</b>，
+          並且 Storage 規則允許該路徑寫入（你前面那段 rules 沒問題）。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase (modular) -->
   <script type="module">
+    // ====== Firebase SDK (CDN) ======
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInAnonymously,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import {
+      getStorage,
+      ref,
+      uploadBytes,
+      getDownloadURL
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
-    const logEl = document.getElementById("log");
-    const log = (...a) => { logEl.textContent += a.join(" ") + "\n"; console.log(...a); };
-
-    // ✅ 改這裡：storageBucket 用 appspot.com
+    // ====== Your Firebase config (FIXED: storageBucket uses firebasestorage.app) ======
     const firebaseConfig = {
       apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
       authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
       projectId: "happiness-smart-card-pro-7389a",
-      storageBucket: "happiness-smart-card-pro-7389a.appspot.com",
+      storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
       messagingSenderId: "143313936007",
       appId: "1:143313936007:web:7c948563c51e8a47d3a222"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const storage = getStorage(app);
+    // ====== UI refs ======
+    const $ = (id) => document.getElementById(id);
+    const statusTag = $("statusTag");
+    const authState = $("authState");
+    const uidEl = $("uid");
+    const pidEl = $("pid");
+    const bucketEl = $("bucket");
+    const pathEl = $("path");
+    const urlEl = $("url");
+    const logEl = $("log");
 
-    const btnLogin = document.getElementById("btnLogin");
-    const btnUpload = document.getElementById("btnUpload");
+    const btnLogin = $("btnLogin");
+    const btnLogout = $("btnLogout");
+    const btnUpload = $("btnUpload");
+    const btnCopy = $("btnCopy");
+    const fileEl = $("file");
 
-    btnLogin.onclick = async () => {
+    let lastURL = "";
+
+    function setTag(text, ok=true){
+      statusTag.textContent = text;
+      statusTag.style.color = ok ? "rgba(53,208,127,.95)" : "rgba(255,94,94,.95)";
+      statusTag.style.borderColor = ok ? "rgba(53,208,127,.35)" : "rgba(255,94,94,.35)";
+      statusTag.style.background = ok ? "rgba(53,208,127,.10)" : "rgba(255,94,94,.10)";
+    }
+
+    function log(msg, type=""){
+      const prefix = type==="ok" ? "✅ " : type==="bad" ? "❌ " : "• ";
+      logEl.textContent = `${prefix}${msg}\n` + (logEl.textContent || "");
+    }
+
+    function setAuthUI(isAuthed, uid=""){
+      authState.innerHTML = isAuthed ? '<span class="ok">已登入</span>' : '<span class="bad">未登入</span>';
+      uidEl.textContent = uid || "-";
+      btnLogin.disabled = isAuthed;
+      btnLogout.disabled = !isAuthed;
+      btnUpload.disabled = !isAuthed;
+    }
+
+    function safeCopy(text){
       try{
-        const cred = await signInAnonymously(auth);
-        log("✅ 匿名登入成功 UID:", cred.user.uid);
-        btnUpload.disabled = false;
-      }catch(err){
-        log("❌ 匿名登入失敗:", err.code, err.message);
+        navigator.clipboard.writeText(text);
+        return true;
+      }catch(e){
+        return false;
       }
-    };
+    }
 
-    btnUpload.onclick = async () => {
+    // ====== Init ======
+    let app, auth, storage;
+
+    try{
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      storage = getStorage(app);
+
+      pidEl.textContent = firebaseConfig.projectId;
+      bucketEl.textContent = firebaseConfig.storageBucket;
+
+      setTag("Initialized", true);
+      log("Firebase initialized", "ok");
+    }catch(err){
+      setTag("Init failed", false);
+      log("Firebase init failed: " + (err?.message || err), "bad");
+      throw err;
+    }
+
+    // ====== Auth state watcher ======
+    onAuthStateChanged(auth, (user) => {
+      if(user){
+        setAuthUI(true, user.uid);
+        log("匿名登入成功: " + user.uid, "ok");
+        setTag("Authed", true);
+      }else{
+        setAuthUI(false);
+        log("已登出 / 未登入", "");
+        setTag("Not authed", false);
+      }
+    });
+
+    // ====== Actions ======
+    btnLogin.addEventListener("click", async () => {
       try{
-        const u = auth.currentUser;
-        if(!u) throw new Error("Not logged in");
-        const tenant = "angel";
-        const cardId = "TEST001";
-        const path = `hsc_cards/${tenant}/${cardId}/_test_${Date.now()}.txt`;
-
-        const fileRef = ref(storage, path);
-        const blob = new Blob([`hello firebase ${new Date().toISOString()}`], {type:"text/plain"});
-        const snap = await uploadBytes(fileRef, blob);
-        const url = await getDownloadURL(snap.ref);
-
-        log("✅ 上傳成功:", path);
-        log("✅ downloadURL:", url);
+        await signInAnonymously(auth);
       }catch(err){
-        log("❌ 上傳失敗:", err.code || "", err.message || err);
+        log("匿名登入失敗: " + (err?.message || err), "bad");
+        setTag("Auth failed", false);
       }
-    };
+    });
 
-    // 自動嘗試登入（可省一步）
-    (async()=>{
+    btnLogout.addEventListener("click", async () => {
       try{
-        const cred = await signInAnonymously(auth);
-        log("✅ 自動匿名登入 UID:", cred.user.uid);
-        btnUpload.disabled = false;
+        await signOut(auth);
+        setTag("Logged out", false);
       }catch(err){
-        log("⚠️ 自動登入失敗（可按按鈕再試）:", err.code, err.message);
+        log("登出失敗: " + (err?.message || err), "bad");
       }
-    })();
+    });
+
+    btnUpload.addEventListener("click", async () => {
+      const f = fileEl.files?.[0];
+      if(!f){
+        log("請先選擇檔案", "bad");
+        return;
+      }
+
+      // Upload path
+      const tenant = "angel";
+      const cardId = "TEST001";
+      const ts = new Date().toISOString().replace(/[:.]/g,"-");
+      const ext = (f.name || "file").split(".").pop();
+      const name = `test_${ts}.${ext}`;
+      const path = `hsc_cards/${tenant}/${cardId}/${name}`;
+      pathEl.textContent = path;
+      urlEl.textContent = "-";
+      btnCopy.disabled = true;
+      lastURL = "";
+
+      try{
+        log(`開始上傳: ${path}`);
+        setTag("Uploading...", true);
+
+        const r = ref(storage, path);
+
+        // You can include metadata if needed
+        const metadata = {
+          contentType: f.type || "application/octet-stream",
+          customMetadata: {
+            tenant,
+            cardId,
+            kind: "firebase-test"
+          }
+        };
+
+        await uploadBytes(r, f, metadata);
+        const url = await getDownloadURL(r);
+
+        lastURL = url;
+        urlEl.textContent = url;
+        btnCopy.disabled = false;
+
+        log("上傳成功", "ok");
+        log("downloadURL: " + url, "ok");
+        setTag("Upload OK", true);
+      }catch(err){
+        log("上傳失敗: " + (err?.message || err), "bad");
+        setTag("Upload failed", false);
+        console.error(err);
+      }
+    });
+
+    btnCopy.addEventListener("click", () => {
+      if(!lastURL) return;
+      const ok = safeCopy(lastURL);
+      log(ok ? "已複製 downloadURL" : "複製失敗（瀏覽器不支援 clipboard）", ok ? "ok" : "bad");
+    });
+
+    // Small hint: favicon 404 is harmless on GitHub Pages
+    log("提示：favicon.ico 404 不影響功能（可忽略）");
   </script>
 </body>
 </html>
