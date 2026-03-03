@@ -1,16 +1,24 @@
 /* ======================================================
- * Happiness Smart Card System — Frontend firebase.js
- * v503 (COMPLETE OVERWRITE)
+ * Happiness Smart Card System — firebase.js
+ * v502 (COMPLETE OVERWRITE)
  *
- * - Firebase v10 modular (CDN ESM)
- * - Anonymous auth
- * - Upload blob -> downloadURL
+ * Purpose:
+ * - Firebase v10 modular via CDN ESM
+ * - Anonymous sign-in (once)
+ * - Upload compressed images to Firebase Storage
+ * - Return downloadURL
+ *
+ * Rules alignment:
+ * - path: hsc_cards/{tenant}/{cardId}/{fileName}
+ * - tenant locked: angel
+ * - require auth != null
+ * - image/* and < 5MB
  * ====================================================== */
 
-export const HSC_FRONTEND_VERSION = "v503";
-export const TENANT = "angel"; // Rules v1 鎖定 angel
+export const HSC_FRONTEND_VERSION = "v502";
+export const TENANT = "angel";
 
-// ✅ 這裡請保持「純物件」即可（不要 <script>）
+// ✅ 你 firebase-test.html 已驗證成功的 config（照貼）
 export const FIREBASE_CONFIG = {
   apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
   authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
@@ -81,9 +89,13 @@ export async function uploadImage(cardId, blob, fileName) {
   return await getDownloadURL(storageRef);
 }
 
-export const uploadAvatar = (cardId, blob) => uploadImage(cardId, blob, "avatar.jpg"); // 512px
-export const uploadCover  = (cardId, blob) => uploadImage(cardId, blob, "cover.jpg");  // 1200px
-export const uploadPhoto  = (cardId, blob, index=1) => {
+// avatar → 512px
+export const uploadAvatar = (cardId, blob) => uploadImage(cardId, blob, "avatar.jpg");
+// cover → 1200px
+export const uploadCover  = (cardId, blob) => uploadImage(cardId, blob, "cover.jpg");
+
+// optional slots
+export const uploadPhoto = (cardId, blob, index = 1) => {
   const i = Math.max(1, Math.min(9, Number(index) || 1));
   return uploadImage(cardId, blob, `photo${i}.jpg`);
 };
