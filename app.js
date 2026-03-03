@@ -1,20 +1,29 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v497 (COMPLETE OVERWRITE)
+ * app.js v501 (COMPLETE OVERWRITE)
  *
- * Base: app.js v497 (your provided)
- * Align to GAS v497:
- * ✅ New API payload: { ok:true, item:{...} }
+ * Base: your app.js v497 provided in chat
+ * Align to GAS v501:
+ * ✅ API payload: { ok:true, v:"501", item:{...} }
  * ✅ HARD LOCK RULE: status !== "active" => lock
- * ✅ Expiry key align: expires_at / expired_at / expired_at / expired_at (and legacy)
- * ✅ Keep ALL existing UI/feature behaviors
+ * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
+ * ✅ Keep ALL existing UI/feature behaviors (no feature removal)
+ *
+ * v501 adjustment you requested:
+ * ✅ 門面「聯繫開通」一律改導向 LINE OA（修正為 https://lin.ee/G3VJoRm）
+ *    （避免客戶打不開表單 / 沒有exp+sig也無法填）
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-  FORM: "https://docs.google.com/forms/d/e/1FAIpQLSfOk1W2cSInf5G94EaUGHXPNV054sCT20BVaPzD07aECGEfpA/viewform",
+
+  // v501: 門面鎖卡/開通 CTA 一律導去 LINE OA（你剛剛更正的）
+  CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
+
+  // 門面仍可自由選版參考，資料仍預設讀 TW0001（不變）
   DEFAULT_ID: "TW0001",
-  VERSION: "v497",
+
+  VERSION: "v501",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
@@ -371,9 +380,14 @@ function setPaper(paper, el){
   }
 }
 
-/* CTA */
+/* CTA: v501 門面鎖卡/開通 -> LINE OA */
 function goFillForm(){
-  window.open(CONFIG.FORM, "_blank");
+  const u = normalizeLink_(CONFIG.CUSTOMER_SERVICE_URL);
+  if(!u){
+    alert("⚠️ 客服連結未設定");
+    return;
+  }
+  window.open(u, "_blank");
 }
 
 /* ---------- Render helpers ---------- */
@@ -468,7 +482,7 @@ function scanAnyLineFromPayload_(p){
 
 /* ---------- Logo ---------- */
 function renderLogo_(p){
-  const logoUrl = pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img"]);
+  const logoUrl = pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img","logo_url"]);
   const wrap = qs("logoWrap");
   const img  = qs("u-logo");
   if(!wrap || !img) return;
@@ -492,7 +506,7 @@ function renderLogo_(p){
 
 /* ---------- Avatar ---------- */
 function renderAvatar_(p){
-  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","avatar_img","形象照","photo"]);
+  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","avatar_img","avatar_url","形象照","photo"]);
   const img = qs("u-img");
   if(!img) return;
 
@@ -559,7 +573,7 @@ function applyWideRule_(container){
 }
 
 /* ================================
- * Media/Social (same as v491)
+ * Media/Social (same as your base)
  * ================================ */
 function gatherByKeys_(p, keys){
   const hits = [];
@@ -810,7 +824,7 @@ function toOneLine_(s){
 }
 
 /* ================================
- * Expiry + Status gate (ALIGN v496.2)
+ * Expiry + Status gate (ALIGN v501)
  * ================================ */
 function parseAnyDate_(raw){
   const v = text(raw);
@@ -844,7 +858,6 @@ function parseAnyDate_(raw){
 }
 
 function getExpiryInfo_(p){
-  // ✅ Align to DB keys: expires_at (primary), expired_at (legacy), expire_at (legacy)
   const raw = pick(p, [
     "expires_at","expired_at","expire_at","expiry_at","expiry","expire_date","expires","due_date","due",
     "ExpireAt","ExpiresAt","ExpiredAt","Expiry","DueDate",
@@ -906,22 +919,20 @@ function showLockedUi_(reasonText){
 }
 
 /* ================================
- * 🔐 HARD LOCK RULE (v496.2 anchor)
+ * 🔐 HARD LOCK RULE (v501 anchor)
  * status !== "active" => LOCK
  * expires_at <= today => LOCK
- * empty status => treated as inactive => LOCK
+ * empty status => inactive => LOCK
  * ================================ */
 function applyStatusGate_(p){
   const status = normalizeStatus_(p);
   const expiry = getExpiryInfo_(p);
 
-  // Expired first (even if status not updated yet)
   if(expiry.has && typeof expiry.daysLeft === "number" && expiry.daysLeft <= 0){
     showLockedUi_("此名片已到期，請聯繫客服開通");
     return { locked:true, expiry };
   }
 
-  // Hard lock by status (empty means not active)
   if(!status || status !== "active"){
     showLockedUi_("請聯繫客服開通");
     return { locked:true, expiry };
@@ -1040,22 +1051,20 @@ window.goFillForm = goFillForm;
 function extractRowFromPayload_(data){
   if(!data || typeof data !== "object") return null;
 
-  // ✅ NEW API: { ok:true, item:{...} }
+  // ✅ v501: { ok:true, v:"501", item:{...} }
   if(data.ok === true && data.item && typeof data.item === "object"){
     return data.item;
   }
 
-  // ✅ OLD API: { ok:true, data:{...} }
+  // ✅ legacy: { ok:true, data:{...} }
   if(data.ok === true && data.data && typeof data.data === "object"){
     return data.data;
   }
 
-  // fallbacks
   if(data.item && typeof data.item === "object") return data.item;
   if(data.data && typeof data.data === "object") return data.data;
   if(data.row && typeof data.row === "object") return data.row;
 
-  // sometimes backend returns flat row
   if(data.id || data["姓名"] || data.name) return data;
 
   return null;
@@ -1078,9 +1087,17 @@ function collectPhotoUrls_(p){
     );
   }
 
+  // ✅ v501: photo1_img..photo5_img / photo1_url..photo5_url
   for(let i=1;i<=12;i++){
-    const vFast = pick(p, [`photo_fast${i}`,`photo${i}_fast`,`照片_fast${i}`,`照片${i}_fast`]);
-    const v = text(vFast) ? vFast : pick(p, [`photo${i}`,`photo_${i}`,`照片${i}`,`相片${i}`]);
+    const vFast = pick(p, [
+      `photo${i}_img_fast`,`photo${i}_fast`,`照片${i}_fast`,`照片_fast${i}`,
+      `photo${i}_url_fast`
+    ]);
+    const vSlow = pick(p, [
+      `photo${i}_img`,`photo${i}`,`photo_${i}`,`照片${i}`,`相片${i}`,
+      `photo${i}_url`
+    ]);
+    const v = text(vFast) ? vFast : vSlow;
     if(text(v)) urls.push(v);
   }
 
@@ -1350,7 +1367,6 @@ function ensureAdminPanel_(){
 
   const closeBtn = qs("adminCloseBtn");
   const input = qs("adminInput");
-  const goBtn = qs("adminGoBtn");
   const hint = qs("adminHint");
 
   function getCurrentTargetId_(){
@@ -1430,7 +1446,7 @@ function ensureAdminPanel_(){
 
   overlay.addEventListener("click", (e)=>{ if(e.target === overlay) hideAdminPanel_(); });
   closeBtn?.addEventListener("click", hideAdminPanel_);
-  goBtn?.addEventListener("click", applyInput_);
+  qs("adminGoBtn")?.addEventListener("click", applyInput_);
   input?.addEventListener("keydown", (e)=>{ if(e.key === "Enter") applyInput_(); });
 
   qs("btnAdminHome")?.addEventListener("click", doHome_);
