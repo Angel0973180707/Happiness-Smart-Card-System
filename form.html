@@ -1,8 +1,8 @@
 <!-- ================================
      form.html — v500.2 (COMPLETE OVERWRITE)
-     - Uses exp+sig entry
+     - exp+sig entry
+     - GAS URL filled (WebApp exec)
      - Loads form.js as module
-     - Keeps UI simple & stable (no fancy changes)
 ================================== -->
 <!doctype html>
 <html lang="zh-Hant">
@@ -155,8 +155,6 @@
       white-space:pre-line;
       line-height:1.5;
     }
-    .ok{ color:var(--ok); }
-    .danger{ color:var(--danger); }
   </style>
 </head>
 <body>
@@ -340,7 +338,7 @@
       </div>
       <div class="hint" style="margin-top:10px;">
 ✅ 「確認資料」只會寫入 confirmed_at，不會啟用
-✅ 啟用（active）由管理端 adminSetStatus 完成交貨
+✅ 啟用（active）由管理端 adminSetStatus 完成交貨啟用
       </div>
     </div>
 
@@ -352,14 +350,11 @@
 - 名片未啟用前屬於「預覽狀態」，需由管理端完成交貨啟用
       </div>
     </div>
-
   </div>
 
-  <!-- ✅ 固定 GAS WebApp exec URL（請改成你的） -->
+  <!-- ✅ 固定 GAS WebApp exec URL（已替你填入） -->
   <script>
-    // Example:
-    // window.HSC_GAS_URL = "https://script.google.com/macros/s/AKfycbxxxxxxxxxxxxxxxxxxxxxxxx/exec";
-    window.HSC_GAS_URL = window.HSC_GAS_URL || "";
+    window.HSC_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   </script>
 
   <!-- ✅ form.js is an ES module -->
