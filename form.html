@@ -1,8 +1,9 @@
 <!-- ================================
-     form.html — v500.2 (COMPLETE OVERWRITE)
+     form.html — v501 (COMPLETE OVERWRITE)
      - exp+sig entry
      - GAS URL filled (WebApp exec)
      - Loads form.js as module
+     - Fix: GAS URL missing (guarantee window.HSC_GAS_URL set BEFORE form.js)
 ================================== -->
 <!doctype html>
 <html lang="zh-Hant">
@@ -155,20 +156,41 @@
       white-space:pre-line;
       line-height:1.5;
     }
+    .warn{
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,107,107,.35);
+      background:rgba(255,107,107,.08);
+      color:var(--muted);
+      font-size:12px;
+      white-space:pre-line;
+      line-height:1.5;
+      display:none;
+    }
   </style>
+
+  <!-- ✅ Fix: Make sure GAS URL exists BEFORE module loads -->
+  <script>
+    window.HSC_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+  </script>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
       <div class="brand">Happiness Smart Card｜自建表單</div>
-      <div id="pill" class="pill">v500.2</div>
+      <div id="pill" class="pill">v501</div>
     </div>
 
     <div class="card">
       <div class="title">填表連結驗證</div>
       <div id="verifyStatus" class="muted">等待驗證…</div>
+
+      <div id="gasWarn" class="warn"></div>
+
       <div class="hint">
-✅ 這個填表連結已鎖定方案與身份（uid）
+✅ 入口參數：?exp=...&sig=...
+✅ 這個填表連結已鎖定方案（free/premium）
 ✅ 圖片會先在手機/電腦端壓縮後上傳到 Firebase Storage
 ✅ 表單送出到 GAS 只包含文字 + 圖片網址（不含 base64）
       </div>
@@ -345,16 +367,24 @@
     <div class="card">
       <div class="title">使用聲明</div>
       <div class="tiny">
-- 本表單僅供被授權客戶填寫（連結含身份資訊）
+- 本表單僅供被授權客戶填寫（連結含 exp + sig）
 - 圖片會先在本機壓縮後上傳至 Firebase Storage
 - 名片未啟用前屬於「預覽狀態」，需由管理端完成交貨啟用
       </div>
     </div>
   </div>
 
-  <!-- ✅ 固定 GAS WebApp exec URL（已替你填入） -->
+  <!-- ✅ Tiny guard: if somehow missing, show message (should NOT happen now) -->
   <script>
-    window.HSC_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+    (function(){
+      const warn = document.getElementById("gasWarn");
+      if (!window.HSC_GAS_URL) {
+        warn.style.display = "block";
+        warn.textContent =
+          "⚠️ GAS URL missing：window.HSC_GAS_URL 未設定。\n" +
+          "請確認 form.html 內已填入你的 WebApp exec URL，且要在 form.js 之前。";
+      }
+    })();
   </script>
 
   <!-- ✅ form.js is an ES module -->
