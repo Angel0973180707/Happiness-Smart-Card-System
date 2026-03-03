@@ -1,8 +1,7 @@
 /* ================================
  * HSC Form v499 (COMPLETE OVERWRITE)
  * - FINAL: reserve(invite+uid) -> Firebase upload(uid/cardId path) -> create(urls)
- * - No base64 fallback (GAS v499 rejects dataURL)
- * - Align Firebase Storage rule: <= 2MB, image/jpeg|png|webp
+ * - No base64. (GAS v499 rejects dataURL)
  * ================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
@@ -12,17 +11,16 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstati
 const CONFIG = {
   VERSION: "v499",
 
-  // ✅ 改成你的 GAS WebApp exec URL（v499）
-  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec
-",
+  // ✅ 你提供的最新 GAS exec URL
+  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
 
   TENANT_DEFAULT: "angel",
   FETCH_TIMEOUT_MS: 20000,
 
-  // Firebase Storage rules: max 2MB
+  // Firebase rules: max 2MB (per file)
   MAX_IMAGE_BYTES: 2 * 1024 * 1024,
 
-  // compress settings (aim to keep images small & fast)
+  // compress settings
   AVATAR_MAX: 1200,
   LOGO_MAX: 1200,
   PHOTO_MAX: 1600,
@@ -30,7 +28,6 @@ const CONFIG = {
 
   MAX_PHOTOS: 5,
 
-  // Firebase config
   FIREBASE: {
     apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
     authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
@@ -92,9 +89,7 @@ function log(...args){
 
 function withTimeout(promise, ms, label="timeout"){
   let t;
-  const timeout = new Promise((_, rej) => {
-    t = setTimeout(() => rej(new Error(`${label}: ${ms}ms`)), ms);
-  });
+  const timeout = new Promise((_, rej) => { t = setTimeout(() => rej(new Error(`${label}: ${ms}ms`)), ms); });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
 }
 
@@ -103,7 +98,7 @@ function safeTrim(v){ return (v ?? "").toString().trim(); }
 function normalizeLine(v){
   v = safeTrim(v);
   if (!v) return "";
-  if (v.startsWith("@")) return v; // allow @id
+  if (v.startsWith("@")) return v;
   if (/^http:\/\//i.test(v)) return v.replace(/^http:\/\//i, "https://");
   return v;
 }
@@ -154,16 +149,12 @@ async function fileToJpgBlob(file, maxSide, quality){
 }
 
 async function compressBlobUnderLimit(file, maxSide){
-  // Step-down quality to ensure <= 2MB (or your rule)
   let q = CONFIG.JPG_QUALITY;
   for (let i = 0; i < 10; i++){
     const blob = await fileToJpgBlob(file, maxSide, q);
-    if (blob.size <= CONFIG.MAX_IMAGE_BYTES){
-      return { blob, size: blob.size, quality: q };
-    }
+    if (blob.size <= CONFIG.MAX_IMAGE_BYTES) return { blob, size: blob.size, quality: q };
     q = Math.max(0.62, q - 0.05);
   }
-  // last try: shrink dimension
   const blob2 = await fileToJpgBlob(file, Math.max(900, Math.floor(maxSide * 0.75)), 0.70);
   if (blob2.size > CONFIG.MAX_IMAGE_BYTES){
     throw new Error(`壓縮後仍超過限制：${Math.round(blob2.size/1024)}KB（請換小一點的圖）`);
@@ -197,7 +188,6 @@ async function gasPing(){
 }
 
 async function gasReserve({ tenant, invite, uid }){
-  // v499: POST reserve
   return await gasCall({ action:"reserve", method:"POST", payload:{ tenant, invite, uid } });
 }
 
@@ -222,7 +212,6 @@ async function uploadToFirebase({ tenant, uid, cardId, fileName, blob }){
   const r = ref(storage, path);
   await uploadBytes(r, blob, { contentType:"image/jpeg", cacheControl:"public,max-age=31536000" });
   const url = await getDownloadURL(r);
-  // cache-bust for client refresh
   return url + (url.includes("?") ? "&" : "?") + `v=${encodeURIComponent(CONFIG.VERSION)}&ts=${Date.now()}`;
 }
 
@@ -274,14 +263,8 @@ async function onSubmit(){
 
     const textPayload = buildTextPayload();
     const invite = safeTrim(ui.invite.value);
-    if (!invite){
-      setStatus("邀請碼（invite）必填", "bad");
-      return;
-    }
-    if (!textPayload.name){
-      setStatus("姓名必填", "bad");
-      return;
-    }
+    if (!invite){ setStatus("邀請碼（invite）必填", "bad"); return; }
+    if (!textPayload.name){ setStatus("姓名必填", "bad"); return; }
 
     const tenant = textPayload.tenant;
 
@@ -289,80 +272,68 @@ async function onSubmit(){
     const user = await ensureAnonLogin();
     const uid = user?.uid;
     if (!uid) throw new Error("匿名登入失敗：沒有 uid");
-
     log("uid:", uid);
 
     setStatus("向 GAS reserve（invite+uid）…", "warn");
     const resv = await gasReserve({ tenant, invite, uid });
     log("reserve:", resv);
-
-    if (!resv?.ok) {
-      throw new Error(`reserve 失敗：${resv?.message || "unknown"}`);
-    }
+    if (!resv?.ok) throw new Error(`reserve 失敗：${resv?.message || "unknown"}`);
 
     const cardId = resv.cardId;
-    const uploadPath = resv.uploadPath;
     log("cardId:", cardId);
-    log("uploadPath:", uploadPath);
+    log("uploadPath:", resv.uploadPath || "");
 
-    // Files
     const avatarFile = ui.avatarFile.files?.[0] || null;
     const logoFile = ui.logoFile.files?.[0] || null;
     const photosFiles = Array.from(ui.photosFile.files || []).slice(0, CONFIG.MAX_PHOTOS);
 
-    setStatus("壓縮圖片…", "warn");
-
     const urlFields = {};
+
     if (avatarFile){
+      setStatus("壓縮 avatar…", "warn");
       const a = await compressBlobUnderLimit(avatarFile, CONFIG.AVATAR_MAX);
-      log(`avatar blob OK: ${Math.round(a.size/1024)}KB q=${a.quality}`);
+      log(`avatar OK: ${Math.round(a.size/1024)}KB q=${a.quality}`);
       setStatus("上傳 avatar…", "warn");
       urlFields.avatar_img = await uploadToFirebase({ tenant, uid, cardId, fileName:"avatar.jpg", blob:a.blob });
     }
+
     if (logoFile){
+      setStatus("壓縮 logo…", "warn");
       const l = await compressBlobUnderLimit(logoFile, CONFIG.LOGO_MAX);
-      log(`logo blob OK: ${Math.round(l.size/1024)}KB q=${l.quality}`);
+      log(`logo OK: ${Math.round(l.size/1024)}KB q=${l.quality}`);
       setStatus("上傳 logo…", "warn");
       urlFields.logo_img = await uploadToFirebase({ tenant, uid, cardId, fileName:"logo.jpg", blob:l.blob });
     }
+
     for (let i = 0; i < photosFiles.length; i++){
+      setStatus(`壓縮 photo${i+1}…`, "warn");
       const p = await compressBlobUnderLimit(photosFiles[i], CONFIG.PHOTO_MAX);
-      log(`photo${i+1} blob OK: ${Math.round(p.size/1024)}KB q=${p.quality}`);
+      log(`photo${i+1} OK: ${Math.round(p.size/1024)}KB q=${p.quality}`);
       setStatus(`上傳 photo${i+1}…`, "warn");
       urlFields[`photo${i+1}_img`] = await uploadToFirebase({ tenant, uid, cardId, fileName:`photo${i+1}.jpg`, blob:p.blob });
     }
 
-    // Create payload (v499 expects URL-only; also bind invite+uid)
     const payload = {
       ...textPayload,
       id: cardId,
       invite_code: invite,
-      uid,                 // for GAS to verify reserve binding
-      reserved_uid: uid,   // extra safe
+      uid,
+      reserved_uid: uid,
       ...urlFields
     };
 
     log("payload(create):", payload);
 
-    setStatus("寫入 GAS create（純URL payload）…", "warn");
+    setStatus("寫入 GAS create（純URL）…", "warn");
     const out = await gasCreate(payload);
     log("create:", out);
+    if (!out?.ok) throw new Error(`create 失敗：${out?.message || "unknown"}`);
 
-    if (!out?.ok){
-      throw new Error(`create 失敗：${out?.message || "unknown"}`);
-    }
+    setStatus(`成功 ✅ ${out.item?.id || cardId}（已建立，待館長啟用交貨）`, "good");
 
-    const idOut = out.item?.id || cardId;
-    const tokenOut = out.item?.token || "";
-    setStatus(`成功 ✅ ${idOut}（已建立，待你啟用交貨）`, "good");
-
-    // Auto open preview (token mode)
     if (out.og_page_url){
-      log("preview(og_page_url):", out.og_page_url);
+      log("preview:", out.og_page_url);
       window.open(out.og_page_url, "_blank");
-    } else if (tokenOut){
-      const base = (new URL(CONFIG.GAS)).origin; // not used; prefer your BASE_URL in GAS response
-      log("token:", tokenOut);
     }
 
   }catch(err){
