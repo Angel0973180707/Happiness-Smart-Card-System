@@ -1,6 +1,6 @@
 /* ======================================================
  * Happiness Smart Card System — form.js
- * v503 (COMPLETE OVERWRITE)
+ * v502 (COMPLETE OVERWRITE)
  *
  * Flow:
  * 1) reserve  -> { cardId, token }
@@ -8,22 +8,19 @@
  * 3) upload   -> Firebase Storage -> downloadURL
  * 4) create   -> GAS (text + downloadURL only)
  *
- * Notes:
- * - All files are in repo ROOT (same level as index.html)
- * - image-compressor.js must export: compressToJpeg(file, maxPx)
- * - firebase.js must export: uploadAvatar(cardId, blob), uploadCover(cardId, blob)
+ * Requires (root):
+ * - firebase.js exports: uploadAvatar, uploadCover
+ * - image-compressor.js exports: compressToJpeg
  * ====================================================== */
 
 import { uploadAvatar, uploadCover } from "./firebase.js";
 import { compressToJpeg } from "./image-compressor.js";
 
-const VERSION = "v503";
-
-// ✅ 這行一定要是字串（要有引號）
+const VERSION = "v502";
 const GAS_URL =
   "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-// ✅ 成品預覽頁（你根目錄有 card.html）
+// 你如果沒有 card.html，先改成 index.html?id=
 const PREVIEW_PAGE = "./card.html?id=";
 
 const $ = (id) => document.getElementById(id);
@@ -81,7 +78,6 @@ function readFileInput(id) {
   return f || null;
 }
 
-/** 讀取表單文字欄位（依你 form.html 的 input id） */
 function readFormText() {
   return {
     name: ($("name")?.value || "").trim(),
@@ -92,19 +88,12 @@ function readFormText() {
     line_url: ($("line_url")?.value || "").trim(),
     website: ($("website")?.value || "").trim(),
     wechat_id: ($("wechat_id")?.value || "").trim(),
-
-    // 若你有方案/風格（沒有也沒關係，會送空字串）
-    plan: ($("plan")?.value || "").trim(), // free / premium
-    theme: ($("theme")?.value || "").trim(), // c1/p1...
+    plan: ($("plan")?.value || "").trim(),
+    theme: ($("theme")?.value || "").trim(),
   };
 }
 
-/** Step1 reserve */
 async function doReserve() {
-  if (!/^https:\/\/script\.google\.com\/macros\/s\//.test(GAS_URL)) {
-    throw new Error("form.js: GAS_URL 看起來不是 WebApp /exec 網址");
-  }
-
   const exp = qs("exp");
   const sig = qs("sig");
 
@@ -131,10 +120,9 @@ async function doReserve() {
   return { cardId, token, exp, sig };
 }
 
-/** Step2+3 compress & upload */
 async function doUploadImages(cardId) {
-  const avatarFile = readFileInput("avatar"); // <input type="file" id="avatar">
-  const coverFile = readFileInput("cover"); // <input type="file" id="cover">
+  const avatarFile = readFileInput("avatar");
+  const coverFile = readFileInput("cover");
 
   let avatarURL = "";
   let coverURL = "";
@@ -168,7 +156,6 @@ async function doUploadImages(cardId) {
   return { avatarURL, coverURL };
 }
 
-/** Step4 create (text + downloadURL only) */
 async function doCreate(reserve, textData, imageURLs) {
   const { cardId, token, exp, sig } = reserve;
 
@@ -181,11 +168,8 @@ async function doCreate(reserve, textData, imageURLs) {
     token,
     data: {
       ...textData,
-
-      // ✅ 只送 URL，不送 base64
       avatar_img: imageURLs.avatarURL || "",
-
-      // ✅ 你目前沒有明確的 cover 欄位：先寫入 photo1_img（最通用、不必改表頭）
+      // cover 暫時寫到 photo1_img（最通用，不改表頭）
       photo1_img: imageURLs.coverURL || "",
     },
   };
@@ -214,7 +198,6 @@ async function mainSubmit() {
 
     await doCreate(reserve, textData, imageURLs);
 
-    // ✅ 成功後：成品預覽
     const preview = `${PREVIEW_PAGE}${encodeURIComponent(reserve.cardId)}`;
     setHTML(
       "result",
@@ -232,7 +215,6 @@ async function mainSubmit() {
   }
 }
 
-// bind
 window.addEventListener("DOMContentLoaded", () => {
   setText("ver", VERSION);
 
