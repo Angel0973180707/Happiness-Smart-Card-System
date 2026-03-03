@@ -1,4 +1,4 @@
-/* admin.css — v497 (COMPLETE OVERWRITE) */
+/* admin.css — v499 (COMPLETE OVERWRITE) */
 
 :root{
   --bg:#0f1116;
@@ -50,7 +50,6 @@ body{
   display:grid;
   gap:14px;
 }
-
 @media (min-width: 860px){
   .wrap{ grid-template-columns: 1fr 1fr; align-items:start; }
 }
@@ -71,7 +70,7 @@ body{
 }
 
 .row{ margin-bottom:12px; }
-.label{ font-size:13px; color:var(--muted); font-weight:800; margin-bottom:8px; }
+.label{ font-size:13px; color:var(--muted); font-weight:900; margin-bottom:8px; }
 
 .inputRow{ display:flex; gap:10px; align-items:center; }
 .input{
@@ -98,6 +97,20 @@ body{
   display:grid;
   grid-template-columns: 1fr 1fr;
   gap:10px;
+}
+
+.field{
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  border-radius:16px;
+  padding:10px;
+}
+.field__label{
+  font-size:12px;
+  color: rgba(255,255,255,.70);
+  font-weight:900;
+  margin-bottom:6px;
+  letter-spacing:.2px;
 }
 
 .btn{
@@ -271,4 +284,5 @@ code{
 #txtStatus{ font-weight:900; }
 #txtStatus[data-st="active"]{ color: rgba(46, 204, 113, .95); }
 #txtStatus[data-st="inactive"]{ color: rgba(255, 94, 94, .95); }
+#txtStatus[data-st="pending_activation"]{ color: rgba(255, 200, 90, .95); }
 .btn--tiny:active{ transform: translateY(1px); }
