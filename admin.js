@@ -5,7 +5,12 @@
      - activate: uses ADMIN_SECRET (secret)
    - Backward compatible:
      - also sends admin_pin if provided
-   - Adds: Form link generator (form.html?tenant&invite&uid)
+   - FIX v499 invite flow (IMPORTANT):
+     - Copy Form Link / Copy Form Pack:
+       if invite empty -> auto-generate -> fill field -> copy with invite
+     - reserve:
+       if invite empty -> auto-generate
+       uid is optional (warn if empty, but allow)
 */
 
 const CONFIG = {
@@ -76,6 +81,43 @@ function formUrl_(tenant, invite, uid){
   if(text(invite)) u.searchParams.set("invite", text(invite));
   if(text(uid))    u.searchParams.set("uid", text(uid));
   return u.toString();
+}
+
+/* ---------- invite generator (v499) ---------- */
+function rand36_(len){
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const a = new Uint8Array(len);
+  try{
+    crypto.getRandomValues(a);
+    return Array.from(a).map(n => chars[n % chars.length]).join("");
+  }catch{
+    // fallback
+    let out = "";
+    for(let i=0;i<len;i++){
+      out += chars[Math.floor(Math.random()*chars.length)];
+    }
+    return out;
+  }
+}
+// Format: A9K3-7Q2M
+function generateInvite_(){
+  const p1 = rand36_(4);
+  const p2 = rand36_(4);
+  return `${p1}-${p2}`;
+}
+function ensureInvite_(){
+  const el = qs("formInvite");
+  if(!el) return "";
+  let v = text(el.value);
+  if(!v){
+    v = generateInvite_();
+    el.value = v;
+  }else{
+    // normalize: uppercase, keep dash if any
+    v = v.toUpperCase();
+    el.value = v;
+  }
+  return v;
 }
 
 /* ---------- robust parse ---------- */
@@ -311,7 +353,6 @@ function fillPreview_(row){
   if(qs("txtCardUrl"))  qs("txtCardUrl").textContent = cardCleanUrl_(currentId);
   if(qs("txtShareUrl")) qs("txtShareUrl").textContent = shareUrl_(currentId);
 
-  // if row contains token, auto-fill token input for next loads
   const tk = text(pick_(row, ["token","TOKEN"]));
   if(tk && qs("adminToken") && !text(qs("adminToken").value)){
     qs("adminToken").value = tk;
@@ -358,8 +399,8 @@ function showOverlay_(on, title, hint){
 
 /* ---------- Secrets / Token ---------- */
 function getToken_(){ return text(qs("adminToken")?.value); }
-function getSecret_(){ return text(qs("adminSecret")?.value); } // v499
-function getPinCompat_(){ return text(qs("adminSecret")?.value); } // same field used as fallback pin (compat)
+function getSecret_(){ return text(qs("adminSecret")?.value); }
+function getPinCompat_(){ return text(qs("adminSecret")?.value); }
 
 function rememberSecret_(){
   const v = getSecret_();
@@ -467,7 +508,7 @@ async function doActivate_(){
   if(!(await requireLoaded_())) return;
 
   const secret = getSecret_();
-  const pinCompat = getPinCompat_(); // same value; backend may read admin_pin
+  const pinCompat = getPinCompat_();
   if(!secret && !pinCompat){
     alert("⚠️ 請輸入 ADMIN_SECRET（或舊版 PIN）");
     return;
@@ -476,8 +517,6 @@ async function doActivate_(){
 
   setHint_(`⏳ activate 中：<b>${currentId}</b>`);
   try{
-    // v499 expects: {action:"activate", id, secret}
-    // compat: also send admin_pin if old GAS uses it
     const r = await callAction_({
       action:"activate",
       id: currentId,
@@ -552,22 +591,17 @@ function getFormFields_(){
 }
 
 async function doCopyFormLink_(){
-  const { tenant, invite, uid } = getFormFields_();
-  if(!invite){
-    alert("⚠️ 請先填 invite（邀請碼）");
-    return;
-  }
+  const { tenant, uid } = getFormFields_();
+  const invite = ensureInvite_(); // ✅ auto-generate if empty
+
   const link = formUrl_(tenant, invite, uid);
   const ok = await copyText_(link);
-  alert(ok ? "✅ 已複製表單連結" : "⚠️ 複製失敗");
+  alert(ok ? `✅ 已複製表單連結（invite：${invite}）` : "⚠️ 複製失敗");
 }
 
 async function doCopyFormPack_(){
-  const { tenant, invite, uid } = getFormFields_();
-  if(!invite){
-    alert("⚠️ 請先填 invite（邀請碼）");
-    return;
-  }
+  const { tenant, uid } = getFormFields_();
+  const invite = ensureInvite_(); // ✅ auto-generate if empty
   const link = formUrl_(tenant, invite, uid);
 
   const msg =
@@ -580,23 +614,22 @@ ${link}
 2) 你送出後，我會先做成品給你預覽核對；確認無誤後才會正式開卡交付。
 `;
   const ok = await copyText_(msg);
-  alert(ok ? "✅ 已複製給客戶（含說明）" : "⚠️ 複製失敗");
+  alert(ok ? `✅ 已複製給客戶（含說明＋invite：${invite}）` : "⚠️ 複製失敗");
 }
 
 async function doReserve_(){
-  const { tenant, invite, uid } = getFormFields_();
-  if(!invite){
-    alert("⚠️ 請先填 invite（邀請碼）");
-    return;
-  }
+  let { tenant, uid } = getFormFields_();
+  const invite = ensureInvite_(); // ✅ auto-generate if empty
+
+  // uid optional: warn but allow
   if(!uid){
-    alert("⚠️ reserve 建議填 uid（用於綁定與上傳路徑）；若你暫時沒有 uid，可先用你自訂的客戶代碼");
-    return;
+    const go = confirm("⚠️ 你目前未填 uid。\n\nuid 可用於 reserve 綁定與上傳路徑更精準。\n若你暫時沒有 uid，也可先 reserve（之後再補）。\n\n仍要繼續 reserve 嗎？");
+    if(!go) return;
   }
 
-  setFormHint_(`⏳ reserve 中：<b>${invite}</b> · uid=<b>${uid}</b>`);
+  setFormHint_(`⏳ reserve 中：<b>${invite}</b>${uid ? ` · uid=<b>${uid}</b>` : " · uid=<b>—</b>"}`);
   try{
-    const r = await callAction_({ action:"reserve", tenant, invite, uid });
+    const r = await callAction_({ action:"reserve", tenant, invite, uid: uid || "" });
     const u = unwrapOk_(r);
     if(u.ok){
       lastReserve = r;
