@@ -1,129 +1,41 @@
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Firebase Upload Test</title>
-  <style>
-    body{ margin:0; font-family: system-ui, -apple-system, "Noto Sans TC"; background:#0b1220; color:#e7eefc; }
-    .wrap{ max-width:860px; margin:0 auto; padding:18px; }
-    .card{ background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:14px; }
-    .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
-    input,button{ height:42px; border-radius:12px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#e7eefc; padding:0 12px; }
-    button{ cursor:pointer; font-weight:800; }
-    button:hover{ background:rgba(255,255,255,.10); }
-    .log{ white-space:pre-wrap; font-size:13px; line-height:1.5; opacity:.95; }
-    .ok{ color:#8cffc1; font-weight:900; }
-    .bad{ color:#ff9aa2; font-weight:900; }
-    img{ max-width:100%; border-radius:14px; margin-top:10px; border:1px solid rgba(255,255,255,.12); }
-    a{ color:#9bd6ff; }
-    .muted{ opacity:.75; font-size:13px; }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <h2 style="margin:8px 0 12px;">Firebase Storage 上傳測試（Anonymous Auth）</h2>
-    <div class="card">
-      <div class="muted">目的：先確認 Firebase「能匿名登入 + 能上傳 + 能拿到 downloadURL」。</div>
-      <div style="height:10px;"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
 
-      <div class="row">
-        <label>tenant：
-          <input id="tenant" value="angel" />
-        </label>
-        <label>cardId：
-          <input id="cardId" value="TW0001" />
-        </label>
-      </div>
+const firebaseConfig = {
+  apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
+  authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
+  projectId: "happiness-smart-card-pro-7389a",
+  storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
+  messagingSenderId: "143313936007",
+  appId: "1:143313936007:web:7c948563c51e8a47d3a222"
+};
 
-      <div style="height:10px;"></div>
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const storage = getStorage(app);
 
-      <div class="row">
-        <input id="file" type="file" accept="image/*" />
-        <button id="btnUpload">上傳測試</button>
-        <button id="btnSignIn">重新匿名登入</button>
-      </div>
+// 🔥 自動匿名登入
+await signInAnonymously(auth);
 
-      <div style="height:12px;"></div>
-      <div id="status" class="log"></div>
-      <img id="preview" style="display:none;" />
-    </div>
-  </div>
+onAuthStateChanged(auth, (user)=>{
+  if(user){
+    console.log("✅ 匿名登入成功:", user.uid);
+  }else{
+    console.log("⚠️ 尚未登入");
+  }
+});
 
-  <!-- Firebase v9 modular -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+// 🔥 上傳測試函式
+window.testUpload = async function(file){
+  const path = `hsc_cards/angel/TW0001/test_${Date.now()}_${file.name}`;
+  const r = ref(storage, path);
 
-    // ✅ TODO：把這裡換成你 Firebase Console 的 firebaseConfig
-    const FIREBASE_CONFIG = {
-      apiKey: "PASTE_HERE",
-      authDomain: "PASTE_HERE",
-      projectId: "PASTE_HERE",
-      storageBucket: "PASTE_HERE",
-      messagingSenderId: "PASTE_HERE",
-      appId: "PASTE_HERE"
-    };
+  await uploadBytes(r, file);
+  const url = await getDownloadURL(r);
 
-    const $ = (id)=>document.getElementById(id);
-    const log = (msg)=>{ $("status").textContent = msg; };
-
-    let app, auth, storage;
-
-    async function initFirebase(){
-      app = initializeApp(FIREBASE_CONFIG);
-      auth = getAuth(app);
-      storage = getStorage(app);
-
-      onAuthStateChanged(auth, (u)=>{
-        if(u){
-          log(`✅ 已登入（匿名） uid=${u.uid}\n你可以開始上傳測試。`);
-        }else{
-          log("⚠️ 尚未登入（匿名）");
-        }
-      });
-
-      await signInAnonymously(auth);
-    }
-
-    async function reSignIn(){
-      log("⏳ 重新匿名登入中...");
-      await signInAnonymously(auth);
-    }
-
-    async function uploadTest(){
-      const f = $("file").files?.[0];
-      if(!f){ log("⚠️ 請先選一張圖片"); return; }
-
-      const tenant = $("tenant").value.trim() || "angel";
-      const cardId = $("cardId").value.trim() || "TW0001";
-      const ts = Date.now();
-      const path = `hsc_cards/${tenant}/${cardId}/test_${ts}_${f.name.replace(/[^\w.\-]+/g,"_")}`;
-
-      log(`⏳ 上傳中...\npath=${path}`);
-
-      const r = ref(storage, path);
-      await uploadBytes(r, f, { contentType: f.type || "image/jpeg" });
-      const url = await getDownloadURL(r);
-
-      log(`✅ 上傳成功！\ndownloadURL:\n${url}\n\n（點開看看能不能直接顯示圖）`);
-      const img = $("preview");
-      img.src = url;
-      img.style.display = "";
-    }
-
-    $("btnUpload").addEventListener("click", uploadTest);
-    $("btnSignIn").addEventListener("click", reSignIn);
-
-    // boot
-    try{
-      log("⏳ 初始化 Firebase 中...");
-      await initFirebase();
-    }catch(e){
-      console.error(e);
-      log(`❌ 初始化失敗：${e?.message || e}\n\n最常見原因：firebaseConfig 填錯 / 沒開 Anonymous / Storage rules 不允許寫入。`);
-    }
-  </script>
-</body>
-</html>
+  console.log("✅ 上傳成功:", url);
+  return url;
+};
+</script>
