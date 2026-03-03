@@ -2,196 +2,86 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>HSC Invite Form v499</title>
-  <meta name="theme-color" content="#0f172a" />
-  <link rel="stylesheet" href="./form.css?v=499" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>智慧名片訂製表單 v499</title>
+
+  <style>
+    body{
+      font-family: "Noto Sans TC", sans-serif;
+      background:#f7f9fc;
+      margin:0;
+      padding:24px;
+    }
+    .card{
+      max-width:560px;
+      margin:auto;
+      background:white;
+      padding:24px;
+      border-radius:18px;
+      box-shadow:0 20px 60px rgba(0,0,0,.08);
+    }
+    h1{
+      font-size:20px;
+      margin-bottom:18px;
+    }
+    input, textarea{
+      width:100%;
+      padding:12px;
+      margin-bottom:14px;
+      border-radius:12px;
+      border:1px solid #ddd;
+      font-size:14px;
+    }
+    button{
+      width:100%;
+      padding:14px;
+      border:none;
+      border-radius:14px;
+      font-weight:900;
+      background:#111;
+      color:white;
+      cursor:pointer;
+    }
+    .hint{
+      font-size:13px;
+      color:#666;
+      margin-bottom:12px;
+    }
+    .error{
+      color:#c00;
+      font-weight:700;
+      margin-bottom:12px;
+    }
+    .success{
+      color:#090;
+      font-weight:700;
+      margin-bottom:12px;
+    }
+  </style>
 </head>
+
 <body>
-  <main class="wrap">
-    <header class="top">
-      <div class="brand">
-        <div class="dot"></div>
-        <div class="titles">
-          <div class="h1">幸福智慧名片｜受邀填寫表單</div>
-          <div class="h2">v499｜方案分流×Firebase直傳×核對確認</div>
-        </div>
-      </div>
+  <div class="card">
+    <h1>智慧名片訂製資料填寫</h1>
 
-      <div class="status">
-        <div class="k">狀態</div>
-        <div class="v" id="statusText">等待填寫</div>
-        <div class="mini" id="modeText">模式：未開始</div>
-      </div>
-    </header>
+    <div id="msg"></div>
 
-    <section class="card">
-      <!-- Invite -->
-      <div class="row">
-        <label>邀請碼（必填）</label>
-        <input id="invite" placeholder="由館長提供，如：p8zltw" autocomplete="off" />
-        <small>只有「確定訂製」才會拿到邀請碼。</small>
-      </div>
+    <input id="name" placeholder="姓名（必填）" />
+    <input id="unit" placeholder="單位" />
+    <input id="title" placeholder="職稱" />
+    <textarea id="slogan" placeholder="一句話介紹 / 理念標語"></textarea>
 
-      <div class="grid2">
-        <div class="row">
-          <label>tenant</label>
-          <input id="tenant" value="angel" autocomplete="off" />
-        </div>
-        <div class="row">
-          <label>方案</label>
-          <select id="plan">
-            <option value="free" selected>自由搭配（free）</option>
-            <option value="premium">精品設計（premium）</option>
-          </select>
-        </div>
-      </div>
+    <div class="hint">
+      ※ 圖片請先上傳到 Firebase Storage，貼上 downloadURL（不可使用 base64）
+    </div>
 
-      <!-- Plan Split UI -->
-      <div class="planBox" id="freeBox">
-        <div class="planTitle">自由搭配｜5色 × 3版型 × 3紙感</div>
+    <input id="avatar" placeholder="個人照 downloadURL" />
+    <input id="photo1" placeholder="照片1 downloadURL" />
+    <input id="photo2" placeholder="照片2 downloadURL" />
 
-        <div class="row">
-          <label>顏色（c1~c5）</label>
-          <div class="chipRow" id="freeColors"></div>
-          <input type="hidden" id="color" value="c1" />
-        </div>
+    <button id="btnSubmit">送出資料</button>
+  </div>
 
-        <div class="row">
-          <label>版型（s1~s3）</label>
-          <div class="chipRow" id="freeStyles"></div>
-          <input type="hidden" id="style" value="s1" />
-        </div>
-
-        <div class="row">
-          <label>紙感（f1~f3）</label>
-          <div class="chipRow" id="freePapers"></div>
-          <input type="hidden" id="paper" value="f1" />
-        </div>
-
-        <div class="hint">自由搭配：照片牆最多 <b>2 張</b></div>
-      </div>
-
-      <div class="planBox" id="premiumBox" style="display:none;">
-        <div class="planTitle">精品設計｜7底色（p1~p7）</div>
-
-        <div class="row">
-          <label>精品底色（p1~p7）</label>
-          <div class="chipRow" id="premiumColors"></div>
-          <input type="hidden" id="premium_color" value="p1" />
-        </div>
-
-        <div class="hint">精品設計：照片牆最多 <b>5 張</b></div>
-      </div>
-
-      <hr class="sep" />
-
-      <!-- Text fields -->
-      <div class="grid2">
-        <div class="row">
-          <label>姓名（必填）</label>
-          <input id="name" placeholder="例：王小明" autocomplete="name" />
-        </div>
-        <div class="row">
-          <label>職稱</label>
-          <input id="title" placeholder="例：品牌主理人" autocomplete="organization-title" />
-        </div>
-      </div>
-
-      <div class="row">
-        <label>單位</label>
-        <input id="unit" placeholder="例：幸福緣" autocomplete="organization" />
-      </div>
-
-      <div class="grid2">
-        <div class="row">
-          <label>電話</label>
-          <input id="phone" placeholder="例：0912..." inputmode="tel" autocomplete="tel" />
-        </div>
-        <div class="row">
-          <label>Email</label>
-          <input id="email" placeholder="例：xxx@gmail.com" inputmode="email" autocomplete="email" />
-        </div>
-      </div>
-
-      <div class="grid2">
-        <div class="row">
-          <label>LINE（可填網址或 @ID）</label>
-          <input id="line_url" placeholder="https://line.me/ti/p/... 或 @xxxx" autocomplete="off" />
-        </div>
-        <div class="row">
-          <label>LINE OA（可空）</label>
-          <input id="line_oa" placeholder="https://lin.ee/..." autocomplete="off" />
-        </div>
-      </div>
-
-      <div class="row">
-        <label>地址</label>
-        <input id="address" placeholder="例：高雄市..." autocomplete="street-address" />
-      </div>
-
-      <div class="row">
-        <label>官網</label>
-        <input id="website" placeholder="https://..." inputmode="url" autocomplete="url" />
-      </div>
-
-      <hr class="sep" />
-
-      <!-- Images -->
-      <div class="row">
-        <label>個人照（頭像 avatar）</label>
-        <input id="avatarFile" type="file" accept="image/*" />
-        <div class="preview"><img id="avatarPrev" alt="avatar preview" /></div>
-        <small>會壓縮成 JPG 再上傳 Firebase（不走 base64）。</small>
-      </div>
-
-      <div class="row">
-        <label>Logo</label>
-        <input id="logoFile" type="file" accept="image/*" />
-        <div class="preview"><img id="logoPrev" alt="logo preview" /></div>
-      </div>
-
-      <div class="row">
-        <label>照片牆（依方案限制張數）</label>
-        <input id="photosFile" type="file" accept="image/*" multiple />
-        <div class="preview-grid" id="photosPrev"></div>
-        <small id="photoLimitHint">自由搭配最多 2 張</small>
-      </div>
-
-      <hr class="sep" />
-
-      <!-- Actions -->
-      <div class="actions">
-        <button id="btnSubmit" class="btn primary">送出並建立</button>
-        <button id="btnPing" class="btn">測試 ping</button>
-        <button id="btnReset" class="btn danger">清空</button>
-      </div>
-
-      <div class="log">
-        <div class="log-h">Log</div>
-        <pre id="logBox"></pre>
-      </div>
-
-      <!-- Preview / Confirm (no copy link, no share) -->
-      <div class="confirmBox" id="confirmBox" style="display:none;">
-        <div class="confirmTitle">請核對資料</div>
-        <div class="confirmRow">
-          <div class="kv"><div class="k">序號</div><div class="v" id="cId">—</div></div>
-          <div class="kv"><div class="k">姓名</div><div class="v" id="cName">—</div></div>
-        </div>
-
-        <div class="confirmBtns">
-          <button id="btnOk" class="btn primary">我確認 OK</button>
-          <button id="btnNeedEdit" class="btn">需要修改</button>
-        </div>
-
-        <div class="confirmHint">
-          不提供「複製成品連結」與分享鈕。要給家人看可直接截圖。
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <script type="module" src="./form.js?v=499"></script>
+  <script src="./form.js?v=499"></script>
 </body>
 </html>
