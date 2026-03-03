@@ -1,7 +1,10 @@
 /* ================================
- * form.js — v500.1 (COMPLETE OVERWRITE)
- * - Adds client-side image compression BEFORE Firebase upload
- * - Keeps v500 flow unchanged (exp+sig -> reserve -> upload -> create -> confirm)
+ * form.js — v500.2 (COMPLETE OVERWRITE)
+ * - Client-side image compression BEFORE Firebase upload
+ * - Align with GAS v500.2:
+ *   - verifyFillLink: exp included inside sig payload (exp in query is optional)
+ *   - reserve returns final plan (invite may override); front-end follows reserve plan
+ *   - reserve does NOT write to sheet; create writes to sheet
  * ================================ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
@@ -18,13 +21,12 @@ const firebaseConfig = {
   appId: "1:143313936007:web:7c948563c51e8a47d3a222"
 };
 
-// ✅ 填你的 GAS WebApp exec URL
+// ✅ 建議你在 form.html 用 <script> 設定 window.HSC_GAS_URL = "https://script.google.com/macros/s/.../exec"
 const GAS_URL = window.HSC_GAS_URL || "";
 
 const DEFAULT_LINE_OA = "https://lin.ee/G3VJoRm";
 
 /* ========= Compression presets ========= */
-// NOTE: You can tune these later without touching GAS.
 const COMPRESS = {
   avatar: { maxEdge: 900, quality: 0.82, mime: "image/jpeg" },
   logo:   { maxEdge: 900, quality: 0.82, mime: "image/jpeg" },
@@ -75,7 +77,7 @@ const state = {
   try {
     if (!GAS_URL) {
       pill.textContent = "GAS URL missing";
-      verifyStatus.textContent = "請在 form.js 填入 GAS_URL（你的 WebApp exec URL）。";
+      verifyStatus.textContent = "請在 form.html 設定 window.HSC_GAS_URL（你的 WebApp exec URL）。";
       return;
     }
 
@@ -83,16 +85,17 @@ const state = {
     state.exp = Number(qs.get("exp") || 0);
     state.sig = String(qs.get("sig") || "").trim();
 
-    if (!state.exp || !state.sig) {
+    if (!state.sig) {
       pill.textContent = "Invalid link";
-      verifyStatus.textContent = "缺少 exp 或 sig，請用後台產生的填表連結進入。";
+      verifyStatus.textContent = "缺少 sig，請用後台產生的填表連結進入。";
       return;
     }
 
     setPill("Verifying…");
-    verifyStatus.textContent = "正在驗證 exp + sig…";
+    verifyStatus.textContent = "正在驗證填表連結（sig）…";
 
-    const v = await api("verifyFillLink", { exp: state.exp, sig: state.sig }, "GET");
+    // ✅ exp 在 v500.2 已納入 sig payload，這裡保留 exp 只是方便 debug；就算 exp 被改也無法延長
+    const v = await api("verifyFillLink", { exp: state.exp || "", sig: state.sig }, "GET");
     if (!v.ok) throw new Error(v.error || "verify failed");
 
     state.tenant = v.tenant;
@@ -110,12 +113,9 @@ const state = {
 
     formCard.style.display = "block";
 
-    planStatus.textContent = `系統方案：${state.plan}（此連結已鎖定，無法自行更改）`;
-    freeBox.style.display = state.plan === "free" ? "block" : "none";
-    premiumBox.style.display = state.plan === "premium" ? "block" : "none";
-    photoLimitHint.textContent = state.plan === "free" ? "照片限制：最多 2 張" : "照片限制：最多 5 張";
+    applyPlanUI_(state.plan);
 
-    if (!$("line_oa").value) $("line_oa").value = DEFAULT_LINE_OA;
+    if ($("line_oa") && !$("line_oa").value) $("line_oa").value = DEFAULT_LINE_OA;
 
     btnSubmit.addEventListener("click", onSubmit);
 
@@ -124,6 +124,13 @@ const state = {
     verifyStatus.textContent = `驗證失敗：${String(err.message || err)}`;
   }
 })();
+
+function applyPlanUI_(plan) {
+  planStatus.textContent = `系統方案：${plan}（此連結已鎖定，無法自行更改）`;
+  freeBox.style.display = plan === "free" ? "block" : "none";
+  premiumBox.style.display = plan === "premium" ? "block" : "none";
+  photoLimitHint.textContent = plan === "free" ? "照片限制：最多 2 張" : "照片限制：最多 5 張";
+}
 
 /* ========= Submit ========= */
 
@@ -136,7 +143,7 @@ async function onSubmit() {
     const r = await api("reserve", {
       tenant: state.tenant,
       uid: state.uid,
-      plan: state.plan,
+      plan: state.plan,     // still send, but backend may override using invite.plan
       invite: state.invite
     });
 
@@ -144,9 +151,15 @@ async function onSubmit() {
 
     state.id = r.id;
     state.token = r.token;
-    state.uploadPath = r.uploadPath;
+    state.uploadPath = ensureSlash_(r.uploadPath || "");
     state.clean_card_url = r.clean_card_url;
     state.og_page_url = r.og_page_url;
+
+    // ✅ 上線穩：以 reserve 回傳的 plan 為準（避免 invite 設定覆蓋造成前端限制錯）
+    if (r.plan && r.plan !== state.plan) {
+      state.plan = r.plan;
+      applyPlanUI_(state.plan);
+    }
 
     submitStatus.textContent = "Step 2/4：壓縮並上傳圖片到 Firebase Storage…";
     const urls = await uploadAllImages_();
@@ -183,21 +196,21 @@ function buildCreatePayload_(urls) {
     id: state.id,
     token: state.token,
 
-    name: $("name").value.trim(),
-    unit: $("unit").value.trim(),
-    title: $("title").value.trim(),
-    slogan: $("slogan").value.trim(),
-    services: $("services").value.trim(),
-    experience: $("experience").value.trim(),
+    name: ($("name")?.value || "").trim(),
+    unit: ($("unit")?.value || "").trim(),
+    title: ($("title")?.value || "").trim(),
+    slogan: ($("slogan")?.value || "").trim(),
+    services: ($("services")?.value || "").trim(),
+    experience: ($("experience")?.value || "").trim(),
 
-    phone: $("phone").value.trim(),
-    email: $("email").value.trim(),
-    website: $("website").value.trim(),
-    address: $("address").value.trim(),
-    line_id: $("line_id").value.trim(),
-    line_url: $("line_url").value.trim(),
-    line_oa: $("line_oa").value.trim(),
-    wechat_id: $("wechat_id").value.trim(),
+    phone: ($("phone")?.value || "").trim(),
+    email: ($("email")?.value || "").trim(),
+    website: ($("website")?.value || "").trim(),
+    address: ($("address")?.value || "").trim(),
+    line_id: ($("line_id")?.value || "").trim(),
+    line_url: ($("line_url")?.value || "").trim(),
+    line_oa: ($("line_oa")?.value || "").trim(),
+    wechat_id: ($("wechat_id")?.value || "").trim(),
 
     avatar_url: urls.avatar_url || "",
     logo_url: urls.logo_url || "",
@@ -205,11 +218,11 @@ function buildCreatePayload_(urls) {
   };
 
   if (plan === "free") {
-    common.free_color = $("free_color").value.trim();
-    common.free_style = $("free_style").value.trim();
-    common.free_paper = $("free_paper").value.trim();
+    common.free_color = ($("free_color")?.value || "").trim();
+    common.free_style = ($("free_style")?.value || "").trim();
+    common.free_paper = ($("free_paper")?.value || "").trim();
   } else {
-    common.premium_color = $("premium_color").value.trim();
+    common.premium_color = ($("premium_color")?.value || "").trim();
   }
 
   return common;
@@ -221,16 +234,18 @@ async function uploadAllImages_() {
   const app = initializeApp(firebaseConfig);
   const storage = getStorage(app);
 
-  const avatarFile = $("avatarFile").files && $("avatarFile").files[0] ? $("avatarFile").files[0] : null;
-  const logoFile = $("logoFile").files && $("logoFile").files[0] ? $("logoFile").files[0] : null;
-  const photosFiles = $("photosFile").files ? Array.from($("photosFile").files) : [];
+  const avatarFile = $("avatarFile")?.files?.[0] || null;
+  const logoFile = $("logoFile")?.files?.[0] || null;
+  const photosFiles = $("photosFile")?.files ? Array.from($("photosFile").files) : [];
 
   if (!avatarFile) throw new Error("請上傳頭像（avatar）");
 
   const maxPhotos = state.plan === "free" ? 2 : 5;
   if (photosFiles.length > maxPhotos) throw new Error(`照片最多 ${maxPhotos} 張，請重新選擇`);
 
-  const base = state.uploadPath; // e.g. hsc_cards/tenant/uid/cardId/
+  const base = ensureSlash_(state.uploadPath); // e.g. hsc_cards/tenant/uid/cardId/
+  if (!base) throw new Error("uploadPath missing (reserve failed?)");
+
   const urls = { avatar_url: "", logo_url: "", photos: [] };
 
   // avatar
@@ -271,11 +286,9 @@ async function compressImageToBlob_(file, opt) {
 
   const img = await fileToImage_(file);
 
-  // original size
   const iw = img.naturalWidth || img.width;
   const ih = img.naturalHeight || img.height;
 
-  // scale
   const scale = Math.min(1, maxEdge / Math.max(iw, ih));
   const w = Math.max(1, Math.round(iw * scale));
   const h = Math.max(1, Math.round(ih * scale));
@@ -291,11 +304,10 @@ async function compressImageToBlob_(file, opt) {
   ctx.drawImage(img, 0, 0, w, h);
 
   const blob = await canvasToBlob_(canvas, mime || "image/jpeg", quality || 0.8);
+  if (!blob) throw new Error("圖片壓縮失敗（toBlob 回傳空值）");
 
-  // Safety: if compression somehow bigger than original, use original file
-  if (blob && blob.size > file.size) {
-    return file;
-  }
+  // Safety: if compressed bigger than original, use original file
+  if (blob.size > file.size) return file;
   return blob;
 }
 
@@ -304,7 +316,7 @@ function fileToImage_(file) {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = (e) => { URL.revokeObjectURL(url); reject(new Error("圖片讀取失敗")); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("圖片讀取失敗")); };
     img.src = url;
   });
 }
@@ -357,7 +369,11 @@ async function api(action, payload, method) {
   if (m === "GET") {
     const u = new URL(GAS_URL);
     u.searchParams.set("action", action);
-    Object.keys(payload || {}).forEach(k => u.searchParams.set(k, String(payload[k])));
+    Object.keys(payload || {}).forEach(k => {
+      if (payload[k] !== undefined && payload[k] !== null && String(payload[k]) !== "") {
+        u.searchParams.set(k, String(payload[k]));
+      }
+    });
     const res = await fetch(u.toString(), { method: "GET" });
     return await res.json();
   }
@@ -372,4 +388,12 @@ async function api(action, payload, method) {
   });
 
   return await res.json();
+}
+
+/* ========= misc ========= */
+
+function ensureSlash_(p) {
+  const s = String(p || "").trim();
+  if (!s) return "";
+  return s.endsWith("/") ? s : (s + "/");
 }
