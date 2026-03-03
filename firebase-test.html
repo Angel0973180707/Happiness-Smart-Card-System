@@ -1,19 +1,23 @@
-<!-- firebase-test.html — COMPLETE OVERWRITE
+<!-- firebase-test.html — v502 (COMPLETE OVERWRITE)
   Purpose:
-  - Test Firebase Auth (anonymous) + Firebase Storage upload from GitHub Pages
-  - Fix CORS issue by using the correct bucket: *.firebasestorage.app (NOT *.appspot.com)
+  - Test firebase.js module:
+    1) anonymous auth
+    2) upload to Storage
+    3) get downloadURL
 
-  How to use:
-  1) Put this file at repo root (same level as index.html)
-  2) Open: https://angel0973180707.github.io/Happiness-Smart-Card-System/firebase-test.html
-  3) Click: 1) 匿名登入  →  2) 選擇檔案  →  3) 測試上傳
+  Requirements:
+  - Put firebase.js at repo root
+  - firebase.js must contain correct FIREBASE_CONFIG
+
+  Open:
+  https://angel0973180707.github.io/Happiness-Smart-Card-System/firebase-test.html
 -->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Firebase Storage Test</title>
+  <title>Firebase Storage Test (v502)</title>
   <meta name="theme-color" content="#0f172a" />
   <style>
     :root{
@@ -48,9 +52,7 @@
       display:flex; align-items:center; justify-content:space-between;
       gap:12px; margin-bottom:14px;
     }
-    .title{
-      font-size:20px; font-weight:800; letter-spacing:.5px;
-    }
+    .title{ font-size:20px; font-weight:800; letter-spacing:.5px; }
     .tag{
       font-size:12px; padding:6px 10px; border-radius:999px;
       background:rgba(255,255,255,.08);
@@ -87,9 +89,7 @@
       border-radius:16px;
       padding:14px;
     }
-    .panel h3{
-      margin:0 0 10px; font-size:14px; letter-spacing:.2px;
-    }
+    .panel h3{ margin:0 0 10px; font-size:14px; letter-spacing:.2px; }
     .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
     .btn{
       appearance:none; border:1px solid rgba(255,255,255,.14);
@@ -172,7 +172,7 @@
 
     <div class="card">
       <div class="cardHead">
-        <b>Happiness Smart Card — Firebase 連線測試</b>
+        <b>Happiness Smart Card — Firebase 連線測試（v502）</b>
         <span class="hint">匿名登入 → 選檔 → 上傳</span>
       </div>
 
@@ -182,25 +182,25 @@
             <h3>1) 身分 / Auth</h3>
             <div class="row">
               <button class="btn primary" id="btnLogin">匿名登入</button>
-              <button class="btn danger" id="btnLogout" disabled>登出</button>
+              <button class="btn danger" id="btnReset">刷新狀態</button>
             </div>
 
             <div class="kv">
               <div class="k">Auth 狀態</div><div class="v" id="authState">-</div>
               <div class="k">UID</div><div class="v" id="uid">-</div>
-              <div class="k">Project</div><div class="v" id="pid">-</div>
-              <div class="k">Bucket</div><div class="v" id="bucket">-</div>
+              <div class="k">Tenant</div><div class="v" id="tenant">angel</div>
+              <div class="k">版本</div><div class="v" id="ver">-</div>
             </div>
 
             <div class="mini">
-              ✅ 你目前 Firebase Console 看到的 bucket 是 <b>*.firebasestorage.app</b><br/>
-              ❌ 若用成 *.appspot.com 常會導致上傳被擋 / CORS 問題
+              ✅ 此頁面不直接引用 Firebase SDK<br/>
+              ✅ 全部走 <b>firebase.js</b>（與 v502 正式流程一致）
             </div>
           </div>
 
           <div class="panel">
             <h3>2) Storage 上傳</h3>
-            <input type="file" id="file" />
+            <input type="file" id="file" accept="image/*" />
             <div class="row" style="margin-top:10px;">
               <button class="btn primary" id="btnUpload" disabled>測試上傳</button>
               <button class="btn" id="btnCopy" disabled>複製 downloadURL</button>
@@ -213,7 +213,7 @@
 
             <div class="mini">
               測試會上傳到：<br/>
-              <b>hsc_cards/angel/TEST001/</b> 底下（用時間戳命名）
+              <b>hsc_cards/angel/TEST001/</b> 底下
             </div>
           </div>
         </div>
@@ -221,53 +221,28 @@
         <div class="log" id="log">（log）</div>
 
         <div class="footer">
-          若仍出現 CORS / ERR_FAILED：請確認 <b>storageBucket</b> 一定是 <b>firebasestorage.app</b>，
-          並且 Storage 規則允許該路徑寫入（你前面那段 rules 沒問題）。
+          若出現上傳失敗：請確認 Firebase Storage Rules 允許寫入
+          <b>hsc_cards/angel/{cardId}/{file}</b>，且 반드시需要登入（匿名登入即可）。
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Firebase (modular) -->
   <script type="module">
-    // ====== Firebase SDK (CDN) ======
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import {
-      getAuth,
-      onAuthStateChanged,
-      signInAnonymously,
-      signOut
-    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import {
-      getStorage,
-      ref,
-      uploadBytes,
-      getDownloadURL
-    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+    import { ensureAuth, uploadImage, getFirebaseInfo } from "./firebase.js";
 
-    // ====== Your Firebase config (FIXED: storageBucket uses firebasestorage.app) ======
-    const firebaseConfig = {
-      apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
-      authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
-      projectId: "happiness-smart-card-pro-7389a",
-      storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
-      messagingSenderId: "143313936007",
-      appId: "1:143313936007:web:7c948563c51e8a47d3a222"
-    };
-
-    // ====== UI refs ======
     const $ = (id) => document.getElementById(id);
     const statusTag = $("statusTag");
     const authState = $("authState");
     const uidEl = $("uid");
-    const pidEl = $("pid");
-    const bucketEl = $("bucket");
+    const verEl = $("ver");
+    const tenantEl = $("tenant");
     const pathEl = $("path");
     const urlEl = $("url");
     const logEl = $("log");
 
     const btnLogin = $("btnLogin");
-    const btnLogout = $("btnLogout");
+    const btnReset = $("btnReset");
     const btnUpload = $("btnUpload");
     const btnCopy = $("btnCopy");
     const fileEl = $("file");
@@ -286,14 +261,6 @@
       logEl.textContent = `${prefix}${msg}\n` + (logEl.textContent || "");
     }
 
-    function setAuthUI(isAuthed, uid=""){
-      authState.innerHTML = isAuthed ? '<span class="ok">已登入</span>' : '<span class="bad">未登入</span>';
-      uidEl.textContent = uid || "-";
-      btnLogin.disabled = isAuthed;
-      btnLogout.disabled = !isAuthed;
-      btnUpload.disabled = !isAuthed;
-    }
-
     function safeCopy(text){
       try{
         navigator.clipboard.writeText(text);
@@ -303,55 +270,48 @@
       }
     }
 
-    // ====== Init ======
-    let app, auth, storage;
-
-    try{
-      app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      storage = getStorage(app);
-
-      pidEl.textContent = firebaseConfig.projectId;
-      bucketEl.textContent = firebaseConfig.storageBucket;
-
-      setTag("Initialized", true);
-      log("Firebase initialized", "ok");
-    }catch(err){
-      setTag("Init failed", false);
-      log("Firebase init failed: " + (err?.message || err), "bad");
-      throw err;
-    }
-
-    // ====== Auth state watcher ======
-    onAuthStateChanged(auth, (user) => {
-      if(user){
-        setAuthUI(true, user.uid);
-        log("匿名登入成功: " + user.uid, "ok");
+    function renderInfo(){
+      const info = getFirebaseInfo();
+      verEl.textContent = info.version || "-";
+      tenantEl.textContent = info.tenant || "angel";
+      if(info.authed){
+        authState.innerHTML = '<span class="ok">已登入</span>';
+        uidEl.textContent = info.uid || "-";
+        btnUpload.disabled = false;
         setTag("Authed", true);
       }else{
-        setAuthUI(false);
-        log("已登出 / 未登入", "");
+        authState.innerHTML = '<span class="bad">未登入</span>';
+        uidEl.textContent = "-";
+        btnUpload.disabled = true;
         setTag("Not authed", false);
       }
-    });
+    }
 
-    // ====== Actions ======
+    // Init render
+    try{
+      renderInfo();
+      log("已載入 firebase.js（v502）", "ok");
+      log("提示：favicon.ico 404 不影響功能（可忽略）");
+      setTag("Initialized", true);
+    }catch(err){
+      log("初始化失敗: " + (err?.message || err), "bad");
+      setTag("Init failed", false);
+    }
+
     btnLogin.addEventListener("click", async () => {
       try{
-        await signInAnonymously(auth);
+        const u = await ensureAuth();
+        log("匿名登入成功: " + (u?.uid || ""), "ok");
+        renderInfo();
       }catch(err){
         log("匿名登入失敗: " + (err?.message || err), "bad");
         setTag("Auth failed", false);
       }
     });
 
-    btnLogout.addEventListener("click", async () => {
-      try{
-        await signOut(auth);
-        setTag("Logged out", false);
-      }catch(err){
-        log("登出失敗: " + (err?.message || err), "bad");
-      }
+    btnReset.addEventListener("click", () => {
+      renderInfo();
+      log("已刷新狀態", "ok");
     });
 
     btnUpload.addEventListener("click", async () => {
@@ -361,36 +321,25 @@
         return;
       }
 
-      // Upload path
-      const tenant = "angel";
       const cardId = "TEST001";
       const ts = new Date().toISOString().replace(/[:.]/g,"-");
-      const ext = (f.name || "file").split(".").pop();
-      const name = `test_${ts}.${ext}`;
-      const path = `hsc_cards/${tenant}/${cardId}/${name}`;
+      const fileName = `test_${ts}.jpg`;
+      const path = `hsc_cards/angel/${cardId}/${fileName}`;
+
       pathEl.textContent = path;
       urlEl.textContent = "-";
       btnCopy.disabled = true;
       lastURL = "";
 
       try{
-        log(`開始上傳: ${path}`);
+        await ensureAuth();
+
         setTag("Uploading...", true);
+        log("開始上傳: " + path);
 
-        const r = ref(storage, path);
-
-        // You can include metadata if needed
-        const metadata = {
-          contentType: f.type || "application/octet-stream",
-          customMetadata: {
-            tenant,
-            cardId,
-            kind: "firebase-test"
-          }
-        };
-
-        await uploadBytes(r, f, metadata);
-        const url = await getDownloadURL(r);
+        // 直接用 File 當 Blob 上傳（我們命名 .jpg；contentType 仍用原始檔）
+        // 若你要強制壓縮後再上傳，下一步可以接 image-compressor.js
+        const url = await uploadImage(cardId, f, fileName);
 
         lastURL = url;
         urlEl.textContent = url;
@@ -411,9 +360,6 @@
       const ok = safeCopy(lastURL);
       log(ok ? "已複製 downloadURL" : "複製失敗（瀏覽器不支援 clipboard）", ok ? "ok" : "bad");
     });
-
-    // Small hint: favicon 404 is harmless on GitHub Pages
-    log("提示：favicon.ico 404 不影響功能（可忽略）");
   </script>
 </body>
 </html>
