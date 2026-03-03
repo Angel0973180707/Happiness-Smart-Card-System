@@ -1,16 +1,13 @@
-<!-- admin.html — v497 (COMPLETE OVERWRITE) -->
+<!-- admin.html — v499 (COMPLETE OVERWRITE) -->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Admin Workspace v497</title>
+  <title>HSC Admin Workspace v499</title>
   <meta name="theme-color" content="#0f172a" />
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="./admin.css?v=497" />
-
-  <!-- QR (WeChat poster needs this) -->
+  <link rel="stylesheet" href="./admin.css?v=499" />
   <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 </head>
 
@@ -18,7 +15,7 @@
   <div class="topbar">
     <div class="brand">
       <div class="brand__title">Happiness Smart Card · Admin</div>
-      <div class="brand__sub">v497 · Workspace</div>
+      <div class="brand__sub">v499 · Workspace</div>
     </div>
 
     <button class="btn btn--ghost" id="btnBackHome" type="button">返回首頁</button>
@@ -27,6 +24,41 @@
   <div class="wrap">
     <!-- Left: Controls -->
     <section class="card">
+
+      <!-- ===== Form Link / Invite ===== -->
+      <div class="row">
+        <div class="label">訂製表單（只給確定要訂製的客戶）</div>
+
+        <div class="grid2">
+          <div class="field">
+            <div class="field__label">tenant</div>
+            <input class="input" id="formTenant" placeholder="angel" />
+          </div>
+          <div class="field">
+            <div class="field__label">invite（邀請碼）</div>
+            <input class="input" id="formInvite" placeholder="例如：A9K3-7Q2M" />
+          </div>
+
+          <div class="field" style="grid-column:1/-1">
+            <div class="field__label">uid（可選，用於 reserve 綁定；沒有就留空）</div>
+            <input class="input" id="formUid" placeholder="例如：firebase uid / line uid / 你自訂的客戶代碼" />
+          </div>
+
+          <button class="btn btn--primary" id="btnCopyFormLink" type="button">複製表單連結</button>
+          <button class="btn" id="btnCopyFormPack" type="button">複製給客戶（含說明）</button>
+
+          <button class="btn" id="btnReserve" type="button">reserve（預占序號）</button>
+          <button class="btn" id="btnCopyUploadPath" type="button" disabled>複製上傳路徑</button>
+        </div>
+
+        <div class="hint" id="formHint">
+          ✅ 建議流程：你先給客戶「表單連結」→ 客戶填完 → 你用序號載入 → 客戶預覽核對 → 客戶 confirm → 你 activate（交付）
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- ===== Load / Token ===== -->
       <div class="row">
         <div class="label">序號（TW0001 / 0001）</div>
         <div class="inputRow">
@@ -36,26 +68,37 @@
         <div class="hint" id="adminHint">提示：可輸入 0002（會自動補成 TW0002）。</div>
       </div>
 
-      <div class="divider"></div>
-
       <div class="row">
-        <div class="label">管理 PIN（ADMIN_PIN，存在本機 localStorage）</div>
+        <div class="label">token（inactive / pending 時載入需要）</div>
         <div class="inputRow">
-          <input class="input" id="adminPin" type="password" placeholder="••••••" />
-          <button class="btn" id="btnRememberPin" type="button">記住</button>
+          <input class="input" id="adminToken" placeholder="可先留空；若後端回覆 token required 再填" />
+          <button class="btn" id="btnRememberToken" type="button">記住</button>
         </div>
-        <div class="hint">PIN 只用於「開卡/鎖卡/續期」的 POST 指令；載入資料不需要 PIN。</div>
+        <div class="hint">v499 規則：status 不是 active 時，GET action=card 需要正確 token。</div>
       </div>
 
       <div class="divider"></div>
 
+      <!-- ===== Admin Secret / PIN (compat) ===== -->
+      <div class="row">
+        <div class="label">管理密鑰（v499 用 ADMIN_SECRET；舊版相容 admin_pin）</div>
+        <div class="inputRow">
+          <input class="input" id="adminSecret" type="password" placeholder="ADMIN_SECRET（建議）" />
+          <button class="btn" id="btnRememberSecret" type="button">記住</button>
+        </div>
+        <div class="hint">✅ v499 的 activate 會送 secret；同時也會一起送 admin_pin（若你的 GAS 舊版還在吃 PIN 也能用）。</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- ===== Delivery ===== -->
       <div class="row">
         <div class="label">交付工具</div>
         <div class="grid2">
           <button class="btn btn--primary" id="btnLoad" type="button">載入資料</button>
-          <button class="btn" id="btnPreview" type="button">成品預覽</button>
+          <button class="btn" id="btnPreview" type="button">智慧名片成品預覽</button>
 
-          <button class="btn" id="btnCopyCard" type="button">複製乾淨名片</button>
+          <button class="btn" id="btnCopyCard" type="button">複製智慧名片成品</button>
           <button class="btn" id="btnCopyShare" type="button">複製分享連結</button>
 
           <button class="btn btn--primary" id="btnCopyDelivery" type="button" style="grid-column:1/-1">一鍵交貨（複製給客戶）</button>
@@ -64,28 +107,27 @@
           <button class="btn" id="btnOpenPoster" type="button" disabled>開啟長圖</button>
         </div>
         <div class="hint">
-          ✅ 建議交付順序：先「複製分享連結」給客戶貼社群 → 再給「乾淨成品」收藏 → 如需微信再給長圖。
+          ✅ 建議交付順序：先「分享連結」給客戶貼社群 → 再給「智慧名片成品」收藏 → 如需微信再給長圖。<br/>
+          ⚠️ 不提供「複製產品連結」按鈕給客戶端；後臺複製只是給你交付用（客戶要給合夥人看，截圖即可）。
         </div>
       </div>
 
       <div class="divider"></div>
 
+      <!-- ===== Status / Actions ===== -->
       <div class="row">
-        <div class="label">狀態與續期</div>
+        <div class="label">狀態（v499：confirm → pending_activation；activate → active）</div>
         <div class="grid2">
-          <button class="btn btn--primary" id="btnActivate" type="button">開卡</button>
-          <button class="btn" id="btnDeactivate" type="button">鎖卡</button>
-
-          <div class="inputRow" style="grid-column:1/-1">
-            <input class="input" id="extendDays" inputmode="numeric" placeholder="續期天數（預設 365）" />
-            <button class="btn btn--primary" id="btnExtend" type="button" style="min-width:120px">續期</button>
-          </div>
+          <button class="btn" id="btnConfirm" type="button">confirm（客戶確認）</button>
+          <button class="btn btn--primary" id="btnActivate" type="button">activate（交付開卡）</button>
         </div>
+
         <div class="hint">
           status：<span id="txtStatus" data-st="">—</span>
           <button class="btn btn--tiny" id="btnCopyStatus" type="button" title="複製 status">⧉</button>
         </div>
       </div>
+
     </section>
 
     <!-- Right: Preview -->
@@ -107,7 +149,7 @@
 
       <div class="miniLinks">
         <div class="miniLinks__row">
-          <span class="tag">乾淨名片</span>
+          <span class="tag">智慧名片成品</span>
           <code id="txtCardUrl">—</code>
           <button class="btn btn--tiny" id="btnCopyCard2" type="button" title="複製">⧉</button>
         </div>
@@ -119,7 +161,7 @@
       </div>
 
       <div class="hint" style="margin-top:12px">
-        提醒：若「載入成功但名片沒更新」，通常是客戶資料未寫入 card_db 或 ID 不存在。
+        若「載入失敗」且提示 token required：請把 token 填進去再載入（v499 gate）。
       </div>
     </section>
   </div>
@@ -136,6 +178,6 @@
     </div>
   </div>
 
-  <script src="./admin.js?v=497"></script>
+  <script src="./admin.js?v=499"></script>
 </body>
 </html>
