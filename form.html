@@ -3,49 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Fill Form v512.2</title>
+  <title>HSC Fill Form v512.3</title>
   <meta name="theme-color" content="#0b1220" />
 
-  <link rel="stylesheet" href="./form.css?v=5122" />
+  <link rel="stylesheet" href="./form.css?v=5123" />
 
-  <!-- ✅ Firebase (compat) - IMPORTANT: DO NOT use defer here -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-
-  <!-- ✅ Firebase init (must run AFTER firebase scripts loaded) -->
-  <script>
-    // ✅ Your real Firebase config (PROD)
-    window.HSC_FIREBASE_CONFIG = window.HSC_FIREBASE_CONFIG || {
-      apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
-      authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
-      projectId: "happiness-smart-card-pro-7389a",
-      storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
-      messagingSenderId: "143313936007",
-      appId: "1:143313936007:web:7c948563c51e8a47d3a222"
-    };
-
-    (function(){
-      try{
-        if (!window.firebase || !firebase.initializeApp) {
-          console.warn("[HSC] firebase SDK not ready");
-          return;
-        }
-        if (firebase.apps && firebase.apps.length) {
-          console.log("[HSC] firebase already initialized");
-          return;
-        }
-        firebase.initializeApp(window.HSC_FIREBASE_CONFIG);
-        console.log("[HSC] firebase initialized ✅", {
-          projectId: window.HSC_FIREBASE_CONFIG.projectId,
-          storageBucket: window.HSC_FIREBASE_CONFIG.storageBucket
-        });
-      }catch(e){
-        console.error("[HSC] firebase init failed:", e);
-      }
-    })();
-  </script>
-
-  <script defer src="./form.js?v=5122"></script>
+  <!-- ✅ v512.3 uses Firebase v12 ESM dynamic import inside form.js
+       DO NOT include firebase compat scripts here (avoid SDK mixing) -->
+  <script defer src="./form.js?v=5123"></script>
 </head>
 
 <body>
@@ -53,7 +18,7 @@
     <div class="brand">
       <div class="brand-title">HSC 自建表單</div>
       <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">512.2</span>
+        <span class="muted">v</span><span id="versionText">512.3</span>
         <span class="dot">•</span>
         <span class="muted">tenant</span> <span id="tenantText">angel</span>
       </div>
@@ -364,13 +329,12 @@
           <div class="summary-row"><span>姓名</span><strong id="sumName">-</strong></div>
           <div class="summary-row"><span>單位</span><strong id="sumUnit">-</strong></div>
           <div class="summary-row"><span>頭銜</span><strong id="sumTitle">-</strong></div>
-
           <div class="summary-row"><span>影音</span><strong id="sumVideo">-</strong></div>
           <div class="summary-row"><span>社群</span><strong id="sumSocial">-</strong></div>
         </div>
 
         <button id="submitBtn" class="btn primary" type="submit">送出</button>
-        <div class="hint mt">送出流程：ping → reserve → 壓縮上傳 → create 寫入 card_db</div>
+        <div class="hint mt">送出流程：ping → schemaCheck → reserve(驗證草稿卡) → Firebase匿名登入 → 壓縮上傳 → create 寫入 card_db</div>
       </section>
 
       <input type="hidden" id="plan" name="plan" />
