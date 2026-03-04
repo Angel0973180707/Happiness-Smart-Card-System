@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Fill Form v514.2</title>
+  <title>HSC Fill Form v514.3</title>
   <meta name="theme-color" content="#0b1220" />
 
-  <link rel="stylesheet" href="./form.css?v=5142" />
+  <link rel="stylesheet" href="./form.css?v=5143" />
 
   <!-- ✅ Firebase (compat) - IMPORTANT: DO NOT use defer here -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
-  <!-- ✅ Firebase init (must run AFTER firebase scripts loaded) -->
+  <!-- ✅ Firebase init -->
   <script>
     window.HSC_FIREBASE_CONFIG = window.HSC_FIREBASE_CONFIG || {
       apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
@@ -45,7 +45,7 @@
     })();
   </script>
 
-  <script defer src="./form.js?v=5142"></script>
+  <script defer src="./form.js?v=5143"></script>
 </head>
 
 <body>
@@ -53,7 +53,7 @@
     <div class="brand">
       <div class="brand-title">HSC 自建表單</div>
       <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">514.2</span>
+        <span class="muted">v</span><span id="versionText">514.3</span>
         <span class="dot">•</span>
         <span class="muted">tenant</span> <span id="tenantText">angel</span>
       </div>
@@ -370,9 +370,8 @@
         </div>
 
         <button id="submitBtn" class="btn primary" type="submit">送出</button>
-        <div class="hint mt">送出流程：ping → reserve → 壓縮上傳 → create 寫入 card_db</div>
 
-        <!-- ✅ Submit progress (must exist for JS to animate) -->
+        <!-- ✅ Submit progress -->
         <div id="submitProgress" class="submit-progress-wrap hide">
           <div class="submit-progress-head">
             <span id="submitProgressLabel">準備送出…</span>
