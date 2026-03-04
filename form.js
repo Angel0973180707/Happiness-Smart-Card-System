@@ -1,45 +1,44 @@
 /* ======================================================
 Happiness Smart Card System
-form.js v508
-Fix: GAS write to card_db
+form.js v509
+Fix: CORS + GAS action
 ====================================================== */
 
 import { uploadAvatar, uploadCover } from "./firebase.js";
 import { compressToJpeg } from "./image-compressor.js";
 
-const VERSION = "v508";
+const VERSION="v509";
 
-const GAS_URL =
-"https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+const GAS_URL="https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-const $ = (id) => document.getElementById(id);
+const $=(id)=>document.getElementById(id);
 
 
-/* ========================
-UI LOG
-======================== */
+/* =======================
+LOG
+======================= */
 
 function log(msg){
 
-  const el = $("log");
+  const el=$("log");
   if(!el) return;
 
-  el.textContent = "• " + msg + "\n" + el.textContent;
+  el.textContent="• "+msg+"\n"+el.textContent;
 
 }
 
 
-/* ========================
+/* =======================
 UID
-======================== */
+======================= */
 
 function getUID(){
 
-  let uid = localStorage.getItem("hsc_uid");
+  let uid=localStorage.getItem("hsc_uid");
 
   if(!uid){
 
-    uid = "guest_" + Math.random().toString(36).substring(2,10);
+    uid="guest_"+Math.random().toString(36).substring(2,10);
 
     localStorage.setItem("hsc_uid",uid);
 
@@ -50,75 +49,66 @@ function getUID(){
 }
 
 
-/* ========================
-POST JSON → GAS
-======================== */
+/* =======================
+POST GAS (no-cors)
+======================= */
 
 async function postJSON(action,data){
 
-  const res = await fetch(
-    GAS_URL + "?action=" + action,
+  await fetch(
+    GAS_URL+"?action="+action,
     {
       method:"POST",
+      mode:"no-cors",
       headers:{
-        "Content-Type":"application/json"
+        "Content-Type":"text/plain;charset=utf-8"
       },
-      body: JSON.stringify(data)
+      body:JSON.stringify(data)
     }
   );
-
-  const txt = await res.text();
-
-  console.log("GAS:",txt);
-
-  return txt;
 
 }
 
 
-/* ========================
+/* =======================
 RESERVE
-======================== */
+======================= */
 
 async function reserveCard(){
 
-  const uid = getUID();
+  const uid=getUID();
 
   log("reserve request");
 
-  const payload = {
-
+  const payload={
     tenant:"angel",
     uid:uid
-
   };
 
   await postJSON("reserve",payload);
 
-  const cardId = "TW" + Date.now().toString().slice(-6);
+  const id="TW"+Date.now().toString().slice(-6);
 
-  $("cardId") && ($("cardId").textContent = cardId);
+  $("cardId") && ($("cardId").textContent=id);
 
-  log("reserve ok " + cardId);
+  log("reserve ok "+id);
 
-  return {
-
-    id:cardId,
-    uid:uid
-
+  return{
+    id,
+    uid
   };
 
 }
 
 
-/* ========================
-UPLOAD IMAGES
-======================== */
+/* =======================
+UPLOAD
+======================= */
 
 async function uploadImages(cardId){
 
-  const avatarFile = $("avatar")?.files?.[0];
-  const coverFile = $("cover")?.files?.[0];
+  const avatarFile=$("avatar")?.files?.[0];
+  const coverFile=$("cover")?.files?.[0];
 
   let avatarURL="";
   let coverURL="";
@@ -127,11 +117,13 @@ async function uploadImages(cardId){
 
     log("compress avatar");
 
-    const blob = await compressToJpeg(avatarFile,512);
+    const blob=await compressToJpeg(avatarFile,512);
 
     log("upload avatar");
 
-    avatarURL = await uploadAvatar(cardId,blob);
+    avatarURL=await uploadAvatar(cardId,blob);
+
+    $("avatarURL") && ($("avatarURL").textContent=avatarURL);
 
   }
 
@@ -139,72 +131,71 @@ async function uploadImages(cardId){
 
     log("compress cover");
 
-    const blob = await compressToJpeg(coverFile,1200);
+    const blob=await compressToJpeg(coverFile,1200);
 
     log("upload cover");
 
-    coverURL = await uploadCover(cardId,blob);
+    coverURL=await uploadCover(cardId,blob);
+
+    $("coverURL") && ($("coverURL").textContent=coverURL);
 
   }
 
-  return {
-
+  return{
     avatarURL,
     coverURL
-
   };
 
 }
 
 
-/* ========================
+/* =======================
 READ FORM
-======================== */
+======================= */
 
 function readForm(){
 
-  return {
+  return{
 
-    plan: $("plan")?.value || "",
+    name:$("name")?.value||"",
+    unit:$("unit")?.value||"",
+    title:$("title")?.value||"",
 
-    name: $("name")?.value || "",
-    unit: $("unit")?.value || "",
-    title: $("title")?.value || "",
+    phone:$("phone")?.value||"",
+    email:$("email")?.value||"",
+    website:$("website")?.value||"",
 
-    phone: $("phone")?.value || "",
-    email: $("email")?.value || "",
-    website: $("website")?.value || "",
+    line_url:$("line_url")?.value||"",
+    wechat_id:$("wechat_id")?.value||"",
 
-    line_url: $("line_url")?.value || "",
-    wechat_id: $("wechat_id")?.value || "",
-
-    free_color: $("free_color")?.value || "",
-    free_style: $("free_style")?.value || "",
-    free_paper: $("free_paper")?.value || ""
+    free_color:$("free_color")?.value||"",
+    free_style:$("free_style")?.value||"",
+    free_paper:$("free_paper")?.value||""
 
   };
 
 }
 
 
-/* ========================
-CREATE CARD
-======================== */
+/* =======================
+CREATE
+======================= */
 
 async function createCard(reserve,data,img){
 
   log("create request");
 
-  const payload = {
+  const payload={
 
     tenant:"angel",
+
     id:reserve.id,
     uid:reserve.uid,
 
     ...data,
 
-    avatar_url: img.avatarURL || "",
-    photos: [ img.coverURL || "" ]
+    avatar_url:img.avatarURL||"",
+    photos:[img.coverURL||""]
 
   };
 
@@ -215,27 +206,25 @@ async function createCard(reserve,data,img){
 }
 
 
-/* ========================
+/* =======================
 SUBMIT
-======================== */
+======================= */
 
 async function submitForm(){
 
   try{
 
-    $("status").textContent="送出中...";
-
     log("submit start "+VERSION);
 
-    const reserve = await reserveCard();
+    const reserve=await reserveCard();
 
-    const formData = readForm();
+    const formData=readForm();
 
-    const images = await uploadImages(reserve.id);
+    const images=await uploadImages(reserve.id);
 
     await createCard(reserve,formData,images);
 
-    $("result").innerHTML = `
+    $("result").innerHTML=`
       <div style="font-size:18px;color:#3bd17f">
       ✅ 名片已送出審核
       </div>
@@ -244,14 +233,10 @@ async function submitForm(){
       </div>
     `;
 
-    $("status").textContent="完成";
-
   }
   catch(err){
 
     console.error(err);
-
-    $("status").textContent="失敗";
 
     $("result").innerHTML="❌ "+err.message;
 
@@ -260,13 +245,13 @@ async function submitForm(){
 }
 
 
-/* ========================
+/* =======================
 INIT
-======================== */
+======================= */
 
 window.addEventListener("DOMContentLoaded",()=>{
 
-  $("ver") && ($("ver").textContent = VERSION);
+  $("ver") && ($("ver").textContent=VERSION);
 
   $("btnSubmit")?.addEventListener("click",(e)=>{
 
