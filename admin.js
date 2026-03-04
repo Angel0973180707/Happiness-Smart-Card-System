@@ -1,17 +1,18 @@
 /* ==========================================
- * HSC Admin Workspace — admin.js v514.2 (COMPLETE OVERWRITE)
+ * HSC Admin Workspace — admin.js v514.3 (COMPLETE OVERWRITE)
  * Focus:
- * 1) ✅ Admin 一鍵載入：用 admin_secret 取得資料，並自動把 token 填回去（避免 token required 卡死）
- * 2) ✅ 相容多版 GAS：依序嘗試 action=card / adminCard / adminGet
+ * 1) ✅ Admin 一鍵載入：用 admin_secret 取得資料；若回 token 則自動回填與記憶
+ * 2) ✅ 相容多版 GAS：依序嘗試 action=card / adminCard / adminGet / adminRead
  * 3) ✅ 只用 GET（避免 CORS preflight）
- * 4) ✅ 不綁死 DOM：有就綁，沒有就跳過（避免你 HTML 改版就壞）
+ * 4) ✅ 不綁死 DOM：有就綁，沒有就跳過（避免 HTML 改版就壞）
+ * 5) ✅ 圖片預覽欄位權威順序：*_url → *_img → *_img_fast
  * ========================================== */
 
 (() => {
   "use strict";
 
   /* ---------- Config ---------- */
-  const VERSION = "514.2";
+  const VERSION = "514.3";
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
@@ -38,19 +39,12 @@
     };
   })();
 
-  function sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
-  }
-
-  function nowISO() {
-    return new Date().toISOString();
-  }
+  function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+  function nowISO() { return new Date().toISOString(); }
 
   const logs = [];
   function log(...args) {
-    const msg = args
-      .map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
-      .join(" ");
+    const msg = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
     logs.push(`[${nowISO()}] ${msg}`);
     console.log("[HSC ADMIN]", ...args);
   }
@@ -77,7 +71,7 @@
         document.body.removeChild(ta);
         toast(`已複製 ✅`);
         return true;
-      } catch (e2) {
+      } catch (_e2) {
         alert("複製失敗，請手動複製：\n" + t);
         return false;
       }
@@ -85,7 +79,6 @@
   }
 
   function toast(msg) {
-    // 若頁面有 pill / status 欄位就用，否則不打擾
     const pill = $("pillMsg") || $("statusText") || $("status");
     if (pill) pill.textContent = msg;
   }
@@ -103,16 +96,12 @@
   }
 
   function loadTokenMap() {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE.TOKEN_MAP) || "{}") || {};
-    } catch (_e) {
-      return {};
-    }
+    try { return JSON.parse(localStorage.getItem(STORAGE.TOKEN_MAP) || "{}") || {}; }
+    catch (_e) { return {}; }
   }
   function saveTokenMap(map) {
     localStorage.setItem(STORAGE.TOKEN_MAP, JSON.stringify(map || {}));
   }
-
   function rememberToken(id, token) {
     const _id = (id || "").trim();
     const _t = (token || "").trim();
@@ -121,7 +110,6 @@
     m[_id] = _t;
     saveTokenMap(m);
   }
-
   function recallToken(id) {
     const _id = (id || "").trim();
     if (!_id) return "";
@@ -156,11 +144,8 @@
       });
       const txt = await res.text();
       let json;
-      try {
-        json = JSON.parse(txt);
-      } catch (_e) {
-        throw new Error("GAS JSON parse fail: " + txt.slice(0, 220));
-      }
+      try { json = JSON.parse(txt); }
+      catch (_e) { throw new Error("GAS JSON parse fail: " + txt.slice(0, 220)); }
       if (!json || json.ok !== true) {
         throw new Error((json && json.error) ? json.error : "GAS error");
       }
@@ -173,9 +158,8 @@
   async function fetchJsonWithRetry(params) {
     let lastErr;
     for (let i = 0; i <= CONFIG.RETRY; i++) {
-      try {
-        return await fetchJsonGET(params);
-      } catch (e) {
+      try { return await fetchJsonGET(params); }
+      catch (e) {
         lastErr = e;
         log("ERR", e && e.message ? e.message : String(e));
         if (i < CONFIG.RETRY) await sleep(350);
@@ -185,13 +169,11 @@
   }
 
   /* ---------- DOM mapping (soft) ---------- */
-  // 你 HTML 不一定同名：我用「盡量對應、沒有就略過」策略
   const dom = {
     idInput: $("cardId") || $("id") || $("cardIdInput") || $("idInput"),
     tokenInput: $("token") || $("cardToken") || $("tokenInput"),
     adminSecretInput: $("admin_secret") || $("ADMIN_SECRET") || $("adminSecret") || $("adminSecretInput"),
 
-    // buttons
     btnLoad: $("btnLoad") || $("loadBtn") || $("loadDataBtn") || $("btnLoadData"),
     btnRememberToken: $("btnRememberToken") || $("rememberTokenBtn") || $("btnRemember"),
     btnCopyCard: $("btnCopyCard") || $("copyCardBtn") || $("copyProductBtn"),
@@ -200,11 +182,10 @@
     btnCopyWechat: $("btnCopyWechat") || $("copyWechatBtn"),
     btnDebug: $("btnDebug") || $("openDebug") || $("debugBtn"),
 
-    // action buttons
     btnConfirm: $("btnConfirm") || $("confirmBtn"),
     btnActivate: $("btnActivate") || $("activateBtn"),
 
-    // render fields (optional)
+    // optional preview
     pvName: $("pvName") || $("nameText") || $("previewName"),
     pvUnit: $("pvUnit") || $("unitText") || $("previewUnit"),
     pvTitle: $("pvTitle") || $("titleText") || $("previewTitle"),
@@ -218,112 +199,103 @@
   }
 
   /* ---------- GAS action adapters ---------- */
-
-  // Admin 讀卡：優先用 admin_secret 走管理通道（不需要 token）
   async function adminReadCard({ id, admin_secret }) {
     const tries = [
-      // v499~v513 常見：card + admin_secret
-      { action: "card", id, admin_secret },
-
-      // 若你某版另外定義 adminCard/adminGet
-      { action: "adminCard", id, admin_secret },
-      { action: "adminGet", id, admin_secret }
+      { action: "card", id, admin_secret },       // 多數新版：card + admin_secret
+      { action: "adminCard", id, admin_secret },  // 兼容
+      { action: "adminGet", id, admin_secret },   // 兼容
+      { action: "adminRead", id, admin_secret }   // 兼容
     ];
 
     let lastErr = null;
     for (const t of tries) {
-      try {
-        const r = await fetchJsonWithRetry(t);
-        return r;
-      } catch (e) {
-        lastErr = e;
-      }
+      try { return await fetchJsonWithRetry(t); }
+      catch (e) { lastErr = e; }
     }
     throw lastErr || new Error("admin read failed");
   }
 
-  // 一般讀卡：用 token（給你自己在必要時用）
   async function tokenReadCard({ id, token }) {
-    const tries = [
-      { action: "card", id, token }
-    ];
+    const tries = [{ action: "card", id, token }];
     let lastErr = null;
     for (const t of tries) {
-      try {
-        const r = await fetchJsonWithRetry(t);
-        return r;
-      } catch (e) {
-        lastErr = e;
-      }
+      try { return await fetchJsonWithRetry(t); }
+      catch (e) { lastErr = e; }
     }
     throw lastErr || new Error("token read failed");
   }
 
   async function confirmCard({ id, admin_secret }) {
-    // 你現在規則：confirm 只寫 confirmed_at，不啟用
     const tries = [
       { action: "confirm", id, admin_secret },
       { action: "adminConfirm", id, admin_secret }
     ];
     let lastErr = null;
     for (const t of tries) {
-      try {
-        return await fetchJsonWithRetry(t);
-      } catch (e) {
-        lastErr = e;
-      }
+      try { return await fetchJsonWithRetry(t); }
+      catch (e) { lastErr = e; }
     }
     throw lastErr || new Error("confirm failed");
   }
 
   async function activateCard({ id, admin_secret }) {
-    // 你現在規則：adminSetStatus controls active/inactive
     const tries = [
       { action: "adminSetStatus", id, status: "active", admin_secret },
-      { action: "activate", id, admin_secret } // 若舊版還在
+      { action: "activate", id, admin_secret }
     ];
     let lastErr = null;
     for (const t of tries) {
-      try {
-        return await fetchJsonWithRetry(t);
-      } catch (e) {
-        lastErr = e;
-      }
+      try { return await fetchJsonWithRetry(t); }
+      catch (e) { lastErr = e; }
     }
     throw lastErr || new Error("activate failed");
   }
 
-  /* ---------- UI Actions ---------- */
-
+  /* ---------- Links ---------- */
   function buildLinks(id) {
     const _id = (id || "").trim();
     return {
       card: `${CONFIG.BASE_URL}index.html?id=${encodeURIComponent(_id)}`,
       share: `${CONFIG.BASE_URL}share.html?id=${encodeURIComponent(_id)}`,
-      delivery: `${CONFIG.BASE_URL}delivery.html?id=${encodeURIComponent(_id)}`, // 你之後要做的交付卡頁
+      delivery: `${CONFIG.BASE_URL}delivery.html?id=${encodeURIComponent(_id)}`, // 你要的「交付連結卡」之後做這頁
       wechat: `${CONFIG.BASE_URL}wechat.html?id=${encodeURIComponent(_id)}`
     };
+  }
+
+  /* ---------- Render ---------- */
+  function pickImgUrl(item, baseKey) {
+    // 權威順序：*_url → *_img → *_img_fast
+    const u = (item && item[`${baseKey}_url`]) ? String(item[`${baseKey}_url`]).trim() : "";
+    if (u) return u;
+
+    const img = (item && item[`${baseKey}_img`]) ? String(item[`${baseKey}_img`]).trim() : "";
+    if (img) return img;
+
+    const fast = (item && item[`${baseKey}_img_fast`]) ? String(item[`${baseKey}_img_fast`]).trim() : "";
+    if (fast) return fast;
+
+    return "";
   }
 
   function renderCard(item) {
     if (!item) return;
 
-    // 盡量把你頁面上已有的區塊填起來（有就填，沒有就略過）
     setValueIf(dom.pvName, item.name || "");
     setValueIf(dom.pvUnit, item.unit || "");
     setValueIf(dom.pvTitle, item.title || "");
     setValueIf(dom.pvSlogan, item.slogan || "");
 
-    if (dom.pvAvatar && item.avatar_img) {
-      try {
-        dom.pvAvatar.src = item.avatar_img;
-      } catch (_e) {}
+    // avatar preview
+    const av = pickImgUrl(item, "avatar");
+    if (dom.pvAvatar && av) {
+      try { dom.pvAvatar.src = av; } catch (_e) {}
     }
 
-    // 如果頁面有「資料預覽」區塊（你截圖那種），通常會有一堆欄位：
-    // 我不假設你的 DOM 結構，避免改壞；你需要更完整映射時再叫我對你實際 admin.html 來做。
+    // 若你頁面還有更多欄位要填（方案、到期、狀態…）
+    // 等你貼 admin.html，我再做「完整欄位映射」。
   }
 
+  /* ---------- Debug ---------- */
   function showDebug() {
     const id = (getValue(dom.idInput) || "-");
     const token = (getValue(dom.tokenInput) || "-");
@@ -350,6 +322,7 @@
     alert(text);
   }
 
+  /* ---------- Actions ---------- */
   async function onLoad() {
     const id = (getValue(dom.idInput) || "").trim();
     const admin_secret = (getValue(dom.adminSecretInput) || "").trim();
@@ -360,10 +333,9 @@
       return;
     }
 
-    // 記住 last id
     localStorage.setItem(STORAGE.LAST_ID, id);
 
-    // 先：把 token 先補成「記憶的 token」（如果使用者沒填）
+    // 如果沒填 token，先用記憶 token 補上
     if (!tokenInput) {
       const mem = recallToken(id);
       if (mem && dom.tokenInput) dom.tokenInput.value = mem;
@@ -374,34 +346,34 @@
       log("load", { id, hasAdmin: !!admin_secret });
 
       if (admin_secret) {
-        // ✅ 管理者模式：不靠 token，直接拿回資料（並自動回填 token）
         const r = await adminReadCard({ id, admin_secret });
-
-        // 常見回傳：{ ok:true, item:{...} } 或 { ok:true, data:{...} }
         const item = r.item || r.data || r.card || r.result || null;
         if (!item) throw new Error("GAS 回傳格式不含 item/data");
 
-        // ✅ 自動回填 token（只要回傳有 token）
-        const gotToken = (item.token || r.token || "").trim();
+        // ✅ 若回傳 token 就自動回填與記憶
+        const gotToken = String(item.token || r.token || "").trim();
         if (gotToken) {
           setValueIf(dom.tokenInput, gotToken);
           rememberToken(id, gotToken);
+          toast(`已載入：${id} ✅（token 已回填）`);
+        } else {
+          // ✅ 沒回 token 也不算錯：代表 GAS 安全設計不回傳
+          toast(`已載入：${id} ✅（此版 GAS 不回傳 token）`);
         }
 
         renderCard(item);
-        toast(`已載入：${id} ✅`);
         return;
       }
 
-      // 沒有 admin_secret → 用 token 讀
+      // 沒 admin_secret → 用 token 讀
       const token = (getValue(dom.tokenInput) || "").trim();
       if (!token) {
-        // 嘗試用記憶 token
         const mem = recallToken(id);
         if (mem) {
           setValueIf(dom.tokenInput, mem);
           const rr = await tokenReadCard({ id, token: mem });
           const item = rr.item || rr.data || rr.card || rr.result || null;
+          if (!item) throw new Error("GAS 回傳格式不含 item/data");
           renderCard(item);
           toast(`已載入：${id} ✅`);
           return;
@@ -413,7 +385,6 @@
       const item2 = r2.item || r2.data || r2.card || r2.result || null;
       if (!item2) throw new Error("GAS 回傳格式不含 item/data");
 
-      // 記住 token
       rememberToken(id, token);
       renderCard(item2);
       toast(`已載入：${id} ✅`);
@@ -477,8 +448,8 @@
     }
   }
 
+  /* ---------- Bind ---------- */
   function bind() {
-    // version label
     setVersionLabel();
 
     // preload secret
@@ -502,7 +473,7 @@
       dom.tokenInput.value = qs.token;
     }
 
-    // save admin_secret when changed (so you don't keep typing)
+    // save admin_secret when changed
     if (dom.adminSecretInput) {
       dom.adminSecretInput.addEventListener("change", () => {
         const v = getValue(dom.adminSecretInput);
@@ -510,9 +481,7 @@
       });
     }
 
-    // buttons (if exist)
     if (dom.btnLoad) dom.btnLoad.addEventListener("click", onLoad);
-    // 你截圖上有「記住」按鈕：如果你是 id/token/admin_secret 旁那種，就會對應到這裡
     if (dom.btnRememberToken) dom.btnRememberToken.addEventListener("click", onRememberToken);
 
     if (dom.btnCopyCard) dom.btnCopyCard.addEventListener("click", () => onCopy("card"));
@@ -528,25 +497,18 @@
     // Enter to load
     if (dom.idInput) {
       dom.idInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          onLoad();
-        }
+        if (e.key === "Enter") { e.preventDefault(); onLoad(); }
       });
     }
     if (dom.tokenInput) {
       dom.tokenInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          onLoad();
-        }
+        if (e.key === "Enter") { e.preventDefault(); onLoad(); }
       });
     }
 
     // auto-load if has id
     const idNow = (getValue(dom.idInput) || "").trim();
     if (idNow) {
-      // 不要太急，等 UI 畫完
       setTimeout(() => onLoad().catch(() => {}), 200);
     }
   }
