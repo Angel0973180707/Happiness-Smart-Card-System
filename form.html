@@ -5,341 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>HSC Fill Form</title>
   <meta name="theme-color" content="#0b1220" />
-  <style>
-    :root{
-      --bg:#0b1220;
-      --card:rgba(255,255,255,.06);
-      --card2:rgba(255,255,255,.08);
-      --line:rgba(255,255,255,.12);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.70);
-      --soft:rgba(255,255,255,.08);
-      --btn:rgba(255,255,255,.12);
-      --btn2:rgba(255,255,255,.18);
-      --accent:#7bdcff;
-      --ok:#58d38c;
-      --bad:#ff6b6b;
-      --radius:18px;
-      --radius2:14px;
-      --shadow: 0 14px 40px rgba(0,0,0,.35);
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      background:
-        radial-gradient(900px 600px at 18% -10%, rgba(123,220,255,.22), transparent 60%),
-        radial-gradient(900px 600px at 90% 10%, rgba(88,211,140,.14), transparent 58%),
-        radial-gradient(900px 600px at 40% 110%, rgba(255,200,120,.10), transparent 55%),
-        var(--bg);
-      color:var(--text);
-      font-family:"Noto Sans TC", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-      letter-spacing:.2px;
-    }
-
-    .wrap{
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 22px 14px 110px;
-    }
-
-    .topbar{
-      display:flex; align-items:center; gap:10px;
-      padding: 12px 14px;
-      border:1px solid var(--line);
-      border-radius: 999px;
-      background: rgba(255,255,255,.05);
-      backdrop-filter: blur(10px);
-    }
-    .brand{
-      font-weight:900;
-      font-size: 16px;
-      white-space:nowrap;
-    }
-    .ver{
-      margin-left:auto;
-      font-size: 12px;
-      color: var(--muted);
-      white-space:nowrap;
-    }
-
-    h1{
-      margin: 18px 2px 6px;
-      font-size: 22px;
-      letter-spacing:.6px;
-      line-height:1.25;
-    }
-    .sub{
-      margin: 0 2px 14px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-    }
-
-    .card{
-      border:1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-
-    .card .hd{
-      padding: 14px 14px 10px;
-      display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
-    }
-
-    .card .hd .t{
-      font-weight: 900;
-      font-size: 18px;
-      line-height: 1.25;
-      word-break: keep-all;
-    }
-    .card .hd .hint{
-      font-size: 12px;
-      color: var(--muted);
-      white-space:nowrap;
-    }
-    .card .bd{
-      padding: 12px 14px 14px;
-    }
-
-    /* Make labels big and not "落單" */
-    label{
-      display:block;
-      font-size: 15px;
-      font-weight: 800;
-      color: rgba(255,255,255,.88);
-      margin: 12px 0 8px;
-      line-height: 1.2;
-      word-break: keep-all;
-    }
-    .req::after{
-      content:" *";
-      color: #ffd18b;
-      font-weight: 900;
-    }
-
-    input[type="text"], input[type="url"], input[type="email"], input[type="tel"], textarea, select{
-      width: 100%;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.22);
-      color: var(--text);
-      padding: 14px 14px;
-      font-size: 16px; /* big, iOS no zoom */
-      outline: none;
-    }
-    textarea{ min-height: 110px; resize: vertical; }
-
-    .row2{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-    }
-    @media (min-width:720px){
-      .row2{ grid-template-columns: 1fr 1fr; }
-    }
-
-    .chips{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top: 6px;
-    }
-
-    .chip{
-      appearance:none;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color: rgba(255,255,255,.92);
-      border-radius: 999px;
-      padding: 12px 14px;
-      font-size: 15px;
-      font-weight: 800;
-      cursor:pointer;
-      user-select:none;
-      transition: transform .12s ease, background .12s ease, border-color .12s ease;
-    }
-    .chip:active{ transform: scale(.98); }
-    .chip[data-on="1"]{
-      background: rgba(123,220,255,.18);
-      border-color: rgba(123,220,255,.50);
-      box-shadow: 0 10px 28px rgba(123,220,255,.10);
-    }
-
-    .swatches{
-      display:flex;
-      flex-wrap:wrap;
-      gap: 10px;
-      margin-top: 6px;
-    }
-
-    .swatch{
-      width: 46px;
-      height: 46px;
-      border-radius: 999px;
-      border: 2px solid rgba(255,255,255,.18);
-      background: var(--c);
-      cursor:pointer;
-      position: relative;
-      box-shadow: 0 12px 24px rgba(0,0,0,.18);
-      transition: transform .12s ease, border-color .12s ease;
-    }
-    .swatch:active{ transform: scale(.98); }
-    .swatch[data-on="1"]{
-      border-color: rgba(255,255,255,.78);
-      outline: 2px solid rgba(123,220,255,.55);
-      outline-offset: 2px;
-    }
-    .swatch .dot{
-      position:absolute;
-      inset: 0;
-      border-radius: 999px;
-      background:
-        radial-gradient(10px 10px at 30% 28%, rgba(255,255,255,.55), transparent 55%),
-        radial-gradient(18px 18px at 70% 75%, rgba(0,0,0,.12), transparent 55%);
-      pointer-events:none;
-      opacity:.9;
-    }
-
-    .small{
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.6;
-    }
-
-    .divider{
-      height:1px;
-      background: rgba(255,255,255,.10);
-      margin: 14px 0 6px;
-    }
-
-    .hide{ display:none !important; }
-
-    .statusPill{
-      position: fixed;
-      left: 14px;
-      right: 14px;
-      bottom: 14px;
-      z-index: 9999;
-      border: 1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.55);
-      backdrop-filter: blur(12px);
-      border-radius: 999px;
-      padding: 12px 14px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      box-shadow: 0 14px 40px rgba(0,0,0,.35);
-    }
-    .statusPill .left{
-      display:flex; flex-direction:column; gap:2px;
-      min-width: 0;
-    }
-    .statusPill .msg{
-      font-weight: 900;
-      font-size: 14px;
-      line-height: 1.2;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .statusPill .meta{
-      font-size: 12px;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .statusPill .actions{
-      margin-left:auto;
-      display:flex;
-      gap:8px;
-      flex-shrink:0;
-    }
-    .btn{
-      all:unset;
-      cursor:pointer;
-      padding: 10px 12px;
-      border-radius: 999px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.10);
-      font-weight: 900;
-      font-size: 13px;
-      user-select:none;
-    }
-    .btn.primary{
-      background: rgba(88,211,140,.16);
-      border-color: rgba(88,211,140,.35);
-    }
-    .btn.danger{
-      background: rgba(255,107,107,.12);
-      border-color: rgba(255,107,107,.35);
-    }
-
-    /* File inputs */
-    input[type="file"]{
-      width: 100%;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border: 1px dashed rgba(255,255,255,.22);
-      background: rgba(255,255,255,.04);
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .okNote{
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border:1px solid rgba(88,211,140,.25);
-      background: rgba(88,211,140,.10);
-      color: rgba(255,255,255,.90);
-      font-size: 13px;
-      line-height: 1.6;
-      margin-top: 10px;
-    }
-    .okNote b{ color:#dfffea; }
-
-    .warnNote{
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border:1px solid rgba(255,209,139,.25);
-      background: rgba(255,209,139,.10);
-      color: rgba(255,255,255,.90);
-      font-size: 13px;
-      line-height: 1.6;
-      margin-top: 10px;
-    }
-  </style>
+  <link rel="stylesheet" href="./form.css?v=5112" />
 </head>
 
 <body>
   <div class="wrap">
     <div class="topbar">
       <div class="brand">HSC Fill Form</div>
-      <div class="ver">form <span id="versionText">v511.1</span></div>
+      <div class="ver">form <span id="versionText">v511.2</span></div>
     </div>
 
     <h1>自建表單（直觀好填）</h1>
     <div class="sub">
       必填：方案、外觀、姓名、單位、頭銜、個人照。其餘都可選填。<br/>
-      圖片會上傳到 Firebase，表單只送 URL（不送 base64）。
+      圖片會先在手機端壓縮，再上傳 Firebase；表單只送 URL（不送 base64）。
     </div>
 
     <form id="hscForm" class="grid" autocomplete="on">
@@ -359,6 +38,7 @@
           </div>
 
           <div class="small">選定方案後，表單只會顯示匹配內容。</div>
+          <div class="fieldError" id="err_plan"></div>
         </div>
       </section>
 
@@ -378,6 +58,7 @@
             <button type="button" class="swatch" data-value="c4" style="--c:#a38bff"><span class="dot"></span></button>
             <button type="button" class="swatch" data-value="c5" style="--c:#66d38a"><span class="dot"></span></button>
           </div>
+          <div class="fieldError" id="err_color"></div>
 
           <div class="divider"></div>
 
@@ -388,6 +69,7 @@
             <button type="button" class="chip" data-chip-group="style" data-value="s2">平直</button>
             <button type="button" class="chip" data-chip-group="style" data-value="s3">晨曦</button>
           </div>
+          <div class="fieldError" id="err_style"></div>
 
           <div class="divider"></div>
 
@@ -398,6 +80,7 @@
             <button type="button" class="chip" data-chip-group="paper" data-value="f2">顆粒</button>
             <button type="button" class="chip" data-chip-group="paper" data-value="f3">亞麻</button>
           </div>
+          <div class="fieldError" id="err_paper"></div>
 
           <div class="warnNote">
             <div>📌</div>
@@ -423,6 +106,7 @@
             <button type="button" class="swatch" data-value="p6" style="--c:linear-gradient(135deg,#b88a2a,#f3d58a,#9b6b12)"><span class="dot"></span></button>
             <button type="button" class="swatch" data-value="p7" style="--c:#3b2f2a"><span class="dot"></span></button>
           </div>
+          <div class="fieldError" id="err_premium_color"></div>
 
           <div class="okNote">
             <div>✨</div>
@@ -442,10 +126,12 @@
             <div>
               <label class="req" for="name">姓名</label>
               <input id="name" name="name" type="text" placeholder="例如：王小美" />
+              <div class="fieldError" id="err_name"></div>
             </div>
             <div>
               <label class="req" for="unit">單位</label>
               <input id="unit" name="unit" type="text" placeholder="例如：幸福智慧名片館" />
+              <div class="fieldError" id="err_unit"></div>
             </div>
           </div>
 
@@ -453,6 +139,7 @@
             <div>
               <label class="req" for="title">頭銜</label>
               <input id="title" name="title" type="text" placeholder="例如：館長 / 創辦人 / 顧問" />
+              <div class="fieldError" id="err_title"></div>
             </div>
             <div>
               <label for="slogan">標語（選填）</label>
@@ -468,8 +155,8 @@
         </div>
       </section>
 
-      <!-- ④ Avatar required -->
-      <section class="card">
+      <!-- ④ Images -->
+      <section class="card" id="imagesCard">
         <div class="hd">
           <div class="t">④ 圖片上傳</div>
           <div class="hint">個人照必填</div>
@@ -477,14 +164,19 @@
         <div class="bd">
           <label class="req">個人照（1 張）</label>
           <input id="avatarFile" type="file" accept="image/*" />
+          <div class="small" id="avatarTip">建議正面清晰、不要太暗。會自動壓縮。</div>
+          <div class="fieldError" id="err_avatar"></div>
+
+          <div class="divider"></div>
 
           <label>Logo（選填）</label>
           <input id="logoFile" type="file" accept="image/*" />
+          <div class="small" id="logoTip"></div>
 
           <div class="divider"></div>
 
           <label>照片牆（選填）</label>
-          <div class="small">自由搭配最多 2 張；精品設計最多 5 張。</div>
+          <div class="small" id="photoTip">自由搭配最多 2 張；精品設計最多 5 張。會自動壓縮。</div>
 
           <div class="row2">
             <div>
@@ -512,6 +204,8 @@
             <label>照片 5（精品）</label>
             <input id="photo5File" type="file" accept="image/*" />
           </div>
+
+          <div class="small" id="compressReport"></div>
         </div>
       </section>
 
@@ -610,10 +304,11 @@
           <input id="cta_link" name="cta_link" type="url" placeholder="https://line.me/ti/p/..." />
 
           <div class="small">只有同時填寫「文字 + 連結」，名片頁才會顯示 CTA 按鈕。</div>
+          <div class="fieldError" id="err_cta_pair"></div>
         </div>
       </section>
 
-      <!-- Hidden: we keep these for compatibility (optional, not used) -->
+      <!-- Hidden compatibility -->
       <input type="hidden" id="website" name="website" value="">
       <input type="hidden" id="line_id" name="line_id" value="">
     </form>
@@ -623,7 +318,7 @@
   <div class="statusPill" id="statusPill">
     <div class="left">
       <div class="msg" id="pillMsg">準備填寫</div>
-      <div class="meta">卡號：<span id="cardIdText">-</span>　｜　版本：<span id="verText">v511.1</span></div>
+      <div class="meta">卡號：<span id="cardIdText">-</span>　｜　版本：<span id="verText">v511.2</span></div>
     </div>
     <div class="actions">
       <button class="btn" type="button" id="openDebug">Debug</button>
@@ -632,19 +327,11 @@
     </div>
   </div>
 
-  <!-- Firebase compat scripts (keep; your project may already include/init elsewhere) -->
-  <!-- If you already load these in another place, you can keep one copy only -->
+  <!-- Firebase compat scripts -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
-  <!-- Your firebase init should be loaded BEFORE form.js if not already -->
-  <!-- Example placeholder:
-  <script>
-    const firebaseConfig = {...};
-    firebase.initializeApp(firebaseConfig);
-  </script>
-  -->
-
-  <script src="./form.js?v=5111"></script>
+  <!-- 重要：你的 firebase.initializeApp(firebaseConfig) 必須在 form.js 之前載入 -->
+  <script src="./form.js?v=5112"></script>
 </body>
 </html>
