@@ -3,6 +3,7 @@
  * - Keep v512.2 all features
  * - FIX: Draft card reuse must be validated by GAS action=card
  * - FIX: If create returns "id not found", auto clear draft -> reserve -> retry once
+ * - ADD: Step8 summary shows video/social counts
  * ============================================= */
 
 (() => {
@@ -162,7 +163,7 @@
   }
 
   /* -----------------------------
-   * Step engine / UI (unchanged)
+   * Step engine / UI
    * ----------------------------- */
   function showStep(n){
     step = Math.max(1, Math.min(STEP_MAX, n));
@@ -312,10 +313,16 @@
     setText("sumName", getValue("name") || "-");
     setText("sumUnit", getValue("unit") || "-");
     setText("sumTitle", getValue("title") || "-");
+
+    // ✅ v512.3 ADD: show video/social summary
+    const v = [getValue("video1"), getValue("video2"), getValue("video3")].filter(Boolean).length;
+    const s = [getValue("social1"), getValue("social2"), getValue("social3")].filter(Boolean).length;
+    setText("sumVideo", v ? `已填 ${v} 筆` : "-");
+    setText("sumSocial", s ? `已填 ${s} 筆` : "-");
   }
 
   /* -----------------------------
-   * Draft fields (same)
+   * Draft fields
    * ----------------------------- */
   function readFormDraft(){
     try{
@@ -398,7 +405,7 @@
   function clearCardDraft(){ localStorage.removeItem(CONFIG.DRAFT_CARD_KEY); }
 
   /* -----------------------------
-   * IndexedDB (same)
+   * IndexedDB
    * ----------------------------- */
   function idbOpen(){
     return new Promise((resolve, reject)=>{
@@ -498,7 +505,7 @@
   }
 
   /* -----------------------------
-   * Compression (same)
+   * Compression
    * ----------------------------- */
   async function fileToImageBitmap(file){
     if("createImageBitmap" in window){
@@ -569,7 +576,7 @@
   }
 
   /* -----------------------------
-   * Validation (same)
+   * Validation
    * ----------------------------- */
   function setErr(key, msg){
     const el = byId(`err_${key}`);
@@ -638,7 +645,7 @@
   }
 
   /* -----------------------------
-   * Network (same)
+   * Network
    * ----------------------------- */
   function withTimeout(promise, ms){
     let to;
@@ -710,13 +717,12 @@
     }catch(e){
       const msg = String(e?.message || e || "");
       if (/id not found/i.test(msg)) return false;
-      // 有些 GAS 是回 JSON error 而不是 throw：這裡用保守方式
       return false;
     }
   }
 
   /* -----------------------------
-   * Firebase v12 module (same as v512.2)
+   * Firebase v12 module (ESM)
    * ----------------------------- */
   const FB = {
     readyPromise: null,
@@ -735,12 +741,15 @@
 
     FB.readyPromise = (async () => {
       dbg("firebase: loading modules…");
-      const [{ initializeApp }, { getAuth, onAuthStateChanged, signInAnonymously }, { getStorage, ref, uploadBytesResumable, getDownloadURL }] =
-        await Promise.all([
-          import(firebaseModuleUrl("firebase-app")),
-          import(firebaseModuleUrl("firebase-auth")),
-          import(firebaseModuleUrl("firebase-storage"))
-        ]);
+      const [
+        { initializeApp },
+        { getAuth, onAuthStateChanged, signInAnonymously },
+        { getStorage, ref, uploadBytesResumable, getDownloadURL }
+      ] = await Promise.all([
+        import(firebaseModuleUrl("firebase-app")),
+        import(firebaseModuleUrl("firebase-auth")),
+        import(firebaseModuleUrl("firebase-storage"))
+      ]);
 
       FB._ref = ref;
       FB._uploadBytesResumable = uploadBytesResumable;
@@ -873,12 +882,11 @@
   }
 
   /* -----------------------------
-   * ✅ Reserve/Create — v512.3 changes start here
+   * ✅ Reserve/Create — v512.3
    * ----------------------------- */
   async function reserveOnce(){
     const d = readCardDraft();
     if(d){
-      // ✅ v512.3: verify draft card exists in GAS (avoid "id not found")
       setPill("檢查草稿卡是否存在…");
       const ok = await cardExists(d.id, d.token);
       if(ok){
@@ -982,7 +990,7 @@
   }
 
   /* -----------------------------
-   * Submit — v512.3 adds retry for id not found
+   * Submit — v512.3 retry for id not found
    * ----------------------------- */
   function setSubmitting(on){
     inFlight = !!on;
@@ -1029,20 +1037,16 @@
       setPill("檢查資料表中…");
       await schemaCheck();
 
-      // reserve (verified)
       setPill("建立/驗證草稿卡中…");
       await reserveOnce();
 
-      // firebase auth
       setPill("登入上傳服務中…");
       await firebaseReady();
 
-      // upload images
       const plan = getValue("plan") || "free";
       setPill("圖片上傳中…");
       const imageMap = await uploadImages(currentCardId, plan);
 
-      // create + retry once if id not found
       setPill("寫入資料中…");
       const textPayload = collectTextPayload();
 
@@ -1052,7 +1056,6 @@
       }catch(e){
         if(isIdNotFoundError(e)){
           dbg("create got id not found -> auto retry once (new reserve)");
-          // clear and reserve new
           clearCardDraft();
           currentCardId = "";
           currentToken = "";
@@ -1093,7 +1096,7 @@
   }
 
   /* -----------------------------
-   * UI bindings / autosave (same)
+   * UI bindings / autosave
    * ----------------------------- */
   function bindPlanThemeUI(){
     document.querySelectorAll("[data-chip-group]").forEach(btn=>{
