@@ -1,4 +1,9 @@
-/* ==========================================
+function setSubmitProgress(pct, text){
+  const fill = document.getElementById("submitProgressFill");
+  const t = document.getElementById("submitProgressText");
+  if (fill) fill.style.width = Math.max(0, Math.min(100, pct)) + "%";
+  if (t && typeof text === "string") t.textContent = text;
+}/* ==========================================
  * HSC Fill Form — form.js v514.1 (COMPLETE OVERWRITE)
  * - Adds submit progress bar under submit button
  * - reserve/create use GET to avoid CORS preflight
