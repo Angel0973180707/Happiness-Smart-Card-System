@@ -2,106 +2,649 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>HSC Form v503</title>
-  <meta name="theme-color" content="#0f172a" />
-  <link rel="stylesheet" href="./form.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>HSC Fill Form</title>
+  <meta name="theme-color" content="#0b1220" />
   <style>
-    body{ font-family: system-ui,-apple-system,"Noto Sans TC",Arial; padding:18px; }
-    .box{ max-width:720px; margin:0 auto; }
-    label{ display:block; margin:10px 0 6px; font-weight:700; }
-    input,select,button{ width:100%; padding:10px; border-radius:10px; border:1px solid rgba(0,0,0,.15); }
-    button{ font-weight:900; margin-top:14px; }
-    .row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    @media (max-width:720px){ .row{ grid-template-columns:1fr; } }
-    .mono{ font-family: ui-monospace, Menlo, Consolas, monospace; font-size:12px; white-space:pre-wrap; }
-    .pill{ display:inline-block; padding:6px 10px; border-radius:999px; background:#eef; margin:6px 0; }
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.12);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.70);
+      --soft:rgba(255,255,255,.08);
+      --btn:rgba(255,255,255,.12);
+      --btn2:rgba(255,255,255,.18);
+      --accent:#7bdcff;
+      --ok:#58d38c;
+      --bad:#ff6b6b;
+      --radius:18px;
+      --radius2:14px;
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background:
+        radial-gradient(900px 600px at 18% -10%, rgba(123,220,255,.22), transparent 60%),
+        radial-gradient(900px 600px at 90% 10%, rgba(88,211,140,.14), transparent 58%),
+        radial-gradient(900px 600px at 40% 110%, rgba(255,200,120,.10), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      font-family:"Noto Sans TC", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      letter-spacing:.2px;
+    }
+
+    .wrap{
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 22px 14px 110px;
+    }
+
+    .topbar{
+      display:flex; align-items:center; gap:10px;
+      padding: 12px 14px;
+      border:1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      backdrop-filter: blur(10px);
+    }
+    .brand{
+      font-weight:900;
+      font-size: 16px;
+      white-space:nowrap;
+    }
+    .ver{
+      margin-left:auto;
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    h1{
+      margin: 18px 2px 6px;
+      font-size: 22px;
+      letter-spacing:.6px;
+      line-height:1.25;
+    }
+    .sub{
+      margin: 0 2px 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .card{
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.04));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    .card .hd{
+      padding: 14px 14px 10px;
+      display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+
+    .card .hd .t{
+      font-weight: 900;
+      font-size: 18px;
+      line-height: 1.25;
+      word-break: keep-all;
+    }
+    .card .hd .hint{
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+    .card .bd{
+      padding: 12px 14px 14px;
+    }
+
+    /* Make labels big and not "落單" */
+    label{
+      display:block;
+      font-size: 15px;
+      font-weight: 800;
+      color: rgba(255,255,255,.88);
+      margin: 12px 0 8px;
+      line-height: 1.2;
+      word-break: keep-all;
+    }
+    .req::after{
+      content:" *";
+      color: #ffd18b;
+      font-weight: 900;
+    }
+
+    input[type="text"], input[type="url"], input[type="email"], input[type="tel"], textarea, select{
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      padding: 14px 14px;
+      font-size: 16px; /* big, iOS no zoom */
+      outline: none;
+    }
+    textarea{ min-height: 110px; resize: vertical; }
+
+    .row2{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+    @media (min-width:720px){
+      .row2{ grid-template-columns: 1fr 1fr; }
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top: 6px;
+    }
+
+    .chip{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.92);
+      border-radius: 999px;
+      padding: 12px 14px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .chip:active{ transform: scale(.98); }
+    .chip[data-on="1"]{
+      background: rgba(123,220,255,.18);
+      border-color: rgba(123,220,255,.50);
+      box-shadow: 0 10px 28px rgba(123,220,255,.10);
+    }
+
+    .swatches{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .swatch{
+      width: 46px;
+      height: 46px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,.18);
+      background: var(--c);
+      cursor:pointer;
+      position: relative;
+      box-shadow: 0 12px 24px rgba(0,0,0,.18);
+      transition: transform .12s ease, border-color .12s ease;
+    }
+    .swatch:active{ transform: scale(.98); }
+    .swatch[data-on="1"]{
+      border-color: rgba(255,255,255,.78);
+      outline: 2px solid rgba(123,220,255,.55);
+      outline-offset: 2px;
+    }
+    .swatch .dot{
+      position:absolute;
+      inset: 0;
+      border-radius: 999px;
+      background:
+        radial-gradient(10px 10px at 30% 28%, rgba(255,255,255,.55), transparent 55%),
+        radial-gradient(18px 18px at 70% 75%, rgba(0,0,0,.12), transparent 55%);
+      pointer-events:none;
+      opacity:.9;
+    }
+
+    .small{
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .divider{
+      height:1px;
+      background: rgba(255,255,255,.10);
+      margin: 14px 0 6px;
+    }
+
+    .hide{ display:none !important; }
+
+    .statusPill{
+      position: fixed;
+      left: 14px;
+      right: 14px;
+      bottom: 14px;
+      z-index: 9999;
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(12px);
+      border-radius: 999px;
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      box-shadow: 0 14px 40px rgba(0,0,0,.35);
+    }
+    .statusPill .left{
+      display:flex; flex-direction:column; gap:2px;
+      min-width: 0;
+    }
+    .statusPill .msg{
+      font-weight: 900;
+      font-size: 14px;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .statusPill .meta{
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .statusPill .actions{
+      margin-left:auto;
+      display:flex;
+      gap:8px;
+      flex-shrink:0;
+    }
+    .btn{
+      all:unset;
+      cursor:pointer;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.10);
+      font-weight: 900;
+      font-size: 13px;
+      user-select:none;
+    }
+    .btn.primary{
+      background: rgba(88,211,140,.16);
+      border-color: rgba(88,211,140,.35);
+    }
+    .btn.danger{
+      background: rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.35);
+    }
+
+    /* File inputs */
+    input[type="file"]{
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,.22);
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .okNote{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(88,211,140,.25);
+      background: rgba(88,211,140,.10);
+      color: rgba(255,255,255,.90);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+    .okNote b{ color:#dfffea; }
+
+    .warnNote{
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,209,139,.25);
+      background: rgba(255,209,139,.10);
+      color: rgba(255,255,255,.90);
+      font-size: 13px;
+      line-height: 1.6;
+      margin-top: 10px;
+    }
   </style>
 </head>
+
 <body>
-  <div class="box">
-    <h2>HSC 自建表單 <span class="pill" id="status">Ready</span></h2>
-    <div>版本：<b id="ver">-</b></div>
-    <div>cardId：<b id="cardId">-</b></div>
-
-    <form>
-      <div class="row">
-        <div>
-          <label>姓名</label>
-          <input id="name" placeholder="例如：小天使" />
-        </div>
-        <div>
-          <label>職稱</label>
-          <input id="title" placeholder="例如：館長" />
-        </div>
-      </div>
-
-      <label>單位</label>
-      <input id="unit" placeholder="例如：幸福智慧名片館" />
-
-      <div class="row">
-        <div>
-          <label>電話</label>
-          <input id="phone" inputmode="tel" placeholder="09xx..." />
-        </div>
-        <div>
-          <label>Email</label>
-          <input id="email" inputmode="email" placeholder="xxx@gmail.com" />
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>LINE 連結</label>
-          <input id="line_url" placeholder="https://line.me/ti/p/..." />
-        </div>
-        <div>
-          <label>官網</label>
-          <input id="website" placeholder="https://..." />
-        </div>
-      </div>
-
-      <label>微信ID</label>
-      <input id="wechat_id" placeholder="a0973..." />
-
-      <div class="row">
-        <div>
-          <label>方案</label>
-          <select id="plan">
-            <option value="">（可略）</option>
-            <option value="free">自由搭配</option>
-            <option value="premium">精品設計</option>
-          </select>
-        </div>
-        <div>
-          <label>主題/顏色代碼</label>
-          <input id="theme" placeholder="例如：c1 / p3" />
-        </div>
-      </div>
-
-      <label>頭像（會壓縮到 512px）</label>
-      <input id="avatar" type="file" accept="image/*" />
-
-      <label>封面（會壓縮到 1200px）</label>
-      <input id="cover" type="file" accept="image/*" />
-
-      <button id="btnSubmit">送出（reserve → upload → create）</button>
-    </form>
-
-    <div style="margin-top:14px;">
-      <div>avatarURL：</div>
-      <div class="mono" id="avatarURL">-</div>
-      <div style="margin-top:10px;">coverURL：</div>
-      <div class="mono" id="coverURL">-</div>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">HSC Fill Form</div>
+      <div class="ver">form <span id="versionText">v511.1</span></div>
     </div>
 
-    <div style="margin-top:14px; font-weight:800;" id="result"></div>
+    <h1>自建表單（直觀好填）</h1>
+    <div class="sub">
+      必填：方案、外觀、姓名、單位、頭銜、個人照。其餘都可選填。<br/>
+      圖片會上傳到 Firebase，表單只送 URL（不送 base64）。
+    </div>
 
-    <div style="margin-top:14px;">
-      <div class="mono" id="log">（log）</div>
+    <form id="hscForm" class="grid" autocomplete="on">
+      <!-- ① Plan -->
+      <section class="card">
+        <div class="hd">
+          <div class="t">① 方案選擇</div>
+          <div class="hint">必填</div>
+        </div>
+        <div class="bd">
+          <label class="req">方案</label>
+          <input type="hidden" id="plan" name="plan" value="">
+
+          <div class="chips">
+            <button type="button" class="chip" data-chip-group="plan" data-value="free" id="planFree">自由搭配</button>
+            <button type="button" class="chip" data-chip-group="plan" data-value="premium" id="planPremium">精品設計</button>
+          </div>
+
+          <div class="small">選定方案後，表單只會顯示匹配內容。</div>
+        </div>
+      </section>
+
+      <!-- ② Theme (split) -->
+      <section class="card" id="freeThemeCard">
+        <div class="hd">
+          <div class="t">② 外觀設定（自由搭配）</div>
+          <div class="hint">必填</div>
+        </div>
+        <div class="bd">
+          <label class="req">顏色</label>
+          <input type="hidden" id="color" name="color" value="">
+          <div class="swatches" data-swatch-group="color">
+            <button type="button" class="swatch" data-value="c1" style="--c:#ff7bb2"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="c2" style="--c:#65b6ff"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="c3" style="--c:#ffb14a"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="c4" style="--c:#a38bff"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="c5" style="--c:#66d38a"><span class="dot"></span></button>
+          </div>
+
+          <div class="divider"></div>
+
+          <label class="req">版型</label>
+          <input type="hidden" id="style" name="style" value="">
+          <div class="chips">
+            <button type="button" class="chip" data-chip-group="style" data-value="s1">正拱</button>
+            <button type="button" class="chip" data-chip-group="style" data-value="s2">平直</button>
+            <button type="button" class="chip" data-chip-group="style" data-value="s3">晨曦</button>
+          </div>
+
+          <div class="divider"></div>
+
+          <label class="req">紙感</label>
+          <input type="hidden" id="paper" name="paper" value="">
+          <div class="chips">
+            <button type="button" class="chip" data-chip-group="paper" data-value="f1">棉紙</button>
+            <button type="button" class="chip" data-chip-group="paper" data-value="f2">顆粒</button>
+            <button type="button" class="chip" data-chip-group="paper" data-value="f3">亞麻</button>
+          </div>
+
+          <div class="warnNote">
+            <div>📌</div>
+            <div>自由搭配照片牆最多 <b>2 張</b>（photo1~photo2）。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card hide" id="premiumThemeCard">
+        <div class="hd">
+          <div class="t">② 外觀設定（精品設計）</div>
+          <div class="hint">必填</div>
+        </div>
+        <div class="bd">
+          <label class="req">精品底色</label>
+          <input type="hidden" id="premium_color" name="premium_color" value="">
+          <div class="swatches" data-swatch-group="premium_color">
+            <button type="button" class="swatch" data-value="p1" style="--c:#d64b5e"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="p2" style="--c:#7a1f2c"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="p3" style="--c:#1e3b7a"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="p4" style="--c:#6c4b7a"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="p5" style="--c:#5b6b7a"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="p6" style="--c:linear-gradient(135deg,#b88a2a,#f3d58a,#9b6b12)"><span class="dot"></span></button>
+            <button type="button" class="swatch" data-value="p7" style="--c:#3b2f2a"><span class="dot"></span></button>
+          </div>
+
+          <div class="okNote">
+            <div>✨</div>
+            <div>精品設計照片牆最多 <b>5 張</b>（photo1~photo5），並可加 <b>CTA 行動按鈕</b>。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ③ Base info -->
+      <section class="card">
+        <div class="hd">
+          <div class="t">③ 基本資料</div>
+          <div class="hint">必填</div>
+        </div>
+        <div class="bd">
+          <div class="row2">
+            <div>
+              <label class="req" for="name">姓名</label>
+              <input id="name" name="name" type="text" placeholder="例如：王小美" />
+            </div>
+            <div>
+              <label class="req" for="unit">單位</label>
+              <input id="unit" name="unit" type="text" placeholder="例如：幸福智慧名片館" />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label class="req" for="title">頭銜</label>
+              <input id="title" name="title" type="text" placeholder="例如：館長 / 創辦人 / 顧問" />
+            </div>
+            <div>
+              <label for="slogan">標語（選填）</label>
+              <input id="slogan" name="slogan" type="text" placeholder="一句話讓人記住你（可留空）" />
+            </div>
+          </div>
+
+          <label for="services">服務內容（選填）</label>
+          <textarea id="services" name="services" placeholder="例如：打造個人品牌智慧名片（可留空）"></textarea>
+
+          <label for="experience">經歷簡述（選填）</label>
+          <textarea id="experience" name="experience" placeholder="例如：10年顧問經驗 / 教學經驗（可留空）"></textarea>
+        </div>
+      </section>
+
+      <!-- ④ Avatar required -->
+      <section class="card">
+        <div class="hd">
+          <div class="t">④ 圖片上傳</div>
+          <div class="hint">個人照必填</div>
+        </div>
+        <div class="bd">
+          <label class="req">個人照（1 張）</label>
+          <input id="avatarFile" type="file" accept="image/*" />
+
+          <label>Logo（選填）</label>
+          <input id="logoFile" type="file" accept="image/*" />
+
+          <div class="divider"></div>
+
+          <label>照片牆（選填）</label>
+          <div class="small">自由搭配最多 2 張；精品設計最多 5 張。</div>
+
+          <div class="row2">
+            <div>
+              <label>照片 1</label>
+              <input id="photo1File" type="file" accept="image/*" />
+            </div>
+            <div>
+              <label>照片 2</label>
+              <input id="photo2File" type="file" accept="image/*" />
+            </div>
+          </div>
+
+          <div class="row2" id="premiumPhotoRow">
+            <div>
+              <label>照片 3（精品）</label>
+              <input id="photo3File" type="file" accept="image/*" />
+            </div>
+            <div>
+              <label>照片 4（精品）</label>
+              <input id="photo4File" type="file" accept="image/*" />
+            </div>
+          </div>
+
+          <div>
+            <label>照片 5（精品）</label>
+            <input id="photo5File" type="file" accept="image/*" />
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑤ Contacts optional -->
+      <section class="card">
+        <div class="hd">
+          <div class="t">⑤ 聯絡方式（選填）</div>
+          <div class="hint">可留空</div>
+        </div>
+        <div class="bd">
+          <div class="row2">
+            <div>
+              <label for="phone">電話</label>
+              <input id="phone" name="phone" type="tel" placeholder="可留空" />
+            </div>
+            <div>
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" placeholder="可留空" />
+            </div>
+          </div>
+
+          <label for="address">地址</label>
+          <input id="address" name="address" type="text" placeholder="可留空" />
+
+          <div class="divider"></div>
+
+          <div class="row2">
+            <div>
+              <label for="line_url">LINE 連結</label>
+              <input id="line_url" name="line_url" type="url" placeholder="https://line.me/ti/p/..." />
+            </div>
+            <div>
+              <label for="line_oa">LINE OA</label>
+              <input id="line_oa" name="line_oa" type="url" placeholder="https://lin.ee/..." />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label for="wechat_id">微信 ID</label>
+              <input id="wechat_id" name="wechat_id" type="text" placeholder="可留空" />
+            </div>
+            <div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ⑥ Media/social optional -->
+      <section class="card">
+        <div class="hd">
+          <div class="t">⑥ 影音 / 社群（選填）</div>
+          <div class="hint">可留空</div>
+        </div>
+        <div class="bd">
+          <div class="row2">
+            <div>
+              <label for="video1">影音 1</label>
+              <input id="video1" name="video1" type="url" placeholder="YouTube 連結（可留空）" />
+            </div>
+            <div>
+              <label for="video2">影音 2</label>
+              <input id="video2" name="video2" type="url" placeholder="可留空" />
+            </div>
+          </div>
+          <label for="video3">影音 3</label>
+          <input id="video3" name="video3" type="url" placeholder="可留空" />
+
+          <div class="divider"></div>
+
+          <div class="row2">
+            <div>
+              <label for="social1">社群 1</label>
+              <input id="social1" name="social1" type="url" placeholder="Facebook / IG / Threads（可留空）" />
+            </div>
+            <div>
+              <label for="social2">社群 2</label>
+              <input id="social2" name="social2" type="url" placeholder="可留空" />
+            </div>
+          </div>
+          <label for="social3">社群 3</label>
+          <input id="social3" name="social3" type="url" placeholder="可留空" />
+        </div>
+      </section>
+
+      <!-- ⑦ CTA premium-only -->
+      <section class="card hide" id="premiumCtaCard">
+        <div class="hd">
+          <div class="t">⑦ 行動按鈕（精品限定｜選填）</div>
+          <div class="hint">premium only</div>
+        </div>
+        <div class="bd">
+          <label for="cta_text">CTA 文字</label>
+          <input id="cta_text" name="cta_text" type="text" placeholder="例如：立即預約 / 加入LINE / 免費諮詢" />
+
+          <label for="cta_link">CTA 連結</label>
+          <input id="cta_link" name="cta_link" type="url" placeholder="https://line.me/ti/p/..." />
+
+          <div class="small">只有同時填寫「文字 + 連結」，名片頁才會顯示 CTA 按鈕。</div>
+        </div>
+      </section>
+
+      <!-- Hidden: we keep these for compatibility (optional, not used) -->
+      <input type="hidden" id="website" name="website" value="">
+      <input type="hidden" id="line_id" name="line_id" value="">
+    </form>
+  </div>
+
+  <!-- Bottom status bar -->
+  <div class="statusPill" id="statusPill">
+    <div class="left">
+      <div class="msg" id="pillMsg">準備填寫</div>
+      <div class="meta">卡號：<span id="cardIdText">-</span>　｜　版本：<span id="verText">v511.1</span></div>
+    </div>
+    <div class="actions">
+      <button class="btn" type="button" id="openDebug">Debug</button>
+      <button class="btn danger" type="button" id="resetDraftBtn">清除草稿卡</button>
+      <button class="btn primary" type="submit" form="hscForm" id="submitBtn">送出</button>
     </div>
   </div>
 
-  <script type="module" src="./form.js"></script>
+  <!-- Firebase compat scripts (keep; your project may already include/init elsewhere) -->
+  <!-- If you already load these in another place, you can keep one copy only -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <!-- Your firebase init should be loaded BEFORE form.js if not already -->
+  <!-- Example placeholder:
+  <script>
+    const firebaseConfig = {...};
+    firebase.initializeApp(firebaseConfig);
+  </script>
+  -->
+
+  <script src="./form.js?v=5111"></script>
 </body>
 </html>
