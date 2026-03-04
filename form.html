@@ -3,335 +3,384 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Fill Form</title>
+  <title>HSC Fill Form v512</title>
   <meta name="theme-color" content="#0b1220" />
-  <link rel="stylesheet" href="./form.css?v=5112" />
+
+  <link rel="stylesheet" href="./form.css?v=5120" />
+
+  <!-- ✅ Firebase (compat) - keep your existing project config (DO NOT change if already working) -->
+  <!-- If you already load firebase in another way, you can remove duplicates. -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
+  <!-- ✅ Your Firebase init (REPLACE with your actual config if not already in your page) -->
+  <script>
+    // If you already initialize elsewhere, keep only one init.
+    window.__HSC_FIREBASE_INIT__ = window.__HSC_FIREBASE_INIT__ || (function(){
+      try{
+        if (window.firebase && firebase.apps && firebase.apps.length) return true;
+
+        // ⚠️ Replace with your real Firebase config (or keep existing one)
+        const firebaseConfig = window.HSC_FIREBASE_CONFIG || {
+          apiKey: "REPLACE_ME",
+          authDomain: "REPLACE_ME",
+          projectId: "REPLACE_ME",
+          storageBucket: "REPLACE_ME.appspot.com",
+          messagingSenderId: "REPLACE_ME",
+          appId: "REPLACE_ME"
+        };
+
+        if (window.firebase && firebase.initializeApp) {
+          firebase.initializeApp(firebaseConfig);
+          return true;
+        }
+      }catch(e){}
+      return false;
+    })();
+  </script>
+
+  <script defer src="./form.js?v=5120"></script>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="brand">HSC Fill Form</div>
-      <div class="ver">form <span id="versionText">v511.2</span></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-title">HSC 自建表單</div>
+      <div class="brand-sub">
+        <span class="muted">v</span><span id="versionText">512</span>
+        <span class="dot">•</span>
+        <span class="muted">tenant</span> <span id="tenantText">angel</span>
+      </div>
     </div>
 
-    <h1>自建表單（直觀好填）</h1>
-    <div class="sub">
-      必填：方案、外觀、姓名、單位、頭銜、個人照。其餘都可選填。<br/>
-      圖片會先在手機端壓縮，再上傳 Firebase；表單只送 URL（不送 base64）。
-    </div>
+    <button type="button" class="btn ghost" id="openDebug">Debug</button>
+  </header>
 
-    <form id="hscForm" class="grid" autocomplete="on">
-      <!-- ① Plan -->
-      <section class="card">
-        <div class="hd">
-          <div class="t">① 方案選擇</div>
-          <div class="hint">必填</div>
-        </div>
-        <div class="bd">
-          <label class="req">方案</label>
-          <input type="hidden" id="plan" name="plan" value="">
-
-          <div class="chips">
-            <button type="button" class="chip" data-chip-group="plan" data-value="free" id="planFree">自由搭配</button>
-            <button type="button" class="chip" data-chip-group="plan" data-value="premium" id="planPremium">精品設計</button>
+  <main class="wrap">
+    <!-- Progress -->
+    <section class="progress">
+      <div class="progress-top">
+        <div class="progress-left">
+          <div class="progress-title" id="stepTitle">STEP 1｜方案</div>
+          <div class="progress-sub">
+            草稿卡：<span id="cardIdText">-</span>
           </div>
-
-          <div class="small">選定方案後，表單只會顯示匹配內容。</div>
-          <div class="fieldError" id="err_plan"></div>
         </div>
+        <button type="button" class="btn ghost" id="resetDraftBtn">清除草稿</button>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:14%"></div>
+      </div>
+
+      <div class="pill" id="pillMsg">準備填寫</div>
+    </section>
+
+    <form id="hscForm" class="card">
+      <!-- STEP 1: Plan -->
+      <section class="step" data-step="1">
+        <h2 class="h2">選擇方案 <span class="req">必填</span></h2>
+        <div class="row">
+          <button type="button" class="chip" data-chip-group="plan" data-value="free">自由搭配</button>
+          <button type="button" class="chip" data-chip-group="plan" data-value="premium">精品設計</button>
+        </div>
+        <div class="err" id="err_plan"></div>
       </section>
 
-      <!-- ② Theme (split) -->
-      <section class="card" id="freeThemeCard">
-        <div class="hd">
-          <div class="t">② 外觀設定（自由搭配）</div>
-          <div class="hint">必填</div>
-        </div>
-        <div class="bd">
-          <label class="req">顏色</label>
-          <input type="hidden" id="color" name="color" value="">
-          <div class="swatches" data-swatch-group="color">
-            <button type="button" class="swatch" data-value="c1" style="--c:#ff7bb2"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="c2" style="--c:#65b6ff"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="c3" style="--c:#ffb14a"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="c4" style="--c:#a38bff"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="c5" style="--c:#66d38a"><span class="dot"></span></button>
+      <!-- STEP 2: Theme -->
+      <section class="step hide" data-step="2">
+        <h2 class="h2">外觀選擇 <span class="req">必填</span></h2>
+
+        <!-- FREE -->
+        <div id="freeThemeCard" class="subcard">
+          <div class="label">顏色（色球）</div>
+          <div class="swatch-row" data-swatch-group="color">
+            <button type="button" class="swatch c1" data-value="c1" aria-label="粉"></button>
+            <button type="button" class="swatch c2" data-value="c2" aria-label="藍"></button>
+            <button type="button" class="swatch c3" data-value="c3" aria-label="橘"></button>
+            <button type="button" class="swatch c4" data-value="c4" aria-label="紫"></button>
+            <button type="button" class="swatch c5" data-value="c5" aria-label="綠"></button>
           </div>
-          <div class="fieldError" id="err_color"></div>
+          <div class="err" id="err_color"></div>
 
-          <div class="divider"></div>
-
-          <label class="req">版型</label>
-          <input type="hidden" id="style" name="style" value="">
-          <div class="chips">
+          <div class="label mt">版型（中文顯示）</div>
+          <div class="row">
             <button type="button" class="chip" data-chip-group="style" data-value="s1">正拱</button>
             <button type="button" class="chip" data-chip-group="style" data-value="s2">平直</button>
             <button type="button" class="chip" data-chip-group="style" data-value="s3">晨曦</button>
           </div>
-          <div class="fieldError" id="err_style"></div>
+          <div class="err" id="err_style"></div>
 
-          <div class="divider"></div>
-
-          <label class="req">紙感</label>
-          <input type="hidden" id="paper" name="paper" value="">
-          <div class="chips">
+          <div class="label mt">紙感（中文顯示）</div>
+          <div class="row">
             <button type="button" class="chip" data-chip-group="paper" data-value="f1">棉紙</button>
             <button type="button" class="chip" data-chip-group="paper" data-value="f2">顆粒</button>
             <button type="button" class="chip" data-chip-group="paper" data-value="f3">亞麻</button>
           </div>
-          <div class="fieldError" id="err_paper"></div>
+          <div class="err" id="err_paper"></div>
+        </div>
 
-          <div class="warnNote">
-            <div>📌</div>
-            <div>自由搭配照片牆最多 <b>2 張</b>（photo1~photo2）。</div>
+        <!-- PREMIUM -->
+        <div id="premiumThemeCard" class="subcard hide">
+          <div class="label">精品底色（色球）</div>
+          <div class="swatch-row" data-swatch-group="premium_color">
+            <button type="button" class="swatch p1" data-value="p1" aria-label="胭脂紅"></button>
+            <button type="button" class="swatch p2" data-value="p2" aria-label="酒紅"></button>
+            <button type="button" class="swatch p3" data-value="p3" aria-label="深藍"></button>
+            <button type="button" class="swatch p4" data-value="p4" aria-label="霧紫"></button>
+            <button type="button" class="swatch p5" data-value="p5" aria-label="藍灰"></button>
+            <button type="button" class="swatch p6" data-value="p6" aria-label="金箔"></button>
+            <button type="button" class="swatch p7" data-value="p7" aria-label="褐碳"></button>
+          </div>
+          <div class="err" id="err_premium_color"></div>
+        </div>
+
+        <!-- live preview -->
+        <div class="preview">
+          <div class="preview-title">成品預覽（連動驗收）</div>
+          <div class="preview-card" id="previewCard">
+            <div class="preview-banner" id="previewBanner">
+              <div class="preview-name" id="pvName">姓名</div>
+              <div class="preview-title2" id="pvTitle">頭銜</div>
+              <div class="preview-unit" id="pvUnit">單位</div>
+            </div>
+            <div class="preview-body" id="previewBody">
+              <div class="preview-pill" id="pvTheme">c?/s?/f?</div>
+              <div class="preview-note">（這張預覽只用來對齊選項與成品）</div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="card hide" id="premiumThemeCard">
-        <div class="hd">
-          <div class="t">② 外觀設定（精品設計）</div>
-          <div class="hint">必填</div>
-        </div>
-        <div class="bd">
-          <label class="req">精品底色</label>
-          <input type="hidden" id="premium_color" name="premium_color" value="">
-          <div class="swatches" data-swatch-group="premium_color">
-            <button type="button" class="swatch" data-value="p1" style="--c:#d64b5e"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="p2" style="--c:#7a1f2c"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="p3" style="--c:#1e3b7a"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="p4" style="--c:#6c4b7a"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="p5" style="--c:#5b6b7a"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="p6" style="--c:linear-gradient(135deg,#b88a2a,#f3d58a,#9b6b12)"><span class="dot"></span></button>
-            <button type="button" class="swatch" data-value="p7" style="--c:#3b2f2a"><span class="dot"></span></button>
-          </div>
-          <div class="fieldError" id="err_premium_color"></div>
+      <!-- STEP 3: Core Info -->
+      <section class="step hide" data-step="3">
+        <h2 class="h2">名片主資訊 <span class="req">必填</span></h2>
 
-          <div class="okNote">
-            <div>✨</div>
-            <div>精品設計照片牆最多 <b>5 張</b>（photo1~photo5），並可加 <b>CTA 行動按鈕</b>。</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ③ Base info -->
-      <section class="card">
-        <div class="hd">
-          <div class="t">③ 基本資料</div>
-          <div class="hint">必填</div>
-        </div>
-        <div class="bd">
-          <div class="row2">
-            <div>
-              <label class="req" for="name">姓名</label>
-              <input id="name" name="name" type="text" placeholder="例如：王小美" />
-              <div class="fieldError" id="err_name"></div>
-            </div>
-            <div>
-              <label class="req" for="unit">單位</label>
-              <input id="unit" name="unit" type="text" placeholder="例如：幸福智慧名片館" />
-              <div class="fieldError" id="err_unit"></div>
-            </div>
-          </div>
-
-          <div class="row2">
-            <div>
-              <label class="req" for="title">頭銜</label>
-              <input id="title" name="title" type="text" placeholder="例如：館長 / 創辦人 / 顧問" />
-              <div class="fieldError" id="err_title"></div>
-            </div>
-            <div>
-              <label for="slogan">標語（選填）</label>
-              <input id="slogan" name="slogan" type="text" placeholder="一句話讓人記住你（可留空）" />
-            </div>
-          </div>
-
-          <label for="services">服務內容（選填）</label>
-          <textarea id="services" name="services" placeholder="例如：打造個人品牌智慧名片（可留空）"></textarea>
-
-          <label for="experience">經歷簡述（選填）</label>
-          <textarea id="experience" name="experience" placeholder="例如：10年顧問經驗 / 教學經驗（可留空）"></textarea>
-        </div>
-      </section>
-
-      <!-- ④ Images -->
-      <section class="card" id="imagesCard">
-        <div class="hd">
-          <div class="t">④ 圖片上傳</div>
-          <div class="hint">個人照必填</div>
-        </div>
-        <div class="bd">
-          <label class="req">個人照（1 張）</label>
-          <input id="avatarFile" type="file" accept="image/*" />
-          <div class="small" id="avatarTip">建議正面清晰、不要太暗。會自動壓縮。</div>
-          <div class="fieldError" id="err_avatar"></div>
-
-          <div class="divider"></div>
-
-          <label>Logo（選填）</label>
-          <input id="logoFile" type="file" accept="image/*" />
-          <div class="small" id="logoTip"></div>
-
-          <div class="divider"></div>
-
-          <label>照片牆（選填）</label>
-          <div class="small" id="photoTip">自由搭配最多 2 張；精品設計最多 5 張。會自動壓縮。</div>
-
-          <div class="row2">
-            <div>
-              <label>照片 1</label>
-              <input id="photo1File" type="file" accept="image/*" />
-            </div>
-            <div>
-              <label>照片 2</label>
-              <input id="photo2File" type="file" accept="image/*" />
-            </div>
-          </div>
-
-          <div class="row2" id="premiumPhotoRow">
-            <div>
-              <label>照片 3（精品）</label>
-              <input id="photo3File" type="file" accept="image/*" />
-            </div>
-            <div>
-              <label>照片 4（精品）</label>
-              <input id="photo4File" type="file" accept="image/*" />
-            </div>
+        <div class="grid2">
+          <div>
+            <label class="field">
+              <div class="field-label">姓名 <span class="req">必填</span></div>
+              <input id="name" name="name" autocomplete="name" placeholder="例：小天使" />
+              <div class="err" id="err_name"></div>
+            </label>
           </div>
 
           <div>
-            <label>照片 5（精品）</label>
-            <input id="photo5File" type="file" accept="image/*" />
+            <label class="field">
+              <div class="field-label">單位 <span class="req">必填</span></div>
+              <input id="unit" name="unit" placeholder="例：幸福智慧名片館" />
+              <div class="err" id="err_unit"></div>
+            </label>
           </div>
 
-          <div class="small" id="compressReport"></div>
-        </div>
-      </section>
-
-      <!-- ⑤ Contacts optional -->
-      <section class="card">
-        <div class="hd">
-          <div class="t">⑤ 聯絡方式（選填）</div>
-          <div class="hint">可留空</div>
-        </div>
-        <div class="bd">
-          <div class="row2">
-            <div>
-              <label for="phone">電話</label>
-              <input id="phone" name="phone" type="tel" placeholder="可留空" />
-            </div>
-            <div>
-              <label for="email">Email</label>
-              <input id="email" name="email" type="email" placeholder="可留空" />
-            </div>
+          <div class="col2">
+            <label class="field">
+              <div class="field-label">頭銜 <span class="req">必填</span></div>
+              <input id="title" name="title" placeholder="例：館長" />
+              <div class="err" id="err_title"></div>
+            </label>
           </div>
 
-          <label for="address">地址</label>
-          <input id="address" name="address" type="text" placeholder="可留空" />
-
-          <div class="divider"></div>
-
-          <div class="row2">
-            <div>
-              <label for="line_url">LINE 連結</label>
-              <input id="line_url" name="line_url" type="url" placeholder="https://line.me/ti/p/..." />
-            </div>
-            <div>
-              <label for="line_oa">LINE OA</label>
-              <input id="line_oa" name="line_oa" type="url" placeholder="https://lin.ee/..." />
-            </div>
+          <div class="col2">
+            <label class="field">
+              <div class="field-label">一句話（可選）</div>
+              <input id="slogan" name="slogan" placeholder="例：喚醒內在幸福感" />
+            </label>
           </div>
 
-          <div class="row2">
-            <div>
-              <label for="wechat_id">微信 ID</label>
-              <input id="wechat_id" name="wechat_id" type="text" placeholder="可留空" />
-            </div>
-            <div></div>
+          <div class="col2">
+            <label class="field">
+              <div class="field-label">服務內容（可選）</div>
+              <textarea id="services" name="services" rows="3" placeholder="例：打造個人品牌智慧名片"></textarea>
+            </label>
+          </div>
+
+          <div class="col2">
+            <label class="field">
+              <div class="field-label">經歷/補充（可選）</div>
+              <textarea id="experience" name="experience" rows="3" placeholder="可留空"></textarea>
+            </label>
           </div>
         </div>
       </section>
 
-      <!-- ⑥ Media/social optional -->
-      <section class="card">
-        <div class="hd">
-          <div class="t">⑥ 影音 / 社群（選填）</div>
-          <div class="hint">可留空</div>
-        </div>
-        <div class="bd">
-          <div class="row2">
-            <div>
-              <label for="video1">影音 1</label>
-              <input id="video1" name="video1" type="url" placeholder="YouTube 連結（可留空）" />
-            </div>
-            <div>
-              <label for="video2">影音 2</label>
-              <input id="video2" name="video2" type="url" placeholder="可留空" />
+      <!-- STEP 4: Images -->
+      <section class="step hide" data-step="4">
+        <h2 class="h2">圖片上傳</h2>
+
+        <div class="grid2">
+          <div class="col2">
+            <label class="field">
+              <div class="field-label">個人照 <span class="req">必填</span></div>
+              <input id="avatarFile" type="file" accept="image/*" />
+              <div class="hint">會先壓縮再上傳；草稿會保存圖片（可離開再回來）。</div>
+              <div class="err" id="err_avatar"></div>
+            </label>
+          </div>
+
+          <div class="col2">
+            <label class="field">
+              <div class="field-label">Logo（可選）</div>
+              <input id="logoFile" type="file" accept="image/*" />
+            </label>
+          </div>
+
+          <div>
+            <label class="field">
+              <div class="field-label">照片 1（可選）</div>
+              <input id="photo1File" type="file" accept="image/*" />
+            </label>
+          </div>
+
+          <div>
+            <label class="field">
+              <div class="field-label">照片 2（可選）</div>
+              <input id="photo2File" type="file" accept="image/*" />
+            </label>
+          </div>
+
+          <div id="premiumPhotoRow" class="col2 hide">
+            <div class="grid2">
+              <label class="field">
+                <div class="field-label">照片 3（精品可選）</div>
+                <input id="photo3File" type="file" accept="image/*" />
+              </label>
+
+              <label class="field">
+                <div class="field-label">照片 4（精品可選）</div>
+                <input id="photo4File" type="file" accept="image/*" />
+              </label>
+
+              <label class="field col2">
+                <div class="field-label">照片 5（精品可選）</div>
+                <input id="photo5File" type="file" accept="image/*" />
+              </label>
             </div>
           </div>
-          <label for="video3">影音 3</label>
-          <input id="video3" name="video3" type="url" placeholder="可留空" />
-
-          <div class="divider"></div>
-
-          <div class="row2">
-            <div>
-              <label for="social1">社群 1</label>
-              <input id="social1" name="social1" type="url" placeholder="Facebook / IG / Threads（可留空）" />
-            </div>
-            <div>
-              <label for="social2">社群 2</label>
-              <input id="social2" name="social2" type="url" placeholder="可留空" />
-            </div>
-          </div>
-          <label for="social3">社群 3</label>
-          <input id="social3" name="social3" type="url" placeholder="可留空" />
         </div>
       </section>
 
-      <!-- ⑦ CTA premium-only -->
-      <section class="card hide" id="premiumCtaCard">
-        <div class="hd">
-          <div class="t">⑦ 行動按鈕（精品限定｜選填）</div>
-          <div class="hint">premium only</div>
-        </div>
-        <div class="bd">
-          <label for="cta_text">CTA 文字</label>
-          <input id="cta_text" name="cta_text" type="text" placeholder="例如：立即預約 / 加入LINE / 免費諮詢" />
+      <!-- STEP 5: Contact -->
+      <section class="step hide" data-step="5">
+        <h2 class="h2">聯絡方式（可選）</h2>
 
-          <label for="cta_link">CTA 連結</label>
-          <input id="cta_link" name="cta_link" type="url" placeholder="https://line.me/ti/p/..." />
+        <div class="grid2">
+          <label class="field">
+            <div class="field-label">微信 ID</div>
+            <input id="wechat_id" name="wechat_id" placeholder="例：a0973180707" />
+          </label>
 
-          <div class="small">只有同時填寫「文字 + 連結」，名片頁才會顯示 CTA 按鈕。</div>
-          <div class="fieldError" id="err_cta_pair"></div>
+          <label class="field">
+            <div class="field-label">LINE URL（或 @ID）</div>
+            <input id="line_url" name="line_url" placeholder="例：https://line.me/ti/p/xxxx" />
+          </label>
+
+          <label class="field">
+            <div class="field-label">LINE OA</div>
+            <input id="line_oa" name="line_oa" placeholder="例：https://lin.ee/xxxx" />
+          </label>
+
+          <label class="field">
+            <div class="field-label">Email</div>
+            <input id="email" name="email" inputmode="email" placeholder="可留空" />
+          </label>
+
+          <label class="field">
+            <div class="field-label">電話</div>
+            <input id="phone" name="phone" inputmode="tel" placeholder="可留空" />
+          </label>
+
+          <label class="field col2">
+            <div class="field-label">地址</div>
+            <input id="address" name="address" placeholder="可留空" />
+          </label>
         </div>
       </section>
 
-      <!-- Hidden compatibility -->
-      <input type="hidden" id="website" name="website" value="">
-      <input type="hidden" id="line_id" name="line_id" value="">
+      <!-- STEP 6: Video & Social -->
+      <section class="step hide" data-step="6">
+        <h2 class="h2">影音與社群（可選）</h2>
+
+        <div class="grid2">
+          <label class="field col2">
+            <div class="field-label">影音 1</div>
+            <input id="video1" name="video1" placeholder="YouTube / 影片連結" />
+          </label>
+          <label class="field col2">
+            <div class="field-label">影音 2</div>
+            <input id="video2" name="video2" placeholder="可留空" />
+          </label>
+          <label class="field col2">
+            <div class="field-label">影音 3</div>
+            <input id="video3" name="video3" placeholder="可留空" />
+          </label>
+
+          <label class="field col2">
+            <div class="field-label">社群 1</div>
+            <input id="social1" name="social1" placeholder="Facebook / IG / 其他連結" />
+          </label>
+          <label class="field col2">
+            <div class="field-label">社群 2</div>
+            <input id="social2" name="social2" placeholder="可留空" />
+          </label>
+          <label class="field col2">
+            <div class="field-label">社群 3</div>
+            <input id="social3" name="social3" placeholder="可留空" />
+          </label>
+        </div>
+      </section>
+
+      <!-- STEP 7: Premium CTA -->
+      <section class="step hide" data-step="7">
+        <h2 class="h2">精品 CTA（精品可選）</h2>
+
+        <div id="premiumCtaCard" class="subcard">
+          <div class="hint">自由搭配不顯示；精品可填可不填（文字＋連結要一起填）。</div>
+
+          <div class="grid2">
+            <label class="field col2">
+              <div class="field-label">CTA 文字</div>
+              <input id="cta_text" name="cta_text" placeholder="例：立即預約體驗" />
+            </label>
+
+            <label class="field col2">
+              <div class="field-label">CTA 連結</div>
+              <input id="cta_link" name="cta_link" placeholder="例：https://lin.ee/xxxx" />
+              <div class="err" id="err_cta_pair"></div>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 8: Submit -->
+      <section class="step hide" data-step="8">
+        <h2 class="h2">確認送出</h2>
+
+        <div class="summary">
+          <div class="summary-row"><span>方案</span><strong id="sumPlan">-</strong></div>
+          <div class="summary-row"><span>外觀</span><strong id="sumTheme">-</strong></div>
+          <div class="summary-row"><span>姓名</span><strong id="sumName">-</strong></div>
+          <div class="summary-row"><span>單位</span><strong id="sumUnit">-</strong></div>
+          <div class="summary-row"><span>頭銜</span><strong id="sumTitle">-</strong></div>
+        </div>
+
+        <button id="submitBtn" class="btn primary" type="submit">送出</button>
+        <div class="hint mt">送出流程：ping → reserve → 壓縮上傳 → create 寫入 card_db</div>
+      </section>
+
+      <!-- Hidden fields (WRITE VALUES to DB; UI shows Chinese) -->
+      <input type="hidden" id="plan" name="plan" />
+      <input type="hidden" id="color" name="color" />
+      <input type="hidden" id="style" name="style" />
+      <input type="hidden" id="paper" name="paper" />
+      <input type="hidden" id="premium_color" name="premium_color" />
     </form>
-  </div>
 
-  <!-- Bottom status bar -->
-  <div class="statusPill" id="statusPill">
-    <div class="left">
-      <div class="msg" id="pillMsg">準備填寫</div>
-      <div class="meta">卡號：<span id="cardIdText">-</span>　｜　版本：<span id="verText">v511.2</span></div>
-    </div>
-    <div class="actions">
-      <button class="btn" type="button" id="openDebug">Debug</button>
-      <button class="btn danger" type="button" id="resetDraftBtn">清除草稿卡</button>
-      <button class="btn primary" type="submit" form="hscForm" id="submitBtn">送出</button>
-    </div>
-  </div>
-
-  <!-- Firebase compat scripts -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-
-  <!-- 重要：你的 firebase.initializeApp(firebaseConfig) 必須在 form.js 之前載入 -->
-  <script src="./form.js?v=5112"></script>
+    <!-- Nav buttons -->
+    <section class="nav">
+      <button type="button" class="btn ghost" id="prevBtn">上一步</button>
+      <button type="button" class="btn" id="nextBtn">下一步</button>
+    </section>
+  </main>
 </body>
 </html>
