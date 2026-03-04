@@ -1,1250 +1,934 @@
-/* =============================================
- * form.js — v512.3 (COMPLETE OVERWRITE)
- * - Keep v512.2 all features
- * - FIX: Draft card reuse must be validated by GAS action=card
- * - FIX: If create returns "id not found", auto clear draft -> reserve -> retry once
- * - ADD: Step8 summary shows video/social counts
- * ============================================= */
+/* ==========================================
+ * HSC Fill Form — form.js v512.3 (COMPLETE OVERWRITE)
+ * - GAS v513 compatible
+ * - reserve/create use GET (avoid CORS preflight)
+ * - Firebase anonymous auth (compat)
+ * - Upload path: hsc_cards/{tenant}/{cardId}/{fileName}
+ * - NEVER send base64 to GAS
+ * ========================================== */
 
 (() => {
-  "use strict";
+  const VERSION = "512.3";
 
-  const VERSION = "v512.3";
+  // ✅ LOCKED to your current exec URL
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-  const CONFIG = {
-    GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-    DEFAULT_TENANT: "angel",
-    FETCH_TIMEOUT_MS: 15000,
-    RETRY: 1,
+  const DEFAULT_TENANT = "angel";
+  const DRAFT_KEY = "HSC_FILL_DRAFT_v5123";
 
-    DRAFT_CARD_KEY: "hsc_draft_card_v1",
-    DRAFT_FORM_KEY: "hsc_draft_form_v1",
-    DRAFT_TTL_MS: 12 * 60 * 60 * 1000,
-    IDB: { DB_NAME: "hsc_draft_db", DB_VER: 1, STORE: "files" },
+  // image policy
+  const IMG_MAX_W = 1600;
+  const IMG_QUALITY = 0.82; // webp quality
+  const IMG_MAX_MB = 5;
 
-    COMPRESS: {
-      avatar: { maxW: 1200, maxH: 1200, targetKB: 280, qualityStart: 0.86, qualityMin: 0.55 },
-      logo:   { maxW: 1200, maxH: 1200, targetKB: 220, qualityStart: 0.86, qualityMin: 0.55 },
-      photo:  { maxW: 1600, maxH: 1600, targetKB: 420, qualityStart: 0.84, qualityMin: 0.50 },
-    },
-
-    FIREBASE_VER: "12.10.0",
-    FIREBASE_CONFIG: {
-      apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
-      authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
-      projectId: "happiness-smart-card-pro-7389a",
-      storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
-      messagingSenderId: "143313936007",
-      appId: "1:143313936007:web:7c948563c51e8a47d3a222"
-    }
+  // step meta
+  const STEP_TITLES = {
+    1: "STEP 1｜方案",
+    2: "STEP 2｜外觀",
+    3: "STEP 3｜主資訊",
+    4: "STEP 4｜圖片",
+    5: "STEP 5｜聯絡",
+    6: "STEP 6｜影音社群",
+    7: "STEP 7｜精品 CTA",
+    8: "STEP 8｜確認送出"
   };
 
-  const byId = (id) => document.getElementById(id);
-  const URLP = new URLSearchParams(location.search);
-  const exp = URLP.get("exp") || "";
-  const sig = URLP.get("sig") || "";
-  const tenant = (URLP.get("tenant") || CONFIG.DEFAULT_TENANT).trim() || CONFIG.DEFAULT_TENANT;
+  // dom
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => Array.from(document.querySelectorAll(s));
+  const form = $("#hscForm");
 
-  const STEP_MAX = 8;
-  let step = 1;
-  let inFlight = false;
-  let currentCardId = "";
-  let currentToken = "";
+  const el = {
+    versionText: $("#versionText"),
+    tenantText: $("#tenantText"),
+    stepTitle: $("#stepTitle"),
+    progressFill: $("#progressFill"),
+    pillMsg: $("#pillMsg"),
+    cardIdText: $("#cardIdText"),
 
-  function toast(msg) {
-    let t = byId("hscToast");
-    if (!t) {
-      t = document.createElement("div");
-      t.id = "hscToast";
-      t.style.cssText = [
-        "position:fixed","left:16px","right:16px","top:14px","z-index:99998",
-        "padding:12px 14px","border-radius:999px","background:rgba(255,255,255,.90)",
-        "color:rgba(0,0,0,.88)","font:14px/1.4 system-ui,-apple-system,'Noto Sans TC',Segoe UI,Roboto,Arial",
-        "box-shadow:0 8px 22px rgba(0,0,0,.18)","text-align:center",
-        "opacity:0","transform:translateY(-8px)","transition:opacity .18s ease, transform .18s ease"
-      ].join(";");
-      document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.style.opacity = "1";
-    t.style.transform = "translateY(0)";
-    setTimeout(() => {
-      t.style.opacity = "0";
-      t.style.transform = "translateY(-8px)";
-    }, 2200);
+    prevBtn: $("#prevBtn"),
+    nextBtn: $("#nextBtn"),
+    resetDraftBtn: $("#resetDraftBtn"),
+    openDebug: $("#openDebug"),
+
+    freeThemeCard: $("#freeThemeCard"),
+    premiumThemeCard: $("#premiumThemeCard"),
+    premiumPhotoRow: $("#premiumPhotoRow"),
+    premiumCtaCard: $("#premiumCtaCard"),
+
+    previewBanner: $("#previewBanner"),
+    pvName: $("#pvName"),
+    pvTitle: $("#pvTitle"),
+    pvUnit: $("#pvUnit"),
+    pvTheme: $("#pvTheme"),
+
+    // summary
+    sumPlan: $("#sumPlan"),
+    sumTheme: $("#sumTheme"),
+    sumName: $("#sumName"),
+    sumUnit: $("#sumUnit"),
+    sumTitle: $("#sumTitle"),
+    sumVideo: $("#sumVideo"),
+    sumSocial: $("#sumSocial"),
+
+    submitBtn: $("#submitBtn"),
+  };
+
+  // hidden inputs
+  const hidden = {
+    plan: $("#plan"),
+    color: $("#color"),
+    style: $("#style"),
+    paper: $("#paper"),
+    premium_color: $("#premium_color"),
+  };
+
+  // fields
+  const fields = {
+    name: $("#name"),
+    unit: $("#unit"),
+    title: $("#title"),
+    slogan: $("#slogan"),
+    services: $("#services"),
+    experience: $("#experience"),
+
+    wechat_id: $("#wechat_id"),
+    line_url: $("#line_url"),
+    line_oa: $("#line_oa"),
+    email: $("#email"),
+    phone: $("#phone"),
+    address: $("#address"),
+
+    video1: $("#video1"),
+    video2: $("#video2"),
+    video3: $("#video3"),
+    social1: $("#social1"),
+    social2: $("#social2"),
+    social3: $("#social3"),
+
+    cta_text: $("#cta_text"),
+    cta_link: $("#cta_link"),
+  };
+
+  // file inputs
+  const files = {
+    avatarFile: $("#avatarFile"),
+    logoFile: $("#logoFile"),
+    photo1File: $("#photo1File"),
+    photo2File: $("#photo2File"),
+    photo3File: $("#photo3File"),
+    photo4File: $("#photo4File"),
+    photo5File: $("#photo5File"),
+  };
+
+  // errors
+  const err = {
+    plan: $("#err_plan"),
+    color: $("#err_color"),
+    style: $("#err_style"),
+    paper: $("#err_paper"),
+    premium_color: $("#err_premium_color"),
+    name: $("#err_name"),
+    unit: $("#err_unit"),
+    title: $("#err_title"),
+    avatar: $("#err_avatar"),
+    cta_pair: $("#err_cta_pair"),
+  };
+
+  // runtime state
+  const state = {
+    tenant: DEFAULT_TENANT,
+    sig: "",
+
+    step: 1,
+
+    // reserve result
+    id: "",
+    token: "",
+
+    // uploaded URLs
+    avatar_img: "",
+    logo_img: "",
+    photo1_img: "",
+    photo2_img: "",
+    photo3_img: "",
+    photo4_img: "",
+    photo5_img: "",
+
+    // UI logs
+    logs: [],
+  };
+
+  /* -------------------------
+   * Utils
+   * ------------------------- */
+  function log(...args){
+    const msg = args.map(a => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
+    state.logs.push(`[${new Date().toISOString()}] ${msg}`);
+    console.log("[HSC]", ...args);
   }
 
-  function setText(id, v){ const el = byId(id); if(el) el.textContent = String(v ?? ""); }
-  function getValue(id){ const el = byId(id); return el ? String(el.value || "").trim() : ""; }
-  function setValue(id, v){ const el = byId(id); if(el) el.value = String(v ?? ""); }
-  function pickFile(id){ const el = byId(id); return (el && el.files && el.files[0]) ? el.files[0] : null; }
-  function nowMs(){ return Date.now(); }
-  function setPill(msg){ const el = byId("pillMsg"); if(el) el.textContent = msg; }
-
-  function ensureDebugPanel() {
-    let box = byId("hscDebugBox");
-    if (box) return box;
-
-    box = document.createElement("div");
-    box.id = "hscDebugBox";
-    box.style.cssText = [
-      "position:fixed","left:12px","right:12px","bottom:72px","z-index:99999",
-      "padding:12px","border-radius:16px","background:rgba(0,0,0,.72)",
-      "color:rgba(255,255,255,.92)","font:12px/1.5 system-ui,-apple-system,'Noto Sans TC',Segoe UI,Roboto,Arial",
-      "box-shadow:0 10px 30px rgba(0,0,0,.35)","backdrop-filter: blur(10px)",
-      "max-height:46vh","overflow:auto","display:none"
-    ].join(";");
-
-    const header = document.createElement("div");
-    header.style.cssText = "display:flex;align-items:center;gap:10px;margin-bottom:8px;";
-    header.innerHTML = `
-      <div style="font-weight:900;letter-spacing:.5px">HSC Debug</div>
-      <div style="opacity:.75">${VERSION}</div>
-      <div style="margin-left:auto;display:flex;gap:8px">
-        <button id="hscDbgHide" style="all:unset;cursor:pointer;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12)">收起</button>
-        <button id="hscDbgCopy" style="all:unset;cursor:pointer;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12)">複製</button>
-        <button id="hscDbgClear" style="all:unset;cursor:pointer;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.12)">清空</button>
-      </div>
-    `;
-
-    const pre = document.createElement("pre");
-    pre.id = "hscDbgPre";
-    pre.style.cssText = "white-space:pre-wrap;margin:0;opacity:.95";
-
-    box.appendChild(header);
-    box.appendChild(pre);
-    document.body.appendChild(box);
-
-    byId("hscDbgHide").onclick = () => (box.style.display = "none");
-    byId("hscDbgClear").onclick = () => (pre.textContent = "");
-    byId("hscDbgCopy").onclick = async () => {
-      try { await navigator.clipboard.writeText(pre.textContent || ""); toast("已複製 Debug ✅"); }
-      catch { toast("複製失敗（瀏覽器限制）"); }
-    };
-    return box;
+  function setPill(msg){
+    el.pillMsg.textContent = msg;
   }
 
-  function safeJson(x){ try{return JSON.stringify(x);}catch{return String(x);} }
-
-  function dbg(line, obj) {
-    const box = ensureDebugPanel();
-    const pre = byId("hscDbgPre");
-    const ts = new Date().toISOString().replace("T", " ").replace("Z", "");
-    pre.textContent += `[${ts}] ${obj ? `${line} ${safeJson(obj)}` : line}\n`;
-    if (/fail|error|拒絕|無法|timeout|missing|mismatch|not found/i.test(line)) box.style.display = "block";
-  }
-
-  function ensureUploadBar(){
-    let bar = byId("hscUploadBar");
-    if(bar) return bar;
-
-    bar = document.createElement("div");
-    bar.id = "hscUploadBar";
-    bar.style.cssText = [
-      "position:fixed","left:12px","right:12px","bottom:18px","z-index:99998",
-      "height:10px","border-radius:999px","background:rgba(255,255,255,.18)",
-      "overflow:hidden","display:none"
-    ].join(";");
-
-    const fill = document.createElement("div");
-    fill.id = "hscUploadFill";
-    fill.style.cssText = "height:100%;width:0%;background:rgba(255,255,255,.85);transition:width .12s linear;";
-    bar.appendChild(fill);
-    document.body.appendChild(bar);
-    return bar;
-  }
-
-  function setUploadProgress(pct){
-    const bar = ensureUploadBar();
-    const fill = byId("hscUploadFill");
-    const p = Math.max(0, Math.min(100, Math.round(pct)));
-    bar.style.display = (p > 0 && p < 100) ? "block" : "none";
-    if(fill) fill.style.width = `${p}%`;
-  }
-
-  /* -----------------------------
-   * Step engine / UI
-   * ----------------------------- */
-  function showStep(n){
-    step = Math.max(1, Math.min(STEP_MAX, n));
-    document.querySelectorAll(".step").forEach((s) => {
-      const k = Number(s.getAttribute("data-step") || "0");
-      s.classList.toggle("hide", k !== step);
-    });
-
-    const plan = getValue("plan");
-    if (step === 7 && plan !== "premium") {
-      step = 8;
-      showStep(8);
-      return;
-    }
-
-    const percent = Math.round((step / STEP_MAX) * 100);
-    const fill = byId("progressFill");
-    if (fill) fill.style.width = `${Math.max(10, percent)}%`;
-
-    const titles = {
-      1:"STEP 1｜方案",
-      2:"STEP 2｜外觀",
-      3:"STEP 3｜主資訊",
-      4:"STEP 4｜圖片",
-      5:"STEP 5｜聯絡",
-      6:"STEP 6｜影音/社群",
-      7:"STEP 7｜精品 CTA",
-      8:"STEP 8｜送出"
-    };
-    setText("stepTitle", titles[step] || `STEP ${step}`);
-
-    const prev = byId("prevBtn");
-    const next = byId("nextBtn");
-    if (prev) prev.disabled = (step === 1) || inFlight;
-    if (next) next.textContent = (step === STEP_MAX) ? "完成" : "下一步";
-    if (next) next.disabled = inFlight;
-
-    updatePreview();
-    updateSummary();
-    validateLive();
-  }
-  function goNext(){ if (step < STEP_MAX) showStep(step + 1); }
-  function goPrev(){ if (step > 1) showStep(step - 1); }
-
-  function clearChips(group){
-    document.querySelectorAll(`[data-chip-group="${group}"]`).forEach(btn => btn.dataset.on = "0");
-  }
-  function clearGroup(group){
-    document.querySelectorAll(`[data-swatch-group="${group}"] .swatch`).forEach(btn => btn.dataset.on = "0");
-  }
-  function setChipOn(group, value){
-    document.querySelectorAll(`[data-chip-group="${group}"]`).forEach(btn => {
-      btn.dataset.on = (btn.getAttribute("data-value") === value) ? "1" : "0";
-    });
-    setValue(group, value);
-  }
-  function setSwatchOn(group, value){
-    document.querySelectorAll(`[data-swatch-group="${group}"] .swatch`).forEach(btn => {
-      btn.dataset.on = (btn.getAttribute("data-value") === value) ? "1" : "0";
-    });
-    setValue(group, value);
-  }
-
-  function applyPlanUI(plan){
-    const freeCard = byId("freeThemeCard");
-    const premiumCard = byId("premiumThemeCard");
-    const premiumPhotoRow = byId("premiumPhotoRow");
-
-    if (plan === "premium") {
-      freeCard?.classList.add("hide");
-      premiumCard?.classList.remove("hide");
-      premiumPhotoRow?.classList.remove("hide");
-
-      setValue("color", "");
-      setValue("style", "");
-      setValue("paper", "");
-      clearGroup("color");
-      clearChips("style");
-      clearChips("paper");
-    } else {
-      freeCard?.classList.remove("hide");
-      premiumCard?.classList.add("hide");
-      premiumPhotoRow?.classList.add("hide");
-
-      setValue("premium_color", "");
-      clearGroup("premium_color");
-
-      setValue("cta_text", "");
-      setValue("cta_link", "");
-    }
-
-    updatePreview();
-    updateSummary();
-    validateLive();
-    scheduleSaveDraft();
-  }
-
-  function findSwatchEl(group, value){
-    return document.querySelector(`[data-swatch-group="${group}"] .swatch[data-value="${value}"]`);
-  }
-
-  function updatePreview(){
-    const plan = getValue("plan") || "free";
-    const name = getValue("name") || "姓名";
-    const unit = getValue("unit") || "單位";
-    const title = getValue("title") || "頭銜";
-
-    setText("pvName", name);
-    setText("pvUnit", unit);
-    setText("pvTitle", title);
-
-    const card = byId("previewCard");
-    const banner = byId("previewBanner");
-    if (!card || !banner) return;
-
-    card.className = "preview-card";
-    banner.className = "preview-banner";
-
-    if (plan === "premium") {
-      const p = getValue("premium_color") || "p?";
-      setText("pvTheme", p);
-      card.dataset.plan = "premium";
-      card.dataset.p = p;
-      banner.style.background = getComputedStyle(findSwatchEl("premium_color", p) || banner).background || "";
-    } else {
-      const c = getValue("color") || "c?";
-      const s = getValue("style") || "s?";
-      const f = getValue("paper") || "f?";
-      setText("pvTheme", `${c}/${s}/${f}`);
-      banner.style.background = getComputedStyle(findSwatchEl("color", c) || banner).background || "";
-    }
-  }
-
-  function updateSummary(){
-    const plan = getValue("plan") || "-";
-    setText("sumPlan", plan === "premium" ? "精品設計" : (plan === "free" ? "自由搭配" : "-"));
-
-    if (plan === "premium") {
-      setText("sumTheme", getValue("premium_color") || "-");
-    } else {
-      const c = getValue("color") || "-";
-      const s = getValue("style") || "-";
-      const f = getValue("paper") || "-";
-      setText("sumTheme", `${c}/${s}/${f}`);
-    }
-
-    setText("sumName", getValue("name") || "-");
-    setText("sumUnit", getValue("unit") || "-");
-    setText("sumTitle", getValue("title") || "-");
-
-    // ✅ v512.3 ADD: show video/social summary
-    const v = [getValue("video1"), getValue("video2"), getValue("video3")].filter(Boolean).length;
-    const s = [getValue("social1"), getValue("social2"), getValue("social3")].filter(Boolean).length;
-    setText("sumVideo", v ? `已填 ${v} 筆` : "-");
-    setText("sumSocial", s ? `已填 ${s} 筆` : "-");
-  }
-
-  /* -----------------------------
-   * Draft fields
-   * ----------------------------- */
-  function readFormDraft(){
-    try{
-      const raw = localStorage.getItem(CONFIG.DRAFT_FORM_KEY);
-      if(!raw) return null;
-      const d = JSON.parse(raw);
-      if(!d || d.tenant !== tenant) return null;
-      if (nowMs() - (d.ts||0) > CONFIG.DRAFT_TTL_MS) { localStorage.removeItem(CONFIG.DRAFT_FORM_KEY); return null; }
-      return d;
-    }catch{ return null; }
-  }
-  function writeFormDraft(fields){
-    try{ localStorage.setItem(CONFIG.DRAFT_FORM_KEY, JSON.stringify({tenant, ts: nowMs(), fields})); }catch{}
-  }
-  function clearFormDraft(){ localStorage.removeItem(CONFIG.DRAFT_FORM_KEY); }
-
-  function debounce(fn, wait){
-    let t;
-    return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), wait); };
-  }
-  const scheduleSaveDraft = debounce(()=>{
-    const fields = collectFieldsSnapshot();
-    writeFormDraft(fields);
-  }, 300);
-
-  function collectFieldsSnapshot(){
-    const ids = [
-      "plan","color","style","paper","premium_color",
-      "name","unit","title","slogan","services","experience",
-      "wechat_id","line_url","line_oa","email","phone","address",
-      "video1","video2","video3","social1","social2","social3",
-      "cta_text","cta_link"
-    ];
-    const out = {};
-    ids.forEach(id => out[id] = getValue(id));
-    return out;
-  }
-
-  async function restoreFormDraftIfAny(){
-    const d = readFormDraft();
-    if(!d || !d.fields) return false;
-
-    const plan = (d.fields.plan||"").trim();
-    if (plan === "free" || plan === "premium") {
-      setChipOn("plan", plan);
-      applyPlanUI(plan);
-    }
-
-    Object.keys(d.fields).forEach((k)=>{
-      if (!byId(k)) return;
-      setValue(k, d.fields[k] ?? "");
-    });
-
-    const style = (d.fields.style||"").trim(); if(style) setChipOn("style", style);
-    const paper = (d.fields.paper||"").trim(); if(paper) setChipOn("paper", paper);
-    const color = (d.fields.color||"").trim(); if(color) setSwatchOn("color", color);
-    const pc = (d.fields.premium_color||"").trim(); if(pc) setSwatchOn("premium_color", pc);
-
-    toast("已恢復草稿（文字/選項）✅");
-    return true;
-  }
-
-  /* -----------------------------
-   * Draft card id/token
-   * ----------------------------- */
-  function readCardDraft(){
-    try{
-      const raw = localStorage.getItem(CONFIG.DRAFT_CARD_KEY);
-      if(!raw) return null;
-      const d = JSON.parse(raw);
-      if(!d || !d.id || !d.token) return null;
-      if(d.tenant && d.tenant !== tenant) return null;
-      if (nowMs() - (d.ts||0) > CONFIG.DRAFT_TTL_MS) { localStorage.removeItem(CONFIG.DRAFT_CARD_KEY); return null; }
-      return d;
-    }catch{ return null; }
-  }
-  function writeCardDraft(id, token){
-    try{ localStorage.setItem(CONFIG.DRAFT_CARD_KEY, JSON.stringify({tenant, id, token, ts: nowMs()})); }catch{}
-  }
-  function clearCardDraft(){ localStorage.removeItem(CONFIG.DRAFT_CARD_KEY); }
-
-  /* -----------------------------
-   * IndexedDB
-   * ----------------------------- */
-  function idbOpen(){
-    return new Promise((resolve, reject)=>{
-      const req = indexedDB.open(CONFIG.IDB.DB_NAME, CONFIG.IDB.DB_VER);
-      req.onupgradeneeded = ()=>{
-        const db = req.result;
-        if(!db.objectStoreNames.contains(CONFIG.IDB.STORE)){
-          db.createObjectStore(CONFIG.IDB.STORE, { keyPath: "key" });
-        }
-      };
-      req.onsuccess = ()=>resolve(req.result);
-      req.onerror = ()=>reject(req.error || new Error("idb open error"));
-    });
-  }
-  async function idbPutFile(slot, blob, meta){
-    const db = await idbOpen();
-    const key = `${tenant}:${slot}`;
-    return await new Promise((resolve, reject)=>{
-      const tx = db.transaction(CONFIG.IDB.STORE, "readwrite");
-      tx.objectStore(CONFIG.IDB.STORE).put({ key, tenant, slot, ts: nowMs(), meta: meta||{}, blob });
-      tx.oncomplete = ()=>resolve(true);
-      tx.onerror = ()=>reject(tx.error || new Error("idb put error"));
-    });
-  }
-  async function idbGetFile(slot){
-    const db = await idbOpen();
-    const key = `${tenant}:${slot}`;
-    return await new Promise((resolve, reject)=>{
-      const tx = db.transaction(CONFIG.IDB.STORE, "readonly");
-      const req = tx.objectStore(CONFIG.IDB.STORE).get(key);
-      req.onsuccess = ()=>resolve(req.result || null);
-      req.onerror = ()=>reject(req.error || new Error("idb get error"));
-    });
-  }
-  async function idbDelFile(slot){
-    const db = await idbOpen();
-    const key = `${tenant}:${slot}`;
-    return await new Promise((resolve, reject)=>{
-      const tx = db.transaction(CONFIG.IDB.STORE, "readwrite");
-      tx.objectStore(CONFIG.IDB.STORE).delete(key);
-      tx.oncomplete = ()=>resolve(true);
-      tx.onerror = ()=>reject(tx.error || new Error("idb del error"));
-    });
-  }
-  async function idbClearAllDraftFiles(){
-    const db = await idbOpen();
-    return await new Promise((resolve, reject)=>{
-      const tx = db.transaction(CONFIG.IDB.STORE, "readwrite");
-      const store = tx.objectStore(CONFIG.IDB.STORE);
-      const req = store.openCursor();
-      req.onsuccess = (e)=>{
-        const cur = e.target.result;
-        if(cur){
-          const v = cur.value;
-          if(v && v.tenant === tenant) cur.delete();
-          cur.continue();
-        }
-      };
-      tx.oncomplete = ()=>resolve(true);
-      tx.onerror = ()=>reject(tx.error || new Error("idb clear error"));
-    });
-  }
-
-  function ensureSavedHintAfter(inputId) {
-    const input = byId(inputId);
-    if (!input) return null;
-    const key = `savedHint_${inputId}`;
-    let el = byId(key);
-    if (el) return el;
-
-    el = document.createElement("div");
-    el.id = key;
-    el.style.cssText = "margin-top:6px;color:rgba(255,255,255,.70);font-size:12px;line-height:1.6;";
-    input.insertAdjacentElement("afterend", el);
-    return el;
-  }
-
-  async function refreshSavedHints(){
-    const slots = ["avatar","logo","photo1","photo2","photo3","photo4","photo5"];
-    const map = {
-      avatar:"avatarFile", logo:"logoFile",
-      photo1:"photo1File", photo2:"photo2File",
-      photo3:"photo3File", photo4:"photo4File", photo5:"photo5File"
-    };
-    for(const slot of slots){
-      const hint = ensureSavedHintAfter(map[slot]);
-      if(!hint) continue;
-      try{
-        const rec = await idbGetFile(slot);
-        if(rec && rec.blob){
-          const kb = Math.round(rec.blob.size/1024);
-          const name = (rec.meta && rec.meta.name) ? rec.meta.name : `${slot}.jpg`;
-          hint.textContent = `（草稿已保存）${name} · ${kb}KB`;
-        } else hint.textContent = "";
-      }catch{ hint.textContent = ""; }
-    }
-  }
-
-  /* -----------------------------
-   * Compression
-   * ----------------------------- */
-  async function fileToImageBitmap(file){
-    if("createImageBitmap" in window){
-      try{ return await createImageBitmap(file); }catch{}
-    }
-    const dataUrl = await new Promise((res, rej)=>{
-      const fr = new FileReader();
-      fr.onload = ()=>res(fr.result);
-      fr.onerror = ()=>rej(new Error("FileReader error"));
-      fr.readAsDataURL(file);
-    });
-    const img = await new Promise((res, rej)=>{
-      const i = new Image();
-      i.onload = ()=>res(i);
-      i.onerror = ()=>rej(new Error("Image load error"));
-      i.src = dataUrl;
-    });
-    return img;
-  }
-
-  function drawToCanvas(src, maxW, maxH){
-    const sw = src.width, sh = src.height;
-    const scale = Math.min(1, maxW/sw, maxH/sh);
-    const w = Math.max(1, Math.round(sw*scale));
-    const h = Math.max(1, Math.round(sh*scale));
-    const c = document.createElement("canvas");
-    c.width = w; c.height = h;
-    const ctx = c.getContext("2d", { alpha:false });
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(src, 0, 0, w, h);
-    return c;
-  }
-
-  async function canvasToBlob(canvas, type, quality){
-    return await new Promise((res)=>canvas.toBlob((b)=>res(b), type, quality));
-  }
-
-  async function compressImage(file, policy){
-    if(!file || !/^image\//i.test(file.type||"")) return { blob:file, outType:file?.type||"" };
-    const bmp = await fileToImageBitmap(file);
-    const canvas = drawToCanvas(bmp, policy.maxW, policy.maxH);
-    const outType = "image/jpeg";
-    let q = policy.qualityStart;
-    let blob = await canvasToBlob(canvas, outType, q);
-    if(!blob) return { blob:file, outType:file.type||"" };
-
-    const target = policy.targetKB * 1024;
-    while(blob.size > target && q > policy.qualityMin){
-      q = Math.max(policy.qualityMin, q - 0.06);
-      const b2 = await canvasToBlob(canvas, outType, q);
-      if(!b2) break;
-      blob = b2;
-    }
-    return { blob, outType };
-  }
-
-  async function saveImageDraft(slot, file, kind){
-    if(!file){
-      await idbDelFile(slot).catch(()=>{});
-      await refreshSavedHints();
-      return;
-    }
-    const policy = CONFIG.COMPRESS[kind] || CONFIG.COMPRESS.photo;
-    const r = await compressImage(file, policy);
-    await idbPutFile(slot, r.blob, { name:file.name, type:r.outType||file.type||"image/jpeg" });
-    await refreshSavedHints();
-  }
-
-  /* -----------------------------
-   * Validation
-   * ----------------------------- */
   function setErr(key, msg){
-    const el = byId(`err_${key}`);
-    if(el) el.textContent = msg || "";
-  }
-  function setInvalid(id, on){
-    const el = byId(id);
-    if(!el) return;
-    el.classList.toggle("isInvalid", !!on);
+    if(err[key]) err[key].textContent = msg || "";
   }
 
-  async function hasAvatarAvailable(){
-    if(pickFile("avatarFile")) return true;
-    const rec = await idbGetFile("avatar");
-    return !!(rec && rec.blob);
+  function markInvalid(inputEl, yes){
+    if(!inputEl) return;
+    inputEl.classList.toggle("isInvalid", !!yes);
   }
 
-  async function validateStateAsync(){
-    const plan = getValue("plan");
-    const errors = {};
-
-    if(!plan) errors.plan = "請先選擇方案";
-
-    if(plan === "premium"){
-      if(!getValue("premium_color")) errors.premium_color = "請選擇精品底色";
-    } else if(plan === "free"){
-      if(!getValue("color")) errors.color = "請選擇顏色";
-      if(!getValue("style")) errors.style = "請選擇版型";
-      if(!getValue("paper")) errors.paper = "請選擇紙感";
-    }
-
-    if(!getValue("name")) errors.name = "請填寫姓名";
-    if(!getValue("unit")) errors.unit = "請填寫單位";
-    if(!getValue("title")) errors.title = "請填寫頭銜";
-
-    const okAvatar = await hasAvatarAvailable();
-    if(!okAvatar) errors.avatar = "請上傳個人照（必填）";
-
-    const ctaText = getValue("cta_text");
-    const ctaLink = getValue("cta_link");
-    if(plan === "premium"){
-      if((ctaText && !ctaLink) || (!ctaText && ctaLink)) errors.cta_pair = "CTA 需要文字＋連結同時填（或都留空）";
-    }
-
-    return { ok: Object.keys(errors).length === 0, errors };
+  function getQS(){
+    const u = new URL(location.href);
+    return {
+      tenant: (u.searchParams.get("tenant") || DEFAULT_TENANT).trim() || DEFAULT_TENANT,
+      sig: (u.searchParams.get("sig") || "").trim(),
+      exp: (u.searchParams.get("exp") || "").trim(), // ignored by GAS for security (payload inside sig)
+    };
   }
 
-  async function validateLive(){
-    const st = await validateStateAsync();
+  function saveDraft(){
+    const draft = {
+      v: VERSION,
+      ts: Date.now(),
+      state: {
+        tenant: state.tenant,
+        sig: state.sig,
+        step: state.step,
+        id: state.id,
+        token: state.token,
+        avatar_img: state.avatar_img,
+        logo_img: state.logo_img,
+        photo1_img: state.photo1_img,
+        photo2_img: state.photo2_img,
+        photo3_img: state.photo3_img,
+        photo4_img: state.photo4_img,
+        photo5_img: state.photo5_img,
+      },
+      values: {
+        plan: hidden.plan.value || "",
+        color: hidden.color.value || "",
+        style: hidden.style.value || "",
+        paper: hidden.paper.value || "",
+        premium_color: hidden.premium_color.value || "",
 
-    ["plan","color","style","paper","premium_color","name","unit","title","avatar","cta_pair"].forEach(k=>setErr(k,""));
-    ["name","unit","title"].forEach(id=>setInvalid(id,false));
+        name: fields.name.value || "",
+        unit: fields.unit.value || "",
+        title: fields.title.value || "",
+        slogan: fields.slogan.value || "",
+        services: fields.services.value || "",
+        experience: fields.experience.value || "",
 
-    Object.entries(st.errors).forEach(([k,msg])=>setErr(k,msg));
-    setInvalid("name", !!st.errors.name);
-    setInvalid("unit", !!st.errors.unit);
-    setInvalid("title", !!st.errors.title);
+        wechat_id: fields.wechat_id.value || "",
+        line_url: fields.line_url.value || "",
+        line_oa: fields.line_oa.value || "",
+        email: fields.email.value || "",
+        phone: fields.phone.value || "",
+        address: fields.address.value || "",
 
-    const submitBtn = byId("submitBtn");
-    if(submitBtn) submitBtn.disabled = !st.ok || inFlight;
+        video1: fields.video1.value || "",
+        video2: fields.video2.value || "",
+        video3: fields.video3.value || "",
+        social1: fields.social1.value || "",
+        social2: fields.social2.value || "",
+        social3: fields.social3.value || "",
 
-    if(!inFlight){
-      setPill(st.ok ? "可送出 ✅" : `尚缺 ${Object.keys(st.errors).length} 項`);
-    }
-    return st.ok;
+        cta_text: fields.cta_text.value || "",
+        cta_link: fields.cta_link.value || "",
+      }
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }
 
-  /* -----------------------------
-   * Network
-   * ----------------------------- */
-  function withTimeout(promise, ms){
-    let to;
-    const t = new Promise((_,rej)=>{ to=setTimeout(()=>rej(new Error(`timeout ${ms}ms`)), ms); });
-    return Promise.race([promise.finally(()=>clearTimeout(to)), t]);
-  }
-
-  async function fetchJson(url, opts){
-    const r = await withTimeout(fetch(url, opts), CONFIG.FETCH_TIMEOUT_MS);
-    const txt = await r.text();
-    let js;
-    try{ js = JSON.parse(txt); }catch{ throw new Error(`Non-JSON response: ${txt.slice(0,220)}`); }
-    return js;
-  }
-
-  function toQuery(params){
-    const usp = new URLSearchParams();
-    Object.entries(params).forEach(([k,v])=>{
-      if(v === undefined || v === null) return;
-      const s = String(v);
-      if(s === "") return;
-      usp.set(k, s);
-    });
-    return usp.toString();
-  }
-
-  async function callGAS_GET(action, params){
-    const url = `${CONFIG.GAS}?${toQuery({action, ...params})}`;
-    return await fetchJson(url, { method:"GET", credentials:"omit" });
-  }
-  async function callGAS_POST_URLENC(action, params){
-    const body = toQuery({action, ...params});
-    return await fetchJson(CONFIG.GAS, {
-      method:"POST",
-      headers: {"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"},
-      body,
-      credentials:"omit"
-    });
-  }
-  async function callGAS(action, params){
-    let lastErr;
-    for(let i=0;i<=CONFIG.RETRY;i++){
-      try{ return await callGAS_GET(action, params); }catch(e){ lastErr=e; }
-      try{ return await callGAS_POST_URLENC(action, params); }catch(e2){ lastErr=e2; }
-    }
-    throw lastErr || new Error("callGAS failed");
-  }
-
-  async function pingCheck(){
+  function loadDraft(){
     try{
-      const js = await callGAS_GET("ping", {});
-      return js && js.ok === true;
-    }catch{
-      return false;
-    }
-  }
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if(!raw) return false;
+      const draft = JSON.parse(raw);
+      if(!draft || !draft.state || !draft.values) return false;
 
-  async function schemaCheck(){
-    const js = await callGAS("schemaCheck", {});
-    if(!js || js.ok !== true) throw new Error(js?.error || `schemaCheck failed: ${safeJson(js)}`);
-    return true;
-  }
+      const s = draft.state;
+      state.tenant = s.tenant || DEFAULT_TENANT;
+      state.sig = s.sig || "";
+      state.step = Number(s.step || 1);
+      state.id = s.id || "";
+      state.token = s.token || "";
 
-  // ✅ used by v512.3 to validate draft card existence
-  async function cardExists(id, token){
-    try{
-      const js = await callGAS("card", { tenant, id, token });
-      return !!(js && js.ok === true && js.item && js.item.id);
+      state.avatar_img = s.avatar_img || "";
+      state.logo_img = s.logo_img || "";
+      state.photo1_img = s.photo1_img || "";
+      state.photo2_img = s.photo2_img || "";
+      state.photo3_img = s.photo3_img || "";
+      state.photo4_img = s.photo4_img || "";
+      state.photo5_img = s.photo5_img || "";
+
+      const v = draft.values;
+
+      hidden.plan.value = v.plan || "";
+      hidden.color.value = v.color || "";
+      hidden.style.value = v.style || "";
+      hidden.paper.value = v.paper || "";
+      hidden.premium_color.value = v.premium_color || "";
+
+      fields.name.value = v.name || "";
+      fields.unit.value = v.unit || "";
+      fields.title.value = v.title || "";
+      fields.slogan.value = v.slogan || "";
+      fields.services.value = v.services || "";
+      fields.experience.value = v.experience || "";
+
+      fields.wechat_id.value = v.wechat_id || "";
+      fields.line_url.value = v.line_url || "";
+      fields.line_oa.value = v.line_oa || "";
+      fields.email.value = v.email || "";
+      fields.phone.value = v.phone || "";
+      fields.address.value = v.address || "";
+
+      fields.video1.value = v.video1 || "";
+      fields.video2.value = v.video2 || "";
+      fields.video3.value = v.video3 || "";
+      fields.social1.value = v.social1 || "";
+      fields.social2.value = v.social2 || "";
+      fields.social3.value = v.social3 || "";
+
+      fields.cta_text.value = v.cta_text || "";
+      fields.cta_link.value = v.cta_link || "";
+
+      return true;
     }catch(e){
-      const msg = String(e?.message || e || "");
-      if (/id not found/i.test(msg)) return false;
       return false;
     }
   }
 
-  /* -----------------------------
-   * Firebase v12 module (ESM)
-   * ----------------------------- */
-  const FB = {
-    readyPromise: null,
-    app: null,
-    auth: null,
-    storage: null,
-    uid: ""
-  };
-
-  function firebaseModuleUrl(name){
-    return `https://www.gstatic.com/firebasejs/${CONFIG.FIREBASE_VER}/${name}.js`;
+  function clearDraft(){
+    localStorage.removeItem(DRAFT_KEY);
   }
 
-  async function firebaseReady(){
-    if (FB.readyPromise) return FB.readyPromise;
+  function showStep(n){
+    state.step = n;
+    $$(".step").forEach(sec => {
+      const sn = Number(sec.getAttribute("data-step"));
+      sec.classList.toggle("hide", sn !== n);
+    });
 
-    FB.readyPromise = (async () => {
-      dbg("firebase: loading modules…");
-      const [
-        { initializeApp },
-        { getAuth, onAuthStateChanged, signInAnonymously },
-        { getStorage, ref, uploadBytesResumable, getDownloadURL }
-      ] = await Promise.all([
-        import(firebaseModuleUrl("firebase-app")),
-        import(firebaseModuleUrl("firebase-auth")),
-        import(firebaseModuleUrl("firebase-storage"))
-      ]);
+    el.stepTitle.textContent = STEP_TITLES[n] || `STEP ${n}`;
+    const pct = Math.round((n / 8) * 100);
+    el.progressFill.style.width = `${pct}%`;
 
-      FB._ref = ref;
-      FB._uploadBytesResumable = uploadBytesResumable;
-      FB._getDownloadURL = getDownloadURL;
-      FB._signInAnonymously = signInAnonymously;
-      FB._onAuthStateChanged = onAuthStateChanged;
+    el.prevBtn.style.visibility = (n <= 1) ? "hidden" : "visible";
+    el.nextBtn.classList.toggle("hide", n >= 8);
+    saveDraft();
 
-      FB.app = initializeApp(CONFIG.FIREBASE_CONFIG);
-      FB.auth = getAuth(FB.app);
-      FB.storage = getStorage(FB.app);
+    refreshPlanDependentUI_();
+    refreshPreview_();
+    refreshSummary_();
+    refreshHeader_();
+  }
 
-      dbg("firebase: init ok");
+  function refreshHeader_(){
+    el.versionText.textContent = VERSION;
+    el.tenantText.textContent = state.tenant || DEFAULT_TENANT;
+    el.cardIdText.textContent = state.id ? state.id : "-";
+  }
 
-      const uid = await new Promise((resolve) => {
-        const unsub = onAuthStateChanged(FB.auth, (user) => {
-          if (user && user.uid) {
-            unsub();
-            resolve(user.uid);
-          }
-        });
-      }).catch(()=> "");
+  function planIsPremium(){
+    return (hidden.plan.value || "").trim() === "premium";
+  }
 
-      if (!uid) {
-        dbg("firebase: no user yet -> signInAnonymously");
-        await signInAnonymously(FB.auth);
+  function refreshPlanDependentUI_(){
+    const premium = planIsPremium();
+
+    el.freeThemeCard.classList.toggle("hide", premium);
+    el.premiumThemeCard.classList.toggle("hide", !premium);
+
+    el.premiumPhotoRow.classList.toggle("hide", !premium);
+    el.premiumCtaCard.classList.toggle("hide", !premium);
+
+    // If free, clear premium-only choices
+    if(!premium){
+      hidden.premium_color.value = "";
+      fields.cta_text.value = "";
+      fields.cta_link.value = "";
+      state.photo3_img = "";
+      state.photo4_img = "";
+      state.photo5_img = "";
+      // and clear file inputs visually (cannot set value reliably on some browsers; ignore)
+    }
+  }
+
+  function refreshPreview_(){
+    const nm = (fields.name.value || "").trim() || "姓名";
+    const tt = (fields.title.value || "").trim() || "頭銜";
+    const un = (fields.unit.value || "").trim() || "單位";
+    el.pvName.textContent = nm;
+    el.pvTitle.textContent = tt;
+    el.pvUnit.textContent = un;
+
+    if(planIsPremium()){
+      const pc = (hidden.premium_color.value || "").trim() || "p?";
+      el.pvTheme.textContent = `${pc}`;
+    }else{
+      const c = (hidden.color.value || "").trim() || "c?";
+      const s = (hidden.style.value || "").trim() || "s?";
+      const f = (hidden.paper.value || "").trim() || "f?";
+      el.pvTheme.textContent = `${c}/${s}/${f}`;
+    }
+  }
+
+  function refreshSummary_(){
+    el.sumPlan.textContent = planIsPremium() ? "精品設計" : (hidden.plan.value ? "自由搭配" : "-");
+    el.sumTheme.textContent = planIsPremium()
+      ? (hidden.premium_color.value || "-")
+      : `${hidden.color.value || "-"} / ${hidden.style.value || "-"} / ${hidden.paper.value || "-"}`;
+
+    el.sumName.textContent = (fields.name.value || "-").trim() || "-";
+    el.sumUnit.textContent = (fields.unit.value || "-").trim() || "-";
+    el.sumTitle.textContent = (fields.title.value || "-").trim() || "-";
+
+    const vids = [fields.video1.value, fields.video2.value, fields.video3.value].filter(Boolean).length;
+    const socs = [fields.social1.value, fields.social2.value, fields.social3.value].filter(Boolean).length;
+    el.sumVideo.textContent = vids ? `${vids} 筆` : "-";
+    el.sumSocial.textContent = socs ? `${socs} 筆` : "-";
+  }
+
+  /* -------------------------
+   * Selection binding (chips / swatches)
+   * ------------------------- */
+  function bindChips_(){
+    document.addEventListener("click", (ev) => {
+      const chip = ev.target.closest(".chip");
+      if(!chip) return;
+      const group = chip.getAttribute("data-chip-group");
+      const val = chip.getAttribute("data-value");
+      if(!group || !val) return;
+
+      const groupChips = $$(`.chip[data-chip-group="${group}"]`);
+      groupChips.forEach(c => c.setAttribute("data-on", "0"));
+      chip.setAttribute("data-on", "1");
+
+      if(hidden[group]){
+        hidden[group].value = val;
       }
 
-      FB.uid = await new Promise((resolve, reject) => {
-        const timer = setTimeout(()=>reject(new Error("auth timeout")), 12000);
-        const unsub = onAuthStateChanged(FB.auth, (user) => {
-          if (user && user.uid) {
-            clearTimeout(timer);
-            unsub();
-            resolve(user.uid);
-          }
-        });
-      });
+      // plan switching effects
+      if(group === "plan"){
+        refreshPlanDependentUI_();
+      }
 
-      dbg("firebase: auth ok", { uid: FB.uid });
-      return true;
-    })();
-
-    return FB.readyPromise;
-  }
-
-  async function uploadOne(cardId, blobOrFile, fileName, contentType, onPct){
-    await firebaseReady();
-
-    const path = `hsc_cards/${tenant}/${cardId}/${fileName}`;
-    dbg(`firebase upload -> ${path}`);
-
-    const r = FB._ref(FB.storage, path);
-    const meta = { contentType: contentType || blobOrFile.type || "image/jpeg" };
-    const task = FB._uploadBytesResumable(r, blobOrFile, meta);
-
-    const url = await new Promise((resolve, reject) => {
-      task.on("state_changed",
-        (snap) => {
-          const pct = snap.totalBytes ? (snap.bytesTransferred / snap.totalBytes) * 100 : 0;
-          if (onPct) onPct(pct);
-        },
-        (err) => reject(err),
-        async () => {
-          try{
-            const dl = await FB._getDownloadURL(task.snapshot.ref);
-            resolve(dl);
-          }catch(e){
-            reject(e);
-          }
-        }
-      );
+      saveDraft();
+      refreshPreview_();
+      refreshSummary_();
     });
 
-    dbg(`firebase url -> ${url}`);
+    document.addEventListener("click", (ev) => {
+      const sw = ev.target.closest(".swatch");
+      if(!sw) return;
+      const row = sw.closest(".swatch-row");
+      if(!row) return;
+      const group = row.getAttribute("data-swatch-group");
+      const val = sw.getAttribute("data-value");
+      if(!group || !val) return;
+
+      row.querySelectorAll(".swatch").forEach(x => x.setAttribute("data-on", "0"));
+      sw.setAttribute("data-on", "1");
+
+      if(hidden[group]){
+        hidden[group].value = val;
+      }
+
+      saveDraft();
+      refreshPreview_();
+      refreshSummary_();
+    });
+  }
+
+  function restoreSelectionUI_(){
+    // chips
+    ["plan","style","paper"].forEach(g=>{
+      const v = (hidden[g]?.value || "").trim();
+      $$(`.chip[data-chip-group="${g}"]`).forEach(c=>{
+        c.setAttribute("data-on", (c.getAttribute("data-value") === v) ? "1" : "0");
+      });
+    });
+
+    // swatches
+    const setSw = (group, val) => {
+      const row = document.querySelector(`.swatch-row[data-swatch-group="${group}"]`);
+      if(!row) return;
+      row.querySelectorAll(".swatch").forEach(s=>{
+        s.setAttribute("data-on", (s.getAttribute("data-value") === val) ? "1" : "0");
+      });
+    };
+
+    setSw("color", (hidden.color.value||"").trim());
+    setSw("premium_color", (hidden.premium_color.value||"").trim());
+  }
+
+  /* -------------------------
+   * GAS calls (GET)
+   * ------------------------- */
+  async function gasGet_(params){
+    const u = new URL(GAS_URL);
+    Object.entries(params).forEach(([k,v])=>{
+      if(v === undefined || v === null || v === "") return;
+      u.searchParams.set(k, String(v));
+    });
+    const url = u.toString();
+    log("GET", url);
+
+    const res = await fetch(url, { method:"GET", mode:"cors", cache:"no-store" });
+    const txt = await res.text();
+    let json;
+    try{ json = JSON.parse(txt); }catch(e){
+      throw new Error("GAS JSON parse fail: " + txt.slice(0, 180));
+    }
+    if(!json.ok){
+      throw new Error(json.error || "GAS error");
+    }
+    return json;
+  }
+
+  async function pingAndSchema_(){
+    setPill("檢查系統中…");
+    const ping = await gasGet_({ action:"ping" });
+    log("ping ok", ping);
+
+    const sch = await gasGet_({ action:"schemaCheck" });
+    log("schema ok", sch);
+
+    setPill("系統正常 ✅");
+  }
+
+  /* -------------------------
+   * Firebase auth + upload
+   * ------------------------- */
+  async function ensureFirebaseAuthed_(){
+    if(!window.firebase) throw new Error("firebase not loaded");
+    if(!firebase.auth) throw new Error("firebase-auth-compat.js not loaded");
+
+    const auth = firebase.auth();
+    const cur = auth.currentUser;
+    if(cur){
+      log("firebase already authed", cur.uid);
+      return cur;
+    }
+    log("firebase signing in anonymously...");
+    const cred = await auth.signInAnonymously();
+    log("firebase anon ok", cred.user && cred.user.uid);
+    return cred.user;
+  }
+
+  function bytesToMB_(n){ return (n / 1024 / 1024); }
+
+  async function fileToWebpBlob_(file){
+    if(!file) return null;
+    if(file.size > IMG_MAX_MB * 1024 * 1024){
+      throw new Error(`檔案太大（>${IMG_MAX_MB}MB）：${file.name}`);
+    }
+
+    const img = await loadImage_(file);
+    const { canvas, w, h } = drawToCanvas_(img, IMG_MAX_W);
+
+    const blob = await canvasToBlob_(canvas, "image/webp", IMG_QUALITY);
+    if(!blob) throw new Error("image convert failed");
+    return blob;
+  }
+
+  function loadImage_(file){
+    return new Promise((resolve, reject)=>{
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = ()=>{ URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = (e)=>{ URL.revokeObjectURL(url); reject(new Error("image load failed")); };
+      img.src = url;
+    });
+  }
+
+  function drawToCanvas_(img, maxW){
+    let w = img.naturalWidth || img.width;
+    let h = img.naturalHeight || img.height;
+    if(w > maxW){
+      const ratio = maxW / w;
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0, w, h);
+    return { canvas, w, h };
+  }
+
+  function canvasToBlob_(canvas, type, quality){
+    return new Promise((resolve)=>{
+      canvas.toBlob((blob)=>resolve(blob), type, quality);
+    });
+  }
+
+  async function uploadBlob_(tenant, cardId, fileName, blob){
+    await ensureFirebaseAuthed_();
+
+    const storage = firebase.storage();
+    const path = `hsc_cards/${tenant}/${cardId}/${fileName}`;
+    const ref = storage.ref().child(path);
+
+    log("uploading", { path, sizeKB: Math.round(blob.size/1024) });
+
+    const snap = await ref.put(blob, {
+      contentType: "image/webp",
+      cacheControl: "public,max-age=31536000"
+    });
+    const url = await snap.ref.getDownloadURL();
+    log("upload ok", { path, url: url.slice(0,80) + "..." });
     return url;
   }
 
-  async function getImageSource(slot, inputId, kind){
-    const f = pickFile(inputId);
-    if(f){
-      const policy = CONFIG.COMPRESS[kind] || CONFIG.COMPRESS.photo;
-      const r = await compressImage(f, policy);
-      return { blob:r.blob, contentType:"image/jpeg" };
-    }
-    const rec = await idbGetFile(slot);
-    if(rec && rec.blob) return { blob:rec.blob, contentType:"image/jpeg" };
-    return null;
-  }
+  /* -------------------------
+   * Validation by step
+   * ------------------------- */
+  function validateStep_(n){
+    // clear errs
+    Object.values(err).forEach(e => { if(e) e.textContent = ""; });
+    // remove invalid styles
+    [fields.name, fields.unit, fields.title].forEach(i => markInvalid(i,false));
 
-  async function uploadImages(cardId, plan){
-    const out = {};
-    const tasks = [];
-
-    const queue = async (label, slot, inputId, kind, fileName, key) => {
-      const src = await getImageSource(slot, inputId, kind);
-      if (!src) return;
-      tasks.push({ label, src, fileName, key });
-    };
-
-    await queue("avatar","avatar","avatarFile","avatar","avatar.jpg","avatar_img");
-    await queue("logo","logo","logoFile","logo","logo.jpg","logo_img");
-
-    const maxPhotos = plan === "premium" ? 5 : 2;
-    for(let i=1;i<=maxPhotos;i++){
-      await queue(`photo${i}`,`photo${i}`,`photo${i}File`,"photo",`photo${i}.jpg`, `photo${i}_img`);
-    }
-
-    if (tasks.length === 0) return out;
-
-    let done = 0;
-    const total = tasks.length;
-
-    for (let i=0;i<tasks.length;i++){
-      const t = tasks[i];
-      setPill(`圖片上傳中…（${i+1}/${total}）`);
-      setUploadProgress(Math.round((done / total) * 100));
-
-      const url = await uploadOne(cardId, t.src.blob, t.fileName, t.src.contentType, (pct)=>{
-        const overall = ((done + (pct/100)) / total) * 100;
-        setUploadProgress(overall);
-      });
-
-      out[t.key] = url;
-      done += 1;
-      setUploadProgress(Math.round((done / total) * 100));
-    }
-
-    setUploadProgress(0);
-    return out;
-  }
-
-  /* -----------------------------
-   * ✅ Reserve/Create — v512.3
-   * ----------------------------- */
-  async function reserveOnce(){
-    const d = readCardDraft();
-    if(d){
-      setPill("檢查草稿卡是否存在…");
-      const ok = await cardExists(d.id, d.token);
-      if(ok){
-        currentCardId = d.id;
-        currentToken = d.token;
-        setText("cardIdText", currentCardId);
-        dbg("reuse draft card (verified ok)", d);
-        return { ok:true, id:currentCardId, token:currentToken, reused:true };
-      } else {
-        dbg("draft card not found -> clear & reserve new", d);
-        clearCardDraft();
-        setText("cardIdText", "-");
+    if(n === 1){
+      if(!hidden.plan.value){
+        setErr("plan", "請先選擇方案");
+        return false;
       }
+      return true;
     }
 
-    const plan = getValue("plan") || "free";
-    const js = await callGAS("reserve", { tenant, plan });
-    if(!js || js.ok !== true) throw new Error(js?.error || `reserve failed: ${safeJson(js)}`);
-    if(!js.id || !js.token) throw new Error(`reserve missing id/token: ${safeJson(js)}`);
-
-    currentCardId = js.id;
-    currentToken = js.token;
-    setText("cardIdText", currentCardId);
-    writeCardDraft(currentCardId, currentToken);
-    dbg("reserve new card ok", { id: currentCardId });
-    return js;
-  }
-
-  function collectTextPayload(){
-    const p = {
-      tenant,
-      plan: getValue("plan"),
-      color: getValue("color"),
-      style: getValue("style"),
-      paper: getValue("paper"),
-      premium_color: getValue("premium_color"),
-
-      name: getValue("name"),
-      unit: getValue("unit"),
-      title: getValue("title"),
-      slogan: getValue("slogan"),
-      services: getValue("services"),
-      experience: getValue("experience"),
-
-      wechat_id: getValue("wechat_id"),
-      line_url: getValue("line_url"),
-      line_oa: getValue("line_oa"),
-      email: getValue("email"),
-      phone: getValue("phone"),
-      address: getValue("address"),
-
-      video1: getValue("video1"),
-      video2: getValue("video2"),
-      video3: getValue("video3"),
-
-      social1: getValue("social1"),
-      social2: getValue("social2"),
-      social3: getValue("social3"),
-
-      cta_text: getValue("cta_text"),
-      cta_link: getValue("cta_link")
-    };
-
-    Object.keys(p).forEach(k => { if(p[k] === "") delete p[k]; });
-
-    if(p.plan !== "premium"){
-      delete p.cta_text; delete p.cta_link;
-    } else {
-      const hasText = !!p.cta_text;
-      const hasLink = !!p.cta_link;
-      if(hasText !== hasLink){
-        delete p.cta_text; delete p.cta_link;
+    if(n === 2){
+      if(planIsPremium()){
+        if(!hidden.premium_color.value){
+          setErr("premium_color", "請選擇精品底色");
+          return false;
+        }
+      }else{
+        if(!hidden.color.value){ setErr("color", "請選擇顏色"); return false; }
+        if(!hidden.style.value){ setErr("style", "請選擇版型"); return false; }
+        if(!hidden.paper.value){ setErr("paper", "請選擇紙感"); return false; }
       }
+      return true;
     }
 
-    return p;
+    if(n === 3){
+      const name = (fields.name.value||"").trim();
+      const unit = (fields.unit.value||"").trim();
+      const title = (fields.title.value||"").trim();
+
+      let ok = true;
+      if(!name){ setErr("name", "姓名必填"); markInvalid(fields.name,true); ok=false; }
+      if(!unit){ setErr("unit", "單位必填"); markInvalid(fields.unit,true); ok=false; }
+      if(!title){ setErr("title", "頭銜必填"); markInvalid(fields.title,true); ok=false; }
+      return ok;
+    }
+
+    if(n === 4){
+      // avatar required either already uploaded url OR file selected
+      const hasAvatarUrl = !!state.avatar_img;
+      const hasAvatarFile = !!(files.avatarFile.files && files.avatarFile.files[0]);
+      if(!hasAvatarUrl && !hasAvatarFile){
+        setErr("avatar", "個人照必填（請選擇檔案）");
+        return false;
+      }
+      return true;
+    }
+
+    if(n === 7 && planIsPremium()){
+      const t = (fields.cta_text.value||"").trim();
+      const l = (fields.cta_link.value||"").trim();
+      if((t && !l) || (!t && l)){
+        setErr("cta_pair", "CTA 文字與連結要一起填（或都留空）");
+        return false;
+      }
+      return true;
+    }
+
+    return true;
   }
 
-  async function create(textPayload, imageMap){
+  /* -------------------------
+   * Reserve / Upload / Create
+   * ------------------------- */
+  async function reserveIfNeeded_(){
+    if(state.id && state.token){
+      return { id: state.id, token: state.token };
+    }
+    setPill("建立草稿卡中…");
+
     const params = {
-      tenant,
-      id: currentCardId,
-      token: currentToken,
-      overwrite: "0",
-      ...textPayload,
-      ...imageMap
+      action: "reserve",
+      tenant: state.tenant,
+      plan: hidden.plan.value || "free",
+    };
+    if(state.sig) params.sig = state.sig;
+
+    const r = await gasGet_(params);
+    state.id = r.id;
+    state.token = r.token;
+
+    refreshHeader_();
+    saveDraft();
+
+    setPill("草稿卡已建立 ✅");
+    return { id: state.id, token: state.token };
+  }
+
+  async function uploadAllImages_(){
+    const tenant = state.tenant;
+    const cardId = state.id;
+
+    // avatar (required)
+    if(!state.avatar_img && files.avatarFile.files && files.avatarFile.files[0]){
+      setPill("個人照壓縮上傳中…");
+      const blob = await fileToWebpBlob_(files.avatarFile.files[0]);
+      state.avatar_img = await uploadBlob_(tenant, cardId, "avatar.webp", blob);
+      saveDraft();
+    }
+
+    // logo
+    if(!state.logo_img && files.logoFile.files && files.logoFile.files[0]){
+      setPill("Logo 壓縮上傳中…");
+      const blob = await fileToWebpBlob_(files.logoFile.files[0]);
+      state.logo_img = await uploadBlob_(tenant, cardId, "logo.webp", blob);
+      saveDraft();
+    }
+
+    // photos 1..2 (always optional)
+    for(const i of [1,2]){
+      const key = `photo${i}_img`;
+      const input = files[`photo${i}File`];
+      if(!state[key] && input && input.files && input.files[0]){
+        setPill(`照片 ${i} 壓縮上傳中…`);
+        const blob = await fileToWebpBlob_(input.files[0]);
+        state[key] = await uploadBlob_(tenant, cardId, `photo${i}.webp`, blob);
+        saveDraft();
+      }
+    }
+
+    // premium photos 3..5
+    if(planIsPremium()){
+      for(const i of [3,4,5]){
+        const key = `photo${i}_img`;
+        const input = files[`photo${i}File`];
+        if(!state[key] && input && input.files && input.files[0]){
+          setPill(`照片 ${i} 壓縮上傳中…`);
+          const blob = await fileToWebpBlob_(input.files[0]);
+          state[key] = await uploadBlob_(tenant, cardId, `photo${i}.webp`, blob);
+          saveDraft();
+        }
+      }
+    }else{
+      // free should not carry 3..5
+      state.photo3_img = "";
+      state.photo4_img = "";
+      state.photo5_img = "";
+    }
+
+    setPill("圖片處理完成 ✅");
+  }
+
+  async function createCard_(){
+    setPill("寫入 card_db 中…");
+
+    const p = {
+      action: "create",
+      tenant: state.tenant,
+      id: state.id,
+      token: state.token,
+
+      plan: hidden.plan.value || "free",
+      color: hidden.color.value || "",
+      style: hidden.style.value || "",
+      paper: hidden.paper.value || "",
+      premium_color: hidden.premium_color.value || "",
+
+      name: (fields.name.value||"").trim(),
+      unit: (fields.unit.value||"").trim(),
+      title: (fields.title.value||"").trim(),
+      slogan: (fields.slogan.value||"").trim(),
+      services: (fields.services.value||"").trim(),
+      experience: (fields.experience.value||"").trim(),
+
+      avatar_img: state.avatar_img || "",
+      logo_img: state.logo_img || "",
+      photo1_img: state.photo1_img || "",
+      photo2_img: state.photo2_img || "",
+      photo3_img: state.photo3_img || "",
+      photo4_img: state.photo4_img || "",
+      photo5_img: state.photo5_img || "",
+
+      wechat_id: (fields.wechat_id.value||"").trim(),
+      line_url: (fields.line_url.value||"").trim(),
+      line_oa: (fields.line_oa.value||"").trim(),
+      email: (fields.email.value||"").trim(),
+      phone: (fields.phone.value||"").trim(),
+      address: (fields.address.value||"").trim(),
+
+      video1: (fields.video1.value||"").trim(),
+      video2: (fields.video2.value||"").trim(),
+      video3: (fields.video3.value||"").trim(),
+
+      social1: (fields.social1.value||"").trim(),
+      social2: (fields.social2.value||"").trim(),
+      social3: (fields.social3.value||"").trim(),
+
+      cta_text: planIsPremium() ? (fields.cta_text.value||"").trim() : "",
+      cta_link: planIsPremium() ? (fields.cta_link.value||"").trim() : "",
     };
 
-    if(exp && sig){ params.exp = exp; params.sig = sig; }
+    if(state.sig) p.sig = state.sig;
 
-    Object.entries(params).forEach(([k,v])=>{
-      if(typeof v === "string" && v.startsWith("data:image/")) throw new Error(`Client reject base64 field: ${k}`);
-    });
+    const r = await gasGet_(p);
 
-    const js = await callGAS("create", params);
-    if(!js || js.ok !== true) throw new Error(js?.error || `create failed: ${safeJson(js)}`);
+    setPill("已寫入 card_db ✅");
+    log("create ok", r);
 
-    dbg("writtenFields:", js.writtenFields || []);
-    dbg("skippedFields:", js.skippedFields || []);
-    return js;
+    // consume local draft (but keep id/token in case user wants to read)
+    clearDraft();
+
+    // keep a minimal success message (no product link)
+    alert(`送出成功 ✅\n\n草稿卡ID：${state.id}\n（目前狀態預設 inactive）`);
   }
 
-  /* -----------------------------
-   * Submit — v512.3 retry for id not found
-   * ----------------------------- */
-  function setSubmitting(on){
-    inFlight = !!on;
-    const next = byId("nextBtn");
-    const prev = byId("prevBtn");
-    const submit = byId("submitBtn");
-    if(next) next.disabled = inFlight;
-    if(prev) prev.disabled = inFlight || (step===1);
-    if(submit) submit.disabled = inFlight;
-    setPill(inFlight ? "送出中…" : "準備填寫");
-  }
-
-  function isIdNotFoundError(err){
-    const msg = String(err?.message || err || "");
-    return /id not found/i.test(msg);
-  }
-
-  async function onSubmit(ev){
+  /* -------------------------
+   * Handlers
+   * ------------------------- */
+  async function onSubmit_(ev){
     ev.preventDefault();
 
-    const ok = await validateLive();
-    if(!ok){
-      toast("請先完成必填");
-      ensureDebugPanel().style.display = "block";
-      dbg("blocked submit by validation");
-      return;
-    }
-    if(inFlight){
-      toast("送出中…已鎖定防連點");
-      return;
-    }
-
-    setSubmitting(true);
-    try{
-      setPill("連線檢查中…");
-      const okPing = await pingCheck();
-      if(!okPing){
-        toast("系統暫時無法連線，請稍後再送出");
-        ensureDebugPanel().style.display = "block";
-        dbg("ping fail - stop submit (no reserve)");
+    // Validate all needed steps
+    const must = [1,2,3,4,7];
+    for(const s of must){
+      if(s === 7 && !planIsPremium()) continue;
+      if(!validateStep_(s)){
+        showStep(s);
+        setPill("請先完成必填項目");
         return;
       }
+    }
 
-      setPill("檢查資料表中…");
-      await schemaCheck();
+    try{
+      el.submitBtn.disabled = true;
 
-      setPill("建立/驗證草稿卡中…");
-      await reserveOnce();
+      await pingAndSchema_();      // quick server sanity
+      await reserveIfNeeded_();    // must have id/token
+      await uploadAllImages_();    // upload images to Firebase
+      await createCard_();         // create write to sheet
 
-      setPill("登入上傳服務中…");
-      await firebaseReady();
-
-      const plan = getValue("plan") || "free";
-      setPill("圖片上傳中…");
-      const imageMap = await uploadImages(currentCardId, plan);
-
-      setPill("寫入資料中…");
-      const textPayload = collectTextPayload();
-
-      let cr;
-      try{
-        cr = await create(textPayload, imageMap);
-      }catch(e){
-        if(isIdNotFoundError(e)){
-          dbg("create got id not found -> auto retry once (new reserve)");
-          clearCardDraft();
-          currentCardId = "";
-          currentToken = "";
-          setText("cardIdText", "-");
-
-          setPill("卡片不存在，重新建立卡號中…");
-          await reserveOnce();
-
-          setPill("重新寫入資料中…");
-          cr = await create(textPayload, imageMap);
-        } else {
-          throw e;
-        }
-      }
-
-      toast("送出成功 ✅");
-      setPill("送出成功 ✅");
-      ensureDebugPanel().style.display = "block";
-      dbg("create ok", cr);
-
-      clearCardDraft();
-      clearFormDraft();
-      await idbClearAllDraftFiles().catch(()=>{});
-      await refreshSavedHints();
-
-      showStep(8);
     }catch(e){
-      toast(`送出失敗 ❌ ${e.message || e}`);
+      console.error(e);
       setPill("送出失敗 ❌");
-      ensureDebugPanel().style.display = "block";
-      dbg(`submit fail: ${e.message || e}`);
-      dbg("tip: 失敗可再按送出（會沿用草稿卡，必要時會自動重拿新卡）");
+      alert("送出失敗：\n" + (e && e.message ? e.message : String(e)));
     }finally{
-      setSubmitting(false);
-      setUploadProgress(0);
-      await validateLive();
+      el.submitBtn.disabled = false;
     }
   }
 
-  /* -----------------------------
-   * UI bindings / autosave
-   * ----------------------------- */
-  function bindPlanThemeUI(){
-    document.querySelectorAll("[data-chip-group]").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const group = btn.getAttribute("data-chip-group");
-        const value = btn.getAttribute("data-value");
-
-        if(group === "plan"){
-          setChipOn("plan", value);
-          applyPlanUI(value);
-          showStep(2);
-        } else {
-          setChipOn(group, value);
-          updatePreview();
-          updateSummary();
-          validateLive();
-          scheduleSaveDraft();
-        }
-      });
+  function bindNav_(){
+    el.prevBtn.addEventListener("click", ()=>{
+      const n = Math.max(1, state.step - 1);
+      showStep(n);
     });
-
-    document.querySelectorAll("[data-swatch-group] .swatch").forEach(btn=>{
-      btn.addEventListener("click", ()=>{
-        const parent = btn.closest("[data-swatch-group]");
-        const group = parent?.getAttribute("data-swatch-group");
-        const value = btn.getAttribute("data-value");
-        if(!group) return;
-
-        setSwatchOn(group, value);
-        updatePreview();
-        updateSummary();
-        validateLive();
-        scheduleSaveDraft();
-      });
+    el.nextBtn.addEventListener("click", ()=>{
+      // validate current step before moving forward
+      if(!validateStep_(state.step)){
+        setPill("請先完成本步驟必填");
+        return;
+      }
+      const n = Math.min(8, state.step + 1);
+      showStep(n);
+    });
+    el.resetDraftBtn.addEventListener("click", ()=>{
+      if(!confirm("確定要清除草稿嗎？（會清掉已保留的卡ID/token 與已上傳URL）")) return;
+      clearDraft();
+      location.reload();
+    });
+    el.openDebug.addEventListener("click", ()=>{
+      const text = [
+        `HSC Fill Form v${VERSION}`,
+        `tenant=${state.tenant}`,
+        `id=${state.id || "-"}`,
+        `token=${state.token ? state.token.slice(0,8)+"..." : "-"}`,
+        `sig=${state.sig ? "yes" : "no"}`,
+        "",
+        "Logs:",
+        ...state.logs.slice(-40)
+      ].join("\n");
+      alert(text);
     });
   }
 
-  function bindTextAutosave(){
-    const ids = [
-      "name","unit","title","slogan","services","experience",
-      "wechat_id","line_url","line_oa","email","phone","address",
-      "video1","video2","video3","social1","social2","social3",
-      "cta_text","cta_link"
-    ];
-    ids.forEach(id=>{
-      const el = byId(id);
-      if(!el) return;
-      el.addEventListener("input", ()=>{ updatePreview(); updateSummary(); validateLive(); scheduleSaveDraft(); });
-      el.addEventListener("blur",  ()=>{ updatePreview(); updateSummary(); validateLive(); scheduleSaveDraft(); });
+  function bindLivePreview_(){
+    ["input","change"].forEach(evt=>{
+      form.addEventListener(evt, ()=>{
+        refreshPreview_();
+        refreshSummary_();
+        saveDraft();
+      }, { passive:true });
     });
   }
 
-  function bindFileDraftSave(){
-    const bindOne = (slot, inputId, kind)=>{
-      const el = byId(inputId);
-      if(!el) return;
-      el.addEventListener("change", async ()=>{
-        const f = pickFile(inputId);
-        if(!f){
-          await idbDelFile(slot).catch(()=>{});
-          await refreshSavedHints();
-          await validateLive();
-          return;
-        }
-        toast(`保存草稿圖片：${slot}…`);
-        try{
-          await saveImageDraft(slot, f, kind);
-          toast(`已保存：${slot} ✅`);
-          await validateLive();
-        }catch(e){
-          dbg(`saveImageDraft fail ${slot}: ${e.message}`);
-          toast(`保存失敗：${slot} ❌`);
-        }
-      });
-    };
-
-    bindOne("avatar","avatarFile","avatar");
-    bindOne("logo","logoFile","logo");
-    bindOne("photo1","photo1File","photo");
-    bindOne("photo2","photo2File","photo");
-    bindOne("photo3","photo3File","photo");
-    bindOne("photo4","photo4File","photo");
-    bindOne("photo5","photo5File","photo");
-  }
-
-  function bindNav(){
-    byId("prevBtn")?.addEventListener("click", ()=>goPrev());
-    byId("nextBtn")?.addEventListener("click", ()=>goNext());
-  }
-
-  function bindDebug(){
-    byId("openDebug")?.addEventListener("click", ()=>{
-      const box = ensureDebugPanel();
-      box.style.display = (box.style.display === "none") ? "block" : "none";
-    });
-
-    byId("resetDraftBtn")?.addEventListener("click", async ()=>{
-      clearCardDraft();
-      clearFormDraft();
-      await idbClearAllDraftFiles().catch(()=>{});
-      setText("cardIdText","-");
-      toast("已清除草稿（文字+圖片+草稿卡）");
-      await refreshSavedHints();
-      await validateLive();
-    });
-  }
-
-  /* -----------------------------
+  /* -------------------------
    * Boot
-   * ----------------------------- */
+   * ------------------------- */
   async function boot(){
-    setText("versionText", "512.3");
-    setText("tenantText", tenant);
+    el.versionText.textContent = VERSION;
 
-    setChipOn("plan", "free");
-    applyPlanUI("free");
+    // QS
+    const qs = getQS();
+    state.tenant = qs.tenant;
+    state.sig = qs.sig;
 
-    await restoreFormDraftIfAny();
-    await refreshSavedHints();
+    // load draft first; if none, set from QS
+    const had = loadDraft();
+    if(!had){
+      hidden.plan.value = "";
+      hidden.color.value = "";
+      hidden.style.value = "";
+      hidden.paper.value = "";
+      hidden.premium_color.value = "";
+    }
 
-    const cd = readCardDraft();
-    if(cd){ setText("cardIdText", cd.id); currentCardId = cd.id; currentToken = cd.token; }
+    // sync header
+    refreshHeader_();
 
-    bindPlanThemeUI();
-    bindTextAutosave();
-    bindFileDraftSave();
-    bindNav();
-    bindDebug();
+    bindChips_();
+    bindNav_();
+    bindLivePreview_();
 
-    byId("hscForm")?.addEventListener("submit", onSubmit);
+    // restore UI selection states
+    restoreSelectionUI_();
+    refreshPlanDependentUI_();
+    refreshPreview_();
+    refreshSummary_();
 
-    showStep(1);
+    // show step
+    showStep(Math.min(8, Math.max(1, Number(state.step || 1))));
 
-    dbg("boot ok", {
-      VERSION,
-      tenant,
-      hasExpSig: !!(exp && sig),
-      gas: CONFIG.GAS,
-      firebase: { storageBucket: CONFIG.FIREBASE_CONFIG.storageBucket, sdk: CONFIG.FIREBASE_VER }
-    });
+    // server sanity + firebase sanity (non-blocking)
+    try{
+      await pingAndSchema_();
+    }catch(e){
+      console.warn(e);
+      setPill("伺服器未就緒（可按 Debug 看錯誤）");
+    }
 
-    updatePreview();
-    updateSummary();
-    await validateLive();
+    try{
+      await ensureFirebaseAuthed_();
+    }catch(e){
+      console.warn(e);
+      // This is the #1 reason upload fails
+      setPill("Firebase 未登入（請按 Debug 查看）");
+    }
   }
 
-  if(document.readyState === "loading"){
-    document.addEventListener("DOMContentLoaded", boot);
-  } else boot();
-
+  form.addEventListener("submit", onSubmit_);
+  boot();
 })();
