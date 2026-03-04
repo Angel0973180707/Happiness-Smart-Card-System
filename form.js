@@ -1,68 +1,45 @@
 /* ======================================================
 Happiness Smart Card System
-form.js v507
-Fix: GAS action routing
+form.js v508
+Fix: GAS write to card_db
 ====================================================== */
 
 import { uploadAvatar, uploadCover } from "./firebase.js";
 import { compressToJpeg } from "./image-compressor.js";
 
-const VERSION="v507";
+const VERSION = "v508";
 
-const GAS_URL=
+const GAS_URL =
 "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-const $=(id)=>document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 
-/* =========================
-UI
-========================= */
+
+/* ========================
+UI LOG
+======================== */
 
 function log(msg){
 
-  const el=$("log");
+  const el = $("log");
   if(!el) return;
 
-  el.textContent="• "+msg+"\n"+el.textContent;
+  el.textContent = "• " + msg + "\n" + el.textContent;
 
 }
 
-function setText(id,v){
 
-  const el=$(id);
-  if(el) el.textContent=v||"";
-
-}
-
-function setStatus(ok,msg){
-
-  const el=$("status");
-
-  if(!el) return;
-
-  el.textContent=msg;
-
-  el.style.color= ok ? "#3bd17f":"#ff5e5e";
-
-}
-
-function readFile(id){
-
-  return $(id)?.files?.[0] || null;
-
-}
-
-/* =========================
+/* ========================
 UID
-========================= */
+======================== */
 
 function getUID(){
 
-  let uid=localStorage.getItem("hsc_uid");
+  let uid = localStorage.getItem("hsc_uid");
 
   if(!uid){
 
-    uid="guest_"+Math.random().toString(36).substring(2,10);
+    uid = "guest_" + Math.random().toString(36).substring(2,10);
 
     localStorage.setItem("hsc_uid",uid);
 
@@ -72,89 +49,89 @@ function getUID(){
 
 }
 
-/* =========================
-POST GAS
-========================= */
+
+/* ========================
+POST JSON → GAS
+======================== */
 
 async function postJSON(action,data){
 
-  await fetch(GAS_URL+"?action="+action,{
+  const res = await fetch(
+    GAS_URL + "?action=" + action,
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify(data)
+    }
+  );
 
-    method:"POST",
+  const txt = await res.text();
 
-    mode:"no-cors",
+  console.log("GAS:",txt);
 
-    headers:{
-      "Content-Type":"text/plain;charset=utf-8"
-    },
-
-    body:JSON.stringify(data)
-
-  });
+  return txt;
 
 }
 
-/* =========================
+
+/* ========================
 RESERVE
-========================= */
+======================== */
 
-async function doReserve(){
+async function reserveCard(){
 
-  const uid=getUID();
+  const uid = getUID();
 
   log("reserve request");
 
-  const payload={
+  const payload = {
 
     tenant:"angel",
-
     uid:uid
 
   };
 
   await postJSON("reserve",payload);
 
-  const id="TW"+Date.now().toString().slice(-6);
+  const cardId = "TW" + Date.now().toString().slice(-6);
 
-  setText("cardId",id);
+  $("cardId") && ($("cardId").textContent = cardId);
 
-  log("reserve OK "+id);
+  log("reserve ok " + cardId);
 
-  return{
+  return {
 
-    id,
-
-    uid
+    id:cardId,
+    uid:uid
 
   };
 
 }
 
-/* =========================
-UPLOAD
-========================= */
 
-async function doUploadImages(cardId){
+/* ========================
+UPLOAD IMAGES
+======================== */
 
-  const avatarFile=readFile("avatar");
+async function uploadImages(cardId){
 
-  const coverFile=readFile("cover");
+  const avatarFile = $("avatar")?.files?.[0];
+  const coverFile = $("cover")?.files?.[0];
 
   let avatarURL="";
-
   let coverURL="";
 
   if(avatarFile){
 
     log("compress avatar");
 
-    const blob=await compressToJpeg(avatarFile,512);
+    const blob = await compressToJpeg(avatarFile,512);
 
     log("upload avatar");
 
-    avatarURL=await uploadAvatar(cardId,blob);
-
-    setText("avatarURL",avatarURL);
+    avatarURL = await uploadAvatar(cardId,blob);
 
   }
 
@@ -162,81 +139,72 @@ async function doUploadImages(cardId){
 
     log("compress cover");
 
-    const blob=await compressToJpeg(coverFile,1200);
+    const blob = await compressToJpeg(coverFile,1200);
 
     log("upload cover");
 
-    coverURL=await uploadCover(cardId,blob);
-
-    setText("coverURL",coverURL);
+    coverURL = await uploadCover(cardId,blob);
 
   }
 
-  return{
+  return {
 
     avatarURL,
-
     coverURL
 
   };
 
 }
 
-/* =========================
+
+/* ========================
 READ FORM
-========================= */
+======================== */
 
 function readForm(){
 
-  return{
+  return {
 
-    name: $("name")?.value||"",
+    plan: $("plan")?.value || "",
 
-    unit: $("unit")?.value||"",
+    name: $("name")?.value || "",
+    unit: $("unit")?.value || "",
+    title: $("title")?.value || "",
 
-    title: $("title")?.value||"",
+    phone: $("phone")?.value || "",
+    email: $("email")?.value || "",
+    website: $("website")?.value || "",
 
-    phone: $("phone")?.value||"",
+    line_url: $("line_url")?.value || "",
+    wechat_id: $("wechat_id")?.value || "",
 
-    email: $("email")?.value||"",
-
-    website: $("website")?.value||"",
-
-    line_url: $("line_url")?.value||"",
-
-    wechat_id: $("wechat_id")?.value||"",
-
-    free_color: $("free_color")?.value||"",
-
-    free_style: $("free_style")?.value||"",
-
-    free_paper: $("free_paper")?.value||""
+    free_color: $("free_color")?.value || "",
+    free_style: $("free_style")?.value || "",
+    free_paper: $("free_paper")?.value || ""
 
   };
 
 }
 
-/* =========================
-CREATE
-========================= */
 
-async function doCreate(reserve,text,img){
+/* ========================
+CREATE CARD
+======================== */
+
+async function createCard(reserve,data,img){
 
   log("create request");
 
-  const payload={
+  const payload = {
 
     tenant:"angel",
-
     id:reserve.id,
-
     uid:reserve.uid,
 
-    ...text,
+    ...data,
 
-    avatar_url:img.avatarURL||"",
-
-    photos:[img.coverURL||""]
+    avatar_url: img.avatarURL || "",
+    photos: [ img.coverURL || "" ]
 
   };
 
@@ -246,69 +214,65 @@ async function doCreate(reserve,text,img){
 
 }
 
-/* =========================
-MAIN
-========================= */
 
-async function mainSubmit(){
+/* ========================
+SUBMIT
+======================== */
+
+async function submitForm(){
 
   try{
 
-    const btn=$("btnSubmit");
+    $("status").textContent="送出中...";
 
-    if(btn) btn.disabled=true;
+    log("submit start "+VERSION);
 
-    setStatus(true,"Submitting "+VERSION);
+    const reserve = await reserveCard();
 
-    log("start submit "+VERSION);
+    const formData = readForm();
 
-    const reserve=await doReserve();
+    const images = await uploadImages(reserve.id);
 
-    const text=readForm();
+    await createCard(reserve,formData,images);
 
-    const images=await doUploadImages(reserve.id);
+    $("result").innerHTML = `
+      <div style="font-size:18px;color:#3bd17f">
+      ✅ 名片已送出審核
+      </div>
+      <div style="opacity:.6;margin-top:6px">
+      客服確認後將開通
+      </div>
+    `;
 
-    await doCreate(reserve,text,images);
+    $("status").textContent="完成";
 
-    $("result").innerHTML=
-
-      `✅ 已建立名片`;
-
-    setStatus(true,"Done");
-
-  }catch(err){
+  }
+  catch(err){
 
     console.error(err);
 
-    setStatus(false,"Failed");
+    $("status").textContent="失敗";
 
     $("result").innerHTML="❌ "+err.message;
-
-    log("ERROR "+err.message);
-
-  }finally{
-
-    const btn=$("btnSubmit");
-
-    if(btn) btn.disabled=false;
 
   }
 
 }
 
-/* =========================
+
+/* ========================
 INIT
-========================= */
+======================== */
 
 window.addEventListener("DOMContentLoaded",()=>{
 
-  $("ver") && ($("ver").textContent=VERSION);
+  $("ver") && ($("ver").textContent = VERSION);
 
   $("btnSubmit")?.addEventListener("click",(e)=>{
 
     e.preventDefault();
 
-    mainSubmit();
+    submitForm();
 
   });
 
