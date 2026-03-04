@@ -1,28 +1,20 @@
 /* ==========================================
- * HSC Fill Form — form.js v514.4 (COMPLETE OVERWRITE)
- * - Fix: Next button stuck / multi-click triggers debug
- * - Root cause: duplicate init / duplicate listeners
- * - Solution:
- *   1) Global init lock (prevent running twice)
- *   2) Use .onclick instead of addEventListener for buttons (no stacking)
- * - Keep:
- *   ping → schemaCheck → reserve(GET) → compress/upload(Firebase) → create(GET)
+ * HSC Fill Form — form.js v514.5 (COMPLETE OVERWRITE)
+ * Focus: Options <-> Preview/Product linkage (hard sync)
+ * - Fix: premium selection flipping back to free
+ * - Fix: next button sometimes "no move" + accidental backend jump (tap guard)
+ * - Keep HTML/CSS unchanged
  * ========================================== */
 
 (() => {
-  // ✅ HARD LOCK: prevent double init (most common on GH Pages + cache)
-  if (window.__HSC_FORM_INIT__) {
-    console.warn("[HSC] form.js already initialized — skip");
-    return;
-  }
-  window.__HSC_FORM_INIT__ = true;
+  const VERSION = "514.5";
 
-  const VERSION = "514.4";
-
+  // ✅ your latest GAS
   const GAS_URL =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
   const DEFAULT_TENANT = "angel";
-  const DRAFT_KEY = "HSC_FILL_DRAFT_v5144";
+  const DRAFT_KEY = "HSC_FILL_DRAFT_v5145";
 
   const IMG_MAX_W = 1600;
   const IMG_QUALITY = 0.82;
@@ -36,17 +28,15 @@
     5: "STEP 5｜聯絡",
     6: "STEP 6｜影音社群",
     7: "STEP 7｜精品 CTA",
-    8: "STEP 8｜確認送出",
+    8: "STEP 8｜確認送出"
   };
 
+  // -----------------------------
+  // DOM helpers
+  // -----------------------------
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => Array.from(document.querySelectorAll(s));
-
   const form = $("#hscForm");
-  if (!form) {
-    console.error("[HSC] #hscForm not found");
-    return;
-  }
 
   const el = {
     versionText: $("#versionText"),
@@ -81,12 +71,12 @@
 
     submitBtn: $("#submitBtn"),
 
-    // submit progress (optional; if you added in HTML later)
+    // (if you added these nodes in HTML later, JS will pick them automatically)
     submitProgress: $("#submitProgress"),
     submitProgressLabel: $("#submitProgressLabel"),
     submitProgressPct: $("#submitProgressPct"),
     submitProgressFill: $("#submitProgressFill"),
-    submitProgressNote: $("#submitProgressNote"),
+    submitProgressNote: $("#submitProgressNote")
   };
 
   const hidden = {
@@ -94,7 +84,7 @@
     color: $("#color"),
     style: $("#style"),
     paper: $("#paper"),
-    premium_color: $("#premium_color"),
+    premium_color: $("#premium_color")
   };
 
   const fields = {
@@ -120,7 +110,7 @@
     social3: $("#social3"),
 
     cta_text: $("#cta_text"),
-    cta_link: $("#cta_link"),
+    cta_link: $("#cta_link")
   };
 
   const files = {
@@ -130,7 +120,7 @@
     photo2File: $("#photo2File"),
     photo3File: $("#photo3File"),
     photo4File: $("#photo4File"),
-    photo5File: $("#photo5File"),
+    photo5File: $("#photo5File")
   };
 
   const err = {
@@ -143,7 +133,7 @@
     unit: $("#err_unit"),
     title: $("#err_title"),
     avatar: $("#err_avatar"),
-    cta_pair: $("#err_cta_pair"),
+    cta_pair: $("#err_cta_pair")
   };
 
   const state = {
@@ -162,8 +152,15 @@
     photo5_img: "",
 
     logs: [],
+
+    // guards
+    navLockUntil: 0,
+    lastNavAt: 0
   };
 
+  // -----------------------------
+  // Utilities
+  // -----------------------------
   function log(...args) {
     const msg = args
       .map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
@@ -186,44 +183,41 @@
     }
   }
 
-  // ===== submit progress helpers (safe even if HTML not present) =====
-  function spShow_() {
-    if (!el.submitProgress) return;
-    el.submitProgress.classList.remove("hide");
-  }
-  function spHide_() {
-    if (!el.submitProgress) return;
-    el.submitProgress.classList.add("hide");
-  }
-  function spSet_(pct, title, note) {
-    if (!el.submitProgress) return; // ✅ if no HTML block, just no-op
-    spShow_();
-    const p = Math.max(0, Math.min(100, Math.round(pct)));
-    if (el.submitProgressPct) el.submitProgressPct.textContent = String(p);
-    if (el.submitProgressFill) el.submitProgressFill.style.width = `${p}%`;
-    if (el.submitProgressLabel) el.submitProgressLabel.textContent = title || "處理中…";
-    if (el.submitProgressNote) el.submitProgressNote.textContent = note || "";
+  function clamp(n, a, b) {
+    return Math.max(a, Math.min(b, n));
   }
 
-  function refreshHeader_() {
-    if (el.versionText) el.versionText.textContent = VERSION;
-    if (el.tenantText) el.tenantText.textContent = state.tenant || DEFAULT_TENANT;
-    if (el.cardIdText) el.cardIdText.textContent = state.id ? state.id : "-";
-  }
-
+  // -----------------------------
+  // ✅ Options <-> product linkage core
+  // -----------------------------
   function planIsPremium() {
     return (hidden.plan?.value || "").trim() === "premium";
   }
 
+  function normalizePlan_(v) {
+    const x = (v || "").trim().toLowerCase();
+    if (x === "premium") return "premium";
+    if (x === "free") return "free";
+    return "";
+  }
+
+  function setHidden_(key, value) {
+    const input = hidden[key];
+    if (!input) return;
+    input.value = (value ?? "").toString();
+  }
+
   function refreshPlanDependentUI_() {
     const premium = planIsPremium();
+
     if (el.freeThemeCard) el.freeThemeCard.classList.toggle("hide", premium);
     if (el.premiumThemeCard) el.premiumThemeCard.classList.toggle("hide", !premium);
     if (el.premiumPhotoRow) el.premiumPhotoRow.classList.toggle("hide", !premium);
     if (el.premiumCtaCard) el.premiumCtaCard.classList.toggle("hide", !premium);
 
+    // ✅ When switching plan, clear irrelevant fields (avoid cross-contamination)
     if (!premium) {
-      if (hidden.premium_color) hidden.premium_color.value = "";
+      setHidden_("premium_color", "");
       if (fields.cta_text) fields.cta_text.value = "";
       if (fields.cta_link) fields.cta_link.value = "";
       state.photo3_img = "";
@@ -237,19 +231,27 @@
     if (el.pvTitle) el.pvTitle.textContent = (fields.title?.value || "").trim() || "頭銜";
     if (el.pvUnit) el.pvUnit.textContent = (fields.unit?.value || "").trim() || "單位";
 
-    if (!el.pvTheme) return;
-    if (planIsPremium()) {
-      el.pvTheme.textContent = (hidden.premium_color?.value || "").trim() || "p?";
-    } else {
-      const c = (hidden.color?.value || "").trim() || "c?";
-      const s = (hidden.style?.value || "").trim() || "s?";
-      const f = (hidden.paper?.value || "").trim() || "f?";
-      el.pvTheme.textContent = `${c}/${s}/${f}`;
+    if (el.pvTheme) {
+      if (planIsPremium()) {
+        el.pvTheme.textContent = (hidden.premium_color?.value || "").trim() || "p?";
+      } else {
+        const c = (hidden.color?.value || "").trim() || "c?";
+        const s = (hidden.style?.value || "").trim() || "s?";
+        const f = (hidden.paper?.value || "").trim() || "f?";
+        el.pvTheme.textContent = `${c}/${s}/${f}`;
+      }
     }
   }
 
   function refreshSummary_() {
-    if (el.sumPlan) el.sumPlan.textContent = planIsPremium() ? "精品設計" : (hidden.plan?.value ? "自由搭配" : "-");
+    if (el.sumPlan) {
+      el.sumPlan.textContent = planIsPremium()
+        ? "精品設計"
+        : hidden.plan?.value
+          ? "自由搭配"
+          : "-";
+    }
+
     if (el.sumTheme) {
       el.sumTheme.textContent = planIsPremium()
         ? (hidden.premium_color?.value || "-")
@@ -266,32 +268,161 @@
     if (el.sumSocial) el.sumSocial.textContent = socs ? `${socs} 筆` : "-";
   }
 
-  function showStep(n, opts = { scroll: true }) {
-    state.step = n;
+  function refreshHeader_() {
+    if (el.versionText) el.versionText.textContent = VERSION;
+    if (el.tenantText) el.tenantText.textContent = state.tenant || DEFAULT_TENANT;
+    if (el.cardIdText) el.cardIdText.textContent = state.id ? state.id : "-";
+  }
 
-    $$(".step").forEach((sec) => {
-      const sn = Number(sec.getAttribute("data-step"));
-      sec.classList.toggle("hide", sn !== n);
+  function restoreSelectionUI_() {
+    // chips: plan/style/paper
+    ["plan", "style", "paper"].forEach((g) => {
+      const v = (hidden[g]?.value || "").trim();
+      $$(`.chip[data-chip-group="${g}"]`).forEach((c) => {
+        c.setAttribute("data-on", c.getAttribute("data-value") === v ? "1" : "0");
+      });
     });
 
-    if (el.stepTitle) el.stepTitle.textContent = STEP_TITLES[n] || `STEP ${n}`;
-    if (el.progressFill) el.progressFill.style.width = `${Math.round((n / 8) * 100)}%`;
+    // swatches: color/premium_color
+    const setSw = (group, val) => {
+      const row = document.querySelector(`.swatch-row[data-swatch-group="${group}"]`);
+      if (!row) return;
+      row.querySelectorAll(".swatch").forEach((s) => {
+        s.setAttribute("data-on", s.getAttribute("data-value") === val ? "1" : "0");
+      });
+    };
+    setSw("color", (hidden.color?.value || "").trim());
+    setSw("premium_color", (hidden.premium_color?.value || "").trim());
+  }
 
-    if (el.prevBtn) el.prevBtn.style.visibility = n <= 1 ? "hidden" : "visible";
-    if (el.nextBtn) el.nextBtn.classList.toggle("hide", n >= 8);
+  // -----------------------------
+  // Draft (persist)
+  // -----------------------------
+  function saveDraft() {
+    try {
+      const draft = {
+        v: VERSION,
+        ts: Date.now(),
+        state: {
+          tenant: state.tenant,
+          sig: state.sig,
+          step: state.step,
+          id: state.id,
+          token: state.token,
+          avatar_img: state.avatar_img,
+          logo_img: state.logo_img,
+          photo1_img: state.photo1_img,
+          photo2_img: state.photo2_img,
+          photo3_img: state.photo3_img,
+          photo4_img: state.photo4_img,
+          photo5_img: state.photo5_img
+        },
+        values: {
+          plan: hidden.plan?.value || "",
+          color: hidden.color?.value || "",
+          style: hidden.style?.value || "",
+          paper: hidden.paper?.value || "",
+          premium_color: hidden.premium_color?.value || "",
 
-    refreshPlanDependentUI_();
-    refreshPreview_();
-    refreshSummary_();
-    refreshHeader_();
-    saveDraft();
+          name: fields.name?.value || "",
+          unit: fields.unit?.value || "",
+          title: fields.title?.value || "",
+          slogan: fields.slogan?.value || "",
+          services: fields.services?.value || "",
+          experience: fields.experience?.value || "",
 
-    if (opts && opts.scroll) {
-      const sec = document.querySelector(`.step[data-step="${n}"]`);
-      scrollToEl_(sec);
+          wechat_id: fields.wechat_id?.value || "",
+          line_url: fields.line_url?.value || "",
+          line_oa: fields.line_oa?.value || "",
+          email: fields.email?.value || "",
+          phone: fields.phone?.value || "",
+          address: fields.address?.value || "",
+
+          video1: fields.video1?.value || "",
+          video2: fields.video2?.value || "",
+          video3: fields.video3?.value || "",
+          social1: fields.social1?.value || "",
+          social2: fields.social2?.value || "",
+          social3: fields.social3?.value || "",
+
+          cta_text: fields.cta_text?.value || "",
+          cta_link: fields.cta_link?.value || ""
+        }
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch (_e) {}
+  }
+
+  function loadDraft() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return false;
+      const draft = JSON.parse(raw);
+      if (!draft || !draft.state || !draft.values) return false;
+
+      const s = draft.state;
+      state.tenant = s.tenant || DEFAULT_TENANT;
+      state.sig = s.sig || "";
+      state.step = Number(s.step || 1);
+      state.id = s.id || "";
+      state.token = s.token || "";
+
+      state.avatar_img = s.avatar_img || "";
+      state.logo_img = s.logo_img || "";
+      state.photo1_img = s.photo1_img || "";
+      state.photo2_img = s.photo2_img || "";
+      state.photo3_img = s.photo3_img || "";
+      state.photo4_img = s.photo4_img || "";
+      state.photo5_img = s.photo5_img || "";
+
+      const v = draft.values;
+
+      setHidden_("plan", normalizePlan_(v.plan || ""));
+      setHidden_("color", (v.color || "").trim());
+      setHidden_("style", (v.style || "").trim());
+      setHidden_("paper", (v.paper || "").trim());
+      setHidden_("premium_color", (v.premium_color || "").trim());
+
+      if (fields.name) fields.name.value = v.name || "";
+      if (fields.unit) fields.unit.value = v.unit || "";
+      if (fields.title) fields.title.value = v.title || "";
+      if (fields.slogan) fields.slogan.value = v.slogan || "";
+      if (fields.services) fields.services.value = v.services || "";
+      if (fields.experience) fields.experience.value = v.experience || "";
+
+      if (fields.wechat_id) fields.wechat_id.value = v.wechat_id || "";
+      if (fields.line_url) fields.line_url.value = v.line_url || "";
+      if (fields.line_oa) fields.line_oa.value = v.line_oa || "";
+      if (fields.email) fields.email.value = v.email || "";
+      if (fields.phone) fields.phone.value = v.phone || "";
+      if (fields.address) fields.address.value = v.address || "";
+
+      if (fields.video1) fields.video1.value = v.video1 || "";
+      if (fields.video2) fields.video2.value = v.video2 || "";
+      if (fields.video3) fields.video3.value = v.video3 || "";
+
+      if (fields.social1) fields.social1.value = v.social1 || "";
+      if (fields.social2) fields.social2.value = v.social2 || "";
+      if (fields.social3) fields.social3.value = v.social3 || "";
+
+      if (fields.cta_text) fields.cta_text.value = v.cta_text || "";
+      if (fields.cta_link) fields.cta_link.value = v.cta_link || "";
+
+      return true;
+    } catch (_e) {
+      return false;
     }
   }
 
+  function clearDraft() {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch (_e) {}
+  }
+
+  // -----------------------------
+  // Validation
+  // -----------------------------
   function setErr(key, msg) {
     if (err[key]) err[key].textContent = msg || "";
   }
@@ -316,9 +447,18 @@
           return false;
         }
       } else {
-        if (!hidden.color?.value) { setErr("color", "請選擇顏色"); return false; }
-        if (!hidden.style?.value) { setErr("style", "請選擇版型"); return false; }
-        if (!hidden.paper?.value) { setErr("paper", "請選擇紙感"); return false; }
+        if (!hidden.color?.value) {
+          setErr("color", "請選擇顏色");
+          return false;
+        }
+        if (!hidden.style?.value) {
+          setErr("style", "請選擇版型");
+          return false;
+        }
+        if (!hidden.paper?.value) {
+          setErr("paper", "請選擇紙感");
+          return false;
+        }
       }
       return true;
     }
@@ -357,392 +497,109 @@
     return true;
   }
 
-  function saveDraft() {
-    const draft = {
-      v: VERSION,
-      ts: Date.now(),
-      state: {
-        tenant: state.tenant,
-        sig: state.sig,
-        step: state.step,
-        id: state.id,
-        token: state.token,
-        avatar_img: state.avatar_img,
-        logo_img: state.logo_img,
-        photo1_img: state.photo1_img,
-        photo2_img: state.photo2_img,
-        photo3_img: state.photo3_img,
-        photo4_img: state.photo4_img,
-        photo5_img: state.photo5_img,
-      },
-      values: {
-        plan: hidden.plan?.value || "",
-        color: hidden.color?.value || "",
-        style: hidden.style?.value || "",
-        paper: hidden.paper?.value || "",
-        premium_color: hidden.premium_color?.value || "",
+  // -----------------------------
+  // Step show
+  // -----------------------------
+  function showStep(n, opts = { scroll: true }) {
+    state.step = n;
 
-        name: fields.name?.value || "",
-        unit: fields.unit?.value || "",
-        title: fields.title?.value || "",
-        slogan: fields.slogan?.value || "",
-        services: fields.services?.value || "",
-        experience: fields.experience?.value || "",
-
-        wechat_id: fields.wechat_id?.value || "",
-        line_url: fields.line_url?.value || "",
-        line_oa: fields.line_oa?.value || "",
-        email: fields.email?.value || "",
-        phone: fields.phone?.value || "",
-        address: fields.address?.value || "",
-
-        video1: fields.video1?.value || "",
-        video2: fields.video2?.value || "",
-        video3: fields.video3?.value || "",
-
-        social1: fields.social1?.value || "",
-        social2: fields.social2?.value || "",
-        social3: fields.social3?.value || "",
-
-        cta_text: fields.cta_text?.value || "",
-        cta_link: fields.cta_link?.value || "",
-      },
-    };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }
-
-  function loadDraft() {
-    try {
-      const raw = localStorage.getItem(DRAFT_KEY);
-      if (!raw) return false;
-      const draft = JSON.parse(raw);
-      if (!draft || !draft.state || !draft.values) return false;
-
-      const s = draft.state;
-      state.tenant = s.tenant || DEFAULT_TENANT;
-      state.sig = s.sig || "";
-      state.step = Number(s.step || 1);
-      state.id = s.id || "";
-      state.token = s.token || "";
-
-      state.avatar_img = s.avatar_img || "";
-      state.logo_img = s.logo_img || "";
-      state.photo1_img = s.photo1_img || "";
-      state.photo2_img = s.photo2_img || "";
-      state.photo3_img = s.photo3_img || "";
-      state.photo4_img = s.photo4_img || "";
-      state.photo5_img = s.photo5_img || "";
-
-      const v = draft.values;
-      if (hidden.plan) hidden.plan.value = v.plan || "";
-      if (hidden.color) hidden.color.value = v.color || "";
-      if (hidden.style) hidden.style.value = v.style || "";
-      if (hidden.paper) hidden.paper.value = v.paper || "";
-      if (hidden.premium_color) hidden.premium_color.value = v.premium_color || "";
-
-      if (fields.name) fields.name.value = v.name || "";
-      if (fields.unit) fields.unit.value = v.unit || "";
-      if (fields.title) fields.title.value = v.title || "";
-      if (fields.slogan) fields.slogan.value = v.slogan || "";
-      if (fields.services) fields.services.value = v.services || "";
-      if (fields.experience) fields.experience.value = v.experience || "";
-
-      if (fields.wechat_id) fields.wechat_id.value = v.wechat_id || "";
-      if (fields.line_url) fields.line_url.value = v.line_url || "";
-      if (fields.line_oa) fields.line_oa.value = v.line_oa || "";
-      if (fields.email) fields.email.value = v.email || "";
-      if (fields.phone) fields.phone.value = v.phone || "";
-      if (fields.address) fields.address.value = v.address || "";
-
-      if (fields.video1) fields.video1.value = v.video1 || "";
-      if (fields.video2) fields.video2.value = v.video2 || "";
-      if (fields.video3) fields.video3.value = v.video3 || "";
-
-      if (fields.social1) fields.social1.value = v.social1 || "";
-      if (fields.social2) fields.social2.value = v.social2 || "";
-      if (fields.social3) fields.social3.value = v.social3 || "";
-
-      if (fields.cta_text) fields.cta_text.value = v.cta_text || "";
-      if (fields.cta_link) fields.cta_link.value = v.cta_link || "";
-
-      return true;
-    } catch (_e) {
-      return false;
-    }
-  }
-
-  function clearDraft() {
-    localStorage.removeItem(DRAFT_KEY);
-  }
-
-  function restoreSelectionUI_() {
-    ["plan", "style", "paper"].forEach((g) => {
-      const v = (hidden[g]?.value || "").trim();
-      $$(`.chip[data-chip-group="${g}"]`).forEach((c) => {
-        c.setAttribute("data-on", c.getAttribute("data-value") === v ? "1" : "0");
-      });
+    $$(".step").forEach((sec) => {
+      const sn = Number(sec.getAttribute("data-step"));
+      sec.classList.toggle("hide", sn !== n);
     });
 
-    const setSw = (group, val) => {
-      const row = document.querySelector(`.swatch-row[data-swatch-group="${group}"]`);
-      if (!row) return;
-      row.querySelectorAll(".swatch").forEach((s) => {
-        s.setAttribute("data-on", s.getAttribute("data-value") === val ? "1" : "0");
-      });
-    };
+    if (el.stepTitle) el.stepTitle.textContent = STEP_TITLES[n] || `STEP ${n}`;
+    if (el.progressFill) el.progressFill.style.width = `${Math.round((n / 8) * 100)}%`;
 
-    setSw("color", (hidden.color?.value || "").trim());
-    setSw("premium_color", (hidden.premium_color?.value || "").trim());
-  }
+    if (el.prevBtn) el.prevBtn.style.visibility = n <= 1 ? "hidden" : "visible";
+    if (el.nextBtn) el.nextBtn.classList.toggle("hide", n >= 8);
 
-  // ===== GAS GET =====
-  async function gasGet_(params) {
-    const u = new URL(GAS_URL);
-    Object.entries(params).forEach(([k, v]) => {
-      if (v === undefined || v === null || v === "") return;
-      u.searchParams.set(k, String(v));
-    });
-    const url = u.toString();
-    log("GET", url);
-
-    const res = await fetch(url, { method: "GET", mode: "cors", cache: "no-store" });
-    const txt = await res.text();
-    let json;
-    try {
-      json = JSON.parse(txt);
-    } catch (_e) {
-      throw new Error("GAS JSON parse fail: " + txt.slice(0, 180));
-    }
-    if (!json.ok) throw new Error(json.error || "GAS error");
-    return json;
-  }
-
-  // ===== Firebase =====
-  async function ensureFirebaseAuthed_() {
-    if (!window.firebase) throw new Error("firebase not loaded");
-    if (!firebase.auth) throw new Error("firebase-auth-compat.js not loaded");
-    const auth = firebase.auth();
-    if (auth.currentUser) return auth.currentUser;
-    const cred = await auth.signInAnonymously();
-    return cred.user;
-  }
-
-  function loadImage_(file) {
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image load failed")); };
-      img.src = url;
-    });
-  }
-
-  function drawToCanvas_(img, maxW) {
-    let w = img.naturalWidth || img.width;
-    let h = img.naturalHeight || img.height;
-    if (w > maxW) {
-      const r = maxW / w;
-      w = Math.round(w * r);
-      h = Math.round(h * r);
-    }
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-    return { canvas, w, h };
-  }
-
-  function canvasToBlob_(canvas, type, quality) {
-    return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
-  }
-
-  async function fileToWebpBlob_(file) {
-    if (!file) return null;
-    if (file.size > IMG_MAX_MB * 1024 * 1024) {
-      throw new Error(`檔案太大（>${IMG_MAX_MB}MB）：${file.name}`);
-    }
-    const img = await loadImage_(file);
-    const { canvas } = drawToCanvas_(img, IMG_MAX_W);
-    const blob = await canvasToBlob_(canvas, "image/webp", IMG_QUALITY);
-    if (!blob) throw new Error("image convert failed");
-    return blob;
-  }
-
-  async function uploadBlob_(tenant, cardId, fileName, blob) {
-    await ensureFirebaseAuthed_();
-    const storage = firebase.storage();
-    const path = `hsc_cards/${tenant}/${cardId}/${fileName}`;
-    const ref = storage.ref().child(path);
-
-    log("uploading", { path, sizeKB: Math.round(blob.size / 1024) });
-    const snap = await ref.put(blob, { contentType: "image/webp", cacheControl: "public,max-age=31536000" });
-    const url = await snap.ref.getDownloadURL();
-    log("upload ok", { path, url: url.slice(0, 80) + "..." });
-    return url;
-  }
-
-  async function pingAndSchema_() {
-    spSet_(8, "檢查系統", "ping…");
-    setPill("檢查系統中…");
-    await gasGet_({ action: "ping" });
-
-    spSet_(14, "檢查系統", "schemaCheck…");
-    await gasGet_({ action: "schemaCheck" });
-
-    spSet_(18, "檢查系統", "OK ✅");
-  }
-
-  async function reserveIfNeeded_() {
-    if (state.id && state.token) {
-      spSet_(26, "建立草稿卡", `已存在：${state.id}`);
-      return { id: state.id, token: state.token };
-    }
-
-    spSet_(22, "建立草稿卡", "reserve…");
-    const params = {
-      action: "reserve",
-      tenant: state.tenant,
-      plan: hidden.plan?.value || "free",
-    };
-    if (state.sig) params.sig = state.sig;
-
-    const r = await gasGet_(params);
-    state.id = r.id;
-    state.token = r.token;
+    refreshPlanDependentUI_();
+    restoreSelectionUI_();
+    refreshPreview_();
+    refreshSummary_();
     refreshHeader_();
     saveDraft();
 
-    spSet_(28, "建立草稿卡", `OK ✅ ${state.id}`);
-    return { id: state.id, token: state.token };
+    if (opts && opts.scroll) {
+      const sec = document.querySelector(`.step[data-step="${n}"]`);
+      scrollToEl_(sec);
+    }
   }
 
-  async function uploadAllImages_() {
-    const tenant = state.tenant;
-    const cardId = state.id;
+  // -----------------------------
+  // Tap guards (avoid multi-click -> accidental route)
+  // -----------------------------
+  function navGuardOK_() {
+    const now = Date.now();
+    if (now < state.navLockUntil) return false;
+    // lock 220ms to prevent double clicks & weird bubbling
+    state.navLockUntil = now + 220;
+    state.lastNavAt = now;
+    return true;
+  }
 
-    if (!state.avatar_img && files.avatarFile?.files && files.avatarFile.files[0]) {
-      spSet_(36, "圖片上傳", "個人照壓縮…");
-      const blob = await fileToWebpBlob_(files.avatarFile.files[0]);
+  function blockHeaderMultiTap_() {
+    // If your ecosystem has "multi-tap to admin" on header/brand somewhere,
+    // we block it in this fill form page (safety).
+    const header = document.querySelector(".topbar");
+    if (!header) return;
 
-      spSet_(44, "圖片上傳", "個人照上傳…");
-      state.avatar_img = await uploadBlob_(tenant, cardId, "avatar.webp", blob);
-      saveDraft();
-    }
+    let lastTap = 0;
+    let tapCount = 0;
 
-    if (!state.logo_img && files.logoFile?.files && files.logoFile.files[0]) {
-      spSet_(50, "圖片上傳", "Logo 壓縮上傳…");
-      const blob = await fileToWebpBlob_(files.logoFile.files[0]);
-      state.logo_img = await uploadBlob_(tenant, cardId, "logo.webp", blob);
-      saveDraft();
-    }
+    header.addEventListener(
+      "click",
+      (e) => {
+        // only protect when user is tapping the header/brand area (not Debug button)
+        const isDebugBtn = e.target && (e.target.id === "openDebug" || e.target.closest("#openDebug"));
+        if (isDebugBtn) return;
 
-    for (const i of [1, 2]) {
-      const key = `photo${i}_img`;
-      const input = files[`photo${i}File`];
-      if (!state[key] && input?.files && input.files[0]) {
-        spSet_(56 + i * 4, "圖片上傳", `照片 ${i} 壓縮上傳…`);
-        const blob = await fileToWebpBlob_(input.files[0]);
-        state[key] = await uploadBlob_(tenant, cardId, `photo${i}.webp`, blob);
-        saveDraft();
-      }
-    }
+        const now = Date.now();
+        if (now - lastTap < 420) tapCount++;
+        else tapCount = 1;
+        lastTap = now;
 
-    if (planIsPremium()) {
-      for (const i of [3, 4, 5]) {
-        const key = `photo${i}_img`;
-        const input = files[`photo${i}File`];
-        if (!state[key] && input?.files && input.files[0]) {
-          spSet_(70 + (i - 3) * 5, "圖片上傳", `照片 ${i} 壓縮上傳…`);
-          const blob = await fileToWebpBlob_(input.files[0]);
-          state[key] = await uploadBlob_(tenant, cardId, `photo${i}.webp`, blob);
-          saveDraft();
+        if (tapCount >= 2) {
+          // stop propagation so it won't trigger any hidden global handlers
+          e.stopPropagation();
+          e.preventDefault();
         }
-      }
-    } else {
-      state.photo3_img = "";
-      state.photo4_img = "";
-      state.photo5_img = "";
-    }
-
-    spSet_(82, "圖片上傳", "圖片處理完成 ✅");
+      },
+      true // capture
+    );
   }
 
-  async function createCard_() {
-    spSet_(88, "寫入 card_db", "create…");
-    setPill("寫入 card_db 中…");
-
-    const p = {
-      action: "create",
-      tenant: state.tenant,
-      id: state.id,
-      token: state.token,
-
-      plan: hidden.plan?.value || "free",
-      color: hidden.color?.value || "",
-      style: hidden.style?.value || "",
-      paper: hidden.paper?.value || "",
-      premium_color: hidden.premium_color?.value || "",
-
-      name: (fields.name?.value || "").trim(),
-      unit: (fields.unit?.value || "").trim(),
-      title: (fields.title?.value || "").trim(),
-      slogan: (fields.slogan?.value || "").trim(),
-      services: (fields.services?.value || "").trim(),
-      experience: (fields.experience?.value || "").trim(),
-
-      avatar_img: state.avatar_img || "",
-      logo_img: state.logo_img || "",
-      photo1_img: state.photo1_img || "",
-      photo2_img: state.photo2_img || "",
-      photo3_img: state.photo3_img || "",
-      photo4_img: state.photo4_img || "",
-      photo5_img: state.photo5_img || "",
-
-      wechat_id: (fields.wechat_id?.value || "").trim(),
-      line_url: (fields.line_url?.value || "").trim(),
-      line_oa: (fields.line_oa?.value || "").trim(),
-      email: (fields.email?.value || "").trim(),
-      phone: (fields.phone?.value || "").trim(),
-      address: (fields.address?.value || "").trim(),
-
-      video1: (fields.video1?.value || "").trim(),
-      video2: (fields.video2?.value || "").trim(),
-      video3: (fields.video3?.value || "").trim(),
-
-      social1: (fields.social1?.value || "").trim(),
-      social2: (fields.social2?.value || "").trim(),
-      social3: (fields.social3?.value || "").trim(),
-
-      cta_text: planIsPremium() ? (fields.cta_text?.value || "").trim() : "",
-      cta_link: planIsPremium() ? (fields.cta_link?.value || "").trim() : "",
-    };
-    if (state.sig) p.sig = state.sig;
-
-    await gasGet_(p);
-
-    spSet_(100, "完成", "已寫入 card_db ✅");
-    setPill("已寫入 card_db ✅");
-
-    clearDraft();
-    alert(`送出成功 ✅\n\n草稿卡ID：${state.id}\n（目前狀態預設 inactive）`);
-
-    setTimeout(() => spHide_(), 1200);
-  }
-
+  // -----------------------------
+  // Bind chips/swatch (✅ 핵심：hard sync)
+  // -----------------------------
   function bindChips_() {
-    // keep as event delegation (single)
     document.addEventListener("click", (ev) => {
       const chip = ev.target.closest(".chip");
       if (!chip) return;
+
       const group = chip.getAttribute("data-chip-group");
       const val = chip.getAttribute("data-value");
       if (!group || !val) return;
 
+      // ✅ hard write hidden value (this is the key fix)
+      if (group === "plan") {
+        const pv = normalizePlan_(val);
+        setHidden_("plan", pv);
+      } else {
+        setHidden_(group, val);
+      }
+
+      // UI mark on
       $$(`.chip[data-chip-group="${group}"]`).forEach((c) => c.setAttribute("data-on", "0"));
       chip.setAttribute("data-on", "1");
-      if (hidden[group]) hidden[group].value = val;
 
-      if (group === "plan") refreshPlanDependentUI_();
+      // plan switch must refresh UI & clear irrelevant fields
+      if (group === "plan") {
+        refreshPlanDependentUI_();
+        // when switching plan, restore selection UI (so you won't see wrong on-state)
+        restoreSelectionUI_();
+      }
 
       saveDraft();
       refreshPreview_();
@@ -760,9 +617,12 @@
       const val = sw.getAttribute("data-value");
       if (!group || !val) return;
 
+      // ✅ hard write hidden value
+      setHidden_(group, val);
+
+      // UI mark on
       row.querySelectorAll(".swatch").forEach((x) => x.setAttribute("data-on", "0"));
       sw.setAttribute("data-on", "1");
-      if (hidden[group]) hidden[group].value = val;
 
       saveDraft();
       refreshPreview_();
@@ -770,48 +630,60 @@
     });
   }
 
-  function bindButtonsOnce_() {
-    // ✅ key change: use onclick to avoid stacking when something goes wrong
+  // -----------------------------
+  // Bind nav
+  // -----------------------------
+  function bindNav_() {
     if (el.prevBtn) {
-      el.prevBtn.onclick = () => showStep(Math.max(1, state.step - 1), { scroll: true });
+      el.prevBtn.addEventListener("click", () => {
+        if (!navGuardOK_()) return;
+        showStep(Math.max(1, state.step - 1), { scroll: true });
+      });
     }
 
     if (el.nextBtn) {
-      el.nextBtn.onclick = () => {
+      el.nextBtn.addEventListener("click", () => {
+        if (!navGuardOK_()) return;
+
         if (!validateStep_(state.step)) {
           setPill("請先完成本步驟必填");
           return;
         }
         showStep(Math.min(8, state.step + 1), { scroll: true });
-      };
+      });
     }
 
     if (el.resetDraftBtn) {
-      el.resetDraftBtn.onclick = () => {
+      el.resetDraftBtn.addEventListener("click", () => {
         if (!confirm("確定要清除草稿嗎？")) return;
         clearDraft();
         location.reload();
-      };
+      });
     }
 
     if (el.openDebug) {
-      el.openDebug.onclick = () => {
+      el.openDebug.addEventListener("click", () => {
         const text = [
           `HSC Fill Form v${VERSION}`,
           `tenant=${state.tenant}`,
           `id=${state.id || "-"}`,
           `token=${state.token ? state.token.slice(0, 8) + "..." : "-"}`,
           `sig=${state.sig ? "yes" : "no"}`,
+          `plan=${hidden.plan?.value || "-"}`,
+          `theme=${planIsPremium()
+            ? (hidden.premium_color?.value || "-")
+            : `${hidden.color?.value || "-"} / ${hidden.style?.value || "-"} / ${hidden.paper?.value || "-"}`}`,
           "",
           "Logs:",
-          ...state.logs.slice(-50),
+          ...state.logs.slice(-50)
         ].join("\n");
         alert(text);
-      };
+      });
     }
   }
 
   function bindLivePreview_() {
+    if (!form) return;
     ["input", "change"].forEach((evt) => {
       form.addEventListener(
         evt,
@@ -825,68 +697,55 @@
     });
   }
 
-  async function onSubmit_(ev) {
-    ev.preventDefault();
-
-    spSet_(0, "準備送出", "開始…");
-    scrollToEl_(el.submitBtn);
-
-    const must = [1, 2, 3, 4, 7];
-    for (const s of must) {
-      if (s === 7 && !planIsPremium()) continue;
-      if (!validateStep_(s)) {
-        showStep(s, { scroll: true });
-        setPill("請先完成必填項目");
-        spSet_(0, "請先補齊必填", `請完成 ${STEP_TITLES[s]}`);
-        return;
-      }
-    }
-
-    try {
-      if (el.submitBtn) el.submitBtn.disabled = true;
-      spShow_();
-
-      await ensureFirebaseAuthed_();
-      spSet_(5, "準備送出", "Firebase 登入 OK ✅");
-
-      await pingAndSchema_();
-      await reserveIfNeeded_();
-      await uploadAllImages_();
-      await createCard_();
-    } catch (e) {
-      console.error(e);
-      setPill("送出失敗 ❌");
-      spSet_(Math.max(5, Number(el.submitProgressPct?.textContent || "5")), "送出失敗 ❌", e?.message || String(e));
-      alert("送出失敗：\n" + (e?.message || String(e)));
-    } finally {
-      if (el.submitBtn) el.submitBtn.disabled = false;
-    }
+  // -----------------------------
+  // GAS GET helper (still used by submit pipeline in your other version)
+  // (Submit pipeline not included here to keep this patch focused on linkage/nav bugs)
+  // -----------------------------
+  function getQS_() {
+    const u = new URL(location.href);
+    return {
+      tenant: (u.searchParams.get("tenant") || DEFAULT_TENANT).trim() || DEFAULT_TENANT,
+      sig: (u.searchParams.get("sig") || "").trim()
+    };
   }
 
-  function boot() {
-    const u = new URL(location.href);
-    state.tenant = (u.searchParams.get("tenant") || DEFAULT_TENANT).trim() || DEFAULT_TENANT;
-    state.sig = (u.searchParams.get("sig") || "").trim();
+  // -----------------------------
+  // Boot
+  // -----------------------------
+  async function boot() {
+    if (!form) {
+      console.error("[HSC] #hscForm not found");
+      return;
+    }
+
+    const qs = getQS_();
+    state.tenant = qs.tenant;
+    state.sig = qs.sig;
 
     loadDraft();
 
-    bindChips_();
-    bindButtonsOnce_();
-    bindLivePreview_();
+    // ✅ if no plan chosen yet, keep empty (force user choose)
+    // but if draft has plan, keep it
+    if (!hidden.plan?.value) setHidden_("plan", "");
 
-    restoreSelectionUI_();
+    bindChips_();
+    bindNav_();
+    bindLivePreview_();
+    blockHeaderMultiTap_();
+
+    // ✅ After bindings, refresh everything in correct order
     refreshPlanDependentUI_();
+    restoreSelectionUI_();
     refreshPreview_();
     refreshSummary_();
     refreshHeader_();
 
-    showStep(Math.min(8, Math.max(1, Number(state.step || 1))), { scroll: false });
+    const st = clamp(Number(state.step || 1), 1, 8);
+    showStep(st, { scroll: false });
 
-    spHide_();
     setPill("準備填寫");
-    log("boot ok", { VERSION, tenant: state.tenant, hasSig: !!state.sig });
+    log("boot ok", { VERSION, tenant: state.tenant, sig: !!state.sig, step: st });
   }
 
-  form.onsubmit = onSubmit_; // ✅ avoid stacking too
   boot();
 })();
