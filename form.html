@@ -8,8 +8,43 @@
 
   <link rel="stylesheet" href="./form.css?v=5123" />
 
-  <!-- ✅ v512.3 uses Firebase v12 ESM dynamic import inside form.js
-       DO NOT include firebase compat scripts here (avoid SDK mixing) -->
+  <!-- ✅ Firebase (compat) - IMPORTANT: DO NOT use defer here -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
+  <!-- ✅ Firebase init (must run AFTER firebase scripts loaded) -->
+  <script>
+    window.HSC_FIREBASE_CONFIG = window.HSC_FIREBASE_CONFIG || {
+      apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
+      authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
+      projectId: "happiness-smart-card-pro-7389a",
+      storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
+      messagingSenderId: "143313936007",
+      appId: "1:143313936007:web:7c948563c51e8a47d3a222"
+    };
+
+    (function(){
+      try{
+        if (!window.firebase || !firebase.initializeApp) {
+          console.warn("[HSC] firebase SDK not ready");
+          return;
+        }
+        if (firebase.apps && firebase.apps.length) {
+          console.log("[HSC] firebase already initialized");
+          return;
+        }
+        firebase.initializeApp(window.HSC_FIREBASE_CONFIG);
+        console.log("[HSC] firebase initialized ✅", {
+          projectId: window.HSC_FIREBASE_CONFIG.projectId,
+          storageBucket: window.HSC_FIREBASE_CONFIG.storageBucket
+        });
+      }catch(e){
+        console.error("[HSC] firebase init failed:", e);
+      }
+    })();
+  </script>
+
   <script defer src="./form.js?v=5123"></script>
 </head>
 
@@ -329,12 +364,13 @@
           <div class="summary-row"><span>姓名</span><strong id="sumName">-</strong></div>
           <div class="summary-row"><span>單位</span><strong id="sumUnit">-</strong></div>
           <div class="summary-row"><span>頭銜</span><strong id="sumTitle">-</strong></div>
+
           <div class="summary-row"><span>影音</span><strong id="sumVideo">-</strong></div>
           <div class="summary-row"><span>社群</span><strong id="sumSocial">-</strong></div>
         </div>
 
         <button id="submitBtn" class="btn primary" type="submit">送出</button>
-        <div class="hint mt">送出流程：ping → schemaCheck → reserve(驗證草稿卡) → Firebase匿名登入 → 壓縮上傳 → create 寫入 card_db</div>
+        <div class="hint mt">送出流程：ping → reserve → 壓縮上傳 → create 寫入 card_db</div>
       </section>
 
       <input type="hidden" id="plan" name="plan" />
