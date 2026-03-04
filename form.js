@@ -1,264 +1,194 @@
-/* ======================================================
-Happiness Smart Card System
-form.js v509
-Fix: CORS + GAS action
-====================================================== */
+/* =========================================
+ HSC form.js v509
+ COMPLETE OVERWRITE
+ ========================================= */
 
-import { uploadAvatar, uploadCover } from "./firebase.js";
-import { compressToJpeg } from "./image-compressor.js";
+(() => {
 
-const VERSION="v509";
+const GAS_URL =
+"https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-const GAS_URL="https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+const VERSION = 509;
 
-const $=(id)=>document.getElementById(id);
+window.HSC_SUBMIT = async function(payload){
 
+  const tenant = payload.tenant || "angel";
 
-/* =======================
-LOG
-======================= */
+  /* ----------------------
+     STEP 1 reserve
+  ---------------------- */
 
-function log(msg){
+  const reserve = await callGAS({
+    action:"reserve",
+    tenant,
+    plan:payload.plan || ""
+  });
 
-  const el=$("log");
-  if(!el) return;
-
-  el.textContent="• "+msg+"\n"+el.textContent;
-
-}
-
-
-/* =======================
-UID
-======================= */
-
-function getUID(){
-
-  let uid=localStorage.getItem("hsc_uid");
-
-  if(!uid){
-
-    uid="guest_"+Math.random().toString(36).substring(2,10);
-
-    localStorage.setItem("hsc_uid",uid);
-
+  if(!reserve.ok){
+    throw new Error("reserve failed");
   }
 
-  return uid;
+  const id = reserve.id;
+  const token = reserve.token;
 
-}
+  /* ----------------------
+     STEP 2 圖片上傳
+  ---------------------- */
 
+  const images = await uploadImages(payload,tenant,id);
 
-/* =======================
-POST GAS (no-cors)
-======================= */
+  /* ----------------------
+     STEP 3 create
+  ---------------------- */
 
-async function postJSON(action,data){
+  const create = await callGAS({
 
-  await fetch(
-    GAS_URL+"?action="+action,
-    {
-      method:"POST",
-      mode:"no-cors",
-      headers:{
-        "Content-Type":"text/plain;charset=utf-8"
-      },
-      body:JSON.stringify(data)
-    }
-  );
+    action:"create",
+    tenant,
 
-}
-
-
-/* =======================
-RESERVE
-======================= */
-
-async function reserveCard(){
-
-  const uid=getUID();
-
-  log("reserve request");
-
-  const payload={
-    tenant:"angel",
-    uid:uid
-  };
-
-  await postJSON("reserve",payload);
-
-  const id="TW"+Date.now().toString().slice(-6);
-
-  $("cardId") && ($("cardId").textContent=id);
-
-  log("reserve ok "+id);
-
-  return{
     id,
-    uid
-  };
-
-}
-
-
-/* =======================
-UPLOAD
-======================= */
-
-async function uploadImages(cardId){
-
-  const avatarFile=$("avatar")?.files?.[0];
-  const coverFile=$("cover")?.files?.[0];
-
-  let avatarURL="";
-  let coverURL="";
-
-  if(avatarFile){
-
-    log("compress avatar");
-
-    const blob=await compressToJpeg(avatarFile,512);
-
-    log("upload avatar");
-
-    avatarURL=await uploadAvatar(cardId,blob);
-
-    $("avatarURL") && ($("avatarURL").textContent=avatarURL);
-
-  }
-
-  if(coverFile){
-
-    log("compress cover");
-
-    const blob=await compressToJpeg(coverFile,1200);
-
-    log("upload cover");
-
-    coverURL=await uploadCover(cardId,blob);
-
-    $("coverURL") && ($("coverURL").textContent=coverURL);
-
-  }
-
-  return{
-    avatarURL,
-    coverURL
-  };
-
-}
-
-
-/* =======================
-READ FORM
-======================= */
-
-function readForm(){
-
-  return{
-
-    name:$("name")?.value||"",
-    unit:$("unit")?.value||"",
-    title:$("title")?.value||"",
-
-    phone:$("phone")?.value||"",
-    email:$("email")?.value||"",
-    website:$("website")?.value||"",
-
-    line_url:$("line_url")?.value||"",
-    wechat_id:$("wechat_id")?.value||"",
-
-    free_color:$("free_color")?.value||"",
-    free_style:$("free_style")?.value||"",
-    free_paper:$("free_paper")?.value||""
-
-  };
-
-}
-
-
-/* =======================
-CREATE
-======================= */
-
-async function createCard(reserve,data,img){
-
-  log("create request");
-
-  const payload={
-
-    tenant:"angel",
-
-    id:reserve.id,
-    uid:reserve.uid,
-
-    ...data,
-
-    avatar_url:img.avatarURL||"",
-    photos:[img.coverURL||""]
-
-  };
-
-  await postJSON("create",payload);
-
-  log("create success");
-
-}
-
-
-/* =======================
-SUBMIT
-======================= */
-
-async function submitForm(){
-
-  try{
-
-    log("submit start "+VERSION);
-
-    const reserve=await reserveCard();
-
-    const formData=readForm();
-
-    const images=await uploadImages(reserve.id);
-
-    await createCard(reserve,formData,images);
-
-    $("result").innerHTML=`
-      <div style="font-size:18px;color:#3bd17f">
-      ✅ 名片已送出審核
-      </div>
-      <div style="opacity:.6;margin-top:6px">
-      客服確認後將開通
-      </div>
-    `;
-
-  }
-  catch(err){
-
-    console.error(err);
-
-    $("result").innerHTML="❌ "+err.message;
-
-  }
-
-}
-
-
-/* =======================
-INIT
-======================= */
-
-window.addEventListener("DOMContentLoaded",()=>{
-
-  $("ver") && ($("ver").textContent=VERSION);
-
-  $("btnSubmit")?.addEventListener("click",(e)=>{
-
-    e.preventDefault();
-
-    submitForm();
+    token,
+
+    plan:payload.plan || "",
+    color:payload.color || "",
+    style:payload.style || "",
+    paper:payload.paper || "",
+
+    name:payload.name || "",
+    unit:payload.unit || "",
+    title:payload.title || "",
+    slogan:payload.slogan || "",
+
+    services:payload.services || "",
+    experience:payload.experience || "",
+
+    phone:payload.phone || "",
+    email:payload.email || "",
+    website:payload.website || "",
+    address:payload.address || "",
+
+    line_id:payload.line_id || "",
+    line_url:payload.line_url || "",
+    line_oa:payload.line_oa || "",
+    wechat_id:payload.wechat_id || "",
+
+    video1:payload.video1 || "",
+    video2:payload.video2 || "",
+    video3:payload.video3 || "",
+
+    social1:payload.social1 || "",
+    social2:payload.social2 || "",
+    social3:payload.social3 || "",
+
+    avatar_img:images.avatar_img || "",
+    logo_img:images.logo_img || "",
+    photo1_img:images.photo1_img || "",
+    photo2_img:images.photo2_img || "",
+    photo3_img:images.photo3_img || "",
+    photo4_img:images.photo4_img || "",
+    photo5_img:images.photo5_img || ""
 
   });
 
-});
+  if(!create.ok){
+    throw new Error("create failed");
+  }
+
+  return {
+    ok:true,
+    id,
+    token
+  };
+
+};
+
+
+/* =========================================
+ GAS 呼叫器
+ ========================================= */
+
+async function callGAS(params){
+
+  const qs = new URLSearchParams(params);
+
+  const GET_URL = GAS_URL + "?" + qs.toString();
+
+  try{
+
+    const res = await fetch(GET_URL,{method:"GET"});
+
+    return await res.json();
+
+  }catch(err){
+
+    /* fallback POST */
+
+    const res = await fetch(GAS_URL,{
+      method:"POST",
+      headers:{
+        "Content-Type":
+        "application/x-www-form-urlencoded"
+      },
+      body:qs.toString()
+    });
+
+    return await res.json();
+
+  }
+
+}
+
+
+/* =========================================
+ Firebase 上傳
+ ========================================= */
+
+async function uploadImages(payload,tenant,id){
+
+  const upload = window.HSC_FIREBASE_UPLOAD;
+
+  if(!upload){
+    return {};
+  }
+
+  const out={};
+
+  if(payload.avatarFile){
+    out.avatar_img =
+    await upload(
+      payload.avatarFile,
+      `hsc_cards/${tenant}/${id}/avatar.jpg`
+    );
+  }
+
+  if(payload.logoFile){
+    out.logo_img =
+    await upload(
+      payload.logoFile,
+      `hsc_cards/${tenant}/${id}/logo.jpg`
+    );
+  }
+
+  if(payload.photoFiles){
+
+    for(let i=0;i<payload.photoFiles.length;i++){
+
+      const f = payload.photoFiles[i];
+
+      const url =
+      await upload(
+        f,
+        `hsc_cards/${tenant}/${id}/photo${i+1}.jpg`
+      );
+
+      out[`photo${i+1}_img`] = url;
+
+    }
+
+  }
+
+  return out;
+
+}
+
+})();
