@@ -1,19 +1,18 @@
 /* ==========================================
  * HSC Fill Form — form.js v514 (COMPLETE OVERWRITE)
- * - GAS v514 compatible
+ * - GAS v513 compatible
  * - reserve/create use GET (avoid CORS preflight)
  * - Firebase anonymous auth (compat)
  * - Upload path: hsc_cards/{tenant}/{cardId}/{fileName}
  * - NEVER send base64 to GAS
- * - UX: Click submit -> jump to STEP 8 + smooth scroll to submit area
+ * - UX: click Submit => scroll to "pillMsg" (送出資訊欄)
  * ========================================== */
 
 (() => {
   const VERSION = "514.0";
 
   // ✅ LOCKED to your current exec URL
-  const GAS_URL =
-    "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
   const DEFAULT_TENANT = "angel";
   const DRAFT_KEY = "HSC_FILL_DRAFT_v5140";
@@ -174,6 +173,40 @@
     if(el.pillMsg) el.pillMsg.textContent = msg;
   }
 
+  function flashPill_(){
+    if(!el.pillMsg) return;
+    el.pillMsg.classList.add("pill-flash");
+    setTimeout(()=> el.pillMsg.classList.remove("pill-flash"), 650);
+  }
+
+  function scrollToEl_(dom){
+    if(!dom) return;
+    try{
+      dom.scrollIntoView({ behavior: "smooth", block: "start" });
+    }catch(_e){
+      // fallback
+      const top = dom.getBoundingClientRect().top + window.scrollY - 12;
+      window.scrollTo(0, Math.max(0, top));
+    }
+  }
+
+  function scrollToPill_(){
+    // ✅ 你要的「送出資訊欄」：就是這顆 pillMsg（位在進度區）
+    const target = el.pillMsg || $(".progress") || $("#stepTitle");
+    scrollToEl_(target);
+    flashPill_();
+  }
+
+  function scrollToStep_(n){
+    const sec = document.querySelector(`.step[data-step="${n}"]`);
+    if(!sec) return;
+    // 避免被 topbar 擋住：先滾到 step，再稍微往上
+    scrollToEl_(sec);
+    setTimeout(()=>{
+      window.scrollBy({ top: -10, left: 0, behavior: "smooth" });
+    }, 50);
+  }
+
   function setErr(key, msg){
     if(err[key]) err[key].textContent = msg || "";
   }
@@ -211,35 +244,35 @@
         photo5_img: state.photo5_img,
       },
       values: {
-        plan: hidden.plan?.value || "",
-        color: hidden.color?.value || "",
-        style: hidden.style?.value || "",
-        paper: hidden.paper?.value || "",
-        premium_color: hidden.premium_color?.value || "",
+        plan: hidden.plan.value || "",
+        color: hidden.color.value || "",
+        style: hidden.style.value || "",
+        paper: hidden.paper.value || "",
+        premium_color: hidden.premium_color.value || "",
 
-        name: fields.name?.value || "",
-        unit: fields.unit?.value || "",
-        title: fields.title?.value || "",
-        slogan: fields.slogan?.value || "",
-        services: fields.services?.value || "",
-        experience: fields.experience?.value || "",
+        name: fields.name.value || "",
+        unit: fields.unit.value || "",
+        title: fields.title.value || "",
+        slogan: fields.slogan.value || "",
+        services: fields.services.value || "",
+        experience: fields.experience.value || "",
 
-        wechat_id: fields.wechat_id?.value || "",
-        line_url: fields.line_url?.value || "",
-        line_oa: fields.line_oa?.value || "",
-        email: fields.email?.value || "",
-        phone: fields.phone?.value || "",
-        address: fields.address?.value || "",
+        wechat_id: fields.wechat_id.value || "",
+        line_url: fields.line_url.value || "",
+        line_oa: fields.line_oa.value || "",
+        email: fields.email.value || "",
+        phone: fields.phone.value || "",
+        address: fields.address.value || "",
 
-        video1: fields.video1?.value || "",
-        video2: fields.video2?.value || "",
-        video3: fields.video3?.value || "",
-        social1: fields.social1?.value || "",
-        social2: fields.social2?.value || "",
-        social3: fields.social3?.value || "",
+        video1: fields.video1.value || "",
+        video2: fields.video2.value || "",
+        video3: fields.video3.value || "",
+        social1: fields.social1.value || "",
+        social2: fields.social2.value || "",
+        social3: fields.social3.value || "",
 
-        cta_text: fields.cta_text?.value || "",
-        cta_link: fields.cta_link?.value || "",
+        cta_text: fields.cta_text.value || "",
+        cta_link: fields.cta_link.value || "",
       }
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -269,35 +302,36 @@
 
       const v = draft.values;
 
-      if(hidden.plan) hidden.plan.value = v.plan || "";
-      if(hidden.color) hidden.color.value = v.color || "";
-      if(hidden.style) hidden.style.value = v.style || "";
-      if(hidden.paper) hidden.paper.value = v.paper || "";
-      if(hidden.premium_color) hidden.premium_color.value = v.premium_color || "";
+      hidden.plan.value = v.plan || "";
+      hidden.color.value = v.color || "";
+      hidden.style.value = v.style || "";
+      hidden.paper.value = v.paper || "";
+      hidden.premium_color.value = v.premium_color || "";
 
-      if(fields.name) fields.name.value = v.name || "";
-      if(fields.unit) fields.unit.value = v.unit || "";
-      if(fields.title) fields.title.value = v.title || "";
-      if(fields.slogan) fields.slogan.value = v.slogan || "";
-      if(fields.services) fields.services.value = v.services || "";
-      if(fields.experience) fields.experience.value = v.experience || "";
+      fields.name.value = v.name || "";
+      fields.unit.value = v.unit || "";
+      fields.title.value = v.title || "";
+      fields.slogan.value = v.slogan || "";
+      fields.services.value = v.services || "";
+      fields.experience.value = v.experience || "";
 
-      if(fields.wechat_id) fields.wechat_id.value = v.wechat_id || "";
-      if(fields.line_url) fields.line_url.value = v.line_url || "";
-      if(fields.line_oa) fields.line_oa.value = v.line_oa || "";
-      if(fields.email) fields.email.value = v.email || "";
-      if(fields.phone) fields.phone.value = v.phone || "";
-      if(fields.address) fields.address.value = v.address || "";
+      fields.wechat_id.value = v.wechat_id || "";
+      fields.line_url.value = v.line_url || "";
+      fields.line_oa.value = v.line_oa || "";
+      fields.email.value = v.email || "";
+      fields.phone.value = v.phone || "";
+      fields.address.value = v.address || "";
 
-      if(fields.video1) fields.video1.value = v.video1 || "";
-      if(fields.video2) fields.video2.value = v.video2 || "";
-      if(fields.video3) fields.video3.value = v.video3 || "";
-      if(fields.social1) fields.social1.value = v.social1 || "";
-      if(fields.social2) fields.social2.value = v.social2 || "";
-      if(fields.social3) fields.social3.value = v.social3 || "";
+      fields.video1.value = v.video1 || "";
+      fields.video2.value = v.video2 || "";
+      fields.video3.value = v.video3 || "";
 
-      if(fields.cta_text) fields.cta_text.value = v.cta_text || "";
-      if(fields.cta_link) fields.cta_link.value = v.cta_link || "";
+      fields.social1.value = v.social1 || "";
+      fields.social2.value = v.social2 || "";
+      fields.social3.value = v.social3 || "";
+
+      fields.cta_text.value = v.cta_text || "";
+      fields.cta_link.value = v.cta_link || "";
 
       return true;
     }catch(e){
@@ -309,75 +343,30 @@
     localStorage.removeItem(DRAFT_KEY);
   }
 
-  function getStepEl_(n){
-    return document.querySelector(`.step[data-step="${n}"]`);
-  }
-
-  function scrollToSubmit_(){
-    // Prefer scroll to submit button; fallback to STEP 8 section
-    const target =
-      el.submitBtn ||
-      $("#submitBtn") ||
-      getStepEl_(8) ||
-      $("#step8") ||
-      $("#step8Card") ||
-      form;
-
-    if(!target) return;
-    try{
-      target.scrollIntoView({ behavior:"smooth", block:"start" });
-    }catch(_){
-      // old browsers
-      const rect = target.getBoundingClientRect();
-      window.scrollTo(0, window.scrollY + rect.top - 16);
-    }
-  }
-
-  function showStep(n){
-    state.step = n;
-    $$(".step").forEach(sec => {
-      const sn = Number(sec.getAttribute("data-step"));
-      sec.classList.toggle("hide", sn !== n);
-    });
-
-    if(el.stepTitle) el.stepTitle.textContent = STEP_TITLES[n] || `STEP ${n}`;
-    const pct = Math.round((n / 8) * 100);
-    if(el.progressFill) el.progressFill.style.width = `${pct}%`;
-
-    if(el.prevBtn) el.prevBtn.style.visibility = (n <= 1) ? "hidden" : "visible";
-    if(el.nextBtn) el.nextBtn.classList.toggle("hide", n >= 8);
-    saveDraft();
-
-    refreshPlanDependentUI_();
-    refreshPreview_();
-    refreshSummary_();
-    refreshHeader_();
-  }
-
   function refreshHeader_(){
-    if(el.versionText) el.versionText.textContent = VERSION;
-    if(el.tenantText) el.tenantText.textContent = state.tenant || DEFAULT_TENANT;
-    if(el.cardIdText) el.cardIdText.textContent = state.id ? state.id : "-";
+    el.versionText.textContent = VERSION;
+    el.tenantText.textContent = state.tenant || DEFAULT_TENANT;
+    el.cardIdText.textContent = state.id ? state.id : "-";
   }
 
   function planIsPremium(){
-    return (hidden.plan?.value || "").trim() === "premium";
+    return (hidden.plan.value || "").trim() === "premium";
   }
 
   function refreshPlanDependentUI_(){
     const premium = planIsPremium();
 
-    if(el.freeThemeCard) el.freeThemeCard.classList.toggle("hide", premium);
-    if(el.premiumThemeCard) el.premiumThemeCard.classList.toggle("hide", !premium);
+    el.freeThemeCard.classList.toggle("hide", premium);
+    el.premiumThemeCard.classList.toggle("hide", !premium);
 
-    if(el.premiumPhotoRow) el.premiumPhotoRow.classList.toggle("hide", !premium);
-    if(el.premiumCtaCard) el.premiumCtaCard.classList.toggle("hide", !premium);
+    el.premiumPhotoRow.classList.toggle("hide", !premium);
+    el.premiumCtaCard.classList.toggle("hide", !premium);
 
     // If free, clear premium-only choices
     if(!premium){
-      if(hidden.premium_color) hidden.premium_color.value = "";
-      if(fields.cta_text) fields.cta_text.value = "";
-      if(fields.cta_link) fields.cta_link.value = "";
+      hidden.premium_color.value = "";
+      fields.cta_text.value = "";
+      fields.cta_link.value = "";
       state.photo3_img = "";
       state.photo4_img = "";
       state.photo5_img = "";
@@ -385,44 +374,65 @@
   }
 
   function refreshPreview_(){
-    if(!el.pvName || !el.pvTitle || !el.pvUnit || !el.pvTheme) return;
-
-    const nm = (fields.name?.value || "").trim() || "姓名";
-    const tt = (fields.title?.value || "").trim() || "頭銜";
-    const un = (fields.unit?.value || "").trim() || "單位";
+    const nm = (fields.name.value || "").trim() || "姓名";
+    const tt = (fields.title.value || "").trim() || "頭銜";
+    const un = (fields.unit.value || "").trim() || "單位";
     el.pvName.textContent = nm;
     el.pvTitle.textContent = tt;
     el.pvUnit.textContent = un;
 
     if(planIsPremium()){
-      const pc = (hidden.premium_color?.value || "").trim() || "p?";
+      const pc = (hidden.premium_color.value || "").trim() || "p?";
       el.pvTheme.textContent = `${pc}`;
     }else{
-      const c = (hidden.color?.value || "").trim() || "c?";
-      const s = (hidden.style?.value || "").trim() || "s?";
-      const f = (hidden.paper?.value || "").trim() || "f?";
+      const c = (hidden.color.value || "").trim() || "c?";
+      const s = (hidden.style.value || "").trim() || "s?";
+      const f = (hidden.paper.value || "").trim() || "f?";
       el.pvTheme.textContent = `${c}/${s}/${f}`;
     }
   }
 
   function refreshSummary_(){
-    if(!el.sumPlan) return;
+    el.sumPlan.textContent = planIsPremium() ? "精品設計" : (hidden.plan.value ? "自由搭配" : "-");
+    el.sumTheme.textContent = planIsPremium()
+      ? (hidden.premium_color.value || "-")
+      : `${hidden.color.value || "-"} / ${hidden.style.value || "-"} / ${hidden.paper.value || "-"}`;
 
-    el.sumPlan.textContent = planIsPremium() ? "精品設計" : (hidden.plan?.value ? "自由搭配" : "-");
-    if(el.sumTheme){
-      el.sumTheme.textContent = planIsPremium()
-        ? (hidden.premium_color?.value || "-")
-        : `${hidden.color?.value || "-"} / ${hidden.style?.value || "-"} / ${hidden.paper?.value || "-"}`;
+    el.sumName.textContent = (fields.name.value || "-").trim() || "-";
+    el.sumUnit.textContent = (fields.unit.value || "-").trim() || "-";
+    el.sumTitle.textContent = (fields.title.value || "-").trim() || "-";
+
+    const vids = [fields.video1.value, fields.video2.value, fields.video3.value].filter(Boolean).length;
+    const socs = [fields.social1.value, fields.social2.value, fields.social3.value].filter(Boolean).length;
+    el.sumVideo.textContent = vids ? `${vids} 筆` : "-";
+    el.sumSocial.textContent = socs ? `${socs} 筆` : "-";
+  }
+
+  function showStep(n, opts = { scroll: true }){
+    state.step = n;
+
+    $$(".step").forEach(sec => {
+      const sn = Number(sec.getAttribute("data-step"));
+      sec.classList.toggle("hide", sn !== n);
+    });
+
+    el.stepTitle.textContent = STEP_TITLES[n] || `STEP ${n}`;
+    const pct = Math.round((n / 8) * 100);
+    el.progressFill.style.width = `${pct}%`;
+
+    el.prevBtn.style.visibility = (n <= 1) ? "hidden" : "visible";
+    el.nextBtn.classList.toggle("hide", n >= 8);
+
+    refreshPlanDependentUI_();
+    refreshPreview_();
+    refreshSummary_();
+    refreshHeader_();
+    saveDraft();
+
+    if(opts && opts.scroll){
+      // 切步驟後，讓使用者看到目前 step
+      scrollToStep_(n);
     }
-
-    if(el.sumName) el.sumName.textContent = (fields.name?.value || "-").trim() || "-";
-    if(el.sumUnit) el.sumUnit.textContent = (fields.unit?.value || "-").trim() || "-";
-    if(el.sumTitle) el.sumTitle.textContent = (fields.title?.value || "-").trim() || "-";
-
-    const vids = [fields.video1?.value, fields.video2?.value, fields.video3?.value].filter(Boolean).length;
-    const socs = [fields.social1?.value, fields.social2?.value, fields.social3?.value].filter(Boolean).length;
-    if(el.sumVideo) el.sumVideo.textContent = vids ? `${vids} 筆` : "-";
-    if(el.sumSocial) el.sumSocial.textContent = socs ? `${socs} 筆` : "-";
   }
 
   /* -------------------------
@@ -432,6 +442,7 @@
     document.addEventListener("click", (ev) => {
       const chip = ev.target.closest(".chip");
       if(!chip) return;
+
       const group = chip.getAttribute("data-chip-group");
       const val = chip.getAttribute("data-value");
       if(!group || !val) return;
@@ -456,8 +467,10 @@
     document.addEventListener("click", (ev) => {
       const sw = ev.target.closest(".swatch");
       if(!sw) return;
+
       const row = sw.closest(".swatch-row");
       if(!row) return;
+
       const group = row.getAttribute("data-swatch-group");
       const val = sw.getAttribute("data-value");
       if(!group || !val) return;
@@ -476,7 +489,6 @@
   }
 
   function restoreSelectionUI_(){
-    // chips
     ["plan","style","paper"].forEach(g=>{
       const v = (hidden[g]?.value || "").trim();
       $$(`.chip[data-chip-group="${g}"]`).forEach(c=>{
@@ -484,7 +496,6 @@
       });
     });
 
-    // swatches
     const setSw = (group, val) => {
       const row = document.querySelector(`.swatch-row[data-swatch-group="${group}"]`);
       if(!row) return;
@@ -493,8 +504,8 @@
       });
     };
 
-    setSw("color", (hidden.color?.value||"").trim());
-    setSw("premium_color", (hidden.premium_color?.value||"").trim());
+    setSw("color", (hidden.color.value||"").trim());
+    setSw("premium_color", (hidden.premium_color.value||"").trim());
   }
 
   /* -------------------------
@@ -523,6 +534,8 @@
 
   async function pingAndSchema_(){
     setPill("檢查系統中…");
+    scrollToPill_();
+
     const ping = await gasGet_({ action:"ping" });
     log("ping ok", ping);
 
@@ -530,6 +543,7 @@
     log("schema ok", sch);
 
     setPill("系統正常 ✅");
+    flashPill_();
   }
 
   /* -------------------------
@@ -553,6 +567,7 @@
 
   async function fileToWebpBlob_(file){
     if(!file) return null;
+
     if(file.size > IMG_MAX_MB * 1024 * 1024){
       throw new Error(`檔案太大（>${IMG_MAX_MB}MB）：${file.name}`);
     }
@@ -603,8 +618,10 @@
     const path = `hsc_cards/${tenant}/${cardId}/${fileName}`;
     const ref = storage.ref().child(path);
 
-    log("uploading", { path, sizeKB: Math.round(blob.size/1024) });
+    setPill(`上傳中… ${fileName}`);
+    scrollToPill_();
 
+    log("uploading", { path, sizeKB: Math.round(blob.size/1024) });
     const snap = await ref.put(blob, {
       contentType: "image/webp",
       cacheControl: "public,max-age=31536000"
@@ -618,13 +635,11 @@
    * Validation by step
    * ------------------------- */
   function validateStep_(n){
-    // clear errs
     Object.values(err).forEach(e => { if(e) e.textContent = ""; });
-    // remove invalid styles
     [fields.name, fields.unit, fields.title].forEach(i => markInvalid(i,false));
 
     if(n === 1){
-      if(!hidden.plan?.value){
+      if(!hidden.plan.value){
         setErr("plan", "請先選擇方案");
         return false;
       }
@@ -633,22 +648,22 @@
 
     if(n === 2){
       if(planIsPremium()){
-        if(!hidden.premium_color?.value){
+        if(!hidden.premium_color.value){
           setErr("premium_color", "請選擇精品底色");
           return false;
         }
       }else{
-        if(!hidden.color?.value){ setErr("color", "請選擇顏色"); return false; }
-        if(!hidden.style?.value){ setErr("style", "請選擇版型"); return false; }
-        if(!hidden.paper?.value){ setErr("paper", "請選擇紙感"); return false; }
+        if(!hidden.color.value){ setErr("color", "請選擇顏色"); return false; }
+        if(!hidden.style.value){ setErr("style", "請選擇版型"); return false; }
+        if(!hidden.paper.value){ setErr("paper", "請選擇紙感"); return false; }
       }
       return true;
     }
 
     if(n === 3){
-      const name = (fields.name?.value||"").trim();
-      const unit = (fields.unit?.value||"").trim();
-      const title = (fields.title?.value||"").trim();
+      const name = (fields.name.value||"").trim();
+      const unit = (fields.unit.value||"").trim();
+      const title = (fields.title.value||"").trim();
 
       let ok = true;
       if(!name){ setErr("name", "姓名必填"); markInvalid(fields.name,true); ok=false; }
@@ -659,7 +674,7 @@
 
     if(n === 4){
       const hasAvatarUrl = !!state.avatar_img;
-      const hasAvatarFile = !!(files.avatarFile?.files && files.avatarFile.files[0]);
+      const hasAvatarFile = !!(files.avatarFile.files && files.avatarFile.files[0]);
       if(!hasAvatarUrl && !hasAvatarFile){
         setErr("avatar", "個人照必填（請選擇檔案）");
         return false;
@@ -668,8 +683,8 @@
     }
 
     if(n === 7 && planIsPremium()){
-      const t = (fields.cta_text?.value||"").trim();
-      const l = (fields.cta_link?.value||"").trim();
+      const t = (fields.cta_text.value||"").trim();
+      const l = (fields.cta_link.value||"").trim();
       if((t && !l) || (!t && l)){
         setErr("cta_pair", "CTA 文字與連結要一起填（或都留空）");
         return false;
@@ -688,11 +703,12 @@
       return { id: state.id, token: state.token };
     }
     setPill("建立草稿卡中…");
+    scrollToPill_();
 
     const params = {
       action: "reserve",
       tenant: state.tenant,
-      plan: hidden.plan?.value || "free",
+      plan: hidden.plan.value || "free",
     };
     if(state.sig) params.sig = state.sig;
 
@@ -704,6 +720,8 @@
     saveDraft();
 
     setPill("草稿卡已建立 ✅");
+    flashPill_();
+
     return { id: state.id, token: state.token };
   }
 
@@ -712,16 +730,18 @@
     const cardId = state.id;
 
     // avatar (required)
-    if(!state.avatar_img && files.avatarFile?.files && files.avatarFile.files[0]){
+    if(!state.avatar_img && files.avatarFile.files && files.avatarFile.files[0]){
       setPill("個人照壓縮上傳中…");
+      scrollToPill_();
       const blob = await fileToWebpBlob_(files.avatarFile.files[0]);
       state.avatar_img = await uploadBlob_(tenant, cardId, "avatar.webp", blob);
       saveDraft();
     }
 
     // logo
-    if(!state.logo_img && files.logoFile?.files && files.logoFile.files[0]){
+    if(!state.logo_img && files.logoFile.files && files.logoFile.files[0]){
       setPill("Logo 壓縮上傳中…");
+      scrollToPill_();
       const blob = await fileToWebpBlob_(files.logoFile.files[0]);
       state.logo_img = await uploadBlob_(tenant, cardId, "logo.webp", blob);
       saveDraft();
@@ -731,8 +751,9 @@
     for(const i of [1,2]){
       const key = `photo${i}_img`;
       const input = files[`photo${i}File`];
-      if(!state[key] && input?.files && input.files[0]){
+      if(!state[key] && input && input.files && input.files[0]){
         setPill(`照片 ${i} 壓縮上傳中…`);
+        scrollToPill_();
         const blob = await fileToWebpBlob_(input.files[0]);
         state[key] = await uploadBlob_(tenant, cardId, `photo${i}.webp`, blob);
         saveDraft();
@@ -744,8 +765,9 @@
       for(const i of [3,4,5]){
         const key = `photo${i}_img`;
         const input = files[`photo${i}File`];
-        if(!state[key] && input?.files && input.files[0]){
+        if(!state[key] && input && input.files && input.files[0]){
           setPill(`照片 ${i} 壓縮上傳中…`);
+          scrollToPill_();
           const blob = await fileToWebpBlob_(input.files[0]);
           state[key] = await uploadBlob_(tenant, cardId, `photo${i}.webp`, blob);
           saveDraft();
@@ -758,10 +780,12 @@
     }
 
     setPill("圖片處理完成 ✅");
+    flashPill_();
   }
 
   async function createCard_(){
     setPill("寫入 card_db 中…");
+    scrollToPill_();
 
     const p = {
       action: "create",
@@ -769,18 +793,18 @@
       id: state.id,
       token: state.token,
 
-      plan: hidden.plan?.value || "free",
-      color: hidden.color?.value || "",
-      style: hidden.style?.value || "",
-      paper: hidden.paper?.value || "",
-      premium_color: hidden.premium_color?.value || "",
+      plan: hidden.plan.value || "free",
+      color: hidden.color.value || "",
+      style: hidden.style.value || "",
+      paper: hidden.paper.value || "",
+      premium_color: hidden.premium_color.value || "",
 
-      name: (fields.name?.value||"").trim(),
-      unit: (fields.unit?.value||"").trim(),
-      title: (fields.title?.value||"").trim(),
-      slogan: (fields.slogan?.value||"").trim(),
-      services: (fields.services?.value||"").trim(),
-      experience: (fields.experience?.value||"").trim(),
+      name: (fields.name.value||"").trim(),
+      unit: (fields.unit.value||"").trim(),
+      title: (fields.title.value||"").trim(),
+      slogan: (fields.slogan.value||"").trim(),
+      services: (fields.services.value||"").trim(),
+      experience: (fields.experience.value||"").trim(),
 
       avatar_img: state.avatar_img || "",
       logo_img: state.logo_img || "",
@@ -790,23 +814,23 @@
       photo4_img: state.photo4_img || "",
       photo5_img: state.photo5_img || "",
 
-      wechat_id: (fields.wechat_id?.value||"").trim(),
-      line_url: (fields.line_url?.value||"").trim(),
-      line_oa: (fields.line_oa?.value||"").trim(),
-      email: (fields.email?.value||"").trim(),
-      phone: (fields.phone?.value||"").trim(),
-      address: (fields.address?.value||"").trim(),
+      wechat_id: (fields.wechat_id.value||"").trim(),
+      line_url: (fields.line_url.value||"").trim(),
+      line_oa: (fields.line_oa.value||"").trim(),
+      email: (fields.email.value||"").trim(),
+      phone: (fields.phone.value||"").trim(),
+      address: (fields.address.value||"").trim(),
 
-      video1: (fields.video1?.value||"").trim(),
-      video2: (fields.video2?.value||"").trim(),
-      video3: (fields.video3?.value||"").trim(),
+      video1: (fields.video1.value||"").trim(),
+      video2: (fields.video2.value||"").trim(),
+      video3: (fields.video3.value||"").trim(),
 
-      social1: (fields.social1?.value||"").trim(),
-      social2: (fields.social2?.value||"").trim(),
-      social3: (fields.social3?.value||"").trim(),
+      social1: (fields.social1.value||"").trim(),
+      social2: (fields.social2.value||"").trim(),
+      social3: (fields.social3.value||"").trim(),
 
-      cta_text: planIsPremium() ? (fields.cta_text?.value||"").trim() : "",
-      cta_link: planIsPremium() ? (fields.cta_link?.value||"").trim() : "",
+      cta_text: planIsPremium() ? (fields.cta_text.value||"").trim() : "",
+      cta_link: planIsPremium() ? (fields.cta_link.value||"").trim() : "",
     };
 
     if(state.sig) p.sig = state.sig;
@@ -814,6 +838,7 @@
     const r = await gasGet_(p);
 
     setPill("已寫入 card_db ✅");
+    flashPill_();
     log("create ok", r);
 
     clearDraft();
@@ -827,97 +852,76 @@
   async function onSubmit_(ev){
     ev.preventDefault();
 
-    // ✅ UX: always jump to STEP 8 and scroll to submit info area
-    showStep(8);
-    requestAnimationFrame(() => scrollToSubmit_());
+    // ✅ 點送出：立刻滑到「送出資訊欄」（pill）
+    scrollToPill_();
 
-    // Validate all needed steps
     const must = [1,2,3,4,7];
     for(const s of must){
       if(s === 7 && !planIsPremium()) continue;
       if(!validateStep_(s)){
-        showStep(s);
+        showStep(s, { scroll: true });
         setPill("請先完成必填項目");
-        requestAnimationFrame(() => {
-          const stepEl = getStepEl_(s);
-          if(stepEl) stepEl.scrollIntoView({ behavior:"smooth", block:"start" });
-        });
+        scrollToStep_(s);
         return;
       }
     }
 
     try{
-      if(el.submitBtn) el.submitBtn.disabled = true;
+      el.submitBtn.disabled = true;
 
-      await pingAndSchema_();      // quick server sanity
-      await reserveIfNeeded_();    // must have id/token
-      await uploadAllImages_();    // upload images to Firebase
-      await createCard_();         // create write to sheet
+      await pingAndSchema_();
+      await reserveIfNeeded_();
+      await uploadAllImages_();
+      await createCard_();
 
     }catch(e){
       console.error(e);
       setPill("送出失敗 ❌");
+      flashPill_();
       alert("送出失敗：\n" + (e && e.message ? e.message : String(e)));
     }finally{
-      if(el.submitBtn) el.submitBtn.disabled = false;
+      el.submitBtn.disabled = false;
     }
   }
 
   function bindNav_(){
-    if(el.prevBtn){
-      el.prevBtn.addEventListener("click", ()=>{
-        const n = Math.max(1, state.step - 1);
-        showStep(n);
-        requestAnimationFrame(() => {
-          const stepEl = getStepEl_(n);
-          if(stepEl) stepEl.scrollIntoView({ behavior:"smooth", block:"start" });
-        });
-      });
-    }
+    el.prevBtn.addEventListener("click", ()=>{
+      const n = Math.max(1, state.step - 1);
+      showStep(n, { scroll: true });
+    });
 
-    if(el.nextBtn){
-      el.nextBtn.addEventListener("click", ()=>{
-        if(!validateStep_(state.step)){
-          setPill("請先完成本步驟必填");
-          return;
-        }
-        const n = Math.min(8, state.step + 1);
-        showStep(n);
+    el.nextBtn.addEventListener("click", ()=>{
+      if(!validateStep_(state.step)){
+        setPill("請先完成本步驟必填");
+        scrollToStep_(state.step);
+        return;
+      }
+      const n = Math.min(8, state.step + 1);
+      showStep(n, { scroll: true });
+    });
 
-        requestAnimationFrame(() => {
-          const stepEl = getStepEl_(n);
-          if(stepEl) stepEl.scrollIntoView({ behavior:"smooth", block:"start" });
-        });
-      });
-    }
+    el.resetDraftBtn.addEventListener("click", ()=>{
+      if(!confirm("確定要清除草稿嗎？（會清掉已保留的卡ID/token 與已上傳URL）")) return;
+      clearDraft();
+      location.reload();
+    });
 
-    if(el.resetDraftBtn){
-      el.resetDraftBtn.addEventListener("click", ()=>{
-        if(!confirm("確定要清除草稿嗎？（會清掉已保留的卡ID/token 與已上傳URL）")) return;
-        clearDraft();
-        location.reload();
-      });
-    }
-
-    if(el.openDebug){
-      el.openDebug.addEventListener("click", ()=>{
-        const text = [
-          `HSC Fill Form v${VERSION}`,
-          `tenant=${state.tenant}`,
-          `id=${state.id || "-"}`,
-          `token=${state.token ? state.token.slice(0,8)+"..." : "-"}`,
-          `sig=${state.sig ? "yes" : "no"}`,
-          "",
-          "Logs:",
-          ...state.logs.slice(-40)
-        ].join("\n");
-        alert(text);
-      });
-    }
+    el.openDebug.addEventListener("click", ()=>{
+      const text = [
+        `HSC Fill Form v${VERSION}`,
+        `tenant=${state.tenant}`,
+        `id=${state.id || "-"}`,
+        `token=${state.token ? state.token.slice(0,8)+"..." : "-"}`,
+        `sig=${state.sig ? "yes" : "no"}`,
+        "",
+        "Logs:",
+        ...state.logs.slice(-50)
+      ].join("\n");
+      alert(text);
+    });
   }
 
   function bindLivePreview_(){
-    if(!form) return;
     ["input","change"].forEach(evt=>{
       form.addEventListener(evt, ()=>{
         refreshPreview_();
@@ -931,7 +935,12 @@
    * Boot
    * ------------------------- */
   async function boot(){
-    if(el.versionText) el.versionText.textContent = VERSION;
+    if(!form){
+      console.error("[HSC] #hscForm not found");
+      return;
+    }
+
+    el.versionText.textContent = VERSION;
 
     const qs = getQS();
     state.tenant = qs.tenant;
@@ -939,11 +948,11 @@
 
     const had = loadDraft();
     if(!had){
-      if(hidden.plan) hidden.plan.value = "";
-      if(hidden.color) hidden.color.value = "";
-      if(hidden.style) hidden.style.value = "";
-      if(hidden.paper) hidden.paper.value = "";
-      if(hidden.premium_color) hidden.premium_color.value = "";
+      hidden.plan.value = "";
+      hidden.color.value = "";
+      hidden.style.value = "";
+      hidden.paper.value = "";
+      hidden.premium_color.value = "";
     }
 
     refreshHeader_();
@@ -957,7 +966,21 @@
     refreshPreview_();
     refreshSummary_();
 
-    showStep(Math.min(8, Math.max(1, Number(state.step || 1))));
+    showStep(Math.min(8, Math.max(1, Number(state.step || 1))), { scroll: false });
+
+    // tiny style injection for pill flash (避免你還要改 CSS)
+    try{
+      const css = `
+        .pill-flash{
+          outline: 2px solid rgba(255,255,255,.55);
+          box-shadow: 0 0 0 6px rgba(255,255,255,.10);
+          transition: box-shadow .25s ease, outline-color .25s ease;
+        }
+      `;
+      const st = document.createElement("style");
+      st.textContent = css;
+      document.head.appendChild(st);
+    }catch(_e){}
 
     try{
       await pingAndSchema_();
@@ -972,11 +995,6 @@
       console.warn(e);
       setPill("Firebase 未登入（請按 Debug 查看）");
     }
-  }
-
-  if(!form) {
-    console.error("[HSC] #hscForm not found");
-    return;
   }
 
   form.addEventListener("submit", onSubmit_);
