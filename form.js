@@ -1,37 +1,46 @@
 /* =============================================
- * form.js — v512 (COMPLETE OVERWRITE)
- * - One-page step form (STEP 1~8)
- * - Swatches for color (c1~c5, p1~p7)
- * - Style/Paper displayed in Chinese but stored as s1~s3 / f1~f3
- * - Ping-first (stop if GAS down; no reserve waste)
- * - Draft resume: fields(localStorage) + images(IndexedDB)
- * - Reserve anti-spam: draft card id/token reused
- * - GET-first + POST fallback (avoid CORS preflight)
- * - Upload to Firebase Storage path: hsc_cards/{tenant}/{cardId}/{fileName}
- * - Create sends text + downloadURL only (no base64)
- * - Console logs writtenFields/skippedFields
+ * form.js — v512.2 (COMPLETE OVERWRITE)
+ * - Keep v512 all features
+ * - ADD: Firebase v12 module dynamic import + Anonymous Auth
+ * - FIX: Storage path aligns rules: hsc_cards/{tenant}/{cardId}/{fileName}
+ * - ADD: upload progress + error visible
  * ============================================= */
 
 (() => {
   "use strict";
 
-  const VERSION = "v512";
+  const VERSION = "v512.2";
+
   const CONFIG = {
     GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     DEFAULT_TENANT: "angel",
     FETCH_TIMEOUT_MS: 15000,
     RETRY: 1,
 
+    // Draft
     DRAFT_CARD_KEY: "hsc_draft_card_v1",
     DRAFT_FORM_KEY: "hsc_draft_form_v1",
     DRAFT_TTL_MS: 12 * 60 * 60 * 1000,
-
     IDB: { DB_NAME: "hsc_draft_db", DB_VER: 1, STORE: "files" },
 
+    // Image compress
     COMPRESS: {
       avatar: { maxW: 1200, maxH: 1200, targetKB: 280, qualityStart: 0.86, qualityMin: 0.55 },
       logo:   { maxW: 1200, maxH: 1200, targetKB: 220, qualityStart: 0.86, qualityMin: 0.55 },
       photo:  { maxW: 1600, maxH: 1600, targetKB: 420, qualityStart: 0.84, qualityMin: 0.50 },
+    },
+
+    // Firebase SDK version
+    FIREBASE_VER: "12.10.0",
+
+    // ✅ your firebaseConfig
+    FIREBASE_CONFIG: {
+      apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
+      authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
+      projectId: "happiness-smart-card-pro-7389a",
+      storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
+      messagingSenderId: "143313936007",
+      appId: "1:143313936007:web:7c948563c51e8a47d3a222"
     }
   };
 
@@ -48,7 +57,7 @@
   let currentToken = "";
 
   /* -----------------------------
-   * UI basics
+   * Toast
    * ----------------------------- */
   function toast(msg) {
     let t = byId("hscToast");
@@ -78,11 +87,10 @@
   function setValue(id, v){ const el = byId(id); if(el) el.value = String(v ?? ""); }
   function pickFile(id){ const el = byId(id); return (el && el.files && el.files[0]) ? el.files[0] : null; }
   function nowMs(){ return Date.now(); }
-
   function setPill(msg){ const el = byId("pillMsg"); if(el) el.textContent = msg; }
 
   /* -----------------------------
-   * Debug panel (same as v511.x)
+   * Debug panel
    * ----------------------------- */
   function ensureDebugPanel() {
     let box = byId("hscDebugBox");
@@ -127,6 +135,8 @@
     return box;
   }
 
+  function safeJson(x){ try{return JSON.stringify(x);}catch{return String(x);} }
+
   function dbg(line, obj) {
     const box = ensureDebugPanel();
     const pre = byId("hscDbgPre");
@@ -135,10 +145,39 @@
     if (/fail|error|拒絕|無法|timeout|missing|mismatch/i.test(line)) box.style.display = "block";
   }
 
-  function safeJson(x){ try{return JSON.stringify(x);}catch{return String(x);} }
+  /* -----------------------------
+   * Global upload progress UI
+   * ----------------------------- */
+  function ensureUploadBar(){
+    let bar = byId("hscUploadBar");
+    if(bar) return bar;
+
+    bar = document.createElement("div");
+    bar.id = "hscUploadBar";
+    bar.style.cssText = [
+      "position:fixed","left:12px","right:12px","bottom:18px","z-index:99998",
+      "height:10px","border-radius:999px","background:rgba(255,255,255,.18)",
+      "overflow:hidden","display:none"
+    ].join(";");
+
+    const fill = document.createElement("div");
+    fill.id = "hscUploadFill";
+    fill.style.cssText = "height:100%;width:0%;background:rgba(255,255,255,.85);transition:width .12s linear;";
+    bar.appendChild(fill);
+    document.body.appendChild(bar);
+    return bar;
+  }
+
+  function setUploadProgress(pct){
+    const bar = ensureUploadBar();
+    const fill = byId("hscUploadFill");
+    const p = Math.max(0, Math.min(100, Math.round(pct)));
+    bar.style.display = (p > 0 && p < 100) ? "block" : (p === 100 ? "none" : "none");
+    if(fill) fill.style.width = `${p}%`;
+  }
 
   /* -----------------------------
-   * Step engine
+   * Step engine (same)
    * ----------------------------- */
   function showStep(n){
     step = Math.max(1, Math.min(STEP_MAX, n));
@@ -150,13 +189,11 @@
     // hide CTA step if plan != premium
     const plan = getValue("plan");
     if (step === 7 && plan !== "premium") {
-      // skip CTA step for free
       step = 8;
       showStep(8);
       return;
     }
 
-    // progress
     const percent = Math.round((step / STEP_MAX) * 100);
     const fill = byId("progressFill");
     if (fill) fill.style.width = `${Math.max(10, percent)}%`;
@@ -173,28 +210,21 @@
     };
     setText("stepTitle", titles[step] || `STEP ${step}`);
 
-    // nav buttons
     const prev = byId("prevBtn");
     const next = byId("nextBtn");
     if (prev) prev.disabled = (step === 1) || inFlight;
     if (next) next.textContent = (step === STEP_MAX) ? "完成" : "下一步";
     if (next) next.disabled = inFlight;
 
-    // update summary + preview
     updatePreview();
     updateSummary();
-    validateLive(); // keep pill updated
+    validateLive();
   }
-
-  function goNext(){
-    if (step < STEP_MAX) showStep(step + 1);
-  }
-  function goPrev(){
-    if (step > 1) showStep(step - 1);
-  }
+  function goNext(){ if (step < STEP_MAX) showStep(step + 1); }
+  function goPrev(){ if (step > 1) showStep(step - 1); }
 
   /* -----------------------------
-   * Theme UI split
+   * Theme UI split (same)
    * ----------------------------- */
   function applyPlanUI(plan){
     const freeCard = byId("freeThemeCard");
@@ -206,7 +236,6 @@
       premiumCard?.classList.remove("hide");
       premiumPhotoRow?.classList.remove("hide");
 
-      // clear free selections
       setValue("color", "");
       setValue("style", "");
       setValue("paper", "");
@@ -218,11 +247,9 @@
       premiumCard?.classList.add("hide");
       premiumPhotoRow?.classList.add("hide");
 
-      // clear premium selections
       setValue("premium_color", "");
       clearGroup("premium_color");
 
-      // clear premium-only inputs
       setValue("cta_text", "");
       setValue("cta_link", "");
     }
@@ -239,14 +266,12 @@
   function clearGroup(group){
     document.querySelectorAll(`[data-swatch-group="${group}"] .swatch`).forEach(btn => btn.dataset.on = "0");
   }
-
   function setChipOn(group, value){
     document.querySelectorAll(`[data-chip-group="${group}"]`).forEach(btn => {
       btn.dataset.on = (btn.getAttribute("data-value") === value) ? "1" : "0";
     });
     setValue(group, value);
   }
-
   function setSwatchOn(group, value){
     document.querySelectorAll(`[data-swatch-group="${group}"] .swatch`).forEach(btn => {
       btn.dataset.on = (btn.getAttribute("data-value") === value) ? "1" : "0";
@@ -255,8 +280,12 @@
   }
 
   /* -----------------------------
-   * Preview (links with codes)
+   * Preview & Summary (same)
    * ----------------------------- */
+  function findSwatchEl(group, value){
+    return document.querySelector(`[data-swatch-group="${group}"] .swatch[data-value="${value}"]`);
+  }
+
   function updatePreview(){
     const plan = getValue("plan") || "free";
     const name = getValue("name") || "姓名";
@@ -271,36 +300,24 @@
     const banner = byId("previewBanner");
     if (!card || !banner) return;
 
-    // reset classes
     card.className = "preview-card";
     banner.className = "preview-banner";
 
     if (plan === "premium") {
       const p = getValue("premium_color") || "p?";
       setText("pvTheme", p);
-      // simple mapping for preview (visual only)
       card.dataset.plan = "premium";
       card.dataset.p = p;
-      // apply background by class injection
       banner.style.background = getComputedStyle(findSwatchEl("premium_color", p) || banner).background || "";
     } else {
       const c = getValue("color") || "c?";
       const s = getValue("style") || "s?";
       const f = getValue("paper") || "f?";
       setText("pvTheme", `${c}/${s}/${f}`);
-
-      // background by free color swatch
       banner.style.background = getComputedStyle(findSwatchEl("color", c) || banner).background || "";
     }
   }
 
-  function findSwatchEl(group, value){
-    return document.querySelector(`[data-swatch-group="${group}"] .swatch[data-value="${value}"]`);
-  }
-
-  /* -----------------------------
-   * Summary
-   * ----------------------------- */
   function updateSummary(){
     const plan = getValue("plan") || "-";
     setText("sumPlan", plan === "premium" ? "精品設計" : (plan === "free" ? "自由搭配" : "-"));
@@ -320,7 +337,7 @@
   }
 
   /* -----------------------------
-   * Draft: localStorage fields
+   * Draft (localStorage) — same
    * ----------------------------- */
   function readFormDraft(){
     try{
@@ -363,7 +380,6 @@
     const d = readFormDraft();
     if(!d || !d.fields) return false;
 
-    // restore plan first
     const plan = (d.fields.plan||"").trim();
     if (plan === "free" || plan === "premium") {
       setChipOn("plan", plan);
@@ -375,7 +391,6 @@
       setValue(k, d.fields[k] ?? "");
     });
 
-    // restore chip/swatches state
     const style = (d.fields.style||"").trim(); if(style) setChipOn("style", style);
     const paper = (d.fields.paper||"").trim(); if(paper) setChipOn("paper", paper);
     const color = (d.fields.color||"").trim(); if(color) setSwatchOn("color", color);
@@ -386,7 +401,7 @@
   }
 
   /* -----------------------------
-   * Draft card id/token (anti reserve spam)
+   * Draft card id/token (same)
    * ----------------------------- */
   function readCardDraft(){
     try{
@@ -405,7 +420,7 @@
   function clearCardDraft(){ localStorage.removeItem(CONFIG.DRAFT_CARD_KEY); }
 
   /* -----------------------------
-   * IndexedDB for image draft
+   * IndexedDB (same as your v512)
    * ----------------------------- */
   function idbOpen(){
     return new Promise((resolve, reject)=>{
@@ -505,7 +520,7 @@
   }
 
   /* -----------------------------
-   * Compression
+   * Compression (same)
    * ----------------------------- */
   async function fileToImageBitmap(file){
     if("createImageBitmap" in window){
@@ -576,7 +591,7 @@
   }
 
   /* -----------------------------
-   * Validation
+   * Validation (same)
    * ----------------------------- */
   function setErr(key, msg){
     const el = byId(`err_${key}`);
@@ -645,7 +660,7 @@
   }
 
   /* -----------------------------
-   * Network: GET-first + POST fallback
+   * Network (same)
    * ----------------------------- */
   function withTimeout(promise, ms){
     let to;
@@ -710,21 +725,106 @@
   }
 
   /* -----------------------------
-   * Firebase upload
+   * ✅ Firebase v12 module: dynamic import + anonymous auth
    * ----------------------------- */
-  function hasFirebaseCompat(){
-    return !!(window.firebase && typeof window.firebase.storage === "function");
+  const FB = {
+    readyPromise: null,
+    app: null,
+    auth: null,
+    storage: null,
+    uid: ""
+  };
+
+  function firebaseModuleUrl(name){
+    return `https://www.gstatic.com/firebasejs/${CONFIG.FIREBASE_VER}/${name}.js`;
   }
 
-  async function uploadToFirebaseCompat(cardId, blobOrFile, fileName, contentType){
-    if(!hasFirebaseCompat()) throw new Error("Firebase SDK not found (firebase.storage)");
-    const storage = window.firebase.storage();
-    const path = `hsc_cards/${tenant}/${cardId}/${fileName}`;
+  async function firebaseReady(){
+    if (FB.readyPromise) return FB.readyPromise;
+
+    FB.readyPromise = (async () => {
+      dbg("firebase: loading modules…");
+      const [{ initializeApp }, { getAuth, onAuthStateChanged, signInAnonymously }, { getStorage, ref, uploadBytesResumable, getDownloadURL }] =
+        await Promise.all([
+          import(firebaseModuleUrl("firebase-app")),
+          import(firebaseModuleUrl("firebase-auth")),
+          import(firebaseModuleUrl("firebase-storage"))
+        ]);
+
+      FB._ref = ref;
+      FB._uploadBytesResumable = uploadBytesResumable;
+      FB._getDownloadURL = getDownloadURL;
+      FB._signInAnonymously = signInAnonymously;
+      FB._onAuthStateChanged = onAuthStateChanged;
+
+      FB.app = initializeApp(CONFIG.FIREBASE_CONFIG);
+      FB.auth = getAuth(FB.app);
+      FB.storage = getStorage(FB.app);
+
+      dbg("firebase: init ok");
+
+      // wait auth state
+      const uid = await new Promise((resolve) => {
+        const unsub = onAuthStateChanged(FB.auth, (user) => {
+          if (user && user.uid) {
+            unsub();
+            resolve(user.uid);
+          }
+        });
+      }).catch(()=> "");
+
+      if (!uid) {
+        dbg("firebase: no user yet -> signInAnonymously");
+        await signInAnonymously(FB.auth);
+      }
+
+      // ensure again
+      FB.uid = await new Promise((resolve, reject) => {
+        const timer = setTimeout(()=>reject(new Error("auth timeout")), 12000);
+        const unsub = onAuthStateChanged(FB.auth, (user) => {
+          if (user && user.uid) {
+            clearTimeout(timer);
+            unsub();
+            resolve(user.uid);
+          }
+        });
+      });
+
+      dbg("firebase: auth ok", { uid: FB.uid });
+      return true;
+    })();
+
+    return FB.readyPromise;
+  }
+
+  async function uploadOne(cardId, blobOrFile, fileName, contentType, onPct){
+    await firebaseReady();
+
+    const path = `hsc_cards/${tenant}/${cardId}/${fileName}`; // ✅ aligns rules
     dbg(`firebase upload -> ${path}`);
-    const ref = storage.ref().child(path);
+
+    const r = FB._ref(FB.storage, path);
     const meta = { contentType: contentType || blobOrFile.type || "image/jpeg" };
-    const snap = await ref.put(blobOrFile, meta);
-    const url = await snap.ref.getDownloadURL();
+    const task = FB._uploadBytesResumable(r, blobOrFile, meta);
+
+    const url = await new Promise((resolve, reject) => {
+      task.on("state_changed",
+        (snap) => {
+          const pct = snap.totalBytes ? (snap.bytesTransferred / snap.totalBytes) * 100 : 0;
+          if (onPct) onPct(pct);
+        },
+        (err) => reject(err),
+        async () => {
+          try{
+            const dl = await FB._getDownloadURL(task.snapshot.ref);
+            resolve(dl);
+          }catch(e){
+            reject(e);
+          }
+        }
+      );
+    });
+
     dbg(`firebase url -> ${url}`);
     return url;
   }
@@ -743,23 +843,50 @@
 
   async function uploadImages(cardId, plan){
     const out = {};
+    const tasks = [];
 
-    const avatar = await getImageSource("avatar","avatarFile","avatar");
-    if(avatar) out.avatar_img = await uploadToFirebaseCompat(cardId, avatar.blob, "avatar.jpg", avatar.contentType);
+    const queue = async (label, slot, inputId, kind, fileName, key) => {
+      const src = await getImageSource(slot, inputId, kind);
+      if (!src) return;
+      tasks.push({ label, src, fileName, key });
+    };
 
-    const logo = await getImageSource("logo","logoFile","logo");
-    if(logo) out.logo_img = await uploadToFirebaseCompat(cardId, logo.blob, "logo.jpg", logo.contentType);
+    await queue("avatar","avatar","avatarFile","avatar","avatar.jpg","avatar_img");
+    await queue("logo","logo","logoFile","logo","logo.jpg","logo_img");
 
     const maxPhotos = plan === "premium" ? 5 : 2;
     for(let i=1;i<=maxPhotos;i++){
-      const src = await getImageSource(`photo${i}`, `photo${i}File`, "photo");
-      if(src) out[`photo${i}_img`] = await uploadToFirebaseCompat(cardId, src.blob, `photo${i}.jpg`, src.contentType);
+      await queue(`photo${i}`,`photo${i}`,`photo${i}File`,"photo",`photo${i}.jpg`, `photo${i}_img`);
     }
+
+    if (tasks.length === 0) return out;
+
+    // weighted progress across files
+    let done = 0;
+    const total = tasks.length;
+
+    for (let i=0;i<tasks.length;i++){
+      const t = tasks[i];
+      setPill(`圖片上傳中…（${i+1}/${total}）`);
+      setUploadProgress(Math.round((done / total) * 100));
+
+      const url = await uploadOne(cardId, t.src.blob, t.fileName, t.src.contentType, (pct)=>{
+        // overall progress: done + current pct
+        const overall = ((done + (pct/100)) / total) * 100;
+        setUploadProgress(overall);
+      });
+
+      out[t.key] = url;
+      done += 1;
+      setUploadProgress(Math.round((done / total) * 100));
+    }
+
+    setUploadProgress(100);
     return out;
   }
 
   /* -----------------------------
-   * Reserve / Create
+   * Reserve/Create (same)
    * ----------------------------- */
   async function reserveOnce(){
     const d = readCardDraft();
@@ -820,7 +947,6 @@
 
     Object.keys(p).forEach(k => { if(p[k] === "") delete p[k]; });
 
-    // CTA pair rule
     if(p.plan !== "premium"){
       delete p.cta_text; delete p.cta_link;
     } else {
@@ -830,7 +956,6 @@
         delete p.cta_text; delete p.cta_link;
       }
     }
-
     return p;
   }
 
@@ -846,7 +971,6 @@
 
     if(exp && sig){ params.exp = exp; params.sig = sig; }
 
-    // reject base64
     Object.entries(params).forEach(([k,v])=>{
       if(typeof v === "string" && v.startsWith("data:image/")) throw new Error(`Client reject base64 field: ${k}`);
     });
@@ -858,12 +982,11 @@
     console.log("[HSC create] skippedFields:", js.skippedFields || []);
     dbg("writtenFields:", js.writtenFields || []);
     dbg("skippedFields:", js.skippedFields || []);
-
     return js;
   }
 
   /* -----------------------------
-   * Submit
+   * Submit (same flow, plus firebaseReady)
    * ----------------------------- */
   function setSubmitting(on){
     inFlight = !!on;
@@ -893,7 +1016,6 @@
 
     setSubmitting(true);
     try{
-      // ping-first
       setPill("連線檢查中…");
       const okPing = await pingCheck();
       if(!okPing){
@@ -903,25 +1025,20 @@
         return;
       }
 
-      // schema check
       setPill("檢查資料表中…");
       await schemaCheck();
 
-      // reserve once
       setPill("建立草稿卡中…");
       await reserveOnce();
 
-      // firebase check
-      if(!hasFirebaseCompat()){
-        throw new Error("Firebase Storage SDK 未載入：請確認 firebase-app-compat / firebase-storage-compat + initializeApp");
-      }
+      // ✅ ensure firebase auth before upload
+      setPill("登入上傳服務中…");
+      await firebaseReady();
 
-      // upload images
       const plan = getValue("plan") || "free";
       setPill("圖片上傳中…");
       const imageMap = await uploadImages(currentCardId, plan);
 
-      // create
       setPill("寫入資料中…");
       const textPayload = collectTextPayload();
       const cr = await create(textPayload, imageMap);
@@ -937,25 +1054,24 @@
       await idbClearAllDraftFiles().catch(()=>{});
       await refreshSavedHints();
 
-      // go to final step
       showStep(8);
     }catch(e){
-      toast(`送出失敗 ❌ ${e.message}`);
+      toast(`送出失敗 ❌ ${e.message || e}`);
       setPill("送出失敗 ❌");
       ensureDebugPanel().style.display = "block";
-      dbg(`submit fail: ${e.message}`);
+      dbg(`submit fail: ${e.message || e}`);
       dbg("tip: 失敗可再按送出（會沿用草稿卡，不再 reserve 新卡）");
     }finally{
       setSubmitting(false);
+      setUploadProgress(0);
       await validateLive();
     }
   }
 
   /* -----------------------------
-   * Bind events
+   * Bind events (same)
    * ----------------------------- */
   function bindPlanThemeUI(){
-    // chips
     document.querySelectorAll("[data-chip-group]").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const group = btn.getAttribute("data-chip-group");
@@ -975,7 +1091,6 @@
       });
     });
 
-    // swatches
     document.querySelectorAll("[data-swatch-group] .swatch").forEach(btn=>{
       btn.addEventListener("click", ()=>{
         const parent = btn.closest("[data-swatch-group]");
@@ -1063,46 +1178,42 @@
   }
 
   /* -----------------------------
-   * Boot
+   * Boot (same + debug firebase state)
    * ----------------------------- */
   async function boot(){
-    setText("versionText", "512");
+    setText("versionText", "512.2");
     setText("tenantText", tenant);
 
-    // default
     setChipOn("plan", "free");
     applyPlanUI("free");
 
-    // restore
     await restoreFormDraftIfAny();
     await refreshSavedHints();
 
     const cd = readCardDraft();
     if(cd){ setText("cardIdText", cd.id); currentCardId = cd.id; currentToken = cd.token; }
 
-    // bindings
     bindPlanThemeUI();
     bindTextAutosave();
     bindFileDraftSave();
     bindNav();
     bindDebug();
 
-    // submit
-    const form = byId("hscForm");
-    form?.addEventListener("submit", onSubmit);
+    byId("hscForm")?.addEventListener("submit", onSubmit);
 
-    // start at step 1
     showStep(1);
 
     dbg("boot ok", {
       VERSION,
       tenant,
-      hasFirebaseCompat: hasFirebaseCompat(),
       hasExpSig: !!(exp && sig),
-      gas: CONFIG.GAS
+      gas: CONFIG.GAS,
+      firebase: {
+        storageBucket: CONFIG.FIREBASE_CONFIG.storageBucket,
+        sdk: CONFIG.FIREBASE_VER
+      }
     });
 
-    // Keep preview synced
     updatePreview();
     updateSummary();
     await validateLive();
