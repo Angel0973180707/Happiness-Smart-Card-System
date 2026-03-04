@@ -1,11 +1,6 @@
-function setSubmitProgress(pct, text){
-  const fill = document.getElementById("submitProgressFill");
-  const t = document.getElementById("submitProgressText");
-  if (fill) fill.style.width = Math.max(0, Math.min(100, pct)) + "%";
-  if (t && typeof text === "string") t.textContent = text;
-}/* ==========================================
- * HSC Fill Form — form.js v514.1 (COMPLETE OVERWRITE)
- * - Adds submit progress bar under submit button
+/* ==========================================
+ * HSC Fill Form — form.js v514.2 (COMPLETE OVERWRITE)
+ * - Submit progress bar under submit button (animated)
  * - reserve/create use GET to avoid CORS preflight
  * - Firebase anonymous auth (compat)
  * - Upload path: hsc_cards/{tenant}/{cardId}/{fileName}
@@ -13,11 +8,11 @@ function setSubmitProgress(pct, text){
  * ========================================== */
 
 (() => {
-  const VERSION = "514.1";
+  const VERSION = "514.2";
 
   const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const DEFAULT_TENANT = "angel";
-  const DRAFT_KEY = "HSC_FILL_DRAFT_v5141";
+  const DRAFT_KEY = "HSC_FILL_DRAFT_v5142";
 
   const IMG_MAX_W = 1600;
   const IMG_QUALITY = 0.82;
@@ -71,7 +66,7 @@ function setSubmitProgress(pct, text){
 
     submitBtn: $("#submitBtn"),
 
-    // ✅ new submit progress
+    // ✅ submit progress
     submitProgress: $("#submitProgress"),
     submitProgressLabel: $("#submitProgressLabel"),
     submitProgressPct: $("#submitProgressPct"),
@@ -192,19 +187,19 @@ function setSubmitProgress(pct, text){
   }
 
   function refreshHeader_(){
-    el.versionText.textContent = VERSION;
-    el.tenantText.textContent = state.tenant || DEFAULT_TENANT;
-    el.cardIdText.textContent = state.id ? state.id : "-";
+    if(el.versionText) el.versionText.textContent = VERSION;
+    if(el.tenantText) el.tenantText.textContent = state.tenant || DEFAULT_TENANT;
+    if(el.cardIdText) el.cardIdText.textContent = state.id ? state.id : "-";
   }
 
   function planIsPremium(){ return (hidden.plan.value || "").trim() === "premium"; }
 
   function refreshPlanDependentUI_(){
     const premium = planIsPremium();
-    el.freeThemeCard.classList.toggle("hide", premium);
-    el.premiumThemeCard.classList.toggle("hide", !premium);
-    el.premiumPhotoRow.classList.toggle("hide", !premium);
-    el.premiumCtaCard.classList.toggle("hide", !premium);
+    if(el.freeThemeCard) el.freeThemeCard.classList.toggle("hide", premium);
+    if(el.premiumThemeCard) el.premiumThemeCard.classList.toggle("hide", !premium);
+    if(el.premiumPhotoRow) el.premiumPhotoRow.classList.toggle("hide", !premium);
+    if(el.premiumCtaCard) el.premiumCtaCard.classList.toggle("hide", !premium);
 
     if(!premium){
       hidden.premium_color.value = "";
@@ -217,34 +212,38 @@ function setSubmitProgress(pct, text){
   }
 
   function refreshPreview_(){
-    el.pvName.textContent = (fields.name.value || "").trim() || "姓名";
-    el.pvTitle.textContent = (fields.title.value || "").trim() || "頭銜";
-    el.pvUnit.textContent = (fields.unit.value || "").trim() || "單位";
+    if(el.pvName) el.pvName.textContent = (fields.name.value || "").trim() || "姓名";
+    if(el.pvTitle) el.pvTitle.textContent = (fields.title.value || "").trim() || "頭銜";
+    if(el.pvUnit) el.pvUnit.textContent = (fields.unit.value || "").trim() || "單位";
 
-    if(planIsPremium()){
-      el.pvTheme.textContent = (hidden.premium_color.value || "").trim() || "p?";
-    }else{
-      const c = (hidden.color.value || "").trim() || "c?";
-      const s = (hidden.style.value || "").trim() || "s?";
-      const f = (hidden.paper.value || "").trim() || "f?";
-      el.pvTheme.textContent = `${c}/${s}/${f}`;
+    if(el.pvTheme){
+      if(planIsPremium()){
+        el.pvTheme.textContent = (hidden.premium_color.value || "").trim() || "p?";
+      }else{
+        const c = (hidden.color.value || "").trim() || "c?";
+        const s = (hidden.style.value || "").trim() || "s?";
+        const f = (hidden.paper.value || "").trim() || "f?";
+        el.pvTheme.textContent = `${c}/${s}/${f}`;
+      }
     }
   }
 
   function refreshSummary_(){
-    el.sumPlan.textContent = planIsPremium() ? "精品設計" : (hidden.plan.value ? "自由搭配" : "-");
-    el.sumTheme.textContent = planIsPremium()
-      ? (hidden.premium_color.value || "-")
-      : `${hidden.color.value || "-"} / ${hidden.style.value || "-"} / ${hidden.paper.value || "-"}`;
+    if(el.sumPlan) el.sumPlan.textContent = planIsPremium() ? "精品設計" : (hidden.plan.value ? "自由搭配" : "-");
+    if(el.sumTheme){
+      el.sumTheme.textContent = planIsPremium()
+        ? (hidden.premium_color.value || "-")
+        : `${hidden.color.value || "-"} / ${hidden.style.value || "-"} / ${hidden.paper.value || "-"}`;
+    }
 
-    el.sumName.textContent = (fields.name.value || "-").trim() || "-";
-    el.sumUnit.textContent = (fields.unit.value || "-").trim() || "-";
-    el.sumTitle.textContent = (fields.title.value || "-").trim() || "-";
+    if(el.sumName) el.sumName.textContent = (fields.name.value || "-").trim() || "-";
+    if(el.sumUnit) el.sumUnit.textContent = (fields.unit.value || "-").trim() || "-";
+    if(el.sumTitle) el.sumTitle.textContent = (fields.title.value || "-").trim() || "-";
 
     const vids = [fields.video1.value, fields.video2.value, fields.video3.value].filter(Boolean).length;
     const socs = [fields.social1.value, fields.social2.value, fields.social3.value].filter(Boolean).length;
-    el.sumVideo.textContent = vids ? `${vids} 筆` : "-";
-    el.sumSocial.textContent = socs ? `${socs} 筆` : "-";
+    if(el.sumVideo) el.sumVideo.textContent = vids ? `${vids} 筆` : "-";
+    if(el.sumSocial) el.sumSocial.textContent = socs ? `${socs} 筆` : "-";
   }
 
   function showStep(n, opts = { scroll: true }){
@@ -254,11 +253,11 @@ function setSubmitProgress(pct, text){
       sec.classList.toggle("hide", sn !== n);
     });
 
-    el.stepTitle.textContent = STEP_TITLES[n] || `STEP ${n}`;
-    el.progressFill.style.width = `${Math.round((n / 8) * 100)}%`;
+    if(el.stepTitle) el.stepTitle.textContent = STEP_TITLES[n] || `STEP ${n}`;
+    if(el.progressFill) el.progressFill.style.width = `${Math.round((n / 8) * 100)}%`;
 
-    el.prevBtn.style.visibility = (n <= 1) ? "hidden" : "visible";
-    el.nextBtn.classList.toggle("hide", n >= 8);
+    if(el.prevBtn) el.prevBtn.style.visibility = (n <= 1) ? "hidden" : "visible";
+    if(el.nextBtn) el.nextBtn.classList.toggle("hide", n >= 8);
 
     refreshPlanDependentUI_();
     refreshPreview_();
@@ -314,14 +313,6 @@ function setSubmitProgress(pct, text){
       return true;
     }
     return true;
-  }
-
-  function getQS(){
-    const u = new URL(location.href);
-    return {
-      tenant: (u.searchParams.get("tenant") || DEFAULT_TENANT).trim() || DEFAULT_TENANT,
-      sig: (u.searchParams.get("sig") || "").trim(),
-    };
   }
 
   function saveDraft(){
@@ -458,7 +449,6 @@ function setSubmitProgress(pct, text){
     setSw("premium_color", (hidden.premium_color.value||"").trim());
   }
 
-  // GAS GET
   async function gasGet_(params){
     const u = new URL(GAS_URL);
     Object.entries(params).forEach(([k,v])=>{
@@ -477,7 +467,6 @@ function setSubmitProgress(pct, text){
     return json;
   }
 
-  // Firebase
   async function ensureFirebaseAuthed_(){
     if(!window.firebase) throw new Error("firebase not loaded");
     if(!firebase.auth) throw new Error("firebase-auth-compat.js not loaded");
@@ -485,18 +474,6 @@ function setSubmitProgress(pct, text){
     if(auth.currentUser) return auth.currentUser;
     const cred = await auth.signInAnonymously();
     return cred.user;
-  }
-
-  async function fileToWebpBlob_(file){
-    if(!file) return null;
-    if(file.size > IMG_MAX_MB * 1024 * 1024){
-      throw new Error(`檔案太大（>${IMG_MAX_MB}MB）：${file.name}`);
-    }
-    const img = await loadImage_(file);
-    const { canvas } = drawToCanvas_(img, IMG_MAX_W);
-    const blob = await canvasToBlob_(canvas, "image/webp", IMG_QUALITY);
-    if(!blob) throw new Error("image convert failed");
-    return blob;
   }
 
   function loadImage_(file){
@@ -527,6 +504,18 @@ function setSubmitProgress(pct, text){
     return new Promise((resolve)=> canvas.toBlob(resolve, type, quality));
   }
 
+  async function fileToWebpBlob_(file){
+    if(!file) return null;
+    if(file.size > IMG_MAX_MB * 1024 * 1024){
+      throw new Error(`檔案太大（>${IMG_MAX_MB}MB）：${file.name}`);
+    }
+    const img = await loadImage_(file);
+    const { canvas } = drawToCanvas_(img, IMG_MAX_W);
+    const blob = await canvasToBlob_(canvas, "image/webp", IMG_QUALITY);
+    if(!blob) throw new Error("image convert failed");
+    return blob;
+  }
+
   async function uploadBlob_(tenant, cardId, fileName, blob){
     await ensureFirebaseAuthed_();
     const storage = firebase.storage();
@@ -540,7 +529,6 @@ function setSubmitProgress(pct, text){
     return url;
   }
 
-  // Submit pipeline
   async function pingAndSchema_(){
     spSet_(8, "檢查系統", "ping…");
     setPill("檢查系統中…");
@@ -580,7 +568,6 @@ function setSubmitProgress(pct, text){
     const tenant = state.tenant;
     const cardId = state.id;
 
-    // avatar required
     if(!state.avatar_img && files.avatarFile.files && files.avatarFile.files[0]){
       spSet_(36, "圖片上傳", "個人照壓縮…");
       const blob = await fileToWebpBlob_(files.avatarFile.files[0]);
@@ -590,7 +577,6 @@ function setSubmitProgress(pct, text){
       saveDraft();
     }
 
-    // logo
     if(!state.logo_img && files.logoFile.files && files.logoFile.files[0]){
       spSet_(50, "圖片上傳", "Logo 壓縮上傳…");
       const blob = await fileToWebpBlob_(files.logoFile.files[0]);
@@ -598,7 +584,6 @@ function setSubmitProgress(pct, text){
       saveDraft();
     }
 
-    // photos 1..2
     for(const i of [1,2]){
       const key = `photo${i}_img`;
       const input = files[`photo${i}File`];
@@ -610,7 +595,6 @@ function setSubmitProgress(pct, text){
       }
     }
 
-    // premium photos 3..5
     if(planIsPremium()){
       for(const i of [3,4,5]){
         const key = `photo${i}_img`;
@@ -692,11 +676,9 @@ function setSubmitProgress(pct, text){
 
     alert(`送出成功 ✅\n\n草稿卡ID：${state.id}\n（目前狀態預設 inactive）`);
 
-    // 你想要完成後保留進度條也可以；先設計成 1.2 秒後收起
     setTimeout(()=> spHide_(), 1200);
   }
 
-  // chip/swatch binding
   function bindChips_(){
     document.addEventListener("click", (ev) => {
       const chip = ev.target.closest(".chip");
@@ -738,37 +720,45 @@ function setSubmitProgress(pct, text){
   }
 
   function bindNav_(){
-    el.prevBtn.addEventListener("click", ()=>{
-      showStep(Math.max(1, state.step - 1), { scroll:true });
-    });
+    if(el.prevBtn){
+      el.prevBtn.addEventListener("click", ()=>{
+        showStep(Math.max(1, state.step - 1), { scroll:true });
+      });
+    }
 
-    el.nextBtn.addEventListener("click", ()=>{
-      if(!validateStep_(state.step)){
-        setPill("請先完成本步驟必填");
-        return;
-      }
-      showStep(Math.min(8, state.step + 1), { scroll:true });
-    });
+    if(el.nextBtn){
+      el.nextBtn.addEventListener("click", ()=>{
+        if(!validateStep_(state.step)){
+          setPill("請先完成本步驟必填");
+          return;
+        }
+        showStep(Math.min(8, state.step + 1), { scroll:true });
+      });
+    }
 
-    el.resetDraftBtn.addEventListener("click", ()=>{
-      if(!confirm("確定要清除草稿嗎？")) return;
-      clearDraft();
-      location.reload();
-    });
+    if(el.resetDraftBtn){
+      el.resetDraftBtn.addEventListener("click", ()=>{
+        if(!confirm("確定要清除草稿嗎？")) return;
+        clearDraft();
+        location.reload();
+      });
+    }
 
-    el.openDebug.addEventListener("click", ()=>{
-      const text = [
-        `HSC Fill Form v${VERSION}`,
-        `tenant=${state.tenant}`,
-        `id=${state.id || "-"}`,
-        `token=${state.token ? state.token.slice(0,8)+"..." : "-"}`,
-        `sig=${state.sig ? "yes" : "no"}`,
-        "",
-        "Logs:",
-        ...state.logs.slice(-50)
-      ].join("\n");
-      alert(text);
-    });
+    if(el.openDebug){
+      el.openDebug.addEventListener("click", ()=>{
+        const text = [
+          `HSC Fill Form v${VERSION}`,
+          `tenant=${state.tenant}`,
+          `id=${state.id || "-"}`,
+          `token=${state.token ? state.token.slice(0,8)+"..." : "-"}`,
+          `sig=${state.sig ? "yes" : "no"}`,
+          "",
+          "Logs:",
+          ...state.logs.slice(-50)
+        ].join("\n");
+        alert(text);
+      });
+    }
   }
 
   function bindLivePreview_(){
@@ -784,11 +774,9 @@ function setSubmitProgress(pct, text){
   async function onSubmit_(ev){
     ev.preventDefault();
 
-    // ✅ 送出時顯示進度條並把視線留在按鈕附近
     spSet_(0, "準備送出", "開始…");
     scrollToEl_(el.submitBtn);
 
-    // validate required steps
     const must = [1,2,3,4,7];
     for(const s of must){
       if(s === 7 && !planIsPremium()) continue;
@@ -804,8 +792,7 @@ function setSubmitProgress(pct, text){
       el.submitBtn.disabled = true;
       spShow_();
 
-      // Pipeline
-      await ensureFirebaseAuthed_(); // 先確保可上傳
+      await ensureFirebaseAuthed_();
       spSet_(5, "準備送出", "Firebase 登入 OK ✅");
 
       await pingAndSchema_();
@@ -829,16 +816,9 @@ function setSubmitProgress(pct, text){
       return;
     }
 
-    const qs = (function(){
-      const u = new URL(location.href);
-      return {
-        tenant: (u.searchParams.get("tenant") || DEFAULT_TENANT).trim() || DEFAULT_TENANT,
-        sig: (u.searchParams.get("sig") || "").trim(),
-      };
-    })();
-
-    state.tenant = qs.tenant;
-    state.sig = qs.sig;
+    const u = new URL(location.href);
+    state.tenant = (u.searchParams.get("tenant") || DEFAULT_TENANT).trim() || DEFAULT_TENANT;
+    state.sig = (u.searchParams.get("sig") || "").trim();
 
     loadDraft();
 
