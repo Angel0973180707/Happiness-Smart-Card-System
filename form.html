@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Fill Form v514.1</title>
+  <title>HSC Fill Form v514.2</title>
   <meta name="theme-color" content="#0b1220" />
 
-  <link rel="stylesheet" href="./form.css?v=5141" />
+  <link rel="stylesheet" href="./form.css?v=5142" />
 
   <!-- ✅ Firebase (compat) - IMPORTANT: DO NOT use defer here -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -45,7 +45,7 @@
     })();
   </script>
 
-  <script defer src="./form.js?v=5141"></script>
+  <script defer src="./form.js?v=5142"></script>
 </head>
 
 <body>
@@ -53,7 +53,7 @@
     <div class="brand">
       <div class="brand-title">HSC 自建表單</div>
       <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">514.1</span>
+        <span class="muted">v</span><span id="versionText">514.2</span>
         <span class="dot">•</span>
         <span class="muted">tenant</span> <span id="tenantText">angel</span>
       </div>
@@ -82,6 +82,7 @@
     </section>
 
     <form id="hscForm" class="card">
+
       <!-- STEP 1 -->
       <section class="step" data-step="1">
         <h2 class="h2">選擇方案 <span class="req">必填</span></h2>
@@ -369,20 +370,21 @@
         </div>
 
         <button id="submitBtn" class="btn primary" type="submit">送出</button>
-
-        <!-- ✅ NEW: submit progress (under the submit button) -->
-        <div id="submitProgress" class="submit-progress hide" aria-live="polite">
-          <div class="submit-progress-top">
-            <div class="submit-progress-title" id="submitProgressLabel">準備送出…</div>
-            <div class="submit-progress-pct"><span id="submitProgressPct">0</span>%</div>
-          </div>
-          <div class="submit-progress-bar">
-            <div class="submit-progress-fill" id="submitProgressFill" style="width:0%"></div>
-          </div>
-          <div class="submit-progress-note" id="submitProgressNote">等待開始</div>
-        </div>
-
         <div class="hint mt">送出流程：ping → reserve → 壓縮上傳 → create 寫入 card_db</div>
+
+        <!-- ✅ Submit progress (must exist for JS to animate) -->
+        <div id="submitProgress" class="submit-progress-wrap hide">
+          <div class="submit-progress-head">
+            <span id="submitProgressLabel">準備送出…</span>
+            <span class="muted"><strong><span id="submitProgressPct">0</span>%</strong></span>
+          </div>
+
+          <div class="submit-progress">
+            <div id="submitProgressFill" class="submit-progress-fill"></div>
+          </div>
+
+          <div id="submitProgressNote" class="submit-progress-text"></div>
+        </div>
       </section>
 
       <input type="hidden" id="plan" name="plan" />
