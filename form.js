@@ -1,35 +1,44 @@
 /* =============================================
- * form.js — v510.1 (COMPLETE OVERWRITE)
- * Happiness Smart Card System — Frontend Form
+ * form.js — v511.0 (COMPLETE OVERWRITE)
+ * HSC Frontend Form — 商用穩定：防連點 + Draft 暫存
  *
- * Goals:
- * - GET-first reserve/create (avoid CORS preflight) + fallback POST (urlencoded)
- * - No base64 to GAS (text + image URLs only)
- * - Optional hardening: pass exp+sig when present in URL
- * - On-page debug panel (NO need mobile console)
- * - Show VERSION / cardId / step-by-step status
+ * Key fixes:
+ * - Prevent duplicate reserve rows
+ * - Draft cache {id,token,tenant,ts} in localStorage
+ * - If draft exists -> reuse it (skip reserve) -> proceed upload/create
+ * - Clear draft ONLY after create success
+ *
+ * Also keeps:
+ * - GET-first + fallback POST(urlencoded)
+ * - No base64 to GAS
+ * - Optional exp+sig passthrough
+ * - On-page debug panel (no mobile console needed)
  * ============================================= */
 
 (() => {
   "use strict";
 
-  const VERSION = "v510.1";
+  const VERSION = "v511.0";
 
   const CONFIG = {
     GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     DEFAULT_TENANT: "angel",
     FETCH_TIMEOUT_MS: 15000,
     RETRY: 1,
-    // If you already have Firebase upload in your page, keep using it.
-    // This script will try to detect firebase storage SDK (compat) automatically.
-    FIREBASE_ENABLED: true
+    FIREBASE_ENABLED: true,
+
+    // Draft cache behavior
+    DRAFT_KEY: "hsc_draft_card_v1",
+    DRAFT_TTL_MS: 2 * 60 * 60 * 1000, // 2 hours (你也可改 24hr)
   };
 
   /* -----------------------------
-   * Mini DOM helpers
+   * DOM helpers
    * ----------------------------- */
   const $ = (sel) => document.querySelector(sel);
   const byId = (id) => document.getElementById(id);
+
+  function safeJson(x) { try { return JSON.stringify(x); } catch { return String(x); } }
 
   function ensureDebugPanel() {
     let box = byId("hscDebugBox");
@@ -38,21 +47,11 @@
     box = document.createElement("div");
     box.id = "hscDebugBox";
     box.style.cssText = [
-      "position:fixed",
-      "left:12px",
-      "right:12px",
-      "bottom:12px",
-      "z-index:99999",
-      "padding:12px 12px",
-      "border-radius:16px",
-      "background:rgba(0,0,0,.72)",
-      "color:rgba(255,255,255,.92)",
-      "font:12px/1.5 system-ui,-apple-system,'Noto Sans TC',Segoe UI,Roboto,Arial",
-      "box-shadow:0 10px 30px rgba(0,0,0,.35)",
-      "backdrop-filter: blur(10px)",
-      "max-height:42vh",
-      "overflow:auto",
-      "display:none"
+      "position:fixed","left:12px","right:12px","bottom:12px","z-index:99999",
+      "padding:12px","border-radius:16px","background:rgba(0,0,0,.72)",
+      "color:rgba(255,255,255,.92)","font:12px/1.5 system-ui,-apple-system,'Noto Sans TC',Segoe UI,Roboto,Arial",
+      "box-shadow:0 10px 30px rgba(0,0,0,.35)","backdrop-filter: blur(10px)",
+      "max-height:42vh","overflow:auto","display:none"
     ].join(";");
 
     const header = document.createElement("div");
@@ -80,9 +79,9 @@
     byId("hscDbgCopy").onclick = async () => {
       try {
         await navigator.clipboard.writeText(pre.textContent || "");
-        toast("已複製 Debug 內容 ✅");
-      } catch (e) {
-        toast("複製失敗（瀏覽器限制），請手動長按選取。");
+        toast("已複製 Debug ✅");
+      } catch {
+        toast("複製失敗（瀏覽器限制），請長按選取。");
       }
     };
 
@@ -93,16 +92,8 @@
     const box = ensureDebugPanel();
     const pre = byId("hscDbgPre");
     const ts = new Date().toISOString().replace("T", " ").replace("Z", "");
-    const s = obj ? `${line} ${safeJson(obj)}` : line;
-    pre.textContent += `[${ts}] ${s}\n`;
-    // also show box if error keywords
-    if (/fail|error|拒絕|無法|timeout|missing|mismatch/i.test(line)) {
-      box.style.display = "block";
-    }
-  }
-
-  function safeJson(x) {
-    try { return JSON.stringify(x); } catch { return String(x); }
+    pre.textContent += `[${ts}] ${obj ? `${line} ${safeJson(obj)}` : line}\n`;
+    if (/fail|error|拒絕|無法|timeout|missing|mismatch/i.test(line)) box.style.display = "block";
   }
 
   function toast(msg) {
@@ -111,21 +102,11 @@
       t = document.createElement("div");
       t.id = "hscToast";
       t.style.cssText = [
-        "position:fixed",
-        "left:16px",
-        "right:16px",
-        "top:14px",
-        "z-index:99998",
-        "padding:12px 14px",
-        "border-radius:999px",
-        "background:rgba(255,255,255,.88)",
-        "color:rgba(0,0,0,.88)",
-        "font:14px/1.4 system-ui,-apple-system,'Noto Sans TC',Segoe UI,Roboto,Arial",
-        "box-shadow:0 8px 22px rgba(0,0,0,.18)",
-        "text-align:center",
-        "opacity:0",
-        "transform:translateY(-8px)",
-        "transition:opacity .18s ease, transform .18s ease"
+        "position:fixed","left:16px","right:16px","top:14px","z-index:99998",
+        "padding:12px 14px","border-radius:999px","background:rgba(255,255,255,.88)",
+        "color:rgba(0,0,0,.88)","font:14px/1.4 system-ui,-apple-system,'Noto Sans TC',Segoe UI,Roboto,Arial",
+        "box-shadow:0 8px 22px rgba(0,0,0,.18)","text-align:center",
+        "opacity:0","transform:translateY(-8px)","transition:opacity .18s ease, transform .18s ease"
       ].join(";");
       document.body.appendChild(t);
     }
@@ -144,13 +125,16 @@
   }
 
   function showFailBanner(msg) {
-    // Your UI already has a big pill; if exists, write into it.
     const pill = byId("statusPill") || byId("status") || byId("submitStatus");
-    if (pill) {
-      pill.textContent = msg;
-    }
+    if (pill) pill.textContent = msg;
     toast(msg);
     ensureDebugPanel().style.display = "block";
+  }
+
+  function getValue(id) {
+    const el = byId(id);
+    if (!el) return "";
+    return String(el.value || "").trim();
   }
 
   /* -----------------------------
@@ -161,6 +145,41 @@
   const sig = URLP.get("sig") || "";
   const tenantFromUrl = URLP.get("tenant") || "";
   const tenant = (tenantFromUrl || CONFIG.DEFAULT_TENANT).trim() || CONFIG.DEFAULT_TENANT;
+
+  /* -----------------------------
+   * Draft cache
+   * ----------------------------- */
+  function nowMs() { return Date.now(); }
+
+  function readDraft() {
+    try {
+      const raw = localStorage.getItem(CONFIG.DRAFT_KEY);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (!d || !d.id || !d.token) return null;
+      if (d.tenant && d.tenant !== tenant) return null;
+
+      const age = nowMs() - (d.ts || 0);
+      if (age > CONFIG.DRAFT_TTL_MS) {
+        localStorage.removeItem(CONFIG.DRAFT_KEY);
+        return null;
+      }
+      return d;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeDraft(id, token) {
+    const d = { id, token, tenant, ts: nowMs() };
+    localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify(d));
+    dbg("draft saved", d);
+  }
+
+  function clearDraft() {
+    localStorage.removeItem(CONFIG.DRAFT_KEY);
+    dbg("draft cleared");
+  }
 
   /* -----------------------------
    * Fetch helpers (GET-first + fallback POST)
@@ -178,9 +197,7 @@
     const txt = await r.text();
     let js;
     try { js = JSON.parse(txt); }
-    catch {
-      throw new Error(`Non-JSON response: ${txt.slice(0, 180)}`);
-    }
+    catch { throw new Error(`Non-JSON response: ${txt.slice(0, 180)}`); }
     return js;
   }
 
@@ -214,31 +231,18 @@
   }
 
   async function callGAS(action, params) {
-    // GET-first (avoid CORS preflight), fallback POST urlencoded
     let lastErr;
     for (let i = 0; i <= CONFIG.RETRY; i++) {
-      try {
-        const js = await callGAS_GET(action, params);
-        return js;
-      } catch (e) {
-        lastErr = e;
-        dbg(`GET ${action} fail: ${e.message}`);
-      }
-      try {
-        const js = await callGAS_POST_URLENC(action, params);
-        return js;
-      } catch (e2) {
-        lastErr = e2;
-        dbg(`POST ${action} fail: ${e2.message}`);
-      }
+      try { return await callGAS_GET(action, params); }
+      catch (e) { lastErr = e; dbg(`GET ${action} fail: ${e.message}`); }
+      try { return await callGAS_POST_URLENC(action, params); }
+      catch (e2) { lastErr = e2; dbg(`POST ${action} fail: ${e2.message}`); }
     }
     throw lastErr || new Error("callGAS failed");
   }
 
   /* -----------------------------
-   * Firebase upload (best-effort)
-   * - Detect firebase compat SDK: window.firebase.storage()
-   * - Path MUST be: hsc_cards/{tenant}/{cardId}/{fileName}
+   * Firebase upload (compat SDK)
    * ----------------------------- */
   function hasFirebaseCompat() {
     return !!(window.firebase && typeof window.firebase.storage === "function");
@@ -248,9 +252,8 @@
     if (!CONFIG.FIREBASE_ENABLED) throw new Error("Firebase disabled");
     if (!hasFirebaseCompat()) throw new Error("Firebase SDK not found (window.firebase.storage)");
     const storage = window.firebase.storage();
-    const path = `hsc_cards/${tenant}/${cardId}/${fileName}`;
+    const path = `hsc_cards/${tenant}/${cardId}/${fileName}`; // REQUIRED
     dbg(`firebase upload -> ${path} (${Math.round(file.size / 1024)}KB)`);
-
     const ref = storage.ref().child(path);
     const snap = await ref.put(file, { contentType: file.type || "image/jpeg" });
     const url = await snap.ref.getDownloadURL();
@@ -265,18 +268,9 @@
   }
 
   /* -----------------------------
-   * Form field collection
-   * - Only send whitelist-ish fields that your GAS expects.
-   * - Images are URL fields: avatar_img, logo_img, photo1_img..photo5_img
+   * Payload
    * ----------------------------- */
-  function getValue(id) {
-    const el = byId(id);
-    if (!el) return "";
-    return String(el.value || "").trim();
-  }
-
   function collectTextPayload() {
-    // Map to your card_db columns (common set)
     const p = {
       tenant,
       name: getValue("name"),
@@ -293,26 +287,14 @@
       line_url: getValue("line_url"),
       line_oa: getValue("line_oa"),
       wechat_id: getValue("wechat_id"),
-
-      // plan / theme selectors if present
       plan: getValue("plan"),
       color: getValue("color"),
       style: getValue("style"),
       paper: getValue("paper")
     };
-
-    // Remove empty
-    Object.keys(p).forEach((k) => {
-      if (p[k] === "") delete p[k];
-    });
+    Object.keys(p).forEach((k) => { if (p[k] === "") delete p[k]; });
     return p;
   }
-
-  /* -----------------------------
-   * Main flow: reserve -> upload -> create
-   * ----------------------------- */
-  let currentCardId = "";
-  let currentToken = "";
 
   async function schemaCheck() {
     const js = await callGAS("schemaCheck", {});
@@ -321,54 +303,65 @@
     return true;
   }
 
-  async function reserve() {
+  /* -----------------------------
+   * Reserve/Create flow with Draft cache
+   * ----------------------------- */
+  let currentCardId = "";
+  let currentToken = "";
+
+  async function reserveOnce() {
+    // If draft exists, reuse it
+    const draft = readDraft();
+    if (draft) {
+      currentCardId = draft.id;
+      currentToken = draft.token;
+      setText("cardIdText", currentCardId);
+      setText("cardId", currentCardId);
+      dbg("reuse draft id/token", draft);
+      toast(`沿用草稿卡 ${currentCardId}`);
+      return { ok: true, id: currentCardId, token: currentToken, reused: true };
+    }
+
+    // Otherwise reserve a new one and save draft
     const plan = getValue("plan") || "free";
     const js = await callGAS("reserve", { tenant, plan });
     dbg("reserve resp:", js);
 
-    if (!js || js.ok !== true) {
-      throw new Error(js && js.error ? js.error : `reserve failed: ${safeJson(js)}`);
-    }
+    if (!js || js.ok !== true) throw new Error(js && js.error ? js.error : `reserve failed: ${safeJson(js)}`);
     if (!js.id || !js.token) throw new Error(`reserve missing id/token: ${safeJson(js)}`);
 
     currentCardId = js.id;
     currentToken = js.token;
 
     setText("cardIdText", currentCardId);
-    setText("cardId", currentCardId); // in case your UI uses this id
+    setText("cardId", currentCardId);
+
+    writeDraft(currentCardId, currentToken);
+    toast(`reserve ok ${currentCardId}`);
     return js;
   }
 
   async function uploadImages(cardId) {
-    // If you already have URL inputs instead of file inputs, we keep them.
-    // File input IDs (best guess): avatarFile, logoFile, photo1File..photo5File
-    // If your page uses different ids, this upload will simply skip (no fail).
     const out = {};
 
-    // avatar
     const avatarFile = pickFile("avatarFile");
-    if (avatarFile) {
-      out.avatar_img = await uploadToFirebaseCompat(cardId, avatarFile, "avatar.jpg");
-    } else {
-      const avatarUrl = getValue("avatar_img") || getValue("avatarURL");
-      if (avatarUrl) out.avatar_img = avatarUrl;
+    if (avatarFile) out.avatar_img = await uploadToFirebaseCompat(cardId, avatarFile, "avatar.jpg");
+    else {
+      const u = getValue("avatar_img") || getValue("avatarURL");
+      if (u) out.avatar_img = u;
     }
 
-    // logo
     const logoFile = pickFile("logoFile");
-    if (logoFile) {
-      out.logo_img = await uploadToFirebaseCompat(cardId, logoFile, "logo.jpg");
-    } else {
-      const logoUrl = getValue("logo_img") || getValue("logoURL");
-      if (logoUrl) out.logo_img = logoUrl;
+    if (logoFile) out.logo_img = await uploadToFirebaseCompat(cardId, logoFile, "logo.jpg");
+    else {
+      const u = getValue("logo_img") || getValue("logoURL");
+      if (u) out.logo_img = u;
     }
 
-    // photos 1..5
     for (let i = 1; i <= 5; i++) {
       const f = pickFile(`photo${i}File`);
-      if (f) {
-        out[`photo${i}_img`] = await uploadToFirebaseCompat(cardId, f, `photo${i}.jpg`);
-      } else {
+      if (f) out[`photo${i}_img`] = await uploadToFirebaseCompat(cardId, f, `photo${i}.jpg`);
+      else {
         const u = getValue(`photo${i}_img`) || getValue(`photo${i}URL`);
         if (u) out[`photo${i}_img`] = u;
       }
@@ -378,23 +371,19 @@
     return out;
   }
 
-  async function create(payload, imageMap) {
+  async function create(textPayload, imageMap) {
     const params = {
       tenant,
       id: currentCardId,
       token: currentToken,
       overwrite: "0",
-      ...payload,
+      ...textPayload,
       ...imageMap
     };
 
-    // Optional hardening: include exp+sig if present
-    if (exp && sig) {
-      params.exp = exp;
-      params.sig = sig;
-    }
+    if (exp && sig) { params.exp = exp; params.sig = sig; }
 
-    // Reject base64 by client side too (safety)
+    // client-side base64 reject
     Object.entries(params).forEach(([k, v]) => {
       if (typeof v === "string" && v.startsWith("data:image/")) {
         throw new Error(`Client reject base64 field: ${k}`);
@@ -404,27 +393,46 @@
     const js = await callGAS("create", params);
     dbg("create resp:", js);
 
-    if (!js || js.ok !== true) {
-      throw new Error(js && js.error ? js.error : `create failed: ${safeJson(js)}`);
-    }
+    if (!js || js.ok !== true) throw new Error(js && js.error ? js.error : `create failed: ${safeJson(js)}`);
 
-    // Show debug info on page if placeholders exist
-    if (Array.isArray(js.writtenFields)) {
-      dbg("writtenFields:", js.writtenFields);
-    }
-    if (Array.isArray(js.skippedFields)) {
-      dbg("skippedFields:", js.skippedFields);
-    }
+    if (Array.isArray(js.writtenFields)) dbg("writtenFields:", js.writtenFields);
+    if (Array.isArray(js.skippedFields)) dbg("skippedFields:", js.skippedFields);
 
     return js;
+  }
+
+  /* -----------------------------
+   * Submit lock + disable buttons
+   * ----------------------------- */
+  let inFlight = false;
+
+  function setSubmitting(on) {
+    const btns = Array.from(document.querySelectorAll('button[type="submit"], input[type="submit"]'));
+    btns.forEach(b => {
+      try { b.disabled = !!on; } catch {}
+      if (on) b.setAttribute("aria-busy", "true");
+      else b.removeAttribute("aria-busy");
+    });
+
+    // Optional: if your UI has a big pill
+    const pill = byId("statusPill") || byId("status") || byId("submitStatus");
+    if (pill) pill.textContent = on ? "送出中…" : pill.textContent;
   }
 
   async function onSubmit(ev) {
     ev.preventDefault();
 
+    if (inFlight) {
+      toast("送出中…請稍等（已鎖定防連點）");
+      dbg("blocked duplicate submit (inFlight=true)");
+      return;
+    }
+
+    inFlight = true;
+    setSubmitting(true);
+
     try {
-      dbg("submit start", { VERSION, tenant, hasExpSig: !!(exp && sig) });
-      toast("送出中…");
+      dbg("submit start", { VERSION, tenant, hasExpSig: !!(exp && sig), hasFirebaseCompat: hasFirebaseCompat() });
 
       setText("verText", VERSION);
       setText("versionText", VERSION);
@@ -432,14 +440,13 @@
 
       await schemaCheck();
 
-      const rsv = await reserve();
-      toast(`reserve ok ${rsv.id}`);
+      // Reserve ONCE (or reuse draft)
+      const rsv = await reserveOnce();
 
       let imageMap = {};
       try {
-        imageMap = await uploadImages(rsv.id);
+        imageMap = await uploadImages(currentCardId);
       } catch (upErr) {
-        // Upload is best-effort: if firebase not found, we continue with text only
         dbg(`upload warning: ${upErr.message}`);
       }
 
@@ -447,41 +454,60 @@
       const cr = await create(textPayload, imageMap);
 
       toast("送出成功 ✅");
-      // If your UI has a big pill
       const pill = byId("statusPill") || byId("status") || byId("submitStatus");
       if (pill) pill.textContent = "送出成功 ✅";
 
-      // Persist last result for support
+      // IMPORTANT: clear draft only after success
+      clearDraft();
+
+      // Keep last result
       window.__HSC_LAST_RESULT__ = { reserve: rsv, create: cr };
 
-      // Optionally show debug panel
       ensureDebugPanel().style.display = "block";
     } catch (e) {
       dbg(`submit fail: ${e.message}`);
       showFailBanner(`送出失敗 ❌ ${e.message}`);
+      // draft NOT cleared on failure, so user can retry without new reserve
+      toast("可直接再按一次送出（會沿用同一張卡，不會再 reserve 新卡）");
+    } finally {
+      inFlight = false;
+      setSubmitting(false);
     }
   }
 
   /* -----------------------------
-   * Boot
+   * Boot / bind once
    * ----------------------------- */
-  function bind() {
-    // Show version immediately (so you never see "-")
+  function bindOnce() {
+    // Show version immediately
     setText("verText", VERSION);
     setText("versionText", VERSION);
     setText("ver", VERSION);
 
-    // Bind submit button / form
-    const form = byId("hscForm") || $("form");
-    if (form) {
-      form.addEventListener("submit", onSubmit);
-      dbg("bind form ok");
-    } else {
-      dbg("missing <form> element — cannot bind submit");
-      showFailBanner("頁面找不到 form，請確認 form.html 的 <form> 結構。");
+    // If draft exists, show cardId immediately (nice UX)
+    const d = readDraft();
+    if (d) {
+      setText("cardIdText", d.id);
+      setText("cardId", d.id);
+      dbg("draft detected on boot", d);
     }
 
-    // Debug button if exists
+    // Bind form submit (avoid double binding)
+    const form = byId("hscForm") || $("form");
+    if (!form) {
+      dbg("missing <form> element — cannot bind submit");
+      showFailBanner("頁面找不到 form，請確認 form.html 的 <form> 結構。");
+      return;
+    }
+
+    if (form.dataset.hscBound === "1") {
+      dbg("already bound, skip");
+      return;
+    }
+    form.dataset.hscBound = "1";
+    form.addEventListener("submit", onSubmit);
+
+    // Optional: Debug toggle button
     const dbgBtn = byId("debugBtn") || byId("openDebug");
     if (dbgBtn) {
       dbgBtn.onclick = () => {
@@ -490,23 +516,25 @@
       };
     }
 
-    // Always create panel (hidden)
-    ensureDebugPanel();
+    // Optional: Draft reset button (if you have a place for it)
+    // If you want, add a button with id="resetDraftBtn" in form.html
+    const resetBtn = byId("resetDraftBtn");
+    if (resetBtn) {
+      resetBtn.onclick = () => {
+        clearDraft();
+        toast("已清除草稿卡（下次會重新 reserve）");
+        setText("cardIdText", "-");
+        setText("cardId", "-");
+      };
+    }
 
-    dbg("boot ok", {
-      VERSION,
-      gas: CONFIG.GAS,
-      tenant,
-      hasFirebaseCompat: hasFirebaseCompat(),
-      expSig: !!(exp && sig),
-      nocache: URLP.get("nocache") || ""
-    });
+    ensureDebugPanel();
+    dbg("boot ok", { VERSION, gas: CONFIG.GAS, tenant, expSig: !!(exp && sig), nocache: URLP.get("nocache") || "" });
   }
 
-  // Run after DOM ready
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", bind);
+    document.addEventListener("DOMContentLoaded", bindOnce);
   } else {
-    bind();
+    bindOnce();
   }
 })();
