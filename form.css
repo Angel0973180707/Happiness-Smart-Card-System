@@ -450,3 +450,44 @@ textarea {
   width: 0%;
   transition: width 0.3s ease;
 }
+/* --- Submit progress (visible + animated) --- */
+.submit-progress{
+  margin-top: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.10);
+  border: 1px solid rgba(255,255,255,.10);
+  overflow: hidden;
+}
+
+.submit-progress-fill{
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(123,220,255,.95), rgba(255,170,90,.95));
+  box-shadow: 0 0 18px rgba(123,220,255,.18);
+  transition: width .28s ease;
+  position: relative;
+}
+
+/* 讓它「看起來在跑」：加一個亮光掃過去 */
+.submit-progress-fill::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: linear-gradient(110deg, transparent 0%, rgba(255,255,255,.25) 45%, transparent 70%);
+  transform: translateX(-60%);
+  animation: shimmer 1.2s linear infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes shimmer{
+  0%{ transform: translateX(-60%); }
+  100%{ transform: translateX(60%); }
+}
+
+.submit-progress-text{
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
