@@ -1,18 +1,14 @@
 /* ======================================================
 Happiness Smart Card System
-form.js v504 (GAS v500.3 aligned)
-
-Flow
-1 reserve
-2 compress
-3 upload firebase
-4 create card
+form.js v505
+GAS v500.3 aligned
+Fix: CORS / Failed to fetch
 ====================================================== */
 
 import { uploadAvatar, uploadCover } from "./firebase.js";
 import { compressToJpeg } from "./image-compressor.js";
 
-const VERSION = "v504";
+const VERSION = "v505";
 
 const GAS_URL =
 "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -35,27 +31,26 @@ function setHTML(id,v){
   if(el) el.innerHTML=v||"";
 }
 
-function log(t){
+function log(msg){
   const el=$("log");
   if(!el) return;
-  el.textContent="• "+t+"\n"+el.textContent;
+  el.textContent="• "+msg+"\n"+el.textContent;
 }
 
-function setStatus(ok,t){
+function setStatus(ok,msg){
   const el=$("status");
   if(!el) return;
-  el.textContent=t;
-  el.style.color= ok ? "#3bd17f" : "#ff5e5e";
+  el.textContent=msg;
+  el.style.color = ok ? "#3bd17f" : "#ff5e5e";
 }
 
-function qs(k){
-  return new URL(location.href).searchParams.get(k)||"";
+function qs(key){
+  return new URL(location.href).searchParams.get(key)||"";
 }
 
 function readFile(id){
   const el=$(id);
-  if(!el) return null;
-  return el.files?.[0]||null;
+  return el?.files?.[0]||null;
 }
 
 /* =========================
@@ -76,31 +71,34 @@ function getUID(){
 
 /* =========================
 POST JSON
+CORS SAFE
 ========================= */
 
 async function postJSON(url,data){
 
-  const r=await fetch(url,{
+  const r = await fetch(url,{
     method:"POST",
-    headers:{ "Content-Type":"application/json"},
+    headers:{
+      "Content-Type":"text/plain;charset=utf-8"
+    },
     body:JSON.stringify(data)
   });
 
-  const txt=await r.text();
+  const txt = await r.text();
 
-  let j;
+  let json;
 
   try{
-    j=JSON.parse(txt);
+    json = JSON.parse(txt);
   }catch(e){
     throw new Error("GAS not JSON: "+txt.slice(0,200));
   }
 
-  if(!j.ok){
-    throw new Error(j.error||"GAS error");
+  if(!json.ok){
+    throw new Error(json.error || "GAS error");
   }
 
-  return j;
+  return json;
 }
 
 /* =========================
@@ -116,7 +114,8 @@ async function doReserve(){
 
   const payload={
     action:"reserve",
-    uid:uid
+    uid:uid,
+    tenant:"angel"
   };
 
   const sig=qs("sig");
@@ -125,10 +124,10 @@ async function doReserve(){
     payload.sig=sig;
   }
 
-  const j=await postJSON(GAS_URL,payload);
+  const res=await postJSON(GAS_URL,payload);
 
-  const id=j.id;
-  const token=j.token;
+  const id=res.id;
+  const token=res.token;
 
   if(!id||!token){
     throw new Error("reserve missing id/token");
@@ -151,17 +150,17 @@ UPLOAD
 
 async function doUploadImages(cardId){
 
-  const avatar=readFile("avatar");
-  const cover=readFile("cover");
+  const avatarFile=readFile("avatar");
+  const coverFile=readFile("cover");
 
   let avatarURL="";
   let coverURL="";
 
-  if(avatar){
+  if(avatarFile){
 
     setStatus(true,"Compress avatar");
 
-    const blob=await compressToJpeg(avatar,512);
+    const blob=await compressToJpeg(avatarFile,512);
 
     setStatus(true,"Upload avatar");
 
@@ -172,11 +171,11 @@ async function doUploadImages(cardId){
     log("avatar uploaded");
   }
 
-  if(cover){
+  if(coverFile){
 
     setStatus(true,"Compress cover");
 
-    const blob=await compressToJpeg(cover,1200);
+    const blob=await compressToJpeg(coverFile,1200);
 
     setStatus(true,"Upload cover");
 
@@ -201,8 +200,8 @@ function readForm(){
 
   return{
 
-    name: $("name")?.value||"",
-    unit: $("unit")?.value||"",
+    name:$("name")?.value||"",
+    unit:$("unit")?.value||"",
     title:$("title")?.value||"",
 
     phone:$("phone")?.value||"",
@@ -224,30 +223,32 @@ CREATE
 
 async function doCreate(reserve,text,img){
 
+  setStatus(true,"Create...");
+  log("create request");
+
   const payload={
+
     action:"create",
 
     id:reserve.id,
     token:reserve.token,
     uid:reserve.uid,
-
     tenant:"angel",
 
     ...text,
 
     avatar_url:img.avatarURL||"",
+
     photos:[
       img.coverURL||""
     ]
   };
 
-  setStatus(true,"Create...");
-
-  const j=await postJSON(GAS_URL,payload);
+  const res=await postJSON(GAS_URL,payload);
 
   log("create OK");
 
-  return j;
+  return res;
 }
 
 /* =========================
