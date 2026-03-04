@@ -1,15 +1,14 @@
 /* =============================================
- * form.js — v512.2 (COMPLETE OVERWRITE)
- * - Keep v512 all features
- * - ADD: Firebase v12 module dynamic import + Anonymous Auth
- * - FIX: Storage path aligns rules: hsc_cards/{tenant}/{cardId}/{fileName}
- * - ADD: upload progress + error visible
+ * form.js — v512.3 (COMPLETE OVERWRITE)
+ * - Keep v512.2 all features
+ * - FIX: Draft card reuse must be validated by GAS action=card
+ * - FIX: If create returns "id not found", auto clear draft -> reserve -> retry once
  * ============================================= */
 
 (() => {
   "use strict";
 
-  const VERSION = "v512.2";
+  const VERSION = "v512.3";
 
   const CONFIG = {
     GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
@@ -17,23 +16,18 @@
     FETCH_TIMEOUT_MS: 15000,
     RETRY: 1,
 
-    // Draft
     DRAFT_CARD_KEY: "hsc_draft_card_v1",
     DRAFT_FORM_KEY: "hsc_draft_form_v1",
     DRAFT_TTL_MS: 12 * 60 * 60 * 1000,
     IDB: { DB_NAME: "hsc_draft_db", DB_VER: 1, STORE: "files" },
 
-    // Image compress
     COMPRESS: {
       avatar: { maxW: 1200, maxH: 1200, targetKB: 280, qualityStart: 0.86, qualityMin: 0.55 },
       logo:   { maxW: 1200, maxH: 1200, targetKB: 220, qualityStart: 0.86, qualityMin: 0.55 },
       photo:  { maxW: 1600, maxH: 1600, targetKB: 420, qualityStart: 0.84, qualityMin: 0.50 },
     },
 
-    // Firebase SDK version
     FIREBASE_VER: "12.10.0",
-
-    // ✅ your firebaseConfig
     FIREBASE_CONFIG: {
       apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
       authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
@@ -56,9 +50,6 @@
   let currentCardId = "";
   let currentToken = "";
 
-  /* -----------------------------
-   * Toast
-   * ----------------------------- */
   function toast(msg) {
     let t = byId("hscToast");
     if (!t) {
@@ -89,9 +80,6 @@
   function nowMs(){ return Date.now(); }
   function setPill(msg){ const el = byId("pillMsg"); if(el) el.textContent = msg; }
 
-  /* -----------------------------
-   * Debug panel
-   * ----------------------------- */
   function ensureDebugPanel() {
     let box = byId("hscDebugBox");
     if (box) return box;
@@ -142,12 +130,9 @@
     const pre = byId("hscDbgPre");
     const ts = new Date().toISOString().replace("T", " ").replace("Z", "");
     pre.textContent += `[${ts}] ${obj ? `${line} ${safeJson(obj)}` : line}\n`;
-    if (/fail|error|拒絕|無法|timeout|missing|mismatch/i.test(line)) box.style.display = "block";
+    if (/fail|error|拒絕|無法|timeout|missing|mismatch|not found/i.test(line)) box.style.display = "block";
   }
 
-  /* -----------------------------
-   * Global upload progress UI
-   * ----------------------------- */
   function ensureUploadBar(){
     let bar = byId("hscUploadBar");
     if(bar) return bar;
@@ -172,12 +157,12 @@
     const bar = ensureUploadBar();
     const fill = byId("hscUploadFill");
     const p = Math.max(0, Math.min(100, Math.round(pct)));
-    bar.style.display = (p > 0 && p < 100) ? "block" : (p === 100 ? "none" : "none");
+    bar.style.display = (p > 0 && p < 100) ? "block" : "none";
     if(fill) fill.style.width = `${p}%`;
   }
 
   /* -----------------------------
-   * Step engine (same)
+   * Step engine / UI (unchanged)
    * ----------------------------- */
   function showStep(n){
     step = Math.max(1, Math.min(STEP_MAX, n));
@@ -186,7 +171,6 @@
       s.classList.toggle("hide", k !== step);
     });
 
-    // hide CTA step if plan != premium
     const plan = getValue("plan");
     if (step === 7 && plan !== "premium") {
       step = 8;
@@ -223,9 +207,25 @@
   function goNext(){ if (step < STEP_MAX) showStep(step + 1); }
   function goPrev(){ if (step > 1) showStep(step - 1); }
 
-  /* -----------------------------
-   * Theme UI split (same)
-   * ----------------------------- */
+  function clearChips(group){
+    document.querySelectorAll(`[data-chip-group="${group}"]`).forEach(btn => btn.dataset.on = "0");
+  }
+  function clearGroup(group){
+    document.querySelectorAll(`[data-swatch-group="${group}"] .swatch`).forEach(btn => btn.dataset.on = "0");
+  }
+  function setChipOn(group, value){
+    document.querySelectorAll(`[data-chip-group="${group}"]`).forEach(btn => {
+      btn.dataset.on = (btn.getAttribute("data-value") === value) ? "1" : "0";
+    });
+    setValue(group, value);
+  }
+  function setSwatchOn(group, value){
+    document.querySelectorAll(`[data-swatch-group="${group}"] .swatch`).forEach(btn => {
+      btn.dataset.on = (btn.getAttribute("data-value") === value) ? "1" : "0";
+    });
+    setValue(group, value);
+  }
+
   function applyPlanUI(plan){
     const freeCard = byId("freeThemeCard");
     const premiumCard = byId("premiumThemeCard");
@@ -260,28 +260,6 @@
     scheduleSaveDraft();
   }
 
-  function clearChips(group){
-    document.querySelectorAll(`[data-chip-group="${group}"]`).forEach(btn => btn.dataset.on = "0");
-  }
-  function clearGroup(group){
-    document.querySelectorAll(`[data-swatch-group="${group}"] .swatch`).forEach(btn => btn.dataset.on = "0");
-  }
-  function setChipOn(group, value){
-    document.querySelectorAll(`[data-chip-group="${group}"]`).forEach(btn => {
-      btn.dataset.on = (btn.getAttribute("data-value") === value) ? "1" : "0";
-    });
-    setValue(group, value);
-  }
-  function setSwatchOn(group, value){
-    document.querySelectorAll(`[data-swatch-group="${group}"] .swatch`).forEach(btn => {
-      btn.dataset.on = (btn.getAttribute("data-value") === value) ? "1" : "0";
-    });
-    setValue(group, value);
-  }
-
-  /* -----------------------------
-   * Preview & Summary (same)
-   * ----------------------------- */
   function findSwatchEl(group, value){
     return document.querySelector(`[data-swatch-group="${group}"] .swatch[data-value="${value}"]`);
   }
@@ -337,7 +315,7 @@
   }
 
   /* -----------------------------
-   * Draft (localStorage) — same
+   * Draft fields (same)
    * ----------------------------- */
   function readFormDraft(){
     try{
@@ -401,7 +379,7 @@
   }
 
   /* -----------------------------
-   * Draft card id/token (same)
+   * Draft card id/token
    * ----------------------------- */
   function readCardDraft(){
     try{
@@ -420,7 +398,7 @@
   function clearCardDraft(){ localStorage.removeItem(CONFIG.DRAFT_CARD_KEY); }
 
   /* -----------------------------
-   * IndexedDB (same as your v512)
+   * IndexedDB (same)
    * ----------------------------- */
   function idbOpen(){
     return new Promise((resolve, reject)=>{
@@ -724,8 +702,21 @@
     return true;
   }
 
+  // ✅ used by v512.3 to validate draft card existence
+  async function cardExists(id, token){
+    try{
+      const js = await callGAS("card", { tenant, id, token });
+      return !!(js && js.ok === true && js.item && js.item.id);
+    }catch(e){
+      const msg = String(e?.message || e || "");
+      if (/id not found/i.test(msg)) return false;
+      // 有些 GAS 是回 JSON error 而不是 throw：這裡用保守方式
+      return false;
+    }
+  }
+
   /* -----------------------------
-   * ✅ Firebase v12 module: dynamic import + anonymous auth
+   * Firebase v12 module (same as v512.2)
    * ----------------------------- */
   const FB = {
     readyPromise: null,
@@ -763,7 +754,6 @@
 
       dbg("firebase: init ok");
 
-      // wait auth state
       const uid = await new Promise((resolve) => {
         const unsub = onAuthStateChanged(FB.auth, (user) => {
           if (user && user.uid) {
@@ -778,7 +768,6 @@
         await signInAnonymously(FB.auth);
       }
 
-      // ensure again
       FB.uid = await new Promise((resolve, reject) => {
         const timer = setTimeout(()=>reject(new Error("auth timeout")), 12000);
         const unsub = onAuthStateChanged(FB.auth, (user) => {
@@ -800,7 +789,7 @@
   async function uploadOne(cardId, blobOrFile, fileName, contentType, onPct){
     await firebaseReady();
 
-    const path = `hsc_cards/${tenant}/${cardId}/${fileName}`; // ✅ aligns rules
+    const path = `hsc_cards/${tenant}/${cardId}/${fileName}`;
     dbg(`firebase upload -> ${path}`);
 
     const r = FB._ref(FB.storage, path);
@@ -861,7 +850,6 @@
 
     if (tasks.length === 0) return out;
 
-    // weighted progress across files
     let done = 0;
     const total = tasks.length;
 
@@ -871,7 +859,6 @@
       setUploadProgress(Math.round((done / total) * 100));
 
       const url = await uploadOne(cardId, t.src.blob, t.fileName, t.src.contentType, (pct)=>{
-        // overall progress: done + current pct
         const overall = ((done + (pct/100)) / total) * 100;
         setUploadProgress(overall);
       });
@@ -881,21 +868,30 @@
       setUploadProgress(Math.round((done / total) * 100));
     }
 
-    setUploadProgress(100);
+    setUploadProgress(0);
     return out;
   }
 
   /* -----------------------------
-   * Reserve/Create (same)
+   * ✅ Reserve/Create — v512.3 changes start here
    * ----------------------------- */
   async function reserveOnce(){
     const d = readCardDraft();
     if(d){
-      currentCardId = d.id;
-      currentToken = d.token;
-      setText("cardIdText", currentCardId);
-      dbg("reuse draft card", d);
-      return { ok:true, id:currentCardId, token:currentToken, reused:true };
+      // ✅ v512.3: verify draft card exists in GAS (avoid "id not found")
+      setPill("檢查草稿卡是否存在…");
+      const ok = await cardExists(d.id, d.token);
+      if(ok){
+        currentCardId = d.id;
+        currentToken = d.token;
+        setText("cardIdText", currentCardId);
+        dbg("reuse draft card (verified ok)", d);
+        return { ok:true, id:currentCardId, token:currentToken, reused:true };
+      } else {
+        dbg("draft card not found -> clear & reserve new", d);
+        clearCardDraft();
+        setText("cardIdText", "-");
+      }
     }
 
     const plan = getValue("plan") || "free";
@@ -907,6 +903,7 @@
     currentToken = js.token;
     setText("cardIdText", currentCardId);
     writeCardDraft(currentCardId, currentToken);
+    dbg("reserve new card ok", { id: currentCardId });
     return js;
   }
 
@@ -956,6 +953,7 @@
         delete p.cta_text; delete p.cta_link;
       }
     }
+
     return p;
   }
 
@@ -978,15 +976,13 @@
     const js = await callGAS("create", params);
     if(!js || js.ok !== true) throw new Error(js?.error || `create failed: ${safeJson(js)}`);
 
-    console.log("[HSC create] writtenFields:", js.writtenFields || []);
-    console.log("[HSC create] skippedFields:", js.skippedFields || []);
     dbg("writtenFields:", js.writtenFields || []);
     dbg("skippedFields:", js.skippedFields || []);
     return js;
   }
 
   /* -----------------------------
-   * Submit (same flow, plus firebaseReady)
+   * Submit — v512.3 adds retry for id not found
    * ----------------------------- */
   function setSubmitting(on){
     inFlight = !!on;
@@ -997,6 +993,11 @@
     if(prev) prev.disabled = inFlight || (step===1);
     if(submit) submit.disabled = inFlight;
     setPill(inFlight ? "送出中…" : "準備填寫");
+  }
+
+  function isIdNotFoundError(err){
+    const msg = String(err?.message || err || "");
+    return /id not found/i.test(msg);
   }
 
   async function onSubmit(ev){
@@ -1028,27 +1029,50 @@
       setPill("檢查資料表中…");
       await schemaCheck();
 
-      setPill("建立草稿卡中…");
+      // reserve (verified)
+      setPill("建立/驗證草稿卡中…");
       await reserveOnce();
 
-      // ✅ ensure firebase auth before upload
+      // firebase auth
       setPill("登入上傳服務中…");
       await firebaseReady();
 
+      // upload images
       const plan = getValue("plan") || "free";
       setPill("圖片上傳中…");
       const imageMap = await uploadImages(currentCardId, plan);
 
+      // create + retry once if id not found
       setPill("寫入資料中…");
       const textPayload = collectTextPayload();
-      const cr = await create(textPayload, imageMap);
+
+      let cr;
+      try{
+        cr = await create(textPayload, imageMap);
+      }catch(e){
+        if(isIdNotFoundError(e)){
+          dbg("create got id not found -> auto retry once (new reserve)");
+          // clear and reserve new
+          clearCardDraft();
+          currentCardId = "";
+          currentToken = "";
+          setText("cardIdText", "-");
+
+          setPill("卡片不存在，重新建立卡號中…");
+          await reserveOnce();
+
+          setPill("重新寫入資料中…");
+          cr = await create(textPayload, imageMap);
+        } else {
+          throw e;
+        }
+      }
 
       toast("送出成功 ✅");
       setPill("送出成功 ✅");
       ensureDebugPanel().style.display = "block";
       dbg("create ok", cr);
 
-      // clear drafts
       clearCardDraft();
       clearFormDraft();
       await idbClearAllDraftFiles().catch(()=>{});
@@ -1060,7 +1084,7 @@
       setPill("送出失敗 ❌");
       ensureDebugPanel().style.display = "block";
       dbg(`submit fail: ${e.message || e}`);
-      dbg("tip: 失敗可再按送出（會沿用草稿卡，不再 reserve 新卡）");
+      dbg("tip: 失敗可再按送出（會沿用草稿卡，必要時會自動重拿新卡）");
     }finally{
       setSubmitting(false);
       setUploadProgress(0);
@@ -1069,7 +1093,7 @@
   }
 
   /* -----------------------------
-   * Bind events (same)
+   * UI bindings / autosave (same)
    * ----------------------------- */
   function bindPlanThemeUI(){
     document.querySelectorAll("[data-chip-group]").forEach(btn=>{
@@ -1178,10 +1202,10 @@
   }
 
   /* -----------------------------
-   * Boot (same + debug firebase state)
+   * Boot
    * ----------------------------- */
   async function boot(){
-    setText("versionText", "512.2");
+    setText("versionText", "512.3");
     setText("tenantText", tenant);
 
     setChipOn("plan", "free");
@@ -1208,10 +1232,7 @@
       tenant,
       hasExpSig: !!(exp && sig),
       gas: CONFIG.GAS,
-      firebase: {
-        storageBucket: CONFIG.FIREBASE_CONFIG.storageBucket,
-        sdk: CONFIG.FIREBASE_VER
-      }
+      firebase: { storageBucket: CONFIG.FIREBASE_CONFIG.storageBucket, sdk: CONFIG.FIREBASE_VER }
     });
 
     updatePreview();
