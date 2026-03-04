@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Fill Form v512.1</title>
+  <title>HSC Fill Form v512.2</title>
   <meta name="theme-color" content="#0b1220" />
 
-  <link rel="stylesheet" href="./form.css?v=5121" />
+  <link rel="stylesheet" href="./form.css?v=5122" />
 
   <!-- ✅ Firebase (compat) - IMPORTANT: DO NOT use defer here -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -14,14 +14,14 @@
 
   <!-- ✅ Firebase init (must run AFTER firebase scripts loaded) -->
   <script>
-    // 你若已有真實 config，請在此處換成你的（或在更早處設定 window.HSC_FIREBASE_CONFIG）
+    // ✅ Your real Firebase config (PROD)
     window.HSC_FIREBASE_CONFIG = window.HSC_FIREBASE_CONFIG || {
-      apiKey: "REPLACE_ME",
-      authDomain: "REPLACE_ME",
-      projectId: "REPLACE_ME",
-      storageBucket: "REPLACE_ME.appspot.com",
-      messagingSenderId: "REPLACE_ME",
-      appId: "REPLACE_ME"
+      apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
+      authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
+      projectId: "happiness-smart-card-pro-7389a",
+      storageBucket: "happiness-smart-card-pro-7389a.firebasestorage.app",
+      messagingSenderId: "143313936007",
+      appId: "1:143313936007:web:7c948563c51e8a47d3a222"
     };
 
     (function(){
@@ -35,14 +35,17 @@
           return;
         }
         firebase.initializeApp(window.HSC_FIREBASE_CONFIG);
-        console.log("[HSC] firebase initialized ✅");
+        console.log("[HSC] firebase initialized ✅", {
+          projectId: window.HSC_FIREBASE_CONFIG.projectId,
+          storageBucket: window.HSC_FIREBASE_CONFIG.storageBucket
+        });
       }catch(e){
         console.error("[HSC] firebase init failed:", e);
       }
     })();
   </script>
 
-  <script defer src="./form.js?v=5121"></script>
+  <script defer src="./form.js?v=5122"></script>
 </head>
 
 <body>
@@ -50,7 +53,7 @@
     <div class="brand">
       <div class="brand-title">HSC 自建表單</div>
       <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">512.1</span>
+        <span class="muted">v</span><span id="versionText">512.2</span>
         <span class="dot">•</span>
         <span class="muted">tenant</span> <span id="tenantText">angel</span>
       </div>
@@ -362,7 +365,6 @@
           <div class="summary-row"><span>單位</span><strong id="sumUnit">-</strong></div>
           <div class="summary-row"><span>頭銜</span><strong id="sumTitle">-</strong></div>
 
-          <!-- ✅ add these so you can "see them in form content" -->
           <div class="summary-row"><span>影音</span><strong id="sumVideo">-</strong></div>
           <div class="summary-row"><span>社群</span><strong id="sumSocial">-</strong></div>
         </div>
