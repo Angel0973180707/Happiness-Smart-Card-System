@@ -15,6 +15,7 @@
 
   <!-- ✅ Firebase init (must run AFTER firebase scripts loaded) -->
   <script>
+    // ✅ Your real Firebase config (PROD)
     window.HSC_FIREBASE_CONFIG = window.HSC_FIREBASE_CONFIG || {
       apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
       authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
@@ -370,7 +371,7 @@
         </div>
 
         <button id="submitBtn" class="btn primary" type="submit">送出</button>
-        <div class="hint mt">送出流程：ping → reserve → 壓縮上傳 → create 寫入 card_db</div>
+        <div class="hint mt">送出流程：ping → schemaCheck → reserve → 匿名登入 → 壓縮上傳 → create 寫入 card_db</div>
       </section>
 
       <input type="hidden" id="plan" name="plan" />
