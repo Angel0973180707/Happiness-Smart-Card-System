@@ -3,43 +3,46 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Fill Form v512</title>
+  <title>HSC Fill Form v512.1</title>
   <meta name="theme-color" content="#0b1220" />
 
-  <link rel="stylesheet" href="./form.css?v=5120" />
+  <link rel="stylesheet" href="./form.css?v=5121" />
 
-  <!-- ✅ Firebase (compat) - keep your existing project config (DO NOT change if already working) -->
-  <!-- If you already load firebase in another way, you can remove duplicates. -->
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <!-- ✅ Firebase (compat) - IMPORTANT: DO NOT use defer here -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
-  <!-- ✅ Your Firebase init (REPLACE with your actual config if not already in your page) -->
+  <!-- ✅ Firebase init (must run AFTER firebase scripts loaded) -->
   <script>
-    // If you already initialize elsewhere, keep only one init.
-    window.__HSC_FIREBASE_INIT__ = window.__HSC_FIREBASE_INIT__ || (function(){
+    // 你若已有真實 config，請在此處換成你的（或在更早處設定 window.HSC_FIREBASE_CONFIG）
+    window.HSC_FIREBASE_CONFIG = window.HSC_FIREBASE_CONFIG || {
+      apiKey: "REPLACE_ME",
+      authDomain: "REPLACE_ME",
+      projectId: "REPLACE_ME",
+      storageBucket: "REPLACE_ME.appspot.com",
+      messagingSenderId: "REPLACE_ME",
+      appId: "REPLACE_ME"
+    };
+
+    (function(){
       try{
-        if (window.firebase && firebase.apps && firebase.apps.length) return true;
-
-        // ⚠️ Replace with your real Firebase config (or keep existing one)
-        const firebaseConfig = window.HSC_FIREBASE_CONFIG || {
-          apiKey: "REPLACE_ME",
-          authDomain: "REPLACE_ME",
-          projectId: "REPLACE_ME",
-          storageBucket: "REPLACE_ME.appspot.com",
-          messagingSenderId: "REPLACE_ME",
-          appId: "REPLACE_ME"
-        };
-
-        if (window.firebase && firebase.initializeApp) {
-          firebase.initializeApp(firebaseConfig);
-          return true;
+        if (!window.firebase || !firebase.initializeApp) {
+          console.warn("[HSC] firebase SDK not ready");
+          return;
         }
-      }catch(e){}
-      return false;
+        if (firebase.apps && firebase.apps.length) {
+          console.log("[HSC] firebase already initialized");
+          return;
+        }
+        firebase.initializeApp(window.HSC_FIREBASE_CONFIG);
+        console.log("[HSC] firebase initialized ✅");
+      }catch(e){
+        console.error("[HSC] firebase init failed:", e);
+      }
     })();
   </script>
 
-  <script defer src="./form.js?v=5120"></script>
+  <script defer src="./form.js?v=5121"></script>
 </head>
 
 <body>
@@ -47,7 +50,7 @@
     <div class="brand">
       <div class="brand-title">HSC 自建表單</div>
       <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">512</span>
+        <span class="muted">v</span><span id="versionText">512.1</span>
         <span class="dot">•</span>
         <span class="muted">tenant</span> <span id="tenantText">angel</span>
       </div>
@@ -57,7 +60,6 @@
   </header>
 
   <main class="wrap">
-    <!-- Progress -->
     <section class="progress">
       <div class="progress-top">
         <div class="progress-left">
@@ -77,7 +79,7 @@
     </section>
 
     <form id="hscForm" class="card">
-      <!-- STEP 1: Plan -->
+      <!-- STEP 1 -->
       <section class="step" data-step="1">
         <h2 class="h2">選擇方案 <span class="req">必填</span></h2>
         <div class="row">
@@ -87,11 +89,10 @@
         <div class="err" id="err_plan"></div>
       </section>
 
-      <!-- STEP 2: Theme -->
+      <!-- STEP 2 -->
       <section class="step hide" data-step="2">
         <h2 class="h2">外觀選擇 <span class="req">必填</span></h2>
 
-        <!-- FREE -->
         <div id="freeThemeCard" class="subcard">
           <div class="label">顏色（色球）</div>
           <div class="swatch-row" data-swatch-group="color">
@@ -120,7 +121,6 @@
           <div class="err" id="err_paper"></div>
         </div>
 
-        <!-- PREMIUM -->
         <div id="premiumThemeCard" class="subcard hide">
           <div class="label">精品底色（色球）</div>
           <div class="swatch-row" data-swatch-group="premium_color">
@@ -135,7 +135,6 @@
           <div class="err" id="err_premium_color"></div>
         </div>
 
-        <!-- live preview -->
         <div class="preview">
           <div class="preview-title">成品預覽（連動驗收）</div>
           <div class="preview-card" id="previewCard">
@@ -152,7 +151,7 @@
         </div>
       </section>
 
-      <!-- STEP 3: Core Info -->
+      <!-- STEP 3 -->
       <section class="step hide" data-step="3">
         <h2 class="h2">名片主資訊 <span class="req">必填</span></h2>
 
@@ -204,7 +203,7 @@
         </div>
       </section>
 
-      <!-- STEP 4: Images -->
+      <!-- STEP 4 -->
       <section class="step hide" data-step="4">
         <h2 class="h2">圖片上傳</h2>
 
@@ -260,7 +259,7 @@
         </div>
       </section>
 
-      <!-- STEP 5: Contact -->
+      <!-- STEP 5 -->
       <section class="step hide" data-step="5">
         <h2 class="h2">聯絡方式（可選）</h2>
 
@@ -297,7 +296,7 @@
         </div>
       </section>
 
-      <!-- STEP 6: Video & Social -->
+      <!-- STEP 6 -->
       <section class="step hide" data-step="6">
         <h2 class="h2">影音與社群（可選）</h2>
 
@@ -330,7 +329,7 @@
         </div>
       </section>
 
-      <!-- STEP 7: Premium CTA -->
+      <!-- STEP 7 -->
       <section class="step hide" data-step="7">
         <h2 class="h2">精品 CTA（精品可選）</h2>
 
@@ -352,7 +351,7 @@
         </div>
       </section>
 
-      <!-- STEP 8: Submit -->
+      <!-- STEP 8 -->
       <section class="step hide" data-step="8">
         <h2 class="h2">確認送出</h2>
 
@@ -362,13 +361,16 @@
           <div class="summary-row"><span>姓名</span><strong id="sumName">-</strong></div>
           <div class="summary-row"><span>單位</span><strong id="sumUnit">-</strong></div>
           <div class="summary-row"><span>頭銜</span><strong id="sumTitle">-</strong></div>
+
+          <!-- ✅ add these so you can "see them in form content" -->
+          <div class="summary-row"><span>影音</span><strong id="sumVideo">-</strong></div>
+          <div class="summary-row"><span>社群</span><strong id="sumSocial">-</strong></div>
         </div>
 
         <button id="submitBtn" class="btn primary" type="submit">送出</button>
         <div class="hint mt">送出流程：ping → reserve → 壓縮上傳 → create 寫入 card_db</div>
       </section>
 
-      <!-- Hidden fields (WRITE VALUES to DB; UI shows Chinese) -->
       <input type="hidden" id="plan" name="plan" />
       <input type="hidden" id="color" name="color" />
       <input type="hidden" id="style" name="style" />
@@ -376,7 +378,6 @@
       <input type="hidden" id="premium_color" name="premium_color" />
     </form>
 
-    <!-- Nav buttons -->
     <section class="nav">
       <button type="button" class="btn ghost" id="prevBtn">上一步</button>
       <button type="button" class="btn" id="nextBtn">下一步</button>
