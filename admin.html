@@ -1,183 +1,247 @@
-<!-- admin.html — v499 (COMPLETE OVERWRITE) -->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Admin Workspace v499</title>
-  <meta name="theme-color" content="#0f172a" />
+  <title>HSC Admin v515</title>
+  <meta name="theme-color" content="#0b1220" />
 
-  <link rel="stylesheet" href="./admin.css?v=499" />
-  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:rgba(255,255,255,.06);
+      --line:rgba(255,255,255,.12);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.70);
+      --btn:rgba(255,255,255,.10);
+      --btn2:rgba(255,255,255,.14);
+      --accent:#7bdcff;
+      --danger:#ff6b6b;
+      --r:18px;
+      --shadow:0 14px 36px rgba(0,0,0,.35);
+      --fs: clamp(15px, 1.7vw, 18px);
+      --fs2: clamp(18px, 2.6vw, 22px);
+      --fs3: clamp(20px, 3.0vw, 26px);
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 900px at 18% -10%, rgba(123,220,255,.16), transparent 60%),
+        radial-gradient(1000px 800px at 85% 10%, rgba(255,170,90,.10), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      font-family:"Noto Sans TC", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      font-size:var(--fs);
+      letter-spacing:.2px;
+      word-break: keep-all;
+    }
+    .topbar{
+      position:sticky; top:0; z-index:10;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 14px;
+      background: rgba(11,18,32,.76);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .brand-title{ font-weight:900; font-size:var(--fs2); letter-spacing:.8px; }
+    .brand-sub{ margin-top:2px; color:var(--muted); font-size:12px; }
+    .dot{ opacity:.65; padding:0 6px; }
+    .wrap{ width:min(920px, 100%); margin:0 auto; padding:14px 14px 90px; }
+
+    .card{
+      margin-top:12px;
+      padding:16px;
+      border-radius:var(--r);
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:var(--shadow);
+    }
+    .h2{
+      margin:0 0 10px;
+      font-size:var(--fs3);
+      font-weight:900;
+      letter-spacing:.6px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    .col2{ grid-column: 1 / -1; }
+    @media (max-width:720px){
+      .grid2{ grid-template-columns: 1fr; }
+      .col2{ grid-column:auto; }
+    }
+    .field{ display:block; }
+    .field-label{ font-weight:900; margin-bottom:6px; }
+    input{
+      width:100%;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.22);
+      color: rgba(255,255,255,.92);
+      outline:none;
+      font-size:var(--fs);
+    }
+    .hint{ margin-top:6px; color:var(--muted); font-size:12px; line-height:1.6; }
+    .pill{
+      display:inline-block;
+      padding:7px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.10);
+      color:var(--muted);
+      font-size:12px;
+    }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .btn{
+      all:unset;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 14px;
+      border-radius:999px;
+      background:var(--btn);
+      border:1px solid rgba(255,255,255,.14);
+      color: rgba(255,255,255,.90);
+      font-weight:900;
+      user-select:none;
+    }
+    .btn:hover{ background:var(--btn2); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+    .btn.primary{
+      background: rgba(123,220,255,.20);
+      border-color: rgba(123,220,255,.30);
+    }
+    .btn.danger{
+      background: rgba(255,110,110,.14);
+      border-color: rgba(255,110,110,.22);
+    }
+    .sep{ height:1px; background: rgba(255,255,255,.10); margin: 14px 0; }
+    .preview{
+      display:flex; gap:14px; align-items:center; flex-wrap:wrap;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.05);
+    }
+    .avatar{
+      width:72px; height:72px; border-radius:18px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.22);
+      overflow:hidden;
+      box-shadow: 0 10px 20px rgba(0,0,0,.35);
+      flex: 0 0 auto;
+    }
+    .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .pv-title{ font-weight:900; font-size: 18px; }
+    .pv-sub{ color:var(--muted); font-weight:800; margin-top:2px; font-size: 13px; }
+    .pv-mini{ color:rgba(255,255,255,.78); font-weight:800; margin-top:6px; font-size: 13px; }
+    .kvs{ margin-top:10px; color:var(--muted); font-size:12px; line-height:1.6; }
+    .kvs code{ color: rgba(255,255,255,.88); }
+  </style>
 </head>
 
 <body>
-  <div class="topbar">
+  <header class="topbar">
     <div class="brand">
-      <div class="brand__title">Happiness Smart Card · Admin</div>
-      <div class="brand__sub">v499 · Workspace</div>
+      <div class="brand-title">HSC 後臺工作區</div>
+      <div class="brand-sub">
+        <span class="muted">v</span><span id="versionText">515.0</span>
+        <span class="dot">•</span>
+        <span class="muted">Admin Workspace (minimal)</span>
+      </div>
     </div>
+    <button type="button" class="btn" id="btnDebug">Debug</button>
+  </header>
 
-    <button class="btn btn--ghost" id="btnBackHome" type="button">返回首頁</button>
-  </div>
+  <main class="wrap">
 
-  <div class="wrap">
-    <!-- Left: Controls -->
     <section class="card">
+      <div class="h2">載入名片</div>
 
-      <!-- ===== Form Link / Invite ===== -->
-      <div class="row">
-        <div class="label">訂製表單（只給確定要訂製的客戶）</div>
+      <div class="grid2">
+        <label class="field">
+          <div class="field-label">卡片 ID</div>
+          <input id="cardId" placeholder="例：TW0007" />
+          <div class="hint">可用網址帶入：admin.html?id=TW0007</div>
+        </label>
 
-        <div class="grid2">
-          <div class="field">
-            <div class="field__label">tenant</div>
-            <input class="input" id="formTenant" placeholder="angel" />
-          </div>
-          <div class="field">
-            <div class="field__label">invite（邀請碼）</div>
-            <input class="input" id="formInvite" placeholder="例如：A9K3-7Q2M" />
-          </div>
+        <label class="field">
+          <div class="field-label">token（可選）</div>
+          <input id="token" placeholder="inactive 時需要 token；但有 admin_secret 就不用" />
+          <div class="hint">我會自動記憶 token（同一台手機不用重打）。</div>
+        </label>
 
-          <div class="field" style="grid-column:1/-1">
-            <div class="field__label">uid（可選，用於 reserve 綁定；沒有就留空）</div>
-            <input class="input" id="formUid" placeholder="例如：firebase uid / line uid / 你自訂的客戶代碼" />
-          </div>
-
-          <button class="btn btn--primary" id="btnCopyFormLink" type="button">複製表單連結</button>
-          <button class="btn" id="btnCopyFormPack" type="button">複製給客戶（含說明）</button>
-
-          <button class="btn" id="btnReserve" type="button">reserve（預占序號）</button>
-          <button class="btn" id="btnCopyUploadPath" type="button" disabled>複製上傳路徑</button>
-        </div>
-
-        <div class="hint" id="formHint">
-          ✅ 建議流程：你先給客戶「表單連結」→ 客戶填完 → 你用序號載入 → 客戶預覽核對 → 客戶 confirm → 你 activate（交付）
-        </div>
+        <label class="field col2">
+          <div class="field-label">admin_secret（管理者密碼）</div>
+          <input id="admin_secret" placeholder="輸入後可直接載入（不需要 token）" />
+          <div class="hint">會自動保存到本機（localStorage）。</div>
+        </label>
       </div>
 
-      <div class="divider"></div>
-
-      <!-- ===== Load / Token ===== -->
-      <div class="row">
-        <div class="label">序號（TW0001 / 0001）</div>
-        <div class="inputRow">
-          <input class="input" id="adminInput" placeholder="TW0001 或 0001" />
-          <button class="btn btn--primary" id="btnApply" type="button">套用</button>
-        </div>
-        <div class="hint" id="adminHint">提示：可輸入 0002（會自動補成 TW0002）。</div>
-      </div>
+      <div class="sep"></div>
 
       <div class="row">
-        <div class="label">token（inactive / pending 時載入需要）</div>
-        <div class="inputRow">
-          <input class="input" id="adminToken" placeholder="可先留空；若後端回覆 token required 再填" />
-          <button class="btn" id="btnRememberToken" type="button">記住</button>
-        </div>
-        <div class="hint">v499 規則：status 不是 active 時，GET action=card 需要正確 token。</div>
+        <button type="button" class="btn primary" id="btnLoad">載入</button>
+        <button type="button" class="btn" id="btnRememberToken">記住 token</button>
+
+        <span class="pill" id="pillMsg">待命</span>
       </div>
 
-      <div class="divider"></div>
-
-      <!-- ===== Admin Secret / PIN (compat) ===== -->
-      <div class="row">
-        <div class="label">管理密鑰（v499 用 ADMIN_SECRET；舊版相容 admin_pin）</div>
-        <div class="inputRow">
-          <input class="input" id="adminSecret" type="password" placeholder="ADMIN_SECRET（建議）" />
-          <button class="btn" id="btnRememberSecret" type="button">記住</button>
-        </div>
-        <div class="hint">✅ v499 的 activate 會送 secret；同時也會一起送 admin_pin（若你的 GAS 舊版還在吃 PIN 也能用）。</div>
+      <div class="kvs">
+        小提醒：<br/>
+        1) 有 <code>admin_secret</code>：可直接載入並自動回填 token（不怕卡住）。<br/>
+        2) 沒有 <code>admin_secret</code>：inactive 時需要 token 才能讀卡。
       </div>
-
-      <div class="divider"></div>
-
-      <!-- ===== Delivery ===== -->
-      <div class="row">
-        <div class="label">交付工具</div>
-        <div class="grid2">
-          <button class="btn btn--primary" id="btnLoad" type="button">載入資料</button>
-          <button class="btn" id="btnPreview" type="button">智慧名片成品預覽</button>
-
-          <button class="btn" id="btnCopyCard" type="button">複製智慧名片成品</button>
-          <button class="btn" id="btnCopyShare" type="button">複製分享連結</button>
-
-          <button class="btn btn--primary" id="btnCopyDelivery" type="button" style="grid-column:1/-1">一鍵交貨（複製給客戶）</button>
-
-          <button class="btn" id="btnWeChatPoster" type="button">生成微信長圖</button>
-          <button class="btn" id="btnOpenPoster" type="button" disabled>開啟長圖</button>
-        </div>
-        <div class="hint">
-          ✅ 建議交付順序：先「分享連結」給客戶貼社群 → 再給「智慧名片成品」收藏 → 如需微信再給長圖。<br/>
-          ⚠️ 不提供「複製產品連結」按鈕給客戶端；後臺複製只是給你交付用（客戶要給合夥人看，截圖即可）。
-        </div>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- ===== Status / Actions ===== -->
-      <div class="row">
-        <div class="label">狀態（v499：confirm → pending_activation；activate → active）</div>
-        <div class="grid2">
-          <button class="btn" id="btnConfirm" type="button">confirm（客戶確認）</button>
-          <button class="btn btn--primary" id="btnActivate" type="button">activate（交付開卡）</button>
-        </div>
-
-        <div class="hint">
-          status：<span id="txtStatus" data-st="">—</span>
-          <button class="btn btn--tiny" id="btnCopyStatus" type="button" title="複製 status">⧉</button>
-        </div>
-      </div>
-
     </section>
 
-    <!-- Right: Preview -->
-    <section class="preview">
-      <div class="preview__title">資料預覽（載入後更新）</div>
+    <section class="card">
+      <div class="h2">預覽（精簡）</div>
 
-      <div class="previewCard">
-        <div class="avatarBox">
-          <img id="pvAvatar" alt="" />
-        </div>
-        <div class="pvInfo">
-          <div class="pvName" id="pvName">尚未載入</div>
-          <div class="pvUnit" id="pvUnit"></div>
-          <div class="pvTitle" id="pvTitle"></div>
+      <div class="preview">
+        <div class="avatar"><img id="pvAvatar" alt="avatar" /></div>
+        <div>
+          <div class="pv-title" id="pvName">-</div>
+          <div class="pv-sub" id="pvUnit">-</div>
+          <div class="pv-mini" id="pvTitle">-</div>
+          <div class="pv-mini" id="pvStatus">status：-</div>
         </div>
       </div>
 
-      <div class="pvSlogan" id="pvSlogan" style="display:none"></div>
+      <div class="sep"></div>
 
-      <div class="miniLinks">
-        <div class="miniLinks__row">
-          <span class="tag">智慧名片成品</span>
-          <code id="txtCardUrl">—</code>
-          <button class="btn btn--tiny" id="btnCopyCard2" type="button" title="複製">⧉</button>
-        </div>
-        <div class="miniLinks__row">
-          <span class="tag">分享連結</span>
-          <code id="txtShareUrl">—</code>
-          <button class="btn btn--tiny" id="btnCopyShare2" type="button" title="複製">⧉</button>
-        </div>
+      <div class="row">
+        <button type="button" class="btn" id="btnConfirm">客戶確認（confirm）</button>
+        <button type="button" class="btn danger" id="btnActivate">啟用（active）</button>
       </div>
 
-      <div class="hint" style="margin-top:12px">
-        若「載入失敗」且提示 token required：請把 token 填進去再載入（v499 gate）。
+      <div class="hint" style="margin-top:10px;">
+        confirm：只寫 confirmed_at（不啟用）｜啟用：把 status 設為 active（客戶之後不需要 token）
       </div>
     </section>
-  </div>
 
-  <!-- Overlay -->
-  <div class="overlay" id="posterOverlay" aria-hidden="true">
-    <div class="overlay__box">
-      <div class="spinner"></div>
-      <div class="overlay__title" id="posterStatus">處理中…</div>
-      <div class="overlay__hint" id="posterHint">請稍候</div>
-      <div class="overlay__row">
-        <button class="btn" id="btnCancelOverlay" type="button">關閉</button>
+    <section class="card">
+      <div class="h2">一鍵交付</div>
+
+      <div class="row">
+        <button type="button" class="btn" id="btnCopyCard">複製名片連結</button>
+        <button type="button" class="btn" id="btnCopyShare">複製分享頁</button>
+        <button type="button" class="btn primary" id="btnCopyDelivery">複製交付卡（連結卡）</button>
+        <button type="button" class="btn" id="btnCopyWechat">複製微信長圖頁</button>
       </div>
-    </div>
-  </div>
 
-  <script src="./admin.js?v=499"></script>
+      <div class="hint" style="margin-top:10px;">
+        交付卡：不是一串網址，而是一張可點開的「連結卡」頁面（下一步我會給你 delivery.html v515）。<br/>
+        微信長圖：加購用 wechat.html（之後再掛 wechat_poster 欄位也可以）。
+      </div>
+    </section>
+
+  </main>
+
+  <script src="./admin.js?v=5150"></script>
 </body>
 </html>
