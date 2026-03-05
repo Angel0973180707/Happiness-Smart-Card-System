@@ -3,17 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Fill Form v514.3</title>
+  <title>HSC Fill Form v520-RF1</title>
   <meta name="theme-color" content="#0b1220" />
 
-  <link rel="stylesheet" href="./form.css?v=5143" />
+  <link rel="stylesheet" href="./form.css?v=52001" />
 
-  <!-- ✅ Firebase (compat) - IMPORTANT: DO NOT use defer here -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-
-  <!-- ✅ Firebase init -->
+  <!-- ✅ Firebase config (global for form.js to read) -->
   <script>
     window.HSC_FIREBASE_CONFIG = window.HSC_FIREBASE_CONFIG || {
       apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
@@ -23,29 +18,10 @@
       messagingSenderId: "143313936007",
       appId: "1:143313936007:web:7c948563c51e8a47d3a222"
     };
-
-    (function(){
-      try{
-        if (!window.firebase || !firebase.initializeApp) {
-          console.warn("[HSC] firebase SDK not ready");
-          return;
-        }
-        if (firebase.apps && firebase.apps.length) {
-          console.log("[HSC] firebase already initialized");
-          return;
-        }
-        firebase.initializeApp(window.HSC_FIREBASE_CONFIG);
-        console.log("[HSC] firebase initialized ✅", {
-          projectId: window.HSC_FIREBASE_CONFIG.projectId,
-          storageBucket: window.HSC_FIREBASE_CONFIG.storageBucket
-        });
-      }catch(e){
-        console.error("[HSC] firebase init failed:", e);
-      }
-    })();
   </script>
 
-  <script defer src="./form.js?v=5143"></script>
+  <!-- ✅ IMPORTANT: form.js is module -->
+  <script type="module" src="./form.js?v=52001"></script>
 </head>
 
 <body>
@@ -53,7 +29,7 @@
     <div class="brand">
       <div class="brand-title">HSC 自建表單</div>
       <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">514.3</span>
+        <span class="muted">v</span><span id="versionText">520-RF1</span>
         <span class="dot">•</span>
         <span class="muted">tenant</span> <span id="tenantText">angel</span>
       </div>
@@ -216,7 +192,7 @@
             <label class="field">
               <div class="field-label">個人照 <span class="req">必填</span></div>
               <input id="avatarFile" type="file" accept="image/*" />
-              <div class="hint">會先壓縮再上傳；草稿會保存圖片（可離開再回來）。</div>
+              <div class="hint">會先壓縮再上傳；草稿會保存（可離開再回來）。</div>
               <div class="err" id="err_avatar"></div>
             </label>
           </div>
@@ -371,7 +347,6 @@
 
         <button id="submitBtn" class="btn primary" type="submit">送出</button>
 
-        <!-- ✅ Submit progress -->
         <div id="submitProgress" class="submit-progress-wrap hide">
           <div class="submit-progress-head">
             <span id="submitProgressLabel">準備送出…</span>
