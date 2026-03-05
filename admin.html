@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Admin v520.1</title>
+  <title>HSC Admin v516</title>
   <meta name="theme-color" content="#0b1220" />
 
   <style>
@@ -86,7 +86,7 @@
       outline:none;
       font-size:var(--fs);
     }
-    textarea{ min-height:88px; resize:vertical; }
+    textarea{ min-height: 92px; resize: vertical; }
     .hint{ margin-top:6px; color:var(--muted); font-size:12px; line-height:1.6; }
     .pill{
       display:inline-block;
@@ -122,7 +122,6 @@
       border-color: rgba(255,110,110,.22);
     }
     .sep{ height:1px; background: rgba(255,255,255,.10); margin: 14px 0; }
-
     .preview{
       display:flex; gap:14px; align-items:center; flex-wrap:wrap;
       padding:12px;
@@ -152,7 +151,7 @@
     <div class="brand">
       <div class="brand-title">HSC 後臺工作區</div>
       <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">520.1</span>
+        <span class="muted">v</span><span id="versionText">516.0</span>
         <span class="dot">•</span>
         <span class="muted">Admin Workspace</span>
       </div>
@@ -236,61 +235,40 @@
       </div>
 
       <div class="hint" style="margin-top:10px;">
-        交付卡：delivery.html｜微信長圖：wechat.html（可加購）
+        交付卡：delivery.html?id=...｜微信長圖：wechat.html?id=...
       </div>
     </section>
 
+    <!-- ✅ NEW: Update link generator -->
     <section class="card">
-      <div class="h2">一鍵產生邀請碼（填表連結）</div>
+      <div class="h2">一鍵產生「更新連結」（7天有效）</div>
 
-      <div class="grid2">
-        <label class="field">
-          <div class="field-label">tenant</div>
-          <input id="inviteTenant" placeholder="例：angel" value="angel" />
-          <div class="hint">通常就是 angel（你的預設 tenant）。</div>
-        </label>
-
-        <label class="field">
-          <div class="field-label">有效天數</div>
-          <input id="inviteDays" placeholder="例：7" value="7" />
-          <div class="hint">會寫進 sig payload 的 exp。</div>
-        </label>
-
-        <label class="field col2">
-          <div class="field-label">產生結果（link）</div>
-          <textarea id="inviteLink" placeholder="按下產生後，這裡會出現填表連結"></textarea>
-          <div class="hint">
-            這個連結給客戶填表：form.html?tenant=...&sig=...（sig 內含 exp）<br/>
-            若你的 GAS 只有 makeFillLink，後臺會自動 fallback。
-          </div>
-        </label>
-
-        <label class="field">
-          <div class="field-label">exp（毫秒）</div>
-          <input id="inviteExp" placeholder="-" />
-        </label>
-
-        <label class="field">
-          <div class="field-label">sig（摘要顯示）</div>
-          <input id="inviteSig" placeholder="-" />
-        </label>
-      </div>
+      <label class="field">
+        <div class="field-label">貼上客戶給你的訊息</div>
+        <textarea id="customerMsg" placeholder="例：王小明 123&#10;或：王小明 XX公司&#10;或直接包含：TW0007"></textarea>
+        <div class="hint">
+          系統會嘗試解析：<br/>
+          - 直接抓出卡片 ID（TWxxxx / 你現行格式）<br/>
+          - 或用「姓名 + 手機末三碼」 / 「姓名 + 單位(或頭銜)」在 card_db 找到對應卡片
+        </div>
+      </label>
 
       <div class="sep"></div>
 
       <div class="row">
-        <button type="button" class="btn primary" id="btnIssueInvite">一鍵產生邀請碼</button>
-        <button type="button" class="btn" id="btnCopyInviteLink">複製填表連結</button>
+        <button type="button" class="btn primary" id="btnMakeUpdateLink">解析並產生更新連結</button>
+        <button type="button" class="btn" id="btnCopyUpdateLink" disabled>複製更新連結</button>
+        <span class="pill" id="pillUpdate">尚未產生</span>
       </div>
 
       <div class="hint" style="margin-top:10px;">
-        需要 <code>admin_secret</code> 才能產生。<br/>
-        若你看到 <code>unknown action: adminIssueFill</code>，代表 GAS 沒那個 action —— 但本版後臺會自動改打 <code>makeFillLink</code> 再試一次。
+        ✅ 連結 7 天後自動失效（sig 內含到期時間）<br/>
+        ✅ 更新是覆蓋同一張名片（id 不變）
       </div>
     </section>
 
   </main>
 
-  <script src="./admin.js?v=5201"></script>
+  <script src="./admin.js?v=5160"></script>
 </body>
 </html>
