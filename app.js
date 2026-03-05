@@ -8,7 +8,7 @@
  * Rules:
  * ✅ HARD LOCK: status !== "active" => lock
  * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
- * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel
+ * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel (if exists in HTML)
  *
  * v521.2 fix:
  * ✅ Selection <-> Preview linkage (payload -> UI state -> body classes -> active buttons)
@@ -317,13 +317,12 @@ function normalizePlan_(raw){
   if(!v) return "";
   if(v.includes("premium") || v.includes("pro") || v.includes("精品")) return "premium";
   if(v.includes("free") || v.includes("basic") || v.includes("自由")) return "free";
-  return v; // fallback
+  return v;
 }
 
 function normalizeColorClass_(raw){
-  const v = text(raw).toLowerCase();
+  const v = text(raw).toLowerCase().replace(/_/g,"-");
   if(!v) return "";
-  // accept: color-1..5 | c1..c5 | 1..5 | 粉藍橘紫綠
   if(/^color-\d$/.test(v)) return v;
   if(/^c[1-5]$/.test(v)) return "color-" + v.slice(1);
   if(/^[1-5]$/.test(v)) return "color-" + v;
@@ -336,8 +335,9 @@ function normalizeColorClass_(raw){
 }
 
 function normalizeStyle_(raw){
-  const v = text(raw).toLowerCase();
+  let v = text(raw).toLowerCase().replace(/_/g,"-");
   if(!v) return "";
+  v = v.replace(/^style-/, "");
   if(v.includes("arch") || v.includes("拱") || v.includes("s1")) return "arch";
   if(v.includes("flat") || v.includes("直") || v.includes("s2")) return "flat";
   if(v.includes("spot") || v.includes("晨") || v.includes("s3")) return "spot";
@@ -345,7 +345,7 @@ function normalizeStyle_(raw){
 }
 
 function normalizePaper_(raw){
-  const v = text(raw).toLowerCase();
+  let v = text(raw).toLowerCase().replace(/_/g,"-");
   if(!v) return "";
   if(v === "paper-1" || v.includes("f1") || v.includes("棉")) return "paper-1";
   if(v === "paper-2" || v.includes("f2") || v.includes("顆")) return "paper-2";
@@ -357,7 +357,6 @@ function normalizePaper_(raw){
 function normalizePremium_(raw){
   const v = text(raw).toLowerCase();
   if(!v) return "";
-  // accept: p1..p7 | 1..7
   if(/^p[1-7]$/.test(v)) return v;
   if(/^[1-7]$/.test(v)) return "p" + v;
   if(v.includes("胭")) return "p1";
@@ -371,36 +370,33 @@ function normalizePremium_(raw){
 }
 
 function syncStateFromPayload_(p){
-  // plan/mode
   const planRaw = pick(p, ["plan","方案","plan_name","mode","方案別"]);
   const plan = normalizePlan_(planRaw);
 
-  // free
   const colorRaw = pick(p, ["color","顏色","theme","free_color","color_id"]);
   const styleRaw = pick(p, ["style","版型","card_style","banner_style","style_id"]);
   const paperRaw = pick(p, ["paper","紙感","texture","paper_id"]);
-
-  // premium
   const premRaw  = pick(p, ["premium_color","premium","premium_theme","p_color","精品底色","premiumColor"]);
 
-  const c = normalizeColorClass_(colorRaw);
-  const s = normalizeStyle_(styleRaw);
+  const c  = normalizeColorClass_(colorRaw);
+  const s  = normalizeStyle_(styleRaw);
   const pa = normalizePaper_(paperRaw);
   const pr = normalizePremium_(premRaw);
 
-  // Decide mode:
+  // Decide mode (prefer explicit premium)
   if(plan === "premium" || pr){
     STATE.mode = "premium";
     if(pr) STATE.premium = pr;
   }else if(plan === "free"){
     STATE.mode = "free";
   }
-  // Fill free props if present:
-  if(c) STATE.color = c;
-  if(s) STATE.style = s;
-  if(pa) STATE.paper = pa;
 
-  // Safety defaults:
+  if(c)  STATE.color = c;
+  if(s)  STATE.style = s;
+  if(pa) STATE.paper = pa;
+  if(pr) STATE.premium = pr;
+
+  // Safety defaults
   if(!STATE.color) STATE.color = "color-1";
   if(!STATE.style) STATE.style = "arch";
   if(!STATE.paper) STATE.paper = "paper-1";
@@ -408,7 +404,6 @@ function syncStateFromPayload_(p){
 }
 
 function syncActiveButtonsFromState_(){
-  // Plan buttons
   const btnFree = qs("btnPlanFree");
   const btnPrem = qs("btnPlanPremium");
   if(btnFree && btnPrem){
@@ -418,14 +413,12 @@ function syncActiveButtonsFromState_(){
     btnPrem.classList.toggle("breathe", STATE.mode === "premium");
   }
 
-  // Theme buttons: match by data-value
   const themeValue = (STATE.mode === "premium") ? STATE.premium : STATE.color;
   qsa(`[data-group="theme"]`).forEach(el=>{
     const v = text(el.getAttribute("data-value"));
     el.classList.toggle("active", v === themeValue);
   });
 
-  // Style/paper only meaningful in free mode
   qsa(`[data-group="style"]`).forEach(el=>{
     const v = text(el.getAttribute("data-value"));
     el.classList.toggle("active", v === STATE.style);
@@ -740,11 +733,8 @@ const SOCIAL_SPECS = [
   { label:"IG", icon:"fa-brands fa-instagram", keys:["instagram","ig","ig_url"], resolver:(v)=> resolveHandleUrl_("instagram", v) },
   { label:"Threads", icon:"fa-solid fa-at", keys:["threads","threads_url"], resolver:(v)=> resolveHandleUrl_("threads", v) },
   { label:"X", icon:"fa-brands fa-x-twitter", keys:["x","twitter","x_url","twitter_url"], resolver:(v)=> resolveHandleUrl_("x", v) },
-
-  // WeChat/LINE excluded here (contact only)
   { label:"WeChat", icon:"fa-brands fa-weixin", keys:["wechat","微信","wechat_id","wechat_url","微信ID"], resolver:(_v)=> "" },
   { label:"LINE", icon:"fa-brands fa-line", keys:["line","line_oa","line_id","line_url","LINE連結","LINE官方帳號"], resolver:(_v)=> "" },
-
   { label:"小紅書", icon:"fa-solid fa-book", keys:["xiaohongshu","小紅書","rednote"], resolver:(v)=> resolveHandleUrl_("xiaohongshu", v) },
   { label:"官網", icon:"fa-solid fa-globe", keys:["website","web","homepage","url"], resolver:(v)=> resolveWebsite_(v) }
 ];
@@ -756,7 +746,7 @@ function ensureMediaDockMount_(){
   return { dock, btns };
 }
 
-function renderSpecsToDock_(p, specs, tag){
+function renderSpecsToDock_(p, specs){
   const mount = ensureMediaDockMount_();
   const btns = mount.btns;
   const dock = mount.dock;
@@ -796,8 +786,8 @@ function renderDocks_(p){
   if(mediaBtns) mediaBtns.innerHTML = "";
   if(cBtns) cBtns.innerHTML = "";
 
-  const hasMedia = renderSpecsToDock_(p, MEDIA_SPECS, "MEDIA");
-  const hasSocial = renderSpecsToDock_(p, SOCIAL_SPECS, "SOCIAL");
+  const hasMedia = renderSpecsToDock_(p, MEDIA_SPECS);
+  const hasSocial = renderSpecsToDock_(p, SOCIAL_SPECS);
   if(mediaDock) mediaDock.style.display = (hasMedia || hasSocial) ? "" : "none";
   applyWideRule_(mediaBtns);
 
