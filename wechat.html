@@ -13,7 +13,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>WeChat Poster | v495</title>
+  <title>WeChat Poster | v497</title>
   <meta name="description" content="WeChat Poster | Happiness Smart Card System" />
   <meta name="theme-color" content="#0f172a" />
 
@@ -73,7 +73,6 @@
       margin: 0 auto;
     }
 
-    /* Capture card (poster) */
     .poster{
       border-radius: var(--radius);
       background: linear-gradient(135deg, rgba(255,255,255,.13), rgba(255,255,255,.06));
@@ -161,19 +160,7 @@
       white-space: pre-wrap;
       word-break: break-word;
     }
-    .value.muted{
-      color: rgba(255,255,255,.55);
-    }
-
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-    }
-    @media (max-width: 380px){
-      .grid2{ grid-template-columns: 1fr; }
-      .name{ font-size: 26px; }
-    }
+    .value.muted{ color: rgba(255,255,255,.55); }
 
     .miniRow{
       display:flex;
@@ -189,6 +176,9 @@
       border: 1px solid rgba(255,255,255,.12);
       background: rgba(255,255,255,.08);
       flex: 0 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
     .logoMini img{
       width:100%; height:100%;
@@ -238,7 +228,6 @@
       background: rgba(255,255,255,.06);
     }
 
-    /* Buttons */
     .actions{
       display:flex;
       gap:10px;
@@ -265,7 +254,6 @@
       border-color: rgba(59,130,246,.35);
     }
 
-    /* Result image */
     .result{
       margin-top: 14px;
       display:none;
@@ -279,7 +267,6 @@
       background: rgba(255,255,255,.06);
     }
 
-    /* Toast */
     #toast{
       position: fixed;
       left: 50%;
@@ -311,7 +298,6 @@
       <div class="idPill"><span>ID :</span><span id="wId">—</span></div>
     </div>
 
-    <!-- Capture target -->
     <div id="capture" class="poster">
       <div class="header">
         <div class="avatarBox">
@@ -329,6 +315,7 @@
             <div style="font-size:12px;color:rgba(255,255,255,.62);font-weight:800;">Happiness Smart Card</div>
             <div class="logoMini">
               <img id="wLogo" alt="logo" style="display:none;" />
+              <div id="wLogoFallback" style="opacity:.55;font-weight:900;">◎</div>
             </div>
           </div>
         </div>
@@ -345,14 +332,12 @@
           <div id="wServices" class="value muted">—</div>
         </div>
 
-        <!-- Photos -->
         <div class="card" id="photosCard">
           <div class="label">照片</div>
           <div id="wPhotos" class="photos" style="display:none;"></div>
           <div id="wPhotosEmpty" class="value muted">—</div>
         </div>
 
-        <!-- QR -->
         <div class="card">
           <div class="label">掃碼查詢完整名片</div>
           <div class="qrWrap">
@@ -366,7 +351,6 @@
       </div>
     </div>
 
-    <!-- Actions -->
     <div class="actions">
       <button id="btnCopyLink" class="btn primary">複製連結</button>
       <button id="btnOpenLink" class="btn">開啟成品</button>
@@ -374,7 +358,6 @@
       <button id="btnBack" class="btn">返回</button>
     </div>
 
-    <!-- PNG output -->
     <div class="result" id="resultBox">
       <div style="margin:10px 0 8px; font-weight:900; letter-spacing:.2px;">PNG 預覽</div>
       <img id="resultImg" alt="poster png" style="display:none;" />
@@ -383,15 +366,12 @@
 
   <div id="toast">—</div>
 
-  <!-- IMPORTANT: libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-  <!-- App -->
-  <script src="./wechat.js?v=495"></script>
+  <script src="./wechat.js?v=4970"></script>
 
   <script>
-    // Small UI helpers (fallback avatar icon / show result box when PNG is produced)
     (function(){
       const av = document.getElementById("wAvatar");
       const avFb = document.getElementById("wAvatarFallback");
@@ -399,8 +379,13 @@
         av.addEventListener("load", () => { if (avFb) avFb.style.display="none"; });
         av.addEventListener("error", () => { if (avFb) avFb.style.display=""; });
       }
+      const lg = document.getElementById("wLogo");
+      const lgFb = document.getElementById("wLogoFallback");
+      if (lg) {
+        lg.addEventListener("load", () => { if (lgFb) lgFb.style.display="none"; });
+        lg.addEventListener("error", () => { if (lgFb) lgFb.style.display=""; });
+      }
 
-      // Observe resultImg display changes
       const resultImg = document.getElementById("resultImg");
       const resultBox = document.getElementById("resultBox");
       if (resultImg && resultBox) {
@@ -411,7 +396,6 @@
         obs.observe(resultImg, { attributes:true, attributeFilter:["style","src"] });
       }
 
-      // Photos empty toggle
       const photos = document.getElementById("wPhotos");
       const empty = document.getElementById("wPhotosEmpty");
       if (photos && empty) {
@@ -419,7 +403,7 @@
           const has = photos.children && photos.children.length > 0 && photos.style.display !== "none";
           empty.style.display = has ? "none" : "";
           const card = document.getElementById("photosCard");
-          if (card) card.style.display = ""; // always keep, but toggle content
+          if (card) card.style.display = "";
         });
         obs2.observe(photos, { childList:true, attributes:true, attributeFilter:["style"] });
       }
