@@ -1,722 +1,1835 @@
-/* ==========================================
- * Happiness Smart Card System — style.css v520 (COMPLETE OVERWRITE)
- * Focus:
- * ✅ Free：更有層次（微立體 / 材質紙感 / 輕呼吸）
- * ✅ Premium：整體提亮（不夜店）、聯繫區光影自然化、p6 金箔金屬感加強
- * ✅ Paper rename: paper-1/2/3 => 棉紙 / 象牙紙 / 霧灰（顯示名可在 HTML 文字處理；CSS負責質感）
- * ✅ Keep existing class hooks:
- *   body.mode-free|mode-premium
- *   .color-1..5  .style-arch|flat|spot  .paper-1..3
- *   .p1..p7
- * ========================================== */
+/* ================================
+
+* style.css v497 (COMPLETE OVERWRITE)
+
+* BASE: v408.3
+
+* FIX (per your request):
+
+* 1) Premium p6 金箔更亮（更金黃、金屬感更強）
+
+* 2) Premium 玻璃透明光感加強：黑色遮罩減弱、整體更透亮
+
+* NOTE:
+
+* - 其他全部保持 v408.3 原樣（Free 不動、版面不動）
+
+* ================================ */
 
 :root{
-  /* base */
-  --bg:#0b1220;
-  --bg2:#0f172a;
-  --text:rgba(255,255,255,.92);
-  --muted:rgba(255,255,255,.70);
-  --line:rgba(255,255,255,.10);
-  --soft:rgba(255,255,255,.06);
-  --card:rgba(255,255,255,.07);
 
-  /* layout */
-  --radius-card:24px;
-  --radius-soft:18px;
-  --shadow: 0 18px 60px rgba(0,0,0,.42);
-  --shadow-soft: 0 10px 26px rgba(0,0,0,.28);
+--bg:#f6f7fb;
 
-  /* free theme default */
-  --accent:#ffd39b;
-  --accent2:#ff9d6a;
-  --tint: rgba(255, 211, 155, .10);
+--ink:#1f2430;
 
-  /* premium theme default */
-  --pbg1: rgba(255,255,255,.10);
-  --pbg2: rgba(255,255,255,.04);
+--muted:rgba(31,36,48,.66);
 
-  /* paper (1=棉紙, 2=象牙紙, 3=霧灰) */
-  --paper-opacity: .22;
-  --paper-emboss: rgba(255,255,255,.08);
+--radius:26px;
 
-  /* breathing */
-  --breathe-a: rgba(255,255,255,.10);
-  --breathe-b: rgba(255,255,255,.18);
+--shadow:0 20px 60px rgba(0,0,0,.12);
+
+--shadow-soft:0 14px 34px rgba(0,0,0,.12);
+
+--card-white:rgba(255,255,255,.92);
+
+--line:rgba(0,0,0,.06);
+
+/* theme base */
+
+--p:#ff6b81;
+
+--s:#ff4757;
+
+/* free vivid tuning */
+
+--free-sat: 1.30;
+
+--free-contrast: 1.08;
+
+/* premium text contrast */
+
+--prem-ink: rgba(255,255,255,0.92);
+
+--prem-muted: rgba(255,255,255,0.74);
+
+--prem-soft: rgba(255,255,255,0.14);
+
+/* free background tint */
+
+--bgTint: rgba(255,255,255,0.0);
+
+/* accent for linkage (buttons/text) */
+
+--accentText: rgba(31,36,48,0.92);
+
+/* dot sizes */
+
+--dotFree: 36px;
+
+--dotPrem: 32px;
+
 }
 
 *{ box-sizing:border-box; }
-html,body{ height:100%; }
+
+html, body{
+
+height: auto;
+
+min-height: 100%;
+
+overflow-y: auto;
+
+-webkit-overflow-scrolling: touch;
+
+}
+
 body{
-  margin:0;
-  font-family:"Noto Sans TC", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-  color:var(--text);
-  background:
-    radial-gradient(1200px 900px at 18% -10%, rgba(255,255,255,.08), transparent 55%),
-    radial-gradient(900px 700px at 92% 12%, rgba(255,255,255,.06), transparent 60%),
-    linear-gradient(180deg, var(--bg), var(--bg2));
-  overflow-x:hidden;
+
+margin:0;
+
+font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+background:
+
+radial-gradient(1100px 700px at 20% 0%, var(--bgTint), transparent 62%),
+
+radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.06), transparent 60%),
+
+var(--bg);
+
+color: var(--ink);
+
 }
 
-/* ------------------------------------------
- * Global helpers
- * ------------------------------------------ */
-.preline{ white-space:pre-line; }
-.hidden{ display:none !important; }
+/* ---------- Free colors (c1~c5) ---------- */
 
-/* subtle “clean” divider */
-.hr{
-  height:1px;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent);
-}
+body.color-1{ --p:#ff5f7b; --s:#ff2f45; --bgTint: rgba(255,95,123,0.16); --accentText: rgba(126,20,44,0.92); }
 
-/* ------------------------------------------
- * Card container assumptions (safe)
- * - 不綁死 DOM：只針對常見 class/id 做柔性 styling
- * ------------------------------------------ */
-.card,
-#card,
-#cardRoot,
-.card-wrap,
-.container{
-  width:min(720px, calc(100% - 28px));
-  margin:18px auto 26px;
-}
+body.color-2{ --p:#1d88ff; --s:#2e3cff; --bgTint: rgba(29,136,255,0.14); --accentText: rgba(10,55,128,0.92); }
 
-.card-shell,
-#cardShell,
-#cardContainer,
-.card-container{
-  border-radius:var(--radius-card);
-  background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.10);
-  box-shadow: var(--shadow);
-  overflow:hidden;
-  position:relative;
-}
+body.color-3{ --p:#ff9f1a; --s:#ff6f00; --bgTint: rgba(255,159,26,0.14); --accentText: rgba(120,62,0,0.92); }
 
-/* Free mode: add gentle tint underlay */
-body.mode-free .card-shell,
-body.mode-free #cardShell,
-body.mode-free #cardContainer,
-body.mode-free .card-container{
-  background:
-    radial-gradient(900px 520px at 20% -10%, var(--tint), transparent 55%),
-    radial-gradient(700px 500px at 88% 18%, rgba(255,255,255,.06), transparent 58%),
-    rgba(255,255,255,.045);
-  border-color: rgba(255,255,255,.12);
-}
+body.color-4{ --p:#7a57ff; --s:#4f22d8; --bgTint: rgba(122,87,255,0.14); --accentText: rgba(50,24,128,0.92); }
 
-/* Premium mode: brighter glass (avoid “night club”) */
-body.mode-premium .card-shell,
-body.mode-premium #cardShell,
-body.mode-premium #cardContainer,
-body.mode-premium .card-container{
-  background:
-    radial-gradient(900px 620px at 18% -8%, rgba(255,255,255,.16), transparent 58%),
-    radial-gradient(700px 520px at 88% 22%, rgba(255,255,255,.10), transparent 60%),
-    linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
-  border-color: rgba(255,255,255,.16);
+body.color-5{ --p:#2bd46f; --s:#0ea97b; --bgTint: rgba(43,212,111,0.14); --accentText: rgba(0,92,64,0.92); }
+
+/* ---------- Premium tones (p1~p7) (only vars) ---------- */
+
+body.p1{ --p:#d96c6c; --s:#b23b3b; }
+
+body.p2{ --p:#722f37; --s:#4e1f25; }
+
+body.p3{ --p:#1c2e42; --s:#101d2b; }
+
+body.p4{ --p:#5e548e; --s:#40376b; }
+
+body.p5{ --p:#a9b7c7; --s:#5f7489; --prem-soft: rgba(255,255,255,0.16); }
+
+/* ✅ v491: p6 金箔底色更亮、更金黃 */
+
+body.p6{ --p:#f2c14b; --s:#bf953f; }
+
+body.p7{ --p:#5a4a3f; --s:#2f2926; }
+
+/* ---------- Sticky control panel ---------- */
+
+#admin-panel{
+
+position: sticky;
+
+top: 0;
+
+z-index: 50;
+
+padding: 12px 12px 10px;
+
+background: rgba(255,255,255,0.78);
+
+backdrop-filter: blur(10px);
+
+-webkit-backdrop-filter: blur(10px);
+
+border-bottom: 1px solid rgba(0,0,0,0.06);
+
 }
 
-/* micro-emboss edge (clean, not “dirty”) */
-.card-shell::before,
-#cardShell::before,
-#cardContainer::before,
-.card-container::before{
-  content:"";
-  position:absolute; inset:0;
-  pointer-events:none;
-  border-radius:inherit;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.08), transparent 32%),
-    linear-gradient(0deg, rgba(0,0,0,.18), transparent 28%);
-  opacity:.75;
-  mix-blend-mode: overlay;
+body.mode-premium{
+
+background:
+
+radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.12), transparent 56%),
+
+radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.08), transparent 60%),
+
+#0f1218;
+
+color: var(--prem-ink);
+
 }
 
-/* ------------------------------------------
- * Banner (free only) — 3 styles: arch / flat / spot
- * ------------------------------------------ */
-#banner,
-.banner{
-  position:relative;
-  padding:18px 18px 14px;
-  border-bottom:1px solid rgba(255,255,255,.10);
+body.mode-premium #admin-panel{
+
+background: rgba(18,20,28,0.62);
+
+border-bottom: 1px solid rgba(255,255,255,0.10);
+
 }
 
-/* base banner glow */
-#banner::after,
-.banner::after{
-  content:"";
-  position:absolute; inset:-40px -40px auto -40px;
-  height:160px;
-  background:
-    radial-gradient(220px 140px at 14% 30%, rgba(255,255,255,.18), transparent 60%),
-    radial-gradient(240px 160px at 72% 12%, rgba(255,255,255,.12), transparent 65%);
-  pointer-events:none;
-  opacity:.55;
+.panel-inner{
+
+max-width: 520px;
+
+margin: 0 auto;
+
+display:flex;
+
+flex-direction:column;
+
+gap: 10px;
+
+align-items:center;
+
 }
 
-body.mode-premium #banner,
-body.mode-premium .banner{ display:none; }
+#card-container{
 
-/* arch */
-body.style-arch #banner,
-body.style-arch .banner{
-  background:
-    radial-gradient(900px 280px at 50% -40%, rgba(255,255,255,.16), transparent 62%),
-    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
-}
-body.style-arch #banner::before,
-body.style-arch .banner::before{
-  content:"";
-  position:absolute; left:-25%; right:-25%; top:-70%;
-  height:210%;
-  border-radius: 0 0 55% 55%;
-  background: radial-gradient(closest-side, rgba(255,255,255,.14), transparent 68%);
-  opacity:.70;
-  pointer-events:none;
+max-width: 520px;
+
+margin: 0 auto;
+
+padding: 14px 12px 70px;
+
 }
 
-/* flat */
-body.style-flat #banner,
-body.style-flat .banner{
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
+/* ---------- Card ---------- */
+
+.card{
+
+position:relative;
+
+border-radius: var(--radius);
+
+overflow:hidden;
+
+box-shadow: var(--shadow);
+
+border: 1px solid var(--line);
+
+background: var(--card-white);
+
 }
 
-/* spot */
-body.style-spot #banner,
-body.style-spot .banner{
-  background:
-    radial-gradient(420px 220px at 18% 20%, rgba(255,255,255,.16), transparent 62%),
-    radial-gradient(420px 220px at 82% 28%, rgba(255,255,255,.10), transparent 65%),
-    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+/* Free vivid */
+
+body.mode-free .card{
+
+filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
+
 }
 
-/* ------------------------------------------
- * Paper overlay (free only) — renamed mapping:
- * paper-1 棉紙 / paper-2 象牙紙 / paper-3 霧灰
- * ------------------------------------------ */
-#paperOverlay,
-.paperOverlay{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity: var(--paper-opacity);
-  mix-blend-mode: overlay;
+/* =========================
+
+* Premium base tone (linked) + brighten (v491)
+
+* ✅ 黑色遮罩減弱（更透亮）
+
+* ========================= */
+
+body.mode-premium .card{
+
+border: 1px solid rgba(255,255,255,0.14);
+
+box-shadow: 0 28px 86px rgba(0,0,0,0.58);
+
+background:
+
+/* ✅ v491: less dark mask, brighter glass */
+
+linear-gradient(180deg, rgba(10,12,18,0.18), rgba(10,12,18,0.34)),
+
+/* main tone linked to selection */
+
+linear-gradient(135deg, var(--p), var(--s));
+
+backdrop-filter: blur(16px);
+
+-webkit-backdrop-filter: blur(16px);
+
 }
 
-/* default off in premium */
-body.mode-premium #paperOverlay,
-body.mode-premium .paperOverlay{ display:none !important; }
+/* Premium color FX + sparkle (natural) */
 
-/* base paper: subtle fibers + faint grain (clean) */
-body.mode-free #paperOverlay,
-body.mode-free .paperOverlay{
-  background:
-    /* soft fibers */
-    repeating-linear-gradient(
-      115deg,
-      rgba(255,255,255,.08) 0px,
-      rgba(255,255,255,.08) 1px,
-      rgba(255,255,255,0) 4px,
-      rgba(255,255,255,0) 9px
-    ),
-    /* gentle grain */
-    radial-gradient(1200px 900px at 12% 0%, rgba(255,255,255,.10), transparent 60%),
-    radial-gradient(900px 700px at 90% 18%, rgba(255,255,255,.06), transparent 62%);
+.premium-fx-layer{
+
+position:absolute;
+
+inset:0;
+
+pointer-events:none !important;
+
+touch-action:none !important;
+
+opacity:0;
+
+z-index: 1;
+
 }
 
-/* paper-1 棉紙：纖維更明顯但柔 */
-body.paper-1 #paperOverlay,
-body.paper-1 .paperOverlay{
-  opacity: .26;
-  background:
-    repeating-linear-gradient(
-      110deg,
-      rgba(255,255,255,.11) 0px,
-      rgba(255,255,255,.11) 1px,
-      rgba(255,255,255,0) 5px,
-      rgba(255,255,255,0) 12px
-    ),
-    repeating-linear-gradient(
-      25deg,
-      rgba(255,255,255,.06) 0px,
-      rgba(255,255,255,.06) 1px,
-      rgba(255,255,255,0) 6px,
-      rgba(255,255,255,0) 14px
-    ),
-    radial-gradient(900px 650px at 16% 10%, rgba(255,255,255,.10), transparent 62%);
+body.mode-premium .premium-fx-layer{
+
+opacity:1;
+
+background:
+
+radial-gradient(980px 560px at 16% 6%, rgba(255,255,255,0.20), transparent 62%),
+
+radial-gradient(820px 560px at 94% 2%, rgba(255,255,255,0.14), transparent 64%),
+
+radial-gradient(140px 140px at 74% 18%, rgba(255,255,255,0.22), transparent 70%),
+
+radial-gradient(220px 220px at 62% 26%, rgba(255,233,168,0.14), transparent 72%);
+
+mix-blend-mode: screen;
+
+opacity: .24;
+
+filter: blur(18px) saturate(1.06);
+
 }
 
-/* paper-2 象牙紙：更溫潤、霧面、顆粒更細 */
-body.paper-2 #paperOverlay,
-body.paper-2 .paperOverlay{
-  opacity: .22;
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(255,255,255,.07) 0px,
-      rgba(255,255,255,.07) 1px,
-      rgba(255,255,255,0) 7px,
-      rgba(255,255,255,0) 16px
-    ),
-    radial-gradient(800px 600px at 50% 0%, rgba(255,255,255,.10), transparent 62%),
-    radial-gradient(1200px 900px at 50% 80%, rgba(255,255,255,.05), transparent 70%);
+/* p5 gold foil gentle diagonal sheen (keep) */
+
+body.mode-premium.p5 .premium-fx-layer{
+
+background:
+
+radial-gradient(980px 560px at 16% 6%, rgba(255,255,255,0.16), transparent 62%),
+
+radial-gradient(820px 560px at 94% 2%, rgba(255,255,255,0.12), transparent 64%),
+
+linear-gradient(115deg,
+
+rgba(255,233,168,0.00) 0%,
+
+rgba(255,233,168,0.16) 24%,
+
+rgba(191,149,63,0.12) 40%,
+
+rgba(255,255,255,0.06) 54%,
+
+rgba(191,149,63,0.10) 68%,
+
+rgba(255,233,168,0.00) 100%
+
+);
+
+mix-blend-mode: screen;
+
+opacity: .22;
+
+filter: blur(18px) saturate(1.04);
+
 }
 
-/* paper-3 霧灰：更霧、更冷、更乾淨的細砂 */
-body.paper-3 #paperOverlay,
-body.paper-3 .paperOverlay{
-  opacity: .20;
-  mix-blend-mode: soft-light;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255,255,255,.05) 0px,
-      rgba(255,255,255,.05) 1px,
-      rgba(255,255,255,0) 8px,
-      rgba(255,255,255,0) 18px
-    ),
-    radial-gradient(900px 700px at 18% 12%, rgba(255,255,255,.08), transparent 60%),
-    radial-gradient(900px 700px at 86% 18%, rgba(255,255,255,.06), transparent 62%);
+/* =========================
+
+* Premium p6 metallic foil (v491)
+
+* ✅ 更亮更金黃：更高亮度 bands + 更乾淨金屬 sheen
+
+* ========================= */
+
+body.mode-premium.p6 .premium-fx-layer{
+
+background:
+
+/* broad highlights */
+
+radial-gradient(980px 560px at 16% 6%, rgba(255,255,255,0.28), transparent 62%),
+
+radial-gradient(820px 560px at 94% 2%, rgba(255,255,255,0.18), transparent 64%),
+
+/* metallic bands (brighter + more golden) */
+
+linear-gradient(118deg,
+
+rgba(255,255,255,0.00) 0%,
+
+rgba(255,255,255,0.14) 16%,
+
+rgba(255,246,210,0.40) 28%,
+
+rgba(255,233,168,0.44) 38%,
+
+rgba(191,149,63,0.28) 48%,
+
+rgba(255,255,255,0.18) 56%,
+
+rgba(191,149,63,0.24) 66%,
+
+rgba(255,233,168,0.38) 78%,
+
+rgba(255,255,255,0.00) 100%
+
+),
+
+/* subtle foil grain (very gentle) */
+
+radial-gradient(1px 1px at 22px 18px, rgba(255,255,255,0.10), transparent 60%),
+
+radial-gradient(1px 1px at 58px 46px, rgba(0,0,0,0.05), transparent 60%),
+
+radial-gradient(1px 1px at 96px 28px, rgba(255,255,255,0.08), transparent 60%);
+
+background-size: auto, auto, auto, 78px 78px, 92px 92px, 110px 110px;
+
+mix-blend-mode: screen;
+
+opacity: .30;
+
+filter: blur(14px) saturate(1.10);
+
 }
 
-/* ------------------------------------------
- * FREE palette (color-1..5) — keep clean, add subtle tint underlay
- * ------------------------------------------ */
-body.color-1{ --accent:#ffd39b; --accent2:#ff9d6a; --tint:rgba(255, 211, 155, .10); }
-body.color-2{ --accent:#9bd6ff; --accent2:#5ab8ff; --tint:rgba(155, 214, 255, .10); }
-body.color-3{ --accent:#ffc07a; --accent2:#ff8c3a; --tint:rgba(255, 192, 122, .10); }
-body.color-4{ --accent:#d7b2ff; --accent2:#a879ff; --tint:rgba(215, 178, 255, .10); }
-body.color-5{ --accent:#a9f3c8; --accent2:#4fe29a; --tint:rgba(169, 243, 200, .10); }
+/* Premium glass coat (v491: clearer / brighter / more transparent light) */
 
-/* subtle background tint for free mode to avoid “plain” */
-body.mode-free{
-  background:
-    radial-gradient(1200px 900px at 18% -10%, rgba(255,255,255,.08), transparent 55%),
-    radial-gradient(900px 700px at 92% 12%, rgba(255,255,255,.06), transparent 60%),
-    radial-gradient(1200px 900px at 50% 120%, var(--tint), transparent 55%),
-    linear-gradient(180deg, var(--bg), var(--bg2));
-}
+body.mode-premium .card::before{
 
-/* ------------------------------------------
- * Typography blocks (safe)
- * ------------------------------------------ */
-#u-name, .u-name{
-  font-size:28px;
-  font-weight:900;
-  letter-spacing:.4px;
-  line-height:1.15;
-  text-shadow: 0 2px 12px rgba(0,0,0,.22);
-}
-#u-unit, .u-unit{
-  margin-top:6px;
-  font-size:14px;
-  opacity:.88;
-}
-#u-title, .u-title{
-  margin-top:2px;
-  font-size:15px;
-  opacity:.92;
-  font-weight:700;
-}
-#u-slogan, .u-slogan{
-  margin-top:10px;
-  font-size:14px;
-  line-height:1.55;
-  opacity:.86;
+content:"";
+
+position:absolute;
+
+inset:0;
+
+pointer-events:none;
+
+z-index: 2;
+
+background:
+
+/* ✅ v491: stronger clear highlight */
+
+linear-gradient(135deg, rgba(255,255,255,0.28), rgba(255,255,255,0.00) 50%),
+
+radial-gradient(760px 360px at 30% 0%, rgba(255,255,255,0.28), transparent 62%);
+
+opacity: .98;
+
+mix-blend-mode: soft-light;
+
 }
 
-/* ------------------------------------------
- * Avatar / Logo — add “clean” depth (free), premium stronger glass rim
- * ------------------------------------------ */
-#u-img, .u-img{
-  width:96px; height:96px;
-  border-radius:22px;
-  object-fit:cover;
-  background: rgba(255,255,255,.06);
-  box-shadow: 0 14px 30px rgba(0,0,0,.34);
-  border:1px solid rgba(255,255,255,.14);
-}
-body.mode-free #u-img, body.mode-free .u-img{
-  box-shadow:
-    0 18px 34px rgba(0,0,0,.34),
-    0 0 0 1px rgba(255,255,255,.10) inset;
-}
-body.mode-premium #u-img, body.mode-premium .u-img{
-  border-color: rgba(255,255,255,.20);
-  box-shadow:
-    0 20px 46px rgba(0,0,0,.34),
-    0 0 0 1px rgba(255,255,255,.14) inset;
+body.mode-premium .card::after{
+
+content:"";
+
+position:absolute;
+
+inset:0;
+
+pointer-events:none;
+
+z-index: 2;
+
+background:
+
+/* ✅ v491: brighter top coat */
+
+linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.00) 40%);
+
+opacity: .70;
+
+mix-blend-mode: overlay;
+
 }
 
-/* logo wrap / logo */
-#logoWrap, .logoWrap{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-#u-logo, .u-logo{
-  width:52px; height:52px;
-  border-radius:999px;
-  object-fit:cover;
-  background: rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.16);
-  box-shadow: 0 14px 28px rgba(0,0,0,.30);
-}
-body.mode-free #u-logo, body.mode-free .u-logo{
-  box-shadow:
-    0 14px 28px rgba(0,0,0,.30),
-    0 0 0 1px rgba(255,255,255,.10) inset;
-}
-body.mode-premium #u-logo, body.mode-premium .u-logo{
-  border-color: rgba(255,255,255,.22);
-  box-shadow:
-    0 18px 40px rgba(0,0,0,.30),
-    0 0 0 1px rgba(255,255,255,.14) inset;
+.info-scroll{
+
+position: relative;
+
+z-index: 3;
+
+padding: 10px 18px 18px;
+
 }
 
-/* ------------------------------------------
- * Info blocks (服務/經歷/影音社群/聯繫/照片牆)
- * ------------------------------------------ */
-.info-block,
-#block-service, #block-exp,
-#mediaDock, #contactDock, #photoWall{
-  margin:14px 16px;
-  padding:14px 14px;
-  border-radius:20px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.05);
-  box-shadow: var(--shadow-soft);
-  position:relative;
-  overflow:hidden;
+.name{
+
+margin: 10px 0 6px;
+
+font-size: 22px;
+
+letter-spacing: 0.6px;
+
+font-weight: 900;
+
+text-align:center;
+
 }
 
-/* cleaner highlight edge */
-.info-block::before,
-#block-service::before, #block-exp::before,
-#mediaDock::before, #contactDock::before, #photoWall::before{
-  content:"";
-  position:absolute; inset:0;
-  pointer-events:none;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.10), transparent 28%),
-    linear-gradient(0deg, rgba(0,0,0,.18), transparent 30%);
-  opacity:.72;
-  mix-blend-mode: overlay;
+.unit, .title{
+
+text-align:center;
+
+font-weight: 800;
+
+font-size: 13px;
+
+color: var(--muted);
+
+line-height: 1.55;
+
 }
 
-/* FREE: add gentle accent glow (not loud) */
-body.mode-free .info-block,
-body.mode-free #block-service, body.mode-free #block-exp,
-body.mode-free #mediaDock, body.mode-free #contactDock, body.mode-free #photoWall{
-  background:
-    radial-gradient(600px 240px at 14% 0%, rgba(255,255,255,.08), transparent 60%),
-    radial-gradient(520px 260px at 86% 10%, rgba(255,255,255,.05), transparent 62%),
-    rgba(255,255,255,.045);
-  border-color: rgba(255,255,255,.14);
+body.mode-premium .unit,
+
+body.mode-premium .title{ color: var(--prem-muted); }
+
+/* ---------- Banner ---------- */
+
+.banner{ position: relative; height: 130px; overflow:hidden; }
+
+body.mode-free .banner{ display:block; }
+
+body.mode-premium .banner{ display:none !important; }
+
+.dynamic-mask{
+
+position:absolute;
+
+inset:0;
+
+pointer-events:none;
+
+background:
+
+radial-gradient(520px 220px at 50% 35%, rgba(255,255,255,0.25), transparent 70%),
+
+radial-gradient(680px 260px at 80% 20%, rgba(0,0,0,0.08), transparent 70%);
+
+opacity: .55;
+
 }
 
-/* PREMIUM: brighten glass */
-body.mode-premium .info-block,
-body.mode-premium #block-service, body.mode-premium #block-exp,
-body.mode-premium #mediaDock, body.mode-premium #contactDock, body.mode-premium #photoWall{
-  background:
-    radial-gradient(600px 240px at 14% 0%, rgba(255,255,255,.14), transparent 60%),
-    radial-gradient(520px 260px at 86% 10%, rgba(255,255,255,.10), transparent 62%),
-    linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.05));
-  border-color: rgba(255,255,255,.18);
+/* v407.7: banner richer saturation (only banner) */
+
+body.mode-free .banner{
+
+filter: saturate(1.30) contrast(1.08);
+
 }
 
-/* titles inside blocks (safe) */
+/* style-arch */
+
+body.mode-free.style-arch .banner{
+
+background:
+
+radial-gradient(900px 320px at 50% -10%, rgba(255,255,255,0.50), transparent 70%),
+
+radial-gradient(640px 260px at 18% 6%, rgba(255,255,255,0.18), transparent 70%),
+
+linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0.00)),
+
+linear-gradient(135deg, var(--p), var(--s));
+
+}
+
+body.mode-free.style-arch .banner::after{
+
+content:"";
+
+position:absolute;
+
+left:-25%; right:-25%;
+
+bottom:-66px;
+
+height:140px;
+
+background: rgba(255,255,255,0.92);
+
+border-top-left-radius: 80% 100%;
+
+border-top-right-radius: 80% 100%;
+
+opacity: .95;
+
+}
+
+/* style-flat */
+
+body.mode-free.style-flat .banner{
+
+background:
+
+radial-gradient(780px 280px at 40% 0%, rgba(255,255,255,0.42), transparent 70%),
+
+radial-gradient(520px 220px at 12% 8%, rgba(255,255,255,0.16), transparent 72%),
+
+linear-gradient(135deg, var(--p), var(--s));
+
+}
+
+body.mode-free.style-flat .banner::after{
+
+content:"";
+
+position:absolute;
+
+left:0; right:0;
+
+bottom:0;
+
+height:18px;
+
+background: rgba(255,255,255,0.92);
+
+opacity: .90;
+
+}
+
+/* style-spot */
+
+body.mode-free.style-spot .banner{
+
+background:
+
+radial-gradient(520px 220px at 20% 0%, rgba(255,255,255,0.52), transparent 72%),
+
+radial-gradient(620px 260px at 80% 10%, rgba(255,255,255,0.24), transparent 70%),
+
+radial-gradient(520px 260px at 12% 12%, rgba(255,255,255,0.14), transparent 72%),
+
+linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.05)),
+
+linear-gradient(135deg, var(--p), var(--s));
+
+}
+
+body.mode-free.style-spot .banner::after{
+
+content:"";
+
+position:absolute;
+
+left:-10%; right:-10%;
+
+bottom:-52px;
+
+height:120px;
+
+background: rgba(255,255,255,0.92);
+
+border-top-left-radius: 60% 100%;
+
+border-top-right-radius: 60% 100%;
+
+opacity: .92;
+
+}
+
+/* ---------- Paper overlay (Free only) ---------- */
+
+.paper-overlay{ position:absolute; inset:0; pointer-events:none; opacity:1; z-index: 2; }
+
+body.mode-premium .paper-overlay{ display:none !important; }
+
+/* ---------- Avatar ---------- */
+
+.avatar-wrap{
+
+position: relative;
+
+display:flex;
+
+justify-content:center;
+
+padding-bottom: 6px;
+
+z-index: 6;
+
+}
+
+body.mode-free .avatar-wrap{ margin-top: -58px; }
+
+body.mode-premium .avatar-wrap{ margin-top: 18px; padding-top: 6px; }
+
+.avatar-circle{
+
+width: 112px;
+
+height: 112px;
+
+border-radius: 999px;
+
+background: rgba(255,255,255,0.92);
+
+padding: 6px;
+
+border: 1px solid rgba(0,0,0,0.08);
+
+box-shadow: var(--shadow-soft);
+
+position: relative;
+
+z-index: 7;
+
+}
+
+/* v407.7: Free avatar more 3D (clean, not heavy) */
+
+body.mode-free .avatar-circle{
+
+border: 1px solid rgba(255,255,255,0.78);
+
+box-shadow:
+
+0 18px 42px rgba(0,0,0,0.16),
+
+0 0 0 1px rgba(0,0,0,0.06),
+
+inset 0 2px 0 rgba(255,255,255,0.70),
+
+inset 0 -16px 18px rgba(0,0,0,0.06);
+
+}
+
+/* v407.7: Premium avatar rim stronger + floating */
+
+body.mode-premium .avatar-circle{
+
+background: rgba(255,255,255,0.16);
+
+border: 1px solid rgba(255,255,255,0.66);
+
+box-shadow:
+
+0 22px 56px rgba(0,0,0,0.64),
+
+0 0 0 1px rgba(0,0,0,0.18),
+
+inset 0 2px 0 rgba(255,255,255,0.18),
+
+inset 0 -18px 22px rgba(0,0,0,0.22);
+
+backdrop-filter: blur(12px);
+
+-webkit-backdrop-filter: blur(12px);
+
+}
+
+.avatar{
+
+width: 100%;
+
+height: 100%;
+
+border-radius: 999px;
+
+object-fit: cover;
+
+display:block;
+
+}
+
+/* ---------- Logo ---------- */
+
+.logo-wrap{ display:flex; justify-content:center; padding: 6px 0 0; position: relative; z-index: 6; }
+
+.logo-img{
+
+width: 56px;
+
+height: 56px;
+
+border-radius: 999px;
+
+object-fit: cover;
+
+background: rgba(255,255,255,0.92);
+
+border: 1px solid rgba(0,0,0,0.08);
+
+box-shadow: 0 14px 26px rgba(0,0,0,0.14);
+
+}
+
+/* v407.7: Free logo more 3D (match avatar) */
+
+body.mode-free .logo-img{
+
+border: 1px solid rgba(255,255,255,0.78);
+
+box-shadow:
+
+0 16px 34px rgba(0,0,0,0.16),
+
+0 0 0 1px rgba(0,0,0,0.06),
+
+inset 0 2px 0 rgba(255,255,255,0.65),
+
+inset 0 -12px 16px rgba(0,0,0,0.06);
+
+}
+
+body.mode-premium .logo-img{
+
+background: rgba(255,255,255,0.14);
+
+border: 1px solid rgba(255,255,255,0.22);
+
+box-shadow: 0 18px 45px rgba(0,0,0,0.55);
+
+backdrop-filter: blur(12px);
+
+-webkit-backdrop-filter: blur(12px);
+
+}
+
+/* ---------- Slogan ---------- */
+
+#u-slogan{
+
+width: 100%;
+
+max-width: 420px;
+
+margin: 10px auto 0;
+
+padding: 10px 14px;
+
+text-align: center;
+
+text-align-last: center;
+
+white-space: pre-line;
+
+line-height: 1.6;
+
+letter-spacing: .2px;
+
+word-break: break-word;
+
+font-weight: 900;
+
+text-shadow: 0 10px 24px rgba(0,0,0,0.12);
+
+}
+
+body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
+
+/* ---------- Paper textures ---------- */
+
+:root{
+
+--paper-strength: 0.32;
+
+--paper-grain: 0.16;
+
+--paper-fiber: 0.12;
+
+}
+
+body.mode-free.paper-1 .paper-overlay{
+
+background:
+
+radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 60%),
+
+radial-gradient(1px 1px at 38px 42px, rgba(0,0,0,calc(var(--paper-grain) * 0.88)), transparent 60%),
+
+radial-gradient(1px 1px at 64px 22px, rgba(0,0,0,calc(var(--paper-grain) * 0.78)), transparent 60%),
+
+linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.03));
+
+background-size: 78px 78px, 92px 92px, 110px 110px, auto;
+
+mix-blend-mode: soft-light;
+
+opacity: var(--paper-strength);
+
+}
+
+body.mode-free.paper-2 .paper-overlay{
+
+background:
+
+radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.18), transparent 60%),
+
+radial-gradient(1px 1px at 26px 44px, rgba(0,0,0,0.16), transparent 60%),
+
+radial-gradient(1px 1px at 58px 30px, rgba(0,0,0,0.14), transparent 60%),
+
+radial-gradient(1px 1px at 84px 62px, rgba(0,0,0,0.12), transparent 60%),
+
+linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.03));
+
+background-size: 56px 56px, 74px 74px, 92px 92px, 110px 110px, auto;
+
+mix-blend-mode: overlay;
+
+opacity: calc(var(--paper-strength) + 0.08);
+
+}
+
+body.mode-free.paper-3 .paper-overlay{
+
+background:
+
+repeating-linear-gradient(45deg, rgba(0,0,0, var(--paper-fiber)) 0px, rgba(0,0,0, var(--paper-fiber)) 1px, transparent 1px, transparent 7px),
+
+repeating-linear-gradient(-45deg, rgba(0,0,0, calc(var(--paper-fiber) * 0.78)) 0px, rgba(0,0,0, calc(var(--paper-fiber) * 0.78)) 1px, transparent 1px, transparent 9px),
+
+linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03));
+
+mix-blend-mode: soft-light;
+
+opacity: calc(var(--paper-strength) + 0.10);
+
+}
+
+/* ---------- Controls layout ---------- */
+
+.section-title{
+
+width:100%;
+
+max-width: 520px;
+
+font-weight: 900;
+
+font-size: 13px;
+
+letter-spacing: .4px;
+
+opacity:.82;
+
+text-align:left;
+
+}
+
+.btn-row, .plan-row{
+
+display:flex;
+
+gap:10px;
+
+width:100%;
+
+max-width:520px;
+
+}
+
+.controls-block{
+
+width:100%;
+
+max-width:520px;
+
+display:flex;
+
+flex-direction:column;
+
+gap:10px;
+
+align-items:center;
+
+}
+
+.dots-row{
+
+display:flex;
+
+gap:14px;
+
+align-items:center;
+
+justify-content:center;
+
+padding: 2px 0 4px;
+
+}
+
+/* ---------- Selector Buttons ---------- */
+
+.btn-neo{
+
+border-radius: 14px;
+
+font-weight: 900;
+
+font-size: 14px;
+
+letter-spacing: 0.4px;
+
+cursor:pointer;
+
+user-select:none;
+
+padding: 12px 14px;
+
+border: 1px solid rgba(0,0,0,0.14);
+
+background:
+
+radial-gradient(120% 160% at 20% 0%, rgba(255,255,255,0.92), rgba(255,255,255,0.76) 55%, rgba(255,255,255,0.72)),
+
+linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.82));
+
+box-shadow:
+
+0 18px 40px rgba(0,0,0,0.16),
+
+inset 0 2px 0 rgba(255,255,255,0.92),
+
+inset 0 -14px 18px rgba(0,0,0,0.12);
+
+transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+
+text-align: center;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+line-height: 1.15;
+
+white-space: nowrap;
+
+}
+
+.btn-neo:hover{ transform: translateY(-1px); }
+
+.btn-neo:active{
+
+transform: translateY(0px) scale(0.985);
+
+box-shadow:
+
+0 12px 26px rgba(0,0,0,0.14),
+
+inset 0 3px 10px rgba(0,0,0,0.12);
+
+}
+
+.btn-neo.pill{
+
+flex:1; min-width:0;
+
+padding: 14px 10px;
+
+border-radius: 999px;
+
+}
+
+.btn-neo.active{
+
+border-color: rgba(0,0,0,0.20);
+
+filter: saturate(1.06);
+
+box-shadow:
+
+0 18px 36px rgba(0,0,0,0.16),
+
+inset 0 2px 10px rgba(0,0,0,0.12),
+
+inset 0 1px 0 rgba(255,255,255,0.70);
+
+}
+
+/* Premium selector pill */
+
+body.mode-premium .btn-neo{
+
+position: relative;
+
+border: 1px solid rgba(255,255,255,0.14);
+
+background:
+
+radial-gradient(120% 160% at 20% 0%, rgba(255,255,255,0.14), rgba(255,255,255,0.06) 55%, rgba(255,255,255,0.05)),
+
+rgba(255,255,255,0.06);
+
+color: rgba(255,255,255,0.92);
+
+box-shadow:
+
+0 22px 52px rgba(0,0,0,0.62),
+
+inset 0 2px 0 rgba(255,255,255,0.12),
+
+inset 0 -18px 22px rgba(0,0,0,0.26);
+
+backdrop-filter: blur(10px);
+
+-webkit-backdrop-filter: blur(10px);
+
+}
+
+body.mode-premium .btn-neo::after{
+
+content:"";
+
+position:absolute; inset:-1px;
+
+border-radius: inherit;
+
+padding: 1px;
+
+background: linear-gradient(135deg, rgba(255,233,168,0.52), rgba(191,149,63,0.70), rgba(255,255,255,0.10));
+
+-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+
+-webkit-mask-composite: xor; mask-composite: exclude;
+
+pointer-events:none;
+
+opacity: .90;
+
+}
+
+body.mode-premium .btn-neo.active{
+
+border-color: rgba(255,255,255,0.22);
+
+background: rgba(255,255,255,0.12);
+
+}
+
+/* ---------- CTA buttons: center text exactly ---------- */
+
+.btn-cta{
+
+width: 100%;
+
+max-width: 520px;
+
+padding: 13px 14px;
+
+border-radius: 16px;
+
+border: none;
+
+background: linear-gradient(135deg, var(--p), var(--s));
+
+color: #fff;
+
+font-weight: 900;
+
+letter-spacing: 0.5px;
+
+box-shadow: 0 18px 34px rgba(0,0,0,0.16);
+
+cursor:pointer;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+text-align:center;
+
+gap: 10px;
+
+line-height: 1.15;
+
+}
+
+.btn-cta i, .btn-cta svg{ flex: 0 0 auto; }
+
+.btn-cta:active{ transform: scale(0.99); }
+
+.btn-cta.subtle{
+
+background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.84));
+
+color: rgba(31,36,48,0.92);
+
+border: 1px solid rgba(0,0,0,0.10);
+
+}
+
+/* Share CTA */
+
+.btn-share{
+
+background:
+
+radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.20), transparent 62%),
+
+linear-gradient(135deg, rgba(255,233,168,0.80), rgba(191,149,63,0.90));
+
+color:#1a1408;
+
+box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+
+}
+
+body.mode-premium .btn-share{
+
+color: rgba(255,255,255,0.95);
+
+background:
+
+radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.18), transparent 62%),
+
+linear-gradient(135deg, rgba(255,233,168,0.30), rgba(191,149,63,0.55));
+
+border: 1px solid rgba(255,255,255,0.14);
+
+}
+
+/* =========================
+
+* Dots: 3D spheres (v407.7)
+
+* ========================= */
+
+.dot, .p-dot{
+
+width: var(--dotPrem);
+
+height: var(--dotPrem);
+
+border-radius: 999px;
+
+border: 2px solid rgba(255,255,255,0.92);
+
+outline: 2px solid rgba(0,0,0,0.10);
+
+cursor:pointer;
+
+padding:0;
+
+position: relative;
+
+transition: transform .12s ease, box-shadow .12s ease;
+
+box-shadow:
+
+0 16px 28px rgba(0,0,0,0.16),
+
+inset 0 2px 7px rgba(255,255,255,0.38),
+
+inset 0 -8px 12px rgba(0,0,0,0.18);
+
+}
+
+body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
+
+.dot::before, .p-dot::before{
+
+content:"";
+
+position:absolute;
+
+left:50%; top:50%;
+
+width: 60px; height: 60px;
+
+transform: translate(-50%,-50%);
+
+border-radius: 999px;
+
+background: transparent;
+
+}
+
+.dot::after, .p-dot::after{
+
+content:"";
+
+position:absolute;
+
+left: 22%;
+
+top: 18%;
+
+width: 34%;
+
+height: 34%;
+
+border-radius: 999px;
+
+background: radial-gradient(circle, rgba(255,255,255,0.80), rgba(255,255,255,0.00) 70%);
+
+opacity: .68;
+
+pointer-events:none;
+
+}
+
+.dot.active, .p-dot.active{
+
+transform: scale(1.14);
+
+box-shadow:
+
+0 18px 34px rgba(0,0,0,0.18),
+
+0 0 0 4px rgba(255,255,255,0.18),
+
+0 0 0 1px rgba(0,0,0,0.10),
+
+inset 0 2px 7px rgba(255,255,255,0.40),
+
+inset 0 -8px 12px rgba(0,0,0,0.18);
+
+}
+
+/* Free dot colors */
+
+.dot.dot-1{ background:#ff5f7b; }
+
+.dot.dot-2{ background:#1d88ff; }
+
+.dot.dot-3{ background:#ff9f1a; }
+
+.dot.dot-4{ background:#7a57ff; }
+
+.dot.dot-5{ background:#2bd46f; }
+
+/* Premium dot colors (only dots, never body) */
+
+.p-dot.p1{ background:#d96c6c; }
+
+.p-dot.p2{ background:#722f37; }
+
+.p-dot.p3{ background:#1c2e42; }
+
+.p-dot.p4{ background:#5e548e; }
+
+.p-dot.p5{
+
+background:
+
+radial-gradient(circle at 30% 28%, rgba(255,255,255,0.70), rgba(255,255,255,0.00) 46%),
+
+linear-gradient(135deg, rgba(255,233,168,0.52), rgba(191,149,63,0.50), rgba(255,255,255,0.10));
+
+}
+
+/* ✅ v491: p6 dot 更亮更金 */
+
+.p-dot.p6{
+
+background:
+
+radial-gradient(circle at 30% 28%, rgba(255,255,255,0.78), rgba(255,255,255,0.00) 46%),
+
+linear-gradient(135deg, rgba(255,246,210,0.52), rgba(242,193,75,0.70), rgba(191,149,63,0.32));
+
+}
+
+.p-dot.p7{ background:#5a4a3f; }
+
+/* ---------- Info blocks ---------- */
+
+.info-block{
+
+margin-top: 12px;
+
+border-radius: 18px;
+
+padding: 12px 12px;
+
+border: 1px solid rgba(0,0,0,0.10);
+
+background: rgba(255,255,255,0.74);
+
+position: relative;
+
+overflow: hidden;
+
+}
+
+body.mode-free .info-block{
+
+box-shadow:
+
+0 14px 30px rgba(0,0,0,0.10),
+
+inset 0 1px 0 rgba(255,255,255,0.70),
+
+inset 0 -16px 20px rgba(0,0,0,0.10);
+
+}
+
+body.mode-free .info-block::before{
+
+content:"";
+
+position:absolute; inset:0;
+
+border-radius: inherit;
+
+pointer-events:none;
+
+background:
+
+radial-gradient(16px 16px at 14px 14px, rgba(255,255,255,0.76), transparent 72%),
+
+radial-gradient(16px 16px at calc(100% - 14px) 14px, rgba(255,255,255,0.68), transparent 72%),
+
+radial-gradient(16px 16px at 14px calc(100% - 14px), rgba(255,255,255,0.68), transparent 72%),
+
+radial-gradient(16px 16px at calc(100% - 14px) calc(100% - 14px), rgba(255,255,255,0.76), transparent 72%),
+
+linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0.00));
+
+opacity: .96;
+
+}
+
+body.mode-free .info-block::after{
+
+content:"";
+
+position:absolute; inset:0;
+
+border-radius: inherit;
+
+pointer-events:none;
+
+border: 1px solid rgba(0,0,0,0.14);
+
+box-shadow:
+
+inset 0 0 0 1px rgba(255,255,255,0.62),
+
+inset 0 10px 18px rgba(255,255,255,0.08),
+
+inset 0 -14px 18px rgba(0,0,0,0.10);
+
+opacity: .62;
+
+}
+
 .block-title{
-  font-size:13px;
-  letter-spacing:.8px;
-  text-transform: none;
-  font-weight:900;
-  opacity:.86;
-  margin-bottom:8px;
+
+font-weight: 900;
+
+letter-spacing: 0.5px;
+
+margin-bottom: 6px;
+
+font-size: 13px;
+
 }
+
 .block-body{
-  font-size:14px;
-  line-height:1.65;
-  opacity:.90;
+
+color: var(--muted);
+
+font-weight: 750;
+
+font-size: 13px;
+
+line-height: 1.7;
+
 }
 
-/* ------------------------------------------
- * Contact dock corner light fix
- * - 你說「左上角那兩個光影太不自然」：統一光源，減少雙光斑
- * ------------------------------------------ */
-#contactDock::after,
-.contactDock::after{
-  content:"";
-  position:absolute;
-  inset:-40px auto auto -40px;
-  width:220px; height:220px;
-  background: radial-gradient(circle at 60% 60%, rgba(255,255,255,.16), transparent 62%);
-  pointer-events:none;
-  opacity:.55;
-}
-#contactDock::before{
-  /* keep the generic edge highlight already defined, so don't override */
+.preline{ white-space: pre-line; }
+
+body.mode-premium .info-block{
+
+background: rgba(10,12,18,0.22);
+
+border-color: rgba(255,255,255,0.14);
+
+box-shadow: 0 18px 40px rgba(0,0,0,0.28);
+
 }
 
-/* ------------------------------------------
- * Dock buttons (影音/社群/聯繫)
- * ------------------------------------------ */
+body.mode-premium .block-title{
+
+color: rgba(255,255,255,0.92);
+
+text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+
+}
+
+body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
+
+/* ---------- Contact dock ---------- */
+
+.contact-dock{
+
+margin-top: 12px;
+
+border-radius: 18px;
+
+padding: 10px;
+
+border: 1px solid rgba(0,0,0,0.06);
+
+background: rgba(255,255,255,0.70);
+
+position: relative;
+
+overflow: hidden;
+
+}
+
+.contact-dock::before{
+
+content:"";
+
+position:absolute;
+
+left:-40px; top:-40px;
+
+width:140px; height:140px;
+
+border-radius: 999px;
+
+background:
+
+radial-gradient(closest-side, rgba(255,255,255,0.70), transparent 70%),
+
+radial-gradient(closest-side, rgba(0,0,0,0.06), transparent 72%);
+
+opacity: .65;
+
+pointer-events:none;
+
+}
+
+.dock-title{
+
+font-weight:900;
+
+font-size:13px;
+
+opacity:.86;
+
+margin: 2px 2px 10px;
+
+}
+
+.dock-buttons{
+
+display: grid;
+
+grid-template-columns: repeat(2, minmax(0, 1fr));
+
+gap: 10px;
+
+}
+
+/* ---------- Dock pills ---------- */
+
 .dock-btn{
-  appearance:none;
-  border:none;
-  cursor:pointer;
-  width:100%;
-  min-height:46px;
-  border-radius:16px;
-  padding:12px 12px;
-  display:flex;
-  gap:10px;
-  align-items:center;
-  justify-content:center;
-  color:rgba(255,255,255,.92);
-  background: rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.12);
-  box-shadow: 0 10px 24px rgba(0,0,0,.24);
-  transition: transform .12s ease, filter .12s ease, background .12s ease;
-  position:relative;
-  overflow:hidden;
+
+position: relative;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+gap: 8px;
+
+padding: 12px 12px;
+
+border-radius: 999px;
+
+border: 1px solid rgba(0,0,0,0.14);
+
+background:
+
+radial-gradient(120% 170% at 22% 0%, rgba(255,255,255,0.95), rgba(255,255,255,0.82) 55%, rgba(255,255,255,0.78)),
+
+linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.84));
+
+color: var(--accentText);
+
+font-weight: 900;
+
+box-shadow:
+
+0 16px 34px rgba(0,0,0,0.15),
+
+0 6px 12px rgba(0,0,0,0.08),
+
+inset 0 2px 0 rgba(255,255,255,0.88),
+
+inset 0 -14px 18px rgba(0,0,0,0.10);
+
+cursor:pointer;
+
+text-align:center;
+
+line-height: 1.15;
+
+white-space: nowrap;
+
 }
 
-/* clean highlight */
-.dock-btn::before{
-  content:"";
-  position:absolute; inset:0;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.16), transparent 45%),
-    radial-gradient(120px 60px at 20% 0%, rgba(255,255,255,.12), transparent 70%);
-  opacity:.65;
-  pointer-events:none;
-  mix-blend-mode: overlay;
+.dock-btn:active{
+
+transform: scale(0.992);
+
+box-shadow:
+
+0 12px 26px rgba(0,0,0,0.14),
+
+inset 0 3px 10px rgba(0,0,0,0.14);
+
 }
 
-.dock-btn:hover{ filter:brightness(1.05); }
-.dock-btn:active{ transform: translateY(1px) scale(.99); }
+.dock-btn i{ font-size: 17px; }
 
-.dock-btn i{ font-size:18px; opacity:.95; }
-.dock-btn span{ font-weight:900; letter-spacing:.3px; }
+.dock-btn span{ font-size: 13px; letter-spacing: 0.3px; }
 
-/* wide rule */
 .dock-btn.wide{ grid-column: 1 / -1; }
 
-/* containers */
-#mediaButtons, #contactButtons{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:10px;
+.dock-btn::after{
+
+content:"";
+
+position:absolute;
+
+left:18px; right:18px;
+
+bottom:10px;
+
+height:2px;
+
+border-radius: 99px;
+
+background: linear-gradient(90deg, rgba(0,0,0,0.00), rgba(0,0,0,0.06), rgba(0,0,0,0.00));
+
+opacity:.44;
+
 }
 
-/* classify color hints (kept subtle) */
-.dock-yt{ background: rgba(255,255,255,.08); }
-.dock-fb{ background: rgba(255,255,255,.08); }
-.dock-ig{ background: rgba(255,255,255,.08); }
-.dock-line{ background: rgba(255,255,255,.08); }
-.dock-map{ background: rgba(255,255,255,.08); }
-.dock-web{ background: rgba(255,255,255,.08); }
+body.mode-premium .contact-dock{
 
-/* ------------------------------------------
- * “Breathe” for key CTA buttons (free/premium plan buttons if present)
- * ------------------------------------------ */
-.breathe{
-  position:relative;
-  overflow:hidden;
-}
-.breathe::after{
-  content:"";
-  position:absolute; inset:-40px -40px -40px -40px;
-  background:
-    radial-gradient(280px 180px at 35% 35%, var(--breathe-b), transparent 62%),
-    radial-gradient(220px 160px at 75% 55%, var(--breathe-a), transparent 66%);
-  opacity:.0;
-  pointer-events:none;
-  animation: breatheGlow 2.8s ease-in-out infinite;
-}
-@keyframes breatheGlow{
-  0%{ opacity:.18; transform: scale(.98); }
-  50%{ opacity:.42; transform: scale(1.02); }
-  100%{ opacity:.18; transform: scale(.98); }
+background: rgba(10,12,18,0.18);
+
+border-color: rgba(255,255,255,0.14);
+
 }
 
-/* ------------------------------------------
- * Photo wall
- * ------------------------------------------ */
-#photoGrid{
-  display:grid;
-  gap:10px;
+body.mode-premium .dock-title{
+
+color: rgba(255,255,255,0.88);
+
+opacity: 1;
+
 }
+
+body.mode-premium .dock-btn{
+
+border-color: rgba(255,255,255,0.14);
+
+background:
+
+radial-gradient(140% 180% at 20% 0%, rgba(255,255,255,0.16), rgba(255,255,255,0.08) 56%, rgba(255,255,255,0.06)),
+
+rgba(255,255,255,0.08);
+
+color: rgba(255,255,255,0.92);
+
+box-shadow:
+
+0 22px 52px rgba(0,0,0,0.65),
+
+inset 0 2px 0 rgba(255,255,255,0.12),
+
+inset 0 -18px 22px rgba(0,0,0,0.28);
+
+backdrop-filter: blur(10px);
+
+-webkit-backdrop-filter: blur(10px);
+
+}
+
+body.mode-premium .dock-btn::before{
+
+content:"";
+
+position:absolute; inset:-1px;
+
+border-radius: inherit;
+
+padding: 1px;
+
+background: linear-gradient(135deg, rgba(255,233,168,0.42), rgba(191,149,63,0.62), rgba(255,255,255,0.10));
+
+-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+
+-webkit-mask-composite: xor; mask-composite: exclude;
+
+pointer-events:none;
+
+opacity: .82;
+
+}
+
+body.mode-premium .dock-btn::after{ display:none; }
+
+/* ---------- Photo wall ---------- */
+
+.photo-wall{
+
+margin-top: 14px;
+
+border-radius: 18px;
+
+padding: 10px;
+
+border: 1px solid rgba(0,0,0,0.06);
+
+background: rgba(255,255,255,0.70);
+
+}
+
+body.mode-premium .photo-wall{
+
+background: rgba(10,12,18,0.18);
+
+border-color: rgba(255,255,255,0.14);
+
+}
+
+.photo-grid{
+
+display:grid;
+
+gap: 10px;
+
+grid-template-columns: repeat(3, minmax(0, 1fr));
+
+}
+
 .wall-img{
-  border-radius:18px;
-  border:1px solid rgba(255,255,255,.14);
-  box-shadow: 0 14px 32px rgba(0,0,0,.28);
-  transition: transform .14s ease, filter .14s ease;
-}
-.wall-img:hover{ filter:brightness(1.03); }
-.wall-img:active{ transform: scale(.99); }
 
-/* ------------------------------------------
- * Premium palettes p1..p7 (lifted brightness, glassy)
- * - p6 金箔：增加金屬亮帶與微鏡面
- * ------------------------------------------ */
-body.mode-premium{
-  /* global premium lift */
-  --text: rgba(255,255,255,.94);
-  --line: rgba(255,255,255,.16);
-  --soft: rgba(255,255,255,.08);
-}
+width:100%;
 
-/* p1 胭脂紅 */
-body.p1{ --pbg1: rgba(255, 130, 140, .22); --pbg2: rgba(255,255,255,.06); }
-/* p2 酒紅 */
-body.p2{ --pbg1: rgba(200, 70, 90, .22); --pbg2: rgba(255,255,255,.06); }
-/* p3 深藍 */
-body.p3{ --pbg1: rgba(90, 140, 255, .20); --pbg2: rgba(255,255,255,.06); }
-/* p4 霧紫 */
-body.p4{ --pbg1: rgba(170, 120, 255, .20); --pbg2: rgba(255,255,255,.06); }
-/* p5 藍灰 */
-body.p5{ --pbg1: rgba(160, 190, 210, .20); --pbg2: rgba(255,255,255,.06); }
-/* p6 金箔 */
-body.p6{ --pbg1: rgba(255, 210, 120, .22); --pbg2: rgba(255,255,255,.07); }
-/* p7 褐碳 */
-body.p7{ --pbg1: rgba(200, 170, 130, .18); --pbg2: rgba(255,255,255,.06); }
+aspect-ratio: 1 / 1;
 
-/* apply premium background lift */
-body.mode-premium{
-  background:
-    radial-gradient(1100px 820px at 18% -10%, rgba(255,255,255,.12), transparent 58%),
-    radial-gradient(900px 700px at 92% 16%, rgba(255,255,255,.10), transparent 62%),
-    radial-gradient(1200px 900px at 50% 120%, var(--pbg1), transparent 60%),
-    linear-gradient(180deg, #0a1222, #0e1730);
+border-radius: 14px;
+
+object-fit: cover;
+
+display:block;
+
+box-shadow: 0 12px 24px rgba(0,0,0,0.14);
+
+border: 1px solid rgba(0,0,0,0.06);
+
+background: rgba(255,255,255,0.55);
+
 }
 
-/* premium card extra glass sheen */
-body.mode-premium .card-shell::after,
-body.mode-premium #cardShell::after,
-body.mode-premium #cardContainer::after,
-body.mode-premium .card-container::after{
-  content:"";
-  position:absolute; inset:-2px;
-  pointer-events:none;
-  border-radius:inherit;
-  background:
-    radial-gradient(520px 320px at 18% 10%, rgba(255,255,255,.18), transparent 62%),
-    radial-gradient(480px 320px at 82% 18%, rgba(255,255,255,.12), transparent 65%),
-    linear-gradient(180deg, rgba(255,255,255,.10), transparent 46%);
-  opacity:.80;
-  mix-blend-mode: overlay;
+/* ---------- Version tag ---------- */
+
+.version-tag{
+
+margin-top: 14px;
+
+text-align:center;
+
+font-weight: 900;
+
+font-size: 12px;
+
+color: rgba(0,0,0,0.45);
+
 }
 
-/* p6 gold metallic band (key) */
-body.mode-premium.p6 .card-shell,
-body.mode-premium.p6 #cardShell,
-body.mode-premium.p6 #cardContainer,
-body.mode-premium.p6 .card-container{
-  background:
-    /* metallic long highlight band */
-    linear-gradient(105deg,
-      rgba(255,255,255,.06) 0%,
-      rgba(255,255,255,.18) 16%,
-      rgba(255,255,255,.06) 32%,
-      rgba(255,255,255,.12) 52%,
-      rgba(255,255,255,.05) 70%,
-      rgba(255,255,255,.14) 86%,
-      rgba(255,255,255,.06) 100%
-    ),
-    radial-gradient(900px 620px at 18% -8%, rgba(255, 230, 160, .28), transparent 60%),
-    radial-gradient(700px 520px at 88% 22%, rgba(255, 210, 120, .20), transparent 62%),
-    linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.05));
-  border-color: rgba(255,255,255,.22);
+body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
+
+/* ---------- BR admin hotspot ---------- */
+
+#adminHotspotBR{
+
+position: fixed;
+
+right: 0;
+
+bottom: 0;
+
+width: 54px;
+
+height: 54px;
+
+z-index: 999999;
+
+opacity: 0;
+
 }
 
-/* contact dock in premium: keep natural single source */
-body.mode-premium #contactDock::after,
-body.mode-premium .contactDock::after{
-  opacity:.62;
-  background: radial-gradient(circle at 60% 60%, rgba(255,255,255,.18), transparent 64%);
+/* ---------- Small screens ---------- */
+
+@media (max-width: 360px){
+
+.name{ font-size: 21px; }
+
+.avatar-circle{ width: 108px; height: 108px; }
+
+:root{ --dotFree: 34px; --dotPrem: 30px; }
+
+.dock-buttons{ gap: 8px; }
+
+.dock-btn{ padding: 12px 10px; }
+
 }
 
-/* premium avatar rim: more “floating” */
-body.mode-premium #u-img, body.mode-premium .u-img{
-  border:1px solid rgba(255,255,255,.24);
-  box-shadow:
-    0 24px 56px rgba(0,0,0,.34),
-    0 0 0 1px rgba(255,255,255,.16) inset;
+/* =========================================================
+
+* v408.3 ADD: Unit one-line auto fit
+
+* ========================================================= */
+
+#u-unit{
+
+display:block;
+
+width:100%;
+
+max-width: 480px;
+
+margin: 0 auto;
+
+white-space: nowrap;
+
+overflow: hidden;
+
+text-overflow: ellipsis;
+
+font-size: clamp(12px, 3.6vw, 16px);
+
+line-height: 1.25;
+
+letter-spacing: 0.2px;
+
 }
 
-/* ------------------------------------------
- * Controls blocks (free-controls / premium-controls)
- * - do minimal styling, avoid DOM dependency
- * ------------------------------------------ */
-#free-controls, #premium-controls,
-.free-controls, .premium-controls{
-  margin:12px 16px;
-  padding:12px 12px;
-  border-radius:20px;
-  border:1px solid rgba(255,255,255,.10);
-  background: rgba(255,255,255,.04);
+body.mode-premium #u-unit{
+
+font-size: clamp(12px, 3.4vw, 17px);
+
+opacity: 0.92;
+
 }
 
-.pill,
-.btn, button{
-  font-family:inherit;
+@media (max-width: 360px){
+
+#u-unit{
+
+font-size: clamp(11px, 3.8vw, 14px);
+
 }
 
-/* generic option buttons if used */
-.option-btn,
-.control-btn{
-  appearance:none;
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(255,255,255,.06);
-  color: rgba(255,255,255,.92);
-  border-radius:999px;
-  padding:10px 14px;
-  font-weight:900;
-  cursor:pointer;
-  transition: transform .12s ease, filter .12s ease;
-}
-.option-btn:hover,
-.control-btn:hover{ filter:brightness(1.05); }
-.option-btn:active,
-.control-btn:active{ transform: translateY(1px); }
-.option-btn.active,
-.control-btn.active{
-  background: rgba(255,255,255,.12);
-  border-color: rgba(255,255,255,.22);
-}
-
-/* ------------------------------------------
- * Version tag
- * ------------------------------------------ */
-#versionTag{
-  display:inline-block;
-  margin: 10px 16px 22px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border:1px solid rgba(255,255,255,.12);
-  background: rgba(0,0,0,.22);
-  font-size:12px;
-  opacity:.80;
-}
-
-/* ------------------------------------------
- * Responsive tweaks
- * ------------------------------------------ */
-@media (max-width:420px){
-  #u-name, .u-name{ font-size:26px; }
-  #u-img, .u-img{ width:90px; height:90px; border-radius:20px; }
-  #mediaButtons, #contactButtons{ grid-template-columns:1fr 1fr; }
-  .dock-btn{ min-height:44px; border-radius:15px; }
-  .info-block, #block-service, #block-exp, #mediaDock, #contactDock, #photoWall{
-    margin:12px 14px;
-    padding:13px 13px;
-    border-radius:18px;
-  }
 }
