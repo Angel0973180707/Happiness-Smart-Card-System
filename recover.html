@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>找回智慧名片｜天使幸福智慧名片</title>
+
+<style>
+
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+background:#0b1220;
+color:#fff;
+margin:0;
+padding:30px 16px;
+}
+
+.wrap{
+max-width:480px;
+margin:auto;
+}
+
+.card{
+background:rgba(255,255,255,.06);
+border-radius:18px;
+padding:26px;
+box-shadow:0 20px 40px rgba(0,0,0,.4);
+}
+
+h1{
+font-size:22px;
+margin-bottom:10px;
+}
+
+.hint{
+font-size:14px;
+opacity:.7;
+line-height:1.6;
+margin-bottom:20px;
+}
+
+label{
+font-size:14px;
+display:block;
+margin-top:12px;
+}
+
+input{
+width:100%;
+padding:12px;
+margin-top:6px;
+border-radius:10px;
+border:1px solid rgba(255,255,255,.2);
+background:#111827;
+color:#fff;
+}
+
+button{
+margin-top:20px;
+width:100%;
+padding:14px;
+border-radius:999px;
+border:0;
+background:#22c55e;
+font-weight:bold;
+cursor:pointer;
+}
+
+.result{
+margin-top:24px;
+display:none;
+background:rgba(255,255,255,.08);
+border-radius:14px;
+padding:18px;
+}
+
+.name{
+font-size:18px;
+font-weight:bold;
+}
+
+.links a{
+display:block;
+margin-top:10px;
+color:#7bdcff;
+text-decoration:none;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="card">
+
+<h1>找回智慧名片</h1>
+
+<div class="hint">
+如果遺失交付頁，可輸入以下資訊找回名片：<br>
+• 電話<br>
+• LINE ID<br>
+• 姓名 + 電話
+</div>
+
+<label>電話</label>
+<input id="phone" placeholder="例如 0912345678">
+
+<label>LINE ID</label>
+<input id="line" placeholder="例如 angel123">
+
+<label>姓名</label>
+<input id="name" placeholder="例如 王小明">
+
+<button id="btn">找回名片</button>
+
+<div class="result" id="result">
+
+<div class="name" id="cardName"></div>
+<div id="cardTitle"></div>
+
+<div class="links">
+<a id="viewCard" target="_blank">查看智慧名片</a>
+<a id="editCard" target="_blank">重新填寫資料</a>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const GAS=
+"https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+const BASE=
+"https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+
+document.getElementById("btn").onclick=async()=>{
+
+const phone=document.getElementById("phone").value.trim();
+const line=document.getElementById("line").value.trim();
+const name=document.getElementById("name").value.trim();
+
+if(!phone && !line){
+
+alert("請輸入電話或 LINE ID");
+
+return;
+
+}
+
+const url=
+GAS+
+"?action=recover"+
+"&phone="+encodeURIComponent(phone)+
+"&line="+encodeURIComponent(line)+
+"&name="+encodeURIComponent(name);
+
+try{
+
+const r=await fetch(url);
+const j=await r.json();
+
+if(!j.ok){
+
+alert("找不到名片");
+
+return;
+
+}
+
+document.getElementById("result").style.display="block";
+
+document.getElementById("cardName").innerText=j.name;
+
+document.getElementById("cardTitle").innerText=j.title||"";
+
+document.getElementById("viewCard").href=
+BASE+"index.html?id="+j.id;
+
+document.getElementById("editCard").href=
+BASE+"form.html?id="+j.id+"&overwrite=1";
+
+}catch(e){
+
+alert("查詢失敗");
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
