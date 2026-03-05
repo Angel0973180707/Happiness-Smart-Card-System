@@ -943,3 +943,50 @@ body.mode-premium #u-unit{
   .dock-btn{ padding: 12px 10px; }
   #u-unit{ font-size: clamp(11px, 3.8vw, 14px); }
 }
+/* ==========================================
+ * v521 CSS Hotfix — controls should NOT overlay sample
+ * place at END of style.css
+ * ========================================== */
+
+/* 1) 先把控制區拉回文流：避免 absolute/fixed/sticky 蓋住 */
+#free-controls, .free-controls,
+#premium-controls, .premium-controls,
+#admin-panel, .admin-panel {
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: 1 !important;
+}
+
+/* 2) 讓樣品/卡片區永遠在控制區下面（層級更高） */
+#card-container, .card-container,
+#card, .card,
+#preview, .preview,
+#sample, .sample,
+#cardRoot, #cardShell, #cardContainer {
+  position: relative;
+  z-index: 2;
+}
+
+/* 3) 如果你有「樣品區容器」：確保它跟控制區是上下排列，不重疊 */
+#card-container, .card-container,
+#cardRoot, #cardShell, #cardContainer {
+  margin-top: 12px; /* 需要可調大：16~24 */
+}
+
+/* 4) 避免某些透明遮罩層吃掉點擊（只限 overlay 類層） */
+#paperOverlay, .paperOverlay,
+.paper-overlay,
+.premium-fx-layer {
+  pointer-events: none !important;
+}
+
+/* 5) 保險：如果控制區原本是 grid/absolute 疊起來，強制 block */
+#free-controls, .free-controls,
+#premium-controls, .premium-controls {
+  display: block !important;
+  width: 100%;
+}
