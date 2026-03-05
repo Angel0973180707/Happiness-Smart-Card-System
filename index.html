@@ -1,16 +1,18 @@
 <!-- ================================
-     index.html v520.1 (DEMO FRONT + CLEAN DELIVERY MODE)
-     Base: your index.html v497 pasted by you (DOM kept)
-     ✅ Front (門面): always force read DEMO_ID (TW0001) for preview + can fill form
-     ✅ Clean (成品): use ?view=1  → hide選版區(控制面板) + keep share ability
-     ✅ Keep: v4970card DOM (no card DOM change)
-     ✅ No app.js change (only load your app.js v501 file)
-     ✅ Admin hidden entry kept (bottom-right triple tap / long-press) — disabled in clean mode
-     ✅ Version: unified ?v=520
-     ✅ v520.1 changes:
-        - Paper names: 棉紙 / 象牙紙 / 霧灰 (paper-1/2/3)
-        - Front CTA split: 官網 (independent) + 私訊LINE (goLineIntro)
-        - Premium CTA reserved: hide (keep IDs)
+     index.html v521.1 (FRONT + CLEAN DELIVERY MODE + INVITE GATE)
+     ✅ Front (門面): always force DEMO_ID (TW0001) for preview
+     ✅ Clean (成品): ?view=1 → hide選版區(控制面板) + keep share FAB
+     ✅ New CTA:
+        - 「加 LINE 官方帳號｜瞭解預約」(LINE OA)  ✅ 你的 lin.ee/3r2ZePN
+        - 「私訊 LINE」(private line) ✅ 走 app.js 的 goLineIntro (不連動 OA)
+        - 「產品特色說明」(open modal)
+        - 「請聯繫客服開通」按鈕：改成「輸入邀請碼 → 開啟表單」
+     ✅ Invite gate:
+        - Front: click 開通 → ask invite code → open ./form.html?v=521&invite=XXXX
+        - Clean mode: no form entry
+     ✅ Brand name on facade:
+        - Heading: 天使幸福智慧名片
+        - Positioning: 智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -19,50 +21,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
 
-  <title>Happiness Smart Card System v520</title>
+  <title>天使幸福智慧名片 v521</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=520" />
+  <link rel="manifest" href="./manifest.json?v=521" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=520" />
-  <link rel="icon" href="./icons/icon-192.png?v=520" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=521" />
+  <link rel="icon" href="./icons/icon-192.png?v=521" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="幸福智慧名片" />
+  <meta name="apple-mobile-web-app-title" content="天使幸福智慧名片" />
 
-  <!-- OG (static fallback; delivery uses share.html for OG) -->
+  <!-- OG -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="幸福智慧名片" />
-  <meta property="og:description" content="一點，就看見彼此的價值" />
+  <meta property="og:title" content="天使幸福智慧名片" />
+  <meta property="og:description" content="智慧名片訂製服務｜打造可分享的專屬名片入口" />
   <meta property="og:image" content="og-card.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <link rel="stylesheet" href="./style.css?v=520" />
+  <link rel="stylesheet" href="./style.css?v=521" />
 
   <style>
-    /* ---- CTA visibility guard ---- */
-    #btnLineCta,
-    #btnLineCtaPremium,
-    #btnFormCta,
-    #btnFormCtaPremium,
-    #btnShare,
-    #btnSharePremium,
-    #btnWebsiteCta {
-      display: inline-flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      pointer-events: auto !important;
-    }
-
-    #free-controls,
-    #premium-controls {
-      visibility: visible !important;
-      opacity: 1 !important;
+    /* CTA visibility guard */
+    #btnLineOaCta,#btnLinePrivateCta,#btnFeature,#btnInviteGate,#btnShare,#btnSharePremium{
+      display:inline-flex !important;
+      visibility:visible !important;
+      opacity:1 !important;
+      pointer-events:auto !important;
     }
 
     /* Hidden admin hotspot (bottom-right) */
@@ -80,64 +70,7 @@
       user-select: none;
     }
 
-    /* Form loader overlay */
-    .safe-form-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 2147483000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: rgba(17, 19, 24, 0.86);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    .safe-form-overlay .box {
-      width: min(520px, 92vw);
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.06);
-      border-radius: 18px;
-      padding: 16px 14px;
-      color: rgba(255,255,255,0.92);
-      text-align: center;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-    }
-    .safe-form-overlay .spinner {
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
-      border: 3px solid rgba(255,255,255,0.18);
-      border-top-color: rgba(255,255,255,0.75);
-      margin: 0 auto 10px;
-      animation: safeSpin 0.9s linear infinite;
-    }
-    @keyframes safeSpin { to { transform: rotate(360deg); } }
-    .safe-form-overlay .hint {
-      margin-top: 8px;
-      font-size: 13px;
-      color: rgba(255,255,255,0.76);
-      line-height: 1.5;
-    }
-    .safe-form-overlay .row {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 12px;
-      flex-wrap: wrap;
-    }
-    .safe-form-overlay .btn {
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.95);
-      padding: 10px 12px;
-      border-radius: 14px;
-      font-weight: 800;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    /* ✅ Clean delivery mode: floating share FAB (keeps share even when panel hidden) */
+    /* Clean share floating button */
     #cleanShareFab{
       position: fixed;
       right: 14px;
@@ -152,7 +85,7 @@
       -webkit-backdrop-filter: blur(12px);
       box-shadow: 0 18px 42px rgba(0,0,0,0.40);
       color: rgba(255,255,255,0.92);
-      display: none; /* shown only in clean mode */
+      display: none; /* only in clean mode */
       align-items: center;
       justify-content: center;
       cursor: pointer;
@@ -162,29 +95,184 @@
     #cleanShareFab i{ font-size: 20px; }
     #cleanShareFab:active{ transform: scale(0.98); }
 
-    /* ✅ v520.1: Premium CTA reserved (keep IDs, hide by default) */
-    #btnLineCtaPremium,
-    #btnFormCtaPremium{
-      display:none !important;
+    /* ===== Feature modal ===== */
+    .modal-mask{
+      position:fixed; inset:0;
+      display:none;
+      z-index:2147483200;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
     }
+    .modal{
+      width: min(560px, 92vw);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(17,19,24,0.86);
+      color: rgba(255,255,255,0.92);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.50);
+      overflow:hidden;
+    }
+    .modal-hd{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 14px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+    .modal-title{
+      font-weight: 900;
+      letter-spacing: .4px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .modal-close{
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.95);
+      padding: 10px 12px;
+      border-radius: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .modal-bd{
+      padding: 14px 14px 16px;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.86);
+      font-size: 14px;
+    }
+    .modal-bd b{ color: rgba(255,255,255,0.96); }
+    .modal-bd .k{
+      margin-top: 10px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+    }
+
+    /* ===== Invite prompt overlay ===== */
+    .invite-mask{
+      position:fixed; inset:0;
+      display:none;
+      z-index:2147483300;
+      background: rgba(0,0,0,0.62);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+    }
+    .invite-box{
+      width: min(520px, 92vw);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(17,19,24,0.88);
+      color: rgba(255,255,255,0.92);
+      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+      overflow:hidden;
+    }
+    .invite-hd{
+      padding: 14px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      font-weight: 900;
+      letter-spacing: .4px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .invite-bd{
+      padding: 14px 14px 16px;
+      line-height: 1.65;
+      color: rgba(255,255,255,0.86);
+      font-size: 14px;
+    }
+    .invite-row{
+      display:flex; gap:10px; flex-wrap:wrap;
+      align-items:center;
+      margin-top: 10px;
+    }
+    .invite-input{
+      flex: 1 1 220px;
+      min-width: 180px;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.92);
+      font-weight: 900;
+      letter-spacing: .8px;
+      outline: none;
+    }
+    .invite-btn{
+      flex: 0 0 auto;
+      padding: 12px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.95);
+      font-weight: 900;
+      cursor:pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .invite-primary{
+      background: linear-gradient(135deg, rgba(46,204,113,0.92), rgba(13,169,123,0.92));
+      border-color: rgba(255,255,255,0.10);
+      color: rgba(0,0,0,0.82);
+    }
+
+    /* facade header block (inside panel) */
+    .facade-brand{
+      width:100%;
+      max-width:520px;
+      border-radius: 18px;
+      padding: 12px 12px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.68);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.10);
+    }
+    .facade-brand .h{
+      font-weight: 1000;
+      font-size: 18px;
+      letter-spacing: .6px;
+      color: rgba(0,0,0,0.86);
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .facade-brand .p{
+      margin-top: 6px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: rgba(0,0,0,0.62);
+      font-weight: 800;
+    }
+
+    /* clean mode: hide panel always */
+    body.clean #admin-panel{ display:none !important; }
   </style>
 
-  <!-- ✅ IMPORTANT: Force DEMO front id BEFORE app.js runs -->
+  <!-- ✅ Force DEMO front id BEFORE app.js runs -->
   <script>
     (function(){
       "use strict";
-      var DEMO_ID = "TW0001"; // ✅ 門面永遠讀這筆
+      var DEMO_ID = "TW0001";
       var sp = new URLSearchParams(location.search || "");
-      var isClean = (sp.get("view") === "1") || (sp.get("clean") === "1"); // 成品模式
-      var isAdmin = (sp.get("admin") === "1"); // optional escape hatch
+      var isClean = (sp.get("view") === "1") || (sp.get("clean") === "1");
+      var isAdmin = (sp.get("admin") === "1");
+
+      if (isClean) document.documentElement.classList.add("clean");
 
       if (!isClean && !isAdmin) {
-        // Front (門面) always force demo id
         if ((sp.get("id") || "").trim() !== DEMO_ID) {
           sp.set("id", DEMO_ID);
-          try {
-            history.replaceState({}, "", location.pathname + "?" + sp.toString());
-          } catch(e) {}
+          try { history.replaceState({}, "", location.pathname + "?" + sp.toString()); } catch(e) {}
         }
       }
     })();
@@ -192,10 +280,8 @@
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
-  <!-- Hidden admin hotspot (bottom-right triple tap / long-press) -->
   <div id="adminHotspotBR" aria-hidden="true"></div>
 
-  <!-- Clean share floating button -->
   <button id="cleanShareFab" type="button" aria-label="分享此名片">
     <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
   </button>
@@ -204,24 +290,20 @@
   <header id="admin-panel">
     <div class="panel-inner">
 
+      <!-- ✅ Brand facade -->
+      <div class="facade-brand" id="facadeBrand">
+        <div class="h"><i class="fa-solid fa-id-card-clip"></i> 天使幸福智慧名片</div>
+        <div class="p">智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口</div>
+      </div>
+
       <!-- Step 1: Plan -->
       <div class="plan-row" id="planRow">
-        <button
-          class="btn-neo pill breathe"
-          data-group="plan"
-          id="btnPlanFree"
-          type="button"
-          onclick="window.setPlan('free', this)"
-        >
+        <button class="btn-neo pill breathe" data-group="plan" id="btnPlanFree" type="button"
+          onclick="window.setPlan && window.setPlan('free', this)">
           自由搭配
         </button>
-        <button
-          class="btn-neo pill"
-          data-group="plan"
-          id="btnPlanPremium"
-          type="button"
-          onclick="window.setPlan('premium', this)"
-        >
+        <button class="btn-neo pill" data-group="plan" id="btnPlanPremium" type="button"
+          onclick="window.setPlan && window.setPlan('premium', this)">
           精品設計
         </button>
       </div>
@@ -230,39 +312,44 @@
       <div class="controls-block" id="free-controls">
         <div class="section-title">選顏色</div>
         <div class="dots-row" id="freeDotsRow">
-          <button class="dot dot-1 active" data-group="theme" type="button" aria-label="粉" onclick="window.setTheme('color-1', this)"></button>
-          <button class="dot dot-2" data-group="theme" type="button" aria-label="藍" onclick="window.setTheme('color-2', this)"></button>
-          <button class="dot dot-3" data-group="theme" type="button" aria-label="橘" onclick="window.setTheme('color-3', this)"></button>
-          <button class="dot dot-4" data-group="theme" type="button" aria-label="紫" onclick="window.setTheme('color-4', this)"></button>
-          <button class="dot dot-5" data-group="theme" type="button" aria-label="綠" onclick="window.setTheme('color-5', this)"></button>
+          <button class="dot dot-1 active" data-group="theme" type="button" aria-label="粉" onclick="window.setTheme && window.setTheme('color-1', this)"></button>
+          <button class="dot dot-2" data-group="theme" type="button" aria-label="藍" onclick="window.setTheme && window.setTheme('color-2', this)"></button>
+          <button class="dot dot-3" data-group="theme" type="button" aria-label="橘" onclick="window.setTheme && window.setTheme('color-3', this)"></button>
+          <button class="dot dot-4" data-group="theme" type="button" aria-label="紫" onclick="window.setTheme && window.setTheme('color-4', this)"></button>
+          <button class="dot dot-5" data-group="theme" type="button" aria-label="綠" onclick="window.setTheme && window.setTheme('color-5', this)"></button>
         </div>
 
         <div class="section-title">選版型</div>
         <div class="btn-row" id="styleRow">
-          <button class="btn-neo active" data-group="style" type="button" onclick="window.setStyle('arch', this)">正拱</button>
-          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle('flat', this)">平直</button>
-          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle('spot', this)">晨曦</button>
+          <button class="btn-neo active" data-group="style" type="button" onclick="window.setStyle && window.setStyle('arch', this)">正拱</button>
+          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle && window.setStyle('flat', this)">平直</button>
+          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle && window.setStyle('spot', this)">晨曦</button>
         </div>
 
         <div class="section-title">選紙感</div>
         <div class="btn-row" id="paperRow">
-          <!-- ✅ v520.1: rename only (paper-1/2/3 mapping unchanged) -->
-          <button class="btn-neo active" data-group="paper" type="button" onclick="window.setPaper('paper-1', this)">棉紙</button>
-          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-2', this)">象牙紙</button>
-          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-3', this)">霧灰</button>
+          <button class="btn-neo active" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-1', this)">棉紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-2', this)">象牙紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-3', this)">霧灰</button>
         </div>
 
-        <!-- ✅ v520.1: CTA split -->
-        <button class="btn-cta subtle" id="btnWebsiteCta" type="button" onclick="window.goWebsiteIntro && window.goWebsiteIntro()">
-          <i class="fa-solid fa-globe"></i> 官網
+        <!-- ✅ CTAs -->
+        <button class="btn-cta subtle" id="btnLineOaCta" type="button">
+          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
         </button>
 
-        <button class="btn-cta breathe" id="btnLineCta" type="button" onclick="window.goLineIntro()">
+        <button class="btn-cta breathe" id="btnLinePrivateCta" type="button"
+          onclick="window.goLineIntro && window.goLineIntro()">
           <i class="fa-brands fa-line"></i> 私訊 LINE
         </button>
 
-        <button class="btn-cta subtle" id="btnFormCta" type="button" onclick="window.goFillForm()">
-          <i class="fa-solid fa-headset"></i> 聯繫開通
+        <button class="btn-cta subtle" id="btnFeature" type="button">
+          <i class="fa-solid fa-circle-info"></i> 產品特色說明
+        </button>
+
+        <!-- ✅ Invite gate -->
+        <button class="btn-cta subtle" id="btnInviteGate" type="button">
+          <i class="fa-solid fa-key"></i> 請聯繫客服開通
         </button>
 
         <button class="btn-cta btn-share" id="btnShare" type="button">
@@ -274,22 +361,30 @@
       <div class="controls-block" id="premium-controls" style="display:none;">
         <div class="section-title">選底色</div>
         <div class="dots-row" id="premiumDotsRow">
-          <button class="p-dot p1 active" data-group="theme" type="button" aria-label="p1" onclick="window.setTheme('p1', this)"></button>
-          <button class="p-dot p2" data-group="theme" type="button" aria-label="p2" onclick="window.setTheme('p2', this)"></button>
-          <button class="p-dot p3" data-group="theme" type="button" aria-label="p3" onclick="window.setTheme('p3', this)"></button>
-          <button class="p-dot p4" data-group="theme" type="button" aria-label="p4" onclick="window.setTheme('p4', this)"></button>
-          <button class="p-dot p5" data-group="theme" type="button" aria-label="p5" onclick="window.setTheme('p5', this)"></button>
-          <button class="p-dot p6" data-group="theme" type="button" aria-label="p6" onclick="window.setTheme('p6', this)"></button>
-          <button class="p-dot p7" data-group="theme" type="button" aria-label="p7" onclick="window.setTheme('p7', this)"></button>
+          <button class="p-dot p1 active" data-group="theme" type="button" aria-label="p1" onclick="window.setTheme && window.setTheme('p1', this)"></button>
+          <button class="p-dot p2" data-group="theme" type="button" aria-label="p2" onclick="window.setTheme && window.setTheme('p2', this)"></button>
+          <button class="p-dot p3" data-group="theme" type="button" aria-label="p3" onclick="window.setTheme && window.setTheme('p3', this)"></button>
+          <button class="p-dot p4" data-group="theme" type="button" aria-label="p4" onclick="window.setTheme && window.setTheme('p4', this)"></button>
+          <button class="p-dot p5" data-group="theme" type="button" aria-label="p5" onclick="window.setTheme && window.setTheme('p5', this)"></button>
+          <button class="p-dot p6" data-group="theme" type="button" aria-label="p6" onclick="window.setTheme && window.setTheme('p6', this)"></button>
+          <button class="p-dot p7" data-group="theme" type="button" aria-label="p7" onclick="window.setTheme && window.setTheme('p7', this)"></button>
         </div>
 
-        <!-- ✅ Premium CTA reserved: keep IDs but hidden by CSS (future enable) -->
-        <button class="btn-cta breathe" id="btnLineCtaPremium" type="button" onclick="window.goLineIntro()">
+        <button class="btn-cta subtle" id="btnLineOaCta2" type="button">
+          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
+        </button>
+
+        <button class="btn-cta breathe" id="btnLinePrivateCta2" type="button"
+          onclick="window.goLineIntro && window.goLineIntro()">
           <i class="fa-brands fa-line"></i> 私訊 LINE
         </button>
 
-        <button class="btn-cta subtle" id="btnFormCtaPremium" type="button" onclick="window.goFillForm()">
-          <i class="fa-solid fa-headset"></i> 聯繫開通
+        <button class="btn-cta subtle" id="btnFeature2" type="button">
+          <i class="fa-solid fa-circle-info"></i> 產品特色說明
+        </button>
+
+        <button class="btn-cta subtle" id="btnInviteGate2" type="button">
+          <i class="fa-solid fa-key"></i> 請聯繫客服開通
         </button>
 
         <button class="btn-cta btn-share" id="btnSharePremium" type="button" onclick="document.getElementById('btnShare')?.click()">
@@ -351,449 +446,186 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v520</div>
+        <div class="version-tag" id="versionTag">v521</div>
       </div>
     </section>
   </main>
 
-  <!-- ================= Form Container (SAFE ADD) ================= -->
-  <main id="form-container" style="display:none;"></main>
-
-  <!-- SAFE: overlay node -->
-  <div class="safe-form-overlay" id="safeFormOverlay" aria-hidden="true">
-    <div class="box">
-      <div class="spinner" aria-hidden="true"></div>
-      <div style="font-weight:900; letter-spacing:.4px;">正在開啟表單…</div>
-      <div class="hint" id="safeFormHint">若在微信/LINE 內建瀏覽器較慢，請稍候。</div>
-      <div class="row">
-        <button class="btn" type="button" id="safeFormRetryBtn">重新載入</button>
-        <button class="btn" type="button" id="safeFormCopyBtn">複製連結</button>
+  <!-- Feature modal -->
+  <div class="modal-mask" id="featureMask" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="產品特色說明">
+      <div class="modal-hd">
+        <div class="modal-title"><i class="fa-solid fa-circle-info"></i> 產品特色說明</div>
+        <button class="modal-close" type="button" id="featureCloseBtn">關閉</button>
+      </div>
+      <div class="modal-bd">
+        <div class="k">
+          <b>自由搭配</b>：5色 × 3版型 × 3紙感，風格清爽、可快速客製。
+        </div>
+        <div class="k">
+          <b>精品設計</b>：7款精品底色（含金箔）、玻璃質感更強、照片牆更完整，適合更高端呈現。
+        </div>
+        <div class="k">
+          <b>一鍵分享</b>：連結可分享、可作為「名片入口」聚合你的聯絡方式／社群／作品。
+        </div>
+        <div class="k">
+          <b>安全開通</b>：表單採「邀請碼」制，需由後台發放，避免公開被濫用。
+        </div>
+        <div style="margin-top:12px; color:rgba(255,255,255,0.72); font-size:13px;">
+          ※ 你也可以把這段文案改成更符合「天使幸福智慧名片」的品牌語氣，我再幫你精修。
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- ✅ Load your app.js v501 (do not change code inside app.js) -->
+  <!-- Invite gate -->
+  <div class="invite-mask" id="inviteMask" aria-hidden="true">
+    <div class="invite-box" role="dialog" aria-modal="true" aria-label="輸入邀請碼">
+      <div class="invite-hd">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i class="fa-solid fa-key"></i> 輸入邀請碼後開啟表單
+        </div>
+        <button class="invite-btn" type="button" id="inviteCloseBtn">關閉</button>
+      </div>
+      <div class="invite-bd">
+        <div>此表單採邀請制：請到後台取得邀請碼，提供給客戶填寫。</div>
+        <div class="invite-row">
+          <input class="invite-input" id="inviteInput" type="text" inputmode="text" autocomplete="off" placeholder="例如：ABCD-1234" />
+          <button class="invite-btn invite-primary" type="button" id="inviteGoBtn">開啟表單</button>
+        </div>
+        <div style="margin-top:10px; color:rgba(255,255,255,0.70); font-size:13px;">
+          ※ 成品模式（?view=1）不提供填表入口。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load app.js (keep your existing v501) -->
   <script src="./app.js?v=501"></script>
 
-  <!-- ================= SAFE MODE SCRIPT (no app.js change) ================= -->
   <script>
-    (function () {
+    (function(){
       "use strict";
 
-      var VERSION = "520";
+      var VERSION = "521";
+      var LINE_OA_URL = "https://lin.ee/3r2ZePN"; // ✅ 你的 LINE OA
+      var DEMO_ID = "TW0001";
 
-      function qs(id) { return document.getElementById(id); }
-
-      function getParams_() {
-        try { return new URLSearchParams(location.search || ""); }
-        catch (e) { return new URLSearchParams(); }
+      function qs(id){ return document.getElementById(id); }
+      function sp(){ try{return new URLSearchParams(location.search||"");}catch(e){return new URLSearchParams();} }
+      function isClean(){
+        var p = sp();
+        return (p.get("view")==="1") || (p.get("clean")==="1");
       }
 
-      function isClean_() {
-        var p = getParams_();
-        return (p.get("view") === "1") || (p.get("clean") === "1");
-      }
-
-      function buildUrl_(mode, id) {
-        var p = getParams_();
-        if (id) p.set("id", id);
-
-        // keep view/clean flags as-is (if any)
-        // mode only toggles "form" view inside front door
-        if (mode) p.set("mode", mode);
-        else p.delete("mode");
-
-        var s = p.toString();
-        return location.pathname + (s ? ("?" + s) : "");
-      }
-
-      function getId_() {
-        var p = getParams_();
-        return (p.get("id") || "").trim();
-      }
-
-      var __adminPanelDisplay = null;
-
-      function rememberAdminPanelDisplay_() {
-        var adminPanel = qs("admin-panel");
-        if (!adminPanel) return;
-        if (__adminPanelDisplay === null) {
-          try { __adminPanelDisplay = getComputedStyle(adminPanel).display || ""; }
-          catch (e) { __adminPanelDisplay = ""; }
-        }
-      }
-
-      function restoreAdminPanelDisplay_() {
-        var adminPanel = qs("admin-panel");
-        if (!adminPanel) return;
-        if (__adminPanelDisplay && __adminPanelDisplay !== "none") adminPanel.style.display = __adminPanelDisplay;
-        else adminPanel.style.display = "";
-      }
-
-      var __formMounted = false;
-      var __lastCardScrollTop = 0;
-
-      function showOverlay_(on) {
-        var ov = qs("safeFormOverlay");
-        if (!ov) return;
-        ov.style.display = on ? "flex" : "none";
-        ov.setAttribute("aria-hidden", on ? "false" : "true");
-      }
-
-      function copyText_(t) {
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(t);
-            return true;
-          }
-        } catch (e) {}
-        try {
-          var ta = document.createElement("textarea");
-          ta.value = t;
-          ta.setAttribute("readonly", "readonly");
-          ta.style.position = "fixed";
-          ta.style.left = "-9999px";
-          ta.style.top = "0";
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          document.body.removeChild(ta);
-          return true;
-        } catch (e2) {}
-        return false;
-      }
-
-      function mountFormOnce_() {
-        if (__formMounted) return;
-
-        var host = qs("form-container");
-        if (!host) return;
-
-        host.innerHTML = "";
-
-        var bar = document.createElement("div");
-        bar.setAttribute("role", "navigation");
-        bar.style.position = "sticky";
-        bar.style.top = "0";
-        bar.style.zIndex = "999";
-        bar.style.display = "flex";
-        bar.style.alignItems = "center";
-        bar.style.justifyContent = "space-between";
-        bar.style.gap = "10px";
-        bar.style.padding = "10px 12px";
-        bar.style.background = "rgba(17, 19, 24, 0.92)";
-        bar.style.backdropFilter = "blur(10px)";
-        bar.style.webkitBackdropFilter = "blur(10px)";
-        bar.style.borderBottom = "1px solid rgba(255,255,255,0.12)";
-
-        var left = document.createElement("div");
-        left.style.display = "flex";
-        left.style.alignItems = "center";
-        left.style.gap = "10px";
-
-        var btnBack = document.createElement("button");
-        btnBack.type = "button";
-        btnBack.textContent = "返回名片";
-        btnBack.setAttribute("aria-label", "返回名片");
-        btnBack.style.border = "1px solid rgba(255,255,255,0.18)";
-        btnBack.style.background = "rgba(255,255,255,0.06)";
-        btnBack.style.color = "#fff";
-        btnBack.style.padding = "10px 12px";
-        btnBack.style.borderRadius = "14px";
-        btnBack.style.fontWeight = "800";
-        btnBack.style.cursor = "pointer";
-        btnBack.style.webkitTapHighlightColor = "transparent";
-        btnBack.addEventListener("click", function () { setMode_("card"); });
-
-        var title = document.createElement("div");
-        title.textContent = "填寫名片資料";
-        title.style.color = "rgba(255,255,255,0.95)";
-        title.style.fontWeight = "900";
-        title.style.letterSpacing = "0.4px";
-
-        left.appendChild(btnBack);
-        left.appendChild(title);
-
-        var right = document.createElement("div");
-        right.style.display = "flex";
-        right.style.alignItems = "center";
-        right.style.gap = "10px";
-
-        var idNow = getId_();
-        if (idNow) {
-          var chip = document.createElement("div");
-          chip.textContent = idNow;
-          chip.style.color = "rgba(255,255,255,0.85)";
-          chip.style.fontWeight = "800";
-          chip.style.fontSize = "12px";
-          chip.style.padding = "8px 10px";
-          chip.style.borderRadius = "999px";
-          chip.style.border = "1px solid rgba(255,255,255,0.14)";
-          chip.style.background = "rgba(255,255,255,0.06)";
-          right.appendChild(chip);
-        }
-
-        bar.appendChild(left);
-        bar.appendChild(right);
-
-        var frame = document.createElement("iframe");
-        frame.setAttribute("title", "名片資料表單");
-        frame.setAttribute("loading", "eager");
-        frame.src = "./form.html?v=" + VERSION;
-        frame.style.width = "100%";
-        frame.style.height = "calc(100vh - 60px)";
-        frame.style.border = "0";
-        frame.style.display = "block";
-        frame.style.background = "transparent";
-
-        host.appendChild(bar);
-        host.appendChild(frame);
-
-        var retryBtn = qs("safeFormRetryBtn");
-        if (retryBtn) {
-          retryBtn.onclick = function () {
-            try { frame.src = "./form.html?v=" + VERSION + "&ts=" + Date.now(); } catch (e) {}
-            showOverlay_(true);
-            setTimeout(function(){}, 150);
-          };
-        }
-        var copyBtn = qs("safeFormCopyBtn");
-        if (copyBtn) {
-          copyBtn.onclick = function () {
-            copyText_(location.href);
-            var hint = qs("safeFormHint");
-            if (hint) hint.textContent = "已嘗試複製目前連結（若未成功，可長按網址列複製）。";
-          };
-        }
-
-        var loaded = false;
-        var t0 = Date.now();
-
-        function markLoaded_() {
-          if (loaded) return;
-          loaded = true;
-          showOverlay_(false);
-        }
-
-        frame.addEventListener("load", function () { markLoaded_(); });
-
-        showOverlay_(true);
-
-        setTimeout(function () {
-          if (loaded) return;
-          var hint = qs("safeFormHint");
-          if (hint) {
-            var sec = Math.max(1, Math.round((Date.now() - t0) / 1000));
-            hint.textContent = "載入較慢（" + sec + " 秒）— 可點「重新載入」或「複製連結」改用外部瀏覽器開啟。";
-          }
-          showOverlay_(true);
-        }, 8500);
-
-        __formMounted = true;
-      }
-
-      function applyMode_(mode) {
-        var cardMain = qs("card-container");
-        var adminPanel = qs("admin-panel");
-        var formMain = qs("form-container");
-        if (!cardMain || !adminPanel || !formMain) return;
-
-        // ✅ Clean delivery always forces card mode + hides panel
-        if (isClean_()) {
-          showOverlay_(false);
-          formMain.style.display = "none";
-          cardMain.style.display = "block";
-          adminPanel.style.display = "none";
-          document.body.setAttribute("data-mode", "card");
-          document.documentElement.classList.add("mode-card");
-          document.documentElement.classList.remove("mode-form");
-          applyCleanUi_(true);
-          return;
-        }
-
-        applyCleanUi_(false);
-
-        rememberAdminPanelDisplay_();
-
-        if (mode === "form") {
-          try { __lastCardScrollTop = (document.scrollingElement || document.documentElement).scrollTop || 0; } catch (e) {}
-          mountFormOnce_();
-
-          cardMain.style.display = "none";
-          adminPanel.style.display = "none";
-          formMain.style.display = "block";
-          document.body.setAttribute("data-mode", "form");
-          document.documentElement.classList.add("mode-form");
-          document.documentElement.classList.remove("mode-card");
-        } else {
-          showOverlay_(false);
-
-          formMain.style.display = "none";
-          cardMain.style.display = "block";
-          restoreAdminPanelDisplay_();
-          document.body.setAttribute("data-mode", "card");
-          document.documentElement.classList.add("mode-card");
-          document.documentElement.classList.remove("mode-form");
-
-          try {
-            var se = (document.scrollingElement || document.documentElement);
-            se.scrollTop = __lastCardScrollTop || 0;
-          } catch (e2) {}
-        }
-      }
-
-      function setMode_(mode) {
-        // ✅ If clean delivery, ignore switching
-        if (isClean_()) {
-          applyMode_("card");
-          return;
-        }
-
-        var id = getId_();
-        var nextMode = (mode === "form") ? "form" : "";
-        var url = buildUrl_(nextMode, id);
-
-        try { history.pushState({ mode: nextMode || "card" }, "", url); }
-        catch (e) {}
-
-        applyMode_(nextMode ? "form" : "card");
-      }
-
-      window.__safeFormMode = window.__safeFormMode || {};
-      window.__safeFormMode.setMode = setMode_;
-
-      function safeGoFillForm_() {
-        // ✅ In clean delivery, do nothing (成品不提供表單入口)
-        if (isClean_()) return false;
-        setMode_("form");
-        return false;
-      }
-
-      try {
-        Object.defineProperty(window, "goFillForm", {
-          configurable: true,
-          enumerable: true,
-          get: function () { return safeGoFillForm_; },
-          set: function (_) {}
-        });
-      } catch (e) {
-        window.goFillForm = safeGoFillForm_;
-      }
-
-      window.addEventListener("load", function () {
-        try { window.goFillForm = safeGoFillForm_; } catch (e) {}
-      });
-
-      function ensureCtaVisible_() {
-        var a = qs("btnLineCta");
-        if (a) { a.style.display = "inline-flex"; a.style.visibility = "visible"; a.style.opacity = "1"; }
-        var w = qs("btnWebsiteCta");
-        if (w) { w.style.display = "inline-flex"; w.style.visibility = "visible"; w.style.opacity = "1"; }
-      }
-      ensureCtaVisible_();
-      setTimeout(ensureCtaVisible_, 300);
-      setTimeout(ensureCtaVisible_, 1200);
-
-      function applyCleanUi_(on){
-        var fab = qs("cleanShareFab");
+      // ===== Clean UI =====
+      function applyCleanUI(){
+        if(!isClean()) return;
+        document.body.classList.add("clean");
+        var panel = qs("admin-panel");
         var hot = qs("adminHotspotBR");
-        var adminPanel = qs("admin-panel");
-        var formBtnA = qs("btnFormCta");
-        var formBtnB = qs("btnFormCtaPremium");
-
-        if (on) {
-          if (adminPanel) adminPanel.style.display = "none";
-          if (hot) hot.style.display = "none"; // 成品不給進後台
-          if (fab) fab.style.display = "flex";
-          // 成品不提供填表入口（避免客戶誤以為可修改）
-          if (formBtnA) formBtnA.style.display = "none";
-          if (formBtnB) formBtnB.style.display = "none";
-        } else {
-          if (fab) fab.style.display = "none";
-          if (hot) hot.style.display = ""; // restore (front door)
-          // form buttons already guarded by CSS; no need to force show here
-        }
+        var fab = qs("cleanShareFab");
+        if(panel) panel.style.display = "none";
+        if(hot) hot.style.display = "none";
+        if(fab) fab.style.display = "flex";
       }
 
-      // Clean share FAB triggers existing share logic (btnShare click)
-      (function bindFabShare_(){
+      // Clean share FAB
+      (function(){
         var fab = qs("cleanShareFab");
         if(!fab) return;
         fab.addEventListener("click", function(){
-          try {
-            var btn = qs("btnShare");
-            if (btn && typeof btn.click === "function") btn.click();
-            else {
-              try {
-                if (navigator.share) navigator.share({ title: document.title, url: location.href });
-              } catch(e) {}
-            }
-          } catch(e2) {}
-        }, { passive:true });
+          try{
+            var b = qs("btnShare");
+            if(b && b.click) b.click();
+            else if(navigator.share) navigator.share({ title: document.title, url: location.href });
+          }catch(e){}
+        }, {passive:true});
       })();
 
-      // ✅ v520.1: independent Website CTA
-      // Strategy: click the first "官網" button created by app.js inside media dock if exists,
-      // otherwise fallback to a safe homepage.
-      function openWebsiteFromRenderedDock_(){
-        try{
-          var mediaBtns = qs("mediaButtons");
-          if(mediaBtns){
-            var btns = Array.prototype.slice.call(mediaBtns.querySelectorAll("button, a"));
-            for(var i=0;i<btns.length;i++){
-              var b = btns[i];
-              var t = (b.innerText || b.textContent || "").trim();
-              if(t && (t.indexOf("官網") >= 0 || t.toLowerCase().indexOf("website") >= 0)){
-                if(typeof b.click === "function"){ b.click(); return true; }
-              }
-            }
-          }
-        }catch(e){}
-        return false;
-      }
-
-      function fallbackWebsite_(){
-        // ✅ 你可之後改成你的品牌官網（概念館 / Hub）
-        var url = "https://angel0973180707.github.io/angel-happy-paw/";
-        try{ window.open(url, "_blank"); }catch(e){}
-      }
-
-      window.goWebsiteIntro = function(){
-        if(isClean_()){
-          // 成品模式也允許打開官網（不影響安全）
-          if(!openWebsiteFromRenderedDock_()) fallbackWebsite_();
-          return;
+      // ===== LINE OA CTA (not linked to private line) =====
+      function bindLineOa(){
+        function openOA(){
+          try{ window.open(LINE_OA_URL, "_blank"); }catch(e){ location.href = LINE_OA_URL; }
         }
-        if(!openWebsiteFromRenderedDock_()) fallbackWebsite_();
-      };
-
-      function boot_() {
-        var p = getParams_();
-        var mode = (p.get("mode") || "").trim().toLowerCase();
-        applyMode_(mode === "form" ? "form" : "card");
+        ["btnLineOaCta","btnLineOaCta2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); openOA(); }, {passive:false});
+        });
       }
 
-      window.addEventListener("popstate", function () {
-        var p = getParams_();
-        var mode = (p.get("mode") || "").trim().toLowerCase();
-        applyMode_(mode === "form" ? "form" : "card");
-      });
-
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", boot_, { once: true });
-      } else {
-        boot_();
+      // ===== Feature modal =====
+      function bindFeature(){
+        var mask = qs("featureMask");
+        var close = qs("featureCloseBtn");
+        function open(){
+          if(!mask) return;
+          mask.style.display="flex";
+          mask.setAttribute("aria-hidden","false");
+        }
+        function shut(){
+          if(!mask) return;
+          mask.style.display="none";
+          mask.setAttribute("aria-hidden","true");
+        }
+        ["btnFeature","btnFeature2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
+        });
+        if(close) close.addEventListener("click", function(){ shut(); });
+        if(mask) mask.addEventListener("click", function(e){
+          if(e.target === mask) shut();
+        });
       }
 
-      /* =========================
-         Admin hidden entry setup
-         - Trigger: triple tap within 900ms OR long-press 1200ms
-         - Action: redirect to ./admin.html?v=520 (keep id if exists)
-         - Disabled in clean delivery mode
-         ========================= */
-      (function adminEntry_(){
-        if (isClean_()) return;
+      // ===== Invite Gate =====
+      function bindInviteGate(){
+        var mask = qs("inviteMask");
+        var close = qs("inviteCloseBtn");
+        var input = qs("inviteInput");
+        var go = qs("inviteGoBtn");
 
+        function open(){
+          if(isClean()) return; // 成品不提供
+          if(!mask) return;
+          mask.style.display="flex";
+          mask.setAttribute("aria-hidden","false");
+          setTimeout(function(){ try{ input && input.focus(); }catch(e){} }, 50);
+        }
+        function shut(){
+          if(!mask) return;
+          mask.style.display="none";
+          mask.setAttribute("aria-hidden","true");
+        }
+        function goForm(){
+          if(isClean()) return;
+          var code = (input && input.value ? input.value : "").trim();
+          if(!code){
+            try{ input && input.focus(); }catch(e){}
+            return;
+          }
+          // ✅ open form.html with invite query (later form.js / GAS will validate)
+          var url = "./form.html?v=" + VERSION + "&invite=" + encodeURIComponent(code);
+          try{ window.open(url, "_blank"); }catch(e){ location.href = url; }
+        }
+
+        ["btnInviteGate","btnInviteGate2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
+        });
+
+        if(close) close.addEventListener("click", function(){ shut(); });
+        if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) shut(); });
+
+        if(go) go.addEventListener("click", function(){ goForm(); });
+        if(input) input.addEventListener("keydown", function(e){
+          if(e.key === "Enter"){ e.preventDefault(); goForm(); }
+        });
+      }
+
+      // ===== Admin hidden entry (disabled in clean) =====
+      (function adminEntry(){
+        if(isClean()) return;
         var hot = qs("adminHotspotBR");
         if(!hot) return;
 
@@ -803,51 +635,69 @@
         var pressTimer = null;
         var moved = false;
 
-        function goAdmin_(){
-          var p = getParams_();
+        function goAdmin(){
+          var p = sp();
           var id = (p.get("id") || "").trim();
           var url = "./admin.html?v=" + VERSION + (id ? ("&id=" + encodeURIComponent(id)) : "");
-          try { location.href = url; } catch(e) {}
+          try{ location.href = url; }catch(e){}
         }
 
-        function registerTap_(){
+        function registerTap(){
           var now = Date.now();
           taps.push(now);
           taps = taps.filter(function(t){ return (now - t) <= TAP_WINDOW_MS; });
           if(taps.length >= 3){
             taps = [];
-            goAdmin_();
+            goAdmin();
           }
         }
 
         hot.addEventListener("click", function(e){
-          e.preventDefault();
-          e.stopPropagation();
-          registerTap_();
-        }, { passive:false });
+          e.preventDefault(); e.stopPropagation();
+          registerTap();
+        }, {passive:false});
 
         hot.addEventListener("touchstart", function(){
           moved = false;
           if(pressTimer) clearTimeout(pressTimer);
-          pressTimer = setTimeout(function(){
-            if(!moved) goAdmin_();
-          }, LONG_PRESS_MS);
-        }, { passive:true });
+          pressTimer = setTimeout(function(){ if(!moved) goAdmin(); }, LONG_PRESS_MS);
+        }, {passive:true});
 
         hot.addEventListener("touchmove", function(){
           moved = true;
           if(pressTimer) clearTimeout(pressTimer);
-        }, { passive:true });
+        }, {passive:true});
 
         hot.addEventListener("touchend", function(){
           if(pressTimer) clearTimeout(pressTimer);
-        }, { passive:true });
+        }, {passive:true});
 
         hot.addEventListener("touchcancel", function(){
           if(pressTimer) clearTimeout(pressTimer);
-        }, { passive:true });
+        }, {passive:true});
       })();
 
+      // ===== Boot =====
+      function boot(){
+        applyCleanUI();
+        bindLineOa();
+        bindFeature();
+        bindInviteGate();
+
+        // keep CTA visible
+        setTimeout(function(){
+          ["btnLineOaCta","btnLinePrivateCta","btnFeature","btnInviteGate","btnShare"].forEach(function(id){
+            var b = qs(id);
+            if(b){ b.style.display="inline-flex"; b.style.visibility="visible"; b.style.opacity="1"; }
+          });
+        }, 350);
+      }
+
+      if(document.readyState === "loading"){
+        document.addEventListener("DOMContentLoaded", boot, {once:true});
+      }else{
+        boot();
+      }
     })();
   </script>
 </body>
