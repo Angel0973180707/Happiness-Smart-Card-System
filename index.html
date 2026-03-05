@@ -1,16 +1,17 @@
 <!-- ================================
-     index.html v521.1 (FRONT + CLEAN DELIVERY MODE + INVITE GATE)
+     index.html v521.2 (COMPLETE OVERWRITE)
+     FRONT + CLEAN DELIVERY MODE + INVITE GATE
      ✅ Front (門面): always force DEMO_ID (TW0001) for preview
      ✅ Clean (成品): ?view=1 → hide選版區(控制面板) + keep share FAB
-     ✅ New CTA:
-        - 「加 LINE 官方帳號｜瞭解預約」(LINE OA)  ✅ https://lin.ee/3r2ZePN
-        - 「私訊 LINE」(private line) ✅ 走 app.js 的 goLineIntro（不連動 OA）
-        - 「產品特色說明」(open modal)
-        - 「請聯繫客服開通」按鈕：改成「輸入邀請碼 → 開啟表單」
+     ✅ CTA:
+        - LINE OA: https://lin.ee/3r2ZePN
+        - 私訊 LINE：走 app.js 的 goLineIntro（讀名片資料）
+        - 產品特色說明：modal
+        - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
      ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=521&invite=XXXX
+        - Front: click 開通 → ask invite code → open ./form.html?v=521.2&invite=XXXX
         - Clean mode: no form entry
-     ✅ Brand name on facade:
+     ✅ Brand facade:
         - Heading: 天使幸福智慧名片
         - Positioning: 智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口
 ================================ -->
@@ -20,13 +21,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片 v521.1</title>
+  <title>天使幸福智慧名片 v521.2</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=521.1" />
+  <link rel="manifest" href="./manifest.json?v=521.2" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=521.1" />
-  <link rel="icon" href="./icons/icon-192.png?v=521.1" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=521.2" />
+  <link rel="icon" href="./icons/icon-192.png?v=521.2" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -43,7 +44,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <link rel="stylesheet" href="./style.css?v=521.1" />
+  <link rel="stylesheet" href="./style.css?v=521.2" />
 
   <style>
     /* CTA visibility guard (include *2 IDs) */
@@ -267,9 +268,12 @@
       var isClean = (sp.get("view") === "1") || (sp.get("clean") === "1");
       var isAdmin = (sp.get("admin") === "1");
 
-      // NOTE: CSS uses body.clean, so we set body in runtime too.
       if (isClean) {
-        try{ document.addEventListener("DOMContentLoaded", function(){ document.body.classList.add("clean"); }, {once:true}); }catch(e){}
+        try{
+          document.addEventListener("DOMContentLoaded", function(){
+            document.body.classList.add("clean");
+          }, {once:true});
+        }catch(e){}
       }
 
       if (!isClean && !isAdmin) {
@@ -449,7 +453,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v521.1</div>
+        <div class="version-tag" id="versionTag">v521.2</div>
       </div>
     </section>
   </main>
@@ -501,20 +505,47 @@
   </div>
 
   <!-- Load app.js -->
-  <script src="./app.js?v=521.1"></script>
+  <script src="./app.js?v=521.2"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "521.1";
-      var LINE_OA_URL = "https://lin.ee/3r2ZePN"; // ✅ 你的 LINE OA
+      var VERSION = "521.2";
+      var LINE_OA_URL = "https://lin.ee/3r2ZePN";
 
       function qs(id){ return document.getElementById(id); }
       function sp(){ try{return new URLSearchParams(location.search||"");}catch(e){return new URLSearchParams();} }
       function isClean(){
         var p = sp();
         return (p.get("view")==="1") || (p.get("clean")==="1");
+      }
+
+      // ===== Scroll lock helpers (iOS friendly) =====
+      var __scrollTop = 0;
+      function lockScroll(){
+        try{
+          __scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+          document.documentElement.style.overflow = "hidden";
+          document.body.style.overflow = "hidden";
+          document.body.style.position = "fixed";
+          document.body.style.top = (-__scrollTop) + "px";
+          document.body.style.left = "0";
+          document.body.style.right = "0";
+          document.body.style.width = "100%";
+        }catch(e){}
+      }
+      function unlockScroll(){
+        try{
+          document.documentElement.style.overflow = "";
+          document.body.style.overflow = "";
+          document.body.style.position = "";
+          document.body.style.top = "";
+          document.body.style.left = "";
+          document.body.style.right = "";
+          document.body.style.width = "";
+          window.scrollTo(0, __scrollTop || 0);
+        }catch(e){}
       }
 
       // ===== Clean UI =====
@@ -561,11 +592,13 @@
           if(!mask) return;
           mask.style.display="flex";
           mask.setAttribute("aria-hidden","false");
+          lockScroll();
         }
         function shut(){
           if(!mask) return;
           mask.style.display="none";
           mask.setAttribute("aria-hidden","true");
+          unlockScroll();
         }
         ["btnFeature","btnFeature2"].forEach(function(id){
           var b = qs(id);
@@ -574,6 +607,9 @@
         if(close) close.addEventListener("click", function(){ shut(); });
         if(mask) mask.addEventListener("click", function(e){
           if(e.target === mask) shut();
+        });
+        document.addEventListener("keydown", function(e){
+          if(e.key === "Escape" && mask && mask.style.display === "flex") shut();
         });
       }
 
@@ -585,16 +621,18 @@
         var go = qs("inviteGoBtn");
 
         function open(){
-          if(isClean()) return; // 成品不提供
+          if(isClean()) return;
           if(!mask) return;
           mask.style.display="flex";
           mask.setAttribute("aria-hidden","false");
-          setTimeout(function(){ try{ input && input.focus(); }catch(e){} }, 50);
+          lockScroll();
+          setTimeout(function(){ try{ input && input.focus(); }catch(e){} }, 60);
         }
         function shut(){
           if(!mask) return;
           mask.style.display="none";
           mask.setAttribute("aria-hidden","true");
+          unlockScroll();
         }
         function goForm(){
           if(isClean()) return;
@@ -618,6 +656,7 @@
         if(go) go.addEventListener("click", function(){ goForm(); });
         if(input) input.addEventListener("keydown", function(e){
           if(e.key === "Enter"){ e.preventDefault(); goForm(); }
+          if(e.key === "Escape"){ e.preventDefault(); shut(); }
         });
       }
 
@@ -684,8 +723,9 @@
 
         // keep CTA visible
         setTimeout(function(){
-          ["btnLineOaCta","btnLinePrivateCta","btnFeature","btnInviteGate","btnShare",
-           "btnLineOaCta2","btnLinePrivateCta2","btnFeature2","btnInviteGate2"
+          [
+            "btnLineOaCta","btnLinePrivateCta","btnFeature","btnInviteGate","btnShare",
+            "btnLineOaCta2","btnLinePrivateCta2","btnFeature2","btnInviteGate2"
           ].forEach(function(id){
             var b = qs(id);
             if(b){ b.style.display="inline-flex"; b.style.visibility="visible"; b.style.opacity="1"; }
