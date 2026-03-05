@@ -1,6 +1,6 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v521.1 (COMPLETE OVERWRITE)
+ * app.js v521.2 (COMPLETE OVERWRITE)
  *
  * Align to GAS v501 payload:
  * ✅ { ok:true, v:"501", item:{...} }
@@ -10,15 +10,19 @@
  * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
  * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel
  *
- * v521.1 adjustment:
- * ✅ Lock CTA / contact CTA go to LINE OA: https://lin.ee/3r2ZePN
+ * v521.2 fix:
+ * ✅ Selection <-> Preview linkage (payload -> UI state -> body classes -> active buttons)
+ * ✅ Sync from payload keys: plan/color/style/paper/premium_color (+ legacy variants)
+ * ✅ Active UI mapping resilient even if HTML changes slightly
+ *
+ * Lock CTA / contact CTA -> LINE OA: https://lin.ee/3r2ZePN
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
-  VERSION: "v521.1",
+  VERSION: "v521.2",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
@@ -258,11 +262,11 @@ function setActiveInGroup_(group, el){
 
 /* ---------- State ---------- */
 const STATE = {
-  mode: "free",
-  color: "color-1",
-  style: "arch",
-  paper: "paper-1",
-  premium: "p1"
+  mode: "free",        // free | premium
+  color: "color-1",    // color-1..5
+  style: "arch",       // arch | flat | spot
+  paper: "paper-1",    // paper-1..3
+  premium: "p1"        // p1..p7
 };
 
 function applyModeUi_(){
@@ -283,7 +287,7 @@ function applyModeUi_(){
     if(premBlock) premBlock.style.display = "";
     if(banner) banner.style.display = "none";
     if(paperOverlay) paperOverlay.style.display = "none";
-    if(premBadge) premBadge.style.display = "none";
+    if(premBadge) premBadge.style.display = "";
   }
 }
 
@@ -307,18 +311,138 @@ function applyBodyClasses_(){
   applyModeUi_();
 }
 
+/* ---------- v521.2: payload -> STATE sync (critical linkage) ---------- */
+function normalizePlan_(raw){
+  const v = text(raw).toLowerCase();
+  if(!v) return "";
+  if(v.includes("premium") || v.includes("pro") || v.includes("精品")) return "premium";
+  if(v.includes("free") || v.includes("basic") || v.includes("自由")) return "free";
+  return v; // fallback
+}
+
+function normalizeColorClass_(raw){
+  const v = text(raw).toLowerCase();
+  if(!v) return "";
+  // accept: color-1..5 | c1..c5 | 1..5 | 粉藍橘紫綠
+  if(/^color-\d$/.test(v)) return v;
+  if(/^c[1-5]$/.test(v)) return "color-" + v.slice(1);
+  if(/^[1-5]$/.test(v)) return "color-" + v;
+  if(v.includes("粉")) return "color-1";
+  if(v.includes("藍")) return "color-2";
+  if(v.includes("橘")) return "color-3";
+  if(v.includes("紫")) return "color-4";
+  if(v.includes("綠")) return "color-5";
+  return "";
+}
+
+function normalizeStyle_(raw){
+  const v = text(raw).toLowerCase();
+  if(!v) return "";
+  if(v.includes("arch") || v.includes("拱") || v.includes("s1")) return "arch";
+  if(v.includes("flat") || v.includes("直") || v.includes("s2")) return "flat";
+  if(v.includes("spot") || v.includes("晨") || v.includes("s3")) return "spot";
+  return "";
+}
+
+function normalizePaper_(raw){
+  const v = text(raw).toLowerCase();
+  if(!v) return "";
+  if(v === "paper-1" || v.includes("f1") || v.includes("棉")) return "paper-1";
+  if(v === "paper-2" || v.includes("f2") || v.includes("顆")) return "paper-2";
+  if(v === "paper-3" || v.includes("f3") || v.includes("亞")) return "paper-3";
+  if(/^[123]$/.test(v)) return "paper-" + v;
+  return "";
+}
+
+function normalizePremium_(raw){
+  const v = text(raw).toLowerCase();
+  if(!v) return "";
+  // accept: p1..p7 | 1..7
+  if(/^p[1-7]$/.test(v)) return v;
+  if(/^[1-7]$/.test(v)) return "p" + v;
+  if(v.includes("胭")) return "p1";
+  if(v.includes("酒")) return "p2";
+  if(v.includes("深藍")) return "p3";
+  if(v.includes("霧紫")) return "p4";
+  if(v.includes("藍灰")) return "p5";
+  if(v.includes("金")) return "p6";
+  if(v.includes("褐")) return "p7";
+  return "";
+}
+
+function syncStateFromPayload_(p){
+  // plan/mode
+  const planRaw = pick(p, ["plan","方案","plan_name","mode","方案別"]);
+  const plan = normalizePlan_(planRaw);
+
+  // free
+  const colorRaw = pick(p, ["color","顏色","theme","free_color","color_id"]);
+  const styleRaw = pick(p, ["style","版型","card_style","banner_style","style_id"]);
+  const paperRaw = pick(p, ["paper","紙感","texture","paper_id"]);
+
+  // premium
+  const premRaw  = pick(p, ["premium_color","premium","premium_theme","p_color","精品底色","premiumColor"]);
+
+  const c = normalizeColorClass_(colorRaw);
+  const s = normalizeStyle_(styleRaw);
+  const pa = normalizePaper_(paperRaw);
+  const pr = normalizePremium_(premRaw);
+
+  // Decide mode:
+  if(plan === "premium" || pr){
+    STATE.mode = "premium";
+    if(pr) STATE.premium = pr;
+  }else if(plan === "free"){
+    STATE.mode = "free";
+  }
+  // Fill free props if present:
+  if(c) STATE.color = c;
+  if(s) STATE.style = s;
+  if(pa) STATE.paper = pa;
+
+  // Safety defaults:
+  if(!STATE.color) STATE.color = "color-1";
+  if(!STATE.style) STATE.style = "arch";
+  if(!STATE.paper) STATE.paper = "paper-1";
+  if(!STATE.premium) STATE.premium = "p1";
+}
+
+function syncActiveButtonsFromState_(){
+  // Plan buttons
+  const btnFree = qs("btnPlanFree");
+  const btnPrem = qs("btnPlanPremium");
+  if(btnFree && btnPrem){
+    btnFree.classList.toggle("active", STATE.mode === "free");
+    btnPrem.classList.toggle("active", STATE.mode === "premium");
+    btnFree.classList.toggle("breathe", STATE.mode === "free");
+    btnPrem.classList.toggle("breathe", STATE.mode === "premium");
+  }
+
+  // Theme buttons: match by data-value
+  const themeValue = (STATE.mode === "premium") ? STATE.premium : STATE.color;
+  qsa(`[data-group="theme"]`).forEach(el=>{
+    const v = text(el.getAttribute("data-value"));
+    el.classList.toggle("active", v === themeValue);
+  });
+
+  // Style/paper only meaningful in free mode
+  qsa(`[data-group="style"]`).forEach(el=>{
+    const v = text(el.getAttribute("data-value"));
+    el.classList.toggle("active", v === STATE.style);
+  });
+
+  qsa(`[data-group="paper"]`).forEach(el=>{
+    const v = text(el.getAttribute("data-value"));
+    el.classList.toggle("active", v === STATE.paper);
+  });
+}
+
 /* ---------- Exposed APIs ---------- */
 function setPlan(mode, el){
   STATE.mode = (mode === "premium") ? "premium" : "free";
   setActiveInGroup_("plan", el);
   applyBodyClasses_();
-
-  const btnFree = qs("btnPlanFree");
-  const btnPrem = qs("btnPlanPremium");
-  if(btnFree && btnPrem){
-    btnFree.classList.toggle("breathe", STATE.mode === "free");
-    btnPrem.classList.toggle("breathe", STATE.mode === "premium");
-  }
+  syncActiveButtonsFromState_();
 }
 
 function setTheme(theme, el){
@@ -332,13 +456,7 @@ function setTheme(theme, el){
     setActiveInGroup_("theme", el);
   }
   applyBodyClasses_();
-
-  const btnFree = qs("btnPlanFree");
-  const btnPrem = qs("btnPlanPremium");
-  if(btnFree && btnPrem){
-    btnFree.classList.toggle("active", STATE.mode === "free");
-    btnPrem.classList.toggle("active", STATE.mode === "premium");
-  }
+  syncActiveButtonsFromState_();
 }
 
 function setStyle(style, el){
@@ -346,13 +464,7 @@ function setStyle(style, el){
   STATE.style = style;
   setActiveInGroup_("style", el);
   applyBodyClasses_();
-
-  const btnFree = qs("btnPlanFree");
-  const btnPrem = qs("btnPlanPremium");
-  if(btnFree && btnPrem){
-    btnFree.classList.add("active");
-    btnPrem.classList.remove("active");
-  }
+  syncActiveButtonsFromState_();
 }
 
 function setPaper(paper, el){
@@ -360,13 +472,7 @@ function setPaper(paper, el){
   STATE.paper = paper;
   setActiveInGroup_("paper", el);
   applyBodyClasses_();
-
-  const btnFree = qs("btnPlanFree");
-  const btnPrem = qs("btnPlanPremium");
-  if(btnFree && btnPrem){
-    btnFree.classList.add("active");
-    btnPrem.classList.remove("active");
-  }
+  syncActiveButtonsFromState_();
 }
 
 /* CTA: lock/contact -> LINE OA */
@@ -905,6 +1011,11 @@ function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
 
+  // v521.2: sync selection from payload BEFORE gate render
+  syncStateFromPayload_(p);
+  applyBodyClasses_();
+  syncActiveButtonsFromState_();
+
   const gate = applyStatusGate_(p);
   if(gate.locked){
     const vt = qs("versionTag");
@@ -1160,7 +1271,6 @@ function renderPhotoWall_(row){
         await navigator.share({ title: document.title, url });
         return;
       }
-      // fallback: copy url
       const ok = await (async ()=>{
         try{ if(navigator.clipboard?.writeText){ await navigator.clipboard.writeText(url); return true; } }catch{}
         return false;
@@ -1193,6 +1303,8 @@ async function loadAndRenderById_(id){
     safeSetText_("u-name", "資料載入失敗");
     safeSetText_("u-unit", "");
     safeSetText_("u-title", "");
+    const vt = qs("versionTag");
+    if(vt) vt.textContent = CONFIG.VERSION;
   }
 }
 
@@ -1200,6 +1312,7 @@ async function loadAndRenderById_(id){
   try{
     ensureLightbox_();
 
+    // initial from body (works even before data)
     const b = document.body;
     STATE.mode = b.classList.contains("mode-premium") ? "premium" : "free";
 
@@ -1215,6 +1328,7 @@ async function loadAndRenderById_(id){
     });
 
     applyBodyClasses_();
+    syncActiveButtonsFromState_();
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     loadAndRenderById_(id);
