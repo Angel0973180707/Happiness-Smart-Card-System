@@ -1,11 +1,16 @@
 <!-- ================================
-     index.html v497 (DEMO FRONT + CLEAN DELIVERY MODE)
+     index.html v520.1 (DEMO FRONT + CLEAN DELIVERY MODE)
+     Base: your index.html v497 pasted by you (DOM kept)
      ✅ Front (門面): always force read DEMO_ID (TW0001) for preview + can fill form
      ✅ Clean (成品): use ?view=1  → hide選版區(控制面板) + keep share ability
      ✅ Keep: v4970card DOM (no card DOM change)
-     ✅ No app.js change
+     ✅ No app.js change (only load your app.js v501 file)
      ✅ Admin hidden entry kept (bottom-right triple tap / long-press) — disabled in clean mode
-     ✅ Version: unified ?v=497
+     ✅ Version: unified ?v=520
+     ✅ v520.1 changes:
+        - Paper names: 棉紙 / 象牙紙 / 霧灰 (paper-1/2/3)
+        - Front CTA split: 官網 (independent) + 私訊LINE (goLineIntro)
+        - Premium CTA reserved: hide (keep IDs)
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -14,13 +19,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
 
-  <title>Happiness Smart Card System v496</title>
+  <title>Happiness Smart Card System v520</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=497" />
+  <link rel="manifest" href="./manifest.json?v=520" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=497" />
-  <link rel="icon" href="./icons/icon-192.png?v=497" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=520" />
+  <link rel="icon" href="./icons/icon-192.png?v=520" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -37,16 +42,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <link rel="stylesheet" href="./style.css?v=497" />
+  <link rel="stylesheet" href="./style.css?v=520" />
 
   <style>
-    /* ---- LINE / CTA visibility guard ---- */
+    /* ---- CTA visibility guard ---- */
     #btnLineCta,
     #btnLineCtaPremium,
     #btnFormCta,
     #btnFormCtaPremium,
     #btnShare,
-    #btnSharePremium {
+    #btnSharePremium,
+    #btnWebsiteCta {
       display: inline-flex !important;
       visibility: visible !important;
       opacity: 1 !important;
@@ -155,6 +161,12 @@
     }
     #cleanShareFab i{ font-size: 20px; }
     #cleanShareFab:active{ transform: scale(0.98); }
+
+    /* ✅ v520.1: Premium CTA reserved (keep IDs, hide by default) */
+    #btnLineCtaPremium,
+    #btnFormCtaPremium{
+      display:none !important;
+    }
   </style>
 
   <!-- ✅ IMPORTANT: Force DEMO front id BEFORE app.js runs -->
@@ -234,17 +246,23 @@
 
         <div class="section-title">選紙感</div>
         <div class="btn-row" id="paperRow">
-          <button class="btn-neo active" data-group="paper" type="button" onclick="window.setPaper('paper-1', this)">霧面棉紙</button>
-          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-2', this)">細顆粒紙</button>
-          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-3', this)">亞麻紋</button>
+          <!-- ✅ v520.1: rename only (paper-1/2/3 mapping unchanged) -->
+          <button class="btn-neo active" data-group="paper" type="button" onclick="window.setPaper('paper-1', this)">棉紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-2', this)">象牙紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-3', this)">霧灰</button>
         </div>
 
+        <!-- ✅ v520.1: CTA split -->
+        <button class="btn-cta subtle" id="btnWebsiteCta" type="button" onclick="window.goWebsiteIntro && window.goWebsiteIntro()">
+          <i class="fa-solid fa-globe"></i> 官網
+        </button>
+
         <button class="btn-cta breathe" id="btnLineCta" type="button" onclick="window.goLineIntro()">
-          <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
+          <i class="fa-brands fa-line"></i> 私訊 LINE
         </button>
 
         <button class="btn-cta subtle" id="btnFormCta" type="button" onclick="window.goFillForm()">
-          <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
+          <i class="fa-solid fa-headset"></i> 聯繫開通
         </button>
 
         <button class="btn-cta btn-share" id="btnShare" type="button">
@@ -265,12 +283,13 @@
           <button class="p-dot p7" data-group="theme" type="button" aria-label="p7" onclick="window.setTheme('p7', this)"></button>
         </div>
 
+        <!-- ✅ Premium CTA reserved: keep IDs but hidden by CSS (future enable) -->
         <button class="btn-cta breathe" id="btnLineCtaPremium" type="button" onclick="window.goLineIntro()">
-          <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
+          <i class="fa-brands fa-line"></i> 私訊 LINE
         </button>
 
         <button class="btn-cta subtle" id="btnFormCtaPremium" type="button" onclick="window.goFillForm()">
-          <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
+          <i class="fa-solid fa-headset"></i> 聯繫開通
         </button>
 
         <button class="btn-cta btn-share" id="btnSharePremium" type="button" onclick="document.getElementById('btnShare')?.click()">
@@ -332,7 +351,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v491</div>
+        <div class="version-tag" id="versionTag">v520</div>
       </div>
     </section>
   </main>
@@ -353,15 +372,15 @@
     </div>
   </div>
 
-  <!-- ✅ Keep app.js unchanged -->
-  <script src="./app.js?v=491"></script>
+  <!-- ✅ Load your app.js v501 (do not change code inside app.js) -->
+  <script src="./app.js?v=501"></script>
 
   <!-- ================= SAFE MODE SCRIPT (no app.js change) ================= -->
   <script>
     (function () {
       "use strict";
 
-      var VERSION = "497";
+      var VERSION = "520";
 
       function qs(id) { return document.getElementById(id); }
 
@@ -665,16 +684,15 @@
         try { window.goFillForm = safeGoFillForm_; } catch (e) {}
       });
 
-      function ensureLineCtaVisible_() {
+      function ensureCtaVisible_() {
         var a = qs("btnLineCta");
         if (a) { a.style.display = "inline-flex"; a.style.visibility = "visible"; a.style.opacity = "1"; }
-        var b = qs("btnLineCtaPremium");
-        if (b) { b.style.display = "inline-flex"; b.style.visibility = "visible"; b.style.opacity = "1"; }
+        var w = qs("btnWebsiteCta");
+        if (w) { w.style.display = "inline-flex"; w.style.visibility = "visible"; w.style.opacity = "1"; }
       }
-
-      ensureLineCtaVisible_();
-      setTimeout(ensureLineCtaVisible_, 300);
-      setTimeout(ensureLineCtaVisible_, 1200);
+      ensureCtaVisible_();
+      setTimeout(ensureCtaVisible_, 300);
+      setTimeout(ensureCtaVisible_, 1200);
 
       function applyCleanUi_(on){
         var fab = qs("cleanShareFab");
@@ -706,7 +724,6 @@
             var btn = qs("btnShare");
             if (btn && typeof btn.click === "function") btn.click();
             else {
-              // fallback: try share current url
               try {
                 if (navigator.share) navigator.share({ title: document.title, url: location.href });
               } catch(e) {}
@@ -714,6 +731,41 @@
           } catch(e2) {}
         }, { passive:true });
       })();
+
+      // ✅ v520.1: independent Website CTA
+      // Strategy: click the first "官網" button created by app.js inside media dock if exists,
+      // otherwise fallback to a safe homepage.
+      function openWebsiteFromRenderedDock_(){
+        try{
+          var mediaBtns = qs("mediaButtons");
+          if(mediaBtns){
+            var btns = Array.prototype.slice.call(mediaBtns.querySelectorAll("button, a"));
+            for(var i=0;i<btns.length;i++){
+              var b = btns[i];
+              var t = (b.innerText || b.textContent || "").trim();
+              if(t && (t.indexOf("官網") >= 0 || t.toLowerCase().indexOf("website") >= 0)){
+                if(typeof b.click === "function"){ b.click(); return true; }
+              }
+            }
+          }
+        }catch(e){}
+        return false;
+      }
+
+      function fallbackWebsite_(){
+        // ✅ 你可之後改成你的品牌官網（概念館 / Hub）
+        var url = "https://angel0973180707.github.io/angel-happy-paw/";
+        try{ window.open(url, "_blank"); }catch(e){}
+      }
+
+      window.goWebsiteIntro = function(){
+        if(isClean_()){
+          // 成品模式也允許打開官網（不影響安全）
+          if(!openWebsiteFromRenderedDock_()) fallbackWebsite_();
+          return;
+        }
+        if(!openWebsiteFromRenderedDock_()) fallbackWebsite_();
+      };
 
       function boot_() {
         var p = getParams_();
@@ -736,7 +788,7 @@
       /* =========================
          Admin hidden entry setup
          - Trigger: triple tap within 900ms OR long-press 1200ms
-         - Action: redirect to ./admin.html?v=496 (keep id if exists)
+         - Action: redirect to ./admin.html?v=520 (keep id if exists)
          - Disabled in clean delivery mode
          ========================= */
       (function adminEntry_(){
