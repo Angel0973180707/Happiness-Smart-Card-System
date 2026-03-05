@@ -1,5 +1,6 @@
 /* ==========================================
- * Happiness Smart Card System — style.css v521.1 (COMPLETE OVERWRITE)
+ * Happiness Smart Card System — style.css v521.2 (COMPLETE OVERWRITE)
+ *
  * Goal:
  * ✅ Fix v520 “走山” by reverting to the stable v497 layout model
  * ✅ Fix scroll issues (iOS/Android) + no overlays stealing touch
@@ -9,7 +10,7 @@
  * IMPORTANT:
  * - Keep existing class hooks (DO NOT change DOM):
  *   body.mode-free | body.mode-premium
- *   body.color-1..5  body.style-arch|flat|spot  body.paper-1..3
+ *   body.color-1..5 body.style-arch|flat|spot body.paper-1..3
  *   body.p1..p7
  * - Avoid global pollution:
  *   - NO global destructive reset
@@ -25,6 +26,7 @@
   --radius:26px;
   --shadow:0 20px 60px rgba(0,0,0,.12);
   --shadow-soft:0 14px 34px rgba(0,0,0,.12);
+
   --card-white:rgba(255,255,255,.92);
   --line:rgba(0,0,0,.06);
 
@@ -101,6 +103,7 @@ body.p2{ --p:#722f37; --s:#4e1f25; }
 body.p3{ --p:#1c2e42; --s:#101d2b; }
 body.p4{ --p:#5e548e; --s:#40376b; }
 body.p5{ --p:#a9b7c7; --s:#5f7489; --prem-soft: rgba(255,255,255,0.16); }
+
 /* p6 金箔（更亮更金） */
 body.p6{ --p:#f2c14b; --s:#bf953f; }
 body.p7{ --p:#5a4a3f; --s:#2f2926; }
@@ -182,6 +185,7 @@ body.mode-premium .card{
   opacity:0;
   z-index: 1;
 }
+
 body.mode-premium .premium-fx-layer{
   opacity:1;
   background:
@@ -232,6 +236,7 @@ body.mode-premium .card::before{
   opacity: .98;
   mix-blend-mode: soft-light;
 }
+
 body.mode-premium .card::after{
   content:"";
   position:absolute;
@@ -266,6 +271,7 @@ body.mode-premium .card::after{
   color: var(--muted);
   line-height: 1.55;
 }
+
 body.mode-premium .unit,
 body.mode-premium .title{ color: var(--prem-muted); }
 
@@ -295,6 +301,7 @@ body.mode-free.style-arch .banner{
     linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0.00)),
     linear-gradient(135deg, var(--p), var(--s));
 }
+
 body.mode-free.style-arch .banner::after{
   content:"";
   position:absolute;
@@ -314,6 +321,7 @@ body.mode-free.style-flat .banner{
     radial-gradient(520px 220px at 12% 8%, rgba(255,255,255,0.16), transparent 72%),
     linear-gradient(135deg, var(--p), var(--s));
 }
+
 body.mode-free.style-flat .banner::after{
   content:"";
   position:absolute;
@@ -333,6 +341,7 @@ body.mode-free.style-spot .banner{
     linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.05)),
     linear-gradient(135deg, var(--p), var(--s));
 }
+
 body.mode-free.style-spot .banner::after{
   content:"";
   position:absolute;
@@ -346,8 +355,21 @@ body.mode-free.style-spot .banner::after{
 }
 
 /* ---------- Paper overlay (Free only) ---------- */
-.paper-overlay{ position:absolute; inset:0; pointer-events:none; opacity:1; z-index: 2; }
+.paper-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:1;
+  z-index: 2;
+}
 body.mode-premium .paper-overlay{ display:none !important; }
+
+/* Ensure #paperOverlay supports pseudo elements in patch block */
+#paperOverlay{
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+}
 
 /* paper-1/2/3 */
 body.mode-free.paper-1 .paper-overlay{
@@ -360,6 +382,7 @@ body.mode-free.paper-1 .paper-overlay{
   mix-blend-mode: soft-light;
   opacity: var(--paper-strength);
 }
+
 body.mode-free.paper-2 .paper-overlay{
   background:
     radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,0.18), transparent 60%),
@@ -371,6 +394,7 @@ body.mode-free.paper-2 .paper-overlay{
   mix-blend-mode: overlay;
   opacity: calc(var(--paper-strength) + 0.08);
 }
+
 body.mode-free.paper-3 .paper-overlay{
   background:
     repeating-linear-gradient(45deg, rgba(0,0,0, var(--paper-fiber)) 0px, rgba(0,0,0, var(--paper-fiber)) 1px, transparent 1px, transparent 7px),
@@ -388,6 +412,7 @@ body.mode-free.paper-3 .paper-overlay{
   padding-bottom: 6px;
   z-index: 6;
 }
+
 body.mode-free .avatar-wrap{ margin-top: -58px; }
 body.mode-premium .avatar-wrap{ margin-top: 18px; padding-top: 6px; }
 
@@ -435,7 +460,13 @@ body.mode-premium .avatar-circle{
 }
 
 /* ---------- Logo ---------- */
-.logo-wrap{ display:flex; justify-content:center; padding: 6px 0 0; position: relative; z-index: 6; }
+.logo-wrap{
+  display:flex;
+  justify-content:center;
+  padding: 6px 0 0;
+  position: relative;
+  z-index: 6;
+}
 
 .logo-img{
   width: 56px;
@@ -455,6 +486,7 @@ body.mode-free .logo-img{
     inset 0 2px 0 rgba(255,255,255,0.65),
     inset 0 -12px 16px rgba(0,0,0,0.06);
 }
+
 body.mode-premium .logo-img{
   background: rgba(255,255,255,0.14);
   border: 1px solid rgba(255,255,255,0.22);
@@ -478,6 +510,7 @@ body.mode-premium .logo-img{
   font-weight: 900;
   text-shadow: 0 10px 24px rgba(0,0,0,0.12);
 }
+
 body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
 
 /* ---------- Controls layout ---------- */
@@ -490,12 +523,14 @@ body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
   opacity:.82;
   text-align:left;
 }
+
 .btn-row, .plan-row{
   display:flex;
   gap:10px;
   width:100%;
   max-width:520px;
 }
+
 .controls-block{
   width:100%;
   max-width:520px;
@@ -504,6 +539,7 @@ body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
   gap:10px;
   align-items:center;
 }
+
 .dots-row{
   display:flex;
   gap:14px;
@@ -517,6 +553,7 @@ body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
 #admin-panel, .panel-inner, .controls-block, .btn-row, .plan-row, .dots-row{
   max-width: 100%;
 }
+
 #admin-panel{ overflow-x: hidden; }
 
 /* ---------- Selector Buttons ---------- */
@@ -544,18 +581,22 @@ body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
   line-height: 1.15;
   white-space: nowrap;
 }
+
 .btn-neo:hover{ transform: translateY(-1px); }
+
 .btn-neo:active{
   transform: translateY(0px) scale(0.985);
   box-shadow:
     0 12px 26px rgba(0,0,0,0.14),
     inset 0 3px 10px rgba(0,0,0,0.12);
 }
+
 .btn-neo.pill{
   flex:1; min-width:0;
   padding: 14px 10px;
   border-radius: 999px;
 }
+
 .btn-neo.active{
   border-color: rgba(0,0,0,0.20);
   filter: saturate(1.06);
@@ -580,6 +621,7 @@ body.mode-premium .btn-neo{
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
+
 body.mode-premium .btn-neo::after{
   content:"";
   position:absolute; inset:-1px;
@@ -591,6 +633,7 @@ body.mode-premium .btn-neo::after{
   pointer-events:none;
   opacity: .90;
 }
+
 body.mode-premium .btn-neo.active{
   border-color: rgba(255,255,255,0.22);
   background: rgba(255,255,255,0.12);
@@ -616,8 +659,10 @@ body.mode-premium .btn-neo.active{
   gap: 10px;
   line-height: 1.15;
 }
+
 .btn-cta i, .btn-cta svg{ flex: 0 0 auto; }
 .btn-cta:active{ transform: scale(0.99); }
+
 .btn-cta.subtle{
   background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.84));
   color: rgba(31,36,48,0.92);
@@ -632,6 +677,7 @@ body.mode-premium .btn-neo.active{
   color:#1a1408;
   box-shadow: 0 20px 40px rgba(0,0,0,0.18);
 }
+
 body.mode-premium .btn-share{
   color: rgba(255,255,255,0.95);
   background:
@@ -657,6 +703,7 @@ body.mode-premium .btn-share{
     inset 0 -8px 12px rgba(0,0,0,0.18);
   touch-action: manipulation;
 }
+
 body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
 
 .dot::after, .p-dot::after{
@@ -758,6 +805,7 @@ body.mode-free .info-block::after{
   margin-bottom: 6px;
   font-size: 13px;
 }
+
 .block-body{
   color: var(--muted);
   font-weight: 750;
@@ -770,10 +818,12 @@ body.mode-premium .info-block{
   border-color: rgba(255,255,255,0.14);
   box-shadow: 0 18px 40px rgba(0,0,0,0.28);
 }
+
 body.mode-premium .block-title{
   color: rgba(255,255,255,0.92);
   text-shadow: 0 1px 0 rgba(0,0,0,0.25);
 }
+
 body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
 
 /* ---------- Contact dock ---------- */
@@ -786,6 +836,7 @@ body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
   position: relative;
   overflow: hidden;
 }
+
 .contact-dock::before{
   content:"";
   position:absolute;
@@ -838,12 +889,14 @@ body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
   white-space: nowrap;
   touch-action: manipulation;
 }
+
 .dock-btn:active{
   transform: scale(0.992);
   box-shadow:
     0 12px 26px rgba(0,0,0,0.14),
     inset 0 3px 10px rgba(0,0,0,0.14);
 }
+
 .dock-btn i{ font-size: 17px; }
 .dock-btn span{ font-size: 13px; letter-spacing: 0.3px; }
 .dock-btn.wide{ grid-column: 1 / -1; }
@@ -863,10 +916,12 @@ body.mode-premium .contact-dock{
   background: rgba(10,12,18,0.18);
   border-color: rgba(255,255,255,0.14);
 }
+
 body.mode-premium .dock-title{
   color: rgba(255,255,255,0.88);
   opacity: 1;
 }
+
 body.mode-premium .dock-btn{
   border-color: rgba(255,255,255,0.14);
   background:
@@ -880,6 +935,7 @@ body.mode-premium .dock-btn{
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
+
 body.mode-premium .dock-btn::before{
   content:"";
   position:absolute; inset:-1px;
@@ -891,6 +947,7 @@ body.mode-premium .dock-btn::before{
   pointer-events:none;
   opacity: .82;
 }
+
 body.mode-premium .dock-btn::after{ display:none; }
 
 /* ---------- Photo wall ---------- */
@@ -901,6 +958,7 @@ body.mode-premium .dock-btn::after{ display:none; }
   border: 1px solid rgba(0,0,0,0.06);
   background: rgba(255,255,255,0.70);
 }
+
 body.mode-premium .photo-wall{
   background: rgba(10,12,18,0.18);
   border-color: rgba(255,255,255,0.14);
@@ -911,6 +969,7 @@ body.mode-premium .photo-wall{
   gap: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
+
 .wall-img{
   width:100%;
   aspect-ratio: 1 / 1;
@@ -930,6 +989,7 @@ body.mode-premium .photo-wall{
   font-size: 12px;
   color: rgba(0,0,0,0.45);
 }
+
 body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 
 /* ---------- BR admin hotspot ---------- */
@@ -956,6 +1016,7 @@ body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
   line-height: 1.25;
   letter-spacing: 0.2px;
 }
+
 body.mode-premium #u-unit{
   font-size: clamp(12px, 3.4vw, 17px);
   opacity: 0.92;
@@ -972,7 +1033,7 @@ body.mode-premium #u-unit{
 }
 
 /* ==========================================
- * v521.1 FIX A — Prevent controls overlay / keep scroll
+ * v521.2 FIX A — Prevent controls overlay / keep scroll
  * ========================================== */
 #free-controls, .free-controls,
 #premium-controls, .premium-controls,
@@ -1003,7 +1064,7 @@ body.mode-premium #u-unit{
 #card-container{ margin-top: 12px; }
 
 /* ==========================================
- * v521.1 FIX B — Mode gate for controls (NO extra Premium row in Free)
+ * v521.2 FIX B — Mode gate for controls (NO extra Premium row in Free)
  * ========================================== */
 /* default: hide premium controls unless mode-premium */
 #premium-controls{ display: none !important; }
@@ -1027,7 +1088,7 @@ body:not(.mode-free):not(.mode-premium) #premium-controls{ display:none !importa
 body:not(.mode-free):not(.mode-premium) #free-controls{ display:flex !important; }
 
 /* ==========================================
- * v521.1 FIX C — Free mode visual polish (safe, non-destructive)
+ * v521.2 FIX C — Free mode visual polish (safe, non-destructive)
  * ========================================== */
 /* subtle depth glow around card only in free */
 body.mode-free .card{
@@ -1053,11 +1114,13 @@ body.mode-free .card{
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
+
 .premium-badge .badge-dot{
   width: 10px; height:10px; border-radius:99px;
   background: linear-gradient(135deg, rgba(255,233,168,0.90), rgba(191,149,63,0.95));
   box-shadow: 0 6px 14px rgba(0,0,0,0.25);
 }
+
 .premium-badge .badge-text{
   font-weight: 900;
   font-size: 12px;
@@ -1068,13 +1131,16 @@ body.mode-free .card{
 .breathe{
   animation: breathePulse 2.8s ease-in-out infinite;
 }
+
 @keyframes breathePulse{
   0%,100%{ transform: translateY(0); filter: saturate(1); }
   50%{ transform: translateY(-1px); filter: saturate(1.06); }
 }
+
 /* ==========================================
  * HSC style.css — Paper boost (Free only) v521.2
  * Paste this block at the END of style.css
+ *
  * Goal:
  * - Only affect Free mode (body.mode-free)
  * - Increase paper visibility without making colors dirty
@@ -1084,8 +1150,8 @@ body.mode-free .card{
 /* 1) Global boost — Free only (Premium not affected) */
 body.mode-free{
   --paper-strength: 0.48; /* overall visibility */
-  --paper-grain:    0.22; /* small grain */
-  --paper-fiber:    0.18; /* fiber / weave */
+  --paper-grain: 0.22; /* small grain */
+  --paper-fiber: 0.18; /* fiber / weave */
 }
 
 /* 2) Ensure overlay never blocks clicks */
@@ -1095,8 +1161,8 @@ body.mode-free{
 }
 
 /* 3) Add 2-layer texture via pseudo elements (safe override)
-      - We don’t assume your existing paperOverlay background
-      - We only add subtle layers above it
+- We don’t assume your existing paperOverlay background
+- We only add subtle layers above it
 */
 #paperOverlay::before,
 #paperOverlay::after{
@@ -1140,6 +1206,7 @@ body.mode-free.paper-1 #paperOverlay::before{
     radial-gradient(140% 95% at 20% 20%, rgba(255,255,255,0.26), rgba(255,255,255,0.00) 58%),
     radial-gradient(120% 85% at 80% 75%, rgba(0,0,0,0.14), rgba(0,0,0,0.00) 62%);
 }
+
 body.mode-free.paper-1 #paperOverlay::after{
   opacity: calc(var(--paper-grain, .16) * 0.70);
   background-size: 11px 11px, 17px 17px;
@@ -1148,9 +1215,10 @@ body.mode-free.paper-1 #paperOverlay::after{
 /* paper-2: 象牙紙（顆粒更立體、稍微更明顯） */
 body.mode-free.paper-2{
   --paper-strength: 0.52;
-  --paper-grain:    0.28;
-  --paper-fiber:    0.16;
+  --paper-grain: 0.28;
+  --paper-fiber: 0.16;
 }
+
 body.mode-free.paper-2 #paperOverlay::after{
   opacity: calc(var(--paper-grain, .16) * 0.95);
   background:
@@ -1162,13 +1230,15 @@ body.mode-free.paper-2 #paperOverlay::after{
 
 /* paper-3: 霧灰（亞麻感：交織線條，但避免髒） */
 body.mode-free.paper-3{
-  --paper-strength: 0.46;  /* 不要過高，霧灰容易髒 */
-  --paper-grain:    0.20;
-  --paper-fiber:    0.26;  /* 用纖維拉出差異 */
+  --paper-strength: 0.46; /* 不要過高，霧灰容易髒 */
+  --paper-grain: 0.20;
+  --paper-fiber: 0.26; /* 用纖維拉出差異 */
 }
+
 body.mode-free.paper-3 #paperOverlay::before{
   opacity: calc(var(--paper-strength, .32) * 0.68);
 }
+
 body.mode-free.paper-3 #paperOverlay::after{
   /* add weave lines + keep grain */
   opacity: calc(var(--paper-fiber, .12) * 0.78);
