@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Admin v517</title>
+  <title>HSC Admin Workspace v518</title>
   <meta name="theme-color" content="#0f172a" />
   <style>
     :root{ --bg:#0b1220; --card:#121a2b; --line:rgba(255,255,255,.10); --text:rgba(255,255,255,.92); --muted:rgba(255,255,255,.68); --accent:#7bdcff; }
@@ -12,17 +12,19 @@
     .wrap{ max-width:980px; margin:0 auto; padding:18px; }
     .top{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .h1{ font-size:20px; font-weight:800; letter-spacing:.5px; }
-    .sub{ font-size:12px; color:var(--muted); margin-top:6px; }
+    .sub{ font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5; }
     .card{ background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:14px; padding:14px; }
     .grid{ display:grid; grid-template-columns:1fr; gap:12px; }
-    @media(min-width:860px){ .grid{ grid-template-columns:1.2fr .8fr; } }
+    @media(min-width:860px){ .grid{ grid-template-columns:1.25fr .75fr; } }
+
     label{ font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
-    input, textarea, select{
+    input, textarea{
       width:100%; padding:10px 12px; border-radius:12px;
       background:rgba(0,0,0,.25); border:1px solid var(--line);
       color:var(--text); outline:none;
     }
     textarea{ min-height:88px; resize:vertical; }
+
     .row{ display:flex; gap:10px; flex-wrap:wrap; }
     .btn{
       appearance:none; border:1px solid var(--line);
@@ -32,22 +34,49 @@
     }
     .btn.primary{ border-color:rgba(123,220,255,.35); background:rgba(123,220,255,.12); }
     .btn:active{ transform:translateY(1px); }
+    .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+
     .pill{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted); font-size:12px; }
+    .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+
+    .ok{ color:#8cffc1; }
+    .err{ color:#ff9aa2; }
+
+    .statGrid{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap:10px;
+      margin-top:10px;
+    }
+    @media(min-width:560px){
+      .statGrid{ grid-template-columns: repeat(4, 1fr); }
+    }
+    .stat{
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+      border-radius:12px;
+      padding:10px 12px;
+      min-height:62px;
+    }
+    .stat .k{ font-size:12px; color:var(--muted); font-weight:800; }
+    .stat .v{ margin-top:6px; font-size:18px; font-weight:900; letter-spacing:.2px; }
+
     .list{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
     .item{ padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.18); }
     .item strong{ display:block; font-size:14px; }
-    .item small{ display:block; color:var(--muted); margin-top:4px; }
-    .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
-    .ok{ color:#8cffc1; }
-    .err{ color:#ff9aa2; }
+    .item small{ display:block; color:var(--muted); margin-top:4px; line-height:1.45; }
+    .item .actions{ margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
       <div>
-        <div class="h1">HSC Admin Workspace <span class="pill">v517</span></div>
-        <div class="sub">功能：貼客戶訊息 → 自動查找 → 一鍵複製「7 天更新連結」</div>
+        <div class="h1">HSC Admin Workspace <span class="pill">v518</span></div>
+        <div class="sub">
+          功能：貼客戶訊息 → 自動查找 → 一鍵複製（更新/交付/成品/分享/微信）<br/>
+          另：可發「7 天可填表連結」（邀請碼）與查看四大統計。
+        </div>
       </div>
       <div class="pill mono" id="statusPill">ready</div>
     </div>
@@ -64,6 +93,25 @@
 
         <div style="height:12px"></div>
 
+        <div class="row">
+          <button class="btn" id="btnStats">刷新統計</button>
+          <button class="btn" id="btnMakeFill">產生 7 天可填表連結（並複製）</button>
+        </div>
+
+        <div class="statGrid" aria-label="stats">
+          <div class="stat"><div class="k">總名片數</div><div class="v mono" id="stTotal">—</div></div>
+          <div class="stat"><div class="k">本月新增</div><div class="v mono" id="stMonthNew">—</div></div>
+          <div class="stat"><div class="k">活躍名片</div><div class="v mono" id="stActive">—</div></div>
+          <div class="stat"><div class="k">過期名片</div><div class="v mono" id="stExpired">—</div></div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <label>新客戶填表連結（7 天有效）</label>
+        <input id="fillLink" class="mono" readonly placeholder="按上方按鈕產生，這裡會出現連結" />
+
+        <div style="height:14px"></div>
+
         <label>客戶訊息（貼一行即可）</label>
         <textarea id="customerMsg" placeholder="例：王小明 123  或  王小明 館長  或  王小明 幸福智慧名片館"></textarea>
 
@@ -72,7 +120,7 @@
         <div class="row">
           <button class="btn" id="btnFind">查找名片</button>
           <button class="btn primary" id="btnMakeUpdate" disabled>產生 7 天更新連結（並複製）</button>
-          <button class="btn" id="btnCopy" disabled>只複製連結</button>
+          <button class="btn" id="btnCopyUpdate" disabled>只複製更新連結</button>
         </div>
 
         <div style="height:12px"></div>
@@ -80,21 +128,39 @@
         <label>更新連結（7 天有效）</label>
         <input id="updateLink" class="mono" readonly placeholder="查找到名片後，這裡會出現更新連結" />
 
-        <div style="height:12px"></div>
+        <div style="height:10px"></div>
         <div class="sub">
-          ※ 你給客戶的更新引導文案，就用你剛剛那段：<br/>
-          「A) 姓名 + 手機末三碼 / B) 姓名 + 單位或頭銜 / 不方便就回覆客服」<br/>
-          ※ 更新連結請勿轉傳（7 天有效）。
+          ※ 更新連結請勿轉傳（7 天有效）。<br/>
+          ※ 交付用：請選到名片後，右側可一鍵複製「交付卡/成品/分享/微信」連結。
         </div>
       </div>
 
       <div class="card">
         <div class="pill">查找結果</div>
         <div class="list" id="resultList"></div>
+
+        <div style="height:12px"></div>
+
+        <label>交付連結（選到名片後可複製）</label>
+        <input id="cardLink" class="mono" readonly placeholder="index.html?id=..." />
+        <div style="height:8px"></div>
+        <input id="deliveryLink" class="mono" readonly placeholder="delivery.html?id=..." />
+        <div style="height:8px"></div>
+        <input id="shareLink" class="mono" readonly placeholder="share.html?id=..." />
+        <div style="height:8px"></div>
+        <input id="wechatLink" class="mono" readonly placeholder="wechat.html?id=..." />
+
+        <div style="height:10px"></div>
+        <div class="row">
+          <button class="btn" id="btnCopyCard" disabled>複製成品連結</button>
+          <button class="btn" id="btnCopyDelivery" disabled>複製交付卡連結</button>
+          <button class="btn" id="btnCopyShare" disabled>複製分享連結</button>
+          <button class="btn" id="btnCopyWeChat" disabled>複製微信連結</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <script defer src="./admin.js?v=5170"></script>
+  <script defer src="./admin.js?v=5180"></script>
 </body>
 </html>
