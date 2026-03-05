@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Admin v515</title>
+  <title>HSC Admin v515.1</title>
   <meta name="theme-color" content="#0b1220" />
 
   <style>
@@ -150,7 +150,7 @@
     <div class="brand">
       <div class="brand-title">HSC 後臺工作區</div>
       <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">515.0</span>
+        <span class="muted">v</span><span id="versionText">515.1</span>
         <span class="dot">•</span>
         <span class="muted">Admin Workspace (minimal)</span>
       </div>
@@ -188,7 +188,6 @@
       <div class="row">
         <button type="button" class="btn primary" id="btnLoad">載入</button>
         <button type="button" class="btn" id="btnRememberToken">記住 token</button>
-
         <span class="pill" id="pillMsg">待命</span>
       </div>
 
@@ -224,6 +223,44 @@
       </div>
     </section>
 
+    <!-- ✅ NEW: Invite / Fill Link -->
+    <section class="card">
+      <div class="h2">邀請碼（填表連結）</div>
+
+      <div class="grid2">
+        <label class="field">
+          <div class="field-label">tenant</div>
+          <input id="tenant" value="angel" />
+          <div class="hint">目前預設 angel；未來可做多租戶。</div>
+        </label>
+
+        <label class="field">
+          <div class="field-label">有效天數 days（1~30）</div>
+          <input id="invite_days" value="3" />
+          <div class="hint">預設 3 天；避免連結長期外流。</div>
+        </label>
+
+        <label class="field col2">
+          <div class="field-label">輸出（可複製）</div>
+          <input id="invite_out" placeholder="點『一鍵取得邀請碼』後出現在這裡" readonly />
+          <div class="hint">會自動複製「邀請碼 + 填表連結」到剪貼簿。</div>
+        </label>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="row">
+        <button type="button" class="btn primary" id="btnGetInvite">一鍵取得邀請碼</button>
+        <button type="button" class="btn" id="btnCopyInvite">複製邀請碼＋連結</button>
+        <span class="pill" id="pillInvite">未取得</span>
+      </div>
+
+      <div class="kvs">
+        這裡的「邀請碼」＝ <b>exp+sig 填表連結</b>（新規則）。<br/>
+        沒有這個連結，客戶就不能填表（安全模式）。
+      </div>
+    </section>
+
     <section class="card">
       <div class="h2">一鍵交付</div>
 
@@ -242,6 +279,6 @@
 
   </main>
 
-  <script src="./admin.js?v=5150"></script>
+  <script src="./admin.js?v=5151"></script>
 </body>
 </html>
