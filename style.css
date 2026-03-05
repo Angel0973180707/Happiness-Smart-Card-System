@@ -1,15 +1,14 @@
 /* ==========================================
- * Happiness Smart Card System — style.css v521.1 (COMPLETE OVERWRITE)
+ * Happiness Smart Card System — style.css v521.2 (COMPLETE OVERWRITE)
  * Goal:
- * ✅ Fix v520 “走山” by reverting to the stable v497 layout model
- * ✅ Keep existing class hooks (DO NOT change DOM):
+ * ✅ 修正：自由款多一排「精品選色」不該出現
+ * ✅ 修正：滑動/滾動不順（避免被任何 overflow/定位影響）
+ * ✅ 美化：自由款更精品、更有層次（但不改 DOM、不走山）
+ *
+ * MUST KEEP (DO NOT change DOM hooks):
  *   body.mode-free | body.mode-premium
  *   body.color-1..5  body.style-arch|flat|spot  body.paper-1..3
  *   body.p1..p7
- * ✅ Avoid global pollution:
- *   - NO global * {} reset that changes the whole world beyond essentials
- *   - NO generic button{} / img{} / html,body{} destructive rules
- * ✅ Visual lift (safe, minimal): Free a bit more depth, Premium brighter glass, p6 gold stronger
  * ========================================== */
 
 /* ---------- Tokens ---------- */
@@ -53,8 +52,18 @@
   --paper-fiber: 0.12;
 }
 
-/* ---------- Safe essentials (avoid “走山”) ---------- */
+/* ---------- Safe essentials (anti “走山” + anti scroll freeze) ---------- */
 *{ box-sizing:border-box; }
+
+/* ✅ 滑動保險：避免任何版殘留把 body 卡住 */
+html, body{
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
 
 body{
   margin:0;
@@ -99,6 +108,16 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
+/* ✅ 防止任何外部殘留 CSS/inline 把控制區變成 absolute/fixed 疊住樣品 */
+#free-controls, .free-controls,
+#premium-controls, .premium-controls,
+#admin-panel, .admin-panel{
+  inset: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+}
+
 .panel-inner{
   max-width: 520px;
   margin: 0 auto;
@@ -124,9 +143,34 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   background: var(--card-white);
 }
 
-/* Free vivid (safe) */
+/* ✅ Free vivid (safe) */
 body.mode-free .card{
   filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
+}
+
+/* ✅ Free extra premium feel (safe): subtle inner glow + rim */
+body.mode-free .card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index: 2;
+  background:
+    radial-gradient(900px 420px at 30% 0%, rgba(255,255,255,0.40), transparent 60%),
+    radial-gradient(520px 260px at 86% 12%, rgba(255,255,255,0.22), transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.00) 42%);
+  opacity:.85;
+  mix-blend-mode: soft-light;
+}
+body.mode-free .card::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index: 2;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.62);
+  opacity:.55;
 }
 
 /* ---------- Premium base (brighter glass, not night club) ---------- */
@@ -147,9 +191,7 @@ body.mode-premium .card{
   border: 1px solid rgba(255,255,255,0.14);
   box-shadow: 0 28px 86px rgba(0,0,0,0.58);
   background:
-    /* lighter dark mask (avoid over-dark) */
     linear-gradient(180deg, rgba(10,12,18,0.14), rgba(10,12,18,0.30)),
-    /* main tone linked */
     linear-gradient(135deg, var(--p), var(--s));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -934,6 +976,84 @@ body.mode-premium #u-unit{
   opacity: 0.92;
 }
 
+/* ==========================================
+ * v521.2 FIX A — 絕對保證「樣品區」不被控制區罩住
+ * ========================================== */
+#card-container, .card-container,
+#card, .card,
+#preview, .preview,
+#sample, .sample,
+#cardRoot, #cardShell, #cardContainer{
+  position: relative;
+  z-index: 2;
+}
+
+#admin-panel, .admin-panel,
+#free-controls, .free-controls,
+#premium-controls, .premium-controls{
+  z-index: 50;
+}
+
+/* 透明遮罩層不吃點擊 */
+#paperOverlay, .paperOverlay,
+.paper-overlay,
+.premium-fx-layer{
+  pointer-events: none !important;
+}
+
+/* ==========================================
+ * v521.2 FIX B — 模式門禁（更強力）：
+ * 自由款時：任何「精品色盤/精品點點」容器都隱藏
+ * 精品款時：任何「自由色盤/自由點點」容器都隱藏
+ * （不會去動到「方案切換」按鈕）
+ * ========================================== */
+
+/* ✅ Free 模式：隱藏精品控制群（常見 id/class 命名全包） */
+body.mode-free #premium-controls,
+body.mode-free .premium-controls,
+body.mode-free #premiumColors,
+body.mode-free .premium-colors,
+body.mode-free #premiumDots,
+body.mode-free .premium-dots,
+body.mode-free [id*="premiumColor"],
+body.mode-free [id*="premium-color"],
+body.mode-free [id*="premiumDot"],
+body.mode-free [id*="premium-dot"],
+body.mode-free .premium-color-row,
+body.mode-free .premium-dot-row,
+body.mode-free .premium-palette,
+body.mode-free .premium-options{
+  display:none !important;
+}
+
+/* ✅ Premium 模式：隱藏自由控制群（常見 id/class 命名全包） */
+body.mode-premium #free-controls,
+body.mode-premium .free-controls,
+body.mode-premium #freeColors,
+body.mode-premium .free-colors,
+body.mode-premium #freeDots,
+body.mode-premium .free-dots,
+body.mode-premium [id*="freeColor"],
+body.mode-premium [id*="free-color"],
+body.mode-premium [id*="freeDot"],
+body.mode-premium [id*="free-dot"],
+body.mode-premium .free-color-row,
+body.mode-premium .free-dot-row,
+body.mode-premium .free-palette,
+body.mode-premium .free-options{
+  display:none !important;
+}
+
+/* ✅ body 尚未掛 mode（載入瞬間）：預設只顯示 free */
+body:not(.mode-free):not(.mode-premium) #premium-controls,
+body:not(.mode-free):not(.mode-premium) .premium-controls,
+body:not(.mode-free):not(.mode-premium) #premiumColors,
+body:not(.mode-free):not(.mode-premium) .premium-colors,
+body:not(.mode-free):not(.mode-premium) #premiumDots,
+body:not(.mode-free):not(.mode-premium) .premium-dots{
+  display:none !important;
+}
+
 /* ---------- Small screens ---------- */
 @media (max-width: 360px){
   .name{ font-size: 21px; }
@@ -942,82 +1062,4 @@ body.mode-premium #u-unit{
   .dock-buttons{ gap: 8px; }
   .dock-btn{ padding: 12px 10px; }
   #u-unit{ font-size: clamp(11px, 3.8vw, 14px); }
-}
-/* ==========================================
- * v521 CSS Hotfix — controls should NOT overlay sample
- * place at END of style.css
- * ========================================== */
-
-/* 1) 先把控制區拉回文流：避免 absolute/fixed/sticky 蓋住 */
-#free-controls, .free-controls,
-#premium-controls, .premium-controls,
-#admin-panel, .admin-panel {
-  position: relative !important;
-  inset: auto !important;
-  top: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  left: auto !important;
-  z-index: 1 !important;
-}
-
-/* 2) 讓樣品/卡片區永遠在控制區下面（層級更高） */
-#card-container, .card-container,
-#card, .card,
-#preview, .preview,
-#sample, .sample,
-#cardRoot, #cardShell, #cardContainer {
-  position: relative;
-  z-index: 2;
-}
-
-/* 3) 如果你有「樣品區容器」：確保它跟控制區是上下排列，不重疊 */
-#card-container, .card-container,
-#cardRoot, #cardShell, #cardContainer {
-  margin-top: 12px; /* 需要可調大：16~24 */
-}
-
-/* 4) 避免某些透明遮罩層吃掉點擊（只限 overlay 類層） */
-#paperOverlay, .paperOverlay,
-.paper-overlay,
-.premium-fx-layer {
-  pointer-events: none !important;
-}
-
-/* 5) 保險：如果控制區原本是 grid/absolute 疊起來，強制 block */
-#free-controls, .free-controls,
-#premium-controls, .premium-controls {
-  display: block !important;
-  width: 100%;
-}
-/* ==========================================
- * v521 CSS Fix — mode gate for controls
- * Free/Premium controls show only in their mode
- * (place AFTER the previous hotfix)
- * ========================================== */
-
-/* ✅ Free 模式：只顯示 free-controls，隱藏 premium-controls */
-body.mode-free #premium-controls,
-body.mode-free .premium-controls,
-body.mode-free #premiumColors,
-body.mode-free .premium-colors,
-body.mode-free #premiumDots,
-body.mode-free .premium-dots{
-  display: none !important;
-}
-
-/* ✅ Premium 模式：只顯示 premium-controls，隱藏 free-controls */
-body.mode-premium #free-controls,
-body.mode-premium .free-controls,
-body.mode-premium #freeColors,
-body.mode-premium .free-colors,
-body.mode-premium #freeDots,
-body.mode-premium .free-dots{
-  display: none !important;
-}
-
-/* ✅ 進一步保險：如果 body 沒有 mode（載入瞬間），預設只顯示 free */
-body:not(.mode-free):not(.mode-premium) #premium-controls,
-body:not(.mode-free):not(.mode-premium) .premium-controls{
-  display: none !important;
 }
