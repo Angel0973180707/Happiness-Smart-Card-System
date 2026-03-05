@@ -1,16 +1,20 @@
 /* ==========================================
- * HSC Admin Workspace — admin.js v515.0 (COMPLETE OVERWRITE)
+ * HSC Admin Workspace — admin.js v515.1 (COMPLETE OVERWRITE)
  * Goal: Minimal + Buttons always work
  * - Admin load prefers admin_secret (no token needed)
  * - Auto fill token back + remember token map
  * - Tries action=card / adminCard / adminGet (compat)
  * - GET only (avoid CORS preflight)
+ *
+ * ✅ v515.1 add:
+ * - 一鍵取得邀請碼（填表連結 exp+sig）
+ *   action=adminIssueFill&tenant=...&days=...&admin_secret=...
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "515.0";
+  const VERSION = "515.1";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -24,8 +28,11 @@
 
   const STORAGE = {
     ADMIN_SECRET: "HSC_ADMIN_SECRET",
-    TOKEN_MAP: "HSC_TOKEN_MAP",   // { [id]: token }
-    LAST_ID: "HSC_ADMIN_LAST_ID"
+    TOKEN_MAP: "HSC_TOKEN_MAP",      // { [id]: token }
+    LAST_ID: "HSC_ADMIN_LAST_ID",
+
+    // ✅ invite pack cache
+    LAST_INVITE_PACK: "HSC_LAST_INVITE_PACK"
   };
 
   const $ = (id) => document.getElementById(id);
@@ -37,6 +44,14 @@
     idInput: $("cardId"),
     tokenInput: $("token"),
     adminSecretInput: $("admin_secret"),
+
+    // ✅ invite fields
+    tenantInput: $("tenant"),
+    daysInput: $("invite_days"),
+    inviteOut: $("invite_out"),
+    pillInvite: $("pillInvite"),
+    btnGetInvite: $("btnGetInvite"),
+    btnCopyInvite: $("btnCopyInvite"),
 
     btnLoad: $("btnLoad"),
     btnRememberToken: $("btnRememberToken"),
@@ -66,6 +81,9 @@
 
   function toast(msg){
     if(dom.pillMsg) dom.pillMsg.textContent = String(msg || "");
+  }
+  function toastInvite(msg){
+    if(dom.pillInvite) dom.pillInvite.textContent = String(msg || "");
   }
 
   function safeText(v){ return (v === undefined || v === null) ? "" : String(v); }
@@ -194,6 +212,20 @@
     throw lastErr || new Error("activate failed");
   }
 
+  // ✅ NEW: issue fill link (invite)
+  async function adminIssueFill({ tenant, days, admin_secret }){
+    const tries = [
+      { action:"adminIssueFill", tenant, days, admin_secret },
+      // 兼容：如果你未來改名，也能加在這裡
+    ];
+    let lastErr = null;
+    for(const t of tries){
+      try{ return await fetchJsonWithRetry(t); }
+      catch(e){ lastErr = e; }
+    }
+    throw lastErr || new Error("adminIssueFill failed");
+  }
+
   // ---------- Link builders ----------
   function buildLinks(id){
     const _id = (id || "").trim();
@@ -230,6 +262,24 @@
     }
   }
 
+  // ✅ invite pack helpers
+  function setInvitePack_(packText){
+    const t = String(packText || "").trim();
+    setValue(dom.inviteOut, t);
+    if(t){
+      localStorage.setItem(STORAGE.LAST_INVITE_PACK, t);
+      toastInvite("已取得 ✅");
+    }else{
+      localStorage.removeItem(STORAGE.LAST_INVITE_PACK);
+      toastInvite("未取得");
+    }
+  }
+  function getInvitePack_(){
+    const t = getValue(dom.inviteOut);
+    if(t) return t;
+    return (localStorage.getItem(STORAGE.LAST_INVITE_PACK) || "").trim();
+  }
+
   function renderCard(item){
     if(!item) return;
 
@@ -251,6 +301,10 @@
     const admin_secret = getValue(dom.adminSecretInput) || "";
     const memTok = recallToken(id);
 
+    const tenant = getValue(dom.tenantInput) || "angel";
+    const days = getValue(dom.daysInput) || "3";
+    const pack = getInvitePack_();
+
     const text = [
       `HSC Admin v${VERSION}`,
       `GAS=${CONFIG.GAS}`,
@@ -261,8 +315,12 @@
       `token(mem)=${memTok ? memTok.slice(0,10) + "..." : "-"}`,
       `admin_secret=${admin_secret ? "yes" : "no"}`,
       "",
-      "Logs (last 80):",
-      ...logs.slice(-80)
+      `invite.tenant=${tenant}`,
+      `invite.days=${days}`,
+      `invite.pack=${pack ? "yes" : "no"}`,
+      "",
+      "Logs (last 120):",
+      ...logs.slice(-120)
     ].join("\n");
 
     alert(text);
@@ -382,6 +440,57 @@
     }
   }
 
+  // ✅ NEW: invite actions
+  async function onGetInvite(){
+    const admin_secret = (getValue(dom.adminSecretInput) || "").trim();
+    if(!admin_secret) return alert("取得邀請碼需要 admin_secret");
+
+    const tenant = (getValue(dom.tenantInput) || "angel").trim() || "angel";
+    let days = Number((getValue(dom.daysInput) || "3").trim());
+    if(!Number.isFinite(days)) days = 3;
+    days = Math.max(1, Math.min(30, days));
+    setValue(dom.daysInput, String(days));
+
+    try{
+      toastInvite("取得中…");
+      toast("取得邀請碼中…");
+      log("invite.issue", { tenant, days });
+
+      const r = await adminIssueFill({ tenant, days, admin_secret });
+
+      const inviteCode = (r.invite_code || "").trim();
+      const fillUrl = (r.fill_url || "").trim();
+      if(!fillUrl) throw new Error("GAS 未回傳 fill_url（請確認 action=adminIssueFill 已上線）");
+
+      const pack = [
+        inviteCode ? `邀請碼：${inviteCode}` : "",
+        `填表連結：${fillUrl}`
+      ].filter(Boolean).join("\n");
+
+      setInvitePack_(pack);
+
+      // auto copy
+      await copyText(pack);
+      toast("邀請碼已複製 ✅");
+      toastInvite("已取得 ✅");
+
+    }catch(e){
+      const msg = e && e.message ? e.message : String(e);
+      toastInvite("取得失敗 ❌");
+      toast("待命");
+      alert("取得邀請碼失敗：\n" + msg);
+      log("invite.fail", msg);
+    }
+  }
+
+  async function onCopyInvite(){
+    const pack = getInvitePack_();
+    if(!pack) return alert("尚未取得邀請碼，請先按『一鍵取得邀請碼』");
+    setValue(dom.inviteOut, pack);
+    await copyText(pack);
+    toastInvite("已複製 ✅");
+  }
+
   function bind(){
     if(dom.versionText) dom.versionText.textContent = VERSION;
 
@@ -410,6 +519,15 @@
       dom.tokenInput.value = tokenQS;
     }
 
+    // preload invite pack
+    const lastPack = (localStorage.getItem(STORAGE.LAST_INVITE_PACK) || "").trim();
+    if(dom.inviteOut && lastPack && !getValue(dom.inviteOut)){
+      dom.inviteOut.value = lastPack;
+      toastInvite("已取得 ✅");
+    }else{
+      toastInvite(getValue(dom.inviteOut) ? "已取得 ✅" : "未取得");
+    }
+
     // save admin_secret
     if(dom.adminSecretInput){
       dom.adminSecretInput.addEventListener("change", ()=>{
@@ -429,6 +547,10 @@
     dom.btnConfirm?.addEventListener("click", onConfirm);
     dom.btnActivate?.addEventListener("click", onActivate);
 
+    // ✅ invite binds
+    dom.btnGetInvite?.addEventListener("click", onGetInvite);
+    dom.btnCopyInvite?.addEventListener("click", onCopyInvite);
+
     dom.btnDebug?.addEventListener("click", showDebug);
 
     // Enter to load
@@ -437,6 +559,14 @@
     });
     dom.tokenInput?.addEventListener("keydown",(e)=>{
       if(e.key==="Enter"){ e.preventDefault(); onLoad(); }
+    });
+    dom.adminSecretInput?.addEventListener("keydown",(e)=>{
+      if(e.key==="Enter"){ e.preventDefault(); onLoad(); }
+    });
+
+    // Enter to get invite (on days)
+    dom.daysInput?.addEventListener("keydown",(e)=>{
+      if(e.key==="Enter"){ e.preventDefault(); onGetInvite(); }
     });
 
     // auto-load if id exists
