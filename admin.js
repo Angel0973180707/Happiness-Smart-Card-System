@@ -1,16 +1,14 @@
 /* ==========================================
- * HSC Admin Workspace — admin.js v520.1 (COMPLETE OVERWRITE)
- * Focus:
- * - Admin load prefers admin_secret (no token needed)
- * - One-click issue fill link (invite) with fallback:
- *   try adminIssueFill -> makeFillLink -> issueFill
- * - GET only (avoid CORS preflight)
+ * HSC Admin Workspace — admin.js v516.0 (COMPLETE OVERWRITE)
+ * Add:
+ * - Paste customer message -> find card -> issue 7-day update link
+ * Requires GAS v514.4+ (adminFind + makeUpdateLink)
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "520.1";
+  const VERSION = "516.0";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -24,8 +22,9 @@
 
   const STORAGE = {
     ADMIN_SECRET: "HSC_ADMIN_SECRET",
-    TOKEN_MAP: "HSC_TOKEN_MAP",   // { [id]: token }
-    LAST_ID: "HSC_ADMIN_LAST_ID"
+    TOKEN_MAP: "HSC_TOKEN_MAP", // { [id]: token }
+    LAST_ID: "HSC_ADMIN_LAST_ID",
+    LAST_UPDATE_LINK: "HSC_LAST_UPDATE_LINK"
   };
 
   const $ = (id) => document.getElementById(id);
@@ -55,14 +54,11 @@
     pvStatus: $("pvStatus"),
     pvAvatar: $("pvAvatar"),
 
-    // invite / fill link
-    inviteTenant: $("inviteTenant"),
-    inviteDays: $("inviteDays"),
-    inviteLink: $("inviteLink"),
-    inviteExp: $("inviteExp"),
-    inviteSig: $("inviteSig"),
-    btnIssueInvite: $("btnIssueInvite"),
-    btnCopyInviteLink: $("btnCopyInviteLink"),
+    // update link
+    customerMsg: $("customerMsg"),
+    btnMakeUpdateLink: $("btnMakeUpdateLink"),
+    btnCopyUpdateLink: $("btnCopyUpdateLink"),
+    pillUpdate: $("pillUpdate")
   };
 
   const logs = [];
@@ -76,28 +72,19 @@
   function toast(msg){
     if(dom.pillMsg) dom.pillMsg.textContent = String(msg || "");
   }
+  function toastUpdate(msg){
+    if(dom.pillUpdate) dom.pillUpdate.textContent = String(msg || "");
+  }
 
   function safeText(v){ return (v === undefined || v === null) ? "" : String(v); }
-
-  function setValue(el, v){
-    if(!el) return;
-    if("value" in el) el.value = safeText(v);
-    else el.textContent = safeText(v);
-  }
-
-  function getValue(el){
-    if(!el) return "";
-    if("value" in el) return String(el.value || "").trim();
-    return String(el.textContent || "").trim();
-  }
+  function setValue(el, v){ if(el && "value" in el) el.value = safeText(v); else if(el) el.textContent = safeText(v); }
+  function getValue(el){ if(!el) return ""; return ("value" in el) ? String(el.value||"").trim() : String(el.textContent||"").trim(); }
 
   function loadTokenMap(){
     try { return JSON.parse(localStorage.getItem(STORAGE.TOKEN_MAP) || "{}") || {}; }
     catch(_e){ return {}; }
   }
-  function saveTokenMap(map){
-    localStorage.setItem(STORAGE.TOKEN_MAP, JSON.stringify(map || {}));
-  }
+  function saveTokenMap(map){ localStorage.setItem(STORAGE.TOKEN_MAP, JSON.stringify(map || {})); }
   function rememberToken(id, token){
     const _id = (id || "").trim();
     const _t = (token || "").trim();
@@ -123,7 +110,6 @@
     });
     return u.toString();
   }
-
   function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
   async function fetchJsonGET(params){
@@ -193,7 +179,7 @@
   async function activateCard({ id, admin_secret }){
     const tries = [
       { action:"adminSetStatus", id, status:"active", admin_secret },
-      { action:"activate", id, admin_secret } // old compat
+      { action:"activate", id, admin_secret }
     ];
     let lastErr = null;
     for(const t of tries){
@@ -203,21 +189,27 @@
     throw lastErr || new Error("activate failed");
   }
 
-  async function issueFillLink({ tenant, days, admin_secret }){
-    // ✅ fallback list: your current GAS might use different action names
+  async function adminFind({ admin_secret, name, phone3, unitOrTitle }){
+    return await fetchJsonWithRetry({
+      action: "adminFind",
+      admin_secret,
+      name: name || "",
+      phone3: phone3 || "",
+      unit_or_title: unitOrTitle || ""
+    });
+  }
+
+  async function makeUpdateLink({ admin_secret, id, days }){
     const tries = [
-      { action:"adminIssueFill", tenant, days, admin_secret },
-      { action:"makeFillLink", tenant, days, admin_secret },
-      { action:"issueFill", tenant, days, admin_secret },
-      { action:"adminFill", tenant, days, admin_secret },
-      { action:"issueInvite", tenant, days, admin_secret },
+      { action:"makeUpdateLink", admin_secret, id, days: String(days||7) },
+      { action:"adminIssueUpdateLink", admin_secret, id, days: String(days||7) }
     ];
     let lastErr = null;
     for(const t of tries){
       try{ return await fetchJsonWithRetry(t); }
       catch(e){ lastErr = e; }
     }
-    throw lastErr || new Error("issue fill link failed");
+    throw lastErr || new Error("make update link failed");
   }
 
   // ---------- Link builders ----------
@@ -258,12 +250,10 @@
 
   function renderCard(item){
     if(!item) return;
-
     setValue(dom.pvName, item.name || "-");
     setValue(dom.pvUnit, item.unit || "-");
     setValue(dom.pvTitle, item.title || "-");
     setValue(dom.pvStatus, `status：${item.status || "-"}`);
-
     if(dom.pvAvatar){
       const src = (item.avatar_img || item.avatar_url || "").trim();
       if(src) dom.pvAvatar.src = src;
@@ -276,6 +266,7 @@
     const tokenInput = getValue(dom.tokenInput) || "";
     const admin_secret = getValue(dom.adminSecretInput) || "";
     const memTok = recallToken(id);
+    const lastUpdate = localStorage.getItem(STORAGE.LAST_UPDATE_LINK) || "";
 
     const text = [
       `HSC Admin v${VERSION}`,
@@ -286,6 +277,7 @@
       `token(input)=${tokenInput ? tokenInput.slice(0,10) + (tokenInput.length>10?"...":"") : "-"}`,
       `token(mem)=${memTok ? memTok.slice(0,10) + "..." : "-"}`,
       `admin_secret=${admin_secret ? "yes" : "no"}`,
+      `last_update_link=${lastUpdate ? lastUpdate.slice(0,80) + "..." : "-"}`,
       "",
       "Logs (last 80):",
       ...logs.slice(-80)
@@ -407,56 +399,120 @@
     }
   }
 
-  async function onIssueInvite(){
-    const admin_secret = (getValue(dom.adminSecretInput) || "").trim();
-    if(!admin_secret) return alert("請先輸入 admin_secret（管理者密碼）");
+  // ---------- Update link (7 days) ----------
+  function parseCustomerMsg(raw){
+    const s = String(raw || "").trim();
+    const out = { raw: s, id:"", name:"", phone3:"", unitOrTitle:"" };
 
-    const tenant = (getValue(dom.inviteTenant) || "angel").trim() || "angel";
-    const daysRaw = (getValue(dom.inviteDays) || "7").trim();
-    const days = String(Math.max(1, Number(daysRaw || 7) || 7));
+    // 1) try extract ID like TWxxxx... (you can adjust)
+    const idMatch = s.match(/\b[A-Z]{2}[0-9A-Z]{6,}\b/);
+    if(idMatch) out.id = idMatch[0];
+
+    // 2) extract last 3 digits anywhere
+    const m3 = s.match(/(\d{3})(?!\d)/);
+    if(m3) out.phone3 = m3[1];
+
+    // 3) guess name: first 2~5 Chinese chars
+    const nm = s.match(/([\u4e00-\u9fff]{2,5})/);
+    if(nm) out.name = nm[1];
+
+    // 4) unit/title: rest of text after name (rough)
+    if(out.name){
+      const idx = s.indexOf(out.name);
+      const rest = s.slice(idx + out.name.length).trim();
+      if(rest && !out.phone3) out.unitOrTitle = rest.slice(0, 30);
+      if(rest && out.phone3) {
+        // if has phone3, still allow fallback keyword
+        const cleaned = rest.replace(out.phone3, "").trim();
+        if(cleaned) out.unitOrTitle = cleaned.slice(0, 30);
+      }
+    }
+    return out;
+  }
+
+  async function onMakeUpdateLink(){
+    const admin_secret = (getValue(dom.adminSecretInput) || "").trim();
+    if(!admin_secret) return alert("請先輸入 admin_secret");
+
+    const raw = getValue(dom.customerMsg);
+    if(!raw) return alert("請先貼上客戶訊息");
 
     try{
-      toast("產生中…");
-      log("issue invite", { tenant, days });
+      toastUpdate("解析中…");
+      dom.btnCopyUpdateLink && (dom.btnCopyUpdateLink.disabled = true);
 
-      const r = await issueFillLink({ tenant, days, admin_secret });
+      const parsed = parseCustomerMsg(raw);
+      log("parse", parsed);
 
-      // expected from makeFillLink_: {ok:true, tenant, exp, sig, link}
-      const link = (r.link || r.url || "").trim();
-      const exp = safeText(r.exp || "");
-      const sig = safeText(r.sig || "");
+      let id = parsed.id;
 
-      if(!link) throw new Error("GAS 回傳未包含 link（請確認 makeFillLink 回傳格式）");
+      // If no id in message -> adminFind
+      if(!id){
+        if(!parsed.name) throw new Error("解析不到姓名，請讓客戶回覆：姓名 + 手機末三碼 或 姓名 + 單位(或頭銜)");
+        const r = await adminFind({
+          admin_secret,
+          name: parsed.name,
+          phone3: parsed.phone3,
+          unitOrTitle: parsed.unitOrTitle
+        });
 
-      setValue(dom.inviteLink, link);
-      setValue(dom.inviteExp, exp);
-      setValue(dom.inviteSig, sig ? (sig.slice(0, 26) + (sig.length>26 ? "..." : "")) : "");
+        const list = r.items || r.list || [];
+        if(!Array.isArray(list) || list.length === 0){
+          throw new Error("找不到符合的名片。請確認：姓名/手機末三碼/單位(或頭銜) 是否正確。");
+        }
+        if(list.length === 1){
+          id = list[0].id;
+        }else{
+          const options = list.slice(0,5).map((it, i)=>{
+            const phone = String(it.phone || "");
+            const phoneMask = phone ? ("…"+phone.slice(-3)) : "";
+            return `${i+1}) ${it.id}｜${it.name||"-"}｜${it.unit||it.title||"-"}｜${phoneMask}`;
+          }).join("\n");
+          const pick = prompt("找到多筆，請輸入編號：\n" + options, "1");
+          const idx = Math.max(1, Number(pick||"1")) - 1;
+          id = (list[idx] && list[idx].id) ? list[idx].id : list[0].id;
+        }
+      }
 
-      toast("已產生 ✅");
+      // Issue 7-day update link
+      toastUpdate("產生連結中…");
+      const r2 = await makeUpdateLink({ admin_secret, id, days: 7 });
+      const link = r2.link || "";
+
+      if(!link) throw new Error("GAS 未回傳 link");
+
+      localStorage.setItem(STORAGE.LAST_UPDATE_LINK, link);
+      toastUpdate(`已產生：${id}（7天有效）✅`);
+
+      // also fill cardId for convenience
+      setValue(dom.idInput, id);
+
+      // enable copy
+      if(dom.btnCopyUpdateLink){
+        dom.btnCopyUpdateLink.disabled = false;
+        dom.btnCopyUpdateLink.onclick = () => copyText(link);
+      }
+
+      // auto copy once
+      await copyText(link);
+
     }catch(e){
       const msg = e && e.message ? e.message : String(e);
-      toast("獲取邀請碼失敗 ❌");
-      alert("獲取邀請碼失敗：\n" + msg + "\n\n（提示：你的 GAS 若只有 makeFillLink，本後臺會自動 fallback；若仍失敗，代表 GAS 未部署到你正在用的 exec。）");
-      log("issue invite fail", msg);
+      toastUpdate("失敗 ❌");
+      alert("獲取更新連結失敗：\n" + msg);
+      log("update link fail", msg);
     }
   }
 
-  async function onCopyInviteLink(){
-    const link = (getValue(dom.inviteLink) || "").trim();
-    if(!link) return alert("目前沒有 link，請先按「一鍵產生邀請碼」");
-    await copyText(link);
-  }
-
+  // ---------- Bind ----------
   function bind(){
     if(dom.versionText) dom.versionText.textContent = VERSION;
 
-    // preload admin_secret
     const savedSecret = localStorage.getItem(STORAGE.ADMIN_SECRET) || "";
     if(dom.adminSecretInput && savedSecret && !getValue(dom.adminSecretInput)){
       dom.adminSecretInput.value = savedSecret;
     }
 
-    // preload id from URL or last
     const u = new URL(location.href);
     const idQS = (u.searchParams.get("id") || "").trim();
     const tokenQS = (u.searchParams.get("token") || "").trim();
@@ -468,21 +524,18 @@
       dom.idInput.value = idQS;
     }
 
-    // preload token
     if(dom.tokenInput && !getValue(dom.tokenInput)){
       dom.tokenInput.value = tokenQS || recallToken(getValue(dom.idInput)) || "";
     }else if(dom.tokenInput && tokenQS){
       dom.tokenInput.value = tokenQS;
     }
 
-    // save admin_secret
     if(dom.adminSecretInput){
       dom.adminSecretInput.addEventListener("change", ()=>{
         localStorage.setItem(STORAGE.ADMIN_SECRET, getValue(dom.adminSecretInput));
       });
     }
 
-    // buttons
     dom.btnLoad?.addEventListener("click", onLoad);
     dom.btnRememberToken?.addEventListener("click", onRememberToken);
 
@@ -494,21 +547,19 @@
     dom.btnConfirm?.addEventListener("click", onConfirm);
     dom.btnActivate?.addEventListener("click", onActivate);
 
-    dom.btnIssueInvite?.addEventListener("click", onIssueInvite);
-    dom.btnCopyInviteLink?.addEventListener("click", onCopyInviteLink);
-
     dom.btnDebug?.addEventListener("click", showDebug);
 
-    // Enter to load
-    dom.idInput?.addEventListener("keydown",(e)=>{
-      if(e.key==="Enter"){ e.preventDefault(); onLoad(); }
-    });
-    dom.tokenInput?.addEventListener("keydown",(e)=>{
-      if(e.key==="Enter"){ e.preventDefault(); onLoad(); }
-    });
+    dom.btnMakeUpdateLink?.addEventListener("click", onMakeUpdateLink);
+
+    const lastUpdate = localStorage.getItem(STORAGE.LAST_UPDATE_LINK) || "";
+    if(lastUpdate && dom.btnCopyUpdateLink){
+      dom.btnCopyUpdateLink.disabled = false;
+      dom.btnCopyUpdateLink.onclick = () => copyText(lastUpdate);
+    }
 
     toast("待命");
-    log("boot ok", { VERSION, GAS: CONFIG.GAS, BASE: CONFIG.BASE_URL });
+    toastUpdate("尚未產生");
+    log("boot ok", { VERSION, GAS: CONFIG.GAS });
   }
 
   bind();
