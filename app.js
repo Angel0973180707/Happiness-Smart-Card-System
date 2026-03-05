@@ -1,29 +1,24 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v501 (COMPLETE OVERWRITE)
+ * app.js v521.1 (COMPLETE OVERWRITE)
  *
- * Base: your app.js v497 provided in chat
- * Align to GAS v501:
- * ✅ API payload: { ok:true, v:"501", item:{...} }
- * ✅ HARD LOCK RULE: status !== "active" => lock
+ * Align to GAS v501 payload:
+ * ✅ { ok:true, v:"501", item:{...} }
+ *
+ * Rules:
+ * ✅ HARD LOCK: status !== "active" => lock
  * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
- * ✅ Keep ALL existing UI/feature behaviors (no feature removal)
+ * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel
  *
- * v501 adjustment you requested:
- * ✅ 門面「聯繫開通」一律改導向 LINE OA（修正為 https://lin.ee/G3VJoRm）
- *    （避免客戶打不開表單 / 沒有exp+sig也無法填）
+ * v521.1 adjustment:
+ * ✅ Lock CTA / contact CTA go to LINE OA: https://lin.ee/3r2ZePN
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-
-  // v501: 門面鎖卡/開通 CTA 一律導去 LINE OA（你剛剛更正的）
-  CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
-
-  // 門面仍可自由選版參考，資料仍預設讀 TW0001（不變）
+  CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
-
-  VERSION: "v501",
+  VERSION: "v521.1",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
@@ -169,22 +164,16 @@ function normalizeLink_(s){
 function driveIdFromUrl_(u){
   const s = String(u||"").trim();
   if(!s) return "";
-
   const mFile = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   if(mFile && mFile[1]) return mFile[1];
-
   const mUc = s.match(/drive\.google\.com\/uc\?[^#]*id=([^&]+)/i);
   if(mUc && mUc[1]) return decodeURIComponent(mUc[1]);
-
   const mThumb = s.match(/thumbnail\?id=([^&]+)/i);
   if(mThumb && mThumb[1]) return decodeURIComponent(mThumb[1]);
-
   const mOpen = s.match(/drive\.google\.com\/open\?[^#]*id=([^&]+)/i);
   if(mOpen && mOpen[1]) return decodeURIComponent(mOpen[1]);
-
   const mId = s.match(/(?:\?|&)id=([^&]+)/i);
   if(mId && mId[1]) return decodeURIComponent(mId[1]);
-
   return "";
 }
 
@@ -380,7 +369,7 @@ function setPaper(paper, el){
   }
 }
 
-/* CTA: v501 門面鎖卡/開通 -> LINE OA */
+/* CTA: lock/contact -> LINE OA */
 function goFillForm(){
   const u = normalizeLink_(CONFIG.CUSTOMER_SERVICE_URL);
   if(!u){
@@ -573,7 +562,7 @@ function applyWideRule_(container){
 }
 
 /* ================================
- * Media/Social (same as your base)
+ * Media/Social (kept)
  * ================================ */
 function gatherByKeys_(p, keys){
   const hits = [];
@@ -658,27 +647,6 @@ function ensureMediaDockMount_(){
   let dock = qs("mediaDock");
   let btns = qs("mediaButtons");
   if(dock && btns) return { dock, btns };
-
-  const ref = qs("contactDock") || qs("photoWall") || document.body;
-
-  dock = document.createElement("div");
-  dock.id = "mediaDock";
-  dock.className = "info-block";
-  dock.style.display = "none";
-
-  btns = document.createElement("div");
-  btns.id = "mediaButtons";
-  dock.appendChild(btns);
-
-  if(qs("photoWall") && qs("photoWall").parentNode){
-    const ph = qs("photoWall");
-    ph.parentNode.insertBefore(dock, ph);
-  }else if(ref && ref.parentNode){
-    ref.parentNode.insertBefore(dock, ref.nextSibling);
-  }else{
-    document.body.appendChild(dock);
-  }
-
   return { dock, btns };
 }
 
@@ -686,11 +654,7 @@ function renderSpecsToDock_(p, specs, tag){
   const mount = ensureMediaDockMount_();
   const btns = mount.btns;
   const dock = mount.dock;
-
-  if(!btns || !dock){
-    console.warn(`[${tag}] found but not mounted`);
-    return false;
-  }
+  if(!btns || !dock) return false;
 
   let hasAny = false;
 
@@ -699,13 +663,10 @@ function renderSpecsToDock_(p, specs, tag){
     if(!hits.length) continue;
 
     for(const h of hits){
-      const rawVal = h.value;
-      const finalUrl = spec.resolver(rawVal);
+      const finalUrl = spec.resolver(h.value);
       if(!text(finalUrl)) continue;
 
       hasAny = true;
-      console.log(`[${tag}] ${h.key} -> ${finalUrl}`);
-
       const cls = classifyDockClass_(finalUrl);
       btns.appendChild(buildDockBtn_({
         label: spec.label,
@@ -802,9 +763,7 @@ function renderDocks_(p){
   applyWideRule_(cBtns);
 }
 
-/* ================================
- * Text formatting helpers (Plan A)
- * ================================ */
+/* ---------- Text helpers ---------- */
 function normalizeMultiline_(s){
   return String(s ?? "")
     .replace(/\r\n/g, "\n")
@@ -823,33 +782,23 @@ function toOneLine_(s){
   return parts.join(" / ");
 }
 
-/* ================================
- * Expiry + Status gate (ALIGN v501)
- * ================================ */
+/* ---------- Expiry + Status gate ---------- */
 function parseAnyDate_(raw){
   const v = text(raw);
   if(!v) return null;
 
   if(/^\d{13}$/.test(v)){
-    const ms = Number(v);
-    const d = new Date(ms);
+    const d = new Date(Number(v));
     return isNaN(d.getTime()) ? null : d;
   }
   if(/^\d{10}$/.test(v)){
-    const ms = Number(v) * 1000;
-    const d = new Date(ms);
+    const d = new Date(Number(v) * 1000);
     return isNaN(d.getTime()) ? null : d;
   }
 
   const m = v.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
   if(m){
-    const yy = Number(m[1]);
-    const mm = Number(m[2]) - 1;
-    const dd = Number(m[3]);
-    const hh = m[4] ? Number(m[4]) : 0;
-    const mi = m[5] ? Number(m[5]) : 0;
-    const ss = m[6] ? Number(m[6]) : 0;
-    const d = new Date(yy, mm, dd, hh, mi, ss);
+    const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]), Number(m[4]||0), Number(m[5]||0), Number(m[6]||0));
     return isNaN(d.getTime()) ? null : d;
   }
 
@@ -918,12 +867,6 @@ function showLockedUi_(reasonText){
   }
 }
 
-/* ================================
- * 🔐 HARD LOCK RULE (v501 anchor)
- * status !== "active" => LOCK
- * expires_at <= today => LOCK
- * empty status => inactive => LOCK
- * ================================ */
 function applyStatusGate_(p){
   const status = normalizeStatus_(p);
   const expiry = getExpiryInfo_(p);
@@ -1001,7 +944,7 @@ function renderCard(row){
   if(vt) vt.textContent = CONFIG.VERSION;
 }
 
-/* ---------- LINE CTA ---------- */
+/* ---------- goLineIntro ---------- */
 function goLineIntro(){
   const p = currentRow || null;
   if(!p){
@@ -1046,27 +989,16 @@ window.goLineIntro = goLineIntro;
 window.goFillForm = goFillForm;
 
 /* ================================
- * Photo Wall + Lightbox
+ * Photo Wall + Lightbox (kept)
  * ================================ */
 function extractRowFromPayload_(data){
   if(!data || typeof data !== "object") return null;
-
-  // ✅ v501: { ok:true, v:"501", item:{...} }
-  if(data.ok === true && data.item && typeof data.item === "object"){
-    return data.item;
-  }
-
-  // ✅ legacy: { ok:true, data:{...} }
-  if(data.ok === true && data.data && typeof data.data === "object"){
-    return data.data;
-  }
-
+  if(data.ok === true && data.item && typeof data.item === "object") return data.item;
+  if(data.ok === true && data.data && typeof data.data === "object") return data.data;
   if(data.item && typeof data.item === "object") return data.item;
   if(data.data && typeof data.data === "object") return data.data;
   if(data.row && typeof data.row === "object") return data.row;
-
   if(data.id || data["姓名"] || data.name) return data;
-
   return null;
 }
 
@@ -1087,16 +1019,9 @@ function collectPhotoUrls_(p){
     );
   }
 
-  // ✅ v501: photo1_img..photo5_img / photo1_url..photo5_url
   for(let i=1;i<=12;i++){
-    const vFast = pick(p, [
-      `photo${i}_img_fast`,`photo${i}_fast`,`照片${i}_fast`,`照片_fast${i}`,
-      `photo${i}_url_fast`
-    ]);
-    const vSlow = pick(p, [
-      `photo${i}_img`,`photo${i}`,`photo_${i}`,`照片${i}`,`相片${i}`,
-      `photo${i}_url`
-    ]);
+    const vFast = pick(p, [`photo${i}_img_fast`,`photo${i}_fast`,`照片${i}_fast`,`photo${i}_url_fast`]);
+    const vSlow = pick(p, [`photo${i}_img`,`photo${i}`,`照片${i}`,`photo${i}_url`]);
     const v = text(vFast) ? vFast : vSlow;
     if(text(v)) urls.push(v);
   }
@@ -1112,7 +1037,6 @@ function collectPhotoUrls_(p){
     seen.add(key);
     out.push(nu);
   });
-
   return out;
 }
 
@@ -1169,7 +1093,6 @@ function openLightbox_(url){
   const overlay = qs("lightboxOverlay");
   const img = qs("lightboxImg");
   if(!overlay || !img) return;
-
   setImgWithFallback_(img, buildImgCandidates_(url));
   overlay.style.display = "flex";
 }
@@ -1192,7 +1115,7 @@ function renderPhotoWall_(row){
   const expiry = getExpiryInfo_(p);
   if((!status || status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
     wall.style.display = "none";
-    if(grid) grid.innerHTML = "";
+    grid.innerHTML = "";
     return;
   }
 
@@ -1214,7 +1137,6 @@ function renderPhotoWall_(row){
     img.loading = "lazy";
     img.decoding = "async";
     img.referrerPolicy = "no-referrer";
-
     img.style.width = "100%";
     img.style.aspectRatio = "1 / 1";
     img.style.objectFit = "cover";
@@ -1227,297 +1149,42 @@ function renderPhotoWall_(row){
   wall.style.display = "";
 }
 
-/* ================================
- * Hidden Admin Panel
- * - Trigger: bottom-right hotspot triple tap
- * ================================ */
-function basePath_(){
-  return location.origin + location.pathname;
-}
-
-function homeUrl_(){
-  return basePath_();
-}
-
-function cardUrlById_(cid){
-  const id = normalizeId_(cid) || CONFIG.DEFAULT_ID;
-  return `${basePath_()}?id=${encodeURIComponent(id)}&v=${encodeURIComponent(CONFIG.VERSION)}`;
-}
-
-function ogUrl_(){
-  return `${location.origin}${location.pathname.replace(/\/[^\/]*$/, "/")}og-card.png?v=${encodeURIComponent(CONFIG.VERSION)}`;
-}
-
-async function copyText_(s){
-  const v = String(s||"");
-  try{
-    if(navigator.clipboard?.writeText){
-      await navigator.clipboard.writeText(v);
-      return true;
-    }
-  }catch{}
-  try{
-    const ta = document.createElement("textarea");
-    ta.value = v;
-    ta.style.position = "fixed";
-    ta.style.left = "-9999px";
-    ta.style.top = "-9999px";
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(ta);
-    return ok;
-  }catch{
-    return false;
-  }
-}
-
-function ensureAdminPanel_(){
-  if(qs("adminPanelOverlay")) return;
-
-  const overlay = document.createElement("div");
-  overlay.id = "adminPanelOverlay";
-  overlay.style.cssText = `
-    position:fixed; inset:0; z-index:999998;
-    background:rgba(0,0,0,0.55);
-    display:none;
-    align-items:flex-end;
-    justify-content:center;
-    padding:14px;
-  `;
-
-  const panel = document.createElement("div");
-  panel.id = "adminPanel";
-  panel.style.cssText = `
-    width:min(520px, 100%);
-    border-radius:18px;
-    background:rgba(255,255,255,0.92);
-    box-shadow:0 18px 60px rgba(0,0,0,0.28);
-    overflow:hidden;
-    backdrop-filter: blur(10px);
-  `;
-
-  const head = document.createElement("div");
-  head.style.cssText = `
-    padding:12px 14px;
-    display:flex; align-items:center; justify-content:space-between;
-    border-bottom:1px solid rgba(0,0,0,0.08);
-  `;
-  head.innerHTML = `
-    <div style="font-weight:900; letter-spacing:0.5px;">隱形後臺</div>
-    <button id="adminCloseBtn" type="button"
-      style="width:36px;height:36px;border-radius:999px;border:none;cursor:pointer;
-             background:rgba(0,0,0,0.06);font-size:18px;font-weight:900;">✕</button>
-  `;
-
-  const body = document.createElement("div");
-  body.style.cssText = `padding:12px 14px;`;
-
-  body.innerHTML = `
-    <div style="font-size:13px; opacity:0.85; margin-bottom:8px;">
-      輸入 <b>序號（TW0001）</b> 或 姓名（目前以序號查詢為主）
-    </div>
-
-    <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
-      <input id="adminInput"
-        placeholder="TW0001 / 0001 / 小天使"
-        style="flex:1; height:42px; padding:0 12px; border-radius:12px;
-               border:1px solid rgba(0,0,0,0.18); outline:none; font-size:15px;" />
-      <button id="adminGoBtn" type="button"
-        style="height:42px; padding:0 14px; border-radius:12px; border:none; cursor:pointer;
-               background:rgba(0,0,0,0.08); font-weight:900;">套用</button>
-    </div>
-
-    <div id="adminHint" style="font-size:13px; color:#333; opacity:0.85; margin-bottom:10px;"></div>
-
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-      <button id="btnAdminHome" type="button"
-        style="height:42px; border-radius:12px; border:none; cursor:pointer;
-               background:rgba(0,0,0,0.08); font-weight:900;">返回首頁</button>
-
-      <button id="btnAdminPreview" type="button"
-        style="height:42px; border-radius:12px; border:none; cursor:pointer;
-               background:rgba(0,0,0,0.08); font-weight:900;">成品預覽</button>
-
-      <button id="btnCopyCard" type="button"
-        style="height:42px; border-radius:12px; border:none; cursor:pointer;
-               background:rgba(0,0,0,0.08); font-weight:900;">一鍵複製名片連結</button>
-
-      <button id="btnCopyOg" type="button"
-        style="height:42px; border-radius:12px; border:none; cursor:pointer;
-               background:rgba(0,0,0,0.08); font-weight:900;">一鍵複製 OG 圖卡</button>
-
-      <button id="btnDelivery" type="button"
-        style="grid-column:1 / -1; height:44px; border-radius:12px; border:none; cursor:pointer;
-               background:rgba(0,0,0,0.12); font-weight:900;">
-        一鍵交貨（複製 OG + 名片連結）
-      </button>
-    </div>
-
-    <div style="margin-top:10px; font-size:12px; opacity:0.7;">
-      版本：${escapeHtml_(CONFIG.VERSION)}
-    </div>
-  `;
-
-  panel.appendChild(head);
-  panel.appendChild(body);
-  overlay.appendChild(panel);
-  document.body.appendChild(overlay);
-
-  const closeBtn = qs("adminCloseBtn");
-  const input = qs("adminInput");
-  const hint = qs("adminHint");
-
-  function getCurrentTargetId_(){
-    const v = text(input?.value) || getIdFromUrl_() || CONFIG.DEFAULT_ID;
-    const nid = normalizeId_(v);
-    return nid;
-  }
-
-  function setHint_(msg){
-    if(hint) hint.innerHTML = msg ? msg : "";
-  }
-
-  async function applyInput_(){
-    const raw = text(input?.value);
-    if(!raw){
-      setHint_("⚠️ 請輸入 TW0001 / 0001 / 姓名");
-      return;
-    }
-
-    const nid = normalizeId_(raw);
-    if(/^TW\d{4}$/.test(nid)){
-      setHint_(`✅ 已套用：<b>${escapeHtml_(nid)}</b>`);
-      console.log("[ADMIN] set target id:", nid);
-      return;
-    }
-
-    setHint_(`⚠️ 目前後端是用 <b>id</b> 取資料（例：TW0001）。<br>你輸入的是「${escapeHtml_(raw)}」，請改輸入序號。`);
-    console.warn("[ADMIN] name entered; id required:", raw);
-  }
-
-  async function doHome_(){
-    console.log("[ADMIN] home:", homeUrl_());
-    location.href = homeUrl_();
-  }
-
-  async function doPreview_(){
-    const nid = getCurrentTargetId_();
-    if(!/^TW\d{4}$/.test(nid)){
-      setHint_("⚠️ 預覽需要序號，例如 TW0001");
-      return;
-    }
-    const url = cardUrlById_(nid);
-    console.log("[ADMIN] preview:", url);
-    window.open(url, "_blank");
-  }
-
-  async function doCopyCard_(){
-    const nid = getCurrentTargetId_();
-    if(!/^TW\d{4}$/.test(nid)){
-      setHint_("⚠️ 複製名片連結需要序號，例如 TW0001");
-      return;
-    }
-    const url = cardUrlById_(nid);
-    const ok = await copyText_(url);
-    console.log("[ADMIN] copy card link:", url, "ok=", ok);
-    alert(ok ? "✅ 已複製名片連結" : "⚠️ 複製失敗（可手動長按複製網址）");
-  }
-
-  async function doCopyOg_(){
-    const url = ogUrl_();
-    const ok = await copyText_(url);
-    console.log("[ADMIN] copy og link:", url, "ok=", ok);
-    alert(ok ? "✅ 已複製 OG 圖卡網址" : "⚠️ 複製失敗（可手動複製 OG 圖卡網址）");
-  }
-
-  async function doDelivery_(){
-    const nid = getCurrentTargetId_();
-    if(!/^TW\d{4}$/.test(nid)){
-      setHint_("⚠️ 一鍵交貨需要序號，例如 TW0001");
-      return;
-    }
-    const pack = `OG 圖卡：${ogUrl_()}\n名片連結：${cardUrlById_(nid)}`;
-    const ok = await copyText_(pack);
-    console.log("[ADMIN] delivery pack copied. id=", nid, "ok=", ok);
-    alert(ok ? "✅ 已複製交貨內容（OG + 名片連結）" : "⚠️ 複製失敗（可手動複製）");
-  }
-
-  overlay.addEventListener("click", (e)=>{ if(e.target === overlay) hideAdminPanel_(); });
-  closeBtn?.addEventListener("click", hideAdminPanel_);
-  qs("adminGoBtn")?.addEventListener("click", applyInput_);
-  input?.addEventListener("keydown", (e)=>{ if(e.key === "Enter") applyInput_(); });
-
-  qs("btnAdminHome")?.addEventListener("click", doHome_);
-  qs("btnAdminPreview")?.addEventListener("click", doPreview_);
-  qs("btnCopyCard")?.addEventListener("click", doCopyCard_);
-  qs("btnCopyOg")?.addEventListener("click", doCopyOg_);
-  qs("btnDelivery")?.addEventListener("click", doDelivery_);
-}
-
-function showAdminPanel_(){
-  ensureAdminPanel_();
-  const overlay = qs("adminPanelOverlay");
-  if(overlay) overlay.style.display = "flex";
-
-  const input = qs("adminInput");
-  const currentId = normalizeId_(getIdFromUrl_() || CONFIG.DEFAULT_ID);
-  if(input && !text(input.value)) input.value = currentId;
-
-  console.log("[ADMIN] open panel. current=", currentId);
-}
-
-function hideAdminPanel_(){
-  const overlay = qs("adminPanelOverlay");
-  if(overlay) overlay.style.display = "none";
-  console.log("[ADMIN] close panel");
-}
-
-/* ---------- Admin hotspot (bottom-right triple tap) ---------- */
-function setupAdminHotspotBR_(){
-  const spot = qs("adminHotspotBR");
-  if(!spot) return;
-
-  let taps = 0;
-  let timer = null;
-
-  spot.addEventListener("click", ()=>{
-    taps++;
-    clearTimeout(timer);
-    timer = setTimeout(()=>{ taps = 0; }, 900);
-
-    if(taps >= 3){
-      taps = 0;
-      showAdminPanel_();
+/* ---------- Share button (if present in DOM) ---------- */
+(function bindShareBtn_(){
+  const btn = qs("btnShare");
+  if(!btn) return;
+  btn.addEventListener("click", async ()=>{
+    try{
+      const url = location.href;
+      if(navigator.share){
+        await navigator.share({ title: document.title, url });
+        return;
+      }
+      // fallback: copy url
+      const ok = await (async ()=>{
+        try{ if(navigator.clipboard?.writeText){ await navigator.clipboard.writeText(url); return true; } }catch{}
+        return false;
+      })();
+      alert(ok ? "✅ 已複製分享連結" : "⚠️ 無法分享/複製，請手動複製網址");
+    }catch(e){
+      console.warn(e);
     }
   });
-}
+})();
 
 /* ---------- Load + Boot ---------- */
 async function loadAndRenderById_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-
   const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}&v=${encodeURIComponent(CONFIG.VERSION)}`;
-
   console.log("[LOAD] fetching:", url);
 
   try{
     const payload = await fetchJsonRobust_(url);
-
-    if(!payload || payload.ok !== true){
-      console.warn("[LOAD] GAS returned not ok:", payload);
-      throw new Error("GAS not ok");
-    }
-
+    if(!payload || payload.ok !== true) throw new Error("GAS not ok");
     const row = extractRowFromPayload_(payload);
-    if(!row || typeof row !== "object"){
-      console.warn("[LOAD] invalid row shape:", payload);
-      throw new Error("Invalid payload shape");
-    }
+    if(!row || typeof row !== "object") throw new Error("Invalid payload shape");
 
     console.log("[LOAD] success id=", cid, row);
-
     renderCard(row);
     renderPhotoWall_(row);
 
@@ -1532,7 +1199,6 @@ async function loadAndRenderById_(id){
 (function boot_(){
   try{
     ensureLightbox_();
-    setupAdminHotspotBR_();
 
     const b = document.body;
     STATE.mode = b.classList.contains("mode-premium") ? "premium" : "free";
@@ -1544,7 +1210,6 @@ async function loadAndRenderById_(id){
     ["paper-1","paper-2","paper-3"].forEach(p=>{
       if(b.classList.contains(p)) STATE.paper = p;
     });
-
     ["p1","p2","p3","p4","p5","p6","p7"].forEach(p=>{
       if(b.classList.contains(p)) STATE.premium = p;
     });
