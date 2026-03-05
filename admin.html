@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Admin v515.1</title>
+  <title>HSC Admin v515.2</title>
   <meta name="theme-color" content="#0b1220" />
 
   <style>
@@ -76,7 +76,7 @@
     }
     .field{ display:block; }
     .field-label{ font-weight:900; margin-bottom:6px; }
-    input{
+    input, textarea{
       width:100%;
       padding:12px 12px;
       border-radius:14px;
@@ -86,6 +86,7 @@
       outline:none;
       font-size:var(--fs);
     }
+    textarea{ min-height:110px; resize:vertical; }
     .hint{ margin-top:6px; color:var(--muted); font-size:12px; line-height:1.6; }
     .pill{
       display:inline-block;
@@ -150,9 +151,9 @@
     <div class="brand">
       <div class="brand-title">HSC 後臺工作區</div>
       <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">515.1</span>
+        <span class="muted">v</span><span id="versionText">515.2</span>
         <span class="dot">•</span>
-        <span class="muted">Admin Workspace (minimal)</span>
+        <span class="muted">Admin Workspace</span>
       </div>
     </div>
     <button type="button" class="btn" id="btnDebug">Debug</button>
@@ -223,27 +224,26 @@
       </div>
     </section>
 
-    <!-- ✅ NEW: Invite / Fill Link -->
     <section class="card">
-      <div class="h2">邀請碼（填表連結）</div>
+      <div class="h2">一鍵取得邀請碼（填表連結）</div>
 
       <div class="grid2">
         <label class="field">
           <div class="field-label">tenant</div>
-          <input id="tenant" value="angel" />
-          <div class="hint">目前預設 angel；未來可做多租戶。</div>
+          <input id="tenant" placeholder="例：angel" value="angel" />
+          <div class="hint">多租戶用；目前你先固定 angel。</div>
         </label>
 
         <label class="field">
-          <div class="field-label">有效天數 days（1~30）</div>
-          <input id="invite_days" value="3" />
-          <div class="hint">預設 3 天；避免連結長期外流。</div>
+          <div class="field-label">有效天數 days</div>
+          <input id="invite_days" placeholder="1～30" value="3" inputmode="numeric" />
+          <div class="hint">建議 3～7 天，避免連結長期外流。</div>
         </label>
 
         <label class="field col2">
-          <div class="field-label">輸出（可複製）</div>
-          <input id="invite_out" placeholder="點『一鍵取得邀請碼』後出現在這裡" readonly />
-          <div class="hint">會自動複製「邀請碼 + 填表連結」到剪貼簿。</div>
+          <div class="field-label">輸出（會自動複製）</div>
+          <textarea id="invite_out" placeholder="按『一鍵取得邀請碼』後會出現在這裡"></textarea>
+          <div class="hint">格式：邀請碼 + 填表連結（fill_url）。</div>
         </label>
       </div>
 
@@ -251,13 +251,12 @@
 
       <div class="row">
         <button type="button" class="btn primary" id="btnGetInvite">一鍵取得邀請碼</button>
-        <button type="button" class="btn" id="btnCopyInvite">複製邀請碼＋連結</button>
+        <button type="button" class="btn" id="btnCopyInvite">複製（上次結果）</button>
         <span class="pill" id="pillInvite">未取得</span>
       </div>
 
-      <div class="kvs">
-        這裡的「邀請碼」＝ <b>exp+sig 填表連結</b>（新規則）。<br/>
-        沒有這個連結，客戶就不能填表（安全模式）。
+      <div class="hint" style="margin-top:10px;">
+        若顯示「獲取邀請碼失敗」，請按右上 Debug，看 btnGetInvite 是否存在、以及 GAS 回傳 error。
       </div>
     </section>
 
@@ -272,8 +271,7 @@
       </div>
 
       <div class="hint" style="margin-top:10px;">
-        交付卡：不是一串網址，而是一張可點開的「連結卡」頁面（下一步我會給你 delivery.html v515）。<br/>
-        微信長圖：加購用 wechat.html（之後再掛 wechat_poster 欄位也可以）。
+        交付卡：delivery.html｜微信長圖：wechat.html
       </div>
     </section>
 
