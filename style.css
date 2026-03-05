@@ -1,14 +1,19 @@
 /* ==========================================
- * Happiness Smart Card System — style.css v521.2 (COMPLETE OVERWRITE)
+ * Happiness Smart Card System — style.css v521.1 (COMPLETE OVERWRITE)
  * Goal:
- * ✅ 修正：自由款多一排「精品選色」不該出現
- * ✅ 修正：滑動/滾動不順（避免被任何 overflow/定位影響）
- * ✅ 美化：自由款更精品、更有層次（但不改 DOM、不走山）
+ * ✅ Fix v520 “走山” by reverting to the stable v497 layout model
+ * ✅ Fix scroll issues (iOS/Android) + no overlays stealing touch
+ * ✅ Fix extra Premium selector row showing in Free mode
+ * ✅ Visual lift (safe): Free a bit more depth, Premium brighter glass, p6 gold stronger
  *
- * MUST KEEP (DO NOT change DOM hooks):
+ * IMPORTANT:
+ * - Keep existing class hooks (DO NOT change DOM):
  *   body.mode-free | body.mode-premium
  *   body.color-1..5  body.style-arch|flat|spot  body.paper-1..3
  *   body.p1..p7
+ * - Avoid global pollution:
+ *   - NO global destructive reset
+ *   - NO generic button/img rules that break the world
  * ========================================== */
 
 /* ---------- Tokens ---------- */
@@ -50,19 +55,18 @@
   --paper-strength: 0.32;
   --paper-grain: 0.16;
   --paper-fiber: 0.12;
+
+  /* scroll safety */
+  --panel-blur: 10px;
+  --panel-bg: rgba(255,255,255,0.78);
 }
 
-/* ---------- Safe essentials (anti “走山” + anti scroll freeze) ---------- */
+/* ---------- Safe essentials (avoid “走山”) ---------- */
 *{ box-sizing:border-box; }
 
-/* ✅ 滑動保險：避免任何版殘留把 body 卡住 */
 html, body{
-  height: auto;
-  min-height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 body{
@@ -73,9 +77,14 @@ body{
     radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.06), transparent 60%),
     var(--bg);
   color: var(--ink);
+
+  /* ✅ Scroll safety */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
 }
 
-/* helpers */
 .preline{ white-space: pre-line; }
 .hidden{ display:none !important; }
 
@@ -102,20 +111,11 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   top: 0;
   z-index: 50;
   padding: 12px 12px 10px;
-  background: rgba(255,255,255,0.78);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--panel-bg);
+  backdrop-filter: blur(var(--panel-blur));
+  -webkit-backdrop-filter: blur(var(--panel-blur));
   border-bottom: 1px solid rgba(0,0,0,0.06);
-}
-
-/* ✅ 防止任何外部殘留 CSS/inline 把控制區變成 absolute/fixed 疊住樣品 */
-#free-controls, .free-controls,
-#premium-controls, .premium-controls,
-#admin-panel, .admin-panel{
-  inset: auto !important;
-  right: auto !important;
-  bottom: auto !important;
-  left: auto !important;
+  transform: translateZ(0); /* ✅ iOS sticky render stability */
 }
 
 .panel-inner{
@@ -141,36 +141,12 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   box-shadow: var(--shadow);
   border: 1px solid var(--line);
   background: var(--card-white);
+  transform: translateZ(0); /* ✅ smoother scroll on mobile */
 }
 
-/* ✅ Free vivid (safe) */
+/* Free vivid (safe) */
 body.mode-free .card{
   filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
-}
-
-/* ✅ Free extra premium feel (safe): subtle inner glow + rim */
-body.mode-free .card::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  z-index: 2;
-  background:
-    radial-gradient(900px 420px at 30% 0%, rgba(255,255,255,0.40), transparent 60%),
-    radial-gradient(520px 260px at 86% 12%, rgba(255,255,255,0.22), transparent 70%),
-    linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.00) 42%);
-  opacity:.85;
-  mix-blend-mode: soft-light;
-}
-body.mode-free .card::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  z-index: 2;
-  border-radius: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.62);
-  opacity:.55;
 }
 
 /* ---------- Premium base (brighter glass, not night club) ---------- */
@@ -243,7 +219,7 @@ body.mode-premium.p6 .premium-fx-layer{
   filter: blur(14px) saturate(1.10);
 }
 
-/* Premium glass coats (keep) */
+/* Premium glass coats */
 body.mode-premium .card::before{
   content:"";
   position:absolute;
@@ -301,7 +277,7 @@ body.mode-premium .banner{ display:none !important; }
 .dynamic-mask{
   position:absolute;
   inset:0;
-  pointer-events:none;
+  pointer-events:none; /* ✅ never steal scroll/touch */
   background:
     radial-gradient(520px 220px at 50% 35%, rgba(255,255,255,0.25), transparent 70%),
     radial-gradient(680px 260px at 80% 20%, rgba(0,0,0,0.08), transparent 70%);
@@ -534,7 +510,14 @@ body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
   align-items:center;
   justify-content:center;
   padding: 2px 0 4px;
+  flex-wrap: nowrap;
 }
+
+/* ✅ Prevent accidental overflow causing horizontal lock on mobile */
+#admin-panel, .panel-inner, .controls-block, .btn-row, .plan-row, .dots-row{
+  max-width: 100%;
+}
+#admin-panel{ overflow-x: hidden; }
 
 /* ---------- Selector Buttons ---------- */
 .btn-neo{
@@ -672,6 +655,7 @@ body.mode-premium .btn-share{
     0 16px 28px rgba(0,0,0,0.16),
     inset 0 2px 7px rgba(255,255,255,0.38),
     inset 0 -8px 12px rgba(0,0,0,0.18);
+  touch-action: manipulation;
 }
 body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
 
@@ -852,6 +836,7 @@ body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
   text-align:center;
   line-height: 1.15;
   white-space: nowrap;
+  touch-action: manipulation;
 }
 .dock-btn:active{
   transform: scale(0.992);
@@ -976,84 +961,6 @@ body.mode-premium #u-unit{
   opacity: 0.92;
 }
 
-/* ==========================================
- * v521.2 FIX A — 絕對保證「樣品區」不被控制區罩住
- * ========================================== */
-#card-container, .card-container,
-#card, .card,
-#preview, .preview,
-#sample, .sample,
-#cardRoot, #cardShell, #cardContainer{
-  position: relative;
-  z-index: 2;
-}
-
-#admin-panel, .admin-panel,
-#free-controls, .free-controls,
-#premium-controls, .premium-controls{
-  z-index: 50;
-}
-
-/* 透明遮罩層不吃點擊 */
-#paperOverlay, .paperOverlay,
-.paper-overlay,
-.premium-fx-layer{
-  pointer-events: none !important;
-}
-
-/* ==========================================
- * v521.2 FIX B — 模式門禁（更強力）：
- * 自由款時：任何「精品色盤/精品點點」容器都隱藏
- * 精品款時：任何「自由色盤/自由點點」容器都隱藏
- * （不會去動到「方案切換」按鈕）
- * ========================================== */
-
-/* ✅ Free 模式：隱藏精品控制群（常見 id/class 命名全包） */
-body.mode-free #premium-controls,
-body.mode-free .premium-controls,
-body.mode-free #premiumColors,
-body.mode-free .premium-colors,
-body.mode-free #premiumDots,
-body.mode-free .premium-dots,
-body.mode-free [id*="premiumColor"],
-body.mode-free [id*="premium-color"],
-body.mode-free [id*="premiumDot"],
-body.mode-free [id*="premium-dot"],
-body.mode-free .premium-color-row,
-body.mode-free .premium-dot-row,
-body.mode-free .premium-palette,
-body.mode-free .premium-options{
-  display:none !important;
-}
-
-/* ✅ Premium 模式：隱藏自由控制群（常見 id/class 命名全包） */
-body.mode-premium #free-controls,
-body.mode-premium .free-controls,
-body.mode-premium #freeColors,
-body.mode-premium .free-colors,
-body.mode-premium #freeDots,
-body.mode-premium .free-dots,
-body.mode-premium [id*="freeColor"],
-body.mode-premium [id*="free-color"],
-body.mode-premium [id*="freeDot"],
-body.mode-premium [id*="free-dot"],
-body.mode-premium .free-color-row,
-body.mode-premium .free-dot-row,
-body.mode-premium .free-palette,
-body.mode-premium .free-options{
-  display:none !important;
-}
-
-/* ✅ body 尚未掛 mode（載入瞬間）：預設只顯示 free */
-body:not(.mode-free):not(.mode-premium) #premium-controls,
-body:not(.mode-free):not(.mode-premium) .premium-controls,
-body:not(.mode-free):not(.mode-premium) #premiumColors,
-body:not(.mode-free):not(.mode-premium) .premium-colors,
-body:not(.mode-free):not(.mode-premium) #premiumDots,
-body:not(.mode-free):not(.mode-premium) .premium-dots{
-  display:none !important;
-}
-
 /* ---------- Small screens ---------- */
 @media (max-width: 360px){
   .name{ font-size: 21px; }
@@ -1062,4 +969,106 @@ body:not(.mode-free):not(.mode-premium) .premium-dots{
   .dock-buttons{ gap: 8px; }
   .dock-btn{ padding: 12px 10px; }
   #u-unit{ font-size: clamp(11px, 3.8vw, 14px); }
+}
+
+/* ==========================================
+ * v521.1 FIX A — Prevent controls overlay / keep scroll
+ * ========================================== */
+#free-controls, .free-controls,
+#premium-controls, .premium-controls,
+#admin-panel, .admin-panel{
+  position: relative !important;
+  inset: auto !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+}
+
+/* ensure stacking: panel above, card below */
+#admin-panel{ z-index: 50 !important; }
+#card-container, .card-container,
+#card, .card{ position: relative; z-index: 1 !important; }
+
+/* never let overlay layers eat touch/scroll */
+#paperOverlay, .paperOverlay,
+.paper-overlay,
+.premium-fx-layer,
+.dynamic-mask{
+  pointer-events: none !important;
+  touch-action: none !important;
+}
+
+/* give breathing room between panel and card */
+#card-container{ margin-top: 12px; }
+
+/* ==========================================
+ * v521.1 FIX B — Mode gate for controls (NO extra Premium row in Free)
+ * ========================================== */
+/* default: hide premium controls unless mode-premium */
+#premium-controls{ display: none !important; }
+body.mode-premium #premium-controls{ display: flex !important; }
+body.mode-premium #free-controls{ display: none !important; }
+body.mode-free #free-controls{ display: flex !important; }
+body.mode-free #premium-controls{ display: none !important; }
+
+/* extra insurance: hide premium dots/rows when not premium */
+body.mode-free #premiumDotsRow,
+body.mode-free #premiumDotsRow *,
+body.mode-free .p-dot{ display: none !important; }
+
+/* and hide free dots when premium */
+body.mode-premium #freeDotsRow,
+body.mode-premium #freeDotsRow *,
+body.mode-premium .dot{ display: none !important; }
+
+/* if body has no mode (first paint), show free only */
+body:not(.mode-free):not(.mode-premium) #premium-controls{ display:none !important; }
+body:not(.mode-free):not(.mode-premium) #free-controls{ display:flex !important; }
+
+/* ==========================================
+ * v521.1 FIX C — Free mode visual polish (safe, non-destructive)
+ * ========================================== */
+/* subtle depth glow around card only in free */
+body.mode-free .card{
+  box-shadow:
+    0 26px 70px rgba(0,0,0,0.14),
+    0 0 0 1px rgba(0,0,0,0.06);
+}
+
+/* premium badge (if exists) */
+.premium-badge{
+  position:absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 6;
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.premium-badge .badge-dot{
+  width: 10px; height:10px; border-radius:99px;
+  background: linear-gradient(135deg, rgba(255,233,168,0.90), rgba(191,149,63,0.95));
+  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
+}
+.premium-badge .badge-text{
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: .3px;
+}
+
+/* breathe helper (if HTML uses it) */
+.breathe{
+  animation: breathePulse 2.8s ease-in-out infinite;
+}
+@keyframes breathePulse{
+  0%,100%{ transform: translateY(0); filter: saturate(1); }
+  50%{ transform: translateY(-1px); filter: saturate(1.06); }
 }
