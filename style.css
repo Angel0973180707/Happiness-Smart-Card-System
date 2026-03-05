@@ -1072,3 +1072,116 @@ body.mode-free .card{
   0%,100%{ transform: translateY(0); filter: saturate(1); }
   50%{ transform: translateY(-1px); filter: saturate(1.06); }
 }
+/* ==========================================
+ * HSC style.css — Paper boost (Free only) v521.2
+ * Paste this block at the END of style.css
+ * Goal:
+ * - Only affect Free mode (body.mode-free)
+ * - Increase paper visibility without making colors dirty
+ * - Make paper-1/2/3 clearly different
+ * ========================================== */
+
+/* 1) Global boost — Free only (Premium not affected) */
+body.mode-free{
+  --paper-strength: 0.48; /* overall visibility */
+  --paper-grain:    0.22; /* small grain */
+  --paper-fiber:    0.18; /* fiber / weave */
+}
+
+/* 2) Ensure overlay never blocks clicks */
+#paperOverlay{
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 3) Add 2-layer texture via pseudo elements (safe override)
+      - We don’t assume your existing paperOverlay background
+      - We only add subtle layers above it
+*/
+#paperOverlay::before,
+#paperOverlay::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  opacity: 1;
+}
+
+/* BASE: soft paper haze (keeps clean, avoids dirty gray) */
+#paperOverlay::before{
+  /* soft-light keeps colors clean */
+  mix-blend-mode: soft-light;
+  opacity: calc(var(--paper-strength, .32) * 0.70);
+  background:
+    radial-gradient(120% 90% at 20% 10%, rgba(255,255,255,0.22), rgba(255,255,255,0.00) 55%),
+    radial-gradient(120% 90% at 85% 80%, rgba(0,0,0,0.16), rgba(0,0,0,0.00) 60%);
+}
+
+/* BASE: fine grain */
+#paperOverlay::after{
+  mix-blend-mode: overlay;
+  opacity: calc(var(--paper-grain, .16) * 0.85);
+  background:
+    radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1.2px),
+    radial-gradient(rgba(0,0,0,0.10) 1px, transparent 1.2px);
+  background-size: 9px 9px, 13px 13px;
+  background-position: 0 0, 6px 4px;
+}
+
+/* ==========================================
+ * Paper variants — give each paper a “signature”
+ * ========================================== */
+
+/* paper-1: 棉紙（柔、雲感、纖維不尖銳） */
+body.mode-free.paper-1 #paperOverlay::before{
+  opacity: calc(var(--paper-strength, .32) * 0.78);
+  background:
+    radial-gradient(140% 95% at 20% 20%, rgba(255,255,255,0.26), rgba(255,255,255,0.00) 58%),
+    radial-gradient(120% 85% at 80% 75%, rgba(0,0,0,0.14), rgba(0,0,0,0.00) 62%);
+}
+body.mode-free.paper-1 #paperOverlay::after{
+  opacity: calc(var(--paper-grain, .16) * 0.70);
+  background-size: 11px 11px, 17px 17px;
+}
+
+/* paper-2: 象牙紙（顆粒更立體、稍微更明顯） */
+body.mode-free.paper-2{
+  --paper-strength: 0.52;
+  --paper-grain:    0.28;
+  --paper-fiber:    0.16;
+}
+body.mode-free.paper-2 #paperOverlay::after{
+  opacity: calc(var(--paper-grain, .16) * 0.95);
+  background:
+    radial-gradient(rgba(255,255,255,0.14) 1.4px, transparent 1.6px),
+    radial-gradient(rgba(0,0,0,0.12) 1.4px, transparent 1.6px);
+  background-size: 10px 10px, 14px 14px;
+  background-position: 0 0, 5px 3px;
+}
+
+/* paper-3: 霧灰（亞麻感：交織線條，但避免髒） */
+body.mode-free.paper-3{
+  --paper-strength: 0.46;  /* 不要過高，霧灰容易髒 */
+  --paper-grain:    0.20;
+  --paper-fiber:    0.26;  /* 用纖維拉出差異 */
+}
+body.mode-free.paper-3 #paperOverlay::before{
+  opacity: calc(var(--paper-strength, .32) * 0.68);
+}
+body.mode-free.paper-3 #paperOverlay::after{
+  /* add weave lines + keep grain */
+  opacity: calc(var(--paper-fiber, .12) * 0.78);
+  mix-blend-mode: soft-light;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(255,255,255,0.10) 0px,
+      rgba(255,255,255,0.10) 1px,
+      rgba(0,0,0,0.00) 6px,
+      rgba(0,0,0,0.00) 10px),
+    repeating-linear-gradient(0deg,
+      rgba(0,0,0,0.08) 0px,
+      rgba(0,0,0,0.08) 1px,
+      rgba(0,0,0,0.00) 7px,
+      rgba(0,0,0,0.00) 12px);
+}
