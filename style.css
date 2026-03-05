@@ -990,3 +990,34 @@ body.mode-premium #u-unit{
   display: block !important;
   width: 100%;
 }
+/* ==========================================
+ * v521 CSS Fix — mode gate for controls
+ * Free/Premium controls show only in their mode
+ * (place AFTER the previous hotfix)
+ * ========================================== */
+
+/* ✅ Free 模式：只顯示 free-controls，隱藏 premium-controls */
+body.mode-free #premium-controls,
+body.mode-free .premium-controls,
+body.mode-free #premiumColors,
+body.mode-free .premium-colors,
+body.mode-free #premiumDots,
+body.mode-free .premium-dots{
+  display: none !important;
+}
+
+/* ✅ Premium 模式：只顯示 premium-controls，隱藏 free-controls */
+body.mode-premium #free-controls,
+body.mode-premium .free-controls,
+body.mode-premium #freeColors,
+body.mode-premium .free-colors,
+body.mode-premium #freeDots,
+body.mode-premium .free-dots{
+  display: none !important;
+}
+
+/* ✅ 進一步保險：如果 body 沒有 mode（載入瞬間），預設只顯示 free */
+body:not(.mode-free):not(.mode-premium) #premium-controls,
+body:not(.mode-free):not(.mode-premium) .premium-controls{
+  display: none !important;
+}
