@@ -1,422 +1,717 @@
-<!-- share.html — v497 (COMPLETE OVERWRITE)
- * - Fix payload: json.item (current GAS)
- * - Drive image URL normalize (file/d, open?id, pure id)
- * - Keep your UX: inactive => mask & stop redirect
- -->
-<!DOCTYPE html>
+<!-- =========================================================
+ share.html — v498 (COMPLETE OVERWRITE)
+ Purpose:
+ - 「交付圖卡（OG）」頁：用於後台/內部生成與下載 PNG（交付用）
+ - ✅ 移除「複製乾淨成品連結」按鈕（避免客戶直接拿到成品連結）
+ - ✅ 改為「僅供你後台看」模式：頁面提示 + 不主動顯示成品連結
+ - 仍保留：載入資料、產生 PNG、複製 OG/WeChat 交付頁（可選）
+ - Data source: GAS ?action=card&id=... (or adminCard/adminGet if you later改)
+ ========================================================= -->
+
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Happiness Smart Card — Share</title>
-  <meta name="description" content="點擊查看專屬智慧名片" />
-
-  <!-- Generic OG fallback (static hosting limitation) -->
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="Happiness Smart Card" />
-  <meta property="og:description" content="點擊查看專屬智慧名片" />
-  <meta property="og:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:image" content="https://angel0973180707.github.io/Happiness-Smart-Card-System/og-card.png" />
-
+  <title>HSC 交付圖卡（OG） v498</title>
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="robots" content="noindex,nofollow" />
   <style>
     :root{
-      --bg:#0b0f14;
-      --card:#111823;
-      --text:#eaf0ff;
-      --muted:rgba(234,240,255,.72);
-      --line:rgba(234,240,255,.12);
+      --bg:#0b1220;
+      --card:#121a2b;
+      --line:rgba(255,255,255,.10);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.68);
+      --accent:#7bdcff;
+      --ok:#34d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
       --radius:18px;
+      --shadow: 0 16px 60px rgba(0,0,0,.45);
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    *{ box-sizing:border-box; }
     body{
       margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", Arial;
-      background: radial-gradient(1200px 800px at 20% 10%, rgba(80,160,255,.20), transparent 60%),
-                  radial-gradient(1000px 700px at 90% 30%, rgba(255,120,180,.18), transparent 55%),
-                  linear-gradient(180deg, #070a0f, #0b0f14);
+      font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Arial;
+      background:
+        radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%),
+        radial-gradient(900px 600px at 110% 20%, rgba(251,113,133,.10), transparent 55%),
+        var(--bg);
       color:var(--text);
-      padding: 18px 14px 26px;
     }
-    .wrap{max-width:520px;margin:0 auto}
+    a{ color:inherit; text-decoration:none; }
+    .wrap{ max-width:1080px; margin:0 auto; padding:18px 14px 28px; }
     .top{
-      display:flex;align-items:center;justify-content:space-between;
-      margin-top:6px;margin-bottom:12px;
-    }
-    .brand{
-      display:flex;gap:10px;align-items:center;
-      font-weight:800;letter-spacing:.2px
-    }
-    .dot{
-      width:12px;height:12px;border-radius:999px;
-      background: linear-gradient(135deg, #7dd3fc, #fb7185);
-      box-shadow: 0 0 0 6px rgba(125,211,252,.10);
-    }
-    .chip{
-      font-size:12px;color:var(--muted);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+      padding:14px 16px;
       border:1px solid var(--line);
-      padding:6px 10px;border-radius:999px;
-      background: rgba(255,255,255,.03);
+      border-radius:var(--radius);
+      background:rgba(18,26,43,.72);
+      box-shadow: var(--shadow);
     }
-    .panel{
-      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-      border:1px solid var(--line);
-      border-radius: var(--radius);
-      overflow:hidden;
-      box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    .top .title{
+      display:flex; flex-direction:column; gap:6px;
     }
-    .hero{ padding: 18px 16px 12px; }
-    .title{ font-size:18px;font-weight:900;margin:0 0 6px; }
-    .sub{ color:var(--muted);font-size:13px;line-height:1.55;margin:0; }
-    .status{
-      display:inline-flex;align-items:center;gap:8px;
-      margin-top:10px;color:var(--muted);font-size:12px;
-    }
+    .top h1{ margin:0; font-size:18px; letter-spacing:.5px; }
+    .top .sub{ margin:0; font-size:13px; color:var(--muted); line-height:1.5; }
     .badge{
-      display:inline-flex;align-items:center;gap:6px;
-      padding:4px 10px;border-radius:999px;border:1px solid var(--line);
-      background: rgba(255,255,255,.03);
-      color:var(--muted);font-weight:800;
-    }
-    .b-ok{border-color: rgba(101,214,166,.35); color: rgba(101,214,166,.95)}
-    .b-warn{border-color: rgba(255,204,102,.35); color: rgba(255,204,102,.95)}
-    .preview{
-      padding: 0 16px 16px;
-      display:flex;gap:12px;align-items:center;
-    }
-    .avatar{
-      width:58px;height:58px;border-radius:16px;
-      background: rgba(255,255,255,.06);
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
       border:1px solid var(--line);
-      overflow:hidden;flex:none;
-      display:flex;align-items:center;justify-content:center;
-    }
-    .avatar img{width:100%;height:100%;object-fit:cover}
-    .meta{min-width:0}
-    .name{
-      font-size:16px;font-weight:900;margin:0 0 4px;
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    }
-    .line2{
-      font-size:12px;color:var(--muted);
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    }
-    .actions{
-      display:grid;grid-template-columns:1fr;gap:10px;
-      padding: 14px 16px 16px;
-      border-top: 1px solid var(--line);
-      background: rgba(0,0,0,.18);
-    }
-    .btn{
-      appearance:none;border:1px solid var(--line);
-      border-radius: 14px;
-      padding: 12px 12px;
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      color:var(--text);
-      font-weight:800;
-      display:flex;align-items:center;justify-content:space-between;
-      gap:10px;
-      cursor:pointer;
-    }
-    .btn:active{transform: translateY(1px)}
-    .btn small{font-weight:700;color:var(--muted)}
-    .row{
-      display:flex;gap:8px;flex-wrap:wrap;
-      padding: 0 16px 16px;
-    }
-    .mini{
-      flex:1;min-width: 150px;
-      border-radius: 14px;
-      padding:10px 12px;
-      border:1px dashed var(--line);
-      background: rgba(255,255,255,.03);
       color:var(--muted);
       font-size:12px;
-      line-height:1.5;
+      white-space:nowrap;
+    }
+    .badge b{ color:var(--text); font-weight:700; }
+    .grid{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns:1fr; }
+    }
+
+    .panel{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:rgba(18,26,43,.72);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .panel .hd{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .panel .hd h2{ margin:0; font-size:14px; letter-spacing:.4px; }
+    .panel .bd{ padding:12px 14px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .field{ display:flex; flex-direction:column; gap:6px; flex:1; min-width:220px; }
+    label{ font-size:12px; color:var(--muted); }
+    input, textarea, select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      outline:none;
+    }
+    textarea{ min-height:92px; resize:vertical; }
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    .btn{
+      appearance:none; border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .btn.primary{
+      border-color:rgba(123,220,255,.35);
+      background:rgba(123,220,255,.14);
+    }
+    .btn.ok{
+      border-color:rgba(52,211,153,.35);
+      background:rgba(52,211,153,.14);
+    }
+    .btn.warn{
+      border-color:rgba(251,191,36,.35);
+      background:rgba(251,191,36,.14);
+    }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+    .hint{
+      margin-top:10px;
+      padding:10px 12px;
+      border:1px dashed rgba(255,255,255,.16);
+      border-radius:14px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+      background:rgba(0,0,0,.16);
+    }
+    .hint b{ color:var(--text); }
+
+    /* OG card preview area */
+    .stage{
+      display:flex; flex-direction:column; gap:12px;
+    }
+    .canvasWrap{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:rgba(0,0,0,.18);
+      padding:12px;
+      overflow:auto;
+    }
+    .og{
+      width:1200px;
+      height:630px;
+      border-radius:28px;
+      position:relative;
+      overflow:hidden;
+      box-shadow: 0 22px 80px rgba(0,0,0,.55);
+      background:
+        radial-gradient(900px 550px at 20% 10%, rgba(123,220,255,.22), transparent 60%),
+        radial-gradient(800px 520px at 90% 90%, rgba(251,113,133,.16), transparent 65%),
+        linear-gradient(135deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    }
+    .og::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background:
+        radial-gradient(900px 600px at 15% 15%, rgba(123,220,255,.22), transparent 55%),
+        radial-gradient(900px 600px at 85% 85%, rgba(167,139,250,.18), transparent 60%);
+      filter: blur(0px);
+      opacity:.9;
+    }
+    .og .inner{
+      position:absolute; inset:0;
+      padding:54px 62px;
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:38px;
+    }
+    .brand{
+      display:flex; flex-direction:column; gap:18px;
+      z-index:2;
+    }
+    .brand .mini{
+      display:inline-flex; align-items:center; gap:10px;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.18);
+      width: fit-content;
+      font-weight:800;
+      letter-spacing:.6px;
+    }
+    .brand .mini .dot{
+      width:10px; height:10px; border-radius:99px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(123,220,255,.14);
+    }
+    .name{
+      font-size:64px;
+      font-weight:900;
+      letter-spacing:1px;
+      margin:0;
+      line-height:1.05;
+    }
+    .meta{
+      display:flex; flex-direction:column; gap:10px;
+      color:rgba(255,255,255,.86);
+      font-size:22px;
+      line-height:1.4;
+      max-width: 720px;
+    }
+    .meta .muted{ color:rgba(255,255,255,.72); }
+    .chips{
+      display:flex; flex-wrap:wrap; gap:10px;
+      margin-top:8px;
+    }
+    .chip{
+      display:inline-flex; align-items:center;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.18);
+      font-size:18px;
+      color:rgba(255,255,255,.86);
+    }
+    .side{
+      z-index:2;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      align-items:flex-end;
+      justify-content:space-between;
+    }
+    .avatar{
+      width:320px; height:320px;
+      border-radius:28px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.22);
+      overflow:hidden;
+      box-shadow: 0 18px 60px rgba(0,0,0,.45);
+      position:relative;
+    }
+    .avatar img{
+      width:100%; height:100%;
+      object-fit:cover;
+      display:block;
     }
     .footer{
-      text-align:center;color:rgba(234,240,255,.55);
-      font-size:12px;margin-top:14px;
+      width:320px;
+      padding:14px 16px;
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.18);
+      display:flex;
+      flex-direction:column;
+      gap:8px;
     }
+    .footer .small{ font-size:16px; color:rgba(255,255,255,.78); line-height:1.35; }
+    .footer .big{ font-size:18px; font-weight:900; letter-spacing:.4px; }
+    .watermark{
+      position:absolute; right:22px; bottom:18px;
+      font-size:14px;
+      color:rgba(255,255,255,.45);
+      letter-spacing:.8px;
+      z-index:2;
+    }
+
+    .toast{
+      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      background:rgba(0,0,0,.72);
+      border:1px solid rgba(255,255,255,.14);
+      padding:10px 14px;
+      border-radius:999px;
+      color:rgba(255,255,255,.90);
+      font-size:13px;
+      box-shadow: 0 16px 60px rgba(0,0,0,.55);
+      opacity:0; pointer-events:none;
+      transition:.18s ease;
+      max-width: 92vw;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .toast.show{ opacity:1; }
   </style>
 </head>
-
 <body>
   <div class="wrap">
     <div class="top">
-      <div class="brand"><span class="dot"></span>Happiness Smart Card</div>
-      <div class="chip" id="chipId">ID：—</div>
+      <div class="title">
+        <h1>交付圖卡（OG）— 僅供你後台看</h1>
+        <p class="sub">
+          這頁是「內部交付用」：用來生成 OG 圖卡 PNG。<br/>
+          <b style="color:rgba(255,255,255,.92)">已移除「複製乾淨成品連結」</b>，避免客戶直接取得成品連結。
+        </p>
+      </div>
+      <div class="badge"><b id="ver">v498</b><span style="opacity:.6">｜share.html</span></div>
     </div>
 
-    <div class="panel">
-      <div class="hero">
-        <p class="title" id="heroTitle">正在開啟你的名片…</p>
-        <p class="sub" id="heroSub">1～2 秒後會自動跳轉到「乾淨成品」（不含選樣版）。</p>
-        <div class="status">
-          <span class="badge b-warn" id="badge">Loading</span>
-          <span id="hint">正在讀取資料…</span>
+    <div class="grid">
+      <!-- Left: Controls -->
+      <section class="panel">
+        <div class="hd">
+          <h2>讀取資料與交付操作</h2>
+          <span class="badge" id="stateBadge"><b>ready</b></span>
         </div>
-      </div>
+        <div class="bd">
+          <div class="row">
+            <div class="field">
+              <label>GAS URL（可改）</label>
+              <input id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+            </div>
+          </div>
 
-      <div class="preview">
-        <div class="avatar" id="avatarBox">👤</div>
-        <div class="meta">
-          <p class="name" id="pName">—</p>
-          <div class="line2" id="pLine2">—</div>
-          <div class="line2" id="pLine3">—</div>
+          <div class="row" style="margin-top:10px">
+            <div class="field">
+              <label>名片 ID（例：TW0001）</label>
+              <input id="cardId" placeholder="TW0001" />
+            </div>
+            <div class="field">
+              <label>Token（非必填；若 inactive 可用）</label>
+              <input id="token" placeholder="(optional)" />
+            </div>
+          </div>
+
+          <div class="btns">
+            <button class="btn primary" id="btnLoad">載入資料</button>
+            <button class="btn" id="btnBuild">更新圖卡預覽</button>
+            <button class="btn ok" id="btnPng">下載 PNG（1200×630）</button>
+          </div>
+
+          <div class="btns">
+            <button class="btn warn" id="btnCopyOg">複製 OG 交付頁連結（share.html?id=...）</button>
+            <button class="btn" id="btnCopyWeChat">複製 WeChat 長圖頁連結（wechat.html?id=...）</button>
+          </div>
+
+          <div class="hint">
+            <b>提醒：</b>這裡只給你「交付圖卡」與「交付頁」連結。<br/>
+            成品頁（index.html）連結不在這裡提供、也不顯示。
+          </div>
+
+          <div class="row" style="margin-top:12px">
+            <div class="field">
+              <label>載入結果（只讀）</label>
+              <textarea id="log" readonly placeholder="Log..."></textarea>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="actions">
-        <button class="btn" id="btnOpenClean">
-          <span>立即開啟乾淨成品</span>
-          <small id="cleanUrlHint">index.html?view=1</small>
-        </button>
+      <!-- Right: Preview -->
+      <section class="panel">
+        <div class="hd">
+          <h2>OG 圖卡預覽</h2>
+          <span class="badge"><b id="loadedId">—</b></span>
+        </div>
+        <div class="bd stage">
+          <div class="canvasWrap">
+            <!-- This DOM will be captured to PNG -->
+            <div class="og" id="ogCard">
+              <div class="inner">
+                <div class="brand">
+                  <div class="mini">
+                    <span class="dot"></span>
+                    <span id="brandMini">天使幸福智慧名片</span>
+                  </div>
 
-        <button class="btn" id="btnCopyOg">
-          <span>複製 OG 交付連結</span>
-          <small id="ogUrlHint">share.html</small>
-        </button>
+                  <h3 class="name" id="ogName">（姓名）</h3>
 
-        <button class="btn" id="btnCopyClean">
-          <span>複製乾淨成品連結</span>
-          <small>view=1</small>
-        </button>
+                  <div class="meta">
+                    <div id="ogUnit" class="muted">（單位/品牌）</div>
+                    <div id="ogTitle">（職稱/頭銜）</div>
+                    <div id="ogSlogan" class="muted">（slogan）</div>
 
-        <button class="btn" id="btnWeChat">
-          <span>微信長圖交貨（Poster）</span>
-          <small>wechat.html</small>
-        </button>
+                    <div class="chips" id="ogChips"></div>
+                  </div>
+                </div>
 
-        <button class="btn" id="btnCancel" title="取消自動跳轉">
-          <span>取消自動跳轉</span>
-          <small>Stop</small>
-        </button>
-      </div>
+                <div class="side">
+                  <div class="avatar" id="avatarBox">
+                    <img id="ogAvatar" alt="avatar" style="display:none"/>
+                    <div id="avatarFallback" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.55);font-weight:800;letter-spacing:.6px;">
+                      NO AVATAR
+                    </div>
+                  </div>
 
-      <div class="row">
-        <div class="mini">交付建議：客戶「貼社群」用 OG 交付連結；客戶「自己收藏」用乾淨成品連結。</div>
-        <div class="mini">提醒：若名片狀態 inactive，將顯示「請聯繫客服開通」，且本頁不顯示個資預覽。</div>
-      </div>
+                  <div class="footer">
+                    <div class="big" id="ogPhone">（電話）</div>
+                    <div class="small" id="ogEmail">（Email）</div>
+                    <div class="small" id="ogLine">（LINE / LINE OA）</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="watermark">HSC Delivery OG • Internal</div>
+            </div>
+          </div>
+
+          <div class="hint">
+            <b>PNG 用途：</b>你可以把這張 PNG 當作「交付圖卡」傳給客戶（或放在交付頁上）。<br/>
+            <b>內部模式：</b>此頁不提供「複製成品連結」按鈕，避免客戶直接開啟 index.html。
+          </div>
+        </div>
+      </section>
     </div>
-
-    <div class="footer">v497 share · Powered by Angel · Mobile-first</div>
   </div>
 
+  <div class="toast" id="toast">OK</div>
+
+  <!-- html2canvas (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
   <script>
-    const CONFIG = {
-      VERSION: "v497",
-      GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-      BASE: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-      INDEX: "index.html",
-      WECHAT: "wechat.html",
-      AUTO_REDIRECT_MS: 1400,
-      FETCH_TIMEOUT_MS: 12000
-    };
+    (() => {
+      "use strict";
 
-    const $ = (id) => document.getElementById(id);
-    const qs = (k) => new URLSearchParams(location.search).get(k);
+      const VERSION = "498";
+      const LS = {
+        gas: "HSC_SHARE_GAS",
+        lastId: "HSC_SHARE_LAST_ID",
+        lastToken: "HSC_SHARE_LAST_TOKEN",
+      };
 
-    function normalizeId(raw){
-      const s = String(raw||"").trim().toUpperCase();
-      if (!s) return "";
-      if (/^TW\\d{4}$/.test(s)) return s;
-      if (/^\\d{1,4}$/.test(s)) return "TW" + s.padStart(4,"0");
-      if (/^TW\\d{1,4}$/.test(s)){
-        const n = s.replace(/^TW/i,"");
-        return "TW" + n.padStart(4,"0");
+      const DEFAULT_GAS =
+        "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+      const BASE = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+
+      const $ = (s) => document.querySelector(s);
+      const qs = (k) => new URLSearchParams(location.search).get(k);
+
+      const el = {
+        gasUrl: $("#gasUrl"),
+        cardId: $("#cardId"),
+        token: $("#token"),
+        btnLoad: $("#btnLoad"),
+        btnBuild: $("#btnBuild"),
+        btnPng: $("#btnPng"),
+        btnCopyOg: $("#btnCopyOg"),
+        btnCopyWeChat: $("#btnCopyWeChat"),
+        log: $("#log"),
+        toast: $("#toast"),
+        stateBadge: $("#stateBadge"),
+        loadedId: $("#loadedId"),
+
+        ogName: $("#ogName"),
+        ogUnit: $("#ogUnit"),
+        ogTitle: $("#ogTitle"),
+        ogSlogan: $("#ogSlogan"),
+        ogChips: $("#ogChips"),
+        ogAvatar: $("#ogAvatar"),
+        avatarFallback: $("#avatarFallback"),
+        ogPhone: $("#ogPhone"),
+        ogEmail: $("#ogEmail"),
+        ogLine: $("#ogLine"),
+
+        ogCard: $("#ogCard"),
+      };
+
+      let lastData = null;
+
+      function toast(msg) {
+        el.toast.textContent = msg;
+        el.toast.classList.add("show");
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => el.toast.classList.remove("show"), 1600);
       }
-      return s;
-    }
 
-    function base_(){
-      return CONFIG.BASE.endsWith("/") ? CONFIG.BASE : (CONFIG.BASE + "/");
-    }
+      function log(msg) {
+        const line = `[${new Date().toLocaleString()}] ${msg}`;
+        el.log.value = (el.log.value ? el.log.value + "\n" : "") + line;
+        el.log.scrollTop = el.log.scrollHeight;
+      }
 
-    function buildOgUrl(id){
-      return base_() + "share.html?id=" + encodeURIComponent(id);
-    }
+      function setState(s) {
+        el.stateBadge.innerHTML = `<b>${s}</b>`;
+      }
 
-    function buildCleanUrl(id){
-      return base_() + CONFIG.INDEX + "?id=" + encodeURIComponent(id) + "&view=1";
-    }
+      function normalizeId(raw) {
+        const s = String(raw || "").trim().toUpperCase();
+        if (!s) return "";
+        if (/^TW\d{4}$/.test(s)) return s;
+        if (/^\d{1,4}$/.test(s)) return "TW" + s.padStart(4, "0");
+        if (/^TW\d{1,4}$/.test(s)) return "TW" + s.replace(/^TW/i, "").padStart(4, "0");
+        return s;
+      }
 
-    function buildWeChatUrl(id){
-      return base_() + CONFIG.WECHAT + "?id=" + encodeURIComponent(id);
-    }
+      function buildUrl(action, params = {}) {
+        const gas = (el.gasUrl.value || "").trim();
+        const u = new URL(gas);
+        u.searchParams.set("action", action);
+        Object.entries(params).forEach(([k, v]) => {
+          if (v === undefined || v === null || String(v).trim() === "") return;
+          u.searchParams.set(k, String(v));
+        });
+        u.searchParams.set("ts", Date.now());
+        return u.toString();
+      }
 
-    async function fetchJson(url){
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), CONFIG.FETCH_TIMEOUT_MS);
-      try{
-        const res = await fetch(url, { cache:"no-store", signal: ctrl.signal });
+      async function fetchJson(url) {
+        const res = await fetch(url, { cache: "no-store" });
         const txt = await res.text();
         let j = null;
-        try{ j = JSON.parse(txt); } catch(_){}
+        try { j = JSON.parse(txt); } catch (e) {}
         if (!res.ok) throw new Error("HTTP " + res.status);
-        if (!j || typeof j !== "object") throw new Error("Invalid JSON");
+        if (!j) throw new Error("Invalid JSON");
         return j;
-      } finally {
-        clearTimeout(t);
-      }
-    }
-
-    function pick(obj, keys, fallback=""){
-      for (const k of keys){
-        const v = obj && obj[k];
-        if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
-      }
-      return fallback;
-    }
-
-    function setBadge(type, text){
-      const b = $("badge");
-      b.classList.remove("b-ok","b-warn");
-      b.classList.add(type === "ok" ? "b-ok" : "b-warn");
-      b.textContent = text;
-    }
-
-    async function copyText_(t){
-      const s = String(t||"");
-      try{
-        await navigator.clipboard.writeText(s);
-        return true;
-      }catch(e){
-        const ok = prompt("請手動複製：", s);
-        return ok !== null;
-      }
-    }
-
-    function normalizeDriveImageUrl(raw){
-      const s = String(raw||"").trim();
-      if (!s) return "";
-      let u = s.replace(/^http:\\/\\//i, "https://");
-      if (/^[a-zA-Z0-9_-]{15,}$/.test(u)) {
-        return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(u);
-      }
-      const m =
-        u.match(/\\/file\\/d\\/([a-zA-Z0-9_-]{15,})/i) ||
-        u.match(/[?&]id=([a-zA-Z0-9_-]{15,})/i);
-      if (m && m[1]) {
-        return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(m[1]);
-      }
-      if (/^https?:\\/\\//i.test(u)) return u;
-      return s;
-    }
-
-    function setPreviewMasked_(statusText){
-      $("pName").textContent = "（未開通）";
-      $("pLine2").textContent = "請聯繫客服開通";
-      $("pLine3").textContent = "狀態：" + (statusText || "inactive");
-      const box = $("avatarBox");
-      if (box) box.textContent = "🔒";
-    }
-
-    (async function main(){
-      const id = normalizeId(qs("id") || qs("card") || "TW0001") || "TW0001";
-      $("chipId").textContent = "ID：" + id;
-
-      const ogUrl = buildOgUrl(id);
-      const cleanUrl = buildCleanUrl(id);
-      const wechatUrl = buildWeChatUrl(id);
-
-      $("ogUrlHint").textContent = ogUrl.replace(CONFIG.BASE, "");
-      $("cleanUrlHint").textContent = cleanUrl.replace(CONFIG.BASE, "");
-
-      let cancelled = false;
-      let redirectTimer = null;
-      let isInactive = false;
-
-      function cancelRedirect_(msg){
-        cancelled = true;
-        if (redirectTimer) clearTimeout(redirectTimer);
-        $("hint").textContent = msg || "已取消自動跳轉（你仍可手動開啟乾淨成品）。";
       }
 
-      $("btnCancel").addEventListener("click", () => {
-        cancelRedirect_("已取消自動跳轉（你仍可手動開啟乾淨成品）。");
-        setBadge("ok", "Ready");
-      });
-
-      $("btnOpenClean").addEventListener("click", () => location.href = cleanUrl);
-      $("btnWeChat").addEventListener("click", () => location.href = wechatUrl);
-
-      $("btnCopyOg").addEventListener("click", async () => {
-        const ok = await copyText_(ogUrl);
-        $("hint").textContent = ok ? "已複製 OG 交付連結 ✅" : "已取消";
-        setBadge("ok", ok ? "Copied" : "Copy");
-      });
-
-      $("btnCopyClean").addEventListener("click", async () => {
-        const ok = await copyText_(cleanUrl);
-        $("hint").textContent = ok ? "已複製乾淨成品連結 ✅" : "已取消";
-        setBadge("ok", ok ? "Copied" : "Copy");
-      });
-
-      try{
-        const api = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now();
-        const json = await fetchJson(api);
-
-        if (!json.ok) throw new Error(json.error || "API ok=false");
-
-        // ✅ FIX: support json.item (current GAS)
-        const card = json.item || json.data || {};
-        if (!card || typeof card !== "object") throw new Error("Empty card payload");
-
-        const status = (pick(card, ["status","狀態"], "") || "").toLowerCase();
-        isInactive = (status === "inactive" || status === "locked" || status === "disabled");
-
-        if (isInactive){
-          $("heroTitle").textContent = "此名片尚未開通";
-          $("heroSub").textContent = "你仍可複製交付連結，或聯繫客服開通後再觀看成品。";
-          setBadge("warn", "Locked");
-          setPreviewMasked_(status || "inactive");
-          cancelRedirect_("已停止自動跳轉（名片狀態為 inactive）。");
-        }else{
-          const name = pick(card, ["name","姓名"], "（未填姓名）");
-          const unit = pick(card, ["unit","單位"], "");
-          const title = pick(card, ["title","頭銜"], "");
-
-          $("heroTitle").textContent = "即將開啟乾淨成品";
-          $("pName").textContent = name;
-          $("pLine2").textContent = [unit, title].filter(Boolean).join("｜") || "（尚未填單位/頭銜）";
-          $("pLine3").textContent = "狀態：" + (status || "active");
-
-          const avatarRaw = pick(card, ["avatar_img_fast","個人照_fast","avatar_img","個人照"], "");
-          const avatar = normalizeDriveImageUrl(avatarRaw);
-
-          if (avatar){
-            const img = new Image();
-            img.referrerPolicy = "no-referrer";
-            img.onload = () => {
-              const box = $("avatarBox");
-              box.innerHTML = "";
-              box.appendChild(img);
-            };
-            img.src = avatar;
+      async function getCard(id, token) {
+        // try adminCard/adminGet first if exists, fallback card
+        const tries = ["adminCard", "adminGet", "card"];
+        let lastErr = null;
+        for (const a of tries) {
+          try {
+            const url = buildUrl(a, { id, token });
+            const j = await fetchJson(url);
+            if (j && j.ok) {
+              return { action: a, json: j, card: (j.item || j.data || j.card || {}) };
+            }
+            lastErr = new Error(j && j.error ? j.error : "ok=false");
+          } catch (e) {
+            lastErr = e;
           }
-
-          document.title = name + "｜Happiness Smart Card";
-          $("heroSub").textContent = "1～2 秒後自動跳轉（若在微信/Line 內開啟，請稍等一下）。";
-          $("hint").textContent = "讀取成功 ✅";
-          setBadge("ok","OK");
         }
-
-      }catch(err){
-        $("heroTitle").textContent = "讀取失敗，但仍可開啟";
-        $("heroSub").textContent = "可能是資料不存在或權限/網路問題。你仍可直接開啟乾淨成品。";
-        $("hint").textContent = String(err && err.message ? err.message : err);
-        setBadge("warn","Error");
+        throw lastErr || new Error("All actions failed");
       }
 
-      redirectTimer = setTimeout(() => {
-        if (cancelled) return;
-        if (isInactive) return;
-        location.href = cleanUrl;
-      }, CONFIG.AUTO_REDIRECT_MS);
+      function pick(o, keys, fallback="") {
+        for (const k of keys) {
+          const v = o && o[k];
+          if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+        }
+        return fallback;
+      }
+
+      function renderChips(card) {
+        const chips = [];
+        const plan = pick(card, ["plan"], "");
+        const style = pick(card, ["style"], "");
+        const color = pick(card, ["color","premium_color"], "");
+        if (plan) chips.push("方案：" + plan);
+        if (style) chips.push("版型：" + style);
+        if (color) chips.push("配色：" + color);
+
+        el.ogChips.innerHTML = "";
+        chips.slice(0, 6).forEach(t => {
+          const d = document.createElement("div");
+          d.className = "chip";
+          d.textContent = t;
+          el.ogChips.appendChild(d);
+        });
+      }
+
+      function renderOg(card) {
+        const name = pick(card, ["name"], "（姓名）");
+        const unit = pick(card, ["unit"], "（單位/品牌）");
+        const title = pick(card, ["title"], "（職稱/頭銜）");
+        const slogan = pick(card, ["slogan"], "");
+
+        const phone = pick(card, ["phone"], "");
+        const email = pick(card, ["email"], "");
+        const lineUrl = pick(card, ["line_url"], "");
+        const lineOa = pick(card, ["line_oa"], "");
+
+        const avatarUrl =
+          pick(card, ["avatar_url", "avatar_img", "avatar"], "") ||
+          pick(card, ["logo_url", "logo_img"], "");
+
+        el.ogName.textContent = name;
+        el.ogUnit.textContent = unit;
+        el.ogTitle.textContent = title;
+        el.ogSlogan.textContent = slogan ? slogan : " ";
+
+        el.ogPhone.textContent = phone ? ("☎ " + phone) : " ";
+        el.ogEmail.textContent = email ? ("✉ " + email) : " ";
+        el.ogLine.textContent = (lineOa || lineUrl) ? ("LINE " + (lineOa || lineUrl)) : " ";
+
+        renderChips(card);
+
+        if (avatarUrl) {
+          el.ogAvatar.src = avatarUrl;
+          el.ogAvatar.style.display = "block";
+          el.avatarFallback.style.display = "none";
+        } else {
+          el.ogAvatar.style.display = "none";
+          el.avatarFallback.style.display = "flex";
+        }
+      }
+
+      async function onLoad() {
+        const id = normalizeId(el.cardId.value);
+        if (!id) return toast("請輸入 ID");
+        const token = (el.token.value || "").trim();
+
+        setState("loading");
+        log("Loading: " + id);
+
+        try {
+          const r = await getCard(id, token);
+          lastData = r.card || {};
+          el.loadedId.textContent = id;
+          log("OK via action=" + r.action);
+          renderOg(lastData);
+
+          // persist
+          localStorage.setItem(LS.lastId, id);
+          if (token) localStorage.setItem(LS.lastToken, token);
+
+          setState("loaded");
+          toast("載入成功 ✅");
+        } catch (e) {
+          setState("error");
+          log("ERROR: " + (e && e.message ? e.message : e));
+          toast("載入失敗");
+        }
+      }
+
+      function onBuild() {
+        if (!lastData) {
+          toast("請先載入資料");
+          return;
+        }
+        renderOg(lastData);
+        toast("已更新預覽 ✅");
+      }
+
+      async function onPng() {
+        if (!lastData) {
+          toast("請先載入資料");
+          return;
+        }
+        setState("rendering");
+        toast("生成 PNG 中…");
+
+        // ensure avatar loaded
+        await new Promise((resolve) => {
+          if (!el.ogAvatar || el.ogAvatar.style.display === "none") return resolve();
+          if (el.ogAvatar.complete) return resolve();
+          el.ogAvatar.onload = () => resolve();
+          el.ogAvatar.onerror = () => resolve();
+        });
+
+        const canvas = await html2canvas(el.ogCard, {
+          backgroundColor: null,
+          scale: 2,
+          useCORS: true,
+        });
+
+        const id = normalizeId(el.cardId.value);
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = `HSC_OG_${id || "CARD"}_${Date.now()}.png`;
+        a.click();
+
+        setState("loaded");
+        toast("已下載 ✅");
+      }
+
+      async function copyText(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (e) {
+          const ok = prompt("請手動複製：", text);
+          return ok !== null;
+        }
+      }
+
+      async function onCopyOg() {
+        const id = normalizeId(el.cardId.value);
+        if (!id) return toast("缺少 ID");
+        const url = BASE + "share.html?id=" + encodeURIComponent(id);
+        const ok = await copyText(url);
+        toast(ok ? "已複製 OG 交付頁 ✅" : "已取消");
+      }
+
+      async function onCopyWeChat() {
+        const id = normalizeId(el.cardId.value);
+        if (!id) return toast("缺少 ID");
+        const url = BASE + "wechat.html?id=" + encodeURIComponent(id);
+        const ok = await copyText(url);
+        toast(ok ? "已複製 WeChat 長圖頁 ✅" : "已取消");
+      }
+
+      // boot
+      el.ver && (el.ver.textContent = "v" + VERSION);
+      el.gasUrl.value = localStorage.getItem(LS.gas) || DEFAULT_GAS;
+
+      const qid = normalizeId(qs("id") || "");
+      const qtoken = (qs("token") || "").trim();
+
+      el.cardId.value = qid || localStorage.getItem(LS.lastId) || "TW0001";
+      el.token.value = qtoken || localStorage.getItem(LS.lastToken) || "";
+
+      el.gasUrl.addEventListener("change", () => {
+        const v = (el.gasUrl.value || "").trim();
+        if (v) localStorage.setItem(LS.gas, v);
+        toast("已更新 GAS ✅");
+      });
+
+      el.btnLoad.addEventListener("click", (e) => (e.preventDefault(), onLoad()));
+      el.btnBuild.addEventListener("click", (e) => (e.preventDefault(), onBuild()));
+      el.btnPng.addEventListener("click", (e) => (e.preventDefault(), onPng()));
+      el.btnCopyOg.addEventListener("click", (e) => (e.preventDefault(), onCopyOg()));
+      el.btnCopyWeChat.addEventListener("click", (e) => (e.preventDefault(), onCopyWeChat()));
+
+      // auto load if id in query
+      if (qid) {
+        setTimeout(onLoad, 60);
+      } else {
+        setState("ready");
+        log("Ready. share.html v" + VERSION);
+      }
     })();
   </script>
 </body>
