@@ -1,5 +1,5 @@
 <!-- ================================
-     index.html v521.2 (COMPLETE OVERWRITE)
+     index.html v521.3 (COMPLETE OVERWRITE)
      FRONT + CLEAN DELIVERY MODE + INVITE GATE
      ✅ Front (門面): always force DEMO_ID (TW0001) for preview
      ✅ Clean (成品): ?view=1 → hide選版區(控制面板) + keep share FAB
@@ -9,25 +9,25 @@
         - 產品特色說明：modal
         - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
      ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=521.2&invite=XXXX
+        - Front: click 開通 → ask invite code → open ./form.html?v=521.3&invite=XXXX
         - Clean mode: no form entry
      ✅ Brand facade:
         - Heading: 天使幸福智慧名片
         - Positioning: 智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口
 ================================ -->
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片 v521.2</title>
+  <title>天使幸福智慧名片 v521.3</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=521.2" />
+  <link rel="manifest" href="./manifest.json?v=521.3" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=521.2" />
-  <link rel="icon" href="./icons/icon-192.png?v=521.2" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=521.3" />
+  <link rel="icon" href="./icons/icon-192.png?v=521.3" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -38,13 +38,13 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片" />
   <meta property="og:description" content="智慧名片訂製服務｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png" />
+  <meta property="og:image" content="og-card.png?v=521.3" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <link rel="stylesheet" href="./style.css?v=521.2" />
+  <link rel="stylesheet" href="./style.css?v=521.3" />
 
   <style>
     /* CTA visibility guard (include *2 IDs) */
@@ -257,6 +257,10 @@
 
     /* clean mode: hide panel always */
     body.clean #admin-panel{ display:none !important; }
+
+    /* extra safety: clean mode ensure FAB always above */
+    body.clean #card-container{ position: relative; z-index: 1; }
+    body.clean #cleanShareFab{ z-index: 2147483500; }
   </style>
 
   <!-- ✅ Force DEMO front id BEFORE app.js runs -->
@@ -453,7 +457,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v521.2</div>
+        <div class="version-tag" id="versionTag">v521.3</div>
       </div>
     </section>
   </main>
@@ -505,13 +509,13 @@
   </div>
 
   <!-- Load app.js -->
-  <script src="./app.js?v=521.2"></script>
+  <script src="./app.js?v=521.3"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "521.2";
+      var VERSION = "521.3";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
 
       function qs(id){ return document.getElementById(id); }
@@ -560,6 +564,36 @@
         if(fab) fab.style.display = "flex";
       }
 
+      // ===== Share fallback (if app.js didn't bind) =====
+      function bindShareFallback(){
+        var btn = qs("btnShare");
+        if(!btn) return;
+
+        // If app.js already attached a handler, we won't fight it.
+        // We'll attach in capture phase and only act if default not prevented.
+        btn.addEventListener("click", function(e){
+          try{
+            if(e.defaultPrevented) return;
+
+            // Prefer Web Share API
+            if(navigator.share){
+              e.preventDefault();
+              navigator.share({ title: document.title, url: location.href }).catch(function(){});
+              return;
+            }
+
+            // Fallback: copy url
+            var url = location.href;
+            if(navigator.clipboard && navigator.clipboard.writeText){
+              e.preventDefault();
+              navigator.clipboard.writeText(url).then(function(){
+                // silent
+              }).catch(function(){});
+            }
+          }catch(err){}
+        }, true);
+      }
+
       // Clean share FAB
       (function(){
         var fab = qs("cleanShareFab");
@@ -576,7 +610,8 @@
       // ===== LINE OA CTA =====
       function bindLineOa(){
         function openOA(){
-          try{ window.open(LINE_OA_URL, "_blank"); }catch(e){ location.href = LINE_OA_URL; }
+          try{ window.open(LINE_OA_URL, "_blank", "noopener"); }
+          catch(e){ location.href = LINE_OA_URL; }
         }
         ["btnLineOaCta","btnLineOaCta2"].forEach(function(id){
           var b = qs(id);
@@ -614,6 +649,14 @@
       }
 
       // ===== Invite Gate =====
+      function normalizeInvite(code){
+        // remove common spaces (including full-width)
+        return (code || "")
+          .replace(/\u3000/g, " ")
+          .replace(/\s+/g, "")
+          .trim();
+      }
+
       function bindInviteGate(){
         var mask = qs("inviteMask");
         var close = qs("inviteCloseBtn");
@@ -636,13 +679,13 @@
         }
         function goForm(){
           if(isClean()) return;
-          var code = (input && input.value ? input.value : "").trim();
+          var code = normalizeInvite(input && input.value ? input.value : "");
           if(!code){
             try{ input && input.focus(); }catch(e){}
             return;
           }
           var url = "./form.html?v=" + encodeURIComponent(VERSION) + "&invite=" + encodeURIComponent(code);
-          try{ window.open(url, "_blank"); }catch(e){ location.href = url; }
+          try{ window.open(url, "_blank", "noopener"); }catch(e){ location.href = url; }
         }
 
         ["btnInviteGate","btnInviteGate2"].forEach(function(id){
@@ -714,12 +757,53 @@
         }, {passive:true});
       })();
 
+      // ===== Plan fallback (if app.js doesn't expose setPlan) =====
+      function bindPlanFallback(){
+        if(typeof window.setPlan === "function") return;
+
+        var freeBtn = qs("btnPlanFree");
+        var premBtn = qs("btnPlanPremium");
+        var free = qs("free-controls");
+        var prem = qs("premium-controls");
+        var badge = qs("premiumBadge");
+
+        function setActivePlan(plan){
+          try{
+            if(plan === "premium"){
+              if(free) free.style.display = "none";
+              if(prem) prem.style.display = "";
+              if(badge) badge.style.display = "";
+              if(freeBtn) freeBtn.classList.remove("active");
+              if(premBtn) premBtn.classList.add("active");
+            }else{
+              if(prem) prem.style.display = "none";
+              if(free) free.style.display = "";
+              if(badge) badge.style.display = "none";
+              if(premBtn) premBtn.classList.remove("active");
+              if(freeBtn) freeBtn.classList.add("active");
+            }
+          }catch(e){}
+        }
+
+        if(freeBtn) freeBtn.addEventListener("click", function(e){
+          e.preventDefault();
+          setActivePlan("free");
+        }, {passive:false});
+
+        if(premBtn) premBtn.addEventListener("click", function(e){
+          e.preventDefault();
+          setActivePlan("premium");
+        }, {passive:false});
+      }
+
       // ===== Boot =====
       function boot(){
         applyCleanUI();
         bindLineOa();
         bindFeature();
         bindInviteGate();
+        bindShareFallback();
+        bindPlanFallback();
 
         // keep CTA visible
         setTimeout(function(){
