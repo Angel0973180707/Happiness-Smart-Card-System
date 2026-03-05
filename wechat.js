@@ -5,7 +5,7 @@
  * - Robust image URL normalize (Drive/Dropbox/http->https)
  * - Plan split: free max 2 photos; premium max 5 photos
  * - QR -> clean card url (index.html?id=TWxxxx&view=1)
- * - html2canvas -> PNG (best effort; if images are non-CORS, still may fail on canvas)
+ * - html2canvas -> PNG (best effort; cross-origin images may taint canvas)
  * ================================ */
 
 (() => {
@@ -20,6 +20,15 @@
   };
 
   const $ = (sel) => document.querySelector(sel);
+
+  function toast(msg, ms=1400){
+    const el = $("#toast");
+    if (!el) return;
+    el.textContent = String(msg || "—");
+    el.classList.add("show");
+    clearTimeout(el.__t);
+    el.__t = setTimeout(() => el.classList.remove("show"), ms);
+  }
 
   function getId() {
     const u = new URL(location.href);
@@ -59,7 +68,41 @@
     return fallback;
   }
 
-  // ---- URL normalize for <img> ----
+  /* ---------- fetch helper ---------- */
+  async function fetchJson(url){
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), CONFIG.FETCH_TIMEOUT_MS);
+    try{
+      const res = await fetch(url, { cache:"no-store", signal: ctrl.signal });
+      const txt = await res.text();
+      let j = null;
+      try{ j = JSON.parse(txt); }catch(_){}
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      if (!j || typeof j !== "object") throw new Error("Invalid JSON");
+      return j;
+    }finally{
+      clearTimeout(t);
+    }
+  }
+
+  async function fetchCard(id){
+    const url = CONFIG.GAS + "?action=card&id=" + encodeURIComponent(id) + "&ts=" + Date.now();
+    let lastErr = null;
+    for (let i=0; i<=CONFIG.RETRY; i++){
+      try{
+        const j = await fetchJson(url);
+        if (!j.ok) throw new Error(j.error || "API ok=false");
+        const card = j.item || j.data || {};
+        if (!card || typeof card !== "object") throw new Error("Empty payload");
+        return card;
+      }catch(e){
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("Fetch failed");
+  }
+
+  /* ---------- image URL normalize ---------- */
   function toHttps_(u) {
     if (!u) return "";
     let s = String(u).trim();
@@ -71,13 +114,10 @@
 
   function driveIdFromUrl_(u) {
     const s = String(u || "");
-    // file/d/<id>/
     let m = s.match(/\/file\/d\/([a-zA-Z0-9_-]{10,})/);
     if (m) return m[1];
-    // open?id=<id>
     m = s.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
     if (m) return m[1];
-    // uc?id=<id>
     m = s.match(/\/uc\?[^#]*[?&]id=([a-zA-Z0-9_-]{10,})/);
     if (m) return m[1];
     return "";
@@ -87,305 +127,260 @@
     let s = toHttps_(u);
     if (!s) return "";
 
-    // Dropbox: dl=0 -> raw=1
+    // If it looks like a pure Google Drive file id
+    if (/^[a-zA-Z0-9_-]{15,}$/.test(s)) {
+      return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(s);
+    }
+
+    // Drive links -> uc?export=view&id=
+    const did = driveIdFromUrl_(s);
+    if (did) {
+      return "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(did);
+    }
+
+    // Dropbox share -> dl=1 (best effort)
     if (/dropbox\.com/i.test(s)) {
-      s = s.replace(/[?&]dl=0\b/, "");
-      s += (s.includes("?") ? "&" : "?") + "raw=1";
+      // www.dropbox.com/s/xxx/file.jpg?dl=0 -> dl=1
+      if (s.includes("?")) {
+        s = s.replace(/(\?|&)dl=\d/i, "$1dl=1");
+        if (!/[?&]dl=\d/i.test(s)) s += "&dl=1";
+      } else {
+        s += "?dl=1";
+      }
       return s;
     }
 
-    // Google Drive links -> uc?export=view&id=
-    if (/drive\.google\.com/i.test(s)) {
-      const id = driveIdFromUrl_(s);
-      if (id) return `https://drive.google.com/uc?export=view&id=${id}`;
-      return s;
-    }
-
-    // If already googleusercontent, keep
+    // Otherwise keep as https url
     return s;
   }
 
-  function safeTextOrHide(el, v, fallback = "") {
+  function setImg_(imgEl, url){
+    if (!imgEl) return;
+    const u = normalizeImgUrl_(url);
+    if (!u) return;
+    imgEl.crossOrigin = "anonymous"; // best effort; may still fail if server lacks CORS headers
+    imgEl.referrerPolicy = "no-referrer";
+    imgEl.src = u;
+    imgEl.style.display = "";
+  }
+
+  function setText_(sel, text){
+    const el = $(sel);
     if (!el) return;
-    const val = (v && String(v).trim()) ? String(v).trim() : (fallback || "");
-    if (!val) {
-      el.style.display = "none";
-      el.textContent = "";
+    el.textContent = String(text ?? "");
+  }
+
+  function setHtmlTextPreserve_(sel, text){
+    // poster content: keep as text (no HTML), but preserve line breaks
+    const el = $(sel);
+    if (!el) return;
+    el.textContent = String(text ?? "");
+  }
+
+  /* ---------- QR ---------- */
+  function renderQR_(el, text){
+    if (!el) return;
+    el.innerHTML = "";
+    if (!window.QRCode) {
+      el.textContent = "QR lib missing";
       return;
     }
-    el.style.display = "";
-    el.textContent = val;
+    // eslint-disable-next-line no-new
+    new window.QRCode(el, {
+      text: String(text || ""),
+      width: 168,
+      height: 168,
+      colorDark: "#111111",
+      colorLight: "#ffffff",
+      correctLevel: window.QRCode.CorrectLevel ? window.QRCode.CorrectLevel.M : 0
+    });
   }
 
-  function safeImg(el, url) {
-    if (!el) return;
-    const u = normalizeImgUrl_(url);
-    if (!u) { el.style.display = "none"; return; }
-    el.style.display = "";
-    // best effort for CORS / referrer issues
-    el.crossOrigin = "anonymous";
-    el.referrerPolicy = "no-referrer";
-    el.src = u;
-  }
+  /* ---------- photos ---------- */
+  function collectPhotos_(card){
+    const plan = (pick(card, ["plan","方案"], "") || "").toLowerCase();
+    const isPremium = /premium|pro|paid|精品|高階|進階|付費/.test(plan);
 
-  function splitLines_(s) {
-    const t = String(s || "").trim();
-    if (!t) return "";
-    // keep user newlines, also accept comma-like separators
-    return t.replace(/\r\n/g, "\n");
-  }
+    const keys = [
+      ["photo1_img_fast","照片1_fast","photo1_url","photo1_img","照片1"],
+      ["photo2_img_fast","照片2_fast","photo2_url","photo2_img","照片2"],
+      ["photo3_img_fast","照片3_fast","photo3_url","photo3_img","照片3"],
+      ["photo4_img_fast","照片4_fast","photo4_url","photo4_img","照片4"],
+      ["photo5_img_fast","照片5_fast","photo5_url","photo5_img","照片5"]
+    ];
 
-  function collectPhotos(card) {
-    // prefer fast first
-    const cands = [
-      pick(card, ["photo1_img_fast","photo1_fast","照片1_fast","照片1_img_fast","照片1_fast_url"], ""),
-      pick(card, ["photo2_img_fast","photo2_fast","照片2_fast","照片2_img_fast"], ""),
-      pick(card, ["photo3_img_fast","photo3_fast","照片3_fast","照片3_img_fast"], ""),
-      pick(card, ["photo4_img_fast","photo4_fast","照片4_fast","照片4_img_fast"], ""),
-      pick(card, ["photo5_img_fast","photo5_fast","照片5_fast","照片5_img_fast"], "")
-    ].filter(Boolean);
-
-    const raw = [
-      pick(card, ["photo1_img","photo1","照片1","照片1_img"], ""),
-      pick(card, ["photo2_img","photo2","照片2","照片2_img"], ""),
-      pick(card, ["photo3_img","photo3","照片3","照片3_img"], ""),
-      pick(card, ["photo4_img","photo4","照片4","照片4_img"], ""),
-      pick(card, ["photo5_img","photo5","照片5","照片5_img"], "")
-    ].filter(Boolean);
-
-    const all = [...cands, ...raw].filter(Boolean).map(normalizeImgUrl_);
-
-    // de-dup
-    const seen = new Set();
-    const out = [];
-    for (const u of all) {
-      if (!u) continue;
-      if (seen.has(u)) continue;
-      seen.add(u);
-      out.push(u);
+    const max = isPremium ? 5 : 2;
+    const arr = [];
+    for (const ks of keys){
+      const v = pick(card, ks, "");
+      if (v) arr.push(v);
+      if (arr.length >= max) break;
     }
-    return out;
+    return { photos: arr, isPremium };
   }
 
-  function renderPhotos(container, urls) {
-    if (!container) return;
-    container.innerHTML = "";
+  function renderPhotos_(urls){
+    const box = $("#wPhotos");
+    const empty = $("#wPhotosEmpty");
+    if (!box || !empty) return;
 
-    const list = (urls || []).filter(Boolean);
-    for (const u of list) {
+    box.innerHTML = "";
+    const list = (urls || []).map(normalizeImgUrl_).filter(Boolean);
+
+    if (!list.length){
+      box.style.display = "none";
+      empty.style.display = "";
+      empty.textContent = "—";
+      return;
+    }
+
+    for (const u of list){
       const img = document.createElement("img");
-      img.alt = "photo";
-      img.loading = "lazy";
       img.crossOrigin = "anonymous";
       img.referrerPolicy = "no-referrer";
       img.src = u;
-      container.appendChild(img);
+      box.appendChild(img);
     }
-    container.style.display = list.length ? "" : "none";
+    box.style.display = "";
+    empty.style.display = "none";
   }
 
-  function renderQR(qrBox, text) {
-    if (!qrBox) return;
-    qrBox.innerHTML = "";
-    const t = String(text || "").trim();
+  /* ---------- PNG render ---------- */
+  async function renderPNG_(){
+    const target = $("#capture");
+    const out = $("#resultImg");
+    if (!target || !out) return;
 
-    if (window.QRCode) {
-      // eslint-disable-next-line no-new
-      new window.QRCode(qrBox, {
-        text: t,
-        width: 180,
-        height: 180,
-        correctLevel: window.QRCode.CorrectLevel ? window.QRCode.CorrectLevel.M : undefined
-      });
+    if (!window.html2canvas){
+      toast("html2canvas 未載入");
       return;
     }
 
-    const p = document.createElement("div");
-    p.style.fontSize = "12px";
-    p.style.wordBreak = "break-all";
-    p.textContent = t;
-    qrBox.appendChild(p);
-  }
+    toast("正在產生 PNG…");
 
-  function toast(msg) {
-    const el = $("#toast") || $("#toastBox");
-    if (!el) { console.log(msg); return; }
-    el.textContent = msg;
-    el.classList.add("show");
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => el.classList.remove("show"), 1600);
-  }
-
-  async function copyText(text) {
-    if (!text) { toast("沒有可複製的連結"); return false; }
-    try {
-      await navigator.clipboard.writeText(text);
-      toast("已複製連結");
-      return true;
-    } catch (_) {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.left = "-9999px";
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-        toast("已複製連結");
-        return true;
-      } catch (e) {
-        prompt("請手動複製：", text);
-        return false;
-      } finally {
-        document.body.removeChild(ta);
-      }
-    }
-  }
-
-  // ---- fetch ----
-  async function fetchJson(url) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), CONFIG.FETCH_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, { method: "GET", cache: "no-store", signal: ctrl.signal });
-      const text = await res.text();
-      let json = null;
-      try { json = JSON.parse(text); } catch (_) { json = { ok: false, raw: text }; }
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0, 180)}`);
-      return json;
-    } finally {
-      clearTimeout(t);
-    }
-  }
-
-  async function fetchWithRetry(url) {
-    let lastErr = null;
-    for (let i = 0; i <= CONFIG.RETRY; i++) {
-      try { return await fetchJson(url); }
-      catch (e) { lastErr = e; await new Promise(r => setTimeout(r, 450 * (i + 1))); }
-    }
-    throw lastErr || new Error("fetch failed");
-  }
-
-  // ---- capture mode for clean poster ----
-  function ensureCaptureCssOnce() {
-    if (document.getElementById("captureModeStyle")) return;
-    const style = document.createElement("style");
-    style.id = "captureModeStyle";
-    style.textContent = `
-      body.capture-mode .topbar { display:none !important; }
-      body.capture-mode .actions { display:none !important; }
-      body.capture-mode #resultBox { display:none !important; }
-      body.capture-mode #toast { display:none !important; }
-      body.capture-mode .qrHint > div:first-child { display:none !important; }
-    `;
-    document.head.appendChild(style);
-  }
-
-  async function renderPng(targetEl, outImgEl) {
-    if (!targetEl || !outImgEl) return;
-    if (!window.html2canvas) { toast("缺少 html2canvas"); return; }
-
-    ensureCaptureCssOnce();
-
-    // optional: hide long url line
-    const cleanUrlEl = $("#wCleanUrl");
-    const prevCleanDisplay = cleanUrlEl ? cleanUrlEl.style.display : "";
-    if (cleanUrlEl) cleanUrlEl.style.display = "none";
-
-    document.body.classList.add("capture-mode");
-    await new Promise(r => setTimeout(r, 80));
-
-    try {
-      const canvas = await window.html2canvas(targetEl, {
-        backgroundColor: "#ffffff",
-        scale: 2,
-        useCORS: true
+    try{
+      const canvas = await window.html2canvas(target, {
+        backgroundColor: null,
+        scale: Math.min(2, window.devicePixelRatio || 1.5),
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        scrollX: 0,
+        scrollY: -window.scrollY
       });
-      outImgEl.src = canvas.toDataURL("image/png");
-      outImgEl.style.display = "";
-      const resultBox = $("#resultBox");
-      if (resultBox) resultBox.style.display = "";
-      toast("PNG 已產生");
-    } catch (err) {
-      console.error(err);
-      toast("PNG 產生失敗（可能是圖片來源不允許跨域）");
-    } finally {
-      document.body.classList.remove("capture-mode");
-      if (cleanUrlEl) cleanUrlEl.style.display = prevCleanDisplay;
+      const dataUrl = canvas.toDataURL("image/png");
+      out.src = dataUrl;
+      out.style.display = "";
+      toast("PNG 產生完成 ✅");
+    }catch(e){
+      // Most common: cross-origin images taint canvas
+      out.style.display = "none";
+      toast("PNG 失敗：可能是圖片無 CORS（可改用 Firebase/同域圖）");
+      console.warn("[wechat] renderPNG error:", e);
     }
   }
 
-  function wireButtons(cleanUrl) {
+  /* ---------- clipboard ---------- */
+  async function copyText_(t){
+    const s = String(t||"");
+    try{
+      await navigator.clipboard.writeText(s);
+      return true;
+    }catch(_){
+      const ok = prompt("請手動複製：", s);
+      return ok !== null;
+    }
+  }
+
+  /* ---------- main ---------- */
+  (async function main(){
+    const id = getId();
+    setText_("#wId", id);
+
+    const cleanUrl = buildCleanUrl(id);
+    setText_("#wCleanUrl", cleanUrl);
+
+    // buttons
     const btnCopy = $("#btnCopyLink");
     const btnOpen = $("#btnOpenLink");
     const btnRender = $("#btnRender");
     const btnBack = $("#btnBack");
 
-    const captureTarget = $("#capture");
-    const outImg = $("#resultImg");
-
-    if (btnCopy) btnCopy.onclick = () => copyText(cleanUrl || "");
-    if (btnOpen) btnOpen.onclick = () => { if (cleanUrl) window.open(cleanUrl, "_blank"); };
-    if (btnRender) btnRender.onclick = () => renderPng(captureTarget, outImg);
-    if (btnBack) btnBack.onclick = () => history.back();
-  }
-
-  async function main() {
-    const id = getId();
-    safeTextOrHide($("#wId"), id);
-
-    // ✅ IMPORTANT: unified API
-    const api = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(id)}&ts=${Date.now()}`;
-    const json = await fetchWithRetry(api);
-
-    if (!json || !json.ok) {
-      console.error(json);
-      alert("讀取名片失敗：" + (json && (json.error || json.message) ? (json.error || json.message) : "unknown"));
-      return;
+    if (btnCopy){
+      btnCopy.addEventListener("click", async () => {
+        const ok = await copyText_(cleanUrl);
+        toast(ok ? "已複製連結 ✅" : "已取消");
+      });
+    }
+    if (btnOpen){
+      btnOpen.addEventListener("click", () => location.href = cleanUrl);
+    }
+    if (btnRender){
+      btnRender.addEventListener("click", renderPNG_);
+    }
+    if (btnBack){
+      btnBack.addEventListener("click", () => history.length > 1 ? history.back() : (location.href = base_()));
     }
 
-    // ✅ accept data or item
-    const card = (json.data && typeof json.data === "object") ? json.data
-              : (json.item && typeof json.item === "object") ? json.item
-              : {};
+    // QR
+    renderQR_($("#wQR"), cleanUrl);
 
-    // plan split
-    const plan = (pick(card, ["plan","方案","mode"], "free") || "free").toLowerCase();
-    const isPremium = (plan === "premium" || plan === "pro" || plan === "p");
+    // fetch card
+    try{
+      const card = await fetchCard(id);
 
-    // text fields
-    safeTextOrHide($("#wName"), pick(card, ["name","姓名"], "(未填姓名)"), "(未填姓名)");
-    safeTextOrHide($("#wUnit"), pick(card, ["unit","單位"], "—"), "—");
-    safeTextOrHide($("#wTitle"), pick(card, ["title","頭銜"], "—"), "—");
-    safeTextOrHide($("#wSlogan"), pick(card, ["slogan","理念標語","標語"], "—"), "—");
+      const status = (pick(card, ["status","狀態"], "") || "").toLowerCase();
+      const isInactive = (status === "inactive" || status === "locked" || status === "disabled");
 
-    const servicesRaw = pick(card, ["services","service","服務項目"], "");
-    safeTextOrHide($("#wServices"), splitLines_(servicesRaw) || "—", "—");
+      if (isInactive){
+        // 交付長圖：仍可顯示基本，但遮個資（跟你 share.html 的規則一致）
+        setText_("#wName", "（未開通）");
+        setText_("#wUnit", "請聯繫客服開通");
+        setText_("#wTitle", "狀態：" + (status || "inactive"));
+        setHtmlTextPreserve_("#wSlogan", "請聯繫客服開通後再生成交付長圖。");
+        setHtmlTextPreserve_("#wServices", "—");
+        renderPhotos_([]);
+        toast("此名片未開通（已遮罩）");
+        return;
+      }
 
-    // images
-    const avatar = pick(card, ["avatar_img_fast","avatar_fast","個人照_fast","avatar_img","個人照"], "");
-    const logo   = pick(card, ["logo_img_fast","logo_fast","Logo_fast","logo_img","Logo"], "");
-    safeImg($("#wAvatar"), avatar);
-    safeImg($("#wLogo"), logo);
+      const name = pick(card, ["name","姓名"], "(未填姓名)");
+      const unit = pick(card, ["unit","單位"], "—");
+      const title = pick(card, ["title","頭銜"], "—");
+      const slogan = pick(card, ["slogan","標語","理念標語"], "—");
+      const services = pick(card, ["services","服務","服務項目"], "—");
 
-    // photos
-    let photos = collectPhotos(card);
-    photos = isPremium ? photos.slice(0, 5) : photos.slice(0, 2);
-    renderPhotos($("#wPhotos"), photos);
+      setText_("#wName", name);
+      setText_("#wUnit", unit || "—");
+      setText_("#wTitle", title || "—");
+      setHtmlTextPreserve_("#wSlogan", slogan || "—");
+      setHtmlTextPreserve_("#wServices", services || "—");
 
-    // clean url + QR
-    const cleanUrl = buildCleanUrl(id);
-    renderQR($("#wQR"), cleanUrl);
-    safeTextOrHide($("#wCleanUrl"), cleanUrl, cleanUrl);
+      // images
+      const avatarRaw = pick(card, ["avatar_img_fast","個人照_fast","avatar_img","個人照","avatar_url"], "");
+      const logoRaw = pick(card, ["logo_img_fast","logo_fast","logo_img","logo_url"], "");
 
-    wireButtons(cleanUrl);
-  }
+      const av = $("#wAvatar");
+      const lg = $("#wLogo");
+      if (av && avatarRaw) setImg_(av, avatarRaw);
+      if (lg && logoRaw) setImg_(lg, logoRaw);
 
-  document.addEventListener("DOMContentLoaded", () => {
-    main().catch(err => {
-      console.error(err);
-      alert("系統錯誤：" + (err && err.message ? err.message : "unknown"));
-    });
-  });
+      // photos (plan split)
+      const { photos, isPremium } = collectPhotos_(card);
+      renderPhotos_(photos);
+
+      toast(isPremium ? "已載入（精品）" : "已載入（自由）");
+
+    }catch(e){
+      console.warn("[wechat] load error:", e);
+      setText_("#wName", "讀取失敗");
+      setText_("#wUnit", "—");
+      setText_("#wTitle", "—");
+      setHtmlTextPreserve_("#wSlogan", "可能是網路/權限/資料不存在。");
+      setHtmlTextPreserve_("#wServices", String(e && e.message ? e.message : e));
+      renderPhotos_([]);
+      toast("讀取失敗（仍可複製連結）");
+    }
+  })();
+
 })();
