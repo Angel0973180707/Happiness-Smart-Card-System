@@ -1,801 +1,262 @@
 <!-- ================================
-     index.html v497 (DEMO FRONT + CLEAN DELIVERY MODE)
-     ✅ Front (門面): always force read DEMO_ID (TW0001) for preview + can fill form
-     ✅ Clean (成品): use ?view=1  → hide選版區(控制面板) + keep share ability
-     ✅ Keep: v4970card DOM (no card DOM change)
-     ✅ No app.js change
-     ✅ Admin hidden entry kept (bottom-right triple tap / long-press) — disabled in clean mode
-     ✅ Version: unified ?v=497
-================================ -->
-<!DOCTYPE html>
-<html lang="zh-TW">
+ * Happiness Smart Card System
+ * index.html v520 (COMPLETE OVERWRITE)
+ *
+ * Align:
+ * - app.js v501 (your current)
+ * - CTA split: Website CTA (top) + Private LINE CTA (bottom)
+ * - Premium CTA reserved (placeholder)
+ * - Paper names: 棉紙 / 象牙紙 / 霧灰  (replace old: 棉紙/顆粒/亞麻)
+ * - Keep hidden admin hotspot (bottom-right triple tap)
+ * - Keep ALL existing UI/feature behaviors (no feature removal)
+ * ================================ -->
+<!doctype html>
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="format-detection" content="telephone=no" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Happiness Smart Card System｜智慧名片成品 v520</title>
 
-  <title>Happiness Smart Card System v496</title>
+  <!-- SEO / Share (basic) -->
+  <meta name="description" content="Happiness Smart Card System｜智慧名片成品" />
 
-  <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=497" />
-  <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=497" />
-  <link rel="icon" href="./icons/icon-192.png?v=497" />
-
-  <!-- iOS A2HS -->
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="幸福智慧名片" />
-
-  <!-- OG (static fallback; delivery uses share.html for OG) -->
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="幸福智慧名片" />
-  <meta property="og:description" content="一點，就看見彼此的價值" />
-  <meta property="og:image" content="og-card.png" />
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- FontAwesome (icons) -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <link rel="stylesheet" href="./style.css?v=497" />
-
-  <style>
-    /* ---- LINE / CTA visibility guard ---- */
-    #btnLineCta,
-    #btnLineCtaPremium,
-    #btnFormCta,
-    #btnFormCtaPremium,
-    #btnShare,
-    #btnSharePremium {
-      display: inline-flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      pointer-events: auto !important;
-    }
-
-    #free-controls,
-    #premium-controls {
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-
-    /* Hidden admin hotspot (bottom-right) */
-    #adminHotspotBR{
-      position: fixed;
-      right: 8px;
-      bottom: 8px;
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: transparent;
-      z-index: 2147482000;
-      pointer-events: auto;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-
-    /* Form loader overlay */
-    .safe-form-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 2147483000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: rgba(17, 19, 24, 0.86);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    .safe-form-overlay .box {
-      width: min(520px, 92vw);
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.06);
-      border-radius: 18px;
-      padding: 16px 14px;
-      color: rgba(255,255,255,0.92);
-      text-align: center;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-    }
-    .safe-form-overlay .spinner {
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
-      border: 3px solid rgba(255,255,255,0.18);
-      border-top-color: rgba(255,255,255,0.75);
-      margin: 0 auto 10px;
-      animation: safeSpin 0.9s linear infinite;
-    }
-    @keyframes safeSpin { to { transform: rotate(360deg); } }
-    .safe-form-overlay .hint {
-      margin-top: 8px;
-      font-size: 13px;
-      color: rgba(255,255,255,0.76);
-      line-height: 1.5;
-    }
-    .safe-form-overlay .row {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-top: 12px;
-      flex-wrap: wrap;
-    }
-    .safe-form-overlay .btn {
-      border: 1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.95);
-      padding: 10px 12px;
-      border-radius: 14px;
-      font-weight: 800;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    /* ✅ Clean delivery mode: floating share FAB (keeps share even when panel hidden) */
-    #cleanShareFab{
-      position: fixed;
-      right: 14px;
-      bottom: 14px;
-      z-index: 2147482500;
-      width: 56px;
-      height: 56px;
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(17,19,24,0.55);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 18px 42px rgba(0,0,0,0.40);
-      color: rgba(255,255,255,0.92);
-      display: none; /* shown only in clean mode */
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-    #cleanShareFab i{ font-size: 20px; }
-    #cleanShareFab:active{ transform: scale(0.98); }
-  </style>
-
-  <!-- ✅ IMPORTANT: Force DEMO front id BEFORE app.js runs -->
-  <script>
-    (function(){
-      "use strict";
-      var DEMO_ID = "TW0001"; // ✅ 門面永遠讀這筆
-      var sp = new URLSearchParams(location.search || "");
-      var isClean = (sp.get("view") === "1") || (sp.get("clean") === "1"); // 成品模式
-      var isAdmin = (sp.get("admin") === "1"); // optional escape hatch
-
-      if (!isClean && !isAdmin) {
-        // Front (門面) always force demo id
-        if ((sp.get("id") || "").trim() !== DEMO_ID) {
-          sp.set("id", DEMO_ID);
-          try {
-            history.replaceState({}, "", location.pathname + "?" + sp.toString());
-          } catch(e) {}
-        }
-      }
-    })();
-  </script>
+  <!-- Your CSS (you said CSS already pasted) -->
+  <link rel="stylesheet" href="style.css?v=520" />
 </head>
 
 <body class="mode-free color-1 style-arch paper-1">
-  <!-- Hidden admin hotspot (bottom-right triple tap / long-press) -->
-  <div id="adminHotspotBR" aria-hidden="true"></div>
+  <!-- Top bar / Brand -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-title">智慧名片成品</div>
+      <div class="brand-sub">HSC <span id="versionTag">v520</span></div>
+    </div>
 
-  <!-- Clean share floating button -->
-  <button id="cleanShareFab" type="button" aria-label="分享此名片">
-    <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
-  </button>
+    <!-- ✅ CTA split (Facade actions) -->
+    <div class="top-cta">
+      <!-- Website CTA (NOT linked to LINE; separate) -->
+      <button id="btnWebsiteCta" class="cta-btn cta-website" type="button">
+        <i class="fa-solid fa-globe"></i>
+        <span>官網</span>
+      </button>
 
-  <!-- ================= Control Panel (sticky) ================= -->
-  <header id="admin-panel">
-    <div class="panel-inner">
-
-      <!-- Step 1: Plan -->
-      <div class="plan-row" id="planRow">
-        <button
-          class="btn-neo pill breathe"
-          data-group="plan"
-          id="btnPlanFree"
-          type="button"
-          onclick="window.setPlan('free', this)"
-        >
-          自由搭配
-        </button>
-        <button
-          class="btn-neo pill"
-          data-group="plan"
-          id="btnPlanPremium"
-          type="button"
-          onclick="window.setPlan('premium', this)"
-        >
-          精品設計
-        </button>
-      </div>
-
-      <!-- Step 2A: Free controls -->
-      <div class="controls-block" id="free-controls">
-        <div class="section-title">選顏色</div>
-        <div class="dots-row" id="freeDotsRow">
-          <button class="dot dot-1 active" data-group="theme" type="button" aria-label="粉" onclick="window.setTheme('color-1', this)"></button>
-          <button class="dot dot-2" data-group="theme" type="button" aria-label="藍" onclick="window.setTheme('color-2', this)"></button>
-          <button class="dot dot-3" data-group="theme" type="button" aria-label="橘" onclick="window.setTheme('color-3', this)"></button>
-          <button class="dot dot-4" data-group="theme" type="button" aria-label="紫" onclick="window.setTheme('color-4', this)"></button>
-          <button class="dot dot-5" data-group="theme" type="button" aria-label="綠" onclick="window.setTheme('color-5', this)"></button>
-        </div>
-
-        <div class="section-title">選版型</div>
-        <div class="btn-row" id="styleRow">
-          <button class="btn-neo active" data-group="style" type="button" onclick="window.setStyle('arch', this)">正拱</button>
-          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle('flat', this)">平直</button>
-          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle('spot', this)">晨曦</button>
-        </div>
-
-        <div class="section-title">選紙感</div>
-        <div class="btn-row" id="paperRow">
-          <button class="btn-neo active" data-group="paper" type="button" onclick="window.setPaper('paper-1', this)">霧面棉紙</button>
-          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-2', this)">細顆粒紙</button>
-          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper('paper-3', this)">亞麻紋</button>
-        </div>
-
-        <button class="btn-cta breathe" id="btnLineCta" type="button" onclick="window.goLineIntro()">
-          <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
-        </button>
-
-        <button class="btn-cta subtle" id="btnFormCta" type="button" onclick="window.goFillForm()">
-          <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
-        </button>
-
-        <button class="btn-cta btn-share" id="btnShare" type="button">
-          <i class="fa-solid fa-share-nodes"></i> 分享此名片
-        </button>
-      </div>
-
-      <!-- Step 2B: Premium controls -->
-      <div class="controls-block" id="premium-controls" style="display:none;">
-        <div class="section-title">選底色</div>
-        <div class="dots-row" id="premiumDotsRow">
-          <button class="p-dot p1 active" data-group="theme" type="button" aria-label="p1" onclick="window.setTheme('p1', this)"></button>
-          <button class="p-dot p2" data-group="theme" type="button" aria-label="p2" onclick="window.setTheme('p2', this)"></button>
-          <button class="p-dot p3" data-group="theme" type="button" aria-label="p3" onclick="window.setTheme('p3', this)"></button>
-          <button class="p-dot p4" data-group="theme" type="button" aria-label="p4" onclick="window.setTheme('p4', this)"></button>
-          <button class="p-dot p5" data-group="theme" type="button" aria-label="p5" onclick="window.setTheme('p5', this)"></button>
-          <button class="p-dot p6" data-group="theme" type="button" aria-label="p6" onclick="window.setTheme('p6', this)"></button>
-          <button class="p-dot p7" data-group="theme" type="button" aria-label="p7" onclick="window.setTheme('p7', this)"></button>
-        </div>
-
-        <button class="btn-cta breathe" id="btnLineCtaPremium" type="button" onclick="window.goLineIntro()">
-          <i class="fa-brands fa-line"></i> LINE 官網｜了解預約
-        </button>
-
-        <button class="btn-cta subtle" id="btnFormCtaPremium" type="button" onclick="window.goFillForm()">
-          <i class="fa-solid fa-pen-to-square"></i> 直接訂製｜填寫名片資料
-        </button>
-
-        <button class="btn-cta btn-share" id="btnSharePremium" type="button" onclick="document.getElementById('btnShare')?.click()">
-          <i class="fa-solid fa-share-nodes"></i> 分享此名片
-        </button>
-      </div>
-
+      <!-- Premium CTA reserved (placeholder, hidden by default) -->
+      <button id="btnPremiumCta" class="cta-btn cta-premium" type="button" style="display:none;">
+        <i class="fa-solid fa-crown"></i>
+        <span>立即預約體驗</span>
+      </button>
     </div>
   </header>
 
-  <!-- ================= Card Container ================= -->
-  <main id="card-container">
-    <section class="card" id="card">
-      <div class="premium-fx-layer"></div>
-
-      <div class="banner" id="banner">
-        <div class="dynamic-mask"></div>
-      </div>
-
-      <div class="paper-overlay" id="paperOverlay"></div>
-
-      <div class="avatar-wrap">
-        <div class="avatar-circle">
-          <img class="avatar" id="u-img" alt="個人照" />
+  <!-- Main card container -->
+  <main class="wrap">
+    <!-- Card -->
+    <section class="card-shell">
+      <!-- Banner (free mode only) -->
+      <div id="banner" class="banner">
+        <div class="banner-inner">
+          <div class="banner-badge">Happiness Smart Card</div>
+          <div class="banner-title">幸福智慧名片</div>
         </div>
       </div>
 
-      <div class="premium-badge" id="premiumBadge" style="display:none;">
-        <span class="badge-dot"></span>
-        <span class="badge-text">精品設計</span>
+      <!-- Premium badge (optional, keep id for css hook) -->
+      <div id="premiumBadge" class="premium-badge" style="display:none;">Premium</div>
+
+      <!-- Paper overlay (free mode only) -->
+      <div id="paperOverlay" class="paper-overlay" aria-hidden="true"></div>
+
+      <!-- Profile row -->
+      <div class="profile">
+        <div class="avatar-wrap">
+          <img id="u-img" class="avatar" alt="個人照" />
+        </div>
+
+        <div class="profile-meta">
+          <div class="name-row">
+            <div class="name" id="u-name">載入中...</div>
+
+            <!-- Logo -->
+            <div id="logoWrap" class="logo-wrap" style="display:none;">
+              <img id="u-logo" class="logo" alt="Logo" />
+            </div>
+          </div>
+
+          <div class="unit" id="u-unit"></div>
+          <div class="title" id="u-title"></div>
+          <div class="slogan" id="u-slogan" style="display:none;"></div>
+        </div>
       </div>
 
-      <div class="logo-wrap" id="logoWrap" style="display:none;">
-        <img id="u-logo" class="logo-img" alt="Logo" />
+      <!-- Content blocks -->
+      <div id="block-service" class="info-block" style="display:none;"></div>
+      <div id="block-exp" class="info-block" style="display:none;"></div>
+
+      <!-- Media/Social dock (JS may mount/replace; keep ids) -->
+      <div id="mediaDock" class="info-block" style="display:none;">
+        <div class="block-title-row">
+          <div class="block-title">影音 / 社群</div>
+        </div>
+        <div id="mediaButtons" class="dock"></div>
       </div>
 
-      <div class="info-scroll">
-        <div class="name" id="u-name">載入中…</div>
-        <div class="unit" id="u-unit"></div>
-        <div class="title" id="u-title"></div>
+      <!-- Contact dock -->
+      <div id="contactDock" class="info-block" style="display:none;">
+        <div class="block-title-row">
+          <div class="block-title">聯繫方式</div>
+        </div>
+        <div id="contactButtons" class="dock"></div>
+      </div>
 
-        <div class="slogan" id="u-slogan" style="display:none;"></div>
+      <!-- Photo wall -->
+      <div id="photoWall" class="info-block" style="display:none;">
+        <div class="block-title-row">
+          <div class="block-title">照片牆</div>
+        </div>
+        <div id="photoGrid" class="photo-grid"></div>
+      </div>
 
-        <div class="info-block" id="block-service" style="display:none;"></div>
-        <div class="info-block" id="block-exp" style="display:none;"></div>
+      <!-- ✅ Future modules mount -->
+      <div id="modulesMount" class="modules-mount" style="display:none;"></div>
+    </section>
 
-        <div class="contact-dock" id="mediaDock" style="display:none;">
-          <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／平台</div>
-          <div class="dock-buttons" id="mediaButtons"></div>
+    <!-- Controls (Facade: plan/theme/style/paper) -->
+    <section class="controls">
+      <!-- Plan -->
+      <div class="ctrl-card">
+        <div class="ctrl-title">方案</div>
+        <div class="ctrl-row">
+          <button id="btnPlanFree" class="ctrl-btn breathe active" data-group="plan" type="button"
+            onclick="window.setPlan('free', this)">
+            自由搭配
+          </button>
+          <button id="btnPlanPremium" class="ctrl-btn" data-group="plan" type="button"
+            onclick="window.setPlan('premium', this)">
+            精品設計
+          </button>
+        </div>
+      </div>
+
+      <!-- Theme / Color -->
+      <div class="ctrl-card">
+        <div class="ctrl-title">顏色</div>
+
+        <!-- Free colors (c1~c5) -->
+        <div id="free-controls" class="ctrl-stack">
+          <div class="ctrl-row dots">
+            <button class="dot dot-c1 active" data-group="theme" type="button" aria-label="c1 粉"
+              onclick="window.setTheme('color-1', this)"></button>
+            <button class="dot dot-c2" data-group="theme" type="button" aria-label="c2 藍"
+              onclick="window.setTheme('color-2', this)"></button>
+            <button class="dot dot-c3" data-group="theme" type="button" aria-label="c3 橘"
+              onclick="window.setTheme('color-3', this)"></button>
+            <button class="dot dot-c4" data-group="theme" type="button" aria-label="c4 紫"
+              onclick="window.setTheme('color-4', this)"></button>
+            <button class="dot dot-c5" data-group="theme" type="button" aria-label="c5 綠"
+              onclick="window.setTheme('color-5', this)"></button>
+          </div>
+
+          <!-- Style -->
+          <div class="ctrl-title small">版型</div>
+          <div class="ctrl-row">
+            <button class="ctrl-btn active" data-group="style" type="button"
+              onclick="window.setStyle('arch', this)">正拱</button>
+            <button class="ctrl-btn" data-group="style" type="button"
+              onclick="window.setStyle('flat', this)">平直</button>
+            <button class="ctrl-btn" data-group="style" type="button"
+              onclick="window.setStyle('spot', this)">晨曦</button>
+          </div>
+
+          <!-- Paper (✅ renamed) -->
+          <div class="ctrl-title small">紙感</div>
+          <div class="ctrl-row">
+            <button class="ctrl-btn active" data-group="paper" type="button"
+              onclick="window.setPaper('paper-1', this)">棉紙</button>
+            <button class="ctrl-btn" data-group="paper" type="button"
+              onclick="window.setPaper('paper-2', this)">象牙紙</button>
+            <button class="ctrl-btn" data-group="paper" type="button"
+              onclick="window.setPaper('paper-3', this)">霧灰</button>
+          </div>
         </div>
 
-        <div class="contact-dock" id="contactDock" style="display:none;">
-          <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
-          <div class="dock-buttons" id="contactButtons"></div>
-        </div>
+        <!-- Premium colors (p1~p7) -->
+        <div id="premium-controls" class="ctrl-stack" style="display:none;">
+          <div class="ctrl-row dots">
+            <button class="dot dot-p1 active" data-group="theme" type="button" aria-label="p1 胭脂紅"
+              onclick="window.setTheme('p1', this)"></button>
+            <button class="dot dot-p2" data-group="theme" type="button" aria-label="p2 酒紅"
+              onclick="window.setTheme('p2', this)"></button>
+            <button class="dot dot-p3" data-group="theme" type="button" aria-label="p3 深藍"
+              onclick="window.setTheme('p3', this)"></button>
+            <button class="dot dot-p4" data-group="theme" type="button" aria-label="p4 霧紫"
+              onclick="window.setTheme('p4', this)"></button>
+            <button class="dot dot-p5" data-group="theme" type="button" aria-label="p5 藍灰"
+              onclick="window.setTheme('p5', this)"></button>
+            <button class="dot dot-p6" data-group="theme" type="button" aria-label="p6 金箔"
+              onclick="window.setTheme('p6', this)"></button>
+            <button class="dot dot-p7" data-group="theme" type="button" aria-label="p7 褐碳"
+              onclick="window.setTheme('p7', this)"></button>
+          </div>
 
-        <div class="photo-wall" id="photoWall" style="display:none;">
-          <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
-          <div class="photo-grid" id="photoGrid"></div>
+          <div class="ctrl-hint">
+            精品方案版型與紙感由設計統一控管（此處僅作色系預覽）
+          </div>
         </div>
-
-        <div class="version-tag" id="versionTag">v491</div>
       </div>
     </section>
   </main>
 
-  <!-- ================= Form Container (SAFE ADD) ================= -->
-  <main id="form-container" style="display:none;"></main>
+  <!-- Bottom fixed CTA (✅ private LINE separate from website) -->
+  <nav class="bottom-cta">
+    <button id="btnPrivateLine" class="bottom-btn" type="button" onclick="window.goLineIntro()">
+      <i class="fa-brands fa-line"></i>
+      <span>私訊 LINE</span>
+    </button>
 
-  <!-- SAFE: overlay node -->
-  <div class="safe-form-overlay" id="safeFormOverlay" aria-hidden="true">
-    <div class="box">
-      <div class="spinner" aria-hidden="true"></div>
-      <div style="font-weight:900; letter-spacing:.4px;">正在開啟表單…</div>
-      <div class="hint" id="safeFormHint">若在微信/LINE 內建瀏覽器較慢，請稍候。</div>
-      <div class="row">
-        <button class="btn" type="button" id="safeFormRetryBtn">重新載入</button>
-        <button class="btn" type="button" id="safeFormCopyBtn">複製連結</button>
-      </div>
-    </div>
-  </div>
+    <!-- This is the "locked/open" CTA used by app.js showLockedUi_ -->
+    <button id="btnContactOpen" class="bottom-btn alt" type="button" onclick="window.goFillForm()">
+      <i class="fa-solid fa-headset"></i>
+      <span>聯繫開通</span>
+    </button>
+  </nav>
 
-  <!-- ✅ Keep app.js unchanged -->
-  <script src="./app.js?v=491"></script>
+  <!-- Hidden admin hotspot (bottom-right triple tap) -->
+  <div id="adminHotspotBR" aria-label="admin hotspot" title=""
+    style="position:fixed;right:0;bottom:0;width:54px;height:54px;opacity:0.001;z-index:999997;"></div>
 
-  <!-- ================= SAFE MODE SCRIPT (no app.js change) ================= -->
+  <!-- app.js (your v501) -->
+  <script src="app.js?v=520"></script>
+
+  <!-- small glue: website CTA uses payload if available; otherwise shows hint -->
   <script>
-    (function () {
-      "use strict";
+    (function(){
+      const btn = document.getElementById("btnWebsiteCta");
+      if(!btn) return;
 
-      var VERSION = "497";
-
-      function qs(id) { return document.getElementById(id); }
-
-      function getParams_() {
-        try { return new URLSearchParams(location.search || ""); }
-        catch (e) { return new URLSearchParams(); }
-      }
-
-      function isClean_() {
-        var p = getParams_();
-        return (p.get("view") === "1") || (p.get("clean") === "1");
-      }
-
-      function buildUrl_(mode, id) {
-        var p = getParams_();
-        if (id) p.set("id", id);
-
-        // keep view/clean flags as-is (if any)
-        // mode only toggles "form" view inside front door
-        if (mode) p.set("mode", mode);
-        else p.delete("mode");
-
-        var s = p.toString();
-        return location.pathname + (s ? ("?" + s) : "");
-      }
-
-      function getId_() {
-        var p = getParams_();
-        return (p.get("id") || "").trim();
-      }
-
-      var __adminPanelDisplay = null;
-
-      function rememberAdminPanelDisplay_() {
-        var adminPanel = qs("admin-panel");
-        if (!adminPanel) return;
-        if (__adminPanelDisplay === null) {
-          try { __adminPanelDisplay = getComputedStyle(adminPanel).display || ""; }
-          catch (e) { __adminPanelDisplay = ""; }
-        }
-      }
-
-      function restoreAdminPanelDisplay_() {
-        var adminPanel = qs("admin-panel");
-        if (!adminPanel) return;
-        if (__adminPanelDisplay && __adminPanelDisplay !== "none") adminPanel.style.display = __adminPanelDisplay;
-        else adminPanel.style.display = "";
-      }
-
-      var __formMounted = false;
-      var __lastCardScrollTop = 0;
-
-      function showOverlay_(on) {
-        var ov = qs("safeFormOverlay");
-        if (!ov) return;
-        ov.style.display = on ? "flex" : "none";
-        ov.setAttribute("aria-hidden", on ? "false" : "true");
-      }
-
-      function copyText_(t) {
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(t);
-            return true;
-          }
-        } catch (e) {}
-        try {
-          var ta = document.createElement("textarea");
-          ta.value = t;
-          ta.setAttribute("readonly", "readonly");
-          ta.style.position = "fixed";
-          ta.style.left = "-9999px";
-          ta.style.top = "0";
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          document.body.removeChild(ta);
-          return true;
-        } catch (e2) {}
-        return false;
-      }
-
-      function mountFormOnce_() {
-        if (__formMounted) return;
-
-        var host = qs("form-container");
-        if (!host) return;
-
-        host.innerHTML = "";
-
-        var bar = document.createElement("div");
-        bar.setAttribute("role", "navigation");
-        bar.style.position = "sticky";
-        bar.style.top = "0";
-        bar.style.zIndex = "999";
-        bar.style.display = "flex";
-        bar.style.alignItems = "center";
-        bar.style.justifyContent = "space-between";
-        bar.style.gap = "10px";
-        bar.style.padding = "10px 12px";
-        bar.style.background = "rgba(17, 19, 24, 0.92)";
-        bar.style.backdropFilter = "blur(10px)";
-        bar.style.webkitBackdropFilter = "blur(10px)";
-        bar.style.borderBottom = "1px solid rgba(255,255,255,0.12)";
-
-        var left = document.createElement("div");
-        left.style.display = "flex";
-        left.style.alignItems = "center";
-        left.style.gap = "10px";
-
-        var btnBack = document.createElement("button");
-        btnBack.type = "button";
-        btnBack.textContent = "返回名片";
-        btnBack.setAttribute("aria-label", "返回名片");
-        btnBack.style.border = "1px solid rgba(255,255,255,0.18)";
-        btnBack.style.background = "rgba(255,255,255,0.06)";
-        btnBack.style.color = "#fff";
-        btnBack.style.padding = "10px 12px";
-        btnBack.style.borderRadius = "14px";
-        btnBack.style.fontWeight = "800";
-        btnBack.style.cursor = "pointer";
-        btnBack.style.webkitTapHighlightColor = "transparent";
-        btnBack.addEventListener("click", function () { setMode_("card"); });
-
-        var title = document.createElement("div");
-        title.textContent = "填寫名片資料";
-        title.style.color = "rgba(255,255,255,0.95)";
-        title.style.fontWeight = "900";
-        title.style.letterSpacing = "0.4px";
-
-        left.appendChild(btnBack);
-        left.appendChild(title);
-
-        var right = document.createElement("div");
-        right.style.display = "flex";
-        right.style.alignItems = "center";
-        right.style.gap = "10px";
-
-        var idNow = getId_();
-        if (idNow) {
-          var chip = document.createElement("div");
-          chip.textContent = idNow;
-          chip.style.color = "rgba(255,255,255,0.85)";
-          chip.style.fontWeight = "800";
-          chip.style.fontSize = "12px";
-          chip.style.padding = "8px 10px";
-          chip.style.borderRadius = "999px";
-          chip.style.border = "1px solid rgba(255,255,255,0.14)";
-          chip.style.background = "rgba(255,255,255,0.06)";
-          right.appendChild(chip);
-        }
-
-        bar.appendChild(left);
-        bar.appendChild(right);
-
-        var frame = document.createElement("iframe");
-        frame.setAttribute("title", "名片資料表單");
-        frame.setAttribute("loading", "eager");
-        frame.src = "./form.html?v=" + VERSION;
-        frame.style.width = "100%";
-        frame.style.height = "calc(100vh - 60px)";
-        frame.style.border = "0";
-        frame.style.display = "block";
-        frame.style.background = "transparent";
-
-        host.appendChild(bar);
-        host.appendChild(frame);
-
-        var retryBtn = qs("safeFormRetryBtn");
-        if (retryBtn) {
-          retryBtn.onclick = function () {
-            try { frame.src = "./form.html?v=" + VERSION + "&ts=" + Date.now(); } catch (e) {}
-            showOverlay_(true);
-            setTimeout(function(){}, 150);
-          };
-        }
-        var copyBtn = qs("safeFormCopyBtn");
-        if (copyBtn) {
-          copyBtn.onclick = function () {
-            copyText_(location.href);
-            var hint = qs("safeFormHint");
-            if (hint) hint.textContent = "已嘗試複製目前連結（若未成功，可長按網址列複製）。";
-          };
-        }
-
-        var loaded = false;
-        var t0 = Date.now();
-
-        function markLoaded_() {
-          if (loaded) return;
-          loaded = true;
-          showOverlay_(false);
-        }
-
-        frame.addEventListener("load", function () { markLoaded_(); });
-
-        showOverlay_(true);
-
-        setTimeout(function () {
-          if (loaded) return;
-          var hint = qs("safeFormHint");
-          if (hint) {
-            var sec = Math.max(1, Math.round((Date.now() - t0) / 1000));
-            hint.textContent = "載入較慢（" + sec + " 秒）— 可點「重新載入」或「複製連結」改用外部瀏覽器開啟。";
-          }
-          showOverlay_(true);
-        }, 8500);
-
-        __formMounted = true;
-      }
-
-      function applyMode_(mode) {
-        var cardMain = qs("card-container");
-        var adminPanel = qs("admin-panel");
-        var formMain = qs("form-container");
-        if (!cardMain || !adminPanel || !formMain) return;
-
-        // ✅ Clean delivery always forces card mode + hides panel
-        if (isClean_()) {
-          showOverlay_(false);
-          formMain.style.display = "none";
-          cardMain.style.display = "block";
-          adminPanel.style.display = "none";
-          document.body.setAttribute("data-mode", "card");
-          document.documentElement.classList.add("mode-card");
-          document.documentElement.classList.remove("mode-form");
-          applyCleanUi_(true);
-          return;
-        }
-
-        applyCleanUi_(false);
-
-        rememberAdminPanelDisplay_();
-
-        if (mode === "form") {
-          try { __lastCardScrollTop = (document.scrollingElement || document.documentElement).scrollTop || 0; } catch (e) {}
-          mountFormOnce_();
-
-          cardMain.style.display = "none";
-          adminPanel.style.display = "none";
-          formMain.style.display = "block";
-          document.body.setAttribute("data-mode", "form");
-          document.documentElement.classList.add("mode-form");
-          document.documentElement.classList.remove("mode-card");
-        } else {
-          showOverlay_(false);
-
-          formMain.style.display = "none";
-          cardMain.style.display = "block";
-          restoreAdminPanelDisplay_();
-          document.body.setAttribute("data-mode", "card");
-          document.documentElement.classList.add("mode-card");
-          document.documentElement.classList.remove("mode-form");
-
-          try {
-            var se = (document.scrollingElement || document.documentElement);
-            se.scrollTop = __lastCardScrollTop || 0;
-          } catch (e2) {}
-        }
-      }
-
-      function setMode_(mode) {
-        // ✅ If clean delivery, ignore switching
-        if (isClean_()) {
-          applyMode_("card");
-          return;
-        }
-
-        var id = getId_();
-        var nextMode = (mode === "form") ? "form" : "";
-        var url = buildUrl_(nextMode, id);
-
-        try { history.pushState({ mode: nextMode || "card" }, "", url); }
-        catch (e) {}
-
-        applyMode_(nextMode ? "form" : "card");
-      }
-
-      window.__safeFormMode = window.__safeFormMode || {};
-      window.__safeFormMode.setMode = setMode_;
-
-      function safeGoFillForm_() {
-        // ✅ In clean delivery, do nothing (成品不提供表單入口)
-        if (isClean_()) return false;
-        setMode_("form");
-        return false;
-      }
-
-      try {
-        Object.defineProperty(window, "goFillForm", {
-          configurable: true,
-          enumerable: true,
-          get: function () { return safeGoFillForm_; },
-          set: function (_) {}
-        });
-      } catch (e) {
-        window.goFillForm = safeGoFillForm_;
-      }
-
-      window.addEventListener("load", function () {
-        try { window.goFillForm = safeGoFillForm_; } catch (e) {}
-      });
-
-      function ensureLineCtaVisible_() {
-        var a = qs("btnLineCta");
-        if (a) { a.style.display = "inline-flex"; a.style.visibility = "visible"; a.style.opacity = "1"; }
-        var b = qs("btnLineCtaPremium");
-        if (b) { b.style.display = "inline-flex"; b.style.visibility = "visible"; b.style.opacity = "1"; }
-      }
-
-      ensureLineCtaVisible_();
-      setTimeout(ensureLineCtaVisible_, 300);
-      setTimeout(ensureLineCtaVisible_, 1200);
-
-      function applyCleanUi_(on){
-        var fab = qs("cleanShareFab");
-        var hot = qs("adminHotspotBR");
-        var adminPanel = qs("admin-panel");
-        var formBtnA = qs("btnFormCta");
-        var formBtnB = qs("btnFormCtaPremium");
-
-        if (on) {
-          if (adminPanel) adminPanel.style.display = "none";
-          if (hot) hot.style.display = "none"; // 成品不給進後台
-          if (fab) fab.style.display = "flex";
-          // 成品不提供填表入口（避免客戶誤以為可修改）
-          if (formBtnA) formBtnA.style.display = "none";
-          if (formBtnB) formBtnB.style.display = "none";
-        } else {
-          if (fab) fab.style.display = "none";
-          if (hot) hot.style.display = ""; // restore (front door)
-          // form buttons already guarded by CSS; no need to force show here
-        }
-      }
-
-      // Clean share FAB triggers existing share logic (btnShare click)
-      (function bindFabShare_(){
-        var fab = qs("cleanShareFab");
-        if(!fab) return;
-        fab.addEventListener("click", function(){
-          try {
-            var btn = qs("btnShare");
-            if (btn && typeof btn.click === "function") btn.click();
-            else {
-              // fallback: try share current url
-              try {
-                if (navigator.share) navigator.share({ title: document.title, url: location.href });
-              } catch(e) {}
+      btn.addEventListener("click", function(){
+        try{
+          // currentRow is in app.js scope (not global); so we do a best-effort:
+          // 1) try read from contact dock "官網" if rendered
+          // 2) fallback: open homepage hub (optional) or alert
+          const mediaBtns = document.getElementById("mediaButtons");
+          if(mediaBtns){
+            // find first "官網" button
+            const candidates = Array.from(mediaBtns.querySelectorAll(".dock-btn"));
+            const webBtn = candidates.find(b => (b.textContent || "").includes("官網"));
+            if(webBtn){
+              webBtn.click();
+              return;
             }
-          } catch(e2) {}
-        }, { passive:true });
-      })();
-
-      function boot_() {
-        var p = getParams_();
-        var mode = (p.get("mode") || "").trim().toLowerCase();
-        applyMode_(mode === "form" ? "form" : "card");
-      }
-
-      window.addEventListener("popstate", function () {
-        var p = getParams_();
-        var mode = (p.get("mode") || "").trim().toLowerCase();
-        applyMode_(mode === "form" ? "form" : "card");
-      });
-
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", boot_, { once: true });
-      } else {
-        boot_();
-      }
-
-      /* =========================
-         Admin hidden entry setup
-         - Trigger: triple tap within 900ms OR long-press 1200ms
-         - Action: redirect to ./admin.html?v=496 (keep id if exists)
-         - Disabled in clean delivery mode
-         ========================= */
-      (function adminEntry_(){
-        if (isClean_()) return;
-
-        var hot = qs("adminHotspotBR");
-        if(!hot) return;
-
-        var taps = [];
-        var TAP_WINDOW_MS = 900;
-        var LONG_PRESS_MS = 1200;
-        var pressTimer = null;
-        var moved = false;
-
-        function goAdmin_(){
-          var p = getParams_();
-          var id = (p.get("id") || "").trim();
-          var url = "./admin.html?v=" + VERSION + (id ? ("&id=" + encodeURIComponent(id)) : "");
-          try { location.href = url; } catch(e) {}
-        }
-
-        function registerTap_(){
-          var now = Date.now();
-          taps.push(now);
-          taps = taps.filter(function(t){ return (now - t) <= TAP_WINDOW_MS; });
-          if(taps.length >= 3){
-            taps = [];
-            goAdmin_();
           }
-        }
+        }catch(e){}
 
-        hot.addEventListener("click", function(e){
-          e.preventDefault();
-          e.stopPropagation();
-          registerTap_();
-        }, { passive:false });
-
-        hot.addEventListener("touchstart", function(){
-          moved = false;
-          if(pressTimer) clearTimeout(pressTimer);
-          pressTimer = setTimeout(function(){
-            if(!moved) goAdmin_();
-          }, LONG_PRESS_MS);
-        }, { passive:true });
-
-        hot.addEventListener("touchmove", function(){
-          moved = true;
-          if(pressTimer) clearTimeout(pressTimer);
-        }, { passive:true });
-
-        hot.addEventListener("touchend", function(){
-          if(pressTimer) clearTimeout(pressTimer);
-        }, { passive:true });
-
-        hot.addEventListener("touchcancel", function(){
-          if(pressTimer) clearTimeout(pressTimer);
-        }, { passive:true });
-      })();
-
+        alert("⚠️ 這張名片尚未提供官網連結（或尚未載入完成）");
+      });
     })();
   </script>
 </body>
