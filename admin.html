@@ -3,272 +3,98 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Admin v516</title>
-  <meta name="theme-color" content="#0b1220" />
-
+  <title>HSC Admin v517</title>
+  <meta name="theme-color" content="#0f172a" />
   <style>
-    :root{
-      --bg:#0b1220;
-      --card:rgba(255,255,255,.06);
-      --line:rgba(255,255,255,.12);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.70);
-      --btn:rgba(255,255,255,.10);
-      --btn2:rgba(255,255,255,.14);
-      --accent:#7bdcff;
-      --danger:#ff6b6b;
-      --r:18px;
-      --shadow:0 14px 36px rgba(0,0,0,.35);
-      --fs: clamp(15px, 1.7vw, 18px);
-      --fs2: clamp(18px, 2.6vw, 22px);
-      --fs3: clamp(20px, 3.0vw, 26px);
-    }
+    :root{ --bg:#0b1220; --card:#121a2b; --line:rgba(255,255,255,.10); --text:rgba(255,255,255,.92); --muted:rgba(255,255,255,.68); --accent:#7bdcff; }
     *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      background:
-        radial-gradient(1200px 900px at 18% -10%, rgba(123,220,255,.16), transparent 60%),
-        radial-gradient(1000px 800px at 85% 10%, rgba(255,170,90,.10), transparent 55%),
-        var(--bg);
-      color:var(--text);
-      font-family:"Noto Sans TC", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-      font-size:var(--fs);
-      letter-spacing:.2px;
-      word-break: keep-all;
+    body{ margin:0; font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto; background:radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%), var(--bg); color:var(--text); }
+    .wrap{ max-width:980px; margin:0 auto; padding:18px; }
+    .top{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .h1{ font-size:20px; font-weight:800; letter-spacing:.5px; }
+    .sub{ font-size:12px; color:var(--muted); margin-top:6px; }
+    .card{ background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:14px; padding:14px; }
+    .grid{ display:grid; grid-template-columns:1fr; gap:12px; }
+    @media(min-width:860px){ .grid{ grid-template-columns:1.2fr .8fr; } }
+    label{ font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
+    input, textarea, select{
+      width:100%; padding:10px 12px; border-radius:12px;
+      background:rgba(0,0,0,.25); border:1px solid var(--line);
+      color:var(--text); outline:none;
     }
-    .topbar{
-      position:sticky; top:0; z-index:10;
-      display:flex; align-items:center; justify-content:space-between;
-      padding:14px 14px;
-      background: rgba(11,18,32,.76);
-      backdrop-filter: blur(10px);
-      border-bottom:1px solid rgba(255,255,255,.08);
-    }
-    .brand-title{ font-weight:900; font-size:var(--fs2); letter-spacing:.8px; }
-    .brand-sub{ margin-top:2px; color:var(--muted); font-size:12px; }
-    .dot{ opacity:.65; padding:0 6px; }
-    .wrap{ width:min(920px, 100%); margin:0 auto; padding:14px 14px 110px; }
-
-    .card{
-      margin-top:12px;
-      padding:16px;
-      border-radius:var(--r);
-      background:var(--card);
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow:var(--shadow);
-    }
-    .h2{
-      margin:0 0 10px;
-      font-size:var(--fs3);
-      font-weight:900;
-      letter-spacing:.6px;
-    }
-    .grid2{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-    }
-    .col2{ grid-column: 1 / -1; }
-    @media (max-width:720px){
-      .grid2{ grid-template-columns: 1fr; }
-      .col2{ grid-column:auto; }
-    }
-    .field{ display:block; }
-    .field-label{ font-weight:900; margin-bottom:6px; }
-    input, textarea{
-      width:100%;
-      padding:12px 12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(0,0,0,.22);
-      color: rgba(255,255,255,.92);
-      outline:none;
-      font-size:var(--fs);
-    }
-    textarea{ min-height: 92px; resize: vertical; }
-    .hint{ margin-top:6px; color:var(--muted); font-size:12px; line-height:1.6; }
-    .pill{
-      display:inline-block;
-      padding:7px 12px;
-      border-radius:999px;
-      background:rgba(255,255,255,.10);
-      color:var(--muted);
-      font-size:12px;
-    }
-    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    textarea{ min-height:88px; resize:vertical; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; }
     .btn{
-      all:unset;
-      cursor:pointer;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      padding:10px 14px;
-      border-radius:999px;
-      background:var(--btn);
-      border:1px solid rgba(255,255,255,.14);
-      color: rgba(255,255,255,.90);
-      font-weight:900;
-      user-select:none;
+      appearance:none; border:1px solid var(--line);
+      background:rgba(255,255,255,.08);
+      color:var(--text); padding:10px 12px; border-radius:12px;
+      cursor:pointer; font-weight:700;
     }
-    .btn:hover{ background:var(--btn2); }
-    .btn:disabled{ opacity:.55; cursor:not-allowed; }
-    .btn.primary{
-      background: rgba(123,220,255,.20);
-      border-color: rgba(123,220,255,.30);
-    }
-    .btn.danger{
-      background: rgba(255,110,110,.14);
-      border-color: rgba(255,110,110,.22);
-    }
-    .sep{ height:1px; background: rgba(255,255,255,.10); margin: 14px 0; }
-    .preview{
-      display:flex; gap:14px; align-items:center; flex-wrap:wrap;
-      padding:12px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.05);
-    }
-    .avatar{
-      width:72px; height:72px; border-radius:18px;
-      border:1px solid rgba(255,255,255,.18);
-      background: rgba(0,0,0,.22);
-      overflow:hidden;
-      box-shadow: 0 10px 20px rgba(0,0,0,.35);
-      flex: 0 0 auto;
-    }
-    .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
-    .pv-title{ font-weight:900; font-size: 18px; }
-    .pv-sub{ color:var(--muted); font-weight:800; margin-top:2px; font-size: 13px; }
-    .pv-mini{ color:rgba(255,255,255,.78); font-weight:800; margin-top:6px; font-size: 13px; }
-    .kvs{ margin-top:10px; color:var(--muted); font-size:12px; line-height:1.6; }
-    .kvs code{ color: rgba(255,255,255,.88); }
+    .btn.primary{ border-color:rgba(123,220,255,.35); background:rgba(123,220,255,.12); }
+    .btn:active{ transform:translateY(1px); }
+    .pill{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted); font-size:12px; }
+    .list{ margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+    .item{ padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:rgba(0,0,0,.18); }
+    .item strong{ display:block; font-size:14px; }
+    .item small{ display:block; color:var(--muted); margin-top:4px; }
+    .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+    .ok{ color:#8cffc1; }
+    .err{ color:#ff9aa2; }
   </style>
 </head>
-
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-title">HSC 後臺工作區</div>
-      <div class="brand-sub">
-        <span class="muted">v</span><span id="versionText">516.0</span>
-        <span class="dot">•</span>
-        <span class="muted">Admin Workspace</span>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="h1">HSC Admin Workspace <span class="pill">v517</span></div>
+        <div class="sub">功能：貼客戶訊息 → 自動查找 → 一鍵複製「7 天更新連結」</div>
+      </div>
+      <div class="pill mono" id="statusPill">ready</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <label>GAS Exec URL</label>
+        <input id="gasUrl" class="mono" placeholder="貼上你的 GAS /exec" />
+
+        <div style="height:10px"></div>
+
+        <label>ADMIN_SECRET</label>
+        <input id="adminSecret" class="mono" placeholder="輸入 ADMIN_SECRET" />
+
+        <div style="height:12px"></div>
+
+        <label>客戶訊息（貼一行即可）</label>
+        <textarea id="customerMsg" placeholder="例：王小明 123  或  王小明 館長  或  王小明 幸福智慧名片館"></textarea>
+
+        <div style="height:10px"></div>
+
+        <div class="row">
+          <button class="btn" id="btnFind">查找名片</button>
+          <button class="btn primary" id="btnMakeUpdate" disabled>產生 7 天更新連結（並複製）</button>
+          <button class="btn" id="btnCopy" disabled>只複製連結</button>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <label>更新連結（7 天有效）</label>
+        <input id="updateLink" class="mono" readonly placeholder="查找到名片後，這裡會出現更新連結" />
+
+        <div style="height:12px"></div>
+        <div class="sub">
+          ※ 你給客戶的更新引導文案，就用你剛剛那段：<br/>
+          「A) 姓名 + 手機末三碼 / B) 姓名 + 單位或頭銜 / 不方便就回覆客服」<br/>
+          ※ 更新連結請勿轉傳（7 天有效）。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="pill">查找結果</div>
+        <div class="list" id="resultList"></div>
       </div>
     </div>
-    <button type="button" class="btn" id="btnDebug">Debug</button>
-  </header>
+  </div>
 
-  <main class="wrap">
-
-    <section class="card">
-      <div class="h2">載入名片</div>
-
-      <div class="grid2">
-        <label class="field">
-          <div class="field-label">卡片 ID</div>
-          <input id="cardId" placeholder="例：TW0007" />
-          <div class="hint">可用網址帶入：admin.html?id=TW0007</div>
-        </label>
-
-        <label class="field">
-          <div class="field-label">token（可選）</div>
-          <input id="token" placeholder="inactive 時需要 token；但有 admin_secret 就不用" />
-          <div class="hint">我會自動記憶 token（同一台手機不用重打）。</div>
-        </label>
-
-        <label class="field col2">
-          <div class="field-label">admin_secret（管理者密碼）</div>
-          <input id="admin_secret" placeholder="輸入後可直接載入（不需要 token）" />
-          <div class="hint">會自動保存到本機（localStorage）。</div>
-        </label>
-      </div>
-
-      <div class="sep"></div>
-
-      <div class="row">
-        <button type="button" class="btn primary" id="btnLoad">載入</button>
-        <button type="button" class="btn" id="btnRememberToken">記住 token</button>
-        <span class="pill" id="pillMsg">待命</span>
-      </div>
-
-      <div class="kvs">
-        小提醒：<br/>
-        1) 有 <code>admin_secret</code>：可直接載入並自動回填 token（不怕卡住）。<br/>
-        2) 沒有 <code>admin_secret</code>：inactive 時需要 token 才能讀卡。
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="h2">預覽（精簡）</div>
-
-      <div class="preview">
-        <div class="avatar"><img id="pvAvatar" alt="avatar" /></div>
-        <div>
-          <div class="pv-title" id="pvName">-</div>
-          <div class="pv-sub" id="pvUnit">-</div>
-          <div class="pv-mini" id="pvTitle">-</div>
-          <div class="pv-mini" id="pvStatus">status：-</div>
-        </div>
-      </div>
-
-      <div class="sep"></div>
-
-      <div class="row">
-        <button type="button" class="btn" id="btnConfirm">客戶確認（confirm）</button>
-        <button type="button" class="btn danger" id="btnActivate">啟用（active）</button>
-      </div>
-
-      <div class="hint" style="margin-top:10px;">
-        confirm：只寫 confirmed_at（不啟用）｜啟用：把 status 設為 active（客戶之後不需要 token）
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="h2">一鍵交付</div>
-
-      <div class="row">
-        <button type="button" class="btn" id="btnCopyCard">複製名片連結</button>
-        <button type="button" class="btn" id="btnCopyShare">複製分享頁</button>
-        <button type="button" class="btn primary" id="btnCopyDelivery">複製交付卡（連結卡）</button>
-        <button type="button" class="btn" id="btnCopyWechat">複製微信長圖頁</button>
-      </div>
-
-      <div class="hint" style="margin-top:10px;">
-        交付卡：delivery.html?id=...｜微信長圖：wechat.html?id=...
-      </div>
-    </section>
-
-    <!-- ✅ NEW: Update link generator -->
-    <section class="card">
-      <div class="h2">一鍵產生「更新連結」（7天有效）</div>
-
-      <label class="field">
-        <div class="field-label">貼上客戶給你的訊息</div>
-        <textarea id="customerMsg" placeholder="例：王小明 123&#10;或：王小明 XX公司&#10;或直接包含：TW0007"></textarea>
-        <div class="hint">
-          系統會嘗試解析：<br/>
-          - 直接抓出卡片 ID（TWxxxx / 你現行格式）<br/>
-          - 或用「姓名 + 手機末三碼」 / 「姓名 + 單位(或頭銜)」在 card_db 找到對應卡片
-        </div>
-      </label>
-
-      <div class="sep"></div>
-
-      <div class="row">
-        <button type="button" class="btn primary" id="btnMakeUpdateLink">解析並產生更新連結</button>
-        <button type="button" class="btn" id="btnCopyUpdateLink" disabled>複製更新連結</button>
-        <span class="pill" id="pillUpdate">尚未產生</span>
-      </div>
-
-      <div class="hint" style="margin-top:10px;">
-        ✅ 連結 7 天後自動失效（sig 內含到期時間）<br/>
-        ✅ 更新是覆蓋同一張名片（id 不變）
-      </div>
-    </section>
-
-  </main>
-
-  <script src="./admin.js?v=5160"></script>
+  <script defer src="./admin.js?v=5170"></script>
 </body>
 </html>
