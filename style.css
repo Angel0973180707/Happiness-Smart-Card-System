@@ -1,32 +1,33 @@
 /* ==========================================
- * Happiness Smart Card System — style.css v521.2 (COMPLETE OVERWRITE)
- *
+ * Happiness Smart Card System — style.css v521.4 (COMPLETE OVERWRITE)
  * Goal:
  * ✅ Fix v520 “走山” by reverting to the stable v497 layout model
  * ✅ Fix scroll issues (iOS/Android) + no overlays stealing touch
  * ✅ Fix extra Premium selector row showing in Free mode
  * ✅ Visual lift (safe): Free a bit more depth, Premium brighter glass, p6 gold stronger
+ * ✅ Premium improvements:
+ *   - Remove “精品設計” badge
+ *   - Dock lighting softer (contact/video area)
+ *   - Premium colors saturated but NOT dark
  *
  * IMPORTANT:
  * - Keep existing class hooks (DO NOT change DOM):
  *   body.mode-free | body.mode-premium
  *   body.color-1..5 body.style-arch|flat|spot body.paper-1..3
  *   body.p1..p7
- * - Avoid global pollution:
- *   - NO global destructive reset
- *   - NO generic button/img rules that break the world
+ * - Avoid global destructive reset
+ * - NO generic button/img rules that break the world
  * ========================================== */
 
 /* ---------- Tokens ---------- */
+
 :root{
   --bg:#f6f7fb;
   --ink:#1f2430;
   --muted:rgba(31,36,48,.66);
-
   --radius:26px;
   --shadow:0 20px 60px rgba(0,0,0,.12);
   --shadow-soft:0 14px 34px rgba(0,0,0,.12);
-
   --card-white:rgba(255,255,255,.92);
   --line:rgba(0,0,0,.06);
 
@@ -64,13 +65,12 @@
 }
 
 /* ---------- Safe essentials (avoid “走山”) ---------- */
-*{ box-sizing:border-box; }
 
+*{ box-sizing:border-box; }
 html, body{
   height: 100%;
   -webkit-text-size-adjust: 100%;
 }
-
 body{
   margin:0;
   font-family:"Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -91,6 +91,7 @@ body{
 .hidden{ display:none !important; }
 
 /* ---------- Free colors (c1~c5) ---------- */
+
 body.color-1{ --p:#ff5f7b; --s:#ff2f45; --bgTint: rgba(255,95,123,0.16); --accentText: rgba(126,20,44,0.92); }
 body.color-2{ --p:#1d88ff; --s:#2e3cff; --bgTint: rgba(29,136,255,0.14); --accentText: rgba(10,55,128,0.92); }
 body.color-3{ --p:#ff9f1a; --s:#ff6f00; --bgTint: rgba(255,159,26,0.14); --accentText: rgba(120,62,0,0.92); }
@@ -98,17 +99,18 @@ body.color-4{ --p:#7a57ff; --s:#4f22d8; --bgTint: rgba(122,87,255,0.14); --accen
 body.color-5{ --p:#2bd46f; --s:#0ea97b; --bgTint: rgba(43,212,111,0.14); --accentText: rgba(0,92,64,0.92); }
 
 /* ---------- Premium tones (p1~p7) (vars only) ---------- */
+
 body.p1{ --p:#d96c6c; --s:#b23b3b; }
 body.p2{ --p:#722f37; --s:#4e1f25; }
 body.p3{ --p:#1c2e42; --s:#101d2b; }
 body.p4{ --p:#5e548e; --s:#40376b; }
 body.p5{ --p:#a9b7c7; --s:#5f7489; --prem-soft: rgba(255,255,255,0.16); }
-
 /* p6 金箔（更亮更金） */
 body.p6{ --p:#f2c14b; --s:#bf953f; }
 body.p7{ --p:#5a4a3f; --s:#2f2926; }
 
 /* ---------- Sticky control panel ---------- */
+
 #admin-panel{
   position: sticky;
   top: 0;
@@ -118,7 +120,8 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   backdrop-filter: blur(var(--panel-blur));
   -webkit-backdrop-filter: blur(var(--panel-blur));
   border-bottom: 1px solid rgba(0,0,0,0.06);
-  transform: translateZ(0); /* ✅ iOS sticky render stability */
+  transform: translateZ(0);
+  overflow-x: hidden;
 }
 
 .panel-inner{
@@ -134,9 +137,11 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   max-width: 520px;
   margin: 0 auto;
   padding: 14px 12px 70px;
+  margin-top: 12px;
 }
 
 /* ---------- Card ---------- */
+
 .card{
   position:relative;
   border-radius: var(--radius);
@@ -144,7 +149,7 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   box-shadow: var(--shadow);
   border: 1px solid var(--line);
   background: var(--card-white);
-  transform: translateZ(0); /* ✅ smoother scroll on mobile */
+  transform: translateZ(0);
 }
 
 /* Free vivid (safe) */
@@ -153,11 +158,12 @@ body.mode-free .card{
 }
 
 /* ---------- Premium base (brighter glass, not night club) ---------- */
+/* v521.4: saturated but not dark */
 body.mode-premium{
   background:
-    radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.12), transparent 56%),
-    radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.08), transparent 60%),
-    #0f1218;
+    radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.16), transparent 56%),
+    radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.12), transparent 60%),
+    #141821;
   color: var(--prem-ink);
 }
 
@@ -170,10 +176,11 @@ body.mode-premium .card{
   border: 1px solid rgba(255,255,255,0.14);
   box-shadow: 0 28px 86px rgba(0,0,0,0.58);
   background:
-    linear-gradient(180deg, rgba(10,12,18,0.14), rgba(10,12,18,0.30)),
+    linear-gradient(180deg, rgba(18,22,30,0.12), rgba(18,22,30,0.26)),
     linear-gradient(135deg, var(--p), var(--s));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  filter: saturate(1.05) contrast(1.03);
 }
 
 /* Premium FX layer (if exists) */
@@ -233,7 +240,7 @@ body.mode-premium .card::before{
   background:
     linear-gradient(135deg, rgba(255,255,255,0.26), rgba(255,255,255,0.00) 50%),
     radial-gradient(760px 360px at 30% 0%, rgba(255,255,255,0.26), transparent 62%);
-  opacity: .98;
+  opacity: .78; /* v521.4 softened */
   mix-blend-mode: soft-light;
 }
 
@@ -245,11 +252,12 @@ body.mode-premium .card::after{
   z-index: 2;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.00) 40%);
-  opacity: .70;
+  opacity: .55; /* v521.4 softened */
   mix-blend-mode: overlay;
 }
 
 /* ---------- Card content ---------- */
+
 .info-scroll{
   position: relative;
   z-index: 3;
@@ -276,6 +284,7 @@ body.mode-premium .unit,
 body.mode-premium .title{ color: var(--prem-muted); }
 
 /* ---------- Banner ---------- */
+
 .banner{ position: relative; height: 130px; overflow:hidden; }
 body.mode-free .banner{ display:block; }
 body.mode-premium .banner{ display:none !important; }
@@ -283,7 +292,7 @@ body.mode-premium .banner{ display:none !important; }
 .dynamic-mask{
   position:absolute;
   inset:0;
-  pointer-events:none; /* ✅ never steal scroll/touch */
+  pointer-events:none;
   background:
     radial-gradient(520px 220px at 50% 35%, rgba(255,255,255,0.25), transparent 70%),
     radial-gradient(680px 260px at 80% 20%, rgba(0,0,0,0.08), transparent 70%);
@@ -301,7 +310,6 @@ body.mode-free.style-arch .banner{
     linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0.00)),
     linear-gradient(135deg, var(--p), var(--s));
 }
-
 body.mode-free.style-arch .banner::after{
   content:"";
   position:absolute;
@@ -321,7 +329,6 @@ body.mode-free.style-flat .banner{
     radial-gradient(520px 220px at 12% 8%, rgba(255,255,255,0.16), transparent 72%),
     linear-gradient(135deg, var(--p), var(--s));
 }
-
 body.mode-free.style-flat .banner::after{
   content:"";
   position:absolute;
@@ -341,7 +348,6 @@ body.mode-free.style-spot .banner{
     linear-gradient(135deg, rgba(255,255,255,0.10), rgba(0,0,0,0.05)),
     linear-gradient(135deg, var(--p), var(--s));
 }
-
 body.mode-free.style-spot .banner::after{
   content:"";
   position:absolute;
@@ -355,21 +361,9 @@ body.mode-free.style-spot .banner::after{
 }
 
 /* ---------- Paper overlay (Free only) ---------- */
-.paper-overlay{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity:1;
-  z-index: 2;
-}
-body.mode-premium .paper-overlay{ display:none !important; }
 
-/* Ensure #paperOverlay supports pseudo elements in patch block */
-#paperOverlay{
-  position:absolute;
-  inset:0;
-  border-radius: inherit;
-}
+.paper-overlay{ position:absolute; inset:0; pointer-events:none; opacity:1; z-index: 2; }
+body.mode-premium .paper-overlay{ display:none !important; }
 
 /* paper-1/2/3 */
 body.mode-free.paper-1 .paper-overlay{
@@ -405,6 +399,7 @@ body.mode-free.paper-3 .paper-overlay{
 }
 
 /* ---------- Avatar ---------- */
+
 .avatar-wrap{
   position: relative;
   display:flex;
@@ -460,13 +455,8 @@ body.mode-premium .avatar-circle{
 }
 
 /* ---------- Logo ---------- */
-.logo-wrap{
-  display:flex;
-  justify-content:center;
-  padding: 6px 0 0;
-  position: relative;
-  z-index: 6;
-}
+
+.logo-wrap{ display:flex; justify-content:center; padding: 6px 0 0; position: relative; z-index: 6; }
 
 .logo-img{
   width: 56px;
@@ -496,6 +486,7 @@ body.mode-premium .logo-img{
 }
 
 /* ---------- Slogan ---------- */
+
 #u-slogan{
   width: 100%;
   max-width: 420px;
@@ -514,6 +505,7 @@ body.mode-premium .logo-img{
 body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
 
 /* ---------- Controls layout ---------- */
+
 .section-title{
   width:100%;
   max-width: 520px;
@@ -554,9 +546,8 @@ body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
   max-width: 100%;
 }
 
-#admin-panel{ overflow-x: hidden; }
-
 /* ---------- Selector Buttons ---------- */
+
 .btn-neo{
   border-radius: 14px;
   font-weight: 900;
@@ -640,6 +631,7 @@ body.mode-premium .btn-neo.active{
 }
 
 /* ---------- CTA buttons ---------- */
+
 .btn-cta{
   width: 100%;
   max-width: 520px;
@@ -681,12 +673,13 @@ body.mode-premium .btn-neo.active{
 body.mode-premium .btn-share{
   color: rgba(255,255,255,0.95);
   background:
-    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.18), transparent 62%),
-    linear-gradient(135deg, rgba(255,233,168,0.30), rgba(191,149,63,0.55));
-  border: 1px solid rgba(255,255,255,0.14);
+    radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.16), transparent 62%),
+    linear-gradient(135deg, rgba(255,233,168,0.26), rgba(191,149,63,0.46));
+  border: 1px solid rgba(255,255,255,0.12);
 }
 
 /* ---------- Dots: 3D spheres ---------- */
+
 .dot, .p-dot{
   width: var(--dotPrem);
   height: var(--dotPrem);
@@ -754,6 +747,7 @@ body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
 .p-dot.p7{ background:#5a4a3f; }
 
 /* ---------- Info blocks ---------- */
+
 .info-block{
   margin-top: 12px;
   border-radius: 18px;
@@ -827,6 +821,7 @@ body.mode-premium .block-title{
 body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
 
 /* ---------- Contact dock ---------- */
+
 .contact-dock{
   margin-top: 12px;
   border-radius: 18px;
@@ -912,9 +907,10 @@ body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
   opacity:.44;
 }
 
+/* Premium contact dock: v521.4 softened lighting */
 body.mode-premium .contact-dock{
-  background: rgba(10,12,18,0.18);
-  border-color: rgba(255,255,255,0.14);
+  background: rgba(18,22,30,0.16);
+  border-color: rgba(255,255,255,0.10);
 }
 
 body.mode-premium .dock-title{
@@ -923,34 +919,40 @@ body.mode-premium .dock-title{
 }
 
 body.mode-premium .dock-btn{
-  border-color: rgba(255,255,255,0.14);
+  border-color: rgba(255,255,255,0.12);
   background:
-    radial-gradient(140% 180% at 20% 0%, rgba(255,255,255,0.16), rgba(255,255,255,0.08) 56%, rgba(255,255,255,0.06)),
-    rgba(255,255,255,0.08);
+    radial-gradient(140% 180% at 20% 0%,
+      rgba(255,255,255,0.14),
+      rgba(255,255,255,0.06) 56%,
+      rgba(255,255,255,0.05)
+    ),
+    rgba(255,255,255,0.05);
   color: rgba(255,255,255,0.92);
   box-shadow:
-    0 22px 52px rgba(0,0,0,0.65),
-    inset 0 2px 0 rgba(255,255,255,0.12),
-    inset 0 -18px 22px rgba(0,0,0,0.28);
+    0 14px 30px rgba(0,0,0,0.40),
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 -10px 14px rgba(0,0,0,0.18);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 }
 
+/* keep border glow but softer */
 body.mode-premium .dock-btn::before{
   content:"";
   position:absolute; inset:-1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255,233,168,0.42), rgba(191,149,63,0.62), rgba(255,255,255,0.10));
+  background: linear-gradient(135deg, rgba(255,233,168,0.38), rgba(191,149,63,0.54), rgba(255,255,255,0.08));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude;
   pointer-events:none;
-  opacity: .82;
+  opacity: .55;
 }
 
 body.mode-premium .dock-btn::after{ display:none; }
 
 /* ---------- Photo wall ---------- */
+
 .photo-wall{
   margin-top: 14px;
   border-radius: 18px;
@@ -982,6 +984,7 @@ body.mode-premium .photo-wall{
 }
 
 /* ---------- Version tag ---------- */
+
 .version-tag{
   margin-top: 14px;
   text-align:center;
@@ -989,10 +992,10 @@ body.mode-premium .photo-wall{
   font-size: 12px;
   color: rgba(0,0,0,0.45);
 }
-
 body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 
 /* ---------- BR admin hotspot ---------- */
+
 #adminHotspotBR{
   position: fixed;
   right: 0;
@@ -1004,6 +1007,7 @@ body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
 }
 
 /* ---------- Unit one-line auto fit ---------- */
+
 #u-unit{
   display:block;
   width:100%;
@@ -1023,6 +1027,7 @@ body.mode-premium #u-unit{
 }
 
 /* ---------- Small screens ---------- */
+
 @media (max-width: 360px){
   .name{ font-size: 21px; }
   .avatar-circle{ width: 108px; height: 108px; }
@@ -1033,8 +1038,9 @@ body.mode-premium #u-unit{
 }
 
 /* ==========================================
- * v521.2 FIX A — Prevent controls overlay / keep scroll
+ * FIX A — Prevent controls overlay / keep scroll
  * ========================================== */
+
 #free-controls, .free-controls,
 #premium-controls, .premium-controls,
 #admin-panel, .admin-panel{
@@ -1060,12 +1066,10 @@ body.mode-premium #u-unit{
   touch-action: none !important;
 }
 
-/* give breathing room between panel and card */
-#card-container{ margin-top: 12px; }
-
 /* ==========================================
- * v521.2 FIX B — Mode gate for controls (NO extra Premium row in Free)
+ * FIX B — Mode gate for controls (NO extra Premium row in Free)
  * ========================================== */
+
 /* default: hide premium controls unless mode-premium */
 #premium-controls{ display: none !important; }
 body.mode-premium #premium-controls{ display: flex !important; }
@@ -1088,8 +1092,9 @@ body:not(.mode-free):not(.mode-premium) #premium-controls{ display:none !importa
 body:not(.mode-free):not(.mode-premium) #free-controls{ display:flex !important; }
 
 /* ==========================================
- * v521.2 FIX C — Free mode visual polish (safe, non-destructive)
+ * FIX C — Free mode visual polish (safe, non-destructive)
  * ========================================== */
+
 /* subtle depth glow around card only in free */
 body.mode-free .card{
   box-shadow:
@@ -1097,61 +1102,30 @@ body.mode-free .card{
     0 0 0 1px rgba(0,0,0,0.06);
 }
 
-/* premium badge (if exists) */
+/* premium badge (if exists) — v521.4: remove label */
 .premium-badge{
-  position:absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 6;
-  display:flex;
-  align-items:center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.14);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: rgba(255,255,255,0.92);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.premium-badge .badge-dot{
-  width: 10px; height:10px; border-radius:99px;
-  background: linear-gradient(135deg, rgba(255,233,168,0.90), rgba(191,149,63,0.95));
-  box-shadow: 0 6px 14px rgba(0,0,0,0.25);
-}
-
-.premium-badge .badge-text{
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: .3px;
+  display:none !important;
 }
 
 /* breathe helper (if HTML uses it) */
 .breathe{
   animation: breathePulse 2.8s ease-in-out infinite;
 }
-
 @keyframes breathePulse{
   0%,100%{ transform: translateY(0); filter: saturate(1); }
   50%{ transform: translateY(-1px); filter: saturate(1.06); }
 }
 
 /* ==========================================
- * HSC style.css — Paper boost (Free only) v521.2
- * Paste this block at the END of style.css
- *
- * Goal:
- * - Only affect Free mode (body.mode-free)
- * - Increase paper visibility without making colors dirty
- * - Make paper-1/2/3 clearly different
+ * Paper boost (Free only) v521.4
+ * - Integrated from your previous patch
  * ========================================== */
 
 /* 1) Global boost — Free only (Premium not affected) */
 body.mode-free{
-  --paper-strength: 0.48; /* overall visibility */
-  --paper-grain: 0.22; /* small grain */
-  --paper-fiber: 0.18; /* fiber / weave */
+  --paper-strength: 0.48;
+  --paper-grain: 0.22;
+  --paper-fiber: 0.18;
 }
 
 /* 2) Ensure overlay never blocks clicks */
@@ -1160,10 +1134,7 @@ body.mode-free{
   user-select: none;
 }
 
-/* 3) Add 2-layer texture via pseudo elements (safe override)
-- We don’t assume your existing paperOverlay background
-- We only add subtle layers above it
-*/
+/* 3) Add 2-layer texture via pseudo elements */
 #paperOverlay::before,
 #paperOverlay::after{
   content:"";
@@ -1174,9 +1145,8 @@ body.mode-free{
   opacity: 1;
 }
 
-/* BASE: soft paper haze (keeps clean, avoids dirty gray) */
+/* BASE: soft paper haze */
 #paperOverlay::before{
-  /* soft-light keeps colors clean */
   mix-blend-mode: soft-light;
   opacity: calc(var(--paper-strength, .32) * 0.70);
   background:
@@ -1195,30 +1165,24 @@ body.mode-free{
   background-position: 0 0, 6px 4px;
 }
 
-/* ==========================================
- * Paper variants — give each paper a “signature”
- * ========================================== */
-
-/* paper-1: 棉紙（柔、雲感、纖維不尖銳） */
+/* paper-1: 棉紙 */
 body.mode-free.paper-1 #paperOverlay::before{
   opacity: calc(var(--paper-strength, .32) * 0.78);
   background:
     radial-gradient(140% 95% at 20% 20%, rgba(255,255,255,0.26), rgba(255,255,255,0.00) 58%),
     radial-gradient(120% 85% at 80% 75%, rgba(0,0,0,0.14), rgba(0,0,0,0.00) 62%);
 }
-
 body.mode-free.paper-1 #paperOverlay::after{
   opacity: calc(var(--paper-grain, .16) * 0.70);
   background-size: 11px 11px, 17px 17px;
 }
 
-/* paper-2: 象牙紙（顆粒更立體、稍微更明顯） */
+/* paper-2: 象牙紙 */
 body.mode-free.paper-2{
   --paper-strength: 0.52;
   --paper-grain: 0.28;
   --paper-fiber: 0.16;
 }
-
 body.mode-free.paper-2 #paperOverlay::after{
   opacity: calc(var(--paper-grain, .16) * 0.95);
   background:
@@ -1228,19 +1192,16 @@ body.mode-free.paper-2 #paperOverlay::after{
   background-position: 0 0, 5px 3px;
 }
 
-/* paper-3: 霧灰（亞麻感：交織線條，但避免髒） */
+/* paper-3: 霧灰（亞麻感） */
 body.mode-free.paper-3{
-  --paper-strength: 0.46; /* 不要過高，霧灰容易髒 */
+  --paper-strength: 0.46;
   --paper-grain: 0.20;
-  --paper-fiber: 0.26; /* 用纖維拉出差異 */
+  --paper-fiber: 0.26;
 }
-
 body.mode-free.paper-3 #paperOverlay::before{
   opacity: calc(var(--paper-strength, .32) * 0.68);
 }
-
 body.mode-free.paper-3 #paperOverlay::after{
-  /* add weave lines + keep grain */
   opacity: calc(var(--paper-fiber, .12) * 0.78);
   mix-blend-mode: soft-light;
   background:
