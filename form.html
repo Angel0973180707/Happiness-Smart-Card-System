@@ -3,191 +3,422 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Form v520.3</title>
+  <title>天使幸福智慧名片｜資料填寫 v521.6</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
       --bg:#0b1220;
       --card:#111a2b;
       --line:rgba(255,255,255,.12);
-      --text:rgba(255,255,255,.92);
-      --muted:rgba(255,255,255,.70);
+      --text:rgba(255,255,255,.94);
+      --muted:rgba(255,255,255,.72);
       --accent:#7bdcff;
       --ok:#6ee7b7;
       --bad:#fb7185;
       --warn:#fbbf24;
-      --radius:16px;
+      --radius:18px;
+      --shadow:0 18px 40px rgba(0,0,0,.30);
+      --fs:17px;
+      --fs2:20px;
+      --fs3:24px;
     }
+
     *{ box-sizing:border-box; }
+    html,body{ height:100%; }
     body{
       margin:0;
       font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Arial;
-      background:radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%), var(--bg);
+      background:
+        radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%),
+        var(--bg);
       color:var(--text);
+      font-size:var(--fs);
+      line-height:1.5;
     }
-    a{ color:inherit; }
-    .wrap{ max-width:980px; margin:0 auto; padding:18px 14px 28px; }
+
+    .wrap{
+      max-width:980px;
+      margin:0 auto;
+      padding:18px 14px 28px;
+    }
+
     .top{
-      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
-      padding:14px 16px; border:1px solid var(--line); border-radius:var(--radius);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      padding:16px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
     }
-    .brand h1{ margin:0; font-size:18px; letter-spacing:.5px; }
-    .brand p{ margin:6px 0 0; color:var(--muted); font-size:13px; line-height:1.5; }
+
+    .brand h1{
+      margin:0;
+      font-size:var(--fs3);
+      letter-spacing:.4px;
+      line-height:1.25;
+    }
+
+    .brand p{
+      margin:8px 0 0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.7;
+    }
+
     .meta{
-      text-align:right; min-width:180px;
-      color:var(--muted); font-size:12px; line-height:1.6;
+      text-align:right;
+      min-width:170px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.8;
     }
+
     .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      padding:6px 10px; border:1px solid var(--line);
-      border-radius:999px; background:rgba(255,255,255,.04);
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 10px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      font-size:12px;
+      font-weight:800;
     }
-    .dot{ width:10px; height:10px; border-radius:50%; background:var(--warn); box-shadow:0 0 0 2px rgba(251,191,36,.15); }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--warn);
+      box-shadow:0 0 0 2px rgba(251,191,36,.15);
+    }
+
+    .kbd{
+      display:inline-block;
+      padding:2px 7px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:rgba(255,255,255,.03);
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:11px;
+    }
+
     .grid{
       margin-top:14px;
       display:grid;
-      grid-template-columns: 1fr;
+      grid-template-columns:1fr;
       gap:12px;
     }
-    @media (min-width: 900px){
-      .grid{ grid-template-columns: 1.2fr .8fr; }
-    }
+
     .card{
       border:1px solid var(--line);
       border-radius:var(--radius);
       background:rgba(255,255,255,.03);
-      padding:14px;
+      padding:16px;
+      box-shadow:var(--shadow);
     }
+
     .card h2{
-      margin:0 0 10px;
-      font-size:14px; letter-spacing:.4px;
-      color:rgba(255,255,255,.90);
-      display:flex; align-items:center; justify-content:space-between;
-      gap:8px;
+      margin:0 0 12px;
+      font-size:var(--fs2);
+      letter-spacing:.2px;
+      color:rgba(255,255,255,.94);
+      line-height:1.35;
     }
-    .card h2 small{ color:var(--muted); font-weight:500; }
-    .row{ display:grid; grid-template-columns: 1fr; gap:10px; }
-    @media(min-width:720px){
-      .row.two{ grid-template-columns: 1fr 1fr; }
-      .row.three{ grid-template-columns: 1fr 1fr 1fr; }
+
+    .subnote{
+      margin:-2px 0 12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
     }
-    label{ display:block; font-size:12px; color:var(--muted); margin:0 0 6px; }
-    input, textarea, select{
+
+    .row{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+
+    @media(min-width:760px){
+      .row.two{ grid-template-columns:1fr 1fr; }
+      .row.three{ grid-template-columns:1fr 1fr 1fr; }
+    }
+
+    label{
+      display:block;
+      font-size:14px;
+      color:var(--muted);
+      margin:0 0 7px;
+      font-weight:800;
+    }
+
+    .req{
+      color:var(--warn);
+      margin-left:6px;
+    }
+
+    input, textarea{
       width:100%;
-      background:rgba(255,255,255,.03);
+      background:rgba(255,255,255,.04);
       color:var(--text);
       border:1px solid var(--line);
-      border-radius:12px;
-      padding:10px 12px;
+      border-radius:14px;
+      padding:14px 14px;
       outline:none;
+      font-size:17px;
     }
-    textarea{ min-height:92px; resize:vertical; }
-    input::placeholder, textarea::placeholder{ color:rgba(255,255,255,.35); }
-    .hint{ margin-top:6px; font-size:12px; color:var(--muted); line-height:1.5; }
-    .req{ color:var(--warn); margin-left:6px; }
 
-    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+    textarea{
+      min-height:108px;
+      resize:vertical;
+    }
+
+    input::placeholder, textarea::placeholder{
+      color:rgba(255,255,255,.35);
+    }
+
+    .hint{
+      margin-top:7px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.7;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+    }
+
     .chip{
       cursor:pointer;
-      display:inline-flex; align-items:center; gap:8px;
-      padding:8px 10px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:11px 14px;
       border:1px solid var(--line);
       border-radius:999px;
       background:rgba(255,255,255,.03);
       user-select:none;
-      font-size:13px;
+      font-size:15px;
+      font-weight:800;
+      min-height:46px;
     }
-    .chip input{ display:none; }
+
     .chip[data-on="1"]{
       border-color:rgba(123,220,255,.55);
       box-shadow:0 0 0 3px rgba(123,220,255,.14);
-      background:rgba(123,220,255,.08);
+      background:rgba(123,220,255,.10);
     }
+
     .swatch{
-      width:18px; height:18px; border-radius:50%;
+      width:20px;
+      height:20px;
+      border-radius:50%;
       border:1px solid rgba(255,255,255,.18);
       box-shadow: inset 0 0 0 2px rgba(0,0,0,.18);
       background:linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.02));
+      flex:0 0 auto;
     }
 
-    .btns{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+    .sectionGap{ margin-top:12px; }
+
+    .btns{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
+
     button{
       cursor:pointer;
       border:none;
       border-radius:14px;
-      padding:10px 14px;
-      font-weight:650;
+      padding:12px 16px;
+      font-weight:800;
+      font-size:16px;
       background:rgba(123,220,255,.14);
       color:var(--text);
       border:1px solid rgba(123,220,255,.35);
+      min-height:48px;
     }
+
     button.secondary{
       background:rgba(255,255,255,.04);
       border:1px solid var(--line);
-      color:var(--text);
-      font-weight:600;
     }
-    button.danger{
-      background:rgba(251,113,133,.12);
-      border:1px solid rgba(251,113,133,.35);
+
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
     }
-    button:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .submit-progress-wrap{
+      margin-top:12px;
+      padding:12px 12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      display:none;
+    }
+
+    .submit-progress-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:8px;
+      font-size:13px;
+      color:rgba(255,255,255,.85);
+      font-weight:800;
+    }
+
+    .submit-progress{
+      height:12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+    }
+
+    .submit-progress-fill{
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(123,220,255,.95), rgba(255,170,90,.95));
+      box-shadow:0 0 18px rgba(123,220,255,.18);
+      transition:width .28s ease;
+      position:relative;
+    }
+
+    .submit-progress-fill::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(110deg, transparent 0%, rgba(255,255,255,.28) 45%, transparent 70%);
+      transform:translateX(-60%);
+      animation:shimmer 1.05s linear infinite;
+      mix-blend-mode:screen;
+    }
+
+    @keyframes shimmer{
+      0%{ transform:translateX(-60%); }
+      100%{ transform:translateX(60%); }
+    }
+
+    .submit-progress-text{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+      min-height:20px;
+    }
 
     .status{
       margin-top:12px;
       border:1px dashed var(--line);
-      border-radius:12px;
-      padding:10px 12px;
+      border-radius:14px;
+      padding:12px 14px;
       color:var(--muted);
-      font-size:12px;
-      line-height:1.6;
+      font-size:13px;
+      line-height:1.8;
       white-space:pre-wrap;
       word-break:break-word;
     }
 
     .uploadGrid{
-      display:grid; grid-template-columns: 1fr; gap:10px;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
     }
-    @media(min-width:720px){
-      .uploadGrid{ grid-template-columns: 1fr 1fr; }
+
+    @media(min-width:760px){
+      .uploadGrid{ grid-template-columns:1fr 1fr; }
     }
+
     .uItem{
       border:1px solid var(--line);
-      border-radius:14px;
-      padding:10px;
+      border-radius:16px;
+      padding:12px;
       background:rgba(255,255,255,.02);
     }
-    .uItemHead{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .uItemHead strong{ font-size:13px; }
-    .uItemHead small{ color:var(--muted); font-size:12px; }
-    .thumb{
-      margin-top:8px;
-      width:100%;
-      aspect-ratio: 16 / 10;
-      border-radius:12px;
-      border:1px solid var(--line);
-      overflow:hidden;
-      background:rgba(0,0,0,.18);
-      display:flex; align-items:center; justify-content:center;
-      color:rgba(255,255,255,.35);
-      font-size:12px;
-    }
-    .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-    .miniRow{ display:flex; gap:10px; align-items:center; margin-top:8px; flex-wrap:wrap; }
-    .miniRow input[type="file"]{ padding:8px; }
-    .miniRow button{ padding:8px 10px; border-radius:12px; }
 
-    .footerNote{
-      margin-top:14px;
-      color:rgba(255,255,255,.55);
+    .uItemHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .uItemHead strong{
+      font-size:15px;
+      line-height:1.4;
+    }
+
+    .uItemHead small{
+      color:var(--muted);
       font-size:12px;
       line-height:1.6;
     }
-    .kbd{
-      display:inline-block; padding:1px 6px; border:1px solid var(--line);
-      border-radius:8px; background:rgba(255,255,255,.03); font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;
-      font-size:11px;
+
+    .thumb{
+      margin-top:10px;
+      width:100%;
+      aspect-ratio:16 / 10;
+      border-radius:14px;
+      border:1px solid var(--line);
+      overflow:hidden;
+      background:rgba(0,0,0,.18);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:rgba(255,255,255,.35);
+      font-size:13px;
+      text-align:center;
+      padding:12px;
+    }
+
+    .thumb img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .miniRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
+    .miniRow input[type="file"]{
+      padding:10px;
+      font-size:14px;
+    }
+
+    .footNote{
+      margin-top:14px;
+      color:rgba(255,255,255,.56);
+      font-size:12px;
+      line-height:1.7;
+    }
+
+    @media(max-width:700px){
+      .top{
+        flex-direction:column;
+      }
+      .meta{
+        text-align:left;
+        min-width:auto;
+      }
+      .brand h1{
+        font-size:22px;
+      }
     }
   </style>
 </head>
@@ -196,127 +427,128 @@
     <div class="top">
       <div class="brand">
         <h1>天使幸福智慧名片｜資料填寫</h1>
-        <p>
-          這份表單會產生你的智慧名片資料。圖片會先壓縮後上傳到 Firebase Storage，文字資料才送進 card_db。
+        <p id="pageIntro">
+          請依序填寫資料。照片會先壓縮再上傳，送出時會自動建立或更新你的智慧名片。
         </p>
       </div>
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v520.3</span></div>
-        <div>Tenant：<span class="kbd" id="tenantText">-</span></div>
-        <div>ID：<span class="kbd" id="idText">-</span></div>
+        <div>版本：<span class="kbd" id="ver">v521.6</span></div>
+        <div>品牌：<span class="kbd" id="tenantText">-</span></div>
+        <div>名片 ID：<span class="kbd" id="idText">-</span></div>
       </div>
     </div>
 
     <div class="grid">
       <div class="card">
-        <h2>方案與外觀 <small>請先選方案（必選）</small></h2>
+        <h2>1. 方案與外觀</h2>
+        <div class="subnote">請先選方案，後面的選項會跟著變化。</div>
 
-        <div class="row">
-          <div>
-            <label>方案 Plan <span class="req">＊必選</span></label>
-            <div class="chips" id="planChips"></div>
-            <div class="hint">不同方案會影響可用顏色/照片數量（前端會自動限制）。</div>
-          </div>
+        <div>
+          <label>方案<span class="req">＊必選</span></label>
+          <div class="chips" id="planChips"></div>
         </div>
 
-        <div class="row three" style="margin-top:10px;">
+        <div class="sectionGap">
+          <label>顏色（自由搭配）</label>
+          <div class="chips" id="colorChips"></div>
+        </div>
+
+        <div class="row two sectionGap">
           <div>
-            <label>顏色 Color</label>
-            <div class="chips" id="colorChips"></div>
-          </div>
-          <div>
-            <label>版型 Style</label>
+            <label>版型（自由搭配）</label>
             <div class="chips" id="styleChips"></div>
           </div>
           <div>
-            <label>紙感 Paper</label>
+            <label>紙感（自由搭配）</label>
             <div class="chips" id="paperChips"></div>
           </div>
         </div>
 
-        <div class="row" style="margin-top:10px;">
-          <div>
-            <label>精品底色 Premium Color（精品款才需要）</label>
-            <div class="chips" id="premiumChips"></div>
-            <div class="hint">自由款可不選；精品款建議選擇 p1~p7。</div>
-          </div>
+        <div class="sectionGap">
+          <label>精品底色（精品設計）</label>
+          <div class="chips" id="premiumChips"></div>
+        </div>
+
+        <div class="hint" id="planHint">
+          自由搭配：最多 2 張照片｜精品設計：最多 5 張照片
         </div>
       </div>
 
       <div class="card">
-        <h2>送出與狀態</h2>
-        <div class="row">
-          <div>
-            <label>本次模式</label>
-            <input id="mode" value="fill" disabled />
-            <div class="hint">fill：新建；update：更新（需要 sig）。</div>
-          </div>
-          <div>
-            <label>GAS Endpoint</label>
-            <input id="gas" placeholder="貼上你的 GAS /exec URL" />
-            <div class="hint">例如：<span class="kbd">https://script.google.com/macros/s/XXXX/exec</span></div>
-          </div>
-        </div>
+        <h2>2. 送出</h2>
+        <div class="subnote">送出後系統會自動處理，不用看工程設定。</div>
 
         <div class="btns">
-          <button id="btnTest" class="secondary" type="button">測試連線 ping</button>
-          <button id="btnSubmit" type="button">送出（建立/更新）</button>
+          <button id="btnTest" class="secondary" type="button">測試連線</button>
+          <button id="btnSubmit" type="button">送出資料</button>
           <button id="btnReset" class="secondary" type="button">重設表單</button>
+        </div>
+
+        <div class="submit-progress-wrap" id="submitProgressWrap">
+          <div class="submit-progress-head">
+            <strong id="submitProgressTitle">送出中</strong>
+            <span id="submitProgressPercent">0%</span>
+          </div>
+          <div class="submit-progress">
+            <div class="submit-progress-fill" id="submitProgressFill"></div>
+          </div>
+          <div class="submit-progress-text" id="submitProgressText">準備中…</div>
         </div>
 
         <div class="status" id="status">尚未操作。</div>
 
-        <div class="footerNote">
-          提醒：更新模式如果要「清空欄位」，會用 <span class="kbd">clear_fields</span> 或 <span class="kbd">replace=1</span>。目前 form.js 預設是 patch（沒填就不覆蓋）。
+        <div class="footNote">
+          小提醒：送出時會自動防止重複建立。若你剛剛已送出過，同一筆資料不會一直新增。
         </div>
       </div>
 
       <div class="card">
-        <h2>基本資料</h2>
+        <h2>3. 基本資料</h2>
         <div class="row two">
           <div>
-            <label>姓名 Name</label>
-            <input id="name" placeholder="例：小天使" />
+            <label>姓名</label>
+            <input id="name" placeholder="例：王小明" />
           </div>
           <div>
-            <label>單位 Unit</label>
-            <input id="unit" placeholder="例：天使幸福智慧名片館" />
+            <label>單位</label>
+            <input id="unit" placeholder="例：幸福智慧名片館" />
           </div>
         </div>
-        <div class="row two">
+
+        <div class="row two sectionGap">
           <div>
-            <label>職稱 Title</label>
-            <input id="title" placeholder="例：館長 / 講師 / 顧問" />
+            <label>職稱</label>
+            <input id="title" placeholder="例：品牌顧問 / 講師 / 館長" />
           </div>
           <div>
-            <label>網站 Website</label>
+            <label>網站</label>
             <input id="website" placeholder="https://..." />
           </div>
         </div>
-        <div class="row two">
+
+        <div class="row two sectionGap">
           <div>
-            <label>標語 Slogan</label>
+            <label>一句話介紹</label>
             <input id="slogan" placeholder="一句話讓人記住你" />
           </div>
           <div>
-            <label>服務 Services</label>
+            <label>服務項目</label>
             <input id="services" placeholder="例：品牌顧問｜名片訂製｜課程" />
           </div>
         </div>
-        <div class="row">
-          <div>
-            <label>經歷 Experience</label>
-            <textarea id="experience" placeholder="可用換行分段"></textarea>
-          </div>
+
+        <div class="sectionGap">
+          <label>經歷</label>
+          <textarea id="experience" placeholder="可分行填寫，讓客戶更了解你"></textarea>
         </div>
       </div>
 
       <div class="card">
-        <h2>聯絡方式</h2>
+        <h2>4. 聯絡方式</h2>
         <div class="row two">
           <div>
-            <label>電話 Phone</label>
+            <label>電話</label>
             <input id="phone" placeholder="例：0973xxxxxx" />
           </div>
           <div>
@@ -324,91 +556,97 @@
             <input id="email" placeholder="name@example.com" />
           </div>
         </div>
-        <div class="row two">
+
+        <div class="row two sectionGap">
           <div>
-            <label>LINE（個人）line_url</label>
+            <label>LINE（個人）</label>
             <input id="line_url" placeholder="https://line.me/ti/p/..." />
           </div>
           <div>
-            <label>LINE 官方帳號 line_oa</label>
-            <input id="line_oa" placeholder="https://lin.ee/3r2ZePN" />
+            <label>LINE 官方帳號</label>
+            <input id="line_oa" placeholder="https://lin.ee/..." />
           </div>
         </div>
-        <div class="row two">
+
+        <div class="row two sectionGap">
           <div>
-            <label>WeChat wechat_id</label>
+            <label>微信 ID</label>
             <input id="wechat_id" placeholder="例：a0973180707" />
           </div>
           <div>
-            <label>地址 Address</label>
-            <input id="address" placeholder="縣市/區/路段…" />
+            <label>地址</label>
+            <input id="address" placeholder="縣市 / 區域 / 路段…" />
           </div>
         </div>
       </div>
 
       <div class="card">
-        <h2>影片 / 社群 / CTA</h2>
+        <h2>5. 影片 / 社群 / 其他</h2>
         <div class="row two">
           <div>
-            <label>Video 1</label>
+            <label>影片 1</label>
             <input id="video1" placeholder="https://..." />
           </div>
           <div>
-            <label>Video 2</label>
+            <label>影片 2</label>
             <input id="video2" placeholder="https://..." />
           </div>
         </div>
-        <div class="row two">
+
+        <div class="row two sectionGap">
           <div>
-            <label>Video 3</label>
+            <label>影片 3</label>
             <input id="video3" placeholder="https://..." />
           </div>
           <div>
-            <label>WeChat Poster（可選）</label>
-            <input id="wechat_poster" placeholder="https://... (長圖)" />
+            <label>微信長圖連結（選填）</label>
+            <input id="wechat_poster" placeholder="https://..." />
           </div>
         </div>
 
-        <div class="row three">
+        <div class="row three sectionGap">
           <div>
-            <label>Social 1</label>
+            <label>社群 1</label>
             <input id="social1" placeholder="https://..." />
           </div>
           <div>
-            <label>Social 2</label>
+            <label>社群 2</label>
             <input id="social2" placeholder="https://..." />
           </div>
           <div>
-            <label>Social 3</label>
+            <label>社群 3</label>
             <input id="social3" placeholder="https://..." />
           </div>
         </div>
 
-        <div class="row two">
+        <div class="row two sectionGap">
           <div>
-            <label>CTA 文字 cta_text</label>
-            <input id="cta_text" placeholder="例：立即預約體驗 / 加入LINE諮詢" />
+            <label>按鈕文字</label>
+            <input id="cta_text" placeholder="例：立即預約 / 加入 LINE 諮詢" />
           </div>
           <div>
-            <label>CTA 連結 cta_link</label>
+            <label>按鈕連結</label>
             <input id="cta_link" placeholder="https://..." />
           </div>
         </div>
       </div>
 
       <div class="card">
-        <h2>圖片上傳 <small>會自動壓縮 + 上傳 fast 小圖</small></h2>
+        <h2>6. 圖片上傳</h2>
+        <div class="subnote">你上傳的照片，下面都會先看到預覽畫面。</div>
 
         <div class="uploadGrid" id="uploadGrid"></div>
 
         <div class="hint" style="margin-top:10px;">
-          圖片會上傳到：<span class="kbd">hsc_cards/{tenant}/{cardId}/{fileName}</span><br/>
-          檔名一律英文，例如：<span class="kbd">avatar.webp</span> / <span class="kbd">avatar_fast.webp</span>
+          自由搭配最多 2 張照片｜精品設計最多 5 張照片
         </div>
       </div>
     </div>
+
+    <input id="mode" type="hidden" value="fill" />
+    <input id="gas" type="hidden" />
   </div>
 
-  <script type="module" src="./form.js?v=5203"></script>
+  <script type="module" src="./form.js?v=5216"></script>
 </body>
 </html>
