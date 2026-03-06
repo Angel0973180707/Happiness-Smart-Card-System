@@ -14,7 +14,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "521.7";
+  const VERSION = "521.9";
   const DEFAULT_GAS = "";
   const DEFAULT_TENANT = "angel";
   const PAGE_TOTAL = 5;
@@ -149,7 +149,19 @@ import {
     pageBadge: $("pageBadge"),
     pageBadgeBottom: $("pageBadgeBottom"),
     flowSub: $("flowSub"),
-    summaryBox: $("summaryBox")
+    summaryBox: $("summaryBox"),
+
+    cropModal: $("cropModal"),
+    cropStage: $("cropStage"),
+    cropCanvas: $("cropCanvas"),
+    cropTitle: $("cropTitle"),
+    cropDesc: $("cropDesc"),
+    cropMeta: $("cropMeta"),
+    cropZoomOut: $("cropZoomOut"),
+    cropZoomIn: $("cropZoomIn"),
+    cropReset: $("cropReset"),
+    cropCancel: $("cropCancel"),
+    cropApply: $("cropApply")
   };
 
   const fields = [
@@ -181,17 +193,117 @@ import {
     uploads: {},
     authReady: false,
     uid: "",
-    lastSubmitFingerprint: ""
+    lastSubmitFingerprint: "",
+
+    crop: {
+      open: false,
+      slotKey: "",
+      slotLabel: "",
+      ratio: 1,
+      image: null,
+      imageBitmap: null,
+      sourceFile: null,
+      scale: 1,
+      minScale: 1,
+      maxScale: 4,
+      x: 0,
+      y: 0,
+      dragging: false,
+      pointerId: null,
+      dragStartX: 0,
+      dragStartY: 0,
+      startX: 0,
+      startY: 0,
+      canvasW: 0,
+      canvasH: 0
+    }
   };
 
   const UPLOAD_SLOTS = [
-    { key: "avatar", label: "大頭照", mainField: CANON.avatar_img, fastField: CANON.avatar_img_fast, fileMain: "avatar.webp", fileFast: "avatar_fast.webp" },
-    { key: "logo",   label: "Logo",   mainField: CANON.logo_img,   fastField: CANON.logo_img_fast,   fileMain: "logo.webp",   fileFast: "logo_fast.webp" },
-    { key: "p1",     label: "照片 1", mainField: CANON.photo1_img, fastField: CANON.photo1_img_fast, fileMain: "photo1.webp", fileFast: "photo1_fast.webp" },
-    { key: "p2",     label: "照片 2", mainField: CANON.photo2_img, fastField: CANON.photo2_img_fast, fileMain: "photo2.webp", fileFast: "photo2_fast.webp" },
-    { key: "p3",     label: "照片 3", mainField: CANON.photo3_img, fastField: CANON.photo3_img_fast, fileMain: "photo3.webp", fileFast: "photo3_fast.webp" },
-    { key: "p4",     label: "照片 4", mainField: CANON.photo4_img, fastField: CANON.photo4_img_fast, fileMain: "photo4.webp", fileFast: "photo4_fast.webp" },
-    { key: "p5",     label: "照片 5", mainField: CANON.photo5_img, fastField: CANON.photo5_img_fast, fileMain: "photo5.webp", fileFast: "photo5_fast.webp" }
+    {
+      key: "avatar",
+      label: "大頭照",
+      mainField: CANON.avatar_img,
+      fastField: CANON.avatar_img_fast,
+      fileMain: "avatar.webp",
+      fileFast: "avatar_fast.webp",
+      ratio: 1,
+      stageClass: "ratio-square",
+      outputMain: 1200,
+      outputFast: 480
+    },
+    {
+      key: "logo",
+      label: "Logo",
+      mainField: CANON.logo_img,
+      fastField: CANON.logo_img_fast,
+      fileMain: "logo.webp",
+      fileFast: "logo_fast.webp",
+      ratio: 16 / 9,
+      stageClass: "ratio-logo",
+      outputMain: 1400,
+      outputFast: 560
+    },
+    {
+      key: "p1",
+      label: "照片 1",
+      mainField: CANON.photo1_img,
+      fastField: CANON.photo1_img_fast,
+      fileMain: "photo1.webp",
+      fileFast: "photo1_fast.webp",
+      ratio: 16 / 10,
+      stageClass: "ratio-photo",
+      outputMain: 1600,
+      outputFast: 480
+    },
+    {
+      key: "p2",
+      label: "照片 2",
+      mainField: CANON.photo2_img,
+      fastField: CANON.photo2_img_fast,
+      fileMain: "photo2.webp",
+      fileFast: "photo2_fast.webp",
+      ratio: 16 / 10,
+      stageClass: "ratio-photo",
+      outputMain: 1600,
+      outputFast: 480
+    },
+    {
+      key: "p3",
+      label: "照片 3",
+      mainField: CANON.photo3_img,
+      fastField: CANON.photo3_img_fast,
+      fileMain: "photo3.webp",
+      fileFast: "photo3_fast.webp",
+      ratio: 16 / 10,
+      stageClass: "ratio-photo",
+      outputMain: 1600,
+      outputFast: 480
+    },
+    {
+      key: "p4",
+      label: "照片 4",
+      mainField: CANON.photo4_img,
+      fastField: CANON.photo4_img_fast,
+      fileMain: "photo4.webp",
+      fileFast: "photo4_fast.webp",
+      ratio: 16 / 10,
+      stageClass: "ratio-photo",
+      outputMain: 1600,
+      outputFast: 480
+    },
+    {
+      key: "p5",
+      label: "照片 5",
+      mainField: CANON.photo5_img,
+      fastField: CANON.photo5_img_fast,
+      fileMain: "photo5.webp",
+      fileFast: "photo5_fast.webp",
+      ratio: 16 / 10,
+      stageClass: "ratio-photo",
+      outputMain: 1600,
+      outputFast: 480
+    }
   ];
 
   boot();
@@ -232,7 +344,7 @@ import {
     if(state.mode === "update"){
       el.pageIntro.textContent = "這是更新資料頁面。修改完成後送出即可。invite 參數會全程保留，不會中途掉失。";
     }else{
-      el.pageIntro.textContent = "這是分頁式填寫流程。請一步一步完成，照片會先壓縮再上傳，送出時會自動建立你的智慧名片。";
+      el.pageIntro.textContent = "固定分頁流程。請一步一步完成。圖片可先調整位置，再壓縮上傳，送出時會自動建立你的智慧名片。";
     }
   }
 
@@ -265,6 +377,78 @@ import {
         state.page = Math.max(0, Math.min(PAGE_TOTAL - 1, target));
         renderPage_();
       });
+    });
+
+    bindCropEvents_();
+    window.addEventListener("resize", ()=>{
+      if(state.crop.open) drawCrop_();
+    });
+  }
+
+  function bindCropEvents_(){
+    const canvas = el.cropCanvas;
+
+    canvas.addEventListener("pointerdown", (ev)=>{
+      if(!state.crop.open) return;
+      state.crop.dragging = true;
+      state.crop.pointerId = ev.pointerId;
+      state.crop.dragStartX = ev.clientX;
+      state.crop.dragStartY = ev.clientY;
+      state.crop.startX = state.crop.x;
+      state.crop.startY = state.crop.y;
+      el.cropStage.classList.add("dragging");
+      try{ canvas.setPointerCapture(ev.pointerId); }catch(_){}
+    });
+
+    canvas.addEventListener("pointermove", (ev)=>{
+      if(!state.crop.open || !state.crop.dragging) return;
+      if(state.crop.pointerId !== null && ev.pointerId !== state.crop.pointerId) return;
+
+      const dx = ev.clientX - state.crop.dragStartX;
+      const dy = ev.clientY - state.crop.dragStartY;
+      state.crop.x = state.crop.startX + dx;
+      state.crop.y = state.crop.startY + dy;
+      clampCropPosition_();
+      drawCrop_();
+    });
+
+    const stopDrag = (ev)=>{
+      if(state.crop.pointerId !== null && ev && ev.pointerId !== state.crop.pointerId) return;
+      state.crop.dragging = false;
+      state.crop.pointerId = null;
+      el.cropStage.classList.remove("dragging");
+    };
+
+    canvas.addEventListener("pointerup", stopDrag);
+    canvas.addEventListener("pointercancel", stopDrag);
+    canvas.addEventListener("pointerleave", stopDrag);
+
+    el.cropZoomIn.addEventListener("click", ()=>{
+      if(!state.crop.open) return;
+      state.crop.scale = Math.min(state.crop.maxScale, state.crop.scale + 0.12);
+      clampCropPosition_();
+      drawCrop_();
+    });
+
+    el.cropZoomOut.addEventListener("click", ()=>{
+      if(!state.crop.open) return;
+      state.crop.scale = Math.max(state.crop.minScale, state.crop.scale - 0.12);
+      clampCropPosition_();
+      drawCrop_();
+    });
+
+    el.cropReset.addEventListener("click", ()=>{
+      if(!state.crop.open) return;
+      resetCropTransform_();
+      drawCrop_();
+    });
+
+    el.cropCancel.addEventListener("click", ()=>{
+      closeCropModal_();
+    });
+
+    el.cropApply.addEventListener("click", async ()=>{
+      await applyCrop_();
     });
   }
 
@@ -453,7 +637,7 @@ import {
       strong.textContent = slot.label;
       const smallWrap = document.createElement("div");
       const small = document.createElement("small");
-      small.textContent = disabled ? "目前方案不使用這格" : "上傳後會先看到預覽";
+      small.textContent = disabled ? "目前方案不使用這格" : "可先調整位置，再套用";
       smallWrap.appendChild(small);
       left.appendChild(strong);
       left.appendChild(smallWrap);
@@ -496,7 +680,7 @@ import {
       file.type = "file";
       file.accept = "image/*";
       file.disabled = disabled;
-      file.addEventListener("change", (ev)=>{
+      file.addEventListener("change", async (ev)=>{
         const f = ev.target.files && ev.target.files[0];
         if(!f) return;
 
@@ -506,22 +690,27 @@ import {
           return;
         }
 
-        if(state.uploads[slot.key]?.previewUrl){
-          revokePreviewUrl_(state.uploads[slot.key].previewUrl);
-        }
+        await openCropModal_(slot.key, f);
+        file.value = "";
+      });
 
-        const url = URL.createObjectURL(f);
-        state.uploads[slot.key] = {
-          file: f,
-          previewUrl: url,
-          mainUrl: "",
-          fastUrl: ""
-        };
-        renderUploads_();
-        updateSummary_();
+      const btnEdit = document.createElement("button");
+      btnEdit.type = "button";
+      btnEdit.className = "ghost";
+      btnEdit.textContent = "調整位置";
+      btnEdit.disabled = !u || disabled;
+      btnEdit.addEventListener("click", async ()=>{
+        const item = state.uploads[slot.key];
+        if(!item || !item.sourceFile){
+          warnStatus_("請先選圖片。");
+          return;
+        }
+        await openCropModal_(slot.key, item.sourceFile, item.cropState || null);
       });
 
       mini.appendChild(file);
+      mini.appendChild(btnEdit);
+
       wrap.appendChild(head);
       wrap.appendChild(thumb);
       wrap.appendChild(mini);
@@ -678,7 +867,7 @@ import {
   function countSelectedPhotos_(){
     let n = 0;
     for (const slot of UPLOAD_SLOTS){
-      if (state.uploads[slot.key]?.file) n++;
+      if (state.uploads[slot.key]?.mainBlob) n++;
     }
     return n;
   }
@@ -795,14 +984,14 @@ import {
         return;
       }
 
-      showProgress_(5, "開始整理資料…");
+      showProgress_(10, "檢查資料中…");
 
       const payload = collectPayload_();
       payload.invite = state.invite || "";
       payload.tenant = state.tenant;
 
       if(state.mode === "fill"){
-        showProgress_(15, "建立名片保留資料中…");
+        showProgress_(25, "建立保留資料中…");
         const rsv = await gasReserve_();
 
         if(!rsv || !rsv.ok){
@@ -813,7 +1002,7 @@ import {
         state.token = rsv.token || state.token;
         updateHeaderUI_();
 
-        showProgress_(35, "正在上傳照片…");
+        showProgress_(40, "正在處理圖片…");
         const uploadRes = await uploadAll_(state.id);
         Object.assign(payload, uploadRes);
 
@@ -823,7 +1012,7 @@ import {
         if(state.invite) payload.invite = state.invite;
         if(state.uid) payload.uid = state.uid;
 
-        showProgress_(78, "正在送出文字資料…");
+        showProgress_(85, "正在寫入名片資料…");
         const created = await gasCreate_(payload);
 
         showProgress_(100, "送出完成");
@@ -842,7 +1031,7 @@ import {
           logStatus_("送出完成，但回傳結果不是 ok。\n" + JSON.stringify(created, null, 2));
         }
       }else{
-        showProgress_(35, "正在上傳新照片…");
+        showProgress_(40, "正在處理圖片…");
         const uploadRes = await uploadAll_(state.id);
         Object.assign(payload, uploadRes);
 
@@ -851,7 +1040,7 @@ import {
         if(state.invite) payload.invite = state.invite;
         if(state.uid) payload.uid = state.uid;
 
-        showProgress_(78, "正在更新資料…");
+        showProgress_(85, "正在更新資料…");
         const updated = await gasUpdate_(payload);
 
         showProgress_(100, "更新完成");
@@ -956,51 +1145,258 @@ import {
         if(idx > limit) continue;
       }
       const u = state.uploads[slot.key];
-      if(!u || !u.file) continue;
-      tasks.push({ slot, file: u.file });
+      if(!u || !u.mainBlob || !u.fastBlob) continue;
+      tasks.push({ slot, item: u });
     }
 
     if(!tasks.length) return out;
 
     let done = 0;
     for(const task of tasks){
-      const { slot, file } = task;
-      const { mainBlob, fastBlob } = await compressToWebpPair_(file);
-
+      const { slot, item } = task;
       const mainPath = `hsc_cards/${state.tenant}/${cardId}/${slot.fileMain}`;
       const fastPath = `hsc_cards/${state.tenant}/${cardId}/${slot.fileFast}`;
 
       const { storage } = state._fb;
 
       const mainRef = sRef(storage, mainPath);
-      await uploadBytes(mainRef, mainBlob, { contentType: "image/webp" });
+      await uploadBytes(mainRef, item.mainBlob, { contentType: "image/webp" });
       const mainUrl = await getDownloadURL(mainRef);
 
       const fastRef = sRef(storage, fastPath);
-      await uploadBytes(fastRef, fastBlob, { contentType: "image/webp" });
+      await uploadBytes(fastRef, item.fastBlob, { contentType: "image/webp" });
       const fastUrl = await getDownloadURL(fastRef);
 
       out[slot.mainField] = mainUrl;
       out[slot.fastField] = fastUrl;
 
-      if(state.uploads[slot.key]){
-        state.uploads[slot.key].mainUrl = mainUrl;
-        state.uploads[slot.key].fastUrl = fastUrl;
-      }
+      item.mainUrl = mainUrl;
+      item.fastUrl = fastUrl;
 
       done++;
-      const percent = 35 + Math.round((done / tasks.length) * 35);
-      showProgress_(percent, `正在上傳照片：${slot.label}`);
+      const percent = 40 + Math.round((done / tasks.length) * 30);
+      showProgress_(percent, `正在上傳圖片：${slot.label}`);
     }
 
     return out;
   }
 
-  async function compressToWebpPair_(file){
-    const img = await fileToImage_(file);
-    const mainBlob = await renderToWebp_(img, 1600, 0.82);
-    const fastBlob = await renderToWebp_(img, 480, 0.78);
-    return { mainBlob, fastBlob };
+  async function openCropModal_(slotKey, file, restoreState = null){
+    const slot = getSlotByKey_(slotKey);
+    if(!slot) return;
+
+    const image = await fileToImage_(file);
+
+    state.crop.open = true;
+    state.crop.slotKey = slotKey;
+    state.crop.slotLabel = slot.label;
+    state.crop.ratio = slot.ratio;
+    state.crop.image = image;
+    state.crop.sourceFile = file;
+    state.crop.stageClass = slot.stageClass;
+    state.crop.dragging = false;
+
+    el.cropTitle.textContent = `調整 ${slot.label} 位置`;
+    el.cropDesc.textContent = `可拖移位置，並用按鈕放大、縮小、重設後再套用。`;
+    el.cropMeta.textContent = slot.key === "avatar"
+      ? "目前是正方形安全框。"
+      : slot.key === "logo"
+        ? "目前是 Logo 寬框。"
+        : "目前是橫式照片框。";
+
+    el.cropStage.classList.remove("ratio-square", "ratio-logo", "ratio-photo");
+    el.cropStage.classList.add(slot.stageClass);
+
+    el.cropModal.classList.add("show");
+
+    await nextFrame_();
+    setupCropCanvasSize_();
+
+    if(restoreState){
+      state.crop.scale = restoreState.scale;
+      state.crop.x = restoreState.x;
+      state.crop.y = restoreState.y;
+      state.crop.minScale = computeMinScale_();
+      state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4);
+      state.crop.scale = clamp_(state.crop.scale, state.crop.minScale, state.crop.maxScale);
+      clampCropPosition_();
+    }else{
+      resetCropTransform_();
+    }
+
+    drawCrop_();
+  }
+
+  function closeCropModal_(){
+    state.crop.open = false;
+    state.crop.dragging = false;
+    state.crop.pointerId = null;
+    state.crop.image = null;
+    state.crop.sourceFile = null;
+    el.cropModal.classList.remove("show");
+  }
+
+  function setupCropCanvasSize_(){
+    const rect = el.cropStage.getBoundingClientRect();
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const cssW = Math.max(240, Math.round(rect.width));
+    const cssH = Math.max(160, Math.round(rect.height));
+
+    el.cropCanvas.width = Math.round(cssW * dpr);
+    el.cropCanvas.height = Math.round(cssH * dpr);
+    el.cropCanvas.style.width = `${cssW}px`;
+    el.cropCanvas.style.height = `${cssH}px`;
+
+    state.crop.canvasW = el.cropCanvas.width;
+    state.crop.canvasH = el.cropCanvas.height;
+    state.crop.dpr = dpr;
+  }
+
+  function resetCropTransform_(){
+    state.crop.minScale = computeMinScale_();
+    state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4);
+    state.crop.scale = state.crop.minScale;
+    state.crop.x = 0;
+    state.crop.y = 0;
+  }
+
+  function computeMinScale_(){
+    const img = state.crop.image;
+    if(!img) return 1;
+
+    const cw = state.crop.canvasW;
+    const ch = state.crop.canvasH;
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+
+    return Math.max(cw / iw, ch / ih);
+  }
+
+  function clampCropPosition_(){
+    const img = state.crop.image;
+    if(!img) return;
+
+    const cw = state.crop.canvasW;
+    const ch = state.crop.canvasH;
+    const iw = (img.naturalWidth || img.width) * state.crop.scale;
+    const ih = (img.naturalHeight || img.height) * state.crop.scale;
+
+    const maxX = Math.max(0, (iw - cw) / 2);
+    const maxY = Math.max(0, (ih - ch) / 2);
+
+    state.crop.x = clamp_(state.crop.x, -maxX, maxX);
+    state.crop.y = clamp_(state.crop.y, -maxY, maxY);
+  }
+
+  function drawCrop_(){
+    const img = state.crop.image;
+    if(!img) return;
+
+    const canvas = el.cropCanvas;
+    const ctx = canvas.getContext("2d");
+    if(!ctx) return;
+
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const iw = (img.naturalWidth || img.width) * state.crop.scale;
+    const ih = (img.naturalHeight || img.height) * state.crop.scale;
+
+    ctx.clearRect(0, 0, cw, ch);
+
+    const x = (cw - iw) / 2 + state.crop.x;
+    const y = (ch - ih) / 2 + state.crop.y;
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, x, y, iw, ih);
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,255,255,.28)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, cw - 2, ch - 2);
+    ctx.restore();
+  }
+
+  async function applyCrop_(){
+    const slot = getSlotByKey_(state.crop.slotKey);
+    if(!slot || !state.crop.image) return;
+
+    const mainBlob = await exportCropBlob_(slot.outputMain, 0.82);
+    const fastBlob = await exportCropBlob_(slot.outputFast, 0.78);
+
+    const previewUrl = URL.createObjectURL(mainBlob);
+    const old = state.uploads[slot.key];
+    if(old?.previewUrl) revokePreviewUrl_(old.previewUrl);
+
+    state.uploads[slot.key] = {
+      sourceFile: state.crop.sourceFile,
+      previewUrl,
+      mainBlob,
+      fastBlob,
+      mainUrl: "",
+      fastUrl: "",
+      cropState: {
+        scale: state.crop.scale,
+        x: state.crop.x,
+        y: state.crop.y
+      }
+    };
+
+    closeCropModal_();
+    renderUploads_();
+    updateSummary_();
+    logStatus_(`已套用 ${slot.label} 圖片位置。`);
+  }
+
+  async function exportCropBlob_(longSide, quality){
+    const img = state.crop.image;
+    if(!img) throw new Error("crop image missing");
+
+    const ratio = state.crop.ratio;
+    const outW = longSide;
+    const outH = Math.round(outW / ratio);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = outW;
+    canvas.height = outH;
+
+    const ctx = canvas.getContext("2d");
+    if(!ctx) throw new Error("export canvas failed");
+
+    const stageW = state.crop.canvasW;
+    const stageH = state.crop.canvasH;
+
+    const iw = (img.naturalWidth || img.width) * state.crop.scale;
+    const ih = (img.naturalHeight || img.height) * state.crop.scale;
+    const x = (stageW - iw) / 2 + state.crop.x;
+    const y = (stageH - ih) / 2 + state.crop.y;
+
+    const scaleX = outW / stageW;
+    const scaleY = outH / stageH;
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(
+      img,
+      x * scaleX,
+      y * scaleY,
+      iw * scaleX,
+      ih * scaleY
+    );
+
+    return new Promise((resolve, reject)=>{
+      canvas.toBlob((blob)=>{
+        if(!blob){
+          reject(new Error("export blob failed"));
+          return;
+        }
+        resolve(blob);
+      }, "image/webp", quality);
+    });
+  }
+
+  function getSlotByKey_(key){
+    return UPLOAD_SLOTS.find(s => s.key === key) || null;
   }
 
   function fileToImage_(file){
@@ -1019,36 +1415,6 @@ import {
     });
   }
 
-  function renderToWebp_(img, maxSide, quality){
-    const w0 = img.naturalWidth || img.width;
-    const h0 = img.naturalHeight || img.height;
-    if(!w0 || !h0) throw new Error("image read failed");
-
-    const scale = Math.min(1, maxSide / Math.max(w0, h0));
-    const w = Math.max(1, Math.round(w0 * scale));
-    const h = Math.max(1, Math.round(h0 * scale));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-
-    const ctx = canvas.getContext("2d", { alpha: true });
-    if(!ctx) throw new Error("canvas context failed");
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, 0, 0, w, h);
-
-    return new Promise((resolve, reject)=>{
-      canvas.toBlob((blob)=>{
-        if(!blob){
-          reject(new Error("toBlob failed"));
-          return;
-        }
-        resolve(blob);
-      }, "image/webp", quality);
-    });
-  }
-
   function setBusy_(on){
     const disabled = !!on;
     if(el.btnTest) el.btnTest.disabled = disabled;
@@ -1059,7 +1425,12 @@ import {
 
     document.querySelectorAll("input, textarea, button").forEach(node=>{
       if(node.id === "gas" || node.type === "hidden") return;
-      if(node === el.btnPrev || node === el.btnNext || node === el.btnTest || node === el.btnSubmit || node === el.btnReset){
+      if(
+        node === el.btnPrev || node === el.btnNext || node === el.btnTest ||
+        node === el.btnSubmit || node === el.btnReset ||
+        node === el.cropZoomOut || node === el.cropZoomIn || node === el.cropReset ||
+        node === el.cropCancel || node === el.cropApply
+      ){
         return;
       }
       if(disabled){
@@ -1137,5 +1508,13 @@ import {
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#39;");
+  }
+
+  function clamp_(n, min, max){
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function nextFrame_(){
+    return new Promise(resolve => requestAnimationFrame(() => resolve()));
   }
 })();
