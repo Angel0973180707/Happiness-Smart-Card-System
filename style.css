@@ -1,7 +1,8 @@
 /* ==========================================
- * Happiness Smart Card System — style.css v521.4 (COMPLETE OVERWRITE)
+ * Happiness Smart Card System — style.css v522.3 (COMPLETE OVERWRITE)
  * Goal:
- * ✅ Fix v520 “走山” by reverting to the stable v497 layout model
+ * ✅ Keep stable v521.4 layout model (do not break)
+ * ✅ Fix v520 “走山” by staying on the stable card/panel structure
  * ✅ Fix scroll issues (iOS/Android) + no overlays stealing touch
  * ✅ Fix extra Premium selector row showing in Free mode
  * ✅ Visual lift (safe): Free a bit more depth, Premium brighter glass, p6 gold stronger
@@ -158,7 +159,7 @@ body.mode-free .card{
 }
 
 /* ---------- Premium base (brighter glass, not night club) ---------- */
-/* v521.4: saturated but not dark */
+
 body.mode-premium{
   background:
     radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.16), transparent 56%),
@@ -240,7 +241,7 @@ body.mode-premium .card::before{
   background:
     linear-gradient(135deg, rgba(255,255,255,0.26), rgba(255,255,255,0.00) 50%),
     radial-gradient(760px 360px at 30% 0%, rgba(255,255,255,0.26), transparent 62%);
-  opacity: .78; /* v521.4 softened */
+  opacity: .78;
   mix-blend-mode: soft-light;
 }
 
@@ -252,7 +253,7 @@ body.mode-premium .card::after{
   z-index: 2;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.00) 40%);
-  opacity: .55; /* v521.4 softened */
+  opacity: .55;
   mix-blend-mode: overlay;
 }
 
@@ -299,7 +300,6 @@ body.mode-premium .banner{ display:none !important; }
   opacity: .55;
 }
 
-/* banner richer saturation (only banner) */
 body.mode-free .banner{ filter: saturate(1.30) contrast(1.08); }
 
 /* style-arch */
@@ -365,7 +365,6 @@ body.mode-free.style-spot .banner::after{
 .paper-overlay{ position:absolute; inset:0; pointer-events:none; opacity:1; z-index: 2; }
 body.mode-premium .paper-overlay{ display:none !important; }
 
-/* paper-1/2/3 */
 body.mode-free.paper-1 .paper-overlay{
   background:
     radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 60%),
@@ -423,7 +422,6 @@ body.mode-premium .avatar-wrap{ margin-top: 18px; padding-top: 6px; }
   z-index: 7;
 }
 
-/* Free avatar more 3D (clean) */
 body.mode-free .avatar-circle{
   border: 1px solid rgba(255,255,255,0.78);
   box-shadow:
@@ -433,7 +431,6 @@ body.mode-free .avatar-circle{
     inset 0 -16px 18px rgba(0,0,0,0.06);
 }
 
-/* Premium avatar stronger + floating */
 body.mode-premium .avatar-circle{
   background: rgba(255,255,255,0.16);
   border: 1px solid rgba(255,255,255,0.66);
@@ -541,7 +538,6 @@ body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
   flex-wrap: nowrap;
 }
 
-/* ✅ Prevent accidental overflow causing horizontal lock on mobile */
 #admin-panel, .panel-inner, .controls-block, .btn-row, .plan-row, .dots-row{
   max-width: 100%;
 }
@@ -597,7 +593,6 @@ body.mode-premium #u-slogan{ text-shadow: 0 14px 30px rgba(0,0,0,0.42); }
     inset 0 1px 0 rgba(255,255,255,0.70);
 }
 
-/* Premium selector pill */
 body.mode-premium .btn-neo{
   position: relative;
   border: 1px solid rgba(255,255,255,0.14);
@@ -661,7 +656,6 @@ body.mode-premium .btn-neo.active{
   border: 1px solid rgba(0,0,0,0.10);
 }
 
-/* Share CTA */
 .btn-share{
   background:
     radial-gradient(900px 520px at 20% 10%, rgba(255,255,255,0.20), transparent 62%),
@@ -758,7 +752,6 @@ body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
   overflow: hidden;
 }
 
-/* Free: slightly more depth (safe lift) */
 body.mode-free .info-block{
   box-shadow:
     0 14px 30px rgba(0,0,0,0.10),
@@ -858,7 +851,6 @@ body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
   gap: 10px;
 }
 
-/* Dock pills */
 .dock-btn{
   position: relative;
   display:flex;
@@ -907,7 +899,6 @@ body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
   opacity:.44;
 }
 
-/* Premium contact dock: v521.4 softened lighting */
 body.mode-premium .contact-dock{
   background: rgba(18,22,30,0.16);
   border-color: rgba(255,255,255,0.10);
@@ -936,7 +927,6 @@ body.mode-premium .dock-btn{
   -webkit-backdrop-filter: blur(10px);
 }
 
-/* keep border glow but softer */
 body.mode-premium .dock-btn::before{
   content:"";
   position:absolute; inset:-1px;
@@ -1052,12 +1042,10 @@ body.mode-premium #u-unit{
   left: auto !important;
 }
 
-/* ensure stacking: panel above, card below */
 #admin-panel{ z-index: 50 !important; }
 #card-container, .card-container,
 #card, .card{ position: relative; z-index: 1 !important; }
 
-/* never let overlay layers eat touch/scroll */
 #paperOverlay, .paperOverlay,
 .paper-overlay,
 .premium-fx-layer,
@@ -1067,47 +1055,40 @@ body.mode-premium #u-unit{
 }
 
 /* ==========================================
- * FIX B — Mode gate for controls (NO extra Premium row in Free)
+ * FIX B — Mode gate for controls
  * ========================================== */
 
-/* default: hide premium controls unless mode-premium */
 #premium-controls{ display: none !important; }
 body.mode-premium #premium-controls{ display: flex !important; }
 body.mode-premium #free-controls{ display: none !important; }
 body.mode-free #free-controls{ display: flex !important; }
 body.mode-free #premium-controls{ display: none !important; }
 
-/* extra insurance: hide premium dots/rows when not premium */
 body.mode-free #premiumDotsRow,
 body.mode-free #premiumDotsRow *,
 body.mode-free .p-dot{ display: none !important; }
 
-/* and hide free dots when premium */
 body.mode-premium #freeDotsRow,
 body.mode-premium #freeDotsRow *,
 body.mode-premium .dot{ display: none !important; }
 
-/* if body has no mode (first paint), show free only */
 body:not(.mode-free):not(.mode-premium) #premium-controls{ display:none !important; }
 body:not(.mode-free):not(.mode-premium) #free-controls{ display:flex !important; }
 
 /* ==========================================
- * FIX C — Free mode visual polish (safe, non-destructive)
+ * FIX C — Free mode visual polish
  * ========================================== */
 
-/* subtle depth glow around card only in free */
 body.mode-free .card{
   box-shadow:
     0 26px 70px rgba(0,0,0,0.14),
     0 0 0 1px rgba(0,0,0,0.06);
 }
 
-/* premium badge (if exists) — v521.4: remove label */
 .premium-badge{
   display:none !important;
 }
 
-/* breathe helper (if HTML uses it) */
 .breathe{
   animation: breathePulse 2.8s ease-in-out infinite;
 }
@@ -1117,24 +1098,20 @@ body.mode-free .card{
 }
 
 /* ==========================================
- * Paper boost (Free only) v521.4
- * - Integrated from your previous patch
+ * Paper boost (Free only) v522.3
  * ========================================== */
 
-/* 1) Global boost — Free only (Premium not affected) */
 body.mode-free{
   --paper-strength: 0.48;
   --paper-grain: 0.22;
   --paper-fiber: 0.18;
 }
 
-/* 2) Ensure overlay never blocks clicks */
 #paperOverlay{
   pointer-events: none;
   user-select: none;
 }
 
-/* 3) Add 2-layer texture via pseudo elements */
 #paperOverlay::before,
 #paperOverlay::after{
   content:"";
@@ -1145,7 +1122,6 @@ body.mode-free{
   opacity: 1;
 }
 
-/* BASE: soft paper haze */
 #paperOverlay::before{
   mix-blend-mode: soft-light;
   opacity: calc(var(--paper-strength, .32) * 0.70);
@@ -1154,7 +1130,6 @@ body.mode-free{
     radial-gradient(120% 90% at 85% 80%, rgba(0,0,0,0.16), rgba(0,0,0,0.00) 60%);
 }
 
-/* BASE: fine grain */
 #paperOverlay::after{
   mix-blend-mode: overlay;
   opacity: calc(var(--paper-grain, .16) * 0.85);
