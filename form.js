@@ -14,11 +14,12 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "522.0";
+  const VERSION = "522.6";
   const DEFAULT_GAS = "";
   const DEFAULT_TENANT = "angel";
-  const PAGE_TOTAL = 5;
+  const PAGE_TOTAL = 7;
   const SUBMIT_LOCK_MS = 15000;
+  const NUDGE_STEP = 28;
 
   const firebaseConfig = {
     apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
@@ -133,18 +134,23 @@ import {
     btnPrev: $("btnPrev"),
     btnNext: $("btnNext"),
     status: $("status"),
+    formCard: $("formCard"),
+
     planChips: $("planChips"),
     colorChips: $("colorChips"),
     styleChips: $("styleChips"),
     paperChips: $("paperChips"),
     premiumChips: $("premiumChips"),
     planHint: $("planHint"),
+    styleHint: $("styleHint"),
     uploadGrid: $("uploadGrid"),
+
     submitProgressWrap: $("submitProgressWrap"),
     submitProgressFill: $("submitProgressFill"),
     submitProgressText: $("submitProgressText"),
     submitProgressPercent: $("submitProgressPercent"),
     submitProgressTitle: $("submitProgressTitle"),
+
     pageIntro: $("pageIntro"),
     pageBadge: $("pageBadge"),
     pageBadgeBottom: $("pageBadgeBottom"),
@@ -159,9 +165,15 @@ import {
     cropMeta: $("cropMeta"),
     cropZoomOut: $("cropZoomOut"),
     cropZoomIn: $("cropZoomIn"),
+    cropZoomRange: $("cropZoomRange"),
+    cropZoomValue: $("cropZoomValue"),
     cropReset: $("cropReset"),
     cropCancel: $("cropCancel"),
-    cropApply: $("cropApply")
+    cropApply: $("cropApply"),
+    cropMoveUp: $("cropMoveUp"),
+    cropMoveDown: $("cropMoveDown"),
+    cropMoveLeft: $("cropMoveLeft"),
+    cropMoveRight: $("cropMoveRight")
   };
 
   const fields = [
@@ -325,7 +337,7 @@ import {
     await initFirebase_();
 
     updateIntro_();
-    logStatus_("已就緒，請依序完成每一步。");
+    logStatus_("已就緒，請依序完成每一步。", "normal");
 
     if (state.mode === "update" && state.id && state.sig) {
       await prefillFromServer_();
@@ -346,9 +358,9 @@ import {
 
   function updateIntro_(){
     if(state.mode === "update"){
-      el.pageIntro.textContent = "這是更新資料頁面。系統會自動讀取舊資料並回填表單，修改完成後送出即可。";
+      el.pageIntro.textContent = "這是更新資料頁面。系統會自動讀取舊資料回填，你只要分步修改後送出即可。";
     }else{
-      el.pageIntro.textContent = "固定分頁流程。請一步一步完成。圖片可先調整位置，再壓縮上傳，送出時會自動建立你的智慧名片。";
+      el.pageIntro.textContent = "一步一頁慢慢填就好。先選方案，再選樣式，接著填資料、調整照片，最後確認送出。";
     }
   }
 
@@ -374,10 +386,14 @@ import {
       node.addEventListener("click", ()=>{
         const target = Number(node.dataset.step || 0);
         if (Number.isNaN(target)) return;
+
         if (target > state.page) {
-          const ok = validatePage_(state.page, { silent: false });
-          if (!ok) return;
+          for(let i = state.page; i < target; i++){
+            const ok = validatePage_(i, { silent: false });
+            if(!ok) return;
+          }
         }
+
         state.page = Math.max(0, Math.min(PAGE_TOTAL - 1, target));
         renderPage_();
       });
@@ -385,7 +401,15 @@ import {
 
     bindCropEvents_();
     window.addEventListener("resize", ()=>{
-      if(state.crop.open) drawCrop_();
+      if(state.crop.open){
+        setupCropCanvasSize_();
+        state.crop.minScale = computeMinScale_();
+        state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4);
+        state.crop.scale = clamp_(state.crop.scale, state.crop.minScale, state.crop.maxScale);
+        clampCropPosition_();
+        syncCropZoomUI_();
+        drawCrop_();
+      }
     });
   }
 
@@ -429,21 +453,33 @@ import {
 
     el.cropZoomIn.addEventListener("click", ()=>{
       if(!state.crop.open) return;
-      state.crop.scale = Math.min(state.crop.maxScale, state.crop.scale + 0.12);
-      clampCropPosition_();
-      drawCrop_();
+      adjustCropScale_(0.12);
     });
 
     el.cropZoomOut.addEventListener("click", ()=>{
       if(!state.crop.open) return;
-      state.crop.scale = Math.max(state.crop.minScale, state.crop.scale - 0.12);
+      adjustCropScale_(-0.12);
+    });
+
+    el.cropZoomRange.addEventListener("input", ()=>{
+      if(!state.crop.open) return;
+      const ratio = Number(el.cropZoomRange.value || 100) / 100;
+      const base = state.crop.minScale;
+      state.crop.scale = clamp_(base * ratio, state.crop.minScale, state.crop.maxScale);
       clampCropPosition_();
+      syncCropZoomUI_();
       drawCrop_();
     });
+
+    el.cropMoveUp.addEventListener("click", ()=> nudgeCrop_(0, -NUDGE_STEP));
+    el.cropMoveDown.addEventListener("click", ()=> nudgeCrop_(0, NUDGE_STEP));
+    el.cropMoveLeft.addEventListener("click", ()=> nudgeCrop_(-NUDGE_STEP, 0));
+    el.cropMoveRight.addEventListener("click", ()=> nudgeCrop_(NUDGE_STEP, 0));
 
     el.cropReset.addEventListener("click", ()=>{
       if(!state.crop.open) return;
       resetCropTransform_();
+      syncCropZoomUI_();
       drawCrop_();
     });
 
@@ -584,11 +620,14 @@ import {
     if (el.premiumChips.parentElement) el.premiumChips.parentElement.style.opacity = isPremium ? "1" : ".42";
 
     if(isFree){
-      el.planHint.textContent = "自由搭配：5 色 × 3 版型 × 3 紙感，最多 2 張照片。";
+      el.planHint.textContent = "自由搭配：最多 2 張照片。";
+      if(el.styleHint) el.styleHint.textContent = "自由搭配：請完成顏色、版型、紙感。";
     }else if(isPremium){
-      el.planHint.textContent = "精品設計：7 款精品底色，最多 5 張照片。";
+      el.planHint.textContent = "精品設計：最多 5 張照片。";
+      if(el.styleHint) el.styleHint.textContent = "精品設計：請選擇 1 個精品底色。";
     }else{
       el.planHint.textContent = "請先選方案。";
+      if(el.styleHint) el.styleHint.textContent = "請先完成第 1 步，再到這裡選樣式。";
     }
   }
 
@@ -683,13 +722,13 @@ import {
       const file = document.createElement("input");
       file.type = "file";
       file.accept = "image/*";
-      file.disabled = disabled;
+      file.disabled = disabled || state.submitting || state.prefilling;
       file.addEventListener("change", async (ev)=>{
         const f = ev.target.files && ev.target.files[0];
         if(!f) return;
 
         if(disabled){
-          warnStatus_(`目前方案不包含 ${slot.label}`);
+          warnStatus_("目前方案不包含 " + slot.label);
           file.value = "";
           return;
         }
@@ -702,7 +741,7 @@ import {
       btnEdit.type = "button";
       btnEdit.className = "ghost";
       btnEdit.textContent = "調整位置";
-      btnEdit.disabled = !u || disabled;
+      btnEdit.disabled = !u || disabled || state.submitting || state.prefilling;
       btnEdit.addEventListener("click", async ()=>{
         const item = state.uploads[slot.key];
         if(!item || !item.sourceFile){
@@ -731,7 +770,7 @@ import {
       showProgress_(40, "正在回填表單…");
       hydrateFormFromItem_(data);
       showProgress_(100, "舊資料回填完成");
-      logStatus_(`已載入舊資料。\n名片 ID：${state.id}`);
+      logStatus_(`已載入舊資料。\n名片 ID：${state.id}`, "ok");
       el.dot.style.background = "var(--accent)";
     }catch(err){
       badStatus_("讀取舊資料失敗： " + String(err?.message || err));
@@ -912,8 +951,6 @@ import {
       el.btnNext.textContent = "下一步";
       el.btnNext.disabled = state.submitting || state.prefilling;
     }
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function validatePage_(pageIndex, opt = {}){
@@ -924,6 +961,9 @@ import {
         if(!silent) warnStatus_("請先選方案，再繼續下一步。");
         return false;
       }
+    }
+
+    if(pageIndex === 1){
       if(state.plan === "free"){
         if(!state.color || !state.style || !state.paper){
           if(!silent) warnStatus_("自由搭配請完成顏色、版型、紙感。");
@@ -938,7 +978,7 @@ import {
       }
     }
 
-    if(pageIndex === 4){
+    if(pageIndex === 6){
       if(state.mode === "update"){
         if(!state.sig){
           if(!silent) warnStatus_("更新模式缺少 sig，請重新使用更新連結進入。");
@@ -1056,9 +1096,11 @@ import {
       showProgress_(10, "正在測試連線…");
       const j = await gasPing_();
       showProgress_(100, "連線成功");
-      logStatus_("連線正常。\n" + JSON.stringify(j, null, 2));
+      logStatus_("連線正常。\n" + JSON.stringify(j, null, 2), "ok");
+      scrollSubmitArea_();
     }catch(err){
       badStatus_("連線失敗： " + String(err?.message || err));
+      scrollSubmitArea_();
     }finally{
       setTimeout(hideProgress_, 600);
       setBusy_(false);
@@ -1070,19 +1112,25 @@ import {
 
     if(Date.now() < state.submitLockedUntil){
       warnStatus_("系統正在保護這次送出，請不要連點，稍等一下再試。");
+      scrollSubmitArea_();
       return;
     }
 
-    const finalOk = validatePage_(0, { silent: false })
-      && validatePage_(4, { silent: false });
-
-    if(!finalOk) return;
+    for(let i = 0; i <= 6; i++){
+      const ok = validatePage_(i, { silent: false });
+      if(!ok){
+        state.page = i;
+        renderPage_();
+        return;
+      }
+    }
 
     const draftPayload = collectPayload_();
     const currentFingerprint = await fingerprintPayload_(draftPayload);
 
     if(state.lastSubmitFingerprint && state.lastSubmitFingerprint === currentFingerprint && Date.now() < state.submitLockedUntil){
       warnStatus_("偵測到剛剛送出的是同一份資料，先不要重複送出。");
+      scrollSubmitArea_();
       return;
     }
 
@@ -1115,6 +1163,7 @@ import {
       }
 
       showProgress_(10, "檢查資料中…");
+      scrollSubmitArea_();
 
       const payload = collectPayload_();
       payload.invite = state.invite || "";
@@ -1151,14 +1200,14 @@ import {
           el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
           logStatus_(
-            `✅ 已完成\n名片 ID：${created.id || state.id}\n` +
-            `invite：${state.invite || "無"}\n` +
+            `✅ 已完成\n名片 ID：${created.id || state.id}\ninvite：${state.invite || "無"}\n` +
             (created.duplicate ? "系統判定這筆資料已存在，沒有重複建立。\n" : "") +
-            "接下來可到後台查找名片。"
+            "接下來可到後台查找名片。",
+            "ok"
           );
         }else{
           el.dot.style.background = "var(--bad)";
-          logStatus_("送出完成，但回傳結果不是 ok。\n" + JSON.stringify(created, null, 2));
+          logStatus_("送出完成，但回傳結果不是 ok。\n" + JSON.stringify(created, null, 2), "bad");
         }
       }else{
         showProgress_(40, "正在處理圖片…");
@@ -1178,18 +1227,17 @@ import {
         if(updated && updated.ok){
           el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
-          logStatus_(
-            `✅ 更新成功\n名片 ID：${state.id}\ninvite：${state.invite || "無"}`
-          );
+          logStatus_(`✅ 更新成功\n名片 ID：${state.id}\ninvite：${state.invite || "無"}`, "ok");
         }else{
           el.dot.style.background = "var(--bad)";
-          logStatus_("更新完成，但回傳結果不是 ok。\n" + JSON.stringify(updated, null, 2));
+          logStatus_("更新完成，但回傳結果不是 ok。\n" + JSON.stringify(updated, null, 2), "bad");
         }
       }
     }catch(err){
       el.dot.style.background = "var(--bad)";
       badStatus_("送出失敗： " + String(err?.message || err));
     }finally{
+      scrollSubmitArea_();
       setTimeout(hideProgress_, 800);
       setBusy_(false);
       state.submitting = false;
@@ -1225,7 +1273,7 @@ import {
 
     hideProgress_();
     el.dot.style.background = "var(--warn)";
-    logStatus_("表單已重設。invite 參數仍保留在本次頁面流程中。");
+    logStatus_("表單已重設。invite 參數仍保留在本次頁面流程中。", "warn");
   }
 
   function collectPayload_(){
@@ -1313,6 +1361,7 @@ import {
       done++;
       const percent = 40 + Math.round((done / tasks.length) * 30);
       showProgress_(percent, `正在上傳圖片：${slot.label}`);
+      scrollSubmitArea_();
     }
 
     return out;
@@ -1334,7 +1383,7 @@ import {
     state.crop.dragging = false;
 
     el.cropTitle.textContent = `調整 ${slot.label} 位置`;
-    el.cropDesc.textContent = "可拖移位置，並用按鈕放大、縮小、重設後再套用。";
+    el.cropDesc.textContent = "可直接拖移，也可用左、右、上、下按鈕微調，再用滑桿縮放。";
     el.cropMeta.textContent = slot.key === "avatar"
       ? "目前是正方形安全框。"
       : slot.key === "logo"
@@ -1350,17 +1399,17 @@ import {
     setupCropCanvasSize_();
 
     if(restoreState){
-      state.crop.scale = restoreState.scale;
-      state.crop.x = restoreState.x;
-      state.crop.y = restoreState.y;
       state.crop.minScale = computeMinScale_();
       state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4);
-      state.crop.scale = clamp_(state.crop.scale, state.crop.minScale, state.crop.maxScale);
+      state.crop.scale = clamp_(restoreState.scale, state.crop.minScale, state.crop.maxScale);
+      state.crop.x = restoreState.x;
+      state.crop.y = restoreState.y;
       clampCropPosition_();
     }else{
       resetCropTransform_();
     }
 
+    syncCropZoomUI_();
     drawCrop_();
   }
 
@@ -1482,7 +1531,7 @@ import {
     closeCropModal_();
     renderUploads_();
     updateSummary_();
-    logStatus_(`已套用 ${slot.label} 圖片位置。`);
+    logStatus_(`已套用 ${slot.label} 圖片位置。`, "ok");
   }
 
   async function exportCropBlob_(longSide, quality){
@@ -1561,12 +1610,13 @@ import {
     if(el.btnNext) el.btnNext.disabled = disabled || state.page === PAGE_TOTAL - 1;
 
     document.querySelectorAll("input, textarea, button").forEach(node=>{
-      if(node.id === "gas" || node.type === "hidden") return;
+      if(node.id === "gas" || node.type === "hidden" || node.type === "range") return;
       if(
         node === el.btnPrev || node === el.btnNext || node === el.btnTest ||
         node === el.btnSubmit || node === el.btnReset ||
         node === el.cropZoomOut || node === el.cropZoomIn || node === el.cropReset ||
-        node === el.cropCancel || node === el.cropApply
+        node === el.cropCancel || node === el.cropApply ||
+        node === el.cropMoveUp || node === el.cropMoveDown || node === el.cropMoveLeft || node === el.cropMoveRight
       ){
         return;
       }
@@ -1578,6 +1628,10 @@ import {
         }
       }
     });
+
+    if(el.cropZoomRange){
+      el.cropZoomRange.disabled = disabled;
+    }
 
     renderUploads_();
     renderPage_();
@@ -1599,16 +1653,20 @@ import {
     el.submitProgressText.textContent = "";
   }
 
-  function logStatus_(txt){
+  function logStatus_(txt, type = "normal"){
+    el.status.classList.remove("ok", "bad", "warn");
+    if(type === "ok") el.status.classList.add("ok");
+    if(type === "bad") el.status.classList.add("bad");
+    if(type === "warn") el.status.classList.add("warn");
     el.status.textContent = String(txt || "");
   }
 
   function warnStatus_(txt){
-    el.status.textContent = "⚠️ " + String(txt || "");
+    logStatus_("⚠️ " + String(txt || ""), "warn");
   }
 
   function badStatus_(txt){
-    el.status.textContent = "❌ " + String(txt || "");
+    logStatus_("❌ " + String(txt || ""), "bad");
   }
 
   function safeText_(v){
@@ -1654,4 +1712,34 @@ import {
   function nextFrame_(){
     return new Promise(resolve => requestAnimationFrame(() => resolve()));
   }
+
+  function scrollSubmitArea_(){
+    try{
+      el.submitProgressWrap.scrollIntoView({ behavior: "smooth", block: "center" });
+    }catch(_){}
+  }
+
+  function adjustCropScale_(delta){
+    state.crop.scale = Math.min(state.crop.maxScale, Math.max(state.crop.minScale, state.crop.scale + delta));
+    clampCropPosition_();
+    syncCropZoomUI_();
+    drawCrop_();
+  }
+
+  function syncCropZoomUI_(){
+    if(!el.cropZoomRange || !el.cropZoomValue) return;
+    const base = state.crop.minScale || 1;
+    const ratio = Math.round((state.crop.scale / base) * 100);
+    el.cropZoomRange.value = String(clamp_(ratio, 100, 400));
+    el.cropZoomValue.textContent = `${clamp_(ratio, 100, 400)}%`;
+  }
+
+  function nudgeCrop_(dx, dy){
+    if(!state.crop.open) return;
+    state.crop.x += dx;
+    state.crop.y += dy;
+    clampCropPosition_();
+    drawCrop_();
+  }
+
 })();
