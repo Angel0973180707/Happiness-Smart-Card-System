@@ -1,8 +1,9 @@
 <!-- ================================
-     index.html v522.2 (COMPLETE OVERWRITE)
+     index.html v522.3 (COMPLETE OVERWRITE)
      FRONT + CLEAN DELIVERY MODE + INVITE GATE
 
-     ✅ Front (門面): always force DEMO_ID (TW0001) for preview (unless admin=1)
+     ✅ Front (門面): only use DEMO_ID (TW0001) when URL has NO id
+     ✅ If URL already has id, KEEP that id (fix preview/card linkage)
      ✅ Clean (成品): ?view=1 / ?clean=1 → hide控制面板 + keep share FAB
      ✅ Share: always share clean URL (force view=1) via app.js (with fallback here)
 
@@ -12,7 +13,7 @@
         - 產品特色說明：modal
         - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
      ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=522.2&invite=XXXX
+        - Front: click 開通 → ask invite code → open ./form.html?v=522.3&invite=XXXX
         - Clean mode: no form entry
 
      ✅ Brand facade:
@@ -26,13 +27,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片 v522.2</title>
+  <title>天使幸福智慧名片 v522.3</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=522.2" />
+  <link rel="manifest" href="./manifest.json?v=522.3" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.2" />
-  <link rel="icon" href="./icons/icon-192.png?v=522.2" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.3" />
+  <link rel="icon" href="./icons/icon-192.png?v=522.3" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -43,13 +44,13 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片" />
   <meta property="og:description" content="智慧名片訂製服務｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=522.2" />
+  <meta property="og:image" content="og-card.png?v=522.3" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <link rel="stylesheet" href="./style.css?v=522.2" />
+  <link rel="stylesheet" href="./style.css?v=522.3" />
 
   <style>
     /* CTA visibility guard (include *2 IDs) */
@@ -61,7 +62,7 @@
       pointer-events:auto !important;
     }
 
-    /* v522.2: force-hide top private line CTA (private line moved to contactDock) */
+    /* v522.3: force-hide top private line CTA (private line moved to contactDock) */
     #btnLinePrivateCta,#btnLinePrivateCta2{
       display:none !important;
       visibility:hidden !important;
@@ -273,7 +274,10 @@
     body.clean #cleanShareFab{ z-index: 2147483500; }
   </style>
 
-  <!-- ✅ Force DEMO front id BEFORE app.js runs -->
+  <!-- ✅ Front demo id logic fixed:
+       - only inject DEMO_ID when URL has NO id
+       - if URL already has id, KEEP it
+  -->
   <script>
     (function(){
       "use strict";
@@ -291,7 +295,8 @@
       }
 
       if (!isClean && !isAdmin) {
-        if ((sp.get("id") || "").trim() !== DEMO_ID) {
+        var currentId = (sp.get("id") || "").trim();
+        if (!currentId) {
           sp.set("id", DEMO_ID);
           try { history.replaceState({}, "", location.pathname + "?" + sp.toString()); } catch(e) {}
         }
@@ -465,7 +470,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v522.2</div>
+        <div class="version-tag" id="versionTag">v522.3</div>
       </div>
     </section>
   </main>
@@ -488,7 +493,7 @@
           <b>一鍵分享</b>：連結可分享、可作為「名片入口」聚合你的聯絡方式／社群／作品。
         </div>
         <div class="k">
-          <b>安全開通</b>：表單採「邀請碼」制，需由後台發放，避免公開被濫用。
+          <b>安全開通</b>：表單採邀請碼制，需由後台發放，避免公開被濫用。
         </div>
       </div>
     </div>
@@ -523,7 +528,7 @@
     (function(){
       "use strict";
 
-      var VERSION = "522.2";
+      var VERSION = "522.3";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
 
       function qs(id){ return document.getElementById(id); }
@@ -533,7 +538,6 @@
         return (p.get("view")==="1") || (p.get("clean")==="1");
       }
 
-      // ===== Scroll lock helpers (iOS friendly) =====
       var __scrollTop = 0;
       function lockScroll(){
         try{
@@ -560,7 +564,6 @@
         }catch(e){}
       }
 
-      // ===== Clean UI =====
       function applyCleanUI(){
         if(!isClean()) return;
         document.body.classList.add("clean");
@@ -572,7 +575,6 @@
         if(fab) fab.style.display = "flex";
       }
 
-      // ===== Share fallback (force view=1) =====
       function buildCleanShareUrlFallback(){
         try{
           if(typeof window.__getCleanShareUrl === "function"){
@@ -621,7 +623,6 @@
         }, true);
       }
 
-      // Clean share FAB
       (function(){
         var fab = qs("cleanShareFab");
         if(!fab) return;
@@ -637,7 +638,6 @@
         }, {passive:true});
       })();
 
-      // ===== LINE OA CTA (app.js will override in capture if present) =====
       function bindLineOa(){
         function openOA(){
           try{ window.open(LINE_OA_URL, "_blank", "noopener"); }
@@ -649,7 +649,6 @@
         });
       }
 
-      // ===== Feature modal =====
       function bindFeature(){
         var mask = qs("featureMask");
         var close = qs("featureCloseBtn");
@@ -678,7 +677,6 @@
         });
       }
 
-      // ===== Invite Gate =====
       function normalizeInvite(code){
         return (code || "")
           .replace(/\u3000/g, " ")
@@ -732,7 +730,6 @@
         });
       }
 
-      // ===== Admin hidden entry (disabled in clean) =====
       (function adminEntry(){
         if(isClean()) return;
         var hot = qs("adminHotspotBR");
@@ -786,7 +783,6 @@
         }, {passive:true});
       })();
 
-      // ===== Plan fallback (if app.js doesn't expose setPlan) =====
       function bindPlanFallback(){
         if(typeof window.setPlan === "function") return;
 
@@ -825,7 +821,6 @@
         }, {passive:false});
       }
 
-      // ===== Boot =====
       function boot(){
         applyCleanUI();
         bindLineOa();
