@@ -5,7 +5,306 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>HSC Admin Workspace v521.6</title>
   <meta name="theme-color" content="#0f172a" />
-  <link rel="stylesheet" href="./admin.css?v=5216" />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#121a2b;
+      --line:rgba(255,255,255,.10);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.68);
+      --accent:#7bdcff;
+      --ok:#8cffc1;
+      --warn:#ffd36e;
+      --danger:#ff9aa2;
+      --soft:rgba(255,255,255,.06);
+      --shadow:0 18px 44px rgba(0,0,0,.34);
+      --r:18px;
+      --r2:14px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,"Helvetica Neue",Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%),
+        var(--bg);
+    }
+
+    .wrap{
+      width:min(1080px, 100%);
+      margin:0 auto;
+      padding:18px 14px 40px;
+    }
+
+    .top{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .h1{
+      font-size:22px;
+      font-weight:900;
+      letter-spacing:.4px;
+    }
+
+    .sub{
+      margin-top:6px;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.6;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:7px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+    }
+
+    .mono{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+
+    @media(min-width:960px){
+      .grid{
+        grid-template-columns:1.05fr .95fr;
+      }
+    }
+
+    .card{
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      padding:14px;
+      box-shadow:var(--shadow);
+    }
+
+    .card h2{
+      margin:0 0 12px;
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+
+    .sectionNo{
+      color:rgba(255,255,255,.95);
+      margin-right:6px;
+    }
+
+    .sectionHint{
+      margin-top:2px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+    }
+
+    label{
+      display:block;
+      margin:0 0 6px;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+    }
+
+    input, textarea, select{
+      width:100%;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.18);
+      color:var(--text);
+      outline:none;
+      font-size:16px;
+    }
+
+    textarea{
+      min-height:88px;
+      resize:vertical;
+    }
+
+    input::placeholder, textarea::placeholder{
+      color:rgba(255,255,255,.38);
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .row > *{
+      flex:1 1 220px;
+    }
+
+    .btnRow{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    .btn{
+      appearance:none;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.08);
+      color:var(--text);
+      padding:12px 14px;
+      border-radius:14px;
+      cursor:pointer;
+      font-weight:900;
+      font-size:16px;
+      letter-spacing:.2px;
+      -webkit-tap-highlight-color: transparent;
+      user-select:none;
+    }
+
+    .btn.primary{
+      border-color:rgba(123,220,255,.38);
+      background:rgba(123,220,255,.16);
+    }
+
+    .btn.secondary{
+      background:rgba(255,255,255,.05);
+    }
+
+    .btn:active{
+      transform:translateY(1px);
+    }
+
+    .btn[disabled]{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .statGrid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:10px;
+    }
+
+    @media(min-width:560px){
+      .statGrid{
+        grid-template-columns:repeat(4,1fr);
+      }
+    }
+
+    .stat{
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.16);
+      border-radius:14px;
+      padding:12px;
+      min-height:76px;
+    }
+
+    .stat .k{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:900;
+    }
+
+    .stat .v{
+      margin-top:8px;
+      font-size:24px;
+      font-weight:1000;
+      letter-spacing:.2px;
+    }
+
+    .fieldBlock{
+      margin-top:12px;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+    }
+
+    .hint{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.6;
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .item{
+      padding:12px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(0,0,0,.18);
+    }
+
+    .item strong{
+      display:block;
+      font-size:16px;
+      line-height:1.4;
+    }
+
+    .item small{
+      display:block;
+      margin-top:6px;
+      color:var(--muted);
+      line-height:1.6;
+      font-size:12px;
+    }
+
+    .item .actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:10px;
+    }
+
+    .statusBox{
+      margin-top:14px;
+      border:1px dashed rgba(255,255,255,.14);
+      border-radius:16px;
+      padding:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:rgba(255,255,255,.03);
+    }
+
+    .ok{ color:var(--ok); }
+    .warn{ color:var(--warn); }
+    .danger{ color:var(--danger); }
+
+    .divider{
+      height:1px;
+      background:rgba(255,255,255,.08);
+      margin:14px 0;
+    }
+
+    .small{
+      font-size:12px;
+    }
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -13,216 +312,167 @@
       <div>
         <div class="h1">HSC Admin Workspace <span class="pill">v521.6</span></div>
         <div class="sub">
-          客服工作台｜發邀請碼・查找名片發更新連結・交付卡・統計排行・名片管理
+          先把主幹整理成最常用的 5 件事：發邀請碼、查找名片、發更新連結、發交付卡、看統計。<br/>
+          這版先以「好操作、看得懂、可直接複製」為優先。
         </div>
       </div>
       <div class="pill mono" id="statusPill">ready</div>
     </div>
 
-    <!-- 統計總覽 -->
-    <section class="panel">
-      <div class="panelHead">
-        <div class="panelTitle">系統總覽</div>
-        <div class="row">
-          <button class="btn" id="btnStats">刷新統計</button>
-        </div>
-      </div>
-
-      <div class="statGrid" aria-label="stats">
-        <div class="stat"><div class="k">總名片數</div><div class="v mono" id="stTotal">—</div></div>
-        <div class="stat"><div class="k">本月新增</div><div class="v mono" id="stMonthNew">—</div></div>
-        <div class="stat"><div class="k">活躍名片</div><div class="v mono" id="stActive">—</div></div>
-        <div class="stat"><div class="k">過期名片</div><div class="v mono" id="stExpired">—</div></div>
-      </div>
-    </section>
-
     <div class="grid">
       <!-- LEFT -->
-      <div class="col">
-        <!-- 發邀請碼 -->
-        <section class="panel">
-          <div class="panelHead">
-            <div class="panelTitle">1. 發邀請碼</div>
+      <div class="card">
+        <h2><span class="sectionNo">0.</span>系統設定</h2>
+
+        <div class="row">
+          <div>
+            <label>GAS Exec URL</label>
+            <input id="gasUrl" class="mono" placeholder="貼上你的 GAS /exec" />
           </div>
-
-          <div class="row">
-            <button class="btn primary" id="btnMakeFill">產生邀請碼</button>
-            <button class="btn" id="btnCopyInviteOnly" disabled>複製邀請碼</button>
-            <button class="btn" id="btnCopyFillOnly" disabled>複製填表連結</button>
+          <div>
+            <label>ADMIN_SECRET</label>
+            <input id="adminSecret" class="mono" placeholder="輸入 ADMIN_SECRET" />
           </div>
+        </div>
 
-          <div style="height:12px"></div>
+        <div class="hint">
+          這兩項只要設好一次即可。之後會自動記住。
+        </div>
 
+        <div class="divider"></div>
+
+        <h2><span class="sectionNo">1.</span>發邀請碼</h2>
+        <div class="sectionHint">
+          給新客戶用。你按一次，會同時拿到：邀請碼、直接填表連結、門面連結。
+        </div>
+
+        <div class="btnRow">
+          <button class="btn primary" id="btnCreateInvite" type="button">產生邀請碼</button>
+          <button class="btn secondary" id="btnCopyInvite" type="button" disabled>複製邀請碼</button>
+          <button class="btn secondary" id="btnCopyFormLink" type="button" disabled>複製填表連結</button>
+          <button class="btn secondary" id="btnCopyFacadeLink" type="button" disabled>複製門面連結</button>
+        </div>
+
+        <div class="fieldBlock">
           <label>邀請碼</label>
-          <input id="inviteCode" class="mono" readonly placeholder="產生後顯示在這裡" />
+          <input id="inviteCode" class="mono" readonly placeholder="按上方按鈕產生" />
 
-          <div style="height:10px"></div>
+          <div style="height:10px;"></div>
 
           <label>填表連結（7 天有效）</label>
-          <input id="fillLink" class="mono" readonly placeholder="產生後顯示在這裡" />
+          <input id="formLink" class="mono" readonly placeholder="產生後會顯示在這裡" />
 
-          <div class="note">
-            給新客戶用。日常操作只看「邀請碼」與「填表連結」，不用理會 sig。
+          <div style="height:10px;"></div>
+
+          <label>門面連結（客戶可先到門面，再輸入邀請碼）</label>
+          <input id="facadeLink" class="mono" readonly placeholder="產生後會顯示在這裡" />
+
+          <div class="hint">
+            日常最快的做法：直接複製「填表連結」貼給客戶。<br/>
+            如果你想讓客戶先到門面，再輸入邀請碼，就用「門面連結」。
           </div>
-        </section>
+        </div>
 
-        <!-- 查找名片 / 更新連結 -->
-        <section class="panel">
-          <div class="panelHead">
-            <div class="panelTitle">2. 查找名片／發更新連結</div>
+        <div class="divider"></div>
+
+        <h2><span class="sectionNo">2.</span>查找名片</h2>
+        <div class="sectionHint">
+          可輸入：姓名、姓名 + 電話末 3 碼、姓名 + 關鍵字。
+        </div>
+
+        <div class="row">
+          <div>
+            <label>查找條件</label>
+            <textarea id="customerMsg" placeholder="例：王小明 123&#10;例：王小明 館長&#10;例：王小明 幸福智慧名片館"></textarea>
           </div>
+        </div>
 
-          <label>客戶訊息（姓名＋手機末3碼 / 職稱 / 單位）</label>
-          <textarea id="customerMsg" placeholder="例：王小明 123｜王小明 館長｜王小明 幸福智慧名片館"></textarea>
+        <div class="btnRow">
+          <button class="btn primary" id="btnFind" type="button">查找名片</button>
+          <button class="btn secondary" id="btnMakeUpdate" type="button" disabled>產生更新連結</button>
+          <button class="btn secondary" id="btnCopyUpdate" type="button" disabled>複製更新連結</button>
+        </div>
 
-          <div style="height:10px"></div>
-
-          <div class="row">
-            <button class="btn primary" id="btnFind">查找名片</button>
-            <button class="btn" id="btnMakeUpdate" disabled>產生更新連結</button>
-            <button class="btn" id="btnCopyUpdate" disabled>複製更新連結</button>
-          </div>
-
-          <div style="height:12px"></div>
-
+        <div class="fieldBlock">
           <label>更新連結（7 天有效）</label>
-          <input id="updateLink" class="mono" readonly placeholder="選到名片後可產生" />
+          <input id="updateLink" class="mono" readonly placeholder="查到名片後，這裡會顯示更新連結" />
 
-          <div class="note">
-            更新連結只給該客戶使用，勿轉傳。
+          <div class="hint">
+            更新連結只給客戶本人修改資料用，不建議公開轉傳。
           </div>
+        </div>
 
-          <div class="subHead">查找結果</div>
-          <div class="list" id="resultList"></div>
-        </section>
-
-        <!-- 熱門排行 -->
-        <section class="panel">
-          <div class="panelHead">
-            <div class="panelTitle">4. 名片統計／排行</div>
-          </div>
-
-          <div class="rankList" id="rankList">
-            <div class="rankEmpty">按「刷新統計」後顯示熱門名片排行</div>
-          </div>
-
-          <div class="note">
-            基本款先看訪問次數排行，企業版再擴充更多來源統計。
-          </div>
-        </section>
+        <div class="list" id="resultList"></div>
       </div>
 
       <!-- RIGHT -->
-      <div class="col">
-        <!-- 交付卡 -->
-        <section class="panel">
-          <div class="panelHead">
-            <div class="panelTitle">3. 發交付卡</div>
+      <div class="card">
+        <h2><span class="sectionNo">3.</span>交付卡 / 成品連結</h2>
+        <div class="sectionHint">
+          選到名片後，這裡會自動帶出交付用連結。
+        </div>
+
+        <div class="fieldBlock">
+          <label>智慧名片成品（乾淨版）</label>
+          <input id="cardLink" class="mono" readonly placeholder="index.html?id=TWxxxx&view=1" />
+
+          <div style="height:8px;"></div>
+
+          <label>交付卡（主交付）</label>
+          <input id="shareLink" class="mono" readonly placeholder="share.html?id=TWxxxx" />
+
+          <div style="height:8px;"></div>
+
+          <label>微信長圖（加購才交付）</label>
+          <input id="wechatLink" class="mono" readonly placeholder="wechat.html?id=TWxxxx" />
+
+          <div style="height:12px;"></div>
+
+          <div class="btnRow">
+            <button class="btn secondary" id="btnCopyCard" type="button" disabled>複製成品連結</button>
+            <button class="btn primary" id="btnCopyShare" type="button" disabled>複製交付卡</button>
+            <button class="btn secondary" id="btnCopyWeChat" type="button" disabled>複製微信連結</button>
           </div>
+        </div>
 
-          <div class="metaBox">
-            <div class="metaGrid">
-              <div class="k">ID</div><div class="v mono" id="selectedId">—</div>
-              <div class="k">姓名</div><div class="v" id="selectedName">—</div>
-              <div class="k">狀態</div><div class="v" id="selectedStatus">—</div>
-              <div class="k">邀請碼</div><div class="v mono" id="selectedInviteCode">—</div>
-            </div>
+        <div class="divider"></div>
+
+        <h2><span class="sectionNo">4.</span>名片統計</h2>
+
+        <div class="btnRow">
+          <button class="btn primary" id="btnStats" type="button">刷新統計</button>
+        </div>
+
+        <div class="statGrid" style="margin-top:12px;">
+          <div class="stat">
+            <div class="k">總名片數</div>
+            <div class="v mono" id="stTotal">—</div>
           </div>
-
-          <div style="height:12px"></div>
-
-          <label>交付卡連結（主交付）</label>
-          <input id="shareLink" class="mono" readonly placeholder="share.html?id=..." />
-
-          <div style="height:8px"></div>
-
-          <label>智慧名片連結（客服預覽）</label>
-          <input id="cardLink" class="mono" readonly placeholder="index.html?id=...&view=1" />
-
-          <div style="height:8px"></div>
-
-          <label>微信長圖連結（加購用）</label>
-          <input id="wechatLink" class="mono" readonly placeholder="wechat.html?id=..." />
-
-          <div style="height:10px"></div>
-
-          <div class="row">
-            <button class="btn primary" id="btnCopyShare" disabled>複製交付卡連結</button>
-            <button class="btn" id="btnCopyCard" disabled>複製智慧名片連結</button>
-            <button class="btn" id="btnCopyWeChat" disabled>複製微信連結</button>
+          <div class="stat">
+            <div class="k">本月新增</div>
+            <div class="v mono" id="stMonthNew">—</div>
           </div>
-
-          <div class="note">
-            客戶只拿「交付卡連結」。主交付固定是 <span class="mono">share.html?id=...</span>
+          <div class="stat">
+            <div class="k">活躍名片</div>
+            <div class="v mono" id="stActive">—</div>
           </div>
-        </section>
-
-        <!-- 名片管理 -->
-        <section class="panel">
-          <div class="panelHead">
-            <div class="panelTitle">5. 名片管理</div>
+          <div class="stat">
+            <div class="k">過期名片</div>
+            <div class="v mono" id="stExpired">—</div>
           </div>
+        </div>
 
-          <div class="metaBox">
-            <div class="metaGrid">
-              <div class="k">訪問次數</div><div class="v mono" id="selectedViewCount">—</div>
-              <div class="k">最後訪問</div><div class="v mono" id="selectedLastViewAt">—</div>
-              <div class="k">微信加購</div><div class="v mono" id="wxStateText">—</div>
-              <div class="k">到期時間</div><div class="v mono" id="selectedExpiresAt">—</div>
-            </div>
-          </div>
+        <div class="divider"></div>
 
-          <div style="height:12px"></div>
+        <h2><span class="sectionNo">5.</span>名片管理（下一步接）</h2>
+        <div class="sectionHint">
+          這區下一輪接：開通 / 停用 / 即將到期 / 到期提醒 / 排行。<br/>
+          這一輪先把「邀請碼 → 填表 → 更新 → 交付」主流程打穩。
+        </div>
 
-          <div class="subHead">狀態管理</div>
-          <div class="row">
-            <button class="btn" id="btnSetActive" disabled>設為 active</button>
-            <button class="btn" id="btnSetInactive" disabled>設為 inactive</button>
-            <button class="btn" id="btnCopyInvite" disabled>複製邀請碼</button>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <div class="subHead">微信長圖加購</div>
-          <div class="row">
-            <button class="btn" id="btnWechatOff" disabled>未加購（0）</button>
-            <button class="btn primary" id="btnWechatOn" disabled>已加購（1）</button>
-          </div>
-
-          <div class="note">
-            這一輪以 <span class="mono">wechat_poster = 0 / 1</span> 定義是否交付微信長圖。
-          </div>
-        </section>
-
-        <!-- 工程設定（收合） -->
-        <section class="panel">
-          <details class="devBox">
-            <summary>工程設定</summary>
-
-            <div style="height:12px"></div>
-
-            <label>GAS Exec URL</label>
-            <input id="gasUrl" class="mono" placeholder="貼上你的 GAS /exec" />
-
-            <div style="height:10px"></div>
-
-            <label>BASE URL</label>
-            <input id="baseUrl" class="mono" placeholder="https://angel0973180707.github.io/Happiness-Smart-Card-System/" />
-
-            <div style="height:10px"></div>
-
-            <label>ADMIN_SECRET</label>
-            <input id="adminSecret" class="mono" placeholder="輸入 ADMIN_SECRET" />
-
-            <div class="note">
-              平常不用打開。只有調整環境或測試時才用。
-            </div>
-          </details>
-        </section>
+        <div class="statusBox" id="statusBox">尚未操作。</div>
       </div>
     </div>
-
-    <div class="toast" id="toast"></div>
   </div>
 
   <script defer src="./admin.js?v=5216"></script>
