@@ -1,5 +1,5 @@
 <!-- ================================
-     index.html v521.5 (COMPLETE OVERWRITE)
+     index.html v522.2 (COMPLETE OVERWRITE)
      FRONT + CLEAN DELIVERY MODE + INVITE GATE
 
      ✅ Front (門面): always force DEMO_ID (TW0001) for preview (unless admin=1)
@@ -12,7 +12,7 @@
         - 產品特色說明：modal
         - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
      ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=521.5&invite=XXXX
+        - Front: click 開通 → ask invite code → open ./form.html?v=522.2&invite=XXXX
         - Clean mode: no form entry
 
      ✅ Brand facade:
@@ -26,13 +26,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片 v521.5</title>
+  <title>天使幸福智慧名片 v522.2</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=521.5" />
+  <link rel="manifest" href="./manifest.json?v=522.2" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=521.5" />
-  <link rel="icon" href="./icons/icon-192.png?v=521.5" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.2" />
+  <link rel="icon" href="./icons/icon-192.png?v=522.2" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -43,13 +43,13 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片" />
   <meta property="og:description" content="智慧名片訂製服務｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=521.5" />
+  <meta property="og:image" content="og-card.png?v=522.2" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <link rel="stylesheet" href="./style.css?v=521.5" />
+  <link rel="stylesheet" href="./style.css?v=522.2" />
 
   <style>
     /* CTA visibility guard (include *2 IDs) */
@@ -61,7 +61,7 @@
       pointer-events:auto !important;
     }
 
-    /* v521.5: force-hide top private line CTA (private line moved to contactDock) */
+    /* v522.2: force-hide top private line CTA (private line moved to contactDock) */
     #btnLinePrivateCta,#btnLinePrivateCta2{
       display:none !important;
       visibility:hidden !important;
@@ -99,7 +99,7 @@
       -webkit-backdrop-filter: blur(12px);
       box-shadow: 0 18px 42px rgba(0,0,0,0.40);
       color: rgba(255,255,255,0.92);
-      display: none; /* only in clean mode */
+      display: none;
       align-items: center;
       justify-content: center;
       cursor: pointer;
@@ -268,10 +268,7 @@
       font-weight: 800;
     }
 
-    /* clean mode: hide panel always */
     body.clean #admin-panel{ display:none !important; }
-
-    /* extra safety: clean mode ensure FAB always above */
     body.clean #card-container{ position: relative; z-index: 1; }
     body.clean #cleanShareFab{ z-index: 2147483500; }
   </style>
@@ -357,7 +354,6 @@
           <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-3', this)">霧灰</button>
         </div>
 
-        <!-- ✅ CTAs -->
         <button class="btn-cta subtle" id="btnLineOaCta" type="button">
           <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
         </button>
@@ -371,7 +367,6 @@
           <i class="fa-solid fa-circle-info"></i> 產品特色說明
         </button>
 
-        <!-- ✅ Invite gate -->
         <button class="btn-cta subtle" id="btnInviteGate" type="button">
           <i class="fa-solid fa-key"></i> 請聯繫客服開通
         </button>
@@ -470,7 +465,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v521.5</div>
+        <div class="version-tag" id="versionTag">v522.2</div>
       </div>
     </section>
   </main>
@@ -522,13 +517,13 @@
   </div>
 
   <!-- Load app.js -->
-  <script src="./app.js?v=521.5"></script>
+  <script src="./app.js?v=522.2"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "521.5";
+      var VERSION = "522.2";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
 
       function qs(id){ return document.getElementById(id); }
@@ -587,7 +582,7 @@
         try{
           var u = new URL(location.href);
           if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
-          u.searchParams.delete("clean"); // canonical: view=1
+          u.searchParams.delete("clean");
           return u.toString();
         }catch(e){
           var url = location.href;
@@ -839,7 +834,6 @@
         bindShareFallback();
         bindPlanFallback();
 
-        // keep CTA visible (except private line buttons forced hidden)
         setTimeout(function(){
           [
             "btnLineOaCta","btnFeature","btnInviteGate","btnShare",
