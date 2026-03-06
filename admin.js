@@ -1,20 +1,19 @@
 /* ==========================================
- * Happiness Smart Card System — admin.js v521.5 (COMPLETE OVERWRITE)
+ * Happiness Smart Card System — admin.js v521.6 (COMPLETE OVERWRITE)
  *
- * v521.5 goals:
- * ✅ share.html = 唯一主交付連結
- * ✅ 顯示 / 複製 invite_code
- * ✅ 切換 wechat_poster = 0 / 1
- * ✅ 可切 active / inactive
- * ✅ 右側完整顯示：交付卡 / 智慧名片 / 微信
- * ✅ 相容多版 GAS：adminCard / adminGet / card
- * ✅ GET only
+ * v521.6:
+ * ✅ 客服工作台版面流程
+ * ✅ 發邀請碼 / 複製填表連結
+ * ✅ 姓名+手機末3碼查找
+ * ✅ 交付卡主連結 = share.html?id=...
+ * ✅ 名片管理：status / wechat_poster
+ * ✅ 統計排行（若 GAS 回傳 items/cards 含 view_count）
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "521.5";
+  const VERSION = "521.6";
 
   const DEFAULTS = {
     GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
@@ -33,7 +32,8 @@
   const state = {
     selectedCard: null,
     selectedId: "",
-    selectedToken: ""
+    selectedToken: "",
+    statsCache: null
   };
 
   function normalizeId(raw) {
@@ -161,22 +161,13 @@
   }
 
   function parseCardsFromResponse(j) {
-    const arr =
-      j.cards ||
-      j.items ||
-      j.data ||
-      j.results ||
-      [];
-
+    const arr = j.cards || j.items || j.data || j.results || [];
     if (Array.isArray(arr)) return arr;
-
     if (j.item && typeof j.item === "object") return [j.item];
-
     return [];
   }
 
   async function apiFindCards(cfg, { q, admin_secret }) {
-    // 先試專用 action，再降級
     const attempt = await tryActions(
       cfg,
       ["adminSearch", "searchCards", "adminFind", "findCards"],
@@ -208,7 +199,6 @@
   }
 
   async function apiSetWeChatPoster(cfg, { id, value, token, admin_secret }) {
-    // 假設 GAS 有 update / adminUpdate；若沒有，下一輪補 GAS
     const attempt = await tryActions(
       cfg,
       ["adminUpdate", "updateCard", "setField"],
@@ -244,6 +234,36 @@
     return attempt.json;
   }
 
+  function renderRankList(items) {
+    const box = $("rankList");
+    box.innerHTML = "";
+
+    if (!items || !items.length) {
+      box.innerHTML = `<div class="rankEmpty">目前沒有排行資料</div>`;
+      return;
+    }
+
+    items.slice(0, 10).forEach((item, idx) => {
+      const id = normalizeId(pick(item, ["id"], ""));
+      const name = pick(item, ["name", "姓名"], "（未填姓名）");
+      const title = pick(item, ["title"], "");
+      const unit = pick(item, ["unit"], "");
+      const count = pick(item, ["view_count"], "0");
+
+      const row = document.createElement("div");
+      row.className = "rankItem";
+      row.innerHTML = `
+        <div class="rankNo">#${idx + 1}</div>
+        <div class="rankMain">
+          <div class="rankName">${name}</div>
+          <div class="rankMeta">${[id, title || unit].filter(Boolean).join("｜")}</div>
+        </div>
+        <div class="rankCount mono">${count}</div>
+      `;
+      box.appendChild(row);
+    });
+  }
+
   function setSelectedCard(card) {
     state.selectedCard = card || null;
     state.selectedId = normalizeId(pick(card, ["id"], ""));
@@ -254,8 +274,12 @@
     safeText($("selectedStatus"), pick(card, ["status", "狀態"], "—") || "—");
     safeText($("selectedInviteCode"), pick(card, ["invite_code", "invite"], "—") || "—");
 
+    safeText($("selectedViewCount"), pick(card, ["view_count"], "—") || "—");
+    safeText($("selectedLastViewAt"), pick(card, ["last_view_at"], "—") || "—");
+    safeText($("selectedExpiresAt"), pick(card, ["expires_at"], "—") || "—");
+
     const wx = pick(card, ["wechat_poster"], "");
-    safeText($("wxStateText"), "目前：" + (wx === "" ? "—" : String(wx)));
+    safeText($("wxStateText"), wx === "" ? "—" : String(wx));
 
     const cfg = loadCfg();
     if (state.selectedId) {
@@ -289,7 +313,7 @@
     box.innerHTML = "";
 
     if (!cards || !cards.length) {
-      box.innerHTML = `<div class="item"><strong>查無結果</strong><small>請換關鍵字再試。</small></div>`;
+      box.innerHTML = `<div class="item"><strong>查無結果</strong><small>請試：姓名＋手機末3碼，例如「王小明 123」</small></div>`;
       return;
     }
 
@@ -298,16 +322,18 @@
       const name = pick(card, ["name", "姓名"], "（未填姓名）");
       const title = pick(card, ["title", "職稱"], "");
       const unit = pick(card, ["unit", "單位"], "");
+      const phone = pick(card, ["phone"], "");
       const status = pick(card, ["status", "狀態"], "");
       const inviteCode = pick(card, ["invite_code", "invite"], "");
       const wx = pick(card, ["wechat_poster"], "");
+      const viewCount = pick(card, ["view_count"], "");
 
       const item = document.createElement("div");
       item.className = "item";
       item.innerHTML = `
         <strong>${name} <span class="mono">${id || ""}</span></strong>
         <small>${[title, unit].filter(Boolean).join("｜") || "—"}</small>
-        <small>狀態：${status || "—"}｜邀請碼：${inviteCode || "—"}｜微信加購：${wx === "" ? "—" : wx}</small>
+        <small>電話：${phone || "—"}｜狀態：${status || "—"}｜邀請碼：${inviteCode || "—"}｜微信：${wx || "0"}｜訪問：${viewCount || "0"}</small>
         <div class="actions">
           <button class="btn btnPick">選這筆</button>
         </div>
@@ -335,7 +361,7 @@
     const q = getVal($("customerMsg"));
     const adminSecret = getVal($("adminSecret"));
 
-    if (!q) return toast("請先貼上客戶訊息");
+    if (!q) return toast("請先輸入查找條件");
 
     toast("查找中…");
     try {
@@ -355,10 +381,19 @@
     toast("刷新統計中…");
     try {
       const j = await apiStats(cfg, { admin_secret: adminSecret });
+
       safeText($("stTotal"), pick(j, ["total", "total_cards"], "—"));
       safeText($("stMonthNew"), pick(j, ["month_new", "new_this_month"], "—"));
       safeText($("stActive"), pick(j, ["active", "active_cards"], "—"));
       safeText($("stExpired"), pick(j, ["expired", "expired_cards"], "—"));
+
+      // 排行：優先吃 items/cards；若沒有就留空
+      const rankItems = parseCardsFromResponse(j)
+        .filter(x => String(pick(x, ["status"], "")).toLowerCase() === "active" || !pick(x, ["status"], ""))
+        .sort((a, b) => Number(pick(b, ["view_count"], 0)) - Number(pick(a, ["view_count"], 0)));
+
+      renderRankList(rankItems);
+
       toast("統計已更新 ✅");
     } catch (e) {
       toast("統計讀取失敗");
@@ -370,7 +405,7 @@
     const cfg = loadCfg();
     const adminSecret = getVal($("adminSecret"));
 
-    toast("產生填表連結中…");
+    toast("產生邀請碼中…");
     try {
       const j = await apiCreateInvite(cfg, { admin_secret: adminSecret, count: 1 });
       const inviteCode =
@@ -382,12 +417,32 @@
       if (!inviteCode) throw new Error("No invite code");
 
       const url = baseUrl_(cfg) + "form.html?invite=" + encodeURIComponent(inviteCode);
+
+      safeVal($("inviteCode"), inviteCode);
       safeVal($("fillLink"), url);
-      await copyText(url);
-      toast("填表連結已複製 ✅");
+
+      $("btnCopyInviteOnly").disabled = false;
+      $("btnCopyFillOnly").disabled = false;
+
+      await copyText(inviteCode);
+      toast("邀請碼已複製 ✅");
     } catch (e) {
-      toast("填表連結產生失敗");
+      toast("產生邀請碼失敗");
     }
+  }
+
+  async function doCopyInviteOnly() {
+    const code = getVal($("inviteCode"));
+    if (!code) return toast("目前沒有邀請碼");
+    await copyText(code);
+    toast("已複製邀請碼 ✅");
+  }
+
+  async function doCopyFillOnly() {
+    const link = getVal($("fillLink"));
+    if (!link) return toast("目前沒有填表連結");
+    await copyText(link);
+    toast("已複製填表連結 ✅");
   }
 
   async function doMakeUpdate() {
@@ -403,8 +458,7 @@
         admin_secret: adminSecret,
         token: state.selectedToken
       });
-      const link =
-        pick(j, ["fill_link", "fillLink", "update_link", "updateLink", "url"], "");
+      const link = pick(j, ["fill_link", "fillLink", "update_link", "updateLink", "url", "link"], "");
       if (!link) throw new Error("No update link");
       safeVal($("updateLink"), link);
       await copyText(link);
@@ -490,7 +544,7 @@
       setSelectedCard(card);
       toast(`微信加購已更新為 ${value} ✅`);
     } catch (e) {
-      toast("微信加購更新失敗（若 GAS 尚未支援 adminUpdate，下一輪補 GAS）");
+      toast("微信加購更新失敗");
     }
   }
 
@@ -505,7 +559,11 @@
     $("adminSecret")?.addEventListener("change", saveCfg);
 
     $("btnStats")?.addEventListener("click", doStats);
+
     $("btnMakeFill")?.addEventListener("click", doMakeFill);
+    $("btnCopyInviteOnly")?.addEventListener("click", doCopyInviteOnly);
+    $("btnCopyFillOnly")?.addEventListener("click", doCopyFillOnly);
+
     $("btnFind")?.addEventListener("click", doFind);
     $("btnMakeUpdate")?.addEventListener("click", doMakeUpdate);
     $("btnCopyUpdate")?.addEventListener("click", doCopyUpdate);
@@ -522,6 +580,9 @@
     $("btnWechatOn")?.addEventListener("click", () => doSetWeChatPoster("1"));
 
     setSelectedCard(null);
+    $("btnCopyInviteOnly").disabled = true;
+    $("btnCopyFillOnly").disabled = true;
+
     toast(`HSC Admin ready (v${VERSION})`);
   }
 
