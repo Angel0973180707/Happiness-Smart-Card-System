@@ -2,479 +2,446 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>HSC Admin Workspace v521.6</title>
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>HSC Admin v522.1</title>
+  <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
       --bg:#0b1220;
       --card:#121a2b;
       --line:rgba(255,255,255,.10);
-      --text:rgba(255,255,255,.92);
+      --text:rgba(255,255,255,.94);
       --muted:rgba(255,255,255,.68);
       --accent:#7bdcff;
-      --ok:#8cffc1;
-      --warn:#ffd36e;
-      --danger:#ff9aa2;
-      --soft:rgba(255,255,255,.06);
-      --shadow:0 18px 44px rgba(0,0,0,.34);
-      --r:18px;
-      --r2:14px;
+      --ok:#6ee7b7;
+      --bad:#fb7185;
+      --warn:#fbbf24;
+      --radius:20px;
+      --shadow:0 18px 40px rgba(0,0,0,.28);
+
+      --fs:clamp(16px,1.8vw,18px);
+      --fs2:clamp(20px,2.7vw,24px);
+      --fs3:clamp(24px,3.6vw,30px);
     }
 
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
-
+    html{
+      -webkit-text-size-adjust:100%;
+      text-size-adjust:100%;
+    }
     body{
       margin:0;
-      font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,"Helvetica Neue",Arial;
-      color:var(--text);
+      font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Arial;
       background:
         radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%),
+        radial-gradient(900px 700px at 100% 0%, rgba(255,191,36,.08), transparent 58%),
         var(--bg);
+      color:var(--text);
+      font-size:var(--fs);
+      line-height:1.65;
+      word-break:keep-all;
+      overflow-wrap:break-word;
     }
 
     .wrap{
-      width:min(1080px, 100%);
+      max-width:980px;
       margin:0 auto;
-      padding:18px 14px 40px;
+      padding:18px 14px 60px;
     }
 
     .top{
       display:flex;
-      align-items:flex-end;
+      align-items:flex-start;
       justify-content:space-between;
-      gap:12px;
-      margin-bottom:14px;
+      gap:14px;
+      padding:18px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
     }
 
-    .h1{
-      font-size:22px;
-      font-weight:900;
-      letter-spacing:.4px;
+    .brand{
+      min-width:0;
+      flex:1 1 auto;
     }
 
-    .sub{
-      margin-top:6px;
-      font-size:13px;
+    .brand h1{
+      margin:0;
+      font-size:var(--fs3);
+      line-height:1.24;
+      letter-spacing:.2px;
+    }
+
+    .brand p{
+      margin:10px 0 0;
       color:var(--muted);
-      line-height:1.6;
+      font-size:14px;
+      line-height:1.8;
+    }
+
+    .meta{
+      text-align:right;
+      min-width:160px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.9;
+      flex:0 0 auto;
     }
 
     .pill{
       display:inline-flex;
       align-items:center;
       gap:8px;
-      padding:7px 12px;
-      border-radius:999px;
+      padding:8px 11px;
       border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      color:var(--muted);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
       font-size:12px;
       font-weight:800;
     }
 
-    .mono{
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 0 2px rgba(123,220,255,.15);
+      flex:0 0 auto;
+    }
+
+    .kbd{
+      display:inline-block;
+      padding:2px 7px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:rgba(255,255,255,.03);
       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
-    }
-
-    @media(min-width:960px){
-      .grid{
-        grid-template-columns:1.05fr .95fr;
-      }
+      font-size:11px;
+      word-break:break-all;
     }
 
     .card{
-      background:rgba(255,255,255,.06);
+      margin-top:14px;
       border:1px solid var(--line);
-      border-radius:var(--r);
-      padding:14px;
+      border-radius:var(--radius);
+      background:rgba(255,255,255,.03);
+      padding:18px;
       box-shadow:var(--shadow);
     }
 
     .card h2{
       margin:0 0 12px;
-      font-size:18px;
-      font-weight:900;
-      letter-spacing:.2px;
+      font-size:var(--fs2);
+      line-height:1.3;
     }
 
-    .sectionNo{
-      color:rgba(255,255,255,.95);
-      margin-right:6px;
-    }
-
-    .sectionHint{
-      margin-top:2px;
+    .subnote{
+      margin:-2px 0 12px;
       color:var(--muted);
-      font-size:12px;
-      line-height:1.6;
+      font-size:13px;
+      line-height:1.75;
+    }
+
+    .row{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+
+    @media(min-width:760px){
+      .row.two{ grid-template-columns:1fr 1fr; }
+      .row.auto{ grid-template-columns:1.2fr .9fr; }
     }
 
     label{
       display:block;
-      margin:0 0 6px;
+      font-size:15px;
       color:var(--muted);
-      font-size:12px;
-      font-weight:800;
+      margin:0 0 8px;
+      font-weight:900;
+      line-height:1.55;
     }
 
-    input, textarea, select{
+    input{
       width:100%;
-      padding:12px 12px;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.18);
+      background:rgba(255,255,255,.04);
       color:var(--text);
+      border:1px solid var(--line);
+      border-radius:15px;
+      padding:15px;
       outline:none;
-      font-size:16px;
+      font-size:clamp(16px,1.9vw,18px);
+      line-height:1.6;
+      min-height:54px;
     }
 
-    textarea{
-      min-height:88px;
-      resize:vertical;
+    input::placeholder{
+      color:rgba(255,255,255,.35);
     }
 
-    input::placeholder, textarea::placeholder{
-      color:rgba(255,255,255,.38);
-    }
-
-    .row{
+    .btns{
       display:flex;
-      gap:10px;
       flex-wrap:wrap;
-    }
-
-    .row > *{
-      flex:1 1 220px;
-    }
-
-    .btnRow{
-      display:flex;
       gap:10px;
-      flex-wrap:wrap;
-      margin-top:10px;
+      margin-top:12px;
     }
 
-    .btn{
-      appearance:none;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.08);
-      color:var(--text);
-      padding:12px 14px;
-      border-radius:14px;
+    button{
       cursor:pointer;
+      border:none;
+      border-radius:14px;
+      padding:13px 18px;
       font-weight:900;
       font-size:16px;
-      letter-spacing:.2px;
-      -webkit-tap-highlight-color: transparent;
-      user-select:none;
+      background:rgba(123,220,255,.14);
+      color:var(--text);
+      border:1px solid rgba(123,220,255,.35);
+      min-height:50px;
+      line-height:1.3;
+      transition:.18s ease;
     }
 
-    .btn.primary{
-      border-color:rgba(123,220,255,.38);
-      background:rgba(123,220,255,.16);
+    button.secondary{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--line);
     }
 
-    .btn.secondary{
-      background:rgba(255,255,255,.05);
+    button.ghost{
+      background:transparent;
+      border:1px solid var(--line);
     }
 
-    .btn:active{
-      transform:translateY(1px);
-    }
-
-    .btn[disabled]{
+    button:disabled{
       opacity:.55;
       cursor:not-allowed;
     }
 
-    .statGrid{
+    .tips{
       display:grid;
-      grid-template-columns:repeat(2,1fr);
+      grid-template-columns:1fr;
       gap:10px;
     }
 
-    @media(min-width:560px){
-      .statGrid{
-        grid-template-columns:repeat(4,1fr);
-      }
-    }
-
-    .stat{
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.16);
+    .tip{
+      border:1px dashed rgba(255,255,255,.10);
       border-radius:14px;
       padding:12px;
-      min-height:76px;
-    }
-
-    .stat .k{
-      font-size:12px;
+      background:rgba(255,255,255,.02);
       color:var(--muted);
-      font-weight:900;
+      font-size:13px;
+      line-height:1.8;
     }
 
-    .stat .v{
-      margin-top:8px;
-      font-size:24px;
-      font-weight:1000;
-      letter-spacing:.2px;
-    }
-
-    .fieldBlock{
+    .status{
       margin-top:12px;
-      padding:12px;
+      border:1px dashed var(--line);
+      border-radius:14px;
+      padding:12px 14px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.85;
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:rgba(255,255,255,.02);
+      min-height:90px;
+    }
+
+    .results{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+
+    .empty{
+      border:1px dashed rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:14px;
+      color:rgba(255,255,255,.68);
+      background:rgba(255,255,255,.03);
+      line-height:1.8;
+    }
+
+    .resultCard{
+      border:1px solid rgba(255,255,255,.12);
       border-radius:16px;
-      border:1px solid var(--line);
+      padding:14px;
       background:rgba(255,255,255,.04);
+      line-height:1.75;
     }
 
-    .hint{
-      margin-top:8px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.6;
-    }
-
-    .list{
+    .resultHead{
       display:flex;
-      flex-direction:column;
+      justify-content:space-between;
       gap:10px;
-      margin-top:12px;
+      flex-wrap:wrap;
+      align-items:flex-start;
     }
 
-    .item{
-      padding:12px;
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:rgba(0,0,0,.18);
+    .resultId{
+      font-size:18px;
+      font-weight:900;
+      line-height:1.35;
     }
 
-    .item strong{
-      display:block;
-      font-size:16px;
-      line-height:1.4;
-    }
-
-    .item small{
-      display:block;
-      margin-top:6px;
-      color:var(--muted);
-      line-height:1.6;
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.04);
       font-size:12px;
+      font-weight:800;
     }
 
-    .item .actions{
+    .resultName{
+      margin-top:8px;
+      color:rgba(255,255,255,.92);
+      font-weight:900;
+      font-size:17px;
+    }
+
+    .resultSub{
+      margin-top:4px;
+      color:rgba(255,255,255,.72);
+      font-size:14px;
+      line-height:1.75;
+    }
+
+    .gridInfo{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:8px;
+    }
+
+    .infoLine{
+      color:rgba(255,255,255,.82);
+      font-size:14px;
+      line-height:1.7;
+      word-break:break-word;
+    }
+
+    .infoLine strong{
+      color:rgba(255,255,255,.96);
+    }
+
+    .resultActions{
+      margin-top:12px;
       display:flex;
       gap:8px;
       flex-wrap:wrap;
-      margin-top:10px;
     }
 
-    .statusBox{
+    .footNote{
       margin-top:14px;
-      border:1px dashed rgba(255,255,255,.14);
-      border-radius:16px;
-      padding:12px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.7;
-      white-space:pre-wrap;
-      word-break:break-word;
-      background:rgba(255,255,255,.03);
-    }
-
-    .ok{ color:var(--ok); }
-    .warn{ color:var(--warn); }
-    .danger{ color:var(--danger); }
-
-    .divider{
-      height:1px;
-      background:rgba(255,255,255,.08);
-      margin:14px 0;
-    }
-
-    .small{
+      color:rgba(255,255,255,.56);
       font-size:12px;
+      line-height:1.8;
+    }
+
+    @media(max-width:760px){
+      .top{
+        flex-direction:column;
+      }
+      .meta{
+        text-align:left;
+        min-width:auto;
+      }
+    }
+
+    @media(max-width:520px){
+      .wrap{
+        padding:14px 12px 48px;
+      }
+      .card,.top{
+        padding:15px;
+      }
+      button{
+        width:100%;
+      }
+      .resultActions{
+        flex-direction:column;
+      }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
-      <div>
-        <div class="h1">HSC Admin Workspace <span class="pill">v521.6</span></div>
-        <div class="sub">
-          先把主幹整理成最常用的 5 件事：發邀請碼、查找名片、發更新連結、發交付卡、看統計。<br/>
-          這版先以「好操作、看得懂、可直接複製」為優先。
-        </div>
+      <div class="brand">
+        <h1>HSC Admin｜後臺查卡</h1>
+        <p>
+          先保證 ID 可查，再支援姓名、電話、單位、職稱等關鍵字查詢。
+          若 GAS 搜尋 action 未完整接通，至少 <strong>TW0001</strong> 會直接走 card API。
+        </p>
       </div>
-      <div class="pill mono" id="statusPill">ready</div>
+      <div class="meta">
+        <div class="pill"><span class="dot"></span><span>搜尋修正版</span></div>
+        <div>版本：<span class="kbd" id="ver">v522.1</span></div>
+      </div>
     </div>
 
-    <div class="grid">
-      <!-- LEFT -->
-      <div class="card">
-        <h2><span class="sectionNo">0.</span>系統設定</h2>
+    <div class="card">
+      <h2>1. GAS 設定</h2>
+      <div class="subnote">請放目前正在使用的 GAS Web App /exec 網址。</div>
 
-        <div class="row">
-          <div>
-            <label>GAS Exec URL</label>
-            <input id="gasUrl" class="mono" placeholder="貼上你的 GAS /exec" />
-          </div>
-          <div>
-            <label>ADMIN_SECRET</label>
-            <input id="adminSecret" class="mono" placeholder="輸入 ADMIN_SECRET" />
-          </div>
+      <div class="row">
+        <div>
+          <label for="gasUrl">GAS /exec URL</label>
+          <input id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec" />
         </div>
-
-        <div class="hint">
-          這兩項只要設好一次即可。之後會自動記住。
-        </div>
-
-        <div class="divider"></div>
-
-        <h2><span class="sectionNo">1.</span>發邀請碼</h2>
-        <div class="sectionHint">
-          給新客戶用。你按一次，會同時拿到：邀請碼、直接填表連結、門面連結。
-        </div>
-
-        <div class="btnRow">
-          <button class="btn primary" id="btnCreateInvite" type="button">產生邀請碼</button>
-          <button class="btn secondary" id="btnCopyInvite" type="button" disabled>複製邀請碼</button>
-          <button class="btn secondary" id="btnCopyFormLink" type="button" disabled>複製填表連結</button>
-          <button class="btn secondary" id="btnCopyFacadeLink" type="button" disabled>複製門面連結</button>
-        </div>
-
-        <div class="fieldBlock">
-          <label>邀請碼</label>
-          <input id="inviteCode" class="mono" readonly placeholder="按上方按鈕產生" />
-
-          <div style="height:10px;"></div>
-
-          <label>填表連結（7 天有效）</label>
-          <input id="formLink" class="mono" readonly placeholder="產生後會顯示在這裡" />
-
-          <div style="height:10px;"></div>
-
-          <label>門面連結（客戶可先到門面，再輸入邀請碼）</label>
-          <input id="facadeLink" class="mono" readonly placeholder="產生後會顯示在這裡" />
-
-          <div class="hint">
-            日常最快的做法：直接複製「填表連結」貼給客戶。<br/>
-            如果你想讓客戶先到門面，再輸入邀請碼，就用「門面連結」。
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <h2><span class="sectionNo">2.</span>查找名片</h2>
-        <div class="sectionHint">
-          可輸入：姓名、姓名 + 電話末 3 碼、姓名 + 關鍵字。
-        </div>
-
-        <div class="row">
-          <div>
-            <label>查找條件</label>
-            <textarea id="customerMsg" placeholder="例：王小明 123&#10;例：王小明 館長&#10;例：王小明 幸福智慧名片館"></textarea>
-          </div>
-        </div>
-
-        <div class="btnRow">
-          <button class="btn primary" id="btnFind" type="button">查找名片</button>
-          <button class="btn secondary" id="btnMakeUpdate" type="button" disabled>產生更新連結</button>
-          <button class="btn secondary" id="btnCopyUpdate" type="button" disabled>複製更新連結</button>
-        </div>
-
-        <div class="fieldBlock">
-          <label>更新連結（7 天有效）</label>
-          <input id="updateLink" class="mono" readonly placeholder="查到名片後，這裡會顯示更新連結" />
-
-          <div class="hint">
-            更新連結只給客戶本人修改資料用，不建議公開轉傳。
-          </div>
-        </div>
-
-        <div class="list" id="resultList"></div>
       </div>
 
-      <!-- RIGHT -->
-      <div class="card">
-        <h2><span class="sectionNo">3.</span>交付卡 / 成品連結</h2>
-        <div class="sectionHint">
-          選到名片後，這裡會自動帶出交付用連結。
+      <div class="btns">
+        <button id="btnPing" type="button" class="secondary">測試連線</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. 搜尋名片</h2>
+      <div class="subnote">可先測：TW0001、小天使、973180707、天使幸福智慧名片館。</div>
+
+      <div class="row auto">
+        <div>
+          <label for="keyword">搜尋關鍵字</label>
+          <input id="keyword" placeholder="輸入 ID / 姓名 / 電話 / 單位 / 職稱" />
         </div>
-
-        <div class="fieldBlock">
-          <label>智慧名片成品（乾淨版）</label>
-          <input id="cardLink" class="mono" readonly placeholder="index.html?id=TWxxxx&view=1" />
-
-          <div style="height:8px;"></div>
-
-          <label>交付卡（主交付）</label>
-          <input id="shareLink" class="mono" readonly placeholder="share.html?id=TWxxxx" />
-
-          <div style="height:8px;"></div>
-
-          <label>微信長圖（加購才交付）</label>
-          <input id="wechatLink" class="mono" readonly placeholder="wechat.html?id=TWxxxx" />
-
-          <div style="height:12px;"></div>
-
-          <div class="btnRow">
-            <button class="btn secondary" id="btnCopyCard" type="button" disabled>複製成品連結</button>
-            <button class="btn primary" id="btnCopyShare" type="button" disabled>複製交付卡</button>
-            <button class="btn secondary" id="btnCopyWeChat" type="button" disabled>複製微信連結</button>
+        <div>
+          <label>&nbsp;</label>
+          <div class="btns" style="margin-top:0;">
+            <button id="btnSearch" type="button">開始搜尋</button>
           </div>
         </div>
+      </div>
 
-        <div class="divider"></div>
-
-        <h2><span class="sectionNo">4.</span>名片統計</h2>
-
-        <div class="btnRow">
-          <button class="btn primary" id="btnStats" type="button">刷新統計</button>
+      <div class="tips" style="margin-top:12px;">
+        <div class="tip">
+          <strong>搜尋邏輯：</strong><br>
+          ① 如果像 <span class="kbd">TW0001</span>，會先直接走 <span class="kbd">action=card&id=...</span><br>
+          ② 若不是 ID，則依序嘗試 <span class="kbd">adminSearch / adminFind / searchCards / findCards</span>
         </div>
+      </div>
 
-        <div class="statGrid" style="margin-top:12px;">
-          <div class="stat">
-            <div class="k">總名片數</div>
-            <div class="v mono" id="stTotal">—</div>
-          </div>
-          <div class="stat">
-            <div class="k">本月新增</div>
-            <div class="v mono" id="stMonthNew">—</div>
-          </div>
-          <div class="stat">
-            <div class="k">活躍名片</div>
-            <div class="v mono" id="stActive">—</div>
-          </div>
-          <div class="stat">
-            <div class="k">過期名片</div>
-            <div class="v mono" id="stExpired">—</div>
-          </div>
-        </div>
+      <div class="status" id="status">尚未操作。</div>
+    </div>
 
-        <div class="divider"></div>
+    <div class="card">
+      <h2>3. 搜尋結果</h2>
+      <div class="results" id="resultList">
+        <div class="empty">尚未查詢。</div>
+      </div>
 
-        <h2><span class="sectionNo">5.</span>名片管理（下一步接）</h2>
-        <div class="sectionHint">
-          這區下一輪接：開通 / 停用 / 即將到期 / 到期提醒 / 排行。<br/>
-          這一輪先把「邀請碼 → 填表 → 更新 → 交付」主流程打穩。
-        </div>
-
-        <div class="statusBox" id="statusBox">尚未操作。</div>
+      <div class="footNote">
+        若輸入 TW0001 仍找不到，而你已驗證 <span class="kbd">?action=card&id=TW0001</span> 能讀到，
+        那就代表後臺實際連到的 GAS URL 不是同一支，或 admin.html 曾被舊版 JS 快取。
       </div>
     </div>
   </div>
 
-  <script defer src="./admin.js?v=5216"></script>
+  <script src="./admin.js?v=5221"></script>
 </body>
 </html>
