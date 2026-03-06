@@ -1,27 +1,40 @@
 /* ==========================================
- * HSC Admin Workspace — admin.js v522.2
+ * HSC Admin Workspace — admin.js v522.5
  * COMPLETE OVERWRITE
- * ------------------------------------------
- * Connected:
- * - GAS v522.2
- * - ADMIN_SECRET preset
+ *
+ * Features:
+ * - 大字、簡潔、直覺
+ * - 搜尋卡片
+ * - 載入卡片
+ * - 開智慧名片成品（view=1）
+ * - 開交付卡
+ * - 複製交付連結
+ * - 複製更新連結
+ * - 啟用 / 停用
+ * - 建邀請碼
+ * - 快速更新
+ * - 讀統計
+ * - 即將到期提醒（30 天內 active）
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "522.2";
+  const VERSION = "522.5";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
   const DEFAULT_TENANT = "angel";
   const DEFAULT_ADMIN_SECRET = "ANGEL2026167777";
+  const DEFAULT_BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+
+  const EXPIRY_REMIND_DAYS = 30;
 
   const LS = {
-    GAS: "hsc_admin_gas_v5222",
-    TENANT: "hsc_admin_tenant_v5222",
-    SECRET: "hsc_admin_secret_v5222"
+    GAS: "hsc_admin_gas_v5225",
+    TENANT: "hsc_admin_tenant_v5225",
+    SECRET: "hsc_admin_secret_v5225"
   };
 
   const state = {
@@ -30,34 +43,50 @@
   };
 
   const $ = (sel) => document.querySelector(sel);
+
   const el = {
     gasUrl: $("#gasUrl"),
     tenant: $("#tenant"),
     adminSecret: $("#adminSecret"),
+
     btnSaveConfig: $("#btnSaveConfig"),
     btnPing: $("#btnPing"),
     btnStats: $("#btnStats"),
+    btnRefreshExpiry: $("#btnRefreshExpiry"),
+
+    statTotal: $("#statTotal"),
+    statMonthNew: $("#statMonthNew"),
+    statActive: $("#statActive"),
+    statExpired: $("#statExpired"),
+
+    expiryReminderList: $("#expiryReminderList"),
+
     searchInput: $("#searchInput"),
     btnSearch: $("#btnSearch"),
     btnSearchId: $("#btnSearchId"),
     btnClearSearch: $("#btnClearSearch"),
+
     invitePlan: $("#invitePlan"),
     inviteDays: $("#inviteDays"),
     inviteCount: $("#inviteCount"),
-    inviteNote: $("#inviteNote"),
     btnCreateInvite: $("#btnCreateInvite"),
+
     statusBox: $("#statusBox"),
-    resultList: $("#resultList"),
-    resultCount: $("#resultCount"),
+
     currentId: $("#currentId"),
     currentName: $("#currentName"),
     quickField: $("#quickField"),
     quickValue: $("#quickValue"),
     btnQuickUpdate: $("#btnQuickUpdate"),
     btnLoadCurrent: $("#btnLoadCurrent"),
-    btnOpenCard: $("#btnOpenCard"),
+    btnOpenCardClean: $("#btnOpenCardClean"),
     btnOpenShare: $("#btnOpenShare"),
-    detailJson: $("#detailJson")
+    btnCopyDeliveryLink: $("#btnCopyDeliveryLink"),
+    btnCopyUpdateLink: $("#btnCopyUpdateLink"),
+    detailJson: $("#detailJson"),
+
+    resultCount: $("#resultCount"),
+    resultList: $("#resultList")
   };
 
   init();
@@ -65,8 +94,10 @@
   function init() {
     hydrateConfig();
     bindEvents();
-    setStatus(`HSC Admin v${VERSION}\n設定已載入。`, "ok");
     renderResults([]);
+    setStatus(`HSC Admin Workspace v${VERSION}\n準備就緒。`, "ok");
+    refreshStats();
+    refreshExpiryReminder();
   }
 
   function hydrateConfig() {
@@ -76,9 +107,9 @@
   }
 
   function saveConfig() {
-    localStorage.setItem(LS.GAS, val(el.gasUrl));
+    localStorage.setItem(LS.GAS, val(el.gasUrl) || DEFAULT_GAS);
     localStorage.setItem(LS.TENANT, val(el.tenant) || DEFAULT_TENANT);
-    localStorage.setItem(LS.SECRET, val(el.adminSecret));
+    localStorage.setItem(LS.SECRET, val(el.adminSecret) || DEFAULT_ADMIN_SECRET);
     setStatus("設定已儲存。", "ok");
   }
 
@@ -95,26 +126,8 @@
       }
     });
 
-    el.btnStats?.addEventListener("click", async () => {
-      try {
-        setStatus("讀取統計中…", "warn");
-        const res = await api("adminStats", {}, { admin: true });
-        setStatus(
-          [
-            `統計讀取成功`,
-            `tenant=${res.tenant || ""}`,
-            `month=${res.month || ""}`,
-            `total=${res.total ?? ""}`,
-            `month_new=${res.month_new ?? ""}`,
-            `active=${res.active ?? ""}`,
-            `expired=${res.expired ?? ""}`
-          ].join("\n"),
-          "ok"
-        );
-      } catch (err) {
-        setStatus(err.message || String(err), "err");
-      }
-    });
+    el.btnStats?.addEventListener("click", refreshStats);
+    el.btnRefreshExpiry?.addEventListener("click", refreshExpiryReminder);
 
     el.btnSearch?.addEventListener("click", doSearch);
     el.btnSearchId?.addEventListener("click", doSearchId);
@@ -134,12 +147,88 @@
     });
 
     el.btnCreateInvite?.addEventListener("click", createInvite);
+
     el.btnQuickUpdate?.addEventListener("click", quickUpdate);
     el.btnLoadCurrent?.addEventListener("click", reloadCurrent);
-    el.btnOpenCard?.addEventListener("click", openCurrentCard);
+    el.btnOpenCardClean?.addEventListener("click", openCurrentCardClean);
     el.btnOpenShare?.addEventListener("click", openCurrentShare);
+    el.btnCopyDeliveryLink?.addEventListener("click", copyCurrentDeliveryLink);
+    el.btnCopyUpdateLink?.addEventListener("click", copyCurrentUpdateLink);
 
     el.resultList?.addEventListener("click", onResultAction);
+  }
+
+  async function refreshStats() {
+    try {
+      const res = await api("adminStats", {}, { admin: true });
+      el.statTotal.textContent = safeNum(res.total);
+      el.statMonthNew.textContent = safeNum(res.month_new);
+      el.statActive.textContent = safeNum(res.active);
+      el.statExpired.textContent = safeNum(res.expired);
+      setStatus(`統計已更新\nmonth=${res.month || ""}`, "ok");
+    } catch (err) {
+      el.statTotal.textContent = "—";
+      el.statMonthNew.textContent = "—";
+      el.statActive.textContent = "—";
+      el.statExpired.textContent = "—";
+      setStatus(err.message || String(err), "err");
+    }
+  }
+
+  async function refreshExpiryReminder() {
+    try {
+      setStatus("讀取即將到期提醒中…", "warn");
+      const items = await fetchAllCardsByTenant();
+      const remindItems = items
+        .filter((x) => String(x.status || "").trim().toLowerCase() === "active")
+        .map((x) => {
+          const daysLeft = calcDaysLeft(x.expires_at);
+          return { ...x, daysLeft };
+        })
+        .filter((x) => x.daysLeft !== null && x.daysLeft >= 0 && x.daysLeft <= EXPIRY_REMIND_DAYS)
+        .sort((a, b) => {
+          const ad = a.daysLeft ?? 999999;
+          const bd = b.daysLeft ?? 999999;
+          if (ad !== bd) return ad - bd;
+          return timeOf(a.expires_at) - timeOf(b.expires_at);
+        });
+
+      renderExpiryReminder(remindItems);
+      setStatus(`即將到期提醒已更新\n共 ${remindItems.length} 筆`, "ok");
+    } catch (err) {
+      renderExpiryReminder([]);
+      setStatus(err.message || String(err), "err");
+    }
+  }
+
+  function renderExpiryReminder(items) {
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      el.expiryReminderList.innerHTML = `<div class="empty">目前沒有 30 天內即將到期的啟用卡片。</div>`;
+      return;
+    }
+
+    el.expiryReminderList.innerHTML = list.map((item) => {
+      const id = esc(item.id || "");
+      const name = esc(item.name || "未命名");
+      const exp = esc(item.expires_at || "—");
+      const days = item.daysLeft;
+      const dayText = days === 0 ? "今天到期" : `剩 ${days} 天`;
+      return `
+        <div class="reminder-item">
+          <div class="reminder-main">
+            <div class="reminder-title">${name}</div>
+            <div class="reminder-sub">
+              序號：<span class="inline-code">${id}</span> ｜ 到期：${exp} ｜ ${dayText}
+            </div>
+          </div>
+          <div class="btns">
+            <button data-act="load" data-id="${id}" class="primary">載入</button>
+            <button data-act="copy-delivery-link" data-id="${id}" class="warn">複製交付連結</button>
+          </div>
+        </div>
+      `;
+    }).join("");
   }
 
   async function doSearch() {
@@ -152,7 +241,7 @@
     try {
       setStatus(`搜尋中：${q}`, "warn");
       const res = await api("adminSearch", { q }, { admin: true });
-      const items = Array.isArray(res.items) ? res.items : [];
+      const items = normalizeSearchItems(res.items || []);
       state.items = items;
       renderResults(items);
       setStatus(`搜尋完成：${q}\n找到 ${items.length} 筆`, "ok");
@@ -173,9 +262,12 @@
       setStatus(`讀取卡片中：${id}`, "warn");
       const res = await api("adminCard", { id }, { admin: true });
       if (!res?.item) throw new Error("讀卡失敗：沒有 item");
-      state.currentItem = res.item;
-      fillCurrent(res.item);
-      renderResults([normalizeFromAdminCard(res)]);
+
+      const item = normalizeAdminCardItem(res.item);
+      state.currentItem = item;
+      fillCurrent(item);
+      renderResults([item]);
+
       setStatus(`已讀取卡片：${id}`, "ok");
     } catch (err) {
       setStatus(err.message || String(err), "err");
@@ -188,11 +280,10 @@
       const plan = val(el.invitePlan) || "free";
       const days = val(el.inviteDays) || "7";
       const count = val(el.inviteCount) || "1";
-      const note = val(el.inviteNote);
 
       const res = await api(
         "adminCreateInvite",
-        { plan, days, count, note },
+        { plan, days, count },
         { admin: true }
       );
 
@@ -206,9 +297,7 @@
       setStatus(msg, "ok");
 
       const link = res.form_link || res.link || "";
-      if (link) {
-        await copyText(link);
-      }
+      if (link) await copyText(link);
     } catch (err) {
       setStatus(err.message || String(err), "err");
     }
@@ -223,7 +312,6 @@
       setStatus("請先載入一筆卡片。", "warn");
       return;
     }
-
     if (!field) {
       setStatus("請先選擇欄位。", "warn");
       return;
@@ -231,11 +319,7 @@
 
     try {
       setStatus(`更新中：${id} / ${field}`, "warn");
-      const res = await api(
-        "adminUpdate",
-        { id, field, value },
-        { admin: true }
-      );
+      const res = await api("adminUpdate", { id, field, value }, { admin: true });
 
       setStatus(
         [
@@ -248,6 +332,7 @@
       );
 
       await loadCardToCurrent(id);
+      await refreshExpiryReminder();
     } catch (err) {
       setStatus(err.message || String(err), "err");
     }
@@ -267,21 +352,21 @@
       setStatus(`重新載入中：${id}`, "warn");
       const res = await api("adminCard", { id }, { admin: true });
       if (!res?.item) throw new Error("重新載入失敗");
-      state.currentItem = res.item;
-      fillCurrent(res.item);
+      const item = normalizeAdminCardItem(res.item);
+      state.currentItem = item;
+      fillCurrent(item);
       setStatus(`重新載入完成：${id}`, "ok");
     } catch (err) {
       setStatus(err.message || String(err), "err");
     }
   }
 
-  function openCurrentCard() {
+  function openCurrentCardClean() {
     if (!state.currentItem?.id) {
       setStatus("請先載入卡片。", "warn");
       return;
     }
-    const url = buildFrontUrl(`index.html?id=${encodeURIComponent(state.currentItem.id)}`);
-    window.open(url, "_blank", "noopener");
+    window.open(buildCardCleanLink(state.currentItem.id), "_blank", "noopener");
   }
 
   function openCurrentShare() {
@@ -289,8 +374,25 @@
       setStatus("請先載入卡片。", "warn");
       return;
     }
-    const url = buildFrontUrl(`share.html?id=${encodeURIComponent(state.currentItem.id)}`);
-    window.open(url, "_blank", "noopener");
+    window.open(buildShareLink(state.currentItem.id), "_blank", "noopener");
+  }
+
+  async function copyCurrentDeliveryLink() {
+    if (!state.currentItem?.id) {
+      setStatus("請先載入卡片。", "warn");
+      return;
+    }
+    const link = buildShareLink(state.currentItem.id);
+    await copyText(link);
+    setStatus(`已複製交付連結：${state.currentItem.id}\n${link}`, "ok");
+  }
+
+  async function copyCurrentUpdateLink() {
+    if (!state.currentItem?.id) {
+      setStatus("請先載入卡片。", "warn");
+      return;
+    }
+    await copyUpdateLink(state.currentItem.id);
   }
 
   async function onResultAction(ev) {
@@ -306,36 +408,32 @@
         case "load":
           await loadCardToCurrent(id);
           break;
-
-        case "card":
-          window.open(buildFrontUrl(`index.html?id=${encodeURIComponent(id)}`), "_blank", "noopener");
+        case "card-clean":
+          window.open(buildCardCleanLink(id), "_blank", "noopener");
           break;
-
         case "share":
-          window.open(buildFrontUrl(`share.html?id=${encodeURIComponent(id)}`), "_blank", "noopener");
+          window.open(buildShareLink(id), "_blank", "noopener");
           break;
-
         case "copy-id":
           await copyText(id);
-          setStatus(`已複製 ID：${id}`, "ok");
+          setStatus(`已複製卡號：${id}`, "ok");
           break;
-
+        case "copy-delivery-link":
+          await copyText(buildShareLink(id));
+          setStatus(`已複製交付連結：${id}\n${buildShareLink(id)}`, "ok");
+          break;
         case "copy-update-link":
           await copyUpdateLink(id);
           break;
-
         case "activate":
           await setStatusAction(id, "active");
           break;
-
         case "inactivate":
           await setStatusAction(id, "inactive");
           break;
-
         case "invite":
           await createInviteForCard(id);
           break;
-
         default:
           break;
       }
@@ -355,11 +453,8 @@
 
   async function setStatusAction(id, status) {
     setStatus(`狀態更新中：${id} -> ${status}`, "warn");
-    const res = await api(
-      "adminSetStatus",
-      { id, status },
-      { admin: true }
-    );
+    const res = await api("adminSetStatus", { id, status }, { admin: true });
+
     setStatus(`狀態更新成功：${res.id}\nstatus=${res.status}\nat=${res.at}`, "ok");
 
     if (state.currentItem?.id === id) {
@@ -368,18 +463,18 @@
     if (val(el.searchInput)) {
       await doSearch();
     }
+    await refreshStats();
+    await refreshExpiryReminder();
   }
 
   async function createInviteForCard(id) {
-    setStatus(`為後臺操作建立邀請碼中：${id}`, "warn");
-    const plan = val(el.invitePlan) || "free";
+    setStatus(`建立邀請碼中：${id}`, "warn");
+    const plan = inferPlanForId(id);
     const days = val(el.inviteDays) || "7";
-    const count = "1";
-    const note = `from_card_${id}`;
 
     const res = await api(
       "adminCreateInvite",
-      { plan, days, count, note },
+      { plan, days, count: 1 },
       { admin: true }
     );
 
@@ -397,6 +492,11 @@
     );
   }
 
+  function inferPlanForId(id) {
+    const hit = state.items.find((x) => x.id === id) || state.currentItem;
+    return (hit && String(hit.plan || "").trim()) || val(el.invitePlan) || "free";
+  }
+
   function fillCurrent(item) {
     el.currentId.value = item?.id || "";
     el.currentName.value = item?.name || "";
@@ -408,24 +508,6 @@
     } else {
       el.quickValue.value = "";
     }
-  }
-
-  function normalizeFromAdminCard(res) {
-    const item = res?.item || {};
-    return {
-      id: item.id || "",
-      name: item.name || "",
-      unit: item.unit || "",
-      title: item.title || "",
-      phone: item.phone || "",
-      email: item.email || "",
-      status: item.status || "",
-      plan: item.plan || "",
-      updated_at: item.updated_at || "",
-      invite_code: item.invite_code || item.invite || "",
-      card_link: buildFrontUrl(`index.html?id=${encodeURIComponent(item.id || "")}`),
-      share_link: buildFrontUrl(`share.html?id=${encodeURIComponent(item.id || "")}`)
-    };
   }
 
   function renderResults(items) {
@@ -446,12 +528,17 @@
     const unit = esc(item.unit || "");
     const title = esc(item.title || "");
     const phone = esc(item.phone || "");
-    const email = esc(item.email || "");
-    const plan = esc(item.plan || "");
-    const updatedAt = esc(item.updated_at || "");
-    const inviteCode = esc(item.invite_code || "");
     const status = String(item.status || "").trim().toLowerCase();
     const statusClass = status === "active" ? "active" : "inactive";
+    const statusText = status || "unknown";
+    const plan = esc(item.plan || "—");
+    const updatedAt = esc(item.updated_at || "—");
+    const expiresAt = esc(item.expires_at || "—");
+    const styleLabel = esc(buildStyleLabel(item));
+    const expiryDays = calcDaysLeft(item.expires_at);
+    const expiryChip = (expiryDays !== null && expiryDays >= 0 && expiryDays <= EXPIRY_REMIND_DAYS && status === "active")
+      ? `<span class="chip warn">即將到期 ${expiryDays === 0 ? "今天" : `剩 ${expiryDays} 天`}</span>`
+      : "";
 
     return `
       <article class="card">
@@ -460,8 +547,10 @@
             <h3 class="name">${name}</h3>
             <div class="meta">
               <span class="chip">${id}</span>
-              <span class="chip ${statusClass}">${esc(status || "unknown")}</span>
-              <span class="chip">${plan || "—"}</span>
+              <span class="chip ${statusClass}">${esc(statusText)}</span>
+              <span class="chip">${plan}</span>
+              <span class="chip">${styleLabel || "—"}</span>
+              ${expiryChip}
             </div>
           </div>
         </div>
@@ -470,23 +559,173 @@
           <div class="kv"><b>單位</b><span>${unit || "—"}</span></div>
           <div class="kv"><b>職稱</b><span>${title || "—"}</span></div>
           <div class="kv"><b>電話</b><span>${phone || "—"}</span></div>
-          <div class="kv"><b>Email</b><span>${email || "—"}</span></div>
-          <div class="kv"><b>更新時間</b><span>${updatedAt || "—"}</span></div>
-          <div class="kv"><b>邀請碼</b><span>${inviteCode || "—"}</span></div>
+          <div class="kv"><b>更新時間</b><span>${updatedAt}</span></div>
+          <div class="kv"><b>到期日</b><span>${expiresAt}</span></div>
+          <div class="kv"><b>瀏覽數</b><span>${esc(String(item.view_count ?? "0"))}</span></div>
         </div>
 
         <div class="card-actions">
           <button data-act="load" data-id="${id}" class="primary">載入</button>
-          <button data-act="card" data-id="${id}">開名片</button>
-          <button data-act="share" data-id="${id}">開交付卡</button>
-          <button data-act="copy-id" data-id="${id}">複製ID</button>
-          <button data-act="copy-update-link" data-id="${id}">複製更新連結</button>
+          <button data-act="card-clean" data-id="${id}">智慧名片成品</button>
+          <button data-act="share" data-id="${id}">交付卡</button>
+          <button data-act="copy-delivery-link" data-id="${id}" class="warn">複製交付連結</button>
+          <button data-act="copy-update-link" data-id="${id}">更新連結</button>
           <button data-act="activate" data-id="${id}" class="ok">啟用</button>
           <button data-act="inactivate" data-id="${id}" class="danger">停用</button>
-          <button data-act="invite" data-id="${id}" class="warn">建邀請碼</button>
+          <button data-act="invite" data-id="${id}" class="warn">邀請碼</button>
         </div>
       </article>
     `;
+  }
+
+  async function fetchAllCardsByTenant() {
+    const tenant = val(el.tenant) || DEFAULT_TENANT;
+    const broadTerms = ["TW", tenant, "a", "小", "0"];
+    let all = [];
+
+    for (const q of broadTerms) {
+      try {
+        const res = await api("adminSearch", { q }, { admin: true });
+        const items = normalizeSearchItems(res.items || []);
+        all = all.concat(items);
+      } catch (_) {}
+    }
+
+    const map = new Map();
+    for (const item of all) {
+      if (!item?.id) continue;
+      if (!map.has(item.id)) map.set(item.id, item);
+    }
+
+    // 用 adminCard 補齊完整資訊
+    const ids = Array.from(map.keys());
+    const out = [];
+    for (const id of ids) {
+      try {
+        const res = await api("adminCard", { id }, { admin: true });
+        if (res?.item) out.push(normalizeAdminCardItem(res.item));
+      } catch (_) {
+        out.push(map.get(id));
+      }
+    }
+    return out;
+  }
+
+  function normalizeSearchItems(items) {
+    return (Array.isArray(items) ? items : []).map((item) => ({
+      ...item,
+      id: String(item.id || "").trim(),
+      name: String(item.name || "").trim(),
+      unit: String(item.unit || "").trim(),
+      title: String(item.title || "").trim(),
+      phone: String(item.phone || "").trim(),
+      status: String(item.status || "").trim(),
+      plan: String(item.plan || "").trim(),
+      color: String(item.color || item.free_color || "").trim(),
+      style: String(item.style || item.free_style || "").trim(),
+      paper: String(item.paper || item.free_paper || "").trim(),
+      premium_color: String(item.premium_color || "").trim(),
+      updated_at: String(item.updated_at || "").trim(),
+      expires_at: String(item.expires_at || "").trim(),
+      view_count: item.view_count ?? "0"
+    }));
+  }
+
+  function normalizeAdminCardItem(item) {
+    return {
+      ...item,
+      id: String(item.id || "").trim(),
+      name: String(item.name || "").trim(),
+      unit: String(item.unit || "").trim(),
+      title: String(item.title || "").trim(),
+      phone: String(item.phone || "").trim(),
+      email: String(item.email || "").trim(),
+      status: String(item.status || "").trim(),
+      plan: String(item.plan || "").trim(),
+      color: String(item.color || item.free_color || "").trim(),
+      style: String(item.style || item.free_style || "").trim(),
+      paper: String(item.paper || item.free_paper || "").trim(),
+      premium_color: String(item.premium_color || "").trim(),
+      updated_at: String(item.updated_at || "").trim(),
+      expires_at: String(item.expires_at || "").trim(),
+      activated_at: String(item.activated_at || "").trim(),
+      view_count: item.view_count ?? "0"
+    };
+  }
+
+  function buildStyleLabel(item) {
+    const plan = String(item.plan || "").trim().toLowerCase();
+    const color = normalizeFreeColor(item.color || item.free_color || "");
+    const style = normalizeStyle(item.style || item.free_style || "");
+    const paper = normalizePaper(item.paper || item.free_paper || "");
+    const premium = normalizePremium(item.premium_color || "");
+
+    if (plan === "premium" || premium) {
+      return `premium｜${premium || "p?"}`;
+    }
+    return `free｜${color || "c?"}｜${style || "s?"}｜${paper || "f?"}`;
+  }
+
+  function normalizeFreeColor(v) {
+    const s = String(v || "").trim().toLowerCase();
+    if (!s) return "";
+    if (/^c[1-5]$/.test(s)) return s;
+    const m1 = s.match(/^color-(\d)$/);
+    if (m1) return `c${m1[1]}`;
+    if (/^[1-5]$/.test(s)) return `c${s}`;
+    if (s.includes("粉")) return "c1";
+    if (s.includes("藍")) return "c2";
+    if (s.includes("橘")) return "c3";
+    if (s.includes("紫")) return "c4";
+    if (s.includes("綠")) return "c5";
+    return s;
+  }
+
+  function normalizeStyle(v) {
+    const s = String(v || "").trim().toLowerCase();
+    if (!s) return "";
+    if (/^s[1-3]$/.test(s)) return s;
+    if (s.includes("arch") || s.includes("拱")) return "s1";
+    if (s.includes("flat") || s.includes("直")) return "s2";
+    if (s.includes("spot") || s.includes("晨")) return "s3";
+    return s;
+  }
+
+  function normalizePaper(v) {
+    const s = String(v || "").trim().toLowerCase();
+    if (!s) return "";
+    if (/^f[1-3]$/.test(s)) return s;
+    if (s.includes("paper-1") || s.includes("棉")) return "f1";
+    if (s.includes("paper-2") || s.includes("象牙") || s.includes("顆")) return "f2";
+    if (s.includes("paper-3") || s.includes("霧灰") || s.includes("亞麻")) return "f3";
+    return s;
+  }
+
+  function normalizePremium(v) {
+    const s = String(v || "").trim().toLowerCase();
+    if (!s) return "";
+    if (/^p[1-7]$/.test(s)) return s;
+    if (/^[1-7]$/.test(s)) return `p${s}`;
+    if (s.includes("胭")) return "p1";
+    if (s.includes("酒")) return "p2";
+    if (s.includes("深藍")) return "p3";
+    if (s.includes("霧紫")) return "p4";
+    if (s.includes("藍灰")) return "p5";
+    if (s.includes("金")) return "p6";
+    if (s.includes("褐")) return "p7";
+    return s;
+  }
+
+  function buildCardCleanLink(id) {
+    return `${ensureBaseUrl()}?id=${encodeURIComponent(id)}&view=1`;
+  }
+
+  function buildShareLink(id) {
+    return `${ensureBaseUrl()}share.html?id=${encodeURIComponent(id)}`;
+  }
+
+  function ensureBaseUrl() {
+    return DEFAULT_BASE_URL;
   }
 
   async function api(action, params = {}, opts = {}) {
@@ -533,23 +772,34 @@
     return json;
   }
 
+  function calcDaysLeft(raw) {
+    const t = timeOf(raw);
+    if (!t) return null;
+
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+    const d = new Date(t);
+    const end = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+    return Math.ceil((end - start) / 86400000);
+  }
+
+  function timeOf(raw) {
+    const t = Date.parse(String(raw || ""));
+    return Number.isFinite(t) ? t : 0;
+  }
+
+  function safeNum(v) {
+    return String(v ?? "0");
+  }
+
   function setStatus(msg, type = "") {
     el.statusBox.textContent = String(msg || "");
     el.statusBox.className = "statusbox";
     if (type === "ok") el.statusBox.classList.add("ok");
     else if (type === "warn") el.statusBox.classList.add("warn");
     else if (type === "err") el.statusBox.classList.add("err");
-  }
-
-  function buildFrontUrl(path) {
-    const gas = val(el.gasUrl) || DEFAULT_GAS;
-    try {
-      const u = new URL(gas);
-      const maybeBase = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
-      return new URL(path, maybeBase).toString();
-    } catch (_) {
-      return `https://angel0973180707.github.io/Happiness-Smart-Card-System/${path}`;
-    }
   }
 
   function val(node) {
@@ -582,5 +832,4 @@
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#39;");
   }
-
 })();
