@@ -3,445 +3,595 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>HSC Admin v522.1</title>
-  <meta name="theme-color" content="#0b1220" />
+  <title>HSC Admin v522.2</title>
+  <meta name="theme-color" content="#0f172a" />
   <style>
     :root{
       --bg:#0b1220;
-      --card:#121a2b;
+      --bg2:#0f172a;
+      --card:#111827;
+      --card2:#172033;
       --line:rgba(255,255,255,.10);
-      --text:rgba(255,255,255,.94);
-      --muted:rgba(255,255,255,.68);
+      --line2:rgba(255,255,255,.16);
+      --text:rgba(255,255,255,.96);
+      --muted:rgba(255,255,255,.72);
+      --soft:rgba(255,255,255,.06);
+      --soft2:rgba(255,255,255,.08);
       --accent:#7bdcff;
-      --ok:#6ee7b7;
-      --bad:#fb7185;
+      --ok:#34d399;
       --warn:#fbbf24;
-      --radius:20px;
-      --shadow:0 18px 40px rgba(0,0,0,.28);
-
-      --fs:clamp(16px,1.8vw,18px);
-      --fs2:clamp(20px,2.7vw,24px);
-      --fs3:clamp(24px,3.6vw,30px);
+      --danger:#fb7185;
+      --shadow:0 18px 50px rgba(0,0,0,.28);
+      --radius:22px;
+      --radius-sm:16px;
+      --max:1280px;
     }
 
     *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    html{
-      -webkit-text-size-adjust:100%;
-      text-size-adjust:100%;
-    }
+    html,body{ min-height:100%; }
     body{
       margin:0;
-      font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Arial;
-      background:
-        radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%),
-        radial-gradient(900px 700px at 100% 0%, rgba(255,191,36,.08), transparent 58%),
-        var(--bg);
       color:var(--text);
-      font-size:var(--fs);
-      line-height:1.65;
-      word-break:keep-all;
-      overflow-wrap:break-word;
+      font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+      background:
+        radial-gradient(900px 600px at 12% -10%, rgba(123,220,255,.14), transparent 55%),
+        radial-gradient(1000px 700px at 120% 0%, rgba(56,189,248,.10), transparent 48%),
+        linear-gradient(180deg, #08101d 0%, #0b1220 100%);
     }
+
+    a{ color:inherit; text-decoration:none; }
 
     .wrap{
-      max-width:980px;
+      max-width:var(--max);
       margin:0 auto;
-      padding:18px 14px 60px;
+      padding:20px 14px 64px;
     }
 
-    .top{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
+    .hero{
+      display:grid;
       gap:14px;
-      padding:18px;
+      margin-bottom:18px;
+    }
+
+    .hero-card{
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.035));
       border:1px solid var(--line);
-      border-radius:var(--radius);
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border-radius:28px;
       box-shadow:var(--shadow);
+      padding:20px 18px;
     }
 
-    .brand{
-      min-width:0;
-      flex:1 1 auto;
+    .title{
+      font-size:32px;
+      line-height:1.18;
+      font-weight:900;
+      letter-spacing:.02em;
+      margin:0 0 8px;
     }
 
-    .brand h1{
+    .subtitle{
+      color:var(--muted);
+      font-size:16px;
+      line-height:1.7;
       margin:0;
-      font-size:var(--fs3);
-      line-height:1.24;
-      letter-spacing:.2px;
     }
 
-    .brand p{
-      margin:10px 0 0;
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.8;
+    .grid{
+      display:grid;
+      grid-template-columns:1.15fr .85fr;
+      gap:16px;
+      align-items:start;
     }
 
-    .meta{
-      text-align:right;
-      min-width:160px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.9;
-      flex:0 0 auto;
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 11px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      background:rgba(255,255,255,.04);
-      font-size:12px;
-      font-weight:800;
-    }
-
-    .dot{
-      width:10px;
-      height:10px;
-      border-radius:50%;
-      background:var(--accent);
-      box-shadow:0 0 0 2px rgba(123,220,255,.15);
-      flex:0 0 auto;
-    }
-
-    .kbd{
-      display:inline-block;
-      padding:2px 7px;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:rgba(255,255,255,.03);
-      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-      font-size:11px;
-      word-break:break-all;
-    }
-
-    .card{
-      margin-top:14px;
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
       border:1px solid var(--line);
       border-radius:var(--radius);
-      background:rgba(255,255,255,.03);
-      padding:18px;
       box-shadow:var(--shadow);
+      overflow:hidden;
     }
 
-    .card h2{
-      margin:0 0 12px;
-      font-size:var(--fs2);
-      line-height:1.3;
+    .panel-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:16px 18px 12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
     }
 
-    .subnote{
-      margin:-2px 0 12px;
-      color:var(--muted);
+    .panel-title{
+      font-size:22px;
+      font-weight:900;
+      letter-spacing:.02em;
+      margin:0;
+    }
+
+    .panel-sub{
       font-size:13px;
-      line-height:1.75;
+      color:var(--muted);
+      line-height:1.6;
+      margin:4px 0 0;
+    }
+
+    .panel-body{
+      padding:16px 18px 18px;
     }
 
     .row{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
     }
 
-    @media(min-width:760px){
-      .row.two{ grid-template-columns:1fr 1fr; }
-      .row.auto{ grid-template-columns:1.2fr .9fr; }
+    .row + .row{ margin-top:12px; }
+
+    .field{
+      display:grid;
+      gap:7px;
+      min-width:0;
+      flex:1 1 220px;
     }
+
+    .field.sm{ flex:0 1 140px; }
+    .field.md{ flex:0 1 220px; }
+    .field.lg{ flex:1 1 320px; }
 
     label{
-      display:block;
-      font-size:15px;
+      font-size:13px;
       color:var(--muted);
-      margin:0 0 8px;
-      font-weight:900;
-      line-height:1.55;
+      font-weight:800;
+      letter-spacing:.02em;
     }
 
-    input{
+    input, select, textarea{
       width:100%;
-      background:rgba(255,255,255,.04);
+      border:1px solid var(--line2);
+      background:rgba(255,255,255,.05);
       color:var(--text);
-      border:1px solid var(--line);
-      border-radius:15px;
-      padding:15px;
+      border-radius:16px;
+      padding:14px 14px;
+      font-size:17px;
+      line-height:1.4;
       outline:none;
-      font-size:clamp(16px,1.9vw,18px);
-      line-height:1.6;
-      min-height:54px;
+      transition:.18s ease;
     }
 
-    input::placeholder{
-      color:rgba(255,255,255,.35);
+    textarea{
+      min-height:96px;
+      resize:vertical;
+    }
+
+    input:focus, select:focus, textarea:focus{
+      border-color:rgba(123,220,255,.55);
+      box-shadow:0 0 0 4px rgba(123,220,255,.10);
+      background:rgba(255,255,255,.07);
     }
 
     .btns{
       display:flex;
       flex-wrap:wrap;
       gap:10px;
-      margin-top:12px;
     }
 
     button{
-      cursor:pointer;
-      border:none;
-      border-radius:14px;
-      padding:13px 18px;
-      font-weight:900;
-      font-size:16px;
-      background:rgba(123,220,255,.14);
+      appearance:none;
+      border:1px solid var(--line2);
+      background:rgba(255,255,255,.08);
       color:var(--text);
-      border:1px solid rgba(123,220,255,.35);
-      min-height:50px;
-      line-height:1.3;
-      transition:.18s ease;
+      border-radius:16px;
+      padding:13px 16px;
+      font-size:16px;
+      font-weight:900;
+      line-height:1.2;
+      cursor:pointer;
+      transition:transform .04s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
     }
 
-    button.secondary{
-      background:rgba(255,255,255,.04);
-      border:1px solid var(--line);
+    button:hover{ background:rgba(255,255,255,.11); }
+    button:active{ transform:translateY(1px); }
+    button.primary{
+      background:linear-gradient(180deg, rgba(123,220,255,.24), rgba(123,220,255,.14));
+      border-color:rgba(123,220,255,.35);
     }
-
+    button.ok{
+      background:linear-gradient(180deg, rgba(52,211,153,.22), rgba(52,211,153,.12));
+      border-color:rgba(52,211,153,.34);
+    }
+    button.warn{
+      background:linear-gradient(180deg, rgba(251,191,36,.22), rgba(251,191,36,.12));
+      border-color:rgba(251,191,36,.34);
+    }
+    button.danger{
+      background:linear-gradient(180deg, rgba(251,113,133,.22), rgba(251,113,133,.12));
+      border-color:rgba(251,113,133,.34);
+    }
     button.ghost{
       background:transparent;
-      border:1px solid var(--line);
     }
-
-    button:disabled{
-      opacity:.55;
+    button[disabled]{
+      opacity:.45;
       cursor:not-allowed;
     }
 
-    .tips{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:10px;
+    .hint{
+      margin-top:10px;
+      font-size:13px;
+      line-height:1.6;
+      color:var(--muted);
     }
 
-    .tip{
-      border:1px dashed rgba(255,255,255,.10);
-      border-radius:14px;
-      padding:12px;
-      background:rgba(255,255,255,.02);
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.8;
-    }
-
-    .status{
-      margin-top:12px;
-      border:1px dashed var(--line);
-      border-radius:14px;
-      padding:12px 14px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.85;
+    .statusbox{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      border-radius:18px;
+      padding:14px 14px;
+      font-size:15px;
+      line-height:1.7;
       white-space:pre-wrap;
       word-break:break-word;
-      background:rgba(255,255,255,.02);
-      min-height:90px;
+      min-height:72px;
     }
 
-    .results{
+    .statusbox.ok{ border-color:rgba(52,211,153,.35); }
+    .statusbox.warn{ border-color:rgba(251,191,36,.35); }
+    .statusbox.err{ border-color:rgba(251,113,133,.35); }
+
+    .result-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .count-badge{
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:900;
+      color:#dff6ff;
+      background:rgba(123,220,255,.12);
+      border:1px solid rgba(123,220,255,.20);
+    }
+
+    .result-list{
       display:grid;
-      grid-template-columns:1fr;
       gap:12px;
     }
 
-    .empty{
-      border:1px dashed rgba(255,255,255,.12);
-      border-radius:14px;
-      padding:14px;
-      color:rgba(255,255,255,.68);
-      background:rgba(255,255,255,.03);
-      line-height:1.8;
+    .card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.03));
+      border-radius:20px;
+      padding:16px;
     }
 
-    .resultCard{
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:16px;
-      padding:14px;
-      background:rgba(255,255,255,.04);
-      line-height:1.75;
-    }
-
-    .resultHead{
+    .card-top{
       display:flex;
       justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
+      gap:12px;
       align-items:flex-start;
+      margin-bottom:10px;
     }
 
-    .resultId{
-      font-size:18px;
+    .name{
+      font-size:24px;
+      line-height:1.2;
       font-weight:900;
-      line-height:1.35;
+      word-break:break-word;
+      margin:0 0 6px;
     }
 
-    .badge{
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .chip{
       display:inline-flex;
       align-items:center;
-      gap:8px;
-      padding:6px 10px;
+      gap:6px;
+      padding:8px 11px;
       border-radius:999px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.04);
-      font-size:12px;
-      font-weight:800;
-    }
-
-    .resultName{
-      margin-top:8px;
-      color:rgba(255,255,255,.92);
+      font-size:13px;
       font-weight:900;
-      font-size:17px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      color:#f5fbff;
+      max-width:100%;
+      word-break:break-all;
     }
 
-    .resultSub{
-      margin-top:4px;
-      color:rgba(255,255,255,.72);
-      font-size:14px;
-      line-height:1.75;
+    .chip.active{
+      background:rgba(52,211,153,.13);
+      border-color:rgba(52,211,153,.28);
     }
 
-    .gridInfo{
-      margin-top:10px;
+    .chip.inactive{
+      background:rgba(251,113,133,.12);
+      border-color:rgba(251,113,133,.26);
+    }
+
+    .data{
       display:grid;
-      grid-template-columns:1fr;
-      gap:8px;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+      margin:12px 0;
     }
 
-    .infoLine{
-      color:rgba(255,255,255,.82);
-      font-size:14px;
-      line-height:1.7;
+    .kv{
+      padding:12px 13px;
+      border-radius:15px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      min-width:0;
+    }
+
+    .kv b{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin-bottom:6px;
+      letter-spacing:.02em;
+    }
+
+    .kv span{
+      display:block;
+      font-size:16px;
+      line-height:1.45;
       word-break:break-word;
     }
 
-    .infoLine strong{
-      color:rgba(255,255,255,.96);
-    }
-
-    .resultActions{
-      margin-top:12px;
+    .card-actions{
       display:flex;
-      gap:8px;
       flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
     }
 
-    .footNote{
-      margin-top:14px;
-      color:rgba(255,255,255,.56);
-      font-size:12px;
-      line-height:1.8;
+    .card-actions button{
+      padding:11px 13px;
+      border-radius:14px;
+      font-size:14px;
     }
 
-    @media(max-width:760px){
-      .top{
-        flex-direction:column;
-      }
-      .meta{
-        text-align:left;
-        min-width:auto;
-      }
+    .empty{
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:18px;
+      padding:20px 16px;
+      color:var(--muted);
+      font-size:16px;
+      line-height:1.7;
+      text-align:center;
+      background:rgba(255,255,255,.025);
     }
 
-    @media(max-width:520px){
-      .wrap{
-        padding:14px 12px 48px;
-      }
-      .card,.top{
-        padding:15px;
-      }
-      button{
-        width:100%;
-      }
-      .resultActions{
-        flex-direction:column;
-      }
+    .detail-box{
+      display:grid;
+      gap:14px;
+    }
+
+    .quick-grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0,1fr));
+      gap:10px;
+    }
+
+    .mini-note{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+
+    .footer-space{
+      height:24px;
+    }
+
+    @media (max-width: 980px){
+      .grid{ grid-template-columns:1fr; }
+    }
+
+    @media (max-width: 680px){
+      .wrap{ padding:14px 10px 50px; }
+      .title{ font-size:28px; }
+      .panel-title{ font-size:20px; }
+      .name{ font-size:22px; }
+      .data{ grid-template-columns:1fr; }
+      .quick-grid{ grid-template-columns:1fr; }
+      input, select, textarea{ font-size:16px; }
+      button{ font-size:15px; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
-      <div class="brand">
-        <h1>HSC Admin｜後臺查卡</h1>
-        <p>
-          先保證 ID 可查，再支援姓名、電話、單位、職稱等關鍵字查詢。
-          若 GAS 搜尋 action 未完整接通，至少 <strong>TW0001</strong> 會直接走 card API。
+    <section class="hero">
+      <div class="hero-card">
+        <h1 class="title">HSC Admin 後臺 v522.2</h1>
+        <p class="subtitle">
+          可搜尋姓名、電話、單位、職稱、ID。已接上後臺完整功能：搜尋、讀卡、啟用停用、建邀請碼、更新連結、欄位更新。
         </p>
       </div>
-      <div class="meta">
-        <div class="pill"><span class="dot"></span><span>搜尋修正版</span></div>
-        <div>版本：<span class="kbd" id="ver">v522.1</span></div>
-      </div>
-    </div>
+    </section>
 
-    <div class="card">
-      <h2>1. GAS 設定</h2>
-      <div class="subnote">請放目前正在使用的 GAS Web App /exec 網址。</div>
-
-      <div class="row">
-        <div>
-          <label for="gasUrl">GAS /exec URL</label>
-          <input id="gasUrl" placeholder="https://script.google.com/macros/s/.../exec" />
-        </div>
-      </div>
-
-      <div class="btns">
-        <button id="btnPing" type="button" class="secondary">測試連線</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>2. 搜尋名片</h2>
-      <div class="subnote">可先測：TW0001、小天使、973180707、天使幸福智慧名片館。</div>
-
-      <div class="row auto">
-        <div>
-          <label for="keyword">搜尋關鍵字</label>
-          <input id="keyword" placeholder="輸入 ID / 姓名 / 電話 / 單位 / 職稱" />
-        </div>
-        <div>
-          <label>&nbsp;</label>
-          <div class="btns" style="margin-top:0;">
-            <button id="btnSearch" type="button">開始搜尋</button>
+    <div class="grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">後臺控制區</h2>
+            <p class="panel-sub">先確認 GAS，再搜尋卡片，再做操作。</p>
           </div>
         </div>
-      </div>
+        <div class="panel-body">
+          <div class="row">
+            <div class="field lg">
+              <label for="gasUrl">GAS Exec URL</label>
+              <input id="gasUrl" type="text" />
+            </div>
+          </div>
 
-      <div class="tips" style="margin-top:12px;">
-        <div class="tip">
-          <strong>搜尋邏輯：</strong><br>
-          ① 如果像 <span class="kbd">TW0001</span>，會先直接走 <span class="kbd">action=card&id=...</span><br>
-          ② 若不是 ID，則依序嘗試 <span class="kbd">adminSearch / adminFind / searchCards / findCards</span>
+          <div class="row">
+            <div class="field md">
+              <label for="tenant">Tenant</label>
+              <input id="tenant" type="text" value="angel" />
+            </div>
+            <div class="field md">
+              <label for="adminSecret">ADMIN_SECRET</label>
+              <input id="adminSecret" type="password" />
+            </div>
+          </div>
+
+          <div class="row btns">
+            <button id="btnSaveConfig" class="primary">儲存設定</button>
+            <button id="btnPing">測試連線</button>
+            <button id="btnStats">讀統計</button>
+          </div>
+
+          <div class="row" style="margin-top:18px;">
+            <div class="field lg">
+              <label for="searchInput">搜尋卡片</label>
+              <input id="searchInput" type="text" placeholder="可輸入：TW0001 / 小天使 / 973180707 / 天使幸福智慧名片館 / 幸福智慧名片館館長" />
+            </div>
+          </div>
+
+          <div class="row btns">
+            <button id="btnSearch" class="primary">搜尋</button>
+            <button id="btnSearchId">ID 直讀</button>
+            <button id="btnClearSearch" class="ghost">清空</button>
+          </div>
+
+          <div class="hint">
+            搜尋支援：ID、姓名、電話、單位、職稱。若輸入完整卡號如 TW0001，可先用「ID 直讀」。
+          </div>
+
+          <div class="row" style="margin-top:18px;">
+            <div class="field md">
+              <label for="invitePlan">建邀請碼方案</label>
+              <select id="invitePlan">
+                <option value="free">free</option>
+                <option value="premium">premium</option>
+              </select>
+            </div>
+            <div class="field sm">
+              <label for="inviteDays">有效天數</label>
+              <input id="inviteDays" type="number" value="7" min="1" />
+            </div>
+            <div class="field sm">
+              <label for="inviteCount">數量</label>
+              <input id="inviteCount" type="number" value="1" min="1" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field lg">
+              <label for="inviteNote">備註（可空白）</label>
+              <input id="inviteNote" type="text" placeholder="例如：自由搭配測試用" />
+            </div>
+          </div>
+
+          <div class="row btns">
+            <button id="btnCreateInvite" class="warn">建立邀請碼</button>
+          </div>
+
+          <div class="row" style="margin-top:18px;">
+            <div class="field">
+              <label>狀態訊息</label>
+              <div id="statusBox" class="statusbox">準備就緒。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title">詳細操作區</h2>
+            <p class="panel-sub">先從搜尋結果載入一筆卡片，再做快速編修。</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="detail-box">
+            <div class="row">
+              <div class="field md">
+                <label for="currentId">目前卡號</label>
+                <input id="currentId" type="text" placeholder="請先從搜尋結果載入" />
+              </div>
+              <div class="field md">
+                <label for="currentName">目前姓名</label>
+                <input id="currentName" type="text" placeholder="載入後自動帶入" />
+              </div>
+            </div>
+
+            <div class="quick-grid">
+              <div class="field">
+                <label for="quickField">快速更新欄位</label>
+                <select id="quickField">
+                  <option value="name">name 姓名</option>
+                  <option value="unit">unit 單位</option>
+                  <option value="title">title 職稱</option>
+                  <option value="phone">phone 電話</option>
+                  <option value="email">email Email</option>
+                  <option value="line_oa">line_oa LINE OA</option>
+                  <option value="wechat_id">wechat_id 微信ID</option>
+                  <option value="address">address 地址</option>
+                  <option value="slogan">slogan 標語</option>
+                  <option value="services">services 服務</option>
+                  <option value="experience">experience 經歷</option>
+                  <option value="status">status 狀態</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="quickValue">快速更新值</label>
+                <input id="quickValue" type="text" placeholder="輸入新值" />
+              </div>
+            </div>
+
+            <div class="row btns">
+              <button id="btnQuickUpdate" class="ok">快速更新</button>
+              <button id="btnLoadCurrent">重新載入此卡</button>
+              <button id="btnOpenCard">開智慧名片</button>
+              <button id="btnOpenShare">開交付卡</button>
+            </div>
+
+            <div class="row">
+              <div class="field">
+                <label for="detailJson">目前卡片資料</label>
+                <textarea id="detailJson" placeholder="載入後顯示 JSON"></textarea>
+              </div>
+            </div>
+
+            <div class="mini-note">
+              提醒：快速更新是單欄位更新。若後面要做完整多欄位編輯，再往 v522.3 擴充。
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel" style="margin-top:16px;">
+      <div class="panel-head">
+        <div class="result-head" style="width:100%;">
+          <div>
+            <h2 class="panel-title">搜尋結果</h2>
+            <p class="panel-sub">可點載入、啟用停用、複製資料、產生更新連結。</p>
+          </div>
+          <div id="resultCount" class="count-badge">0 筆</div>
         </div>
       </div>
-
-      <div class="status" id="status">尚未操作。</div>
-    </div>
-
-    <div class="card">
-      <h2>3. 搜尋結果</h2>
-      <div class="results" id="resultList">
-        <div class="empty">尚未查詢。</div>
+      <div class="panel-body">
+        <div id="resultList" class="result-list">
+          <div class="empty">尚未搜尋資料。</div>
+        </div>
       </div>
+    </section>
 
-      <div class="footNote">
-        若輸入 TW0001 仍找不到，而你已驗證 <span class="kbd">?action=card&id=TW0001</span> 能讀到，
-        那就代表後臺實際連到的 GAS URL 不是同一支，或 admin.html 曾被舊版 JS 快取。
-      </div>
-    </div>
+    <div class="footer-space"></div>
   </div>
 
-  <script src="./admin.js?v=5221"></script>
+  <script src="./admin.js?v=5222"></script>
 </body>
 </html>
