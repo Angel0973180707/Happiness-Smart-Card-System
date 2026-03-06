@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>HSC Admin v522.2</title>
+  <title>HSC Admin Workspace v522.5</title>
   <meta name="theme-color" content="#0f172a" />
   <style>
     :root{
       --bg:#0b1220;
       --bg2:#0f172a;
-      --card:#111827;
+      --card:#121a2b;
       --card2:#172033;
       --line:rgba(255,255,255,.10);
       --line2:rgba(255,255,255,.16);
@@ -21,9 +21,9 @@
       --ok:#34d399;
       --warn:#fbbf24;
       --danger:#fb7185;
-      --shadow:0 18px 50px rgba(0,0,0,.28);
-      --radius:22px;
-      --radius-sm:16px;
+      --shadow:0 22px 60px rgba(0,0,0,.28);
+      --radius:24px;
+      --radius-sm:18px;
       --max:1280px;
     }
 
@@ -34,8 +34,8 @@
       color:var(--text);
       font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
       background:
-        radial-gradient(900px 600px at 12% -10%, rgba(123,220,255,.14), transparent 55%),
-        radial-gradient(1000px 700px at 120% 0%, rgba(56,189,248,.10), transparent 48%),
+        radial-gradient(900px 600px at 12% -10%, rgba(123,220,255,.14), transparent 56%),
+        radial-gradient(1000px 700px at 110% 0%, rgba(56,189,248,.10), transparent 46%),
         linear-gradient(180deg, #08101d 0%, #0b1220 100%);
     }
 
@@ -44,41 +44,61 @@
     .wrap{
       max-width:var(--max);
       margin:0 auto;
-      padding:20px 14px 64px;
+      padding:18px 12px 60px;
     }
 
     .hero{
       display:grid;
       gap:14px;
-      margin-bottom:18px;
+      margin-bottom:16px;
     }
 
     .hero-card{
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.035));
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
       border:1px solid var(--line);
       border-radius:28px;
       box-shadow:var(--shadow);
       padding:20px 18px;
     }
 
+    .hero-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+
     .title{
-      font-size:32px;
+      margin:0;
+      font-size:34px;
       line-height:1.18;
-      font-weight:900;
+      font-weight:1000;
       letter-spacing:.02em;
-      margin:0 0 8px;
     }
 
     .subtitle{
+      margin:8px 0 0;
       color:var(--muted);
-      font-size:16px;
+      font-size:17px;
       line-height:1.7;
-      margin:0;
+      font-weight:700;
+    }
+
+    .ver{
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid rgba(123,220,255,.26);
+      background:rgba(123,220,255,.10);
+      color:#dff6ff;
+      font-size:15px;
+      font-weight:1000;
+      white-space:nowrap;
     }
 
     .grid{
       display:grid;
-      grid-template-columns:1.15fr .85fr;
+      grid-template-columns:1.05fr .95fr;
       gap:16px;
       align-items:start;
     }
@@ -93,29 +113,60 @@
 
     .panel-head{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:12px;
-      padding:16px 18px 12px;
+      padding:18px 18px 12px;
       border-bottom:1px solid rgba(255,255,255,.06);
     }
 
     .panel-title{
-      font-size:22px;
-      font-weight:900;
-      letter-spacing:.02em;
       margin:0;
+      font-size:24px;
+      line-height:1.25;
+      font-weight:1000;
+      letter-spacing:.02em;
     }
 
     .panel-sub{
-      font-size:13px;
+      margin:6px 0 0;
       color:var(--muted);
-      line-height:1.6;
-      margin:4px 0 0;
+      font-size:14px;
+      line-height:1.65;
+      font-weight:700;
     }
 
     .panel-body{
       padding:16px 18px 18px;
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:12px;
+    }
+
+    .stat{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      border-radius:18px;
+      padding:14px 14px;
+    }
+
+    .stat-label{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.4;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+
+    .stat-value{
+      margin-top:8px;
+      font-size:28px;
+      line-height:1.1;
+      font-weight:1000;
+      letter-spacing:.01em;
     }
 
     .row{
@@ -139,9 +190,10 @@
     .field.lg{ flex:1 1 320px; }
 
     label{
-      font-size:13px;
+      font-size:14px;
+      line-height:1.3;
       color:var(--muted);
-      font-weight:800;
+      font-weight:900;
       letter-spacing:.02em;
     }
 
@@ -151,16 +203,18 @@
       background:rgba(255,255,255,.05);
       color:var(--text);
       border-radius:16px;
-      padding:14px 14px;
-      font-size:17px;
-      line-height:1.4;
+      padding:15px 15px;
+      font-size:18px;
+      line-height:1.45;
       outline:none;
       transition:.18s ease;
     }
 
     textarea{
-      min-height:96px;
+      min-height:120px;
       resize:vertical;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:14px;
     }
 
     input:focus, select:focus, textarea:focus{
@@ -181,10 +235,10 @@
       background:rgba(255,255,255,.08);
       color:var(--text);
       border-radius:16px;
-      padding:13px 16px;
-      font-size:16px;
-      font-weight:900;
+      padding:14px 16px;
+      font-size:17px;
       line-height:1.2;
+      font-weight:1000;
       cursor:pointer;
       transition:transform .04s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
     }
@@ -217,21 +271,22 @@
 
     .hint{
       margin-top:10px;
-      font-size:13px;
-      line-height:1.6;
       color:var(--muted);
+      font-size:13px;
+      line-height:1.65;
+      font-weight:700;
     }
 
     .statusbox{
       border:1px solid var(--line);
       background:rgba(255,255,255,.04);
       border-radius:18px;
-      padding:14px 14px;
+      padding:14px;
       font-size:15px;
       line-height:1.7;
       white-space:pre-wrap;
       word-break:break-word;
-      min-height:72px;
+      min-height:76px;
     }
 
     .statusbox.ok{ border-color:rgba(52,211,153,.35); }
@@ -249,11 +304,12 @@
     .count-badge{
       padding:8px 12px;
       border-radius:999px;
-      font-size:13px;
-      font-weight:900;
+      font-size:14px;
+      font-weight:1000;
       color:#dff6ff;
       background:rgba(123,220,255,.12);
       border:1px solid rgba(123,220,255,.20);
+      white-space:nowrap;
     }
 
     .result-list{
@@ -270,18 +326,18 @@
 
     .card-top{
       display:flex;
+      align-items:flex-start;
       justify-content:space-between;
       gap:12px;
-      align-items:flex-start;
       margin-bottom:10px;
     }
 
     .name{
-      font-size:24px;
-      line-height:1.2;
-      font-weight:900;
+      margin:0 0 8px;
+      font-size:28px;
+      line-height:1.22;
+      font-weight:1000;
       word-break:break-word;
-      margin:0 0 6px;
     }
 
     .meta{
@@ -297,7 +353,7 @@
       padding:8px 11px;
       border-radius:999px;
       font-size:13px;
-      font-weight:900;
+      font-weight:1000;
       background:rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.08);
       color:#f5fbff;
@@ -315,9 +371,15 @@
       border-color:rgba(251,113,133,.26);
     }
 
+    .chip.warn{
+      background:rgba(251,191,36,.14);
+      border-color:rgba(251,191,36,.28);
+      color:#fff6d6;
+    }
+
     .data{
       display:grid;
-      grid-template-columns:repeat(2, minmax(0,1fr));
+      grid-template-columns:repeat(2,minmax(0,1fr));
       gap:10px;
       margin:12px 0;
     }
@@ -343,6 +405,7 @@
       font-size:16px;
       line-height:1.45;
       word-break:break-word;
+      font-weight:800;
     }
 
     .card-actions{
@@ -353,7 +416,7 @@
     }
 
     .card-actions button{
-      padding:11px 13px;
+      padding:12px 13px;
       border-radius:14px;
       font-size:14px;
     }
@@ -361,12 +424,13 @@
     .empty{
       border:1px dashed rgba(255,255,255,.18);
       border-radius:18px;
-      padding:20px 16px;
+      padding:22px 16px;
       color:var(--muted);
-      font-size:16px;
+      font-size:17px;
       line-height:1.7;
       text-align:center;
       background:rgba(255,255,255,.025);
+      font-weight:800;
     }
 
     .detail-box{
@@ -376,7 +440,7 @@
 
     .quick-grid{
       display:grid;
-      grid-template-columns:repeat(2, minmax(0,1fr));
+      grid-template-columns:repeat(2,minmax(0,1fr));
       gap:10px;
     }
 
@@ -384,25 +448,75 @@
       color:var(--muted);
       font-size:13px;
       line-height:1.6;
+      font-weight:700;
     }
 
-    .footer-space{
-      height:24px;
+    .reminder-list{
+      display:grid;
+      gap:10px;
     }
 
-    @media (max-width: 980px){
+    .reminder-item{
+      border:1px solid rgba(251,191,36,.24);
+      background:rgba(251,191,36,.08);
+      border-radius:18px;
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .reminder-main{
+      display:grid;
+      gap:5px;
+      min-width:0;
+    }
+
+    .reminder-title{
+      font-size:18px;
+      line-height:1.3;
+      font-weight:1000;
+      word-break:break-word;
+    }
+
+    .reminder-sub{
+      font-size:14px;
+      line-height:1.55;
+      color:#fff4c6;
+      font-weight:800;
+      word-break:break-word;
+    }
+
+    .inline-code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:.95em;
+    }
+
+    .footer-space{ height:24px; }
+
+    @media (max-width: 1080px){
       .grid{ grid-template-columns:1fr; }
     }
 
-    @media (max-width: 680px){
-      .wrap{ padding:14px 10px 50px; }
-      .title{ font-size:28px; }
-      .panel-title{ font-size:20px; }
-      .name{ font-size:22px; }
+    @media (max-width: 720px){
+      .wrap{ padding:14px 10px 46px; }
+      .title{ font-size:29px; }
+      .panel-title{ font-size:22px; }
+      .name{ font-size:24px; }
+      .stats{ grid-template-columns:repeat(2,minmax(0,1fr)); }
       .data{ grid-template-columns:1fr; }
       .quick-grid{ grid-template-columns:1fr; }
-      input, select, textarea{ font-size:16px; }
-      button{ font-size:15px; }
+      input, select{ font-size:17px; }
+      button{ font-size:16px; }
+    }
+
+    @media (max-width: 420px){
+      .stats{ grid-template-columns:1fr 1fr; }
+      .stat-value{ font-size:24px; }
+      .card-actions button{ width:100%; }
+      .ver{ width:100%; text-align:center; }
     }
   </style>
 </head>
@@ -410,10 +524,56 @@
   <div class="wrap">
     <section class="hero">
       <div class="hero-card">
-        <h1 class="title">HSC Admin 後臺 v522.2</h1>
-        <p class="subtitle">
-          可搜尋姓名、電話、單位、職稱、ID。已接上後臺完整功能：搜尋、讀卡、啟用停用、建邀請碼、更新連結、欄位更新。
-        </p>
+        <div class="hero-top">
+          <div>
+            <h1 class="title">HSC Admin Workspace</h1>
+            <p class="subtitle">智慧名片管理台｜大字、簡潔、直覺</p>
+          </div>
+          <div class="ver">v522.5</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-bottom:16px;">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">營運總覽</h2>
+          <p class="panel-sub">先看整體，再處理即將到期與卡片管理。</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">總卡數</div>
+            <div id="statTotal" class="stat-value">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">本月新增</div>
+            <div id="statMonthNew" class="stat-value">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">已啟用</div>
+            <div id="statActive" class="stat-value">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">已到期</div>
+            <div id="statExpired" class="stat-value">—</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-bottom:16px;">
+      <div class="panel-head">
+        <div>
+          <h2 class="panel-title">即將到期提醒</h2>
+          <p class="panel-sub">列出 30 天內即將到期且目前仍為啟用中的卡片序號。</p>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div id="expiryReminderList" class="reminder-list">
+          <div class="empty">尚未讀取即將到期資料。</div>
+        </div>
       </div>
     </section>
 
@@ -421,8 +581,8 @@
       <section class="panel">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">後臺控制區</h2>
-            <p class="panel-sub">先確認 GAS，再搜尋卡片，再做操作。</p>
+            <h2 class="panel-title">搜尋與控制</h2>
+            <p class="panel-sub">找卡、載卡、建邀請碼、讀統計。</p>
           </div>
         </div>
         <div class="panel-body">
@@ -447,29 +607,30 @@
           <div class="row btns">
             <button id="btnSaveConfig" class="primary">儲存設定</button>
             <button id="btnPing">測試連線</button>
-            <button id="btnStats">讀統計</button>
+            <button id="btnStats">讀取統計</button>
+            <button id="btnRefreshExpiry" class="warn">刷新到期提醒</button>
           </div>
 
           <div class="row" style="margin-top:18px;">
             <div class="field lg">
               <label for="searchInput">搜尋卡片</label>
-              <input id="searchInput" type="text" placeholder="可輸入：TW0001 / 小天使 / 973180707 / 天使幸福智慧名片館 / 幸福智慧名片館館長" />
+              <input id="searchInput" type="text" placeholder="可輸入：TW0001 / 小天使 / 973180707 / 天使幸福智慧名片館 / 幸福智慧名片館館長 / 邀請碼" />
             </div>
           </div>
 
           <div class="row btns">
             <button id="btnSearch" class="primary">搜尋</button>
-            <button id="btnSearchId">ID 直讀</button>
+            <button id="btnSearchId">載入卡號</button>
             <button id="btnClearSearch" class="ghost">清空</button>
           </div>
 
           <div class="hint">
-            搜尋支援：ID、姓名、電話、單位、職稱。若輸入完整卡號如 TW0001，可先用「ID 直讀」。
+            支援搜尋：卡號、姓名、電話、單位、職稱、邀請碼。若輸入完整卡號，建議先用「載入卡號」。
           </div>
 
           <div class="row" style="margin-top:18px;">
             <div class="field md">
-              <label for="invitePlan">建邀請碼方案</label>
+              <label for="invitePlan">邀請碼方案</label>
               <select id="invitePlan">
                 <option value="free">free</option>
                 <option value="premium">premium</option>
@@ -482,13 +643,6 @@
             <div class="field sm">
               <label for="inviteCount">數量</label>
               <input id="inviteCount" type="number" value="1" min="1" />
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="field lg">
-              <label for="inviteNote">備註（可空白）</label>
-              <input id="inviteNote" type="text" placeholder="例如：自由搭配測試用" />
             </div>
           </div>
 
@@ -508,8 +662,8 @@
       <section class="panel">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">詳細操作區</h2>
-            <p class="panel-sub">先從搜尋結果載入一筆卡片，再做快速編修。</p>
+            <h2 class="panel-title">卡片操作</h2>
+            <p class="panel-sub">載入卡片後，可開智慧名片成品、開交付卡、複製交付連結、更新欄位。</p>
           </div>
         </div>
         <div class="panel-body">
@@ -541,6 +695,10 @@
                   <option value="services">services 服務</option>
                   <option value="experience">experience 經歷</option>
                   <option value="status">status 狀態</option>
+                  <option value="color">color 自由款顏色</option>
+                  <option value="style">style 自由款版型</option>
+                  <option value="paper">paper 紙感</option>
+                  <option value="premium_color">premium_color 精品底色</option>
                 </select>
               </div>
 
@@ -552,9 +710,11 @@
 
             <div class="row btns">
               <button id="btnQuickUpdate" class="ok">快速更新</button>
-              <button id="btnLoadCurrent">重新載入此卡</button>
-              <button id="btnOpenCard">開智慧名片</button>
+              <button id="btnLoadCurrent">重新載入</button>
+              <button id="btnOpenCardClean" class="primary">開智慧名片成品</button>
               <button id="btnOpenShare">開交付卡</button>
+              <button id="btnCopyDeliveryLink" class="warn">複製交付連結</button>
+              <button id="btnCopyUpdateLink">複製更新連結</button>
             </div>
 
             <div class="row">
@@ -565,7 +725,7 @@
             </div>
 
             <div class="mini-note">
-              提醒：快速更新是單欄位更新。若後面要做完整多欄位編輯，再往 v522.3 擴充。
+              這版先以實用為主：搜尋、讀卡、成品、交付、交付連結、更新連結、啟用停用、邀請碼、快速更新。
             </div>
           </div>
         </div>
@@ -577,7 +737,7 @@
         <div class="result-head" style="width:100%;">
           <div>
             <h2 class="panel-title">搜尋結果</h2>
-            <p class="panel-sub">可點載入、啟用停用、複製資料、產生更新連結。</p>
+            <p class="panel-sub">每張卡可直接開智慧名片成品、開交付卡、複製交付連結、啟用停用。</p>
           </div>
           <div id="resultCount" class="count-badge">0 筆</div>
         </div>
@@ -592,6 +752,6 @@
     <div class="footer-space"></div>
   </div>
 
-  <script src="./admin.js?v=5222"></script>
+  <script src="./admin.js?v=5225"></script>
 </body>
 </html>
