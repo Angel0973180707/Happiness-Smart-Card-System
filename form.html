@@ -3,84 +3,102 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v521.6</title>
+  <title>天使幸福智慧名片｜資料填寫 v521.7</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
       --bg:#0b1220;
       --card:#111a2b;
       --line:rgba(255,255,255,.12);
+      --line2:rgba(255,255,255,.08);
       --text:rgba(255,255,255,.94);
       --muted:rgba(255,255,255,.72);
       --accent:#7bdcff;
       --ok:#6ee7b7;
       --bad:#fb7185;
       --warn:#fbbf24;
-      --radius:18px;
+      --radius:20px;
       --shadow:0 18px 40px rgba(0,0,0,.30);
-      --fs:17px;
-      --fs2:20px;
-      --fs3:24px;
+
+      --fs:clamp(16px, 1.8vw, 18px);
+      --fs2:clamp(20px, 2.7vw, 24px);
+      --fs3:clamp(24px, 3.5vw, 30px);
+      --fs4:clamp(28px, 4.2vw, 36px);
     }
 
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
+    html{
+      -webkit-text-size-adjust:100%;
+      text-size-adjust:100%;
+    }
     body{
       margin:0;
       font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Arial;
       background:
         radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%),
+        radial-gradient(900px 700px at 100% 0%, rgba(255,191,36,.08), transparent 58%),
         var(--bg);
       color:var(--text);
       font-size:var(--fs);
-      line-height:1.5;
+      line-height:1.65;
+      word-break:keep-all;
+      overflow-wrap:break-word;
     }
 
     .wrap{
       max-width:980px;
       margin:0 auto;
-      padding:18px 14px 28px;
+      padding:18px 14px 120px;
     }
 
     .top{
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
-      gap:12px;
-      padding:16px;
+      gap:14px;
+      padding:18px;
       border:1px solid var(--line);
       border-radius:var(--radius);
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
       box-shadow:var(--shadow);
     }
 
+    .brand{
+      min-width:0;
+      flex:1 1 auto;
+    }
+
     .brand h1{
       margin:0;
-      font-size:var(--fs3);
-      letter-spacing:.4px;
-      line-height:1.25;
+      font-size:var(--fs4);
+      letter-spacing:.2px;
+      line-height:1.22;
+      word-break:keep-all;
     }
 
     .brand p{
-      margin:8px 0 0;
+      margin:10px 0 0;
       color:var(--muted);
       font-size:14px;
-      line-height:1.7;
+      line-height:1.8;
+      word-break:keep-all;
     }
 
     .meta{
       text-align:right;
-      min-width:170px;
+      min-width:180px;
       color:var(--muted);
       font-size:12px;
-      line-height:1.8;
+      line-height:1.9;
+      flex:0 0 auto;
     }
 
     .pill{
       display:inline-flex;
       align-items:center;
       gap:8px;
-      padding:7px 10px;
+      padding:8px 11px;
       border:1px solid var(--line);
       border-radius:999px;
       background:rgba(255,255,255,.04);
@@ -94,6 +112,7 @@
       border-radius:50%;
       background:var(--warn);
       box-shadow:0 0 0 2px rgba(251,191,36,.15);
+      flex:0 0 auto;
     }
 
     .kbd{
@@ -104,36 +123,135 @@
       background:rgba(255,255,255,.03);
       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       font-size:11px;
+      word-break:break-all;
     }
 
-    .grid{
+    .flow{
       margin-top:14px;
-      display:grid;
-      grid-template-columns:1fr;
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(255,255,255,.03);
+      box-shadow:var(--shadow);
+    }
+
+    .flow-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
       gap:12px;
+      margin-bottom:10px;
+    }
+
+    .flow-title{
+      font-size:var(--fs2);
+      font-weight:900;
+      line-height:1.35;
+    }
+
+    .flow-sub{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+    }
+
+    .stepTrack{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(0,1fr));
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .stepDot{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+      padding:10px 8px;
+      min-height:72px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      transition:.2s ease;
+    }
+
+    .stepDot .num{
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:13px;
+      font-weight:900;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      margin-bottom:7px;
+      flex:0 0 auto;
+    }
+
+    .stepDot .txt{
+      font-size:13px;
+      line-height:1.45;
+      color:var(--muted);
+      font-weight:800;
+      word-break:keep-all;
+    }
+
+    .stepDot[data-done="1"]{
+      border-color:rgba(110,231,183,.28);
+      background:rgba(110,231,183,.08);
+    }
+
+    .stepDot[data-current="1"]{
+      border-color:rgba(123,220,255,.45);
+      box-shadow:0 0 0 3px rgba(123,220,255,.12);
+      background:rgba(123,220,255,.10);
+    }
+
+    .stepDot[data-current="1"] .num{
+      border-color:rgba(123,220,255,.4);
+      background:rgba(123,220,255,.18);
+    }
+
+    .stepDot[data-current="1"] .txt,
+    .stepDot[data-done="1"] .txt{
+      color:var(--text);
     }
 
     .card{
+      margin-top:14px;
       border:1px solid var(--line);
       border-radius:var(--radius);
       background:rgba(255,255,255,.03);
-      padding:16px;
+      padding:18px;
       box-shadow:var(--shadow);
     }
 
     .card h2{
       margin:0 0 12px;
-      font-size:var(--fs2);
+      font-size:var(--fs3);
       letter-spacing:.2px;
-      color:rgba(255,255,255,.94);
-      line-height:1.35;
+      color:rgba(255,255,255,.95);
+      line-height:1.3;
+      word-break:keep-all;
     }
 
     .subnote{
       margin:-2px 0 12px;
       color:var(--muted);
       font-size:13px;
-      line-height:1.7;
+      line-height:1.8;
+      word-break:keep-all;
+    }
+
+    .page{
+      display:none;
+    }
+    .page.active{
+      display:block;
     }
 
     .row{
@@ -147,12 +265,18 @@
       .row.three{ grid-template-columns:1fr 1fr 1fr; }
     }
 
+    .field{
+      min-width:0;
+    }
+
     label{
       display:block;
-      font-size:14px;
+      font-size:15px;
       color:var(--muted);
-      margin:0 0 7px;
-      font-weight:800;
+      margin:0 0 8px;
+      font-weight:900;
+      line-height:1.55;
+      word-break:keep-all;
     }
 
     .req{
@@ -165,14 +289,16 @@
       background:rgba(255,255,255,.04);
       color:var(--text);
       border:1px solid var(--line);
-      border-radius:14px;
-      padding:14px 14px;
+      border-radius:15px;
+      padding:15px 15px;
       outline:none;
-      font-size:17px;
+      font-size:clamp(16px, 1.9vw, 18px);
+      line-height:1.6;
+      min-height:54px;
     }
 
     textarea{
-      min-height:108px;
+      min-height:120px;
       resize:vertical;
     }
 
@@ -184,7 +310,8 @@
       margin-top:7px;
       font-size:12px;
       color:var(--muted);
-      line-height:1.7;
+      line-height:1.75;
+      word-break:keep-all;
     }
 
     .chips{
@@ -198,14 +325,17 @@
       display:inline-flex;
       align-items:center;
       gap:8px;
-      padding:11px 14px;
+      padding:12px 15px;
       border:1px solid var(--line);
       border-radius:999px;
       background:rgba(255,255,255,.03);
       user-select:none;
       font-size:15px;
-      font-weight:800;
-      min-height:46px;
+      font-weight:900;
+      min-height:48px;
+      line-height:1.3;
+      word-break:keep-all;
+      transition:.18s ease;
     }
 
     .chip[data-on="1"]{
@@ -226,6 +356,83 @@
 
     .sectionGap{ margin-top:12px; }
 
+    .uploadGrid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+
+    @media(min-width:760px){
+      .uploadGrid{ grid-template-columns:1fr 1fr; }
+    }
+
+    .uItem{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      background:rgba(255,255,255,.02);
+    }
+
+    .uItemHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .uItemHead strong{
+      font-size:16px;
+      line-height:1.45;
+      word-break:keep-all;
+    }
+
+    .uItemHead small{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.7;
+      word-break:keep-all;
+    }
+
+    .thumb{
+      margin-top:10px;
+      width:100%;
+      aspect-ratio:16 / 10;
+      border-radius:14px;
+      border:1px solid var(--line);
+      overflow:hidden;
+      background:rgba(0,0,0,.18);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:rgba(255,255,255,.35);
+      font-size:13px;
+      text-align:center;
+      padding:12px;
+      line-height:1.7;
+      word-break:keep-all;
+    }
+
+    .thumb img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .miniRow{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
+    .miniRow input[type="file"]{
+      padding:10px;
+      font-size:14px;
+      min-height:auto;
+    }
+
     .btns{
       display:flex;
       flex-wrap:wrap;
@@ -237,17 +444,25 @@
       cursor:pointer;
       border:none;
       border-radius:14px;
-      padding:12px 16px;
-      font-weight:800;
+      padding:13px 18px;
+      font-weight:900;
       font-size:16px;
       background:rgba(123,220,255,.14);
       color:var(--text);
       border:1px solid rgba(123,220,255,.35);
-      min-height:48px;
+      min-height:50px;
+      line-height:1.3;
+      word-break:keep-all;
+      transition:.18s ease;
     }
 
     button.secondary{
       background:rgba(255,255,255,.04);
+      border:1px solid var(--line);
+    }
+
+    button.ghost{
+      background:transparent;
       border:1px solid var(--line);
     }
 
@@ -273,7 +488,7 @@
       margin-bottom:8px;
       font-size:13px;
       color:rgba(255,255,255,.85);
-      font-weight:800;
+      font-weight:900;
     }
 
     .submit-progress{
@@ -313,8 +528,9 @@
       margin-top:8px;
       color:var(--muted);
       font-size:13px;
-      line-height:1.7;
+      line-height:1.75;
       min-height:20px;
+      word-break:keep-all;
     }
 
     .status{
@@ -324,91 +540,97 @@
       padding:12px 14px;
       color:var(--muted);
       font-size:13px;
-      line-height:1.8;
+      line-height:1.85;
       white-space:pre-wrap;
       word-break:break-word;
-    }
-
-    .uploadGrid{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
-    }
-
-    @media(min-width:760px){
-      .uploadGrid{ grid-template-columns:1fr 1fr; }
-    }
-
-    .uItem{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
       background:rgba(255,255,255,.02);
     }
 
-    .uItemHead{
+    .summary{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+
+    .sumRow{
       display:flex;
-      align-items:center;
       justify-content:space-between;
-      gap:10px;
-    }
-
-    .uItemHead strong{
-      font-size:15px;
-      line-height:1.4;
-    }
-
-    .uItemHead small{
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.6;
-    }
-
-    .thumb{
-      margin-top:10px;
-      width:100%;
-      aspect-ratio:16 / 10;
+      align-items:flex-start;
+      gap:12px;
+      padding:11px 12px;
+      border:1px solid var(--line2);
       border-radius:14px;
-      border:1px solid var(--line);
-      overflow:hidden;
-      background:rgba(0,0,0,.18);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:rgba(255,255,255,.35);
+      background:rgba(255,255,255,.02);
+    }
+
+    .sumRow span{
+      color:var(--muted);
       font-size:13px;
-      text-align:center;
-      padding:12px;
+      font-weight:900;
+      word-break:keep-all;
+      flex:0 0 auto;
     }
 
-    .thumb img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
+    .sumRow strong{
+      font-size:14px;
+      line-height:1.7;
+      text-align:right;
+      font-weight:900;
+      min-width:0;
+      word-break:break-word;
     }
 
-    .miniRow{
+    .pageNav{
+      position:sticky;
+      bottom:10px;
+      z-index:10;
+      margin-top:14px;
+      padding:10px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      background:rgba(11,18,32,.82);
+      backdrop-filter:blur(10px);
+      box-shadow:0 10px 26px rgba(0,0,0,.24);
+    }
+
+    .pageNav .btns{
+      margin-top:0;
+      justify-content:space-between;
+    }
+
+    .pageNavLeft,
+    .pageNavRight{
       display:flex;
       gap:10px;
-      align-items:center;
-      margin-top:10px;
       flex-wrap:wrap;
+      align-items:center;
     }
 
-    .miniRow input[type="file"]{
-      padding:10px;
-      font-size:14px;
+    .pageBadge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 12px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:13px;
+      font-weight:900;
+      word-break:keep-all;
     }
 
     .footNote{
       margin-top:14px;
       color:rgba(255,255,255,.56);
       font-size:12px;
-      line-height:1.7;
+      line-height:1.8;
+      word-break:keep-all;
     }
 
-    @media(max-width:700px){
+    .hide{ display:none !important; }
+
+    @media(max-width:760px){
       .top{
         flex-direction:column;
       }
@@ -416,8 +638,44 @@
         text-align:left;
         min-width:auto;
       }
+      .stepTrack{
+        grid-template-columns:repeat(2, minmax(0,1fr));
+      }
+      .pageNav .btns{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .pageNavLeft,
+      .pageNavRight{
+        width:100%;
+        justify-content:space-between;
+      }
+      .sumRow{
+        flex-direction:column;
+      }
+      .sumRow strong{
+        text-align:left;
+      }
+    }
+
+    @media(max-width:520px){
+      .wrap{
+        padding:14px 12px 120px;
+      }
+      .card, .top, .flow{
+        padding:15px;
+      }
+      .stepTrack{
+        grid-template-columns:repeat(1, minmax(0,1fr));
+      }
       .brand h1{
-        font-size:22px;
+        font-size:clamp(24px, 7vw, 30px);
+      }
+      input, textarea{
+        padding:14px 13px;
+      }
+      button{
+        width:100%;
       }
     }
   </style>
@@ -428,44 +686,64 @@
       <div class="brand">
         <h1>天使幸福智慧名片｜資料填寫</h1>
         <p id="pageIntro">
-          請依序填寫資料。照片會先壓縮再上傳，送出時會自動建立或更新你的智慧名片。
+          這是分頁式填寫流程。請一步一步完成，照片會先壓縮再上傳，送出時會自動建立或更新你的智慧名片。
         </p>
       </div>
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v521.6</span></div>
+        <div>版本：<span class="kbd" id="ver">v521.7</span></div>
         <div>品牌：<span class="kbd" id="tenantText">-</span></div>
         <div>名片 ID：<span class="kbd" id="idText">-</span></div>
+        <div>invite：<span class="kbd" id="inviteText">-</span></div>
       </div>
     </div>
 
-    <div class="grid">
-      <div class="card">
+    <div class="flow">
+      <div class="flow-head">
+        <div>
+          <div class="flow-title">填寫流程</div>
+          <div class="flow-sub" id="flowSub">目前在第 1 步，共 5 步。</div>
+        </div>
+        <div class="pageBadge" id="pageBadge">第 1 / 5 步</div>
+      </div>
+
+      <div class="stepTrack" id="stepTrack">
+        <div class="stepDot" data-step="0"><div class="num">1</div><div class="txt">方案與外觀</div></div>
+        <div class="stepDot" data-step="1"><div class="num">2</div><div class="txt">基本資料</div></div>
+        <div class="stepDot" data-step="2"><div class="num">3</div><div class="txt">聯絡方式</div></div>
+        <div class="stepDot" data-step="3"><div class="num">4</div><div class="txt">影片社群與圖片</div></div>
+        <div class="stepDot" data-step="4"><div class="num">5</div><div class="txt">確認與送出</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <!-- Page 1 -->
+      <section class="page active" data-page="0">
         <h2>1. 方案與外觀</h2>
         <div class="subnote">請先選方案，後面的選項會跟著變化。</div>
 
-        <div>
+        <div class="field">
           <label>方案<span class="req">＊必選</span></label>
           <div class="chips" id="planChips"></div>
         </div>
 
-        <div class="sectionGap">
+        <div class="sectionGap field">
           <label>顏色（自由搭配）</label>
           <div class="chips" id="colorChips"></div>
         </div>
 
         <div class="row two sectionGap">
-          <div>
+          <div class="field">
             <label>版型（自由搭配）</label>
             <div class="chips" id="styleChips"></div>
           </div>
-          <div>
+          <div class="field">
             <label>紙感（自由搭配）</label>
             <div class="chips" id="paperChips"></div>
           </div>
         </div>
 
-        <div class="sectionGap">
+        <div class="sectionGap field">
           <label>精品底色（精品設計）</label>
           <div class="chips" id="premiumChips"></div>
         </div>
@@ -473,16 +751,162 @@
         <div class="hint" id="planHint">
           自由搭配：最多 2 張照片｜精品設計：最多 5 張照片
         </div>
-      </div>
+      </section>
 
-      <div class="card">
-        <h2>2. 送出</h2>
-        <div class="subnote">送出後系統會自動處理，不用看工程設定。</div>
+      <!-- Page 2 -->
+      <section class="page" data-page="1">
+        <h2>2. 基本資料</h2>
 
-        <div class="btns">
+        <div class="row two">
+          <div class="field">
+            <label>姓名</label>
+            <input id="name" placeholder="例：王小明" />
+          </div>
+          <div class="field">
+            <label>單位</label>
+            <input id="unit" placeholder="例：幸福智慧名片館" />
+          </div>
+        </div>
+
+        <div class="row two sectionGap">
+          <div class="field">
+            <label>職稱</label>
+            <input id="title" placeholder="例：品牌顧問 / 講師 / 館長" />
+          </div>
+          <div class="field">
+            <label>網站</label>
+            <input id="website" placeholder="https://..." />
+          </div>
+        </div>
+
+        <div class="row two sectionGap">
+          <div class="field">
+            <label>一句話介紹</label>
+            <input id="slogan" placeholder="一句話讓人記住你" />
+          </div>
+          <div class="field">
+            <label>服務項目</label>
+            <input id="services" placeholder="例：品牌顧問｜名片訂製｜課程" />
+          </div>
+        </div>
+
+        <div class="sectionGap field">
+          <label>經歷</label>
+          <textarea id="experience" placeholder="可分行填寫，讓客戶更了解你"></textarea>
+        </div>
+      </section>
+
+      <!-- Page 3 -->
+      <section class="page" data-page="2">
+        <h2>3. 聯絡方式</h2>
+
+        <div class="row two">
+          <div class="field">
+            <label>電話</label>
+            <input id="phone" placeholder="例：0973xxxxxx" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input id="email" placeholder="name@example.com" />
+          </div>
+        </div>
+
+        <div class="row two sectionGap">
+          <div class="field">
+            <label>LINE（個人）</label>
+            <input id="line_url" placeholder="https://line.me/ti/p/..." />
+          </div>
+          <div class="field">
+            <label>LINE 官方帳號</label>
+            <input id="line_oa" placeholder="https://lin.ee/..." />
+          </div>
+        </div>
+
+        <div class="row two sectionGap">
+          <div class="field">
+            <label>微信 ID</label>
+            <input id="wechat_id" placeholder="例：a0973180707" />
+          </div>
+          <div class="field">
+            <label>地址</label>
+            <input id="address" placeholder="縣市 / 區域 / 路段…" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Page 4 -->
+      <section class="page" data-page="3">
+        <h2>4. 影片 / 社群 / 圖片</h2>
+        <div class="subnote">圖片會先壓縮再上傳，下方會先看到預覽畫面。</div>
+
+        <div class="row two">
+          <div class="field">
+            <label>影片 1</label>
+            <input id="video1" placeholder="https://..." />
+          </div>
+          <div class="field">
+            <label>影片 2</label>
+            <input id="video2" placeholder="https://..." />
+          </div>
+        </div>
+
+        <div class="row two sectionGap">
+          <div class="field">
+            <label>影片 3</label>
+            <input id="video3" placeholder="https://..." />
+          </div>
+          <div class="field">
+            <label>微信長圖連結（選填）</label>
+            <input id="wechat_poster" placeholder="https://..." />
+          </div>
+        </div>
+
+        <div class="row three sectionGap">
+          <div class="field">
+            <label>社群 1</label>
+            <input id="social1" placeholder="https://..." />
+          </div>
+          <div class="field">
+            <label>社群 2</label>
+            <input id="social2" placeholder="https://..." />
+          </div>
+          <div class="field">
+            <label>社群 3</label>
+            <input id="social3" placeholder="https://..." />
+          </div>
+        </div>
+
+        <div class="row two sectionGap">
+          <div class="field">
+            <label>按鈕文字</label>
+            <input id="cta_text" placeholder="例：立即預約 / 加入 LINE 諮詢" />
+          </div>
+          <div class="field">
+            <label>按鈕連結</label>
+            <input id="cta_link" placeholder="https://..." />
+          </div>
+        </div>
+
+        <div class="sectionGap">
+          <label>圖片上傳</label>
+          <div class="uploadGrid" id="uploadGrid"></div>
+          <div class="hint" style="margin-top:10px;">
+            自由搭配最多 2 張照片｜精品設計最多 5 張照片
+          </div>
+        </div>
+      </section>
+
+      <!-- Page 5 -->
+      <section class="page" data-page="4">
+        <h2>5. 確認與送出</h2>
+        <div class="subnote">確認資料後再送出。系統會自動防止重複建立與重複送出。</div>
+
+        <div class="summary" id="summaryBox"></div>
+
+        <div class="btns" style="margin-top:14px;">
           <button id="btnTest" class="secondary" type="button">測試連線</button>
           <button id="btnSubmit" type="button">送出資料</button>
-          <button id="btnReset" class="secondary" type="button">重設表單</button>
+          <button id="btnReset" class="ghost" type="button">重設表單</button>
         </div>
 
         <div class="submit-progress-wrap" id="submitProgressWrap">
@@ -499,146 +923,19 @@
         <div class="status" id="status">尚未操作。</div>
 
         <div class="footNote">
-          小提醒：送出時會自動防止重複建立。若你剛剛已送出過，同一筆資料不會一直新增。
+          小提醒：送出時若系統判定這是一筆已存在的資料，就不會重複建立新卡。invite 也會隨整個流程一併帶入，不會中途遺失。
         </div>
-      </div>
+      </section>
+    </div>
 
-      <div class="card">
-        <h2>3. 基本資料</h2>
-        <div class="row two">
-          <div>
-            <label>姓名</label>
-            <input id="name" placeholder="例：王小明" />
-          </div>
-          <div>
-            <label>單位</label>
-            <input id="unit" placeholder="例：幸福智慧名片館" />
-          </div>
+    <div class="pageNav">
+      <div class="btns">
+        <div class="pageNavLeft">
+          <span class="pageBadge" id="pageBadgeBottom">第 1 / 5 步</span>
+          <button id="btnPrev" class="secondary" type="button">上一步</button>
         </div>
-
-        <div class="row two sectionGap">
-          <div>
-            <label>職稱</label>
-            <input id="title" placeholder="例：品牌顧問 / 講師 / 館長" />
-          </div>
-          <div>
-            <label>網站</label>
-            <input id="website" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div>
-            <label>一句話介紹</label>
-            <input id="slogan" placeholder="一句話讓人記住你" />
-          </div>
-          <div>
-            <label>服務項目</label>
-            <input id="services" placeholder="例：品牌顧問｜名片訂製｜課程" />
-          </div>
-        </div>
-
-        <div class="sectionGap">
-          <label>經歷</label>
-          <textarea id="experience" placeholder="可分行填寫，讓客戶更了解你"></textarea>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>4. 聯絡方式</h2>
-        <div class="row two">
-          <div>
-            <label>電話</label>
-            <input id="phone" placeholder="例：0973xxxxxx" />
-          </div>
-          <div>
-            <label>Email</label>
-            <input id="email" placeholder="name@example.com" />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div>
-            <label>LINE（個人）</label>
-            <input id="line_url" placeholder="https://line.me/ti/p/..." />
-          </div>
-          <div>
-            <label>LINE 官方帳號</label>
-            <input id="line_oa" placeholder="https://lin.ee/..." />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div>
-            <label>微信 ID</label>
-            <input id="wechat_id" placeholder="例：a0973180707" />
-          </div>
-          <div>
-            <label>地址</label>
-            <input id="address" placeholder="縣市 / 區域 / 路段…" />
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>5. 影片 / 社群 / 其他</h2>
-        <div class="row two">
-          <div>
-            <label>影片 1</label>
-            <input id="video1" placeholder="https://..." />
-          </div>
-          <div>
-            <label>影片 2</label>
-            <input id="video2" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div>
-            <label>影片 3</label>
-            <input id="video3" placeholder="https://..." />
-          </div>
-          <div>
-            <label>微信長圖連結（選填）</label>
-            <input id="wechat_poster" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="row three sectionGap">
-          <div>
-            <label>社群 1</label>
-            <input id="social1" placeholder="https://..." />
-          </div>
-          <div>
-            <label>社群 2</label>
-            <input id="social2" placeholder="https://..." />
-          </div>
-          <div>
-            <label>社群 3</label>
-            <input id="social3" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div>
-            <label>按鈕文字</label>
-            <input id="cta_text" placeholder="例：立即預約 / 加入 LINE 諮詢" />
-          </div>
-          <div>
-            <label>按鈕連結</label>
-            <input id="cta_link" placeholder="https://..." />
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>6. 圖片上傳</h2>
-        <div class="subnote">你上傳的照片，下面都會先看到預覽畫面。</div>
-
-        <div class="uploadGrid" id="uploadGrid"></div>
-
-        <div class="hint" style="margin-top:10px;">
-          自由搭配最多 2 張照片｜精品設計最多 5 張照片
+        <div class="pageNavRight">
+          <button id="btnNext" type="button">下一步</button>
         </div>
       </div>
     </div>
@@ -647,6 +944,6 @@
     <input id="gas" type="hidden" />
   </div>
 
-  <script type="module" src="./form.js?v=5216"></script>
+  <script type="module" src="./form.js?v=5217"></script>
 </body>
 </html>
