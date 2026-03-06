@@ -1,30 +1,29 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v521.5 (COMPLETE OVERWRITE)
+ * app.js v522.2 (COMPLETE OVERWRITE)
  *
- * Align to GAS v501 payload:
- * ✅ { ok:true, v:"501", item:{...} }
+ * Align to GAS v522.2 payload:
+ * ✅ { ok:true, v:"522.2", item:{...} }
  *
  * Rules:
  * ✅ HARD LOCK: status !== "active" => lock
  * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
  * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel (if exists in HTML)
  *
- * v521.5 changes:
- * ✅ A) Facade/Clean isolation support: detect clean mode (?view=1 / ?clean=1)
- * ✅ B) Share ALWAYS shares clean URL (force view=1; remove clean)
- * ✅ C) Move private LINE into Contact Dock, hide top CTA private LINE buttons
- * ✅ D) Facade only: selection -> LINE OA CTA linkage with params:
- *    plan, color/premium, style, paper, id (if any), from=facade
- *
- * Lock CTA / contact CTA -> LINE OA: https://lin.ee/3r2ZePN
+ * v522.2 changes:
+ * ✅ A) card fetch now carries tenant / token / sig from URL when present
+ * ✅ B) better error message on load fail
+ * ✅ C) version update to v522.2
+ * ✅ D) align to GAS v522.2 card/admin payload shape
+ * ✅ E) keep facade / clean share logic
  * ================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
-  VERSION: "v521.5",
+  DEFAULT_TENANT: "angel",
+  VERSION: "v522.2",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
@@ -35,6 +34,28 @@ let currentRow = null;
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 function text(v){ return (v==null ? "" : String(v)).trim(); }
+
+/* ---------- URL Params ---------- */
+function getSearchParam_(key){
+  try{
+    const sp = new URLSearchParams(location.search || "");
+    return sp.get(key) || "";
+  }catch{
+    return "";
+  }
+}
+
+function getTenantFromUrl_(){
+  return text(getSearchParam_("tenant")) || CONFIG.DEFAULT_TENANT;
+}
+
+function getTokenFromUrl_(){
+  return text(getSearchParam_("token"));
+}
+
+function getSigFromUrl_(){
+  return text(getSearchParam_("sig"));
+}
 
 /* ---------- Mode detect ---------- */
 function isCleanMode_(){
@@ -112,7 +133,6 @@ function getIdFromUrl_(){
 }
 
 function getCurrentCardId_(){
-  // prefer URL id; fallback to payload id
   const urlId = normalizeId_(getIdFromUrl_());
   if(urlId) return urlId;
   const p = currentRow || null;
@@ -127,7 +147,7 @@ function getCurrentCardId_(){
 function safeJsonParse_(rawText){
   let s = String(rawText||"").trim();
   if(!s) return null;
-  s = s.replace(/^\)\]\}'\s*\n?/, "").trim(); // XSSI guard
+  s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
   try{ return JSON.parse(s); }catch{}
   const m = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
   if(m){
@@ -287,11 +307,11 @@ function setActiveInGroup_(group, el){
 
 /* ---------- State ---------- */
 const STATE = {
-  mode: "free",        // free | premium
-  color: "color-1",    // color-1..5
-  style: "arch",       // arch | flat | spot
-  paper: "paper-1",    // paper-1..3
-  premium: "p1"        // p1..p7
+  mode: "free",
+  color: "color-1",
+  style: "arch",
+  paper: "paper-1",
+  premium: "p1"
 };
 
 function applyModeUi_(){
@@ -508,7 +528,7 @@ function buildCleanShareUrl_(){
   try{
     const u = new URL(location.href);
     if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
-    u.searchParams.delete("clean"); // canonicalize
+    u.searchParams.delete("clean");
     return u.toString();
   }catch{
     const url = location.href;
@@ -517,22 +537,14 @@ function buildCleanShareUrl_(){
   }
 }
 
-/* ---------- LINE OA linkage (selection -> OA CTA) ---------- */
+/* ---------- LINE OA linkage ---------- */
 function buildLineOaUrlWithState_(){
   const base = normalizeLink_(CONFIG.CUSTOMER_SERVICE_URL);
   if(!base) return "";
-
-  // Clean mode: facade CTA must not exist; if somehow called, return base without tracking params
   if(__IS_CLEAN) return base;
 
   const plan = (STATE.mode === "premium") ? "premium" : "free";
 
-  // map to your preferred param style:
-  // - plan: free/premium
-  // - color: c1..c5 (free)
-  // - premium: p1..p7 (premium)
-  // - style: s1/s2/s3
-  // - paper: f1/f2/f3
   function colorToC_(c){
     const m = String(c||"").match(/color-(\d)/i);
     return m ? ("c" + m[1]) : (c || "c1");
@@ -552,7 +564,6 @@ function buildLineOaUrlWithState_(){
 
   try{
     const u = new URL(base);
-
     u.searchParams.set("from", "facade");
     u.searchParams.set("plan", plan);
 
@@ -595,7 +606,6 @@ function openLineOaWithState_(){
 }
 
 function bindLineOaOverride_(){
-  // Use capture to override any listeners in index.html
   ["btnLineOaCta","btnLineOaCta2"].forEach(id=>{
     const b = qs(id);
     if(!b) return;
@@ -648,7 +658,6 @@ function setPaper(paper, el){
   syncActiveButtonsFromState_();
 }
 
-/* CTA: lock/contact -> LINE OA */
 function goFillForm(){
   openLineOaWithState_();
 }
@@ -836,7 +845,7 @@ function applyWideRule_(container){
 }
 
 /* ================================
- * Media/Social (kept)
+ * Media/Social
  * ================================ */
 function gatherByKeys_(p, keys){
   const hits = [];
@@ -966,7 +975,6 @@ function renderDocks_(p){
   if(mediaDock) mediaDock.style.display = (hasMedia || hasSocial) ? "" : "none";
   applyWideRule_(mediaBtns);
 
-  /* ---- Contact: Private LINE (first) + WeChat/Phone/Email/Address ---- */
   const phone   = pick(p, ["電話","phone","mobile","手機","cell"]);
   const email   = pick(p, ["Email","email","信箱","E-mail","mail"]);
   const address = pick(p, ["地址","address","住址","工作地址"]);
@@ -990,7 +998,6 @@ function renderDocks_(p){
 
   const contactList = [];
 
-  // ✅ Put "私訊 LINE" into contactDock (priority)
   if(text(lineUrl)){
     contactList.push({
       label:"私訊 LINE",
@@ -1272,7 +1279,7 @@ window.__buildLineOaUrlWithState = buildLineOaUrlWithState_;
 window.__getCleanShareUrl = buildCleanShareUrl_;
 
 /* ================================
- * Photo Wall + Lightbox (kept)
+ * Photo Wall + Lightbox
  * ================================ */
 function extractRowFromPayload_(data){
   if(!data || typeof data !== "object") return null;
@@ -1432,14 +1439,13 @@ function renderPhotoWall_(row){
   wall.style.display = "";
 }
 
-/* ---------- Share button (force clean view=1) ---------- */
+/* ---------- Share button ---------- */
 (function bindShareBtn_(){
   const btn = qs("btnShare");
   if(!btn) return;
 
   btn.addEventListener("click", async (e)=>{
     try{
-      // capture a clean URL always
       const url = buildCleanShareUrl_();
 
       if(navigator.share){
@@ -1466,33 +1472,79 @@ function renderPhotoWall_(row){
 })();
 
 /* ---------- Load + Boot ---------- */
+function buildCardApiUrl_(id){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  const tenant = getTenantFromUrl_();
+  const token = getTokenFromUrl_();
+  const sig = getSigFromUrl_();
+
+  const u = new URL(CONFIG.GAS);
+  u.searchParams.set("action", "card");
+  u.searchParams.set("id", cid);
+  u.searchParams.set("tenant", tenant);
+  u.searchParams.set("ts", String(Date.now()));
+  u.searchParams.set("v", CONFIG.VERSION);
+
+  if(token) u.searchParams.set("token", token);
+  if(sig) u.searchParams.set("sig", sig);
+
+  return u.toString();
+}
+
+function renderLoadFail_(err){
+  console.error("LOAD FAIL:", err);
+
+  const msg = text(err && err.message);
+  safeSetText_("u-name", "資料載入失敗");
+  safeSetText_("u-unit", msg || "請稍後再試");
+  safeSetText_("u-title", "");
+
+  const slogan = qs("u-slogan");
+  if(slogan){
+    slogan.style.display = "";
+    if(msg.includes("token required")){
+      slogan.textContent = "此名片需要有效憑證才能讀取";
+    }else if(msg.includes("token mismatch")){
+      slogan.textContent = "讀取憑證不正確";
+    }else if(msg.includes("tenant mismatch")){
+      slogan.textContent = "tenant 不一致";
+    }else if(msg.includes("id not found")){
+      slogan.textContent = "查無此名片";
+    }else{
+      slogan.textContent = msg || "前台讀卡失敗";
+    }
+  }
+
+  const vt = qs("versionTag");
+  if(vt) vt.textContent = CONFIG.VERSION;
+}
+
 async function loadAndRenderById_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  const url = `${CONFIG.GAS}?action=card&id=${encodeURIComponent(cid)}&ts=${Date.now()}&v=${encodeURIComponent(CONFIG.VERSION)}`;
+  const url = buildCardApiUrl_(cid);
   console.log("[LOAD] fetching:", url);
 
   try{
     const payload = await fetchJsonRobust_(url);
-    if(!payload || payload.ok !== true) throw new Error("GAS not ok");
+    if(!payload || payload.ok !== true){
+      throw new Error(text(payload && payload.error) || "GAS not ok");
+    }
+
     const row = extractRowFromPayload_(payload);
-    if(!row || typeof row !== "object") throw new Error("Invalid payload shape");
+    if(!row || typeof row !== "object"){
+      throw new Error("Invalid payload shape");
+    }
 
     console.log("[LOAD] success id=", cid, row);
     renderCard(row);
     renderPhotoWall_(row);
 
   }catch(err){
-    console.error("LOAD FAIL:", err);
-    safeSetText_("u-name", "資料載入失敗");
-    safeSetText_("u-unit", "");
-    safeSetText_("u-title", "");
-    const vt = qs("versionTag");
-    if(vt) vt.textContent = CONFIG.VERSION;
+    renderLoadFail_(err);
   }
 }
 
 function hideTopPrivateLineCta_(){
-  // ✅ per request: move private line to contactDock, hide top CTA buttons
   ["btnLinePrivateCta","btnLinePrivateCta2"].forEach(id=>{
     const b = qs(id);
     if(b){
@@ -1510,7 +1562,6 @@ function hideTopPrivateLineCta_(){
   try{
     ensureLightbox_();
 
-    // initial from body (works even before data)
     const b = document.body;
     STATE.mode = b.classList.contains("mode-premium") ? "premium" : "free";
 
@@ -1527,11 +1578,7 @@ function hideTopPrivateLineCta_(){
 
     applyBodyClasses_();
     syncActiveButtonsFromState_();
-
-    // ✅ v521.5: selection -> LINE OA CTA linkage (facade only; clean returns base)
     bindLineOaOverride_();
-
-    // ✅ v521.5: move private LINE to contact dock
     hideTopPrivateLineCta_();
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
@@ -1539,5 +1586,6 @@ function hideTopPrivateLineCta_(){
 
   }catch(e){
     console.error(e);
+    renderLoadFail_(e);
   }
 })();
