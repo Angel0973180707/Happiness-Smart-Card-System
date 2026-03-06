@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v522.6</title>
+  <title>天使幸福智慧名片｜資料填寫 v522.6.1</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
@@ -23,6 +23,8 @@
       --fs2:clamp(20px,2.7vw,24px);
       --fs3:clamp(24px,3.4vw,30px);
       --fs4:clamp(28px,4vw,36px);
+      --navH:84px;
+      --mobileNavH:68px;
     }
 
     *{ box-sizing:border-box; }
@@ -59,6 +61,7 @@
       border-radius:var(--radius);
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
       box-shadow:var(--shadow);
+      transition:.22s ease;
     }
 
     .brand{ min-width:0; flex:1 1 auto; }
@@ -67,6 +70,7 @@
       margin:0;
       font-size:var(--fs4);
       line-height:1.22;
+      transition:.22s ease;
     }
 
     .brand p{
@@ -74,6 +78,7 @@
       color:var(--muted);
       font-size:14px;
       line-height:1.8;
+      transition:.22s ease;
     }
 
     .meta{
@@ -83,6 +88,7 @@
       font-size:12px;
       line-height:1.9;
       flex:0 0 auto;
+      transition:.22s ease;
     }
 
     .pill{
@@ -124,6 +130,7 @@
       border-radius:18px;
       background:rgba(255,255,255,.03);
       box-shadow:var(--shadow);
+      transition:.22s ease;
     }
 
     .flow-head{
@@ -138,6 +145,7 @@
       font-size:var(--fs2);
       font-weight:900;
       line-height:1.35;
+      transition:.22s ease;
     }
 
     .flow-sub{
@@ -145,6 +153,7 @@
       color:var(--muted);
       font-size:13px;
       line-height:1.7;
+      transition:.22s ease;
     }
 
     .stepTrack{
@@ -152,6 +161,7 @@
       grid-template-columns:repeat(7, minmax(0,1fr));
       gap:8px;
       margin-top:12px;
+      transition:.22s ease;
     }
 
     .stepDot{
@@ -219,6 +229,7 @@
       background:rgba(255,255,255,.03);
       padding:18px;
       box-shadow:var(--shadow);
+      scroll-margin-top:16px;
     }
 
     .card h2{
@@ -275,6 +286,12 @@
       font-size:clamp(16px,1.9vw,18px);
       line-height:1.6;
       min-height:54px;
+      transition:border-color .18s ease, box-shadow .18s ease;
+    }
+
+    input:focus, textarea:focus, select:focus{
+      border-color:rgba(123,220,255,.55);
+      box-shadow:0 0 0 3px rgba(123,220,255,.12);
     }
 
     textarea{
@@ -452,6 +469,7 @@
       border:1px solid rgba(255,255,255,.10);
       background:rgba(255,255,255,.04);
       display:none;
+      scroll-margin-top:12px;
     }
 
     .submit-progress-head{
@@ -517,6 +535,7 @@
       white-space:pre-wrap;
       word-break:break-word;
       background:rgba(255,255,255,.02);
+      scroll-margin-top:12px;
     }
 
     .status.ok{
@@ -584,6 +603,7 @@
       background:rgba(11,18,32,.82);
       backdrop-filter:blur(10px);
       box-shadow:0 10px 26px rgba(0,0,0,.24);
+      transition:.22s ease;
     }
 
     .pageNav .btns{
@@ -610,6 +630,7 @@
       color:var(--muted);
       font-size:13px;
       font-weight:900;
+      transition:.22s ease;
     }
 
     .footNote{
@@ -801,6 +822,59 @@
       .cropBox{
         padding:14px;
       }
+
+      body.form-focus .top{
+        padding:10px 12px;
+        border-radius:16px;
+      }
+      body.form-focus .brand h1{
+        font-size:clamp(21px,5.8vw,26px);
+        line-height:1.18;
+      }
+      body.form-focus .brand p{
+        margin-top:4px;
+        font-size:12px;
+        line-height:1.45;
+        opacity:.86;
+      }
+      body.form-focus .meta{
+        font-size:11px;
+        line-height:1.55;
+      }
+      body.form-focus .meta div:nth-child(n+3){
+        display:none;
+      }
+      body.form-focus .flow{
+        padding:10px 12px;
+      }
+      body.form-focus .flow-title{
+        font-size:18px;
+      }
+      body.form-focus .flow-sub{
+        font-size:12px;
+        line-height:1.45;
+        margin-top:2px;
+      }
+      body.form-focus .stepTrack{
+        display:none;
+      }
+      body.form-focus .pageNav{
+        padding:8px;
+        border-radius:14px;
+        bottom:6px;
+      }
+      body.form-focus .pageBadge{
+        padding:7px 10px;
+        font-size:12px;
+      }
+      body.form-focus .pageNav button{
+        min-height:44px;
+        padding:10px 14px;
+        font-size:15px;
+      }
+      body.form-focus .wrap{
+        padding-bottom:100px;
+      }
     }
 
     @media(max-width:520px){
@@ -825,12 +899,45 @@
       .cropArrowGrid{
         grid-template-columns:repeat(3, 1fr);
       }
+
+      body.form-focus .top{
+        padding:10px;
+      }
+      body.form-focus .flow{
+        margin-top:10px;
+        padding:10px;
+      }
+      body.form-focus .card{
+        margin-top:10px;
+        padding:14px;
+      }
+      body.form-focus .pageNav .btns{
+        gap:8px;
+      }
+      body.form-focus .pageNavLeft,
+      body.form-focus .pageNavRight{
+        gap:8px;
+      }
+      body.form-focus .pageNavLeft{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        align-items:center;
+      }
+      body.form-focus .pageNavRight{
+        display:block;
+      }
+      body.form-focus .pageBadge{
+        justify-content:center;
+      }
+      body.form-focus .pageNav button{
+        width:100%;
+      }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
+    <div class="top" id="topCard">
       <div class="brand">
         <h1>天使幸福智慧名片｜資料填寫</h1>
         <p id="pageIntro">
@@ -839,14 +946,14 @@
       </div>
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v522.6</span></div>
+        <div>版本：<span class="kbd" id="ver">v522.6.1</span></div>
         <div>品牌：<span class="kbd" id="tenantText">-</span></div>
         <div>名片 ID：<span class="kbd" id="idText">-</span></div>
         <div>invite：<span class="kbd" id="inviteText">-</span></div>
       </div>
     </div>
 
-    <div class="flow">
+    <div class="flow" id="flowCard">
       <div class="flow-head">
         <div>
           <div class="flow-title">填寫流程</div>
@@ -1108,7 +1215,7 @@
       <div class="cropHead">
         <div>
           <h3 id="cropTitle">調整圖片位置</h3>
-          <p id="cropDesc">可拖移位置，也可直接用方向鍵微調，再用滑桿縮放後套用。</p>
+          <p id="cropDesc">可直接拖移，也可用左、右、上、下按鈕微調，再用滑桿縮放。</p>
         </div>
       </div>
 
@@ -1153,6 +1260,6 @@
     </div>
   </div>
 
-  <script type="module" src="./form.js?v=5226"></script>
+  <script type="module" src="./form.js?v=52261"></script>
 </body>
 </html>
