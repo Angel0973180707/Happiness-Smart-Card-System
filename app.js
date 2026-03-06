@@ -1,6 +1,6 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v521.2 (COMPLETE OVERWRITE)
+ * app.js v521.3 (COMPLETE OVERWRITE)
  *
  * Align to GAS v501 payload:
  * ✅ { ok:true, v:"501", item:{...} }
@@ -10,10 +10,10 @@
  * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
  * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel (if exists in HTML)
  *
- * v521.2 fix:
- * ✅ Selection <-> Preview linkage (payload -> UI state -> body classes -> active buttons)
- * ✅ Sync from payload keys: plan/color/style/paper/premium_color (+ legacy variants)
- * ✅ Active UI mapping resilient even if HTML changes slightly
+ * v521.3 changes:
+ * ✅ "選色" (theme) -> LINE OA CTA linkage (append current selection as query params)
+ * ✅ Move "私訊 LINE" into Contact Dock, hide top CTA private LINE buttons
+ * ✅ Active UI mapping resilient even if HTML missing data-value attributes
  *
  * Lock CTA / contact CTA -> LINE OA: https://lin.ee/3r2ZePN
  * ================================ */
@@ -22,7 +22,7 @@ const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
-  VERSION: "v521.2",
+  VERSION: "v521.3",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
@@ -348,8 +348,8 @@ function normalizePaper_(raw){
   let v = text(raw).toLowerCase().replace(/_/g,"-");
   if(!v) return "";
   if(v === "paper-1" || v.includes("f1") || v.includes("棉")) return "paper-1";
-  if(v === "paper-2" || v.includes("f2") || v.includes("顆")) return "paper-2";
-  if(v === "paper-3" || v.includes("f3") || v.includes("亞")) return "paper-3";
+  if(v === "paper-2" || v.includes("f2") || v.includes("顆") || v.includes("象牙")) return "paper-2";
+  if(v === "paper-3" || v.includes("f3") || v.includes("亞") || v.includes("霧灰")) return "paper-3";
   if(/^[123]$/.test(v)) return "paper-" + v;
   return "";
 }
@@ -383,7 +383,6 @@ function syncStateFromPayload_(p){
   const pa = normalizePaper_(paperRaw);
   const pr = normalizePremium_(premRaw);
 
-  // Decide mode (prefer explicit premium)
   if(plan === "premium" || pr){
     STATE.mode = "premium";
     if(pr) STATE.premium = pr;
@@ -396,11 +395,68 @@ function syncStateFromPayload_(p){
   if(pa) STATE.paper = pa;
   if(pr) STATE.premium = pr;
 
-  // Safety defaults
   if(!STATE.color) STATE.color = "color-1";
   if(!STATE.style) STATE.style = "arch";
   if(!STATE.paper) STATE.paper = "paper-1";
   if(!STATE.premium) STATE.premium = "p1";
+}
+
+/* ---------- Active buttons sync (robust to missing data-value) ---------- */
+function matchThemeEl_(el, themeValue){
+  if(!el) return false;
+
+  // Prefer data-value if present
+  const dv = text(el.getAttribute("data-value"));
+  if(dv && dv === themeValue) return true;
+
+  // Free dots: dot-1..5 => color-1..5
+  for(let i=1;i<=5;i++){
+    if(el.classList.contains("dot-" + i) && themeValue === ("color-" + i)) return true;
+  }
+
+  // Premium dots: p1..p7 class
+  for(let i=1;i<=7;i++){
+    if(el.classList.contains("p" + i) && themeValue === ("p" + i)) return true;
+  }
+
+  // Fallback by aria-label
+  const al = text(el.getAttribute("aria-label")).toLowerCase();
+  if(al){
+    if(themeValue.startsWith("color-")){
+      const n = themeValue.split("-")[1];
+      if(al === n) return true;
+      if(n==="1" && al.includes("粉")) return true;
+      if(n==="2" && al.includes("藍")) return true;
+      if(n==="3" && al.includes("橘")) return true;
+      if(n==="4" && al.includes("紫")) return true;
+      if(n==="5" && al.includes("綠")) return true;
+    }
+    if(themeValue.startsWith("p")){
+      if(al === themeValue) return true;
+    }
+  }
+
+  return false;
+}
+
+function matchStyleEl_(el, styleValue){
+  const dv = text(el.getAttribute("data-value"));
+  if(dv && dv === styleValue) return true;
+  const t = text(el.textContent).toLowerCase();
+  if(styleValue==="arch" && (t.includes("正拱") || t.includes("拱") || t.includes("arch"))) return true;
+  if(styleValue==="flat" && (t.includes("平直") || t.includes("直") || t.includes("flat"))) return true;
+  if(styleValue==="spot" && (t.includes("晨曦") || t.includes("spot"))) return true;
+  return false;
+}
+
+function matchPaperEl_(el, paperValue){
+  const dv = text(el.getAttribute("data-value"));
+  if(dv && dv === paperValue) return true;
+  const t = text(el.textContent).toLowerCase();
+  if(paperValue==="paper-1" && (t.includes("棉") || t.includes("paper-1") || t.includes("f1"))) return true;
+  if(paperValue==="paper-2" && (t.includes("象牙") || t.includes("顆") || t.includes("paper-2") || t.includes("f2"))) return true;
+  if(paperValue==="paper-3" && (t.includes("霧灰") || t.includes("亞麻") || t.includes("paper-3") || t.includes("f3"))) return true;
+  return false;
 }
 
 function syncActiveButtonsFromState_(){
@@ -414,19 +470,84 @@ function syncActiveButtonsFromState_(){
   }
 
   const themeValue = (STATE.mode === "premium") ? STATE.premium : STATE.color;
+
   qsa(`[data-group="theme"]`).forEach(el=>{
-    const v = text(el.getAttribute("data-value"));
-    el.classList.toggle("active", v === themeValue);
+    el.classList.toggle("active", matchThemeEl_(el, themeValue));
   });
 
   qsa(`[data-group="style"]`).forEach(el=>{
-    const v = text(el.getAttribute("data-value"));
-    el.classList.toggle("active", v === STATE.style);
+    el.classList.toggle("active", matchStyleEl_(el, STATE.style));
   });
 
   qsa(`[data-group="paper"]`).forEach(el=>{
-    const v = text(el.getAttribute("data-value"));
-    el.classList.toggle("active", v === STATE.paper);
+    el.classList.toggle("active", matchPaperEl_(el, STATE.paper));
+  });
+}
+
+/* ---------- LINE OA linkage (selection -> OA CTA) ---------- */
+function buildLineOaUrlWithState_(){
+  const base = normalizeLink_(CONFIG.CUSTOMER_SERVICE_URL);
+  if(!base) return "";
+
+  try{
+    const u = new URL(base);
+
+    // minimal but useful params
+    u.searchParams.set("hsc", "1");
+    u.searchParams.set("v", CONFIG.VERSION);
+
+    const plan = (STATE.mode === "premium") ? "premium" : "free";
+    u.searchParams.set("plan", plan);
+
+    if(plan === "premium"){
+      u.searchParams.set("theme", STATE.premium || "p1");
+    }else{
+      u.searchParams.set("theme", STATE.color || "color-1");
+      u.searchParams.set("style", STATE.style || "arch");
+      u.searchParams.set("paper", STATE.paper || "paper-1");
+    }
+
+    return u.toString();
+  }catch{
+    // fallback: append query
+    const plan = (STATE.mode === "premium") ? "premium" : "free";
+    const q = [];
+    q.push("hsc=1");
+    q.push("v=" + encodeURIComponent(CONFIG.VERSION));
+    q.push("plan=" + encodeURIComponent(plan));
+    if(plan === "premium"){
+      q.push("theme=" + encodeURIComponent(STATE.premium || "p1"));
+    }else{
+      q.push("theme=" + encodeURIComponent(STATE.color || "color-1"));
+      q.push("style=" + encodeURIComponent(STATE.style || "arch"));
+      q.push("paper=" + encodeURIComponent(STATE.paper || "paper-1"));
+    }
+    return base + (base.includes("?") ? "&" : "?") + q.join("&");
+  }
+}
+
+function openLineOaWithState_(){
+  const u = buildLineOaUrlWithState_();
+  if(!u){
+    alert("⚠️ LINE 官方帳號連結未設定");
+    return;
+  }
+  try{ window.open(u, "_blank"); }catch(e){ location.href = u; }
+}
+
+function bindLineOaOverride_(){
+  // Use capture to override any listeners in index.html
+  ["btnLineOaCta","btnLineOaCta2"].forEach(id=>{
+    const b = qs(id);
+    if(!b) return;
+    b.addEventListener("click", (e)=>{
+      try{
+        e.preventDefault();
+        e.stopPropagation();
+        if(typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      }catch{}
+      openLineOaWithState_();
+    }, { capture:true });
   });
 }
 
@@ -470,12 +591,7 @@ function setPaper(paper, el){
 
 /* CTA: lock/contact -> LINE OA */
 function goFillForm(){
-  const u = normalizeLink_(CONFIG.CUSTOMER_SERVICE_URL);
-  if(!u){
-    alert("⚠️ 客服連結未設定");
-    return;
-  }
-  window.open(u, "_blank");
+  openLineOaWithState_();
 }
 
 /* ---------- Render helpers ---------- */
@@ -791,7 +907,7 @@ function renderDocks_(p){
   if(mediaDock) mediaDock.style.display = (hasMedia || hasSocial) ? "" : "none";
   applyWideRule_(mediaBtns);
 
-  /* ---- Contact: LINE/WeChat/Phone/Email/Address ---- */
+  /* ---- Contact: Private LINE (first) + WeChat/Phone/Email/Address ---- */
   const phone   = pick(p, ["電話","phone","mobile","手機","cell"]);
   const email   = pick(p, ["Email","email","信箱","E-mail","mail"]);
   const address = pick(p, ["地址","address","住址","工作地址"]);
@@ -815,8 +931,14 @@ function renderDocks_(p){
 
   const contactList = [];
 
+  // ✅ Put "私訊 LINE" into contactDock (priority)
   if(text(lineUrl)){
-    contactList.push({ label:"LINE", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineUrl) });
+    contactList.push({
+      label:"私訊 LINE",
+      icon:"fa-brands fa-line",
+      cls:"dock-line",
+      action: ()=> goLineIntro()
+    });
   }
 
   if(text(wechatUrl) && /^https?:\/\//i.test(wechatUrl)){
@@ -1001,7 +1123,6 @@ function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
 
-  // v521.2: sync selection from payload BEFORE gate render
   syncStateFromPayload_(p);
   applyBodyClasses_();
   syncActiveButtonsFromState_();
@@ -1088,6 +1209,7 @@ window.setStyle = setStyle;
 window.setPaper = setPaper;
 window.goLineIntro = goLineIntro;
 window.goFillForm = goFillForm;
+window.__buildLineOaUrlWithState = buildLineOaUrlWithState_;
 
 /* ================================
  * Photo Wall + Lightbox (kept)
@@ -1298,6 +1420,21 @@ async function loadAndRenderById_(id){
   }
 }
 
+function hideTopPrivateLineCta_(){
+  // ✅ per your request: move private line to contactDock, hide top CTA buttons
+  ["btnLinePrivateCta","btnLinePrivateCta2"].forEach(id=>{
+    const b = qs(id);
+    if(b){
+      b.style.display = "none";
+      b.style.visibility = "hidden";
+      b.style.opacity = "0";
+      b.style.pointerEvents = "none";
+      b.setAttribute("aria-hidden","true");
+      b.tabIndex = -1;
+    }
+  });
+}
+
 (function boot_(){
   try{
     ensureLightbox_();
@@ -1319,6 +1456,12 @@ async function loadAndRenderById_(id){
 
     applyBodyClasses_();
     syncActiveButtonsFromState_();
+
+    // ✅ v521.3: selection -> LINE OA CTA linkage
+    bindLineOaOverride_();
+
+    // ✅ v521.3: move private LINE to contact dock
+    hideTopPrivateLineCta_();
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     loadAndRenderById_(id);
