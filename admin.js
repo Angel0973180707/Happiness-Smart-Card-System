@@ -1,65 +1,40 @@
 /* ==========================================
- * Happiness Smart Card System — admin.js v521.2 (COMPLETE OVERWRITE)
+ * Happiness Smart Card System — admin.js v521.5 (COMPLETE OVERWRITE)
  *
- * Goals (v521.2):
- * ✅ 不走山：JS 不綁死特定 HTML 結構（有就綁，沒有就跳過）
- * ✅ 讓「按鈕都不能動」的情況最大機率恢復：使用事件委派 + 捕捉 click/submit
- * ✅ Admin 一鍵載入：用 ADMIN_SECRET 拉資料，並自動把 token 填回去
- * ✅ 相容多版 GAS：依序嘗試 action=adminCard/adminGet/card （GET only）
- * ✅ 只用 GET（避免 CORS preflight）
- * ✅ 內建：狀態切換 active/inactive、複製乾淨成品/OG/WeChat 連結、複製填表連結（若 GAS 提供）
- *
- * Notes:
- * - 你只要在 admin.html 放一個 <script src="./admin.js?v=5212"></script> 就能用
- * - GAS 端若支援：adminCard/adminGet/adminSetStatus/adminExtend/adminExport/adminCreateInvite 等 action，
- *   這支會自動對齊；若沒有，會優雅降級。
+ * v521.5 goals:
+ * ✅ share.html = 唯一主交付連結
+ * ✅ 顯示 / 複製 invite_code
+ * ✅ 切換 wechat_poster = 0 / 1
+ * ✅ 可切 active / inactive
+ * ✅ 右側完整顯示：交付卡 / 智慧名片 / 微信
+ * ✅ 相容多版 GAS：adminCard / adminGet / card
+ * ✅ GET only
  * ========================================== */
 
 (() => {
   "use strict";
 
-  /* ---------- Config ---------- */
-  const VERSION = "521.2";
+  const VERSION = "521.5";
 
   const DEFAULTS = {
-    GAS:
-      "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+    GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     BASE: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-    INDEX: "index.html",
-    SHARE: "share.html",
-    WECHAT: "wechat.html",
-    FETCH_TIMEOUT_MS: 15000,
+    FETCH_TIMEOUT_MS: 15000
   };
 
-  // keys used in localStorage
   const LS = {
     gas: "HSC_ADMIN_GAS",
     base: "HSC_ADMIN_BASE",
-    adminSecret: "HSC_ADMIN_SECRET",
-    exportSecret: "HSC_EXPORT_SECRET",
-    lastId: "HSC_ADMIN_LAST_ID",
-    lastToken: "HSC_ADMIN_LAST_TOKEN",
-    lastTenant: "HSC_ADMIN_LAST_TENANT",
+    adminSecret: "HSC_ADMIN_SECRET"
   };
 
-  /* ---------- Helpers ---------- */
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const $ = (id) => document.getElementById(id);
 
-  function safeText(el, t) {
-    if (!el) return;
-    el.textContent = t == null ? "" : String(t);
-  }
-  function safeVal(el, v) {
-    if (!el) return;
-    el.value = v == null ? "" : String(v);
-  }
-  function getVal(el) {
-    return el ? String(el.value || "").trim() : "";
-  }
-  function qs(k) {
-    return new URLSearchParams(location.search).get(k);
-  }
+  const state = {
+    selectedCard: null,
+    selectedId: "",
+    selectedToken: ""
+  };
 
   function normalizeId(raw) {
     const s = String(raw || "").trim().toUpperCase();
@@ -73,90 +48,66 @@
     return s;
   }
 
-  function nowIso() {
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2, "0");
-    return (
-      d.getFullYear() +
-      "-" +
-      pad(d.getMonth() + 1) +
-      "-" +
-      pad(d.getDate()) +
-      " " +
-      pad(d.getHours()) +
-      ":" +
-      pad(d.getMinutes()) +
-      ":" +
-      pad(d.getSeconds())
-    );
+  function safeText(el, v) {
+    if (el) el.textContent = v == null ? "" : String(v);
+  }
+
+  function safeVal(el, v) {
+    if (el) el.value = v == null ? "" : String(v);
+  }
+
+  function getVal(el) {
+    return el ? String(el.value || "").trim() : "";
   }
 
   function loadCfg() {
     return {
       GAS: localStorage.getItem(LS.gas) || DEFAULTS.GAS,
       BASE: localStorage.getItem(LS.base) || DEFAULTS.BASE,
-      INDEX: DEFAULTS.INDEX,
-      SHARE: DEFAULTS.SHARE,
-      WECHAT: DEFAULTS.WECHAT,
-      FETCH_TIMEOUT_MS: DEFAULTS.FETCH_TIMEOUT_MS,
+      FETCH_TIMEOUT_MS: DEFAULTS.FETCH_TIMEOUT_MS
     };
   }
 
-  function setCfgKV(key, val) {
-    if (key === "GAS") localStorage.setItem(LS.gas, val);
-    if (key === "BASE") localStorage.setItem(LS.base, val);
+  function saveCfg() {
+    localStorage.setItem(LS.gas, getVal($("gasUrl")) || DEFAULTS.GAS);
+    localStorage.setItem(LS.base, getVal($("baseUrl")) || DEFAULTS.BASE);
+    localStorage.setItem(LS.adminSecret, getVal($("adminSecret")) || "");
   }
 
   function baseUrl_(cfg) {
-    const b = (cfg.BASE || "").trim();
-    if (!b) return DEFAULTS.BASE;
+    const b = String(cfg.BASE || "").trim();
     return b.endsWith("/") ? b : b + "/";
   }
 
-  function buildCleanUrl(cfg, id) {
-    return baseUrl_(cfg) + cfg.INDEX + "?id=" + encodeURIComponent(id) + "&view=1";
+  function buildShareUrl(cfg, id) {
+    return baseUrl_(cfg) + "share.html?id=" + encodeURIComponent(id);
   }
-  function buildOgUrl(cfg, id) {
-    return baseUrl_(cfg) + cfg.SHARE + "?id=" + encodeURIComponent(id);
+
+  function buildCardUrl(cfg, id) {
+    return baseUrl_(cfg) + "index.html?id=" + encodeURIComponent(id) + "&view=1";
   }
+
   function buildWeChatUrl(cfg, id) {
-    return baseUrl_(cfg) + cfg.WECHAT + "?id=" + encodeURIComponent(id);
+    return baseUrl_(cfg) + "wechat.html?id=" + encodeURIComponent(id);
+  }
+
+  function toast(msg) {
+    const el = $("toast");
+    if (!el) return;
+    el.textContent = String(msg || "");
+    el.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove("show"), 1800);
+    safeText($("statusPill"), msg);
   }
 
   async function copyText(t) {
-    const s = String(t || "");
     try {
-      await navigator.clipboard.writeText(s);
+      await navigator.clipboard.writeText(String(t || ""));
       return true;
     } catch (e) {
-      const ok = prompt("請手動複製：", s);
+      const ok = prompt("請手動複製：", String(t || ""));
       return ok !== null;
-    }
-  }
-
-  function toast(msg, type = "info") {
-    // support common ids: #toast, #hint, #statusText, #log
-    const elToast = $("#toast");
-    const elHint = $("#hint") || $("#statusText");
-    const elLog = $("#log");
-
-    const line = `[${nowIso()}] ${msg}`;
-    if (elLog) {
-      elLog.value = (elLog.value ? elLog.value + "\n" : "") + line;
-      elLog.scrollTop = elLog.scrollHeight;
-    }
-
-    if (elHint) safeText(elHint, msg);
-
-    if (elToast) {
-      safeText(elToast, msg);
-      elToast.classList.add("show");
-      elToast.setAttribute("data-type", type);
-      clearTimeout(toast._t);
-      toast._t = setTimeout(() => elToast.classList.remove("show"), 1800);
-    } else {
-      // no UI, still log
-      console.log("HSC Admin:", msg);
     }
   }
 
@@ -167,9 +118,7 @@
       const res = await fetch(url, { cache: "no-store", signal: ctrl.signal });
       const txt = await res.text();
       let j = null;
-      try {
-        j = JSON.parse(txt);
-      } catch (_) {}
+      try { j = JSON.parse(txt); } catch (_) {}
       if (!res.ok) throw new Error("HTTP " + res.status);
       if (!j || typeof j !== "object") throw new Error("Invalid JSON");
       return j;
@@ -178,19 +127,6 @@
     }
   }
 
-  function pick(obj, keys, fallback = "") {
-    for (const k of keys) {
-      const v = obj && obj[k];
-      if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
-    }
-    return fallback;
-  }
-
-  function statusLower(card) {
-    return (pick(card, ["status", "狀態"], "") || "").toLowerCase();
-  }
-
-  /* ---------- GAS API wrappers (GET only) ---------- */
   function buildUrl(cfg, params) {
     const u = new URL(cfg.GAS);
     Object.entries(params || {}).forEach(([k, v]) => {
@@ -216,17 +152,50 @@
     throw lastErr || new Error("All actions failed");
   }
 
-  async function apiAdminGetCard(cfg, { id, token, admin_secret }) {
-    // order: adminCard/adminGet then fallback card
+  function pick(obj, keys, fallback = "") {
+    for (const k of keys) {
+      const v = obj && obj[k];
+      if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+    }
+    return fallback;
+  }
+
+  function parseCardsFromResponse(j) {
+    const arr =
+      j.cards ||
+      j.items ||
+      j.data ||
+      j.results ||
+      [];
+
+    if (Array.isArray(arr)) return arr;
+
+    if (j.item && typeof j.item === "object") return [j.item];
+
+    return [];
+  }
+
+  async function apiFindCards(cfg, { q, admin_secret }) {
+    // 先試專用 action，再降級
+    const attempt = await tryActions(
+      cfg,
+      ["adminSearch", "searchCards", "adminFind", "findCards"],
+      { q, admin_secret }
+    );
+    const cards = parseCardsFromResponse(attempt.json);
+    return { cards, raw: attempt.json, action: attempt.action };
+  }
+
+  async function apiGetCard(cfg, { id, admin_secret }) {
     const attempt = await tryActions(
       cfg,
       ["adminCard", "adminGet", "card"],
-      { id, token, admin_secret }
+      { id, admin_secret }
     );
     const j = attempt.json;
     const card = j.item || j.data || j.card || {};
     if (!card || typeof card !== "object") throw new Error("Empty card payload");
-    return { action: attempt.action, card, raw: j, url: attempt.url };
+    return { card, raw: j, action: attempt.action };
   }
 
   async function apiSetStatus(cfg, { id, status, token, admin_secret }) {
@@ -238,459 +207,327 @@
     return attempt.json;
   }
 
-  async function apiExtend(cfg, { id, days, token, admin_secret }) {
-    const attempt = await tryActions(cfg, ["adminExtend", "extend"], {
-      id,
-      days,
-      token,
-      admin_secret,
-    });
+  async function apiSetWeChatPoster(cfg, { id, value, token, admin_secret }) {
+    // 假設 GAS 有 update / adminUpdate；若沒有，下一輪補 GAS
+    const attempt = await tryActions(
+      cfg,
+      ["adminUpdate", "updateCard", "setField"],
+      { id, token, admin_secret, field: "wechat_poster", value }
+    );
     return attempt.json;
   }
 
-  async function apiExport(cfg, { admin_secret, export_secret, tenant }) {
-    const attempt = await tryActions(cfg, ["adminExport", "export"], {
-      admin_secret,
-      export_secret,
-      tenant,
-    });
+  async function apiCreateInvite(cfg, { admin_secret, count }) {
+    const attempt = await tryActions(
+      cfg,
+      ["adminCreateInvite", "createInvite", "inviteCreate"],
+      { admin_secret, count: count || 1 }
+    );
     return attempt.json;
   }
 
-  async function apiCreateInvite(cfg, { tenant, count, admin_secret }) {
-    const attempt = await tryActions(cfg, ["adminCreateInvite", "createInvite", "inviteCreate"], {
-      tenant,
-      count,
-      admin_secret,
-    });
+  async function apiStats(cfg, { admin_secret }) {
+    const attempt = await tryActions(
+      cfg,
+      ["adminStats", "stats", "dashboardStats"],
+      { admin_secret }
+    );
     return attempt.json;
   }
 
-  /* ---------- UI binding (DOM-agnostic) ---------- */
-  function findField(keys) {
-    // try by id first
-    for (const k of keys) {
-      const byId = document.getElementById(k);
-      if (byId) return byId;
-    }
-    // try data-field
-    for (const k of keys) {
-      const el = document.querySelector(`[data-field="${CSS.escape(k)}"]`);
-      if (el) return el;
-    }
-    // try name
-    for (const k of keys) {
-      const el = document.querySelector(`[name="${CSS.escape(k)}"]`);
-      if (el) return el;
-    }
-    return null;
+  async function apiMakeUpdateLink(cfg, { id, admin_secret, token }) {
+    const attempt = await tryActions(
+      cfg,
+      ["adminMakeUpdateLink", "makeUpdateLink", "adminFillLink"],
+      { id, admin_secret, token }
+    );
+    return attempt.json;
   }
 
-  function findButton(keys) {
-    for (const k of keys) {
-      const byId = document.getElementById(k);
-      if (byId) return byId;
-    }
-    for (const k of keys) {
-      const el = document.querySelector(`[data-action="${CSS.escape(k)}"]`);
-      if (el) return el;
-    }
-    return null;
-  }
+  function setSelectedCard(card) {
+    state.selectedCard = card || null;
+    state.selectedId = normalizeId(pick(card, ["id"], ""));
+    state.selectedToken = pick(card, ["token"], "");
 
-  function applyCardToUI(card) {
-    // optional fields in admin UI
-    const idEl = findField(["cardId", "id", "inputId"]);
-    const tokenEl = findField(["token", "inputToken"]);
-    const nameEl = findField(["name", "inputName"]);
-    const tenantEl = findField(["tenant", "inputTenant"]);
-    const statusEl = findField(["status", "inputStatus"]);
+    safeText($("selectedId"), state.selectedId || "—");
+    safeText($("selectedName"), pick(card, ["name", "姓名"], "—") || "—");
+    safeText($("selectedStatus"), pick(card, ["status", "狀態"], "—") || "—");
+    safeText($("selectedInviteCode"), pick(card, ["invite_code", "invite"], "—") || "—");
 
-    const id = normalizeId(pick(card, ["id"], ""));
-    const token = pick(card, ["token"], "");
-    const name = pick(card, ["name", "姓名"], "");
-    const tenant = pick(card, ["tenant"], "");
-    const status = pick(card, ["status", "狀態"], "");
+    const wx = pick(card, ["wechat_poster"], "");
+    safeText($("wxStateText"), "目前：" + (wx === "" ? "—" : String(wx)));
 
-    if (idEl && !getVal(idEl)) safeVal(idEl, id);
-    if (tokenEl) safeVal(tokenEl, token);
-    if (nameEl) safeVal(nameEl, name);
-    if (tenantEl) safeVal(tenantEl, tenant);
-    if (statusEl) safeVal(statusEl, status);
-
-    // preview zones (optional)
-    safeText($("#previewName"), name || "—");
-    safeText($("#previewTenant"), tenant || "—");
-    safeText($("#previewStatus"), status || "—");
-    safeText($("#previewId"), id || "—");
-  }
-
-  function setLinksToUI(cfg, id) {
-    const clean = buildCleanUrl(cfg, id);
-    const og = buildOgUrl(cfg, id);
-    const wc = buildWeChatUrl(cfg, id);
-
-    const elClean = $("#cleanUrl") || $("#cleanLink");
-    const elOg = $("#ogUrl") || $("#ogLink");
-    const elWc = $("#wechatUrl") || $("#wechatLink");
-
-    if (elClean) elClean.value ? (elClean.value = clean) : (elClean.href = clean);
-    if (elOg) elOg.value ? (elOg.value = og) : (elOg.href = og);
-    if (elWc) elWc.value ? (elWc.value = wc) : (elWc.href = wc);
-
-    safeText($("#cleanUrlHint"), clean.replace(cfg.BASE, ""));
-    safeText($("#ogUrlHint"), og.replace(cfg.BASE, ""));
-    safeText($("#wechatUrlHint"), wc.replace(cfg.BASE, ""));
-  }
-
-  /* ---------- Core actions ---------- */
-  async function doLoadCard(opts = {}) {
     const cfg = loadCfg();
-
-    const idEl = findField(["cardId", "id", "inputId"]);
-    const tokenEl = findField(["token", "inputToken"]);
-    const tenantEl = findField(["tenant", "inputTenant"]);
-
-    // read inputs (or fallback to query/local)
-    const id =
-      normalizeId(
-        opts.id ||
-          getVal(idEl) ||
-          qs("id") ||
-          localStorage.getItem(LS.lastId) ||
-          "TW0001"
-      ) || "TW0001";
-
-    const token =
-      opts.token || getVal(tokenEl) || localStorage.getItem(LS.lastToken) || "";
-
-    const adminSecret =
-      opts.admin_secret ||
-      getVal(findField(["admin_secret", "adminSecret", "ADMIN_SECRET"])) ||
-      localStorage.getItem(LS.adminSecret) ||
-      "";
-
-    // persist quickly
-    localStorage.setItem(LS.lastId, id);
-    if (token) localStorage.setItem(LS.lastToken, token);
-    if (getVal(tenantEl)) localStorage.setItem(LS.lastTenant, getVal(tenantEl));
-    if (adminSecret) localStorage.setItem(LS.adminSecret, adminSecret);
-
-    toast(`讀取中：${id} …`);
-
-    try {
-      setCfgKV("GAS", cfg.GAS);
-      setCfgKV("BASE", cfg.BASE);
-
-      const { action, card, raw } = await apiAdminGetCard(cfg, {
-        id,
-        token,
-        admin_secret: adminSecret,
-      });
-
-      // auto fill token if returned
-      const newToken = pick(card, ["token"], "");
-      if (newToken && tokenEl) safeVal(tokenEl, newToken);
-      if (newToken) localStorage.setItem(LS.lastToken, newToken);
-
-      applyCardToUI(card);
-      setLinksToUI(cfg, id);
-
-      // show status badge (optional)
-      const st = statusLower(card) || "unknown";
-      const badge = $("#badge");
-      if (badge) {
-        badge.textContent = st;
-        badge.classList.toggle("ok", st === "active");
-        badge.classList.toggle("warn", st !== "active");
-      }
-
-      // fill quick meta
-      safeText($("#apiAction"), action || "—");
-      safeText($("#apiOk"), raw && raw.ok ? "ok" : "—");
-
-      toast(`讀取成功 ✅ (${action})`);
-      return { ok: true, id, card };
-    } catch (e) {
-      toast(`讀取失敗：${String(e && e.message ? e.message : e)}`, "warn");
-      return { ok: false, id, error: e };
+    if (state.selectedId) {
+      safeVal($("shareLink"), buildShareUrl(cfg, state.selectedId));
+      safeVal($("cardLink"), buildCardUrl(cfg, state.selectedId));
+      safeVal($("wechatLink"), buildWeChatUrl(cfg, state.selectedId));
+    } else {
+      safeVal($("shareLink"), "");
+      safeVal($("cardLink"), "");
+      safeVal($("wechatLink"), "");
     }
+
+    [
+      "btnCopyInvite",
+      "btnSetActive",
+      "btnSetInactive",
+      "btnWechatOff",
+      "btnWechatOn",
+      "btnCopyShare",
+      "btnCopyCard",
+      "btnCopyWeChat",
+      "btnMakeUpdate",
+      "btnCopyUpdate"
+    ].forEach(id => {
+      if ($(id)) $(id).disabled = !state.selectedId;
+    });
   }
 
-  async function doSetStatus(toStatus) {
-    const cfg = loadCfg();
-    const id = normalizeId(getVal(findField(["cardId", "id", "inputId"])) || localStorage.getItem(LS.lastId) || "");
-    if (!id) return toast("缺少 ID", "warn");
+  function renderResultList(cards) {
+    const box = $("resultList");
+    box.innerHTML = "";
 
-    const token = getVal(findField(["token", "inputToken"])) || localStorage.getItem(LS.lastToken) || "";
-    const adminSecret = getVal(findField(["admin_secret", "adminSecret", "ADMIN_SECRET"])) || localStorage.getItem(LS.adminSecret) || "";
-
-    toast(`狀態切換中：${id} → ${toStatus} …`);
-    try {
-      const j = await apiSetStatus(cfg, { id, status: toStatus, token, admin_secret: adminSecret });
-      if (!j || !j.ok) throw new Error(j && j.error ? j.error : "ok=false");
-      toast(`狀態已更新 ✅ (${toStatus})`);
-      await doLoadCard({ id }); // refresh
-    } catch (e) {
-      toast(`狀態更新失敗：${String(e && e.message ? e.message : e)}`, "warn");
-    }
-  }
-
-  async function doExtend(days) {
-    const cfg = loadCfg();
-    const id = normalizeId(getVal(findField(["cardId", "id", "inputId"])) || localStorage.getItem(LS.lastId) || "");
-    if (!id) return toast("缺少 ID", "warn");
-
-    const token = getVal(findField(["token", "inputToken"])) || localStorage.getItem(LS.lastToken) || "";
-    const adminSecret = getVal(findField(["admin_secret", "adminSecret", "ADMIN_SECRET"])) || localStorage.getItem(LS.adminSecret) || "";
-
-    const d = Number(days || 30);
-    toast(`延長中：${id} +${d} 天 …`);
-    try {
-      const j = await apiExtend(cfg, { id, days: d, token, admin_secret: adminSecret });
-      if (!j || !j.ok) throw new Error(j && j.error ? j.error : "ok=false");
-      toast(`延長成功 ✅ (+${d} 天)`);
-      await doLoadCard({ id });
-    } catch (e) {
-      toast(`延長失敗：${String(e && e.message ? e.message : e)}`, "warn");
-    }
-  }
-
-  async function doExport() {
-    const cfg = loadCfg();
-    const adminSecret = getVal(findField(["admin_secret", "adminSecret", "ADMIN_SECRET"])) || localStorage.getItem(LS.adminSecret) || "";
-    const exportSecret = getVal(findField(["export_secret", "exportSecret", "EXPORT_SECRET"])) || localStorage.getItem(LS.exportSecret) || "";
-    const tenant = getVal(findField(["tenant", "inputTenant"])) || localStorage.getItem(LS.lastTenant) || "";
-
-    if (!adminSecret) return toast("缺少 ADMIN_SECRET", "warn");
-
-    if (exportSecret) localStorage.setItem(LS.exportSecret, exportSecret);
-    if (tenant) localStorage.setItem(LS.lastTenant, tenant);
-
-    toast("匯出中…");
-    try {
-      const j = await apiExport(cfg, { admin_secret: adminSecret, export_secret: exportSecret, tenant });
-      if (!j || !j.ok) throw new Error(j && j.error ? j.error : "ok=false");
-
-      // Support: j.url (download link) OR j.csv (raw) OR j.data
-      if (j.url) {
-        const ok = await copyText(j.url);
-        toast(ok ? "已複製匯出連結 ✅" : "已取消");
-        return;
-      }
-      if (j.csv) {
-        // offer download as file
-        const blob = new Blob([String(j.csv)], { type: "text/csv;charset=utf-8" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `hsc_export_${tenant || "all"}_${Date.now()}.csv`;
-        a.click();
-        toast("已下載 CSV ✅");
-        return;
-      }
-      toast("匯出成功 ✅（但回傳格式未知）");
-    } catch (e) {
-      toast(`匯出失敗：${String(e && e.message ? e.message : e)}`, "warn");
-    }
-  }
-
-  async function doCreateInvite(count = 1) {
-    const cfg = loadCfg();
-    const adminSecret = getVal(findField(["admin_secret", "adminSecret", "ADMIN_SECRET"])) || localStorage.getItem(LS.adminSecret) || "";
-    const tenant = getVal(findField(["tenant", "inputTenant"])) || localStorage.getItem(LS.lastTenant) || "angel";
-
-    if (!adminSecret) return toast("缺少 ADMIN_SECRET", "warn");
-
-    toast(`產生邀請碼中…（${tenant} x${count}）`);
-    try {
-      const j = await apiCreateInvite(cfg, { tenant, count, admin_secret: adminSecret });
-      if (!j || !j.ok) throw new Error(j && j.error ? j.error : "ok=false");
-
-      // j.invites may be array
-      const invites = j.invites || j.codes || j.data || [];
-      const text =
-        Array.isArray(invites) && invites.length
-          ? invites.join("\n")
-          : (j.invite || j.code || "");
-
-      if (text) {
-        const ok = await copyText(text);
-        toast(ok ? "邀請碼已複製 ✅" : "已取消");
-      } else {
-        toast("已產生邀請碼 ✅（但回傳欄位未知）");
-      }
-    } catch (e) {
-      toast(`產生邀請碼失敗：${String(e && e.message ? e.message : e)}`, "warn");
-    }
-  }
-
-  async function doCopyLink(which) {
-    const cfg = loadCfg();
-    const id = normalizeId(getVal(findField(["cardId", "id", "inputId"])) || localStorage.getItem(LS.lastId) || "");
-    if (!id) return toast("缺少 ID", "warn");
-
-    const map = {
-      clean: buildCleanUrl(cfg, id),
-      og: buildOgUrl(cfg, id),
-      wechat: buildWeChatUrl(cfg, id),
-    };
-
-    const url = map[which] || map.clean;
-    const ok = await copyText(url);
-    toast(ok ? "已複製 ✅" : "已取消");
-  }
-
-  // If GAS returns a fill link in adminCard payload, we can copy it:
-  async function doCopyFillLink() {
-    const cfg = loadCfg();
-    const r = await doLoadCard(); // refresh & reuse payload already shown
-    if (!r.ok) return;
-
-    const card = r.card || {};
-    const fillLink = pick(card, ["fill_link", "fillLink", "form_link", "formLink", "link"], "");
-    if (!fillLink) {
-      toast("目前回傳資料沒有 fill_link（需 GAS adminCard 支援）", "warn");
+    if (!cards || !cards.length) {
+      box.innerHTML = `<div class="item"><strong>查無結果</strong><small>請換關鍵字再試。</small></div>`;
       return;
     }
-    const ok = await copyText(fillLink);
-    toast(ok ? "已複製填表連結 ✅" : "已取消");
-  }
 
-  /* ---------- Event wiring (resilient) ---------- */
-  function wireButtons() {
-    // Direct bindings (if those ids exist)
-    const btnLoad = findButton(["btnLoad", "load", "btnFetch", "btnGet", "btnSearch"]);
-    if (btnLoad) btnLoad.addEventListener("click", (e) => (e.preventDefault(), doLoadCard()));
+    cards.forEach(card => {
+      const id = normalizeId(pick(card, ["id"], ""));
+      const name = pick(card, ["name", "姓名"], "（未填姓名）");
+      const title = pick(card, ["title", "職稱"], "");
+      const unit = pick(card, ["unit", "單位"], "");
+      const status = pick(card, ["status", "狀態"], "");
+      const inviteCode = pick(card, ["invite_code", "invite"], "");
+      const wx = pick(card, ["wechat_poster"], "");
 
-    const btnActive = findButton(["btnActive", "setActive", "btnEnable"]);
-    if (btnActive) btnActive.addEventListener("click", (e) => (e.preventDefault(), doSetStatus("active")));
-
-    const btnInactive = findButton(["btnInactive", "setInactive", "btnDisable", "btnLock"]);
-    if (btnInactive) btnInactive.addEventListener("click", (e) => (e.preventDefault(), doSetStatus("inactive")));
-
-    const btnExtend = findButton(["btnExtend", "extend"]);
-    if (btnExtend) btnExtend.addEventListener("click", (e) => (e.preventDefault(), doExtend(Number(getVal(findField(["extend_days", "days"])) || 30))));
-
-    const btnExport = findButton(["btnExport", "export"]);
-    if (btnExport) btnExport.addEventListener("click", (e) => (e.preventDefault(), doExport()));
-
-    const btnInvite = findButton(["btnInvite", "createInvite", "btnCreateInvite"]);
-    if (btnInvite) btnInvite.addEventListener("click", (e) => (e.preventDefault(), doCreateInvite(Number(getVal(findField(["invite_count", "count"])) || 1))));
-
-    const btnCopyClean = findButton(["btnCopyClean", "copyClean"]);
-    if (btnCopyClean) btnCopyClean.addEventListener("click", (e) => (e.preventDefault(), doCopyLink("clean")));
-
-    const btnCopyOg = findButton(["btnCopyOg", "copyOg"]);
-    if (btnCopyOg) btnCopyOg.addEventListener("click", (e) => (e.preventDefault(), doCopyLink("og")));
-
-    const btnCopyWeChat = findButton(["btnCopyWeChat", "copyWeChat"]);
-    if (btnCopyWeChat) btnCopyWeChat.addEventListener("click", (e) => (e.preventDefault(), doCopyLink("wechat")));
-
-    const btnCopyFill = findButton(["btnCopyFill", "copyFill", "btnCopyForm"]);
-    if (btnCopyFill) btnCopyFill.addEventListener("click", (e) => (e.preventDefault(), doCopyFillLink()));
-
-    // Submit form bindings (if admin.html uses a <form>)
-    const form = $("form");
-    if (form) {
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        doLoadCard();
+      const item = document.createElement("div");
+      item.className = "item";
+      item.innerHTML = `
+        <strong>${name} <span class="mono">${id || ""}</span></strong>
+        <small>${[title, unit].filter(Boolean).join("｜") || "—"}</small>
+        <small>狀態：${status || "—"}｜邀請碼：${inviteCode || "—"}｜微信加購：${wx === "" ? "—" : wx}</small>
+        <div class="actions">
+          <button class="btn btnPick">選這筆</button>
+        </div>
+      `;
+      item.querySelector(".btnPick").addEventListener("click", async () => {
+        toast("讀取名片中…");
+        const cfg = loadCfg();
+        try {
+          const adminSecret = getVal($("adminSecret"));
+          const { card: fullCard } = await apiGetCard(cfg, { id, admin_secret: adminSecret });
+          setSelectedCard(fullCard);
+          toast("已選取 ✅");
+        } catch (e) {
+          setSelectedCard(card);
+          toast("已選取（簡版資料）");
+        }
       });
-    }
-
-    // Event delegation: catch buttons by data-action
-    document.addEventListener("click", (e) => {
-      const t = e.target.closest("[data-action]");
-      if (!t) return;
-
-      const act = String(t.getAttribute("data-action") || "").trim();
-      if (!act) return;
-
-      // avoid double-binding if already bound
-      e.preventDefault();
-
-      const table = {
-        load: () => doLoadCard(),
-        reload: () => doLoadCard(),
-        active: () => doSetStatus("active"),
-        inactive: () => doSetStatus("inactive"),
-        extend: () => doExtend(Number(t.getAttribute("data-days") || getVal(findField(["extend_days", "days"])) || 30)),
-        export: () => doExport(),
-        invite: () => doCreateInvite(Number(t.getAttribute("data-count") || getVal(findField(["invite_count", "count"])) || 1)),
-        copy_clean: () => doCopyLink("clean"),
-        copy_og: () => doCopyLink("og"),
-        copy_wechat: () => doCopyLink("wechat"),
-        copy_fill: () => doCopyFillLink(),
-      };
-
-      const fn = table[act];
-      if (fn) fn();
-    }, true);
+      box.appendChild(item);
+    });
   }
 
-  function initInputs() {
+  async function doFind() {
+    saveCfg();
     const cfg = loadCfg();
+    const q = getVal($("customerMsg"));
+    const adminSecret = getVal($("adminSecret"));
 
-    // optional: allow admin UI to show current cfg
-    const gasEl = findField(["gas", "gasUrl", "inputGas"]);
-    const baseEl = findField(["base", "baseUrl", "inputBase"]);
-    if (gasEl) safeVal(gasEl, cfg.GAS);
-    if (baseEl) safeVal(baseEl, cfg.BASE);
+    if (!q) return toast("請先貼上客戶訊息");
 
-    // persist changes (if these inputs exist)
-    if (gasEl) {
-      gasEl.addEventListener("change", () => {
-        const v = getVal(gasEl);
-        if (v) localStorage.setItem(LS.gas, v);
-        toast("已更新 GAS URL ✅");
-      });
-    }
-    if (baseEl) {
-      baseEl.addEventListener("change", () => {
-        const v = getVal(baseEl);
-        if (v) localStorage.setItem(LS.base, v);
-        toast("已更新 BASE URL ✅");
-      });
-    }
-
-    // secrets
-    const adminSecretEl = findField(["admin_secret", "adminSecret", "ADMIN_SECRET"]);
-    const exportSecretEl = findField(["export_secret", "exportSecret", "EXPORT_SECRET"]);
-    if (adminSecretEl && !getVal(adminSecretEl)) safeVal(adminSecretEl, localStorage.getItem(LS.adminSecret) || "");
-    if (exportSecretEl && !getVal(exportSecretEl)) safeVal(exportSecretEl, localStorage.getItem(LS.exportSecret) || "");
-
-    // id/token
-    const idEl = findField(["cardId", "id", "inputId"]);
-    const tokenEl = findField(["token", "inputToken"]);
-    if (idEl && !getVal(idEl)) safeVal(idEl, qs("id") || localStorage.getItem(LS.lastId) || "TW0001");
-    if (tokenEl && !getVal(tokenEl)) safeVal(tokenEl, qs("token") || localStorage.getItem(LS.lastToken) || "");
-
-    // show version
-    safeText($("#version"), "admin.js v" + VERSION);
-    safeText($("#jsVersion"), "v" + VERSION);
-  }
-
-  function boot() {
-    initInputs();
-    wireButtons();
-
-    // auto-load if query id present
-    const qid = normalizeId(qs("id") || "");
-    const auto = qs("autoload");
-    if (qid || auto === "1") {
-      // fill id and load
-      const idEl = findField(["cardId", "id", "inputId"]);
-      if (qid && idEl) safeVal(idEl, qid);
-      doLoadCard({ id: qid || undefined });
-    } else {
-      toast(`HSC Admin ready (v${VERSION})`);
+    toast("查找中…");
+    try {
+      const { cards } = await apiFindCards(cfg, { q, admin_secret: adminSecret });
+      renderResultList(cards);
+      toast(`找到 ${cards.length} 筆`);
+    } catch (e) {
+      renderResultList([]);
+      toast("查找失敗");
     }
   }
 
-  // DOM ready
+  async function doStats() {
+    saveCfg();
+    const cfg = loadCfg();
+    const adminSecret = getVal($("adminSecret"));
+    toast("刷新統計中…");
+    try {
+      const j = await apiStats(cfg, { admin_secret: adminSecret });
+      safeText($("stTotal"), pick(j, ["total", "total_cards"], "—"));
+      safeText($("stMonthNew"), pick(j, ["month_new", "new_this_month"], "—"));
+      safeText($("stActive"), pick(j, ["active", "active_cards"], "—"));
+      safeText($("stExpired"), pick(j, ["expired", "expired_cards"], "—"));
+      toast("統計已更新 ✅");
+    } catch (e) {
+      toast("統計讀取失敗");
+    }
+  }
+
+  async function doMakeFill() {
+    saveCfg();
+    const cfg = loadCfg();
+    const adminSecret = getVal($("adminSecret"));
+
+    toast("產生填表連結中…");
+    try {
+      const j = await apiCreateInvite(cfg, { admin_secret: adminSecret, count: 1 });
+      const inviteCode =
+        pick(j, ["invite", "code"], "") ||
+        (Array.isArray(j.invites) && j.invites[0]) ||
+        (Array.isArray(j.codes) && j.codes[0]) ||
+        "";
+
+      if (!inviteCode) throw new Error("No invite code");
+
+      const url = baseUrl_(cfg) + "form.html?invite=" + encodeURIComponent(inviteCode);
+      safeVal($("fillLink"), url);
+      await copyText(url);
+      toast("填表連結已複製 ✅");
+    } catch (e) {
+      toast("填表連結產生失敗");
+    }
+  }
+
+  async function doMakeUpdate() {
+    saveCfg();
+    const cfg = loadCfg();
+    const adminSecret = getVal($("adminSecret"));
+    if (!state.selectedId) return toast("請先選一筆名片");
+
+    toast("產生更新連結中…");
+    try {
+      const j = await apiMakeUpdateLink(cfg, {
+        id: state.selectedId,
+        admin_secret: adminSecret,
+        token: state.selectedToken
+      });
+      const link =
+        pick(j, ["fill_link", "fillLink", "update_link", "updateLink", "url"], "");
+      if (!link) throw new Error("No update link");
+      safeVal($("updateLink"), link);
+      await copyText(link);
+      toast("更新連結已複製 ✅");
+    } catch (e) {
+      toast("更新連結產生失敗");
+    }
+  }
+
+  async function doCopyUpdate() {
+    const link = getVal($("updateLink"));
+    if (!link) return toast("目前沒有更新連結");
+    await copyText(link);
+    toast("已複製更新連結 ✅");
+  }
+
+  async function doCopyInvite() {
+    if (!state.selectedCard) return toast("請先選一筆名片");
+    const code = pick(state.selectedCard, ["invite_code", "invite"], "");
+    if (!code) return toast("這筆名片沒有邀請碼");
+    await copyText(code);
+    toast("已複製邀請碼 ✅");
+  }
+
+  async function doCopyShare() {
+    const link = getVal($("shareLink"));
+    if (!link) return toast("沒有交付卡連結");
+    await copyText(link);
+    toast("已複製交付卡連結 ✅");
+  }
+
+  async function doCopyCard() {
+    const link = getVal($("cardLink"));
+    if (!link) return toast("沒有智慧名片連結");
+    await copyText(link);
+    toast("已複製智慧名片連結 ✅");
+  }
+
+  async function doCopyWeChat() {
+    const link = getVal($("wechatLink"));
+    if (!link) return toast("沒有微信連結");
+    await copyText(link);
+    toast("已複製微信連結 ✅");
+  }
+
+  async function doSetStatus(status) {
+    saveCfg();
+    const cfg = loadCfg();
+    const adminSecret = getVal($("adminSecret"));
+    if (!state.selectedId) return toast("請先選一筆名片");
+
+    toast(`狀態切換為 ${status} 中…`);
+    try {
+      await apiSetStatus(cfg, {
+        id: state.selectedId,
+        status,
+        token: state.selectedToken,
+        admin_secret: adminSecret
+      });
+      const { card } = await apiGetCard(cfg, { id: state.selectedId, admin_secret: adminSecret });
+      setSelectedCard(card);
+      toast(`已設為 ${status} ✅`);
+    } catch (e) {
+      toast("狀態更新失敗");
+    }
+  }
+
+  async function doSetWeChatPoster(value) {
+    saveCfg();
+    const cfg = loadCfg();
+    const adminSecret = getVal($("adminSecret"));
+    if (!state.selectedId) return toast("請先選一筆名片");
+
+    toast(`設定微信加購 = ${value} 中…`);
+    try {
+      await apiSetWeChatPoster(cfg, {
+        id: state.selectedId,
+        value,
+        token: state.selectedToken,
+        admin_secret: adminSecret
+      });
+      const { card } = await apiGetCard(cfg, { id: state.selectedId, admin_secret: adminSecret });
+      setSelectedCard(card);
+      toast(`微信加購已更新為 ${value} ✅`);
+    } catch (e) {
+      toast("微信加購更新失敗（若 GAS 尚未支援 adminUpdate，下一輪補 GAS）");
+    }
+  }
+
+  function init() {
+    const cfg = loadCfg();
+    safeVal($("gasUrl"), cfg.GAS);
+    safeVal($("baseUrl"), cfg.BASE);
+    safeVal($("adminSecret"), localStorage.getItem(LS.adminSecret) || "");
+
+    $("gasUrl")?.addEventListener("change", saveCfg);
+    $("baseUrl")?.addEventListener("change", saveCfg);
+    $("adminSecret")?.addEventListener("change", saveCfg);
+
+    $("btnStats")?.addEventListener("click", doStats);
+    $("btnMakeFill")?.addEventListener("click", doMakeFill);
+    $("btnFind")?.addEventListener("click", doFind);
+    $("btnMakeUpdate")?.addEventListener("click", doMakeUpdate);
+    $("btnCopyUpdate")?.addEventListener("click", doCopyUpdate);
+
+    $("btnCopyInvite")?.addEventListener("click", doCopyInvite);
+    $("btnCopyShare")?.addEventListener("click", doCopyShare);
+    $("btnCopyCard")?.addEventListener("click", doCopyCard);
+    $("btnCopyWeChat")?.addEventListener("click", doCopyWeChat);
+
+    $("btnSetActive")?.addEventListener("click", () => doSetStatus("active"));
+    $("btnSetInactive")?.addEventListener("click", () => doSetStatus("inactive"));
+
+    $("btnWechatOff")?.addEventListener("click", () => doSetWeChatPoster("0"));
+    $("btnWechatOn")?.addEventListener("click", () => doSetWeChatPoster("1"));
+
+    setSelectedCard(null);
+    toast(`HSC Admin ready (v${VERSION})`);
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
+    document.addEventListener("DOMContentLoaded", init);
   } else {
-    boot();
+    init();
   }
 })();
