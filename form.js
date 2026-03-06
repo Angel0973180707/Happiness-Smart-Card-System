@@ -48,8 +48,8 @@ import {
     ],
     papers: [
       { value: "f1", label: "棉紙" },
-      { value: "f2", label: "顆粒" },
-      { value: "f3", label: "亞麻" }
+      { value: "f2", label: "象牙紙" },
+      { value: "f3", label: "霧灰" }
     ],
     premiumColors: [
       { value: "p1", label: "胭脂紅" },
