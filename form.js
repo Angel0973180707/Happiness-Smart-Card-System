@@ -14,12 +14,13 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "522.6";
+  const VERSION = "522.6.1";
   const DEFAULT_GAS = "";
   const DEFAULT_TENANT = "angel";
   const PAGE_TOTAL = 7;
   const SUBMIT_LOCK_MS = 15000;
   const NUDGE_STEP = 28;
+  const MOBILE_BP = 760;
 
   const firebaseConfig = {
     apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
@@ -135,6 +136,8 @@ import {
     btnNext: $("btnNext"),
     status: $("status"),
     formCard: $("formCard"),
+    topCard: $("topCard"),
+    flowCard: $("flowCard"),
 
     planChips: $("planChips"),
     colorChips: $("colorChips"),
@@ -195,6 +198,7 @@ import {
     submitting: false,
     submitLockedUntil: 0,
     page: 0,
+    formFocusMode: false,
 
     plan: "",
     color: "",
@@ -400,7 +404,10 @@ import {
     });
 
     bindCropEvents_();
+    bindFocusMode_();
+
     window.addEventListener("resize", ()=>{
+      refreshFocusModeByViewport_();
       if(state.crop.open){
         setupCropCanvasSize_();
         state.crop.minScale = computeMinScale_();
@@ -411,6 +418,87 @@ import {
         drawCrop_();
       }
     });
+
+    window.addEventListener("orientationchange", ()=>{
+      setTimeout(()=>{
+        refreshFocusModeByViewport_();
+      }, 180);
+    });
+  }
+
+  function bindFocusMode_(){
+    const focusables = Array.from(document.querySelectorAll("input, textarea, select"));
+
+    focusables.forEach(node=>{
+      if(node.type === "hidden" || node.type === "file" || node.type === "range") return;
+
+      node.addEventListener("focus", ()=>{
+        enterFormFocusMode_();
+        scrollFieldIntoView_(node);
+      });
+
+      node.addEventListener("click", ()=>{
+        if(isMobile_()){
+          enterFormFocusMode_();
+          scrollFieldIntoView_(node);
+        }
+      });
+
+      node.addEventListener("blur", ()=>{
+        setTimeout(()=>{
+          const active = document.activeElement;
+          const stillTyping =
+            active &&
+            (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT") &&
+            active.type !== "hidden" &&
+            active.type !== "file" &&
+            active.type !== "range";
+
+          if(!stillTyping){
+            exitFormFocusMode_();
+          }
+        }, 140);
+      });
+    });
+  }
+
+  function enterFormFocusMode_(){
+    if(!isMobile_()) return;
+    if(state.formFocusMode) return;
+    state.formFocusMode = true;
+    document.body.classList.add("form-focus");
+  }
+
+  function exitFormFocusMode_(){
+    if(!state.formFocusMode) return;
+    state.formFocusMode = false;
+    document.body.classList.remove("form-focus");
+  }
+
+  function refreshFocusModeByViewport_(){
+    if(!isMobile_()){
+      exitFormFocusMode_();
+    }
+  }
+
+  function isMobile_(){
+    return window.innerWidth <= MOBILE_BP;
+  }
+
+  function scrollFieldIntoView_(node){
+    if(!node) return;
+
+    setTimeout(()=>{
+      const rect = node.getBoundingClientRect();
+      const topSafe = isMobile_() ? 110 : 90;
+      const bottomSafe = isMobile_() ? 210 : 120;
+
+      if(rect.top < topSafe || rect.bottom > window.innerHeight - bottomSafe){
+        const absoluteTop = window.scrollY + rect.top;
+        const target = Math.max(0, absoluteTop - topSafe);
+        window.scrollTo({ top: target, behavior: "smooth" });
+      }
+    }, 180);
   }
 
   function bindCropEvents_(){
@@ -914,6 +1002,7 @@ import {
     if(state.submitting || state.prefilling) return;
     state.page = Math.max(0, state.page - 1);
     renderPage_();
+    scrollFormCardTop_();
   }
 
   function onNextPage_(){
@@ -923,6 +1012,7 @@ import {
 
     state.page = Math.min(PAGE_TOTAL - 1, state.page + 1);
     renderPage_();
+    scrollFormCardTop_();
   }
 
   function renderPage_(){
@@ -1112,6 +1202,8 @@ import {
 
     if(Date.now() < state.submitLockedUntil){
       warnStatus_("系統正在保護這次送出，請不要連點，稍等一下再試。");
+      state.page = PAGE_TOTAL - 1;
+      renderPage_();
       scrollSubmitArea_();
       return;
     }
@@ -1121,6 +1213,7 @@ import {
       if(!ok){
         state.page = i;
         renderPage_();
+        scrollFormCardTop_();
         return;
       }
     }
@@ -1130,6 +1223,8 @@ import {
 
     if(state.lastSubmitFingerprint && state.lastSubmitFingerprint === currentFingerprint && Date.now() < state.submitLockedUntil){
       warnStatus_("偵測到剛剛送出的是同一份資料，先不要重複送出。");
+      state.page = PAGE_TOTAL - 1;
+      renderPage_();
       scrollSubmitArea_();
       return;
     }
@@ -1140,6 +1235,7 @@ import {
       setBusy_(true);
       state.page = PAGE_TOTAL - 1;
       renderPage_();
+      exitFormFocusMode_();
 
       if(!state.plan){
         warnStatus_("請先選方案。");
@@ -1274,6 +1370,8 @@ import {
     hideProgress_();
     el.dot.style.background = "var(--warn)";
     logStatus_("表單已重設。invite 參數仍保留在本次頁面流程中。", "warn");
+    exitFormFocusMode_();
+    scrollFormCardTop_();
   }
 
   function collectPayload_(){
@@ -1394,6 +1492,7 @@ import {
     el.cropStage.classList.add(slot.stageClass);
 
     el.cropModal.classList.add("show");
+    exitFormFocusMode_();
 
     await nextFrame_();
     setupCropCanvasSize_();
@@ -1715,7 +1814,14 @@ import {
 
   function scrollSubmitArea_(){
     try{
-      el.submitProgressWrap.scrollIntoView({ behavior: "smooth", block: "center" });
+      const target = el.submitProgressWrap.style.display !== "none" ? el.submitProgressWrap : el.status;
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }catch(_){}
+  }
+
+  function scrollFormCardTop_(){
+    try{
+      el.formCard.scrollIntoView({ behavior: "smooth", block: "start" });
     }catch(_){}
   }
 
