@@ -1,6 +1,6 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v521.3 (COMPLETE OVERWRITE)
+ * app.js v521.5 (COMPLETE OVERWRITE)
  *
  * Align to GAS v501 payload:
  * ✅ { ok:true, v:"501", item:{...} }
@@ -10,10 +10,12 @@
  * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
  * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel (if exists in HTML)
  *
- * v521.3 changes:
- * ✅ "選色" (theme) -> LINE OA CTA linkage (append current selection as query params)
- * ✅ Move "私訊 LINE" into Contact Dock, hide top CTA private LINE buttons
- * ✅ Active UI mapping resilient even if HTML missing data-value attributes
+ * v521.5 changes:
+ * ✅ A) Facade/Clean isolation support: detect clean mode (?view=1 / ?clean=1)
+ * ✅ B) Share ALWAYS shares clean URL (force view=1; remove clean)
+ * ✅ C) Move private LINE into Contact Dock, hide top CTA private LINE buttons
+ * ✅ D) Facade only: selection -> LINE OA CTA linkage with params:
+ *    plan, color/premium, style, paper, id (if any), from=facade
  *
  * Lock CTA / contact CTA -> LINE OA: https://lin.ee/3r2ZePN
  * ================================ */
@@ -22,7 +24,7 @@ const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
-  VERSION: "v521.3",
+  VERSION: "v521.5",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3
 };
@@ -33,6 +35,17 @@ let currentRow = null;
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 function text(v){ return (v==null ? "" : String(v)).trim(); }
+
+/* ---------- Mode detect ---------- */
+function isCleanMode_(){
+  try{
+    const sp = new URLSearchParams(location.search || "");
+    return (sp.get("view") === "1") || (sp.get("clean") === "1");
+  }catch{
+    return false;
+  }
+}
+const __IS_CLEAN = isCleanMode_();
 
 /* ---------- Text / Key normalize ---------- */
 function cleanKey_(k){
@@ -96,6 +109,18 @@ function getIdFromUrl_(){
   }catch{
     return "";
   }
+}
+
+function getCurrentCardId_(){
+  // prefer URL id; fallback to payload id
+  const urlId = normalizeId_(getIdFromUrl_());
+  if(urlId) return urlId;
+  const p = currentRow || null;
+  if(p){
+    const pid = normalizeId_(pick(p, ["id","card_id","cid","序號","編號"]));
+    if(pid) return pid;
+  }
+  return "";
 }
 
 /* ---------- Fetch (robust) ---------- */
@@ -311,7 +336,7 @@ function applyBodyClasses_(){
   applyModeUi_();
 }
 
-/* ---------- v521.2: payload -> STATE sync (critical linkage) ---------- */
+/* ---------- payload -> STATE sync ---------- */
 function normalizePlan_(raw){
   const v = text(raw).toLowerCase();
   if(!v) return "";
@@ -401,30 +426,24 @@ function syncStateFromPayload_(p){
   if(!STATE.premium) STATE.premium = "p1";
 }
 
-/* ---------- Active buttons sync (robust to missing data-value) ---------- */
+/* ---------- Active buttons sync ---------- */
 function matchThemeEl_(el, themeValue){
   if(!el) return false;
 
-  // Prefer data-value if present
   const dv = text(el.getAttribute("data-value"));
   if(dv && dv === themeValue) return true;
 
-  // Free dots: dot-1..5 => color-1..5
   for(let i=1;i<=5;i++){
     if(el.classList.contains("dot-" + i) && themeValue === ("color-" + i)) return true;
   }
-
-  // Premium dots: p1..p7 class
   for(let i=1;i<=7;i++){
     if(el.classList.contains("p" + i) && themeValue === ("p" + i)) return true;
   }
 
-  // Fallback by aria-label
   const al = text(el.getAttribute("aria-label")).toLowerCase();
   if(al){
     if(themeValue.startsWith("color-")){
       const n = themeValue.split("-")[1];
-      if(al === n) return true;
       if(n==="1" && al.includes("粉")) return true;
       if(n==="2" && al.includes("藍")) return true;
       if(n==="3" && al.includes("橘")) return true;
@@ -484,43 +503,83 @@ function syncActiveButtonsFromState_(){
   });
 }
 
+/* ---------- Share URL (force view=1) ---------- */
+function buildCleanShareUrl_(){
+  try{
+    const u = new URL(location.href);
+    if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
+    u.searchParams.delete("clean"); // canonicalize
+    return u.toString();
+  }catch{
+    const url = location.href;
+    if(url.includes("view=1")) return url;
+    return url + (url.includes("?") ? "&" : "?") + "view=1";
+  }
+}
+
 /* ---------- LINE OA linkage (selection -> OA CTA) ---------- */
 function buildLineOaUrlWithState_(){
   const base = normalizeLink_(CONFIG.CUSTOMER_SERVICE_URL);
   if(!base) return "";
 
+  // Clean mode: facade CTA must not exist; if somehow called, return base without tracking params
+  if(__IS_CLEAN) return base;
+
+  const plan = (STATE.mode === "premium") ? "premium" : "free";
+
+  // map to your preferred param style:
+  // - plan: free/premium
+  // - color: c1..c5 (free)
+  // - premium: p1..p7 (premium)
+  // - style: s1/s2/s3
+  // - paper: f1/f2/f3
+  function colorToC_(c){
+    const m = String(c||"").match(/color-(\d)/i);
+    return m ? ("c" + m[1]) : (c || "c1");
+  }
+  function styleToS_(s){
+    if(s === "arch") return "s1";
+    if(s === "flat") return "s2";
+    if(s === "spot") return "s3";
+    return "s1";
+  }
+  function paperToF_(p){
+    if(p === "paper-1") return "f1";
+    if(p === "paper-2") return "f2";
+    if(p === "paper-3") return "f3";
+    return "f1";
+  }
+
   try{
     const u = new URL(base);
 
-    // minimal but useful params
-    u.searchParams.set("hsc", "1");
-    u.searchParams.set("v", CONFIG.VERSION);
-
-    const plan = (STATE.mode === "premium") ? "premium" : "free";
+    u.searchParams.set("from", "facade");
     u.searchParams.set("plan", plan);
 
+    const id = getCurrentCardId_();
+    if(id) u.searchParams.set("id", id);
+
     if(plan === "premium"){
-      u.searchParams.set("theme", STATE.premium || "p1");
+      u.searchParams.set("premium", STATE.premium || "p1");
     }else{
-      u.searchParams.set("theme", STATE.color || "color-1");
-      u.searchParams.set("style", STATE.style || "arch");
-      u.searchParams.set("paper", STATE.paper || "paper-1");
+      u.searchParams.set("color", colorToC_(STATE.color || "color-1"));
+      u.searchParams.set("style", styleToS_(STATE.style || "arch"));
+      u.searchParams.set("paper", paperToF_(STATE.paper || "paper-1"));
     }
 
     return u.toString();
   }catch{
-    // fallback: append query
-    const plan = (STATE.mode === "premium") ? "premium" : "free";
     const q = [];
-    q.push("hsc=1");
-    q.push("v=" + encodeURIComponent(CONFIG.VERSION));
+    q.push("from=facade");
     q.push("plan=" + encodeURIComponent(plan));
+    const id = getCurrentCardId_();
+    if(id) q.push("id=" + encodeURIComponent(id));
     if(plan === "premium"){
-      q.push("theme=" + encodeURIComponent(STATE.premium || "p1"));
+      q.push("premium=" + encodeURIComponent(STATE.premium || "p1"));
     }else{
-      q.push("theme=" + encodeURIComponent(STATE.color || "color-1"));
-      q.push("style=" + encodeURIComponent(STATE.style || "arch"));
-      q.push("paper=" + encodeURIComponent(STATE.paper || "paper-1"));
+      q.push("color=" + encodeURIComponent(colorToC_(STATE.color || "color-1")));
+      q.push("style=" + encodeURIComponent(styleToS_(STATE.style || "arch")));
+      q.push("paper=" + encodeURIComponent(paperToF_(STATE.paper || "paper-1")));
     }
     return base + (base.includes("?") ? "&" : "?") + q.join("&");
   }
@@ -1210,6 +1269,7 @@ window.setPaper = setPaper;
 window.goLineIntro = goLineIntro;
 window.goFillForm = goFillForm;
 window.__buildLineOaUrlWithState = buildLineOaUrlWithState_;
+window.__getCleanShareUrl = buildCleanShareUrl_;
 
 /* ================================
  * Photo Wall + Lightbox (kept)
@@ -1372,26 +1432,37 @@ function renderPhotoWall_(row){
   wall.style.display = "";
 }
 
-/* ---------- Share button (if present in DOM) ---------- */
+/* ---------- Share button (force clean view=1) ---------- */
 (function bindShareBtn_(){
   const btn = qs("btnShare");
   if(!btn) return;
-  btn.addEventListener("click", async ()=>{
+
+  btn.addEventListener("click", async (e)=>{
     try{
-      const url = location.href;
+      // capture a clean URL always
+      const url = buildCleanShareUrl_();
+
       if(navigator.share){
+        e.preventDefault();
         await navigator.share({ title: document.title, url });
         return;
       }
+
       const ok = await (async ()=>{
-        try{ if(navigator.clipboard?.writeText){ await navigator.clipboard.writeText(url); return true; } }catch{}
+        try{
+          if(navigator.clipboard?.writeText){
+            await navigator.clipboard.writeText(url);
+            return true;
+          }
+        }catch{}
         return false;
       })();
-      alert(ok ? "✅ 已複製分享連結" : "⚠️ 無法分享/複製，請手動複製網址");
-    }catch(e){
-      console.warn(e);
+
+      alert(ok ? "✅ 已複製分享連結（乾淨成品）" : "⚠️ 無法分享/複製，請手動複製網址");
+    }catch(err){
+      console.warn(err);
     }
-  });
+  }, true);
 })();
 
 /* ---------- Load + Boot ---------- */
@@ -1421,7 +1492,7 @@ async function loadAndRenderById_(id){
 }
 
 function hideTopPrivateLineCta_(){
-  // ✅ per your request: move private line to contactDock, hide top CTA buttons
+  // ✅ per request: move private line to contactDock, hide top CTA buttons
   ["btnLinePrivateCta","btnLinePrivateCta2"].forEach(id=>{
     const b = qs(id);
     if(b){
@@ -1457,10 +1528,10 @@ function hideTopPrivateLineCta_(){
     applyBodyClasses_();
     syncActiveButtonsFromState_();
 
-    // ✅ v521.3: selection -> LINE OA CTA linkage
+    // ✅ v521.5: selection -> LINE OA CTA linkage (facade only; clean returns base)
     bindLineOaOverride_();
 
-    // ✅ v521.3: move private LINE to contact dock
+    // ✅ v521.5: move private LINE to contact dock
     hideTopPrivateLineCta_();
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
