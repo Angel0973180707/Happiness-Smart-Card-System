@@ -14,7 +14,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "521.9";
+  const VERSION = "522.0";
   const DEFAULT_GAS = "";
   const DEFAULT_TENANT = "angel";
   const PAGE_TOTAL = 5;
@@ -194,6 +194,7 @@ import {
     authReady: false,
     uid: "",
     lastSubmitFingerprint: "",
+    prefilling: false,
 
     crop: {
       open: false,
@@ -201,7 +202,6 @@ import {
       slotLabel: "",
       ratio: 1,
       image: null,
-      imageBitmap: null,
       sourceFile: null,
       scale: 1,
       minScale: 1,
@@ -326,6 +326,10 @@ import {
 
     updateIntro_();
     logStatus_("已就緒，請依序完成每一步。");
+
+    if (state.mode === "update" && state.id && state.sig) {
+      await prefillFromServer_();
+    }
   }
 
   function normalizeMode_(){
@@ -342,7 +346,7 @@ import {
 
   function updateIntro_(){
     if(state.mode === "update"){
-      el.pageIntro.textContent = "這是更新資料頁面。修改完成後送出即可。invite 參數會全程保留，不會中途掉失。";
+      el.pageIntro.textContent = "這是更新資料頁面。系統會自動讀取舊資料並回填表單，修改完成後送出即可。";
     }else{
       el.pageIntro.textContent = "固定分頁流程。請一步一步完成。圖片可先調整位置，再壓縮上傳，送出時會自動建立你的智慧名片。";
     }
@@ -718,6 +722,132 @@ import {
     });
   }
 
+  async function prefillFromServer_(){
+    state.prefilling = true;
+    try{
+      setBusy_(true);
+      showProgress_(12, "正在讀取舊資料…");
+      const data = await gasReadCardForUpdate_();
+      showProgress_(40, "正在回填表單…");
+      hydrateFormFromItem_(data);
+      showProgress_(100, "舊資料回填完成");
+      logStatus_(`已載入舊資料。\n名片 ID：${state.id}`);
+      el.dot.style.background = "var(--accent)";
+    }catch(err){
+      badStatus_("讀取舊資料失敗： " + String(err?.message || err));
+      el.dot.style.background = "var(--bad)";
+    }finally{
+      setTimeout(hideProgress_, 600);
+      setBusy_(false);
+      state.prefilling = false;
+      renderUploads_();
+      updateSummary_();
+      renderPage_();
+    }
+  }
+
+  async function gasReadCardForUpdate_(){
+    const q = new URLSearchParams();
+    q.set("action", "card");
+    q.set("id", state.id);
+    if(state.sig) q.set("sig", state.sig);
+    if(state.tenant) q.set("tenant", state.tenant);
+
+    const full = `${gasUrl_()}?${q.toString()}`;
+    const r = await fetch(full, { method: "GET", cache: "no-store" });
+    const j = await r.json();
+
+    if(!j || !j.ok){
+      throw new Error(j?.error || "card read failed");
+    }
+
+    return j.item || j.data || j.card || j;
+  }
+
+  function hydrateFormFromItem_(item){
+    if(!item || typeof item !== "object") return;
+
+    state.id = safeText_(item.id) || state.id;
+    state.token = safeText_(item.token) || state.token;
+    state.tenant = safeText_(item.tenant) || state.tenant;
+
+    const plan = pickFirst_(item, ["plan"]);
+    const color = pickFirst_(item, ["color", "free_color"]);
+    const style = pickFirst_(item, ["style", "free_style"]);
+    const paper = pickFirst_(item, ["paper", "free_paper"]);
+    const premiumColor = pickFirst_(item, ["premium_color"]);
+
+    state.plan = plan || inferPlan_(item);
+    state.color = color || "";
+    state.style = style || "";
+    state.paper = paper || "";
+    state.premium_color = premiumColor || "";
+
+    if(state.plan === "free"){
+      if(!state.color) state.color = "c1";
+      if(!state.style) state.style = "s1";
+      if(!state.paper) state.paper = "f1";
+      state.premium_color = "";
+    }else if(state.plan === "premium"){
+      if(!state.premium_color) state.premium_color = "p1";
+      state.color = "";
+      state.style = "";
+      state.paper = "";
+    }
+
+    fields.forEach(id=>{
+      const node = $(id);
+      if(!node) return;
+      node.value = pickFirst_(item, [id]) || "";
+    });
+
+    hydrateImagesFromItem_(item);
+
+    el.tenantText.textContent = state.tenant;
+    el.inviteText.textContent = state.invite || "-";
+    updateHeaderUI_();
+    applyPlanLimits_();
+    syncChipsUI_();
+  }
+
+  function hydrateImagesFromItem_(item){
+    UPLOAD_SLOTS.forEach(slot=>{
+      const mainUrl = safeText_(item[slot.mainField]);
+      const fastUrl = safeText_(item[slot.fastField]);
+      const previewUrl = fastUrl || mainUrl;
+
+      if(!previewUrl) return;
+
+      if(state.uploads[slot.key]?.previewUrl && state.uploads[slot.key].previewUrl.startsWith("blob:")){
+        revokePreviewUrl_(state.uploads[slot.key].previewUrl);
+      }
+
+      state.uploads[slot.key] = {
+        sourceFile: null,
+        previewUrl,
+        mainBlob: null,
+        fastBlob: null,
+        mainUrl,
+        fastUrl,
+        cropState: null
+      };
+    });
+  }
+
+  function inferPlan_(item){
+    const premium = pickFirst_(item, ["premium_color"]);
+    if (premium) return "premium";
+    return "free";
+  }
+
+  function pickFirst_(obj, keys){
+    for (const k of keys){
+      const v = safeText_(obj?.[k]);
+      if (v) return v;
+    }
+    return "";
+  }
+
   async function initFirebase_(){
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -742,13 +872,13 @@ import {
   }
 
   function onPrevPage_(){
-    if(state.submitting) return;
+    if(state.submitting || state.prefilling) return;
     state.page = Math.max(0, state.page - 1);
     renderPage_();
   }
 
   function onNextPage_(){
-    if(state.submitting) return;
+    if(state.submitting || state.prefilling) return;
     const ok = validatePage_(state.page, { silent: false });
     if(!ok) return;
 
@@ -772,7 +902,7 @@ import {
     el.pageBadgeBottom.textContent = pageText;
     el.flowSub.textContent = `目前在第 ${state.page + 1} 步，共 ${PAGE_TOTAL} 步。`;
 
-    el.btnPrev.disabled = state.page === 0 || state.submitting;
+    el.btnPrev.disabled = state.page === 0 || state.submitting || state.prefilling;
 
     if(state.page === PAGE_TOTAL - 1){
       el.btnNext.textContent = "已到最後一步";
@@ -780,7 +910,7 @@ import {
       updateSummary_();
     }else{
       el.btnNext.textContent = "下一步";
-      el.btnNext.disabled = state.submitting;
+      el.btnNext.disabled = state.submitting || state.prefilling;
     }
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -867,7 +997,7 @@ import {
   function countSelectedPhotos_(){
     let n = 0;
     for (const slot of UPLOAD_SLOTS){
-      if (state.uploads[slot.key]?.mainBlob) n++;
+      if (state.uploads[slot.key]?.mainBlob || state.uploads[slot.key]?.previewUrl) n++;
     }
     return n;
   }
@@ -936,7 +1066,7 @@ import {
   }
 
   async function onSubmit_(){
-    if(state.submitting) return;
+    if(state.submitting || state.prefilling) return;
 
     if(Date.now() < state.submitLockedUntil){
       warnStatus_("系統正在保護這次送出，請不要連點，稍等一下再試。");
@@ -1073,7 +1203,9 @@ import {
     });
 
     Object.values(state.uploads).forEach(u=>{
-      if(u?.previewUrl) revokePreviewUrl_(u.previewUrl);
+      if(u?.previewUrl && u.previewUrl.startsWith("blob:")){
+        revokePreviewUrl_(u.previewUrl);
+      }
     });
 
     state.plan = "";
@@ -1127,8 +1259,7 @@ import {
     fields.forEach(id=>{
       const node = $(id);
       if(!node) return;
-      const v = String(node.value || "").trim();
-      p[id] = v;
+      p[id] = String(node.value || "").trim();
     });
 
     return p;
@@ -1145,8 +1276,14 @@ import {
         if(idx > limit) continue;
       }
       const u = state.uploads[slot.key];
-      if(!u || !u.mainBlob || !u.fastBlob) continue;
-      tasks.push({ slot, item: u });
+      if(!u) continue;
+
+      if(u.mainBlob && u.fastBlob){
+        tasks.push({ slot, item: u });
+      }else if(u.mainUrl || u.fastUrl){
+        out[slot.mainField] = u.mainUrl || "";
+        out[slot.fastField] = u.fastUrl || "";
+      }
     }
 
     if(!tasks.length) return out;
@@ -1197,7 +1334,7 @@ import {
     state.crop.dragging = false;
 
     el.cropTitle.textContent = `調整 ${slot.label} 位置`;
-    el.cropDesc.textContent = `可拖移位置，並用按鈕放大、縮小、重設後再套用。`;
+    el.cropDesc.textContent = "可拖移位置，並用按鈕放大、縮小、重設後再套用。";
     el.cropMeta.textContent = slot.key === "avatar"
       ? "目前是正方形安全框。"
       : slot.key === "logo"
@@ -1326,7 +1463,7 @@ import {
 
     const previewUrl = URL.createObjectURL(mainBlob);
     const old = state.uploads[slot.key];
-    if(old?.previewUrl) revokePreviewUrl_(old.previewUrl);
+    if(old?.previewUrl && old.previewUrl.startsWith("blob:")) revokePreviewUrl_(old.previewUrl);
 
     state.uploads[slot.key] = {
       sourceFile: state.crop.sourceFile,
