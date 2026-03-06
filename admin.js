@@ -1,378 +1,581 @@
 /* ==========================================
- * HSC Admin Workspace — admin.js v522.1
+ * HSC Admin Workspace — admin.js v522.2
  * COMPLETE OVERWRITE
- *
- * Goal:
- * 1) TW0001 一定找得到
- * 2) 支援 name / phone / unit / title 模糊搜尋
- * 3) 相容多版 GAS action：
- *    - card (for exact id)
- *    - adminSearch
- *    - adminFind
- *    - searchCards
- *    - findCards
- * 4) 手機優先、穩定、只用 GET
+ * ------------------------------------------
+ * Connected:
+ * - GAS v522.2
+ * - ADMIN_SECRET preset
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "522.1";
-  const DEFAULT_GAS = "";
-  const DEFAULT_BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+  const VERSION = "522.2";
 
-  const $ = (id) => document.getElementById(id);
+  const DEFAULT_GAS =
+    "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-  const el = {
-    gasUrl: $("gasUrl"),
-    keyword: $("keyword"),
-    btnSearch: $("btnSearch"),
-    btnPing: $("btnPing"),
-    status: $("status"),
-    resultList: $("resultList"),
-    ver: $("ver")
+  const DEFAULT_TENANT = "angel";
+  const DEFAULT_ADMIN_SECRET = "ANGEL2026167777";
+
+  const LS = {
+    GAS: "hsc_admin_gas_v5222",
+    TENANT: "hsc_admin_tenant_v5222",
+    SECRET: "hsc_admin_secret_v5222"
   };
 
   const state = {
-    busy: false
+    items: [],
+    currentItem: null
   };
 
-  boot();
+  const $ = (sel) => document.querySelector(sel);
+  const el = {
+    gasUrl: $("#gasUrl"),
+    tenant: $("#tenant"),
+    adminSecret: $("#adminSecret"),
+    btnSaveConfig: $("#btnSaveConfig"),
+    btnPing: $("#btnPing"),
+    btnStats: $("#btnStats"),
+    searchInput: $("#searchInput"),
+    btnSearch: $("#btnSearch"),
+    btnSearchId: $("#btnSearchId"),
+    btnClearSearch: $("#btnClearSearch"),
+    invitePlan: $("#invitePlan"),
+    inviteDays: $("#inviteDays"),
+    inviteCount: $("#inviteCount"),
+    inviteNote: $("#inviteNote"),
+    btnCreateInvite: $("#btnCreateInvite"),
+    statusBox: $("#statusBox"),
+    resultList: $("#resultList"),
+    resultCount: $("#resultCount"),
+    currentId: $("#currentId"),
+    currentName: $("#currentName"),
+    quickField: $("#quickField"),
+    quickValue: $("#quickValue"),
+    btnQuickUpdate: $("#btnQuickUpdate"),
+    btnLoadCurrent: $("#btnLoadCurrent"),
+    btnOpenCard: $("#btnOpenCard"),
+    btnOpenShare: $("#btnOpenShare"),
+    detailJson: $("#detailJson")
+  };
 
-  function boot() {
-    if (el.ver) el.ver.textContent = `v${VERSION}`;
+  init();
 
-    if (el.gasUrl) {
-      el.gasUrl.value = (localStorage.getItem("HSC_ADMIN_GAS_URL") || DEFAULT_GAS || "").trim();
-      el.gasUrl.addEventListener("change", () => {
-        localStorage.setItem("HSC_ADMIN_GAS_URL", (el.gasUrl.value || "").trim());
-      });
-    }
-
-    if (el.btnPing) el.btnPing.addEventListener("click", onPing);
-    if (el.btnSearch) el.btnSearch.addEventListener("click", onSearch);
-
-    if (el.keyword) {
-      el.keyword.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter") onSearch();
-      });
-    }
-
-    setStatus(`HSC Admin v${VERSION} 已就緒`);
-    renderEmpty("請輸入 ID、姓名、電話、單位或職稱");
+  function init() {
+    hydrateConfig();
+    bindEvents();
+    setStatus(`HSC Admin v${VERSION}\n設定已載入。`, "ok");
+    renderResults([]);
   }
 
-  function gasUrl() {
-    const url = String(el.gasUrl?.value || "").trim();
-    if (!url) throw new Error("請先填入 GAS /exec URL");
-    return url;
+  function hydrateConfig() {
+    el.gasUrl.value = localStorage.getItem(LS.GAS) || DEFAULT_GAS;
+    el.tenant.value = localStorage.getItem(LS.TENANT) || DEFAULT_TENANT;
+    el.adminSecret.value = localStorage.getItem(LS.SECRET) || DEFAULT_ADMIN_SECRET;
   }
 
-  function setBusy(on) {
-    state.busy = !!on;
-    if (el.btnSearch) el.btnSearch.disabled = on;
-    if (el.btnPing) el.btnPing.disabled = on;
+  function saveConfig() {
+    localStorage.setItem(LS.GAS, val(el.gasUrl));
+    localStorage.setItem(LS.TENANT, val(el.tenant) || DEFAULT_TENANT);
+    localStorage.setItem(LS.SECRET, val(el.adminSecret));
+    setStatus("設定已儲存。", "ok");
   }
 
-  function setStatus(text) {
-    if (el.status) el.status.textContent = String(text || "");
+  function bindEvents() {
+    el.btnSaveConfig?.addEventListener("click", saveConfig);
+
+    el.btnPing?.addEventListener("click", async () => {
+      try {
+        setStatus("測試連線中…", "warn");
+        const res = await api("ping", {}, { admin: false });
+        setStatus(`連線成功\nv=${res.v}\nnow=${res.now}`, "ok");
+      } catch (err) {
+        setStatus(err.message || String(err), "err");
+      }
+    });
+
+    el.btnStats?.addEventListener("click", async () => {
+      try {
+        setStatus("讀取統計中…", "warn");
+        const res = await api("adminStats", {}, { admin: true });
+        setStatus(
+          [
+            `統計讀取成功`,
+            `tenant=${res.tenant || ""}`,
+            `month=${res.month || ""}`,
+            `total=${res.total ?? ""}`,
+            `month_new=${res.month_new ?? ""}`,
+            `active=${res.active ?? ""}`,
+            `expired=${res.expired ?? ""}`
+          ].join("\n"),
+          "ok"
+        );
+      } catch (err) {
+        setStatus(err.message || String(err), "err");
+      }
+    });
+
+    el.btnSearch?.addEventListener("click", doSearch);
+    el.btnSearchId?.addEventListener("click", doSearchId);
+
+    el.btnClearSearch?.addEventListener("click", () => {
+      el.searchInput.value = "";
+      state.items = [];
+      renderResults([]);
+      setStatus("已清空搜尋結果。", "ok");
+    });
+
+    el.searchInput?.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        doSearch();
+      }
+    });
+
+    el.btnCreateInvite?.addEventListener("click", createInvite);
+    el.btnQuickUpdate?.addEventListener("click", quickUpdate);
+    el.btnLoadCurrent?.addEventListener("click", reloadCurrent);
+    el.btnOpenCard?.addEventListener("click", openCurrentCard);
+    el.btnOpenShare?.addEventListener("click", openCurrentShare);
+
+    el.resultList?.addEventListener("click", onResultAction);
   }
 
-  function appendStatus(text) {
-    if (!el.status) return;
-    const prev = el.status.textContent || "";
-    el.status.textContent = prev ? `${prev}\n${text}` : text;
-  }
-
-  function renderEmpty(msg = "尚未查詢") {
-    if (!el.resultList) return;
-    el.resultList.innerHTML = `<div class="empty">${escapeHtml(msg)}</div>`;
-  }
-
-  function renderError(msg) {
-    if (!el.resultList) return;
-    el.resultList.innerHTML = `
-      <div class="empty" style="
-        border-style:solid;
-        border-color:rgba(251,113,133,.35);
-        color:#ffd7df;
-        background:rgba(251,113,133,.08);
-      ">❌ ${escapeHtml(msg)}</div>
-    `;
-  }
-
-  function renderItems(items) {
-    if (!el.resultList) return;
-
-    if (!items || !items.length) {
-      renderEmpty("查無資料");
+  async function doSearch() {
+    const q = val(el.searchInput);
+    if (!q) {
+      setStatus("請先輸入搜尋文字。", "warn");
       return;
     }
 
-    el.resultList.innerHTML = items.map(cardHtml).join("");
-    bindResultActions();
+    try {
+      setStatus(`搜尋中：${q}`, "warn");
+      const res = await api("adminSearch", { q }, { admin: true });
+      const items = Array.isArray(res.items) ? res.items : [];
+      state.items = items;
+      renderResults(items);
+      setStatus(`搜尋完成：${q}\n找到 ${items.length} 筆`, "ok");
+    } catch (err) {
+      renderResults([]);
+      setStatus(err.message || String(err), "err");
+    }
   }
 
-  function cardHtml(item) {
-    const id = safe(item.id);
-    const status = safe(item.status);
-    const tenant = safe(item.tenant);
-    const name = safe(item.name);
-    const unit = safe(item.unit);
-    const title = safe(item.title);
-    const phone = safe(item.phone);
-    const email = safe(item.email);
-    const lineOa = safe(item.line_oa);
-    const updatedAt = safe(item.updated_at);
-    const plan = safe(item.plan);
-    const color = safe(item.color || item.free_color);
-    const style = safe(item.style || item.free_style);
-    const paper = safe(item.paper || item.free_paper);
-    const premiumColor = safe(item.premium_color);
+  async function doSearchId() {
+    const id = val(el.searchInput);
+    if (!id) {
+      setStatus("請先輸入卡號，例如 TW0001。", "warn");
+      return;
+    }
+
+    try {
+      setStatus(`讀取卡片中：${id}`, "warn");
+      const res = await api("adminCard", { id }, { admin: true });
+      if (!res?.item) throw new Error("讀卡失敗：沒有 item");
+      state.currentItem = res.item;
+      fillCurrent(res.item);
+      renderResults([normalizeFromAdminCard(res)]);
+      setStatus(`已讀取卡片：${id}`, "ok");
+    } catch (err) {
+      setStatus(err.message || String(err), "err");
+    }
+  }
+
+  async function createInvite() {
+    try {
+      setStatus("建立邀請碼中…", "warn");
+      const plan = val(el.invitePlan) || "free";
+      const days = val(el.inviteDays) || "7";
+      const count = val(el.inviteCount) || "1";
+      const note = val(el.inviteNote);
+
+      const res = await api(
+        "adminCreateInvite",
+        { plan, days, count, note },
+        { admin: true }
+      );
+
+      const msg = [
+        `邀請碼建立成功`,
+        `invite=${res.invite_code || res.invite || ""}`,
+        `form_link=${res.form_link || ""}`,
+        `facade_link=${res.facade_link || ""}`
+      ].join("\n");
+
+      setStatus(msg, "ok");
+
+      const link = res.form_link || res.link || "";
+      if (link) {
+        await copyText(link);
+      }
+    } catch (err) {
+      setStatus(err.message || String(err), "err");
+    }
+  }
+
+  async function quickUpdate() {
+    const id = val(el.currentId);
+    const field = val(el.quickField);
+    const value = val(el.quickValue);
+
+    if (!id) {
+      setStatus("請先載入一筆卡片。", "warn");
+      return;
+    }
+
+    if (!field) {
+      setStatus("請先選擇欄位。", "warn");
+      return;
+    }
+
+    try {
+      setStatus(`更新中：${id} / ${field}`, "warn");
+      const res = await api(
+        "adminUpdate",
+        { id, field, value },
+        { admin: true }
+      );
+
+      setStatus(
+        [
+          `更新成功`,
+          `id=${res.id || id}`,
+          `field=${field}`,
+          `updated_at=${res.updated_at || ""}`
+        ].join("\n"),
+        "ok"
+      );
+
+      await loadCardToCurrent(id);
+    } catch (err) {
+      setStatus(err.message || String(err), "err");
+    }
+  }
+
+  async function reloadCurrent() {
+    const id = val(el.currentId);
+    if (!id) {
+      setStatus("目前沒有卡號可載入。", "warn");
+      return;
+    }
+    await loadCardToCurrent(id);
+  }
+
+  async function loadCardToCurrent(id) {
+    try {
+      setStatus(`重新載入中：${id}`, "warn");
+      const res = await api("adminCard", { id }, { admin: true });
+      if (!res?.item) throw new Error("重新載入失敗");
+      state.currentItem = res.item;
+      fillCurrent(res.item);
+      setStatus(`重新載入完成：${id}`, "ok");
+    } catch (err) {
+      setStatus(err.message || String(err), "err");
+    }
+  }
+
+  function openCurrentCard() {
+    if (!state.currentItem?.id) {
+      setStatus("請先載入卡片。", "warn");
+      return;
+    }
+    const url = buildFrontUrl(`index.html?id=${encodeURIComponent(state.currentItem.id)}`);
+    window.open(url, "_blank", "noopener");
+  }
+
+  function openCurrentShare() {
+    if (!state.currentItem?.id) {
+      setStatus("請先載入卡片。", "warn");
+      return;
+    }
+    const url = buildFrontUrl(`share.html?id=${encodeURIComponent(state.currentItem.id)}`);
+    window.open(url, "_blank", "noopener");
+  }
+
+  async function onResultAction(ev) {
+    const btn = ev.target.closest("button[data-act]");
+    if (!btn) return;
+
+    const act = btn.dataset.act;
+    const id = btn.dataset.id || "";
+    if (!id) return;
+
+    try {
+      switch (act) {
+        case "load":
+          await loadCardToCurrent(id);
+          break;
+
+        case "card":
+          window.open(buildFrontUrl(`index.html?id=${encodeURIComponent(id)}`), "_blank", "noopener");
+          break;
+
+        case "share":
+          window.open(buildFrontUrl(`share.html?id=${encodeURIComponent(id)}`), "_blank", "noopener");
+          break;
+
+        case "copy-id":
+          await copyText(id);
+          setStatus(`已複製 ID：${id}`, "ok");
+          break;
+
+        case "copy-update-link":
+          await copyUpdateLink(id);
+          break;
+
+        case "activate":
+          await setStatusAction(id, "active");
+          break;
+
+        case "inactivate":
+          await setStatusAction(id, "inactive");
+          break;
+
+        case "invite":
+          await createInviteForCard(id);
+          break;
+
+        default:
+          break;
+      }
+    } catch (err) {
+      setStatus(err.message || String(err), "err");
+    }
+  }
+
+  async function copyUpdateLink(id) {
+    setStatus(`產生更新連結中：${id}`, "warn");
+    const res = await api("adminMakeUpdateLink", { id }, { admin: true });
+    const link = res.link || "";
+    if (!link) throw new Error("沒有取得更新連結");
+    await copyText(link);
+    setStatus(`已複製更新連結：${id}\n${link}`, "ok");
+  }
+
+  async function setStatusAction(id, status) {
+    setStatus(`狀態更新中：${id} -> ${status}`, "warn");
+    const res = await api(
+      "adminSetStatus",
+      { id, status },
+      { admin: true }
+    );
+    setStatus(`狀態更新成功：${res.id}\nstatus=${res.status}\nat=${res.at}`, "ok");
+
+    if (state.currentItem?.id === id) {
+      await loadCardToCurrent(id);
+    }
+    if (val(el.searchInput)) {
+      await doSearch();
+    }
+  }
+
+  async function createInviteForCard(id) {
+    setStatus(`為後臺操作建立邀請碼中：${id}`, "warn");
+    const plan = val(el.invitePlan) || "free";
+    const days = val(el.inviteDays) || "7";
+    const count = "1";
+    const note = `from_card_${id}`;
+
+    const res = await api(
+      "adminCreateInvite",
+      { plan, days, count, note },
+      { admin: true }
+    );
+
+    const link = res.form_link || res.link || "";
+    if (link) await copyText(link);
+
+    setStatus(
+      [
+        `邀請碼建立成功`,
+        `for=${id}`,
+        `invite=${res.invite_code || ""}`,
+        `form_link=${res.form_link || ""}`
+      ].join("\n"),
+      "ok"
+    );
+  }
+
+  function fillCurrent(item) {
+    el.currentId.value = item?.id || "";
+    el.currentName.value = item?.name || "";
+    el.detailJson.value = JSON.stringify(item || {}, null, 2);
+
+    const quickField = val(el.quickField);
+    if (quickField && Object.prototype.hasOwnProperty.call(item || {}, quickField)) {
+      el.quickValue.value = item[quickField] == null ? "" : String(item[quickField]);
+    } else {
+      el.quickValue.value = "";
+    }
+  }
+
+  function normalizeFromAdminCard(res) {
+    const item = res?.item || {};
+    return {
+      id: item.id || "",
+      name: item.name || "",
+      unit: item.unit || "",
+      title: item.title || "",
+      phone: item.phone || "",
+      email: item.email || "",
+      status: item.status || "",
+      plan: item.plan || "",
+      updated_at: item.updated_at || "",
+      invite_code: item.invite_code || item.invite || "",
+      card_link: buildFrontUrl(`index.html?id=${encodeURIComponent(item.id || "")}`),
+      share_link: buildFrontUrl(`share.html?id=${encodeURIComponent(item.id || "")}`)
+    };
+  }
+
+  function renderResults(items) {
+    const list = Array.isArray(items) ? items : [];
+    el.resultCount.textContent = `${list.length} 筆`;
+
+    if (!list.length) {
+      el.resultList.innerHTML = `<div class="empty">查無資料，請重新搜尋。</div>`;
+      return;
+    }
+
+    el.resultList.innerHTML = list.map(renderCard).join("");
+  }
+
+  function renderCard(item) {
+    const id = esc(item.id || "");
+    const name = esc(item.name || "未命名");
+    const unit = esc(item.unit || "");
+    const title = esc(item.title || "");
+    const phone = esc(item.phone || "");
+    const email = esc(item.email || "");
+    const plan = esc(item.plan || "");
+    const updatedAt = esc(item.updated_at || "");
+    const inviteCode = esc(item.invite_code || "");
+    const status = String(item.status || "").trim().toLowerCase();
+    const statusClass = status === "active" ? "active" : "inactive";
 
     return `
-      <div class="resultCard">
-        <div class="resultHead">
-          <div class="resultId">${escapeHtml(id || "-")}</div>
-          <div class="badge">${escapeHtml(status || "-")}</div>
+      <article class="card">
+        <div class="card-top">
+          <div>
+            <h3 class="name">${name}</h3>
+            <div class="meta">
+              <span class="chip">${id}</span>
+              <span class="chip ${statusClass}">${esc(status || "unknown")}</span>
+              <span class="chip">${plan || "—"}</span>
+            </div>
+          </div>
         </div>
 
-        <div class="resultName">${escapeHtml(name || "未填姓名")}</div>
-        <div class="resultSub">
-          ${escapeHtml(unit || "-")}${title ? "｜" + escapeHtml(title) : ""}
+        <div class="data">
+          <div class="kv"><b>單位</b><span>${unit || "—"}</span></div>
+          <div class="kv"><b>職稱</b><span>${title || "—"}</span></div>
+          <div class="kv"><b>電話</b><span>${phone || "—"}</span></div>
+          <div class="kv"><b>Email</b><span>${email || "—"}</span></div>
+          <div class="kv"><b>更新時間</b><span>${updatedAt || "—"}</span></div>
+          <div class="kv"><b>邀請碼</b><span>${inviteCode || "—"}</span></div>
         </div>
 
-        <div class="gridInfo">
-          <div class="infoLine"><strong>tenant：</strong>${escapeHtml(tenant || "-")}</div>
-          <div class="infoLine"><strong>電話：</strong>${escapeHtml(phone || "-")}</div>
-          <div class="infoLine"><strong>Email：</strong>${escapeHtml(email || "-")}</div>
-          <div class="infoLine"><strong>LINE OA：</strong>${escapeHtml(lineOa || "-")}</div>
-          <div class="infoLine"><strong>方案：</strong>${escapeHtml(plan || "-")}</div>
-          <div class="infoLine"><strong>自由款：</strong>${escapeHtml([color, style, paper].filter(Boolean).join(" / ") || "-")}</div>
-          <div class="infoLine"><strong>精品色：</strong>${escapeHtml(premiumColor || "-")}</div>
-          <div class="infoLine"><strong>更新時間：</strong>${escapeHtml(updatedAt || "-")}</div>
+        <div class="card-actions">
+          <button data-act="load" data-id="${id}" class="primary">載入</button>
+          <button data-act="card" data-id="${id}">開名片</button>
+          <button data-act="share" data-id="${id}">開交付卡</button>
+          <button data-act="copy-id" data-id="${id}">複製ID</button>
+          <button data-act="copy-update-link" data-id="${id}">複製更新連結</button>
+          <button data-act="activate" data-id="${id}" class="ok">啟用</button>
+          <button data-act="inactivate" data-id="${id}" class="danger">停用</button>
+          <button data-act="invite" data-id="${id}" class="warn">建邀請碼</button>
         </div>
-
-        <div class="resultActions">
-          <button type="button" class="secondary hsc-copy-id" data-id="${escapeHtmlAttr(id)}">複製 ID</button>
-          <button type="button" class="hsc-open-card" data-id="${escapeHtmlAttr(id)}">打開成品</button>
-          <button type="button" class="ghost hsc-open-card-json" data-id="${escapeHtmlAttr(id)}">看 card JSON</button>
-        </div>
-      </div>
+      </article>
     `;
   }
 
-  function bindResultActions() {
-    if (!el.resultList) return;
+  async function api(action, params = {}, opts = {}) {
+    const admin = opts.admin !== false;
+    const gas = val(el.gasUrl) || DEFAULT_GAS;
+    const tenant = val(el.tenant) || DEFAULT_TENANT;
+    const adminSecret = val(el.adminSecret) || DEFAULT_ADMIN_SECRET;
 
-    el.resultList.querySelectorAll(".hsc-copy-id").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.id || "";
-        try {
-          await navigator.clipboard.writeText(id);
-          appendStatus(`已複製 ID：${id}`);
-        } catch {
-          appendStatus(`請手動複製 ID：${id}`);
-        }
-      });
+    if (!gas) throw new Error("GAS URL 未填。");
+
+    const qs = new URLSearchParams();
+    qs.set("action", action);
+
+    if (!("tenant" in params) && tenant) {
+      qs.set("tenant", tenant);
+    }
+
+    Object.keys(params || {}).forEach((k) => {
+      const v = params[k];
+      if (v == null) return;
+      qs.set(k, String(v));
     });
 
-    el.resultList.querySelectorAll(".hsc-open-card").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.id || "";
-        if (!id) return;
-        const url = `${guessBaseUrl()}?id=${encodeURIComponent(id)}`;
-        window.open(url, "_blank");
-      });
-    });
-
-    el.resultList.querySelectorAll(".hsc-open-card-json").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.id || "";
-        if (!id) return;
-        const url = `${gasUrl()}?action=card&id=${encodeURIComponent(id)}`;
-        window.open(url, "_blank");
-      });
-    });
-  }
-
-  async function onPing() {
-    if (state.busy) return;
-
-    try {
-      setBusy(true);
-      setStatus("正在測試 GAS 連線…");
-      const url = `${gasUrl()}?action=ping`;
-      const j = await fetchJson(url);
-      setStatus("✅ 連線成功\n" + pretty(j));
-    } catch (err) {
-      setStatus("❌ 連線失敗： " + String(err?.message || err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onSearch() {
-    if (state.busy) return;
-
-    const kw = String(el.keyword?.value || "").trim();
-    if (!kw) {
-      setStatus("請輸入搜尋關鍵字");
-      renderEmpty("請輸入 ID、姓名、電話、單位或職稱");
-      return;
+    if (admin) {
+      if (!adminSecret) throw new Error("ADMIN_SECRET 未填。");
+      qs.set("admin_secret", adminSecret);
     }
 
-    try {
-      setBusy(true);
-      setStatus(`搜尋中：${kw}`);
-
-      // 1) 如果像 TW0001，先直接用 card 精準查
-      if (looksLikeCardId(kw)) {
-        appendStatus("先用 action=card 精準查詢…");
-        const exact = await tryExactCardById(kw);
-        if (exact) {
-          renderItems([exact]);
-          appendStatus("✅ 已用 card 精準找到");
-          return;
-        }
-        appendStatus("card 精準查詢沒找到，改試關鍵字搜尋…");
-      }
-
-      // 2) 關鍵字搜尋，多 action 依序嘗試
-      const items = await trySearchActions(kw);
-
-      if (items.length) {
-        renderItems(items);
-        appendStatus(`✅ 找到 ${items.length} 筆`);
-      } else {
-        renderEmpty(`查無資料：${kw}`);
-        appendStatus("查無資料");
-      }
-    } catch (err) {
-      renderError(String(err?.message || err));
-      appendStatus("搜尋失敗");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function tryExactCardById(id) {
-    const url = `${gasUrl()}?action=card&id=${encodeURIComponent(id)}`;
-    try {
-      const j = await fetchJson(url);
-      if (j?.ok && j?.item && safe(j.item.id)) return normalizeItem(j.item);
-      return null;
-    } catch {
-      return null;
-    }
-  }
-
-  async function trySearchActions(keyword) {
-    const actions = ["adminSearch", "adminFind", "searchCards", "findCards"];
-    const unique = new Map();
-
-    for (const action of actions) {
-      appendStatus(`嘗試 ${action} …`);
-
-      const candidates = [
-        `${gasUrl()}?action=${action}&q=${encodeURIComponent(keyword)}`,
-        `${gasUrl()}?action=${action}&keyword=${encodeURIComponent(keyword)}`,
-        `${gasUrl()}?action=${action}&query=${encodeURIComponent(keyword)}`,
-        `${gasUrl()}?action=${action}&id=${encodeURIComponent(keyword)}`
-      ];
-
-      for (const url of candidates) {
-        try {
-          const j = await fetchJson(url);
-          const items = extractItems(j);
-
-          if (items.length) {
-            for (const raw of items) {
-              const item = normalizeItem(raw);
-              const key = safe(item.id) || JSON.stringify(item);
-              if (!unique.has(key)) unique.set(key, item);
-            }
-          }
-        } catch {
-          // 忽略單次錯誤，繼續試下一個
-        }
-      }
-
-      if (unique.size) break;
-    }
-
-    // 3) 保底：若是 TWxxxx 但前面沒抓到，再補一次 card
-    if (!unique.size && looksLikeCardId(keyword)) {
-      const exact = await tryExactCardById(keyword);
-      if (exact) unique.set(exact.id, exact);
-    }
-
-    return Array.from(unique.values());
-  }
-
-  function extractItems(j) {
-    if (!j || typeof j !== "object") return [];
-
-    if (Array.isArray(j.items)) return j.items;
-    if (Array.isArray(j.list)) return j.list;
-    if (Array.isArray(j.rows)) return j.rows;
-    if (Array.isArray(j.data)) return j.data;
-
-    if (j.ok && j.item && typeof j.item === "object") return [j.item];
-    if (j.ok && j.data && typeof j.data === "object" && !Array.isArray(j.data)) return [j.data];
-
-    return [];
-  }
-
-  function normalizeItem(raw) {
-    const item = raw && typeof raw === "object" ? { ...raw } : {};
-
-    if (!item.id && item.card_id) item.id = item.card_id;
-    if (!item.name && item.姓名) item.name = item.姓名;
-    if (!item.phone && item.電話) item.phone = item.電話;
-    if (!item.unit && item.單位) item.unit = item.單位;
-    if (!item.title && item.職稱) item.title = item.職稱;
-    if (!item.tenant && item.brand) item.tenant = item.brand;
-
-    return item;
-  }
-
-  function looksLikeCardId(v) {
-    return /^TW\d+$/i.test(String(v || "").trim());
-  }
-
-  async function fetchJson(url) {
-    const r = await fetch(url, { method: "GET", cache: "no-store" });
-    const text = await r.text();
+    const url = `${gas}?${qs.toString()}`;
+    const res = await fetch(url, { method: "GET", cache: "no-store" });
+    const text = await res.text();
 
     let json;
     try {
       json = JSON.parse(text);
-    } catch {
-      throw new Error(`回傳不是 JSON：${text.slice(0, 200)}`);
+    } catch (err) {
+      throw new Error(`JSON 解析失敗\n${text.slice(0, 300)}`);
+    }
+
+    if (!json.ok) {
+      throw new Error(json.error || "API 失敗");
     }
 
     return json;
   }
 
-  function guessBaseUrl() {
-    return DEFAULT_BASE_URL;
+  function setStatus(msg, type = "") {
+    el.statusBox.textContent = String(msg || "");
+    el.statusBox.className = "statusbox";
+    if (type === "ok") el.statusBox.classList.add("ok");
+    else if (type === "warn") el.statusBox.classList.add("warn");
+    else if (type === "err") el.statusBox.classList.add("err");
   }
 
-  function safe(v) {
-    return String(v || "").trim();
-  }
-
-  function pretty(v) {
+  function buildFrontUrl(path) {
+    const gas = val(el.gasUrl) || DEFAULT_GAS;
     try {
-      return JSON.stringify(v, null, 2);
-    } catch {
-      return String(v);
+      const u = new URL(gas);
+      const maybeBase = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+      return new URL(path, maybeBase).toString();
+    } catch (_) {
+      return `https://angel0973180707.github.io/Happiness-Smart-Card-System/${path}`;
     }
   }
 
-  function escapeHtml(s) {
-    return String(s ?? "")
+  function val(node) {
+    return String(node?.value || "").trim();
+  }
+
+  async function copyText(text) {
+    const t = String(text || "");
+    if (!t) return;
+    try {
+      await navigator.clipboard.writeText(t);
+    } catch (_) {
+      const ta = document.createElement("textarea");
+      ta.value = t;
+      ta.setAttribute("readonly", "readonly");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+  }
+
+  function esc(v) {
+    return String(v == null ? "" : v)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
@@ -380,7 +583,4 @@
       .replaceAll("'", "&#39;");
   }
 
-  function escapeHtmlAttr(s) {
-    return escapeHtml(s).replaceAll("`", "&#96;");
-  }
 })();
