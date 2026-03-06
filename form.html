@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v521.9</title>
+  <title>天使幸福智慧名片｜資料填寫 v522.6</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
@@ -149,7 +149,7 @@
 
     .stepTrack{
       display:grid;
-      grid-template-columns:repeat(5, minmax(0,1fr));
+      grid-template-columns:repeat(7, minmax(0,1fr));
       gap:8px;
       margin-top:12px;
     }
@@ -159,7 +159,7 @@
       border-radius:16px;
       background:rgba(255,255,255,.03);
       padding:10px 8px;
-      min-height:72px;
+      min-height:78px;
       display:flex;
       flex-direction:column;
       justify-content:center;
@@ -264,7 +264,7 @@
       margin-left:6px;
     }
 
-    input, textarea{
+    input, textarea, select{
       width:100%;
       background:rgba(255,255,255,.04);
       color:var(--text);
@@ -519,6 +519,27 @@
       background:rgba(255,255,255,.02);
     }
 
+    .status.ok{
+      border-style:solid;
+      border-color:rgba(110,231,183,.28);
+      background:rgba(110,231,183,.08);
+      color:#defced;
+    }
+
+    .status.bad{
+      border-style:solid;
+      border-color:rgba(251,113,133,.28);
+      background:rgba(251,113,133,.08);
+      color:#ffd9e0;
+    }
+
+    .status.warn{
+      border-style:solid;
+      border-color:rgba(251,191,36,.28);
+      background:rgba(251,191,36,.08);
+      color:#fff1c2;
+    }
+
     .summary{
       display:grid;
       grid-template-columns:1fr;
@@ -690,6 +711,52 @@
       margin-top:12px;
     }
 
+    .cropArrowGrid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(56px, 64px));
+      gap:8px;
+      justify-content:center;
+      margin-top:12px;
+    }
+
+    .cropArrowGrid .spacer{
+      visibility:hidden;
+    }
+
+    .zoomPanel{
+      margin-top:12px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      background:rgba(255,255,255,.03);
+    }
+
+    .zoomPanel label{
+      margin:0 0 8px;
+      color:var(--text);
+    }
+
+    .rangeRow{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .rangeRow input[type="range"]{
+      min-height:auto;
+      padding:0;
+      border:none;
+      background:transparent;
+    }
+
+    .rangeValue{
+      min-width:54px;
+      text-align:right;
+      color:var(--muted);
+      font-size:13px;
+      font-weight:900;
+    }
+
     .cropMeta{
       margin-top:10px;
       color:var(--muted);
@@ -698,6 +765,12 @@
     }
 
     .hide{ display:none !important; }
+
+    @media(max-width:900px){
+      .stepTrack{
+        grid-template-columns:repeat(4, minmax(0,1fr));
+      }
+    }
 
     @media(max-width:760px){
       .top{
@@ -749,6 +822,9 @@
       button{
         width:100%;
       }
+      .cropArrowGrid{
+        grid-template-columns:repeat(3, 1fr);
+      }
     }
   </style>
 </head>
@@ -758,12 +834,12 @@
       <div class="brand">
         <h1>天使幸福智慧名片｜資料填寫</h1>
         <p id="pageIntro">
-          固定分頁流程。請一步一步完成。圖片可先調整位置，再壓縮上傳，送出時會自動建立或更新你的智慧名片。
+          一步一頁慢慢填就好。先選方案，再選樣式，接著填資料、調整照片，最後確認送出。
         </p>
       </div>
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v521.9</span></div>
+        <div>版本：<span class="kbd" id="ver">v522.6</span></div>
         <div>品牌：<span class="kbd" id="tenantText">-</span></div>
         <div>名片 ID：<span class="kbd" id="idText">-</span></div>
         <div>invite：<span class="kbd" id="inviteText">-</span></div>
@@ -774,31 +850,42 @@
       <div class="flow-head">
         <div>
           <div class="flow-title">填寫流程</div>
-          <div class="flow-sub" id="flowSub">目前在第 1 步，共 5 步。</div>
+          <div class="flow-sub" id="flowSub">目前在第 1 步，共 7 步。</div>
         </div>
-        <div class="pageBadge" id="pageBadge">第 1 / 5 步</div>
+        <div class="pageBadge" id="pageBadge">第 1 / 7 步</div>
       </div>
 
       <div class="stepTrack" id="stepTrack">
-        <div class="stepDot" data-step="0"><div class="num">1</div><div class="txt">方案與外觀</div></div>
-        <div class="stepDot" data-step="1"><div class="num">2</div><div class="txt">基本資料</div></div>
-        <div class="stepDot" data-step="2"><div class="num">3</div><div class="txt">聯絡方式</div></div>
-        <div class="stepDot" data-step="3"><div class="num">4</div><div class="txt">影片社群與圖片</div></div>
-        <div class="stepDot" data-step="4"><div class="num">5</div><div class="txt">確認與送出</div></div>
+        <div class="stepDot" data-step="0"><div class="num">1</div><div class="txt">方案</div></div>
+        <div class="stepDot" data-step="1"><div class="num">2</div><div class="txt">樣式</div></div>
+        <div class="stepDot" data-step="2"><div class="num">3</div><div class="txt">基本資料</div></div>
+        <div class="stepDot" data-step="3"><div class="num">4</div><div class="txt">聯絡資料</div></div>
+        <div class="stepDot" data-step="4"><div class="num">5</div><div class="txt">照片</div></div>
+        <div class="stepDot" data-step="5"><div class="num">6</div><div class="txt">影音 / 社群</div></div>
+        <div class="stepDot" data-step="6"><div class="num">7</div><div class="txt">確認送出</div></div>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="formCard">
       <section class="page active" data-page="0">
-        <h2>1. 方案與外觀</h2>
-        <div class="subnote">請先選方案，後面的選項會跟著變化。</div>
+        <h2>1. 方案</h2>
+        <div class="subnote">先選方案，後面會自動切換對應設定。</div>
 
         <div class="field">
           <label>方案<span class="req">＊必選</span></label>
           <div class="chips" id="planChips"></div>
         </div>
 
-        <div class="sectionGap field">
+        <div class="hint" id="planHint">
+          自由搭配：最多 2 張照片｜精品設計：最多 5 張照片
+        </div>
+      </section>
+
+      <section class="page" data-page="1">
+        <h2>2. 樣式</h2>
+        <div class="subnote">自由搭配與精品設計會顯示不同選項。</div>
+
+        <div class="field">
           <label>顏色（自由搭配）</label>
           <div class="chips" id="colorChips"></div>
         </div>
@@ -819,13 +906,13 @@
           <div class="chips" id="premiumChips"></div>
         </div>
 
-        <div class="hint" id="planHint">
-          自由搭配：最多 2 張照片｜精品設計：最多 5 張照片
+        <div class="hint" id="styleHint">
+          請依你選的方案完成樣式設定。
         </div>
       </section>
 
-      <section class="page" data-page="1">
-        <h2>2. 基本資料</h2>
+      <section class="page" data-page="2">
+        <h2>3. 基本資料</h2>
 
         <div class="row two">
           <div class="field">
@@ -866,8 +953,8 @@
         </div>
       </section>
 
-      <section class="page" data-page="2">
-        <h2>3. 聯絡方式</h2>
+      <section class="page" data-page="3">
+        <h2>4. 聯絡資料</h2>
 
         <div class="row two">
           <div class="field">
@@ -903,9 +990,22 @@
         </div>
       </section>
 
-      <section class="page" data-page="3">
-        <h2>4. 影片 / 社群 / 圖片</h2>
-        <div class="subnote">圖片上傳後可先調整位置，再套用進預覽。</div>
+      <section class="page" data-page="4">
+        <h2>5. 照片</h2>
+        <div class="subnote">這一頁只處理圖片。選圖後可左右、上下、縮放調整，再套用。</div>
+
+        <div class="sectionGap">
+          <label>圖片上傳</label>
+          <div class="uploadGrid" id="uploadGrid"></div>
+          <div class="hint" style="margin-top:10px;">
+            自由搭配最多 2 張照片｜精品設計最多 5 張照片
+          </div>
+        </div>
+      </section>
+
+      <section class="page" data-page="5">
+        <h2>6. 影音 / 社群</h2>
+        <div class="subnote">這一頁放影片、社群、CTA 連結。</div>
 
         <div class="row two">
           <div class="field">
@@ -954,19 +1054,11 @@
             <input id="cta_link" placeholder="https://..." />
           </div>
         </div>
-
-        <div class="sectionGap">
-          <label>圖片上傳</label>
-          <div class="uploadGrid" id="uploadGrid"></div>
-          <div class="hint" style="margin-top:10px;">
-            自由搭配最多 2 張照片｜精品設計最多 5 張照片
-          </div>
-        </div>
       </section>
 
-      <section class="page" data-page="4">
-        <h2>5. 確認與送出</h2>
-        <div class="subnote">確認資料後再送出。系統會自動防止重複建立與重複送出。</div>
+      <section class="page" data-page="6">
+        <h2>7. 確認與送出</h2>
+        <div class="subnote">確認資料後再送出。送出完成後，畫面會停在這裡，不會跳回頁首。</div>
 
         <div class="summary" id="summaryBox"></div>
 
@@ -998,7 +1090,7 @@
     <div class="pageNav">
       <div class="btns">
         <div class="pageNavLeft">
-          <span class="pageBadge" id="pageBadgeBottom">第 1 / 5 步</span>
+          <span class="pageBadge" id="pageBadgeBottom">第 1 / 7 步</span>
           <button id="btnPrev" class="secondary" type="button">上一步</button>
         </div>
         <div class="pageNavRight">
@@ -1016,7 +1108,7 @@
       <div class="cropHead">
         <div>
           <h3 id="cropTitle">調整圖片位置</h3>
-          <p id="cropDesc">可拖移位置，並用按鈕放大、縮小、重設後再套用。</p>
+          <p id="cropDesc">可拖移位置，也可直接用方向鍵微調，再用滑桿縮放後套用。</p>
         </div>
       </div>
 
@@ -1025,10 +1117,31 @@
           <canvas id="cropCanvas"></canvas>
         </div>
 
-        <div class="cropTools">
-          <button type="button" class="secondary" id="cropZoomOut">縮小</button>
-          <button type="button" class="secondary" id="cropZoomIn">放大</button>
+        <div class="cropArrowGrid">
+          <span class="spacer"></span>
+          <button type="button" class="secondary" id="cropMoveUp">上</button>
+          <span class="spacer"></span>
+
+          <button type="button" class="secondary" id="cropMoveLeft">左</button>
           <button type="button" class="ghost" id="cropReset">重設</button>
+          <button type="button" class="secondary" id="cropMoveRight">右</button>
+
+          <span class="spacer"></span>
+          <button type="button" class="secondary" id="cropMoveDown">下</button>
+          <span class="spacer"></span>
+        </div>
+
+        <div class="zoomPanel">
+          <label for="cropZoomRange">縮放</label>
+          <div class="rangeRow">
+            <button type="button" class="secondary" id="cropZoomOut">縮小</button>
+            <input type="range" id="cropZoomRange" min="100" max="400" step="1" value="100" />
+            <button type="button" class="secondary" id="cropZoomIn">放大</button>
+            <span class="rangeValue" id="cropZoomValue">100%</span>
+          </div>
+        </div>
+
+        <div class="cropTools">
           <button type="button" class="secondary" id="cropCancel">取消</button>
           <button type="button" id="cropApply">套用</button>
         </div>
@@ -1040,6 +1153,6 @@
     </div>
   </div>
 
-  <script type="module" src="./form.js?v=5219"></script>
+  <script type="module" src="./form.js?v=5226"></script>
 </body>
 </html>
