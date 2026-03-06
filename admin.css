@@ -1,8 +1,3 @@
-/* ==========================================
- * /admin.css — v518 (COMPLETE OVERWRITE)
- * Match: admin.html v518 (simple, direct, mobile-first)
- * ========================================== */
-
 :root{
   --bg:#0b1220;
   --card:rgba(255,255,255,.06);
@@ -10,14 +5,12 @@
   --text:rgba(255,255,255,.92);
   --muted:rgba(255,255,255,.68);
   --accent:#7bdcff;
+  --ok:#8cffc1;
+  --err:#ff9aa2;
 
   --radius:14px;
   --radius2:12px;
-
-  --pad:14px;
-  --pad2:12px;
-
-  --shadow: 0 14px 44px rgba(0,0,0,.32);
+  --shadow:0 14px 44px rgba(0,0,0,.32);
 }
 
 *{ box-sizing:border-box; }
@@ -32,7 +25,6 @@ body{
   color:var(--text);
 }
 
-/* ---- layout ---- */
 .wrap{
   max-width:980px;
   margin:0 auto;
@@ -57,28 +49,26 @@ body{
   font-size:12px;
   color:var(--muted);
   margin-top:6px;
-  line-height:1.5;
+  line-height:1.6;
 }
 
 .grid{
   display:grid;
-  grid-template-columns: 1fr;
+  grid-template-columns:1fr;
   gap:12px;
 }
-@media (min-width: 860px){
-  .grid{ grid-template-columns: 1.25fr .75fr; }
+@media(min-width:860px){
+  .grid{ grid-template-columns:1.2fr .8fr; }
 }
 
-/* ---- cards ---- */
 .card{
   background:var(--card);
   border:1px solid var(--line);
   border-radius:var(--radius);
-  padding:var(--pad);
-  box-shadow: var(--shadow);
+  padding:14px;
+  box-shadow:var(--shadow);
 }
 
-/* ---- forms ---- */
 label{
   font-size:12px;
   color:var(--muted);
@@ -107,7 +97,11 @@ textarea{
   resize:vertical;
 }
 
-/* ---- buttons ---- */
+input:focus, textarea:focus{
+  border-color:rgba(123,220,255,.35);
+  box-shadow:0 0 0 3px rgba(123,220,255,.10);
+}
+
 .row{
   display:flex;
   gap:10px;
@@ -124,7 +118,7 @@ textarea{
   cursor:pointer;
   font-weight:800;
   letter-spacing:.2px;
-  -webkit-tap-highlight-color: transparent;
+  -webkit-tap-highlight-color:transparent;
   user-select:none;
 }
 
@@ -134,13 +128,8 @@ textarea{
 }
 
 .btn:active{ transform:translateY(1px); }
+.btn[disabled]{ opacity:.55; cursor:not-allowed; }
 
-.btn[disabled]{
-  opacity:.55;
-  cursor:not-allowed;
-}
-
-/* ---- pills / monospace ---- */
 .pill{
   display:inline-flex;
   align-items:center;
@@ -154,37 +143,31 @@ textarea{
 }
 
 .mono{
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 
-.ok{ color:#8cffc1; }
-.err{ color:#ff9aa2; }
-
-/* ---- stats ---- */
 .statGrid{
   display:grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns:repeat(2,1fr);
   gap:10px;
   margin-top:10px;
 }
 @media(min-width:560px){
-  .statGrid{ grid-template-columns: repeat(4, 1fr); }
+  .statGrid{ grid-template-columns:repeat(4,1fr); }
 }
 
 .stat{
   border:1px solid var(--line);
   background:rgba(0,0,0,.18);
-  border-radius:var(--radius2);
+  border-radius:12px;
   padding:10px 12px;
   min-height:62px;
 }
-
 .stat .k{
   font-size:12px;
   color:var(--muted);
   font-weight:900;
 }
-
 .stat .v{
   margin-top:6px;
   font-size:18px;
@@ -192,7 +175,6 @@ textarea{
   letter-spacing:.2px;
 }
 
-/* ---- list ---- */
 .list{
   margin-top:10px;
   display:flex;
@@ -203,46 +185,95 @@ textarea{
 .item{
   padding:10px 12px;
   border:1px solid var(--line);
-  border-radius:var(--radius2);
+  border-radius:12px;
   background:rgba(0,0,0,.18);
 }
 
 .item strong{
   display:block;
   font-size:14px;
-  letter-spacing:.1px;
 }
-
 .item small{
   display:block;
   color:var(--muted);
   margin-top:4px;
   line-height:1.45;
 }
+.item .actions{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
 
-/* make the "選這筆" button look consistent inside item */
-.item .btn{
-  padding:9px 12px;
+.metaBox{
+  border:1px solid var(--line);
   border-radius:12px;
+  background:rgba(0,0,0,.18);
+  padding:12px;
+}
+
+.metaHead{
+  font-size:13px;
+  font-weight:900;
+  margin-bottom:10px;
+  letter-spacing:.3px;
+}
+
+.metaGrid{
+  display:grid;
+  grid-template-columns:84px 1fr;
+  gap:8px 10px;
+}
+
+.metaGrid .k{
+  color:var(--muted);
+  font-size:12px;
   font-weight:900;
 }
-
-/* ---- spacing helpers (admin.html uses inline height blocks; keep safe) ---- */
-hr{
-  border:0;
-  border-top:1px solid var(--line);
-  margin:12px 0;
+.metaGrid .v{
+  color:var(--text);
+  font-size:13px;
+  font-weight:800;
+  word-break:break-all;
 }
 
-/* ---- focus ---- */
-input:focus, textarea:focus{
-  border-color: rgba(123,220,255,.35);
-  box-shadow: 0 0 0 3px rgba(123,220,255,.10);
+.wxState{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.05);
+  font-weight:900;
+  font-size:12px;
+  color:var(--text);
 }
 
-/* ---- small screens polish ---- */
-@media (max-width: 420px){
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:20px;
+  transform:translateX(-50%);
+  padding:10px 14px;
+  border-radius:999px;
+  background:rgba(0,0,0,.68);
+  border:1px solid rgba(255,255,255,.14);
+  color:rgba(255,255,255,.94);
+  font-weight:900;
+  font-size:12px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease;
+  z-index:9999;
+}
+.toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(-4px);
+}
+
+@media (max-width:420px){
   .wrap{ padding:14px; }
   .h1{ font-size:18px; }
-  .btn{ width:auto; }
 }
