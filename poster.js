@@ -17,7 +17,7 @@ const servicesEl = document.getElementById("services");
 const expWrapEl = document.getElementById("expWrap");
 const expEl = document.getElementById("exp");
 
-const qrCanvasEl = document.getElementById("qrcode");
+const qrWrapEl = document.getElementById("qrcode");
 const openCardEl = document.getElementById("openCard");
 const copyLinkEl = document.getElementById("copyLink");
 const downloadEl = document.getElementById("download");
@@ -71,8 +71,7 @@ function firstTwoLines(text) {
     .filter(Boolean)
     .slice(0, 2);
 
-  if (lines.length > 0) return lines.join("\n");
-
+  if (lines.length) return lines.join("\n");
   return t;
 }
 
@@ -106,15 +105,35 @@ function bindAvatar(url) {
 }
 
 async function renderQrCode(url) {
-  if (!qrCanvasEl) return;
+  if (!qrWrapEl) return;
+
+  qrWrapEl.innerHTML = "";
 
   try {
-    await QRCode.toCanvas(qrCanvasEl, url, {
-      width: 300,
-      margin: 2
-    });
+    if (typeof QRCode !== "undefined" && typeof QRCode.toCanvas === "function") {
+      const canvas = document.createElement("canvas");
+      qrWrapEl.appendChild(canvas);
+      await QRCode.toCanvas(canvas, url, {
+        width: 300,
+        margin: 2
+      });
+      return;
+    }
+
+    if (typeof QRCode !== "undefined") {
+      new QRCode(qrWrapEl, {
+        text: url,
+        width: 200,
+        height: 200
+      });
+      return;
+    }
+
+    qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 載入失敗</div>`;
+    setStatus("QR code 載入失敗");
   } catch (err) {
     console.error("QRCode render error:", err);
+    qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
     setStatus("QR code 生成失敗");
   }
 }
