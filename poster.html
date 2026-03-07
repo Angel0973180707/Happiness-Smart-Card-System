@@ -1,126 +1,430 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>智慧名片交付卡</title>
+  <meta name="theme-color" content="#f6f1e8">
 
-<meta charset="utf-8">
+  <style>
+    :root{
+      --bg:#f6f1e8;
+      --card:#ffffff;
+      --ink:#171717;
+      --muted:#6d675f;
+      --line:#e9e1d4;
+      --primary:#1f7a66;
+      --primary-dark:#176452;
+      --soft:#f8f5ef;
+      --btn-soft:#efebe4;
+      --accent:#ff9800;
+      --shadow:0 18px 50px rgba(0,0,0,.10);
+      --radius-xl:28px;
+      --radius-lg:22px;
+      --radius-md:18px;
+    }
 
-<meta name="viewport"
-content="width=device-width,initial-scale=1">
+    *{ box-sizing:border-box; }
 
-<title>智慧名片交付卡</title>
+    html,body{
+      margin:0;
+      padding:0;
+      background:
+        radial-gradient(1200px 700px at 50% -15%, rgba(255,255,255,.88), transparent 58%),
+        linear-gradient(180deg,#f7f3eb 0%, #f3eee5 100%);
+      color:var(--ink);
+      font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+    }
 
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    body{
+      min-height:100vh;
+      padding:20px 16px 28px;
+    }
 
-<style>
+    .wrap{
+      max-width:760px;
+      margin:0 auto;
+    }
 
-body{
-margin:0;
-font-family:-apple-system,BlinkMacSystemFont,"Segoe UI";
-background:#f5f6fa;
-display:flex;
-justify-content:center;
-}
+    .hero{
+      background:var(--card);
+      border-radius:32px;
+      box-shadow:var(--shadow);
+      padding:28px 20px 24px;
+      position:relative;
+      overflow:hidden;
+    }
 
-.wrap{
-width:420px;
-max-width:100%;
-padding:20px;
-}
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:-80px auto auto -60px;
+      width:220px;
+      height:220px;
+      border-radius:999px;
+      background:radial-gradient(circle at center, rgba(31,122,102,.10), transparent 68%);
+      pointer-events:none;
+    }
 
-.card{
-background:white;
-border-radius:18px;
-padding:24px;
-text-align:center;
-box-shadow:0 20px 50px rgba(0,0,0,.08);
-}
+    .hero::after{
+      content:"";
+      position:absolute;
+      inset:auto -70px -70px auto;
+      width:220px;
+      height:220px;
+      border-radius:999px;
+      background:radial-gradient(circle at center, rgba(255,152,0,.10), transparent 68%);
+      pointer-events:none;
+    }
 
-.avatar{
-width:120px;
-height:120px;
-border-radius:60px;
-object-fit:cover;
-margin-bottom:12px;
-}
+    .brand-top{
+      position:relative;
+      z-index:1;
+      text-align:center;
+      margin-bottom:8px;
+    }
 
-.name{
-font-size:26px;
-font-weight:700;
-}
+    .brand-chip{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:34px;
+      padding:8px 16px;
+      border-radius:999px;
+      background:#f2f7f5;
+      color:var(--primary);
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.4px;
+    }
 
-.unit{
-color:#666;
-margin-top:4px;
-margin-bottom:18px;
-}
+    .main-card{
+      position:relative;
+      z-index:1;
+      margin-top:14px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(249,247,243,.98) 100%);
+      border:1px solid #f0e8db;
+      border-radius:26px;
+      padding:26px 18px 22px;
+      text-align:center;
+      box-shadow:0 10px 28px rgba(0,0,0,.04);
+    }
 
-.btn{
-display:block;
-width:100%;
-padding:14px;
-border-radius:12px;
-margin-top:10px;
-font-size:16px;
-border:none;
-cursor:pointer;
-}
+    .avatar-shell{
+      width:124px;
+      height:124px;
+      margin:0 auto 16px;
+      border-radius:999px;
+      padding:5px;
+      background:
+        linear-gradient(135deg, rgba(31,122,102,.18), rgba(255,152,0,.18));
+      box-shadow:
+        0 10px 24px rgba(0,0,0,.08),
+        inset 0 1px 0 rgba(255,255,255,.9);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
 
-.btn1{
-background:#111;
-color:white;
-}
+    .avatar{
+      width:114px;
+      height:114px;
+      border-radius:999px;
+      object-fit:cover;
+      display:block;
+      background:#ece7df;
+      border:2px solid rgba(255,255,255,.9);
+    }
 
-.btn2{
-background:#ddd;
-}
+    .name{
+      margin:0;
+      font-size:34px;
+      line-height:1.1;
+      font-weight:900;
+      letter-spacing:.4px;
+      word-break:keep-all;
+    }
 
-.btn3{
-background:#ff8a00;
-color:white;
-}
+    .unit{
+      margin-top:10px;
+      font-size:17px;
+      line-height:1.5;
+      color:var(--muted);
+      font-weight:700;
+      word-break:keep-all;
+    }
 
-.note{
-margin-top:16px;
-font-size:14px;
-color:#777;
-}
+    .title{
+      margin-top:10px;
+      font-size:24px;
+      line-height:1.35;
+      font-weight:900;
+      color:#1f1f1f;
+      word-break:keep-all;
+    }
 
-</style>
+    .slogan{
+      margin-top:18px;
+      font-size:17px;
+      line-height:1.65;
+      font-weight:700;
+      color:#2e2e2e;
+      white-space:pre-wrap;
+    }
+
+    .meta{
+      margin-top:16px;
+      display:grid;
+      gap:10px;
+    }
+
+    .meta-block{
+      padding:0 8px;
+    }
+
+    .meta-text{
+      font-size:17px;
+      line-height:1.62;
+      color:#2f2f2f;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .divider{
+      width:68px;
+      height:3px;
+      margin:22px auto 0;
+      border-radius:999px;
+      background:linear-gradient(90deg, transparent 0%, #ded5c8 20%, #ded5c8 80%, transparent 100%);
+    }
+
+    .qr-zone{
+      margin-top:22px;
+      text-align:center;
+    }
+
+    #qrcode{
+      width:224px;
+      height:224px;
+      margin:0 auto 12px;
+      background:#fff;
+      border-radius:22px;
+      border:1px solid #efe7da;
+      box-shadow:0 10px 24px rgba(0,0,0,.05);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+
+    #qrcode canvas,
+    #qrcode img{
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit:contain;
+    }
+
+    .qr-note{
+      font-size:15px;
+      line-height:1.5;
+      color:#4f4b45;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+
+    .section{
+      margin-top:18px;
+      background:rgba(255,255,255,.72);
+      border:1px solid var(--line);
+      border-radius:24px;
+      padding:14px;
+      box-shadow:0 8px 20px rgba(0,0,0,.03);
+      backdrop-filter: blur(6px);
+    }
+
+    .section-title{
+      margin:0 0 10px;
+      padding:0 4px;
+      font-size:14px;
+      color:#72675d;
+      font-weight:900;
+      letter-spacing:.3px;
+    }
+
+    .btn{
+      width:100%;
+      display:block;
+      border:none;
+      border-radius:20px;
+      padding:17px 16px;
+      text-align:center;
+      text-decoration:none;
+      font-size:20px;
+      line-height:1.2;
+      font-weight:900;
+      cursor:pointer;
+      transition:transform .14s ease, opacity .14s ease, box-shadow .14s ease;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    .btn:active{
+      transform:scale(.992);
+    }
+
+    .btn + .btn,
+    .btn + a,
+    a + .btn,
+    a + a{
+      margin-top:10px;
+    }
+
+    .btn-primary{
+      color:#fff;
+      background:linear-gradient(180deg, #23856f 0%, #1b6f5d 100%);
+      box-shadow:0 14px 28px rgba(31,122,102,.22);
+    }
+
+    .btn-secondary{
+      color:#2a2a2a;
+      background:#f2eee7;
+      border:1px solid #e4dbcf;
+      box-shadow:0 6px 16px rgba(0,0,0,.04);
+    }
+
+    .btn-accent{
+      color:#fff;
+      background:linear-gradient(180deg, #ffac26 0%, #ff9100 100%);
+      box-shadow:0 14px 28px rgba(255,145,0,.24);
+    }
+
+    .desc{
+      margin:14px 4px 0;
+      font-size:15px;
+      line-height:1.65;
+      color:#7a7269;
+      text-align:center;
+      font-weight:700;
+    }
+
+    .status{
+      min-height:22px;
+      margin-top:12px;
+      text-align:center;
+      font-size:14px;
+      color:#7a7a7a;
+      font-weight:700;
+    }
+
+    .hidden-capture{
+      position:fixed;
+      left:-99999px;
+      top:-99999px;
+      width:760px;
+      opacity:0;
+      pointer-events:none;
+    }
+
+    @media (max-width:640px){
+      body{
+        padding:18px 14px 24px;
+      }
+
+      .hero{
+        border-radius:28px;
+        padding:24px 16px 20px;
+      }
+
+      .main-card{
+        border-radius:24px;
+        padding:22px 16px 20px;
+      }
+
+      .avatar-shell{
+        width:116px;
+        height:116px;
+      }
+
+      .avatar{
+        width:106px;
+        height:106px;
+      }
+
+      .name{ font-size:30px; }
+      .unit{ font-size:16px; }
+      .title{ font-size:22px; }
+      .slogan{ font-size:16px; }
+      .meta-text{ font-size:16px; }
+
+      #qrcode{
+        width:208px;
+        height:208px;
+      }
+
+      .btn{
+        font-size:18px;
+        padding:16px 14px;
+        border-radius:18px;
+      }
+    }
+  </style>
 </head>
-
 <body>
 
-<div class="wrap">
+  <div class="wrap">
+    <div class="hero">
+      <div class="brand-top">
+        <div class="brand-chip">智慧名片交付卡</div>
+      </div>
 
-<div class="card" id="poster">
+      <div class="main-card" id="poster">
+        <div class="avatar-shell">
+          <img id="avatar" class="avatar" alt="avatar">
+        </div>
 
-<img id="avatar" class="avatar">
+        <h1 id="name" class="name">載入中...</h1>
+        <div id="unit" class="unit"></div>
+        <div id="title" class="title"></div>
+        <div id="slogan" class="slogan" style="display:none;"></div>
 
-<div id="name" class="name"></div>
+        <div class="meta">
+          <div id="servicesWrap" class="meta-block" style="display:none;">
+            <div id="services" class="meta-text"></div>
+          </div>
+          <div id="expWrap" class="meta-block" style="display:none;">
+            <div id="exp" class="meta-text"></div>
+          </div>
+        </div>
 
-<div id="unit" class="unit"></div>
+        <div class="divider"></div>
 
-</div>
+        <div class="qr-zone">
+          <div id="qrcode"></div>
+          <div class="qr-note">掃碼查看完整智慧名片</div>
+        </div>
+      </div>
 
-<button id="btnView" class="btn btn1">
-打開我的智慧名片
-</button>
+      <div class="section">
+        <div class="section-title">我的智慧名片</div>
+        <a id="openCard" class="btn btn-primary" href="javascript:void(0)">打開我的智慧名片</a>
+        <button id="copyLink" class="btn btn-secondary" type="button">複製我的名片連結</button>
+        <button id="download" class="btn btn-accent" type="button">下載我的名片海報</button>
+      </div>
 
-<button id="btnCopy" class="btn btn2">
-複製我的名片連結
-</button>
+      <div class="desc">
+        一張可以分享、可以展示，也能持續更新的智慧名片入口
+      </div>
 
-<button id="btnPoster" class="btn btn3">
-下載我的名片海報
-</button>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
 
-<div class="note">
-可以分享智慧名片給朋友
-</div>
+  <div class="hidden-capture" aria-hidden="true"></div>
 
-</div>
-
-<script src="poster.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.5.4/dist/html2canvas.min.js"></script>
+  <script src="imageResolver.js"></script>
+  <script src="poster.js?v=5290"></script>
 </body>
 </html>
