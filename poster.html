@@ -1,529 +1,126 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
+
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
+
 <title>智慧名片交付卡</title>
 
-<style>
-:root{
-  --bg:#f6f1e8;
-  --card:#ffffff;
-  --text:#171717;
-  --muted:#666;
-  --line:#e8e2d8;
-  --primary:#1f7a66;
-  --primary-dark:#176452;
-  --radius:24px;
-  --shadow:0 20px 60px rgba(0,0,0,.12);
-}
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-*{box-sizing:border-box;}
+<style>
 
 body{
-  margin:0;
-  padding:18px;
-  background:var(--bg);
-  color:var(--text);
-  font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;
+margin:0;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI";
+background:#f5f6fa;
+display:flex;
+justify-content:center;
 }
 
-.container{
-  max-width:760px;
-  margin:0 auto;
+.wrap{
+width:420px;
+max-width:100%;
+padding:20px;
 }
 
-.poster{
-  background:var(--card);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:28px 22px 24px;
-  overflow:hidden;
-}
-
-.header{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  text-align:center;
+.card{
+background:white;
+border-radius:18px;
+padding:24px;
+text-align:center;
+box-shadow:0 20px 50px rgba(0,0,0,.08);
 }
 
 .avatar{
-  width:112px;
-  height:112px;
-  border-radius:999px;
-  object-fit:cover;
-  background:#ececec;
-  display:block;
-  margin:0 auto 14px;
-  box-shadow:0 6px 18px rgba(0,0,0,.06);
+width:120px;
+height:120px;
+border-radius:60px;
+object-fit:cover;
+margin-bottom:12px;
 }
 
 .name{
-  margin:0;
-  font-size:34px;
-  line-height:1.12;
-  font-weight:900;
-  letter-spacing:.2px;
-  word-break:keep-all;
-  line-break:strict;
+font-size:26px;
+font-weight:700;
 }
 
 .unit{
-  margin-top:10px;
-  font-size:17px;
-  line-height:1.45;
-  color:var(--muted);
-  word-break:keep-all;
-  line-break:strict;
+color:#666;
+margin-top:4px;
+margin-bottom:18px;
 }
 
-.title{
-  margin-top:8px;
-  font-size:24px;
-  line-height:1.34;
-  font-weight:800;
-  word-break:keep-all;
-  line-break:strict;
+.btn{
+display:block;
+width:100%;
+padding:14px;
+border-radius:12px;
+margin-top:10px;
+font-size:16px;
+border:none;
+cursor:pointer;
 }
 
-.slogan{
-  margin-top:24px;
-  text-align:center;
-  font-size:18px;
-  line-height:1.6;
-  font-weight:700;
-  white-space:pre-wrap;
-  word-break:break-word;
+.btn1{
+background:#111;
+color:white;
 }
 
-.meta{
-  margin-top:18px;
-  display:grid;
-  gap:12px;
+.btn2{
+background:#ddd;
 }
 
-.meta-block{
-  text-align:center;
+.btn3{
+background:#ff8a00;
+color:white;
 }
 
-.meta-text{
-  font-size:17px;
-  line-height:1.62;
-  color:#222;
-  white-space:pre-wrap;
-  word-break:break-word;
-  display:-webkit-box;
-  -webkit-box-orient:vertical;
-  overflow:hidden;
-  max-width:100%;
+.note{
+margin-top:16px;
+font-size:14px;
+color:#777;
 }
 
-.clamp-2{
-  -webkit-line-clamp:2;
-}
-
-.divider{
-  margin:24px auto 0;
-  width:56px;
-  height:2px;
-  border-radius:999px;
-  background:var(--line);
-}
-
-.qr{
-  margin-top:22px;
-  text-align:center;
-}
-
-#qrcode{
-  width:220px;
-  height:220px;
-  margin:0 auto 10px;
-  background:#fff;
-  border-radius:18px;
-  box-shadow:0 8px 24px rgba(0,0,0,.05);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-}
-
-#qrcode canvas,
-#qrcode img{
-  display:block;
-  width:100%;
-  height:100%;
-  object-fit:contain;
-}
-
-.qr-note{
-  font-size:16px;
-  line-height:1.5;
-  color:#444;
-  font-weight:700;
-}
-
-.buttons{
-  margin-top:22px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-.group{
-  background:rgba(255,255,255,.55);
-  border:1px solid #e7dece;
-  border-radius:20px;
-  padding:12px;
-}
-
-.group-title{
-  font-size:14px;
-  font-weight:900;
-  color:#6f6559;
-  margin:0 0 10px;
-  padding:0 2px;
-}
-
-button,a{
-  display:block;
-  width:100%;
-  padding:16px 14px;
-  border-radius:18px;
-  border:none;
-  text-align:center;
-  text-decoration:none;
-  font-size:18px;
-  font-weight:800;
-  cursor:pointer;
-}
-
-button + button,
-button + a,
-a + button,
-a + a{
-  margin-top:10px;
-}
-
-.primary{
-  background:var(--primary);
-  color:#fff;
-  box-shadow:0 10px 24px rgba(31,122,102,.18);
-}
-
-.primary:active{
-  background:var(--primary-dark);
-}
-
-.secondary{
-  background:#fff;
-  color:#333;
-  border:1px solid #ddd6ca;
-}
-
-.status{
-  min-height:20px;
-  margin-top:12px;
-  text-align:center;
-  font-size:14px;
-  color:#7a7a7a;
-}
-
-.hidden-capture{
-  position:fixed;
-  left:-99999px;
-  top:-99999px;
-  width:720px;
-  pointer-events:none;
-  opacity:0;
-}
-
-.recommend-poster{
-  width:720px;
-  background:linear-gradient(180deg,#fffaf2 0%,#f5ecdf 100%);
-  border-radius:32px;
-  box-shadow:0 20px 60px rgba(0,0,0,.12);
-  padding:42px 38px 36px;
-  color:#171717;
-}
-
-.rec-top{
-  text-align:center;
-}
-
-.rec-badge{
-  display:inline-block;
-  padding:8px 16px;
-  border-radius:999px;
-  background:#e9f4f0;
-  color:#1f7a66;
-  font-size:16px;
-  font-weight:900;
-  margin-bottom:18px;
-}
-
-.rec-title{
-  margin:0;
-  font-size:42px;
-  line-height:1.2;
-  font-weight:900;
-}
-
-.rec-sub{
-  margin:12px auto 0;
-  max-width:560px;
-  font-size:22px;
-  line-height:1.6;
-  color:#4f4b45;
-  font-weight:700;
-}
-
-.rec-card{
-  margin-top:30px;
-  background:#fff;
-  border:1px solid #efe5d8;
-  border-radius:28px;
-  padding:28px 24px;
-  display:grid;
-  grid-template-columns:1fr 240px;
-  gap:22px;
-  align-items:center;
-}
-
-.rec-left{
-  min-width:0;
-}
-
-.rec-user{
-  display:flex;
-  align-items:center;
-  gap:16px;
-}
-
-.rec-avatar{
-  width:92px;
-  height:92px;
-  border-radius:999px;
-  object-fit:cover;
-  background:#ececec;
-  flex:0 0 92px;
-}
-
-.rec-name{
-  font-size:34px;
-  line-height:1.15;
-  font-weight:900;
-  word-break:break-word;
-}
-
-.rec-role{
-  margin-top:8px;
-  font-size:18px;
-  line-height:1.55;
-  color:#635d55;
-  font-weight:700;
-  white-space:pre-wrap;
-  word-break:break-word;
-}
-
-.rec-copy{
-  margin-top:18px;
-  font-size:20px;
-  line-height:1.7;
-  color:#242424;
-  font-weight:700;
-  white-space:pre-wrap;
-}
-
-.rec-right{
-  text-align:center;
-}
-
-.rec-qr-box{
-  width:220px;
-  height:220px;
-  margin:0 auto;
-  background:#fff;
-  border-radius:22px;
-  box-shadow:0 10px 28px rgba(0,0,0,.06);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-}
-
-.rec-qr-box canvas,
-.rec-qr-box img{
-  display:block;
-  width:100%;
-  height:100%;
-}
-
-.rec-qr-note{
-  margin-top:12px;
-  font-size:18px;
-  color:#4a4742;
-  font-weight:800;
-  line-height:1.45;
-}
-
-.rec-foot{
-  margin-top:26px;
-  text-align:center;
-  font-size:18px;
-  line-height:1.6;
-  color:#6f675e;
-  font-weight:700;
-}
-
-@media (max-width:640px){
-  .poster{
-    padding:24px 18px 20px;
-    border-radius:22px;
-  }
-
-  .avatar{
-    width:104px;
-    height:104px;
-  }
-
-  .name{font-size:30px;}
-  .unit{font-size:16px;}
-  .title{font-size:21px;}
-
-  .slogan{
-    font-size:17px;
-    margin-top:20px;
-  }
-
-  .meta{
-    margin-top:16px;
-    gap:10px;
-  }
-
-  .meta-text{
-    font-size:16px;
-    line-height:1.6;
-  }
-
-  #qrcode{
-    width:196px;
-    height:196px;
-  }
-
-  .qr-note{
-    font-size:15px;
-  }
-
-  button,a{
-    font-size:17px;
-    padding:15px 12px;
-  }
-
-  .group-title{
-    font-size:13px;
-  }
-}
 </style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="wrap">
 
-  <div class="poster" id="poster">
-    <div class="header">
-      <img id="avatar" class="avatar" alt="avatar">
-      <div id="name" class="name">載入中...</div>
-      <div id="unit" class="unit"></div>
-      <div id="title" class="title"></div>
-    </div>
+<div class="card" id="poster">
 
-    <div id="slogan" class="slogan" style="display:none;"></div>
+<img id="avatar" class="avatar">
 
-    <div class="meta">
-      <div id="servicesWrap" class="meta-block" style="display:none;">
-        <div id="services" class="meta-text clamp-2"></div>
-      </div>
+<div id="name" class="name"></div>
 
-      <div id="expWrap" class="meta-block" style="display:none;">
-        <div id="exp" class="meta-text clamp-2"></div>
-      </div>
-    </div>
+<div id="unit" class="unit"></div>
 
-    <div class="divider"></div>
-
-    <div class="qr">
-      <div id="qrcode"></div>
-      <div class="qr-note">掃碼查看完整智慧名片</div>
-    </div>
-  </div>
-
-  <div class="buttons">
-    <div class="group">
-      <div class="group-title">我的智慧名片</div>
-      <button id="download" class="primary" type="button">下載我的名片海報</button>
-      <a id="openCard" class="secondary" href="javascript:void(0)">查看我的智慧名片</a>
-      <button id="copyLink" class="secondary" type="button">複製我的名片連結</button>
-    </div>
-
-    <div class="group">
-      <div class="group-title">推薦智慧名片</div>
-      <button id="copySystem" class="secondary" type="button">複製推薦連結</button>
-      <button id="downloadRecommend" class="secondary" type="button">生成推薦海報</button>
-    </div>
-
-    <div class="group">
-      <div class="group-title">系統入口</div>
-      <a class="secondary" href="https://angel0973180707.github.io/Happiness-Smart-Card-System/">智慧名片首頁</a>
-    </div>
-  </div>
-
-  <div id="status" class="status"></div>
 </div>
 
-<div class="hidden-capture" aria-hidden="true">
-  <div class="recommend-poster" id="recommendPoster">
-    <div class="rec-top">
-      <div class="rec-badge">推薦好工具</div>
-      <h2 class="rec-title">天使幸福智慧名片</h2>
-      <div class="rec-sub">智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口</div>
-    </div>
+<button id="btnView" class="btn btn1">
+打開我的智慧名片
+</button>
 
-    <div class="rec-card">
-      <div class="rec-left">
-        <div class="rec-user">
-          <img id="recAvatar" class="rec-avatar" alt="avatar">
-          <div>
-            <div id="recName" class="rec-name">推薦者</div>
-            <div id="recRole" class="rec-role"></div>
-          </div>
-        </div>
+<button id="btnCopy" class="btn btn2">
+複製我的名片連結
+</button>
 
-        <div class="rec-copy" id="recCopy">
-我正在使用智慧名片，
-把個人介紹、服務資訊與分享入口整理在同一張名片裡。
+<button id="btnPoster" class="btn btn3">
+下載我的名片海報
+</button>
 
-你也可以看看這個系統。
-        </div>
-      </div>
-
-      <div class="rec-right">
-        <div class="rec-qr-box" id="recommendQr"></div>
-        <div class="rec-qr-note">掃碼看智慧名片系統</div>
-      </div>
-    </div>
-
-    <div class="rec-foot">
-      一張可以分享、可以展示、也能持續更新的智慧名片入口
-    </div>
-  </div>
+<div class="note">
+可以分享智慧名片給朋友
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.5.4/dist/html2canvas.min.js"></script>
-<script src="poster.js?v=5300"></script>
+</div>
+
+<script src="poster.js"></script>
 
 </body>
 </html>
