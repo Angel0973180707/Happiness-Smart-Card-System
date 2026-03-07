@@ -99,6 +99,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  function hideBrokenImage(imgEl) {
+    if (!imgEl) return;
+    imgEl.removeAttribute("src");
+    imgEl.alt = "";
+    imgEl.style.visibility = "hidden";
+  }
+
+  function showImage(imgEl) {
+    if (!imgEl) return;
+    imgEl.style.visibility = "visible";
+  }
+
   function bindAvatar(imgEl, url) {
     return new Promise((resolve) => {
       if (!imgEl) {
@@ -110,7 +122,7 @@ document.addEventListener("DOMContentLoaded", function () {
       imgEl.onload = null;
 
       if (!url) {
-        imgEl.removeAttribute("src");
+        hideBrokenImage(imgEl);
         resolve("");
         return;
       }
@@ -118,9 +130,13 @@ document.addEventListener("DOMContentLoaded", function () {
       imgEl.crossOrigin = "anonymous";
       imgEl.referrerPolicy = "no-referrer";
 
-      imgEl.onload = () => resolve(url);
+      imgEl.onload = () => {
+        showImage(imgEl);
+        resolve(url);
+      };
+
       imgEl.onerror = () => {
-        imgEl.removeAttribute("src");
+        hideBrokenImage(imgEl);
         resolve("");
       };
 
@@ -370,8 +386,62 @@ document.addEventListener("DOMContentLoaded", function () {
     if (recCopyEl) recCopyEl.innerText = buildRecommendCopy(item);
 
     await bindAvatar(recAvatarEl, avatarUrl || "");
-
     await renderQrInto(recommendQrEl, SYSTEM_URL, avatarUrl || "");
+  }
+
+  async function downloadCanvas(canvas, filename) {
+    return new Promise((resolve, reject) => {
+      try {
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            reject(new Error("blob create fail"));
+            return;
+          }
+
+          const blobUrl = URL.createObjectURL(blob);
+
+          try {
+            const a = document.createElement("a");
+            a.href = blobUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            setTimeout(() => {
+              URL.revokeObjectURL(blobUrl);
+            }, 3000);
+
+            resolve(true);
+          } catch (e) {
+            try {
+              window.open(blobUrl, "_blank");
+              setTimeout(() => {
+                URL.revokeObjectURL(blobUrl);
+              }, 10000);
+              resolve(true);
+            } catch (err) {
+              URL.revokeObjectURL(blobUrl);
+              reject(err);
+            }
+          }
+        }, "image/png");
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  async function captureAndDownload(targetEl, filename, bgColor) {
+    const canvas = await html2canvas(targetEl, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: bgColor,
+      allowTaint: false,
+      logging: false
+    });
+
+    await downloadCanvas(canvas, filename);
   }
 
   async function render(item) {
@@ -421,22 +491,11 @@ document.addEventListener("DOMContentLoaded", function () {
       downloadEl.onclick = async () => {
         try {
           setStatus("生成我的名片海報...");
-
-          const canvas = await html2canvas(posterEl, {
-            scale: 3,
-            useCORS: true,
-            backgroundColor: "#ffffff"
-          });
-
-          const a = document.createElement("a");
-          a.href = canvas.toDataURL("image/png");
-          a.download = `${id}-poster.png`;
-          a.click();
-
-          setStatus("");
+          await captureAndDownload(posterEl, `${id}-poster.png`, "#ffffff");
+          setStatus("已生成，若未自動下載，請到新開圖片頁手動另存");
         } catch (e) {
           console.error(e);
-          setStatus("下載失敗，請稍後再試");
+          setStatus("名片海報下載失敗");
         }
       };
     }
@@ -445,27 +504,20 @@ document.addEventListener("DOMContentLoaded", function () {
       downloadRecommendEl.onclick = async () => {
         try {
           setStatus("生成推薦海報...");
-
-          const canvas = await html2canvas(recPosterEl, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: "#fffaf2"
-          });
-
-          const a = document.createElement("a");
-          a.href = canvas.toDataURL("image/png");
-          a.download = `${id}-recommend.png`;
-          a.click();
-
-          setStatus("");
+          await captureAndDownload(recPosterEl, `${id}-recommend.png`, "#fffaf2");
+          setStatus("已生成，若未自動下載，請到新開圖片頁手動另存");
         } catch (e) {
           console.error(e);
-          setStatus("推薦海報下載失敗，請稍後再試");
+          setStatus("推薦海報下載失敗");
         }
       };
     }
 
-    setStatus("");
+    setTimeout(() => {
+      if (safe(statusEl && statusEl.innerText).includes("已生成")) {
+        setStatus("");
+      }
+    }, 4000);
   }
 
   async function init() {
