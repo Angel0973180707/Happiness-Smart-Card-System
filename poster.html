@@ -6,23 +6,38 @@
   <title>微信名片海報</title>
 
   <style>
+    :root{
+      --bg:#f6f1e8;
+      --card:#ffffff;
+      --text:#171717;
+      --muted:#666;
+      --line:#e6e1d8;
+      --primary:#1f7a66;
+      --radius:24px;
+      --shadow:0 20px 60px rgba(0,0,0,.12);
+    }
+
+    *{ box-sizing:border-box; }
+
     body{
-      font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;
-      background:#f6f1e8;
       margin:0;
       padding:20px;
+      background:var(--bg);
+      color:var(--text);
+      font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;
     }
 
     .container{
       max-width:760px;
-      margin:auto;
+      margin:0 auto;
     }
 
     .poster{
-      background:#fff;
-      border-radius:20px;
-      padding:28px 24px 24px;
-      box-shadow:0 20px 60px rgba(0,0,0,.15);
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:28px 22px 24px;
+      overflow:hidden;
     }
 
     .header{
@@ -30,107 +45,152 @@
       flex-direction:column;
       align-items:center;
       text-align:center;
-      gap:10px;
     }
 
     .avatar{
-      width:120px;
-      height:120px;
+      width:116px;
+      height:116px;
       border-radius:999px;
       object-fit:cover;
-      background:#eee;
+      background:#ececec;
       display:block;
+      margin:0 auto 14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.06);
     }
 
     .name{
+      margin:0;
       font-size:34px;
-      font-weight:900;
       line-height:1.15;
+      font-weight:900;
       word-break:keep-all;
       line-break:strict;
+      letter-spacing:.2px;
     }
 
     .unit{
-      font-size:18px;
-      opacity:.82;
+      margin-top:10px;
+      font-size:17px;
       line-height:1.45;
+      color:var(--muted);
       word-break:keep-all;
       line-break:strict;
     }
 
     .title{
-      font-size:22px;
-      font-weight:800;
+      margin-top:8px;
+      font-size:24px;
       line-height:1.35;
+      font-weight:800;
       word-break:keep-all;
       line-break:strict;
-      max-width:100%;
     }
 
-    .section{
-      margin-top:22px;
-      white-space:pre-wrap;
-      word-break:break-word;
-      line-height:1.7;
+    .slogan{
+      margin-top:24px;
       text-align:center;
       font-size:18px;
+      line-height:1.6;
+      font-weight:700;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .meta{
+      margin-top:18px;
+      display:grid;
+      gap:14px;
+    }
+
+    .meta-block{
+      padding:0;
+      text-align:center;
+    }
+
+    .meta-text{
+      font-size:17px;
+      line-height:1.65;
+      color:#222;
+      white-space:pre-wrap;
+      word-break:break-word;
+      display:-webkit-box;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+
+    .clamp-2{
+      -webkit-line-clamp:2;
+    }
+
+    .divider{
+      margin:24px auto 0;
+      width:56px;
+      height:2px;
+      border-radius:999px;
+      background:var(--line);
     }
 
     .qr{
-      margin-top:26px;
+      margin-top:22px;
       text-align:center;
     }
 
     #qrcode{
       display:block;
-      margin:0 auto 10px;
       width:220px !important;
       height:220px !important;
       max-width:100%;
+      margin:0 auto 10px;
       background:#fff;
-      border-radius:12px;
+      border-radius:14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.04);
     }
 
     .qr-note{
       font-size:16px;
       line-height:1.5;
+      color:#444;
+      font-weight:700;
     }
 
     .buttons{
-      margin-top:24px;
+      margin-top:22px;
       display:flex;
       flex-direction:column;
       gap:12px;
     }
 
     button,a{
+      display:block;
+      width:100%;
       padding:16px 14px;
-      border-radius:16px;
-      font-weight:800;
+      border-radius:18px;
       border:none;
-      cursor:pointer;
       text-align:center;
       text-decoration:none;
       font-size:18px;
-      box-sizing:border-box;
+      font-weight:800;
+      cursor:pointer;
+      transition:.2s ease;
     }
 
     .primary{
-      background:#1f7a66;
+      background:var(--primary);
       color:#fff;
+      box-shadow:0 10px 24px rgba(31,122,102,.18);
     }
 
     .secondary{
       background:#fff;
-      border:1px solid #ddd;
       color:#333;
+      border:1px solid #ddd6ca;
     }
 
     .status{
       margin-top:10px;
-      font-size:13px;
-      opacity:.7;
       min-height:18px;
+      font-size:13px;
+      color:#666;
     }
 
     @media (max-width:640px){
@@ -139,12 +199,14 @@
       }
 
       .poster{
-        padding:22px 18px 18px;
+        padding:24px 18px 20px;
+        border-radius:22px;
       }
 
       .avatar{
-        width:108px;
-        height:108px;
+        width:104px;
+        height:104px;
+        margin-bottom:12px;
       }
 
       .name{
@@ -156,22 +218,36 @@
       }
 
       .title{
-        font-size:20px;
+        font-size:21px;
       }
 
-      .section{
+      .slogan{
+        font-size:17px;
+        margin-top:20px;
+      }
+
+      .meta{
+        margin-top:16px;
+        gap:12px;
+      }
+
+      .meta-text{
         font-size:16px;
-        line-height:1.65;
+        line-height:1.6;
+      }
+
+      #qrcode{
+        width:196px !important;
+        height:196px !important;
+      }
+
+      .qr-note{
+        font-size:15px;
       }
 
       button,a{
         font-size:17px;
         padding:15px 12px;
-      }
-
-      #qrcode{
-        width:200px !important;
-        height:200px !important;
       }
     }
   </style>
@@ -181,7 +257,6 @@
   <div class="container">
 
     <div class="poster" id="poster">
-
       <div class="header">
         <img id="avatar" class="avatar" alt="avatar">
         <div id="name" class="name">載入中...</div>
@@ -189,15 +264,24 @@
         <div id="title" class="title"></div>
       </div>
 
-      <div id="slogan" class="section" style="display:none;"></div>
-      <div id="services" class="section" style="display:none;"></div>
-      <div id="exp" class="section" style="display:none;"></div>
+      <div id="slogan" class="slogan" style="display:none;"></div>
+
+      <div class="meta">
+        <div id="servicesWrap" class="meta-block" style="display:none;">
+          <div id="services" class="meta-text clamp-2"></div>
+        </div>
+
+        <div id="expWrap" class="meta-block" style="display:none;">
+          <div id="exp" class="meta-text clamp-2"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
 
       <div class="qr">
         <canvas id="qrcode"></canvas>
         <div class="qr-note">掃碼查看完整智慧名片</div>
       </div>
-
     </div>
 
     <div class="buttons">
@@ -218,7 +302,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="poster.js?v=5236"></script>
+  <script src="poster.js?v=5240"></script>
 
 </body>
 </html>
