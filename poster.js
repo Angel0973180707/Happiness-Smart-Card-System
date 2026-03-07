@@ -13,12 +13,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const unitEl = document.getElementById("unit");
   const titleEl = document.getElementById("title");
   const sloganEl = document.getElementById("slogan");
-
   const servicesWrapEl = document.getElementById("servicesWrap");
   const servicesEl = document.getElementById("services");
   const expWrapEl = document.getElementById("expWrap");
   const expEl = document.getElementById("exp");
-
   const qrWrapEl = document.getElementById("qrcode");
   const openCardEl = document.getElementById("openCard");
   const copyLinkEl = document.getElementById("copyLink");
@@ -26,8 +24,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const downloadEl = document.getElementById("download");
 
   function setStatus(msg) {
-    if (!statusEl) return;
-    statusEl.innerText = msg || "";
+    if (statusEl) statusEl.innerText = msg || "";
   }
 
   function safe(v) {
@@ -65,17 +62,13 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
 
-  function getQrCenterImageUrl(item) {
-    return avatarEl && avatarEl.src ? avatarEl.src : getAvatar(item);
-  }
-
   function firstTwoLines(text) {
     const t = safe(text);
     if (!t) return "";
 
     const arr = t
       .split(/\r?\n/)
-      .map((v) => v.trim())
+      .map(v => v.trim())
       .filter(Boolean)
       .slice(0, 2);
 
@@ -84,8 +77,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function setBlock(el, wrapEl, value) {
     if (!el || !wrapEl) return;
-
     const t = safe(value);
+
     if (t) {
       el.innerText = t;
       wrapEl.style.display = "";
@@ -96,27 +89,44 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function bindAvatar(url) {
-    if (!avatarEl) return;
+    return new Promise((resolve) => {
+      if (!avatarEl) {
+        resolve("");
+        return;
+      }
 
-    avatarEl.onerror = null;
+      avatarEl.onerror = null;
+      avatarEl.onload = null;
 
-    if (!url) {
-      avatarEl.removeAttribute("src");
-      return;
-    }
+      if (!url) {
+        avatarEl.removeAttribute("src");
+        resolve("");
+        return;
+      }
 
-    avatarEl.src = url;
-    avatarEl.onerror = () => {
-      avatarEl.removeAttribute("src");
-    };
+      avatarEl.crossOrigin = "anonymous";
+      avatarEl.referrerPolicy = "no-referrer";
+      avatarEl.onload = () => resolve(url);
+      avatarEl.onerror = () => {
+        avatarEl.removeAttribute("src");
+        resolve("");
+      };
+      avatarEl.src = url;
+    });
   }
 
-  async function loadImage(src) {
+  function loadImage(src) {
     return new Promise((resolve, reject) => {
+      if (!src) {
+        reject(new Error("empty image src"));
+        return;
+      }
+
       const img = new Image();
       img.crossOrigin = "anonymous";
+      img.referrerPolicy = "no-referrer";
       img.onload = () => resolve(img);
-      img.onerror = reject;
+      img.onerror = () => reject(new Error("image load fail"));
       img.src = src;
     });
   }
@@ -132,62 +142,124 @@ document.addEventListener("DOMContentLoaded", function () {
     ctx.closePath();
   }
 
-  async function renderQrWithCenter(url, centerImageUrl) {
-    if (!qrWrapEl) return;
+  function drawFallbackCenter(ctx, size) {
+    const boxSize = 68;
+    const innerSize = 56;
+    const x = (size - boxSize) / 2;
+    const y = (size - boxSize) / 2;
 
-    qrWrapEl.innerHTML = "";
+    ctx.save();
 
-    const size = 300;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    qrWrapEl.appendChild(canvas);
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(0,0,0,.10)";
+    ctx.shadowBlur = 12;
+    roundRect(ctx, x, y, boxSize, boxSize, 18);
+    ctx.fill();
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, innerSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fillStyle = "#ececec";
+    ctx.fill();
 
-    try {
-      if (typeof QRCode !== "undefined" && typeof QRCode.toCanvas === "function") {
-        await QRCode.toCanvas(canvas, url, {
-          width: size,
-          margin: 2,
-          color: {
-            dark: "#111111",
-            light: "#ffffff"
-          }
-        });
-      } else if (typeof QRCode !== "undefined") {
+    ctx.fillStyle = "#bdbdbd";
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2 - 8, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2 + 18, 18, Math.PI, 0);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function makeBaseQrCanvas(url, size) {
+    return new Promise((resolve, reject) => {
+      try {
         const temp = document.createElement("div");
         temp.style.position = "fixed";
         temp.style.left = "-99999px";
         temp.style.top = "-99999px";
+        temp.style.width = `${size}px`;
+        temp.style.height = `${size}px`;
         document.body.appendChild(temp);
 
         new QRCode(temp, {
           text: url,
           width: size,
-          height: size
+          height: size,
+          colorDark: "#111111",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
         });
 
-        await new Promise((r) => setTimeout(r, 120));
+        setTimeout(() => {
+          try {
+            const qrCanvas = temp.querySelector("canvas");
+            const qrImg = temp.querySelector("img");
 
-        const qrCanvas = temp.querySelector("canvas");
-        const qrImg = temp.querySelector("img");
+            const canvas = document.createElement("canvas");
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext("2d");
 
-        ctx.clearRect(0, 0, size, size);
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, size, size);
+            if (!ctx) {
+              temp.remove();
+              reject(new Error("canvas context fail"));
+              return;
+            }
 
-        if (qrCanvas) {
-          ctx.drawImage(qrCanvas, 0, 0, size, size);
-        } else if (qrImg) {
-          const loadedQrImg = await loadImage(qrImg.src);
-          ctx.drawImage(loadedQrImg, 0, 0, size, size);
-        }
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, size, size);
 
-        temp.remove();
-      } else {
-        qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 載入失敗</div>`;
+            if (qrCanvas) {
+              ctx.drawImage(qrCanvas, 0, 0, size, size);
+              temp.remove();
+              resolve(canvas);
+              return;
+            }
+
+            if (qrImg) {
+              loadImage(qrImg.src)
+                .then((img) => {
+                  ctx.drawImage(img, 0, 0, size, size);
+                  temp.remove();
+                  resolve(canvas);
+                })
+                .catch((err) => {
+                  temp.remove();
+                  reject(err);
+                });
+              return;
+            }
+
+            temp.remove();
+            reject(new Error("qr not generated"));
+          } catch (e) {
+            temp.remove();
+            reject(e);
+          }
+        }, 160);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  async function renderQrWithCenter(url, centerImageUrl) {
+    if (!qrWrapEl) return;
+
+    qrWrapEl.innerHTML = "";
+
+    try {
+      const size = 300;
+      const canvas = await makeBaseQrCanvas(url, size);
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
         return;
       }
 
@@ -203,7 +275,6 @@ document.addEventListener("DOMContentLoaded", function () {
           const centerImg = await loadImage(centerImageUrl);
 
           ctx.save();
-
           ctx.fillStyle = "#ffffff";
           ctx.shadowColor = "rgba(0,0,0,.10)";
           ctx.shadowBlur = 12;
@@ -215,31 +286,18 @@ document.addEventListener("DOMContentLoaded", function () {
           ctx.arc(size / 2, size / 2, innerSize / 2, 0, Math.PI * 2);
           ctx.closePath();
           ctx.clip();
-
           ctx.drawImage(centerImg, ix, iy, innerSize, innerSize);
-
           ctx.restore();
         } catch (e) {
           console.warn("center image fail", e);
-
-          ctx.save();
-
-          ctx.fillStyle = "#ffffff";
-          ctx.shadowColor = "rgba(0,0,0,.10)";
-          ctx.shadowBlur = 12;
-          roundRect(ctx, x, y, boxSize, boxSize, 18);
-          ctx.fill();
-
-          ctx.shadowBlur = 0;
-          ctx.beginPath();
-          ctx.arc(size / 2, size / 2, innerSize / 2, 0, Math.PI * 2);
-          ctx.closePath();
-          ctx.fillStyle = "#e9e9e9";
-          ctx.fill();
-
-          ctx.restore();
+          drawFallbackCenter(ctx, size);
         }
+      } else {
+        drawFallbackCenter(ctx, size);
       }
+
+      qrWrapEl.innerHTML = "";
+      qrWrapEl.appendChild(canvas);
     } catch (e) {
       console.error("QRCode render error:", e);
       qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
@@ -270,8 +328,17 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (!data || !data.ok) return null;
-
     return data.item || data.data || {};
+  }
+
+  async function copyText(text, okMsg) {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert(okMsg);
+    } catch (e) {
+      console.error(e);
+      prompt("請手動複製連結：", text);
+    }
   }
 
   async function render(item) {
@@ -294,7 +361,7 @@ document.addEventListener("DOMContentLoaded", function () {
     setBlock(expEl, expWrapEl, firstTwoLines(item.experience));
 
     const avatarUrl = getAvatar(item);
-    bindAvatar(avatarUrl);
+    const loadedAvatarUrl = await bindAvatar(avatarUrl);
 
     const cardUrl = getCardUrl(id);
 
@@ -304,30 +371,14 @@ document.addEventListener("DOMContentLoaded", function () {
       openCardEl.rel = "noopener noreferrer";
     }
 
-    await renderQrWithCenter(cardUrl, getQrCenterImageUrl(item));
+    await renderQrWithCenter(cardUrl, loadedAvatarUrl || avatarUrl);
 
     if (copyLinkEl) {
-      copyLinkEl.onclick = async () => {
-        try {
-          await navigator.clipboard.writeText(cardUrl);
-          alert("已複製名片連結");
-        } catch (e) {
-          console.error(e);
-          alert(cardUrl);
-        }
-      };
+      copyLinkEl.onclick = () => copyText(cardUrl, "已複製名片連結");
     }
 
     if (copySystemEl) {
-      copySystemEl.onclick = async () => {
-        try {
-          await navigator.clipboard.writeText(SYSTEM_URL);
-          alert("已複製推薦連結");
-        } catch (e) {
-          console.error(e);
-          alert(SYSTEM_URL);
-        }
-      };
+      copySystemEl.onclick = () => copyText(SYSTEM_URL, "已複製推薦連結");
     }
 
     if (downloadEl) {
@@ -349,7 +400,7 @@ document.addEventListener("DOMContentLoaded", function () {
           setStatus("");
         } catch (e) {
           console.error(e);
-          setStatus("");
+          setStatus("下載失敗，請稍後再試");
         }
       };
     }
@@ -363,6 +414,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (!item) {
         if (nameEl) nameEl.innerText = "讀取失敗";
+        setStatus("讀取失敗");
         return;
       }
 
@@ -370,6 +422,7 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (e) {
       console.error(e);
       if (nameEl) nameEl.innerText = "讀取失敗";
+      setStatus("讀取失敗");
     }
   }
 
