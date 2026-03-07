@@ -5,6 +5,7 @@ const qs = new URLSearchParams(location.search);
 const id = (qs.get("id") || "").trim();
 
 const statusEl = document.getElementById("status");
+if (statusEl) statusEl.style.display = "none";
 const posterEl = document.getElementById("poster");
 const avatarEl = document.getElementById("avatar");
 const nameEl = document.getElementById("name");
