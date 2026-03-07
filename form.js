@@ -14,7 +14,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "522.6.1";
+  const VERSION = "522.6.2";
   const DEFAULT_GAS = "";
   const DEFAULT_TENANT = "angel";
   const PAGE_TOTAL = 7;
@@ -160,6 +160,12 @@ import {
     flowSub: $("flowSub"),
     summaryBox: $("summaryBox"),
 
+    successCard: $("successCard"),
+    successText: $("successText"),
+    successIdValue: $("successIdValue"),
+    btnCopyCustomerText: $("btnCopyCustomerText"),
+    copyFeedback: $("copyFeedback"),
+
     cropModal: $("cropModal"),
     cropStage: $("cropStage"),
     cropCanvas: $("cropCanvas"),
@@ -199,6 +205,8 @@ import {
     submitLockedUntil: 0,
     page: 0,
     formFocusMode: false,
+    lastSuccessId: "",
+    copyFeedbackTimer: 0,
 
     plan: "",
     color: "",
@@ -337,6 +345,7 @@ import {
     bindEvents_();
     renderPage_();
     updateSummary_();
+    resetSuccessCard_();
 
     await initFirebase_();
 
@@ -374,6 +383,10 @@ import {
     el.btnReset.addEventListener("click", onReset_);
     el.btnPrev.addEventListener("click", onPrevPage_);
     el.btnNext.addEventListener("click", onNextPage_);
+
+    if(el.btnCopyCustomerText){
+      el.btnCopyCustomerText.addEventListener("click", onCopyCustomerText_);
+    }
 
     el.gas.addEventListener("change", ()=>{
       localStorage.setItem("HSC_GAS_URL", (el.gas.value || "").trim());
@@ -1236,6 +1249,7 @@ import {
       state.page = PAGE_TOTAL - 1;
       renderPage_();
       exitFormFocusMode_();
+      resetSuccessCard_();
 
       if(!state.plan){
         warnStatus_("請先選方案。");
@@ -1293,14 +1307,20 @@ import {
         showProgress_(100, "送出完成");
 
         if(created && created.ok){
+          const finalId = safeText_(created.id) || state.id;
+          state.id = finalId || state.id;
+          state.lastSuccessId = finalId || state.id || "";
           el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
+
           logStatus_(
-            `✅ 已完成\n名片 ID：${created.id || state.id}\ninvite：${state.invite || "無"}\n` +
+            `✅ 已完成\n名片 ID：${state.lastSuccessId || "-"}\ninvite：${state.invite || "無"}\n` +
             (created.duplicate ? "系統判定這筆資料已存在，沒有重複建立。\n" : "") +
-            "接下來可到後台查找名片。",
+            "接下來可複製序號回傳客服。",
             "ok"
           );
+
+          showSuccessCard_(state.lastSuccessId, created.duplicate);
         }else{
           el.dot.style.background = "var(--bad)";
           logStatus_("送出完成，但回傳結果不是 ok。\n" + JSON.stringify(created, null, 2), "bad");
@@ -1321,9 +1341,18 @@ import {
         showProgress_(100, "更新完成");
 
         if(updated && updated.ok){
+          const finalId = safeText_(updated.id) || state.id;
+          state.id = finalId || state.id;
+          state.lastSuccessId = finalId || state.id || "";
           el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
-          logStatus_(`✅ 更新成功\n名片 ID：${state.id}\ninvite：${state.invite || "無"}`, "ok");
+
+          logStatus_(
+            `✅ 更新成功\n名片 ID：${state.lastSuccessId || "-"}\ninvite：${state.invite || "無"}\n可複製序號回傳客服。`,
+            "ok"
+          );
+
+          showSuccessCard_(state.lastSuccessId, false, true);
         }else{
           el.dot.style.background = "var(--bad)";
           logStatus_("更新完成，但回傳結果不是 ok。\n" + JSON.stringify(updated, null, 2), "bad");
@@ -1360,12 +1389,14 @@ import {
     state.uploads = {};
     state.lastSubmitFingerprint = "";
     state.submitLockedUntil = 0;
+    state.lastSuccessId = "";
     state.page = 0;
 
     renderUploads_();
     syncChipsUI_();
     updateSummary_();
     renderPage_();
+    resetSuccessCard_();
 
     hideProgress_();
     el.dot.style.background = "var(--warn)";
@@ -1707,12 +1738,13 @@ import {
     if(el.btnReset) el.btnReset.disabled = disabled;
     if(el.btnPrev) el.btnPrev.disabled = disabled || state.page === 0;
     if(el.btnNext) el.btnNext.disabled = disabled || state.page === PAGE_TOTAL - 1;
+    if(el.btnCopyCustomerText) el.btnCopyCustomerText.disabled = disabled || !state.lastSuccessId;
 
     document.querySelectorAll("input, textarea, button").forEach(node=>{
       if(node.id === "gas" || node.type === "hidden" || node.type === "range") return;
       if(
         node === el.btnPrev || node === el.btnNext || node === el.btnTest ||
-        node === el.btnSubmit || node === el.btnReset ||
+        node === el.btnSubmit || node === el.btnReset || node === el.btnCopyCustomerText ||
         node === el.cropZoomOut || node === el.cropZoomIn || node === el.cropReset ||
         node === el.cropCancel || node === el.cropApply ||
         node === el.cropMoveUp || node === el.cropMoveDown || node === el.cropMoveLeft || node === el.cropMoveRight
@@ -1814,7 +1846,9 @@ import {
 
   function scrollSubmitArea_(){
     try{
-      const target = el.submitProgressWrap.style.display !== "none" ? el.submitProgressWrap : el.status;
+      const target = el.successCard.classList.contains("show")
+        ? el.successCard
+        : (el.submitProgressWrap.style.display !== "none" ? el.submitProgressWrap : el.status);
       target.scrollIntoView({ behavior: "smooth", block: "center" });
     }catch(_){}
   }
@@ -1848,4 +1882,83 @@ import {
     drawCrop_();
   }
 
+  function showSuccessCard_(id, isDuplicate = false, isUpdate = false){
+    const finalId = safeText_(id) || "-";
+    state.lastSuccessId = finalId;
+
+    el.successIdValue.textContent = finalId;
+
+    if(isUpdate){
+      el.successText.textContent = "資料已更新完成。你可以直接複製下面的序號訊息回傳客服。";
+    }else if(isDuplicate){
+      el.successText.textContent = "系統判定這筆資料已存在，沒有重複建立。你可以直接複製下面的序號訊息回傳客服。";
+    }else{
+      el.successText.textContent = "你可以直接複製下面的序號訊息回傳客服。";
+    }
+
+    el.successCard.classList.add("show");
+    if(el.btnCopyCustomerText){
+      el.btnCopyCustomerText.disabled = !state.lastSuccessId;
+    }
+  }
+
+  function resetSuccessCard_(){
+    state.lastSuccessId = "";
+    if(el.successCard) el.successCard.classList.remove("show");
+    if(el.successIdValue) el.successIdValue.textContent = "-";
+    if(el.copyFeedback) el.copyFeedback.classList.remove("show");
+    if(el.btnCopyCustomerText) el.btnCopyCustomerText.disabled = true;
+    clearTimeout(state.copyFeedbackTimer);
+  }
+
+  async function onCopyCustomerText_(){
+    const id = safeText_(state.lastSuccessId);
+    if(!id){
+      warnStatus_("目前沒有可複製的序號。");
+      return;
+    }
+
+    const text = `我的智慧名片資料已送出，序號：${id}`;
+
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+      }else{
+        fallbackCopyText_(text);
+      }
+      showCopyFeedback_("已複製，可直接貼給客服。");
+    }catch(err){
+      try{
+        fallbackCopyText_(text);
+        showCopyFeedback_("已複製，可直接貼給客服。");
+      }catch(_){
+        warnStatus_("複製失敗，請手動複製序號：" + id);
+      }
+    }
+  }
+
+  function fallbackCopyText_(text){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    ta.style.pointerEvents = "none";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+
+  function showCopyFeedback_(msg){
+    if(!el.copyFeedback) return;
+    el.copyFeedback.textContent = msg;
+    el.copyFeedback.classList.add("show");
+    clearTimeout(state.copyFeedbackTimer);
+    state.copyFeedbackTimer = setTimeout(()=>{
+      el.copyFeedback.classList.remove("show");
+    }, 2200);
+  }
 })();
