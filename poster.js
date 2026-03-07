@@ -73,14 +73,32 @@ document.addEventListener("DOMContentLoaded", function () {
     return s;
   }
 
-  function getAvatar(item) {
-    return normalizeImageUrl(
-      safe(item.avatar_img_fast) ||
-      safe(item.avatar_img) ||
-      safe(item.avatar_url) ||
-      safe(item.avatar) ||
-      ""
-    );
+  function buildAvatarCandidates(item) {
+    const rawFast = safe(item.avatar_img_fast);
+    const rawImg = safe(item.avatar_img);
+    const rawUrl = safe(item.avatar_url);
+    const rawAvatar = safe(item.avatar);
+
+    const out = [];
+
+    if (rawFast) out.push(normalizeImageUrl(rawFast));
+
+    const driveId =
+      extractDriveFileId(rawImg) ||
+      extractDriveFileId(rawUrl) ||
+      extractDriveFileId(rawAvatar);
+
+    if (driveId) {
+      // 顯示頭像時，thumbnail 通常比 uc 更穩
+      out.push(`https://drive.google.com/thumbnail?id=${driveId}&sz=w1200`);
+      out.push(`https://drive.google.com/uc?export=view&id=${driveId}`);
+    }
+
+    if (rawImg) out.push(normalizeImageUrl(rawImg));
+    if (rawUrl) out.push(normalizeImageUrl(rawUrl));
+    if (rawAvatar) out.push(normalizeImageUrl(rawAvatar));
+
+    return [...new Set(out.filter(Boolean))];
   }
 
   function firstTwoLines(text) {
@@ -184,29 +202,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function bindAvatar(imgEl, item) {
-    const rawFast = safe(item.avatar_img_fast);
-    const rawImg = safe(item.avatar_img);
-    const rawUrl = safe(item.avatar_url);
-    const rawAvatar = safe(item.avatar);
-
-    const candidates = [];
-
-    if (rawFast) candidates.push(normalizeImageUrl(rawFast));
-    if (rawImg) candidates.push(normalizeImageUrl(rawImg));
-    if (rawUrl) candidates.push(normalizeImageUrl(rawUrl));
-    if (rawAvatar) candidates.push(normalizeImageUrl(rawAvatar));
-
-    const driveId =
-      extractDriveFileId(rawFast) ||
-      extractDriveFileId(rawImg) ||
-      extractDriveFileId(rawUrl) ||
-      extractDriveFileId(rawAvatar);
-
-    if (driveId) {
-      candidates.push(`https://drive.google.com/thumbnail?id=${driveId}&sz=w1200`);
-    }
-
-    return tryImageCandidates(imgEl, candidates);
+    return tryImageCandidates(imgEl, buildAvatarCandidates(item));
   }
 
   function loadImage(src) {
@@ -369,7 +365,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (avatarUrl) {
       await tryImageCandidates(recAvatarEl, [avatarUrl]);
     } else {
-      hideBrokenImage(recAvatarEl);
+      await tryImageCandidates(recAvatarEl, buildAvatarCandidates(item));
     }
 
     await renderQrInto(recommendQrEl, SYSTEM_URL);
