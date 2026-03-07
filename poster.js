@@ -22,6 +22,17 @@ document.addEventListener("DOMContentLoaded", function () {
   const copyLinkEl = document.getElementById("copyLink");
   const copySystemEl = document.getElementById("copySystem");
   const downloadEl = document.getElementById("download");
+  const downloadRecommendEl = document.getElementById("downloadRecommend");
+
+  const recPosterEl = document.getElementById("recommendPoster");
+  const recAvatarEl = document.getElementById("recAvatar");
+  const recNameEl = document.getElementById("recName");
+  const recRoleEl = document.getElementById("recRole");
+  const recCopyEl = document.getElementById("recCopy");
+  const recommendQrEl = document.getElementById("recommendQr");
+
+  let currentItem = null;
+  let currentAvatarUrl = "";
 
   function setStatus(msg) {
     if (statusEl) statusEl.innerText = msg || "";
@@ -88,30 +99,32 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function bindAvatar(url) {
+  function bindAvatar(imgEl, url) {
     return new Promise((resolve) => {
-      if (!avatarEl) {
+      if (!imgEl) {
         resolve("");
         return;
       }
 
-      avatarEl.onerror = null;
-      avatarEl.onload = null;
+      imgEl.onerror = null;
+      imgEl.onload = null;
 
       if (!url) {
-        avatarEl.removeAttribute("src");
+        imgEl.removeAttribute("src");
         resolve("");
         return;
       }
 
-      avatarEl.crossOrigin = "anonymous";
-      avatarEl.referrerPolicy = "no-referrer";
-      avatarEl.onload = () => resolve(url);
-      avatarEl.onerror = () => {
-        avatarEl.removeAttribute("src");
+      imgEl.crossOrigin = "anonymous";
+      imgEl.referrerPolicy = "no-referrer";
+
+      imgEl.onload = () => resolve(url);
+      imgEl.onerror = () => {
+        imgEl.removeAttribute("src");
         resolve("");
       };
-      avatarEl.src = url;
+
+      imgEl.src = url;
     });
   }
 
@@ -241,17 +254,17 @@ document.addEventListener("DOMContentLoaded", function () {
             temp.remove();
             reject(e);
           }
-        }, 160);
+        }, 180);
       } catch (e) {
         reject(e);
       }
     });
   }
 
-  async function renderQrWithCenter(url, centerImageUrl) {
-    if (!qrWrapEl) return;
+  async function renderQrInto(wrapEl, url, centerImageUrl) {
+    if (!wrapEl) return;
 
-    qrWrapEl.innerHTML = "";
+    wrapEl.innerHTML = "";
 
     try {
       const size = 300;
@@ -259,7 +272,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const ctx = canvas.getContext("2d");
 
       if (!ctx) {
-        qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
+        wrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
         return;
       }
 
@@ -296,11 +309,11 @@ document.addEventListener("DOMContentLoaded", function () {
         drawFallbackCenter(ctx, size);
       }
 
-      qrWrapEl.innerHTML = "";
-      qrWrapEl.appendChild(canvas);
+      wrapEl.innerHTML = "";
+      wrapEl.appendChild(canvas);
     } catch (e) {
       console.error("QRCode render error:", e);
-      qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
+      wrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
     }
   }
 
@@ -341,7 +354,29 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  function buildRecommendRole(item) {
+    const arr = [safe(item.unit), safe(item.title)].filter(Boolean);
+    return arr.join("\n");
+  }
+
+  function buildRecommendCopy(item) {
+    const name = safe(item.name) || "我";
+    return `${name}正在使用智慧名片，\n把個人介紹、服務資訊與分享入口整理在同一張名片裡。\n\n你也可以看看這個系統。`;
+  }
+
+  async function renderRecommendPoster(item, avatarUrl) {
+    if (recNameEl) recNameEl.innerText = safe(item.name) || "推薦者";
+    if (recRoleEl) recRoleEl.innerText = buildRecommendRole(item);
+    if (recCopyEl) recCopyEl.innerText = buildRecommendCopy(item);
+
+    await bindAvatar(recAvatarEl, avatarUrl || "");
+
+    await renderQrInto(recommendQrEl, SYSTEM_URL, avatarUrl || "");
+  }
+
   async function render(item) {
+    currentItem = item;
+
     if (nameEl) nameEl.innerText = safe(item.name) || "未命名";
     if (unitEl) unitEl.innerText = safe(item.unit);
     if (titleEl) titleEl.innerText = safe(item.title);
@@ -361,7 +396,7 @@ document.addEventListener("DOMContentLoaded", function () {
     setBlock(expEl, expWrapEl, firstTwoLines(item.experience));
 
     const avatarUrl = getAvatar(item);
-    const loadedAvatarUrl = await bindAvatar(avatarUrl);
+    currentAvatarUrl = await bindAvatar(avatarEl, avatarUrl);
 
     const cardUrl = getCardUrl(id);
 
@@ -371,10 +406,11 @@ document.addEventListener("DOMContentLoaded", function () {
       openCardEl.rel = "noopener noreferrer";
     }
 
-    await renderQrWithCenter(cardUrl, loadedAvatarUrl || avatarUrl);
+    await renderQrInto(qrWrapEl, cardUrl, currentAvatarUrl || avatarUrl);
+    await renderRecommendPoster(item, currentAvatarUrl || avatarUrl);
 
     if (copyLinkEl) {
-      copyLinkEl.onclick = () => copyText(cardUrl, "已複製名片連結");
+      copyLinkEl.onclick = () => copyText(cardUrl, "已複製我的名片連結");
     }
 
     if (copySystemEl) {
@@ -384,7 +420,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (downloadEl) {
       downloadEl.onclick = async () => {
         try {
-          setStatus("生成海報...");
+          setStatus("生成我的名片海報...");
 
           const canvas = await html2canvas(posterEl, {
             scale: 3,
@@ -401,6 +437,30 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
           console.error(e);
           setStatus("下載失敗，請稍後再試");
+        }
+      };
+    }
+
+    if (downloadRecommendEl) {
+      downloadRecommendEl.onclick = async () => {
+        try {
+          setStatus("生成推薦海報...");
+
+          const canvas = await html2canvas(recPosterEl, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#fffaf2"
+          });
+
+          const a = document.createElement("a");
+          a.href = canvas.toDataURL("image/png");
+          a.download = `${id}-recommend.png`;
+          a.click();
+
+          setStatus("");
+        } catch (e) {
+          console.error(e);
+          setStatus("推薦海報下載失敗，請稍後再試");
         }
       };
     }
