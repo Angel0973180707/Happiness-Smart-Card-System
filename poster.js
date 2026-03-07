@@ -1,6 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
   const GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+  const SYSTEM_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
 
   const qs = new URLSearchParams(location.search);
   const id = (qs.get("id") || "").trim();
@@ -21,6 +22,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const qrWrapEl = document.getElementById("qrcode");
   const openCardEl = document.getElementById("openCard");
   const copyLinkEl = document.getElementById("copyLink");
+  const copySystemEl = document.getElementById("copySystem");
   const downloadEl = document.getElementById("download");
 
   function setStatus(msg) {
@@ -145,7 +147,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!ctx) return;
 
     try {
-      // 先畫 QR
       if (typeof QRCode !== "undefined" && typeof QRCode.toCanvas === "function") {
         await QRCode.toCanvas(canvas, url, {
           width: size,
@@ -156,7 +157,6 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
       } else if (typeof QRCode !== "undefined") {
-        // qrcodejs fallback
         const temp = document.createElement("div");
         temp.style.position = "fixed";
         temp.style.left = "-99999px";
@@ -191,7 +191,6 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      // 再畫中間頭像（或 fallback）
       const boxSize = 68;
       const innerSize = 56;
       const x = (size - boxSize) / 2;
@@ -223,7 +222,6 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
           console.warn("center image fail", e);
 
-          // fallback：至少保留中間白底圓章
           ctx.save();
 
           ctx.fillStyle = "#ffffff";
@@ -312,9 +310,22 @@ document.addEventListener("DOMContentLoaded", function () {
       copyLinkEl.onclick = async () => {
         try {
           await navigator.clipboard.writeText(cardUrl);
-          setStatus("");
+          alert("已複製名片連結");
         } catch (e) {
           console.error(e);
+          alert(cardUrl);
+        }
+      };
+    }
+
+    if (copySystemEl) {
+      copySystemEl.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(SYSTEM_URL);
+          alert("已複製推薦連結");
+        } catch (e) {
+          console.error(e);
+          alert(SYSTEM_URL);
         }
       };
     }
