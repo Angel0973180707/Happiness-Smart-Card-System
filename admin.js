@@ -1,5 +1,5 @@
 /* ==========================================
- * HSC Admin Workspace — admin.js v522.5
+ * HSC Admin Workspace — admin.js v522.6
  * COMPLETE OVERWRITE
  *
  * Features:
@@ -7,20 +7,24 @@
  * - 搜尋卡片
  * - 載入卡片
  * - 開智慧名片成品（view=1）
- * - 開交付卡
- * - 複製交付連結
+ * - 開交付卡（poster.html）
+ * - 複製交付連結（poster.html）
  * - 複製更新連結
  * - 啟用 / 停用
  * - 建邀請碼
  * - 快速更新
  * - 讀統計
  * - 即將到期提醒（30 天內 active）
+ *
+ * v522.6:
+ * - share.html → poster.html
+ * - 內建 buildDeliveryMessage()，後續可直接接「複製交付訊息」按鈕
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "522.5";
+  const VERSION = "522.6";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -32,9 +36,9 @@
   const EXPIRY_REMIND_DAYS = 30;
 
   const LS = {
-    GAS: "hsc_admin_gas_v5225",
-    TENANT: "hsc_admin_tenant_v5225",
-    SECRET: "hsc_admin_secret_v5225"
+    GAS: "hsc_admin_gas_v5226",
+    TENANT: "hsc_admin_tenant_v5226",
+    SECRET: "hsc_admin_secret_v5226"
   };
 
   const state = {
@@ -833,3 +837,4 @@
       .replaceAll("'", "&#39;");
   }
 })();
+幫我改，完整覆蓋版
