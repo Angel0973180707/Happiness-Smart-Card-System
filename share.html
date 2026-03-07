@@ -1,465 +1,246 @@
 <!-- =========================================================
-  share.html — v522 (COMPLETE OVERWRITE)
+  share.html — v522.1 (COMPLETE OVERWRITE)
   Purpose:
   - 唯一交付入口：OG 卡（可分享的交付卡頁）
-  - 卡面只有「查看智慧名片」按鈕 → index.html?id=...
+  - 卡面只有「打開我的智慧名片」按鈕 → index.html?id=...
   - 預設客戶模式：不提供任何複製成品連結按鈕
   - 後台檢視模式：加 ?admin=1 才顯示工具列（你自己用）
 ========================================================= -->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片｜交付卡</title>
-  <meta name="theme-color" content="#f7f3ea" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>智慧名片｜交付卡</title>
+<meta name="theme-color" content="#f7f3ea"/>
 
-  <!--
-    注意：GitHub Pages 靜態頁無法針對每張名片「真正動態 OG meta」(社群爬蟲不跑 JS)
-    這裡放品牌級的通用 OG，頁面內容（人看到的卡面）會用 JS 抓資料渲染。
-  -->
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="天使幸福智慧名片｜交付卡" />
-  <meta property="og:description" content="看見彼此的價值，從一張名片開始。" />
-  <meta property="og:image" content="./assets/og-default.jpg" />
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="天使幸福智慧名片｜交付卡"/>
+<meta property="og:description" content="看見彼此的價值，從一張名片開始。"/>
+<meta property="og:image" content="./assets/og-default.jpg"/>
 
-  <style>
-    :root{
-      --bg:#f7f3ea;
-      --ink:#1e293b;
-      --muted:rgba(30,41,59,.70);
-      --line:rgba(30,41,59,.12);
-      --card:rgba(255,255,255,.58);
-      --shadow:0 22px 60px rgba(30,41,59,.12);
-      --btn:#1f7a66;
-      --btn2:rgba(31,122,102,.10);
-      --radius:22px;
-      --radius2:16px;
-      --max:980px;
-    }
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    body{
-      margin:0;
-      font-family: system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,"Helvetica Neue",Arial;
-      color:var(--ink);
-      background:
-        radial-gradient(1200px 800px at 15% -10%, rgba(31,122,102,.10), transparent 58%),
-        radial-gradient(900px 700px at 90% 10%, rgba(245,158,11,.10), transparent 60%),
-        var(--bg);
-    }
-    .wrap{
-      max-width:var(--max);
-      margin:0 auto;
-      padding:22px 16px 34px;
-    }
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:14px;
-    }
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      font-weight:900;
-      letter-spacing:.4px;
-    }
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:7px 10px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.42);
-      color:var(--muted);
-      font-size:12px;
-      font-weight:800;
-      white-space:nowrap;
-    }
+<style>
+:root{
+--bg:#f7f3ea;
+--ink:#1e293b;
+--muted:rgba(30,41,59,.70);
+--line:rgba(30,41,59,.12);
+--card:rgba(255,255,255,.58);
+--shadow:0 22px 60px rgba(30,41,59,.12);
+--btn:#1f7a66;
+--radius:22px;
+--max:980px;
+}
+*{box-sizing:border-box}
+body{
+margin:0;
+font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto;
+color:var(--ink);
+background:
+radial-gradient(1200px 800px at 15% -10%,rgba(31,122,102,.10),transparent 58%),
+radial-gradient(900px 700px at 90% 10%,rgba(245,158,11,.10),transparent 60%),
+var(--bg);
+}
+.wrap{max-width:var(--max);margin:0 auto;padding:22px 16px 34px}
 
-    .grid{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:14px;
-    }
-    @media(min-width:860px){
-      .grid{ grid-template-columns:1.15fr .85fr; }
-    }
+.topbar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:14px;
+}
 
-    .card{
-      border:1px solid var(--line);
-      background:var(--card);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-      position:relative;
-    }
-    .cardInner{ padding:18px; }
+.badge{
+padding:7px 10px;
+border-radius:999px;
+border:1px solid var(--line);
+background:rgba(255,255,255,.42);
+font-size:12px;
+font-weight:800;
+}
 
-    .hero{
-      padding:26px 18px 18px;
-      background:
-        radial-gradient(900px 520px at 30% 0%, rgba(31,122,102,.14), transparent 60%),
-        radial-gradient(780px 520px at 90% 40%, rgba(148,163,184,.12), transparent 60%),
-        rgba(255,255,255,.42);
-      border-bottom:1px solid var(--line);
-    }
-    .heroRow{
-      display:flex;
-      align-items:center;
-      gap:14px;
-    }
-    .avatar{
-      width:78px; height:78px;
-      border-radius:999px;
-      border:1px solid rgba(30,41,59,.18);
-      background:#fff;
-      box-shadow: 0 12px 30px rgba(30,41,59,.12);
-      overflow:hidden;
-      flex:0 0 auto;
-    }
-    .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
-    .who{
-      min-width:0;
-      flex:1;
-    }
-    .name{
-      font-size:22px;
-      font-weight:1000;
-      letter-spacing:.3px;
-      line-height:1.15;
-      word-break:break-word;
-    }
-    .meta{
-      margin-top:8px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.5;
-      word-break:break-word;
-    }
-    .slogan{
-      margin-top:14px;
-      padding:12px 14px;
-      border-radius:16px;
-      border:1px dashed rgba(31,122,102,.28);
-      background:rgba(31,122,102,.08);
-      color:rgba(31,122,102,.92);
-      font-weight:900;
-      letter-spacing:.6px;
-      line-height:1.55;
-    }
+.grid{
+display:grid;
+grid-template-columns:1fr;
+gap:14px;
+}
 
-    .ctaBox{
-      padding:18px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    .btn{
-      appearance:none;
-      border:1px solid rgba(31,122,102,.28);
-      background: linear-gradient(180deg, rgba(31,122,102,.98), rgba(31,122,102,.88));
-      color:#fff;
-      padding:12px 14px;
-      border-radius:999px;
-      cursor:pointer;
-      font-weight:1000;
-      letter-spacing:.4px;
-      text-align:center;
-      text-decoration:none;
-      -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 18px 44px rgba(31,122,102,.18);
-      user-select:none;
-    }
-    .btn:active{ transform: translateY(1px); }
-    .btnGhost{
-      appearance:none;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.44);
-      color:var(--ink);
-      padding:11px 14px;
-      border-radius:999px;
-      cursor:pointer;
-      font-weight:900;
-      letter-spacing:.3px;
-      text-align:center;
-    }
-    .hint{
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.6;
-    }
+@media(min-width:860px){
+.grid{grid-template-columns:1.15fr .85fr}
+}
 
-    .side{
-      padding:16px;
-    }
-    .side .h{
-      font-weight:1000;
-      letter-spacing:.3px;
-      margin-bottom:8px;
-    }
-    .kv{
-      display:grid;
-      grid-template-columns: 92px 1fr;
-      gap:8px 10px;
-      font-size:13px;
-      color:var(--muted);
-      margin-top:10px;
-    }
-    .kv b{ color:rgba(30,41,59,.86); }
+.card{
+border:1px solid var(--line);
+background:var(--card);
+border-radius:var(--radius);
+box-shadow:var(--shadow);
+overflow:hidden;
+}
 
-    /* 後台模式工具列（客戶模式不顯示） */
-    .adminTools{
-      display:none;
-      margin-top:14px;
-      border-top:1px solid var(--line);
-      padding-top:14px;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-    .adminTools.show{ display:flex; }
-    .miniBtn{
-      appearance:none;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.44);
-      color:var(--ink);
-      padding:9px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:900;
-      font-size:12px;
-    }
+.hero{
+padding:26px 18px 18px;
+border-bottom:1px solid var(--line);
+}
 
-    .toast{
-      position:fixed;
-      left:50%;
-      bottom:16px;
-      transform:translateX(-50%);
-      background:rgba(17,24,39,.92);
-      color:#fff;
-      padding:10px 12px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:900;
-      letter-spacing:.2px;
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .18s ease;
-      max-width:min(92vw,560px);
-      text-align:center;
-    }
-    .toast.show{ opacity:1; }
-  </style>
+.heroRow{
+display:flex;
+align-items:center;
+gap:14px;
+}
+
+.avatar{
+width:78px;height:78px;
+border-radius:999px;
+overflow:hidden;
+background:#fff;
+}
+
+.avatar img{
+width:100%;height:100%;
+object-fit:cover;
+}
+
+.name{
+font-size:22px;
+font-weight:1000;
+}
+
+.meta{
+margin-top:8px;
+color:var(--muted);
+font-size:13px;
+}
+
+.ctaBox{
+padding:18px;
+display:flex;
+flex-direction:column;
+gap:12px;
+}
+
+.btn{
+border:1px solid rgba(31,122,102,.28);
+background:linear-gradient(180deg,rgba(31,122,102,.98),rgba(31,122,102,.88));
+color:#fff;
+padding:12px 14px;
+border-radius:999px;
+text-decoration:none;
+font-weight:1000;
+text-align:center;
+}
+
+.hint{
+color:var(--muted);
+font-size:13px;
+line-height:1.6;
+}
+
+.side{
+padding:16px;
+}
+
+.h{
+font-weight:1000;
+margin-bottom:10px;
+}
+
+.step{
+margin-bottom:10px;
+font-size:14px;
+line-height:1.6;
+}
+
+.toast{
+position:fixed;
+left:50%;
+bottom:16px;
+transform:translateX(-50%);
+background:#111827;
+color:#fff;
+padding:10px 12px;
+border-radius:999px;
+font-size:12px;
+opacity:0;
+transition:.2s;
+}
+
+.toast.show{opacity:1}
+</style>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <span>天使幸福智慧名片</span>
-        <span class="badge" id="modeBadge">交付卡</span>
-      </div>
-      <div class="badge" id="statusBadge">ready</div>
-    </div>
 
-    <div class="grid">
-      <!-- Left: OG Card -->
-      <section class="card" aria-label="delivery-card">
-        <div class="hero">
-          <div class="heroRow">
-            <div class="avatar" aria-label="avatar">
-              <img id="avatarImg" alt="avatar" src="./assets/avatar-default.png" />
-            </div>
-            <div class="who">
-              <div class="name" id="nameText">—</div>
-              <div class="meta" id="metaText">—</div>
-            </div>
-          </div>
-          <div class="slogan" id="sloganBox" style="display:none;">—</div>
-        </div>
+<div class="wrap">
 
-        <div class="ctaBox">
-          <!-- ✅ 唯一客戶按鈕：查看智慧名片 -->
-          <a class="btn" id="btnOpenCard" href="./index.html?id=">查看智慧名片</a>
+<div class="topbar">
+<div class="badge">交付卡</div>
+<div class="badge" id="statusBadge">ready</div>
+</div>
 
-          <div class="hint" id="hintText">
-            這是一張可分享的交付卡。點擊上方按鈕即可進入「智慧名片」。
-          </div>
+<div class="grid">
 
-          <!-- ✅ 後台工具列：只有 ?admin=1 才顯示 -->
-          <div class="adminTools" id="adminTools">
-            <button class="miniBtn" id="btnCopyShare">複製 OG卡連結</button>
-            <button class="miniBtn" id="btnCopyCard">複製智慧名片連結</button>
-            <button class="miniBtn" id="btnCopyWeChat">複製微信長圖連結</button>
-          </div>
-        </div>
-      </section>
+<!-- 左：交付卡 -->
+<section class="card">
 
-      <!-- Right: Info -->
-      <aside class="card side" aria-label="info">
-        <div class="h">交付內容</div>
-        <div class="kv">
-          <div>標準交付</div><b>OG卡（本頁）→ 智慧名片</b>
-          <div>加購項</div><b>微信長圖（wechat.html）</b>
-        </div>
+<div class="hero">
+<div class="heroRow">
 
-        <div style="height:10px"></div>
-        <div class="hint">
-          ※ 客戶收到的連結就是本頁（share.html?id=...）。<br/>
-          ※ 客戶不會看到任何「複製成品連結」工具。<br/>
-          ※ 若你要後台查看工具列：網址加上 <b>?admin=1</b>。
-        </div>
-      </aside>
-    </div>
-  </div>
+<div class="avatar">
+<img id="avatarImg" src="./assets/avatar-default.png">
+</div>
 
-  <div class="toast" id="toast"></div>
+<div>
+<div class="name" id="nameText">—</div>
+<div class="meta" id="metaText">—</div>
+</div>
 
-  <script>
-    (() => {
-      "use strict";
+</div>
+</div>
 
-      const DEFAULTS = {
-        GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-        BASE: location.origin + location.pathname.replace(/\/[^\/]*$/, "/"),
-        INDEX: "index.html",
-        SHARE: "share.html",
-        WECHAT: "wechat.html",
-        DEFAULT_AVATAR: "./assets/avatar-default.png"
-      };
+<div class="ctaBox">
 
-      const $ = (sel) => document.querySelector(sel);
-      const qs = (k) => new URLSearchParams(location.search).get(k);
+<a class="btn" id="btnOpenCard" href="./index.html?id=">
+打開我的智慧名片
+</a>
 
-      const elName = $("#nameText");
-      const elMeta = $("#metaText");
-      const elSlogan = $("#sloganBox");
-      const elAvatar = $("#avatarImg");
-      const elBtnOpen = $("#btnOpenCard");
-      const elStatus = $("#statusBadge");
-      const elMode = $("#modeBadge");
-      const elAdminTools = $("#adminTools");
-      const elToast = $("#toast");
+<div class="hint">
+點擊上方按鈕即可打開你的智慧名片。  
+進入名片後，右下角有「一鍵分享」按鈕，可快速分享給朋友、客戶或社群。
+</div>
 
-      function toast(msg){
-        elToast.textContent = msg;
-        elToast.classList.add("show");
-        clearTimeout(toast._t);
-        toast._t = setTimeout(() => elToast.classList.remove("show"), 1600);
-      }
+</div>
 
-      function baseUrl(){
-        const b = DEFAULTS.BASE;
-        return b.endsWith("/") ? b : b + "/";
-      }
+</section>
 
-      function buildCardUrl(id){
-        return baseUrl() + DEFAULTS.INDEX + "?id=" + encodeURIComponent(id) + "&view=1";
-      }
-      function buildShareUrl(id){
-        // 保留既有參數（如 admin=1），但核心是 id
-        const u = new URL(baseUrl() + DEFAULTS.SHARE);
-        u.searchParams.set("id", id);
-        if(qs("admin") === "1") u.searchParams.set("admin","1");
-        return u.toString();
-      }
-      function buildWeChatUrl(id){
-        return baseUrl() + DEFAULTS.WECHAT + "?id=" + encodeURIComponent(id);
-      }
+<!-- 右：使用說明 -->
+<aside class="card side">
 
-      async function copyText(s){
-        try{
-          await navigator.clipboard.writeText(String(s||""));
-          toast("已複製 ✅");
-          return true;
-        }catch(e){
-          const ok = prompt("請手動複製：", String(s||""));
-          return ok !== null;
-        }
-      }
+<div class="h">
+如何使用這張智慧名片？
+</div>
 
-      async function fetchCard(id){
-        // share 頁只需顯示（以「public view」為主）
-        // 若名片 inactive 且 GAS 要 token 才能讀，這裡會顯示「尚未開通」文案
-        const gas = localStorage.getItem("HSC_GAS") || DEFAULTS.GAS;
-        const u = new URL(gas);
-        u.searchParams.set("action","card");
-        u.searchParams.set("id", id);
-        u.searchParams.set("ts", Date.now());
-        const res = await fetch(u.toString(), { cache:"no-store" });
-        const j = await res.json().catch(() => null);
-        return j;
-      }
+<div class="step">
+<b>查閱名片</b><br>
+點擊「打開我的智慧名片」，即可查看完整名片內容。
+</div>
 
-      function setText(el, s){ if(el) el.textContent = s == null ? "" : String(s); }
+<div class="step">
+<b>分享名片</b><br>
+進入名片後，右下角有「一鍵分享」按鈕，可快速將名片分享出去。
+</div>
 
-      async function boot(){
-        const id = String(qs("id")||"").trim();
-        const adminMode = qs("admin") === "1";
+<div class="step">
+<b>可分享的平台</b><br>
+LINE ・ Facebook ・ Messenger ・ Email ・ 微信 ・ 社群個人頁 ・ 課程頁 ・ 作品集入口
+</div>
 
-        if(adminMode){
-          elMode.textContent = "交付卡（後台檢視）";
-          elAdminTools.classList.add("show");
-        }else{
-          elMode.textContent = "交付卡";
-        }
+</aside>
 
-        if(!id){
-          setText(elStatus, "missing id");
-          setText(elName, "缺少名片 ID");
-          setText(elMeta, "請使用 share.html?id=TW0001");
-          elBtnOpen.setAttribute("href", "./index.html");
-          return;
-        }
+</div>
 
-        // ✅ 唯一主要行為：開智慧名片
-        elBtnOpen.setAttribute("href", buildCardUrl(id));
+</div>
 
-        setText(elStatus, "loading…");
+<div class="toast" id="toast"></div>
 
-        const j = await fetchCard(id).catch(e => ({ ok:false, error:String(e) }));
-        if(!j || !j.ok){
-          setText(elStatus, "unavailable");
-          setText(elName, "尚未開通或無法讀取");
-          setText(elMeta, "這張名片可能尚未啟用，或需要後台權限讀取。");
-          elAvatar.src = DEFAULTS.DEFAULT_AVATAR;
-          return;
-        }
-
-        const item = j.item || j.data || {};
-        const name = String(item.name||"").trim() || "（未填姓名）";
-        const unit = String(item.unit||"").trim();
-        const title = String(item.title||"").trim();
-        const slogan = String(item.slogan||"").trim();
-        const avatar = String(item.avatar_img||"").trim();
-
-        setText(elName, name);
-        setText(elMeta, [unit, title].filter(Boolean).join("｜") || "智慧名片");
-        if(slogan){
-          elSlogan.style.display = "";
-          setText(elSlogan, slogan);
-        }else{
-          elSlogan.style.display = "none";
-        }
-
-        elAvatar.src = avatar || DEFAULTS.DEFAULT_AVATAR;
-
-        setText(elStatus, "ok");
-
-        // 後台工具列（只有 admin=1 才顯示）
-        if(adminMode){
-          $("#btnCopyShare").addEventListener("click", () => copyText(buildShareUrl(id)));
-          $("#btnCopyCard").addEventListener("click", () => copyText(buildCardUrl(id)));
-          $("#btnCopyWeChat").addEventListener("click", () => copyText(buildWeChatUrl(id)));
-        }
-      }
-
-      boot();
-    })();
-  </script>
 </body>
 </html>
