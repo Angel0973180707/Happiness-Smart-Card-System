@@ -6,6 +6,7 @@ const id = (qs.get("id") || "").trim();
 
 const statusEl = document.getElementById("status");
 if (statusEl) statusEl.style.display = "none";
+
 const posterEl = document.getElementById("poster");
 const avatarEl = document.getElementById("avatar");
 const nameEl = document.getElementById("name");
@@ -24,6 +25,7 @@ const copyLinkEl = document.getElementById("copyLink");
 const downloadEl = document.getElementById("download");
 
 function setStatus(msg) {
+  if (!statusEl) return;
   statusEl.innerText = msg || "";
 }
 
@@ -72,11 +74,12 @@ function firstTwoLines(text) {
     .filter(Boolean)
     .slice(0, 2);
 
-  if (lines.length) return lines.join("\n");
-  return t;
+  return lines.length ? lines.join("\n") : t;
 }
 
 function setSimpleBlock(el, wrapEl, value) {
+  if (!el || !wrapEl) return;
+
   const text = safeText(value);
   if (text) {
     el.innerText = text;
@@ -88,6 +91,8 @@ function setSimpleBlock(el, wrapEl, value) {
 }
 
 function bindAvatar(url) {
+  if (!avatarEl) return;
+
   avatarEl.onerror = null;
 
   if (!url) {
@@ -173,17 +178,19 @@ async function loadCard() {
 }
 
 async function render(item) {
-  nameEl.innerText = safeText(item.name) || "未命名";
-  unitEl.innerText = safeText(item.unit);
-  titleEl.innerText = safeText(item.title);
+  if (nameEl) nameEl.innerText = safeText(item.name) || "未命名";
+  if (unitEl) unitEl.innerText = safeText(item.unit);
+  if (titleEl) titleEl.innerText = safeText(item.title);
 
   const slogan = safeText(item.slogan);
-  if (slogan) {
-    sloganEl.innerText = slogan;
-    sloganEl.style.display = "";
-  } else {
-    sloganEl.innerText = "";
-    sloganEl.style.display = "none";
+  if (sloganEl) {
+    if (slogan) {
+      sloganEl.innerText = slogan;
+      sloganEl.style.display = "";
+    } else {
+      sloganEl.innerText = "";
+      sloganEl.style.display = "none";
+    }
   }
 
   setSimpleBlock(servicesEl, servicesWrapEl, firstTwoLines(item.services));
@@ -193,43 +200,49 @@ async function render(item) {
 
   const cardUrl = getCardUrl(id);
 
-  openCardEl.href = cardUrl;
-  openCardEl.target = "_blank";
-  openCardEl.rel = "noopener noreferrer";
+  if (openCardEl) {
+    openCardEl.href = cardUrl;
+    openCardEl.target = "_blank";
+    openCardEl.rel = "noopener noreferrer";
+  }
 
   await renderQrCode(cardUrl);
 
-  copyLinkEl.onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(cardUrl);
-      setStatus("已複製名片連結");
-    } catch (err) {
-      console.error(err);
-      setStatus("複製失敗");
-    }
-  };
+  if (copyLinkEl) {
+    copyLinkEl.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(cardUrl);
+        setStatus("已複製名片連結");
+      } catch (err) {
+        console.error(err);
+        setStatus("複製失敗");
+      }
+    };
+  }
 
-  downloadEl.onclick = async () => {
-    try {
-      setStatus("生成海報...");
+  if (downloadEl) {
+    downloadEl.onclick = async () => {
+      try {
+        setStatus("生成海報...");
 
-      const canvas = await html2canvas(posterEl, {
-        scale: 3,
-        useCORS: true,
-        backgroundColor: "#ffffff"
-      });
+        const canvas = await html2canvas(posterEl, {
+          scale: 3,
+          useCORS: true,
+          backgroundColor: "#ffffff"
+        });
 
-      const a = document.createElement("a");
-      a.href = canvas.toDataURL("image/png");
-      a.download = `${id}-poster.png`;
-      a.click();
+        const a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = `${id}-poster.png`;
+        a.click();
 
-      setStatus("下載完成");
-    } catch (err) {
-      console.error(err);
-      setStatus("下載失敗");
-    }
-  };
+        setStatus("下載完成");
+      } catch (err) {
+        console.error(err);
+        setStatus("下載失敗");
+      }
+    };
+  }
 
   setStatus("OK");
 }
@@ -239,14 +252,14 @@ async function init() {
     const item = await loadCard();
 
     if (!item) {
-      setStatus("讀取失敗");
+      if (nameEl) nameEl.innerText = "讀取失敗";
       return;
     }
 
     await render(item);
   } catch (err) {
     console.error(err);
-    setStatus("讀取失敗");
+    if (nameEl) nameEl.innerText = "讀取失敗";
   }
 }
 
