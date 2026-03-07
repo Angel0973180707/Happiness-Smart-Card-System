@@ -1,1695 +1,494 @@
-<!doctype html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v522.8</title>
-  <meta name="theme-color" content="#0b1220" />
-  <style>
-    :root{
-      --bg:#0b1220;
-      --card:#111a2b;
-      --line:rgba(255,255,255,.12);
-      --line2:rgba(255,255,255,.08);
-      --text:rgba(255,255,255,.94);
-      --muted:rgba(255,255,255,.72);
-      --accent:#7bdcff;
-      --ok:#6ee7b7;
-      --bad:#fb7185;
-      --warn:#fbbf24;
-      --radius:20px;
-      --shadow:0 18px 40px rgba(0,0,0,.30);
-      --fs:clamp(16px,1.8vw,18px);
-      --fs2:clamp(20px,2.7vw,24px);
-      --fs3:clamp(24px,3.4vw,30px);
-      --fs4:clamp(28px,4vw,36px);
-      --navH:84px;
-      --mobileNavH:68px;
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; }
-    html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
-
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Arial;
-      background:
-        radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%),
-        radial-gradient(900px 700px at 100% 0%, rgba(255,191,36,.08), transparent 58%),
-        var(--bg);
-      color:var(--text);
-      font-size:var(--fs);
-      line-height:1.65;
-      word-break:keep-all;
-      overflow-wrap:break-word;
-    }
-
-    .wrap{
-      max-width:980px;
-      margin:0 auto;
-      padding:18px 14px 120px;
-    }
-
-    .top{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:14px;
-      padding:18px;
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-      box-shadow:var(--shadow);
-      transition:.22s ease;
-    }
-
-    .brand{ min-width:0; flex:1 1 auto; }
-
-    .brand h1{
-      margin:0;
-      font-size:var(--fs4);
-      line-height:1.22;
-      transition:.22s ease;
-    }
-
-    .brand p{
-      margin:10px 0 0;
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.8;
-      transition:.22s ease;
-    }
-
-    .meta{
-      text-align:right;
-      min-width:180px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.9;
-      flex:0 0 auto;
-      transition:.22s ease;
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 11px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      background:rgba(255,255,255,.04);
-      font-size:12px;
-      font-weight:800;
-    }
-
-    .dot{
-      width:10px;
-      height:10px;
-      border-radius:50%;
-      background:var(--warn);
-      box-shadow:0 0 0 2px rgba(251,191,36,.15);
-      flex:0 0 auto;
-    }
-
-    .kbd{
-      display:inline-block;
-      padding:2px 7px;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:rgba(255,255,255,.03);
-      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-      font-size:11px;
-      word-break:break-all;
-    }
-
-    .flow{
-      margin-top:12px;
-      padding:10px 12px;
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:rgba(255,255,255,.03);
-      box-shadow:var(--shadow);
-      transition:.22s ease;
-    }
-
-    .flow-head{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:8px;
-    }
-
-    .flow-title{
-      font-size:18px;
-      font-weight:900;
-      line-height:1.3;
-      transition:.22s ease;
-    }
-
-    .flow-sub{
-      margin-top:2px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.55;
-      transition:.22s ease;
-    }
-
-    .stepTrack{
-      display:grid;
-      grid-template-columns:repeat(7, minmax(0,1fr));
-      gap:6px;
-      margin-top:8px;
-      transition:.22s ease;
-    }
-
-    .stepDot{
-      border:1px solid var(--line);
-      border-radius:14px;
-      background:rgba(255,255,255,.03);
-      padding:8px 6px;
-      min-height:64px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      text-align:center;
-      transition:.2s ease;
-      cursor:pointer;
-    }
-
-    .stepDot .num{
-      width:24px;
-      height:24px;
-      border-radius:50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:12px;
-      font-weight:900;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      margin-bottom:6px;
-      flex:0 0 auto;
-    }
-
-    .stepDot .txt{
-      font-size:12px;
-      line-height:1.35;
-      color:var(--muted);
-      font-weight:800;
-    }
-
-    .stepDot[data-done="1"]{
-      border-color:rgba(110,231,183,.28);
-      background:rgba(110,231,183,.08);
-    }
-
-    .stepDot[data-current="1"]{
-      border-color:rgba(123,220,255,.45);
-      box-shadow:0 0 0 3px rgba(123,220,255,.12);
-      background:rgba(123,220,255,.10);
-    }
-
-    .stepDot[data-current="1"] .num{
-      border-color:rgba(123,220,255,.4);
-      background:rgba(123,220,255,.18);
-    }
-
-    .stepDot[data-current="1"] .txt,
-    .stepDot[data-done="1"] .txt{
-      color:var(--text);
-    }
-
-    .card{
-      margin-top:14px;
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      background:rgba(255,255,255,.03);
-      padding:18px;
-      box-shadow:var(--shadow);
-      scroll-margin-top:16px;
-    }
-
-    .card h2{
-      margin:0 0 12px;
-      font-size:var(--fs3);
-      line-height:1.3;
-    }
-
-    .subnote{
-      margin:-2px 0 12px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.8;
-    }
-
-    .page{ display:none; }
-    .page.active{ display:block; }
-
-    .row{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
-    }
-
-    @media(min-width:760px){
-      .row.two{ grid-template-columns:1fr 1fr; }
-      .row.three{ grid-template-columns:1fr 1fr 1fr; }
-    }
-
-    .field{ min-width:0; }
-
-    label{
-      display:block;
-      font-size:15px;
-      color:var(--muted);
-      margin:0 0 8px;
-      font-weight:900;
-      line-height:1.55;
-    }
-
-    .req{
-      color:var(--warn);
-      margin-left:6px;
-    }
-
-    input, textarea, select{
-      width:100%;
-      background:rgba(255,255,255,.04);
-      color:var(--text);
-      border:1px solid var(--line);
-      border-radius:15px;
-      padding:15px 15px;
-      outline:none;
-      font-size:clamp(16px,1.9vw,18px);
-      line-height:1.6;
-      min-height:54px;
-      transition:border-color .18s ease, box-shadow .18s ease;
-    }
-
-    input:focus, textarea:focus, select:focus{
-      border-color:rgba(123,220,255,.55);
-      box-shadow:0 0 0 3px rgba(123,220,255,.12);
-    }
-
-    textarea{
-      min-height:120px;
-      resize:vertical;
-    }
-
-    input::placeholder, textarea::placeholder{
-      color:rgba(255,255,255,.35);
-    }
-
-    .hint{
-      margin-top:7px;
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.75;
-    }
-
-    .chips{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-
-    .chip{
-      cursor:pointer;
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:12px 15px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      background:rgba(255,255,255,.03);
-      user-select:none;
-      font-size:15px;
-      font-weight:900;
-      min-height:48px;
-      line-height:1.3;
-      transition:.18s ease;
-    }
-
-    .chip[data-on="1"]{
-      border-color:rgba(123,220,255,.55);
-      box-shadow:0 0 0 3px rgba(123,220,255,.14);
-      background:rgba(123,220,255,.10);
-    }
-
-    .swatch{
-      width:20px;
-      height:20px;
-      border-radius:50%;
-      border:1px solid rgba(255,255,255,.18);
-      box-shadow: inset 0 0 0 2px rgba(0,0,0,.18);
-      background:linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.02));
-      flex:0 0 auto;
-    }
-
-    .sectionGap{ margin-top:12px; }
-
-    .uploadGrid{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:12px;
-    }
-
-    @media(min-width:760px){
-      .uploadGrid{ grid-template-columns:1fr 1fr; }
-    }
-
-    .uItem{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
-      background:rgba(255,255,255,.02);
-    }
-
-    .uItemHead{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-
-    .uItemHead strong{
-      font-size:16px;
-      line-height:1.45;
-    }
-
-    .uItemHead small{
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.7;
-    }
-
-    .thumb{
-      margin-top:10px;
-      width:100%;
-      aspect-ratio:16 / 10;
-      border-radius:14px;
-      border:1px solid var(--line);
-      overflow:hidden;
-      background:rgba(0,0,0,.18);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:rgba(255,255,255,.35);
-      font-size:13px;
-      text-align:center;
-      padding:12px;
-      line-height:1.7;
-    }
-
-    .thumb img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-
-    .miniRow{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      margin-top:10px;
-      flex-wrap:wrap;
-    }
-
-    .miniRow input[type="file"]{
-      padding:10px;
-      font-size:14px;
-      min-height:auto;
-    }
-
-    .btns{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:12px;
-    }
-
-    button{
-      cursor:pointer;
-      border:none;
-      border-radius:14px;
-      padding:13px 18px;
-      font-weight:900;
-      font-size:16px;
-      background:rgba(123,220,255,.14);
-      color:var(--text);
-      border:1px solid rgba(123,220,255,.35);
-      min-height:50px;
-      line-height:1.3;
-      transition:.18s ease;
-    }
-
-    button.secondary{
-      background:rgba(255,255,255,.04);
-      border:1px solid var(--line);
-    }
-
-    button.ghost{
-      background:transparent;
-      border:1px solid var(--line);
-    }
-
-    button.okBtn{
-      background:rgba(110,231,183,.16);
-      border:1px solid rgba(110,231,183,.30);
-    }
-
-    button:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-    }
-
-    .submit-progress-wrap{
-      margin-top:12px;
-      padding:12px 12px;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(255,255,255,.04);
-      display:none;
-      scroll-margin-top:12px;
-    }
-
-    .submit-progress-head{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      margin-bottom:8px;
-      font-size:13px;
-      color:rgba(255,255,255,.85);
-      font-weight:900;
-    }
-
-    .submit-progress{
-      height:12px;
-      border-radius:999px;
-      background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.10);
-      overflow:hidden;
-    }
-
-    .submit-progress-fill{
-      height:100%;
-      width:0%;
-      border-radius:999px;
-      background:linear-gradient(90deg, rgba(123,220,255,.95), rgba(255,170,90,.95));
-      box-shadow:0 0 18px rgba(123,220,255,.18);
-      transition:width .28s ease;
-      position:relative;
-    }
-
-    .submit-progress-fill::after{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:linear-gradient(110deg, transparent 0%, rgba(255,255,255,.28) 45%, transparent 70%);
-      transform:translateX(-60%);
-      animation:shimmer 1.05s linear infinite;
-      mix-blend-mode:screen;
-    }
-
-    @keyframes shimmer{
-      0%{ transform:translateX(-60%); }
-      100%{ transform:translateX(60%); }
-    }
-
-    .submit-progress-text{
-      margin-top:8px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.75;
-      min-height:20px;
-    }
-
-    .status{
-      margin-top:12px;
-      border:1px dashed var(--line);
-      border-radius:14px;
-      padding:12px 14px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.85;
-      white-space:pre-wrap;
-      word-break:break-word;
-      background:rgba(255,255,255,.02);
-      scroll-margin-top:12px;
-    }
-
-    .status.ok{
-      border-style:solid;
-      border-color:rgba(110,231,183,.28);
-      background:rgba(110,231,183,.08);
-      color:#defced;
-    }
-
-    .status.bad{
-      border-style:solid;
-      border-color:rgba(251,113,133,.28);
-      background:rgba(251,113,133,.08);
-      color:#ffd9e0;
-    }
-
-    .status.warn{
-      border-style:solid;
-      border-color:rgba(251,191,36,.28);
-      background:rgba(251,191,36,.08);
-      color:#fff1c2;
-    }
-
-    .summary{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:10px;
-    }
-
-    .sumRow{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:12px;
-      padding:11px 12px;
-      border:1px solid var(--line2);
-      border-radius:14px;
-      background:rgba(255,255,255,.02);
-    }
-
-    .sumRow span{
-      color:var(--muted);
-      font-size:13px;
-      font-weight:900;
-      flex:0 0 auto;
-    }
-
-    .sumRow strong{
-      font-size:14px;
-      line-height:1.7;
-      text-align:right;
-      font-weight:900;
-      min-width:0;
-      word-break:break-word;
-    }
-
-    /* =========================
-       Step7 真名片預覽
-    ========================= */
-
-    .previewCard{
-      margin-top:16px;
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:28px;
-      padding:18px;
-      position:relative;
-      overflow:hidden;
-      background:
-        radial-gradient(120% 140% at 20% 0%, rgba(255,255,255,.10), transparent 40%),
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      box-shadow:
-        0 18px 40px rgba(0,0,0,.24),
-        inset 0 1px 0 rgba(255,255,255,.08);
-    }
-
-    .previewCard.theme-free{
-      background:
-        radial-gradient(120% 140% at 20% 0%, rgba(123,220,255,.18), transparent 42%),
-        radial-gradient(100% 120% at 100% 100%, rgba(255,191,36,.10), transparent 45%),
-        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-    }
-
-    .previewCard.theme-premium{
-      background:
-        radial-gradient(120% 140% at 20% 0%, rgba(251,191,36,.18), transparent 42%),
-        radial-gradient(100% 120% at 100% 100%, rgba(255,120,120,.10), transparent 45%),
-        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-      border-color:rgba(251,191,36,.22);
-    }
-
-    .previewRibbon{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-bottom:14px;
-    }
-
-    .previewHead{
-      font-weight:900;
-      font-size:16px;
-      color:rgba(255,255,255,.92);
-    }
-
-    .previewPlanBadge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:7px 12px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);
-      font-size:12px;
-      font-weight:900;
-      color:#fff;
-    }
-
-    .previewShell{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:24px;
-      background:rgba(7,12,24,.38);
-      padding:18px;
-      backdrop-filter:blur(10px);
-    }
-
-    .previewTheme{
-      margin-bottom:12px;
-      color:rgba(255,255,255,.72);
-      font-size:12px;
-      line-height:1.7;
-      text-align:center;
-      font-weight:800;
-    }
-
-    .previewHero{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      gap:10px;
-    }
-
-    .previewAvatarWrap{
-      width:108px;
-      height:108px;
-      border-radius:50%;
-      padding:4px;
-      background:linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.06));
-      box-shadow:0 10px 24px rgba(0,0,0,.20);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .previewAvatar{
-      width:100%;
-      height:100%;
-      border-radius:50%;
-      object-fit:cover;
-      background:#222;
-      border:1px solid rgba(255,255,255,.14);
-      display:none;
-    }
-
-    .previewName{
-      font-size:24px;
-      font-weight:900;
-      line-height:1.3;
-      letter-spacing:.3px;
-    }
-
-    .previewUnit{
-      font-size:15px;
-      opacity:.88;
-      line-height:1.7;
-      font-weight:800;
-    }
-
-    .previewTitle{
-      font-size:15px;
-      line-height:1.75;
-      color:rgba(255,255,255,.86);
-      font-weight:800;
-    }
-
-    .previewBlock{
-      margin-top:14px;
-      padding:14px 14px;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.03);
-    }
-
-    .previewLabel{
-      font-size:12px;
-      color:rgba(255,255,255,.64);
-      font-weight:900;
-      letter-spacing:.3px;
-      margin-bottom:6px;
-    }
-
-    .previewSlogan{
-      font-size:15px;
-      line-height:1.85;
-      font-weight:800;
-    }
-
-    .previewServices{
-      font-size:14px;
-      line-height:1.8;
-      color:rgba(255,255,255,.92);
-    }
-
-    .previewExp{
-      font-size:14px;
-      line-height:1.85;
-      white-space:pre-wrap;
-      word-break:break-word;
-      color:rgba(255,255,255,.90);
-    }
-
-    .previewPhotoWrap{
-      margin-top:16px;
-    }
-
-    .previewPhotoWall{
-      display:grid;
-      grid-template-columns:repeat(2, minmax(0,1fr));
-      gap:10px;
-    }
-
-    .previewPhotoWall[data-count="1"]{
-      grid-template-columns:1fr;
-    }
-
-    .previewPhotoWall[data-count="3"],
-    .previewPhotoWall[data-count="4"],
-    .previewPhotoWall[data-count="5"]{
-      grid-template-columns:repeat(2, minmax(0,1fr));
-    }
-
-    .previewPhotoItem{
-      aspect-ratio:16 / 10;
-      overflow:hidden;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(0,0,0,.22);
-      box-shadow:0 8px 18px rgba(0,0,0,.16);
-    }
-
-    .previewPhotoItem img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-
-    .previewPhotoEmpty{
-      border:1px dashed rgba(255,255,255,.16);
-      border-radius:16px;
-      padding:16px 14px;
-      color:rgba(255,255,255,.60);
-      font-size:13px;
-      line-height:1.8;
-      text-align:center;
-      background:rgba(255,255,255,.02);
-    }
-
-    .previewFooter{
-      margin-top:16px;
-      padding-top:14px;
-      border-top:1px solid rgba(255,255,255,.08);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    }
-
-    .previewLogo{
-      width:78px;
-      height:78px;
-      border-radius:18px;
-      object-fit:cover;
-      background:#222;
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow:0 10px 24px rgba(0,0,0,.18);
-      display:none;
-    }
-
-    .successCard{
-      margin-top:14px;
-      padding:14px;
-      border-radius:16px;
-      border:1px solid rgba(110,231,183,.26);
-      background:rgba(110,231,183,.08);
-      display:none;
-    }
-
-    .successCard.show{
-      display:block;
-    }
-
-    .successTitle{
-      font-size:22px;
-      font-weight:900;
-      line-height:1.3;
-      margin:0 0 8px;
-      color:#e9fff4;
-    }
-
-    .successText{
-      color:#dffcf0;
-      font-size:14px;
-      line-height:1.8;
-      margin:0;
-    }
-
-    .successIdBox{
-      margin-top:12px;
-      padding:12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);
-    }
-
-    .successIdLabel{
-      color:rgba(255,255,255,.72);
-      font-size:12px;
-      font-weight:900;
-      margin-bottom:6px;
-    }
-
-    .successIdValue{
-      font-size:24px;
-      font-weight:900;
-      line-height:1.3;
-      letter-spacing:.5px;
-      word-break:break-all;
-    }
-
-    .copyHint{
-      margin-top:8px;
-      color:rgba(255,255,255,.72);
-      font-size:12px;
-      line-height:1.7;
-    }
-
-    .copyFeedback{
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid rgba(123,220,255,.18);
-      background:rgba(123,220,255,.08);
-      color:#e9f9ff;
-      font-size:13px;
-      font-weight:900;
-      display:none;
-    }
-
-    .copyFeedback.show{
-      display:block;
-    }
-
-    .pageNav{
-      position:sticky;
-      bottom:10px;
-      z-index:10;
-      margin-top:14px;
-      padding:10px;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:18px;
-      background:rgba(11,18,32,.82);
-      backdrop-filter:blur(10px);
-      box-shadow:0 10px 26px rgba(0,0,0,.24);
-      transition:.22s ease;
-    }
-
-    .pageNav .btns{
-      margin-top:0;
-      justify-content:space-between;
-    }
-
-    .pageNavLeft,
-    .pageNavRight{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .pageBadge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:9px 12px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      background:rgba(255,255,255,.04);
-      color:var(--muted);
-      font-size:13px;
-      font-weight:900;
-      transition:.22s ease;
-    }
-
-    .footNote{
-      margin-top:14px;
-      color:rgba(255,255,255,.56);
-      font-size:12px;
-      line-height:1.8;
-    }
-
-    .cropModal{
-      position:fixed;
-      inset:0;
-      z-index:1000;
-      display:none;
-      background:rgba(4,8,18,.72);
-      backdrop-filter:blur(6px);
-      padding:14px;
-    }
-
-    .cropModal.show{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .cropBox{
-      width:min(920px, 100%);
-      max-height:calc(100vh - 28px);
-      overflow:auto;
-      border-radius:22px;
-      border:1px solid rgba(255,255,255,.12);
-      background:linear-gradient(180deg, rgba(16,24,40,.98), rgba(10,16,28,.98));
-      box-shadow:0 24px 60px rgba(0,0,0,.42);
-      padding:16px;
-    }
-
-    .cropHead{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:12px;
-    }
-
-    .cropHead h3{
-      margin:0;
-      font-size:22px;
-      line-height:1.3;
-    }
-
-    .cropHead p{
-      margin:6px 0 0;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.7;
-    }
-
-    .cropStageWrap{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:18px;
-      background:rgba(255,255,255,.03);
-      padding:12px;
-    }
-
-    .cropStage{
-      width:100%;
-      touch-action:none;
-      border-radius:16px;
-      border:1px dashed rgba(255,255,255,.16);
-      overflow:hidden;
-      position:relative;
-      background:
-        linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%),
-        linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%);
-      background-size:20px 20px;
-      background-position:0 0, 10px 10px;
-    }
-
-    .cropStage.ratio-square{ aspect-ratio:1 / 1; }
-    .cropStage.ratio-logo{ aspect-ratio:16 / 9; }
-    .cropStage.ratio-photo{ aspect-ratio:16 / 10; }
-
-    .cropStage canvas{
-      width:100%;
-      height:100%;
-      display:block;
-      cursor:grab;
-      touch-action:none;
-    }
-
-    .cropStage.dragging canvas{
-      cursor:grabbing;
-    }
-
-    .cropTools{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:12px;
-    }
-
-    .cropArrowGrid{
-      display:grid;
-      grid-template-columns:repeat(3, minmax(56px, 64px));
-      gap:8px;
-      justify-content:center;
-      margin-top:12px;
-    }
-
-    .cropArrowGrid .spacer{
-      visibility:hidden;
-    }
-
-    .zoomPanel{
-      margin-top:12px;
-      padding:12px;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:14px;
-      background:rgba(255,255,255,.03);
-    }
-
-    .zoomPanel label{
-      margin:0 0 8px;
-      color:var(--text);
-    }
-
-    .rangeRow{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-
-    .rangeRow input[type="range"]{
-      min-height:auto;
-      padding:0;
-      border:none;
-      background:transparent;
-    }
-
-    .rangeValue{
-      min-width:54px;
-      text-align:right;
-      color:var(--muted);
-      font-size:13px;
-      font-weight:900;
-    }
-
-    .cropMeta{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.75;
-    }
-
-    .hide{ display:none !important; }
-
-    @media(max-width:900px){
-      .stepTrack{
-        grid-template-columns:repeat(4, minmax(0,1fr));
-      }
-    }
-
-    @media(max-width:760px){
-      .top{
-        flex-direction:column;
-      }
-      .meta{
-        text-align:left;
-        min-width:auto;
-      }
-      .stepTrack{
-        grid-template-columns:repeat(2, minmax(0,1fr));
-      }
-      .pageNav .btns{
-        flex-direction:column;
-        align-items:stretch;
-      }
-      .pageNavLeft,
-      .pageNavRight{
-        width:100%;
-        justify-content:space-between;
-      }
-      .sumRow{
-        flex-direction:column;
-      }
-      .sumRow strong{
-        text-align:left;
-      }
-      .cropBox{
-        padding:14px;
-      }
-
-      .previewCard{
-        padding:14px;
-        border-radius:22px;
-      }
-      .previewShell{
-        padding:14px;
-        border-radius:18px;
-      }
-      .previewAvatarWrap{
-        width:92px;
-        height:92px;
-      }
-      .previewName{
-        font-size:22px;
-      }
-      .previewPhotoWall{
-        grid-template-columns:1fr 1fr;
-      }
-
-      body.form-focus .top{
-        padding:10px 12px;
-        border-radius:16px;
-      }
-      body.form-focus .brand h1{
-        font-size:clamp(21px,5.8vw,26px);
-        line-height:1.18;
-      }
-      body.form-focus .brand p{
-        margin-top:4px;
-        font-size:12px;
-        line-height:1.45;
-        opacity:.86;
-      }
-      body.form-focus .meta{
-        font-size:11px;
-        line-height:1.55;
-      }
-      body.form-focus .meta div:nth-child(n+3){
-        display:none;
-      }
-      body.form-focus .flow{
-        padding:8px 10px;
-      }
-      body.form-focus .flow-title{
-        font-size:16px;
-      }
-      body.form-focus .flow-sub{
-        font-size:11px;
-        line-height:1.4;
-        margin-top:2px;
-      }
-      body.form-focus .stepTrack{
-        display:none;
-      }
-      body.form-focus .pageNav{
-        padding:8px;
-        border-radius:14px;
-        bottom:6px;
-      }
-      body.form-focus .pageBadge{
-        padding:7px 10px;
-        font-size:12px;
-      }
-      body.form-focus .pageNav button{
-        min-height:44px;
-        padding:10px 14px;
-        font-size:15px;
-      }
-      body.form-focus .wrap{
-        padding-bottom:100px;
-      }
-    }
-
-    @media(max-width:520px){
-      .wrap{
-        padding:14px 12px 120px;
-      }
-      .card, .top{
-        padding:15px;
-      }
-      .flow{
-        padding:8px 10px;
-      }
-      .stepTrack{
-        grid-template-columns:repeat(1, minmax(0,1fr));
-      }
-      .brand h1{
-        font-size:clamp(24px, 7vw, 30px);
-      }
-      input, textarea{
-        padding:14px 13px;
-      }
-      button{
-        width:100%;
-      }
-      .cropArrowGrid{
-        grid-template-columns:repeat(3, 1fr);
-      }
-
-      .previewAvatarWrap{
-        width:84px;
-        height:84px;
-      }
-      .previewName{
-        font-size:20px;
-      }
-      .previewPhotoWall{
-        grid-template-columns:1fr;
-      }
-      .previewLogo{
-        width:68px;
-        height:68px;
-      }
-
-      body.form-focus .top{
-        padding:10px;
-      }
-      body.form-focus .flow{
-        margin-top:10px;
-        padding:8px 10px;
-      }
-      body.form-focus .card{
-        margin-top:10px;
-        padding:14px;
-      }
-      body.form-focus .pageNav .btns{
-        gap:8px;
-      }
-      body.form-focus .pageNavLeft,
-      body.form-focus .pageNavRight{
-        gap:8px;
-      }
-      body.form-focus .pageNavLeft{
-        display:grid;
-        grid-template-columns:1fr 1fr;
-        align-items:center;
-      }
-      body.form-focus .pageNavRight{
-        display:block;
-      }
-      body.form-focus .pageBadge{
-        justify-content:center;
-      }
-      body.form-focus .pageNav button{
-        width:100%;
-      }
-
-      .successIdValue{
-        font-size:22px;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="top" id="topCard">
-      <div class="brand">
-        <h1>天使幸福智慧名片｜資料填寫</h1>
-        <p id="pageIntro">
-          一步一頁慢慢填就好。先選方案，再選樣式，接著填資料、調整照片，最後確認送出。
-        </p>
-      </div>
-      <div class="meta">
-        <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v522.8</span></div>
-        <div>品牌：<span class="kbd" id="tenantText">-</span></div>
-        <div>名片 ID：<span class="kbd" id="idText">-</span></div>
-        <div>invite：<span class="kbd" id="inviteText">-</span></div>
-      </div>
-    </div>
-
-    <div class="flow" id="flowCard">
-      <div class="flow-head">
-        <div>
-          <div class="flow-title">填寫流程</div>
-          <div class="flow-sub" id="flowSub">目前在第 1 步，共 7 步。</div>
-        </div>
-        <div class="pageBadge" id="pageBadge">第 1 / 7 步</div>
-      </div>
-
-      <div class="stepTrack" id="stepTrack">
-        <div class="stepDot" data-step="0"><div class="num">1</div><div class="txt">方案</div></div>
-        <div class="stepDot" data-step="1"><div class="num">2</div><div class="txt">樣式</div></div>
-        <div class="stepDot" data-step="2"><div class="num">3</div><div class="txt">基本資料</div></div>
-        <div class="stepDot" data-step="3"><div class="num">4</div><div class="txt">聯絡資料</div></div>
-        <div class="stepDot" data-step="4"><div class="num">5</div><div class="txt">照片</div></div>
-        <div class="stepDot" data-step="5"><div class="num">6</div><div class="txt">影音 / 社群</div></div>
-        <div class="stepDot" data-step="6"><div class="num">7</div><div class="txt">確認送出</div></div>
-      </div>
-    </div>
-
-    <div class="card" id="formCard">
-      <section class="page active" data-page="0">
-        <h2>1. 方案</h2>
-        <div class="subnote">先選方案，後面會自動切換對應設定。</div>
-
-        <div class="field">
-          <label>方案<span class="req">＊必選</span></label>
-          <div class="chips" id="planChips"></div>
-        </div>
-
-        <div class="hint" id="planHint">
-          自由搭配：最多 2 張照片｜精品設計：最多 5 張照片
-        </div>
-      </section>
-
-      <section class="page" data-page="1">
-        <h2>2. 樣式</h2>
-        <div class="subnote">自由搭配與精品設計會顯示不同選項。</div>
-
-        <div class="field">
-          <label>顏色（自由搭配）</label>
-          <div class="chips" id="colorChips"></div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div class="field">
-            <label>版型（自由搭配）</label>
-            <div class="chips" id="styleChips"></div>
-          </div>
-          <div class="field">
-            <label>紙感（自由搭配）</label>
-            <div class="chips" id="paperChips"></div>
-          </div>
-        </div>
-
-        <div class="sectionGap field">
-          <label>精品底色（精品設計）</label>
-          <div class="chips" id="premiumChips"></div>
-        </div>
-
-        <div class="hint" id="styleHint">
-          請依你選的方案完成樣式設定。
-        </div>
-      </section>
-
-      <section class="page" data-page="2">
-        <h2>3. 基本資料</h2>
-
-        <div class="row two">
-          <div class="field">
-            <label>姓名</label>
-            <input id="name" placeholder="例：王小明" />
-          </div>
-          <div class="field">
-            <label>單位</label>
-            <input id="unit" placeholder="例：幸福智慧名片館" />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div class="field">
-            <label>職稱</label>
-            <input id="title" placeholder="例：品牌顧問 / 講師 / 館長" />
-          </div>
-          <div class="field">
-            <label>網站</label>
-            <input id="website" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div class="field">
-            <label>一句話介紹</label>
-            <input id="slogan" placeholder="一句話讓人記住你" />
-          </div>
-          <div class="field">
-            <label>服務項目</label>
-            <input id="services" placeholder="例：品牌顧問｜名片訂製｜課程" />
-          </div>
-        </div>
-
-        <div class="sectionGap field">
-          <label>經歷／產品服務特色</label>
-          <textarea id="experience" placeholder="可填經歷、產品特色、服務亮點等內容"></textarea>
-        </div>
-      </section>
-
-      <section class="page" data-page="3">
-        <h2>4. 聯絡資料</h2>
-
-        <div class="row two">
-          <div class="field">
-            <label>電話</label>
-            <input id="phone" placeholder="例：0973xxxxxx" />
-          </div>
-          <div class="field">
-            <label>Email</label>
-            <input id="email" placeholder="name@example.com" />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div class="field">
-            <label>LINE（個人）</label>
-            <input id="line_url" placeholder="https://line.me/ti/p/..." />
-          </div>
-          <div class="field">
-            <label>LINE 官方帳號</label>
-            <input id="line_oa" placeholder="https://lin.ee/..." />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div class="field">
-            <label>微信 ID</label>
-            <input id="wechat_id" placeholder="例：a0973180707" />
-          </div>
-          <div class="field">
-            <label>地址</label>
-            <input id="address" placeholder="縣市 / 區域 / 路段…" />
-          </div>
-        </div>
-      </section>
-
-      <section class="page" data-page="4">
-        <h2>5. 照片</h2>
-        <div class="subnote">這一頁只處理圖片。選圖後可左右、上下、縮放調整，再套用。</div>
-
-        <div class="sectionGap">
-          <label>圖片上傳</label>
-          <div class="uploadGrid" id="uploadGrid"></div>
-          <div class="hint" style="margin-top:10px;">
-            自由搭配最多 2 張照片｜精品設計最多 5 張照片
-          </div>
-        </div>
-      </section>
-
-      <section class="page" data-page="5">
-        <h2>6. 影音 / 社群</h2>
-        <div class="subnote">這一頁放影片、社群、CTA 連結。</div>
-
-        <div class="row two">
-          <div class="field">
-            <label>影片 1</label>
-            <input id="video1" placeholder="https://..." />
-          </div>
-          <div class="field">
-            <label>影片 2</label>
-            <input id="video2" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div class="field">
-            <label>影片 3</label>
-            <input id="video3" placeholder="https://..." />
-          </div>
-          <div class="field">
-            <label>微信長圖連結（選填）</label>
-            <input id="wechat_poster" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="row three sectionGap">
-          <div class="field">
-            <label>社群 1</label>
-            <input id="social1" placeholder="https://..." />
-          </div>
-          <div class="field">
-            <label>社群 2</label>
-            <input id="social2" placeholder="https://..." />
-          </div>
-          <div class="field">
-            <label>社群 3</label>
-            <input id="social3" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div class="field">
-            <label>按鈕文字</label>
-            <input id="cta_text" placeholder="例：立即預約 / 加入 LINE 諮詢" />
-          </div>
-          <div class="field">
-            <label>按鈕連結</label>
-            <input id="cta_link" placeholder="https://..." />
-          </div>
-        </div>
-      </section>
-
-      <section class="page" data-page="6">
-        <h2>7. 確認與送出</h2>
-        <div class="subnote">確認資料後再送出。送出完成後畫面會停留在此頁。</div>
-
-        <div class="summary" id="summaryBox"></div>
-
-        <div class="previewCard theme-free" id="previewCard">
-          <div class="previewRibbon">
-            <div class="previewHead">真名片預覽</div>
-            <div class="previewPlanBadge" id="previewPlanBadge">尚未選擇</div>
-          </div>
-
-          <div class="previewShell">
-            <div class="previewTheme" id="previewTheme">尚未選擇</div>
-
-            <div class="previewHero">
-              <div class="previewAvatarWrap">
-                <img id="previewAvatar" class="previewAvatar" alt="大頭照預覽" />
-              </div>
-
-              <div class="previewName" id="previewName">你的名字</div>
-              <div class="previewUnit" id="previewUnit">你的單位</div>
-              <div class="previewTitle" id="previewTitle">你的職稱</div>
-            </div>
-
-            <div class="previewBlock">
-              <div class="previewLabel">一句話介紹</div>
-              <div class="previewSlogan" id="previewSlogan">一句話介紹會顯示在這裡</div>
-            </div>
-
-            <div class="previewBlock">
-              <div class="previewLabel">服務項目</div>
-              <div class="previewServices" id="previewServices">服務項目會顯示在這裡</div>
-            </div>
-
-            <div class="previewBlock">
-              <div class="previewLabel">經歷／產品特色</div>
-              <div class="previewExp" id="previewExp">經歷／產品服務特色會顯示在這裡</div>
-            </div>
-
-            <div class="previewPhotoWrap">
-              <div class="previewLabel">照片牆</div>
-              <div class="previewPhotoEmpty" id="previewPhotoEmpty">
-                這裡會依方案顯示照片牆預覽。自由搭配最多 2 張，精品設計最多 5 張。
-              </div>
-              <div class="previewPhotoWall" id="previewPhotoWall" data-count="0"></div>
-            </div>
-
-            <div class="previewFooter">
-              <img id="previewLogo" class="previewLogo" alt="Logo 預覽" />
-            </div>
-          </div>
-        </div>
-
-        <div class="btns" style="margin-top:14px;">
-          <button id="btnTest" class="secondary hide" type="button" aria-hidden="true" tabindex="-1">測試連線</button>
-          <button id="btnSubmit" type="button">送出資料</button>
-          <button id="btnReset" class="ghost" type="button">重設表單</button>
-        </div>
-
-        <div class="submit-progress-wrap" id="submitProgressWrap">
-          <div class="submit-progress-head">
-            <strong id="submitProgressTitle">送出中</strong>
-            <span id="submitProgressPercent">0%</span>
-          </div>
-
-          <div class="submit-progress">
-            <div class="submit-progress-fill" id="submitProgressFill"></div>
-          </div>
-
-          <div class="submit-progress-text" id="submitProgressText">
-            準備中…
-          </div>
-        </div>
-
-        <div class="successCard" id="successCard">
-          <div class="successTitle">已送出成功</div>
-
-          <p class="successText" id="successText">
-            你可以直接複製下面的序號訊息回傳客服。
-          </p>
-
-          <div class="successIdBox">
-            <div class="successIdLabel">本次名片序號</div>
-            <div class="successIdValue" id="successIdValue">-</div>
-            <div class="copyHint">請將此序號回傳客服</div>
-          </div>
-
-          <div class="btns">
-            <button type="button" class="okBtn" id="btnCopyCustomerText">
-              複製序號回傳客服
-            </button>
-          </div>
-
-          <div class="copyFeedback" id="copyFeedback">
-            已複製，可直接貼給客服
-          </div>
-        </div>
-
-        <div class="status" id="status">尚未操作</div>
-
-        <div class="footNote">
-          小提醒：送出時若系統判定這是一筆已存在的資料，就不會重複建立新卡。invite 會全程帶入。
-        </div>
-      </section>
-    </div>
-
-    <div class="pageNav">
-      <div class="btns">
-        <div class="pageNavLeft">
-          <span class="pageBadge" id="pageBadgeBottom">第 1 / 7 步</span>
-          <button id="btnPrev" class="secondary" type="button">上一步</button>
-        </div>
-        <div class="pageNavRight">
-          <button id="btnNext" type="button">下一步</button>
-        </div>
-      </div>
-    </div>
-
-    <input id="mode" type="hidden" value="fill" />
-    <input id="gas" type="hidden" />
-  </div>
-
-  <div class="cropModal" id="cropModal">
-    <div class="cropBox">
-      <div class="cropHead">
-        <div>
-          <h3 id="cropTitle">調整圖片位置</h3>
-          <p id="cropDesc">可直接拖移，也可用左、右、上、下按鈕微調，再用滑桿縮放。</p>
-        </div>
-      </div>
-
-      <div class="cropStageWrap">
-        <div class="cropStage ratio-photo" id="cropStage">
-          <canvas id="cropCanvas"></canvas>
-        </div>
-
-        <div class="cropArrowGrid">
-          <span class="spacer"></span>
-          <button type="button" class="secondary" id="cropMoveUp">上</button>
-          <span class="spacer"></span>
-
-          <button type="button" class="secondary" id="cropMoveLeft">左</button>
-          <button type="button" class="ghost" id="cropReset">重設</button>
-          <button type="button" class="secondary" id="cropMoveRight">右</button>
-
-          <span class="spacer"></span>
-          <button type="button" class="secondary" id="cropMoveDown">下</button>
-          <span class="spacer"></span>
-        </div>
-
-        <div class="zoomPanel">
-          <label for="cropZoomRange">縮放</label>
-          <div class="rangeRow">
-            <button type="button" class="secondary" id="cropZoomOut">縮小</button>
-            <input type="range" id="cropZoomRange" min="100" max="400" step="1" value="100" />
-            <button type="button" class="secondary" id="cropZoomIn">放大</button>
-            <span class="rangeValue" id="cropZoomValue">100%</span>
-          </div>
-        </div>
-
-        <div class="cropTools">
-          <button type="button" class="secondary" id="cropCancel">取消</button>
-          <button type="button" id="cropApply">套用</button>
-        </div>
-
-        <div class="cropMeta" id="cropMeta">
-          提醒：大頭照為正方形框、Logo 為寬框、照片為橫式框。
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="./form.js?v=5228"></script>
-</body>
-</html>
+/* =========================================
+   Happiness Smart Card System
+   form.js v522.8 (COMPLETE OVERWRITE)
+
+   升級：
+   1. Step7 真名片預覽版
+   2. 頭像置中
+   3. Logo 放底部
+   4. 新增照片牆預覽
+      - 自由款：最多 2 張
+      - 精品款：最多 5 張
+   5. 預覽即時同步
+   6. 保持 reserve / create / upload 主流程不動
+========================================= */
+
+(()=>{
+"use strict";
+
+const VERSION="522.8";
+
+const $=(id)=>document.getElementById(id);
+
+/* ===============================
+   DOM
+=============================== */
+
+const el={
+previewCard:$("previewCard"),
+previewTheme:$("previewTheme"),
+previewPlanBadge:$("previewPlanBadge"),
+
+previewAvatar:$("previewAvatar"),
+previewLogo:$("previewLogo"),
+previewName:$("previewName"),
+previewUnit:$("previewUnit"),
+previewTitle:$("previewTitle"),
+previewSlogan:$("previewSlogan"),
+previewServices:$("previewServices"),
+previewExp:$("previewExp"),
+previewPhotoWall:$("previewPhotoWall"),
+previewPhotoEmpty:$("previewPhotoEmpty"),
+
+summaryBox:$("summaryBox"),
+
+btnSubmit:$("btnSubmit"),
+btnReset:$("btnReset"),
+
+successCard:$("successCard"),
+successIdValue:$("successIdValue"),
+btnCopyCustomerText:$("btnCopyCustomerText")
+};
+
+/* ===============================
+   STATE
+=============================== */
+
+const state={
+uploads:{},
+plan:"",
+color:"",
+style:"",
+paper:"",
+premium_color:""
+};
+
+/* ===============================
+   INPUT FIELDS
+=============================== */
+
+const fields=[
+"name",
+"unit",
+"title",
+"slogan",
+"services",
+"experience",
+"website",
+"phone",
+"email",
+"line_url",
+"line_oa",
+"wechat_id",
+"address",
+"video1",
+"video2",
+"video3",
+"wechat_poster",
+"social1",
+"social2",
+"social3",
+"cta_text",
+"cta_link"
+];
+
+/* ===============================
+   BOOT
+=============================== */
+
+boot();
+
+function boot(){
+
+fields.forEach(id=>{
+const node=$(id);
+if(!node)return;
+
+node.addEventListener("input",()=>{
+renderSummary();
+updatePreview();
+});
+});
+
+el.btnCopyCustomerText?.addEventListener("click",async ()=>{
+try{
+await navigator.clipboard.writeText(el.successIdValue?.textContent || "");
+}catch(err){
+console.warn("copy failed",err);
+}
+});
+
+renderSummary();
+updatePreview();
+}
+
+/* ===============================
+   HELPERS
+=============================== */
+
+function safeText(v){
+return String(v||"").trim();
+}
+
+function escapeHtml(s){
+return String(s??"")
+.replaceAll("&","&amp;")
+.replaceAll("<","&lt;")
+.replaceAll(">","&gt;")
+.replaceAll('"',"&quot;")
+.replaceAll("'","&#39;");
+}
+
+function hasText(v){
+return safeText(v)!=="";
+}
+
+function nl2br(s){
+return escapeHtml(String(s||"")).replace(/\n/g,"<br>");
+}
+
+function getPlanLabel(){
+if(state.plan==="free"){
+return "自由搭配";
+}
+if(state.plan==="premium"){
+return "精品設計";
+}
+return "尚未選擇";
+}
+
+function getPlanDetailText(){
+if(state.plan==="free"){
+return `自由搭配｜${safeText(state.color)||"未選"}｜${safeText(state.style)||"未選"}｜${safeText(state.paper)||"未選"}`;
+}
+if(state.plan==="premium"){
+return `精品設計｜${safeText(state.premium_color)||"未選"}`;
+}
+return "尚未選擇";
+}
+
+function getPhotoLimit(){
+return state.plan==="premium" ? 5 : 2;
+}
+
+function getCardThemeClass(){
+if(state.plan==="premium"){
+return "theme-premium";
+}
+return "theme-free";
+}
+
+function getUploadPreview(slotKey){
+const item=state.uploads?.[slotKey];
+if(!item) return "";
+return item.previewUrl || item.mainUrl || item.fastUrl || "";
+}
+
+function setVisible(node,show){
+if(!node) return;
+node.style.display=show ? "" : "none";
+}
+
+/* ===============================
+   COLLECT PAYLOAD
+=============================== */
+
+function collectPayload(){
+
+const p={};
+
+p.plan=state.plan||"";
+
+if(state.plan==="free"){
+p.color=state.color||"";
+p.style=state.style||"";
+p.paper=state.paper||"";
+p.premium_color="";
+}
+else if(state.plan==="premium"){
+p.color="";
+p.style="";
+p.paper="";
+p.premium_color=state.premium_color||"";
+}
+else{
+p.color="";
+p.style="";
+p.paper="";
+p.premium_color="";
+}
+
+fields.forEach(id=>{
+const node=$(id);
+if(!node) return;
+p[id]=safeText(node.value);
+});
+
+return p;
+}
+
+/* ===============================
+   SUMMARY
+=============================== */
+
+function renderSummary(){
+
+if(!el.summaryBox) return;
+
+const payload=collectPayload();
+
+const rows=[
+["模式","新建資料"],
+["方案外觀",getPlanDetailText()],
+["姓名 / 職稱",`${payload.name||"未填寫"} / ${payload.title||"未填寫"}`],
+["單位",payload.unit||"未填寫"],
+["一句話介紹",payload.slogan||"未填寫"],
+["服務項目",payload.services||"未填寫"],
+["經歷 / 產品特色",payload.experience||"未填寫"]
+];
+
+el.summaryBox.innerHTML=rows.map(([label,value])=>{
+return `<div class="sumRow">
+<span>${escapeHtml(label)}</span>
+<strong>${nl2br(value)}</strong>
+</div>`;
+}).join("");
+}
+
+/* ===============================
+   UPLOAD PREVIEW
+=============================== */
+
+function bindUploadPreview(slotKey,file){
+
+if(!file) return;
+
+const old=state.uploads?.[slotKey]?.previewUrl;
+if(old && old.startsWith("blob:")){
+try{ URL.revokeObjectURL(old); }catch(e){}
+}
+
+const url=URL.createObjectURL(file);
+
+if(!state.uploads) state.uploads={};
+
+state.uploads[slotKey]={
+...(state.uploads[slotKey]||{}),
+sourceFile:file,
+previewUrl:url
+};
+
+renderSummary();
+updatePreview();
+}
+
+/* ===============================
+   CHOICE
+=============================== */
+
+function setChoice(group,value){
+
+if(group==="plan"){
+state.plan=value;
+
+if(value==="free"){
+state.premium_color="";
+}
+if(value==="premium"){
+state.color="";
+state.style="";
+state.paper="";
+}
+}
+
+if(group==="color"){
+state.plan="free";
+state.color=value;
+}
+
+if(group==="style"){
+state.plan="free";
+state.style=value;
+}
+
+if(group==="paper"){
+state.plan="free";
+state.paper=value;
+}
+
+if(group==="premium_color"){
+state.plan="premium";
+state.premium_color=value;
+}
+
+renderSummary();
+updatePreview();
+}
+
+/* ===============================
+   PREVIEW
+=============================== */
+
+function updatePreview(){
+
+const payload=collectPayload();
+
+/* CARD THEME */
+
+if(el.previewCard){
+el.previewCard.classList.remove("theme-free","theme-premium");
+el.previewCard.classList.add(getCardThemeClass());
+}
+
+if(el.previewTheme){
+el.previewTheme.textContent=getPlanDetailText();
+}
+
+if(el.previewPlanBadge){
+el.previewPlanBadge.textContent=getPlanLabel();
+}
+
+/* NAME */
+
+if(el.previewName){
+el.previewName.textContent=payload.name || "你的名字";
+}
+
+/* UNIT */
+
+if(el.previewUnit){
+el.previewUnit.textContent=payload.unit || "你的單位";
+}
+
+/* TITLE */
+
+if(el.previewTitle){
+el.previewTitle.textContent=payload.title || "你的職稱";
+}
+
+/* SLOGAN */
+
+if(el.previewSlogan){
+el.previewSlogan.textContent=payload.slogan || "一句話介紹會顯示在這裡";
+}
+
+/* SERVICES */
+
+if(el.previewServices){
+el.previewServices.textContent=payload.services || "服務項目會顯示在這裡";
+}
+
+/* EXPERIENCE */
+
+if(el.previewExp){
+el.previewExp.textContent=payload.experience || "經歷／產品服務特色會顯示在這裡";
+}
+
+/* AVATAR */
+
+const avatarUrl=getUploadPreview("avatar");
+
+if(el.previewAvatar){
+if(avatarUrl){
+el.previewAvatar.src=avatarUrl;
+setVisible(el.previewAvatar,true);
+}else{
+el.previewAvatar.removeAttribute("src");
+setVisible(el.previewAvatar,false);
+}
+}
+
+/* LOGO */
+
+const logoUrl=getUploadPreview("logo");
+
+if(el.previewLogo){
+if(logoUrl){
+el.previewLogo.src=logoUrl;
+setVisible(el.previewLogo,true);
+}else{
+el.previewLogo.removeAttribute("src");
+setVisible(el.previewLogo,false);
+}
+}
+
+/* PHOTO WALL */
+
+renderPhotoWall();
+}
+
+function renderPhotoWall(){
+
+if(!el.previewPhotoWall) return;
+
+const limit=getPhotoLimit();
+const keys=["photo1","photo2","photo3","photo4","photo5"];
+const urls=[];
+
+for(const key of keys){
+const url=getUploadPreview(key);
+if(url) urls.push(url);
+if(urls.length>=limit) break;
+}
+
+if(!urls.length){
+el.previewPhotoWall.innerHTML="";
+setVisible(el.previewPhotoEmpty,true);
+return;
+}
+
+setVisible(el.previewPhotoEmpty,false);
+
+el.previewPhotoWall.innerHTML=urls.map((url,idx)=>{
+return `<div class="previewPhotoItem" data-idx="${idx+1}">
+<img src="${escapeHtml(url)}" alt="照片預覽 ${idx+1}" />
+</div>`;
+}).join("");
+
+el.previewPhotoWall.setAttribute("data-count",String(urls.length));
+}
+
+/* ===============================
+   SUCCESS
+=============================== */
+
+function showSuccessCard(id){
+
+if(!el.successCard) return;
+
+const finalId=safeText(id) || "未取得";
+
+el.successCard.classList.add("show");
+
+if(el.successIdValue){
+el.successIdValue.textContent=finalId;
+}
+}
+
+function resetSuccessCard(){
+
+if(!el.successCard) return;
+
+el.successCard.classList.remove("show");
+
+if(el.successIdValue){
+el.successIdValue.textContent="-";
+}
+}
+
+/* ===============================
+   EXPORT
+=============================== */
+
+window.HSC_FORM_V5228={
+bindUploadPreview,
+setChoice,
+collectPayload,
+renderSummary,
+updatePreview,
+showSuccessCard,
+resetSuccessCard,
+getPhotoLimit
+};
+
+})();
