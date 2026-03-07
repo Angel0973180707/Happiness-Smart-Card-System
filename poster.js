@@ -63,6 +63,10 @@ document.addEventListener("DOMContentLoaded", function () {
     );
   }
 
+  function getQrCenterImageUrl(item) {
+    return avatarEl && avatarEl.src ? avatarEl.src : getAvatar(item);
+  }
+
   function firstTwoLines(text) {
     const t = safe(text);
     if (!t) return "";
@@ -105,10 +109,6 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  function getQrCenterImageUrl(item) {
-    return getAvatar(item);
-  }
-
   async function loadImage(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -145,6 +145,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!ctx) return;
 
     try {
+      // 先畫 QR
       if (typeof QRCode !== "undefined" && typeof QRCode.toCanvas === "function") {
         await QRCode.toCanvas(canvas, url, {
           width: size,
@@ -155,7 +156,7 @@ document.addEventListener("DOMContentLoaded", function () {
           }
         });
       } else if (typeof QRCode !== "undefined") {
-        // qrcodejs fallback: 先生成到暫存容器，再畫到主 canvas
+        // qrcodejs fallback
         const temp = document.createElement("div");
         temp.style.position = "fixed";
         temp.style.left = "-99999px";
@@ -170,8 +171,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         await new Promise((r) => setTimeout(r, 120));
 
-        const img = temp.querySelector("img");
         const qrCanvas = temp.querySelector("canvas");
+        const qrImg = temp.querySelector("img");
 
         ctx.clearRect(0, 0, size, size);
         ctx.fillStyle = "#ffffff";
@@ -179,9 +180,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (qrCanvas) {
           ctx.drawImage(qrCanvas, 0, 0, size, size);
-        } else if (img) {
-          const qrImg = await loadImage(img.src);
-          ctx.drawImage(qrImg, 0, 0, size, size);
+        } else if (qrImg) {
+          const loadedQrImg = await loadImage(qrImg.src);
+          ctx.drawImage(loadedQrImg, 0, 0, size, size);
         }
 
         temp.remove();
@@ -190,27 +191,26 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
+      // 再畫中間頭像（或 fallback）
+      const boxSize = 68;
+      const innerSize = 56;
+      const x = (size - boxSize) / 2;
+      const y = (size - boxSize) / 2;
+      const ix = (size - innerSize) / 2;
+      const iy = (size - innerSize) / 2;
+
       if (centerImageUrl) {
         try {
           const centerImg = await loadImage(centerImageUrl);
 
-          const boxSize = 68;
-          const innerSize = 56;
-          const x = (size - boxSize) / 2;
-          const y = (size - boxSize) / 2;
-          const ix = (size - innerSize) / 2;
-          const iy = (size - innerSize) / 2;
-
           ctx.save();
 
-          // 白底框
           ctx.fillStyle = "#ffffff";
           ctx.shadowColor = "rgba(0,0,0,.10)";
           ctx.shadowBlur = 12;
           roundRect(ctx, x, y, boxSize, boxSize, 18);
           ctx.fill();
 
-          // 內部圓形裁切
           ctx.shadowBlur = 0;
           ctx.beginPath();
           ctx.arc(size / 2, size / 2, innerSize / 2, 0, Math.PI * 2);
@@ -222,10 +222,28 @@ document.addEventListener("DOMContentLoaded", function () {
           ctx.restore();
         } catch (e) {
           console.warn("center image fail", e);
+
+          // fallback：至少保留中間白底圓章
+          ctx.save();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.shadowColor = "rgba(0,0,0,.10)";
+          ctx.shadowBlur = 12;
+          roundRect(ctx, x, y, boxSize, boxSize, 18);
+          ctx.fill();
+
+          ctx.shadowBlur = 0;
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 2, innerSize / 2, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.fillStyle = "#e9e9e9";
+          ctx.fill();
+
+          ctx.restore();
         }
       }
-    } catch (err) {
-      console.error("QRCode render error:", err);
+    } catch (e) {
+      console.error("QRCode render error:", e);
       qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
     }
   }
