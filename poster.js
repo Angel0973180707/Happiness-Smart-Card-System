@@ -33,6 +33,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   let currentItem = null;
   let currentAvatarUrl = "";
+  let isDownloadingMain = false;
+  let isDownloadingRecommend = false;
 
   function setStatus(msg) {
     if (statusEl) statusEl.innerText = msg || "";
@@ -50,16 +52,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const s = safe(url);
     if (!s) return "";
 
+    // Google Drive /file/d/.../view 轉成可直接顯示格式
     const m1 = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
     if (m1 && m1[1]) {
-      return `https://drive.google.com/thumbnail?id=${m1[1]}&sz=w1200`;
+      return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
     }
 
-    const m2 = s.match(/[?&]id=([^&]+)/i);
-    if (/drive\.google\.com/i.test(s) && m2 && m2[1]) {
-      return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w1200`;
-    }
-
+    // 已經是可直接顯示的網址就直接用，不再改成 thumbnail
     return s;
   }
 
@@ -109,6 +108,26 @@ document.addEventListener("DOMContentLoaded", function () {
   function showImage(imgEl) {
     if (!imgEl) return;
     imgEl.style.visibility = "visible";
+  }
+
+  function setBtnBusy(el, busy, busyText) {
+    if (!el) return;
+
+    if (busy) {
+      if (!el.dataset.originText) {
+        el.dataset.originText = el.tagName === "A" ? (el.textContent || "") : (el.innerText || "");
+      }
+      el.disabled = true;
+      el.style.pointerEvents = "none";
+      el.style.opacity = "0.72";
+      if (busyText) el.textContent = busyText;
+      return;
+    }
+
+    el.disabled = false;
+    el.style.pointerEvents = "";
+    el.style.opacity = "";
+    if (el.dataset.originText) el.textContent = el.dataset.originText;
   }
 
   function bindAvatar(imgEl, url) {
@@ -172,8 +191,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function drawFallbackCenter(ctx, size) {
-    const boxSize = 68;
-    const innerSize = 56;
+    const boxSize = 58;
+    const innerSize = 46;
     const x = (size - boxSize) / 2;
     const y = (size - boxSize) / 2;
 
@@ -182,7 +201,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ctx.fillStyle = "#ffffff";
     ctx.shadowColor = "rgba(0,0,0,.10)";
     ctx.shadowBlur = 12;
-    roundRect(ctx, x, y, boxSize, boxSize, 18);
+    roundRect(ctx, x, y, boxSize, boxSize, 16);
     ctx.fill();
 
     ctx.shadowBlur = 0;
@@ -194,11 +213,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     ctx.fillStyle = "#bdbdbd";
     ctx.beginPath();
-    ctx.arc(size / 2, size / 2 - 8, 10, 0, Math.PI * 2);
+    ctx.arc(size / 2, size / 2 - 7, 8.5, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.beginPath();
-    ctx.arc(size / 2, size / 2 + 18, 18, Math.PI, 0);
+    ctx.arc(size / 2, size / 2 + 15, 15, Math.PI, 0);
     ctx.fill();
 
     ctx.restore();
@@ -270,7 +289,7 @@ document.addEventListener("DOMContentLoaded", function () {
             temp.remove();
             reject(e);
           }
-        }, 180);
+        }, 220);
       } catch (e) {
         reject(e);
       }
@@ -292,8 +311,8 @@ document.addEventListener("DOMContentLoaded", function () {
         return;
       }
 
-      const boxSize = 68;
-      const innerSize = 56;
+      const boxSize = 58;
+      const innerSize = 46;
       const x = (size - boxSize) / 2;
       const y = (size - boxSize) / 2;
       const ix = (size - innerSize) / 2;
@@ -307,7 +326,7 @@ document.addEventListener("DOMContentLoaded", function () {
           ctx.fillStyle = "#ffffff";
           ctx.shadowColor = "rgba(0,0,0,.10)";
           ctx.shadowBlur = 12;
-          roundRect(ctx, x, y, boxSize, boxSize, 18);
+          roundRect(ctx, x, y, boxSize, boxSize, 16);
           ctx.fill();
 
           ctx.shadowBlur = 0;
@@ -318,11 +337,9 @@ document.addEventListener("DOMContentLoaded", function () {
           ctx.drawImage(centerImg, ix, iy, innerSize, innerSize);
           ctx.restore();
         } catch (e) {
-          console.warn("center image fail", e);
-          drawFallbackCenter(ctx, size);
+          console.warn("center image fail, fallback to original QR:", e);
+          // 抓圖不成，退回原貌：不畫中央圖示
         }
-      } else {
-        drawFallbackCenter(ctx, size);
       }
 
       wrapEl.innerHTML = "";
@@ -432,7 +449,29 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  async function waitForImagesIn(el) {
+    if (!el) return;
+
+    const images = Array.from(el.querySelectorAll("img"));
+    if (!images.length) return;
+
+    await Promise.all(
+      images.map((img) => {
+        return new Promise((resolve) => {
+          if (img.complete) {
+            resolve(true);
+            return;
+          }
+          img.onload = () => resolve(true);
+          img.onerror = () => resolve(true);
+        });
+      })
+    );
+  }
+
   async function captureAndDownload(targetEl, filename, bgColor) {
+    await waitForImagesIn(targetEl);
+
     const canvas = await html2canvas(targetEl, {
       scale: 2,
       useCORS: true,
@@ -489,6 +528,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (downloadEl) {
       downloadEl.onclick = async () => {
+        if (isDownloadingMain) return;
+        isDownloadingMain = true;
+        setBtnBusy(downloadEl, true, "生成中...");
+
         try {
           setStatus("生成我的名片海報...");
           await captureAndDownload(posterEl, `${id}-poster.png`, "#ffffff");
@@ -496,12 +539,19 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
           console.error(e);
           setStatus("名片海報下載失敗");
+        } finally {
+          isDownloadingMain = false;
+          setBtnBusy(downloadEl, false);
         }
       };
     }
 
     if (downloadRecommendEl) {
       downloadRecommendEl.onclick = async () => {
+        if (isDownloadingRecommend) return;
+        isDownloadingRecommend = true;
+        setBtnBusy(downloadRecommendEl, true, "生成中...");
+
         try {
           setStatus("生成推薦海報...");
           await captureAndDownload(recPosterEl, `${id}-recommend.png`, "#fffaf2");
@@ -509,6 +559,9 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
           console.error(e);
           setStatus("推薦海報下載失敗");
+        } finally {
+          isDownloadingRecommend = false;
+          setBtnBusy(downloadRecommendEl, false);
         }
       };
     }
