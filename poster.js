@@ -11,8 +11,12 @@ const nameEl = document.getElementById("name");
 const unitEl = document.getElementById("unit");
 const titleEl = document.getElementById("title");
 const sloganEl = document.getElementById("slogan");
+
+const servicesWrapEl = document.getElementById("servicesWrap");
 const servicesEl = document.getElementById("services");
+const expWrapEl = document.getElementById("expWrap");
 const expEl = document.getElementById("exp");
+
 const qrCanvasEl = document.getElementById("qrcode");
 const openCardEl = document.getElementById("openCard");
 const copyLinkEl = document.getElementById("copyLink");
@@ -57,14 +61,29 @@ function getAvatar(item) {
   );
 }
 
-function setBlockText(el, value) {
+function firstTwoLines(text) {
+  const t = safeText(text);
+  if (!t) return "";
+
+  const lines = t
+    .split(/\r?\n/)
+    .map(v => v.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (lines.length > 0) return lines.join("\n");
+
+  return t;
+}
+
+function setSimpleBlock(el, wrapEl, value) {
   const text = safeText(value);
   if (text) {
     el.innerText = text;
-    el.style.display = "";
+    wrapEl.style.display = "";
   } else {
     el.innerText = "";
-    el.style.display = "none";
+    wrapEl.style.display = "none";
   }
 }
 
@@ -138,9 +157,17 @@ async function render(item) {
   unitEl.innerText = safeText(item.unit);
   titleEl.innerText = safeText(item.title);
 
-  setBlockText(sloganEl, item.slogan);
-  setBlockText(servicesEl, item.services);
-  setBlockText(expEl, item.experience);
+  const slogan = safeText(item.slogan);
+  if (slogan) {
+    sloganEl.innerText = slogan;
+    sloganEl.style.display = "";
+  } else {
+    sloganEl.innerText = "";
+    sloganEl.style.display = "none";
+  }
+
+  setSimpleBlock(servicesEl, servicesWrapEl, firstTwoLines(item.services));
+  setSimpleBlock(expEl, expWrapEl, firstTwoLines(item.experience));
 
   bindAvatar(getAvatar(item));
 
