@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v522.6.1</title>
+  <title>天使幸福智慧名片｜資料填寫 v522.6.2</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
@@ -457,6 +457,11 @@
       border:1px solid var(--line);
     }
 
+    button.okBtn{
+      background:rgba(110,231,183,.16);
+      border:1px solid rgba(110,231,183,.30);
+    }
+
     button:disabled{
       opacity:.55;
       cursor:not-allowed;
@@ -590,6 +595,80 @@
       font-weight:900;
       min-width:0;
       word-break:break-word;
+    }
+
+    .successCard{
+      margin-top:14px;
+      padding:14px;
+      border-radius:16px;
+      border:1px solid rgba(110,231,183,.26);
+      background:rgba(110,231,183,.08);
+      display:none;
+    }
+
+    .successCard.show{
+      display:block;
+    }
+
+    .successTitle{
+      font-size:22px;
+      font-weight:900;
+      line-height:1.3;
+      margin:0 0 8px;
+      color:#e9fff4;
+    }
+
+    .successText{
+      color:#dffcf0;
+      font-size:14px;
+      line-height:1.8;
+      margin:0;
+    }
+
+    .successIdBox{
+      margin-top:12px;
+      padding:12px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+    }
+
+    .successIdLabel{
+      color:rgba(255,255,255,.72);
+      font-size:12px;
+      font-weight:900;
+      margin-bottom:6px;
+    }
+
+    .successIdValue{
+      font-size:24px;
+      font-weight:900;
+      line-height:1.3;
+      letter-spacing:.5px;
+      word-break:break-all;
+    }
+
+    .copyHint{
+      margin-top:8px;
+      color:rgba(255,255,255,.72);
+      font-size:12px;
+      line-height:1.7;
+    }
+
+    .copyFeedback{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(123,220,255,.18);
+      background:rgba(123,220,255,.08);
+      color:#e9f9ff;
+      font-size:13px;
+      font-weight:900;
+      display:none;
+    }
+
+    .copyFeedback.show{
+      display:block;
     }
 
     .pageNav{
@@ -932,6 +1011,10 @@
       body.form-focus .pageNav button{
         width:100%;
       }
+
+      .successIdValue{
+        font-size:22px;
+      }
     }
   </style>
 </head>
@@ -946,7 +1029,7 @@
       </div>
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v522.6.1</span></div>
+        <div>版本：<span class="kbd" id="ver">v522.6.2</span></div>
         <div>品牌：<span class="kbd" id="tenantText">-</span></div>
         <div>名片 ID：<span class="kbd" id="idText">-</span></div>
         <div>invite：<span class="kbd" id="inviteText">-</span></div>
@@ -1186,6 +1269,25 @@
           <div class="submit-progress-text" id="submitProgressText">準備中…</div>
         </div>
 
+        <div class="successCard" id="successCard">
+          <div class="successTitle">已送出成功</div>
+          <p class="successText" id="successText">
+            你可以直接複製下面的序號訊息回傳客服。
+          </p>
+
+          <div class="successIdBox">
+            <div class="successIdLabel">本次名片序號</div>
+            <div class="successIdValue" id="successIdValue">-</div>
+            <div class="copyHint">請將此序號回傳客服，方便後續查找與處理。</div>
+          </div>
+
+          <div class="btns">
+            <button type="button" class="okBtn" id="btnCopyCustomerText">複製序號回傳客服</button>
+          </div>
+
+          <div class="copyFeedback" id="copyFeedback">已複製，可直接貼給客服。</div>
+        </div>
+
         <div class="status" id="status">尚未操作。</div>
 
         <div class="footNote">
@@ -1260,6 +1362,6 @@
     </div>
   </div>
 
-  <script type="module" src="./form.js?v=52261"></script>
+  <script type="module" src="./form.js?v=52262"></script>
 </body>
 </html>
