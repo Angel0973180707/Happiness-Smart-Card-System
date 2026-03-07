@@ -40,7 +40,7 @@ function normalizeImageUrl(url) {
     return `https://drive.google.com/thumbnail?id=${m1[1]}&sz=w1200`;
   }
 
-  // Google Drive: open?id=FILE_ID or uc?id=FILE_ID
+  // Google Drive: open?id=FILE_ID 或 uc?id=FILE_ID
   const m2 = s.match(/[?&]id=([^&]+)/i);
   if (/drive\.google\.com/i.test(s) && m2 && m2[1]) {
     return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w1200`;
@@ -73,7 +73,7 @@ function setBlockText(el, value) {
 function bindAvatar(url) {
   avatarEl.onerror = null;
 
-  // 沒有頭像：保留灰色圓底，不顯示破圖
+  // 沒有頭像：保留灰色圓底，不露破圖
   if (!url) {
     avatarEl.removeAttribute("src");
     avatarEl.style.display = "";
@@ -115,8 +115,18 @@ async function loadCard() {
     throw new Error(`HTTP ${res.status}`);
   }
 
-  const data = await res.json();
+  const text = await res.text();
+  let data = null;
+
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    console.error("JSON parse error:", err, text);
+    return null;
+  }
+
   if (!data || !data.ok) {
+    console.error("GAS data not ok:", data);
     return null;
   }
 
