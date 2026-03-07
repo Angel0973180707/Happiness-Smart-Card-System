@@ -13,7 +13,7 @@ const titleEl = document.getElementById("title");
 const sloganEl = document.getElementById("slogan");
 const servicesEl = document.getElementById("services");
 const expEl = document.getElementById("exp");
-const qrWrapEl = document.getElementById("qrcode");
+const qrCanvasEl = document.getElementById("qrcode");
 const openCardEl = document.getElementById("openCard");
 const copyLinkEl = document.getElementById("copyLink");
 const downloadEl = document.getElementById("download");
@@ -73,7 +73,6 @@ function setBlockText(el, value) {
 function bindAvatar(url) {
   avatarEl.onerror = null;
 
-  // 沒有頭像：保留灰色圓底，不露破圖
   if (!url) {
     avatarEl.removeAttribute("src");
     avatarEl.style.display = "";
@@ -90,11 +89,9 @@ function bindAvatar(url) {
 }
 
 async function renderQrCode(url) {
-  qrWrapEl.innerHTML = "";
-  const canvas = document.createElement("canvas");
-  qrWrapEl.appendChild(canvas);
+  if (!qrCanvasEl) return;
 
-  await QRCode.toCanvas(canvas, url, {
+  await QRCode.toCanvas(qrCanvasEl, url, {
     width: 300,
     margin: 2
   });
