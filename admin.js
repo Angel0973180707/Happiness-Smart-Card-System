@@ -1,5 +1,5 @@
 /* ==========================================
- * HSC Admin Workspace — admin.js v522.6
+ * HSC Admin Workspace — admin.js v522.7
  * COMPLETE OVERWRITE
  *
  * Features:
@@ -9,6 +9,7 @@
  * - 開智慧名片成品（view=1）
  * - 開交付卡（poster.html）
  * - 複製交付連結（poster.html）
+ * - 複製交付訊息
  * - 複製更新連結
  * - 啟用 / 停用
  * - 建邀請碼
@@ -16,15 +17,17 @@
  * - 讀統計
  * - 即將到期提醒（30 天內 active）
  *
- * v522.6:
+ * v522.7:
  * - share.html → poster.html
- * - 內建 buildDeliveryMessage()，後續可直接接「複製交付訊息」按鈕
+ * - 新增 buildDeliveryMessage()
+ * - 新增 copyCurrentDeliveryMessage()
+ * - 搜尋結果 / 到期提醒可直接複製交付訊息
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "522.6";
+  const VERSION = "522.7";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -36,9 +39,9 @@
   const EXPIRY_REMIND_DAYS = 30;
 
   const LS = {
-    GAS: "hsc_admin_gas_v5226",
-    TENANT: "hsc_admin_tenant_v5226",
-    SECRET: "hsc_admin_secret_v5226"
+    GAS: "hsc_admin_gas_v5227",
+    TENANT: "hsc_admin_tenant_v5227",
+    SECRET: "hsc_admin_secret_v5227"
   };
 
   const state = {
@@ -98,6 +101,7 @@
   function init() {
     hydrateConfig();
     bindEvents();
+    injectDeliveryMessageButton();
     renderResults([]);
     setStatus(`HSC Admin Workspace v${VERSION}\n準備就緒。`, "ok");
     refreshStats();
@@ -160,6 +164,21 @@
     el.btnCopyUpdateLink?.addEventListener("click", copyCurrentUpdateLink);
 
     el.resultList?.addEventListener("click", onResultAction);
+    el.expiryReminderList?.addEventListener("click", onResultAction);
+  }
+
+  function injectDeliveryMessageButton() {
+    if (!el.btnCopyDeliveryLink) return;
+    if ($("#btnCopyDeliveryMessage")) return;
+
+    const btn = document.createElement("button");
+    btn.id = "btnCopyDeliveryMessage";
+    btn.className = "warn";
+    btn.textContent = "複製交付訊息";
+    btn.addEventListener("click", copyCurrentDeliveryMessage);
+
+    const parent = el.btnCopyDeliveryLink.parentElement;
+    parent?.insertBefore(btn, el.btnCopyUpdateLink || null);
   }
 
   async function refreshStats() {
@@ -229,6 +248,7 @@
           <div class="btns">
             <button data-act="load" data-id="${id}" class="primary">載入</button>
             <button data-act="copy-delivery-link" data-id="${id}" class="warn">複製交付連結</button>
+            <button data-act="copy-delivery-message" data-id="${id}" class="warn">複製交付訊息</button>
           </div>
         </div>
       `;
@@ -359,6 +379,7 @@
       const item = normalizeAdminCardItem(res.item);
       state.currentItem = item;
       fillCurrent(item);
+      syncCurrentItemToSearchCache(item);
       setStatus(`重新載入完成：${id}`, "ok");
     } catch (err) {
       setStatus(err.message || String(err), "err");
@@ -389,6 +410,16 @@
     const link = buildShareLink(state.currentItem.id);
     await copyText(link);
     setStatus(`已複製交付連結：${state.currentItem.id}\n${link}`, "ok");
+  }
+
+  async function copyCurrentDeliveryMessage() {
+    if (!state.currentItem?.id) {
+      setStatus("請先載入卡片。", "warn");
+      return;
+    }
+    const msg = buildDeliveryMessage(state.currentItem);
+    await copyText(msg);
+    setStatus(`已複製交付訊息：${state.currentItem.id}\n${buildShareLink(state.currentItem.id)}`, "ok");
   }
 
   async function copyCurrentUpdateLink() {
@@ -426,6 +457,9 @@
           await copyText(buildShareLink(id));
           setStatus(`已複製交付連結：${id}\n${buildShareLink(id)}`, "ok");
           break;
+        case "copy-delivery-message":
+          await copyDeliveryMessageForId(id);
+          break;
         case "copy-update-link":
           await copyUpdateLink(id);
           break;
@@ -444,6 +478,13 @@
     } catch (err) {
       setStatus(err.message || String(err), "err");
     }
+  }
+
+  async function copyDeliveryMessageForId(id) {
+    const item = await ensureFullItemById(id);
+    const msg = buildDeliveryMessage(item);
+    await copyText(msg);
+    setStatus(`已複製交付訊息：${id}\n${buildShareLink(id)}`, "ok");
   }
 
   async function copyUpdateLink(id) {
@@ -573,6 +614,7 @@
           <button data-act="card-clean" data-id="${id}">智慧名片成品</button>
           <button data-act="share" data-id="${id}">交付卡</button>
           <button data-act="copy-delivery-link" data-id="${id}" class="warn">複製交付連結</button>
+          <button data-act="copy-delivery-message" data-id="${id}" class="warn">複製交付訊息</button>
           <button data-act="copy-update-link" data-id="${id}">更新連結</button>
           <button data-act="activate" data-id="${id}" class="ok">啟用</button>
           <button data-act="inactivate" data-id="${id}" class="danger">停用</button>
@@ -601,7 +643,6 @@
       if (!map.has(item.id)) map.set(item.id, item);
     }
 
-    // 用 adminCard 補齊完整資訊
     const ids = Array.from(map.keys());
     const out = [];
     for (const id of ids) {
@@ -631,6 +672,10 @@
       premium_color: String(item.premium_color || "").trim(),
       updated_at: String(item.updated_at || "").trim(),
       expires_at: String(item.expires_at || "").trim(),
+      email: String(item.email || "").trim(),
+      slogan: String(item.slogan || "").trim(),
+      services: String(item.services || "").trim(),
+      experience: String(item.experience || "").trim(),
       view_count: item.view_count ?? "0"
     }));
   }
@@ -650,6 +695,9 @@
       style: String(item.style || item.free_style || "").trim(),
       paper: String(item.paper || item.free_paper || "").trim(),
       premium_color: String(item.premium_color || "").trim(),
+      slogan: String(item.slogan || "").trim(),
+      services: String(item.services || "").trim(),
+      experience: String(item.experience || "").trim(),
       updated_at: String(item.updated_at || "").trim(),
       expires_at: String(item.expires_at || "").trim(),
       activated_at: String(item.activated_at || "").trim(),
@@ -725,11 +773,48 @@
   }
 
   function buildShareLink(id) {
-    return `${ensureBaseUrl()}share.html?id=${encodeURIComponent(id)}`;
+    return `${ensureBaseUrl()}poster.html?id=${encodeURIComponent(id)}`;
+  }
+
+  function buildDeliveryMessage(item) {
+    const id = String(item?.id || "").trim();
+    const link = buildShareLink(id);
+    return [
+      "這是您的專屬智慧名片交付卡，點開後可：",
+      "查看您的智慧名片",
+      "下載名片海報",
+      "複製分享連結",
+      "",
+      `交付卡連結：`,
+      link,
+      "",
+      "如有任何疑問，歡迎隨時與我聯繫。"
+    ].join("\n");
   }
 
   function ensureBaseUrl() {
     return DEFAULT_BASE_URL;
+  }
+
+  async function ensureFullItemById(id) {
+    if (state.currentItem?.id === id) return state.currentItem;
+
+    const hit = state.items.find((x) => x.id === id);
+    if (hit && hit.services && hit.experience) return hit;
+
+    const res = await api("adminCard", { id }, { admin: true });
+    if (!res?.item) throw new Error("讀取交付資料失敗");
+    const full = normalizeAdminCardItem(res.item);
+    syncCurrentItemToSearchCache(full);
+    return full;
+  }
+
+  function syncCurrentItemToSearchCache(item) {
+    if (!item?.id) return;
+    const idx = state.items.findIndex((x) => x.id === item.id);
+    if (idx >= 0) state.items[idx] = { ...state.items[idx], ...item };
+    else state.items.push(item);
+    if (state.currentItem?.id === item.id) state.currentItem = item;
   }
 
   async function api(action, params = {}, opts = {}) {
@@ -837,4 +922,3 @@
       .replaceAll("'", "&#39;");
   }
 })();
-幫我改，完整覆蓋版
