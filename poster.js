@@ -1,4 +1,8 @@
-document.addEventListener("DOMContentLoaded", init);
+/* =========================================
+   HSC Poster
+   poster.js v528
+   COMPLETE OVERWRITE
+========================================= */
 
 const GAS =
 "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -6,158 +10,112 @@ const GAS =
 const BASE =
 "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
 
-async function init(){
+/* =========================
+   圖片解析器
+========================= */
 
-const qs=new URLSearchParams(location.search);
-const id=qs.get("id");
-
-if(!id){
-status("缺少 id");
-return;
+function pickImage(...args) {
+  for (const v of args) {
+    if (v && String(v).trim()) {
+      return String(v).trim();
+    }
+  }
+  return "";
 }
 
-status("讀取名片...");
+/* =========================
+   DOM
+========================= */
 
-try{
+const avatarEl = document.getElementById("avatar");
+const nameEl = document.getElementById("name");
+const unitEl = document.getElementById("unit");
 
-const res=await fetch(`${GAS}?action=card&id=${id}`);
-const data=await res.json();
+const btnView = document.getElementById("btnView");
+const btnCopy = document.getElementById("btnCopy");
+const btnPoster = document.getElementById("btnPoster");
 
-if(!data.ok){
-status("讀取失敗");
-return;
-}
+/* =========================
+   讀取ID
+========================= */
 
-const item=data.item||data.data;
+const qs = new URLSearchParams(location.search);
+const id = qs.get("id") || "";
 
-render(item,id);
+/* =========================
+   載入資料
+========================= */
 
-}catch(e){
+async function load() {
 
-console.error(e);
-status("讀取失敗");
+  if (!id) return;
 
-}
+  const r = await fetch(`${GAS}?action=card&id=${id}`);
+  const j = await r.json();
 
-}
+  if (!j.ok) return;
 
-function status(t){
+  const d = j.item || {};
 
-const el=document.getElementById("status");
-if(el) el.innerText=t||"";
+  /* avatar */
 
-}
+  const avatar = pickImage(
+    d.avatar_img_fast,
+    d.avatar_img,
+    d.avatar_url,
+    d.avatar_key
+  );
 
-function safe(v){
+  if (avatar) avatarEl.src = avatar;
 
-return (v||"").toString().trim();
+  /* name */
 
-}
+  nameEl.textContent = d.name || "";
 
-function driveToThumb(url){
+  /* unit */
 
-if(!url) return "";
+  unitEl.textContent = d.unit || "";
 
-const m=url.match(/id=([^&]+)/);
+  /* 按鈕 */
 
-if(m){
-return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w1200`;
-}
+  const cardUrl = `${BASE}?id=${id}`;
 
-return url;
+  btnView.onclick = () => {
+    location.href = cardUrl;
+  };
 
-}
+  btnCopy.onclick = () => {
+    navigator.clipboard.writeText(cardUrl);
+    alert("已複製名片連結");
+  };
 
-function render(item,id){
-
-const name=safe(item.name);
-const unit=safe(item.unit);
-const title=safe(item.title);
-
-const avatar=item.avatar_img_fast||
-item.avatar_img||
-item.avatar_url||
-item.avatar;
-
-const avatarUrl=driveToThumb(avatar);
-
-const cardUrl=`${BASE}?id=${id}&view=1`;
-
-document.getElementById("name").innerText=name;
-document.getElementById("unit").innerText=unit;
-document.getElementById("title").innerText=title;
-
-const avatarEl=document.getElementById("avatar");
-
-if(avatarUrl){
-
-avatarEl.src=avatarUrl;
-
-}else{
-
-avatarEl.style.display="none";
+  btnPoster.onclick = () => {
+    downloadPoster();
+  };
 
 }
 
-new QRCode(
-document.getElementById("qrcode"),
-{
-text:cardUrl,
-width:300,
-height:300,
-correctLevel:QRCode.CorrectLevel.H
-}
-);
-
-document.getElementById("openCard").href=cardUrl;
-
-document.getElementById("copyLink").onclick=()=>{
-
-navigator.clipboard.writeText(cardUrl);
-alert("已複製名片連結");
-
-};
-
-document.getElementById("copySystem").onclick=()=>{
-
-navigator.clipboard.writeText(BASE);
-alert("已複製推薦連結");
-
-};
-
-document.getElementById("download").onclick=downloadPoster;
-
-status("");
-
-}
+/* =========================
+   下載海報
+========================= */
 
 async function downloadPoster(){
 
-status("生成海報...");
+  const node = document.getElementById("poster");
 
-try{
+  const canvas = await html2canvas(node,{
+    scale:2
+  });
 
-const poster=document.getElementById("poster");
+  const a = document.createElement("a");
 
-const canvas=await html2canvas(poster,{
-scale:2,
-useCORS:true,
-backgroundColor:"#ffffff"
-});
+  a.href = canvas.toDataURL("image/png");
 
-const link=document.createElement("a");
-link.download="poster.png";
-link.href=canvas.toDataURL("image/png");
+  a.download = "smartcard.png";
 
-link.click();
-
-status("");
-
-}catch(e){
-
-console.error(e);
-status("下載失敗");
-
+  a.click();
 }
 
-}
+/* ========================= */
+
+load();
