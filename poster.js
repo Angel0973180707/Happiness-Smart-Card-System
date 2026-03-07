@@ -30,11 +30,31 @@ function getCardUrl(cardId) {
   return `${BASE_URL}?id=${encodeURIComponent(cardId)}&view=1`;
 }
 
+function normalizeImageUrl(url) {
+  const s = safeText(url);
+  if (!s) return "";
+
+  // Google Drive: /file/d/FILE_ID/view
+  const m1 = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+  if (m1 && m1[1]) {
+    return `https://drive.google.com/thumbnail?id=${m1[1]}&sz=w1200`;
+  }
+
+  // Google Drive: open?id=FILE_ID or uc?id=FILE_ID
+  const m2 = s.match(/[?&]id=([^&]+)/i);
+  if (/drive\.google\.com/i.test(s) && m2 && m2[1]) {
+    return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w1200`;
+  }
+
+  return s;
+}
+
 function getAvatar(item) {
-  return (
+  return normalizeImageUrl(
     safeText(item.avatar_img_fast) ||
     safeText(item.avatar_img) ||
     safeText(item.avatar_url) ||
+    safeText(item.avatar) ||
     ""
   );
 }
@@ -53,9 +73,10 @@ function setBlockText(el, value) {
 function bindAvatar(url) {
   avatarEl.onerror = null;
 
+  // 沒有頭像：保留灰色圓底，不顯示破圖
   if (!url) {
     avatarEl.removeAttribute("src");
-    avatarEl.style.display = "none";
+    avatarEl.style.display = "";
     return;
   }
 
@@ -64,7 +85,7 @@ function bindAvatar(url) {
 
   avatarEl.onerror = () => {
     avatarEl.removeAttribute("src");
-    avatarEl.style.display = "none";
+    avatarEl.style.display = "";
   };
 }
 
