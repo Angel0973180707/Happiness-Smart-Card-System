@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v522.8</title>
+  <title>天使幸福智慧名片｜資料填寫 v521.9</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
@@ -23,8 +23,6 @@
       --fs2:clamp(20px,2.7vw,24px);
       --fs3:clamp(24px,3.4vw,30px);
       --fs4:clamp(28px,4vw,36px);
-      --navH:84px;
-      --mobileNavH:68px;
     }
 
     *{ box-sizing:border-box; }
@@ -61,7 +59,6 @@
       border-radius:var(--radius);
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
       box-shadow:var(--shadow);
-      transition:.22s ease;
     }
 
     .brand{ min-width:0; flex:1 1 auto; }
@@ -70,7 +67,6 @@
       margin:0;
       font-size:var(--fs4);
       line-height:1.22;
-      transition:.22s ease;
     }
 
     .brand p{
@@ -78,7 +74,6 @@
       color:var(--muted);
       font-size:14px;
       line-height:1.8;
-      transition:.22s ease;
     }
 
     .meta{
@@ -88,7 +83,6 @@
       font-size:12px;
       line-height:1.9;
       flex:0 0 auto;
-      transition:.22s ease;
     }
 
     .pill{
@@ -124,13 +118,12 @@
     }
 
     .flow{
-      margin-top:12px;
-      padding:10px 12px;
+      margin-top:14px;
+      padding:14px;
       border:1px solid var(--line);
-      border-radius:16px;
+      border-radius:18px;
       background:rgba(255,255,255,.03);
       box-shadow:var(--shadow);
-      transition:.22s ease;
     }
 
     .flow-head{
@@ -138,38 +131,35 @@
       align-items:flex-start;
       justify-content:space-between;
       gap:12px;
-      margin-bottom:8px;
+      margin-bottom:10px;
     }
 
     .flow-title{
-      font-size:18px;
+      font-size:var(--fs2);
       font-weight:900;
-      line-height:1.3;
-      transition:.22s ease;
+      line-height:1.35;
     }
 
     .flow-sub{
-      margin-top:2px;
+      margin-top:4px;
       color:var(--muted);
-      font-size:12px;
-      line-height:1.55;
-      transition:.22s ease;
+      font-size:13px;
+      line-height:1.7;
     }
 
     .stepTrack{
       display:grid;
-      grid-template-columns:repeat(7, minmax(0,1fr));
-      gap:6px;
-      margin-top:8px;
-      transition:.22s ease;
+      grid-template-columns:repeat(5, minmax(0,1fr));
+      gap:8px;
+      margin-top:12px;
     }
 
     .stepDot{
       border:1px solid var(--line);
-      border-radius:14px;
+      border-radius:16px;
       background:rgba(255,255,255,.03);
-      padding:8px 6px;
-      min-height:64px;
+      padding:10px 8px;
+      min-height:72px;
       display:flex;
       flex-direction:column;
       justify-content:center;
@@ -180,23 +170,23 @@
     }
 
     .stepDot .num{
-      width:24px;
-      height:24px;
+      width:28px;
+      height:28px;
       border-radius:50%;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size:12px;
+      font-size:13px;
       font-weight:900;
       border:1px solid var(--line);
       background:rgba(255,255,255,.04);
-      margin-bottom:6px;
+      margin-bottom:7px;
       flex:0 0 auto;
     }
 
     .stepDot .txt{
-      font-size:12px;
-      line-height:1.35;
+      font-size:13px;
+      line-height:1.45;
       color:var(--muted);
       font-weight:800;
     }
@@ -229,7 +219,6 @@
       background:rgba(255,255,255,.03);
       padding:18px;
       box-shadow:var(--shadow);
-      scroll-margin-top:16px;
     }
 
     .card h2{
@@ -275,7 +264,7 @@
       margin-left:6px;
     }
 
-    input, textarea, select{
+    input, textarea{
       width:100%;
       background:rgba(255,255,255,.04);
       color:var(--text);
@@ -286,12 +275,6 @@
       font-size:clamp(16px,1.9vw,18px);
       line-height:1.6;
       min-height:54px;
-      transition:border-color .18s ease, box-shadow .18s ease;
-    }
-
-    input:focus, textarea:focus, select:focus{
-      border-color:rgba(123,220,255,.55);
-      box-shadow:0 0 0 3px rgba(123,220,255,.12);
     }
 
     textarea{
@@ -457,11 +440,6 @@
       border:1px solid var(--line);
     }
 
-    button.okBtn{
-      background:rgba(110,231,183,.16);
-      border:1px solid rgba(110,231,183,.30);
-    }
-
     button:disabled{
       opacity:.55;
       cursor:not-allowed;
@@ -474,7 +452,6 @@
       border:1px solid rgba(255,255,255,.10);
       background:rgba(255,255,255,.04);
       display:none;
-      scroll-margin-top:12px;
     }
 
     .submit-progress-head{
@@ -540,28 +517,6 @@
       white-space:pre-wrap;
       word-break:break-word;
       background:rgba(255,255,255,.02);
-      scroll-margin-top:12px;
-    }
-
-    .status.ok{
-      border-style:solid;
-      border-color:rgba(110,231,183,.28);
-      background:rgba(110,231,183,.08);
-      color:#defced;
-    }
-
-    .status.bad{
-      border-style:solid;
-      border-color:rgba(251,113,133,.28);
-      background:rgba(251,113,133,.08);
-      color:#ffd9e0;
-    }
-
-    .status.warn{
-      border-style:solid;
-      border-color:rgba(251,191,36,.28);
-      background:rgba(251,191,36,.08);
-      color:#fff1c2;
     }
 
     .summary{
@@ -597,314 +552,6 @@
       word-break:break-word;
     }
 
-    /* =========================
-       Step7 真名片預覽
-    ========================= */
-
-    .previewCard{
-      margin-top:16px;
-      border:1px solid rgba(255,255,255,.12);
-      border-radius:28px;
-      padding:18px;
-      position:relative;
-      overflow:hidden;
-      background:
-        radial-gradient(120% 140% at 20% 0%, rgba(255,255,255,.10), transparent 40%),
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      box-shadow:
-        0 18px 40px rgba(0,0,0,.24),
-        inset 0 1px 0 rgba(255,255,255,.08);
-    }
-
-    .previewCard.theme-free{
-      background:
-        radial-gradient(120% 140% at 20% 0%, rgba(123,220,255,.18), transparent 42%),
-        radial-gradient(100% 120% at 100% 100%, rgba(255,191,36,.10), transparent 45%),
-        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-    }
-
-    .previewCard.theme-premium{
-      background:
-        radial-gradient(120% 140% at 20% 0%, rgba(251,191,36,.18), transparent 42%),
-        radial-gradient(100% 120% at 100% 100%, rgba(255,120,120,.10), transparent 45%),
-        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-      border-color:rgba(251,191,36,.22);
-    }
-
-    .previewRibbon{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-bottom:14px;
-    }
-
-    .previewHead{
-      font-weight:900;
-      font-size:16px;
-      color:rgba(255,255,255,.92);
-    }
-
-    .previewPlanBadge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:7px 12px;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);
-      font-size:12px;
-      font-weight:900;
-      color:#fff;
-    }
-
-    .previewShell{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:24px;
-      background:rgba(7,12,24,.38);
-      padding:18px;
-      backdrop-filter:blur(10px);
-    }
-
-    .previewTheme{
-      margin-bottom:12px;
-      color:rgba(255,255,255,.72);
-      font-size:12px;
-      line-height:1.7;
-      text-align:center;
-      font-weight:800;
-    }
-
-    .previewHero{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      gap:10px;
-    }
-
-    .previewAvatarWrap{
-      width:108px;
-      height:108px;
-      border-radius:50%;
-      padding:4px;
-      background:linear-gradient(180deg, rgba(255,255,255,.26), rgba(255,255,255,.06));
-      box-shadow:0 10px 24px rgba(0,0,0,.20);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .previewAvatar{
-      width:100%;
-      height:100%;
-      border-radius:50%;
-      object-fit:cover;
-      background:#222;
-      border:1px solid rgba(255,255,255,.14);
-      display:none;
-    }
-
-    .previewName{
-      font-size:24px;
-      font-weight:900;
-      line-height:1.3;
-      letter-spacing:.3px;
-    }
-
-    .previewUnit{
-      font-size:15px;
-      opacity:.88;
-      line-height:1.7;
-      font-weight:800;
-    }
-
-    .previewTitle{
-      font-size:15px;
-      line-height:1.75;
-      color:rgba(255,255,255,.86);
-      font-weight:800;
-    }
-
-    .previewBlock{
-      margin-top:14px;
-      padding:14px 14px;
-      border-radius:18px;
-      border:1px solid rgba(255,255,255,.08);
-      background:rgba(255,255,255,.03);
-    }
-
-    .previewLabel{
-      font-size:12px;
-      color:rgba(255,255,255,.64);
-      font-weight:900;
-      letter-spacing:.3px;
-      margin-bottom:6px;
-    }
-
-    .previewSlogan{
-      font-size:15px;
-      line-height:1.85;
-      font-weight:800;
-    }
-
-    .previewServices{
-      font-size:14px;
-      line-height:1.8;
-      color:rgba(255,255,255,.92);
-    }
-
-    .previewExp{
-      font-size:14px;
-      line-height:1.85;
-      white-space:pre-wrap;
-      word-break:break-word;
-      color:rgba(255,255,255,.90);
-    }
-
-    .previewPhotoWrap{
-      margin-top:16px;
-    }
-
-    .previewPhotoWall{
-      display:grid;
-      grid-template-columns:repeat(2, minmax(0,1fr));
-      gap:10px;
-    }
-
-    .previewPhotoWall[data-count="1"]{
-      grid-template-columns:1fr;
-    }
-
-    .previewPhotoWall[data-count="3"],
-    .previewPhotoWall[data-count="4"],
-    .previewPhotoWall[data-count="5"]{
-      grid-template-columns:repeat(2, minmax(0,1fr));
-    }
-
-    .previewPhotoItem{
-      aspect-ratio:16 / 10;
-      overflow:hidden;
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,.10);
-      background:rgba(0,0,0,.22);
-      box-shadow:0 8px 18px rgba(0,0,0,.16);
-    }
-
-    .previewPhotoItem img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-
-    .previewPhotoEmpty{
-      border:1px dashed rgba(255,255,255,.16);
-      border-radius:16px;
-      padding:16px 14px;
-      color:rgba(255,255,255,.60);
-      font-size:13px;
-      line-height:1.8;
-      text-align:center;
-      background:rgba(255,255,255,.02);
-    }
-
-    .previewFooter{
-      margin-top:16px;
-      padding-top:14px;
-      border-top:1px solid rgba(255,255,255,.08);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-    }
-
-    .previewLogo{
-      width:78px;
-      height:78px;
-      border-radius:18px;
-      object-fit:cover;
-      background:#222;
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow:0 10px 24px rgba(0,0,0,.18);
-      display:none;
-    }
-
-    .successCard{
-      margin-top:14px;
-      padding:14px;
-      border-radius:16px;
-      border:1px solid rgba(110,231,183,.26);
-      background:rgba(110,231,183,.08);
-      display:none;
-    }
-
-    .successCard.show{
-      display:block;
-    }
-
-    .successTitle{
-      font-size:22px;
-      font-weight:900;
-      line-height:1.3;
-      margin:0 0 8px;
-      color:#e9fff4;
-    }
-
-    .successText{
-      color:#dffcf0;
-      font-size:14px;
-      line-height:1.8;
-      margin:0;
-    }
-
-    .successIdBox{
-      margin-top:12px;
-      padding:12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.14);
-      background:rgba(255,255,255,.06);
-    }
-
-    .successIdLabel{
-      color:rgba(255,255,255,.72);
-      font-size:12px;
-      font-weight:900;
-      margin-bottom:6px;
-    }
-
-    .successIdValue{
-      font-size:24px;
-      font-weight:900;
-      line-height:1.3;
-      letter-spacing:.5px;
-      word-break:break-all;
-    }
-
-    .copyHint{
-      margin-top:8px;
-      color:rgba(255,255,255,.72);
-      font-size:12px;
-      line-height:1.7;
-    }
-
-    .copyFeedback{
-      margin-top:10px;
-      padding:10px 12px;
-      border-radius:12px;
-      border:1px solid rgba(123,220,255,.18);
-      background:rgba(123,220,255,.08);
-      color:#e9f9ff;
-      font-size:13px;
-      font-weight:900;
-      display:none;
-    }
-
-    .copyFeedback.show{
-      display:block;
-    }
-
     .pageNav{
       position:sticky;
       bottom:10px;
@@ -916,7 +563,6 @@
       background:rgba(11,18,32,.82);
       backdrop-filter:blur(10px);
       box-shadow:0 10px 26px rgba(0,0,0,.24);
-      transition:.22s ease;
     }
 
     .pageNav .btns{
@@ -943,7 +589,6 @@
       color:var(--muted);
       font-size:13px;
       font-weight:900;
-      transition:.22s ease;
     }
 
     .footNote{
@@ -1045,52 +690,6 @@
       margin-top:12px;
     }
 
-    .cropArrowGrid{
-      display:grid;
-      grid-template-columns:repeat(3, minmax(56px, 64px));
-      gap:8px;
-      justify-content:center;
-      margin-top:12px;
-    }
-
-    .cropArrowGrid .spacer{
-      visibility:hidden;
-    }
-
-    .zoomPanel{
-      margin-top:12px;
-      padding:12px;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:14px;
-      background:rgba(255,255,255,.03);
-    }
-
-    .zoomPanel label{
-      margin:0 0 8px;
-      color:var(--text);
-    }
-
-    .rangeRow{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-
-    .rangeRow input[type="range"]{
-      min-height:auto;
-      padding:0;
-      border:none;
-      background:transparent;
-    }
-
-    .rangeValue{
-      min-width:54px;
-      text-align:right;
-      color:var(--muted);
-      font-size:13px;
-      font-weight:900;
-    }
-
     .cropMeta{
       margin-top:10px;
       color:var(--muted);
@@ -1099,12 +698,6 @@
     }
 
     .hide{ display:none !important; }
-
-    @media(max-width:900px){
-      .stepTrack{
-        grid-template-columns:repeat(4, minmax(0,1fr));
-      }
-    }
 
     @media(max-width:760px){
       .top{
@@ -1135,89 +728,14 @@
       .cropBox{
         padding:14px;
       }
-
-      .previewCard{
-        padding:14px;
-        border-radius:22px;
-      }
-      .previewShell{
-        padding:14px;
-        border-radius:18px;
-      }
-      .previewAvatarWrap{
-        width:92px;
-        height:92px;
-      }
-      .previewName{
-        font-size:22px;
-      }
-      .previewPhotoWall{
-        grid-template-columns:1fr 1fr;
-      }
-
-      body.form-focus .top{
-        padding:10px 12px;
-        border-radius:16px;
-      }
-      body.form-focus .brand h1{
-        font-size:clamp(21px,5.8vw,26px);
-        line-height:1.18;
-      }
-      body.form-focus .brand p{
-        margin-top:4px;
-        font-size:12px;
-        line-height:1.45;
-        opacity:.86;
-      }
-      body.form-focus .meta{
-        font-size:11px;
-        line-height:1.55;
-      }
-      body.form-focus .meta div:nth-child(n+3){
-        display:none;
-      }
-      body.form-focus .flow{
-        padding:8px 10px;
-      }
-      body.form-focus .flow-title{
-        font-size:16px;
-      }
-      body.form-focus .flow-sub{
-        font-size:11px;
-        line-height:1.4;
-        margin-top:2px;
-      }
-      body.form-focus .stepTrack{
-        display:none;
-      }
-      body.form-focus .pageNav{
-        padding:8px;
-        border-radius:14px;
-        bottom:6px;
-      }
-      body.form-focus .pageBadge{
-        padding:7px 10px;
-        font-size:12px;
-      }
-      body.form-focus .pageNav button{
-        min-height:44px;
-        padding:10px 14px;
-        font-size:15px;
-      }
-      body.form-focus .wrap{
-        padding-bottom:100px;
-      }
     }
 
     @media(max-width:520px){
       .wrap{
         padding:14px 12px 120px;
       }
-      .card, .top{
+      .card, .top, .flow{
         padding:15px;
-      }
-      .flow{
-        padding:8px 10px;
       }
       .stepTrack{
         grid-template-columns:repeat(1, minmax(0,1fr));
@@ -1231,122 +749,56 @@
       button{
         width:100%;
       }
-      .cropArrowGrid{
-        grid-template-columns:repeat(3, 1fr);
-      }
-
-      .previewAvatarWrap{
-        width:84px;
-        height:84px;
-      }
-      .previewName{
-        font-size:20px;
-      }
-      .previewPhotoWall{
-        grid-template-columns:1fr;
-      }
-      .previewLogo{
-        width:68px;
-        height:68px;
-      }
-
-      body.form-focus .top{
-        padding:10px;
-      }
-      body.form-focus .flow{
-        margin-top:10px;
-        padding:8px 10px;
-      }
-      body.form-focus .card{
-        margin-top:10px;
-        padding:14px;
-      }
-      body.form-focus .pageNav .btns{
-        gap:8px;
-      }
-      body.form-focus .pageNavLeft,
-      body.form-focus .pageNavRight{
-        gap:8px;
-      }
-      body.form-focus .pageNavLeft{
-        display:grid;
-        grid-template-columns:1fr 1fr;
-        align-items:center;
-      }
-      body.form-focus .pageNavRight{
-        display:block;
-      }
-      body.form-focus .pageBadge{
-        justify-content:center;
-      }
-      body.form-focus .pageNav button{
-        width:100%;
-      }
-
-      .successIdValue{
-        font-size:22px;
-      }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top" id="topCard">
+    <div class="top">
       <div class="brand">
         <h1>天使幸福智慧名片｜資料填寫</h1>
         <p id="pageIntro">
-          一步一頁慢慢填就好。先選方案，再選樣式，接著填資料、調整照片，最後確認送出。
+          固定分頁流程。請一步一步完成。圖片可先調整位置，再壓縮上傳，送出時會自動建立或更新你的智慧名片。
         </p>
       </div>
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v522.8</span></div>
+        <div>版本：<span class="kbd" id="ver">v521.9</span></div>
         <div>品牌：<span class="kbd" id="tenantText">-</span></div>
         <div>名片 ID：<span class="kbd" id="idText">-</span></div>
         <div>invite：<span class="kbd" id="inviteText">-</span></div>
       </div>
     </div>
 
-    <div class="flow" id="flowCard">
+    <div class="flow">
       <div class="flow-head">
         <div>
           <div class="flow-title">填寫流程</div>
-          <div class="flow-sub" id="flowSub">目前在第 1 步，共 7 步。</div>
+          <div class="flow-sub" id="flowSub">目前在第 1 步，共 5 步。</div>
         </div>
-        <div class="pageBadge" id="pageBadge">第 1 / 7 步</div>
+        <div class="pageBadge" id="pageBadge">第 1 / 5 步</div>
       </div>
 
       <div class="stepTrack" id="stepTrack">
-        <div class="stepDot" data-step="0"><div class="num">1</div><div class="txt">方案</div></div>
-        <div class="stepDot" data-step="1"><div class="num">2</div><div class="txt">樣式</div></div>
-        <div class="stepDot" data-step="2"><div class="num">3</div><div class="txt">基本資料</div></div>
-        <div class="stepDot" data-step="3"><div class="num">4</div><div class="txt">聯絡資料</div></div>
-        <div class="stepDot" data-step="4"><div class="num">5</div><div class="txt">照片</div></div>
-        <div class="stepDot" data-step="5"><div class="num">6</div><div class="txt">影音 / 社群</div></div>
-        <div class="stepDot" data-step="6"><div class="num">7</div><div class="txt">確認送出</div></div>
+        <div class="stepDot" data-step="0"><div class="num">1</div><div class="txt">方案與外觀</div></div>
+        <div class="stepDot" data-step="1"><div class="num">2</div><div class="txt">基本資料</div></div>
+        <div class="stepDot" data-step="2"><div class="num">3</div><div class="txt">聯絡方式</div></div>
+        <div class="stepDot" data-step="3"><div class="num">4</div><div class="txt">影片社群與圖片</div></div>
+        <div class="stepDot" data-step="4"><div class="num">5</div><div class="txt">確認與送出</div></div>
       </div>
     </div>
 
-    <div class="card" id="formCard">
+    <div class="card">
       <section class="page active" data-page="0">
-        <h2>1. 方案</h2>
-        <div class="subnote">先選方案，後面會自動切換對應設定。</div>
+        <h2>1. 方案與外觀</h2>
+        <div class="subnote">請先選方案，後面的選項會跟著變化。</div>
 
         <div class="field">
           <label>方案<span class="req">＊必選</span></label>
           <div class="chips" id="planChips"></div>
         </div>
 
-        <div class="hint" id="planHint">
-          自由搭配：最多 2 張照片｜精品設計：最多 5 張照片
-        </div>
-      </section>
-
-      <section class="page" data-page="1">
-        <h2>2. 樣式</h2>
-        <div class="subnote">自由搭配與精品設計會顯示不同選項。</div>
-
-        <div class="field">
+        <div class="sectionGap field">
           <label>顏色（自由搭配）</label>
           <div class="chips" id="colorChips"></div>
         </div>
@@ -1367,13 +819,13 @@
           <div class="chips" id="premiumChips"></div>
         </div>
 
-        <div class="hint" id="styleHint">
-          請依你選的方案完成樣式設定。
+        <div class="hint" id="planHint">
+          自由搭配：最多 2 張照片｜精品設計：最多 5 張照片
         </div>
       </section>
 
-      <section class="page" data-page="2">
-        <h2>3. 基本資料</h2>
+      <section class="page" data-page="1">
+        <h2>2. 基本資料</h2>
 
         <div class="row two">
           <div class="field">
@@ -1409,13 +861,13 @@
         </div>
 
         <div class="sectionGap field">
-          <label>經歷／產品服務特色</label>
-          <textarea id="experience" placeholder="可填經歷、產品特色、服務亮點等內容"></textarea>
+          <label>經歷</label>
+          <textarea id="experience" placeholder="可分行填寫，讓客戶更了解你"></textarea>
         </div>
       </section>
 
-      <section class="page" data-page="3">
-        <h2>4. 聯絡資料</h2>
+      <section class="page" data-page="2">
+        <h2>3. 聯絡方式</h2>
 
         <div class="row two">
           <div class="field">
@@ -1451,22 +903,9 @@
         </div>
       </section>
 
-      <section class="page" data-page="4">
-        <h2>5. 照片</h2>
-        <div class="subnote">這一頁只處理圖片。選圖後可左右、上下、縮放調整，再套用。</div>
-
-        <div class="sectionGap">
-          <label>圖片上傳</label>
-          <div class="uploadGrid" id="uploadGrid"></div>
-          <div class="hint" style="margin-top:10px;">
-            自由搭配最多 2 張照片｜精品設計最多 5 張照片
-          </div>
-        </div>
-      </section>
-
-      <section class="page" data-page="5">
-        <h2>6. 影音 / 社群</h2>
-        <div class="subnote">這一頁放影片、社群、CTA 連結。</div>
+      <section class="page" data-page="3">
+        <h2>4. 影片 / 社群 / 圖片</h2>
+        <div class="subnote">圖片上傳後可先調整位置，再套用進預覽。</div>
 
         <div class="row two">
           <div class="field">
@@ -1515,64 +954,24 @@
             <input id="cta_link" placeholder="https://..." />
           </div>
         </div>
+
+        <div class="sectionGap">
+          <label>圖片上傳</label>
+          <div class="uploadGrid" id="uploadGrid"></div>
+          <div class="hint" style="margin-top:10px;">
+            自由搭配最多 2 張照片｜精品設計最多 5 張照片
+          </div>
+        </div>
       </section>
 
-      <section class="page" data-page="6">
-        <h2>7. 確認與送出</h2>
-        <div class="subnote">確認資料後再送出。送出完成後畫面會停留在此頁。</div>
+      <section class="page" data-page="4">
+        <h2>5. 確認與送出</h2>
+        <div class="subnote">確認資料後再送出。系統會自動防止重複建立與重複送出。</div>
 
         <div class="summary" id="summaryBox"></div>
 
-        <div class="previewCard theme-free" id="previewCard">
-          <div class="previewRibbon">
-            <div class="previewHead">真名片預覽</div>
-            <div class="previewPlanBadge" id="previewPlanBadge">尚未選擇</div>
-          </div>
-
-          <div class="previewShell">
-            <div class="previewTheme" id="previewTheme">尚未選擇</div>
-
-            <div class="previewHero">
-              <div class="previewAvatarWrap">
-                <img id="previewAvatar" class="previewAvatar" alt="大頭照預覽" />
-              </div>
-
-              <div class="previewName" id="previewName">你的名字</div>
-              <div class="previewUnit" id="previewUnit">你的單位</div>
-              <div class="previewTitle" id="previewTitle">你的職稱</div>
-            </div>
-
-            <div class="previewBlock">
-              <div class="previewLabel">一句話介紹</div>
-              <div class="previewSlogan" id="previewSlogan">一句話介紹會顯示在這裡</div>
-            </div>
-
-            <div class="previewBlock">
-              <div class="previewLabel">服務項目</div>
-              <div class="previewServices" id="previewServices">服務項目會顯示在這裡</div>
-            </div>
-
-            <div class="previewBlock">
-              <div class="previewLabel">經歷／產品特色</div>
-              <div class="previewExp" id="previewExp">經歷／產品服務特色會顯示在這裡</div>
-            </div>
-
-            <div class="previewPhotoWrap">
-              <div class="previewLabel">照片牆</div>
-              <div class="previewPhotoEmpty" id="previewPhotoEmpty">
-                這裡會依方案顯示照片牆預覽。自由搭配最多 2 張，精品設計最多 5 張。
-              </div>
-              <div class="previewPhotoWall" id="previewPhotoWall" data-count="0"></div>
-            </div>
-
-            <div class="previewFooter">
-              <img id="previewLogo" class="previewLogo" alt="Logo 預覽" />
-            </div>
-          </div>
-        </div>
-
         <div class="btns" style="margin-top:14px;">
-          <button id="btnTest" class="secondary hide" type="button" aria-hidden="true" tabindex="-1">測試連線</button>
+          <button id="btnTest" class="secondary" type="button">測試連線</button>
           <button id="btnSubmit" type="button">送出資料</button>
           <button id="btnReset" class="ghost" type="button">重設表單</button>
         </div>
@@ -1582,41 +981,13 @@
             <strong id="submitProgressTitle">送出中</strong>
             <span id="submitProgressPercent">0%</span>
           </div>
-
           <div class="submit-progress">
             <div class="submit-progress-fill" id="submitProgressFill"></div>
           </div>
-
-          <div class="submit-progress-text" id="submitProgressText">
-            準備中…
-          </div>
+          <div class="submit-progress-text" id="submitProgressText">準備中…</div>
         </div>
 
-        <div class="successCard" id="successCard">
-          <div class="successTitle">已送出成功</div>
-
-          <p class="successText" id="successText">
-            你可以直接複製下面的序號訊息回傳客服。
-          </p>
-
-          <div class="successIdBox">
-            <div class="successIdLabel">本次名片序號</div>
-            <div class="successIdValue" id="successIdValue">-</div>
-            <div class="copyHint">請將此序號回傳客服</div>
-          </div>
-
-          <div class="btns">
-            <button type="button" class="okBtn" id="btnCopyCustomerText">
-              複製序號回傳客服
-            </button>
-          </div>
-
-          <div class="copyFeedback" id="copyFeedback">
-            已複製，可直接貼給客服
-          </div>
-        </div>
-
-        <div class="status" id="status">尚未操作</div>
+        <div class="status" id="status">尚未操作。</div>
 
         <div class="footNote">
           小提醒：送出時若系統判定這是一筆已存在的資料，就不會重複建立新卡。invite 會全程帶入。
@@ -1627,7 +998,7 @@
     <div class="pageNav">
       <div class="btns">
         <div class="pageNavLeft">
-          <span class="pageBadge" id="pageBadgeBottom">第 1 / 7 步</span>
+          <span class="pageBadge" id="pageBadgeBottom">第 1 / 5 步</span>
           <button id="btnPrev" class="secondary" type="button">上一步</button>
         </div>
         <div class="pageNavRight">
@@ -1645,7 +1016,7 @@
       <div class="cropHead">
         <div>
           <h3 id="cropTitle">調整圖片位置</h3>
-          <p id="cropDesc">可直接拖移，也可用左、右、上、下按鈕微調，再用滑桿縮放。</p>
+          <p id="cropDesc">可拖移位置，並用按鈕放大、縮小、重設後再套用。</p>
         </div>
       </div>
 
@@ -1654,31 +1025,10 @@
           <canvas id="cropCanvas"></canvas>
         </div>
 
-        <div class="cropArrowGrid">
-          <span class="spacer"></span>
-          <button type="button" class="secondary" id="cropMoveUp">上</button>
-          <span class="spacer"></span>
-
-          <button type="button" class="secondary" id="cropMoveLeft">左</button>
-          <button type="button" class="ghost" id="cropReset">重設</button>
-          <button type="button" class="secondary" id="cropMoveRight">右</button>
-
-          <span class="spacer"></span>
-          <button type="button" class="secondary" id="cropMoveDown">下</button>
-          <span class="spacer"></span>
-        </div>
-
-        <div class="zoomPanel">
-          <label for="cropZoomRange">縮放</label>
-          <div class="rangeRow">
-            <button type="button" class="secondary" id="cropZoomOut">縮小</button>
-            <input type="range" id="cropZoomRange" min="100" max="400" step="1" value="100" />
-            <button type="button" class="secondary" id="cropZoomIn">放大</button>
-            <span class="rangeValue" id="cropZoomValue">100%</span>
-          </div>
-        </div>
-
         <div class="cropTools">
+          <button type="button" class="secondary" id="cropZoomOut">縮小</button>
+          <button type="button" class="secondary" id="cropZoomIn">放大</button>
+          <button type="button" class="ghost" id="cropReset">重設</button>
           <button type="button" class="secondary" id="cropCancel">取消</button>
           <button type="button" id="cropApply">套用</button>
         </div>
@@ -1690,6 +1040,6 @@
     </div>
   </div>
 
-  <script type="module" src="./form.js?v=5228"></script>
+  <script type="module" src="./form.js?v=5219"></script>
 </body>
 </html>
