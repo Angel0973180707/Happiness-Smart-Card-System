@@ -1,430 +1,860 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>智慧名片交付卡</title>
-  <meta name="theme-color" content="#f6f1e8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>智慧名片交付卡 v530</title>
+  <meta name="theme-color" content="#f6efe7" />
 
   <style>
     :root{
-      --bg:#f6f1e8;
-      --card:#ffffff;
-      --ink:#171717;
-      --muted:#6d675f;
-      --line:#e9e1d4;
-      --primary:#1f7a66;
-      --primary-dark:#176452;
-      --soft:#f8f5ef;
-      --btn-soft:#efebe4;
-      --accent:#ff9800;
-      --shadow:0 18px 50px rgba(0,0,0,.10);
+      --bg-1:#f6efe7;
+      --bg-2:#fdf9f4;
+      --ink:#2d241d;
+      --muted:#7b6f66;
+      --line:rgba(64,44,24,.10);
+      --card:#fffdf9;
+      --card-2:#fff7ef;
+      --accent:#c98b52;
+      --accent-2:#9a6030;
+      --shadow:0 18px 48px rgba(91,61,33,.12);
+      --shadow-soft:0 10px 28px rgba(91,61,33,.08);
       --radius-xl:28px;
       --radius-lg:22px;
       --radius-md:18px;
+      --radius-sm:14px;
+      --max:1180px;
     }
 
     *{ box-sizing:border-box; }
-
-    html,body{
-      margin:0;
-      padding:0;
-      background:
-        radial-gradient(1200px 700px at 50% -15%, rgba(255,255,255,.88), transparent 58%),
-        linear-gradient(180deg,#f7f3eb 0%, #f3eee5 100%);
-      color:var(--ink);
-      font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
-    }
-
+    html,body{ margin:0; padding:0; }
     body{
+      font-family: system-ui,-apple-system,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 680px at 0% 0%, rgba(255,210,168,.36), transparent 54%),
+        radial-gradient(1000px 680px at 100% 10%, rgba(250,229,207,.72), transparent 52%),
+        linear-gradient(180deg, var(--bg-2), var(--bg-1));
       min-height:100vh;
-      padding:20px 16px 28px;
     }
+
+    a{ color:inherit; text-decoration:none; }
+    img{ display:block; max-width:100%; }
 
     .wrap{
-      max-width:760px;
+      width:min(var(--max), calc(100% - 28px));
       margin:0 auto;
+      padding:26px 0 42px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:18px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .brand-badge{
+      width:48px;
+      height:48px;
+      border-radius:16px;
+      background:linear-gradient(135deg,#f2c18b,#fff1dc 62%,#d98c47);
+      box-shadow:var(--shadow-soft);
+      display:grid;
+      place-items:center;
+      font-size:22px;
+    }
+
+    .brand-text{
+      min-width:0;
+    }
+
+    .brand-title{
+      font-size:22px;
+      font-weight:900;
+      letter-spacing:.02em;
+      line-height:1.15;
+    }
+
+    .brand-sub{
+      margin-top:4px;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .version{
+      flex:0 0 auto;
+      white-space:nowrap;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.66);
+      box-shadow:var(--shadow-soft);
+      font-size:13px;
+      color:var(--muted);
     }
 
     .hero{
-      background:var(--card);
-      border-radius:32px;
+      display:grid;
+      grid-template-columns: 1.02fr .98fr;
+      gap:18px;
+      align-items:stretch;
+    }
+
+    .panel{
+      background:rgba(255,255,255,.74);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.72);
+      border-radius:var(--radius-xl);
       box-shadow:var(--shadow);
-      padding:28px 20px 24px;
-      position:relative;
       overflow:hidden;
     }
 
-    .hero::before{
-      content:"";
-      position:absolute;
-      inset:-80px auto auto -60px;
-      width:220px;
-      height:220px;
-      border-radius:999px;
-      background:radial-gradient(circle at center, rgba(31,122,102,.10), transparent 68%);
-      pointer-events:none;
+    .left-panel{
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
     }
 
-    .hero::after{
-      content:"";
-      position:absolute;
-      inset:auto -70px -70px auto;
-      width:220px;
-      height:220px;
-      border-radius:999px;
-      background:radial-gradient(circle at center, rgba(255,152,0,.10), transparent 68%);
-      pointer-events:none;
-    }
-
-    .brand-top{
-      position:relative;
-      z-index:1;
-      text-align:center;
-      margin-bottom:8px;
-    }
-
-    .brand-chip{
+    .eyebrow{
       display:inline-flex;
       align-items:center;
-      justify-content:center;
-      min-height:34px;
-      padding:8px 16px;
+      gap:8px;
+      width:max-content;
+      max-width:100%;
+      padding:10px 14px;
       border-radius:999px;
-      background:#f2f7f5;
-      color:var(--primary);
-      font-size:14px;
-      font-weight:900;
-      letter-spacing:.4px;
+      background:linear-gradient(180deg,#fff7ed,#fff1de);
+      border:1px solid rgba(186,126,70,.18);
+      color:var(--accent-2);
+      font-size:13px;
+      font-weight:800;
+      box-shadow:var(--shadow-soft);
     }
 
-    .main-card{
-      position:relative;
-      z-index:1;
-      margin-top:14px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(249,247,243,.98) 100%);
-      border:1px solid #f0e8db;
-      border-radius:26px;
-      padding:26px 18px 22px;
-      text-align:center;
-      box-shadow:0 10px 28px rgba(0,0,0,.04);
-    }
-
-    .avatar-shell{
-      width:124px;
-      height:124px;
-      margin:0 auto 16px;
-      border-radius:999px;
-      padding:5px;
-      background:
-        linear-gradient(135deg, rgba(31,122,102,.18), rgba(255,152,0,.18));
-      box-shadow:
-        0 10px 24px rgba(0,0,0,.08),
-        inset 0 1px 0 rgba(255,255,255,.9);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .avatar{
-      width:114px;
-      height:114px;
-      border-radius:999px;
-      object-fit:cover;
-      display:block;
-      background:#ece7df;
-      border:2px solid rgba(255,255,255,.9);
-    }
-
-    .name{
-      margin:0;
+    .headline{
       font-size:34px;
-      line-height:1.1;
-      font-weight:900;
-      letter-spacing:.4px;
-      word-break:keep-all;
-    }
-
-    .unit{
-      margin-top:10px;
-      font-size:17px;
-      line-height:1.5;
-      color:var(--muted);
-      font-weight:700;
-      word-break:keep-all;
-    }
-
-    .title{
-      margin-top:10px;
-      font-size:24px;
-      line-height:1.35;
-      font-weight:900;
-      color:#1f1f1f;
-      word-break:keep-all;
-    }
-
-    .slogan{
-      margin-top:18px;
-      font-size:17px;
-      line-height:1.65;
-      font-weight:700;
-      color:#2e2e2e;
-      white-space:pre-wrap;
-    }
-
-    .meta{
-      margin-top:16px;
-      display:grid;
-      gap:10px;
-    }
-
-    .meta-block{
-      padding:0 8px;
-    }
-
-    .meta-text{
-      font-size:17px;
-      line-height:1.62;
-      color:#2f2f2f;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-
-    .divider{
-      width:68px;
-      height:3px;
-      margin:22px auto 0;
-      border-radius:999px;
-      background:linear-gradient(90deg, transparent 0%, #ded5c8 20%, #ded5c8 80%, transparent 100%);
-    }
-
-    .qr-zone{
-      margin-top:22px;
-      text-align:center;
-    }
-
-    #qrcode{
-      width:224px;
-      height:224px;
-      margin:0 auto 12px;
-      background:#fff;
-      border-radius:22px;
-      border:1px solid #efe7da;
-      box-shadow:0 10px 24px rgba(0,0,0,.05);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-    }
-
-    #qrcode canvas,
-    #qrcode img{
-      display:block;
-      width:100%;
-      height:100%;
-      object-fit:contain;
-    }
-
-    .qr-note{
-      font-size:15px;
-      line-height:1.5;
-      color:#4f4b45;
-      font-weight:900;
-      letter-spacing:.2px;
-    }
-
-    .section{
-      margin-top:18px;
-      background:rgba(255,255,255,.72);
-      border:1px solid var(--line);
-      border-radius:24px;
-      padding:14px;
-      box-shadow:0 8px 20px rgba(0,0,0,.03);
-      backdrop-filter: blur(6px);
-    }
-
-    .section-title{
-      margin:0 0 10px;
-      padding:0 4px;
-      font-size:14px;
-      color:#72675d;
-      font-weight:900;
-      letter-spacing:.3px;
-    }
-
-    .btn{
-      width:100%;
-      display:block;
-      border:none;
-      border-radius:20px;
-      padding:17px 16px;
-      text-align:center;
-      text-decoration:none;
-      font-size:20px;
       line-height:1.2;
       font-weight:900;
-      cursor:pointer;
-      transition:transform .14s ease, opacity .14s ease, box-shadow .14s ease;
-      -webkit-tap-highlight-color:transparent;
-    }
-
-    .btn:active{
-      transform:scale(.992);
-    }
-
-    .btn + .btn,
-    .btn + a,
-    a + .btn,
-    a + a{
-      margin-top:10px;
-    }
-
-    .btn-primary{
-      color:#fff;
-      background:linear-gradient(180deg, #23856f 0%, #1b6f5d 100%);
-      box-shadow:0 14px 28px rgba(31,122,102,.22);
-    }
-
-    .btn-secondary{
-      color:#2a2a2a;
-      background:#f2eee7;
-      border:1px solid #e4dbcf;
-      box-shadow:0 6px 16px rgba(0,0,0,.04);
-    }
-
-    .btn-accent{
-      color:#fff;
-      background:linear-gradient(180deg, #ffac26 0%, #ff9100 100%);
-      box-shadow:0 14px 28px rgba(255,145,0,.24);
+      letter-spacing:.01em;
+      margin:0;
     }
 
     .desc{
-      margin:14px 4px 0;
+      margin:0;
+      color:var(--muted);
       font-size:15px;
-      line-height:1.65;
-      color:#7a7269;
-      text-align:center;
-      font-weight:700;
+      line-height:1.8;
     }
 
-    .status{
-      min-height:22px;
-      margin-top:12px;
-      text-align:center;
+    .tool-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:2px;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius:16px;
+      padding:14px 18px;
+      min-height:48px;
+      font-size:15px;
+      font-weight:900;
+      transition:transform .16s ease, box-shadow .16s ease, opacity .16s ease, background .16s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+    }
+
+    .btn:hover{ transform:translateY(-1px); }
+    .btn:active{ transform:translateY(0); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+    .btn-primary{
+      color:#fff;
+      background:linear-gradient(135deg,#c88749,#9f6234);
+      box-shadow:0 14px 28px rgba(158,98,52,.24);
+    }
+
+    .btn-soft{
+      color:var(--ink);
+      background:linear-gradient(180deg,#fffdfa,#fff6ee);
+      border:1px solid rgba(64,44,24,.10);
+      box-shadow:var(--shadow-soft);
+    }
+
+    .btn-ghost{
+      color:var(--accent-2);
+      background:rgba(255,255,255,.65);
+      border:1px dashed rgba(186,126,70,.26);
+      box-shadow:var(--shadow-soft);
+    }
+
+    .hint-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+      margin-top:4px;
+    }
+
+    .hint-card{
+      background:linear-gradient(180deg,#fffdfa,#fff8f1);
+      border:1px solid rgba(64,44,24,.08);
+      border-radius:20px;
+      padding:14px;
+      box-shadow:var(--shadow-soft);
+      min-height:106px;
+    }
+
+    .hint-title{
       font-size:14px;
-      color:#7a7a7a;
-      font-weight:700;
+      font-weight:900;
+      margin:0 0 6px;
     }
 
-    .hidden-capture{
-      position:fixed;
-      left:-99999px;
-      top:-99999px;
-      width:760px;
-      opacity:0;
+    .hint-text{
+      font-size:13px;
+      line-height:1.65;
+      color:var(--muted);
+      margin:0;
+    }
+
+    .right-panel{
+      padding:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:100%;
+    }
+
+    .poster-stage{
+      width:100%;
+      max-width:540px;
+      margin:0 auto;
+    }
+
+    .poster-paper{
+      position:relative;
+      overflow:hidden;
+      border-radius:30px;
+      padding:22px;
+      background:
+        radial-gradient(120% 120% at 0% 0%, rgba(255,255,255,.95), rgba(255,250,243,.96) 46%, rgba(252,243,232,.98) 100%);
+      border:1px solid rgba(160,108,58,.10);
+      box-shadow:
+        0 24px 60px rgba(93,62,34,.16),
+        inset 0 1px 0 rgba(255,255,255,.92);
+      isolation:isolate;
+    }
+
+    .poster-paper::before{
+      content:"";
+      position:absolute;
+      inset:-30% auto auto -10%;
+      width:70%;
+      height:52%;
+      background:radial-gradient(circle, rgba(255,222,186,.42), transparent 64%);
+      z-index:0;
       pointer-events:none;
     }
 
-    @media (max-width:640px){
-      body{
-        padding:18px 14px 24px;
-      }
+    .poster-paper::after{
+      content:"";
+      position:absolute;
+      right:-10%;
+      bottom:-16%;
+      width:56%;
+      height:40%;
+      background:radial-gradient(circle, rgba(210,155,102,.18), transparent 66%);
+      z-index:0;
+      pointer-events:none;
+    }
 
+    .poster-inner{
+      position:relative;
+      z-index:1;
+      display:flex;
+      flex-direction:column;
+      gap:16px;
+    }
+
+    .poster-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .mini-brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+    }
+
+    .mini-brand-mark{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:linear-gradient(135deg,#efc18c,#fff3df 62%,#d28a47);
+      box-shadow:var(--shadow-soft);
+      display:grid;
+      place-items:center;
+      font-size:18px;
+      flex:0 0 auto;
+    }
+
+    .mini-brand-text{
+      min-width:0;
+    }
+
+    .mini-brand-title{
+      font-size:15px;
+      font-weight:900;
+      line-height:1.2;
+    }
+
+    .mini-brand-sub{
+      margin-top:2px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+
+    .delivery-badge{
+      flex:0 0 auto;
+      white-space:nowrap;
+      padding:9px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.88);
+      border:1px solid rgba(160,108,58,.12);
+      font-size:12px;
+      color:var(--accent-2);
+      font-weight:900;
+      box-shadow:var(--shadow-soft);
+    }
+
+    .profile-card{
+      display:grid;
+      grid-template-columns:100px 1fr;
+      gap:14px;
+      align-items:center;
+      padding:16px;
+      border-radius:24px;
+      background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,247,238,.96));
+      border:1px solid rgba(160,108,58,.10);
+      box-shadow:var(--shadow-soft);
+    }
+
+    .avatar-wrap{
+      position:relative;
+      width:100px;
+      height:100px;
+      border-radius:26px;
+      overflow:hidden;
+      background:linear-gradient(135deg,#f2d3b3,#fbf3e9);
+      border:1px solid rgba(160,108,58,.12);
+      box-shadow:0 10px 22px rgba(93,62,34,.10);
+      display:grid;
+      place-items:center;
+    }
+
+    .avatar-wrap::after{
+      content:"";
+      position:absolute;
+      inset:auto -18% -26% auto;
+      width:64%;
+      height:64%;
+      border-radius:999px;
+      background:radial-gradient(circle, rgba(255,255,255,.72), transparent 68%);
+      pointer-events:none;
+    }
+
+    .avatar{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      object-position:center;
+      display:none;
+    }
+
+    .avatar-fallback{
+      font-size:28px;
+      font-weight:900;
+      color:#8f6b4e;
+      letter-spacing:.06em;
+      user-select:none;
+    }
+
+    .profile-meta{
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .name{
+      font-size:30px;
+      line-height:1.15;
+      font-weight:900;
+      letter-spacing:.01em;
+      word-break:break-word;
+    }
+
+    .unit{
+      font-size:15px;
+      color:var(--muted);
+      line-height:1.5;
+      font-weight:700;
+      word-break:break-word;
+    }
+
+    .title{
+      font-size:17px;
+      color:#534338;
+      line-height:1.5;
+      font-weight:800;
+      word-break:break-word;
+    }
+
+    .slogan{
+      margin-top:2px;
+      font-size:14px;
+      color:var(--accent-2);
+      line-height:1.65;
+      font-weight:800;
+      word-break:break-word;
+    }
+
+    .middle{
+      display:grid;
+      grid-template-columns:1fr 176px;
+      gap:14px;
+      align-items:stretch;
+    }
+
+    .feature-card,
+    .qr-card{
+      border-radius:24px;
+      background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,248,240,.95));
+      border:1px solid rgba(160,108,58,.10);
+      box-shadow:var(--shadow-soft);
+    }
+
+    .feature-card{
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-width:0;
+    }
+
+    .feature-title{
+      font-size:14px;
+      font-weight:900;
+      color:var(--accent-2);
+      margin:0;
+    }
+
+    .chip-list{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      min-height:34px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:13px;
+      line-height:1.3;
+      font-weight:800;
+      color:#5b4b40;
+      background:#fff;
+      border:1px solid rgba(64,44,24,.08);
+      box-shadow:0 6px 16px rgba(93,62,34,.05);
+      max-width:100%;
+      word-break:break-word;
+    }
+
+    .feature-desc{
+      font-size:13px;
+      line-height:1.7;
+      color:var(--muted);
+      margin:0;
+      word-break:break-word;
+    }
+
+    .qr-card{
+      position:relative;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      min-height:100%;
+    }
+
+    .qr-title{
+      font-size:12px;
+      font-weight:900;
+      color:var(--accent-2);
+      line-height:1.3;
+      text-align:center;
+      margin:0;
+    }
+
+    .qr-box{
+      position:relative;
+      width:140px;
+      height:140px;
+      border-radius:20px;
+      background:#fff;
+      border:1px solid rgba(64,44,24,.10);
+      box-shadow:0 10px 22px rgba(93,62,34,.09);
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+    }
+
+    .qr-box canvas,
+    .qr-box img{
+      width:124px !important;
+      height:124px !important;
+      image-rendering:pixelated;
+    }
+
+    .qr-center{
+      position:absolute;
+      inset:50% auto auto 50%;
+      transform:translate(-50%,-50%);
+      width:34px;
+      height:34px;
+      border-radius:12px;
+      background:#fff;
+      border:1px solid rgba(64,44,24,.08);
+      box-shadow:0 6px 16px rgba(93,62,34,.15);
+      display:none;
+      overflow:hidden;
+      z-index:2;
+    }
+
+    .qr-center img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    .qr-tip{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.5;
+      text-align:center;
+      margin:0;
+    }
+
+    .footer-card{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:12px;
+      align-items:center;
+      padding:14px 16px;
+      border-radius:22px;
+      background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,248,240,.95));
+      border:1px solid rgba(160,108,58,.10);
+      box-shadow:var(--shadow-soft);
+    }
+
+    .footer-text{
+      min-width:0;
+    }
+
+    .footer-title{
+      font-size:15px;
+      font-weight:900;
+      margin:0 0 4px;
+      line-height:1.4;
+    }
+
+    .footer-desc{
+      margin:0;
+      font-size:13px;
+      line-height:1.7;
+      color:var(--muted);
+    }
+
+    .footer-id{
+      align-self:start;
+      white-space:nowrap;
+      padding:10px 12px;
+      border-radius:14px;
+      background:#fff;
+      border:1px solid rgba(64,44,24,.08);
+      box-shadow:0 6px 16px rgba(93,62,34,.05);
+      font-size:12px;
+      color:#6e5c50;
+      font-weight:900;
+    }
+
+    .status{
+      margin-top:16px;
+      padding:14px 16px;
+      border-radius:18px;
+      background:rgba(255,255,255,.72);
+      border:1px solid rgba(64,44,24,.08);
+      color:#6f6258;
+      font-size:14px;
+      line-height:1.7;
+      box-shadow:var(--shadow-soft);
+      word-break:break-word;
+    }
+
+    .status[data-type="error"]{
+      background:#fff1f0;
+      border-color:rgba(194,58,43,.14);
+      color:#a14139;
+    }
+
+    .status[data-type="success"]{
+      background:#f4fbf6;
+      border-color:rgba(44,131,76,.12);
+      color:#2f7b49;
+    }
+
+    .loading{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+
+    .dot{
+      width:9px; height:9px; border-radius:999px; background:#c98749;
+      animation:pop 1s infinite ease-in-out;
+    }
+    .dot:nth-child(2){ animation-delay:.15s; }
+    .dot:nth-child(3){ animation-delay:.3s; }
+
+    @keyframes pop{
+      0%,80%,100%{ transform:scale(.75); opacity:.42; }
+      40%{ transform:scale(1); opacity:1; }
+    }
+
+    @media (max-width: 980px){
       .hero{
-        border-radius:28px;
-        padding:24px 16px 20px;
+        grid-template-columns:1fr;
       }
+      .right-panel{
+        order:-1;
+      }
+      .poster-stage{
+        max-width:620px;
+      }
+    }
 
-      .main-card{
+    @media (max-width: 720px){
+      .wrap{ width:min(100%, calc(100% - 18px)); padding:18px 0 28px; }
+      .topbar{
+        flex-direction:column;
+        align-items:stretch;
+      }
+      .version{
+        align-self:flex-start;
+      }
+      .headline{
+        font-size:28px;
+      }
+      .hint-grid{
+        grid-template-columns:1fr;
+      }
+      .left-panel,
+      .right-panel{
+        padding:16px;
+      }
+      .poster-paper{
+        padding:16px;
         border-radius:24px;
-        padding:22px 16px 20px;
       }
-
-      .avatar-shell{
-        width:116px;
-        height:116px;
+      .profile-card{
+        grid-template-columns:86px 1fr;
+        gap:12px;
+        padding:14px;
       }
-
-      .avatar{
-        width:106px;
-        height:106px;
+      .avatar-wrap{
+        width:86px;
+        height:86px;
+        border-radius:22px;
       }
-
-      .name{ font-size:30px; }
-      .unit{ font-size:16px; }
-      .title{ font-size:22px; }
-      .slogan{ font-size:16px; }
-      .meta-text{ font-size:16px; }
-
-      #qrcode{
-        width:208px;
-        height:208px;
+      .name{ font-size:25px; }
+      .unit{ font-size:14px; }
+      .title{ font-size:16px; }
+      .middle{
+        grid-template-columns:1fr;
       }
-
+      .qr-card{
+        min-height:unset;
+      }
+      .footer-card{
+        grid-template-columns:1fr;
+      }
+      .footer-id{
+        justify-self:flex-start;
+      }
+      .tool-row{
+        display:grid;
+        grid-template-columns:1fr;
+      }
       .btn{
-        font-size:18px;
-        padding:16px 14px;
-        border-radius:18px;
+        width:100%;
       }
     }
   </style>
 </head>
 <body>
-
   <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-badge">✨</div>
+        <div class="brand-text">
+          <div class="brand-title">智慧名片交付卡</div>
+          <div class="brand-sub">下載海報、查看名片、複製連結，一次完成交付。</div>
+        </div>
+      </div>
+      <div class="version">HSC Poster v530</div>
+    </div>
+
     <div class="hero">
-      <div class="brand-top">
-        <div class="brand-chip">智慧名片交付卡</div>
-      </div>
+      <section class="panel left-panel">
+        <div class="eyebrow">交付卡已升級｜先穩定，再漂亮</div>
+        <h1 class="headline">讓你的智慧名片，像產品一樣被交出去。</h1>
+        <p class="desc">
+          這張交付卡會自動載入頭像、姓名、品牌資訊與 QRCode，並支援海報下載。
+          這版先優先修正 QR 顯示、圖片解析與下載穩定度，再往代理推薦系統銜接。
+        </p>
 
-      <div class="main-card" id="poster">
-        <div class="avatar-shell">
-          <img id="avatar" class="avatar" alt="avatar">
+        <div class="tool-row">
+          <button id="btnDownload" class="btn btn-primary" type="button">下載我的名片海報</button>
+          <button id="btnOpenCard" class="btn btn-soft" type="button">打開我的智慧名片</button>
+          <button id="btnCopyCard" class="btn btn-soft" type="button">複製我的名片連結</button>
+          <button id="btnCopyHome" class="btn btn-ghost" type="button">複製智慧名片首頁</button>
         </div>
 
-        <h1 id="name" class="name">載入中...</h1>
-        <div id="unit" class="unit"></div>
-        <div id="title" class="title"></div>
-        <div id="slogan" class="slogan" style="display:none;"></div>
-
-        <div class="meta">
-          <div id="servicesWrap" class="meta-block" style="display:none;">
-            <div id="services" class="meta-text"></div>
+        <div class="hint-grid">
+          <div class="hint-card">
+            <h3 class="hint-title">頭像解析</h3>
+            <p class="hint-text">優先讀取 fast 圖，再回退舊版欄位與表單欄位，避免舊資料讀不到。</p>
           </div>
-          <div id="expWrap" class="meta-block" style="display:none;">
-            <div id="exp" class="meta-text"></div>
+          <div class="hint-card">
+            <h3 class="hint-title">QRCode 穩定渲染</h3>
+            <p class="hint-text">改成資料載入完成後再重建 QR，避免容器存在但內容沒產生。</p>
+          </div>
+          <div class="hint-card">
+            <h3 class="hint-title">海報下載</h3>
+            <p class="hint-text">搭配 html2canvas 與 useCORS，降低圖片污染與下載失敗機率。</p>
           </div>
         </div>
 
-        <div class="divider"></div>
-
-        <div class="qr-zone">
-          <div id="qrcode"></div>
-          <div class="qr-note">掃碼查看完整智慧名片</div>
+        <div id="status" class="status">
+          <span class="loading">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          </span>
+          正在載入交付卡資料...
         </div>
-      </div>
+      </section>
 
-      <div class="section">
-        <div class="section-title">我的智慧名片</div>
-        <a id="openCard" class="btn btn-primary" href="javascript:void(0)">打開我的智慧名片</a>
-        <button id="copyLink" class="btn btn-secondary" type="button">複製我的名片連結</button>
-        <button id="download" class="btn btn-accent" type="button">下載我的名片海報</button>
-      </div>
+      <section class="panel right-panel">
+        <div class="poster-stage">
+          <div id="poster" class="poster-paper">
+            <div class="poster-inner">
+              <div class="poster-top">
+                <div class="mini-brand">
+                  <div class="mini-brand-mark">💳</div>
+                  <div class="mini-brand-text">
+                    <div class="mini-brand-title">天使幸福智慧名片</div>
+                    <div class="mini-brand-sub">可分享的專屬名片入口</div>
+                  </div>
+                </div>
+                <div class="delivery-badge">交付卡</div>
+              </div>
 
-      <div class="desc">
-        一張可以分享、可以展示，也能持續更新的智慧名片入口
-      </div>
+              <div class="profile-card">
+                <div class="avatar-wrap">
+                  <img id="avatar" class="avatar" alt="頭像" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                  <div id="avatarFallback" class="avatar-fallback">名片</div>
+                </div>
 
-      <div id="status" class="status"></div>
+                <div class="profile-meta">
+                  <div id="name" class="name">載入中...</div>
+                  <div id="unit" class="unit">請稍候</div>
+                  <div id="title" class="title">正在整理你的名片資訊</div>
+                  <div id="slogan" class="slogan"></div>
+                </div>
+              </div>
+
+              <div class="middle">
+                <div class="feature-card">
+                  <h3 class="feature-title">這是一張可以直接分享的智慧名片</h3>
+
+                  <div class="chip-list">
+                    <div class="chip">一鍵開啟名片</div>
+                    <div class="chip">手機掃碼直達</div>
+                    <div class="chip">可下載交付海報</div>
+                    <div class="chip">適合轉傳與收藏</div>
+                  </div>
+
+                  <p id="featureDesc" class="feature-desc">
+                    名片會整合你的品牌入口與個人資訊，讓對方更快認識你、找到你、聯絡你。
+                  </p>
+                </div>
+
+                <div class="qr-card">
+                  <h3 class="qr-title">掃描 QRCode<br>立即查看智慧名片</h3>
+                  <div id="qrBox" class="qr-box">
+                    <div id="qrcode"></div>
+                    <div id="qrCenter" class="qr-center">
+                      <img id="qrCenterImg" alt="中心頭像" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                    </div>
+                  </div>
+                  <p id="qrTip" class="qr-tip">QR 產生中...</p>
+                </div>
+              </div>
+
+              <div class="footer-card">
+                <div class="footer-text">
+                  <div class="footer-title">打開名片後，可直接查看完整內容與聯絡入口</div>
+                  <p class="footer-desc">
+                    建議先收藏這張交付卡；需要分享給朋友、客戶或合作夥伴時，也可以直接傳送海報或名片連結。
+                  </p>
+                </div>
+                <div id="footerId" class="footer-id">ID：--</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 
-  <div class="hidden-capture" aria-hidden="true"></div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.5.4/dist/html2canvas.min.js"></script>
-  <script src="imageResolver.js"></script>
-  <script src="poster.js?v=5290"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="./imageResolver.js"></script>
+  <script src="./poster.js?v=530"></script>
 </body>
 </html>
