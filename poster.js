@@ -48,17 +48,28 @@ document.addEventListener("DOMContentLoaded", function () {
     return `${BASE_URL}?id=${encodeURIComponent(cardId)}&view=1`;
   }
 
+  function extractDriveFileId(url) {
+    const s = safe(url);
+    if (!s) return "";
+
+    let m = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+    if (m && m[1]) return m[1];
+
+    m = s.match(/[?&]id=([^&]+)/i);
+    if (/drive\.google\.com/i.test(s) && m && m[1]) return m[1];
+
+    return "";
+  }
+
   function normalizeImageUrl(url) {
     const s = safe(url);
     if (!s) return "";
 
-    // Google Drive /file/d/.../view 轉成可直接顯示格式
-    const m1 = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-    if (m1 && m1[1]) {
-      return `https://drive.google.com/uc?export=view&id=${m1[1]}`;
+    const driveId = extractDriveFileId(s);
+    if (driveId) {
+      return `https://drive.google.com/uc?export=view&id=${driveId}`;
     }
 
-    // 已經是可直接顯示的網址就直接用，不再改成 thumbnail
     return s;
   }
 
@@ -102,11 +113,13 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!imgEl) return;
     imgEl.removeAttribute("src");
     imgEl.alt = "";
+    imgEl.style.display = "none";
     imgEl.style.visibility = "hidden";
   }
 
   function showImage(imgEl) {
     if (!imgEl) return;
+    imgEl.style.display = "block";
     imgEl.style.visibility = "visible";
   }
 
@@ -115,7 +128,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (busy) {
       if (!el.dataset.originText) {
-        el.dataset.originText = el.tagName === "A" ? (el.textContent || "") : (el.innerText || "");
+        el.dataset.originText = el.textContent || "";
       }
       el.disabled = true;
       el.style.pointerEvents = "none";
@@ -130,37 +143,70 @@ document.addEventListener("DOMContentLoaded", function () {
     if (el.dataset.originText) el.textContent = el.dataset.originText;
   }
 
-  function bindAvatar(imgEl, url) {
+  function tryImageCandidates(imgEl, candidates) {
     return new Promise((resolve) => {
       if (!imgEl) {
         resolve("");
         return;
       }
 
-      imgEl.onerror = null;
-      imgEl.onload = null;
-
-      if (!url) {
+      const list = candidates.map(safe).filter(Boolean);
+      if (!list.length) {
         hideBrokenImage(imgEl);
         resolve("");
         return;
       }
 
-      imgEl.crossOrigin = "anonymous";
-      imgEl.referrerPolicy = "no-referrer";
+      let idx = 0;
 
-      imgEl.onload = () => {
-        showImage(imgEl);
-        resolve(url);
+      const tryNext = () => {
+        if (idx >= list.length) {
+          hideBrokenImage(imgEl);
+          resolve("");
+          return;
+        }
+
+        const url = list[idx++];
+        imgEl.onload = () => {
+          showImage(imgEl);
+          resolve(url);
+        };
+        imgEl.onerror = () => {
+          tryNext();
+        };
+        imgEl.crossOrigin = "anonymous";
+        imgEl.referrerPolicy = "no-referrer";
+        imgEl.src = url;
       };
 
-      imgEl.onerror = () => {
-        hideBrokenImage(imgEl);
-        resolve("");
-      };
-
-      imgEl.src = url;
+      tryNext();
     });
+  }
+
+  function bindAvatar(imgEl, item) {
+    const rawFast = safe(item.avatar_img_fast);
+    const rawImg = safe(item.avatar_img);
+    const rawUrl = safe(item.avatar_url);
+    const rawAvatar = safe(item.avatar);
+
+    const candidates = [];
+
+    if (rawFast) candidates.push(normalizeImageUrl(rawFast));
+    if (rawImg) candidates.push(normalizeImageUrl(rawImg));
+    if (rawUrl) candidates.push(normalizeImageUrl(rawUrl));
+    if (rawAvatar) candidates.push(normalizeImageUrl(rawAvatar));
+
+    const driveId =
+      extractDriveFileId(rawFast) ||
+      extractDriveFileId(rawImg) ||
+      extractDriveFileId(rawUrl) ||
+      extractDriveFileId(rawAvatar);
+
+    if (driveId) {
+      candidates.push(`https://drive.google.com/thumbnail?id=${driveId}&sz=w1200`);
+    }
+
+    return tryImageCandidates(imgEl, candidates);
   }
 
   function loadImage(src) {
@@ -177,50 +223,6 @@ document.addEventListener("DOMContentLoaded", function () {
       img.onerror = () => reject(new Error("image load fail"));
       img.src = src;
     });
-  }
-
-  function roundRect(ctx, x, y, w, h, r) {
-    const rr = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rr);
-    ctx.arcTo(x + w, y + h, x, y + h, rr);
-    ctx.arcTo(x, y + h, x, y, rr);
-    ctx.arcTo(x, y, x + w, y, rr);
-    ctx.closePath();
-  }
-
-  function drawFallbackCenter(ctx, size) {
-    const boxSize = 58;
-    const innerSize = 46;
-    const x = (size - boxSize) / 2;
-    const y = (size - boxSize) / 2;
-
-    ctx.save();
-
-    ctx.fillStyle = "#ffffff";
-    ctx.shadowColor = "rgba(0,0,0,.10)";
-    ctx.shadowBlur = 12;
-    roundRect(ctx, x, y, boxSize, boxSize, 16);
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2, innerSize / 2, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.fillStyle = "#ececec";
-    ctx.fill();
-
-    ctx.fillStyle = "#bdbdbd";
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2 - 7, 8.5, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(size / 2, size / 2 + 15, 15, Math.PI, 0);
-    ctx.fill();
-
-    ctx.restore();
   }
 
   function makeBaseQrCanvas(url, size) {
@@ -296,7 +298,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  async function renderQrInto(wrapEl, url, centerImageUrl) {
+  async function renderQrInto(wrapEl, url) {
     if (!wrapEl) return;
 
     wrapEl.innerHTML = "";
@@ -304,44 +306,6 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       const size = 300;
       const canvas = await makeBaseQrCanvas(url, size);
-      const ctx = canvas.getContext("2d");
-
-      if (!ctx) {
-        wrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
-        return;
-      }
-
-      const boxSize = 58;
-      const innerSize = 46;
-      const x = (size - boxSize) / 2;
-      const y = (size - boxSize) / 2;
-      const ix = (size - innerSize) / 2;
-      const iy = (size - innerSize) / 2;
-
-      if (centerImageUrl) {
-        try {
-          const centerImg = await loadImage(centerImageUrl);
-
-          ctx.save();
-          ctx.fillStyle = "#ffffff";
-          ctx.shadowColor = "rgba(0,0,0,.10)";
-          ctx.shadowBlur = 12;
-          roundRect(ctx, x, y, boxSize, boxSize, 16);
-          ctx.fill();
-
-          ctx.shadowBlur = 0;
-          ctx.beginPath();
-          ctx.arc(size / 2, size / 2, innerSize / 2, 0, Math.PI * 2);
-          ctx.closePath();
-          ctx.clip();
-          ctx.drawImage(centerImg, ix, iy, innerSize, innerSize);
-          ctx.restore();
-        } catch (e) {
-          console.warn("center image fail, fallback to original QR:", e);
-          // 抓圖不成，退回原貌：不畫中央圖示
-        }
-      }
-
       wrapEl.innerHTML = "";
       wrapEl.appendChild(canvas);
     } catch (e) {
@@ -402,8 +366,13 @@ document.addEventListener("DOMContentLoaded", function () {
     if (recRoleEl) recRoleEl.innerText = buildRecommendRole(item);
     if (recCopyEl) recCopyEl.innerText = buildRecommendCopy(item);
 
-    await bindAvatar(recAvatarEl, avatarUrl || "");
-    await renderQrInto(recommendQrEl, SYSTEM_URL, avatarUrl || "");
+    if (avatarUrl) {
+      await tryImageCandidates(recAvatarEl, [avatarUrl]);
+    } else {
+      hideBrokenImage(recAvatarEl);
+    }
+
+    await renderQrInto(recommendQrEl, SYSTEM_URL);
   }
 
   async function downloadCanvas(canvas, filename) {
@@ -504,8 +473,7 @@ document.addEventListener("DOMContentLoaded", function () {
     setBlock(servicesEl, servicesWrapEl, firstTwoLines(item.services));
     setBlock(expEl, expWrapEl, firstTwoLines(item.experience));
 
-    const avatarUrl = getAvatar(item);
-    currentAvatarUrl = await bindAvatar(avatarEl, avatarUrl);
+    currentAvatarUrl = await bindAvatar(avatarEl, item);
 
     const cardUrl = getCardUrl(id);
 
@@ -515,8 +483,8 @@ document.addEventListener("DOMContentLoaded", function () {
       openCardEl.rel = "noopener noreferrer";
     }
 
-    await renderQrInto(qrWrapEl, cardUrl, currentAvatarUrl || avatarUrl);
-    await renderRecommendPoster(item, currentAvatarUrl || avatarUrl);
+    await renderQrInto(qrWrapEl, cardUrl);
+    await renderRecommendPoster(item, currentAvatarUrl);
 
     if (copyLinkEl) {
       copyLinkEl.onclick = () => copyText(cardUrl, "已複製我的名片連結");
