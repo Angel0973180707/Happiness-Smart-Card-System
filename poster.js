@@ -1,89 +1,175 @@
-const GAS="https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec"
+const GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+const BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
 
-const qs=new URLSearchParams(location.search)
-const id=qs.get("id")
+const qs = new URLSearchParams(location.search);
+const id = (qs.get("id") || "").trim();
 
-const status=document.getElementById("status")
+const statusEl = document.getElementById("status");
+const posterEl = document.getElementById("poster");
+const avatarEl = document.getElementById("avatar");
+const nameEl = document.getElementById("name");
+const unitEl = document.getElementById("unit");
+const titleEl = document.getElementById("title");
+const sloganEl = document.getElementById("slogan");
+const servicesEl = document.getElementById("services");
+const expEl = document.getElementById("exp");
+const qrWrapEl = document.getElementById("qrcode");
+const openCardEl = document.getElementById("openCard");
+const copyLinkEl = document.getElementById("copyLink");
+const downloadEl = document.getElementById("download");
 
-async function init(){
-
-if(!id){
-status.innerText="缺少 id"
-return
+function setStatus(msg) {
+  statusEl.innerText = msg || "";
 }
 
-status.innerText="讀取名片..."
-
-const url=`${GAS}?action=card&id=${id}&t=${Date.now()}`
-
-const res=await fetch(url)
-const data=await res.json()
-
-if(!data.ok){
-status.innerText="讀取失敗"
-return
+function safeText(v) {
+  return String(v || "").trim();
 }
 
-const item=data.item||data.data||data.card||{}
-
-render(item)
-
+function getCardUrl(cardId) {
+  return `${BASE_URL}?id=${encodeURIComponent(cardId)}&view=1`;
 }
 
-function render(item){
-
-document.getElementById("name").innerText=item.name||""
-document.getElementById("unit").innerText=item.unit||""
-document.getElementById("title").innerText=item.title||""
-
-if(item.slogan){
-document.getElementById("slogan").innerText=item.slogan
+function getAvatar(item) {
+  return (
+    safeText(item.avatar_img_fast) ||
+    safeText(item.avatar_img) ||
+    safeText(item.avatar_url) ||
+    ""
+  );
 }
 
-if(item.services){
-document.getElementById("services").innerText=item.services
+function setBlockText(el, value) {
+  const text = safeText(value);
+  if (text) {
+    el.innerText = text;
+    el.style.display = "";
+  } else {
+    el.innerText = "";
+    el.style.display = "none";
+  }
 }
 
-if(item.experience){
-document.getElementById("exp").innerText=item.experience
+function bindAvatar(url) {
+  avatarEl.onerror = null;
+
+  if (!url) {
+    avatarEl.removeAttribute("src");
+    avatarEl.style.display = "none";
+    return;
+  }
+
+  avatarEl.style.display = "";
+  avatarEl.src = url;
+
+  avatarEl.onerror = () => {
+    avatarEl.removeAttribute("src");
+    avatarEl.style.display = "none";
+  };
 }
 
-if(item.avatar_img){
-document.getElementById("avatar").src=item.avatar_img
+async function renderQrCode(url) {
+  qrWrapEl.innerHTML = "";
+  const canvas = document.createElement("canvas");
+  qrWrapEl.appendChild(canvas);
+
+  await QRCode.toCanvas(canvas, url, {
+    width: 300,
+    margin: 2
+  });
 }
 
-const cardUrl=`index.html?id=${id}&view=1`
+async function loadCard() {
+  if (!id) {
+    setStatus("缺少 id");
+    return null;
+  }
 
-document.getElementById("openCard").href=cardUrl
+  setStatus("讀取名片...");
 
-QRCode.toCanvas(
-document.getElementById("qrcode"),
-location.origin+location.pathname.replace("poster.html","")+cardUrl,
-{width:300}
-)
+  const url = `${GAS}?action=card&id=${encodeURIComponent(id)}&t=${Date.now()}`;
+  const res = await fetch(url, { method: "GET" });
 
-document.getElementById("copyLink").onclick=()=>{
-navigator.clipboard.writeText(cardUrl)
-status.innerText="已複製名片連結"
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  if (!data || !data.ok) {
+    return null;
+  }
+
+  return data.item || data.data || data.card || {};
 }
 
-document.getElementById("download").onclick=async()=>{
+async function render(item) {
+  nameEl.innerText = safeText(item.name) || "未命名";
+  unitEl.innerText = safeText(item.unit);
+  titleEl.innerText = safeText(item.title);
 
-status.innerText="生成海報..."
+  setBlockText(sloganEl, item.slogan);
+  setBlockText(servicesEl, item.services);
+  setBlockText(expEl, item.experience);
 
-const canvas=await html2canvas(document.getElementById("poster"),{scale:3})
+  bindAvatar(getAvatar(item));
 
-const a=document.createElement("a")
-a.href=canvas.toDataURL()
-a.download=`${id}-poster.png`
-a.click()
+  const cardUrl = getCardUrl(id);
 
-status.innerText="下載完成"
+  openCardEl.href = cardUrl;
+  openCardEl.target = "_blank";
+  openCardEl.rel = "noopener noreferrer";
 
+  await renderQrCode(cardUrl);
+
+  copyLinkEl.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(cardUrl);
+      setStatus("已複製名片連結");
+    } catch (err) {
+      console.error(err);
+      setStatus("複製失敗");
+    }
+  };
+
+  downloadEl.onclick = async () => {
+    try {
+      setStatus("生成海報...");
+
+      const canvas = await html2canvas(posterEl, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: "#ffffff"
+      });
+
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `${id}-poster.png`;
+      a.click();
+
+      setStatus("下載完成");
+    } catch (err) {
+      console.error(err);
+      setStatus("下載失敗");
+    }
+  };
+
+  setStatus("OK");
 }
 
-status.innerText="OK"
+async function init() {
+  try {
+    const item = await loadCard();
 
+    if (!item) {
+      setStatus("讀取失敗");
+      return;
+    }
+
+    await render(item);
+  } catch (err) {
+    console.error(err);
+    setStatus("讀取失敗");
+  }
 }
 
-init()
+init();
