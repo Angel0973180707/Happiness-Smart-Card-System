@@ -34,13 +34,11 @@ function normalizeImageUrl(url) {
   const s = safeText(url);
   if (!s) return "";
 
-  // Google Drive: /file/d/FILE_ID/view
   const m1 = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
   if (m1 && m1[1]) {
     return `https://drive.google.com/thumbnail?id=${m1[1]}&sz=w1200`;
   }
 
-  // Google Drive: open?id=FILE_ID 或 uc?id=FILE_ID
   const m2 = s.match(/[?&]id=([^&]+)/i);
   if (/drive\.google\.com/i.test(s) && m2 && m2[1]) {
     return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w1200`;
@@ -91,10 +89,15 @@ function bindAvatar(url) {
 async function renderQrCode(url) {
   if (!qrCanvasEl) return;
 
-  await QRCode.toCanvas(qrCanvasEl, url, {
-    width: 300,
-    margin: 2
-  });
+  try {
+    await QRCode.toCanvas(qrCanvasEl, url, {
+      width: 300,
+      margin: 2
+    });
+  } catch (err) {
+    console.error("QRCode render error:", err);
+    setStatus("QR code 生成失敗");
+  }
 }
 
 async function loadCard() {
