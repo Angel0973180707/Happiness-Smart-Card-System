@@ -19,62 +19,71 @@
     }
 
     .poster{
-      background:white;
+      background:#fff;
       border-radius:20px;
-      padding:24px;
+      padding:28px 24px 24px;
       box-shadow:0 20px 60px rgba(0,0,0,.15);
     }
 
     .header{
       display:flex;
-      gap:16px;
+      flex-direction:column;
       align-items:center;
+      text-align:center;
+      gap:10px;
     }
 
     .avatar{
-      width:100px;
-      height:100px;
-      border-radius:100px;
+      width:120px;
+      height:120px;
+      border-radius:999px;
       object-fit:cover;
       background:#eee;
-      flex:0 0 100px;
       display:block;
     }
 
     .name{
-      font-size:32px;
+      font-size:34px;
       font-weight:900;
       line-height:1.15;
-      word-break:break-word;
+      word-break:keep-all;
+      line-break:strict;
     }
 
     .unit{
       font-size:18px;
-      opacity:.8;
-      margin-top:4px;
-      word-break:break-word;
+      opacity:.82;
+      line-height:1.45;
+      word-break:keep-all;
+      line-break:strict;
     }
 
     .title{
-      font-size:20px;
-      font-weight:700;
-      margin-top:4px;
-      word-break:break-word;
+      font-size:22px;
+      font-weight:800;
+      line-height:1.35;
+      word-break:keep-all;
+      line-break:strict;
+      max-width:100%;
     }
 
     .section{
-      margin-top:20px;
+      margin-top:22px;
       white-space:pre-wrap;
       word-break:break-word;
-      line-height:1.6;
+      line-height:1.7;
+      text-align:center;
+      font-size:18px;
     }
 
     .qr{
-      margin-top:20px;
+      margin-top:26px;
       text-align:center;
     }
 
-    .qr canvas{
+    #qrcode{
+      display:block;
+      margin:0 auto 10px;
       width:220px !important;
       height:220px !important;
       max-width:100%;
@@ -82,32 +91,37 @@
       border-radius:12px;
     }
 
+    .qr-note{
+      font-size:16px;
+      line-height:1.5;
+    }
+
     .buttons{
       margin-top:24px;
       display:flex;
       flex-direction:column;
-      gap:10px;
+      gap:12px;
     }
 
     button,a{
-      padding:14px;
-      border-radius:12px;
-      font-weight:700;
+      padding:16px 14px;
+      border-radius:16px;
+      font-weight:800;
       border:none;
       cursor:pointer;
       text-align:center;
       text-decoration:none;
-      font-size:16px;
+      font-size:18px;
       box-sizing:border-box;
     }
 
     .primary{
       background:#1f7a66;
-      color:white;
+      color:#fff;
     }
 
     .secondary{
-      background:white;
+      background:#fff;
       border:1px solid #ddd;
       color:#333;
     }
@@ -125,21 +139,16 @@
       }
 
       .poster{
-        padding:18px;
-      }
-
-      .header{
-        align-items:flex-start;
+        padding:22px 18px 18px;
       }
 
       .avatar{
-        width:84px;
-        height:84px;
-        flex-basis:84px;
+        width:108px;
+        height:108px;
       }
 
       .name{
-        font-size:28px;
+        font-size:30px;
       }
 
       .unit{
@@ -147,7 +156,22 @@
       }
 
       .title{
-        font-size:18px;
+        font-size:20px;
+      }
+
+      .section{
+        font-size:16px;
+        line-height:1.65;
+      }
+
+      button,a{
+        font-size:17px;
+        padding:15px 12px;
+      }
+
+      #qrcode{
+        width:200px !important;
+        height:200px !important;
       }
     }
   </style>
@@ -160,11 +184,9 @@
 
       <div class="header">
         <img id="avatar" class="avatar" alt="avatar">
-        <div>
-          <div id="name" class="name">載入中...</div>
-          <div id="unit" class="unit"></div>
-          <div id="title" class="title"></div>
-        </div>
+        <div id="name" class="name">載入中...</div>
+        <div id="unit" class="unit"></div>
+        <div id="title" class="title"></div>
       </div>
 
       <div id="slogan" class="section" style="display:none;"></div>
@@ -173,7 +195,7 @@
 
       <div class="qr">
         <canvas id="qrcode"></canvas>
-        <div>掃碼查看完整智慧名片</div>
+        <div class="qr-note">掃碼查看完整智慧名片</div>
       </div>
 
     </div>
@@ -196,7 +218,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="poster.js?v=5235"></script>
+  <script src="poster.js?v=5236"></script>
 
 </body>
 </html>
