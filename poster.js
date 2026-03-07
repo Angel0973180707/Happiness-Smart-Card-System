@@ -1,3 +1,5 @@
+document.addEventListener("DOMContentLoaded", function(){
+
 const GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 const BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
 
@@ -5,8 +7,6 @@ const qs = new URLSearchParams(location.search);
 const id = (qs.get("id") || "").trim();
 
 const statusEl = document.getElementById("status");
-if (statusEl) statusEl.style.display = "none";
-
 const posterEl = document.getElementById("poster");
 const avatarEl = document.getElementById("avatar");
 const nameEl = document.getElementById("name");
@@ -24,243 +24,270 @@ const openCardEl = document.getElementById("openCard");
 const copyLinkEl = document.getElementById("copyLink");
 const downloadEl = document.getElementById("download");
 
-function setStatus(msg) {
-  if (!statusEl) return;
-  statusEl.innerText = msg || "";
+
+function setStatus(msg){
+ if(!statusEl) return;
+ statusEl.innerText = msg || "";
 }
 
-function safeText(v) {
-  return String(v || "").trim();
+
+function safe(v){
+ return String(v || "").trim();
 }
 
-function getCardUrl(cardId) {
-  return `${BASE_URL}?id=${encodeURIComponent(cardId)}&view=1`;
+
+function getCardUrl(id){
+ return `${BASE_URL}?id=${encodeURIComponent(id)}&view=1`;
 }
 
-function normalizeImageUrl(url) {
-  const s = safeText(url);
-  if (!s) return "";
 
-  const m1 = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-  if (m1 && m1[1]) {
-    return `https://drive.google.com/thumbnail?id=${m1[1]}&sz=w1200`;
-  }
+function driveImg(url){
 
-  const m2 = s.match(/[?&]id=([^&]+)/i);
-  if (/drive\.google\.com/i.test(s) && m2 && m2[1]) {
-    return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w1200`;
-  }
+ const s = safe(url);
+ if(!s) return "";
 
-  return s;
+ const m1 = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
+ if(m1) return `https://drive.google.com/thumbnail?id=${m1[1]}&sz=w1200`;
+
+ const m2 = s.match(/[?&]id=([^&]+)/i);
+ if(m2 && /drive\.google\.com/i.test(s))
+ return `https://drive.google.com/thumbnail?id=${m2[1]}&sz=w1200`;
+
+ return s;
 }
 
-function getAvatar(item) {
-  return normalizeImageUrl(
-    safeText(item.avatar_img_fast) ||
-    safeText(item.avatar_img) ||
-    safeText(item.avatar_url) ||
-    safeText(item.avatar) ||
-    ""
-  );
+
+function avatar(item){
+
+ return driveImg(
+ item.avatar_img_fast ||
+ item.avatar_img ||
+ item.avatar_url ||
+ ""
+ );
+
 }
 
-function firstTwoLines(text) {
-  const t = safeText(text);
-  if (!t) return "";
 
-  const lines = t
-    .split(/\r?\n/)
-    .map(v => v.trim())
-    .filter(Boolean)
-    .slice(0, 2);
+function twoLines(txt){
 
-  return lines.length ? lines.join("\n") : t;
+ const t = safe(txt);
+ if(!t) return "";
+
+ const arr = t.split(/\r?\n/).map(v=>v.trim()).filter(Boolean).slice(0,2);
+
+ return arr.length ? arr.join("\n") : t;
 }
 
-function setSimpleBlock(el, wrapEl, value) {
-  if (!el || !wrapEl) return;
 
-  const text = safeText(value);
-  if (text) {
-    el.innerText = text;
-    wrapEl.style.display = "";
-  } else {
-    el.innerText = "";
-    wrapEl.style.display = "none";
-  }
+function setBlock(el,wrap,val){
+
+ if(!el || !wrap) return;
+
+ const t = safe(val);
+
+ if(t){
+  el.innerText = t;
+  wrap.style.display="";
+ }else{
+  wrap.style.display="none";
+ }
+
 }
 
-function bindAvatar(url) {
-  if (!avatarEl) return;
 
-  avatarEl.onerror = null;
+function bindAvatar(url){
 
-  if (!url) {
-    avatarEl.removeAttribute("src");
-    avatarEl.style.display = "";
-    return;
-  }
+ if(!avatarEl) return;
 
-  avatarEl.style.display = "";
-  avatarEl.src = url;
+ avatarEl.onerror=null;
 
-  avatarEl.onerror = () => {
-    avatarEl.removeAttribute("src");
-    avatarEl.style.display = "";
-  };
+ if(!url){
+  avatarEl.removeAttribute("src");
+  return;
+ }
+
+ avatarEl.src=url;
+
+ avatarEl.onerror=()=>{
+  avatarEl.removeAttribute("src");
+ };
+
 }
 
-async function renderQrCode(url) {
-  if (!qrWrapEl) return;
 
-  qrWrapEl.innerHTML = "";
+async function renderQR(url){
 
-  try {
-    if (typeof QRCode !== "undefined" && typeof QRCode.toCanvas === "function") {
-      const canvas = document.createElement("canvas");
-      qrWrapEl.appendChild(canvas);
-      await QRCode.toCanvas(canvas, url, {
-        width: 300,
-        margin: 2
-      });
-      return;
-    }
+ if(!qrWrapEl) return;
 
-    if (typeof QRCode !== "undefined") {
-      new QRCode(qrWrapEl, {
-        text: url,
-        width: 200,
-        height: 200
-      });
-      return;
-    }
+ qrWrapEl.innerHTML="";
 
-    qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 載入失敗</div>`;
-    setStatus("QR code 載入失敗");
-  } catch (err) {
-    console.error("QRCode render error:", err);
-    qrWrapEl.innerHTML = `<div style="font-size:14px;color:#666;">QR 生成失敗</div>`;
-    setStatus("QR code 生成失敗");
+ try{
+
+  if(typeof QRCode !== "undefined"){
+
+   new QRCode(qrWrapEl,{
+    text:url,
+    width:200,
+    height:200
+   });
+
+   return;
+
   }
+
+  qrWrapEl.innerHTML="QR";
+
+ }catch(e){
+
+  console.error(e);
+ }
+
 }
 
-async function loadCard() {
-  if (!id) {
-    setStatus("缺少 id");
-    return null;
-  }
 
-  setStatus("讀取名片...");
+async function loadCard(){
 
-  const url = `${GAS}?action=card&id=${encodeURIComponent(id)}&t=${Date.now()}`;
-  const res = await fetch(url, { method: "GET" });
+ if(!id){
 
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}`);
-  }
+  setStatus("缺少 id");
+  return null;
 
-  const text = await res.text();
-  let data = null;
+ }
 
-  try {
-    data = JSON.parse(text);
-  } catch (err) {
-    console.error("JSON parse error:", err, text);
-    return null;
-  }
+ setStatus("讀取名片...");
 
-  if (!data || !data.ok) {
-    console.error("GAS data not ok:", data);
-    return null;
-  }
+ const url = `${GAS}?action=card&id=${encodeURIComponent(id)}&t=${Date.now()}`;
 
-  return data.item || data.data || data.card || {};
+ const res = await fetch(url);
+
+ if(!res.ok) throw new Error(res.status);
+
+ const txt = await res.text();
+
+ let data;
+
+ try{
+
+  data = JSON.parse(txt);
+
+ }catch(e){
+
+  console.error("JSON",txt);
+  return null;
+
+ }
+
+ if(!data || !data.ok) return null;
+
+ return data.item || data.data || {};
+
 }
 
-async function render(item) {
-  if (nameEl) nameEl.innerText = safeText(item.name) || "未命名";
-  if (unitEl) unitEl.innerText = safeText(item.unit);
-  if (titleEl) titleEl.innerText = safeText(item.title);
 
-  const slogan = safeText(item.slogan);
-  if (sloganEl) {
-    if (slogan) {
-      sloganEl.innerText = slogan;
-      sloganEl.style.display = "";
-    } else {
-      sloganEl.innerText = "";
-      sloganEl.style.display = "none";
-    }
+async function render(item){
+
+ nameEl.innerText = safe(item.name) || "未命名";
+ unitEl.innerText = safe(item.unit);
+ titleEl.innerText = safe(item.title);
+
+ const slogan = safe(item.slogan);
+
+ if(slogan){
+  sloganEl.innerText=slogan;
+  sloganEl.style.display="";
+ }else{
+  sloganEl.style.display="none";
+ }
+
+ setBlock(servicesEl,servicesWrapEl,twoLines(item.services));
+ setBlock(expEl,expWrapEl,twoLines(item.experience));
+
+ bindAvatar(avatar(item));
+
+ const cardUrl = getCardUrl(id);
+
+ openCardEl.href = cardUrl;
+ openCardEl.target="_blank";
+
+ await renderQR(cardUrl);
+
+
+ copyLinkEl.onclick = async ()=>{
+
+  try{
+
+   await navigator.clipboard.writeText(cardUrl);
+   setStatus("已複製");
+
+  }catch(e){
+
+   setStatus("複製失敗");
+
   }
 
-  setSimpleBlock(servicesEl, servicesWrapEl, firstTwoLines(item.services));
-  setSimpleBlock(expEl, expWrapEl, firstTwoLines(item.experience));
+ };
 
-  bindAvatar(getAvatar(item));
 
-  const cardUrl = getCardUrl(id);
+ downloadEl.onclick = async ()=>{
 
-  if (openCardEl) {
-    openCardEl.href = cardUrl;
-    openCardEl.target = "_blank";
-    openCardEl.rel = "noopener noreferrer";
+  try{
+
+   setStatus("生成海報");
+
+   const canvas = await html2canvas(posterEl,{
+    scale:3,
+    useCORS:true,
+    backgroundColor:"#fff"
+   });
+
+   const a=document.createElement("a");
+
+   a.href=canvas.toDataURL("image/png");
+   a.download=`${id}-poster.png`;
+   a.click();
+
+   setStatus("下載完成");
+
+  }catch(e){
+
+   console.error(e);
+   setStatus("下載失敗");
+
   }
 
-  await renderQrCode(cardUrl);
+ };
 
-  if (copyLinkEl) {
-    copyLinkEl.onclick = async () => {
-      try {
-        await navigator.clipboard.writeText(cardUrl);
-        setStatus("已複製名片連結");
-      } catch (err) {
-        console.error(err);
-        setStatus("複製失敗");
-      }
-    };
-  }
+ setStatus("");
 
-  if (downloadEl) {
-    downloadEl.onclick = async () => {
-      try {
-        setStatus("生成海報...");
-
-        const canvas = await html2canvas(posterEl, {
-          scale: 3,
-          useCORS: true,
-          backgroundColor: "#ffffff"
-        });
-
-        const a = document.createElement("a");
-        a.href = canvas.toDataURL("image/png");
-        a.download = `${id}-poster.png`;
-        a.click();
-
-        setStatus("下載完成");
-      } catch (err) {
-        console.error(err);
-        setStatus("下載失敗");
-      }
-    };
-  }
-
-  setStatus("OK");
 }
 
-async function init() {
-  try {
-    const item = await loadCard();
 
-    if (!item) {
-      if (nameEl) nameEl.innerText = "讀取失敗";
-      return;
-    }
+async function init(){
 
-    await render(item);
-  } catch (err) {
-    console.error(err);
-    if (nameEl) nameEl.innerText = "讀取失敗";
+ try{
+
+  const item = await loadCard();
+
+  if(!item){
+
+   nameEl.innerText="讀取失敗";
+   return;
+
   }
+
+  await render(item);
+
+ }catch(e){
+
+  console.error(e);
+  nameEl.innerText="讀取失敗";
+
+ }
+
 }
+
 
 init();
+
+});
