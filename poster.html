@@ -1,1 +1,567 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>微信名片海報 v523.0</title>
+  <meta name="theme-color" content="#f6f1e8" />
 
+  <style>
+    :root{
+      --bg:#f6f1e8;
+      --ink:#1f2430;
+      --muted:rgba(31,36,48,.68);
+      --line:rgba(31,36,48,.10);
+      --card:rgba(255,255,255,.78);
+      --shadow:0 18px 50px rgba(0,0,0,.12);
+      --shadow-soft:0 10px 26px rgba(0,0,0,.10);
+      --brand1:#1f7a66;
+      --brand2:#f2c14b;
+      --radius:24px;
+      --posterW:1080px;
+      --posterH:1920px;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; }
+    body{
+      font-family:"Noto Sans TC",system-ui,-apple-system,"Segoe UI",sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1100px 800px at 15% -10%, rgba(31,122,102,.14), transparent 60%),
+        radial-gradient(900px 700px at 100% 0%, rgba(242,193,75,.12), transparent 55%),
+        var(--bg);
+      min-height:100vh;
+    }
+
+    .app{
+      max-width:1200px;
+      margin:0 auto;
+      padding:18px 16px 42px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:1000;
+      letter-spacing:.4px;
+      min-width:0;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 11px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.50);
+      font-size:12px;
+      font-weight:900;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:14px;
+    }
+
+    @media(min-width:1080px){
+      .grid{ grid-template-columns:minmax(0,1fr) 360px; align-items:start; }
+    }
+
+    .panel{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+    }
+
+    .panelBody{ padding:16px; }
+
+    .stage{
+      overflow:auto;
+      padding:14px;
+      background:
+        radial-gradient(600px 280px at 20% 0%, rgba(255,255,255,.32), transparent 60%),
+        rgba(255,255,255,.22);
+    }
+
+    .posterScaleWrap{
+      width:100%;
+      overflow:auto;
+    }
+
+    .posterScale{
+      width:min(100%, 720px);
+      margin:0 auto;
+      transform-origin:top center;
+    }
+
+    .poster{
+      width:var(--posterW);
+      height:var(--posterH);
+      position:relative;
+      overflow:hidden;
+      border-radius:44px;
+      background:
+        radial-gradient(780px 460px at 18% 0%, rgba(255,255,255,.70), transparent 65%),
+        radial-gradient(700px 520px at 100% 0%, rgba(242,193,75,.26), transparent 62%),
+        linear-gradient(180deg, #fffefb 0%, #f8f3ea 100%);
+      box-shadow:0 24px 70px rgba(0,0,0,.18);
+      border:1px solid rgba(31,36,48,.08);
+    }
+
+    .poster::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:
+        radial-gradient(1200px 700px at 100% 100%, rgba(31,122,102,.08), transparent 60%),
+        radial-gradient(900px 600px at 0% 100%, rgba(31,122,102,.06), transparent 62%);
+      opacity:.95;
+    }
+
+    .posterInner{
+      position:relative;
+      z-index:1;
+      height:100%;
+      padding:72px 68px 58px;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .posterTop{
+      display:flex;
+      align-items:center;
+      gap:28px;
+    }
+
+    .avatarWrap{
+      width:180px;
+      height:180px;
+      border-radius:999px;
+      padding:8px;
+      background:
+        radial-gradient(circle at 30% 22%, rgba(255,255,255,.90), rgba(255,255,255,.34) 54%, rgba(255,255,255,.20) 100%);
+      border:1px solid rgba(31,36,48,.08);
+      box-shadow:0 18px 40px rgba(0,0,0,.12);
+      flex:0 0 auto;
+    }
+
+    .avatar{
+      width:100%;
+      height:100%;
+      border-radius:999px;
+      object-fit:cover;
+      display:block;
+      background:#fff;
+    }
+
+    .topText{
+      min-width:0;
+      flex:1;
+    }
+
+    .name{
+      font-size:64px;
+      line-height:1.1;
+      font-weight:1000;
+      letter-spacing:.8px;
+      word-break:break-word;
+      color:#17202b;
+    }
+
+    .unit{
+      margin-top:18px;
+      font-size:26px;
+      line-height:1.45;
+      font-weight:900;
+      color:rgba(31,36,48,.78);
+      word-break:break-word;
+    }
+
+    .title{
+      margin-top:12px;
+      font-size:28px;
+      line-height:1.45;
+      font-weight:900;
+      color:rgba(31,36,48,.92);
+      word-break:break-word;
+    }
+
+    .sloganBox{
+      margin-top:34px;
+      border-radius:28px;
+      padding:24px 28px;
+      border:1px dashed rgba(31,122,102,.24);
+      background:rgba(31,122,102,.08);
+      box-shadow:var(--shadow-soft);
+    }
+
+    .slogan{
+      font-size:34px;
+      line-height:1.55;
+      font-weight:1000;
+      color:rgba(18,92,76,.96);
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .section{
+      margin-top:28px;
+      border-radius:28px;
+      padding:24px 26px;
+      border:1px solid rgba(31,36,48,.08);
+      background:rgba(255,255,255,.62);
+      box-shadow:var(--shadow-soft);
+    }
+
+    .sectionTitle{
+      font-size:22px;
+      font-weight:1000;
+      letter-spacing:.6px;
+      color:rgba(31,36,48,.56);
+      margin-bottom:12px;
+    }
+
+    .sectionBody{
+      font-size:30px;
+      line-height:1.68;
+      font-weight:800;
+      color:rgba(31,36,48,.92);
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .servicesBody{
+      font-size:30px;
+      line-height:1.62;
+      font-weight:900;
+    }
+
+    .expBody{
+      font-size:28px;
+      line-height:1.6;
+    }
+
+    .posterBottom{
+      margin-top:auto;
+      display:grid;
+      grid-template-columns:1fr 280px;
+      gap:28px;
+      align-items:end;
+    }
+
+    .bottomText{
+      border-radius:28px;
+      padding:24px 26px;
+      border:1px solid rgba(31,36,48,.08);
+      background:rgba(255,255,255,.62);
+      box-shadow:var(--shadow-soft);
+      min-height:280px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+
+    .scanTitle{
+      font-size:38px;
+      line-height:1.35;
+      font-weight:1000;
+      color:#16202b;
+    }
+
+    .scanSub{
+      margin-top:14px;
+      font-size:22px;
+      line-height:1.7;
+      font-weight:800;
+      color:rgba(31,36,48,.68);
+    }
+
+    .homeHint{
+      margin-top:18px;
+      font-size:20px;
+      line-height:1.7;
+      font-weight:900;
+      color:rgba(31,122,102,.92);
+    }
+
+    .qrCard{
+      border-radius:28px;
+      padding:18px;
+      border:1px solid rgba(31,36,48,.08);
+      background:rgba(255,255,255,.80);
+      box-shadow:var(--shadow-soft);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-height:280px;
+    }
+
+    .qrBox{
+      width:100%;
+      aspect-ratio:1 / 1;
+      border-radius:22px;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      border:1px solid rgba(31,36,48,.08);
+    }
+
+    .qrBox canvas,
+    .qrBox img{
+      width:100% !important;
+      height:100% !important;
+      display:block;
+    }
+
+    .posterFooter{
+      margin-top:28px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      border-top:1px solid rgba(31,36,48,.08);
+      padding-top:22px;
+    }
+
+    .footerBrand{
+      font-size:26px;
+      font-weight:1000;
+      letter-spacing:.6px;
+      color:#17202b;
+    }
+
+    .footerSub{
+      margin-top:6px;
+      font-size:18px;
+      font-weight:900;
+      color:rgba(31,36,48,.60);
+    }
+
+    .miniLogo{
+      width:64px;
+      height:64px;
+      border-radius:18px;
+      object-fit:cover;
+      display:none;
+      border:1px solid rgba(31,36,48,.08);
+      box-shadow:0 10px 24px rgba(0,0,0,.10);
+      background:#fff;
+    }
+
+    .toolTitle{
+      font-size:18px;
+      font-weight:1000;
+      margin-bottom:12px;
+    }
+
+    .btns{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .btn{
+      appearance:none;
+      border:none;
+      border-radius:18px;
+      padding:14px 16px;
+      font-size:15px;
+      font-weight:1000;
+      letter-spacing:.3px;
+      cursor:pointer;
+      text-decoration:none;
+      text-align:center;
+      color:#fff;
+      background:linear-gradient(135deg, rgba(31,122,102,.98), rgba(31,122,102,.88));
+      box-shadow:0 14px 30px rgba(31,122,102,.18);
+    }
+
+    .btn.subtle{
+      color:var(--ink);
+      background:rgba(255,255,255,.68);
+      border:1px solid var(--line);
+      box-shadow:none;
+    }
+
+    .hint{
+      margin-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+    }
+
+    .status{
+      margin-top:12px;
+      padding:12px 13px;
+      border-radius:16px;
+      background:rgba(255,255,255,.52);
+      border:1px solid var(--line);
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.7;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+
+    .status.ok{
+      border-color:rgba(31,122,102,.22);
+      background:rgba(31,122,102,.08);
+      color:rgba(18,92,76,.96);
+    }
+
+    .status.bad{
+      border-color:rgba(220,38,38,.20);
+      background:rgba(220,38,38,.08);
+      color:rgba(153,27,27,.94);
+    }
+
+    @media(max-width:1079px){
+      .posterScale{
+        width:100%;
+      }
+      .stage{
+        padding:10px;
+      }
+      .posterScale{
+        transform:scale(.58);
+        width:1080px;
+        height:calc(1920px * .58);
+        margin-left:auto;
+        margin-right:auto;
+      }
+    }
+
+    @media(max-width:760px){
+      .topbar{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .posterScale{
+        transform:scale(.32);
+        width:1080px;
+        height:calc(1920px * .32);
+      }
+      .panelBody{
+        padding:14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <span>天使幸福智慧名片</span>
+        <span class="badge">微信名片海報</span>
+      </div>
+      <div class="badge" id="statusBadge">loading…</div>
+    </div>
+
+    <div class="grid">
+      <section class="panel">
+        <div class="stage">
+          <div class="posterScaleWrap">
+            <div class="posterScale">
+              <div class="poster" id="posterCard">
+                <div class="posterInner">
+                  <div class="posterTop">
+                    <div class="avatarWrap">
+                      <img id="posterAvatar" class="avatar" src="./assets/avatar-default.png" alt="avatar" />
+                    </div>
+
+                    <div class="topText">
+                      <div class="name" id="posterName">載入中…</div>
+                      <div class="unit" id="posterUnit">你的單位</div>
+                      <div class="title" id="posterTitle">你的頭銜</div>
+                    </div>
+                  </div>
+
+                  <div class="sloganBox" id="posterSloganBox" style="display:none;">
+                    <div class="slogan" id="posterSlogan"></div>
+                  </div>
+
+                  <div class="section" id="posterServicesBox" style="display:none;">
+                    <div class="sectionTitle">服務項目</div>
+                    <div class="sectionBody servicesBody" id="posterServices"></div>
+                  </div>
+
+                  <div class="section" id="posterExpBox" style="display:none;">
+                    <div class="sectionTitle">經歷／特色</div>
+                    <div class="sectionBody expBody" id="posterExp"></div>
+                  </div>
+
+                  <div class="posterBottom">
+                    <div class="bottomText">
+                      <div class="scanTitle">掃碼查看完整智慧名片</div>
+                      <div class="scanSub">
+                        可直接瀏覽完整名片內容，也能進一步分享給朋友、客戶與合作夥伴。
+                      </div>
+                      <div class="homeHint">想看更多名片服務，歡迎進入智慧名片首頁。</div>
+                    </div>
+
+                    <div class="qrCard">
+                      <div class="qrBox" id="posterQrBox"></div>
+                    </div>
+                  </div>
+
+                  <div class="posterFooter">
+                    <div>
+                      <div class="footerBrand">天使幸福智慧名片</div>
+                      <div class="footerSub">Angel Happiness Smart Card</div>
+                    </div>
+                    <img id="posterLogo" class="miniLogo" alt="logo" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panelBody">
+          <div class="toolTitle">海報工具</div>
+
+          <div class="btns">
+            <button class="btn" id="btnDownloadPoster" type="button">下載名片海報</button>
+            <a class="btn subtle" id="btnOpenCard" href="./index.html" target="_blank" rel="noopener">查看智慧名片</a>
+            <button class="btn subtle" id="btnCopyCardLink" type="button">複製名片連結</button>
+            <a class="btn subtle" id="btnHome" href="https://angel0973180707.github.io/Happiness-Smart-Card-System/" target="_blank" rel="noopener">智慧名片首頁</a>
+          </div>
+
+          <div class="hint">
+            建議先下載海報，再分享到微信、LINE、Facebook 或其他社群平台。
+          </div>
+
+          <div class="status" id="statusBox">準備中…</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="./poster.js?v=5230"></script>
+</body>
+</html>
