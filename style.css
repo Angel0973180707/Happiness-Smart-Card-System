@@ -1,5 +1,5 @@
 /* ==========================================
- * Happiness Smart Card System — style.css v522.4 (COMPLETE OVERWRITE)
+ * Happiness Smart Card System — style.css v522.5 (COMPLETE OVERWRITE)
  * Goal:
  * ✅ Keep stable v521.4 layout model (do not break)
  * ✅ Fix v520 “走山” by staying on the stable card/panel structure
@@ -11,10 +11,10 @@
  * - Dock lighting softer (contact/video area)
  * - Premium colors saturated but NOT dark
  *
- * v522.4:
- * ✅ Tighten unit/title spacing in final card
- * - Keep structure unchanged
- * - Safer typography rhythm for #u-unit / #u-title
+ * v522.5:
+ * ✅ Tighten experience block
+ * ✅ Pull unit and title farther apart
+ * ✅ Add soft facade/control-area background card feeling
  * ========================================== */
 
 /* ---------- Tokens ---------- */
@@ -77,8 +77,6 @@ body{
     radial-gradient(900px 700px at 85% 10%, rgba(255,255,255,0.06), transparent 60%),
     var(--bg);
   color: var(--ink);
-
-  /* ✅ Scroll safety */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
@@ -101,7 +99,6 @@ body.p2{ --p:#722f37; --s:#4e1f25; }
 body.p3{ --p:#1c2e42; --s:#101d2b; }
 body.p4{ --p:#5e548e; --s:#40376b; }
 body.p5{ --p:#a9b7c7; --s:#5f7489; --prem-soft: rgba(255,255,255,0.16); }
-/* p6 金箔（更亮更金） */
 body.p6{ --p:#f2c14b; --s:#bf953f; }
 body.p7{ --p:#5a4a3f; --s:#2f2926; }
 
@@ -135,6 +132,53 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   margin-top: 12px;
 }
 
+/* ---------- Facade / control area soft depth ---------- */
+.facade-brand{
+  position: relative;
+  overflow: hidden;
+}
+
+.facade-brand::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 120% at 16% 0%, rgba(255,255,255,0.36), transparent 52%),
+    radial-gradient(100% 100% at 88% 100%, rgba(0,0,0,0.05), transparent 58%);
+  opacity:.72;
+}
+
+#free-controls,
+#premium-controls{
+  position: relative;
+  width:100%;
+  max-width:520px;
+  padding: 12px 12px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(0,0,0,0.07);
+  background:
+    radial-gradient(120% 140% at 18% 0%, rgba(255,255,255,0.34), transparent 54%),
+    linear-gradient(180deg, rgba(255,255,255,0.76), rgba(255,255,255,0.60));
+  box-shadow:
+    0 14px 30px rgba(0,0,0,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.58);
+}
+
+body.mode-premium #free-controls,
+body.mode-premium #premium-controls{
+  border-color: rgba(255,255,255,0.10);
+  background:
+    radial-gradient(120% 140% at 18% 0%, rgba(255,255,255,0.16), transparent 54%),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04));
+  box-shadow:
+    0 16px 34px rgba(0,0,0,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
 /* ---------- Card ---------- */
 .card{
   position:relative;
@@ -146,12 +190,11 @@ body.p7{ --p:#5a4a3f; --s:#2f2926; }
   transform: translateZ(0);
 }
 
-/* Free vivid (safe) */
 body.mode-free .card{
   filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
 }
 
-/* ---------- Premium base (brighter glass, not night club) ---------- */
+/* ---------- Premium base ---------- */
 body.mode-premium{
   background:
     radial-gradient(1100px 700px at 20% 0%, rgba(255,255,255,0.16), transparent 56%),
@@ -176,7 +219,7 @@ body.mode-premium .card{
   filter: saturate(1.05) contrast(1.03);
 }
 
-/* Premium FX layer (if exists) */
+/* Premium FX layer */
 .premium-fx-layer{
   position:absolute;
   inset:0;
@@ -198,7 +241,6 @@ body.mode-premium .premium-fx-layer{
   filter: blur(18px) saturate(1.06);
 }
 
-/* Premium p6 metallic foil (stronger gold, cleaner band) */
 body.mode-premium.p6 .premium-fx-layer{
   background:
     radial-gradient(980px 560px at 16% 6%, rgba(255,255,255,0.28), transparent 62%),
@@ -223,7 +265,6 @@ body.mode-premium.p6 .premium-fx-layer{
   filter: blur(14px) saturate(1.10);
 }
 
-/* Premium glass coats */
 body.mode-premium .card::before{
   content:"";
   position:absolute;
@@ -264,13 +305,12 @@ body.mode-premium .card::after{
   text-align:center;
 }
 
-/* v522.4: tighten unit/title rhythm */
 .unit, .title{
   text-align:center;
   font-weight: 800;
   font-size: 13px;
   color: var(--muted);
-  line-height: 1.34;
+  line-height: 1.36;
 }
 
 body.mode-premium .unit,
@@ -294,7 +334,6 @@ body.mode-premium .banner{ display:none !important; }
 
 body.mode-free .banner{ filter: saturate(1.30) contrast(1.08); }
 
-/* style-arch */
 body.mode-free.style-arch .banner{
   background:
     radial-gradient(900px 320px at 50% -10%, rgba(255,255,255,0.50), transparent 70%),
@@ -315,7 +354,6 @@ body.mode-free.style-arch .banner::after{
   opacity: .95;
 }
 
-/* style-flat */
 body.mode-free.style-flat .banner{
   background:
     radial-gradient(780px 280px at 40% 0%, rgba(255,255,255,0.42), transparent 70%),
@@ -333,7 +371,6 @@ body.mode-free.style-flat .banner::after{
   opacity: .90;
 }
 
-/* style-spot */
 body.mode-free.style-spot .banner{
   background:
     radial-gradient(520px 220px at 20% 0%, rgba(255,255,255,0.52), transparent 72%),
@@ -355,7 +392,7 @@ body.mode-free.style-spot .banner::after{
   opacity: .92;
 }
 
-/* ---------- Paper overlay (Free only) ---------- */
+/* ---------- Paper overlay ---------- */
 .paper-overlay{ position:absolute; inset:0; pointer-events:none; opacity:1; z-index: 2; }
 
 body.mode-premium .paper-overlay{ display:none !important; }
@@ -661,7 +698,7 @@ body.mode-premium .btn-share{
   border: 1px solid rgba(255,255,255,0.12);
 }
 
-/* ---------- Dots: 3D spheres ---------- */
+/* ---------- Dots ---------- */
 .dot, .p-dot{
   width: var(--dotPrem);
   height: var(--dotPrem);
@@ -704,14 +741,12 @@ body.mode-free .dot{ width: var(--dotFree); height: var(--dotFree); }
     inset 0 -8px 12px rgba(0,0,0,0.18);
 }
 
-/* Free dot colors */
 .dot.dot-1{ background:#ff5f7b; }
 .dot.dot-2{ background:#1d88ff; }
 .dot.dot-3{ background:#ff9f1a; }
 .dot.dot-4{ background:#7a57ff; }
 .dot.dot-5{ background:#2bd46f; }
 
-/* Premium dot colors */
 .p-dot.p1{ background:#d96c6c; }
 .p-dot.p2{ background:#722f37; }
 .p-dot.p3{ background:#1c2e42; }
@@ -799,6 +834,19 @@ body.mode-premium .block-title{
 }
 
 body.mode-premium .block-body{ color: rgba(255,255,255,0.84); }
+
+/* v522.5: experience block tighter */
+#block-exp{
+  padding: 10px 12px;
+}
+
+#block-exp .block-title{
+  margin-bottom: 4px;
+}
+
+#block-exp .block-body{
+  line-height: 1.56;
+}
 
 /* ---------- Contact dock ---------- */
 .contact-dock{
@@ -985,7 +1033,7 @@ body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
   display:block;
   width:100%;
   max-width: 480px;
-  margin: 0 auto 1px;
+  margin: 0 auto 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -998,8 +1046,8 @@ body.mode-premium .version-tag{ color: rgba(255,255,255,0.46); }
   display:block;
   width:100%;
   max-width: 480px;
-  margin: 1px auto 0;
-  line-height: 1.22;
+  margin: 7px auto 0;
+  line-height: 1.24;
   letter-spacing: 0.12px;
 }
 
@@ -1010,7 +1058,8 @@ body.mode-premium #u-unit{
 }
 
 body.mode-premium #u-title{
-  line-height: 1.24;
+  margin-top: 8px;
+  line-height: 1.26;
   opacity: 0.90;
 }
 
@@ -1021,12 +1070,29 @@ body.mode-premium #u-title{
   :root{ --dotFree: 34px; --dotPrem: 30px; }
   .dock-buttons{ gap: 8px; }
   .dock-btn{ padding: 12px 10px; }
+
+  #free-controls,
+  #premium-controls{
+    padding: 10px 10px 12px;
+    border-radius: 18px;
+  }
+
   #u-unit{
     font-size: clamp(11px, 3.8vw, 14px);
     line-height: 1.14;
   }
+
   #u-title{
-    line-height: 1.20;
+    margin-top: 6px;
+    line-height: 1.22;
+  }
+
+  #block-exp{
+    padding: 9px 11px;
+  }
+
+  #block-exp .block-body{
+    line-height: 1.52;
   }
 }
 
@@ -1102,7 +1168,7 @@ body.mode-free .card{
 }
 
 /* ==========================================
- * Paper boost (Free only) v522.4
+ * Paper boost (Free only) v522.5
  * ========================================== */
 body.mode-free{
   --paper-strength: 0.48;
