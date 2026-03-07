@@ -7,229 +7,240 @@
 
 <style>
 :root{
---bg:#f6f1e8;
---card:#ffffff;
---text:#171717;
---muted:#666;
---line:#e8e2d8;
---primary:#1f7a66;
---radius:24px;
---shadow:0 20px 60px rgba(0,0,0,.12);
+  --bg:#f6f1e8;
+  --card:#ffffff;
+  --text:#171717;
+  --muted:#666;
+  --line:#e8e2d8;
+  --primary:#1f7a66;
+  --radius:24px;
+  --shadow:0 20px 60px rgba(0,0,0,.12);
 }
 
 *{box-sizing:border-box;}
 
 body{
-margin:0;
-padding:18px;
-background:var(--bg);
-color:var(--text);
-font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;
+  margin:0;
+  padding:18px;
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;
 }
 
 .container{
-max-width:760px;
-margin:0 auto;
+  max-width:760px;
+  margin:0 auto;
 }
 
 .poster{
-background:var(--card);
-border-radius:var(--radius);
-box-shadow:var(--shadow);
-padding:28px 22px 24px;
-overflow:hidden;
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:28px 22px 24px;
+  overflow:hidden;
 }
 
 .header{
-display:flex;
-flex-direction:column;
-align-items:center;
-text-align:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
 }
 
 .avatar{
-width:112px;
-height:112px;
-border-radius:999px;
-object-fit:cover;
-background:#ececec;
-display:block;
-margin:0 auto 14px;
-box-shadow:0 6px 18px rgba(0,0,0,.06);
+  width:112px;
+  height:112px;
+  border-radius:999px;
+  object-fit:cover;
+  background:#ececec;
+  display:block;
+  margin:0 auto 14px;
+  box-shadow:0 6px 18px rgba(0,0,0,.06);
 }
 
 .name{
-margin:0;
-font-size:34px;
-line-height:1.12;
-font-weight:900;
-letter-spacing:.2px;
+  margin:0;
+  font-size:34px;
+  line-height:1.12;
+  font-weight:900;
+  letter-spacing:.2px;
+  word-break:keep-all;
+  line-break:strict;
 }
 
 .unit{
-margin-top:10px;
-font-size:17px;
-line-height:1.45;
-color:var(--muted);
+  margin-top:10px;
+  font-size:17px;
+  line-height:1.45;
+  color:var(--muted);
+  word-break:keep-all;
+  line-break:strict;
 }
 
 .title{
-margin-top:8px;
-font-size:24px;
-line-height:1.34;
-font-weight:800;
+  margin-top:8px;
+  font-size:24px;
+  line-height:1.34;
+  font-weight:800;
+  word-break:keep-all;
+  line-break:strict;
 }
 
 .slogan{
-margin-top:24px;
-text-align:center;
-font-size:18px;
-line-height:1.6;
-font-weight:700;
-white-space:pre-wrap;
+  margin-top:24px;
+  text-align:center;
+  font-size:18px;
+  line-height:1.6;
+  font-weight:700;
+  white-space:pre-wrap;
+  word-break:break-word;
 }
 
 .meta{
-margin-top:18px;
-display:grid;
-gap:12px;
+  margin-top:18px;
+  display:grid;
+  gap:12px;
 }
 
 .meta-block{
-text-align:center;
+  text-align:center;
 }
 
 .meta-text{
-font-size:17px;
-line-height:1.62;
-color:#222;
-white-space:pre-wrap;
-display:-webkit-box;
--webkit-box-orient:vertical;
-overflow:hidden;
+  font-size:17px;
+  line-height:1.62;
+  color:#222;
+  white-space:pre-wrap;
+  word-break:break-word;
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  max-width:100%;
 }
 
 .clamp-2{
--webkit-line-clamp:2;
+  -webkit-line-clamp:2;
 }
 
 .divider{
-margin:24px auto 0;
-width:56px;
-height:2px;
-border-radius:999px;
-background:var(--line);
+  margin:24px auto 0;
+  width:56px;
+  height:2px;
+  border-radius:999px;
+  background:var(--line);
 }
 
 .qr{
-margin-top:22px;
-text-align:center;
+  margin-top:22px;
+  text-align:center;
 }
 
 #qrcode{
-width:220px;
-height:220px;
-margin:0 auto 10px;
-background:#fff;
-border-radius:14px;
-box-shadow:0 6px 18px rgba(0,0,0,.04);
-display:flex;
-align-items:center;
-justify-content:center;
+  width:220px;
+  height:220px;
+  margin:0 auto 10px;
+  background:#fff;
+  border-radius:18px;
+  box-shadow:0 8px 24px rgba(0,0,0,.05);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
 }
 
 #qrcode canvas,
 #qrcode img{
-width:200px !important;
-height:200px !important;
-background:#fff;
+  display:block;
+  max-width:100%;
+  max-height:100%;
 }
 
 .qr-note{
-font-size:16px;
-line-height:1.5;
-color:#444;
-font-weight:700;
+  font-size:16px;
+  line-height:1.5;
+  color:#444;
+  font-weight:700;
 }
 
 .buttons{
-margin-top:22px;
-display:flex;
-flex-direction:column;
-gap:12px;
+  margin-top:22px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
 
 button,a{
-display:block;
-width:100%;
-padding:16px 14px;
-border-radius:18px;
-border:none;
-text-align:center;
-text-decoration:none;
-font-size:18px;
-font-weight:800;
-cursor:pointer;
+  display:block;
+  width:100%;
+  padding:16px 14px;
+  border-radius:18px;
+  border:none;
+  text-align:center;
+  text-decoration:none;
+  font-size:18px;
+  font-weight:800;
+  cursor:pointer;
 }
 
 .primary{
-background:var(--primary);
-color:#fff;
-box-shadow:0 10px 24px rgba(31,122,102,.18);
+  background:var(--primary);
+  color:#fff;
+  box-shadow:0 10px 24px rgba(31,122,102,.18);
 }
 
 .secondary{
-background:#fff;
-color:#333;
-border:1px solid #ddd6ca;
+  background:#fff;
+  color:#333;
+  border:1px solid #ddd6ca;
+}
+
+.status{
+  display:none;
 }
 
 @media (max-width:640px){
+  .poster{
+    padding:24px 18px 20px;
+    border-radius:22px;
+  }
 
-.poster{
-padding:24px 18px 20px;
-border-radius:22px;
-}
+  .avatar{
+    width:104px;
+    height:104px;
+  }
 
-.avatar{
-width:104px;
-height:104px;
-}
+  .name{font-size:30px;}
+  .unit{font-size:16px;}
+  .title{font-size:21px;}
 
-.name{font-size:30px}
-.unit{font-size:16px}
-.title{font-size:21px}
+  .slogan{
+    font-size:17px;
+    margin-top:20px;
+  }
 
-.slogan{
-font-size:17px;
-margin-top:20px;
-}
+  .meta{
+    margin-top:16px;
+    gap:10px;
+  }
 
-.meta{
-margin-top:16px;
-gap:10px;
-}
+  .meta-text{
+    font-size:16px;
+    line-height:1.6;
+  }
 
-.meta-text{
-font-size:16px;
-}
+  #qrcode{
+    width:196px;
+    height:196px;
+  }
 
-#qrcode{
-width:196px;
-height:196px;
-}
+  .qr-note{
+    font-size:15px;
+  }
 
-#qrcode canvas,
-#qrcode img{
-width:178px !important;
-height:178px !important;
-}
-
-button,a{
-font-size:17px;
-padding:15px 12px;
-}
-
+  button,a{
+    font-size:17px;
+    padding:15px 12px;
+  }
 }
 </style>
 </head>
@@ -238,72 +249,59 @@ padding:15px 12px;
 
 <div class="container">
 
-<div class="poster" id="poster">
+  <div class="poster" id="poster">
 
-<div class="header">
-<img id="avatar" class="avatar">
-<div id="name" class="name">載入中...</div>
-<div id="unit" class="unit"></div>
-<div id="title" class="title"></div>
-</div>
+    <div class="header">
+      <img id="avatar" class="avatar" alt="avatar">
+      <div id="name" class="name">載入中...</div>
+      <div id="unit" class="unit"></div>
+      <div id="title" class="title"></div>
+    </div>
 
-<div id="slogan" class="slogan" style="display:none;"></div>
+    <div id="slogan" class="slogan" style="display:none;"></div>
 
-<div class="meta">
+    <div class="meta">
+      <div id="servicesWrap" class="meta-block" style="display:none;">
+        <div id="services" class="meta-text clamp-2"></div>
+      </div>
 
-<div id="servicesWrap" class="meta-block" style="display:none;">
-<div id="services" class="meta-text clamp-2"></div>
-</div>
+      <div id="expWrap" class="meta-block" style="display:none;">
+        <div id="exp" class="meta-text clamp-2"></div>
+      </div>
+    </div>
 
-<div id="expWrap" class="meta-block" style="display:none;">
-<div id="exp" class="meta-text clamp-2"></div>
-</div>
+    <div class="divider"></div>
 
-</div>
+    <div class="qr">
+      <div id="qrcode"></div>
+      <div class="qr-note">掃碼查看完整智慧名片</div>
+    </div>
 
-<div class="divider"></div>
+  </div>
 
-<div class="qr">
-<div id="qrcode"></div>
-<div class="qr-note">掃碼查看完整智慧名片</div>
-</div>
+  <div class="buttons">
+    <button id="download" class="primary" type="button">下載名片海報</button>
 
-</div>
+    <a id="openCard" class="secondary" href="javascript:void(0)">查看智慧名片</a>
 
-<div class="buttons">
+    <button id="copyLink" class="secondary" type="button">複製名片連結</button>
 
-<button id="download" class="primary">
-下載名片海報
-</button>
+    <a class="secondary" href="https://angel0973180707.github.io/Happiness-Smart-Card-System/">
+      推薦天使幸福智慧名片
+    </a>
 
-<a id="openCard" class="secondary">
-查看智慧名片
-</a>
+    <a class="secondary" href="https://angel0973180707.github.io/Happiness-Smart-Card-System/">
+      智慧名片首頁
+    </a>
+  </div>
 
-<button id="copyLink" class="secondary">
-複製名片連結
-</button>
-
-<a class="secondary"
-href="https://angel0973180707.github.io/Happiness-Smart-Card-System/">
-推薦天使幸福智慧名片
-</a>
-
-<a class="secondary"
-href="https://angel0973180707.github.io/Happiness-Smart-Card-System/">
-智慧名片首頁
-</a>
+  <div id="status" class="status"></div>
 
 </div>
-
-</div>
-
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.5.4/dist/html2canvas.min.js"></script>
-
-<script src="poster.js?v=5250"></script>
+<script src="poster.js?v=5270"></script>
 
 </body>
 </html>
