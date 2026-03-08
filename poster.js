@@ -1,20 +1,20 @@
 /* ==========================================
- * HSC Poster v702
+ * HSC Poster v702.1
  * COMPLETE OVERWRITE
  *
- * v702 重點：
- * 1) 移除信用卡感 UI 對應邏輯
- * 2) 海報只保留：頭像 / 姓名 / 單位 / 職稱 / QR
- * 3) QR Code 放大，提高掃描成功率
- * 4) 精簡交付卡按鈕
- * 5) 推薦智慧名片 => 複製首頁 ref 連結
- * 6) 諮詢服務 => 固定 LINE 官方帳號
+ * v702.1 重點：
+ * 1) 維持 v702 簡潔交付卡 UI
+ * 2) 新增智慧排版：
+ *    - 自動縮字
+ *    - 平衡換行
+ *    - 避免中文孤字落單
+ * 3) 保留海報下載 / 打開名片 / 複製名片連結 / 推薦連結 / LINE 官方帳號
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "702";
+  const VERSION = "702.1";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -119,6 +119,14 @@
     titleEl.textContent = title || " ";
 
     renderAvatar(item, name);
+
+    requestAnimationFrame(() => {
+      smartLayoutAll();
+      setTimeout(smartLayoutAll, 80);
+      setTimeout(smartLayoutAll, 180);
+    });
+
+    window.addEventListener("resize", debounce(smartLayoutAll, 120));
   }
 
   async function renderAvatar(item, nameText) {
@@ -249,6 +257,8 @@
 
     await waitForImages(posterEl);
     await wait(120);
+    smartLayoutAll();
+    await wait(80);
 
     const canvas = await html2canvas(posterEl, {
       useCORS: true,
@@ -265,6 +275,134 @@
     document.body.appendChild(a);
     a.click();
     a.remove();
+  }
+
+  function smartLayoutAll() {
+    fitTextBlock(nameEl, 44, 24, 2);
+    fitTextBlock(unitEl, 24, 16, 2);
+    fitTextBlock(titleEl, 28, 18, 2);
+
+    avoidLonelyLastLine(titleEl);
+    avoidLonelyLastLine(unitEl);
+    avoidSingleCharLastLine(titleEl);
+    avoidSingleCharLastLine(unitEl);
+    avoidSingleCharLastLine(nameEl);
+  }
+
+  function fitTextBlock(el, maxFont, minFont, maxLines) {
+    if (!el) return;
+
+    let size = maxFont;
+    el.style.fontSize = `${size}px`;
+    el.style.wordBreak = "keep-all";
+    el.style.overflowWrap = "break-word";
+    el.style.whiteSpace = "normal";
+
+    while (size > minFont && isOverflowing(el, maxLines)) {
+      size -= 1;
+      el.style.fontSize = `${size}px`;
+    }
+  }
+
+  function isOverflowing(el, maxLines) {
+    const style = window.getComputedStyle(el);
+    const lineHeight = parseFloat(style.lineHeight);
+    const maxHeight = lineHeight * maxLines + 1;
+    return el.scrollHeight > maxHeight || el.scrollWidth > el.clientWidth + 1;
+  }
+
+  function avoidLonelyLastLine(el) {
+    if (!el) return;
+    const text = safeText(el.textContent, "");
+    if (!text) return;
+
+    const lines = estimateWrappedLines(el, text);
+    if (lines.length < 2) return;
+
+    const last = lines[lines.length - 1];
+    if (last.length <= 2) {
+      let current = parseFloat(window.getComputedStyle(el).fontSize);
+      let min = Math.max(14, current - 8);
+
+      while (current > min) {
+        current -= 1;
+        el.style.fontSize = `${current}px`;
+        const retry = estimateWrappedLines(el, text);
+        const lastRetry = retry[retry.length - 1] || "";
+        if (lastRetry.length > 2) break;
+      }
+    }
+  }
+
+  function avoidSingleCharLastLine(el) {
+    if (!el) return;
+    const text = safeText(el.textContent, "");
+    if (!text) return;
+
+    const lines = estimateWrappedLines(el, text);
+    if (!lines.length) return;
+
+    const last = lines[lines.length - 1];
+    if (last.length === 1) {
+      let current = parseFloat(window.getComputedStyle(el).fontSize);
+      let min = Math.max(14, current - 10);
+
+      while (current > min) {
+        current -= 1;
+        el.style.fontSize = `${current}px`;
+        const retry = estimateWrappedLines(el, text);
+        const lastRetry = retry[retry.length - 1] || "";
+        if (lastRetry.length !== 1) break;
+      }
+    }
+  }
+
+  function estimateWrappedLines(el, text) {
+    const probe = document.createElement("span");
+    const style = window.getComputedStyle(el);
+
+    probe.style.position = "fixed";
+    probe.style.left = "-99999px";
+    probe.style.top = "-99999px";
+    probe.style.visibility = "hidden";
+    probe.style.pointerEvents = "none";
+    probe.style.whiteSpace = "normal";
+    probe.style.wordBreak = style.wordBreak;
+    probe.style.overflowWrap = style.overflowWrap;
+    probe.style.lineHeight = style.lineHeight;
+    probe.style.fontSize = style.fontSize;
+    probe.style.fontWeight = style.fontWeight;
+    probe.style.fontFamily = style.fontFamily;
+    probe.style.letterSpacing = style.letterSpacing;
+    probe.style.width = `${el.clientWidth}px`;
+
+    document.body.appendChild(probe);
+
+    const chars = Array.from(text);
+    const lines = [];
+    let current = "";
+
+    for (const ch of chars) {
+      probe.textContent = current + ch;
+      const beforeHeight = probe.offsetHeight;
+
+      probe.textContent = current;
+      const currentHeight = probe.offsetHeight;
+
+      const willWrap = current && beforeHeight > currentHeight;
+
+      if (willWrap) {
+        lines.push(current);
+        current = ch;
+      } else {
+        current += ch;
+      }
+    }
+
+    if (current) lines.push(current);
+
+    probe.remove();
+    return lines;
   }
 
   async function copyText(text) {
@@ -354,6 +492,14 @@
     });
 
     return Promise.all(waits);
+  }
+
+  function debounce(fn, delay) {
+    let timer = null;
+    return function (...args) {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
   }
 
   function escapeHtml(str) {
