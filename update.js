@@ -1,6 +1,6 @@
 
 /* =========================================
- * HSC Auto Update System v532
+ * HSC Auto Update System v700
  * COMPLETE OVERWRITE
  *
  * Usage:
