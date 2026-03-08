@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v534.2</title>
+  <title>智慧名片交付卡 v701.1</title>
   <meta name="theme-color" content="#f7f1ea" />
 
   <style>
@@ -15,6 +15,7 @@
       --line:rgba(75,52,31,.10);
       --accent:#be7d47;
       --accent-2:#9a6030;
+      --gold:#d69a5b;
       --shadow:0 18px 48px rgba(91,61,33,.12);
       --shadow-soft:0 10px 28px rgba(91,61,33,.08);
       --radius-xl:30px;
@@ -89,8 +90,8 @@
     .poster-paper{
       position:relative;
       overflow:hidden;
-      border-radius:28px;
-      padding:18px;
+      border-radius:30px;
+      padding:20px;
       background:
         radial-gradient(110% 110% at 0% 0%, rgba(255,255,255,.95), rgba(255,250,244,.96) 46%, rgba(252,243,232,.98) 100%);
       border:1px solid rgba(160,108,58,.10);
@@ -128,7 +129,7 @@
       z-index:1;
       display:flex;
       flex-direction:column;
-      gap:16px;
+      gap:18px;
     }
 
     .mini-top{
@@ -146,8 +147,8 @@
     }
 
     .mini-mark{
-      width:40px;
-      height:40px;
+      width:42px;
+      height:42px;
       border-radius:14px;
       display:grid;
       place-items:center;
@@ -159,12 +160,12 @@
 
     .mini-text{ min-width:0; }
     .mini-title{
-      font-size:15px;
+      font-size:16px;
       font-weight:900;
       line-height:1.2;
     }
     .mini-sub{
-      margin-top:2px;
+      margin-top:3px;
       font-size:12px;
       color:var(--muted);
       line-height:1.4;
@@ -182,27 +183,27 @@
       color:var(--accent-2);
     }
 
-    .profile-card{
+    .hero-card{
       display:flex;
       flex-direction:column;
       align-items:center;
       text-align:center;
-      gap:12px;
-      padding:18px 16px;
-      border-radius:24px;
-      background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(255,247,238,.96));
+      gap:16px;
+      padding:24px 18px 20px;
+      border-radius:26px;
+      background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,247,238,.97));
       border:1px solid rgba(160,108,58,.10);
       box-shadow:var(--shadow-soft);
     }
 
     .avatar-wrap{
-      width:116px;
-      height:116px;
-      border-radius:30px;
+      width:142px;
+      height:142px;
+      border-radius:38px;
       overflow:hidden;
       background:linear-gradient(135deg,#f2d3b3,#fbf3e9);
       border:1px solid rgba(160,108,58,.12);
-      box-shadow:0 10px 22px rgba(93,62,34,.10);
+      box-shadow:0 14px 28px rgba(93,62,34,.12);
       display:grid;
       place-items:center;
       flex:0 0 auto;
@@ -217,7 +218,7 @@
     }
 
     .avatar-fallback{
-      font-size:30px;
+      font-size:34px;
       font-weight:900;
       color:#8f6b4e;
       letter-spacing:.06em;
@@ -229,38 +230,39 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap:6px;
+      gap:8px;
       min-width:0;
     }
 
     .name{
-      font-size:30px;
-      line-height:1.18;
+      font-size:42px;
+      line-height:1.12;
       font-weight:900;
+      letter-spacing:.01em;
       word-break:keep-all;
       overflow-wrap:anywhere;
     }
 
     .unit{
-      font-size:16px;
+      font-size:24px;
       color:var(--muted);
-      line-height:1.5;
+      line-height:1.45;
       font-weight:800;
       word-break:keep-all;
       overflow-wrap:anywhere;
     }
 
     .title{
-      font-size:18px;
+      font-size:28px;
       color:#534338;
-      line-height:1.5;
+      line-height:1.45;
       font-weight:900;
       word-break:keep-all;
       overflow-wrap:anywhere;
     }
 
     .qr-card{
-      padding:16px;
+      padding:18px 16px 16px;
       border-radius:24px;
       background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,248,240,.95));
       border:1px solid rgba(160,108,58,.10);
@@ -268,13 +270,13 @@
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap:10px;
+      gap:12px;
     }
 
     .qr-box{
       position:relative;
-      width:164px;
-      height:164px;
+      width:170px;
+      height:170px;
       border-radius:22px;
       background:#fff;
       border:1px solid rgba(64,44,24,.10);
@@ -285,16 +287,16 @@
     }
 
     #qrcode{
-      width:150px;
-      height:150px;
+      width:154px;
+      height:154px;
       display:grid;
       place-items:center;
     }
 
     .qr-box canvas,
     .qr-box img{
-      width:150px !important;
-      height:150px !important;
+      width:154px !important;
+      height:154px !important;
       image-rendering:pixelated;
     }
 
@@ -302,8 +304,8 @@
       position:absolute;
       inset:50% auto auto 50%;
       transform:translate(-50%,-50%);
-      width:42px;
-      height:42px;
+      width:44px;
+      height:44px;
       border-radius:999px;
       background:linear-gradient(135deg,#efc18c,#fff2df 62%,#d78d48);
       border:3px solid #fff;
@@ -316,26 +318,13 @@
     }
 
     .qr-tip{
-      font-size:15px;
+      font-size:16px;
       color:var(--accent-2);
       line-height:1.6;
       text-align:center;
       margin:0;
       font-weight:900;
       word-break:keep-all;
-    }
-
-    .footer-id{
-      margin-top:2px;
-      white-space:nowrap;
-      padding:10px 12px;
-      border-radius:14px;
-      background:#fff;
-      border:1px solid rgba(64,44,24,.08);
-      box-shadow:0 6px 16px rgba(93,62,34,.05);
-      font-size:12px;
-      color:#6e5c50;
-      font-weight:900;
     }
 
     .action-panel{
@@ -355,7 +344,7 @@
       cursor:pointer;
       border-radius:16px;
       padding:14px 16px;
-      min-height:50px;
+      min-height:52px;
       font-size:15px;
       font-weight:900;
       transition:transform .16s ease, box-shadow .16s ease, opacity .16s ease, background .16s ease;
@@ -390,6 +379,12 @@
       background:rgba(255,255,255,.72);
       border:1px dashed rgba(186,126,70,.26);
       box-shadow:var(--shadow-soft);
+    }
+
+    .btn-line{
+      color:#fff;
+      background:linear-gradient(135deg,#17b655,#0da94c);
+      box-shadow:0 14px 28px rgba(13,169,76,.22);
     }
 
     .status{
@@ -455,14 +450,14 @@
       }
 
       .avatar-wrap{
-        width:100px;
-        height:100px;
-        border-radius:26px;
+        width:122px;
+        height:122px;
+        border-radius:32px;
       }
 
-      .name{ font-size:26px; }
-      .unit{ font-size:15px; }
-      .title{ font-size:17px; }
+      .name{ font-size:34px; }
+      .unit{ font-size:20px; }
+      .title{ font-size:23px; }
 
       .action-grid{
         grid-template-columns:1fr;
@@ -497,7 +492,7 @@
             <div class="badge">交付卡</div>
           </div>
 
-          <div class="profile-card">
+          <div class="hero-card">
             <div class="avatar-wrap">
               <img id="avatar" class="avatar" alt="頭像" />
               <div id="avatarFallback" class="avatar-fallback">名片</div>
@@ -515,8 +510,7 @@
               <div id="qrcode"></div>
               <div class="qr-badge" aria-hidden="true">✨</div>
             </div>
-            <p id="qrTip" class="qr-tip">掃描QRCode查閱智慧名片</p>
-            <div id="footerId" class="footer-id">ID：--</div>
+            <p id="qrTip" class="qr-tip">掃描 QRCode 查閱智慧名片</p>
           </div>
         </div>
       </div>
@@ -527,10 +521,10 @@
         <button id="btnDownload" class="btn btn-primary" type="button">下載名片海報</button>
         <button id="btnOpenCard" class="btn btn-soft" type="button">打開我的智慧名片</button>
         <button id="btnCopyCard" class="btn btn-soft" type="button">複製我的智慧名片連結</button>
-        <button id="btnShareLine" class="btn btn-soft" type="button">分享到LINE</button>
+        <button id="btnShareLine" class="btn btn-soft" type="button">分享到 LINE</button>
         <button id="btnCopyWechat" class="btn btn-soft" type="button">複製連結到微信</button>
         <button id="btnShareHall" class="btn btn-ghost" type="button">分享智慧名片館</button>
-        <button id="btnConsult" class="btn btn-ghost" type="button">名片諮詢服務</button>
+        <button id="btnConsult" class="btn btn-line" type="button">諮詢服務</button>
       </div>
 
       <div id="status" class="status">
@@ -544,7 +538,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="./imageResolver.js?v=5341"></script>
-  <script src="./poster.js?v=5342"></script>
+  <script src="./imageResolver.js?v=5342"></script>
+  <script src="./poster.js?v=7011"></script>
 </body>
 </html>
