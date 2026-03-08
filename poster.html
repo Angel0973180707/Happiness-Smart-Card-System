@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v702</title>
+  <title>智慧名片交付卡 v702.1</title>
   <meta name="theme-color" content="#f7f1ea" />
 
   <style>
@@ -167,6 +167,7 @@
       color:var(--ink);
       white-space:nowrap;
       letter-spacing:.01em;
+      word-break:keep-all;
     }
 
     .poster-brand-sub{
@@ -174,6 +175,7 @@
       line-height:1.55;
       color:var(--muted);
       font-weight:700;
+      word-break:keep-all;
     }
 
     .poster-tag{
@@ -246,13 +248,24 @@
       min-width:0;
     }
 
+    .name,
+    .unit,
+    .title{
+      width:100%;
+      max-width:100%;
+      text-align:center;
+      word-break:keep-all;
+      overflow-wrap:break-word;
+      line-break:strict;
+      text-wrap:balance;
+      white-space:normal;
+    }
+
     .name{
       font-size:44px;
       line-height:1.12;
       font-weight:900;
       letter-spacing:.01em;
-      word-break:keep-all;
-      overflow-wrap:anywhere;
     }
 
     .unit{
@@ -260,17 +273,13 @@
       line-height:1.45;
       font-weight:800;
       color:var(--muted);
-      word-break:keep-all;
-      overflow-wrap:anywhere;
     }
 
     .title{
       font-size:28px;
-      line-height:1.45;
+      line-height:1.42;
       font-weight:900;
       color:#534338;
-      word-break:keep-all;
-      overflow-wrap:anywhere;
     }
 
     .qr-card{
@@ -572,6 +581,6 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./imageResolver.js?v=5342"></script>
-  <script src="./poster.js?v=702"></script>
+  <script src="./poster.js?v=7021"></script>
 </body>
 </html>
