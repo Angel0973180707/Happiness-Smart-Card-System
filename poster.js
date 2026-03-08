@@ -1,20 +1,21 @@
 /* ==========================================
- * HSC Poster v702.1
+ * HSC Poster v702.2
  * COMPLETE OVERWRITE
  *
- * v702.1 重點：
- * 1) 維持 v702 簡潔交付卡 UI
- * 2) 新增智慧排版：
+ * v702.2 重點：
+ * 1) 維持 v702.1 簡潔交付卡 UI
+ * 2) 智慧排版再強化：
  *    - 自動縮字
- *    - 平衡換行
- *    - 避免中文孤字落單
+ *    - 優先避免中文孤字落單
+ *    - 優先避免最後一行只剩 1~2 字
+ *    - 更穩定的兩行平衡
  * 3) 保留海報下載 / 打開名片 / 複製名片連結 / 推薦連結 / LINE 官方帳號
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "702.1";
+  const VERSION = "702.2";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -47,6 +48,8 @@
   let itemData = null;
   let cardURL = "";
   let recommendURL = "";
+  let resizeBound = false;
+  let resizeHandler = null;
 
   init();
 
@@ -120,13 +123,23 @@
 
     renderAvatar(item, name);
 
+    runSmartLayoutSequence();
+
+    if (!resizeBound) {
+      resizeHandler = debounce(runSmartLayoutSequence, 120);
+      window.addEventListener("resize", resizeHandler);
+      resizeBound = true;
+    }
+  }
+
+  function runSmartLayoutSequence() {
+    smartLayoutAll();
     requestAnimationFrame(() => {
       smartLayoutAll();
-      setTimeout(smartLayoutAll, 80);
-      setTimeout(smartLayoutAll, 180);
+      setTimeout(smartLayoutAll, 60);
+      setTimeout(smartLayoutAll, 140);
+      setTimeout(smartLayoutAll, 260);
     });
-
-    window.addEventListener("resize", debounce(smartLayoutAll, 120));
   }
 
   async function renderAvatar(item, nameText) {
@@ -259,6 +272,7 @@
     await wait(120);
     smartLayoutAll();
     await wait(80);
+    smartLayoutAll();
 
     const canvas = await html2canvas(posterEl, {
       useCORS: true,
@@ -278,15 +292,33 @@
   }
 
   function smartLayoutAll() {
-    fitTextBlock(nameEl, 44, 24, 2);
-    fitTextBlock(unitEl, 24, 16, 2);
-    fitTextBlock(titleEl, 28, 18, 2);
+    resetTextStyles(nameEl);
+    resetTextStyles(unitEl);
+    resetTextStyles(titleEl);
 
-    avoidLonelyLastLine(titleEl);
-    avoidLonelyLastLine(unitEl);
-    avoidSingleCharLastLine(titleEl);
-    avoidSingleCharLastLine(unitEl);
-    avoidSingleCharLastLine(nameEl);
+    fitTextBlock(nameEl, 44, 22, 2);
+    fitTextBlock(unitEl, 24, 15, 2);
+    fitTextBlock(titleEl, 28, 16, 2);
+
+    improveLineBalance(nameEl, 22);
+    improveLineBalance(unitEl, 15);
+    improveLineBalance(titleEl, 16);
+
+    lastLineRescue(nameEl, 22);
+    lastLineRescue(unitEl, 15);
+    lastLineRescue(titleEl, 16);
+
+    finalOverflowGuard(nameEl, 22, 2);
+    finalOverflowGuard(unitEl, 15, 2);
+    finalOverflowGuard(titleEl, 16, 2);
+  }
+
+  function resetTextStyles(el) {
+    if (!el) return;
+    el.style.wordBreak = "keep-all";
+    el.style.overflowWrap = "break-word";
+    el.style.whiteSpace = "normal";
+    el.style.textWrap = "balance";
   }
 
   function fitTextBlock(el, maxFont, minFont, maxLines) {
@@ -294,9 +326,63 @@
 
     let size = maxFont;
     el.style.fontSize = `${size}px`;
-    el.style.wordBreak = "keep-all";
-    el.style.overflowWrap = "break-word";
-    el.style.whiteSpace = "normal";
+
+    while (size > minFont && isOverflowing(el, maxLines)) {
+      size -= 1;
+      el.style.fontSize = `${size}px`;
+    }
+  }
+
+  function improveLineBalance(el, minFont) {
+    if (!el) return;
+    const text = safeText(el.textContent, "");
+    if (!text) return;
+
+    let current = parseFloat(window.getComputedStyle(el).fontSize);
+    let bestSize = current;
+    let bestScore = scoreLines(estimateWrappedLines(el, text));
+
+    while (current > minFont) {
+      current -= 1;
+      el.style.fontSize = `${current}px`;
+
+      const lines = estimateWrappedLines(el, text);
+      const newScore = scoreLines(lines);
+
+      if (newScore < bestScore) {
+        bestScore = newScore;
+        bestSize = current;
+      }
+
+      if (lines.length > 2) break;
+    }
+
+    el.style.fontSize = `${bestSize}px`;
+  }
+
+  function lastLineRescue(el, minFont) {
+    if (!el) return;
+    const text = safeText(el.textContent, "");
+    if (!text) return;
+
+    let lines = estimateWrappedLines(el, text);
+    if (lines.length < 2) return;
+
+    let last = lines[lines.length - 1] || "";
+    let size = parseFloat(window.getComputedStyle(el).fontSize);
+
+    while (size > minFont && isBadLastLine(last)) {
+      size -= 1;
+      el.style.fontSize = `${size}px`;
+      lines = estimateWrappedLines(el, text);
+      last = lines[lines.length - 1] || "";
+      if (!isBadLastLine(last)) break;
+    }
+  }
+
+  function finalOverflowGuard(el, minFont, maxLines) {
+    if (!el) return;
+    let size = parseFloat(window.getComputedStyle(el).fontSize);
 
     while (size > minFont && isOverflowing(el, maxLines)) {
       size -= 1;
@@ -309,52 +395,6 @@
     const lineHeight = parseFloat(style.lineHeight);
     const maxHeight = lineHeight * maxLines + 1;
     return el.scrollHeight > maxHeight || el.scrollWidth > el.clientWidth + 1;
-  }
-
-  function avoidLonelyLastLine(el) {
-    if (!el) return;
-    const text = safeText(el.textContent, "");
-    if (!text) return;
-
-    const lines = estimateWrappedLines(el, text);
-    if (lines.length < 2) return;
-
-    const last = lines[lines.length - 1];
-    if (last.length <= 2) {
-      let current = parseFloat(window.getComputedStyle(el).fontSize);
-      let min = Math.max(14, current - 8);
-
-      while (current > min) {
-        current -= 1;
-        el.style.fontSize = `${current}px`;
-        const retry = estimateWrappedLines(el, text);
-        const lastRetry = retry[retry.length - 1] || "";
-        if (lastRetry.length > 2) break;
-      }
-    }
-  }
-
-  function avoidSingleCharLastLine(el) {
-    if (!el) return;
-    const text = safeText(el.textContent, "");
-    if (!text) return;
-
-    const lines = estimateWrappedLines(el, text);
-    if (!lines.length) return;
-
-    const last = lines[lines.length - 1];
-    if (last.length === 1) {
-      let current = parseFloat(window.getComputedStyle(el).fontSize);
-      let min = Math.max(14, current - 10);
-
-      while (current > min) {
-        current -= 1;
-        el.style.fontSize = `${current}px`;
-        const retry = estimateWrappedLines(el, text);
-        const lastRetry = retry[retry.length - 1] || "";
-        if (lastRetry.length !== 1) break;
-      }
-    }
   }
 
   function estimateWrappedLines(el, text) {
@@ -374,7 +414,8 @@
     probe.style.fontWeight = style.fontWeight;
     probe.style.fontFamily = style.fontFamily;
     probe.style.letterSpacing = style.letterSpacing;
-    probe.style.width = `${el.clientWidth}px`;
+    probe.style.width = `${Math.max(el.clientWidth, 1)}px`;
+    probe.style.textWrap = "balance";
 
     document.body.appendChild(probe);
 
@@ -384,12 +425,12 @@
 
     for (const ch of chars) {
       probe.textContent = current + ch;
-      const beforeHeight = probe.offsetHeight;
+      const nextHeight = probe.offsetHeight;
 
-      probe.textContent = current;
+      probe.textContent = current || " ";
       const currentHeight = probe.offsetHeight;
 
-      const willWrap = current && beforeHeight > currentHeight;
+      const willWrap = current && nextHeight > currentHeight;
 
       if (willWrap) {
         lines.push(current);
@@ -403,6 +444,29 @@
 
     probe.remove();
     return lines;
+  }
+
+  function scoreLines(lines) {
+    if (!lines || !lines.length) return 9999;
+    if (lines.length === 1) return 0;
+
+    const lengths = lines.map((s) => Array.from(s).length);
+    const max = Math.max(...lengths);
+    const min = Math.min(...lengths);
+    const last = lengths[lengths.length - 1];
+
+    let score = max - min;
+
+    if (last === 1) score += 100;
+    else if (last === 2) score += 24;
+    else if (last === 3) score += 8;
+
+    return score;
+  }
+
+  function isBadLastLine(text) {
+    const len = Array.from(text || "").length;
+    return len <= 1;
   }
 
   async function copyText(text) {
