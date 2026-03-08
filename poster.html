@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v704</title>
+  <title>智慧名片交付卡 v704.1</title>
   <meta name="theme-color" content="#eef4ef" />
 
   <style>
@@ -20,16 +20,16 @@
       --muted:#73907f;
 
       --line:#dfe9e2;
-      --line-2:#cfded4;
+      --line-2:#c8d9ce;
       --line-soft:#edf3ef;
 
-      --brand:#5f9c78;
-      --brand-deep:#447c5b;
-      --brand-pale:#f2f7f3;
+      --brand:#6cac88;
+      --brand-deep:#4b8a67;
+      --brand-deeper:#3f7658;
 
       --shadow-card:0 20px 44px rgba(46,74,58,.08);
       --shadow-soft:0 10px 24px rgba(46,74,58,.05);
-      --shadow-btn:0 10px 22px rgba(68,124,91,.16);
+      --shadow-btn:0 12px 22px rgba(68,124,91,.18);
 
       --radius-xl:30px;
       --radius-lg:24px;
@@ -123,10 +123,10 @@
       pointer-events:none;
     }
 
-    /* 可作為海報主體的區域 */
     #posterCapture{
       position:relative;
       z-index:1;
+      background:transparent;
     }
 
     .poster{
@@ -264,7 +264,7 @@
       font-weight:800;
       letter-spacing:.01em;
       padding:0 10px;
-      max-width:320px;
+      max-width:300px;
       margin-left:auto;
       margin-right:auto;
     }
@@ -286,8 +286,9 @@
       border:none;
       display:block;
       width:100%;
-      padding:15px 16px;
-      border-radius:22px;
+      min-height:62px;
+      padding:16px 18px;
+      border-radius:24px;
       text-align:center;
       font-size:16px;
       font-weight:800;
@@ -299,9 +300,11 @@
         box-shadow .15s ease,
         background-color .15s ease,
         border-color .15s ease,
-        opacity .15s ease;
+        opacity .15s ease,
+        filter .15s ease;
       -webkit-tap-highlight-color:transparent;
       position:relative;
+      letter-spacing:.01em;
     }
 
     .btn:first-child{ margin-top:0; }
@@ -310,57 +313,75 @@
     .btn:disabled{ opacity:.55; cursor:not-allowed; }
 
     .btn-main{
-      background:linear-gradient(180deg,#6cac88 0%,#4b8a67 100%);
+      background:linear-gradient(180deg,var(--brand) 0%,var(--brand-deep) 100%);
       color:#fff;
       border:1px solid rgba(62,118,86,.92);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.22),
-        0 10px 20px rgba(63,118,88,.18);
+        inset 0 1px 0 rgba(255,255,255,.25),
+        inset 0 -1px 0 rgba(48,95,69,.18),
+        0 12px 22px rgba(63,118,88,.18);
+      text-shadow:0 1px 0 rgba(0,0,0,.08);
     }
 
     .btn-main::before{
       content:"";
       position:absolute;
-      left:16px;
-      right:16px;
+      left:18px;
+      right:18px;
       top:11px;
-      height:10px;
+      height:12px;
       border-radius:999px;
-      background:rgba(255,255,255,.10);
+      background:rgba(255,255,255,.13);
       pointer-events:none;
     }
 
     .btn-main:hover{
-      background:linear-gradient(180deg,#73b38f 0%,#49825f 100%);
+      filter:saturate(1.02);
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.22),
-        0 12px 22px rgba(63,118,88,.20);
+        inset 0 1px 0 rgba(255,255,255,.25),
+        inset 0 -1px 0 rgba(48,95,69,.18),
+        0 14px 24px rgba(63,118,88,.20);
     }
 
+    /* 中間三顆做成立體白按鈕 */
     .btn-soft{
       background:linear-gradient(180deg,#ffffff 0%,#f8fbf9 100%);
-      border:2px solid #c8dbce;
+      border:2px solid #bfd3c4;
       color:#3f6d57;
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.98),
-        0 6px 14px rgba(0,0,0,.03);
+        inset 0 -1px 0 rgba(189,211,196,.35),
+        0 8px 16px rgba(56,95,74,.06);
     }
 
     .btn-soft::before{
       content:"";
       position:absolute;
-      left:16px;
-      right:16px;
+      left:18px;
+      right:18px;
       top:11px;
-      height:10px;
+      height:12px;
       border-radius:999px;
-      background:rgba(91,153,118,.04);
+      background:linear-gradient(180deg,rgba(255,255,255,.95) 0%,rgba(247,251,248,.72) 100%);
+      pointer-events:none;
+    }
+
+    .btn-soft::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:24px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.55);
       pointer-events:none;
     }
 
     .btn-soft:hover{
-      background:linear-gradient(180deg,#fbfdfc 0%,#f1f7f3 100%);
-      border-color:#b8d1c0;
+      background:linear-gradient(180deg,#ffffff 0%,#f2f8f4 100%);
+      border-color:#aecaB8;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.98),
+        inset 0 -1px 0 rgba(189,211,196,.40),
+        0 10px 18px rgba(56,95,74,.08);
     }
 
     .btn-dash{
@@ -375,12 +396,12 @@
     .btn-dash::before{
       content:"";
       position:absolute;
-      left:16px;
-      right:16px;
+      left:18px;
+      right:18px;
       top:11px;
-      height:10px;
+      height:12px;
       border-radius:999px;
-      background:rgba(91,153,118,.03);
+      background:rgba(91,153,118,.04);
       pointer-events:none;
     }
 
@@ -403,7 +424,8 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      word-break:break-word;
+      word-break:keep-all;
+      overflow-wrap:break-word;
       box-shadow:inset 0 1px 0 rgba(255,255,255,.95);
     }
 
@@ -423,6 +445,7 @@
       display:inline-flex;
       align-items:center;
       gap:8px;
+      flex-wrap:nowrap;
     }
 
     .dot{
@@ -431,6 +454,7 @@
       border-radius:999px;
       background:#5aa97c;
       animation:pop 1s infinite ease-in-out;
+      flex:0 0 auto;
     }
 
     .dot:nth-child(2){ animation-delay:.15s; }
@@ -486,13 +510,21 @@
 
       .qr-text{
         font-size:15px;
-        max-width:270px;
+        max-width:252px;
       }
 
       .btn{
         font-size:15px;
+        min-height:58px;
         padding:14px 15px;
-        border-radius:20px;
+        border-radius:22px;
+      }
+
+      .btn-main::before,
+      .btn-soft::before,
+      .btn-dash::before{
+        left:14px;
+        right:14px;
       }
     }
   </style>
@@ -549,6 +581,6 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./imageResolver.js?v=7034"></script>
-  <script src="./poster.js?v=7034"></script>
+  <script src="./poster.js?v=7041"></script>
 </body>
 </html>
