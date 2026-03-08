@@ -3,37 +3,38 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v703.5</title>
+  <title>智慧名片交付卡 v704</title>
   <meta name="theme-color" content="#eef4ef" />
 
   <style>
     :root{
-      --bg-1:#f7faf8;
+      --bg-1:#f6faf7;
       --bg-2:#edf4ef;
       --bg-3:#e4eee7;
 
       --card:#ffffff;
       --card-soft:#fbfdfb;
 
-      --ink:#2e4a3a;
-      --ink-2:#456553;
-      --muted:#6f8c7b;
+      --ink:#2f493a;
+      --ink-2:#446452;
+      --muted:#73907f;
 
       --line:#dfe9e2;
-      --line-strong:#cadbd0;
+      --line-2:#cfded4;
       --line-soft:#edf3ef;
 
-      --brand:#4f8b69;
-      --brand-deep:#3f7658;
-      --brand-soft:#f3f8f5;
+      --brand:#5f9c78;
+      --brand-deep:#447c5b;
+      --brand-pale:#f2f7f3;
 
-      --shadow-card:0 18px 40px rgba(44,74,58,.07);
-      --shadow-soft:0 10px 24px rgba(44,74,58,.05);
-      --shadow-btn:0 8px 18px rgba(63,118,88,.14);
+      --shadow-card:0 20px 44px rgba(46,74,58,.08);
+      --shadow-soft:0 10px 24px rgba(46,74,58,.05);
+      --shadow-btn:0 10px 22px rgba(68,124,91,.16);
 
-      --radius-xl:28px;
+      --radius-xl:30px;
       --radius-lg:24px;
       --radius-md:20px;
+      --radius-sm:18px;
       --radius-pill:999px;
     }
 
@@ -43,12 +44,12 @@
     body{
       margin:0;
       font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
-      background:
-        radial-gradient(1200px 700px at 50% -10%, rgba(121,170,140,.10), transparent 52%),
-        linear-gradient(180deg,var(--bg-1) 0%,var(--bg-2) 58%,var(--bg-3) 100%);
       color:var(--ink);
       display:flex;
       justify-content:center;
+      background:
+        radial-gradient(1100px 600px at 50% -10%, rgba(103,156,122,.10), transparent 55%),
+        linear-gradient(180deg,var(--bg-1) 0%,var(--bg-2) 58%,var(--bg-3) 100%);
     }
 
     img{ display:block; max-width:100%; }
@@ -56,12 +57,12 @@
     .wrap{
       width:100%;
       max-width:460px;
-      padding:28px 20px 60px;
+      padding:28px 18px 60px;
     }
 
     .brand-head{
-      margin-bottom:20px;
-      padding:2px 2px 0;
+      margin-bottom:18px;
+      padding:0 4px;
     }
 
     .brand-en{
@@ -96,32 +97,48 @@
       padding:8px 15px;
       border-radius:var(--radius-pill);
       background:#f4f8f5;
-      color:#527764;
+      color:#537764;
       font-size:13px;
       font-weight:800;
       border:1px solid #e2ece5;
       box-shadow:0 4px 10px rgba(65,103,81,.04);
     }
 
-    .poster{
-      background:linear-gradient(180deg,#ffffff 0%,#fcfefd 100%);
-      border-radius:var(--radius-xl);
-      padding:28px 24px 24px;
+    .delivery-card{
+      background:linear-gradient(180deg,#ffffff 0%,#fbfdfb 100%);
+      border:1px solid var(--line);
+      border-radius:32px;
       box-shadow:var(--shadow-card);
-      margin-bottom:18px;
-      text-align:center;
-      border:1px solid rgba(212,226,217,.95);
+      padding:16px;
       position:relative;
       overflow:hidden;
     }
 
-    .poster::before{
+    .delivery-card::before{
       content:"";
       position:absolute;
       inset:0 0 auto 0;
-      height:84px;
-      background:linear-gradient(180deg, rgba(108,154,126,.07) 0%, rgba(108,154,126,0) 100%);
+      height:110px;
+      background:linear-gradient(180deg, rgba(109,158,127,.08) 0%, rgba(109,158,127,0) 100%);
       pointer-events:none;
+    }
+
+    /* 可作為海報主體的區域 */
+    #posterCapture{
+      position:relative;
+      z-index:1;
+    }
+
+    .poster{
+      background:linear-gradient(180deg,#ffffff 0%,#fcfefd 100%);
+      border-radius:26px;
+      padding:24px 20px 22px;
+      border:1px solid #e5eee8;
+      box-shadow:0 8px 20px rgba(55,92,72,.04);
+      text-align:center;
+      margin-bottom:14px;
+      position:relative;
+      overflow:hidden;
     }
 
     .avatar-wrap{
@@ -163,16 +180,16 @@
 
     .name,
     .unit,
-    .title{
+    .title,
+    .qr-text{
       width:100%;
       max-width:100%;
       text-align:center;
       word-break:keep-all;
       overflow-wrap:break-word;
       white-space:normal;
-      line-height:1.24;
-      position:relative;
-      z-index:1;
+      line-height:1.26;
+      text-wrap:balance;
     }
 
     .name{
@@ -181,6 +198,7 @@
       margin:0 0 12px;
       color:#3d6b54;
       letter-spacing:.01em;
+      min-height:1.26em;
     }
 
     .unit{
@@ -188,6 +206,7 @@
       margin:0 0 8px;
       color:#557b66;
       font-weight:700;
+      min-height:1.26em;
     }
 
     .title{
@@ -195,18 +214,17 @@
       margin:0;
       color:#557b66;
       font-weight:700;
+      min-height:1.26em;
     }
 
     .qr-card{
       background:linear-gradient(180deg,#ffffff 0%,#fcfefd 100%);
-      border-radius:var(--radius-xl);
-      padding:24px 20px;
-      box-shadow:var(--shadow-card);
+      border-radius:26px;
+      padding:22px 16px 20px;
+      border:1px solid #e5eee8;
+      box-shadow:0 8px 20px rgba(55,92,72,.04);
       text-align:center;
-      margin-bottom:18px;
-      border:1px solid rgba(212,226,217,.95);
-      position:relative;
-      overflow:hidden;
+      margin-bottom:12px;
     }
 
     .qr-box{
@@ -242,15 +260,22 @@
       margin-top:14px;
       color:#557b66;
       font-size:16px;
-      line-height:1.55;
+      line-height:1.52;
       font-weight:800;
       letter-spacing:.01em;
+      padding:0 10px;
+      max-width:320px;
+      margin-left:auto;
+      margin-right:auto;
     }
 
     .actions{
-      background:linear-gradient(180deg,rgba(255,255,255,.94) 0%,rgba(251,253,252,.96) 100%);
-      border:1px solid #e0ebe3;
-      border-radius:28px;
+      position:relative;
+      z-index:5;
+      margin-top:6px;
+      background:linear-gradient(180deg,#ffffff 0%,#fbfdfb 100%);
+      border:1px solid #e1ebe4;
+      border-radius:26px;
       padding:14px;
       box-shadow:var(--shadow-soft);
       backdrop-filter:none;
@@ -262,7 +287,7 @@
       display:block;
       width:100%;
       padding:15px 16px;
-      border-radius:20px;
+      border-radius:22px;
       text-align:center;
       font-size:16px;
       font-weight:800;
@@ -276,6 +301,7 @@
         border-color .15s ease,
         opacity .15s ease;
       -webkit-tap-highlight-color:transparent;
+      position:relative;
     }
 
     .btn:first-child{ margin-top:0; }
@@ -284,16 +310,28 @@
     .btn:disabled{ opacity:.55; cursor:not-allowed; }
 
     .btn-main{
-      background:linear-gradient(180deg,#62a27f 0%,#458763 100%);
+      background:linear-gradient(180deg,#6cac88 0%,#4b8a67 100%);
       color:#fff;
-      border:1px solid rgba(62,118,86,.88);
+      border:1px solid rgba(62,118,86,.92);
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.22),
         0 10px 20px rgba(63,118,88,.18);
     }
 
+    .btn-main::before{
+      content:"";
+      position:absolute;
+      left:16px;
+      right:16px;
+      top:11px;
+      height:10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.10);
+      pointer-events:none;
+    }
+
     .btn-main:hover{
-      background:linear-gradient(180deg,#69a987 0%,#44845f 100%);
+      background:linear-gradient(180deg,#73b38f 0%,#49825f 100%);
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.22),
         0 12px 22px rgba(63,118,88,.20);
@@ -301,37 +339,61 @@
 
     .btn-soft{
       background:linear-gradient(180deg,#ffffff 0%,#f8fbf9 100%);
-      border:1.5px solid #cfdfd4;
+      border:2px solid #c8dbce;
       color:#3f6d57;
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.98),
         0 6px 14px rgba(0,0,0,.03);
     }
 
+    .btn-soft::before{
+      content:"";
+      position:absolute;
+      left:16px;
+      right:16px;
+      top:11px;
+      height:10px;
+      border-radius:999px;
+      background:rgba(91,153,118,.04);
+      pointer-events:none;
+    }
+
     .btn-soft:hover{
       background:linear-gradient(180deg,#fbfdfc 0%,#f1f7f3 100%);
-      border-color:#bfd5c7;
+      border-color:#b8d1c0;
     }
 
     .btn-dash{
       background:linear-gradient(180deg,#fbfdfc 0%,#f6faf7 100%);
-      border:1.5px dashed #b8d1c2;
+      border:2px dashed #b7d0c1;
       color:#4b7962;
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.98),
         0 6px 14px rgba(0,0,0,.02);
     }
 
+    .btn-dash::before{
+      content:"";
+      position:absolute;
+      left:16px;
+      right:16px;
+      top:11px;
+      height:10px;
+      border-radius:999px;
+      background:rgba(91,153,118,.03);
+      pointer-events:none;
+    }
+
     .btn-dash:hover{
       background:linear-gradient(180deg,#f8fcf9 0%,#eef6f1 100%);
-      border-color:#a9c6b4;
+      border-color:#a7c5b2;
     }
 
     .status{
       margin-top:14px;
-      background:#f3f8f5;
+      background:#f4f8f5;
       border:1px solid #dbe8df;
-      border-radius:20px;
+      border-radius:22px;
       padding:14px 16px;
       text-align:center;
       color:#4c7b63;
@@ -384,9 +446,17 @@
         padding:24px 16px 52px;
       }
 
-      .poster,
+      .delivery-card{
+        padding:14px;
+        border-radius:28px;
+      }
+
+      .poster{
+        padding:22px 16px 20px;
+      }
+
       .qr-card{
-        padding:24px 18px;
+        padding:20px 14px 18px;
       }
 
       .avatar-wrap{
@@ -414,10 +484,15 @@
         height:184px !important;
       }
 
+      .qr-text{
+        font-size:15px;
+        max-width:270px;
+      }
+
       .btn{
         font-size:15px;
         padding:14px 15px;
-        border-radius:18px;
+        border-radius:20px;
       }
     }
   </style>
@@ -432,36 +507,40 @@
       <div class="brand-tag">交付卡</div>
     </div>
 
-    <div id="poster" class="poster">
-      <div class="avatar-wrap">
-        <img id="avatar" class="avatar" alt="頭像" />
-        <div id="avatarFallback" class="avatar-fallback">名片</div>
+    <div class="delivery-card">
+      <div id="posterCapture">
+        <div id="poster" class="poster">
+          <div class="avatar-wrap">
+            <img id="avatar" class="avatar" alt="頭像" />
+            <div id="avatarFallback" class="avatar-fallback">名片</div>
+          </div>
+
+          <div id="name" class="name">載入中...</div>
+          <div id="unit" class="unit">　</div>
+          <div id="title" class="title">　</div>
+        </div>
+
+        <div class="qr-card">
+          <div class="qr-box">
+            <div id="qrcode"></div>
+          </div>
+          <div id="qrTip" class="qr-text">掃描 QRCode 打開智慧名片</div>
+        </div>
       </div>
 
-      <div id="name" class="name">載入中...</div>
-      <div id="unit" class="unit">　</div>
-      <div id="title" class="title">　</div>
-    </div>
+      <div class="actions">
+        <button id="btnDownload" class="btn btn-main" type="button">下載名片海報</button>
+        <button id="btnOpenCard" class="btn btn-soft" type="button">打開我的智慧名片</button>
+        <button id="btnCopyCard" class="btn btn-soft" type="button">複製我的智慧名片連結</button>
+        <button id="btnRecommend" class="btn btn-dash" type="button">推薦智慧名片</button>
+        <button id="btnConsult" class="btn btn-main" type="button">聯繫 LINE 官方帳號</button>
 
-    <div class="qr-card">
-      <div class="qr-box">
-        <div id="qrcode"></div>
-      </div>
-      <div id="qrTip" class="qr-text">掃描 QRCode 打開智慧名片</div>
-    </div>
-
-    <div class="actions">
-      <button id="btnDownload" class="btn btn-main" type="button">下載名片海報</button>
-      <button id="btnOpenCard" class="btn btn-soft" type="button">打開我的智慧名片</button>
-      <button id="btnCopyCard" class="btn btn-soft" type="button">複製我的智慧名片連結</button>
-      <button id="btnRecommend" class="btn btn-dash" type="button">推薦智慧名片</button>
-      <button id="btnConsult" class="btn btn-main" type="button">聯繫 LINE 官方帳號</button>
-
-      <div id="status" class="status">
-        <span class="loading">
-          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        </span>
-        正在載入交付卡資料...
+        <div id="status" class="status">
+          <span class="loading">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          </span>
+          正在載入交付卡資料...
+        </div>
       </div>
     </div>
 
