@@ -1,22 +1,25 @@
 /* ==========================================
- * HSC Poster v533.1
+ * HSC Poster v534
  * COMPLETE OVERWRITE
  *
- * Focus:
- * 1) 修正頭像不顯示問題
- * 2) 移除匿名跨域依賴，先保畫面顯示
- * 3) 保持按鈕 / QR / 下載功能穩定
+ * 本版重點：
+ * 1) 頭像改走 imageResolver.js 正規化
+ * 2) 打開我的智慧名片 => 明確指向 index.html?id=
+ * 3) 補齊 7 顆按鈕
+ * 4) 交付卡精簡為正式交付入口
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "533.1";
+  const VERSION = "534";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
   const BASE = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+  const HALL_URL = BASE;
+  const CARD_PAGE = `${BASE}index.html`;
 
   const qs = new URLSearchParams(location.search);
   const id = (qs.get("id") || "").trim();
@@ -30,7 +33,6 @@
   const unitEl = document.getElementById("unit");
   const titleEl = document.getElementById("title");
   const sloganEl = document.getElementById("slogan");
-  const featureDescEl = document.getElementById("featureDesc");
   const footerIdEl = document.getElementById("footerId");
   const qrTipEl = document.getElementById("qrTip");
   const statusEl = document.getElementById("status");
@@ -38,13 +40,18 @@
   const posterEl = document.getElementById("poster");
   const qrWrapEl = document.getElementById("qrcode");
 
-  const btnOpenCard = document.getElementById("btnOpenCard");
   const btnDownload = document.getElementById("btnDownload");
+  const btnOpenCard = document.getElementById("btnOpenCard");
   const btnCopyCard = document.getElementById("btnCopyCard");
-  const btnCopyHome = document.getElementById("btnCopyHome");
+  const btnShareLine = document.getElementById("btnShareLine");
+  const btnShareWechat = document.getElementById("btnShareWechat");
+  const btnShareHall = document.getElementById("btnShareHall");
+  const btnConsult = document.getElementById("btnConsult");
 
   let itemData = null;
   let cardURL = "";
+  let hallURL = HALL_URL;
+  let consultURL = "";
 
   init();
 
@@ -67,13 +74,14 @@
 
       itemData = item;
       cardURL = buildCardURL(item.id);
+      consultURL = safeText(item.line_oa, "");
 
       renderCard(item);
       bindActions();
       await renderQRCode(cardURL, getAvatarSafe(item));
 
       setButtonsDisabled(false);
-      setStatus("success", "交付卡已載入完成，可以直接下載海報或分享名片。");
+      setStatus("success", "交付卡已載入完成，可直接下載、開啟或分享。");
     } catch (err) {
       console.error("[HSC Poster init error]", err);
       setButtonsDisabled(true);
@@ -99,12 +107,14 @@
   }
 
   function buildCardURL(cardId) {
-    return `${BASE}?id=${encodeURIComponent(cardId)}`;
+    return `${CARD_PAGE}?id=${encodeURIComponent(cardId)}`;
   }
 
   function getAvatarSafe(item) {
     try {
-      if (typeof getAvatar === "function") return getAvatar(item);
+      if (typeof getAvatar === "function") {
+        return getAvatar(item);
+      }
     } catch (err) {
       console.warn("[getAvatar fallback]", err);
     }
@@ -123,23 +133,12 @@
     const unit = safeText(item.unit, "天使幸福智慧名片");
     const title = safeText(item.title, "智慧名片");
     const slogan = safeText(item.slogan, "");
-    const services = safeText(item.services, "");
-    const experience = safeText(item.experience, "");
 
     nameEl.textContent = name;
     unitEl.textContent = unit;
     titleEl.textContent = title;
-    sloganEl.textContent = slogan;
+    sloganEl.textContent = slogan || "可分享的專屬名片入口";
     footerIdEl.textContent = `ID：${safeText(item.id, "--")}`;
-
-    if (services || experience) {
-      featureDescEl.textContent = [services, experience].filter(Boolean).join("｜");
-    } else if (slogan) {
-      featureDescEl.textContent = slogan;
-    } else {
-      featureDescEl.textContent =
-        "名片會整合你的品牌入口與個人資訊，讓對方更快認識你、找到你、聯絡你。";
-    }
 
     renderAvatar(getAvatarSafe(item), name);
   }
@@ -153,19 +152,18 @@
     avatarEl.removeAttribute("src");
 
     if (!src) {
-      console.warn("[avatar] empty src");
       hideQrCenter();
       return;
     }
 
-    console.log("[avatar] loading:", src);
-
     const testImg = new Image();
+    testImg.crossOrigin = "anonymous";
 
     testImg.onload = () => {
-      console.log("[avatar] loaded ok");
       avatarEl.onload = null;
       avatarEl.onerror = null;
+      avatarEl.crossOrigin = "anonymous";
+      avatarEl.referrerPolicy = "no-referrer";
       avatarEl.src = src;
       avatarEl.style.display = "block";
       avatarFallbackEl.style.display = "none";
@@ -173,13 +171,13 @@
     };
 
     testImg.onerror = () => {
-      console.warn("[avatar] load failed:", src);
       avatarEl.style.display = "none";
       avatarFallbackEl.style.display = "grid";
       hideQrCenter();
-      setStatus("error", "頭像網址有資料，但載入失敗。這通常是圖片權限或跨域設定造成。");
+      setStatus("error", "頭像資料存在，但圖片來源目前無法穩定載入。");
     };
 
+    testImg.referrerPolicy = "no-referrer";
     testImg.src = src;
   }
 
@@ -192,8 +190,8 @@
 
     new QRCode(qrWrapEl, {
       text,
-      width: 124,
-      height: 124,
+      width: 136,
+      height: 136,
       correctLevel: QRCode.CorrectLevel.H
     });
 
@@ -211,8 +209,11 @@
     }
 
     const img = new Image();
+    img.crossOrigin = "anonymous";
 
     img.onload = () => {
+      qrCenterImgEl.crossOrigin = "anonymous";
+      qrCenterImgEl.referrerPolicy = "no-referrer";
       qrCenterImgEl.src = src;
       qrCenterEl.style.display = "block";
     };
@@ -221,6 +222,7 @@
       hideQrCenter();
     };
 
+    img.referrerPolicy = "no-referrer";
     img.src = src;
   }
 
@@ -230,30 +232,6 @@
   }
 
   function bindActions() {
-    btnOpenCard.onclick = () => {
-      if (!cardURL) return;
-      window.open(cardURL, "_blank", "noopener");
-    };
-
-    btnCopyCard.onclick = async () => {
-      if (!cardURL) return;
-      const ok = await copyText(cardURL);
-      if (ok) {
-        setStatus("success", "名片連結已複製。");
-      } else {
-        setStatus("error", "名片連結複製失敗，請手動複製網址。");
-      }
-    };
-
-    btnCopyHome.onclick = async () => {
-      const ok = await copyText(BASE);
-      if (ok) {
-        setStatus("success", "智慧名片首頁連結已複製。");
-      } else {
-        setStatus("error", "首頁連結複製失敗，請手動複製網址。");
-      }
-    };
-
     btnDownload.onclick = async () => {
       try {
         btnDownload.disabled = true;
@@ -269,6 +247,45 @@
         btnDownload.disabled = false;
       }
     };
+
+    btnOpenCard.onclick = () => {
+      if (!cardURL) return;
+      window.open(cardURL, "_blank", "noopener");
+    };
+
+    btnCopyCard.onclick = async () => {
+      if (!cardURL) return;
+      const ok = await copyText(cardURL);
+      setStatus(ok ? "success" : "error", ok ? "智慧名片連結已複製。" : "複製失敗，請手動複製網址。");
+    };
+
+    btnShareLine.onclick = () => {
+      if (!cardURL) return;
+      const text = `這是我的智慧名片：${cardURL}`;
+      const url = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
+      window.open(url, "_blank", "noopener");
+    };
+
+    btnShareWechat.onclick = async () => {
+      if (!cardURL) return;
+      const ok = await copyText(cardURL);
+      setStatus(
+        ok ? "success" : "error",
+        ok ? "智慧名片連結已複製，可直接貼到微信分享。" : "微信分享連結複製失敗。"
+      );
+    };
+
+    btnShareHall.onclick = () => {
+      window.open(hallURL, "_blank", "noopener");
+    };
+
+    btnConsult.onclick = () => {
+      if (!consultURL) {
+        setStatus("error", "目前尚未設定名片諮詢服務連結。");
+        return;
+      }
+      window.open(consultURL, "_blank", "noopener");
+    };
   }
 
   async function downloadPoster() {
@@ -277,7 +294,7 @@
     }
 
     await waitForImages(posterEl);
-    await wait(100);
+    await wait(120);
 
     const canvas = await html2canvas(posterEl, {
       useCORS: true,
@@ -320,7 +337,15 @@
   }
 
   function setButtonsDisabled(disabled) {
-    [btnOpenCard, btnDownload, btnCopyCard, btnCopyHome].forEach((btn) => {
+    [
+      btnDownload,
+      btnOpenCard,
+      btnCopyCard,
+      btnShareLine,
+      btnShareWechat,
+      btnShareHall,
+      btnConsult
+    ].forEach((btn) => {
       if (btn) btn.disabled = !!disabled;
     });
   }
