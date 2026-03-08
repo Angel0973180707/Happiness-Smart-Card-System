@@ -1,5 +1,5 @@
 /* ======================================
- * HSC Image Resolver v534
+ * HSC Image Resolver v534.1
  * COMPLETE OVERWRITE
  *
  * 規則：
@@ -7,7 +7,7 @@
  * 2. 再讀舊 img
  * 3. 再讀 url
  * 4. 保持舊資料相容
- * 5. 補 Google Drive 圖片網址正規化
+ * 5. 補 Google Drive 圖片候補網址
  * ====================================== */
 
 (function (global) {
@@ -40,9 +40,7 @@
         const m = u.pathname.match(/\/file\/d\/([^/]+)/);
         if (m && m[1]) return m[1];
       }
-    } catch (err) {
-      // ignore
-    }
+    } catch (err) {}
 
     const m1 = s.match(/[?&]id=([^&]+)/);
     if (m1 && m1[1]) return m1[1];
@@ -53,19 +51,32 @@
     return "";
   }
 
+  function getGoogleDriveCandidates(url) {
+    const s = clean(url);
+    const fileId = extractGoogleDriveFileId(s);
+    if (!fileId) return s ? [s] : [];
+
+    return [
+      `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1200`,
+      `https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}=w1200`,
+      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`,
+      s
+    ];
+  }
+
   function normalizeImageUrl(url) {
     const s = clean(url);
     if (!s) return "";
-
-    const fileId = extractGoogleDriveFileId(s);
-    if (fileId) {
-      return `https://drive.google.com/thumbnail?id=${encodeURIComponent(fileId)}&sz=w1200`;
-    }
-
-    return s;
+    const arr = getGoogleDriveCandidates(s);
+    return arr[0] || s;
   }
 
-  /* ---------- avatar ---------- */
+  function getImageCandidates(url) {
+    const s = clean(url);
+    if (!s) return [];
+    return getGoogleDriveCandidates(s);
+  }
+
   function getAvatar(item = {}) {
     return normalizeImageUrl(
       pickImage(
@@ -77,7 +88,17 @@
     );
   }
 
-  /* ---------- logo ---------- */
+  function getAvatarCandidates(item = {}) {
+    return getImageCandidates(
+      pickImage(
+        item.avatar_img_fast,
+        item.avatar_img,
+        item.avatar_url,
+        item.avatar
+      )
+    );
+  }
+
   function getLogo(item = {}) {
     return normalizeImageUrl(
       pickImage(
@@ -89,7 +110,6 @@
     );
   }
 
-  /* ---------- single photo ---------- */
   function getPhoto(item = {}, i = 1) {
     const fast = item[`photo${i}_img_fast`];
     const img = item[`photo${i}_img`];
@@ -97,7 +117,6 @@
     return normalizeImageUrl(pickImage(fast, img, url));
   }
 
-  /* ---------- photo list ---------- */
   function getPhotos(item = {}) {
     const arr = [];
     for (let i = 1; i <= 5; i++) {
@@ -107,11 +126,12 @@
     return arr;
   }
 
-  /* ---------- expose ---------- */
   global.pickImage = pickImage;
-  global.normalizeImageUrl = normalizeImageUrl;
   global.extractGoogleDriveFileId = extractGoogleDriveFileId;
+  global.normalizeImageUrl = normalizeImageUrl;
+  global.getImageCandidates = getImageCandidates;
   global.getAvatar = getAvatar;
+  global.getAvatarCandidates = getAvatarCandidates;
   global.getLogo = getLogo;
   global.getPhoto = getPhoto;
   global.getPhotos = getPhotos;
