@@ -1,9 +1,9 @@
 /* ==========================================
- * HSC Poster v701.0
+ * HSC Poster v701.1
  * COMPLETE OVERWRITE
  *
- * v701 重點：
- * 1) 海報移除 ID 顯示
+ * v701.1 重點：
+ * 1) 完全移除海報上的 ID 顯示
  * 2) 海報只強調：頭像 / 姓名 / 單位 / 職稱
  * 3) 字體整體放大，視覺更簡潔
  * 4) 諮詢服務固定連到 LINE 官方帳號
@@ -13,7 +13,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "701.0";
+  const VERSION = "701.1";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
