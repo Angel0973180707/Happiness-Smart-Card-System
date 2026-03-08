@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v533</title>
+  <title>智慧名片交付卡 v533.1</title>
   <meta name="theme-color" content="#f6efe7" />
 
   <style>
@@ -719,7 +719,7 @@
           <div class="brand-sub">下載海報、查看名片、複製連結，一次完成交付。</div>
         </div>
       </div>
-      <div class="version">HSC Poster v533</div>
+      <div class="version">HSC Poster v533.1</div>
     </div>
 
     <div class="hero">
@@ -728,7 +728,7 @@
         <h1 class="headline">讓你的智慧名片，像產品一樣被交出去。</h1>
         <p class="desc">
           這張交付卡會自動載入頭像、姓名、品牌資訊與 QRCode，並支援海報下載。
-          這一版先優先修正按鈕綁定、頭像解析、QR 顯示與下載穩定度，保留後續代理推薦系統擴充空間。
+          這一版先優先修正頭像顯示穩定度與 QR 中央圖示問題。
         </p>
 
         <div class="tool-row">
@@ -740,16 +740,16 @@
 
         <div class="hint-grid">
           <div class="hint-card">
-            <h3 class="hint-title">頭像解析更穩</h3>
-            <p class="hint-text">優先讀 fast 圖，再回退舊版 img 與 url 欄位，降低舊資料讀不到的機率。</p>
+            <h3 class="hint-title">頭像顯示優先</h3>
+            <p class="hint-text">先讓交付卡畫面上的頭像穩定出現，再處理下載時的跨域細節。</p>
           </div>
           <div class="hint-card">
-            <h3 class="hint-title">QRCode 重建更穩</h3>
-            <p class="hint-text">資料載入完成後才重建 QR，避免容器有了但內容還沒生成。</p>
+            <h3 class="hint-title">QRCode 更穩</h3>
+            <p class="hint-text">QR 會在資料載入完成後再建立，避免空白或重覆生成。</p>
           </div>
           <div class="hint-card">
-            <h3 class="hint-title">海報下載更穩</h3>
-            <p class="hint-text">下載前先等畫面定稿，再用 html2canvas + useCORS 產圖，成功率更高。</p>
+            <h3 class="hint-title">保留主幹相容</h3>
+            <p class="hint-text">不改 GAS、不改欄位，只調整前端顯示邏輯。</p>
           </div>
         </div>
 
@@ -778,7 +778,7 @@
 
               <div class="profile-card">
                 <div class="avatar-wrap">
-                  <img id="avatar" class="avatar" alt="頭像" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                  <img id="avatar" class="avatar" alt="頭像" />
                   <div id="avatarFallback" class="avatar-fallback">名片</div>
                 </div>
 
@@ -811,7 +811,7 @@
                   <div id="qrBox" class="qr-box">
                     <div id="qrcode"></div>
                     <div id="qrCenter" class="qr-center">
-                      <img id="qrCenterImg" alt="中心頭像" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                      <img id="qrCenterImg" alt="中心頭像" />
                     </div>
                   </div>
                   <p id="qrTip" class="qr-tip">QR 產生中...</p>
@@ -837,6 +837,6 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./imageResolver.js?v=533"></script>
-  <script src="./poster.js?v=533"></script>
+  <script src="./poster.js?v=5331"></script>
 </body>
 </html>
