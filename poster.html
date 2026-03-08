@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v534.1</title>
+  <title>智慧名片交付卡 v534.2</title>
   <meta name="theme-color" content="#f7f1ea" />
 
   <style>
@@ -182,7 +182,6 @@
       color:var(--accent-2);
     }
 
-    /* 區 1：人物區 */
     .profile-card{
       display:flex;
       flex-direction:column;
@@ -260,7 +259,6 @@
       overflow-wrap:anywhere;
     }
 
-    /* 區 2：QR 區 */
     .qr-card{
       padding:16px;
       border-radius:24px;
@@ -300,25 +298,21 @@
       image-rendering:pixelated;
     }
 
-    .qr-center{
+    .qr-badge{
       position:absolute;
       inset:50% auto auto 50%;
       transform:translate(-50%,-50%);
-      width:38px;
-      height:38px;
-      border-radius:12px;
-      background:#fff;
-      border:1px solid rgba(64,44,24,.08);
-      box-shadow:0 6px 16px rgba(93,62,34,.15);
-      display:none;
-      overflow:hidden;
+      width:42px;
+      height:42px;
+      border-radius:999px;
+      background:linear-gradient(135deg,#efc18c,#fff2df 62%,#d78d48);
+      border:3px solid #fff;
+      box-shadow:0 8px 18px rgba(93,62,34,.18);
+      display:grid;
+      place-items:center;
       z-index:2;
-    }
-
-    .qr-center img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
+      font-size:20px;
+      line-height:1;
     }
 
     .qr-tip{
@@ -344,7 +338,6 @@
       font-weight:900;
     }
 
-    /* 區 3：按鈕區 */
     .action-panel{
       margin-top:14px;
       padding:14px;
@@ -520,9 +513,7 @@
           <div class="qr-card">
             <div class="qr-box">
               <div id="qrcode"></div>
-              <div id="qrCenter" class="qr-center">
-                <img id="qrCenterImg" alt="中心頭像" />
-              </div>
+              <div class="qr-badge" aria-hidden="true">✨</div>
             </div>
             <p id="qrTip" class="qr-tip">掃描QRCode查閱智慧名片</p>
             <div id="footerId" class="footer-id">ID：--</div>
@@ -537,7 +528,7 @@
         <button id="btnOpenCard" class="btn btn-soft" type="button">打開我的智慧名片</button>
         <button id="btnCopyCard" class="btn btn-soft" type="button">複製我的智慧名片連結</button>
         <button id="btnShareLine" class="btn btn-soft" type="button">分享到LINE</button>
-        <button id="btnShareWechat" class="btn btn-soft" type="button">分享到微信</button>
+        <button id="btnCopyWechat" class="btn btn-soft" type="button">複製連結到微信</button>
         <button id="btnShareHall" class="btn btn-ghost" type="button">分享智慧名片館</button>
         <button id="btnConsult" class="btn btn-ghost" type="button">名片諮詢服務</button>
       </div>
@@ -554,6 +545,6 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./imageResolver.js?v=5341"></script>
-  <script src="./poster.js?v=5341"></script>
+  <script src="./poster.js?v=5342"></script>
 </body>
 </html>
