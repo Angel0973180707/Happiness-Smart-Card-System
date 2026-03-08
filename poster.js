@@ -1,18 +1,19 @@
 /* ==========================================
- * HSC Poster v534
+ * HSC Poster v534.1
  * COMPLETE OVERWRITE
  *
- * 本版重點：
- * 1) 頭像改走 imageResolver.js 正規化
- * 2) 打開我的智慧名片 => 明確指向 index.html?id=
- * 3) 補齊 7 顆按鈕
- * 4) 交付卡精簡為正式交付入口
+ * 修正重點：
+ * 1) 成品頁改為 index.html?id=xxx&view=1
+ * 2) 頭像改為多候補網址載入
+ * 3) 交付卡精簡為 3 區
+ * 4) 人物資訊改為直向排列
+ * 5) 底部說明改成一句話
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "534";
+  const VERSION = "534.1";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -32,7 +33,6 @@
   const nameEl = document.getElementById("name");
   const unitEl = document.getElementById("unit");
   const titleEl = document.getElementById("title");
-  const sloganEl = document.getElementById("slogan");
   const footerIdEl = document.getElementById("footerId");
   const qrTipEl = document.getElementById("qrTip");
   const statusEl = document.getElementById("status");
@@ -52,6 +52,7 @@
   let cardURL = "";
   let hallURL = HALL_URL;
   let consultURL = "";
+  let avatarLoadedSrc = "";
 
   init();
 
@@ -78,10 +79,10 @@
 
       renderCard(item);
       bindActions();
-      await renderQRCode(cardURL, getAvatarSafe(item));
+      await renderQRCode(cardURL);
 
       setButtonsDisabled(false);
-      setStatus("success", "交付卡已載入完成，可直接下載、開啟或分享。");
+      setStatus("success", "交付卡已載入完成。");
     } catch (err) {
       console.error("[HSC Poster init error]", err);
       setButtonsDisabled(true);
@@ -107,81 +108,100 @@
   }
 
   function buildCardURL(cardId) {
-    return `${CARD_PAGE}?id=${encodeURIComponent(cardId)}`;
-  }
-
-  function getAvatarSafe(item) {
-    try {
-      if (typeof getAvatar === "function") {
-        return getAvatar(item);
-      }
-    } catch (err) {
-      console.warn("[getAvatar fallback]", err);
-    }
-
-    return (
-      item.avatar_img_fast ||
-      item.avatar_img ||
-      item.avatar_url ||
-      item.avatar ||
-      ""
-    );
+    return `${CARD_PAGE}?id=${encodeURIComponent(cardId)}&view=1`;
   }
 
   function renderCard(item) {
     const name = safeText(item.name, "未命名");
-    const unit = safeText(item.unit, "天使幸福智慧名片");
-    const title = safeText(item.title, "智慧名片");
-    const slogan = safeText(item.slogan, "");
+    const unit = safeText(item.unit, "");
+    const title = safeText(item.title, "");
 
     nameEl.textContent = name;
-    unitEl.textContent = unit;
-    titleEl.textContent = title;
-    sloganEl.textContent = slogan || "可分享的專屬名片入口";
+    unitEl.textContent = unit || " ";
+    titleEl.textContent = title || " ";
     footerIdEl.textContent = `ID：${safeText(item.id, "--")}`;
 
-    renderAvatar(getAvatarSafe(item), name);
+    renderAvatar(item, name);
   }
 
-  function renderAvatar(src, nameText) {
+  async function renderAvatar(item, nameText) {
     const fallbackText = getFallbackText(nameText);
 
     avatarFallbackEl.textContent = fallbackText;
     avatarFallbackEl.style.display = "grid";
     avatarEl.style.display = "none";
     avatarEl.removeAttribute("src");
+    hideQrCenter();
 
-    if (!src) {
+    let candidates = [];
+    try {
+      if (typeof getAvatarCandidates === "function") {
+        candidates = getAvatarCandidates(item);
+      }
+    } catch (err) {
+      console.warn("[getAvatarCandidates error]", err);
+    }
+
+    if (!candidates || !candidates.length) {
+      const single =
+        (typeof getAvatar === "function" ? getAvatar(item) : "") ||
+        item.avatar_img_fast ||
+        item.avatar_img ||
+        item.avatar_url ||
+        item.avatar ||
+        "";
+      if (single) candidates = [single];
+    }
+
+    const loaded = await loadFirstAvailableImage(candidates);
+
+    if (!loaded) {
+      avatarLoadedSrc = "";
       hideQrCenter();
       return;
     }
 
-    const testImg = new Image();
-    testImg.crossOrigin = "anonymous";
+    avatarLoadedSrc = loaded;
 
-    testImg.onload = () => {
-      avatarEl.onload = null;
-      avatarEl.onerror = null;
-      avatarEl.crossOrigin = "anonymous";
-      avatarEl.referrerPolicy = "no-referrer";
-      avatarEl.src = src;
-      avatarEl.style.display = "block";
-      avatarFallbackEl.style.display = "none";
-      showQrCenter(src);
-    };
+    avatarEl.crossOrigin = "anonymous";
+    avatarEl.referrerPolicy = "no-referrer";
+    avatarEl.src = loaded;
+    avatarEl.style.display = "block";
+    avatarFallbackEl.style.display = "none";
 
-    testImg.onerror = () => {
-      avatarEl.style.display = "none";
-      avatarFallbackEl.style.display = "grid";
-      hideQrCenter();
-      setStatus("error", "頭像資料存在，但圖片來源目前無法穩定載入。");
-    };
-
-    testImg.referrerPolicy = "no-referrer";
-    testImg.src = src;
+    showQrCenter(loaded);
   }
 
-  async function renderQRCode(text, avatarSrc) {
+  async function loadFirstAvailableImage(candidates) {
+    const uniq = Array.from(new Set((candidates || []).filter(Boolean)));
+
+    for (const src of uniq) {
+      const ok = await testImage(src);
+      if (ok) return src;
+    }
+
+    return "";
+  }
+
+  function testImage(src) {
+    return new Promise((resolve) => {
+      if (!src) {
+        resolve(false);
+        return;
+      }
+
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.referrerPolicy = "no-referrer";
+
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+
+      img.src = src;
+    });
+  }
+
+  async function renderQRCode(text) {
     qrTipEl.textContent = "QR 產生中...";
     qrWrapEl.innerHTML = "";
     hideQrCenter();
@@ -190,16 +210,16 @@
 
     new QRCode(qrWrapEl, {
       text,
-      width: 136,
-      height: 136,
+      width: 150,
+      height: 150,
       correctLevel: QRCode.CorrectLevel.H
     });
 
-    if (avatarSrc) {
-      showQrCenter(avatarSrc);
+    if (avatarLoadedSrc) {
+      showQrCenter(avatarLoadedSrc);
     }
 
-    qrTipEl.textContent = "掃描後可立即查看智慧名片";
+    qrTipEl.textContent = "掃描QRCode查閱智慧名片";
   }
 
   function showQrCenter(src) {
@@ -208,22 +228,10 @@
       return;
     }
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-
-    img.onload = () => {
-      qrCenterImgEl.crossOrigin = "anonymous";
-      qrCenterImgEl.referrerPolicy = "no-referrer";
-      qrCenterImgEl.src = src;
-      qrCenterEl.style.display = "block";
-    };
-
-    img.onerror = () => {
-      hideQrCenter();
-    };
-
-    img.referrerPolicy = "no-referrer";
-    img.src = src;
+    qrCenterImgEl.crossOrigin = "anonymous";
+    qrCenterImgEl.referrerPolicy = "no-referrer";
+    qrCenterImgEl.src = src;
+    qrCenterEl.style.display = "block";
   }
 
   function hideQrCenter() {
