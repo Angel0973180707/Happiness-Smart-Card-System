@@ -1,25 +1,25 @@
 /* ==========================================
- * HSC Poster v701.1
+ * HSC Poster v702
  * COMPLETE OVERWRITE
  *
- * v701.1 重點：
- * 1) 完全移除海報上的 ID 顯示
- * 2) 海報只強調：頭像 / 姓名 / 單位 / 職稱
- * 3) 字體整體放大，視覺更簡潔
- * 4) 諮詢服務固定連到 LINE 官方帳號
- * 5) 保留交付卡主按鈕與下載海報能力
+ * v702 重點：
+ * 1) 移除信用卡感 UI 對應邏輯
+ * 2) 海報只保留：頭像 / 姓名 / 單位 / 職稱 / QR
+ * 3) QR Code 放大，提高掃描成功率
+ * 4) 精簡交付卡按鈕
+ * 5) 推薦智慧名片 => 複製首頁 ref 連結
+ * 6) 諮詢服務 => 固定 LINE 官方帳號
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "701.1";
+  const VERSION = "702";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
   const BASE = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
-  const HALL_URL = BASE;
   const CARD_PAGE = `${BASE}index.html`;
   const CONSULT_URL = "https://lin.ee/3r2ZePN";
 
@@ -41,14 +41,12 @@
   const btnDownload = document.getElementById("btnDownload");
   const btnOpenCard = document.getElementById("btnOpenCard");
   const btnCopyCard = document.getElementById("btnCopyCard");
-  const btnShareLine = document.getElementById("btnShareLine");
-  const btnCopyWechat = document.getElementById("btnCopyWechat");
-  const btnShareHall = document.getElementById("btnShareHall");
+  const btnRecommend = document.getElementById("btnRecommend");
   const btnConsult = document.getElementById("btnConsult");
 
   let itemData = null;
   let cardURL = "";
-  let hallURL = HALL_URL;
+  let recommendURL = "";
 
   init();
 
@@ -71,6 +69,7 @@
 
       itemData = item;
       cardURL = buildCardURL(item.id);
+      recommendURL = buildRecommendURL(item.id);
 
       renderCard(item);
       bindActions();
@@ -106,6 +105,10 @@
     return `${CARD_PAGE}?id=${encodeURIComponent(cardId)}&view=1`;
   }
 
+  function buildRecommendURL(cardId) {
+    return `${BASE}?ref=${encodeURIComponent(cardId)}`;
+  }
+
   function renderCard(item) {
     const name = safeText(item.name, "未命名");
     const unit = safeText(item.unit, "");
@@ -127,6 +130,7 @@
     avatarEl.removeAttribute("src");
 
     let candidates = [];
+
     try {
       if (typeof getAvatarCandidates === "function") {
         candidates = getAvatarCandidates(item);
@@ -176,7 +180,6 @@
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.referrerPolicy = "no-referrer";
-
       img.onload = () => resolve(true);
       img.onerror = () => resolve(false);
       img.src = src;
@@ -191,12 +194,12 @@
 
     new QRCode(qrWrapEl, {
       text,
-      width: 154,
-      height: 154,
+      width: 190,
+      height: 190,
       correctLevel: QRCode.CorrectLevel.H
     });
 
-    qrTipEl.textContent = "掃描 QRCode 查閱智慧名片";
+    qrTipEl.textContent = "掃描 QRCode 打開智慧名片";
   }
 
   function bindActions() {
@@ -225,29 +228,13 @@
       setStatus(ok ? "success" : "error", ok ? "智慧名片連結已複製。" : "複製失敗，請手動複製網址。");
     };
 
-    btnShareLine.onclick = () => {
-      if (!cardURL) return;
-      const text = `這是我的智慧名片：${cardURL}`;
-      const url = `https://line.me/R/msg/text/?${encodeURIComponent(text)}`;
-      window.open(url, "_blank", "noopener");
-    };
-
-    btnCopyWechat.onclick = async () => {
-      if (!cardURL) return;
-      const ok = await copyText(cardURL);
+    btnRecommend.onclick = async () => {
+      if (!recommendURL) return;
+      const ok = await copyText(recommendURL);
       setStatus(
         ok ? "success" : "error",
-        ok ? "智慧名片連結已複製，可直接貼到微信分享。" : "複製失敗，請手動複製後貼到微信。"
+        ok ? "推薦智慧名片連結已複製。" : "複製失敗，請手動複製網址。"
       );
-    };
-
-    btnShareHall.onclick = async () => {
-      const ok = await copyText(hallURL);
-      if (ok) {
-        setStatus("success", "智慧名片館連結已複製。");
-      } else {
-        window.open(hallURL, "_blank", "noopener");
-      }
     };
 
     btnConsult.onclick = () => {
@@ -309,9 +296,7 @@
       btnDownload,
       btnOpenCard,
       btnCopyCard,
-      btnShareLine,
-      btnCopyWechat,
-      btnShareHall,
+      btnRecommend,
       btnConsult
     ].forEach((btn) => {
       if (btn) btn.disabled = !!disabled;
