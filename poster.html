@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v534</title>
+  <title>智慧名片交付卡 v534.1</title>
   <meta name="theme-color" content="#f7f1ea" />
 
   <style>
@@ -20,7 +20,7 @@
       --radius-xl:30px;
       --radius-lg:22px;
       --radius-md:18px;
-      --max:820px;
+      --max:760px;
     }
 
     *{ box-sizing:border-box; }
@@ -38,14 +38,14 @@
     img{ display:block; max-width:100%; }
 
     .wrap{
-      width:min(var(--max), calc(100% - 24px));
+      width:min(var(--max), calc(100% - 20px));
       margin:0 auto;
-      padding:22px 0 34px;
+      padding:18px 0 28px;
     }
 
     .top{
       text-align:center;
-      margin-bottom:16px;
+      margin-bottom:14px;
     }
 
     .brand{
@@ -74,7 +74,7 @@
     }
 
     .panel{
-      background:rgba(255,255,255,.76);
+      background:rgba(255,255,255,.78);
       backdrop-filter:blur(10px);
       border:1px solid rgba(255,255,255,.72);
       border-radius:var(--radius-xl);
@@ -83,7 +83,7 @@
     }
 
     .poster-wrap{
-      padding:18px;
+      padding:16px;
     }
 
     .poster-paper{
@@ -182,12 +182,14 @@
       color:var(--accent-2);
     }
 
+    /* 區 1：人物區 */
     .profile-card{
-      display:grid;
-      grid-template-columns:104px 1fr;
-      gap:14px;
+      display:flex;
+      flex-direction:column;
       align-items:center;
-      padding:16px;
+      text-align:center;
+      gap:12px;
+      padding:18px 16px;
       border-radius:24px;
       background:linear-gradient(180deg,rgba(255,255,255,.94),rgba(255,247,238,.96));
       border:1px solid rgba(160,108,58,.10);
@@ -195,16 +197,16 @@
     }
 
     .avatar-wrap{
-      position:relative;
-      width:104px;
-      height:104px;
-      border-radius:28px;
+      width:116px;
+      height:116px;
+      border-radius:30px;
       overflow:hidden;
       background:linear-gradient(135deg,#f2d3b3,#fbf3e9);
       border:1px solid rgba(160,108,58,.12);
       box-shadow:0 10px 22px rgba(93,62,34,.10);
       display:grid;
       place-items:center;
+      flex:0 0 auto;
     }
 
     .avatar{
@@ -224,125 +226,58 @@
     }
 
     .profile-meta{
-      min-width:0;
+      width:100%;
       display:flex;
       flex-direction:column;
+      align-items:center;
       gap:6px;
+      min-width:0;
     }
 
     .name{
       font-size:30px;
-      line-height:1.15;
+      line-height:1.18;
       font-weight:900;
-      word-break:break-word;
+      word-break:keep-all;
+      overflow-wrap:anywhere;
     }
 
     .unit{
-      font-size:15px;
+      font-size:16px;
       color:var(--muted);
       line-height:1.5;
-      font-weight:700;
-      word-break:break-word;
+      font-weight:800;
+      word-break:keep-all;
+      overflow-wrap:anywhere;
     }
 
     .title{
-      font-size:17px;
+      font-size:18px;
       color:#534338;
       line-height:1.5;
-      font-weight:800;
-      word-break:break-word;
+      font-weight:900;
+      word-break:keep-all;
+      overflow-wrap:anywhere;
     }
 
-    .slogan{
-      font-size:14px;
-      color:var(--accent-2);
-      line-height:1.65;
-      font-weight:800;
-      word-break:break-word;
-      min-height:22px;
-    }
-
-    .middle{
-      display:grid;
-      grid-template-columns:1fr 188px;
-      gap:14px;
-      align-items:stretch;
-    }
-
-    .left-card,
+    /* 區 2：QR 區 */
     .qr-card{
+      padding:16px;
       border-radius:24px;
       background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,248,240,.95));
       border:1px solid rgba(160,108,58,.10);
       box-shadow:var(--shadow-soft);
-    }
-
-    .left-card{
-      padding:16px;
       display:flex;
       flex-direction:column;
-      gap:12px;
-    }
-
-    .left-title{
-      font-size:16px;
-      font-weight:900;
-      line-height:1.45;
-      margin:0;
-    }
-
-    .left-desc{
-      font-size:14px;
-      line-height:1.8;
-      color:var(--muted);
-      margin:0;
-    }
-
-    .tag-row{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-    }
-
-    .tag{
-      display:inline-flex;
       align-items:center;
-      min-height:34px;
-      padding:8px 12px;
-      border-radius:999px;
-      font-size:13px;
-      line-height:1.3;
-      font-weight:800;
-      color:#5b4b40;
-      background:#fff;
-      border:1px solid rgba(64,44,24,.08);
-      box-shadow:0 6px 16px rgba(93,62,34,.05);
-    }
-
-    .qr-card{
-      padding:12px;
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-    }
-
-    .qr-title{
-      font-size:12px;
-      font-weight:900;
-      color:var(--accent-2);
-      line-height:1.4;
-      text-align:center;
-      margin:0;
+      gap:10px;
     }
 
     .qr-box{
       position:relative;
-      width:148px;
-      height:148px;
-      border-radius:20px;
+      width:164px;
+      height:164px;
+      border-radius:22px;
       background:#fff;
       border:1px solid rgba(64,44,24,.10);
       box-shadow:0 10px 22px rgba(93,62,34,.09);
@@ -352,16 +287,16 @@
     }
 
     #qrcode{
-      width:136px;
-      height:136px;
+      width:150px;
+      height:150px;
       display:grid;
       place-items:center;
     }
 
     .qr-box canvas,
     .qr-box img{
-      width:136px !important;
-      height:136px !important;
+      width:150px !important;
+      height:150px !important;
       image-rendering:pixelated;
     }
 
@@ -369,8 +304,8 @@
       position:absolute;
       inset:50% auto auto 50%;
       transform:translate(-50%,-50%);
-      width:36px;
-      height:36px;
+      width:38px;
+      height:38px;
       border-radius:12px;
       background:#fff;
       border:1px solid rgba(64,44,24,.08);
@@ -387,40 +322,17 @@
     }
 
     .qr-tip{
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.5;
+      font-size:15px;
+      color:var(--accent-2);
+      line-height:1.6;
       text-align:center;
       margin:0;
-    }
-
-    .footer-card{
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:12px;
-      align-items:center;
-      padding:14px 16px;
-      border-radius:22px;
-      background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,248,240,.95));
-      border:1px solid rgba(160,108,58,.10);
-      box-shadow:var(--shadow-soft);
-    }
-
-    .footer-title{
-      font-size:15px;
       font-weight:900;
-      margin:0 0 4px;
-      line-height:1.4;
-    }
-
-    .footer-desc{
-      margin:0;
-      font-size:13px;
-      line-height:1.7;
-      color:var(--muted);
+      word-break:keep-all;
     }
 
     .footer-id{
+      margin-top:2px;
       white-space:nowrap;
       padding:10px 12px;
       border-radius:14px;
@@ -432,9 +344,10 @@
       font-weight:900;
     }
 
+    /* 區 3：按鈕區 */
     .action-panel{
-      margin-top:16px;
-      padding:16px;
+      margin-top:14px;
+      padding:14px;
     }
 
     .action-grid{
@@ -458,6 +371,8 @@
       justify-content:center;
       gap:8px;
       width:100%;
+      text-align:center;
+      line-height:1.4;
     }
 
     .btn:hover{ transform:translateY(-1px); }
@@ -532,29 +447,37 @@
 
     @media (max-width: 720px){
       .wrap{
-        width:min(100%, calc(100% - 16px));
-        padding:16px 0 24px;
+        width:min(100%, calc(100% - 14px));
+        padding:14px 0 22px;
       }
+
       .poster-wrap,
-      .action-panel{ padding:14px; }
-      .poster-paper{ padding:14px; border-radius:24px; }
-      .profile-card{
-        grid-template-columns:88px 1fr;
-        gap:12px;
+      .action-panel{
+        padding:12px;
+      }
+
+      .poster-paper{
         padding:14px;
+        border-radius:24px;
       }
+
       .avatar-wrap{
-        width:88px;
-        height:88px;
-        border-radius:22px;
+        width:100px;
+        height:100px;
+        border-radius:26px;
       }
-      .name{ font-size:25px; }
-      .unit{ font-size:14px; }
-      .title{ font-size:16px; }
-      .middle{ grid-template-columns:1fr; }
-      .footer-card{ grid-template-columns:1fr; }
-      .action-grid{ grid-template-columns:1fr; }
-      .btn{ width:100%; }
+
+      .name{ font-size:26px; }
+      .unit{ font-size:15px; }
+      .title{ font-size:17px; }
+
+      .action-grid{
+        grid-template-columns:1fr;
+      }
+
+      .btn{
+        width:100%;
+      }
     }
   </style>
 </head>
@@ -589,47 +512,19 @@
 
             <div class="profile-meta">
               <div id="name" class="name">載入中...</div>
-              <div id="unit" class="unit">請稍候</div>
-              <div id="title" class="title">正在整理你的名片資訊</div>
-              <div id="slogan" class="slogan"></div>
+              <div id="unit" class="unit">　</div>
+              <div id="title" class="title">　</div>
             </div>
           </div>
 
-          <div class="middle">
-            <div class="left-card">
-              <h3 class="left-title">這是一張可以直接分享的智慧名片</h3>
-              <div class="tag-row">
-                <div class="tag">一鍵開啟名片</div>
-                <div class="tag">手機掃碼直達</div>
-                <div class="tag">可下載名片海報</div>
-                <div class="tag">適合轉傳與收藏</div>
+          <div class="qr-card">
+            <div class="qr-box">
+              <div id="qrcode"></div>
+              <div id="qrCenter" class="qr-center">
+                <img id="qrCenterImg" alt="中心頭像" />
               </div>
-              <p class="left-desc">
-                建議先收藏這張交付卡；需要分享給朋友、客戶或合作夥伴時，
-                可直接傳送海報，或使用下方按鈕快速分享智慧名片連結。
-              </p>
             </div>
-
-            <div class="qr-card">
-              <h3 class="qr-title">掃描 QRCode<br>立即查看智慧名片</h3>
-              <div class="qr-box">
-                <div id="qrcode"></div>
-                <div id="qrCenter" class="qr-center">
-                  <img id="qrCenterImg" alt="中心頭像" />
-                </div>
-              </div>
-              <p id="qrTip" class="qr-tip">QR 產生中...</p>
-            </div>
-          </div>
-
-          <div class="footer-card">
-            <div>
-              <div class="footer-title">打開名片後，可直接查看完整內容與聯絡入口</div>
-              <p class="footer-desc">
-                這張交付卡專門用來下載海報、打開智慧名片、快速分享，
-                也可以進一步前往智慧名片館或洽詢名片訂製服務。
-              </p>
-            </div>
+            <p id="qrTip" class="qr-tip">掃描QRCode查閱智慧名片</p>
             <div id="footerId" class="footer-id">ID：--</div>
           </div>
         </div>
@@ -658,7 +553,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="./imageResolver.js?v=534"></script>
-  <script src="./poster.js?v=534"></script>
+  <script src="./imageResolver.js?v=5341"></script>
+  <script src="./poster.js?v=5341"></script>
 </body>
 </html>
