@@ -14,8 +14,8 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "522.0";
-  const DEFAULT_GAS = "";
+  const VERSION = "700.1";
+  const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const DEFAULT_TENANT = "angel";
   const PAGE_TOTAL = 5;
   const SUBMIT_LOCK_MS = 15000;
@@ -178,7 +178,8 @@ import {
     sig: (qs.get("sig") || "").trim(),
     invite: (qs.get("invite") || "").trim(),
     mode: (qs.get("mode") || "fill").trim(),
-    id: (qs.get("id") || "").trim(),
+    id: (qs.get("id") || "").trim(),          // 正式 id（更新模式）或送出成功後的 formal id
+    reserveId: "",                            // 新建模式 reserve 回傳的暫存 id
     token: "",
     submitting: false,
     submitLockedUntil: 0,
@@ -312,7 +313,10 @@ import {
     el.ver.textContent = `v${VERSION}`;
     el.tenantText.textContent = state.tenant;
     el.inviteText.textContent = state.invite || "-";
-    el.gas.value = (localStorage.getItem("HSC_GAS_URL") || DEFAULT_GAS || "").trim();
+
+    const savedGas = (localStorage.getItem("HSC_GAS_URL") || "").trim();
+    el.gas.value = savedGas || DEFAULT_GAS;
+    localStorage.setItem("HSC_GAS_URL", el.gas.value);
 
     normalizeMode_();
     updateHeaderUI_();
@@ -340,7 +344,7 @@ import {
 
   function updateHeaderUI_(){
     el.modeText.textContent = state.mode === "fill" ? "新建資料" : "更新資料";
-    el.idText.textContent = state.id || "-";
+    el.idText.textContent = state.id || state.reserveId || "-";
     el.dot.style.background = state.mode === "fill" ? "var(--warn)" : "var(--accent)";
   }
 
@@ -360,7 +364,9 @@ import {
     el.btnNext.addEventListener("click", onNextPage_);
 
     el.gas.addEventListener("change", ()=>{
-      localStorage.setItem("HSC_GAS_URL", (el.gas.value || "").trim());
+      const v = (el.gas.value || "").trim();
+      el.gas.value = v || DEFAULT_GAS;
+      localStorage.setItem("HSC_GAS_URL", el.gas.value);
     });
 
     fields.forEach(id=>{
@@ -804,7 +810,7 @@ import {
     hydrateImagesFromItem_(item);
 
     el.tenantText.textContent = state.tenant;
-    el.inviteText.textContent = state.invite || "-";
+    el.inviteText.textContent = state.invite || pickFirst_(item, ["invite_code", "invite"]) || "-";
     updateHeaderUI_();
     applyPlanLimits_();
     syncChipsUI_();
@@ -939,6 +945,12 @@ import {
     }
 
     if(pageIndex === 4){
+      if(state.mode === "fill"){
+        if(!state.invite && !state.sig){
+          if(!silent) warnStatus_("這個填單連結缺少 invite 或 sig，請使用正式開通連結進入。");
+          return false;
+        }
+      }
       if(state.mode === "update"){
         if(!state.sig){
           if(!silent) warnStatus_("更新模式缺少 sig，請重新使用更新連結進入。");
@@ -1003,8 +1015,8 @@ import {
   }
 
   function gasUrl_(){
-    const u = (el.gas.value || "").trim();
-    if(!u) throw new Error("請先填入 GAS /exec URL");
+    const u = (el.gas.value || "").trim() || DEFAULT_GAS;
+    if(!u) throw new Error("GAS /exec URL 未設定");
     return u;
   }
 
@@ -1073,9 +1085,7 @@ import {
       return;
     }
 
-    const finalOk = validatePage_(0, { silent: false })
-      && validatePage_(4, { silent: false });
-
+    const finalOk = validatePage_(0, { silent: false }) && validatePage_(4, { silent: false });
     if(!finalOk) return;
 
     const draftPayload = collectPayload_();
@@ -1109,6 +1119,13 @@ import {
         }
       }
 
+      if(state.mode === "fill"){
+        if(!state.invite && !state.sig){
+          warnStatus_("這個表單缺少 invite 或 sig，請使用正式填單連結。");
+          return;
+        }
+      }
+
       if(!state.authReady){
         warnStatus_("系統尚在準備中，請稍等一下再送出。");
         return;
@@ -1117,26 +1134,28 @@ import {
       showProgress_(10, "檢查資料中…");
 
       const payload = collectPayload_();
-      payload.invite = state.invite || "";
       payload.tenant = state.tenant;
+      payload.invite = state.invite || "";
 
       if(state.mode === "fill"){
         showProgress_(25, "建立保留資料中…");
         const rsv = await gasReserve_();
 
         if(!rsv || !rsv.ok){
-          throw new Error("reserve failed: " + JSON.stringify(rsv));
+          throw new Error(rsv?.error || "reserve failed");
         }
 
-        state.id = rsv.id || state.id;
-        state.token = rsv.token || state.token;
+        state.reserveId = safeText_(rsv.reserve_id || rsv.draft_id || rsv.id);
+        state.token = safeText_(rsv.token);
         updateHeaderUI_();
 
         showProgress_(40, "正在處理圖片…");
-        const uploadRes = await uploadAll_(state.id);
+        const uploadRes = await uploadAll_(state.reserveId);
         Object.assign(payload, uploadRes);
 
-        payload.id = state.id;
+        // 對齊 GAS v700.1
+        payload.reserve_id = state.reserveId;
+        payload.id = state.reserveId; // 向下相容保留
         payload.token = state.token;
         if(state.sig) payload.sig = state.sig;
         if(state.invite) payload.invite = state.invite;
@@ -1148,13 +1167,19 @@ import {
         showProgress_(100, "送出完成");
 
         if(created && created.ok){
+          const finalId = safeText_(created.formal_id || created.id);
+          state.id = finalId || state.id;
+          updateHeaderUI_();
           el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
+
           logStatus_(
-            `✅ 已完成\n名片 ID：${created.id || state.id}\n` +
+            `✅ 已完成\n` +
+            `正式名片 ID：${state.id || "未取得"}\n` +
+            `reserve_id：${state.reserveId || "-"}\n` +
             `invite：${state.invite || "無"}\n` +
             (created.duplicate ? "系統判定這筆資料已存在，沒有重複建立。\n" : "") +
-            "接下來可到後台查找名片。"
+            `成品連結：${location.origin}${location.pathname.replace(/form\.html.*/,"")}index.html?id=${encodeURIComponent(state.id)}`
           );
         }else{
           el.dot.style.background = "var(--bad)";
@@ -1178,9 +1203,7 @@ import {
         if(updated && updated.ok){
           el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
-          logStatus_(
-            `✅ 更新成功\n名片 ID：${state.id}\ninvite：${state.invite || "無"}`
-          );
+          logStatus_(`✅ 更新成功\n名片 ID：${state.id}\ninvite：${state.invite || "無"}`);
         }else{
           el.dot.style.background = "var(--bad)";
           logStatus_("更新完成，但回傳結果不是 ok。\n" + JSON.stringify(updated, null, 2));
@@ -1217,11 +1240,17 @@ import {
     state.lastSubmitFingerprint = "";
     state.submitLockedUntil = 0;
     state.page = 0;
+    if(state.mode === "fill"){
+      state.reserveId = "";
+      state.id = "";
+      state.token = "";
+    }
 
     renderUploads_();
     syncChipsUI_();
     updateSummary_();
     renderPage_();
+    updateHeaderUI_();
 
     hideProgress_();
     el.dot.style.background = "var(--warn)";
@@ -1291,8 +1320,9 @@ import {
     let done = 0;
     for(const task of tasks){
       const { slot, item } = task;
-      const mainPath = `hsc_cards/${state.tenant}/${cardId}/${slot.fileMain}`;
-      const fastPath = `hsc_cards/${state.tenant}/${cardId}/${slot.fileFast}`;
+      const safeCardId = cardId || state.id || state.reserveId || "draft";
+      const mainPath = `hsc_cards/${state.tenant}/${safeCardId}/${slot.fileMain}`;
+      const fastPath = `hsc_cards/${state.tenant}/${safeCardId}/${slot.fileFast}`;
 
       const { storage } = state._fb;
 
@@ -1513,13 +1543,7 @@ import {
 
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(
-      img,
-      x * scaleX,
-      y * scaleY,
-      iw * scaleX,
-      ih * scaleY
-    );
+    ctx.drawImage(img, x * scaleX, y * scaleY, iw * scaleX, ih * scaleY);
 
     return new Promise((resolve, reject)=>{
       canvas.toBlob((blob)=>{
@@ -1629,6 +1653,7 @@ import {
       invite: state.invite,
       mode: state.mode,
       id: state.id,
+      reserveId: state.reserveId,
       payload
     });
 
