@@ -1,19 +1,18 @@
 /* ==========================================
- * HSC Poster v702.4
+ * HSC Poster v703.4
  * COMPLETE OVERWRITE
  *
- * v702.4 重點：
- * 1) 只優化智慧排版，不改 UI / HTML / GAS
- * 2) 字級更穩定，避免忽大忽小
- * 3) 強化兩行平衡
- * 4) 加強避免最後一行孤字 / 兩字落單
- * 5) 下載前再次執行智慧排版
+ * v703.4 重點：
+ * 1) 對齊 poster.html v703.4 的 DOM 結構
+ * 2) 恢復頭像 / QRCode / 按鈕功能
+ * 3) 智慧排版：優先單行，放不下再兩行
+ * 4) 按鈕功能與下載海報恢復
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "702.4";
+  const VERSION = "703.4";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -120,7 +119,6 @@
     titleEl.textContent = title || " ";
 
     renderAvatar(item, name);
-
     runSmartLayoutSequence();
 
     if (!resizeBound) {
@@ -135,19 +133,24 @@
 
     requestAnimationFrame(() => {
       smartLayoutAll();
-      setTimeout(smartLayoutAll, 50);
-      setTimeout(smartLayoutAll, 120);
-      setTimeout(smartLayoutAll, 220);
+      setTimeout(smartLayoutAll, 60);
+      setTimeout(smartLayoutAll, 140);
+      setTimeout(smartLayoutAll, 260);
     });
   }
 
   async function renderAvatar(item, nameText) {
     const fallbackText = getFallbackText(nameText);
 
-    avatarFallbackEl.textContent = fallbackText;
-    avatarFallbackEl.style.display = "grid";
-    avatarEl.style.display = "none";
-    avatarEl.removeAttribute("src");
+    if (avatarFallbackEl) {
+      avatarFallbackEl.textContent = fallbackText;
+      avatarFallbackEl.style.display = "grid";
+    }
+
+    if (avatarEl) {
+      avatarEl.style.display = "none";
+      avatarEl.removeAttribute("src");
+    }
 
     let candidates = [];
 
@@ -172,13 +175,16 @@
 
     const loaded = await loadFirstAvailableImage(candidates);
 
-    if (!loaded) return;
+    if (!loaded || !avatarEl) return;
 
     avatarEl.crossOrigin = "anonymous";
     avatarEl.referrerPolicy = "no-referrer";
     avatarEl.src = loaded;
     avatarEl.style.display = "block";
-    avatarFallbackEl.style.display = "none";
+
+    if (avatarFallbackEl) {
+      avatarFallbackEl.style.display = "none";
+    }
   }
 
   async function loadFirstAvailableImage(candidates) {
@@ -207,59 +213,75 @@
   }
 
   async function renderQRCode(text) {
-    qrTipEl.textContent = "QR 產生中...";
-    qrWrapEl.innerHTML = "";
+    if (!qrWrapEl) return;
 
+    if (qrTipEl) {
+      qrTipEl.textContent = "QR 產生中...";
+    }
+
+    qrWrapEl.innerHTML = "";
     await wait(60);
 
     new QRCode(qrWrapEl, {
       text,
-      width: 190,
-      height: 190,
+      width: 200,
+      height: 200,
       correctLevel: QRCode.CorrectLevel.H
     });
 
-    qrTipEl.textContent = "掃描 QRCode 打開智慧名片";
+    if (qrTipEl) {
+      qrTipEl.textContent = "掃描 QRCode 打開智慧名片";
+    }
   }
 
   function bindActions() {
-    btnDownload.onclick = async () => {
-      try {
-        btnDownload.disabled = true;
-        setStatus("loading", "正在產生海報，請稍候...");
-        await downloadPoster();
-        setStatus("success", "海報已下載完成。");
-      } catch (err) {
-        console.error("[downloadPoster error]", err);
-        setStatus("error", err && err.message ? err.message : "海報下載失敗。");
-      } finally {
-        btnDownload.disabled = false;
-      }
-    };
+    if (btnDownload) {
+      btnDownload.onclick = async () => {
+        try {
+          btnDownload.disabled = true;
+          setStatus("loading", "正在產生海報，請稍候...");
+          await downloadPoster();
+          setStatus("success", "海報已下載完成。");
+        } catch (err) {
+          console.error("[downloadPoster error]", err);
+          setStatus("error", err && err.message ? err.message : "海報下載失敗。");
+        } finally {
+          btnDownload.disabled = false;
+        }
+      };
+    }
 
-    btnOpenCard.onclick = () => {
-      if (!cardURL) return;
-      window.open(cardURL, "_blank", "noopener");
-    };
+    if (btnOpenCard) {
+      btnOpenCard.onclick = () => {
+        if (!cardURL) return;
+        window.open(cardURL, "_blank", "noopener");
+      };
+    }
 
-    btnCopyCard.onclick = async () => {
-      if (!cardURL) return;
-      const ok = await copyText(cardURL);
-      setStatus(ok ? "success" : "error", ok ? "智慧名片連結已複製。" : "複製失敗，請手動複製網址。");
-    };
+    if (btnCopyCard) {
+      btnCopyCard.onclick = async () => {
+        if (!cardURL) return;
+        const ok = await copyText(cardURL);
+        setStatus(ok ? "success" : "error", ok ? "智慧名片連結已複製。" : "複製失敗，請手動複製網址。");
+      };
+    }
 
-    btnRecommend.onclick = async () => {
-      if (!recommendURL) return;
-      const ok = await copyText(recommendURL);
-      setStatus(
-        ok ? "success" : "error",
-        ok ? "推薦智慧名片連結已複製。" : "複製失敗，請手動複製網址。"
-      );
-    };
+    if (btnRecommend) {
+      btnRecommend.onclick = async () => {
+        if (!recommendURL) return;
+        const ok = await copyText(recommendURL);
+        setStatus(
+          ok ? "success" : "error",
+          ok ? "推薦智慧名片連結已複製。" : "複製失敗，請手動複製網址。"
+        );
+      };
+    }
 
-    btnConsult.onclick = () => {
-      window.open(CONSULT_URL, "_blank", "noopener");
-    };
+    if (btnConsult) {
+      btnConsult.onclick = () => {
+        window.open(CONSULT_URL, "_blank", "noopener");
+      };
+    }
   }
 
   async function downloadPoster() {
@@ -267,16 +289,14 @@
       throw new Error("找不到海報區塊。");
     }
 
-    await waitForImages(posterEl);
+    await waitForImages(document.body);
     await wait(120);
 
     runSmartLayoutSequence();
-    await wait(120);
-    smartLayoutAll();
-    await wait(80);
+    await wait(100);
     smartLayoutAll();
 
-    const canvas = await html2canvas(posterEl, {
+    const canvas = await html2canvas(document.body, {
       useCORS: true,
       allowTaint: true,
       backgroundColor: null,
@@ -294,39 +314,16 @@
   }
 
   function smartLayoutAll() {
-    setupTextBlock(nameEl);
-    setupTextBlock(unitEl);
-    setupTextBlock(titleEl);
+    resetBlock(nameEl);
+    resetBlock(unitEl);
+    resetBlock(titleEl);
 
-    applySmartLayout(nameEl, {
-      maxFont: 36,
-      minFont: 20,
-      maxLines: 2,
-      preferTwoLines: true,
-      shrinkStep: 1,
-      role: "name"
-    });
-
-    applySmartLayout(unitEl, {
-      maxFont: 21,
-      minFont: 14,
-      maxLines: 2,
-      preferTwoLines: true,
-      shrinkStep: 1,
-      role: "unit"
-    });
-
-    applySmartLayout(titleEl, {
-      maxFont: 24,
-      minFont: 15,
-      maxLines: 2,
-      preferTwoLines: true,
-      shrinkStep: 1,
-      role: "title"
-    });
+    fitSmart(nameEl, { maxFont: 32, minFont: 18, maxLines: 2, preferOneLine: true, weight: 2.2 });
+    fitSmart(unitEl, { maxFont: 18, minFont: 13, maxLines: 2, preferOneLine: true, weight: 1.4 });
+    fitSmart(titleEl, { maxFont: 18, minFont: 13, maxLines: 2, preferOneLine: true, weight: 1.2 });
   }
 
-  function setupTextBlock(el) {
+  function resetBlock(el) {
     if (!el) return;
     el.style.wordBreak = "keep-all";
     el.style.overflowWrap = "break-word";
@@ -334,133 +331,87 @@
     el.style.textWrap = "balance";
   }
 
-  function applySmartLayout(el, options) {
+  function fitSmart(el, options) {
     if (!el) return;
 
     const text = safeText(el.textContent, "");
-    if (!text.trim()) return;
+    if (!text) return;
 
     const maxFont = options.maxFont;
     const minFont = options.minFont;
     const maxLines = options.maxLines || 2;
-    const shrinkStep = options.shrinkStep || 1;
 
-    let best = {
-      fontSize: maxFont,
-      score: Number.POSITIVE_INFINITY,
-      lines: [text]
-    };
+    let best = null;
 
-    for (let size = maxFont; size >= minFont; size -= shrinkStep) {
+    for (let size = maxFont; size >= minFont; size -= 1) {
       el.style.fontSize = `${size}px`;
 
-      if (isOverflowing(el, maxLines)) {
-        continue;
-      }
+      if (isOverflowing(el, maxLines)) continue;
 
       const lines = estimateWrappedLines(el, text);
-      if (!lines.length || lines.length > maxLines) {
-        continue;
-      }
+      if (!lines.length || lines.length > maxLines) continue;
 
-      const score = scoreLayout(lines, size, maxFont, minFont, options);
+      const score = layoutScore(lines, size, maxFont, options);
 
-      if (
-        score < best.score ||
-        (score === best.score && size > best.fontSize)
-      ) {
-        best = {
-          fontSize: size,
-          score,
-          lines
-        };
+      if (!best || score < best.score || (score === best.score && size > best.size)) {
+        best = { size, score, lines };
       }
     }
 
-    el.style.fontSize = `${best.fontSize}px`;
-
-    let guard = 0;
-    while (guard < 6) {
-      guard += 1;
-
-      const lines = estimateWrappedLines(el, text);
-      const last = lines[lines.length - 1] || "";
-
-      if (lines.length <= maxLines && !isVeryBadLastLine(last)) {
-        break;
-      }
-
-      const current = parseFloat(window.getComputedStyle(el).fontSize);
-      if (current <= minFont) break;
-
-      el.style.fontSize = `${current - 1}px`;
+    if (!best) {
+      el.style.fontSize = `${minFont}px`;
+      return;
     }
 
-    finalOverflowGuard(el, minFont, maxLines);
+    el.style.fontSize = `${best.size}px`;
+
+    let safeGuard = 0;
+    while (safeGuard < 6 && isOverflowing(el, maxLines)) {
+      safeGuard += 1;
+      const cur = parseFloat(window.getComputedStyle(el).fontSize);
+      if (cur <= minFont) break;
+      el.style.fontSize = `${cur - 1}px`;
+    }
   }
 
-  function scoreLayout(lines, fontSize, maxFont, minFont, options) {
-    const lengths = lines.map((s) => visualLength(s));
+  function layoutScore(lines, fontSize, maxFont, options) {
+    const lens = lines.map((s) => visualLength(s));
     const lineCount = lines.length;
-    const maxLen = Math.max(...lengths);
-    const minLen = Math.min(...lengths);
-    const lastLen = lengths[lengths.length - 1] || 0;
-    const firstLen = lengths[0] || 0;
-
+    const maxLen = Math.max(...lens);
+    const minLen = Math.min(...lens);
+    const lastLen = lens[lens.length - 1] || 0;
+    const shrink = maxFont - fontSize;
     let score = 0;
 
-    // 行數偏好：能單行就單行，但如果兩行更平衡也可接受
-    if (lineCount === 1) {
-      score += 0;
-    } else if (lineCount === 2) {
-      score += 6;
+    if (options.preferOneLine) {
+      if (lineCount === 1) score += 0;
+      else if (lineCount === 2) score += 12;
+      else score += 500;
     } else {
-      score += 200;
+      if (lineCount === 1) score += 4;
+      else if (lineCount === 2) score += 0;
+      else score += 500;
     }
 
-    // 兩行長度越接近越好
     score += Math.abs(maxLen - minLen) * 5;
 
-    // 最後一行太短重罰
-    if (lastLen <= 1) score += 300;
-    else if (lastLen <= 2) score += 120;
-    else if (lastLen <= 3) score += 36;
+    if (lastLen <= 1) score += 260;
+    else if (lastLen <= 2) score += 90;
 
-    // 第一行太長、第二行太短也罰
-    if (lineCount === 2 && firstLen >= lastLen * 2.4) {
-      score += 80;
-    }
-
-    // 名稱/職稱盡量保留大字感
-    const shrink = maxFont - fontSize;
-    if (options.role === "name") {
-      score += shrink * 1.8;
-    } else if (options.role === "title") {
-      score += shrink * 1.2;
-    } else {
-      score += shrink * 1.0;
-    }
-
-    // 太接近最小字級，略罰
-    if (fontSize <= minFont + 1) score += 18;
-    if (fontSize <= minFont) score += 26;
+    score += shrink * (options.weight || 1);
 
     return score;
   }
 
-  function finalOverflowGuard(el, minFont, maxLines) {
-    if (!el) return;
-    let size = parseFloat(window.getComputedStyle(el).fontSize);
-
-    while (size > minFont && isOverflowing(el, maxLines)) {
-      size -= 1;
-      el.style.fontSize = `${size}px`;
-    }
-  }
-
   function isOverflowing(el, maxLines) {
     const style = window.getComputedStyle(el);
-    const lineHeight = parseFloat(style.lineHeight);
+    let lineHeight = parseFloat(style.lineHeight);
+
+    if (!lineHeight || Number.isNaN(lineHeight)) {
+      const fontSize = parseFloat(style.fontSize) || 16;
+      lineHeight = fontSize * 1.3;
+    }
+
     const maxHeight = lineHeight * maxLines + 1;
     return el.scrollHeight > maxHeight || el.scrollWidth > el.clientWidth + 1;
   }
@@ -519,21 +470,12 @@
     let total = 0;
 
     for (const ch of chars) {
-      if (/\s/.test(ch)) {
-        total += 0.35;
-      } else if (/[A-Za-z0-9]/.test(ch)) {
-        total += 0.62;
-      } else {
-        total += 1;
-      }
+      if (/\s/.test(ch)) total += 0.35;
+      else if (/[A-Za-z0-9]/.test(ch)) total += 0.62;
+      else total += 1;
     }
 
     return total;
-  }
-
-  function isVeryBadLastLine(text) {
-    const len = visualLength(text || "");
-    return len <= 1.2;
   }
 
   async function copyText(text) {
