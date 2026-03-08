@@ -1,17 +1,19 @@
 /* ==========================================
- * HSC Poster v702.3
+ * HSC Poster v702.4
  * COMPLETE OVERWRITE
  *
- * v702.3 重點：
- * 1) 維持 v702.2 智慧排版
- * 2) 整體字級下修一階，畫面更鬆、更耐看
- * 3) 保留避免中文孤字落單能力
+ * v702.4 重點：
+ * 1) 只優化智慧排版，不改 UI / HTML / GAS
+ * 2) 字級更穩定，避免忽大忽小
+ * 3) 強化兩行平衡
+ * 4) 加強避免最後一行孤字 / 兩字落單
+ * 5) 下載前再次執行智慧排版
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "702.3";
+  const VERSION = "702.4";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -130,11 +132,12 @@
 
   function runSmartLayoutSequence() {
     smartLayoutAll();
+
     requestAnimationFrame(() => {
       smartLayoutAll();
-      setTimeout(smartLayoutAll, 60);
-      setTimeout(smartLayoutAll, 140);
-      setTimeout(smartLayoutAll, 260);
+      setTimeout(smartLayoutAll, 50);
+      setTimeout(smartLayoutAll, 120);
+      setTimeout(smartLayoutAll, 220);
     });
   }
 
@@ -266,6 +269,9 @@
 
     await waitForImages(posterEl);
     await wait(120);
+
+    runSmartLayoutSequence();
+    await wait(120);
     smartLayoutAll();
     await wait(80);
     smartLayoutAll();
@@ -288,32 +294,39 @@
   }
 
   function smartLayoutAll() {
-    resetTextStyles(nameEl);
-    resetTextStyles(unitEl);
-    resetTextStyles(titleEl);
+    setupTextBlock(nameEl);
+    setupTextBlock(unitEl);
+    setupTextBlock(titleEl);
 
-    nameEl.style.fontSize = "";
-    unitEl.style.fontSize = "";
-    titleEl.style.fontSize = "";
+    applySmartLayout(nameEl, {
+      maxFont: 36,
+      minFont: 20,
+      maxLines: 2,
+      preferTwoLines: true,
+      shrinkStep: 1,
+      role: "name"
+    });
 
-    fitTextBlock(nameEl, 36, 20, 2);
-    fitTextBlock(unitEl, 21, 14, 2);
-    fitTextBlock(titleEl, 24, 15, 2);
+    applySmartLayout(unitEl, {
+      maxFont: 21,
+      minFont: 14,
+      maxLines: 2,
+      preferTwoLines: true,
+      shrinkStep: 1,
+      role: "unit"
+    });
 
-    improveLineBalance(nameEl, 20);
-    improveLineBalance(unitEl, 14);
-    improveLineBalance(titleEl, 15);
-
-    lastLineRescue(nameEl, 20);
-    lastLineRescue(unitEl, 14);
-    lastLineRescue(titleEl, 15);
-
-    finalOverflowGuard(nameEl, 20, 2);
-    finalOverflowGuard(unitEl, 14, 2);
-    finalOverflowGuard(titleEl, 15, 2);
+    applySmartLayout(titleEl, {
+      maxFont: 24,
+      minFont: 15,
+      maxLines: 2,
+      preferTwoLines: true,
+      shrinkStep: 1,
+      role: "title"
+    });
   }
 
-  function resetTextStyles(el) {
+  function setupTextBlock(el) {
     if (!el) return;
     el.style.wordBreak = "keep-all";
     el.style.overflowWrap = "break-word";
@@ -321,63 +334,118 @@
     el.style.textWrap = "balance";
   }
 
-  function fitTextBlock(el, maxFont, minFont, maxLines) {
+  function applySmartLayout(el, options) {
     if (!el) return;
 
-    let size = maxFont;
-    el.style.fontSize = `${size}px`;
-
-    while (size > minFont && isOverflowing(el, maxLines)) {
-      size -= 1;
-      el.style.fontSize = `${size}px`;
-    }
-  }
-
-  function improveLineBalance(el, minFont) {
-    if (!el) return;
     const text = safeText(el.textContent, "");
-    if (!text) return;
+    if (!text.trim()) return;
 
-    let current = parseFloat(window.getComputedStyle(el).fontSize);
-    let bestSize = current;
-    let bestScore = scoreLines(estimateWrappedLines(el, text));
+    const maxFont = options.maxFont;
+    const minFont = options.minFont;
+    const maxLines = options.maxLines || 2;
+    const shrinkStep = options.shrinkStep || 1;
 
-    while (current > minFont) {
-      current -= 1;
-      el.style.fontSize = `${current}px`;
+    let best = {
+      fontSize: maxFont,
+      score: Number.POSITIVE_INFINITY,
+      lines: [text]
+    };
 
-      const lines = estimateWrappedLines(el, text);
-      const newScore = scoreLines(lines);
+    for (let size = maxFont; size >= minFont; size -= shrinkStep) {
+      el.style.fontSize = `${size}px`;
 
-      if (newScore < bestScore) {
-        bestScore = newScore;
-        bestSize = current;
+      if (isOverflowing(el, maxLines)) {
+        continue;
       }
 
-      if (lines.length > 2) break;
+      const lines = estimateWrappedLines(el, text);
+      if (!lines.length || lines.length > maxLines) {
+        continue;
+      }
+
+      const score = scoreLayout(lines, size, maxFont, minFont, options);
+
+      if (
+        score < best.score ||
+        (score === best.score && size > best.fontSize)
+      ) {
+        best = {
+          fontSize: size,
+          score,
+          lines
+        };
+      }
     }
 
-    el.style.fontSize = `${bestSize}px`;
+    el.style.fontSize = `${best.fontSize}px`;
+
+    let guard = 0;
+    while (guard < 6) {
+      guard += 1;
+
+      const lines = estimateWrappedLines(el, text);
+      const last = lines[lines.length - 1] || "";
+
+      if (lines.length <= maxLines && !isVeryBadLastLine(last)) {
+        break;
+      }
+
+      const current = parseFloat(window.getComputedStyle(el).fontSize);
+      if (current <= minFont) break;
+
+      el.style.fontSize = `${current - 1}px`;
+    }
+
+    finalOverflowGuard(el, minFont, maxLines);
   }
 
-  function lastLineRescue(el, minFont) {
-    if (!el) return;
-    const text = safeText(el.textContent, "");
-    if (!text) return;
+  function scoreLayout(lines, fontSize, maxFont, minFont, options) {
+    const lengths = lines.map((s) => visualLength(s));
+    const lineCount = lines.length;
+    const maxLen = Math.max(...lengths);
+    const minLen = Math.min(...lengths);
+    const lastLen = lengths[lengths.length - 1] || 0;
+    const firstLen = lengths[0] || 0;
 
-    let lines = estimateWrappedLines(el, text);
-    if (lines.length < 2) return;
+    let score = 0;
 
-    let last = lines[lines.length - 1] || "";
-    let size = parseFloat(window.getComputedStyle(el).fontSize);
-
-    while (size > minFont && isBadLastLine(last)) {
-      size -= 1;
-      el.style.fontSize = `${size}px`;
-      lines = estimateWrappedLines(el, text);
-      last = lines[lines.length - 1] || "";
-      if (!isBadLastLine(last)) break;
+    // 行數偏好：能單行就單行，但如果兩行更平衡也可接受
+    if (lineCount === 1) {
+      score += 0;
+    } else if (lineCount === 2) {
+      score += 6;
+    } else {
+      score += 200;
     }
+
+    // 兩行長度越接近越好
+    score += Math.abs(maxLen - minLen) * 5;
+
+    // 最後一行太短重罰
+    if (lastLen <= 1) score += 300;
+    else if (lastLen <= 2) score += 120;
+    else if (lastLen <= 3) score += 36;
+
+    // 第一行太長、第二行太短也罰
+    if (lineCount === 2 && firstLen >= lastLen * 2.4) {
+      score += 80;
+    }
+
+    // 名稱/職稱盡量保留大字感
+    const shrink = maxFont - fontSize;
+    if (options.role === "name") {
+      score += shrink * 1.8;
+    } else if (options.role === "title") {
+      score += shrink * 1.2;
+    } else {
+      score += shrink * 1.0;
+    }
+
+    // 太接近最小字級，略罰
+    if (fontSize <= minFont + 1) score += 18;
+    if (fontSize <= minFont) score += 26;
+
+    return score;
   }
 
   function finalOverflowGuard(el, minFont, maxLines) {
@@ -446,27 +514,26 @@
     return lines;
   }
 
-  function scoreLines(lines) {
-    if (!lines || !lines.length) return 9999;
-    if (lines.length === 1) return 0;
+  function visualLength(text) {
+    const chars = Array.from(text || "");
+    let total = 0;
 
-    const lengths = lines.map((s) => Array.from(s).length);
-    const max = Math.max(...lengths);
-    const min = Math.min(...lengths);
-    const last = lengths[lengths.length - 1];
+    for (const ch of chars) {
+      if (/\s/.test(ch)) {
+        total += 0.35;
+      } else if (/[A-Za-z0-9]/.test(ch)) {
+        total += 0.62;
+      } else {
+        total += 1;
+      }
+    }
 
-    let score = max - min;
-
-    if (last === 1) score += 100;
-    else if (last === 2) score += 24;
-    else if (last === 3) score += 8;
-
-    return score;
+    return total;
   }
 
-  function isBadLastLine(text) {
-    const len = Array.from(text || "").length;
-    return len <= 1;
+  function isVeryBadLastLine(text) {
+    const len = visualLength(text || "");
+    return len <= 1.2;
   }
 
   async function copyText(text) {
