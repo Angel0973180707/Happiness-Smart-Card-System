@@ -1,5 +1,5 @@
 /* =========================================
- * HSC Service Worker v700.1
+ * HSC Service Worker v701.1
  * COMPLETE OVERWRITE
  *
  * Goal:
