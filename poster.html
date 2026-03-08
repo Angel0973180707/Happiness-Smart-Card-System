@@ -3,23 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v701.1</title>
+  <title>智慧名片交付卡 v702</title>
   <meta name="theme-color" content="#f7f1ea" />
 
   <style>
     :root{
       --bg:#f7f1ea;
-      --card:#fffaf5;
+      --paper:#fffaf5;
+      --card:#fffdf9;
       --ink:#2d241d;
-      --muted:#7d7065;
-      --line:rgba(75,52,31,.10);
-      --accent:#be7d47;
-      --accent-2:#9a6030;
-      --gold:#d69a5b;
-      --shadow:0 18px 48px rgba(91,61,33,.12);
+      --muted:#7b6f64;
+      --line:rgba(92,68,45,.10);
+      --accent:#bb7b47;
+      --accent-2:#995f32;
+      --accent-3:#e8c6a3;
+      --green:#17b655;
+      --green-2:#0da94c;
+      --shadow:0 20px 55px rgba(91,61,33,.12);
       --shadow-soft:0 10px 28px rgba(91,61,33,.08);
       --radius-xl:30px;
-      --radius-lg:22px;
+      --radius-lg:24px;
       --radius-md:18px;
       --max:760px;
     }
@@ -27,13 +30,13 @@
     *{ box-sizing:border-box; }
     html,body{ margin:0; padding:0; }
     body{
+      min-height:100vh;
       font-family:system-ui,-apple-system,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
       color:var(--ink);
-      min-height:100vh;
       background:
-        radial-gradient(900px 540px at 0% 0%, rgba(255,224,191,.36), transparent 54%),
-        radial-gradient(900px 540px at 100% 0%, rgba(250,235,219,.72), transparent 54%),
-        linear-gradient(180deg,#fdfaf6, var(--bg));
+        radial-gradient(900px 560px at 0% 0%, rgba(255,227,196,.40), transparent 54%),
+        radial-gradient(860px 520px at 100% 0%, rgba(246,234,220,.84), transparent 56%),
+        linear-gradient(180deg,#fdfbf8 0%, #f7f1ea 100%);
     }
 
     img{ display:block; max-width:100%; }
@@ -44,34 +47,37 @@
       padding:18px 0 28px;
     }
 
-    .top{
-      text-align:center;
+    .brand-head{
       margin-bottom:14px;
+      text-align:center;
     }
 
-    .brand{
+    .brand-chip{
       display:inline-flex;
       align-items:center;
       gap:10px;
-      padding:10px 14px;
+      padding:12px 16px;
       border-radius:999px;
-      background:rgba(255,255,255,.72);
-      border:1px solid rgba(75,52,31,.08);
+      background:rgba(255,255,255,.82);
+      border:1px solid rgba(92,68,45,.08);
       box-shadow:var(--shadow-soft);
+    }
+
+    .brand-dot{
+      width:12px;
+      height:12px;
+      border-radius:999px;
+      background:linear-gradient(135deg,#d89a5b,#f3d7b8);
+      box-shadow:0 0 0 6px rgba(216,154,91,.12);
+      flex:0 0 auto;
+    }
+
+    .brand-chip-text{
       font-size:14px;
       font-weight:900;
       color:var(--accent-2);
-    }
-
-    .brand-mark{
-      width:34px;
-      height:34px;
-      border-radius:12px;
-      display:grid;
-      place-items:center;
-      background:linear-gradient(135deg,#efc18c,#fff2df 62%,#d78d48);
-      font-size:18px;
-      box-shadow:var(--shadow-soft);
+      letter-spacing:.02em;
+      white-space:nowrap;
     }
 
     .panel{
@@ -90,13 +96,13 @@
     .poster-paper{
       position:relative;
       overflow:hidden;
-      border-radius:30px;
-      padding:20px;
+      border-radius:28px;
+      padding:22px;
       background:
-        radial-gradient(110% 110% at 0% 0%, rgba(255,255,255,.95), rgba(255,250,244,.96) 46%, rgba(252,243,232,.98) 100%);
+        radial-gradient(100% 100% at 0% 0%, rgba(255,255,255,.96), rgba(255,251,246,.96) 48%, rgba(251,243,233,.98) 100%);
       border:1px solid rgba(160,108,58,.10);
       box-shadow:
-        0 24px 60px rgba(93,62,34,.14),
+        0 24px 60px rgba(93,62,34,.12),
         inset 0 1px 0 rgba(255,255,255,.92);
       isolation:isolate;
     }
@@ -104,24 +110,25 @@
     .poster-paper::before{
       content:"";
       position:absolute;
-      inset:-26% auto auto -12%;
-      width:70%;
-      height:48%;
-      background:radial-gradient(circle, rgba(255,222,186,.42), transparent 64%);
-      z-index:0;
+      left:-14%;
+      top:-16%;
+      width:62%;
+      height:42%;
+      background:radial-gradient(circle, rgba(255,225,191,.44), transparent 66%);
       pointer-events:none;
+      z-index:0;
     }
 
     .poster-paper::after{
       content:"";
       position:absolute;
-      right:-8%;
+      right:-10%;
       bottom:-12%;
-      width:48%;
-      height:34%;
-      background:radial-gradient(circle, rgba(210,155,102,.18), transparent 66%);
-      z-index:0;
+      width:42%;
+      height:30%;
+      background:radial-gradient(circle, rgba(210,155,102,.18), transparent 68%);
       pointer-events:none;
+      z-index:0;
     }
 
     .poster-inner{
@@ -132,55 +139,60 @@
       gap:18px;
     }
 
-    .mini-top{
+    .poster-top{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:12px;
     }
 
-    .mini-left{
-      display:flex;
-      align-items:center;
-      gap:10px;
+    .poster-brand{
       min-width:0;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
     }
 
-    .mini-mark{
-      width:42px;
-      height:42px;
-      border-radius:14px;
-      display:grid;
-      place-items:center;
-      background:linear-gradient(135deg,#efc18c,#fff2df 62%,#d78d48);
-      font-size:18px;
-      box-shadow:var(--shadow-soft);
-      flex:0 0 auto;
-    }
-
-    .mini-text{ min-width:0; }
-    .mini-title{
-      font-size:16px;
-      font-weight:900;
-      line-height:1.2;
-    }
-    .mini-sub{
-      margin-top:3px;
+    .poster-brand-kicker{
       font-size:12px;
-      color:var(--muted);
-      line-height:1.4;
+      color:var(--accent-2);
+      font-weight:900;
+      letter-spacing:.12em;
     }
 
-    .badge{
+    .poster-brand-title{
+      font-size:clamp(22px,4.7vw,30px);
+      line-height:1.16;
+      font-weight:900;
+      color:var(--ink);
       white-space:nowrap;
+      letter-spacing:.01em;
+    }
+
+    .poster-brand-sub{
+      font-size:13px;
+      line-height:1.55;
+      color:var(--muted);
+      font-weight:700;
+    }
+
+    .poster-tag{
+      flex:0 0 auto;
       padding:8px 12px;
       border-radius:999px;
-      background:rgba(255,255,255,.9);
+      background:rgba(255,255,255,.90);
       border:1px solid rgba(160,108,58,.12);
       box-shadow:var(--shadow-soft);
       font-size:12px;
       font-weight:900;
       color:var(--accent-2);
+      white-space:nowrap;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:minmax(0, 1fr);
+      gap:16px;
     }
 
     .hero-card{
@@ -189,7 +201,7 @@
       align-items:center;
       text-align:center;
       gap:16px;
-      padding:24px 18px 20px;
+      padding:24px 20px 18px;
       border-radius:26px;
       background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,247,238,.97));
       border:1px solid rgba(160,108,58,.10);
@@ -197,9 +209,9 @@
     }
 
     .avatar-wrap{
-      width:142px;
-      height:142px;
-      border-radius:38px;
+      width:148px;
+      height:148px;
+      border-radius:40px;
       overflow:hidden;
       background:linear-gradient(135deg,#f2d3b3,#fbf3e9);
       border:1px solid rgba(160,108,58,.12);
@@ -235,7 +247,7 @@
     }
 
     .name{
-      font-size:42px;
+      font-size:44px;
       line-height:1.12;
       font-weight:900;
       letter-spacing:.01em;
@@ -245,85 +257,86 @@
 
     .unit{
       font-size:24px;
-      color:var(--muted);
       line-height:1.45;
       font-weight:800;
+      color:var(--muted);
       word-break:keep-all;
       overflow-wrap:anywhere;
     }
 
     .title{
       font-size:28px;
-      color:#534338;
       line-height:1.45;
       font-weight:900;
+      color:#534338;
       word-break:keep-all;
       overflow-wrap:anywhere;
     }
 
     .qr-card{
-      padding:18px 16px 16px;
-      border-radius:24px;
-      background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,248,240,.95));
-      border:1px solid rgba(160,108,58,.10);
-      box-shadow:var(--shadow-soft);
       display:flex;
       flex-direction:column;
       align-items:center;
-      gap:12px;
+      gap:14px;
+      padding:20px 16px 16px;
+      border-radius:26px;
+      background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,249,242,.96));
+      border:1px solid rgba(160,108,58,.10);
+      box-shadow:var(--shadow-soft);
     }
 
     .qr-box{
       position:relative;
-      width:170px;
-      height:170px;
-      border-radius:22px;
+      width:210px;
+      height:210px;
+      border-radius:24px;
       background:#fff;
       border:1px solid rgba(64,44,24,.10);
-      box-shadow:0 10px 22px rgba(93,62,34,.09);
+      box-shadow:0 12px 26px rgba(93,62,34,.10);
       display:grid;
       place-items:center;
       overflow:hidden;
     }
 
     #qrcode{
-      width:154px;
-      height:154px;
+      width:190px;
+      height:190px;
       display:grid;
       place-items:center;
     }
 
     .qr-box canvas,
     .qr-box img{
-      width:154px !important;
-      height:154px !important;
+      width:190px !important;
+      height:190px !important;
       image-rendering:pixelated;
     }
 
     .qr-badge{
       position:absolute;
-      inset:50% auto auto 50%;
+      left:50%;
+      top:50%;
       transform:translate(-50%,-50%);
-      width:44px;
-      height:44px;
+      width:52px;
+      height:52px;
       border-radius:999px;
       background:linear-gradient(135deg,#efc18c,#fff2df 62%,#d78d48);
-      border:3px solid #fff;
+      border:4px solid #fff;
       box-shadow:0 8px 18px rgba(93,62,34,.18);
       display:grid;
       place-items:center;
       z-index:2;
-      font-size:20px;
+      font-size:22px;
       line-height:1;
     }
 
     .qr-tip{
-      font-size:16px;
-      color:var(--accent-2);
-      line-height:1.6;
-      text-align:center;
       margin:0;
+      font-size:16px;
+      line-height:1.7;
       font-weight:900;
+      color:var(--accent-2);
+      text-align:center;
       word-break:keep-all;
     }
 
@@ -334,7 +347,7 @@
 
     .action-grid{
       display:grid;
-      grid-template-columns:repeat(2,1fr);
+      grid-template-columns:repeat(2, minmax(0,1fr));
       gap:10px;
     }
 
@@ -343,18 +356,18 @@
       border:none;
       cursor:pointer;
       border-radius:16px;
+      min-height:54px;
+      width:100%;
       padding:14px 16px;
-      min-height:52px;
-      font-size:15px;
-      font-weight:900;
-      transition:transform .16s ease, box-shadow .16s ease, opacity .16s ease, background .16s ease;
       display:inline-flex;
       align-items:center;
       justify-content:center;
       gap:8px;
-      width:100%;
       text-align:center;
-      line-height:1.4;
+      font-size:15px;
+      font-weight:900;
+      line-height:1.45;
+      transition:transform .16s ease, box-shadow .16s ease, opacity .16s ease, background .16s ease;
     }
 
     .btn:hover{ transform:translateY(-1px); }
@@ -425,6 +438,7 @@
       background:#c98749;
       animation:pop 1s infinite ease-in-out;
     }
+
     .dot:nth-child(2){ animation-delay:.15s; }
     .dot:nth-child(3){ animation-delay:.3s; }
 
@@ -445,72 +459,93 @@
       }
 
       .poster-paper{
-        padding:14px;
+        padding:16px;
         border-radius:24px;
       }
 
-      .avatar-wrap{
-        width:122px;
-        height:122px;
-        border-radius:32px;
+      .poster-top{
+        flex-direction:column;
+        align-items:flex-start;
       }
 
-      .name{ font-size:34px; }
+      .poster-brand-title{
+        white-space:normal;
+      }
+
+      .avatar-wrap{
+        width:126px;
+        height:126px;
+        border-radius:34px;
+      }
+
+      .name{ font-size:35px; }
       .unit{ font-size:20px; }
       .title{ font-size:23px; }
 
-      .action-grid{
-        grid-template-columns:1fr;
+      .qr-box{
+        width:196px;
+        height:196px;
       }
 
-      .btn{
-        width:100%;
+      #qrcode{
+        width:176px;
+        height:176px;
+      }
+
+      .qr-box canvas,
+      .qr-box img{
+        width:176px !important;
+        height:176px !important;
+      }
+
+      .action-grid{
+        grid-template-columns:1fr;
       }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
-      <div class="brand">
-        <div class="brand-mark">💳</div>
-        <span>智慧名片交付卡</span>
+    <div class="brand-head">
+      <div class="brand-chip">
+        <div class="brand-dot"></div>
+        <div class="brand-chip-text">智慧名片交付卡</div>
       </div>
     </div>
 
     <section class="panel poster-wrap">
       <div id="poster" class="poster-paper">
         <div class="poster-inner">
-          <div class="mini-top">
-            <div class="mini-left">
-              <div class="mini-mark">✨</div>
-              <div class="mini-text">
-                <div class="mini-title">天使幸福智慧名片</div>
-                <div class="mini-sub">可分享的專屬名片入口</div>
+          <div class="poster-top">
+            <div class="poster-brand">
+              <div class="poster-brand-kicker">HAPPINESS SMART CARD</div>
+              <div class="poster-brand-title">天使幸福智慧名片</div>
+              <div class="poster-brand-sub">可分享的專屬名片入口</div>
+            </div>
+            <div class="poster-tag">交付卡</div>
+          </div>
+
+          <div class="hero">
+            <div class="hero-card">
+              <div class="avatar-wrap">
+                <img id="avatar" class="avatar" alt="頭像" />
+                <div id="avatarFallback" class="avatar-fallback">名片</div>
+              </div>
+
+              <div class="profile-meta">
+                <div id="name" class="name">載入中...</div>
+                <div id="unit" class="unit">　</div>
+                <div id="title" class="title">　</div>
               </div>
             </div>
-            <div class="badge">交付卡</div>
-          </div>
 
-          <div class="hero-card">
-            <div class="avatar-wrap">
-              <img id="avatar" class="avatar" alt="頭像" />
-              <div id="avatarFallback" class="avatar-fallback">名片</div>
+            <div class="qr-card">
+              <div class="qr-box">
+                <div id="qrcode"></div>
+                <div class="qr-badge" aria-hidden="true">✨</div>
+              </div>
+              <p id="qrTip" class="qr-tip">掃描 QRCode 打開智慧名片</p>
             </div>
-
-            <div class="profile-meta">
-              <div id="name" class="name">載入中...</div>
-              <div id="unit" class="unit">　</div>
-              <div id="title" class="title">　</div>
-            </div>
-          </div>
-
-          <div class="qr-card">
-            <div class="qr-box">
-              <div id="qrcode"></div>
-              <div class="qr-badge" aria-hidden="true">✨</div>
-            </div>
-            <p id="qrTip" class="qr-tip">掃描 QRCode 查閱智慧名片</p>
           </div>
         </div>
       </div>
@@ -521,10 +556,8 @@
         <button id="btnDownload" class="btn btn-primary" type="button">下載名片海報</button>
         <button id="btnOpenCard" class="btn btn-soft" type="button">打開我的智慧名片</button>
         <button id="btnCopyCard" class="btn btn-soft" type="button">複製我的智慧名片連結</button>
-        <button id="btnShareLine" class="btn btn-soft" type="button">分享到 LINE</button>
-        <button id="btnCopyWechat" class="btn btn-soft" type="button">複製連結到微信</button>
-        <button id="btnShareHall" class="btn btn-ghost" type="button">分享智慧名片館</button>
-        <button id="btnConsult" class="btn btn-line" type="button">諮詢服務</button>
+        <button id="btnRecommend" class="btn btn-ghost" type="button">推薦智慧名片</button>
+        <button id="btnConsult" class="btn btn-line" type="button">聯繫 LINE 官方帳號</button>
       </div>
 
       <div id="status" class="status">
@@ -539,6 +572,6 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./imageResolver.js?v=5342"></script>
-  <script src="./poster.js?v=7011"></script>
+  <script src="./poster.js?v=702"></script>
 </body>
 </html>
