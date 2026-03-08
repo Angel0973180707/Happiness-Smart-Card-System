@@ -1,19 +1,17 @@
 /* ==========================================
- * HSC Poster v533
+ * HSC Poster v533.1
  * COMPLETE OVERWRITE
  *
- * Goals:
- * 1) 修正按鈕 ID 綁定錯誤
- * 2) 使用 imageResolver 統一解析頭像
- * 3) QRCode 載入穩定
- * 4) 海報下載穩定
- * 5) 不改 GAS / 不改資料欄位 / 不改主流程
+ * Focus:
+ * 1) 修正頭像不顯示問題
+ * 2) 移除匿名跨域依賴，先保畫面顯示
+ * 3) 保持按鈕 / QR / 下載功能穩定
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "533";
+  const VERSION = "533.1";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -155,23 +153,34 @@
     avatarEl.removeAttribute("src");
 
     if (!src) {
+      console.warn("[avatar] empty src");
       hideQrCenter();
       return;
     }
 
-    avatarEl.onload = () => {
+    console.log("[avatar] loading:", src);
+
+    const testImg = new Image();
+
+    testImg.onload = () => {
+      console.log("[avatar] loaded ok");
+      avatarEl.onload = null;
+      avatarEl.onerror = null;
+      avatarEl.src = src;
       avatarEl.style.display = "block";
       avatarFallbackEl.style.display = "none";
       showQrCenter(src);
     };
 
-    avatarEl.onerror = () => {
+    testImg.onerror = () => {
+      console.warn("[avatar] load failed:", src);
       avatarEl.style.display = "none";
       avatarFallbackEl.style.display = "grid";
       hideQrCenter();
+      setStatus("error", "頭像網址有資料，但載入失敗。這通常是圖片權限或跨域設定造成。");
     };
 
-    avatarEl.src = src;
+    testImg.src = src;
   }
 
   async function renderQRCode(text, avatarSrc) {
@@ -179,7 +188,7 @@
     qrWrapEl.innerHTML = "";
     hideQrCenter();
 
-    await wait(50);
+    await wait(60);
 
     new QRCode(qrWrapEl, {
       text,
@@ -201,15 +210,18 @@
       return;
     }
 
-    qrCenterImgEl.onload = () => {
+    const img = new Image();
+
+    img.onload = () => {
+      qrCenterImgEl.src = src;
       qrCenterEl.style.display = "block";
     };
 
-    qrCenterImgEl.onerror = () => {
+    img.onerror = () => {
       hideQrCenter();
     };
 
-    qrCenterImgEl.src = src;
+    img.src = src;
   }
 
   function hideQrCenter() {
@@ -265,11 +277,11 @@
     }
 
     await waitForImages(posterEl);
-    await wait(80);
+    await wait(100);
 
     const canvas = await html2canvas(posterEl, {
       useCORS: true,
-      allowTaint: false,
+      allowTaint: true,
       backgroundColor: null,
       scale: Math.max(2, Math.min(window.devicePixelRatio || 1, 3))
     });
