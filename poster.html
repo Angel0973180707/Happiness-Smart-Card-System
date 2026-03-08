@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v702.5</title>
+  <title>智慧名片交付卡 v702.6</title>
   <meta name="theme-color" content="#f7f1ea" />
 
   <style>
@@ -111,15 +111,7 @@
     }
 
     .poster-paper::before{
-      content:"";
-      position:absolute;
-      left:-14%;
-      top:-16%;
-      width:62%;
-      height:42%;
-      background:radial-gradient(circle, rgba(255,225,191,.16), transparent 66%);
-      pointer-events:none;
-      z-index:0;
+      display:none;
     }
 
     .poster-paper::after{
@@ -283,9 +275,10 @@
     .name{
       font-size:44px;
       line-height:1.12;
-      font-weight:800;
+      font-weight:700;
       letter-spacing:.02em;
-      color:#2f251e;
+      color:#5a4638;
+      font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,sans-serif;
     }
 
     .unit{
