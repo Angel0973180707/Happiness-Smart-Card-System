@@ -1,18 +1,19 @@
 /* ==========================================
- * HSC Poster v534.2
+ * HSC Poster v701.0
  * COMPLETE OVERWRITE
  *
- * 修正重點：
- * 1) 成品頁使用 index.html?id=xxx&view=1
- * 2) 微信按鈕改為「複製連結到微信」
- * 3) QR 中央改固定品牌小圓章，不再放真人頭像
- * 4) 保持三區簡潔交付卡
+ * v701 重點：
+ * 1) 海報移除 ID 顯示
+ * 2) 海報只強調：頭像 / 姓名 / 單位 / 職稱
+ * 3) 字體整體放大，視覺更簡潔
+ * 4) 諮詢服務固定連到 LINE 官方帳號
+ * 5) 保留交付卡主按鈕與下載海報能力
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "534.2";
+  const VERSION = "701.0";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -20,6 +21,7 @@
   const BASE = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
   const HALL_URL = BASE;
   const CARD_PAGE = `${BASE}index.html`;
+  const CONSULT_URL = "https://lin.ee/3r2ZePN";
 
   const qs = new URLSearchParams(location.search);
   const id = (qs.get("id") || "").trim();
@@ -30,7 +32,6 @@
   const nameEl = document.getElementById("name");
   const unitEl = document.getElementById("unit");
   const titleEl = document.getElementById("title");
-  const footerIdEl = document.getElementById("footerId");
   const qrTipEl = document.getElementById("qrTip");
   const statusEl = document.getElementById("status");
 
@@ -48,7 +49,6 @@
   let itemData = null;
   let cardURL = "";
   let hallURL = HALL_URL;
-  let consultURL = "";
 
   init();
 
@@ -71,7 +71,6 @@
 
       itemData = item;
       cardURL = buildCardURL(item.id);
-      consultURL = safeText(item.line_oa, "");
 
       renderCard(item);
       bindActions();
@@ -97,7 +96,7 @@
     const data = await res.json();
 
     if (!data || data.ok === false) {
-      throw new Error((data && data.message) || "名片資料回傳失敗。");
+      throw new Error((data && (data.error || data.message)) || "名片資料回傳失敗。");
     }
 
     return data;
@@ -115,7 +114,6 @@
     nameEl.textContent = name;
     unitEl.textContent = unit || " ";
     titleEl.textContent = title || " ";
-    footerIdEl.textContent = `ID：${safeText(item.id, "--")}`;
 
     renderAvatar(item, name);
   }
@@ -150,9 +148,7 @@
 
     const loaded = await loadFirstAvailableImage(candidates);
 
-    if (!loaded) {
-      return;
-    }
+    if (!loaded) return;
 
     avatarEl.crossOrigin = "anonymous";
     avatarEl.referrerPolicy = "no-referrer";
@@ -163,12 +159,10 @@
 
   async function loadFirstAvailableImage(candidates) {
     const uniq = Array.from(new Set((candidates || []).filter(Boolean)));
-
     for (const src of uniq) {
       const ok = await testImage(src);
       if (ok) return src;
     }
-
     return "";
   }
 
@@ -185,7 +179,6 @@
 
       img.onload = () => resolve(true);
       img.onerror = () => resolve(false);
-
       img.src = src;
     });
   }
@@ -198,12 +191,12 @@
 
     new QRCode(qrWrapEl, {
       text,
-      width: 150,
-      height: 150,
+      width: 154,
+      height: 154,
       correctLevel: QRCode.CorrectLevel.H
     });
 
-    qrTipEl.textContent = "掃描QRCode查閱智慧名片";
+    qrTipEl.textContent = "掃描 QRCode 查閱智慧名片";
   }
 
   function bindActions() {
@@ -211,9 +204,7 @@
       try {
         btnDownload.disabled = true;
         setStatus("loading", "正在產生海報，請稍候...");
-
         await downloadPoster();
-
         setStatus("success", "海報已下載完成。");
       } catch (err) {
         console.error("[downloadPoster error]", err);
@@ -250,16 +241,17 @@
       );
     };
 
-    btnShareHall.onclick = () => {
-      window.open(hallURL, "_blank", "noopener");
+    btnShareHall.onclick = async () => {
+      const ok = await copyText(hallURL);
+      if (ok) {
+        setStatus("success", "智慧名片館連結已複製。");
+      } else {
+        window.open(hallURL, "_blank", "noopener");
+      }
     };
 
     btnConsult.onclick = () => {
-      if (!consultURL) {
-        setStatus("error", "目前尚未設定名片諮詢服務連結。");
-        return;
-      }
-      window.open(consultURL, "_blank", "noopener");
+      window.open(CONSULT_URL, "_blank", "noopener");
     };
   }
 
@@ -279,9 +271,10 @@
     });
 
     const a = document.createElement("a");
-    const fileId = itemData && itemData.id ? itemData.id : "card";
+    const fileNameBase = itemData && itemData.name ? itemData.name : "card";
+    const safeName = String(fileNameBase).replace(/[\\/:*?"<>|]/g, "_");
     a.href = canvas.toDataURL("image/png");
-    a.download = `hsc-poster-${fileId}.png`;
+    a.download = `hsc-poster-${safeName}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
