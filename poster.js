@@ -1,21 +1,17 @@
 /* ==========================================
- * HSC Poster v702.2
+ * HSC Poster v702.3
  * COMPLETE OVERWRITE
  *
- * v702.2 重點：
- * 1) 維持 v702.1 簡潔交付卡 UI
- * 2) 智慧排版再強化：
- *    - 自動縮字
- *    - 優先避免中文孤字落單
- *    - 優先避免最後一行只剩 1~2 字
- *    - 更穩定的兩行平衡
- * 3) 保留海報下載 / 打開名片 / 複製名片連結 / 推薦連結 / LINE 官方帳號
+ * v702.3 重點：
+ * 1) 維持 v702.2 智慧排版
+ * 2) 整體字級下修一階，畫面更鬆、更耐看
+ * 3) 保留避免中文孤字落單能力
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "702.2";
+  const VERSION = "702.3";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -296,21 +292,25 @@
     resetTextStyles(unitEl);
     resetTextStyles(titleEl);
 
-    fitTextBlock(nameEl, 44, 22, 2);
-    fitTextBlock(unitEl, 24, 15, 2);
-    fitTextBlock(titleEl, 28, 16, 2);
+    nameEl.style.fontSize = "";
+    unitEl.style.fontSize = "";
+    titleEl.style.fontSize = "";
 
-    improveLineBalance(nameEl, 22);
-    improveLineBalance(unitEl, 15);
-    improveLineBalance(titleEl, 16);
+    fitTextBlock(nameEl, 36, 20, 2);
+    fitTextBlock(unitEl, 21, 14, 2);
+    fitTextBlock(titleEl, 24, 15, 2);
 
-    lastLineRescue(nameEl, 22);
-    lastLineRescue(unitEl, 15);
-    lastLineRescue(titleEl, 16);
+    improveLineBalance(nameEl, 20);
+    improveLineBalance(unitEl, 14);
+    improveLineBalance(titleEl, 15);
 
-    finalOverflowGuard(nameEl, 22, 2);
-    finalOverflowGuard(unitEl, 15, 2);
-    finalOverflowGuard(titleEl, 16, 2);
+    lastLineRescue(nameEl, 20);
+    lastLineRescue(unitEl, 14);
+    lastLineRescue(titleEl, 15);
+
+    finalOverflowGuard(nameEl, 20, 2);
+    finalOverflowGuard(unitEl, 14, 2);
+    finalOverflowGuard(titleEl, 15, 2);
   }
 
   function resetTextStyles(el) {
