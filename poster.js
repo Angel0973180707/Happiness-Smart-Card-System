@@ -1,25 +1,19 @@
 /* ==========================================
- * HSC Poster v704.1
+ * HSC Poster v705
  * COMPLETE OVERWRITE
  *
- * v704.1 重點：
- * 1) 下載海報只截 #posterCapture，不把按鈕拍進去
- * 2) 保留既有交付卡功能：
- *    - 顯示頭像
- *    - 顯示姓名 / 單位 / 職稱
- *    - 生成 QRCode
- *    - 下載名片海報
- *    - 打開智慧名片
- *    - 複製名片連結
- *    - 推薦智慧名片
- *    - 聯繫 LINE 官方帳號
- * 3) 盡量相容既有 GAS payload 格式
+ * v705 重點：
+ * 1) 新增 Web Share API：分享我的智慧名片
+ * 2) 保留複製連結 / 下載海報 / 打開名片
+ * 3) 新增分享說明 Dialog
+ * 4) 海報只截 #posterCapture，不把按鈕拍進去
+ * 5) 推薦智慧名片維持複製推薦連結
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "704.1";
+  const VERSION = "705";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -45,11 +39,16 @@
   const qrTipEl = $("qrTip");
   const statusEl = $("status");
 
+  const btnShare = $("btnShare");
+  const btnCopyCard = $("btnCopyCard");
   const btnDownload = $("btnDownload");
   const btnOpenCard = $("btnOpenCard");
-  const btnCopyCard = $("btnCopyCard");
+  const btnShareGuide = $("btnShareGuide");
   const btnRecommend = $("btnRecommend");
   const btnConsult = $("btnConsult");
+
+  const shareDialogEl = $("shareDialog");
+  const btnCloseDialog = $("btnCloseDialog");
 
   let currentItem = null;
   let cardUrl = "";
@@ -83,8 +82,7 @@
 
   function buildConsultUrl(item) {
     const lineOA =
-      (item && (item.line_oa || item.lineOA || item.lineOa || item.line_url)) ||
-      DEFAULT_LINE_OA;
+      text(item?.line_oa || item?.lineOA || item?.lineOa || item?.line_url || DEFAULT_LINE_OA);
 
     try {
       const url = new URL(lineOA);
@@ -100,10 +98,14 @@
     return String(v == null ? fallback : v).trim();
   }
 
-  function setStatus(message, type = "") {
-    if (!statusEl) return;
-    statusEl.dataset.type = type || "";
-    statusEl.textContent = message || "";
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (m) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[m]));
   }
 
   function setLoading(message) {
@@ -117,14 +119,10 @@
     `;
   }
 
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, (m) => ({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#39;"
-    }[m]));
+  function setStatus(message, type = "") {
+    if (!statusEl) return;
+    statusEl.dataset.type = type || "";
+    statusEl.textContent = message || "";
   }
 
   function safeInitial(name) {
@@ -158,7 +156,8 @@
       item.avatar_url,
       item.avatar_img_fast,
       item.avatar_img,
-      item.avatar
+      item.avatar,
+      item.avatarUrl
     ].map(v => text(v)).filter(Boolean);
 
     return candidates[0] || "";
@@ -167,11 +166,11 @@
   function normalizeItem(raw) {
     const item = raw || {};
     return {
-      id: text(item.id),
+      id: text(item.id || CARD_ID),
       name: text(item.name, "智慧名片"),
       unit: text(item.unit),
       title: text(item.title),
-      avatar_url: text(item.avatar_url || item.avatar_img_fast || item.avatar_img || item.avatar),
+      avatar_url: text(item.avatar_url || item.avatar_img_fast || item.avatar_img || item.avatar || item.avatarUrl),
       line_oa: text(item.line_oa),
       line_url: text(item.line_url)
     };
@@ -212,78 +211,6 @@
     return normalizeItem(payload);
   }
 
-  function renderCard(item) {
-    currentItem = item;
-    cardUrl = buildCardUrl(item.id || CARD_ID);
-
-    if (nameEl) nameEl.textContent = item.name || "智慧名片";
-    if (unitEl) unitEl.textContent = item.unit || "　";
-    if (titleEl) titleEl.textContent = item.title || "　";
-
-    setAvatar(pickImage(item), item.name);
-
-    if (qrTipEl) {
-      qrTipEl.innerHTML = "掃描 QRCode 打開智慧名片";
-    }
-
-    renderQrCode(cardUrl);
-
-    if (btnOpenCard) {
-      btnOpenCard.disabled = false;
-      btnOpenCard.onclick = () => {
-        window.open(cardUrl, "_blank", "noopener");
-      };
-    }
-
-    if (btnCopyCard) {
-      btnCopyCard.disabled = false;
-      btnCopyCard.onclick = async () => {
-        try {
-          await copyText(cardUrl);
-          setStatus("已複製智慧名片連結", "success");
-        } catch (err) {
-          setStatus("複製失敗，請稍後再試", "error");
-        }
-      };
-    }
-
-    if (btnRecommend) {
-      btnRecommend.disabled = false;
-      btnRecommend.onclick = async () => {
-        const url = buildRecommendUrl();
-        try {
-          await copyText(url);
-          setStatus("已複製推薦連結", "success");
-        } catch (err) {
-          setStatus("複製推薦連結失敗", "error");
-        }
-      };
-    }
-
-    if (btnConsult) {
-      btnConsult.disabled = false;
-      btnConsult.onclick = () => {
-        window.open(buildConsultUrl(item), "_blank", "noopener");
-      };
-    }
-
-    if (btnDownload) {
-      btnDownload.disabled = false;
-      btnDownload.onclick = async () => {
-        try {
-          setLoading("正在產生海報，請稍候...");
-          await downloadPoster(item);
-          setStatus("海報已下載", "success");
-        } catch (err) {
-          console.error(err);
-          setStatus("海報產生失敗，請稍後再試", "error");
-        }
-      };
-    }
-
-    setStatus("交付卡已載入完成", "success");
-  }
-
   function renderQrCode(url) {
     if (!qrCodeEl) return;
     qrCodeEl.innerHTML = "";
@@ -291,8 +218,8 @@
     try {
       new QRCode(qrCodeEl, {
         text: url,
-        width: 200,
-        height: 200,
+        width: 196,
+        height: 196,
         colorDark: "#000000",
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.H
@@ -327,6 +254,46 @@
     if (!ok) throw new Error("copy failed");
   }
 
+  async function shareCard() {
+    if (!cardUrl) throw new Error("missing card url");
+
+    const shareData = {
+      title: "我的智慧名片",
+      text: "歡迎查看我的智慧名片",
+      url: cardUrl
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        setStatus("已開啟分享選單", "success");
+        return;
+      } catch (err) {
+        if (err && err.name === "AbortError") {
+          setStatus("已取消分享", "");
+          return;
+        }
+      }
+    }
+
+    await copyText(cardUrl);
+    setStatus("此裝置不支援一鍵分享，已改為複製名片連結", "success");
+  }
+
+  function openDialog() {
+    if (!shareDialogEl) return;
+    shareDialogEl.classList.add("is-open");
+    shareDialogEl.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeDialog() {
+    if (!shareDialogEl) return;
+    shareDialogEl.classList.remove("is-open");
+    shareDialogEl.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
   async function downloadPoster(item) {
     const target = posterCaptureEl || $("poster");
     if (!target) throw new Error("找不到海報區塊");
@@ -350,14 +317,126 @@
     link.click();
   }
 
+  function bindDialogEvents() {
+    if (btnShareGuide) {
+      btnShareGuide.onclick = openDialog;
+    }
+
+    if (btnCloseDialog) {
+      btnCloseDialog.onclick = closeDialog;
+    }
+
+    if (shareDialogEl) {
+      shareDialogEl.addEventListener("click", (e) => {
+        const target = e.target;
+        if (target && target.dataset && target.dataset.closeDialog === "1") {
+          closeDialog();
+        }
+      });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && shareDialogEl?.classList.contains("is-open")) {
+        closeDialog();
+      }
+    });
+  }
+
+  function renderCard(item) {
+    currentItem = item;
+    cardUrl = buildCardUrl(item.id || CARD_ID);
+
+    if (nameEl) nameEl.textContent = item.name || "智慧名片";
+    if (unitEl) unitEl.textContent = item.unit || "　";
+    if (titleEl) titleEl.textContent = item.title || "　";
+    if (qrTipEl) qrTipEl.textContent = "掃描 QRCode 打開智慧名片";
+
+    setAvatar(pickImage(item), item.name);
+    renderQrCode(cardUrl);
+
+    if (btnShare) {
+      btnShare.disabled = false;
+      btnShare.onclick = async () => {
+        try {
+          await shareCard();
+        } catch (err) {
+          console.error(err);
+          setStatus("分享失敗，請稍後再試", "error");
+        }
+      };
+    }
+
+    if (btnCopyCard) {
+      btnCopyCard.disabled = false;
+      btnCopyCard.onclick = async () => {
+        try {
+          await copyText(cardUrl);
+          setStatus("已複製智慧名片連結", "success");
+        } catch (err) {
+          console.error(err);
+          setStatus("複製失敗，請稍後再試", "error");
+        }
+      };
+    }
+
+    if (btnDownload) {
+      btnDownload.disabled = false;
+      btnDownload.onclick = async () => {
+        try {
+          setLoading("正在產生海報，請稍候...");
+          await downloadPoster(item);
+          setStatus("海報已下載", "success");
+        } catch (err) {
+          console.error(err);
+          setStatus("海報產生失敗，請稍後再試", "error");
+        }
+      };
+    }
+
+    if (btnOpenCard) {
+      btnOpenCard.disabled = false;
+      btnOpenCard.onclick = () => {
+        window.open(cardUrl, "_blank", "noopener");
+      };
+    }
+
+    if (btnRecommend) {
+      btnRecommend.disabled = false;
+      btnRecommend.onclick = async () => {
+        try {
+          await copyText(buildRecommendUrl());
+          setStatus("已複製推薦連結", "success");
+        } catch (err) {
+          console.error(err);
+          setStatus("複製推薦連結失敗", "error");
+        }
+      };
+    }
+
+    if (btnConsult) {
+      btnConsult.disabled = false;
+      btnConsult.onclick = () => {
+        window.open(buildConsultUrl(item), "_blank", "noopener");
+      };
+    }
+
+    setStatus("交付卡已載入完成", "success");
+  }
+
+  function disableAllButtons() {
+    [btnShare, btnCopyCard, btnDownload, btnOpenCard, btnShareGuide, btnRecommend, btnConsult]
+      .filter(Boolean)
+      .forEach((btn) => {
+        btn.disabled = true;
+      });
+  }
+
   async function init() {
+    bindDialogEvents();
+
     if (!CARD_ID) {
+      disableAllButtons();
       setStatus("缺少名片 ID", "error");
-      if (btnDownload) btnDownload.disabled = true;
-      if (btnOpenCard) btnOpenCard.disabled = true;
-      if (btnCopyCard) btnCopyCard.disabled = true;
-      if (btnRecommend) btnRecommend.disabled = true;
-      if (btnConsult) btnConsult.disabled = true;
       return;
     }
 
@@ -368,6 +447,7 @@
       renderCard(item);
     } catch (err) {
       console.error(err);
+      disableAllButtons();
       setStatus(err.message || "交付卡載入失敗", "error");
     }
   }
