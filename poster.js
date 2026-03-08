@@ -1,19 +1,18 @@
 /* ==========================================
- * HSC Poster v534.1
+ * HSC Poster v534.2
  * COMPLETE OVERWRITE
  *
  * 修正重點：
- * 1) 成品頁改為 index.html?id=xxx&view=1
- * 2) 頭像改為多候補網址載入
- * 3) 交付卡精簡為 3 區
- * 4) 人物資訊改為直向排列
- * 5) 底部說明改成一句話
+ * 1) 成品頁使用 index.html?id=xxx&view=1
+ * 2) 微信按鈕改為「複製連結到微信」
+ * 3) QR 中央改固定品牌小圓章，不再放真人頭像
+ * 4) 保持三區簡潔交付卡
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "534.1";
+  const VERSION = "534.2";
 
   const GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -27,8 +26,6 @@
 
   const avatarEl = document.getElementById("avatar");
   const avatarFallbackEl = document.getElementById("avatarFallback");
-  const qrCenterEl = document.getElementById("qrCenter");
-  const qrCenterImgEl = document.getElementById("qrCenterImg");
 
   const nameEl = document.getElementById("name");
   const unitEl = document.getElementById("unit");
@@ -44,7 +41,7 @@
   const btnOpenCard = document.getElementById("btnOpenCard");
   const btnCopyCard = document.getElementById("btnCopyCard");
   const btnShareLine = document.getElementById("btnShareLine");
-  const btnShareWechat = document.getElementById("btnShareWechat");
+  const btnCopyWechat = document.getElementById("btnCopyWechat");
   const btnShareHall = document.getElementById("btnShareHall");
   const btnConsult = document.getElementById("btnConsult");
 
@@ -52,7 +49,6 @@
   let cardURL = "";
   let hallURL = HALL_URL;
   let consultURL = "";
-  let avatarLoadedSrc = "";
 
   init();
 
@@ -131,7 +127,6 @@
     avatarFallbackEl.style.display = "grid";
     avatarEl.style.display = "none";
     avatarEl.removeAttribute("src");
-    hideQrCenter();
 
     let candidates = [];
     try {
@@ -156,20 +151,14 @@
     const loaded = await loadFirstAvailableImage(candidates);
 
     if (!loaded) {
-      avatarLoadedSrc = "";
-      hideQrCenter();
       return;
     }
-
-    avatarLoadedSrc = loaded;
 
     avatarEl.crossOrigin = "anonymous";
     avatarEl.referrerPolicy = "no-referrer";
     avatarEl.src = loaded;
     avatarEl.style.display = "block";
     avatarFallbackEl.style.display = "none";
-
-    showQrCenter(loaded);
   }
 
   async function loadFirstAvailableImage(candidates) {
@@ -204,7 +193,6 @@
   async function renderQRCode(text) {
     qrTipEl.textContent = "QR 產生中...";
     qrWrapEl.innerHTML = "";
-    hideQrCenter();
 
     await wait(60);
 
@@ -215,28 +203,7 @@
       correctLevel: QRCode.CorrectLevel.H
     });
 
-    if (avatarLoadedSrc) {
-      showQrCenter(avatarLoadedSrc);
-    }
-
     qrTipEl.textContent = "掃描QRCode查閱智慧名片";
-  }
-
-  function showQrCenter(src) {
-    if (!src) {
-      hideQrCenter();
-      return;
-    }
-
-    qrCenterImgEl.crossOrigin = "anonymous";
-    qrCenterImgEl.referrerPolicy = "no-referrer";
-    qrCenterImgEl.src = src;
-    qrCenterEl.style.display = "block";
-  }
-
-  function hideQrCenter() {
-    qrCenterEl.style.display = "none";
-    qrCenterImgEl.removeAttribute("src");
   }
 
   function bindActions() {
@@ -274,12 +241,12 @@
       window.open(url, "_blank", "noopener");
     };
 
-    btnShareWechat.onclick = async () => {
+    btnCopyWechat.onclick = async () => {
       if (!cardURL) return;
       const ok = await copyText(cardURL);
       setStatus(
         ok ? "success" : "error",
-        ok ? "智慧名片連結已複製，可直接貼到微信分享。" : "微信分享連結複製失敗。"
+        ok ? "智慧名片連結已複製，可直接貼到微信分享。" : "複製失敗，請手動複製後貼到微信。"
       );
     };
 
@@ -350,7 +317,7 @@
       btnOpenCard,
       btnCopyCard,
       btnShareLine,
-      btnShareWechat,
+      btnCopyWechat,
       btnShareHall,
       btnConsult
     ].forEach((btn) => {
