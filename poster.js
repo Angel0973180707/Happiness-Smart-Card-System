@@ -1,19 +1,17 @@
 /* ==========================================
- * HSC Poster v706.3
+ * HSC Poster v706.5
  * COMPLETE OVERWRITE
  *
- * 目標：
- * 1. icon + 天使幸福智慧名片
- * 2. 名片交付卡橢圓美化
- * 3. QRcode 提示文字：掃描QRcode查閱完整名片
- * 4. 按鈕立體化
- * 5. UI 精緻化
+ * 修正重點：
+ * 1. QRCode 本地生成失敗時，自動改用 API 備援
+ * 2. 相容 canvas / img / table 輸出
+ * 3. 解決 QR 區塊空白
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "706.3";
+  const VERSION = "706.5";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -69,7 +67,7 @@
       currentRecommendUrl = buildRecommendUrl(item);
 
       renderPoster(item);
-      renderQrSafe(currentCardUrl);
+      await renderQrSmart(currentCardUrl);
 
       setStatus("");
     } catch (err) {
@@ -165,10 +163,23 @@
     return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
   }
 
-  function renderQrSafe(targetUrl) {
-    try {
-      if (!el.qrBox) return;
+  async function renderQrSmart(targetUrl) {
+    if (!el.qrBox) return;
 
+    el.qrBox.innerHTML = "";
+
+    const okLocal = await tryRenderLocalQr(targetUrl);
+    if (okLocal) return;
+
+    const okApi = await tryRenderApiQr(targetUrl);
+    if (okApi) return;
+
+    renderQrFallback();
+    setStatus("QR 產生失敗，但其他功能仍可正常使用", true);
+  }
+
+  async function tryRenderLocalQr(targetUrl) {
+    try {
       if (typeof window.QRCode === "undefined") {
         throw new Error("本地 qrcode.min.js 未載入");
       }
@@ -192,34 +203,85 @@
         correctLevel: window.QRCode.CorrectLevel.H
       });
 
-      normalizeQrDom(mount);
+      await wait(120);
+
+      const ok = normalizeQrDom(mount);
+      if (!ok) throw new Error("本地 QR 節點未成功生成");
+
+      return true;
     } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] QR render error:`, err);
-      renderQrFallback();
-      setStatus("QR 產生失敗，但其他功能仍可正常使用", true);
+      console.error(`[HSC Poster ${VERSION}] local QR render error:`, err);
+      return false;
+    }
+  }
+
+  async function tryRenderApiQr(targetUrl) {
+    try {
+      el.qrBox.innerHTML = "";
+
+      const img = document.createElement("img");
+      img.alt = "QR Code";
+      img.loading = "eager";
+      img.decoding = "async";
+      img.referrerPolicy = "no-referrer";
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.display = "block";
+      img.style.objectFit = "contain";
+
+      const src =
+        "https://api.qrserver.com/v1/create-qr-code/?" +
+        "size=800x800&margin=0&format=png&data=" +
+        encodeURIComponent(targetUrl);
+
+      const ok = await loadImage(img, src);
+      if (!ok) throw new Error("API QR 載入失敗");
+
+      el.qrBox.appendChild(img);
+      return true;
+    } catch (err) {
+      console.error(`[HSC Poster ${VERSION}] API QR render error:`, err);
+      return false;
     }
   }
 
   function normalizeQrDom(root) {
     const img = root.querySelector("img");
     const canvas = root.querySelector("canvas");
+    const table = root.querySelector("table");
 
     if (img) {
       img.style.width = "100%";
       img.style.height = "100%";
       img.style.display = "block";
       img.style.objectFit = "contain";
-      return;
+      return true;
     }
 
     if (canvas) {
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       canvas.style.display = "block";
-      return;
+      canvas.style.objectFit = "contain";
+      return true;
     }
 
-    throw new Error("QRCode 未產生 img/canvas");
+    if (table) {
+      table.style.width = "100%";
+      table.style.height = "100%";
+      table.style.borderCollapse = "collapse";
+      table.style.display = "table";
+      table.style.background = "#fff";
+
+      const tds = table.querySelectorAll("td");
+      tds.forEach((td) => {
+        td.style.padding = "0";
+        td.style.margin = "0";
+      });
+      return true;
+    }
+
+    return false;
   }
 
   function renderQrFallback() {
@@ -431,6 +493,18 @@
         });
       })
     );
+  }
+
+  function loadImage(img, src) {
+    return new Promise((resolve) => {
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = src;
+    });
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async function copyText(value) {
