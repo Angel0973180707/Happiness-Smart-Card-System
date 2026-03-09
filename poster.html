@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v705.3</title>
+  <title>智慧名片交付卡 v705.5</title>
   <meta name="theme-color" content="#eef6f0" />
 
   <style>
@@ -30,6 +30,7 @@
 
     *{ box-sizing:border-box; }
     html,body{ margin:0; padding:0; }
+
     body{
       min-height:100vh;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
@@ -47,15 +48,9 @@
       justify-content:center;
     }
 
-    /* 修正手機並排 */
     .shell{
       width:100%;
       max-width:430px;
-    }
-
-    /* 海報截圖區 */
-    #posterCapture{
-      width:100%;
     }
 
     .poster-card{
@@ -106,7 +101,8 @@
       padding:20px 16px 18px;
     }
 
-    .hero{
+    /* 海報截圖區：只包含內容，不包含按鈕 */
+    #posterCapture{
       border:1px solid var(--line);
       border-radius:28px;
       background:linear-gradient(180deg,#ffffff 0%,#fbfcfb 100%);
@@ -325,7 +321,6 @@
       40%{ transform:scale(1); opacity:1; }
     }
 
-    /* 分享說明彈窗 */
     .dialog{
       position:fixed;
       inset:0;
@@ -390,7 +385,7 @@
       .topbar{ padding:16px 14px 12px; }
       .topbar-title{ font-size:17px; }
       .card-body{ padding:16px 12px 14px; }
-      .hero{ padding:18px 12px 14px; }
+      #posterCapture{ padding:18px 12px 14px; }
       .avatar-wrap{ width:122px; height:122px; }
       #name{ font-size:25px; }
       #unit{ font-size:15px; }
@@ -403,59 +398,55 @@
 <body>
   <div class="page">
     <div class="shell">
+      <div class="poster-card">
+        <div class="topbar">
+          <div class="topbar-mark">天</div>
+          <h1 class="topbar-title">天使幸福智慧名片</h1>
+        </div>
 
-      <section id="posterCapture">
-        <div class="poster-card">
-          <div class="topbar">
-            <div class="topbar-mark">天</div>
-            <h1 class="topbar-title">天使幸福智慧名片</h1>
+        <div class="card-body">
+          <section id="posterCapture">
+            <div class="avatar-wrap">
+              <img id="avatar" alt="頭像" crossorigin="anonymous">
+              <div id="avatarFallback" aria-hidden="true"></div>
+            </div>
+
+            <h2 id="name">載入中</h2>
+            <div id="unit"></div>
+            <div id="title"></div>
+
+            <div class="qr-panel">
+              <div class="qr-core">
+                <div id="qrcode"></div>
+              </div>
+              <div id="qrTip">掃描 QRCode 打開智慧名片</div>
+            </div>
+          </section>
+
+          <div class="actions">
+            <button id="btnOpenCard" class="btn btn-primary" type="button">打開我的智慧名片</button>
+
+            <div class="btn-row">
+              <button id="btnCopyCard" class="btn" type="button">複製名片連結</button>
+              <button id="btnDownload" class="btn" type="button">下載名片海報</button>
+            </div>
+
+            <div class="btn-row">
+              <button id="btnRecommend" class="btn" type="button">複製推薦連結</button>
+              <button id="btnConsult" class="btn" type="button">LINE 官方帳號</button>
+            </div>
+
+            <div class="btn-row">
+              <button id="btnShare" class="btn" type="button">分享名片</button>
+              <button id="btnShareGuide" class="btn" type="button">分享說明</button>
+            </div>
           </div>
 
-          <div class="card-body">
-            <div class="hero">
-              <div class="avatar-wrap">
-                <img id="avatar" alt="頭像">
-                <div id="avatarFallback" aria-hidden="true"></div>
-              </div>
-
-              <h2 id="name">載入中</h2>
-              <div id="unit"></div>
-              <div id="title"></div>
-
-              <div class="qr-panel">
-                <div class="qr-core">
-                  <div id="qrcode"></div>
-                </div>
-                <div id="qrTip">掃描 QRCode 打開智慧名片</div>
-              </div>
-            </div>
-
-            <div class="actions">
-              <button id="btnOpenCard" class="btn btn-primary" type="button">打開我的智慧名片</button>
-
-              <div class="btn-row">
-                <button id="btnCopyCard" class="btn" type="button">複製名片連結</button>
-                <button id="btnDownload" class="btn" type="button">下載名片海報</button>
-              </div>
-
-              <div class="btn-row">
-                <button id="btnRecommend" class="btn" type="button">複製推薦連結</button>
-                <button id="btnConsult" class="btn" type="button">LINE 官方帳號</button>
-              </div>
-
-              <div class="btn-row">
-                <button id="btnShare" class="btn" type="button">分享名片</button>
-                <button id="btnShareGuide" class="btn" type="button">分享說明</button>
-              </div>
-            </div>
-
-            <div class="status-wrap">
-              <div id="status"></div>
-            </div>
+          <div class="status-wrap">
+            <div id="status"></div>
           </div>
         </div>
-      </section>
-
+      </div>
     </div>
   </div>
 
@@ -472,6 +463,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="poster.js?v=7053"></script>
+  <script src="poster.js?v=7055"></script>
 </body>
 </html>
