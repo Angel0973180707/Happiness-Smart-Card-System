@@ -1,20 +1,23 @@
 /* ==========================================
- * HSC Poster v3.1
+ * HSC Poster v4.0
  * COMPLETE OVERWRITE
  *
  * 功能：
  * 1. 載入名片資料
  * 2. 顯示頭像 / 姓名 / 標題 / QR code
  * 3. 下載名片海報
- * 4. LINE 官方帳號整排按鈕
- * 5. 分享說明 Dialog
- * 6. QR code 留白與尺寸優化
+ * 4. 查看我的智慧名片
+ * 5. 複製我的名片連結
+ * 6. 分享我的智慧名片
+ * 7. 推薦智慧名片館
+ * 8. 分享說明 Dialog
+ * 9. LINE 官方帳號
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "3.1";
+  const VERSION = "4.0";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -27,7 +30,7 @@
   const qs = new URLSearchParams(location.search);
   const id = (qs.get("id") || "").trim();
   const gas = (qs.get("gas") || DEFAULT_GAS).trim();
-  const baseUrl = (qs.get("base") || DEFAULT_BASE).trim();
+  const baseUrl = normalizeBase(qs.get("base") || DEFAULT_BASE);
   const lineOA = (qs.get("lineoa") || DEFAULT_LINE_OA).trim();
 
   const el = {
@@ -37,15 +40,22 @@
     qrBox: document.getElementById("qrBox"),
     posterCapture: document.getElementById("posterCapture"),
     statusText: document.getElementById("statusText"),
+
     downloadBtn: document.getElementById("downloadBtn"),
+    openCardBtn: document.getElementById("openCardBtn"),
+    copyLinkBtn: document.getElementById("copyLinkBtn"),
+    shareCardBtn: document.getElementById("shareCardBtn"),
+    recommendBtn: document.getElementById("recommendBtn"),
+    helpBtn: document.getElementById("helpBtn"),
     lineOABtn: document.getElementById("lineOABtn"),
-    shareHelpBtn: document.getElementById("shareHelpBtn"),
+
     shareDialog: document.getElementById("shareDialog"),
     dialogCloseBtn: document.getElementById("dialogCloseBtn"),
   };
 
   let currentItem = null;
   let currentCardUrl = "";
+  let currentRecommendUrl = "";
 
   bindEvents();
   init();
@@ -64,6 +74,8 @@
       renderPoster(item);
 
       currentCardUrl = buildCardUrl(item);
+      currentRecommendUrl = buildRecommendUrl(item);
+
       await renderQr(currentCardUrl);
 
       setStatus("");
@@ -74,30 +86,19 @@
   }
 
   function bindEvents() {
-    if (el.downloadBtn) {
-      el.downloadBtn.addEventListener("click", onDownloadPoster);
-    }
+    el.downloadBtn?.addEventListener("click", onDownloadPoster);
+    el.openCardBtn?.addEventListener("click", onOpenCard);
+    el.copyLinkBtn?.addEventListener("click", onCopyCardLink);
+    el.shareCardBtn?.addEventListener("click", onShareCard);
+    el.recommendBtn?.addEventListener("click", onRecommend);
+    el.helpBtn?.addEventListener("click", openDialog);
+    el.lineOABtn?.addEventListener("click", onOpenLineOA);
 
-    if (el.lineOABtn) {
-      el.lineOABtn.addEventListener("click", () => {
-        if (!lineOA) return;
-        window.location.href = lineOA;
-      });
-    }
+    el.dialogCloseBtn?.addEventListener("click", closeDialog);
 
-    if (el.shareHelpBtn) {
-      el.shareHelpBtn.addEventListener("click", openDialog);
-    }
-
-    if (el.dialogCloseBtn) {
-      el.dialogCloseBtn.addEventListener("click", closeDialog);
-    }
-
-    if (el.shareDialog) {
-      el.shareDialog.addEventListener("click", (e) => {
-        if (e.target === el.shareDialog) closeDialog();
-      });
-    }
+    el.shareDialog?.addEventListener("click", (e) => {
+      if (e.target === el.shareDialog) closeDialog();
+    });
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeDialog();
@@ -157,6 +158,11 @@
     return `${baseUrl}index.html?id=${encodeURIComponent(cardId)}`;
   }
 
+  function buildRecommendUrl(item) {
+    const refId = text(item.id) || id;
+    return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
+  }
+
   async function renderQr(targetUrl) {
     if (!el.qrBox) return;
 
@@ -202,11 +208,67 @@
       link.download = filename;
       link.click();
 
-      setStatus("");
+      setStatus("海報下載完成");
+      clearStatusSoon();
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] download error:`, err);
       setStatus(err.message || "海報下載失敗", true);
     }
+  }
+
+  function onOpenCard() {
+    if (!currentCardUrl) return;
+    window.location.href = currentCardUrl;
+  }
+
+  async function onCopyCardLink() {
+    if (!currentCardUrl) return;
+    const ok = await copyText(currentCardUrl);
+    setStatus(ok ? "名片連結已複製" : "複製失敗，請手動複製", !ok);
+    clearStatusSoon();
+  }
+
+  async function onShareCard() {
+    if (!currentCardUrl) return;
+
+    const shareData = {
+      title: currentItem?.name ? `${currentItem.name} 的智慧名片` : "我的智慧名片",
+      text: "這是我的智慧名片，歡迎查看。",
+      url: currentCardUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setStatus("已開啟分享");
+        clearStatusSoon();
+        return;
+      }
+
+      const ok = await copyText(currentCardUrl);
+      setStatus(ok ? "裝置不支援一鍵分享，已改為複製名片連結" : "分享失敗，請手動複製", !ok);
+      clearStatusSoon();
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+      console.error(`[HSC Poster ${VERSION}] share error:`, err);
+
+      const ok = await copyText(currentCardUrl);
+      setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
+      clearStatusSoon();
+    }
+  }
+
+  async function onRecommend() {
+    if (!currentRecommendUrl) return;
+
+    const ok = await copyText(currentRecommendUrl);
+    setStatus(ok ? "推薦智慧名片館連結已複製" : "複製失敗，請手動複製", !ok);
+    clearStatusSoon();
+  }
+
+  function onOpenLineOA() {
+    if (!lineOA) return;
+    window.location.href = lineOA;
   }
 
   function openDialog() {
@@ -236,8 +298,21 @@
     el.statusText.classList.toggle("error", !!isError);
   }
 
+  function clearStatusSoon() {
+    window.clearTimeout(clearStatusSoon._t);
+    clearStatusSoon._t = window.setTimeout(() => {
+      setStatus("");
+    }, 1800);
+  }
+
   function text(v) {
     return String(v || "").trim();
+  }
+
+  function normalizeBase(v) {
+    const s = String(v || "").trim();
+    if (!s) return "";
+    return s.endsWith("/") ? s : `${s}/`;
   }
 
   function safeFileName(v) {
@@ -276,5 +351,38 @@
         });
       })
     );
+  }
+
+  async function copyText(value) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(value);
+        return true;
+      }
+      return legacyCopyText(value);
+    } catch (err) {
+      console.error(`[HSC Poster ${VERSION}] copy error:`, err);
+      return legacyCopyText(value);
+    }
+  }
+
+  function legacyCopyText(value) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      ta.setAttribute("readonly", "readonly");
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch (err) {
+      console.error(`[HSC Poster ${VERSION}] legacy copy error:`, err);
+      return false;
+    }
   }
 })();
