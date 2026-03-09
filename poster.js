@@ -1,17 +1,18 @@
 /* ==========================================
- * HSC Poster v705.0
+ * HSC Poster v706.2
  * COMPLETE OVERWRITE
  *
- * 重點：
- * 1. QR code 改用 Google QR API，避免 JS 套件失效
- * 2. 保留 7 個按鈕
- * 3. 支援下載海報 / 查看名片 / 複製 / 分享 / 推薦 / 分享說明 / LINE OA
+ * 本版重點：
+ * 1. 使用本地 qrcode.min.js
+ * 2. QR code 420px + 高容錯
+ * 3. 保留 7 按鈕功能
+ * 4. 按鈕立體化由 HTML/CSS 控制
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705.0";
+  const VERSION = "706.2";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -68,7 +69,7 @@
       currentCardUrl = buildCardUrl(item);
       currentRecommendUrl = buildRecommendUrl(item);
 
-      await renderQr(currentCardUrl);
+      renderQr(currentCardUrl);
 
       setStatus("");
     } catch (err) {
@@ -155,29 +156,58 @@
     return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
   }
 
-  async function renderQr(targetUrl) {
+  function renderQr(targetUrl) {
     if (!el.qrBox) return;
 
-    const size = 420;
-
-    const qrUrl =
-      "https://chart.googleapis.com/chart" +
-      "?cht=qr" +
-      "&chs=" + size + "x" + size +
-      "&chld=H|0" +
-      "&chl=" + encodeURIComponent(targetUrl);
-
-    const img = document.createElement("img");
-    img.alt = "智慧名片 QR code";
-    img.decoding = "sync";
-    img.loading = "eager";
-    img.referrerPolicy = "no-referrer";
-    img.src = qrUrl;
-
-    await waitSingleImage(img);
+    if (typeof window.QRCode === "undefined") {
+      throw new Error("本地 qrcode.min.js 未載入");
+    }
 
     el.qrBox.innerHTML = "";
-    el.qrBox.appendChild(img);
+
+    const qrMount = document.createElement("div");
+    qrMount.style.width = "100%";
+    qrMount.style.height = "100%";
+    qrMount.style.display = "flex";
+    qrMount.style.alignItems = "center";
+    qrMount.style.justifyContent = "center";
+
+    el.qrBox.appendChild(qrMount);
+
+    try {
+      new window.QRCode(qrMount, {
+        text: targetUrl,
+        width: 420,
+        height: 420,
+        colorDark: "#111111",
+        colorLight: "#ffffff",
+        correctLevel: window.QRCode.CorrectLevel.H
+      });
+
+      normalizeQrDom(qrMount);
+    } catch (err) {
+      console.error(`[HSC Poster ${VERSION}] QR render error:`, err);
+      throw new Error("QR code 產生失敗");
+    }
+  }
+
+  function normalizeQrDom(root) {
+    const img = root.querySelector("img");
+    const canvas = root.querySelector("canvas");
+
+    if (img) {
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.display = "block";
+      img.style.objectFit = "contain";
+      return;
+    }
+
+    if (canvas) {
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.display = "block";
+    }
   }
 
   async function onDownloadPoster() {
@@ -211,181 +241,4 @@
       clearStatusSoon();
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] download error:`, err);
-      setStatus(err.message || "海報下載失敗", true);
-    }
-  }
-
-  function onOpenCard() {
-    if (!currentCardUrl) return;
-    window.location.href = currentCardUrl;
-  }
-
-  async function onCopyCardLink() {
-    if (!currentCardUrl) return;
-    const ok = await copyText(currentCardUrl);
-    setStatus(ok ? "名片連結已複製" : "複製失敗，請手動複製", !ok);
-    clearStatusSoon();
-  }
-
-  async function onShareCard() {
-    if (!currentCardUrl) return;
-
-    const shareData = {
-      title: currentItem?.name ? `${currentItem.name} 的智慧名片` : "我的智慧名片",
-      text: "這是我的智慧名片，歡迎查看。",
-      url: currentCardUrl,
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-        setStatus("已開啟分享");
-        clearStatusSoon();
-        return;
-      }
-
-      const ok = await copyText(currentCardUrl);
-      setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
-      clearStatusSoon();
-    } catch (err) {
-      if (err && err.name === "AbortError") return;
-      const ok = await copyText(currentCardUrl);
-      setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
-      clearStatusSoon();
-    }
-  }
-
-  async function onRecommend() {
-    if (!currentRecommendUrl) return;
-    const ok = await copyText(currentRecommendUrl);
-    setStatus(ok ? "推薦智慧名片館連結已複製" : "複製失敗，請手動複製", !ok);
-    clearStatusSoon();
-  }
-
-  function onOpenLineOA() {
-    if (!lineOA) return;
-    window.location.href = lineOA;
-  }
-
-  function openDialog() {
-    if (!el.shareDialog) return;
-    el.shareDialog.classList.add("show");
-    el.shareDialog.setAttribute("aria-hidden", "false");
-  }
-
-  function closeDialog() {
-    if (!el.shareDialog) return;
-    el.shareDialog.classList.remove("show");
-    el.shareDialog.setAttribute("aria-hidden", "true");
-  }
-
-  function setStatus(message, isError = false) {
-    if (!el.statusText) return;
-
-    if (!message) {
-      el.statusText.textContent = "";
-      el.statusText.classList.remove("error");
-      return;
-    }
-
-    el.statusText.textContent = message;
-    el.statusText.classList.toggle("error", !!isError);
-  }
-
-  function clearStatusSoon() {
-    window.clearTimeout(clearStatusSoon._t);
-    clearStatusSoon._t = window.setTimeout(() => {
-      setStatus("");
-    }, 1800);
-  }
-
-  function text(v) {
-    return String(v || "").trim();
-  }
-
-  function normalizeBase(v) {
-    const s = String(v || "").trim();
-    if (!s) return "";
-    return s.endsWith("/") ? s : `${s}/`;
-  }
-
-  function safeFileName(v) {
-    return String(v || "poster")
-      .replace(/[\\/:*?"<>|]/g, "")
-      .replace(/\s+/g, "-")
-      .slice(0, 60);
-  }
-
-  function buildDefaultAvatarSvg() {
-    return "data:image/svg+xml;utf8," + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
-        <rect width="320" height="320" rx="160" fill="#eadfd4"/>
-        <circle cx="160" cy="122" r="58" fill="#d0b8a3"/>
-        <rect x="72" y="202" width="176" height="84" rx="42" fill="#d0b8a3"/>
-      </svg>
-    `);
-  }
-
-  function waitSingleImage(img) {
-    return new Promise((resolve, reject) => {
-      if (img.complete && img.naturalWidth > 0) {
-        resolve();
-        return;
-      }
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error("QR 圖片載入失敗"));
-    });
-  }
-
-  function waitForImages(root) {
-    const images = Array.from(root.querySelectorAll("img"));
-    if (!images.length) return Promise.resolve();
-
-    return Promise.all(
-      images.map((img) => {
-        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-
-        return new Promise((resolve) => {
-          const done = () => {
-            img.removeEventListener("load", done);
-            img.removeEventListener("error", done);
-            resolve();
-          };
-          img.addEventListener("load", done, { once: true });
-          img.addEventListener("error", done, { once: true });
-        });
-      })
-    );
-  }
-
-  async function copyText(value) {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(value);
-        return true;
-      }
-      return legacyCopyText(value);
-    } catch (err) {
-      return legacyCopyText(value);
-    }
-  }
-
-  function legacyCopyText(value) {
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = value;
-      ta.setAttribute("readonly", "readonly");
-      ta.style.position = "fixed";
-      ta.style.top = "-9999px";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      ta.setSelectionRange(0, ta.value.length);
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      return !!ok;
-    } catch (err) {
-      return false;
-    }
-  }
-})();
+      setStatus(err
