@@ -1,20 +1,19 @@
 /* ==========================================
- * HSC Poster v706.1
+ * HSC Poster v706.2
  * COMPLETE OVERWRITE
  *
- * v706.1 重點：
- * 1) 以可顯像穩定版為母版
- * 2) 修復海報頭像顯示
- * 3) Firebase 圖片自動 cache bust
- * 4) 打開我的智慧名片固定走 view=1
- * 5) 海報只截 #posterCapture
- * 6) 保留分享 / 複製 / 推薦 / LINE OA / 分享說明
+ * v706.2 重點：
+ * 1) 專修「下載海報沒有大頭照」
+ * 2) 頭像優先轉成 data URL，提升 html2canvas 成功率
+ * 3) 打開我的智慧名片固定走 view=1
+ * 4) 海報只截 #posterCapture
+ * 5) 保留分享 / 複製 / 推薦 / LINE OA / 分享說明
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "706.1";
+  const VERSION = "706.2";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -54,6 +53,7 @@
   let currentItem = null;
   let cardUrl = "";
   let currentAvatarUrl = "";
+  let currentAvatarDataUrl = "";
 
   function getGasUrl() {
     const qGas = (qs.get("gas") || "").trim();
@@ -137,28 +137,81 @@
     let out = text(url);
     if (!out) return "";
 
-    if (out.includes("firebasestorage.googleapis.com")) {
-      out += (out.includes("?") ? "&" : "?") + "_ts=" + Date.now();
-      return out;
-    }
-
     if (out.includes("drive.google.com/file/d/")) {
       try {
         const id = out.split("/d/")[1].split("/")[0];
-        return `https://drive.google.com/uc?export=view&id=${id}`;
-      } catch (_) {
-        return out;
-      }
+        out = `https://drive.google.com/uc?export=view&id=${id}`;
+      } catch (_) {}
+    }
+
+    if (out.includes("firebasestorage.googleapis.com")) {
+      out += (out.includes("?") ? "&" : "?") + "_ts=" + Date.now();
     }
 
     return out;
   }
 
-  function setAvatar(src, name) {
-    if (!avatarEl || !avatarFallbackEl) return;
+  async function urlToDataUrl(url) {
+    const finalUrl = resolveImage(url);
+    if (!finalUrl) return "";
 
-    const finalSrc = resolveImage(src);
-    currentAvatarUrl = finalSrc;
+    try {
+      const res = await fetch(finalUrl, { mode: "cors", cache: "no-store" });
+      if (!res.ok) throw new Error(`fetch ${res.status}`);
+      const blob = await res.blob();
+
+      return await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(String(fr.result || ""));
+        fr.onerror = () => reject(new Error("FileReader failed"));
+        fr.readAsDataURL(blob);
+      });
+    } catch (err) {
+      console.warn("[HSC Poster] urlToDataUrl failed:", err);
+      return "";
+    }
+  }
+
+  function waitForImage(img, timeout = 8000) {
+    if (!img) return Promise.resolve(false);
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve(true);
+
+    return new Promise((resolve) => {
+      let done = false;
+
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        img.removeEventListener("load", onLoad);
+        img.removeEventListener("error", onError);
+        resolve(ok);
+      };
+
+      const onLoad = () => finish(true);
+      const onError = () => finish(false);
+
+      const timer = setTimeout(() => finish(img.complete && img.naturalWidth > 0), timeout);
+
+      img.addEventListener("load", onLoad, { once: true });
+      img.addEventListener("error", onError, { once: true });
+    });
+  }
+
+  async function applyAvatarToDom(src, name) {
+    if (!avatarEl || !avatarFallbackEl) return false;
+
+    const finalSrc = text(src);
+    if (!finalSrc) {
+      avatarEl.style.display = "none";
+      avatarFallbackEl.style.display = "grid";
+      avatarFallbackEl.textContent = safeInitial(name);
+      return false;
+    }
+
+    avatarEl.style.display = "none";
+    avatarFallbackEl.style.display = "grid";
+    avatarFallbackEl.textContent = safeInitial(name);
 
     avatarEl.onload = () => {
       avatarEl.style.display = "block";
@@ -171,13 +224,19 @@
       avatarFallbackEl.textContent = safeInitial(name);
     };
 
-    if (finalSrc) {
-      avatarEl.src = finalSrc;
-    } else {
-      avatarEl.style.display = "none";
-      avatarFallbackEl.style.display = "grid";
-      avatarFallbackEl.textContent = safeInitial(name);
+    avatarEl.src = finalSrc;
+
+    const ok = await waitForImage(avatarEl, 8000);
+    if (ok) {
+      avatarEl.style.display = "block";
+      avatarFallbackEl.style.display = "none";
+      return true;
     }
+
+    avatarEl.style.display = "none";
+    avatarFallbackEl.style.display = "grid";
+    avatarFallbackEl.textContent = safeInitial(name);
+    return false;
   }
 
   function pickImage(item) {
@@ -327,39 +386,48 @@
     document.body.style.overflow = "";
   }
 
-  function waitForImage(img, timeout = 6000) {
-    if (!img) return Promise.resolve(false);
-    if (img.complete && img.naturalWidth > 0) return Promise.resolve(true);
+  async function prepareAvatar(name) {
+    const rawUrl = pickImage(currentItem || {});
+    currentAvatarUrl = resolveImage(rawUrl);
 
-    return new Promise((resolve) => {
-      let done = false;
+    // 優先轉成 data URL，海報成功率最高
+    currentAvatarDataUrl = await urlToDataUrl(currentAvatarUrl);
 
-      const finish = (ok) => {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        img.removeEventListener("load", onLoad);
-        img.removeEventListener("error", onError);
-        resolve(ok);
-      };
+    if (currentAvatarDataUrl) {
+      await applyAvatarToDom(currentAvatarDataUrl, name);
+      return;
+    }
 
-      const onLoad = () => finish(true);
-      const onError = () => finish(false);
+    if (currentAvatarUrl) {
+      await applyAvatarToDom(currentAvatarUrl, name);
+      return;
+    }
 
-      const timer = setTimeout(() => finish(img.complete && img.naturalWidth > 0), timeout);
-
-      img.addEventListener("load", onLoad, { once: true });
-      img.addEventListener("error", onError, { once: true });
-    });
+    await applyAvatarToDom("", name);
   }
 
   async function downloadPoster(item) {
     const target = posterCaptureEl || $("poster");
     if (!target) throw new Error("找不到海報區塊");
 
-    if (currentAvatarUrl && avatarEl) {
-      await waitForImage(avatarEl, 7000);
+    // 截圖前再強制一次，避免海報漏頭像
+    if (currentAvatarDataUrl) {
+      await applyAvatarToDom(currentAvatarDataUrl, item.name);
+    } else if (currentAvatarUrl) {
+      const retryDataUrl = await urlToDataUrl(currentAvatarUrl);
+      if (retryDataUrl) {
+        currentAvatarDataUrl = retryDataUrl;
+        await applyAvatarToDom(currentAvatarDataUrl, item.name);
+      } else {
+        await applyAvatarToDom(currentAvatarUrl, item.name);
+      }
     }
+
+    if (avatarEl) {
+      await waitForImage(avatarEl, 8000);
+    }
+
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     const canvas = await html2canvas(target, {
       backgroundColor: null,
@@ -400,7 +468,7 @@
     });
   }
 
-  function renderCard(item) {
+  async function renderCard(item) {
     currentItem = item;
     cardUrl = buildCardUrl(item.id || CARD_ID);
 
@@ -409,7 +477,7 @@
     if (titleEl) titleEl.textContent = item.title || "　";
     if (qrTipEl) qrTipEl.textContent = "掃描 QRCode 打開智慧名片";
 
-    setAvatar(pickImage(item), item.name);
+    await prepareAvatar(item.name);
     renderQrCode(cardUrl);
 
     if (btnShare) {
@@ -502,7 +570,7 @@
 
     try {
       const item = await fetchCard(CARD_ID);
-      renderCard(item);
+      await renderCard(item);
     } catch (err) {
       console.error(err);
       disableAllButtons();
