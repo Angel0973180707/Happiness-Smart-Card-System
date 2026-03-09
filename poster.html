@@ -6,7 +6,7 @@
     name="viewport"
     content="width=device-width,initial-scale=1,viewport-fit=cover"
   />
-  <title>天使幸福智慧名片｜名片交付卡</title>
+  <title>天使幸福智慧名片｜智慧名片交付卡</title>
   <meta name="theme-color" content="#f8f4ee" />
 
   <style>
@@ -217,6 +217,7 @@
       border-radius:22px;
       border:1px solid rgba(0,0,0,.04);
       position:relative;
+      cursor:pointer;
     }
 
     .qr-viewport{
@@ -297,6 +298,10 @@
 
     .qr-caption{
       margin-top:14px;
+      text-align:center;
+    }
+
+    .qr-caption-line{
       font-size:14px;
       line-height:1.7;
       color:var(--ink-soft);
@@ -447,7 +452,7 @@
       .name{ font-size:24px; }
       .title{ font-size:15px; }
       .qr-frame{ padding:20px 20px 16px; border-radius:24px; }
-      .qr-caption{ font-size:13px; }
+      .qr-caption-line{ font-size:13px; }
       .btn{ padding:15px 18px; font-size:15px; min-height:54px; }
       .action-group{ padding:12px; }
       .qr-center-avatar{ width:64px; height:64px; }
@@ -463,7 +468,7 @@
           <h1 class="brand-title">天使幸福智慧名片</h1>
           <div class="brand-sub">Angel Smart Card</div>
         </div>
-        <div class="delivery-pill">名片交付卡</div>
+        <div class="delivery-pill">智慧名片交付卡</div>
       </div>
 
       <div class="hero-body">
@@ -477,14 +482,17 @@
 
           <div class="qr-zone">
             <div class="qr-frame">
-              <div id="qrBox" class="qr-box">
+              <div id="qrBox" class="qr-box" title="點擊可打開智慧名片">
                 <div id="qrViewport" class="qr-viewport"></div>
                 <div id="qrCenterAvatar" class="qr-center-avatar">
                   <img id="qrCenterAvatarImg" alt="QR 頭像" />
                 </div>
                 <div id="qrLinkFallback" class="qr-link-fallback"></div>
               </div>
-              <div class="qr-caption">掃描QRcode查閱完整名片</div>
+              <div class="qr-caption">
+                <div class="qr-caption-line">掃描 QR Code</div>
+                <div class="qr-caption-line">查看完整智慧名片</div>
+              </div>
             </div>
           </div>
         </section>
@@ -495,7 +503,7 @@
           <h3 class="group-title">主要操作</h3>
           <div class="actions">
             <button id="downloadBtn" class="btn btn-primary" type="button">下載我的名片海報</button>
-            <button id="openCardBtn" class="btn btn-soft" type="button">查看我的智慧名片</button>
+            <button id="openCardBtn" class="btn btn-soft" type="button">打開我的智慧名片</button>
           </div>
         </section>
 
@@ -510,7 +518,7 @@
         <section class="action-group">
           <h3 class="group-title">推薦與客服</h3>
           <div class="actions">
-            <button id="recommendBtn" class="btn btn-soft" type="button">推薦智慧名片館</button>
+            <button id="recommendBtn" class="btn btn-soft" type="button">推薦天使智慧名片</button>
             <button id="helpBtn" class="btn btn-soft" type="button">分享說明</button>
             <button id="lineOABtn" class="btn btn-line" type="button">LINE 官方帳號</button>
           </div>
@@ -523,11 +531,11 @@
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
       <h3 id="dialogTitle" class="dialog-title">分享說明</h3>
       <div class="dialog-body">
-        <p>1. 分享自己的智慧名片，建議優先使用「複製我的名片連結」或「分享我的智慧名片」。</p>
-        <p>2. 名片海報適合傳圖片給對方，讓對方直接掃描 QRcode 查閱完整名片。</p>
-        <p>3. 若在微信分享，建議優先傳送名片海報圖片，比直接貼網址更穩定。</p>
-        <p>4. 若想推薦智慧名片服務，請使用「推薦智慧名片館」。</p>
-        <p>5. 若需要聯絡客服、開通或訂製，請點「LINE 官方帳號」。</p>
+        <p>1. 分享你的智慧名片連結，讓對方直接查看完整智慧名片。</p>
+        <p>2. 也可以使用名片海報分享，對方掃描 QR Code 即可查看。</p>
+        <p>3. 面對面交流時，可直接出示此 QR Code 讓對方掃描。</p>
+        <p>4. 對方收到名片後，可存入 LINE 記事本或微信收藏，方便之後再次開啟。</p>
+        <p>5. 手機上也可直接點擊 QR Code 打開智慧名片；若瀏覽器支援，之後還可加入桌面。</p>
       </div>
       <div class="dialog-actions">
         <button id="dialogCloseBtn" class="btn btn-primary dialog-close" type="button">我知道了</button>
@@ -536,6 +544,6 @@
   </div>
 
   <script src="./qrcode.min.js"></script>
-  <script src="./poster.js?v=8001"></script>
+  <script src="./poster.js?v=7080"></script>
 </body>
 </html>
