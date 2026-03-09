@@ -6,20 +6,26 @@
     name="viewport"
     content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"
   />
-  <title>智慧名片交付卡 v3.0</title>
+  <title>智慧名片交付卡 v4.0</title>
   <meta name="theme-color" content="#f6efe7" />
+
   <style>
     :root{
       --bg:#f6efe7;
       --card:#fffaf6;
-      --ink:#2a211b;
-      --muted:#7f7064;
-      --line:rgba(72,52,35,.10);
+      --ink:#2c221c;
+      --muted:#7a6c60;
+      --line:rgba(74,53,36,.10);
       --accent:#b67a47;
-      --accent-2:#8f5d33;
+      --accent-2:#8d5c32;
+      --line-green-1:#1ec95d;
+      --line-green-2:#08ad45;
+      --soft:#fff;
       --shadow:0 18px 40px rgba(87,61,33,.10);
-      --radius:24px;
-      --radius-sm:18px;
+      --shadow-soft:0 10px 24px rgba(87,61,33,.08);
+      --radius-xl:30px;
+      --radius-lg:24px;
+      --radius-md:18px;
     }
 
     *{ box-sizing:border-box; }
@@ -28,7 +34,7 @@
       margin:0;
       padding:0;
       background:
-        radial-gradient(1200px 700px at 50% -10%, rgba(255,255,255,.75), transparent 55%),
+        radial-gradient(1200px 700px at 50% -10%, rgba(255,255,255,.75), transparent 56%),
         var(--bg);
       color:var(--ink);
       font-family:
@@ -43,21 +49,21 @@
     }
 
     .page{
-      width:min(100%, 560px);
+      width:min(100%, 600px);
       margin:0 auto;
-      padding:20px 16px 36px;
+      padding:18px 14px 34px;
     }
 
     .hero-card{
-      background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,250,246,.98));
+      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,250,246,.98));
       border:1px solid var(--line);
-      border-radius:32px;
+      border-radius:var(--radius-xl);
       box-shadow:var(--shadow);
       overflow:hidden;
     }
 
-    .hero-top{
-      padding:22px 22px 10px;
+    .hero-head{
+      padding:24px 22px 8px;
       text-align:center;
     }
 
@@ -69,44 +75,43 @@
     }
 
     .hero-title{
-      font-size:28px;
-      font-weight:800;
-      line-height:1.25;
       margin:0;
+      font-size:28px;
+      line-height:1.25;
+      font-weight:900;
       letter-spacing:.02em;
     }
 
     .hero-sub{
       margin:10px auto 0;
-      max-width:26em;
-      font-size:15px;
-      line-height:1.8;
+      max-width:28em;
       color:var(--muted);
+      font-size:15px;
+      line-height:1.85;
     }
 
-    .poster-shell{
+    .hero-body{
       padding:18px;
     }
 
     .poster-canvas{
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,251,247,1));
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,251,247,1));
       border:1px solid rgba(84,59,36,.09);
       border-radius:28px;
-      padding:26px 20px 24px;
+      padding:26px 18px 24px;
       text-align:center;
-      box-shadow:0 10px 30px rgba(87,61,33,.08);
+      box-shadow:var(--shadow-soft);
     }
 
     .avatar-wrap{
       width:96px;
       height:96px;
+      margin:0 auto 14px;
       border-radius:50%;
       overflow:hidden;
-      margin:0 auto 14px;
+      background:#ede1d6;
       border:3px solid rgba(255,255,255,.95);
-      box-shadow:0 8px 20px rgba(87,61,33,.12);
-      background:#f1e6db;
+      box-shadow:0 10px 22px rgba(87,61,33,.12);
     }
 
     .avatar-wrap img{
@@ -117,25 +122,24 @@
     }
 
     .name{
-      font-size:28px;
-      font-weight:800;
-      line-height:1.25;
       margin:0;
+      font-size:28px;
+      line-height:1.25;
+      font-weight:900;
       letter-spacing:.04em;
       word-break:break-word;
     }
 
     .title{
       margin:10px auto 0;
-      font-size:16px;
-      color:var(--muted);
-      line-height:1.7;
       max-width:18em;
+      font-size:16px;
+      line-height:1.75;
+      color:var(--muted);
       word-break:break-word;
     }
 
     .qr-zone{
-      width:100%;
       margin:24px auto 0;
       display:flex;
       justify-content:center;
@@ -147,8 +151,8 @@
       background:#fff;
       border-radius:28px;
       padding:40px;
-      box-shadow:0 10px 24px rgba(0,0,0,.06);
       border:1px solid rgba(0,0,0,.05);
+      box-shadow:0 10px 24px rgba(0,0,0,.06);
     }
 
     .qr-box{
@@ -172,8 +176,8 @@
       margin:18px auto 0;
       font-size:15px;
       line-height:1.8;
-      color:#5c4a3d;
-      font-weight:700;
+      font-weight:800;
+      color:#5b483b;
     }
 
     .scan-sub{
@@ -183,8 +187,35 @@
       color:var(--muted);
     }
 
+    .status{
+      margin-top:14px;
+      text-align:center;
+      font-size:14px;
+      line-height:1.8;
+      color:var(--muted);
+    }
+
+    .status.error{
+      color:#b42318;
+    }
+
+    .action-group{
+      margin-top:16px;
+      background:rgba(255,255,255,.62);
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:14px;
+    }
+
+    .group-title{
+      margin:0 0 10px;
+      font-size:14px;
+      font-weight:900;
+      letter-spacing:.04em;
+      color:#6d5a4c;
+    }
+
     .actions{
-      margin-top:18px;
       display:grid;
       gap:12px;
     }
@@ -195,47 +226,47 @@
       border-radius:18px;
       padding:16px 18px;
       font-size:17px;
-      font-weight:800;
       line-height:1.2;
+      font-weight:900;
       cursor:pointer;
       transition:transform .18s ease, box-shadow .18s ease, opacity .18s ease;
     }
 
     .btn:active{
-      transform:scale(.985);
+      transform:scale(.986);
     }
 
     .btn-primary{
-      background:linear-gradient(180deg, #c48a57, #a96b3d);
       color:#fff;
+      background:linear-gradient(180deg, #c68b57, #a86b3d);
       box-shadow:0 12px 24px rgba(169,107,61,.26);
     }
 
     .btn-soft{
-      background:#fff;
       color:var(--ink);
+      background:#fff;
       border:1px solid var(--line);
       box-shadow:0 8px 18px rgba(87,61,33,.06);
     }
 
     .btn-line{
-      background:linear-gradient(180deg, #18c75a, #08aa45);
       color:#fff;
-      box-shadow:0 12px 24px rgba(10,165,66,.22);
+      background:linear-gradient(180deg, var(--line-green-1), var(--line-green-2));
+      box-shadow:0 12px 24px rgba(8,173,69,.22);
     }
 
     .hint{
       margin-top:14px;
       text-align:center;
       font-size:13px;
-      color:var(--muted);
       line-height:1.8;
+      color:var(--muted);
     }
 
     .dialog-mask{
       position:fixed;
       inset:0;
-      background:rgba(26,18,12,.44);
+      background:rgba(24,18,14,.44);
       display:none;
       align-items:center;
       justify-content:center;
@@ -248,10 +279,10 @@
     }
 
     .dialog{
-      width:min(100%, 460px);
+      width:min(100%, 480px);
       background:#fffaf7;
+      border:1px solid rgba(74,53,36,.10);
       border-radius:24px;
-      border:1px solid rgba(72,52,35,.10);
       box-shadow:0 24px 50px rgba(0,0,0,.18);
       padding:22px 18px 18px;
     }
@@ -259,13 +290,13 @@
     .dialog-title{
       margin:0 0 10px;
       font-size:22px;
-      font-weight:900;
       line-height:1.35;
+      font-weight:900;
       color:var(--ink);
     }
 
     .dialog-body{
-      color:#5c4d42;
+      color:#5d4e42;
       font-size:15px;
       line-height:1.9;
     }
@@ -281,46 +312,38 @@
     }
 
     .dialog-close{
-      min-width:110px;
-    }
-
-    .loading,
-    .error{
-      margin:18px 0 0;
-      text-align:center;
-      font-size:14px;
-      line-height:1.8;
-      color:var(--muted);
-    }
-
-    .error{
-      color:#b42318;
+      min-width:112px;
     }
 
     @media (max-width:480px){
       .page{ padding:16px 12px 28px; }
+      .hero-head{ padding:22px 18px 8px; }
       .hero-title{ font-size:24px; }
+      .hero-sub{ font-size:14px; }
+      .hero-body{ padding:14px; }
+      .poster-canvas{ padding:22px 14px 20px; }
+      .avatar-wrap{ width:88px; height:88px; }
       .name{ font-size:24px; }
       .title{ font-size:15px; }
-      .poster-canvas{ padding:22px 16px 20px; }
       .qr-frame{ padding:28px; border-radius:22px; }
-      .btn{ font-size:16px; padding:15px 16px; }
+      .btn{ padding:15px 16px; font-size:16px; }
+      .action-group{ padding:12px; }
     }
   </style>
 </head>
 <body>
   <main class="page">
     <section class="hero-card">
-      <div class="hero-top">
+      <div class="hero-head">
         <div class="eyebrow">智慧名片交付卡</div>
         <h1 class="hero-title">我的智慧名片海報</h1>
         <p class="hero-sub">
-          建議用海報分享給對方，請對方直接掃描 QR code 開啟名片，
-          在微信內會更穩定、不易走山。
+          建議直接分享海報圖片，讓對方掃描 QR code 開啟智慧名片，
+          在微信內會更穩定，也較不容易排版走山。
         </p>
       </div>
 
-      <div class="poster-shell">
+      <div class="hero-body">
         <section id="posterCapture" class="poster-canvas" aria-label="海報內容">
           <div class="avatar-wrap">
             <img id="avatarImg" alt="頭像" />
@@ -336,28 +359,38 @@
           </div>
 
           <div class="scan-tip">掃描 QR code 開啟我的智慧名片</div>
-          <div class="scan-sub">建議直接掃碼，不建議直接貼網址到微信聊天視窗</div>
+          <div class="scan-sub">建議直接掃碼，不建議直接把名片網址貼進微信聊天</div>
         </section>
 
-        <div id="loadingText" class="loading">正在載入海報資料…</div>
-        <div id="errorText" class="error" style="display:none;"></div>
+        <div id="statusText" class="status">正在載入海報資料…</div>
 
-        <div class="actions">
-          <button id="downloadBtn" class="btn btn-primary" type="button">
-            下載我的名片海報
-          </button>
+        <section class="action-group">
+          <h3 class="group-title">主要操作</h3>
+          <div class="actions">
+            <button id="downloadBtn" class="btn btn-primary" type="button">下載我的名片海報</button>
+            <button id="openCardBtn" class="btn btn-soft" type="button">查看我的智慧名片</button>
+          </div>
+        </section>
 
-          <button id="lineOABtn" class="btn btn-line" type="button">
-            LINE 官方帳號
-          </button>
+        <section class="action-group">
+          <h3 class="group-title">分享名片</h3>
+          <div class="actions">
+            <button id="copyLinkBtn" class="btn btn-soft" type="button">複製我的名片連結</button>
+            <button id="shareCardBtn" class="btn btn-soft" type="button">分享我的智慧名片</button>
+          </div>
+        </section>
 
-          <button id="shareHelpBtn" class="btn btn-soft" type="button">
-            分享說明
-          </button>
-        </div>
+        <section class="action-group">
+          <h3 class="group-title">推薦與客服</h3>
+          <div class="actions">
+            <button id="recommendBtn" class="btn btn-soft" type="button">推薦智慧名片館</button>
+            <button id="helpBtn" class="btn btn-soft" type="button">分享說明</button>
+            <button id="lineOABtn" class="btn btn-line" type="button">LINE 官方帳號</button>
+          </div>
+        </section>
 
         <div class="hint">
-          若是在微信內開啟，建議先下載海報，再把海報圖片傳給對方掃碼。
+          若在微信內開啟，建議先下載海報，再把海報圖片傳給對方掃碼。
         </div>
       </div>
     </section>
@@ -367,21 +400,20 @@
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
       <h3 id="dialogTitle" class="dialog-title">分享說明</h3>
       <div class="dialog-body">
-        <p>1. 最穩定的分享方式：先下載海報，再把海報圖片傳給對方。</p>
-        <p>2. 對方用微信、LINE 或手機相機掃描 QR code，都能直接打開智慧名片。</p>
-        <p>3. 不建議直接把名片網址貼進微信聊天，較容易出現排版跑掉或預覽異常。</p>
-        <p>4. 若是面對面交換資訊，直接出示這張海報讓對方掃描即可。</p>
+        <p>1. 最穩定的分享方式，是先下載海報圖片，再把海報傳給對方。</p>
+        <p>2. 對方可用微信、LINE、手機相機或掃碼工具，直接掃描 QR code 開啟智慧名片。</p>
+        <p>3. 不建議把名片網址直接貼進微信聊天視窗，較容易出現預覽異常或排版跑掉。</p>
+        <p>4. 若面對面交換資訊，直接打開這張海報讓對方掃碼即可。</p>
+        <p>5. 若想推薦智慧名片服務，請使用「推薦智慧名片館」按鈕。</p>
       </div>
       <div class="dialog-actions">
-        <button id="dialogCloseBtn" class="btn btn-primary dialog-close" type="button">
-          我知道了
-        </button>
+        <button id="dialogCloseBtn" class="btn btn-primary dialog-close" type="button">我知道了</button>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="./poster.js?v=300"></script>
+  <script src="./poster.js?v=400"></script>
 </body>
 </html>
