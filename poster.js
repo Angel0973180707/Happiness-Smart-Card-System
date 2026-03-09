@@ -1,18 +1,19 @@
 /* ==========================================
- * HSC Poster v4.1
+ * HSC Poster v704.1
  * COMPLETE OVERWRITE
  *
- * 修正重點：
- * 1. QR code 不見問題
- * 2. 先用 canvas 產生 QR
- * 3. 若 canvas 失敗，自動改用 img(dataURL) fallback
- * 4. 保留 7 個按鈕功能
+ * 重點：
+ * 1. 修正 QR code 顯示
+ * 2. 標題改為 icon + 天使幸福智慧名片
+ * 3. 名片交付卡使用橢圓框
+ * 4. 外露小字說明收進分享說明 Dialog
+ * 5. 保留 7 個按鈕
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "4.1";
+  const VERSION = "704.1";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -21,6 +22,11 @@
     "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
 
   const DEFAULT_LINE_OA = "https://lin.ee/3r2ZePN";
+
+  const QR_SCRIPT_CANDIDATES = [
+    "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js",
+    "https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"
+  ];
 
   const qs = new URLSearchParams(location.search);
   const id = (qs.get("id") || "").trim();
@@ -59,7 +65,7 @@
     try {
       if (!id) throw new Error("缺少名片 id");
 
-      setStatus("正在載入海報資料…", false);
+      setStatus("正在載入資料…", false);
 
       const item = await fetchCard(id);
       currentItem = item;
@@ -69,12 +75,13 @@
       currentCardUrl = buildCardUrl(item);
       currentRecommendUrl = buildRecommendUrl(item);
 
+      await ensureQRCodeLib();
       await renderQr(currentCardUrl);
 
       setStatus("");
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] init error:`, err);
-      setStatus(err.message || "海報載入失敗", true);
+      setStatus(err.message || "載入失敗", true);
     }
   }
 
@@ -100,6 +107,7 @@
 
   async function fetchCard(cardId) {
     const url = `${gas}?action=card&id=${encodeURIComponent(cardId)}&_=${Date.now()}`;
+
     const res = await fetch(url, {
       method: "GET",
       mode: "cors",
@@ -126,7 +134,7 @@
       text(item.title) ||
       text(item.unit) ||
       text(item.slogan) ||
-      "歡迎掃碼查看我的智慧名片";
+      "";
 
     if (el.cardName) el.cardName.textContent = name;
     if (el.cardTitle) el.cardTitle.textContent = title;
@@ -155,45 +163,48 @@
     return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
   }
 
+  async function ensureQRCodeLib() {
+    if (window.QRCode && typeof window.QRCode.toDataURL === "function") return;
+
+    for (const src of QR_SCRIPT_CANDIDATES) {
+      try {
+        await loadScript(src);
+        if (window.QRCode && typeof window.QRCode.toDataURL === "function") return;
+      } catch (err) {
+        console.warn(`[HSC Poster ${VERSION}] QR script load failed:`, src, err);
+      }
+    }
+
+    throw new Error("QRCode 套件載入失敗");
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const existed = Array.from(document.scripts).find((s) => s.src === src);
+      if (existed) {
+        if (window.QRCode) resolve();
+        else reject(new Error("script exists but QRCode unavailable"));
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`load fail: ${src}`));
+      document.head.appendChild(script);
+    });
+  }
+
   async function renderQr(targetUrl) {
     if (!el.qrBox) return;
 
     el.qrBox.innerHTML = "";
     el.qrBox.style.minHeight = "280px";
 
-    if (!window.QRCode) {
-      throw new Error("QRCode 套件未載入");
-    }
-
     try {
-      const canvas = document.createElement("canvas");
-      canvas.width = 340;
-      canvas.height = 340;
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      canvas.style.display = "block";
-
-      el.qrBox.appendChild(canvas);
-
-      await QRCode.toCanvas(canvas, targetUrl, {
-        width: 340,
-        margin: 2,
-        errorCorrectionLevel: "H",
-        color: {
-          dark: "#111111",
-          light: "#ffffff"
-        }
-      });
-
-      return;
-    } catch (canvasErr) {
-      console.warn(`[HSC Poster ${VERSION}] QR canvas failed, fallback to img`, canvasErr);
-      el.qrBox.innerHTML = "";
-    }
-
-    try {
-      const dataUrl = await QRCode.toDataURL(targetUrl, {
-        width: 340,
+      const dataUrl = await window.QRCode.toDataURL(targetUrl, {
+        width: 420,
         margin: 2,
         errorCorrectionLevel: "H",
         color: {
@@ -205,14 +216,18 @@
       const img = document.createElement("img");
       img.src = dataUrl;
       img.alt = "智慧名片 QR code";
+      img.decoding = "sync";
+      img.loading = "eager";
       img.style.width = "100%";
       img.style.height = "100%";
       img.style.display = "block";
       img.style.objectFit = "contain";
 
+      await waitSingleImage(img);
+      el.qrBox.innerHTML = "";
       el.qrBox.appendChild(img);
-    } catch (imgErr) {
-      console.error(`[HSC Poster ${VERSION}] QR img fallback failed`, imgErr);
+    } catch (err) {
+      console.error(`[HSC Poster ${VERSION}] QR render fail:`, err);
       el.qrBox.innerHTML = `
         <div style="
           width:100%;
@@ -227,7 +242,7 @@
           line-height:1.8;
           padding:16px;
         ">
-          QR code 產生失敗，請重新整理頁面再試
+          QR code 產生失敗
         </div>
       `;
       throw new Error("QR code 產生失敗");
@@ -244,7 +259,11 @@
 
       await waitForImages(el.posterCapture);
 
-      const canvas = await html2canvas(el.posterCapture, {
+      if (!window.html2canvas) {
+        await ensureHtml2Canvas();
+      }
+
+      const canvas = await window.html2canvas(el.posterCapture, {
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#fffaf6",
@@ -266,6 +285,14 @@
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] download error:`, err);
       setStatus(err.message || "海報下載失敗", true);
+    }
+  }
+
+  async function ensureHtml2Canvas() {
+    if (window.html2canvas) return;
+    await loadScript("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js");
+    if (!window.html2canvas) {
+      throw new Error("html2canvas 載入失敗");
     }
   }
 
@@ -299,11 +326,10 @@
       }
 
       const ok = await copyText(currentCardUrl);
-      setStatus(ok ? "裝置不支援一鍵分享，已改為複製名片連結" : "分享失敗，請手動複製", !ok);
+      setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
       clearStatusSoon();
     } catch (err) {
       if (err && err.name === "AbortError") return;
-
       const ok = await copyText(currentCardUrl);
       setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
       clearStatusSoon();
@@ -340,11 +366,9 @@
     if (!message) {
       el.statusText.textContent = "";
       el.statusText.classList.remove("error");
-      el.statusText.style.display = "none";
       return;
     }
 
-    el.statusText.style.display = "block";
     el.statusText.textContent = message;
     el.statusText.classList.toggle("error", !!isError);
   }
@@ -381,6 +405,17 @@
         <rect x="72" y="202" width="176" height="84" rx="42" fill="#d0b8a3"/>
       </svg>
     `);
+  }
+
+  function waitSingleImage(img) {
+    return new Promise((resolve, reject) => {
+      if (img.complete && img.naturalWidth > 0) {
+        resolve();
+        return;
+      }
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("image load fail"));
+    });
   }
 
   function waitForImages(root) {
