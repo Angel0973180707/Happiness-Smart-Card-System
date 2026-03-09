@@ -1,25 +1,18 @@
 /* ==========================================
- * HSC Poster v709.0
+ * HSC Poster v709.1
  * COMPLETE OVERWRITE
  *
- * 商用版：
- * 1. 本地 QR 生成
- * 2. QR 中央頭像
- * 3. 頭像 / 姓名 / 標題載入
- * 4. 桌機下載 / 手機直接開圖長按保存
- * 5. 查看智慧名片（乾淨版）
- * 6. 複製名片連結
- * 7. 分享智慧名片
- * 8. 推薦智慧名片館
- * 9. 分享說明 Dialog
- * 10. LINE 官方帳號
- * 11. QR Code 可點擊進入名片
+ * 修正重點：
+ * 1. 修正手機海報下載卡住
+ * 2. 增加 QR render 等待
+ * 3. 保留桌機下載 / 手機直接開圖長按保存
+ * 4. 不改 UI 架構
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "709.0";
+  const VERSION = "709.1";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -217,7 +210,7 @@
       correctLevel: window.QRCode.CorrectLevel.H
     });
 
-    await wait(120);
+    await wait(300);
 
     const source = normalizeQrSource(mount);
     if (!source) {
@@ -308,7 +301,13 @@
       disableButton(el.downloadBtn, true);
       setStatus("正在產生海報圖片…", false);
 
+      await wait(300);
+
       const canvas = await buildPosterCanvas();
+      if (!canvas) {
+        throw new Error("海報 canvas 建立失敗");
+      }
+
       const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
       const dataUrl = canvas.toDataURL("image/png", 0.96);
 
@@ -415,6 +414,8 @@
   }
 
   async function getQrDrawable() {
+    await wait(80);
+
     if (!currentQrSource) return null;
 
     if (currentQrSource.tagName === "CANVAS") return currentQrSource;
