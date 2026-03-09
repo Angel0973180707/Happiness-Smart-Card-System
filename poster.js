@@ -1,21 +1,25 @@
 /* ==========================================
- * HSC Poster v708.0
+ * HSC Poster v709.0
  * COMPLETE OVERWRITE
  *
- * 對齊重點：
- * 1. 標題：智慧名片交付卡
- * 2. QR 文案：掃描 QR Code / 查看完整智慧名片
- * 3. QR 中央頭像比例維持不變
- * 4. QR / 打開名片 / 複製連結 / 分享名片 全部導向乾淨版名片
- * 5. QR 可點擊直接打開名片
- * 6. 分享說明改為商用版順序
- * 7. 不動 index.html / app.js / style.css 架構
+ * 商用版：
+ * 1. 本地 QR 生成
+ * 2. QR 中央頭像
+ * 3. 頭像 / 姓名 / 標題載入
+ * 4. 桌機下載 / 手機直接開圖長按保存
+ * 5. 查看智慧名片（乾淨版）
+ * 6. 複製名片連結
+ * 7. 分享智慧名片
+ * 8. 推薦智慧名片館
+ * 9. 分享說明 Dialog
+ * 10. LINE 官方帳號
+ * 11. QR Code 可點擊進入名片
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "708.0";
+  const VERSION = "709.0";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -309,14 +313,14 @@
       const dataUrl = canvas.toDataURL("image/png", 0.96);
 
       if (isMobileDevice()) {
-        openImageInNewTab(dataUrl, filename);
-        setStatus("海報已開啟，請長按圖片保存", false);
-      } else {
-        triggerDownload(dataUrl, filename);
-        setStatus("海報下載完成", false);
+        showImagePage(dataUrl, filename);
+        return;
       }
 
+      triggerDownload(dataUrl, filename);
+      setStatus("海報下載完成", false);
       clearStatusSoon();
+
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] download error:`, err);
       setStatus("海報產生失敗，請重試", true);
@@ -397,12 +401,12 @@
       drawQrCenterCircle(ctx, qrCenterAvatar, width / 2, qrBoxY + qrBoxSize / 2, 82);
     }
 
-    drawCenteredText(ctx, "掃描 QR Code", width / 2, 1440, {
+    drawCenteredText(ctx, "掃描 QR Code", width / 2, 1448, {
       font: "800 30px 'Noto Sans TC', sans-serif",
       color: "#705d50"
     });
 
-    drawCenteredText(ctx, "查看完整智慧名片", width / 2, 1484, {
+    drawCenteredText(ctx, "查看完整智慧名片", width / 2, 1492, {
       font: "800 30px 'Noto Sans TC', sans-serif",
       color: "#705d50"
     });
@@ -683,39 +687,54 @@
     btn.style.cursor = disabled ? "wait" : "";
   }
 
-  function openImageInNewTab(dataUrl, filename) {
-    const w = window.open("", "_blank");
-    if (!w) return;
-
-    w.document.write(`
-      <!doctype html>
+  function showImagePage(dataUrl, filename) {
+    document.documentElement.innerHTML = `
       <html lang="zh-Hant">
       <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
         <title>${escapeHtml(filename)}</title>
         <style>
-          body{
+          html,body{
             margin:0;
+            padding:0;
             background:#111;
+            min-height:100%;
+            font-family:system-ui,-apple-system,sans-serif;
+          }
+          .wrap{
+            min-height:100vh;
             display:flex;
+            flex-direction:column;
             align-items:center;
             justify-content:center;
-            min-height:100vh;
+            padding:16px;
+            gap:14px;
+          }
+          .tip{
+            color:rgba(255,255,255,.88);
+            font-size:15px;
+            line-height:1.6;
+            text-align:center;
           }
           img{
             max-width:100%;
             height:auto;
             display:block;
+            border-radius:14px;
+            box-shadow:0 14px 36px rgba(0,0,0,.45);
+            background:#fff;
           }
         </style>
       </head>
       <body>
-        <img src="${dataUrl}" alt="poster">
+        <div class="wrap">
+          <div class="tip">海報已開啟，請長按圖片保存到相簿</div>
+          <img src="${dataUrl}" alt="poster">
+        </div>
       </body>
       </html>
-    `);
-    w.document.close();
+    `;
   }
 
   function triggerDownload(dataUrl, filename) {
