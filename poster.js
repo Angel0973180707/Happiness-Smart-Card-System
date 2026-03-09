@@ -1,24 +1,21 @@
 /* ==========================================
- * HSC Poster v800.1
+ * HSC Poster v708.0
  * COMPLETE OVERWRITE
  *
- * 商用版：
- * 1. 本地 QR 生成
- * 2. QR 中央頭像
- * 3. 頭像 / 姓名 / 標題載入
- * 4. 下載海報（桌機下載 / 手機開圖長按保存）
- * 5. 查看智慧名片
- * 6. 複製名片連結
- * 7. 分享智慧名片
- * 8. 推薦智慧名片館
- * 9. 分享說明 Dialog
- * 10. LINE 官方帳號
+ * 對齊重點：
+ * 1. 標題：智慧名片交付卡
+ * 2. QR 文案：掃描 QR Code / 查看完整智慧名片
+ * 3. QR 中央頭像比例維持不變
+ * 4. QR / 打開名片 / 複製連結 / 分享名片 全部導向乾淨版名片
+ * 5. QR 可點擊直接打開名片
+ * 6. 分享說明改為商用版順序
+ * 7. 不動 index.html / app.js / style.css 架構
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "800.1";
+  const VERSION = "708.0";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -43,6 +40,7 @@
     qrCenterAvatar: document.getElementById("qrCenterAvatar"),
     qrCenterAvatarImg: document.getElementById("qrCenterAvatarImg"),
     qrLinkFallback: document.getElementById("qrLinkFallback"),
+    qrBox: document.getElementById("qrBox"),
     posterCapture: document.getElementById("posterCapture"),
     statusText: document.getElementById("statusText"),
 
@@ -111,6 +109,12 @@
       if (e.target === el.shareDialog) closeDialog();
     });
 
+    el.qrBox?.addEventListener("click", () => {
+      if (currentCardUrl) {
+        window.open(currentCardUrl, "_blank", "noopener");
+      }
+    });
+
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeDialog();
     });
@@ -177,7 +181,7 @@
 
   function buildCardUrl(item) {
     const cardId = text(item?.id) || id;
-    return `${baseUrl}index.html?id=${encodeURIComponent(cardId)}`;
+    return `${baseUrl}index.html?id=${encodeURIComponent(cardId)}&view=1`;
   }
 
   function buildRecommendUrl(item) {
@@ -393,8 +397,13 @@
       drawQrCenterCircle(ctx, qrCenterAvatar, width / 2, qrBoxY + qrBoxSize / 2, 82);
     }
 
-    drawCenteredText(ctx, "掃描QRcode查閱完整名片", width / 2, 1452, {
-      font: "800 28px 'Noto Sans TC', sans-serif",
+    drawCenteredText(ctx, "掃描 QR Code", width / 2, 1440, {
+      font: "800 30px 'Noto Sans TC', sans-serif",
+      color: "#705d50"
+    });
+
+    drawCenteredText(ctx, "查看完整智慧名片", width / 2, 1484, {
+      font: "800 30px 'Noto Sans TC', sans-serif",
       color: "#705d50"
     });
 
@@ -499,15 +508,15 @@
       color: "#8b7a6d"
     });
 
-    drawRoundRect(ctx, 388, 176, 304, 46, 23, "#fbf2e8");
+    drawRoundRect(ctx, 356, 176, 368, 50, 25, "#fbf2e8");
     ctx.save();
     ctx.strokeStyle = "rgba(191,135,87,.16)";
     ctx.lineWidth = 2;
-    roundRectPath(ctx, 388, 176, 304, 46, 23);
+    roundRectPath(ctx, 356, 176, 368, 50, 25);
     ctx.stroke();
     ctx.restore();
 
-    drawCenteredText(ctx, "名片交付卡", width / 2, 198, {
+    drawCenteredText(ctx, "智慧名片交付卡", width / 2, 200, {
       font: "900 24px 'Noto Sans TC', sans-serif",
       color: "#9d6d45"
     });
@@ -774,7 +783,7 @@
       return;
     }
     const ok = await copyText(currentRecommendUrl);
-    setStatus(ok ? "推薦智慧名片館連結已複製" : "複製失敗，請手動複製", !ok);
+    setStatus(ok ? "推薦天使智慧名片連結已複製" : "複製失敗，請手動複製", !ok);
     clearStatusSoon();
   }
 
