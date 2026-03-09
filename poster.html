@@ -1,1331 +1,387 @@
 <!doctype html>
-
 <html lang="zh-Hant">
-
 <head>
-
   <meta charset="utf-8" />
-
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-
-  <title>智慧名片交付卡 v706</title>
-
-  <meta name="theme-color" content="#e8f2ec" />
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&display=swap" rel="stylesheet">
-
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"
+  />
+  <title>智慧名片交付卡 v3.0</title>
+  <meta name="theme-color" content="#f6efe7" />
   <style>
-
     :root{
-
-      --bg-1:#f2f8f4;
-
-      --bg-2:#e8f2ec;
-
-      --bg-3:#dceee3;
-
-      --card:#ffffff;
-
-      --ink:#233d2e;
-
-      --ink-2:#3d6150;
-
-      --muted:#6a8f7a;
-
-      --line:#d0e4d8;
-
-      --line-2:#bdd4c6;
-
-      --brand:#4a8f68;
-
-      --brand-deep:#387554;
-
-      --brand-deeper:#2d6044;
-
-      --brand-soft:#eef7f2;
-
-      --gold:#c9a84c;
-
-      --gold-soft:#fdf8ee;
-
-      --radius-xl:32px;
-
-      --radius-lg:26px;
-
-      --radius-md:20px;
-
-      --radius-pill:999px;
-
+      --bg:#f6efe7;
+      --card:#fffaf6;
+      --ink:#2a211b;
+      --muted:#7f7064;
+      --line:rgba(72,52,35,.10);
+      --accent:#b67a47;
+      --accent-2:#8f5d33;
+      --shadow:0 18px 40px rgba(87,61,33,.10);
+      --radius:24px;
+      --radius-sm:18px;
     }
 
     *{ box-sizing:border-box; }
 
-    html,body{ margin:0; padding:0; }
+    html,body{
+      margin:0;
+      padding:0;
+      background:
+        radial-gradient(1200px 700px at 50% -10%, rgba(255,255,255,.75), transparent 55%),
+        var(--bg);
+      color:var(--ink);
+      font-family:
+        "Noto Sans TC","PingFang TC","Microsoft JhengHei",
+        system-ui,-apple-system,sans-serif;
+      -webkit-text-size-adjust:100%;
+      text-size-adjust:100%;
+    }
 
     body{
-
-      font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
-
-      color:var(--ink);
-
-      display:flex;
-
-      justify-content:center;
-
-      min-height:100svh;
-
-      background:
-
-        radial-gradient(ellipse 900px 500px at 50% -5%, rgba(74,143,104,.13), transparent 60%),
-
-        radial-gradient(ellipse 600px 400px at 80% 90%, rgba(74,143,104,.07), transparent 55%),
-
-        linear-gradient(180deg,var(--bg-1) 0%,var(--bg-2) 55%,var(--bg-3) 100%);
-
+      min-height:100vh;
     }
 
-    img{ display:block; max-width:100%; }
-
-    /* ── 外層 ── */
-
-    .wrap{
-
-      width:100%;
-
-      max-width:460px;
-
-      padding:28px 16px 60px;
-
+    .page{
+      width:min(100%, 560px);
+      margin:0 auto;
+      padding:20px 16px 36px;
     }
 
-    /* ── 主卡片 ── */
-
-    .delivery-card{
-
-      background:#fff;
-
-      border:1px solid rgba(74,143,104,.18);
-
-      border-radius:36px;
-
-      box-shadow:
-
-        0 2px 0 rgba(255,255,255,.9) inset,
-
-        0 24px 56px rgba(36,70,52,.10),
-
-        0 4px 12px rgba(36,70,52,.05);
-
-      padding:18px;
-
-      position:relative;
-
+    .hero-card{
+      background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,250,246,.98));
+      border:1px solid var(--line);
+      border-radius:32px;
+      box-shadow:var(--shadow);
       overflow:hidden;
-
     }
 
-    /* 頂部光澤條 */
-
-    .delivery-card::before{
-
-      content:"";
-
-      position:absolute;
-
-      inset:0 0 auto 0;
-
-      height:130px;
-
-      background:linear-gradient(180deg, rgba(100,170,130,.09) 0%, transparent 100%);
-
-      pointer-events:none;
-
-      border-radius:36px 36px 0 0;
-
-    }
-
-    /* 底部微光 */
-
-    .delivery-card::after{
-
-      content:"";
-
-      position:absolute;
-
-      inset:auto 0 0 0;
-
-      height:80px;
-
-      background:linear-gradient(0deg, rgba(74,143,104,.04) 0%, transparent 100%);
-
-      pointer-events:none;
-
-      border-radius:0 0 36px 36px;
-
-    }
-
-    /* ── 海報截圖區 ── */
-
-    #posterCapture{
-
-      position:relative;
-
-      z-index:1;
-
-    }
-
-    /* ── 品牌標題 ── */
-
-    .poster-brand{
-
+    .hero-top{
+      padding:22px 22px 10px;
       text-align:center;
-
-      padding:8px 8px 14px;
-
-      position:relative;
-
     }
 
-    .poster-brand::after{
-
-      content:"";
-
-      display:block;
-
-      width:48px;
-
-      height:2px;
-
-      background:linear-gradient(90deg, transparent, var(--brand), transparent);
-
-      margin:10px auto 0;
-
-      border-radius:999px;
-
-    }
-
-    .poster-brand-title{
-
-      margin:0;
-
-      color:var(--brand-deeper);
-
-      font-size:22px;
-
-      line-height:1.3;
-
-      font-weight:900;
-
-      letter-spacing:.12em;
-
-      font-family:"Noto Serif TC","Noto Sans TC",serif;
-
-      text-shadow:0 1px 0 rgba(255,255,255,.8);
-
-    }
-
-    .poster-brand-sub{
-
-      margin:4px 0 0;
-
+    .eyebrow{
+      font-size:13px;
+      letter-spacing:.08em;
       color:var(--muted);
-
-      font-size:12px;
-
-      letter-spacing:.18em;
-
-      font-weight:500;
-
+      margin-bottom:10px;
     }
 
-    /* ── 海報本體 ── */
+    .hero-title{
+      font-size:28px;
+      font-weight:800;
+      line-height:1.25;
+      margin:0;
+      letter-spacing:.02em;
+    }
 
-    .poster{
+    .hero-sub{
+      margin:10px auto 0;
+      max-width:26em;
+      font-size:15px;
+      line-height:1.8;
+      color:var(--muted);
+    }
 
-      background:linear-gradient(160deg,#ffffff 0%,#f8fcfa 100%);
+    .poster-shell{
+      padding:18px;
+    }
 
+    .poster-canvas{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,251,247,1));
+      border:1px solid rgba(84,59,36,.09);
       border-radius:28px;
-
-      padding:26px 20px 22px;
-
-      border:1px solid rgba(74,143,104,.14);
-
-      box-shadow:
-
-        0 1px 0 rgba(255,255,255,.95) inset,
-
-        0 10px 28px rgba(36,70,52,.06);
-
+      padding:26px 20px 24px;
       text-align:center;
-
-      position:relative;
-
-      overflow:hidden;
-
+      box-shadow:0 10px 30px rgba(87,61,33,.08);
     }
-
-    /* 海報背景紋路 */
-
-    .poster::before{
-
-      content:"";
-
-      position:absolute;
-
-      inset:0;
-
-      background-image:
-
-        radial-gradient(circle at 15% 85%, rgba(74,143,104,.05) 0%, transparent 40%),
-
-        radial-gradient(circle at 85% 10%, rgba(74,143,104,.04) 0%, transparent 40%);
-
-      pointer-events:none;
-
-    }
-
-    /* ── 頭像 ── */
 
     .avatar-wrap{
-
-      width:120px;
-
-      height:120px;
-
-      margin:0 auto 18px;
-
+      width:96px;
+      height:96px;
       border-radius:50%;
-
       overflow:hidden;
-
-      background:linear-gradient(135deg,#f5faf7 0%,#e8f3ed 100%);
-
+      margin:0 auto 14px;
       border:3px solid rgba(255,255,255,.95);
-
-      display:grid;
-
-      place-items:center;
-
-      position:relative;
-
-      box-shadow:
-
-        0 0 0 1px rgba(74,143,104,.16),
-
-        0 12px 28px rgba(36,70,52,.12),
-
-        0 2px 6px rgba(36,70,52,.08);
-
+      box-shadow:0 8px 20px rgba(87,61,33,.12);
+      background:#f1e6db;
     }
 
-    /* 金色光環 */
-
-    .avatar-wrap::before{
-
-      content:"";
-
-      position:absolute;
-
-      inset:-3px;
-
-      border-radius:50%;
-
-      background:conic-gradient(
-
-        from 0deg,
-
-        rgba(201,168,76,.4),
-
-        rgba(74,143,104,.3),
-
-        rgba(201,168,76,.4),
-
-        rgba(74,143,104,.3),
-
-        rgba(201,168,76,.4)
-
-      );
-
-      z-index:-1;
-
-      animation:rotate 8s linear infinite;
-
-    }
-
-    @keyframes rotate{
-
-      to{ transform:rotate(360deg); }
-
-    }
-
-    .avatar{
-
+    .avatar-wrap img{
       width:100%;
-
       height:100%;
-
       object-fit:cover;
-
-      object-position:center;
-
-      display:none;
-
+      display:block;
     }
-
-    .avatar-fallback{
-
-      width:100%;
-
-      height:100%;
-
-      display:grid;
-
-      place-items:center;
-
-      font-size:30px;
-
-      font-weight:900;
-
-      color:var(--brand-deep);
-
-      letter-spacing:.04em;
-
-      user-select:none;
-
-      font-family:"Noto Serif TC",serif;
-
-    }
-
-    /* ── 姓名 ── */
 
     .name{
-
-      margin:0 0 10px;
-
-      font-size:32px;
-
-      line-height:1.2;
-
-      font-weight:900;
-
-      color:var(--brand-deeper);
-
+      font-size:28px;
+      font-weight:800;
+      line-height:1.25;
+      margin:0;
       letter-spacing:.04em;
-
-      font-family:"Noto Serif TC","Noto Sans TC",serif;
-
-      text-shadow:0 1px 0 rgba(255,255,255,.7);
-
-      text-wrap:balance;
-
-      word-break:keep-all;
-
+      word-break:break-word;
     }
 
-    /* ── 單位 / 職稱 ── */
-
-    .unit,.title{
-
-      margin:0 0 5px;
-
+    .title{
+      margin:10px auto 0;
       font-size:16px;
-
-      line-height:1.4;
-
-      font-weight:700;
-
-      color:var(--ink-2);
-
-      letter-spacing:.06em;
-
-      text-wrap:balance;
-
-      word-break:keep-all;
-
-      overflow-wrap:break-word;
-
+      color:var(--muted);
+      line-height:1.7;
+      max-width:18em;
+      word-break:break-word;
     }
 
-    .title{ margin-bottom:0; color:var(--muted); font-size:15px; }
-
-    /* ── QR 卡 ── */
-
-    .qr-card{
-
-      margin-top:20px;
-
-      background:linear-gradient(180deg,#ffffff 0%,#f9fcfa 100%);
-
-      border-radius:24px;
-
-      padding:18px 14px 16px;
-
-      border:1px solid rgba(74,143,104,.13);
-
-      box-shadow:
-
-        0 1px 0 rgba(255,255,255,.9) inset,
-
-        0 6px 18px rgba(36,70,52,.05);
-
-      position:relative;
-
+    .qr-zone{
+      width:100%;
+      margin:24px auto 0;
+      display:flex;
+      justify-content:center;
     }
 
-    /* QR 四角裝飾 */
-
-    .qr-corner{
-
-      position:absolute;
-
-      width:16px;
-
-      height:16px;
-
-      border-color:var(--brand);
-
-      border-style:solid;
-
-      border-width:0;
-
+    .qr-frame{
+      width:420px;
+      max-width:100%;
+      background:#fff;
+      border-radius:28px;
+      padding:40px;
+      box-shadow:0 10px 24px rgba(0,0,0,.06);
+      border:1px solid rgba(0,0,0,.05);
     }
-
-    .qr-corner-tl{ top:10px; left:10px; border-top-width:2px; border-left-width:2px; border-radius:4px 0 0 0; }
-
-    .qr-corner-tr{ top:10px; right:10px; border-top-width:2px; border-right-width:2px; border-radius:0 4px 0 0; }
-
-    .qr-corner-bl{ bottom:10px; left:10px; border-bottom-width:2px; border-left-width:2px; border-radius:0 0 0 4px; }
-
-    .qr-corner-br{ bottom:10px; right:10px; border-bottom-width:2px; border-right-width:2px; border-radius:0 0 4px 0; }
 
     .qr-box{
-
-      width:210px;
-
-      height:210px;
-
-      margin:0 auto;
-
-      border-radius:20px;
-
+      width:100%;
+      aspect-ratio:1/1;
       background:#fff;
-
-      border:1px solid #ddeae1;
-
-      display:grid;
-
-      place-items:center;
-
+      display:flex;
+      align-items:center;
+      justify-content:center;
       overflow:hidden;
-
-      box-shadow:0 4px 14px rgba(36,70,52,.06);
-
     }
 
-    #qrcode{
-
-      width:196px;
-
-      height:196px;
-
-      display:grid;
-
-      place-items:center;
-
+    .qr-box canvas,
+    .qr-box img{
+      width:100% !important;
+      height:100% !important;
+      display:block;
     }
 
-    #qrcode canvas,
-
-    #qrcode img{
-
-      width:196px !important;
-
-      height:196px !important;
-
-      image-rendering:pixelated;
-
+    .scan-tip{
+      margin:18px auto 0;
+      font-size:15px;
+      line-height:1.8;
+      color:#5c4a3d;
+      font-weight:700;
     }
 
-    .qr-text{
-
-      margin-top:12px;
-
+    .scan-sub{
+      margin:6px auto 0;
       font-size:13px;
-
-      line-height:1.5;
-
+      line-height:1.8;
       color:var(--muted);
-
-      font-weight:600;
-
-      letter-spacing:.06em;
-
-      text-align:center;
-
     }
-
-    /* ── 操作區 ── */
 
     .actions{
-
-      position:relative;
-
-      z-index:5;
-
-      margin-top:16px;
-
-      background:linear-gradient(180deg,#fafdfb 0%,#f5faf7 100%);
-
-      border:1px solid rgba(74,143,104,.14);
-
-      border-radius:28px;
-
-      padding:16px;
-
-      box-shadow:
-
-        0 1px 0 rgba(255,255,255,.9) inset,
-
-        0 8px 20px rgba(36,70,52,.05);
-
+      margin-top:18px;
+      display:grid;
+      gap:12px;
     }
 
     .btn{
-
-      appearance:none;
-
-      border:none;
-
-      display:flex;
-
-      align-items:center;
-
-      justify-content:center;
-
-      gap:7px;
-
       width:100%;
-
-      min-height:56px;
-
-      padding:14px 18px;
-
-      border-radius:20px;
-
-      text-align:center;
-
-      font-size:15.5px;
-
+      border:none;
+      border-radius:18px;
+      padding:16px 18px;
+      font-size:17px;
       font-weight:800;
-
-      margin-top:10px;
-
-      text-decoration:none;
-
+      line-height:1.2;
       cursor:pointer;
-
-      transition:
-
-        transform .16s cubic-bezier(.34,1.56,.64,1),
-
-        box-shadow .16s ease,
-
-        filter .16s ease,
-
-        opacity .15s ease;
-
-      -webkit-tap-highlight-color:transparent;
-
-      position:relative;
-
-      letter-spacing:.03em;
-
-      line-height:1.3;
-
-      font-family:inherit;
-
+      transition:transform .18s ease, box-shadow .18s ease, opacity .18s ease;
     }
 
-    .btn:first-child{ margin-top:0; }
-
-    .btn:hover{ transform:translateY(-2px); }
-
-    .btn:active{ transform:translateY(0) scale(.98); }
-
-    .btn:disabled{ opacity:.5; cursor:not-allowed; transform:none !important; }
-
-    /* 主要按鈕 */
+    .btn:active{
+      transform:scale(.985);
+    }
 
     .btn-primary{
-
+      background:linear-gradient(180deg, #c48a57, #a96b3d);
       color:#fff;
-
-      background:linear-gradient(180deg,#52a077 0%,var(--brand-deep) 100%);
-
-      border:1px solid rgba(42,100,67,.6);
-
-      box-shadow:
-
-        inset 0 1px 0 rgba(255,255,255,.25),
-
-        inset 0 -1px 0 rgba(30,80,52,.2),
-
-        0 12px 24px rgba(42,100,67,.22),
-
-        0 3px 8px rgba(42,100,67,.12);
-
-      text-shadow:0 1px 2px rgba(0,0,0,.12);
-
-      font-size:16px;
-
-      min-height:60px;
-
+      box-shadow:0 12px 24px rgba(169,107,61,.26);
     }
 
-    .btn-primary:hover{
-
-      box-shadow:
-
-        inset 0 1px 0 rgba(255,255,255,.25),
-
-        inset 0 -1px 0 rgba(30,80,52,.2),
-
-        0 16px 30px rgba(42,100,67,.26),
-
-        0 4px 10px rgba(42,100,67,.14);
-
+    .btn-soft{
+      background:#fff;
+      color:var(--ink);
+      border:1px solid var(--line);
+      box-shadow:0 8px 18px rgba(87,61,33,.06);
     }
 
-    /* 光澤條 */
-
-    .btn-primary::after{
-
-      content:"";
-
-      position:absolute;
-
-      left:20px; right:20px;
-
-      top:8px;
-
-      height:2px;
-
-      border-radius:999px;
-
-      background:rgba(255,255,255,.28);
-
-      pointer-events:none;
-
+    .btn-line{
+      background:linear-gradient(180deg, #18c75a, #08aa45);
+      color:#fff;
+      box-shadow:0 12px 24px rgba(10,165,66,.22);
     }
 
-    /* 次要按鈕 */
-
-    .btn-secondary{
-
-      color:var(--brand-deeper);
-
-      background:linear-gradient(180deg,#f6faf7 0%,#eef6f1 100%);
-
-      border:1px solid rgba(74,143,104,.22);
-
-      box-shadow:
-
-        inset 0 1px 0 rgba(255,255,255,.9),
-
-        0 4px 12px rgba(36,70,52,.06);
-
-    }
-
-    .btn-secondary:hover{
-
-      background:linear-gradient(180deg,#f9fcfa 0%,#f1f8f4 100%);
-
-      border-color:rgba(74,143,104,.3);
-
-      box-shadow:
-
-        inset 0 1px 0 rgba(255,255,255,.95),
-
-        0 6px 16px rgba(36,70,52,.09);
-
-    }
-
-    /* 工具格 */
-
-    .tool-grid{
-
-      display:grid;
-
-      grid-template-columns:1fr 1fr;
-
-      gap:10px;
-
-      margin-top:10px;
-
-    }
-
-    .btn-utility{
-
-      min-height:50px;
-
-      margin-top:0;
-
-      font-size:13.5px;
-
-      font-weight:700;
-
-      color:var(--ink-2);
-
-      background:linear-gradient(180deg,#f9fcfa 0%,#f3f8f5 100%);
-
-      border:1px solid rgba(74,143,104,.17);
-
-      box-shadow:
-
-        inset 0 1px 0 rgba(255,255,255,.88),
-
-        0 3px 8px rgba(36,70,52,.04);
-
-      letter-spacing:.02em;
-
-    }
-
-    .btn-utility:hover{
-
-      background:linear-gradient(180deg,#fcfefd 0%,#f5faf7 100%);
-
-      border-color:rgba(74,143,104,.26);
-
-    }
-
-    /* 分隔線 */
-
-    .divider{
-
-      margin:14px 0 4px;
-
-      height:1px;
-
-      background:linear-gradient(90deg, transparent, rgba(74,143,104,.14), transparent);
-
-    }
-
-    /* 狀態列 */
-
-    .status{
-
-      margin-top:12px;
-
-      background:rgba(238,247,242,.7);
-
-      border:1px solid rgba(74,143,104,.14);
-
-      border-radius:16px;
-
-      padding:11px 14px;
-
+    .hint{
+      margin-top:14px;
       text-align:center;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.8;
+    }
 
-      color:var(--ink-2);
-
-      font-size:13.5px;
-
-      line-height:1.55;
-
-      min-height:48px;
-
-      display:flex;
-
+    .dialog-mask{
+      position:fixed;
+      inset:0;
+      background:rgba(26,18,12,.44);
+      display:none;
       align-items:center;
-
       justify-content:center;
-
-      word-break:keep-all;
-
-      overflow-wrap:break-word;
-
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
-
-      font-weight:600;
-
+      padding:18px;
+      z-index:9999;
     }
 
-    .status[data-type="error"]{
-
-      background:#fff4f2;
-
-      border-color:rgba(180,50,40,.12);
-
-      color:#962e26;
-
+    .dialog-mask.show{
+      display:flex;
     }
-
-    .status[data-type="success"]{
-
-      background:#f2fbf5;
-
-      border-color:rgba(40,130,70,.14);
-
-      color:#25703e;
-
-    }
-
-    /* 點動畫 */
-
-    .loading{
-
-      display:inline-flex;
-
-      align-items:center;
-
-      gap:7px;
-
-      flex-wrap:nowrap;
-
-    }
-
-    .dot{
-
-      width:7px;
-
-      height:7px;
-
-      border-radius:999px;
-
-      background:var(--brand);
-
-      animation:pop 1.1s infinite ease-in-out;
-
-      flex:0 0 auto;
-
-    }
-
-    .dot:nth-child(2){ animation-delay:.16s; }
-
-    .dot:nth-child(3){ animation-delay:.32s; }
-
-    @keyframes pop{
-
-      0%,80%,100%{ transform:scale(.65); opacity:.35; }
-
-      40%{ transform:scale(1); opacity:1; }
-
-    }
-
-    /* ── Dialog ── */
 
     .dialog{
-
-      position:fixed;
-
-      inset:0;
-
-      z-index:90;
-
-      display:none;
-
-    }
-
-    .dialog.is-open{ display:block; }
-
-    .dialog-backdrop{
-
-      position:absolute;
-
-      inset:0;
-
-      background:rgba(20,35,26,.38);
-
-      backdrop-filter:blur(4px);
-
-    }
-
-    .dialog-panel{
-
-      position:relative;
-
-      z-index:1;
-
-      width:min(92vw,420px);
-
-      max-height:min(84vh,720px);
-
-      overflow:auto;
-
-      margin:8vh auto 0;
-
-      background:linear-gradient(180deg,#ffffff 0%,#f9fcfa 100%);
-
-      border:1px solid rgba(74,143,104,.16);
-
-      border-radius:30px;
-
-      box-shadow:0 28px 56px rgba(20,50,34,.2);
-
-      padding:20px 18px 18px;
-
-    }
-
-    .dialog-head{
-
-      display:flex;
-
-      align-items:center;
-
-      justify-content:space-between;
-
-      gap:10px;
-
-      margin-bottom:14px;
-
+      width:min(100%, 460px);
+      background:#fffaf7;
+      border-radius:24px;
+      border:1px solid rgba(72,52,35,.10);
+      box-shadow:0 24px 50px rgba(0,0,0,.18);
+      padding:22px 18px 18px;
     }
 
     .dialog-title{
-
-      margin:0;
-
-      color:var(--brand-deeper);
-
-      font-size:20px;
-
-      line-height:1.25;
-
+      margin:0 0 10px;
+      font-size:22px;
       font-weight:900;
+      line-height:1.35;
+      color:var(--ink);
+    }
 
-      font-family:"Noto Serif TC",serif;
+    .dialog-body{
+      color:#5c4d42;
+      font-size:15px;
+      line-height:1.9;
+    }
 
+    .dialog-body p{
+      margin:0 0 10px;
+    }
+
+    .dialog-actions{
+      margin-top:14px;
+      display:flex;
+      justify-content:flex-end;
     }
 
     .dialog-close{
-
-      appearance:none;
-
-      border:none;
-
-      width:40px;
-
-      height:40px;
-
-      border-radius:999px;
-
-      background:#f0f6f2;
-
-      color:var(--ink-2);
-
-      border:1px solid var(--line);
-
-      font-size:20px;
-
-      font-weight:700;
-
-      cursor:pointer;
-
-      flex:0 0 auto;
-
-      display:grid;
-
-      place-items:center;
-
-      transition:background .15s;
-
+      min-width:110px;
     }
 
-    .dialog-close:hover{ background:#e8f2ec; }
-
-    .share-guide{ display:grid; gap:11px; }
-
-    .guide-card{
-
-      background:#f7fbf8;
-
-      border:1px solid rgba(74,143,104,.14);
-
-      border-radius:20px;
-
-      padding:14px 16px;
-
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
-
+    .loading,
+    .error{
+      margin:18px 0 0;
+      text-align:center;
+      font-size:14px;
+      line-height:1.8;
+      color:var(--muted);
     }
 
-    .guide-title{
-
-      margin:0 0 6px;
-
-      color:var(--brand-deeper);
-
-      font-size:15px;
-
-      font-weight:800;
-
-      line-height:1.4;
-
+    .error{
+      color:#b42318;
     }
 
-    .guide-text{
-
-      margin:0;
-
-      color:#567060;
-
-      font-size:13.5px;
-
-      line-height:1.7;
-
-      word-break:keep-all;
-
-      overflow-wrap:break-word;
-
+    @media (max-width:480px){
+      .page{ padding:16px 12px 28px; }
+      .hero-title{ font-size:24px; }
+      .name{ font-size:24px; }
+      .title{ font-size:15px; }
+      .poster-canvas{ padding:22px 16px 20px; }
+      .qr-frame{ padding:28px; border-radius:22px; }
+      .btn{ font-size:16px; padding:15px 16px; }
     }
-
-    .guide-tip{
-
-      margin-top:11px;
-
-      background:#fdf8ee;
-
-      border:1px solid rgba(201,168,76,.22);
-
-      border-radius:18px;
-
-      padding:12px 14px;
-
-      color:#7a5e20;
-
-      font-size:13.5px;
-
-      line-height:1.65;
-
-      font-weight:700;
-
-    }
-
-    /* ── RWD ── */
-
-    @media (max-width:520px){
-
-      .wrap{ padding:20px 12px 50px; }
-
-      .delivery-card{ padding:14px; border-radius:30px; }
-
-      .poster-brand-title{ font-size:20px; }
-
-      .poster{ padding:20px 14px 18px; }
-
-      .avatar-wrap{ width:108px; height:108px; }
-
-      .name{ font-size:28px; }
-
-      .unit{ font-size:15px; }
-
-      .title{ font-size:14px; }
-
-      .qr-box{ width:200px; height:200px; }
-
-      #qrcode{ width:180px; height:180px; }
-
-      #qrcode canvas,#qrcode img{ width:180px !important; height:180px !important; }
-
-      .btn{ min-height:54px; font-size:15px; }
-
-      .btn-primary{ min-height:58px; }
-
-      .tool-grid{ grid-template-columns:1fr 1fr; gap:8px; }
-
-      .btn-utility{ font-size:13px; min-height:48px; }
-
-      .dialog-panel{ width:min(94vw,420px); border-radius:26px; }
-
-    }
-
   </style>
-
 </head>
-
 <body>
+  <main class="page">
+    <section class="hero-card">
+      <div class="hero-top">
+        <div class="eyebrow">智慧名片交付卡</div>
+        <h1 class="hero-title">我的智慧名片海報</h1>
+        <p class="hero-sub">
+          建議用海報分享給對方，請對方直接掃描 QR code 開啟名片，
+          在微信內會更穩定、不易走山。
+        </p>
+      </div>
 
-  <div class="wrap">
-
-    <div class="delivery-card">
-
-      <div id="posterCapture">
-
-        <div class="poster-brand">
-
-          <h1 class="poster-brand-title">天使幸福智慧名片</h1>
-
-          <p class="poster-brand-sub">ANGEL HAPPINESS SMART CARD</p>
-
-        </div>
-
-        <div id="poster" class="poster">
-
+      <div class="poster-shell">
+        <section id="posterCapture" class="poster-canvas" aria-label="海報內容">
           <div class="avatar-wrap">
-
-            <img id="avatar" class="avatar" alt="頭像" />
-
-            <div id="avatarFallback" class="avatar-fallback">名片</div>
-
+            <img id="avatarImg" alt="頭像" />
           </div>
 
-          <div id="name" class="name">載入中...</div>
+          <h2 id="cardName" class="name">載入中...</h2>
+          <div id="cardTitle" class="title"></div>
 
-          <div id="unit" class="unit">　</div>
-
-          <div id="title" class="title">　</div>
-
-          <div class="qr-card">
-
-            <span class="qr-corner qr-corner-tl"></span>
-
-            <span class="qr-corner qr-corner-tr"></span>
-
-            <span class="qr-corner qr-corner-bl"></span>
-
-            <span class="qr-corner qr-corner-br"></span>
-
-            <div class="qr-box">
-
-              <div id="qrcode"></div>
-
+          <div class="qr-zone">
+            <div class="qr-frame">
+              <div id="qrBox" class="qr-box"></div>
             </div>
-
-            <div id="qrTip" class="qr-text">掃描 QRCode 打開智慧名片</div>
-
           </div>
 
+          <div class="scan-tip">掃描 QR code 開啟我的智慧名片</div>
+          <div class="scan-sub">建議直接掃碼，不建議直接貼網址到微信聊天視窗</div>
+        </section>
+
+        <div id="loadingText" class="loading">正在載入海報資料…</div>
+        <div id="errorText" class="error" style="display:none;"></div>
+
+        <div class="actions">
+          <button id="downloadBtn" class="btn btn-primary" type="button">
+            下載我的名片海報
+          </button>
+
+          <button id="lineOABtn" class="btn btn-line" type="button">
+            LINE 官方帳號
+          </button>
+
+          <button id="shareHelpBtn" class="btn btn-soft" type="button">
+            分享說明
+          </button>
         </div>
 
+        <div class="hint">
+          若是在微信內開啟，建議先下載海報，再把海報圖片傳給對方掃碼。
+        </div>
       </div>
+    </section>
+  </main>
 
-      <div class="actions">
-
-        <button id="btnShare" class="btn btn-primary" type="button">
-
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-
-          分享我的智慧名片
-
-        </button>
-
-        <button id="btnCopyCard" class="btn btn-secondary" type="button">
-
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-
-          複製我的智慧名片連結
-
-        </button>
-
-        <button id="btnDownload" class="btn btn-secondary" type="button">
-
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-
-          下載名片海報
-
-        </button>
-
-        <button id="btnOpenCard" class="btn btn-secondary" type="button">
-
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-
-          打開我的智慧名片
-
-        </button>
-
-        <div class="divider"></div>
-
-        <div class="tool-grid">
-
-          <button id="btnShareGuide" class="btn btn-utility" type="button">ⓘ 分享說明</button>
-
-          <button id="btnRecommend" class="btn btn-utility" type="button">🔗 推薦智慧名片</button>
-
-          <button id="btnConsult" class="btn btn-utility" type="button">💬 LINE 官方帳號</button>
-
-        </div>
-
-        <div id="status" class="status">
-
-          <span class="loading">
-
-            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-
-          </span>
-
-          正在載入交付卡資料...
-
-        </div>
-
+  <div id="shareDialog" class="dialog-mask" aria-hidden="true">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+      <h3 id="dialogTitle" class="dialog-title">分享說明</h3>
+      <div class="dialog-body">
+        <p>1. 最穩定的分享方式：先下載海報，再把海報圖片傳給對方。</p>
+        <p>2. 對方用微信、LINE 或手機相機掃描 QR code，都能直接打開智慧名片。</p>
+        <p>3. 不建議直接把名片網址貼進微信聊天，較容易出現排版跑掉或預覽異常。</p>
+        <p>4. 若是面對面交換資訊，直接出示這張海報讓對方掃描即可。</p>
       </div>
-
+      <div class="dialog-actions">
+        <button id="dialogCloseBtn" class="btn btn-primary dialog-close" type="button">
+          我知道了
+        </button>
+      </div>
     </div>
-
   </div>
 
-  <!-- 分享說明 Dialog -->
-
-  <div id="shareDialog" class="dialog" aria-hidden="true">
-
-    <div class="dialog-backdrop" data-close-dialog="1"></div>
-
-    <div class="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="shareDialogTitle">
-
-      <div class="dialog-head">
-
-        <h2 id="shareDialogTitle" class="dialog-title">智慧名片分享方式</h2>
-
-        <button id="btnCloseDialog" class="dialog-close" type="button" aria-label="關閉">×</button>
-
-      </div>
-
-      <div class="share-guide">
-
-        <div class="guide-card">
-
-          <h3 class="guide-title">1️⃣ 一鍵分享智慧名片</h3>
-
-          <p class="guide-text">點擊「分享我的智慧名片」，手機會直接開啟分享選單，可分享到 LINE、Messenger、WhatsApp、Email 與其他支援的 App。</p>
-
-        </div>
-
-        <div class="guide-card">
-
-          <h3 class="guide-title">2️⃣ 分享名片連結</h3>
-
-          <p class="guide-text">點擊「複製我的智慧名片連結」，可貼到 LINE、FB、IG、Email 或任何社群訊息中。</p>
-
-        </div>
-
-        <div class="guide-card">
-
-          <h3 class="guide-title">3️⃣ 使用名片海報分享</h3>
-
-          <p class="guide-text">點擊「下載名片海報」，海報圖片內含 QRCode，對方掃描後即可查看智慧名片。</p>
-
-        </div>
-
-        <div class="guide-tip">
-
-          📌 微信建議使用「名片海報圖片」分享，對方掃描 QRCode 即可查看智慧名片。
-
-        </div>
-
-      </div>
-
-    </div>
-
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-
-  <script src="./imageResolver.js?v=7034"></script>
-
-  <script src="./poster.js?v=7060"></script>
-
+  <script src="./poster.js?v=300"></script>
 </body>
-
 </html>
