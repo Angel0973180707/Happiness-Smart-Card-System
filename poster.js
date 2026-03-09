@@ -241,4 +241,170 @@
       clearStatusSoon();
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] download error:`, err);
-      setStatus(err
+      setStatus(err.message || "海報下載失敗", true);
+    }
+  }
+
+  function onOpenCard() {
+    if (!currentCardUrl) return;
+    window.location.href = currentCardUrl;
+  }
+
+  async function onCopyCardLink() {
+    if (!currentCardUrl) return;
+    const ok = await copyText(currentCardUrl);
+    setStatus(ok ? "名片連結已複製" : "複製失敗，請手動複製", !ok);
+    clearStatusSoon();
+  }
+
+  async function onShareCard() {
+    if (!currentCardUrl) return;
+
+    const shareData = {
+      title: currentItem?.name ? `${currentItem.name} 的智慧名片` : "我的智慧名片",
+      text: "這是我的智慧名片，歡迎查看。",
+      url: currentCardUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setStatus("已開啟分享");
+        clearStatusSoon();
+        return;
+      }
+
+      const ok = await copyText(currentCardUrl);
+      setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
+      clearStatusSoon();
+    } catch (err) {
+      if (err && err.name === "AbortError") return;
+      const ok = await copyText(currentCardUrl);
+      setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
+      clearStatusSoon();
+    }
+  }
+
+  async function onRecommend() {
+    if (!currentRecommendUrl) return;
+    const ok = await copyText(currentRecommendUrl);
+    setStatus(ok ? "推薦智慧名片館連結已複製" : "複製失敗，請手動複製", !ok);
+    clearStatusSoon();
+  }
+
+  function onOpenLineOA() {
+    if (!lineOA) return;
+    window.location.href = lineOA;
+  }
+
+  function openDialog() {
+    if (!el.shareDialog) return;
+    el.shareDialog.classList.add("show");
+    el.shareDialog.setAttribute("aria-hidden", "false");
+  }
+
+  function closeDialog() {
+    if (!el.shareDialog) return;
+    el.shareDialog.classList.remove("show");
+    el.shareDialog.setAttribute("aria-hidden", "true");
+  }
+
+  function setStatus(message, isError = false) {
+    if (!el.statusText) return;
+
+    if (!message) {
+      el.statusText.textContent = "";
+      el.statusText.classList.remove("error");
+      return;
+    }
+
+    el.statusText.textContent = message;
+    el.statusText.classList.toggle("error", !!isError);
+  }
+
+  function clearStatusSoon() {
+    window.clearTimeout(clearStatusSoon._t);
+    clearStatusSoon._t = window.setTimeout(() => {
+      setStatus("");
+    }, 1800);
+  }
+
+  function text(v) {
+    return String(v || "").trim();
+  }
+
+  function normalizeBase(v) {
+    const s = String(v || "").trim();
+    if (!s) return "";
+    return s.endsWith("/") ? s : `${s}/`;
+  }
+
+  function safeFileName(v) {
+    return String(v || "poster")
+      .replace(/[\\/:*?"<>|]/g, "")
+      .replace(/\s+/g, "-")
+      .slice(0, 60);
+  }
+
+  function buildDefaultAvatarSvg() {
+    return "data:image/svg+xml;utf8," + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+        <rect width="320" height="320" rx="160" fill="#eadfd4"/>
+        <circle cx="160" cy="122" r="58" fill="#d0b8a3"/>
+        <rect x="72" y="202" width="176" height="84" rx="42" fill="#d0b8a3"/>
+      </svg>
+    `);
+  }
+
+  function waitForImages(root) {
+    const images = Array.from(root.querySelectorAll("img"));
+    if (!images.length) return Promise.resolve();
+
+    return Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+
+        return new Promise((resolve) => {
+          const done = () => {
+            img.removeEventListener("load", done);
+            img.removeEventListener("error", done);
+            resolve();
+          };
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+        });
+      })
+    );
+  }
+
+  async function copyText(value) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(value);
+        return true;
+      }
+      return legacyCopyText(value);
+    } catch (err) {
+      return legacyCopyText(value);
+    }
+  }
+
+  function legacyCopyText(value) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      ta.setAttribute("readonly", "readonly");
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch (err) {
+      return false;
+    }
+  }
+})();
