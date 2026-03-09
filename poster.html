@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v705</title>
+  <title>智慧名片交付卡 v705.1</title>
   <meta name="theme-color" content="#edf4ef" />
 
   <style>
@@ -88,8 +88,26 @@
     }
 
     .poster-brand{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
       text-align:center;
       padding:6px 8px 12px;
+    }
+
+    .brand-badge{
+      width:42px;
+      height:42px;
+      border-radius:50%;
+      object-fit:cover;
+      object-position:center;
+      background:linear-gradient(180deg,#f8fbf8 0%,#eef5f0 100%);
+      border:1px solid #dce9e0;
+      box-shadow:
+        0 6px 14px rgba(60,101,78,.08),
+        inset 0 1px 0 rgba(255,255,255,.95);
+      flex:0 0 auto;
     }
 
     .poster-brand-title{
@@ -419,7 +437,6 @@
       40%{ transform:scale(1); opacity:1; }
     }
 
-    /* 分享說明 Dialog */
     .dialog{
       position:fixed;
       inset:0;
@@ -536,6 +553,15 @@
         border-radius:28px;
       }
 
+      .poster-brand{
+        gap:10px;
+      }
+
+      .brand-badge{
+        width:38px;
+        height:38px;
+      }
+
       .poster-brand-title{
         font-size:24px;
       }
@@ -597,6 +623,13 @@
 
       <div id="posterCapture">
         <div class="poster-brand">
+          <img
+            id="brandBadge"
+            class="brand-badge"
+            src="./icon-219.png"
+            alt="品牌圓章"
+            onerror="this.onerror=null;this.src='./icon-512.png';"
+          />
           <h1 class="poster-brand-title">天使幸福智慧名片</h1>
         </div>
 
@@ -683,6 +716,6 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./imageResolver.js?v=7034"></script>
-  <script src="./poster.js?v=7050"></script>
+  <script src="./poster.js?v=7051"></script>
 </body>
 </html>
