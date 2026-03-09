@@ -1,20 +1,19 @@
 /* ==========================================
- * HSC Poster v705.9
+ * HSC Poster v705
  * COMPLETE OVERWRITE
  *
- * v705.9 重點：
- * 1) 以 v705.8 為母版小修補
- * 2) 頭像改為逐欄位重試，不只拿第一張
- * 3) avatar 優先順序改為較穩定：
- *    avatar_url -> avatar_img_fast -> avatar_img -> avatar -> avatarUrl
- * 4) 海報下載前若頭像未成功，會再補試一次
- * 5) 保持 icon / QR / view=1 / posterCapture 截圖區 / UI 不變
+ * v705 重點：
+ * 1) 新增 Web Share API：分享我的智慧名片
+ * 2) 保留複製連結 / 下載海報 / 打開名片
+ * 3) 新增分享說明 Dialog
+ * 4) 海報只截 #posterCapture，不把按鈕拍進去
+ * 5) 推薦智慧名片維持複製推薦連結
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705.9";
+  const VERSION = "705";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -53,8 +52,6 @@
 
   let currentItem = null;
   let cardUrl = "";
-  let currentAvatarUrl = "";
-  let currentAvatarCandidates = [];
 
   function getGasUrl() {
     const qGas = (qs.get("gas") || "").trim();
@@ -73,7 +70,6 @@
   function buildCardUrl(id) {
     const url = new URL("index.html", getBaseUrl());
     url.searchParams.set("id", id);
-    url.searchParams.set("view", "1");
     if (REF_ID) url.searchParams.set("ref", REF_ID);
     return url.toString();
   }
@@ -134,120 +130,37 @@
     return t.slice(0, 2);
   }
 
-  function dedupeList(list) {
-    const seen = new Set();
-    const out = [];
-    for (const raw of list) {
-      const v = text(raw);
-      if (!v) continue;
-      if (seen.has(v)) continue;
-      seen.add(v);
-      out.push(v);
+  function setAvatar(src, name) {
+    if (!avatarEl || !avatarFallbackEl) return;
+
+    if (src) {
+      avatarEl.onload = () => {
+        avatarEl.style.display = "block";
+        avatarFallbackEl.style.display = "none";
+      };
+      avatarEl.onerror = () => {
+        avatarEl.style.display = "none";
+        avatarFallbackEl.style.display = "grid";
+        avatarFallbackEl.textContent = safeInitial(name);
+      };
+      avatarEl.src = src;
+    } else {
+      avatarEl.style.display = "none";
+      avatarFallbackEl.style.display = "grid";
+      avatarFallbackEl.textContent = safeInitial(name);
     }
-    return out;
   }
 
-  function pickImageList(item) {
-    return dedupeList([
+  function pickImage(item) {
+    const candidates = [
       item.avatar_url,
       item.avatar_img_fast,
       item.avatar_img,
       item.avatar,
       item.avatarUrl
-    ]);
-  }
+    ].map(v => text(v)).filter(Boolean);
 
-  function waitForSingleImage(img, timeout = 5000) {
-    if (!img) return Promise.resolve(false);
-    if (img.complete && img.naturalWidth > 0) return Promise.resolve(true);
-
-    return new Promise((resolve) => {
-      let done = false;
-
-      const finish = (ok) => {
-        if (done) return;
-        done = true;
-        img.removeEventListener("load", onLoad);
-        img.removeEventListener("error", onError);
-        clearTimeout(timer);
-        resolve(ok);
-      };
-
-      const onLoad = () => finish(true);
-      const onError = () => finish(false);
-
-      img.addEventListener("load", onLoad, { once: true });
-      img.addEventListener("error", onError, { once: true });
-
-      const timer = setTimeout(() => {
-        finish(img.complete && img.naturalWidth > 0);
-      }, timeout);
-    });
-  }
-
-  function resetAvatarToFallback(name) {
-    if (!avatarEl || !avatarFallbackEl) return;
-    avatarFallbackEl.textContent = safeInitial(name);
-    avatarFallbackEl.style.display = "grid";
-    avatarEl.style.display = "none";
-  }
-
-  async function setAvatar(src, name) {
-    if (!avatarEl || !avatarFallbackEl) return false;
-
-    if (!src) {
-      resetAvatarToFallback(name);
-      currentAvatarUrl = "";
-      return false;
-    }
-
-    currentAvatarUrl = src;
-    avatarFallbackEl.textContent = safeInitial(name);
-    avatarFallbackEl.style.display = "grid";
-    avatarEl.style.display = "none";
-
-    avatarEl.crossOrigin = "anonymous";
-    avatarEl.referrerPolicy = "no-referrer";
-    avatarEl.src = src;
-
-    const ok = await waitForSingleImage(avatarEl, 6000);
-
-    if (ok) {
-      avatarEl.style.display = "block";
-      avatarFallbackEl.style.display = "none";
-      return true;
-    }
-
-    avatarEl.style.display = "none";
-    avatarFallbackEl.style.display = "grid";
-    return false;
-  }
-
-  async function tryAvatarImages(list, name) {
-    if (!avatarEl || !avatarFallbackEl) return false;
-
-    const candidates = Array.isArray(list) ? dedupeList(list) : [];
-    currentAvatarCandidates = candidates.slice();
-
-    if (!candidates.length) {
-      currentAvatarUrl = "";
-      resetAvatarToFallback(name);
-      return false;
-    }
-
-    resetAvatarToFallback(name);
-
-    for (const src of candidates) {
-      const ok = await setAvatar(src, name);
-      if (ok) {
-        currentAvatarUrl = src;
-        return true;
-      }
-    }
-
-    currentAvatarUrl = "";
-    resetAvatarToFallback(name);
-    return false;
+    return candidates[0] || "";
   }
 
   function normalizeItem(raw) {
@@ -257,11 +170,7 @@
       name: text(item.name, "智慧名片"),
       unit: text(item.unit),
       title: text(item.title),
-      avatar_img_fast: text(item.avatar_img_fast),
-      avatar_img: text(item.avatar_img),
-      avatar_url: text(item.avatar_url),
-      avatar: text(item.avatar),
-      avatarUrl: text(item.avatarUrl),
+      avatar_url: text(item.avatar_url || item.avatar_img_fast || item.avatar_img || item.avatar || item.avatarUrl),
       line_oa: text(item.line_oa),
       line_url: text(item.line_url)
     };
@@ -306,14 +215,18 @@
     if (!qrCodeEl) return;
     qrCodeEl.innerHTML = "";
 
-    new QRCode(qrCodeEl, {
-      text: url,
-      width: 196,
-      height: 196,
-      colorDark: "#000000",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
-    });
+    try {
+      new QRCode(qrCodeEl, {
+        text: url,
+        width: 196,
+        height: 196,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    } catch (err) {
+      console.error("QRCode 產生失敗", err);
+    }
   }
 
   async function copyText(value) {
@@ -381,31 +294,9 @@
     document.body.style.overflow = "";
   }
 
-  async function waitForImages(root) {
-    if (!root) return;
-    const images = Array.from(root.querySelectorAll("img"));
-    if (!images.length) return;
-
-    await Promise.all(images.map((img) => waitForSingleImage(img, 4000).catch(() => false)));
-  }
-
   async function downloadPoster(item) {
     const target = posterCaptureEl || $("poster");
     if (!target) throw new Error("找不到海報區塊");
-
-    const avatarNotReady =
-      avatarEl &&
-      (!avatarEl.complete || avatarEl.naturalWidth <= 0 || getComputedStyle(avatarEl).display === "none");
-
-    if (avatarNotReady) {
-      if (currentAvatarCandidates.length) {
-        await tryAvatarImages(currentAvatarCandidates, item.name);
-      } else if (currentAvatarUrl) {
-        await setAvatar(currentAvatarUrl, item.name);
-      }
-    }
-
-    await waitForImages(target);
 
     const canvas = await html2canvas(target, {
       backgroundColor: null,
@@ -427,8 +318,13 @@
   }
 
   function bindDialogEvents() {
-    if (btnShareGuide) btnShareGuide.onclick = openDialog;
-    if (btnCloseDialog) btnCloseDialog.onclick = closeDialog;
+    if (btnShareGuide) {
+      btnShareGuide.onclick = openDialog;
+    }
+
+    if (btnCloseDialog) {
+      btnCloseDialog.onclick = closeDialog;
+    }
 
     if (shareDialogEl) {
       shareDialogEl.addEventListener("click", (e) => {
@@ -446,7 +342,7 @@
     });
   }
 
-  async function renderCard(item) {
+  function renderCard(item) {
     currentItem = item;
     cardUrl = buildCardUrl(item.id || CARD_ID);
 
@@ -455,7 +351,7 @@
     if (titleEl) titleEl.textContent = item.title || "　";
     if (qrTipEl) qrTipEl.textContent = "掃描 QRCode 打開智慧名片";
 
-    await tryAvatarImages(pickImageList(item), item.name);
+    setAvatar(pickImage(item), item.name);
     renderQrCode(cardUrl);
 
     if (btnShare) {
@@ -548,7 +444,7 @@
 
     try {
       const item = await fetchCard(CARD_ID);
-      await renderCard(item);
+      renderCard(item);
     } catch (err) {
       console.error(err);
       disableAllButtons();
