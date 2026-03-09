@@ -1,23 +1,18 @@
 /* ==========================================
- * HSC Poster v4.0
+ * HSC Poster v4.1
  * COMPLETE OVERWRITE
  *
- * 功能：
- * 1. 載入名片資料
- * 2. 顯示頭像 / 姓名 / 標題 / QR code
- * 3. 下載名片海報
- * 4. 查看我的智慧名片
- * 5. 複製我的名片連結
- * 6. 分享我的智慧名片
- * 7. 推薦智慧名片館
- * 8. 分享說明 Dialog
- * 9. LINE 官方帳號
+ * 修正重點：
+ * 1. QR code 不見問題
+ * 2. 先用 canvas 產生 QR
+ * 3. 若 canvas 失敗，自動改用 img(dataURL) fallback
+ * 4. 保留 7 個按鈕功能
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "4.0";
+  const VERSION = "4.1";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -62,9 +57,7 @@
 
   async function init() {
     try {
-      if (!id) {
-        throw new Error("缺少名片 id");
-      }
+      if (!id) throw new Error("缺少名片 id");
 
       setStatus("正在載入海報資料…", false);
 
@@ -107,11 +100,10 @@
 
   async function fetchCard(cardId) {
     const url = `${gas}?action=card&id=${encodeURIComponent(cardId)}&_=${Date.now()}`;
-
     const res = await fetch(url, {
       method: "GET",
       mode: "cors",
-      cache: "no-store",
+      cache: "no-store"
     });
 
     if (!res.ok) {
@@ -167,18 +159,79 @@
     if (!el.qrBox) return;
 
     el.qrBox.innerHTML = "";
-    const canvas = document.createElement("canvas");
-    el.qrBox.appendChild(canvas);
+    el.qrBox.style.minHeight = "280px";
 
-    await QRCode.toCanvas(canvas, targetUrl, {
-      width: 340,
-      margin: 2,
-      errorCorrectionLevel: "H",
-      color: {
-        dark: "#111111",
-        light: "#ffffff"
-      }
-    });
+    if (!window.QRCode) {
+      throw new Error("QRCode 套件未載入");
+    }
+
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 340;
+      canvas.height = 340;
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.display = "block";
+
+      el.qrBox.appendChild(canvas);
+
+      await QRCode.toCanvas(canvas, targetUrl, {
+        width: 340,
+        margin: 2,
+        errorCorrectionLevel: "H",
+        color: {
+          dark: "#111111",
+          light: "#ffffff"
+        }
+      });
+
+      return;
+    } catch (canvasErr) {
+      console.warn(`[HSC Poster ${VERSION}] QR canvas failed, fallback to img`, canvasErr);
+      el.qrBox.innerHTML = "";
+    }
+
+    try {
+      const dataUrl = await QRCode.toDataURL(targetUrl, {
+        width: 340,
+        margin: 2,
+        errorCorrectionLevel: "H",
+        color: {
+          dark: "#111111",
+          light: "#ffffff"
+        }
+      });
+
+      const img = document.createElement("img");
+      img.src = dataUrl;
+      img.alt = "智慧名片 QR code";
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.display = "block";
+      img.style.objectFit = "contain";
+
+      el.qrBox.appendChild(img);
+    } catch (imgErr) {
+      console.error(`[HSC Poster ${VERSION}] QR img fallback failed`, imgErr);
+      el.qrBox.innerHTML = `
+        <div style="
+          width:100%;
+          height:100%;
+          min-height:280px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          text-align:center;
+          color:#b42318;
+          font-size:14px;
+          line-height:1.8;
+          padding:16px;
+        ">
+          QR code 產生失敗，請重新整理頁面再試
+        </div>
+      `;
+      throw new Error("QR code 產生失敗");
+    }
   }
 
   async function onDownloadPoster() {
@@ -250,7 +303,6 @@
       clearStatusSoon();
     } catch (err) {
       if (err && err.name === "AbortError") return;
-      console.error(`[HSC Poster ${VERSION}] share error:`, err);
 
       const ok = await copyText(currentCardUrl);
       setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
@@ -260,7 +312,6 @@
 
   async function onRecommend() {
     if (!currentRecommendUrl) return;
-
     const ok = await copyText(currentRecommendUrl);
     setStatus(ok ? "推薦智慧名片館連結已複製" : "複製失敗，請手動複製", !ok);
     clearStatusSoon();
@@ -361,7 +412,6 @@
       }
       return legacyCopyText(value);
     } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] copy error:`, err);
       return legacyCopyText(value);
     }
   }
@@ -381,7 +431,6 @@
       document.body.removeChild(ta);
       return !!ok;
     } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] legacy copy error:`, err);
       return false;
     }
   }
