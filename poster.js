@@ -1,19 +1,20 @@
 /* ==========================================
- * HSC Poster v705
+ * HSC Poster v706.1
  * COMPLETE OVERWRITE
  *
- * v705 重點：
- * 1) 新增 Web Share API：分享我的智慧名片
- * 2) 保留複製連結 / 下載海報 / 打開名片
- * 3) 新增分享說明 Dialog
- * 4) 海報只截 #posterCapture，不把按鈕拍進去
- * 5) 推薦智慧名片維持複製推薦連結
+ * v706.1 重點：
+ * 1) 以可顯像穩定版為母版
+ * 2) 修復海報頭像顯示
+ * 3) Firebase 圖片自動 cache bust
+ * 4) 打開我的智慧名片固定走 view=1
+ * 5) 海報只截 #posterCapture
+ * 6) 保留分享 / 複製 / 推薦 / LINE OA / 分享說明
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705";
+  const VERSION = "706.1";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -52,6 +53,7 @@
 
   let currentItem = null;
   let cardUrl = "";
+  let currentAvatarUrl = "";
 
   function getGasUrl() {
     const qGas = (qs.get("gas") || "").trim();
@@ -70,6 +72,7 @@
   function buildCardUrl(id) {
     const url = new URL("index.html", getBaseUrl());
     url.searchParams.set("id", id);
+    url.searchParams.set("view", "1");
     if (REF_ID) url.searchParams.set("ref", REF_ID);
     return url.toString();
   }
@@ -130,20 +133,46 @@
     return t.slice(0, 2);
   }
 
+  function resolveImage(url) {
+    let out = text(url);
+    if (!out) return "";
+
+    if (out.includes("firebasestorage.googleapis.com")) {
+      out += (out.includes("?") ? "&" : "?") + "_ts=" + Date.now();
+      return out;
+    }
+
+    if (out.includes("drive.google.com/file/d/")) {
+      try {
+        const id = out.split("/d/")[1].split("/")[0];
+        return `https://drive.google.com/uc?export=view&id=${id}`;
+      } catch (_) {
+        return out;
+      }
+    }
+
+    return out;
+  }
+
   function setAvatar(src, name) {
     if (!avatarEl || !avatarFallbackEl) return;
 
-    if (src) {
-      avatarEl.onload = () => {
-        avatarEl.style.display = "block";
-        avatarFallbackEl.style.display = "none";
-      };
-      avatarEl.onerror = () => {
-        avatarEl.style.display = "none";
-        avatarFallbackEl.style.display = "grid";
-        avatarFallbackEl.textContent = safeInitial(name);
-      };
-      avatarEl.src = src;
+    const finalSrc = resolveImage(src);
+    currentAvatarUrl = finalSrc;
+
+    avatarEl.onload = () => {
+      avatarEl.style.display = "block";
+      avatarFallbackEl.style.display = "none";
+    };
+
+    avatarEl.onerror = () => {
+      avatarEl.style.display = "none";
+      avatarFallbackEl.style.display = "grid";
+      avatarFallbackEl.textContent = safeInitial(name);
+    };
+
+    if (finalSrc) {
+      avatarEl.src = finalSrc;
     } else {
       avatarEl.style.display = "none";
       avatarFallbackEl.style.display = "grid";
@@ -170,7 +199,11 @@
       name: text(item.name, "智慧名片"),
       unit: text(item.unit),
       title: text(item.title),
-      avatar_url: text(item.avatar_url || item.avatar_img_fast || item.avatar_img || item.avatar || item.avatarUrl),
+      avatar_url: text(item.avatar_url),
+      avatar_img_fast: text(item.avatar_img_fast),
+      avatar_img: text(item.avatar_img),
+      avatar: text(item.avatar),
+      avatarUrl: text(item.avatarUrl),
       line_oa: text(item.line_oa),
       line_url: text(item.line_url)
     };
@@ -294,14 +327,44 @@
     document.body.style.overflow = "";
   }
 
+  function waitForImage(img, timeout = 6000) {
+    if (!img) return Promise.resolve(false);
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve(true);
+
+    return new Promise((resolve) => {
+      let done = false;
+
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        img.removeEventListener("load", onLoad);
+        img.removeEventListener("error", onError);
+        resolve(ok);
+      };
+
+      const onLoad = () => finish(true);
+      const onError = () => finish(false);
+
+      const timer = setTimeout(() => finish(img.complete && img.naturalWidth > 0), timeout);
+
+      img.addEventListener("load", onLoad, { once: true });
+      img.addEventListener("error", onError, { once: true });
+    });
+  }
+
   async function downloadPoster(item) {
     const target = posterCaptureEl || $("poster");
     if (!target) throw new Error("找不到海報區塊");
 
+    if (currentAvatarUrl && avatarEl) {
+      await waitForImage(avatarEl, 7000);
+    }
+
     const canvas = await html2canvas(target, {
       backgroundColor: null,
       scale: Math.min(window.devicePixelRatio || 2, 3),
-      useCORS: true,
+      useCORS: false,
       allowTaint: false,
       logging: false,
       scrollX: 0,
@@ -318,13 +381,8 @@
   }
 
   function bindDialogEvents() {
-    if (btnShareGuide) {
-      btnShareGuide.onclick = openDialog;
-    }
-
-    if (btnCloseDialog) {
-      btnCloseDialog.onclick = closeDialog;
-    }
+    if (btnShareGuide) btnShareGuide.onclick = openDialog;
+    if (btnCloseDialog) btnCloseDialog.onclick = closeDialog;
 
     if (shareDialogEl) {
       shareDialogEl.addEventListener("click", (e) => {
