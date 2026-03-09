@@ -1,19 +1,18 @@
 /* ==========================================
- * HSC Poster v705
+ * HSC Poster v705.6
  * COMPLETE OVERWRITE
  *
- * v705 重點：
- * 1) 新增 Web Share API：分享我的智慧名片
- * 2) 保留複製連結 / 下載海報 / 打開名片
- * 3) 新增分享說明 Dialog
+ * v705.6 重點：
+ * 1) 保留 v705 穩定主邏輯
+ * 2) 修正「打開我的智慧名片」改走 view=1
+ * 3) 保留複製連結 / 下載海報 / Web Share / 分享說明
  * 4) 海報只截 #posterCapture，不把按鈕拍進去
- * 5) 推薦智慧名片維持複製推薦連結
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705";
+  const VERSION = "705.6";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -70,6 +69,7 @@
   function buildCardUrl(id) {
     const url = new URL("index.html", getBaseUrl());
     url.searchParams.set("id", id);
+    url.searchParams.set("view", "1");
     if (REF_ID) url.searchParams.set("ref", REF_ID);
     return url.toString();
   }
