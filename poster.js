@@ -1,18 +1,19 @@
 /* ==========================================
- * HSC Poster v706.4
+ * HSC Poster v706.3
  * COMPLETE OVERWRITE
  *
  * 目標：
- * 1. 分享說明重寫
- * 2. 文字改深咖啡，不用純黑
- * 3. 海報下載更穩
- * 4. 卡片質感更乾淨
+ * 1. icon + 天使幸福智慧名片
+ * 2. 名片交付卡橢圓美化
+ * 3. QRcode 提示文字：掃描QRcode查閱完整名片
+ * 4. 按鈕立體化
+ * 5. UI 精緻化
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "706.4";
+  const VERSION = "706.3";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -186,7 +187,7 @@
         text: targetUrl,
         width: 320,
         height: 320,
-        colorDark: "#3a2d23",
+        colorDark: "#453429",
         colorLight: "#ffffff",
         correctLevel: window.QRCode.CorrectLevel.H
       });
