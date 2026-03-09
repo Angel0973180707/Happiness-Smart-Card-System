@@ -1,20 +1,19 @@
 /* ==========================================
- * HSC Poster v705.4
+ * HSC Poster v705.5
  * COMPLETE OVERWRITE
  *
- * v705.4 重點：
- * 1) Firebase 圖片主線修正
- * 2) 取圖優先順序：
+ * v705.5 重點：
+ * 1) 修正打開我的智慧名片連結，改回 ?id=TWxxxx
+ * 2) 海報截圖只截 posterCapture，不帶按鈕
+ * 3) Firebase 圖片主線修正
+ * 4) 取圖優先順序：
  *    avatar_url -> avatar_img_fast -> avatar_img -> avatar
- * 3) 保留 crossOrigin="anonymous"
- * 4) 下載海報前等待圖片載入完成
- * 5) 保留 Web Share / 分享說明 / 海報截圖
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705.4";
+  const VERSION = "705.5";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -26,7 +25,7 @@
 
   const qs = new URLSearchParams(location.search);
   const CARD_ID = (qs.get("id") || "").trim();
-  const REF_ID = (qs.get("ref") || CARD_ID).trim();
+  const REF_ID = (qs.get("ref") || "").trim();
   const DEBUG = (qs.get("debug") || "").trim() === "1";
 
   const $ = (id) => document.getElementById(id);
@@ -60,6 +59,20 @@
     if (DEBUG) console.log("[HSC Poster]", ...args);
   }
 
+  function text(v, fallback = "") {
+    return String(v == null ? fallback : v).trim();
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (m) => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    }[m]));
+  }
+
   function getGasUrl() {
     const qGas = (qs.get("gas") || "").trim();
     const savedGas = (localStorage.getItem("HSC_GAS_URL") || "").trim();
@@ -75,7 +88,8 @@
   }
 
   function buildCardUrl(id) {
-    const url = new URL("index.html", getBaseUrl());
+    const base = getBaseUrl();
+    const url = new URL(base);
     url.searchParams.set("id", id);
     if (REF_ID) url.searchParams.set("ref", REF_ID);
     return url.toString();
@@ -83,7 +97,7 @@
 
   function buildRecommendUrl() {
     const url = new URL(getBaseUrl());
-    if (REF_ID) url.searchParams.set("ref", REF_ID);
+    if (CARD_ID) url.searchParams.set("ref", CARD_ID);
     return url.toString();
   }
 
@@ -94,25 +108,11 @@
     try {
       const url = new URL(lineOA);
       if (CARD_ID) url.searchParams.set("card", CARD_ID);
-      if (REF_ID) url.searchParams.set("ref", REF_ID);
+      if (REF_ID || CARD_ID) url.searchParams.set("ref", REF_ID || CARD_ID);
       return url.toString();
     } catch (_) {
       return lineOA || DEFAULT_LINE_OA;
     }
-  }
-
-  function text(v, fallback = "") {
-    return String(v == null ? fallback : v).trim();
-  }
-
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, (m) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    }[m]));
   }
 
   function setLoading(message) {
@@ -137,30 +137,6 @@
     return t.slice(0, 2);
   }
 
-  function tryResolveImage(url) {
-    const src = text(url);
-    if (!src) return "";
-
-    const resolver =
-      window.HSCImageResolver ||
-      window.imageResolver ||
-      window.resolveImageUrl ||
-      null;
-
-    try {
-      if (resolver && typeof resolver === "function") {
-        return resolver(src) || src;
-      }
-      if (resolver && typeof resolver.resolve === "function") {
-        return resolver.resolve(src) || src;
-      }
-    } catch (err) {
-      console.warn("imageResolver fallback", err);
-    }
-
-    return src;
-  }
-
   function pickImage(item) {
     const candidates = [
       { key: "avatar_url", value: text(item.avatar_url) },
@@ -170,36 +146,17 @@
     ].filter((x) => x.value);
 
     for (const row of candidates) {
-      const resolved = tryResolveImage(row.value);
-      if (resolved) {
-        log("pickImage =>", row.key, resolved);
-        return resolved;
-      }
+      log("pickImage =>", row.key, row.value);
+      if (row.value) return row.value;
     }
 
     log("pickImage => none");
     return "";
   }
 
-  function clearAvatar() {
-    if (avatarEl) {
-      avatarEl.onload = null;
-      avatarEl.onerror = null;
-      avatarEl.removeAttribute("src");
-      avatarEl.style.display = "none";
-    }
-    if (avatarFallbackEl) {
-      avatarFallbackEl.style.display = "grid";
-    }
-    currentAvatarUrl = "";
-  }
-
-  function waitForSingleImage(img, timeout = 5000) {
+  function waitForSingleImage(img, timeout = 6000) {
     if (!img) return Promise.resolve(false);
-
-    if (img.complete && img.naturalWidth > 0) {
-      return Promise.resolve(true);
-    }
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve(true);
 
     return new Promise((resolve) => {
       let done = false;
@@ -230,46 +187,35 @@
     if (!avatarEl || !avatarFallbackEl) return false;
 
     const finalSrc = text(src);
+    avatarFallbackEl.textContent = safeInitial(name);
 
     if (!finalSrc) {
-      clearAvatar();
-      avatarFallbackEl.textContent = safeInitial(name);
-      log("setAvatar => empty");
+      avatarEl.style.display = "none";
+      avatarFallbackEl.style.display = "grid";
+      currentAvatarUrl = "";
       return false;
     }
 
-    avatarFallbackEl.textContent = safeInitial(name);
     avatarFallbackEl.style.display = "grid";
     avatarEl.style.display = "none";
-
-    avatarEl.onload = () => {
-      avatarEl.style.display = "block";
-      avatarFallbackEl.style.display = "none";
-    };
-
-    avatarEl.onerror = () => {
-      avatarEl.style.display = "none";
-      avatarFallbackEl.style.display = "grid";
-      avatarFallbackEl.textContent = safeInitial(name);
-    };
 
     avatarEl.crossOrigin = "anonymous";
     avatarEl.referrerPolicy = "no-referrer";
     avatarEl.src = finalSrc;
     currentAvatarUrl = finalSrc;
 
-    const ok = await waitForSingleImage(avatarEl, 6000);
+    const ok = await waitForSingleImage(avatarEl, 6500);
     log("setAvatar loaded =>", ok, finalSrc);
 
-    if (!ok) {
-      avatarEl.style.display = "none";
-      avatarFallbackEl.style.display = "grid";
-      return false;
+    if (ok) {
+      avatarEl.style.display = "block";
+      avatarFallbackEl.style.display = "none";
+      return true;
     }
 
-    avatarEl.style.display = "block";
-    avatarFallbackEl.style.display = "none";
-    return true;
+    avatarEl.style.display = "none";
+    avatarFallbackEl.style.display = "grid";
+    return false;
   }
 
   function normalizeItem(raw) {
@@ -279,12 +225,10 @@
       name: text(item.name, "智慧名片"),
       unit: text(item.unit),
       title: text(item.title),
-
       avatar_url: text(item.avatar_url),
       avatar_img_fast: text(item.avatar_img_fast),
       avatar_img: text(item.avatar_img),
       avatar: text(item.avatar),
-
       line_oa: text(item.line_oa),
       line_url: text(item.line_url)
     };
@@ -306,25 +250,18 @@
     url.searchParams.set("action", "card");
     url.searchParams.set("id", id);
 
-    log("fetchCard =>", url.toString());
-
     const res = await fetch(url.toString(), {
       method: "GET",
       cache: "no-store"
     });
 
-    if (!res.ok) {
-      throw new Error(`讀取失敗（${res.status}）`);
-    }
+    if (!res.ok) throw new Error(`讀取失敗（${res.status}）`);
 
     const json = await res.json();
-    log("fetchCard response =>", json);
+    log("fetchCard =>", json);
 
     const payload = getCardPayload(json);
-
-    if (!payload) {
-      throw new Error("找不到名片資料");
-    }
+    if (!payload) throw new Error("找不到名片資料");
 
     return normalizeItem(payload);
   }
@@ -333,18 +270,14 @@
     if (!qrCodeEl) return;
     qrCodeEl.innerHTML = "";
 
-    try {
-      new QRCode(qrCodeEl, {
-        text: url,
-        width: 196,
-        height: 196,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-      });
-    } catch (err) {
-      console.error("QRCode 產生失敗", err);
-    }
+    new QRCode(qrCodeEl, {
+      text: url,
+      width: 196,
+      height: 196,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
   }
 
   async function copyText(value) {
@@ -368,7 +301,6 @@
 
     const ok = document.execCommand("copy");
     document.body.removeChild(ta);
-
     if (!ok) throw new Error("copy failed");
   }
 
@@ -414,41 +346,20 @@
 
   async function waitForImages(root) {
     if (!root) return;
-
     const images = Array.from(root.querySelectorAll("img"));
-    if (!images.length) return;
-
-    await Promise.all(
-      images.map((img) => waitForSingleImage(img, 4000).catch(() => false))
-    );
-  }
-
-  async function ensureAvatarReadyBeforeCapture(item) {
-    if (!avatarEl) return;
-
-    if (avatarEl.complete && avatarEl.naturalWidth > 0) {
-      log("ensureAvatarReadyBeforeCapture => already ready");
-      return;
-    }
-
-    const url = currentAvatarUrl || pickImage(item);
-    if (!url) {
-      log("ensureAvatarReadyBeforeCapture => no avatar url");
-      return;
-    }
-
-    log("ensureAvatarReadyBeforeCapture => retry load", url);
-    await setAvatar(url, item.name);
+    await Promise.all(images.map((img) => waitForSingleImage(img, 4000).catch(() => false)));
   }
 
   async function downloadPoster(item) {
-    const target = posterCaptureEl || $("poster");
-    if (!target) throw new Error("找不到海報區塊");
+    if (!posterCaptureEl) throw new Error("找不到海報區塊");
 
-    await ensureAvatarReadyBeforeCapture(item);
-    await waitForImages(target);
+    if ((!avatarEl.complete || avatarEl.naturalWidth <= 0) && currentAvatarUrl) {
+      await setAvatar(currentAvatarUrl, item.name);
+    }
 
-    const canvas = await html2canvas(target, {
+    await waitForImages(posterCaptureEl);
+
+    const canvas = await html2canvas(posterCaptureEl, {
       backgroundColor: null,
       scale: Math.min(window.devicePixelRatio || 2, 3),
       useCORS: true,
@@ -501,15 +412,10 @@
 
     renderQrCode(cardUrl);
 
-    if (btnShare) {
-      btnShare.disabled = false;
-      btnShare.onclick = async () => {
-        try {
-          await shareCard();
-        } catch (err) {
-          console.error(err);
-          setStatus("分享失敗，請稍後再試", "error");
-        }
+    if (btnOpenCard) {
+      btnOpenCard.disabled = false;
+      btnOpenCard.onclick = () => {
+        window.open(cardUrl, "_blank", "noopener");
       };
     }
 
@@ -540,13 +446,6 @@
       };
     }
 
-    if (btnOpenCard) {
-      btnOpenCard.disabled = false;
-      btnOpenCard.onclick = () => {
-        window.open(cardUrl, "_blank", "noopener");
-      };
-    }
-
     if (btnRecommend) {
       btnRecommend.disabled = false;
       btnRecommend.onclick = async () => {
@@ -564,6 +463,18 @@
       btnConsult.disabled = false;
       btnConsult.onclick = () => {
         window.open(buildConsultUrl(item), "_blank", "noopener");
+      };
+    }
+
+    if (btnShare) {
+      btnShare.disabled = false;
+      btnShare.onclick = async () => {
+        try {
+          await shareCard();
+        } catch (err) {
+          console.error(err);
+          setStatus("分享失敗，請稍後再試", "error");
+        }
       };
     }
 
