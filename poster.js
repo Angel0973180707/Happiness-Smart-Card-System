@@ -1,19 +1,18 @@
 /* ==========================================
- * HSC Poster v705
+ * HSC Poster v705.1
  * COMPLETE OVERWRITE
  *
- * v705 重點：
- * 1) 新增 Web Share API：分享我的智慧名片
- * 2) 保留複製連結 / 下載海報 / 打開名片
- * 3) 新增分享說明 Dialog
- * 4) 海報只截 #posterCapture，不把按鈕拍進去
- * 5) 推薦智慧名片維持複製推薦連結
+ * v705.1 重點：
+ * 1) 修正頭像來源，明確支援 avatar_img
+ * 2) 相容 avatar_url / avatar_img_fast / avatar / avatar_key
+ * 3) 相容 Google Drive uc?export=view&id=...
+ * 4) 保留 v705 的 Web Share / 分享說明 / 海報截圖
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705";
+  const VERSION = "705.1";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -130,37 +129,97 @@
     return t.slice(0, 2);
   }
 
+  function isGoogleDriveUrl(url) {
+    return /drive\.google\.com/i.test(url || "");
+  }
+
+  function toGoogleDriveDirect(url) {
+    const src = text(url);
+    if (!src) return "";
+
+    const idMatch =
+      src.match(/[?&]id=([^&]+)/i) ||
+      src.match(/\/d\/([^/]+)/i) ||
+      src.match(/\/file\/d\/([^/]+)/i);
+
+    if (idMatch && idMatch[1]) {
+      const id = idMatch[1];
+      return `https://drive.google.com/uc?export=view&id=${id}`;
+    }
+    return src;
+  }
+
+  function tryResolveImage(url) {
+    const src = text(url);
+    if (!src) return "";
+
+    const resolver = window.HSCImageResolver || window.imageResolver || window.resolveImageUrl || null;
+
+    try {
+      if (resolver && typeof resolver === "function") {
+        return resolver(src) || src;
+      }
+      if (resolver && typeof resolver.resolve === "function") {
+        return resolver.resolve(src) || src;
+      }
+    } catch (err) {
+      console.warn("imageResolver fallback", err);
+    }
+
+    return src;
+  }
+
+  function pickImage(item) {
+    const candidates = [
+      item.avatar_img,
+      item.avatar_url,
+      item.avatar_img_fast,
+      item.avatar,
+      item.avatarUrl,
+      item.avatar_key
+    ].map(v => text(v)).filter(Boolean);
+
+    for (const raw of candidates) {
+      let url = raw;
+
+      if (isGoogleDriveUrl(url)) {
+        url = toGoogleDriveDirect(url);
+      }
+
+      url = tryResolveImage(url);
+
+      if (url) return url;
+    }
+
+    return "";
+  }
+
   function setAvatar(src, name) {
     if (!avatarEl || !avatarFallbackEl) return;
 
-    if (src) {
+    const finalSrc = text(src);
+
+    if (finalSrc) {
       avatarEl.onload = () => {
         avatarEl.style.display = "block";
         avatarFallbackEl.style.display = "none";
       };
+
       avatarEl.onerror = () => {
         avatarEl.style.display = "none";
         avatarFallbackEl.style.display = "grid";
         avatarFallbackEl.textContent = safeInitial(name);
       };
-      avatarEl.src = src;
-    } else {
-      avatarEl.style.display = "none";
-      avatarFallbackEl.style.display = "grid";
-      avatarFallbackEl.textContent = safeInitial(name);
+
+      avatarEl.referrerPolicy = "no-referrer";
+      avatarEl.crossOrigin = "anonymous";
+      avatarEl.src = finalSrc;
+      return;
     }
-  }
 
-  function pickImage(item) {
-    const candidates = [
-      item.avatar_url,
-      item.avatar_img_fast,
-      item.avatar_img,
-      item.avatar,
-      item.avatarUrl
-    ].map(v => text(v)).filter(Boolean);
-
-    return candidates[0] || "";
+    avatarEl.style.display = "none";
+    avatarFallbackEl.style.display = "grid";
+    avatarFallbackEl.textContent = safeInitial(name);
   }
 
   function normalizeItem(raw) {
@@ -170,7 +229,12 @@
       name: text(item.name, "智慧名片"),
       unit: text(item.unit),
       title: text(item.title),
-      avatar_url: text(item.avatar_url || item.avatar_img_fast || item.avatar_img || item.avatar || item.avatarUrl),
+      avatar_img: text(item.avatar_img),
+      avatar_url: text(item.avatar_url),
+      avatar_img_fast: text(item.avatar_img_fast),
+      avatar: text(item.avatar),
+      avatarUrl: text(item.avatarUrl),
+      avatar_key: text(item.avatar_key),
       line_oa: text(item.line_oa),
       line_url: text(item.line_url)
     };
@@ -318,13 +382,8 @@
   }
 
   function bindDialogEvents() {
-    if (btnShareGuide) {
-      btnShareGuide.onclick = openDialog;
-    }
-
-    if (btnCloseDialog) {
-      btnCloseDialog.onclick = closeDialog;
-    }
+    if (btnShareGuide) btnShareGuide.onclick = openDialog;
+    if (btnCloseDialog) btnCloseDialog.onclick = closeDialog;
 
     if (shareDialogEl) {
       shareDialogEl.addEventListener("click", (e) => {
