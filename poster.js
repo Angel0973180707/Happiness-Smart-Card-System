@@ -1,18 +1,18 @@
 /* ==========================================
- * HSC Poster v706.2
+ * HSC Poster v706.3
  * COMPLETE OVERWRITE
  *
- * 本版重點：
- * 1. 使用本地 qrcode.min.js
- * 2. QR code 420px + 高容錯
- * 3. 保留 7 按鈕功能
- * 4. 按鈕立體化由 HTML/CSS 控制
+ * 目標：
+ * 1. 修正卡在載入中
+ * 2. QR 失敗不拖垮整頁
+ * 3. 恢復下載功能
+ * 4. 穩定顯示姓名 / 標題 / 頭像
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "706.2";
+  const VERSION = "706.3";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -64,16 +64,17 @@
       const item = await fetchCard(id);
       currentItem = item;
 
-      renderPoster(item);
-
       currentCardUrl = buildCardUrl(item);
       currentRecommendUrl = buildRecommendUrl(item);
 
-      renderQr(currentCardUrl);
+      renderPoster(item);
+      renderQrSafe(currentCardUrl);
 
       setStatus("");
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] init error:`, err);
+      renderPoster(null);
+      renderQrFallback();
       setStatus(err.message || "載入失敗", true);
     }
   }
@@ -111,10 +112,16 @@
       throw new Error(`讀取名片失敗（HTTP ${res.status}）`);
     }
 
-    const json = await res.json();
+    let json;
+    try {
+      json = await res.json();
+    } catch (err) {
+      throw new Error("名片資料不是有效 JSON");
+    }
+
     const item = json?.item || json?.data || json;
 
-    if (!item || (!item.id && !item.name)) {
+    if (!item || typeof item !== "object") {
       throw new Error("名片資料格式不正確");
     }
 
@@ -122,72 +129,73 @@
   }
 
   function renderPoster(item) {
-    const name = text(item.name) || item.id || "我的智慧名片";
+    const name = text(item?.name) || text(item?.id) || "我的智慧名片";
     const title =
-      text(item.title) ||
-      text(item.unit) ||
-      text(item.slogan) ||
+      text(item?.title) ||
+      text(item?.unit) ||
+      text(item?.slogan) ||
       "";
 
     if (el.cardName) el.cardName.textContent = name;
     if (el.cardTitle) el.cardTitle.textContent = title;
 
     const avatar =
-      text(item.avatar_url) ||
-      text(item.avatar_img_fast) ||
-      text(item.avatar_img);
+      text(item?.avatar_url) ||
+      text(item?.avatar_img_fast) ||
+      text(item?.avatar_img);
 
     if (el.avatarImg) {
-      el.avatarImg.src = avatar || buildDefaultAvatarSvg();
       el.avatarImg.alt = `${name} 頭像`;
       el.avatarImg.onerror = () => {
+        el.avatarImg.onerror = null;
         el.avatarImg.src = buildDefaultAvatarSvg();
       };
+      el.avatarImg.src = avatar || buildDefaultAvatarSvg();
     }
   }
 
   function buildCardUrl(item) {
-    const cardId = text(item.id) || id;
+    const cardId = text(item?.id) || id;
     return `${baseUrl}index.html?id=${encodeURIComponent(cardId)}`;
   }
 
   function buildRecommendUrl(item) {
-    const refId = text(item.id) || id;
+    const refId = text(item?.id) || id;
     return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
   }
 
-  function renderQr(targetUrl) {
-    if (!el.qrBox) return;
-
-    if (typeof window.QRCode === "undefined") {
-      throw new Error("本地 qrcode.min.js 未載入");
-    }
-
-    el.qrBox.innerHTML = "";
-
-    const qrMount = document.createElement("div");
-    qrMount.style.width = "100%";
-    qrMount.style.height = "100%";
-    qrMount.style.display = "flex";
-    qrMount.style.alignItems = "center";
-    qrMount.style.justifyContent = "center";
-
-    el.qrBox.appendChild(qrMount);
-
+  function renderQrSafe(targetUrl) {
     try {
-      new window.QRCode(qrMount, {
+      if (!el.qrBox) return;
+
+      if (typeof window.QRCode === "undefined") {
+        throw new Error("本地 qrcode.min.js 未載入");
+      }
+
+      el.qrBox.innerHTML = "";
+
+      const mount = document.createElement("div");
+      mount.style.width = "100%";
+      mount.style.height = "100%";
+      mount.style.display = "flex";
+      mount.style.alignItems = "center";
+      mount.style.justifyContent = "center";
+      el.qrBox.appendChild(mount);
+
+      new window.QRCode(mount, {
         text: targetUrl,
-        width: 420,
-        height: 420,
+        width: 320,
+        height: 320,
         colorDark: "#111111",
         colorLight: "#ffffff",
         correctLevel: window.QRCode.CorrectLevel.H
       });
 
-      normalizeQrDom(qrMount);
+      normalizeQrDom(mount);
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] QR render error:`, err);
-      throw new Error("QR code 產生失敗");
+      renderQrFallback();
+      setStatus("QR 產生失敗，但其他功能仍可正常使用", true);
     }
   }
 
@@ -207,14 +215,28 @@
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       canvas.style.display = "block";
+      return;
     }
+
+    throw new Error("QRCode 未產生 img/canvas");
+  }
+
+  function renderQrFallback() {
+    if (!el.qrBox) return;
+
+    el.qrBox.innerHTML = `
+      <div class="qr-fallback">
+        <strong>QR 暫時無法顯示</strong>
+        <div>你仍可使用下方按鈕</div>
+        <div>查看名片、複製連結、下載海報</div>
+      </div>
+    `;
   }
 
   async function onDownloadPoster() {
     try {
-      if (!el.posterCapture) {
-        throw new Error("找不到海報區塊");
-      }
+      if (!el.posterCapture) throw new Error("找不到海報區塊");
+      if (!window.html2canvas) throw new Error("html2canvas 未載入");
 
       setStatus("正在產生海報圖片…", false);
 
@@ -224,10 +246,10 @@
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#fffaf6",
-        scale: Math.min(3, window.devicePixelRatio || 2),
+        scale: Math.min(2.5, window.devicePixelRatio || 2),
         logging: false,
         imageTimeout: 15000,
-        removeContainer: true,
+        removeContainer: true
       });
 
       const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
@@ -246,24 +268,33 @@
   }
 
   function onOpenCard() {
-    if (!currentCardUrl) return;
+    if (!currentCardUrl) {
+      setStatus("名片連結尚未建立", true);
+      return;
+    }
     window.location.href = currentCardUrl;
   }
 
   async function onCopyCardLink() {
-    if (!currentCardUrl) return;
+    if (!currentCardUrl) {
+      setStatus("名片連結尚未建立", true);
+      return;
+    }
     const ok = await copyText(currentCardUrl);
     setStatus(ok ? "名片連結已複製" : "複製失敗，請手動複製", !ok);
     clearStatusSoon();
   }
 
   async function onShareCard() {
-    if (!currentCardUrl) return;
+    if (!currentCardUrl) {
+      setStatus("名片連結尚未建立", true);
+      return;
+    }
 
     const shareData = {
       title: currentItem?.name ? `${currentItem.name} 的智慧名片` : "我的智慧名片",
       text: "這是我的智慧名片，歡迎查看。",
-      url: currentCardUrl,
+      url: currentCardUrl
     };
 
     try {
@@ -278,7 +309,7 @@
       setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
       clearStatusSoon();
     } catch (err) {
-      if (err && err.name === "AbortError") return;
+      if (err?.name === "AbortError") return;
       const ok = await copyText(currentCardUrl);
       setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
       clearStatusSoon();
@@ -286,14 +317,20 @@
   }
 
   async function onRecommend() {
-    if (!currentRecommendUrl) return;
+    if (!currentRecommendUrl) {
+      setStatus("推薦連結尚未建立", true);
+      return;
+    }
     const ok = await copyText(currentRecommendUrl);
     setStatus(ok ? "推薦智慧名片館連結已複製" : "複製失敗，請手動複製", !ok);
     clearStatusSoon();
   }
 
   function onOpenLineOA() {
-    if (!lineOA) return;
+    if (!lineOA) {
+      setStatus("LINE 官方帳號連結未設定", true);
+      return;
+    }
     window.location.href = lineOA;
   }
 
@@ -311,20 +348,13 @@
 
   function setStatus(message, isError = false) {
     if (!el.statusText) return;
-
-    if (!message) {
-      el.statusText.textContent = "";
-      el.statusText.classList.remove("error");
-      return;
-    }
-
-    el.statusText.textContent = message;
+    el.statusText.textContent = message || "";
     el.statusText.classList.toggle("error", !!isError);
   }
 
   function clearStatusSoon() {
-    window.clearTimeout(clearStatusSoon._t);
-    clearStatusSoon._t = window.setTimeout(() => {
+    window.clearTimeout(clearStatusSoon._timer);
+    clearStatusSoon._timer = window.setTimeout(() => {
       setStatus("");
     }, 1800);
   }
@@ -362,7 +392,7 @@
 
     return Promise.all(
       images.map((img) => {
-        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        if (img.complete) return Promise.resolve();
 
         return new Promise((resolve) => {
           const done = () => {
