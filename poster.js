@@ -1,18 +1,24 @@
 /* ==========================================
- * HSC Poster v707.2
+ * HSC Poster v800.1
  * COMPLETE OVERWRITE
  *
- * 修正重點：
- * 1. 放棄 html2canvas 截圖下載
- * 2. 改用原生 Canvas 直接合成海報
- * 3. 手機下載更穩
- * 4. 保留本地 QR 生成 + 中央頭像
+ * 商用版：
+ * 1. 本地 QR 生成
+ * 2. QR 中央頭像
+ * 3. 頭像 / 姓名 / 標題載入
+ * 4. 下載海報（桌機下載 / 手機開圖長按保存）
+ * 5. 查看智慧名片
+ * 6. 複製名片連結
+ * 7. 分享智慧名片
+ * 8. 推薦智慧名片館
+ * 9. 分享說明 Dialog
+ * 10. LINE 官方帳號
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "707.2";
+  const VERSION = "800.1";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -20,7 +26,8 @@
   const DEFAULT_BASE =
     "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
 
-  const DEFAULT_LINE_OA = "https://lin.ee/3r2ZePN";
+  const DEFAULT_LINE_OA =
+    "https://lin.ee/3r2ZePN";
 
   const qs = new URLSearchParams(location.search);
   const id = (qs.get("id") || "").trim();
@@ -32,12 +39,10 @@
     avatarImg: document.getElementById("avatarImg"),
     cardName: document.getElementById("cardName"),
     cardTitle: document.getElementById("cardTitle"),
-
     qrViewport: document.getElementById("qrViewport"),
-    qrFallback: document.getElementById("qrFallback"),
     qrCenterAvatar: document.getElementById("qrCenterAvatar"),
     qrCenterAvatarImg: document.getElementById("qrCenterAvatarImg"),
-
+    qrLinkFallback: document.getElementById("qrLinkFallback"),
     posterCapture: document.getElementById("posterCapture"),
     statusText: document.getElementById("statusText"),
 
@@ -57,6 +62,7 @@
   let currentCardUrl = "";
   let currentRecommendUrl = "";
   let currentAvatarUrl = "";
+  let currentQrSource = null;
 
   bindEvents();
   init();
@@ -65,7 +71,7 @@
     try {
       if (!id) throw new Error("缺少名片 id");
       if (typeof window.QRCode === "undefined") {
-        throw new Error("缺少 qrcode.min.js，請確認檔案已放在 poster.html 同層");
+        throw new Error("缺少 qrcode.min.js");
       }
 
       setStatus("正在載入資料…", false);
@@ -78,7 +84,8 @@
       currentAvatarUrl = getAvatarUrl(item);
 
       renderPoster(item);
-      await renderQrLocal(currentCardUrl, currentAvatarUrl);
+      await renderQrLocal(currentCardUrl);
+      await renderQrCenterAvatar(currentAvatarUrl);
 
       setStatus("");
     } catch (err) {
@@ -111,6 +118,7 @@
 
   async function fetchCard(cardId) {
     const url = `${gas}?action=card&id=${encodeURIComponent(cardId)}&_=${Date.now()}`;
+
     const res = await fetch(url, {
       method: "GET",
       mode: "cors",
@@ -132,6 +140,7 @@
     if (!item || typeof item !== "object") {
       throw new Error("名片資料格式不正確");
     }
+
     return item;
   }
 
@@ -176,44 +185,43 @@
     return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
   }
 
-  async function renderQrLocal(targetUrl, avatarUrl) {
-    try {
-      if (!el.qrViewport) throw new Error("找不到 QR 區塊");
+  async function renderQrLocal(targetUrl) {
+    if (!el.qrViewport) return;
 
-      hideQrFallback();
-      el.qrViewport.innerHTML = "";
+    hideQrFallback();
+    el.qrViewport.innerHTML = "";
+    currentQrSource = null;
 
-      const mount = document.createElement("div");
-      mount.style.width = "100%";
-      mount.style.height = "100%";
-      mount.style.display = "flex";
-      mount.style.alignItems = "center";
-      mount.style.justifyContent = "center";
-      el.qrViewport.appendChild(mount);
+    const mount = document.createElement("div");
+    mount.style.width = "100%";
+    mount.style.height = "100%";
+    mount.style.display = "flex";
+    mount.style.alignItems = "center";
+    mount.style.justifyContent = "center";
+    el.qrViewport.appendChild(mount);
 
-      new window.QRCode(mount, {
-        text: targetUrl,
-        width: 640,
-        height: 640,
-        colorDark: "#2f241d",
-        colorLight: "#ffffff",
-        correctLevel: window.QRCode.CorrectLevel.H
-      });
+    new window.QRCode(mount, {
+      text: targetUrl,
+      width: 900,
+      height: 900,
+      colorDark: "#2f241d",
+      colorLight: "#ffffff",
+      correctLevel: window.QRCode.CorrectLevel.H
+    });
 
-      await wait(120);
+    await wait(120);
 
-      const qrNode = normalizeQrNode(mount);
-      if (!qrNode) throw new Error("本地 QR 生成失敗");
-
-      await renderCenterAvatar(avatarUrl);
-    } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] QR render error:`, err);
+    const source = normalizeQrSource(mount);
+    if (!source) {
       renderQrFallback(targetUrl);
-      setStatus("QR 產生失敗，已顯示名片連結", true);
+      setStatus("QR 產生失敗，已改顯示名片連結", true);
+      return;
     }
+
+    currentQrSource = source;
   }
 
-  function normalizeQrNode(root) {
+  function normalizeQrSource(root) {
     const img = root.querySelector("img");
     const canvas = root.querySelector("canvas");
     const table = root.querySelector("table");
@@ -251,7 +259,7 @@
     return null;
   }
 
-  async function renderCenterAvatar(avatarUrl) {
+  async function renderQrCenterAvatar(avatarUrl) {
     if (!el.qrCenterAvatar || !el.qrCenterAvatarImg) return;
 
     if (!avatarUrl) {
@@ -272,30 +280,29 @@
     if (el.qrViewport) el.qrViewport.innerHTML = "";
     if (el.qrCenterAvatar) el.qrCenterAvatar.classList.remove("show");
 
-    if (el.qrFallback) {
-      el.qrFallback.classList.add("show");
-      el.qrFallback.textContent = url
+    if (el.qrLinkFallback) {
+      el.qrLinkFallback.classList.add("show");
+      el.qrLinkFallback.textContent = url
         ? `名片連結：${url}`
         : "QR 暫時無法顯示";
     }
   }
 
   function hideQrFallback() {
-    if (el.qrFallback) {
-      el.qrFallback.classList.remove("show");
-      el.qrFallback.textContent = "";
+    if (el.qrLinkFallback) {
+      el.qrLinkFallback.classList.remove("show");
+      el.qrLinkFallback.textContent = "";
     }
   }
 
   async function onDownloadPoster() {
     try {
+      disableButton(el.downloadBtn, true);
       setStatus("正在產生海報圖片…", false);
-      disableDownloadBtn(true);
 
-      const posterCanvas = await buildPosterCanvas();
+      const canvas = await buildPosterCanvas();
       const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
-
-      const dataUrl = posterCanvas.toDataURL("image/png", 0.96);
+      const dataUrl = canvas.toDataURL("image/png", 0.96);
 
       if (isMobileDevice()) {
         openImageInNewTab(dataUrl, filename);
@@ -307,112 +314,108 @@
 
       clearStatusSoon();
     } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] canvas export error:`, err);
+      console.error(`[HSC Poster ${VERSION}] download error:`, err);
       setStatus("海報產生失敗，請重試", true);
     } finally {
-      disableDownloadBtn(false);
+      disableButton(el.downloadBtn, false);
     }
   }
 
   async function buildPosterCanvas() {
     const width = 1080;
-    const height = 1560;
-
+    const height = 1600;
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
 
-    const avatarImg = await loadImageElement(currentAvatarUrl || buildDefaultAvatarSvg(), buildDefaultAvatarSvg());
-    const qrSource = await getQrDrawable();
-    const qrAvatarImg = await loadImageElement(currentAvatarUrl || buildDefaultAvatarSvg(), buildDefaultAvatarSvg());
+    const avatar = await loadImageElement(currentAvatarUrl || buildDefaultAvatarSvg(), buildDefaultAvatarSvg());
+    const qrDrawable = await getQrDrawable();
+    const qrCenterAvatar = await loadImageElement(currentAvatarUrl || buildDefaultAvatarSvg(), buildDefaultAvatarSvg());
 
     drawBackground(ctx, width, height);
-    drawMainCard(ctx, 26, 26, width - 52, height - 52, 42);
+    drawCard(ctx, 30, 30, width - 60, height - 60, 40);
 
-    drawTopBrand(ctx, width);
-    drawPosterBody(ctx, width);
+    drawBrandHead(ctx, width);
+    drawInnerPanel(ctx, 76, 186, width - 152, 1360, 34);
 
-    drawAvatarCircle(ctx, avatarImg, width / 2, 240, 102);
+    drawAvatarCircle(ctx, avatar, width / 2, 286, 102);
 
-    drawCenteredText(ctx, text(currentItem?.name) || text(currentItem?.id) || "我的智慧名片", width / 2, 410, {
-      font: "900 66px 'Noto Sans TC', sans-serif",
+    drawCenteredText(ctx, text(currentItem?.name) || text(currentItem?.id) || "我的智慧名片", width / 2, 460, {
+      font: "900 64px 'Noto Sans TC', sans-serif",
       color: "#453429"
     });
 
-    const titleText =
-      text(currentItem?.title) ||
-      text(currentItem?.unit) ||
-      text(currentItem?.slogan) ||
-      "";
+    drawCenteredMultiLine(
+      ctx,
+      text(currentItem?.title) || text(currentItem?.unit) || text(currentItem?.slogan) || "",
+      width / 2,
+      540,
+      760,
+      48,
+      {
+        font: "500 34px 'Noto Sans TC', sans-serif",
+        color: "#705d50"
+      }
+    );
 
-    drawCenteredMultiLine(ctx, titleText, width / 2, 490, 760, 54, {
-      font: "500 34px 'Noto Sans TC', sans-serif",
-      color: "#6f5d50"
-    });
+    const qrFrameX = 156;
+    const qrFrameY = 632;
+    const qrFrameW = 768;
+    const qrFrameH = 768;
 
-    const qrFrameX = 138;
-    const qrFrameY = 600;
-    const qrFrameW = 804;
-    const qrFrameH = 804;
+    drawFrame(ctx, qrFrameX, qrFrameY, qrFrameW, qrFrameH, 34);
+    const qrBoxX = qrFrameX + 44;
+    const qrBoxY = qrFrameY + 44;
+    const qrBoxSize = qrFrameW - 88;
 
-    drawRoundRect(ctx, qrFrameX, qrFrameY, qrFrameW, qrFrameH, 44, "#ffffff");
-    addSoftShadow(ctx);
+    drawRoundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 24, "#ffffff");
 
-    drawRoundRect(ctx, qrFrameX + 28, qrFrameY + 28, qrFrameW - 56, qrFrameH - 56, 34, "#ffffff");
-    ctx.restore();
-
-    const qrBoxX = qrFrameX + 70;
-    const qrBoxY = qrFrameY + 70;
-    const qrBoxSize = 664;
-
-    drawRoundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 26, "#ffffff");
     ctx.save();
-    roundRectPath(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 26);
+    roundRectPath(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 24);
     ctx.clip();
 
-    if (qrSource) {
-      ctx.drawImage(qrSource, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize);
+    if (qrDrawable) {
+      ctx.drawImage(qrDrawable, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize);
     } else {
-      ctx.fillStyle = "#f7f2ec";
+      ctx.fillStyle = "#f6efe8";
       ctx.fillRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize);
-      ctx.fillStyle = "#7f6b5c";
-      ctx.font = "600 28px 'Noto Sans TC', sans-serif";
+      ctx.fillStyle = "#705d50";
       ctx.textAlign = "center";
-      ctx.fillText("名片連結", width / 2, qrBoxY + qrBoxSize / 2 - 10);
+      ctx.font = "600 28px 'Noto Sans TC', sans-serif";
+      ctx.fillText("名片連結", width / 2, qrBoxY + qrBoxSize / 2 - 20);
       ctx.font = "400 18px sans-serif";
-      wrapText(ctx, currentCardUrl, width / 2, qrBoxY + qrBoxSize / 2 + 28, 520, 28);
+      wrapTextCenter(ctx, currentCardUrl, width / 2, qrBoxY + qrBoxSize / 2 + 18, 500, 28);
     }
     ctx.restore();
 
-    if (qrAvatarImg) {
-      drawQrCenterAvatar(ctx, qrAvatarImg, width / 2, qrBoxY + qrBoxSize / 2, 76);
+    if (qrCenterAvatar) {
+      drawQrCenterCircle(ctx, qrCenterAvatar, width / 2, qrBoxY + qrBoxSize / 2, 82);
     }
 
-    drawCenteredText(ctx, "掃描QRcode查閱完整名片", width / 2, 1342, {
+    drawCenteredText(ctx, "掃描QRcode查閱完整名片", width / 2, 1452, {
       font: "800 28px 'Noto Sans TC', sans-serif",
-      color: "#6f5d50"
+      color: "#705d50"
     });
 
     return canvas;
   }
 
   async function getQrDrawable() {
-    if (!el.qrViewport) return null;
+    if (!currentQrSource) return null;
 
-    const canvas = el.qrViewport.querySelector("canvas");
-    if (canvas) return canvas;
+    if (currentQrSource.tagName === "CANVAS") return currentQrSource;
 
-    const img = el.qrViewport.querySelector("img");
-    if (img && img.complete && img.naturalWidth > 0) return img;
-
-    if (img) {
-      await waitForImageElement(img);
-      if (img.naturalWidth > 0) return img;
+    if (currentQrSource.tagName === "IMG") {
+      if (!currentQrSource.complete || currentQrSource.naturalWidth === 0) {
+        await waitForImageElement(currentQrSource);
+      }
+      return currentQrSource.naturalWidth > 0 ? currentQrSource : null;
     }
 
-    const table = el.qrViewport.querySelector("table");
-    if (table) return tableToCanvas(table);
+    if (currentQrSource.tagName === "TABLE") {
+      return tableToCanvas(currentQrSource);
+    }
 
     return null;
   }
@@ -421,61 +424,50 @@
     const rows = Array.from(table.querySelectorAll("tr"));
     if (!rows.length) return null;
 
-    const rowCount = rows.length;
-    const colCount = rows[0].querySelectorAll("td").length;
-    if (!colCount) return null;
+    const cols = rows[0].querySelectorAll("td").length;
+    if (!cols) return null;
 
     const size = 800;
-    const c = document.createElement("canvas");
-    c.width = size;
-    c.height = size;
-    const ctx = c.getContext("2d");
-
-    const cellW = size / colCount;
-    const cellH = size / rowCount;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
 
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, size, size);
 
+    const cellW = size / cols;
+    const cellH = size / rows.length;
+
     rows.forEach((tr, r) => {
-      const cells = Array.from(tr.querySelectorAll("td"));
-      cells.forEach((td, cIdx) => {
-        const bg = getComputedStyle(td).backgroundColor;
-        if (!isWhiteColor(bg)) {
+      const tds = Array.from(tr.querySelectorAll("td"));
+      tds.forEach((td, c) => {
+        const bg = getComputedStyle(td).backgroundColor.replace(/\s+/g, "").toLowerCase();
+        if (bg !== "rgb(255,255,255)" && bg !== "rgba(255,255,255,1)" && bg !== "transparent") {
           ctx.fillStyle = "#2f241d";
-          ctx.fillRect(cIdx * cellW, r * cellH, Math.ceil(cellW), Math.ceil(cellH));
+          ctx.fillRect(c * cellW, r * cellH, Math.ceil(cellW), Math.ceil(cellH));
         }
       });
     });
 
-    return c;
-  }
-
-  function isWhiteColor(color) {
-    const v = String(color || "").replace(/\s+/g, "").toLowerCase();
-    return (
-      v === "rgb(255,255,255)" ||
-      v === "rgba(255,255,255,1)" ||
-      v === "transparent" ||
-      v === ""
-    );
+    return canvas;
   }
 
   function drawBackground(ctx, w, h) {
-    const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, "#f8f4ee");
-    grad.addColorStop(1, "#f2ebe2");
-    ctx.fillStyle = grad;
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, "#f8f4ee");
+    g.addColorStop(1, "#f3ece3");
+    ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
-    const glow = ctx.createRadialGradient(w / 2, -40, 40, w / 2, -40, 700);
-    glow.addColorStop(0, "rgba(255,255,255,.85)");
-    glow.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = glow;
+    const rg = ctx.createRadialGradient(w / 2, -40, 30, w / 2, -40, 680);
+    rg.addColorStop(0, "rgba(255,255,255,.85)");
+    rg.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = rg;
     ctx.fillRect(0, 0, w, h);
   }
 
-  function drawMainCard(ctx, x, y, w, h, r) {
+  function drawCard(ctx, x, y, w, h, r) {
     ctx.save();
     ctx.shadowColor = "rgba(83,62,45,.08)";
     ctx.shadowBlur = 40;
@@ -491,54 +483,64 @@
     ctx.restore();
   }
 
-  function drawTopBrand(ctx, width) {
-    const icon = new Image();
-    icon.src = "./icon-192.png";
+  function drawBrandHead(ctx, width) {
+    drawCenteredText(ctx, "☀", width / 2, 88, {
+      font: "900 44px 'Noto Sans TC', sans-serif",
+      color: "#9d6d45"
+    });
 
-    ctx.save();
-    ctx.font = "900 34px 'Noto Sans TC', sans-serif";
-    ctx.fillStyle = "#453429";
-    ctx.textAlign = "center";
-    ctx.fillText("天使幸福智慧名片", width / 2 + 18, 108);
-    ctx.restore();
+    drawCenteredText(ctx, "天使幸福智慧名片", width / 2, 126, {
+      font: "900 38px 'Noto Sans TC', sans-serif",
+      color: "#453429"
+    });
 
-    try {
-      ctx.save();
-      ctx.shadowColor = "rgba(0,0,0,.05)";
-      ctx.shadowBlur = 8;
-      ctx.fillStyle = "#ffffff";
-      drawRoundRect(ctx, 290, 70, 44, 44, 12, "#ffffff");
-      ctx.restore();
+    drawCenteredText(ctx, "Angel Smart Card", width / 2, 158, {
+      font: "700 18px sans-serif",
+      color: "#8b7a6d"
+    });
 
-      ctx.drawImage(icon, 294, 74, 36, 36);
-    } catch (_) {}
-
-    drawRoundRect(ctx, 380, 126, 320, 48, 24, "#fbf2e8");
+    drawRoundRect(ctx, 388, 176, 304, 46, 23, "#fbf2e8");
     ctx.save();
     ctx.strokeStyle = "rgba(191,135,87,.16)";
     ctx.lineWidth = 2;
-    roundRectPath(ctx, 380, 126, 320, 48, 24);
+    roundRectPath(ctx, 388, 176, 304, 46, 23);
     ctx.stroke();
     ctx.restore();
 
-    drawCenteredText(ctx, "名片交付卡", width / 2, 158, {
+    drawCenteredText(ctx, "名片交付卡", width / 2, 198, {
       font: "900 24px 'Noto Sans TC', sans-serif",
       color: "#9d6d45"
     });
   }
 
-  function drawPosterBody(ctx, width) {
+  function drawInnerPanel(ctx, x, y, w, h, r) {
     ctx.save();
     ctx.shadowColor = "rgba(83,62,45,.06)";
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetY = 6;
-    drawRoundRect(ctx, 74, 178, width - 148, 1340, 34, "#fffaf5");
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 8;
+    drawRoundRect(ctx, x, y, w, h, r, "#fffaf5");
     ctx.restore();
 
     ctx.save();
     ctx.strokeStyle = "rgba(102,78,57,.08)";
     ctx.lineWidth = 2;
-    roundRectPath(ctx, 74, 178, width - 148, 1340, 34);
+    roundRectPath(ctx, x, y, w, h, r);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawFrame(ctx, x, y, w, h, r) {
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,.05)";
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 8;
+    drawRoundRect(ctx, x, y, w, h, r, "#fffdfa");
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(0,0,0,.04)";
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, x, y, w, h, r);
     ctx.stroke();
     ctx.restore();
   }
@@ -547,7 +549,7 @@
     ctx.save();
     ctx.shadowColor = "rgba(88,67,48,.09)";
     ctx.shadowBlur = 18;
-    ctx.shadowOffsetY = 8;
+    ctx.shadowOffsetY = 6;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.closePath();
@@ -569,10 +571,10 @@
     ctx.restore();
   }
 
-  function drawQrCenterAvatar(ctx, img, cx, cy, r) {
+  function drawQrCenterCircle(ctx, img, cx, cy, r) {
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,.10)";
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = 18;
     ctx.shadowOffsetY = 6;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -600,11 +602,11 @@
     ctx.restore();
   }
 
-  function drawCenteredMultiLine(ctx, str, x, y, maxWidth, lineHeight, opts = {}) {
-    const lines = splitLinesByWidth(ctx, str || "", maxWidth, opts.font || "500 34px sans-serif");
+  function drawCenteredMultiLine(ctx, textValue, x, y, maxWidth, lineHeight, opts = {}) {
+    const lines = splitLinesByWidth(ctx, textValue || "", maxWidth, opts.font || "500 34px sans-serif");
     ctx.save();
     ctx.font = opts.font || "500 34px sans-serif";
-    ctx.fillStyle = opts.color || "#6f5d50";
+    ctx.fillStyle = opts.color || "#705d50";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
@@ -615,14 +617,14 @@
     ctx.restore();
   }
 
-  function splitLinesByWidth(ctx, textValue, maxWidth, font) {
-    const textStr = String(textValue || "").trim();
-    if (!textStr) return [""];
+  function splitLinesByWidth(ctx, input, maxWidth, font) {
+    const s = String(input || "").trim();
+    if (!s) return [""];
 
     ctx.save();
     ctx.font = font;
 
-    const chars = Array.from(textStr);
+    const chars = Array.from(s);
     const lines = [];
     let line = "";
 
@@ -638,12 +640,11 @@
 
     if (line) lines.push(line);
     ctx.restore();
-
     return lines.slice(0, 2);
   }
 
-  function wrapText(ctx, textValue, x, y, maxWidth, lineHeight) {
-    const lines = splitLinesByWidth(ctx, textValue, maxWidth, ctx.font);
+  function wrapTextCenter(ctx, textValue, x, y, maxWidth, lineHeight) {
+    const lines = splitLinesByWidth(ctx, textValue || "", maxWidth, ctx.font);
     lines.forEach((line, idx) => {
       ctx.fillText(line, x, y + idx * lineHeight);
     });
@@ -666,18 +667,11 @@
     ctx.closePath();
   }
 
-  function addSoftShadow(ctx) {
-    ctx.save();
-    ctx.shadowColor = "rgba(83,62,45,.06)";
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetY = 6;
-  }
-
-  function disableDownloadBtn(disabled) {
-    if (!el.downloadBtn) return;
-    el.downloadBtn.disabled = !!disabled;
-    el.downloadBtn.style.opacity = disabled ? ".72" : "";
-    el.downloadBtn.style.cursor = disabled ? "wait" : "";
+  function disableButton(btn, disabled) {
+    if (!btn) return;
+    btn.disabled = !!disabled;
+    btn.style.opacity = disabled ? ".72" : "";
+    btn.style.cursor = disabled ? "wait" : "";
   }
 
   function openImageInNewTab(dataUrl, filename) {
@@ -730,7 +724,7 @@
       setStatus("名片連結尚未建立", true);
       return;
     }
-    window.location.href = currentCardUrl;
+    window.open(currentCardUrl, "_blank", "noopener");
   }
 
   async function onCopyCardLink() {
@@ -789,7 +783,7 @@
       setStatus("LINE 官方帳號連結未設定", true);
       return;
     }
-    window.location.href = lineOA;
+    window.open(lineOA, "_blank", "noopener");
   }
 
   function openDialog() {
@@ -812,7 +806,9 @@
 
   function clearStatusSoon() {
     window.clearTimeout(clearStatusSoon._timer);
-    clearStatusSoon._timer = window.setTimeout(() => setStatus(""), 1800);
+    clearStatusSoon._timer = window.setTimeout(() => {
+      setStatus("");
+    }, 1800);
   }
 
   function text(v) {
@@ -901,18 +897,6 @@
     });
   }
 
-  function isMobileDevice() {
-    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  }
-
-  function escapeHtml(str) {
-    return String(str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
   async function copyText(value) {
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -942,5 +926,17 @@
     } catch {
       return false;
     }
+  }
+
+  function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  }
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 })();
