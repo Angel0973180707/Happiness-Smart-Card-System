@@ -1,458 +1,265 @@
 /* ==========================================
- * HSC Poster v707
+ * HSC Poster v3.0
  * COMPLETE OVERWRITE
  *
- * 修正：
- * 1. 下載海報頭像缺失
- * 2. 等待圖片載入
- * 3. Base64 跨域修正
- * 4. Firebase / imageResolver 支援
+ * 本版目標：
+ * 1. LINE 官方帳號按鈕整排
+ * 2. 分享說明 Dialog
+ * 3. QR code 尺寸 / 留白優化
+ * 4. 海報下載穩定
+ * 5. 兼容 WeChat WebView 基本行為
  * ========================================== */
 
 (() => {
-
-"use strict";
-
-const VERSION="707";
-
-const DEFAULT_GAS=
-"https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-
-const DEFAULT_BASE=
-"https://angel0973180707.github.io/Happiness-Smart-Card-System/";
-
-const DEFAULT_LINE_OA="https://lin.ee/3r2ZePN";
-
-const qs=new URLSearchParams(location.search);
-
-const CARD_ID=(qs.get("id")||"").trim();
-const REF_ID=(qs.get("ref")||CARD_ID).trim();
-
-const $=id=>document.getElementById(id);
-
-const posterCaptureEl=$("posterCapture");
-const avatarEl=$("avatar");
-const avatarFallbackEl=$("avatarFallback");
-
-const nameEl=$("name");
-const unitEl=$("unit");
-const titleEl=$("title");
-
-const qrCodeEl=$("qrcode");
-const statusEl=$("status");
-
-const btnShare=$("btnShare");
-const btnCopyCard=$("btnCopyCard");
-const btnDownload=$("btnDownload");
-const btnOpenCard=$("btnOpenCard");
-
-let currentItem=null;
-let cardUrl="";
-
-/* ---------- 工具 ---------- */
-
-function text(v,fallback=""){
-return String(v==null?fallback:v).trim();
-}
-
-function getGasUrl(){
-return DEFAULT_GAS;
-}
-
-function getBaseUrl(){
-let base=DEFAULT_BASE;
-if(!base.endsWith("/")) base+="/";
-return base;
-}
-
-function buildCardUrl(id){
-
-const url=new URL("index.html",getBaseUrl());
-
-url.searchParams.set("id",id);
-
-if(REF_ID) url.searchParams.set("ref",REF_ID);
-
-return url.toString();
-
-}
-
-function safeInitial(name){
-
-const t=text(name,"名片");
-
-return t.slice(0,2);
-
-}
-
-/* ---------- 頭像 ---------- */
-
-function showAvatarFallback(name){
-
-avatarEl.style.display="none";
-
-avatarFallbackEl.style.display="grid";
-
-avatarFallbackEl.textContent=safeInitial(name);
-
-}
-
-function pickImage(item){
-
-// resolver 支援
-if(window.resolveImageUrl){
-
-const key=
-item.avatar_key||
-item.avatar_url||
-item.avatar_img_fast||
-item.avatar_img||
-item.avatar||
-item.avatarUrl;
-
-const url=window.resolveImageUrl(key);
-
-if(url) return url;
-
-}
-
-return [
-item.avatar_url,
-item.avatar_img_fast,
-item.avatar_img,
-item.avatar,
-item.avatarUrl
-].map(v=>text(v)).find(Boolean)||"";
-
-}
-
-function setAvatar(src,name){
-
-if(!src){
-
-showAvatarFallback(name);
-
-return;
-
-}
-
-avatarEl.crossOrigin="anonymous";
-
-avatarEl.onload=()=>{
-
-avatarEl.style.display="block";
-
-avatarFallbackEl.style.display="none";
-
-};
-
-avatarEl.onerror=()=>{
-
-showAvatarFallback(name);
-
-};
-
-avatarEl.src=src;
-
-}
-
-/* ---------- base64 ---------- */
-
-async function toDataURL(src){
-
-if(!src) return null;
-
-if(src.startsWith("data:")) return src;
-
-try{
-
-const res=await fetch(src,{mode:"cors"});
-
-const blob=await res.blob();
-
-return await new Promise(resolve=>{
-
-const fr=new FileReader();
-
-fr.onload=()=>resolve(fr.result);
-
-fr.readAsDataURL(blob);
-
-});
-
-}catch(e){
-
-return null;
-
-}
-
-}
-
-/* ---------- 資料 ---------- */
-
-function normalizeItem(raw){
-
-const item=raw||{};
-
-return{
-
-id:text(item.id||CARD_ID),
-
-name:text(item.name,"智慧名片"),
-
-unit:text(item.unit),
-
-title:text(item.title),
-
-avatar_url:text(item.avatar_url),
-
-avatar_img_fast:text(item.avatar_img_fast),
-
-avatar_img:text(item.avatar_img),
-
-avatar_key:text(item.avatar_key),
-
-line_oa:text(item.line_oa)
-
-};
-
-}
-
-function getCardPayload(json){
-
-if(!json||typeof json!=="object") return null;
-
-if(json.item) return json.item;
-
-if(json.data) return json.data;
-
-if(json.card) return json.card;
-
-if(json.row) return json.row;
-
-return null;
-
-}
-
-async function fetchCard(id){
-
-const gas=getGasUrl();
-
-const url=new URL(gas);
-
-url.searchParams.set("action","card");
-
-url.searchParams.set("id",id);
-
-const res=await fetch(url.toString());
-
-if(!res.ok) throw new Error("讀取失敗");
-
-const json=await res.json();
-
-const payload=getCardPayload(json);
-
-if(!payload) throw new Error("找不到名片資料");
-
-return normalizeItem(payload);
-
-}
-
-/* ---------- QR ---------- */
-
-function renderQrCode(url){
-
-qrCodeEl.innerHTML="";
-
-new QRCode(qrCodeEl,{
-
-text:url,
-
-width:196,
-height:196,
-
-colorDark:"#000000",
-colorLight:"#ffffff",
-
-correctLevel:QRCode.CorrectLevel.H
-
-});
-
-}
-
-/* ---------- copy ---------- */
-
-async function copyText(value){
-
-await navigator.clipboard.writeText(value);
-
-}
-
-/* ---------- share ---------- */
-
-async function shareCard(){
-
-if(navigator.share){
-
-await navigator.share({
-
-title:"我的智慧名片",
-text:"歡迎查看我的智慧名片",
-url:cardUrl
-
-});
-
-}else{
-
-await copyText(cardUrl);
-
-}
-
-}
-
-/* ---------- 下載海報（核心修正） ---------- */
-
-async function downloadPoster(item){
-
-const target=posterCaptureEl||$("poster");
-
-if(!target) throw new Error("找不到海報區塊");
-
-const originalSrc=avatarEl.getAttribute("src");
-
-let injected=false;
-
-/* 等待圖片載入 */
-
-if(avatarEl && !avatarEl.complete){
-
-await new Promise(resolve=>{
-
-avatarEl.onload=resolve;
-
-avatarEl.onerror=resolve;
-
-});
-
-}
-
-/* 轉 base64 */
-
-if(originalSrc){
-
-const dataUrl=await toDataURL(originalSrc);
-
-if(dataUrl){
-
-avatarEl.src=dataUrl;
-
-injected=true;
-
-await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-
-}
-
-}
-
-let canvas;
-
-try{
-
-canvas=await html2canvas(target,{
-
-backgroundColor:null,
-
-scale:Math.min(window.devicePixelRatio||2,3),
-
-useCORS:true,
-allowTaint:true,
-
-logging:false
-
-});
-
-}finally{
-
-if(injected){
-
-avatarEl.src=originalSrc;
-
-}
-
-}
-
-const link=document.createElement("a");
-
-link.download=item.id+"_poster.png";
-
-link.href=canvas.toDataURL("image/png");
-
-link.click();
-
-}
-
-/* ---------- render ---------- */
-
-async function renderCard(item){
-
-currentItem=item;
-
-cardUrl=buildCardUrl(item.id);
-
-nameEl.textContent=item.name;
-
-unitEl.textContent=item.unit||"　";
-
-titleEl.textContent=item.title||"　";
-
-const avatarSrc=pickImage(item);
-
-setAvatar(avatarSrc,item.name);
-
-renderQrCode(cardUrl);
-
-btnShare.onclick=shareCard;
-
-btnCopyCard.onclick=()=>copyText(cardUrl);
-
-btnOpenCard.onclick=()=>window.open(cardUrl);
-
-btnDownload.onclick=()=>downloadPoster(item);
-
-statusEl.textContent="交付卡已載入完成 ✓";
-
-}
-
-/* ---------- init ---------- */
-
-async function init(){
-
-if(!CARD_ID){
-
-statusEl.textContent="缺少名片ID";
-
-return;
-
-}
-
-statusEl.textContent="正在載入...";
-
-try{
-
-const item=await fetchCard(CARD_ID);
-
-renderCard(item);
-
-}catch(err){
-
-console.error(err);
-
-statusEl.textContent="載入失敗";
-
-}
-
-}
-
-init();
-
+  "use strict";
+
+  const VERSION = "3.0";
+
+  const DEFAULT_GAS =
+    "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+  const DEFAULT_BASE =
+    "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+
+  const DEFAULT_LINE_OA = "https://lin.ee/3r2ZePN";
+
+  const qs = new URLSearchParams(location.search);
+  const id = (qs.get("id") || "").trim();
+  const gas = (qs.get("gas") || DEFAULT_GAS).trim();
+  const baseUrl = (qs.get("base") || DEFAULT_BASE).trim();
+  const lineOA = (qs.get("lineoa") || DEFAULT_LINE_OA).trim();
+
+  const el = {
+    avatarImg: document.getElementById("avatarImg"),
+    cardName: document.getElementById("cardName"),
+    cardTitle: document.getElementById("cardTitle"),
+    qrBox: document.getElementById("qrBox"),
+    posterCapture: document.getElementById("posterCapture"),
+    downloadBtn: document.getElementById("downloadBtn"),
+    lineOABtn: document.getElementById("lineOABtn"),
+    shareHelpBtn: document.getElementById("shareHelpBtn"),
+    shareDialog: document.getElementById("shareDialog"),
+    dialogCloseBtn: document.getElementById("dialogCloseBtn"),
+    loadingText: document.getElementById("loadingText"),
+    errorText: document.getElementById("errorText"),
+  };
+
+  let currentCardUrl = "";
+  let currentItem = null;
+
+  init().catch(showError);
+
+  async function init() {
+    bindEvents();
+
+    if (!id) {
+      throw new Error("缺少名片 id");
+    }
+
+    const item = await fetchCard(id);
+    currentItem = item;
+
+    renderCard(item);
+    await renderQr(buildCardUrl(item));
+    setLoading(false);
+  }
+
+  function bindEvents() {
+    if (el.downloadBtn) {
+      el.downloadBtn.addEventListener("click", downloadPoster);
+    }
+
+    if (el.lineOABtn) {
+      el.lineOABtn.addEventListener("click", () => {
+        if (!lineOA) return;
+        location.href = lineOA;
+      });
+    }
+
+    if (el.shareHelpBtn) {
+      el.shareHelpBtn.addEventListener("click", openDialog);
+    }
+
+    if (el.dialogCloseBtn) {
+      el.dialogCloseBtn.addEventListener("click", closeDialog);
+    }
+
+    if (el.shareDialog) {
+      el.shareDialog.addEventListener("click", (e) => {
+        if (e.target === el.shareDialog) closeDialog();
+      });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeDialog();
+    });
+  }
+
+  async function fetchCard(cardId) {
+    const url = `${gas}?action=card&id=${encodeURIComponent(cardId)}&_=${Date.now()}`;
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      mode: "cors"
+    });
+
+    if (!res.ok) {
+      throw new Error(`讀取名片失敗（HTTP ${res.status}）`);
+    }
+
+    const json = await res.json();
+    const item = json?.item || json?.data || json;
+
+    if (!item || (!item.id && !item.name)) {
+      throw new Error("名片資料格式不正確");
+    }
+
+    return item;
+  }
+
+  function renderCard(item) {
+    const name = safeText(item.name) || item.id || "我的智慧名片";
+    const title =
+      safeText(item.title) ||
+      safeText(item.unit) ||
+      safeText(item.slogan) ||
+      "歡迎掃碼查看我的智慧名片";
+
+    if (el.cardName) el.cardName.textContent = name;
+    if (el.cardTitle) el.cardTitle.textContent = title;
+
+    const avatar =
+      item.avatar_url ||
+      item.avatar_img_fast ||
+      item.avatar_img ||
+      "";
+
+    if (el.avatarImg) {
+      if (avatar) {
+        el.avatarImg.src = avatar;
+        el.avatarImg.alt = `${name} 頭像`;
+        el.avatarImg.onerror = () => {
+          el.avatarImg.src =
+            "data:image/svg+xml;utf8," +
+            encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">
+                <rect width="100%" height="100%" fill="#eadfd4"/>
+                <circle cx="150" cy="118" r="54" fill="#d0b8a3"/>
+                <rect x="70" y="190" width="160" height="70" rx="35" fill="#d0b8a3"/>
+              </svg>
+            `);
+        };
+      } else {
+        el.avatarImg.src =
+          "data:image/svg+xml;utf8," +
+          encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">
+              <rect width="100%" height="100%" fill="#eadfd4"/>
+              <circle cx="150" cy="118" r="54" fill="#d0b8a3"/>
+              <rect x="70" y="190" width="160" height="70" rx="35" fill="#d0b8a3"/>
+            </svg>
+          `);
+      }
+    }
+  }
+
+  function buildCardUrl(item) {
+    const cardId = item.id || id;
+    currentCardUrl = `${baseUrl}index.html?id=${encodeURIComponent(cardId)}`;
+    return currentCardUrl;
+  }
+
+  async function renderQr(text) {
+    if (!el.qrBox) return;
+
+    el.qrBox.innerHTML = "";
+
+    const canvas = document.createElement("canvas");
+    el.qrBox.appendChild(canvas);
+
+    await QRCode.toCanvas(canvas, text, {
+      width: 340,
+      margin: 2,
+      color: {
+        dark: "#111111",
+        light: "#ffffff",
+      },
+      errorCorrectionLevel: "H",
+    });
+
+    canvas.setAttribute("aria-label", "智慧名片 QR code");
+  }
+
+  async function downloadPoster() {
+    try {
+      setLoading(true, "正在產生海報圖片…");
+
+      const node = el.posterCapture;
+      if (!node) throw new Error("找不到海報區塊");
+
+      const canvas = await html2canvas(node, {
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: "#fffaf6",
+        scale: Math.min(3, window.devicePixelRatio || 2),
+        logging: false,
+        imageTimeout: 15000,
+        removeContainer: true,
+      });
+
+      const name = safeFileName(currentItem?.name || currentItem?.id || "smart-card");
+      const link = document.createElement("a");
+      link.download = `${name}-poster.png`;
+      link.href = canvas.toDataURL("image/png", 1);
+      link.click();
+
+      setLoading(false);
+    } catch (err) {
+      showError(err);
+    }
+  }
+
+  function openDialog() {
+    if (!el.shareDialog) return;
+    el.shareDialog.classList.add("show");
+    el.shareDialog.setAttribute("aria-hidden", "false");
+  }
+
+  function closeDialog() {
+    if (!el.shareDialog) return;
+    el.shareDialog.classList.remove("show");
+    el.shareDialog.setAttribute("aria-hidden", "true");
+  }
+
+  function setLoading(loading, text = "正在載入海報資料…") {
+    if (!el.loadingText) return;
+
+    if (loading) {
+      el.loadingText.style.display = "block";
+      el.loadingText.textContent = text;
+    } else {
+      el.loadingText.style.display = "none";
+    }
+  }
+
+  function showError(err) {
+    console.error(`[Poster ${VERSION}]`, err);
+    setLoading(false);
+
+    if (el.errorText) {
+      el.errorText.style.display = "block";
+      el.errorText.textContent = err?.message || "發生錯誤，請稍後再試";
+    }
+  }
+
+  function safeText(v) {
+    return String(v || "").trim();
+  }
+
+  function safeFileName(v) {
+    return String(v || "poster")
+      .replace(/[\\/:*?"<>|]/g, "")
+      .replace(/\s+/g, "-")
+      .slice(0, 60);
+  }
 })();
