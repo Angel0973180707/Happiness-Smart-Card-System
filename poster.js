@@ -1,11 +1,12 @@
 /* ==========================================
- * HSC Poster v703.5
+ * HSC Poster v704 FINAL
  * COMPLETE OVERWRITE
  *
  * 修正：
- * 1) QRCode 未生成導致海報失敗
- * 2) Canvas clip crash
- * 3) 手機 Chrome 下載問題
+ * 1) QRCode img/canvas 兼容
+ * 2) Avatar load 等待
+ * 3) Canvas clip crash
+ * 4) 手機 Chrome 下載
  * ========================================== */
 
 (() => {
@@ -147,11 +148,12 @@ item.avatar ||
 
 async function waitQRCode(){
 
-for(let i=0;i<10;i++){
+for(let i=0;i<20;i++){
 
 const img = qrCodeEl.querySelector("img");
+const canvas = qrCodeEl.querySelector("canvas");
 
-if(img) return img;
+if(img || canvas) return img || canvas;
 
 await new Promise(r=>setTimeout(r,100));
 
@@ -256,14 +258,20 @@ ctx.fillText(text(item.title),540,690);
 
 /* QRCode */
 
-const qrImg = await waitQRCode();
+const qrNode = await waitQRCode();
 
-if(qrImg){
+if(qrNode){
 
-const qr = await loadImage(qrImg.src);
+let qrImage = null;
 
-if(qr){
-ctx.drawImage(qr,360,900,360,360);
+if(qrNode.tagName==="IMG"){
+qrImage = await loadImage(qrNode.src);
+}else{
+qrImage = await loadImage(qrNode.toDataURL("image/png"));
+}
+
+if(qrImage){
+ctx.drawImage(qrImage,360,900,360,360);
 }
 
 }
