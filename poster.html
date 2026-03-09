@@ -84,6 +84,7 @@
       display:block;
       box-shadow:0 4px 10px rgba(0,0,0,.08);
       background:#fff;
+      object-fit:cover;
     }
 
     .brand-title{
@@ -104,8 +105,7 @@
       min-height:44px;
       border-radius:var(--radius-pill);
       border:1px solid rgba(182,122,71,.18);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.98), rgba(249,241,232,1));
+      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(249,241,232,1));
       color:#8d5c32;
       font-size:15px;
       line-height:1;
@@ -190,12 +190,12 @@
       align-items:center;
       justify-content:center;
       overflow:hidden;
+      border-radius:12px;
     }
 
-    .qr-box canvas,
     .qr-box img{
-      width:100% !important;
-      height:100% !important;
+      width:100%;
+      height:100%;
       display:block;
       object-fit:contain;
     }
@@ -411,6 +411,7 @@
     </div>
   </div>
 
-  <script src="./poster.js?v=7041"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="./poster.js?v=7050"></script>
 </body>
 </html>
