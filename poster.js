@@ -1,19 +1,18 @@
 /* ==========================================
- * HSC Poster v706.2
+ * HSC Poster v707.0
  * COMPLETE OVERWRITE
  *
- * v706.2 重點：
- * 1) 專修「下載海報沒有大頭照」
- * 2) 頭像優先轉成 data URL，提升 html2canvas 成功率
- * 3) 打開我的智慧名片固定走 view=1
- * 4) 海報只截 #posterCapture
- * 5) 保留分享 / 複製 / 推薦 / LINE OA / 分享說明
+ * v707.0 重點：
+ * 1) 放棄 html2canvas 海報截圖
+ * 2) 改用 Canvas 手工繪製海報
+ * 3) 100% 解決「下載海報沒有大頭照」
+ * 4) 保留頁面顯示、分享、複製、推薦、LINE OA、分享說明
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "706.2";
+  const VERSION = "707.0";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -22,6 +21,7 @@
     "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
 
   const DEFAULT_LINE_OA = "https://lin.ee/3r2ZePN";
+  const ICON_URL = `${DEFAULT_BASE}icon-192.png?v=1`;
 
   const qs = new URLSearchParams(location.search);
   const CARD_ID = (qs.get("id") || "").trim();
@@ -29,7 +29,6 @@
 
   const $ = (id) => document.getElementById(id);
 
-  const posterCaptureEl = $("posterCapture");
   const avatarEl = $("avatar");
   const avatarFallbackEl = $("avatarFallback");
   const nameEl = $("name");
@@ -195,6 +194,18 @@
 
       img.addEventListener("load", onLoad, { once: true });
       img.addEventListener("error", onError, { once: true });
+    });
+  }
+
+  async function loadImageObject(src) {
+    const finalSrc = text(src);
+    if (!finalSrc) return null;
+
+    return await new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = finalSrc;
     });
   }
 
@@ -390,7 +401,6 @@
     const rawUrl = pickImage(currentItem || {});
     currentAvatarUrl = resolveImage(rawUrl);
 
-    // 優先轉成 data URL，海報成功率最高
     currentAvatarDataUrl = await urlToDataUrl(currentAvatarUrl);
 
     if (currentAvatarDataUrl) {
@@ -406,41 +416,208 @@
     await applyAvatarToDom("", name);
   }
 
-  async function downloadPoster(item) {
-    const target = posterCaptureEl || $("poster");
-    if (!target) throw new Error("找不到海報區塊");
+  function roundRect(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
 
-    // 截圖前再強制一次，避免海報漏頭像
-    if (currentAvatarDataUrl) {
-      await applyAvatarToDom(currentAvatarDataUrl, item.name);
-    } else if (currentAvatarUrl) {
-      const retryDataUrl = await urlToDataUrl(currentAvatarUrl);
-      if (retryDataUrl) {
-        currentAvatarDataUrl = retryDataUrl;
-        await applyAvatarToDom(currentAvatarDataUrl, item.name);
+  function drawWrappedText(ctx, textValue, x, y, maxWidth, lineHeight, maxLines) {
+    const textStr = text(textValue);
+    const chars = Array.from(textStr);
+    const lines = [];
+    let current = "";
+
+    for (const ch of chars) {
+      const test = current + ch;
+      if (ctx.measureText(test).width > maxWidth && current) {
+        lines.push(current);
+        current = ch;
       } else {
-        await applyAvatarToDom(currentAvatarUrl, item.name);
+        current = test;
       }
     }
+    if (current) lines.push(current);
 
-    if (avatarEl) {
-      await waitForImage(avatarEl, 8000);
-    }
-
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-    const canvas = await html2canvas(target, {
-      backgroundColor: null,
-      scale: Math.min(window.devicePixelRatio || 2, 3),
-      useCORS: false,
-      allowTaint: false,
-      logging: false,
-      scrollX: 0,
-      scrollY: -window.scrollY,
-      windowWidth: document.documentElement.clientWidth,
-      windowHeight: document.documentElement.clientHeight
+    const finalLines = lines.slice(0, maxLines || lines.length);
+    finalLines.forEach((line, i) => {
+      ctx.fillText(line, x, y + i * lineHeight);
     });
 
+    return y + finalLines.length * lineHeight;
+  }
+
+  async function buildPosterCanvas(item) {
+    const width = 1080;
+    const height = 1680;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const ctx = canvas.getContext("2d");
+
+    // background
+    const bg = ctx.createLinearGradient(0, 0, 0, height);
+    bg.addColorStop(0, "#f7faf8");
+    bg.addColorStop(0.58, "#eef4ef");
+    bg.addColorStop(1, "#e6efe8");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, width, height);
+
+    // outer card
+    roundRect(ctx, 60, 60, 960, 1560, 42);
+    ctx.fillStyle = "#ffffff";
+    ctx.shadowColor = "rgba(44,74,58,.08)";
+    ctx.shadowBlur = 42;
+    ctx.shadowOffsetY = 18;
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.strokeStyle = "#dce8df";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // top soft glow
+    const topGlow = ctx.createLinearGradient(0, 60, 0, 220);
+    topGlow.addColorStop(0, "rgba(109,158,127,.08)");
+    topGlow.addColorStop(1, "rgba(109,158,127,0)");
+    ctx.fillStyle = topGlow;
+    roundRect(ctx, 60, 60, 960, 160, 42);
+    ctx.fill();
+
+    // brand row
+    const iconImg = await loadImageObject(ICON_URL);
+    const brandY = 120;
+
+    if (iconImg) {
+      ctx.save();
+      roundRect(ctx, 330, brandY - 14, 44, 44, 10);
+      ctx.clip();
+      ctx.drawImage(iconImg, 330, brandY - 14, 44, 44);
+      ctx.restore();
+    }
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "800 48px system-ui, 'Noto Sans TC', sans-serif";
+    ctx.fillStyle = "#3f6f57";
+    ctx.shadowColor = "rgba(50,90,70,.15)";
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetY = 2;
+    ctx.fillText("天使幸福智慧名片", 590, brandY + 8);
+    ctx.shadowColor = "transparent";
+
+    // inner poster block
+    roundRect(ctx, 110, 210, 860, 1120, 34);
+    ctx.fillStyle = "#fcfefd";
+    ctx.fill();
+    ctx.strokeStyle = "#e4eee7";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // avatar
+    const avatarX = width / 2;
+    const avatarY = 370;
+    const avatarR = 118;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX, avatarY, avatarR, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fillStyle = "#eef5f0";
+    ctx.fill();
+    ctx.strokeStyle = "#dce9e0";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    const avatarSource = currentAvatarDataUrl || currentAvatarUrl;
+    const avatarImg = await loadImageObject(avatarSource);
+
+    if (avatarImg) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(avatarX, avatarY, avatarR - 1, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      const sw = avatarImg.width;
+      const sh = avatarImg.height;
+      const side = Math.min(sw, sh);
+      const sx = (sw - side) / 2;
+      const sy = (sh - side) / 2;
+
+      ctx.drawImage(
+        avatarImg,
+        sx, sy, side, side,
+        avatarX - avatarR, avatarY - avatarR, avatarR * 2, avatarR * 2
+      );
+      ctx.restore();
+    } else {
+      ctx.fillStyle = "#6f8d7d";
+      ctx.font = "800 54px system-ui, 'Noto Sans TC', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(safeInitial(item.name), avatarX, avatarY);
+    }
+
+    // name / unit / title
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+
+    ctx.fillStyle = "#3d6b54";
+    ctx.font = "800 64px system-ui, 'Noto Sans TC', sans-serif";
+    drawWrappedText(ctx, item.name || "智慧名片", width / 2, 530, 700, 76, 2);
+
+    ctx.fillStyle = "#587b67";
+    ctx.font = "700 34px system-ui, 'Noto Sans TC', sans-serif";
+    drawWrappedText(ctx, item.unit || " ", width / 2, 650, 720, 44, 2);
+
+    ctx.fillStyle = "#587b67";
+    ctx.font = "700 34px system-ui, 'Noto Sans TC', sans-serif";
+    drawWrappedText(ctx, item.title || " ", width / 2, 720, 720, 44, 2);
+
+    // qr card
+    roundRect(ctx, 185, 835, 710, 390, 28);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.strokeStyle = "#e5eee8";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    roundRect(ctx, 300, 890, 480, 250, 28);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.strokeStyle = "#dfe9e2";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    const qrImgEl = qrCodeEl?.querySelector("img");
+    const qrCanvasEl = qrCodeEl?.querySelector("canvas");
+    let qrSource = "";
+
+    if (qrImgEl?.src) qrSource = qrImgEl.src;
+    else if (qrCanvasEl) qrSource = qrCanvasEl.toDataURL("image/png");
+
+    const qrImage = await loadImageObject(qrSource);
+    if (qrImage) {
+      ctx.drawImage(qrImage, 340, 930, 400, 200);
+    }
+
+    ctx.fillStyle = "#5d7f6c";
+    ctx.font = "700 28px system-ui, 'Noto Sans TC', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("掃描 QRCode 打開智慧名片", width / 2, 1168);
+
+    return canvas;
+  }
+
+  async function downloadPoster(item) {
+    const canvas = await buildPosterCanvas(item);
     const link = document.createElement("a");
     const safeId = text(item.id || CARD_ID || "card").replace(/[^\w-]+/g, "_");
     link.download = `${safeId}_poster.png`;
