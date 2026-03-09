@@ -1,12 +1,11 @@
 /* ==========================================
- * HSC Poster v704
+ * HSC Poster v703.5
  * COMPLETE OVERWRITE
  *
  * 修正：
- * 1) 海報產生失敗
- * 2) QRCode 載入等待
- * 3) Canvas clip crash
- * 4) 改用 toBlob 下載
+ * 1) QRCode 未生成導致海報失敗
+ * 2) Canvas clip crash
+ * 3) 手機 Chrome 下載問題
  * ========================================== */
 
 (() => {
@@ -80,9 +79,14 @@ function loadImage(src){
 
 return new Promise((resolve)=>{
 
+if(!src){
+resolve(null);
+return;
+}
+
 const img = new Image();
 
-img.crossOrigin = "anonymous";
+img.crossOrigin="anonymous";
 
 img.onload = ()=>resolve(img);
 img.onerror = ()=>resolve(null);
@@ -136,6 +140,24 @@ item.avatar_img ||
 item.avatar ||
 ""
 );
+
+}
+
+/* ============================ */
+
+async function waitQRCode(){
+
+for(let i=0;i<10;i++){
+
+const img = qrCodeEl.querySelector("img");
+
+if(img) return img;
+
+await new Promise(r=>setTimeout(r,100));
+
+}
+
+return null;
 
 }
 
@@ -232,11 +254,9 @@ ctx.font="36px sans-serif";
 
 ctx.fillText(text(item.title),540,690);
 
-/* 等待 QRCode */
+/* QRCode */
 
-await new Promise(r=>setTimeout(r,200));
-
-const qrImg = qrCodeEl.querySelector("img");
+const qrImg = await waitQRCode();
 
 if(qrImg){
 
