@@ -1,18 +1,18 @@
 /* ==========================================
- * HSC Poster v706.3
+ * HSC Poster v706.4
  * COMPLETE OVERWRITE
  *
  * 目標：
- * 1. 修正卡在載入中
- * 2. QR 失敗不拖垮整頁
- * 3. 恢復下載功能
- * 4. 穩定顯示姓名 / 標題 / 頭像
+ * 1. 分享說明重寫
+ * 2. 文字改深咖啡，不用純黑
+ * 3. 海報下載更穩
+ * 4. 卡片質感更乾淨
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "706.3";
+  const VERSION = "706.4";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -186,7 +186,7 @@
         text: targetUrl,
         width: 320,
         height: 320,
-        colorDark: "#111111",
+        colorDark: "#3a2d23",
         colorLight: "#ffffff",
         correctLevel: window.QRCode.CorrectLevel.H
       });
@@ -242,29 +242,54 @@
 
       await waitForImages(el.posterCapture);
 
-      const canvas = await window.html2canvas(el.posterCapture, {
+      const exportNode = el.posterCapture.cloneNode(true);
+      exportNode.style.width = `${el.posterCapture.offsetWidth}px`;
+      exportNode.style.position = "fixed";
+      exportNode.style.left = "-99999px";
+      exportNode.style.top = "0";
+      exportNode.style.margin = "0";
+      exportNode.style.transform = "none";
+      exportNode.style.zIndex = "-1";
+      exportNode.style.pointerEvents = "none";
+      exportNode.style.boxShadow = "none";
+
+      document.body.appendChild(exportNode);
+
+      await waitForImages(exportNode);
+
+      const canvas = await window.html2canvas(exportNode, {
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#fffaf6",
-        scale: Math.min(2.5, window.devicePixelRatio || 2),
+        scale: Math.min(3, window.devicePixelRatio || 2),
         logging: false,
         imageTimeout: 15000,
         removeContainer: true
       });
 
+      document.body.removeChild(exportNode);
+
       const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
 
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png", 1);
-      link.download = filename;
-      link.click();
+      const dataUrl = canvas.toDataURL("image/png", 1);
+      triggerDownload(dataUrl, filename);
 
       setStatus("海報下載完成");
       clearStatusSoon();
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] download error:`, err);
-      setStatus(err.message || "海報下載失敗", true);
+      setStatus("此瀏覽器可能限制下載，請改用右上角分享或長按截圖保存", true);
     }
+  }
+
+  function triggerDownload(dataUrl, filename) {
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   function onOpenCard() {
