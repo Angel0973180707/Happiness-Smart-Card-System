@@ -6,7 +6,7 @@
     name="viewport"
     content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no"
   />
-  <title>智慧名片交付卡 v4.0</title>
+  <title>天使幸福智慧名片｜名片交付卡</title>
   <meta name="theme-color" content="#f6efe7" />
 
   <style>
@@ -20,12 +20,12 @@
       --accent-2:#8d5c32;
       --line-green-1:#1ec95d;
       --line-green-2:#08ad45;
-      --soft:#fff;
       --shadow:0 18px 40px rgba(87,61,33,.10);
       --shadow-soft:0 10px 24px rgba(87,61,33,.08);
       --radius-xl:30px;
       --radius-lg:24px;
       --radius-md:18px;
+      --radius-pill:999px;
     }
 
     *{ box-sizing:border-box; }
@@ -34,7 +34,7 @@
       margin:0;
       padding:0;
       background:
-        radial-gradient(1200px 700px at 50% -10%, rgba(255,255,255,.75), transparent 56%),
+        radial-gradient(1200px 700px at 50% -10%, rgba(255,255,255,.78), transparent 56%),
         var(--bg);
       color:var(--ink);
       font-family:
@@ -49,13 +49,13 @@
     }
 
     .page{
-      width:min(100%, 600px);
+      width:min(100%, 620px);
       margin:0 auto;
       padding:18px 14px 34px;
     }
 
     .hero-card{
-      background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,250,246,.98));
+      background:linear-gradient(180deg, rgba(255,255,255,.96), rgba(255,250,246,.99));
       border:1px solid var(--line);
       border-radius:var(--radius-xl);
       box-shadow:var(--shadow);
@@ -63,31 +63,57 @@
     }
 
     .hero-head{
-      padding:24px 22px 8px;
+      padding:24px 20px 10px;
       text-align:center;
     }
 
-    .eyebrow{
-      font-size:13px;
-      letter-spacing:.08em;
-      color:var(--muted);
-      margin-bottom:10px;
+    .brand-row{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      margin:0 auto;
+      flex-wrap:nowrap;
     }
 
-    .hero-title{
+    .brand-icon{
+      width:30px;
+      height:30px;
+      border-radius:8px;
+      flex:0 0 auto;
+      display:block;
+      box-shadow:0 4px 10px rgba(0,0,0,.08);
+      background:#fff;
+    }
+
+    .brand-title{
       margin:0;
-      font-size:28px;
+      font-size:24px;
       line-height:1.25;
       font-weight:900;
       letter-spacing:.02em;
+      word-break:keep-all;
     }
 
-    .hero-sub{
-      margin:10px auto 0;
-      max-width:28em;
-      color:var(--muted);
+    .delivery-pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      margin-top:14px;
+      padding:10px 24px;
+      min-height:44px;
+      border-radius:var(--radius-pill);
+      border:1px solid rgba(182,122,71,.18);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.98), rgba(249,241,232,1));
+      color:#8d5c32;
       font-size:15px;
-      line-height:1.85;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:.08em;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.7),
+        0 8px 16px rgba(182,122,71,.08);
     }
 
     .hero-body{
@@ -98,14 +124,14 @@
       background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,251,247,1));
       border:1px solid rgba(84,59,36,.09);
       border-radius:28px;
-      padding:26px 18px 24px;
+      padding:28px 18px 24px;
       text-align:center;
       box-shadow:var(--shadow-soft);
     }
 
     .avatar-wrap{
-      width:96px;
-      height:96px;
+      width:100px;
+      height:100px;
       margin:0 auto 14px;
       border-radius:50%;
       overflow:hidden;
@@ -134,9 +160,10 @@
       margin:10px auto 0;
       max-width:18em;
       font-size:16px;
-      line-height:1.75;
-      color:var(--muted);
+      line-height:1.7;
+      color:#6f6054;
       word-break:break-word;
+      min-height:1.7em;
     }
 
     .qr-zone{
@@ -170,21 +197,7 @@
       width:100% !important;
       height:100% !important;
       display:block;
-    }
-
-    .scan-tip{
-      margin:18px auto 0;
-      font-size:15px;
-      line-height:1.8;
-      font-weight:800;
-      color:#5b483b;
-    }
-
-    .scan-sub{
-      margin:6px auto 0;
-      font-size:13px;
-      line-height:1.8;
-      color:var(--muted);
+      object-fit:contain;
     }
 
     .status{
@@ -193,6 +206,7 @@
       font-size:14px;
       line-height:1.8;
       color:var(--muted);
+      min-height:1.8em;
     }
 
     .status.error{
@@ -201,7 +215,7 @@
 
     .action-group{
       margin-top:16px;
-      background:rgba(255,255,255,.62);
+      background:rgba(255,255,255,.64);
       border:1px solid var(--line);
       border-radius:22px;
       padding:14px;
@@ -255,14 +269,6 @@
       box-shadow:0 12px 24px rgba(8,173,69,.22);
     }
 
-    .hint{
-      margin-top:14px;
-      text-align:center;
-      font-size:13px;
-      line-height:1.8;
-      color:var(--muted);
-    }
-
     .dialog-mask{
       position:fixed;
       inset:0;
@@ -279,7 +285,7 @@
     }
 
     .dialog{
-      width:min(100%, 480px);
+      width:min(100%, 500px);
       background:#fffaf7;
       border:1px solid rgba(74,53,36,.10);
       border-radius:24px;
@@ -315,11 +321,12 @@
       min-width:112px;
     }
 
-    @media (max-width:480px){
+    @media (max-width:520px){
       .page{ padding:16px 12px 28px; }
-      .hero-head{ padding:22px 18px 8px; }
-      .hero-title{ font-size:24px; }
-      .hero-sub{ font-size:14px; }
+      .hero-head{ padding:22px 16px 10px; }
+      .brand-title{ font-size:21px; }
+      .brand-icon{ width:28px; height:28px; }
+      .delivery-pill{ font-size:14px; padding:9px 20px; }
       .hero-body{ padding:14px; }
       .poster-canvas{ padding:22px 14px 20px; }
       .avatar-wrap{ width:88px; height:88px; }
@@ -335,12 +342,11 @@
   <main class="page">
     <section class="hero-card">
       <div class="hero-head">
-        <div class="eyebrow">智慧名片交付卡</div>
-        <h1 class="hero-title">我的智慧名片海報</h1>
-        <p class="hero-sub">
-          建議直接分享海報圖片，讓對方掃描 QR code 開啟智慧名片，
-          在微信內會更穩定，也較不容易排版走山。
-        </p>
+        <div class="brand-row">
+          <img class="brand-icon" src="./icon-192.png" alt="天使幸福智慧名片 icon" onerror="this.src='./icon-512.png'">
+          <h1 class="brand-title">天使幸福智慧名片</h1>
+        </div>
+        <div class="delivery-pill">名片交付卡</div>
       </div>
 
       <div class="hero-body">
@@ -357,12 +363,9 @@
               <div id="qrBox" class="qr-box"></div>
             </div>
           </div>
-
-          <div class="scan-tip">掃描 QR code 開啟我的智慧名片</div>
-          <div class="scan-sub">建議直接掃碼，不建議直接把名片網址貼進微信聊天</div>
         </section>
 
-        <div id="statusText" class="status">正在載入海報資料…</div>
+        <div id="statusText" class="status"></div>
 
         <section class="action-group">
           <h3 class="group-title">主要操作</h3>
@@ -388,10 +391,6 @@
             <button id="lineOABtn" class="btn btn-line" type="button">LINE 官方帳號</button>
           </div>
         </section>
-
-        <div class="hint">
-          若在微信內開啟，建議先下載海報，再把海報圖片傳給對方掃碼。
-        </div>
       </div>
     </section>
   </main>
@@ -400,11 +399,11 @@
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
       <h3 id="dialogTitle" class="dialog-title">分享說明</h3>
       <div class="dialog-body">
-        <p>1. 最穩定的分享方式，是先下載海報圖片，再把海報傳給對方。</p>
+        <p>1. 建議先下載名片海報，再把海報圖片傳給對方。</p>
         <p>2. 對方可用微信、LINE、手機相機或掃碼工具，直接掃描 QR code 開啟智慧名片。</p>
-        <p>3. 不建議把名片網址直接貼進微信聊天視窗，較容易出現預覽異常或排版跑掉。</p>
-        <p>4. 若面對面交換資訊，直接打開這張海報讓對方掃碼即可。</p>
-        <p>5. 若想推薦智慧名片服務，請使用「推薦智慧名片館」按鈕。</p>
+        <p>3. 不建議把名片網址直接貼進微信聊天視窗，較容易出現排版異常。</p>
+        <p>4. 若想推薦智慧名片服務，請使用「推薦智慧名片館」。</p>
+        <p>5. 若需要聯絡客服、開通或訂製，請點「LINE 官方帳號」。</p>
       </div>
       <div class="dialog-actions">
         <button id="dialogCloseBtn" class="btn btn-primary dialog-close" type="button">我知道了</button>
@@ -412,8 +411,6 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="./poster.js?v=400"></script>
+  <script src="./poster.js?v=7041"></script>
 </body>
 </html>
