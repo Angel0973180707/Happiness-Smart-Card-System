@@ -7,22 +7,25 @@
     content="width=device-width,initial-scale=1,viewport-fit=cover"
   />
   <title>天使幸福智慧名片｜名片交付卡</title>
-  <meta name="theme-color" content="#f7f4ef" />
+  <meta name="theme-color" content="#f8f5f0" />
 
   <style>
     :root{
-      --bg:#f7f4ef;
-      --card:#fffdf9;
+      --bg:#f8f5f0;
+      --bg-2:#f4efe8;
+      --card:#fffdfa;
       --card-2:#fffaf4;
-      --ink:#2d241d;
-      --muted:#85776c;
-      --line:rgba(92,70,48,.10);
-      --gold:#b57a49;
-      --gold-deep:#9c673c;
-      --line-green:#14b454;
-      --shadow:0 14px 36px rgba(85,61,34,.08);
-      --shadow-soft:0 8px 20px rgba(85,61,34,.06);
-      --btn-shadow:0 4px 10px rgba(85,61,34,.08);
+      --ink:#3e2f25;
+      --ink-soft:#6e5c4f;
+      --muted:#8f7e70;
+      --line:rgba(98,76,56,.10);
+      --gold:#bb8354;
+      --gold-deep:#9f6d45;
+      --gold-soft:#f4eadf;
+      --line-green:#16b356;
+      --shadow:0 16px 40px rgba(88,67,48,.08);
+      --shadow-soft:0 8px 22px rgba(88,67,48,.06);
+      --btn-shadow:0 4px 10px rgba(88,67,48,.07);
       --radius-xl:30px;
       --radius-lg:24px;
       --radius-md:18px;
@@ -35,8 +38,8 @@
       margin:0;
       padding:0;
       background:
-        radial-gradient(1200px 700px at 50% -10%, rgba(255,255,255,.92), transparent 58%),
-        var(--bg);
+        radial-gradient(1200px 760px at 50% -10%, rgba(255,255,255,.96), transparent 58%),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
       color:var(--ink);
       font-family:
         "Noto Sans TC","PingFang TC","Microsoft JhengHei",
@@ -52,20 +55,32 @@
     .page{
       width:min(100%, 620px);
       margin:0 auto;
-      padding:18px 14px 34px;
+      padding:18px 14px 36px;
     }
 
     .hero-card{
-      background:linear-gradient(180deg, var(--card), var(--card-2));
+      background:linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,249,243,.98));
       border:1px solid var(--line);
       border-radius:var(--radius-xl);
       box-shadow:var(--shadow);
       overflow:hidden;
+      position:relative;
+    }
+
+    .hero-card::before{
+      content:"";
+      position:absolute;
+      inset:0 0 auto 0;
+      height:120px;
+      background:linear-gradient(180deg, rgba(255,255,255,.72), transparent);
+      pointer-events:none;
     }
 
     .hero-head{
+      position:relative;
       padding:24px 20px 10px;
       text-align:center;
+      z-index:1;
     }
 
     .brand-row{
@@ -104,23 +119,25 @@
       padding:10px 24px;
       min-height:44px;
       border-radius:var(--radius-pill);
-      border:1px solid rgba(181,122,73,.16);
-      background:linear-gradient(180deg, #fffdf9, #f9f2e9);
+      border:1px solid rgba(187,131,84,.16);
+      background:linear-gradient(180deg, #fffdf9, var(--gold-soft));
       color:var(--gold-deep);
       font-size:15px;
       line-height:1;
       font-weight:900;
       letter-spacing:.08em;
-      box-shadow:0 6px 16px rgba(181,122,73,.08);
+      box-shadow:0 6px 16px rgba(187,131,84,.08);
     }
 
     .hero-body{
+      position:relative;
       padding:18px;
+      z-index:1;
     }
 
     .poster-canvas{
-      background:linear-gradient(180deg, #fffefd, #fffaf6);
-      border:1px solid rgba(92,70,48,.08);
+      background:linear-gradient(180deg, #fffefd, #fffbf7);
+      border:1px solid rgba(98,76,56,.08);
       border-radius:28px;
       padding:28px 18px 24px;
       text-align:center;
@@ -133,9 +150,9 @@
       margin:0 auto 14px;
       border-radius:50%;
       overflow:hidden;
-      background:#ede3d7;
-      border:3px solid rgba(255,255,255,.96);
-      box-shadow:0 8px 18px rgba(85,61,34,.08);
+      background:#eee4d8;
+      border:3px solid rgba(255,255,255,.97);
+      box-shadow:0 8px 18px rgba(88,67,48,.08);
     }
 
     .avatar-wrap img{
@@ -160,7 +177,7 @@
       max-width:18em;
       font-size:16px;
       line-height:1.7;
-      color:#75685d;
+      color:var(--ink-soft);
       word-break:break-word;
       min-height:1.7em;
     }
@@ -174,11 +191,13 @@
     .qr-frame{
       width:420px;
       max-width:100%;
-      background:#fff;
-      border-radius:26px;
-      padding:34px;
+      background:linear-gradient(180deg, #ffffff, #fffdfb);
+      border-radius:28px;
+      padding:32px;
       border:1px solid rgba(0,0,0,.04);
-      box-shadow:0 8px 20px rgba(0,0,0,.05);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.8),
+        0 8px 20px rgba(0,0,0,.05);
     }
 
     .qr-box{
@@ -189,7 +208,7 @@
       align-items:center;
       justify-content:center;
       overflow:hidden;
-      border-radius:12px;
+      border-radius:18px;
       border:1px solid rgba(0,0,0,.04);
     }
 
@@ -212,7 +231,7 @@
       gap:10px;
       padding:18px;
       text-align:center;
-      color:#7d7065;
+      color:var(--muted);
       line-height:1.8;
       font-size:14px;
     }
@@ -232,15 +251,16 @@
     }
 
     .status.error{
-      color:#b42318;
+      color:#b05a3d;
     }
 
     .action-group{
       margin-top:16px;
-      background:rgba(255,255,255,.72);
+      background:linear-gradient(180deg, rgba(255,255,255,.78), rgba(255,250,244,.72));
       border:1px solid var(--line);
       border-radius:22px;
       padding:14px;
+      box-shadow:0 4px 14px rgba(88,67,48,.03);
     }
 
     .group-title{
@@ -248,7 +268,7 @@
       font-size:14px;
       font-weight:900;
       letter-spacing:.04em;
-      color:#6e5f52;
+      color:var(--ink-soft);
     }
 
     .actions{
@@ -266,6 +286,7 @@
       font-weight:900;
       cursor:pointer;
       transition:transform .14s ease, box-shadow .14s ease, filter .14s ease;
+      color:var(--ink);
     }
 
     .btn:hover{
@@ -277,30 +298,30 @@
     }
 
     .btn-primary{
-      color:#fff;
-      background:linear-gradient(180deg, #c98a56 0%, #b17647 100%);
-      border:1px solid rgba(156,103,60,.18);
+      color:#fffaf6;
+      background:linear-gradient(180deg, #c88a56 0%, #b37649 100%);
+      border:1px solid rgba(159,109,69,.18);
       box-shadow:var(--btn-shadow);
     }
 
     .btn-soft{
       color:var(--ink);
-      background:linear-gradient(180deg, #ffffff 0%, #fbf7f1 100%);
-      border:1px solid rgba(92,70,48,.10);
+      background:linear-gradient(180deg, #ffffff 0%, #fcf8f2 100%);
+      border:1px solid rgba(98,76,56,.10);
       box-shadow:var(--btn-shadow);
     }
 
     .btn-line{
-      color:#fff;
-      background:linear-gradient(180deg, #22c461 0%, var(--line-green) 100%);
+      color:#fbfffc;
+      background:linear-gradient(180deg, #22c462 0%, var(--line-green) 100%);
       border:1px solid rgba(12,138,59,.16);
-      box-shadow:0 4px 10px rgba(20,180,84,.18);
+      box-shadow:0 4px 10px rgba(20,180,84,.16);
     }
 
     .dialog-mask{
       position:fixed;
       inset:0;
-      background:rgba(24,18,14,.42);
+      background:rgba(24,18,14,.34);
       display:none;
       align-items:center;
       justify-content:center;
@@ -314,10 +335,10 @@
 
     .dialog{
       width:min(100%, 500px);
-      background:#fffdf9;
+      background:linear-gradient(180deg, #fffdfa, #fff9f3);
       border:1px solid rgba(74,53,36,.10);
       border-radius:24px;
-      box-shadow:0 20px 44px rgba(0,0,0,.16);
+      box-shadow:0 20px 44px rgba(0,0,0,.14);
       padding:22px 18px 18px;
     }
 
@@ -330,7 +351,7 @@
     }
 
     .dialog-body{
-      color:#5f5145;
+      color:var(--ink-soft);
       font-size:15px;
       line-height:1.9;
     }
@@ -360,7 +381,7 @@
       .avatar-wrap{ width:88px; height:88px; }
       .name{ font-size:24px; }
       .title{ font-size:15px; }
-      .qr-frame{ padding:24px; border-radius:22px; }
+      .qr-frame{ padding:22px; border-radius:22px; }
       .btn{ padding:15px 16px; font-size:16px; }
       .action-group{ padding:12px; }
     }
@@ -427,8 +448,8 @@
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
       <h3 id="dialogTitle" class="dialog-title">分享說明</h3>
       <div class="dialog-body">
-        <p>1. 建議先下載名片海報，再把海報圖片傳給對方。</p>
-        <p>2. 對方可用微信、LINE、手機相機或掃碼工具，直接掃描 QR code 開啟智慧名片。</p>
+        <p>1. 分享自己的智慧名片，建議優先使用「複製我的名片連結」或「分享我的智慧名片」。</p>
+        <p>2. 名片海報適合傳圖片給對方，讓對方直接掃描 QR code 開啟智慧名片。</p>
         <p>3. 不建議把名片網址直接貼進微信聊天視窗，較容易出現排版異常。</p>
         <p>4. 若想推薦智慧名片服務，請使用「推薦智慧名片館」。</p>
         <p>5. 若需要聯絡客服、開通或訂製，請點「LINE 官方帳號」。</p>
@@ -441,6 +462,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./qrcode.min.js"></script>
-  <script src="./poster.js?v=7063"></script>
+  <script src="./poster.js?v=7064"></script>
 </body>
 </html>
