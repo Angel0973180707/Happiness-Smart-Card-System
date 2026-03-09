@@ -1,18 +1,19 @@
 /* ==========================================
- * HSC Poster v705.6
+ * HSC Poster v705.7
  * COMPLETE OVERWRITE
  *
- * v705.6 重點：
- * 1) 保留 v705 穩定主邏輯
- * 2) 修正「打開我的智慧名片」改走 view=1
- * 3) 保留複製連結 / 下載海報 / Web Share / 分享說明
- * 4) 海報只截 #posterCapture，不把按鈕拍進去
+ * v705.7 重點：
+ * 1) 保留 v705.6 穩定主邏輯
+ * 2) 修正海報下載時頭像不出現
+ * 3) avatar 載入加入 crossOrigin="anonymous"
+ * 4) 打開我的智慧名片維持 view=1
+ * 5) 海報只截 #posterCapture，不把按鈕拍進去
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705.6";
+  const VERSION = "705.7";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -138,11 +139,16 @@
         avatarEl.style.display = "block";
         avatarFallbackEl.style.display = "none";
       };
+
       avatarEl.onerror = () => {
         avatarEl.style.display = "none";
         avatarFallbackEl.style.display = "grid";
         avatarFallbackEl.textContent = safeInitial(name);
       };
+
+      // 關鍵修正：讓 html2canvas 可以抓到跨來源圖片
+      avatarEl.crossOrigin = "anonymous";
+      avatarEl.referrerPolicy = "no-referrer";
       avatarEl.src = src;
     } else {
       avatarEl.style.display = "none";
@@ -294,9 +300,31 @@
     document.body.style.overflow = "";
   }
 
+  async function waitForImages(root) {
+    if (!root) return;
+
+    const images = Array.from(root.querySelectorAll("img"));
+    if (!images.length) return;
+
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+
+        return new Promise((resolve) => {
+          const done = () => resolve();
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+          setTimeout(done, 2500);
+        });
+      })
+    );
+  }
+
   async function downloadPoster(item) {
     const target = posterCaptureEl || $("poster");
     if (!target) throw new Error("找不到海報區塊");
+
+    await waitForImages(target);
 
     const canvas = await html2canvas(target, {
       backgroundColor: null,
