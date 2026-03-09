@@ -1,18 +1,18 @@
 /* ==========================================
- * HSC Poster v707.1
+ * HSC Poster v707.2
  * COMPLETE OVERWRITE
  *
  * 修正重點：
- * 1. 手機下載海報過慢 / 卡住
- * 2. html2canvas 降負載
- * 3. 只截海報主卡，不截整頁
- * 4. 失敗時提供開圖備援
+ * 1. 放棄 html2canvas 截圖下載
+ * 2. 改用原生 Canvas 直接合成海報
+ * 3. 手機下載更穩
+ * 4. 保留本地 QR 生成 + 中央頭像
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "707.1";
+  const VERSION = "707.2";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -203,9 +203,7 @@
       await wait(120);
 
       const qrNode = normalizeQrNode(mount);
-      if (!qrNode) {
-        throw new Error("本地 QR 生成失敗");
-      }
+      if (!qrNode) throw new Error("本地 QR 生成失敗");
 
       await renderCenterAvatar(avatarUrl);
     } catch (err) {
@@ -291,41 +289,13 @@
 
   async function onDownloadPoster() {
     try {
-      if (!el.posterCapture) throw new Error("找不到海報區塊");
-      if (!window.html2canvas) throw new Error("html2canvas 未載入");
-
       setStatus("正在產生海報圖片…", false);
       disableDownloadBtn(true);
 
-      await waitForImages(el.posterCapture);
-
-      const exportNode = el.posterCapture.cloneNode(true);
-      optimizeExportNode(exportNode, el.posterCapture.offsetWidth);
-
-      document.body.appendChild(exportNode);
-      await waitForImages(exportNode);
-
-      const scale = getSafeScale();
-
-      const canvas = await promiseWithTimeout(
-        window.html2canvas(exportNode, {
-          useCORS: true,
-          allowTaint: false,
-          backgroundColor: "#fffaf6",
-          scale,
-          logging: false,
-          imageTimeout: 12000,
-          removeContainer: true
-        }),
-        15000,
-        "海報產生逾時"
-      );
-
-      safeRemove(exportNode);
-
+      const posterCanvas = await buildPosterCanvas();
       const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
 
-      const dataUrl = canvas.toDataURL("image/png", 0.95);
+      const dataUrl = posterCanvas.toDataURL("image/png", 0.96);
 
       if (isMobileDevice()) {
         openImageInNewTab(dataUrl, filename);
@@ -337,36 +307,370 @@
 
       clearStatusSoon();
     } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] download error:`, err);
-      setStatus("手機下載較吃效能，建議改用長按截圖或再次重試", true);
+      console.error(`[HSC Poster ${VERSION}] canvas export error:`, err);
+      setStatus("海報產生失敗，請重試", true);
     } finally {
       disableDownloadBtn(false);
     }
   }
 
-  function optimizeExportNode(node, width) {
-    node.style.width = `${width}px`;
-    node.style.position = "fixed";
-    node.style.left = "-99999px";
-    node.style.top = "0";
-    node.style.margin = "0";
-    node.style.transform = "none";
-    node.style.zIndex = "-1";
-    node.style.pointerEvents = "none";
-    node.style.boxShadow = "none";
+  async function buildPosterCanvas() {
+    const width = 1080;
+    const height = 1560;
 
-    node.querySelectorAll("*").forEach((child) => {
-      const style = child.style;
-      if (!style) return;
-      if (style.animation) style.animation = "none";
-      if (style.transition) style.transition = "none";
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+
+    const avatarImg = await loadImageElement(currentAvatarUrl || buildDefaultAvatarSvg(), buildDefaultAvatarSvg());
+    const qrSource = await getQrDrawable();
+    const qrAvatarImg = await loadImageElement(currentAvatarUrl || buildDefaultAvatarSvg(), buildDefaultAvatarSvg());
+
+    drawBackground(ctx, width, height);
+    drawMainCard(ctx, 26, 26, width - 52, height - 52, 42);
+
+    drawTopBrand(ctx, width);
+    drawPosterBody(ctx, width);
+
+    drawAvatarCircle(ctx, avatarImg, width / 2, 240, 102);
+
+    drawCenteredText(ctx, text(currentItem?.name) || text(currentItem?.id) || "我的智慧名片", width / 2, 410, {
+      font: "900 66px 'Noto Sans TC', sans-serif",
+      color: "#453429"
+    });
+
+    const titleText =
+      text(currentItem?.title) ||
+      text(currentItem?.unit) ||
+      text(currentItem?.slogan) ||
+      "";
+
+    drawCenteredMultiLine(ctx, titleText, width / 2, 490, 760, 54, {
+      font: "500 34px 'Noto Sans TC', sans-serif",
+      color: "#6f5d50"
+    });
+
+    const qrFrameX = 138;
+    const qrFrameY = 600;
+    const qrFrameW = 804;
+    const qrFrameH = 804;
+
+    drawRoundRect(ctx, qrFrameX, qrFrameY, qrFrameW, qrFrameH, 44, "#ffffff");
+    addSoftShadow(ctx);
+
+    drawRoundRect(ctx, qrFrameX + 28, qrFrameY + 28, qrFrameW - 56, qrFrameH - 56, 34, "#ffffff");
+    ctx.restore();
+
+    const qrBoxX = qrFrameX + 70;
+    const qrBoxY = qrFrameY + 70;
+    const qrBoxSize = 664;
+
+    drawRoundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 26, "#ffffff");
+    ctx.save();
+    roundRectPath(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 26);
+    ctx.clip();
+
+    if (qrSource) {
+      ctx.drawImage(qrSource, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize);
+    } else {
+      ctx.fillStyle = "#f7f2ec";
+      ctx.fillRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize);
+      ctx.fillStyle = "#7f6b5c";
+      ctx.font = "600 28px 'Noto Sans TC', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("名片連結", width / 2, qrBoxY + qrBoxSize / 2 - 10);
+      ctx.font = "400 18px sans-serif";
+      wrapText(ctx, currentCardUrl, width / 2, qrBoxY + qrBoxSize / 2 + 28, 520, 28);
+    }
+    ctx.restore();
+
+    if (qrAvatarImg) {
+      drawQrCenterAvatar(ctx, qrAvatarImg, width / 2, qrBoxY + qrBoxSize / 2, 76);
+    }
+
+    drawCenteredText(ctx, "掃描QRcode查閱完整名片", width / 2, 1342, {
+      font: "800 28px 'Noto Sans TC', sans-serif",
+      color: "#6f5d50"
+    });
+
+    return canvas;
+  }
+
+  async function getQrDrawable() {
+    if (!el.qrViewport) return null;
+
+    const canvas = el.qrViewport.querySelector("canvas");
+    if (canvas) return canvas;
+
+    const img = el.qrViewport.querySelector("img");
+    if (img && img.complete && img.naturalWidth > 0) return img;
+
+    if (img) {
+      await waitForImageElement(img);
+      if (img.naturalWidth > 0) return img;
+    }
+
+    const table = el.qrViewport.querySelector("table");
+    if (table) return tableToCanvas(table);
+
+    return null;
+  }
+
+  function tableToCanvas(table) {
+    const rows = Array.from(table.querySelectorAll("tr"));
+    if (!rows.length) return null;
+
+    const rowCount = rows.length;
+    const colCount = rows[0].querySelectorAll("td").length;
+    if (!colCount) return null;
+
+    const size = 800;
+    const c = document.createElement("canvas");
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext("2d");
+
+    const cellW = size / colCount;
+    const cellH = size / rowCount;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, size, size);
+
+    rows.forEach((tr, r) => {
+      const cells = Array.from(tr.querySelectorAll("td"));
+      cells.forEach((td, cIdx) => {
+        const bg = getComputedStyle(td).backgroundColor;
+        if (!isWhiteColor(bg)) {
+          ctx.fillStyle = "#2f241d";
+          ctx.fillRect(cIdx * cellW, r * cellH, Math.ceil(cellW), Math.ceil(cellH));
+        }
+      });
+    });
+
+    return c;
+  }
+
+  function isWhiteColor(color) {
+    const v = String(color || "").replace(/\s+/g, "").toLowerCase();
+    return (
+      v === "rgb(255,255,255)" ||
+      v === "rgba(255,255,255,1)" ||
+      v === "transparent" ||
+      v === ""
+    );
+  }
+
+  function drawBackground(ctx, w, h) {
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, "#f8f4ee");
+    grad.addColorStop(1, "#f2ebe2");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    const glow = ctx.createRadialGradient(w / 2, -40, 40, w / 2, -40, 700);
+    glow.addColorStop(0, "rgba(255,255,255,.85)");
+    glow.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  function drawMainCard(ctx, x, y, w, h, r) {
+    ctx.save();
+    ctx.shadowColor = "rgba(83,62,45,.08)";
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 10;
+    drawRoundRect(ctx, x, y, w, h, r, "#fffdfa");
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(102,78,57,.10)";
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, x, y, w, h, r);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTopBrand(ctx, width) {
+    const icon = new Image();
+    icon.src = "./icon-192.png";
+
+    ctx.save();
+    ctx.font = "900 34px 'Noto Sans TC', sans-serif";
+    ctx.fillStyle = "#453429";
+    ctx.textAlign = "center";
+    ctx.fillText("天使幸福智慧名片", width / 2 + 18, 108);
+    ctx.restore();
+
+    try {
+      ctx.save();
+      ctx.shadowColor = "rgba(0,0,0,.05)";
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = "#ffffff";
+      drawRoundRect(ctx, 290, 70, 44, 44, 12, "#ffffff");
+      ctx.restore();
+
+      ctx.drawImage(icon, 294, 74, 36, 36);
+    } catch (_) {}
+
+    drawRoundRect(ctx, 380, 126, 320, 48, 24, "#fbf2e8");
+    ctx.save();
+    ctx.strokeStyle = "rgba(191,135,87,.16)";
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, 380, 126, 320, 48, 24);
+    ctx.stroke();
+    ctx.restore();
+
+    drawCenteredText(ctx, "名片交付卡", width / 2, 158, {
+      font: "900 24px 'Noto Sans TC', sans-serif",
+      color: "#9d6d45"
     });
   }
 
-  function getSafeScale() {
-    const dpr = window.devicePixelRatio || 1;
-    if (isMobileDevice()) return Math.min(2, dpr, 1.8);
-    return Math.min(2.2, dpr || 2);
+  function drawPosterBody(ctx, width) {
+    ctx.save();
+    ctx.shadowColor = "rgba(83,62,45,.06)";
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 6;
+    drawRoundRect(ctx, 74, 178, width - 148, 1340, 34, "#fffaf5");
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(102,78,57,.08)";
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, 74, 178, width - 148, 1340, 34);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawAvatarCircle(ctx, img, cx, cy, r) {
+    ctx.save();
+    ctx.shadowColor = "rgba(88,67,48,.09)";
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 6, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    if (img) {
+      ctx.drawImage(img, cx - r + 6, cy - r + 6, (r - 6) * 2, (r - 6) * 2);
+    } else {
+      ctx.fillStyle = "#eadfd4";
+      ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    }
+    ctx.restore();
+  }
+
+  function drawQrCenterAvatar(ctx, img, cx, cy, r) {
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,.10)";
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 6;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 6, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    ctx.drawImage(img, cx - r + 6, cy - r + 6, (r - 6) * 2, (r - 6) * 2);
+    ctx.restore();
+  }
+
+  function drawCenteredText(ctx, str, x, y, opts = {}) {
+    ctx.save();
+    ctx.font = opts.font || "600 32px sans-serif";
+    ctx.fillStyle = opts.color || "#000";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(str || "", x, y);
+    ctx.restore();
+  }
+
+  function drawCenteredMultiLine(ctx, str, x, y, maxWidth, lineHeight, opts = {}) {
+    const lines = splitLinesByWidth(ctx, str || "", maxWidth, opts.font || "500 34px sans-serif");
+    ctx.save();
+    ctx.font = opts.font || "500 34px sans-serif";
+    ctx.fillStyle = opts.color || "#6f5d50";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const startY = y - ((lines.length - 1) * lineHeight) / 2;
+    lines.forEach((line, idx) => {
+      ctx.fillText(line, x, startY + idx * lineHeight);
+    });
+    ctx.restore();
+  }
+
+  function splitLinesByWidth(ctx, textValue, maxWidth, font) {
+    const textStr = String(textValue || "").trim();
+    if (!textStr) return [""];
+
+    ctx.save();
+    ctx.font = font;
+
+    const chars = Array.from(textStr);
+    const lines = [];
+    let line = "";
+
+    chars.forEach((ch) => {
+      const test = line + ch;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = ch;
+      } else {
+        line = test;
+      }
+    });
+
+    if (line) lines.push(line);
+    ctx.restore();
+
+    return lines.slice(0, 2);
+  }
+
+  function wrapText(ctx, textValue, x, y, maxWidth, lineHeight) {
+    const lines = splitLinesByWidth(ctx, textValue, maxWidth, ctx.font);
+    lines.forEach((line, idx) => {
+      ctx.fillText(line, x, y + idx * lineHeight);
+    });
+  }
+
+  function drawRoundRect(ctx, x, y, w, h, r, fill) {
+    roundRectPath(ctx, x, y, w, h, r);
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  function roundRectPath(ctx, x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rr);
+    ctx.arcTo(x + w, y + h, x, y + h, rr);
+    ctx.arcTo(x, y + h, x, y, rr);
+    ctx.arcTo(x, y, x + w, y, rr);
+    ctx.closePath();
+  }
+
+  function addSoftShadow(ctx) {
+    ctx.save();
+    ctx.shadowColor = "rgba(83,62,45,.06)";
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 6;
   }
 
   function disableDownloadBtn(disabled) {
@@ -542,25 +846,19 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  function waitForImages(root) {
-    const images = Array.from(root.querySelectorAll("img"));
-    if (!images.length) return Promise.resolve();
+  function waitForImageElement(imgEl) {
+    return new Promise((resolve) => {
+      if (!imgEl) return resolve();
+      if (imgEl.complete && imgEl.naturalWidth > 0) return resolve();
 
-    return Promise.all(
-      images.map((img) => {
-        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-
-        return new Promise((resolve) => {
-          const done = () => {
-            img.removeEventListener("load", done);
-            img.removeEventListener("error", done);
-            resolve();
-          };
-          img.addEventListener("load", done, { once: true });
-          img.addEventListener("error", done, { once: true });
-        });
-      })
-    );
+      const done = () => {
+        imgEl.removeEventListener("load", done);
+        imgEl.removeEventListener("error", done);
+        resolve();
+      };
+      imgEl.addEventListener("load", done, { once: true });
+      imgEl.addEventListener("error", done, { once: true });
+    });
   }
 
   function loadImage(imgEl, src, fallback = "") {
@@ -583,24 +881,24 @@
     });
   }
 
-  function promiseWithTimeout(promise, ms, message) {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(message || "timeout")), ms);
-      promise.then(
-        (value) => {
-          clearTimeout(timer);
-          resolve(value);
-        },
-        (err) => {
-          clearTimeout(timer);
-          reject(err);
-        }
-      );
-    });
-  }
+  function loadImageElement(src, fallback = "") {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      let triedFallback = false;
 
-  function safeRemove(node) {
-    if (node && node.parentNode) node.parentNode.removeChild(node);
+      img.onload = () => resolve(img);
+      img.onerror = () => {
+        if (!triedFallback && fallback) {
+          triedFallback = true;
+          img.src = fallback;
+          return;
+        }
+        resolve(null);
+      };
+
+      img.src = src;
+    });
   }
 
   function isMobileDevice() {
