@@ -1,19 +1,20 @@
 /* ==========================================
- * HSC Poster v705.8
+ * HSC Poster v705.9
  * COMPLETE OVERWRITE
  *
- * v705.8 重點：
- * 1) 回退到穩定邏輯
- * 2) 海報頭像要出現
- * 3) icon 正常
- * 4) 打開我的智慧名片維持 view=1
- * 5) 海報只截 #posterCapture
+ * v705.9 重點：
+ * 1) 以 v705.8 為母版小修補
+ * 2) 頭像改為逐欄位重試，不只拿第一張
+ * 3) avatar 優先順序改為較穩定：
+ *    avatar_url -> avatar_img_fast -> avatar_img -> avatar -> avatarUrl
+ * 4) 海報下載前若頭像未成功，會再補試一次
+ * 5) 保持 icon / QR / view=1 / posterCapture 截圖區 / UI 不變
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705.8";
+  const VERSION = "705.9";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -53,6 +54,7 @@
   let currentItem = null;
   let cardUrl = "";
   let currentAvatarUrl = "";
+  let currentAvatarCandidates = [];
 
   function getGasUrl() {
     const qGas = (qs.get("gas") || "").trim();
@@ -132,16 +134,27 @@
     return t.slice(0, 2);
   }
 
-  function pickImage(item) {
-    const candidates = [
+  function dedupeList(list) {
+    const seen = new Set();
+    const out = [];
+    for (const raw of list) {
+      const v = text(raw);
+      if (!v) continue;
+      if (seen.has(v)) continue;
+      seen.add(v);
+      out.push(v);
+    }
+    return out;
+  }
+
+  function pickImageList(item) {
+    return dedupeList([
+      item.avatar_url,
       item.avatar_img_fast,
       item.avatar_img,
-      item.avatar_url,
       item.avatar,
       item.avatarUrl
-    ].map(v => text(v)).filter(Boolean);
-
-    return candidates[0] || "";
+    ]);
   }
 
   function waitForSingleImage(img, timeout = 5000) {
@@ -154,6 +167,9 @@
       const finish = (ok) => {
         if (done) return;
         done = true;
+        img.removeEventListener("load", onLoad);
+        img.removeEventListener("error", onError);
+        clearTimeout(timer);
         resolve(ok);
       };
 
@@ -163,17 +179,24 @@
       img.addEventListener("load", onLoad, { once: true });
       img.addEventListener("error", onError, { once: true });
 
-      setTimeout(() => finish(img.complete && img.naturalWidth > 0), timeout);
+      const timer = setTimeout(() => {
+        finish(img.complete && img.naturalWidth > 0);
+      }, timeout);
     });
+  }
+
+  function resetAvatarToFallback(name) {
+    if (!avatarEl || !avatarFallbackEl) return;
+    avatarFallbackEl.textContent = safeInitial(name);
+    avatarFallbackEl.style.display = "grid";
+    avatarEl.style.display = "none";
   }
 
   async function setAvatar(src, name) {
     if (!avatarEl || !avatarFallbackEl) return false;
 
     if (!src) {
-      avatarEl.style.display = "none";
-      avatarFallbackEl.style.display = "grid";
-      avatarFallbackEl.textContent = safeInitial(name);
+      resetAvatarToFallback(name);
       currentAvatarUrl = "";
       return false;
     }
@@ -197,6 +220,33 @@
 
     avatarEl.style.display = "none";
     avatarFallbackEl.style.display = "grid";
+    return false;
+  }
+
+  async function tryAvatarImages(list, name) {
+    if (!avatarEl || !avatarFallbackEl) return false;
+
+    const candidates = Array.isArray(list) ? dedupeList(list) : [];
+    currentAvatarCandidates = candidates.slice();
+
+    if (!candidates.length) {
+      currentAvatarUrl = "";
+      resetAvatarToFallback(name);
+      return false;
+    }
+
+    resetAvatarToFallback(name);
+
+    for (const src of candidates) {
+      const ok = await setAvatar(src, name);
+      if (ok) {
+        currentAvatarUrl = src;
+        return true;
+      }
+    }
+
+    currentAvatarUrl = "";
+    resetAvatarToFallback(name);
     return false;
   }
 
@@ -343,8 +393,16 @@
     const target = posterCaptureEl || $("poster");
     if (!target) throw new Error("找不到海報區塊");
 
-    if ((!avatarEl.complete || avatarEl.naturalWidth <= 0) && currentAvatarUrl) {
-      await setAvatar(currentAvatarUrl, item.name);
+    const avatarNotReady =
+      avatarEl &&
+      (!avatarEl.complete || avatarEl.naturalWidth <= 0 || getComputedStyle(avatarEl).display === "none");
+
+    if (avatarNotReady) {
+      if (currentAvatarCandidates.length) {
+        await tryAvatarImages(currentAvatarCandidates, item.name);
+      } else if (currentAvatarUrl) {
+        await setAvatar(currentAvatarUrl, item.name);
+      }
     }
 
     await waitForImages(target);
@@ -397,7 +455,7 @@
     if (titleEl) titleEl.textContent = item.title || "　";
     if (qrTipEl) qrTipEl.textContent = "掃描 QRCode 打開智慧名片";
 
-    await setAvatar(pickImage(item), item.name);
+    await tryAvatarImages(pickImageList(item), item.name);
     renderQrCode(cardUrl);
 
     if (btnShare) {
