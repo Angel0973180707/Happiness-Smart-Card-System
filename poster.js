@@ -1,19 +1,20 @@
 /* ==========================================
- * HSC Poster v3.0
+ * HSC Poster v3.1
  * COMPLETE OVERWRITE
  *
- * 本版目標：
- * 1. LINE 官方帳號按鈕整排
- * 2. 分享說明 Dialog
- * 3. QR code 尺寸 / 留白優化
- * 4. 海報下載穩定
- * 5. 兼容 WeChat WebView 基本行為
+ * 功能：
+ * 1. 載入名片資料
+ * 2. 顯示頭像 / 姓名 / 標題 / QR code
+ * 3. 下載名片海報
+ * 4. LINE 官方帳號整排按鈕
+ * 5. 分享說明 Dialog
+ * 6. QR code 留白與尺寸優化
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "3.0";
+  const VERSION = "3.1";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -35,44 +36,52 @@
     cardTitle: document.getElementById("cardTitle"),
     qrBox: document.getElementById("qrBox"),
     posterCapture: document.getElementById("posterCapture"),
+    statusText: document.getElementById("statusText"),
     downloadBtn: document.getElementById("downloadBtn"),
     lineOABtn: document.getElementById("lineOABtn"),
     shareHelpBtn: document.getElementById("shareHelpBtn"),
     shareDialog: document.getElementById("shareDialog"),
     dialogCloseBtn: document.getElementById("dialogCloseBtn"),
-    loadingText: document.getElementById("loadingText"),
-    errorText: document.getElementById("errorText"),
   };
 
-  let currentCardUrl = "";
   let currentItem = null;
+  let currentCardUrl = "";
 
-  init().catch(showError);
+  bindEvents();
+  init();
 
   async function init() {
-    bindEvents();
+    try {
+      if (!id) {
+        throw new Error("缺少名片 id");
+      }
 
-    if (!id) {
-      throw new Error("缺少名片 id");
+      setStatus("正在載入海報資料…", false);
+
+      const item = await fetchCard(id);
+      currentItem = item;
+
+      renderPoster(item);
+
+      currentCardUrl = buildCardUrl(item);
+      await renderQr(currentCardUrl);
+
+      setStatus("");
+    } catch (err) {
+      console.error(`[HSC Poster ${VERSION}] init error:`, err);
+      setStatus(err.message || "海報載入失敗", true);
     }
-
-    const item = await fetchCard(id);
-    currentItem = item;
-
-    renderCard(item);
-    await renderQr(buildCardUrl(item));
-    setLoading(false);
   }
 
   function bindEvents() {
     if (el.downloadBtn) {
-      el.downloadBtn.addEventListener("click", downloadPoster);
+      el.downloadBtn.addEventListener("click", onDownloadPoster);
     }
 
     if (el.lineOABtn) {
       el.lineOABtn.addEventListener("click", () => {
         if (!lineOA) return;
-        location.href = lineOA;
+        window.location.href = lineOA;
       });
     }
 
@@ -97,10 +106,11 @@
 
   async function fetchCard(cardId) {
     const url = `${gas}?action=card&id=${encodeURIComponent(cardId)}&_=${Date.now()}`;
+
     const res = await fetch(url, {
       method: "GET",
+      mode: "cors",
       cache: "no-store",
-      mode: "cors"
     });
 
     if (!res.ok) {
@@ -117,87 +127,65 @@
     return item;
   }
 
-  function renderCard(item) {
-    const name = safeText(item.name) || item.id || "我的智慧名片";
+  function renderPoster(item) {
+    const name = text(item.name) || item.id || "我的智慧名片";
     const title =
-      safeText(item.title) ||
-      safeText(item.unit) ||
-      safeText(item.slogan) ||
+      text(item.title) ||
+      text(item.unit) ||
+      text(item.slogan) ||
       "歡迎掃碼查看我的智慧名片";
 
     if (el.cardName) el.cardName.textContent = name;
     if (el.cardTitle) el.cardTitle.textContent = title;
 
     const avatar =
-      item.avatar_url ||
-      item.avatar_img_fast ||
-      item.avatar_img ||
-      "";
+      text(item.avatar_url) ||
+      text(item.avatar_img_fast) ||
+      text(item.avatar_img);
 
     if (el.avatarImg) {
-      if (avatar) {
-        el.avatarImg.src = avatar;
-        el.avatarImg.alt = `${name} 頭像`;
-        el.avatarImg.onerror = () => {
-          el.avatarImg.src =
-            "data:image/svg+xml;utf8," +
-            encodeURIComponent(`
-              <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">
-                <rect width="100%" height="100%" fill="#eadfd4"/>
-                <circle cx="150" cy="118" r="54" fill="#d0b8a3"/>
-                <rect x="70" y="190" width="160" height="70" rx="35" fill="#d0b8a3"/>
-              </svg>
-            `);
-        };
-      } else {
-        el.avatarImg.src =
-          "data:image/svg+xml;utf8," +
-          encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300">
-              <rect width="100%" height="100%" fill="#eadfd4"/>
-              <circle cx="150" cy="118" r="54" fill="#d0b8a3"/>
-              <rect x="70" y="190" width="160" height="70" rx="35" fill="#d0b8a3"/>
-            </svg>
-          `);
-      }
+      el.avatarImg.src = avatar || buildDefaultAvatarSvg();
+      el.avatarImg.alt = `${name} 頭像`;
+      el.avatarImg.onerror = () => {
+        el.avatarImg.src = buildDefaultAvatarSvg();
+      };
     }
   }
 
   function buildCardUrl(item) {
-    const cardId = item.id || id;
-    currentCardUrl = `${baseUrl}index.html?id=${encodeURIComponent(cardId)}`;
-    return currentCardUrl;
+    const cardId = text(item.id) || id;
+    return `${baseUrl}index.html?id=${encodeURIComponent(cardId)}`;
   }
 
-  async function renderQr(text) {
+  async function renderQr(targetUrl) {
     if (!el.qrBox) return;
 
     el.qrBox.innerHTML = "";
-
     const canvas = document.createElement("canvas");
     el.qrBox.appendChild(canvas);
 
-    await QRCode.toCanvas(canvas, text, {
+    await QRCode.toCanvas(canvas, targetUrl, {
       width: 340,
       margin: 2,
+      errorCorrectionLevel: "H",
       color: {
         dark: "#111111",
-        light: "#ffffff",
-      },
-      errorCorrectionLevel: "H",
+        light: "#ffffff"
+      }
     });
-
-    canvas.setAttribute("aria-label", "智慧名片 QR code");
   }
 
-  async function downloadPoster() {
+  async function onDownloadPoster() {
     try {
-      setLoading(true, "正在產生海報圖片…");
+      if (!el.posterCapture) {
+        throw new Error("找不到海報區塊");
+      }
 
-      const node = el.posterCapture;
-      if (!node) throw new Error("找不到海報區塊");
+      setStatus("正在產生海報圖片…", false);
 
-      const canvas = await html2canvas(node, {
+      await waitForImages(el.posterCapture);
+
+      const canvas = await html2canvas(el.posterCapture, {
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#fffaf6",
@@ -207,15 +195,17 @@
         removeContainer: true,
       });
 
-      const name = safeFileName(currentItem?.name || currentItem?.id || "smart-card");
+      const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
+
       const link = document.createElement("a");
-      link.download = `${name}-poster.png`;
       link.href = canvas.toDataURL("image/png", 1);
+      link.download = filename;
       link.click();
 
-      setLoading(false);
+      setStatus("");
     } catch (err) {
-      showError(err);
+      console.error(`[HSC Poster ${VERSION}] download error:`, err);
+      setStatus(err.message || "海報下載失敗", true);
     }
   }
 
@@ -231,28 +221,22 @@
     el.shareDialog.setAttribute("aria-hidden", "true");
   }
 
-  function setLoading(loading, text = "正在載入海報資料…") {
-    if (!el.loadingText) return;
+  function setStatus(message, isError = false) {
+    if (!el.statusText) return;
 
-    if (loading) {
-      el.loadingText.style.display = "block";
-      el.loadingText.textContent = text;
-    } else {
-      el.loadingText.style.display = "none";
+    if (!message) {
+      el.statusText.textContent = "";
+      el.statusText.classList.remove("error");
+      el.statusText.style.display = "none";
+      return;
     }
+
+    el.statusText.style.display = "block";
+    el.statusText.textContent = message;
+    el.statusText.classList.toggle("error", !!isError);
   }
 
-  function showError(err) {
-    console.error(`[Poster ${VERSION}]`, err);
-    setLoading(false);
-
-    if (el.errorText) {
-      el.errorText.style.display = "block";
-      el.errorText.textContent = err?.message || "發生錯誤，請稍後再試";
-    }
-  }
-
-  function safeText(v) {
+  function text(v) {
     return String(v || "").trim();
   }
 
@@ -261,5 +245,36 @@
       .replace(/[\\/:*?"<>|]/g, "")
       .replace(/\s+/g, "-")
       .slice(0, 60);
+  }
+
+  function buildDefaultAvatarSvg() {
+    return "data:image/svg+xml;utf8," + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+        <rect width="320" height="320" rx="160" fill="#eadfd4"/>
+        <circle cx="160" cy="122" r="58" fill="#d0b8a3"/>
+        <rect x="72" y="202" width="176" height="84" rx="42" fill="#d0b8a3"/>
+      </svg>
+    `);
+  }
+
+  function waitForImages(root) {
+    const images = Array.from(root.querySelectorAll("img"));
+    if (!images.length) return Promise.resolve();
+
+    return Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+
+        return new Promise((resolve) => {
+          const done = () => {
+            img.removeEventListener("load", done);
+            img.removeEventListener("error", done);
+            resolve();
+          };
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+        });
+      })
+    );
   }
 })();
