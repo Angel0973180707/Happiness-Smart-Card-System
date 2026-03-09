@@ -1,19 +1,17 @@
 /* ==========================================
- * HSC Poster v704.1
+ * HSC Poster v705.0
  * COMPLETE OVERWRITE
  *
  * 重點：
- * 1. 修正 QR code 顯示
- * 2. 標題改為 icon + 天使幸福智慧名片
- * 3. 名片交付卡使用橢圓框
- * 4. 外露小字說明收進分享說明 Dialog
- * 5. 保留 7 個按鈕
+ * 1. QR code 改用 Google QR API，避免 JS 套件失效
+ * 2. 保留 7 個按鈕
+ * 3. 支援下載海報 / 查看名片 / 複製 / 分享 / 推薦 / 分享說明 / LINE OA
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "704.1";
+  const VERSION = "705.0";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -22,11 +20,6 @@
     "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
 
   const DEFAULT_LINE_OA = "https://lin.ee/3r2ZePN";
-
-  const QR_SCRIPT_CANDIDATES = [
-    "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js",
-    "https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"
-  ];
 
   const qs = new URLSearchParams(location.search);
   const id = (qs.get("id") || "").trim();
@@ -75,7 +68,6 @@
       currentCardUrl = buildCardUrl(item);
       currentRecommendUrl = buildRecommendUrl(item);
 
-      await ensureQRCodeLib();
       await renderQr(currentCardUrl);
 
       setStatus("");
@@ -163,90 +155,29 @@
     return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
   }
 
-  async function ensureQRCodeLib() {
-    if (window.QRCode && typeof window.QRCode.toDataURL === "function") return;
-
-    for (const src of QR_SCRIPT_CANDIDATES) {
-      try {
-        await loadScript(src);
-        if (window.QRCode && typeof window.QRCode.toDataURL === "function") return;
-      } catch (err) {
-        console.warn(`[HSC Poster ${VERSION}] QR script load failed:`, src, err);
-      }
-    }
-
-    throw new Error("QRCode 套件載入失敗");
-  }
-
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const existed = Array.from(document.scripts).find((s) => s.src === src);
-      if (existed) {
-        if (window.QRCode) resolve();
-        else reject(new Error("script exists but QRCode unavailable"));
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = src;
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`load fail: ${src}`));
-      document.head.appendChild(script);
-    });
-  }
-
   async function renderQr(targetUrl) {
     if (!el.qrBox) return;
 
+    const size = 420;
+
+    const qrUrl =
+      "https://chart.googleapis.com/chart" +
+      "?cht=qr" +
+      "&chs=" + size + "x" + size +
+      "&chld=H|0" +
+      "&chl=" + encodeURIComponent(targetUrl);
+
+    const img = document.createElement("img");
+    img.alt = "智慧名片 QR code";
+    img.decoding = "sync";
+    img.loading = "eager";
+    img.referrerPolicy = "no-referrer";
+    img.src = qrUrl;
+
+    await waitSingleImage(img);
+
     el.qrBox.innerHTML = "";
-    el.qrBox.style.minHeight = "280px";
-
-    try {
-      const dataUrl = await window.QRCode.toDataURL(targetUrl, {
-        width: 420,
-        margin: 2,
-        errorCorrectionLevel: "H",
-        color: {
-          dark: "#111111",
-          light: "#ffffff"
-        }
-      });
-
-      const img = document.createElement("img");
-      img.src = dataUrl;
-      img.alt = "智慧名片 QR code";
-      img.decoding = "sync";
-      img.loading = "eager";
-      img.style.width = "100%";
-      img.style.height = "100%";
-      img.style.display = "block";
-      img.style.objectFit = "contain";
-
-      await waitSingleImage(img);
-      el.qrBox.innerHTML = "";
-      el.qrBox.appendChild(img);
-    } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] QR render fail:`, err);
-      el.qrBox.innerHTML = `
-        <div style="
-          width:100%;
-          height:100%;
-          min-height:280px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          text-align:center;
-          color:#b42318;
-          font-size:14px;
-          line-height:1.8;
-          padding:16px;
-        ">
-          QR code 產生失敗
-        </div>
-      `;
-      throw new Error("QR code 產生失敗");
-    }
+    el.qrBox.appendChild(img);
   }
 
   async function onDownloadPoster() {
@@ -258,10 +189,6 @@
       setStatus("正在產生海報圖片…", false);
 
       await waitForImages(el.posterCapture);
-
-      if (!window.html2canvas) {
-        await ensureHtml2Canvas();
-      }
 
       const canvas = await window.html2canvas(el.posterCapture, {
         useCORS: true,
@@ -285,14 +212,6 @@
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] download error:`, err);
       setStatus(err.message || "海報下載失敗", true);
-    }
-  }
-
-  async function ensureHtml2Canvas() {
-    if (window.html2canvas) return;
-    await loadScript("https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js");
-    if (!window.html2canvas) {
-      throw new Error("html2canvas 載入失敗");
     }
   }
 
@@ -414,7 +333,7 @@
         return;
       }
       img.onload = () => resolve();
-      img.onerror = () => reject(new Error("image load fail"));
+      img.onerror = () => reject(new Error("QR 圖片載入失敗"));
     });
   }
 
