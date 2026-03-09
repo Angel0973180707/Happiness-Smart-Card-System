@@ -1,17 +1,18 @@
 /* ==========================================
- * HSC Poster v706.5
+ * HSC Poster v706.6
  * COMPLETE OVERWRITE
  *
  * 修正重點：
- * 1. QRCode 本地生成失敗時，自動改用 API 備援
- * 2. 相容 canvas / img / table 輸出
- * 3. 解決 QR 區塊空白
+ * 1. 不依賴本地 qrcode.min.js
+ * 2. 直接使用 QR 圖片來源
+ * 3. 主來源失敗自動切備援
+ * 4. 再失敗顯示名片連結，不留空白框
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "706.5";
+  const VERSION = "706.6";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -31,7 +32,8 @@
     avatarImg: document.getElementById("avatarImg"),
     cardName: document.getElementById("cardName"),
     cardTitle: document.getElementById("cardTitle"),
-    qrBox: document.getElementById("qrBox"),
+    qrImg: document.getElementById("qrImg"),
+    qrLinkFallback: document.getElementById("qrLinkFallback"),
     posterCapture: document.getElementById("posterCapture"),
     statusText: document.getElementById("statusText"),
 
@@ -67,13 +69,13 @@
       currentRecommendUrl = buildRecommendUrl(item);
 
       renderPoster(item);
-      await renderQrSmart(currentCardUrl);
+      await renderQrImage(currentCardUrl);
 
       setStatus("");
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] init error:`, err);
       renderPoster(null);
-      renderQrFallback();
+      renderQrLinkFallback(currentCardUrl || "");
       setStatus(err.message || "載入失敗", true);
     }
   }
@@ -119,7 +121,6 @@
     }
 
     const item = json?.item || json?.data || json;
-
     if (!item || typeof item !== "object") {
       throw new Error("名片資料格式不正確");
     }
@@ -163,137 +164,76 @@
     return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
   }
 
-  async function renderQrSmart(targetUrl) {
-    if (!el.qrBox) return;
+  async function renderQrImage(targetUrl) {
+    if (!el.qrImg) return;
 
-    el.qrBox.innerHTML = "";
+    hideQrLinkFallback();
 
-    const okLocal = await tryRenderLocalQr(targetUrl);
-    if (okLocal) return;
+    const qrCandidates = [
+      buildQrUrlA(targetUrl),
+      buildQrUrlB(targetUrl)
+    ];
 
-    const okApi = await tryRenderApiQr(targetUrl);
-    if (okApi) return;
+    let loaded = false;
 
-    renderQrFallback();
-    setStatus("QR 產生失敗，但其他功能仍可正常使用", true);
-  }
+    for (const src of qrCandidates) {
+      loaded = await loadQr(src);
+      if (loaded) break;
+    }
 
-  async function tryRenderLocalQr(targetUrl) {
-    try {
-      if (typeof window.QRCode === "undefined") {
-        throw new Error("本地 qrcode.min.js 未載入");
-      }
-
-      el.qrBox.innerHTML = "";
-
-      const mount = document.createElement("div");
-      mount.style.width = "100%";
-      mount.style.height = "100%";
-      mount.style.display = "flex";
-      mount.style.alignItems = "center";
-      mount.style.justifyContent = "center";
-      el.qrBox.appendChild(mount);
-
-      new window.QRCode(mount, {
-        text: targetUrl,
-        width: 320,
-        height: 320,
-        colorDark: "#453429",
-        colorLight: "#ffffff",
-        correctLevel: window.QRCode.CorrectLevel.H
-      });
-
-      await wait(120);
-
-      const ok = normalizeQrDom(mount);
-      if (!ok) throw new Error("本地 QR 節點未成功生成");
-
-      return true;
-    } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] local QR render error:`, err);
-      return false;
+    if (!loaded) {
+      renderQrLinkFallback(targetUrl);
+      setStatus("QR 圖片載入失敗，已改顯示名片連結", true);
     }
   }
 
-  async function tryRenderApiQr(targetUrl) {
-    try {
-      el.qrBox.innerHTML = "";
+  function buildQrUrlA(targetUrl) {
+    return "https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=0&format=png&data=" + encodeURIComponent(targetUrl);
+  }
 
-      const img = document.createElement("img");
-      img.alt = "QR Code";
-      img.loading = "eager";
-      img.decoding = "async";
-      img.referrerPolicy = "no-referrer";
-      img.style.width = "100%";
-      img.style.height = "100%";
-      img.style.display = "block";
-      img.style.objectFit = "contain";
+  function buildQrUrlB(targetUrl) {
+    return "https://quickchart.io/qr?size=900&margin=0&text=" + encodeURIComponent(targetUrl);
+  }
 
-      const src =
-        "https://api.qrserver.com/v1/create-qr-code/?" +
-        "size=800x800&margin=0&format=png&data=" +
-        encodeURIComponent(targetUrl);
+  function loadQr(src) {
+    return new Promise((resolve) => {
+      if (!el.qrImg) return resolve(false);
 
-      const ok = await loadImage(img, src);
-      if (!ok) throw new Error("API QR 載入失敗");
+      el.qrImg.onload = () => {
+        el.qrImg.style.display = "block";
+        resolve(true);
+      };
 
-      el.qrBox.appendChild(img);
-      return true;
-    } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] API QR render error:`, err);
-      return false;
+      el.qrImg.onerror = () => {
+        resolve(false);
+      };
+
+      el.qrImg.src = src;
+    });
+  }
+
+  function renderQrLinkFallback(url) {
+    if (el.qrImg) {
+      el.qrImg.removeAttribute("src");
+      el.qrImg.style.display = "none";
+    }
+
+    if (el.qrLinkFallback) {
+      el.qrLinkFallback.style.display = "block";
+      el.qrLinkFallback.textContent = url
+        ? `名片連結：${url}`
+        : "QR 暫時無法顯示";
     }
   }
 
-  function normalizeQrDom(root) {
-    const img = root.querySelector("img");
-    const canvas = root.querySelector("canvas");
-    const table = root.querySelector("table");
-
-    if (img) {
-      img.style.width = "100%";
-      img.style.height = "100%";
-      img.style.display = "block";
-      img.style.objectFit = "contain";
-      return true;
+  function hideQrLinkFallback() {
+    if (el.qrLinkFallback) {
+      el.qrLinkFallback.style.display = "none";
+      el.qrLinkFallback.textContent = "";
     }
-
-    if (canvas) {
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      canvas.style.display = "block";
-      canvas.style.objectFit = "contain";
-      return true;
+    if (el.qrImg) {
+      el.qrImg.style.display = "block";
     }
-
-    if (table) {
-      table.style.width = "100%";
-      table.style.height = "100%";
-      table.style.borderCollapse = "collapse";
-      table.style.display = "table";
-      table.style.background = "#fff";
-
-      const tds = table.querySelectorAll("td");
-      tds.forEach((td) => {
-        td.style.padding = "0";
-        td.style.margin = "0";
-      });
-      return true;
-    }
-
-    return false;
-  }
-
-  function renderQrFallback() {
-    if (!el.qrBox) return;
-
-    el.qrBox.innerHTML = `
-      <div class="qr-fallback">
-        <strong>QR 暫時無法顯示</strong>
-        <div>你仍可使用下方按鈕</div>
-        <div>查看名片、複製連結、下載海報</div>
-      </div>
-    `;
   }
 
   async function onDownloadPoster() {
@@ -326,7 +266,7 @@
         backgroundColor: "#fffaf6",
         scale: Math.min(3, window.devicePixelRatio || 2),
         logging: false,
-        imageTimeout: 15000,
+        imageTimeout: 20000,
         removeContainer: true
       });
 
@@ -341,7 +281,7 @@
       clearStatusSoon();
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] download error:`, err);
-      setStatus("此瀏覽器可能限制下載，請改用右上角分享或長按截圖保存", true);
+      setStatus("此瀏覽器可能限制下載，請改用長按截圖保存", true);
     }
   }
 
@@ -480,7 +420,7 @@
 
     return Promise.all(
       images.map((img) => {
-        if (img.complete) return Promise.resolve();
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
 
         return new Promise((resolve) => {
           const done = () => {
@@ -493,18 +433,6 @@
         });
       })
     );
-  }
-
-  function loadImage(img, src) {
-    return new Promise((resolve) => {
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = src;
-    });
-  }
-
-  function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   async function copyText(value) {
