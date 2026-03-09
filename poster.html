@@ -3,21 +3,19 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>智慧名片交付卡 v705.2</title>
+<title>智慧名片交付卡 v705.3</title>
 <meta name="theme-color" content="#edf4ef" />
 
 <style>
 
 :root{
---bg-1:#f6faf7;
---bg-2:#eef5f0;
---bg-3:#e7f0e9;
+--bg1:#f7faf8;
+--bg2:#eef4ef;
+--bg3:#e6efe8;
 
 --card:#ffffff;
 
 --ink:#2d4838;
---muted:#729080;
-
 --line:#dce8df;
 
 --brand:#5e9b78;
@@ -37,10 +35,8 @@ display:flex;
 justify-content:center;
 background:
 radial-gradient(1000px 560px at 50% -10%, rgba(106,157,126,.10), transparent 55%),
-linear-gradient(180deg,var(--bg-1) 0%,var(--bg-2) 58%,var(--bg-3) 100%);
+linear-gradient(180deg,var(--bg1) 0%,var(--bg2) 58%,var(--bg3) 100%);
 }
-
-img{display:block;max-width:100%}
 
 .wrap{
 width:100%;
@@ -76,7 +72,7 @@ text-align:center;
 padding:4px 8px 12px;
 }
 
-/* ===== 新增品牌區 ===== */
+/* ===== 品牌區 ===== */
 
 .brand-row{
 display:flex;
@@ -88,19 +84,18 @@ gap:10px;
 .brand-icon{
 width:28px;
 height:28px;
-border-radius:6px;
 object-fit:cover;
+border-radius:6px;
 }
 
 .poster-brand-title{
 margin:0;
-color:#4b775f;
+color:#3f6f57;
 font-size:22px;
-font-weight:750;
-letter-spacing:.02em;
+font-weight:800;
 }
 
-/* ==================== */
+/* ===== 海報 ===== */
 
 .poster{
 background:linear-gradient(180deg,#ffffff 0%,#fcfefd 100%);
@@ -109,7 +104,6 @@ padding:24px 18px 20px;
 border:1px solid #e4eee7;
 box-shadow:0 8px 20px rgba(55,92,72,.04);
 text-align:center;
-overflow:hidden;
 }
 
 .avatar-wrap{
@@ -118,7 +112,7 @@ height:116px;
 margin:0 auto 16px;
 border-radius:50%;
 overflow:hidden;
-background:linear-gradient(180deg,#f8fbf8 0%,#eef5f0 100%);
+background:#f3f7f4;
 border:1px solid #dce9e0;
 display:grid;
 place-items:center;
@@ -132,34 +126,32 @@ display:none;
 }
 
 .avatar-fallback{
-width:100%;
-height:100%;
-display:grid;
-place-items:center;
 font-size:26px;
 font-weight:800;
 color:#6f8d7d;
 }
 
 .name{
-margin:0 0 10px;
 font-size:28px;
 font-weight:800;
 color:#3d6b54;
+margin-bottom:8px;
 }
 
 .unit{
 font-size:16px;
 font-weight:700;
 color:#587b67;
-margin-bottom:6px;
 }
 
 .title{
 font-size:16px;
 font-weight:700;
 color:#587b67;
+margin-bottom:10px;
 }
+
+/* ===== QR ===== */
 
 .qr-card{
 margin-top:16px;
@@ -170,8 +162,8 @@ border:1px solid #e5eee8;
 }
 
 .qr-box{
-width:212px;
-height:212px;
+width:210px;
+height:210px;
 margin:0 auto;
 border-radius:24px;
 background:#fff;
@@ -181,15 +173,16 @@ place-items:center;
 }
 
 #qrcode{
-width:192px;
-height:192px;
+width:190px;
+height:190px;
 display:grid;
 place-items:center;
 }
 
-#qrcode canvas,#qrcode img{
-width:192px!important;
-height:192px!important;
+#qrcode canvas,
+#qrcode img{
+width:190px!important;
+height:190px!important;
 }
 
 .qr-text{
@@ -198,6 +191,8 @@ font-size:14px;
 color:#5d7f6c;
 font-weight:700;
 }
+
+/* ===== 按鈕區 ===== */
 
 .actions{
 margin-top:14px;
@@ -209,18 +204,15 @@ box-shadow:var(--shadow-soft);
 }
 
 .btn{
-appearance:none;
-border:none;
-display:block;
 width:100%;
-min-height:54px;
+min-height:56px;
 padding:14px 16px;
 border-radius:22px;
-text-align:center;
 font-size:15px;
 font-weight:800;
 margin-top:12px;
 cursor:pointer;
+border:none;
 }
 
 .btn:first-child{margin-top:0}
@@ -232,23 +224,26 @@ background:linear-gradient(180deg,var(--brand) 0%,var(--brand-deep) 100%);
 
 .btn-secondary{
 color:#3e6853;
-background:linear-gradient(180deg,#f3f7f4 0%,#edf4ef 100%);
+background:#eef4ef;
 border:1px solid #c9dbcf;
 }
 
+/* 修復按鈕變形 */
+
 .tool-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
+display:flex;
+flex-direction:column;
 gap:10px;
 margin-top:12px;
 }
 
 .btn-utility{
-min-height:50px;
-font-size:14px;
+min-height:56px;
 background:#f4f8f5;
 border:1px solid #d9e6dd;
 }
+
+/* ===== status ===== */
 
 .status{
 margin-top:12px;
@@ -277,7 +272,7 @@ justify-content:center;
 
 <div class="poster-brand">
 <div class="brand-row">
-<img src="icon.png" class="brand-icon">
+<img src="icon.png" class="brand-icon" alt="logo">
 <h1 class="poster-brand-title">天使幸福智慧名片</h1>
 </div>
 </div>
@@ -290,8 +285,8 @@ justify-content:center;
 </div>
 
 <div id="name" class="name">載入中...</div>
-<div id="unit" class="unit">　</div>
-<div id="title" class="title">　</div>
+<div id="unit" class="unit"></div>
+<div id="title" class="title"></div>
 
 <div class="qr-card">
 <div class="qr-box">
@@ -318,7 +313,7 @@ justify-content:center;
 </div>
 
 <div id="status" class="status">
-載入中...
+交付卡載入中...
 </div>
 
 </div>
