@@ -3,43 +3,41 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v705.5</title>
+  <title>智慧名片交付卡 v705.3</title>
   <meta name="theme-color" content="#eef6f0" />
 
   <style>
     :root{
       --bg1:#f4f8f5;
       --bg2:#e8f2eb;
-      --card:#fffefe;
+      --card:#fffefd;
       --paper:#fbfdfb;
-      --ink:#335f4d;
+      --ink:#355f4d;
       --ink-soft:#628271;
-      --muted:#7c9789;
-      --line:#dbe8df;
-      --line-strong:#cdddcf;
+      --muted:#7e978b;
+      --line:#dbe7df;
+      --line-strong:#cfddd3;
       --accent:#3f6f57;
-      --accent-2:#567a67;
-      --shadow:0 20px 60px rgba(49,77,63,.10);
-      --shadow-soft:0 10px 28px rgba(49,77,63,.06);
-      --poster-w:min(100%, 420px);
-      --danger:#b34b4b;
-      --success:#3f7a57;
+      --accent-2:#547764;
+      --accent-3:#6d8f7f;
+      --shadow:0 22px 60px rgba(51,80,66,.10);
+      --shadow-soft:0 10px 28px rgba(51,80,66,.06);
+      --radius-xl:30px;
+      --radius-lg:24px;
+      --radius-md:18px;
+      --radius-sm:14px;
     }
 
     *{ box-sizing:border-box; }
     html,body{ margin:0; padding:0; }
-
     body{
       min-height:100vh;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
       color:var(--ink);
       background:
-        radial-gradient(1200px 700px at 50% -10%, rgba(255,255,255,.85), transparent 55%),
+        radial-gradient(1100px 680px at 50% -10%, rgba(255,255,255,.88), transparent 55%),
         linear-gradient(180deg, var(--bg1) 0%, var(--bg2) 100%);
-      display:flex;
-      justify-content:center;
-      align-items:flex-start;
-      padding:20px 14px 28px;
+      padding:18px 12px 28px;
       overflow-x:hidden;
     }
 
@@ -47,85 +45,84 @@
       width:100%;
       display:flex;
       justify-content:center;
-      align-items:flex-start;
     }
 
+    /* 修正手機並排 */
     .shell{
-      width:var(--poster-w);
-      max-width:420px;
+      width:100%;
+      max-width:430px;
     }
 
+    /* 海報截圖區 */
     #posterCapture{
       width:100%;
     }
 
-    .delivery-card{
+    .poster-card{
       width:100%;
-      background:linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
+      background:linear-gradient(180deg,#fff 0%,#fbfdfb 100%);
       border:1px solid var(--line);
       border-radius:32px;
-      box-shadow:var(--shadow);
       overflow:hidden;
+      box-shadow:var(--shadow);
       position:relative;
     }
 
-    .delivery-top{
+    .topbar{
       display:flex;
       align-items:center;
-      gap:14px;
+      justify-content:center;
+      gap:10px;
       padding:18px 18px 14px;
-      border-bottom:1px solid rgba(219,232,223,.72);
-      background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,252,249,.96));
+      border-bottom:1px solid rgba(219,231,223,.75);
+      background:linear-gradient(180deg,rgba(255,255,255,.98),rgba(247,251,248,.95));
     }
 
-    .brand-badge{
-      width:50px;
-      height:50px;
+    .topbar-mark{
+      width:36px;
+      height:36px;
       border-radius:50%;
-      overflow:hidden;
-      flex:0 0 50px;
-      border:1px solid var(--line);
-      box-shadow:0 6px 18px rgba(58,91,72,.08);
-      background:#f7faf7;
       display:grid;
       place-items:center;
-      color:var(--muted);
-      font-size:12px;
-      text-align:center;
-      padding:4px;
-    }
-
-    .brand-title{
-      font-size:16px;
-      line-height:1.15;
-      font-weight:700;
-      letter-spacing:.4px;
+      background:linear-gradient(180deg,#f7fbf8 0%,#edf5ef 100%);
+      border:1px solid var(--line);
       color:var(--accent);
-      margin:0;
-      text-shadow:0 1px 0 rgba(255,255,255,.8);
+      font-size:15px;
+      font-weight:800;
+      box-shadow:0 4px 12px rgba(54,82,68,.06);
+      flex:0 0 36px;
     }
 
-    .delivery-body{
-      padding:18px 16px 16px;
+    .topbar-title{
+      margin:0;
+      font-size:18px;
+      line-height:1.1;
+      letter-spacing:.4px;
+      font-weight:800;
+      color:var(--accent);
+    }
+
+    .card-body{
+      padding:20px 16px 18px;
     }
 
     .hero{
-      background:linear-gradient(180deg, #ffffff 0%, #fbfcfb 100%);
       border:1px solid var(--line);
       border-radius:28px;
-      padding:22px 16px 16px;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.85);
+      background:linear-gradient(180deg,#ffffff 0%,#fbfcfb 100%);
+      padding:22px 14px 16px;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.88);
     }
 
     .avatar-wrap{
-      width:138px;
-      height:138px;
-      margin:2px auto 16px;
+      width:132px;
+      height:132px;
+      margin:0 auto 16px;
       border-radius:50%;
       padding:5px;
-      background:linear-gradient(180deg, #f8fcf8 0%, #edf5ef 100%);
+      background:linear-gradient(180deg,#f8fcf9 0%,#edf5ef 100%);
       border:1px solid var(--line);
-      box-shadow:0 8px 24px rgba(59,91,73,.08);
+      box-shadow:0 8px 20px rgba(54,82,68,.08);
       position:relative;
     }
 
@@ -134,77 +131,78 @@
       width:100%;
       height:100%;
       border-radius:50%;
+      display:block;
     }
 
     #avatar{
       object-fit:cover;
-      display:none;
-      background:#f2f6f3;
-      border:1px solid #dfe9e2;
+      background:#f1f5f2;
+      border:1px solid #dfe8e1;
     }
 
     #avatarFallback{
-      display:grid;
+      display:none;
       place-items:center;
-      background:linear-gradient(180deg,#f3f8f4 0%,#e7f0ea 100%);
+      background:linear-gradient(180deg,#eef6f0 0%,#e4f0e7 100%);
+      border:1px solid #d9e4dc;
       color:var(--accent);
       font-size:30px;
-      font-weight:800;
+      font-weight:900;
       letter-spacing:1px;
-      border:1px solid #dfe9e2;
       user-select:none;
     }
 
-    .name{
+    #name{
       margin:0;
       text-align:center;
-      font-size:26px;
+      font-size:28px;
       line-height:1.22;
-      font-weight:800;
+      font-weight:900;
       letter-spacing:.4px;
       color:var(--accent);
       word-break:break-word;
     }
 
-    .unit{
-      margin:8px auto 0;
+    #unit{
+      margin:10px auto 0;
       text-align:center;
-      font-size:15px;
+      max-width:95%;
+      font-size:16px;
       line-height:1.55;
       font-weight:700;
       color:var(--accent-2);
-      max-width:94%;
       word-break:break-word;
+      white-space:pre-line;
     }
 
-    .title{
+    #title{
       margin:8px auto 0;
       text-align:center;
-      font-size:14px;
+      max-width:95%;
+      font-size:15px;
       line-height:1.5;
       font-weight:700;
-      color:var(--ink-soft);
-      max-width:94%;
+      color:var(--accent-3);
       word-break:break-word;
+      white-space:pre-line;
     }
 
     .qr-panel{
       margin:18px 0 0;
-      padding:14px;
       border-radius:24px;
+      padding:14px;
       border:1px solid var(--line);
-      background:linear-gradient(180deg, #fff 0%, #fbfdfb 100%);
+      background:linear-gradient(180deg,#ffffff 0%,#fbfdfb 100%);
       box-shadow:var(--shadow-soft);
     }
 
     .qr-core{
-      width:min(100%, 250px);
+      width:min(100%,240px);
       margin:0 auto;
       padding:12px;
       background:#fff;
       border:1px solid var(--line-strong);
-      border-radius:22px;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+      border-radius:20px;
     }
 
     #qrcode{
@@ -217,8 +215,8 @@
       background:#fff;
     }
 
-    #qrcode canvas,
-    #qrcode img{
+    #qrcode img,
+    #qrcode canvas{
       max-width:100%;
       height:auto;
       display:block;
@@ -227,20 +225,20 @@
     #qrTip{
       margin:12px 0 0;
       text-align:center;
-      font-size:12px;
+      font-size:13px;
       line-height:1.5;
       color:var(--muted);
+      font-weight:700;
       letter-spacing:.2px;
     }
 
     .actions{
       display:grid;
-      grid-template-columns:1fr;
       gap:10px;
       margin-top:16px;
     }
 
-    .btn-grid{
+    .btn-row{
       display:grid;
       grid-template-columns:1fr 1fr;
       gap:10px;
@@ -260,149 +258,145 @@
       padding:12px 14px;
       border-radius:16px;
       border:1px solid var(--line-strong);
-      background:linear-gradient(180deg, #ffffff 0%, #f6faf7 100%);
+      background:linear-gradient(180deg,#ffffff 0%,#f7fbf8 100%);
       color:var(--accent);
-      font-size:14px;
+      font-size:15px;
+      line-height:1.3;
       font-weight:800;
-      letter-spacing:.2px;
+      text-align:center;
       box-shadow:
         0 8px 16px rgba(53,81,67,.06),
-        inset 0 1px 0 rgba(255,255,255,.88);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
+        inset 0 1px 0 rgba(255,255,255,.9);
     }
 
     .btn:active{
       transform:translateY(1px);
     }
 
-    .btn[disabled]{
-      opacity:.56;
-      cursor:not-allowed;
+    .btn-primary{
+      background:linear-gradient(180deg,#577d69 0%,#3f6f57 100%);
+      color:#fff;
+      border:1px solid #4c725f;
+      box-shadow:
+        0 10px 20px rgba(56,91,73,.16),
+        inset 0 1px 0 rgba(255,255,255,.14);
     }
 
-    .btn-primary{
-      background:linear-gradient(180deg, #547c67 0%, #3f6f57 100%);
-      color:#fff;
-      border:1px solid #4b735f;
-      box-shadow:
-        0 10px 20px rgba(56,91,73,.18),
-        inset 0 1px 0 rgba(255,255,255,.16);
+    .status-wrap{
+      margin-top:14px;
     }
 
     #status{
-      margin-top:14px;
-      min-height:24px;
+      min-height:22px;
+      padding:0 4px;
       text-align:center;
       font-size:13px;
-      line-height:1.45;
+      line-height:1.5;
       color:var(--muted);
-    }
-
-    #status[data-type="success"]{
-      color:var(--success);
       font-weight:700;
     }
 
-    #status[data-type="error"]{
-      color:var(--danger);
-      font-weight:700;
-    }
+    #status[data-type="success"]{ color:#4d7b65; }
+    #status[data-type="error"]{ color:#b45454; }
 
     .loading{
       display:inline-flex;
-      gap:4px;
+      align-items:center;
+      gap:5px;
       margin-right:6px;
       vertical-align:middle;
     }
 
-    .dot{
+    .loading .dot{
       width:6px;
       height:6px;
       border-radius:50%;
       background:currentColor;
-      opacity:.55;
-      animation:blink 1.2s infinite ease-in-out;
+      display:inline-block;
+      opacity:.7;
+      animation:blink 1s infinite ease-in-out;
     }
 
-    .dot:nth-child(2){ animation-delay:.15s; }
-    .dot:nth-child(3){ animation-delay:.3s; }
+    .loading .dot:nth-child(2){ animation-delay:.15s; }
+    .loading .dot:nth-child(3){ animation-delay:.3s; }
 
     @keyframes blink{
-      0%,80%,100%{ transform:scale(.75); opacity:.35; }
+      0%,80%,100%{ transform:scale(.7); opacity:.35; }
       40%{ transform:scale(1); opacity:1; }
     }
 
-    .share-dialog{
+    /* 分享說明彈窗 */
+    .dialog{
       position:fixed;
       inset:0;
       display:none;
       align-items:center;
       justify-content:center;
-      padding:18px;
-      z-index:50;
+      padding:20px;
+      z-index:1000;
     }
 
-    .share-dialog.is-open{
+    .dialog.is-open{
       display:flex;
     }
 
-    .share-backdrop{
+    .dialog-backdrop{
       position:absolute;
       inset:0;
-      background:rgba(30,44,36,.34);
+      background:rgba(34,48,40,.34);
       backdrop-filter:blur(4px);
     }
 
-    .share-panel{
+    .dialog-panel{
       position:relative;
-      width:min(100%, 360px);
+      z-index:1;
+      width:min(100%,360px);
+      border-radius:24px;
       background:#fff;
       border:1px solid var(--line);
-      border-radius:24px;
-      box-shadow:0 24px 60px rgba(36,58,46,.18);
+      box-shadow:0 24px 60px rgba(38,60,48,.18);
       padding:20px 18px 16px;
     }
 
-    .share-title{
+    .dialog-title{
       margin:0 0 10px;
       text-align:center;
-      font-size:17px;
+      font-size:18px;
+      font-weight:900;
       color:var(--accent);
-      font-weight:800;
     }
 
-    .share-copy{
+    .dialog-text{
       margin:0;
       font-size:14px;
-      line-height:1.65;
-      color:var(--ink-soft);
+      line-height:1.75;
+      color:#5f7d6d;
       text-align:left;
+      white-space:pre-line;
     }
 
-    .share-actions{
-      margin-top:16px;
+    .dialog-actions{
+      margin-top:14px;
       display:flex;
       justify-content:center;
     }
 
-    .share-close{
-      min-width:120px;
+    .dialog-close{
+      min-width:110px;
     }
 
     @media (max-width: 420px){
       body{ padding:14px 10px 24px; }
-      .delivery-top{ padding:16px 16px 12px; }
-      .delivery-body{ padding:16px 14px 14px; }
-      .hero{ padding:20px 14px 14px; }
-      .avatar-wrap{ width:128px; height:128px; }
-      .name{ font-size:24px; }
-      .unit{ font-size:14px; }
-      .title{ font-size:13px; }
-      .brand-title{ font-size:15px; }
-      .btn-grid{ grid-template-columns:1fr; }
+      .topbar{ padding:16px 14px 12px; }
+      .topbar-title{ font-size:17px; }
+      .card-body{ padding:16px 12px 14px; }
+      .hero{ padding:18px 12px 14px; }
+      .avatar-wrap{ width:122px; height:122px; }
+      #name{ font-size:25px; }
+      #unit{ font-size:15px; }
+      #title{ font-size:14px; }
+      .btn-row{ grid-template-columns:1fr; }
+      .btn{ font-size:15px; }
     }
   </style>
 </head>
@@ -410,27 +404,27 @@
   <div class="page">
     <div class="shell">
 
-      <div id="posterCapture">
-        <section class="delivery-card" aria-label="智慧名片交付卡">
-          <div class="delivery-top">
-            <div class="brand-badge">天使</div>
-            <h1 class="brand-title">天使幸福智慧名片</h1>
+      <section id="posterCapture">
+        <div class="poster-card">
+          <div class="topbar">
+            <div class="topbar-mark">天</div>
+            <h1 class="topbar-title">天使幸福智慧名片</h1>
           </div>
 
-          <div class="delivery-body">
+          <div class="card-body">
             <div class="hero">
               <div class="avatar-wrap">
-                <img id="avatar" alt="頭像" />
-                <div id="avatarFallback" aria-hidden="true">名片</div>
+                <img id="avatar" alt="頭像">
+                <div id="avatarFallback" aria-hidden="true"></div>
               </div>
 
-              <h2 id="name" class="name">載入中</h2>
-              <div id="unit" class="unit"></div>
-              <div id="title" class="title"></div>
+              <h2 id="name">載入中</h2>
+              <div id="unit"></div>
+              <div id="title"></div>
 
               <div class="qr-panel">
                 <div class="qr-core">
-                  <div id="qrcode" aria-label="名片 QR Code"></div>
+                  <div id="qrcode"></div>
                 </div>
                 <div id="qrTip">掃描 QRCode 打開智慧名片</div>
               </div>
@@ -439,42 +433,45 @@
             <div class="actions">
               <button id="btnOpenCard" class="btn btn-primary" type="button">打開我的智慧名片</button>
 
-              <div class="btn-grid">
+              <div class="btn-row">
                 <button id="btnCopyCard" class="btn" type="button">複製名片連結</button>
                 <button id="btnDownload" class="btn" type="button">下載名片海報</button>
-                <button id="btnShare" class="btn" type="button">分享智慧名片</button>
-                <button id="btnRecommend" class="btn" type="button">複製推薦連結</button>
-                <button id="btnConsult" class="btn" type="button">LINE 官方帳號</button>
-                <button id="btnShareGuide" class="btn" type="button">分享說明</button>
               </div>
 
-              <div id="status" aria-live="polite"></div>
+              <div class="btn-row">
+                <button id="btnRecommend" class="btn" type="button">複製推薦連結</button>
+                <button id="btnConsult" class="btn" type="button">LINE 官方帳號</button>
+              </div>
+
+              <div class="btn-row">
+                <button id="btnShare" class="btn" type="button">分享名片</button>
+                <button id="btnShareGuide" class="btn" type="button">分享說明</button>
+              </div>
+            </div>
+
+            <div class="status-wrap">
+              <div id="status"></div>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
     </div>
   </div>
 
-  <div id="shareDialog" class="share-dialog" aria-hidden="true">
-    <div class="share-backdrop" data-close-dialog="1"></div>
-    <div class="share-panel" role="dialog" aria-modal="true" aria-labelledby="shareDialogTitle">
-      <h2 id="shareDialogTitle" class="share-title">分享說明</h2>
-      <p class="share-copy">
-        1. 可直接點「分享智慧名片」開啟系統分享選單。<br>
-        2. 若裝置不支援，系統會自動改為複製名片連結。<br>
-        3. 微信分享建議使用「下載名片海報」後，以海報圖片轉傳。<br>
-        4. 推薦他人可使用「複製推薦連結」。
-      </p>
-      <div class="share-actions">
-        <button id="btnCloseDialog" class="btn share-close" type="button">我知道了</button>
+  <div id="shareDialog" class="dialog" aria-hidden="true">
+    <div class="dialog-backdrop" data-close-dialog="1"></div>
+    <div class="dialog-panel">
+      <h3 class="dialog-title">分享建議</h3>
+      <p class="dialog-text">若要分享到微信，建議先點「下載名片海報」，再以海報圖片轉傳，呈現會更穩定也更完整。</p>
+      <div class="dialog-actions">
+        <button id="btnCloseDialog" class="btn dialog-close" type="button">我知道了</button>
       </div>
     </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="./poster.js?v=7053"></script>
+  <script src="poster.js?v=7053"></script>
 </body>
 </html>
