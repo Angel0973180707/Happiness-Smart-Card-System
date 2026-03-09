@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>智慧名片交付卡 v705.1</title>
+  <title>智慧名片交付卡 v706.1</title>
   <meta name="theme-color" content="#edf4ef" />
 
   <style>
@@ -109,11 +109,14 @@
     .poster-brand-title{
       margin:0;
       color:#3f6f57;
-      font-size:26px;
+      font-size:23px;
       line-height:1.2;
       font-weight:800;
       letter-spacing:.02em;
       text-wrap:balance;
+      text-shadow:
+        0 1px 0 rgba(255,255,255,.70),
+        0 2px 6px rgba(50,90,70,.15);
     }
 
     .poster{
@@ -315,14 +318,6 @@
       pointer-events:none;
     }
 
-    .btn-primary:hover{
-      filter:saturate(1.02);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.22),
-        inset 0 -1px 0 rgba(48,95,69,.18),
-        0 12px 22px rgba(63,118,88,.20);
-    }
-
     .btn-secondary{
       color:#3e6853;
       background:linear-gradient(180deg,#f3f7f4 0%,#edf4ef 100%);
@@ -331,27 +326,6 @@
         inset 0 1px 0 rgba(255,255,255,.88),
         inset 0 -1px 0 rgba(198,216,205,.34),
         0 6px 12px rgba(56,95,74,.06);
-    }
-
-    .btn-secondary::before{
-      content:"";
-      position:absolute;
-      left:14px;
-      right:14px;
-      top:8px;
-      height:1px;
-      border-radius:999px;
-      background:rgba(255,255,255,.72);
-      pointer-events:none;
-    }
-
-    .btn-secondary:hover{
-      background:linear-gradient(180deg,#f6faf7 0%,#eef6f1 100%);
-      border-color:#bdd1c2;
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.92),
-        inset 0 -1px 0 rgba(198,216,205,.36),
-        0 8px 14px rgba(56,95,74,.08);
     }
 
     .tool-grid{
@@ -371,11 +345,6 @@
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.92),
         0 4px 10px rgba(56,95,74,.04);
-    }
-
-    .btn-utility:hover{
-      background:linear-gradient(180deg,#fbfdfc 0%,#f4f8f5 100%);
-      border-color:#cdded3;
     }
 
     .status{
@@ -550,7 +519,7 @@
       }
 
       .poster-brand-title{
-        font-size:24px;
+        font-size:21px;
       }
 
       .poster{
@@ -699,6 +668,6 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./imageResolver.js?v=7034"></script>
-  <script src="./poster.js?v=7050"></script>
+  <script src="./poster.js?v=7061"></script>
 </body>
 </html>
