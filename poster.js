@@ -1,20 +1,20 @@
 /* ==========================================
- * HSC Poster v705.2
+ * HSC Poster v705.3
  * COMPLETE OVERWRITE
  *
- * v705.2 重點：
- * 1) 修正頭像載入策略
- * 2) 移除 crossOrigin="anonymous"，避免 Google Drive 圖片載入失敗
- * 3) 取圖優先順序：
- *    avatar_url -> avatar_img_fast -> avatar_img -> avatar -> avatar_key
- * 4) avatar_key 自動轉直連
- * 5) 保留 v705 的 Web Share / 分享說明 / 海報截圖
+ * v705.3 重點：
+ * 1) 以 Firebase 圖片為主線
+ * 2) 保留 crossOrigin="anonymous" 以支援 html2canvas + useCORS
+ * 3) 取圖優先順序收斂：
+ *    avatar_url -> avatar_img_fast -> avatar_img -> avatar
+ * 4) 不再以 Google Drive 相容為主
+ * 5) 保留 Web Share / 分享說明 / 海報截圖
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705.2";
+  const VERSION = "705.3";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -131,32 +131,6 @@
     return t.slice(0, 2);
   }
 
-  function isGoogleDriveUrl(url) {
-    return /drive\.google\.com/i.test(url || "");
-  }
-
-  function toGoogleDriveDirect(input) {
-    const src = text(input);
-    if (!src) return "";
-
-    const idMatch =
-      src.match(/[?&]id=([^&]+)/i) ||
-      src.match(/\/file\/d\/([^/]+)/i) ||
-      src.match(/\/d\/([^/]+)/i);
-
-    if (idMatch && idMatch[1]) {
-      return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
-    }
-
-    return src;
-  }
-
-  function fromDriveKeyToUrl(key) {
-    const id = text(key);
-    if (!id) return "";
-    return `https://drive.google.com/uc?export=view&id=${id}`;
-  }
-
   function tryResolveImage(url) {
     const src = text(url);
     if (!src) return "";
@@ -181,28 +155,76 @@
     return src;
   }
 
+  function normalizeFirebaseUrl(url) {
+    const src = text(url);
+    if (!src) return "";
+
+    // Firebase Storage 正常公開 URL 直接用
+    if (/^https:\/\/firebasestorage\.googleapis\.com\//i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+
+    // 你目前常用的是這種
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+
+    // firebasestorage.app / googleusercontent / v0 download url 都先直接接受
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+
+    // 你的實際 Firebase 下載網址格式
+    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+
+    // firebasestorage.googleapis.com 與 firebasestorage.app 一併接受
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.app/i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
+    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
+
+    return src;
+  }
+
   function pickImage(item) {
     const candidates = [
       text(item.avatar_url),
       text(item.avatar_img_fast),
       text(item.avatar_img),
-      text(item.avatar),
-      fromDriveKeyToUrl(item.avatar_key)
+      text(item.avatar)
     ].filter(Boolean);
 
     for (const raw of candidates) {
-      let url = raw;
-
-      if (isGoogleDriveUrl(url)) {
-        url = toGoogleDriveDirect(url);
-      }
-
+      let url = normalizeFirebaseUrl(raw);
       url = tryResolveImage(url);
-
       if (url) return url;
     }
 
     return "";
+  }
+
+  function clearAvatar() {
+    if (avatarEl) {
+      avatarEl.removeAttribute("src");
+      avatarEl.style.display = "none";
+    }
+    if (avatarFallbackEl) {
+      avatarFallbackEl.style.display = "grid";
+    }
   }
 
   function setAvatar(src, name) {
@@ -210,27 +232,27 @@
 
     const finalSrc = text(src);
 
-    if (finalSrc) {
-      avatarEl.onload = () => {
-        avatarEl.style.display = "block";
-        avatarFallbackEl.style.display = "none";
-      };
-
-      avatarEl.onerror = () => {
-        avatarEl.style.display = "none";
-        avatarFallbackEl.style.display = "grid";
-        avatarFallbackEl.textContent = safeInitial(name);
-      };
-
-      // 不設 crossOrigin，避免 Google Drive 顯示失敗
-      avatarEl.referrerPolicy = "no-referrer";
-      avatarEl.src = finalSrc;
+    if (!finalSrc) {
+      clearAvatar();
+      avatarFallbackEl.textContent = safeInitial(name);
       return;
     }
 
-    avatarEl.style.display = "none";
-    avatarFallbackEl.style.display = "grid";
-    avatarFallbackEl.textContent = safeInitial(name);
+    avatarEl.onload = () => {
+      avatarEl.style.display = "block";
+      avatarFallbackEl.style.display = "none";
+    };
+
+    avatarEl.onerror = () => {
+      avatarEl.style.display = "none";
+      avatarFallbackEl.style.display = "grid";
+      avatarFallbackEl.textContent = safeInitial(name);
+    };
+
+    // Firebase 主線：保留 CORS，讓 html2canvas 可帶圖
+    avatarEl.crossOrigin = "anonymous";
+    avatarEl.referrerPolicy = "no-referrer";
+    avatarEl.src = finalSrc;
   }
 
   function normalizeItem(raw) {
@@ -245,7 +267,6 @@
       avatar_img_fast: text(item.avatar_img_fast),
       avatar_img: text(item.avatar_img),
       avatar: text(item.avatar),
-      avatar_key: text(item.avatar_key),
 
       line_oa: text(item.line_oa),
       line_url: text(item.line_url)
@@ -370,9 +391,30 @@
     document.body.style.overflow = "";
   }
 
+  async function waitForImages(root) {
+    if (!root) return;
+
+    const images = Array.from(root.querySelectorAll("img"));
+    if (!images.length) return;
+
+    await Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+        return new Promise((resolve) => {
+          const done = () => resolve();
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+          setTimeout(done, 2500);
+        });
+      })
+    );
+  }
+
   async function downloadPoster(item) {
     const target = posterCaptureEl || $("poster");
     if (!target) throw new Error("找不到海報區塊");
+
+    await waitForImages(target);
 
     const canvas = await html2canvas(target, {
       backgroundColor: null,
@@ -490,38 +532,3 @@
         window.open(buildConsultUrl(item), "_blank", "noopener");
       };
     }
-
-    setStatus("交付卡已載入完成", "success");
-  }
-
-  function disableAllButtons() {
-    [btnShare, btnCopyCard, btnDownload, btnOpenCard, btnShareGuide, btnRecommend, btnConsult]
-      .filter(Boolean)
-      .forEach((btn) => {
-        btn.disabled = true;
-      });
-  }
-
-  async function init() {
-    bindDialogEvents();
-
-    if (!CARD_ID) {
-      disableAllButtons();
-      setStatus("缺少名片 ID", "error");
-      return;
-    }
-
-    setLoading("正在載入交付卡資料...");
-
-    try {
-      const item = await fetchCard(CARD_ID);
-      renderCard(item);
-    } catch (err) {
-      console.error(err);
-      disableAllButtons();
-      setStatus(err.message || "交付卡載入失敗", "error");
-    }
-  }
-
-  init();
-})();
