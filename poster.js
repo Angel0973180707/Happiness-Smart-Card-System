@@ -1,20 +1,20 @@
 /* ==========================================
- * HSC Poster v705.3
+ * HSC Poster v705.4
  * COMPLETE OVERWRITE
  *
- * v705.3 重點：
- * 1) 以 Firebase 圖片為主線
- * 2) 保留 crossOrigin="anonymous" 以支援 html2canvas + useCORS
- * 3) 取圖優先順序收斂：
+ * v705.4 重點：
+ * 1) Firebase 圖片主線修正
+ * 2) 取圖優先順序：
  *    avatar_url -> avatar_img_fast -> avatar_img -> avatar
- * 4) 不再以 Google Drive 相容為主
+ * 3) 保留 crossOrigin="anonymous"
+ * 4) 下載海報前等待圖片載入完成
  * 5) 保留 Web Share / 分享說明 / 海報截圖
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705.3";
+  const VERSION = "705.4";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -27,6 +27,7 @@
   const qs = new URLSearchParams(location.search);
   const CARD_ID = (qs.get("id") || "").trim();
   const REF_ID = (qs.get("ref") || CARD_ID).trim();
+  const DEBUG = (qs.get("debug") || "").trim() === "1";
 
   const $ = (id) => document.getElementById(id);
 
@@ -53,6 +54,11 @@
 
   let currentItem = null;
   let cardUrl = "";
+  let currentAvatarUrl = "";
+
+  function log(...args) {
+    if (DEBUG) console.log("[HSC Poster]", ...args);
+  }
 
   function getGasUrl() {
     const qGas = (qs.get("gas") || "").trim();
@@ -155,88 +161,86 @@
     return src;
   }
 
-  function normalizeFirebaseUrl(url) {
-    const src = text(url);
-    if (!src) return "";
-
-    // Firebase Storage 正常公開 URL 直接用
-    if (/^https:\/\/firebasestorage\.googleapis\.com\//i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-
-    // 你目前常用的是這種
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-
-    // firebasestorage.app / googleusercontent / v0 download url 都先直接接受
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-
-    // 你的實際 Firebase 下載網址格式
-    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-
-    // firebasestorage.googleapis.com 與 firebasestorage.app 一併接受
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.app/i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\//i.test(src)) return src;
-    if (/^https:\/\/firebasestorage\.googleapis\.com/i.test(src)) return src;
-
-    return src;
-  }
-
   function pickImage(item) {
     const candidates = [
-      text(item.avatar_url),
-      text(item.avatar_img_fast),
-      text(item.avatar_img),
-      text(item.avatar)
-    ].filter(Boolean);
+      { key: "avatar_url", value: text(item.avatar_url) },
+      { key: "avatar_img_fast", value: text(item.avatar_img_fast) },
+      { key: "avatar_img", value: text(item.avatar_img) },
+      { key: "avatar", value: text(item.avatar) }
+    ].filter((x) => x.value);
 
-    for (const raw of candidates) {
-      let url = normalizeFirebaseUrl(raw);
-      url = tryResolveImage(url);
-      if (url) return url;
+    for (const row of candidates) {
+      const resolved = tryResolveImage(row.value);
+      if (resolved) {
+        log("pickImage =>", row.key, resolved);
+        return resolved;
+      }
     }
 
+    log("pickImage => none");
     return "";
   }
 
   function clearAvatar() {
     if (avatarEl) {
+      avatarEl.onload = null;
+      avatarEl.onerror = null;
       avatarEl.removeAttribute("src");
       avatarEl.style.display = "none";
     }
     if (avatarFallbackEl) {
       avatarFallbackEl.style.display = "grid";
     }
+    currentAvatarUrl = "";
   }
 
-  function setAvatar(src, name) {
-    if (!avatarEl || !avatarFallbackEl) return;
+  function waitForSingleImage(img, timeout = 5000) {
+    if (!img) return Promise.resolve(false);
+
+    if (img.complete && img.naturalWidth > 0) {
+      return Promise.resolve(true);
+    }
+
+    return new Promise((resolve) => {
+      let done = false;
+
+      const cleanup = () => {
+        img.removeEventListener("load", onLoad);
+        img.removeEventListener("error", onError);
+      };
+
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        cleanup();
+        resolve(ok);
+      };
+
+      const onLoad = () => finish(true);
+      const onError = () => finish(false);
+
+      img.addEventListener("load", onLoad, { once: true });
+      img.addEventListener("error", onError, { once: true });
+
+      setTimeout(() => finish(img.complete && img.naturalWidth > 0), timeout);
+    });
+  }
+
+  async function setAvatar(src, name) {
+    if (!avatarEl || !avatarFallbackEl) return false;
 
     const finalSrc = text(src);
 
     if (!finalSrc) {
       clearAvatar();
       avatarFallbackEl.textContent = safeInitial(name);
-      return;
+      log("setAvatar => empty");
+      return false;
     }
+
+    avatarFallbackEl.textContent = safeInitial(name);
+    avatarFallbackEl.style.display = "grid";
+    avatarEl.style.display = "none";
 
     avatarEl.onload = () => {
       avatarEl.style.display = "block";
@@ -249,10 +253,23 @@
       avatarFallbackEl.textContent = safeInitial(name);
     };
 
-    // Firebase 主線：保留 CORS，讓 html2canvas 可帶圖
     avatarEl.crossOrigin = "anonymous";
     avatarEl.referrerPolicy = "no-referrer";
     avatarEl.src = finalSrc;
+    currentAvatarUrl = finalSrc;
+
+    const ok = await waitForSingleImage(avatarEl, 6000);
+    log("setAvatar loaded =>", ok, finalSrc);
+
+    if (!ok) {
+      avatarEl.style.display = "none";
+      avatarFallbackEl.style.display = "grid";
+      return false;
+    }
+
+    avatarEl.style.display = "block";
+    avatarFallbackEl.style.display = "none";
+    return true;
   }
 
   function normalizeItem(raw) {
@@ -289,6 +306,8 @@
     url.searchParams.set("action", "card");
     url.searchParams.set("id", id);
 
+    log("fetchCard =>", url.toString());
+
     const res = await fetch(url.toString(), {
       method: "GET",
       cache: "no-store"
@@ -299,6 +318,8 @@
     }
 
     const json = await res.json();
+    log("fetchCard response =>", json);
+
     const payload = getCardPayload(json);
 
     if (!payload) {
@@ -398,22 +419,33 @@
     if (!images.length) return;
 
     await Promise.all(
-      images.map((img) => {
-        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
-        return new Promise((resolve) => {
-          const done = () => resolve();
-          img.addEventListener("load", done, { once: true });
-          img.addEventListener("error", done, { once: true });
-          setTimeout(done, 2500);
-        });
-      })
+      images.map((img) => waitForSingleImage(img, 4000).catch(() => false))
     );
+  }
+
+  async function ensureAvatarReadyBeforeCapture(item) {
+    if (!avatarEl) return;
+
+    if (avatarEl.complete && avatarEl.naturalWidth > 0) {
+      log("ensureAvatarReadyBeforeCapture => already ready");
+      return;
+    }
+
+    const url = currentAvatarUrl || pickImage(item);
+    if (!url) {
+      log("ensureAvatarReadyBeforeCapture => no avatar url");
+      return;
+    }
+
+    log("ensureAvatarReadyBeforeCapture => retry load", url);
+    await setAvatar(url, item.name);
   }
 
   async function downloadPoster(item) {
     const target = posterCaptureEl || $("poster");
     if (!target) throw new Error("找不到海報區塊");
 
+    await ensureAvatarReadyBeforeCapture(item);
     await waitForImages(target);
 
     const canvas = await html2canvas(target, {
@@ -455,7 +487,7 @@
     });
   }
 
-  function renderCard(item) {
+  async function renderCard(item) {
     currentItem = item;
     cardUrl = buildCardUrl(item.id || CARD_ID);
 
@@ -464,7 +496,9 @@
     if (titleEl) titleEl.textContent = item.title || "　";
     if (qrTipEl) qrTipEl.textContent = "掃描 QRCode 打開智慧名片";
 
-    setAvatar(pickImage(item), item.name);
+    const avatarUrl = pickImage(item);
+    await setAvatar(avatarUrl, item.name);
+
     renderQrCode(cardUrl);
 
     if (btnShare) {
@@ -532,3 +566,42 @@
         window.open(buildConsultUrl(item), "_blank", "noopener");
       };
     }
+
+    if (btnShareGuide) {
+      btnShareGuide.disabled = false;
+    }
+
+    setStatus("交付卡已載入完成", "success");
+  }
+
+  function disableAllButtons() {
+    [btnShare, btnCopyCard, btnDownload, btnOpenCard, btnShareGuide, btnRecommend, btnConsult]
+      .filter(Boolean)
+      .forEach((btn) => {
+        btn.disabled = true;
+      });
+  }
+
+  async function init() {
+    bindDialogEvents();
+
+    if (!CARD_ID) {
+      disableAllButtons();
+      setStatus("缺少名片 ID", "error");
+      return;
+    }
+
+    setLoading("正在載入交付卡資料...");
+
+    try {
+      const item = await fetchCard(CARD_ID);
+      await renderCard(item);
+    } catch (err) {
+      console.error(err);
+      disableAllButtons();
+      setStatus(err.message || "交付卡載入失敗", "error");
+    }
+  }
+
+  init();
+})();
