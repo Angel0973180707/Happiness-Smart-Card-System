@@ -1,18 +1,18 @@
 /* ==========================================
- * HSC Poster v706.6
+ * HSC Poster v707
  * COMPLETE OVERWRITE
  *
- * 修正重點：
- * 1. 不依賴本地 qrcode.min.js
- * 2. 直接使用 QR 圖片來源
- * 3. 主來源失敗自動切備援
- * 4. 再失敗顯示名片連結，不留空白框
+ * 商用穩定版：
+ * 1. 使用本地 qrcode.min.js，不依賴外部 QR API
+ * 2. 支援 QR 中央頭像顯示
+ * 3. 海報下載穩定
+ * 4. UI 對齊產品級交付卡質感
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "706.6";
+  const VERSION = "707";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -32,8 +32,12 @@
     avatarImg: document.getElementById("avatarImg"),
     cardName: document.getElementById("cardName"),
     cardTitle: document.getElementById("cardTitle"),
-    qrImg: document.getElementById("qrImg"),
-    qrLinkFallback: document.getElementById("qrLinkFallback"),
+
+    qrViewport: document.getElementById("qrViewport"),
+    qrFallback: document.getElementById("qrFallback"),
+    qrCenterAvatar: document.getElementById("qrCenterAvatar"),
+    qrCenterAvatarImg: document.getElementById("qrCenterAvatarImg"),
+
     posterCapture: document.getElementById("posterCapture"),
     statusText: document.getElementById("statusText"),
 
@@ -52,6 +56,7 @@
   let currentItem = null;
   let currentCardUrl = "";
   let currentRecommendUrl = "";
+  let currentAvatarUrl = "";
 
   bindEvents();
   init();
@@ -59,6 +64,9 @@
   async function init() {
     try {
       if (!id) throw new Error("缺少名片 id");
+      if (typeof window.QRCode === "undefined") {
+        throw new Error("缺少 qrcode.min.js，請確認檔案已放在 poster.html 同層");
+      }
 
       setStatus("正在載入資料…", false);
 
@@ -67,15 +75,16 @@
 
       currentCardUrl = buildCardUrl(item);
       currentRecommendUrl = buildRecommendUrl(item);
+      currentAvatarUrl = getAvatarUrl(item);
 
       renderPoster(item);
-      await renderQrImage(currentCardUrl);
+      await renderQrLocal(currentCardUrl, currentAvatarUrl);
 
       setStatus("");
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] init error:`, err);
       renderPoster(null);
-      renderQrLinkFallback(currentCardUrl || "");
+      renderQrFallback(currentCardUrl || "");
       setStatus(err.message || "載入失敗", true);
     }
   }
@@ -116,7 +125,7 @@
     let json;
     try {
       json = await res.json();
-    } catch (err) {
+    } catch {
       throw new Error("名片資料不是有效 JSON");
     }
 
@@ -124,7 +133,6 @@
     if (!item || typeof item !== "object") {
       throw new Error("名片資料格式不正確");
     }
-
     return item;
   }
 
@@ -139,10 +147,7 @@
     if (el.cardName) el.cardName.textContent = name;
     if (el.cardTitle) el.cardTitle.textContent = title;
 
-    const avatar =
-      text(item?.avatar_url) ||
-      text(item?.avatar_img_fast) ||
-      text(item?.avatar_img);
+    const avatar = getAvatarUrl(item);
 
     if (el.avatarImg) {
       el.avatarImg.alt = `${name} 頭像`;
@@ -152,6 +157,14 @@
       };
       el.avatarImg.src = avatar || buildDefaultAvatarSvg();
     }
+  }
+
+  function getAvatarUrl(item) {
+    return (
+      text(item?.avatar_url) ||
+      text(item?.avatar_img_fast) ||
+      text(item?.avatar_img)
+    );
   }
 
   function buildCardUrl(item) {
@@ -164,75 +177,116 @@
     return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
   }
 
-  async function renderQrImage(targetUrl) {
-    if (!el.qrImg) return;
+  async function renderQrLocal(targetUrl, avatarUrl) {
+    try {
+      if (!el.qrViewport) throw new Error("找不到 QR 區塊");
 
-    hideQrLinkFallback();
+      hideQrFallback();
+      el.qrViewport.innerHTML = "";
 
-    const qrCandidates = [
-      buildQrUrlA(targetUrl),
-      buildQrUrlB(targetUrl)
-    ];
+      const mount = document.createElement("div");
+      mount.style.width = "100%";
+      mount.style.height = "100%";
+      mount.style.display = "flex";
+      mount.style.alignItems = "center";
+      mount.style.justifyContent = "center";
+      el.qrViewport.appendChild(mount);
 
-    let loaded = false;
+      new window.QRCode(mount, {
+        text: targetUrl,
+        width: 900,
+        height: 900,
+        colorDark: "#2f241d",
+        colorLight: "#ffffff",
+        correctLevel: window.QRCode.CorrectLevel.H
+      });
 
-    for (const src of qrCandidates) {
-      loaded = await loadQr(src);
-      if (loaded) break;
+      await wait(160);
+
+      const qrNode = normalizeQrNode(mount);
+      if (!qrNode) {
+        throw new Error("本地 QR 生成失敗");
+      }
+
+      await renderCenterAvatar(avatarUrl);
+    } catch (err) {
+      console.error(`[HSC Poster ${VERSION}] QR render error:`, err);
+      renderQrFallback(targetUrl);
+      setStatus("QR 產生失敗，已顯示名片連結", true);
+    }
+  }
+
+  function normalizeQrNode(root) {
+    const img = root.querySelector("img");
+    const canvas = root.querySelector("canvas");
+    const table = root.querySelector("table");
+
+    if (img) {
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.display = "block";
+      img.style.objectFit = "contain";
+      img.style.imageRendering = "pixelated";
+      return img;
     }
 
-    if (!loaded) {
-      renderQrLinkFallback(targetUrl);
-      setStatus("QR 圖片載入失敗，已改顯示名片連結", true);
+    if (canvas) {
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.display = "block";
+      canvas.style.objectFit = "contain";
+      canvas.style.imageRendering = "pixelated";
+      return canvas;
+    }
+
+    if (table) {
+      table.style.width = "100%";
+      table.style.height = "100%";
+      table.style.borderCollapse = "collapse";
+      table.style.background = "#fff";
+      table.querySelectorAll("td").forEach((td) => {
+        td.style.padding = "0";
+        td.style.margin = "0";
+      });
+      return table;
+    }
+
+    return null;
+  }
+
+  async function renderCenterAvatar(avatarUrl) {
+    if (!el.qrCenterAvatar || !el.qrCenterAvatarImg) return;
+
+    if (!avatarUrl) {
+      el.qrCenterAvatar.classList.remove("show");
+      el.qrCenterAvatarImg.removeAttribute("src");
+      return;
+    }
+
+    const ok = await loadImage(el.qrCenterAvatarImg, avatarUrl, buildDefaultAvatarSvg());
+    if (ok) {
+      el.qrCenterAvatar.classList.add("show");
+    } else {
+      el.qrCenterAvatar.classList.remove("show");
     }
   }
 
-  function buildQrUrlA(targetUrl) {
-    return "https://api.qrserver.com/v1/create-qr-code/?size=900x900&margin=0&format=png&data=" + encodeURIComponent(targetUrl);
-  }
+  function renderQrFallback(url) {
+    if (el.qrViewport) el.qrViewport.innerHTML = "";
+    if (el.qrCenterAvatar) el.qrCenterAvatar.classList.remove("show");
 
-  function buildQrUrlB(targetUrl) {
-    return "https://quickchart.io/qr?size=900&margin=0&text=" + encodeURIComponent(targetUrl);
-  }
-
-  function loadQr(src) {
-    return new Promise((resolve) => {
-      if (!el.qrImg) return resolve(false);
-
-      el.qrImg.onload = () => {
-        el.qrImg.style.display = "block";
-        resolve(true);
-      };
-
-      el.qrImg.onerror = () => {
-        resolve(false);
-      };
-
-      el.qrImg.src = src;
-    });
-  }
-
-  function renderQrLinkFallback(url) {
-    if (el.qrImg) {
-      el.qrImg.removeAttribute("src");
-      el.qrImg.style.display = "none";
-    }
-
-    if (el.qrLinkFallback) {
-      el.qrLinkFallback.style.display = "block";
-      el.qrLinkFallback.textContent = url
+    if (el.qrFallback) {
+      el.qrFallback.classList.add("show");
+      el.qrFallback.textContent = url
         ? `名片連結：${url}`
         : "QR 暫時無法顯示";
     }
   }
 
-  function hideQrLinkFallback() {
-    if (el.qrLinkFallback) {
-      el.qrLinkFallback.style.display = "none";
-      el.qrLinkFallback.textContent = "";
-    }
-    if (el.qrImg) {
-      el.qrImg.style.display = "block";
+  function hideQrFallback() {
+    if (el.qrFallback) {
+      el.qrFallback.classList.remove("show");
+      el.qrFallback.textContent = "";
     }
   }
 
@@ -273,8 +327,8 @@
       document.body.removeChild(exportNode);
 
       const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
-
       const dataUrl = canvas.toDataURL("image/png", 1);
+
       triggerDownload(dataUrl, filename);
 
       setStatus("海報下載完成");
@@ -382,9 +436,7 @@
 
   function clearStatusSoon() {
     window.clearTimeout(clearStatusSoon._timer);
-    clearStatusSoon._timer = window.setTimeout(() => {
-      setStatus("");
-    }, 1800);
+    clearStatusSoon._timer = window.setTimeout(() => setStatus(""), 1800);
   }
 
   function text(v) {
@@ -414,6 +466,10 @@
     `);
   }
 
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   function waitForImages(root) {
     const images = Array.from(root.querySelectorAll("img"));
     if (!images.length) return Promise.resolve();
@@ -435,6 +491,27 @@
     );
   }
 
+  function loadImage(imgEl, src, fallback = "") {
+    return new Promise((resolve) => {
+      if (!imgEl) return resolve(false);
+
+      let triedFallback = false;
+
+      imgEl.onload = () => resolve(true);
+
+      imgEl.onerror = () => {
+        if (!triedFallback && fallback) {
+          triedFallback = true;
+          imgEl.src = fallback;
+          return;
+        }
+        resolve(false);
+      };
+
+      imgEl.src = src;
+    });
+  }
+
   async function copyText(value) {
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -442,7 +519,7 @@
         return true;
       }
       return legacyCopyText(value);
-    } catch (err) {
+    } catch {
       return legacyCopyText(value);
     }
   }
@@ -461,7 +538,7 @@
       const ok = document.execCommand("copy");
       document.body.removeChild(ta);
       return !!ok;
-    } catch (err) {
+    } catch {
       return false;
     }
   }
