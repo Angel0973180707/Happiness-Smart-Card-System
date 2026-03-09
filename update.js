@@ -1,6 +1,6 @@
 
 /* =========================================
- * HSC Auto Update System v705
+ * HSC Auto Update System v705.8
  * COMPLETE OVERWRITE
  *
  * Usage:
@@ -15,7 +15,7 @@
   "use strict";
 
   const VERSION_URL = "./version.json";
-  const SW_URL = "./sw.js?v=v705";
+  const SW_URL = "./sw.js?v=v705.8";
   const STORAGE_KEY = "HSC_APP_VERSION";
   const CHECK_INTERVAL = 60 * 1000;
 
