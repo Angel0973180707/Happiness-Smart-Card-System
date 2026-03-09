@@ -2,31 +2,33 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta
+    name="viewport"
+    content="width=device-width,initial-scale=1,viewport-fit=cover"
+  />
   <title>天使幸福智慧名片｜名片交付卡</title>
   <meta name="theme-color" content="#f8f4ee" />
 
   <style>
     :root{
       --bg:#f8f4ee;
-      --bg-2:#f2ebe2;
+      --bg-2:#f3ece3;
       --card:#fffdfa;
-      --card-2:#fff8f2;
+      --card-2:#fff8f1;
       --ink:#453429;
-      --ink-soft:#6f5d50;
-      --muted:#8a7a6d;
+      --ink-soft:#705d50;
+      --muted:#8b7a6d;
       --line:rgba(102,78,57,.10);
       --gold:#bf8757;
       --gold-deep:#9d6d45;
-      --gold-soft:#f7ecdf;
-      --line-green:#17b357;
-      --shadow:0 20px 48px rgba(83,62,45,.08);
+      --gold-soft:#f6ebdf;
+      --line-green:#18b65a;
+      --shadow:0 18px 42px rgba(83,62,45,.08);
       --shadow-soft:0 10px 24px rgba(83,62,45,.06);
-      --shadow-inner:inset 0 1px 0 rgba(255,255,255,.78);
-      --radius-xl:32px;
-      --radius-lg:26px;
-      --radius-md:20px;
-      --radius-sm:16px;
+      --btn-shadow:0 5px 12px rgba(83,62,45,.08);
+      --radius-xl:30px;
+      --radius-lg:24px;
+      --radius-md:18px;
       --radius-pill:999px;
     }
 
@@ -36,7 +38,7 @@
       margin:0;
       padding:0;
       background:
-        radial-gradient(1200px 760px at 50% -10%, rgba(255,255,255,.96), transparent 58%),
+        radial-gradient(1200px 760px at 50% -10%, rgba(255,255,255,.95), transparent 58%),
         linear-gradient(180deg, var(--bg), var(--bg-2));
       color:var(--ink);
       font-family:
@@ -46,22 +48,23 @@
       text-size-adjust:100%;
     }
 
-    body{ min-height:100vh; }
+    body{
+      min-height:100vh;
+    }
 
     .page{
-      width:min(100%, 660px);
+      width:min(100%, 640px);
       margin:0 auto;
-      padding:18px 14px 40px;
+      padding:18px 14px 38px;
     }
 
     .hero-card{
-      position:relative;
-      overflow:hidden;
-      border-radius:var(--radius-xl);
+      background:linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
       border:1px solid var(--line);
-      background:
-        linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
+      border-radius:var(--radius-xl);
       box-shadow:var(--shadow);
+      overflow:hidden;
+      position:relative;
     }
 
     .hero-card::before{
@@ -69,54 +72,59 @@
       position:absolute;
       inset:0 0 auto 0;
       height:132px;
-      background:linear-gradient(180deg, rgba(255,255,255,.78), transparent);
+      background:linear-gradient(180deg, rgba(255,255,255,.76), transparent);
       pointer-events:none;
     }
 
     .hero-head{
       position:relative;
-      z-index:1;
-      padding:24px 20px 12px;
+      padding:26px 20px 12px;
       text-align:center;
+      z-index:1;
     }
 
-    .brand-row{
+    .brand-stack{
       display:flex;
+      flex-direction:column;
       align-items:center;
       justify-content:center;
-      gap:10px;
+      gap:0;
       margin:0 auto;
     }
 
     .brand-icon{
-      width:32px;
-      height:32px;
-      display:block;
-      object-fit:cover;
-      border-radius:10px;
-      background:#fff;
-      padding:2px;
-      box-shadow:0 4px 10px rgba(0,0,0,.06);
-      flex:0 0 auto;
+      font-size:28px;
+      line-height:1;
+      color:var(--gold-deep);
+      margin-bottom:8px;
     }
 
     .brand-title{
       margin:0;
       font-size:24px;
-      line-height:1.25;
+      line-height:1.28;
       font-weight:900;
-      letter-spacing:.01em;
+      letter-spacing:.02em;
       color:var(--ink);
+    }
+
+    .brand-sub{
+      margin-top:6px;
+      font-size:13px;
+      line-height:1.3;
+      font-weight:700;
+      letter-spacing:.08em;
+      color:var(--muted);
     }
 
     .delivery-pill{
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      margin-top:14px;
-      min-height:46px;
+      margin-top:16px;
       padding:11px 28px;
-      border-radius:var(--radius-pill);
+      min-height:46px;
+      border-radius:999px;
       border:1px solid rgba(191,135,87,.16);
       background:linear-gradient(180deg, #fffefb 0%, #fbf2e8 100%);
       color:var(--gold-deep);
@@ -125,47 +133,37 @@
       font-weight:900;
       letter-spacing:.08em;
       box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.88),
+        inset 0 1px 0 rgba(255,255,255,.85),
         0 8px 18px rgba(191,135,87,.10);
     }
 
     .hero-body{
       position:relative;
-      z-index:1;
       padding:18px;
+      z-index:1;
     }
 
     .poster-canvas{
-      position:relative;
-      text-align:center;
-      padding:30px 18px 26px;
-      border-radius:30px;
-      border:1px solid rgba(102,78,57,.08);
       background:linear-gradient(180deg, #fffefd 0%, #fffaf5 100%);
-      box-shadow:var(--shadow-inner), var(--shadow-soft);
-    }
-
-    .poster-canvas::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      border-radius:30px;
-      pointer-events:none;
-      background:
-        radial-gradient(460px 180px at 50% 0%, rgba(255,255,255,.42), transparent 62%);
+      border:1px solid rgba(102,78,57,.08);
+      border-radius:28px;
+      padding:28px 18px 24px;
+      text-align:center;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.8), var(--shadow-soft);
+      position:relative;
     }
 
     .avatar-wrap{
-      position:relative;
-      z-index:1;
       width:102px;
       height:102px;
       margin:0 auto 14px;
-      overflow:hidden;
       border-radius:50%;
+      overflow:hidden;
       background:#eee4d8;
-      border:3px solid rgba(255,255,255,.98);
+      border:3px solid rgba(255,255,255,.97);
       box-shadow:0 10px 22px rgba(88,67,48,.09);
+      position:relative;
+      z-index:1;
     }
 
     .avatar-wrap img{
@@ -176,140 +174,73 @@
     }
 
     .name{
-      position:relative;
-      z-index:1;
       margin:0;
       font-size:28px;
-      line-height:1.24;
+      line-height:1.25;
       font-weight:900;
       letter-spacing:.04em;
-      color:var(--ink);
       word-break:break-word;
+      color:var(--ink);
     }
 
     .title{
-      position:relative;
-      z-index:1;
       margin:10px auto 0;
       max-width:18em;
-      min-height:1.7em;
       font-size:16px;
       line-height:1.7;
       color:var(--ink-soft);
       word-break:break-word;
+      min-height:1.7em;
     }
 
     .qr-zone{
-      position:relative;
-      z-index:1;
-      margin:26px auto 0;
+      margin:24px auto 0;
       display:flex;
       justify-content:center;
     }
 
     .qr-frame{
-      width:430px;
+      width:426px;
       max-width:100%;
-      padding:24px 24px 18px;
+      background:linear-gradient(180deg, #ffffff, #fffdfa);
       border-radius:30px;
+      padding:24px 24px 18px;
       border:1px solid rgba(0,0,0,.04);
-      background:linear-gradient(180deg, #ffffff 0%, #fffdfa 100%);
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.82),
         0 10px 22px rgba(0,0,0,.05);
     }
 
-    .qr-stage{
-      position:relative;
+    .qr-box{
       width:100%;
       aspect-ratio:1/1;
+      background:#fff;
       display:flex;
       align-items:center;
       justify-content:center;
       overflow:hidden;
-      border-radius:24px;
+      border-radius:22px;
       border:1px solid rgba(0,0,0,.04);
-      background:#fff;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.72);
-    }
-
-    .qr-viewport{
-      width:100%;
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
       position:relative;
-      overflow:hidden;
     }
 
-    .qr-viewport canvas,
-    .qr-viewport img{
+    .qr-img{
       width:100%;
       height:100%;
-      display:block;
       object-fit:contain;
-      image-rendering:pixelated;
-    }
-
-    .qr-viewport table{
-      width:100%;
-      height:100%;
-      border-collapse:collapse;
-      background:#fff;
-    }
-
-    .qr-viewport td{
-      padding:0;
-      margin:0;
-    }
-
-    .qr-center-avatar{
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform:translate(-50%,-50%);
-      width:20%;
-      aspect-ratio:1/1;
-      min-width:56px;
-      max-width:88px;
-      border-radius:50%;
-      padding:5px;
-      background:#fff;
-      box-shadow:0 6px 16px rgba(0,0,0,.10);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      pointer-events:none;
-    }
-
-    .qr-center-avatar.show{
-      display:flex;
-    }
-
-    .qr-center-avatar img{
-      width:100%;
-      height:100%;
       display:block;
-      object-fit:cover;
-      border-radius:50%;
-      border:1px solid rgba(0,0,0,.05);
-      background:#f6efe8;
+      background:#fff;
     }
 
-    .qr-fallback{
+    .qr-link-fallback{
       width:100%;
-      padding:18px 14px;
+      padding:20px 16px;
       text-align:center;
       color:var(--ink-soft);
       font-size:13px;
-      line-height:1.75;
+      line-height:1.7;
       word-break:break-all;
       display:none;
-    }
-
-    .qr-fallback.show{
-      display:block;
     }
 
     .qr-caption{
@@ -323,21 +254,23 @@
 
     .status{
       margin-top:14px;
-      min-height:1.8em;
       text-align:center;
       font-size:14px;
       line-height:1.8;
       color:var(--muted);
+      min-height:1.8em;
     }
 
-    .status.error{ color:#b05a3d; }
+    .status.error{
+      color:#b05a3d;
+    }
 
     .action-group{
       margin-top:16px;
-      padding:14px;
-      border-radius:24px;
-      border:1px solid var(--line);
       background:linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,249,242,.74));
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:14px;
       box-shadow:0 5px 14px rgba(88,67,48,.035);
     }
 
@@ -356,67 +289,69 @@
 
     .btn{
       width:100%;
-      padding:16px 18px;
       border:none;
-      border-radius:18px;
-      font-size:17px;
+      border-radius:999px;
+      padding:16px 22px;
+      font-size:16px;
       line-height:1.2;
       font-weight:900;
       cursor:pointer;
-      color:var(--ink);
       transition:transform .14s ease, box-shadow .14s ease, filter .14s ease;
+      color:var(--ink);
+      min-height:56px;
     }
 
-    .btn:hover{ filter:brightness(1.01); }
-    .btn:active{ transform:translateY(1px); }
+    .btn:hover{
+      filter:brightness(1.01);
+    }
+
+    .btn:active{
+      transform:translateY(1px);
+    }
 
     .btn-primary{
       color:#fffaf6;
       background:linear-gradient(180deg, #c98a57 0%, #b6784a 100%);
       border:1px solid rgba(159,109,69,.18);
-      box-shadow:
-        0 5px 12px rgba(88,67,48,.08),
-        inset 0 1px 0 rgba(255,255,255,.18);
+      box-shadow:0 5px 12px rgba(88,67,48,.08), inset 0 1px 0 rgba(255,255,255,.18);
     }
 
     .btn-soft{
       color:var(--ink);
       background:linear-gradient(180deg, #ffffff 0%, #fcf7f1 100%);
       border:1px solid rgba(98,76,56,.10);
-      box-shadow:
-        0 5px 12px rgba(88,67,48,.06),
-        inset 0 1px 0 rgba(255,255,255,.75);
+      box-shadow:0 5px 12px rgba(88,67,48,.06), inset 0 1px 0 rgba(255,255,255,.75);
     }
 
     .btn-line{
       color:#fbfffc;
       background:linear-gradient(180deg, #22c462 0%, #15ac53 100%);
       border:1px solid rgba(12,138,59,.16);
-      box-shadow:
-        0 5px 12px rgba(20,180,84,.16),
-        inset 0 1px 0 rgba(255,255,255,.16);
+      box-shadow:0 5px 12px rgba(20,180,84,.16), inset 0 1px 0 rgba(255,255,255,.16);
     }
 
     .dialog-mask{
       position:fixed;
       inset:0;
-      z-index:9999;
+      background:rgba(24,18,14,.34);
       display:none;
       align-items:center;
       justify-content:center;
       padding:18px;
-      background:rgba(24,18,14,.34);
+      z-index:9999;
     }
 
-    .dialog-mask.show{ display:flex; }
+    .dialog-mask.show{
+      display:flex;
+    }
 
     .dialog{
       width:min(100%, 520px);
-      padding:22px 18px 18px;
-      border-radius:24px;
-      border:1px solid rgba(74,53,36,.10);
       background:linear-gradient(180deg, #fffdfa, #fff9f2);
+      border:1px solid rgba(74,53,36,.10);
+      border-radius:24px;
       box-shadow:0 20px 44px rgba(0,0,0,.14);
+      padding:22px 18px 18px;
     }
 
     .dialog-title{
@@ -433,7 +368,9 @@
       line-height:1.9;
     }
 
-    .dialog-body p{ margin:0 0 10px; }
+    .dialog-body p{
+      margin:0 0 10px;
+    }
 
     .dialog-actions{
       margin-top:14px;
@@ -441,28 +378,26 @@
       justify-content:flex-end;
     }
 
-    .dialog-close{ min-width:112px; }
+    .dialog-close{
+      min-width:112px;
+    }
 
     @media (max-width:520px){
       .page{ padding:16px 12px 28px; }
       .hero-head{ padding:22px 16px 10px; }
+      .brand-icon{ font-size:26px; margin-bottom:6px; }
       .brand-title{ font-size:21px; }
-      .brand-icon{ width:28px; height:28px; }
+      .brand-sub{ font-size:12px; }
       .delivery-pill{ font-size:14px; padding:10px 22px; }
       .hero-body{ padding:14px; }
-      .poster-canvas{ padding:24px 14px 20px; }
+      .poster-canvas{ padding:22px 14px 20px; }
       .avatar-wrap{ width:88px; height:88px; }
       .name{ font-size:24px; }
       .title{ font-size:15px; }
       .qr-frame{ padding:20px 20px 16px; border-radius:24px; }
       .qr-caption{ font-size:13px; }
-      .btn{ padding:15px 16px; font-size:16px; }
+      .btn{ padding:15px 18px; font-size:15px; min-height:54px; }
       .action-group{ padding:12px; }
-      .qr-center-avatar{
-        width:22%;
-        min-width:52px;
-        max-width:78px;
-      }
     }
   </style>
 </head>
@@ -470,9 +405,10 @@
   <main class="page">
     <section class="hero-card">
       <div class="hero-head">
-        <div class="brand-row">
-          <img class="brand-icon" src="./icon-192.png" alt="天使幸福智慧名片 icon" onerror="this.src='./icon-512.png'">
+        <div class="brand-stack">
+          <div class="brand-icon">☀</div>
           <h1 class="brand-title">天使幸福智慧名片</h1>
+          <div class="brand-sub">Angel Smart Card</div>
         </div>
         <div class="delivery-pill">名片交付卡</div>
       </div>
@@ -488,16 +424,10 @@
 
           <div class="qr-zone">
             <div class="qr-frame">
-              <div class="qr-stage">
-                <div id="qrViewport" class="qr-viewport"></div>
-
-                <div id="qrCenterAvatar" class="qr-center-avatar">
-                  <img id="qrCenterAvatarImg" alt="QR 中央頭像" />
-                </div>
-
-                <div id="qrFallback" class="qr-fallback"></div>
+              <div id="qrBox" class="qr-box">
+                <img id="qrImg" class="qr-img" alt="QR Code" />
+                <div id="qrLinkFallback" class="qr-link-fallback"></div>
               </div>
-
               <div class="qr-caption">掃描QRcode查閱完整名片</div>
             </div>
           </div>
@@ -538,7 +468,7 @@
       <h3 id="dialogTitle" class="dialog-title">分享說明</h3>
       <div class="dialog-body">
         <p>1. 分享自己的智慧名片，建議優先使用「複製我的名片連結」或「分享我的智慧名片」。</p>
-        <p>2. 名片海報適合直接傳圖片給對方，讓對方掃描 QRcode 查閱完整名片。</p>
+        <p>2. 名片海報適合傳圖片給對方，讓對方直接掃描 QRcode 查閱完整名片。</p>
         <p>3. 若在微信分享，建議優先傳送名片海報圖片，比直接貼網址更穩定。</p>
         <p>4. 若想推薦智慧名片服務，請使用「推薦智慧名片館」。</p>
         <p>5. 若需要聯絡客服、開通或訂製，請點「LINE 官方帳號」。</p>
@@ -550,7 +480,6 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="./qrcode.min.js"></script>
-  <script src="./poster.js?v=7070"></script>
+  <script src="./poster.js?v=7066"></script>
 </body>
 </html>
