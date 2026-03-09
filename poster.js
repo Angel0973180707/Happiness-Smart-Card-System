@@ -1,18 +1,18 @@
 /* ==========================================
- * HSC Poster v707
+ * HSC Poster v707.1
  * COMPLETE OVERWRITE
  *
- * 商用穩定版：
- * 1. 使用本地 qrcode.min.js，不依賴外部 QR API
- * 2. 支援 QR 中央頭像顯示
- * 3. 海報下載穩定
- * 4. UI 對齊產品級交付卡質感
+ * 修正重點：
+ * 1. 手機下載海報過慢 / 卡住
+ * 2. html2canvas 降負載
+ * 3. 只截海報主卡，不截整頁
+ * 4. 失敗時提供開圖備援
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "707";
+  const VERSION = "707.1";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -111,7 +111,6 @@
 
   async function fetchCard(cardId) {
     const url = `${gas}?action=card&id=${encodeURIComponent(cardId)}&_=${Date.now()}`;
-
     const res = await fetch(url, {
       method: "GET",
       mode: "cors",
@@ -194,14 +193,14 @@
 
       new window.QRCode(mount, {
         text: targetUrl,
-        width: 900,
-        height: 900,
+        width: 640,
+        height: 640,
         colorDark: "#2f241d",
         colorLight: "#ffffff",
         correctLevel: window.QRCode.CorrectLevel.H
       });
 
-      await wait(160);
+      await wait(120);
 
       const qrNode = normalizeQrNode(mount);
       if (!qrNode) {
@@ -296,47 +295,120 @@
       if (!window.html2canvas) throw new Error("html2canvas 未載入");
 
       setStatus("正在產生海報圖片…", false);
+      disableDownloadBtn(true);
 
       await waitForImages(el.posterCapture);
 
       const exportNode = el.posterCapture.cloneNode(true);
-      exportNode.style.width = `${el.posterCapture.offsetWidth}px`;
-      exportNode.style.position = "fixed";
-      exportNode.style.left = "-99999px";
-      exportNode.style.top = "0";
-      exportNode.style.margin = "0";
-      exportNode.style.transform = "none";
-      exportNode.style.zIndex = "-1";
-      exportNode.style.pointerEvents = "none";
-      exportNode.style.boxShadow = "none";
+      optimizeExportNode(exportNode, el.posterCapture.offsetWidth);
 
       document.body.appendChild(exportNode);
-
       await waitForImages(exportNode);
 
-      const canvas = await window.html2canvas(exportNode, {
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: "#fffaf6",
-        scale: Math.min(3, window.devicePixelRatio || 2),
-        logging: false,
-        imageTimeout: 20000,
-        removeContainer: true
-      });
+      const scale = getSafeScale();
 
-      document.body.removeChild(exportNode);
+      const canvas = await promiseWithTimeout(
+        window.html2canvas(exportNode, {
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#fffaf6",
+          scale,
+          logging: false,
+          imageTimeout: 12000,
+          removeContainer: true
+        }),
+        15000,
+        "海報產生逾時"
+      );
+
+      safeRemove(exportNode);
 
       const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
-      const dataUrl = canvas.toDataURL("image/png", 1);
 
-      triggerDownload(dataUrl, filename);
+      const dataUrl = canvas.toDataURL("image/png", 0.95);
 
-      setStatus("海報下載完成");
+      if (isMobileDevice()) {
+        openImageInNewTab(dataUrl, filename);
+        setStatus("海報已開啟，請長按圖片保存", false);
+      } else {
+        triggerDownload(dataUrl, filename);
+        setStatus("海報下載完成", false);
+      }
+
       clearStatusSoon();
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] download error:`, err);
-      setStatus("此瀏覽器可能限制下載，請改用長按截圖保存", true);
+      setStatus("手機下載較吃效能，建議改用長按截圖或再次重試", true);
+    } finally {
+      disableDownloadBtn(false);
     }
+  }
+
+  function optimizeExportNode(node, width) {
+    node.style.width = `${width}px`;
+    node.style.position = "fixed";
+    node.style.left = "-99999px";
+    node.style.top = "0";
+    node.style.margin = "0";
+    node.style.transform = "none";
+    node.style.zIndex = "-1";
+    node.style.pointerEvents = "none";
+    node.style.boxShadow = "none";
+
+    node.querySelectorAll("*").forEach((child) => {
+      const style = child.style;
+      if (!style) return;
+      if (style.animation) style.animation = "none";
+      if (style.transition) style.transition = "none";
+    });
+  }
+
+  function getSafeScale() {
+    const dpr = window.devicePixelRatio || 1;
+    if (isMobileDevice()) return Math.min(2, dpr, 1.8);
+    return Math.min(2.2, dpr || 2);
+  }
+
+  function disableDownloadBtn(disabled) {
+    if (!el.downloadBtn) return;
+    el.downloadBtn.disabled = !!disabled;
+    el.downloadBtn.style.opacity = disabled ? ".72" : "";
+    el.downloadBtn.style.cursor = disabled ? "wait" : "";
+  }
+
+  function openImageInNewTab(dataUrl, filename) {
+    const w = window.open("", "_blank");
+    if (!w) return;
+
+    w.document.write(`
+      <!doctype html>
+      <html lang="zh-Hant">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>${escapeHtml(filename)}</title>
+        <style>
+          body{
+            margin:0;
+            background:#111;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            min-height:100vh;
+          }
+          img{
+            max-width:100%;
+            height:auto;
+            display:block;
+          }
+        </style>
+      </head>
+      <body>
+        <img src="${dataUrl}" alt="poster">
+      </body>
+      </html>
+    `);
+    w.document.close();
   }
 
   function triggerDownload(dataUrl, filename) {
@@ -498,7 +570,6 @@
       let triedFallback = false;
 
       imgEl.onload = () => resolve(true);
-
       imgEl.onerror = () => {
         if (!triedFallback && fallback) {
           triedFallback = true;
@@ -510,6 +581,38 @@
 
       imgEl.src = src;
     });
+  }
+
+  function promiseWithTimeout(promise, ms, message) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(message || "timeout")), ms);
+      promise.then(
+        (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        (err) => {
+          clearTimeout(timer);
+          reject(err);
+        }
+      );
+    });
+  }
+
+  function safeRemove(node) {
+    if (node && node.parentNode) node.parentNode.removeChild(node);
+  }
+
+  function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  }
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   async function copyText(value) {
