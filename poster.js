@@ -1,18 +1,20 @@
 /* ==========================================
- * HSC Poster v705.1
+ * HSC Poster v705.2
  * COMPLETE OVERWRITE
  *
- * v705.1 重點：
- * 1) 修正頭像來源，明確支援 avatar_img
- * 2) 相容 avatar_url / avatar_img_fast / avatar / avatar_key
- * 3) 相容 Google Drive uc?export=view&id=...
- * 4) 保留 v705 的 Web Share / 分享說明 / 海報截圖
+ * v705.2 重點：
+ * 1) 修正頭像載入策略
+ * 2) 移除 crossOrigin="anonymous"，避免 Google Drive 圖片載入失敗
+ * 3) 取圖優先順序：
+ *    avatar_url -> avatar_img_fast -> avatar_img -> avatar -> avatar_key
+ * 4) avatar_key 自動轉直連
+ * 5) 保留 v705 的 Web Share / 分享說明 / 海報截圖
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "705.1";
+  const VERSION = "705.2";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -133,27 +135,37 @@
     return /drive\.google\.com/i.test(url || "");
   }
 
-  function toGoogleDriveDirect(url) {
-    const src = text(url);
+  function toGoogleDriveDirect(input) {
+    const src = text(input);
     if (!src) return "";
 
     const idMatch =
       src.match(/[?&]id=([^&]+)/i) ||
-      src.match(/\/d\/([^/]+)/i) ||
-      src.match(/\/file\/d\/([^/]+)/i);
+      src.match(/\/file\/d\/([^/]+)/i) ||
+      src.match(/\/d\/([^/]+)/i);
 
     if (idMatch && idMatch[1]) {
-      const id = idMatch[1];
-      return `https://drive.google.com/uc?export=view&id=${id}`;
+      return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
     }
+
     return src;
+  }
+
+  function fromDriveKeyToUrl(key) {
+    const id = text(key);
+    if (!id) return "";
+    return `https://drive.google.com/uc?export=view&id=${id}`;
   }
 
   function tryResolveImage(url) {
     const src = text(url);
     if (!src) return "";
 
-    const resolver = window.HSCImageResolver || window.imageResolver || window.resolveImageUrl || null;
+    const resolver =
+      window.HSCImageResolver ||
+      window.imageResolver ||
+      window.resolveImageUrl ||
+      null;
 
     try {
       if (resolver && typeof resolver === "function") {
@@ -171,13 +183,12 @@
 
   function pickImage(item) {
     const candidates = [
-      item.avatar_img,
-      item.avatar_url,
-      item.avatar_img_fast,
-      item.avatar,
-      item.avatarUrl,
-      item.avatar_key
-    ].map(v => text(v)).filter(Boolean);
+      text(item.avatar_url),
+      text(item.avatar_img_fast),
+      text(item.avatar_img),
+      text(item.avatar),
+      fromDriveKeyToUrl(item.avatar_key)
+    ].filter(Boolean);
 
     for (const raw of candidates) {
       let url = raw;
@@ -211,8 +222,8 @@
         avatarFallbackEl.textContent = safeInitial(name);
       };
 
+      // 不設 crossOrigin，避免 Google Drive 顯示失敗
       avatarEl.referrerPolicy = "no-referrer";
-      avatarEl.crossOrigin = "anonymous";
       avatarEl.src = finalSrc;
       return;
     }
@@ -229,12 +240,13 @@
       name: text(item.name, "智慧名片"),
       unit: text(item.unit),
       title: text(item.title),
-      avatar_img: text(item.avatar_img),
+
       avatar_url: text(item.avatar_url),
       avatar_img_fast: text(item.avatar_img_fast),
+      avatar_img: text(item.avatar_img),
       avatar: text(item.avatar),
-      avatarUrl: text(item.avatarUrl),
       avatar_key: text(item.avatar_key),
+
       line_oa: text(item.line_oa),
       line_url: text(item.line_url)
     };
