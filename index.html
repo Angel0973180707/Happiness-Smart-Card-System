@@ -1,5 +1,5 @@
 <!-- ================================
-     index.html v522.8 (COMPLETE OVERWRITE)
+     index.html v522.9 (COMPLETE OVERWRITE)
      FRONT + CLEAN DELIVERY MODE + INVITE GATE + FACADE HUB QRCODE
 
      ✅ Front (門面): only use DEMO_ID (TW0001) when URL has NO id
@@ -14,7 +14,7 @@
         - 白色保護底，提升掃描穩定度
         - 文案改為：
           掃描 QRcode｜帶走智慧名片館
-          可收藏・可分享・可慢慢體驗
+          可收藏・可分享・可隨時回來慢慢體驗
 
      ✅ CTA:
         - LINE OA: https://lin.ee/3r2ZePN
@@ -22,7 +22,7 @@
         - 產品特色說明：modal
         - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
      ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=522.8&invite=XXXX
+        - Front: click 開通 → ask invite code → open ./form.html?v=522.9&invite=XXXX
         - Clean mode: no form entry
 
      ✅ Brand facade:
@@ -31,9 +31,10 @@
         - Positioning:
           智慧名片訂製｜適合創業者、講師與服務業｜打造可分享的專屬名片入口
 
-     ✅ v522.8:
+     ✅ v522.9:
         - 門面整體底色對齊交付卡米白質感底色
-        - facade 卡片質感同步往交付卡靠攏
+        - 品牌標題加上「館」
+        - 「訂製服務」改為「訂製」
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -41,13 +42,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v522.8</title>
+  <title>天使幸福智慧名片館 v522.9</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=522.8" />
+  <link rel="manifest" href="./manifest.json?v=522.9" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.8" />
-  <link rel="icon" href="./icons/icon-192.png?v=522.8" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.9" />
+  <link rel="icon" href="./icons/icon-192.png?v=522.9" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -58,7 +59,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=522.8" />
+  <meta property="og:image" content="og-card.png?v=522.9" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -100,7 +101,7 @@
       pointer-events:auto !important;
     }
 
-    /* v522.8: force-hide top private line CTA (private line moved to contactDock) */
+    /* v522.9: force-hide top private line CTA (private line moved to contactDock) */
     #btnLinePrivateCta,#btnLinePrivateCta2{
       display:none !important;
       visibility:hidden !important;
@@ -506,7 +507,7 @@
             </div>
           </div>
           <div class="facade-qr-title">掃描 QRcode｜帶走智慧名片館</div>
-          <div class="facade-qr-sub">可收藏・可分享・可慢慢體驗</div>
+          <div class="facade-qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
         </div>
       </div>
 
@@ -658,7 +659,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v522.8</div>
+        <div class="version-tag" id="versionTag">v522.9</div>
       </div>
     </section>
   </main>
@@ -675,7 +676,7 @@
           <b>自由搭配</b>：5色 × 3版型 × 3紙感，風格清爽、可快速客製。
         </div>
         <div class="k">
-          <b>精品設計</b>：7款精品底色、玻璃質感更強、照片牆更完整，適合更高端呈現。
+          <b>精品設計</b>：7款精品底色（含金箔）、玻璃質感更強、照片牆更完整，適合更高端呈現。
         </div>
         <div class="k">
           <b>一鍵分享</b>：可分享智慧名片館，作為品牌入口與導流主頁。
@@ -719,7 +720,7 @@
     (function(){
       "use strict";
 
-      var VERSION = "522.8";
+      var VERSION = "522.9";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -879,7 +880,7 @@
             else if(navigator.share){
               var url = buildHubShareUrlFallback();
               navigator.share({
-                title: "天使幸福智慧名片館6",
+                title: "天使幸福智慧名片館",
                 text: "分享智慧名片館",
                 url: url
               }).catch(function(){});
