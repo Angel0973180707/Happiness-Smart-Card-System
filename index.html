@@ -1,12 +1,20 @@
 <!-- ================================
-     index.html v522.6 (COMPLETE OVERWRITE)
-     FRONT + CLEAN DELIVERY MODE + INVITE GATE + FACADE QRCODE
+     index.html v522.7 (COMPLETE OVERWRITE)
+     FRONT + CLEAN DELIVERY MODE + INVITE GATE + FACADE HUB QRCODE
 
      ✅ Front (門面): only use DEMO_ID (TW0001) when URL has NO id
      ✅ If URL already has id, KEEP that id
      ✅ Clean (成品): ?view=1 / ?clean=1 → hide控制面板 + keep share FAB
      ✅ Share: share 智慧名片館（優先走 app.js v522.5 的 HUB share URL）
-     ✅ QRCode: facade shows current smart-card clean URL
+
+     ✅ QRCode (facade):
+        - 改為智慧名片館入口 URL
+        - 格式：/?ref=TW0001（若已有 id，則帶當前 id）
+        - 中央加入 UI 小太陽 logo
+        - 白色保護底，提升掃描穩定度
+        - 文案改為：
+          掃描 QRcode｜帶走智慧名片館
+          可收藏・可分享・可隨時回來慢慢體驗
 
      ✅ CTA:
         - LINE OA: https://lin.ee/3r2ZePN
@@ -14,7 +22,7 @@
         - 產品特色說明：modal
         - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
      ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=522.6&invite=XXXX
+        - Front: click 開通 → ask invite code → open ./form.html?v=522.7&invite=XXXX
         - Clean mode: no form entry
 
      ✅ Brand facade:
@@ -29,13 +37,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片 v522.6</title>
+  <title>天使幸福智慧名片 v522.7</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=522.6" />
+  <link rel="manifest" href="./manifest.json?v=522.7" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.6" />
-  <link rel="icon" href="./icons/icon-192.png?v=522.6" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.7" />
+  <link rel="icon" href="./icons/icon-192.png?v=522.7" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -46,7 +54,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片" />
   <meta property="og:description" content="智慧名片訂製服務｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=522.6" />
+  <meta property="og:image" content="og-card.png?v=522.7" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -63,7 +71,7 @@
       pointer-events:auto !important;
     }
 
-    /* v522.6: force-hide top private line CTA (private line moved to contactDock) */
+    /* v522.7: force-hide top private line CTA (private line moved to contactDock) */
     #btnLinePrivateCta,#btnLinePrivateCta2{
       display:none !important;
       visibility:hidden !important;
@@ -313,35 +321,75 @@
       text-align:center;
     }
     .facade-qr-canvas{
-      width:156px;
-      height:156px;
-      padding:10px;
-      border-radius: 18px;
-      background:#fff;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+      position:relative;
+      width:172px;
+      height:172px;
+      padding:12px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.94));
+      box-shadow:
+        0 12px 28px rgba(0,0,0,0.08),
+        inset 0 1px 0 rgba(255,255,255,0.92);
       border:1px solid rgba(0,0,0,0.06);
       display:flex;
       align-items:center;
       justify-content:center;
       overflow:hidden;
     }
-    .facade-qr-canvas img,
-    .facade-qr-canvas canvas{
+    .facade-qr-grid{
+      position:relative;
+      width:148px;
+      height:148px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      border-radius: 14px;
+      background:#fff;
+    }
+    .facade-qr-grid img,
+    .facade-qr-grid canvas{
       width:100% !important;
       height:100% !important;
       display:block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+    .facade-qr-logo-pad{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      width:40px;
+      height:40px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.98);
+      box-shadow:
+        0 6px 16px rgba(0,0,0,0.10),
+        0 0 0 6px rgba(255,255,255,0.96);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:3;
+      pointer-events:none;
+    }
+    .facade-qr-logo{
+      width:22px;
+      height:22px;
+      display:block;
+      filter: drop-shadow(0 1px 2px rgba(176,138,107,.14));
     }
     .facade-qr-title{
       margin-top:12px;
       font-size:14px;
       font-weight:900;
-      color: rgba(0,0,0,0.82);
+      color: rgba(0,0,0,0.84);
       letter-spacing:.02em;
     }
     .facade-qr-sub{
       margin-top:6px;
       font-size:12px;
-      line-height:1.55;
+      line-height:1.65;
       font-weight:800;
       color: rgba(0,0,0,0.56);
     }
@@ -412,9 +460,24 @@
       <!-- QR code card -->
       <div class="facade-qr" id="facadeQrCard">
         <div class="facade-qr-box">
-          <div class="facade-qr-canvas" id="facadeQrCanvas"></div>
-          <div class="facade-qr-title">掃描 QRcode 查閱完整名片</div>
-          <div class="facade-qr-sub">適合現場展示、轉傳海報、微信掃碼查看</div>
+          <div class="facade-qr-canvas" id="facadeQrCanvas">
+            <div class="facade-qr-grid" id="facadeQrGrid"></div>
+            <div class="facade-qr-logo-pad" aria-hidden="true">
+              <svg class="facade-qr-logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
+                <line x1="32" y1="6" x2="32" y2="16" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="32" y1="48" x2="32" y2="58" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="6" y1="32" x2="16" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="48" y1="32" x2="58" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="14" y1="14" x2="20" y2="20" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="44" y1="44" x2="50" y2="50" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="14" y1="50" x2="20" y2="44" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="44" y1="20" x2="50" y2="14" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="facade-qr-title">掃描 QRcode｜帶走智慧名片館</div>
+          <div class="facade-qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
         </div>
       </div>
 
@@ -566,7 +629,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v522.6</div>
+        <div class="version-tag" id="versionTag">v522.7</div>
       </div>
     </section>
   </main>
@@ -589,7 +652,7 @@
           <b>一鍵分享</b>：可分享智慧名片館，作為品牌入口與導流主頁。
         </div>
         <div class="k">
-          <b>QRcode 展示</b>：可現場展示，讓對方直接掃描查看完整智慧名片。
+          <b>QRcode 展示</b>：可現場展示，也可帶走智慧名片館入口，方便之後再次回來體驗。
         </div>
       </div>
     </div>
@@ -627,8 +690,10 @@
     (function(){
       "use strict";
 
-      var VERSION = "522.6";
+      var VERSION = "522.7";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
+      var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+      var DEMO_ID = "TW0001";
 
       function qs(id){ return document.getElementById(id); }
       function sp(){ try{return new URLSearchParams(location.search||"");}catch(e){return new URLSearchParams();} }
@@ -674,6 +739,16 @@
         if(fab) fab.style.display = "flex";
       }
 
+      function getCurrentCardId(){
+        try{
+          var p = sp();
+          var id = (p.get("id") || p.get("ref") || "").trim();
+          return id || DEMO_ID;
+        }catch(e){
+          return DEMO_ID;
+        }
+      }
+
       function buildHubShareUrlFallback(){
         try{
           if(typeof window.__getHubShareUrl === "function"){
@@ -681,50 +756,40 @@
           }
         }catch(e){}
         try{
-          var base = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
-          var p = sp();
-          var id = (p.get("id") || "").trim();
-          var u = new URL(base);
+          var u = new URL(BASE_URL);
+          var id = getCurrentCardId();
           if(id) u.searchParams.set("ref", id);
           return u.toString();
         }catch(e){
-          return "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
         }
       }
 
-      function buildCardQrUrl(){
+      function buildFacadeHubQrUrl(){
         try{
-          if(typeof window.__getCleanShareUrl === "function"){
-            return window.__getCleanShareUrl();
-          }
-        }catch(e){}
-        try{
-          var u = new URL(location.href);
-          if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
-          u.searchParams.delete("clean");
+          var u = new URL(BASE_URL);
+          u.searchParams.set("ref", getCurrentCardId());
           return u.toString();
         }catch(e){
-          var url = location.href;
-          if(url.indexOf("view=1") >= 0) return url;
-          return url + (url.indexOf("?")>=0 ? "&" : "?") + "view=1";
+          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
         }
       }
 
       function renderFacadeQr(){
-        var mount = qs("facadeQrCanvas");
+        var mount = qs("facadeQrGrid");
         if(!mount || isClean()) return;
         mount.innerHTML = "";
 
-        var qrUrl = buildCardQrUrl();
+        var qrUrl = buildFacadeHubQrUrl();
         try{
           if(window.QRCode){
             new QRCode(mount, {
               text: qrUrl,
-              width: 136,
-              height: 136,
+              width: 148,
+              height: 148,
               colorDark: "#2d241d",
               colorLight: "#ffffff",
-              correctLevel: QRCode.CorrectLevel.M
+              correctLevel: QRCode.CorrectLevel.H
             });
             return;
           }
