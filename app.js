@@ -1,6 +1,6 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v522.2 (COMPLETE OVERWRITE)
+ * app.js v522.5 (COMPLETE OVERWRITE)
  *
  * Align to GAS v522.2 payload:
  * ✅ { ok:true, v:"522.2", item:{...} }
@@ -10,12 +10,12 @@
  * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
  * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel (if exists in HTML)
  *
- * v522.2 changes:
- * ✅ A) card fetch now carries tenant / token / sig from URL when present
- * ✅ B) better error message on load fail
- * ✅ C) version update to v522.2
- * ✅ D) align to GAS v522.2 card/admin payload shape
- * ✅ E) keep facade / clean share logic
+ * v522.5 changes:
+ * ✅ A) version update to v522.5
+ * ✅ B) add HUB share url builder (share 智慧名片館)
+ * ✅ C) btnShare / fallback now share HUB url (with ?ref=TWxxxx when current card id exists)
+ * ✅ D) keep clean share url builder for compatibility
+ * ✅ E) expose __getHubShareUrl for index.html if needed
  * ================================ */
 
 const CONFIG = {
@@ -23,9 +23,10 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v522.2",
+  VERSION: "v522.5",
   FETCH_TIMEOUT_MS: 15000,
-  RETRY: 3
+  RETRY: 3,
+  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
 };
 
 let currentRow = null;
@@ -523,7 +524,7 @@ function syncActiveButtonsFromState_(){
   });
 }
 
-/* ---------- Share URL (force view=1) ---------- */
+/* ---------- Share URL builders ---------- */
 function buildCleanShareUrl_(){
   try{
     const u = new URL(location.href);
@@ -534,6 +535,20 @@ function buildCleanShareUrl_(){
     const url = location.href;
     if(url.includes("view=1")) return url;
     return url + (url.includes("?") ? "&" : "?") + "view=1";
+  }
+}
+
+function buildHubShareUrl_(){
+  const base = normalizeLink_(CONFIG.HUB_URL) || CONFIG.HUB_URL;
+  const cardId = getCurrentCardId_();
+
+  try{
+    const u = new URL(base);
+    if(cardId) u.searchParams.set("ref", cardId);
+    return u.toString();
+  }catch{
+    if(!cardId) return base;
+    return base + (base.includes("?") ? "&" : "?") + "ref=" + encodeURIComponent(cardId);
   }
 }
 
@@ -1277,6 +1292,7 @@ window.goLineIntro = goLineIntro;
 window.goFillForm = goFillForm;
 window.__buildLineOaUrlWithState = buildLineOaUrlWithState_;
 window.__getCleanShareUrl = buildCleanShareUrl_;
+window.__getHubShareUrl = buildHubShareUrl_;
 
 /* ================================
  * Photo Wall + Lightbox
@@ -1441,34 +1457,43 @@ function renderPhotoWall_(row){
 
 /* ---------- Share button ---------- */
 (function bindShareBtn_(){
-  const btn = qs("btnShare");
-  if(!btn) return;
+  function bindOne(id){
+    const btn = qs(id);
+    if(!btn) return;
 
-  btn.addEventListener("click", async (e)=>{
-    try{
-      const url = buildCleanShareUrl_();
+    btn.addEventListener("click", async (e)=>{
+      try{
+        const url = buildHubShareUrl_();
 
-      if(navigator.share){
-        e.preventDefault();
-        await navigator.share({ title: document.title, url });
-        return;
+        if(navigator.share){
+          e.preventDefault();
+          await navigator.share({
+            title: "天使幸福智慧名片",
+            text: "分享智慧名片館",
+            url
+          });
+          return;
+        }
+
+        const ok = await (async ()=>{
+          try{
+            if(navigator.clipboard?.writeText){
+              await navigator.clipboard.writeText(url);
+              return true;
+            }
+          }catch{}
+          return false;
+        })();
+
+        alert(ok ? "✅ 已複製智慧名片館連結" : "⚠️ 無法分享/複製，請手動複製網址");
+      }catch(err){
+        console.warn(err);
       }
+    }, true);
+  }
 
-      const ok = await (async ()=>{
-        try{
-          if(navigator.clipboard?.writeText){
-            await navigator.clipboard.writeText(url);
-            return true;
-          }
-        }catch{}
-        return false;
-      })();
-
-      alert(ok ? "✅ 已複製分享連結（乾淨成品）" : "⚠️ 無法分享/複製，請手動複製網址");
-    }catch(err){
-      console.warn(err);
-    }
-  }, true);
+  bindOne("btnShare");
+  bindOne("btnSharePremium");
 })();
 
 /* ---------- Load + Boot ---------- */
