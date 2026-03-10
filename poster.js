@@ -1,18 +1,19 @@
 /* ==========================================
- * HSC Poster v709.1
+ * HSC Poster v709.2
  * COMPLETE OVERWRITE
  *
- * 修正重點：
- * 1. 修正手機海報下載卡住
- * 2. 增加 QR render 等待
- * 3. 保留桌機下載 / 手機直接開圖長按保存
- * 4. 不改 UI 架構
+ * 重點：
+ * 1. 手機下載海報改用 html2canvas 截取海報區塊
+ * 2. 直接開圖，長按保存，不再卡住
+ * 3. 保留米白商用風格
+ * 4. QR 中央頭像保留
+ * 5. QR 可點擊進入智慧名片
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "709.1";
+  const VERSION = "709.2";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -57,7 +58,6 @@
   let currentCardUrl = "";
   let currentRecommendUrl = "";
   let currentAvatarUrl = "";
-  let currentQrSource = null;
 
   bindEvents();
   init();
@@ -67,6 +67,9 @@
       if (!id) throw new Error("缺少名片 id");
       if (typeof window.QRCode === "undefined") {
         throw new Error("缺少 qrcode.min.js");
+      }
+      if (typeof window.html2canvas === "undefined") {
+        throw new Error("缺少 html2canvas");
       }
 
       setStatus("正在載入資料…", false);
@@ -191,7 +194,6 @@
 
     hideQrFallback();
     el.qrViewport.innerHTML = "";
-    currentQrSource = null;
 
     const mount = document.createElement("div");
     mount.style.width = "100%";
@@ -210,22 +212,11 @@
       correctLevel: window.QRCode.CorrectLevel.H
     });
 
-    await wait(300);
+    await wait(240);
 
-    const source = normalizeQrSource(mount);
-    if (!source) {
-      renderQrFallback(targetUrl);
-      setStatus("QR 產生失敗，已改顯示名片連結", true);
-      return;
-    }
-
-    currentQrSource = source;
-  }
-
-  function normalizeQrSource(root) {
-    const img = root.querySelector("img");
-    const canvas = root.querySelector("canvas");
-    const table = root.querySelector("table");
+    const img = mount.querySelector("img");
+    const canvas = mount.querySelector("canvas");
+    const table = mount.querySelector("table");
 
     if (img) {
       img.style.width = "100%";
@@ -233,7 +224,7 @@
       img.style.display = "block";
       img.style.objectFit = "contain";
       img.style.imageRendering = "pixelated";
-      return img;
+      return;
     }
 
     if (canvas) {
@@ -242,7 +233,7 @@
       canvas.style.display = "block";
       canvas.style.objectFit = "contain";
       canvas.style.imageRendering = "pixelated";
-      return canvas;
+      return;
     }
 
     if (table) {
@@ -254,10 +245,11 @@
         td.style.padding = "0";
         td.style.margin = "0";
       });
-      return table;
+      return;
     }
 
-    return null;
+    renderQrFallback(targetUrl);
+    setStatus("QR 產生失敗，已改顯示名片連結", true);
   }
 
   async function renderQrCenterAvatar(avatarUrl) {
@@ -301,12 +293,19 @@
       disableButton(el.downloadBtn, true);
       setStatus("正在產生海報圖片…", false);
 
-      await wait(300);
+      if (!el.posterCapture) throw new Error("找不到海報區塊");
 
-      const canvas = await buildPosterCanvas();
-      if (!canvas) {
-        throw new Error("海報 canvas 建立失敗");
-      }
+      await waitForImages(el.posterCapture);
+      await wait(120);
+
+      const canvas = await window.html2canvas(el.posterCapture, {
+        backgroundColor: "#fffaf5",
+        scale: isMobileDevice() ? 2 : 3,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+        imageTimeout: 15000
+      });
 
       const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
       const dataUrl = canvas.toDataURL("image/png", 0.96);
@@ -326,366 +325,6 @@
     } finally {
       disableButton(el.downloadBtn, false);
     }
-  }
-
-  async function buildPosterCanvas() {
-    const width = 1080;
-    const height = 1600;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-
-    const avatar = await loadImageElement(currentAvatarUrl || buildDefaultAvatarSvg(), buildDefaultAvatarSvg());
-    const qrDrawable = await getQrDrawable();
-    const qrCenterAvatar = await loadImageElement(currentAvatarUrl || buildDefaultAvatarSvg(), buildDefaultAvatarSvg());
-
-    drawBackground(ctx, width, height);
-    drawCard(ctx, 30, 30, width - 60, height - 60, 40);
-
-    drawBrandHead(ctx, width);
-    drawInnerPanel(ctx, 76, 186, width - 152, 1360, 34);
-
-    drawAvatarCircle(ctx, avatar, width / 2, 286, 102);
-
-    drawCenteredText(ctx, text(currentItem?.name) || text(currentItem?.id) || "我的智慧名片", width / 2, 460, {
-      font: "900 64px 'Noto Sans TC', sans-serif",
-      color: "#453429"
-    });
-
-    drawCenteredMultiLine(
-      ctx,
-      text(currentItem?.title) || text(currentItem?.unit) || text(currentItem?.slogan) || "",
-      width / 2,
-      540,
-      760,
-      48,
-      {
-        font: "500 34px 'Noto Sans TC', sans-serif",
-        color: "#705d50"
-      }
-    );
-
-    const qrFrameX = 156;
-    const qrFrameY = 632;
-    const qrFrameW = 768;
-    const qrFrameH = 768;
-
-    drawFrame(ctx, qrFrameX, qrFrameY, qrFrameW, qrFrameH, 34);
-    const qrBoxX = qrFrameX + 44;
-    const qrBoxY = qrFrameY + 44;
-    const qrBoxSize = qrFrameW - 88;
-
-    drawRoundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 24, "#ffffff");
-
-    ctx.save();
-    roundRectPath(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 24);
-    ctx.clip();
-
-    if (qrDrawable) {
-      ctx.drawImage(qrDrawable, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize);
-    } else {
-      ctx.fillStyle = "#f6efe8";
-      ctx.fillRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize);
-      ctx.fillStyle = "#705d50";
-      ctx.textAlign = "center";
-      ctx.font = "600 28px 'Noto Sans TC', sans-serif";
-      ctx.fillText("名片連結", width / 2, qrBoxY + qrBoxSize / 2 - 20);
-      ctx.font = "400 18px sans-serif";
-      wrapTextCenter(ctx, currentCardUrl, width / 2, qrBoxY + qrBoxSize / 2 + 18, 500, 28);
-    }
-    ctx.restore();
-
-    if (qrCenterAvatar) {
-      drawQrCenterCircle(ctx, qrCenterAvatar, width / 2, qrBoxY + qrBoxSize / 2, 82);
-    }
-
-    drawCenteredText(ctx, "掃描 QR Code", width / 2, 1448, {
-      font: "800 30px 'Noto Sans TC', sans-serif",
-      color: "#705d50"
-    });
-
-    drawCenteredText(ctx, "查看完整智慧名片", width / 2, 1492, {
-      font: "800 30px 'Noto Sans TC', sans-serif",
-      color: "#705d50"
-    });
-
-    return canvas;
-  }
-
-  async function getQrDrawable() {
-    await wait(80);
-
-    if (!currentQrSource) return null;
-
-    if (currentQrSource.tagName === "CANVAS") return currentQrSource;
-
-    if (currentQrSource.tagName === "IMG") {
-      if (!currentQrSource.complete || currentQrSource.naturalWidth === 0) {
-        await waitForImageElement(currentQrSource);
-      }
-      return currentQrSource.naturalWidth > 0 ? currentQrSource : null;
-    }
-
-    if (currentQrSource.tagName === "TABLE") {
-      return tableToCanvas(currentQrSource);
-    }
-
-    return null;
-  }
-
-  function tableToCanvas(table) {
-    const rows = Array.from(table.querySelectorAll("tr"));
-    if (!rows.length) return null;
-
-    const cols = rows[0].querySelectorAll("td").length;
-    if (!cols) return null;
-
-    const size = 800;
-    const canvas = document.createElement("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d");
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, size, size);
-
-    const cellW = size / cols;
-    const cellH = size / rows.length;
-
-    rows.forEach((tr, r) => {
-      const tds = Array.from(tr.querySelectorAll("td"));
-      tds.forEach((td, c) => {
-        const bg = getComputedStyle(td).backgroundColor.replace(/\s+/g, "").toLowerCase();
-        if (bg !== "rgb(255,255,255)" && bg !== "rgba(255,255,255,1)" && bg !== "transparent") {
-          ctx.fillStyle = "#2f241d";
-          ctx.fillRect(c * cellW, r * cellH, Math.ceil(cellW), Math.ceil(cellH));
-        }
-      });
-    });
-
-    return canvas;
-  }
-
-  function drawBackground(ctx, w, h) {
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, "#f8f4ee");
-    g.addColorStop(1, "#f3ece3");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-
-    const rg = ctx.createRadialGradient(w / 2, -40, 30, w / 2, -40, 680);
-    rg.addColorStop(0, "rgba(255,255,255,.85)");
-    rg.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = rg;
-    ctx.fillRect(0, 0, w, h);
-  }
-
-  function drawCard(ctx, x, y, w, h, r) {
-    ctx.save();
-    ctx.shadowColor = "rgba(83,62,45,.08)";
-    ctx.shadowBlur = 40;
-    ctx.shadowOffsetY = 10;
-    drawRoundRect(ctx, x, y, w, h, r, "#fffdfa");
-    ctx.restore();
-
-    ctx.save();
-    ctx.strokeStyle = "rgba(102,78,57,.10)";
-    ctx.lineWidth = 2;
-    roundRectPath(ctx, x, y, w, h, r);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawBrandHead(ctx, width) {
-    drawCenteredText(ctx, "☀", width / 2, 88, {
-      font: "900 44px 'Noto Sans TC', sans-serif",
-      color: "#9d6d45"
-    });
-
-    drawCenteredText(ctx, "天使幸福智慧名片", width / 2, 126, {
-      font: "900 38px 'Noto Sans TC', sans-serif",
-      color: "#453429"
-    });
-
-    drawCenteredText(ctx, "Angel Smart Card", width / 2, 158, {
-      font: "700 18px sans-serif",
-      color: "#8b7a6d"
-    });
-
-    drawRoundRect(ctx, 356, 176, 368, 50, 25, "#fbf2e8");
-    ctx.save();
-    ctx.strokeStyle = "rgba(191,135,87,.16)";
-    ctx.lineWidth = 2;
-    roundRectPath(ctx, 356, 176, 368, 50, 25);
-    ctx.stroke();
-    ctx.restore();
-
-    drawCenteredText(ctx, "智慧名片交付卡", width / 2, 200, {
-      font: "900 24px 'Noto Sans TC', sans-serif",
-      color: "#9d6d45"
-    });
-  }
-
-  function drawInnerPanel(ctx, x, y, w, h, r) {
-    ctx.save();
-    ctx.shadowColor = "rgba(83,62,45,.06)";
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetY = 8;
-    drawRoundRect(ctx, x, y, w, h, r, "#fffaf5");
-    ctx.restore();
-
-    ctx.save();
-    ctx.strokeStyle = "rgba(102,78,57,.08)";
-    ctx.lineWidth = 2;
-    roundRectPath(ctx, x, y, w, h, r);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawFrame(ctx, x, y, w, h, r) {
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,.05)";
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetY = 8;
-    drawRoundRect(ctx, x, y, w, h, r, "#fffdfa");
-    ctx.restore();
-
-    ctx.save();
-    ctx.strokeStyle = "rgba(0,0,0,.04)";
-    ctx.lineWidth = 2;
-    roundRectPath(ctx, x, y, w, h, r);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  function drawAvatarCircle(ctx, img, cx, cy, r) {
-    ctx.save();
-    ctx.shadowColor = "rgba(88,67,48,.09)";
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetY = 6;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r - 6, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    if (img) {
-      ctx.drawImage(img, cx - r + 6, cy - r + 6, (r - 6) * 2, (r - 6) * 2);
-    } else {
-      ctx.fillStyle = "#eadfd4";
-      ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-    }
-    ctx.restore();
-  }
-
-  function drawQrCenterCircle(ctx, img, cx, cy, r) {
-    ctx.save();
-    ctx.shadowColor = "rgba(0,0,0,.10)";
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetY = 6;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.fillStyle = "#ffffff";
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, r - 6, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    ctx.drawImage(img, cx - r + 6, cy - r + 6, (r - 6) * 2, (r - 6) * 2);
-    ctx.restore();
-  }
-
-  function drawCenteredText(ctx, str, x, y, opts = {}) {
-    ctx.save();
-    ctx.font = opts.font || "600 32px sans-serif";
-    ctx.fillStyle = opts.color || "#000";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(str || "", x, y);
-    ctx.restore();
-  }
-
-  function drawCenteredMultiLine(ctx, textValue, x, y, maxWidth, lineHeight, opts = {}) {
-    const lines = splitLinesByWidth(ctx, textValue || "", maxWidth, opts.font || "500 34px sans-serif");
-    ctx.save();
-    ctx.font = opts.font || "500 34px sans-serif";
-    ctx.fillStyle = opts.color || "#705d50";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    const startY = y - ((lines.length - 1) * lineHeight) / 2;
-    lines.forEach((line, idx) => {
-      ctx.fillText(line, x, startY + idx * lineHeight);
-    });
-    ctx.restore();
-  }
-
-  function splitLinesByWidth(ctx, input, maxWidth, font) {
-    const s = String(input || "").trim();
-    if (!s) return [""];
-
-    ctx.save();
-    ctx.font = font;
-
-    const chars = Array.from(s);
-    const lines = [];
-    let line = "";
-
-    chars.forEach((ch) => {
-      const test = line + ch;
-      if (ctx.measureText(test).width > maxWidth && line) {
-        lines.push(line);
-        line = ch;
-      } else {
-        line = test;
-      }
-    });
-
-    if (line) lines.push(line);
-    ctx.restore();
-    return lines.slice(0, 2);
-  }
-
-  function wrapTextCenter(ctx, textValue, x, y, maxWidth, lineHeight) {
-    const lines = splitLinesByWidth(ctx, textValue || "", maxWidth, ctx.font);
-    lines.forEach((line, idx) => {
-      ctx.fillText(line, x, y + idx * lineHeight);
-    });
-  }
-
-  function drawRoundRect(ctx, x, y, w, h, r, fill) {
-    roundRectPath(ctx, x, y, w, h, r);
-    ctx.fillStyle = fill;
-    ctx.fill();
-  }
-
-  function roundRectPath(ctx, x, y, w, h, r) {
-    const rr = Math.min(r, w / 2, h / 2);
-    ctx.beginPath();
-    ctx.moveTo(x + rr, y);
-    ctx.arcTo(x + w, y, x + w, y + h, rr);
-    ctx.arcTo(x + w, y + h, x, y + h, rr);
-    ctx.arcTo(x, y + h, x, y, rr);
-    ctx.arcTo(x, y, x + w, y, rr);
-    ctx.closePath();
-  }
-
-  function disableButton(btn, disabled) {
-    if (!btn) return;
-    btn.disabled = !!disabled;
-    btn.style.opacity = disabled ? ".72" : "";
-    btn.style.cursor = disabled ? "wait" : "";
   }
 
   function showImagePage(dataUrl, filename) {
@@ -871,19 +510,25 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  function waitForImageElement(imgEl) {
-    return new Promise((resolve) => {
-      if (!imgEl) return resolve();
-      if (imgEl.complete && imgEl.naturalWidth > 0) return resolve();
+  function waitForImages(root) {
+    const images = Array.from(root.querySelectorAll("img"));
+    if (!images.length) return Promise.resolve();
 
-      const done = () => {
-        imgEl.removeEventListener("load", done);
-        imgEl.removeEventListener("error", done);
-        resolve();
-      };
-      imgEl.addEventListener("load", done, { once: true });
-      imgEl.addEventListener("error", done, { once: true });
-    });
+    return Promise.all(
+      images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+
+        return new Promise((resolve) => {
+          const done = () => {
+            img.removeEventListener("load", done);
+            img.removeEventListener("error", done);
+            resolve();
+          };
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+        });
+      })
+    );
   }
 
   function loadImage(imgEl, src, fallback = "") {
@@ -903,26 +548,6 @@
       };
 
       imgEl.src = src;
-    });
-  }
-
-  function loadImageElement(src, fallback = "") {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      let triedFallback = false;
-
-      img.onload = () => resolve(img);
-      img.onerror = () => {
-        if (!triedFallback && fallback) {
-          triedFallback = true;
-          img.src = fallback;
-          return;
-        }
-        resolve(null);
-      };
-
-      img.src = src;
     });
   }
 
