@@ -1,5 +1,5 @@
 <!-- ================================
-     index.html v522.7 (COMPLETE OVERWRITE)
+     index.html v522.8 (COMPLETE OVERWRITE)
      FRONT + CLEAN DELIVERY MODE + INVITE GATE + FACADE HUB QRCODE
 
      ✅ Front (門面): only use DEMO_ID (TW0001) when URL has NO id
@@ -14,7 +14,7 @@
         - 白色保護底，提升掃描穩定度
         - 文案改為：
           掃描 QRcode｜帶走智慧名片館
-          可收藏・可分享・可體驗
+          可收藏・可分享・可隨時回來慢慢體驗
 
      ✅ CTA:
         - LINE OA: https://lin.ee/3r2ZePN
@@ -22,7 +22,7 @@
         - 產品特色說明：modal
         - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
      ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=522.7&invite=XXXX
+        - Front: click 開通 → ask invite code → open ./form.html?v=522.8&invite=XXXX
         - Clean mode: no form entry
 
      ✅ Brand facade:
@@ -30,6 +30,10 @@
         - Heading: 天使幸福智慧名片
         - Positioning:
           智慧名片訂製｜適合創業者、講師與服務業｜打造可分享的專屬名片入口
+
+     ✅ v522.8:
+        - 門面整體底色對齊交付卡米白質感底色
+        - facade 卡片質感同步往交付卡靠攏
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -37,24 +41,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片 v522.7</title>
+  <title>天使幸福智慧名片館 v522.8</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=522.7" />
-  <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.7" />
-  <link rel="icon" href="./icons/icon-192.png?v=522.7" />
+  <link rel="manifest" href="./manifest.json?v=522.8" />
+  <meta name="theme-color" content="#f8f4ee" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.8" />
+  <link rel="icon" href="./icons/icon-192.png?v=522.8" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="天使幸福智慧名片" />
+  <meta name="apple-mobile-web-app-title" content="天使幸福智慧名片館" />
 
   <!-- OG -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片" />
   <meta property="og:description" content="智慧名片訂製服務｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=522.7" />
+  <meta property="og:image" content="og-card.png?v=522.8" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -62,6 +66,31 @@
   <link rel="stylesheet" href="./style.css?v=522.6" />
 
   <style>
+    :root{
+      --poster-bg:#f8f4ee;
+      --poster-bg-2:#f3ece3;
+      --poster-ink:#433227;
+      --poster-ink-soft:#6b5a4d;
+      --poster-muted:#8d7d70;
+      --poster-line:rgba(102,78,57,.09);
+      --poster-gold:#bf8757;
+      --poster-gold-deep:#9a6a44;
+      --poster-gold-soft:#b6855e;
+      --poster-shadow:0 18px 42px rgba(83,62,45,.07);
+      --poster-shadow-soft:0 10px 24px rgba(83,62,45,.05);
+    }
+
+    html,body{
+      background:
+        radial-gradient(1200px 760px at 50% -10%, rgba(255,255,255,.95), transparent 58%),
+        linear-gradient(180deg, var(--poster-bg), var(--poster-bg-2)) !important;
+      color:var(--poster-ink);
+    }
+
+    body{
+      min-height:100vh;
+    }
+
     /* CTA visibility guard */
     #btnLineOaCta,#btnLinePrivateCta,#btnFeature,#btnInviteGate,#btnShare,#btnSharePremium,
     #btnLineOaCta2,#btnLinePrivateCta2,#btnFeature2,#btnInviteGate2{
@@ -71,7 +100,7 @@
       pointer-events:auto !important;
     }
 
-    /* v522.7: force-hide top private line CTA (private line moved to contactDock) */
+    /* v522.8: force-hide top private line CTA (private line moved to contactDock) */
     #btnLinePrivateCta,#btnLinePrivateCta2{
       display:none !important;
       visibility:hidden !important;
@@ -255,11 +284,11 @@
     .facade-brand{
       width:100%;
       max-width:520px;
-      border-radius: 18px;
-      padding: 14px 12px 12px;
-      border: 1px solid rgba(0,0,0,0.08);
-      background: rgba(255,255,255,0.68);
-      box-shadow: 0 14px 30px rgba(0,0,0,0.10);
+      border-radius: 24px;
+      padding: 16px 14px 14px;
+      border: 1px solid var(--poster-line);
+      background: linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
+      box-shadow: var(--poster-shadow);
     }
     .facade-brand-head{
       display:flex;
@@ -281,7 +310,7 @@
       font-size:18px;
       line-height:1.25;
       letter-spacing:.6px;
-      color: rgba(0,0,0,0.86);
+      color: var(--poster-ink);
       text-align:center;
     }
     .facade-brand-subtitle{
@@ -290,14 +319,14 @@
       line-height:1.35;
       font-weight:800;
       letter-spacing:.18em;
-      color: rgba(0,0,0,0.55);
+      color: #a08f82;
       text-align:center;
     }
     .facade-brand .p{
       margin-top: 10px;
       font-size: 13px;
-      line-height: 1.55;
-      color: rgba(0,0,0,0.62);
+      line-height: 1.6;
+      color: var(--poster-ink-soft);
       font-weight: 800;
       text-align:center;
     }
@@ -307,11 +336,11 @@
       width:100%;
       max-width:520px;
       margin-top:12px;
-      border-radius: 18px;
+      border-radius: 24px;
       padding: 14px 14px 12px;
-      border: 1px solid rgba(0,0,0,0.08);
-      background: rgba(255,255,255,0.72);
-      box-shadow: 0 14px 30px rgba(0,0,0,0.08);
+      border: 1px solid var(--poster-line);
+      background: linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
+      box-shadow: var(--poster-shadow-soft);
     }
     .facade-qr-box{
       display:flex;
@@ -326,11 +355,11 @@
       height:172px;
       padding:12px;
       border-radius: 22px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.94));
+      background: linear-gradient(180deg, #ffffff, #fffdfb);
       box-shadow:
-        0 12px 28px rgba(0,0,0,0.08),
-        inset 0 1px 0 rgba(255,255,255,0.92);
-      border:1px solid rgba(0,0,0,0.06);
+        inset 0 1px 0 rgba(255,255,255,.82),
+        0 8px 18px rgba(0,0,0,.04);
+      border:1px solid rgba(0,0,0,.035);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -383,7 +412,7 @@
       margin-top:12px;
       font-size:14px;
       font-weight:900;
-      color: rgba(0,0,0,0.84);
+      color: var(--poster-ink);
       letter-spacing:.02em;
     }
     .facade-qr-sub{
@@ -391,7 +420,7 @@
       font-size:12px;
       line-height:1.65;
       font-weight:800;
-      color: rgba(0,0,0,0.56);
+      color: var(--poster-ink-soft);
     }
 
     body.clean #admin-panel{ display:none !important; }
@@ -629,7 +658,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v522.7</div>
+        <div class="version-tag" id="versionTag">v522.8</div>
       </div>
     </section>
   </main>
@@ -690,7 +719,7 @@
     (function(){
       "use strict";
 
-      var VERSION = "522.7";
+      var VERSION = "522.8";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -787,7 +816,7 @@
               text: qrUrl,
               width: 148,
               height: 148,
-              colorDark: "#2d241d",
+              colorDark: "#433227",
               colorLight: "#ffffff",
               correctLevel: QRCode.CorrectLevel.H
             });
@@ -796,7 +825,7 @@
         }catch(e){}
 
         var fallback = document.createElement("div");
-        fallback.style.cssText = "font-size:12px;line-height:1.6;color:#6b5b4d;text-align:center;padding:10px;";
+        fallback.style.cssText = "font-size:12px;line-height:1.6;color:#6b5a4d;text-align:center;padding:10px;";
         fallback.textContent = "QRcode 載入失敗";
         mount.appendChild(fallback);
       }
