@@ -1468,7 +1468,7 @@ function renderPhotoWall_(row){
         if(navigator.share){
           e.preventDefault();
           await navigator.share({
-            title: "天使幸福智慧名片",
+            title: "天使幸福智慧名片館",
             text: "分享智慧名片館",
             url
           });
