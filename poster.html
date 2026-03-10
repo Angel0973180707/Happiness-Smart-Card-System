@@ -199,7 +199,7 @@
       max-width:100%;
       background:linear-gradient(180deg, #ffffff, #fffdfa);
       border-radius:30px;
-      padding:24px 24px 18px;
+      padding:24px 24px 22px;
       border:1px solid rgba(0,0,0,.04);
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.82),
@@ -254,7 +254,6 @@
 
     .qr-center-avatar{
       position:absolute;
-      inset:auto;
       left:50%;
       top:50%;
       transform:translate(-50%,-50%);
@@ -297,7 +296,7 @@
     }
 
     .qr-caption{
-      margin-top:14px;
+      margin-top:18px;
       text-align:center;
     }
 
@@ -451,7 +450,7 @@
       .avatar-wrap{ width:88px; height:88px; }
       .name{ font-size:24px; }
       .title{ font-size:15px; }
-      .qr-frame{ padding:20px 20px 16px; border-radius:24px; }
+      .qr-frame{ padding:20px 20px 18px; border-radius:24px; }
       .qr-caption-line{ font-size:13px; }
       .btn{ padding:15px 18px; font-size:15px; min-height:54px; }
       .action-group{ padding:12px; }
@@ -535,7 +534,7 @@
         <p>2. 也可以使用名片海報分享，對方掃描 QR Code 即可查看。</p>
         <p>3. 面對面交流時，可直接出示此 QR Code 讓對方掃描。</p>
         <p>4. 對方收到名片後，可存入 LINE 記事本或微信收藏，方便之後再次開啟。</p>
-        <p>5. 手機上也可直接點擊 QR Code 打開智慧名片；若瀏覽器支援，之後還可加入桌面。</p>
+        <p>5. 手機點下載海報後，會直接開圖，可長按保存到相簿。</p>
       </div>
       <div class="dialog-actions">
         <button id="dialogCloseBtn" class="btn btn-primary dialog-close" type="button">我知道了</button>
@@ -543,7 +542,8 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./qrcode.min.js"></script>
-  <script src="./poster.js?v=7080"></script>
+  <script src="./poster.js?v=7092"></script>
 </body>
 </html>
