@@ -1,11 +1,12 @@
 <!-- ================================
-     index.html v522.5 (COMPLETE OVERWRITE)
-     FRONT + CLEAN DELIVERY MODE + INVITE GATE
+     index.html v522.6 (COMPLETE OVERWRITE)
+     FRONT + CLEAN DELIVERY MODE + INVITE GATE + FACADE QRCODE
 
      ✅ Front (門面): only use DEMO_ID (TW0001) when URL has NO id
      ✅ If URL already has id, KEEP that id
      ✅ Clean (成品): ?view=1 / ?clean=1 → hide控制面板 + keep share FAB
      ✅ Share: share 智慧名片館（優先走 app.js v522.5 的 HUB share URL）
+     ✅ QRCode: facade shows current smart-card clean URL
 
      ✅ CTA:
         - LINE OA: https://lin.ee/3r2ZePN
@@ -13,7 +14,7 @@
         - 產品特色說明：modal
         - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
      ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=522.5&invite=XXXX
+        - Front: click 開通 → ask invite code → open ./form.html?v=522.6&invite=XXXX
         - Clean mode: no form entry
 
      ✅ Brand facade:
@@ -28,13 +29,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片 v522.5</title>
+  <title>天使幸福智慧名片 v522.6</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=522.5" />
+  <link rel="manifest" href="./manifest.json?v=522.6" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.5" />
-  <link rel="icon" href="./icons/icon-192.png?v=522.5" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.6" />
+  <link rel="icon" href="./icons/icon-192.png?v=522.6" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -45,16 +46,15 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片" />
   <meta property="og:description" content="智慧名片訂製服務｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=522.5" />
+  <meta property="og:image" content="og-card.png?v=522.6" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-
-  <link rel="stylesheet" href="./style.css?v=522.5" />
+  <link rel="stylesheet" href="./style.css?v=522.6" />
 
   <style>
-    /* CTA visibility guard (include *2 IDs) */
+    /* CTA visibility guard */
     #btnLineOaCta,#btnLinePrivateCta,#btnFeature,#btnInviteGate,#btnShare,#btnSharePremium,
     #btnLineOaCta2,#btnLinePrivateCta2,#btnFeature2,#btnInviteGate2{
       display:inline-flex !important;
@@ -63,7 +63,7 @@
       pointer-events:auto !important;
     }
 
-    /* v522.5: force-hide top private line CTA (private line moved to contactDock) */
+    /* v522.6: force-hide top private line CTA (private line moved to contactDock) */
     #btnLinePrivateCta,#btnLinePrivateCta2{
       display:none !important;
       visibility:hidden !important;
@@ -243,7 +243,7 @@
       color: rgba(0,0,0,0.82);
     }
 
-    /* facade header block (inside panel) */
+    /* facade */
     .facade-brand{
       width:100%;
       max-width:520px;
@@ -263,10 +263,10 @@
     .sun-ui-icon{
       width:22px;
       height:22px;
-      object-fit:contain;
       display:block;
       margin-bottom:8px;
       opacity:.95;
+      filter: drop-shadow(0 2px 4px rgba(176,138,107,.18));
     }
     .facade-brand-title{
       font-weight:1000;
@@ -294,15 +294,63 @@
       text-align:center;
     }
 
+    /* facade qrcode card */
+    .facade-qr{
+      width:100%;
+      max-width:520px;
+      margin-top:12px;
+      border-radius: 18px;
+      padding: 14px 14px 12px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.72);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.08);
+    }
+    .facade-qr-box{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+    .facade-qr-canvas{
+      width:156px;
+      height:156px;
+      padding:10px;
+      border-radius: 18px;
+      background:#fff;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+      border:1px solid rgba(0,0,0,0.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .facade-qr-canvas img,
+    .facade-qr-canvas canvas{
+      width:100% !important;
+      height:100% !important;
+      display:block;
+    }
+    .facade-qr-title{
+      margin-top:12px;
+      font-size:14px;
+      font-weight:900;
+      color: rgba(0,0,0,0.82);
+      letter-spacing:.02em;
+    }
+    .facade-qr-sub{
+      margin-top:6px;
+      font-size:12px;
+      line-height:1.55;
+      font-weight:800;
+      color: rgba(0,0,0,0.56);
+    }
+
     body.clean #admin-panel{ display:none !important; }
     body.clean #card-container{ position: relative; z-index: 1; }
     body.clean #cleanShareFab{ z-index: 2147483500; }
   </style>
 
-  <!-- ✅ Front demo id logic fixed:
-       - only inject DEMO_ID when URL has NO id
-       - if URL already has id, KEEP it
-  -->
   <script>
     (function(){
       "use strict";
@@ -341,14 +389,33 @@
   <header id="admin-panel">
     <div class="panel-inner">
 
-      <!-- ✅ Brand facade -->
+      <!-- Brand facade -->
       <div class="facade-brand" id="facadeBrand">
         <div class="facade-brand-head">
-          <img src="./assets/icon/sun-ui.png" class="sun-ui-icon" alt="">
+          <svg class="sun-ui-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
+            <line x1="32" y1="6" x2="32" y2="16" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="32" y1="48" x2="32" y2="58" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="6" y1="32" x2="16" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="48" y1="32" x2="58" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="14" y1="14" x2="20" y2="20" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="44" y1="44" x2="50" y2="50" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="14" y1="50" x2="20" y2="44" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="44" y1="20" x2="50" y2="14" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+          </svg>
           <div class="facade-brand-title">天使幸福智慧名片</div>
           <div class="facade-brand-subtitle">Angel Smart Card</div>
         </div>
         <div class="p">智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口</div>
+      </div>
+
+      <!-- QR code card -->
+      <div class="facade-qr" id="facadeQrCard">
+        <div class="facade-qr-box">
+          <div class="facade-qr-canvas" id="facadeQrCanvas"></div>
+          <div class="facade-qr-title">掃描 QRcode 查閱完整名片</div>
+          <div class="facade-qr-sub">適合現場展示、轉傳海報、微信掃碼查看</div>
+        </div>
       </div>
 
       <!-- Step 1: Plan -->
@@ -499,7 +566,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v522.5</div>
+        <div class="version-tag" id="versionTag">v522.6</div>
       </div>
     </section>
   </main>
@@ -522,7 +589,7 @@
           <b>一鍵分享</b>：可分享智慧名片館，作為品牌入口與導流主頁。
         </div>
         <div class="k">
-          <b>安全開通</b>：表單採邀請碼制，需由後台發放，避免公開被濫用。
+          <b>QRcode 展示</b>：可現場展示，讓對方直接掃描查看完整智慧名片。
         </div>
       </div>
     </div>
@@ -550,6 +617,9 @@
     </div>
   </div>
 
+  <!-- QRCode lib -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <!-- Load app.js -->
   <script src="./app.js?v=522.5"></script>
 
@@ -557,7 +627,7 @@
     (function(){
       "use strict";
 
-      var VERSION = "522.5";
+      var VERSION = "522.6";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
 
       function qs(id){ return document.getElementById(id); }
@@ -620,6 +690,50 @@
         }catch(e){
           return "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
         }
+      }
+
+      function buildCardQrUrl(){
+        try{
+          if(typeof window.__getCleanShareUrl === "function"){
+            return window.__getCleanShareUrl();
+          }
+        }catch(e){}
+        try{
+          var u = new URL(location.href);
+          if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
+          u.searchParams.delete("clean");
+          return u.toString();
+        }catch(e){
+          var url = location.href;
+          if(url.indexOf("view=1") >= 0) return url;
+          return url + (url.indexOf("?")>=0 ? "&" : "?") + "view=1";
+        }
+      }
+
+      function renderFacadeQr(){
+        var mount = qs("facadeQrCanvas");
+        if(!mount || isClean()) return;
+        mount.innerHTML = "";
+
+        var qrUrl = buildCardQrUrl();
+        try{
+          if(window.QRCode){
+            new QRCode(mount, {
+              text: qrUrl,
+              width: 136,
+              height: 136,
+              colorDark: "#2d241d",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M
+            });
+            return;
+          }
+        }catch(e){}
+
+        var fallback = document.createElement("div");
+        fallback.style.cssText = "font-size:12px;line-height:1.6;color:#6b5b4d;text-align:center;padding:10px;";
+        fallback.textContent = "QRcode 載入失敗";
+        mount.appendChild(fallback);
       }
 
       function bindShareFallback(){
@@ -870,6 +984,7 @@
         bindInviteGate();
         bindShareFallback();
         bindPlanFallback();
+        renderFacadeQr();
 
         setTimeout(function(){
           [
