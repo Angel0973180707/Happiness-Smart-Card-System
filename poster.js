@@ -1,19 +1,18 @@
 /* ==========================================
- * HSC Poster v709.4
+ * HSC Poster v709.5
  * COMPLETE OVERWRITE
  *
- * 根源排查第二層：
- * 1. 不再用 html2canvas 截整塊海報 DOM
- * 2. 改成純 canvas 重新生成海報
- * 3. 匯出內容只保留必要元素：品牌 / 標題 / 姓名 / 職稱 / QR / 說明
- * 4. 不直接下載，手機與桌機都先直接開圖
- * 5. 先求生成穩定，再談美化與補回頭像
+ * 封存版：
+ * 1. 保留 v709.4 純 canvas 生成海報穩定流程
+ * 2. 視覺微調，不動生成主幹
+ * 3. QR 可掃描、可點擊
+ * 4. 文案定稿
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "709.4";
+  const VERSION = "709.5";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -320,8 +319,8 @@
     const qrCanvas = await buildQrCanvas(currentCardUrl, 880);
 
     const canvas = document.createElement("canvas");
-    const width = 1200;
-    const height = 1800;
+    const width = 1080;
+    const height = 1920;
     canvas.width = width;
     canvas.height = height;
 
@@ -401,7 +400,7 @@
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, width, height);
 
-    const glow = ctx.createRadialGradient(width / 2, 140, 40, width / 2, 140, 620);
+    const glow = ctx.createRadialGradient(width / 2, 150, 40, width / 2, 150, 620);
     glow.addColorStop(0, "rgba(255,255,255,.92)");
     glow.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = glow;
@@ -409,27 +408,27 @@
   }
 
   function drawMainCard(ctx, width, height) {
-    roundRect(ctx, 70, 70, width - 140, height - 140, 46);
-    const cardGrad = ctx.createLinearGradient(0, 70, 0, height - 70);
+    roundRect(ctx, 66, 74, width - 132, height - 148, 44);
+    const cardGrad = ctx.createLinearGradient(0, 74, 0, height - 74);
     cardGrad.addColorStop(0, "rgba(255,253,250,.98)");
     cardGrad.addColorStop(1, "rgba(255,248,241,.98)");
     ctx.fillStyle = cardGrad;
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(102,78,57,.10)";
+    ctx.strokeStyle = "rgba(102,78,57,.09)";
     ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.save();
     ctx.beginPath();
-    roundRectPath(ctx, 70, 70, width - 140, 220, 46);
+    roundRectPath(ctx, 66, 74, width - 132, 220, 44);
     ctx.clip();
 
-    const topGlow = ctx.createLinearGradient(0, 70, 0, 290);
+    const topGlow = ctx.createLinearGradient(0, 74, 0, 294);
     topGlow.addColorStop(0, "rgba(255,255,255,.76)");
     topGlow.addColorStop(1, "rgba(255,255,255,0)");
     ctx.fillStyle = topGlow;
-    ctx.fillRect(70, 70, width - 140, 220);
+    ctx.fillRect(66, 74, width - 132, 220);
     ctx.restore();
   }
 
@@ -437,40 +436,40 @@
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    ctx.font = "700 42px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
-    ctx.fillStyle = "#9d6d45";
+    ctx.font = "700 40px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillStyle = "#b6855e";
     ctx.fillText("☀", width / 2, 150);
 
-    ctx.font = "900 54px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
-    ctx.fillStyle = "#453429";
+    ctx.font = "900 50px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillStyle = "#433227";
     ctx.fillText("天使幸福智慧名片", width / 2, 220);
 
-    ctx.font = "700 26px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
-    ctx.fillStyle = "#8b7a6d";
-    ctx.fillText("Angel Smart Card", width / 2, 272);
+    ctx.font = "700 24px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillStyle = "#9c8b7f";
+    ctx.fillText("Angel Smart Card", width / 2, 270);
   }
 
   function drawDeliveryPill(ctx, width) {
-    const pillW = 390;
-    const pillH = 74;
+    const pillW = 360;
+    const pillH = 68;
     const x = (width - pillW) / 2;
-    const y = 320;
+    const y = 315;
 
     roundRect(ctx, x, y, pillW, pillH, 999);
     const grad = ctx.createLinearGradient(0, y, 0, y + pillH);
     grad.addColorStop(0, "#fffefb");
-    grad.addColorStop(1, "#fbf2e8");
+    grad.addColorStop(1, "#fbf3e9");
     ctx.fillStyle = grad;
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(191,135,87,.16)";
+    ctx.strokeStyle = "rgba(191,135,87,.13)";
     ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "900 30px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
-    ctx.fillStyle = "#9d6d45";
+    ctx.font = "900 28px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillStyle = "#9a6a44";
     ctx.fillText("智慧名片交付卡", width / 2, y + pillH / 2 + 1);
   }
 
@@ -479,54 +478,54 @@
     ctx.textBaseline = "middle";
 
     const maxNameWidth = width - 220;
-    let nameFont = 72;
-    while (nameFont > 42) {
+    let nameFont = 64;
+    while (nameFont > 40) {
       ctx.font = `900 ${nameFont}px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif`;
       if (ctx.measureText(name).width <= maxNameWidth) break;
       nameFont -= 2;
     }
 
-    ctx.fillStyle = "#453429";
+    ctx.fillStyle = "#433227";
     ctx.font = `900 ${nameFont}px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif`;
-    ctx.fillText(name, width / 2, 500);
+    ctx.fillText(name, width / 2, 495);
 
     if (title) {
-      const lines = wrapTextByWidth(ctx, title, width - 360, 34);
-      ctx.fillStyle = "#705d50";
-      ctx.font = "500 34px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
-      let y = 580;
+      const lines = wrapTextByWidth(ctx, title, width - 320, 32);
+      ctx.fillStyle = "#6b5a4d";
+      ctx.font = "500 32px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+      let y = 575;
       lines.slice(0, 2).forEach((line) => {
         ctx.fillText(line, width / 2, y);
-        y += 52;
+        y += 48;
       });
     }
   }
 
   function drawQrBlock(ctx, width, qrCanvas) {
-    const frameX = 190;
-    const frameY = 700;
-    const frameW = 820;
-    const frameH = 820;
+    const frameX = 160;
+    const frameY = 690;
+    const frameW = 760;
+    const frameH = 760;
 
-    roundRect(ctx, frameX, frameY, frameW, frameH, 40);
+    roundRect(ctx, frameX, frameY, frameW, frameH, 38);
     const frameGrad = ctx.createLinearGradient(0, frameY, 0, frameY + frameH);
     frameGrad.addColorStop(0, "#ffffff");
-    frameGrad.addColorStop(1, "#fffdfa");
+    frameGrad.addColorStop(1, "#fffdfb");
     ctx.fillStyle = frameGrad;
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(0,0,0,.04)";
+    ctx.strokeStyle = "rgba(0,0,0,.035)";
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    const qrBoxX = 240;
-    const qrBoxY = 750;
-    const qrBoxSize = 720;
+    const qrBoxX = 205;
+    const qrBoxY = 735;
+    const qrBoxSize = 670;
 
-    roundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 26);
+    roundRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 24);
     ctx.fillStyle = "#ffffff";
     ctx.fill();
-    ctx.strokeStyle = "rgba(0,0,0,.04)";
+    ctx.strokeStyle = "rgba(0,0,0,.035)";
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -534,21 +533,19 @@
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#705d50";
+    ctx.fillStyle = "#6b5a4d";
 
-    ctx.font = "800 30px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
-    ctx.fillText("掃描 QR Code", width / 2, 1565);
-
-    ctx.fillText("查看完整智慧名片", width / 2, 1610);
+    ctx.font = "800 28px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillText("掃描或點擊 QR Code", width / 2, 1490);
+    ctx.fillText("即可查看完整智慧名片", width / 2, 1536);
   }
 
   function drawFooterTips(ctx, width) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#8b7a6d";
-    ctx.font = "500 24px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
-
-    ctx.fillText("分享名片連結，或出示此海報讓對方掃描。", width / 2, 1700);
+    ctx.fillStyle = "#8d7d70";
+    ctx.font = "500 23px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
+    ctx.fillText("分享海報給朋友或客戶掃描，即可快速查看名片。", width / 2, 1650);
   }
 
   function showImagePage(dataUrl, filename) {
@@ -564,7 +561,7 @@
           html,body{
             margin:0;
             padding:0;
-            background:#111;
+            background:#121212;
             min-height:100%;
             font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;
           }
@@ -574,28 +571,29 @@
             flex-direction:column;
             align-items:center;
             justify-content:center;
-            padding:16px;
-            gap:14px;
+            padding:24px 16px 28px;
+            gap:18px;
           }
           .tip{
+            text-align:center;
             color:rgba(255,255,255,.88);
             font-size:15px;
-            line-height:1.6;
-            text-align:center;
+            line-height:1.75;
+            white-space:normal;
           }
           img{
             max-width:100%;
             height:auto;
             display:block;
-            border-radius:14px;
-            box-shadow:0 14px 36px rgba(0,0,0,.45);
+            border-radius:18px;
+            box-shadow:0 16px 40px rgba(0,0,0,.42);
             background:#fff;
           }
         </style>
       </head>
       <body>
         <div class="wrap">
-          <div class="tip">海報已開啟，請長按圖片保存到相簿</div>
+          <div class="tip">海報已開啟<br><br>長按圖片即可保存到相簿<br>可分享給朋友或客戶掃描查看</div>
           <img src="${dataUrl}" alt="poster">
         </div>
       </body>
