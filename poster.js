@@ -1,19 +1,20 @@
 /* ==========================================
- * HSC Poster v709.2
+ * HSC Poster v709.3
  * COMPLETE OVERWRITE
  *
- * 重點：
- * 1. 手機下載海報改用 html2canvas 截取海報區塊
- * 2. 直接開圖，長按保存，不再卡住
- * 3. 保留米白商用風格
- * 4. QR 中央頭像保留
- * 5. QR 可點擊進入智慧名片
+ * 根源排除穩定版：
+ * 1. 保留現有米白商用版 UI
+ * 2. 保留 QR 本體、QR 點擊開名片、所有按鈕文案
+ * 3. 手機下載海報仍走：直接開圖 → 長按保存
+ * 4. 匯出海報時「忽略 QR 中央頭像」以排查失敗根源
+ * 5. 匯出時只截最核心海報區塊，降低疊層風險
+ * 6. 不改主幹結構，只做最小排除
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "709.2";
+  const VERSION = "709.3";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -261,7 +262,12 @@
       return;
     }
 
-    const ok = await loadImage(el.qrCenterAvatarImg, avatarUrl, buildDefaultAvatarSvg());
+    const ok = await loadImage(
+      el.qrCenterAvatarImg,
+      avatarUrl,
+      buildDefaultAvatarSvg()
+    );
+
     if (ok) {
       el.qrCenterAvatar.classList.add("show");
     } else {
@@ -298,16 +304,12 @@
       await waitForImages(el.posterCapture);
       await wait(120);
 
-      const canvas = await window.html2canvas(el.posterCapture, {
-        backgroundColor: "#fffaf5",
-        scale: isMobileDevice() ? 2 : 3,
-        useCORS: true,
-        allowTaint: false,
-        logging: false,
-        imageTimeout: 15000
-      });
+      const canvas = await capturePosterCanvas(el.posterCapture);
 
-      const filename = `${safeFileName(currentItem?.name || currentItem?.id || "smart-card")}-poster.png`;
+      const filename = `${safeFileName(
+        currentItem?.name || currentItem?.id || "smart-card"
+      )}-poster.png`;
+
       const dataUrl = canvas.toDataURL("image/png", 0.96);
 
       if (isMobileDevice()) {
@@ -325,6 +327,68 @@
     } finally {
       disableButton(el.downloadBtn, false);
     }
+  }
+
+  async function capturePosterCanvas(targetEl) {
+    const scale = isMobileDevice() ? 2 : 3;
+
+    return window.html2canvas(targetEl, {
+      backgroundColor: "#fffaf5",
+      scale,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+      imageTimeout: 15000,
+      removeContainer: true,
+      foreignObjectRendering: false,
+
+      ignoreElements(node) {
+        if (!node || node.nodeType !== 1) return false;
+
+        if (node.id === "qrCenterAvatar") return true;
+        if (node.id === "statusText") return true;
+
+        return false;
+      },
+
+      onclone(clonedDoc) {
+        const clonedCapture = clonedDoc.getElementById("posterCapture");
+        if (!clonedCapture) return;
+
+        const clonedQrCenterAvatar = clonedDoc.getElementById("qrCenterAvatar");
+        if (clonedQrCenterAvatar) {
+          clonedQrCenterAvatar.remove();
+        }
+
+        const clonedFallback = clonedDoc.getElementById("qrLinkFallback");
+        if (clonedFallback && !clonedFallback.classList.contains("show")) {
+          clonedFallback.remove();
+        }
+
+        clonedCapture.style.transform = "none";
+        clonedCapture.style.filter = "none";
+        clonedCapture.style.transition = "none";
+        clonedCapture.style.animation = "none";
+        clonedCapture.style.width = `${Math.ceil(targetEl.getBoundingClientRect().width)}px`;
+        clonedCapture.style.maxWidth = "none";
+        clonedCapture.style.margin = "0";
+        clonedCapture.style.boxShadow = "inset 0 1px 0 rgba(255,255,255,.8)";
+        clonedCapture.style.background = "linear-gradient(180deg, #fffefd 0%, #fffaf5 100%)";
+
+        const clonedQrFrame = clonedDoc.querySelector(".qr-frame");
+        if (clonedQrFrame) {
+          clonedQrFrame.style.boxShadow = "inset 0 1px 0 rgba(255,255,255,.82)";
+        }
+
+        const clonedAvatarWrap = clonedDoc.querySelector(".avatar-wrap");
+        if (clonedAvatarWrap) {
+          clonedAvatarWrap.style.boxShadow = "0 6px 14px rgba(88,67,48,.06)";
+        }
+
+        const allButtons = clonedDoc.querySelectorAll("button");
+        allButtons.forEach((btn) => btn.remove());
+      }
+    });
   }
 
   function showImagePage(dataUrl, filename) {
@@ -592,5 +656,12 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  function disableButton(button, disabled) {
+    if (!button) return;
+    button.disabled = !!disabled;
+    button.style.opacity = disabled ? "0.72" : "";
+    button.style.cursor = disabled ? "wait" : "";
   }
 })();
