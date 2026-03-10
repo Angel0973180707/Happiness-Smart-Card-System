@@ -13,15 +13,16 @@
     :root{
       --bg:#f8f4ee;
       --bg-2:#f3ece3;
-      --ink:#453429;
-      --ink-soft:#705d50;
-      --muted:#8b7a6d;
-      --line:rgba(102,78,57,.10);
+      --ink:#433227;
+      --ink-soft:#6b5a4d;
+      --muted:#8d7d70;
+      --line:rgba(102,78,57,.09);
       --gold:#bf8757;
-      --gold-deep:#9d6d45;
+      --gold-deep:#9a6a44;
+      --gold-soft:#b6855e;
       --line-green:#18b65a;
-      --shadow:0 18px 42px rgba(83,62,45,.08);
-      --shadow-soft:0 10px 24px rgba(83,62,45,.06);
+      --shadow:0 18px 42px rgba(83,62,45,.07);
+      --shadow-soft:0 10px 24px rgba(83,62,45,.05);
       --radius-xl:30px;
       --radius-lg:24px;
       --radius-pill:999px;
@@ -73,7 +74,7 @@
 
     .hero-head{
       position:relative;
-      padding:26px 20px 12px;
+      padding:28px 20px 12px;
       text-align:center;
       z-index:1;
     }
@@ -88,28 +89,28 @@
     }
 
     .brand-icon{
-      font-size:28px;
+      font-size:26px;
       line-height:1;
-      color:var(--gold-deep);
+      color:var(--gold-soft);
       margin-bottom:8px;
     }
 
     .brand-title{
       margin:0;
       font-size:24px;
-      line-height:1.28;
+      line-height:1.24;
       font-weight:900;
-      letter-spacing:.02em;
+      letter-spacing:.01em;
       color:var(--ink);
     }
 
     .brand-sub{
-      margin-top:6px;
-      font-size:13px;
+      margin-top:7px;
+      font-size:12px;
       line-height:1.3;
       font-weight:700;
-      letter-spacing:.08em;
-      color:var(--muted);
+      letter-spacing:.12em;
+      color:#a08f82;
     }
 
     .delivery-pill{
@@ -117,19 +118,19 @@
       align-items:center;
       justify-content:center;
       margin-top:16px;
-      padding:11px 28px;
-      min-height:46px;
+      padding:10px 26px;
+      min-height:42px;
       border-radius:999px;
-      border:1px solid rgba(191,135,87,.16);
-      background:linear-gradient(180deg, #fffefb 0%, #fbf2e8 100%);
+      border:1px solid rgba(191,135,87,.13);
+      background:linear-gradient(180deg, #fffefb 0%, #fbf3e9 100%);
       color:var(--gold-deep);
       font-size:15px;
       line-height:1;
       font-weight:900;
-      letter-spacing:.08em;
+      letter-spacing:.07em;
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.85),
-        0 8px 18px rgba(191,135,87,.10);
+        0 6px 14px rgba(191,135,87,.08);
     }
 
     .hero-body{
@@ -140,23 +141,23 @@
 
     .poster-canvas{
       background:linear-gradient(180deg, #fffefd 0%, #fffaf5 100%);
-      border:1px solid rgba(102,78,57,.08);
+      border:1px solid rgba(102,78,57,.07);
       border-radius:28px;
-      padding:28px 18px 24px;
+      padding:30px 18px 24px;
       text-align:center;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.8), var(--shadow-soft);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.84), var(--shadow-soft);
       position:relative;
     }
 
     .avatar-wrap{
       width:102px;
       height:102px;
-      margin:0 auto 14px;
+      margin:0 auto 16px;
       border-radius:50%;
       overflow:hidden;
       background:#eee4d8;
       border:3px solid rgba(255,255,255,.97);
-      box-shadow:0 10px 22px rgba(88,67,48,.09);
+      box-shadow:0 8px 18px rgba(88,67,48,.07);
       position:relative;
       z-index:1;
     }
@@ -171,25 +172,25 @@
     .name{
       margin:0;
       font-size:28px;
-      line-height:1.25;
+      line-height:1.22;
       font-weight:900;
-      letter-spacing:.04em;
+      letter-spacing:.03em;
       word-break:break-word;
       color:var(--ink);
     }
 
     .title{
-      margin:10px auto 0;
+      margin:12px auto 0;
       max-width:18em;
       font-size:16px;
-      line-height:1.7;
+      line-height:1.72;
       color:var(--ink-soft);
       word-break:break-word;
-      min-height:1.7em;
+      min-height:1.72em;
     }
 
     .qr-zone{
-      margin:24px auto 0;
+      margin:28px auto 0;
       display:flex;
       justify-content:center;
     }
@@ -197,13 +198,13 @@
     .qr-frame{
       width:426px;
       max-width:100%;
-      background:linear-gradient(180deg, #ffffff, #fffdfa);
+      background:linear-gradient(180deg, #ffffff, #fffdfb);
       border-radius:30px;
       padding:24px 24px 22px;
-      border:1px solid rgba(0,0,0,.04);
+      border:1px solid rgba(0,0,0,.035);
       box-shadow:
         inset 0 1px 0 rgba(255,255,255,.82),
-        0 10px 22px rgba(0,0,0,.05);
+        0 8px 18px rgba(0,0,0,.04);
     }
 
     .qr-box{
@@ -215,9 +216,14 @@
       justify-content:center;
       overflow:hidden;
       border-radius:22px;
-      border:1px solid rgba(0,0,0,.04);
+      border:1px solid rgba(0,0,0,.035);
       position:relative;
       cursor:pointer;
+      transition:transform .14s ease, box-shadow .14s ease;
+    }
+
+    .qr-box:active{
+      transform:translateY(1px);
     }
 
     .qr-viewport{
@@ -302,7 +308,7 @@
 
     .qr-caption-line{
       font-size:14px;
-      line-height:1.7;
+      line-height:1.68;
       color:var(--ink-soft);
       font-weight:800;
       letter-spacing:.01em;
@@ -327,7 +333,7 @@
       border:1px solid var(--line);
       border-radius:22px;
       padding:14px;
-      box-shadow:0 5px 14px rgba(88,67,48,.035);
+      box-shadow:0 4px 12px rgba(88,67,48,.03);
     }
 
     .group-title{
@@ -367,23 +373,23 @@
 
     .btn-primary{
       color:#fffaf6;
-      background:linear-gradient(180deg, #c98a57 0%, #b6784a 100%);
-      border:1px solid rgba(159,109,69,.18);
-      box-shadow:0 5px 12px rgba(88,67,48,.08), inset 0 1px 0 rgba(255,255,255,.18);
+      background:linear-gradient(180deg, #c38a5c 0%, #b67b4f 100%);
+      border:1px solid rgba(159,109,69,.14);
+      box-shadow:0 4px 10px rgba(88,67,48,.07), inset 0 1px 0 rgba(255,255,255,.18);
     }
 
     .btn-soft{
       color:var(--ink);
-      background:linear-gradient(180deg, #ffffff 0%, #fcf7f1 100%);
-      border:1px solid rgba(98,76,56,.10);
-      box-shadow:0 5px 12px rgba(88,67,48,.06), inset 0 1px 0 rgba(255,255,255,.75);
+      background:linear-gradient(180deg, #ffffff 0%, #fcf8f3 100%);
+      border:1px solid rgba(98,76,56,.09);
+      box-shadow:0 4px 10px rgba(88,67,48,.045), inset 0 1px 0 rgba(255,255,255,.78);
     }
 
     .btn-line{
       color:#fbfffc;
-      background:linear-gradient(180deg, #22c462 0%, #15ac53 100%);
-      border:1px solid rgba(12,138,59,.16);
-      box-shadow:0 5px 12px rgba(20,180,84,.16), inset 0 1px 0 rgba(255,255,255,.16);
+      background:linear-gradient(180deg, #22c462 0%, #17ae55 100%);
+      border:1px solid rgba(12,138,59,.13);
+      box-shadow:0 4px 10px rgba(20,180,84,.14), inset 0 1px 0 rgba(255,255,255,.14);
     }
 
     .dialog-mask{
@@ -441,15 +447,16 @@
     @media (max-width:520px){
       .page{ padding:16px 12px 28px; }
       .hero-head{ padding:22px 16px 10px; }
-      .brand-icon{ font-size:26px; margin-bottom:6px; }
+      .brand-icon{ font-size:25px; margin-bottom:6px; }
       .brand-title{ font-size:21px; }
       .brand-sub{ font-size:12px; }
-      .delivery-pill{ font-size:14px; padding:10px 22px; }
+      .delivery-pill{ font-size:14px; padding:10px 22px; min-height:40px; }
       .hero-body{ padding:14px; }
-      .poster-canvas{ padding:22px 14px 20px; }
-      .avatar-wrap{ width:88px; height:88px; }
+      .poster-canvas{ padding:24px 14px 20px; }
+      .avatar-wrap{ width:88px; height:88px; margin-bottom:14px; }
       .name{ font-size:24px; }
       .title{ font-size:15px; }
+      .qr-zone{ margin-top:24px; }
       .qr-frame{ padding:20px 20px 18px; border-radius:24px; }
       .qr-caption-line{ font-size:13px; }
       .btn{ padding:15px 18px; font-size:15px; min-height:54px; }
@@ -489,8 +496,8 @@
                 <div id="qrLinkFallback" class="qr-link-fallback"></div>
               </div>
               <div class="qr-caption">
-                <div class="qr-caption-line">掃描 QR Code</div>
-                <div class="qr-caption-line">查看完整智慧名片</div>
+                <div class="qr-caption-line">掃描或點擊 QR Code</div>
+                <div class="qr-caption-line">即可查看完整智慧名片</div>
               </div>
             </div>
           </div>
@@ -531,7 +538,7 @@
       <h3 id="dialogTitle" class="dialog-title">分享說明</h3>
       <div class="dialog-body">
         <p>1. 分享你的智慧名片連結，讓對方直接查看完整智慧名片。</p>
-        <p>2. 也可以使用名片海報分享，對方掃描 QR Code 即可查看。</p>
+        <p>2. 也可以使用名片海報分享，對方掃描或點擊 QR Code 即可查看。</p>
         <p>3. 面對面交流時，可直接出示此 QR Code 讓對方掃描。</p>
         <p>4. 對方收到名片後，可存入 LINE 記事本或微信收藏，方便之後再次開啟。</p>
         <p>5. 手機點下載海報後，會直接開圖，可長按保存到相簿。</p>
@@ -542,8 +549,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="./qrcode.min.js"></script>
-  <script src="./poster.js?v=7092"></script>
+  <script src="./poster.js?v=7095"></script>
 </body>
 </html>
