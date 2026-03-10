@@ -3,98 +3,186 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v521.9</title>
+  <title>天使幸福智慧名片｜資料填寫 v710.0</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
       --bg:#0b1220;
+      --bg-soft:#101a2d;
       --card:#111a2b;
+      --card-2:#152239;
       --line:rgba(255,255,255,.12);
       --line2:rgba(255,255,255,.08);
-      --text:rgba(255,255,255,.94);
+      --text:rgba(255,255,255,.95);
       --muted:rgba(255,255,255,.72);
+      --muted-2:rgba(255,255,255,.56);
       --accent:#7bdcff;
+      --accent-2:#9ee8ff;
       --ok:#6ee7b7;
       --bad:#fb7185;
       --warn:#fbbf24;
-      --radius:20px;
-      --shadow:0 18px 40px rgba(0,0,0,.30);
+      --radius:22px;
+      --radius-sm:16px;
+      --shadow:0 18px 42px rgba(0,0,0,.30);
+      --shadow-soft:0 10px 26px rgba(0,0,0,.18);
       --fs:clamp(16px,1.8vw,18px);
-      --fs2:clamp(20px,2.7vw,24px);
-      --fs3:clamp(24px,3.4vw,30px);
-      --fs4:clamp(28px,4vw,36px);
+      --fs2:clamp(21px,2.8vw,26px);
+      --fs3:clamp(26px,3.5vw,32px);
+      --fs4:clamp(30px,4.6vw,40px);
     }
 
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
-    html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+    html{
+      -webkit-text-size-adjust:100%;
+      text-size-adjust:100%;
+      scroll-behavior:smooth;
+    }
 
     body{
       margin:0;
       font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Arial;
       background:
-        radial-gradient(1200px 800px at 20% -10%, rgba(123,220,255,.18), transparent 60%),
-        radial-gradient(900px 700px at 100% 0%, rgba(255,191,36,.08), transparent 58%),
-        var(--bg);
+        radial-gradient(1200px 820px at 16% -10%, rgba(123,220,255,.18), transparent 62%),
+        radial-gradient(900px 720px at 100% 0%, rgba(255,191,36,.08), transparent 56%),
+        linear-gradient(180deg, #0b1220 0%, #0d1628 100%);
       color:var(--text);
       font-size:var(--fs);
-      line-height:1.65;
+      line-height:1.7;
       word-break:keep-all;
       overflow-wrap:break-word;
     }
 
     .wrap{
-      max-width:980px;
+      max-width:1020px;
       margin:0 auto;
-      padding:18px 14px 120px;
+      padding:18px 14px 136px;
     }
 
-    .top{
+    .hero{
+      position:relative;
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
-      gap:14px;
-      padding:18px;
+      gap:16px;
+      padding:20px;
       border:1px solid var(--line);
-      border-radius:var(--radius);
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border-radius:28px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
+        rgba(255,255,255,.02);
       box-shadow:var(--shadow);
+      overflow:hidden;
     }
 
-    .brand{ min-width:0; flex:1 1 auto; }
+    .hero::after{
+      content:"";
+      position:absolute;
+      right:-80px;
+      top:-80px;
+      width:220px;
+      height:220px;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(123,220,255,.16), transparent 68%);
+      pointer-events:none;
+    }
+
+    .brand{
+      min-width:0;
+      flex:1 1 auto;
+      position:relative;
+      z-index:1;
+    }
+
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border:1px solid rgba(123,220,255,.26);
+      border-radius:999px;
+      background:rgba(123,220,255,.08);
+      color:var(--accent-2);
+      font-size:12px;
+      font-weight:900;
+      line-height:1.2;
+      letter-spacing:.04em;
+    }
+
+    .eyebrow::before{
+      content:"";
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 0 0 6px rgba(123,220,255,.12);
+      flex:0 0 auto;
+    }
 
     .brand h1{
-      margin:0;
+      margin:14px 0 0;
       font-size:var(--fs4);
-      line-height:1.22;
+      line-height:1.18;
+      letter-spacing:.01em;
     }
 
-    .brand p{
-      margin:10px 0 0;
+    .heroLead{
+      margin:12px 0 0;
       color:var(--muted);
       font-size:14px;
+      line-height:1.9;
+      max-width:700px;
+    }
+
+    .heroTip{
+      margin-top:12px;
+      display:grid;
+      gap:8px;
+      color:var(--muted-2);
+      font-size:12px;
       line-height:1.8;
     }
 
+    .heroTip div{
+      padding-left:18px;
+      position:relative;
+    }
+
+    .heroTip div::before{
+      content:"•";
+      position:absolute;
+      left:0;
+      top:0;
+      color:var(--accent);
+    }
+
     .meta{
+      position:relative;
+      z-index:1;
       text-align:right;
-      min-width:180px;
+      min-width:192px;
       color:var(--muted);
       font-size:12px;
       line-height:1.9;
       flex:0 0 auto;
+      display:grid;
+      gap:8px;
+      align-content:start;
     }
 
     .pill{
       display:inline-flex;
       align-items:center;
+      justify-content:flex-end;
       gap:8px;
-      padding:8px 11px;
+      padding:9px 12px;
       border:1px solid var(--line);
       border-radius:999px;
       background:rgba(255,255,255,.04);
       font-size:12px;
-      font-weight:800;
+      font-weight:900;
+      width:max-content;
+      margin-left:auto;
     }
 
     .dot{
@@ -102,16 +190,31 @@
       height:10px;
       border-radius:50%;
       background:var(--warn);
-      box-shadow:0 0 0 2px rgba(251,191,36,.15);
+      box-shadow:0 0 0 6px rgba(251,191,36,.14);
       flex:0 0 auto;
+    }
+
+    .metaRow{
+      padding:8px 10px;
+      border:1px solid var(--line2);
+      border-radius:14px;
+      background:rgba(255,255,255,.03);
+      word-break:break-word;
+    }
+
+    .metaLabel{
+      display:block;
+      font-size:11px;
+      color:var(--muted-2);
+      line-height:1.4;
+      margin-bottom:2px;
+      font-weight:900;
     }
 
     .kbd{
       display:inline-block;
-      padding:2px 7px;
-      border:1px solid var(--line);
-      border-radius:8px;
-      background:rgba(255,255,255,.03);
+      padding:2px 0;
+      color:var(--text);
       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       font-size:11px;
       word-break:break-all;
@@ -119,14 +222,14 @@
 
     .flow{
       margin-top:14px;
-      padding:14px;
+      padding:16px;
       border:1px solid var(--line);
-      border-radius:18px;
+      border-radius:22px;
       background:rgba(255,255,255,.03);
-      box-shadow:var(--shadow);
+      box-shadow:var(--shadow-soft);
     }
 
-    .flow-head{
+    .flowTop{
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
@@ -134,44 +237,73 @@
       margin-bottom:10px;
     }
 
-    .flow-title{
+    .flowTitle{
       font-size:var(--fs2);
       font-weight:900;
       line-height:1.35;
     }
 
-    .flow-sub{
-      margin-top:4px;
+    .flowSub{
+      margin-top:6px;
       color:var(--muted);
       font-size:13px;
-      line-height:1.7;
+      line-height:1.8;
+    }
+
+    .pageBadge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      min-height:44px;
+      padding:10px 14px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      font-size:13px;
+      font-weight:900;
+      white-space:nowrap;
+      flex:0 0 auto;
     }
 
     .stepTrack{
       display:grid;
       grid-template-columns:repeat(5, minmax(0,1fr));
-      gap:8px;
+      gap:10px;
       margin-top:12px;
     }
 
     .stepDot{
+      position:relative;
       border:1px solid var(--line);
-      border-radius:16px;
+      border-radius:18px;
       background:rgba(255,255,255,.03);
-      padding:10px 8px;
-      min-height:72px;
+      padding:12px 10px;
+      min-height:86px;
       display:flex;
       flex-direction:column;
       justify-content:center;
       align-items:center;
       text-align:center;
-      transition:.2s ease;
+      transition:.22s ease;
       cursor:pointer;
+      overflow:hidden;
+    }
+
+    .stepDot::after{
+      content:"";
+      position:absolute;
+      inset:auto auto 0 0;
+      width:100%;
+      height:3px;
+      background:transparent;
+      transition:.22s ease;
     }
 
     .stepDot .num{
-      width:28px;
-      height:28px;
+      width:30px;
+      height:30px;
       border-radius:50%;
       display:flex;
       align-items:center;
@@ -180,7 +312,7 @@
       font-weight:900;
       border:1px solid var(--line);
       background:rgba(255,255,255,.04);
-      margin-bottom:7px;
+      margin-bottom:8px;
       flex:0 0 auto;
     }
 
@@ -188,7 +320,16 @@
       font-size:13px;
       line-height:1.45;
       color:var(--muted);
-      font-weight:800;
+      font-weight:900;
+      letter-spacing:.01em;
+    }
+
+    .stepDot .mini{
+      margin-top:4px;
+      font-size:11px;
+      line-height:1.45;
+      color:var(--muted-2);
+      font-weight:700;
     }
 
     .stepDot[data-done="1"]{
@@ -196,10 +337,19 @@
       background:rgba(110,231,183,.08);
     }
 
+    .stepDot[data-done="1"]::after{
+      background:linear-gradient(90deg, rgba(110,231,183,.85), rgba(110,231,183,.45));
+    }
+
     .stepDot[data-current="1"]{
-      border-color:rgba(123,220,255,.45);
+      border-color:rgba(123,220,255,.46);
       box-shadow:0 0 0 3px rgba(123,220,255,.12);
       background:rgba(123,220,255,.10);
+      transform:translateY(-1px);
+    }
+
+    .stepDot[data-current="1"]::after{
+      background:linear-gradient(90deg, rgba(123,220,255,.95), rgba(255,191,36,.72));
     }
 
     .stepDot[data-current="1"] .num{
@@ -215,27 +365,128 @@
     .card{
       margin-top:14px;
       border:1px solid var(--line);
-      border-radius:var(--radius);
-      background:rgba(255,255,255,.03);
-      padding:18px;
+      border-radius:26px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)),
+        rgba(255,255,255,.02);
+      padding:20px;
       box-shadow:var(--shadow);
     }
 
-    .card h2{
-      margin:0 0 12px;
+    .page{ display:none; }
+    .page.active{
+      display:block;
+      animation:fadeUp .24s ease;
+    }
+
+    @keyframes fadeUp{
+      from{
+        opacity:0;
+        transform:translateY(6px);
+      }
+      to{
+        opacity:1;
+        transform:none;
+      }
+    }
+
+    .pageHero{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:16px;
+      padding-bottom:14px;
+      border-bottom:1px solid var(--line2);
+    }
+
+    .pageTitleWrap{
+      min-width:0;
+      flex:1 1 auto;
+    }
+
+    .pageStep{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:12px;
+      font-weight:900;
+      margin-bottom:12px;
+    }
+
+    .pageHero h2{
+      margin:0;
       font-size:var(--fs3);
-      line-height:1.3;
+      line-height:1.22;
+      letter-spacing:.01em;
     }
 
     .subnote{
-      margin:-2px 0 12px;
+      margin:10px 0 0;
       color:var(--muted);
-      font-size:13px;
-      line-height:1.8;
+      font-size:14px;
+      line-height:1.9;
+      max-width:760px;
     }
 
-    .page{ display:none; }
-    .page.active{ display:block; }
+    .guideCard{
+      margin-top:14px;
+      padding:16px;
+      border:1px solid rgba(123,220,255,.20);
+      border-radius:18px;
+      background:
+        linear-gradient(180deg, rgba(123,220,255,.10), rgba(123,220,255,.04));
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+    }
+
+    .guideCard h3{
+      margin:0 0 10px;
+      font-size:18px;
+      line-height:1.45;
+    }
+
+    .guideCard p{
+      margin:0;
+      color:var(--text);
+      font-size:14px;
+      line-height:1.95;
+    }
+
+    .guideList{
+      display:grid;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .guideItem{
+      padding:12px 14px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      background:rgba(255,255,255,.04);
+      font-size:14px;
+      line-height:1.9;
+    }
+
+    .guideItem strong{
+      display:block;
+      margin-bottom:2px;
+      color:#fff;
+      font-size:15px;
+      line-height:1.55;
+    }
+
+    .guideTip{
+      margin-top:10px;
+      color:var(--accent-2);
+      font-size:13px;
+      font-weight:900;
+      line-height:1.8;
+    }
 
     .row{
       display:grid;
@@ -253,15 +504,17 @@
     label{
       display:block;
       font-size:15px;
-      color:var(--muted);
+      color:var(--text);
       margin:0 0 8px;
       font-weight:900;
       line-height:1.55;
+      letter-spacing:.01em;
     }
 
     .req{
       color:var(--warn);
       margin-left:6px;
+      font-size:13px;
     }
 
     input, textarea{
@@ -269,29 +522,46 @@
       background:rgba(255,255,255,.04);
       color:var(--text);
       border:1px solid var(--line);
-      border-radius:15px;
+      border-radius:16px;
       padding:15px 15px;
       outline:none;
       font-size:clamp(16px,1.9vw,18px);
-      line-height:1.6;
-      min-height:54px;
+      line-height:1.65;
+      min-height:56px;
+      transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    input:focus, textarea:focus{
+      border-color:rgba(123,220,255,.5);
+      box-shadow:0 0 0 3px rgba(123,220,255,.11);
+      background:rgba(255,255,255,.055);
     }
 
     textarea{
-      min-height:120px;
+      min-height:126px;
       resize:vertical;
     }
 
     input::placeholder, textarea::placeholder{
-      color:rgba(255,255,255,.35);
+      color:rgba(255,255,255,.34);
     }
 
     .hint{
       margin-top:7px;
       font-size:12px;
       color:var(--muted);
-      line-height:1.75;
+      line-height:1.85;
+      white-space:pre-line;
     }
+
+    .fieldBox{
+      padding:14px;
+      border:1px solid var(--line2);
+      border-radius:18px;
+      background:rgba(255,255,255,.02);
+    }
+
+    .sectionGap{ margin-top:14px; }
 
     .chips{
       display:flex;
@@ -316,6 +586,11 @@
       transition:.18s ease;
     }
 
+    .chip:hover{
+      transform:translateY(-1px);
+      border-color:rgba(255,255,255,.18);
+    }
+
     .chip[data-on="1"]{
       border-color:rgba(123,220,255,.55);
       box-shadow:0 0 0 3px rgba(123,220,255,.14);
@@ -332,12 +607,33 @@
       flex:0 0 auto;
     }
 
-    .sectionGap{ margin-top:12px; }
+    .planHintCard{
+      margin-top:12px;
+      padding:14px 15px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.85;
+    }
+
+    .uploadGuide{
+      margin-top:10px;
+      padding:14px 15px;
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.9;
+    }
 
     .uploadGrid{
       display:grid;
       grid-template-columns:1fr;
       gap:12px;
+      margin-top:12px;
     }
 
     @media(min-width:760px){
@@ -346,9 +642,10 @@
 
     .uItem{
       border:1px solid var(--line);
-      border-radius:16px;
-      padding:12px;
-      background:rgba(255,255,255,.02);
+      border-radius:18px;
+      padding:13px;
+      background:rgba(255,255,255,.025);
+      transition:.18s ease;
     }
 
     .uItemHead{
@@ -359,32 +656,32 @@
     }
 
     .uItemHead strong{
-      font-size:16px;
+      font-size:17px;
       line-height:1.45;
     }
 
     .uItemHead small{
       color:var(--muted);
       font-size:12px;
-      line-height:1.7;
+      line-height:1.75;
     }
 
     .thumb{
       margin-top:10px;
       width:100%;
       aspect-ratio:16 / 10;
-      border-radius:14px;
+      border-radius:15px;
       border:1px solid var(--line);
       overflow:hidden;
       background:rgba(0,0,0,.18);
       display:flex;
       align-items:center;
       justify-content:center;
-      color:rgba(255,255,255,.35);
+      color:rgba(255,255,255,.38);
       font-size:13px;
       text-align:center;
       padding:12px;
-      line-height:1.7;
+      line-height:1.8;
     }
 
     .thumb img{
@@ -406,6 +703,7 @@
       padding:10px;
       font-size:14px;
       min-height:auto;
+      background:rgba(255,255,255,.03);
     }
 
     .btns{
@@ -418,20 +716,26 @@
     button{
       cursor:pointer;
       border:none;
-      border-radius:14px;
-      padding:13px 18px;
+      border-radius:15px;
+      padding:14px 18px;
       font-weight:900;
       font-size:16px;
-      background:rgba(123,220,255,.14);
+      background:rgba(123,220,255,.16);
       color:var(--text);
-      border:1px solid rgba(123,220,255,.35);
-      min-height:50px;
+      border:1px solid rgba(123,220,255,.36);
+      min-height:52px;
       line-height:1.3;
       transition:.18s ease;
+      letter-spacing:.01em;
+    }
+
+    button:hover{
+      transform:translateY(-1px);
+      box-shadow:0 8px 20px rgba(0,0,0,.16);
     }
 
     button.secondary{
-      background:rgba(255,255,255,.04);
+      background:rgba(255,255,255,.05);
       border:1px solid var(--line);
     }
 
@@ -443,12 +747,47 @@
     button:disabled{
       opacity:.55;
       cursor:not-allowed;
+      transform:none;
+      box-shadow:none;
+    }
+
+    .summary{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+
+    .sumRow{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      padding:12px 14px;
+      border:1px solid var(--line2);
+      border-radius:15px;
+      background:rgba(255,255,255,.02);
+    }
+
+    .sumRow span{
+      color:var(--muted);
+      font-size:13px;
+      font-weight:900;
+      flex:0 0 auto;
+    }
+
+    .sumRow strong{
+      font-size:14px;
+      line-height:1.8;
+      text-align:right;
+      font-weight:900;
+      min-width:0;
+      word-break:break-word;
     }
 
     .submit-progress-wrap{
-      margin-top:12px;
-      padding:12px 12px;
-      border-radius:16px;
+      margin-top:14px;
+      padding:13px 13px;
+      border-radius:18px;
       border:1px solid rgba(255,255,255,.10);
       background:rgba(255,255,255,.04);
       display:none;
@@ -459,7 +798,7 @@
       justify-content:space-between;
       align-items:center;
       gap:10px;
-      margin-bottom:8px;
+      margin-bottom:9px;
       font-size:13px;
       color:rgba(255,255,255,.85);
       font-weight:900;
@@ -502,54 +841,21 @@
       margin-top:8px;
       color:var(--muted);
       font-size:13px;
-      line-height:1.75;
+      line-height:1.8;
       min-height:20px;
     }
 
     .status{
-      margin-top:12px;
+      margin-top:14px;
       border:1px dashed var(--line);
-      border-radius:14px;
-      padding:12px 14px;
+      border-radius:16px;
+      padding:14px 15px;
       color:var(--muted);
-      font-size:13px;
-      line-height:1.85;
+      font-size:14px;
+      line-height:1.9;
       white-space:pre-wrap;
       word-break:break-word;
       background:rgba(255,255,255,.02);
-    }
-
-    .summary{
-      display:grid;
-      grid-template-columns:1fr;
-      gap:10px;
-    }
-
-    .sumRow{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:12px;
-      padding:11px 12px;
-      border:1px solid var(--line2);
-      border-radius:14px;
-      background:rgba(255,255,255,.02);
-    }
-
-    .sumRow span{
-      color:var(--muted);
-      font-size:13px;
-      font-weight:900;
-      flex:0 0 auto;
-    }
-
-    .sumRow strong{
-      font-size:14px;
-      line-height:1.7;
-      text-align:right;
-      font-weight:900;
-      min-width:0;
-      word-break:break-word;
     }
 
     .pageNav{
@@ -557,17 +863,18 @@
       bottom:10px;
       z-index:10;
       margin-top:14px;
-      padding:10px;
+      padding:11px;
       border:1px solid rgba(255,255,255,.08);
-      border-radius:18px;
-      background:rgba(11,18,32,.82);
-      backdrop-filter:blur(10px);
+      border-radius:20px;
+      background:rgba(11,18,32,.86);
+      backdrop-filter:blur(12px);
       box-shadow:0 10px 26px rgba(0,0,0,.24);
     }
 
     .pageNav .btns{
       margin-top:0;
       justify-content:space-between;
+      align-items:center;
     }
 
     .pageNavLeft,
@@ -578,24 +885,19 @@
       align-items:center;
     }
 
-    .pageBadge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:9px 12px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      background:rgba(255,255,255,.04);
-      color:var(--muted);
-      font-size:13px;
-      font-weight:900;
+    .navHint{
+      margin-top:8px;
+      color:var(--muted-2);
+      font-size:12px;
+      line-height:1.8;
+      text-align:center;
     }
 
     .footNote{
       margin-top:14px;
       color:rgba(255,255,255,.56);
       font-size:12px;
-      line-height:1.8;
+      line-height:1.85;
     }
 
     .cropModal{
@@ -603,7 +905,7 @@
       inset:0;
       z-index:1000;
       display:none;
-      background:rgba(4,8,18,.72);
+      background:rgba(4,8,18,.74);
       backdrop-filter:blur(6px);
       padding:14px;
     }
@@ -618,7 +920,7 @@
       width:min(920px, 100%);
       max-height:calc(100vh - 28px);
       overflow:auto;
-      border-radius:22px;
+      border-radius:24px;
       border:1px solid rgba(255,255,255,.12);
       background:linear-gradient(180deg, rgba(16,24,40,.98), rgba(10,16,28,.98));
       box-shadow:0 24px 60px rgba(0,0,0,.42);
@@ -635,20 +937,20 @@
 
     .cropHead h3{
       margin:0;
-      font-size:22px;
+      font-size:24px;
       line-height:1.3;
     }
 
     .cropHead p{
-      margin:6px 0 0;
+      margin:8px 0 0;
       color:var(--muted);
-      font-size:13px;
-      line-height:1.7;
+      font-size:14px;
+      line-height:1.85;
     }
 
     .cropStageWrap{
       border:1px solid rgba(255,255,255,.10);
-      border-radius:18px;
+      border-radius:20px;
       background:rgba(255,255,255,.03);
       padding:12px;
     }
@@ -668,7 +970,7 @@
     }
 
     .cropStage.ratio-square{ aspect-ratio:1 / 1; }
-    .cropStage.ratio-logo{ aspect-ratio:16 / 9; }
+    .cropStage.ratio-logo{ aspect-ratio:1 / 1; }
     .cropStage.ratio-photo{ aspect-ratio:16 / 10; }
 
     .cropStage canvas{
@@ -693,22 +995,32 @@
     .cropMeta{
       margin-top:10px;
       color:var(--muted);
-      font-size:12px;
-      line-height:1.75;
+      font-size:13px;
+      line-height:1.9;
+      white-space:pre-line;
     }
 
     .hide{ display:none !important; }
 
-    @media(max-width:760px){
-      .top{
+    @media(max-width:860px){
+      .hero{
         flex-direction:column;
       }
       .meta{
+        width:100%;
         text-align:left;
-        min-width:auto;
       }
+      .pill{
+        margin-left:0;
+      }
+    }
+
+    @media(max-width:760px){
       .stepTrack{
         grid-template-columns:repeat(2, minmax(0,1fr));
+      }
+      .pageHero{
+        flex-direction:column;
       }
       .pageNav .btns{
         flex-direction:column;
@@ -725,23 +1037,20 @@
       .sumRow strong{
         text-align:left;
       }
-      .cropBox{
-        padding:14px;
-      }
     }
 
     @media(max-width:520px){
       .wrap{
-        padding:14px 12px 120px;
+        padding:14px 12px 128px;
       }
-      .card, .top, .flow{
+      .hero, .card, .flow{
         padding:15px;
       }
       .stepTrack{
-        grid-template-columns:repeat(1, minmax(0,1fr));
+        grid-template-columns:1fr;
       }
       .brand h1{
-        font-size:clamp(24px, 7vw, 30px);
+        font-size:clamp(26px, 7.2vw, 32px);
       }
       input, textarea{
         padding:14px 13px;
@@ -749,83 +1058,142 @@
       button{
         width:100%;
       }
+      .meta{
+        gap:6px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
+    <div class="hero">
       <div class="brand">
+        <div class="eyebrow">智慧名片訂製流程</div>
         <h1>天使幸福智慧名片｜資料填寫</h1>
-        <p id="pageIntro">
-          固定分頁流程。請一步一步完成。圖片可先調整位置，再壓縮上傳，送出時會自動建立或更新你的智慧名片。
+        <p class="heroLead" id="pageIntro">
+          請一步一步完成您的資料。每完成一關，就會進入下一關。圖片可先調整位置，再套用到名片預覽中。
         </p>
+        <div class="heroTip">
+          <div>字體放大、流程清楚，讓您填寫時更直覺。</div>
+          <div>連結欄位請直接貼上網址，不需要上傳影片或其他檔案。</div>
+          <div>送出後可先預覽名片，再將資料序號回報給客服。</div>
+        </div>
       </div>
+
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v521.9</span></div>
-        <div>品牌：<span class="kbd" id="tenantText">-</span></div>
-        <div>名片 ID：<span class="kbd" id="idText">-</span></div>
-        <div>invite：<span class="kbd" id="inviteText">-</span></div>
+
+        <div class="metaRow">
+          <span class="metaLabel">版本</span>
+          <span class="kbd" id="ver">v710.0</span>
+        </div>
+
+        <div class="metaRow">
+          <span class="metaLabel">品牌</span>
+          <span class="kbd" id="tenantText">-</span>
+        </div>
+
+        <div class="metaRow">
+          <span class="metaLabel">名片 ID</span>
+          <span class="kbd" id="idText">-</span>
+        </div>
+
+        <div class="metaRow">
+          <span class="metaLabel">invite</span>
+          <span class="kbd" id="inviteText">-</span>
+        </div>
       </div>
     </div>
 
     <div class="flow">
-      <div class="flow-head">
+      <div class="flowTop">
         <div>
-          <div class="flow-title">填寫流程</div>
-          <div class="flow-sub" id="flowSub">目前在第 1 步，共 5 步。</div>
+          <div class="flowTitle">填寫流程</div>
+          <div class="flowSub" id="flowSub">目前在第 1 步，共 5 步。</div>
         </div>
         <div class="pageBadge" id="pageBadge">第 1 / 5 步</div>
       </div>
 
       <div class="stepTrack" id="stepTrack">
-        <div class="stepDot" data-step="0"><div class="num">1</div><div class="txt">方案與外觀</div></div>
-        <div class="stepDot" data-step="1"><div class="num">2</div><div class="txt">基本資料</div></div>
-        <div class="stepDot" data-step="2"><div class="num">3</div><div class="txt">聯絡方式</div></div>
-        <div class="stepDot" data-step="3"><div class="num">4</div><div class="txt">影片社群與圖片</div></div>
-        <div class="stepDot" data-step="4"><div class="num">5</div><div class="txt">確認與送出</div></div>
+        <div class="stepDot" data-step="0">
+          <div class="num">1</div>
+          <div class="txt">方案與外觀</div>
+          <div class="mini">先選名片樣式</div>
+        </div>
+        <div class="stepDot" data-step="1">
+          <div class="num">2</div>
+          <div class="txt">基本資料</div>
+          <div class="mini">讓人認識您</div>
+        </div>
+        <div class="stepDot" data-step="2">
+          <div class="num">3</div>
+          <div class="txt">聯絡方式</div>
+          <div class="mini">放主要聯繫入口</div>
+        </div>
+        <div class="stepDot" data-step="3">
+          <div class="num">4</div>
+          <div class="txt">連結資料與圖片</div>
+          <div class="mini">讓客戶可點可看</div>
+        </div>
+        <div class="stepDot" data-step="4">
+          <div class="num">5</div>
+          <div class="txt">確認與送出</div>
+          <div class="mini">送出並預覽名片</div>
+        </div>
       </div>
     </div>
 
     <div class="card">
       <section class="page active" data-page="0">
-        <h2>1. 方案與外觀</h2>
-        <div class="subnote">請先選方案，後面的選項會跟著變化。</div>
-
-        <div class="field">
-          <label>方案<span class="req">＊必選</span></label>
-          <div class="chips" id="planChips"></div>
-        </div>
-
-        <div class="sectionGap field">
-          <label>顏色（自由搭配）</label>
-          <div class="chips" id="colorChips"></div>
-        </div>
-
-        <div class="row two sectionGap">
-          <div class="field">
-            <label>版型（自由搭配）</label>
-            <div class="chips" id="styleChips"></div>
-          </div>
-          <div class="field">
-            <label>紙感（自由搭配）</label>
-            <div class="chips" id="paperChips"></div>
+        <div class="pageHero">
+          <div class="pageTitleWrap">
+            <div class="pageStep">第 1 步</div>
+            <h2>先選您的方案與外觀</h2>
+            <p class="subnote">先完成這一步，後面選項才會跟著對應。選好後，就能進入下一關。</p>
           </div>
         </div>
 
-        <div class="sectionGap field">
-          <label>精品底色（精品設計）</label>
-          <div class="chips" id="premiumChips"></div>
-        </div>
+        <div class="fieldBox">
+          <div class="field">
+            <label>方案<span class="req">＊必選</span></label>
+            <div class="chips" id="planChips"></div>
+          </div>
 
-        <div class="hint" id="planHint">
-          自由搭配：最多 2 張照片｜精品設計：最多 5 張照片
+          <div class="sectionGap field">
+            <label>顏色（自由搭配）</label>
+            <div class="chips" id="colorChips"></div>
+          </div>
+
+          <div class="row two sectionGap">
+            <div class="field">
+              <label>版型（自由搭配）</label>
+              <div class="chips" id="styleChips"></div>
+            </div>
+            <div class="field">
+              <label>紙感（自由搭配）</label>
+              <div class="chips" id="paperChips"></div>
+            </div>
+          </div>
+
+          <div class="sectionGap field">
+            <label>精品底色（精品設計）</label>
+            <div class="chips" id="premiumChips"></div>
+          </div>
+
+          <div class="planHintCard" id="planHint">
+            請先選方案。自由搭配與精品設計，會帶出不同外觀與照片張數。
+          </div>
         </div>
       </section>
 
       <section class="page" data-page="1">
-        <h2>2. 基本資料</h2>
+        <div class="pageHero">
+          <div class="pageTitleWrap">
+            <div class="pageStep">第 2 步</div>
+            <h2>填寫您的基本資料</h2>
+            <p class="subnote">這一步是讓人快速認識您。建議短句、清楚、好讀，完成後再進到聯絡方式。</p>
+          </div>
+        </div>
 
         <div class="row two">
           <div class="field">
@@ -841,33 +1209,43 @@
         <div class="row two sectionGap">
           <div class="field">
             <label>職稱</label>
-            <input id="title" placeholder="例：品牌顧問 / 講師 / 館長" />
+            <input id="title" placeholder="例：品牌顧問 / 講師 / 店長" />
           </div>
           <div class="field">
             <label>網站</label>
-            <input id="website" placeholder="https://..." />
+            <input id="website" placeholder="請貼上網址，例如：https://..." />
+            <div class="hint">若您有官網、介紹頁或預約頁，可填在這裡。</div>
           </div>
         </div>
 
         <div class="row two sectionGap">
           <div class="field">
             <label>一句話介紹</label>
-            <input id="slogan" placeholder="一句話讓人記住你" />
+            <input id="slogan" placeholder="一句話讓人快速記住您" />
+            <div class="hint">建議用一句完整短句，不要太長，避免後續版面斷句不自然。</div>
           </div>
           <div class="field">
             <label>服務項目</label>
-            <input id="services" placeholder="例：品牌顧問｜名片訂製｜課程" />
+            <input id="services" placeholder="例：品牌顧問｜名片訂製｜課程服務" />
+            <div class="hint">建議用「｜」分隔，閱讀會更整齊。</div>
           </div>
         </div>
 
         <div class="sectionGap field">
           <label>經歷</label>
-          <textarea id="experience" placeholder="可分行填寫，讓客戶更了解你"></textarea>
+          <textarea id="experience" placeholder="可一行一點，短句清楚，讓客戶更好閱讀"></textarea>
+          <div class="hint">建議一行一點，避免太長一整段。\n例如：\n10年教學經驗\n品牌顧問與課程規劃\n服務超過200位客戶</div>
         </div>
       </section>
 
       <section class="page" data-page="2">
-        <h2>3. 聯絡方式</h2>
+        <div class="pageHero">
+          <div class="pageTitleWrap">
+            <div class="pageStep">第 3 步</div>
+            <h2>放上主要聯絡方式</h2>
+            <p class="subnote">這一步是讓客戶找到您。請優先填最常使用、最方便回覆的聯絡入口。</p>
+          </div>
+        </div>
 
         <div class="row two">
           <div class="field">
@@ -876,18 +1254,18 @@
           </div>
           <div class="field">
             <label>Email</label>
-            <input id="email" placeholder="name@example.com" />
+            <input id="email" placeholder="例：name@example.com" />
           </div>
         </div>
 
         <div class="row two sectionGap">
           <div class="field">
             <label>LINE（個人）</label>
-            <input id="line_url" placeholder="https://line.me/ti/p/..." />
+            <input id="line_url" placeholder="請貼上網址，例如：https://line.me/ti/p/..." />
           </div>
           <div class="field">
             <label>LINE 官方帳號</label>
-            <input id="line_oa" placeholder="https://lin.ee/..." />
+            <input id="line_oa" placeholder="請貼上網址，例如：https://lin.ee/..." />
           </div>
         </div>
 
@@ -904,69 +1282,100 @@
       </section>
 
       <section class="page" data-page="3">
-        <h2>4. 影片 / 社群 / 圖片</h2>
-        <div class="subnote">圖片上傳後可先調整位置，再套用進預覽。</div>
+        <div class="pageHero">
+          <div class="pageTitleWrap">
+            <div class="pageStep">第 4 步</div>
+            <h2>放上連結資料與圖片</h2>
+            <p class="subnote">這一步是放「客戶可以點擊的入口連結網址」。請貼上您希望客戶打開的相關連結網址。</p>
+          </div>
+        </div>
 
-        <div class="row two">
+        <div class="guideCard">
+          <h3>這一步是放「客戶可以點擊的入口連結網址」</h3>
+          <p>如果您是不同類型，可以這樣放相關連結網址：</p>
+
+          <div class="guideList">
+            <div class="guideItem">
+              <strong>創業者 / 個人品牌</strong>
+              品牌影片連結、官網連結、預約頁連結
+            </div>
+            <div class="guideItem">
+              <strong>講師 / 顧問</strong>
+              課程影片連結、報名頁連結、講座介紹頁
+            </div>
+            <div class="guideItem">
+              <strong>店家 / 工作室</strong>
+              作品集連結、店家社群連結、LINE 官方帳號
+            </div>
+          </div>
+
+          <div class="guideTip">只需貼網址，不需要上傳影片或其他檔案。</div>
+        </div>
+
+        <div class="sectionGap row two">
           <div class="field">
-            <label>影片 1</label>
-            <input id="video1" placeholder="https://..." />
+            <label>影片連結 1</label>
+            <input id="video1" placeholder="請貼上影片網址，例如：https://..." />
           </div>
           <div class="field">
-            <label>影片 2</label>
-            <input id="video2" placeholder="https://..." />
+            <label>影片連結 2</label>
+            <input id="video2" placeholder="請貼上影片網址，例如：https://..." />
           </div>
         </div>
 
         <div class="row two sectionGap">
           <div class="field">
-            <label>影片 3</label>
-            <input id="video3" placeholder="https://..." />
+            <label>影片連結 3</label>
+            <input id="video3" placeholder="請貼上影片網址，例如：https://..." />
+            <div class="hint">可使用 YouTube、Facebook 影片、短影音分享網址。</div>
           </div>
           <div class="field">
-            <label>微信長圖連結（選填）</label>
-            <input id="wechat_poster" placeholder="https://..." />
-          </div>
-        </div>
-
-        <div class="row three sectionGap">
-          <div class="field">
-            <label>社群 1</label>
-            <input id="social1" placeholder="https://..." />
-          </div>
-          <div class="field">
-            <label>社群 2</label>
-            <input id="social2" placeholder="https://..." />
-          </div>
-          <div class="field">
-            <label>社群 3</label>
-            <input id="social3" placeholder="https://..." />
+            <label>主按鈕文字</label>
+            <input id="cta_text" placeholder="例：立即預約 / 加入 LINE / 前往官網" />
+            <div class="hint">這是名片上最主要的行動按鈕文字。</div>
           </div>
         </div>
 
         <div class="row two sectionGap">
           <div class="field">
-            <label>按鈕文字</label>
-            <input id="cta_text" placeholder="例：立即預約 / 加入 LINE 諮詢" />
+            <label>社群連結 1</label>
+            <input id="social1" placeholder="請貼上網址，例如：https://..." />
           </div>
           <div class="field">
-            <label>按鈕連結</label>
-            <input id="cta_link" placeholder="https://..." />
+            <label>社群連結 2</label>
+            <input id="social2" placeholder="請貼上網址，例如：https://..." />
           </div>
         </div>
 
-        <div class="sectionGap">
-          <label>圖片上傳</label>
-          <div class="uploadGrid" id="uploadGrid"></div>
-          <div class="hint" style="margin-top:10px;">
-            自由搭配最多 2 張照片｜精品設計最多 5 張照片
+        <div class="row two sectionGap">
+          <div class="field">
+            <label>社群連結 3</label>
+            <input id="social3" placeholder="請貼上網址，例如：https://..." />
+            <div class="hint">可放 Facebook、Instagram、小紅書、Threads、作品頁、官網頁。</div>
+          </div>
+          <div class="field">
+            <label>主按鈕連結</label>
+            <input id="cta_link" placeholder="請貼上主按鈕要前往的網址，例如：https://..." />
           </div>
         </div>
+
+        <div class="uploadGuide">
+          圖片上傳後，可拖移位置、放大、縮小，再套用到預覽。\n
+          建議先把主體置中，避免人物或 Logo 被裁切太多。\n
+          自由搭配最多 2 張照片｜精品設計最多 5 張照片。
+        </div>
+
+        <div class="uploadGrid" id="uploadGrid"></div>
       </section>
 
       <section class="page" data-page="4">
-        <h2>5. 確認與送出</h2>
-        <div class="subnote">確認資料後再送出。系統會自動防止重複建立與重複送出。</div>
+        <div class="pageHero">
+          <div class="pageTitleWrap">
+            <div class="pageStep">第 5 步</div>
+            <h2>確認資料並送出</h2>
+            <p class="subnote">確認後送出。送出完成後，您可先預覽名片，再將資料序號回報給客服。</p>
+          </div>
+        </div>
 
         <div class="summary" id="summaryBox"></div>
 
@@ -990,7 +1399,7 @@
         <div class="status" id="status">尚未操作。</div>
 
         <div class="footNote">
-          小提醒：送出時若系統判定這是一筆已存在的資料，就不會重複建立新卡。invite 會全程帶入。
+          小提醒：送出成功後，請先檢查名片預覽內容，再將資料序號回報給客服。若系統判定為既有資料，將不會重複建立新卡。
         </div>
       </section>
     </div>
@@ -1002,9 +1411,10 @@
           <button id="btnPrev" class="secondary" type="button">上一步</button>
         </div>
         <div class="pageNavRight">
-          <button id="btnNext" type="button">下一步</button>
+          <button id="btnNext" type="button">完成這一步，進入下一步</button>
         </div>
       </div>
+      <div class="navHint">每完成一關，再進入下一關。若本頁資料未完成，系統會先提醒您。</div>
     </div>
 
     <input id="mode" type="hidden" value="fill" />
@@ -1016,7 +1426,7 @@
       <div class="cropHead">
         <div>
           <h3 id="cropTitle">調整圖片位置</h3>
-          <p id="cropDesc">可拖移位置，並用按鈕放大、縮小、重設後再套用。</p>
+          <p id="cropDesc">可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。</p>
         </div>
       </div>
 
@@ -1028,18 +1438,21 @@
         <div class="cropTools">
           <button type="button" class="secondary" id="cropZoomOut">縮小</button>
           <button type="button" class="secondary" id="cropZoomIn">放大</button>
+          <button type="button" class="secondary" id="cropCenter">置中</button>
           <button type="button" class="ghost" id="cropReset">重設</button>
           <button type="button" class="secondary" id="cropCancel">取消</button>
           <button type="button" id="cropApply">套用</button>
         </div>
 
         <div class="cropMeta" id="cropMeta">
-          提醒：大頭照為正方形框、Logo 為寬框、照片為橫式框。
+          可左右、上下拖移圖片。\n
+          大頭照與 Logo 建議主體置中。\n
+          縮小可保留更多畫面，放大可讓主體更明顯。
         </div>
       </div>
     </div>
   </div>
 
-  <script type="module" src="./form.js?v=5219"></script>
+  <script type="module" src="./form.js?v=7100"></script>
 </body>
 </html>
