@@ -1,11 +1,11 @@
 <!-- ================================
-     index.html v522.3 (COMPLETE OVERWRITE)
+     index.html v522.5 (COMPLETE OVERWRITE)
      FRONT + CLEAN DELIVERY MODE + INVITE GATE
 
      ✅ Front (門面): only use DEMO_ID (TW0001) when URL has NO id
-     ✅ If URL already has id, KEEP that id (fix preview/card linkage)
+     ✅ If URL already has id, KEEP that id
      ✅ Clean (成品): ?view=1 / ?clean=1 → hide控制面板 + keep share FAB
-     ✅ Share: always share clean URL (force view=1) via app.js (with fallback here)
+     ✅ Share: share 智慧名片館（優先走 app.js v522.5 的 HUB share URL）
 
      ✅ CTA:
         - LINE OA: https://lin.ee/3r2ZePN
@@ -13,10 +13,11 @@
         - 產品特色說明：modal
         - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
      ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=522.3&invite=XXXX
+        - Front: click 開通 → ask invite code → open ./form.html?v=522.5&invite=XXXX
         - Clean mode: no form entry
 
      ✅ Brand facade:
+        - UI small sun above title
         - Heading: 天使幸福智慧名片
         - Positioning:
           智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口
@@ -27,13 +28,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片 v522.3</title>
+  <title>天使幸福智慧名片 v522.5</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=522.3" />
+  <link rel="manifest" href="./manifest.json?v=522.5" />
   <meta name="theme-color" content="#111318" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.3" />
-  <link rel="icon" href="./icons/icon-192.png?v=522.3" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.5" />
+  <link rel="icon" href="./icons/icon-192.png?v=522.5" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -44,13 +45,13 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片" />
   <meta property="og:description" content="智慧名片訂製服務｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=522.3" />
+  <meta property="og:image" content="og-card.png?v=522.5" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
-  <link rel="stylesheet" href="./style.css?v=522.3" />
+  <link rel="stylesheet" href="./style.css?v=522.5" />
 
   <style>
     /* CTA visibility guard (include *2 IDs) */
@@ -62,7 +63,7 @@
       pointer-events:auto !important;
     }
 
-    /* v522.3: force-hide top private line CTA (private line moved to contactDock) */
+    /* v522.5: force-hide top private line CTA (private line moved to contactDock) */
     #btnLinePrivateCta,#btnLinePrivateCta2{
       display:none !important;
       visibility:hidden !important;
@@ -247,26 +248,50 @@
       width:100%;
       max-width:520px;
       border-radius: 18px;
-      padding: 12px 12px;
+      padding: 14px 12px 12px;
       border: 1px solid rgba(0,0,0,0.08);
       background: rgba(255,255,255,0.68);
       box-shadow: 0 14px 30px rgba(0,0,0,0.10);
     }
-    .facade-brand .h{
-      font-weight: 1000;
-      font-size: 18px;
-      letter-spacing: .6px;
-      color: rgba(0,0,0,0.86);
+    .facade-brand-head{
       display:flex;
+      flex-direction:column;
       align-items:center;
-      gap:10px;
+      justify-content:center;
+      text-align:center;
+    }
+    .sun-ui-icon{
+      width:22px;
+      height:22px;
+      object-fit:contain;
+      display:block;
+      margin-bottom:8px;
+      opacity:.95;
+    }
+    .facade-brand-title{
+      font-weight:1000;
+      font-size:18px;
+      line-height:1.25;
+      letter-spacing:.6px;
+      color: rgba(0,0,0,0.86);
+      text-align:center;
+    }
+    .facade-brand-subtitle{
+      margin-top:6px;
+      font-size:13px;
+      line-height:1.35;
+      font-weight:800;
+      letter-spacing:.18em;
+      color: rgba(0,0,0,0.55);
+      text-align:center;
     }
     .facade-brand .p{
-      margin-top: 6px;
+      margin-top: 10px;
       font-size: 13px;
       line-height: 1.55;
       color: rgba(0,0,0,0.62);
       font-weight: 800;
+      text-align:center;
     }
 
     body.clean #admin-panel{ display:none !important; }
@@ -308,7 +333,7 @@
 <body class="mode-free color-1 style-arch paper-1">
   <div id="adminHotspotBR" aria-hidden="true"></div>
 
-  <button id="cleanShareFab" type="button" aria-label="分享此名片">
+  <button id="cleanShareFab" type="button" aria-label="分享智慧名片館">
     <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
   </button>
 
@@ -318,7 +343,11 @@
 
       <!-- ✅ Brand facade -->
       <div class="facade-brand" id="facadeBrand">
-        <div class="h"><i class="fa-solid fa-id-card-clip"></i> 天使幸福智慧名片</div>
+        <div class="facade-brand-head">
+          <img src="./assets/icon/sun-ui.png" class="sun-ui-icon" alt="">
+          <div class="facade-brand-title">天使幸福智慧名片</div>
+          <div class="facade-brand-subtitle">Angel Smart Card</div>
+        </div>
         <div class="p">智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口</div>
       </div>
 
@@ -377,7 +406,7 @@
         </button>
 
         <button class="btn-cta btn-share" id="btnShare" type="button">
-          <i class="fa-solid fa-share-nodes"></i> 分享此名片
+          <i class="fa-solid fa-share-nodes"></i> 分享智慧名片館
         </button>
       </div>
 
@@ -411,8 +440,8 @@
           <i class="fa-solid fa-key"></i> 請聯繫客服開通
         </button>
 
-        <button class="btn-cta btn-share" id="btnSharePremium" type="button" onclick="document.getElementById('btnShare')?.click()">
-          <i class="fa-solid fa-share-nodes"></i> 分享此名片
+        <button class="btn-cta btn-share" id="btnSharePremium" type="button">
+          <i class="fa-solid fa-share-nodes"></i> 分享智慧名片館
         </button>
       </div>
 
@@ -470,7 +499,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v522.3</div>
+        <div class="version-tag" id="versionTag">v522.5</div>
       </div>
     </section>
   </main>
@@ -490,7 +519,7 @@
           <b>精品設計</b>：7款精品底色（含金箔）、玻璃質感更強、照片牆更完整，適合更高端呈現。
         </div>
         <div class="k">
-          <b>一鍵分享</b>：連結可分享、可作為「名片入口」聚合你的聯絡方式／社群／作品。
+          <b>一鍵分享</b>：可分享智慧名片館，作為品牌入口與導流主頁。
         </div>
         <div class="k">
           <b>安全開通</b>：表單採邀請碼制，需由後台發放，避免公開被濫用。
@@ -522,13 +551,13 @@
   </div>
 
   <!-- Load app.js -->
-  <script src="./app.js?v=522.2"></script>
+  <script src="./app.js?v=522.5"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "522.3";
+      var VERSION = "522.5";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
 
       function qs(id){ return document.getElementById(id); }
@@ -575,52 +604,61 @@
         if(fab) fab.style.display = "flex";
       }
 
-      function buildCleanShareUrlFallback(){
+      function buildHubShareUrlFallback(){
         try{
-          if(typeof window.__getCleanShareUrl === "function"){
-            return window.__getCleanShareUrl();
+          if(typeof window.__getHubShareUrl === "function"){
+            return window.__getHubShareUrl();
           }
         }catch(e){}
         try{
-          var u = new URL(location.href);
-          if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
-          u.searchParams.delete("clean");
+          var base = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+          var p = sp();
+          var id = (p.get("id") || "").trim();
+          var u = new URL(base);
+          if(id) u.searchParams.set("ref", id);
           return u.toString();
         }catch(e){
-          var url = location.href;
-          if(url.indexOf("view=1") >= 0) return url;
-          return url + (url.indexOf("?")>=0 ? "&" : "?") + "view=1";
+          return "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
         }
       }
 
       function bindShareFallback(){
-        var btn = qs("btnShare");
-        if(!btn) return;
+        function bindOne(id){
+          var btn = qs(id);
+          if(!btn) return;
 
-        btn.addEventListener("click", function(e){
-          try{
-            if(e.defaultPrevented) return;
+          btn.addEventListener("click", function(e){
+            try{
+              if(e.defaultPrevented) return;
 
-            var url = buildCleanShareUrlFallback();
+              var url = buildHubShareUrlFallback();
 
-            if(navigator.share){
-              e.preventDefault();
-              navigator.share({ title: document.title, url: url }).catch(function(){});
-              return;
-            }
+              if(navigator.share){
+                e.preventDefault();
+                navigator.share({
+                  title: "天使幸福智慧名片",
+                  text: "分享智慧名片館",
+                  url: url
+                }).catch(function(){});
+                return;
+              }
 
-            if(navigator.clipboard && navigator.clipboard.writeText){
-              e.preventDefault();
-              navigator.clipboard.writeText(url).then(function(){
-                alert("✅ 已複製分享連結（乾淨成品）");
-              }).catch(function(){
-                alert("⚠️ 無法複製，請手動複製網址");
-              });
-            }else{
-              alert("⚠️ 無法分享/複製，請手動複製網址");
-            }
-          }catch(err){}
-        }, true);
+              if(navigator.clipboard && navigator.clipboard.writeText){
+                e.preventDefault();
+                navigator.clipboard.writeText(url).then(function(){
+                  alert("✅ 已複製智慧名片館連結");
+                }).catch(function(){
+                  alert("⚠️ 無法複製，請手動複製網址");
+                });
+              }else{
+                alert("⚠️ 無法分享/複製，請手動複製網址");
+              }
+            }catch(err){}
+          }, true);
+        }
+
+        bindOne("btnShare");
+        bindOne("btnSharePremium");
       }
 
       (function(){
@@ -631,8 +669,12 @@
             var b = qs("btnShare");
             if(b && b.click) b.click();
             else if(navigator.share){
-              var url = buildCleanShareUrlFallback();
-              navigator.share({ title: document.title, url: url }).catch(function(){});
+              var url = buildHubShareUrlFallback();
+              navigator.share({
+                title: "天使幸福智慧名片",
+                text: "分享智慧名片館",
+                url: url
+              }).catch(function(){});
             }
           }catch(e){}
         }, {passive:true});
@@ -831,7 +873,7 @@
 
         setTimeout(function(){
           [
-            "btnLineOaCta","btnFeature","btnInviteGate","btnShare",
+            "btnLineOaCta","btnFeature","btnInviteGate","btnShare","btnSharePremium",
             "btnLineOaCta2","btnFeature2","btnInviteGate2"
           ].forEach(function(id){
             var b = qs(id);
