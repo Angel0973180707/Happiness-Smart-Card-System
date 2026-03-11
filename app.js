@@ -1,6 +1,6 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v522.5 (COMPLETE OVERWRITE)
+ * app.js v523.0 (COMPLETE OVERWRITE)
  *
  * Align to GAS v522.2 payload:
  * ✅ { ok:true, v:"522.2", item:{...} }
@@ -8,14 +8,16 @@
  * Rules:
  * ✅ HARD LOCK: status !== "active" => lock
  * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
- * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel (if exists in HTML)
+ * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel
  *
- * v522.5 changes:
- * ✅ A) version update to v522.5
- * ✅ B) add HUB share url builder (share 智慧名片館)
- * ✅ C) btnShare / fallback now share HUB url (with ?ref=TWxxxx when current card id exists)
- * ✅ D) keep clean share url builder for compatibility
- * ✅ E) expose __getHubShareUrl for index.html if needed
+ * v523.0 changes:
+ * ✅ A) version update to v523.0
+ * ✅ B) add smart balance / intelligent line-break
+ * ✅ C) website -> primaryLinkDock
+ * ✅ D) video1~3 + social1~3 -> mediaDock 6-grid
+ * ✅ E) cta_text + cta_link -> ctaDock
+ * ✅ F) product bottom QR with avatar center
+ * ✅ G) logo display -> rounded square
  * ================================ */
 
 const CONFIG = {
@@ -23,7 +25,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v522.5",
+  VERSION: "v523.0",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -530,6 +532,7 @@ function buildCleanShareUrl_(){
     const u = new URL(location.href);
     if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
     u.searchParams.delete("clean");
+    u.searchParams.delete("admin");
     return u.toString();
   }catch{
     const url = location.href;
@@ -767,6 +770,110 @@ function scanAnyLineFromPayload_(p){
   return "";
 }
 
+/* ---------- Smart balance / intelligent line-break ---------- */
+function clearBalancedEl_(el){
+  if(!el) return;
+  if(el.dataset.rawText == null){
+    el.dataset.rawText = text(el.textContent);
+  }
+  el.textContent = el.dataset.rawText || "";
+}
+
+function renderBalancedLines_(el, lines){
+  if(!el) return;
+  el.innerHTML = "";
+  lines.filter(Boolean).forEach(line=>{
+    const span = document.createElement("span");
+    span.className = "balance-line";
+    span.textContent = line;
+    el.appendChild(span);
+  });
+}
+
+function splitHeroCopy_(raw){
+  const s = text(raw);
+  if(!s) return [];
+  const parts = s.split("｜");
+  if(parts.length >= 2){
+    const first = parts.shift();
+    const rest = parts.join("｜");
+    if(rest.includes("打造")){
+      const idx = rest.indexOf("打造");
+      const left = rest.slice(0, idx).trim();
+      const right = rest.slice(idx).trim();
+      return [first.trim(), left, right];
+    }
+    return [first.trim(), rest.trim()];
+  }
+  if(s.includes("打造")){
+    const idx = s.indexOf("打造");
+    return [s.slice(0, idx).trim(), s.slice(idx).trim()];
+  }
+  return [s];
+}
+
+function splitQrTitle_(raw){
+  const s = text(raw);
+  if(!s) return [];
+  if(s.includes("｜")){
+    const [a,b] = s.split("｜");
+    return [a.trim() + "｜", b.trim()];
+  }
+  return [s];
+}
+
+function splitByDivider_(raw, divider){
+  const s = text(raw);
+  if(!s) return [];
+  if(s.includes(divider)){
+    const parts = s.split(divider).map(x=>x.trim()).filter(Boolean);
+    if(parts.length >= 2){
+      return [parts.slice(0, Math.ceil(parts.length/2)).join("・"), parts.slice(Math.ceil(parts.length/2)).join("・")];
+    }
+  }
+  return [s];
+}
+
+function applySmartBalanceToEl_(el){
+  if(!el) return;
+  clearBalancedEl_(el);
+  const raw = el.dataset.rawText || text(el.textContent);
+  const type = el.dataset.balanceType || "";
+  const isNarrow = window.innerWidth <= 560;
+
+  if(!raw) return;
+
+  if(!isNarrow){
+    el.textContent = raw;
+    return;
+  }
+
+  if(type === "hero-copy"){
+    renderBalancedLines_(el, splitHeroCopy_(raw));
+    return;
+  }
+  if(type === "qr-title" || type === "product-qr-title"){
+    renderBalancedLines_(el, splitQrTitle_(raw));
+    return;
+  }
+  if(type === "qr-sub" || type === "product-qr-sub"){
+    renderBalancedLines_(el, splitByDivider_(raw, "・"));
+    return;
+  }
+
+  el.textContent = raw;
+}
+
+function applySmartBalanceAll_(){
+  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
+}
+
+let __balanceTimer = null;
+window.addEventListener("resize", ()=>{
+  clearTimeout(__balanceTimer);
+  __balanceTimer = setTimeout(applySmartBalanceAll_, 120);
+});
+
 /* ---------- Logo ---------- */
 function renderLogo_(p){
   const logoUrl = pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img","logo_url"]);
@@ -782,7 +889,7 @@ function renderLogo_(p){
   }
 
   wrap.style.display = "flex";
-  img.style.borderRadius = "999px";
+  img.style.borderRadius = "18px";
   img.style.objectFit = "cover";
 
   img.onload = ()=>{ wrap.style.display = "flex"; };
@@ -859,136 +966,112 @@ function applyWideRule_(container){
   }
 }
 
-/* ================================
- * Media/Social
- * ================================ */
-function gatherByKeys_(p, keys){
-  const hits = [];
-  for(const k of keys){
-    const v = pick(p, [k]);
-    if(text(v)) hits.push({ key: cleanKey_(k), value: v });
-  }
-  return hits;
+/* ---------- Link labels ---------- */
+function inferLinkMeta_(url, kind, idx){
+  const u = String(url||"").toLowerCase();
+
+  if(u.includes("youtube.com") || u.includes("youtu.be")) return { label:"YouTube", icon:"fa-brands fa-youtube", cls:"dock-yt" };
+  if(u.includes("facebook.com") || u.includes("fb.com")) return { label:"Facebook", icon:"fa-brands fa-facebook", cls:"dock-fb" };
+  if(u.includes("instagram.com")) return { label:"Instagram", icon:"fa-brands fa-instagram", cls:"dock-ig" };
+  if(u.includes("threads.net")) return { label:"Threads", icon:"fa-solid fa-at", cls:"dock-web" };
+  if(u.includes("x.com") || u.includes("twitter.com")) return { label:"X", icon:"fa-brands fa-x-twitter", cls:"dock-web" };
+  if(u.includes("tiktok.com")) return { label:"TikTok", icon:"fa-brands fa-tiktok", cls:"dock-web" };
+  if(u.includes("spotify.com")) return { label:"Spotify", icon:"fa-brands fa-spotify", cls:"dock-web" };
+  if(u.includes("apple.com") && u.includes("podcast")) return { label:"Podcast", icon:"fa-solid fa-podcast", cls:"dock-web" };
+  if(u.includes("line.me") || u.includes("lin.ee")) return { label:"LINE", icon:"fa-brands fa-line", cls:"dock-line" };
+  if(u.includes("google.com/maps") || u.includes("maps.app")) return { label:"地圖", icon:"fa-solid fa-location-dot", cls:"dock-map" };
+
+  if(kind === "video") return { label:`影音 ${idx}`, icon:"fa-solid fa-play", cls:"dock-web" };
+  return { label:`社群 ${idx}`, icon:"fa-solid fa-link", cls:"dock-web" };
 }
 
-function resolveHandleUrl_(platform, raw){
-  const v0 = text(raw);
-  if(!v0) return "";
+/* ---------- Docks ---------- */
+function renderPrimaryLinkDock_(p){
+  const dock = qs("primaryLinkDock");
+  const btns = qs("primaryLinkButtons");
+  if(!dock || !btns) return;
 
-  const asLink = normalizeLink_(v0);
-  if(/^https?:\/\//i.test(asLink)) return asLink;
-
-  let v = v0.replace(/^[@\s]+/g, "@").trim();
-  v = v.replace(/^(ig|instagram|threads|x|twitter|yt|youtube|tiktok|douyin|bili|bilibili)[:：\s]+/i, "").trim();
-  if(!v) return "";
-
-  const isAt = v.startsWith("@");
-  const handle = (isAt ? v.slice(1) : v).trim();
-  const safe = encodeURIComponent(handle);
-
-  if(platform === "instagram") return `https://instagram.com/${safe}`;
-  if(platform === "facebook")  return `https://facebook.com/${safe}`;
-  if(platform === "threads")   return `https://www.threads.net/@${safe}`;
-  if(platform === "x")         return `https://x.com/${safe}`;
-  if(platform === "youtube"){
-    if(/^UC[A-Za-z0-9_-]{10,}$/.test(handle)) return `https://www.youtube.com/channel/${safe}`;
-    return `https://www.youtube.com/@${safe}`;
-  }
-  if(platform === "bilibili"){
-    if(/^\d{3,}$/.test(handle)) return `https://space.bilibili.com/${safe}`;
-    return `https://www.bilibili.com/search?keyword=${safe}`;
-  }
-  if(platform === "tiktok") return `https://www.tiktok.com/@${safe}`;
-  if(platform === "douyin") return `https://www.douyin.com/search/${safe}`;
-  if(platform === "xiaohongshu") return `https://www.xiaohongshu.com/search_result?keyword=${safe}`;
-  return normalizeLink_(v0);
-}
-
-function resolveWebsite_(raw){
-  const v = text(raw);
-  if(!v) return "";
-  return normalizeLink_(v);
-}
-
-function resolvePodcast_(raw){
-  const v = text(raw);
-  if(!v) return "";
-  const u = normalizeLink_(v);
-  if(/^https?:\/\//i.test(u)) return u;
-  return `https://www.google.com/search?q=${encodeURIComponent(v + " podcast")}`;
-}
-
-const MEDIA_SPECS = [
-  { label:"YouTube", icon:"fa-brands fa-youtube", keys:["影音連結1","影音連結2","影音連結3","video1","video2","video3","youtube","yt","youtube_url","youtube_link"], resolver:(v)=> resolveHandleUrl_("youtube", v) },
-  { label:"B站", icon:"fa-solid fa-play", keys:["bilibili","b站","bili","bilibili_url"], resolver:(v)=> resolveHandleUrl_("bilibili", v) },
-  { label:"TikTok", icon:"fa-brands fa-tiktok", keys:["tiktok_video","tiktok"], resolver:(v)=> resolveHandleUrl_("tiktok", v) },
-  { label:"抖音", icon:"fa-solid fa-circle-play", keys:["douyin","抖音"], resolver:(v)=> resolveHandleUrl_("douyin", v) },
-  { label:"Podcast", icon:"fa-solid fa-podcast", keys:["podcast","soundon","spotify_podcast","apple_podcast"], resolver:(v)=> resolvePodcast_(v) },
-  { label:"Video", icon:"fa-solid fa-play", keys:["video","video_url","media_url"], resolver:(v)=> normalizeLink_(v) }
-];
-
-const SOCIAL_SPECS = [
-  { label:"FB", icon:"fa-brands fa-facebook", keys:["社群連結1","社群連結2","社群連結3","social1","social2","social3","facebook","fb","fb_url"], resolver:(v)=> resolveHandleUrl_("facebook", v) },
-  { label:"IG", icon:"fa-brands fa-instagram", keys:["instagram","ig","ig_url"], resolver:(v)=> resolveHandleUrl_("instagram", v) },
-  { label:"Threads", icon:"fa-solid fa-at", keys:["threads","threads_url"], resolver:(v)=> resolveHandleUrl_("threads", v) },
-  { label:"X", icon:"fa-brands fa-x-twitter", keys:["x","twitter","x_url","twitter_url"], resolver:(v)=> resolveHandleUrl_("x", v) },
-  { label:"WeChat", icon:"fa-brands fa-weixin", keys:["wechat","微信","wechat_id","wechat_url","微信ID"], resolver:(_v)=> "" },
-  { label:"LINE", icon:"fa-brands fa-line", keys:["line","line_oa","line_id","line_url","LINE連結","LINE官方帳號"], resolver:(_v)=> "" },
-  { label:"小紅書", icon:"fa-solid fa-book", keys:["xiaohongshu","小紅書","rednote"], resolver:(v)=> resolveHandleUrl_("xiaohongshu", v) },
-  { label:"官網", icon:"fa-solid fa-globe", keys:["website","web","homepage","url"], resolver:(v)=> resolveWebsite_(v) }
-];
-
-function ensureMediaDockMount_(){
-  let dock = qs("mediaDock");
-  let btns = qs("mediaButtons");
-  if(dock && btns) return { dock, btns };
-  return { dock, btns };
-}
-
-function renderSpecsToDock_(p, specs){
-  const mount = ensureMediaDockMount_();
-  const btns = mount.btns;
-  const dock = mount.dock;
-  if(!btns || !dock) return false;
-
-  let hasAny = false;
-
-  for(const spec of specs){
-    const hits = gatherByKeys_(p, spec.keys);
-    if(!hits.length) continue;
-
-    for(const h of hits){
-      const finalUrl = spec.resolver(h.value);
-      if(!text(finalUrl)) continue;
-
-      hasAny = true;
-      const cls = classifyDockClass_(finalUrl);
-      btns.appendChild(buildDockBtn_({
-        label: spec.label,
-        icon: spec.icon,
-        extraClass: cls,
-        onClick: ()=> openUrl_(finalUrl)
-      }));
-      break;
-    }
+  btns.innerHTML = "";
+  const website = normalizeLink_(pick(p, ["website","web","homepage","url"]));
+  if(!website){
+    dock.style.display = "none";
+    return;
   }
 
-  return hasAny;
+  btns.appendChild(buildDockBtn_({
+    label: "官方網站",
+    icon: "fa-solid fa-globe",
+    extraClass: "dock-web wide",
+    onClick: ()=> openUrl_(website)
+  }));
+  dock.style.display = "";
 }
 
-function renderDocks_(p){
-  const mediaDock = qs("mediaDock");
-  const mediaBtns = qs("mediaButtons");
-  const cDock     = qs("contactDock");
-  const cBtns     = qs("contactButtons");
+function renderCtaDock_(p){
+  const dock = qs("ctaDock");
+  const btns = qs("ctaButtons");
+  if(!dock || !btns) return;
 
-  if(mediaBtns) mediaBtns.innerHTML = "";
-  if(cBtns) cBtns.innerHTML = "";
+  btns.innerHTML = "";
+  const ctaText = text(pick(p, ["cta_text","CTA文字","ctaText"]));
+  const ctaLink = normalizeLink_(pick(p, ["cta_link","CTA連結","ctaLink"]));
 
-  const hasMedia = renderSpecsToDock_(p, MEDIA_SPECS);
-  const hasSocial = renderSpecsToDock_(p, SOCIAL_SPECS);
-  if(mediaDock) mediaDock.style.display = (hasMedia || hasSocial) ? "" : "none";
-  applyWideRule_(mediaBtns);
+  if(!ctaText || !ctaLink){
+    dock.style.display = "none";
+    return;
+  }
+
+  btns.appendChild(buildDockBtn_({
+    label: ctaText,
+    icon: "fa-solid fa-bolt",
+    extraClass: "dock-web wide",
+    onClick: ()=> openUrl_(ctaLink)
+  }));
+  dock.style.display = "";
+}
+
+function renderMediaDock_(p){
+  const dock = qs("mediaDock");
+  const btns = qs("mediaButtons");
+  if(!dock || !btns) return;
+
+  btns.innerHTML = "";
+
+  const items = [];
+  ["video1","video2","video3"].forEach((k, i)=>{
+    const u = normalizeLink_(pick(p, [k, `影音連結${i+1}`]));
+    if(u) items.push({ kind:"video", idx:i+1, url:u });
+  });
+  ["social1","social2","social3"].forEach((k, i)=>{
+    const u = normalizeLink_(pick(p, [k, `社群連結${i+1}`]));
+    if(u) items.push({ kind:"social", idx:i+1, url:u });
+  });
+
+  if(!items.length){
+    dock.style.display = "none";
+    return;
+  }
+
+  items.forEach(item=>{
+    const meta = inferLinkMeta_(item.url, item.kind, item.idx);
+    btns.appendChild(buildDockBtn_({
+      label: meta.label,
+      icon: meta.icon,
+      extraClass: meta.cls,
+      onClick: ()=> openUrl_(item.url)
+    }));
+  });
+
+  dock.style.display = "";
+  applyWideRule_(btns);
+}
+
+function renderContactDock_(p){
+  const cDock = qs("contactDock");
+  const cBtns = qs("contactButtons");
+  if(!cDock || !cBtns) return;
+
+  cBtns.innerHTML = "";
 
   const phone   = pick(p, ["電話","phone","mobile","手機","cell"]);
   const email   = pick(p, ["Email","email","信箱","E-mail","mail"]);
@@ -1048,18 +1131,29 @@ function renderDocks_(p){
     contactList.push({ label:"地址導航", icon:"fa-solid fa-location-dot", cls:"dock-map", action: ()=> openMapByAddress_(address) });
   }
 
-  let hasContact = false;
+  if(!contactList.length){
+    cDock.style.display = "none";
+    return;
+  }
+
   contactList.forEach(x=>{
-    hasContact = true;
-    if(cBtns){
-      cBtns.appendChild(buildDockBtn_({
-        label:x.label, icon:x.icon, extraClass:x.cls, onClick:x.action
-      }));
-    }
+    cBtns.appendChild(buildDockBtn_({
+      label:x.label,
+      icon:x.icon,
+      extraClass:x.cls,
+      onClick:x.action
+    }));
   });
 
-  if(cDock) cDock.style.display = hasContact ? "" : "none";
+  cDock.style.display = "";
   applyWideRule_(cBtns);
+}
+
+function renderDocks_(p){
+  renderContactDock_(p);
+  renderPrimaryLinkDock_(p);
+  renderMediaDock_(p);
+  renderCtaDock_(p);
 }
 
 /* ---------- Text helpers ---------- */
@@ -1126,6 +1220,15 @@ function normalizeStatus_(p){
   return s || "";
 }
 
+function hideBottomQr_(){
+  const sec = qs("bottomQrSection");
+  const grid = qs("bottomQrGrid");
+  const avatar = qs("bottomQrAvatar");
+  if(sec) sec.style.display = "none";
+  if(grid) grid.innerHTML = "";
+  if(avatar) avatar.removeAttribute("src");
+}
+
 function showLockedUi_(reasonText){
   safeSetText_("u-name", "請聯繫客服開通");
   safeSetText_("u-unit", "請聯繫客服開通");
@@ -1137,7 +1240,7 @@ function showLockedUi_(reasonText){
     sEl.textContent = text(reasonText) || "請聯繫客服開通";
   }
 
-  ["block-service","block-exp","mediaDock","photoWall"].forEach(id=>{
+  ["block-service","block-exp","mediaDock","photoWall","primaryLinkDock","ctaDock"].forEach(id=>{
     const el = qs(id);
     if(el) el.style.display = "none";
   });
@@ -1164,6 +1267,8 @@ function showLockedUi_(reasonText){
     }));
     applyWideRule_(cBtns);
   }
+
+  hideBottomQr_();
 }
 
 function applyStatusGate_(p){
@@ -1197,6 +1302,47 @@ function applyExpiryHint_(p, expiryInfo){
       sEl.textContent = old ? (old + "｜" + hint) : hint;
     }
   }
+}
+
+/* ---------- Product bottom QR ---------- */
+function renderBottomQr_(p){
+  const sec = qs("bottomQrSection");
+  const grid = qs("bottomQrGrid");
+  const avatar = qs("bottomQrAvatar");
+
+  if(!sec || !grid || !avatar || !window.QRCode){
+    hideBottomQr_();
+    return;
+  }
+
+  const shareUrl = buildCleanShareUrl_();
+  grid.innerHTML = "";
+
+  try{
+    new QRCode(grid, {
+      text: shareUrl,
+      width: 136,
+      height: 136,
+      colorDark: "#433227",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }catch(_){
+    hideBottomQr_();
+    return;
+  }
+
+  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","avatar_img","avatar_url","形象照","photo"]);
+  const avatarUrl = normalizeImageUrl_(avatarRaw);
+
+  if(avatarUrl){
+    setImgWithFallback_(avatar, buildImgCandidates_(avatarUrl));
+  }else{
+    avatar.removeAttribute("src");
+  }
+
+  sec.style.display = "";
+  applySmartBalanceAll_();
 }
 
 /* ---------- Main render ---------- */
@@ -1242,9 +1388,12 @@ function renderCard(row){
   renderLogo_(p);
   renderBlocks_(p);
   renderDocks_(p);
+  renderBottomQr_(p);
 
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
+
+  applySmartBalanceAll_();
 }
 
 /* ---------- goLineIntro ---------- */
@@ -1540,6 +1689,8 @@ function renderLoadFail_(err){
     }
   }
 
+  hideBottomQr_();
+
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
 }
@@ -1605,6 +1756,7 @@ function hideTopPrivateLineCta_(){
     syncActiveButtonsFromState_();
     bindLineOaOverride_();
     hideTopPrivateLineCta_();
+    applySmartBalanceAll_();
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     loadAndRenderById_(id);
