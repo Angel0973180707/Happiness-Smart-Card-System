@@ -1,25 +1,15 @@
-<!-- ================================
-     index.html v523.4 (COMPLETE OVERWRITE)
-
-     ✅ 產品特色說明文字清空改 QRcode
-     ✅ 保留門面 QRcode
-     ✅ 保留成品底部 QRcode 容器
-     ✅ 保留門面 bootstrap script
-     ✅ 文案縮小 + 動態平衡 + 智慧斷句
-     ✅ 主網站 / 影音社群 / CTA 分區
-================================ -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v523.4</title>
+  <title>天使幸福智慧名片館 v523.9</title>
 
-  <link rel="manifest" href="./manifest.json?v=523.4" />
+  <link rel="manifest" href="./manifest.json?v=523.9" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.4" />
-  <link rel="icon" href="./icons/icon-192.png?v=523.4" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.9" />
+  <link rel="icon" href="./icons/icon-192.png?v=523.9" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -28,7 +18,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=523.4" />
+  <meta property="og:image" content="og-card.png?v=523.9" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -45,6 +35,7 @@
       --poster-line:rgba(102,78,57,.09);
       --poster-shadow:0 18px 42px rgba(83,62,45,.07);
       --poster-shadow-soft:0 10px 24px rgba(83,62,45,.05);
+      --mask-z:2147483000;
     }
 
     html,body{
@@ -77,10 +68,10 @@
       user-select: none;
     }
 
-    #cleanShareFab{
+    #cleanShareFab,
+    #installFab{
       position: fixed;
       right: 14px;
-      bottom: 14px;
       z-index: 2147482500;
       width: 56px;
       height: 56px;
@@ -98,7 +89,9 @@
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-    #cleanShareFab i{ font-size: 20px; }
+    #cleanShareFab{ bottom: 14px; }
+    #installFab{ bottom: 78px; }
+    #cleanShareFab i,#installFab i{ font-size: 20px; }
 
     .facade-brand{
       width:100%;
@@ -239,7 +232,8 @@
     }
 
     .primary-link-dock .dock-buttons,
-    .cta-dock .dock-buttons{
+    .cta-dock .dock-buttons,
+    .install-dock .dock-buttons{
       grid-template-columns:1fr !important;
     }
 
@@ -306,7 +300,8 @@
       height:100% !important;
       display:block;
     }
-    .qr-bottom-center{
+    .qr-bottom-center,
+    .feature-qr-center{
       position:absolute;
       left:50%;
       top:50%;
@@ -323,7 +318,8 @@
       z-index:3;
       pointer-events:none;
     }
-    .qr-bottom-center img{
+    .qr-bottom-center img,
+    .feature-qr-center img{
       width:100%;
       height:100%;
       object-fit:cover;
@@ -339,27 +335,11 @@
       text-align:center;
       padding:8px 0 2px;
     }
-    .feature-qr-title{
-      font-size:14px;
-      line-height:1.6;
-      font-weight:900;
-      color:var(--poster-ink);
-      text-wrap:balance;
-    }
-    .feature-qr-sub{
-      margin-top:6px;
-      font-size:12px;
-      line-height:1.65;
-      font-weight:800;
-      color:var(--poster-ink-soft);
-      text-wrap:balance;
-    }
     .feature-qr-canvas{
       position:relative;
       width:176px;
       height:176px;
       padding:12px;
-      margin-top:12px;
       border-radius:22px;
       background:#fff;
       box-shadow:0 8px 18px rgba(0,0,0,.04);
@@ -385,27 +365,86 @@
       height:100% !important;
       display:block;
     }
-    .feature-qr-logo-pad{
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform:translate(-50%, -50%);
-      width:42px;
-      height:42px;
-      border-radius:14px;
-      background:rgba(255,255,255,0.98);
-      box-shadow:0 6px 16px rgba(0,0,0,0.10), 0 0 0 6px rgba(255,255,255,0.96);
-      display:flex;
+
+    .modal-mask,
+    .invite-mask{
+      display:none;
+      position:fixed !important;
+      inset:0 !important;
+      z-index:var(--mask-z) !important;
+      background:rgba(20,17,14,.46);
+      backdrop-filter:blur(4px);
+      -webkit-backdrop-filter:blur(4px);
       align-items:center;
       justify-content:center;
-      z-index:3;
-      pointer-events:none;
+      padding:18px;
+      box-sizing:border-box;
     }
-    .feature-qr-logo{ width:22px; height:22px; display:block; }
+    .modal,
+    .invite-box{
+      position:relative;
+      z-index:calc(var(--mask-z) + 1);
+      width:min(92vw, 420px);
+      max-width:420px;
+      max-height:86vh;
+      overflow:auto;
+      border-radius:24px;
+      background:linear-gradient(180deg, rgba(255,252,248,.98), rgba(252,245,237,.98));
+      box-shadow:0 24px 60px rgba(0,0,0,.18);
+      border:1px solid rgba(102,78,57,.10);
+      color:var(--poster-ink);
+    }
+    .modal-hd,
+    .invite-hd{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:16px 16px 10px;
+      font-weight:900;
+    }
+    .modal-title{ font-size:15px; }
+    .modal-close,
+    .invite-btn{
+      border:none;
+      background:#f0e5d8;
+      color:var(--poster-ink);
+      border-radius:14px;
+      padding:10px 14px;
+      font-size:13px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .modal-bd,
+    .invite-bd{ padding:6px 16px 16px; }
+    .invite-row{
+      display:flex;
+      gap:10px;
+      margin-top:12px;
+      align-items:center;
+    }
+    .invite-input{
+      flex:1;
+      min-width:0;
+      border:1px solid rgba(102,78,57,.14);
+      border-radius:14px;
+      background:#fff;
+      color:var(--poster-ink);
+      padding:12px 14px;
+      font-size:14px;
+      outline:none;
+    }
+    .invite-primary{
+      background:#4d8f71;
+      color:#fff;
+    }
 
+    .install-dock{ display:none; }
+    body.clean .install-dock{ display:block; }
+    body.clean #cleanShareFab{ z-index:2147483500; display:flex; }
+    body.clean #installFab{ z-index:2147483500; display:flex; }
     body.clean #admin-panel{ display:none !important; }
     body.clean #card-container{ position: relative; z-index: 1; }
-    body.clean #cleanShareFab{ z-index: 2147483500; }
 
     @media (max-width: 520px){
       .facade-brand .p{
@@ -415,6 +454,8 @@
       }
       .qr-bottom-title{ font-size:12px; }
       .qr-bottom-sub{ font-size:10px; }
+      .invite-row{ flex-direction:column; }
+      .invite-primary,.invite-input{ width:100%; }
     }
   </style>
 
@@ -447,6 +488,10 @@
 
 <body class="mode-free color-1 style-arch paper-1">
   <div id="adminHotspotBR" aria-hidden="true"></div>
+
+  <button id="installFab" type="button" aria-label="一鍵安裝">
+    <i class="fa-solid fa-download" aria-hidden="true"></i>
+  </button>
 
   <button id="cleanShareFab" type="button" aria-label="分享智慧名片館">
     <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
@@ -618,6 +663,15 @@
         <div class="info-block" id="block-service" style="display:none;"></div>
         <div class="info-block" id="block-exp" style="display:none;"></div>
 
+        <div class="contact-dock install-dock" id="installDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-download"></i> 一鍵安裝</div>
+          <div class="dock-buttons" id="installButtons">
+            <button class="dock-btn wide dock-web" type="button" id="btnInstallCard">
+              <i class="fa-solid fa-mobile-screen-button"></i><span>安裝到手機桌面</span>
+            </button>
+          </div>
+        </div>
+
         <div class="contact-dock" id="contactDock" style="display:none;">
           <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
           <div class="dock-buttons" id="contactButtons"></div>
@@ -662,7 +716,7 @@
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v523.7</div>
+        <div class="version-tag" id="versionTag">v523.9</div>
       </div>
     </section>
   </main>
@@ -675,22 +729,10 @@
       </div>
       <div class="modal-bd">
         <div class="feature-qr-shell">
-          <div class="feature-qr-title balance-text" data-balance-type="qr-title">掃描 QRcode｜開啟智慧名片館</div>
-          <div class="feature-qr-sub balance-text" data-balance-type="qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
           <div class="feature-qr-canvas">
             <div class="feature-qr-grid" id="featureQrGrid"></div>
-            <div class="feature-qr-logo-pad" aria-hidden="true">
-              <svg class="feature-qr-logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-                <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
-                <line x1="32" y1="6" x2="32" y2="16" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-                <line x1="32" y1="48" x2="32" y2="58" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-                <line x1="6" y1="32" x2="16" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-                <line x1="48" y1="32" x2="58" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-                <line x1="14" y1="14" x2="20" y2="20" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-                <line x1="44" y1="44" x2="50" y2="50" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-                <line x1="14" y1="50" x2="20" y2="44" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-                <line x1="44" y1="20" x2="50" y2="14" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-              </svg>
+            <div class="feature-qr-center" id="featureQrCenter">
+              <img id="featureQrAvatar" alt="QR 頭像" />
             </div>
           </div>
         </div>
@@ -712,7 +754,7 @@
           <input class="invite-input" id="inviteInput" type="text" inputmode="text" autocomplete="off" placeholder="例如：ABCD-1234" />
           <button class="invite-btn invite-primary" type="button" id="inviteGoBtn">開啟表單</button>
         </div>
-        <div style="margin-top:10px; color:rgba(255,255,255,0.70); font-size:13px;">
+        <div style="margin-top:10px; color:rgba(67,50,39,0.72); font-size:13px;">
           ※ 成品模式（?view=1）不提供填表入口。
         </div>
       </div>
@@ -720,13 +762,13 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="./app.js?v=523.7"></script>
+  <script src="./app.js?v=523.9"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "523.4";
+      var VERSION = "523.9";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -770,9 +812,13 @@
         var panel = qs("admin-panel");
         var hot = qs("adminHotspotBR");
         var fab = qs("cleanShareFab");
+        var installFab = qs("installFab");
+        var installDock = qs("installDock");
         if(panel) panel.style.display = "none";
         if(hot) hot.style.display = "none";
         if(fab) fab.style.display = "flex";
+        if(installFab) installFab.style.display = "flex";
+        if(installDock) installDock.style.display = "";
       }
 
       function getCurrentCardId(){
@@ -818,6 +864,10 @@
 
         var qrUrl = buildFacadeHubQrUrl();
         try{
+          if(window.renderQr){
+            window.renderQr({ container: mount, url: qrUrl, size: 148, colorDark: "#433227" });
+            return;
+          }
           if(window.QRCode){
             new QRCode(mount, {
               text: qrUrl,
@@ -839,28 +889,24 @@
 
       function renderFeatureQr(){
         var mount = qs("featureQrGrid");
+        var avatar = qs("featureQrAvatar");
         if(!mount) return;
         mount.innerHTML = "";
 
         var qrUrl = buildHubShareUrlFallback();
         try{
-          if(window.QRCode){
-            new QRCode(mount, {
-              text: qrUrl,
-              width: 152,
-              height: 152,
+          if(window.renderQr){
+            window.renderQr({
+              container: mount,
+              url: qrUrl,
+              size: 152,
               colorDark: "#433227",
-              colorLight: "#ffffff",
-              correctLevel: QRCode.CorrectLevel.H
+              centerImgEl: avatar,
+              centerImgUrl: window.__getCurrentAvatarUrl ? window.__getCurrentAvatarUrl() : ""
             });
             return;
           }
         }catch(e){}
-
-        var fallback = document.createElement("div");
-        fallback.style.cssText = "font-size:12px;line-height:1.6;color:#6b5a4d;text-align:center;padding:12px;";
-        fallback.textContent = "QRcode 載入失敗";
-        mount.appendChild(fallback);
       }
 
       function bindShareFallback(){
@@ -987,12 +1033,25 @@
         });
       }
 
+      function bindInstall(){
+        function runInstall(){
+          if(typeof window.__triggerPwaInstall === "function"){
+            window.__triggerPwaInstall();
+          }
+        }
+        ["btnInstallCard", "installFab"].forEach(function(id){
+          var btn = qs(id);
+          if(btn) btn.addEventListener("click", function(e){ e.preventDefault(); runInstall(); }, {passive:false});
+        });
+      }
+
       function boot(){
         applyCleanUI();
         bindLineOa();
         bindFeature();
         bindInviteGate();
         bindShareFallback();
+        bindInstall();
         renderFacadeQr();
 
         var fab = qs("cleanShareFab");
