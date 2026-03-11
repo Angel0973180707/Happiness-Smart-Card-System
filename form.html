@@ -3,32 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v710.0</title>
+  <title>天使幸福智慧名片｜資料填寫 v710.1</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
       --bg:#0b1220;
-      --bg-soft:#101a2d;
       --card:#111a2b;
-      --card-2:#152239;
+      --card-2:#142038;
       --line:rgba(255,255,255,.12);
       --line2:rgba(255,255,255,.08);
       --text:rgba(255,255,255,.95);
       --muted:rgba(255,255,255,.72);
       --muted-2:rgba(255,255,255,.56);
       --accent:#7bdcff;
-      --accent-2:#9ee8ff;
       --ok:#6ee7b7;
       --bad:#fb7185;
       --warn:#fbbf24;
-      --radius:22px;
-      --radius-sm:16px;
-      --shadow:0 18px 42px rgba(0,0,0,.30);
-      --shadow-soft:0 10px 26px rgba(0,0,0,.18);
-      --fs:clamp(16px,1.8vw,18px);
-      --fs2:clamp(21px,2.8vw,26px);
-      --fs3:clamp(26px,3.5vw,32px);
-      --fs4:clamp(30px,4.6vw,40px);
+      --radius:18px;
+      --shadow:0 16px 34px rgba(0,0,0,.26);
+      --shadow-soft:0 8px 20px rgba(0,0,0,.16);
+      --fs:16px;
+      --fs2:18px;
+      --fs3:22px;
+      --fs4:26px;
     }
 
     *{ box-sizing:border-box; }
@@ -36,15 +33,14 @@
     html{
       -webkit-text-size-adjust:100%;
       text-size-adjust:100%;
-      scroll-behavior:smooth;
     }
 
     body{
       margin:0;
       font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Arial;
       background:
-        radial-gradient(1200px 820px at 16% -10%, rgba(123,220,255,.18), transparent 62%),
-        radial-gradient(900px 720px at 100% 0%, rgba(255,191,36,.08), transparent 56%),
+        radial-gradient(1000px 720px at 16% -10%, rgba(123,220,255,.15), transparent 62%),
+        radial-gradient(820px 680px at 100% 0%, rgba(255,191,36,.08), transparent 56%),
         linear-gradient(180deg, #0b1220 0%, #0d1628 100%);
       color:var(--text);
       font-size:var(--fs);
@@ -54,120 +50,46 @@
     }
 
     .wrap{
-      max-width:1020px;
+      max-width:940px;
       margin:0 auto;
-      padding:18px 14px 136px;
+      padding:14px 12px 40px;
     }
 
-    .hero{
-      position:relative;
+    .topbar{
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
-      gap:16px;
-      padding:20px;
-      border:1px solid var(--line);
-      border-radius:28px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)),
-        rgba(255,255,255,.02);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-
-    .hero::after{
-      content:"";
-      position:absolute;
-      right:-80px;
-      top:-80px;
-      width:220px;
-      height:220px;
-      border-radius:50%;
-      background:radial-gradient(circle, rgba(123,220,255,.16), transparent 68%);
-      pointer-events:none;
+      gap:12px;
+      padding:10px 2px 12px;
     }
 
     .brand{
       min-width:0;
       flex:1 1 auto;
-      position:relative;
-      z-index:1;
-    }
-
-    .eyebrow{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:8px 12px;
-      border:1px solid rgba(123,220,255,.26);
-      border-radius:999px;
-      background:rgba(123,220,255,.08);
-      color:var(--accent-2);
-      font-size:12px;
-      font-weight:900;
-      line-height:1.2;
-      letter-spacing:.04em;
-    }
-
-    .eyebrow::before{
-      content:"";
-      width:8px;
-      height:8px;
-      border-radius:50%;
-      background:var(--accent);
-      box-shadow:0 0 0 6px rgba(123,220,255,.12);
-      flex:0 0 auto;
     }
 
     .brand h1{
-      margin:14px 0 0;
+      margin:0;
       font-size:var(--fs4);
-      line-height:1.18;
+      line-height:1.24;
       letter-spacing:.01em;
     }
 
-    .heroLead{
-      margin:12px 0 0;
+    .brand p{
+      margin:6px 0 0;
       color:var(--muted);
       font-size:14px;
-      line-height:1.9;
-      max-width:700px;
-    }
-
-    .heroTip{
-      margin-top:12px;
-      display:grid;
-      gap:8px;
-      color:var(--muted-2);
-      font-size:12px;
-      line-height:1.8;
-    }
-
-    .heroTip div{
-      padding-left:18px;
-      position:relative;
-    }
-
-    .heroTip div::before{
-      content:"•";
-      position:absolute;
-      left:0;
-      top:0;
-      color:var(--accent);
+      line-height:1.75;
     }
 
     .meta{
-      position:relative;
-      z-index:1;
+      min-width:110px;
       text-align:right;
-      min-width:192px;
       color:var(--muted);
       font-size:12px;
-      line-height:1.9;
-      flex:0 0 auto;
+      line-height:1.7;
       display:grid;
-      gap:8px;
-      align-content:start;
+      gap:6px;
     }
 
     .pill{
@@ -175,7 +97,7 @@
       align-items:center;
       justify-content:flex-end;
       gap:8px;
-      padding:9px 12px;
+      padding:7px 10px;
       border:1px solid var(--line);
       border-radius:999px;
       background:rgba(255,255,255,.04);
@@ -186,45 +108,27 @@
     }
 
     .dot{
-      width:10px;
-      height:10px;
+      width:9px;
+      height:9px;
       border-radius:50%;
       background:var(--warn);
-      box-shadow:0 0 0 6px rgba(251,191,36,.14);
+      box-shadow:0 0 0 4px rgba(251,191,36,.14);
       flex:0 0 auto;
-    }
-
-    .metaRow{
-      padding:8px 10px;
-      border:1px solid var(--line2);
-      border-radius:14px;
-      background:rgba(255,255,255,.03);
-      word-break:break-word;
-    }
-
-    .metaLabel{
-      display:block;
-      font-size:11px;
-      color:var(--muted-2);
-      line-height:1.4;
-      margin-bottom:2px;
-      font-weight:900;
     }
 
     .kbd{
       display:inline-block;
-      padding:2px 0;
-      color:var(--text);
       font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
       font-size:11px;
+      color:var(--text);
       word-break:break-all;
     }
 
     .flow{
-      margin-top:14px;
-      padding:16px;
+      margin-top:8px;
+      padding:12px;
       border:1px solid var(--line);
-      border-radius:22px;
+      border-radius:18px;
       background:rgba(255,255,255,.03);
       box-shadow:var(--shadow-soft);
     }
@@ -233,7 +137,7 @@
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
-      gap:12px;
+      gap:10px;
       margin-bottom:10px;
     }
 
@@ -244,24 +148,23 @@
     }
 
     .flowSub{
-      margin-top:6px;
+      margin-top:4px;
       color:var(--muted);
-      font-size:13px;
-      line-height:1.8;
+      font-size:12px;
+      line-height:1.75;
     }
 
     .pageBadge{
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      gap:8px;
-      min-height:44px;
-      padding:10px 14px;
+      min-height:38px;
+      padding:8px 12px;
       border:1px solid var(--line);
       border-radius:999px;
       background:rgba(255,255,255,.04);
       color:var(--text);
-      font-size:13px;
+      font-size:12px;
       font-weight:900;
       white-space:nowrap;
       flex:0 0 auto;
@@ -270,66 +173,44 @@
     .stepTrack{
       display:grid;
       grid-template-columns:repeat(5, minmax(0,1fr));
-      gap:10px;
-      margin-top:12px;
+      gap:8px;
     }
 
     .stepDot{
-      position:relative;
       border:1px solid var(--line);
-      border-radius:18px;
+      border-radius:14px;
       background:rgba(255,255,255,.03);
-      padding:12px 10px;
-      min-height:86px;
+      padding:10px 8px;
+      min-height:68px;
       display:flex;
       flex-direction:column;
       justify-content:center;
       align-items:center;
       text-align:center;
-      transition:.22s ease;
       cursor:pointer;
-      overflow:hidden;
-    }
-
-    .stepDot::after{
-      content:"";
-      position:absolute;
-      inset:auto auto 0 0;
-      width:100%;
-      height:3px;
-      background:transparent;
-      transition:.22s ease;
+      transition:.18s ease;
     }
 
     .stepDot .num{
-      width:30px;
-      height:30px;
+      width:24px;
+      height:24px;
       border-radius:50%;
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size:13px;
+      font-size:12px;
       font-weight:900;
       border:1px solid var(--line);
       background:rgba(255,255,255,.04);
-      margin-bottom:8px;
+      margin-bottom:6px;
       flex:0 0 auto;
     }
 
     .stepDot .txt{
-      font-size:13px;
+      font-size:12px;
       line-height:1.45;
       color:var(--muted);
       font-weight:900;
-      letter-spacing:.01em;
-    }
-
-    .stepDot .mini{
-      margin-top:4px;
-      font-size:11px;
-      line-height:1.45;
-      color:var(--muted-2);
-      font-weight:700;
     }
 
     .stepDot[data-done="1"]{
@@ -337,24 +218,10 @@
       background:rgba(110,231,183,.08);
     }
 
-    .stepDot[data-done="1"]::after{
-      background:linear-gradient(90deg, rgba(110,231,183,.85), rgba(110,231,183,.45));
-    }
-
     .stepDot[data-current="1"]{
-      border-color:rgba(123,220,255,.46);
-      box-shadow:0 0 0 3px rgba(123,220,255,.12);
+      border-color:rgba(123,220,255,.45);
+      box-shadow:0 0 0 3px rgba(123,220,255,.10);
       background:rgba(123,220,255,.10);
-      transform:translateY(-1px);
-    }
-
-    .stepDot[data-current="1"]::after{
-      background:linear-gradient(90deg, rgba(123,220,255,.95), rgba(255,191,36,.72));
-    }
-
-    .stepDot[data-current="1"] .num{
-      border-color:rgba(123,220,255,.4);
-      background:rgba(123,220,255,.18);
     }
 
     .stepDot[data-current="1"] .txt,
@@ -363,128 +230,49 @@
     }
 
     .card{
-      margin-top:14px;
+      margin-top:12px;
       border:1px solid var(--line);
-      border-radius:26px;
+      border-radius:22px;
       background:
         linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)),
         rgba(255,255,255,.02);
-      padding:20px;
+      padding:16px;
       box-shadow:var(--shadow);
     }
 
     .page{ display:none; }
-    .page.active{
-      display:block;
-      animation:fadeUp .24s ease;
-    }
+    .page.active{ display:block; }
 
-    @keyframes fadeUp{
-      from{
-        opacity:0;
-        transform:translateY(6px);
-      }
-      to{
-        opacity:1;
-        transform:none;
-      }
-    }
-
-    .pageHero{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:16px;
-      padding-bottom:14px;
+    .pageHead{
+      margin-bottom:14px;
+      padding-bottom:12px;
       border-bottom:1px solid var(--line2);
-    }
-
-    .pageTitleWrap{
-      min-width:0;
-      flex:1 1 auto;
     }
 
     .pageStep{
       display:inline-flex;
       align-items:center;
-      gap:8px;
-      padding:8px 12px;
-      border:1px solid rgba(255,255,255,.10);
+      min-height:34px;
+      padding:7px 11px;
+      border:1px solid var(--line);
       border-radius:999px;
       background:rgba(255,255,255,.04);
       color:var(--muted);
       font-size:12px;
       font-weight:900;
-      margin-bottom:12px;
+      margin-bottom:10px;
     }
 
-    .pageHero h2{
+    .pageHead h2{
       margin:0;
       font-size:var(--fs3);
-      line-height:1.22;
-      letter-spacing:.01em;
+      line-height:1.28;
     }
 
     .subnote{
-      margin:10px 0 0;
+      margin:8px 0 0;
       color:var(--muted);
-      font-size:14px;
-      line-height:1.9;
-      max-width:760px;
-    }
-
-    .guideCard{
-      margin-top:14px;
-      padding:16px;
-      border:1px solid rgba(123,220,255,.20);
-      border-radius:18px;
-      background:
-        linear-gradient(180deg, rgba(123,220,255,.10), rgba(123,220,255,.04));
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
-    }
-
-    .guideCard h3{
-      margin:0 0 10px;
-      font-size:18px;
-      line-height:1.45;
-    }
-
-    .guideCard p{
-      margin:0;
-      color:var(--text);
-      font-size:14px;
-      line-height:1.95;
-    }
-
-    .guideList{
-      display:grid;
-      gap:8px;
-      margin-top:10px;
-    }
-
-    .guideItem{
-      padding:12px 14px;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:14px;
-      background:rgba(255,255,255,.04);
-      font-size:14px;
-      line-height:1.9;
-    }
-
-    .guideItem strong{
-      display:block;
-      margin-bottom:2px;
-      color:#fff;
-      font-size:15px;
-      line-height:1.55;
-    }
-
-    .guideTip{
-      margin-top:10px;
-      color:var(--accent-2);
       font-size:13px;
-      font-weight:900;
       line-height:1.8;
     }
 
@@ -503,18 +291,17 @@
 
     label{
       display:block;
-      font-size:15px;
+      font-size:14px;
       color:var(--text);
       margin:0 0 8px;
       font-weight:900;
-      line-height:1.55;
-      letter-spacing:.01em;
+      line-height:1.5;
     }
 
     .req{
       color:var(--warn);
       margin-left:6px;
-      font-size:13px;
+      font-size:12px;
     }
 
     input, textarea{
@@ -522,23 +309,22 @@
       background:rgba(255,255,255,.04);
       color:var(--text);
       border:1px solid var(--line);
-      border-radius:16px;
-      padding:15px 15px;
+      border-radius:14px;
+      padding:14px 14px;
       outline:none;
-      font-size:clamp(16px,1.9vw,18px);
+      font-size:16px;
       line-height:1.65;
-      min-height:56px;
-      transition:border-color .18s ease, box-shadow .18s ease, background .18s ease;
+      min-height:50px;
+      transition:border-color .18s ease, box-shadow .18s ease;
     }
 
     input:focus, textarea:focus{
-      border-color:rgba(123,220,255,.5);
-      box-shadow:0 0 0 3px rgba(123,220,255,.11);
-      background:rgba(255,255,255,.055);
+      border-color:rgba(123,220,255,.46);
+      box-shadow:0 0 0 3px rgba(123,220,255,.10);
     }
 
     textarea{
-      min-height:126px;
+      min-height:112px;
       resize:vertical;
     }
 
@@ -547,26 +333,19 @@
     }
 
     .hint{
-      margin-top:7px;
+      margin-top:6px;
       font-size:12px;
       color:var(--muted);
-      line-height:1.85;
+      line-height:1.8;
       white-space:pre-line;
     }
 
-    .fieldBox{
-      padding:14px;
-      border:1px solid var(--line2);
-      border-radius:18px;
-      background:rgba(255,255,255,.02);
-    }
-
-    .sectionGap{ margin-top:14px; }
+    .sectionGap{ margin-top:12px; }
 
     .chips{
       display:flex;
       flex-wrap:wrap;
-      gap:10px;
+      gap:8px;
     }
 
     .chip{
@@ -574,32 +353,27 @@
       display:inline-flex;
       align-items:center;
       gap:8px;
-      padding:12px 15px;
+      padding:10px 13px;
       border:1px solid var(--line);
       border-radius:999px;
       background:rgba(255,255,255,.03);
       user-select:none;
-      font-size:15px;
+      font-size:14px;
       font-weight:900;
-      min-height:48px;
+      min-height:42px;
       line-height:1.3;
       transition:.18s ease;
     }
 
-    .chip:hover{
-      transform:translateY(-1px);
-      border-color:rgba(255,255,255,.18);
-    }
-
     .chip[data-on="1"]{
       border-color:rgba(123,220,255,.55);
-      box-shadow:0 0 0 3px rgba(123,220,255,.14);
+      box-shadow:0 0 0 3px rgba(123,220,255,.12);
       background:rgba(123,220,255,.10);
     }
 
     .swatch{
-      width:20px;
-      height:20px;
+      width:18px;
+      height:18px;
       border-radius:50%;
       border:1px solid rgba(255,255,255,.18);
       box-shadow: inset 0 0 0 2px rgba(0,0,0,.18);
@@ -607,9 +381,11 @@
       flex:0 0 auto;
     }
 
-    .planHintCard{
+    .planHintCard,
+    .guideCard,
+    .uploadGuide{
       margin-top:12px;
-      padding:14px 15px;
+      padding:13px 14px;
       border:1px solid rgba(255,255,255,.10);
       border-radius:16px;
       background:rgba(255,255,255,.03);
@@ -618,15 +394,47 @@
       line-height:1.85;
     }
 
-    .uploadGuide{
+    .guideCard{
+      border-color:rgba(123,220,255,.24);
+      background:linear-gradient(180deg, rgba(123,220,255,.08), rgba(123,220,255,.03));
+    }
+
+    .guideCard h3{
+      margin:0 0 8px;
+      font-size:16px;
+      line-height:1.5;
+      color:var(--text);
+    }
+
+    .guideList{
+      display:grid;
+      gap:8px;
       margin-top:10px;
-      padding:14px 15px;
+    }
+
+    .guideItem{
+      padding:10px 12px;
       border:1px solid rgba(255,255,255,.08);
-      border-radius:16px;
-      background:rgba(255,255,255,.03);
-      color:var(--muted);
+      border-radius:12px;
+      background:rgba(255,255,255,.04);
       font-size:13px;
-      line-height:1.9;
+      line-height:1.8;
+    }
+
+    .guideItem strong{
+      display:block;
+      margin-bottom:2px;
+      color:#fff;
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .guideTip{
+      margin-top:10px;
+      color:var(--accent);
+      font-size:12px;
+      font-weight:900;
+      line-height:1.7;
     }
 
     .uploadGrid{
@@ -642,10 +450,9 @@
 
     .uItem{
       border:1px solid var(--line);
-      border-radius:18px;
-      padding:13px;
-      background:rgba(255,255,255,.025);
-      transition:.18s ease;
+      border-radius:16px;
+      padding:12px;
+      background:rgba(255,255,255,.02);
     }
 
     .uItemHead{
@@ -656,21 +463,21 @@
     }
 
     .uItemHead strong{
-      font-size:17px;
+      font-size:15px;
       line-height:1.45;
     }
 
     .uItemHead small{
       color:var(--muted);
       font-size:12px;
-      line-height:1.75;
+      line-height:1.7;
     }
 
     .thumb{
       margin-top:10px;
       width:100%;
       aspect-ratio:16 / 10;
-      border-radius:15px;
+      border-radius:14px;
       border:1px solid var(--line);
       overflow:hidden;
       background:rgba(0,0,0,.18);
@@ -678,7 +485,7 @@
       align-items:center;
       justify-content:center;
       color:rgba(255,255,255,.38);
-      font-size:13px;
+      font-size:12px;
       text-align:center;
       padding:12px;
       line-height:1.8;
@@ -693,7 +500,7 @@
 
     .miniRow{
       display:flex;
-      gap:10px;
+      gap:8px;
       align-items:center;
       margin-top:10px;
       flex-wrap:wrap;
@@ -701,9 +508,8 @@
 
     .miniRow input[type="file"]{
       padding:10px;
-      font-size:14px;
+      font-size:13px;
       min-height:auto;
-      background:rgba(255,255,255,.03);
     }
 
     .btns{
@@ -716,22 +522,16 @@
     button{
       cursor:pointer;
       border:none;
-      border-radius:15px;
-      padding:14px 18px;
+      border-radius:14px;
+      padding:12px 16px;
       font-weight:900;
-      font-size:16px;
+      font-size:15px;
       background:rgba(123,220,255,.16);
       color:var(--text);
-      border:1px solid rgba(123,220,255,.36);
-      min-height:52px;
+      border:1px solid rgba(123,220,255,.35);
+      min-height:46px;
       line-height:1.3;
       transition:.18s ease;
-      letter-spacing:.01em;
-    }
-
-    button:hover{
-      transform:translateY(-1px);
-      box-shadow:0 8px 20px rgba(0,0,0,.16);
     }
 
     button.secondary{
@@ -748,7 +548,6 @@
       opacity:.55;
       cursor:not-allowed;
       transform:none;
-      box-shadow:none;
     }
 
     .summary{
@@ -762,21 +561,21 @@
       justify-content:space-between;
       align-items:flex-start;
       gap:12px;
-      padding:12px 14px;
+      padding:11px 12px;
       border:1px solid var(--line2);
-      border-radius:15px;
+      border-radius:14px;
       background:rgba(255,255,255,.02);
     }
 
     .sumRow span{
       color:var(--muted);
-      font-size:13px;
+      font-size:12px;
       font-weight:900;
       flex:0 0 auto;
     }
 
     .sumRow strong{
-      font-size:14px;
+      font-size:13px;
       line-height:1.8;
       text-align:right;
       font-weight:900;
@@ -786,8 +585,8 @@
 
     .submit-progress-wrap{
       margin-top:14px;
-      padding:13px 13px;
-      border-radius:18px;
+      padding:12px;
+      border-radius:16px;
       border:1px solid rgba(255,255,255,.10);
       background:rgba(255,255,255,.04);
       display:none;
@@ -798,14 +597,14 @@
       justify-content:space-between;
       align-items:center;
       gap:10px;
-      margin-bottom:9px;
-      font-size:13px;
+      margin-bottom:8px;
+      font-size:12px;
       color:rgba(255,255,255,.85);
       font-weight:900;
     }
 
     .submit-progress{
-      height:12px;
+      height:10px;
       border-radius:999px;
       background:rgba(255,255,255,.10);
       border:1px solid rgba(255,255,255,.10);
@@ -840,18 +639,18 @@
     .submit-progress-text{
       margin-top:8px;
       color:var(--muted);
-      font-size:13px;
+      font-size:12px;
       line-height:1.8;
-      min-height:20px;
+      min-height:18px;
     }
 
     .status{
       margin-top:14px;
       border:1px dashed var(--line);
-      border-radius:16px;
-      padding:14px 15px;
+      border-radius:14px;
+      padding:13px 14px;
       color:var(--muted);
-      font-size:14px;
+      font-size:13px;
       line-height:1.9;
       white-space:pre-wrap;
       word-break:break-word;
@@ -859,22 +658,16 @@
     }
 
     .pageNav{
-      position:sticky;
-      bottom:10px;
-      z-index:10;
-      margin-top:14px;
-      padding:11px;
-      border:1px solid rgba(255,255,255,.08);
-      border-radius:20px;
-      background:rgba(11,18,32,.86);
-      backdrop-filter:blur(12px);
-      box-shadow:0 10px 26px rgba(0,0,0,.24);
+      margin-top:16px;
+      padding-top:2px;
     }
 
-    .pageNav .btns{
-      margin-top:0;
-      justify-content:space-between;
+    .pageNavBar{
+      display:flex;
       align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
     }
 
     .pageNavLeft,
@@ -890,14 +683,13 @@
       color:var(--muted-2);
       font-size:12px;
       line-height:1.8;
-      text-align:center;
     }
 
     .footNote{
       margin-top:14px;
       color:rgba(255,255,255,.56);
       font-size:12px;
-      line-height:1.85;
+      line-height:1.8;
     }
 
     .cropModal{
@@ -920,11 +712,11 @@
       width:min(920px, 100%);
       max-height:calc(100vh - 28px);
       overflow:auto;
-      border-radius:24px;
+      border-radius:22px;
       border:1px solid rgba(255,255,255,.12);
       background:linear-gradient(180deg, rgba(16,24,40,.98), rgba(10,16,28,.98));
       box-shadow:0 24px 60px rgba(0,0,0,.42);
-      padding:16px;
+      padding:14px;
     }
 
     .cropHead{
@@ -937,20 +729,20 @@
 
     .cropHead h3{
       margin:0;
-      font-size:24px;
+      font-size:20px;
       line-height:1.3;
     }
 
     .cropHead p{
-      margin:8px 0 0;
+      margin:6px 0 0;
       color:var(--muted);
-      font-size:14px;
-      line-height:1.85;
+      font-size:13px;
+      line-height:1.8;
     }
 
     .cropStageWrap{
       border:1px solid rgba(255,255,255,.10);
-      border-radius:20px;
+      border-radius:18px;
       background:rgba(255,255,255,.03);
       padding:12px;
     }
@@ -988,120 +780,90 @@
     .cropTools{
       display:flex;
       flex-wrap:wrap;
-      gap:10px;
+      gap:8px;
       margin-top:12px;
     }
 
     .cropMeta{
       margin-top:10px;
       color:var(--muted);
-      font-size:13px;
-      line-height:1.9;
+      font-size:12px;
+      line-height:1.8;
       white-space:pre-line;
-    }
-
-    .hide{ display:none !important; }
-
-    @media(max-width:860px){
-      .hero{
-        flex-direction:column;
-      }
-      .meta{
-        width:100%;
-        text-align:left;
-      }
-      .pill{
-        margin-left:0;
-      }
     }
 
     @media(max-width:760px){
       .stepTrack{
         grid-template-columns:repeat(2, minmax(0,1fr));
       }
-      .pageHero{
+
+      .sumRow{
         flex-direction:column;
       }
-      .pageNav .btns{
+
+      .sumRow strong{
+        text-align:left;
+      }
+
+      .pageNavBar{
         flex-direction:column;
         align-items:stretch;
       }
+
       .pageNavLeft,
       .pageNavRight{
         width:100%;
         justify-content:space-between;
       }
-      .sumRow{
-        flex-direction:column;
-      }
-      .sumRow strong{
-        text-align:left;
-      }
     }
 
     @media(max-width:520px){
       .wrap{
-        padding:14px 12px 128px;
+        padding:12px 10px 34px;
       }
-      .hero, .card, .flow{
-        padding:15px;
+
+      .topbar{
+        flex-direction:column;
+        gap:8px;
       }
+
+      .meta{
+        width:100%;
+        text-align:left;
+      }
+
+      .pill{
+        margin-left:0;
+      }
+
       .stepTrack{
         grid-template-columns:1fr;
       }
+
       .brand h1{
-        font-size:clamp(26px, 7.2vw, 32px);
+        font-size:24px;
       }
-      input, textarea{
-        padding:14px 13px;
-      }
+
       button{
         width:100%;
-      }
-      .meta{
-        gap:6px;
       }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="hero">
+    <div class="topbar">
       <div class="brand">
-        <div class="eyebrow">智慧名片訂製流程</div>
         <h1>天使幸福智慧名片｜資料填寫</h1>
-        <p class="heroLead" id="pageIntro">
-          請一步一步完成您的資料。每完成一關，就會進入下一關。圖片可先調整位置，再套用到名片預覽中。
-        </p>
-        <div class="heroTip">
-          <div>字體放大、流程清楚，讓您填寫時更直覺。</div>
-          <div>連結欄位請直接貼上網址，不需要上傳影片或其他檔案。</div>
-          <div>送出後可先預覽名片，再將資料序號回報給客服。</div>
-        </div>
+        <p id="pageIntro">請一步一步完成您的資料。每完成一關，就會進入下一關。</p>
       </div>
 
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-
-        <div class="metaRow">
-          <span class="metaLabel">版本</span>
-          <span class="kbd" id="ver">v710.0</span>
-        </div>
-
-        <div class="metaRow">
-          <span class="metaLabel">品牌</span>
-          <span class="kbd" id="tenantText">-</span>
-        </div>
-
-        <div class="metaRow">
-          <span class="metaLabel">名片 ID</span>
-          <span class="kbd" id="idText">-</span>
-        </div>
-
-        <div class="metaRow">
-          <span class="metaLabel">invite</span>
-          <span class="kbd" id="inviteText">-</span>
-        </div>
+        <div>版本：<span class="kbd" id="ver">v710.1</span></div>
+        <div>品牌：<span class="kbd" id="tenantText">-</span></div>
+        <div>名片 ID：<span class="kbd" id="idText">-</span></div>
+        <div>invite：<span class="kbd" id="inviteText">-</span></div>
       </div>
     </div>
 
@@ -1118,81 +880,70 @@
         <div class="stepDot" data-step="0">
           <div class="num">1</div>
           <div class="txt">方案與外觀</div>
-          <div class="mini">先選名片樣式</div>
         </div>
         <div class="stepDot" data-step="1">
           <div class="num">2</div>
           <div class="txt">基本資料</div>
-          <div class="mini">讓人認識您</div>
         </div>
         <div class="stepDot" data-step="2">
           <div class="num">3</div>
           <div class="txt">聯絡方式</div>
-          <div class="mini">放主要聯繫入口</div>
         </div>
         <div class="stepDot" data-step="3">
           <div class="num">4</div>
           <div class="txt">連結資料與圖片</div>
-          <div class="mini">讓客戶可點可看</div>
         </div>
         <div class="stepDot" data-step="4">
           <div class="num">5</div>
           <div class="txt">確認與送出</div>
-          <div class="mini">送出並預覽名片</div>
         </div>
       </div>
     </div>
 
     <div class="card">
       <section class="page active" data-page="0">
-        <div class="pageHero">
-          <div class="pageTitleWrap">
-            <div class="pageStep">第 1 步</div>
-            <h2>先選您的方案與外觀</h2>
-            <p class="subnote">先完成這一步，後面選項才會跟著對應。選好後，就能進入下一關。</p>
+        <div class="pageHead">
+          <div class="pageStep">第 1 步</div>
+          <h2>先選您的方案與外觀</h2>
+          <p class="subnote">先完成這一步，後面選項才會跟著對應。</p>
+        </div>
+
+        <div class="field">
+          <label>方案<span class="req">＊必選</span></label>
+          <div class="chips" id="planChips"></div>
+        </div>
+
+        <div class="sectionGap field">
+          <label>顏色（自由搭配）</label>
+          <div class="chips" id="colorChips"></div>
+        </div>
+
+        <div class="row two sectionGap">
+          <div class="field">
+            <label>版型（自由搭配）</label>
+            <div class="chips" id="styleChips"></div>
+          </div>
+          <div class="field">
+            <label>紙感（自由搭配）</label>
+            <div class="chips" id="paperChips"></div>
           </div>
         </div>
 
-        <div class="fieldBox">
-          <div class="field">
-            <label>方案<span class="req">＊必選</span></label>
-            <div class="chips" id="planChips"></div>
-          </div>
+        <div class="sectionGap field">
+          <label>精品底色（精品設計）</label>
+          <div class="chips" id="premiumChips"></div>
+        </div>
 
-          <div class="sectionGap field">
-            <label>顏色（自由搭配）</label>
-            <div class="chips" id="colorChips"></div>
-          </div>
-
-          <div class="row two sectionGap">
-            <div class="field">
-              <label>版型（自由搭配）</label>
-              <div class="chips" id="styleChips"></div>
-            </div>
-            <div class="field">
-              <label>紙感（自由搭配）</label>
-              <div class="chips" id="paperChips"></div>
-            </div>
-          </div>
-
-          <div class="sectionGap field">
-            <label>精品底色（精品設計）</label>
-            <div class="chips" id="premiumChips"></div>
-          </div>
-
-          <div class="planHintCard" id="planHint">
-            請先選方案。自由搭配與精品設計，會帶出不同外觀與照片張數。
-          </div>
+        <div class="planHintCard" id="planHint">
+          請先選方案。自由搭配與精品設計，會帶出不同外觀與照片張數。
         </div>
       </section>
 
       <section class="page" data-page="1">
-        <div class="pageHero">
-          <div class="pageTitleWrap">
-            <div class="pageStep">第 2 步</div>
-            <h2>填寫您的基本資料</h2>
-            <p class="subnote">這一步是讓人快速認識您。建議短句、清楚、好讀，完成後再進到聯絡方式。</p>
-          </div>
+        <div class="pageHead">
+          <div class="pageStep">第 2 步</div>
+          <h2>填寫您的基本資料</h2>
+          <p class="subnote">建議短句、清楚、好讀。</p>
         </div>
 
         <div class="row two">
@@ -1222,7 +973,7 @@
           <div class="field">
             <label>一句話介紹</label>
             <input id="slogan" placeholder="一句話讓人快速記住您" />
-            <div class="hint">建議用一句完整短句，不要太長，避免後續版面斷句不自然。</div>
+            <div class="hint">建議用一句完整短句，不要太長。</div>
           </div>
           <div class="field">
             <label>服務項目</label>
@@ -1234,17 +985,15 @@
         <div class="sectionGap field">
           <label>經歷</label>
           <textarea id="experience" placeholder="可一行一點，短句清楚，讓客戶更好閱讀"></textarea>
-          <div class="hint">建議一行一點，避免太長一整段。\n例如：\n10年教學經驗\n品牌顧問與課程規劃\n服務超過200位客戶</div>
+          <div class="hint">建議一行一點，避免太長一整段。</div>
         </div>
       </section>
 
       <section class="page" data-page="2">
-        <div class="pageHero">
-          <div class="pageTitleWrap">
-            <div class="pageStep">第 3 步</div>
-            <h2>放上主要聯絡方式</h2>
-            <p class="subnote">這一步是讓客戶找到您。請優先填最常使用、最方便回覆的聯絡入口。</p>
-          </div>
+        <div class="pageHead">
+          <div class="pageStep">第 3 步</div>
+          <h2>放上主要聯絡方式</h2>
+          <p class="subnote">請優先填最常使用、最方便回覆的聯絡入口。</p>
         </div>
 
         <div class="row two">
@@ -1282,17 +1031,14 @@
       </section>
 
       <section class="page" data-page="3">
-        <div class="pageHero">
-          <div class="pageTitleWrap">
-            <div class="pageStep">第 4 步</div>
-            <h2>放上連結資料與圖片</h2>
-            <p class="subnote">這一步是放「客戶可以點擊的入口連結網址」。請貼上您希望客戶打開的相關連結網址。</p>
-          </div>
+        <div class="pageHead">
+          <div class="pageStep">第 4 步</div>
+          <h2>放上連結資料與圖片</h2>
+          <p class="subnote">這一步是放客戶可以點擊的入口連結網址。</p>
         </div>
 
         <div class="guideCard">
-          <h3>這一步是放「客戶可以點擊的入口連結網址」</h3>
-          <p>如果您是不同類型，可以這樣放相關連結網址：</p>
+          <h3>請貼上您希望客戶打開的相關連結網址</h3>
 
           <div class="guideList">
             <div class="guideItem">
@@ -1360,8 +1106,8 @@
         </div>
 
         <div class="uploadGuide">
-          圖片上傳後，可拖移位置、放大、縮小，再套用到預覽。\n
-          建議先把主體置中，避免人物或 Logo 被裁切太多。\n
+          圖片上傳後，可拖移位置、放大、縮小，再套用到預覽。<br>
+          建議先把主體置中，避免人物或 Logo 被裁切太多。<br>
           自由搭配最多 2 張照片｜精品設計最多 5 張照片。
         </div>
 
@@ -1369,12 +1115,10 @@
       </section>
 
       <section class="page" data-page="4">
-        <div class="pageHero">
-          <div class="pageTitleWrap">
-            <div class="pageStep">第 5 步</div>
-            <h2>確認資料並送出</h2>
-            <p class="subnote">確認後送出。送出完成後，您可先預覽名片，再將資料序號回報給客服。</p>
-          </div>
+        <div class="pageHead">
+          <div class="pageStep">第 5 步</div>
+          <h2>確認資料並送出</h2>
+          <p class="subnote">送出完成後，您可先預覽名片，再將資料序號回報給客服。</p>
         </div>
 
         <div class="summary" id="summaryBox"></div>
@@ -1399,22 +1143,22 @@
         <div class="status" id="status">尚未操作。</div>
 
         <div class="footNote">
-          小提醒：送出成功後，請先檢查名片預覽內容，再將資料序號回報給客服。若系統判定為既有資料，將不會重複建立新卡。
+          小提醒：送出成功後，請先檢查名片預覽內容，再將資料序號回報給客服。
         </div>
       </section>
     </div>
 
     <div class="pageNav">
-      <div class="btns">
+      <div class="pageNavBar">
         <div class="pageNavLeft">
           <span class="pageBadge" id="pageBadgeBottom">第 1 / 5 步</span>
           <button id="btnPrev" class="secondary" type="button">上一步</button>
         </div>
         <div class="pageNavRight">
-          <button id="btnNext" type="button">完成這一步，進入下一步</button>
+          <button id="btnNext" type="button">下一步</button>
         </div>
       </div>
-      <div class="navHint">每完成一關，再進入下一關。若本頁資料未完成，系統會先提醒您。</div>
+      <div class="navHint">完成這一步，再進入下一步。若本頁資料未完成，系統會先提醒您。</div>
     </div>
 
     <input id="mode" type="hidden" value="fill" />
@@ -1445,8 +1189,8 @@
         </div>
 
         <div class="cropMeta" id="cropMeta">
-          可左右、上下拖移圖片。\n
-          大頭照與 Logo 建議主體置中。\n
+          可左右、上下拖移圖片。<br>
+          大頭照與 Logo 建議主體置中。<br>
           縮小可保留更多畫面，放大可讓主體更明顯。
         </div>
       </div>
