@@ -17,7 +17,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",  
   DEFAULT_ID: "TW0001",  
   DEFAULT_TENANT: "angel",  
-  VERSION: "v523.6",  
+  VERSION: "v523.7",  
   FETCH_TIMEOUT_MS: 15000,  
   RETRY: 3,  
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"  
@@ -834,62 +834,98 @@ function buildHubShareUrl_(){
   }  
 }  
   
-function tryRenderBottomQrOnce_(p){  
-  const sec = qs("bottomQrSection");  
-  const grid = qs("bottomQrGrid");  
-  const avatar = qs("bottomQrAvatar");  
-  
-  if(!sec || !grid || !avatar) return false;  
-  if(!window.QRCode) return false;  
-  
-  grid.innerHTML = "";  
-  
-  try{  
-    new QRCode(grid, {  
-      text: buildCleanShareUrl_(),  
-      width: 136,  
-      height: 136,  
-      colorDark: "#433227",  
-      colorLight: "#ffffff",  
-      correctLevel: QRCode.CorrectLevel.H  
-    });  
-  }catch(err){  
-    console.error("Bottom QR render failed:", err);  
-    return false;  
-  }  
-  
-  const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);  
-  const avatarUrl = normalizeImageUrl_(avatarRaw);  
-  if(avatarUrl){  
-    setImgWithFallback_(avatar, buildImgCandidates_(avatarUrl));  
-  }else{  
-    avatar.removeAttribute("src");  
-  }  
-  
-  sec.style.display = "";  
-  return true;  
-}  
-  
-function renderBottomQr_(p){  
-  const sec = qs("bottomQrSection");  
-  if(!sec) return;  
-  
-  sec.style.display = "none";  
-  
-  let attempts = 0;  
-  const maxAttempts = 12;  
-  
-  const tick = ()=>{  
-    attempts++;  
-    const ok = tryRenderBottomQrOnce_(p);  
-    if(ok) return;  
-    if(attempts < maxAttempts){  
-      setTimeout(tick, 180);  
-    }  
-  };  
-  
-  tick();  
-}  
+function buildBottomQrUrl_(){
+  try{
+    const u = new URL(location.href);
+    const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
+    u.searchParams.set("id", id);
+    u.searchParams.set("view", "1");
+    u.searchParams.delete("clean");
+    u.searchParams.delete("admin");
+    return u.toString();
+  }catch{
+    const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
+    return location.origin + location.pathname + "?id=" + encodeURIComponent(id) + "&view=1";
+  }
+}
+
+function renderBottomQrFallbackImg_(grid, url){
+  if(!grid) return;
+  grid.innerHTML = "";
+  const img = document.createElement("img");
+  img.alt = "QR Code";
+  img.loading = "eager";
+  img.decoding = "sync";
+  img.referrerPolicy = "no-referrer";
+  img.src = "https://quickchart.io/qr?size=220&margin=1&text=" + encodeURIComponent(url);
+  img.style.width = "100%";
+  img.style.height = "100%";
+  img.style.display = "block";
+  grid.appendChild(img);
+}
+
+function tryRenderBottomQrOnce_(p){
+  const sec = qs("bottomQrSection");
+  const grid = qs("bottomQrGrid");
+  const avatar = qs("bottomQrAvatar");
+  if(!sec || !grid || !avatar) return false;
+
+  const qrUrl = buildBottomQrUrl_();
+  let rendered = false;
+  grid.innerHTML = "";
+
+  if(window.QRCode){
+    try{
+      new QRCode(grid, {
+        text: qrUrl,
+        width: 136,
+        height: 136,
+        colorDark: "#433227",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      rendered = !!grid.querySelector("canvas, img");
+    }catch(err){
+      console.error("Bottom QR render failed:", err);
+    }
+  }
+
+  if(!rendered){
+    renderBottomQrFallbackImg_(grid, qrUrl);
+    rendered = true;
+  }
+
+  const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
+  const avatarUrl = normalizeImageUrl_(avatarRaw);
+  if(avatarUrl){
+    setImgWithFallback_(avatar, buildImgCandidates_(avatarUrl));
+    avatar.style.display = "block";
+  }else{
+    avatar.removeAttribute("src");
+    avatar.style.display = "none";
+  }
+
+  sec.style.display = "";
+  return rendered;
+}
+
+function renderBottomQr_(p){
+  const sec = qs("bottomQrSection");
+  if(!sec) return;
+  sec.style.display = "";
+
+  let attempts = 0;
+  const maxAttempts = 20;
+  const tick = ()=>{
+    attempts++;
+    const ok = tryRenderBottomQrOnce_(p);
+    if(ok) return;
+    if(attempts < maxAttempts) setTimeout(tick, 220);
+  };
+
+  tick();
+  window.addEventListener("load", ()=>{ tryRenderBottomQrOnce_(p); }, { once:true });
+}
   
 function renderCard(row){  
   const p = buildNormalizedPayload_(row || {});  
@@ -927,8 +963,7 @@ function renderCard(row){
   if(vt) vt.textContent = CONFIG.VERSION;  
 }  
   
-window.__getHubShareUrl = buildHubShareUrl_;
-window.__getCurrentAvatarSrc = function(){ var el = qs("u-img"); return el && el.getAttribute("src") ? el.getAttribute("src") : ""; };  
+window.__getHubShareUrl = buildHubShareUrl_;  
   
 (async function boot_(){  
   try{  
