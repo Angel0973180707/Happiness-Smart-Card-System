@@ -1,44 +1,11 @@
 <!-- ================================
      index.html v523.0 (COMPLETE OVERWRITE)
 
-     FRONT + CLEAN DELIVERY MODE + INVITE GATE + FACADE HUB QRCODE
-     + HERO COPY SMART BALANCE
-     + PRODUCT QR AT BOTTOM
-     + PRIMARY WEBSITE / MEDIA GRID / CTA DOCK
-
-     ✅ Front (門面): only use DEMO_ID (TW0001) when URL has NO id
-     ✅ If URL already has id, KEEP that id
-     ✅ Clean (成品): ?view=1 / ?clean=1 → hide控制面板 + keep share FAB
-     ✅ Share: share 智慧名片館（優先走 app.js v523.0 的 HUB share URL）
-
-     ✅ QRCode (facade):
-        - 智慧名片館入口 URL
-        - 格式：/?ref=TW0001（若已有 id，則帶當前 id）
-        - 中央加入 UI 小太陽 logo
-        - 白色保護底，提升掃描穩定度
-
-     ✅ Product page bottom QR:
-        - 放成品最下方
-        - 直接打開此張名片 clean URL
-        - 中央顯示個人頭像
-        - 不破壞主畫面
-
-     ✅ Top copy:
-        - 改小字
-        - 動態平衡
-        - 智慧斷句
-        - 文案：
-          智慧名片訂製｜為創業者、講師、店家與個人品牌打造專屬名片入口
-
-     ✅ Link layout:
-        - contactDock：聯繫方式
-        - primaryLinkDock：主網站
-        - mediaDock：影音／社群（6格）
-        - ctaDock：CTA
-
-     ✅ v523.0:
-        - logo 改為圓角方框呈現
-        - bottom QR 區塊加入平衡排版
+     ✅ 成品最下方新增 QRcode 區塊
+     ✅ QRcode 放在照片區下方、版本號上方
+     ✅ QRcode 中央放小太陽 icon
+     ✅ 門面最上方文案縮小 + 動態平衡 + 智慧斷句
+     ✅ Logo 維持圓角方框
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -48,18 +15,15 @@
   <meta name="format-detection" content="telephone=no" />
   <title>天使幸福智慧名片館 v523.0</title>
 
-  <!-- PWA -->
   <link rel="manifest" href="./manifest.json?v=523.0" />
   <meta name="theme-color" content="#f8f4ee" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.0" />
   <link rel="icon" href="./icons/icon-192.png?v=523.0" />
 
-  <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="天使幸福智慧名片館" />
 
-  <!-- OG -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
@@ -78,9 +42,6 @@
       --poster-ink-soft:#6b5a4d;
       --poster-muted:#8d7d70;
       --poster-line:rgba(102,78,57,.09);
-      --poster-gold:#bf8757;
-      --poster-gold-deep:#9a6a44;
-      --poster-gold-soft:#b6855e;
       --poster-shadow:0 18px 42px rgba(83,62,45,.07);
       --poster-shadow-soft:0 10px 24px rgba(83,62,45,.05);
     }
@@ -93,14 +54,6 @@
     }
 
     body{ min-height:100vh; }
-
-    #btnLineOaCta,#btnLinePrivateCta,#btnFeature,#btnInviteGate,#btnShare,#btnSharePremium,
-    #btnLineOaCta2,#btnLinePrivateCta2,#btnFeature2,#btnInviteGate2{
-      display:inline-flex !important;
-      visibility:visible !important;
-      opacity:1 !important;
-      pointer-events:auto !important;
-    }
 
     #btnLinePrivateCta,#btnLinePrivateCta2{
       display:none !important;
@@ -145,146 +98,15 @@
       user-select: none;
     }
     #cleanShareFab i{ font-size: 20px; }
-    #cleanShareFab:active{ transform: scale(0.98); }
-
-    .modal-mask{
-      position:fixed; inset:0;
-      display:none;
-      z-index:2147483200;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      align-items:center;
-      justify-content:center;
-      padding: 18px;
-    }
-    .modal{
-      width: min(560px, 92vw);
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(17,19,24,0.86);
-      color: rgba(255,255,255,0.92);
-      box-shadow: 0 18px 60px rgba(0,0,0,0.50);
-      overflow:hidden;
-    }
-    .modal-hd{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding: 14px 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.12);
-    }
-    .modal-title{
-      font-weight: 900;
-      letter-spacing: .4px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .modal-close{
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.95);
-      padding: 10px 12px;
-      border-radius: 14px;
-      font-weight: 900;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .modal-bd{
-      padding: 14px 14px 16px;
-      line-height: 1.7;
-      color: rgba(255,255,255,0.86);
-      font-size: 14px;
-    }
-    .modal-bd b{ color: rgba(255,255,255,0.96); }
-    .modal-bd .k{
-      margin-top: 10px;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(255,255,255,0.06);
-    }
-
-    .invite-mask{
-      position:fixed; inset:0;
-      display:none;
-      z-index:2147483300;
-      background: rgba(0,0,0,0.62);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      align-items:center;
-      justify-content:center;
-      padding: 18px;
-    }
-    .invite-box{
-      width: min(520px, 92vw);
-      border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.14);
-      background: rgba(17,19,24,0.88);
-      color: rgba(255,255,255,0.92);
-      box-shadow: 0 18px 60px rgba(0,0,0,0.55);
-      overflow:hidden;
-    }
-    .invite-hd{
-      padding: 14px 14px;
-      border-bottom: 1px solid rgba(255,255,255,0.12);
-      font-weight: 900;
-      letter-spacing: .4px;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-    }
-    .invite-bd{
-      padding: 14px 14px 16px;
-      line-height: 1.65;
-      color: rgba(255,255,255,0.86);
-      font-size: 14px;
-    }
-    .invite-row{
-      display:flex; gap:10px; flex-wrap:wrap;
-      align-items:center;
-      margin-top: 10px;
-    }
-    .invite-input{
-      flex: 1 1 220px;
-      min-width: 180px;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.08);
-      color: rgba(255,255,255,0.92);
-      font-weight: 900;
-      letter-spacing: .8px;
-      outline: none;
-    }
-    .invite-btn{
-      flex: 0 0 auto;
-      padding: 12px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.10);
-      color: rgba(255,255,255,0.95);
-      font-weight: 900;
-      cursor:pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .invite-primary{
-      background: linear-gradient(135deg, rgba(46,204,113,0.92), rgba(13,169,123,0.92));
-      border-color: rgba(255,255,255,0.10);
-      color: rgba(0,0,0,0.82);
-    }
 
     .facade-brand{
       width:100%;
       max-width:520px;
-      border-radius: 24px;
-      padding: 16px 14px 14px;
-      border: 1px solid var(--poster-line);
-      background: linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
-      box-shadow: var(--poster-shadow);
+      border-radius:24px;
+      padding:16px 14px 14px;
+      border:1px solid var(--poster-line);
+      background:linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
+      box-shadow:var(--poster-shadow);
     }
     .facade-brand-head{
       display:flex;
@@ -299,14 +121,13 @@
       display:block;
       margin-bottom:8px;
       opacity:.95;
-      filter: drop-shadow(0 2px 4px rgba(176,138,107,.18));
     }
     .facade-brand-title{
       font-weight:1000;
       font-size:18px;
       line-height:1.25;
       letter-spacing:.6px;
-      color: var(--poster-ink);
+      color:var(--poster-ink);
       text-align:center;
     }
     .facade-brand-subtitle{
@@ -315,40 +136,33 @@
       line-height:1.35;
       font-weight:800;
       letter-spacing:.18em;
-      color: #a08f82;
+      color:#a08f82;
       text-align:center;
     }
     .facade-brand .p{
-      margin-top: 10px;
-      font-size: 11px;
-      line-height: 1.72;
-      color: var(--poster-ink-soft);
-      font-weight: 700;
+      margin-top:10px;
+      font-size:11px;
+      line-height:1.72;
+      color:var(--poster-ink-soft);
+      font-weight:700;
       text-align:center;
-      max-width: 320px;
+      max-width:320px;
       margin-left:auto;
       margin-right:auto;
-      text-wrap: balance;
-      word-break: keep-all;
+      text-wrap:balance;
+      word-break:keep-all;
     }
-    .balance-text{
-      word-break: keep-all;
-      overflow-wrap: break-word;
-      text-wrap: balance;
-    }
-    .balance-text .balance-line{
-      display:block;
-    }
+    .balance-text .balance-line{ display:block; }
 
     .facade-qr{
       width:100%;
       max-width:520px;
       margin-top:12px;
-      border-radius: 24px;
-      padding: 14px 14px 12px;
-      border: 1px solid var(--poster-line);
-      background: linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
-      box-shadow: var(--poster-shadow-soft);
+      border-radius:24px;
+      padding:14px 14px 12px;
+      border:1px solid var(--poster-line);
+      background:linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
+      box-shadow:var(--poster-shadow-soft);
     }
     .facade-qr-box{
       display:flex;
@@ -362,11 +176,9 @@
       width:172px;
       height:172px;
       padding:12px;
-      border-radius: 22px;
-      background: linear-gradient(180deg, #ffffff, #fffdfb);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.82),
-        0 8px 18px rgba(0,0,0,.04);
+      border-radius:22px;
+      background:#fff;
+      box-shadow:0 8px 18px rgba(0,0,0,.04);
       border:1px solid rgba(0,0,0,.035);
       display:flex;
       align-items:center;
@@ -381,7 +193,7 @@
       align-items:center;
       justify-content:center;
       overflow:hidden;
-      border-radius: 14px;
+      border-radius:14px;
       background:#fff;
     }
     .facade-qr-grid img,
@@ -389,8 +201,6 @@
       width:100% !important;
       height:100% !important;
       display:block;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
     }
     .facade-qr-logo-pad{
       position:absolute;
@@ -399,11 +209,9 @@
       transform:translate(-50%, -50%);
       width:40px;
       height:40px;
-      border-radius: 14px;
-      background: rgba(255,255,255,0.98);
-      box-shadow:
-        0 6px 16px rgba(0,0,0,0.10),
-        0 0 0 6px rgba(255,255,255,0.96);
+      border-radius:14px;
+      background:rgba(255,255,255,0.98);
+      box-shadow:0 6px 16px rgba(0,0,0,0.10), 0 0 0 6px rgba(255,255,255,0.96);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -414,58 +222,53 @@
       width:22px;
       height:22px;
       display:block;
-      filter: drop-shadow(0 1px 2px rgba(176,138,107,.14));
     }
     .facade-qr-title{
       margin-top:12px;
       font-size:14px;
       font-weight:900;
-      color: var(--poster-ink);
-      letter-spacing:.02em;
-      text-wrap: balance;
+      color:var(--poster-ink);
     }
     .facade-qr-sub{
       margin-top:6px;
       font-size:12px;
       line-height:1.65;
       font-weight:800;
-      color: var(--poster-ink-soft);
-      text-wrap: balance;
+      color:var(--poster-ink-soft);
     }
 
     .primary-link-dock .dock-buttons,
     .cta-dock .dock-buttons{
-      grid-template-columns: 1fr !important;
+      grid-template-columns:1fr !important;
     }
 
     .qr-bottom{
-      margin-top: 16px;
-      padding: 14px 12px 12px;
-      border-radius: 20px;
-      border: 1px solid rgba(102,78,57,.08);
-      background:
-        linear-gradient(180deg, rgba(255,253,250,.95), rgba(255,248,241,.96));
-      box-shadow: 0 12px 30px rgba(83,62,45,.05);
+      margin-top:16px;
+      padding:14px 12px 12px;
+      border-radius:20px;
+      border:1px solid rgba(102,78,57,.08);
+      background:linear-gradient(180deg, rgba(255,253,250,.95), rgba(255,248,241,.96));
+      box-shadow:0 12px 30px rgba(83,62,45,.05);
       display:none;
     }
     .qr-bottom-head{
       text-align:center;
-      margin-bottom: 10px;
+      margin-bottom:10px;
     }
     .qr-bottom-title{
-      font-size: 13px;
-      font-weight: 900;
-      color: var(--poster-ink);
-      line-height: 1.6;
-      text-wrap: balance;
+      font-size:13px;
+      font-weight:900;
+      color:var(--poster-ink);
+      line-height:1.6;
+      text-wrap:balance;
     }
     .qr-bottom-sub{
-      margin-top: 4px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--poster-ink-soft);
-      line-height: 1.7;
-      text-wrap: balance;
+      margin-top:4px;
+      font-size:11px;
+      font-weight:700;
+      color:var(--poster-ink-soft);
+      line-height:1.7;
+      text-wrap:balance;
     }
     .qr-bottom-wrap{
       display:flex;
@@ -477,12 +280,10 @@
       width:156px;
       height:156px;
       padding:10px;
-      border-radius: 20px;
-      background: #fff;
+      border-radius:20px;
+      background:#fff;
       border:1px solid rgba(0,0,0,.04);
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.82),
-        0 8px 18px rgba(0,0,0,.05);
+      box-shadow:0 8px 18px rgba(0,0,0,.05);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -491,7 +292,7 @@
     .qr-bottom-grid{
       width:136px;
       height:136px;
-      border-radius: 14px;
+      border-radius:14px;
       overflow:hidden;
       background:#fff;
       display:flex;
@@ -503,8 +304,6 @@
       width:100% !important;
       height:100% !important;
       display:block;
-      image-rendering: -webkit-optimize-contrast;
-      image-rendering: crisp-edges;
     }
     .qr-bottom-center{
       position:absolute;
@@ -515,9 +314,7 @@
       height:42px;
       border-radius:999px;
       background:#fff;
-      box-shadow:
-        0 6px 16px rgba(0,0,0,.10),
-        0 0 0 6px rgba(255,255,255,.96);
+      box-shadow:0 6px 16px rgba(0,0,0,.10), 0 0 0 6px rgba(255,255,255,.96);
       overflow:hidden;
       display:flex;
       align-items:center;
@@ -539,16 +336,12 @@
 
     @media (max-width: 520px){
       .facade-brand .p{
-        font-size: 10px;
-        line-height: 1.7;
-        max-width: 286px;
+        font-size:10px;
+        line-height:1.7;
+        max-width:286px;
       }
-      .qr-bottom-title{
-        font-size: 12px;
-      }
-      .qr-bottom-sub{
-        font-size: 10px;
-      }
+      .qr-bottom-title{ font-size:12px; }
+      .qr-bottom-sub{ font-size:10px; }
     }
   </style>
 
@@ -787,6 +580,7 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
+        <!-- ✅ 新增：成品最下方 QRcode 區塊 -->
         <div class="qr-bottom" id="bottomQrSection">
           <div class="qr-bottom-head">
             <div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">
@@ -811,435 +605,7 @@
     </section>
   </main>
 
-  <div class="modal-mask" id="featureMask" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="產品特色說明">
-      <div class="modal-hd">
-        <div class="modal-title"><i class="fa-solid fa-circle-info"></i> 產品特色說明</div>
-        <button class="modal-close" type="button" id="featureCloseBtn">關閉</button>
-      </div>
-      <div class="modal-bd">
-        <div class="k">
-          <b>自由搭配</b>：5色 × 3版型 × 3紙感，風格清爽、可快速客製。
-        </div>
-        <div class="k">
-          <b>精品設計</b>：7款精品底色（含金箔）、玻璃質感更強、照片牆更完整，適合更高端呈現。
-        </div>
-        <div class="k">
-          <b>一鍵分享</b>：可分享智慧名片館，作為品牌入口與導流主頁。
-        </div>
-        <div class="k">
-          <b>QRcode 展示</b>：可現場展示，也可帶走智慧名片館入口，方便之後再次回來體驗。
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="invite-mask" id="inviteMask" aria-hidden="true">
-    <div class="invite-box" role="dialog" aria-modal="true" aria-label="輸入邀請碼">
-      <div class="invite-hd">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <i class="fa-solid fa-key"></i> 輸入邀請碼後開啟表單
-        </div>
-        <button class="invite-btn" type="button" id="inviteCloseBtn">關閉</button>
-      </div>
-      <div class="invite-bd">
-        <div>此表單採邀請制：請到後台取得邀請碼，提供給客戶填寫。</div>
-        <div class="invite-row">
-          <input class="invite-input" id="inviteInput" type="text" inputmode="text" autocomplete="off" placeholder="例如：ABCD-1234" />
-          <button class="invite-btn invite-primary" type="button" id="inviteGoBtn">開啟表單</button>
-        </div>
-        <div style="margin-top:10px; color:rgba(255,255,255,0.70); font-size:13px;">
-          ※ 成品模式（?view=1）不提供填表入口。
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="./app.js?v=523.0"></script>
-
-  <script>
-    (function(){
-      "use strict";
-
-      var VERSION = "523.0";
-      var LINE_OA_URL = "https://lin.ee/3r2ZePN";
-      var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
-      var DEMO_ID = "TW0001";
-
-      function qs(id){ return document.getElementById(id); }
-      function sp(){ try{return new URLSearchParams(location.search||"");}catch(e){return new URLSearchParams();} }
-      function isClean(){
-        var p = sp();
-        return (p.get("view")==="1") || (p.get("clean")==="1");
-      }
-
-      var __scrollTop = 0;
-      function lockScroll(){
-        try{
-          __scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-          document.documentElement.style.overflow = "hidden";
-          document.body.style.overflow = "hidden";
-          document.body.style.position = "fixed";
-          document.body.style.top = (-__scrollTop) + "px";
-          document.body.style.left = "0";
-          document.body.style.right = "0";
-          document.body.style.width = "100%";
-        }catch(e){}
-      }
-      function unlockScroll(){
-        try{
-          document.documentElement.style.overflow = "";
-          document.body.style.overflow = "";
-          document.body.style.position = "";
-          document.body.style.top = "";
-          document.body.style.left = "";
-          document.body.style.right = "";
-          document.body.style.width = "";
-          window.scrollTo(0, __scrollTop || 0);
-        }catch(e){}
-      }
-
-      function applyCleanUI(){
-        if(!isClean()) return;
-        document.body.classList.add("clean");
-        var panel = qs("admin-panel");
-        var hot = qs("adminHotspotBR");
-        var fab = qs("cleanShareFab");
-        if(panel) panel.style.display = "none";
-        if(hot) hot.style.display = "none";
-        if(fab) fab.style.display = "flex";
-      }
-
-      function getCurrentCardId(){
-        try{
-          var p = sp();
-          var id = (p.get("id") || p.get("ref") || "").trim();
-          return id || DEMO_ID;
-        }catch(e){
-          return DEMO_ID;
-        }
-      }
-
-      function buildHubShareUrlFallback(){
-        try{
-          if(typeof window.__getHubShareUrl === "function"){
-            return window.__getHubShareUrl();
-          }
-        }catch(e){}
-        try{
-          var u = new URL(BASE_URL);
-          var id = getCurrentCardId();
-          if(id) u.searchParams.set("ref", id);
-          return u.toString();
-        }catch(e){
-          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
-        }
-      }
-
-      function buildFacadeHubQrUrl(){
-        try{
-          var u = new URL(BASE_URL);
-          u.searchParams.set("ref", getCurrentCardId());
-          return u.toString();
-        }catch(e){
-          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
-        }
-      }
-
-      function renderFacadeQr(){
-        var mount = qs("facadeQrGrid");
-        if(!mount || isClean()) return;
-        mount.innerHTML = "";
-
-        var qrUrl = buildFacadeHubQrUrl();
-        try{
-          if(window.QRCode){
-            new QRCode(mount, {
-              text: qrUrl,
-              width: 148,
-              height: 148,
-              colorDark: "#433227",
-              colorLight: "#ffffff",
-              correctLevel: QRCode.CorrectLevel.H
-            });
-            return;
-          }
-        }catch(e){}
-
-        var fallback = document.createElement("div");
-        fallback.style.cssText = "font-size:12px;line-height:1.6;color:#6b5a4d;text-align:center;padding:10px;";
-        fallback.textContent = "QRcode 載入失敗";
-        mount.appendChild(fallback);
-      }
-
-      function bindShareFallback(){
-        function bindOne(id){
-          var btn = qs(id);
-          if(!btn) return;
-
-          btn.addEventListener("click", function(e){
-            try{
-              if(e.defaultPrevented) return;
-
-              var url = buildHubShareUrlFallback();
-
-              if(navigator.share){
-                e.preventDefault();
-                navigator.share({
-                  title: "天使幸福智慧名片館",
-                  text: "分享智慧名片館",
-                  url: url
-                }).catch(function(){});
-                return;
-              }
-
-              if(navigator.clipboard && navigator.clipboard.writeText){
-                e.preventDefault();
-                navigator.clipboard.writeText(url).then(function(){
-                  alert("✅ 已複製智慧名片館連結");
-                }).catch(function(){
-                  alert("⚠️ 無法複製，請手動複製網址");
-                });
-              }else{
-                alert("⚠️ 無法分享/複製，請手動複製網址");
-              }
-            }catch(err){}
-          }, true);
-        }
-
-        bindOne("btnShare");
-        bindOne("btnSharePremium");
-      }
-
-      (function(){
-        var fab = qs("cleanShareFab");
-        if(!fab) return;
-        fab.addEventListener("click", function(){
-          try{
-            var b = qs("btnShare");
-            if(b && b.click) b.click();
-            else if(navigator.share){
-              var url = buildHubShareUrlFallback();
-              navigator.share({
-                title: "天使幸福智慧名片館",
-                text: "分享智慧名片館",
-                url: url
-              }).catch(function(){});
-            }
-          }catch(e){}
-        }, {passive:true});
-      })();
-
-      function bindLineOa(){
-        function openOA(){
-          try{ window.open(LINE_OA_URL, "_blank", "noopener"); }
-          catch(e){ location.href = LINE_OA_URL; }
-        }
-        ["btnLineOaCta","btnLineOaCta2"].forEach(function(id){
-          var b = qs(id);
-          if(b) b.addEventListener("click", function(e){ e.preventDefault(); openOA(); }, {passive:false});
-        });
-      }
-
-      function bindFeature(){
-        var mask = qs("featureMask");
-        var close = qs("featureCloseBtn");
-        function open(){
-          if(!mask) return;
-          mask.style.display="flex";
-          mask.setAttribute("aria-hidden","false");
-          lockScroll();
-        }
-        function shut(){
-          if(!mask) return;
-          mask.style.display="none";
-          mask.setAttribute("aria-hidden","true");
-          unlockScroll();
-        }
-        ["btnFeature","btnFeature2"].forEach(function(id){
-          var b = qs(id);
-          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
-        });
-        if(close) close.addEventListener("click", function(){ shut(); });
-        if(mask) mask.addEventListener("click", function(e){
-          if(e.target === mask) shut();
-        });
-        document.addEventListener("keydown", function(e){
-          if(e.key === "Escape" && mask && mask.style.display === "flex") shut();
-        });
-      }
-
-      function normalizeInvite(code){
-        return (code || "")
-          .replace(/\u3000/g, " ")
-          .replace(/\s+/g, "")
-          .trim();
-      }
-
-      function bindInviteGate(){
-        var mask = qs("inviteMask");
-        var close = qs("inviteCloseBtn");
-        var input = qs("inviteInput");
-        var go = qs("inviteGoBtn");
-
-        function open(){
-          if(isClean()) return;
-          if(!mask) return;
-          mask.style.display="flex";
-          mask.setAttribute("aria-hidden","false");
-          lockScroll();
-          setTimeout(function(){ try{ input && input.focus(); }catch(e){} }, 60);
-        }
-        function shut(){
-          if(!mask) return;
-          mask.style.display="none";
-          mask.setAttribute("aria-hidden","true");
-          unlockScroll();
-        }
-        function goForm(){
-          if(isClean()) return;
-          var code = normalizeInvite(input && input.value ? input.value : "");
-          if(!code){
-            try{ input && input.focus(); }catch(e){}
-            return;
-          }
-          var url = "./form.html?v=" + encodeURIComponent(VERSION) + "&invite=" + encodeURIComponent(code);
-          try{ window.open(url, "_blank", "noopener"); }catch(e){ location.href = url; }
-        }
-
-        ["btnInviteGate","btnInviteGate2"].forEach(function(id){
-          var b = qs(id);
-          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
-        });
-
-        if(close) close.addEventListener("click", function(){ shut(); });
-        if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) shut(); });
-
-        if(go) go.addEventListener("click", function(){ goForm(); });
-        if(input) input.addEventListener("keydown", function(e){
-          if(e.key === "Enter"){ e.preventDefault(); goForm(); }
-          if(e.key === "Escape"){ e.preventDefault(); shut(); }
-        });
-      }
-
-      (function adminEntry(){
-        if(isClean()) return;
-        var hot = qs("adminHotspotBR");
-        if(!hot) return;
-
-        var taps = [];
-        var TAP_WINDOW_MS = 900;
-        var LONG_PRESS_MS = 1200;
-        var pressTimer = null;
-        var moved = false;
-
-        function goAdmin(){
-          var p = sp();
-          var id = (p.get("id") || "").trim();
-          var url = "./admin.html?v=" + encodeURIComponent(VERSION) + (id ? ("&id=" + encodeURIComponent(id)) : "");
-          try{ location.href = url; }catch(e){}
-        }
-
-        function registerTap(){
-          var now = Date.now();
-          taps.push(now);
-          taps = taps.filter(function(t){ return (now - t) <= TAP_WINDOW_MS; });
-          if(taps.length >= 3){
-            taps = [];
-            goAdmin();
-          }
-        }
-
-        hot.addEventListener("click", function(e){
-          e.preventDefault(); e.stopPropagation();
-          registerTap();
-        }, {passive:false});
-
-        hot.addEventListener("touchstart", function(){
-          moved = false;
-          if(pressTimer) clearTimeout(pressTimer);
-          pressTimer = setTimeout(function(){ if(!moved) goAdmin(); }, LONG_PRESS_MS);
-        }, {passive:true});
-
-        hot.addEventListener("touchmove", function(){
-          moved = true;
-          if(pressTimer) clearTimeout(pressTimer);
-        }, {passive:true});
-
-        hot.addEventListener("touchend", function(){
-          if(pressTimer) clearTimeout(pressTimer);
-        }, {passive:true});
-
-        hot.addEventListener("touchcancel", function(){
-          if(pressTimer) clearTimeout(pressTimer);
-        }, {passive:true});
-      })();
-
-      function bindPlanFallback(){
-        if(typeof window.setPlan === "function") return;
-
-        var freeBtn = qs("btnPlanFree");
-        var premBtn = qs("btnPlanPremium");
-        var free = qs("free-controls");
-        var prem = qs("premium-controls");
-        var badge = qs("premiumBadge");
-
-        function setActivePlan(plan){
-          try{
-            if(plan === "premium"){
-              if(free) free.style.display = "none";
-              if(prem) prem.style.display = "";
-              if(badge) badge.style.display = "";
-              if(freeBtn) freeBtn.classList.remove("active");
-              if(premBtn) premBtn.classList.add("active");
-            }else{
-              if(prem) prem.style.display = "none";
-              if(free) free.style.display = "";
-              if(badge) badge.style.display = "none";
-              if(premBtn) premBtn.classList.remove("active");
-              if(freeBtn) freeBtn.classList.add("active");
-            }
-          }catch(e){}
-        }
-
-        if(freeBtn) freeBtn.addEventListener("click", function(e){
-          e.preventDefault();
-          setActivePlan("free");
-        }, {passive:false});
-
-        if(premBtn) premBtn.addEventListener("click", function(e){
-          e.preventDefault();
-          setActivePlan("premium");
-        }, {passive:false});
-      }
-
-      function boot(){
-        applyCleanUI();
-        bindLineOa();
-        bindFeature();
-        bindInviteGate();
-        bindShareFallback();
-        bindPlanFallback();
-        renderFacadeQr();
-
-        setTimeout(function(){
-          [
-            "btnLineOaCta","btnFeature","btnInviteGate","btnShare","btnSharePremium",
-            "btnLineOaCta2","btnFeature2","btnInviteGate2"
-          ].forEach(function(id){
-            var b = qs(id);
-            if(b){ b.style.display="inline-flex"; b.style.visibility="visible"; b.style.opacity="1"; }
-          });
-        }, 280);
-      }
-
-      if(document.readyState === "loading"){
-        document.addEventListener("DOMContentLoaded", boot, {once:true});
-      }else{
-        boot();
-      }
-    })();
-  </script>
 </body>
 </html>
