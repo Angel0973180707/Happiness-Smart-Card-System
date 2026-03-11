@@ -1,40 +1,44 @@
 <!-- ================================
-     index.html v522.9 (COMPLETE OVERWRITE)
+     index.html v523.0 (COMPLETE OVERWRITE)
+
      FRONT + CLEAN DELIVERY MODE + INVITE GATE + FACADE HUB QRCODE
+     + HERO COPY SMART BALANCE
+     + PRODUCT QR AT BOTTOM
+     + PRIMARY WEBSITE / MEDIA GRID / CTA DOCK
 
      ✅ Front (門面): only use DEMO_ID (TW0001) when URL has NO id
      ✅ If URL already has id, KEEP that id
      ✅ Clean (成品): ?view=1 / ?clean=1 → hide控制面板 + keep share FAB
-     ✅ Share: share 智慧名片館（優先走 app.js v522.5 的 HUB share URL）
+     ✅ Share: share 智慧名片館（優先走 app.js v523.0 的 HUB share URL）
 
      ✅ QRCode (facade):
-        - 改為智慧名片館入口 URL
+        - 智慧名片館入口 URL
         - 格式：/?ref=TW0001（若已有 id，則帶當前 id）
         - 中央加入 UI 小太陽 logo
         - 白色保護底，提升掃描穩定度
-        - 文案改為：
-          掃描 QRcode｜帶走智慧名片館
-          可收藏・可分享・可隨時回來慢慢體驗
 
-     ✅ CTA:
-        - LINE OA: https://lin.ee/3r2ZePN
-        - 私訊 LINE：走 app.js 的 goLineIntro（讀名片資料）→ 已移到 contactDock
-        - 產品特色說明：modal
-        - 「請聯繫客服開通」→「輸入邀請碼 → 開啟表單」
-     ✅ Invite gate:
-        - Front: click 開通 → ask invite code → open ./form.html?v=522.9&invite=XXXX
-        - Clean mode: no form entry
+     ✅ Product page bottom QR:
+        - 放成品最下方
+        - 直接打開此張名片 clean URL
+        - 中央顯示個人頭像
+        - 不破壞主畫面
 
-     ✅ Brand facade:
-        - UI small sun above title
-        - Heading: 天使幸福智慧名片館
-        - Positioning:
-          智慧名片訂製｜適合創業者、講師與服務業｜打造可分享的專屬名片入口
+     ✅ Top copy:
+        - 改小字
+        - 動態平衡
+        - 智慧斷句
+        - 文案：
+          智慧名片訂製｜為創業者、講師、店家與個人品牌打造專屬名片入口
 
-     ✅ v522.9:
-        - 門面整體底色對齊交付卡米白質感底色
-        - 品牌標題加上「館」
-        - 「訂製服務」改為「訂製」
+     ✅ Link layout:
+        - contactDock：聯繫方式
+        - primaryLinkDock：主網站
+        - mediaDock：影音／社群（6格）
+        - ctaDock：CTA
+
+     ✅ v523.0:
+        - logo 改為圓角方框呈現
+        - bottom QR 區塊加入平衡排版
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -42,13 +46,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v522.9</title>
+  <title>天使幸福智慧名片館 v523.0</title>
 
   <!-- PWA -->
-  <link rel="manifest" href="./manifest.json?v=522.9" />
+  <link rel="manifest" href="./manifest.json?v=523.0" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=522.9" />
-  <link rel="icon" href="./icons/icon-192.png?v=522.9" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.0" />
+  <link rel="icon" href="./icons/icon-192.png?v=523.0" />
 
   <!-- iOS A2HS -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -59,7 +63,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=522.9" />
+  <meta property="og:image" content="og-card.png?v=523.0" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -88,11 +92,8 @@
       color:var(--poster-ink);
     }
 
-    body{
-      min-height:100vh;
-    }
+    body{ min-height:100vh; }
 
-    /* CTA visibility guard */
     #btnLineOaCta,#btnLinePrivateCta,#btnFeature,#btnInviteGate,#btnShare,#btnSharePremium,
     #btnLineOaCta2,#btnLinePrivateCta2,#btnFeature2,#btnInviteGate2{
       display:inline-flex !important;
@@ -101,7 +102,6 @@
       pointer-events:auto !important;
     }
 
-    /* v522.9: force-hide top private line CTA (private line moved to contactDock) */
     #btnLinePrivateCta,#btnLinePrivateCta2{
       display:none !important;
       visibility:hidden !important;
@@ -109,7 +109,6 @@
       pointer-events:none !important;
     }
 
-    /* Hidden admin hotspot (bottom-right) */
     #adminHotspotBR{
       position: fixed;
       right: 8px;
@@ -124,7 +123,6 @@
       user-select: none;
     }
 
-    /* Clean share floating button */
     #cleanShareFab{
       position: fixed;
       right: 14px;
@@ -149,7 +147,6 @@
     #cleanShareFab i{ font-size: 20px; }
     #cleanShareFab:active{ transform: scale(0.98); }
 
-    /* ===== Feature modal ===== */
     .modal-mask{
       position:fixed; inset:0;
       display:none;
@@ -210,7 +207,6 @@
       background: rgba(255,255,255,0.06);
     }
 
-    /* ===== Invite prompt overlay ===== */
     .invite-mask{
       position:fixed; inset:0;
       display:none;
@@ -281,7 +277,6 @@
       color: rgba(0,0,0,0.82);
     }
 
-    /* facade */
     .facade-brand{
       width:100%;
       max-width:520px;
@@ -325,14 +320,26 @@
     }
     .facade-brand .p{
       margin-top: 10px;
-      font-size: 13px;
-      line-height: 1.6;
+      font-size: 11px;
+      line-height: 1.72;
       color: var(--poster-ink-soft);
-      font-weight: 800;
+      font-weight: 700;
       text-align:center;
+      max-width: 320px;
+      margin-left:auto;
+      margin-right:auto;
+      text-wrap: balance;
+      word-break: keep-all;
+    }
+    .balance-text{
+      word-break: keep-all;
+      overflow-wrap: break-word;
+      text-wrap: balance;
+    }
+    .balance-text .balance-line{
+      display:block;
     }
 
-    /* facade qrcode card */
     .facade-qr{
       width:100%;
       max-width:520px;
@@ -415,6 +422,7 @@
       font-weight:900;
       color: var(--poster-ink);
       letter-spacing:.02em;
+      text-wrap: balance;
     }
     .facade-qr-sub{
       margin-top:6px;
@@ -422,11 +430,126 @@
       line-height:1.65;
       font-weight:800;
       color: var(--poster-ink-soft);
+      text-wrap: balance;
+    }
+
+    .primary-link-dock .dock-buttons,
+    .cta-dock .dock-buttons{
+      grid-template-columns: 1fr !important;
+    }
+
+    .qr-bottom{
+      margin-top: 16px;
+      padding: 14px 12px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(102,78,57,.08);
+      background:
+        linear-gradient(180deg, rgba(255,253,250,.95), rgba(255,248,241,.96));
+      box-shadow: 0 12px 30px rgba(83,62,45,.05);
+      display:none;
+    }
+    .qr-bottom-head{
+      text-align:center;
+      margin-bottom: 10px;
+    }
+    .qr-bottom-title{
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--poster-ink);
+      line-height: 1.6;
+      text-wrap: balance;
+    }
+    .qr-bottom-sub{
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--poster-ink-soft);
+      line-height: 1.7;
+      text-wrap: balance;
+    }
+    .qr-bottom-wrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+    .qr-bottom-canvas{
+      position:relative;
+      width:156px;
+      height:156px;
+      padding:10px;
+      border-radius: 20px;
+      background: #fff;
+      border:1px solid rgba(0,0,0,.04);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.82),
+        0 8px 18px rgba(0,0,0,.05);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .qr-bottom-grid{
+      width:136px;
+      height:136px;
+      border-radius: 14px;
+      overflow:hidden;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .qr-bottom-grid img,
+    .qr-bottom-grid canvas{
+      width:100% !important;
+      height:100% !important;
+      display:block;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+    .qr-bottom-center{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      width:42px;
+      height:42px;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:
+        0 6px 16px rgba(0,0,0,.10),
+        0 0 0 6px rgba(255,255,255,.96);
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:3;
+      pointer-events:none;
+    }
+    .qr-bottom-center img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      border-radius:999px;
     }
 
     body.clean #admin-panel{ display:none !important; }
     body.clean #card-container{ position: relative; z-index: 1; }
     body.clean #cleanShareFab{ z-index: 2147483500; }
+
+    @media (max-width: 520px){
+      .facade-brand .p{
+        font-size: 10px;
+        line-height: 1.7;
+        max-width: 286px;
+      }
+      .qr-bottom-title{
+        font-size: 12px;
+      }
+      .qr-bottom-sub{
+        font-size: 10px;
+      }
+    }
   </style>
 
   <script>
@@ -463,11 +586,9 @@
     <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
   </button>
 
-  <!-- ================= Control Panel (sticky) ================= -->
   <header id="admin-panel">
     <div class="panel-inner">
 
-      <!-- Brand facade -->
       <div class="facade-brand" id="facadeBrand">
         <div class="facade-brand-head">
           <svg class="sun-ui-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true">
@@ -484,10 +605,11 @@
           <div class="facade-brand-title">天使幸福智慧名片館</div>
           <div class="facade-brand-subtitle">Angel Smart Card</div>
         </div>
-        <div class="p">智慧名片訂製｜適合創業者、講師與服務業｜打造可分享的專屬名片入口</div>
+        <div class="p balance-text" id="facadePitch" data-balance-type="hero-copy">
+          智慧名片訂製｜為創業者、講師、店家與個人品牌打造專屬名片入口
+        </div>
       </div>
 
-      <!-- QR code card -->
       <div class="facade-qr" id="facadeQrCard">
         <div class="facade-qr-box">
           <div class="facade-qr-canvas" id="facadeQrCanvas">
@@ -506,12 +628,11 @@
               </svg>
             </div>
           </div>
-          <div class="facade-qr-title">掃描 QRcode｜帶走智慧名片館</div>
-          <div class="facade-qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
+          <div class="facade-qr-title balance-text" data-balance-type="qr-title">掃描 QRcode｜帶走智慧名片館</div>
+          <div class="facade-qr-sub balance-text" data-balance-type="qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
         </div>
       </div>
 
-      <!-- Step 1: Plan -->
       <div class="plan-row" id="planRow">
         <button class="btn-neo pill breathe" data-group="plan" id="btnPlanFree" type="button"
           onclick="window.setPlan && window.setPlan('free', this)">
@@ -523,7 +644,6 @@
         </button>
       </div>
 
-      <!-- Step 2A: Free controls -->
       <div class="controls-block" id="free-controls">
         <div class="section-title">選顏色</div>
         <div class="dots-row" id="freeDotsRow">
@@ -570,7 +690,6 @@
         </button>
       </div>
 
-      <!-- Step 2B: Premium controls -->
       <div class="controls-block" id="premium-controls" style="display:none;">
         <div class="section-title">選底色</div>
         <div class="dots-row" id="premiumDotsRow">
@@ -608,7 +727,6 @@
     </div>
   </header>
 
-  <!-- ================= Card Container ================= -->
   <main id="card-container">
     <section class="card" id="card">
       <div class="premium-fx-layer"></div>
@@ -644,14 +762,24 @@
         <div class="info-block" id="block-service" style="display:none;"></div>
         <div class="info-block" id="block-exp" style="display:none;"></div>
 
-        <div class="contact-dock" id="mediaDock" style="display:none;">
-          <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／平台</div>
-          <div class="dock-buttons" id="mediaButtons"></div>
-        </div>
-
         <div class="contact-dock" id="contactDock" style="display:none;">
           <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
           <div class="dock-buttons" id="contactButtons"></div>
+        </div>
+
+        <div class="contact-dock primary-link-dock" id="primaryLinkDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-globe"></i> 主網站</div>
+          <div class="dock-buttons" id="primaryLinkButtons"></div>
+        </div>
+
+        <div class="contact-dock" id="mediaDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>
+          <div class="dock-buttons" id="mediaButtons"></div>
+        </div>
+
+        <div class="contact-dock cta-dock" id="ctaDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-bolt"></i> 立即行動</div>
+          <div class="dock-buttons" id="ctaButtons"></div>
         </div>
 
         <div class="photo-wall" id="photoWall" style="display:none;">
@@ -659,12 +787,30 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <div class="version-tag" id="versionTag">v522.9</div>
+        <div class="qr-bottom" id="bottomQrSection">
+          <div class="qr-bottom-head">
+            <div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">
+              掃描 QRcode｜開啟我的智慧名片
+            </div>
+            <div class="qr-bottom-sub balance-text" id="bottomQrSub" data-balance-type="product-qr-sub">
+              可收藏・可分享・可快速回看
+            </div>
+          </div>
+          <div class="qr-bottom-wrap">
+            <div class="qr-bottom-canvas">
+              <div class="qr-bottom-grid" id="bottomQrGrid"></div>
+              <div class="qr-bottom-center" id="bottomQrCenter">
+                <img id="bottomQrAvatar" alt="QR 頭像" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="version-tag" id="versionTag">v523.0</div>
       </div>
     </section>
   </main>
 
-  <!-- Feature modal -->
   <div class="modal-mask" id="featureMask" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-label="產品特色說明">
       <div class="modal-hd">
@@ -688,7 +834,6 @@
     </div>
   </div>
 
-  <!-- Invite gate -->
   <div class="invite-mask" id="inviteMask" aria-hidden="true">
     <div class="invite-box" role="dialog" aria-modal="true" aria-label="輸入邀請碼">
       <div class="invite-hd">
@@ -710,17 +855,14 @@
     </div>
   </div>
 
-  <!-- QRCode lib -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-  <!-- Load app.js -->
-  <script src="./app.js?v=522.5"></script>
+  <script src="./app.js?v=523.0"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "522.9";
+      var VERSION = "523.0";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
