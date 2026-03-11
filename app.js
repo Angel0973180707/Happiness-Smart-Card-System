@@ -1,13 +1,15 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v523.1 (COMPLETE OVERWRITE)
+ * app.js v523.2 (COMPLETE OVERWRITE)
  *
+ * ✅ 修正選版區按鈕失靈
  * ✅ 恢復照片牆
  * ✅ 恢復成品底部 QRcode
  * ✅ website -> 主網站區
  * ✅ video1~3 + social1~3 -> 影音／社群區
  * ✅ cta_text + cta_link -> CTA 區
  * ✅ 圖片容錯恢復
+ * ✅ 保留乾淨版 share URL
 ================================ */
 
 const CONFIG = {
@@ -15,7 +17,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v523.1",
+  VERSION: "v523.2",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -39,9 +41,14 @@ function normalizeId_(s){
   return v;
 }
 
+function getSearchParams_(){
+  try{ return new URLSearchParams(location.search || ""); }
+  catch{ return new URLSearchParams(); }
+}
+
 function getIdFromUrl_(){
   try{
-    const sp = new URLSearchParams(location.search || "");
+    const sp = getSearchParams_();
     return sp.get("id") || "";
   }catch{
     return "";
@@ -73,7 +80,12 @@ async function fetchWithTimeout_(url, timeoutMs){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
-    const res = await fetch(url, { method:"GET", cache:"no-store", redirect:"follow", signal: controller.signal });
+    const res = await fetch(url, {
+      method:"GET",
+      cache:"no-store",
+      redirect:"follow",
+      signal: controller.signal
+    });
     const txt = await res.text();
     const json = safeJsonParse_(txt);
     if(!json) throw new Error("Not JSON");
@@ -227,6 +239,208 @@ function applyWideRule_(container){
   if(btns.length % 2 === 1){
     btns[btns.length - 1].classList.add("wide");
   }
+}
+
+const BODY_MODE_CLASSES = ["mode-free", "mode-premium"];
+const BODY_FREE_THEME_CLASSES = ["color-1", "color-2", "color-3", "color-4", "color-5"];
+const BODY_PREMIUM_THEME_CLASSES = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"];
+const BODY_STYLE_CLASSES = ["style-arch", "style-flat", "style-spot"];
+const BODY_PAPER_CLASSES = ["paper-1", "paper-2", "paper-3"];
+
+const UI_STATE = {
+  plan: "free",
+  theme: "color-1",
+  premiumTheme: "p1",
+  style: "arch",
+  paper: "paper-1"
+};
+
+function removeBodyClasses_(classes){
+  classes.forEach(c => document.body.classList.remove(c));
+}
+
+function setBodyClassOneOf_(classes, target){
+  removeBodyClasses_(classes);
+  if(target) document.body.classList.add(target);
+}
+
+function setActiveAmong_(elements, activeEl){
+  (elements || []).forEach(el => {
+    if(el === activeEl) el.classList.add("active");
+    else el.classList.remove("active");
+  });
+}
+
+function syncPlanUI_(){
+  const freeBtn = qs("btnPlanFree");
+  const premBtn = qs("btnPlanPremium");
+  const freeControls = qs("free-controls");
+  const premiumControls = qs("premium-controls");
+  const badge = qs("premiumBadge");
+
+  setBodyClassOneOf_(BODY_MODE_CLASSES, UI_STATE.plan === "premium" ? "mode-premium" : "mode-free");
+
+  if(UI_STATE.plan === "premium"){
+    if(freeControls) freeControls.style.display = "none";
+    if(premiumControls) premiumControls.style.display = "";
+    if(badge) badge.style.display = "";
+    if(freeBtn) freeBtn.classList.remove("active");
+    if(premBtn) premBtn.classList.add("active");
+  }else{
+    if(premiumControls) premiumControls.style.display = "none";
+    if(freeControls) freeControls.style.display = "";
+    if(badge) badge.style.display = "none";
+    if(premBtn) premBtn.classList.remove("active");
+    if(freeBtn) freeBtn.classList.add("active");
+  }
+
+  syncThemeUI_();
+  syncStyleUI_();
+  syncPaperUI_();
+}
+
+function syncThemeUI_(){
+  const freeDots = qsa("#freeDotsRow .dot");
+  const premiumDots = qsa("#premiumDotsRow .p-dot");
+
+  removeBodyClasses_(BODY_FREE_THEME_CLASSES);
+  removeBodyClasses_(BODY_PREMIUM_THEME_CLASSES);
+
+  if(UI_STATE.plan === "premium"){
+    document.body.classList.add(UI_STATE.premiumTheme || "p1");
+
+    premiumDots.forEach(btn => {
+      const expected = btn.getAttribute("aria-label");
+      if(expected === UI_STATE.premiumTheme){
+        btn.classList.add("active");
+      }else{
+        btn.classList.remove("active");
+      }
+    });
+
+    freeDots.forEach(btn => btn.classList.remove("active"));
+  }else{
+    document.body.classList.add(UI_STATE.theme || "color-1");
+
+    freeDots.forEach(btn => {
+      const map = {
+        "dot-1":"color-1",
+        "dot-2":"color-2",
+        "dot-3":"color-3",
+        "dot-4":"color-4",
+        "dot-5":"color-5"
+      };
+      const match = Object.keys(map).find(cls => btn.classList.contains(cls));
+      if(match && map[match] === UI_STATE.theme){
+        btn.classList.add("active");
+      }else{
+        btn.classList.remove("active");
+      }
+    });
+
+    premiumDots.forEach(btn => btn.classList.remove("active"));
+  }
+}
+
+function syncStyleUI_(){
+  removeBodyClasses_(BODY_STYLE_CLASSES);
+  document.body.classList.add(`style-${UI_STATE.style || "arch"}`);
+
+  const buttons = qsa("#styleRow .btn-neo");
+  buttons.forEach(btn => {
+    const t = text(btn.textContent);
+    const map = {
+      "正拱": "arch",
+      "平直": "flat",
+      "晨曦": "spot"
+    };
+    const v = map[t] || "";
+    if(v === UI_STATE.style) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
+}
+
+function syncPaperUI_(){
+  removeBodyClasses_(BODY_PAPER_CLASSES);
+  document.body.classList.add(UI_STATE.paper || "paper-1");
+
+  const buttons = qsa("#paperRow .btn-neo");
+  buttons.forEach(btn => {
+    const t = text(btn.textContent);
+    const map = {
+      "棉紙": "paper-1",
+      "象牙紙": "paper-2",
+      "霧灰": "paper-3"
+    };
+    const v = map[t] || "";
+    if(v === UI_STATE.paper) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
+}
+
+window.setPlan = function(plan, el){
+  UI_STATE.plan = (plan === "premium") ? "premium" : "free";
+  syncPlanUI_();
+  if(el){
+    const planBtns = [qs("btnPlanFree"), qs("btnPlanPremium")].filter(Boolean);
+    setActiveAmong_(planBtns, el);
+  }
+};
+
+window.setTheme = function(theme, el){
+  if(!theme) return;
+
+  if(/^color-\d+$/.test(theme)){
+    UI_STATE.plan = "free";
+    UI_STATE.theme = theme;
+  }else if(/^p\d+$/.test(theme)){
+    UI_STATE.plan = "premium";
+    UI_STATE.premiumTheme = theme;
+  }
+
+  syncPlanUI_();
+
+  if(el){
+    const groupSel = UI_STATE.plan === "premium" ? "#premiumDotsRow .p-dot" : "#freeDotsRow .dot";
+    setActiveAmong_(qsa(groupSel), el);
+  }
+};
+
+window.setStyle = function(style, el){
+  const v = text(style);
+  if(!["arch","flat","spot"].includes(v)) return;
+  UI_STATE.style = v;
+  syncStyleUI_();
+  if(el) setActiveAmong_(qsa("#styleRow .btn-neo"), el);
+};
+
+window.setPaper = function(paper, el){
+  const v = text(paper);
+  if(!["paper-1","paper-2","paper-3"].includes(v)) return;
+  UI_STATE.paper = v;
+  syncPaperUI_();
+  if(el) setActiveAmong_(qsa("#paperRow .btn-neo"), el);
+};
+
+function initSelectionState_(){
+  const body = document.body;
+  if(!body) return;
+
+  UI_STATE.plan = body.classList.contains("mode-premium") ? "premium" : "free";
+
+  const freeTheme = BODY_FREE_THEME_CLASSES.find(c => body.classList.contains(c));
+  if(freeTheme) UI_STATE.theme = freeTheme;
+
+  const premiumTheme = BODY_PREMIUM_THEME_CLASSES.find(c => body.classList.contains(c));
+  if(premiumTheme) UI_STATE.premiumTheme = premiumTheme;
+
+  const styleClass = BODY_STYLE_CLASSES.find(c => body.classList.contains(c));
+  if(styleClass) UI_STATE.style = styleClass.replace(/^style-/, "");
+
+  const paperClass = BODY_PAPER_CLASSES.find(c => body.classList.contains(c));
+  if(paperClass) UI_STATE.paper = paperClass;
+
+  syncPlanUI_();
 }
 
 function renderAvatar_(p){
@@ -620,17 +834,16 @@ function buildHubShareUrl_(){
   }
 }
 
-function renderBottomQr_(p){
+function tryRenderBottomQrOnce_(p){
   const sec = qs("bottomQrSection");
   const grid = qs("bottomQrGrid");
   const avatar = qs("bottomQrAvatar");
 
-  if(!sec || !grid || !avatar || !window.QRCode){
-    if(sec) sec.style.display = "none";
-    return;
-  }
+  if(!sec || !grid || !avatar) return false;
+  if(!window.QRCode) return false;
 
   grid.innerHTML = "";
+
   try{
     new QRCode(grid, {
       text: buildCleanShareUrl_(),
@@ -640,9 +853,9 @@ function renderBottomQr_(p){
       colorLight: "#ffffff",
       correctLevel: QRCode.CorrectLevel.H
     });
-  }catch(_){
-    sec.style.display = "none";
-    return;
+  }catch(err){
+    console.error("Bottom QR render failed:", err);
+    return false;
   }
 
   const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
@@ -654,6 +867,28 @@ function renderBottomQr_(p){
   }
 
   sec.style.display = "";
+  return true;
+}
+
+function renderBottomQr_(p){
+  const sec = qs("bottomQrSection");
+  if(!sec) return;
+
+  sec.style.display = "none";
+
+  let attempts = 0;
+  const maxAttempts = 12;
+
+  const tick = ()=>{
+    attempts++;
+    const ok = tryRenderBottomQrOnce_(p);
+    if(ok) return;
+    if(attempts < maxAttempts){
+      setTimeout(tick, 180);
+    }
+  };
+
+  tick();
 }
 
 function renderCard(row){
@@ -692,15 +927,13 @@ function renderCard(row){
   if(vt) vt.textContent = CONFIG.VERSION;
 }
 
-window.setPlan = function(){};
-window.setTheme = function(){};
-window.setStyle = function(){};
-window.setPaper = function(){};
 window.__getHubShareUrl = buildHubShareUrl_;
 
 (async function boot_(){
   try{
+    initSelectionState_();
     applySmartBalanceAll_();
+
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     const url = buildCardApiUrl_(id);
     const payload = await fetchJsonRobust_(url);
