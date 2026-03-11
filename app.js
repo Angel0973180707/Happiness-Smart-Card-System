@@ -1,6 +1,6 @@
 /* ================================  
  * Happiness Smart Card System  
- * app.js v523.5 (COMPLETE OVERWRITE)  
+ * app.js v523.2 (COMPLETE OVERWRITE)  
  *  
  * ✅ 修正選版區按鈕失靈  
  * ✅ 恢復照片牆  
@@ -17,7 +17,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",  
   DEFAULT_ID: "TW0001",  
   DEFAULT_TENANT: "angel",  
-  VERSION: "v523.5",  
+  VERSION: "v523.6",  
   FETCH_TIMEOUT_MS: 15000,  
   RETRY: 3,  
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"  
@@ -927,16 +927,8 @@ function renderCard(row){
   if(vt) vt.textContent = CONFIG.VERSION;  
 }  
   
-window.__getHubShareUrl = buildHubShareUrl_;  
-window.__getCardAvatarUrl = function(){
-  try{
-    if(!currentRow) return "";
-    const avatarRaw = pick(currentRow, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
-    return normalizeImageUrl_(avatarRaw);
-  }catch(e){
-    return "";
-  }
-};
+window.__getHubShareUrl = buildHubShareUrl_;
+window.__getCurrentAvatarSrc = function(){ var el = qs("u-img"); return el && el.getAttribute("src") ? el.getAttribute("src") : ""; };  
   
 (async function boot_(){  
   try{  
