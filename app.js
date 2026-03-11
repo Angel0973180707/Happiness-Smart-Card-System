@@ -1,12 +1,13 @@
 /* ================================
  * Happiness Smart Card System
- * app.js v523.0 (COMPLETE OVERWRITE)
+ * app.js v523.1 (COMPLETE OVERWRITE)
  *
+ * ✅ 恢復照片牆
+ * ✅ 恢復成品底部 QRcode
  * ✅ website -> 主網站區
  * ✅ video1~3 + social1~3 -> 影音／社群區
  * ✅ cta_text + cta_link -> CTA 區
- * ✅ 成品底部 QRcode
- * ✅ 門面文案智慧斷句
+ * ✅ 圖片容錯恢復
 ================================ */
 
 const CONFIG = {
@@ -14,7 +15,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v523.0",
+  VERSION: "v523.1",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -139,18 +140,36 @@ function pick(p, keys){
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
   if(!url) return "";
+
   if(url.includes("dropbox.com")){
     url = url.replace("dl=0","raw=1");
     if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
     return url;
   }
+
+  if(url.includes("drive.google.com") && url.includes("/file/d/")){
+    const m = url.match(/\/file\/d\/([^/]+)/i);
+    if(m && m[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m[1])}`;
+  }
+
   return url;
 }
 
 function buildImgCandidates_(raw){
   const s = text(raw);
   if(!s) return [];
-  return [normalizeImageUrl_(s)].filter(Boolean);
+  const url = normalizeImageUrl_(s);
+  const list = [url];
+
+  if(url.includes("drive.google.com/uc?export=view&id=")){
+    const m = url.match(/id=([^&]+)/i);
+    if(m && m[1]){
+      list.push(`https://drive.google.com/thumbnail?id=${decodeURIComponent(m[1])}&sz=w1200`);
+      list.push(`https://drive.google.com/uc?export=download&id=${decodeURIComponent(m[1])}`);
+    }
+  }
+
+  return [...new Set(list.filter(Boolean))];
 }
 
 function setImgWithFallback_(imgEl, candidates){
@@ -455,18 +474,27 @@ function renderDocks_(p){
   renderCtaDock_(p);
 }
 
+function collectPhotos_(p){
+  const keys = [
+    "photo1_img_fast","photo2_img_fast","photo3_img_fast","photo4_img_fast","photo5_img_fast",
+    "photo1_img","photo2_img","photo3_img","photo4_img","photo5_img",
+    "photo1_url","photo2_url","photo3_url","photo4_url","photo5_url"
+  ];
+  const out = [];
+  keys.forEach(k=>{
+    const u = normalizeImageUrl_(pick(p, [k]));
+    if(u && !out.includes(u)) out.push(u);
+  });
+  return out;
+}
+
 function renderPhotoWall_(p){
   const wall = qs("photoWall");
   const grid = qs("photoGrid");
   if(!wall || !grid) return;
 
   grid.innerHTML = "";
-
-  const photos = [];
-  ["photo1_img_fast","photo2_img_fast","photo3_img_fast","photo4_img_fast","photo5_img_fast","photo1_img","photo2_img","photo3_img","photo4_img","photo5_img"].forEach(k=>{
-    const u = normalizeImageUrl_(pick(p, [k]));
-    if(u && !photos.includes(u)) photos.push(u);
-  });
+  const photos = collectPhotos_(p);
 
   if(!photos.length){
     wall.style.display = "none";
@@ -534,8 +562,8 @@ function applySmartBalanceToEl_(el){
 
   if(el.dataset.balanceType === "qr-title" || el.dataset.balanceType === "product-qr-title"){
     if(raw.includes("｜")){
-      const [a,b] = raw.split("｜");
-      el.innerHTML = `<span class="balance-line">${escapeHtml_(a)}｜</span><span class="balance-line">${escapeHtml_(b)}</span>`;
+      const arr = raw.split("｜");
+      el.innerHTML = `<span class="balance-line">${escapeHtml_(arr[0])}｜</span><span class="balance-line">${escapeHtml_(arr.slice(1).join("｜"))}</span>`;
       return;
     }
   }
@@ -580,6 +608,18 @@ function buildCleanShareUrl_(){
   }
 }
 
+function buildHubShareUrl_(){
+  try{
+    const u = new URL(CONFIG.HUB_URL);
+    const id = normalizeId_(getIdFromUrl_());
+    if(id) u.searchParams.set("ref", id);
+    return u.toString();
+  }catch{
+    const id = normalizeId_(getIdFromUrl_());
+    return CONFIG.HUB_URL + (id ? ("?ref=" + encodeURIComponent(id)) : "");
+  }
+}
+
 function renderBottomQr_(p){
   const sec = qs("bottomQrSection");
   const grid = qs("bottomQrGrid");
@@ -590,12 +630,10 @@ function renderBottomQr_(p){
     return;
   }
 
-  const shareUrl = buildCleanShareUrl_();
   grid.innerHTML = "";
-
   try{
     new QRCode(grid, {
-      text: shareUrl,
+      text: buildCleanShareUrl_(),
       width: 136,
       height: 136,
       colorDark: "#433227",
@@ -609,7 +647,6 @@ function renderBottomQr_(p){
 
   const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
   const avatarUrl = normalizeImageUrl_(avatarRaw);
-
   if(avatarUrl){
     setImgWithFallback_(avatar, buildImgCandidates_(avatarUrl));
   }else{
@@ -623,18 +660,24 @@ function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
 
-  qs("u-name").textContent = text(pick(p, ["name","姓名"])) || "未命名";
-  qs("u-unit").textContent = text(pick(p, ["unit","單位","公司"])) || "";
-  qs("u-title").textContent = text(pick(p, ["title","職稱"])) || "";
+  const nameEl = qs("u-name");
+  const unitEl = qs("u-unit");
+  const titleEl = qs("u-title");
+  const sloganEl = qs("u-slogan");
 
-  const slogan = qs("u-slogan");
-  const sloganText = text(pick(p, ["slogan","一句話","簡介"]));
-  if(sloganText){
-    slogan.style.display = "";
-    slogan.textContent = sloganText;
-  }else{
-    slogan.style.display = "none";
-    slogan.textContent = "";
+  if(nameEl) nameEl.textContent = text(pick(p, ["name","姓名"])) || "未命名";
+  if(unitEl) unitEl.textContent = text(pick(p, ["unit","單位","公司"])) || "";
+  if(titleEl) titleEl.textContent = text(pick(p, ["title","職稱"])) || "";
+
+  const slogan = text(pick(p, ["slogan","一句話","簡介"]));
+  if(sloganEl){
+    if(slogan){
+      sloganEl.style.display = "";
+      sloganEl.textContent = slogan;
+    }else{
+      sloganEl.style.display = "none";
+      sloganEl.textContent = "";
+    }
   }
 
   renderAvatar_(p);
@@ -653,6 +696,7 @@ window.setPlan = function(){};
 window.setTheme = function(){};
 window.setStyle = function(){};
 window.setPaper = function(){};
+window.__getHubShareUrl = buildHubShareUrl_;
 
 (async function boot_(){
   try{
@@ -664,8 +708,11 @@ window.setPaper = function(){};
     renderCard(row);
   }catch(err){
     console.error(err);
-    qs("u-name").textContent = "資料載入失敗";
-    qs("u-unit").textContent = "請稍後再試";
-    qs("u-title").textContent = "";
+    const nameEl = qs("u-name");
+    const unitEl = qs("u-unit");
+    const titleEl = qs("u-title");
+    if(nameEl) nameEl.textContent = "資料載入失敗";
+    if(unitEl) unitEl.textContent = "請稍後再試";
+    if(titleEl) titleEl.textContent = "";
   }
 })();
