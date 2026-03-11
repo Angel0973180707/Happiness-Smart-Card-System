@@ -10,7 +10,7 @@
  * - HTML / version.json 走網路優先
  * ========================================= */
 
-const SW_VERSION = "v522.7";
+const SW_VERSION = "v711.0";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
 const CORE_ASSETS = [
