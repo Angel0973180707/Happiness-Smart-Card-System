@@ -2,23 +2,12 @@
  * Happiness Smart Card System
  * app.js v523.0 (COMPLETE OVERWRITE)
  *
- * Align to GAS v522.2 payload:
- * ✅ { ok:true, v:"522.2", item:{...} }
- *
- * Rules:
- * ✅ HARD LOCK: status !== "active" => lock
- * ✅ Expiry key align: expires_at / expired_at / expire_at (legacy)
- * ✅ Keep ALL behaviors: plan/theme/style/paper, share, docks, photowall, hidden admin panel
- *
- * v523.0 changes:
- * ✅ A) version update to v523.0
- * ✅ B) add smart balance / intelligent line-break
- * ✅ C) website -> primaryLinkDock
- * ✅ D) video1~3 + social1~3 -> mediaDock 6-grid
- * ✅ E) cta_text + cta_link -> ctaDock
- * ✅ F) product bottom QR with avatar center
- * ✅ G) logo display -> rounded square
- * ================================ */
+ * ✅ website -> 主網站區
+ * ✅ video1~3 + social1~3 -> 影音／社群區
+ * ✅ cta_text + cta_link -> CTA 區
+ * ✅ 成品底部 QRcode
+ * ✅ 門面文案智慧斷句
+================================ */
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
@@ -33,87 +22,10 @@ const CONFIG = {
 
 let currentRow = null;
 
-/* ---------- DOM ---------- */
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 function text(v){ return (v==null ? "" : String(v)).trim(); }
 
-/* ---------- URL Params ---------- */
-function getSearchParam_(key){
-  try{
-    const sp = new URLSearchParams(location.search || "");
-    return sp.get(key) || "";
-  }catch{
-    return "";
-  }
-}
-
-function getTenantFromUrl_(){
-  return text(getSearchParam_("tenant")) || CONFIG.DEFAULT_TENANT;
-}
-
-function getTokenFromUrl_(){
-  return text(getSearchParam_("token"));
-}
-
-function getSigFromUrl_(){
-  return text(getSearchParam_("sig"));
-}
-
-/* ---------- Mode detect ---------- */
-function isCleanMode_(){
-  try{
-    const sp = new URLSearchParams(location.search || "");
-    return (sp.get("view") === "1") || (sp.get("clean") === "1");
-  }catch{
-    return false;
-  }
-}
-const __IS_CLEAN = isCleanMode_();
-
-/* ---------- Text / Key normalize ---------- */
-function cleanKey_(k){
-  return String(k ?? "")
-    .replace(/[\uFEFF\u200B-\u200D\u2060\u202A-\u202E]/g, "")
-    .replace(/\u3000/g, " ")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/\n+/g, "")
-    .replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "")
-    .trim();
-}
-
-function buildNormalizedPayload_(obj){
-  if(!obj || typeof obj !== "object") return obj;
-  const out = { __raw: obj };
-  const lower = Object.create(null);
-  for(const k of Object.keys(obj)){
-    const nk = cleanKey_(k);
-    if(!nk) continue;
-    const v = obj[k];
-    if(out[nk]==null || text(out[nk])==="") out[nk]=v;
-    lower[nk.toLowerCase()] = v;
-  }
-  out.__lower = lower;
-  return out;
-}
-
-function pick(p, keys){
-  if(!p) return "";
-  const lower = p.__lower || null;
-  for(const k of keys){
-    const kk = cleanKey_(k);
-    const v1 = p[kk];
-    if(v1!=null && text(v1)!=="") return v1;
-    if(lower){
-      const v2 = lower[String(kk).toLowerCase()];
-      if(v2!=null && text(v2)!=="") return v2;
-    }
-  }
-  return "";
-}
-
-/* ---------- ID ---------- */
 function normalizeId_(s){
   const v = text(s).toUpperCase();
   if(!v) return "";
@@ -128,25 +40,22 @@ function normalizeId_(s){
 
 function getIdFromUrl_(){
   try{
-    const sp = new URLSearchParams(location.search);
-    return sp.get("id") || sp.get("cid") || "";
+    const sp = new URLSearchParams(location.search || "");
+    return sp.get("id") || "";
   }catch{
     return "";
   }
 }
 
-function getCurrentCardId_(){
-  const urlId = normalizeId_(getIdFromUrl_());
-  if(urlId) return urlId;
-  const p = currentRow || null;
-  if(p){
-    const pid = normalizeId_(pick(p, ["id","card_id","cid","序號","編號"]));
-    if(pid) return pid;
-  }
-  return "";
+function normalizeUrl_(s){
+  let v = String(s||"").trim();
+  if(!v) return "";
+  if(/^https?:\/\//i.test(v)) return v;
+  if(/^www\./i.test(v)) return "https://" + v;
+  if(/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(v)) return "https://" + v;
+  return v;
 }
 
-/* ---------- Fetch (robust) ---------- */
 function safeJsonParse_(rawText){
   let s = String(rawText||"").trim();
   if(!s) return null;
@@ -186,77 +95,61 @@ async function fetchJsonRobust_(url){
   throw last || new Error("Fetch failed");
 }
 
-/* ---------- URL / Images ---------- */
-function isUrl_(s){ return /^https?:\/\//i.test(String(s||"").trim()); }
-
-function normalizeUrl_(s){
-  let v = String(s||"").trim();
-  if(!v) return "";
-  if(v.startsWith("http://")) v = "https://" + v.slice(7);
-  if(isUrl_(v)) return v;
-  if(/^www\./i.test(v)) return "https://" + v;
-  return v;
+function buildCardApiUrl_(id){
+  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
+  const u = new URL(CONFIG.GAS);
+  u.searchParams.set("action", "card");
+  u.searchParams.set("id", cid);
+  u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
+  u.searchParams.set("ts", String(Date.now()));
+  u.searchParams.set("v", CONFIG.VERSION);
+  return u.toString();
 }
 
-function normalizeLink_(s){
-  let v = String(s||"").trim();
-  if(!v) return "";
-  v = v.replace(/^[\s"“”'‘’]+|[\s"“”'‘’]+$/g, "").trim();
-  if(!v) return "";
-  if(v.startsWith("//")) v = "https:" + v;
-  if(v.startsWith("http://")) v = "https://" + v.slice(7);
-  if(/^https?:\/\//i.test(v)) return v;
-  if(/^www\./i.test(v)) return "https://" + v;
-  const noSpace = !/\s/.test(v);
-  const hasDot = /\./.test(v);
-  if(noSpace && hasDot) return "https://" + v;
-  return v;
+function buildNormalizedPayload_(obj){
+  if(!obj || typeof obj !== "object") return obj;
+  const out = { __raw: obj };
+  const lower = Object.create(null);
+  for(const k of Object.keys(obj)){
+    const nk = String(k || "").trim();
+    if(!nk) continue;
+    const v = obj[k];
+    if(out[nk]==null || text(out[nk])==="") out[nk]=v;
+    lower[nk.toLowerCase()] = v;
+  }
+  out.__lower = lower;
+  return out;
 }
 
-function driveIdFromUrl_(u){
-  const s = String(u||"").trim();
-  if(!s) return "";
-  const mFile = s.match(/drive\.google\.com\/file\/d\/([^/]+)/i);
-  if(mFile && mFile[1]) return mFile[1];
-  const mUc = s.match(/drive\.google\.com\/uc\?[^#]*id=([^&]+)/i);
-  if(mUc && mUc[1]) return decodeURIComponent(mUc[1]);
-  const mThumb = s.match(/thumbnail\?id=([^&]+)/i);
-  if(mThumb && mThumb[1]) return decodeURIComponent(mThumb[1]);
-  const mOpen = s.match(/drive\.google\.com\/open\?[^#]*id=([^&]+)/i);
-  if(mOpen && mOpen[1]) return decodeURIComponent(mOpen[1]);
-  const mId = s.match(/(?:\?|&)id=([^&]+)/i);
-  if(mId && mId[1]) return decodeURIComponent(mId[1]);
+function pick(p, keys){
+  if(!p) return "";
+  const lower = p.__lower || null;
+  for(const k of keys){
+    const kk = String(k || "").trim();
+    const v1 = p[kk];
+    if(v1!=null && text(v1)!=="") return v1;
+    if(lower){
+      const v2 = lower[String(kk).toLowerCase()];
+      if(v2!=null && text(v2)!=="") return v2;
+    }
+  }
   return "";
 }
 
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
   if(!url) return "";
-
   if(url.includes("dropbox.com")){
     url = url.replace("dl=0","raw=1");
     if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
     return url;
   }
-
-  const did = driveIdFromUrl_(url);
-  if(did) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(did)}`;
-
   return url;
 }
 
 function buildImgCandidates_(raw){
   const s = text(raw);
   if(!s) return [];
-  const did = driveIdFromUrl_(s);
-  if(did){
-    return [
-      `https://drive.google.com/uc?export=view&id=${encodeURIComponent(did)}`,
-      `https://drive.google.com/thumbnail?id=${encodeURIComponent(did)}&sz=w1200`,
-      `https://drive.google.com/uc?export=download&id=${encodeURIComponent(did)}`,
-      normalizeUrl_(s)
-    ].filter(Boolean);
-  }
   return [normalizeImageUrl_(s)].filter(Boolean);
 }
 
@@ -277,416 +170,6 @@ function setImgWithFallback_(imgEl, candidates){
   imgEl.src = list[0] + (list[0].includes("?") ? "&" : "?") + "t=" + Date.now() + "&v=" + encodeURIComponent(CONFIG.VERSION);
 }
 
-/* ---------- Canonical key for image de-dup ---------- */
-function canonicalImageKey_(rawUrl){
-  const u0 = normalizeImageUrl_(rawUrl);
-  if(!u0) return "";
-
-  const did = driveIdFromUrl_(u0);
-  if(did) return "drive:" + did;
-
-  try{
-    const u = new URL(u0);
-    ["t","ts","v","ver","cache","cb","_","utm_source","utm_medium","utm_campaign","utm_term","utm_content"].forEach(k=>{
-      if(u.searchParams.has(k)) u.searchParams.delete(k);
-    });
-    if(u.host.includes("dropbox.com")){
-      u.searchParams.set("raw","1");
-      u.searchParams.delete("dl");
-    }
-    let path = u.pathname.replace(/\/+$/,"");
-    return (u.origin + path + (u.search ? u.search : "")).toLowerCase();
-  }catch{
-    return u0.toLowerCase().replace(/[?#].*$/,"");
-  }
-}
-
-/* ---------- UI helpers ---------- */
-function setActiveInGroup_(group, el){
-  if(!group) return;
-  qsa(`[data-group="${group}"]`).forEach(x=>x.classList.remove("active"));
-  if(el) el.classList.add("active");
-}
-
-/* ---------- State ---------- */
-const STATE = {
-  mode: "free",
-  color: "color-1",
-  style: "arch",
-  paper: "paper-1",
-  premium: "p1"
-};
-
-function applyModeUi_(){
-  const freeBlock = qs("free-controls");
-  const premBlock = qs("premium-controls");
-  const banner = qs("banner");
-  const paperOverlay = qs("paperOverlay");
-  const premBadge = qs("premiumBadge");
-
-  if(STATE.mode === "free"){
-    if(freeBlock) freeBlock.style.display = "";
-    if(premBlock) premBlock.style.display = "none";
-    if(banner) banner.style.display = "";
-    if(paperOverlay) paperOverlay.style.display = "";
-    if(premBadge) premBadge.style.display = "none";
-  }else{
-    if(freeBlock) freeBlock.style.display = "none";
-    if(premBlock) premBlock.style.display = "";
-    if(banner) banner.style.display = "none";
-    if(paperOverlay) paperOverlay.style.display = "none";
-    if(premBadge) premBadge.style.display = "";
-  }
-}
-
-function applyBodyClasses_(){
-  const b = document.body;
-
-  [
-    "mode-free","mode-premium",
-    "color-1","color-2","color-3","color-4","color-5",
-    "style-arch","style-flat","style-spot",
-    "paper-1","paper-2","paper-3",
-    "p1","p2","p3","p4","p5","p6","p7"
-  ].forEach(c=>b.classList.remove(c));
-
-  if(STATE.mode === "free"){
-    b.classList.add("mode-free", STATE.color, "style-" + STATE.style, STATE.paper);
-  }else{
-    b.classList.add("mode-premium", STATE.premium);
-  }
-
-  applyModeUi_();
-}
-
-/* ---------- payload -> STATE sync ---------- */
-function normalizePlan_(raw){
-  const v = text(raw).toLowerCase();
-  if(!v) return "";
-  if(v.includes("premium") || v.includes("pro") || v.includes("精品")) return "premium";
-  if(v.includes("free") || v.includes("basic") || v.includes("自由")) return "free";
-  return v;
-}
-
-function normalizeColorClass_(raw){
-  const v = text(raw).toLowerCase().replace(/_/g,"-");
-  if(!v) return "";
-  if(/^color-\d$/.test(v)) return v;
-  if(/^c[1-5]$/.test(v)) return "color-" + v.slice(1);
-  if(/^[1-5]$/.test(v)) return "color-" + v;
-  if(v.includes("粉")) return "color-1";
-  if(v.includes("藍")) return "color-2";
-  if(v.includes("橘")) return "color-3";
-  if(v.includes("紫")) return "color-4";
-  if(v.includes("綠")) return "color-5";
-  return "";
-}
-
-function normalizeStyle_(raw){
-  let v = text(raw).toLowerCase().replace(/_/g,"-");
-  if(!v) return "";
-  v = v.replace(/^style-/, "");
-  if(v.includes("arch") || v.includes("拱") || v.includes("s1")) return "arch";
-  if(v.includes("flat") || v.includes("直") || v.includes("s2")) return "flat";
-  if(v.includes("spot") || v.includes("晨") || v.includes("s3")) return "spot";
-  return "";
-}
-
-function normalizePaper_(raw){
-  let v = text(raw).toLowerCase().replace(/_/g,"-");
-  if(!v) return "";
-  if(v === "paper-1" || v.includes("f1") || v.includes("棉")) return "paper-1";
-  if(v === "paper-2" || v.includes("f2") || v.includes("顆") || v.includes("象牙")) return "paper-2";
-  if(v === "paper-3" || v.includes("f3") || v.includes("亞") || v.includes("霧灰")) return "paper-3";
-  if(/^[123]$/.test(v)) return "paper-" + v;
-  return "";
-}
-
-function normalizePremium_(raw){
-  const v = text(raw).toLowerCase();
-  if(!v) return "";
-  if(/^p[1-7]$/.test(v)) return v;
-  if(/^[1-7]$/.test(v)) return "p" + v;
-  if(v.includes("胭")) return "p1";
-  if(v.includes("酒")) return "p2";
-  if(v.includes("深藍")) return "p3";
-  if(v.includes("霧紫")) return "p4";
-  if(v.includes("藍灰")) return "p5";
-  if(v.includes("金")) return "p6";
-  if(v.includes("褐")) return "p7";
-  return "";
-}
-
-function syncStateFromPayload_(p){
-  const planRaw = pick(p, ["plan","方案","plan_name","mode","方案別"]);
-  const plan = normalizePlan_(planRaw);
-
-  const colorRaw = pick(p, ["color","顏色","theme","free_color","color_id"]);
-  const styleRaw = pick(p, ["style","版型","card_style","banner_style","style_id"]);
-  const paperRaw = pick(p, ["paper","紙感","texture","paper_id"]);
-  const premRaw  = pick(p, ["premium_color","premium","premium_theme","p_color","精品底色","premiumColor"]);
-
-  const c  = normalizeColorClass_(colorRaw);
-  const s  = normalizeStyle_(styleRaw);
-  const pa = normalizePaper_(paperRaw);
-  const pr = normalizePremium_(premRaw);
-
-  if(plan === "premium" || pr){
-    STATE.mode = "premium";
-    if(pr) STATE.premium = pr;
-  }else if(plan === "free"){
-    STATE.mode = "free";
-  }
-
-  if(c)  STATE.color = c;
-  if(s)  STATE.style = s;
-  if(pa) STATE.paper = pa;
-  if(pr) STATE.premium = pr;
-
-  if(!STATE.color) STATE.color = "color-1";
-  if(!STATE.style) STATE.style = "arch";
-  if(!STATE.paper) STATE.paper = "paper-1";
-  if(!STATE.premium) STATE.premium = "p1";
-}
-
-/* ---------- Active buttons sync ---------- */
-function matchThemeEl_(el, themeValue){
-  if(!el) return false;
-
-  const dv = text(el.getAttribute("data-value"));
-  if(dv && dv === themeValue) return true;
-
-  for(let i=1;i<=5;i++){
-    if(el.classList.contains("dot-" + i) && themeValue === ("color-" + i)) return true;
-  }
-  for(let i=1;i<=7;i++){
-    if(el.classList.contains("p" + i) && themeValue === ("p" + i)) return true;
-  }
-
-  const al = text(el.getAttribute("aria-label")).toLowerCase();
-  if(al){
-    if(themeValue.startsWith("color-")){
-      const n = themeValue.split("-")[1];
-      if(n==="1" && al.includes("粉")) return true;
-      if(n==="2" && al.includes("藍")) return true;
-      if(n==="3" && al.includes("橘")) return true;
-      if(n==="4" && al.includes("紫")) return true;
-      if(n==="5" && al.includes("綠")) return true;
-    }
-    if(themeValue.startsWith("p")){
-      if(al === themeValue) return true;
-    }
-  }
-
-  return false;
-}
-
-function matchStyleEl_(el, styleValue){
-  const dv = text(el.getAttribute("data-value"));
-  if(dv && dv === styleValue) return true;
-  const t = text(el.textContent).toLowerCase();
-  if(styleValue==="arch" && (t.includes("正拱") || t.includes("拱") || t.includes("arch"))) return true;
-  if(styleValue==="flat" && (t.includes("平直") || t.includes("直") || t.includes("flat"))) return true;
-  if(styleValue==="spot" && (t.includes("晨曦") || t.includes("spot"))) return true;
-  return false;
-}
-
-function matchPaperEl_(el, paperValue){
-  const dv = text(el.getAttribute("data-value"));
-  if(dv && dv === paperValue) return true;
-  const t = text(el.textContent).toLowerCase();
-  if(paperValue==="paper-1" && (t.includes("棉") || t.includes("paper-1") || t.includes("f1"))) return true;
-  if(paperValue==="paper-2" && (t.includes("象牙") || t.includes("顆") || t.includes("paper-2") || t.includes("f2"))) return true;
-  if(paperValue==="paper-3" && (t.includes("霧灰") || t.includes("亞麻") || t.includes("paper-3") || t.includes("f3"))) return true;
-  return false;
-}
-
-function syncActiveButtonsFromState_(){
-  const btnFree = qs("btnPlanFree");
-  const btnPrem = qs("btnPlanPremium");
-  if(btnFree && btnPrem){
-    btnFree.classList.toggle("active", STATE.mode === "free");
-    btnPrem.classList.toggle("active", STATE.mode === "premium");
-    btnFree.classList.toggle("breathe", STATE.mode === "free");
-    btnPrem.classList.toggle("breathe", STATE.mode === "premium");
-  }
-
-  const themeValue = (STATE.mode === "premium") ? STATE.premium : STATE.color;
-
-  qsa(`[data-group="theme"]`).forEach(el=>{
-    el.classList.toggle("active", matchThemeEl_(el, themeValue));
-  });
-
-  qsa(`[data-group="style"]`).forEach(el=>{
-    el.classList.toggle("active", matchStyleEl_(el, STATE.style));
-  });
-
-  qsa(`[data-group="paper"]`).forEach(el=>{
-    el.classList.toggle("active", matchPaperEl_(el, STATE.paper));
-  });
-}
-
-/* ---------- Share URL builders ---------- */
-function buildCleanShareUrl_(){
-  try{
-    const u = new URL(location.href);
-    if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
-    u.searchParams.delete("clean");
-    u.searchParams.delete("admin");
-    return u.toString();
-  }catch{
-    const url = location.href;
-    if(url.includes("view=1")) return url;
-    return url + (url.includes("?") ? "&" : "?") + "view=1";
-  }
-}
-
-function buildHubShareUrl_(){
-  const base = normalizeLink_(CONFIG.HUB_URL) || CONFIG.HUB_URL;
-  const cardId = getCurrentCardId_();
-
-  try{
-    const u = new URL(base);
-    if(cardId) u.searchParams.set("ref", cardId);
-    return u.toString();
-  }catch{
-    if(!cardId) return base;
-    return base + (base.includes("?") ? "&" : "?") + "ref=" + encodeURIComponent(cardId);
-  }
-}
-
-/* ---------- LINE OA linkage ---------- */
-function buildLineOaUrlWithState_(){
-  const base = normalizeLink_(CONFIG.CUSTOMER_SERVICE_URL);
-  if(!base) return "";
-  if(__IS_CLEAN) return base;
-
-  const plan = (STATE.mode === "premium") ? "premium" : "free";
-
-  function colorToC_(c){
-    const m = String(c||"").match(/color-(\d)/i);
-    return m ? ("c" + m[1]) : (c || "c1");
-  }
-  function styleToS_(s){
-    if(s === "arch") return "s1";
-    if(s === "flat") return "s2";
-    if(s === "spot") return "s3";
-    return "s1";
-  }
-  function paperToF_(p){
-    if(p === "paper-1") return "f1";
-    if(p === "paper-2") return "f2";
-    if(p === "paper-3") return "f3";
-    return "f1";
-  }
-
-  try{
-    const u = new URL(base);
-    u.searchParams.set("from", "facade");
-    u.searchParams.set("plan", plan);
-
-    const id = getCurrentCardId_();
-    if(id) u.searchParams.set("id", id);
-
-    if(plan === "premium"){
-      u.searchParams.set("premium", STATE.premium || "p1");
-    }else{
-      u.searchParams.set("color", colorToC_(STATE.color || "color-1"));
-      u.searchParams.set("style", styleToS_(STATE.style || "arch"));
-      u.searchParams.set("paper", paperToF_(STATE.paper || "paper-1"));
-    }
-
-    return u.toString();
-  }catch{
-    const q = [];
-    q.push("from=facade");
-    q.push("plan=" + encodeURIComponent(plan));
-    const id = getCurrentCardId_();
-    if(id) q.push("id=" + encodeURIComponent(id));
-    if(plan === "premium"){
-      q.push("premium=" + encodeURIComponent(STATE.premium || "p1"));
-    }else{
-      q.push("color=" + encodeURIComponent(colorToC_(STATE.color || "color-1")));
-      q.push("style=" + encodeURIComponent(styleToS_(STATE.style || "arch")));
-      q.push("paper=" + encodeURIComponent(paperToF_(STATE.paper || "paper-1")));
-    }
-    return base + (base.includes("?") ? "&" : "?") + q.join("&");
-  }
-}
-
-function openLineOaWithState_(){
-  const u = buildLineOaUrlWithState_();
-  if(!u){
-    alert("⚠️ LINE 官方帳號連結未設定");
-    return;
-  }
-  try{ window.open(u, "_blank"); }catch(e){ location.href = u; }
-}
-
-function bindLineOaOverride_(){
-  ["btnLineOaCta","btnLineOaCta2"].forEach(id=>{
-    const b = qs(id);
-    if(!b) return;
-    b.addEventListener("click", (e)=>{
-      try{
-        e.preventDefault();
-        e.stopPropagation();
-        if(typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
-      }catch{}
-      openLineOaWithState_();
-    }, { capture:true });
-  });
-}
-
-/* ---------- Exposed APIs ---------- */
-function setPlan(mode, el){
-  STATE.mode = (mode === "premium") ? "premium" : "free";
-  setActiveInGroup_("plan", el);
-  applyBodyClasses_();
-  syncActiveButtonsFromState_();
-}
-
-function setTheme(theme, el){
-  if(String(theme||"").startsWith("p")){
-    STATE.mode = "premium";
-    STATE.premium = theme;
-    setActiveInGroup_("theme", el);
-  }else{
-    STATE.mode = "free";
-    STATE.color = theme;
-    setActiveInGroup_("theme", el);
-  }
-  applyBodyClasses_();
-  syncActiveButtonsFromState_();
-}
-
-function setStyle(style, el){
-  STATE.mode = "free";
-  STATE.style = style;
-  setActiveInGroup_("style", el);
-  applyBodyClasses_();
-  syncActiveButtonsFromState_();
-}
-
-function setPaper(paper, el){
-  STATE.mode = "free";
-  STATE.paper = paper;
-  setActiveInGroup_("paper", el);
-  applyBodyClasses_();
-  syncActiveButtonsFromState_();
-}
-
-function goFillForm(){
-  openLineOaWithState_();
-}
-
-/* ---------- Render helpers ---------- */
-function safeSetText_(id, val){
-  const el = qs(id);
-  if(!el) return;
-  el.textContent = text(val);
-}
-
 function escapeHtml_(s){
   return String(s||"")
     .replace(/&/g,"&amp;")
@@ -697,7 +180,7 @@ function escapeHtml_(s){
 }
 
 function openUrl_(url){
-  const u = normalizeLink_(url);
+  const u = normalizeUrl_(url);
   if(!u) return;
   window.open(u, "_blank");
 }
@@ -709,174 +192,38 @@ function openMapByAddress_(addr){
   window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
 }
 
-function classifyDockClass_(url){
-  const u = String(url||"").toLowerCase();
-  if(u.includes("youtube.com") || u.includes("youtu.be")) return "dock-yt";
-  if(u.includes("facebook.com") || u.includes("fb.com")) return "dock-fb";
-  if(u.includes("instagram.com")) return "dock-ig";
-  if(u.includes("line.me") || u.includes("lin.ee")) return "dock-line";
-  if(u.includes("google.com/maps") || u.includes("maps.app")) return "dock-map";
-  return "dock-web";
+function buildDockBtn_({label, icon, onClick, extraClass}){
+  const b = document.createElement("button");
+  b.className = "dock-btn" + (extraClass ? (" " + extraClass) : "");
+  b.type = "button";
+  b.innerHTML = `<i class="${icon}"></i><span>${escapeHtml_(label)}</span>`;
+  b.addEventListener("click", onClick);
+  return b;
 }
 
-/* ---------- LINE helpers ---------- */
-function looksLikeLineUrl_(v){
-  const s = String(v||"").toLowerCase();
-  return s.includes("lin.ee") || s.includes("line.me") || s.startsWith("line://");
+function applyWideRule_(container){
+  if(!container) return;
+  const btns = Array.from(container.querySelectorAll(".dock-btn"));
+  btns.forEach(b=>b.classList.remove("wide"));
+  if(btns.length % 2 === 1){
+    btns[btns.length - 1].classList.add("wide");
+  }
 }
 
-function normalizeLineUrl_(raw){
-  const v = text(raw);
-  if(!v) return "";
-  if(looksLikeLineUrl_(v)) return normalizeLink_(v);
-
-  let id = v;
-  id = id.replace(/\s+/g,"").replace(/^line[:：]*/i,"");
-
-  if(isUrl_(id) || /^www\./i.test(id)) return normalizeLink_(id);
-
-  if(id.startsWith("@")){
-    const handle = encodeURIComponent(id);
-    return `https://line.me/R/ti/p/${handle}`;
-  }
-
-  if(/^[a-z0-9._-]{3,}$/i.test(id)){
-    return `https://line.me/R/ti/p/@${encodeURIComponent(id)}`;
-  }
-
-  return normalizeLink_(v);
-}
-
-function scanAnyLineFromPayload_(p){
-  if(!p || !p.__raw) return "";
-  const raw = p.__raw;
-
-  for(const k of Object.keys(raw)){
-    const v = raw[k];
-    if(v==null) continue;
-    const s = String(v);
-    if(looksLikeLineUrl_(s)) return normalizeLink_(s);
-  }
-
-  for(const k of Object.keys(raw)){
-    const nk = cleanKey_(k).toLowerCase();
-    if(!nk.includes("line")) continue;
-    const v = raw[k];
-    const vv = text(v);
-    if(!vv) continue;
-    return normalizeLineUrl_(vv);
-  }
-
-  return "";
-}
-
-/* ---------- Smart balance / intelligent line-break ---------- */
-function clearBalancedEl_(el){
-  if(!el) return;
-  if(el.dataset.rawText == null){
-    el.dataset.rawText = text(el.textContent);
-  }
-  el.textContent = el.dataset.rawText || "";
-}
-
-function renderBalancedLines_(el, lines){
-  if(!el) return;
-  el.innerHTML = "";
-  lines.filter(Boolean).forEach(line=>{
-    const span = document.createElement("span");
-    span.className = "balance-line";
-    span.textContent = line;
-    el.appendChild(span);
-  });
-}
-
-function splitHeroCopy_(raw){
-  const s = text(raw);
-  if(!s) return [];
-  const parts = s.split("｜");
-  if(parts.length >= 2){
-    const first = parts.shift();
-    const rest = parts.join("｜");
-    if(rest.includes("打造")){
-      const idx = rest.indexOf("打造");
-      const left = rest.slice(0, idx).trim();
-      const right = rest.slice(idx).trim();
-      return [first.trim(), left, right];
-    }
-    return [first.trim(), rest.trim()];
-  }
-  if(s.includes("打造")){
-    const idx = s.indexOf("打造");
-    return [s.slice(0, idx).trim(), s.slice(idx).trim()];
-  }
-  return [s];
-}
-
-function splitQrTitle_(raw){
-  const s = text(raw);
-  if(!s) return [];
-  if(s.includes("｜")){
-    const [a,b] = s.split("｜");
-    return [a.trim() + "｜", b.trim()];
-  }
-  return [s];
-}
-
-function splitByDivider_(raw, divider){
-  const s = text(raw);
-  if(!s) return [];
-  if(s.includes(divider)){
-    const parts = s.split(divider).map(x=>x.trim()).filter(Boolean);
-    if(parts.length >= 2){
-      return [parts.slice(0, Math.ceil(parts.length/2)).join("・"), parts.slice(Math.ceil(parts.length/2)).join("・")];
-    }
-  }
-  return [s];
-}
-
-function applySmartBalanceToEl_(el){
-  if(!el) return;
-  clearBalancedEl_(el);
-  const raw = el.dataset.rawText || text(el.textContent);
-  const type = el.dataset.balanceType || "";
-  const isNarrow = window.innerWidth <= 560;
-
-  if(!raw) return;
-
-  if(!isNarrow){
-    el.textContent = raw;
+function renderAvatar_(p){
+  const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
+  const img = qs("u-img");
+  if(!img) return;
+  const u = normalizeImageUrl_(avatarRaw);
+  if(!u){
+    img.removeAttribute("src");
     return;
   }
-
-  if(type === "hero-copy"){
-    renderBalancedLines_(el, splitHeroCopy_(raw));
-    return;
-  }
-  if(type === "qr-title" || type === "product-qr-title"){
-    renderBalancedLines_(el, splitQrTitle_(raw));
-    return;
-  }
-  if(type === "qr-sub" || type === "product-qr-sub"){
-    renderBalancedLines_(el, splitByDivider_(raw, "・"));
-    return;
-  }
-
-  el.textContent = raw;
+  setImgWithFallback_(img, buildImgCandidates_(u));
 }
 
-function applySmartBalanceAll_(){
-  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
-}
-
-let __balanceTimer = null;
-window.addEventListener("resize", ()=>{
-  clearTimeout(__balanceTimer);
-  __balanceTimer = setTimeout(applySmartBalanceAll_, 120);
-});
-
-/* ---------- Logo ---------- */
 function renderLogo_(p){
-  const logoUrl = pick(p, ["Logo_fast","Logo","logo_fast","logo","logo_img","logo_url"]);
+  const logoUrl = pick(p, ["logo_img_fast","logo_img","logo_url","Logo_fast","Logo"]);
   const wrap = qs("logoWrap");
   const img  = qs("u-logo");
   if(!wrap || !img) return;
@@ -891,31 +238,12 @@ function renderLogo_(p){
   wrap.style.display = "flex";
   img.style.borderRadius = "18px";
   img.style.objectFit = "cover";
-
-  img.onload = ()=>{ wrap.style.display = "flex"; };
-  img.onerror = ()=>{ wrap.style.display = "none"; };
-
   setImgWithFallback_(img, buildImgCandidates_(u));
 }
 
-/* ---------- Avatar ---------- */
-function renderAvatar_(p){
-  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","avatar_img","avatar_url","形象照","photo"]);
-  const img = qs("u-img");
-  if(!img) return;
-
-  const u = normalizeImageUrl_(avatarRaw);
-  if(!u){
-    img.removeAttribute("src");
-    return;
-  }
-  setImgWithFallback_(img, buildImgCandidates_(u));
-}
-
-/* ---------- Blocks ---------- */
 function renderBlocks_(p){
-  const service = pick(p, ["服務項目","service","services"]);
-  const exp     = pick(p, ["經歷","experience","exp"]);
+  const service = pick(p, ["services","服務項目","service"]);
+  const exp     = pick(p, ["experience","經歷","exp"]);
 
   const b1 = qs("block-service");
   const b2 = qs("block-exp");
@@ -947,52 +275,105 @@ function renderBlocks_(p){
   }
 }
 
-/* ---------- Dock buttons ---------- */
-function buildDockBtn_({label, icon, onClick, extraClass}){
-  const b = document.createElement("button");
-  b.className = "dock-btn" + (extraClass ? (" " + extraClass) : "");
-  b.type = "button";
-  b.innerHTML = `<i class="${icon}"></i><span>${escapeHtml_(label)}</span>`;
-  b.addEventListener("click", onClick);
-  return b;
-}
+function renderContactDock_(p){
+  const dock = qs("contactDock");
+  const btns = qs("contactButtons");
+  if(!dock || !btns) return;
+  btns.innerHTML = "";
 
-function applyWideRule_(container){
-  if(!container) return;
-  const btns = Array.from(container.querySelectorAll(".dock-btn"));
-  btns.forEach(b=>b.classList.remove("wide"));
-  if(btns.length % 2 === 1){
-    btns[btns.length - 1].classList.add("wide");
+  const phone   = pick(p, ["phone","電話"]);
+  const email   = pick(p, ["email","Email"]);
+  const address = pick(p, ["address","地址"]);
+  const lineUrl = normalizeUrl_(pick(p, ["line_url","line_oa","LINE連結"]));
+  const wechatId = text(pick(p, ["wechat_id","微信ID","微信"]));
+
+  const list = [];
+
+  if(lineUrl){
+    list.push({
+      label:"私訊 LINE",
+      icon:"fa-brands fa-line",
+      cls:"dock-line",
+      action: ()=> openUrl_(lineUrl)
+    });
   }
+
+  if(wechatId){
+    list.push({
+      label:"微信ID",
+      icon:"fa-brands fa-weixin",
+      cls:"dock-web",
+      action: async ()=>{
+        try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(wechatId); }catch{}
+        alert("✅ 已複製微信ID");
+      }
+    });
+  }
+
+  if(phone){
+    list.push({
+      label:"電話",
+      icon:"fa-solid fa-phone",
+      cls:"dock-web",
+      action: ()=> { location.href = `tel:${text(phone)}`; }
+    });
+  }
+
+  if(email){
+    list.push({
+      label:"Email",
+      icon:"fa-solid fa-envelope",
+      cls:"dock-web",
+      action: ()=> { location.href = `mailto:${text(email)}`; }
+    });
+  }
+
+  if(address){
+    list.push({
+      label:"地址導航",
+      icon:"fa-solid fa-location-dot",
+      cls:"dock-map",
+      action: ()=> openMapByAddress_(address)
+    });
+  }
+
+  if(!list.length){
+    dock.style.display = "none";
+    return;
+  }
+
+  list.forEach(x=>{
+    btns.appendChild(buildDockBtn_({
+      label:x.label,
+      icon:x.icon,
+      extraClass:x.cls,
+      onClick:x.action
+    }));
+  });
+
+  dock.style.display = "";
+  applyWideRule_(btns);
 }
 
-/* ---------- Link labels ---------- */
 function inferLinkMeta_(url, kind, idx){
   const u = String(url||"").toLowerCase();
 
   if(u.includes("youtube.com") || u.includes("youtu.be")) return { label:"YouTube", icon:"fa-brands fa-youtube", cls:"dock-yt" };
-  if(u.includes("facebook.com") || u.includes("fb.com")) return { label:"Facebook", icon:"fa-brands fa-facebook", cls:"dock-fb" };
+  if(u.includes("facebook.com") || u.includes("fb.com")) return { label:"FB", icon:"fa-brands fa-facebook", cls:"dock-fb" };
   if(u.includes("instagram.com")) return { label:"Instagram", icon:"fa-brands fa-instagram", cls:"dock-ig" };
   if(u.includes("threads.net")) return { label:"Threads", icon:"fa-solid fa-at", cls:"dock-web" };
-  if(u.includes("x.com") || u.includes("twitter.com")) return { label:"X", icon:"fa-brands fa-x-twitter", cls:"dock-web" };
-  if(u.includes("tiktok.com")) return { label:"TikTok", icon:"fa-brands fa-tiktok", cls:"dock-web" };
-  if(u.includes("spotify.com")) return { label:"Spotify", icon:"fa-brands fa-spotify", cls:"dock-web" };
-  if(u.includes("apple.com") && u.includes("podcast")) return { label:"Podcast", icon:"fa-solid fa-podcast", cls:"dock-web" };
-  if(u.includes("line.me") || u.includes("lin.ee")) return { label:"LINE", icon:"fa-brands fa-line", cls:"dock-line" };
-  if(u.includes("google.com/maps") || u.includes("maps.app")) return { label:"地圖", icon:"fa-solid fa-location-dot", cls:"dock-map" };
 
   if(kind === "video") return { label:`影音 ${idx}`, icon:"fa-solid fa-play", cls:"dock-web" };
   return { label:`社群 ${idx}`, icon:"fa-solid fa-link", cls:"dock-web" };
 }
 
-/* ---------- Docks ---------- */
 function renderPrimaryLinkDock_(p){
   const dock = qs("primaryLinkDock");
   const btns = qs("primaryLinkButtons");
   if(!dock || !btns) return;
 
   btns.innerHTML = "";
-  const website = normalizeLink_(pick(p, ["website","web","homepage","url"]));
+  const website = normalizeUrl_(pick(p, ["website","網站","web","homepage"]));
   if(!website){
     dock.style.display = "none";
     return;
@@ -1004,29 +385,7 @@ function renderPrimaryLinkDock_(p){
     extraClass: "dock-web wide",
     onClick: ()=> openUrl_(website)
   }));
-  dock.style.display = "";
-}
 
-function renderCtaDock_(p){
-  const dock = qs("ctaDock");
-  const btns = qs("ctaButtons");
-  if(!dock || !btns) return;
-
-  btns.innerHTML = "";
-  const ctaText = text(pick(p, ["cta_text","CTA文字","ctaText"]));
-  const ctaLink = normalizeLink_(pick(p, ["cta_link","CTA連結","ctaLink"]));
-
-  if(!ctaText || !ctaLink){
-    dock.style.display = "none";
-    return;
-  }
-
-  btns.appendChild(buildDockBtn_({
-    label: ctaText,
-    icon: "fa-solid fa-bolt",
-    extraClass: "dock-web wide",
-    onClick: ()=> openUrl_(ctaLink)
-  }));
   dock.style.display = "";
 }
 
@@ -1034,16 +393,15 @@ function renderMediaDock_(p){
   const dock = qs("mediaDock");
   const btns = qs("mediaButtons");
   if(!dock || !btns) return;
-
   btns.innerHTML = "";
 
   const items = [];
   ["video1","video2","video3"].forEach((k, i)=>{
-    const u = normalizeLink_(pick(p, [k, `影音連結${i+1}`]));
+    const u = normalizeUrl_(pick(p, [k, `影音連結${i+1}`]));
     if(u) items.push({ kind:"video", idx:i+1, url:u });
   });
   ["social1","social2","social3"].forEach((k, i)=>{
-    const u = normalizeLink_(pick(p, [k, `社群連結${i+1}`]));
+    const u = normalizeUrl_(pick(p, [k, `社群連結${i+1}`]));
     if(u) items.push({ kind:"social", idx:i+1, url:u });
   });
 
@@ -1066,87 +424,28 @@ function renderMediaDock_(p){
   applyWideRule_(btns);
 }
 
-function renderContactDock_(p){
-  const cDock = qs("contactDock");
-  const cBtns = qs("contactButtons");
-  if(!cDock || !cBtns) return;
+function renderCtaDock_(p){
+  const dock = qs("ctaDock");
+  const btns = qs("ctaButtons");
+  if(!dock || !btns) return;
+  btns.innerHTML = "";
 
-  cBtns.innerHTML = "";
+  const ctaText = text(pick(p, ["cta_text","CTA文字","ctaText"]));
+  const ctaLink = normalizeUrl_(pick(p, ["cta_link","CTA連結","ctaLink"]));
 
-  const phone   = pick(p, ["電話","phone","mobile","手機","cell"]);
-  const email   = pick(p, ["Email","email","信箱","E-mail","mail"]);
-  const address = pick(p, ["地址","address","住址","工作地址"]);
-
-  const lineRaw =
-    pick(p, [
-      "line_url","line_oa","LINE連結","LINE連結1","LINE Link","line_link",
-      "LINE官方帳號","LINE 官方帳號","line oa","Line OA","LINE OA",
-      "LINE官網","LINE 官網","line官網","Line官網",
-      "LINE","Line","line","LINE ID","Line ID","line id","LINE帳號","LINE 帳號","line_account",
-      "LINE@", "Line@", "line@"
-    ]);
-
-  let lineUrl = normalizeLineUrl_(lineRaw);
-  if(!text(lineUrl)) lineUrl = scanAnyLineFromPayload_(p);
-
-  const wechatUrlRaw = pick(p, ["wechat_url","WeChat URL","微信連結","微信網址"]);
-  const wechatIdRaw  = pick(p, ["wechat_id","微信ID","微信","wechat","WeChat","WeChat ID"]);
-  const wechatUrl = normalizeLink_(wechatUrlRaw);
-  const wechatId = text(wechatIdRaw);
-
-  const contactList = [];
-
-  if(text(lineUrl)){
-    contactList.push({
-      label:"私訊 LINE",
-      icon:"fa-brands fa-line",
-      cls:"dock-line",
-      action: ()=> goLineIntro()
-    });
-  }
-
-  if(text(wechatUrl) && /^https?:\/\//i.test(wechatUrl)){
-    contactList.push({ label:"WeChat", icon:"fa-brands fa-weixin", cls:"dock-web", action: ()=> openUrl_(wechatUrl) });
-  }else if(text(wechatId)){
-    contactList.push({
-      label:"微信ID",
-      icon:"fa-brands fa-weixin",
-      cls:"dock-web",
-      action: async ()=>{
-        try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(wechatId); }catch{}
-        alert("✅ 已複製微信ID");
-      }
-    });
-  }
-
-  if(text(phone)){
-    contactList.push({ label:"電話", icon:"fa-solid fa-phone", cls:"dock-web", action: ()=> { location.href = `tel:${text(phone)}`; } });
-  }
-
-  if(text(email)){
-    contactList.push({ label:"Email", icon:"fa-solid fa-envelope", cls:"dock-web", action: ()=> { location.href = `mailto:${text(email)}`; } });
-  }
-
-  if(text(address)){
-    contactList.push({ label:"地址導航", icon:"fa-solid fa-location-dot", cls:"dock-map", action: ()=> openMapByAddress_(address) });
-  }
-
-  if(!contactList.length){
-    cDock.style.display = "none";
+  if(!ctaText || !ctaLink){
+    dock.style.display = "none";
     return;
   }
 
-  contactList.forEach(x=>{
-    cBtns.appendChild(buildDockBtn_({
-      label:x.label,
-      icon:x.icon,
-      extraClass:x.cls,
-      onClick:x.action
-    }));
-  });
+  btns.appendChild(buildDockBtn_({
+    label: ctaText,
+    icon: "fa-solid fa-bolt",
+    extraClass: "dock-web wide",
+    onClick: ()=> openUrl_(ctaLink)
+  }));
 
-  cDock.style.display = "";
-  applyWideRule_(cBtns);
+  dock.style.display = "";
 }
 
 function renderDocks_(p){
@@ -1156,162 +455,138 @@ function renderDocks_(p){
   renderCtaDock_(p);
 }
 
-/* ---------- Text helpers ---------- */
-function normalizeMultiline_(s){
-  return String(s ?? "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/\u3000/g, " ")
-    .trim();
-}
+function renderPhotoWall_(p){
+  const wall = qs("photoWall");
+  const grid = qs("photoGrid");
+  if(!wall || !grid) return;
 
-function toOneLine_(s){
-  const raw = normalizeMultiline_(s);
-  if(!raw) return "";
-  const parts = raw
-    .split(/[\n,，;；/]+/g)
-    .map(x=>x.trim())
-    .filter(Boolean);
-  return parts.join(" / ");
-}
+  grid.innerHTML = "";
 
-/* ---------- Expiry + Status gate ---------- */
-function parseAnyDate_(raw){
-  const v = text(raw);
-  if(!v) return null;
-
-  if(/^\d{13}$/.test(v)){
-    const d = new Date(Number(v));
-    return isNaN(d.getTime()) ? null : d;
-  }
-  if(/^\d{10}$/.test(v)){
-    const d = new Date(Number(v) * 1000);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  const m = v.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/);
-  if(m){
-    const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]), Number(m[4]||0), Number(m[5]||0), Number(m[6]||0));
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  const d2 = new Date(v);
-  return isNaN(d2.getTime()) ? null : d2;
-}
-
-function getExpiryInfo_(p){
-  const raw = pick(p, [
-    "expires_at","expired_at","expire_at","expiry_at","expiry","expire_date","expires","due_date","due",
-    "ExpireAt","ExpiresAt","ExpiredAt","Expiry","DueDate",
-    "到期日","到期","有效期限","到期日期","失效日"
-  ]);
-  const d = parseAnyDate_(raw);
-  if(!d) return { has:false, date:null, daysLeft:null };
-
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const daysLeft = Math.ceil((end - start) / (24*60*60*1000));
-  return { has:true, date:d, daysLeft };
-}
-
-function normalizeStatus_(p){
-  const s = text(pick(p, ["status","Status","狀態"])).toLowerCase();
-  return s || "";
-}
-
-function hideBottomQr_(){
-  const sec = qs("bottomQrSection");
-  const grid = qs("bottomQrGrid");
-  const avatar = qs("bottomQrAvatar");
-  if(sec) sec.style.display = "none";
-  if(grid) grid.innerHTML = "";
-  if(avatar) avatar.removeAttribute("src");
-}
-
-function showLockedUi_(reasonText){
-  safeSetText_("u-name", "請聯繫客服開通");
-  safeSetText_("u-unit", "請聯繫客服開通");
-  safeSetText_("u-title", "");
-
-  const sEl = qs("u-slogan");
-  if(sEl){
-    sEl.style.display = "";
-    sEl.textContent = text(reasonText) || "請聯繫客服開通";
-  }
-
-  ["block-service","block-exp","mediaDock","photoWall","primaryLinkDock","ctaDock"].forEach(id=>{
-    const el = qs(id);
-    if(el) el.style.display = "none";
+  const photos = [];
+  ["photo1_img_fast","photo2_img_fast","photo3_img_fast","photo4_img_fast","photo5_img_fast","photo1_img","photo2_img","photo3_img","photo4_img","photo5_img"].forEach(k=>{
+    const u = normalizeImageUrl_(pick(p, [k]));
+    if(u && !photos.includes(u)) photos.push(u);
   });
 
-  const logoWrap = qs("logoWrap");
-  const logoImg = qs("u-logo");
-  if(logoWrap) logoWrap.style.display = "none";
-  if(logoImg) logoImg.removeAttribute("src");
-
-  const avatar = qs("u-img");
-  if(avatar) avatar.removeAttribute("src");
-
-  const cDock = qs("contactDock");
-  const cBtns = qs("contactButtons");
-  if(cBtns) cBtns.innerHTML = "";
-  if(cDock) cDock.style.display = "";
-
-  if(cBtns){
-    cBtns.appendChild(buildDockBtn_({
-      label: "聯繫開通",
-      icon: "fa-solid fa-headset",
-      extraClass: "dock-web",
-      onClick: ()=> goFillForm()
-    }));
-    applyWideRule_(cBtns);
+  if(!photos.length){
+    wall.style.display = "none";
+    return;
   }
 
-  hideBottomQr_();
+  photos.forEach(u=>{
+    const img = document.createElement("img");
+    img.className = "wall-img";
+    img.alt = "照片";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.style.width = "100%";
+    img.style.aspectRatio = "1 / 1";
+    img.style.objectFit = "cover";
+    setImgWithFallback_(img, buildImgCandidates_(u));
+    img.addEventListener("click", ()=> openUrl_(u));
+    grid.appendChild(img);
+  });
+
+  wall.style.display = "";
 }
 
-function applyStatusGate_(p){
-  const status = normalizeStatus_(p);
-  const expiry = getExpiryInfo_(p);
+function applySmartBalanceToEl_(el){
+  if(!el) return;
+  const raw = text(el.dataset.rawText || el.textContent);
+  if(!raw) return;
+  el.dataset.rawText = raw;
 
-  if(expiry.has && typeof expiry.daysLeft === "number" && expiry.daysLeft <= 0){
-    showLockedUi_("此名片已到期，請聯繫客服開通");
-    return { locked:true, expiry };
+  if(window.innerWidth > 560){
+    el.textContent = raw;
+    return;
   }
 
-  if(!status || status !== "active"){
-    showLockedUi_("請聯繫客服開通");
-    return { locked:true, expiry };
-  }
+  if(el.dataset.balanceType === "hero-copy"){
+    const parts = raw.split("｜");
+    el.innerHTML = "";
+    if(parts.length >= 2){
+      const first = document.createElement("span");
+      first.className = "balance-line";
+      first.textContent = parts[0] + "｜";
+      el.appendChild(first);
 
-  return { locked:false, expiry };
-}
+      const rest = parts.slice(1).join("｜");
+      const idx = rest.indexOf("打造");
+      if(idx > -1){
+        const line2 = document.createElement("span");
+        line2.className = "balance-line";
+        line2.textContent = rest.slice(0, idx).trim();
+        el.appendChild(line2);
 
-function applyExpiryHint_(p, expiryInfo){
-  if(!expiryInfo || !expiryInfo.has) return;
-  const days = expiryInfo.daysLeft;
-  if(!(typeof days === "number")) return;
-
-  if(days >= 1 && days <= 30){
-    const sEl = qs("u-slogan");
-    const hint = `⏳ 名片即將到期（剩 ${days} 天）`;
-    if(sEl){
-      const old = text(sEl.textContent);
-      sEl.style.display = "";
-      sEl.textContent = old ? (old + "｜" + hint) : hint;
+        const line3 = document.createElement("span");
+        line3.className = "balance-line";
+        line3.textContent = rest.slice(idx).trim();
+        el.appendChild(line3);
+      }else{
+        const line2 = document.createElement("span");
+        line2.className = "balance-line";
+        line2.textContent = rest.trim();
+        el.appendChild(line2);
+      }
+      return;
     }
   }
+
+  if(el.dataset.balanceType === "qr-title" || el.dataset.balanceType === "product-qr-title"){
+    if(raw.includes("｜")){
+      const [a,b] = raw.split("｜");
+      el.innerHTML = `<span class="balance-line">${escapeHtml_(a)}｜</span><span class="balance-line">${escapeHtml_(b)}</span>`;
+      return;
+    }
+  }
+
+  if(el.dataset.balanceType === "qr-sub" || el.dataset.balanceType === "product-qr-sub"){
+    if(raw.includes("・")){
+      const parts = raw.split("・").map(x=>x.trim()).filter(Boolean);
+      if(parts.length >= 2){
+        const half = Math.ceil(parts.length / 2);
+        const l1 = parts.slice(0, half).join("・");
+        const l2 = parts.slice(half).join("・");
+        el.innerHTML = `<span class="balance-line">${escapeHtml_(l1)}</span><span class="balance-line">${escapeHtml_(l2)}</span>`;
+        return;
+      }
+    }
+  }
+
+  el.textContent = raw;
 }
 
-/* ---------- Product bottom QR ---------- */
+function applySmartBalanceAll_(){
+  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
+}
+
+let __balanceTimer = null;
+window.addEventListener("resize", ()=>{
+  clearTimeout(__balanceTimer);
+  __balanceTimer = setTimeout(applySmartBalanceAll_, 120);
+});
+
+function buildCleanShareUrl_(){
+  try{
+    const u = new URL(location.href);
+    if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
+    u.searchParams.delete("clean");
+    u.searchParams.delete("admin");
+    return u.toString();
+  }catch{
+    const url = location.href;
+    if(url.includes("view=1")) return url;
+    return url + (url.includes("?") ? "&" : "?") + "view=1";
+  }
+}
+
 function renderBottomQr_(p){
   const sec = qs("bottomQrSection");
   const grid = qs("bottomQrGrid");
   const avatar = qs("bottomQrAvatar");
 
   if(!sec || !grid || !avatar || !window.QRCode){
-    hideBottomQr_();
+    if(sec) sec.style.display = "none";
     return;
   }
 
@@ -1328,11 +603,11 @@ function renderBottomQr_(p){
       correctLevel: QRCode.CorrectLevel.H
     });
   }catch(_){
-    hideBottomQr_();
+    sec.style.display = "none";
     return;
   }
 
-  const avatarRaw = pick(p, ["個人照_fast","個人照","avatar_fast","avatar","avatar_img","avatar_url","形象照","photo"]);
+  const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
   const avatarUrl = normalizeImageUrl_(avatarRaw);
 
   if(avatarUrl){
@@ -1342,427 +617,55 @@ function renderBottomQr_(p){
   }
 
   sec.style.display = "";
-  applySmartBalanceAll_();
 }
 
-/* ---------- Main render ---------- */
 function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
 
-  syncStateFromPayload_(p);
-  applyBodyClasses_();
-  syncActiveButtonsFromState_();
+  qs("u-name").textContent = text(pick(p, ["name","姓名"])) || "未命名";
+  qs("u-unit").textContent = text(pick(p, ["unit","單位","公司"])) || "";
+  qs("u-title").textContent = text(pick(p, ["title","職稱"])) || "";
 
-  const gate = applyStatusGate_(p);
-  if(gate.locked){
-    const vt = qs("versionTag");
-    if(vt) vt.textContent = CONFIG.VERSION;
-    return;
+  const slogan = qs("u-slogan");
+  const sloganText = text(pick(p, ["slogan","一句話","簡介"]));
+  if(sloganText){
+    slogan.style.display = "";
+    slogan.textContent = sloganText;
+  }else{
+    slogan.style.display = "none";
+    slogan.textContent = "";
   }
-
-  const name  = pick(p, ["name","姓名"]);
-  const unitRaw = pick(p, ["unit","單位","公司","company"]);
-  const unit = toOneLine_(unitRaw);
-  const title = pick(p, ["title","頭銜","職稱"]);
-
-  safeSetText_("u-name", name || "未命名");
-  safeSetText_("u-unit", unit);
-  safeSetText_("u-title", title);
-
-  const slogan = pick(p, ["slogan","理念標語","簡介","一句話","引言"]);
-  const sEl = qs("u-slogan");
-  if(sEl){
-    if(text(slogan)){
-      sEl.style.display = "";
-      sEl.textContent = text(slogan);
-    }else{
-      sEl.style.display = "none";
-      sEl.textContent = "";
-    }
-  }
-
-  applyExpiryHint_(p, gate.expiry);
 
   renderAvatar_(p);
   renderLogo_(p);
   renderBlocks_(p);
   renderDocks_(p);
+  renderPhotoWall_(p);
   renderBottomQr_(p);
-
-  const vt = qs("versionTag");
-  if(vt) vt.textContent = CONFIG.VERSION;
-
   applySmartBalanceAll_();
-}
-
-/* ---------- goLineIntro ---------- */
-function goLineIntro(){
-  const p = currentRow || null;
-  if(!p){
-    alert("⏳ 名片資料載入中，請稍等一下再點 LINE。");
-    return;
-  }
-
-  const status = normalizeStatus_(p);
-  const expiry = getExpiryInfo_(p);
-  if((!status || status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
-    alert("⚠️ 此名片尚未開通或已到期，請聯繫客服開通。");
-    return;
-  }
-
-  const lineRaw =
-    pick(p, [
-      "line_url","line_oa",
-      "LINE連結","LINE連結1","line_link",
-      "LINE官方帳號","LINE 官方帳號","line oa","Line OA","LINE OA",
-      "LINE官網","LINE 官網","line官網","Line官網",
-      "LINE","Line","line","LINE ID","Line ID","line id","LINE帳號","LINE 帳號","line_account",
-      "LINE@", "Line@", "line@"
-    ]);
-
-  let url = normalizeLineUrl_(lineRaw);
-  if(!text(url)) url = scanAnyLineFromPayload_(p);
-
-  if(!text(url)){
-    alert("⚠️ 這張名片尚未提供 LINE（連結或 @ID）");
-    return;
-  }
-
-  openUrl_(url);
-}
-
-/* expose */
-window.setPlan = setPlan;
-window.setTheme = setTheme;
-window.setStyle = setStyle;
-window.setPaper = setPaper;
-window.goLineIntro = goLineIntro;
-window.goFillForm = goFillForm;
-window.__buildLineOaUrlWithState = buildLineOaUrlWithState_;
-window.__getCleanShareUrl = buildCleanShareUrl_;
-window.__getHubShareUrl = buildHubShareUrl_;
-
-/* ================================
- * Photo Wall + Lightbox
- * ================================ */
-function extractRowFromPayload_(data){
-  if(!data || typeof data !== "object") return null;
-  if(data.ok === true && data.item && typeof data.item === "object") return data.item;
-  if(data.ok === true && data.data && typeof data.data === "object") return data.data;
-  if(data.item && typeof data.item === "object") return data.item;
-  if(data.data && typeof data.data === "object") return data.data;
-  if(data.row && typeof data.row === "object") return data.row;
-  if(data.id || data["姓名"] || data.name) return data;
-  return null;
-}
-
-function collectPhotoUrls_(p){
-  let urls = [];
-  if(Array.isArray(p.photos_fast)) urls = urls.concat(p.photos_fast);
-
-  const bulkFast = pick(p, ["照片_fast","photos_fast","photos_img_fast","photo_wall_fast"]);
-  const bulkSlow = pick(p, ["照片","photos_img","photos","photo_wall"]);
-  const bulk = text(bulkFast) ? bulkFast : bulkSlow;
-
-  if(text(bulk)){
-    urls = urls.concat(
-      String(bulk)
-        .split(/[\n,，;]/g)
-        .map(s => s.trim())
-        .filter(Boolean)
-    );
-  }
-
-  for(let i=1;i<=12;i++){
-    const vFast = pick(p, [`photo${i}_img_fast`,`photo${i}_fast`,`照片${i}_fast`,`photo${i}_url_fast`]);
-    const vSlow = pick(p, [`photo${i}_img`,`photo${i}`,`照片${i}`,`photo${i}_url`]);
-    const v = text(vFast) ? vFast : vSlow;
-    if(text(v)) urls.push(v);
-  }
-
-  const seen = new Set();
-  const out = [];
-  urls.forEach(u=>{
-    const nu = normalizeImageUrl_(u);
-    if(!nu) return;
-    const key = canonicalImageKey_(nu);
-    if(!key) return;
-    if(seen.has(key)) return;
-    seen.add(key);
-    out.push(nu);
-  });
-  return out;
-}
-
-function ensureLightbox_(){
-  if(qs("lightboxOverlay")) return;
-
-  const overlay = document.createElement("div");
-  overlay.id = "lightboxOverlay";
-  overlay.style.cssText = `
-    position:fixed; inset:0; z-index:999999;
-    background:rgba(0,0,0,0.82);
-    display:none; align-items:center; justify-content:center;
-    padding:16px;
-  `;
-
-  const img = document.createElement("img");
-  img.id = "lightboxImg";
-  img.style.cssText = `
-    max-width:100%;
-    max-height:100%;
-    object-fit:contain;
-    border-radius:16px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
-    background: rgba(255,255,255,0.06);
-  `;
-
-  const close = document.createElement("button");
-  close.type = "button";
-  close.textContent = "✕";
-  close.style.cssText = `
-    position:absolute; top:14px; right:14px;
-    width:42px; height:42px; border-radius:999px;
-    border:none; cursor:pointer;
-    background:rgba(255,255,255,0.18);
-    color:#fff; font-size:20px; font-weight:900;
-    backdrop-filter: blur(8px);
-  `;
-
-  overlay.appendChild(img);
-  overlay.appendChild(close);
-  document.body.appendChild(overlay);
-
-  function hide(){
-    overlay.style.display = "none";
-    img.removeAttribute("src");
-  }
-  overlay.addEventListener("click",(e)=>{ if(e.target===overlay) hide(); });
-  close.addEventListener("click", hide);
-  document.addEventListener("keydown",(e)=>{ if(e.key==="Escape") hide(); });
-}
-
-function openLightbox_(url){
-  ensureLightbox_();
-  const overlay = qs("lightboxOverlay");
-  const img = qs("lightboxImg");
-  if(!overlay || !img) return;
-  setImgWithFallback_(img, buildImgCandidates_(url));
-  overlay.style.display = "flex";
-}
-
-function computeCols_(n){
-  if(n <= 1) return 1;
-  if(n === 2) return 2;
-  if(n === 4) return 2;
-  if(n % 3 === 1) return 2;
-  return 3;
-}
-
-function renderPhotoWall_(row){
-  const p = buildNormalizedPayload_(row || {});
-  const wall = qs("photoWall");
-  const grid = qs("photoGrid");
-  if(!wall || !grid) return;
-
-  const status = normalizeStatus_(p);
-  const expiry = getExpiryInfo_(p);
-  if((!status || status !== "active") || (expiry.has && typeof expiry.daysLeft==="number" && expiry.daysLeft<=0)){
-    wall.style.display = "none";
-    grid.innerHTML = "";
-    return;
-  }
-
-  grid.innerHTML = "";
-  const urls = collectPhotoUrls_(p);
-
-  if(!urls.length){
-    wall.style.display = "none";
-    return;
-  }
-
-  const cols = computeCols_(urls.length);
-  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
-
-  urls.forEach(u=>{
-    const img = document.createElement("img");
-    img.className = "wall-img";
-    img.alt = "照片";
-    img.loading = "lazy";
-    img.decoding = "async";
-    img.referrerPolicy = "no-referrer";
-    img.style.width = "100%";
-    img.style.aspectRatio = "1 / 1";
-    img.style.objectFit = "cover";
-
-    setImgWithFallback_(img, buildImgCandidates_(u));
-    img.addEventListener("click", ()=> openLightbox_(u));
-    grid.appendChild(img);
-  });
-
-  wall.style.display = "";
-}
-
-/* ---------- Share button ---------- */
-(function bindShareBtn_(){
-  function bindOne(id){
-    const btn = qs(id);
-    if(!btn) return;
-
-    btn.addEventListener("click", async (e)=>{
-      try{
-        const url = buildHubShareUrl_();
-
-        if(navigator.share){
-          e.preventDefault();
-          await navigator.share({
-            title: "天使幸福智慧名片館",
-            text: "分享智慧名片館",
-            url
-          });
-          return;
-        }
-
-        const ok = await (async ()=>{
-          try{
-            if(navigator.clipboard?.writeText){
-              await navigator.clipboard.writeText(url);
-              return true;
-            }
-          }catch{}
-          return false;
-        })();
-
-        alert(ok ? "✅ 已複製智慧名片館連結" : "⚠️ 無法分享/複製，請手動複製網址");
-      }catch(err){
-        console.warn(err);
-      }
-    }, true);
-  }
-
-  bindOne("btnShare");
-  bindOne("btnSharePremium");
-})();
-
-/* ---------- Load + Boot ---------- */
-function buildCardApiUrl_(id){
-  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  const tenant = getTenantFromUrl_();
-  const token = getTokenFromUrl_();
-  const sig = getSigFromUrl_();
-
-  const u = new URL(CONFIG.GAS);
-  u.searchParams.set("action", "card");
-  u.searchParams.set("id", cid);
-  u.searchParams.set("tenant", tenant);
-  u.searchParams.set("ts", String(Date.now()));
-  u.searchParams.set("v", CONFIG.VERSION);
-
-  if(token) u.searchParams.set("token", token);
-  if(sig) u.searchParams.set("sig", sig);
-
-  return u.toString();
-}
-
-function renderLoadFail_(err){
-  console.error("LOAD FAIL:", err);
-
-  const msg = text(err && err.message);
-  safeSetText_("u-name", "資料載入失敗");
-  safeSetText_("u-unit", msg || "請稍後再試");
-  safeSetText_("u-title", "");
-
-  const slogan = qs("u-slogan");
-  if(slogan){
-    slogan.style.display = "";
-    if(msg.includes("token required")){
-      slogan.textContent = "此名片需要有效憑證才能讀取";
-    }else if(msg.includes("token mismatch")){
-      slogan.textContent = "讀取憑證不正確";
-    }else if(msg.includes("tenant mismatch")){
-      slogan.textContent = "tenant 不一致";
-    }else if(msg.includes("id not found")){
-      slogan.textContent = "查無此名片";
-    }else{
-      slogan.textContent = msg || "前台讀卡失敗";
-    }
-  }
-
-  hideBottomQr_();
 
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
 }
 
-async function loadAndRenderById_(id){
-  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  const url = buildCardApiUrl_(cid);
-  console.log("[LOAD] fetching:", url);
+window.setPlan = function(){};
+window.setTheme = function(){};
+window.setStyle = function(){};
+window.setPaper = function(){};
 
+(async function boot_(){
   try{
-    const payload = await fetchJsonRobust_(url);
-    if(!payload || payload.ok !== true){
-      throw new Error(text(payload && payload.error) || "GAS not ok");
-    }
-
-    const row = extractRowFromPayload_(payload);
-    if(!row || typeof row !== "object"){
-      throw new Error("Invalid payload shape");
-    }
-
-    console.log("[LOAD] success id=", cid, row);
-    renderCard(row);
-    renderPhotoWall_(row);
-
-  }catch(err){
-    renderLoadFail_(err);
-  }
-}
-
-function hideTopPrivateLineCta_(){
-  ["btnLinePrivateCta","btnLinePrivateCta2"].forEach(id=>{
-    const b = qs(id);
-    if(b){
-      b.style.display = "none";
-      b.style.visibility = "hidden";
-      b.style.opacity = "0";
-      b.style.pointerEvents = "none";
-      b.setAttribute("aria-hidden","true");
-      b.tabIndex = -1;
-    }
-  });
-}
-
-(function boot_(){
-  try{
-    ensureLightbox_();
-
-    const b = document.body;
-    STATE.mode = b.classList.contains("mode-premium") ? "premium" : "free";
-
-    ["color-1","color-2","color-3","color-4","color-5"].forEach(c=>{ if(b.classList.contains(c)) STATE.color = c; });
-    ["style-arch","style-flat","style-spot"].forEach(s=>{
-      if(b.classList.contains(s)) STATE.style = s.replace("style-","");
-    });
-    ["paper-1","paper-2","paper-3"].forEach(p=>{
-      if(b.classList.contains(p)) STATE.paper = p;
-    });
-    ["p1","p2","p3","p4","p5","p6","p7"].forEach(p=>{
-      if(b.classList.contains(p)) STATE.premium = p;
-    });
-
-    applyBodyClasses_();
-    syncActiveButtonsFromState_();
-    bindLineOaOverride_();
-    hideTopPrivateLineCta_();
     applySmartBalanceAll_();
-
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
-    loadAndRenderById_(id);
-
-  }catch(e){
-    console.error(e);
-    renderLoadFail_(e);
+    const url = buildCardApiUrl_(id);
+    const payload = await fetchJsonRobust_(url);
+    const row = payload?.item || payload?.data || payload;
+    renderCard(row);
+  }catch(err){
+    console.error(err);
+    qs("u-name").textContent = "資料載入失敗";
+    qs("u-unit").textContent = "請稍後再試";
+    qs("u-title").textContent = "";
   }
 })();
