@@ -1,8 +1,7 @@
 <!-- ================================
-     index.html v523.3 (COMPLETE OVERWRITE)
+     index.html v523.4 (COMPLETE OVERWRITE)
 
-     ✅ 移除重複 HTML
-     ✅ 修正選版區按鈕失靈基礎結構
+     ✅ 產品特色說明文字清空改 QRcode
      ✅ 保留門面 QRcode
      ✅ 保留成品底部 QRcode 容器
      ✅ 保留門面 bootstrap script
@@ -15,12 +14,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v523.3</title>
+  <title>天使幸福智慧名片館 v523.4</title>
 
-  <link rel="manifest" href="./manifest.json?v=523.3" />
+  <link rel="manifest" href="./manifest.json?v=523.4" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.3" />
-  <link rel="icon" href="./icons/icon-192.png?v=523.3" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.4" />
+  <link rel="icon" href="./icons/icon-192.png?v=523.4" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -29,7 +28,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=523.3" />
+  <meta property="og:image" content="og-card.png?v=523.4" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -199,8 +198,7 @@
       background:#fff;
     }
     .facade-qr-grid img,
-    .facade-qr-grid canvas,
-    .facade-qr-grid table{
+    .facade-qr-grid canvas{
       width:100% !important;
       height:100% !important;
       display:block;
@@ -303,8 +301,7 @@
       justify-content:center;
     }
     .qr-bottom-grid img,
-    .qr-bottom-grid canvas,
-    .qr-bottom-grid table{
+    .qr-bottom-grid canvas{
       width:100% !important;
       height:100% !important;
       display:block;
@@ -333,6 +330,78 @@
       display:block;
       border-radius:999px;
     }
+
+    .feature-qr-shell{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:8px 0 2px;
+    }
+    .feature-qr-title{
+      font-size:14px;
+      line-height:1.6;
+      font-weight:900;
+      color:var(--poster-ink);
+      text-wrap:balance;
+    }
+    .feature-qr-sub{
+      margin-top:6px;
+      font-size:12px;
+      line-height:1.65;
+      font-weight:800;
+      color:var(--poster-ink-soft);
+      text-wrap:balance;
+    }
+    .feature-qr-canvas{
+      position:relative;
+      width:176px;
+      height:176px;
+      padding:12px;
+      margin-top:12px;
+      border-radius:22px;
+      background:#fff;
+      box-shadow:0 8px 18px rgba(0,0,0,.04);
+      border:1px solid rgba(0,0,0,.035);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .feature-qr-grid{
+      width:152px;
+      height:152px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      border-radius:14px;
+      background:#fff;
+    }
+    .feature-qr-grid img,
+    .feature-qr-grid canvas{
+      width:100% !important;
+      height:100% !important;
+      display:block;
+    }
+    .feature-qr-logo-pad{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:rgba(255,255,255,0.98);
+      box-shadow:0 6px 16px rgba(0,0,0,0.10), 0 0 0 6px rgba(255,255,255,0.96);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:3;
+      pointer-events:none;
+    }
+    .feature-qr-logo{ width:22px; height:22px; display:block; }
 
     body.clean #admin-panel{ display:none !important; }
     body.clean #card-container{ position: relative; z-index: 1; }
@@ -593,7 +662,7 @@
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v523.3</div>
+        <div class="version-tag" id="versionTag">v523.2</div>
       </div>
     </section>
   </main>
@@ -605,10 +674,26 @@
         <button class="modal-close" type="button" id="featureCloseBtn">關閉</button>
       </div>
       <div class="modal-bd">
-        <div class="k"><b>自由搭配</b>：5色 × 3版型 × 3紙感，風格清爽、可快速客製。</div>
-        <div class="k"><b>精品設計</b>：7款精品底色，整體質感更精緻，適合高端呈現。</div>
-        <div class="k"><b>一鍵分享</b>：可分享智慧名片館，作為品牌入口與導流主頁。</div>
-        <div class="k"><b>QRcode 展示</b>：可現場展示，也可帶走智慧名片館入口。</div>
+        <div class="feature-qr-shell">
+          <div class="feature-qr-title balance-text" data-balance-type="qr-title">掃描 QRcode｜開啟智慧名片館</div>
+          <div class="feature-qr-sub balance-text" data-balance-type="qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
+          <div class="feature-qr-canvas">
+            <div class="feature-qr-grid" id="featureQrGrid"></div>
+            <div class="feature-qr-logo-pad" aria-hidden="true">
+              <svg class="feature-qr-logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
+                <line x1="32" y1="6" x2="32" y2="16" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="32" y1="48" x2="32" y2="58" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="6" y1="32" x2="16" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="48" y1="32" x2="58" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="14" y1="14" x2="20" y2="20" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="44" y1="44" x2="50" y2="50" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="14" y1="50" x2="20" y2="44" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="44" y1="20" x2="50" y2="14" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -635,13 +720,13 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="./app.js?v=523.3"></script>
+  <script src="./app.js?v=523.2"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "523.3";
+      var VERSION = "523.4";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -752,6 +837,32 @@
         mount.appendChild(fallback);
       }
 
+      function renderFeatureQr(){
+        var mount = qs("featureQrGrid");
+        if(!mount) return;
+        mount.innerHTML = "";
+
+        var qrUrl = buildHubShareUrlFallback();
+        try{
+          if(window.QRCode){
+            new QRCode(mount, {
+              text: qrUrl,
+              width: 152,
+              height: 152,
+              colorDark: "#433227",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.H
+            });
+            return;
+          }
+        }catch(e){}
+
+        var fallback = document.createElement("div");
+        fallback.style.cssText = "font-size:12px;line-height:1.6;color:#6b5a4d;text-align:center;padding:12px;";
+        fallback.textContent = "QRcode 載入失敗";
+        mount.appendChild(fallback);
+      }
+
       function bindShareFallback(){
         function bindOne(id){
           var btn = qs(id);
@@ -808,6 +919,7 @@
           mask.style.display="flex";
           mask.setAttribute("aria-hidden","false");
           lockScroll();
+          renderFeatureQr();
         }
         function shut(){
           if(!mask) return;
@@ -910,4 +1022,4 @@
     })();
   </script>
 </body>
-</html>♀♀♀♀assistant to=container.exec_久久爱analysis  天天乐彩票  天天赢彩票 to=container.exec 彩票娱乐注册 {
+</html>
