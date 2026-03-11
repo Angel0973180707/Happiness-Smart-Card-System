@@ -14,7 +14,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "700.1";
+  const VERSION = "710.0";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const DEFAULT_TENANT = "angel";
   const PAGE_TOTAL = 5;
@@ -97,7 +97,6 @@ import {
 
     cta_text: "cta_text",
     cta_link: "cta_link",
-    wechat_poster: "wechat_poster",
 
     avatar_img: "avatar_img",
     logo_img: "logo_img",
@@ -159,6 +158,7 @@ import {
     cropMeta: $("cropMeta"),
     cropZoomOut: $("cropZoomOut"),
     cropZoomIn: $("cropZoomIn"),
+    cropCenter: $("cropCenter"),
     cropReset: $("cropReset"),
     cropCancel: $("cropCancel"),
     cropApply: $("cropApply")
@@ -168,7 +168,14 @@ import {
     "name","unit","title","slogan","services","experience","website",
     "phone","email","line_url","line_oa","wechat_id","address",
     "video1","video2","video3","social1","social2","social3",
-    "cta_text","cta_link","wechat_poster"
+    "cta_text","cta_link"
+  ];
+
+  const urlFields = [
+    "website","line_url","line_oa",
+    "video1","video2","video3",
+    "social1","social2","social3",
+    "cta_link"
   ];
 
   const qs = new URLSearchParams(location.search);
@@ -178,8 +185,8 @@ import {
     sig: (qs.get("sig") || "").trim(),
     invite: (qs.get("invite") || "").trim(),
     mode: (qs.get("mode") || "fill").trim(),
-    id: (qs.get("id") || "").trim(),          // 正式 id（更新模式）或送出成功後的 formal id
-    reserveId: "",                            // 新建模式 reserve 回傳的暫存 id
+    id: (qs.get("id") || "").trim(),
+    reserveId: "",
     token: "",
     submitting: false,
     submitLockedUntil: 0,
@@ -196,6 +203,8 @@ import {
     uid: "",
     lastSubmitFingerprint: "",
     prefilling: false,
+
+    serviceCode: "",
 
     crop: {
       open: false,
@@ -216,7 +225,8 @@ import {
       startX: 0,
       startY: 0,
       canvasW: 0,
-      canvasH: 0
+      canvasH: 0,
+      dpr: 1
     }
   };
 
@@ -240,10 +250,10 @@ import {
       fastField: CANON.logo_img_fast,
       fileMain: "logo.webp",
       fileFast: "logo_fast.webp",
-      ratio: 16 / 9,
+      ratio: 1,
       stageClass: "ratio-logo",
-      outputMain: 1400,
-      outputFast: 560
+      outputMain: 1200,
+      outputFast: 480
     },
     {
       key: "p1",
@@ -329,7 +339,7 @@ import {
     await initFirebase_();
 
     updateIntro_();
-    logStatus_("已就緒，請依序完成每一步。");
+    logStatus_("已準備完成，請依序完成每一步。");
 
     if (state.mode === "update" && state.id && state.sig) {
       await prefillFromServer_();
@@ -350,9 +360,9 @@ import {
 
   function updateIntro_(){
     if(state.mode === "update"){
-      el.pageIntro.textContent = "這是更新資料頁面。系統會自動讀取舊資料並回填表單，修改完成後送出即可。";
+      el.pageIntro.textContent = "這是更新資料頁面。系統會先回填您原本的內容，您修改後再送出即可。每完成一關，就會進入下一關。";
     }else{
-      el.pageIntro.textContent = "固定分頁流程。請一步一步完成。圖片可先調整位置，再壓縮上傳，送出時會自動建立你的智慧名片。";
+      el.pageIntro.textContent = "請一步一步完成您的資料。每完成一關，就會進入下一關。圖片可先調整位置，再套用到名片預覽中。";
     }
   }
 
@@ -374,6 +384,11 @@ import {
       if(!node) return;
       node.addEventListener("input", updateSummary_);
       node.addEventListener("change", updateSummary_);
+      node.addEventListener("blur", ()=>{
+        if(urlFields.includes(id) && node.value.trim()){
+          node.value = normalizeUrl_(node.value);
+        }
+      });
     });
 
     document.querySelectorAll(".stepDot").forEach(node=>{
@@ -390,8 +405,13 @@ import {
     });
 
     bindCropEvents_();
+
     window.addEventListener("resize", ()=>{
-      if(state.crop.open) drawCrop_();
+      if(state.crop.open){
+        setupCropCanvasSize_();
+        clampCropPosition_();
+        drawCrop_();
+      }
     });
   }
 
@@ -414,8 +434,8 @@ import {
       if(!state.crop.open || !state.crop.dragging) return;
       if(state.crop.pointerId !== null && ev.pointerId !== state.crop.pointerId) return;
 
-      const dx = ev.clientX - state.crop.dragStartX;
-      const dy = ev.clientY - state.crop.dragStartY;
+      const dx = (ev.clientX - state.crop.dragStartX) * state.crop.dpr;
+      const dy = (ev.clientY - state.crop.dragStartY) * state.crop.dpr;
       state.crop.x = state.crop.startX + dx;
       state.crop.y = state.crop.startY + dy;
       clampCropPosition_();
@@ -444,6 +464,13 @@ import {
       if(!state.crop.open) return;
       state.crop.scale = Math.max(state.crop.minScale, state.crop.scale - 0.12);
       clampCropPosition_();
+      drawCrop_();
+    });
+
+    el.cropCenter.addEventListener("click", ()=>{
+      if(!state.crop.open) return;
+      state.crop.x = 0;
+      state.crop.y = 0;
       drawCrop_();
     });
 
@@ -590,11 +617,11 @@ import {
     if (el.premiumChips.parentElement) el.premiumChips.parentElement.style.opacity = isPremium ? "1" : ".42";
 
     if(isFree){
-      el.planHint.textContent = "自由搭配：5 色 × 3 版型 × 3 紙感，最多 2 張照片。";
+      el.planHint.textContent = "自由搭配：5 色 × 3 版型 × 3 紙感。\n照片最多 2 張，適合先快速完成個人或品牌名片。";
     }else if(isPremium){
-      el.planHint.textContent = "精品設計：7 款精品底色，最多 5 張照片。";
+      el.planHint.textContent = "精品設計：7 款精品底色。\n照片最多 5 張，適合需要更多內容展示的名片。";
     }else{
-      el.planHint.textContent = "請先選方案。";
+      el.planHint.textContent = "請先選方案。自由搭配與精品設計，會帶出不同外觀與照片張數。";
     }
   }
 
@@ -645,10 +672,12 @@ import {
       const left = document.createElement("div");
       const strong = document.createElement("strong");
       strong.textContent = slot.label;
+
       const smallWrap = document.createElement("div");
       const small = document.createElement("small");
-      small.textContent = disabled ? "目前方案不使用這格" : "可先調整位置，再套用";
+      small.textContent = disabled ? "目前方案不使用這格" : "可先調整位置，再套用到名片預覽";
       smallWrap.appendChild(small);
+
       left.appendChild(strong);
       left.appendChild(smallWrap);
 
@@ -689,7 +718,7 @@ import {
       const file = document.createElement("input");
       file.type = "file";
       file.accept = "image/*";
-      file.disabled = disabled;
+      file.disabled = disabled || state.submitting || state.prefilling;
       file.addEventListener("change", async (ev)=>{
         const f = ev.target.files && ev.target.files[0];
         if(!f) return;
@@ -708,7 +737,7 @@ import {
       btnEdit.type = "button";
       btnEdit.className = "ghost";
       btnEdit.textContent = "調整位置";
-      btnEdit.disabled = !u || disabled;
+      btnEdit.disabled = !u || disabled || state.submitting || state.prefilling;
       btnEdit.addEventListener("click", async ()=>{
         const item = state.uploads[slot.key];
         if(!item || !item.sourceFile){
@@ -732,12 +761,12 @@ import {
     state.prefilling = true;
     try{
       setBusy_(true);
-      showProgress_(12, "正在讀取舊資料…");
+      showProgress_(12, "正在讀取您原本的資料…");
       const data = await gasReadCardForUpdate_();
-      showProgress_(40, "正在回填表單…");
+      showProgress_(40, "正在回填表單內容…");
       hydrateFormFromItem_(data);
-      showProgress_(100, "舊資料回填完成");
-      logStatus_(`已載入舊資料。\n名片 ID：${state.id}`);
+      showProgress_(100, "已完成回填");
+      logStatus_(`已載入您原本的資料。\n名片 ID：${state.id}`);
       el.dot.style.background = "var(--accent)";
     }catch(err){
       badStatus_("讀取舊資料失敗： " + String(err?.message || err));
@@ -862,7 +891,7 @@ import {
 
     try{
       await signInAnonymously(auth);
-    }catch(err){
+    }catch(_err){
       warnStatus_("Firebase 匿名登入失敗，請稍後重整再試。");
     }
 
@@ -890,6 +919,7 @@ import {
 
     state.page = Math.min(PAGE_TOTAL - 1, state.page + 1);
     renderPage_();
+    logStatus_(`已完成第 ${state.page} 步，請繼續下一步。`);
   }
 
   function renderPage_(){
@@ -915,7 +945,7 @@ import {
       el.btnNext.disabled = true;
       updateSummary_();
     }else{
-      el.btnNext.textContent = "下一步";
+      el.btnNext.textContent = "完成這一步，進入下一步";
       el.btnNext.disabled = state.submitting || state.prefilling;
     }
 
@@ -927,18 +957,40 @@ import {
 
     if(pageIndex === 0){
       if(!state.plan){
-        if(!silent) warnStatus_("請先選方案，再繼續下一步。");
+        if(!silent) warnStatus_("請先選方案，再進入下一步。");
         return false;
       }
-      if(state.plan === "free"){
-        if(!state.color || !state.style || !state.paper){
-          if(!silent) warnStatus_("自由搭配請完成顏色、版型、紙感。");
-          return false;
-        }
+      if(state.plan === "free" && (!state.color || !state.style || !state.paper)){
+        if(!silent) warnStatus_("自由搭配請完成顏色、版型、紙感。");
+        return false;
       }
-      if(state.plan === "premium"){
-        if(!state.premium_color){
-          if(!silent) warnStatus_("精品設計請先選精品底色。");
+      if(state.plan === "premium" && !state.premium_color){
+        if(!silent) warnStatus_("精品設計請先選精品底色。");
+        return false;
+      }
+    }
+
+    if(pageIndex === 1){
+      const slogan = safeText_($("slogan")?.value);
+      if(slogan.length > 40){
+        if(!silent) warnStatus_("一句話介紹建議控制在 40 字內，閱讀會更清楚。");
+        return false;
+      }
+    }
+
+    if(pageIndex === 2){
+      const email = safeText_($("email")?.value);
+      if(email && !isValidEmail_(email)){
+        if(!silent) warnStatus_("Email 格式看起來不正確，請再確認。");
+        return false;
+      }
+    }
+
+    if(pageIndex === 3){
+      for(const id of urlFields){
+        const v = safeText_($(id)?.value);
+        if(v && !looksLikeUrl_(v)){
+          if(!silent) warnStatus_("連結欄位請貼完整網址，例如：https://...");
           return false;
         }
       }
@@ -947,7 +999,7 @@ import {
     if(pageIndex === 4){
       if(state.mode === "fill"){
         if(!state.invite && !state.sig){
-          if(!silent) warnStatus_("這個填單連結缺少 invite 或 sig，請使用正式開通連結進入。");
+          if(!silent) warnStatus_("這個填單連結缺少 invite 或 sig，請使用正式填單連結進入。");
           return false;
         }
       }
@@ -992,7 +1044,7 @@ import {
       makeSummaryRow_("姓名 / 職稱", `${nameText} / ${titleText}`),
       makeSummaryRow_("單位", unitText),
       makeSummaryRow_("聯絡方式", `${phoneText}｜${lineText}`),
-      makeSummaryRow_("多媒體連結", `${mediaCount} 筆`),
+      makeSummaryRow_("可點擊連結", `${mediaCount} 筆`),
       makeSummaryRow_("已選圖片", `${photoCount} / ${photoLimit} 張`)
     ].join("");
   }
@@ -1067,7 +1119,7 @@ import {
       setBusy_(true);
       showProgress_(10, "正在測試連線…");
       const j = await gasPing_();
-      showProgress_(100, "連線成功");
+      showProgress_(100, "連線正常");
       logStatus_("連線正常。\n" + JSON.stringify(j, null, 2));
     }catch(err){
       badStatus_("連線失敗： " + String(err?.message || err));
@@ -1085,14 +1137,17 @@ import {
       return;
     }
 
-    const finalOk = validatePage_(0, { silent: false }) && validatePage_(4, { silent: false });
+    let finalOk = true;
+    for(let i = 0; i < PAGE_TOTAL; i++){
+      finalOk = finalOk && validatePage_(i, { silent: false });
+    }
     if(!finalOk) return;
 
     const draftPayload = collectPayload_();
     const currentFingerprint = await fingerprintPayload_(draftPayload);
 
     if(state.lastSubmitFingerprint && state.lastSubmitFingerprint === currentFingerprint && Date.now() < state.submitLockedUntil){
-      warnStatus_("偵測到剛剛送出的是同一份資料，先不要重複送出。");
+      warnStatus_("偵測到剛剛送出的是同一份資料，請先不要重複送出。");
       return;
     }
 
@@ -1119,11 +1174,9 @@ import {
         }
       }
 
-      if(state.mode === "fill"){
-        if(!state.invite && !state.sig){
-          warnStatus_("這個表單缺少 invite 或 sig，請使用正式填單連結。");
-          return;
-        }
+      if(state.mode === "fill" && !state.invite && !state.sig){
+        warnStatus_("這個表單缺少 invite 或 sig，請使用正式填單連結。");
+        return;
       }
 
       if(!state.authReady){
@@ -1131,14 +1184,14 @@ import {
         return;
       }
 
-      showProgress_(10, "檢查資料中…");
+      showProgress_(10, "整理資料中…");
 
       const payload = collectPayload_();
       payload.tenant = state.tenant;
       payload.invite = state.invite || "";
 
       if(state.mode === "fill"){
-        showProgress_(25, "建立保留資料中…");
+        showProgress_(24, "確認送出資料中…");
         const rsv = await gasReserve_();
 
         if(!rsv || !rsv.ok){
@@ -1149,22 +1202,21 @@ import {
         state.token = safeText_(rsv.token);
         updateHeaderUI_();
 
-        showProgress_(40, "正在處理圖片…");
+        showProgress_(42, "處理圖片中…");
         const uploadRes = await uploadAll_(state.reserveId);
         Object.assign(payload, uploadRes);
 
-        // 對齊 GAS v700.1
         payload.reserve_id = state.reserveId;
-        payload.id = state.reserveId; // 向下相容保留
+        payload.id = state.reserveId;
         payload.token = state.token;
         if(state.sig) payload.sig = state.sig;
         if(state.invite) payload.invite = state.invite;
         if(state.uid) payload.uid = state.uid;
 
-        showProgress_(85, "正在寫入名片資料…");
+        showProgress_(84, "建立名片預覽中…");
         const created = await gasCreate_(payload);
 
-        showProgress_(100, "送出完成");
+        showProgress_(100, "已完成");
 
         if(created && created.ok){
           const finalId = safeText_(created.formal_id || created.id);
@@ -1172,21 +1224,16 @@ import {
           updateHeaderUI_();
           el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
+          state.serviceCode = buildServiceCode_(state.id);
 
-          logStatus_(
-            `✅ 已完成\n` +
-            `正式名片 ID：${state.id || "未取得"}\n` +
-            `reserve_id：${state.reserveId || "-"}\n` +
-            `invite：${state.invite || "無"}\n` +
-            (created.duplicate ? "系統判定這筆資料已存在，沒有重複建立。\n" : "") +
-            `成品連結：${location.origin}${location.pathname.replace(/form\.html.*/,"")}index.html?id=${encodeURIComponent(state.id)}`
-          );
+          logStatus_(buildSuccessMessage_("create", created));
+          appendSuccessActions_();
         }else{
           el.dot.style.background = "var(--bad)";
-          logStatus_("送出完成，但回傳結果不是 ok。\n" + JSON.stringify(created, null, 2));
+          logStatus_("已完成送出，但回傳結果不是 ok。\n" + JSON.stringify(created, null, 2));
         }
       }else{
-        showProgress_(40, "正在處理圖片…");
+        showProgress_(42, "處理圖片中…");
         const uploadRes = await uploadAll_(state.id);
         Object.assign(payload, uploadRes);
 
@@ -1195,28 +1242,100 @@ import {
         if(state.invite) payload.invite = state.invite;
         if(state.uid) payload.uid = state.uid;
 
-        showProgress_(85, "正在更新資料…");
+        showProgress_(84, "更新名片預覽中…");
         const updated = await gasUpdate_(payload);
 
-        showProgress_(100, "更新完成");
+        showProgress_(100, "已完成");
 
         if(updated && updated.ok){
           el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
-          logStatus_(`✅ 更新成功\n名片 ID：${state.id}\ninvite：${state.invite || "無"}`);
+          state.serviceCode = buildServiceCode_(state.id);
+
+          logStatus_(buildSuccessMessage_("update", updated));
+          appendSuccessActions_();
         }else{
           el.dot.style.background = "var(--bad)";
-          logStatus_("更新完成，但回傳結果不是 ok。\n" + JSON.stringify(updated, null, 2));
+          logStatus_("已完成更新，但回傳結果不是 ok。\n" + JSON.stringify(updated, null, 2));
         }
       }
     }catch(err){
       el.dot.style.background = "var(--bad)";
       badStatus_("送出失敗： " + String(err?.message || err));
     }finally{
-      setTimeout(hideProgress_, 800);
+      setTimeout(hideProgress_, 900);
       setBusy_(false);
       state.submitting = false;
     }
+  }
+
+  function buildSuccessMessage_(kind, response){
+    const duplicate = !!response?.duplicate;
+    const actionLine = kind === "update"
+      ? "您的智慧名片資料已更新完成"
+      : "我們已收到您的智慧名片資料";
+
+    const seq = state.serviceCode || buildServiceCode_(state.id);
+    const previewUrl = buildPreviewUrl_();
+
+    return [
+      actionLine,
+      "",
+      "資料序號",
+      seq,
+      "",
+      "請將此資料序號回報給客服",
+      "客服會協助確認並開通名片",
+      "",
+      duplicate ? "系統已辨識為既有資料，未重複建立新卡" : "您現在可以先預覽名片內容",
+      previewUrl ? `名片預覽：${previewUrl}` : ""
+    ].filter(Boolean).join("\n");
+  }
+
+  function appendSuccessActions_(){
+    if(document.getElementById("successActions")) return;
+
+    const wrap = document.createElement("div");
+    wrap.id = "successActions";
+    wrap.className = "btns";
+    wrap.style.marginTop = "14px";
+
+    const btnPreview = document.createElement("button");
+    btnPreview.type = "button";
+    btnPreview.textContent = "預覽名片";
+    btnPreview.addEventListener("click", ()=>{
+      const url = buildPreviewUrl_();
+      if(!url){
+        warnStatus_("目前尚未取得名片預覽連結。");
+        return;
+      }
+      window.open(url, "_blank", "noopener");
+    });
+
+    const btnCopySeq = document.createElement("button");
+    btnCopySeq.type = "button";
+    btnCopySeq.className = "secondary";
+    btnCopySeq.textContent = "複製資料序號";
+    btnCopySeq.addEventListener("click", async ()=>{
+      const seq = state.serviceCode || buildServiceCode_(state.id);
+      try{
+        await copyText_(seq);
+        logStatus_(
+          `我們已收到您的智慧名片資料\n\n資料序號\n${seq}\n\n請將此資料序號回報給客服\n客服會協助確認並開通名片`
+        );
+      }catch(_){
+        warnStatus_("複製失敗，請手動複製資料序號。");
+      }
+    });
+
+    wrap.appendChild(btnPreview);
+    wrap.appendChild(btnCopySeq);
+    el.status.insertAdjacentElement("afterend", wrap);
+  }
+
+  function removeSuccessActions_(){
+    const old = document.getElementById("successActions");
+    if(old) old.remove();
   }
 
   function onReset_(){
@@ -1240,6 +1359,8 @@ import {
     state.lastSubmitFingerprint = "";
     state.submitLockedUntil = 0;
     state.page = 0;
+    state.serviceCode = "";
+
     if(state.mode === "fill"){
       state.reserveId = "";
       state.id = "";
@@ -1253,6 +1374,7 @@ import {
     updateHeaderUI_();
 
     hideProgress_();
+    removeSuccessActions_();
     el.dot.style.background = "var(--warn)";
     logStatus_("表單已重設。invite 參數仍保留在本次頁面流程中。");
   }
@@ -1266,18 +1388,18 @@ import {
       p[CANON.color] = state.color || "";
       p[CANON.style] = state.style || "";
       p[CANON.paper] = state.paper || "";
-      p["free_color"] = state.color || "";
-      p["free_style"] = state.style || "";
-      p["free_paper"] = state.paper || "";
+      p.free_color = state.color || "";
+      p.free_style = state.style || "";
+      p.free_paper = state.paper || "";
       p[CANON.premium_color] = "";
     }else if(state.plan === "premium"){
       p[CANON.premium_color] = state.premium_color || "";
       p[CANON.color] = "";
       p[CANON.style] = "";
       p[CANON.paper] = "";
-      p["free_color"] = "";
-      p["free_style"] = "";
-      p["free_paper"] = "";
+      p.free_color = "";
+      p.free_style = "";
+      p.free_paper = "";
     }else{
       p[CANON.color] = "";
       p[CANON.style] = "";
@@ -1288,7 +1410,8 @@ import {
     fields.forEach(id=>{
       const node = $(id);
       if(!node) return;
-      p[id] = String(node.value || "").trim();
+      const val = String(node.value || "").trim();
+      p[id] = urlFields.includes(id) ? normalizeUrl_(val) : val;
     });
 
     return p;
@@ -1341,8 +1464,8 @@ import {
       item.fastUrl = fastUrl;
 
       done++;
-      const percent = 40 + Math.round((done / tasks.length) * 30);
-      showProgress_(percent, `正在上傳圖片：${slot.label}`);
+      const percent = 42 + Math.round((done / tasks.length) * 28);
+      showProgress_(percent, `處理圖片中：${slot.label}`);
     }
 
     return out;
@@ -1364,12 +1487,12 @@ import {
     state.crop.dragging = false;
 
     el.cropTitle.textContent = `調整 ${slot.label} 位置`;
-    el.cropDesc.textContent = "可拖移位置，並用按鈕放大、縮小、重設後再套用。";
+    el.cropDesc.textContent = "可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。";
     el.cropMeta.textContent = slot.key === "avatar"
-      ? "目前是正方形安全框。"
+      ? "可左右、上下拖移圖片。\n建議把人物臉部置中。\n縮小可保留更多畫面。"
       : slot.key === "logo"
-        ? "目前是 Logo 寬框。"
-        : "目前是橫式照片框。";
+        ? "Logo 建議置中，四周保留適當空間。\n縮小可避免圖樣太貼邊。"
+        : "可左右、上下拖移圖片。\n建議把主要畫面置中，避免被裁切太多。";
 
     el.cropStage.classList.remove("ratio-square", "ratio-logo", "ratio-photo");
     el.cropStage.classList.add(slot.stageClass);
@@ -1384,7 +1507,7 @@ import {
       state.crop.x = restoreState.x;
       state.crop.y = restoreState.y;
       state.crop.minScale = computeMinScale_();
-      state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4);
+      state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4.5);
       state.crop.scale = clamp_(state.crop.scale, state.crop.minScale, state.crop.maxScale);
       clampCropPosition_();
     }else{
@@ -1421,7 +1544,7 @@ import {
 
   function resetCropTransform_(){
     state.crop.minScale = computeMinScale_();
-    state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4);
+    state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4.5);
     state.crop.scale = state.crop.minScale;
     state.crop.x = 0;
     state.crop.y = 0;
@@ -1478,7 +1601,7 @@ import {
     ctx.drawImage(img, x, y, iw, ih);
 
     ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,.28)";
+    ctx.strokeStyle = "rgba(255,255,255,.30)";
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, cw - 2, ch - 2);
     ctx.restore();
@@ -1589,17 +1712,15 @@ import {
       if(
         node === el.btnPrev || node === el.btnNext || node === el.btnTest ||
         node === el.btnSubmit || node === el.btnReset ||
-        node === el.cropZoomOut || node === el.cropZoomIn || node === el.cropReset ||
-        node === el.cropCancel || node === el.cropApply
+        node === el.cropZoomOut || node === el.cropZoomIn || node === el.cropCenter ||
+        node === el.cropReset || node === el.cropCancel || node === el.cropApply
       ){
         return;
       }
       if(disabled){
         node.setAttribute("disabled", "disabled");
       }else{
-        if(!(node.dataset && node.dataset.keepDisabled === "1")){
-          node.removeAttribute("disabled");
-        }
+        node.removeAttribute("disabled");
       }
     });
 
@@ -1678,5 +1799,53 @@ import {
 
   function nextFrame_(){
     return new Promise(resolve => requestAnimationFrame(() => resolve()));
+  }
+
+  function isValidEmail_(email){
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function looksLikeUrl_(value){
+    const v = safeText_(value);
+    if(!v) return true;
+    return /^https?:\/\/.+/i.test(v);
+  }
+
+  function normalizeUrl_(value){
+    const v = safeText_(value);
+    if(!v) return "";
+    if(/^https?:\/\//i.test(v)) return v;
+    if(/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(v)) return `https://${v}`;
+    return v;
+  }
+
+  function buildPreviewUrl_(){
+    const id = state.id || state.reserveId;
+    if(!id) return "";
+    const url = new URL("./index.html", location.href);
+    url.searchParams.set("id", id);
+    return url.toString();
+  }
+
+  function buildServiceCode_(id){
+    const raw = safeText_(id || state.id || state.reserveId);
+    if(!raw) return "HSC-PENDING";
+    const tail = raw.replace(/[^A-Za-z0-9]/g, "").slice(-4).toUpperCase() || "0000";
+    return `HSC-${tail}`;
+  }
+
+  async function copyText_(text){
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
   }
 })();
