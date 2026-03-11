@@ -1,11 +1,11 @@
 <!-- ================================
-     index.html v523.0 (COMPLETE OVERWRITE)
+     index.html v523.1 (COMPLETE OVERWRITE)
 
-     ✅ 成品最下方新增 QRcode 區塊
-     ✅ QRcode 放在照片區下方、版本號上方
-     ✅ QRcode 中央放小太陽 icon
-     ✅ 門面最上方文案縮小 + 動態平衡 + 智慧斷句
-     ✅ Logo 維持圓角方框
+     ✅ 恢復門面 QRcode
+     ✅ 恢復成品底部 QRcode 容器
+     ✅ 恢復門面 bootstrap script
+     ✅ 文案縮小 + 動態平衡 + 智慧斷句
+     ✅ 主網站 / 影音社群 / CTA 分區
 ================================ -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -13,12 +13,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v523.0</title>
+  <title>天使幸福智慧名片館 v523.1</title>
 
-  <link rel="manifest" href="./manifest.json?v=523.0" />
+  <link rel="manifest" href="./manifest.json?v=523.1" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.0" />
-  <link rel="icon" href="./icons/icon-192.png?v=523.0" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.1" />
+  <link rel="icon" href="./icons/icon-192.png?v=523.1" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -27,7 +27,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=523.0" />
+  <meta property="og:image" content="og-card.png?v=523.1" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -465,11 +465,6 @@
           <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
         </button>
 
-        <button class="btn-cta breathe" id="btnLinePrivateCta" type="button"
-          onclick="window.goLineIntro && window.goLineIntro()">
-          <i class="fa-brands fa-line"></i> 私訊 LINE
-        </button>
-
         <button class="btn-cta subtle" id="btnFeature" type="button">
           <i class="fa-solid fa-circle-info"></i> 產品特色說明
         </button>
@@ -497,11 +492,6 @@
 
         <button class="btn-cta subtle" id="btnLineOaCta2" type="button">
           <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
-        </button>
-
-        <button class="btn-cta breathe" id="btnLinePrivateCta2" type="button"
-          onclick="window.goLineIntro && window.goLineIntro()">
-          <i class="fa-brands fa-line"></i> 私訊 LINE
         </button>
 
         <button class="btn-cta subtle" id="btnFeature2" type="button">
@@ -580,7 +570,6 @@
           <div class="photo-grid" id="photoGrid"></div>
         </div>
 
-        <!-- ✅ 新增：成品最下方 QRcode 區塊 -->
         <div class="qr-bottom" id="bottomQrSection">
           <div class="qr-bottom-head">
             <div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">
@@ -600,12 +589,360 @@
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v523.0</div>
+        <div class="version-tag" id="versionTag">v523.1</div>
       </div>
     </section>
   </main>
 
+  <div class="modal-mask" id="featureMask" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="產品特色說明">
+      <div class="modal-hd">
+        <div class="modal-title"><i class="fa-solid fa-circle-info"></i> 產品特色說明</div>
+        <button class="modal-close" type="button" id="featureCloseBtn">關閉</button>
+      </div>
+      <div class="modal-bd">
+        <div class="k"><b>自由搭配</b>：5色 × 3版型 × 3紙感，風格清爽、可快速客製。</div>
+        <div class="k"><b>精品設計</b>：7款精品底色，整體質感更精緻，適合高端呈現。</div>
+        <div class="k"><b>一鍵分享</b>：可分享智慧名片館，作為品牌入口與導流主頁。</div>
+        <div class="k"><b>QRcode 展示</b>：可現場展示，也可帶走智慧名片館入口。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="invite-mask" id="inviteMask" aria-hidden="true">
+    <div class="invite-box" role="dialog" aria-modal="true" aria-label="輸入邀請碼">
+      <div class="invite-hd">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i class="fa-solid fa-key"></i> 輸入邀請碼後開啟表單
+        </div>
+        <button class="invite-btn" type="button" id="inviteCloseBtn">關閉</button>
+      </div>
+      <div class="invite-bd">
+        <div>此表單採邀請制：請到後台取得邀請碼，提供給客戶填寫。</div>
+        <div class="invite-row">
+          <input class="invite-input" id="inviteInput" type="text" inputmode="text" autocomplete="off" placeholder="例如：ABCD-1234" />
+          <button class="invite-btn invite-primary" type="button" id="inviteGoBtn">開啟表單</button>
+        </div>
+        <div style="margin-top:10px; color:rgba(255,255,255,0.70); font-size:13px;">
+          ※ 成品模式（?view=1）不提供填表入口。
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="./app.js?v=523.0"></script>
+  <script src="./app.js?v=523.1"></script>
+
+  <script>
+    (function(){
+      "use strict";
+
+      var VERSION = "523.1";
+      var LINE_OA_URL = "https://lin.ee/3r2ZePN";
+      var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+      var DEMO_ID = "TW0001";
+
+      function qs(id){ return document.getElementById(id); }
+      function sp(){ try{return new URLSearchParams(location.search||"");}catch(e){return new URLSearchParams();} }
+      function isClean(){
+        var p = sp();
+        return (p.get("view")==="1") || (p.get("clean")==="1");
+      }
+
+      var __scrollTop = 0;
+      function lockScroll(){
+        try{
+          __scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+          document.documentElement.style.overflow = "hidden";
+          document.body.style.overflow = "hidden";
+          document.body.style.position = "fixed";
+          document.body.style.top = (-__scrollTop) + "px";
+          document.body.style.left = "0";
+          document.body.style.right = "0";
+          document.body.style.width = "100%";
+        }catch(e){}
+      }
+      function unlockScroll(){
+        try{
+          document.documentElement.style.overflow = "";
+          document.body.style.overflow = "";
+          document.body.style.position = "";
+          document.body.style.top = "";
+          document.body.style.left = "";
+          document.body.style.right = "";
+          document.body.style.width = "";
+          window.scrollTo(0, __scrollTop || 0);
+        }catch(e){}
+      }
+
+      function applyCleanUI(){
+        if(!isClean()) return;
+        document.body.classList.add("clean");
+        var panel = qs("admin-panel");
+        var hot = qs("adminHotspotBR");
+        var fab = qs("cleanShareFab");
+        if(panel) panel.style.display = "none";
+        if(hot) hot.style.display = "none";
+        if(fab) fab.style.display = "flex";
+      }
+
+      function getCurrentCardId(){
+        try{
+          var p = sp();
+          var id = (p.get("id") || p.get("ref") || "").trim();
+          return id || DEMO_ID;
+        }catch(e){
+          return DEMO_ID;
+        }
+      }
+
+      function buildHubShareUrlFallback(){
+        try{
+          if(typeof window.__getHubShareUrl === "function"){
+            return window.__getHubShareUrl();
+          }
+        }catch(e){}
+        try{
+          var u = new URL(BASE_URL);
+          var id = getCurrentCardId();
+          if(id) u.searchParams.set("ref", id);
+          return u.toString();
+        }catch(e){
+          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
+        }
+      }
+
+      function buildFacadeHubQrUrl(){
+        try{
+          var u = new URL(BASE_URL);
+          u.searchParams.set("ref", getCurrentCardId());
+          return u.toString();
+        }catch(e){
+          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
+        }
+      }
+
+      function renderFacadeQr(){
+        var mount = qs("facadeQrGrid");
+        if(!mount || isClean()) return;
+        mount.innerHTML = "";
+
+        var qrUrl = buildFacadeHubQrUrl();
+        try{
+          if(window.QRCode){
+            new QRCode(mount, {
+              text: qrUrl,
+              width: 148,
+              height: 148,
+              colorDark: "#433227",
+              colorLight: "#ffffff",
+              correctLevel: QRCode.CorrectLevel.H
+            });
+            return;
+          }
+        }catch(e){}
+
+        var fallback = document.createElement("div");
+        fallback.style.cssText = "font-size:12px;line-height:1.6;color:#6b5a4d;text-align:center;padding:10px;";
+        fallback.textContent = "QRcode 載入失敗";
+        mount.appendChild(fallback);
+      }
+
+      function bindShareFallback(){
+        function bindOne(id){
+          var btn = qs(id);
+          if(!btn) return;
+
+          btn.addEventListener("click", function(e){
+            try{
+              var url = buildHubShareUrlFallback();
+
+              if(navigator.share){
+                e.preventDefault();
+                navigator.share({
+                  title: "天使幸福智慧名片館",
+                  text: "分享智慧名片館",
+                  url: url
+                }).catch(function(){});
+                return;
+              }
+
+              if(navigator.clipboard && navigator.clipboard.writeText){
+                e.preventDefault();
+                navigator.clipboard.writeText(url).then(function(){
+                  alert("✅ 已複製智慧名片館連結");
+                }).catch(function(){
+                  alert("⚠️ 無法複製，請手動複製網址");
+                });
+              }else{
+                alert("⚠️ 無法分享/複製，請手動複製網址");
+              }
+            }catch(err){}
+          }, true);
+        }
+
+        bindOne("btnShare");
+        bindOne("btnSharePremium");
+      }
+
+      function bindLineOa(){
+        function openOA(){
+          try{ window.open(LINE_OA_URL, "_blank", "noopener"); }
+          catch(e){ location.href = LINE_OA_URL; }
+        }
+        ["btnLineOaCta","btnLineOaCta2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); openOA(); }, {passive:false});
+        });
+      }
+
+      function bindFeature(){
+        var mask = qs("featureMask");
+        var close = qs("featureCloseBtn");
+        function open(){
+          if(!mask) return;
+          mask.style.display="flex";
+          mask.setAttribute("aria-hidden","false");
+          lockScroll();
+        }
+        function shut(){
+          if(!mask) return;
+          mask.style.display="none";
+          mask.setAttribute("aria-hidden","true");
+          unlockScroll();
+        }
+        ["btnFeature","btnFeature2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
+        });
+        if(close) close.addEventListener("click", function(){ shut(); });
+        if(mask) mask.addEventListener("click", function(e){
+          if(e.target === mask) shut();
+        });
+      }
+
+      function normalizeInvite(code){
+        return (code || "").replace(/\u3000/g, " ").replace(/\s+/g, "").trim();
+      }
+
+      function bindInviteGate(){
+        var mask = qs("inviteMask");
+        var close = qs("inviteCloseBtn");
+        var input = qs("inviteInput");
+        var go = qs("inviteGoBtn");
+
+        function open(){
+          if(isClean()) return;
+          if(!mask) return;
+          mask.style.display="flex";
+          mask.setAttribute("aria-hidden","false");
+          lockScroll();
+          setTimeout(function(){ try{ input && input.focus(); }catch(e){} }, 60);
+        }
+        function shut(){
+          if(!mask) return;
+          mask.style.display="none";
+          mask.setAttribute("aria-hidden","true");
+          unlockScroll();
+        }
+        function goForm(){
+          if(isClean()) return;
+          var code = normalizeInvite(input && input.value ? input.value : "");
+          if(!code){
+            try{ input && input.focus(); }catch(e){}
+            return;
+          }
+          var url = "./form.html?v=" + encodeURIComponent(VERSION) + "&invite=" + encodeURIComponent(code);
+          try{ window.open(url, "_blank", "noopener"); }catch(e){ location.href = url; }
+        }
+
+        ["btnInviteGate","btnInviteGate2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
+        });
+
+        if(close) close.addEventListener("click", function(){ shut(); });
+        if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) shut(); });
+
+        if(go) go.addEventListener("click", function(){ goForm(); });
+        if(input) input.addEventListener("keydown", function(e){
+          if(e.key === "Enter"){ e.preventDefault(); goForm(); }
+          if(e.key === "Escape"){ e.preventDefault(); shut(); }
+        });
+      }
+
+      function bindPlanFallback(){
+        if(typeof window.setPlan === "function") return;
+
+        var freeBtn = qs("btnPlanFree");
+        var premBtn = qs("btnPlanPremium");
+        var free = qs("free-controls");
+        var prem = qs("premium-controls");
+        var badge = qs("premiumBadge");
+
+        function setActivePlan(plan){
+          try{
+            if(plan === "premium"){
+              if(free) free.style.display = "none";
+              if(prem) prem.style.display = "";
+              if(badge) badge.style.display = "";
+              if(freeBtn) freeBtn.classList.remove("active");
+              if(premBtn) premBtn.classList.add("active");
+            }else{
+              if(prem) prem.style.display = "none";
+              if(free) free.style.display = "";
+              if(badge) badge.style.display = "none";
+              if(premBtn) premBtn.classList.remove("active");
+              if(freeBtn) freeBtn.classList.add("active");
+            }
+          }catch(e){}
+        }
+
+        if(freeBtn) freeBtn.addEventListener("click", function(e){
+          e.preventDefault();
+          setActivePlan("free");
+        }, {passive:false});
+
+        if(premBtn) premBtn.addEventListener("click", function(e){
+          e.preventDefault();
+          setActivePlan("premium");
+        }, {passive:false});
+      }
+
+      function boot(){
+        applyCleanUI();
+        bindLineOa();
+        bindFeature();
+        bindInviteGate();
+        bindShareFallback();
+        bindPlanFallback();
+        renderFacadeQr();
+
+        var fab = qs("cleanShareFab");
+        if(fab){
+          fab.addEventListener("click", function(){
+            var url = buildHubShareUrlFallback();
+            if(navigator.share){
+              navigator.share({
+                title: "天使幸福智慧名片館",
+                text: "分享智慧名片館",
+                url: url
+              }).catch(function(){});
+            }else if(navigator.clipboard && navigator.clipboard.writeText){
+              navigator.clipboard.writeText(url).then(function(){
+                alert("✅ 已複製智慧名片館連結");
+              });
+            }
+          });
+        }
+      }
+
+      if(document.readyState === "loading"){
+        document.addEventListener("DOMContentLoaded", boot, {once:true});
+      }else{
+        boot();
+      }
+    })();
+  </script>
 </body>
 </html>
