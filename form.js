@@ -14,11 +14,12 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "711.0";
+  const VERSION = "711.1";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const DEFAULT_TENANT = "angel";
   const PAGE_TOTAL = 6;
   const SUBMIT_LOCK_MS = 15000;
+  const CUSTOMER_SERVICE_URL = "https://lin.ee/3r2ZePN";
 
   const firebaseConfig = {
     apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
@@ -204,10 +205,9 @@ import {
     authReady: false,
     uid: "",
     lastSubmitFingerprint: "",
-    prefilling: false,
+    prefilling: false
 
-    serviceCode: "",
-
+    ,
     crop: {
       open: false,
       slotKey: "",
@@ -1134,6 +1134,16 @@ import {
     return await r.json();
   }
 
+  function getFinalCardId_(response){
+    return safeText_(
+      response?.formal_id ||
+      response?.id ||
+      response?.card_id ||
+      state.id ||
+      state.reserveId
+    );
+  }
+
   async function onPing_(){
     try{
       setBusy_(true);
@@ -1239,12 +1249,10 @@ import {
         showProgress_(100, "已完成");
 
         if(created && created.ok){
-          const finalId = safeText_(created.formal_id || created.id);
-          state.id = finalId || state.id;
+          state.id = getFinalCardId_(created);
           updateHeaderUI_();
           if(el.dot) el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
-          state.serviceCode = buildServiceCode_(state.id);
 
           logStatus_(buildSuccessMessage_("create", created));
           appendSuccessActions_();
@@ -1268,9 +1276,10 @@ import {
         showProgress_(100, "已完成");
 
         if(updated && updated.ok){
+          state.id = getFinalCardId_(updated);
+          updateHeaderUI_();
           if(el.dot) el.dot.style.background = "var(--ok)";
           state.lastSubmitFingerprint = currentFingerprint;
-          state.serviceCode = buildServiceCode_(state.id);
 
           logStatus_(buildSuccessMessage_("update", updated));
           appendSuccessActions_();
@@ -1289,67 +1298,87 @@ import {
     }
   }
 
+  function buildCustomerServiceMessage_(){
+    const id = safeText_(state.id || state.reserveId);
+    if(!id) return "您好，我已送出智慧名片表單，請協助確認。";
+
+    return [
+      "您好，我已送出智慧名片表單。",
+      `我的資料序號是：${id}`,
+      "請協助確認並開通名片，謝謝。"
+    ].join("\n");
+  }
+
   function buildSuccessMessage_(kind, response){
     const duplicate = !!response?.duplicate;
     const actionLine = kind === "update"
       ? "您的智慧名片資料已更新完成"
       : "我們已收到您的智慧名片資料";
 
-    const seq = state.serviceCode || buildServiceCode_(state.id);
+    const finalId = getFinalCardId_(response);
     const previewUrl = buildPreviewUrl_();
 
     return [
       actionLine,
       "",
-      "資料序號",
-      seq,
+      `您的資料序號：${finalId || "處理中"}`,
       "",
-      "請將此資料序號回報給客服",
-      "客服會協助確認並開通名片",
+      "請先複製下方資料序號回傳給客服",
+      "客服會協助確認並開通您的智慧名片",
       "",
       duplicate ? "系統已辨識為既有資料，未重複建立新卡" : "您現在可以先預覽名片內容",
-      previewUrl ? `名片預覽：${previewUrl}` : ""
+      previewUrl ? `成品預覽：${previewUrl}` : ""
     ].filter(Boolean).join("\n");
   }
 
   function appendSuccessActions_(){
-    if(document.getElementById("successActions") || !el.status) return;
+    removeSuccessActions_();
+    if(!el.status) return;
 
     const wrap = document.createElement("div");
     wrap.id = "successActions";
     wrap.className = "btns";
     wrap.style.marginTop = "14px";
 
-    const btnPreview = document.createElement("button");
-    btnPreview.type = "button";
-    btnPreview.textContent = "預覽名片";
-    btnPreview.addEventListener("click", ()=>{
-      const url = buildPreviewUrl_();
-      if(!url){
-        warnStatus_("目前尚未取得名片預覽連結。");
-        return;
-      }
-      window.open(url, "_blank", "noopener");
-    });
-
-    const btnCopySeq = document.createElement("button");
-    btnCopySeq.type = "button";
-    btnCopySeq.className = "secondary";
-    btnCopySeq.textContent = "複製資料序號";
-    btnCopySeq.addEventListener("click", async ()=>{
-      const seq = state.serviceCode || buildServiceCode_(state.id);
+    const btnCopyMessage = document.createElement("button");
+    btnCopyMessage.type = "button";
+    btnCopyMessage.textContent = "複製 ID 回傳客服";
+    btnCopyMessage.addEventListener("click", async ()=>{
       try{
-        await copyText_(seq);
+        await copyText_(buildCustomerServiceMessage_());
         logStatus_(
-          `我們已收到您的智慧名片資料\n\n資料序號\n${seq}\n\n請將此資料序號回報給客服\n客服會協助確認並開通名片`
+          buildSuccessMessage_(state.mode === "update" ? "update" : "create", {}) +
+          "\n\n✅ 已複製可直接回傳客服的訊息"
         );
       }catch(_){
         warnStatus_("複製失敗，請手動複製資料序號。");
       }
     });
 
+    const btnPreview = document.createElement("button");
+    btnPreview.type = "button";
+    btnPreview.className = "secondary";
+    btnPreview.textContent = "查看成品預覽";
+    btnPreview.addEventListener("click", ()=>{
+      const url = buildPreviewUrl_();
+      if(!url){
+        warnStatus_("目前尚未取得成品預覽連結。");
+        return;
+      }
+      window.open(url, "_blank", "noopener");
+    });
+
+    const btnService = document.createElement("button");
+    btnService.type = "button";
+    btnService.className = "ghost";
+    btnService.textContent = "聯繫客服";
+    btnService.addEventListener("click", ()=>{
+      window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
+    });
+
+    wrap.appendChild(btnCopyMessage);
     wrap.appendChild(btnPreview);
-    wrap.appendChild(btnCopySeq);
+    wrap.appendChild(btnService);
     el.status.insertAdjacentElement("afterend", wrap);
   }
 
@@ -1379,7 +1408,6 @@ import {
     state.lastSubmitFingerprint = "";
     state.submitLockedUntil = 0;
     state.page = 0;
-    state.serviceCode = "";
 
     if(state.mode === "fill"){
       state.reserveId = "";
@@ -1853,14 +1881,8 @@ import {
     if(!id) return "";
     const url = new URL("./index.html", location.href);
     url.searchParams.set("id", id);
+    url.searchParams.set("view", "1");
     return url.toString();
-  }
-
-  function buildServiceCode_(id){
-    const raw = safeText_(id || state.id || state.reserveId);
-    if(!raw) return "HSC-PENDING";
-    const tail = raw.replace(/[^A-Za-z0-9]/g, "").slice(-4).toUpperCase() || "0000";
-    return `HSC-${tail}`;
   }
 
   async function copyText_(text){
