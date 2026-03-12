@@ -14,7 +14,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "711.2";
+  const VERSION = "711.3";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const DEFAULT_TENANT = "angel";
   const PAGE_TOTAL = 6;
@@ -577,9 +577,9 @@ import {
       div.appendChild(sw);
     }
 
-    const text = document.createElement("span");
-    text.textContent = label;
-    div.appendChild(text);
+    const textNode = document.createElement("span");
+    textNode.textContent = label;
+    div.appendChild(textNode);
 
     div.addEventListener("click", ()=>{
       setChoice_(group, value);
@@ -1003,8 +1003,6 @@ import {
         el.btnNext.disabled = state.submitting || state.prefilling;
       }
     }
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function validatePage_(pageIndex, opt = {}){
@@ -1097,7 +1095,7 @@ import {
   }
 
   function makeSummaryRow_(label, value){
-    return `<div class="sumRow"><span>${escapeHtml_(label)}</span><strong>${escapeHtml_(value || "-")}</strong></div>`;
+    return `<div class="sumRow"><span>${escapeHtmlHtml_(label)}</span><strong>${escapeHtmlHtml_(value || "-")}</strong></div>`;
   }
 
   function labelOf_(list, value){
@@ -1270,7 +1268,7 @@ import {
         if(state.invite) payload.invite = state.invite;
         if(state.uid) payload.uid = state.uid;
 
-        showProgress_(84, "建立名片預覽中…");
+        showProgress_(84, "建立名片資料中…");
         const created = await gasCreate_(payload);
 
         showProgress_(100, "已完成");
@@ -1297,7 +1295,7 @@ import {
         if(state.invite) payload.invite = state.invite;
         if(state.uid) payload.uid = state.uid;
 
-        showProgress_(84, "更新名片預覽中…");
+        showProgress_(84, "更新名片資料中…");
         const updated = await gasUpdate_(payload);
 
         showProgress_(100, "已完成");
@@ -1325,37 +1323,21 @@ import {
     }
   }
 
-  function buildCustomerServiceMessage_(){
-    const id = safeText_(state.id || state.reserveId);
-    if(!id) return "您好，我已送出智慧名片表單，請協助確認。";
-
-    return [
-      "您好，我已送出智慧名片表單。",
-      `我的資料序號是：${id}`,
-      "請協助確認並開通名片，謝謝。"
-    ].join("\n");
-  }
-
   function buildSuccessMessage_(kind, response){
-    const duplicate = !!response?.duplicate;
+    const finalId = getFinalCardId_(response) || "處理中";
     const actionLine = kind === "update"
       ? "您的智慧名片資料已更新完成"
       : "我們已收到您的智慧名片資料";
 
-    const finalId = getFinalCardId_(response);
-    const previewUrl = buildPreviewUrl_();
-
     return [
       actionLine,
       "",
-      `您的資料序號：${finalId || "處理中"}`,
+      `您的資料序號：${finalId}`,
       "",
-      "請先複製下方資料序號回傳給客服",
-      "客服會協助確認並開通您的智慧名片",
-      "",
-      duplicate ? "系統已辨識為既有資料，未重複建立新卡" : "您現在可以先預覽名片內容",
-      previewUrl ? `成品預覽：${previewUrl}` : ""
-    ].filter(Boolean).join("\n");
+      "資料送出後，請複製 ID",
+      "點進下方按鈕，回覆客服",
+      "確認資料並製作您的名片。"
+    ].join("\n");
   }
 
   function appendSuccessActions_(){
@@ -1367,41 +1349,42 @@ import {
     wrap.className = "btns";
     wrap.style.marginTop = "14px";
 
-    const btnCopyMessage = document.createElement("button");
-    btnCopyMessage.type = "button";
-    btnCopyMessage.textContent = "複製 ID 回傳客服";
-    btnCopyMessage.addEventListener("click", async ()=>{
+    const btnCopyId = document.createElement("button");
+    btnCopyId.type = "button";
+    btnCopyId.textContent = "複製 ID";
+    btnCopyId.addEventListener("click", async ()=>{
+      const finalId = safeText_(state.id || state.reserveId);
+      if(!finalId){
+        warnStatus_("目前尚未取得資料序號。");
+        return;
+      }
       try{
-        await copyText_(buildCustomerServiceMessage_());
-        logStatus_("✅ 已複製可直接回傳客服的訊息\n\n" + buildCustomerServiceMessage_());
+        await copyText_(finalId);
+        logStatus_(
+          [
+            "✅ 已複製資料序號",
+            "",
+            `您的資料序號：${finalId}`,
+            "",
+            "資料送出後，請複製 ID",
+            "點進下方按鈕，回覆客服",
+            "確認資料並製作您的名片。"
+          ].join("\n")
+        );
       }catch(_){
         warnStatus_("複製失敗，請手動複製資料序號。");
       }
     });
 
-    const btnPreview = document.createElement("button");
-    btnPreview.type = "button";
-    btnPreview.className = "secondary";
-    btnPreview.textContent = "查看成品預覽";
-    btnPreview.addEventListener("click", ()=>{
-      const url = buildPreviewUrl_();
-      if(!url){
-        warnStatus_("目前尚未取得成品預覽連結。");
-        return;
-      }
-      window.open(url, "_blank", "noopener");
-    });
-
     const btnService = document.createElement("button");
     btnService.type = "button";
-    btnService.className = "ghost";
-    btnService.textContent = "聯繫客服";
+    btnService.className = "secondary";
+    btnService.textContent = "回覆客服";
     btnService.addEventListener("click", ()=>{
       window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
     });
 
-    wrap.appendChild(btnCopyMessage);
-    wrap.appendChild(btnPreview);
+    wrap.appendChild(btnCopyId);
     wrap.appendChild(btnService);
     el.status.insertAdjacentElement("afterend", wrap);
   }
@@ -1443,16 +1426,12 @@ import {
     syncChipsUI_();
     updateSummary_();
     renderPage_();
-    updateHeaderUI();
+    updateHeaderUI_();
     hideProgress_();
     removeSuccessActions_();
     renderLivePreview_();
     if(el.dot) el.dot.style.background = "var(--warn)";
     logStatus_("表單已重設。invite 參數仍保留在本次頁面流程中。");
-  }
-
-  function updateHeaderUI(){
-    updateHeaderUI_();
   }
 
   function collectPayload_(){
@@ -1882,7 +1861,7 @@ import {
     return arr.map(b => b.toString(16).padStart(2, "0")).join("");
   }
 
-  function escapeHtml_(s){
+  function escapeHtmlHtml_(s){
     return String(s ?? "")
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
@@ -1915,15 +1894,6 @@ import {
     if(/^https?:\/\//i.test(v)) return v;
     if(/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(v)) return `https://${v}`;
     return v;
-  }
-
-  function buildPreviewUrl_(){
-    const id = state.id || state.reserveId;
-    if(!id) return "";
-    const url = new URL("./index.html", location.href);
-    url.searchParams.set("id", id);
-    url.searchParams.set("view", "1");
-    return url.toString();
   }
 
   async function copyText_(text){
