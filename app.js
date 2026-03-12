@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.0",
+  VERSION: "v524.1",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -832,18 +832,8 @@ function buildHubShareUrl_(){
 }
 
 function buildBottomQrUrl_(){
-  try{
-    const u = new URL(location.href);
-    const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
-    u.searchParams.set("id", id);
-    u.searchParams.set("view", "1");
-    u.searchParams.delete("clean");
-    u.searchParams.delete("admin");
-    return u.toString();
-  }catch{
-    const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
-    return location.origin + location.pathname + "?id=" + encodeURIComponent(id) + "&view=1";
-  }
+  const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
+  return CONFIG.HUB_URL + "?id=" + encodeURIComponent(id) + "&view=1";
 }
 
 function buildQrImageUrl_(url, size){
@@ -873,6 +863,7 @@ function renderQr(options){
   } = options || {};
 
   if(!container || !url) return false;
+
   container.innerHTML = "";
 
   const img = document.createElement("img");
@@ -911,6 +902,7 @@ function renderBottomQr_(p){
   const sec = qs("bottomQrSection");
   const grid = qs("bottomQrGrid");
   const avatar = qs("bottomQrAvatar");
+
   if(!sec || !grid || !avatar) return;
 
   const qrUrl = buildBottomQrUrl_();
@@ -925,7 +917,7 @@ function renderBottomQr_(p){
     centerImgUrl: avatarUrl
   });
 
-  sec.style.display = "";
+  sec.style.display = "block";
 }
 
 function renderFeatureQrFromCurrent_(){
@@ -941,6 +933,13 @@ function renderFeatureQrFromCurrent_(){
   });
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
+
+function ensureBottomQrVisible_(){
+  if(!currentRow) return;
+  try{ renderBottomQr_(currentRow); }catch(e){}
+  setTimeout(()=>{ try{ renderBottomQr_(currentRow); }catch(e){} }, 300);
+  setTimeout(()=>{ try{ renderBottomQr_(currentRow); }catch(e){} }, 900);
+}
 
 function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
@@ -978,6 +977,8 @@ function renderCard(row){
 
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
+
+  ensureBottomQrVisible_();
 }
 
 function isIos_(){
@@ -1041,6 +1042,10 @@ window.addEventListener("appinstalled", ()=>{
   deferredInstallPrompt = null;
   updateInstallUi_();
 });
+
+window.addEventListener("load", ()=>{
+  ensureBottomQrVisible_();
+}, { once:true });
 
 (async function boot_(){
   try{
