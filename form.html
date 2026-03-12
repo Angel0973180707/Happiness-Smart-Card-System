@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v711.0</title>
+  <title>天使幸福智慧名片｜資料填寫 v711.2</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
@@ -23,7 +23,6 @@
       --shadow:0 16px 34px rgba(0,0,0,.26);
       --shadow-soft:0 8px 20px rgba(0,0,0,.16);
 
-      /* 字體整體縮小 */
       --fs:14px;
       --fs2:16px;
       --fs3:19px;
@@ -501,8 +500,9 @@
     .thumb img{
       width:100%;
       height:100%;
-      object-fit:cover;
+      object-fit:contain;
       display:block;
+      background:rgba(255,255,255,.02);
     }
 
     .miniRow{
@@ -799,6 +799,231 @@
       white-space:pre-line;
     }
 
+    /* ===== 內建成品預覽 ===== */
+    .previewWrap{
+      margin-top:14px;
+      border:1px solid rgba(123,220,255,.18);
+      border-radius:20px;
+      padding:14px;
+      background:linear-gradient(180deg, rgba(123,220,255,.05), rgba(255,255,255,.02));
+    }
+
+    .previewHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:12px;
+    }
+
+    .previewHead h3{
+      margin:0;
+      font-size:16px;
+      line-height:1.4;
+    }
+
+    .previewHead p{
+      margin:4px 0 0;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.8;
+    }
+
+    .previewStage{
+      display:flex;
+      justify-content:center;
+    }
+
+    .hsc-preview{
+      width:100%;
+      max-width:420px;
+      border-radius:28px;
+      overflow:hidden;
+      position:relative;
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:0 18px 40px rgba(0,0,0,.26);
+      background:#fffaf5;
+      color:#3e2f25;
+    }
+
+    .hsc-preview[data-plan="free"][data-color="c1"]{ background:linear-gradient(180deg,#fff7fb 0%,#fff3f7 100%); }
+    .hsc-preview[data-plan="free"][data-color="c2"]{ background:linear-gradient(180deg,#f7fbff 0%,#eef7ff 100%); }
+    .hsc-preview[data-plan="free"][data-color="c3"]{ background:linear-gradient(180deg,#fff9f3 0%,#fff2e6 100%); }
+    .hsc-preview[data-plan="free"][data-color="c4"]{ background:linear-gradient(180deg,#faf7ff 0%,#f2ecff 100%); }
+    .hsc-preview[data-plan="free"][data-color="c5"]{ background:linear-gradient(180deg,#f7fff9 0%,#edf9f0 100%); }
+
+    .hsc-preview[data-plan="premium"][data-premium="p1"]{ background:linear-gradient(180deg,#7d3041 0%,#5c2230 100%); color:#fff7f7; }
+    .hsc-preview[data-plan="premium"][data-premium="p2"]{ background:linear-gradient(180deg,#6c1f2b 0%,#4c1520 100%); color:#fff7f7; }
+    .hsc-preview[data-plan="premium"][data-premium="p3"]{ background:linear-gradient(180deg,#243a5b 0%,#17263d 100%); color:#f6f8ff; }
+    .hsc-preview[data-plan="premium"][data-premium="p4"]{ background:linear-gradient(180deg,#705c86 0%,#534166 100%); color:#fbf8ff; }
+    .hsc-preview[data-plan="premium"][data-premium="p5"]{ background:linear-gradient(180deg,#5f7181 0%,#44515d 100%); color:#f8fbff; }
+    .hsc-preview[data-plan="premium"][data-premium="p6"]{ background:linear-gradient(180deg,#d6bc74 0%,#b18b3f 100%); color:#fffaf1; }
+    .hsc-preview[data-plan="premium"][data-premium="p7"]{ background:linear-gradient(180deg,#5b463c 0%,#403028 100%); color:#fff8f3; }
+
+    .hsc-preview-banner{
+      height:132px;
+      position:relative;
+      background:linear-gradient(135deg, rgba(255,255,255,.30), rgba(255,255,255,.06));
+    }
+
+    .hsc-preview[data-style="s1"] .hsc-preview-banner{
+      border-bottom-left-radius:42% 34%;
+      border-bottom-right-radius:42% 34%;
+    }
+
+    .hsc-preview[data-style="s2"] .hsc-preview-banner{
+      border-bottom-left-radius:0;
+      border-bottom-right-radius:0;
+    }
+
+    .hsc-preview[data-style="s3"] .hsc-preview-banner{
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255,255,255,.62), rgba(255,255,255,.10) 48%, transparent 72%),
+        linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.06));
+      border-bottom-left-radius:22px;
+      border-bottom-right-radius:22px;
+    }
+
+    .hsc-preview-avatarWrap{
+      margin-top:-52px;
+      display:flex;
+      justify-content:center;
+      position:relative;
+      z-index:2;
+    }
+
+    .hsc-preview-avatar{
+      width:108px;
+      height:108px;
+      border-radius:999px;
+      overflow:hidden;
+      background:#fff;
+      border:5px solid rgba(255,255,255,.92);
+      box-shadow:0 12px 26px rgba(0,0,0,.18);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .hsc-preview-avatar img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .hsc-preview-logoWrap{
+      display:flex;
+      justify-content:center;
+      margin-top:12px;
+    }
+
+    .hsc-preview-logo{
+      width:74px;
+      height:74px;
+      border-radius:20px;
+      overflow:hidden;
+      background:rgba(255,255,255,.80);
+      box-shadow:0 8px 18px rgba(0,0,0,.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .hsc-preview-logo img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      background:transparent;
+    }
+
+    .hsc-preview-main{
+      padding:14px 16px 18px;
+    }
+
+    .hsc-preview-name{
+      font-size:24px;
+      line-height:1.3;
+      font-weight:1000;
+      text-align:center;
+      margin-top:10px;
+      word-break:break-word;
+    }
+
+    .hsc-preview-unit,
+    .hsc-preview-title,
+    .hsc-preview-slogan{
+      text-align:center;
+      margin-top:6px;
+      white-space:pre-line;
+      word-break:break-word;
+    }
+
+    .hsc-preview-unit{ font-size:13px; opacity:.84; font-weight:900; }
+    .hsc-preview-title{ font-size:14px; opacity:.88; font-weight:900; }
+    .hsc-preview-slogan{ font-size:13px; opacity:.9; line-height:1.8; }
+
+    .hsc-preview-block{
+      margin-top:14px;
+      padding:12px;
+      border-radius:16px;
+      background:rgba(255,255,255,.50);
+      border:1px solid rgba(0,0,0,.05);
+    }
+
+    .hsc-preview[data-plan="premium"] .hsc-preview-block{
+      background:rgba(255,255,255,.12);
+      border-color:rgba(255,255,255,.16);
+    }
+
+    .hsc-preview-blockTitle{
+      font-size:12px;
+      font-weight:1000;
+      margin-bottom:6px;
+      opacity:.92;
+    }
+
+    .hsc-preview-blockBody{
+      font-size:13px;
+      line-height:1.8;
+      white-space:pre-line;
+      word-break:break-word;
+    }
+
+    .hsc-preview-photoWall{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:8px;
+    }
+
+    .hsc-preview-photoItem{
+      aspect-ratio:1 / 1;
+      border-radius:14px;
+      overflow:hidden;
+      background:rgba(255,255,255,.18);
+      border:1px solid rgba(0,0,0,.05);
+    }
+
+    .hsc-preview-photoItem img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .hsc-preview-empty{
+      padding:16px;
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.8;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+    }
+
     @media(max-width:860px){
       .stepTrack{
         grid-template-columns:repeat(3, minmax(0,1fr));
@@ -856,6 +1081,10 @@
       button{
         width:100%;
       }
+
+      .hsc-preview{
+        max-width:100%;
+      }
     }
   </style>
 </head>
@@ -869,7 +1098,7 @@
 
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v711.0</span></div>
+        <div>版本：<span class="kbd" id="ver">v711.2</span></div>
         <div>品牌：<span class="kbd" id="tenantText">-</span></div>
         <div>名片 ID：<span class="kbd" id="idText">-</span></div>
         <div>invite：<span class="kbd" id="inviteText">-</span></div>
@@ -966,7 +1195,7 @@
           </div>
           <div class="field">
             <label>單位</label>
-            <input id="unit" placeholder="例：幸福智慧名片館" />
+            <textarea id="unit" placeholder="可多行輸入，例如：公司名稱&#10;品牌名稱"></textarea>
           </div>
         </div>
 
@@ -977,15 +1206,15 @@
           </div>
           <div class="field">
             <label>一句話介紹</label>
-            <input id="slogan" placeholder="一句話讓人快速記住您" />
-            <div class="hint">建議用一句完整短句，不要太長。</div>
+            <textarea id="slogan" placeholder="一句一句分行也可以"></textarea>
+            <div class="hint">現在支援多行，成品會自動處理展開。</div>
           </div>
         </div>
 
         <div class="sectionGap field">
           <label>服務內容</label>
-          <input id="services" placeholder="例：品牌顧問｜名片訂製｜課程服務" />
-          <div class="hint">建議用「｜」分隔，閱讀會更整齊。</div>
+          <textarea id="services" placeholder="可一行一項，或用｜分隔"></textarea>
+          <div class="hint">建議一行一項，閱讀會更整齊。</div>
         </div>
 
         <div class="sectionGap field">
@@ -1125,15 +1354,64 @@
         <div class="pageHead">
           <div class="pageStep">第 5 步</div>
           <h2>上傳圖片並調整位置</h2>
-          <p class="subnote">圖片上傳後，可拖動、左右移動、縮放、置中，再套用到預覽。</p>
+          <p class="subnote">現在可縮小、可左右上下調整，並會同步更新成品預覽。</p>
         </div>
 
         <div class="uploadGuide">
           建議先把主體置中，避免人物或 Logo 被裁切太多。<br>
-          自由搭配最多 2 張照片｜精品設計最多 5 張照片。
+          自由搭配最多 2 張照片｜精品設計最多 5 張照片。<br>
+          每次套用後，下方成品預覽會同步更新。
         </div>
 
         <div class="uploadGrid" id="uploadGrid"></div>
+
+        <div class="previewWrap">
+          <div class="previewHead">
+            <div>
+              <h3>成品預覽</h3>
+              <p>這裡會即時顯示目前表單內容與圖片位置。</p>
+            </div>
+            <div class="pageBadge">即時同步</div>
+          </div>
+
+          <div class="previewStage">
+            <div class="hsc-preview" id="livePreviewCard" data-plan="free" data-color="c1" data-style="s1" data-paper="f1" data-premium="p1">
+              <div class="hsc-preview-banner"></div>
+
+              <div class="hsc-preview-avatarWrap">
+                <div class="hsc-preview-avatar" id="previewAvatarWrap">
+                  <img id="previewAvatar" alt="大頭照預覽" />
+                </div>
+              </div>
+
+              <div class="hsc-preview-logoWrap" id="previewLogoWrap" style="display:none;">
+                <div class="hsc-preview-logo">
+                  <img id="previewLogo" alt="Logo 預覽" />
+                </div>
+              </div>
+
+              <div class="hsc-preview-main">
+                <div class="hsc-preview-name" id="previewName">您的姓名</div>
+                <div class="hsc-preview-unit" id="previewUnit"></div>
+                <div class="hsc-preview-title" id="previewTitle"></div>
+                <div class="hsc-preview-slogan" id="previewSlogan"></div>
+
+                <div class="hsc-preview-block" id="previewServicesBlock" style="display:none;">
+                  <div class="hsc-preview-blockTitle">服務項目</div>
+                  <div class="hsc-preview-blockBody" id="previewServices"></div>
+                </div>
+
+                <div class="hsc-preview-block" id="previewExperienceBlock" style="display:none;">
+                  <div class="hsc-preview-blockTitle">經歷</div>
+                  <div class="hsc-preview-blockBody" id="previewExperience"></div>
+                </div>
+
+                <div class="hsc-preview-photoWall" id="previewPhotoWall"></div>
+                <div class="hsc-preview-empty" id="previewEmptyPhotos">照片牆尚未上傳圖片</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="page" data-page="5">
@@ -1219,6 +1497,6 @@
     </div>
   </div>
 
-  <script type="module" src="./form.js?v=7110"></script>
+  <script type="module" src="./form.js?v=7112"></script>
 </body>
 </html>
