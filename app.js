@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.2",
+  VERSION: "v524.4",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -257,6 +257,81 @@ function setActiveAmong_(elements, activeEl){
     if(el === activeEl) el.classList.add("active");
     else el.classList.remove("active");
   });
+}
+
+/* =========================
+   表單值 -> 前台值 映射
+========================= */
+
+function mapFreeColorToTheme_(v){
+  const raw = text(v).toLowerCase();
+  const map = {
+    "c1":"color-1",
+    "c2":"color-2",
+    "c3":"color-3",
+    "c4":"color-4",
+    "c5":"color-5",
+    "color-1":"color-1",
+    "color-2":"color-2",
+    "color-3":"color-3",
+    "color-4":"color-4",
+    "color-5":"color-5"
+  };
+  return map[raw] || "color-1";
+}
+
+function mapStyleToUi_(v){
+  const raw = text(v).toLowerCase();
+  const map = {
+    "s1":"arch",
+    "s2":"flat",
+    "s3":"spot",
+    "arch":"arch",
+    "flat":"flat",
+    "spot":"spot"
+  };
+  return map[raw] || "arch";
+}
+
+function mapPaperToUi_(v){
+  const raw = text(v).toLowerCase();
+  const map = {
+    "f1":"paper-1",
+    "f2":"paper-2",
+    "f3":"paper-3",
+    "paper-1":"paper-1",
+    "paper-2":"paper-2",
+    "paper-3":"paper-3"
+  };
+  return map[raw] || "paper-1";
+}
+
+function mapPremiumToUi_(v){
+  const raw = text(v).toLowerCase();
+  const allow = ["p1","p2","p3","p4","p5","p6","p7"];
+  return allow.includes(raw) ? raw : "p1";
+}
+
+function applyThemeFromPayload_(p){
+  const planRaw = text(pick(p, ["plan"])) || "free";
+  const isPremium = planRaw === "premium";
+
+  if(isPremium){
+    const rawPremium = pick(p, ["premium_color"]);
+    UI_STATE.plan = "premium";
+    UI_STATE.premiumTheme = mapPremiumToUi_(rawPremium);
+  }else{
+    const rawColor = pick(p, ["color","free_color"]);
+    const rawStyle = pick(p, ["style","free_style"]);
+    const rawPaper = pick(p, ["paper","free_paper"]);
+
+    UI_STATE.plan = "free";
+    UI_STATE.theme = mapFreeColorToTheme_(rawColor);
+    UI_STATE.style = mapStyleToUi_(rawStyle);
+    UI_STATE.paper = mapPaperToUi_(rawPaper);
+  }
+
+  syncPlanUI_();
 }
 
 function syncPlanUI_(){
@@ -527,7 +602,7 @@ function refreshExpandableItem_(contentEl, toggleEl){
 
 function refreshAllExpandable_(){
   qsa("[data-expandable='1']").forEach((contentEl)=>{
-    const wrap = contentEl.closest(".expandable-wrap");
+    const wrap = contentEl.closest(".expandable-wrap") || contentEl.parentElement;
     const toggleEl = wrap ? wrap.querySelector(".expand-toggle") : null;
     refreshExpandableItem_(contentEl, toggleEl);
   });
@@ -1056,6 +1131,8 @@ function ensureBottomQrVisible_(){
 function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
+
+  applyThemeFromPayload_(p);
 
   const nameEl = qs("u-name");
   const unitWrap = qs("u-unit-wrap");
