@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v523.9.1",
+  VERSION: "v523.9.2",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -449,12 +449,18 @@ function renderQr(options){
   }
   if(!rendered){
     const img = document.createElement("img");
-    img.alt = "QR Code"; img.loading = "eager"; img.decoding = "sync"; img.referrerPolicy = "no-referrer";
-    img.src = buildQuickChartQrUrl_(String(url), Number(size)); img.style.width = "100%"; img.style.height = "100%"; img.style.display = "block";
-    container.appendChild(img); rendered = true;
+    img.alt = "QR Code";
+    img.loading = "eager";
+    img.decoding = "sync";
+    img.referrerPolicy = "no-referrer";
+    img.src = buildQuickChartQrUrl_(String(url), Number(size));
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.display = "block";
+    container.appendChild(img);
   }
   if(centerImgEl){ setCenterImg_(centerImgEl, centerImgUrl); }
-  return rendered;
+  return !!container.querySelector("canvas, img");
 }
 
 window.renderQr = renderQr;
@@ -484,10 +490,20 @@ function renderBottomQr_(p){
 
 function renderFeatureQrFromCurrent_(){
   const grid = qs("featureQrGrid"), avatar = qs("featureQrAvatar");
-  if(!grid) return;
-  renderQr({ container: grid, url: buildHubShareUrl_(), size: 152, colorDark: "#433227", centerImgEl: avatar, centerImgUrl: currentAvatarUrlCache });
+  if(!grid) return false;
+  return renderQr({ container: grid, url: buildHubShareUrl_(), size: 152, colorDark: "#433227", centerImgEl: avatar, centerImgUrl: currentAvatarUrlCache });
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
+function renderFeatureQrRetry_(){
+  let attempts = 0;
+  const tick = ()=>{
+    attempts++;
+    const ok = renderFeatureQrRetry_();
+    if(ok) return;
+    if(attempts < 12) setTimeout(tick, 180);
+  };
+  tick();
+}
 
 function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
@@ -501,7 +517,7 @@ function renderCard(row){
     if(slogan){ sloganEl.style.display = ""; sloganEl.textContent = slogan; }
     else{ sloganEl.style.display = "none"; sloganEl.textContent = ""; }
   }
-  renderAvatar_(p); renderLogo_(p); renderBlocks_(p); renderDocks_(p); renderPhotoWall_(p); renderBottomQr_(p); renderFeatureQrFromCurrent_(); applySmartBalanceAll_();
+  renderAvatar_(p); renderLogo_(p); renderBlocks_(p); renderDocks_(p); renderPhotoWall_(p); renderBottomQr_(p); renderFeatureQrRetry_(); applySmartBalanceAll_();
   const vt = qs("versionTag"); if(vt) vt.textContent = CONFIG.VERSION;
 }
 

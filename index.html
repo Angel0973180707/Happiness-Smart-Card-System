@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v523.9.1</title>
+  <title>天使幸福智慧名片館 v523.9.2</title>
 
-  <link rel="manifest" href="./manifest.json?v=523.9.1" />
+  <link rel="manifest" href="./manifest.json?v=523.9.2" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.9.1" />
-  <link rel="icon" href="./icons/icon-192.png?v=523.9.1" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=523.9.2" />
+  <link rel="icon" href="./icons/icon-192.png?v=523.9.2" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,7 +18,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=523.9.1" />
+  <meta property="og:image" content="og-card.png?v=523.9.2" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -173,7 +173,7 @@
         <div class="photo-wall" id="photoWall" style="display:none;"><div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div><div class="photo-grid" id="photoGrid"></div></div>
 
         <div class="qr-bottom" id="bottomQrSection"><div class="qr-bottom-head"><div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">掃描 QRcode｜開啟我的智慧名片</div><div class="qr-bottom-sub balance-text" id="bottomQrSub" data-balance-type="product-qr-sub">可收藏・可分享・可快速回看</div></div><div class="qr-bottom-wrap"><div class="qr-bottom-canvas"><div class="qr-bottom-grid" id="bottomQrGrid"></div><div class="qr-bottom-center" id="bottomQrCenter"><img id="bottomQrAvatar" alt="QR 頭像" /></div></div></div></div>
-        <div class="version-tag" id="versionTag">v523.9.1</div>
+        <div class="version-tag" id="versionTag">v523.9.2</div>
       </div>
   </section></main>
 
@@ -181,11 +181,11 @@
   <div class="invite-mask" id="inviteMask" aria-hidden="true"><div class="invite-box" role="dialog" aria-modal="true" aria-label="輸入邀請碼"><div class="invite-hd"><div style="display:flex; align-items:center; gap:10px;"><i class="fa-solid fa-key"></i> 輸入邀請碼後開啟表單</div><button class="invite-btn" type="button" id="inviteCloseBtn">關閉</button></div><div class="invite-bd"><div>此表單採邀請制：請到後台取得邀請碼，提供給客戶填寫。</div><div class="invite-row"><input class="invite-input" id="inviteInput" type="text" inputmode="text" autocomplete="off" placeholder="例如：ABCD-1234" /><button class="invite-btn invite-primary" type="button" id="inviteGoBtn">開啟表單</button></div><div style="margin-top:10px; color:rgba(67,50,39,0.72); font-size:13px;">※ 成品模式（?view=1）不提供填表入口。</div></div></div></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="./app.js?v=523.9.1"></script>
+  <script src="./app.js?v=523.9.2"></script>
   <script>
     (function(){
       "use strict";
-      var VERSION = "523.9.1", LINE_OA_URL = "https://lin.ee/3r2ZePN", BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/", DEMO_ID = "TW0001";
+      var VERSION = "523.9.2", LINE_OA_URL = "https://lin.ee/3r2ZePN", BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/", DEMO_ID = "TW0001";
       function qs(id){ return document.getElementById(id); }
       function sp(){ try{return new URLSearchParams(location.search||"");}catch(e){return new URLSearchParams();} }
       function isClean(){ var p = sp(); return (p.get("view")==="1") || (p.get("clean")==="1"); }
@@ -196,15 +196,60 @@
       function getCurrentCardId(){ try{ var p = sp(), id = (p.get("id") || p.get("ref") || "").trim(); return id || DEMO_ID; }catch(e){ return DEMO_ID; } }
       function buildHubShareUrlFallback(){ try{ if(typeof window.__getHubShareUrl === "function"){ return window.__getHubShareUrl(); } }catch(e){} try{ var u = new URL(BASE_URL), id = getCurrentCardId(); if(id) u.searchParams.set("ref", id); return u.toString(); }catch(e){ return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId()); } }
       function buildFacadeHubQrUrl(){ try{ var u = new URL(BASE_URL); u.searchParams.set("ref", getCurrentCardId()); return u.toString(); }catch(e){ return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId()); } }
-      function renderFacadeQr(){ var mount = qs("facadeQrGrid"); if(!mount || isClean()) return; mount.innerHTML = ""; var qrUrl = buildFacadeHubQrUrl(); try{ if(window.renderQr){ window.renderQr({ container: mount, url: qrUrl, size: 148, colorDark: "#433227" }); return; } if(window.QRCode){ new QRCode(mount, { text: qrUrl, width: 148, height: 148, colorDark: "#433227", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H }); return; } }catch(e){} var fallback = document.createElement("div"); fallback.style.cssText = "font-size:12px;line-height:1.6;color:#6b5a4d;text-align:center;padding:10px;"; fallback.textContent = "QRcode 載入失敗"; mount.appendChild(fallback); }
-      function renderFeatureQr(){ var mount = qs("featureQrGrid"), avatar = qs("featureQrAvatar"); if(!mount) return; mount.innerHTML = ""; var qrUrl = buildHubShareUrlFallback(); try{ if(window.renderQr){ window.renderQr({ container: mount, url: qrUrl, size: 152, colorDark: "#433227", centerImgEl: avatar, centerImgUrl: window.__getCurrentAvatarUrl ? window.__getCurrentAvatarUrl() : "" }); return; } }catch(e){} }
+      function renderFacadeQr(){
+        var mount = qs("facadeQrGrid");
+        if(!mount || isClean()) return false;
+        mount.innerHTML = "";
+        var qrUrl = buildFacadeHubQrUrl();
+        try{
+          if(window.renderQr){
+            return !!window.renderQr({ container: mount, url: qrUrl, size: 148, colorDark: "#433227" });
+          }
+          if(window.QRCode){
+            new QRCode(mount, { text: qrUrl, width: 148, height: 148, colorDark: "#433227", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
+            return !!mount.querySelector("canvas, img");
+          }
+        }catch(e){}
+        var img = document.createElement("img");
+        img.alt = "QR Code";
+        img.loading = "eager";
+        img.decoding = "sync";
+        img.referrerPolicy = "no-referrer";
+        img.src = "https://quickchart.io/qr?margin=1&ecLevel=H&size=220&text=" + encodeURIComponent(qrUrl);
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.display = "block";
+        mount.appendChild(img);
+        return true;
+      }
+      function renderFeatureQr(){
+        var mount = qs("featureQrGrid"), avatar = qs("featureQrAvatar");
+        if(!mount) return false;
+        mount.innerHTML = "";
+        var qrUrl = buildHubShareUrlFallback();
+        try{
+          if(window.renderQr){
+            return !!window.renderQr({ container: mount, url: qrUrl, size: 152, colorDark: "#433227", centerImgEl: avatar, centerImgUrl: window.__getCurrentAvatarUrl ? window.__getCurrentAvatarUrl() : "" });
+          }
+        }catch(e){}
+        return false;
+      }
       function bindShareFallback(){ ["btnShare","btnSharePremium"].forEach(function(id){ var btn = qs(id); if(!btn) return; btn.addEventListener("click", function(e){ try{ var url = buildHubShareUrlFallback(); if(navigator.share){ e.preventDefault(); navigator.share({ title: "天使幸福智慧名片館", text: "分享智慧名片館", url: url }).catch(function(){}); return; } if(navigator.clipboard && navigator.clipboard.writeText){ e.preventDefault(); navigator.clipboard.writeText(url).then(function(){ alert("✅ 已複製智慧名片館連結"); }).catch(function(){ alert("⚠️ 無法複製，請手動複製網址"); }); }else{ alert("⚠️ 無法分享/複製，請手動複製網址"); } }catch(err){} }, true); }); }
       function bindLineOa(){ function openOA(){ try{ window.open(LINE_OA_URL, "_blank", "noopener"); } catch(e){ location.href = LINE_OA_URL; } } ["btnLineOaCta","btnLineOaCta2"].forEach(function(id){ var b = qs(id); if(b) b.addEventListener("click", function(e){ e.preventDefault(); openOA(); }, {passive:false}); }); }
       function bindFeature(){ var mask = qs("featureMask"), close = qs("featureCloseBtn"); function open(){ if(!mask) return; mask.style.display="flex"; mask.setAttribute("aria-hidden","false"); lockScroll(); renderFeatureQr(); } function shut(){ if(!mask) return; mask.style.display="none"; mask.setAttribute("aria-hidden","true"); unlockScroll(); } ["btnFeature","btnFeature2"].forEach(function(id){ var b = qs(id); if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false}); }); if(close) close.addEventListener("click", function(){ shut(); }); if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) shut(); }); }
       function normalizeInvite(code){ return (code || "").replace(/　/g, " ").replace(/\s+/g, "").trim(); }
       function bindInviteGate(){ var mask = qs("inviteMask"), close = qs("inviteCloseBtn"), input = qs("inviteInput"), go = qs("inviteGoBtn"); function open(){ if(isClean()) return; if(!mask) return; mask.style.display="flex"; mask.setAttribute("aria-hidden","false"); lockScroll(); setTimeout(function(){ try{ input && input.focus(); }catch(e){} }, 60); } function shut(){ if(!mask) return; mask.style.display="none"; mask.setAttribute("aria-hidden","true"); unlockScroll(); } function goForm(){ if(isClean()) return; var code = normalizeInvite(input && input.value ? input.value : ""); if(!code){ try{ input && input.focus(); }catch(e){} return; } var url = "./form.html?v=" + encodeURIComponent(VERSION) + "&invite=" + encodeURIComponent(code); try{ window.open(url, "_blank", "noopener"); }catch(e){ location.href = url; } } ["btnInviteGate","btnInviteGate2"].forEach(function(id){ var b = qs(id); if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false}); }); if(close) close.addEventListener("click", function(){ shut(); }); if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) shut(); }); if(go) go.addEventListener("click", function(){ goForm(); }); if(input) input.addEventListener("keydown", function(e){ if(e.key === "Enter"){ e.preventDefault(); goForm(); } if(e.key === "Escape"){ e.preventDefault(); shut(); } }); }
       function bindInstall(){ function runInstall(){ if(typeof window.__triggerPwaInstall === "function"){ window.__triggerPwaInstall(); } } ["btnInstallCard", "installFab"].forEach(function(id){ var btn = qs(id); if(btn) btn.addEventListener("click", function(e){ e.preventDefault(); runInstall(); }, {passive:false}); }); }
-      function boot(){ applyCleanUI(); bindLineOa(); bindFeature(); bindInviteGate(); bindShareFallback(); bindInstall(); renderFacadeQr(); var fab = qs("cleanShareFab"); if(fab){ fab.addEventListener("click", function(){ var url = buildHubShareUrlFallback(); if(navigator.share){ navigator.share({ title: "天使幸福智慧名片館", text: "分享智慧名片館", url: url }).catch(function(){}); }else if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(function(){ alert("✅ 已複製智慧名片館連結"); }); } }); } }
+      function boot(){
+        applyCleanUI(); bindLineOa(); bindFeature(); bindInviteGate(); bindShareFallback(); bindInstall();
+        var tries = 0;
+        (function retryFacadeQr(){
+          tries++;
+          var ok = renderFacadeQr();
+          if(!ok && tries < 12) setTimeout(retryFacadeQr, 180);
+        })();
+        window.addEventListener("load", function(){ renderFacadeQr(); }, {once:true});
+        var fab = qs("cleanShareFab"); if(fab){ fab.addEventListener("click", function(){ var url = buildHubShareUrlFallback(); if(navigator.share){ navigator.share({ title: "天使幸福智慧名片館", text: "分享智慧名片館", url: url }).catch(function(){}); }else if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(function(){ alert("✅ 已複製智慧名片館連結"); }); } }); } }
       if(document.readyState === "loading"){ document.addEventListener("DOMContentLoaded", boot, {once:true}); }else{ boot(); }
     })();
   </script>
