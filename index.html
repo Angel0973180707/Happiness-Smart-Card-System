@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v524.3</title>
+  <title>天使幸福智慧名片館 v524.5</title>
 
-  <link rel="manifest" href="./manifest.json?v=524.3" />
+  <link rel="manifest" href="./manifest.json?v=524.5" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.3" />
-  <link rel="icon" href="./icons/icon-192.png?v=524.3" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.5" />
+  <link rel="icon" href="./icons/icon-192.png?v=524.5" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,7 +18,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=524.3" />
+  <meta property="og:image" content="og-card.png?v=524.5" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -565,7 +565,7 @@
     <i class="fa-solid fa-download" aria-hidden="true"></i>
   </button>
 
-  <button id="cleanShareFab" type="button" aria-label="分享智慧名片館">
+  <button id="cleanShareFab" type="button" aria-label="分享這張名片">
     <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
   </button>
 
@@ -796,7 +796,7 @@
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v524.3</div>
+        <div class="version-tag" id="versionTag">v524.5</div>
       </div>
     </section>
   </main>
@@ -841,13 +841,13 @@
     </div>
   </div>
 
-  <script src="./app.js?v=524.3"></script>
+  <script src="./app.js?v=524.5"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "524.3";
+      var VERSION = "524.5";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -927,6 +927,22 @@
         }
       }
 
+      function buildCardShareUrlFallback(){
+        try{
+          if(typeof window.__getCardShareUrl === "function"){
+            return window.__getCardShareUrl();
+          }
+        }catch(e){}
+        try{
+          var u = new URL(BASE_URL + "index.html");
+          u.searchParams.set("id", getCurrentCardId());
+          u.searchParams.set("view", "1");
+          return u.toString();
+        }catch(e){
+          return BASE_URL + "index.html?id=" + encodeURIComponent(getCurrentCardId()) + "&view=1";
+        }
+      }
+
       function buildFacadeHubQrUrl(){
         try{
           var u = new URL(BASE_URL);
@@ -981,36 +997,40 @@
         }catch(e){}
       }
 
+      async function shareUrl(url, title, textMsg, okMsg){
+        try{
+          if(navigator.share){
+            await navigator.share({
+              title: title || "天使幸福智慧名片",
+              text: textMsg || "",
+              url: url
+            });
+            return;
+          }
+
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(url);
+            alert(okMsg || "✅ 已複製連結");
+            return;
+          }
+
+          prompt("請手動複製連結", url);
+        }catch(_err){}
+      }
+
       function bindShareFallback(){
         function bindOne(id){
           var btn = qs(id);
           if(!btn) return;
 
           btn.addEventListener("click", function(e){
-            try{
-              var url = buildHubShareUrlFallback();
-
-              if(navigator.share){
-                e.preventDefault();
-                navigator.share({
-                  title: "天使幸福智慧名片館",
-                  text: "分享智慧名片館",
-                  url: url
-                }).catch(function(){});
-                return;
-              }
-
-              if(navigator.clipboard && navigator.clipboard.writeText){
-                e.preventDefault();
-                navigator.clipboard.writeText(url).then(function(){
-                  alert("✅ 已複製智慧名片館連結");
-                }).catch(function(){
-                  alert("⚠️ 無法複製，請手動複製網址");
-                });
-              }else{
-                alert("⚠️ 無法分享/複製，請手動複製網址");
-              }
-            }catch(err){}
+            e.preventDefault();
+            shareUrl(
+              buildHubShareUrlFallback(),
+              "天使幸福智慧名片館",
+              "分享智慧名片館",
+              "✅ 已複製智慧名片館連結"
+            );
           }, true);
         }
 
@@ -1178,19 +1198,14 @@
 
         var fab = qs("cleanShareFab");
         if(fab){
-          fab.addEventListener("click", function(){
-            var url = buildHubShareUrlFallback();
-            if(navigator.share){
-              navigator.share({
-                title: "天使幸福智慧名片館",
-                text: "分享智慧名片館",
-                url: url
-              }).catch(function(){});
-            }else if(navigator.clipboard && navigator.clipboard.writeText){
-              navigator.clipboard.writeText(url).then(function(){
-                alert("✅ 已複製智慧名片館連結");
-              });
-            }
+          fab.addEventListener("click", function(e){
+            e.preventDefault();
+            shareUrl(
+              buildCardShareUrlFallback(),
+              "天使幸福智慧名片",
+              "分享這張名片",
+              "✅ 已複製這張名片連結"
+            );
           });
         }
       }
