@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.4",
+  VERSION: "v524.5",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -992,6 +992,19 @@ window.addEventListener("resize", ()=>{
   __balanceTimer = setTimeout(applySmartBalanceAll_, 120);
 });
 
+function buildCardShareUrl_(){
+  try{
+    const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
+    const u = new URL(CONFIG.HUB_URL + "index.html");
+    u.searchParams.set("id", id);
+    u.searchParams.set("view", "1");
+    return u.toString();
+  }catch{
+    const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
+    return CONFIG.HUB_URL + "index.html?id=" + encodeURIComponent(id) + "&view=1";
+  }
+}
+
 function buildCleanShareUrl_(){
   try{
     const u = new URL(location.href);
@@ -1000,9 +1013,7 @@ function buildCleanShareUrl_(){
     u.searchParams.delete("admin");
     return u.toString();
   }catch{
-    const url = location.href;
-    if(url.includes("view=1")) return url;
-    return url + (url.includes("?") ? "&" : "?") + "view=1";
+    return buildCardShareUrl_();
   }
 }
 
@@ -1074,6 +1085,7 @@ function renderQr(options){
 window.renderQr = renderQr;
 window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
 window.__getHubShareUrl = buildHubShareUrl_;
+window.__getCardShareUrl = buildCardShareUrl_;
 
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
@@ -1121,11 +1133,76 @@ function renderFeatureQrFromCurrent_(){
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 
+async function shareUrl_(url, title, textMsg, okMsg){
+  try{
+    if(navigator.share){
+      await navigator.share({
+        title: title || "天使幸福智慧名片",
+        text: textMsg || "",
+        url
+      });
+      return;
+    }
+
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(url);
+      alert(okMsg || "✅ 已複製連結");
+      return;
+    }
+
+    prompt("請手動複製連結", url);
+  }catch(_err){}
+}
+
+function renderBottomHubShareBtn_(){
+  const sec = qs("bottomQrSection");
+  if(!sec) return;
+
+  let wrap = qs("bottomHubShareWrap");
+  if(!wrap){
+    wrap = document.createElement("div");
+    wrap.id = "bottomHubShareWrap";
+    wrap.style.marginTop = "12px";
+    wrap.style.display = "flex";
+    wrap.style.justifyContent = "center";
+
+    const btn = document.createElement("button");
+    btn.id = "btnShareHubBottom";
+    btn.type = "button";
+    btn.className = "dock-btn wide dock-web";
+    btn.style.maxWidth = "260px";
+    btn.style.width = "100%";
+    btn.style.borderRadius = "999px";
+    btn.style.fontWeight = "900";
+    btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
+    btn.innerHTML = `<i class="fa-solid fa-share-nodes"></i><span>分享智慧名片館</span>`;
+    btn.addEventListener("click", async ()=>{
+      const url = buildHubShareUrl_();
+      await shareUrl_(
+        url,
+        "天使幸福智慧名片館",
+        "分享智慧名片館",
+        "✅ 已複製智慧名片館連結"
+      );
+    });
+
+    wrap.appendChild(btn);
+    sec.insertAdjacentElement("afterend", wrap);
+  }
+}
+
 function ensureBottomQrVisible_(){
   if(!currentRow) return;
   try{ renderBottomQr_(currentRow); }catch(e){}
-  setTimeout(()=>{ try{ renderBottomQr_(currentRow); }catch(e){} }, 300);
-  setTimeout(()=>{ try{ renderBottomQr_(currentRow); }catch(e){} }, 900);
+  try{ renderBottomHubShareBtn_(); }catch(e){}
+  setTimeout(()=>{
+    try{ renderBottomQr_(currentRow); }catch(e){}
+    try{ renderBottomHubShareBtn_(); }catch(e){}
+  }, 300);
+  setTimeout(()=>{
+    try{ renderBottomQr_(currentRow); }catch(e){}
+    try{ renderBottomHubShareBtn_(); }catch(e){}
+  }, 900);
 }
 
 function renderCard(row){
@@ -1180,6 +1257,7 @@ function renderCard(row){
   renderDocks_(p);
   renderPhotoWall_(p);
   renderBottomQr_(p);
+  renderBottomHubShareBtn_();
   renderFeatureQrFromCurrent_();
   renderFacadeQrFromCurrent_();
   applySmartBalanceAll_();
