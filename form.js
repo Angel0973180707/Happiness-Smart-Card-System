@@ -14,7 +14,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "711.1";
+  const VERSION = "711.2";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const DEFAULT_TENANT = "angel";
   const PAGE_TOTAL = 6;
@@ -164,7 +164,23 @@ import {
     cropCenter: $("cropCenter"),
     cropReset: $("cropReset"),
     cropCancel: $("cropCancel"),
-    cropApply: $("cropApply")
+    cropApply: $("cropApply"),
+
+    livePreviewCard: $("livePreviewCard"),
+    previewAvatarWrap: $("previewAvatarWrap"),
+    previewAvatar: $("previewAvatar"),
+    previewLogoWrap: $("previewLogoWrap"),
+    previewLogo: $("previewLogo"),
+    previewName: $("previewName"),
+    previewUnit: $("previewUnit"),
+    previewTitle: $("previewTitle"),
+    previewSlogan: $("previewSlogan"),
+    previewServicesBlock: $("previewServicesBlock"),
+    previewServices: $("previewServices"),
+    previewExperienceBlock: $("previewExperienceBlock"),
+    previewExperience: $("previewExperience"),
+    previewPhotoWall: $("previewPhotoWall"),
+    previewEmptyPhotos: $("previewEmptyPhotos")
   };
 
   const fields = [
@@ -205,9 +221,8 @@ import {
     authReady: false,
     uid: "",
     lastSubmitFingerprint: "",
-    prefilling: false
+    prefilling: false,
 
-    ,
     crop: {
       open: false,
       slotKey: "",
@@ -216,6 +231,7 @@ import {
       image: null,
       sourceFile: null,
       scale: 1,
+      coverScale: 1,
       minScale: 1,
       maxScale: 4,
       x: 0,
@@ -243,7 +259,8 @@ import {
       ratio: 1,
       stageClass: "ratio-square",
       outputMain: 1200,
-      outputFast: 480
+      outputFast: 480,
+      bgFill: null
     },
     {
       key: "logo",
@@ -255,7 +272,8 @@ import {
       ratio: 1,
       stageClass: "ratio-logo",
       outputMain: 1200,
-      outputFast: 480
+      outputFast: 480,
+      bgFill: null
     },
     {
       key: "p1",
@@ -267,7 +285,8 @@ import {
       ratio: 16 / 10,
       stageClass: "ratio-photo",
       outputMain: 1600,
-      outputFast: 480
+      outputFast: 480,
+      bgFill: "#f3ece3"
     },
     {
       key: "p2",
@@ -279,7 +298,8 @@ import {
       ratio: 16 / 10,
       stageClass: "ratio-photo",
       outputMain: 1600,
-      outputFast: 480
+      outputFast: 480,
+      bgFill: "#f3ece3"
     },
     {
       key: "p3",
@@ -291,7 +311,8 @@ import {
       ratio: 16 / 10,
       stageClass: "ratio-photo",
       outputMain: 1600,
-      outputFast: 480
+      outputFast: 480,
+      bgFill: "#f3ece3"
     },
     {
       key: "p4",
@@ -303,7 +324,8 @@ import {
       ratio: 16 / 10,
       stageClass: "ratio-photo",
       outputMain: 1600,
-      outputFast: 480
+      outputFast: 480,
+      bgFill: "#f3ece3"
     },
     {
       key: "p5",
@@ -315,7 +337,8 @@ import {
       ratio: 16 / 10,
       stageClass: "ratio-photo",
       outputMain: 1600,
-      outputFast: 480
+      outputFast: 480,
+      bgFill: "#f3ece3"
     }
   ];
 
@@ -337,6 +360,7 @@ import {
     bindEvents_();
     renderPage_();
     updateSummary_();
+    renderLivePreview_();
 
     await initFirebase_();
 
@@ -392,8 +416,14 @@ import {
     fields.forEach(id=>{
       const node = $(id);
       if(!node) return;
-      node.addEventListener("input", updateSummary_);
-      node.addEventListener("change", updateSummary_);
+      node.addEventListener("input", ()=>{
+        updateSummary_();
+        renderLivePreview_();
+      });
+      node.addEventListener("change", ()=>{
+        updateSummary_();
+        renderLivePreview_();
+      });
       node.addEventListener("blur", ()=>{
         if(urlFields.includes(id) && node.value.trim()){
           node.value = normalizeUrl_(node.value);
@@ -502,7 +532,7 @@ import {
 
   function renderOptions_(){
     if(!el.planChips || !el.colorChips || !el.styleChips || !el.paperChips || !el.premiumChips){
-      throw new Error("表單選項容器缺失，請確認 form.html 已更新到 v711.0+");
+      throw new Error("表單選項容器缺失，請確認 form.html 已更新到 v711.2+");
     }
 
     el.planChips.innerHTML = "";
@@ -554,6 +584,7 @@ import {
     div.addEventListener("click", ()=>{
       setChoice_(group, value);
       updateSummary_();
+      renderLivePreview_();
     });
 
     return div;
@@ -664,6 +695,7 @@ import {
     renderUploads_();
     syncChipsUI_();
     updateSummary_();
+    renderLivePreview_();
   }
 
   function renderUploads_(){
@@ -694,7 +726,7 @@ import {
 
       const smallWrap = document.createElement("div");
       const small = document.createElement("small");
-      small.textContent = disabled ? "目前方案不使用這格" : "可先調整位置，再套用到名片預覽";
+      small.textContent = disabled ? "目前方案不使用這格" : "可縮小、放大、左右上下移動";
       smallWrap.appendChild(small);
 
       left.appendChild(strong);
@@ -713,6 +745,7 @@ import {
         delete state.uploads[slot.key];
         renderUploads_();
         updateSummary_();
+        renderLivePreview_();
       });
       right.appendChild(btnClear);
 
@@ -797,6 +830,7 @@ import {
       renderUploads_();
       updateSummary_();
       renderPage_();
+      renderLivePreview_();
     }
   }
 
@@ -862,6 +896,7 @@ import {
     updateHeaderUI_();
     applyPlanLimits_();
     syncChipsUI_();
+    renderLivePreview_();
   }
 
   function hydrateImagesFromItem_(item){
@@ -986,14 +1021,6 @@ import {
       }
       if(state.plan === "premium" && !state.premium_color){
         if(!silent) warnStatus_("精品設計請先選精品底色。");
-        return false;
-      }
-    }
-
-    if(pageIndex === 1){
-      const slogan = safeText_($("slogan")?.value);
-      if(slogan.length > 40){
-        if(!silent) warnStatus_("一句話介紹建議控制在 40 字內，閱讀會更清楚。");
         return false;
       }
     }
@@ -1346,10 +1373,7 @@ import {
     btnCopyMessage.addEventListener("click", async ()=>{
       try{
         await copyText_(buildCustomerServiceMessage_());
-        logStatus_(
-          buildSuccessMessage_(state.mode === "update" ? "update" : "create", {}) +
-          "\n\n✅ 已複製可直接回傳客服的訊息"
-        );
+        logStatus_("✅ 已複製可直接回傳客服的訊息\n\n" + buildCustomerServiceMessage_());
       }catch(_){
         warnStatus_("複製失敗，請手動複製資料序號。");
       }
@@ -1419,12 +1443,16 @@ import {
     syncChipsUI_();
     updateSummary_();
     renderPage_();
-    updateHeaderUI_();
-
+    updateHeaderUI();
     hideProgress_();
     removeSuccessActions_();
+    renderLivePreview_();
     if(el.dot) el.dot.style.background = "var(--warn)";
     logStatus_("表單已重設。invite 參數仍保留在本次頁面流程中。");
+  }
+
+  function updateHeaderUI(){
+    updateHeaderUI_();
   }
 
   function collectPayload_(){
@@ -1535,13 +1563,13 @@ import {
     state.crop.dragging = false;
 
     if(el.cropTitle) el.cropTitle.textContent = `調整 ${slot.label} 位置`;
-    if(el.cropDesc) el.cropDesc.textContent = "可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。";
+    if(el.cropDesc) el.cropDesc.textContent = "現在可縮小、放大、左右上下移動，再套用。";
     if(el.cropMeta){
       el.cropMeta.innerHTML = slot.key === "avatar"
-        ? "可左右、上下拖移圖片。<br>建議把人物臉部置中。<br>縮小可保留更多畫面。"
+        ? "可左右、上下拖移圖片。<br>建議把人物臉部置中。<br>現在可縮小保留更多原圖畫面。"
         : slot.key === "logo"
-          ? "Logo 建議置中，四周保留適當空間。<br>縮小可避免圖樣太貼邊。"
-          : "可左右、上下拖移圖片。<br>建議把主要畫面置中，避免被裁切太多。";
+          ? "Logo 建議置中，四周保留適當空間。<br>現在可縮小避免圖樣太貼邊。"
+          : "可左右、上下拖移圖片。<br>現在可縮小保留更多原圖畫面。<br>套用後下方成品預覽會同步更新。";
     }
 
     el.cropStage?.classList.remove("ratio-square", "ratio-logo", "ratio-photo");
@@ -1553,12 +1581,12 @@ import {
     setupCropCanvasSize_();
 
     if(restoreState){
-      state.crop.scale = restoreState.scale;
+      state.crop.coverScale = computeCoverScale_();
+      state.crop.minScale = Math.max(state.crop.coverScale * 0.35, 0.08);
+      state.crop.maxScale = Math.max(state.crop.coverScale * 4, state.crop.minScale + 3);
+      state.crop.scale = clamp_(restoreState.scale, state.crop.minScale, state.crop.maxScale);
       state.crop.x = restoreState.x;
       state.crop.y = restoreState.y;
-      state.crop.minScale = computeMinScale_();
-      state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4.5);
-      state.crop.scale = clamp_(state.crop.scale, state.crop.minScale, state.crop.maxScale);
       clampCropPosition_();
     }else{
       resetCropTransform_();
@@ -1595,14 +1623,15 @@ import {
   }
 
   function resetCropTransform_(){
-    state.crop.minScale = computeMinScale_();
-    state.crop.maxScale = Math.max(state.crop.minScale + 0.5, 4.5);
-    state.crop.scale = state.crop.minScale;
+    state.crop.coverScale = computeCoverScale_();
+    state.crop.minScale = Math.max(state.crop.coverScale * 0.35, 0.08);
+    state.crop.maxScale = Math.max(state.crop.coverScale * 4, state.crop.minScale + 3);
+    state.crop.scale = state.crop.coverScale;
     state.crop.x = 0;
     state.crop.y = 0;
   }
 
-  function computeMinScale_(){
+  function computeCoverScale_(){
     const img = state.crop.image;
     if(!img) return 1;
 
@@ -1623,8 +1652,8 @@ import {
     const iw = (img.naturalWidth || img.width) * state.crop.scale;
     const ih = (img.naturalHeight || img.height) * state.crop.scale;
 
-    const maxX = Math.max(0, (iw - cw) / 2);
-    const maxY = Math.max(0, (ih - ch) / 2);
+    const maxX = Math.abs(iw - cw) / 2;
+    const maxY = Math.abs(ih - ch) / 2;
 
     state.crop.x = clamp_(state.crop.x, -maxX, maxX);
     state.crop.y = clamp_(state.crop.y, -maxY, maxY);
@@ -1645,6 +1674,12 @@ import {
 
     ctx.clearRect(0, 0, cw, ch);
 
+    const slot = getSlotByKey_(state.crop.slotKey);
+    if(slot?.bgFill){
+      ctx.fillStyle = slot.bgFill;
+      ctx.fillRect(0, 0, cw, ch);
+    }
+
     const x = (cw - iw) / 2 + state.crop.x;
     const y = (ch - ih) / 2 + state.crop.y;
 
@@ -1663,8 +1698,8 @@ import {
     const slot = getSlotByKey_(state.crop.slotKey);
     if(!slot || !state.crop.image) return;
 
-    const mainBlob = await exportCropBlob_(slot.outputMain, 0.82);
-    const fastBlob = await exportCropBlob_(slot.outputFast, 0.78);
+    const mainBlob = await exportCropBlob_(slot, slot.outputMain, 0.82);
+    const fastBlob = await exportCropBlob_(slot, slot.outputFast, 0.78);
 
     const previewUrl = URL.createObjectURL(mainBlob);
     const old = state.uploads[slot.key];
@@ -1687,10 +1722,11 @@ import {
     closeCropModal_();
     renderUploads_();
     updateSummary_();
-    logStatus_(`已套用 ${slot.label} 圖片位置。`);
+    renderLivePreview_();
+    logStatus_(`已套用 ${slot.label} 圖片位置，成品預覽已同步更新。`);
   }
 
-  async function exportCropBlob_(longSide, quality){
+  async function exportCropBlob_(slot, longSide, quality){
     const img = state.crop.image;
     if(!img) throw new Error("crop image missing");
 
@@ -1704,6 +1740,11 @@ import {
 
     const ctx = canvas.getContext("2d");
     if(!ctx) throw new Error("export canvas failed");
+
+    if(slot.bgFill){
+      ctx.fillStyle = slot.bgFill;
+      ctx.fillRect(0, 0, outW, outH);
+    }
 
     const stageW = state.crop.canvasW;
     const stageH = state.crop.canvasH;
@@ -1898,5 +1939,95 @@ import {
     ta.select();
     document.execCommand("copy");
     ta.remove();
+  }
+
+  /* ===== 成品預覽 ===== */
+
+  function renderLivePreview_(){
+    if(!el.livePreviewCard) return;
+
+    const plan = state.plan || "free";
+    const color = state.color || "c1";
+    const style = state.style || "s1";
+    const paper = state.paper || "f1";
+    const premium = state.premium_color || "p1";
+
+    el.livePreviewCard.dataset.plan = plan;
+    el.livePreviewCard.dataset.color = color;
+    el.livePreviewCard.dataset.style = style;
+    el.livePreviewCard.dataset.paper = paper;
+    el.livePreviewCard.dataset.premium = premium;
+
+    const name = safeText_($("name")?.value) || "您的姓名";
+    const unit = safeText_($("unit")?.value);
+    const title = safeText_($("title")?.value);
+    const slogan = safeText_($("slogan")?.value);
+    const services = safeText_($("services")?.value);
+    const experience = safeText_($("experience")?.value);
+
+    el.previewName.textContent = name;
+    el.previewUnit.textContent = unit;
+    el.previewTitle.textContent = title;
+    el.previewSlogan.textContent = slogan;
+
+    if(services){
+      el.previewServicesBlock.style.display = "";
+      el.previewServices.textContent = services;
+    }else{
+      el.previewServicesBlock.style.display = "none";
+      el.previewServices.textContent = "";
+    }
+
+    if(experience){
+      el.previewExperienceBlock.style.display = "";
+      el.previewExperience.textContent = experience;
+    }else{
+      el.previewExperienceBlock.style.display = "none";
+      el.previewExperience.textContent = "";
+    }
+
+    const avatarUrl = getPreviewImageUrl_("avatar");
+    if(avatarUrl){
+      el.previewAvatar.src = avatarUrl;
+      el.previewAvatar.style.display = "block";
+    }else{
+      el.previewAvatar.removeAttribute("src");
+      el.previewAvatar.style.display = "none";
+    }
+
+    const logoUrl = getPreviewImageUrl_("logo");
+    if(logoUrl){
+      el.previewLogoWrap.style.display = "";
+      el.previewLogo.src = logoUrl;
+    }else{
+      el.previewLogoWrap.style.display = "none";
+      el.previewLogo.removeAttribute("src");
+    }
+
+    const limit = OPTIONS.photoLimitByPlan[plan] ?? 2;
+    const photoKeys = ["p1","p2","p3","p4","p5"].slice(0, limit);
+    const urls = photoKeys.map(getPreviewImageUrl_).filter(Boolean);
+
+    el.previewPhotoWall.innerHTML = "";
+    if(urls.length){
+      el.previewEmptyPhotos.style.display = "none";
+      urls.forEach((url)=>{
+        const item = document.createElement("div");
+        item.className = "hsc-preview-photoItem";
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = "照片預覽";
+        item.appendChild(img);
+        el.previewPhotoWall.appendChild(item);
+      });
+    }else{
+      el.previewEmptyPhotos.style.display = "";
+    }
+  }
+
+  function getPreviewImageUrl_(slotKey){
+    const item = state.uploads[slotKey];
+    if(!item) return "";
+    return item.previewUrl || item.fastUrl || item.mainUrl || "";
   }
 })();
