@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v524.1</title>
+  <title>天使幸福智慧名片館 v524.2</title>
 
-  <link rel="manifest" href="./manifest.json?v=524.1" />
+  <link rel="manifest" href="./manifest.json?v=524.2" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.1" />
-  <link rel="icon" href="./icons/icon-192.png?v=524.1" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.2" />
+  <link rel="icon" href="./icons/icon-192.png?v=524.2" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,7 +18,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=524.1" />
+  <meta property="og:image" content="og-card.png?v=524.2" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -428,6 +428,85 @@
       color:#fff;
     }
 
+    /* ===== v524.2 expandable ===== */
+    .text-toggle-wrap{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      width:100%;
+    }
+
+    .expandable-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      width:100%;
+    }
+
+    .expandable-text{
+      overflow:hidden;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+    }
+
+    .expandable-text.preline{
+      white-space:pre-line;
+    }
+
+    .expandable-text.is-collapsed{
+      display:-webkit-box;
+      -webkit-box-orient:vertical;
+      -webkit-line-clamp:var(--max-lines, 3);
+      line-clamp:var(--max-lines, 3);
+    }
+
+    .expandable-text.is-expanded{
+      display:block;
+      overflow:visible;
+    }
+
+    .expand-toggle{
+      appearance:none;
+      border:none;
+      outline:none;
+      background:rgba(176,138,107,.12);
+      color:#8d684f;
+      border-radius:999px;
+      padding:6px 12px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.04em;
+      line-height:1;
+      cursor:pointer;
+      align-self:flex-start;
+      box-shadow:0 4px 12px rgba(83,62,45,.05);
+    }
+
+    .expand-toggle:hover{
+      background:rgba(176,138,107,.18);
+    }
+
+    .unit-wrap,
+    .slogan-wrap{
+      margin-top:2px;
+    }
+
+    .unit-wrap .expand-toggle,
+    .slogan-wrap .expand-toggle{
+      align-self:center;
+    }
+
+    .unit.expandable-text,
+    .slogan.expandable-text{
+      width:100%;
+      text-align:center;
+    }
+
+    .block-body.expandable-text{
+      text-align:left;
+    }
+
     .install-dock{ display:none; }
     body.clean .install-dock{ display:block; }
     body.clean #cleanShareFab{ z-index:2147483500; display:flex; }
@@ -445,6 +524,11 @@
       .qr-bottom-sub{ font-size:10px; }
       .invite-row{ flex-direction:column; }
       .invite-primary,.invite-input{ width:100%; }
+
+      .expand-toggle{
+        font-size:11px;
+        padding:6px 11px;
+      }
     }
   </style>
 
@@ -644,10 +728,18 @@
 
       <div class="info-scroll">
         <div class="name" id="u-name">載入中…</div>
-        <div class="unit" id="u-unit"></div>
+
+        <div class="text-toggle-wrap unit-wrap" id="u-unit-wrap" style="display:none;">
+          <div class="unit expandable-text is-collapsed preline" id="u-unit" style="--max-lines:2;"></div>
+          <button class="expand-toggle" id="u-unit-toggle" type="button" style="display:none;">看更多</button>
+        </div>
+
         <div class="title" id="u-title"></div>
 
-        <div class="slogan" id="u-slogan" style="display:none;"></div>
+        <div class="text-toggle-wrap slogan-wrap" id="u-slogan-wrap" style="display:none;">
+          <div class="slogan expandable-text is-collapsed preline" id="u-slogan" style="--max-lines:3;"></div>
+          <button class="expand-toggle" id="u-slogan-toggle" type="button" style="display:none;">看更多</button>
+        </div>
 
         <div class="info-block" id="block-service" style="display:none;"></div>
         <div class="info-block" id="block-exp" style="display:none;"></div>
@@ -705,7 +797,7 @@
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v524.1</div>
+        <div class="version-tag" id="versionTag">v524.2</div>
       </div>
     </section>
   </main>
@@ -750,13 +842,13 @@
     </div>
   </div>
 
-  <script src="./app.js?v=524.1"></script>
+  <script src="./app.js?v=524.2"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "524.1";
+      var VERSION = "524.2";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
