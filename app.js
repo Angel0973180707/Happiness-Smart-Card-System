@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.5",
+  VERSION: "v524.6",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -12,6 +12,9 @@ const CONFIG = {
 let currentRow = null;
 let deferredInstallPrompt = null;
 let currentAvatarUrlCache = "";
+let lastBottomQrRenderKey = "";
+let lastFeatureQrRenderKey = "";
+let lastFacadeQrRenderKey = "";
 
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
@@ -164,8 +167,9 @@ function buildImgCandidates_(raw){
   if(url.includes("drive.google.com/uc?export=view&id=")){
     const m = url.match(/id=([^&]+)/i);
     if(m && m[1]){
-      list.push(`https://drive.google.com/thumbnail?id=${decodeURIComponent(m[1])}&sz=w1200`);
-      list.push(`https://drive.google.com/uc?export=download&id=${decodeURIComponent(m[1])}`);
+      const id = decodeURIComponent(m[1]);
+      list.push(`https://drive.google.com/thumbnail?id=${id}&sz=w1200`);
+      list.push(`https://drive.google.com/uc?export=download&id=${id}`);
     }
   }
 
@@ -872,17 +876,87 @@ function renderDocks_(p){
   renderCtaDock_(p);
 }
 
+/* =========================
+   Photo de-dup helpers
+========================= */
+
+function stripQueryAndHash_(url){
+  const s = String(url || "");
+  return s.split("#")[0].split("?")[0];
+}
+
+function extractDriveId_(url){
+  const s = String(url || "");
+  let m = s.match(/[?&]id=([^&]+)/i);
+  if(m && m[1]) return decodeURIComponent(m[1]);
+
+  m = s.match(/\/file\/d\/([^/]+)/i);
+  if(m && m[1]) return decodeURIComponent(m[1]);
+
+  m = s.match(/\/thumbnail\?id=([^&]+)/i);
+  if(m && m[1]) return decodeURIComponent(m[1]);
+
+  return "";
+}
+
+function extractFirebaseFingerprint_(url){
+  const s = String(url || "");
+  if(!/firebasestorage\.googleapis\.com/i.test(s)) return "";
+  const noHash = s.split("#")[0];
+  const m = noHash.match(/\/o\/([^?]+)/i);
+  if(m && m[1]){
+    return decodeURIComponent(m[1]).toLowerCase();
+  }
+  return "";
+}
+
+function extractLastPathSeg_(url){
+  const clean = stripQueryAndHash_(url);
+  const arr = clean.split("/").filter(Boolean);
+  return (arr[arr.length - 1] || "").toLowerCase();
+}
+
+function buildImageFingerprint_(raw){
+  const url = normalizeImageUrl_(raw);
+  if(!url) return "";
+
+  const driveId = extractDriveId_(url);
+  if(driveId) return "gdrive:" + driveId.toLowerCase();
+
+  const firebaseKey = extractFirebaseFingerprint_(url);
+  if(firebaseKey) return "firebase:" + firebaseKey;
+
+  const noQuery = stripQueryAndHash_(url).toLowerCase();
+  const lastSeg = extractLastPathSeg_(url);
+
+  if(lastSeg) return "path:" + lastSeg + "|" + noQuery;
+  return "url:" + noQuery;
+}
+
 function collectPhotos_(p){
-  const keys = [
-    "photo1_img_fast","photo2_img_fast","photo3_img_fast","photo4_img_fast","photo5_img_fast",
-    "photo1_img","photo2_img","photo3_img","photo4_img","photo5_img",
-    "photo1_url","photo2_url","photo3_url","photo4_url","photo5_url"
+  const groups = [
+    ["photo1_img_fast","photo2_img_fast","photo3_img_fast","photo4_img_fast","photo5_img_fast"],
+    ["photo1_img","photo2_img","photo3_img","photo4_img","photo5_img"],
+    ["photo1_url","photo2_url","photo3_url","photo4_url","photo5_url"]
   ];
+
   const out = [];
-  keys.forEach(k=>{
-    const u = normalizeImageUrl_(pick(p, [k]));
-    if(u && !out.includes(u)) out.push(u);
+  const seen = new Set();
+
+  groups.forEach(keys=>{
+    keys.forEach(k=>{
+      const raw = pick(p, [k]);
+      const u = normalizeImageUrl_(raw);
+      if(!u) return;
+
+      const fp = buildImageFingerprint_(u) || ("raw:" + u);
+      if(seen.has(fp)) return;
+
+      seen.add(fp);
+      out.push(u);
+    });
   });
+
   return out;
 }
 
@@ -992,29 +1066,30 @@ window.addEventListener("resize", ()=>{
   __balanceTimer = setTimeout(applySmartBalanceAll_, 120);
 });
 
-function buildCardShareUrl_(){
+/* =========================
+   URL strategy
+   - 分享智慧名片館：HUB + ?ref=ID
+   - 所有名片 QR：統一 clean 成品頁
+========================= */
+
+function buildCanonicalCleanCardUrl_(id){
+  const cid = normalizeId_(id || getIdFromUrl_()) || CONFIG.DEFAULT_ID;
   try{
-    const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
     const u = new URL(CONFIG.HUB_URL + "index.html");
-    u.searchParams.set("id", id);
+    u.searchParams.set("id", cid);
     u.searchParams.set("view", "1");
     return u.toString();
   }catch{
-    const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
-    return CONFIG.HUB_URL + "index.html?id=" + encodeURIComponent(id) + "&view=1";
+    return CONFIG.HUB_URL + "index.html?id=" + encodeURIComponent(cid) + "&view=1";
   }
 }
 
+function buildCardShareUrl_(){
+  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+}
+
 function buildCleanShareUrl_(){
-  try{
-    const u = new URL(location.href);
-    if(u.searchParams.get("view") !== "1") u.searchParams.set("view","1");
-    u.searchParams.delete("clean");
-    u.searchParams.delete("admin");
-    return u.toString();
-  }catch{
-    return buildCardShareUrl_();
-  }
+  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
 }
 
 function buildHubShareUrl_(){
@@ -1030,8 +1105,15 @@ function buildHubShareUrl_(){
 }
 
 function buildBottomQrUrl_(){
-  const id = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
-  return CONFIG.HUB_URL + "?id=" + encodeURIComponent(id) + "&view=1";
+  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+}
+
+function buildFeatureQrUrl_(){
+  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+}
+
+function buildFacadeQrUrl_(){
+  return buildHubShareUrl_();
 }
 
 function buildQrImageUrl_(url, size){
@@ -1057,11 +1139,19 @@ function renderQr(options){
     url,
     size = 160,
     centerImgEl = null,
-    centerImgUrl = ""
+    centerImgUrl = "",
+    renderKey = ""
   } = options || {};
 
   if(!container || !url) return false;
 
+  const key = renderKey || `${url}|${size}|${normalizeImageUrl_(centerImgUrl)}`;
+  if(container.dataset.renderKey === key){
+    if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl);
+    return true;
+  }
+
+  container.dataset.renderKey = key;
   container.innerHTML = "";
 
   const img = document.createElement("img");
@@ -1090,10 +1180,17 @@ window.__getCardShareUrl = buildCardShareUrl_;
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
   if(!grid) return;
+
+  const url = buildFacadeQrUrl_();
+  const key = "facade|" + url;
+  if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
+
+  lastFacadeQrRenderKey = key;
   renderQr({
     container: grid,
-    url: buildHubShareUrl_(),
-    size: 148
+    url,
+    size: 148,
+    renderKey: key
   });
 }
 
@@ -1107,14 +1204,21 @@ function renderBottomQr_(p){
   const qrUrl = buildBottomQrUrl_();
   const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
   const avatarUrl = normalizeImageUrl_(avatarRaw);
+  const key = "bottom|" + qrUrl + "|" + avatarUrl;
 
-  renderQr({
-    container: grid,
-    url: qrUrl,
-    size: 136,
-    centerImgEl: avatar,
-    centerImgUrl: avatarUrl
-  });
+  if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
+    lastBottomQrRenderKey = key;
+    renderQr({
+      container: grid,
+      url: qrUrl,
+      size: 136,
+      centerImgEl: avatar,
+      centerImgUrl: avatarUrl,
+      renderKey: key
+    });
+  }else{
+    setCenterImg_(avatar, avatarUrl);
+  }
 
   sec.style.display = "block";
 }
@@ -1123,13 +1227,24 @@ function renderFeatureQrFromCurrent_(){
   const grid = qs("featureQrGrid");
   const avatar = qs("featureQrAvatar");
   if(!grid) return;
-  renderQr({
-    container: grid,
-    url: buildHubShareUrl_(),
-    size: 152,
-    centerImgEl: avatar,
-    centerImgUrl: currentAvatarUrlCache
-  });
+
+  const url = buildFeatureQrUrl_();
+  const avatarUrl = currentAvatarUrlCache || "";
+  const key = "feature|" + url + "|" + avatarUrl;
+
+  if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
+    lastFeatureQrRenderKey = key;
+    renderQr({
+      container: grid,
+      url,
+      size: 152,
+      centerImgEl: avatar,
+      centerImgUrl: avatarUrl,
+      renderKey: key
+    });
+  }else{
+    setCenterImg_(avatar, avatarUrl);
+  }
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 
@@ -1195,14 +1310,16 @@ function ensureBottomQrVisible_(){
   if(!currentRow) return;
   try{ renderBottomQr_(currentRow); }catch(e){}
   try{ renderBottomHubShareBtn_(); }catch(e){}
+
   setTimeout(()=>{
     try{ renderBottomQr_(currentRow); }catch(e){}
     try{ renderBottomHubShareBtn_(); }catch(e){}
-  }, 300);
+  }, 250);
+
   setTimeout(()=>{
     try{ renderBottomQr_(currentRow); }catch(e){}
     try{ renderBottomHubShareBtn_(); }catch(e){}
-  }, 900);
+  }, 800);
 }
 
 function renderCard(row){
