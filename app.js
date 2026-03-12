@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.1",
+  VERSION: "v524.2",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -431,6 +431,141 @@ function initSelectionState_(){
   syncPlanUI_();
 }
 
+/* =========================
+   Expandable text helpers
+========================= */
+
+function escapeHtmlWithBreaks_(s){
+  return escapeHtml_(s).replace(/\n/g, "<br>");
+}
+
+function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}){
+  if(!contentEl) return;
+
+  const value = String(rawText || "");
+  const hasText = text(value) !== "";
+  const allowMultiline = !!options.allowMultiline;
+
+  contentEl.dataset.raw = value;
+  contentEl.dataset.maxLines = String(maxLines || 3);
+  contentEl.dataset.expandable = "1";
+
+  if(allowMultiline){
+    contentEl.innerHTML = escapeHtmlWithBreaks_(value);
+    contentEl.classList.add("preline");
+  }else{
+    contentEl.textContent = value;
+    contentEl.classList.remove("preline");
+  }
+
+  contentEl.classList.remove("is-expanded");
+  contentEl.classList.add("is-collapsed");
+  contentEl.style.setProperty("--max-lines", String(maxLines || 3));
+
+  if(toggleEl){
+    toggleEl.type = "button";
+    toggleEl.textContent = "看更多";
+    toggleEl.style.display = "none";
+    toggleEl.setAttribute("aria-expanded", "false");
+    toggleEl.onclick = null;
+
+    toggleEl.onclick = ()=>{
+      const expanded = contentEl.classList.contains("is-expanded");
+      if(expanded){
+        contentEl.classList.remove("is-expanded");
+        contentEl.classList.add("is-collapsed");
+        toggleEl.textContent = "看更多";
+        toggleEl.setAttribute("aria-expanded", "false");
+      }else{
+        contentEl.classList.remove("is-collapsed");
+        contentEl.classList.add("is-expanded");
+        toggleEl.textContent = "收合";
+        toggleEl.setAttribute("aria-expanded", "true");
+      }
+    };
+  }
+
+  if(!hasText){
+    if(toggleEl) toggleEl.style.display = "none";
+    return;
+  }
+
+  requestAnimationFrame(()=>{
+    refreshExpandableItem_(contentEl, toggleEl);
+  });
+}
+
+function refreshExpandableItem_(contentEl, toggleEl){
+  if(!contentEl) return;
+
+  const maxLines = Number(contentEl.dataset.maxLines || 3);
+
+  const wasExpanded = contentEl.classList.contains("is-expanded");
+  contentEl.classList.remove("is-expanded");
+  contentEl.classList.add("is-collapsed");
+  contentEl.style.setProperty("--max-lines", String(maxLines));
+
+  const needToggle = (contentEl.scrollHeight - contentEl.clientHeight) > 4;
+
+  if(toggleEl){
+    toggleEl.style.display = needToggle ? "inline-flex" : "none";
+    if(!needToggle){
+      toggleEl.textContent = "看更多";
+      toggleEl.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  if(needToggle && wasExpanded){
+    contentEl.classList.remove("is-collapsed");
+    contentEl.classList.add("is-expanded");
+    if(toggleEl){
+      toggleEl.textContent = "收合";
+      toggleEl.setAttribute("aria-expanded", "true");
+    }
+  }
+}
+
+function refreshAllExpandable_(){
+  qsa("[data-expandable='1']").forEach((contentEl)=>{
+    const wrap = contentEl.closest(".expandable-wrap");
+    const toggleEl = wrap ? wrap.querySelector(".expand-toggle") : null;
+    refreshExpandableItem_(contentEl, toggleEl);
+  });
+}
+
+let __expandRefreshTimer = null;
+window.addEventListener("resize", ()=>{
+  clearTimeout(__expandRefreshTimer);
+  __expandRefreshTimer = setTimeout(()=>{
+    refreshAllExpandable_();
+    applySmartBalanceAll_();
+  }, 120);
+});
+
+function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
+  if(!blockEl) return;
+
+  const value = String(rawText || "");
+  if(!text(value)){
+    blockEl.style.display = "none";
+    blockEl.innerHTML = "";
+    return;
+  }
+
+  blockEl.style.display = "";
+  blockEl.innerHTML = `
+    <div class="block-title">${escapeHtml_(title)}</div>
+    <div class="expandable-wrap">
+      <div class="block-body expandable-text is-collapsed preline" style="--max-lines:${Number(maxLines || 3)}"></div>
+      <button class="expand-toggle" type="button" style="display:none;">看更多</button>
+    </div>
+  `;
+
+  const contentEl = blockEl.querySelector(".expandable-text");
+  const toggleEl = blockEl.querySelector(".expand-toggle");
+  setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline:true });
+}
+
 function renderAvatar_(p){
   const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
   const img = qs("u-img");
@@ -470,31 +605,8 @@ function renderBlocks_(p){
   const b1 = qs("block-service");
   const b2 = qs("block-exp");
 
-  if(b1){
-    if(text(service)){
-      b1.style.display = "";
-      b1.innerHTML = `
-        <div class="block-title">服務項目</div>
-        <div class="block-body preline">${escapeHtml_(service)}</div>
-      `;
-    }else{
-      b1.style.display = "none";
-      b1.innerHTML = "";
-    }
-  }
-
-  if(b2){
-    if(text(exp)){
-      b2.style.display = "";
-      b2.innerHTML = `
-        <div class="block-title">經歷</div>
-        <div class="block-body preline">${escapeHtml_(exp)}</div>
-      `;
-    }else{
-      b2.style.display = "none";
-      b2.innerHTML = "";
-    }
-  }
+  renderExpandableInfoBlock_(b1, "服務項目", service, 3);
+  renderExpandableInfoBlock_(b2, "經歷", exp, 3);
 }
 
 function renderContactDock_(p){
@@ -946,22 +1058,42 @@ function renderCard(row){
   currentRow = p;
 
   const nameEl = qs("u-name");
+  const unitWrap = qs("u-unit-wrap");
   const unitEl = qs("u-unit");
+  const unitToggle = qs("u-unit-toggle");
   const titleEl = qs("u-title");
+  const sloganWrap = qs("u-slogan-wrap");
   const sloganEl = qs("u-slogan");
+  const sloganToggle = qs("u-slogan-toggle");
 
-  if(nameEl) nameEl.textContent = text(pick(p, ["name","姓名"])) || "未命名";
-  if(unitEl) unitEl.textContent = text(pick(p, ["unit","單位","公司"])) || "";
-  if(titleEl) titleEl.textContent = text(pick(p, ["title","職稱"])) || "";
+  const nameVal = text(pick(p, ["name","姓名"])) || "未命名";
+  const unitVal = String(pick(p, ["unit","單位","公司"]) || "");
+  const titleVal = text(pick(p, ["title","職稱"])) || "";
+  const sloganVal = String(pick(p, ["slogan","一句話","簡介"]) || "");
 
-  const slogan = text(pick(p, ["slogan","一句話","簡介"]));
-  if(sloganEl){
-    if(slogan){
-      sloganEl.style.display = "";
-      sloganEl.textContent = slogan;
+  if(nameEl) nameEl.textContent = nameVal;
+
+  if(unitWrap && unitEl){
+    if(text(unitVal)){
+      unitWrap.style.display = "";
+      setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline:true });
     }else{
-      sloganEl.style.display = "none";
-      sloganEl.textContent = "";
+      unitWrap.style.display = "none";
+      unitEl.innerHTML = "";
+      if(unitToggle) unitToggle.style.display = "none";
+    }
+  }
+
+  if(titleEl) titleEl.textContent = titleVal;
+
+  if(sloganWrap && sloganEl){
+    if(text(sloganVal)){
+      sloganWrap.style.display = "";
+      setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline:true });
+    }else{
+      sloganWrap.style.display = "none";
+      sloganEl.innerHTML = "";
+      if(sloganToggle) sloganToggle.style.display = "none";
     }
   }
 
@@ -978,7 +1110,10 @@ function renderCard(row){
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
 
-  ensureBottomQrVisible_();
+  requestAnimationFrame(()=>{
+    refreshAllExpandable_();
+    ensureBottomQrVisible_();
+  });
 }
 
 function isIos_(){
@@ -1061,9 +1196,11 @@ window.addEventListener("load", ()=>{
   }catch(err){
     console.error(err);
     const nameEl = qs("u-name");
-    const unitEl = qs("u-unit");
+    const unitWrap = qs("u-unit-wrap");
     const titleEl = qs("u-title");
     if(nameEl) nameEl.textContent = "資料載入失敗";
+    if(unitWrap) unitWrap.style.display = "";
+    const unitEl = qs("u-unit");
     if(unitEl) unitEl.textContent = "請稍後再試";
     if(titleEl) titleEl.textContent = "";
   }
