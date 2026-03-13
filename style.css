@@ -1237,10 +1237,11 @@ body.mode-premium .photo-wall {
 }
 
 /* =========================
-   QR 區穩定化（v524.6.6）
-   - 預設不顯示白圈
-   - 中央頭像 / logo 一律縮小
-   - 名片館帶 logo QR 一起適用
+   QR 區穩定化
+   目標：
+   - QR code 變大
+   - 頭像 / logo 變小
+   - 不預設白圈
 ========================= */
 #bottomQrGrid,
 #featureQrGrid,
@@ -1249,23 +1250,25 @@ body.mode-premium .photo-wall {
   width: 100%;
   aspect-ratio: 1 / 1;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 14px;
   background: #fff;
   display: block;
+  padding: 6px;
 }
 
-#bottomQrGrid img,
-#featureQrGrid img,
-#facadeQrGrid img {
+/* 只管 QR 主圖，不碰中央頭像 */
+#bottomQrGrid > img:not(#bottomQrAvatar),
+#featureQrGrid > img:not(#featureQrAvatar),
+#facadeQrGrid > img:not(#facadeQrAvatar) {
   width: 100% !important;
   height: 100% !important;
   display: block !important;
   object-fit: contain !important;
   image-rendering: auto;
   filter: none !important;
-  transform: none !important;
 }
 
+/* 中央頭像 / logo：縮小 */
 #bottomQrAvatar,
 #featureQrAvatar,
 #facadeQrAvatar,
@@ -1274,8 +1277,8 @@ body.mode-premium .photo-wall {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 11%;
-  height: 11%;
+  width: 9%;
+  height: 9%;
   transform: translate(-50%, -50%);
   border-radius: 999px;
   object-fit: cover;
@@ -1358,8 +1361,14 @@ body.mode-premium #u-title {
   #facadeQrAvatar,
   .qr-center-avatar,
   .qr-logo {
-    width: 10%;
-    height: 10%;
+    width: 8%;
+    height: 8%;
+  }
+
+  #bottomQrGrid,
+  #featureQrGrid,
+  #facadeQrGrid {
+    padding: 4px;
   }
 }
 
@@ -1416,8 +1425,14 @@ body.mode-premium #u-title {
   #facadeQrAvatar,
   .qr-center-avatar,
   .qr-logo {
-    width: 9%;
-    height: 9%;
+    width: 7%;
+    height: 7%;
+  }
+
+  #bottomQrGrid,
+  #featureQrGrid,
+  #facadeQrGrid {
+    padding: 3px;
   }
 }
 
