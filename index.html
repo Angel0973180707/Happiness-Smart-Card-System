@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v524.6.6</title>
+  <title>天使幸福智慧名片館 v524.6.3</title>
 
-  <link rel="manifest" href="./manifest.json?v=524.6.6" />
+  <link rel="manifest" href="./manifest.json?v=524.6.3" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.6.6" />
-  <link rel="icon" href="./icons/icon-192.png?v=524.6.6" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.6.3" />
+  <link rel="icon" href="./icons/icon-192.png?v=524.6.3" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,12 +18,12 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=524.6.6" />
+  <meta property="og:image" content="og-card.png?v=524.6.3" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=524.6.6" />
+  <link rel="stylesheet" href="./style.css?v=524.6.3" />
 
   <style>
     :root{
@@ -168,7 +168,7 @@
       position:relative;
       width:172px;
       height:172px;
-      padding:10px;
+      padding:12px;
       border-radius:22px;
       background:#fff;
       box-shadow:0 8px 18px rgba(0,0,0,.04);
@@ -180,8 +180,8 @@
     }
     .facade-qr-grid{
       position:relative;
-      width:152px;
-      height:152px;
+      width:148px;
+      height:148px;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -189,7 +189,35 @@
       border-radius:14px;
       background:#fff;
     }
-
+    .facade-qr-grid img,
+    .qr-bottom-grid img,
+    .feature-qr-grid img{
+      width:100% !important;
+      height:100% !important;
+      display:block;
+      object-fit:cover;
+    }
+    .facade-qr-logo-pad{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      width:40px;
+      height:40px;
+      border-radius:14px;
+      background:rgba(255,255,255,0.98);
+      box-shadow:0 6px 16px rgba(0,0,0,0.10), 0 0 0 6px rgba(255,255,255,0.96);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:3;
+      pointer-events:none;
+    }
+    .facade-qr-logo{
+      width:22px;
+      height:22px;
+      display:block;
+    }
     .facade-qr-title{
       margin-top:12px;
       font-size:14px;
@@ -266,7 +294,32 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      position:relative;
+    }
+    .qr-bottom-center,
+    .feature-qr-center{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      width:42px;
+      height:42px;
+      border-radius:999px;
+      background:#fff;
+      box-shadow:0 6px 16px rgba(0,0,0,.10), 0 0 0 6px rgba(255,255,255,.96);
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:3;
+      pointer-events:none;
+    }
+    .qr-bottom-center img,
+    .feature-qr-center img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+      border-radius:999px;
     }
 
     .feature-qr-shell{
@@ -281,7 +334,7 @@
       position:relative;
       width:176px;
       height:176px;
-      padding:10px;
+      padding:12px;
       border-radius:22px;
       background:#fff;
       box-shadow:0 8px 18px rgba(0,0,0,.04);
@@ -300,37 +353,6 @@
       overflow:hidden;
       border-radius:14px;
       background:#fff;
-      position:relative;
-    }
-
-    /* 只控制 QR 主圖，不誤傷中央圖 */
-    .facade-qr-grid > img:not(#facadeQrAvatar),
-    .qr-bottom-grid > img:not(#bottomQrAvatar),
-    .feature-qr-grid > img:not(#featureQrAvatar){
-      width:100% !important;
-      height:100% !important;
-      display:block !important;
-      object-fit:contain !important;
-    }
-
-    /* 中央圖預設不顯示，交給 app.js 控制 */
-    #facadeQrAvatar,
-    #bottomQrAvatar,
-    #featureQrAvatar{
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform:translate(-50%, -50%);
-      width:8%;
-      height:8%;
-      border-radius:999px;
-      object-fit:cover;
-      z-index:3;
-      display:none;
-      background:transparent !important;
-      padding:0 !important;
-      box-shadow:none !important;
-      pointer-events:none;
     }
 
     .modal-mask,
@@ -506,13 +528,6 @@
         font-size:11px;
         padding:6px 11px;
       }
-
-      #facadeQrAvatar,
-      #bottomQrAvatar,
-      #featureQrAvatar{
-        width:7%;
-        height:7%;
-      }
     }
   </style>
 
@@ -582,7 +597,19 @@
         <div class="facade-qr-box">
           <div class="facade-qr-canvas" id="facadeQrCanvas">
             <div class="facade-qr-grid" id="facadeQrGrid"></div>
-            <img id="facadeQrAvatar" alt="名片館 QR Logo" />
+            <div class="facade-qr-logo-pad" aria-hidden="true">
+              <svg class="facade-qr-logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
+                <line x1="32" y1="6" x2="32" y2="16" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="32" y1="48" x2="32" y2="58" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="6" y1="32" x2="16" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="48" y1="32" x2="58" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="14" y1="14" x2="20" y2="20" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="44" y1="44" x2="50" y2="50" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="14" y1="50" x2="20" y2="44" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="44" y1="20" x2="50" y2="14" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+            </div>
           </div>
           <div class="facade-qr-title balance-text" data-balance-type="qr-title">掃描 QRcode｜帶走智慧名片館</div>
           <div class="facade-qr-sub balance-text" data-balance-type="qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
@@ -762,12 +789,14 @@
           <div class="qr-bottom-wrap">
             <div class="qr-bottom-canvas">
               <div class="qr-bottom-grid" id="bottomQrGrid"></div>
-              <img id="bottomQrAvatar" alt="QR 頭像" />
+              <div class="qr-bottom-center" id="bottomQrCenter">
+                <img id="bottomQrAvatar" alt="QR 頭像" />
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v524.6.6</div>
+        <div class="version-tag" id="versionTag">v524.6.3</div>
       </div>
     </section>
   </main>
@@ -782,7 +811,9 @@
         <div class="feature-qr-shell">
           <div class="feature-qr-canvas">
             <div class="feature-qr-grid" id="featureQrGrid"></div>
-            <img id="featureQrAvatar" alt="QR 頭像" />
+            <div class="feature-qr-center" id="featureQrCenter">
+              <img id="featureQrAvatar" alt="QR 頭像" />
+            </div>
           </div>
         </div>
       </div>
@@ -810,13 +841,13 @@
     </div>
   </div>
 
-  <script src="./app.js?v=524.6.6"></script>
+  <script src="./app.js?v=524.6.3"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "524.6.6";
+      var VERSION = "524.6.3";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -934,28 +965,14 @@
         }
       }
 
-      function getSunLogoUrl(){
-        return "./icons/icon-192.png?v=" + encodeURIComponent(VERSION);
-      }
-
       function renderFacadeQr(){
         var mount = qs("facadeQrGrid");
-        var avatar = qs("facadeQrAvatar");
         if(!mount || isClean()) return;
-
         mount.innerHTML = "";
         var qrUrl = buildFacadeHubQrUrl();
-
         try{
           if(window.renderQr){
-            window.renderQr({
-              container: mount,
-              url: qrUrl,
-              size: 152,
-              centerImgEl: avatar,
-              centerImgUrl: getSunLogoUrl(),
-              centerSizeRatio: 0.07
-            });
+            window.renderQr({ container: mount, url: qrUrl, size: 148 });
           }
         }catch(e){}
       }
@@ -964,10 +981,8 @@
         var mount = qs("featureQrGrid");
         var avatar = qs("featureQrAvatar");
         if(!mount) return;
-
         mount.innerHTML = "";
         var qrUrl = buildHubShareUrlFallback();
-
         try{
           if(window.renderQr){
             window.renderQr({
@@ -976,7 +991,7 @@
               size: 152,
               centerImgEl: avatar,
               centerImgUrl: window.__getCurrentAvatarUrl ? window.__getCurrentAvatarUrl() : "",
-              centerSizeRatio: 0.08
+              centerSizeRatio: 0.15
             });
           }
         }catch(e){}
