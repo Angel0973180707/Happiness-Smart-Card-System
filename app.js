@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.6.5",
+  VERSION: "v524.6.6",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -876,10 +876,6 @@ function renderDocks_(p){
   renderCtaDock_(p);
 }
 
-/* =========================
-   Photo de-dup helpers
-========================= */
-
 function stripQueryAndHash_(url){
   const s = String(url || "");
   return s.split("#")[0].split("?")[0];
@@ -1118,14 +1114,10 @@ function buildFacadeQrUrl_(){
   return buildHubShareUrl_();
 }
 
-/* =========================
-   QR helpers
-========================= */
-
 function getQrCenterRatio_(baseRatio){
   const vw = window.innerWidth || 390;
-  if(vw <= 360) return Math.max(0.08, baseRatio - 0.02);
-  if(vw <= 520) return Math.max(0.09, baseRatio - 0.01);
+  if(vw <= 360) return Math.max(0.06, baseRatio - 0.02);
+  if(vw <= 520) return Math.max(0.07, baseRatio - 0.01);
   return baseRatio;
 }
 
@@ -1138,7 +1130,7 @@ function buildQrImageUrl_(url, size){
     + "&margin=2";
 }
 
-function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.14){
+function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   if(!imgEl) return;
 
   const u = normalizeImageUrl_(centerImgUrl);
@@ -1182,9 +1174,9 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.14){
     referrerPolicy: "no-referrer",
     onLoad: ()=>{
       imgEl.style.display = "block";
-      imgEl.style.background = "#fff";
-      imgEl.style.padding = "1px";
-      imgEl.style.boxShadow = "0 1px 4px rgba(0,0,0,.08)";
+      imgEl.style.background = "transparent";
+      imgEl.style.padding = "0";
+      imgEl.style.boxShadow = "none";
     },
     onFail: ()=>{
       imgEl.removeAttribute("src");
@@ -1203,7 +1195,7 @@ function renderQr(options){
     size = 160,
     centerImgEl = null,
     centerImgUrl = "",
-    centerSizeRatio = 0.14,
+    centerSizeRatio = 0.09,
     renderKey = ""
   } = options || {};
 
@@ -1281,11 +1273,11 @@ function renderBottomQr_(p){
       size: 136,
       centerImgEl: avatar,
       centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.14,
+      centerSizeRatio: 0.09,
       renderKey: key
     });
   }else{
-    setCenterImg_(avatar, avatarUrl, 0.14);
+    setCenterImg_(avatar, avatarUrl, 0.09);
   }
 
   sec.style.display = "block";
@@ -1308,11 +1300,11 @@ function renderFeatureQrFromCurrent_(){
       size: 152,
       centerImgEl: avatar,
       centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.14,
+      centerSizeRatio: 0.09,
       renderKey: key
     });
   }else{
-    setCenterImg_(avatar, avatarUrl, 0.14);
+    setCenterImg_(avatar, avatarUrl, 0.09);
   }
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
