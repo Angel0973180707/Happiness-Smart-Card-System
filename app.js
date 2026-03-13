@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.6.4",
+  VERSION: "v524.6.5",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -989,9 +989,7 @@ function renderPhotoWall_(p){
     img.loading = "lazy";
     img.decoding = "async";
     setImgWithFallback_(img, buildImgCandidates_(u), {
-      onFail: ()=>{
-        img.remove();
-      }
+      onFail: ()=>{ img.remove(); }
     });
     img.addEventListener("click", ()=> openUrl_(u));
     grid.appendChild(img);
@@ -1140,21 +1138,17 @@ function buildQrImageUrl_(url, size){
     + "&margin=2";
 }
 
-function hideQrCenterImg_(imgEl){
-  if(!imgEl) return;
-  imgEl.removeAttribute("src");
-  imgEl.style.display = "none";
-  imgEl.style.background = "transparent";
-  imgEl.style.padding = "0";
-  imgEl.style.boxShadow = "none";
-}
-
-function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.12){
+function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.14){
   if(!imgEl) return;
 
   const u = normalizeImageUrl_(centerImgUrl);
+
   if(!u){
-    hideQrCenterImg_(imgEl);
+    imgEl.removeAttribute("src");
+    imgEl.style.display = "none";
+    imgEl.style.background = "transparent";
+    imgEl.style.padding = "0";
+    imgEl.style.boxShadow = "none";
     return;
   }
 
@@ -1170,10 +1164,18 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.12){
   imgEl.style.objectFit = "cover";
   imgEl.style.zIndex = "2";
 
-  imgEl.style.display = "none";
   imgEl.style.background = "transparent";
   imgEl.style.padding = "0";
   imgEl.style.boxShadow = "none";
+  imgEl.style.display = "block";
+
+  imgEl.onerror = ()=>{
+    imgEl.removeAttribute("src");
+    imgEl.style.display = "none";
+    imgEl.style.background = "transparent";
+    imgEl.style.padding = "0";
+    imgEl.style.boxShadow = "none";
+  };
 
   setImgWithFallback_(imgEl, buildImgCandidates_(u), {
     crossOrigin: "anonymous",
@@ -1185,7 +1187,11 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.12){
       imgEl.style.boxShadow = "0 1px 4px rgba(0,0,0,.08)";
     },
     onFail: ()=>{
-      hideQrCenterImg_(imgEl);
+      imgEl.removeAttribute("src");
+      imgEl.style.display = "none";
+      imgEl.style.background = "transparent";
+      imgEl.style.padding = "0";
+      imgEl.style.boxShadow = "none";
     }
   });
 }
@@ -1197,7 +1203,7 @@ function renderQr(options){
     size = 160,
     centerImgEl = null,
     centerImgUrl = "",
-    centerSizeRatio = 0.12,
+    centerSizeRatio = 0.14,
     renderKey = ""
   } = options || {};
 
@@ -1275,11 +1281,11 @@ function renderBottomQr_(p){
       size: 136,
       centerImgEl: avatar,
       centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.12,
+      centerSizeRatio: 0.14,
       renderKey: key
     });
   }else{
-    setCenterImg_(avatar, avatarUrl, 0.12);
+    setCenterImg_(avatar, avatarUrl, 0.14);
   }
 
   sec.style.display = "block";
@@ -1302,11 +1308,11 @@ function renderFeatureQrFromCurrent_(){
       size: 152,
       centerImgEl: avatar,
       centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.12,
+      centerSizeRatio: 0.14,
       renderKey: key
     });
   }else{
-    setCenterImg_(avatar, avatarUrl, 0.12);
+    setCenterImg_(avatar, avatarUrl, 0.14);
   }
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
