@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.6.3",
+  VERSION: "v524.6.4",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -176,21 +176,63 @@ function buildImgCandidates_(raw){
   return [...new Set(list.filter(Boolean))];
 }
 
-function setImgWithFallback_(imgEl, candidates){
+function setImgWithFallback_(imgEl, candidates, options = {}){
   const list = (candidates || []).filter(Boolean);
-  if(!imgEl || !list.length) return;
+  if(!imgEl){
+    if(typeof options.onFail === "function") options.onFail();
+    return;
+  }
+
+  if(!list.length){
+    if(typeof options.onFail === "function") options.onFail();
+    return;
+  }
 
   let idx = 0;
-  imgEl.referrerPolicy = "no-referrer";
+  let done = false;
 
-  const tryNext = ()=>{
-    idx++;
-    if(idx >= list.length) return;
-    imgEl.src = list[idx] + (list[idx].includes("?") ? "&" : "?") + "t=" + Date.now() + "&v=" + encodeURIComponent(CONFIG.VERSION);
+  imgEl.referrerPolicy = options.referrerPolicy || "no-referrer";
+  try{ imgEl.crossOrigin = options.crossOrigin || "anonymous"; }catch{}
+
+  const buildSrc = (src)=>{
+    const sep = src.includes("?") ? "&" : "?";
+    return src + sep + "t=" + Date.now() + "&v=" + encodeURIComponent(CONFIG.VERSION);
   };
 
-  imgEl.onerror = tryNext;
-  imgEl.src = list[0] + (list[0].includes("?") ? "&" : "?") + "t=" + Date.now() + "&v=" + encodeURIComponent(CONFIG.VERSION);
+  const cleanup = ()=>{
+    imgEl.onerror = null;
+    imgEl.onload = null;
+  };
+
+  const failAll = ()=>{
+    if(done) return;
+    done = true;
+    cleanup();
+    if(typeof options.onFail === "function") options.onFail();
+  };
+
+  const tryNext = ()=>{
+    if(done) return;
+    idx++;
+    if(idx >= list.length){
+      failAll();
+      return;
+    }
+    imgEl.src = buildSrc(list[idx]);
+  };
+
+  imgEl.onload = ()=>{
+    if(done) return;
+    done = true;
+    cleanup();
+    if(typeof options.onLoad === "function") options.onLoad();
+  };
+
+  imgEl.onerror = ()=>{
+    tryNext();
+  };
+
+  imgEl.src = buildSrc(list[0]);
 }
 
 function escapeHtml_(s){
@@ -603,17 +645,36 @@ function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
   setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline:true });
 }
 
+function pickAvatarUrl_(p){
+  const avatarRaw = pick(p, [
+    "avatar_img_fast",
+    "avatar_img",
+    "avatar_url",
+    "avatar",
+    "個人照_fast",
+    "個人照",
+    "個人照_url"
+  ]);
+  return normalizeImageUrl_(avatarRaw);
+}
+
 function renderAvatar_(p){
-  const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
   const img = qs("u-img");
   if(!img) return;
-  const u = normalizeImageUrl_(avatarRaw);
+
+  const u = pickAvatarUrl_(p);
   currentAvatarUrlCache = u || "";
+
   if(!u){
     img.removeAttribute("src");
     return;
   }
-  setImgWithFallback_(img, buildImgCandidates_(u));
+
+  setImgWithFallback_(img, buildImgCandidates_(u), {
+    onFail: ()=>{
+      img.removeAttribute("src");
+    }
+  });
 }
 
 function renderLogo_(p){
@@ -632,7 +693,12 @@ function renderLogo_(p){
   wrap.style.display = "flex";
   img.style.borderRadius = "18px";
   img.style.objectFit = "cover";
-  setImgWithFallback_(img, buildImgCandidates_(u));
+  setImgWithFallback_(img, buildImgCandidates_(u), {
+    onFail: ()=>{
+      wrap.style.display = "none";
+      img.removeAttribute("src");
+    }
+  });
 }
 
 function renderBlocks_(p){
@@ -922,7 +988,11 @@ function renderPhotoWall_(p){
     img.alt = `照片 ${idx+1}`;
     img.loading = "lazy";
     img.decoding = "async";
-    setImgWithFallback_(img, buildImgCandidates_(u));
+    setImgWithFallback_(img, buildImgCandidates_(u), {
+      onFail: ()=>{
+        img.remove();
+      }
+    });
     img.addEventListener("click", ()=> openUrl_(u));
     grid.appendChild(img);
   });
@@ -1056,8 +1126,8 @@ function buildFacadeQrUrl_(){
 
 function getQrCenterRatio_(baseRatio){
   const vw = window.innerWidth || 390;
-  if(vw <= 360) return Math.max(0.10, baseRatio - 0.03);
-  if(vw <= 520) return Math.max(0.11, baseRatio - 0.02);
+  if(vw <= 360) return Math.max(0.08, baseRatio - 0.02);
+  if(vw <= 520) return Math.max(0.09, baseRatio - 0.01);
   return baseRatio;
 }
 
@@ -1070,16 +1140,26 @@ function buildQrImageUrl_(url, size){
     + "&margin=2";
 }
 
-function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.15){
+function hideQrCenterImg_(imgEl){
   if(!imgEl) return;
+  imgEl.removeAttribute("src");
+  imgEl.style.display = "none";
+  imgEl.style.background = "transparent";
+  imgEl.style.padding = "0";
+  imgEl.style.boxShadow = "none";
+}
+
+function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.12){
+  if(!imgEl) return;
+
   const u = normalizeImageUrl_(centerImgUrl);
   if(!u){
-    imgEl.removeAttribute("src");
-    imgEl.style.display = "none";
+    hideQrCenterImg_(imgEl);
     return;
   }
 
   const ratio = getQrCenterRatio_(sizeRatio);
+
   imgEl.style.position = "absolute";
   imgEl.style.left = "50%";
   imgEl.style.top = "50%";
@@ -1089,12 +1169,25 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.15){
   imgEl.style.borderRadius = "999px";
   imgEl.style.objectFit = "cover";
   imgEl.style.zIndex = "2";
-  imgEl.style.background = "#fff";
-  imgEl.style.padding = "2px";
-  imgEl.style.boxShadow = "0 2px 8px rgba(0,0,0,.10)";
-  imgEl.style.display = "block";
 
-  setImgWithFallback_(imgEl, buildImgCandidates_(u));
+  imgEl.style.display = "none";
+  imgEl.style.background = "transparent";
+  imgEl.style.padding = "0";
+  imgEl.style.boxShadow = "none";
+
+  setImgWithFallback_(imgEl, buildImgCandidates_(u), {
+    crossOrigin: "anonymous",
+    referrerPolicy: "no-referrer",
+    onLoad: ()=>{
+      imgEl.style.display = "block";
+      imgEl.style.background = "#fff";
+      imgEl.style.padding = "1px";
+      imgEl.style.boxShadow = "0 1px 4px rgba(0,0,0,.08)";
+    },
+    onFail: ()=>{
+      hideQrCenterImg_(imgEl);
+    }
+  });
 }
 
 function renderQr(options){
@@ -1104,7 +1197,7 @@ function renderQr(options){
     size = 160,
     centerImgEl = null,
     centerImgUrl = "",
-    centerSizeRatio = 0.15,
+    centerSizeRatio = 0.12,
     renderKey = ""
   } = options || {};
 
@@ -1124,6 +1217,7 @@ function renderQr(options){
   img.loading = "eager";
   img.decoding = "sync";
   img.referrerPolicy = "no-referrer";
+  try{ img.crossOrigin = "anonymous"; }catch{}
   img.src = buildQrImageUrl_(url, size) + "&t=" + Date.now();
   img.style.width = "100%";
   img.style.height = "100%";
@@ -1170,11 +1264,7 @@ function renderBottomQr_(p){
   if(!sec || !grid || !avatar) return;
 
   const qrUrl = buildBottomQrUrl_();
-
-  /* 底部 QR 中間固定抓成品個人照 */
-  const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
-  const avatarUrl = normalizeImageUrl_(avatarRaw);
-
+  const avatarUrl = pickAvatarUrl_(p);
   const key = "bottom|" + qrUrl + "|" + avatarUrl;
 
   if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
@@ -1185,11 +1275,11 @@ function renderBottomQr_(p){
       size: 136,
       centerImgEl: avatar,
       centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.15,
+      centerSizeRatio: 0.12,
       renderKey: key
     });
   }else{
-    setCenterImg_(avatar, avatarUrl, 0.15);
+    setCenterImg_(avatar, avatarUrl, 0.12);
   }
 
   sec.style.display = "block";
@@ -1212,11 +1302,11 @@ function renderFeatureQrFromCurrent_(){
       size: 152,
       centerImgEl: avatar,
       centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.15,
+      centerSizeRatio: 0.12,
       renderKey: key
     });
   }else{
-    setCenterImg_(avatar, avatarUrl, 0.15);
+    setCenterImg_(avatar, avatarUrl, 0.12);
   }
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
