@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v524.6.3</title>
+  <title>天使幸福智慧名片館 v524.6.6</title>
 
-  <link rel="manifest" href="./manifest.json?v=524.6.3" />
+  <link rel="manifest" href="./manifest.json?v=524.6.6" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.6.3" />
-  <link rel="icon" href="./icons/icon-192.png?v=524.6.3" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.6.6" />
+  <link rel="icon" href="./icons/icon-192.png?v=524.6.6" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,12 +18,12 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=524.6.3" />
+  <meta property="og:image" content="og-card.png?v=524.6.6" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=524.6.3" />
+  <link rel="stylesheet" href="./style.css?v=524.6.6" />
 
   <style>
     :root{
@@ -109,11 +109,11 @@
       text-align:center;
     }
     .sun-ui-icon{
-      width:22px;
-      height:22px;
+      width:16px;
+      height:16px;
       display:block;
-      margin-bottom:8px;
-      opacity:.95;
+      margin-bottom:6px;
+      opacity:.92;
     }
     .facade-brand-title{
       font-weight:1000;
@@ -202,11 +202,11 @@
       left:50%;
       top:50%;
       transform:translate(-50%, -50%);
-      width:40px;
-      height:40px;
-      border-radius:14px;
+      width:30px;
+      height:30px;
+      border-radius:10px;
       background:rgba(255,255,255,0.98);
-      box-shadow:0 6px 16px rgba(0,0,0,0.10), 0 0 0 6px rgba(255,255,255,0.96);
+      box-shadow:0 4px 10px rgba(0,0,0,0.08), 0 0 0 4px rgba(255,255,255,0.96);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -214,8 +214,8 @@
       pointer-events:none;
     }
     .facade-qr-logo{
-      width:22px;
-      height:22px;
+      width:14px;
+      height:14px;
       display:block;
     }
     .facade-qr-title{
@@ -301,11 +301,11 @@
       left:50%;
       top:50%;
       transform:translate(-50%, -50%);
-      width:42px;
-      height:42px;
+      width:24px;
+      height:24px;
       border-radius:999px;
-      background:#fff;
-      box-shadow:0 6px 16px rgba(0,0,0,.10), 0 0 0 6px rgba(255,255,255,.96);
+      background:transparent;
+      box-shadow:none;
       overflow:hidden;
       display:flex;
       align-items:center;
@@ -796,7 +796,7 @@
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v524.6.3</div>
+        <div class="version-tag" id="versionTag">v524.6.6</div>
       </div>
     </section>
   </main>
@@ -841,13 +841,13 @@
     </div>
   </div>
 
-  <script src="./app.js?v=524.6.3"></script>
+  <script src="./app.js?v=524.6.6"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "524.6.3";
+      var VERSION = "524.6.6";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -991,7 +991,7 @@
               size: 152,
               centerImgEl: avatar,
               centerImgUrl: window.__getCurrentAvatarUrl ? window.__getCurrentAvatarUrl() : "",
-              centerSizeRatio: 0.15
+              centerSizeRatio: 0.09
             });
           }
         }catch(e){}
