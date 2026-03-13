@@ -1,6 +1,5 @@
-
 /* =========================================
- * HSC Auto Update System v711.0
+ * HSC Auto Update System v524.6.4
  * COMPLETE OVERWRITE
  *
  * Usage:
@@ -14,21 +13,24 @@
 (() => {
   "use strict";
 
+  const APP_VERSION = "v524.6.4";
   const VERSION_URL = "./version.json";
-  const SW_URL = "./sw.js?v=v711.0";
+  const SW_URL = `./sw.js?v=${encodeURIComponent(APP_VERSION)}`;
   const STORAGE_KEY = "HSC_APP_VERSION";
   const CHECK_INTERVAL = 60 * 1000;
+  const RELOAD_FLAG_KEY = "HSC_RELOAD_IN_PROGRESS";
 
   let currentVersion = null;
   let regRef = null;
   let checking = false;
+  let hasBoundControllerChange = false;
 
   init();
 
   async function init() {
     try {
       const version = await fetchVersion();
-      currentVersion = version.app || version.sw || "unknown";
+      currentVersion = version.app || version.sw || APP_VERSION;
 
       await registerSW();
       await checkUpdateSilently();
@@ -45,7 +47,9 @@
     if (!("serviceWorker" in navigator)) return;
 
     try {
-      const reg = await navigator.serviceWorker.register(SW_URL, { updateViaCache: "none" });
+      const reg = await navigator.serviceWorker.register(SW_URL, {
+        updateViaCache: "none"
+      });
       regRef = reg;
 
       if (reg.waiting) {
@@ -63,9 +67,15 @@
         });
       });
 
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        location.reload();
-      });
+      if (!hasBoundControllerChange) {
+        hasBoundControllerChange = true;
+
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (sessionStorage.getItem(RELOAD_FLAG_KEY) === "1") return;
+          sessionStorage.setItem(RELOAD_FLAG_KEY, "1");
+          location.reload();
+        });
+      }
     } catch (err) {
       console.warn("[HSC update] SW register failed:", err);
     }
@@ -77,7 +87,7 @@
 
     try {
       const remote = await fetchVersion();
-      const remoteVersion = remote.app || remote.sw || "unknown";
+      const remoteVersion = remote.app || remote.sw || APP_VERSION;
       const localVersion = localStorage.getItem(STORAGE_KEY) || currentVersion || "";
 
       if (!localVersion) {
@@ -93,6 +103,7 @@
 
         if (regRef) {
           await regRef.update();
+
           if (regRef.waiting) {
             showUpdatePrompt("系統已更新，請重新載入。", () => activateWaitingSW(regRef));
           } else {
@@ -112,7 +123,7 @@
   }
 
   async function fetchVersion() {
-    const res = await fetch(`${VERSION_URL}?t=${Date.now()}`, {
+    const res = await fetch(`${VERSION_URL}?t=${Date.now()}&v=${encodeURIComponent(APP_VERSION)}`, {
       cache: "no-store"
     });
 
@@ -125,6 +136,9 @@
 
   function activateWaitingSW(reg) {
     if (reg && reg.waiting) {
+      try {
+        sessionStorage.removeItem(RELOAD_FLAG_KEY);
+      } catch (_err) {}
       reg.waiting.postMessage({ type: "SKIP_WAITING" });
     } else {
       hardReload();
@@ -132,6 +146,10 @@
   }
 
   function hardReload() {
+    try {
+      sessionStorage.removeItem(RELOAD_FLAG_KEY);
+    } catch (_err) {}
+
     const url = new URL(location.href);
     url.searchParams.set("_update", Date.now().toString());
     location.replace(url.toString());
@@ -153,68 +171,69 @@
       </div>
     `;
 
-    const style = document.createElement("style");
-    style.id = "hsc-update-style";
-    style.textContent = `
-      #hsc-update-toast{
-        position:fixed;
-        left:16px;
-        right:16px;
-        bottom:18px;
-        z-index:99999;
-        display:flex;
-        justify-content:center;
-        pointer-events:none;
-      }
-      .hsc-update-box{
-        width:min(520px,100%);
-        background:rgba(32,28,25,.96);
-        color:#fff;
-        border-radius:18px;
-        box-shadow:0 20px 50px rgba(0,0,0,.24);
-        padding:16px;
-        pointer-events:auto;
-        border:1px solid rgba(255,255,255,.08);
-        backdrop-filter:blur(10px);
-      }
-      .hsc-update-title{
-        font-size:16px;
-        font-weight:800;
-        margin-bottom:6px;
-      }
-      .hsc-update-msg{
-        font-size:14px;
-        line-height:1.6;
-        color:rgba(255,255,255,.88);
-      }
-      .hsc-update-actions{
-        display:flex;
-        gap:10px;
-        margin-top:14px;
-        justify-content:flex-end;
-      }
-      .hsc-btn{
-        appearance:none;
-        border:none;
-        border-radius:12px;
-        padding:11px 16px;
-        font-size:14px;
-        font-weight:800;
-        cursor:pointer;
-      }
-      .hsc-btn-soft{
-        background:rgba(255,255,255,.12);
-        color:#fff;
-      }
-      .hsc-btn-primary{
-        background:#f0b56b;
-        color:#2c2118;
-      }
-    `;
-
     if (!document.getElementById("hsc-update-style")) {
+      const style = document.createElement("style");
+      style.id = "hsc-update-style";
+      style.textContent = `
+        #hsc-update-toast{
+          position:fixed;
+          left:16px;
+          right:16px;
+          bottom:18px;
+          z-index:99999;
+          display:flex;
+          justify-content:center;
+          pointer-events:none;
+        }
+        .hsc-update-box{
+          width:min(520px,100%);
+          background:rgba(32,28,25,.96);
+          color:#fff;
+          border-radius:18px;
+          box-shadow:0 20px 50px rgba(0,0,0,.24);
+          padding:16px;
+          pointer-events:auto;
+          border:1px solid rgba(255,255,255,.08);
+          backdrop-filter:blur(10px);
+        }
+        .hsc-update-title{
+          font-size:16px;
+          font-weight:800;
+          margin-bottom:6px;
+        }
+        .hsc-update-msg{
+          font-size:14px;
+          line-height:1.6;
+          color:rgba(255,255,255,.88);
+        }
+        .hsc-update-actions{
+          display:flex;
+          gap:10px;
+          margin-top:14px;
+          justify-content:flex-end;
+          flex-wrap:wrap;
+        }
+        .hsc-btn{
+          appearance:none;
+          border:none;
+          border-radius:12px;
+          padding:11px 16px;
+          font-size:14px;
+          font-weight:800;
+          cursor:pointer;
+        }
+        .hsc-btn-soft{
+          background:rgba(255,255,255,.12);
+          color:#fff;
+        }
+        .hsc-btn-primary{
+          background:#f0b56b;
+          color:#2c2118;
+        }
+      `;
       document.head.appendChild(style);
     }
+
     document.body.appendChild(toast);
 
     document.getElementById("hsc-update-later")?.addEventListener("click", () => {
@@ -223,7 +242,7 @@
 
     document.getElementById("hsc-update-now")?.addEventListener("click", () => {
       toast.remove();
-      onConfirm();
+      if (typeof onConfirm === "function") onConfirm();
     });
   }
 
