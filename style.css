@@ -221,28 +221,36 @@ body.mode-premium .premium-fx-layer {
   filter: blur(18px) saturate(1.04);
 }
 
+/* p6 金箔升級：更金屬、更亮、更有反射層次 */
 body.mode-premium.p6 .premium-fx-layer {
   background:
-    radial-gradient(980px 560px at 16% 6%, rgba(255,255,255,.34), transparent 60%),
-    radial-gradient(820px 560px at 94% 2%, rgba(255,255,255,.22), transparent 62%),
-    linear-gradient(118deg,
+    radial-gradient(1080px 620px at 14% 2%, rgba(255,255,255,.40), transparent 60%),
+    radial-gradient(860px 560px at 94% 4%, rgba(255,255,255,.24), transparent 62%),
+    linear-gradient(114deg,
       rgba(255,255,255,.00) 0%,
-      rgba(255,255,255,.22) 16%,
-      rgba(255,246,210,.52) 28%,
-      rgba(255,233,168,.54) 38%,
-      rgba(191,149,63,.32) 48%,
-      rgba(255,255,255,.24) 56%,
-      rgba(191,149,63,.28) 66%,
-      rgba(255,233,168,.50) 78%,
+      rgba(255,255,255,.20) 12%,
+      rgba(255,250,226,.64) 22%,
+      rgba(255,229,146,.54) 30%,
+      rgba(205,161,72,.30) 38%,
+      rgba(255,255,255,.30) 48%,
+      rgba(184,138,50,.34) 58%,
+      rgba(255,236,170,.60) 72%,
+      rgba(255,255,255,.12) 84%,
       rgba(255,255,255,.00) 100%
     ),
-    radial-gradient(1px 1px at 22px 18px, rgba(255,255,255,.14), transparent 60%),
-    radial-gradient(1px 1px at 58px 46px, rgba(0,0,0,.05), transparent 60%),
-    radial-gradient(1px 1px at 96px 28px, rgba(255,255,255,.12), transparent 60%);
-  background-size: auto, auto, auto, 78px 78px, 92px 92px, 110px 110px;
+    linear-gradient(135deg,
+      rgba(255,255,255,.00) 0%,
+      rgba(255,247,214,.10) 24%,
+      rgba(145,105,28,.12) 52%,
+      rgba(255,255,255,.00) 100%
+    ),
+    radial-gradient(1px 1px at 22px 18px, rgba(255,255,255,.18), transparent 60%),
+    radial-gradient(1px 1px at 58px 46px, rgba(110,77,18,.08), transparent 60%),
+    radial-gradient(1px 1px at 96px 28px, rgba(255,255,255,.16), transparent 60%);
+  background-size: auto, auto, auto, auto, 78px 78px, 92px 92px, 110px 110px;
   mix-blend-mode: screen;
-  opacity: .36;
-  filter: blur(10px) saturate(1.16);
+  opacity: .42;
+  filter: blur(9px) saturate(1.20);
 }
 
 body.mode-premium .card::before {
@@ -638,36 +646,61 @@ body.mode-premium .btn-neo.active {
   background: rgba(255,255,255,.15);
 }
 
+/* p6 金箔按鈕區升級 */
 body.mode-premium.p6 .btn-neo {
   background:
-    radial-gradient(150% 190% at 18% 0%,
-      rgba(255,255,255,.30),
-      rgba(255,248,216,.16) 42%,
-      rgba(255,233,168,.12) 60%,
+    radial-gradient(180% 220% at 16% 0%,
+      rgba(255,255,255,.38),
+      rgba(255,250,226,.22) 34%,
+      rgba(255,232,156,.14) 52%,
+      rgba(193,149,57,.16) 72%,
       rgba(255,255,255,.08)
     ),
-    linear-gradient(135deg,
-      rgba(255,246,214,.24),
-      rgba(244,196,78,.18) 38%,
-      rgba(191,149,63,.24) 62%,
-      rgba(255,255,255,.08)
+    linear-gradient(132deg,
+      rgba(255,252,238,.22) 0%,
+      rgba(255,234,164,.18) 26%,
+      rgba(208,162,69,.24) 52%,
+      rgba(140,98,24,.16) 68%,
+      rgba(255,246,214,.18) 100%
     );
-  color: rgba(255,250,238,.98);
+  color: rgba(255,250,238,.99);
   box-shadow:
-    0 22px 48px rgba(0,0,0,.44),
-    inset 0 2px 0 rgba(255,255,255,.24),
-    inset 0 -18px 22px rgba(120,82,26,.26);
+    0 22px 48px rgba(0,0,0,.42),
+    inset 0 2px 0 rgba(255,255,255,.30),
+    inset 0 -18px 22px rgba(126,86,20,.28),
+    inset 14px 0 20px rgba(255,244,200,.10),
+    inset -12px 0 18px rgba(112,78,18,.14);
 }
 
 body.mode-premium.p6 .btn-neo::after {
-  background: linear-gradient(
-    135deg,
-    rgba(255,248,220,.84),
-    rgba(255,222,138,.82) 28%,
-    rgba(191,149,63,.78) 56%,
-    rgba(255,246,214,.62) 100%
-  );
-  opacity: .96;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,253,239,.96) 0%,
+      rgba(255,240,186,.92) 20%,
+      rgba(191,149,63,.82) 44%,
+      rgba(255,246,214,.72) 70%,
+      rgba(145,104,28,.68) 100%
+    );
+  opacity: .98;
+}
+
+body.mode-premium.p6 .btn-neo.active {
+  background:
+    radial-gradient(180% 220% at 16% 0%,
+      rgba(255,255,255,.46),
+      rgba(255,251,232,.26) 36%,
+      rgba(255,234,164,.18) 54%,
+      rgba(193,149,57,.20) 74%,
+      rgba(255,255,255,.10)
+    ),
+    linear-gradient(132deg,
+      rgba(255,253,239,.26) 0%,
+      rgba(255,236,174,.22) 26%,
+      rgba(208,162,69,.28) 52%,
+      rgba(140,98,24,.18) 68%,
+      rgba(255,246,214,.22) 100%
+    );
 }
 
 .btn-cta {
@@ -737,12 +770,18 @@ body.mode-premium .btn-share {
 
 body.mode-premium.p6 .btn-share {
   background:
-    radial-gradient(920px 540px at 18% 8%, rgba(255,255,255,.32), transparent 60%),
-    linear-gradient(135deg, rgba(255,248,220,.26), rgba(255,222,138,.32), rgba(191,149,63,.54));
-  border: 1px solid rgba(255,239,188,.34);
+    radial-gradient(920px 540px at 18% 8%, rgba(255,255,255,.36), transparent 60%),
+    linear-gradient(135deg,
+      rgba(255,252,236,.24),
+      rgba(255,237,178,.26),
+      rgba(191,149,63,.56)
+    );
+  border: 1px solid rgba(255,239,188,.40);
   box-shadow:
     0 20px 40px rgba(0,0,0,.28),
-    inset 0 1px 0 rgba(255,255,255,.32);
+    inset 0 1px 0 rgba(255,255,255,.34),
+    inset 10px 0 14px rgba(255,245,204,.08),
+    inset -8px 0 12px rgba(115,79,18,.10);
 }
 
 .dot, .p-dot {
@@ -803,8 +842,8 @@ body.mode-free .dot { width: var(--dotFree); height: var(--dotFree); }
 }
 .p-dot.p6 {
   background:
-    radial-gradient(circle at 30% 26%, rgba(255,255,255,.84), rgba(255,255,255,.00) 46%),
-    linear-gradient(135deg, rgba(255,248,216,.62), rgba(244,196,78,.78), rgba(191,149,63,.40));
+    radial-gradient(circle at 30% 26%, rgba(255,255,255,.86), rgba(255,255,255,.00) 46%),
+    linear-gradient(135deg, rgba(255,249,224,.70), rgba(244,196,78,.82), rgba(191,149,63,.42));
 }
 .p-dot.p7 { background: linear-gradient(135deg, #736055, #3c322e); }
 
@@ -951,11 +990,15 @@ body.mode-premium .expand-toggle {
 }
 
 body.mode-premium.p6 .expand-toggle {
-  border-color: rgba(255,240,196,.30);
+  border-color: rgba(255,240,196,.34);
   background:
-    radial-gradient(130% 180% at 20% 0%, rgba(255,255,255,.34), rgba(255,248,216,.18) 54%, rgba(255,255,255,.10)),
-    linear-gradient(135deg, rgba(255,248,220,.14), rgba(255,222,138,.16), rgba(191,149,63,.22));
-  color: rgba(255,249,238,.98);
+    radial-gradient(140% 190% at 20% 0%, rgba(255,255,255,.40), rgba(255,248,216,.22) 54%, rgba(255,255,255,.12)),
+    linear-gradient(135deg, rgba(255,248,220,.18), rgba(255,222,138,.18), rgba(191,149,63,.24));
+  color: rgba(255,249,238,.99);
+  box-shadow:
+    0 14px 26px rgba(0,0,0,.30),
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset -8px 0 12px rgba(112,79,18,.10);
 }
 
 .contact-dock {
@@ -1099,18 +1142,19 @@ body.mode-premium .dock-btn::after { display: none; }
 
 body.mode-premium.p6 .dock-btn {
   background:
-    radial-gradient(150% 190% at 18% 0%, rgba(255,255,255,.28), rgba(255,248,216,.14) 55%, rgba(255,255,255,.08)),
-    linear-gradient(135deg, rgba(255,248,220,.12), rgba(255,222,138,.14), rgba(191,149,63,.26));
-  color: rgba(255,250,240,.98);
+    radial-gradient(170% 210% at 18% 0%, rgba(255,255,255,.34), rgba(255,248,216,.18) 55%, rgba(255,255,255,.08)),
+    linear-gradient(135deg, rgba(255,250,226,.14), rgba(255,222,138,.18), rgba(191,149,63,.28));
+  color: rgba(255,250,240,.99);
   box-shadow:
     0 18px 36px rgba(0,0,0,.34),
-    inset 0 1px 0 rgba(255,255,255,.18),
-    inset 0 -14px 18px rgba(120,82,26,.22);
+    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 -14px 18px rgba(120,82,26,.22),
+    inset 10px 0 14px rgba(255,244,200,.08);
 }
 
 body.mode-premium.p6 .dock-btn::before {
-  background: linear-gradient(135deg, rgba(255,248,220,.84), rgba(255,222,138,.82), rgba(191,149,63,.72));
-  opacity: .82;
+  background: linear-gradient(135deg, rgba(255,248,220,.88), rgba(255,222,138,.84), rgba(191,149,63,.74));
+  opacity: .86;
 }
 
 .photo-wall {
@@ -1154,8 +1198,24 @@ body.mode-premium .photo-wall {
   grid-template-columns: 1fr 1fr;
 }
 
+/* 5 張專屬高級版型：上2下3，平均、穩、不落單 */
 .photo-grid.layout-5 {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-flow: row dense;
+  align-items: stretch;
+}
+
+.photo-grid.layout-5 .wall-img:nth-child(1),
+.photo-grid.layout-5 .wall-img:nth-child(2) {
+  grid-column: span 3;
+  aspect-ratio: 1.24 / 1;
+}
+
+.photo-grid.layout-5 .wall-img:nth-child(3),
+.photo-grid.layout-5 .wall-img:nth-child(4),
+.photo-grid.layout-5 .wall-img:nth-child(5) {
+  grid-column: span 2;
+  aspect-ratio: 1 / 1;
 }
 
 .wall-img {
@@ -1260,9 +1320,26 @@ body.mode-premium #u-title {
   #block-exp { padding: 9px 11px; }
   #block-exp .block-body { line-height: 1.53; }
 
-  .photo-grid.layout-3,
-  .photo-grid.layout-5 {
+  .photo-grid.layout-3 {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .photo-grid.layout-5 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .photo-grid.layout-5 .wall-img:nth-child(1),
+  .photo-grid.layout-5 .wall-img:nth-child(2),
+  .photo-grid.layout-5 .wall-img:nth-child(3),
+  .photo-grid.layout-5 .wall-img:nth-child(4),
+  .photo-grid.layout-5 .wall-img:nth-child(5) {
+    grid-column: span 1;
+    aspect-ratio: 1 / 1;
+  }
+
+  .photo-grid.layout-5 .wall-img:nth-child(5) {
+    grid-column: 1 / -1;
+    aspect-ratio: 1.45 / 1;
   }
 }
 
