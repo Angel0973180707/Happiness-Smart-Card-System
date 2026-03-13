@@ -1488,3 +1488,68 @@ body.mode-free.paper-3 #paperOverlay::after {
       rgba(0,0,0,.06) 0px, rgba(0,0,0,.06) 1px,
       rgba(0,0,0,.00) 7px, rgba(0,0,0,.00) 12px);
 }
+/* =========================
+   QR scan fix
+========================= */
+
+#bottomQrGrid,
+#featureQrGrid,
+#facadeQrGrid {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  display: block;
+}
+
+#bottomQrGrid img,
+#featureQrGrid img,
+#facadeQrGrid img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: contain !important;
+  image-rendering: auto;
+  filter: none !important;
+  transform: none !important;
+}
+
+#bottomQrAvatar,
+#featureQrAvatar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22%;
+  height: 22%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  object-fit: cover;
+  z-index: 2;
+  background: #fff;
+  padding: 3px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  display: block;
+}
+
+/* 避免頭像太大導致掃不出 */
+@media (max-width: 520px) {
+  #bottomQrAvatar,
+  #featureQrAvatar {
+    width: 20%;
+    height: 20%;
+  }
+}
+
+/* QR 區本身不要吃到任何特效 */
+#bottomQrSection,
+#featureQrSection,
+#facadeQrSection,
+.qr-wrap,
+.qr-box {
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
+}
