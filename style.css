@@ -221,7 +221,6 @@ body.mode-premium .premium-fx-layer {
   filter: blur(18px) saturate(1.04);
 }
 
-/* p6 金箔升級：更金屬、更亮、更有反射層次 */
 body.mode-premium.p6 .premium-fx-layer {
   background:
     radial-gradient(1080px 620px at 14% 2%, rgba(255,255,255,.40), transparent 60%),
@@ -646,7 +645,6 @@ body.mode-premium .btn-neo.active {
   background: rgba(255,255,255,.15);
 }
 
-/* p6 金箔按鈕區升級 */
 body.mode-premium.p6 .btn-neo {
   background:
     radial-gradient(180% 220% at 16% 0%,
@@ -1198,7 +1196,6 @@ body.mode-premium .photo-wall {
   grid-template-columns: 1fr 1fr;
 }
 
-/* 5 張專屬高級版型：上2下3，平均、穩、不落單 */
 .photo-grid.layout-5 {
   grid-template-columns: repeat(6, 1fr);
   grid-auto-flow: row dense;
@@ -1237,6 +1234,62 @@ body.mode-premium .photo-wall {
   box-shadow:
     0 14px 30px rgba(0,0,0,.16),
     0 2px 4px rgba(0,0,0,.06);
+}
+
+/* =========================
+   QR 區穩定化
+========================= */
+#bottomQrGrid,
+#featureQrGrid,
+#facadeQrGrid {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  display: block;
+}
+
+#bottomQrGrid img,
+#featureQrGrid img,
+#facadeQrGrid img {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  object-fit: contain !important;
+  image-rendering: auto;
+  filter: none !important;
+  transform: none !important;
+}
+
+/* 底部 QR 中間：成品個人照，縮小提高可掃描率 */
+#bottomQrAvatar,
+#featureQrAvatar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 15%;
+  height: 15%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  object-fit: cover;
+  z-index: 2;
+  background: #fff;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.10);
+  display: block;
+}
+
+#bottomQrSection,
+#featureQrSection,
+#facadeQrSection,
+.qr-wrap,
+.qr-box {
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transform: none !important;
 }
 
 .version-tag {
@@ -1294,6 +1347,15 @@ body.mode-premium #u-title {
   opacity: .90;
 }
 
+@media (max-width: 520px) {
+  #bottomQrAvatar,
+  #featureQrAvatar {
+    width: 13%;
+    height: 13%;
+    padding: 2px;
+  }
+}
+
 @media (max-width: 360px) {
   .name { font-size: 21px; }
   .avatar-circle { width: 108px; height: 108px; }
@@ -1340,6 +1402,12 @@ body.mode-premium #u-title {
   .photo-grid.layout-5 .wall-img:nth-child(5) {
     grid-column: 1 / -1;
     aspect-ratio: 1.45 / 1;
+  }
+
+  #bottomQrAvatar,
+  #featureQrAvatar {
+    width: 12%;
+    height: 12%;
   }
 }
 
@@ -1487,69 +1555,4 @@ body.mode-free.paper-3 #paperOverlay::after {
     repeating-linear-gradient(0deg,
       rgba(0,0,0,.06) 0px, rgba(0,0,0,.06) 1px,
       rgba(0,0,0,.00) 7px, rgba(0,0,0,.00) 12px);
-}
-/* =========================
-   QR scan fix
-========================= */
-
-#bottomQrGrid,
-#featureQrGrid,
-#facadeQrGrid {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  border-radius: 18px;
-  background: #fff;
-  display: block;
-}
-
-#bottomQrGrid img,
-#featureQrGrid img,
-#facadeQrGrid img {
-  width: 100% !important;
-  height: 100% !important;
-  display: block !important;
-  object-fit: contain !important;
-  image-rendering: auto;
-  filter: none !important;
-  transform: none !important;
-}
-
-#bottomQrAvatar,
-#featureQrAvatar {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 22%;
-  height: 22%;
-  transform: translate(-50%, -50%);
-  border-radius: 999px;
-  object-fit: cover;
-  z-index: 2;
-  background: #fff;
-  padding: 3px;
-  box-shadow: 0 2px 8px rgba(0,0,0,.12);
-  display: block;
-}
-
-/* 避免頭像太大導致掃不出 */
-@media (max-width: 520px) {
-  #bottomQrAvatar,
-  #featureQrAvatar {
-    width: 20%;
-    height: 20%;
-  }
-}
-
-/* QR 區本身不要吃到任何特效 */
-#bottomQrSection,
-#featureQrSection,
-#facadeQrSection,
-.qr-wrap,
-.qr-box {
-  filter: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  transform: none !important;
 }
