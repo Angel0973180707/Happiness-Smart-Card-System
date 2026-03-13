@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.6.1",
+  VERSION: "v524.6.3",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -1050,12 +1050,27 @@ function buildFacadeQrUrl_(){
   return buildHubShareUrl_();
 }
 
-function buildQrImageUrl_(url, size){
-  const s = Number(size) || 220;
-  return "https://api.qrserver.com/v1/create-qr-code/?size=" + encodeURIComponent(`${s}x${s}`) + "&data=" + encodeURIComponent(String(url));
+/* =========================
+   QR helpers
+========================= */
+
+function getQrCenterRatio_(baseRatio){
+  const vw = window.innerWidth || 390;
+  if(vw <= 360) return Math.max(0.10, baseRatio - 0.03);
+  if(vw <= 520) return Math.max(0.11, baseRatio - 0.02);
+  return baseRatio;
 }
 
-function setCenterImg_(imgEl, centerImgUrl){
+function buildQrImageUrl_(url, size){
+  const s = Number(size) || 220;
+  return "https://api.qrserver.com/v1/create-qr-code/"
+    + "?size=" + encodeURIComponent(`${s}x${s}`)
+    + "&data=" + encodeURIComponent(String(url))
+    + "&ecc=H"
+    + "&margin=2";
+}
+
+function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.15){
   if(!imgEl) return;
   const u = normalizeImageUrl_(centerImgUrl);
   if(!u){
@@ -1063,7 +1078,22 @@ function setCenterImg_(imgEl, centerImgUrl){
     imgEl.style.display = "none";
     return;
   }
+
+  const ratio = getQrCenterRatio_(sizeRatio);
+  imgEl.style.position = "absolute";
+  imgEl.style.left = "50%";
+  imgEl.style.top = "50%";
+  imgEl.style.width = `${Math.round(ratio * 100)}%`;
+  imgEl.style.height = `${Math.round(ratio * 100)}%`;
+  imgEl.style.transform = "translate(-50%, -50%)";
+  imgEl.style.borderRadius = "999px";
+  imgEl.style.objectFit = "cover";
+  imgEl.style.zIndex = "2";
+  imgEl.style.background = "#fff";
+  imgEl.style.padding = "2px";
+  imgEl.style.boxShadow = "0 2px 8px rgba(0,0,0,.10)";
   imgEl.style.display = "block";
+
   setImgWithFallback_(imgEl, buildImgCandidates_(u));
 }
 
@@ -1074,14 +1104,15 @@ function renderQr(options){
     size = 160,
     centerImgEl = null,
     centerImgUrl = "",
+    centerSizeRatio = 0.15,
     renderKey = ""
   } = options || {};
 
   if(!container || !url) return false;
 
-  const key = renderKey || `${url}|${size}|${normalizeImageUrl_(centerImgUrl)}`;
+  const key = renderKey || `${url}|${size}|${normalizeImageUrl_(centerImgUrl)}|${centerSizeRatio}`;
   if(container.dataset.renderKey === key){
-    if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl);
+    if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
     return true;
   }
 
@@ -1097,9 +1128,13 @@ function renderQr(options){
   img.style.width = "100%";
   img.style.height = "100%";
   img.style.display = "block";
+  img.style.objectFit = "contain";
   container.appendChild(img);
 
-  if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl);
+  if(centerImgEl){
+    setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
+  }
+
   return true;
 }
 
@@ -1117,7 +1152,14 @@ function renderFacadeQrFromCurrent_(){
   if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
 
   lastFacadeQrRenderKey = key;
-  renderQr({ container: grid, url, size: 148, renderKey: key });
+  renderQr({
+    container: grid,
+    url,
+    size: 148,
+    centerImgEl: null,
+    centerImgUrl: "",
+    renderKey: key
+  });
 }
 
 function renderBottomQr_(p){
@@ -1128,8 +1170,11 @@ function renderBottomQr_(p){
   if(!sec || !grid || !avatar) return;
 
   const qrUrl = buildBottomQrUrl_();
+
+  /* 底部 QR 中間固定抓成品個人照 */
   const avatarRaw = pick(p, ["avatar_img_fast","avatar_img","avatar_url","個人照_fast","個人照"]);
   const avatarUrl = normalizeImageUrl_(avatarRaw);
+
   const key = "bottom|" + qrUrl + "|" + avatarUrl;
 
   if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
@@ -1140,10 +1185,11 @@ function renderBottomQr_(p){
       size: 136,
       centerImgEl: avatar,
       centerImgUrl: avatarUrl,
+      centerSizeRatio: 0.15,
       renderKey: key
     });
   }else{
-    setCenterImg_(avatar, avatarUrl);
+    setCenterImg_(avatar, avatarUrl, 0.15);
   }
 
   sec.style.display = "block";
@@ -1166,10 +1212,11 @@ function renderFeatureQrFromCurrent_(){
       size: 152,
       centerImgEl: avatar,
       centerImgUrl: avatarUrl,
+      centerSizeRatio: 0.15,
       renderKey: key
     });
   }else{
-    setCenterImg_(avatar, avatarUrl);
+    setCenterImg_(avatar, avatarUrl, 0.15);
   }
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
