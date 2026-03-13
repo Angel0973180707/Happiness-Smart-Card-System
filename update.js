@@ -1,5 +1,5 @@
 /* =========================================
- * HSC Auto Update System v524.6.4
+ * HSC Auto Update System v524.6.5
  * COMPLETE OVERWRITE
  *
  * Usage:
@@ -13,7 +13,7 @@
 (() => {
   "use strict";
 
-  const APP_VERSION = "v524.6.4";
+  const APP_VERSION = "v524.6.5";
   const VERSION_URL = "./version.json";
   const SW_URL = `./sw.js?v=${encodeURIComponent(APP_VERSION)}`;
   const STORAGE_KEY = "HSC_APP_VERSION";
