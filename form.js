@@ -1,6 +1,6 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v711.5
+ * form.js v711.6
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 本版內容：
@@ -9,12 +9,13 @@
  * 3. 自由款 CTA 1 組；精品款 CTA 3 組
  * 4. 地址 / LINE 提示對齊
  * 5. 即時預覽、摘要、分頁流程一起對齊
+ * 6. 成功後強提醒：回覆客服為必做步驟
  * ========================================= */
 
 (() => {
   "use strict";
 
-  const VERSION = "711.5";
+  const VERSION = "711.6";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/3r2ZePN";
 
@@ -435,7 +436,6 @@
       });
     });
 
-    // 清掉已不在目前方案中的照片
     Object.keys(state.files).forEach((key) => {
       if (!state.uploadOrder.includes(key)) {
         revokeFileUrls_(state.files[key]);
@@ -806,7 +806,16 @@
       setProgress_(100, "送出完成");
       state.submitResult = result;
 
-      const cardId = text(result?.id || result?.item?.id || result?.data?.id || result?.cardId || getFieldValue_("id"));
+      const sp = new URLSearchParams(location.search || "");
+      const cardId = text(
+        result?.id ||
+        result?.item?.id ||
+        result?.data?.id ||
+        result?.cardId ||
+        sp.get("id") ||
+        ""
+      );
+
       state.copiedId = cardId;
 
       setStatus_("資料已送出。");
@@ -847,7 +856,6 @@
     fd.append("premium_color", state.premiumColor);
     fd.append("form_version", VERSION);
 
-    // 舊欄位相容
     fd.append("cta_text", getFieldValue_("cta_text_1"));
     fd.append("cta_link", getFieldValue_("cta_link_1"));
 
@@ -929,9 +937,12 @@
     if (els.successTitle) els.successTitle.textContent = "送出成功";
     if (els.successBody) {
       els.successBody.innerHTML = [
-        "資料送出後，請複製 ID",
-        "點進下方按鈕，回覆客服",
-        "確認資料並製作您的名片"
+        "✅ 資料送出成功",
+        "請完成最後一步，名片才會開始製作。",
+        "① 複製您的資料 ID",
+        "② 點擊下方按鈕進入 LINE 官方帳號",
+        "③ 將資料 ID 回覆給客服",
+        "※ 未完成 LINE 回覆，名片不會進入製作流程。"
       ].map(line => `<div>${escapeHtml_(line)}</div>`).join("");
     }
 
@@ -950,7 +961,7 @@
       const replyBtn = document.createElement("button");
       replyBtn.type = "button";
       replyBtn.className = "secondary";
-      replyBtn.textContent = "回覆客服";
+      replyBtn.textContent = "進入 LINE 官方帳號回覆客服";
       replyBtn.addEventListener("click", () => {
         window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
       });
@@ -972,7 +983,7 @@
       const replyBtn = document.createElement("button");
       replyBtn.type = "button";
       replyBtn.className = "secondary";
-      replyBtn.textContent = "回覆客服";
+      replyBtn.textContent = "進入 LINE 官方帳號回覆客服";
       replyBtn.addEventListener("click", () => {
         window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
       });
@@ -1005,9 +1016,6 @@
     renderLivePreview_();
   }
 
-  /* -------------------------------
-   * 裁切編輯
-   * ------------------------------- */
   function initCropper_() {
     if (!els.cropCanvas) return;
 
@@ -1269,9 +1277,6 @@
     });
   }
 
-  /* -------------------------------
-   * 工具
-   * ------------------------------- */
   async function copyText_(value) {
     const v = text(value);
     if (!v) return false;
