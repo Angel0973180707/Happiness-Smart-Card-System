@@ -1,25 +1,34 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v712
+ * form.js v713
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 本版內容：
  * 1. 修正手機端照片上傳事件
- * 2. 強制破快取版本：v712
+ * 2. 強制破快取版本：v713
  * 3. 保留照片可縮小 / 拖移 / 置中 / 重設 / 套用
  * 4. 自由款 CTA 1 組；精品款 CTA 3 組
  * 5. 地址 / LINE 提示對齊
  * 6. 即時預覽、摘要、分頁流程一起對齊
  * 7. 成功後強提醒：回覆客服為必做步驟
  * 8. init 與 upload change 偵錯訊號已加入
+ * 9. 新增：EXIF 方向修正
+ * 10. 新增：大圖預縮，手機更順
+ * 11. 新增：輸出 JPEG 壓縮控制
  * ========================================= */
 
 (() => {
   "use strict";
 
-  const VERSION = "712";
+  const VERSION = "713";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/3r2ZePN";
+
+  const PREVIEW_MAX_LONG = 2200;
+  const PREVIEW_MAX_SHORT = 2200;
+  const OUTPUT_QUALITY_DEFAULT = 0.9;
+  const OUTPUT_QUALITY_LARGE = 0.84;
+  const LARGE_FILE_SIZE = 4 * 1024 * 1024;
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -433,7 +442,6 @@
         };
 
         fileInput.addEventListener("change", onChange, { passive: true });
-
         fileInput.addEventListener("click", () => {
           console.log("[HSC upload click]", item.key);
         });
@@ -1040,7 +1048,7 @@
     const onPointerDown = (e) => {
       if (!cropState.sourceImg) return;
       cropState.drag.active = true;
-      els.cropStage.classList.add("dragging");
+      if (els.cropStage) els.cropStage.classList.add("dragging");
       const p = getPoint_(e);
       cropState.drag.startX = p.x;
       cropState.drag.startY = p.y;
@@ -1113,8 +1121,10 @@
   async function openCropperForFile_(item, file, existingCrop = null) {
     if (!file) return;
 
-    const dataUrl = await readFileAsDataURL_(file);
-    const img = await loadImage_(dataUrl);
+    setStatus_("處理圖片中…");
+    setProgress_(12, "讀取照片中…");
+
+    const prepared = await prepareImageForCrop_(file);
 
     cropState.targetKey = item.key;
     cropState.targetLabel = item.label;
@@ -1122,10 +1132,14 @@
     cropState.outputWidth = item.outputWidth;
     cropState.outputHeight = item.outputHeight;
     cropState.sourceImg = file;
-    cropState.imageBitmap = img;
+    cropState.imageBitmap = prepared.image;
 
     if (els.cropTitle) els.cropTitle.textContent = `調整${item.label}位置`;
-    if (els.cropDesc) els.cropDesc.textContent = "可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。";
+    if (els.cropDesc) {
+      els.cropDesc.textContent = prepared.metaText
+        ? `可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。\n${prepared.metaText}`
+        : "可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。";
+    }
 
     if (els.cropStage) {
       els.cropStage.classList.remove("ratio-square", "ratio-logo", "ratio-photo");
@@ -1135,6 +1149,7 @@
     resetCropView_(existingCrop);
     if (els.cropModal) els.cropModal.classList.add("show");
     renderCropCanvas_();
+    setStatus_("圖片已載入，可開始裁切。");
   }
 
   function resetCropView_(existingCrop = null) {
@@ -1235,7 +1250,9 @@
       scaledH * scaleToOutputY
     );
 
-    const blob = await canvasToBlob_(outCanvas, "image/jpeg", 0.92);
+    const sourceSize = cropState.sourceImg?.size || 0;
+    const quality = sourceSize >= LARGE_FILE_SIZE ? OUTPUT_QUALITY_LARGE : OUTPUT_QUALITY_DEFAULT;
+    const blob = await canvasToBlob_(outCanvas, "image/jpeg", quality);
     const previewUrl = URL.createObjectURL(blob);
 
     const oldInfo = state.files[cropState.targetKey];
@@ -1254,6 +1271,7 @@
 
     closeCropper_();
     refreshUploadThumbs_();
+    setStatus_(`圖片已套用。輸出大小：約 ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
   }
 
   function closeCropper_() {
@@ -1268,12 +1286,165 @@
     return { x: e.clientX || 0, y: e.clientY || 0 };
   }
 
-  function readFileAsDataURL_(file) {
+  async function prepareImageForCrop_(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const orientation = getJpegOrientation_(arrayBuffer);
+    const dataUrl = await blobToDataURL_(file);
+    const original = await loadImage_(dataUrl);
+
+    const correctedCanvas = drawImageWithOrientation_(original, orientation);
+    const normalizedCanvas = shrinkCanvasIfNeeded_(correctedCanvas, PREVIEW_MAX_LONG, PREVIEW_MAX_SHORT);
+    const finalDataUrl = normalizedCanvas.toDataURL("image/jpeg", 0.92);
+    const finalImg = await loadImage_(finalDataUrl);
+
+    const metaText = [
+      orientation > 1 ? `已修正照片方向（EXIF ${orientation}）。` : "",
+      (original.width !== finalImg.width || original.height !== finalImg.height)
+        ? `已預縮圖：${original.width}×${original.height} → ${finalImg.width}×${finalImg.height}`
+        : ""
+    ].filter(Boolean).join(" ");
+
+    return {
+      image: finalImg,
+      metaText
+    };
+  }
+
+  function shrinkCanvasIfNeeded_(canvas, maxLong, maxShort) {
+    const w = canvas.width;
+    const h = canvas.height;
+    const longSide = Math.max(w, h);
+    const shortSide = Math.min(w, h);
+
+    if (longSide <= maxLong && shortSide <= maxShort) return canvas;
+
+    const ratio = Math.min(maxLong / longSide, maxShort / shortSide);
+    const targetW = Math.max(1, Math.round(w * ratio));
+    const targetH = Math.max(1, Math.round(h * ratio));
+
+    const out = document.createElement("canvas");
+    out.width = targetW;
+    out.height = targetH;
+    const ctx = out.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(canvas, 0, 0, targetW, targetH);
+    return out;
+  }
+
+  function drawImageWithOrientation_(img, orientation) {
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if ([5, 6, 7, 8].includes(orientation)) {
+      canvas.width = h;
+      canvas.height = w;
+    } else {
+      canvas.width = w;
+      canvas.height = h;
+    }
+
+    switch (orientation) {
+      case 2:
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        break;
+      case 3:
+        ctx.translate(w, h);
+        ctx.rotate(Math.PI);
+        break;
+      case 4:
+        ctx.translate(0, h);
+        ctx.scale(1, -1);
+        break;
+      case 5:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.scale(1, -1);
+        break;
+      case 6:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.translate(0, -h);
+        break;
+      case 7:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.translate(w, -h);
+        ctx.scale(-1, 1);
+        break;
+      case 8:
+        ctx.rotate(-0.5 * Math.PI);
+        ctx.translate(-w, 0);
+        break;
+      default:
+        break;
+    }
+
+    ctx.drawImage(img, 0, 0);
+    return canvas;
+  }
+
+  function getJpegOrientation_(arrayBuffer) {
+    try {
+      const view = new DataView(arrayBuffer);
+      if (view.getUint16(0, false) !== 0xFFD8) return 1;
+
+      let offset = 2;
+      const length = view.byteLength;
+
+      while (offset < length) {
+        const marker = view.getUint16(offset, false);
+        offset += 2;
+
+        if (marker === 0xFFE1) {
+          const exifLength = view.getUint16(offset, false);
+          offset += 2;
+
+          if (getString_(view, offset, 4) !== "Exif") return 1;
+          offset += 6;
+
+          const little = view.getUint16(offset, false) === 0x4949;
+          offset += view.getUint32(offset + 4, little);
+
+          const tags = view.getUint16(offset, little);
+          offset += 2;
+
+          for (let i = 0; i < tags; i++) {
+            const tagOffset = offset + i * 12;
+            const tag = view.getUint16(tagOffset, little);
+            if (tag === 0x0112) {
+              return view.getUint16(tagOffset + 8, little);
+            }
+          }
+          return 1;
+        } else if ((marker & 0xFF00) !== 0xFF00) {
+          break;
+        } else {
+          offset += view.getUint16(offset, false);
+        }
+      }
+
+      return 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  function getString_(view, start, length) {
+    let out = "";
+    for (let i = 0; i < length; i++) {
+      out += String.fromCharCode(view.getUint8(start + i));
+    }
+    return out;
+  }
+
+  function blobToDataURL_(blob) {
     return new Promise((resolve, reject) => {
       const fr = new FileReader();
       fr.onload = () => resolve(fr.result);
       fr.onerror = reject;
-      fr.readAsDataURL(file);
+      fr.readAsDataURL(blob);
     });
   }
 
