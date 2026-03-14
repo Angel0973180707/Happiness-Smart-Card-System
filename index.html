@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v524.6.6</title>
+  <title>天使幸福智慧名片館 v524.6.7</title>
 
-  <link rel="manifest" href="./manifest.json?v=524.6.6" />
+  <link rel="manifest" href="./manifest.json?v=524.6.7" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.6.6" />
-  <link rel="icon" href="./icons/icon-192.png?v=524.6.6" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.6.7" />
+  <link rel="icon" href="./icons/icon-192.png?v=524.6.7" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,12 +18,12 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=524.6.6" />
+  <meta property="og:image" content="og-card.png?v=524.6.7" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=524.6.6" />
+  <link rel="stylesheet" href="./style.css?v=524.6.7" />
 
   <style>
     :root{
@@ -796,7 +796,25 @@
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v524.6.6</div>
+        <div id="qrDebugBox" style="
+          display:none;
+          margin-top:12px;
+          padding:10px 12px;
+          border-radius:14px;
+          background:rgba(255,248,220,.92);
+          border:1px solid rgba(176,138,107,.22);
+          color:#6b4f3b;
+          font-size:11px;
+          line-height:1.6;
+          white-space:pre-wrap;
+          word-break:break-word;
+          box-shadow:0 8px 18px rgba(83,62,45,.05);
+        ">
+          <div style="font-weight:900; margin-bottom:4px;">QR 手機除錯資訊</div>
+          <div id="qrDebugText">載入中…</div>
+        </div>
+
+        <div class="version-tag" id="versionTag">v524.6.7</div>
       </div>
     </section>
   </main>
@@ -841,13 +859,13 @@
     </div>
   </div>
 
-  <script src="./app.js?v=524.6.6"></script>
+  <script src="./app.js?v=524.6.7"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "524.6.6";
+      var VERSION = "524.6.7";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
