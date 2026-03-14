@@ -3,15 +3,17 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.6.6",
+  VERSION: "v524.6.7",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
-  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
+  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+  DEBUG_QR: true
 };
 
 let currentRow = null;
 let deferredInstallPrompt = null;
 let currentAvatarUrlCache = "";
+let currentAvatarSourceKeyCache = "";
 let lastBottomQrRenderKey = "";
 let lastFeatureQrRenderKey = "";
 let lastFacadeQrRenderKey = "";
@@ -19,6 +21,25 @@ let lastFacadeQrRenderKey = "";
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 function text(v){ return (v==null ? "" : String(v)).trim(); }
+
+function setQrDebug_(msg){
+  const el = qs("qrDebugText");
+  if(!el) return;
+  el.textContent = text(msg) || "（無除錯資訊）";
+}
+
+function appendQrDebug_(msg){
+  const el = qs("qrDebugText");
+  if(!el) return;
+  const old = text(el.textContent);
+  el.textContent = old ? (old + "\n" + text(msg)) : text(msg);
+}
+
+function showQrDebug_(show){
+  const wrap = qs("qrDebugBox");
+  if(!wrap) return;
+  wrap.style.display = show ? "block" : "none";
+}
 
 function normalizeId_(s){
   const v = text(s).toUpperCase();
@@ -645,8 +666,8 @@ function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
   setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline:true });
 }
 
-function pickAvatarUrl_(p){
-  const avatarRaw = pick(p, [
+function pickAvatarInfo_(p){
+  const keys = [
     "avatar_img_fast",
     "avatar_img",
     "avatar_url",
@@ -654,25 +675,71 @@ function pickAvatarUrl_(p){
     "個人照_fast",
     "個人照",
     "個人照_url"
-  ]);
-  return normalizeImageUrl_(avatarRaw);
+  ];
+
+  for(const k of keys){
+    const v = pick(p, [k]);
+    if(text(v)){
+      return {
+        key: k,
+        raw: v,
+        url: normalizeImageUrl_(v)
+      };
+    }
+  }
+
+  return {
+    key: "",
+    raw: "",
+    url: ""
+  };
+}
+
+function pickAvatarUrl_(p){
+  const info = pickAvatarInfo_(p);
+  return info.url;
 }
 
 function renderAvatar_(p){
   const img = qs("u-img");
   if(!img) return;
 
-  const u = pickAvatarUrl_(p);
+  const info = pickAvatarInfo_(p);
+  const u = info.url;
+
   currentAvatarUrlCache = u || "";
+  currentAvatarSourceKeyCache = info.key || "";
+
+  if(CONFIG.DEBUG_QR){
+    showQrDebug_(true);
+    setQrDebug_(
+      `版本：${CONFIG.VERSION}
+ID：${normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID}
+avatar來源欄位：${info.key || "（沒抓到）"}
+avatar原始值：${text(info.raw) || "（空）"}
+avatar正規化URL：${u || "（空）"}`
+    );
+  }
 
   if(!u){
     img.removeAttribute("src");
+    if(CONFIG.DEBUG_QR){
+      appendQrDebug_("主頭像：無可用 URL");
+    }
     return;
   }
 
   setImgWithFallback_(img, buildImgCandidates_(u), {
+    onLoad: ()=>{
+      if(CONFIG.DEBUG_QR){
+        appendQrDebug_("主頭像：載入成功");
+      }
+    },
     onFail: ()=>{
       img.removeAttribute("src");
+      if(CONFIG.DEBUG_QR){
+        appendQrDebug_("主頭像：載入失敗");
+      }
     }
   });
 }
@@ -1130,17 +1197,25 @@ function buildQrImageUrl_(url, size){
     + "&margin=2";
 }
 
+function hideCenterImg_(imgEl, reason){
+  if(!imgEl) return;
+  imgEl.removeAttribute("src");
+  imgEl.style.display = "none";
+  imgEl.style.background = "transparent";
+  imgEl.style.padding = "0";
+  imgEl.style.boxShadow = "none";
+  if(CONFIG.DEBUG_QR && reason){
+    appendQrDebug_(reason);
+  }
+}
+
 function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   if(!imgEl) return;
 
   const u = normalizeImageUrl_(centerImgUrl);
 
   if(!u){
-    imgEl.removeAttribute("src");
-    imgEl.style.display = "none";
-    imgEl.style.background = "transparent";
-    imgEl.style.padding = "0";
-    imgEl.style.boxShadow = "none";
+    hideCenterImg_(imgEl, "QR 頭像：無可用 URL，已隱藏");
     return;
   }
 
@@ -1155,18 +1230,13 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   imgEl.style.borderRadius = "999px";
   imgEl.style.objectFit = "cover";
   imgEl.style.zIndex = "2";
-
   imgEl.style.background = "transparent";
   imgEl.style.padding = "0";
   imgEl.style.boxShadow = "none";
   imgEl.style.display = "block";
 
   imgEl.onerror = ()=>{
-    imgEl.removeAttribute("src");
-    imgEl.style.display = "none";
-    imgEl.style.background = "transparent";
-    imgEl.style.padding = "0";
-    imgEl.style.boxShadow = "none";
+    hideCenterImg_(imgEl, "QR 頭像：載入失敗，已隱藏");
   };
 
   setImgWithFallback_(imgEl, buildImgCandidates_(u), {
@@ -1177,13 +1247,12 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
       imgEl.style.background = "transparent";
       imgEl.style.padding = "0";
       imgEl.style.boxShadow = "none";
+      if(CONFIG.DEBUG_QR){
+        appendQrDebug_("QR 頭像：載入成功");
+      }
     },
     onFail: ()=>{
-      imgEl.removeAttribute("src");
-      imgEl.style.display = "none";
-      imgEl.style.background = "transparent";
-      imgEl.style.padding = "0";
-      imgEl.style.boxShadow = "none";
+      hideCenterImg_(imgEl, "QR 頭像：fallback 全失敗，已隱藏");
     }
   });
 }
@@ -1261,9 +1330,18 @@ function renderBottomQr_(p){
 
   if(!sec || !grid || !avatar) return;
 
+  const info = pickAvatarInfo_(p);
   const qrUrl = buildBottomQrUrl_();
-  const avatarUrl = pickAvatarUrl_(p);
+  const avatarUrl = info.url;
   const key = "bottom|" + qrUrl + "|" + avatarUrl;
+
+  if(CONFIG.DEBUG_QR){
+    appendQrDebug_(
+      `底部QR：
+來源欄位=${info.key || "（沒抓到）"}
+URL=${avatarUrl || "（空）"}`
+    );
+  }
 
   if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
     lastBottomQrRenderKey = key;
@@ -1291,6 +1369,14 @@ function renderFeatureQrFromCurrent_(){
   const url = buildFeatureQrUrl_();
   const avatarUrl = currentAvatarUrlCache || "";
   const key = "feature|" + url + "|" + avatarUrl;
+
+  if(CONFIG.DEBUG_QR){
+    appendQrDebug_(
+      `特色QR：
+來源欄位=${currentAvatarSourceKeyCache || "（沒抓到）"}
+URL=${avatarUrl || "（空）"}`
+    );
+  }
 
   if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
     lastFeatureQrRenderKey = key;
@@ -1510,13 +1596,27 @@ window.addEventListener("load", ()=>{
     applySmartBalanceAll_();
     updateInstallUi_();
 
+    if(CONFIG.DEBUG_QR){
+      showQrDebug_(true);
+      setQrDebug_("開始載入資料…");
+    }
+
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     const url = buildCardApiUrl_(id);
     const payload = await fetchJsonRobust_(url);
     const row = payload?.item || payload?.data || payload;
+
+    if(CONFIG.DEBUG_QR){
+      appendQrDebug_("資料載入成功");
+    }
+
     renderCard(row);
   }catch(err){
     console.error(err);
+    if(CONFIG.DEBUG_QR){
+      showQrDebug_(true);
+      setQrDebug_(`資料載入失敗：${err && err.message ? err.message : err}`);
+    }
     const nameEl = qs("u-name");
     const unitWrap = qs("u-unit-wrap");
     const titleEl = qs("u-title");
