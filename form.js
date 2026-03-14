@@ -1,21 +1,23 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v711.6
+ * form.js v712
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 本版內容：
- * 1. 送出後停留在進度條區塊，不跳到頁面最上方
- * 2. 保留照片可縮小 / 拖移 / 置中 / 重設 / 套用
- * 3. 自由款 CTA 1 組；精品款 CTA 3 組
- * 4. 地址 / LINE 提示對齊
- * 5. 即時預覽、摘要、分頁流程一起對齊
- * 6. 成功後強提醒：回覆客服為必做步驟
+ * 1. 修正手機端照片上傳事件
+ * 2. 強制破快取版本：v712
+ * 3. 保留照片可縮小 / 拖移 / 置中 / 重設 / 套用
+ * 4. 自由款 CTA 1 組；精品款 CTA 3 組
+ * 5. 地址 / LINE 提示對齊
+ * 6. 即時預覽、摘要、分頁流程一起對齊
+ * 7. 成功後強提醒：回覆客服為必做步驟
+ * 8. init 與 upload change 偵錯訊號已加入
  * ========================================= */
 
 (() => {
   "use strict";
 
-  const VERSION = "711.6";
+  const VERSION = "712";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/3r2ZePN";
 
@@ -99,6 +101,8 @@
   document.addEventListener("DOMContentLoaded", init_);
 
   function init_() {
+    console.log("[HSC form] init ok", VERSION);
+
     cacheEls_();
     initMeta_();
     renderOptionChips_();
@@ -140,6 +144,7 @@
 
     els.previewCard = $("#livePreviewCard");
     els.previewAvatar = $("#previewAvatar");
+    els.previewAvatarWrap = $("#previewAvatarWrap");
     els.previewLogo = $("#previewLogo");
     els.previewLogoWrap = $("#previewLogoWrap");
     els.previewName = $("#previewName");
@@ -419,21 +424,34 @@
       const editBtn = $(`#edit_${item.key}`, box);
       const clearBtn = $(`#clear_${item.key}`, box);
 
-      fileInput.addEventListener("change", async (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        await openCropperForFile_(item, file);
-      });
+      if (fileInput) {
+        const onChange = async (e) => {
+          const file = e.target.files && e.target.files[0];
+          console.log("[HSC upload change]", item.key, file);
+          if (!file) return;
+          await openCropperForFile_(item, file);
+        };
 
-      editBtn.addEventListener("click", async () => {
-        const info = state.files[item.key];
-        if (!info || !info.sourceFile) return;
-        await openCropperForFile_(item, info.sourceFile, info.crop);
-      });
+        fileInput.addEventListener("change", onChange, { passive: true });
 
-      clearBtn.addEventListener("click", () => {
-        clearUploadItem_(item.key);
-      });
+        fileInput.addEventListener("click", () => {
+          console.log("[HSC upload click]", item.key);
+        });
+      }
+
+      if (editBtn) {
+        editBtn.addEventListener("click", async () => {
+          const info = state.files[item.key];
+          if (!info || !info.sourceFile) return;
+          await openCropperForFile_(item, info.sourceFile, info.crop);
+        });
+      }
+
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          clearUploadItem_(item.key);
+        });
+      }
     });
 
     Object.keys(state.files).forEach((key) => {
@@ -937,7 +955,7 @@
     if (els.successTitle) els.successTitle.textContent = "送出成功";
     if (els.successBody) {
       els.successBody.innerHTML = [
-        "✅ 資料送出成功",
+        "✅ 資料已送出成功",
         "請完成最後一步，名片才會開始製作。",
         "① 複製您的資料 ID",
         "② 點擊下方按鈕進入 LINE 官方帳號",
@@ -1041,7 +1059,7 @@
 
     const onPointerUp = () => {
       cropState.drag.active = false;
-      els.cropStage.classList.remove("dragging");
+      if (els.cropStage) els.cropStage.classList.remove("dragging");
     };
 
     els.cropCanvas.addEventListener("mousedown", onPointerDown);
@@ -1115,7 +1133,7 @@
     }
 
     resetCropView_(existingCrop);
-    els.cropModal.classList.add("show");
+    if (els.cropModal) els.cropModal.classList.add("show");
     renderCropCanvas_();
   }
 
@@ -1239,13 +1257,13 @@
   }
 
   function closeCropper_() {
-    els.cropModal.classList.remove("show");
+    if (els.cropModal) els.cropModal.classList.remove("show");
     cropState.drag.active = false;
   }
 
   function getPoint_(e) {
     if (e.touches && e.touches[0]) {
-      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      return { x: e.touches[0].clientX || 0, y: e.touches[0].clientY || 0 };
     }
     return { x: e.clientX || 0, y: e.clientY || 0 };
   }
@@ -1288,7 +1306,9 @@
       ta.value = v;
       ta.style.position = "fixed";
       ta.style.opacity = "0";
+      ta.style.left = "-9999px";
       document.body.appendChild(ta);
+      ta.focus();
       ta.select();
       const ok = document.execCommand("copy");
       ta.remove();
