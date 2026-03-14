@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v524.6.7</title>
+  <title>天使幸福智慧名片館 v524.6.8</title>
 
-  <link rel="manifest" href="./manifest.json?v=524.6.7" />
+  <link rel="manifest" href="./manifest.json?v=524.6.8" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.6.7" />
-  <link rel="icon" href="./icons/icon-192.png?v=524.6.7" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.6.8" />
+  <link rel="icon" href="./icons/icon-192.png?v=524.6.8" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,12 +18,12 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=524.6.7" />
+  <meta property="og:image" content="og-card.png?v=524.6.8" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=524.6.7" />
+  <link rel="stylesheet" href="./style.css?v=524.6.8" />
 
   <style>
     :root{
@@ -295,31 +295,21 @@
       align-items:center;
       justify-content:center;
     }
-    .qr-bottom-center,
-    .feature-qr-center{
+
+    #bottomQrAvatar,
+    #featureQrAvatar{
       position:absolute;
       left:50%;
       top:50%;
       transform:translate(-50%, -50%);
-      width:24px;
-      height:24px;
       border-radius:999px;
+      object-fit:cover;
+      z-index:3;
+      display:none;
       background:transparent;
       box-shadow:none;
-      overflow:hidden;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:3;
+      padding:0;
       pointer-events:none;
-    }
-    .qr-bottom-center img,
-    .feature-qr-center img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-      border-radius:999px;
     }
 
     .feature-qr-shell{
@@ -789,32 +779,12 @@
           <div class="qr-bottom-wrap">
             <div class="qr-bottom-canvas">
               <div class="qr-bottom-grid" id="bottomQrGrid"></div>
-              <div class="qr-bottom-center" id="bottomQrCenter">
-                <img id="bottomQrAvatar" alt="QR 頭像" />
-              </div>
+              <img id="bottomQrAvatar" alt="QR 頭像" />
             </div>
           </div>
         </div>
 
-        <div id="qrDebugBox" style="
-          display:none;
-          margin-top:12px;
-          padding:10px 12px;
-          border-radius:14px;
-          background:rgba(255,248,220,.92);
-          border:1px solid rgba(176,138,107,.22);
-          color:#6b4f3b;
-          font-size:11px;
-          line-height:1.6;
-          white-space:pre-wrap;
-          word-break:break-word;
-          box-shadow:0 8px 18px rgba(83,62,45,.05);
-        ">
-          <div style="font-weight:900; margin-bottom:4px;">QR 手機除錯資訊</div>
-          <div id="qrDebugText">載入中…</div>
-        </div>
-
-        <div class="version-tag" id="versionTag">v524.6.7</div>
+        <div class="version-tag" id="versionTag">v524.6.8</div>
       </div>
     </section>
   </main>
@@ -829,9 +799,7 @@
         <div class="feature-qr-shell">
           <div class="feature-qr-canvas">
             <div class="feature-qr-grid" id="featureQrGrid"></div>
-            <div class="feature-qr-center" id="featureQrCenter">
-              <img id="featureQrAvatar" alt="QR 頭像" />
-            </div>
+            <img id="featureQrAvatar" alt="QR 頭像" />
           </div>
         </div>
       </div>
@@ -859,23 +827,23 @@
     </div>
   </div>
 
-  <script src="./app.js?v=524.6.7"></script>
+  <script src="./app.js?v=524.6.8"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "524.6.7";
+      var VERSION = "524.6.8";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
       var ADMIN_URL = "./admin.html?v=" + encodeURIComponent(VERSION);
 
       function qs(id){ return document.getElementById(id); }
-      function sp(){ try{return new URLSearchParams(location.search||"");}catch(e){return new URLSearchParams();} }
+      function sp(){ try{return new URLSearchParams(location.search || "");}catch(e){return new URLSearchParams();} }
       function isClean(){
         var p = sp();
-        return (p.get("view")==="1") || (p.get("clean")==="1");
+        return (p.get("view") === "1") || (p.get("clean") === "1");
       }
 
       var __scrollTop = 0;
@@ -1072,15 +1040,15 @@
         var close = qs("featureCloseBtn");
         function open(){
           if(!mask) return;
-          mask.style.display="flex";
-          mask.setAttribute("aria-hidden","false");
+          mask.style.display = "flex";
+          mask.setAttribute("aria-hidden", "false");
           lockScroll();
           renderFeatureQr();
         }
         function shut(){
           if(!mask) return;
-          mask.style.display="none";
-          mask.setAttribute("aria-hidden","true");
+          mask.style.display = "none";
+          mask.setAttribute("aria-hidden", "true");
           unlockScroll();
         }
         ["btnFeature","btnFeature2"].forEach(function(id){
@@ -1106,15 +1074,15 @@
         function open(){
           if(isClean()) return;
           if(!mask) return;
-          mask.style.display="flex";
-          mask.setAttribute("aria-hidden","false");
+          mask.style.display = "flex";
+          mask.setAttribute("aria-hidden", "false");
           lockScroll();
           setTimeout(function(){ try{ input && input.focus(); }catch(e){} }, 60);
         }
         function shut(){
           if(!mask) return;
-          mask.style.display="none";
-          mask.setAttribute("aria-hidden","true");
+          mask.style.display = "none";
+          mask.setAttribute("aria-hidden", "true");
           unlockScroll();
         }
         function goForm(){
