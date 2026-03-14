@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v711.2</title>
+  <title>天使幸福智慧名片｜資料填寫 v711.5</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
     :root{
@@ -372,6 +372,8 @@
       background:rgba(123,220,255,.10);
     }
 
+    .chip[hidden]{ display:none !important; }
+
     .swatch{
       width:18px;
       height:18px;
@@ -497,6 +499,10 @@
       line-height:1.8;
     }
 
+    .thumb.square{
+      aspect-ratio:1 / 1;
+    }
+
     .thumb img{
       width:100%;
       height:100%;
@@ -517,6 +523,7 @@
       padding:10px;
       font-size:12px;
       min-height:auto;
+      flex:1 1 180px;
     }
 
     .btns{
@@ -588,6 +595,7 @@
       font-weight:900;
       min-width:0;
       word-break:break-word;
+      white-space:pre-line;
     }
 
     .submit-progress-wrap{
@@ -662,6 +670,34 @@
       white-space:pre-wrap;
       word-break:break-word;
       background:rgba(255,255,255,.02);
+    }
+
+    .successBox{
+      margin-top:12px;
+      border:1px solid rgba(110,231,183,.20);
+      border-radius:14px;
+      padding:13px 14px;
+      background:rgba(110,231,183,.06);
+      display:none;
+    }
+
+    .successBox.error{
+      border-color:rgba(251,113,133,.24);
+      background:rgba(251,113,133,.06);
+    }
+
+    .successTitle{
+      font-weight:1000;
+      font-size:14px;
+      margin-bottom:8px;
+      color:#fff;
+    }
+
+    .successBody{
+      color:var(--text);
+      font-size:12px;
+      line-height:1.9;
+      white-space:pre-line;
     }
 
     .pageNav{
@@ -799,7 +835,6 @@
       white-space:pre-line;
     }
 
-    /* ===== 內建成品預覽 ===== */
     .previewWrap{
       margin-top:14px;
       border:1px solid rgba(123,220,255,.18);
@@ -1098,7 +1133,7 @@
 
       <div class="meta">
         <div class="pill"><span class="dot" id="dot"></span><span id="modeText">檢查中…</span></div>
-        <div>版本：<span class="kbd" id="ver">v711.2</span></div>
+        <div>版本：<span class="kbd" id="ver">v711.5</span></div>
         <div>品牌：<span class="kbd" id="tenantText">-</span></div>
         <div>名片 ID：<span class="kbd" id="idText">-</span></div>
         <div>invite：<span class="kbd" id="inviteText">-</span></div>
@@ -1177,7 +1212,7 @@
         </div>
 
         <div class="planHintCard" id="planHint">
-          請先選方案。自由搭配與精品設計，會帶出不同外觀與照片張數。
+          請先選方案。自由搭配與精品設計，會帶出不同外觀與照片張數。自由款 2 張照片、1 個行動按鈕；精品款 5 張照片、3 個行動按鈕。
         </div>
       </section>
 
@@ -1246,10 +1281,12 @@
           <div class="field">
             <label>LINE（個人）</label>
             <input id="line_url" placeholder="請貼上網址，例如：https://line.me/ti/p/..." />
+            <div class="hint">請貼上完整 LINE 連結。若不知道怎麼取得，可先從 LINE 個人頁或分享功能分享自己的聯絡方式，再複製連結貼上。</div>
           </div>
           <div class="field">
             <label>LINE 官方帳號</label>
             <input id="line_oa" placeholder="請貼上網址，例如：https://lin.ee/..." />
+            <div class="hint">請貼上完整 LINE 官方帳號網址。</div>
           </div>
         </div>
 
@@ -1261,6 +1298,7 @@
           <div class="field">
             <label>地址</label>
             <input id="address" placeholder="縣市 / 區域 / 路段…" />
+            <div class="hint">請填完整地址，系統會自動轉成導航，不需要貼地圖連結。</div>
           </div>
         </div>
       </section>
@@ -1337,16 +1375,75 @@
             <input id="social3" placeholder="請貼上網址，例如：https://..." />
             <div class="hint">可放 Facebook、Instagram、小紅書、Threads、作品頁、官網頁。</div>
           </div>
-          <div class="field">
-            <label>主按鈕文字</label>
-            <input id="cta_text" placeholder="例：立即預約 / 加入 LINE / 前往官網" />
-            <div class="hint">這是名片上最主要的行動按鈕文字。</div>
-          </div>
+          <div class="field"></div>
         </div>
 
-        <div class="sectionGap field">
-          <label>主按鈕連結</label>
-          <input id="cta_link" placeholder="請貼上主按鈕要前往的網址，例如：https://..." />
+        <div class="guideCard show" id="ctaGuideCard">
+          <h3>行動按鈕怎麼填？</h3>
+
+          <div class="guideList">
+            <div class="guideItem">
+              <strong>按鈕名稱</strong>
+              填客戶看到的文字，例如：立即預約、查看菜單、最新房源、線上報修。
+            </div>
+            <div class="guideItem">
+              <strong>按鈕連結</strong>
+              填點下去要前往的網址，例如預約頁、商品頁、作品頁、報名頁、LINE 連結。
+            </div>
+            <div class="guideItem">
+              <strong>請不要重複填地址導航</strong>
+              地址已在聯繫區，系統會自動轉成導航，不需要再做成行動按鈕。
+            </div>
+          </div>
+
+          <div class="guideList">
+            <div class="guideItem"><strong>房仲業</strong> 最新房源／精選物件／預約看房</div>
+            <div class="guideItem"><strong>餐飲業</strong> 查看菜單／線上訂餐／優惠活動</div>
+            <div class="guideItem"><strong>美業</strong> 預約服務／作品集／LINE 諮詢</div>
+            <div class="guideItem"><strong>講師 / 顧問</strong> 課程介紹／講座報名／更多內容</div>
+            <div class="guideItem"><strong>電商 / 團購</strong> 商品購買／最新優惠／訂購表單</div>
+            <div class="guideItem"><strong>水電 / 冷氣 / 家電維修</strong> 立即聯絡／線上報修／服務項目</div>
+            <div class="guideItem"><strong>電腦維修 / IT / 網路服務</strong> 線上報修／技術服務／遠端支援</div>
+            <div class="guideItem"><strong>裝潢 / 工程 / 設計</strong> 作品案例／預約諮詢／服務介紹</div>
+            <div class="guideItem"><strong>清潔 / 搬家 / 鎖匠 / 到府服務</strong> 立即預約／服務項目／LINE 諮詢</div>
+          </div>
+
+          <div class="guideTip">按鈕名稱建議 4～8 字，簡單清楚就好。</div>
+        </div>
+
+        <div class="sectionGap" id="ctaFieldsWrap">
+          <div class="row two">
+            <div class="field">
+              <label>行動按鈕 1 文字</label>
+              <input id="cta_text_1" placeholder="例：立即預約 / 查看菜單 / 最新房源" />
+            </div>
+            <div class="field">
+              <label>行動按鈕 1 連結</label>
+              <input id="cta_link_1" placeholder="請貼上網址，例如：https://..." />
+            </div>
+          </div>
+
+          <div class="row two sectionGap" id="ctaRow2">
+            <div class="field">
+              <label>行動按鈕 2 文字（精品設計）</label>
+              <input id="cta_text_2" placeholder="例：作品集 / 線上報修 / 精選物件" />
+            </div>
+            <div class="field">
+              <label>行動按鈕 2 連結（精品設計）</label>
+              <input id="cta_link_2" placeholder="請貼上網址，例如：https://..." />
+            </div>
+          </div>
+
+          <div class="row two sectionGap" id="ctaRow3">
+            <div class="field">
+              <label>行動按鈕 3 文字（精品設計）</label>
+              <input id="cta_text_3" placeholder="例：優惠活動 / 預約看房 / 服務介紹" />
+            </div>
+            <div class="field">
+              <label>行動按鈕 3 連結（精品設計）</label>
+              <input id="cta_link_3" placeholder="請貼上網址，例如：https://..." />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1442,6 +1539,14 @@
 
         <div class="status" id="status">尚未操作。</div>
 
+        <div class="successBox" id="submitSuccessBox" hidden>
+          <div class="successTitle" id="submitSuccessTitle">送出成功</div>
+          <div class="successBody" id="submitSuccessBody"></div>
+          <div class="btns" id="submitSuccessActions"></div>
+        </div>
+
+        <div id="formBottomAnchor"></div>
+
         <div class="footNote">
           小提醒：送出成功後，請先檢查名片預覽內容，再將資料序號回報給客服。
         </div>
@@ -1497,6 +1602,6 @@
     </div>
   </div>
 
-  <script type="module" src="./form.js?v=7112"></script>
+  <script type="module" src="./form.js?v=7115"></script>
 </body>
 </html>
