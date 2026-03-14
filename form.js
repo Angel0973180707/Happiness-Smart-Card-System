@@ -1,34 +1,56 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v713
+ * form.js v714
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 本版內容：
  * 1. 修正手機端照片上傳事件
- * 2. 強制破快取版本：v713
+ * 2. 強制破快取版本：v714
  * 3. 保留照片可縮小 / 拖移 / 置中 / 重設 / 套用
  * 4. 自由款 CTA 1 組；精品款 CTA 3 組
  * 5. 地址 / LINE 提示對齊
  * 6. 即時預覽、摘要、分頁流程一起對齊
  * 7. 成功後強提醒：回覆客服為必做步驟
  * 8. init 與 upload change 偵錯訊號已加入
- * 9. 新增：EXIF 方向修正
- * 10. 新增：大圖預縮，手機更順
- * 11. 新增：輸出 JPEG 壓縮控制
+ * 9. EXIF 方向修正
+ * 10. 大圖預縮，手機更順
+ * 11. 智慧壓縮：依檔案大小自動調整輸出品質與預縮上限
  * ========================================= */
 
 (() => {
   "use strict";
 
-  const VERSION = "713";
+  const VERSION = "714";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/3r2ZePN";
 
-  const PREVIEW_MAX_LONG = 2200;
-  const PREVIEW_MAX_SHORT = 2200;
-  const OUTPUT_QUALITY_DEFAULT = 0.9;
-  const OUTPUT_QUALITY_LARGE = 0.84;
-  const LARGE_FILE_SIZE = 4 * 1024 * 1024;
+  const MB = 1024 * 1024;
+  const FILE_TIER_SMALL = 1 * MB;
+  const FILE_TIER_MEDIUM = 4 * MB;
+
+  const SMART_PROFILE = {
+    small: {
+      maxLong: 2600,
+      maxShort: 2600,
+      previewQuality: 0.94,
+      outputQuality: 0.92,
+      label: "輕壓縮"
+    },
+    medium: {
+      maxLong: 2200,
+      maxShort: 2200,
+      previewQuality: 0.90,
+      outputQuality: 0.86,
+      label: "中度壓縮"
+    },
+    large: {
+      maxLong: 1800,
+      maxShort: 1800,
+      previewQuality: 0.86,
+      outputQuality: 0.80,
+      label: "強壓縮"
+    }
+  };
 
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -55,6 +77,8 @@
     outputWidth: 1200,
     outputHeight: 1200,
     sourceImg: null,
+    sourceSize: 0,
+    smartProfile: SMART_PROFILE.small,
     imageBitmap: null,
     viewScale: 1,
     minScale: 1,
@@ -1132,6 +1156,8 @@
     cropState.outputWidth = item.outputWidth;
     cropState.outputHeight = item.outputHeight;
     cropState.sourceImg = file;
+    cropState.sourceSize = file.size || 0;
+    cropState.smartProfile = prepared.profile;
     cropState.imageBitmap = prepared.image;
 
     if (els.cropTitle) els.cropTitle.textContent = `調整${item.label}位置`;
@@ -1211,6 +1237,8 @@
     const y = (stage.h - scaledH) / 2 + cropState.offsetY;
 
     ctx.save();
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(img, x, y, scaledW, scaledH);
     ctx.restore();
 
@@ -1241,6 +1269,8 @@
 
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, cropState.outputWidth, cropState.outputHeight);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
     ctx.drawImage(
       img,
@@ -1250,8 +1280,7 @@
       scaledH * scaleToOutputY
     );
 
-    const sourceSize = cropState.sourceImg?.size || 0;
-    const quality = sourceSize >= LARGE_FILE_SIZE ? OUTPUT_QUALITY_LARGE : OUTPUT_QUALITY_DEFAULT;
+    const quality = cropState.smartProfile.outputQuality;
     const blob = await canvasToBlob_(outCanvas, "image/jpeg", quality);
     const previewUrl = URL.createObjectURL(blob);
 
@@ -1271,7 +1300,9 @@
 
     closeCropper_();
     refreshUploadThumbs_();
-    setStatus_(`圖片已套用。輸出大小：約 ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+    setStatus_(
+      `圖片已套用。壓縮模式：${cropState.smartProfile.label}｜輸出大小：約 ${(blob.size / MB).toFixed(2)} MB`
+    );
   }
 
   function closeCropper_() {
@@ -1287,27 +1318,38 @@
   }
 
   async function prepareImageForCrop_(file) {
+    const profile = getSmartProfile_(file.size || 0);
+
     const arrayBuffer = await file.arrayBuffer();
     const orientation = getJpegOrientation_(arrayBuffer);
     const dataUrl = await blobToDataURL_(file);
     const original = await loadImage_(dataUrl);
 
     const correctedCanvas = drawImageWithOrientation_(original, orientation);
-    const normalizedCanvas = shrinkCanvasIfNeeded_(correctedCanvas, PREVIEW_MAX_LONG, PREVIEW_MAX_SHORT);
-    const finalDataUrl = normalizedCanvas.toDataURL("image/jpeg", 0.92);
+    const normalizedCanvas = shrinkCanvasIfNeeded_(correctedCanvas, profile.maxLong, profile.maxShort);
+
+    const finalDataUrl = normalizedCanvas.toDataURL("image/jpeg", profile.previewQuality);
     const finalImg = await loadImage_(finalDataUrl);
 
-    const metaText = [
-      orientation > 1 ? `已修正照片方向（EXIF ${orientation}）。` : "",
-      (original.width !== finalImg.width || original.height !== finalImg.height)
-        ? `已預縮圖：${original.width}×${original.height} → ${finalImg.width}×${finalImg.height}`
-        : ""
-    ].filter(Boolean).join(" ");
+    const meta = [];
+    meta.push(`智慧壓縮：${profile.label}`);
+    if (orientation > 1) meta.push(`已修正照片方向（EXIF ${orientation}）`);
+    if (original.width !== finalImg.width || original.height !== finalImg.height) {
+      meta.push(`已預縮圖：${original.width}×${original.height} → ${finalImg.width}×${finalImg.height}`);
+    }
+    meta.push(`原始大小：約 ${(file.size / MB).toFixed(2)} MB`);
 
     return {
       image: finalImg,
-      metaText
+      profile,
+      metaText: meta.join("｜")
     };
+  }
+
+  function getSmartProfile_(size) {
+    if (size <= FILE_TIER_SMALL) return SMART_PROFILE.small;
+    if (size <= FILE_TIER_MEDIUM) return SMART_PROFILE.medium;
+    return SMART_PROFILE.large;
   }
 
   function shrinkCanvasIfNeeded_(canvas, maxLong, maxShort) {
@@ -1398,7 +1440,7 @@
         offset += 2;
 
         if (marker === 0xFFE1) {
-          const exifLength = view.getUint16(offset, false);
+          view.getUint16(offset, false);
           offset += 2;
 
           if (getString_(view, offset, 4) !== "Exif") return 1;
