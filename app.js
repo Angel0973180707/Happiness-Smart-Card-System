@@ -3,11 +3,10 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.6.7",
+  VERSION: "v524.6.8",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
-  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-  DEBUG_QR: true
+  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
 };
 
 let currentRow = null;
@@ -20,35 +19,16 @@ let lastFacadeQrRenderKey = "";
 
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
-function text(v){ return (v==null ? "" : String(v)).trim(); }
-
-function setQrDebug_(msg){
-  const el = qs("qrDebugText");
-  if(!el) return;
-  el.textContent = text(msg) || "（無除錯資訊）";
-}
-
-function appendQrDebug_(msg){
-  const el = qs("qrDebugText");
-  if(!el) return;
-  const old = text(el.textContent);
-  el.textContent = old ? (old + "\n" + text(msg)) : text(msg);
-}
-
-function showQrDebug_(show){
-  const wrap = qs("qrDebugBox");
-  if(!wrap) return;
-  wrap.style.display = show ? "block" : "none";
-}
+function text(v){ return (v == null ? "" : String(v)).trim(); }
 
 function normalizeId_(s){
   const v = text(s).toUpperCase();
   if(!v) return "";
   if(/^TW\d{4}$/.test(v)) return v;
-  if(/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4,"0");
+  if(/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4, "0");
   if(/^TW\d{1,4}$/.test(v)){
-    const n = v.replace(/^TW/i,"");
-    return "TW" + n.padStart(4,"0");
+    const n = v.replace(/^TW/i, "");
+    return "TW" + n.padStart(4, "0");
   }
   return v;
 }
@@ -68,7 +48,7 @@ function getIdFromUrl_(){
 }
 
 function normalizeUrl_(s){
-  let v = String(s||"").trim();
+  let v = String(s || "").trim();
   if(!v) return "";
   if(/^https?:\/\//i.test(v)) return v;
   if(/^www\./i.test(v)) return "https://" + v;
@@ -77,7 +57,7 @@ function normalizeUrl_(s){
 }
 
 function safeJsonParse_(rawText){
-  let s = String(rawText||"").trim();
+  let s = String(rawText || "").trim();
   if(!s) return null;
   s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
   try{ return JSON.parse(s); }catch{}
@@ -93,9 +73,9 @@ async function fetchWithTimeout_(url, timeoutMs){
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
     const res = await fetch(url, {
-      method:"GET",
-      cache:"no-store",
-      redirect:"follow",
+      method: "GET",
+      cache: "no-store",
+      redirect: "follow",
       signal: controller.signal
     });
     const txt = await res.text();
@@ -109,12 +89,12 @@ async function fetchWithTimeout_(url, timeoutMs){
 
 async function fetchJsonRobust_(url){
   let last = null;
-  for(let i=0;i<=CONFIG.RETRY;i++){
+  for(let i = 0; i <= CONFIG.RETRY; i++){
     try{
       return await fetchWithTimeout_(url, CONFIG.FETCH_TIMEOUT_MS);
     }catch(e){
       last = e;
-      await new Promise(r=>setTimeout(r, 520 + i*520));
+      await new Promise(r => setTimeout(r, 520 + i * 520));
     }
   }
   throw last || new Error("Fetch failed");
@@ -139,7 +119,7 @@ function buildNormalizedPayload_(obj){
     const nk = String(k || "").trim();
     if(!nk) continue;
     const v = obj[k];
-    if(out[nk]==null || text(out[nk])==="") out[nk]=v;
+    if(out[nk] == null || text(out[nk]) === "") out[nk] = v;
     lower[nk.toLowerCase()] = v;
   }
   out.__lower = lower;
@@ -152,10 +132,10 @@ function pick(p, keys){
   for(const k of keys){
     const kk = String(k || "").trim();
     const v1 = p[kk];
-    if(v1!=null && text(v1)!=="") return v1;
+    if(v1 != null && text(v1) !== "") return v1;
     if(lower){
       const v2 = lower[String(kk).toLowerCase()];
-      if(v2!=null && text(v2)!=="") return v2;
+      if(v2 != null && text(v2) !== "") return v2;
     }
   }
   return "";
@@ -166,8 +146,8 @@ function normalizeImageUrl_(raw){
   if(!url) return "";
 
   if(url.includes("dropbox.com")){
-    url = url.replace("dl=0","raw=1");
-    if(!url.includes("raw=1")) url += (url.includes("?")?"&":"?")+"raw=1";
+    url = url.replace("dl=0", "raw=1");
+    if(!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
     return url;
   }
 
@@ -257,12 +237,12 @@ function setImgWithFallback_(imgEl, candidates, options = {}){
 }
 
 function escapeHtml_(s){
-  return String(s||"")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function openUrl_(url){
@@ -290,7 +270,7 @@ function buildDockBtn_({label, icon, onClick, extraClass}){
 function applyWideRule_(container){
   if(!container) return;
   const btns = Array.from(container.querySelectorAll(".dock-btn"));
-  btns.forEach(b=>b.classList.remove("wide"));
+  btns.forEach(b => b.classList.remove("wide"));
   if(btns.length % 2 === 1){
     btns[btns.length - 1].classList.add("wide");
   }
@@ -663,7 +643,7 @@ function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
 
   const contentEl = blockEl.querySelector(".expandable-text");
   const toggleEl = blockEl.querySelector(".expand-toggle");
-  setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline:true });
+  setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline: true });
 }
 
 function pickAvatarInfo_(p){
@@ -710,36 +690,14 @@ function renderAvatar_(p){
   currentAvatarUrlCache = u || "";
   currentAvatarSourceKeyCache = info.key || "";
 
-  if(CONFIG.DEBUG_QR){
-    showQrDebug_(true);
-    setQrDebug_(
-      `版本：${CONFIG.VERSION}
-ID：${normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID}
-avatar來源欄位：${info.key || "（沒抓到）"}
-avatar原始值：${text(info.raw) || "（空）"}
-avatar正規化URL：${u || "（空）"}`
-    );
-  }
-
   if(!u){
     img.removeAttribute("src");
-    if(CONFIG.DEBUG_QR){
-      appendQrDebug_("主頭像：無可用 URL");
-    }
     return;
   }
 
   setImgWithFallback_(img, buildImgCandidates_(u), {
-    onLoad: ()=>{
-      if(CONFIG.DEBUG_QR){
-        appendQrDebug_("主頭像：載入成功");
-      }
-    },
     onFail: ()=>{
       img.removeAttribute("src");
-      if(CONFIG.DEBUG_QR){
-        appendQrDebug_("主頭像：載入失敗");
-      }
     }
   });
 }
@@ -747,7 +705,7 @@ avatar正規化URL：${u || "（空）"}`
 function renderLogo_(p){
   const logoUrl = pick(p, ["logo_img_fast","logo_img","logo_url","Logo_fast","Logo"]);
   const wrap = qs("logoWrap");
-  const img  = qs("u-logo");
+  const img = qs("u-logo");
   if(!wrap || !img) return;
 
   const u = normalizeImageUrl_(logoUrl);
@@ -770,7 +728,7 @@ function renderLogo_(p){
 
 function renderBlocks_(p){
   const service = pick(p, ["services","服務項目","service"]);
-  const exp     = pick(p, ["experience","經歷","exp"]);
+  const exp = pick(p, ["experience","經歷","exp"]);
 
   const b1 = qs("block-service");
   const b2 = qs("block-exp");
@@ -785,8 +743,8 @@ function renderContactDock_(p){
   if(!dock || !btns) return;
   btns.innerHTML = "";
 
-  const phone   = pick(p, ["phone","電話"]);
-  const email   = pick(p, ["email","Email"]);
+  const phone = pick(p, ["phone","電話"]);
+  const email = pick(p, ["email","Email"]);
   const address = pick(p, ["address","地址"]);
   const lineUrl = normalizeUrl_(pick(p, ["line_url","line_oa","LINE連結"]));
   const wechatId = text(pick(p, ["wechat_id","微信ID","微信"]));
@@ -824,10 +782,10 @@ function renderContactDock_(p){
 
   list.forEach(x=>{
     btns.appendChild(buildDockBtn_({
-      label:x.label,
-      icon:x.icon,
-      extraClass:x.cls,
-      onClick:x.action
+      label: x.label,
+      icon: x.icon,
+      extraClass: x.cls,
+      onClick: x.action
     }));
   });
 
@@ -836,7 +794,7 @@ function renderContactDock_(p){
 }
 
 function inferLinkMeta_(url, kind, idx){
-  const u = String(url||"").toLowerCase();
+  const u = String(url || "").toLowerCase();
 
   if(u.includes("youtube.com") || u.includes("youtu.be")) return { label:"YouTube", icon:"fa-brands fa-youtube", cls:"dock-yt" };
   if(u.includes("facebook.com") || u.includes("fb.com")) return { label:"FB", icon:"fa-brands fa-facebook", cls:"dock-fb" };
@@ -1008,7 +966,7 @@ function collectPhotos_(p){
 
   slots.forEach(keys=>{
     for(const k of keys){
-      const raw = pick(p,[k]);
+      const raw = pick(p, [k]);
       const url = normalizeImageUrl_(raw);
       if(!url) continue;
 
@@ -1048,7 +1006,7 @@ function renderPhotoWall_(p){
   photos.forEach((u, idx)=>{
     const img = document.createElement("img");
     img.className = "wall-img";
-    img.alt = `照片 ${idx+1}`;
+    img.alt = `照片 ${idx + 1}`;
     img.loading = "lazy";
     img.decoding = "async";
     setImgWithFallback_(img, buildImgCandidates_(u), {
@@ -1113,7 +1071,7 @@ function applySmartBalanceToEl_(el){
 
   if(el.dataset.balanceType === "qr-sub" || el.dataset.balanceType === "product-qr-sub"){
     if(raw.includes("・")){
-      const parts = raw.split("・").map(x=>x.trim()).filter(Boolean);
+      const parts = raw.split("・").map(x => x.trim()).filter(Boolean);
       if(parts.length >= 2){
         const half = Math.ceil(parts.length / 2);
         const l1 = parts.slice(0, half).join("・");
@@ -1197,16 +1155,13 @@ function buildQrImageUrl_(url, size){
     + "&margin=2";
 }
 
-function hideCenterImg_(imgEl, reason){
+function hideCenterImg_(imgEl){
   if(!imgEl) return;
   imgEl.removeAttribute("src");
   imgEl.style.display = "none";
   imgEl.style.background = "transparent";
   imgEl.style.padding = "0";
   imgEl.style.boxShadow = "none";
-  if(CONFIG.DEBUG_QR && reason){
-    appendQrDebug_(reason);
-  }
 }
 
 function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
@@ -1215,7 +1170,7 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   const u = normalizeImageUrl_(centerImgUrl);
 
   if(!u){
-    hideCenterImg_(imgEl, "QR 頭像：無可用 URL，已隱藏");
+    hideCenterImg_(imgEl);
     return;
   }
 
@@ -1229,14 +1184,15 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   imgEl.style.transform = "translate(-50%, -50%)";
   imgEl.style.borderRadius = "999px";
   imgEl.style.objectFit = "cover";
-  imgEl.style.zIndex = "2";
+  imgEl.style.zIndex = "3";
   imgEl.style.background = "transparent";
   imgEl.style.padding = "0";
   imgEl.style.boxShadow = "none";
   imgEl.style.display = "block";
+  imgEl.style.pointerEvents = "none";
 
   imgEl.onerror = ()=>{
-    hideCenterImg_(imgEl, "QR 頭像：載入失敗，已隱藏");
+    hideCenterImg_(imgEl);
   };
 
   setImgWithFallback_(imgEl, buildImgCandidates_(u), {
@@ -1247,12 +1203,9 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
       imgEl.style.background = "transparent";
       imgEl.style.padding = "0";
       imgEl.style.boxShadow = "none";
-      if(CONFIG.DEBUG_QR){
-        appendQrDebug_("QR 頭像：載入成功");
-      }
     },
     onFail: ()=>{
-      hideCenterImg_(imgEl, "QR 頭像：fallback 全失敗，已隱藏");
+      hideCenterImg_(imgEl);
     }
   });
 }
@@ -1335,12 +1288,9 @@ function renderBottomQr_(p){
   const avatarUrl = info.url;
   const key = "bottom|" + qrUrl + "|" + avatarUrl;
 
-  if(CONFIG.DEBUG_QR){
-    appendQrDebug_(
-      `底部QR：
-來源欄位=${info.key || "（沒抓到）"}
-URL=${avatarUrl || "（空）"}`
-    );
+  const canvas = avatar.parentElement;
+  if(canvas){
+    canvas.style.position = "relative";
   }
 
   if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
@@ -1364,18 +1314,15 @@ URL=${avatarUrl || "（空）"}`
 function renderFeatureQrFromCurrent_(){
   const grid = qs("featureQrGrid");
   const avatar = qs("featureQrAvatar");
-  if(!grid) return;
+  if(!grid || !avatar) return;
 
   const url = buildFeatureQrUrl_();
   const avatarUrl = currentAvatarUrlCache || "";
   const key = "feature|" + url + "|" + avatarUrl;
 
-  if(CONFIG.DEBUG_QR){
-    appendQrDebug_(
-      `特色QR：
-來源欄位=${currentAvatarSourceKeyCache || "（沒抓到）"}
-URL=${avatarUrl || "（空）"}`
-    );
+  const canvas = avatar.parentElement;
+  if(canvas){
+    canvas.style.position = "relative";
   }
 
   if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
@@ -1483,7 +1430,7 @@ function renderCard(row){
   if(unitWrap && unitEl){
     if(text(unitVal)){
       unitWrap.style.display = "";
-      setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline:true });
+      setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
     }else{
       unitWrap.style.display = "none";
       unitEl.innerHTML = "";
@@ -1496,7 +1443,7 @@ function renderCard(row){
   if(sloganWrap && sloganEl){
     if(text(sloganVal)){
       sloganWrap.style.display = "";
-      setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline:true });
+      setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
     }else{
       sloganWrap.style.display = "none";
       sloganEl.innerHTML = "";
@@ -1588,7 +1535,7 @@ window.addEventListener("appinstalled", ()=>{
 
 window.addEventListener("load", ()=>{
   ensureBottomQrVisible_();
-}, { once:true });
+}, { once: true });
 
 (async function boot_(){
   try{
@@ -1596,27 +1543,13 @@ window.addEventListener("load", ()=>{
     applySmartBalanceAll_();
     updateInstallUi_();
 
-    if(CONFIG.DEBUG_QR){
-      showQrDebug_(true);
-      setQrDebug_("開始載入資料…");
-    }
-
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     const url = buildCardApiUrl_(id);
     const payload = await fetchJsonRobust_(url);
     const row = payload?.item || payload?.data || payload;
-
-    if(CONFIG.DEBUG_QR){
-      appendQrDebug_("資料載入成功");
-    }
-
     renderCard(row);
   }catch(err){
     console.error(err);
-    if(CONFIG.DEBUG_QR){
-      showQrDebug_(true);
-      setQrDebug_(`資料載入失敗：${err && err.message ? err.message : err}`);
-    }
     const nameEl = qs("u-name");
     const unitWrap = qs("u-unit-wrap");
     const titleEl = qs("u-title");
