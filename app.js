@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.8",
+  VERSION: "v524.9",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -122,6 +122,7 @@ function buildCardApiUrl_(id){
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
 }
+
 function buildLeadCreateUrl_(refCode){
   const u = new URL(CONFIG.GAS);
   u.searchParams.set("action", "leadCreate");
@@ -258,6 +259,7 @@ function normalizeImageUrl_(raw){
 
   return url;
 }
+
 function buildImgCandidates_(raw){
   const s = text(raw);
   if(!s) return [];
@@ -392,16 +394,19 @@ const UI_STATE = {
 function removeBodyClasses_(classes){
   classes.forEach(c => document.body.classList.remove(c));
 }
+
 function setBodyClassOneOf_(classes, target){
   removeBodyClasses_(classes);
   if(target) document.body.classList.add(target);
 }
+
 function setActiveAmong_(elements, activeEl){
   (elements || []).forEach(el => {
     if(el === activeEl) el.classList.add("active");
     else el.classList.remove("active");
   });
 }
+
 function mapFreeColorToTheme_(v){
   const raw = text(v).toLowerCase();
   const map = {
@@ -610,6 +615,7 @@ function initSelectionState_(){
 
   syncPlanUI_();
 }
+
 function escapeHtmlWithBreaks_(s){
   return escapeHtml_(s).replace(/\n/g, "<br>");
 }
@@ -958,22 +964,43 @@ function renderCtaDock_(p){
   if(!dock || !btns) return;
   btns.innerHTML = "";
 
-  const ctaText = text(pick(p, ["cta_text","CTA文字","ctaText"]));
-  const ctaLink = normalizeUrl_(pick(p, ["cta_link","CTA連結","ctaLink"]));
+  const items = [];
 
-  if(!ctaText || !ctaLink){
+  const ctaPairs = [
+    {
+      text: text(pick(p, ["cta_text_1","cta_text","CTA文字1","CTA文字","ctaText1","ctaText"])),
+      link: normalizeUrl_(pick(p, ["cta_link_1","cta_link","CTA連結1","CTA連結","ctaLink1","ctaLink"]))
+    },
+    {
+      text: text(pick(p, ["cta_text_2","CTA文字2","ctaText2"])),
+      link: normalizeUrl_(pick(p, ["cta_link_2","CTA連結2","ctaLink2"]))
+    },
+    {
+      text: text(pick(p, ["cta_text_3","CTA文字3","ctaText3"])),
+      link: normalizeUrl_(pick(p, ["cta_link_3","CTA連結3","ctaLink3"]))
+    }
+  ];
+
+  ctaPairs.forEach(item=>{
+    if(item.text && item.link) items.push(item);
+  });
+
+  if(!items.length){
     dock.style.display = "none";
     return;
   }
 
-  btns.appendChild(buildDockBtn_({
-    label: ctaText,
-    icon: "fa-solid fa-bolt",
-    extraClass: "dock-web wide",
-    onClick: ()=> openUrl_(ctaLink)
-  }));
+  items.forEach((item, idx)=>{
+    btns.appendChild(buildDockBtn_({
+      label: item.text,
+      icon: idx === 0 ? "fa-solid fa-bolt" : "fa-solid fa-arrow-up-right-from-square",
+      extraClass: items.length === 1 ? "dock-web wide" : "dock-web",
+      onClick: ()=> openUrl_(item.link)
+    }));
+  });
 
   dock.style.display = "";
+  applyWideRule_(btns);
 }
 
 function renderInstallDock_(){
@@ -1043,33 +1070,79 @@ function buildImageFingerprint_(raw){
 }
 
 function collectPhotos_(p){
-  const slots = [
-    ["photo1_img_fast","photo1_img","photo1_url"],
-    ["photo2_img_fast","photo2_img","photo2_url"],
-    ["photo3_img_fast","photo3_img","photo3_url"],
-    ["photo4_img_fast","photo4_img","photo4_url"],
-    ["photo5_img_fast","photo5_img","photo5_url"]
-  ];
-
   const photos = [];
   const seen = new Set();
 
-  slots.forEach(keys=>{
-    for(const k of keys){
-      const raw = pick(p, [k]);
-      const url = normalizeImageUrl_(raw);
-      if(!url) continue;
+  function pushPhoto_(raw){
+    if(raw == null) return;
 
-      const fp = buildImageFingerprint_(url) || url;
-      if(seen.has(fp)) continue;
-
-      seen.add(fp);
-      photos.push(url);
-      break;
+    if(Array.isArray(raw)){
+      raw.forEach(pushPhoto_);
+      return;
     }
+
+    if(typeof raw === "object"){
+      if(raw.url) pushPhoto_(raw.url);
+      if(raw.src) pushPhoto_(raw.src);
+      if(raw.image) pushPhoto_(raw.image);
+      return;
+    }
+
+    const s = String(raw || "").trim();
+    if(!s) return;
+
+    if((s.startsWith("[") && s.endsWith("]")) || (s.startsWith("{") && s.endsWith("}"))){
+      try{
+        const parsed = JSON.parse(s);
+        pushPhoto_(parsed);
+        return;
+      }catch(_err){}
+    }
+
+    if(s.includes("\n") || s.includes(",")){
+      const parts = s
+        .split(/\n|,/)
+        .map(x => String(x || "").trim())
+        .filter(Boolean);
+
+      if(parts.length > 1){
+        parts.forEach(pushPhoto_);
+        return;
+      }
+    }
+
+    const url = normalizeImageUrl_(s);
+    if(!url) return;
+
+    const fp = buildImageFingerprint_(url) || url;
+    if(seen.has(fp)) return;
+
+    seen.add(fp);
+    photos.push(url);
+  }
+
+  const keys = [
+    "photo1_img_fast","photo1_img","photo1_url","photo1",
+    "photo2_img_fast","photo2_img","photo2_url","photo2",
+    "photo3_img_fast","photo3_img","photo3_url","photo3",
+    "photo4_img_fast","photo4_img","photo4_url","photo4",
+    "photo5_img_fast","photo5_img","photo5_url","photo5",
+    "photos","photo_urls","photos_urls","gallery","gallery_urls","images","image_urls"
+  ];
+
+  keys.forEach(k=>{
+    const v = pick(p, [k]);
+    if(v != null && text(v) !== "") pushPhoto_(v);
   });
 
-  return photos;
+  const raw = p?.__raw || p || {};
+  [
+    "photos","photo_urls","photos_urls","gallery","gallery_urls","images","image_urls"
+  ].forEach(k=>{
+    if(raw[k] != null) pushPhoto_(raw[k]);
+  });
+
+  return photos.slice(0, 5);
 }
 
 function renderPhotoWall_(p){
@@ -1078,11 +1151,12 @@ function renderPhotoWall_(p){
   if(!wall || !grid) return;
 
   grid.innerHTML = "";
+  wall.style.display = "none";
+
   const photos = collectPhotos_(p);
   const count = photos.length;
 
   if(!count){
-    wall.style.display = "none";
     return;
   }
 
@@ -1093,15 +1167,32 @@ function renderPhotoWall_(p){
   else if(count === 4) grid.classList.add("layout-4");
   else grid.classList.add("layout-5");
 
+  let successCount = 0;
+  let failCount = 0;
+  const total = photos.length;
+
   photos.forEach((u, idx)=>{
     const img = document.createElement("img");
     img.className = "wall-img";
     img.alt = `照片 ${idx + 1}`;
     img.loading = "lazy";
     img.decoding = "async";
+    img.style.cursor = "pointer";
+
     setImgWithFallback_(img, buildImgCandidates_(u), {
-      onFail: ()=>{ img.remove(); }
+      onLoad: ()=>{
+        successCount++;
+        wall.style.display = "";
+      },
+      onFail: ()=>{
+        failCount++;
+        img.remove();
+        if(successCount === 0 && failCount >= total){
+          wall.style.display = "none";
+        }
+      }
     });
+
     img.addEventListener("click", ()=> openUrl_(u));
     grid.appendChild(img);
   });
