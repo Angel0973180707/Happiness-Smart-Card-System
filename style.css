@@ -37,6 +37,17 @@
   --expand-bg: rgba(255,255,255,.92);
   --expand-ink: rgba(92,56,32,.96);
   --expand-line: rgba(145,102,69,.20);
+
+  /* v730 add */
+  --feature-sec-bg: rgba(255,255,255,.78);
+  --feature-sec-line: rgba(102,78,57,.10);
+  --feature-sec-shadow: 0 10px 24px rgba(83,62,45,.05);
+  --feature-toggle-bg: rgba(176,138,107,.10);
+  --feature-toggle-bg-active: rgba(176,138,107,.16);
+  --feature-toggle-ink: #7d5b46;
+  --feature-bullet: #b08a6b;
+  --invite-soft-bg: rgba(255,255,255,.78);
+  --invite-dash: rgba(176,138,107,.34);
 }
 
 * { box-sizing: border-box; }
@@ -1238,10 +1249,6 @@ body.mode-premium .photo-wall {
 
 /* =========================
    QR 區穩定化
-   目標：
-   - QR code 變大
-   - 頭像 / logo 變小
-   - 不預設白圈
 ========================= */
 #bottomQrGrid,
 #featureQrGrid,
@@ -1256,7 +1263,6 @@ body.mode-premium .photo-wall {
   padding: 6px;
 }
 
-/* 只管 QR 主圖，不碰中央頭像 */
 #bottomQrGrid > img:not(#bottomQrAvatar),
 #featureQrGrid > img:not(#featureQrAvatar),
 #facadeQrGrid > img:not(#facadeQrAvatar) {
@@ -1268,7 +1274,6 @@ body.mode-premium .photo-wall {
   filter: none !important;
 }
 
-/* 中央頭像 / logo：縮小 */
 #bottomQrAvatar,
 #featureQrAvatar,
 #facadeQrAvatar,
@@ -1580,4 +1585,369 @@ body.mode-free.paper-3 #paperOverlay::after {
     repeating-linear-gradient(0deg,
       rgba(0,0,0,.06) 0px, rgba(0,0,0,.06) 1px,
       rgba(0,0,0,.00) 7px, rgba(0,0,0,.00) 12px);
+}
+
+/* =========================
+   v730 add-on
+   只增修，不動原骨架
+========================= */
+
+.modal-mask,
+.invite-mask {
+  display: none;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483000 !important;
+  background: rgba(20,17,14,.46);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+.modal,
+.invite-box {
+  position: relative;
+  z-index: 2147483001;
+  width: min(92vw, 440px);
+  max-width: 440px;
+  max-height: 86vh;
+  overflow: auto;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255,252,248,.98), rgba(252,245,237,.98));
+  box-shadow: 0 24px 60px rgba(0,0,0,.18);
+  border: 1px solid rgba(102,78,57,.10);
+  color: #433227;
+}
+
+.modal-hd,
+.invite-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 16px 10px;
+  font-weight: 900;
+}
+
+.modal-title {
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close,
+.invite-btn {
+  border: none;
+  background: #f0e5d8;
+  color: #433227;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.modal-bd,
+.invite-bd {
+  padding: 6px 16px 16px;
+}
+
+.feature-qr-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2px 0 10px;
+}
+
+.feature-qr-canvas {
+  position: relative;
+  width: 176px;
+  height: 176px;
+  padding: 12px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(0,0,0,.04);
+  border: 1px solid rgba(0,0,0,.035);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.feature-qr-grid {
+  width: 152px;
+  height: 152px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.feature-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.feature-section {
+  border: 1px solid var(--feature-sec-line);
+  background: var(--feature-sec-bg);
+  border-radius: 18px;
+  box-shadow: var(--feature-sec-shadow);
+  overflow: hidden;
+}
+
+.feature-toggle {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 14px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 900;
+  font-size: 14px;
+  color: #433227;
+}
+
+.feature-toggle:hover {
+  background: var(--feature-toggle-bg);
+}
+
+.feature-toggle.active {
+  background: var(--feature-toggle-bg-active);
+  color: var(--feature-toggle-ink);
+}
+
+.feature-toggle-icon {
+  flex: 0 0 auto;
+  font-size: 12px;
+  opacity: .84;
+  transition: transform .18s ease;
+}
+
+.feature-toggle.active .feature-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.feature-content {
+  display: none;
+  padding: 0 14px 14px;
+  font-size: 13px;
+  line-height: 1.78;
+  color: #6b5a4d;
+}
+
+.feature-content.open {
+  display: block;
+}
+
+.feature-content strong {
+  color: #433227;
+}
+
+.feature-content .feature-mini-title {
+  display: block;
+  margin: 8px 0 4px;
+  font-weight: 900;
+  color: #433227;
+}
+
+.feature-list {
+  margin: 8px 0 10px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feature-list li {
+  position: relative;
+  padding-left: 14px;
+}
+
+.feature-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--feature-bullet);
+  font-weight: 900;
+}
+
+.feature-cta-wrap {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.feature-cta-note {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #6b5a4d;
+  text-align: center;
+  font-weight: 700;
+}
+
+.invite-card {
+  border: 1px solid rgba(102,78,57,.10);
+  border-radius: 20px;
+  background: var(--invite-soft-bg);
+  box-shadow: 0 10px 24px rgba(83,62,45,.05);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.invite-title {
+  font-size: 15px;
+  font-weight: 900;
+  color: #433227;
+  text-align: center;
+}
+
+.invite-sub {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #6b5a4d;
+  text-align: center;
+  font-weight: 700;
+}
+
+.invite-request-box {
+  border-radius: 16px;
+  border: 1px dashed var(--invite-dash);
+  background: rgba(255,251,246,.94);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.invite-request-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.invite-request-label {
+  flex: 0 0 76px;
+  font-weight: 900;
+  color: #433227;
+}
+
+.invite-request-value {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-weight: 800;
+  color: #6b5a4d;
+  word-break: break-word;
+}
+
+.invite-request-value.code {
+  color: #8e5f3e;
+  font-size: 14px;
+  font-weight: 1000;
+  letter-spacing: .04em;
+}
+
+.invite-copy-text {
+  border-radius: 16px;
+  background: rgba(255,255,255,.70);
+  border: 1px solid rgba(102,78,57,.08);
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #6b5a4d;
+  white-space: pre-line;
+}
+
+.invite-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+#inviteCreateBtn,
+#inviteCopyBtn,
+#inviteLineBtn,
+#featureInviteCta {
+  max-width: 100%;
+}
+
+#inviteCopyBtn[disabled] {
+  opacity: .56;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+@media (max-width: 520px) {
+  .feature-toggle {
+    font-size: 13px;
+    padding: 13px 13px;
+  }
+
+  .feature-content {
+    font-size: 12px;
+    line-height: 1.76;
+    padding: 0 13px 13px;
+  }
+
+  .invite-request-line {
+    font-size: 12px;
+  }
+
+  .invite-request-label {
+    flex-basis: 68px;
+  }
+}
+
+@media (max-width: 360px) {
+  .modal,
+  .invite-box {
+    width: min(94vw, 420px);
+    border-radius: 20px;
+  }
+
+  .modal-hd,
+  .invite-hd {
+    padding: 14px 14px 10px;
+  }
+
+  .modal-bd,
+  .invite-bd {
+    padding: 6px 14px 14px;
+  }
+
+  .feature-qr-canvas {
+    width: 166px;
+    height: 166px;
+    padding: 10px;
+  }
+
+  .feature-qr-grid {
+    width: 146px;
+    height: 146px;
+  }
 }
