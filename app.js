@@ -1,12 +1,40 @@
+/*
+HSC v731.0
+app.js
+COMPLETE OVERWRITE
+Part 1 / 3
+*/
+
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.7",
+  VERSION: "v731.0",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
-  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
+  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+  REF_STORAGE_KEY: "HSC_REF",
+  DEMO_CARDS: [
+    {
+      id: "TW0001",
+      title: "教練型名片",
+      desc: "適合教練、顧問、講師，快速展示服務內容與聯絡入口。",
+      cover: ""
+    },
+    {
+      id: "TW0002",
+      title: "品牌型名片",
+      desc: "適合店家與個人品牌，整合照片牆、CTA 與社群入口。",
+      cover: ""
+    },
+    {
+      id: "TW0003",
+      title: "服務型名片",
+      desc: "適合房仲、保險、接案者，一頁整合聯絡、導航與作品入口。",
+      cover: ""
+    }
+  ]
 };
 
 let currentRow = null;
@@ -16,6 +44,10 @@ let currentAvatarSourceKeyCache = "";
 let lastBottomQrRenderKey = "";
 let lastFeatureQrRenderKey = "";
 let lastFacadeQrRenderKey = "";
+let currentLeadId = "";
+let __expandRefreshTimer = null;
+let __balanceTimer = null;
+let __scrollTop = 0;
 
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
@@ -47,6 +79,36 @@ function getIdFromUrl_(){
   }
 }
 
+function getRefFromUrl_(){
+  try{
+    const sp = getSearchParams_();
+    return text(sp.get("ref") || "");
+  }catch{
+    return "";
+  }
+}
+
+function persistRefIfAny_(){
+  const ref = getRefFromUrl_();
+  if(!ref) return;
+  try{ localStorage.setItem(CONFIG.REF_STORAGE_KEY, ref); }catch{}
+}
+
+function getSavedRef_(){
+  const ref = getRefFromUrl_();
+  if(ref) return ref;
+  try{
+    return text(localStorage.getItem(CONFIG.REF_STORAGE_KEY) || "");
+  }catch{
+    return "";
+  }
+}
+
+function isCleanMode_(){
+  const sp = getSearchParams_();
+  return sp.get("view") === "1" || sp.get("clean") === "1";
+}
+
 function normalizeUrl_(s){
   let v = String(s || "").trim();
   if(!v) return "";
@@ -68,15 +130,15 @@ function safeJsonParse_(rawText){
   return null;
 }
 
-async function fetchWithTimeout_(url, timeoutMs){
+async function fetchWithTimeout_(url, options = {}, timeoutMs = CONFIG.FETCH_TIMEOUT_MS){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
     const res = await fetch(url, {
-      method: "GET",
       cache: "no-store",
       redirect: "follow",
-      signal: controller.signal
+      signal: controller.signal,
+      ...options
     });
     const txt = await res.text();
     const json = safeJsonParse_(txt);
@@ -87,11 +149,11 @@ async function fetchWithTimeout_(url, timeoutMs){
   }
 }
 
-async function fetchJsonRobust_(url){
+async function fetchJsonRobust_(url, options = {}){
   let last = null;
   for(let i = 0; i <= CONFIG.RETRY; i++){
     try{
-      return await fetchWithTimeout_(url, CONFIG.FETCH_TIMEOUT_MS);
+      return await fetchWithTimeout_(url, options, CONFIG.FETCH_TIMEOUT_MS);
     }catch(e){
       last = e;
       await new Promise(r => setTimeout(r, 520 + i * 520));
@@ -106,6 +168,14 @@ function buildCardApiUrl_(id){
   u.searchParams.set("action", "card");
   u.searchParams.set("id", cid);
   u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
+  u.searchParams.set("ts", String(Date.now()));
+  u.searchParams.set("v", CONFIG.VERSION);
+  return u.toString();
+}
+
+function buildLeadCreateUrl_(){
+  const u = new URL(CONFIG.GAS);
+  u.searchParams.set("action", "leadCreate");
   u.searchParams.set("ts", String(Date.now()));
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
@@ -139,6 +209,19 @@ function pick(p, keys){
     }
   }
   return "";
+}
+
+function escapeHtml_(s){
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function escapeHtmlWithBreaks_(s){
+  return escapeHtml_(s).replace(/\n/g, "<br>");
 }
 
 function normalizeImageUrl_(raw){
@@ -236,15 +319,6 @@ function setImgWithFallback_(imgEl, candidates, options = {}){
   imgEl.src = buildSrc(list[0]);
 }
 
-function escapeHtml_(s){
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
 function openUrl_(url){
   const u = normalizeUrl_(url);
   if(!u) return;
@@ -257,6 +331,24 @@ function openMapByAddress_(addr){
   const q = encodeURIComponent(a);
   window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
 }
+
+function copyText_(value, okMsg = "✅ 已複製"){
+  const v = text(value);
+  if(!v) return;
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(v).then(()=> alert(okMsg)).catch(()=>{
+      prompt("請手動複製", v);
+    });
+    return;
+  }
+  prompt("請手動複製", v);
+}
+/*
+HSC v731.0
+app.js
+COMPLETE OVERWRITE
+Part 2 / 3
+*/
 
 function buildDockBtn_({label, icon, onClick, extraClass}){
   const b = document.createElement("button");
@@ -276,429 +368,33 @@ function applyWideRule_(container){
   }
 }
 
-const BODY_MODE_CLASSES = ["mode-free", "mode-premium"];
-const BODY_FREE_THEME_CLASSES = ["color-1", "color-2", "color-3", "color-4", "color-5"];
-const BODY_PREMIUM_THEME_CLASSES = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"];
-const BODY_STYLE_CLASSES = ["style-arch", "style-flat", "style-spot"];
-const BODY_PAPER_CLASSES = ["paper-1", "paper-2", "paper-3"];
-
-const UI_STATE = {
-  plan: "free",
-  theme: "color-1",
-  premiumTheme: "p1",
-  style: "arch",
-  paper: "paper-1"
-};
-
-function removeBodyClasses_(classes){
-  classes.forEach(c => document.body.classList.remove(c));
-}
-
-function setBodyClassOneOf_(classes, target){
-  removeBodyClasses_(classes);
-  if(target) document.body.classList.add(target);
-}
-
-function setActiveAmong_(elements, activeEl){
-  (elements || []).forEach(el => {
-    if(el === activeEl) el.classList.add("active");
-    else el.classList.remove("active");
-  });
-}
-
-function mapFreeColorToTheme_(v){
-  const raw = text(v).toLowerCase();
-  const map = {
-    "c1":"color-1","c2":"color-2","c3":"color-3","c4":"color-4","c5":"color-5",
-    "color-1":"color-1","color-2":"color-2","color-3":"color-3","color-4":"color-4","color-5":"color-5"
-  };
-  return map[raw] || "color-1";
-}
-
-function mapStyleToUi_(v){
-  const raw = text(v).toLowerCase();
-  const map = {
-    "s1":"arch","s2":"flat","s3":"spot",
-    "arch":"arch","flat":"flat","spot":"spot"
-  };
-  return map[raw] || "arch";
-}
-
-function mapPaperToUi_(v){
-  const raw = text(v).toLowerCase();
-  const map = {
-    "f1":"paper-1","f2":"paper-2","f3":"paper-3",
-    "paper-1":"paper-1","paper-2":"paper-2","paper-3":"paper-3"
-  };
-  return map[raw] || "paper-1";
-}
-
-function mapPremiumToUi_(v){
-  const raw = text(v).toLowerCase();
-  const allow = ["p1","p2","p3","p4","p5","p6","p7"];
-  return allow.includes(raw) ? raw : "p1";
-}
-
-function applyThemeFromPayload_(p){
-  const planRaw = text(pick(p, ["plan"])) || "free";
-  const isPremium = planRaw === "premium";
-
-  if(isPremium){
-    const rawPremium = pick(p, ["premium_color"]);
-    UI_STATE.plan = "premium";
-    UI_STATE.premiumTheme = mapPremiumToUi_(rawPremium);
-  }else{
-    const rawColor = pick(p, ["color","free_color"]);
-    const rawStyle = pick(p, ["style","free_style"]);
-    const rawPaper = pick(p, ["paper","free_paper"]);
-
-    UI_STATE.plan = "free";
-    UI_STATE.theme = mapFreeColorToTheme_(rawColor);
-    UI_STATE.style = mapStyleToUi_(rawStyle);
-    UI_STATE.paper = mapPaperToUi_(rawPaper);
-  }
-
-  syncPlanUI_();
-}
-
-function syncPlanUI_(){
-  const freeBtn = qs("btnPlanFree");
-  const premBtn = qs("btnPlanPremium");
-  const freeControls = qs("free-controls");
-  const premiumControls = qs("premium-controls");
-  const badge = qs("premiumBadge");
-
-  setBodyClassOneOf_(BODY_MODE_CLASSES, UI_STATE.plan === "premium" ? "mode-premium" : "mode-free");
-
-  if(UI_STATE.plan === "premium"){
-    if(freeControls) freeControls.style.display = "none";
-    if(premiumControls) premiumControls.style.display = "";
-    if(badge) badge.style.display = "";
-    if(freeBtn) freeBtn.classList.remove("active");
-    if(premBtn) premBtn.classList.add("active");
-  }else{
-    if(premiumControls) premiumControls.style.display = "none";
-    if(freeControls) freeControls.style.display = "";
-    if(badge) badge.style.display = "none";
-    if(premBtn) premBtn.classList.remove("active");
-    if(freeBtn) freeBtn.classList.add("active");
-  }
-
-  syncThemeUI_();
-  syncStyleUI_();
-  syncPaperUI_();
-}
-
-function syncThemeUI_(){
-  const freeDots = qsa("#freeDotsRow .dot");
-  const premiumDots = qsa("#premiumDotsRow .p-dot");
-
-  removeBodyClasses_(BODY_FREE_THEME_CLASSES);
-  removeBodyClasses_(BODY_PREMIUM_THEME_CLASSES);
-
-  if(UI_STATE.plan === "premium"){
-    document.body.classList.add(UI_STATE.premiumTheme || "p1");
-
-    premiumDots.forEach(btn => {
-      const expected = btn.getAttribute("aria-label");
-      if(expected === UI_STATE.premiumTheme) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-
-    freeDots.forEach(btn => btn.classList.remove("active"));
-  }else{
-    document.body.classList.add(UI_STATE.theme || "color-1");
-
-    freeDots.forEach(btn => {
-      const map = {
-        "dot-1":"color-1","dot-2":"color-2","dot-3":"color-3","dot-4":"color-4","dot-5":"color-5"
-      };
-      const match = Object.keys(map).find(cls => btn.classList.contains(cls));
-      if(match && map[match] === UI_STATE.theme) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-
-    premiumDots.forEach(btn => btn.classList.remove("active"));
-  }
-}
-
-function syncStyleUI_(){
-  removeBodyClasses_(BODY_STYLE_CLASSES);
-  document.body.classList.add(`style-${UI_STATE.style || "arch"}`);
-
-  const buttons = qsa("#styleRow .btn-neo");
-  buttons.forEach(btn => {
-    const t = text(btn.textContent);
-    const map = { "正拱": "arch", "平直": "flat", "晨曦": "spot" };
-    const v = map[t] || "";
-    if(v === UI_STATE.style) btn.classList.add("active");
-    else btn.classList.remove("active");
-  });
-}
-
-function syncPaperUI_(){
-  removeBodyClasses_(BODY_PAPER_CLASSES);
-  document.body.classList.add(UI_STATE.paper || "paper-1");
-
-  const buttons = qsa("#paperRow .btn-neo");
-  buttons.forEach(btn => {
-    const t = text(btn.textContent);
-    const map = { "棉紙": "paper-1", "象牙紙": "paper-2", "霧灰": "paper-3" };
-    const v = map[t] || "";
-    if(v === UI_STATE.paper) btn.classList.add("active");
-    else btn.classList.remove("active");
-  });
-}
-
-window.setPlan = function(plan, el){
-  UI_STATE.plan = (plan === "premium") ? "premium" : "free";
-  syncPlanUI_();
-  if(el){
-    const planBtns = [qs("btnPlanFree"), qs("btnPlanPremium")].filter(Boolean);
-    setActiveAmong_(planBtns, el);
-  }
-};
-
-window.setTheme = function(theme, el){
-  if(!theme) return;
-
-  if(/^color-\d+$/.test(theme)){
-    UI_STATE.plan = "free";
-    UI_STATE.theme = theme;
-  }else if(/^p\d+$/.test(theme)){
-    UI_STATE.plan = "premium";
-    UI_STATE.premiumTheme = theme;
-  }
-
-  syncPlanUI_();
-
-  if(el){
-    const groupSel = UI_STATE.plan === "premium" ? "#premiumDotsRow .p-dot" : "#freeDotsRow .dot";
-    setActiveAmong_(qsa(groupSel), el);
-  }
-};
-
-window.setStyle = function(style, el){
-  const v = text(style);
-  if(!["arch","flat","spot"].includes(v)) return;
-  UI_STATE.style = v;
-  syncStyleUI_();
-  if(el) setActiveAmong_(qsa("#styleRow .btn-neo"), el);
-};
-
-window.setPaper = function(paper, el){
-  const v = text(paper);
-  if(!["paper-1","paper-2","paper-3"].includes(v)) return;
-  UI_STATE.paper = v;
-  syncPaperUI_();
-  if(el) setActiveAmong_(qsa("#paperRow .btn-neo"), el);
-};
-
-function initSelectionState_(){
-  const body = document.body;
-  if(!body) return;
-
-  UI_STATE.plan = body.classList.contains("mode-premium") ? "premium" : "free";
-
-  const freeTheme = BODY_FREE_THEME_CLASSES.find(c => body.classList.contains(c));
-  if(freeTheme) UI_STATE.theme = freeTheme;
-
-  const premiumTheme = BODY_PREMIUM_THEME_CLASSES.find(c => body.classList.contains(c));
-  if(premiumTheme) UI_STATE.premiumTheme = premiumTheme;
-
-  const styleClass = BODY_STYLE_CLASSES.find(c => body.classList.contains(c));
-  if(styleClass) UI_STATE.style = styleClass.replace(/^style-/, "");
-
-  const paperClass = BODY_PAPER_CLASSES.find(c => body.classList.contains(c));
-  if(paperClass) UI_STATE.paper = paperClass;
-
-  syncPlanUI_();
-}
-
-function escapeHtmlWithBreaks_(s){
-  return escapeHtml_(s).replace(/\n/g, "<br>");
-}
-
-function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}){
-  if(!contentEl) return;
-
-  const value = String(rawText || "");
-  const hasText = text(value) !== "";
-  const allowMultiline = !!options.allowMultiline;
-
-  contentEl.dataset.raw = value;
-  contentEl.dataset.maxLines = String(maxLines || 3);
-  contentEl.dataset.expandable = "1";
-
-  if(allowMultiline){
-    contentEl.innerHTML = escapeHtmlWithBreaks_(value);
-    contentEl.classList.add("preline");
-  }else{
-    contentEl.textContent = value;
-    contentEl.classList.remove("preline");
-  }
-
-  contentEl.classList.remove("is-expanded");
-  contentEl.classList.add("is-collapsed");
-  contentEl.style.setProperty("--max-lines", String(maxLines || 3));
-
-  if(toggleEl){
-    toggleEl.type = "button";
-    toggleEl.textContent = "看更多";
-    toggleEl.style.display = "none";
-    toggleEl.setAttribute("aria-expanded", "false");
-    toggleEl.onclick = null;
-
-    toggleEl.onclick = ()=>{
-      const expanded = contentEl.classList.contains("is-expanded");
-      if(expanded){
-        contentEl.classList.remove("is-expanded");
-        contentEl.classList.add("is-collapsed");
-        toggleEl.textContent = "看更多";
-        toggleEl.setAttribute("aria-expanded", "false");
-      }else{
-        contentEl.classList.remove("is-collapsed");
-        contentEl.classList.add("is-expanded");
-        toggleEl.textContent = "收合";
-        toggleEl.setAttribute("aria-expanded", "true");
-      }
-    };
-  }
-
-  if(!hasText){
-    if(toggleEl) toggleEl.style.display = "none";
-    return;
-  }
-
-  requestAnimationFrame(()=>{
-    refreshExpandableItem_(contentEl, toggleEl);
-  });
-}
-
-function refreshExpandableItem_(contentEl, toggleEl){
-  if(!contentEl) return;
-
-  const maxLines = Number(contentEl.dataset.maxLines || 3);
-  const wasExpanded = contentEl.classList.contains("is-expanded");
-
-  contentEl.classList.remove("is-expanded");
-  contentEl.classList.add("is-collapsed");
-  contentEl.style.setProperty("--max-lines", String(maxLines));
-
-  const needToggle = (contentEl.scrollHeight - contentEl.clientHeight) > 4;
-
-  if(toggleEl){
-    toggleEl.style.display = needToggle ? "inline-flex" : "none";
-    if(!needToggle){
-      toggleEl.textContent = "看更多";
-      toggleEl.setAttribute("aria-expanded", "false");
-    }
-  }
-
-  if(needToggle && wasExpanded){
-    contentEl.classList.remove("is-collapsed");
-    contentEl.classList.add("is-expanded");
-    if(toggleEl){
-      toggleEl.textContent = "收合";
-      toggleEl.setAttribute("aria-expanded", "true");
-    }
-  }
-}
-
-function refreshAllExpandable_(){
-  qsa("[data-expandable='1']").forEach((contentEl)=>{
-    const wrap = contentEl.closest(".expandable-wrap") || contentEl.parentElement;
-    const toggleEl = wrap ? wrap.querySelector(".expand-toggle") : null;
-    refreshExpandableItem_(contentEl, toggleEl);
-  });
-}
-
-let __expandRefreshTimer = null;
-window.addEventListener("resize", ()=>{
-  clearTimeout(__expandRefreshTimer);
-  __expandRefreshTimer = setTimeout(()=>{
-    refreshAllExpandable_();
-    applySmartBalanceAll_();
-  }, 120);
-});
-
-function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
-  if(!blockEl) return;
-
-  const value = String(rawText || "");
-  if(!text(value)){
-    blockEl.style.display = "none";
-    blockEl.innerHTML = "";
-    return;
-  }
-
-  blockEl.style.display = "";
-  blockEl.innerHTML = `
-    <div class="block-title">${escapeHtml_(title)}</div>
-    <div class="expandable-wrap">
-      <div class="block-body expandable-text is-collapsed preline" style="--max-lines:${Number(maxLines || 3)}"></div>
-      <button class="expand-toggle" type="button" style="display:none;">看更多</button>
-    </div>
-  `;
-
-  const contentEl = blockEl.querySelector(".expandable-text");
-  const toggleEl = blockEl.querySelector(".expand-toggle");
-  setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline: true });
-}
-
 function pickAvatarInfo_(p){
   const keys = [
-    "avatar_img_fast",
-    "avatar_img",
-    "avatar_url",
-    "avatar",
-    "個人照_fast",
-    "個人照",
-    "個人照_url"
+    "avatar_img_fast","avatar_img","avatar_url","avatar",
+    "個人照_fast","個人照","個人照_url"
   ];
-
   for(const k of keys){
     const v = pick(p, [k]);
     if(text(v)){
-      return {
-        key: k,
-        raw: v,
-        url: normalizeImageUrl_(v)
-      };
+      return { key: k, raw: v, url: normalizeImageUrl_(v) };
     }
   }
-
-  return {
-    key: "",
-    raw: "",
-    url: ""
-  };
-}
-
-function pickAvatarUrl_(p){
-  const info = pickAvatarInfo_(p);
-  return info.url;
+  return { key: "", raw: "", url: "" };
 }
 
 function renderAvatar_(p){
   const img = qs("u-img");
   if(!img) return;
-
   const info = pickAvatarInfo_(p);
   const u = info.url;
-
   currentAvatarUrlCache = u || "";
   currentAvatarSourceKeyCache = info.key || "";
-
   if(!u){
     img.removeAttribute("src");
     return;
   }
-
   setImgWithFallback_(img, buildImgCandidates_(u), {
-    onFail: ()=>{
-      img.removeAttribute("src");
-    }
+    onFail: ()=> img.removeAttribute("src")
   });
 }
 
@@ -732,16 +428,33 @@ function renderBlocks_(p){
 
   const b1 = qs("block-service");
   const b2 = qs("block-exp");
+  const t1 = qs("u-service");
+  const t2 = qs("u-exp");
 
-  renderExpandableInfoBlock_(b1, "服務項目", service, 3);
-  renderExpandableInfoBlock_(b2, "經歷", exp, 3);
+  if(b1 && t1){
+    if(text(service)){
+      b1.style.display = "";
+      t1.innerHTML = escapeHtmlWithBreaks_(service);
+    }else{
+      b1.style.display = "none";
+      t1.innerHTML = "";
+    }
+  }
+
+  if(b2 && t2){
+    if(text(exp)){
+      b2.style.display = "";
+      t2.innerHTML = escapeHtmlWithBreaks_(exp);
+    }else{
+      b2.style.display = "none";
+      t2.innerHTML = "";
+    }
+  }
 }
 
 function renderContactDock_(p){
   const dock = qs("contactDock");
-  const btns = qs("contactButtons");
-  if(!dock || !btns) return;
-  btns.innerHTML = "";
+  if(!dock) return;
 
   const phone = pick(p, ["phone","電話"]);
   const email = pick(p, ["email","Email"]);
@@ -749,89 +462,78 @@ function renderContactDock_(p){
   const lineUrl = normalizeUrl_(pick(p, ["line_url","line_oa","LINE連結"]));
   const wechatId = text(pick(p, ["wechat_id","微信ID","微信"]));
 
-  const list = [];
+  const items = [];
 
   if(lineUrl){
-    list.push({ label:"私訊 LINE", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineUrl) });
+    items.push(buildDockBtn_({
+      label:"私訊 LINE",
+      icon:"fa-brands fa-line",
+      extraClass:"dock-line",
+      onClick: ()=> openUrl_(lineUrl)
+    }));
   }
   if(wechatId){
-    list.push({
+    items.push(buildDockBtn_({
       label:"微信ID",
       icon:"fa-brands fa-weixin",
-      cls:"dock-web",
-      action: async ()=>{
-        try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(wechatId); }catch{}
-        alert("✅ 已複製微信ID");
-      }
-    });
+      extraClass:"dock-web",
+      onClick: ()=> copyText_(wechatId, "✅ 已複製微信ID")
+    }));
   }
   if(phone){
-    list.push({ label:"電話", icon:"fa-solid fa-phone", cls:"dock-web", action: ()=> { location.href = `tel:${text(phone)}`; } });
+    items.push(buildDockBtn_({
+      label:"電話",
+      icon:"fa-solid fa-phone",
+      extraClass:"dock-web",
+      onClick: ()=> { location.href = `tel:${text(phone)}`; }
+    }));
   }
   if(email){
-    list.push({ label:"Email", icon:"fa-solid fa-envelope", cls:"dock-web", action: ()=> { location.href = `mailto:${text(email)}`; } });
+    items.push(buildDockBtn_({
+      label:"Email",
+      icon:"fa-solid fa-envelope",
+      extraClass:"dock-web",
+      onClick: ()=> { location.href = `mailto:${text(email)}`; }
+    }));
   }
   if(address){
-    list.push({ label:"地址導航", icon:"fa-solid fa-location-dot", cls:"dock-map", action: ()=> openMapByAddress_(address) });
+    items.push(buildDockBtn_({
+      label:"地址導航",
+      icon:"fa-solid fa-location-dot",
+      extraClass:"dock-map",
+      onClick: ()=> openMapByAddress_(address)
+    }));
   }
 
-  if(!list.length){
+  if(!items.length){
     dock.style.display = "none";
+    dock.innerHTML = "";
     return;
   }
 
-  list.forEach(x=>{
-    btns.appendChild(buildDockBtn_({
-      label: x.label,
-      icon: x.icon,
-      extraClass: x.cls,
-      onClick: x.action
-    }));
-  });
-
   dock.style.display = "";
+  dock.innerHTML = `
+    <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
+    <div class="dock-buttons" id="contactButtons"></div>
+  `;
+  const btns = qs("contactButtons");
+  items.forEach(el => btns.appendChild(el));
   applyWideRule_(btns);
 }
 
 function inferLinkMeta_(url, kind, idx){
   const u = String(url || "").toLowerCase();
-
   if(u.includes("youtube.com") || u.includes("youtu.be")) return { label:"YouTube", icon:"fa-brands fa-youtube", cls:"dock-yt" };
   if(u.includes("facebook.com") || u.includes("fb.com")) return { label:"FB", icon:"fa-brands fa-facebook", cls:"dock-fb" };
   if(u.includes("instagram.com")) return { label:"Instagram", icon:"fa-brands fa-instagram", cls:"dock-ig" };
   if(u.includes("threads.net")) return { label:"Threads", icon:"fa-solid fa-at", cls:"dock-web" };
-
   if(kind === "video") return { label:`影音 ${idx}`, icon:"fa-solid fa-play", cls:"dock-web" };
   return { label:`社群 ${idx}`, icon:"fa-solid fa-link", cls:"dock-web" };
 }
 
-function renderPrimaryLinkDock_(p){
-  const dock = qs("primaryLinkDock");
-  const btns = qs("primaryLinkButtons");
-  if(!dock || !btns) return;
-
-  btns.innerHTML = "";
-  const website = normalizeUrl_(pick(p, ["website","網站","web","homepage"]));
-  if(!website){
-    dock.style.display = "none";
-    return;
-  }
-
-  btns.appendChild(buildDockBtn_({
-    label: "官方網站",
-    icon: "fa-solid fa-globe",
-    extraClass: "dock-web wide",
-    onClick: ()=> openUrl_(website)
-  }));
-
-  dock.style.display = "";
-}
-
 function renderMediaDock_(p){
   const dock = qs("mediaDock");
-  const btns = qs("mediaButtons");
-  if(!dock || !btns) return;
-  btns.innerHTML = "";
+  if(!dock) return;
 
   const items = [];
   ["video1","video2","video3"].forEach((k, i)=>{
@@ -845,9 +547,18 @@ function renderMediaDock_(p){
 
   if(!items.length){
     dock.style.display = "none";
+    dock.innerHTML = "";
     return;
   }
 
+  dock.style.display = "";
+  dock.innerHTML = `
+    <div class="contact-dock">
+      <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>
+      <div class="dock-buttons" id="mediaButtons"></div>
+    </div>
+  `;
+  const btns = dock.querySelector("#mediaButtons");
   items.forEach(item=>{
     const meta = inferLinkMeta_(item.url, item.kind, item.idx);
     btns.appendChild(buildDockBtn_({
@@ -857,99 +568,49 @@ function renderMediaDock_(p){
       onClick: ()=> openUrl_(item.url)
     }));
   });
-
-  dock.style.display = "";
   applyWideRule_(btns);
 }
 
 function renderCtaDock_(p){
   const dock = qs("ctaDock");
-  const btns = qs("ctaButtons");
-  if(!dock || !btns) return;
-  btns.innerHTML = "";
+  if(!dock) return;
 
-  const ctaText = text(pick(p, ["cta_text","CTA文字","ctaText"]));
-  const ctaLink = normalizeUrl_(pick(p, ["cta_link","CTA連結","ctaLink"]));
+  const pairs = [];
+  for(let i=1;i<=3;i++){
+    const t = text(pick(p, [`cta_text_${i}`]));
+    const l = normalizeUrl_(pick(p, [`cta_link_${i}`]));
+    if(t && l) pairs.push({ label:t, url:l });
+  }
 
-  if(!ctaText || !ctaLink){
+  if(!pairs.length){
+    const ctaText = text(pick(p, ["cta_text","CTA文字","ctaText"]));
+    const ctaLink = normalizeUrl_(pick(p, ["cta_link","CTA連結","ctaLink"]));
+    if(ctaText && ctaLink) pairs.push({ label:ctaText, url:ctaLink });
+  }
+
+  if(!pairs.length){
     dock.style.display = "none";
+    dock.innerHTML = "";
     return;
   }
 
-  btns.appendChild(buildDockBtn_({
-    label: ctaText,
-    icon: "fa-solid fa-bolt",
-    extraClass: "dock-web wide",
-    onClick: ()=> openUrl_(ctaLink)
-  }));
-
   dock.style.display = "";
-}
-
-function renderInstallDock_(){
-  const dock = qs("installDock");
-  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
-  if(!dock) return;
-  dock.style.display = cleanMode ? "" : "none";
-}
-
-function renderDocks_(p){
-  renderInstallDock_();
-  renderContactDock_(p);
-  renderPrimaryLinkDock_(p);
-  renderMediaDock_(p);
-  renderCtaDock_(p);
-}
-
-function stripQueryAndHash_(url){
-  const s = String(url || "");
-  return s.split("#")[0].split("?")[0];
-}
-
-function extractDriveId_(url){
-  const s = String(url || "");
-  let m = s.match(/[?&]id=([^&]+)/i);
-  if(m && m[1]) return decodeURIComponent(m[1]);
-
-  m = s.match(/\/file\/d\/([^/]+)/i);
-  if(m && m[1]) return decodeURIComponent(m[1]);
-
-  m = s.match(/\/thumbnail\?id=([^&]+)/i);
-  if(m && m[1]) return decodeURIComponent(m[1]);
-
-  return "";
-}
-
-function extractFirebaseFingerprint_(url){
-  const s = String(url || "");
-  if(!/firebasestorage\.googleapis\.com/i.test(s)) return "";
-  const noHash = s.split("#")[0];
-  const m = noHash.match(/\/o\/([^?]+)/i);
-  if(m && m[1]) return decodeURIComponent(m[1]).toLowerCase();
-  return "";
-}
-
-function extractLastPathSeg_(url){
-  const clean = stripQueryAndHash_(url);
-  const arr = clean.split("/").filter(Boolean);
-  return (arr[arr.length - 1] || "").toLowerCase();
-}
-
-function buildImageFingerprint_(raw){
-  const url = normalizeImageUrl_(raw);
-  if(!url) return "";
-
-  const driveId = extractDriveId_(url);
-  if(driveId) return "gdrive:" + driveId.toLowerCase();
-
-  const firebaseKey = extractFirebaseFingerprint_(url);
-  if(firebaseKey) return "firebase:" + firebaseKey;
-
-  const noQuery = stripQueryAndHash_(url).toLowerCase();
-  const lastSeg = extractLastPathSeg_(url);
-
-  if(lastSeg) return "path:" + lastSeg + "|" + noQuery;
-  return "url:" + noQuery;
+  dock.innerHTML = `
+    <div class="contact-dock">
+      <div class="dock-title"><i class="fa-solid fa-bolt"></i> 立即行動</div>
+      <div class="dock-buttons" id="ctaButtons"></div>
+    </div>
+  `;
+  const btns = dock.querySelector("#ctaButtons");
+  pairs.forEach(item=>{
+    btns.appendChild(buildDockBtn_({
+      label:item.label,
+      icon:"fa-solid fa-bolt",
+      extraClass:"dock-web",
+      onClick: ()=> openUrl_(item.url)
+    }));
+  });
+  applyWideRule_(btns);
 }
 
 function collectPhotos_(p){
@@ -960,7 +621,6 @@ function collectPhotos_(p){
     ["photo4_img_fast","photo4_img","photo4_url"],
     ["photo5_img_fast","photo5_img","photo5_url"]
   ];
-
   const photos = [];
   const seen = new Set();
 
@@ -969,10 +629,8 @@ function collectPhotos_(p){
       const raw = pick(p, [k]);
       const url = normalizeImageUrl_(raw);
       if(!url) continue;
-
-      const fp = buildImageFingerprint_(url) || url;
+      const fp = url.split("?")[0].toLowerCase();
       if(seen.has(fp)) continue;
-
       seen.add(fp);
       photos.push(url);
       break;
@@ -984,23 +642,26 @@ function collectPhotos_(p){
 
 function renderPhotoWall_(p){
   const wall = qs("photoWall");
-  const grid = qs("photoGrid");
-  if(!wall || !grid) return;
+  if(!wall) return;
 
-  grid.innerHTML = "";
   const photos = collectPhotos_(p);
-  const count = photos.length;
-
-  if(!count){
+  if(!photos.length){
     wall.style.display = "none";
+    wall.innerHTML = "";
     return;
   }
 
+  wall.style.display = "";
+  wall.innerHTML = `
+    <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
+    <div class="photo-grid" id="photoGrid"></div>
+  `;
+  const grid = wall.querySelector("#photoGrid");
   grid.className = "photo-grid";
-  if(count === 1) grid.classList.add("layout-1");
-  else if(count === 2) grid.classList.add("layout-2");
-  else if(count === 3) grid.classList.add("layout-3");
-  else if(count === 4) grid.classList.add("layout-4");
+  if(photos.length === 1) grid.classList.add("layout-1");
+  else if(photos.length === 2) grid.classList.add("layout-2");
+  else if(photos.length === 3) grid.classList.add("layout-3");
+  else if(photos.length === 4) grid.classList.add("layout-4");
   else grid.classList.add("layout-5");
 
   photos.forEach((u, idx)=>{
@@ -1010,90 +671,12 @@ function renderPhotoWall_(p){
     img.loading = "lazy";
     img.decoding = "async";
     setImgWithFallback_(img, buildImgCandidates_(u), {
-      onFail: ()=>{ img.remove(); }
+      onFail: ()=> img.remove()
     });
     img.addEventListener("click", ()=> openUrl_(u));
     grid.appendChild(img);
   });
-
-  wall.style.display = "";
 }
-
-function applySmartBalanceToEl_(el){
-  if(!el) return;
-  const raw = text(el.dataset.rawText || el.textContent);
-  if(!raw) return;
-  el.dataset.rawText = raw;
-
-  if(window.innerWidth > 560){
-    el.textContent = raw;
-    return;
-  }
-
-  if(el.dataset.balanceType === "hero-copy"){
-    const parts = raw.split("｜");
-    el.innerHTML = "";
-    if(parts.length >= 2){
-      const first = document.createElement("span");
-      first.className = "balance-line";
-      first.textContent = parts[0] + "｜";
-      el.appendChild(first);
-
-      const rest = parts.slice(1).join("｜");
-      const idx = rest.indexOf("打造");
-      if(idx > -1){
-        const line2 = document.createElement("span");
-        line2.className = "balance-line";
-        line2.textContent = rest.slice(0, idx).trim();
-        el.appendChild(line2);
-
-        const line3 = document.createElement("span");
-        line3.className = "balance-line";
-        line3.textContent = rest.slice(idx).trim();
-        el.appendChild(line3);
-      }else{
-        const line2 = document.createElement("span");
-        line2.className = "balance-line";
-        line2.textContent = rest.trim();
-        el.appendChild(line2);
-      }
-      return;
-    }
-  }
-
-  if(el.dataset.balanceType === "qr-title" || el.dataset.balanceType === "product-qr-title"){
-    if(raw.includes("｜")){
-      const arr = raw.split("｜");
-      el.innerHTML = `<span class="balance-line">${escapeHtml_(arr[0])}｜</span><span class="balance-line">${escapeHtml_(arr.slice(1).join("｜"))}</span>`;
-      return;
-    }
-  }
-
-  if(el.dataset.balanceType === "qr-sub" || el.dataset.balanceType === "product-qr-sub"){
-    if(raw.includes("・")){
-      const parts = raw.split("・").map(x => x.trim()).filter(Boolean);
-      if(parts.length >= 2){
-        const half = Math.ceil(parts.length / 2);
-        const l1 = parts.slice(0, half).join("・");
-        const l2 = parts.slice(half).join("・");
-        el.innerHTML = `<span class="balance-line">${escapeHtml_(l1)}</span><span class="balance-line">${escapeHtml_(l2)}</span>`;
-        return;
-      }
-    }
-  }
-
-  el.textContent = raw;
-}
-
-function applySmartBalanceAll_(){
-  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
-}
-
-let __balanceTimer = null;
-window.addEventListener("resize", ()=>{
-  clearTimeout(__balanceTimer);
-  __balanceTimer = setTimeout(applySmartBalanceAll_, 120);
-});
 
 function buildCanonicalCleanCardUrl_(id){
   const cid = normalizeId_(id || getIdFromUrl_()) || CONFIG.DEFAULT_ID;
@@ -1111,39 +694,19 @@ function buildCardShareUrl_(){
   return buildCanonicalCleanCardUrl_(getIdFromUrl_());
 }
 
-function buildCleanShareUrl_(){
-  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
-}
-
 function buildHubShareUrl_(){
+  const ref = getSavedRef_() || normalizeId_(getIdFromUrl_());
   try{
     const u = new URL(CONFIG.HUB_URL);
-    const id = normalizeId_(getIdFromUrl_());
-    if(id) u.searchParams.set("ref", id);
+    if(ref) u.searchParams.set("ref", ref);
     return u.toString();
   }catch{
-    const id = normalizeId_(getIdFromUrl_());
-    return CONFIG.HUB_URL + (id ? ("?ref=" + encodeURIComponent(id)) : "");
+    return CONFIG.HUB_URL + (ref ? ("?ref=" + encodeURIComponent(ref)) : "");
   }
 }
 
 function buildBottomQrUrl_(){
   return buildCanonicalCleanCardUrl_(getIdFromUrl_());
-}
-
-function buildFeatureQrUrl_(){
-  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
-}
-
-function buildFacadeQrUrl_(){
-  return buildHubShareUrl_();
-}
-
-function getQrCenterRatio_(baseRatio){
-  const vw = window.innerWidth || 390;
-  if(vw <= 360) return Math.max(0.06, baseRatio - 0.02);
-  if(vw <= 520) return Math.max(0.07, baseRatio - 0.01);
-  return baseRatio;
 }
 
 function buildQrImageUrl_(url, size){
@@ -1155,79 +718,18 @@ function buildQrImageUrl_(url, size){
     + "&margin=2";
 }
 
-function hideCenterImg_(imgEl){
-  if(!imgEl) return;
-  imgEl.removeAttribute("src");
-  imgEl.style.display = "none";
-  imgEl.style.background = "transparent";
-  imgEl.style.padding = "0";
-  imgEl.style.boxShadow = "none";
-}
-
-function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
-  if(!imgEl) return;
-
-  const u = normalizeImageUrl_(centerImgUrl);
-
-  if(!u){
-    hideCenterImg_(imgEl);
-    return;
-  }
-
-  const ratio = getQrCenterRatio_(sizeRatio);
-
-  imgEl.style.position = "absolute";
-  imgEl.style.left = "50%";
-  imgEl.style.top = "50%";
-  imgEl.style.width = `${Math.round(ratio * 100)}%`;
-  imgEl.style.height = `${Math.round(ratio * 100)}%`;
-  imgEl.style.transform = "translate(-50%, -50%)";
-  imgEl.style.borderRadius = "999px";
-  imgEl.style.objectFit = "cover";
-  imgEl.style.zIndex = "3";
-  imgEl.style.background = "transparent";
-  imgEl.style.padding = "0";
-  imgEl.style.boxShadow = "none";
-  imgEl.style.display = "block";
-  imgEl.style.pointerEvents = "none";
-
-  imgEl.onerror = ()=>{
-    hideCenterImg_(imgEl);
-  };
-
-  setImgWithFallback_(imgEl, buildImgCandidates_(u), {
-    crossOrigin: "anonymous",
-    referrerPolicy: "no-referrer",
-    onLoad: ()=>{
-      imgEl.style.display = "block";
-      imgEl.style.background = "transparent";
-      imgEl.style.padding = "0";
-      imgEl.style.boxShadow = "none";
-    },
-    onFail: ()=>{
-      hideCenterImg_(imgEl);
-    }
-  });
-}
-
 function renderQr(options){
   const {
     container,
     url,
     size = 160,
-    centerImgEl = null,
-    centerImgUrl = "",
-    centerSizeRatio = 0.09,
     renderKey = ""
   } = options || {};
 
   if(!container || !url) return false;
 
-  const key = renderKey || `${url}|${size}|${normalizeImageUrl_(centerImgUrl)}|${centerSizeRatio}`;
-  if(container.dataset.renderKey === key){
-    if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
-    return true;
-  }
+  const key = renderKey || `${url}|${size}`;
+  if(container.dataset.renderKey === key) return true;
 
   container.dataset.renderKey = key;
   container.innerHTML = "";
@@ -1237,7 +739,6 @@ function renderQr(options){
   img.loading = "eager";
   img.decoding = "sync";
   img.referrerPolicy = "no-referrer";
-  try{ img.crossOrigin = "anonymous"; }catch{}
   img.src = buildQrImageUrl_(url, size) + "&t=" + Date.now();
   img.style.width = "100%";
   img.style.height = "100%";
@@ -1245,102 +746,8 @@ function renderQr(options){
   img.style.objectFit = "contain";
   container.appendChild(img);
 
-  if(centerImgEl){
-    setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
-  }
-
   return true;
 }
-
-window.renderQr = renderQr;
-window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
-window.__getHubShareUrl = buildHubShareUrl_;
-window.__getCardShareUrl = buildCardShareUrl_;
-
-function renderFacadeQrFromCurrent_(){
-  const grid = qs("facadeQrGrid");
-  if(!grid) return;
-
-  const url = buildFacadeQrUrl_();
-  const key = "facade|" + url;
-  if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
-
-  lastFacadeQrRenderKey = key;
-  renderQr({
-    container: grid,
-    url,
-    size: 148,
-    centerImgEl: null,
-    centerImgUrl: "",
-    renderKey: key
-  });
-}
-
-function renderBottomQr_(p){
-  const sec = qs("bottomQrSection");
-  const grid = qs("bottomQrGrid");
-  const avatar = qs("bottomQrAvatar");
-
-  if(!sec || !grid || !avatar) return;
-
-  const info = pickAvatarInfo_(p);
-  const qrUrl = buildBottomQrUrl_();
-  const avatarUrl = info.url;
-  const key = "bottom|" + qrUrl + "|" + avatarUrl;
-
-  const canvas = avatar.parentElement;
-  if(canvas){
-    canvas.style.position = "relative";
-  }
-
-  if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
-    lastBottomQrRenderKey = key;
-    renderQr({
-      container: grid,
-      url: qrUrl,
-      size: 136,
-      centerImgEl: avatar,
-      centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.09,
-      renderKey: key
-    });
-  }else{
-    setCenterImg_(avatar, avatarUrl, 0.09);
-  }
-
-  sec.style.display = "block";
-}
-
-function renderFeatureQrFromCurrent_(){
-  const grid = qs("featureQrGrid");
-  const avatar = qs("featureQrAvatar");
-  if(!grid || !avatar) return;
-
-  const url = buildFeatureQrUrl_();
-  const avatarUrl = currentAvatarUrlCache || "";
-  const key = "feature|" + url + "|" + avatarUrl;
-
-  const canvas = avatar.parentElement;
-  if(canvas){
-    canvas.style.position = "relative";
-  }
-
-  if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
-    lastFeatureQrRenderKey = key;
-    renderQr({
-      container: grid,
-      url,
-      size: 152,
-      centerImgEl: avatar,
-      centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.09,
-      renderKey: key
-    });
-  }else{
-    setCenterImg_(avatar, avatarUrl, 0.09);
-  }
-}
-window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 
 async function shareUrl_(url, title, textMsg, okMsg){
   try{
@@ -1357,52 +764,295 @@ async function shareUrl_(url, title, textMsg, okMsg){
   }catch(_err){}
 }
 
-function renderBottomHubShareBtn_(){
-  const sec = qs("bottomQrSection");
-  if(!sec) return;
+function renderHomeAccordion_(){
+  const host = qs("homeAccordion");
+  if(!host) return;
+  host.innerHTML = `
+    <div class="accordion-list">
+      <div class="accordion-item is-open">
+        <button class="accordion-trigger" type="button"><span>智慧名片是什麼</span><i class="fa-solid fa-chevron-down"></i></button>
+        <div class="accordion-body"><p>智慧名片是一個可分享的個人入口，整合聯絡方式、LINE、社群、服務介紹與 QR Code。不需要下載 APP，點開網址就可以查看；如果需要，也可以安裝到手機桌面。</p></div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-trigger" type="button"><span>為什麼需要</span><i class="fa-solid fa-chevron-down"></i></button>
+        <div class="accordion-body"><p>傳統紙本名片容易遺失、資訊無法更新，也只能放基本資料。智慧名片讓名片從一張卡片變成一個入口：一頁整合所有資訊、可分享、可更新、可直接讓客戶聯絡你。</p></div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-trigger" type="button"><span>三大功能</span><i class="fa-solid fa-chevron-down"></i></button>
+        <div class="accordion-body"><ul><li>專屬名片頁：一頁整合聯絡方式、LINE、社群、服務介紹。</li><li>一鍵分享：每張名片都有專屬網址與專屬 QR Code。</li><li>代理推廣：分享名片館入口，可保留來源追蹤。</li></ul></div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-trigger" type="button"><span>方案介紹</span><i class="fa-solid fa-chevron-down"></i></button>
+        <div class="accordion-body"><ul><li>自由搭配款：2 張照片、1 個行動按鈕，適合快速展示聯絡資訊。</li><li>精品設計款：5 張照片、3 個行動按鈕，適合品牌與服務展示。</li></ul></div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-trigger" type="button"><span>適用對象</span><i class="fa-solid fa-chevron-down"></i></button>
+        <div class="accordion-body"><p>適合個人品牌、創業者、業務、保險顧問、房仲、設計師、教練、講師、店家商家、電商與接案工作者。</p></div>
+      </div>
+      <div class="accordion-item">
+        <button class="accordion-trigger" type="button"><span>申請流程</span><i class="fa-solid fa-chevron-down"></i></button>
+        <div class="accordion-body"><ol><li>點擊申請邀請碼。</li><li>送出資料，取得申請編號。</li><li>加入 LINE 官方帳號加快處理。</li><li>客服提供方案與價格。</li><li>確認後填寫名片資料。</li><li>完成製作後即可分享使用。</li></ol></div>
+      </div>
+    </div>
+  `;
 
-  let wrap = qs("bottomHubShareWrap");
-  if(!wrap){
-    wrap = document.createElement("div");
-    wrap.id = "bottomHubShareWrap";
-    wrap.style.marginTop = "12px";
-    wrap.style.display = "flex";
-    wrap.style.justifyContent = "center";
-
-    const btn = document.createElement("button");
-    btn.id = "btnShareHubBottom";
-    btn.type = "button";
-    btn.className = "dock-btn wide dock-web";
-    btn.style.maxWidth = "260px";
-    btn.style.width = "100%";
-    btn.style.borderRadius = "999px";
-    btn.style.fontWeight = "900";
-    btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
-    btn.innerHTML = `<i class="fa-solid fa-share-nodes"></i><span>分享智慧名片館</span>`;
-    btn.addEventListener("click", async ()=>{
-      const url = buildHubShareUrl_();
-      await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
+  qsa("#homeAccordion .accordion-trigger").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const item = btn.closest(".accordion-item");
+      if(!item) return;
+      item.classList.toggle("is-open");
     });
+  });
+}
+/*
+HSC v731.0
+app.js
+COMPLETE OVERWRITE
+Part 3 / 3
+*/
 
-    wrap.appendChild(btn);
-    sec.insertAdjacentElement("afterend", wrap);
+function renderDemoGallery_(){
+  const host = qs("galleryDemo");
+  if(!host) return;
+
+  host.innerHTML = `
+    <div class="demo-grid">
+      ${CONFIG.DEMO_CARDS.map(item=>`
+        <article class="demo-card">
+          <div class="demo-thumb"></div>
+          <div class="demo-body">
+            <h3 class="demo-title">${escapeHtml_(item.title)}</h3>
+            <div class="demo-text">${escapeHtml_(item.desc)}</div>
+            <div class="demo-actions">
+              <a class="demo-link" href="./index.html?id=${encodeURIComponent(item.id)}">看看示範</a>
+            </div>
+          </div>
+        </article>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderFacadeQrFromCurrent_(){
+  const grid = qs("facadeQrGrid");
+  if(!grid) return;
+  const url = buildHubShareUrl_();
+  const key = "facade|" + url;
+  if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
+  lastFacadeQrRenderKey = key;
+  renderQr({
+    container: grid,
+    url,
+    size: 148,
+    renderKey: key
+  });
+}
+
+function renderBottomQr_(p){
+  const sec = qs("bottomQrSection");
+  const grid = qs("bottomQrGrid");
+  if(!sec || !grid) return;
+  const qrUrl = buildBottomQrUrl_();
+  const key = "bottom|" + qrUrl;
+  if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
+    lastBottomQrRenderKey = key;
+    renderQr({
+      container: grid,
+      url: qrUrl,
+      size: 180,
+      renderKey: key
+    });
+  }
+  sec.style.display = "block";
+}
+
+function lockScroll_(){
+  try{
+    __scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = (-__scrollTop) + "px";
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+  }catch(e){}
+}
+
+function unlockScroll_(){
+  try{
+    document.documentElement.style.overflow = "";
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    window.scrollTo(0, __scrollTop || 0);
+  }catch(e){}
+}
+
+function showMask_(el){
+  if(!el) return;
+  el.style.display = "flex";
+  el.setAttribute("aria-hidden", "false");
+  lockScroll_();
+}
+
+function hideMask_(el){
+  if(!el) return;
+  el.style.display = "none";
+  el.setAttribute("aria-hidden", "true");
+  unlockScroll_();
+}
+
+function openFeatureModal_(){
+  const mask = qs("featureMask") || qs("featureModal");
+  if(!mask) return;
+  showMask_(mask);
+}
+
+function openInviteModal_(){
+  const mask = qs("inviteMask") || qs("inviteModal");
+  if(!mask) return;
+  showMask_(mask);
+  setTimeout(()=>{
+    const input = qs("leadName") || qs("leadCustomerName") || qs("inviteCustomerName");
+    try{ input && input.focus(); }catch{}
+  }, 60);
+}
+
+function bindModalBasics_(){
+  const featureMask = qs("featureMask") || qs("featureModal");
+  const inviteMask = qs("inviteMask") || qs("inviteModal");
+
+  ["featureCloseBtn","featureModalClose"].forEach(id=>{
+    const btn = qs(id);
+    if(btn) btn.addEventListener("click", ()=> hideMask_(featureMask));
+  });
+
+  ["inviteCloseBtn","inviteModalClose"].forEach(id=>{
+    const btn = qs(id);
+    if(btn) btn.addEventListener("click", ()=> hideMask_(inviteMask));
+  });
+
+  if(featureMask){
+    featureMask.addEventListener("click", (e)=>{
+      if(e.target === featureMask) hideMask_(featureMask);
+    });
+  }
+
+  if(inviteMask){
+    inviteMask.addEventListener("click", (e)=>{
+      if(e.target === inviteMask) hideMask_(inviteMask);
+    });
+  }
+
+  qsa("[data-open-feature]").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); openFeatureModal_(); });
+  });
+
+  qsa("[data-open-invite]").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{ e.preventDefault(); openInviteModal_(); });
+  });
+
+  const featureBtn = qs("btnFeature");
+  if(featureBtn) featureBtn.addEventListener("click", (e)=>{ e.preventDefault(); openFeatureModal_(); });
+
+  const featureBtn2 = qs("btnFeature2");
+  if(featureBtn2) featureBtn2.addEventListener("click", (e)=>{ e.preventDefault(); openFeatureModal_(); });
+
+  const inviteBtn = qs("btnInviteGate");
+  if(inviteBtn) inviteBtn.addEventListener("click", (e)=>{ e.preventDefault(); openInviteModal_(); });
+
+  const inviteBtn2 = qs("btnInviteGate2");
+  if(inviteBtn2) inviteBtn2.addEventListener("click", (e)=>{ e.preventDefault(); openInviteModal_(); });
+
+  const featureInviteBtn = qs("featureInviteBtn");
+  if(featureInviteBtn){
+    featureInviteBtn.addEventListener("click", (e)=>{
+      e.preventDefault();
+      hideMask_(featureMask);
+      openInviteModal_();
+    });
   }
 }
 
-function ensureBottomQrVisible_(){
-  if(!currentRow) return;
-  try{ renderBottomQr_(currentRow); }catch(e){}
-  try{ renderBottomHubShareBtn_(); }catch(e){}
+function bindLineButtons_(){
+  ["btnLineOaCta","btnLineOaCta2","btnLineOA","lineAfterLead","copyLeadLineBtn"].forEach(id=>{
+    const b = qs(id);
+    if(b){
+      b.addEventListener("click", (e)=>{
+        e.preventDefault();
+        openUrl_(CONFIG.CUSTOMER_SERVICE_URL);
+      });
+    }
+  });
+}
 
-  setTimeout(()=>{
-    try{ renderBottomQr_(currentRow); }catch(e){}
-    try{ renderBottomHubShareBtn_(); }catch(e){}
-  }, 250);
+function bindShareButtons_(){
+  const hubUrl = ()=> buildHubShareUrl_();
+  const cardUrl = ()=> buildCardShareUrl_();
 
-  setTimeout(()=>{
-    try{ renderBottomQr_(currentRow); }catch(e){}
-    try{ renderBottomHubShareBtn_(); }catch(e){}
-  }, 800);
+  ["btnShare","btnSharePremium","btnShareHub"].forEach(id=>{
+    const b = qs(id);
+    if(!b) return;
+    b.addEventListener("click", async (e)=>{
+      e.preventDefault();
+      await shareUrl_(hubUrl(), "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
+    });
+  });
+
+  const cleanFab = qs("cleanShareFab");
+  if(cleanFab){
+    cleanFab.addEventListener("click", async (e)=>{
+      e.preventDefault();
+      await shareUrl_(cardUrl(), "天使幸福智慧名片", "分享這張名片", "✅ 已複製這張名片連結");
+    });
+  }
+}
+
+function setHomeMode_(){
+  document.body.classList.add("home-mode");
+  const home = qs("homeMode");
+  const card = qs("card-container");
+  const panel = qs("admin-panel");
+  if(home) home.style.display = "";
+  if(card) card.style.display = "none";
+  if(panel) panel.style.display = "none";
+
+  renderHomeAccordion_();
+  renderDemoGallery_();
+  renderFacadeQrFromCurrent_();
+}
+
+function applyThemeFromPayload_(p){
+  const planRaw = text(pick(p, ["plan"])) || "free";
+  const body = document.body;
+  body.classList.remove("mode-free","mode-premium");
+  if(planRaw === "premium"){
+    body.classList.add("mode-premium");
+    const premium = text(pick(p, ["premium_color"])).toLowerCase();
+    ["p1","p2","p3","p4","p5","p6","p7"].forEach(c=> body.classList.remove(c));
+    body.classList.add(["p1","p2","p3","p4","p5","p6","p7"].includes(premium) ? premium : "p1");
+  }else{
+    body.classList.add("mode-free");
+    const color = text(pick(p, ["color","free_color"])).toLowerCase();
+    const style = text(pick(p, ["style","free_style"])).toLowerCase();
+    const paper = text(pick(p, ["paper","free_paper"])).toLowerCase();
+
+    ["color-1","color-2","color-3","color-4","color-5"].forEach(c=> body.classList.remove(c));
+    ["style-arch","style-flat","style-spot"].forEach(c=> body.classList.remove(c));
+    ["paper-1","paper-2","paper-3"].forEach(c=> body.classList.remove(c));
+
+    const cmap = { c1:"color-1", c2:"color-2", c3:"color-3", c4:"color-4", c5:"color-5" };
+    const smap = { s1:"style-arch", s2:"style-flat", s3:"style-spot", arch:"style-arch", flat:"style-flat", spot:"style-spot" };
+    const pmap = { f1:"paper-1", f2:"paper-2", f3:"paper-3" };
+
+    body.classList.add(cmap[color] || color || "color-1");
+    body.classList.add(smap[style] || "style-arch");
+    body.classList.add(pmap[paper] || paper || "paper-1");
+  }
 }
 
 function renderCard(row){
@@ -1412,151 +1062,210 @@ function renderCard(row){
   applyThemeFromPayload_(p);
 
   const nameEl = qs("u-name");
-  const unitWrap = qs("u-unit-wrap");
   const unitEl = qs("u-unit");
-  const unitToggle = qs("u-unit-toggle");
   const titleEl = qs("u-title");
-  const sloganWrap = qs("u-slogan-wrap");
   const sloganEl = qs("u-slogan");
-  const sloganToggle = qs("u-slogan-toggle");
 
-  const nameVal = text(pick(p, ["name","姓名"])) || "未命名";
-  const unitVal = String(pick(p, ["unit","單位","公司"]) || "");
-  const titleVal = text(pick(p, ["title","職稱"])) || "";
-  const sloganVal = String(pick(p, ["slogan","一句話","簡介"]) || "");
-
-  if(nameEl) nameEl.textContent = nameVal;
-
-  if(unitWrap && unitEl){
-    if(text(unitVal)){
-      unitWrap.style.display = "";
-      setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
-    }else{
-      unitWrap.style.display = "none";
-      unitEl.innerHTML = "";
-      if(unitToggle) unitToggle.style.display = "none";
-    }
-  }
-
-  if(titleEl) titleEl.textContent = titleVal;
-
-  if(sloganWrap && sloganEl){
-    if(text(sloganVal)){
-      sloganWrap.style.display = "";
-      setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
-    }else{
-      sloganWrap.style.display = "none";
-      sloganEl.innerHTML = "";
-      if(sloganToggle) sloganToggle.style.display = "none";
-    }
-  }
+  if(nameEl) nameEl.textContent = text(pick(p, ["name","姓名"])) || "未命名";
+  if(unitEl) unitEl.textContent = text(pick(p, ["unit","單位","公司"]));
+  if(titleEl) titleEl.textContent = text(pick(p, ["title","職稱"]));
+  if(sloganEl) sloganEl.innerHTML = escapeHtmlWithBreaks_(pick(p, ["slogan","一句話","簡介"]));
 
   renderAvatar_(p);
   renderLogo_(p);
   renderBlocks_(p);
-  renderDocks_(p);
+  renderContactDock_(p);
+  renderMediaDock_(p);
+  renderCtaDock_(p);
   renderPhotoWall_(p);
   renderBottomQr_(p);
-  renderBottomHubShareBtn_();
-  renderFeatureQrFromCurrent_();
-  renderFacadeQrFromCurrent_();
-  applySmartBalanceAll_();
 
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
+}
 
-  requestAnimationFrame(()=>{
-    refreshAllExpandable_();
-    ensureBottomQrVisible_();
+function setCardMode_(){
+  document.body.classList.remove("home-mode");
+  const home = qs("homeMode");
+  const card = qs("card-container");
+  const panel = qs("admin-panel");
+  if(home) home.style.display = "none";
+  if(card) card.style.display = "";
+  if(panel) panel.style.display = isCleanMode_() ? "none" : "";
+}
+
+async function submitLeadForm_(e){
+  e.preventDefault();
+  const form = e.currentTarget;
+  if(!form) return;
+
+  const btn = form.querySelector("[type='submit']");
+  if(btn) btn.disabled = true;
+
+  const name = text((form.querySelector("[name='customer_name']") || {}).value);
+  const phone = text((form.querySelector("[name='phone']") || {}).value);
+  const email = text((form.querySelector("[name='email']") || {}).value);
+  const lineId = text((form.querySelector("[name='line_id']") || {}).value);
+  const note = text((form.querySelector("[name='note']") || {}).value);
+  const ref = getSavedRef_();
+
+  try{
+    const url = buildLeadCreateUrl_();
+    const payload = await fetchJsonRobust_(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        customer_name: name,
+        phone,
+        email,
+        line_id: lineId,
+        note,
+        referrer: ref || "",
+        service_agent: ref || "SELF",
+        agent_type: ref ? "service" : "self",
+        source: ref ? "agent_form" : "form"
+      })
+    });
+
+    const leadId = text(payload?.lead_id || payload?.id || payload?.data?.lead_id || payload?.item?.lead_id);
+    if(!leadId) throw new Error("lead_id missing");
+
+    currentLeadId = leadId;
+    const success = qs("leadSuccess");
+    const leadIdText = qs("leadIdText");
+    if(leadIdText) leadIdText.textContent = leadId;
+    if(success) success.classList.add("is-show");
+
+    const copyBtn = qs("copyLeadBtn");
+    if(copyBtn){
+      copyBtn.onclick = ()=> copyText_(leadId, "✅ 已複製申請編號");
+    }
+
+    alert("✅ 已收到申請");
+  }catch(err){
+    console.error(err);
+    alert("資料送出失敗，請稍後再試，或直接加入 LINE 官方帳號聯繫客服。");
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
+
+function bindLeadForm_(){
+  const form = qs("leadForm");
+  if(form){
+    form.addEventListener("submit", submitLeadForm_);
+  }
+}
+
+function bindInstall_(){
+  window.addEventListener("beforeinstallprompt", (e)=>{
+    e.preventDefault();
+    deferredInstallPrompt = e;
+  });
+
+  window.addEventListener("appinstalled", ()=>{
+    deferredInstallPrompt = null;
+  });
+
+  const installTargets = ["btnInstallCard","installFab"];
+  installTargets.forEach(id=>{
+    const btn = qs(id);
+    if(!btn) return;
+    btn.addEventListener("click", async (e)=>{
+      e.preventDefault();
+      if(deferredInstallPrompt){
+        try{
+          deferredInstallPrompt.prompt();
+          await deferredInstallPrompt.userChoice;
+        }catch(err){
+          console.error(err);
+        }finally{
+          deferredInstallPrompt = null;
+        }
+        return;
+      }
+      alert("請使用瀏覽器的『加入主畫面』或『安裝應用程式』功能。");
+    });
   });
 }
 
-function isIos_(){
-  return /iphone|ipad|ipod/i.test(navigator.userAgent || "");
-}
+function bindHiddenAdminEntry_(){
+  const hot = qs("adminHotspotBR");
+  if(!hot || isCleanMode_()) return;
 
-function isStandalone_(){
-  return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
-}
+  let taps = 0;
+  let firstTapAt = 0;
+  let resetTimer = null;
+  const WINDOW_MS = 1800;
+  const NEED_TAPS = 5;
 
-function updateInstallUi_(){
-  const btn = qs("btnInstallCard");
-  const fab = qs("installFab");
-  const dock = qs("installDock");
-  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
-  const canInstall = !!deferredInstallPrompt || isIos_() || !isStandalone_();
-  if(btn){
-    btn.disabled = false;
-    btn.style.opacity = canInstall ? "1" : ".62";
-  }
-  if(fab) fab.style.display = cleanMode ? "flex" : "none";
-  if(dock) dock.style.display = cleanMode ? "" : "none";
-}
-
-async function triggerPwaInstall_(){
-  if(isStandalone_()){
-    alert("✅ 已經安裝在桌面上了");
-    return;
-  }
-
-  if(deferredInstallPrompt){
-    try{
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
-    }catch(err){
-      console.error(err);
-    }finally{
-      deferredInstallPrompt = null;
-      updateInstallUi_();
+  function resetTapState(){
+    taps = 0;
+    firstTapAt = 0;
+    if(resetTimer){
+      clearTimeout(resetTimer);
+      resetTimer = null;
     }
-    return;
   }
 
-  if(isIos_()){
-    alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。");
-    return;
+  function onTap(e){
+    e.preventDefault();
+    e.stopPropagation();
+    const now = Date.now();
+    if(!firstTapAt || (now - firstTapAt > WINDOW_MS)){
+      taps = 0;
+      firstTapAt = now;
+    }
+    taps += 1;
+    if(resetTimer) clearTimeout(resetTimer);
+    resetTimer = setTimeout(resetTapState, WINDOW_MS + 120);
+    if(taps >= NEED_TAPS){
+      resetTapState();
+      location.href = "./admin.html?v=" + encodeURIComponent(CONFIG.VERSION);
+    }
   }
 
-  alert("目前裝置尚未出現系統安裝提示。\n\n你可以先用瀏覽器選單中的『安裝應用程式』或『加入主畫面』。");
+  hot.addEventListener("click", onTap, { passive:false });
+  hot.addEventListener("touchstart", onTap, { passive:false });
 }
 
-window.__triggerPwaInstall = triggerPwaInstall_;
-
-window.addEventListener("beforeinstallprompt", (e)=>{
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  updateInstallUi_();
-});
-
-window.addEventListener("appinstalled", ()=>{
-  deferredInstallPrompt = null;
-  updateInstallUi_();
-});
-
-window.addEventListener("load", ()=>{
-  ensureBottomQrVisible_();
-}, { once: true });
-
-(async function boot_(){
+async function boot_(){
   try{
-    initSelectionState_();
-    applySmartBalanceAll_();
-    updateInstallUi_();
+    persistRefIfAny_();
+    bindModalBasics_();
+    bindLineButtons_();
+    bindShareButtons_();
+    bindLeadForm_();
+    bindInstall_();
+    bindHiddenAdminEntry_();
 
-    const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
-    const url = buildCardApiUrl_(id);
-    const payload = await fetchJsonRobust_(url);
-    const row = payload?.item || payload?.data || payload;
-    renderCard(row);
+    const id = getIdFromUrl_();
+    if(id){
+      setCardMode_();
+      const payload = await fetchJsonRobust_(buildCardApiUrl_(id));
+      const row = payload?.item || payload?.data || payload;
+      renderCard(row);
+    }else{
+      setHomeMode_();
+    }
   }catch(err){
     console.error(err);
-    const nameEl = qs("u-name");
-    const unitWrap = qs("u-unit-wrap");
-    const titleEl = qs("u-title");
-    if(nameEl) nameEl.textContent = "資料載入失敗";
-    if(unitWrap) unitWrap.style.display = "";
-    const unitEl = qs("u-unit");
-    if(unitEl) unitEl.textContent = "請稍後再試";
-    if(titleEl) titleEl.textContent = "";
+    const home = qs("homeMode");
+    const card = qs("card-container");
+    if(home && !getIdFromUrl_()){
+      setHomeMode_();
+      return;
+    }
+    if(card){
+      setCardMode_();
+      const nameEl = qs("u-name");
+      const unitEl = qs("u-unit");
+      const titleEl = qs("u-title");
+      if(nameEl) nameEl.textContent = "資料載入失敗";
+      if(unitEl) unitEl.textContent = "請稍後再試";
+      if(titleEl) titleEl.textContent = "";
+    }
   }
-})();
+}
+
+document.addEventListener("DOMContentLoaded", boot_, { once:true });
