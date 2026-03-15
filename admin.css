@@ -1,14 +1,15 @@
 /* =========================================================
- * HSC Admin Console v1.1
+ * HSC Admin Console v1.3
  * admin.css
  * COMPLETE OVERWRITE
  * ---------------------------------------------------------
- * 對齊 admin.js v1.1
- * 目標：
- * 1) Lead 申請清單成為第一入口
- * 2) 後台中文化
- * 3) 客服操作台化
- * 4) 手機可用
+ * 模組：
+ * 1) Lead 申請清單
+ * 2) 邀請碼清單
+ * 3) 卡片管理
+ * 4) 付款管理
+ * 5) LINE通知監控
+ * 6) 系統統計
  * ======================================================= */
 
 :root{
@@ -27,6 +28,7 @@
   --ok:#1f8f5f;
   --warn:#d97706;
   --bad:#c2410c;
+  --info:#2563eb;
   --white:#ffffff;
   --shadow:0 12px 30px rgba(0,0,0,.08);
   --shadow-soft:0 8px 18px rgba(0,0,0,.06);
@@ -35,9 +37,7 @@
   --max:1180px;
 }
 
-*{
-  box-sizing:border-box;
-}
+*{ box-sizing:border-box; }
 
 html,body{
   margin:0;
@@ -48,33 +48,15 @@ html,body{
   font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
 }
 
-html{
-  scroll-behavior:smooth;
-}
+html{ scroll-behavior:smooth; }
 
-body{
-  padding:14px;
-}
+body{ padding:14px; }
 
-button,
-input,
-select,
-textarea{
-  font:inherit;
-}
+button,input,select,textarea{ font:inherit; }
+button{ cursor:pointer; }
+a{ color:inherit; text-decoration:none; }
 
-button{
-  cursor:pointer;
-}
-
-a{
-  color:inherit;
-  text-decoration:none;
-}
-
-#app{
-  width:100%;
-}
+#app{ width:100%; }
 
 .hsc-admin{
   max-width:var(--max);
@@ -118,9 +100,15 @@ a{
   gap:10px;
 }
 
+.top-auth{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:10px;
+}
+
 .tabbar{
   display:grid;
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(6,1fr);
   gap:10px;
   margin-bottom:14px;
 }
@@ -131,7 +119,7 @@ a{
   background:#fff;
   border-radius:18px;
   padding:14px 12px;
-  font-size:16px;
+  font-size:15px;
   line-height:1.3;
   font-weight:900;
   color:var(--ink);
@@ -150,13 +138,8 @@ a{
   border-color:transparent;
 }
 
-.panel{
-  display:none;
-}
-
-.panel.active{
-  display:block;
-}
+.panel{ display:none; }
+.panel.active{ display:block; }
 
 .card{
   background:var(--card);
@@ -259,9 +242,12 @@ a{
   color:var(--bad);
 }
 
-.btn.block{
-  width:100%;
+.btn.info{
+  background:#e8f0ff;
+  color:var(--info);
 }
+
+.btn.block{ width:100%; }
 
 .btn[disabled]{
   opacity:.55;
@@ -273,6 +259,12 @@ a{
 .stats{
   display:grid;
   grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+
+.stats-6{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
   gap:10px;
 }
 
@@ -362,9 +354,21 @@ a{
   color:var(--bad);
 }
 
+.badge.info{
+  background:#e8f0ff;
+  color:var(--info);
+}
+
 .grid{
   display:grid;
   grid-template-columns:repeat(2,1fr);
+  gap:8px 12px;
+  margin-bottom:12px;
+}
+
+.grid-3{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
   gap:8px 12px;
   margin-bottom:12px;
 }
@@ -416,6 +420,13 @@ a{
   font-weight:700;
 }
 
+.hint{
+  font-size:13px;
+  line-height:1.6;
+  color:var(--muted);
+  font-weight:700;
+}
+
 .drawer-mask{
   position:fixed;
   inset:0;
@@ -424,15 +435,13 @@ a{
   z-index:90;
 }
 
-.drawer-mask.show{
-  display:block;
-}
+.drawer-mask.show{ display:block; }
 
 .drawer{
   position:fixed;
   right:0;
   top:0;
-  width:min(92vw,520px);
+  width:min(92vw,560px);
   height:100vh;
   background:#fffdf9;
   box-shadow:-10px 0 30px rgba(0,0,0,.15);
@@ -443,9 +452,7 @@ a{
   flex-direction:column;
 }
 
-.drawer.show{
-  transform:translateX(0);
-}
+.drawer.show{ transform:translateX(0); }
 
 .drawer-head{
   padding:16px;
@@ -478,109 +485,42 @@ a{
 .mt12{ margin-top:12px; }
 .mt16{ margin-top:16px; }
 
-/* 小螢幕優化 */
+@media (max-width:1100px){
+  .tabbar{ grid-template-columns:repeat(3,1fr); }
+  .stats-6{ grid-template-columns:repeat(3,1fr); }
+}
+
 @media (max-width:900px){
-  .stats{
-    grid-template-columns:repeat(2,1fr);
-  }
+  .stats{ grid-template-columns:repeat(2,1fr); }
 }
 
 @media (max-width:680px){
-  body{
-    padding:10px;
-  }
-
-  .search-row{
-    grid-template-columns:1fr;
-  }
-
-  .grid{
-    grid-template-columns:1fr;
-  }
-
-  .tabbar{
-    grid-template-columns:1fr;
-  }
-
-  .brand-title{
-    font-size:22px;
-  }
-
-  .item-title{
-    font-size:17px;
-  }
-
-  .top-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-  }
-
-  .item-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-  }
-
-  .btn{
-    min-height:46px;
-  }
+  body{ padding:10px; }
+  .search-row{ grid-template-columns:1fr; }
+  .grid,.grid-3{ grid-template-columns:1fr; }
+  .tabbar{ grid-template-columns:1fr; }
+  .brand-title{ font-size:22px; }
+  .item-title{ font-size:17px; }
+  .top-actions{ display:grid; grid-template-columns:1fr 1fr; }
+  .top-auth{ grid-template-columns:1fr; }
+  .item-actions{ display:grid; grid-template-columns:1fr 1fr; }
+  .btn{ min-height:46px; }
+  .stats-6{ grid-template-columns:repeat(2,1fr); }
 }
 
 @media (max-width:480px){
-  .stats{
-    grid-template-columns:1fr;
-  }
-
-  .top-actions{
-    grid-template-columns:1fr;
-  }
-
-  .item-actions{
-    grid-template-columns:1fr;
-  }
-
-  .brand{
-    padding:16px 14px 14px;
-  }
-
-  .brand-title{
-    font-size:20px;
-  }
-
-  .brand-sub{
-    font-size:13px;
-  }
-
-  .card{
-    padding:12px;
-    border-radius:18px;
-  }
-
-  .card-title{
-    font-size:18px;
-  }
-
-  .card-sub{
-    font-size:13px;
-  }
-
-  .tab-btn{
-    font-size:15px;
-    padding:13px 10px;
-  }
-
-  .stat-v{
-    font-size:22px;
-  }
-
-  .drawer{
-    width:100vw;
-  }
-
-  .drawer-head{
-    padding:14px;
-  }
-
-  .drawer-body{
-    padding:14px;
-  }
+  .stats,.stats-6{ grid-template-columns:1fr; }
+  .top-actions{ grid-template-columns:1fr; }
+  .item-actions{ grid-template-columns:1fr; }
+  .brand{ padding:16px 14px 14px; }
+  .brand-title{ font-size:20px; }
+  .brand-sub{ font-size:13px; }
+  .card{ padding:12px; border-radius:18px; }
+  .card-title{ font-size:18px; }
+  .card-sub{ font-size:13px; }
+  .tab-btn{ font-size:15px; padding:13px 10px; }
+  .stat-v{ font-size:22px; }
+  .drawer{ width:100vw; }
+  .drawer-head{ padding:14px; }
+  .drawer-body{ padding:14px; }
 }
