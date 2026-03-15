@@ -1,6 +1,6 @@
 
 /* =========================================
- * HSC update-form.js v721.0
+ * HSC update-form.js v721.1
  * COMPLETE OVERWRITE
  * Works with:
  * - adminCreateUpdateLink24h
@@ -8,7 +8,7 @@
  * - updateCardByToken
  * ========================================= */
 
-const GAS_URL = "https://script.google.com/macros/s/REPLACE_WITH_YOUR_DEPLOYMENT_ID/exec";
+const GAS_URL ="https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec" ;
 
 const UPDATE_FIELDS = [
   "name","unit","title","slogan","services","experience",
