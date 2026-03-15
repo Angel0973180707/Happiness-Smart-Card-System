@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>智慧名片資料更新</title>
+  <title>智慧名片資料更新 v722</title>
   <meta name="theme-color" content="#0f172a" />
   <style>
     :root{
@@ -12,6 +12,7 @@
       --card:#111827;
       --card2:#0f172a;
       --line:rgba(255,255,255,.10);
+      --line-strong:rgba(125,211,252,.28);
       --text:rgba(255,255,255,.96);
       --muted:rgba(255,255,255,.66);
       --brand:#7dd3fc;
@@ -22,9 +23,14 @@
       --shadow:0 16px 40px rgba(0,0,0,.28);
     }
     *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:linear-gradient(180deg,#0b1220 0%,#111827 100%);color:var(--text);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+    html,body{
+      margin:0;padding:0;
+      background:linear-gradient(180deg,#0b1220 0%,#111827 100%);
+      color:var(--text);
+      font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    }
     body{min-height:100vh}
-    .wrap{max-width:980px;margin:0 auto;padding:20px 14px 48px}
+    .wrap{max-width:1100px;margin:0 auto;padding:20px 14px 56px}
     .hero{
       padding:20px;
       border:1px solid var(--line);
@@ -50,6 +56,7 @@
       display:flex;
       align-items:center;
       gap:10px;
+      flex-wrap:wrap;
     }
     .section-title small{
       color:var(--muted);
@@ -71,9 +78,18 @@
       outline:none;
       font-size:15px;
     }
-    .input:focus,.textarea:focus{border-color:rgba(125,211,252,.55);box-shadow:0 0 0 3px rgba(125,211,252,.12)}
+    .input:focus,.textarea:focus{
+      border-color:rgba(125,211,252,.55);
+      box-shadow:0 0 0 3px rgba(125,211,252,.12);
+    }
     .textarea{min-height:110px;resize:vertical;line-height:1.7}
     .muted{color:var(--muted)}
+    .help{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.7;
+      margin-top:4px;
+    }
     .status{
       display:none;
       margin-bottom:16px;
@@ -110,41 +126,183 @@
     .btn-primary{background:var(--brand);color:#082032}
     .btn-secondary{background:#1f2937;color:var(--text);border:1px solid var(--line)}
     .btn-danger{background:#3a1520;color:#ffd5dd;border:1px solid rgba(251,113,133,.28)}
+    .btn-soft{background:#0f172a;color:#dff5ff;border:1px solid var(--line-strong)}
     .btn[disabled]{opacity:.56;cursor:not-allowed}
-    .preview-grid{
+
+    .hidden{display:none !important}
+
+    .image-grid{
       display:grid;
-      grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:12px;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+      margin-top:12px;
     }
-    .preview-item{
+    .image-card{
       border:1px solid var(--line);
       background:#0b1220;
-      border-radius:16px;
-      padding:10px;
+      border-radius:18px;
+      padding:12px;
     }
-    .preview-item h4{
-      margin:0 0 8px;
-      font-size:13px;
+    .image-card-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .image-card-title{
+      font-size:14px;
+      font-weight:700;
+    }
+    .image-card-status{
+      font-size:12px;
       color:var(--muted);
-      font-weight:600;
     }
-    .thumb{
+    .thumb-box{
       width:100%;
-      aspect-ratio:1/1;
-      border-radius:14px;
-      background:#0f172a center/cover no-repeat;
       border:1px solid var(--line);
+      border-radius:16px;
+      overflow:hidden;
+      background:#111827;
+      position:relative;
+      margin-bottom:10px;
     }
-    .thumb.wide{aspect-ratio:16/10}
-    .help{
+    .thumb-box.square{aspect-ratio:1/1}
+    .thumb-box.wide{aspect-ratio:16/10}
+    .thumb-image{
+      width:100%;
+      height:100%;
+      background:#0f172a center/cover no-repeat;
+    }
+    .image-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .mini{
+      font-size:12px;
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:700;
+    }
+    .file-input{display:none}
+    .sys-field{display:none}
+
+    /* modal cropper */
+    .modal{
+      position:fixed;
+      inset:0;
+      z-index:100;
+      display:none;
+      background:rgba(2,6,23,.78);
+      backdrop-filter:blur(8px);
+      padding:18px;
+    }
+    .modal.show{display:flex;align-items:center;justify-content:center}
+    .modal-card{
+      width:min(980px,100%);
+      max-height:90vh;
+      overflow:auto;
+      border-radius:24px;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,#0f172a,#111827);
+      box-shadow:0 20px 60px rgba(0,0,0,.42);
+      padding:16px;
+    }
+    .modal-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .modal-head h3{margin:0;font-size:20px}
+    .crop-layout{
+      display:grid;
+      grid-template-columns:minmax(0,1.5fr) minmax(320px,.9fr);
+      gap:14px;
+    }
+    .crop-stage-wrap{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:#07101e;
+      padding:12px;
+    }
+    .crop-stage{
+      width:100%;
+      background:#0b1220;
+      border-radius:14px;
+      overflow:hidden;
+      touch-action:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .crop-stage.square{aspect-ratio:1/1}
+    .crop-stage.wide{aspect-ratio:16/10}
+    .crop-stage canvas{
+      width:100%;
+      height:100%;
+      display:block;
+      cursor:grab;
+    }
+    .crop-stage.dragging canvas{cursor:grabbing}
+
+    .crop-side{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .panel{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#0b1220;
+      padding:12px;
+    }
+    .panel h4{
+      margin:0 0 10px;
+      font-size:14px;
+      color:var(--muted);
+    }
+    .range-row{
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .range-row input[type="range"]{
+      width:100%;
+    }
+    .crop-preview{
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:14px;
+      overflow:hidden;
+      background:#111827;
+      aspect-ratio:1/1;
+    }
+    .crop-preview.wide{aspect-ratio:16/10}
+    .crop-preview img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+    .crop-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .toolbar-note{
       font-size:12px;
       color:var(--muted);
       line-height:1.7;
-      margin-top:4px;
     }
-    .hidden{display:none !important}
+
+    @media (max-width: 900px){
+      .grid-2,.grid-3,.image-grid{grid-template-columns:1fr}
+      .crop-layout{grid-template-columns:1fr}
+    }
     @media (max-width: 820px){
-      .grid-2,.grid-3,.preview-grid{grid-template-columns:1fr}
       .hero h1{font-size:24px}
     }
   </style>
@@ -155,7 +313,7 @@
       <h1>智慧名片資料更新</h1>
       <p>
         這個更新連結僅限本次使用，並有時效限制。<br>
-        請確認資料後再送出；若連結失效，請聯繫客服重新取得更新連結。
+        文字與圖片都可以在這裡直接更新；若連結失效，請聯繫客服重新取得更新連結。
       </p>
     </section>
 
@@ -291,73 +449,117 @@
       </section>
 
       <section class="card">
-        <h2 class="section-title">圖片更新 <small>目前採圖片網址更新</small></h2>
+        <h2 class="section-title">圖片更新 <small>直接上傳、裁切、套用</small></h2>
         <div class="help">
-          目前這一版是直接更新圖片網址。若要「上傳新圖＋裁切＋套用」，需要再補圖片上傳儲存流程。
+          這一版可直接選擇圖片並進行編輯。<br>
+          操作支援：縮小、放大、拖移、置中、重設、套用。<br>
+          圖片上傳成功後，系統會自動回寫圖片網址，不需要手動貼網址。
         </div>
 
-        <div class="grid grid-2" style="margin-top:12px">
-          <div class="field">
-            <label for="avatar_url">頭像網址</label>
-            <input id="avatar_url" name="avatar_url" class="input js-img-url" data-preview="preview_avatar" />
+        <div class="image-grid">
+          <div class="image-card" data-slot="avatar">
+            <div class="image-card-head">
+              <div class="image-card-title">頭像</div>
+              <div class="image-card-status" id="status_avatar">未設定</div>
+            </div>
+            <div class="thumb-box square"><div id="preview_avatar" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <input id="file_avatar" class="file-input" type="file" accept="image/*" />
+              <button type="button" class="btn btn-soft mini" data-pick="avatar">選擇圖片</button>
+              <button type="button" class="btn btn-secondary mini" data-edit="avatar">編輯 / 重選</button>
+              <button type="button" class="btn btn-danger mini" data-clear="avatar">清除</button>
+            </div>
+            <input id="avatar_url" name="avatar_url" class="input sys-field" />
           </div>
-          <div class="field">
-            <label for="logo_url">Logo 網址</label>
-            <input id="logo_url" name="logo_url" class="input js-img-url" data-preview="preview_logo" />
-          </div>
-        </div>
 
-        <div class="grid grid-3" style="margin-top:12px">
-          <div class="field">
-            <label for="photo1_url">照片 1 網址</label>
-            <input id="photo1_url" name="photo1_url" class="input js-img-url" data-preview="preview_photo1" />
+          <div class="image-card" data-slot="logo">
+            <div class="image-card-head">
+              <div class="image-card-title">Logo</div>
+              <div class="image-card-status" id="status_logo">未設定</div>
+            </div>
+            <div class="thumb-box square"><div id="preview_logo" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <input id="file_logo" class="file-input" type="file" accept="image/*" />
+              <button type="button" class="btn btn-soft mini" data-pick="logo">選擇圖片</button>
+              <button type="button" class="btn btn-secondary mini" data-edit="logo">編輯 / 重選</button>
+              <button type="button" class="btn btn-danger mini" data-clear="logo">清除</button>
+            </div>
+            <input id="logo_url" name="logo_url" class="input sys-field" />
           </div>
-          <div class="field">
-            <label for="photo2_url">照片 2 網址</label>
-            <input id="photo2_url" name="photo2_url" class="input js-img-url" data-preview="preview_photo2" />
-          </div>
-          <div class="field">
-            <label for="photo3_url">照片 3 網址</label>
-            <input id="photo3_url" name="photo3_url" class="input js-img-url" data-preview="preview_photo3" />
-          </div>
-          <div class="field">
-            <label for="photo4_url">照片 4 網址</label>
-            <input id="photo4_url" name="photo4_url" class="input js-img-url" data-preview="preview_photo4" />
-          </div>
-          <div class="field">
-            <label for="photo5_url">照片 5 網址</label>
-            <input id="photo5_url" name="photo5_url" class="input js-img-url" data-preview="preview_photo5" />
-          </div>
-        </div>
 
-        <div class="preview-grid" style="margin-top:14px">
-          <div class="preview-item">
-            <h4>頭像預覽</h4>
-            <div id="preview_avatar" class="thumb"></div>
+          <div class="image-card" data-slot="photo1">
+            <div class="image-card-head">
+              <div class="image-card-title">照片 1</div>
+              <div class="image-card-status" id="status_photo1">未設定</div>
+            </div>
+            <div class="thumb-box wide"><div id="preview_photo1" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <input id="file_photo1" class="file-input" type="file" accept="image/*" />
+              <button type="button" class="btn btn-soft mini" data-pick="photo1">選擇圖片</button>
+              <button type="button" class="btn btn-secondary mini" data-edit="photo1">編輯 / 重選</button>
+              <button type="button" class="btn btn-danger mini" data-clear="photo1">清除</button>
+            </div>
+            <input id="photo1_url" name="photo1_url" class="input sys-field" />
           </div>
-          <div class="preview-item">
-            <h4>Logo 預覽</h4>
-            <div id="preview_logo" class="thumb"></div>
+
+          <div class="image-card" data-slot="photo2">
+            <div class="image-card-head">
+              <div class="image-card-title">照片 2</div>
+              <div class="image-card-status" id="status_photo2">未設定</div>
+            </div>
+            <div class="thumb-box wide"><div id="preview_photo2" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <input id="file_photo2" class="file-input" type="file" accept="image/*" />
+              <button type="button" class="btn btn-soft mini" data-pick="photo2">選擇圖片</button>
+              <button type="button" class="btn btn-secondary mini" data-edit="photo2">編輯 / 重選</button>
+              <button type="button" class="btn btn-danger mini" data-clear="photo2">清除</button>
+            </div>
+            <input id="photo2_url" name="photo2_url" class="input sys-field" />
           </div>
-          <div class="preview-item">
-            <h4>照片 1 預覽</h4>
-            <div id="preview_photo1" class="thumb wide"></div>
+
+          <div class="image-card" data-slot="photo3">
+            <div class="image-card-head">
+              <div class="image-card-title">照片 3</div>
+              <div class="image-card-status" id="status_photo3">未設定</div>
+            </div>
+            <div class="thumb-box wide"><div id="preview_photo3" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <input id="file_photo3" class="file-input" type="file" accept="image/*" />
+              <button type="button" class="btn btn-soft mini" data-pick="photo3">選擇圖片</button>
+              <button type="button" class="btn btn-secondary mini" data-edit="photo3">編輯 / 重選</button>
+              <button type="button" class="btn btn-danger mini" data-clear="photo3">清除</button>
+            </div>
+            <input id="photo3_url" name="photo3_url" class="input sys-field" />
           </div>
-          <div class="preview-item">
-            <h4>照片 2 預覽</h4>
-            <div id="preview_photo2" class="thumb wide"></div>
+
+          <div class="image-card" data-slot="photo4">
+            <div class="image-card-head">
+              <div class="image-card-title">照片 4</div>
+              <div class="image-card-status" id="status_photo4">未設定</div>
+            </div>
+            <div class="thumb-box wide"><div id="preview_photo4" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <input id="file_photo4" class="file-input" type="file" accept="image/*" />
+              <button type="button" class="btn btn-soft mini" data-pick="photo4">選擇圖片</button>
+              <button type="button" class="btn btn-secondary mini" data-edit="photo4">編輯 / 重選</button>
+              <button type="button" class="btn btn-danger mini" data-clear="photo4">清除</button>
+            </div>
+            <input id="photo4_url" name="photo4_url" class="input sys-field" />
           </div>
-          <div class="preview-item">
-            <h4>照片 3 預覽</h4>
-            <div id="preview_photo3" class="thumb wide"></div>
-          </div>
-          <div class="preview-item">
-            <h4>照片 4 預覽</h4>
-            <div id="preview_photo4" class="thumb wide"></div>
-          </div>
-          <div class="preview-item">
-            <h4>照片 5 預覽</h4>
-            <div id="preview_photo5" class="thumb wide"></div>
+
+          <div class="image-card" data-slot="photo5">
+            <div class="image-card-head">
+              <div class="image-card-title">照片 5</div>
+              <div class="image-card-status" id="status_photo5">未設定</div>
+            </div>
+            <div class="thumb-box wide"><div id="preview_photo5" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <input id="file_photo5" class="file-input" type="file" accept="image/*" />
+              <button type="button" class="btn btn-soft mini" data-pick="photo5">選擇圖片</button>
+              <button type="button" class="btn btn-secondary mini" data-edit="photo5">編輯 / 重選</button>
+              <button type="button" class="btn btn-danger mini" data-clear="photo5">清除</button>
+            </div>
+            <input id="photo5_url" name="photo5_url" class="input sys-field" />
           </div>
         </div>
       </section>
@@ -372,6 +574,58 @@
     </form>
   </div>
 
-  <script src="./update-form.js?v=721.1"></script>
+  <div id="cropModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="cropTitle">圖片編輯</h3>
+        <button id="btnCropClose" type="button" class="btn btn-secondary">關閉</button>
+      </div>
+
+      <div class="crop-layout">
+        <div class="crop-stage-wrap">
+          <div id="cropStage" class="crop-stage square">
+            <canvas id="cropCanvas" width="900" height="900"></canvas>
+          </div>
+        </div>
+
+        <div class="crop-side">
+          <div class="panel">
+            <h4>縮放調整</h4>
+            <div class="range-row">
+              <button id="btnZoomOut" type="button" class="btn btn-secondary mini">縮小</button>
+              <input id="zoomRange" type="range" min="0.8" max="3" step="0.01" value="1" />
+              <button id="btnZoomIn" type="button" class="btn btn-secondary mini">放大</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h4>快速操作</h4>
+            <div class="crop-actions">
+              <button id="btnCenter" type="button" class="btn btn-secondary mini">置中</button>
+              <button id="btnReset" type="button" class="btn btn-secondary mini">重設</button>
+              <button id="btnCropApply" type="button" class="btn btn-primary mini">套用</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h4>裁切預覽</h4>
+            <div id="cropPreviewWrap" class="crop-preview">
+              <img id="cropPreviewImage" alt="crop preview" />
+            </div>
+          </div>
+
+          <div class="panel">
+            <h4>說明</h4>
+            <div class="toolbar-note">
+              可直接用手指或滑鼠拖移圖片位置。<br>
+              套用後系統會立即上傳並更新圖片網址。
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./update-form.js?v=722.0"></script>
 </body>
 </html>
