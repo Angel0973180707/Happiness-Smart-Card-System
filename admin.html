@@ -3,755 +3,748 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>HSC Admin Workspace v522.5</title>
+  <title>HSC Admin Console v1.0</title>
   <meta name="theme-color" content="#0f172a" />
-  <style>
-    :root{
-      --bg:#0b1220;
-      --bg2:#0f172a;
-      --card:#121a2b;
-      --card2:#172033;
-      --line:rgba(255,255,255,.10);
-      --line2:rgba(255,255,255,.16);
-      --text:rgba(255,255,255,.96);
-      --muted:rgba(255,255,255,.72);
-      --soft:rgba(255,255,255,.06);
-      --soft2:rgba(255,255,255,.08);
-      --accent:#7bdcff;
-      --ok:#34d399;
-      --warn:#fbbf24;
-      --danger:#fb7185;
-      --shadow:0 22px 60px rgba(0,0,0,.28);
-      --radius:24px;
-      --radius-sm:18px;
-      --max:1280px;
-    }
-
-    *{ box-sizing:border-box; }
-    html,body{ min-height:100%; }
-    body{
-      margin:0;
-      color:var(--text);
-      font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
-      background:
-        radial-gradient(900px 600px at 12% -10%, rgba(123,220,255,.14), transparent 56%),
-        radial-gradient(1000px 700px at 110% 0%, rgba(56,189,248,.10), transparent 46%),
-        linear-gradient(180deg, #08101d 0%, #0b1220 100%);
-    }
-
-    a{ color:inherit; text-decoration:none; }
-
-    .wrap{
-      max-width:var(--max);
-      margin:0 auto;
-      padding:18px 12px 60px;
-    }
-
-    .hero{
-      display:grid;
-      gap:14px;
-      margin-bottom:16px;
-    }
-
-    .hero-card{
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-      border:1px solid var(--line);
-      border-radius:28px;
-      box-shadow:var(--shadow);
-      padding:20px 18px;
-    }
-
-    .hero-top{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      align-items:flex-start;
-      flex-wrap:wrap;
-    }
-
-    .title{
-      margin:0;
-      font-size:34px;
-      line-height:1.18;
-      font-weight:1000;
-      letter-spacing:.02em;
-    }
-
-    .subtitle{
-      margin:8px 0 0;
-      color:var(--muted);
-      font-size:17px;
-      line-height:1.7;
-      font-weight:700;
-    }
-
-    .ver{
-      padding:10px 14px;
-      border-radius:999px;
-      border:1px solid rgba(123,220,255,.26);
-      background:rgba(123,220,255,.10);
-      color:#dff6ff;
-      font-size:15px;
-      font-weight:1000;
-      white-space:nowrap;
-    }
-
-    .grid{
-      display:grid;
-      grid-template-columns:1.05fr .95fr;
-      gap:16px;
-      align-items:start;
-    }
-
-    .panel{
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-
-    .panel-head{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      padding:18px 18px 12px;
-      border-bottom:1px solid rgba(255,255,255,.06);
-    }
-
-    .panel-title{
-      margin:0;
-      font-size:24px;
-      line-height:1.25;
-      font-weight:1000;
-      letter-spacing:.02em;
-    }
-
-    .panel-sub{
-      margin:6px 0 0;
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.65;
-      font-weight:700;
-    }
-
-    .panel-body{
-      padding:16px 18px 18px;
-    }
-
-    .stats{
-      display:grid;
-      grid-template-columns:repeat(4,minmax(0,1fr));
-      gap:12px;
-    }
-
-    .stat{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.05);
-      border-radius:18px;
-      padding:14px 14px;
-    }
-
-    .stat-label{
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.4;
-      font-weight:900;
-      letter-spacing:.02em;
-    }
-
-    .stat-value{
-      margin-top:8px;
-      font-size:28px;
-      line-height:1.1;
-      font-weight:1000;
-      letter-spacing:.01em;
-    }
-
-    .row{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .row + .row{ margin-top:12px; }
-
-    .field{
-      display:grid;
-      gap:7px;
-      min-width:0;
-      flex:1 1 220px;
-    }
-
-    .field.sm{ flex:0 1 140px; }
-    .field.md{ flex:0 1 220px; }
-    .field.lg{ flex:1 1 320px; }
-
-    label{
-      font-size:14px;
-      line-height:1.3;
-      color:var(--muted);
-      font-weight:900;
-      letter-spacing:.02em;
-    }
-
-    input, select, textarea{
-      width:100%;
-      border:1px solid var(--line2);
-      background:rgba(255,255,255,.05);
-      color:var(--text);
-      border-radius:16px;
-      padding:15px 15px;
-      font-size:18px;
-      line-height:1.45;
-      outline:none;
-      transition:.18s ease;
-    }
-
-    textarea{
-      min-height:120px;
-      resize:vertical;
-      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-      font-size:14px;
-    }
-
-    input:focus, select:focus, textarea:focus{
-      border-color:rgba(123,220,255,.55);
-      box-shadow:0 0 0 4px rgba(123,220,255,.10);
-      background:rgba(255,255,255,.07);
-    }
-
-    .btns{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-    }
-
-    button{
-      appearance:none;
-      border:1px solid var(--line2);
-      background:rgba(255,255,255,.08);
-      color:var(--text);
-      border-radius:16px;
-      padding:14px 16px;
-      font-size:17px;
-      line-height:1.2;
-      font-weight:1000;
-      cursor:pointer;
-      transition:transform .04s ease, background .18s ease, border-color .18s ease, opacity .18s ease;
-    }
-
-    button:hover{ background:rgba(255,255,255,.11); }
-    button:active{ transform:translateY(1px); }
-    button.primary{
-      background:linear-gradient(180deg, rgba(123,220,255,.24), rgba(123,220,255,.14));
-      border-color:rgba(123,220,255,.35);
-    }
-    button.ok{
-      background:linear-gradient(180deg, rgba(52,211,153,.22), rgba(52,211,153,.12));
-      border-color:rgba(52,211,153,.34);
-    }
-    button.warn{
-      background:linear-gradient(180deg, rgba(251,191,36,.22), rgba(251,191,36,.12));
-      border-color:rgba(251,191,36,.34);
-    }
-    button.danger{
-      background:linear-gradient(180deg, rgba(251,113,133,.22), rgba(251,113,133,.12));
-      border-color:rgba(251,113,133,.34);
-    }
-    button.ghost{
-      background:transparent;
-    }
-    button[disabled]{
-      opacity:.45;
-      cursor:not-allowed;
-    }
-
-    .hint{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.65;
-      font-weight:700;
-    }
-
-    .statusbox{
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      border-radius:18px;
-      padding:14px;
-      font-size:15px;
-      line-height:1.7;
-      white-space:pre-wrap;
-      word-break:break-word;
-      min-height:76px;
-    }
-
-    .statusbox.ok{ border-color:rgba(52,211,153,.35); }
-    .statusbox.warn{ border-color:rgba(251,191,36,.35); }
-    .statusbox.err{ border-color:rgba(251,113,133,.35); }
-
-    .result-head{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:12px;
-    }
-
-    .count-badge{
-      padding:8px 12px;
-      border-radius:999px;
-      font-size:14px;
-      font-weight:1000;
-      color:#dff6ff;
-      background:rgba(123,220,255,.12);
-      border:1px solid rgba(123,220,255,.20);
-      white-space:nowrap;
-    }
-
-    .result-list{
-      display:grid;
-      gap:12px;
-    }
-
-    .card{
-      border:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.03));
-      border-radius:20px;
-      padding:16px;
-    }
-
-    .card-top{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:10px;
-    }
-
-    .name{
-      margin:0 0 8px;
-      font-size:28px;
-      line-height:1.22;
-      font-weight:1000;
-      word-break:break-word;
-    }
-
-    .meta{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-    }
-
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:8px 11px;
-      border-radius:999px;
-      font-size:13px;
-      font-weight:1000;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.08);
-      color:#f5fbff;
-      max-width:100%;
-      word-break:break-all;
-    }
-
-    .chip.active{
-      background:rgba(52,211,153,.13);
-      border-color:rgba(52,211,153,.28);
-    }
-
-    .chip.inactive{
-      background:rgba(251,113,133,.12);
-      border-color:rgba(251,113,133,.26);
-    }
-
-    .chip.warn{
-      background:rgba(251,191,36,.14);
-      border-color:rgba(251,191,36,.28);
-      color:#fff6d6;
-    }
-
-    .data{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:10px;
-      margin:12px 0;
-    }
-
-    .kv{
-      padding:12px 13px;
-      border-radius:15px;
-      background:rgba(255,255,255,.04);
-      border:1px solid rgba(255,255,255,.06);
-      min-width:0;
-    }
-
-    .kv b{
-      display:block;
-      font-size:12px;
-      color:var(--muted);
-      margin-bottom:6px;
-      letter-spacing:.02em;
-    }
-
-    .kv span{
-      display:block;
-      font-size:16px;
-      line-height:1.45;
-      word-break:break-word;
-      font-weight:800;
-    }
-
-    .card-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:10px;
-    }
-
-    .card-actions button{
-      padding:12px 13px;
-      border-radius:14px;
-      font-size:14px;
-    }
-
-    .empty{
-      border:1px dashed rgba(255,255,255,.18);
-      border-radius:18px;
-      padding:22px 16px;
-      color:var(--muted);
-      font-size:17px;
-      line-height:1.7;
-      text-align:center;
-      background:rgba(255,255,255,.025);
-      font-weight:800;
-    }
-
-    .detail-box{
-      display:grid;
-      gap:14px;
-    }
-
-    .quick-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:10px;
-    }
-
-    .mini-note{
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.6;
-      font-weight:700;
-    }
-
-    .reminder-list{
-      display:grid;
-      gap:10px;
-    }
-
-    .reminder-item{
-      border:1px solid rgba(251,191,36,.24);
-      background:rgba(251,191,36,.08);
-      border-radius:18px;
-      padding:12px 14px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-
-    .reminder-main{
-      display:grid;
-      gap:5px;
-      min-width:0;
-    }
-
-    .reminder-title{
-      font-size:18px;
-      line-height:1.3;
-      font-weight:1000;
-      word-break:break-word;
-    }
-
-    .reminder-sub{
-      font-size:14px;
-      line-height:1.55;
-      color:#fff4c6;
-      font-weight:800;
-      word-break:break-word;
-    }
-
-    .inline-code{
-      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-      font-size:.95em;
-    }
-
-    .footer-space{ height:24px; }
-
-    @media (max-width: 1080px){
-      .grid{ grid-template-columns:1fr; }
-    }
-
-    @media (max-width: 720px){
-      .wrap{ padding:14px 10px 46px; }
-      .title{ font-size:29px; }
-      .panel-title{ font-size:22px; }
-      .name{ font-size:24px; }
-      .stats{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-      .data{ grid-template-columns:1fr; }
-      .quick-grid{ grid-template-columns:1fr; }
-      input, select{ font-size:17px; }
-      button{ font-size:16px; }
-    }
-
-    @media (max-width: 420px){
-      .stats{ grid-template-columns:1fr 1fr; }
-      .stat-value{ font-size:24px; }
-      .card-actions button{ width:100%; }
-      .ver{ width:100%; text-align:center; }
-    }
-  </style>
+  <link rel="stylesheet" href="./admin.css?v=100" />
 </head>
 <body>
-  <div class="wrap">
-    <section class="hero">
-      <div class="hero-card">
-        <div class="hero-top">
-          <div>
-            <h1 class="title">HSC Admin Workspace</h1>
-            <p class="subtitle">智慧名片管理台｜大字、簡潔、直覺</p>
-          </div>
-          <div class="ver">v522.5</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" style="margin-bottom:16px;">
-      <div class="panel-head">
+  <div class="admin-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-badge">HSC</div>
         <div>
-          <h2 class="panel-title">營運總覽</h2>
-          <p class="panel-sub">先看整體，再處理即將到期與卡片管理。</p>
+          <h1 class="brand-title">HSC Admin Console</h1>
+          <p class="brand-sub">天使幸福智慧名片系統｜正式後台 v1.0</p>
         </div>
       </div>
-      <div class="panel-body">
-        <div class="stats">
-          <div class="stat">
-            <div class="stat-label">總卡數</div>
-            <div id="statTotal" class="stat-value">—</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">本月新增</div>
-            <div id="statMonthNew" class="stat-value">—</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">已啟用</div>
-            <div id="statActive" class="stat-value">—</div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">已到期</div>
-            <div id="statExpired" class="stat-value">—</div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <section class="panel" style="margin-bottom:16px;">
-      <div class="panel-head">
-        <div>
-          <h2 class="panel-title">即將到期提醒</h2>
-          <p class="panel-sub">列出 30 天內即將到期且目前仍為啟用中的卡片序號。</p>
-        </div>
+      <div class="topbar-actions">
+        <button id="btnSaveConfig" class="btn btn-primary">儲存設定</button>
+        <button id="btnPing" class="btn">測試連線</button>
+        <button id="btnReloadAll" class="btn">重新整理</button>
       </div>
-      <div class="panel-body">
-        <div id="expiryReminderList" class="reminder-list">
-          <div class="empty">尚未讀取即將到期資料。</div>
-        </div>
-      </div>
-    </section>
+    </header>
 
-    <div class="grid">
-      <section class="panel">
+    <main class="main-wrap">
+      <section class="panel config-panel">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">搜尋與控制</h2>
-            <p class="panel-sub">找卡、載卡、建邀請碼、讀統計。</p>
+            <h2 class="panel-title">系統設定</h2>
+            <p class="panel-sub">GAS、admin key、tenant、首頁與表單網址設定。</p>
           </div>
+          <div class="pill">HSC Admin Console v1</div>
         </div>
+
         <div class="panel-body">
-          <div class="row">
-            <div class="field lg">
+          <div class="form-grid cols-2">
+            <div class="field field-span-2">
               <label for="gasUrl">GAS Exec URL</label>
               <input id="gasUrl" type="text" />
             </div>
-          </div>
 
-          <div class="row">
-            <div class="field md">
+            <div class="field">
               <label for="tenant">Tenant</label>
               <input id="tenant" type="text" value="angel" />
             </div>
-            <div class="field md">
-              <label for="adminSecret">ADMIN_SECRET</label>
-              <input id="adminSecret" type="password" />
-            </div>
-          </div>
 
-          <div class="row btns">
-            <button id="btnSaveConfig" class="primary">儲存設定</button>
-            <button id="btnPing">測試連線</button>
-            <button id="btnStats">讀取統計</button>
-            <button id="btnRefreshExpiry" class="warn">刷新到期提醒</button>
-          </div>
-
-          <div class="row" style="margin-top:18px;">
-            <div class="field lg">
-              <label for="searchInput">搜尋卡片</label>
-              <input id="searchInput" type="text" placeholder="可輸入：TW0001 / 小天使 / 973180707 / 天使幸福智慧名片館 / 幸福智慧名片館館長 / 邀請碼" />
-            </div>
-          </div>
-
-          <div class="row btns">
-            <button id="btnSearch" class="primary">搜尋</button>
-            <button id="btnSearchId">載入卡號</button>
-            <button id="btnClearSearch" class="ghost">清空</button>
-          </div>
-
-          <div class="hint">
-            支援搜尋：卡號、姓名、電話、單位、職稱、邀請碼。若輸入完整卡號，建議先用「載入卡號」。
-          </div>
-
-          <div class="row" style="margin-top:18px;">
-            <div class="field md">
-              <label for="invitePlan">邀請碼方案</label>
-              <select id="invitePlan">
-                <option value="free">free</option>
-                <option value="premium">premium</option>
-              </select>
-            </div>
-            <div class="field sm">
-              <label for="inviteDays">有效天數</label>
-              <input id="inviteDays" type="number" value="7" min="1" />
-            </div>
-            <div class="field sm">
-              <label for="inviteCount">數量</label>
-              <input id="inviteCount" type="number" value="1" min="1" />
-            </div>
-          </div>
-
-          <div class="row btns">
-            <button id="btnCreateInvite" class="warn">建立邀請碼</button>
-          </div>
-
-          <div class="row" style="margin-top:18px;">
             <div class="field">
-              <label>狀態訊息</label>
-              <div id="statusBox" class="statusbox">準備就緒。</div>
+              <label for="adminKey">Admin Key</label>
+              <input id="adminKey" type="password" />
             </div>
+
+            <div class="field">
+              <label for="baseUrl">GitHub Pages Base URL</label>
+              <input id="baseUrl" type="text" />
+            </div>
+
+            <div class="field">
+              <label for="facadeUrl">門面首頁網址</label>
+              <input id="facadeUrl" type="text" />
+            </div>
+
+            <div class="field">
+              <label for="formUrl">表單網址</label>
+              <input id="formUrl" type="text" />
+            </div>
+
+            <div class="field">
+              <label for="updateFormUrl">更新頁網址</label>
+              <input id="updateFormUrl" type="text" />
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <button id="btnCopyFacadeUrl" class="btn">複製首頁網址</button>
+            <button id="btnCopyFacadeRefUrl" class="btn">複製帶 ref 首頁網址</button>
+            <button id="btnCopyFormUrl" class="btn">複製表單網址</button>
           </div>
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel dashboard-panel">
         <div class="panel-head">
           <div>
-            <h2 class="panel-title">卡片操作</h2>
-            <p class="panel-sub">載入卡片後，可開智慧名片成品、開交付卡、複製交付連結、更新欄位。</p>
+            <h2 class="panel-title">Dashboard</h2>
+            <p class="panel-sub">總覽目前卡片、代理、lead、invite、到期提醒。</p>
+          </div>
+          <div class="toolbar compact">
+            <button id="btnRefreshDashboard" class="btn btn-primary">刷新 Dashboard</button>
           </div>
         </div>
+
         <div class="panel-body">
-          <div class="detail-box">
-            <div class="row">
-              <div class="field md">
-                <label for="currentId">目前卡號</label>
-                <input id="currentId" type="text" placeholder="請先從搜尋結果載入" />
-              </div>
-              <div class="field md">
-                <label for="currentName">目前姓名</label>
-                <input id="currentName" type="text" placeholder="載入後自動帶入" />
-              </div>
-            </div>
+          <div class="stats-grid">
+            <article class="stat-card">
+              <div class="stat-label">卡片總數</div>
+              <div id="statCardsTotal" class="stat-value">—</div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">今日新增卡片</div>
+              <div id="statCardsToday" class="stat-value">—</div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">Lead 申請數</div>
+              <div id="statLeadsTotal" class="stat-value">—</div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">代理數</div>
+              <div id="statAgentsTotal" class="stat-value">—</div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">30 天內到期</div>
+              <div id="statExp30" class="stat-value warn">—</div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">7 天內到期</div>
+              <div id="statExp7" class="stat-value warn">—</div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">已過期</div>
+              <div id="statExpired" class="stat-value danger">—</div>
+            </article>
+            <article class="stat-card">
+              <div class="stat-label">Invite 總數</div>
+              <div id="statInvitesTotal" class="stat-value">—</div>
+            </article>
+          </div>
 
-            <div class="quick-grid">
-              <div class="field">
-                <label for="quickField">快速更新欄位</label>
-                <select id="quickField">
-                  <option value="name">name 姓名</option>
-                  <option value="unit">unit 單位</option>
-                  <option value="title">title 職稱</option>
-                  <option value="phone">phone 電話</option>
-                  <option value="email">email Email</option>
-                  <option value="line_oa">line_oa LINE OA</option>
-                  <option value="wechat_id">wechat_id 微信ID</option>
-                  <option value="address">address 地址</option>
-                  <option value="slogan">slogan 標語</option>
-                  <option value="services">services 服務</option>
-                  <option value="experience">experience 經歷</option>
-                  <option value="status">status 狀態</option>
-                  <option value="color">color 自由款顏色</option>
-                  <option value="style">style 自由款版型</option>
-                  <option value="paper">paper 紙感</option>
-                  <option value="premium_color">premium_color 精品底色</option>
-                </select>
-              </div>
-
-              <div class="field">
-                <label for="quickValue">快速更新值</label>
-                <input id="quickValue" type="text" placeholder="輸入新值" />
-              </div>
-            </div>
-
-            <div class="row btns">
-              <button id="btnQuickUpdate" class="ok">快速更新</button>
-              <button id="btnLoadCurrent">重新載入</button>
-              <button id="btnOpenCardClean" class="primary">開智慧名片成品</button>
-              <button id="btnOpenShare">開交付卡</button>
-              <button id="btnCopyDeliveryLink" class="warn">複製交付連結</button>
-              <button id="btnCopyUpdateLink">複製更新連結</button>
-            </div>
-
-            <div class="row">
-              <div class="field">
-                <label for="detailJson">目前卡片資料</label>
-                <textarea id="detailJson" placeholder="載入後顯示 JSON"></textarea>
-              </div>
-            </div>
-
-            <div class="mini-note">
-              這版先以實用為主：搜尋、讀卡、成品、交付、交付連結、更新連結、啟用停用、邀請碼、快速更新。
-            </div>
+          <div class="quick-links">
+            <button class="quick-link" data-tab-target="tab-cards">前往卡片管理</button>
+            <button class="quick-link" data-tab-target="tab-leads">前往邀請碼管理</button>
+            <button class="quick-link" data-tab-target="tab-agents">前往代理管理</button>
+            <button class="quick-link" data-tab-target="tab-expire">前往到期提醒</button>
+            <button class="quick-link" data-tab-target="tab-tools">前往客服工具</button>
           </div>
         </div>
       </section>
-    </div>
 
-    <section class="panel" style="margin-top:16px;">
-      <div class="panel-head">
-        <div class="result-head" style="width:100%;">
-          <div>
-            <h2 class="panel-title">搜尋結果</h2>
-            <p class="panel-sub">每張卡可直接開智慧名片成品、開交付卡、複製交付連結、啟用停用。</p>
-          </div>
-          <div id="resultCount" class="count-badge">0 筆</div>
-        </div>
-      </div>
-      <div class="panel-body">
-        <div id="resultList" class="result-list">
-          <div class="empty">尚未搜尋資料。</div>
-        </div>
-      </div>
-    </section>
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="tab-cards">卡片管理</button>
+        <button class="tab-btn" data-tab="tab-leads">邀請碼管理</button>
+        <button class="tab-btn" data-tab="tab-agents">代理管理</button>
+        <button class="tab-btn" data-tab="tab-expire">系統統計 / 到期提醒</button>
+        <button class="tab-btn" data-tab="tab-tools">客服工具</button>
+      </nav>
 
-    <div class="footer-space"></div>
+      <section id="tab-cards" class="tab-panel active">
+        <div class="split-layout">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">卡片管理</h2>
+                <p class="panel-sub">搜尋、篩選、分頁、快速操作、詳情查看。</p>
+              </div>
+              <div class="toolbar compact">
+                <button id="btnCardSearch" class="btn btn-primary">搜尋卡片</button>
+                <button id="btnCardReset" class="btn">清空條件</button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div class="form-grid cols-4">
+                <div class="field field-span-2">
+                  <label for="cardKeyword">搜尋關鍵字</label>
+                  <input id="cardKeyword" type="text" placeholder="id / name / phone / unit / invite_code" />
+                </div>
+
+                <div class="field">
+                  <label for="cardStatusFilter">status</label>
+                  <select id="cardStatusFilter">
+                    <option value="">全部</option>
+                    <option value="active">active</option>
+                    <option value="inactive">inactive</option>
+                    <option value="reserved">reserved</option>
+                    <option value="expired">expired</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="cardPlanFilter">plan</label>
+                  <select id="cardPlanFilter">
+                    <option value="">全部</option>
+                    <option value="free">free</option>
+                    <option value="premium">premium</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="cardBillingFilter">billing_status</label>
+                  <input id="cardBillingFilter" type="text" placeholder="例如 paid / unpaid" />
+                </div>
+
+                <div class="field">
+                  <label for="cardSourceFilter">source</label>
+                  <input id="cardSourceFilter" type="text" placeholder="form / agent_form / invite" />
+                </div>
+
+                <div class="field">
+                  <label for="cardServiceAgentFilter">service_agent</label>
+                  <input id="cardServiceAgentFilter" type="text" placeholder="代理代碼或 SELF" />
+                </div>
+
+                <div class="field">
+                  <label for="cardPageSize">每頁筆數</label>
+                  <select id="cardPageSize">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="toolbar top-gap">
+                <div id="cardListSummary" class="summary-text">尚未載入卡片資料。</div>
+                <div class="toolbar compact">
+                  <button id="btnCardPrev" class="btn">上一頁</button>
+                  <button id="btnCardNext" class="btn">下一頁</button>
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>id</th>
+                      <th>name</th>
+                      <th>unit</th>
+                      <th>title</th>
+                      <th>phone</th>
+                      <th>plan</th>
+                      <th>status</th>
+                      <th>service_agent</th>
+                      <th>expires_at</th>
+                      <th>updated_at</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cardTableBody">
+                    <tr><td colspan="11" class="empty-cell">尚未搜尋資料。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <aside class="panel drawer-panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">卡片詳情 / 快速操作</h2>
+                <p class="panel-sub">點表格列或按詳情後顯示。</p>
+              </div>
+              <div class="toolbar compact">
+                <button id="btnCardDetailReload" class="btn">重新載入</button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div class="detail-sticky-actions">
+                <button id="btnOpenCard" class="btn btn-primary">開啟名片</button>
+                <button id="btnOpenCardClean" class="btn">開啟乾淨名片</button>
+                <button id="btnCopyCardUrl" class="btn">複製名片連結</button>
+                <button id="btnCreateUpdateLink24h" class="btn">產生更新頁 24h</button>
+                <button id="btnCopyUpdateLink" class="btn">複製更新頁連結</button>
+                <button id="btnActivateCard" class="btn btn-success">啟用卡片</button>
+                <button id="btnInactivateCard" class="btn btn-danger">停用卡片</button>
+              </div>
+
+              <div class="form-grid cols-2 top-gap">
+                <div class="field">
+                  <label for="extendDays">延長天數</label>
+                  <input id="extendDays" type="number" value="30" min="1" />
+                </div>
+                <div class="field flex-end">
+                  <button id="btnExtendCard" class="btn btn-warning">延長期限</button>
+                </div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">目前卡片</h3>
+                <div id="cardDetailMeta" class="meta-list empty-detail">尚未選擇卡片。</div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">基本資料</h3>
+                <div id="cardDetailBasic" class="kv-grid empty-detail">尚未選擇卡片。</div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">CTA</h3>
+                <div id="cardDetailCta" class="kv-grid empty-detail">尚未選擇卡片。</div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">照片 / 社群 / 追蹤欄位</h3>
+                <div id="cardDetailMedia" class="kv-grid empty-detail">尚未選擇卡片。</div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">來源 / token / billing / 到期</h3>
+                <div id="cardDetailSystem" class="kv-grid empty-detail">尚未選擇卡片。</div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">快速更新</h3>
+                <div class="form-grid cols-2">
+                  <div class="field">
+                    <label for="cardQuickField">欄位</label>
+                    <select id="cardQuickField"></select>
+                  </div>
+                  <div class="field">
+                    <label for="cardQuickValue">值</label>
+                    <input id="cardQuickValue" type="text" />
+                  </div>
+                  <div class="field field-span-2">
+                    <button id="btnCardQuickUpdate" class="btn btn-primary">套用快速更新</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">查看來源代理</h3>
+                <div class="toolbar compact">
+                  <button id="btnViewSourceAgent" class="btn">查看來源代理</button>
+                  <button id="btnCopyRefFacadeUrl" class="btn">複製帶 ref 首頁網址</button>
+                </div>
+                <div id="cardSourceAgentBox" class="info-box">尚未選擇卡片。</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tab-leads" class="tab-panel">
+        <div class="stack-layout">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">申請清單（lead_db）</h2>
+                <p class="panel-sub">搜尋 lead、產生 invite、複製邀請碼文字、複製表單連結。</p>
+              </div>
+              <div class="toolbar compact">
+                <button id="btnLeadSearch" class="btn btn-primary">搜尋 Lead</button>
+                <button id="btnLeadReset" class="btn">清空條件</button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div class="form-grid cols-4">
+                <div class="field field-span-2">
+                  <label for="leadKeyword">搜尋 lead</label>
+                  <input id="leadKeyword" type="text" placeholder="lead_id / customer_name / phone / email" />
+                </div>
+                <div class="field">
+                  <label for="leadStatusFilter">status</label>
+                  <select id="leadStatusFilter">
+                    <option value="">全部</option>
+                    <option value="new">new</option>
+                    <option value="invited">invited</option>
+                    <option value="converted">converted</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="leadSourceFilter">source</label>
+                  <input id="leadSourceFilter" type="text" placeholder="form / agent_form" />
+                </div>
+                <div class="field">
+                  <label for="leadServiceAgentFilter">service_agent</label>
+                  <input id="leadServiceAgentFilter" type="text" placeholder="代理代碼或 SELF" />
+                </div>
+              </div>
+
+              <div class="toolbar top-gap">
+                <div id="leadListSummary" class="summary-text">尚未載入 lead 資料。</div>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>lead_id</th>
+                      <th>customer_name</th>
+                      <th>phone</th>
+                      <th>email</th>
+                      <th>line_id</th>
+                      <th>note</th>
+                      <th>status</th>
+                      <th>invite_code</th>
+                      <th>card_id</th>
+                      <th>referrer</th>
+                      <th>service_agent</th>
+                      <th>source</th>
+                      <th>created_at</th>
+                      <th>updated_at</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="leadTableBody">
+                    <tr><td colspan="15" class="empty-cell">尚未搜尋資料。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">邀請碼清單（invite_db）</h2>
+                <p class="panel-sub">建立 invite、停用 invite、複製邀請碼、複製客服訊息模板。</p>
+              </div>
+              <div class="toolbar compact">
+                <button id="btnInviteSearch" class="btn btn-primary">搜尋 Invite</button>
+                <button id="btnInviteReset" class="btn">清空條件</button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div class="form-grid cols-4">
+                <div class="field">
+                  <label for="invitePlan">方案</label>
+                  <select id="invitePlan">
+                    <option value="free">free</option>
+                    <option value="premium">premium</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="inviteDays">有效天數</label>
+                  <input id="inviteDays" type="number" value="30" min="1" />
+                </div>
+                <div class="field">
+                  <label for="inviteCount">建立數量</label>
+                  <input id="inviteCount" type="number" value="1" min="1" />
+                </div>
+                <div class="field">
+                  <label for="inviteCreateLeadId">對應 lead_id（可空）</label>
+                  <input id="inviteCreateLeadId" type="text" placeholder="可選填" />
+                </div>
+
+                <div class="field">
+                  <label for="inviteCreateReferrer">referrer</label>
+                  <input id="inviteCreateReferrer" type="text" placeholder="可選填" />
+                </div>
+                <div class="field">
+                  <label for="inviteCreateServiceAgent">service_agent</label>
+                  <input id="inviteCreateServiceAgent" type="text" placeholder="可選填" />
+                </div>
+                <div class="field">
+                  <label for="inviteCreateAgentType">agent_type</label>
+                  <input id="inviteCreateAgentType" type="text" placeholder="service / self" />
+                </div>
+                <div class="field">
+                  <label for="inviteCreateSource">source</label>
+                  <input id="inviteCreateSource" type="text" placeholder="admin_invite" />
+                </div>
+
+                <div class="field field-span-4">
+                  <label for="inviteCreateNote">備註</label>
+                  <input id="inviteCreateNote" type="text" placeholder="例如：客服手動建立 / 某代理使用" />
+                </div>
+              </div>
+
+              <div class="toolbar top-gap">
+                <button id="btnInviteCreate" class="btn btn-warning">產生邀請碼</button>
+                <div id="inviteListSummary" class="summary-text">尚未載入 invite 資料。</div>
+              </div>
+
+              <div class="form-grid cols-4 top-gap">
+                <div class="field field-span-2">
+                  <label for="inviteKeyword">搜尋 invite</label>
+                  <input id="inviteKeyword" type="text" placeholder="invite_code / lead_id / used_by_id / referrer / service_agent" />
+                </div>
+                <div class="field">
+                  <label for="inviteStatusFilter">status</label>
+                  <select id="inviteStatusFilter">
+                    <option value="">全部</option>
+                    <option value="open">open</option>
+                    <option value="used">used</option>
+                    <option value="disabled">disabled</option>
+                    <option value="expired">expired</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="inviteServiceAgentFilter">service_agent</label>
+                  <input id="inviteServiceAgentFilter" type="text" placeholder="代理代碼" />
+                </div>
+              </div>
+
+              <div class="table-wrap top-gap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>invite_code</th>
+                      <th>status</th>
+                      <th>lead_id</th>
+                      <th>used_by_id</th>
+                      <th>referrer</th>
+                      <th>service_agent</th>
+                      <th>source</th>
+                      <th>created_at</th>
+                      <th>used_at</th>
+                      <th>disabled_at</th>
+                      <th>expired_at</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="inviteTableBody">
+                    <tr><td colspan="12" class="empty-cell">尚未搜尋資料。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="tab-agents" class="tab-panel">
+        <div class="split-layout">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">代理管理</h2>
+                <p class="panel-sub">代理列表、搜尋、詳情、代理客戶追蹤。</p>
+              </div>
+              <div class="toolbar compact">
+                <button id="btnAgentSearch" class="btn btn-primary">搜尋代理</button>
+                <button id="btnAgentReset" class="btn">清空條件</button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div class="form-grid cols-3">
+                <div class="field field-span-2">
+                  <label for="agentKeyword">搜尋代理</label>
+                  <input id="agentKeyword" type="text" placeholder="agent_code / name / phone / email" />
+                </div>
+                <div class="field">
+                  <label for="agentPageSize">每頁筆數</label>
+                  <select id="agentPageSize">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="toolbar top-gap">
+                <div id="agentListSummary" class="summary-text">尚未載入代理資料。</div>
+                <div class="toolbar compact">
+                  <button id="btnAgentPrev" class="btn">上一頁</button>
+                  <button id="btnAgentNext" class="btn">下一頁</button>
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>agent_id / agent_code</th>
+                      <th>name</th>
+                      <th>phone</th>
+                      <th>email</th>
+                      <th>status</th>
+                      <th>created_at</th>
+                      <th>updated_at</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="agentTableBody">
+                    <tr><td colspan="8" class="empty-cell">尚未搜尋資料。</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="reserve-box top-gap">
+                <div class="reserve-title">預留未啟用區塊</div>
+                <div class="reserve-list">
+                  <span>分潤欄位</span>
+                  <span>代理排行榜</span>
+                  <span>代理收益</span>
+                  <span>推薦連結生成器</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <aside class="panel drawer-panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">代理詳情 / 客戶追蹤</h2>
+                <p class="panel-sub">基本資料、對應 leads、對應 cards、轉換狀況。</p>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div class="detail-section">
+                <h3 class="detail-title">代理基本資料</h3>
+                <div id="agentDetailBasic" class="kv-grid empty-detail">尚未選擇代理。</div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">來源追蹤欄位</h3>
+                <div id="agentDetailTrace" class="kv-grid empty-detail">尚未選擇代理。</div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">此代理帶來的 Leads</h3>
+                <div id="agentLeadsBox" class="mini-list empty-detail">尚未選擇代理。</div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">此代理帶來的 Cards</h3>
+                <div id="agentCardsBox" class="mini-list empty-detail">尚未選擇代理。</div>
+              </div>
+
+              <div class="detail-section">
+                <h3 class="detail-title">Lead → Card 轉換</h3>
+                <div id="agentConvertBox" class="info-box">尚未選擇代理。</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tab-expire" class="tab-panel">
+        <div class="stack-layout">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">系統統計</h2>
+                <p class="panel-sub">card / active / inactive / expired / today / lead / invite / agent。</p>
+              </div>
+              <div class="toolbar compact">
+                <button id="btnRefreshStatsOnly" class="btn btn-primary">刷新統計</button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div id="statsDetailGrid" class="stats-grid small"></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">到期提醒</h2>
+                <p class="panel-sub">30 天內到期、7 天內到期、已過期。</p>
+              </div>
+              <div class="toolbar compact">
+                <button id="btnRefreshExpireGroups" class="btn btn-primary">刷新到期區</button>
+                <button id="btnCopyExpire30List" class="btn">複製 30 天內提醒名單</button>
+                <button id="btnCopyExpire7List" class="btn">複製 7 天內提醒名單</button>
+                <button id="btnCopyExpiredList" class="btn">複製已過期名單</button>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div class="expire-groups">
+                <div class="expire-group">
+                  <h3 class="detail-title">30 天內到期</h3>
+                  <div id="expire30List" class="card-list compact-list">
+                    <div class="empty-detail">尚未載入。</div>
+                  </div>
+                </div>
+
+                <div class="expire-group">
+                  <h3 class="detail-title">7 天內到期</h3>
+                  <div id="expire7List" class="card-list compact-list">
+                    <div class="empty-detail">尚未載入。</div>
+                  </div>
+                </div>
+
+                <div class="expire-group">
+                  <h3 class="detail-title">已過期</h3>
+                  <div id="expiredList" class="card-list compact-list">
+                    <div class="empty-detail">尚未載入。</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="tab-tools" class="tab-panel">
+        <div class="stack-layout">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">客服工具</h2>
+                <p class="panel-sub">快找到、快複製、快開啟、快處理。</p>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div class="form-grid cols-3">
+                <div class="field">
+                  <label for="toolCardId">card id</label>
+                  <input id="toolCardId" type="text" placeholder="TW0001" />
+                </div>
+                <div class="field">
+                  <label for="toolInviteCode">invite_code</label>
+                  <input id="toolInviteCode" type="text" placeholder="INV..." />
+                </div>
+                <div class="field">
+                  <label for="toolRefCode">ref / service_agent</label>
+                  <input id="toolRefCode" type="text" placeholder="AG001" />
+                </div>
+              </div>
+
+              <div class="toolbar top-gap wrap">
+                <button id="btnToolOpenCard" class="btn btn-primary">一鍵開名片</button>
+                <button id="btnToolOpenCardClean" class="btn">一鍵開乾淨名片</button>
+                <button id="btnToolOpenUpdateLink" class="btn">一鍵開更新頁</button>
+                <button id="btnToolCopyFormLink" class="btn">一鍵複製表單連結</button>
+                <button id="btnToolCopyInviteText" class="btn">一鍵複製邀請碼文字</button>
+                <button id="btnToolCopyTemplate" class="btn">一鍵複製客服話術模板</button>
+                <button id="btnToolCopyFacade" class="btn">一鍵複製首頁門面網址</button>
+                <button id="btnToolCopyFacadeRef" class="btn">一鍵複製帶 ref 首頁網址</button>
+              </div>
+
+              <div class="detail-section top-gap">
+                <h3 class="detail-title">客服話術模板預覽</h3>
+                <textarea id="toolTemplatePreview" class="mono-textarea" placeholder="按按鈕後產生"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">系統訊息 / 操作狀態</h2>
+                <p class="panel-sub">API 回應、複製成功、錯誤訊息都顯示在這裡。</p>
+              </div>
+            </div>
+
+            <div class="panel-body">
+              <div id="statusBox" class="status-box">準備就緒。</div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
   </div>
 
-  <script src="./admin.js?v=5225"></script>
+  <script src="./admin.js?v=100"></script>
 </body>
 </html>
