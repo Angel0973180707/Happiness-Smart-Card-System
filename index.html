@@ -4,329 +4,577 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片 v731.0</title>
+  <title>天使幸福智慧名片館 v524.7</title>
 
-  <!--
-    HSC v731.0
-    Homepage + Card Dual Mode
-    COMPLETE OVERWRITE
-  -->
-
-  <link rel="manifest" href="./manifest.json?v=731.0" />
+  <link rel="manifest" href="./manifest.json?v=524.7" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=731.0" />
-  <link rel="icon" href="./icons/icon-192.png?v=731.0" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.7" />
+  <link rel="icon" href="./icons/icon-192.png?v=524.7" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="天使幸福智慧名片" />
+  <meta name="apple-mobile-web-app-title" content="天使幸福智慧名片館" />
 
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="天使幸福智慧名片" />
-  <meta property="og:description" content="智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=731.0" />
+  <meta property="og:title" content="天使幸福智慧名片館" />
+  <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
+  <meta property="og:image" content="og-card.png?v=524.7" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=731.0" />
+  <link rel="stylesheet" href="./style.css?v=524.7" />
+
+  <style>
+    :root{
+      --poster-bg:#f8f4ee;
+      --poster-bg-2:#f3ece3;
+      --poster-ink:#433227;
+      --poster-ink-soft:#6b5a4d;
+      --poster-line:rgba(102,78,57,.09);
+      --poster-shadow:0 18px 42px rgba(83,62,45,.07);
+      --poster-shadow-soft:0 10px 24px rgba(83,62,45,.05);
+      --mask-z:2147483000;
+    }
+
+    html,body{
+      background:
+        radial-gradient(1200px 760px at 50% -10%, rgba(255,255,255,.95), transparent 58%),
+        linear-gradient(180deg, var(--poster-bg), var(--poster-bg-2)) !important;
+      color:var(--poster-ink);
+    }
+
+    body{ min-height:100vh; }
+
+    #btnLinePrivateCta,#btnLinePrivateCta2{
+      display:none !important;
+      visibility:hidden !important;
+      opacity:0 !important;
+      pointer-events:none !important;
+    }
+
+    #adminHotspotBR{
+      position: fixed;
+      right: 8px;
+      bottom: 8px;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: transparent;
+      z-index: 2147482000;
+      pointer-events: auto;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* 精品浮動按鈕 */
+    #cleanShareFab,
+    #installFab{
+      position: fixed;
+      right: 12px;
+      z-index: 2147482500;
+      width: 50px;
+      height: 50px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(24,26,32,0.46);
+      backdrop-filter: blur(14px) saturate(1.15);
+      -webkit-backdrop-filter: blur(14px) saturate(1.15);
+      box-shadow:
+        0 10px 24px rgba(0,0,0,0.22),
+        inset 0 1px 0 rgba(255,255,255,0.16),
+        0 0 0 1px rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.94);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      transition: transform .14s ease, box-shadow .14s ease, background .14s ease;
+    }
+    #cleanShareFab{ bottom: 12px; }
+    #installFab{ bottom: 68px; }
+    #cleanShareFab i,#installFab i{ font-size: 18px; }
+    #cleanShareFab:active,
+    #installFab:active{
+      transform: scale(0.96);
+      box-shadow:
+        0 6px 16px rgba(0,0,0,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.14);
+    }
+
+    .facade-brand{
+      width:100%;
+      max-width:520px;
+      border-radius:24px;
+      padding:16px 14px 14px;
+      border:1px solid var(--poster-line);
+      background:linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
+      box-shadow:var(--poster-shadow);
+    }
+    .facade-brand-head{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+    .sun-ui-icon{
+      width:16px;
+      height:16px;
+      display:block;
+      margin-bottom:6px;
+      opacity:.92;
+    }
+    .facade-brand-title{
+      font-weight:1000;
+      font-size:18px;
+      line-height:1.25;
+      letter-spacing:.6px;
+      color:var(--poster-ink);
+      text-align:center;
+    }
+    .facade-brand-subtitle{
+      margin-top:6px;
+      font-size:13px;
+      line-height:1.35;
+      font-weight:800;
+      letter-spacing:.18em;
+      color:#a08f82;
+      text-align:center;
+    }
+    .facade-brand .p{
+      margin-top:10px;
+      font-size:11px;
+      line-height:1.72;
+      color:var(--poster-ink-soft);
+      font-weight:700;
+      text-align:center;
+      max-width:320px;
+      margin-left:auto;
+      margin-right:auto;
+      text-wrap:balance;
+      word-break:keep-all;
+    }
+    .balance-text .balance-line{ display:block; }
+
+    .facade-qr{
+      width:100%;
+      max-width:520px;
+      margin-top:12px;
+      border-radius:24px;
+      padding:14px 14px 12px;
+      border:1px solid var(--poster-line);
+      background:linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
+      box-shadow:var(--poster-shadow-soft);
+    }
+    .facade-qr-box{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+    .facade-qr-canvas{
+      position:relative;
+      width:172px;
+      height:172px;
+      padding:12px;
+      border-radius:22px;
+      background:#fff;
+      box-shadow:0 8px 18px rgba(0,0,0,.04);
+      border:1px solid rgba(0,0,0,.035);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .facade-qr-grid{
+      position:relative;
+      width:148px;
+      height:148px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      border-radius:14px;
+      background:#fff;
+    }
+    .facade-qr-grid img,
+    .qr-bottom-grid img,
+    .feature-qr-grid img{
+      width:100% !important;
+      height:100% !important;
+      display:block;
+      object-fit:cover;
+    }
+
+    /* 名片館 QR 小太陽精品縮小 */
+    .facade-qr-logo-pad{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      width:24px;
+      height:24px;
+      border-radius:8px;
+      background:rgba(255,255,255,0.98);
+      box-shadow:0 3px 8px rgba(0,0,0,0.07), 0 0 0 3px rgba(255,255,255,0.96);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:3;
+      pointer-events:none;
+    }
+    .facade-qr-logo{
+      width:10px;
+      height:10px;
+      display:block;
+    }
+
+    .facade-qr-title{
+      margin-top:12px;
+      font-size:14px;
+      font-weight:900;
+      color:var(--poster-ink);
+    }
+    .facade-qr-sub{
+      margin-top:6px;
+      font-size:12px;
+      line-height:1.65;
+      font-weight:800;
+      color:var(--poster-ink-soft);
+    }
+
+    .primary-link-dock .dock-buttons,
+    .cta-dock .dock-buttons,
+    .install-dock .dock-buttons{
+      grid-template-columns:1fr !important;
+    }
+
+    .qr-bottom{
+      margin-top:16px;
+      padding:14px 12px 12px;
+      border-radius:20px;
+      border:1px solid rgba(102,78,57,.08);
+      background:linear-gradient(180deg, rgba(255,253,250,.95), rgba(255,248,241,.96));
+      box-shadow:0 12px 30px rgba(83,62,45,.05);
+      display:none;
+    }
+    .qr-bottom-head{
+      text-align:center;
+      margin-bottom:10px;
+    }
+    .qr-bottom-title{
+      font-size:13px;
+      font-weight:900;
+      color:var(--poster-ink);
+      line-height:1.6;
+      text-wrap:balance;
+    }
+    .qr-bottom-sub{
+      margin-top:4px;
+      font-size:11px;
+      font-weight:700;
+      color:var(--poster-ink-soft);
+      line-height:1.7;
+      text-wrap:balance;
+    }
+    .qr-bottom-wrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+    .qr-bottom-canvas{
+      position:relative;
+      width:156px;
+      height:156px;
+      padding:10px;
+      border-radius:20px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.04);
+      box-shadow:0 8px 18px rgba(0,0,0,.05);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .qr-bottom-grid{
+      width:136px;
+      height:136px;
+      border-radius:14px;
+      overflow:hidden;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    #bottomQrAvatar,
+    #featureQrAvatar{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      border-radius:999px;
+      object-fit:cover;
+      z-index:3;
+      display:none;
+      background:transparent;
+      box-shadow:none;
+      padding:0;
+      pointer-events:none;
+    }
+
+    .feature-qr-shell{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:8px 0 2px;
+    }
+    .feature-qr-canvas{
+      position:relative;
+      width:176px;
+      height:176px;
+      padding:12px;
+      border-radius:22px;
+      background:#fff;
+      box-shadow:0 8px 18px rgba(0,0,0,.04);
+      border:1px solid rgba(0,0,0,.035);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .feature-qr-grid{
+      width:152px;
+      height:152px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      border-radius:14px;
+      background:#fff;
+    }
+
+    .modal-mask,
+    .invite-mask{
+      display:none;
+      position:fixed !important;
+      inset:0 !important;
+      z-index:var(--mask-z) !important;
+      background:rgba(20,17,14,.46);
+      backdrop-filter:blur(4px);
+      -webkit-backdrop-filter:blur(4px);
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      box-sizing:border-box;
+    }
+    .modal,
+    .invite-box{
+      position:relative;
+      z-index:calc(var(--mask-z) + 1);
+      width:min(92vw, 420px);
+      max-width:420px;
+      max-height:86vh;
+      overflow:auto;
+      border-radius:24px;
+      background:linear-gradient(180deg, rgba(255,252,248,.98), rgba(252,245,237,.98));
+      box-shadow:0 24px 60px rgba(0,0,0,.18);
+      border:1px solid rgba(102,78,57,.10);
+      color:var(--poster-ink);
+    }
+    .modal-hd,
+    .invite-hd{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:16px 16px 10px;
+      font-weight:900;
+    }
+    .modal-title{ font-size:15px; }
+    .modal-close,
+    .invite-btn{
+      border:none;
+      background:#f0e5d8;
+      color:var(--poster-ink);
+      border-radius:14px;
+      padding:10px 14px;
+      font-size:13px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .modal-bd,
+    .invite-bd{ padding:6px 16px 16px; }
+    .invite-row{
+      display:flex;
+      gap:10px;
+      margin-top:12px;
+      align-items:center;
+    }
+    .invite-input{
+      flex:1;
+      min-width:0;
+      border:1px solid rgba(102,78,57,.14);
+      border-radius:14px;
+      background:#fff;
+      color:var(--poster-ink);
+      padding:12px 14px;
+      font-size:14px;
+      outline:none;
+    }
+    .invite-primary{
+      background:#4d8f71;
+      color:#fff;
+    }
+
+    .text-toggle-wrap{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      width:100%;
+    }
+
+    .expandable-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      width:100%;
+    }
+
+    .expandable-text{
+      overflow:hidden;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+    }
+
+    .expandable-text.preline{
+      white-space:pre-line;
+    }
+
+    .expandable-text.is-collapsed{
+      display:-webkit-box;
+      -webkit-box-orient:vertical;
+      -webkit-line-clamp:var(--max-lines, 3);
+      line-clamp:var(--max-lines, 3);
+    }
+
+    .expandable-text.is-expanded{
+      display:block;
+      overflow:visible;
+    }
+
+    .expand-toggle{
+      appearance:none;
+      border:none;
+      outline:none;
+      background:rgba(176,138,107,.12);
+      color:#8d684f;
+      border-radius:999px;
+      padding:6px 12px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.04em;
+      line-height:1;
+      cursor:pointer;
+      align-self:flex-start;
+      box-shadow:0 4px 12px rgba(83,62,45,.05);
+    }
+
+    .expand-toggle:hover{
+      background:rgba(176,138,107,.18);
+    }
+
+    .unit-wrap,
+    .slogan-wrap{
+      margin-top:2px;
+    }
+
+    .unit-wrap .expand-toggle,
+    .slogan-wrap .expand-toggle{
+      align-self:center;
+    }
+
+    .unit.expandable-text,
+    .slogan.expandable-text{
+      width:100%;
+      text-align:center;
+    }
+
+    .block-body.expandable-text{
+      text-align:left;
+    }
+
+    .install-dock{ display:none; }
+    body.clean .install-dock{ display:block; }
+    body.clean #cleanShareFab{ z-index:2147483500; display:flex; }
+    body.clean #installFab{ z-index:2147483500; display:flex; }
+    body.clean #admin-panel{ display:none !important; }
+    body.clean #card-container{ position: relative; z-index: 1; }
+
+    @media (max-width: 520px){
+      .facade-brand .p{
+        font-size:10px;
+        line-height:1.7;
+        max-width:286px;
+      }
+      .qr-bottom-title{ font-size:12px; }
+      .qr-bottom-sub{ font-size:10px; }
+      .invite-row{ flex-direction:column; }
+      .invite-primary,.invite-input{ width:100%; }
+
+      .expand-toggle{
+        font-size:11px;
+        padding:6px 11px;
+      }
+    }
+  </style>
+
+  <script>
+    (function(){
+      "use strict";
+      var DEMO_ID = "TW0001";
+      var sp = new URLSearchParams(location.search || "");
+      var isClean = (sp.get("view") === "1") || (sp.get("clean") === "1");
+      var isAdmin = (sp.get("admin") === "1");
+
+      if (isClean) {
+        try{
+          document.addEventListener("DOMContentLoaded", function(){
+            document.body.classList.add("clean");
+          }, {once:true});
+        }catch(e){}
+      }
+
+      if (!isClean && !isAdmin) {
+        var currentId = (sp.get("id") || "").trim();
+        if (!currentId) {
+          sp.set("id", DEMO_ID);
+          try { history.replaceState({}, "", location.pathname + "?" + sp.toString()); } catch(e) {}
+        }
+      }
+    })();
+  </script>
 </head>
 
-<body class="mode-home">
-
-  <!-- =========================
-       共用浮動按鈕
-  ========================== -->
-  <button id="cleanShareFab" type="button" aria-label="分享這張名片">
-    <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
-  </button>
+<body class="mode-free color-1 style-arch paper-1">
+  <div id="adminHotspotBR" aria-hidden="true"></div>
 
   <button id="installFab" type="button" aria-label="一鍵安裝">
     <i class="fa-solid fa-download" aria-hidden="true"></i>
   </button>
 
-  <div id="adminHotspotBR" aria-hidden="true"></div>
+  <button id="cleanShareFab" type="button" aria-label="分享這張名片">
+    <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+  </button>
 
-  <!-- =========================
-       首頁模式
-  ========================== -->
-  <main id="homeMode" class="page-home" hidden>
-
-    <section class="hero-shell">
-      <div class="hero-card">
-        <div class="hero-head">
-          <svg class="sun-ui-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-            <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
-            <line x1="32" y1="6" x2="32" y2="16" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-            <line x1="32" y1="48" x2="32" y2="58" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-            <line x1="6" y1="32" x2="16" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-            <line x1="48" y1="32" x2="58" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-            <line x1="14" y1="14" x2="20" y2="20" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-            <line x1="44" y1="44" x2="50" y2="50" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-            <line x1="14" y1="50" x2="20" y2="44" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-            <line x1="44" y1="20" x2="50" y2="14" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
-          </svg>
-
-          <div class="hero-title-wrap">
-            <h1 class="hero-title">天使幸福智慧名片</h1>
-            <div class="hero-subtitle">Angel Smart Card</div>
-          </div>
-        </div>
-
-        <div class="hero-copy" id="heroCopy">
-          智慧名片訂製服務｜適合創業者、講師與服務業｜打造可分享的專屬名片入口
-        </div>
-
-        <div class="hero-guide">
-          這不是普通紙本名片，而是可分享、可展示、可延伸服務入口的智慧名片。
-          可以先了解特色，再申請邀請碼，再由客服協助開通製作。
-        </div>
-
-        <div class="hero-cta-stack">
-          <button class="btn-cta btn-cta-main" id="btnFeatureIntro" type="button">
-            <i class="fa-solid fa-circle-info"></i>
-            <span>了解智慧名片特色｜訂製流程</span>
-          </button>
-
-          <button class="btn-cta btn-cta-accent" id="btnLeadApply" type="button">
-            <i class="fa-solid fa-key"></i>
-            <span>申請邀請碼</span>
-          </button>
-
-          <button class="btn-cta btn-cta-line" id="btnLineOaCtaHome" type="button">
-            <i class="fa-brands fa-line"></i>
-            <span>加入 LINE 官方帳號索取邀請碼</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section" id="homeAccordionSection">
-      <div class="section-card">
-        <div class="section-title-lg">快速了解智慧名片</div>
-        <div class="section-sub">
-          手機閱讀最佳化版本｜先看重點，再決定是否申請
-        </div>
-
-        <div class="accordion-list" id="introAccordion">
-
-          <button class="accordion-item" type="button" data-acc-target="accWhat">
-            <span>智慧名片是什麼</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="accordion-panel" id="accWhat">
-            <div class="accordion-content">
-              智慧名片是一個可分享的個人入口。<br><br>
-              整合：聯絡方式、LINE、社群、服務介紹、QR Code。<br><br>
-              不需要下載 APP，點開網址就可以查看。<br><br>
-              它同時結合：名片 + 個人（或店家）行動網頁。<br><br>
-              如果需要，也可以安裝到手機桌面。
-            </div>
-          </div>
-
-          <button class="accordion-item" type="button" data-acc-target="accWhy">
-            <span>為什麼需要</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="accordion-panel" id="accWhy">
-            <div class="accordion-content">
-              傳統紙本名片常見問題：<br>
-              名片容易遺失、資訊無法更新、只能放基本資料。<br><br>
-              智慧名片可以：<br>
-              一頁整合所有資訊、QR Code 或網址即可分享、隨時更新內容、客戶點開即可聯絡。<br><br>
-              讓名片從一張卡片，變成一個入口。
-            </div>
-          </div>
-
-          <button class="accordion-item" type="button" data-acc-target="accFeatures">
-            <span>三大功能</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="accordion-panel" id="accFeatures">
-            <div class="accordion-content">
-              1｜專屬名片頁：整合聯絡方式、LINE、社群、服務介紹，讓客戶一頁就能了解你。<br><br>
-              2｜一鍵分享：每張名片都有專屬網址與專屬 QR Code，分享連結或掃描即可查看。<br><br>
-              3｜代理推廣：分享名片館入口，有人透過你的入口申請名片，即可累積代理推廣。
-            </div>
-          </div>
-
-          <button class="accordion-item" type="button" data-acc-target="accPlans">
-            <span>方案介紹</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="accordion-panel" id="accPlans">
-            <div class="accordion-content">
-              目前提供兩種方案：<br><br>
-              自由搭配款：自由簡潔風格，可自行選擇版型與配色。內容：照片 2 張、行動按鈕 1 個。適合快速展示聯絡資訊。<br><br>
-              精品設計款：精品風格設計，展示效果更完整。內容：照片 5 張、行動按鈕 3 個。適合品牌或服務展示。<br><br>
-              ※ 名片款式可在名片館內操作體驗。
-            </div>
-          </div>
-
-          <button class="accordion-item" type="button" data-acc-target="accAudience">
-            <span>適用對象</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="accordion-panel" id="accAudience">
-            <div class="accordion-content">
-              智慧名片適合：個人品牌、創業者、業務人員、保險顧問、房仲、設計師、教練／講師、店家商家、電商經營者、接案工作者。<br><br>
-              可用於：分享聯絡方式、展示服務、建立品牌形象、整合社群入口。
-            </div>
-          </div>
-
-          <button class="accordion-item" type="button" data-acc-target="accFlow">
-            <span>申請流程</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="accordion-panel" id="accFlow">
-            <div class="accordion-content">
-              1️⃣ 點擊取得申請碼<br>
-              2️⃣ 複製申請碼／或加入 LINE 官方帳號<br>
-              3️⃣ 將需求提供給客服<br>
-              4️⃣ 客服提供方案與價格<br>
-              5️⃣ 確認後填寫名片資料<br>
-              6️⃣ 客服製作名片，完成後即可使用。<br><br>
-              小提示：智慧名片結合名片 + 行動網頁，不需下載 APP，但也可以安裝到手機桌面。
-            </div>
-          </div>
-
-        </div>
-
-        <div class="section-bottom-cta">
-          <button class="btn-cta btn-cta-accent" id="btnLeadApplyBottom" type="button">
-            <i class="fa-solid fa-key"></i>
-            <span>立即取得申請碼</span>
-          </button>
-        </div>
-      </div>
-    </section>
-<section class="home-section">
-      <div class="section-card">
-        <div class="section-title-lg">三大核心功能</div>
-        <div class="feature-cards-grid">
-
-          <div class="mini-feature-card">
-            <div class="mini-feature-icon"><i class="fa-solid fa-id-card"></i></div>
-            <div class="mini-feature-title">專屬名片頁</div>
-            <div class="mini-feature-copy">一頁整合聯絡方式、社群、服務介紹</div>
-          </div>
-
-          <div class="mini-feature-card">
-            <div class="mini-feature-icon"><i class="fa-solid fa-share-nodes"></i></div>
-            <div class="mini-feature-title">一鍵分享</div>
-            <div class="mini-feature-copy">網址與 QR Code 都能快速分享</div>
-          </div>
-
-          <div class="mini-feature-card">
-            <div class="mini-feature-icon"><i class="fa-solid fa-bullhorn"></i></div>
-            <div class="mini-feature-title">代理推廣</div>
-            <div class="mini-feature-copy">入口分享可追蹤來源，後續可擴充成長模式</div>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section">
-      <div class="section-card">
-        <div class="section-title-lg">智慧名片方案</div>
-        <div class="plans-grid">
-
-          <div class="plan-card">
-            <div class="plan-badge">自由搭配款</div>
-            <div class="plan-copy">
-              自由簡潔風格<br>
-              可自行選擇版型與配色
-            </div>
-            <ul class="plan-list">
-              <li>照片：2 張</li>
-              <li>行動按鈕：1 個</li>
-              <li>適合快速展示聯絡資訊</li>
-            </ul>
-          </div>
-
-          <div class="plan-card premium">
-            <div class="plan-badge">精品設計款</div>
-            <div class="plan-copy">
-              精品風格設計<br>
-              展示效果更完整
-            </div>
-            <ul class="plan-list">
-              <li>照片：5 張</li>
-              <li>行動按鈕：3 個</li>
-              <li>適合品牌或服務展示</li>
-            </ul>
-          </div>
-
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section">
-      <div class="section-card">
-        <div class="section-title-lg">看看智慧名片實際呈現方式</div>
-        <div class="section-sub">可預覽不同產業使用樣貌</div>
-
-        <div class="demo-grid" id="demoGrid">
-          <button class="demo-card" type="button" data-demo-id="TW0001">
-            <div class="demo-card-title">教練／顧問示例</div>
-            <div class="demo-card-copy">查看名片實際呈現</div>
-          </button>
-
-          <button class="demo-card" type="button" data-demo-id="TW0002">
-            <div class="demo-card-title">品牌／店家示例</div>
-            <div class="demo-card-copy">查看名片實際呈現</div>
-          </button>
-
-          <button class="demo-card" type="button" data-demo-id="TW0003">
-            <div class="demo-card-title">服務業示例</div>
-            <div class="demo-card-copy">查看名片實際呈現</div>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section">
-      <div class="section-card section-card-cta">
-        <div class="section-title-lg">想製作自己的智慧名片？</div>
-        <div class="section-sub">
-          先申請邀請碼，客服會協助後續流程
-        </div>
-
-        <div class="double-cta-stack">
-          <button class="btn-cta btn-cta-accent" id="btnLeadApplyMain2" type="button">
-            <i class="fa-solid fa-key"></i>
-            <span>申請邀請碼</span>
-          </button>
-
-          <button class="btn-cta btn-cta-line" id="btnLineOaCtaHome2" type="button">
-            <i class="fa-brands fa-line"></i>
-            <span>加入 LINE 官方帳號</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section class="home-section home-share-section">
-      <div class="section-card">
-        <div class="section-title-lg">分享智慧名片館</div>
-        <div class="section-sub">
-          可分享給客戶、朋友、社群，讓更多人直接體驗
-        </div>
-
-        <button class="btn-cta btn-cta-share" id="btnShareHub" type="button">
-          <i class="fa-solid fa-share-nodes"></i>
-          <span>分享智慧名片館</span>
-        </button>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- =========================
-       名片模式
-  ========================== -->
-  <header id="admin-panel" hidden>
+  <header id="admin-panel">
     <div class="panel-inner">
 
       <div class="facade-brand" id="facadeBrand">
@@ -345,7 +593,7 @@
           <div class="facade-brand-title">天使幸福智慧名片館</div>
           <div class="facade-brand-subtitle">Angel Smart Card</div>
         </div>
-        <div class="facade-brand-p" id="facadePitch">
+        <div class="p balance-text" id="facadePitch" data-balance-type="hero-copy">
           智慧名片訂製｜為創業者、講師、店家與個人品牌打造專屬名片入口
         </div>
       </div>
@@ -368,298 +616,607 @@
               </svg>
             </div>
           </div>
-          <div class="facade-qr-title">掃描 QRcode｜帶走智慧名片館</div>
-          <div class="facade-qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
+          <div class="facade-qr-title balance-text" data-balance-type="qr-title">掃描 QRcode｜帶走智慧名片館</div>
+          <div class="facade-qr-sub balance-text" data-balance-type="qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
         </div>
       </div>
 
-      <div class="controls-block card-mode-links">
-        <button class="btn-cta btn-cta-main" id="btnFeatureCardMode" type="button">
-          <i class="fa-solid fa-circle-info"></i>
-          <span>了解智慧名片特色｜訂製流程</span>
+      <div class="plan-row" id="planRow">
+        <button class="btn-neo pill breathe active" data-group="plan" id="btnPlanFree" type="button"
+          onclick="window.setPlan && window.setPlan('free', this)">
+          自由搭配
+        </button>
+        <button class="btn-neo pill" data-group="plan" id="btnPlanPremium" type="button"
+          onclick="window.setPlan && window.setPlan('premium', this)">
+          精品設計
+        </button>
+      </div>
+
+      <div class="controls-block" id="free-controls">
+        <div class="section-title">選顏色</div>
+        <div class="dots-row" id="freeDotsRow">
+          <button class="dot dot-1 active" data-group="theme" type="button" aria-label="粉" onclick="window.setTheme && window.setTheme('color-1', this)"></button>
+          <button class="dot dot-2" data-group="theme" type="button" aria-label="藍" onclick="window.setTheme && window.setTheme('color-2', this)"></button>
+          <button class="dot dot-3" data-group="theme" type="button" aria-label="橘" onclick="window.setTheme && window.setTheme('color-3', this)"></button>
+          <button class="dot dot-4" data-group="theme" type="button" aria-label="紫" onclick="window.setTheme && window.setTheme('color-4', this)"></button>
+          <button class="dot dot-5" data-group="theme" type="button" aria-label="綠" onclick="window.setTheme && window.setTheme('color-5', this)"></button>
+        </div>
+
+        <div class="section-title">選版型</div>
+        <div class="btn-row" id="styleRow">
+          <button class="btn-neo active" data-group="style" type="button" onclick="window.setStyle && window.setStyle('arch', this)">正拱</button>
+          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle && window.setStyle('flat', this)">平直</button>
+          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle && window.setStyle('spot', this)">晨曦</button>
+        </div>
+
+        <div class="section-title">選紙感</div>
+        <div class="btn-row" id="paperRow">
+          <button class="btn-neo active" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-1', this)">棉紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-2', this)">象牙紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-3', this)">霧灰</button>
+        </div>
+
+        <button class="btn-cta subtle" id="btnLineOaCta" type="button">
+          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
         </button>
 
-        <button class="btn-cta btn-cta-accent" id="btnLeadApplyCardMode" type="button">
-          <i class="fa-solid fa-key"></i>
-          <span>申請邀請碼</span>
+        <button class="btn-cta subtle" id="btnFeature" type="button">
+          <i class="fa-solid fa-circle-info"></i> 產品特色說明
         </button>
 
-        <button class="btn-cta btn-cta-line" id="btnLineOaCtaCardMode" type="button">
-          <i class="fa-brands fa-line"></i>
-          <span>加入 LINE 官方帳號索取邀請碼</span>
+        <button class="btn-cta subtle" id="btnInviteGate" type="button">
+          <i class="fa-solid fa-key"></i> 請聯繫客服開通
         </button>
 
-        <button class="btn-cta btn-cta-share" id="btnShareCardHub" type="button">
-          <i class="fa-solid fa-share-nodes"></i>
-          <span>分享智慧名片館</span>
+        <button class="btn-cta btn-share" id="btnShare" type="button">
+          <i class="fa-solid fa-share-nodes"></i> 分享智慧名片館
+        </button>
+      </div>
+
+      <div class="controls-block" id="premium-controls" style="display:none;">
+        <div class="section-title">選底色</div>
+        <div class="dots-row" id="premiumDotsRow">
+          <button class="p-dot p1 active" data-group="theme" type="button" aria-label="p1" onclick="window.setTheme && window.setTheme('p1', this)"></button>
+          <button class="p-dot p2" data-group="theme" type="button" aria-label="p2" onclick="window.setTheme && window.setTheme('p2', this)"></button>
+          <button class="p-dot p3" data-group="theme" type="button" aria-label="p3" onclick="window.setTheme && window.setTheme('p3', this)"></button>
+          <button class="p-dot p4" data-group="theme" type="button" aria-label="p4" onclick="window.setTheme && window.setTheme('p4', this)"></button>
+          <button class="p-dot p5" data-group="theme" type="button" aria-label="p5" onclick="window.setTheme && window.setTheme('p5', this)"></button>
+          <button class="p-dot p6" data-group="theme" type="button" aria-label="p6" onclick="window.setTheme && window.setTheme('p6', this)"></button>
+          <button class="p-dot p7" data-group="theme" type="button" aria-label="p7" onclick="window.setTheme && window.setTheme('p7', this)"></button>
+        </div>
+
+        <button class="btn-cta subtle" id="btnLineOaCta2" type="button">
+          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
+        </button>
+
+        <button class="btn-cta subtle" id="btnFeature2" type="button">
+          <i class="fa-solid fa-circle-info"></i> 產品特色說明
+        </button>
+
+        <button class="btn-cta subtle" id="btnInviteGate2" type="button">
+          <i class="fa-solid fa-key"></i> 請聯繫客服開通
+        </button>
+
+        <button class="btn-cta btn-share" id="btnSharePremium" type="button">
+          <i class="fa-solid fa-share-nodes"></i> 分享智慧名片館
         </button>
       </div>
 
     </div>
   </header>
 
-  <main id="cardMode" class="page-card" hidden>
-    <div id="card-container">
-      <section class="card" id="card">
-        <div class="premium-fx-layer"></div>
-        <div class="banner" id="banner">
-          <div class="dynamic-mask"></div>
-        </div>
-        <div class="paper-overlay" id="paperOverlay"></div>
+  <main id="card-container">
+    <section class="card" id="card">
+      <div class="premium-fx-layer"></div>
 
-        <div class="avatar-wrap">
-          <div class="avatar-circle">
-            <img class="avatar" id="u-img" alt="個人照" />
-          </div>
-        </div>
-
-        <div class="logo-wrap" id="logoWrap" style="display:none;">
-          <img id="u-logo" class="logo-img" alt="Logo" />
-        </div>
-
-        <div class="info-scroll">
-          <div class="name" id="u-name">載入中…</div>
-
-          <div class="text-toggle-wrap unit-wrap" id="u-unit-wrap" style="display:none;">
-            <div class="unit expandable-text is-collapsed preline" id="u-unit" style="--max-lines:2;"></div>
-            <button class="expand-toggle" id="u-unit-toggle" type="button" style="display:none;">看更多</button>
-          </div>
-
-          <div class="title" id="u-title"></div>
-
-          <div class="text-toggle-wrap slogan-wrap" id="u-slogan-wrap" style="display:none;">
-            <div class="slogan expandable-text is-collapsed preline" id="u-slogan" style="--max-lines:3;"></div>
-            <button class="expand-toggle" id="u-slogan-toggle" type="button" style="display:none;">看更多</button>
-          </div>
-
-          <div class="info-block" id="block-service" style="display:none;"></div>
-          <div class="info-block" id="block-exp" style="display:none;"></div>
-
-          <div class="contact-dock install-dock" id="installDock" style="display:none;">
-            <div class="dock-title"><i class="fa-solid fa-download"></i> 一鍵安裝</div>
-            <div class="dock-buttons" id="installButtons">
-              <button class="dock-btn wide dock-web" type="button" id="btnInstallCard">
-                <i class="fa-solid fa-mobile-screen-button"></i><span>安裝到手機桌面</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="contact-dock" id="contactDock" style="display:none;">
-            <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
-            <div class="dock-buttons" id="contactButtons"></div>
-          </div>
-
-          <div class="contact-dock primary-link-dock" id="primaryLinkDock" style="display:none;">
-            <div class="dock-title"><i class="fa-solid fa-globe"></i> 主網站</div>
-            <div class="dock-buttons" id="primaryLinkButtons"></div>
-          </div>
-
-          <div class="contact-dock" id="mediaDock" style="display:none;">
-            <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>
-            <div class="dock-buttons" id="mediaButtons"></div>
-          </div>
-
-          <div class="contact-dock cta-dock" id="ctaDock" style="display:none;">
-            <div class="dock-title"><i class="fa-solid fa-bolt"></i> 立即行動</div>
-            <div class="dock-buttons" id="ctaButtons"></div>
-          </div>
-
-          <div class="photo-wall" id="photoWall" style="display:none;">
-            <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
-            <div class="photo-grid" id="photoGrid"></div>
-          </div>
-
-          <div class="qr-bottom" id="bottomQrSection">
-            <div class="qr-bottom-head">
-              <div class="qr-bottom-title" id="bottomQrTitle">
-                掃描 QRcode｜開啟我的智慧名片
-              </div>
-              <div class="qr-bottom-sub" id="bottomQrSub">
-                可收藏・可分享・可快速回看
-              </div>
-            </div>
-            <div class="qr-bottom-wrap">
-              <div class="qr-bottom-canvas">
-                <div class="qr-bottom-grid" id="bottomQrGrid"></div>
-                <img id="bottomQrAvatar" alt="QR 頭像" />
-              </div>
-            </div>
-          </div>
-
-          <div class="version-tag" id="versionTag">v731.0</div>
-        </div>
-      </section>
-    </div>
-  </main>
-<!-- =========================
-       了解智慧名片 Modal
-  ========================== -->
-  <div class="modal-mask" id="featureMask" aria-hidden="true">
-    <div class="modal modal-lg" role="dialog" aria-modal="true" aria-label="了解智慧名片">
-      <div class="modal-hd">
-        <div class="modal-title">
-          <i class="fa-solid fa-circle-info"></i>
-          了解智慧名片
-        </div>
-        <button class="modal-close" type="button" id="featureCloseBtn">關閉</button>
+      <div class="banner" id="banner">
+        <div class="dynamic-mask"></div>
       </div>
 
-      <div class="modal-bd">
-        <div class="modal-reading">
+      <div class="paper-overlay" id="paperOverlay"></div>
 
-          <div class="reading-block">
-            <div class="reading-title">智慧名片是什麼？</div>
-            <div class="reading-copy">
-              智慧名片是一個可分享的個人入口。<br><br>
-              整合：聯絡方式、LINE、社群、服務介紹、QR Code。<br><br>
-              不需要下載 APP，點開網址就可以查看。<br><br>
-              它同時結合：名片 + 個人（或店家）行動網頁。<br><br>
-              如果需要，也可以安裝到手機桌面。
-            </div>
-          </div>
+      <div class="avatar-wrap">
+        <div class="avatar-circle">
+          <img class="avatar" id="u-img" alt="個人照" />
+        </div>
+      </div>
 
-          <div class="reading-block">
-            <div class="reading-title">為什麼使用智慧名片？</div>
-            <div class="reading-copy">
-              傳統紙本名片常見問題：<br>
-              名片容易遺失、資訊無法更新、只能放基本資料。<br><br>
-              智慧名片可以：一頁整合所有資訊、QR Code 或網址即可分享、隨時更新內容、客戶點開即可聯絡。<br><br>
-              讓名片從一張卡片，變成一個入口。
-            </div>
-          </div>
+      <div class="premium-badge" id="premiumBadge" style="display:none;">
+        <span class="badge-dot"></span>
+        <span class="badge-text">精品設計</span>
+      </div>
 
-          <div class="reading-block">
-            <div class="reading-title">三大核心功能</div>
-            <div class="reading-copy">
-              1｜專屬名片頁：整合聯絡方式、LINE、社群、服務介紹，讓客戶一頁就能了解你。<br><br>
-              2｜一鍵分享：每張名片都有專屬網址、專屬 QR Code。<br><br>
-              3｜代理推廣：分享名片館入口，有人透過你的入口申請名片，即可累積代理推廣。
-            </div>
-          </div>
+      <div class="logo-wrap" id="logoWrap" style="display:none;">
+        <img id="u-logo" class="logo-img" alt="Logo" />
+      </div>
 
-          <div class="reading-block">
-            <div class="reading-title">智慧名片方案</div>
-            <div class="reading-copy">
-              自由搭配款：照片 2 張、行動按鈕 1 個，適合快速展示聯絡資訊。<br><br>
-              精品設計款：照片 5 張、行動按鈕 3 個，適合品牌或服務展示。<br><br>
-              ※ 名片款式可在名片館內操作體驗。
-            </div>
-          </div>
+      <div class="info-scroll">
+        <div class="name" id="u-name">載入中…</div>
 
-          <div class="reading-block">
-            <div class="reading-title">適用對象</div>
-            <div class="reading-copy">
-              智慧名片適合：個人品牌、創業者、業務人員、保險顧問、房仲、設計師、教練／講師、店家商家、電商經營者、接案工作者。<br><br>
-              可用於：分享聯絡方式、展示服務、建立品牌形象、整合社群入口。
-            </div>
-          </div>
+        <div class="text-toggle-wrap unit-wrap" id="u-unit-wrap" style="display:none;">
+          <div class="unit expandable-text is-collapsed preline" id="u-unit" style="--max-lines:2;"></div>
+          <button class="expand-toggle" id="u-unit-toggle" type="button" style="display:none;">看更多</button>
+        </div>
 
-          <div class="reading-block">
-            <div class="reading-title">申請流程</div>
-            <div class="reading-copy">
-              1️⃣ 點擊取得申請碼<br>
-              2️⃣ 複製申請碼／加入 LINE 官方帳號<br>
-              3️⃣ 將需求提供給客服<br>
-              4️⃣ 客服提供方案與價格<br>
-              5️⃣ 確認後填寫名片資料<br>
-              6️⃣ 客服製作名片並交付
-            </div>
-          </div>
+        <div class="title" id="u-title"></div>
 
-          <div class="modal-bottom-cta">
-            <button class="btn-cta btn-cta-accent" id="featureModalLeadBtn" type="button">
-              <i class="fa-solid fa-key"></i>
-              <span>立即取得申請碼</span>
+        <div class="text-toggle-wrap slogan-wrap" id="u-slogan-wrap" style="display:none;">
+          <div class="slogan expandable-text is-collapsed preline" id="u-slogan" style="--max-lines:3;"></div>
+          <button class="expand-toggle" id="u-slogan-toggle" type="button" style="display:none;">看更多</button>
+        </div>
+
+        <div class="info-block" id="block-service" style="display:none;"></div>
+        <div class="info-block" id="block-exp" style="display:none;"></div>
+
+        <div class="contact-dock install-dock" id="installDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-download"></i> 一鍵安裝</div>
+          <div class="dock-buttons" id="installButtons">
+            <button class="dock-btn wide dock-web" type="button" id="btnInstallCard">
+              <i class="fa-solid fa-mobile-screen-button"></i><span>安裝到手機桌面</span>
             </button>
           </div>
+        </div>
 
+        <div class="contact-dock" id="contactDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
+          <div class="dock-buttons" id="contactButtons"></div>
+        </div>
+
+        <div class="contact-dock primary-link-dock" id="primaryLinkDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-globe"></i> 主網站</div>
+          <div class="dock-buttons" id="primaryLinkButtons"></div>
+        </div>
+
+        <div class="contact-dock" id="mediaDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>
+          <div class="dock-buttons" id="mediaButtons"></div>
+        </div>
+
+        <div class="contact-dock cta-dock" id="ctaDock" style="display:none;">
+          <div class="dock-title"><i class="fa-solid fa-bolt"></i> 立即行動</div>
+          <div class="dock-buttons" id="ctaButtons"></div>
+        </div>
+
+        <div class="photo-wall" id="photoWall" style="display:none;">
+          <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
+          <div class="photo-grid" id="photoGrid"></div>
+        </div>
+
+        <div class="qr-bottom" id="bottomQrSection">
+          <div class="qr-bottom-head">
+            <div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">
+              掃描 QRcode｜開啟我的智慧名片
+            </div>
+            <div class="qr-bottom-sub balance-text" id="bottomQrSub" data-balance-type="product-qr-sub">
+              可收藏・可分享・可快速回看
+            </div>
+          </div>
+          <div class="qr-bottom-wrap">
+            <div class="qr-bottom-canvas">
+              <div class="qr-bottom-grid" id="bottomQrGrid"></div>
+              <img id="bottomQrAvatar" alt="QR 頭像" />
+            </div>
+          </div>
+        </div>
+
+        <div class="version-tag" id="versionTag">v524.7</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-mask" id="featureMask" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="產品特色說明">
+      <div class="modal-hd">
+        <div class="modal-title"><i class="fa-solid fa-circle-info"></i> 產品特色說明</div>
+        <button class="modal-close" type="button" id="featureCloseBtn">關閉</button>
+      </div>
+      <div class="modal-bd">
+        <div class="feature-qr-shell">
+          <div class="feature-qr-canvas">
+            <div class="feature-qr-grid" id="featureQrGrid"></div>
+            <img id="featureQrAvatar" alt="QR 頭像" />
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- =========================
-       申請邀請碼 Modal
-  ========================== -->
   <div class="invite-mask" id="inviteMask" aria-hidden="true">
-    <div class="invite-box" role="dialog" aria-modal="true" aria-label="申請邀請碼">
+    <div class="invite-box" role="dialog" aria-modal="true" aria-label="輸入邀請碼">
       <div class="invite-hd">
-        <div class="invite-title-wrap">
-          <i class="fa-solid fa-key"></i>
-          <span>申請智慧名片邀請碼</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i class="fa-solid fa-key"></i> 輸入邀請碼後開啟表單
         </div>
         <button class="invite-btn" type="button" id="inviteCloseBtn">關閉</button>
       </div>
-
       <div class="invite-bd">
-        <div class="invite-intro">
-          請填寫基本資料，我們會收到你的申請，客服後續提供邀請碼與製作流程說明。
+        <div>此表單採邀請制：請到後台取得邀請碼，提供給客戶填寫。</div>
+        <div class="invite-row">
+          <input class="invite-input" id="inviteInput" type="text" inputmode="text" autocomplete="off" placeholder="例如：ABCD-1234" />
+          <button class="invite-btn invite-primary" type="button" id="inviteGoBtn">開啟表單</button>
         </div>
-
-        <form id="leadForm" class="lead-form" novalidate>
-          <label class="field">
-            <span>姓名</span>
-            <input class="invite-input" id="leadName" name="customer_name" type="text" autocomplete="name" placeholder="請輸入姓名" required />
-          </label>
-
-          <label class="field">
-            <span>電話</span>
-            <input class="invite-input" id="leadPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="請輸入電話" required />
-          </label>
-
-          <label class="field">
-            <span>Email（可選）</span>
-            <input class="invite-input" id="leadEmail" name="email" type="email" inputmode="email" autocomplete="email" placeholder="請輸入 Email" />
-          </label>
-
-          <label class="field">
-            <span>LINE ID（可選）</span>
-            <input class="invite-input" id="leadLineId" name="line_id" type="text" autocomplete="off" placeholder="請輸入 LINE ID" />
-          </label>
-
-          <label class="field">
-            <span>備註（可選）</span>
-            <textarea class="invite-textarea" id="leadNote" name="note" placeholder="可簡單描述需求或行業別"></textarea>
-          </label>
-
-          <div class="lead-submit-wrap">
-            <button class="invite-btn invite-primary" type="submit" id="leadSubmitBtn">
-              送出申請
-            </button>
-          </div>
-
-          <div class="lead-msg" id="leadErrorMsg" style="display:none;"></div>
-        </form>
-
-        <div class="lead-success" id="leadSuccess" style="display:none;">
-          <div class="lead-success-icon">
-            <i class="fa-solid fa-circle-check"></i>
-          </div>
-
-          <div class="lead-success-title">已收到申請</div>
-          <div class="lead-success-copy">
-            客服將提供邀請碼<br>
-            可加入 LINE 官方帳號加快處理
-          </div>
-
-          <div class="lead-id-box">
-            <div class="lead-id-label">申請編號</div>
-            <div class="lead-id-value" id="leadIdValue">-</div>
-          </div>
-
-          <div class="lead-success-actions">
-            <button class="invite-btn invite-secondary" type="button" id="copyLeadBtn">
-              複製申請編號
-            </button>
-            <button class="invite-btn invite-line-btn" type="button" id="goLineAfterLeadBtn">
-              加入 LINE 官方帳號
-            </button>
-          </div>
+        <div style="margin-top:10px; color:rgba(67,50,39,0.72); font-size:13px;">
+          ※ 成品模式（?view=1）不提供填表入口。
         </div>
       </div>
     </div>
   </div>
 
-  <script src="./app.js?v=731.0"></script>
+  <script src="./app.js?v=524.7"></script>
+
+  <script>
+    (function(){
+      "use strict";
+
+      var VERSION = "524.7";
+      var LINE_OA_URL = "https://lin.ee/3r2ZePN";
+      var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+      var DEMO_ID = "TW0001";
+      var ADMIN_URL = "./admin.html?v=" + encodeURIComponent(VERSION);
+
+      function qs(id){ return document.getElementById(id); }
+      function sp(){ try{return new URLSearchParams(location.search || "");}catch(e){return new URLSearchParams();} }
+      function isClean(){
+        var p = sp();
+        return (p.get("view") === "1") || (p.get("clean") === "1");
+      }
+
+      var __scrollTop = 0;
+      function lockScroll(){
+        try{
+          __scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+          document.documentElement.style.overflow = "hidden";
+          document.body.style.overflow = "hidden";
+          document.body.style.position = "fixed";
+          document.body.style.top = (-__scrollTop) + "px";
+          document.body.style.left = "0";
+          document.body.style.right = "0";
+          document.body.style.width = "100%";
+        }catch(e){}
+      }
+      function unlockScroll(){
+        try{
+          document.documentElement.style.overflow = "";
+          document.body.style.overflow = "";
+          document.body.style.position = "";
+          document.body.style.top = "";
+          document.body.style.left = "";
+          document.body.style.right = "";
+          document.body.style.width = "";
+          window.scrollTo(0, __scrollTop || 0);
+        }catch(e){}
+      }
+
+      function applyCleanUI(){
+        if(!isClean()) return;
+        document.body.classList.add("clean");
+        var panel = qs("admin-panel");
+        var hot = qs("adminHotspotBR");
+        var fab = qs("cleanShareFab");
+        var installFab = qs("installFab");
+        var installDock = qs("installDock");
+        if(panel) panel.style.display = "none";
+        if(hot) hot.style.display = "none";
+        if(fab) fab.style.display = "flex";
+        if(installFab) installFab.style.display = "flex";
+        if(installDock) installDock.style.display = "";
+      }
+
+      function getCurrentCardId(){
+        try{
+          var p = sp();
+          var id = (p.get("id") || p.get("ref") || "").trim();
+          return id || DEMO_ID;
+        }catch(e){
+          return DEMO_ID;
+        }
+      }
+
+      function buildHubShareUrlFallback(){
+        try{
+          if(typeof window.__getHubShareUrl === "function"){
+            return window.__getHubShareUrl();
+          }
+        }catch(e){}
+        try{
+          var u = new URL(BASE_URL);
+          var id = getCurrentCardId();
+          if(id) u.searchParams.set("ref", id);
+          return u.toString();
+        }catch(e){
+          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
+        }
+      }
+
+      function buildCardShareUrlFallback(){
+        try{
+          if(typeof window.__getCardShareUrl === "function"){
+            return window.__getCardShareUrl();
+          }
+        }catch(e){}
+        try{
+          var u = new URL(BASE_URL + "index.html");
+          u.searchParams.set("id", getCurrentCardId());
+          u.searchParams.set("view", "1");
+          return u.toString();
+        }catch(e){
+          return BASE_URL + "index.html?id=" + encodeURIComponent(getCurrentCardId()) + "&view=1";
+        }
+      }
+
+      function buildFacadeHubQrUrl(){
+        try{
+          var u = new URL(BASE_URL);
+          u.searchParams.set("ref", getCurrentCardId());
+          return u.toString();
+        }catch(e){
+          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
+        }
+      }
+
+      function buildAdminUrl(){
+        try{
+          var p = sp();
+          var u = new URL(ADMIN_URL, location.href);
+          var tenant = (p.get("tenant") || "").trim();
+          if(tenant) u.searchParams.set("tenant", tenant);
+          return u.toString();
+        }catch(e){
+          return ADMIN_URL;
+        }
+      }
+
+      function renderFacadeQr(){
+        var mount = qs("facadeQrGrid");
+        if(!mount || isClean()) return;
+        mount.innerHTML = "";
+        var qrUrl = buildFacadeHubQrUrl();
+        try{
+          if(window.renderQr){
+            window.renderQr({ container: mount, url: qrUrl, size: 148 });
+          }
+        }catch(e){}
+      }
+
+      function renderFeatureQr(){
+        var mount = qs("featureQrGrid");
+        var avatar = qs("featureQrAvatar");
+        if(!mount) return;
+        mount.innerHTML = "";
+        var qrUrl = buildHubShareUrlFallback();
+        try{
+          if(window.renderQr){
+            window.renderQr({
+              container: mount,
+              url: qrUrl,
+              size: 152,
+              centerImgEl: avatar,
+              centerImgUrl: window.__getCurrentAvatarUrl ? window.__getCurrentAvatarUrl() : "",
+              centerSizeRatio: 0.09
+            });
+          }
+        }catch(e){}
+      }
+
+      async function shareUrl(url, title, textMsg, okMsg){
+        try{
+          if(navigator.share){
+            await navigator.share({
+              title: title || "天使幸福智慧名片",
+              text: textMsg || "",
+              url: url
+            });
+            return;
+          }
+
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(url);
+            alert(okMsg || "✅ 已複製連結");
+            return;
+          }
+
+          prompt("請手動複製連結", url);
+        }catch(_err){}
+      }
+
+      function bindShareFallback(){
+        function bindOne(id){
+          var btn = qs(id);
+          if(!btn) return;
+
+          btn.addEventListener("click", function(e){
+            e.preventDefault();
+            shareUrl(
+              buildHubShareUrlFallback(),
+              "天使幸福智慧名片館",
+              "分享智慧名片館",
+              "✅ 已複製智慧名片館連結"
+            );
+          }, true);
+        }
+
+        bindOne("btnShare");
+        bindOne("btnSharePremium");
+      }
+
+      function bindLineOa(){
+        function openOA(){
+          try{ window.open(LINE_OA_URL, "_blank", "noopener"); }
+          catch(e){ location.href = LINE_OA_URL; }
+        }
+        ["btnLineOaCta","btnLineOaCta2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); openOA(); }, {passive:false});
+        });
+      }
+
+      function bindFeature(){
+        var mask = qs("featureMask");
+        var close = qs("featureCloseBtn");
+        function open(){
+          if(!mask) return;
+          mask.style.display = "flex";
+          mask.setAttribute("aria-hidden", "false");
+          lockScroll();
+          renderFeatureQr();
+        }
+        function shut(){
+          if(!mask) return;
+          mask.style.display = "none";
+          mask.setAttribute("aria-hidden", "true");
+          unlockScroll();
+        }
+        ["btnFeature","btnFeature2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
+        });
+        if(close) close.addEventListener("click", function(){ shut(); });
+        if(mask) mask.addEventListener("click", function(e){
+          if(e.target === mask) shut();
+        });
+      }
+
+      function normalizeInvite(code){
+        return (code || "").replace(/\u3000/g, " ").replace(/\s+/g, "").trim();
+      }
+
+      function bindInviteGate(){
+        var mask = qs("inviteMask");
+        var close = qs("inviteCloseBtn");
+        var input = qs("inviteInput");
+        var go = qs("inviteGoBtn");
+
+        function open(){
+          if(isClean()) return;
+          if(!mask) return;
+          mask.style.display = "flex";
+          mask.setAttribute("aria-hidden", "false");
+          lockScroll();
+          setTimeout(function(){ try{ input && input.focus(); }catch(e){} }, 60);
+        }
+        function shut(){
+          if(!mask) return;
+          mask.style.display = "none";
+          mask.setAttribute("aria-hidden", "true");
+          unlockScroll();
+        }
+        function goForm(){
+          if(isClean()) return;
+          var code = normalizeInvite(input && input.value ? input.value : "");
+          if(!code){
+            try{ input && input.focus(); }catch(e){}
+            return;
+          }
+          var url = "./form.html?v=" + encodeURIComponent(VERSION) + "&invite=" + encodeURIComponent(code);
+          try{ window.open(url, "_blank", "noopener"); }catch(e){ location.href = url; }
+        }
+
+        ["btnInviteGate","btnInviteGate2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
+        });
+
+        if(close) close.addEventListener("click", function(){ shut(); });
+        if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) shut(); });
+
+        if(go) go.addEventListener("click", function(){ goForm(); });
+        if(input) input.addEventListener("keydown", function(e){
+          if(e.key === "Enter"){ e.preventDefault(); goForm(); }
+          if(e.key === "Escape"){ e.preventDefault(); shut(); }
+        });
+      }
+
+      function bindInstall(){
+        function runInstall(){
+          if(typeof window.__triggerPwaInstall === "function"){
+            window.__triggerPwaInstall();
+          }
+        }
+        ["btnInstallCard", "installFab"].forEach(function(id){
+          var btn = qs(id);
+          if(btn) btn.addEventListener("click", function(e){ e.preventDefault(); runInstall(); }, {passive:false});
+        });
+      }
+
+      function bindHiddenAdminEntry(){
+        if(isClean()) return;
+
+        var hot = qs("adminHotspotBR");
+        if(!hot) return;
+
+        var taps = 0;
+        var firstTapAt = 0;
+        var resetTimer = null;
+        var WINDOW_MS = 1800;
+        var NEED_TAPS = 5;
+
+        function resetTapState(){
+          taps = 0;
+          firstTapAt = 0;
+          if(resetTimer){
+            clearTimeout(resetTimer);
+            resetTimer = null;
+          }
+        }
+
+        function onTap(e){
+          if(isClean()) return;
+          if(e){
+            e.preventDefault();
+            e.stopPropagation();
+          }
+
+          var now = Date.now();
+          if(!firstTapAt || (now - firstTapAt > WINDOW_MS)){
+            taps = 0;
+            firstTapAt = now;
+          }
+
+          taps += 1;
+
+          if(resetTimer) clearTimeout(resetTimer);
+          resetTimer = setTimeout(resetTapState, WINDOW_MS + 120);
+
+          if(taps >= NEED_TAPS){
+            resetTapState();
+            location.href = buildAdminUrl();
+          }
+        }
+
+        hot.addEventListener("click", onTap, { passive:false });
+        hot.addEventListener("touchstart", onTap, { passive:false });
+      }
+
+      function boot(){
+        applyCleanUI();
+        bindLineOa();
+        bindFeature();
+        bindInviteGate();
+        bindShareFallback();
+        bindInstall();
+        bindHiddenAdminEntry();
+        renderFacadeQr();
+
+        var fab = qs("cleanShareFab");
+        if(fab){
+          fab.addEventListener("click", function(e){
+            e.preventDefault();
+            shareUrl(
+              buildCardShareUrlFallback(),
+              "天使幸福智慧名片",
+              "分享這張名片",
+              "✅ 已複製這張名片連結"
+            );
+          });
+        }
+      }
+
+      if(document.readyState === "loading"){
+        document.addEventListener("DOMContentLoaded", boot, {once:true});
+      }else{
+        boot();
+      }
+    })();
+  </script>
 </body>
 </html>

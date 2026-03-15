@@ -1,20 +1,12 @@
-/*
-HSC v731.1
-app.js
-COMPLETE OVERWRITE
-Part 1 / 5
-*/
-
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v731.1",
+  VERSION: "v524.7",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
-  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-  REF_STORAGE_KEY: "HSC_REF"
+  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
 };
 
 let currentRow = null;
@@ -22,9 +14,8 @@ let deferredInstallPrompt = null;
 let currentAvatarUrlCache = "";
 let currentAvatarSourceKeyCache = "";
 let lastBottomQrRenderKey = "";
+let lastFeatureQrRenderKey = "";
 let lastFacadeQrRenderKey = "";
-let __scrollTop = 0;
-let currentLeadId = "";
 
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
@@ -49,39 +40,11 @@ function getSearchParams_(){
 
 function getIdFromUrl_(){
   try{
-    return text(getSearchParams_().get("id") || "");
+    const sp = getSearchParams_();
+    return sp.get("id") || "";
   }catch{
     return "";
   }
-}
-
-function getRefFromUrl_(){
-  try{
-    return text(getSearchParams_().get("ref") || "");
-  }catch{
-    return "";
-  }
-}
-
-function persistRefIfAny_(){
-  const ref = getRefFromUrl_();
-  if(!ref) return;
-  try{ localStorage.setItem(CONFIG.REF_STORAGE_KEY, ref); }catch{}
-}
-
-function getSavedRef_(){
-  const ref = getRefFromUrl_();
-  if(ref) return ref;
-  try{
-    return text(localStorage.getItem(CONFIG.REF_STORAGE_KEY) || "");
-  }catch{
-    return "";
-  }
-}
-
-function isCleanMode_(){
-  const sp = getSearchParams_();
-  return sp.get("view") === "1" || sp.get("clean") === "1";
 }
 
 function normalizeUrl_(s){
@@ -105,15 +68,15 @@ function safeJsonParse_(rawText){
   return null;
 }
 
-async function fetchWithTimeout_(url, options = {}, timeoutMs = CONFIG.FETCH_TIMEOUT_MS){
+async function fetchWithTimeout_(url, timeoutMs){
   const controller = new AbortController();
   const t = setTimeout(()=>controller.abort(), timeoutMs);
   try{
     const res = await fetch(url, {
+      method: "GET",
       cache: "no-store",
       redirect: "follow",
-      signal: controller.signal,
-      ...options
+      signal: controller.signal
     });
     const txt = await res.text();
     const json = safeJsonParse_(txt);
@@ -124,11 +87,11 @@ async function fetchWithTimeout_(url, options = {}, timeoutMs = CONFIG.FETCH_TIM
   }
 }
 
-async function fetchJsonRobust_(url, options = {}){
+async function fetchJsonRobust_(url){
   let last = null;
   for(let i = 0; i <= CONFIG.RETRY; i++){
     try{
-      return await fetchWithTimeout_(url, options, CONFIG.FETCH_TIMEOUT_MS);
+      return await fetchWithTimeout_(url, CONFIG.FETCH_TIMEOUT_MS);
     }catch(e){
       last = e;
       await new Promise(r => setTimeout(r, 520 + i * 520));
@@ -143,14 +106,6 @@ function buildCardApiUrl_(id){
   u.searchParams.set("action", "card");
   u.searchParams.set("id", cid);
   u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
-  u.searchParams.set("ts", String(Date.now()));
-  u.searchParams.set("v", CONFIG.VERSION);
-  return u.toString();
-}
-
-function buildLeadCreateUrl_(){
-  const u = new URL(CONFIG.GAS);
-  u.searchParams.set("action", "leadCreate");
   u.searchParams.set("ts", String(Date.now()));
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
@@ -185,37 +140,6 @@ function pick(p, keys){
   }
   return "";
 }
-
-function escapeHtml_(s){
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function escapeHtmlWithBreaks_(s){
-  return escapeHtml_(s).replace(/\n/g, "<br>");
-}
-
-function copyText_(value, okMsg = "✅ 已複製"){
-  const v = text(value);
-  if(!v) return;
-  if(navigator.clipboard?.writeText){
-    navigator.clipboard.writeText(v).then(()=> alert(okMsg)).catch(()=>{
-      prompt("請手動複製", v);
-    });
-    return;
-  }
-  prompt("請手動複製", v);
-}
-/*
-HSC v731.1
-app.js
-COMPLETE OVERWRITE
-Part 2 / 5
-*/
 
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
@@ -312,6 +236,15 @@ function setImgWithFallback_(imgEl, candidates, options = {}){
   imgEl.src = buildSrc(list[0]);
 }
 
+function escapeHtml_(s){
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function openUrl_(url){
   const u = normalizeUrl_(url);
   if(!u) return;
@@ -343,33 +276,429 @@ function applyWideRule_(container){
   }
 }
 
+const BODY_MODE_CLASSES = ["mode-free", "mode-premium"];
+const BODY_FREE_THEME_CLASSES = ["color-1", "color-2", "color-3", "color-4", "color-5"];
+const BODY_PREMIUM_THEME_CLASSES = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"];
+const BODY_STYLE_CLASSES = ["style-arch", "style-flat", "style-spot"];
+const BODY_PAPER_CLASSES = ["paper-1", "paper-2", "paper-3"];
+
+const UI_STATE = {
+  plan: "free",
+  theme: "color-1",
+  premiumTheme: "p1",
+  style: "arch",
+  paper: "paper-1"
+};
+
+function removeBodyClasses_(classes){
+  classes.forEach(c => document.body.classList.remove(c));
+}
+
+function setBodyClassOneOf_(classes, target){
+  removeBodyClasses_(classes);
+  if(target) document.body.classList.add(target);
+}
+
+function setActiveAmong_(elements, activeEl){
+  (elements || []).forEach(el => {
+    if(el === activeEl) el.classList.add("active");
+    else el.classList.remove("active");
+  });
+}
+
+function mapFreeColorToTheme_(v){
+  const raw = text(v).toLowerCase();
+  const map = {
+    "c1":"color-1","c2":"color-2","c3":"color-3","c4":"color-4","c5":"color-5",
+    "color-1":"color-1","color-2":"color-2","color-3":"color-3","color-4":"color-4","color-5":"color-5"
+  };
+  return map[raw] || "color-1";
+}
+
+function mapStyleToUi_(v){
+  const raw = text(v).toLowerCase();
+  const map = {
+    "s1":"arch","s2":"flat","s3":"spot",
+    "arch":"arch","flat":"flat","spot":"spot"
+  };
+  return map[raw] || "arch";
+}
+
+function mapPaperToUi_(v){
+  const raw = text(v).toLowerCase();
+  const map = {
+    "f1":"paper-1","f2":"paper-2","f3":"paper-3",
+    "paper-1":"paper-1","paper-2":"paper-2","paper-3":"paper-3"
+  };
+  return map[raw] || "paper-1";
+}
+
+function mapPremiumToUi_(v){
+  const raw = text(v).toLowerCase();
+  const allow = ["p1","p2","p3","p4","p5","p6","p7"];
+  return allow.includes(raw) ? raw : "p1";
+}
+
+function applyThemeFromPayload_(p){
+  const planRaw = text(pick(p, ["plan"])) || "free";
+  const isPremium = planRaw === "premium";
+
+  if(isPremium){
+    const rawPremium = pick(p, ["premium_color"]);
+    UI_STATE.plan = "premium";
+    UI_STATE.premiumTheme = mapPremiumToUi_(rawPremium);
+  }else{
+    const rawColor = pick(p, ["color","free_color"]);
+    const rawStyle = pick(p, ["style","free_style"]);
+    const rawPaper = pick(p, ["paper","free_paper"]);
+
+    UI_STATE.plan = "free";
+    UI_STATE.theme = mapFreeColorToTheme_(rawColor);
+    UI_STATE.style = mapStyleToUi_(rawStyle);
+    UI_STATE.paper = mapPaperToUi_(rawPaper);
+  }
+
+  syncPlanUI_();
+}
+
+function syncPlanUI_(){
+  const freeBtn = qs("btnPlanFree");
+  const premBtn = qs("btnPlanPremium");
+  const freeControls = qs("free-controls");
+  const premiumControls = qs("premium-controls");
+  const badge = qs("premiumBadge");
+
+  setBodyClassOneOf_(BODY_MODE_CLASSES, UI_STATE.plan === "premium" ? "mode-premium" : "mode-free");
+
+  if(UI_STATE.plan === "premium"){
+    if(freeControls) freeControls.style.display = "none";
+    if(premiumControls) premiumControls.style.display = "";
+    if(badge) badge.style.display = "";
+    if(freeBtn) freeBtn.classList.remove("active");
+    if(premBtn) premBtn.classList.add("active");
+  }else{
+    if(premiumControls) premiumControls.style.display = "none";
+    if(freeControls) freeControls.style.display = "";
+    if(badge) badge.style.display = "none";
+    if(premBtn) premBtn.classList.remove("active");
+    if(freeBtn) freeBtn.classList.add("active");
+  }
+
+  syncThemeUI_();
+  syncStyleUI_();
+  syncPaperUI_();
+}
+
+function syncThemeUI_(){
+  const freeDots = qsa("#freeDotsRow .dot");
+  const premiumDots = qsa("#premiumDotsRow .p-dot");
+
+  removeBodyClasses_(BODY_FREE_THEME_CLASSES);
+  removeBodyClasses_(BODY_PREMIUM_THEME_CLASSES);
+
+  if(UI_STATE.plan === "premium"){
+    document.body.classList.add(UI_STATE.premiumTheme || "p1");
+
+    premiumDots.forEach(btn => {
+      const expected = btn.getAttribute("aria-label");
+      if(expected === UI_STATE.premiumTheme) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+
+    freeDots.forEach(btn => btn.classList.remove("active"));
+  }else{
+    document.body.classList.add(UI_STATE.theme || "color-1");
+
+    freeDots.forEach(btn => {
+      const map = {
+        "dot-1":"color-1","dot-2":"color-2","dot-3":"color-3","dot-4":"color-4","dot-5":"color-5"
+      };
+      const match = Object.keys(map).find(cls => btn.classList.contains(cls));
+      if(match && map[match] === UI_STATE.theme) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+
+    premiumDots.forEach(btn => btn.classList.remove("active"));
+  }
+}
+
+function syncStyleUI_(){
+  removeBodyClasses_(BODY_STYLE_CLASSES);
+  document.body.classList.add(`style-${UI_STATE.style || "arch"}`);
+
+  const buttons = qsa("#styleRow .btn-neo");
+  buttons.forEach(btn => {
+    const t = text(btn.textContent);
+    const map = { "正拱": "arch", "平直": "flat", "晨曦": "spot" };
+    const v = map[t] || "";
+    if(v === UI_STATE.style) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
+}
+
+function syncPaperUI_(){
+  removeBodyClasses_(BODY_PAPER_CLASSES);
+  document.body.classList.add(UI_STATE.paper || "paper-1");
+
+  const buttons = qsa("#paperRow .btn-neo");
+  buttons.forEach(btn => {
+    const t = text(btn.textContent);
+    const map = { "棉紙": "paper-1", "象牙紙": "paper-2", "霧灰": "paper-3" };
+    const v = map[t] || "";
+    if(v === UI_STATE.paper) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
+}
+
+window.setPlan = function(plan, el){
+  UI_STATE.plan = (plan === "premium") ? "premium" : "free";
+  syncPlanUI_();
+  if(el){
+    const planBtns = [qs("btnPlanFree"), qs("btnPlanPremium")].filter(Boolean);
+    setActiveAmong_(planBtns, el);
+  }
+};
+
+window.setTheme = function(theme, el){
+  if(!theme) return;
+
+  if(/^color-\d+$/.test(theme)){
+    UI_STATE.plan = "free";
+    UI_STATE.theme = theme;
+  }else if(/^p\d+$/.test(theme)){
+    UI_STATE.plan = "premium";
+    UI_STATE.premiumTheme = theme;
+  }
+
+  syncPlanUI_();
+
+  if(el){
+    const groupSel = UI_STATE.plan === "premium" ? "#premiumDotsRow .p-dot" : "#freeDotsRow .dot";
+    setActiveAmong_(qsa(groupSel), el);
+  }
+};
+
+window.setStyle = function(style, el){
+  const v = text(style);
+  if(!["arch","flat","spot"].includes(v)) return;
+  UI_STATE.style = v;
+  syncStyleUI_();
+  if(el) setActiveAmong_(qsa("#styleRow .btn-neo"), el);
+};
+
+window.setPaper = function(paper, el){
+  const v = text(paper);
+  if(!["paper-1","paper-2","paper-3"].includes(v)) return;
+  UI_STATE.paper = v;
+  syncPaperUI_();
+  if(el) setActiveAmong_(qsa("#paperRow .btn-neo"), el);
+};
+
+function initSelectionState_(){
+  const body = document.body;
+  if(!body) return;
+
+  UI_STATE.plan = body.classList.contains("mode-premium") ? "premium" : "free";
+
+  const freeTheme = BODY_FREE_THEME_CLASSES.find(c => body.classList.contains(c));
+  if(freeTheme) UI_STATE.theme = freeTheme;
+
+  const premiumTheme = BODY_PREMIUM_THEME_CLASSES.find(c => body.classList.contains(c));
+  if(premiumTheme) UI_STATE.premiumTheme = premiumTheme;
+
+  const styleClass = BODY_STYLE_CLASSES.find(c => body.classList.contains(c));
+  if(styleClass) UI_STATE.style = styleClass.replace(/^style-/, "");
+
+  const paperClass = BODY_PAPER_CLASSES.find(c => body.classList.contains(c));
+  if(paperClass) UI_STATE.paper = paperClass;
+
+  syncPlanUI_();
+}
+
+function escapeHtmlWithBreaks_(s){
+  return escapeHtml_(s).replace(/\n/g, "<br>");
+}
+
+function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}){
+  if(!contentEl) return;
+
+  const value = String(rawText || "");
+  const hasText = text(value) !== "";
+  const allowMultiline = !!options.allowMultiline;
+
+  contentEl.dataset.raw = value;
+  contentEl.dataset.maxLines = String(maxLines || 3);
+  contentEl.dataset.expandable = "1";
+
+  if(allowMultiline){
+    contentEl.innerHTML = escapeHtmlWithBreaks_(value);
+    contentEl.classList.add("preline");
+  }else{
+    contentEl.textContent = value;
+    contentEl.classList.remove("preline");
+  }
+
+  contentEl.classList.remove("is-expanded");
+  contentEl.classList.add("is-collapsed");
+  contentEl.style.setProperty("--max-lines", String(maxLines || 3));
+
+  if(toggleEl){
+    toggleEl.type = "button";
+    toggleEl.textContent = "看更多";
+    toggleEl.style.display = "none";
+    toggleEl.setAttribute("aria-expanded", "false");
+    toggleEl.onclick = null;
+
+    toggleEl.onclick = ()=>{
+      const expanded = contentEl.classList.contains("is-expanded");
+      if(expanded){
+        contentEl.classList.remove("is-expanded");
+        contentEl.classList.add("is-collapsed");
+        toggleEl.textContent = "看更多";
+        toggleEl.setAttribute("aria-expanded", "false");
+      }else{
+        contentEl.classList.remove("is-collapsed");
+        contentEl.classList.add("is-expanded");
+        toggleEl.textContent = "收合";
+        toggleEl.setAttribute("aria-expanded", "true");
+      }
+    };
+  }
+
+  if(!hasText){
+    if(toggleEl) toggleEl.style.display = "none";
+    return;
+  }
+
+  requestAnimationFrame(()=>{
+    refreshExpandableItem_(contentEl, toggleEl);
+  });
+}
+
+function refreshExpandableItem_(contentEl, toggleEl){
+  if(!contentEl) return;
+
+  const maxLines = Number(contentEl.dataset.maxLines || 3);
+  const wasExpanded = contentEl.classList.contains("is-expanded");
+
+  contentEl.classList.remove("is-expanded");
+  contentEl.classList.add("is-collapsed");
+  contentEl.style.setProperty("--max-lines", String(maxLines));
+
+  const needToggle = (contentEl.scrollHeight - contentEl.clientHeight) > 4;
+
+  if(toggleEl){
+    toggleEl.style.display = needToggle ? "inline-flex" : "none";
+    if(!needToggle){
+      toggleEl.textContent = "看更多";
+      toggleEl.setAttribute("aria-expanded", "false");
+    }
+  }
+
+  if(needToggle && wasExpanded){
+    contentEl.classList.remove("is-collapsed");
+    contentEl.classList.add("is-expanded");
+    if(toggleEl){
+      toggleEl.textContent = "收合";
+      toggleEl.setAttribute("aria-expanded", "true");
+    }
+  }
+}
+
+function refreshAllExpandable_(){
+  qsa("[data-expandable='1']").forEach((contentEl)=>{
+    const wrap = contentEl.closest(".expandable-wrap") || contentEl.parentElement;
+    const toggleEl = wrap ? wrap.querySelector(".expand-toggle") : null;
+    refreshExpandableItem_(contentEl, toggleEl);
+  });
+}
+
+let __expandRefreshTimer = null;
+window.addEventListener("resize", ()=>{
+  clearTimeout(__expandRefreshTimer);
+  __expandRefreshTimer = setTimeout(()=>{
+    refreshAllExpandable_();
+    applySmartBalanceAll_();
+  }, 120);
+});
+
+function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
+  if(!blockEl) return;
+
+  const value = String(rawText || "");
+  if(!text(value)){
+    blockEl.style.display = "none";
+    blockEl.innerHTML = "";
+    return;
+  }
+
+  blockEl.style.display = "";
+  blockEl.innerHTML = `
+    <div class="block-title">${escapeHtml_(title)}</div>
+    <div class="expandable-wrap">
+      <div class="block-body expandable-text is-collapsed preline" style="--max-lines:${Number(maxLines || 3)}"></div>
+      <button class="expand-toggle" type="button" style="display:none;">看更多</button>
+    </div>
+  `;
+
+  const contentEl = blockEl.querySelector(".expandable-text");
+  const toggleEl = blockEl.querySelector(".expand-toggle");
+  setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline: true });
+}
+
 function pickAvatarInfo_(p){
   const keys = [
-    "avatar_img_fast","avatar_img","avatar_url","avatar",
-    "個人照_fast","個人照","個人照_url"
+    "avatar_img_fast",
+    "avatar_img",
+    "avatar_url",
+    "avatar",
+    "個人照_fast",
+    "個人照",
+    "個人照_url"
   ];
+
   for(const k of keys){
     const v = pick(p, [k]);
     if(text(v)){
-      return { key: k, raw: v, url: normalizeImageUrl_(v) };
+      return {
+        key: k,
+        raw: v,
+        url: normalizeImageUrl_(v)
+      };
     }
   }
-  return { key: "", raw: "", url: "" };
+
+  return {
+    key: "",
+    raw: "",
+    url: ""
+  };
+}
+
+function pickAvatarUrl_(p){
+  const info = pickAvatarInfo_(p);
+  return info.url;
 }
 
 function renderAvatar_(p){
   const img = qs("u-img");
   if(!img) return;
+
   const info = pickAvatarInfo_(p);
   const u = info.url;
+
   currentAvatarUrlCache = u || "";
   currentAvatarSourceKeyCache = info.key || "";
+
   if(!u){
     img.removeAttribute("src");
     return;
   }
+
   setImgWithFallback_(img, buildImgCandidates_(u), {
-    onFail: ()=> img.removeAttribute("src")
+    onFail: ()=>{
+      img.removeAttribute("src");
+    }
   });
 }
 
@@ -397,40 +726,21 @@ function renderLogo_(p){
   });
 }
 
-function renderExpandableInfoBlock_(blockEl, title, rawText){
-  if(!blockEl) return;
-  const value = text(rawText);
-  if(!value){
-    blockEl.style.display = "none";
-    blockEl.innerHTML = "";
-    return;
-  }
-  blockEl.style.display = "";
-  blockEl.innerHTML = `
-    <div class="block-title">${escapeHtml_(title)}</div>
-    <div class="block-body preline">${escapeHtmlWithBreaks_(value)}</div>
-  `;
-}
-
 function renderBlocks_(p){
   const service = pick(p, ["services","服務項目","service"]);
   const exp = pick(p, ["experience","經歷","exp"]);
 
-  renderExpandableInfoBlock_(qs("block-service"), "服務項目", service);
-  renderExpandableInfoBlock_(qs("block-exp"), "經歷", exp);
+  const b1 = qs("block-service");
+  const b2 = qs("block-exp");
+
+  renderExpandableInfoBlock_(b1, "服務項目", service, 3);
+  renderExpandableInfoBlock_(b2, "經歷", exp, 3);
 }
-/*
-HSC v731.1
-app.js
-COMPLETE OVERWRITE
-Part 3 / 5
-*/
 
 function renderContactDock_(p){
   const dock = qs("contactDock");
   const btns = qs("contactButtons");
   if(!dock || !btns) return;
-
   btns.innerHTML = "";
 
   const phone = pick(p, ["phone","電話"]);
@@ -439,77 +749,91 @@ function renderContactDock_(p){
   const lineUrl = normalizeUrl_(pick(p, ["line_url","line_oa","LINE連結"]));
   const wechatId = text(pick(p, ["wechat_id","微信ID","微信"]));
 
-  const items = [];
+  const list = [];
 
   if(lineUrl){
-    items.push(buildDockBtn_({
-      label:"私訊 LINE",
-      icon:"fa-brands fa-line",
-      extraClass:"dock-line",
-      onClick: ()=> openUrl_(lineUrl)
-    }));
+    list.push({ label:"私訊 LINE", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineUrl) });
   }
   if(wechatId){
-    items.push(buildDockBtn_({
+    list.push({
       label:"微信ID",
       icon:"fa-brands fa-weixin",
-      extraClass:"dock-web",
-      onClick: ()=> copyText_(wechatId, "✅ 已複製微信ID")
-    }));
+      cls:"dock-web",
+      action: async ()=>{
+        try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(wechatId); }catch{}
+        alert("✅ 已複製微信ID");
+      }
+    });
   }
   if(phone){
-    items.push(buildDockBtn_({
-      label:"電話",
-      icon:"fa-solid fa-phone",
-      extraClass:"dock-web",
-      onClick: ()=> { location.href = `tel:${text(phone)}`; }
-    }));
+    list.push({ label:"電話", icon:"fa-solid fa-phone", cls:"dock-web", action: ()=> { location.href = `tel:${text(phone)}`; } });
   }
   if(email){
-    items.push(buildDockBtn_({
-      label:"Email",
-      icon:"fa-solid fa-envelope",
-      extraClass:"dock-web",
-      onClick: ()=> { location.href = `mailto:${text(email)}`; }
-    }));
+    list.push({ label:"Email", icon:"fa-solid fa-envelope", cls:"dock-web", action: ()=> { location.href = `mailto:${text(email)}`; } });
   }
   if(address){
-    items.push(buildDockBtn_({
-      label:"地址導航",
-      icon:"fa-solid fa-location-dot",
-      extraClass:"dock-map",
-      onClick: ()=> openMapByAddress_(address)
-    }));
+    list.push({ label:"地址導航", icon:"fa-solid fa-location-dot", cls:"dock-map", action: ()=> openMapByAddress_(address) });
   }
 
-  if(!items.length){
+  if(!list.length){
     dock.style.display = "none";
     return;
   }
 
+  list.forEach(x=>{
+    btns.appendChild(buildDockBtn_({
+      label: x.label,
+      icon: x.icon,
+      extraClass: x.cls,
+      onClick: x.action
+    }));
+  });
+
   dock.style.display = "";
-  items.forEach(el => btns.appendChild(el));
   applyWideRule_(btns);
 }
 
 function inferLinkMeta_(url, kind, idx){
   const u = String(url || "").toLowerCase();
+
   if(u.includes("youtube.com") || u.includes("youtu.be")) return { label:"YouTube", icon:"fa-brands fa-youtube", cls:"dock-yt" };
   if(u.includes("facebook.com") || u.includes("fb.com")) return { label:"FB", icon:"fa-brands fa-facebook", cls:"dock-fb" };
   if(u.includes("instagram.com")) return { label:"Instagram", icon:"fa-brands fa-instagram", cls:"dock-ig" };
   if(u.includes("threads.net")) return { label:"Threads", icon:"fa-solid fa-at", cls:"dock-web" };
+
   if(kind === "video") return { label:`影音 ${idx}`, icon:"fa-solid fa-play", cls:"dock-web" };
   return { label:`社群 ${idx}`, icon:"fa-solid fa-link", cls:"dock-web" };
+}
+
+function renderPrimaryLinkDock_(p){
+  const dock = qs("primaryLinkDock");
+  const btns = qs("primaryLinkButtons");
+  if(!dock || !btns) return;
+
+  btns.innerHTML = "";
+  const website = normalizeUrl_(pick(p, ["website","網站","web","homepage"]));
+  if(!website){
+    dock.style.display = "none";
+    return;
+  }
+
+  btns.appendChild(buildDockBtn_({
+    label: "官方網站",
+    icon: "fa-solid fa-globe",
+    extraClass: "dock-web wide",
+    onClick: ()=> openUrl_(website)
+  }));
+
+  dock.style.display = "";
 }
 
 function renderMediaDock_(p){
   const dock = qs("mediaDock");
   const btns = qs("mediaButtons");
   if(!dock || !btns) return;
-
   btns.innerHTML = "";
-  const items = [];
 
+  const items = [];
   ["video1","video2","video3"].forEach((k, i)=>{
     const u = normalizeUrl_(pick(p, [k, `影音連結${i+1}`]));
     if(u) items.push({ kind:"video", idx:i+1, url:u });
@@ -524,7 +848,6 @@ function renderMediaDock_(p){
     return;
   }
 
-  dock.style.display = "";
   items.forEach(item=>{
     const meta = inferLinkMeta_(item.url, item.kind, item.idx);
     btns.appendChild(buildDockBtn_({
@@ -534,6 +857,8 @@ function renderMediaDock_(p){
       onClick: ()=> openUrl_(item.url)
     }));
   });
+
+  dock.style.display = "";
   applyWideRule_(btns);
 }
 
@@ -541,37 +866,90 @@ function renderCtaDock_(p){
   const dock = qs("ctaDock");
   const btns = qs("ctaButtons");
   if(!dock || !btns) return;
-
   btns.innerHTML = "";
-  const pairs = [];
 
-  for(let i = 1; i <= 3; i++){
-    const t = text(pick(p, [`cta_text_${i}`]));
-    const l = normalizeUrl_(pick(p, [`cta_link_${i}`]));
-    if(t && l) pairs.push({ label:t, url:l });
-  }
+  const ctaText = text(pick(p, ["cta_text","CTA文字","ctaText"]));
+  const ctaLink = normalizeUrl_(pick(p, ["cta_link","CTA連結","ctaLink"]));
 
-  if(!pairs.length){
-    const ctaText = text(pick(p, ["cta_text","CTA文字","ctaText"]));
-    const ctaLink = normalizeUrl_(pick(p, ["cta_link","CTA連結","ctaLink"]));
-    if(ctaText && ctaLink) pairs.push({ label:ctaText, url:ctaLink });
-  }
-
-  if(!pairs.length){
+  if(!ctaText || !ctaLink){
     dock.style.display = "none";
     return;
   }
 
+  btns.appendChild(buildDockBtn_({
+    label: ctaText,
+    icon: "fa-solid fa-bolt",
+    extraClass: "dock-web wide",
+    onClick: ()=> openUrl_(ctaLink)
+  }));
+
   dock.style.display = "";
-  pairs.forEach(item=>{
-    btns.appendChild(buildDockBtn_({
-      label:item.label,
-      icon:"fa-solid fa-bolt",
-      extraClass:"dock-web",
-      onClick: ()=> openUrl_(item.url)
-    }));
-  });
-  applyWideRule_(btns);
+}
+
+function renderInstallDock_(){
+  const dock = qs("installDock");
+  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
+  if(!dock) return;
+  dock.style.display = cleanMode ? "" : "none";
+}
+
+function renderDocks_(p){
+  renderInstallDock_();
+  renderContactDock_(p);
+  renderPrimaryLinkDock_(p);
+  renderMediaDock_(p);
+  renderCtaDock_(p);
+}
+
+function stripQueryAndHash_(url){
+  const s = String(url || "");
+  return s.split("#")[0].split("?")[0];
+}
+
+function extractDriveId_(url){
+  const s = String(url || "");
+  let m = s.match(/[?&]id=([^&]+)/i);
+  if(m && m[1]) return decodeURIComponent(m[1]);
+
+  m = s.match(/\/file\/d\/([^/]+)/i);
+  if(m && m[1]) return decodeURIComponent(m[1]);
+
+  m = s.match(/\/thumbnail\?id=([^&]+)/i);
+  if(m && m[1]) return decodeURIComponent(m[1]);
+
+  return "";
+}
+
+function extractFirebaseFingerprint_(url){
+  const s = String(url || "");
+  if(!/firebasestorage\.googleapis\.com/i.test(s)) return "";
+  const noHash = s.split("#")[0];
+  const m = noHash.match(/\/o\/([^?]+)/i);
+  if(m && m[1]) return decodeURIComponent(m[1]).toLowerCase();
+  return "";
+}
+
+function extractLastPathSeg_(url){
+  const clean = stripQueryAndHash_(url);
+  const arr = clean.split("/").filter(Boolean);
+  return (arr[arr.length - 1] || "").toLowerCase();
+}
+
+function buildImageFingerprint_(raw){
+  const url = normalizeImageUrl_(raw);
+  if(!url) return "";
+
+  const driveId = extractDriveId_(url);
+  if(driveId) return "gdrive:" + driveId.toLowerCase();
+
+  const firebaseKey = extractFirebaseFingerprint_(url);
+  if(firebaseKey) return "firebase:" + firebaseKey;
+
+  const noQuery = stripQueryAndHash_(url).toLowerCase();
+  const lastSeg = extractLastPathSeg_(url);
+
+  if(lastSeg) return "path:" + lastSeg + "|" + noQuery;
+  return "url:" + noQuery;
 }
 
 function collectPhotos_(p){
@@ -582,6 +960,7 @@ function collectPhotos_(p){
     ["photo4_img_fast","photo4_img","photo4_url"],
     ["photo5_img_fast","photo5_img","photo5_url"]
   ];
+
   const photos = [];
   const seen = new Set();
 
@@ -590,8 +969,10 @@ function collectPhotos_(p){
       const raw = pick(p, [k]);
       const url = normalizeImageUrl_(raw);
       if(!url) continue;
-      const fp = url.split("?")[0].toLowerCase();
+
+      const fp = buildImageFingerprint_(url) || url;
       if(seen.has(fp)) continue;
+
       seen.add(fp);
       photos.push(url);
       break;
@@ -608,18 +989,18 @@ function renderPhotoWall_(p){
 
   grid.innerHTML = "";
   const photos = collectPhotos_(p);
+  const count = photos.length;
 
-  if(!photos.length){
+  if(!count){
     wall.style.display = "none";
     return;
   }
 
-  wall.style.display = "";
   grid.className = "photo-grid";
-  if(photos.length === 1) grid.classList.add("layout-1");
-  else if(photos.length === 2) grid.classList.add("layout-2");
-  else if(photos.length === 3) grid.classList.add("layout-3");
-  else if(photos.length === 4) grid.classList.add("layout-4");
+  if(count === 1) grid.classList.add("layout-1");
+  else if(count === 2) grid.classList.add("layout-2");
+  else if(count === 3) grid.classList.add("layout-3");
+  else if(count === 4) grid.classList.add("layout-4");
   else grid.classList.add("layout-5");
 
   photos.forEach((u, idx)=>{
@@ -629,12 +1010,90 @@ function renderPhotoWall_(p){
     img.loading = "lazy";
     img.decoding = "async";
     setImgWithFallback_(img, buildImgCandidates_(u), {
-      onFail: ()=> img.remove()
+      onFail: ()=>{ img.remove(); }
     });
     img.addEventListener("click", ()=> openUrl_(u));
     grid.appendChild(img);
   });
+
+  wall.style.display = "";
 }
+
+function applySmartBalanceToEl_(el){
+  if(!el) return;
+  const raw = text(el.dataset.rawText || el.textContent);
+  if(!raw) return;
+  el.dataset.rawText = raw;
+
+  if(window.innerWidth > 560){
+    el.textContent = raw;
+    return;
+  }
+
+  if(el.dataset.balanceType === "hero-copy"){
+    const parts = raw.split("｜");
+    el.innerHTML = "";
+    if(parts.length >= 2){
+      const first = document.createElement("span");
+      first.className = "balance-line";
+      first.textContent = parts[0] + "｜";
+      el.appendChild(first);
+
+      const rest = parts.slice(1).join("｜");
+      const idx = rest.indexOf("打造");
+      if(idx > -1){
+        const line2 = document.createElement("span");
+        line2.className = "balance-line";
+        line2.textContent = rest.slice(0, idx).trim();
+        el.appendChild(line2);
+
+        const line3 = document.createElement("span");
+        line3.className = "balance-line";
+        line3.textContent = rest.slice(idx).trim();
+        el.appendChild(line3);
+      }else{
+        const line2 = document.createElement("span");
+        line2.className = "balance-line";
+        line2.textContent = rest.trim();
+        el.appendChild(line2);
+      }
+      return;
+    }
+  }
+
+  if(el.dataset.balanceType === "qr-title" || el.dataset.balanceType === "product-qr-title"){
+    if(raw.includes("｜")){
+      const arr = raw.split("｜");
+      el.innerHTML = `<span class="balance-line">${escapeHtml_(arr[0])}｜</span><span class="balance-line">${escapeHtml_(arr.slice(1).join("｜"))}</span>`;
+      return;
+    }
+  }
+
+  if(el.dataset.balanceType === "qr-sub" || el.dataset.balanceType === "product-qr-sub"){
+    if(raw.includes("・")){
+      const parts = raw.split("・").map(x => x.trim()).filter(Boolean);
+      if(parts.length >= 2){
+        const half = Math.ceil(parts.length / 2);
+        const l1 = parts.slice(0, half).join("・");
+        const l2 = parts.slice(half).join("・");
+        el.innerHTML = `<span class="balance-line">${escapeHtml_(l1)}</span><span class="balance-line">${escapeHtml_(l2)}</span>`;
+        return;
+      }
+    }
+  }
+
+  el.textContent = raw;
+}
+
+function applySmartBalanceAll_(){
+  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
+}
+
+let __balanceTimer = null;
+window.addEventListener("resize", ()=>{
+  clearTimeout(__balanceTimer);
+  __balanceTimer = setTimeout(applySmartBalanceAll_, 120);
+});
 
 function buildCanonicalCleanCardUrl_(id){
   const cid = normalizeId_(id || getIdFromUrl_()) || CONFIG.DEFAULT_ID;
@@ -652,19 +1111,39 @@ function buildCardShareUrl_(){
   return buildCanonicalCleanCardUrl_(getIdFromUrl_());
 }
 
+function buildCleanShareUrl_(){
+  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+}
+
 function buildHubShareUrl_(){
-  const ref = getSavedRef_() || normalizeId_(getIdFromUrl_());
   try{
     const u = new URL(CONFIG.HUB_URL);
-    if(ref) u.searchParams.set("ref", ref);
+    const id = normalizeId_(getIdFromUrl_());
+    if(id) u.searchParams.set("ref", id);
     return u.toString();
   }catch{
-    return CONFIG.HUB_URL + (ref ? ("?ref=" + encodeURIComponent(ref)) : "");
+    const id = normalizeId_(getIdFromUrl_());
+    return CONFIG.HUB_URL + (id ? ("?ref=" + encodeURIComponent(id)) : "");
   }
 }
 
 function buildBottomQrUrl_(){
   return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+}
+
+function buildFeatureQrUrl_(){
+  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+}
+
+function buildFacadeQrUrl_(){
+  return buildHubShareUrl_();
+}
+
+function getQrCenterRatio_(baseRatio){
+  const vw = window.innerWidth || 390;
+  if(vw <= 360) return Math.max(0.06, baseRatio - 0.02);
+  if(vw <= 520) return Math.max(0.07, baseRatio - 0.01);
+  return baseRatio;
 }
 
 function buildQrImageUrl_(url, size){
@@ -676,11 +1155,79 @@ function buildQrImageUrl_(url, size){
     + "&margin=2";
 }
 
-function renderQr({ container, url, size = 160, renderKey = "" } = {}){
+function hideCenterImg_(imgEl){
+  if(!imgEl) return;
+  imgEl.removeAttribute("src");
+  imgEl.style.display = "none";
+  imgEl.style.background = "transparent";
+  imgEl.style.padding = "0";
+  imgEl.style.boxShadow = "none";
+}
+
+function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
+  if(!imgEl) return;
+
+  const u = normalizeImageUrl_(centerImgUrl);
+
+  if(!u){
+    hideCenterImg_(imgEl);
+    return;
+  }
+
+  const ratio = getQrCenterRatio_(sizeRatio);
+
+  imgEl.style.position = "absolute";
+  imgEl.style.left = "50%";
+  imgEl.style.top = "50%";
+  imgEl.style.width = `${Math.round(ratio * 100)}%`;
+  imgEl.style.height = `${Math.round(ratio * 100)}%`;
+  imgEl.style.transform = "translate(-50%, -50%)";
+  imgEl.style.borderRadius = "999px";
+  imgEl.style.objectFit = "cover";
+  imgEl.style.zIndex = "3";
+  imgEl.style.background = "transparent";
+  imgEl.style.padding = "0";
+  imgEl.style.boxShadow = "none";
+  imgEl.style.display = "block";
+  imgEl.style.pointerEvents = "none";
+
+  imgEl.onerror = ()=>{
+    hideCenterImg_(imgEl);
+  };
+
+  setImgWithFallback_(imgEl, buildImgCandidates_(u), {
+    crossOrigin: "anonymous",
+    referrerPolicy: "no-referrer",
+    onLoad: ()=>{
+      imgEl.style.display = "block";
+      imgEl.style.background = "transparent";
+      imgEl.style.padding = "0";
+      imgEl.style.boxShadow = "none";
+    },
+    onFail: ()=>{
+      hideCenterImg_(imgEl);
+    }
+  });
+}
+
+function renderQr(options){
+  const {
+    container,
+    url,
+    size = 160,
+    centerImgEl = null,
+    centerImgUrl = "",
+    centerSizeRatio = 0.09,
+    renderKey = ""
+  } = options || {};
+
   if(!container || !url) return false;
 
-  const key = renderKey || `${url}|${size}`;
-  if(container.dataset.renderKey === key) return true;
+  const key = renderKey || `${url}|${size}|${normalizeImageUrl_(centerImgUrl)}|${centerSizeRatio}`;
+  if(container.dataset.renderKey === key){
+    if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
+    return true;
+  }
 
   container.dataset.renderKey = key;
   container.innerHTML = "";
@@ -690,6 +1237,7 @@ function renderQr({ container, url, size = 160, renderKey = "" } = {}){
   img.loading = "eager";
   img.decoding = "sync";
   img.referrerPolicy = "no-referrer";
+  try{ img.crossOrigin = "anonymous"; }catch{}
   img.src = buildQrImageUrl_(url, size) + "&t=" + Date.now();
   img.style.width = "100%";
   img.style.height = "100%";
@@ -697,26 +1245,33 @@ function renderQr({ container, url, size = 160, renderKey = "" } = {}){
   img.style.objectFit = "contain";
   container.appendChild(img);
 
+  if(centerImgEl){
+    setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
+  }
+
   return true;
 }
-/*
-HSC v731.1
-app.js
-COMPLETE OVERWRITE
-Part 4 / 5
-*/
+
+window.renderQr = renderQr;
+window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
+window.__getHubShareUrl = buildHubShareUrl_;
+window.__getCardShareUrl = buildCardShareUrl_;
 
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
   if(!grid) return;
-  const url = buildHubShareUrl_();
+
+  const url = buildFacadeQrUrl_();
   const key = "facade|" + url;
   if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
+
   lastFacadeQrRenderKey = key;
   renderQr({
     container: grid,
     url,
     size: 148,
+    centerImgEl: null,
+    centerImgUrl: "",
     renderKey: key
   });
 }
@@ -724,21 +1279,68 @@ function renderFacadeQrFromCurrent_(){
 function renderBottomQr_(p){
   const sec = qs("bottomQrSection");
   const grid = qs("bottomQrGrid");
-  if(!sec || !grid) return;
+  const avatar = qs("bottomQrAvatar");
 
+  if(!sec || !grid || !avatar) return;
+
+  const info = pickAvatarInfo_(p);
   const qrUrl = buildBottomQrUrl_();
-  const key = "bottom|" + qrUrl;
+  const avatarUrl = info.url;
+  const key = "bottom|" + qrUrl + "|" + avatarUrl;
+
+  const canvas = avatar.parentElement;
+  if(canvas){
+    canvas.style.position = "relative";
+  }
+
   if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
     lastBottomQrRenderKey = key;
     renderQr({
       container: grid,
       url: qrUrl,
-      size: 180,
+      size: 136,
+      centerImgEl: avatar,
+      centerImgUrl: avatarUrl,
+      centerSizeRatio: 0.09,
       renderKey: key
     });
+  }else{
+    setCenterImg_(avatar, avatarUrl, 0.09);
   }
+
   sec.style.display = "block";
 }
+
+function renderFeatureQrFromCurrent_(){
+  const grid = qs("featureQrGrid");
+  const avatar = qs("featureQrAvatar");
+  if(!grid || !avatar) return;
+
+  const url = buildFeatureQrUrl_();
+  const avatarUrl = currentAvatarUrlCache || "";
+  const key = "feature|" + url + "|" + avatarUrl;
+
+  const canvas = avatar.parentElement;
+  if(canvas){
+    canvas.style.position = "relative";
+  }
+
+  if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
+    lastFeatureQrRenderKey = key;
+    renderQr({
+      container: grid,
+      url,
+      size: 152,
+      centerImgEl: avatar,
+      centerImgUrl: avatarUrl,
+      centerSizeRatio: 0.09,
+      renderKey: key
+    });
+  }else{
+    setCenterImg_(avatar, avatarUrl, 0.09);
+  }
+}
+window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 
 async function shareUrl_(url, title, textMsg, okMsg){
   try{
@@ -755,287 +1357,52 @@ async function shareUrl_(url, title, textMsg, okMsg){
   }catch(_err){}
 }
 
-function lockScroll_(){
-  try{
-    __scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.top = (-__scrollTop) + "px";
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
-  }catch(e){}
+function renderBottomHubShareBtn_(){
+  const sec = qs("bottomQrSection");
+  if(!sec) return;
+
+  let wrap = qs("bottomHubShareWrap");
+  if(!wrap){
+    wrap = document.createElement("div");
+    wrap.id = "bottomHubShareWrap";
+    wrap.style.marginTop = "12px";
+    wrap.style.display = "flex";
+    wrap.style.justifyContent = "center";
+
+    const btn = document.createElement("button");
+    btn.id = "btnShareHubBottom";
+    btn.type = "button";
+    btn.className = "dock-btn wide dock-web";
+    btn.style.maxWidth = "260px";
+    btn.style.width = "100%";
+    btn.style.borderRadius = "999px";
+    btn.style.fontWeight = "900";
+    btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
+    btn.innerHTML = `<i class="fa-solid fa-share-nodes"></i><span>分享智慧名片館</span>`;
+    btn.addEventListener("click", async ()=>{
+      const url = buildHubShareUrl_();
+      await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
+    });
+
+    wrap.appendChild(btn);
+    sec.insertAdjacentElement("afterend", wrap);
+  }
 }
 
-function unlockScroll_(){
-  try{
-    document.documentElement.style.overflow = "";
-    document.body.style.overflow = "";
-    document.body.style.position = "";
-    document.body.style.top = "";
-    document.body.style.left = "";
-    document.body.style.right = "";
-    document.body.style.width = "";
-    window.scrollTo(0, __scrollTop || 0);
-  }catch(e){}
-}
+function ensureBottomQrVisible_(){
+  if(!currentRow) return;
+  try{ renderBottomQr_(currentRow); }catch(e){}
+  try{ renderBottomHubShareBtn_(); }catch(e){}
 
-function showMask_(el){
-  if(!el) return;
-  el.style.display = "flex";
-  el.setAttribute("aria-hidden", "false");
-  lockScroll_();
-}
-
-function hideMask_(el){
-  if(!el) return;
-  el.style.display = "none";
-  el.setAttribute("aria-hidden", "true");
-  unlockScroll_();
-}
-
-function openFeatureModal_(){
-  showMask_(qs("featureMask"));
-}
-
-function openInviteModal_(){
-  showMask_(qs("inviteMask"));
   setTimeout(()=>{
-    const input = qs("leadName");
-    try{ input && input.focus(); }catch{}
-  }, 60);
-}
+    try{ renderBottomQr_(currentRow); }catch(e){}
+    try{ renderBottomHubShareBtn_(); }catch(e){}
+  }, 250);
 
-function bindAccordion_(){
-  qsa(".accordion-item[data-acc-target]").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const targetId = btn.getAttribute("data-acc-target");
-      const panel = qs(targetId);
-      if(!panel) return;
-      const isOpen = btn.classList.contains("is-open");
-      btn.classList.toggle("is-open", !isOpen);
-      panel.style.display = isOpen ? "none" : "block";
-    });
-  });
-}
-
-function bindDemoCards_(){
-  qsa("#demoGrid [data-demo-id]").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const id = normalizeId_(btn.getAttribute("data-demo-id"));
-      if(!id) return;
-      location.href = `./index.html?id=${encodeURIComponent(id)}`;
-    });
-  });
-}
-
-function bindModalBasics_(){
-  const featureMask = qs("featureMask");
-  const inviteMask = qs("inviteMask");
-
-  const featureCloseBtn = qs("featureCloseBtn");
-  if(featureCloseBtn) featureCloseBtn.addEventListener("click", ()=> hideMask_(featureMask));
-
-  const inviteCloseBtn = qs("inviteCloseBtn");
-  if(inviteCloseBtn) inviteCloseBtn.addEventListener("click", ()=> hideMask_(inviteMask));
-
-  if(featureMask){
-    featureMask.addEventListener("click", (e)=>{
-      if(e.target === featureMask) hideMask_(featureMask);
-    });
-  }
-
-  if(inviteMask){
-    inviteMask.addEventListener("click", (e)=>{
-      if(e.target === inviteMask) hideMask_(inviteMask);
-    });
-  }
-
-  [
-    "btnFeatureIntro",
-    "btnFeatureCardMode"
-  ].forEach(id=>{
-    const b = qs(id);
-    if(b) b.addEventListener("click", (e)=>{
-      e.preventDefault();
-      openFeatureModal_();
-    });
-  });
-
-  [
-    "btnLeadApply",
-    "btnLeadApplyBottom",
-    "btnLeadApplyMain2",
-    "btnLeadApplyCardMode"
-  ].forEach(id=>{
-    const b = qs(id);
-    if(b) b.addEventListener("click", (e)=>{
-      e.preventDefault();
-      openInviteModal_();
-    });
-  });
-
-  const featureModalLeadBtn = qs("featureModalLeadBtn");
-  if(featureModalLeadBtn){
-    featureModalLeadBtn.addEventListener("click", (e)=>{
-      e.preventDefault();
-      hideMask_(featureMask);
-      openInviteModal_();
-    });
-  }
-}
-
-function bindLineButtons_(){
-  [
-    "btnLineOaCtaHome",
-    "btnLineOaCtaHome2",
-    "btnLineOaCtaCardMode",
-    "goLineAfterLeadBtn"
-  ].forEach(id=>{
-    const b = qs(id);
-    if(b){
-      b.addEventListener("click", (e)=>{
-        e.preventDefault();
-        openUrl_(CONFIG.CUSTOMER_SERVICE_URL);
-      });
-    }
-  });
-}
-
-function bindShareButtons_(){
-  [
-    "btnShareHub",
-    "btnShareCardHub"
-  ].forEach(id=>{
-    const b = qs(id);
-    if(!b) return;
-    b.addEventListener("click", async (e)=>{
-      e.preventDefault();
-      await shareUrl_(buildHubShareUrl_(), "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
-    });
-  });
-
-  const cleanFab = qs("cleanShareFab");
-  if(cleanFab){
-    cleanFab.addEventListener("click", async (e)=>{
-      e.preventDefault();
-      const url = getIdFromUrl_() ? buildCardShareUrl_() : buildHubShareUrl_();
-      const title = getIdFromUrl_() ? "天使幸福智慧名片" : "天使幸福智慧名片館";
-      const msg = getIdFromUrl_() ? "分享這張名片" : "分享智慧名片館";
-      const ok = getIdFromUrl_() ? "✅ 已複製這張名片連結" : "✅ 已複製智慧名片館連結";
-      await shareUrl_(url, title, msg, ok);
-    });
-  }
-}
-/*
-HSC v731.1
-app.js
-COMPLETE OVERWRITE
-Part 5 / 5
-*/
-
-function setHomeMode_(){
-  document.body.classList.remove("mode-free","mode-premium","mode-home");
-  document.body.classList.add("home-mode");
-
-  const home = qs("homeMode");
-  const cardMode = qs("cardMode");
-  const panel = qs("admin-panel");
-  const cardContainer = qs("card-container");
-  const cleanFab = qs("cleanShareFab");
-  const installFab = qs("installFab");
-
-  if(home){
-    home.hidden = false;
-    home.style.display = "";
-  }
-
-  if(cardMode){
-    cardMode.hidden = true;
-    cardMode.style.display = "none";
-  }
-
-  if(panel){
-    panel.hidden = true;
-    panel.style.display = "none";
-  }
-
-  if(cardContainer){
-    cardContainer.style.display = "none";
-  }
-
-  if(cleanFab) cleanFab.style.display = "flex";
-  if(installFab) installFab.style.display = "flex";
-
-  bindAccordion_();
-  bindDemoCards_();
-  renderFacadeQrFromCurrent_();
-}
-
-function setCardMode_(){
-  document.body.classList.remove("home-mode","mode-home");
-
-  const home = qs("homeMode");
-  const cardMode = qs("cardMode");
-  const panel = qs("admin-panel");
-  const cardContainer = qs("card-container");
-  const cleanFab = qs("cleanShareFab");
-  const installFab = qs("installFab");
-
-  if(home){
-    home.hidden = true;
-    home.style.display = "none";
-  }
-
-  if(cardMode){
-    cardMode.hidden = false;
-    cardMode.style.display = "";
-  }
-
-  if(panel){
-    panel.hidden = isCleanMode_();
-    panel.style.display = isCleanMode_() ? "none" : "";
-  }
-
-  if(cardContainer){
-    cardContainer.style.display = "";
-  }
-
-  if(cleanFab) cleanFab.style.display = "flex";
-  if(installFab) installFab.style.display = "flex";
-}
-
-function applyThemeFromPayload_(p){
-  const planRaw = text(pick(p, ["plan"])) || "free";
-  const body = document.body;
-
-  body.classList.remove(
-    "mode-free","mode-premium",
-    "color-1","color-2","color-3","color-4","color-5",
-    "style-arch","style-flat","style-spot",
-    "paper-1","paper-2","paper-3",
-    "p1","p2","p3","p4","p5","p6","p7"
-  );
-
-  if(planRaw === "premium"){
-    body.classList.add("mode-premium");
-    const premium = text(pick(p, ["premium_color"])).toLowerCase();
-    body.classList.add(["p1","p2","p3","p4","p5","p6","p7"].includes(premium) ? premium : "p1");
-  }else{
-    body.classList.add("mode-free");
-    const color = text(pick(p, ["color","free_color"])).toLowerCase();
-    const style = text(pick(p, ["style","free_style"])).toLowerCase();
-    const paper = text(pick(p, ["paper","free_paper"])).toLowerCase();
-
-    const cmap = { c1:"color-1", c2:"color-2", c3:"color-3", c4:"color-4", c5:"color-5" };
-    const smap = { s1:"style-arch", s2:"style-flat", s3:"style-spot", arch:"style-arch", flat:"style-flat", spot:"style-spot" };
-    const pmap = { f1:"paper-1", f2:"paper-2", f3:"paper-3" };
-
-    body.classList.add(cmap[color] || color || "color-1");
-    body.classList.add(smap[style] || "style-arch");
-    body.classList.add(pmap[paper] || paper || "paper-1");
-  }
+  setTimeout(()=>{
+    try{ renderBottomQr_(currentRow); }catch(e){}
+    try{ renderBottomHubShareBtn_(); }catch(e){}
+  }, 800);
 }
 
 function renderCard(row){
@@ -1047,227 +1414,149 @@ function renderCard(row){
   const nameEl = qs("u-name");
   const unitWrap = qs("u-unit-wrap");
   const unitEl = qs("u-unit");
+  const unitToggle = qs("u-unit-toggle");
   const titleEl = qs("u-title");
   const sloganWrap = qs("u-slogan-wrap");
   const sloganEl = qs("u-slogan");
+  const sloganToggle = qs("u-slogan-toggle");
 
   const nameVal = text(pick(p, ["name","姓名"])) || "未命名";
-  const unitVal = text(pick(p, ["unit","單位","公司"]));
-  const titleVal = text(pick(p, ["title","職稱"]));
-  const sloganVal = text(pick(p, ["slogan","一句話","簡介"]));
+  const unitVal = String(pick(p, ["unit","單位","公司"]) || "");
+  const titleVal = text(pick(p, ["title","職稱"])) || "";
+  const sloganVal = String(pick(p, ["slogan","一句話","簡介"]) || "");
 
   if(nameEl) nameEl.textContent = nameVal;
 
   if(unitWrap && unitEl){
-    unitWrap.style.display = unitVal ? "" : "none";
-    unitEl.innerHTML = escapeHtmlWithBreaks_(unitVal);
+    if(text(unitVal)){
+      unitWrap.style.display = "";
+      setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
+    }else{
+      unitWrap.style.display = "none";
+      unitEl.innerHTML = "";
+      if(unitToggle) unitToggle.style.display = "none";
+    }
   }
 
   if(titleEl) titleEl.textContent = titleVal;
 
   if(sloganWrap && sloganEl){
-    sloganWrap.style.display = sloganVal ? "" : "none";
-    sloganEl.innerHTML = escapeHtmlWithBreaks_(sloganVal);
+    if(text(sloganVal)){
+      sloganWrap.style.display = "";
+      setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
+    }else{
+      sloganWrap.style.display = "none";
+      sloganEl.innerHTML = "";
+      if(sloganToggle) sloganToggle.style.display = "none";
+    }
   }
 
   renderAvatar_(p);
   renderLogo_(p);
   renderBlocks_(p);
-  renderContactDock_(p);
-  renderMediaDock_(p);
-  renderCtaDock_(p);
+  renderDocks_(p);
   renderPhotoWall_(p);
   renderBottomQr_(p);
+  renderBottomHubShareBtn_();
+  renderFeatureQrFromCurrent_();
+  renderFacadeQrFromCurrent_();
+  applySmartBalanceAll_();
 
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
+
+  requestAnimationFrame(()=>{
+    refreshAllExpandable_();
+    ensureBottomQrVisible_();
+  });
 }
 
-async function submitLeadForm_(e){
-  e.preventDefault();
-  const form = e.currentTarget;
-  if(!form) return;
+function isIos_(){
+  return /iphone|ipad|ipod/i.test(navigator.userAgent || "");
+}
 
-  const btn = qs("leadSubmitBtn");
-  const errorMsg = qs("leadErrorMsg");
-  if(btn) btn.disabled = true;
-  if(errorMsg){
-    errorMsg.style.display = "none";
-    errorMsg.textContent = "";
+function isStandalone_(){
+  return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
+}
+
+function updateInstallUi_(){
+  const btn = qs("btnInstallCard");
+  const fab = qs("installFab");
+  const dock = qs("installDock");
+  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
+  const canInstall = !!deferredInstallPrompt || isIos_() || !isStandalone_();
+  if(btn){
+    btn.disabled = false;
+    btn.style.opacity = canInstall ? "1" : ".62";
   }
+  if(fab) fab.style.display = cleanMode ? "flex" : "none";
+  if(dock) dock.style.display = cleanMode ? "" : "none";
+}
 
-  const name = text((qs("leadName") || {}).value);
-  const phone = text((qs("leadPhone") || {}).value);
-  const email = text((qs("leadEmail") || {}).value);
-  const lineId = text((qs("leadLineId") || {}).value);
-  const note = text((qs("leadNote") || {}).value);
-  const ref = getSavedRef_();
-
-  if(!name || !phone){
-    if(errorMsg){
-      errorMsg.style.display = "block";
-      errorMsg.textContent = "請先填寫姓名與電話。";
-    }
-    if(btn) btn.disabled = false;
+async function triggerPwaInstall_(){
+  if(isStandalone_()){
+    alert("✅ 已經安裝在桌面上了");
     return;
   }
 
-  try{
-    const payload = await fetchJsonRobust_(buildLeadCreateUrl_(), {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        customer_name: name,
-        phone,
-        email,
-        line_id: lineId,
-        note,
-        referrer: ref || "",
-        service_agent: ref || "SELF",
-        agent_type: ref ? "service" : "self",
-        source: ref ? "agent_form" : "form"
-      })
-    });
-
-    const leadId = text(payload?.lead_id || payload?.id || payload?.data?.lead_id || payload?.item?.lead_id);
-    if(!leadId) throw new Error("lead_id missing");
-
-    currentLeadId = leadId;
-
-    const success = qs("leadSuccess");
-    const leadIdValue = qs("leadIdValue");
-    if(leadIdValue) leadIdValue.textContent = leadId;
-    if(success) success.style.display = "block";
-
-    const copyBtn = qs("copyLeadBtn");
-    if(copyBtn){
-      copyBtn.onclick = ()=> copyText_(leadId, "✅ 已複製申請編號");
+  if(deferredInstallPrompt){
+    try{
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+    }catch(err){
+      console.error(err);
+    }finally{
+      deferredInstallPrompt = null;
+      updateInstallUi_();
     }
+    return;
+  }
 
-    form.style.display = "none";
-    alert("✅ 已收到申請");
+  if(isIos_()){
+    alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。");
+    return;
+  }
+
+  alert("目前裝置尚未出現系統安裝提示。\n\n你可以先用瀏覽器選單中的『安裝應用程式』或『加入主畫面』。");
+}
+
+window.__triggerPwaInstall = triggerPwaInstall_;
+
+window.addEventListener("beforeinstallprompt", (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  updateInstallUi_();
+});
+
+window.addEventListener("appinstalled", ()=>{
+  deferredInstallPrompt = null;
+  updateInstallUi_();
+});
+
+window.addEventListener("load", ()=>{
+  ensureBottomQrVisible_();
+}, { once: true });
+
+(async function boot_(){
+  try{
+    initSelectionState_();
+    applySmartBalanceAll_();
+    updateInstallUi_();
+
+    const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
+    const url = buildCardApiUrl_(id);
+    const payload = await fetchJsonRobust_(url);
+    const row = payload?.item || payload?.data || payload;
+    renderCard(row);
   }catch(err){
     console.error(err);
-    if(errorMsg){
-      errorMsg.style.display = "block";
-      errorMsg.textContent = "資料送出失敗，請稍後再試，或直接加入 LINE 官方帳號聯繫客服。";
-    }
-  }finally{
-    if(btn) btn.disabled = false;
-  }
-}
-
-function bindLeadForm_(){
-  const form = qs("leadForm");
-  if(form){
-    form.addEventListener("submit", submitLeadForm_);
-  }
-}
-
-function bindInstall_(){
-  window.addEventListener("beforeinstallprompt", (e)=>{
-    e.preventDefault();
-    deferredInstallPrompt = e;
-  });
-
-  window.addEventListener("appinstalled", ()=>{
-    deferredInstallPrompt = null;
-  });
-
-  ["btnInstallCard","installFab"].forEach(id=>{
-    const btn = qs(id);
-    if(!btn) return;
-    btn.addEventListener("click", async (e)=>{
-      e.preventDefault();
-      if(deferredInstallPrompt){
-        try{
-          deferredInstallPrompt.prompt();
-          await deferredInstallPrompt.userChoice;
-        }catch(err){
-          console.error(err);
-        }finally{
-          deferredInstallPrompt = null;
-        }
-        return;
-      }
-      alert("請使用瀏覽器的『加入主畫面』或『安裝應用程式』功能。");
-    });
-  });
-}
-
-function bindHiddenAdminEntry_(){
-  const hot = qs("adminHotspotBR");
-  if(!hot || isCleanMode_()) return;
-
-  let taps = 0;
-  let firstTapAt = 0;
-  let resetTimer = null;
-  const WINDOW_MS = 1800;
-  const NEED_TAPS = 5;
-
-  function resetTapState(){
-    taps = 0;
-    firstTapAt = 0;
-    if(resetTimer){
-      clearTimeout(resetTimer);
-      resetTimer = null;
-    }
-  }
-
-  function onTap(e){
-    e.preventDefault();
-    e.stopPropagation();
-    const now = Date.now();
-    if(!firstTapAt || (now - firstTapAt > WINDOW_MS)){
-      taps = 0;
-      firstTapAt = now;
-    }
-    taps += 1;
-    if(resetTimer) clearTimeout(resetTimer);
-    resetTimer = setTimeout(resetTapState, WINDOW_MS + 120);
-    if(taps >= NEED_TAPS){
-      resetTapState();
-      location.href = "./admin.html?v=" + encodeURIComponent(CONFIG.VERSION);
-    }
-  }
-
-  hot.addEventListener("click", onTap, { passive:false });
-  hot.addEventListener("touchstart", onTap, { passive:false });
-}
-
-async function boot_(){
-  try{
-    persistRefIfAny_();
-    bindModalBasics_();
-    bindLineButtons_();
-    bindShareButtons_();
-    bindLeadForm_();
-    bindInstall_();
-    bindHiddenAdminEntry_();
-
-    const id = getIdFromUrl_();
-    if(id){
-      setCardMode_();
-      const payload = await fetchJsonRobust_(buildCardApiUrl_(id));
-      const row = payload?.item || payload?.data || payload;
-      renderCard(row);
-    }else{
-      setHomeMode_();
-    }
-  }catch(err){
-    console.error(err);
-    if(!getIdFromUrl_()){
-      setHomeMode_();
-      return;
-    }
-    setCardMode_();
     const nameEl = qs("u-name");
-    const unitEl = qs("u-unit");
+    const unitWrap = qs("u-unit-wrap");
     const titleEl = qs("u-title");
     if(nameEl) nameEl.textContent = "資料載入失敗";
+    if(unitWrap) unitWrap.style.display = "";
+    const unitEl = qs("u-unit");
     if(unitEl) unitEl.textContent = "請稍後再試";
     if(titleEl) titleEl.textContent = "";
   }
-}
-
-document.addEventListener("DOMContentLoaded", boot_, { once:true });
+})();
