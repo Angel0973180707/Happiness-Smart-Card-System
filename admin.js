@@ -1,52 +1,50 @@
 /* =========================================================
- * HSC Admin Console v1.1
+ * HSC Admin Console v1.3
  * admin.js
  * COMPLETE OVERWRITE
- * Part 1 / 5
  * ---------------------------------------------------------
- * 目標：
- * 1) Lead 成為第一入口
- * 2) 中文化後台
- * 3) 客服工作流優化
- * 4) Lead -> Invite 流程修正
+ * 模組：
+ * 1) Lead申請清單
+ * 2) 邀請碼清單
+ * 3) 卡片管理
+ * 4) 付款管理
+ * 5) LINE通知監控
+ * 6) 系統統計
  * ======================================================= */
 
 (() => {
   "use strict";
 
   const CONFIG = {
-    VERSION: "HSC Admin Console v1.1",
+    VERSION: "HSC Admin Console v1.3",
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
     FETCH_TIMEOUT_MS: 20000,
-    PAGE_SIZE: 20
+    ADMIN_KEY_STORAGE: "hsc_admin_key_v1"
   };
 
   const state = {
     tab: "lead",
-    loading: false,
     stats: null,
 
     leadQuery: "",
     inviteQuery: "",
     cardQuery: "",
+    billingQuery: "",
+    billingFilter: "all",
 
     leads: [],
     invites: [],
     cards: [],
+    payments: [],
 
     currentLead: null,
     currentInvite: null,
-    currentCard: null,
-
-    leadPage: 1,
-    invitePage: 1,
-    cardPage: 1
+    currentCard: null
   };
 
   const root = ensureRoot_();
-  injectStyle_();
   renderShell_();
   bindShellEvents_();
   boot_();
@@ -61,315 +59,6 @@
     return el;
   }
 
-  function injectStyle_(){
-    const css = `
-      :root{
-        --bg:#f6f2eb;
-        --card:#fffdf9;
-        --ink:#2f241c;
-        --muted:#7d6f65;
-        --line:rgba(47,36,28,.10);
-        --pri:#b97a4e;
-        --pri2:#8f5a36;
-        --ok:#1f8f5f;
-        --warn:#d97706;
-        --bad:#c2410c;
-        --shadow:0 12px 30px rgba(0,0,0,.08);
-        --radius:18px;
-      }
-      *{ box-sizing:border-box; }
-      html,body{
-        margin:0;padding:0;
-        background:var(--bg);
-        color:var(--ink);
-        font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
-      }
-      body{ padding:14px; }
-      .hsc-admin{
-        max-width:1180px;
-        margin:0 auto;
-      }
-      .topbar{
-        display:flex;
-        flex-direction:column;
-        gap:12px;
-        margin-bottom:14px;
-      }
-      .brand{
-        background:linear-gradient(135deg,#fffaf4,#fff);
-        border:1px solid var(--line);
-        border-radius:24px;
-        padding:18px 18px 16px;
-        box-shadow:var(--shadow);
-      }
-      .brand-title{
-        font-size:24px;
-        font-weight:800;
-        letter-spacing:.02em;
-      }
-      .brand-sub{
-        margin-top:6px;
-        font-size:14px;
-        color:var(--muted);
-        line-height:1.6;
-      }
-      .top-actions{
-        display:flex;
-        flex-wrap:wrap;
-        gap:10px;
-      }
-      .tabbar{
-        display:grid;
-        grid-template-columns:repeat(3,1fr);
-        gap:10px;
-        margin-bottom:14px;
-      }
-      .tab-btn{
-        appearance:none;
-        border:none;
-        background:#fff;
-        border-radius:18px;
-        padding:14px 12px;
-        font-size:16px;
-        font-weight:800;
-        color:var(--ink);
-        border:1px solid var(--line);
-        box-shadow:var(--shadow);
-      }
-      .tab-btn.active{
-        background:linear-gradient(135deg,#c58d63,#a96a41);
-        color:#fff;
-        border-color:transparent;
-      }
-      .panel{
-        display:none;
-      }
-      .panel.active{
-        display:block;
-      }
-      .card{
-        background:var(--card);
-        border:1px solid var(--line);
-        border-radius:22px;
-        box-shadow:var(--shadow);
-        padding:14px;
-        margin-bottom:14px;
-      }
-      .card-title{
-        font-size:20px;
-        font-weight:900;
-        margin-bottom:6px;
-      }
-      .card-sub{
-        color:var(--muted);
-        font-size:14px;
-        line-height:1.6;
-        margin-bottom:12px;
-      }
-      .search-row{
-        display:grid;
-        grid-template-columns:1fr auto auto;
-        gap:10px;
-      }
-      .input,.select,.textarea{
-        width:100%;
-        border:1px solid var(--line);
-        background:#fff;
-        border-radius:14px;
-        padding:12px 14px;
-        font-size:16px;
-        color:var(--ink);
-        outline:none;
-      }
-      .textarea{
-        min-height:110px;
-        resize:vertical;
-      }
-      .btn{
-        appearance:none;
-        border:none;
-        border-radius:14px;
-        padding:12px 14px;
-        font-size:15px;
-        font-weight:800;
-        cursor:pointer;
-        background:#efe6dc;
-        color:var(--ink);
-      }
-      .btn.primary{ background:linear-gradient(135deg,#c58d63,#a96a41); color:#fff; }
-      .btn.soft{ background:#f5eee7; color:var(--pri2); }
-      .btn.ok{ background:#e8f7f0; color:var(--ok); }
-      .btn.warn{ background:#fff3df; color:var(--warn); }
-      .btn.bad{ background:#fdebe6; color:var(--bad); }
-      .btn.block{ width:100%; }
-      .btn[disabled]{ opacity:.55; cursor:not-allowed; }
-      .stats{
-        display:grid;
-        grid-template-columns:repeat(4,1fr);
-        gap:10px;
-      }
-      .stat{
-        border:1px solid var(--line);
-        background:#fff;
-        border-radius:18px;
-        padding:12px;
-      }
-      .stat-k{
-        font-size:13px;
-        color:var(--muted);
-        margin-bottom:8px;
-      }
-      .stat-v{
-        font-size:24px;
-        font-weight:900;
-      }
-      .list{
-        display:flex;
-        flex-direction:column;
-        gap:12px;
-      }
-      .item{
-        border:1px solid var(--line);
-        border-radius:18px;
-        background:#fff;
-        padding:12px;
-      }
-      .item-top{
-        display:flex;
-        justify-content:space-between;
-        gap:10px;
-        align-items:flex-start;
-        margin-bottom:10px;
-      }
-      .item-title{
-        font-size:18px;
-        font-weight:900;
-        line-height:1.4;
-      }
-      .item-badges{
-        display:flex;
-        flex-wrap:wrap;
-        gap:6px;
-        justify-content:flex-end;
-      }
-      .badge{
-        display:inline-flex;
-        align-items:center;
-        gap:4px;
-        padding:6px 10px;
-        border-radius:999px;
-        font-size:12px;
-        font-weight:800;
-        background:#f4ede6;
-        color:#6b513e;
-      }
-      .badge.ok{ background:#e8f7f0; color:var(--ok); }
-      .badge.warn{ background:#fff3df; color:var(--warn); }
-      .badge.bad{ background:#fdebe6; color:var(--bad); }
-      .grid{
-        display:grid;
-        grid-template-columns:repeat(2,1fr);
-        gap:8px 12px;
-        margin-bottom:12px;
-      }
-      .kv{
-        background:#fcfaf7;
-        border:1px solid var(--line);
-        border-radius:12px;
-        padding:10px;
-        min-height:60px;
-      }
-      .kv-k{
-        font-size:12px;
-        color:var(--muted);
-        margin-bottom:6px;
-      }
-      .kv-v{
-        font-size:15px;
-        font-weight:700;
-        line-height:1.5;
-        white-space:pre-wrap;
-        word-break:break-word;
-      }
-      .item-actions{
-        display:flex;
-        flex-wrap:wrap;
-        gap:8px;
-      }
-      .empty{
-        text-align:center;
-        color:var(--muted);
-        padding:24px 10px;
-        font-size:15px;
-      }
-      .footer-note{
-        margin-top:10px;
-        color:var(--muted);
-        font-size:13px;
-      }
-      .drawer-mask{
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.34);
-        display:none;
-        z-index:90;
-      }
-      .drawer-mask.show{ display:block; }
-      .drawer{
-        position:fixed;
-        right:0; top:0;
-        width:min(92vw,520px);
-        height:100vh;
-        background:#fffdf9;
-        box-shadow:-10px 0 30px rgba(0,0,0,.15);
-        transform:translateX(110%);
-        transition:transform .22s ease;
-        z-index:100;
-        display:flex;
-        flex-direction:column;
-      }
-      .drawer.show{ transform:translateX(0); }
-      .drawer-head{
-        padding:16px;
-        border-bottom:1px solid var(--line);
-        display:flex;
-        justify-content:space-between;
-        align-items:center;
-        gap:10px;
-      }
-      .drawer-title{
-        font-size:20px;
-        font-weight:900;
-      }
-      .drawer-body{
-        padding:16px;
-        overflow:auto;
-      }
-      .mono{
-        font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-      }
-      .mt8{ margin-top:8px; }
-      .mt12{ margin-top:12px; }
-      .mt16{ margin-top:16px; }
-
-      @media (max-width:900px){
-        .stats{ grid-template-columns:repeat(2,1fr); }
-      }
-      @media (max-width:680px){
-        body{ padding:10px; }
-        .search-row{ grid-template-columns:1fr; }
-        .grid{ grid-template-columns:1fr; }
-        .tabbar{ grid-template-columns:1fr; }
-        .brand-title{ font-size:22px; }
-        .item-title{ font-size:17px; }
-        .top-actions{ display:grid; grid-template-columns:1fr 1fr; }
-      }
-    `;
-    const style = document.createElement("style");
-    style.textContent = css;
-    document.head.appendChild(style);
-  }
-
   function renderShell_(){
     root.innerHTML = `
       <div class="hsc-admin">
@@ -378,8 +67,18 @@
             <div class="brand-title">天使幸福智慧名片｜客服後台</div>
             <div class="brand-sub">
               ${CONFIG.VERSION}<br>
-              第一入口是「Lead 申請清單」，客服收到客戶回報的申請編號後，直接搜尋、產生邀請碼、複製連結與話術。
+              第一入口是 Lead 申請清單。整合邀請碼、卡片管理、付款管理、LINE通知與系統統計。
             </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">後台授權</div>
+            <div class="card-sub">請先輸入 admin_key，系統會暫存於目前瀏覽器。</div>
+            <div class="top-auth">
+              <input class="input" id="adminKeyInput" type="password" placeholder="請輸入 admin_key">
+              <button class="btn primary" id="btnSaveAdminKey">儲存授權</button>
+            </div>
+            <div class="hint mt8">若沒有設定 admin_key，後台查詢與操作都會被 GAS 擋下。</div>
           </div>
 
           <div class="top-actions">
@@ -389,26 +88,21 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title">系統總覽</div>
-          <div class="card-sub">讓客服先看目前工作量，下面直接切換到要處理的工作入口。</div>
-          <div class="stats" id="statsBox">
-            <div class="stat"><div class="stat-k">待處理申請</div><div class="stat-v">-</div></div>
-            <div class="stat"><div class="stat-k">已發邀請碼</div><div class="stat-v">-</div></div>
-            <div class="stat"><div class="stat-k">已成卡</div><div class="stat-v">-</div></div>
-            <div class="stat"><div class="stat-k">總卡片數</div><div class="stat-v">-</div></div>
-          </div>
-        </div>
-
         <div class="tabbar">
-          <button class="tab-btn active" data-tab="lead">Lead 申請清單</button>
-          <button class="tab-btn" data-tab="invite">邀請碼清單</button>
+          <button class="tab-btn active" data-tab="lead">Lead申請</button>
+          <button class="tab-btn" data-tab="invite">邀請碼</button>
           <button class="tab-btn" data-tab="card">卡片管理</button>
+          <button class="tab-btn" data-tab="billing">付款管理</button>
+          <button class="tab-btn" data-tab="line">LINE通知</button>
+          <button class="tab-btn" data-tab="stats">系統統計</button>
         </div>
 
         <section class="panel active" id="panel-lead"></section>
         <section class="panel" id="panel-invite"></section>
         <section class="panel" id="panel-card"></section>
+        <section class="panel" id="panel-billing"></section>
+        <section class="panel" id="panel-line"></section>
+        <section class="panel" id="panel-stats"></section>
       </div>
 
       <div class="drawer-mask" id="drawerMask"></div>
@@ -421,16 +115,21 @@
       </aside>
     `;
 
+    qs("adminKeyInput").value = getAdminKey_();
+
     renderLeadPanel_();
     renderInvitePanel_();
     renderCardPanel_();
+    renderBillingPanel_();
+    renderLinePanel_();
+    renderStatsPanel_();
   }
 
   function bindShellEvents_(){
     root.addEventListener("click", onRootClick_);
     root.addEventListener("input", onRootInput_);
-    document.getElementById("drawerClose").addEventListener("click", closeDrawer_);
-    document.getElementById("drawerMask").addEventListener("click", closeDrawer_);
+    qs("drawerClose").addEventListener("click", closeDrawer_);
+    qs("drawerMask").addEventListener("click", closeDrawer_);
   }
 
   async function boot_(){
@@ -438,25 +137,145 @@
       loadStats_(),
       loadLeads_(),
       loadInvites_(),
-      loadCards_()
+      loadCards_(),
+      loadPayments_()
     ]);
+    renderLinePanel_();
+    renderStatsPanel_();
   }
-/* =========================================================
-   * Part 2 / 5
-   * 畫面渲染：Lead / Invite / Card
-   * ======================================================= */
+
+  function onRootInput_(e){
+    const t = e.target;
+    if (!t) return;
+    if (t.id === "leadQuery") state.leadQuery = t.value;
+    if (t.id === "inviteQuery") state.inviteQuery = t.value;
+    if (t.id === "cardQuery") state.cardQuery = t.value;
+    if (t.id === "billingQuery") state.billingQuery = t.value;
+    if (t.id === "billingFilter") state.billingFilter = t.value;
+  }
+
+  async function onRootClick_(e){
+    const btn = e.target.closest("button");
+    if (!btn) return;
+
+    const tab = btn.dataset.tab;
+    const act = btn.dataset.act;
+
+    if (tab) {
+      switchTab_(tab);
+      return;
+    }
+
+    if (btn.id === "btnSaveAdminKey") {
+      const v = text_(qs("adminKeyInput").value);
+      if (!v) {
+        alert("請先輸入 admin_key");
+        return;
+      }
+      localStorage.setItem(CONFIG.ADMIN_KEY_STORAGE, v);
+      toast_("已儲存 admin_key");
+      return;
+    }
+
+    if (btn.id === "btnRefreshAll") {
+      await Promise.allSettled([loadStats_(), loadLeads_(), loadInvites_(), loadCards_(), loadPayments_()]);
+      renderLinePanel_();
+      renderStatsPanel_();
+      toast_("已重新整理");
+      return;
+    }
+
+    if (btn.id === "btnGoHub") {
+      window.open(CONFIG.HUB_URL, "_blank");
+      return;
+    }
+
+    if (btn.id === "btnOpenForm") {
+      window.open(CONFIG.FORM_URL, "_blank");
+      return;
+    }
+
+    if (btn.id === "btnSearchLead") return await loadLeads_();
+    if (btn.id === "btnReloadLead") {
+      state.leadQuery = "";
+      renderLeadPanel_();
+      return await loadLeads_();
+    }
+
+    if (btn.id === "btnSearchInvite") return await loadInvites_();
+    if (btn.id === "btnReloadInvite") {
+      state.inviteQuery = "";
+      renderInvitePanel_();
+      return await loadInvites_();
+    }
+
+    if (btn.id === "btnSearchCard") return await loadCards_();
+    if (btn.id === "btnReloadCard") {
+      state.cardQuery = "";
+      renderCardPanel_();
+      return await loadCards_();
+    }
+
+    if (btn.id === "btnSearchBilling") return await loadPayments_();
+    if (btn.id === "btnReloadBilling") {
+      state.billingQuery = "";
+      state.billingFilter = "all";
+      renderBillingPanel_();
+      return await loadPayments_();
+    }
+
+    if (!act) return;
+
+    try {
+      if (act === "lead-detail") return await openLeadDetail_(btn.dataset.id);
+      if (act === "lead-invite") return await createInviteFromLead_(btn.dataset.id);
+      if (act === "lead-copy-invite") return copyLeadInvite_(btn.dataset.id);
+      if (act === "lead-copy-form") return copyLeadFormLink_(btn.dataset.id);
+      if (act === "lead-copy-script") return copyLeadScript_(btn.dataset.id);
+      if (act === "lead-open-card") return openCard_(btn.dataset.cardId);
+
+      if (act === "invite-detail") return await openInviteDetail_(btn.dataset.id);
+      if (act === "invite-copy-code") return copyText_(btn.dataset.id, "已複製邀請碼");
+      if (act === "invite-copy-both") return copyInviteBundle_(btn.dataset.id);
+      if (act === "invite-disable") return await disableInvite_(btn.dataset.id);
+
+      if (act === "card-detail") return await openCardDetail_(btn.dataset.id);
+      if (act === "card-open") return openCard_(btn.dataset.id);
+      if (act === "card-open-clean") return openCardClean_(btn.dataset.id);
+      if (act === "card-copy-link") return copyCardLink_(btn.dataset.id);
+      if (act === "card-gen-update") return await genCardUpdateLink_(btn.dataset.id);
+      if (act === "card-copy-update") return copyCardUpdateLink_(btn.dataset.id);
+      if (act === "card-activate") return await updateCardStatus_(btn.dataset.id, "active");
+      if (act === "card-inactivate") return await updateCardStatus_(btn.dataset.id, "inactive");
+      if (act === "card-extend") return await extendCard_(btn.dataset.id);
+
+      if (act === "billing-detail") return await openBillingDetail_(btn.dataset.id);
+      if (act === "billing-paid") return await markBillingPaid_(btn.dataset.id);
+      if (act === "billing-open") return openCard_(btn.dataset.id);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "操作失敗");
+    }
+  }
+
+  function switchTab_(tab){
+    state.tab = tab;
+    qsa_(".tab-btn").forEach(el => el.classList.toggle("active", el.dataset.tab === tab));
+    qsa_(".panel").forEach(el => el.classList.remove("active"));
+    const panel = qs(`panel-${tab}`);
+    if (panel) panel.classList.add("active");
+  }
 
   function renderLeadPanel_(){
-    const el = document.getElementById("panel-lead");
-    el.innerHTML = `
+    qs("panel-lead").innerHTML = `
       <div class="card">
         <div class="card-title">Lead 申請清單</div>
         <div class="card-sub">
-          客服第一工作入口。請客戶先回報「申請編號 lead_id」，再由客服搜尋該筆資料，產生邀請碼並回覆客戶。
+          客服第一工作入口。請客戶先回報申請編號 lead_id，再由客服搜尋該筆資料，產生邀請碼並回覆客戶。
         </div>
         <div class="search-row">
           <input class="input" id="leadQuery" placeholder="可搜尋：申請編號、姓名、電話、Email、Line ID、備註、邀請碼、卡號、來源代理、推薦來源" value="${escapeHtml_(state.leadQuery)}">
-          <button class="btn primary" id="btnSearchLead">搜尋 Lead</button>
+          <button class="btn primary" id="btnSearchLead">搜尋Lead</button>
           <button class="btn soft" id="btnReloadLead">重新載入</button>
         </div>
         <div class="footer-note">建議客服優先搜尋：申請編號 lead_id。</div>
@@ -465,21 +284,20 @@
       <div class="card">
         <div class="card-title">待辦清單</div>
         <div class="card-sub">每一列直接完成：查看詳情 → 產生邀請碼 → 複製邀請碼／表單連結／客服話術。</div>
-        <div class="list" id="leadList">${renderLeadItems_()}</div>
+        <div class="list">${renderLeadItems_()}</div>
       </div>
     `;
   }
 
   function renderInvitePanel_(){
-    const el = document.getElementById("panel-invite");
-    el.innerHTML = `
+    qs("panel-invite").innerHTML = `
       <div class="card">
         <div class="card-title">邀請碼清單</div>
         <div class="card-sub">
           這裡保留邀請碼管理，但不是第一入口。客服主要仍以 Lead 申請清單處理工作。
         </div>
         <div class="search-row">
-          <input class="input" id="inviteQuery" placeholder="可搜尋：邀請碼、申請編號、來源代理、推薦來源、使用卡號" value="${escapeHtml_(state.inviteQuery)}">
+          <input class="input" id="inviteQuery" placeholder="可搜尋：邀請碼、來源代理、推薦來源、使用卡號" value="${escapeHtml_(state.inviteQuery)}">
           <button class="btn primary" id="btnSearchInvite">搜尋邀請碼</button>
           <button class="btn soft" id="btnReloadInvite">重新載入</button>
         </div>
@@ -487,14 +305,13 @@
 
       <div class="card">
         <div class="card-title">Invite 清單</div>
-        <div class="list" id="inviteList">${renderInviteItems_()}</div>
+        <div class="list">${renderInviteItems_()}</div>
       </div>
     `;
   }
 
   function renderCardPanel_(){
-    const el = document.getElementById("panel-card");
-    el.innerHTML = `
+    qs("panel-card").innerHTML = `
       <div class="card">
         <div class="card-title">卡片管理</div>
         <div class="card-sub">
@@ -509,15 +326,132 @@
 
       <div class="card">
         <div class="card-title">卡片列表</div>
-        <div class="list" id="cardList">${renderCardItems_()}</div>
+        <div class="list">${renderCardItems_()}</div>
+      </div>
+    `;
+  }
+
+  function renderBillingPanel_(){
+    const p = calcPaymentStats_();
+
+    qs("panel-billing").innerHTML = `
+      <div class="card">
+        <div class="card-title">付款管理</div>
+        <div class="card-sub">
+          查看未付款、已提醒、已鎖卡、已付款，並可直接標記為已付款。
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="stat-k">未付款</div><div class="stat-v">${p.unpaid}</div></div>
+          <div class="stat"><div class="stat-k">已提醒</div><div class="stat-v">${p.reminded}</div></div>
+          <div class="stat"><div class="stat-k">已鎖卡</div><div class="stat-v">${p.locked}</div></div>
+          <div class="stat"><div class="stat-k">已付款</div><div class="stat-v">${p.paid}</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">付款清單</div>
+        <div class="card-sub">
+          可搜尋 ID／姓名／電話，並依付款狀態切換篩選。
+        </div>
+        <div class="search-row">
+          <input class="input" id="billingQuery" placeholder="可搜尋：ID、姓名、電話、備註" value="${escapeHtml_(state.billingQuery)}">
+          <select class="select" id="billingFilter">
+            <option value="all" ${state.billingFilter === "all" ? "selected" : ""}>全部</option>
+            <option value="unpaid" ${state.billingFilter === "unpaid" ? "selected" : ""}>未付款</option>
+            <option value="reminded" ${state.billingFilter === "reminded" ? "selected" : ""}>已提醒</option>
+            <option value="locked" ${state.billingFilter === "locked" ? "selected" : ""}>已鎖卡</option>
+            <option value="paid" ${state.billingFilter === "paid" ? "selected" : ""}>已付款</option>
+          </select>
+          <button class="btn primary" id="btnSearchBilling">搜尋付款</button>
+        </div>
+        <div class="mt12 item-actions">
+          <button class="btn soft" id="btnReloadBilling">重新載入</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">付款工作清單</div>
+        <div class="list">${renderBillingItems_()}</div>
+      </div>
+    `;
+  }
+
+  function renderLinePanel_(){
+    const lineItems = buildLineNotifyItems_();
+
+    qs("panel-line").innerHTML = `
+      <div class="card">
+        <div class="card-title">LINE通知監控</div>
+        <div class="card-sub">
+          顯示系統發送的付款提醒與鎖卡通知時間，方便客服追蹤。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">通知紀錄</div>
+        <div class="list">
+          ${lineItems.length ? lineItems.map(item => `
+            <div class="item">
+              <div class="item-top">
+                <div>
+                  <div class="item-title">${escapeHtml_(item.name || "未填姓名")}</div>
+                  <div class="mt8 mono">${escapeHtml_(item.id || "-")}</div>
+                </div>
+                <div class="item-badges">
+                  ${item.badges.join("")}
+                </div>
+              </div>
+
+              <div class="grid-3">
+                ${kv_("提醒1", item.payment_remind_1_at)}
+                ${kv_("提醒2", item.payment_remind_2_at)}
+                ${kv_("提醒3", item.payment_remind_3_at)}
+                ${kv_("鎖卡通知", item.lock_notice_sent_at)}
+                ${kv_("付款狀態", billingStatusText_(item.billing_status))}
+                ${kv_("卡片狀態", cardStatusText_(item.status))}
+              </div>
+
+              <div class="item-actions">
+                <button class="btn soft" data-act="billing-detail" data-id="${escapeAttr_(item.id)}">查看付款詳情</button>
+                <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(item.id)}">開名片</button>
+              </div>
+            </div>
+          `).join("") : `<div class="empty">目前沒有 LINE 通知資料。</div>`}
+        </div>
+      </div>
+    `;
+  }
+
+  function renderStatsPanel_(){
+    const p = calcPaymentStats_();
+    const totalLeads = state.leads.length;
+    const totalInvites = state.invites.length;
+    const totalCards = state.cards.length;
+    const paidRate = totalCards ? Math.round((p.paid / totalCards) * 100) : 0;
+    const lockedRate = totalCards ? Math.round((p.locked / totalCards) * 100) : 0;
+
+    qs("panel-stats").innerHTML = `
+      <div class="card">
+        <div class="card-title">系統統計</div>
+        <div class="card-sub">
+          後台營運總覽：Lead、Invite、卡片、付款率、鎖卡率。
+        </div>
+
+        <div class="stats-6">
+          <div class="stat"><div class="stat-k">Lead數</div><div class="stat-v">${totalLeads}</div></div>
+          <div class="stat"><div class="stat-k">Invite數</div><div class="stat-v">${totalInvites}</div></div>
+          <div class="stat"><div class="stat-k">卡片數</div><div class="stat-v">${totalCards}</div></div>
+          <div class="stat"><div class="stat-k">已付款數</div><div class="stat-v">${p.paid}</div></div>
+          <div class="stat"><div class="stat-k">付款率</div><div class="stat-v">${paidRate}%</div></div>
+          <div class="stat"><div class="stat-k">鎖卡率</div><div class="stat-v">${lockedRate}%</div></div>
+        </div>
       </div>
     `;
   }
 
   function renderLeadItems_(){
-    if (!state.leads.length) {
-      return `<div class="empty">目前沒有符合條件的 Lead 資料。</div>`;
-    }
+    if (!state.leads.length) return `<div class="empty">目前沒有符合條件的 Lead 資料。</div>`;
 
     return state.leads.map(item => {
       const statusBadge = leadStatusBadge_(item.status);
@@ -528,9 +462,7 @@
         <div class="item">
           <div class="item-top">
             <div>
-              <div class="item-title">
-                ${escapeHtml_(text_(item.customer_name) || "未填姓名")}
-              </div>
+              <div class="item-title">${escapeHtml_(text_(item.customer_name) || "未填姓名")}</div>
               <div class="mt8 mono">${escapeHtml_(text_(item.lead_id) || "-")}</div>
             </div>
             <div class="item-badges">
@@ -571,187 +503,129 @@
   }
 
   function renderInviteItems_(){
-    if (!state.invites.length) {
-      return `<div class="empty">目前沒有符合條件的 Invite 資料。</div>`;
-    }
+    if (!state.invites.length) return `<div class="empty">目前沒有符合條件的 Invite 資料。</div>`;
 
-    return state.invites.map(item => {
-      return `
-        <div class="item">
-          <div class="item-top">
-            <div>
-              <div class="item-title mono">${escapeHtml_(text_(item.invite_code) || "-")}</div>
-              <div class="mt8">${escapeHtml_(inviteStatusText_(item.status))}</div>
-            </div>
-            <div class="item-badges">
-              ${inviteStatusBadge_(item.status)}
-            </div>
+    return state.invites.map(item => `
+      <div class="item">
+        <div class="item-top">
+          <div>
+            <div class="item-title mono">${escapeHtml_(text_(item.invite_code) || "-")}</div>
+            <div class="mt8">${escapeHtml_(inviteStatusText_(item.status))}</div>
           </div>
-
-          <div class="grid">
-            ${kv_("邀請碼", item.invite_code, true)}
-            ${kv_("狀態", item.status)}
-            ${kv_("對應申請編號", item.lead_id, true)}
-            ${kv_("使用卡號", item.used_by_id || item.card_id, true)}
-            ${kv_("推薦來源", item.referrer)}
-            ${kv_("來源代理", item.service_agent)}
-            ${kv_("名單來源", item.source)}
-            ${kv_("建立時間", formatDateTime_(item.created_at))}
-            ${kv_("使用時間", formatDateTime_(item.used_at))}
-            ${kv_("到期時間", formatDateTime_(item.expired_at))}
-          </div>
-
-          <div class="item-actions">
-            <button class="btn soft" data-act="invite-detail" data-id="${escapeAttr_(item.invite_code)}">查看</button>
-            <button class="btn" data-act="invite-copy-code" data-id="${escapeAttr_(item.invite_code)}">複製邀請碼</button>
-            <button class="btn" data-act="invite-copy-both" data-id="${escapeAttr_(item.invite_code)}">複製邀請碼＋表單連結</button>
-            <button class="btn bad" data-act="invite-disable" data-id="${escapeAttr_(item.invite_code)}">停用邀請碼</button>
+          <div class="item-badges">
+            ${inviteStatusBadge_(item.status)}
           </div>
         </div>
-      `;
-    }).join("");
+
+        <div class="grid">
+          ${kv_("邀請碼", item.invite_code, true)}
+          ${kv_("狀態", item.status)}
+          ${kv_("使用卡號", item.used_by_id || item.card_id, true)}
+          ${kv_("推薦來源", item.referrer)}
+          ${kv_("來源代理", item.service_agent)}
+          ${kv_("名單來源", item.source)}
+          ${kv_("建立時間", formatDateTime_(item.created_at))}
+          ${kv_("使用時間", formatDateTime_(item.used_at))}
+          ${kv_("到期時間", formatDateTime_(item.expires_at))}
+        </div>
+
+        <div class="item-actions">
+          <button class="btn soft" data-act="invite-detail" data-id="${escapeAttr_(item.invite_code)}">查看</button>
+          <button class="btn" data-act="invite-copy-code" data-id="${escapeAttr_(item.invite_code)}">複製邀請碼</button>
+          <button class="btn" data-act="invite-copy-both" data-id="${escapeAttr_(item.invite_code)}">複製邀請碼＋表單連結</button>
+          <button class="btn bad" data-act="invite-disable" data-id="${escapeAttr_(item.invite_code)}">停用邀請碼</button>
+        </div>
+      </div>
+    `).join("");
   }
 
   function renderCardItems_(){
-    if (!state.cards.length) {
-      return `<div class="empty">目前沒有符合條件的卡片資料。</div>`;
-    }
+    if (!state.cards.length) return `<div class="empty">目前沒有符合條件的卡片資料。</div>`;
 
-    return state.cards.map(item => {
-      return `
-        <div class="item">
-          <div class="item-top">
-            <div>
-              <div class="item-title">
-                ${escapeHtml_(text_(item.name) || "未命名卡片")}
-              </div>
-              <div class="mt8 mono">${escapeHtml_(text_(item.id) || "-")}</div>
-            </div>
-            <div class="item-badges">
-              ${cardStatusBadge_(item.status)}
-              <span class="badge">${escapeHtml_(planText_(item.plan))}</span>
-            </div>
+    return state.cards.map(item => `
+      <div class="item">
+        <div class="item-top">
+          <div>
+            <div class="item-title">${escapeHtml_(text_(item.name) || "未命名卡片")}</div>
+            <div class="mt8 mono">${escapeHtml_(text_(item.id) || "-")}</div>
           </div>
-
-          <div class="grid">
-            ${kv_("卡號", item.id, true)}
-            ${kv_("姓名", item.name)}
-            ${kv_("單位", item.unit)}
-            ${kv_("職稱", item.title)}
-            ${kv_("電話", item.phone)}
-            ${kv_("方案", planText_(item.plan))}
-            ${kv_("狀態", cardStatusText_(item.status))}
-            ${kv_("來源代理", item.service_agent)}
-            ${kv_("到期日", formatDateTime_(item.expires_at))}
-            ${kv_("更新時間", formatDateTime_(item.updated_at))}
-          </div>
-
-          <div class="item-actions">
-            <button class="btn soft" data-act="card-detail" data-id="${escapeAttr_(item.id)}">查看</button>
-            <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(item.id)}">開名片</button>
-            <button class="btn ok" data-act="card-open-clean" data-id="${escapeAttr_(item.id)}">開乾淨名片</button>
-            <button class="btn" data-act="card-copy-link" data-id="${escapeAttr_(item.id)}">複製名片連結</button>
-            <button class="btn primary" data-act="card-gen-update" data-id="${escapeAttr_(item.id)}">產生更新頁</button>
-            <button class="btn" data-act="card-copy-update" data-id="${escapeAttr_(item.id)}">複製更新頁</button>
-            <button class="btn warn" data-act="card-activate" data-id="${escapeAttr_(item.id)}">啟用卡片</button>
-            <button class="btn bad" data-act="card-inactivate" data-id="${escapeAttr_(item.id)}">停用卡片</button>
-            <button class="btn" data-act="card-extend" data-id="${escapeAttr_(item.id)}">延長期限</button>
+          <div class="item-badges">
+            ${cardStatusBadge_(item.status)}
+            <span class="badge">${escapeHtml_(planText_(item.plan))}</span>
           </div>
         </div>
-      `;
-    }).join("");
-  }
-/* =========================================================
-   * Part 3 / 5
-   * 事件處理 / 工作流
-   * ======================================================= */
 
-  function onRootInput_(e){
-    const t = e.target;
-    if (!t) return;
-    if (t.id === "leadQuery") state.leadQuery = t.value;
-    if (t.id === "inviteQuery") state.inviteQuery = t.value;
-    if (t.id === "cardQuery") state.cardQuery = t.value;
-  }
+        <div class="grid">
+          ${kv_("卡號", item.id, true)}
+          ${kv_("姓名", item.name)}
+          ${kv_("單位", item.unit)}
+          ${kv_("職稱", item.title)}
+          ${kv_("電話", item.phone)}
+          ${kv_("方案", planText_(item.plan))}
+          ${kv_("狀態", cardStatusText_(item.status))}
+          ${kv_("付款狀態", billingStatusText_(item.billing_status))}
+          ${kv_("來源代理", item.service_agent)}
+          ${kv_("到期日", formatDateTime_(item.expires_at))}
+          ${kv_("更新時間", formatDateTime_(item.updated_at))}
+        </div>
 
-  async function onRootClick_(e){
-    const btn = e.target.closest("button");
-    if (!btn) return;
-
-    const tab = btn.dataset.tab;
-    const act = btn.dataset.act;
-
-    if (tab) {
-      switchTab_(tab);
-      return;
-    }
-
-    if (btn.id === "btnRefreshAll") {
-      await Promise.allSettled([loadStats_(), loadLeads_(), loadInvites_(), loadCards_()]);
-      toast_("已重新整理");
-      return;
-    }
-
-    if (btn.id === "btnGoHub") {
-      window.open(CONFIG.HUB_URL, "_blank");
-      return;
-    }
-
-    if (btn.id === "btnOpenForm") {
-      window.open(CONFIG.FORM_URL, "_blank");
-      return;
-    }
-
-    if (btn.id === "btnSearchLead") return await loadLeads_();
-    if (btn.id === "btnReloadLead") { state.leadQuery = ""; renderLeadPanel_(); return await loadLeads_(); }
-
-    if (btn.id === "btnSearchInvite") return await loadInvites_();
-    if (btn.id === "btnReloadInvite") { state.inviteQuery = ""; renderInvitePanel_(); return await loadInvites_(); }
-
-    if (btn.id === "btnSearchCard") return await loadCards_();
-    if (btn.id === "btnReloadCard") { state.cardQuery = ""; renderCardPanel_(); return await loadCards_(); }
-
-    if (!act) return;
-
-    try {
-      if (act === "lead-detail") return await openLeadDetail_(btn.dataset.id);
-      if (act === "lead-invite") return await createInviteFromLead_(btn.dataset.id);
-      if (act === "lead-copy-invite") return copyLeadInvite_(btn.dataset.id);
-      if (act === "lead-copy-form") return copyLeadFormLink_(btn.dataset.id);
-      if (act === "lead-copy-script") return copyLeadScript_(btn.dataset.id);
-      if (act === "lead-open-card") return openCard_(btn.dataset.cardId);
-
-      if (act === "invite-detail") return await openInviteDetail_(btn.dataset.id);
-      if (act === "invite-copy-code") return copyText_(btn.dataset.id, "已複製邀請碼");
-      if (act === "invite-copy-both") return copyInviteBundle_(btn.dataset.id);
-      if (act === "invite-disable") return await disableInvite_(btn.dataset.id);
-
-      if (act === "card-detail") return await openCardDetail_(btn.dataset.id);
-      if (act === "card-open") return openCard_(btn.dataset.id);
-      if (act === "card-open-clean") return openCardClean_(btn.dataset.id);
-      if (act === "card-copy-link") return copyCardLink_(btn.dataset.id);
-      if (act === "card-gen-update") return await genCardUpdateLink_(btn.dataset.id);
-      if (act === "card-copy-update") return copyCardUpdateLink_(btn.dataset.id);
-      if (act === "card-activate") return await updateCardStatus_(btn.dataset.id, "active");
-      if (act === "card-inactivate") return await updateCardStatus_(btn.dataset.id, "inactive");
-      if (act === "card-extend") return await extendCard_(btn.dataset.id);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "操作失敗");
-    }
+        <div class="item-actions">
+          <button class="btn soft" data-act="card-detail" data-id="${escapeAttr_(item.id)}">查看</button>
+          <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(item.id)}">開名片</button>
+          <button class="btn ok" data-act="card-open-clean" data-id="${escapeAttr_(item.id)}">開乾淨名片</button>
+          <button class="btn" data-act="card-copy-link" data-id="${escapeAttr_(item.id)}">複製名片連結</button>
+          <button class="btn primary" data-act="card-gen-update" data-id="${escapeAttr_(item.id)}">產生更新頁</button>
+          <button class="btn" data-act="card-copy-update" data-id="${escapeAttr_(item.id)}">複製更新頁</button>
+          <button class="btn warn" data-act="card-activate" data-id="${escapeAttr_(item.id)}">啟用卡片</button>
+          <button class="btn bad" data-act="card-inactivate" data-id="${escapeAttr_(item.id)}">停用卡片</button>
+          <button class="btn" data-act="card-extend" data-id="${escapeAttr_(item.id)}">延長期限</button>
+        </div>
+      </div>
+    `).join("");
   }
 
-  function switchTab_(tab){
-    state.tab = tab;
-    qsa_(".tab-btn").forEach(el => el.classList.toggle("active", el.dataset.tab === tab));
-    qsa_(".panel").forEach(el => el.classList.remove("active"));
-    const panel = document.getElementById(`panel-${tab}`);
-    if (panel) panel.classList.add("active");
+  function renderBillingItems_(){
+    if (!state.payments.length) return `<div class="empty">目前沒有符合條件的付款資料。</div>`;
+
+    return state.payments.map(item => `
+      <div class="item">
+        <div class="item-top">
+          <div>
+            <div class="item-title">${escapeHtml_(text_(item.name) || "未填姓名")}</div>
+            <div class="mt8 mono">${escapeHtml_(text_(item.id) || "-")}</div>
+          </div>
+          <div class="item-badges">
+            ${billingBadge_(item)}
+          </div>
+        </div>
+
+        <div class="grid">
+          ${kv_("卡號", item.id, true)}
+          ${kv_("姓名", item.name)}
+          ${kv_("電話", item.phone)}
+          ${kv_("方案", planText_(item.plan))}
+          ${kv_("卡片狀態", cardStatusText_(item.status))}
+          ${kv_("付款狀態", billingStatusText_(item.billing_status))}
+          ${kv_("發卡時間", formatDateTime_(item.activated_at))}
+          ${kv_("付款期限", formatDateTime_(item.payment_due_at))}
+          ${kv_("提醒次數", item.payment_remind_count)}
+          ${kv_("鎖卡時間", formatDateTime_(item.payment_lock_at))}
+          ${kv_("付款時間", formatDateTime_(item.payment_paid_at))}
+          ${kv_("鎖卡原因", item.lock_reason)}
+          ${kv_("付款備註", item.payment_note)}
+        </div>
+
+        <div class="item-actions">
+          <button class="btn soft" data-act="billing-detail" data-id="${escapeAttr_(item.id)}">查看付款詳情</button>
+          ${text_(item.billing_status).toLowerCase() !== "paid" ? `<button class="btn primary" data-act="billing-paid" data-id="${escapeAttr_(item.id)}">標記已付款</button>` : ``}
+          <button class="btn ok" data-act="billing-open" data-id="${escapeAttr_(item.id)}">開名片</button>
+        </div>
+      </div>
+    `).join("");
   }
 
   async function openLeadDetail_(leadId){
-    const res = await api_("leadGet", { lead_id: leadId });
-    const item = res?.item || res?.data || findLead_(leadId) || {};
+    const item = await api_("leadGet", { lead_id: leadId }) || findLead_(leadId) || {};
     state.currentLead = item;
 
     openDrawer_("Lead 詳情", `
@@ -782,24 +656,21 @@
   }
 
   async function createInviteFromLead_(leadId){
-    const lead = findLead_(leadId) || (await api_("leadGet", { lead_id: leadId }))?.item || {};
+    const lead = findLead_(leadId) || await api_("leadGet", { lead_id: leadId }) || {};
     if (!text_(lead.lead_id)) throw new Error("找不到該筆 Lead 資料");
 
-    const payload = {
-      lead_id: text_(lead.lead_id),
+    const inviteRes = await api_("inviteCreate", {
+      tenant: "angel",
+      count: 1,
+      days: 30,
       referrer: text_(lead.referrer),
       service_agent: text_(lead.service_agent),
       agent_type: text_(lead.agent_type),
-      source: text_(lead.source)
-    };
+      source: text_(lead.source || "lead")
+    });
 
-    const inviteRes = await api_("inviteCreate", payload);
-    const inviteCode =
-      text_(inviteRes?.invite_code) ||
-      text_(inviteRes?.item?.invite_code) ||
-      text_(inviteRes?.data?.invite_code);
-
-    if (!inviteCode) throw new Error("邀請碼產生失敗，未取得 invite_code");
+    const inviteCode = text_(inviteRes?.codes?.[0]) || text_(inviteRes?.invite_code);
+    if (!inviteCode) throw new Error("邀請碼產生失敗");
 
     await api_("leadMarkInvited", {
       lead_id: lead.lead_id,
@@ -808,13 +679,7 @@
     });
 
     toast_(`已產生邀請碼：${inviteCode}`);
-
-    await Promise.allSettled([loadLeads_(), loadInvites_(), loadStats_()]);
-
-    const refreshed = findLead_(lead.lead_id);
-    if (refreshed && state.currentLead && text_(state.currentLead.lead_id) === text_(lead.lead_id)) {
-      await openLeadDetail_(lead.lead_id);
-    }
+    await Promise.allSettled([loadLeads_(), loadInvites_()]);
   }
 
   function copyLeadInvite_(leadId){
@@ -829,9 +694,7 @@
 
   function copyLeadFormLink_(leadId){
     const item = findLead_(leadId);
-    const inviteCode = text_(item?.invite_code);
-    const url = buildFormLink_(inviteCode);
-    copyText_(url, "已複製表單連結");
+    copyText_(buildFormLink_(text_(item?.invite_code)), "已複製表單連結");
   }
 
   function copyLeadScript_(leadId){
@@ -853,15 +716,13 @@
   }
 
   async function openInviteDetail_(inviteCode){
-    const res = await api_("inviteGet", { invite_code: inviteCode });
-    const item = res?.item || res?.data || findInvite_(inviteCode) || {};
+    const item = await api_("inviteGet", { invite_code: inviteCode }) || findInvite_(inviteCode) || {};
     state.currentInvite = item;
 
     openDrawer_("Invite 詳情", `
       ${detailSection_("邀請碼資料", [
         ["邀請碼", item.invite_code, true],
         ["狀態", item.status],
-        ["申請編號", item.lead_id, true],
         ["使用卡號", item.used_by_id || item.card_id, true],
         ["推薦來源", item.referrer],
         ["來源代理", item.service_agent],
@@ -869,7 +730,7 @@
         ["名單來源", item.source],
         ["建立時間", formatDateTime_(item.created_at)],
         ["使用時間", formatDateTime_(item.used_at)],
-        ["到期時間", formatDateTime_(item.expired_at)]
+        ["到期時間", formatDateTime_(item.expires_at)]
       ])}
 
       <div class="mt16 item-actions">
@@ -879,10 +740,6 @@
       </div>
     `);
   }
-/* =========================================================
-   * Part 4 / 5
-   * Invite / Card 操作、資料載入、API
-   * ======================================================= */
 
   function copyInviteBundle_(inviteCode){
     const txt = `邀請碼：${inviteCode}\n填寫連結：${buildFormLink_(inviteCode)}`;
@@ -895,15 +752,11 @@
 
     await api_("inviteDisable", { invite_code: inviteCode });
     toast_("邀請碼已停用");
-    await Promise.allSettled([loadInvites_(), loadStats_()]);
-    if (state.currentInvite && text_(state.currentInvite.invite_code) === text_(inviteCode)) {
-      await openInviteDetail_(inviteCode);
-    }
+    await loadInvites_();
   }
 
   async function openCardDetail_(cardId){
-    const res = await api_("adminCard", { id: cardId });
-    const item = res?.item || res?.data || findCard_(cardId) || {};
+    const item = await api_("adminCard", { id: cardId }) || findCard_(cardId) || {};
     state.currentCard = item;
 
     openDrawer_("卡片詳情", `
@@ -916,7 +769,7 @@
         ["Email", item.email],
         ["方案", planText_(item.plan)],
         ["狀態", cardStatusText_(item.status)],
-        ["付款狀態", item.billing_status],
+        ["付款狀態", billingStatusText_(item.billing_status)],
         ["推薦來源", item.referrer],
         ["來源代理", item.service_agent],
         ["名單來源", item.source],
@@ -936,6 +789,52 @@
     `);
   }
 
+  async function openBillingDetail_(cardId){
+    const item = findPayment_(cardId) || await api_("adminCard", { id: cardId }) || {};
+    openDrawer_("付款詳情", `
+      ${detailSection_("付款資料", [
+        ["卡號", item.id, true],
+        ["姓名", item.name],
+        ["電話", item.phone],
+        ["方案", planText_(item.plan)],
+        ["卡片狀態", cardStatusText_(item.status)],
+        ["付款狀態", billingStatusText_(item.billing_status)],
+        ["發卡時間", formatDateTime_(item.activated_at)],
+        ["付款期限", formatDateTime_(item.payment_due_at)],
+        ["提醒1", formatDateTime_(item.payment_remind_1_at)],
+        ["提醒2", formatDateTime_(item.payment_remind_2_at)],
+        ["提醒3", formatDateTime_(item.payment_remind_3_at)],
+        ["提醒次數", item.payment_remind_count],
+        ["鎖卡時間", formatDateTime_(item.payment_lock_at)],
+        ["鎖卡原因", item.lock_reason],
+        ["通知時間", formatDateTime_(item.lock_notice_sent_at)],
+        ["付款時間", formatDateTime_(item.payment_paid_at)],
+        ["付款備註", item.payment_note]
+      ])}
+
+      <div class="mt16 item-actions">
+        ${text_(item.billing_status).toLowerCase() !== "paid" ? `<button class="btn primary" data-act="billing-paid" data-id="${escapeAttr_(item.id || "")}">標記已付款</button>` : ``}
+        <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(item.id || "")}">開名片</button>
+      </div>
+    `);
+  }
+
+  async function markBillingPaid_(cardId){
+    const note = prompt("請輸入付款備註", "已收款");
+    if (note === null) return;
+
+    await api_("paymentMarkPaid", {
+      id: cardId,
+      note,
+      operator: "admin"
+    });
+
+    toast_("已標記為付款完成");
+    await Promise.allSettled([loadPayments_(), loadCards_()]);
+    renderLinePanel_();
+    renderStatsPanel_();
+  }
+
   function openCard_(cardId){
     window.open(`${CONFIG.HUB_URL}?id=${encodeURIComponent(cardId)}`, "_blank");
   }
@@ -950,19 +849,12 @@
 
   async function genCardUpdateLink_(cardId){
     const res = await api_("adminCreateUpdateLink24h", { id: cardId });
-    const link =
-      text_(res?.update_link) ||
-      text_(res?.item?.update_link) ||
-      text_(res?.data?.update_link);
+    const link = text_(res?.update_link);
 
     if (!link) throw new Error("未取得更新頁連結");
 
     const card = findCard_(cardId);
     if (card) card.__update_link = link;
-    if (state.currentCard && text_(state.currentCard.id) === text_(cardId)) {
-      state.currentCard.__update_link = link;
-      await openCardDetail_(cardId);
-    }
 
     copyText_(link, "已產生並複製更新頁");
   }
@@ -981,16 +873,11 @@
     const ok = confirm(`確定要將卡片 ${cardId} 設為 ${status === "active" ? "啟用" : "停用"} 嗎？`);
     if (!ok) return;
 
-    await api_("adminUpdate", {
-      id: cardId,
-      status
-    });
-
+    await api_("adminUpdate", { id: cardId, status });
     toast_(status === "active" ? "卡片已啟用" : "卡片已停用");
-    await Promise.allSettled([loadCards_(), loadStats_()]);
-    if (state.currentCard && text_(state.currentCard.id) === text_(cardId)) {
-      await openCardDetail_(cardId);
-    }
+    await Promise.allSettled([loadCards_(), loadPayments_()]);
+    renderLinePanel_();
+    renderStatsPanel_();
   }
 
   async function extendCard_(cardId){
@@ -1002,7 +889,7 @@
       return;
     }
 
-    const card = findCard_(cardId) || (await api_("adminCard", { id: cardId }))?.item || {};
+    const card = findCard_(cardId) || await api_("adminCard", { id: cardId }) || {};
     const baseDate = text_(card.expires_at) ? new Date(card.expires_at) : new Date();
     const nextDate = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
 
@@ -1013,54 +900,16 @@
     });
 
     toast_(`已延長 ${days} 天`);
-    await Promise.allSettled([loadCards_(), loadStats_()]);
-    if (state.currentCard && text_(state.currentCard.id) === text_(cardId)) {
-      await openCardDetail_(cardId);
-    }
+    await loadCards_();
   }
 
   async function loadStats_(){
     try {
-      const stats = await api_("adminStats", {});
-      state.stats = stats || {};
-      renderStats_();
+      state.stats = await api_("adminStats", {}) || {};
+      renderStatsPanel_();
     } catch (err) {
       console.warn("loadStats error", err);
     }
-  }
-
-  function renderStats_(){
-    const box = document.getElementById("statsBox");
-    if (!box) return;
-
-    const s = state.stats || {};
-    const pendingLeads =
-      num_(s.pending_leads) ||
-      num_(s.lead_pending) ||
-      num_(s.leads_pending) ||
-      0;
-
-    const invitedLeads =
-      num_(s.invited_leads) ||
-      num_(s.lead_invited) ||
-      0;
-
-    const convertedLeads =
-      num_(s.converted_leads) ||
-      num_(s.lead_converted) ||
-      0;
-
-    const totalCards =
-      num_(s.total_cards) ||
-      num_(s.cards_total) ||
-      0;
-
-    box.innerHTML = `
-      <div class="stat"><div class="stat-k">待處理申請</div><div class="stat-v">${pendingLeads}</div></div>
-      <div class="stat"><div class="stat-k">已發邀請碼</div><div class="stat-v">${invitedLeads}</div></div>
-      <div class="stat"><div class="stat-k">已成卡</div><div class="stat-v">${convertedLeads}</div></div>
-      <div class="stat"><div class="stat-k">總卡片數</div><div class="stat-v">${totalCards}</div></div>
-    `;
   }
 
   async function loadLeads_(){
@@ -1070,6 +919,7 @@
     const res = await api_("leadList", params);
     state.leads = normalizeArrayResult_(res);
     renderLeadPanel_();
+    renderStatsPanel_();
     switchTab_(state.tab);
   }
 
@@ -1080,6 +930,7 @@
     const res = await api_("inviteList", params);
     state.invites = normalizeArrayResult_(res);
     renderInvitePanel_();
+    renderStatsPanel_();
     switchTab_(state.tab);
   }
 
@@ -1090,18 +941,35 @@
     const res = await api_("adminFind", params);
     state.cards = normalizeArrayResult_(res);
     renderCardPanel_();
+    renderStatsPanel_();
+    switchTab_(state.tab);
+  }
+
+  async function loadPayments_(){
+    const params = {
+      status: text_(state.billingFilter || "all")
+    };
+    if (text_(state.billingQuery)) params.keyword = text_(state.billingQuery);
+
+    const res = await api_("paymentList", params);
+    state.payments = normalizeArrayResult_(res);
+    renderBillingPanel_();
+    renderLinePanel_();
+    renderStatsPanel_();
     switchTab_(state.tab);
   }
 
   async function api_(action, payload = {}){
-    const url = CONFIG.GAS_URL;
-    const body = JSON.stringify({ action, ...payload });
+    const adminKey = getAdminKey_();
+    if (!adminKey) throw new Error("請先輸入 admin_key");
+
+    const body = JSON.stringify({ action, admin_key: adminKey, ...payload });
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT_MS);
 
     try {
-      const res = await fetch(url, {
+      const res = await fetch(CONFIG.GAS_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body,
@@ -1112,32 +980,21 @@
       let json = {};
       try {
         json = txt ? JSON.parse(txt) : {};
-      } catch (err) {
+      } catch {
         throw new Error(`API 回傳不是合法 JSON：${txt.slice(0, 200)}`);
       }
 
-      if (!res.ok) {
-        throw new Error(json.message || `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+      if (json && json.ok === false) throw new Error(json.error || `${action} 執行失敗`);
 
-      if (json && json.ok === false) {
-        throw new Error(json.message || `${action} 執行失敗`);
-      }
-
-      return json;
+      return json.data != null ? json.data : json;
     } catch (err) {
-      if (err.name === "AbortError") {
-        throw new Error(`請求逾時：${action}`);
-      }
+      if (err.name === "AbortError") throw new Error(`請求逾時：${action}`);
       throw err;
     } finally {
       clearTimeout(timer);
     }
   }
-/* =========================================================
-   * Part 5 / 5
-   * 工具函式
-   * ======================================================= */
 
   function normalizeArrayResult_(res){
     if (Array.isArray(res)) return res;
@@ -1160,10 +1017,79 @@
     return state.cards.find(x => text_(x.id) === text_(cardId));
   }
 
+  function findPayment_(cardId){
+    return state.payments.find(x => text_(x.id) === text_(cardId));
+  }
+
+  function getAdminKey_(){
+    return localStorage.getItem(CONFIG.ADMIN_KEY_STORAGE) || "";
+  }
+
   function buildFormLink_(inviteCode){
     const url = new URL(CONFIG.FORM_URL);
     if (text_(inviteCode)) url.searchParams.set("invite", inviteCode);
     return url.toString();
+  }
+
+  function buildLineNotifyItems_(){
+    return state.payments
+      .filter(item =>
+        text_(item.payment_remind_1_at) ||
+        text_(item.payment_remind_2_at) ||
+        text_(item.payment_remind_3_at) ||
+        text_(item.lock_notice_sent_at)
+      )
+      .map(item => ({
+        ...item,
+        badges: [
+          text_(item.payment_remind_1_at) ? `<span class="badge warn">Day1</span>` : "",
+          text_(item.payment_remind_2_at) ? `<span class="badge warn">Day2</span>` : "",
+          text_(item.payment_remind_3_at) ? `<span class="badge warn">Day3</span>` : "",
+          text_(item.lock_notice_sent_at) ? `<span class="badge bad">鎖卡通知</span>` : ""
+        ].filter(Boolean)
+      }));
+  }
+
+  function calcPaymentStats_(){
+    let unpaid = 0;
+    let reminded = 0;
+    let locked = 0;
+    let paid = 0;
+
+    state.payments.forEach(item => {
+      const billing = text_(item.billing_status).toLowerCase();
+      const status = text_(item.status).toLowerCase();
+      const remindCount = num_(item.payment_remind_count);
+
+      if (billing === "paid") {
+        paid++;
+        return;
+      }
+      if (status === "locked") {
+        locked++;
+        return;
+      }
+      if (billing === "unpaid" && remindCount >= 1) {
+        reminded++;
+        return;
+      }
+      if (billing === "unpaid") {
+        unpaid++;
+      }
+    });
+
+    return { unpaid, reminded, locked, paid };
+  }
+
+  function billingBadge_(item){
+    const billing = text_(item.billing_status).toLowerCase();
+    const status = text_(item.status).toLowerCase();
+    const remindCount = num_(item.payment_remind_count);
+
+    if (billing === "paid") return `<span class="badge ok">已付款</span>`;
+    if (status === "locked") return `<span class="badge bad">已鎖卡</span>`;
+    if (remindCount >= 1) return `<span class="badge warn">已提醒</span>`;
+    return `<span class="badge">未付款</span>`;
   }
 
   function kv_(k, v, mono = false){
@@ -1187,15 +1113,15 @@
   }
 
   function openDrawer_(title, html){
-    document.getElementById("drawerTitle").textContent = title || "詳細資料";
-    document.getElementById("drawerBody").innerHTML = html || "";
-    document.getElementById("drawer").classList.add("show");
-    document.getElementById("drawerMask").classList.add("show");
+    qs("drawerTitle").textContent = title || "詳細資料";
+    qs("drawerBody").innerHTML = html || "";
+    qs("drawer").classList.add("show");
+    qs("drawerMask").classList.add("show");
   }
 
   function closeDrawer_(){
-    document.getElementById("drawer").classList.remove("show");
-    document.getElementById("drawerMask").classList.remove("show");
+    qs("drawer").classList.remove("show");
+    qs("drawerMask").classList.remove("show");
   }
 
   function copyText_(text, msg = "已複製"){
@@ -1214,7 +1140,7 @@
   }
 
   function toast_(msg){
-    const old = document.getElementById("hscToast");
+    const old = qs("hscToast");
     if (old) old.remove();
 
     const el = document.createElement("div");
@@ -1236,6 +1162,10 @@
     });
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 1800);
+  }
+
+  function qs(id){
+    return document.getElementById(id);
   }
 
   function qsa_(sel){
@@ -1271,6 +1201,13 @@
     return s || "-";
   }
 
+  function billingStatusText_(v){
+    const s = text_(v).toLowerCase();
+    if (s === "paid") return "已付款";
+    if (s === "unpaid") return "未付款";
+    return v || "-";
+  }
+
   function leadStatusBadge_(status){
     const s = text_(status).toLowerCase();
     if (s === "converted") return `<span class="badge ok">已成卡</span>`;
@@ -1281,7 +1218,7 @@
 
   function inviteStatusText_(status){
     const s = text_(status).toLowerCase();
-    if (s === "active") return "可使用";
+    if (s === "open") return "可使用";
     if (s === "used") return "已使用";
     if (s === "disabled") return "已停用";
     if (s === "expired") return "已過期";
@@ -1290,7 +1227,7 @@
 
   function inviteStatusBadge_(status){
     const s = text_(status).toLowerCase();
-    if (s === "active") return `<span class="badge ok">可使用</span>`;
+    if (s === "open") return `<span class="badge ok">可使用</span>`;
     if (s === "used") return `<span class="badge">已使用</span>`;
     if (s === "disabled") return `<span class="badge bad">已停用</span>`;
     if (s === "expired") return `<span class="badge warn">已過期</span>`;
@@ -1301,6 +1238,7 @@
     const s = text_(status).toLowerCase();
     if (s === "active") return "啟用中";
     if (s === "inactive") return "停用中";
+    if (s === "locked") return "已鎖卡";
     if (s === "expired") return "已到期";
     return status || "-";
   }
@@ -1309,6 +1247,7 @@
     const s = text_(status).toLowerCase();
     if (s === "active") return `<span class="badge ok">啟用中</span>`;
     if (s === "inactive") return `<span class="badge bad">停用中</span>`;
+    if (s === "locked") return `<span class="badge bad">已鎖卡</span>`;
     if (s === "expired") return `<span class="badge warn">已到期</span>`;
     return `<span class="badge">${escapeHtml_(status || "-")}</span>`;
   }
