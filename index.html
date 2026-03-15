@@ -201,8 +201,7 @@
       background:#fff;
     }
     .facade-qr-grid img,
-    .qr-bottom-grid img,
-    .feature-qr-grid img{
+    .qr-bottom-grid img{
       width:100% !important;
       height:100% !important;
       display:block;
@@ -244,14 +243,7 @@
       font-weight:800;
       color:var(--poster-ink-soft);
     }
-
-    .primary-link-dock .dock-buttons,
-    .cta-dock .dock-buttons,
-    .install-dock .dock-buttons{
-      grid-template-columns:1fr !important;
-    }
-
-    .qr-bottom{
+.qr-bottom{
       margin-top:16px;
       padding:14px 12px 12px;
       border-radius:20px;
@@ -309,8 +301,7 @@
       justify-content:center;
     }
 
-    #bottomQrAvatar,
-    #featureQrAvatar{
+    #bottomQrAvatar{
       position:absolute;
       left:50%;
       top:50%;
@@ -325,39 +316,7 @@
       pointer-events:none;
     }
 
-    .feature-qr-shell{
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:8px 0 2px;
-    }
-    .feature-qr-canvas{
-      position:relative;
-      width:176px;
-      height:176px;
-      padding:12px;
-      border-radius:22px;
-      background:#fff;
-      box-shadow:0 8px 18px rgba(0,0,0,.04);
-      border:1px solid rgba(0,0,0,.035);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-    }
-    .feature-qr-grid{
-      width:152px;
-      height:152px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      overflow:hidden;
-      border-radius:14px;
-      background:#fff;
-    }
-.modal-mask,
+    .modal-mask,
     .invite-mask{
       display:none;
       position:fixed !important;
@@ -527,8 +486,7 @@
     .slogan-wrap{
       margin-top:2px;
     }
-
-    .unit-wrap .expand-toggle,
+.unit-wrap .expand-toggle,
     .slogan-wrap .expand-toggle{
       align-self:center;
     }
@@ -565,7 +523,8 @@
       }
     }
   </style>
-<script>
+
+  <script>
     (function(){
       "use strict";
       var DEMO_ID = "TW0001";
@@ -660,8 +619,7 @@
           精品設計
         </button>
       </div>
-
-      <div class="controls-block" id="free-controls">
+<div class="controls-block" id="free-controls">
         <div class="section-title">選顏色</div>
         <div class="dots-row" id="freeDotsRow">
           <button class="dot dot-1 active" data-group="theme" type="button" aria-label="粉" onclick="window.setTheme && window.setTheme('color-1', this)"></button>
@@ -686,11 +644,11 @@
         </div>
 
         <button class="btn-cta subtle" id="btnFeature" type="button">
-          <i class="fa-solid fa-circle-info"></i> 了解智慧名片特色｜訂製流程
+          <i class="fa-solid fa-circle-info"></i> 產品特色說明
         </button>
 
         <button class="btn-cta subtle" id="btnInviteGate" type="button">
-          <i class="fa-solid fa-key"></i> 申請邀請碼
+          <i class="fa-solid fa-key"></i> 申請開通表單邀請碼
         </button>
 
         <button class="btn-cta subtle" id="btnLineOaCta" type="button">
@@ -715,11 +673,11 @@
         </div>
 
         <button class="btn-cta subtle" id="btnFeature2" type="button">
-          <i class="fa-solid fa-circle-info"></i> 了解智慧名片特色｜訂製流程
+          <i class="fa-solid fa-circle-info"></i> 產品特色說明
         </button>
 
         <button class="btn-cta subtle" id="btnInviteGate2" type="button">
-          <i class="fa-solid fa-key"></i> 申請邀請碼
+          <i class="fa-solid fa-key"></i> 申請開通表單邀請碼
         </button>
 
         <button class="btn-cta subtle" id="btnLineOaCta2" type="button">
@@ -733,7 +691,8 @@
 
     </div>
   </header>
-<main id="card-container">
+
+  <main id="card-container">
     <section class="card" id="card">
       <div class="premium-fx-layer"></div>
 
@@ -831,19 +790,35 @@
       </div>
     </section>
   </main>
-
-  <div class="modal-mask" id="featureMask" aria-hidden="true">
+<div class="modal-mask" id="featureMask" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-label="產品特色說明">
       <div class="modal-hd">
         <div class="modal-title"><i class="fa-solid fa-circle-info"></i> 產品特色說明</div>
         <button class="modal-close" type="button" id="featureCloseBtn">關閉</button>
       </div>
       <div class="modal-bd">
-        <div class="feature-qr-shell">
-          <div class="feature-qr-canvas">
-            <div class="feature-qr-grid" id="featureQrGrid"></div>
-            <img id="featureQrAvatar" alt="QR 頭像" />
-          </div>
+        <div style="
+          font-size:13px;
+          line-height:1.8;
+          color:#5a4b40;
+          font-weight:600;
+          text-align:left;
+          white-space:normal;
+        ">
+          天使幸福智慧名片是一套可收藏、可分享的智慧名片系統。<br><br>
+
+          透過一張智慧名片，可以整合：<br><br>
+
+          ・聯絡方式<br>
+          ・LINE 與社群平台<br>
+          ・官方網站與影音內容<br>
+          ・品牌介紹與照片展示<br><br>
+
+          名片可一鍵分享，也可收藏到手機桌面，<br>
+          隨時快速開啟查看。<br><br>
+
+          適合講師、創業者、店家與個人品牌<br>
+          打造專屬的智慧名片入口。
         </div>
       </div>
     </div>
@@ -853,7 +828,7 @@
     <div class="invite-box" role="dialog" aria-modal="true" aria-label="申請邀請碼">
       <div class="invite-hd">
         <div style="display:flex; align-items:center; gap:10px;">
-          <i class="fa-solid fa-key"></i> 申請邀請碼
+          <i class="fa-solid fa-key"></i> 申請開通表單邀請碼
         </div>
         <button class="invite-btn" type="button" id="inviteCloseBtn">關閉</button>
       </div>
@@ -892,7 +867,8 @@
   </div>
 
   <script src="./app.js?v=524.8"></script>
-<script>
+
+  <script>
     (function(){
       "use strict";
 
@@ -1027,26 +1003,6 @@
         }catch(e){}
       }
 
-      function renderFeatureQr(){
-        var mount = qs("featureQrGrid");
-        var avatar = qs("featureQrAvatar");
-        if(!mount) return;
-        mount.innerHTML = "";
-        var qrUrl = buildHubShareUrlFallback();
-        try{
-          if(window.renderQr){
-            window.renderQr({
-              container: mount,
-              url: qrUrl,
-              size: 152,
-              centerImgEl: avatar,
-              centerImgUrl: window.__getCurrentAvatarUrl ? window.__getCurrentAvatarUrl() : "",
-              centerSizeRatio: 0.09
-            });
-          }
-        }catch(e){}
-      }
-
       async function shareUrl(url, title, textMsg, okMsg){
         try{
           if(navigator.share){
@@ -1154,7 +1110,6 @@
           mask.style.display = "flex";
           mask.setAttribute("aria-hidden", "false");
           lockScroll();
-          renderFeatureQr();
         }
         function shut(){
           if(!mask) return;
@@ -1296,3 +1251,9 @@
   </script>
 </body>
 </html>
+
+    .primary-link-dock .dock-buttons,
+    .cta-dock .dock-buttons,
+    .install-dock .dock-buttons{
+      grid-template-columns:1fr !important;
+    }
