@@ -243,7 +243,14 @@
       font-weight:800;
       color:var(--poster-ink-soft);
     }
-.qr-bottom{
+
+    .primary-link-dock .dock-buttons,
+    .cta-dock .dock-buttons,
+    .install-dock .dock-buttons{
+      grid-template-columns:1fr !important;
+    }
+
+    .qr-bottom{
       margin-top:16px;
       padding:14px 12px 12px;
       border-radius:20px;
@@ -315,8 +322,7 @@
       padding:0;
       pointer-events:none;
     }
-
-    .modal-mask,
+.modal-mask,
     .invite-mask{
       display:none;
       position:fixed !important;
@@ -486,7 +492,8 @@
     .slogan-wrap{
       margin-top:2px;
     }
-.unit-wrap .expand-toggle,
+
+    .unit-wrap .expand-toggle,
     .slogan-wrap .expand-toggle{
       align-self:center;
     }
@@ -768,8 +775,7 @@
           <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
           <div class="photo-grid" id="photoGrid"></div>
         </div>
-
-        <div class="qr-bottom" id="bottomQrSection">
+<div class="qr-bottom" id="bottomQrSection">
           <div class="qr-bottom-head">
             <div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">
               掃描 QRcode｜開啟我的智慧名片
@@ -790,7 +796,8 @@
       </div>
     </section>
   </main>
-<div class="modal-mask" id="featureMask" aria-hidden="true">
+
+  <div class="modal-mask" id="featureMask" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-label="產品特色說明">
       <div class="modal-hd">
         <div class="modal-title"><i class="fa-solid fa-circle-info"></i> 產品特色說明</div>
@@ -967,8 +974,7 @@
           return BASE_URL + "index.html?id=" + encodeURIComponent(getCurrentCardId()) + "&view=1";
         }
       }
-
-      function buildFacadeHubQrUrl(){
+function buildFacadeHubQrUrl(){
         try{
           var u = new URL(BASE_URL);
           var refCode = (typeof window.__getReferralSourceCode === "function" ? window.__getReferralSourceCode() : "") || getCurrentCardId();
@@ -1251,9 +1257,3 @@
   </script>
 </body>
 </html>
-
-    .primary-link-dock .dock-buttons,
-    .cta-dock .dock-buttons,
-    .install-dock .dock-buttons{
-      grid-template-columns:1fr !important;
-    }
