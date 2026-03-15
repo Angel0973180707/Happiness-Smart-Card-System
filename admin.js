@@ -1,1768 +1,1328 @@
-/* ==========================================
- * HSC Admin Console v1 — admin.js v1.0
+/* =========================================================
+ * HSC Admin Console v1.1
+ * admin.js
  * COMPLETE OVERWRITE
- *
- * Modules:
- * - Config / Boot
- * - API Helpers
- * - State
- * - Dashboard Module
- * - Card Manager Module
- * - Lead Manager Module
- * - Invite Manager Module
- * - Agent Manager Module
- * - Stats / Expire / CS Tools
- * - UI / Drawer / Modal / Pagination / Filters
- *
- * Notes:
- * - Align with GAS v720.2
- * - Admin auth uses admin_key
- * - Search action uses adminFind
- * - Update link action uses adminCreateUpdateLink24h
- * - Card status / expiry update uses adminUpdate
- * ========================================== */
+ * Part 1 / 5
+ * ---------------------------------------------------------
+ * 目標：
+ * 1) Lead 成為第一入口
+ * 2) 中文化後台
+ * 3) 客服工作流優化
+ * 4) Lead -> Invite 流程修正
+ * ======================================================= */
 
 (() => {
   "use strict";
 
-  /* =========================
-   * Config / Constants
-   * ========================= */
-  const VERSION = "1.0";
-  const DEFAULT_GAS =
-    "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-  const DEFAULT_BASE_URL =
-    "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
-  const DEFAULT_TENANT = "angel";
-
-  const LS = {
-    GAS: "hsc_admin_console_gas_v1",
-    TENANT: "hsc_admin_console_tenant_v1",
-    ADMIN_KEY: "hsc_admin_console_admin_key_v1",
-    ACTIVE_TAB: "hsc_admin_console_active_tab_v1",
-    CARD_PAGE: "hsc_admin_console_card_page_v1",
-    LEAD_PAGE: "hsc_admin_console_lead_page_v1",
-    INVITE_PAGE: "hsc_admin_console_invite_page_v1",
-    AGENT_PAGE: "hsc_admin_console_agent_page_v1"
+  const CONFIG = {
+    VERSION: "HSC Admin Console v1.1",
+    GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+    HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+    FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
+    FETCH_TIMEOUT_MS: 20000,
+    PAGE_SIZE: 20
   };
-
-  const PAGE_SIZE = 20;
-  const CARD_SEARCH_SEEDS = ["TW", "a", "0", "1", "2"];
-  const STATUS_NEW = "new";
-
-  const CARD_FIELDS = [
-    "id","token","status","tenant","billing_status","created_at","updated_at",
-    "activated_at","inactivated_at","expired_at","expires_at","remind_at","reminded_at","form_ts",
-    "plan","color","style","paper","premium_color","name","unit","title","slogan",
-    "services","experience","avatar_img","logo_img","photo1_img","photo2_img","photo3_img","photo4_img","photo5_img",
-    "avatar_img_fast","logo_img_fast","photo1_img_fast","photo2_img_fast","photo3_img_fast","photo4_img_fast","photo5_img_fast",
-    "wechat_id","line_url","line_oa","email","phone","address","video1","video2","video3","social1","social2","social3",
-    "avatar_key","logo_key","photos_keys","invite_code","reserved_uid","reserved_at","confirmed_at","confirm_note",
-    "website","uid","free_color","free_style","free_paper","line_id","avatar_url","logo_url","photo1_url","photo2_url","photo3_url","photo4_url","photo5_url",
-    "invite","cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3","wechat_poster",
-    "view_count","last_view_at","referrer","service_agent","agent_type","is_agent","agent_id","source","renewal_owner",
-    "update_token","update_token_created_at","update_token_expire","update_link_sent_at"
-  ];
-
-  const LEAD_FIELDS = [
-    "lead_id","tenant","referrer","service_agent","agent_type","source","status","invite_code","card_id",
-    "customer_name","phone","email","line_id","note","created_at","updated_at","sent_at","converted_at","last_editor"
-  ];
-
-  const INVITE_FIELDS = [
-    "invite_code","tenant","plan","note","referrer","service_agent","agent_type","source","status",
-    "created_at","expires_at","used_at","used_by_id","disabled_at","last_editor"
-  ];
-
-  const AGENT_FIELDS = [
-    "agent_code","tenant","agent_key","name","title","phone","email","line_id","line_url","line_oa",
-    "website","status","note","created_at","updated_at","last_editor"
-  ];
 
   const state = {
-    config: {
-      gas: DEFAULT_GAS,
-      tenant: DEFAULT_TENANT,
-      adminKey: ""
-    },
+    tab: "lead",
+    loading: false,
+    stats: null,
 
-    ui: {
-      activeTab: "dashboard",
-      drawerOpen: false,
-      drawerMode: "none"
-    },
+    leadQuery: "",
+    inviteQuery: "",
+    cardQuery: "",
 
-    dashboard: {
-      cardsTotal: 0,
-      cardsToday: 0,
-      leadsTotal: 0,
-      agentsTotal: 0,
-      invitesTotal: 0,
-      activeCards: 0,
-      inactiveCards: 0,
-      expiredCards: 0,
-      exp30: [],
-      exp7: [],
-      expiredList: []
-    },
+    leads: [],
+    invites: [],
+    cards: [],
 
-    cards: {
-      raw: [],
-      filtered: [],
-      page: 1,
-      pageSize: PAGE_SIZE,
-      keyword: "",
-      filters: {
-        status: "",
-        plan: "",
-        billing_status: "",
-        source: "",
-        service_agent: ""
-      },
-      selected: null
-    },
+    currentLead: null,
+    currentInvite: null,
+    currentCard: null,
 
-    leads: {
-      raw: [],
-      filtered: [],
-      page: 1,
-      pageSize: PAGE_SIZE,
-      keyword: "",
-      filters: {
-        status: "",
-        source: "",
-        service_agent: ""
-      },
-      selected: null
-    },
-
-    invites: {
-      raw: [],
-      filtered: [],
-      page: 1,
-      pageSize: PAGE_SIZE,
-      keyword: "",
-      filters: {
-        status: "",
-        source: "",
-        service_agent: ""
-      },
-      selected: null
-    },
-
-    agents: {
-      raw: [],
-      filtered: [],
-      page: 1,
-      pageSize: PAGE_SIZE,
-      keyword: "",
-      selected: null,
-      leads: [],
-      cards: []
-    },
-
-    caches: {
-      allCardsLoaded: false,
-      updateLinks: {},
-      detailById: {}
-    }
+    leadPage: 1,
+    invitePage: 1,
+    cardPage: 1
   };
 
-  const dom = {};
+  const root = ensureRoot_();
+  injectStyle_();
+  renderShell_();
+  bindShellEvents_();
+  boot_();
 
-  /* =========================
-   * Boot
-   * ========================= */
-  document.addEventListener("DOMContentLoaded", init);
-
-  async function init() {
-    hydrateConfig();
-    bindLegacyDom();
-    ensureEnhancedDom();
-    bindEnhancedDom();
-    applyVersionText();
-    renderConfig();
-    renderAllShells();
-    setStatus(`HSC Admin Console v${VERSION}\n準備就緒。`, "ok");
-
-    try {
-      await pingSilently();
-      await bootstrapDashboard();
-    } catch (err) {
-      setStatus(normalizeError(err), "err");
-    }
+  function ensureRoot_(){
+    let el = document.getElementById("app");
+    if (el) return el;
+    el = document.createElement("div");
+    el.id = "app";
+    document.body.innerHTML = "";
+    document.body.appendChild(el);
+    return el;
   }
 
-  function hydrateConfig() {
-    state.config.gas = localStorage.getItem(LS.GAS) || DEFAULT_GAS;
-    state.config.tenant = localStorage.getItem(LS.TENANT) || DEFAULT_TENANT;
-    state.config.adminKey = localStorage.getItem(LS.ADMIN_KEY) || "";
-    state.ui.activeTab = localStorage.getItem(LS.ACTIVE_TAB) || "dashboard";
-    state.cards.page = num(localStorage.getItem(LS.CARD_PAGE), 1);
-    state.leads.page = num(localStorage.getItem(LS.LEAD_PAGE), 1);
-    state.invites.page = num(localStorage.getItem(LS.INVITE_PAGE), 1);
-    state.agents.page = num(localStorage.getItem(LS.AGENT_PAGE), 1);
-  }
-
-  function persistConfig() {
-    localStorage.setItem(LS.GAS, state.config.gas);
-    localStorage.setItem(LS.TENANT, state.config.tenant);
-    localStorage.setItem(LS.ADMIN_KEY, state.config.adminKey);
-    localStorage.setItem(LS.ACTIVE_TAB, state.ui.activeTab);
-    localStorage.setItem(LS.CARD_PAGE, String(state.cards.page));
-    localStorage.setItem(LS.LEAD_PAGE, String(state.leads.page));
-    localStorage.setItem(LS.INVITE_PAGE, String(state.invites.page));
-    localStorage.setItem(LS.AGENT_PAGE, String(state.agents.page));
-  }
-
-  function bindLegacyDom() {
-    dom.legacyWrap = document.querySelector(".wrap") || document.body;
-    dom.statusBox =
-      document.getElementById("statusBox") ||
-      createFallbackStatusBox();
-  }
-
-  function createFallbackStatusBox() {
-    const box = document.createElement("div");
-    box.id = "statusBox";
-    box.style.whiteSpace = "pre-wrap";
-    box.style.padding = "12px";
-    box.style.margin = "12px";
-    box.style.border = "1px solid rgba(255,255,255,.15)";
-    box.style.borderRadius = "12px";
-    box.style.background = "rgba(255,255,255,.05)";
-    box.style.color = "#fff";
-    document.body.prepend(box);
-    return box;
-  }
-
-  function ensureEnhancedDom() {
-    let app = document.getElementById("hscAdminApp");
-    if (!app) {
-      app = document.createElement("div");
-      app.id = "hscAdminApp";
-      app.innerHTML = buildAppShell();
-      if (dom.legacyWrap && dom.legacyWrap.appendChild) {
-        dom.legacyWrap.appendChild(app);
-      } else {
-        document.body.appendChild(app);
+  function injectStyle_(){
+    const css = `
+      :root{
+        --bg:#f6f2eb;
+        --card:#fffdf9;
+        --ink:#2f241c;
+        --muted:#7d6f65;
+        --line:rgba(47,36,28,.10);
+        --pri:#b97a4e;
+        --pri2:#8f5a36;
+        --ok:#1f8f5f;
+        --warn:#d97706;
+        --bad:#c2410c;
+        --shadow:0 12px 30px rgba(0,0,0,.08);
+        --radius:18px;
       }
-    }
-    collectDom();
+      *{ box-sizing:border-box; }
+      html,body{
+        margin:0;padding:0;
+        background:var(--bg);
+        color:var(--ink);
+        font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+      }
+      body{ padding:14px; }
+      .hsc-admin{
+        max-width:1180px;
+        margin:0 auto;
+      }
+      .topbar{
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+        margin-bottom:14px;
+      }
+      .brand{
+        background:linear-gradient(135deg,#fffaf4,#fff);
+        border:1px solid var(--line);
+        border-radius:24px;
+        padding:18px 18px 16px;
+        box-shadow:var(--shadow);
+      }
+      .brand-title{
+        font-size:24px;
+        font-weight:800;
+        letter-spacing:.02em;
+      }
+      .brand-sub{
+        margin-top:6px;
+        font-size:14px;
+        color:var(--muted);
+        line-height:1.6;
+      }
+      .top-actions{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+      }
+      .tabbar{
+        display:grid;
+        grid-template-columns:repeat(3,1fr);
+        gap:10px;
+        margin-bottom:14px;
+      }
+      .tab-btn{
+        appearance:none;
+        border:none;
+        background:#fff;
+        border-radius:18px;
+        padding:14px 12px;
+        font-size:16px;
+        font-weight:800;
+        color:var(--ink);
+        border:1px solid var(--line);
+        box-shadow:var(--shadow);
+      }
+      .tab-btn.active{
+        background:linear-gradient(135deg,#c58d63,#a96a41);
+        color:#fff;
+        border-color:transparent;
+      }
+      .panel{
+        display:none;
+      }
+      .panel.active{
+        display:block;
+      }
+      .card{
+        background:var(--card);
+        border:1px solid var(--line);
+        border-radius:22px;
+        box-shadow:var(--shadow);
+        padding:14px;
+        margin-bottom:14px;
+      }
+      .card-title{
+        font-size:20px;
+        font-weight:900;
+        margin-bottom:6px;
+      }
+      .card-sub{
+        color:var(--muted);
+        font-size:14px;
+        line-height:1.6;
+        margin-bottom:12px;
+      }
+      .search-row{
+        display:grid;
+        grid-template-columns:1fr auto auto;
+        gap:10px;
+      }
+      .input,.select,.textarea{
+        width:100%;
+        border:1px solid var(--line);
+        background:#fff;
+        border-radius:14px;
+        padding:12px 14px;
+        font-size:16px;
+        color:var(--ink);
+        outline:none;
+      }
+      .textarea{
+        min-height:110px;
+        resize:vertical;
+      }
+      .btn{
+        appearance:none;
+        border:none;
+        border-radius:14px;
+        padding:12px 14px;
+        font-size:15px;
+        font-weight:800;
+        cursor:pointer;
+        background:#efe6dc;
+        color:var(--ink);
+      }
+      .btn.primary{ background:linear-gradient(135deg,#c58d63,#a96a41); color:#fff; }
+      .btn.soft{ background:#f5eee7; color:var(--pri2); }
+      .btn.ok{ background:#e8f7f0; color:var(--ok); }
+      .btn.warn{ background:#fff3df; color:var(--warn); }
+      .btn.bad{ background:#fdebe6; color:var(--bad); }
+      .btn.block{ width:100%; }
+      .btn[disabled]{ opacity:.55; cursor:not-allowed; }
+      .stats{
+        display:grid;
+        grid-template-columns:repeat(4,1fr);
+        gap:10px;
+      }
+      .stat{
+        border:1px solid var(--line);
+        background:#fff;
+        border-radius:18px;
+        padding:12px;
+      }
+      .stat-k{
+        font-size:13px;
+        color:var(--muted);
+        margin-bottom:8px;
+      }
+      .stat-v{
+        font-size:24px;
+        font-weight:900;
+      }
+      .list{
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+      }
+      .item{
+        border:1px solid var(--line);
+        border-radius:18px;
+        background:#fff;
+        padding:12px;
+      }
+      .item-top{
+        display:flex;
+        justify-content:space-between;
+        gap:10px;
+        align-items:flex-start;
+        margin-bottom:10px;
+      }
+      .item-title{
+        font-size:18px;
+        font-weight:900;
+        line-height:1.4;
+      }
+      .item-badges{
+        display:flex;
+        flex-wrap:wrap;
+        gap:6px;
+        justify-content:flex-end;
+      }
+      .badge{
+        display:inline-flex;
+        align-items:center;
+        gap:4px;
+        padding:6px 10px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:800;
+        background:#f4ede6;
+        color:#6b513e;
+      }
+      .badge.ok{ background:#e8f7f0; color:var(--ok); }
+      .badge.warn{ background:#fff3df; color:var(--warn); }
+      .badge.bad{ background:#fdebe6; color:var(--bad); }
+      .grid{
+        display:grid;
+        grid-template-columns:repeat(2,1fr);
+        gap:8px 12px;
+        margin-bottom:12px;
+      }
+      .kv{
+        background:#fcfaf7;
+        border:1px solid var(--line);
+        border-radius:12px;
+        padding:10px;
+        min-height:60px;
+      }
+      .kv-k{
+        font-size:12px;
+        color:var(--muted);
+        margin-bottom:6px;
+      }
+      .kv-v{
+        font-size:15px;
+        font-weight:700;
+        line-height:1.5;
+        white-space:pre-wrap;
+        word-break:break-word;
+      }
+      .item-actions{
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+      }
+      .empty{
+        text-align:center;
+        color:var(--muted);
+        padding:24px 10px;
+        font-size:15px;
+      }
+      .footer-note{
+        margin-top:10px;
+        color:var(--muted);
+        font-size:13px;
+      }
+      .drawer-mask{
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.34);
+        display:none;
+        z-index:90;
+      }
+      .drawer-mask.show{ display:block; }
+      .drawer{
+        position:fixed;
+        right:0; top:0;
+        width:min(92vw,520px);
+        height:100vh;
+        background:#fffdf9;
+        box-shadow:-10px 0 30px rgba(0,0,0,.15);
+        transform:translateX(110%);
+        transition:transform .22s ease;
+        z-index:100;
+        display:flex;
+        flex-direction:column;
+      }
+      .drawer.show{ transform:translateX(0); }
+      .drawer-head{
+        padding:16px;
+        border-bottom:1px solid var(--line);
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:10px;
+      }
+      .drawer-title{
+        font-size:20px;
+        font-weight:900;
+      }
+      .drawer-body{
+        padding:16px;
+        overflow:auto;
+      }
+      .mono{
+        font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      }
+      .mt8{ margin-top:8px; }
+      .mt12{ margin-top:12px; }
+      .mt16{ margin-top:16px; }
+
+      @media (max-width:900px){
+        .stats{ grid-template-columns:repeat(2,1fr); }
+      }
+      @media (max-width:680px){
+        body{ padding:10px; }
+        .search-row{ grid-template-columns:1fr; }
+        .grid{ grid-template-columns:1fr; }
+        .tabbar{ grid-template-columns:1fr; }
+        .brand-title{ font-size:22px; }
+        .item-title{ font-size:17px; }
+        .top-actions{ display:grid; grid-template-columns:1fr 1fr; }
+      }
+    `;
+    const style = document.createElement("style");
+    style.textContent = css;
+    document.head.appendChild(style);
   }
 
-  function collectDom() {
-    dom.app = document.getElementById("hscAdminApp");
+  function renderShell_(){
+    root.innerHTML = `
+      <div class="hsc-admin">
+        <div class="topbar">
+          <div class="brand">
+            <div class="brand-title">天使幸福智慧名片｜客服後台</div>
+            <div class="brand-sub">
+              ${CONFIG.VERSION}<br>
+              第一入口是「Lead 申請清單」，客服收到客戶回報的申請編號後，直接搜尋、產生邀請碼、複製連結與話術。
+            </div>
+          </div>
 
-    dom.version = document.getElementById("adminVersion");
-    dom.tabButtons = Array.from(document.querySelectorAll("[data-tab-target]"));
-    dom.tabPanels = Array.from(document.querySelectorAll("[data-tab-panel]"));
+          <div class="top-actions">
+            <button class="btn soft" id="btnRefreshAll">重新整理</button>
+            <button class="btn soft" id="btnGoHub">開名片館</button>
+            <button class="btn soft" id="btnOpenForm">開申請表單</button>
+          </div>
+        </div>
 
-    dom.gasUrl = document.getElementById("cfgGasUrl");
-    dom.tenant = document.getElementById("cfgTenant");
-    dom.adminKey = document.getElementById("cfgAdminKey");
-    dom.btnSaveConfig = document.getElementById("btnSaveConfig");
-    dom.btnPing = document.getElementById("btnPing");
-    dom.btnBootstrap = document.getElementById("btnBootstrap");
+        <div class="card">
+          <div class="card-title">系統總覽</div>
+          <div class="card-sub">讓客服先看目前工作量，下面直接切換到要處理的工作入口。</div>
+          <div class="stats" id="statsBox">
+            <div class="stat"><div class="stat-k">待處理申請</div><div class="stat-v">-</div></div>
+            <div class="stat"><div class="stat-k">已發邀請碼</div><div class="stat-v">-</div></div>
+            <div class="stat"><div class="stat-k">已成卡</div><div class="stat-v">-</div></div>
+            <div class="stat"><div class="stat-k">總卡片數</div><div class="stat-v">-</div></div>
+          </div>
+        </div>
 
-    dom.kpiCards = document.getElementById("kpiCards");
-    dom.kpiCardsToday = document.getElementById("kpiCardsToday");
-    dom.kpiLeads = document.getElementById("kpiLeads");
-    dom.kpiAgents = document.getElementById("kpiAgents");
-    dom.kpiExp30 = document.getElementById("kpiExp30");
-    dom.kpiExp7 = document.getElementById("kpiExp7");
-    dom.kpiExpired = document.getElementById("kpiExpired");
-    dom.kpiInvites = document.getElementById("kpiInvites");
+        <div class="tabbar">
+          <button class="tab-btn active" data-tab="lead">Lead 申請清單</button>
+          <button class="tab-btn" data-tab="invite">邀請碼清單</button>
+          <button class="tab-btn" data-tab="card">卡片管理</button>
+        </div>
 
-    dom.dashboardExp30 = document.getElementById("dashboardExp30");
-    dom.dashboardExp7 = document.getElementById("dashboardExp7");
-    dom.dashboardExpired = document.getElementById("dashboardExpired");
+        <section class="panel active" id="panel-lead"></section>
+        <section class="panel" id="panel-invite"></section>
+        <section class="panel" id="panel-card"></section>
+      </div>
 
-    dom.quickGoCards = document.getElementById("quickGoCards");
-    dom.quickGoInvites = document.getElementById("quickGoInvites");
-    dom.quickGoAgents = document.getElementById("quickGoAgents");
-    dom.quickGoExpire = document.getElementById("quickGoExpire");
-    dom.quickGoTools = document.getElementById("quickGoTools");
+      <div class="drawer-mask" id="drawerMask"></div>
+      <aside class="drawer" id="drawer">
+        <div class="drawer-head">
+          <div class="drawer-title" id="drawerTitle">詳細資料</div>
+          <button class="btn" id="drawerClose">關閉</button>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+      </aside>
+    `;
 
-    dom.cardKeyword = document.getElementById("cardKeyword");
-    dom.cardStatus = document.getElementById("cardStatus");
-    dom.cardPlan = document.getElementById("cardPlan");
-    dom.cardBilling = document.getElementById("cardBilling");
-    dom.cardSource = document.getElementById("cardSource");
-    dom.cardAgent = document.getElementById("cardAgent");
-    dom.btnCardSearch = document.getElementById("btnCardSearch");
-    dom.btnCardRefresh = document.getElementById("btnCardRefresh");
-    dom.btnCardClear = document.getElementById("btnCardClear");
-    dom.cardCount = document.getElementById("cardCount");
-    dom.cardTable = document.getElementById("cardTable");
-    dom.cardPagination = document.getElementById("cardPagination");
-
-    dom.leadKeyword = document.getElementById("leadKeyword");
-    dom.leadStatus = document.getElementById("leadStatus");
-    dom.leadSource = document.getElementById("leadSource");
-    dom.leadAgent = document.getElementById("leadAgent");
-    dom.btnLeadRefresh = document.getElementById("btnLeadRefresh");
-    dom.btnLeadClear = document.getElementById("btnLeadClear");
-    dom.leadCount = document.getElementById("leadCount");
-    dom.leadTable = document.getElementById("leadTable");
-    dom.leadPagination = document.getElementById("leadPagination");
-
-    dom.inviteKeyword = document.getElementById("inviteKeyword");
-    dom.inviteStatus = document.getElementById("inviteStatus");
-    dom.inviteSource = document.getElementById("inviteSource");
-    dom.inviteAgent = document.getElementById("inviteAgent");
-    dom.btnInviteRefresh = document.getElementById("btnInviteRefresh");
-    dom.btnInviteClear = document.getElementById("btnInviteClear");
-    dom.invitePlan = document.getElementById("invitePlan");
-    dom.inviteDays = document.getElementById("inviteDays");
-    dom.inviteCount = document.getElementById("inviteCount");
-    dom.inviteNote = document.getElementById("inviteNote");
-    dom.btnInviteCreate = document.getElementById("btnInviteCreate");
-    dom.inviteCountLabel = document.getElementById("inviteCountLabel");
-    dom.inviteTable = document.getElementById("inviteTable");
-    dom.invitePagination = document.getElementById("invitePagination");
-
-    dom.agentKeyword = document.getElementById("agentKeyword");
-    dom.btnAgentRefresh = document.getElementById("btnAgentRefresh");
-    dom.btnAgentClear = document.getElementById("btnAgentClear");
-    dom.agentCount = document.getElementById("agentCount");
-    dom.agentTable = document.getElementById("agentTable");
-    dom.agentPagination = document.getElementById("agentPagination");
-dom.statsCardsTotal = document.getElementById("statsCardsTotal");
-    dom.statsCardsActive = document.getElementById("statsCardsActive");
-    dom.statsCardsInactive = document.getElementById("statsCardsInactive");
-    dom.statsCardsExpired = document.getElementById("statsCardsExpired");
-    dom.statsCardsToday = document.getElementById("statsCardsToday");
-    dom.statsLeadsTotal = document.getElementById("statsLeadsTotal");
-    dom.statsInvitesTotal = document.getElementById("statsInvitesTotal");
-    dom.statsAgentsTotal = document.getElementById("statsAgentsTotal");
-
-    dom.exp30Tools = document.getElementById("exp30Tools");
-    dom.exp7Tools = document.getElementById("exp7Tools");
-    dom.expiredTools = document.getElementById("expiredTools");
-
-    dom.csCardId = document.getElementById("csCardId");
-    dom.csRef = document.getElementById("csRef");
-    dom.csInviteCode = document.getElementById("csInviteCode");
-    dom.btnOpenCard = document.getElementById("btnOpenCard");
-    dom.btnOpenCleanCard = document.getElementById("btnOpenCleanCard");
-    dom.btnOpenUpdateLink = document.getElementById("btnOpenUpdateLink");
-    dom.btnCopyFormLink = document.getElementById("btnCopyFormLink");
-    dom.btnCopyInviteMsg = document.getElementById("btnCopyInviteMsg");
-    dom.btnCopyCsTemplate = document.getElementById("btnCopyCsTemplate");
-    dom.btnCopyHome = document.getElementById("btnCopyHome");
-    dom.btnCopyHomeRef = document.getElementById("btnCopyHomeRef");
-
-    dom.drawer = document.getElementById("detailDrawer");
-    dom.drawerTitle = document.getElementById("drawerTitle");
-    dom.drawerBody = document.getElementById("drawerBody");
-    dom.btnDrawerClose = document.getElementById("btnDrawerClose");
+    renderLeadPanel_();
+    renderInvitePanel_();
+    renderCardPanel_();
   }
 
-  function buildAppShell() {
-    return `
-      <section class="panel" style="margin-top:16px;">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">HSC Admin Console v1</h2>
-            <p class="panel-sub">正式後台骨架｜Dashboard / 卡片 / 邀請碼 / 代理 / 統計工具</p>
-          </div>
-          <div id="adminVersion" class="count-badge">v${esc(VERSION)}</div>
+  function bindShellEvents_(){
+    root.addEventListener("click", onRootClick_);
+    root.addEventListener("input", onRootInput_);
+    document.getElementById("drawerClose").addEventListener("click", closeDrawer_);
+    document.getElementById("drawerMask").addEventListener("click", closeDrawer_);
+  }
+
+  async function boot_(){
+    await Promise.allSettled([
+      loadStats_(),
+      loadLeads_(),
+      loadInvites_(),
+      loadCards_()
+    ]);
+  }
+/* =========================================================
+   * Part 2 / 5
+   * 畫面渲染：Lead / Invite / Card
+   * ======================================================= */
+
+  function renderLeadPanel_(){
+    const el = document.getElementById("panel-lead");
+    el.innerHTML = `
+      <div class="card">
+        <div class="card-title">Lead 申請清單</div>
+        <div class="card-sub">
+          客服第一工作入口。請客戶先回報「申請編號 lead_id」，再由客服搜尋該筆資料，產生邀請碼並回覆客戶。
         </div>
-
-        <div class="panel-body">
-          <div class="row">
-            <div class="field lg">
-              <label for="cfgGasUrl">GAS Exec URL</label>
-              <input id="cfgGasUrl" type="text" />
-            </div>
-            <div class="field md">
-              <label for="cfgTenant">Tenant</label>
-              <input id="cfgTenant" type="text" />
-            </div>
-            <div class="field md">
-              <label for="cfgAdminKey">Admin Key</label>
-              <input id="cfgAdminKey" type="password" />
-            </div>
-          </div>
-
-          <div class="row btns">
-            <button id="btnSaveConfig" class="primary">儲存設定</button>
-            <button id="btnPing">測試連線</button>
-            <button id="btnBootstrap" class="ok">重新讀取後台資料</button>
-          </div>
-
-          <div class="row" style="margin-top:16px;">
-            <div class="btns">
-              <button data-tab-target="dashboard" class="primary">Dashboard</button>
-              <button data-tab-target="cards">卡片管理</button>
-              <button data-tab-target="invites">邀請碼管理</button>
-              <button data-tab-target="agents">代理管理</button>
-              <button data-tab-target="stats">統計 / 到期 / 客服工具</button>
-            </div>
-          </div>
+        <div class="search-row">
+          <input class="input" id="leadQuery" placeholder="可搜尋：申請編號、姓名、電話、Email、Line ID、備註、邀請碼、卡號、來源代理、推薦來源" value="${escapeHtml_(state.leadQuery)}">
+          <button class="btn primary" id="btnSearchLead">搜尋 Lead</button>
+          <button class="btn soft" id="btnReloadLead">重新載入</button>
         </div>
-      </section>
+        <div class="footer-note">建議客服優先搜尋：申請編號 lead_id。</div>
+      </div>
 
-      <section data-tab-panel="dashboard" class="panel" style="margin-top:16px;">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">Dashboard</h2>
-            <p class="panel-sub">總覽與快速入口</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="stats">
-            <div class="stat"><div class="stat-label">卡片總數</div><div id="kpiCards" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">今日新增</div><div id="kpiCardsToday" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">Lead 申請數</div><div id="kpiLeads" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">代理數</div><div id="kpiAgents" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">30 天內到期</div><div id="kpiExp30" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">7 天內到期</div><div id="kpiExp7" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">已過期</div><div id="kpiExpired" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">Invite 總數</div><div id="kpiInvites" class="stat-value">—</div></div>
-          </div>
-
-          <div class="row btns" style="margin-top:16px;">
-            <button id="quickGoCards" class="primary">前往卡片管理</button>
-            <button id="quickGoInvites">前往邀請碼管理</button>
-            <button id="quickGoAgents">前往代理管理</button>
-            <button id="quickGoExpire" class="warn">前往到期提醒</button>
-            <button id="quickGoTools">前往客服工具</button>
-          </div>
-
-          <div class="grid" style="margin-top:16px;">
-            <section class="panel">
-              <div class="panel-head"><div><h3 class="panel-title">30 天內到期</h3></div></div>
-              <div class="panel-body"><div id="dashboardExp30" class="result-list"></div></div>
-            </section>
-            <section class="panel">
-              <div class="panel-head"><div><h3 class="panel-title">7 天內到期</h3></div></div>
-              <div class="panel-body"><div id="dashboardExp7" class="result-list"></div></div>
-            </section>
-          </div>
-
-          <section class="panel" style="margin-top:16px;">
-            <div class="panel-head"><div><h3 class="panel-title">已過期</h3></div></div>
-            <div class="panel-body"><div id="dashboardExpired" class="result-list"></div></div>
-          </section>
-        </div>
-      </section>
-
-      <section data-tab-panel="cards" class="panel" style="margin-top:16px;">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">卡片管理</h2>
-            <p class="panel-sub">搜尋、篩選、分頁、詳情與快速操作</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="row">
-            <div class="field lg"><label for="cardKeyword">搜尋</label><input id="cardKeyword" type="text" placeholder="id / name / phone / unit / invite_code" /></div>
-            <div class="field sm"><label for="cardStatus">status</label><input id="cardStatus" type="text" placeholder="active / inactive / reserved" /></div>
-            <div class="field sm"><label for="cardPlan">plan</label><input id="cardPlan" type="text" placeholder="free / premium" /></div>
-            <div class="field sm"><label for="cardBilling">billing_status</label><input id="cardBilling" type="text" placeholder="paid / unpaid" /></div>
-          </div>
-          <div class="row">
-            <div class="field md"><label for="cardSource">source</label><input id="cardSource" type="text" placeholder="form / invite / agent_form" /></div>
-            <div class="field md"><label for="cardAgent">service_agent</label><input id="cardAgent" type="text" placeholder="AG001" /></div>
-          </div>
-          <div class="row btns">
-            <button id="btnCardSearch" class="primary">套用篩選</button>
-            <button id="btnCardRefresh">重新讀卡片</button>
-            <button id="btnCardClear" class="ghost">清空篩選</button>
-          </div>
-          <div class="result-head" style="margin-top:16px;">
-            <div class="panel-sub">目前卡片筆數</div>
-            <div id="cardCount" class="count-badge">0 筆</div>
-          </div>
-          <div id="cardTable" class="result-list"></div>
-          <div id="cardPagination" class="row btns" style="margin-top:12px;"></div>
-        </div>
-      </section>
-
-      <section data-tab-panel="invites" class="panel" style="margin-top:16px;">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">邀請碼管理</h2>
-            <p class="panel-sub">Lead 申請清單 + Invite 清單</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <section class="panel">
-            <div class="panel-head"><div><h3 class="panel-title">申請清單（Lead）</h3></div></div>
-            <div class="panel-body">
-              <div class="row">
-                <div class="field lg"><label for="leadKeyword">搜尋 Lead</label><input id="leadKeyword" type="text" placeholder="lead_id / customer_name / phone / email / note" /></div>
-                <div class="field sm"><label for="leadStatus">status</label><input id="leadStatus" type="text" placeholder="new / invited / converted" /></div>
-                <div class="field sm"><label for="leadSource">source</label><input id="leadSource" type="text" placeholder="form / agent_form" /></div>
-                <div class="field sm"><label for="leadAgent">service_agent</label><input id="leadAgent" type="text" placeholder="AG001" /></div>
-              </div>
-              <div class="row btns">
-                <button id="btnLeadRefresh" class="primary">重新讀 Lead</button>
-                <button id="btnLeadClear" class="ghost">清空篩選</button>
-              </div>
-              <div class="result-head" style="margin-top:16px;">
-                <div class="panel-sub">Lead 筆數</div>
-                <div id="leadCount" class="count-badge">0 筆</div>
-              </div>
-              <div id="leadTable" class="result-list"></div>
-              <div id="leadPagination" class="row btns" style="margin-top:12px;"></div>
-            </div>
-          </section>
-
-          <section class="panel" style="margin-top:16px;">
-            <div class="panel-head"><div><h3 class="panel-title">邀請碼清單（Invite）</h3></div></div>
-            <div class="panel-body">
-              <div class="row">
-                <div class="field sm"><label for="invitePlan">建立方案</label><select id="invitePlan"><option value="free">free</option><option value="premium">premium</option></select></div>
-                <div class="field sm"><label for="inviteDays">有效天數</label><input id="inviteDays" type="number" min="1" value="7" /></div>
-                <div class="field sm"><label for="inviteCount">數量</label><input id="inviteCount" type="number" min="1" value="1" /></div>
-                <div class="field lg"><label for="inviteNote">備註</label><input id="inviteNote" type="text" placeholder="客服註記" /></div>
-              </div>
-              <div class="row btns">
-                <button id="btnInviteCreate" class="warn">產生邀請碼</button>
-              </div>
-
-              <div class="row" style="margin-top:16px;">
-                <div class="field lg"><label for="inviteKeyword">搜尋 Invite</label><input id="inviteKeyword" type="text" placeholder="invite_code / used_by_id / note" /></div>
-                <div class="field sm"><label for="inviteStatus">status</label><input id="inviteStatus" type="text" placeholder="open / used / disabled / expired" /></div>
-                <div class="field sm"><label for="inviteSource">source</label><input id="inviteSource" type="text" placeholder="admin_invite" /></div>
-                <div class="field sm"><label for="inviteAgent">service_agent</label><input id="inviteAgent" type="text" placeholder="AG001" /></div>
-              </div>
-              <div class="row btns">
-                <button id="btnInviteRefresh" class="primary">重新讀 Invite</button>
-                <button id="btnInviteClear" class="ghost">清空篩選</button>
-              </div>
-              <div class="result-head" style="margin-top:16px;">
-                <div class="panel-sub">Invite 筆數</div>
-                <div id="inviteCountLabel" class="count-badge">0 筆</div>
-              </div>
-              <div id="inviteTable" class="result-list"></div>
-              <div id="invitePagination" class="row btns" style="margin-top:12px;"></div>
-            </div>
-          </section>
-        </div>
-      </section>
-<section data-tab-panel="agents" class="panel" style="margin-top:16px;">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">代理管理</h2>
-            <p class="panel-sub">代理列表、基本資料、leads / cards 追蹤</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="row">
-            <div class="field lg"><label for="agentKeyword">搜尋代理</label><input id="agentKeyword" type="text" placeholder="agent_code / name / phone / email" /></div>
-          </div>
-          <div class="row btns">
-            <button id="btnAgentRefresh" class="primary">重新讀代理</button>
-            <button id="btnAgentClear" class="ghost">清空篩選</button>
-          </div>
-          <div class="result-head" style="margin-top:16px;">
-            <div class="panel-sub">代理筆數</div>
-            <div id="agentCount" class="count-badge">0 筆</div>
-          </div>
-          <div id="agentTable" class="result-list"></div>
-          <div id="agentPagination" class="row btns" style="margin-top:12px;"></div>
-        </div>
-      </section>
-
-      <section data-tab-panel="stats" class="panel" style="margin-top:16px;">
-        <div class="panel-head">
-          <div>
-            <h2 class="panel-title">系統統計 / 到期提醒 / 客服工具</h2>
-            <p class="panel-sub">客服快速複製與到期操作</p>
-          </div>
-        </div>
-        <div class="panel-body">
-          <div class="stats">
-            <div class="stat"><div class="stat-label">card 總數</div><div id="statsCardsTotal" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">active</div><div id="statsCardsActive" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">inactive</div><div id="statsCardsInactive" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">expired</div><div id="statsCardsExpired" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">今日新增</div><div id="statsCardsToday" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">lead 總數</div><div id="statsLeadsTotal" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">invite 總數</div><div id="statsInvitesTotal" class="stat-value">—</div></div>
-            <div class="stat"><div class="stat-label">agent 總數</div><div id="statsAgentsTotal" class="stat-value">—</div></div>
-          </div>
-
-          <div class="grid" style="margin-top:16px;">
-            <section class="panel">
-              <div class="panel-head"><div><h3 class="panel-title">30 天內到期</h3></div></div>
-              <div class="panel-body"><div id="exp30Tools" class="result-list"></div></div>
-            </section>
-            <section class="panel">
-              <div class="panel-head"><div><h3 class="panel-title">7 天內到期</h3></div></div>
-              <div class="panel-body"><div id="exp7Tools" class="result-list"></div></div>
-            </section>
-          </div>
-
-          <section class="panel" style="margin-top:16px;">
-            <div class="panel-head"><div><h3 class="panel-title">已過期</h3></div></div>
-            <div class="panel-body"><div id="expiredTools" class="result-list"></div></div>
-          </section>
-
-          <section class="panel" style="margin-top:16px;">
-            <div class="panel-head"><div><h3 class="panel-title">客服工具</h3></div></div>
-            <div class="panel-body">
-              <div class="row">
-                <div class="field md"><label for="csCardId">卡號</label><input id="csCardId" type="text" placeholder="TW0001" /></div>
-                <div class="field md"><label for="csRef">ref / agent</label><input id="csRef" type="text" placeholder="AG001" /></div>
-                <div class="field md"><label for="csInviteCode">invite code</label><input id="csInviteCode" type="text" placeholder="INV..." /></div>
-              </div>
-              <div class="row btns">
-                <button id="btnOpenCard" class="primary">一鍵開名片</button>
-                <button id="btnOpenCleanCard">一鍵開乾淨名片</button>
-                <button id="btnOpenUpdateLink">一鍵開更新頁</button>
-                <button id="btnCopyFormLink" class="warn">一鍵複製表單連結</button>
-                <button id="btnCopyInviteMsg" class="warn">一鍵複製邀請碼文字</button>
-                <button id="btnCopyCsTemplate">一鍵複製客服話術模板</button>
-                <button id="btnCopyHome">一鍵複製首頁門面網址</button>
-                <button id="btnCopyHomeRef">複製帶 ref 首頁網址</button>
-              </div>
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <div id="detailDrawer" class="panel" style="margin-top:16px;">
-        <div class="panel-head">
-          <div>
-            <h2 id="drawerTitle" class="panel-title">詳細資料</h2>
-            <p class="panel-sub">點列表查看詳情與操作</p>
-          </div>
-          <div class="btns">
-            <button id="btnDrawerClose" class="ghost">關閉</button>
-          </div>
-        </div>
-        <div id="drawerBody" class="panel-body">
-          <div class="empty">尚未選取資料。</div>
-        </div>
+      <div class="card">
+        <div class="card-title">待辦清單</div>
+        <div class="card-sub">每一列直接完成：查看詳情 → 產生邀請碼 → 複製邀請碼／表單連結／客服話術。</div>
+        <div class="list" id="leadList">${renderLeadItems_()}</div>
       </div>
     `;
   }
 
-  function bindEnhancedDom() {
-    dom.btnSaveConfig?.addEventListener("click", onSaveConfig);
-    dom.btnPing?.addEventListener("click", onPing);
-    dom.btnBootstrap?.addEventListener("click", bootstrapDashboard);
+  function renderInvitePanel_(){
+    const el = document.getElementById("panel-invite");
+    el.innerHTML = `
+      <div class="card">
+        <div class="card-title">邀請碼清單</div>
+        <div class="card-sub">
+          這裡保留邀請碼管理，但不是第一入口。客服主要仍以 Lead 申請清單處理工作。
+        </div>
+        <div class="search-row">
+          <input class="input" id="inviteQuery" placeholder="可搜尋：邀請碼、申請編號、來源代理、推薦來源、使用卡號" value="${escapeHtml_(state.inviteQuery)}">
+          <button class="btn primary" id="btnSearchInvite">搜尋邀請碼</button>
+          <button class="btn soft" id="btnReloadInvite">重新載入</button>
+        </div>
+      </div>
 
-    dom.tabButtons.forEach((btn) => {
-      btn.addEventListener("click", () => switchTab(btn.dataset.tabTarget || "dashboard"));
-    });
-
-    dom.quickGoCards?.addEventListener("click", () => switchTab("cards"));
-    dom.quickGoInvites?.addEventListener("click", () => switchTab("invites"));
-    dom.quickGoAgents?.addEventListener("click", () => switchTab("agents"));
-    dom.quickGoExpire?.addEventListener("click", () => switchTab("stats"));
-    dom.quickGoTools?.addEventListener("click", () => switchTab("stats"));
-
-    dom.btnCardSearch?.addEventListener("click", applyCardFilters);
-    dom.btnCardRefresh?.addEventListener("click", refreshCards);
-    dom.btnCardClear?.addEventListener("click", clearCardFilters);
-
-    dom.btnLeadRefresh?.addEventListener("click", refreshLeads);
-    dom.btnLeadClear?.addEventListener("click", clearLeadFilters);
-
-    dom.btnInviteRefresh?.addEventListener("click", refreshInvites);
-    dom.btnInviteClear?.addEventListener("click", clearInviteFilters);
-    dom.btnInviteCreate?.addEventListener("click", createInviteBatch);
-
-    dom.btnAgentRefresh?.addEventListener("click", refreshAgents);
-    dom.btnAgentClear?.addEventListener("click", clearAgentFilters);
-
-    dom.btnDrawerClose?.addEventListener("click", closeDrawer);
-
-    dom.btnOpenCard?.addEventListener("click", () => {
-      const id = val(dom.csCardId);
-      if (!id) return setStatus("請先輸入卡號。", "warn");
-      window.open(buildCardLink(id), "_blank", "noopener");
-    });
-
-    dom.btnOpenCleanCard?.addEventListener("click", () => {
-      const id = val(dom.csCardId);
-      if (!id) return setStatus("請先輸入卡號。", "warn");
-      window.open(buildCardCleanLink(id), "_blank", "noopener");
-    });
-
-    dom.btnOpenUpdateLink?.addEventListener("click", async () => {
-      const id = val(dom.csCardId);
-      if (!id) return setStatus("請先輸入卡號。", "warn");
-      const link = await getUpdateLink(id, true);
-      window.open(link, "_blank", "noopener");
-    });
-
-    dom.btnCopyFormLink?.addEventListener("click", async () => {
-      const code = val(dom.csInviteCode);
-      if (!code) return setStatus("請先輸入 invite code。", "warn");
-      const link = buildFormLink(code);
-      await copyText(link);
-      setStatus(`已複製表單連結\n${link}`, "ok");
-    });
-
-    dom.btnCopyInviteMsg?.addEventListener("click", async () => {
-      const code = val(dom.csInviteCode);
-      if (!code) return setStatus("請先輸入 invite code。", "warn");
-      const text = buildInviteMessage(code);
-      await copyText(text);
-      setStatus("已複製邀請碼文字。", "ok");
-    });
-
-    dom.btnCopyCsTemplate?.addEventListener("click", async () => {
-      const text = buildCustomerServiceTemplate({
-        id: val(dom.csCardId),
-        inviteCode: val(dom.csInviteCode)
-      });
-      await copyText(text);
-      setStatus("已複製客服話術模板。", "ok");
-    });
-
-    dom.btnCopyHome?.addEventListener("click", async () => {
-      const link = buildFacadeLink();
-      await copyText(link);
-      setStatus(`已複製首頁門面網址\n${link}`, "ok");
-    });
-
-    dom.btnCopyHomeRef?.addEventListener("click", async () => {
-      const ref = val(dom.csRef);
-      if (!ref) return setStatus("請先輸入 ref。", "warn");
-      const link = buildFacadeLink(ref);
-      await copyText(link);
-      setStatus(`已複製帶 ref 首頁網址\n${link}`, "ok");
-    });
-
-    dom.cardTable?.addEventListener("click", onCardTableClick);
-    dom.leadTable?.addEventListener("click", onLeadTableClick);
-    dom.inviteTable?.addEventListener("click", onInviteTableClick);
-    dom.agentTable?.addEventListener("click", onAgentTableClick);
-    dom.dashboardExp30?.addEventListener("click", onExpireListClick);
-    dom.dashboardExp7?.addEventListener("click", onExpireListClick);
-    dom.dashboardExpired?.addEventListener("click", onExpireListClick);
-    dom.exp30Tools?.addEventListener("click", onExpireListClick);
-    dom.exp7Tools?.addEventListener("click", onExpireListClick);
-    dom.expiredTools?.addEventListener("click", onExpireListClick);
+      <div class="card">
+        <div class="card-title">Invite 清單</div>
+        <div class="list" id="inviteList">${renderInviteItems_()}</div>
+      </div>
+    `;
   }
 
-  function applyVersionText() {
-    if (dom.version) dom.version.textContent = `admin.js v${VERSION}`;
+  function renderCardPanel_(){
+    const el = document.getElementById("panel-card");
+    el.innerHTML = `
+      <div class="card">
+        <div class="card-title">卡片管理</div>
+        <div class="card-sub">
+          這裡用來查看卡片、開啟名片、產生更新頁、啟用／停用／延長期限。
+        </div>
+        <div class="search-row">
+          <input class="input" id="cardQuery" placeholder="可搜尋：卡號、姓名、單位、職稱、電話、方案、來源代理" value="${escapeHtml_(state.cardQuery)}">
+          <button class="btn primary" id="btnSearchCard">搜尋卡片</button>
+          <button class="btn soft" id="btnReloadCard">重新載入</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">卡片列表</div>
+        <div class="list" id="cardList">${renderCardItems_()}</div>
+      </div>
+    `;
   }
 
-  function renderConfig() {
-    if (dom.gasUrl) dom.gasUrl.value = state.config.gas;
-    if (dom.tenant) dom.tenant.value = state.config.tenant;
-    if (dom.adminKey) dom.adminKey.value = state.config.adminKey;
-  }
-
-  async function onSaveConfig() {
-    state.config.gas = val(dom.gasUrl) || DEFAULT_GAS;
-    state.config.tenant = val(dom.tenant) || DEFAULT_TENANT;
-    state.config.adminKey = val(dom.adminKey);
-    persistConfig();
-    setStatus("設定已儲存。", "ok");
-  }
-
-  async function onPing() {
-    try {
-      await syncConfigFromUi();
-      setStatus("測試連線中…", "warn");
-      const res = await api("ping", {}, { admin: false });
-      setStatus(`連線成功\nversion=${res.version || ""}\nnow=${res.now || ""}`, "ok");
-    } catch (err) {
-      setStatus(normalizeError(err), "err");
-    }
-  }
-
-  async function pingSilently() {
-    await syncConfigFromUi();
-    await api("ping", {}, { admin: false });
-  }
-
-  async function syncConfigFromUi() {
-    state.config.gas = val(dom.gasUrl) || state.config.gas || DEFAULT_GAS;
-    state.config.tenant = val(dom.tenant) || state.config.tenant || DEFAULT_TENANT;
-    state.config.adminKey = val(dom.adminKey) || state.config.adminKey || "";
-    persistConfig();
-  }
-
-  function switchTab(tab) {
-    state.ui.activeTab = tab;
-    persistConfig();
-    dom.tabButtons.forEach((btn) => {
-      const active = btn.dataset.tabTarget === tab;
-      btn.classList.toggle("primary", active);
-    });
-    dom.tabPanels.forEach((panel) => {
-      panel.style.display = panel.dataset.tabPanel === tab ? "" : "none";
-    });
-  }
-async function bootstrapDashboard() {
-    await syncConfigFromUi();
-    switchTab(state.ui.activeTab || "dashboard");
-    setStatus("讀取後台資料中…", "warn");
-
-    await Promise.all([
-      refreshCards(true),
-      refreshLeads(true),
-      refreshInvites(true),
-      refreshAgents(true)
-    ]);
-
-    computeDashboard();
-    renderDashboard();
-    renderStatsPanel();
-    setStatus("後台資料已更新。", "ok");
-  }
-
-  /* =========================
-   * API Helpers
-   * ========================= */
-  async function api(action, params = {}, options = {}) {
-    const admin = options.admin !== false;
-    const gas = state.config.gas || DEFAULT_GAS;
-    const tenant = state.config.tenant || DEFAULT_TENANT;
-    const adminKey = state.config.adminKey || "";
-
-    if (!gas) throw new Error("GAS URL 未填。");
-
-    const qs = new URLSearchParams();
-    qs.set("action", action);
-    if (!("tenant" in params) && tenant) qs.set("tenant", tenant);
-
-    Object.keys(params || {}).forEach((k) => {
-      const v = params[k];
-      if (v == null || v === "") return;
-      qs.set(k, String(v));
-    });
-
-    if (admin) {
-      if (!adminKey) throw new Error("Admin Key 未填。");
-      qs.set("admin_key", adminKey);
+  function renderLeadItems_(){
+    if (!state.leads.length) {
+      return `<div class="empty">目前沒有符合條件的 Lead 資料。</div>`;
     }
 
-    const url = `${gas}?${qs.toString()}`;
-    const res = await fetch(url, { method: "GET", cache: "no-store" });
-    const text = await res.text();
+    return state.leads.map(item => {
+      const statusBadge = leadStatusBadge_(item.status);
+      const canOpenCard = !!text_(item.card_id);
+      const inviteCode = text_(item.invite_code);
 
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch (_err) {
-      throw new Error(`JSON 解析失敗\n${text.slice(0, 280)}`);
+      return `
+        <div class="item">
+          <div class="item-top">
+            <div>
+              <div class="item-title">
+                ${escapeHtml_(text_(item.customer_name) || "未填姓名")}
+              </div>
+              <div class="mt8 mono">${escapeHtml_(text_(item.lead_id) || "-")}</div>
+            </div>
+            <div class="item-badges">
+              ${statusBadge}
+              ${inviteCode ? `<span class="badge ok">已產邀請碼</span>` : `<span class="badge warn">待產邀請碼</span>`}
+              ${canOpenCard ? `<span class="badge ok">已成卡</span>` : ``}
+            </div>
+          </div>
+
+          <div class="grid">
+            ${kv_("申請編號", item.lead_id, true)}
+            ${kv_("狀態", item.status)}
+            ${kv_("姓名", item.customer_name)}
+            ${kv_("電話", item.phone)}
+            ${kv_("Email", item.email)}
+            ${kv_("Line ID", item.line_id)}
+            ${kv_("備註", item.note)}
+            ${kv_("邀請碼", item.invite_code, true)}
+            ${kv_("成卡卡號", item.card_id, true)}
+            ${kv_("推薦來源", item.referrer)}
+            ${kv_("來源代理", item.service_agent)}
+            ${kv_("名單來源", item.source)}
+            ${kv_("建立時間", formatDateTime_(item.created_at))}
+            ${kv_("更新時間", formatDateTime_(item.updated_at))}
+          </div>
+
+          <div class="item-actions">
+            <button class="btn soft" data-act="lead-detail" data-id="${escapeAttr_(item.lead_id)}">查看詳情</button>
+            <button class="btn primary" data-act="lead-invite" data-id="${escapeAttr_(item.lead_id)}">產生邀請碼</button>
+            <button class="btn" data-act="lead-copy-invite" data-id="${escapeAttr_(item.lead_id)}" ${inviteCode ? "" : "disabled"}>複製邀請碼</button>
+            <button class="btn" data-act="lead-copy-form" data-id="${escapeAttr_(item.lead_id)}">複製表單連結</button>
+            <button class="btn" data-act="lead-copy-script" data-id="${escapeAttr_(item.lead_id)}">複製客服話術</button>
+            ${canOpenCard ? `<button class="btn ok" data-act="lead-open-card" data-card-id="${escapeAttr_(item.card_id)}">開名片</button>` : ``}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderInviteItems_(){
+    if (!state.invites.length) {
+      return `<div class="empty">目前沒有符合條件的 Invite 資料。</div>`;
     }
 
-    if (!json.ok) throw new Error(json.error || "API 失敗");
-    return json.data;
+    return state.invites.map(item => {
+      return `
+        <div class="item">
+          <div class="item-top">
+            <div>
+              <div class="item-title mono">${escapeHtml_(text_(item.invite_code) || "-")}</div>
+              <div class="mt8">${escapeHtml_(inviteStatusText_(item.status))}</div>
+            </div>
+            <div class="item-badges">
+              ${inviteStatusBadge_(item.status)}
+            </div>
+          </div>
+
+          <div class="grid">
+            ${kv_("邀請碼", item.invite_code, true)}
+            ${kv_("狀態", item.status)}
+            ${kv_("對應申請編號", item.lead_id, true)}
+            ${kv_("使用卡號", item.used_by_id || item.card_id, true)}
+            ${kv_("推薦來源", item.referrer)}
+            ${kv_("來源代理", item.service_agent)}
+            ${kv_("名單來源", item.source)}
+            ${kv_("建立時間", formatDateTime_(item.created_at))}
+            ${kv_("使用時間", formatDateTime_(item.used_at))}
+            ${kv_("到期時間", formatDateTime_(item.expired_at))}
+          </div>
+
+          <div class="item-actions">
+            <button class="btn soft" data-act="invite-detail" data-id="${escapeAttr_(item.invite_code)}">查看</button>
+            <button class="btn" data-act="invite-copy-code" data-id="${escapeAttr_(item.invite_code)}">複製邀請碼</button>
+            <button class="btn" data-act="invite-copy-both" data-id="${escapeAttr_(item.invite_code)}">複製邀請碼＋表單連結</button>
+            <button class="btn bad" data-act="invite-disable" data-id="${escapeAttr_(item.invite_code)}">停用邀請碼</button>
+          </div>
+        </div>
+      `;
+    }).join("");
   }
 
-  /* =========================
-   * Card Manager
-   * ========================= */
-  async function refreshCards(silent = false) {
-    await syncConfigFromUi();
-    if (!silent) setStatus("讀取卡片中…", "warn");
-
-    const items = await fetchAllCards();
-    state.cards.raw = items;
-    state.caches.allCardsLoaded = true;
-    applyCardFilters();
-
-    if (!silent) setStatus(`卡片已更新，共 ${items.length} 筆。`, "ok");
-  }
-
-  async function fetchAllCards() {
-    const buckets = [];
-    for (const q of CARD_SEARCH_SEEDS) {
-      try {
-        const res = await api("adminFind", { keyword: q });
-        const items = normalizeCardItems(res.items || []);
-        buckets.push(...items);
-      } catch (_) {}
+  function renderCardItems_(){
+    if (!state.cards.length) {
+      return `<div class="empty">目前沒有符合條件的卡片資料。</div>`;
     }
 
-    const map = new Map();
-    buckets.forEach((item) => {
-      if (!item.id) return;
-      if (!map.has(item.id)) map.set(item.id, item);
-      else map.set(item.id, { ...map.get(item.id), ...item });
-    });
+    return state.cards.map(item => {
+      return `
+        <div class="item">
+          <div class="item-top">
+            <div>
+              <div class="item-title">
+                ${escapeHtml_(text_(item.name) || "未命名卡片")}
+              </div>
+              <div class="mt8 mono">${escapeHtml_(text_(item.id) || "-")}</div>
+            </div>
+            <div class="item-badges">
+              ${cardStatusBadge_(item.status)}
+              <span class="badge">${escapeHtml_(planText_(item.plan))}</span>
+            </div>
+          </div>
 
-    const ids = Array.from(map.keys());
-    const detailed = [];
-    for (const id of ids) {
-      try {
-        const item = await fetchCardDetail(id);
-        detailed.push(item);
-      } catch (_) {
-        detailed.push(map.get(id));
-      }
-    }
+          <div class="grid">
+            ${kv_("卡號", item.id, true)}
+            ${kv_("姓名", item.name)}
+            ${kv_("單位", item.unit)}
+            ${kv_("職稱", item.title)}
+            ${kv_("電話", item.phone)}
+            ${kv_("方案", planText_(item.plan))}
+            ${kv_("狀態", cardStatusText_(item.status))}
+            ${kv_("來源代理", item.service_agent)}
+            ${kv_("到期日", formatDateTime_(item.expires_at))}
+            ${kv_("更新時間", formatDateTime_(item.updated_at))}
+          </div>
 
-    return detailed.sort((a, b) => sortByDateDesc(a.updated_at, b.updated_at));
+          <div class="item-actions">
+            <button class="btn soft" data-act="card-detail" data-id="${escapeAttr_(item.id)}">查看</button>
+            <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(item.id)}">開名片</button>
+            <button class="btn ok" data-act="card-open-clean" data-id="${escapeAttr_(item.id)}">開乾淨名片</button>
+            <button class="btn" data-act="card-copy-link" data-id="${escapeAttr_(item.id)}">複製名片連結</button>
+            <button class="btn primary" data-act="card-gen-update" data-id="${escapeAttr_(item.id)}">產生更新頁</button>
+            <button class="btn" data-act="card-copy-update" data-id="${escapeAttr_(item.id)}">複製更新頁</button>
+            <button class="btn warn" data-act="card-activate" data-id="${escapeAttr_(item.id)}">啟用卡片</button>
+            <button class="btn bad" data-act="card-inactivate" data-id="${escapeAttr_(item.id)}">停用卡片</button>
+            <button class="btn" data-act="card-extend" data-id="${escapeAttr_(item.id)}">延長期限</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+/* =========================================================
+   * Part 3 / 5
+   * 事件處理 / 工作流
+   * ======================================================= */
+
+  function onRootInput_(e){
+    const t = e.target;
+    if (!t) return;
+    if (t.id === "leadQuery") state.leadQuery = t.value;
+    if (t.id === "inviteQuery") state.inviteQuery = t.value;
+    if (t.id === "cardQuery") state.cardQuery = t.value;
   }
 
-  async function fetchCardDetail(id) {
-    if (state.caches.detailById[id]) return state.caches.detailById[id];
-    const item = normalizeCardItem(await api("adminCard", { id }));
-    state.caches.detailById[id] = item;
-    return item;
-  }
+  async function onRootClick_(e){
+    const btn = e.target.closest("button");
+    if (!btn) return;
 
-  function applyCardFilters() {
-    state.cards.keyword = val(dom.cardKeyword).toLowerCase();
-    state.cards.filters.status = val(dom.cardStatus).toLowerCase();
-    state.cards.filters.plan = val(dom.cardPlan).toLowerCase();
-    state.cards.filters.billing_status = val(dom.cardBilling).toLowerCase();
-    state.cards.filters.source = val(dom.cardSource).toLowerCase();
-    state.cards.filters.service_agent = val(dom.cardAgent);
+    const tab = btn.dataset.tab;
+    const act = btn.dataset.act;
 
-    state.cards.filtered = state.cards.raw.filter((x) => {
-      if (state.cards.filters.status && low(x.status) !== state.cards.filters.status) return false;
-      if (state.cards.filters.plan && low(x.plan) !== state.cards.filters.plan) return false;
-      if (state.cards.filters.billing_status && low(x.billing_status) !== state.cards.filters.billing_status) return false;
-      if (state.cards.filters.source && low(x.source) !== state.cards.filters.source) return false;
-      if (state.cards.filters.service_agent && text(x.service_agent) !== state.cards.filters.service_agent) return false;
-
-      if (state.cards.keyword) {
-        const hay = [
-          x.id, x.name, x.phone, x.unit, x.invite_code, x.title, x.service_agent,
-          x.referrer, x.source, x.email
-        ].join(" ").toLowerCase();
-        if (!hay.includes(state.cards.keyword)) return false;
-      }
-      return true;
-    });
-
-    state.cards.page = 1;
-    persistConfig();
-    renderCards();
-  }
-
-  function clearCardFilters() {
-    if (dom.cardKeyword) dom.cardKeyword.value = "";
-    if (dom.cardStatus) dom.cardStatus.value = "";
-    if (dom.cardPlan) dom.cardPlan.value = "";
-    if (dom.cardBilling) dom.cardBilling.value = "";
-    if (dom.cardSource) dom.cardSource.value = "";
-    if (dom.cardAgent) dom.cardAgent.value = "";
-    applyCardFilters();
-  }
-
-  function renderCards() {
-    const list = paginate(state.cards.filtered, state.cards.page, state.cards.pageSize);
-    if (dom.cardCount) dom.cardCount.textContent = `${state.cards.filtered.length} 筆`;
-
-    if (!list.length) {
-      dom.cardTable.innerHTML = `<div class="empty">查無卡片資料。</div>`;
-      renderPagination(dom.cardPagination, state.cards.filtered.length, state.cards.page, state.cards.pageSize, "card");
+    if (tab) {
+      switchTab_(tab);
       return;
     }
 
-    dom.cardTable.innerHTML = list.map((item) => `
-      <article class="card">
-        <div class="card-top">
-          <div>
-            <h3 class="name">${esc(item.name || item.id || "未命名")}</h3>
-            <div class="meta">
-              <span class="chip">${esc(item.id)}</span>
-              <span class="chip ${low(item.status) === "active" ? "active" : "inactive"}">${esc(item.status || "—")}</span>
-              <span class="chip">${esc(item.plan || "—")}</span>
-              <span class="chip">${esc(item.service_agent || "SELF")}</span>
-            </div>
-          </div>
-        </div>
+    if (btn.id === "btnRefreshAll") {
+      await Promise.allSettled([loadStats_(), loadLeads_(), loadInvites_(), loadCards_()]);
+      toast_("已重新整理");
+      return;
+    }
 
-        <div class="data">
-          <div class="kv"><b>單位</b><span>${esc(item.unit || "—")}</span></div>
-          <div class="kv"><b>職稱</b><span>${esc(item.title || "—")}</span></div>
-          <div class="kv"><b>電話</b><span>${esc(item.phone || "—")}</span></div>
-          <div class="kv"><b>到期日</b><span>${esc(item.expires_at || "—")}</span></div>
-          <div class="kv"><b>更新時間</b><span>${esc(item.updated_at || "—")}</span></div>
-          <div class="kv"><b>來源</b><span>${esc(item.source || "—")}</span></div>
-        </div>
+    if (btn.id === "btnGoHub") {
+      window.open(CONFIG.HUB_URL, "_blank");
+      return;
+    }
 
-        <div class="card-actions">
-          <button data-act="detail" data-id="${esc(item.id)}" class="primary">查看詳情</button>
-          <button data-act="open-card" data-id="${esc(item.id)}">開啟名片</button>
-          <button data-act="open-clean" data-id="${esc(item.id)}">乾淨名片</button>
-          <button data-act="copy-card" data-id="${esc(item.id)}" class="warn">複製名片連結</button>
-          <button data-act="update-link" data-id="${esc(item.id)}">更新頁 24h</button>
-          <button data-act="copy-update-link" data-id="${esc(item.id)}">複製更新頁</button>
-          <button data-act="activate-card" data-id="${esc(item.id)}" class="ok">啟用卡片</button>
-          <button data-act="inactive-card" data-id="${esc(item.id)}" class="danger">停用卡片</button>
-          <button data-act="extend-card" data-id="${esc(item.id)}" class="warn">延長期限</button>
-          <button data-act="agent-detail" data-agent="${esc(item.service_agent || item.referrer || "")}">查看來源代理</button>
-        </div>
-      </article>
-    `).join("");
+    if (btn.id === "btnOpenForm") {
+      window.open(CONFIG.FORM_URL, "_blank");
+      return;
+    }
 
-    renderPagination(dom.cardPagination, state.cards.filtered.length, state.cards.page, state.cards.pageSize, "card");
-  }
+    if (btn.id === "btnSearchLead") return await loadLeads_();
+    if (btn.id === "btnReloadLead") { state.leadQuery = ""; renderLeadPanel_(); return await loadLeads_(); }
 
-  async function onCardTableClick(ev) {
-    const btn = ev.target.closest("button[data-act]");
-    if (!btn) return;
-    const act = btn.dataset.act;
-    const id = btn.dataset.id || "";
-    const agent = btn.dataset.agent || "";
+    if (btn.id === "btnSearchInvite") return await loadInvites_();
+    if (btn.id === "btnReloadInvite") { state.inviteQuery = ""; renderInvitePanel_(); return await loadInvites_(); }
+
+    if (btn.id === "btnSearchCard") return await loadCards_();
+    if (btn.id === "btnReloadCard") { state.cardQuery = ""; renderCardPanel_(); return await loadCards_(); }
+
+    if (!act) return;
 
     try {
-      if (act === "detail") return openCardDetail(id);
-      if (act === "open-card") return window.open(buildCardLink(id), "_blank", "noopener");
-      if (act === "open-clean") return window.open(buildCardCleanLink(id), "_blank", "noopener");
-      if (act === "copy-card") {
-        await copyText(buildCardLink(id));
-        return setStatus(`已複製名片連結\n${buildCardLink(id)}`, "ok");
-      }
-      if (act === "update-link") {
-        const link = await getUpdateLink(id, true);
-        return window.open(link, "_blank", "noopener");
-      }
-      if (act === "copy-update-link") {
-        const link = await getUpdateLink(id, true);
-        await copyText(link);
-        return setStatus(`已複製更新頁連結\n${link}`, "ok");
-      }
-      if (act === "activate-card") return updateCardStatus(id, "active");
-      if (act === "inactive-card") return updateCardStatus(id, "inactive");
-      if (act === "extend-card") return extendCardExpire(id);
-      if (act === "agent-detail") {
-        if (!agent) return setStatus("這張卡片沒有 service_agent / referrer。", "warn");
-        return openAgentDetail(agent);
-      }
+      if (act === "lead-detail") return await openLeadDetail_(btn.dataset.id);
+      if (act === "lead-invite") return await createInviteFromLead_(btn.dataset.id);
+      if (act === "lead-copy-invite") return copyLeadInvite_(btn.dataset.id);
+      if (act === "lead-copy-form") return copyLeadFormLink_(btn.dataset.id);
+      if (act === "lead-copy-script") return copyLeadScript_(btn.dataset.id);
+      if (act === "lead-open-card") return openCard_(btn.dataset.cardId);
+
+      if (act === "invite-detail") return await openInviteDetail_(btn.dataset.id);
+      if (act === "invite-copy-code") return copyText_(btn.dataset.id, "已複製邀請碼");
+      if (act === "invite-copy-both") return copyInviteBundle_(btn.dataset.id);
+      if (act === "invite-disable") return await disableInvite_(btn.dataset.id);
+
+      if (act === "card-detail") return await openCardDetail_(btn.dataset.id);
+      if (act === "card-open") return openCard_(btn.dataset.id);
+      if (act === "card-open-clean") return openCardClean_(btn.dataset.id);
+      if (act === "card-copy-link") return copyCardLink_(btn.dataset.id);
+      if (act === "card-gen-update") return await genCardUpdateLink_(btn.dataset.id);
+      if (act === "card-copy-update") return copyCardUpdateLink_(btn.dataset.id);
+      if (act === "card-activate") return await updateCardStatus_(btn.dataset.id, "active");
+      if (act === "card-inactivate") return await updateCardStatus_(btn.dataset.id, "inactive");
+      if (act === "card-extend") return await extendCard_(btn.dataset.id);
     } catch (err) {
-      setStatus(normalizeError(err), "err");
+      console.error(err);
+      alert(err.message || "操作失敗");
     }
   }
 
-  async function openCardDetail(id) {
-    const item = await fetchCardDetail(id);
-    state.cards.selected = item;
-    openDrawer(`卡片詳情｜${id}`, buildCardDetailHtml(item));
+  function switchTab_(tab){
+    state.tab = tab;
+    qsa_(".tab-btn").forEach(el => el.classList.toggle("active", el.dataset.tab === tab));
+    qsa_(".panel").forEach(el => el.classList.remove("active"));
+    const panel = document.getElementById(`panel-${tab}`);
+    if (panel) panel.classList.add("active");
   }
 
-  async function updateCardStatus(id, status) {
-    setStatus(`更新卡片狀態中：${id} → ${status}`, "warn");
-    const patch = { id, status, updated_at: new Date().toISOString() };
-    if (status === "active") patch.activated_at = new Date().toISOString();
-    if (status === "inactive") patch.inactivated_at = new Date().toISOString();
-    await api("adminUpdate", patch);
-    state.caches.detailById[id] = null;
-    await refreshCards(true);
-    computeDashboard();
-    renderDashboard();
-    renderStatsPanel();
-    setStatus(`卡片狀態已更新：${id} → ${status}`, "ok");
+  async function openLeadDetail_(leadId){
+    const res = await api_("leadGet", { lead_id: leadId });
+    const item = res?.item || res?.data || findLead_(leadId) || {};
+    state.currentLead = item;
+
+    openDrawer_("Lead 詳情", `
+      ${detailSection_("Lead 基本資料", [
+        ["申請編號", item.lead_id, true],
+        ["姓名", item.customer_name],
+        ["電話", item.phone],
+        ["Email", item.email],
+        ["Line ID", item.line_id],
+        ["備註", item.note],
+        ["狀態", item.status],
+        ["邀請碼", item.invite_code, true],
+        ["成卡卡號", item.card_id, true],
+        ["推薦來源", item.referrer],
+        ["來源代理", item.service_agent],
+        ["代理類型", item.agent_type],
+        ["名單來源", item.source],
+        ["建立時間", formatDateTime_(item.created_at)],
+        ["更新時間", formatDateTime_(item.updated_at)]
+      ])}
+
+      <div class="mt16 item-actions">
+        <button class="btn primary" data-act="lead-invite" data-id="${escapeAttr_(item.lead_id || "")}">產生邀請碼</button>
+        <button class="btn" data-act="lead-copy-form" data-id="${escapeAttr_(item.lead_id || "")}">複製表單連結</button>
+        <button class="btn" data-act="lead-copy-script" data-id="${escapeAttr_(item.lead_id || "")}">複製客服話術</button>
+      </div>
+    `);
   }
 
-  async function extendCardExpire(id) {
-    const current = await fetchCardDetail(id);
-    const baseDate = current.expires_at && Date.parse(current.expires_at) ? new Date(current.expires_at) : new Date();
-    baseDate.setDate(baseDate.getDate() + 365);
-    const nextIso = baseDate.toISOString();
-    setStatus(`延長期限中：${id}`, "warn");
-    await api("adminUpdate", { id, expires_at: nextIso, updated_at: new Date().toISOString() });
-    state.caches.detailById[id] = null;
-    await refreshCards(true);
-    computeDashboard();
-    renderDashboard();
-    renderStatsPanel();
-    setStatus(`已延長期限：${id}\n新到期日：${nextIso}`, "ok");
-  }
+  async function createInviteFromLead_(leadId){
+    const lead = findLead_(leadId) || (await api_("leadGet", { lead_id: leadId }))?.item || {};
+    if (!text_(lead.lead_id)) throw new Error("找不到該筆 Lead 資料");
 
-  async function getUpdateLink(id, refresh = false) {
-    if (!refresh && state.caches.updateLinks[id]) return state.caches.updateLinks[id];
-    const res = await api("adminCreateUpdateLink24h", { id });
-    const link = res.update_link || "";
-    if (!link) throw new Error("沒有取得更新頁連結。");
-    state.caches.updateLinks[id] = link;
-    return link;
-  }
-/* =========================
-   * Lead / Invite / Agent
-   * ========================= */
-  async function refreshLeads(silent = false) {
-    if (!silent) setStatus("讀取 Lead 中…", "warn");
-    const res = await api("leadList", {});
-    state.leads.raw = normalizeLeadItems(res.items || []);
-    filterLeads();
-    if (!silent) setStatus(`Lead 已更新，共 ${state.leads.raw.length} 筆。`, "ok");
-  }
+    const payload = {
+      lead_id: text_(lead.lead_id),
+      referrer: text_(lead.referrer),
+      service_agent: text_(lead.service_agent),
+      agent_type: text_(lead.agent_type),
+      source: text_(lead.source)
+    };
 
-  function filterLeads() {
-    state.leads.keyword = val(dom.leadKeyword).toLowerCase();
-    state.leads.filters.status = val(dom.leadStatus).toLowerCase();
-    state.leads.filters.source = val(dom.leadSource).toLowerCase();
-    state.leads.filters.service_agent = val(dom.leadAgent);
+    const inviteRes = await api_("inviteCreate", payload);
+    const inviteCode =
+      text_(inviteRes?.invite_code) ||
+      text_(inviteRes?.item?.invite_code) ||
+      text_(inviteRes?.data?.invite_code);
 
-    state.leads.filtered = state.leads.raw.filter((x) => {
-      if (state.leads.filters.status && low(x.status) !== state.leads.filters.status) return false;
-      if (state.leads.filters.source && low(x.source) !== state.leads.filters.source) return false;
-      if (state.leads.filters.service_agent && text(x.service_agent) !== state.leads.filters.service_agent) return false;
-      if (state.leads.keyword) {
-        const hay = [x.lead_id, x.customer_name, x.phone, x.email, x.note, x.invite_code, x.card_id].join(" ").toLowerCase();
-        if (!hay.includes(state.leads.keyword)) return false;
-      }
-      return true;
+    if (!inviteCode) throw new Error("邀請碼產生失敗，未取得 invite_code");
+
+    await api_("leadMarkInvited", {
+      lead_id: lead.lead_id,
+      invite_code: inviteCode,
+      status: "invited"
     });
 
-    state.leads.page = 1;
-    renderLeads();
-  }
+    toast_(`已產生邀請碼：${inviteCode}`);
 
-  function clearLeadFilters() {
-    dom.leadKeyword.value = "";
-    dom.leadStatus.value = "";
-    dom.leadSource.value = "";
-    dom.leadAgent.value = "";
-    filterLeads();
-  }
+    await Promise.allSettled([loadLeads_(), loadInvites_(), loadStats_()]);
 
-  function renderLeads() {
-    const list = paginate(state.leads.filtered, state.leads.page, state.leads.pageSize);
-    dom.leadCount.textContent = `${state.leads.filtered.length} 筆`;
-    if (!list.length) {
-      dom.leadTable.innerHTML = `<div class="empty">查無 Lead 資料。</div>`;
-      return renderPagination(dom.leadPagination, state.leads.filtered.length, state.leads.page, state.leads.pageSize, "lead");
-    }
-
-    dom.leadTable.innerHTML = list.map((x) => `
-      <article class="card">
-        <div class="card-top">
-          <div>
-            <h3 class="name">${esc(x.customer_name || x.name || x.lead_id)}</h3>
-            <div class="meta">
-              <span class="chip">${esc(x.lead_id)}</span>
-              <span class="chip">${esc(x.status || "—")}</span>
-              <span class="chip">${esc(x.service_agent || "SELF")}</span>
-            </div>
-          </div>
-        </div>
-        <div class="data">
-          <div class="kv"><b>電話</b><span>${esc(x.phone || "—")}</span></div>
-          <div class="kv"><b>Email</b><span>${esc(x.email || "—")}</span></div>
-          <div class="kv"><b>Invite</b><span>${esc(x.invite_code || "—")}</span></div>
-          <div class="kv"><b>Card</b><span>${esc(x.card_id || "—")}</span></div>
-          <div class="kv"><b>來源</b><span>${esc(x.source || "—")}</span></div>
-          <div class="kv"><b>建立時間</b><span>${esc(x.created_at || "—")}</span></div>
-        </div>
-        <div class="card-actions">
-          <button data-act="lead-detail" data-id="${esc(x.lead_id)}" class="primary">查看詳情</button>
-          <button data-act="lead-create-invite" data-id="${esc(x.lead_id)}" class="warn">產生 invite</button>
-          <button data-act="lead-copy-invite-msg" data-id="${esc(x.lead_id)}">複製邀請碼文字</button>
-          <button data-act="lead-copy-form-link" data-id="${esc(x.lead_id)}">複製表單連結</button>
-          <button data-act="lead-cs-template" data-id="${esc(x.lead_id)}">客服處理模板</button>
-        </div>
-      </article>
-    `).join("");
-
-    renderPagination(dom.leadPagination, state.leads.filtered.length, state.leads.page, state.leads.pageSize, "lead");
-  }
-
-  async function onLeadTableClick(ev) {
-    const btn = ev.target.closest("button[data-act]");
-    if (!btn) return;
-    const act = btn.dataset.act;
-    const leadId = btn.dataset.id || "";
-    const lead = state.leads.raw.find((x) => x.lead_id === leadId);
-    if (!lead) return;
-
-    try {
-      if (act === "lead-detail") return openDrawer(`Lead 詳情｜${leadId}`, buildLeadDetailHtml(lead));
-      if (act === "lead-create-invite") {
-        const res = await api("inviteCreate", {
-          plan: "free",
-          days: 7,
-          count: 1,
-          referrer: lead.referrer,
-          service_agent: lead.service_agent,
-          agent_type: lead.agent_type,
-          source: lead.source || "lead"
-        });
-        const code = (res.codes || [])[0] || "";
-        if (!code) throw new Error("沒有取得 invite code。");
-        await api("leadMarkInvited", { lead_id: leadId, invite_code: code });
-        dom.csInviteCode.value = code;
-        await refreshLeads(true);
-        await refreshInvites(true);
-        setStatus(`已建立邀請碼：${code}`, "ok");
-        return;
-      }
-      if (act === "lead-copy-invite-msg") {
-        if (!lead.invite_code) return setStatus("這筆 lead 尚未有 invite_code。", "warn");
-        await copyText(buildInviteMessage(lead.invite_code));
-        return setStatus("已複製邀請碼文字。", "ok");
-      }
-      if (act === "lead-copy-form-link") {
-        if (!lead.invite_code) return setStatus("這筆 lead 尚未有 invite_code。", "warn");
-        const link = buildFormLink(lead.invite_code);
-        await copyText(link);
-        return setStatus(`已複製表單連結\n${link}`, "ok");
-      }
-      if (act === "lead-cs-template") {
-        await copyText(buildCustomerServiceTemplate({ lead }));
-        return setStatus("已複製客服處理模板。", "ok");
-      }
-    } catch (err) {
-      setStatus(normalizeError(err), "err");
+    const refreshed = findLead_(lead.lead_id);
+    if (refreshed && state.currentLead && text_(state.currentLead.lead_id) === text_(lead.lead_id)) {
+      await openLeadDetail_(lead.lead_id);
     }
   }
 
-  async function refreshInvites(silent = false) {
-    if (!silent) setStatus("讀取 Invite 中…", "warn");
-    const res = await api("inviteList", {});
-    state.invites.raw = normalizeInviteItems(res.items || []);
-    filterInvites();
-    if (!silent) setStatus(`Invite 已更新，共 ${state.invites.raw.length} 筆。`, "ok");
-  }
-
-  function filterInvites() {
-    state.invites.keyword = val(dom.inviteKeyword).toLowerCase();
-    state.invites.filters.status = val(dom.inviteStatus).toLowerCase();
-    state.invites.filters.source = val(dom.inviteSource).toLowerCase();
-    state.invites.filters.service_agent = val(dom.inviteAgent);
-
-    state.invites.filtered = state.invites.raw.filter((x) => {
-      if (state.invites.filters.status && low(x.status) !== state.invites.filters.status) return false;
-      if (state.invites.filters.source && low(x.source) !== state.invites.filters.source) return false;
-      if (state.invites.filters.service_agent && text(x.service_agent) !== state.invites.filters.service_agent) return false;
-      if (state.invites.keyword) {
-        const hay = [x.invite_code, x.used_by_id, x.note, x.referrer, x.service_agent].join(" ").toLowerCase();
-        if (!hay.includes(state.invites.keyword)) return false;
-      }
-      return true;
-    });
-
-    state.invites.page = 1;
-    renderInvites();
-  }
-
-  function clearInviteFilters() {
-    dom.inviteKeyword.value = "";
-    dom.inviteStatus.value = "";
-    dom.inviteSource.value = "";
-    dom.inviteAgent.value = "";
-    filterInvites();
-  }
-
-  async function createInviteBatch() {
-    try {
-      setStatus("建立 Invite 中…", "warn");
-      const res = await api("inviteCreate", {
-        plan: val(dom.invitePlan) || "free",
-        days: num(val(dom.inviteDays), 7),
-        count: num(val(dom.inviteCount), 1),
-        note: val(dom.inviteNote)
-      });
-      await refreshInvites(true);
-      const firstCode = (res.codes || [])[0] || "";
-      if (firstCode) dom.csInviteCode.value = firstCode;
-      setStatus(`Invite 建立完成\ncount=${res.count || 0}\nfirst=${firstCode}`, "ok");
-    } catch (err) {
-      setStatus(normalizeError(err), "err");
+  function copyLeadInvite_(leadId){
+    const item = findLead_(leadId);
+    const code = text_(item?.invite_code);
+    if (!code) {
+      alert("這筆 Lead 目前還沒有邀請碼，請先按「產生邀請碼」。");
+      return;
     }
+    copyText_(code, "已複製邀請碼");
   }
 
-  function renderInvites() {
-    const list = paginate(state.invites.filtered, state.invites.page, state.invites.pageSize);
-    dom.inviteCountLabel.textContent = `${state.invites.filtered.length} 筆`;
-    if (!list.length) {
-      dom.inviteTable.innerHTML = `<div class="empty">查無 Invite 資料。</div>`;
-      return renderPagination(dom.invitePagination, state.invites.filtered.length, state.invites.page, state.invites.pageSize, "invite");
-    }
-
-    dom.inviteTable.innerHTML = list.map((x) => `
-      <article class="card">
-        <div class="card-top">
-          <div>
-            <h3 class="name">${esc(x.invite_code)}</h3>
-            <div class="meta">
-              <span class="chip">${esc(x.status || "—")}</span>
-              <span class="chip">${esc(x.service_agent || "—")}</span>
-              <span class="chip">${esc(x.plan || "—")}</span>
-            </div>
-          </div>
-        </div>
-        <div class="data">
-          <div class="kv"><b>lead_id</b><span>${esc(x.lead_id || "—")}</span></div>
-          <div class="kv"><b>used_by_id</b><span>${esc(x.used_by_id || "—")}</span></div>
-          <div class="kv"><b>created_at</b><span>${esc(x.created_at || "—")}</span></div>
-          <div class="kv"><b>expires_at</b><span>${esc(x.expires_at || "—")}</span></div>
-          <div class="kv"><b>used_at</b><span>${esc(x.used_at || "—")}</span></div>
-          <div class="kv"><b>source</b><span>${esc(x.source || "—")}</span></div>
-        </div>
-        <div class="card-actions">
-          <button data-act="invite-detail" data-id="${esc(x.invite_code)}" class="primary">查看詳情</button>
-          <button data-act="invite-copy-code" data-id="${esc(x.invite_code)}">複製邀請碼</button>
-          <button data-act="invite-copy-msg" data-id="${esc(x.invite_code)}" class="warn">複製邀請碼＋訊息</button>
-          <button data-act="invite-open-form" data-id="${esc(x.invite_code)}">開啟表單</button>
-          <button data-act="invite-disable" data-id="${esc(x.invite_code)}" class="danger">停用邀請碼</button>
-        </div>
-      </article>
-    `).join("");
-
-    renderPagination(dom.invitePagination, state.invites.filtered.length, state.invites.page, state.invites.pageSize, "invite");
+  function copyLeadFormLink_(leadId){
+    const item = findLead_(leadId);
+    const inviteCode = text_(item?.invite_code);
+    const url = buildFormLink_(inviteCode);
+    copyText_(url, "已複製表單連結");
   }
 
-  async function onInviteTableClick(ev) {
-    const btn = ev.target.closest("button[data-act]");
-    if (!btn) return;
-    const act = btn.dataset.act;
-    const code = btn.dataset.id || "";
-    const item = state.invites.raw.find((x) => x.invite_code === code);
+  function copyLeadScript_(leadId){
+    const item = findLead_(leadId);
     if (!item) return;
 
-    try {
-      if (act === "invite-detail") return openDrawer(`Invite 詳情｜${code}`, buildInviteDetailHtml(item));
-      if (act === "invite-copy-code") {
-        await copyText(code);
-        return setStatus(`已複製邀請碼：${code}`, "ok");
-      }
-      if (act === "invite-copy-msg") {
-        await copyText(buildInviteMessage(code));
-        return setStatus("已複製邀請碼訊息。", "ok");
-      }
-      if (act === "invite-open-form") return window.open(buildFormLink(code), "_blank", "noopener");
-      if (act === "invite-disable") {
-        await api("inviteDisable", { invite_code: code });
-        await refreshInvites(true);
-        return setStatus(`邀請碼已停用：${code}`, "ok");
-      }
-    } catch (err) {
-      setStatus(normalizeError(err), "err");
+    const inviteCode = text_(item.invite_code);
+    const formLink = buildFormLink_(inviteCode);
+    const script = [
+      `${text_(item.customer_name) || "您好"}，您好～`,
+      `這是您的智慧名片填寫入口。`,
+      inviteCode ? `邀請碼：${inviteCode}` : `若您尚未收到邀請碼，請先告知客服您的申請編號：${text_(item.lead_id)}`,
+      `填寫連結：${formLink}`,
+      `申請編號：${text_(item.lead_id)}`,
+      `若填寫過程中有問題，直接回覆客服即可。`
+    ].join("\n");
+
+    copyText_(script, "已複製客服話術");
+  }
+
+  async function openInviteDetail_(inviteCode){
+    const res = await api_("inviteGet", { invite_code: inviteCode });
+    const item = res?.item || res?.data || findInvite_(inviteCode) || {};
+    state.currentInvite = item;
+
+    openDrawer_("Invite 詳情", `
+      ${detailSection_("邀請碼資料", [
+        ["邀請碼", item.invite_code, true],
+        ["狀態", item.status],
+        ["申請編號", item.lead_id, true],
+        ["使用卡號", item.used_by_id || item.card_id, true],
+        ["推薦來源", item.referrer],
+        ["來源代理", item.service_agent],
+        ["代理類型", item.agent_type],
+        ["名單來源", item.source],
+        ["建立時間", formatDateTime_(item.created_at)],
+        ["使用時間", formatDateTime_(item.used_at)],
+        ["到期時間", formatDateTime_(item.expired_at)]
+      ])}
+
+      <div class="mt16 item-actions">
+        <button class="btn" data-act="invite-copy-code" data-id="${escapeAttr_(item.invite_code || "")}">複製邀請碼</button>
+        <button class="btn" data-act="invite-copy-both" data-id="${escapeAttr_(item.invite_code || "")}">複製邀請碼＋表單連結</button>
+        <button class="btn bad" data-act="invite-disable" data-id="${escapeAttr_(item.invite_code || "")}">停用邀請碼</button>
+      </div>
+    `);
+  }
+/* =========================================================
+   * Part 4 / 5
+   * Invite / Card 操作、資料載入、API
+   * ======================================================= */
+
+  function copyInviteBundle_(inviteCode){
+    const txt = `邀請碼：${inviteCode}\n填寫連結：${buildFormLink_(inviteCode)}`;
+    copyText_(txt, "已複製邀請碼＋表單連結");
+  }
+
+  async function disableInvite_(inviteCode){
+    const ok = confirm(`確定要停用邀請碼 ${inviteCode} 嗎？`);
+    if (!ok) return;
+
+    await api_("inviteDisable", { invite_code: inviteCode });
+    toast_("邀請碼已停用");
+    await Promise.allSettled([loadInvites_(), loadStats_()]);
+    if (state.currentInvite && text_(state.currentInvite.invite_code) === text_(inviteCode)) {
+      await openInviteDetail_(inviteCode);
     }
   }
 
-  async function refreshAgents(silent = false) {
-    if (!silent) setStatus("讀取代理中…", "warn");
-    const res = await api("agentList", {});
-    state.agents.raw = normalizeAgentItems(res.items || []);
-    filterAgents();
-    if (!silent) setStatus(`代理已更新，共 ${state.agents.raw.length} 筆。`, "ok");
+  async function openCardDetail_(cardId){
+    const res = await api_("adminCard", { id: cardId });
+    const item = res?.item || res?.data || findCard_(cardId) || {};
+    state.currentCard = item;
+
+    openDrawer_("卡片詳情", `
+      ${detailSection_("卡片資料", [
+        ["卡號", item.id, true],
+        ["姓名", item.name],
+        ["單位", item.unit],
+        ["職稱", item.title],
+        ["電話", item.phone],
+        ["Email", item.email],
+        ["方案", planText_(item.plan)],
+        ["狀態", cardStatusText_(item.status)],
+        ["付款狀態", item.billing_status],
+        ["推薦來源", item.referrer],
+        ["來源代理", item.service_agent],
+        ["名單來源", item.source],
+        ["邀請碼", item.invite_code, true],
+        ["到期日", formatDateTime_(item.expires_at)],
+        ["建立時間", formatDateTime_(item.created_at)],
+        ["更新時間", formatDateTime_(item.updated_at)]
+      ])}
+
+      <div class="mt16 item-actions">
+        <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(item.id || "")}">開名片</button>
+        <button class="btn ok" data-act="card-open-clean" data-id="${escapeAttr_(item.id || "")}">開乾淨名片</button>
+        <button class="btn" data-act="card-copy-link" data-id="${escapeAttr_(item.id || "")}">複製名片連結</button>
+        <button class="btn primary" data-act="card-gen-update" data-id="${escapeAttr_(item.id || "")}">產生更新頁</button>
+        <button class="btn" data-act="card-copy-update" data-id="${escapeAttr_(item.id || "")}">複製更新頁</button>
+      </div>
+    `);
   }
 
-  function filterAgents() {
-    state.agents.keyword = val(dom.agentKeyword).toLowerCase();
-    state.agents.filtered = state.agents.raw.filter((x) => {
-      if (!state.agents.keyword) return true;
-      const hay = [x.agent_code, x.name, x.phone, x.email, x.note].join(" ").toLowerCase();
-      return hay.includes(state.agents.keyword);
+  function openCard_(cardId){
+    window.open(`${CONFIG.HUB_URL}?id=${encodeURIComponent(cardId)}`, "_blank");
+  }
+
+  function openCardClean_(cardId){
+    window.open(`${CONFIG.HUB_URL}?id=${encodeURIComponent(cardId)}&clean=1`, "_blank");
+  }
+
+  function copyCardLink_(cardId){
+    copyText_(`${CONFIG.HUB_URL}?id=${encodeURIComponent(cardId)}`, "已複製名片連結");
+  }
+
+  async function genCardUpdateLink_(cardId){
+    const res = await api_("adminCreateUpdateLink24h", { id: cardId });
+    const link =
+      text_(res?.update_link) ||
+      text_(res?.item?.update_link) ||
+      text_(res?.data?.update_link);
+
+    if (!link) throw new Error("未取得更新頁連結");
+
+    const card = findCard_(cardId);
+    if (card) card.__update_link = link;
+    if (state.currentCard && text_(state.currentCard.id) === text_(cardId)) {
+      state.currentCard.__update_link = link;
+      await openCardDetail_(cardId);
+    }
+
+    copyText_(link, "已產生並複製更新頁");
+  }
+
+  function copyCardUpdateLink_(cardId){
+    const card = findCard_(cardId);
+    const link = text_(card?.__update_link);
+    if (!link) {
+      alert("這張卡片尚未產生更新頁，請先按「產生更新頁」。");
+      return;
+    }
+    copyText_(link, "已複製更新頁");
+  }
+
+  async function updateCardStatus_(cardId, status){
+    const ok = confirm(`確定要將卡片 ${cardId} 設為 ${status === "active" ? "啟用" : "停用"} 嗎？`);
+    if (!ok) return;
+
+    await api_("adminUpdate", {
+      id: cardId,
+      status
     });
-    state.agents.page = 1;
-    renderAgents();
-  }
 
-  function clearAgentFilters() {
-    dom.agentKeyword.value = "";
-    filterAgents();
-  }
-
-  function renderAgents() {
-    const list = paginate(state.agents.filtered, state.agents.page, state.agents.pageSize);
-    dom.agentCount.textContent = `${state.agents.filtered.length} 筆`;
-    if (!list.length) {
-      dom.agentTable.innerHTML = `<div class="empty">查無代理資料。</div>`;
-      return renderPagination(dom.agentPagination, state.agents.filtered.length, state.agents.page, state.agents.pageSize, "agent");
-    }
-
-    dom.agentTable.innerHTML = list.map((x) => `
-      <article class="card">
-        <div class="card-top">
-          <div>
-            <h3 class="name">${esc(x.name || x.agent_code)}</h3>
-            <div class="meta">
-              <span class="chip">${esc(x.agent_code)}</span>
-              <span class="chip">${esc(x.status || "—")}</span>
-            </div>
-          </div>
-        </div>
-        <div class="data">
-          <div class="kv"><b>電話</b><span>${esc(x.phone || "—")}</span></div>
-          <div class="kv"><b>Email</b><span>${esc(x.email || "—")}</span></div>
-          <div class="kv"><b>建立時間</b><span>${esc(x.created_at || "—")}</span></div>
-          <div class="kv"><b>更新時間</b><span>${esc(x.updated_at || "—")}</span></div>
-        </div>
-        <div class="card-actions">
-          <button data-act="agent-detail" data-id="${esc(x.agent_code)}" class="primary">查看詳情</button>
-          <button data-act="agent-copy-home" data-id="${esc(x.agent_code)}">複製 ref 首頁</button>
-        </div>
-      </article>
-    `).join("");
-
-    renderPagination(dom.agentPagination, state.agents.filtered.length, state.agents.page, state.agents.pageSize, "agent");
-  }
-
-  async function onAgentTableClick(ev) {
-    const btn = ev.target.closest("button[data-act]");
-    if (!btn) return;
-    const act = btn.dataset.act;
-    const agentCode = btn.dataset.id || "";
-
-    try {
-      if (act === "agent-detail") return openAgentDetail(agentCode);
-      if (act === "agent-copy-home") {
-        const link = buildFacadeLink(agentCode);
-        await copyText(link);
-        return setStatus(`已複製代理首頁網址\n${link}`, "ok");
-      }
-    } catch (err) {
-      setStatus(normalizeError(err), "err");
+    toast_(status === "active" ? "卡片已啟用" : "卡片已停用");
+    await Promise.allSettled([loadCards_(), loadStats_()]);
+    if (state.currentCard && text_(state.currentCard.id) === text_(cardId)) {
+      await openCardDetail_(cardId);
     }
   }
 
-  async function openAgentDetail(agentCode) {
-    const agent = await api("agentGet", { agent_code: agentCode });
-    const cardsRes = await api("agentCustomers", { agent_code: agentCode });
-    const leads = state.leads.raw.filter((x) => x.service_agent === agentCode || x.referrer === agentCode);
-    openDrawer(`代理詳情｜${agentCode}`, buildAgentDetailHtml(normalizeAgentItem(agent), normalizeCardItems(cardsRes.items || []), leads));
-  }
-
-  /* =========================
-   * Dashboard / Stats / Expire
-   * ========================= */
-  function computeDashboard() {
-    const cards = state.cards.raw.slice();
-    const leads = state.leads.raw.slice();
-    const invites = state.invites.raw.slice();
-    const agents = state.agents.raw.slice();
-
-    const today = new Date();
-    const todayStr = toDateKey(today);
-
-    const active = cards.filter((x) => low(x.status) === "active");
-    const inactive = cards.filter((x) => low(x.status) === "inactive");
-    const expired = cards.filter((x) => isExpired(x.expires_at));
-
-    const createdToday = cards.filter((x) => toDateKey(x.created_at) === todayStr);
-
-    const exp30 = active.filter((x) => daysLeft(x.expires_at) != null && daysLeft(x.expires_at) >= 0 && daysLeft(x.expires_at) <= 30)
-      .sort((a, b) => daysLeft(a.expires_at) - daysLeft(b.expires_at));
-    const exp7 = active.filter((x) => daysLeft(x.expires_at) != null && daysLeft(x.expires_at) >= 0 && daysLeft(x.expires_at) <= 7)
-      .sort((a, b) => daysLeft(a.expires_at) - daysLeft(b.expires_at));
-
-    state.dashboard.cardsTotal = cards.length;
-    state.dashboard.cardsToday = createdToday.length;
-    state.dashboard.leadsTotal = leads.length;
-    state.dashboard.agentsTotal = agents.length;
-    state.dashboard.invitesTotal = invites.length;
-    state.dashboard.activeCards = active.length;
-    state.dashboard.inactiveCards = inactive.length;
-    state.dashboard.expiredCards = expired.length;
-    state.dashboard.exp30 = exp30;
-    state.dashboard.exp7 = exp7;
-    state.dashboard.expiredList = expired.sort((a, b) => sortByDateAsc(a.expires_at, b.expires_at));
-  }
-
-  function renderDashboard() {
-    textContent(dom.kpiCards, state.dashboard.cardsTotal);
-    textContent(dom.kpiCardsToday, state.dashboard.cardsToday);
-    textContent(dom.kpiLeads, state.dashboard.leadsTotal);
-    textContent(dom.kpiAgents, state.dashboard.agentsTotal);
-    textContent(dom.kpiExp30, state.dashboard.exp30.length);
-    textContent(dom.kpiExp7, state.dashboard.exp7.length);
-    textContent(dom.kpiExpired, state.dashboard.expiredCards);
-    textContent(dom.kpiInvites, state.dashboard.invitesTotal);
-
-    renderExpireBox(dom.dashboardExp30, state.dashboard.exp30.slice(0, 8));
-    renderExpireBox(dom.dashboardExp7, state.dashboard.exp7.slice(0, 8));
-    renderExpireBox(dom.dashboardExpired, state.dashboard.expiredList.slice(0, 8));
-    renderExpireBox(dom.exp30Tools, state.dashboard.exp30);
-    renderExpireBox(dom.exp7Tools, state.dashboard.exp7);
-    renderExpireBox(dom.expiredTools, state.dashboard.expiredList);
-  }
-
-  function renderStatsPanel() {
-    textContent(dom.statsCardsTotal, state.dashboard.cardsTotal);
-    textContent(dom.statsCardsActive, state.dashboard.activeCards);
-    textContent(dom.statsCardsInactive, state.dashboard.inactiveCards);
-    textContent(dom.statsCardsExpired, state.dashboard.expiredCards);
-    textContent(dom.statsCardsToday, state.dashboard.cardsToday);
-    textContent(dom.statsLeadsTotal, state.dashboard.leadsTotal);
-    textContent(dom.statsInvitesTotal, state.dashboard.invitesTotal);
-    textContent(dom.statsAgentsTotal, state.dashboard.agentsTotal);
-  }
-
-  function renderExpireBox(target, items) {
-    if (!target) return;
-    if (!items.length) {
-      target.innerHTML = `<div class="empty">目前沒有資料。</div>`;
+  async function extendCard_(cardId){
+    const daysStr = prompt("請輸入要延長的天數", "365");
+    if (daysStr == null) return;
+    const days = Number(daysStr);
+    if (!Number.isFinite(days) || days <= 0) {
+      alert("請輸入正整數天數");
       return;
     }
 
-    target.innerHTML = items.map((x) => `
-      <article class="card">
-        <div class="card-top">
-          <div>
-            <h3 class="name">${esc(x.name || x.id)}</h3>
-            <div class="meta">
-              <span class="chip">${esc(x.id)}</span>
-              <span class="chip">${esc(x.service_agent || "SELF")}</span>
-              <span class="chip warn">${esc(expireBadgeText(x.expires_at))}</span>
-            </div>
-          </div>
-        </div>
-        <div class="data">
-          <div class="kv"><b>電話</b><span>${esc(x.phone || "—")}</span></div>
-          <div class="kv"><b>到期日</b><span>${esc(x.expires_at || "—")}</span></div>
-          <div class="kv"><b>狀態</b><span>${esc(x.status || "—")}</span></div>
-          <div class="kv"><b>service_agent</b><span>${esc(x.service_agent || "—")}</span></div>
-        </div>
-        <div class="card-actions">
-          <button data-act="open-card" data-id="${esc(x.id)}">一鍵開名片</button>
-          <button data-act="copy-update-link" data-id="${esc(x.id)}">一鍵開更新頁</button>
-          <button data-act="copy-remind-list" data-id="${esc(x.id)}" class="warn">複製提醒名單文字</button>
-        </div>
-      </article>
-    `).join("");
-  }
+    const card = findCard_(cardId) || (await api_("adminCard", { id: cardId }))?.item || {};
+    const baseDate = text_(card.expires_at) ? new Date(card.expires_at) : new Date();
+    const nextDate = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
 
-  async function onExpireListClick(ev) {
-    const btn = ev.target.closest("button[data-act]");
-    if (!btn) return;
-    const act = btn.dataset.act;
-    const id = btn.dataset.id || "";
-    try {
-      if (act === "open-card") return window.open(buildCardLink(id), "_blank", "noopener");
-      if (act === "copy-update-link") {
-        const link = await getUpdateLink(id, true);
-        await copyText(link);
-        return setStatus(`已複製更新頁連結\n${link}`, "ok");
-      }
-      if (act === "copy-remind-list") {
-        const item = state.cards.raw.find((x) => x.id === id);
-        const text = `${item?.name || ""}｜${item?.id || ""}｜${item?.phone || ""}｜${item?.expires_at || ""}｜${item?.service_agent || ""}`;
-        await copyText(text);
-        return setStatus("已複製提醒名單文字。", "ok");
-      }
-    } catch (err) {
-      setStatus(normalizeError(err), "err");
+    await api_("adminUpdate", {
+      id: cardId,
+      expires_at: nextDate.toISOString(),
+      status: "active"
+    });
+
+    toast_(`已延長 ${days} 天`);
+    await Promise.allSettled([loadCards_(), loadStats_()]);
+    if (state.currentCard && text_(state.currentCard.id) === text_(cardId)) {
+      await openCardDetail_(cardId);
     }
   }
 
-  /* =========================
-   * Drawer / Detail HTML
-   * ========================= */
-  function openDrawer(title, html) {
-    dom.drawerTitle.textContent = title;
-    dom.drawerBody.innerHTML = html;
-    dom.drawer.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  function closeDrawer() {
-    dom.drawerTitle.textContent = "詳細資料";
-    dom.drawerBody.innerHTML = `<div class="empty">尚未選取資料。</div>`;
-  }
-
-  function buildCardDetailHtml(x) {
-    const imageFields = ["avatar_url","logo_url","photo1_url","photo2_url","photo3_url","photo4_url","photo5_url"];
-    const socialFields = ["line_url","line_oa","wechat_id","email","phone","address","website","social1","social2","social3"];
-    const ctaFields = ["cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3"];
-
-    return `
-      <div class="detail-box">
-        <div class="statusbox">${esc(JSON.stringify(x, null, 2))}</div>
-        <div class="data">
-          ${buildKv("基本資料", [x.id, x.name, x.unit, x.title].filter(Boolean).join("｜"))}
-          ${buildKv("來源", [x.source, x.referrer, x.service_agent, x.agent_type].filter(Boolean).join("｜"))}
-          ${buildKv("invite / uid / billing", [x.invite_code, x.uid, x.billing_status].filter(Boolean).join("｜"))}
-          ${buildKv("到期資訊", [x.status, x.expires_at, x.activated_at, x.inactivated_at].filter(Boolean).join("｜"))}
-          ${buildKv("更新資訊", [x.updated_at, x.update_link_sent_at, x.update_token_expire].filter(Boolean).join("｜"))}
-          ${buildKv("CTA", ctaFields.map(k => `${k}:${x[k] || ""}`).join("\n"))}
-          ${buildKv("照片欄位", imageFields.map(k => `${k}:${x[k] || ""}`).join("\n"))}
-          ${buildKv("社群欄位", socialFields.map(k => `${k}:${x[k] || ""}`).join("\n"))}
-        </div>
-      </div>
-    `;
-  }
-
-  function buildLeadDetailHtml(x) {
-    return `<div class="statusbox">${esc(JSON.stringify(x, null, 2))}</div>`;
-  }
-
-  function buildInviteDetailHtml(x) {
-    return `<div class="statusbox">${esc(JSON.stringify(x, null, 2))}</div>`;
-  }
-
-  function buildAgentDetailHtml(agent, cards, leads) {
-    return `
-      <div class="detail-box">
-        <div class="statusbox">${esc(JSON.stringify(agent, null, 2))}</div>
-        <div class="data">
-          ${buildKv("代理 leads", String(leads.length))}
-          ${buildKv("代理 cards", String(cards.length))}
-          ${buildKv("轉換狀況", `lead→card：${cards.length} / ${leads.length}`)}
-          ${buildKv("預留欄位", "分潤 / 排行榜 / 收益 / 推薦連結生成器（未啟用）")}
-        </div>
-      </div>
-    `;
-  }
-
-  function buildKv(label, value) {
-    return `<div class="kv"><b>${esc(label)}</b><span>${esc(value || "—")}</span></div>`;
-  }
-
-  /* =========================
-   * Helpers
-   * ========================= */
-  function renderAllShells() {
-    switchTab(state.ui.activeTab || "dashboard");
-  }
-
-  function renderPagination(container, total, page, pageSize, type) {
-    if (!container) return;
-    const pages = Math.max(1, Math.ceil(total / pageSize));
-    container.innerHTML = "";
-    const prev = document.createElement("button");
-    prev.textContent = "上一頁";
-    prev.disabled = page <= 1;
-    prev.addEventListener("click", () => changePage(type, page - 1));
-    const next = document.createElement("button");
-    next.textContent = "下一頁";
-    next.disabled = page >= pages;
-    next.addEventListener("click", () => changePage(type, page + 1));
-    const mid = document.createElement("span");
-    mid.className = "chip";
-    mid.textContent = `${page} / ${pages}`;
-    container.append(prev, mid, next);
-  }
-
-  function changePage(type, nextPage) {
-    if (type === "card") { state.cards.page = nextPage; persistConfig(); return renderCards(); }
-    if (type === "lead") { state.leads.page = nextPage; persistConfig(); return renderLeads(); }
-    if (type === "invite") { state.invites.page = nextPage; persistConfig(); return renderInvites(); }
-    if (type === "agent") { state.agents.page = nextPage; persistConfig(); return renderAgents(); }
-  }
-
-  function paginate(arr, page, size) {
-    const start = (page - 1) * size;
-    return arr.slice(start, start + size);
-  }
-
-  function normalizeCardItems(items) { return (items || []).map(normalizeCardItem); }
-  function normalizeCardItem(x) {
-    const out = {};
-    CARD_FIELDS.forEach((k) => out[k] = x?.[k] ?? "");
-    return out;
-  }
-  function normalizeLeadItems(items) { return (items || []).map((x) => ({ ...x })); }
-  function normalizeInviteItems(items) { return (items || []).map((x) => ({ ...x })); }
-  function normalizeAgentItems(items) { return (items || []).map(normalizeAgentItem); }
-  function normalizeAgentItem(x) {
-    const out = {};
-    AGENT_FIELDS.forEach((k) => out[k] = x?.[k] ?? "");
-    return out;
-  }
-
-  function buildCardLink(id) { return `${DEFAULT_BASE_URL}?id=${encodeURIComponent(id)}`; }
-  function buildCardCleanLink(id) { return `${DEFAULT_BASE_URL}?id=${encodeURIComponent(id)}&view=1`; }
-  function buildFormLink(inviteCode) {
-    return `${DEFAULT_BASE_URL}form.html?tenant=${encodeURIComponent(state.config.tenant || DEFAULT_TENANT)}&invite=${encodeURIComponent(inviteCode)}`;
-  }
-  function buildFacadeLink(ref = "") {
-    const base = `${DEFAULT_BASE_URL}?tenant=${encodeURIComponent(state.config.tenant || DEFAULT_TENANT)}`;
-    return ref ? `${base}&ref=${encodeURIComponent(ref)}` : base;
-  }
-
-  function buildInviteMessage(code) {
-    return `您好，這是您的智慧名片申請邀請碼：${code}\n請點以下表單連結完成資料填寫：\n${buildFormLink(code)}`;
-  }
-
-  function buildCustomerServiceTemplate({ id = "", inviteCode = "", lead = null } = {}) {
-    const parts = [
-      "您好，這裡是天使幸福智慧名片客服。",
-      inviteCode ? `您的邀請碼：${inviteCode}` : "",
-      inviteCode ? `表單連結：${buildFormLink(inviteCode)}` : "",
-      id ? `卡片編號：${id}` : "",
-      lead ? `Lead：${lead.customer_name || lead.lead_id}` : "",
-      "若您填寫完成或需要協助，請直接回覆此訊息。"
-    ].filter(Boolean);
-    return parts.join("\n");
-  }
-
-  function daysLeft(iso) {
-    const t = Date.parse(String(iso || ""));
-    if (!Number.isFinite(t)) return null;
-    const today = new Date();
-    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    const endDate = new Date(t);
-    const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()).getTime();
-    return Math.ceil((end - start) / 86400000);
-  }
-
-  function expireBadgeText(iso) {
-    const d = daysLeft(iso);
-    if (d == null) return "無到期日";
-    if (d < 0) return `已過期 ${Math.abs(d)} 天`;
-    if (d === 0) return "今天到期";
-    return `剩 ${d} 天`;
-  }
-
-  function isExpired(iso) {
-    const t = Date.parse(String(iso || ""));
-    return Number.isFinite(t) && t < Date.now();
-  }
-
-  function sortByDateDesc(a, b) {
-    return (Date.parse(b || "") || 0) - (Date.parse(a || "") || 0);
-  }
-  function sortByDateAsc(a, b) {
-    return (Date.parse(a || "") || 0) - (Date.parse(b || "") || 0);
-  }
-  function toDateKey(v) {
-    const d = new Date(v);
-    if (!Number.isFinite(d.getTime())) return "";
-    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-  }
-  function pad2(n) { return String(n).padStart(2, "0"); }
-
-  function setStatus(msg, type = "") {
-    if (!dom.statusBox) return;
-    dom.statusBox.textContent = String(msg || "");
-    dom.statusBox.className = "statusbox";
-    if (type === "ok") dom.statusBox.classList.add("ok");
-    if (type === "warn") dom.statusBox.classList.add("warn");
-    if (type === "err") dom.statusBox.classList.add("err");
-  }
-
-  function text(v) { return v == null ? "" : String(v).trim(); }
-  function low(v) { return text(v).toLowerCase(); }
-  function val(node) { return text(node?.value); }
-  function num(v, d = 0) {
-    const n = Number(v);
-    return Number.isFinite(n) ? n : d;
-  }
-
-  async function copyText(textValue) {
-    const t = String(textValue || "");
-    if (!t) return;
+  async function loadStats_(){
     try {
-      await navigator.clipboard.writeText(t);
-    } catch (_err) {
+      const stats = await api_("adminStats", {});
+      state.stats = stats || {};
+      renderStats_();
+    } catch (err) {
+      console.warn("loadStats error", err);
+    }
+  }
+
+  function renderStats_(){
+    const box = document.getElementById("statsBox");
+    if (!box) return;
+
+    const s = state.stats || {};
+    const pendingLeads =
+      num_(s.pending_leads) ||
+      num_(s.lead_pending) ||
+      num_(s.leads_pending) ||
+      0;
+
+    const invitedLeads =
+      num_(s.invited_leads) ||
+      num_(s.lead_invited) ||
+      0;
+
+    const convertedLeads =
+      num_(s.converted_leads) ||
+      num_(s.lead_converted) ||
+      0;
+
+    const totalCards =
+      num_(s.total_cards) ||
+      num_(s.cards_total) ||
+      0;
+
+    box.innerHTML = `
+      <div class="stat"><div class="stat-k">待處理申請</div><div class="stat-v">${pendingLeads}</div></div>
+      <div class="stat"><div class="stat-k">已發邀請碼</div><div class="stat-v">${invitedLeads}</div></div>
+      <div class="stat"><div class="stat-k">已成卡</div><div class="stat-v">${convertedLeads}</div></div>
+      <div class="stat"><div class="stat-k">總卡片數</div><div class="stat-v">${totalCards}</div></div>
+    `;
+  }
+
+  async function loadLeads_(){
+    const params = {};
+    if (text_(state.leadQuery)) params.q = text_(state.leadQuery);
+
+    const res = await api_("leadList", params);
+    state.leads = normalizeArrayResult_(res);
+    renderLeadPanel_();
+    switchTab_(state.tab);
+  }
+
+  async function loadInvites_(){
+    const params = {};
+    if (text_(state.inviteQuery)) params.q = text_(state.inviteQuery);
+
+    const res = await api_("inviteList", params);
+    state.invites = normalizeArrayResult_(res);
+    renderInvitePanel_();
+    switchTab_(state.tab);
+  }
+
+  async function loadCards_(){
+    const params = {};
+    if (text_(state.cardQuery)) params.q = text_(state.cardQuery);
+
+    const res = await api_("adminFind", params);
+    state.cards = normalizeArrayResult_(res);
+    renderCardPanel_();
+    switchTab_(state.tab);
+  }
+
+  async function api_(action, payload = {}){
+    const url = CONFIG.GAS_URL;
+    const body = JSON.stringify({ action, ...payload });
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body,
+        signal: controller.signal
+      });
+
+      const txt = await res.text();
+      let json = {};
+      try {
+        json = txt ? JSON.parse(txt) : {};
+      } catch (err) {
+        throw new Error(`API 回傳不是合法 JSON：${txt.slice(0, 200)}`);
+      }
+
+      if (!res.ok) {
+        throw new Error(json.message || `HTTP ${res.status}`);
+      }
+
+      if (json && json.ok === false) {
+        throw new Error(json.message || `${action} 執行失敗`);
+      }
+
+      return json;
+    } catch (err) {
+      if (err.name === "AbortError") {
+        throw new Error(`請求逾時：${action}`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+/* =========================================================
+   * Part 5 / 5
+   * 工具函式
+   * ======================================================= */
+
+  function normalizeArrayResult_(res){
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.items)) return res.items;
+    if (Array.isArray(res?.list)) return res.list;
+    if (Array.isArray(res?.data)) return res.data;
+    if (Array.isArray(res?.rows)) return res.rows;
+    return [];
+  }
+
+  function findLead_(leadId){
+    return state.leads.find(x => text_(x.lead_id) === text_(leadId));
+  }
+
+  function findInvite_(inviteCode){
+    return state.invites.find(x => text_(x.invite_code) === text_(inviteCode));
+  }
+
+  function findCard_(cardId){
+    return state.cards.find(x => text_(x.id) === text_(cardId));
+  }
+
+  function buildFormLink_(inviteCode){
+    const url = new URL(CONFIG.FORM_URL);
+    if (text_(inviteCode)) url.searchParams.set("invite", inviteCode);
+    return url.toString();
+  }
+
+  function kv_(k, v, mono = false){
+    return `
+      <div class="kv">
+        <div class="kv-k">${escapeHtml_(k)}</div>
+        <div class="kv-v ${mono ? "mono" : ""}">${escapeHtml_(text_(v) || "-")}</div>
+      </div>
+    `;
+  }
+
+  function detailSection_(title, rows){
+    return `
+      <div class="card" style="margin:0;">
+        <div class="card-title">${escapeHtml_(title)}</div>
+        <div class="grid">
+          ${rows.map(([k,v,mono]) => kv_(k, v, mono)).join("")}
+        </div>
+      </div>
+    `;
+  }
+
+  function openDrawer_(title, html){
+    document.getElementById("drawerTitle").textContent = title || "詳細資料";
+    document.getElementById("drawerBody").innerHTML = html || "";
+    document.getElementById("drawer").classList.add("show");
+    document.getElementById("drawerMask").classList.add("show");
+  }
+
+  function closeDrawer_(){
+    document.getElementById("drawer").classList.remove("show");
+    document.getElementById("drawerMask").classList.remove("show");
+  }
+
+  function copyText_(text, msg = "已複製"){
+    const v = String(text || "");
+    navigator.clipboard.writeText(v).then(() => {
+      toast_(msg);
+    }).catch(() => {
       const ta = document.createElement("textarea");
-      ta.value = t;
-      ta.style.position = "fixed";
-      ta.style.left = "-9999px";
+      ta.value = v;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
       ta.remove();
-    }
+      toast_(msg);
+    });
   }
 
-  function textContent(node, value) {
-    if (node) node.textContent = String(value ?? "—");
+  function toast_(msg){
+    const old = document.getElementById("hscToast");
+    if (old) old.remove();
+
+    const el = document.createElement("div");
+    el.id = "hscToast";
+    el.textContent = msg || "完成";
+    Object.assign(el.style, {
+      position: "fixed",
+      left: "50%",
+      bottom: "24px",
+      transform: "translateX(-50%)",
+      background: "rgba(47,36,28,.92)",
+      color: "#fff",
+      padding: "12px 16px",
+      borderRadius: "999px",
+      zIndex: "9999",
+      fontSize: "14px",
+      fontWeight: "800",
+      boxShadow: "0 8px 24px rgba(0,0,0,.18)"
+    });
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1800);
   }
 
-  function normalizeError(err) {
-    return err?.message || String(err || "未知錯誤");
+  function qsa_(sel){
+    return Array.from(document.querySelectorAll(sel));
   }
 
-  function esc(v) {
-    return String(v == null ? "" : v)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
+  function text_(v){
+    return v == null ? "" : String(v).trim();
+  }
+
+  function num_(v){
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function formatDateTime_(v){
+    const s = text_(v);
+    if (!s) return "-";
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return s;
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mi = String(d.getMinutes()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+  }
+
+  function planText_(v){
+    const s = text_(v).toLowerCase();
+    if (s === "free") return "自由款";
+    if (s === "premium") return "精品款";
+    return s || "-";
+  }
+
+  function leadStatusBadge_(status){
+    const s = text_(status).toLowerCase();
+    if (s === "converted") return `<span class="badge ok">已成卡</span>`;
+    if (s === "invited") return `<span class="badge warn">已發邀請碼</span>`;
+    if (s === "new" || s === "pending") return `<span class="badge">待處理</span>`;
+    return `<span class="badge">${escapeHtml_(status || "未分類")}</span>`;
+  }
+
+  function inviteStatusText_(status){
+    const s = text_(status).toLowerCase();
+    if (s === "active") return "可使用";
+    if (s === "used") return "已使用";
+    if (s === "disabled") return "已停用";
+    if (s === "expired") return "已過期";
+    return status || "-";
+  }
+
+  function inviteStatusBadge_(status){
+    const s = text_(status).toLowerCase();
+    if (s === "active") return `<span class="badge ok">可使用</span>`;
+    if (s === "used") return `<span class="badge">已使用</span>`;
+    if (s === "disabled") return `<span class="badge bad">已停用</span>`;
+    if (s === "expired") return `<span class="badge warn">已過期</span>`;
+    return `<span class="badge">${escapeHtml_(status || "-")}</span>`;
+  }
+
+  function cardStatusText_(status){
+    const s = text_(status).toLowerCase();
+    if (s === "active") return "啟用中";
+    if (s === "inactive") return "停用中";
+    if (s === "expired") return "已到期";
+    return status || "-";
+  }
+
+  function cardStatusBadge_(status){
+    const s = text_(status).toLowerCase();
+    if (s === "active") return `<span class="badge ok">啟用中</span>`;
+    if (s === "inactive") return `<span class="badge bad">停用中</span>`;
+    if (s === "expired") return `<span class="badge warn">已到期</span>`;
+    return `<span class="badge">${escapeHtml_(status || "-")}</span>`;
+  }
+
+  function escapeHtml_(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#39;");
+  }
+
+  function escapeAttr_(s){
+    return escapeHtml_(s);
   }
 })();
