@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v524.7</title>
+  <title>天使幸福智慧名片館 v524.8</title>
 
-  <link rel="manifest" href="./manifest.json?v=524.7" />
+  <link rel="manifest" href="./manifest.json?v=524.8" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.7" />
-  <link rel="icon" href="./icons/icon-192.png?v=524.7" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.8" />
+  <link rel="icon" href="./icons/icon-192.png?v=524.8" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,12 +18,12 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=524.7" />
+  <meta property="og:image" content="og-card.png?v=524.8" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=524.7" />
+  <link rel="stylesheet" href="./style.css?v=524.8" />
 
   <style>
     :root{
@@ -67,7 +67,6 @@
       user-select: none;
     }
 
-    /* 精品浮動按鈕 */
     #cleanShareFab,
     #installFab{
       position: fixed;
@@ -210,7 +209,6 @@
       object-fit:cover;
     }
 
-    /* 名片館 QR 小太陽精品縮小 */
     .facade-qr-logo-pad{
       position:absolute;
       left:50%;
@@ -359,8 +357,7 @@
       border-radius:14px;
       background:#fff;
     }
-
-    .modal-mask,
+.modal-mask,
     .invite-mask{
       display:none;
       position:fixed !important;
@@ -411,26 +408,61 @@
     }
     .modal-bd,
     .invite-bd{ padding:6px 16px 16px; }
-    .invite-row{
-      display:flex;
+
+    .invite-note{
+      color:rgba(67,50,39,.78);
+      font-size:13px;
+      line-height:1.7;
+    }
+    .invite-meta{
+      margin-top:12px;
+      display:grid;
+      gap:10px;
+    }
+    .invite-meta-row{
+      border:1px solid rgba(102,78,57,.12);
+      border-radius:16px;
+      background:rgba(255,255,255,.72);
+      padding:12px 14px;
+    }
+    .invite-meta-label{
+      font-size:12px;
+      font-weight:900;
+      color:#8d684f;
+      margin-bottom:4px;
+      letter-spacing:.04em;
+    }
+    .invite-meta-value{
+      font-size:15px;
+      font-weight:900;
+      color:var(--poster-ink);
+      line-height:1.45;
+      word-break:break-word;
+    }
+    .invite-copybox{
+      margin-top:12px;
+      border:1px solid rgba(102,78,57,.12);
+      border-radius:16px;
+      background:#fff;
+      padding:12px 14px;
+      color:var(--poster-ink);
+      font-size:13px;
+      line-height:1.75;
+      white-space:pre-line;
+    }
+    .invite-actions{
+      display:grid;
+      grid-template-columns:1fr;
       gap:10px;
       margin-top:12px;
-      align-items:center;
-    }
-    .invite-input{
-      flex:1;
-      min-width:0;
-      border:1px solid rgba(102,78,57,.14);
-      border-radius:14px;
-      background:#fff;
-      color:var(--poster-ink);
-      padding:12px 14px;
-      font-size:14px;
-      outline:none;
     }
     .invite-primary{
       background:#4d8f71;
       color:#fff;
+    }
+    .invite-secondary{
+      background:linear-gradient(135deg, rgba(255,248,220,.96), rgba(233,199,112,.96));
+      color:#3f2f24;
     }
 
     .text-toggle-wrap{
@@ -526,8 +558,6 @@
       }
       .qr-bottom-title{ font-size:12px; }
       .qr-bottom-sub{ font-size:10px; }
-      .invite-row{ flex-direction:column; }
-      .invite-primary,.invite-input{ width:100%; }
 
       .expand-toggle{
         font-size:11px;
@@ -535,8 +565,7 @@
       }
     }
   </style>
-
-  <script>
+<script>
     (function(){
       "use strict";
       var DEMO_ID = "TW0001";
@@ -656,16 +685,16 @@
           <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-3', this)">霧灰</button>
         </div>
 
-        <button class="btn-cta subtle" id="btnLineOaCta" type="button">
-          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
-        </button>
-
         <button class="btn-cta subtle" id="btnFeature" type="button">
-          <i class="fa-solid fa-circle-info"></i> 產品特色說明
+          <i class="fa-solid fa-circle-info"></i> 了解智慧名片特色｜訂製流程
         </button>
 
         <button class="btn-cta subtle" id="btnInviteGate" type="button">
-          <i class="fa-solid fa-key"></i> 請聯繫客服開通
+          <i class="fa-solid fa-key"></i> 申請邀請碼
+        </button>
+
+        <button class="btn-cta subtle" id="btnLineOaCta" type="button">
+          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
         </button>
 
         <button class="btn-cta btn-share" id="btnShare" type="button">
@@ -685,16 +714,16 @@
           <button class="p-dot p7" data-group="theme" type="button" aria-label="p7" onclick="window.setTheme && window.setTheme('p7', this)"></button>
         </div>
 
-        <button class="btn-cta subtle" id="btnLineOaCta2" type="button">
-          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
-        </button>
-
         <button class="btn-cta subtle" id="btnFeature2" type="button">
-          <i class="fa-solid fa-circle-info"></i> 產品特色說明
+          <i class="fa-solid fa-circle-info"></i> 了解智慧名片特色｜訂製流程
         </button>
 
         <button class="btn-cta subtle" id="btnInviteGate2" type="button">
-          <i class="fa-solid fa-key"></i> 請聯繫客服開通
+          <i class="fa-solid fa-key"></i> 申請邀請碼
+        </button>
+
+        <button class="btn-cta subtle" id="btnLineOaCta2" type="button">
+          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
         </button>
 
         <button class="btn-cta btn-share" id="btnSharePremium" type="button">
@@ -704,8 +733,7 @@
 
     </div>
   </header>
-
-  <main id="card-container">
+<main id="card-container">
     <section class="card" id="card">
       <div class="premium-fx-layer"></div>
 
@@ -799,7 +827,7 @@
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v524.7</div>
+        <div class="version-tag" id="versionTag">v524.8</div>
       </div>
     </section>
   </main>
@@ -822,33 +850,53 @@
   </div>
 
   <div class="invite-mask" id="inviteMask" aria-hidden="true">
-    <div class="invite-box" role="dialog" aria-modal="true" aria-label="輸入邀請碼">
+    <div class="invite-box" role="dialog" aria-modal="true" aria-label="申請邀請碼">
       <div class="invite-hd">
         <div style="display:flex; align-items:center; gap:10px;">
-          <i class="fa-solid fa-key"></i> 輸入邀請碼後開啟表單
+          <i class="fa-solid fa-key"></i> 申請邀請碼
         </div>
         <button class="invite-btn" type="button" id="inviteCloseBtn">關閉</button>
       </div>
       <div class="invite-bd">
-        <div>此表單採邀請制：請到後台取得邀請碼，提供給客戶填寫。</div>
-        <div class="invite-row">
-          <input class="invite-input" id="inviteInput" type="text" inputmode="text" autocomplete="off" placeholder="例如：ABCD-1234" />
-          <button class="invite-btn invite-primary" type="button" id="inviteGoBtn">開啟表單</button>
+        <div class="invite-note">
+          請先複製下方申請內容，再點下一個按鈕加入 LINE 官方帳號提出申請。
         </div>
+
+        <div class="invite-meta">
+          <div class="invite-meta-row">
+            <div class="invite-meta-label">推薦來源識別碼</div>
+            <div class="invite-meta-value" id="inviteRefCode">載入中…</div>
+          </div>
+          <div class="invite-meta-row">
+            <div class="invite-meta-label">申請識別碼</div>
+            <div class="invite-meta-value" id="inviteApplyCode">載入中…</div>
+          </div>
+        </div>
+
+        <div class="invite-copybox" id="inviteCopyContent">載入中…</div>
+
+        <div class="invite-actions">
+          <button class="invite-btn invite-secondary" type="button" id="inviteCopyBtn">
+            一鍵複製申請內容
+          </button>
+          <button class="invite-btn invite-primary" type="button" id="inviteLineBtn">
+            加入官方帳號提出申請
+          </button>
+        </div>
+
         <div style="margin-top:10px; color:rgba(67,50,39,0.72); font-size:13px;">
-          ※ 成品模式（?view=1）不提供填表入口。
+          ※ 客服收到你的申請內容後，會協助提供邀請碼與後續開通。
         </div>
       </div>
     </div>
   </div>
 
-  <script src="./app.js?v=524.7"></script>
-
-  <script>
+  <script src="./app.js?v=524.8"></script>
+<script>
     (function(){
       "use strict";
 
-      var VERSION = "524.7";
+      var VERSION = "524.8";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -947,7 +995,8 @@
       function buildFacadeHubQrUrl(){
         try{
           var u = new URL(BASE_URL);
-          u.searchParams.set("ref", getCurrentCardId());
+          var refCode = (typeof window.__getReferralSourceCode === "function" ? window.__getReferralSourceCode() : "") || getCurrentCardId();
+          if(refCode) u.searchParams.set("ref", refCode);
           return u.toString();
         }catch(e){
           return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
@@ -1019,6 +1068,45 @@
         }catch(_err){}
       }
 
+      async function copyApplyContent(){
+        var box = qs("inviteCopyContent");
+        var value = box ? (box.textContent || box.innerText || "") : "";
+        if(!value) return;
+
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(value);
+            alert("✅ 已複製申請內容");
+            return;
+          }
+          prompt("請手動複製申請內容", value);
+        }catch(e){}
+      }
+
+      async function fillInviteCard(){
+        var refEl = qs("inviteRefCode");
+        var applyEl = qs("inviteApplyCode");
+        var copyEl = qs("inviteCopyContent");
+
+        if(refEl) refEl.textContent = "載入中…";
+        if(applyEl) applyEl.textContent = "載入中…";
+        if(copyEl) copyEl.textContent = "載入中…";
+
+        try{
+          if(typeof window.__ensureInviteApplyData === "function"){
+            var data = await window.__ensureInviteApplyData();
+            if(refEl) refEl.textContent = data.refCode || "無";
+            if(applyEl) applyEl.textContent = data.applyCode || "-";
+            if(copyEl) copyEl.textContent = data.copyText || "";
+            return;
+          }
+        }catch(e){}
+
+        if(refEl) refEl.textContent = "無";
+        if(applyEl) applyEl.textContent = "-";
+        if(copyEl) copyEl.textContent = "您好，我想申請天使幸福智慧名片邀請碼。";
+      }
+
       function bindShareFallback(){
         function bindOne(id){
           var btn = qs(id);
@@ -1048,6 +1136,14 @@
           var b = qs(id);
           if(b) b.addEventListener("click", function(e){ e.preventDefault(); openOA(); }, {passive:false});
         });
+
+        var inviteLineBtn = qs("inviteLineBtn");
+        if(inviteLineBtn){
+          inviteLineBtn.addEventListener("click", function(e){
+            e.preventDefault();
+            openOA();
+          }, {passive:false});
+        }
       }
 
       function bindFeature(){
@@ -1076,15 +1172,10 @@
         });
       }
 
-      function normalizeInvite(code){
-        return (code || "").replace(/\u3000/g, " ").replace(/\s+/g, "").trim();
-      }
-
       function bindInviteGate(){
         var mask = qs("inviteMask");
         var close = qs("inviteCloseBtn");
-        var input = qs("inviteInput");
-        var go = qs("inviteGoBtn");
+        var copyBtn = qs("inviteCopyBtn");
 
         function open(){
           if(isClean()) return;
@@ -1092,23 +1183,13 @@
           mask.style.display = "flex";
           mask.setAttribute("aria-hidden", "false");
           lockScroll();
-          setTimeout(function(){ try{ input && input.focus(); }catch(e){} }, 60);
+          fillInviteCard();
         }
         function shut(){
           if(!mask) return;
           mask.style.display = "none";
           mask.setAttribute("aria-hidden", "true");
           unlockScroll();
-        }
-        function goForm(){
-          if(isClean()) return;
-          var code = normalizeInvite(input && input.value ? input.value : "");
-          if(!code){
-            try{ input && input.focus(); }catch(e){}
-            return;
-          }
-          var url = "./form.html?v=" + encodeURIComponent(VERSION) + "&invite=" + encodeURIComponent(code);
-          try{ window.open(url, "_blank", "noopener"); }catch(e){ location.href = url; }
         }
 
         ["btnInviteGate","btnInviteGate2"].forEach(function(id){
@@ -1118,12 +1199,7 @@
 
         if(close) close.addEventListener("click", function(){ shut(); });
         if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) shut(); });
-
-        if(go) go.addEventListener("click", function(){ goForm(); });
-        if(input) input.addEventListener("keydown", function(e){
-          if(e.key === "Enter"){ e.preventDefault(); goForm(); }
-          if(e.key === "Escape"){ e.preventDefault(); shut(); }
-        });
+        if(copyBtn) copyBtn.addEventListener("click", function(){ copyApplyContent(); });
       }
 
       function bindInstall(){
