@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.7",
+  VERSION: "v524.8",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -13,6 +13,9 @@ let currentRow = null;
 let deferredInstallPrompt = null;
 let currentAvatarUrlCache = "";
 let currentAvatarSourceKeyCache = "";
+let currentReferralSourceCodeCache = "";
+let currentInviteApplyCodeCache = "";
+let currentInviteCopyTextCache = "";
 let lastBottomQrRenderKey = "";
 let lastFeatureQrRenderKey = "";
 let lastFacadeQrRenderKey = "";
@@ -42,6 +45,15 @@ function getIdFromUrl_(){
   try{
     const sp = getSearchParams_();
     return sp.get("id") || "";
+  }catch{
+    return "";
+  }
+}
+
+function getRefFromUrl_(){
+  try{
+    const sp = getSearchParams_();
+    return text(sp.get("ref") || "");
   }catch{
     return "";
   }
@@ -110,6 +122,17 @@ function buildCardApiUrl_(id){
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
 }
+function buildLeadCreateUrl_(refCode){
+  const u = new URL(CONFIG.GAS);
+  u.searchParams.set("action", "leadCreate");
+  u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
+  if(refCode) u.searchParams.set("ref", refCode);
+  u.searchParams.set("source", "invite_gate_card");
+  u.searchParams.set("note", "invite_gate_prelog");
+  u.searchParams.set("ts", String(Date.now()));
+  u.searchParams.set("v", CONFIG.VERSION);
+  return u.toString();
+}
 
 function buildNormalizedPayload_(obj){
   if(!obj || typeof obj !== "object") return obj;
@@ -141,6 +164,83 @@ function pick(p, keys){
   return "";
 }
 
+function getReferralSourceCode_(p){
+  const urlRef = getRefFromUrl_();
+  if(urlRef) return urlRef;
+
+  if(p){
+    const code =
+      text(pick(p, ["agent_id"])) ||
+      text(pick(p, ["service_agent"])) ||
+      text(pick(p, ["referrer"])) ||
+      text(pick(p, ["id"]));
+    if(code) return code;
+  }
+
+  const id = normalizeId_(getIdFromUrl_());
+  return id || "";
+}
+
+function createLocalApplyCode_(){
+  const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `AP${yy}${mm}${dd}${hh}${mi}${ss}`;
+}
+
+function buildInviteApplyText_(refCode, applyCode){
+  const lines = [
+    "您好，我想申請天使幸福智慧名片邀請碼。",
+    "",
+    `推薦來源識別碼：${text(refCode) || "無"}`,
+    `申請識別碼：${text(applyCode) || "-"}`,
+    "",
+    "請協助我申請開通表單，謝謝。"
+  ];
+  return lines.join("\n");
+}
+
+async function ensureInviteApplyData_(){
+  if(currentInviteApplyCodeCache && currentInviteCopyTextCache){
+    return {
+      refCode: currentReferralSourceCodeCache || "無",
+      applyCode: currentInviteApplyCodeCache,
+      copyText: currentInviteCopyTextCache
+    };
+  }
+
+  const refCode = getReferralSourceCode_(currentRow);
+  currentReferralSourceCodeCache = refCode || "";
+
+  let applyCode = "";
+  try{
+    const payload = await fetchJsonRobust_(buildLeadCreateUrl_(refCode));
+    applyCode = text(payload?.data?.lead_id || payload?.lead_id || "");
+  }catch(_err){
+    applyCode = "";
+  }
+
+  if(!applyCode) applyCode = createLocalApplyCode_();
+
+  currentInviteApplyCodeCache = applyCode;
+  currentInviteCopyTextCache = buildInviteApplyText_(refCode, applyCode);
+
+  return {
+    refCode: refCode || "無",
+    applyCode,
+    copyText: currentInviteCopyTextCache
+  };
+}
+
+window.__ensureInviteApplyData = ensureInviteApplyData_;
+window.__getReferralSourceCode = function(){
+  return getReferralSourceCode_(currentRow);
+};
+
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
   if(!url) return "";
@@ -158,7 +258,6 @@ function normalizeImageUrl_(raw){
 
   return url;
 }
-
 function buildImgCandidates_(raw){
   const s = text(raw);
   if(!s) return [];
@@ -293,19 +392,16 @@ const UI_STATE = {
 function removeBodyClasses_(classes){
   classes.forEach(c => document.body.classList.remove(c));
 }
-
 function setBodyClassOneOf_(classes, target){
   removeBodyClasses_(classes);
   if(target) document.body.classList.add(target);
 }
-
 function setActiveAmong_(elements, activeEl){
   (elements || []).forEach(el => {
     if(el === activeEl) el.classList.add("active");
     else el.classList.remove("active");
   });
 }
-
 function mapFreeColorToTheme_(v){
   const raw = text(v).toLowerCase();
   const map = {
@@ -514,7 +610,6 @@ function initSelectionState_(){
 
   syncPlanUI_();
 }
-
 function escapeHtmlWithBreaks_(s){
   return escapeHtml_(s).replace(/\n/g, "<br>");
 }
@@ -673,11 +768,6 @@ function pickAvatarInfo_(p){
     raw: "",
     url: ""
   };
-}
-
-function pickAvatarUrl_(p){
-  const info = pickAvatarInfo_(p);
-  return info.url;
 }
 
 function renderAvatar_(p){
@@ -1118,12 +1208,12 @@ function buildCleanShareUrl_(){
 function buildHubShareUrl_(){
   try{
     const u = new URL(CONFIG.HUB_URL);
-    const id = normalizeId_(getIdFromUrl_());
-    if(id) u.searchParams.set("ref", id);
+    const code = getReferralSourceCode_(currentRow);
+    if(code) u.searchParams.set("ref", code);
     return u.toString();
   }catch{
-    const id = normalizeId_(getIdFromUrl_());
-    return CONFIG.HUB_URL + (id ? ("?ref=" + encodeURIComponent(id)) : "");
+    const code = getReferralSourceCode_(currentRow);
+    return CONFIG.HUB_URL + (code ? ("?ref=" + encodeURIComponent(code)) : "");
   }
 }
 
@@ -1408,6 +1498,7 @@ function ensureBottomQrVisible_(){
 function renderCard(row){
   const p = buildNormalizedPayload_(row || {});
   currentRow = p;
+  currentReferralSourceCodeCache = getReferralSourceCode_(p);
 
   applyThemeFromPayload_(p);
 
