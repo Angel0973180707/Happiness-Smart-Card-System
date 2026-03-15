@@ -1,8 +1,8 @@
 /*
-HSC v731.0
+HSC v731.1
 app.js
 COMPLETE OVERWRITE
-Part 1 / 3
+Part 1 / 5
 */
 
 const CONFIG = {
@@ -10,31 +10,11 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v731.0",
+  VERSION: "v731.1",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
-  REF_STORAGE_KEY: "HSC_REF",
-  DEMO_CARDS: [
-    {
-      id: "TW0001",
-      title: "教練型名片",
-      desc: "適合教練、顧問、講師，快速展示服務內容與聯絡入口。",
-      cover: ""
-    },
-    {
-      id: "TW0002",
-      title: "品牌型名片",
-      desc: "適合店家與個人品牌，整合照片牆、CTA 與社群入口。",
-      cover: ""
-    },
-    {
-      id: "TW0003",
-      title: "服務型名片",
-      desc: "適合房仲、保險、接案者，一頁整合聯絡、導航與作品入口。",
-      cover: ""
-    }
-  ]
+  REF_STORAGE_KEY: "HSC_REF"
 };
 
 let currentRow = null;
@@ -42,12 +22,9 @@ let deferredInstallPrompt = null;
 let currentAvatarUrlCache = "";
 let currentAvatarSourceKeyCache = "";
 let lastBottomQrRenderKey = "";
-let lastFeatureQrRenderKey = "";
 let lastFacadeQrRenderKey = "";
-let currentLeadId = "";
-let __expandRefreshTimer = null;
-let __balanceTimer = null;
 let __scrollTop = 0;
+let currentLeadId = "";
 
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
@@ -72,8 +49,7 @@ function getSearchParams_(){
 
 function getIdFromUrl_(){
   try{
-    const sp = getSearchParams_();
-    return sp.get("id") || "";
+    return text(getSearchParams_().get("id") || "");
   }catch{
     return "";
   }
@@ -81,8 +57,7 @@ function getIdFromUrl_(){
 
 function getRefFromUrl_(){
   try{
-    const sp = getSearchParams_();
-    return text(sp.get("ref") || "");
+    return text(getSearchParams_().get("ref") || "");
   }catch{
     return "";
   }
@@ -224,6 +199,24 @@ function escapeHtmlWithBreaks_(s){
   return escapeHtml_(s).replace(/\n/g, "<br>");
 }
 
+function copyText_(value, okMsg = "✅ 已複製"){
+  const v = text(value);
+  if(!v) return;
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(v).then(()=> alert(okMsg)).catch(()=>{
+      prompt("請手動複製", v);
+    });
+    return;
+  }
+  prompt("請手動複製", v);
+}
+/*
+HSC v731.1
+app.js
+COMPLETE OVERWRITE
+Part 2 / 5
+*/
+
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
   if(!url) return "";
@@ -332,24 +325,6 @@ function openMapByAddress_(addr){
   window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
 }
 
-function copyText_(value, okMsg = "✅ 已複製"){
-  const v = text(value);
-  if(!v) return;
-  if(navigator.clipboard?.writeText){
-    navigator.clipboard.writeText(v).then(()=> alert(okMsg)).catch(()=>{
-      prompt("請手動複製", v);
-    });
-    return;
-  }
-  prompt("請手動複製", v);
-}
-/*
-HSC v731.0
-app.js
-COMPLETE OVERWRITE
-Part 2 / 3
-*/
-
 function buildDockBtn_({label, icon, onClick, extraClass}){
   const b = document.createElement("button");
   b.className = "dock-btn" + (extraClass ? (" " + extraClass) : "");
@@ -422,39 +397,41 @@ function renderLogo_(p){
   });
 }
 
+function renderExpandableInfoBlock_(blockEl, title, rawText){
+  if(!blockEl) return;
+  const value = text(rawText);
+  if(!value){
+    blockEl.style.display = "none";
+    blockEl.innerHTML = "";
+    return;
+  }
+  blockEl.style.display = "";
+  blockEl.innerHTML = `
+    <div class="block-title">${escapeHtml_(title)}</div>
+    <div class="block-body preline">${escapeHtmlWithBreaks_(value)}</div>
+  `;
+}
+
 function renderBlocks_(p){
   const service = pick(p, ["services","服務項目","service"]);
   const exp = pick(p, ["experience","經歷","exp"]);
 
-  const b1 = qs("block-service");
-  const b2 = qs("block-exp");
-  const t1 = qs("u-service");
-  const t2 = qs("u-exp");
-
-  if(b1 && t1){
-    if(text(service)){
-      b1.style.display = "";
-      t1.innerHTML = escapeHtmlWithBreaks_(service);
-    }else{
-      b1.style.display = "none";
-      t1.innerHTML = "";
-    }
-  }
-
-  if(b2 && t2){
-    if(text(exp)){
-      b2.style.display = "";
-      t2.innerHTML = escapeHtmlWithBreaks_(exp);
-    }else{
-      b2.style.display = "none";
-      t2.innerHTML = "";
-    }
-  }
+  renderExpandableInfoBlock_(qs("block-service"), "服務項目", service);
+  renderExpandableInfoBlock_(qs("block-exp"), "經歷", exp);
 }
+/*
+HSC v731.1
+app.js
+COMPLETE OVERWRITE
+Part 3 / 5
+*/
 
 function renderContactDock_(p){
   const dock = qs("contactDock");
-  if(!dock) return;
+  const btns = qs("contactButtons");
+  if(!dock || !btns) return;
+
+  btns.innerHTML = "";
 
   const phone = pick(p, ["phone","電話"]);
   const email = pick(p, ["email","Email"]);
@@ -507,16 +484,10 @@ function renderContactDock_(p){
 
   if(!items.length){
     dock.style.display = "none";
-    dock.innerHTML = "";
     return;
   }
 
   dock.style.display = "";
-  dock.innerHTML = `
-    <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
-    <div class="dock-buttons" id="contactButtons"></div>
-  `;
-  const btns = qs("contactButtons");
   items.forEach(el => btns.appendChild(el));
   applyWideRule_(btns);
 }
@@ -533,9 +504,12 @@ function inferLinkMeta_(url, kind, idx){
 
 function renderMediaDock_(p){
   const dock = qs("mediaDock");
-  if(!dock) return;
+  const btns = qs("mediaButtons");
+  if(!dock || !btns) return;
 
+  btns.innerHTML = "";
   const items = [];
+
   ["video1","video2","video3"].forEach((k, i)=>{
     const u = normalizeUrl_(pick(p, [k, `影音連結${i+1}`]));
     if(u) items.push({ kind:"video", idx:i+1, url:u });
@@ -547,18 +521,10 @@ function renderMediaDock_(p){
 
   if(!items.length){
     dock.style.display = "none";
-    dock.innerHTML = "";
     return;
   }
 
   dock.style.display = "";
-  dock.innerHTML = `
-    <div class="contact-dock">
-      <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>
-      <div class="dock-buttons" id="mediaButtons"></div>
-    </div>
-  `;
-  const btns = dock.querySelector("#mediaButtons");
   items.forEach(item=>{
     const meta = inferLinkMeta_(item.url, item.kind, item.idx);
     btns.appendChild(buildDockBtn_({
@@ -573,10 +539,13 @@ function renderMediaDock_(p){
 
 function renderCtaDock_(p){
   const dock = qs("ctaDock");
-  if(!dock) return;
+  const btns = qs("ctaButtons");
+  if(!dock || !btns) return;
 
+  btns.innerHTML = "";
   const pairs = [];
-  for(let i=1;i<=3;i++){
+
+  for(let i = 1; i <= 3; i++){
     const t = text(pick(p, [`cta_text_${i}`]));
     const l = normalizeUrl_(pick(p, [`cta_link_${i}`]));
     if(t && l) pairs.push({ label:t, url:l });
@@ -590,18 +559,10 @@ function renderCtaDock_(p){
 
   if(!pairs.length){
     dock.style.display = "none";
-    dock.innerHTML = "";
     return;
   }
 
   dock.style.display = "";
-  dock.innerHTML = `
-    <div class="contact-dock">
-      <div class="dock-title"><i class="fa-solid fa-bolt"></i> 立即行動</div>
-      <div class="dock-buttons" id="ctaButtons"></div>
-    </div>
-  `;
-  const btns = dock.querySelector("#ctaButtons");
   pairs.forEach(item=>{
     btns.appendChild(buildDockBtn_({
       label:item.label,
@@ -642,21 +603,18 @@ function collectPhotos_(p){
 
 function renderPhotoWall_(p){
   const wall = qs("photoWall");
-  if(!wall) return;
+  const grid = qs("photoGrid");
+  if(!wall || !grid) return;
 
+  grid.innerHTML = "";
   const photos = collectPhotos_(p);
+
   if(!photos.length){
     wall.style.display = "none";
-    wall.innerHTML = "";
     return;
   }
 
   wall.style.display = "";
-  wall.innerHTML = `
-    <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
-    <div class="photo-grid" id="photoGrid"></div>
-  `;
-  const grid = wall.querySelector("#photoGrid");
   grid.className = "photo-grid";
   if(photos.length === 1) grid.classList.add("layout-1");
   else if(photos.length === 2) grid.classList.add("layout-2");
@@ -718,14 +676,7 @@ function buildQrImageUrl_(url, size){
     + "&margin=2";
 }
 
-function renderQr(options){
-  const {
-    container,
-    url,
-    size = 160,
-    renderKey = ""
-  } = options || {};
-
+function renderQr({ container, url, size = 160, renderKey = "" } = {}){
   if(!container || !url) return false;
 
   const key = renderKey || `${url}|${size}`;
@@ -748,90 +699,12 @@ function renderQr(options){
 
   return true;
 }
-
-async function shareUrl_(url, title, textMsg, okMsg){
-  try{
-    if(navigator.share){
-      await navigator.share({ title: title || "天使幸福智慧名片", text: textMsg || "", url });
-      return;
-    }
-    if(navigator.clipboard?.writeText){
-      await navigator.clipboard.writeText(url);
-      alert(okMsg || "✅ 已複製連結");
-      return;
-    }
-    prompt("請手動複製連結", url);
-  }catch(_err){}
-}
-
-function renderHomeAccordion_(){
-  const host = qs("homeAccordion");
-  if(!host) return;
-  host.innerHTML = `
-    <div class="accordion-list">
-      <div class="accordion-item is-open">
-        <button class="accordion-trigger" type="button"><span>智慧名片是什麼</span><i class="fa-solid fa-chevron-down"></i></button>
-        <div class="accordion-body"><p>智慧名片是一個可分享的個人入口，整合聯絡方式、LINE、社群、服務介紹與 QR Code。不需要下載 APP，點開網址就可以查看；如果需要，也可以安裝到手機桌面。</p></div>
-      </div>
-      <div class="accordion-item">
-        <button class="accordion-trigger" type="button"><span>為什麼需要</span><i class="fa-solid fa-chevron-down"></i></button>
-        <div class="accordion-body"><p>傳統紙本名片容易遺失、資訊無法更新，也只能放基本資料。智慧名片讓名片從一張卡片變成一個入口：一頁整合所有資訊、可分享、可更新、可直接讓客戶聯絡你。</p></div>
-      </div>
-      <div class="accordion-item">
-        <button class="accordion-trigger" type="button"><span>三大功能</span><i class="fa-solid fa-chevron-down"></i></button>
-        <div class="accordion-body"><ul><li>專屬名片頁：一頁整合聯絡方式、LINE、社群、服務介紹。</li><li>一鍵分享：每張名片都有專屬網址與專屬 QR Code。</li><li>代理推廣：分享名片館入口，可保留來源追蹤。</li></ul></div>
-      </div>
-      <div class="accordion-item">
-        <button class="accordion-trigger" type="button"><span>方案介紹</span><i class="fa-solid fa-chevron-down"></i></button>
-        <div class="accordion-body"><ul><li>自由搭配款：2 張照片、1 個行動按鈕，適合快速展示聯絡資訊。</li><li>精品設計款：5 張照片、3 個行動按鈕，適合品牌與服務展示。</li></ul></div>
-      </div>
-      <div class="accordion-item">
-        <button class="accordion-trigger" type="button"><span>適用對象</span><i class="fa-solid fa-chevron-down"></i></button>
-        <div class="accordion-body"><p>適合個人品牌、創業者、業務、保險顧問、房仲、設計師、教練、講師、店家商家、電商與接案工作者。</p></div>
-      </div>
-      <div class="accordion-item">
-        <button class="accordion-trigger" type="button"><span>申請流程</span><i class="fa-solid fa-chevron-down"></i></button>
-        <div class="accordion-body"><ol><li>點擊申請邀請碼。</li><li>送出資料，取得申請編號。</li><li>加入 LINE 官方帳號加快處理。</li><li>客服提供方案與價格。</li><li>確認後填寫名片資料。</li><li>完成製作後即可分享使用。</li></ol></div>
-      </div>
-    </div>
-  `;
-
-  qsa("#homeAccordion .accordion-trigger").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const item = btn.closest(".accordion-item");
-      if(!item) return;
-      item.classList.toggle("is-open");
-    });
-  });
-}
 /*
-HSC v731.0
+HSC v731.1
 app.js
 COMPLETE OVERWRITE
-Part 3 / 3
+Part 4 / 5
 */
-
-function renderDemoGallery_(){
-  const host = qs("galleryDemo");
-  if(!host) return;
-
-  host.innerHTML = `
-    <div class="demo-grid">
-      ${CONFIG.DEMO_CARDS.map(item=>`
-        <article class="demo-card">
-          <div class="demo-thumb"></div>
-          <div class="demo-body">
-            <h3 class="demo-title">${escapeHtml_(item.title)}</h3>
-            <div class="demo-text">${escapeHtml_(item.desc)}</div>
-            <div class="demo-actions">
-              <a class="demo-link" href="./index.html?id=${encodeURIComponent(item.id)}">看看示範</a>
-            </div>
-          </div>
-        </article>
-      `).join("")}
-    </div>
-  `;
-}
 
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
@@ -852,6 +725,7 @@ function renderBottomQr_(p){
   const sec = qs("bottomQrSection");
   const grid = qs("bottomQrGrid");
   if(!sec || !grid) return;
+
   const qrUrl = buildBottomQrUrl_();
   const key = "bottom|" + qrUrl;
   if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
@@ -864,6 +738,21 @@ function renderBottomQr_(p){
     });
   }
   sec.style.display = "block";
+}
+
+async function shareUrl_(url, title, textMsg, okMsg){
+  try{
+    if(navigator.share){
+      await navigator.share({ title: title || "天使幸福智慧名片", text: textMsg || "", url });
+      return;
+    }
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(url);
+      alert(okMsg || "✅ 已複製連結");
+      return;
+    }
+    prompt("請手動複製連結", url);
+  }catch(_err){}
 }
 
 function lockScroll_(){
@@ -907,34 +796,49 @@ function hideMask_(el){
 }
 
 function openFeatureModal_(){
-  const mask = qs("featureMask") || qs("featureModal");
-  if(!mask) return;
-  showMask_(mask);
+  showMask_(qs("featureMask"));
 }
 
 function openInviteModal_(){
-  const mask = qs("inviteMask") || qs("inviteModal");
-  if(!mask) return;
-  showMask_(mask);
+  showMask_(qs("inviteMask"));
   setTimeout(()=>{
-    const input = qs("leadName") || qs("leadCustomerName") || qs("inviteCustomerName");
+    const input = qs("leadName");
     try{ input && input.focus(); }catch{}
   }, 60);
 }
 
+function bindAccordion_(){
+  qsa(".accordion-item[data-acc-target]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const targetId = btn.getAttribute("data-acc-target");
+      const panel = qs(targetId);
+      if(!panel) return;
+      const isOpen = btn.classList.contains("is-open");
+      btn.classList.toggle("is-open", !isOpen);
+      panel.style.display = isOpen ? "none" : "block";
+    });
+  });
+}
+
+function bindDemoCards_(){
+  qsa("#demoGrid [data-demo-id]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const id = normalizeId_(btn.getAttribute("data-demo-id"));
+      if(!id) return;
+      location.href = `./index.html?id=${encodeURIComponent(id)}`;
+    });
+  });
+}
+
 function bindModalBasics_(){
-  const featureMask = qs("featureMask") || qs("featureModal");
-  const inviteMask = qs("inviteMask") || qs("inviteModal");
+  const featureMask = qs("featureMask");
+  const inviteMask = qs("inviteMask");
 
-  ["featureCloseBtn","featureModalClose"].forEach(id=>{
-    const btn = qs(id);
-    if(btn) btn.addEventListener("click", ()=> hideMask_(featureMask));
-  });
+  const featureCloseBtn = qs("featureCloseBtn");
+  if(featureCloseBtn) featureCloseBtn.addEventListener("click", ()=> hideMask_(featureMask));
 
-  ["inviteCloseBtn","inviteModalClose"].forEach(id=>{
-    const btn = qs(id);
-    if(btn) btn.addEventListener("click", ()=> hideMask_(inviteMask));
-  });
+  const inviteCloseBtn = qs("inviteCloseBtn");
+  if(inviteCloseBtn) inviteCloseBtn.addEventListener("click", ()=> hideMask_(inviteMask));
 
   if(featureMask){
     featureMask.addEventListener("click", (e)=>{
@@ -948,29 +852,33 @@ function bindModalBasics_(){
     });
   }
 
-  qsa("[data-open-feature]").forEach(btn=>{
-    btn.addEventListener("click", (e)=>{ e.preventDefault(); openFeatureModal_(); });
+  [
+    "btnFeatureIntro",
+    "btnFeatureCardMode"
+  ].forEach(id=>{
+    const b = qs(id);
+    if(b) b.addEventListener("click", (e)=>{
+      e.preventDefault();
+      openFeatureModal_();
+    });
   });
 
-  qsa("[data-open-invite]").forEach(btn=>{
-    btn.addEventListener("click", (e)=>{ e.preventDefault(); openInviteModal_(); });
+  [
+    "btnLeadApply",
+    "btnLeadApplyBottom",
+    "btnLeadApplyMain2",
+    "btnLeadApplyCardMode"
+  ].forEach(id=>{
+    const b = qs(id);
+    if(b) b.addEventListener("click", (e)=>{
+      e.preventDefault();
+      openInviteModal_();
+    });
   });
 
-  const featureBtn = qs("btnFeature");
-  if(featureBtn) featureBtn.addEventListener("click", (e)=>{ e.preventDefault(); openFeatureModal_(); });
-
-  const featureBtn2 = qs("btnFeature2");
-  if(featureBtn2) featureBtn2.addEventListener("click", (e)=>{ e.preventDefault(); openFeatureModal_(); });
-
-  const inviteBtn = qs("btnInviteGate");
-  if(inviteBtn) inviteBtn.addEventListener("click", (e)=>{ e.preventDefault(); openInviteModal_(); });
-
-  const inviteBtn2 = qs("btnInviteGate2");
-  if(inviteBtn2) inviteBtn2.addEventListener("click", (e)=>{ e.preventDefault(); openInviteModal_(); });
-
-  const featureInviteBtn = qs("featureInviteBtn");
-  if(featureInviteBtn){
-    featureInviteBtn.addEventListener("click", (e)=>{
+  const featureModalLeadBtn = qs("featureModalLeadBtn");
+  if(featureModalLeadBtn){
+    featureModalLeadBtn.addEventListener("click", (e)=>{
       e.preventDefault();
       hideMask_(featureMask);
       openInviteModal_();
@@ -979,7 +887,12 @@ function bindModalBasics_(){
 }
 
 function bindLineButtons_(){
-  ["btnLineOaCta","btnLineOaCta2","btnLineOA","lineAfterLead","copyLeadLineBtn"].forEach(id=>{
+  [
+    "btnLineOaCtaHome",
+    "btnLineOaCtaHome2",
+    "btnLineOaCtaCardMode",
+    "goLineAfterLeadBtn"
+  ].forEach(id=>{
     const b = qs(id);
     if(b){
       b.addEventListener("click", (e)=>{
@@ -991,15 +904,15 @@ function bindLineButtons_(){
 }
 
 function bindShareButtons_(){
-  const hubUrl = ()=> buildHubShareUrl_();
-  const cardUrl = ()=> buildCardShareUrl_();
-
-  ["btnShare","btnSharePremium","btnShareHub"].forEach(id=>{
+  [
+    "btnShareHub",
+    "btnShareCardHub"
+  ].forEach(id=>{
     const b = qs(id);
     if(!b) return;
     b.addEventListener("click", async (e)=>{
       e.preventDefault();
-      await shareUrl_(hubUrl(), "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
+      await shareUrl_(buildHubShareUrl_(), "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
     });
   });
 
@@ -1007,43 +920,113 @@ function bindShareButtons_(){
   if(cleanFab){
     cleanFab.addEventListener("click", async (e)=>{
       e.preventDefault();
-      await shareUrl_(cardUrl(), "天使幸福智慧名片", "分享這張名片", "✅ 已複製這張名片連結");
+      const url = getIdFromUrl_() ? buildCardShareUrl_() : buildHubShareUrl_();
+      const title = getIdFromUrl_() ? "天使幸福智慧名片" : "天使幸福智慧名片館";
+      const msg = getIdFromUrl_() ? "分享這張名片" : "分享智慧名片館";
+      const ok = getIdFromUrl_() ? "✅ 已複製這張名片連結" : "✅ 已複製智慧名片館連結";
+      await shareUrl_(url, title, msg, ok);
     });
   }
 }
+/*
+HSC v731.1
+app.js
+COMPLETE OVERWRITE
+Part 5 / 5
+*/
 
 function setHomeMode_(){
+  document.body.classList.remove("mode-free","mode-premium","mode-home");
   document.body.classList.add("home-mode");
-  const home = qs("homeMode");
-  const card = qs("card-container");
-  const panel = qs("admin-panel");
-  if(home) home.style.display = "";
-  if(card) card.style.display = "none";
-  if(panel) panel.style.display = "none";
 
-  renderHomeAccordion_();
-  renderDemoGallery_();
+  const home = qs("homeMode");
+  const cardMode = qs("cardMode");
+  const panel = qs("admin-panel");
+  const cardContainer = qs("card-container");
+  const cleanFab = qs("cleanShareFab");
+  const installFab = qs("installFab");
+
+  if(home){
+    home.hidden = false;
+    home.style.display = "";
+  }
+
+  if(cardMode){
+    cardMode.hidden = true;
+    cardMode.style.display = "none";
+  }
+
+  if(panel){
+    panel.hidden = true;
+    panel.style.display = "none";
+  }
+
+  if(cardContainer){
+    cardContainer.style.display = "none";
+  }
+
+  if(cleanFab) cleanFab.style.display = "flex";
+  if(installFab) installFab.style.display = "flex";
+
+  bindAccordion_();
+  bindDemoCards_();
   renderFacadeQrFromCurrent_();
+}
+
+function setCardMode_(){
+  document.body.classList.remove("home-mode","mode-home");
+
+  const home = qs("homeMode");
+  const cardMode = qs("cardMode");
+  const panel = qs("admin-panel");
+  const cardContainer = qs("card-container");
+  const cleanFab = qs("cleanShareFab");
+  const installFab = qs("installFab");
+
+  if(home){
+    home.hidden = true;
+    home.style.display = "none";
+  }
+
+  if(cardMode){
+    cardMode.hidden = false;
+    cardMode.style.display = "";
+  }
+
+  if(panel){
+    panel.hidden = isCleanMode_();
+    panel.style.display = isCleanMode_() ? "none" : "";
+  }
+
+  if(cardContainer){
+    cardContainer.style.display = "";
+  }
+
+  if(cleanFab) cleanFab.style.display = "flex";
+  if(installFab) installFab.style.display = "flex";
 }
 
 function applyThemeFromPayload_(p){
   const planRaw = text(pick(p, ["plan"])) || "free";
   const body = document.body;
-  body.classList.remove("mode-free","mode-premium");
+
+  body.classList.remove(
+    "mode-free","mode-premium",
+    "color-1","color-2","color-3","color-4","color-5",
+    "style-arch","style-flat","style-spot",
+    "paper-1","paper-2","paper-3",
+    "p1","p2","p3","p4","p5","p6","p7"
+  );
+
   if(planRaw === "premium"){
     body.classList.add("mode-premium");
     const premium = text(pick(p, ["premium_color"])).toLowerCase();
-    ["p1","p2","p3","p4","p5","p6","p7"].forEach(c=> body.classList.remove(c));
     body.classList.add(["p1","p2","p3","p4","p5","p6","p7"].includes(premium) ? premium : "p1");
   }else{
     body.classList.add("mode-free");
     const color = text(pick(p, ["color","free_color"])).toLowerCase();
     const style = text(pick(p, ["style","free_style"])).toLowerCase();
     const paper = text(pick(p, ["paper","free_paper"])).toLowerCase();
-
-    ["color-1","color-2","color-3","color-4","color-5"].forEach(c=> body.classList.remove(c));
-    ["style-arch","style-flat","style-spot"].forEach(c=> body.classList.remove(c));
-    ["paper-1","paper-2","paper-3"].forEach(c=> body.classList.remove(c));
 
     const cmap = { c1:"color-1", c2:"color-2", c3:"color-3", c4:"color-4", c5:"color-5" };
     const smap = { s1:"style-arch", s2:"style-flat", s3:"style-spot", arch:"style-arch", flat:"style-flat", spot:"style-spot" };
@@ -1062,14 +1045,30 @@ function renderCard(row){
   applyThemeFromPayload_(p);
 
   const nameEl = qs("u-name");
+  const unitWrap = qs("u-unit-wrap");
   const unitEl = qs("u-unit");
   const titleEl = qs("u-title");
+  const sloganWrap = qs("u-slogan-wrap");
   const sloganEl = qs("u-slogan");
 
-  if(nameEl) nameEl.textContent = text(pick(p, ["name","姓名"])) || "未命名";
-  if(unitEl) unitEl.textContent = text(pick(p, ["unit","單位","公司"]));
-  if(titleEl) titleEl.textContent = text(pick(p, ["title","職稱"]));
-  if(sloganEl) sloganEl.innerHTML = escapeHtmlWithBreaks_(pick(p, ["slogan","一句話","簡介"]));
+  const nameVal = text(pick(p, ["name","姓名"])) || "未命名";
+  const unitVal = text(pick(p, ["unit","單位","公司"]));
+  const titleVal = text(pick(p, ["title","職稱"]));
+  const sloganVal = text(pick(p, ["slogan","一句話","簡介"]));
+
+  if(nameEl) nameEl.textContent = nameVal;
+
+  if(unitWrap && unitEl){
+    unitWrap.style.display = unitVal ? "" : "none";
+    unitEl.innerHTML = escapeHtmlWithBreaks_(unitVal);
+  }
+
+  if(titleEl) titleEl.textContent = titleVal;
+
+  if(sloganWrap && sloganEl){
+    sloganWrap.style.display = sloganVal ? "" : "none";
+    sloganEl.innerHTML = escapeHtmlWithBreaks_(sloganVal);
+  }
 
   renderAvatar_(p);
   renderLogo_(p);
@@ -1084,34 +1083,37 @@ function renderCard(row){
   if(vt) vt.textContent = CONFIG.VERSION;
 }
 
-function setCardMode_(){
-  document.body.classList.remove("home-mode");
-  const home = qs("homeMode");
-  const card = qs("card-container");
-  const panel = qs("admin-panel");
-  if(home) home.style.display = "none";
-  if(card) card.style.display = "";
-  if(panel) panel.style.display = isCleanMode_() ? "none" : "";
-}
-
 async function submitLeadForm_(e){
   e.preventDefault();
   const form = e.currentTarget;
   if(!form) return;
 
-  const btn = form.querySelector("[type='submit']");
+  const btn = qs("leadSubmitBtn");
+  const errorMsg = qs("leadErrorMsg");
   if(btn) btn.disabled = true;
+  if(errorMsg){
+    errorMsg.style.display = "none";
+    errorMsg.textContent = "";
+  }
 
-  const name = text((form.querySelector("[name='customer_name']") || {}).value);
-  const phone = text((form.querySelector("[name='phone']") || {}).value);
-  const email = text((form.querySelector("[name='email']") || {}).value);
-  const lineId = text((form.querySelector("[name='line_id']") || {}).value);
-  const note = text((form.querySelector("[name='note']") || {}).value);
+  const name = text((qs("leadName") || {}).value);
+  const phone = text((qs("leadPhone") || {}).value);
+  const email = text((qs("leadEmail") || {}).value);
+  const lineId = text((qs("leadLineId") || {}).value);
+  const note = text((qs("leadNote") || {}).value);
   const ref = getSavedRef_();
 
+  if(!name || !phone){
+    if(errorMsg){
+      errorMsg.style.display = "block";
+      errorMsg.textContent = "請先填寫姓名與電話。";
+    }
+    if(btn) btn.disabled = false;
+    return;
+  }
+
   try{
-    const url = buildLeadCreateUrl_();
-    const payload = await fetchJsonRobust_(url, {
+    const payload = await fetchJsonRobust_(buildLeadCreateUrl_(), {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
@@ -1131,20 +1133,25 @@ async function submitLeadForm_(e){
     if(!leadId) throw new Error("lead_id missing");
 
     currentLeadId = leadId;
+
     const success = qs("leadSuccess");
-    const leadIdText = qs("leadIdText");
-    if(leadIdText) leadIdText.textContent = leadId;
-    if(success) success.classList.add("is-show");
+    const leadIdValue = qs("leadIdValue");
+    if(leadIdValue) leadIdValue.textContent = leadId;
+    if(success) success.style.display = "block";
 
     const copyBtn = qs("copyLeadBtn");
     if(copyBtn){
       copyBtn.onclick = ()=> copyText_(leadId, "✅ 已複製申請編號");
     }
 
+    form.style.display = "none";
     alert("✅ 已收到申請");
   }catch(err){
     console.error(err);
-    alert("資料送出失敗，請稍後再試，或直接加入 LINE 官方帳號聯繫客服。");
+    if(errorMsg){
+      errorMsg.style.display = "block";
+      errorMsg.textContent = "資料送出失敗，請稍後再試，或直接加入 LINE 官方帳號聯繫客服。";
+    }
   }finally{
     if(btn) btn.disabled = false;
   }
@@ -1167,8 +1174,7 @@ function bindInstall_(){
     deferredInstallPrompt = null;
   });
 
-  const installTargets = ["btnInstallCard","installFab"];
-  installTargets.forEach(id=>{
+  ["btnInstallCard","installFab"].forEach(id=>{
     const btn = qs(id);
     if(!btn) return;
     btn.addEventListener("click", async (e)=>{
@@ -1250,21 +1256,17 @@ async function boot_(){
     }
   }catch(err){
     console.error(err);
-    const home = qs("homeMode");
-    const card = qs("card-container");
-    if(home && !getIdFromUrl_()){
+    if(!getIdFromUrl_()){
       setHomeMode_();
       return;
     }
-    if(card){
-      setCardMode_();
-      const nameEl = qs("u-name");
-      const unitEl = qs("u-unit");
-      const titleEl = qs("u-title");
-      if(nameEl) nameEl.textContent = "資料載入失敗";
-      if(unitEl) unitEl.textContent = "請稍後再試";
-      if(titleEl) titleEl.textContent = "";
-    }
+    setCardMode_();
+    const nameEl = qs("u-name");
+    const unitEl = qs("u-unit");
+    const titleEl = qs("u-title");
+    if(nameEl) nameEl.textContent = "資料載入失敗";
+    if(unitEl) unitEl.textContent = "請稍後再試";
+    if(titleEl) titleEl.textContent = "";
   }
 }
 
