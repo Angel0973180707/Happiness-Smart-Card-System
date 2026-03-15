@@ -1,5 +1,5 @@
 /* =========================================
- * HSC Auto Update System v524.6.6
+ * HSC Auto Update System v524.9
  * COMPLETE OVERWRITE
  *
  * Usage:
