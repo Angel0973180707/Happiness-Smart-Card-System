@@ -1,18 +1,28 @@
 /* =========================================================
- * HSC Admin Console v1.4
+ * HSC Admin Console v1.5
  * admin.js
  * COMPLETE OVERWRITE
  * ---------------------------------------------------------
- * 注意：
- * 此版 admin.js 依賴 GAS 已存在 process_status 欄位，
- * 且 adminUpdate / leadUpdate 可寫入該欄位。
+ * 本版重點：
+ * 1. 保留既有後台功能與樣式結構
+ * 2. 卡片管理整合 Poster 交付卡
+ * 3. 卡片交付操作改為：
+ *    - 開成品名片
+ *    - 複製成品名片連結
+ *    - 開交付卡
+ *    - 複製交付卡連結（客服文案）
+ * 4. 移除舊版：
+ *    - 開名片
+ * 5. 名稱調整：
+ *    - 開乾淨名片 -> 開成品名片
+ *    - 複製名片連結 -> 複製成品名片連結
  * ======================================================= */
 
 (() => {
   "use strict";
 
   const CONFIG = {
-    VERSION: "HSC Admin Console v1.4",
+    VERSION: "HSC Admin Console v1.5",
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
@@ -45,8 +55,8 @@
     currentInvite: null,
     currentCard: null,
 
-    updateLinks: {}, // { [cardId]: { update_link, expire_at, update_token, updated_at } }
-    cardExpandedMap: {} // { [cardId]: boolean }
+    updateLinks: {},
+    cardExpandedMap: {}
   };
 
   const root = ensureRoot_();
@@ -280,7 +290,7 @@
       if (act === "lead-copy-invite") return copyLeadInvite_(btn.dataset.id);
       if (act === "lead-copy-form") return copyLeadFormLink_(btn.dataset.id);
       if (act === "lead-copy-script") return copyLeadScript_(btn.dataset.id);
-      if (act === "lead-open-card") return openCard_(btn.dataset.cardId);
+      if (act === "lead-open-card") return openProductCard_(btn.dataset.cardId);
       if (act === "lead-process") return await updateLeadProcessStatus_(btn.dataset.id, btn.dataset.value);
 
       if (act === "invite-detail") return await openInviteDetail_(btn.dataset.id);
@@ -289,9 +299,10 @@
       if (act === "invite-disable") return await disableInvite_(btn.dataset.id);
 
       if (act === "card-detail") return await openCardDetail_(btn.dataset.id);
-      if (act === "card-open") return openCard_(btn.dataset.id);
-      if (act === "card-open-clean") return openCardClean_(btn.dataset.id);
-      if (act === "card-copy-link") return copyCardLink_(btn.dataset.id);
+      if (act === "card-open-product") return openProductCard_(btn.dataset.id);
+      if (act === "card-copy-product") return copyProductCardLink_(btn.dataset.id);
+      if (act === "card-open-poster") return openPosterCard_(btn.dataset.id);
+      if (act === "card-copy-poster") return copyPosterDeliveryText_(btn.dataset.id);
       if (act === "card-gen-update") return await genCardUpdateLink_(btn.dataset.id);
       if (act === "card-copy-update") return copyCardUpdateLink_(btn.dataset.id);
       if (act === "card-activate") return await updateCardStatus_(btn.dataset.id, "active");
@@ -302,11 +313,15 @@
 
       if (act === "billing-detail") return await openBillingDetail_(btn.dataset.id);
       if (act === "billing-paid") return await markBillingPaid_(btn.dataset.id);
-      if (act === "billing-open") return openCard_(btn.dataset.id);
+      if (act === "billing-open") return openProductCard_(btn.dataset.id);
       if (act === "billing-process") return await updateBillingProcessStatus_(btn.dataset.id, btn.dataset.value);
 
       if (act === "drawer-copy-update") return copyCurrentCardUpdateLink_();
       if (act === "drawer-gen-update") return await genCurrentCardUpdateLink_();
+      if (act === "drawer-open-product") return openProductCard_(btn.dataset.id);
+      if (act === "drawer-copy-product") return copyProductCardLink_(btn.dataset.id);
+      if (act === "drawer-open-poster") return openPosterCard_(btn.dataset.id);
+      if (act === "drawer-copy-poster") return copyPosterDeliveryText_(btn.dataset.id);
     } catch (err) {
       console.error(err);
       alert(err.message || "操作失敗");
@@ -372,7 +387,7 @@
       <div class="card">
         <div class="card-title">卡片管理</div>
         <div class="card-sub">
-          這裡用來查看卡片、開啟名片、產生更新頁、啟用／停用／延長期限。
+          這裡用來查看卡片、直接交付成品名片與交付卡、產生更新頁、啟用／停用／延長期限。
         </div>
         <div class="search-row">
           <input class="input" id="cardQuery" placeholder="可搜尋：卡號、姓名、單位、職稱、電話、方案、來源代理" value="${escapeHtml_(state.cardQuery)}">
@@ -476,7 +491,7 @@
 
               <div class="item-actions">
                 <button class="btn soft" data-act="billing-detail" data-id="${escapeAttr_(item.id)}">查看付款詳情</button>
-                <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(item.id)}">開名片</button>
+                <button class="btn ok" data-act="billing-open" data-id="${escapeAttr_(item.id)}">開成品名片</button>
               </div>
             </div>
           `).join("") : `<div class="empty">目前沒有 LINE 通知資料。</div>`}
@@ -595,7 +610,7 @@
             <button class="btn" data-act="lead-copy-invite" data-id="${escapeAttr_(item.lead_id)}" ${inviteCode ? "" : "disabled"}>複製邀請碼</button>
             <button class="btn" data-act="lead-copy-form" data-id="${escapeAttr_(item.lead_id)}">複製表單連結</button>
             <button class="btn" data-act="lead-copy-script" data-id="${escapeAttr_(item.lead_id)}">複製客服話術</button>
-            ${canOpenCard ? `<button class="btn ok" data-act="lead-open-card" data-card-id="${escapeAttr_(item.card_id)}">開名片</button>` : ``}
+            ${canOpenCard ? `<button class="btn ok" data-act="lead-open-card" data-card-id="${escapeAttr_(item.card_id)}">開成品名片</button>` : ``}
             ${renderProcessButtons_("lead", item.lead_id)}
           </div>
         </div>
@@ -698,11 +713,12 @@
             <button class="btn soft" data-act="card-toggle-expand" data-id="${escapeAttr_(item.id)}">${isExpanded ? "收起" : "展開更多"}</button>
             ${isExpanded ? `
               <button class="btn soft" data-act="card-detail" data-id="${escapeAttr_(item.id)}">查看</button>
-              <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(item.id)}">開名片</button>
-              <button class="btn ok" data-act="card-open-clean" data-id="${escapeAttr_(item.id)}">開乾淨名片</button>
-              <button class="btn" data-act="card-copy-link" data-id="${escapeAttr_(item.id)}">複製名片連結</button>
+              <button class="btn ok" data-act="card-open-product" data-id="${escapeAttr_(item.id)}">開成品名片</button>
+              <button class="btn" data-act="card-copy-product" data-id="${escapeAttr_(item.id)}">複製成品名片連結</button>
+              <button class="btn ok" data-act="card-open-poster" data-id="${escapeAttr_(item.id)}">開交付卡</button>
+              <button class="btn primary" data-act="card-copy-poster" data-id="${escapeAttr_(item.id)}">複製交付卡連結</button>
               <button class="btn primary" data-act="card-gen-update" data-id="${escapeAttr_(item.id)}">產生更新頁</button>
-              <button class="btn" data-act="card-copy-update" data-id="${escapeAttr_(item.id)}" ${hasUpdate ? "" : ""}>複製更新頁</button>
+              <button class="btn" data-act="card-copy-update" data-id="${escapeAttr_(item.id)}">複製更新頁</button>
               <button class="btn warn" data-act="card-activate" data-id="${escapeAttr_(item.id)}">啟用卡片</button>
               <button class="btn bad" data-act="card-inactivate" data-id="${escapeAttr_(item.id)}">停用卡片</button>
               <button class="btn" data-act="card-extend" data-id="${escapeAttr_(item.id)}">延長期限</button>
@@ -752,7 +768,7 @@
         <div class="item-actions">
           <button class="btn soft" data-act="billing-detail" data-id="${escapeAttr_(item.id)}">查看付款詳情</button>
           ${text_(item.billing_status).toLowerCase() !== "paid" ? `<button class="btn primary" data-act="billing-paid" data-id="${escapeAttr_(item.id)}">標記已付款</button>` : ``}
-          <button class="btn ok" data-act="billing-open" data-id="${escapeAttr_(item.id)}">開名片</button>
+          <button class="btn ok" data-act="billing-open" data-id="${escapeAttr_(item.id)}">開成品名片</button>
           ${renderProcessButtons_("billing", item.id)}
         </div>
       </div>
@@ -933,6 +949,8 @@
         ["來源代理", state.currentCard.service_agent],
         ["名單來源", state.currentCard.source],
         ["邀請碼", state.currentCard.invite_code, true],
+        ["成品名片", buildProductCardUrl_(state.currentCard.id), false],
+        ["交付卡", buildPosterUrl_(state.currentCard.id), false],
         ["更新頁", cache.update_link || "-", false],
         ["更新頁到期", formatDateTime_(cache.expire_at)],
         ["到期日", formatDateTime_(state.currentCard.expires_at)],
@@ -941,9 +959,10 @@
       ])}
 
       <div class="mt16 item-actions">
-        <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(state.currentCard.id || "")}">開名片</button>
-        <button class="btn ok" data-act="card-open-clean" data-id="${escapeAttr_(state.currentCard.id || "")}">開乾淨名片</button>
-        <button class="btn" data-act="card-copy-link" data-id="${escapeAttr_(state.currentCard.id || "")}">複製名片連結</button>
+        <button class="btn ok" data-act="drawer-open-product" data-id="${escapeAttr_(state.currentCard.id || "")}">開成品名片</button>
+        <button class="btn" data-act="drawer-copy-product" data-id="${escapeAttr_(state.currentCard.id || "")}">複製成品名片連結</button>
+        <button class="btn ok" data-act="drawer-open-poster" data-id="${escapeAttr_(state.currentCard.id || "")}">開交付卡</button>
+        <button class="btn primary" data-act="drawer-copy-poster" data-id="${escapeAttr_(state.currentCard.id || "")}">複製交付卡連結</button>
         <button class="btn primary" data-act="drawer-gen-update">產生更新頁</button>
         <button class="btn" data-act="drawer-copy-update">複製更新頁</button>
         <button class="btn warn" data-act="card-activate" data-id="${escapeAttr_(state.currentCard.id || "")}">啟用卡片</button>
@@ -980,7 +999,7 @@
 
       <div class="mt16 item-actions">
         ${text_(item.billing_status).toLowerCase() !== "paid" ? `<button class="btn primary" data-act="billing-paid" data-id="${escapeAttr_(item.id || "")}">標記已付款</button>` : ``}
-        <button class="btn ok" data-act="card-open" data-id="${escapeAttr_(item.id || "")}">開名片</button>
+        <button class="btn ok" data-act="billing-open" data-id="${escapeAttr_(item.id || "")}">開成品名片</button>
         ${renderProcessButtons_("billing", item.id || "")}
       </div>
     `);
@@ -1017,16 +1036,45 @@
     renderStatsPanel_();
   }
 
-  function openCard_(cardId) {
-    window.open(`${CONFIG.HUB_URL}?id=${encodeURIComponent(cardId)}`, "_blank");
+  function buildProductCardUrl_(cardId) {
+    return `${CONFIG.HUB_URL}index.html?id=${encodeURIComponent(text_(cardId))}&view=1`;
   }
 
-  function openCardClean_(cardId) {
-    window.open(`${CONFIG.HUB_URL}?id=${encodeURIComponent(cardId)}&clean=1`, "_blank");
+  function buildPosterUrl_(cardId) {
+    return `${CONFIG.HUB_URL}poster.html?id=${encodeURIComponent(text_(cardId))}`;
   }
 
-  function copyCardLink_(cardId) {
-    copyText_(`${CONFIG.HUB_URL}?id=${encodeURIComponent(cardId)}`, "已複製名片連結");
+  function buildPosterDeliveryText_(cardId) {
+    const id = text_(cardId);
+    const posterUrl = buildPosterUrl_(id);
+    return `您的智慧名片已完成
+
+名片ID：
+${id}
+
+交付卡入口：
+${posterUrl}
+
+開啟後即可：
+• 查看名片
+• 分享名片
+• 下載名片海報`;
+  }
+
+  function openProductCard_(cardId) {
+    window.open(buildProductCardUrl_(cardId), "_blank");
+  }
+
+  function copyProductCardLink_(cardId) {
+    copyText_(buildProductCardUrl_(cardId), "已複製成品名片連結");
+  }
+
+  function openPosterCard_(cardId) {
+    window.open(buildPosterUrl_(cardId), "_blank");
+  }
+
+  function copyPosterDeliveryText_(cardId) {
+    copyText_(buildPosterDeliveryText_(cardId), "已複製交付卡文案");
   }
 
   async function genCardUpdateLink_(cardId) {
@@ -1538,17 +1586,38 @@
       alert("沒有可複製的內容");
       return;
     }
-    navigator.clipboard.writeText(v).then(() => {
-      toast_(msg);
-    }).catch(() => {
-      const ta = document.createElement("textarea");
-      ta.value = v;
-      document.body.appendChild(ta);
-      ta.select();
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(v).then(() => {
+        toast_(msg);
+      }).catch(() => {
+        fallbackCopy_(v, msg);
+      });
+      return;
+    }
+
+    fallbackCopy_(v, msg);
+  }
+
+  function fallbackCopy_(v, msg) {
+    const ta = document.createElement("textarea");
+    ta.value = v;
+    ta.setAttribute("readonly", "readonly");
+    ta.style.position = "fixed";
+    ta.style.top = "-9999px";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
       document.execCommand("copy");
-      ta.remove();
       toast_(msg);
-    });
+    } catch (err) {
+      console.error(err);
+      alert("複製失敗，請手動複製");
+    } finally {
+      ta.remove();
+    }
   }
 
   function toast_(msg) {
