@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>智慧名片資料更新 v804</title>
+  <title>智慧名片資料更新 v804.1</title>
   <meta name="theme-color" content="#0f172a" />
   <style>
     :root{
@@ -12,7 +12,6 @@
       --card:#111827;
       --card2:#0f172a;
       --line:rgba(255,255,255,.10);
-      --line-strong:rgba(125,211,252,.28);
       --text:rgba(255,255,255,.96);
       --muted:rgba(255,255,255,.66);
       --brand:#7dd3fc;
@@ -51,16 +50,8 @@
       margin-bottom:16px;
     }
 
-    .hero h1{
-      margin:0 0 8px;
-      font-size:28px;
-    }
-
-    .hero p{
-      margin:0;
-      color:var(--muted);
-      line-height:1.7;
-    }
+    .hero h1{margin:0 0 8px;font-size:28px}
+    .hero p{margin:0;color:var(--muted);line-height:1.7}
 
     .card{
       background:rgba(17,24,39,.92);
@@ -191,6 +182,11 @@
       border:1px solid rgba(251,113,133,.28);
     }
 
+    .btn-line{
+      background:#22c55e;
+      color:#052e16;
+    }
+
     .hidden{display:none !important}
 
     .image-grid{
@@ -258,9 +254,31 @@
       border-radius:12px;
     }
 
-    .sys-field,
-    .file-input{
-      display:none;
+    .sys-field,.file-input{display:none}
+
+    .success-box{
+      margin-bottom:16px;
+      padding:16px;
+      border-radius:18px;
+      border:1px solid rgba(52,211,153,.34);
+      background:rgba(52,211,153,.10);
+      line-height:1.8;
+    }
+
+    .success-id{
+      display:inline-block;
+      padding:4px 10px;
+      border-radius:10px;
+      background:rgba(255,255,255,.12);
+      font-weight:700;
+      margin-left:6px;
+    }
+
+    .success-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
     }
 
     .crop-modal{
@@ -329,19 +347,9 @@
       cursor:grab;
     }
 
-    .crop-viewport:active{
-      cursor:grabbing;
-    }
-
-    .crop-viewport.is-square{
-      aspect-ratio:1/1;
-      max-width:460px;
-    }
-
-    .crop-viewport.is-wide{
-      aspect-ratio:16/10;
-      max-width:760px;
-    }
+    .crop-viewport:active{cursor:grabbing}
+    .crop-viewport.is-square{aspect-ratio:1/1;max-width:460px}
+    .crop-viewport.is-wide{aspect-ratio:16/10;max-width:760px}
 
     .crop-image{
       position:absolute;
@@ -355,10 +363,7 @@
       will-change:transform,width,height;
     }
 
-    .crop-controls{
-      display:grid;
-      gap:12px;
-    }
+    .crop-controls{display:grid;gap:12px}
 
     .zoom-row{
       display:flex;
@@ -405,6 +410,16 @@
     </section>
 
     <div id="statusBox" class="status"></div>
+
+    <div id="successBox" class="success-box hidden">
+      您的名片已更新完成。<br>
+      客服ID：<span id="successId" class="success-id"></span><br>
+      可將此編號回傳客服，方便快速協助確認。
+      <div class="success-actions">
+        <button id="btnCopyId" type="button" class="btn btn-secondary">複製客服ID</button>
+        <button id="btnLineOA" type="button" class="btn btn-line">LINE 客服</button>
+      </div>
+    </div>
 
     <form id="updateForm" class="hidden" novalidate>
       <section class="card">
@@ -611,6 +626,6 @@
     </div>
   </div>
 
-  <script type="module" src="./update-form.js?v=804"></script>
+  <script type="module" src="./update-form.js?v=804.1"></script>
 </body>
 </html>
