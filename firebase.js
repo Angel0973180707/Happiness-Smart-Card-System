@@ -1,6 +1,6 @@
 /* ======================================================
  * Happiness Smart Card System — firebase.js
- * v502 (COMPLETE OVERWRITE)
+ * HSCv802 (COMPLETE OVERWRITE)
  *
  * Purpose:
  * - Firebase v10 modular via CDN ESM
@@ -8,17 +8,15 @@
  * - Upload compressed images to Firebase Storage
  * - Return downloadURL
  *
- * Rules alignment:
- * - path: hsc_cards/{tenant}/{cardId}/{fileName}
- * - tenant locked: angel
- * - require auth != null
- * - image/* and < 5MB
+ * Official route:
+ * - cards/{cardId}/avatar.jpg
+ * - cards/{cardId}/logo.jpg
+ * - cards/{cardId}/photo1.jpg ~ photo5.jpg
  * ====================================================== */
 
-export const HSC_FRONTEND_VERSION = "v502";
-export const TENANT = "angel";
+export const HSC_FRONTEND_VERSION = "v802";
 
-// ✅ 你 firebase-test.html 已驗證成功的 config（照貼）
+// ✅ 已驗證可用 config（沿用）
 export const FIREBASE_CONFIG = {
   apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
   authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
@@ -39,8 +37,29 @@ let _storage = null;
 let _inited = false;
 let _signing = null;
 
+function clean(v) {
+  return String(v == null ? "" : v).trim();
+}
+
+function normalizeCardId(cardId) {
+  const v = clean(cardId);
+  if (!v) throw new Error("uploadImage: missing cardId");
+  return v.replace(/[^\w-]/g, "");
+}
+
+function normalizeFileName(fileName) {
+  const v = clean(fileName).toLowerCase();
+  if (!v) throw new Error("uploadImage: missing fileName");
+  if (!/^[a-z0-9._-]+$/.test(v)) {
+    throw new Error(`uploadImage: invalid fileName: ${fileName}`);
+  }
+  return v;
+}
+
 export function initFirebase() {
-  if (_inited && _app && _auth && _storage) return { app: _app, auth: _auth, storage: _storage };
+  if (_inited && _app && _auth && _storage) {
+    return { app: _app, auth: _auth, storage: _storage };
+  }
 
   const apps = getApps();
   _app = (apps && apps.length) ? apps[0] : initializeApp(FIREBASE_CONFIG);
@@ -71,32 +90,40 @@ export async function ensureAuth() {
 }
 
 export async function uploadImage(cardId, blob, fileName) {
-  if (!cardId) throw new Error("uploadImage: missing cardId");
   if (!blob) throw new Error("uploadImage: missing blob");
-  if (!fileName) throw new Error("uploadImage: missing fileName");
 
   await ensureAuth();
 
-  const max = 5 * 1024 * 1024;
-  if (blob.size > max) throw new Error("uploadImage: blob too large (>5MB). Please compress more.");
+  const safeCardId = normalizeCardId(cardId);
+  const safeFileName = normalizeFileName(fileName);
 
-  const path = `hsc_cards/${TENANT}/${cardId}/${fileName}`;
-  const storageRef = ref(_storage, path);
+  const max = 5 * 1024 * 1024;
+  if (blob.size > max) {
+    throw new Error("uploadImage: blob too large (>5MB). Please compress more.");
+  }
 
   const contentType = blob.type || "image/jpeg";
-  await uploadBytes(storageRef, blob, { contentType });
+  if (!/^image\//i.test(contentType)) {
+    throw new Error(`uploadImage: invalid content type: ${contentType}`);
+  }
+
+  const path = `cards/${safeCardId}/${safeFileName}`;
+  const storageRef = ref(_storage, path);
+
+  await uploadBytes(storageRef, blob, {
+    contentType,
+    cacheControl: "public,max-age=31536000,immutable"
+  });
 
   return await getDownloadURL(storageRef);
 }
 
-// avatar → 512px
 export const uploadAvatar = (cardId, blob) => uploadImage(cardId, blob, "avatar.jpg");
-// cover → 1200px
-export const uploadCover  = (cardId, blob) => uploadImage(cardId, blob, "cover.jpg");
 
-// optional slots
+export const uploadLogo = (cardId, blob) => uploadImage(cardId, blob, "logo.jpg");
+
 export const uploadPhoto = (cardId, blob, index = 1) => {
-  const i = Math.max(1, Math.min(9, Number(index) || 1));
+  const i = Math.max(1, Math.min(5, Number(index) || 1));
   return uploadImage(cardId, blob, `photo${i}.jpg`);
 };
 
@@ -104,8 +131,17 @@ export function getFirebaseInfo() {
   initFirebase();
   return {
     version: HSC_FRONTEND_VERSION,
-    tenant: TENANT,
     authed: !!(_auth && _auth.currentUser),
-    uid: (_auth && _auth.currentUser) ? _auth.currentUser.uid : ""
+    uid: (_auth && _auth.currentUser) ? _auth.currentUser.uid : "",
+    officialBasePath: "cards/{cardId}/",
+    files: [
+      "avatar.jpg",
+      "logo.jpg",
+      "photo1.jpg",
+      "photo2.jpg",
+      "photo3.jpg",
+      "photo4.jpg",
+      "photo5.jpg"
+    ]
   };
 }
