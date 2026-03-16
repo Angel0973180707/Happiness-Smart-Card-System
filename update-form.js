@@ -1,11 +1,15 @@
 /* =========================================
- * HSC update-form.js v804
+ * HSC update-form.js v805
  * COMPLETE OVERWRITE
  *
  * 主線：
  * - 與 form.js 對齊
  * - 圖片流程：選圖 -> 裁切 -> 套用 -> 上傳 Firebase -> 回寫 *_url
  * - 送出 updateCardByToken 時只送文字 + *_url
+ * - 對齊 firebase.js v802:
+ *   uploadAvatar(cardId, blob)
+ *   uploadLogo(cardId, blob)
+ *   uploadPhoto(cardId, blob, index)
  * ========================================= */
 
 import {
@@ -20,7 +24,7 @@ import {
   "use strict";
 
   const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-  const VERSION = "804";
+  const VERSION = "805";
 
   const TEXT_FIELDS = [
     "name","unit","title","slogan","services","experience",
@@ -144,7 +148,6 @@ import {
 
     cropModal: document.getElementById("cropModal"),
     cropTitle: document.getElementById("cropTitle"),
-    cropStage: document.getElementById("cropStage"),
     cropViewport: document.getElementById("cropViewport"),
     cropImage: document.getElementById("cropImage"),
     cropZoom: document.getElementById("cropZoom"),
@@ -307,9 +310,10 @@ import {
           err?.message || "未知錯誤",
           "",
           "請檢查：",
-          "1. update-form.js 是否已更新到 v804",
-          "2. Firebase / GAS 是否為最新部署",
-          "3. 連結中的 id / utoken 是否正確"
+          "1. update-form.js 是否已更新到 v805",
+          "2. firebase.js 是否為 v802",
+          "3. HTML 是否已改為 type=\"module\"",
+          "4. 連結中的 id / utoken 是否正確"
         ].join("\n")
       );
     } finally {
@@ -328,9 +332,7 @@ import {
       const cfg = IMAGE_SLOTS[slot];
       const url = pickFirstImage(card, cfg.fallback);
 
-      const hiddenInput = document.getElementById(cfg.key);
-      if (hiddenInput) hiddenInput.value = url;
-
+      setFieldValue(cfg.key, url);
       setSlotPreview(slot, url);
       setSlotStatus(slot, url ? "已載入既有圖片" : "未設定");
     });
@@ -410,9 +412,14 @@ import {
     state.cropper.imageW = img.naturalWidth || img.width;
     state.cropper.imageH = img.naturalHeight || img.height;
 
-    el.cropTitle.textContent = `裁切圖片：${getSlotLabel(slot)}`;
-    el.cropViewport.classList.toggle("is-square", cfg.cropShape === "square");
-    el.cropViewport.classList.toggle("is-wide", cfg.cropShape === "wide");
+    if (el.cropTitle) {
+      el.cropTitle.textContent = `裁切圖片：${getSlotLabel(slot)}`;
+    }
+
+    if (el.cropViewport) {
+      el.cropViewport.classList.toggle("is-square", cfg.cropShape === "square");
+      el.cropViewport.classList.toggle("is-wide", cfg.cropShape === "wide");
+    }
 
     openCropModal();
     resetCropperView();
@@ -453,13 +460,15 @@ import {
     if (el.cropImage) {
       el.cropImage.src = "";
       el.cropImage.style.transform = "";
+      el.cropImage.style.width = "";
+      el.cropImage.style.height = "";
     }
   }
 
   function resetCropperView() {
     const cp = state.cropper;
     const cfg = IMAGE_SLOTS[cp.slot];
-    if (!cp.image || !cfg) return;
+    if (!cp.image || !cfg || !el.cropViewport) return;
 
     const rect = el.cropViewport.getBoundingClientRect();
     cp.viewportW = Math.max(1, rect.width);
@@ -581,8 +590,8 @@ import {
       showStatus("warn", `上傳中：${getSlotLabel(slot)}…`);
 
       const blob = await renderCroppedBlob(slot);
-
       const url = await uploadBySlot(slot, blob);
+
       if (!url) {
         throw new Error("Firebase 未回傳 downloadURL");
       }
@@ -637,7 +646,7 @@ import {
     }
     if (slot.startsWith("photo")) {
       const idx = Number(slot.replace("photo", ""));
-      return await uploadPhoto(state.id, idx, blob);
+      return await uploadPhoto(state.id, blob, idx);
     }
     throw new Error(`未知圖片欄位：${slot}`);
   }
