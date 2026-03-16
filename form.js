@@ -1,6 +1,6 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v802
+ * form.js v802.1
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 主線：
@@ -12,6 +12,8 @@
  *    - photo1_url ~ photo5_url
  * 4. GAS 送出主線只送文字欄位 + *_url
  * 5. 保留 invite_code / reserved_uid / tenant
+ * 6. 修正 reserved_uid / TMP cardId / Firebase path 不同步問題
+ * 7. 補強 objectURL / dataURL 釋放，降低 memory leak
  * ========================================= */
 
 import {
@@ -25,7 +27,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "802";
+  const VERSION = "802.1";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/3r2ZePN";
 
@@ -77,7 +79,9 @@ import {
     firebaseReady: false,
     reservedUid: "",
     inviteCode: "",
-    tenant: "angel"
+    tenant: "angel",
+    uploadCardId: "",
+    uploadCardIdSource: "tmp"
   };
 
   const cropState = {
@@ -90,6 +94,7 @@ import {
     sourceSize: 0,
     smartProfile: SMART_PROFILE.small,
     imageBitmap: null,
+    previewDataUrl: "",
     viewScale: 1,
     minScale: 1,
     baseFitScale: 1,
@@ -266,16 +271,18 @@ import {
     const sp = new URLSearchParams(location.search || "");
     const invite = sp.get("invite") || sp.get("code") || "";
     const id = sp.get("id") || "";
+    const reservedUid = sp.get("reserved_uid") || id || "";
     const tenant = sp.get("tenant") || "angel";
     const gas = sp.get("gas") || DEFAULT_GAS;
 
-    state.reservedUid = id || "";
+    state.reservedUid = normalizeCardId_(reservedUid);
     state.inviteCode = invite || "";
     state.tenant = tenant || "angel";
+    syncUploadCardId_();
 
     if (els.ver) els.ver.textContent = `v${VERSION}`;
     if (els.tenantText) els.tenantText.textContent = tenant || "-";
-    if (els.idText) els.idText.textContent = id || "-";
+    if (els.idText) els.idText.textContent = state.reservedUid || "-";
     if (els.inviteText) els.inviteText.textContent = invite || "-";
     if (els.gas) els.gas.value = gas;
 
@@ -330,10 +337,12 @@ import {
     if (els.btnReset) els.btnReset.addEventListener("click", onReset_);
 
     window.addEventListener("resize", () => {
-      if (els.cropModal.classList.contains("show") && cropState.sourceImg) {
+      if (els.cropModal?.classList.contains("show") && cropState.sourceImg) {
         renderCropCanvas_();
       }
     });
+
+    window.addEventListener("beforeunload", cleanupAllObjectUrls_);
   }
 
   function initGuideCards_() {
@@ -420,10 +429,10 @@ import {
         : "目前為自由搭配：可上傳 2 張照片，並可設定 1 個行動按鈕。";
     }
 
-    if (els.colorChips) els.colorChips.parentElement.style.display = isPremium ? "none" : "";
-    if (els.styleChips) els.styleChips.parentElement.style.display = isPremium ? "none" : "";
-    if (els.paperChips) els.paperChips.parentElement.parentElement.style.display = isPremium ? "none" : "";
-    if (els.premiumChips) els.premiumChips.parentElement.style.display = isPremium ? "" : "none";
+    if (els.colorChips?.parentElement) els.colorChips.parentElement.style.display = isPremium ? "none" : "";
+    if (els.styleChips?.parentElement) els.styleChips.parentElement.style.display = isPremium ? "none" : "";
+    if (els.paperChips?.parentElement?.parentElement) els.paperChips.parentElement.parentElement.style.display = isPremium ? "none" : "";
+    if (els.premiumChips?.parentElement) els.premiumChips.parentElement.style.display = isPremium ? "" : "none";
 
     if (els.ctaRow2) els.ctaRow2.style.display = isPremium ? "" : "none";
     if (els.ctaRow3) els.ctaRow3.style.display = isPremium ? "" : "none";
@@ -493,9 +502,8 @@ import {
       const clearBtn = $(`#clear_${item.key}`, box);
 
       if (fileInput) {
-        const onChange = async (e) => {
+        fileInput.addEventListener("change", async (e) => {
           const file = e.target.files && e.target.files[0];
-          console.log("[HSC upload change]", item.key, file);
           if (!file) return;
 
           if (file.size > MAX_ACCEPT_FILE_SIZE) {
@@ -505,12 +513,7 @@ import {
           }
 
           await openCropperForFile_(item, file);
-        };
-
-        fileInput.addEventListener("change", onChange, { passive: true });
-        fileInput.addEventListener("click", () => {
-          console.log("[HSC upload click]", item.key);
-        });
+        }, { passive: true });
       }
 
       if (editBtn) {
@@ -573,7 +576,18 @@ import {
 
   function revokeFileUrls_(info) {
     if (!info) return;
-    try { if (info.previewUrl) URL.revokeObjectURL(info.previewUrl); } catch (_) {}
+    try {
+      if (info.previewUrl && /^blob:/i.test(info.previewUrl)) {
+        URL.revokeObjectURL(info.previewUrl);
+      }
+    } catch (_) {}
+  }
+
+  function cleanupAllObjectUrls_() {
+    Object.keys(state.files).forEach((key) => {
+      revokeFileUrls_(state.files[key]);
+    });
+    cleanupCropResources_();
   }
 
   function initTextareasAutoGrow_() {
@@ -892,7 +906,9 @@ import {
       await ensureAuth();
       state.firebaseReady = true;
 
-      const cardIdForStorage = buildCardIdForUpload_();
+      syncUploadCardId_();
+      const cardIdForStorage = state.uploadCardId;
+
       setProgress_(18, `圖片上傳準備中（${cardIdForStorage}）…`);
       keepViewAtProgress_();
 
@@ -911,16 +927,7 @@ import {
       setProgress_(100, "送出完成");
       state.submitResult = result;
 
-      const cardId = text(
-        result?.id ||
-        result?.item?.id ||
-        result?.data?.id ||
-        result?.cardId ||
-        payload.reserved_uid ||
-        cardIdForStorage ||
-        ""
-      );
-
+      const cardId = resolveCardIdFromSubmit_(result, payload, cardIdForStorage);
       state.copiedId = cardId;
 
       if (els.idText && cardId) els.idText.textContent = cardId;
@@ -943,10 +950,11 @@ import {
     return text(els.gas?.value) || DEFAULT_GAS;
   }
 
-  function buildCardIdForUpload_() {
-    const reserved = text(state.reservedUid);
-    if (reserved) return reserved.toUpperCase();
+  function normalizeCardId_(value) {
+    return text(value).toUpperCase();
+  }
 
+  function buildTmpCardId_() {
     const now = new Date();
     const stamp = [
       now.getFullYear(),
@@ -954,19 +962,31 @@ import {
       String(now.getDate()).padStart(2, "0"),
       String(now.getHours()).padStart(2, "0"),
       String(now.getMinutes()).padStart(2, "0"),
-      String(now.getSeconds()).padStart(2, "0")
+      String(now.getSeconds()).padStart(2, "0"),
+      String(now.getMilliseconds()).padStart(3, "0")
     ].join("");
-
     return `TMP${stamp}`;
+  }
+
+  function syncUploadCardId_() {
+    const reserved = normalizeCardId_(state.reservedUid);
+    if (reserved) {
+      state.uploadCardId = reserved;
+      state.uploadCardIdSource = "reserved_uid";
+      return reserved;
+    }
+    if (!state.uploadCardId || !/^TMP/i.test(state.uploadCardId)) {
+      state.uploadCardId = buildTmpCardId_();
+    }
+    state.uploadCardIdSource = "tmp";
+    return state.uploadCardId;
   }
 
   async function uploadAllImages_(cardId) {
     const uploaded = {};
     const activeKeys = state.uploadOrder.filter((key) => !!state.files[key]);
 
-    if (!activeKeys.length) {
-      return uploaded;
-    }
+    if (!activeKeys.length) return uploaded;
 
     const total = activeKeys.length;
     let done = 0;
@@ -986,11 +1006,14 @@ import {
       } else if (key === "logo_img") {
         url = await uploadLogo(cardId, info.blob);
       } else if (/^photo[1-5]_img$/.test(key)) {
-        const idx = Number(key.match(/^photo([1-5])_img$/)[1]);
+        const idx = Number(key.match(/^photo([1-5])_img$/)?.[1] || 0);
         url = await uploadPhoto(cardId, info.blob, idx);
       } else {
         throw new Error(`不支援的圖片欄位：${key}`);
       }
+
+      info.remoteUrl = url || "";
+      info.remoteCardId = cardId || "";
 
       const field = IMAGE_FIELD_MAP[key];
       if (field) uploaded[field] = url;
@@ -1005,11 +1028,13 @@ import {
   }
 
   function buildJsonPayload_(uploadedImageUrls, cardIdForStorage) {
+    const reservedUid = normalizeCardId_(state.reservedUid || cardIdForStorage || "");
     const payload = {
       action: "create",
+      id: reservedUid || "",
       tenant: state.tenant || "angel",
       invite_code: state.inviteCode || "",
-      reserved_uid: state.reservedUid || cardIdForStorage || "",
+      reserved_uid: reservedUid || "",
       form_version: VERSION,
 
       plan: state.plan,
@@ -1076,6 +1101,7 @@ import {
 
     const raw = await res.text();
     let json = null;
+
     try {
       json = raw ? JSON.parse(raw) : null;
     } catch (_) {
@@ -1084,9 +1110,30 @@ import {
     }
 
     if (!res.ok || json?.ok === false) {
-      throw new Error(json?.message || json?.error || `HTTP ${res.status}`);
+      throw new Error(
+        json?.message ||
+        json?.error ||
+        json?.data?.message ||
+        `HTTP ${res.status}`
+      );
     }
     return json;
+  }
+
+  function resolveCardIdFromSubmit_(result, payload, cardIdForStorage) {
+    const id = normalizeCardId_(
+      result?.id ||
+      result?.data?.id ||
+      result?.item?.id ||
+      result?.cardId ||
+      result?.data?.cardId ||
+      result?.item?.cardId ||
+      payload?.reserved_uid ||
+      payload?.id ||
+      cardIdForStorage ||
+      ""
+    );
+    return id;
   }
 
   function keyLabel_(key) {
@@ -1210,6 +1257,12 @@ import {
     state.style = "s1";
     state.paper = "f1";
     state.premiumColor = "p1";
+    state.submitResult = null;
+    state.copiedId = "";
+    state.uploadCardId = "";
+    state.uploadCardIdSource = "tmp";
+
+    syncUploadCardId_();
     setPlan_("free");
     goToPage_(0);
     hideSuccessBox_();
@@ -1301,6 +1354,7 @@ import {
     setStatus_("處理圖片中…");
     setProgress_(12, "讀取照片中…");
 
+    cleanupCropResources_();
     const prepared = await prepareImageForCrop_(file);
 
     cropState.targetKey = item.key;
@@ -1312,12 +1366,17 @@ import {
     cropState.sourceSize = file.size || 0;
     cropState.smartProfile = prepared.profile;
     cropState.imageBitmap = prepared.image;
+    cropState.previewDataUrl = prepared.previewDataUrl || "";
 
     if (els.cropTitle) els.cropTitle.textContent = `調整${item.label}位置`;
     if (els.cropDesc) {
       els.cropDesc.textContent = prepared.metaText
         ? `可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。\n${prepared.metaText}`
         : "可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。";
+    }
+
+    if (els.cropMeta) {
+      els.cropMeta.textContent = prepared.metaText || "";
     }
 
     if (els.cropStage) {
@@ -1341,8 +1400,8 @@ import {
     cropState.baseFitScale = fitScale;
     cropState.minScale = fitScale;
     cropState.viewScale = existingCrop?.viewScale ? Math.max(fitScale, existingCrop.viewScale) : fitScale;
-    cropState.offsetX = existingCrop?.offsetX || 0;
-    cropState.offsetY = existingCrop?.offsetY || 0;
+    cropState.offsetX = Number(existingCrop?.offsetX || 0);
+    cropState.offsetY = Number(existingCrop?.offsetY || 0);
     clampCropOffset_();
   }
 
@@ -1445,6 +1504,7 @@ import {
       blob,
       previewUrl,
       remoteUrl: "",
+      remoteCardId: "",
       crop: {
         viewScale: cropState.viewScale,
         offsetX: cropState.offsetX,
@@ -1454,14 +1514,29 @@ import {
 
     closeCropper_();
     refreshUploadThumbs_();
-    setStatus_(
-      `圖片已套用。壓縮模式：${cropState.smartProfile.label}｜輸出大小：約 ${(blob.size / MB).toFixed(2)} MB`
-    );
+    setStatus_(`圖片已套用。壓縮模式：${cropState.smartProfile.label}｜輸出大小：約 ${(blob.size / MB).toFixed(2)} MB`);
   }
 
   function closeCropper_() {
     if (els.cropModal) els.cropModal.classList.remove("show");
     cropState.drag.active = false;
+    cleanupCropResources_();
+  }
+
+  function cleanupCropResources_() {
+    if (cropState.previewDataUrl) {
+      cropState.previewDataUrl = "";
+    }
+    cropState.imageBitmap = null;
+    cropState.sourceImg = null;
+    cropState.sourceSize = 0;
+    cropState.targetKey = "";
+    cropState.targetLabel = "";
+    cropState.viewScale = 1;
+    cropState.minScale = 1;
+    cropState.baseFitScale = 1;
+    cropState.offsetX = 0;
+    cropState.offsetY = 0;
   }
 
   function getPoint_(e) {
@@ -1476,14 +1551,20 @@ import {
 
     const arrayBuffer = await file.arrayBuffer();
     const orientation = getJpegOrientation_(arrayBuffer);
-    const dataUrl = await blobToDataURL_(file);
-    const original = await loadImage_(dataUrl);
+
+    const sourceObjectUrl = URL.createObjectURL(file);
+    let original;
+    try {
+      original = await loadImage_(sourceObjectUrl);
+    } finally {
+      try { URL.revokeObjectURL(sourceObjectUrl); } catch (_) {}
+    }
 
     const correctedCanvas = drawImageWithOrientation_(original, orientation);
     const normalizedCanvas = shrinkCanvasIfNeeded_(correctedCanvas, profile.maxLong, profile.maxShort);
 
-    const finalDataUrl = normalizedCanvas.toDataURL("image/jpeg", profile.previewQuality);
-    const finalImg = await loadImage_(finalDataUrl);
+    const previewDataUrl = normalizedCanvas.toDataURL("image/jpeg", profile.previewQuality);
+    const finalImg = await loadImage_(previewDataUrl);
 
     const meta = [];
     meta.push(`智慧壓縮：${profile.label}`);
@@ -1496,6 +1577,7 @@ import {
     return {
       image: finalImg,
       profile,
+      previewDataUrl,
       metaText: meta.join("｜")
     };
   }
@@ -1594,14 +1676,15 @@ import {
         offset += 2;
 
         if (marker === 0xFFE1) {
-          view.getUint16(offset, false);
+          const app1Length = view.getUint16(offset, false);
           offset += 2;
 
           if (getString_(view, offset, 4) !== "Exif") return 1;
           offset += 6;
 
           const little = view.getUint16(offset, false) === 0x4949;
-          offset += view.getUint32(offset + 4, little);
+          const firstIFDOffset = view.getUint32(offset + 4, little);
+          offset += firstIFDOffset;
 
           const tags = view.getUint16(offset, little);
           offset += 2;
@@ -1633,15 +1716,6 @@ import {
       out += String.fromCharCode(view.getUint8(start + i));
     }
     return out;
-  }
-
-  function blobToDataURL_(blob) {
-    return new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = reject;
-      fr.readAsDataURL(blob);
-    });
   }
 
   function loadImage_(src) {
@@ -1704,7 +1778,9 @@ import {
       isSubmitting: state.isSubmitting,
       reservedUid: state.reservedUid,
       inviteCode: state.inviteCode,
-      tenant: state.tenant
+      tenant: state.tenant,
+      uploadCardId: state.uploadCardId,
+      uploadCardIdSource: state.uploadCardIdSource
     }))
   });
 })();
