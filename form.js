@@ -1,6 +1,6 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v802.2
+ * form.js v803.0
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 主線：
@@ -13,7 +13,7 @@
  * 4. GAS 送出主線只送文字欄位 + *_url
  * 5. 保留 invite_code / reserved_uid / tenant
  * 6. 修正圖片裁切顯示透明棋盤格 / 套用白圖問題
- * 7. 成功送出後明確顯示資料 ID + 可複製客服文案 + LINE 客服按鈕
+ * 7. 成功送出後：下方明確顯示資料 ID + 客服回覆文案 + 一鍵複製 + LINE 客服按鈕
  * ========================================= */
 
 import {
@@ -27,7 +27,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "802.2";
+  const VERSION = "803.0";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/G3VJoRm";
 
@@ -285,7 +285,7 @@ import {
 
     if (els.ver) els.ver.textContent = `v${VERSION}`;
     if (els.tenantText) els.tenantText.textContent = tenant || "-";
-    if (els.idText) els.idText.textContent = state.reservedUid || "-";
+    if (els.idText) els.idText.textContent = state.reservedUid || state.uploadCardId || "-";
     if (els.inviteText) els.inviteText.textContent = invite || "-";
     if (els.gas) els.gas.value = gas;
 
@@ -473,8 +473,7 @@ import {
 
     els.uploadGrid.innerHTML = "";
     const items = buildUploadItems_();
-
-    items.forEach((item) => {
+items.forEach((item) => {
       const box = document.createElement("div");
       box.className = "uItem";
       box.dataset.key = item.key;
@@ -758,8 +757,7 @@ import {
 
     const avatarUrl = getPreviewUrl_("avatar_img");
     const logoUrl = getPreviewUrl_("logo_img");
-
-    if (els.previewAvatar) {
+if (els.previewAvatar) {
       if (avatarUrl) {
         els.previewAvatar.src = avatarUrl;
         els.previewAvatar.style.display = "block";
@@ -1013,8 +1011,7 @@ import {
       const startPercent = 18 + Math.round((done / total) * 42);
       setProgress_(startPercent, `上傳圖片：${label}…`);
       keepViewAtProgress_();
-
-      let url = "";
+let url = "";
       if (key === "avatar_img") {
         url = await uploadAvatar(cardId, info.blob);
       } else if (key === "logo_img") {
@@ -1195,11 +1192,21 @@ import {
   }
 
   function buildServiceReplyText_(cardId) {
-    return [
+    const lines = [
       "您好，我已送出天使幸福智慧名片申請資料。",
-      `我的資料ID是：${cardId || "（請填入資料ID）"}`,
-      "請協助後續製作，謝謝您。"
-    ].join("\n");
+      `我的資料ID是：${cardId || "（請填入資料ID）"}`
+    ];
+
+    const name = getFieldValue_("name");
+    const title = getFieldValue_("title");
+    const unit = getFieldValue_("unit");
+
+    if (name) lines.push(`姓名：${name}`);
+    if (title) lines.push(`頭銜：${title}`);
+    if (unit) lines.push(`單位：${unit.replace(/\n+/g, " / ")}`);
+    lines.push("請協助後續製作，謝謝您。");
+
+    return lines.join("\n");
   }
 
   function showSuccessBox_(cardId) {
@@ -1222,13 +1229,13 @@ import {
           <div class="hsc-id-card">
             <div class="hsc-id-label">您的資料ID</div>
             <div class="hsc-id-value">${escapeHtml_(safeId || "未取得")}</div>
-            <div class="hsc-id-tip">請將此資料ID回覆給客服，名片才會進入後續製作流程。</div>
+            <div class="hsc-id-tip">請複製此資料ID，並搭配下方客服文案回覆客服。</div>
           </div>
 
           <div class="hsc-reply-card">
             <div class="hsc-reply-label">可回覆客服文案</div>
             <textarea class="hsc-reply-text" id="serviceReplyText" readonly></textarea>
-            <div class="hsc-reply-tip">建議先複製文案，再點下方按鈕前往 LINE 官方帳號回覆客服。</div>
+            <div class="hsc-reply-tip">建議：先按「一鍵複製客服文案」，再按「前往 LINE 官方帳號回覆客服」。</div>
           </div>
         </div>
       `;
@@ -1248,8 +1255,7 @@ import {
         const ok = await copyText_(safeId || "");
         flashButtonText_(copyIdBtn, ok ? "已複製資料ID" : "複製失敗", "複製資料ID");
       });
-
-      const copyReplyBtn = document.createElement("button");
+const copyReplyBtn = document.createElement("button");
       copyReplyBtn.type = "button";
       copyReplyBtn.textContent = "一鍵複製客服文案";
       copyReplyBtn.addEventListener("click", async () => {
@@ -1818,12 +1824,7 @@ import {
       img.decoding = "sync";
 
       img.onload = () => {
-        if (
-          !img.naturalWidth ||
-          !img.naturalHeight ||
-          !img.width ||
-          !img.height
-        ) {
+        if (!img.naturalWidth || !img.naturalHeight || !img.width || !img.height) {
           reject(new Error("Image load failed"));
           return;
         }
@@ -1912,11 +1913,11 @@ import {
         margin-bottom:6px;
       }
       .hsc-id-value{
-        font-size:24px;
-        line-height:1.25;
+        font-size:30px;
+        line-height:1.2;
         font-weight:1000;
-        letter-spacing:.03em;
-        color:#fff;
+        letter-spacing:.04em;
+        color:#7bdcff;
         word-break:break-word;
       }
       .hsc-id-tip,.hsc-reply-tip{
@@ -1927,7 +1928,7 @@ import {
       }
       .hsc-reply-text{
         width:100%;
-        min-height:112px;
+        min-height:132px;
         resize:none;
         background:rgba(255,255,255,.06);
         color:#fff;
