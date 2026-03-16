@@ -1,53 +1,59 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v714
+ * form.js v802
  * COMPLETE OVERWRITE
  * -----------------------------------------
- * 本版內容：
- * 1. 修正手機端照片上傳事件
- * 2. 強制破快取版本：v714
- * 3. 保留照片可縮小 / 拖移 / 置中 / 重設 / 套用
- * 4. 自由款 CTA 1 組；精品款 CTA 3 組
- * 5. 地址 / LINE 提示對齊
- * 6. 即時預覽、摘要、分頁流程一起對齊
- * 7. 成功後強提醒：回覆客服為必做步驟
- * 8. init 與 upload change 偵錯訊號已加入
- * 9. EXIF 方向修正
- * 10. 大圖預縮，手機更順
- * 11. 智慧壓縮：依檔案大小自動調整輸出品質與預縮上限
+ * 主線：
+ * 1. 保留 v714 分頁 / 裁切 / 預覽體驗
+ * 2. 送出前先上傳 Firebase Storage
+ * 3. 正式圖片主欄位改為：
+ *    - avatar_url
+ *    - logo_url
+ *    - photo1_url ~ photo5_url
+ * 4. GAS 送出主線只送文字欄位 + *_url
+ * 5. 保留 invite_code / reserved_uid / tenant
  * ========================================= */
+
+import {
+  initFirebase,
+  ensureAuth,
+  uploadAvatar,
+  uploadLogo,
+  uploadPhoto
+} from "./firebase.js";
 
 (() => {
   "use strict";
 
-  const VERSION = "714";
+  const VERSION = "802";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/3r2ZePN";
 
   const MB = 1024 * 1024;
   const FILE_TIER_SMALL = 1 * MB;
   const FILE_TIER_MEDIUM = 4 * MB;
+  const MAX_ACCEPT_FILE_SIZE = 20 * MB;
 
   const SMART_PROFILE = {
     small: {
-      maxLong: 2600,
-      maxShort: 2600,
-      previewQuality: 0.94,
-      outputQuality: 0.92,
+      maxLong: 1800,
+      maxShort: 1800,
+      previewQuality: 0.90,
+      outputQuality: 0.88,
       label: "輕壓縮"
     },
     medium: {
-      maxLong: 2200,
-      maxShort: 2200,
-      previewQuality: 0.90,
-      outputQuality: 0.86,
-      label: "中度壓縮"
+      maxLong: 1500,
+      maxShort: 1500,
+      previewQuality: 0.86,
+      outputQuality: 0.82,
+      label: "中壓縮"
     },
     large: {
-      maxLong: 1800,
-      maxShort: 1800,
-      previewQuality: 0.86,
-      outputQuality: 0.80,
+      maxLong: 1200,
+      maxShort: 1200,
+      previewQuality: 0.82,
+      outputQuality: 0.76,
       label: "強壓縮"
     }
   };
@@ -67,7 +73,11 @@
     submitResult: null,
     copiedId: "",
     files: Object.create(null),
-    uploadOrder: []
+    uploadOrder: [],
+    firebaseReady: false,
+    reservedUid: "",
+    inviteCode: "",
+    tenant: "angel"
   };
 
   const cropState = {
@@ -131,9 +141,19 @@
     { value: "p7", label: "褐碳", swatch: "linear-gradient(135deg,#6c564c,#403028)" }
   ];
 
+  const IMAGE_FIELD_MAP = {
+    avatar_img: "avatar_url",
+    logo_img: "logo_url",
+    photo1_img: "photo1_url",
+    photo2_img: "photo2_url",
+    photo3_img: "photo3_url",
+    photo4_img: "photo4_url",
+    photo5_img: "photo5_url"
+  };
+
   document.addEventListener("DOMContentLoaded", init_);
 
-  function init_() {
+  async function init_() {
     console.log("[HSC form] init ok", VERSION);
 
     cacheEls_();
@@ -150,6 +170,17 @@
     syncPageUi_();
     setStatus_("尚未操作。");
     setProgress_(0, "請填寫資料");
+
+    try {
+      initFirebase();
+      await ensureAuth();
+      state.firebaseReady = true;
+      setStatus_("表單已就緒，圖片將走 Firebase Storage。");
+    } catch (err) {
+      console.error(err);
+      state.firebaseReady = false;
+      setStatus_("Firebase 初始化失敗，圖片上傳可能無法進行。");
+    }
   }
 
   function cacheEls_() {
@@ -237,6 +268,10 @@
     const id = sp.get("id") || "";
     const tenant = sp.get("tenant") || "angel";
     const gas = sp.get("gas") || DEFAULT_GAS;
+
+    state.reservedUid = id || "";
+    state.inviteCode = invite || "";
+    state.tenant = tenant || "angel";
 
     if (els.ver) els.ver.textContent = `v${VERSION}`;
     if (els.tenantText) els.tenantText.textContent = tenant || "-";
@@ -462,6 +497,13 @@
           const file = e.target.files && e.target.files[0];
           console.log("[HSC upload change]", item.key, file);
           if (!file) return;
+
+          if (file.size > MAX_ACCEPT_FILE_SIZE) {
+            alert("照片過大，請改選較小的照片（建議 20MB 以下）。");
+            fileInput.value = "";
+            return;
+          }
+
           await openCropperForFile_(item, file);
         };
 
@@ -743,7 +785,7 @@
   function renderSummary_() {
     if (!els.summaryBox) return;
 
-    const photoCount = state.plan === "premium" ? 5 : 2;
+    const maxPhotoOnly = state.plan === "premium" ? 5 : 2;
     const ctaCount = state.plan === "premium" ? 3 : 1;
 
     const items = [
@@ -754,7 +796,7 @@
       ["姓名 / 職稱", `${getFieldValue_("name") || "-"}\n${getFieldValue_("title") || "-"}`],
       ["聯絡方式", buildContactSummary_() || "尚未填寫"],
       ["行動按鈕", buildCtaSummary_(ctaCount) || "尚未填寫"],
-      ["照片", `${countUploadedPhotos_()} / ${photoCount + 2}（含大頭照、Logo）已處理`]
+      ["圖片", `已處理 ${countUploadedPhotos_()} 張（含大頭照、Logo；照片牆上限 ${maxPhotoOnly} 張）`]
     ];
 
     els.summaryBox.innerHTML = items.map(([k, v]) => `
@@ -843,31 +885,45 @@
       if (els.btnSubmit) els.btnSubmit.disabled = true;
 
       setStatus_("開始送出資料…");
-      setProgress_(10, "準備資料中…");
+      setProgress_(8, "初始化 Firebase…");
       keepViewAtProgress_();
 
-      const payload = buildPayload_();
+      initFirebase();
+      await ensureAuth();
+      state.firebaseReady = true;
 
-      setProgress_(35, "整理文字資料中…");
+      const cardIdForStorage = buildCardIdForUpload_();
+      setProgress_(18, `圖片上傳準備中（${cardIdForStorage}）…`);
       keepViewAtProgress_();
 
-      const result = await postPayload_(endpoint, payload);
+      const uploadedImageUrls = await uploadAllImages_(cardIdForStorage);
+
+      setProgress_(72, "整理文字資料中…");
+      keepViewAtProgress_();
+
+      const payload = buildJsonPayload_(uploadedImageUrls, cardIdForStorage);
+
+      setProgress_(82, "送出表單資料到 GAS…");
+      keepViewAtProgress_();
+
+      const result = await postJsonPayload_(endpoint, payload);
 
       setProgress_(100, "送出完成");
       state.submitResult = result;
 
-      const sp = new URLSearchParams(location.search || "");
       const cardId = text(
         result?.id ||
         result?.item?.id ||
         result?.data?.id ||
         result?.cardId ||
-        sp.get("id") ||
+        payload.reserved_uid ||
+        cardIdForStorage ||
         ""
       );
 
       state.copiedId = cardId;
 
+      if (els.idText && cardId) els.idText.textContent = cardId;
       setStatus_("資料已送出。");
       showSuccessBox_(cardId);
       keepViewAtProgress_();
@@ -887,51 +943,135 @@
     return text(els.gas?.value) || DEFAULT_GAS;
   }
 
-  function buildPayload_() {
-    const fd = new FormData();
+  function buildCardIdForUpload_() {
+    const reserved = text(state.reservedUid);
+    if (reserved) return reserved.toUpperCase();
 
-    const fields = [
-      "name","unit","title","slogan","services","experience",
-      "phone","email","line_url","line_oa","wechat_id","address",
-      "website","video1","video2","video3","social1","social2","social3",
-      "cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3"
-    ];
+    const now = new Date();
+    const stamp = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+      String(now.getHours()).padStart(2, "0"),
+      String(now.getMinutes()).padStart(2, "0"),
+      String(now.getSeconds()).padStart(2, "0")
+    ].join("");
 
-    fields.forEach((id) => fd.append(id, getFieldValue_(id)));
-
-    fd.append("plan", state.plan);
-    fd.append("color", state.color);
-    fd.append("style", state.style);
-    fd.append("paper", state.paper);
-    fd.append("premium_color", state.premiumColor);
-    fd.append("form_version", VERSION);
-
-    fd.append("cta_text", getFieldValue_("cta_text_1"));
-    fd.append("cta_link", getFieldValue_("cta_link_1"));
-
-    const sp = new URLSearchParams(location.search || "");
-    fd.append("tenant", sp.get("tenant") || "angel");
-    fd.append("invite_code", sp.get("invite") || sp.get("code") || "");
-    fd.append("reserved_uid", sp.get("id") || "");
-
-    state.uploadOrder.forEach((key) => {
-      const info = state.files[key];
-      if (!info || !info.blob) return;
-      const filename = `${key}.jpg`;
-      fd.append(key, info.blob, filename);
-    });
-
-    return fd;
+    return `TMP${stamp}`;
   }
 
-  async function postPayload_(endpoint, formData) {
-    setProgress_(65, "上傳圖片與資料中…");
-    keepViewAtProgress_();
+  async function uploadAllImages_(cardId) {
+    const uploaded = {};
+    const activeKeys = state.uploadOrder.filter((key) => !!state.files[key]);
 
+    if (!activeKeys.length) {
+      return uploaded;
+    }
+
+    const total = activeKeys.length;
+    let done = 0;
+
+    for (const key of activeKeys) {
+      const info = state.files[key];
+      if (!info || !info.blob) continue;
+
+      const label = keyLabel_(key);
+      const startPercent = 18 + Math.round((done / total) * 42);
+      setProgress_(startPercent, `上傳圖片：${label}…`);
+      keepViewAtProgress_();
+
+      let url = "";
+      if (key === "avatar_img") {
+        url = await uploadAvatar(cardId, info.blob);
+      } else if (key === "logo_img") {
+        url = await uploadLogo(cardId, info.blob);
+      } else if (/^photo[1-5]_img$/.test(key)) {
+        const idx = Number(key.match(/^photo([1-5])_img$/)[1]);
+        url = await uploadPhoto(cardId, info.blob, idx);
+      } else {
+        throw new Error(`不支援的圖片欄位：${key}`);
+      }
+
+      const field = IMAGE_FIELD_MAP[key];
+      if (field) uploaded[field] = url;
+
+      done += 1;
+      const progress = 18 + Math.round((done / total) * 42);
+      setProgress_(progress, `圖片上傳完成：${label}`);
+      keepViewAtProgress_();
+    }
+
+    return uploaded;
+  }
+
+  function buildJsonPayload_(uploadedImageUrls, cardIdForStorage) {
+    const payload = {
+      action: "create",
+      tenant: state.tenant || "angel",
+      invite_code: state.inviteCode || "",
+      reserved_uid: state.reservedUid || cardIdForStorage || "",
+      form_version: VERSION,
+
+      plan: state.plan,
+      color: state.color,
+      style: state.style,
+      paper: state.paper,
+      premium_color: state.premiumColor,
+
+      name: getFieldValue_("name"),
+      unit: getFieldValue_("unit"),
+      title: getFieldValue_("title"),
+      slogan: getFieldValue_("slogan"),
+      services: getFieldValue_("services"),
+      experience: getFieldValue_("experience"),
+
+      phone: getFieldValue_("phone"),
+      email: getFieldValue_("email"),
+      line_url: getFieldValue_("line_url"),
+      line_oa: getFieldValue_("line_oa"),
+      wechat_id: getFieldValue_("wechat_id"),
+      address: getFieldValue_("address"),
+
+      website: getFieldValue_("website"),
+      video1: getFieldValue_("video1"),
+      video2: getFieldValue_("video2"),
+      video3: getFieldValue_("video3"),
+      social1: getFieldValue_("social1"),
+      social2: getFieldValue_("social2"),
+      social3: getFieldValue_("social3"),
+
+      cta_text_1: getFieldValue_("cta_text_1"),
+      cta_link_1: getFieldValue_("cta_link_1"),
+      cta_text_2: state.plan === "premium" ? getFieldValue_("cta_text_2") : "",
+      cta_link_2: state.plan === "premium" ? getFieldValue_("cta_link_2") : "",
+      cta_text_3: state.plan === "premium" ? getFieldValue_("cta_text_3") : "",
+      cta_link_3: state.plan === "premium" ? getFieldValue_("cta_link_3") : "",
+
+      cta_text: getFieldValue_("cta_text_1"),
+      cta_link: getFieldValue_("cta_link_1"),
+
+      avatar_url: uploadedImageUrls.avatar_url || "",
+      logo_url: uploadedImageUrls.logo_url || "",
+      photo1_url: uploadedImageUrls.photo1_url || "",
+      photo2_url: uploadedImageUrls.photo2_url || "",
+      photo3_url: uploadedImageUrls.photo3_url || "",
+      photo4_url: uploadedImageUrls.photo4_url || "",
+      photo5_url: uploadedImageUrls.photo5_url || "",
+
+      source: "form",
+      form_source: "self_form"
+    };
+
+    return payload;
+  }
+
+  async function postJsonPayload_(endpoint, payload) {
     const res = await fetch(endpoint, {
       method: "POST",
-      body: formData,
-      credentials: "omit"
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(payload)
     });
 
     const raw = await res.text();
@@ -947,6 +1087,19 @@
       throw new Error(json?.message || json?.error || `HTTP ${res.status}`);
     }
     return json;
+  }
+
+  function keyLabel_(key) {
+    const map = {
+      avatar_img: "大頭照",
+      logo_img: "Logo",
+      photo1_img: "照片 1",
+      photo2_img: "照片 2",
+      photo3_img: "照片 3",
+      photo4_img: "照片 4",
+      photo5_img: "照片 5"
+    };
+    return map[key] || key;
   }
 
   function setProgress_(percent, message) {
@@ -1291,6 +1444,7 @@
       sourceFile: cropState.sourceImg,
       blob,
       previewUrl,
+      remoteUrl: "",
       crop: {
         viewScale: cropState.viewScale,
         offsetX: cropState.offsetX,
@@ -1547,7 +1701,10 @@
       style: state.style,
       paper: state.paper,
       premiumColor: state.premiumColor,
-      isSubmitting: state.isSubmitting
+      isSubmitting: state.isSubmitting,
+      reservedUid: state.reservedUid,
+      inviteCode: state.inviteCode,
+      tenant: state.tenant
     }))
   });
 })();
