@@ -83,7 +83,6 @@
       box-shadow:0 0 0 3px rgba(125,211,252,.12);
     }
     .textarea{min-height:110px;resize:vertical;line-height:1.7}
-    .muted{color:var(--muted)}
     .help{
       font-size:12px;
       color:var(--muted);
@@ -125,10 +124,6 @@
     }
     .btn-primary{background:var(--brand);color:#082032}
     .btn-secondary{background:#1f2937;color:var(--text);border:1px solid var(--line)}
-    .btn-danger{background:#3a1520;color:#ffd5dd;border:1px solid rgba(251,113,133,.28)}
-    .btn-soft{background:#0f172a;color:#dff5ff;border:1px solid var(--line-strong)}
-    .btn[disabled]{opacity:.56;cursor:not-allowed}
-
     .hidden{display:none !important}
 
     .image-grid{
@@ -174,18 +169,6 @@
       height:100%;
       background:#0f172a center/cover no-repeat;
     }
-    .image-actions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-    }
-    .mini{
-      font-size:12px;
-      padding:10px 12px;
-      border-radius:12px;
-      font-weight:700;
-    }
-    .file-input{display:none}
     .sys-field{display:none}
 
     @media (max-width: 900px){
@@ -212,234 +195,92 @@
       <section class="card">
         <h2 class="section-title">基本資料 <small>可修改顯示文字</small></h2>
         <div class="grid grid-2">
-          <div class="field">
-            <label for="name">姓名 / 品牌名稱</label>
-            <input id="name" name="name" class="input" />
-          </div>
-          <div class="field">
-            <label for="unit">單位</label>
-            <input id="unit" name="unit" class="input" />
-          </div>
-          <div class="field">
-            <label for="title">職稱</label>
-            <input id="title" name="title" class="input" />
-          </div>
-          <div class="field">
-            <label for="slogan">一句話介紹</label>
-            <input id="slogan" name="slogan" class="input" />
-          </div>
+          <div class="field"><label for="name">姓名 / 品牌名稱</label><input id="name" name="name" class="input" /></div>
+          <div class="field"><label for="unit">單位</label><input id="unit" name="unit" class="input" /></div>
+          <div class="field"><label for="title">職稱</label><input id="title" name="title" class="input" /></div>
+          <div class="field"><label for="slogan">一句話介紹</label><input id="slogan" name="slogan" class="input" /></div>
         </div>
         <div class="grid">
-          <div class="field">
-            <label for="services">服務項目</label>
-            <textarea id="services" name="services" class="textarea"></textarea>
-          </div>
-          <div class="field">
-            <label for="experience">經歷 / 品牌故事</label>
-            <textarea id="experience" name="experience" class="textarea"></textarea>
-          </div>
+          <div class="field"><label for="services">服務項目</label><textarea id="services" name="services" class="textarea"></textarea></div>
+          <div class="field"><label for="experience">經歷 / 品牌故事</label><textarea id="experience" name="experience" class="textarea"></textarea></div>
         </div>
       </section>
 
       <section class="card">
         <h2 class="section-title">聯絡方式 <small>會顯示在名片聯繫區</small></h2>
         <div class="grid grid-2">
-          <div class="field">
-            <label for="phone">電話</label>
-            <input id="phone" name="phone" class="input" />
-          </div>
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" name="email" class="input" />
-          </div>
-          <div class="field">
-            <label for="line_url">LINE 連結</label>
-            <input id="line_url" name="line_url" class="input" />
-          </div>
-          <div class="field">
-            <label for="line_oa">LINE 官方帳號</label>
-            <input id="line_oa" name="line_oa" class="input" />
-          </div>
-          <div class="field">
-            <label for="wechat_id">WeChat ID</label>
-            <input id="wechat_id" name="wechat_id" class="input" />
-          </div>
-          <div class="field">
-            <label for="website">網站</label>
-            <input id="website" name="website" class="input" />
-          </div>
+          <div class="field"><label for="phone">電話</label><input id="phone" name="phone" class="input" /></div>
+          <div class="field"><label for="email">Email</label><input id="email" name="email" class="input" /></div>
+          <div class="field"><label for="line_url">LINE 連結</label><input id="line_url" name="line_url" class="input" /></div>
+          <div class="field"><label for="line_oa">LINE 官方帳號</label><input id="line_oa" name="line_oa" class="input" /></div>
+          <div class="field"><label for="wechat_id">WeChat ID</label><input id="wechat_id" name="wechat_id" class="input" /></div>
+          <div class="field"><label for="website">網站</label><input id="website" name="website" class="input" /></div>
         </div>
         <div class="grid">
-          <div class="field">
-            <label for="address">地址</label>
-            <input id="address" name="address" class="input" />
-          </div>
+          <div class="field"><label for="address">地址</label><input id="address" name="address" class="input" /></div>
         </div>
       </section>
 
       <section class="card">
         <h2 class="section-title">影音與社群</h2>
         <div class="grid grid-3">
-          <div class="field">
-            <label for="video1">影片 1</label>
-            <input id="video1" name="video1" class="input" />
-          </div>
-          <div class="field">
-            <label for="video2">影片 2</label>
-            <input id="video2" name="video2" class="input" />
-          </div>
-          <div class="field">
-            <label for="video3">影片 3</label>
-            <input id="video3" name="video3" class="input" />
-          </div>
-          <div class="field">
-            <label for="social1">社群 1</label>
-            <input id="social1" name="social1" class="input" />
-          </div>
-          <div class="field">
-            <label for="social2">社群 2</label>
-            <input id="social2" name="social2" class="input" />
-          </div>
-          <div class="field">
-            <label for="social3">社群 3</label>
-            <input id="social3" name="social3" class="input" />
-          </div>
+          <div class="field"><label for="video1">影片 1</label><input id="video1" name="video1" class="input" /></div>
+          <div class="field"><label for="video2">影片 2</label><input id="video2" name="video2" class="input" /></div>
+          <div class="field"><label for="video3">影片 3</label><input id="video3" name="video3" class="input" /></div>
+          <div class="field"><label for="social1">社群 1</label><input id="social1" name="social1" class="input" /></div>
+          <div class="field"><label for="social2">社群 2</label><input id="social2" name="social2" class="input" /></div>
+          <div class="field"><label for="social3">社群 3</label><input id="social3" name="social3" class="input" /></div>
         </div>
       </section>
 
       <section class="card">
         <h2 class="section-title">行動按鈕 CTA</h2>
         <div class="grid grid-2">
-          <div class="field">
-            <label for="cta_text_1">按鈕 1 文字</label>
-            <input id="cta_text_1" name="cta_text_1" class="input" />
-          </div>
-          <div class="field">
-            <label for="cta_link_1">按鈕 1 連結</label>
-            <input id="cta_link_1" name="cta_link_1" class="input" />
-          </div>
-          <div class="field">
-            <label for="cta_text_2">按鈕 2 文字</label>
-            <input id="cta_text_2" name="cta_text_2" class="input" />
-          </div>
-          <div class="field">
-            <label for="cta_link_2">按鈕 2 連結</label>
-            <input id="cta_link_2" name="cta_link_2" class="input" />
-          </div>
-          <div class="field">
-            <label for="cta_text_3">按鈕 3 文字</label>
-            <input id="cta_text_3" name="cta_text_3" class="input" />
-          </div>
-          <div class="field">
-            <label for="cta_link_3">按鈕 3 連結</label>
-            <input id="cta_link_3" name="cta_link_3" class="input" />
-          </div>
+          <div class="field"><label for="cta_text_1">按鈕 1 文字</label><input id="cta_text_1" name="cta_text_1" class="input" /></div>
+          <div class="field"><label for="cta_link_1">按鈕 1 連結</label><input id="cta_link_1" name="cta_link_1" class="input" /></div>
+          <div class="field"><label for="cta_text_2">按鈕 2 文字</label><input id="cta_text_2" name="cta_text_2" class="input" /></div>
+          <div class="field"><label for="cta_link_2">按鈕 2 連結</label><input id="cta_link_2" name="cta_link_2" class="input" /></div>
+          <div class="field"><label for="cta_text_3">按鈕 3 文字</label><input id="cta_text_3" name="cta_text_3" class="input" /></div>
+          <div class="field"><label for="cta_link_3">按鈕 3 連結</label><input id="cta_link_3" name="cta_link_3" class="input" /></div>
         </div>
       </section>
 
       <section class="card">
-        <h2 class="section-title">圖片更新 <small>先確保原資料可正常載入</small></h2>
-        <div class="help">
-          這版先把「更新頁載入資料」修穩。<br>
-          圖片可顯示目前網址與重新選圖預覽；若你下一步要接 Firebase 即時上傳，我再接著補完整版。
-        </div>
-
+        <h2 class="section-title">圖片預覽</h2>
         <div class="image-grid">
-          <div class="image-card" data-slot="avatar">
-            <div class="image-card-head">
-              <div class="image-card-title">頭像</div>
-              <div class="image-card-status" id="status_avatar">未設定</div>
-            </div>
+          <div class="image-card">
+            <div class="image-card-head"><div class="image-card-title">頭像</div><div class="image-card-status" id="status_avatar">未設定</div></div>
             <div class="thumb-box square"><div id="preview_avatar" class="thumb-image"></div></div>
-            <div class="image-actions">
-              <input id="file_avatar" class="file-input" type="file" accept="image/*" />
-              <button type="button" class="btn btn-soft mini" data-pick="avatar">選擇圖片</button>
-              <button type="button" class="btn btn-danger mini" data-clear="avatar">清除</button>
-            </div>
             <input id="avatar_url" name="avatar_url" class="input sys-field" />
           </div>
-
-          <div class="image-card" data-slot="logo">
-            <div class="image-card-head">
-              <div class="image-card-title">Logo</div>
-              <div class="image-card-status" id="status_logo">未設定</div>
-            </div>
+          <div class="image-card">
+            <div class="image-card-head"><div class="image-card-title">Logo</div><div class="image-card-status" id="status_logo">未設定</div></div>
             <div class="thumb-box square"><div id="preview_logo" class="thumb-image"></div></div>
-            <div class="image-actions">
-              <input id="file_logo" class="file-input" type="file" accept="image/*" />
-              <button type="button" class="btn btn-soft mini" data-pick="logo">選擇圖片</button>
-              <button type="button" class="btn btn-danger mini" data-clear="logo">清除</button>
-            </div>
             <input id="logo_url" name="logo_url" class="input sys-field" />
           </div>
-
-          <div class="image-card" data-slot="photo1">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 1</div>
-              <div class="image-card-status" id="status_photo1">未設定</div>
-            </div>
+          <div class="image-card">
+            <div class="image-card-head"><div class="image-card-title">照片 1</div><div class="image-card-status" id="status_photo1">未設定</div></div>
             <div class="thumb-box wide"><div id="preview_photo1" class="thumb-image"></div></div>
-            <div class="image-actions">
-              <input id="file_photo1" class="file-input" type="file" accept="image/*" />
-              <button type="button" class="btn btn-soft mini" data-pick="photo1">選擇圖片</button>
-              <button type="button" class="btn btn-danger mini" data-clear="photo1">清除</button>
-            </div>
             <input id="photo1_url" name="photo1_url" class="input sys-field" />
           </div>
-
-          <div class="image-card" data-slot="photo2">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 2</div>
-              <div class="image-card-status" id="status_photo2">未設定</div>
-            </div>
+          <div class="image-card">
+            <div class="image-card-head"><div class="image-card-title">照片 2</div><div class="image-card-status" id="status_photo2">未設定</div></div>
             <div class="thumb-box wide"><div id="preview_photo2" class="thumb-image"></div></div>
-            <div class="image-actions">
-              <input id="file_photo2" class="file-input" type="file" accept="image/*" />
-              <button type="button" class="btn btn-soft mini" data-pick="photo2">選擇圖片</button>
-              <button type="button" class="btn btn-danger mini" data-clear="photo2">清除</button>
-            </div>
             <input id="photo2_url" name="photo2_url" class="input sys-field" />
           </div>
-
-          <div class="image-card" data-slot="photo3">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 3</div>
-              <div class="image-card-status" id="status_photo3">未設定</div>
-            </div>
+          <div class="image-card">
+            <div class="image-card-head"><div class="image-card-title">照片 3</div><div class="image-card-status" id="status_photo3">未設定</div></div>
             <div class="thumb-box wide"><div id="preview_photo3" class="thumb-image"></div></div>
-            <div class="image-actions">
-              <input id="file_photo3" class="file-input" type="file" accept="image/*" />
-              <button type="button" class="btn btn-soft mini" data-pick="photo3">選擇圖片</button>
-              <button type="button" class="btn btn-danger mini" data-clear="photo3">清除</button>
-            </div>
             <input id="photo3_url" name="photo3_url" class="input sys-field" />
           </div>
-
-          <div class="image-card" data-slot="photo4">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 4</div>
-              <div class="image-card-status" id="status_photo4">未設定</div>
-            </div>
+          <div class="image-card">
+            <div class="image-card-head"><div class="image-card-title">照片 4</div><div class="image-card-status" id="status_photo4">未設定</div></div>
             <div class="thumb-box wide"><div id="preview_photo4" class="thumb-image"></div></div>
-            <div class="image-actions">
-              <input id="file_photo4" class="file-input" type="file" accept="image/*" />
-              <button type="button" class="btn btn-soft mini" data-pick="photo4">選擇圖片</button>
-              <button type="button" class="btn btn-danger mini" data-clear="photo4">清除</button>
-            </div>
             <input id="photo4_url" name="photo4_url" class="input sys-field" />
           </div>
-
-          <div class="image-card" data-slot="photo5">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 5</div>
-              <div class="image-card-status" id="status_photo5">未設定</div>
-            </div>
+          <div class="image-card">
+            <div class="image-card-head"><div class="image-card-title">照片 5</div><div class="image-card-status" id="status_photo5">未設定</div></div>
             <div class="thumb-box wide"><div id="preview_photo5" class="thumb-image"></div></div>
-            <div class="image-actions">
-              <input id="file_photo5" class="file-input" type="file" accept="image/*" />
-              <button type="button" class="btn btn-soft mini" data-pick="photo5">選擇圖片</button>
-              <button type="button" class="btn btn-danger mini" data-clear="photo5">清除</button>
-            </div>
             <input id="photo5_url" name="photo5_url" class="input sys-field" />
           </div>
         </div>
@@ -455,6 +296,6 @@
     </form>
   </div>
 
-  <script src="./update-form.js?v=722.1"></script>
+  <script src="./update-form.js?v=722.2"></script>
 </body>
 </html>
