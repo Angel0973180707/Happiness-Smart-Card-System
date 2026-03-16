@@ -1,17 +1,26 @@
 /* =========================================
- * HSC update-form.js v722.0
+ * HSC update-form.js v802
  * COMPLETE OVERWRITE
  *
- * 支援：
+ * 主線：
  * - getCardForUpdate
  * - updateCardByToken
- * - uploadCardImageByToken
+ * - 圖片流程改走 Firebase Storage
  *
  * 圖片流程：
- * 選圖 -> 前端壓縮 -> 裁切 -> 套用 -> 立即上傳 -> 回寫 *_url
+ * 選圖 -> 前端壓縮 -> 裁切 -> 套用 -> 立即上傳 Firebase -> 回寫 *_url
  * ========================================= */
 
+import {
+  initFirebase,
+  ensureAuth,
+  uploadAvatar,
+  uploadLogo,
+  uploadPhoto
+} from "./firebase.js";
+
 const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+const VERSION = "802";
 
 const UPDATE_FIELDS = [
   "name","unit","title","slogan","services","experience",
@@ -99,7 +108,6 @@ const state = {
     open: false,
     slotKey: "",
     image: null,
-    objectUrl: "",
     ratio: 1,
     canvasSize: { w: 900, h: 900 },
     baseScale: 1,
@@ -122,18 +130,24 @@ function getParam(name){
   return (url.searchParams.get(name) || "").trim();
 }
 
+function clean(v){
+  return String(v == null ? "" : v).trim();
+}
+
 function escCssUrl(url){
   return String(url || "").replace(/"/g, '\\"');
 }
 
 function setStatus(type, text){
   const box = $("#statusBox");
+  if (!box) return;
   box.className = `status show ${type || ""}`;
   box.textContent = text || "";
 }
 
 function clearStatus(){
   const box = $("#statusBox");
+  if (!box) return;
   box.className = "status";
   box.textContent = "";
 }
@@ -150,24 +164,21 @@ function lockForm(locked){
 }
 
 function showForm(show){
-  $("#updateForm").classList.toggle("hidden", !show);
+  const form = $("#updateForm");
+  if (form) form.classList.toggle("hidden", !show);
 }
 
-function isImageSlotBusy(){
-  return !!state.imageUploading || !!state.cropper.open;
-}
-
-function setImageStatus(slotKey, text){
+function setImageStatus(slotKey, textValue){
   const slot = IMAGE_SLOTS[slotKey];
   if(!slot) return;
   const el = document.getElementById(slot.statusId);
-  if(el) el.textContent = text || "";
+  if(el) el.textContent = textValue || "";
 }
 
 function setPreview(previewId, url){
   const el = document.getElementById(previewId);
   if(!el) return;
-  const safe = String(url || "").trim();
+  const safe = clean(url);
   el.style.backgroundImage = safe ? `url("${escCssUrl(safe)}")` : "none";
   el.style.backgroundSize = "cover";
   el.style.backgroundPosition = "center";
@@ -181,7 +192,7 @@ function setFieldValue(id, value){
 
 function getFieldValue(id){
   const el = document.getElementById(id);
-  return el ? String(el.value || "").trim() : "";
+  return el ? clean(el.value) : "";
 }
 
 function fillForm(item){
@@ -192,7 +203,7 @@ function fillForm(item){
   });
 
   Object.values(IMAGE_SLOTS).forEach(slot => {
-    const url = item[slot.field] || "";
+    const url = clean(item[slot.field] || "");
     setPreview(slot.previewId, url);
     setImageStatus(slot.key, url ? "已載入" : "未設定");
   });
@@ -208,7 +219,7 @@ function collectPayload(){
   UPDATE_FIELDS.forEach(key => {
     const el = document.getElementById(key);
     if(!el) return;
-    payload[key] = String(el.value || "").trim();
+    payload[key] = clean(el.value);
   });
 
   return payload;
@@ -226,17 +237,30 @@ async function apiGet(params){
     cache: "no-store"
   });
 
-  return await res.json();
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("GAS 回傳不是合法 JSON");
+  }
 }
 
-async function apiPost(payload){
+async function apiPostJson(payload){
   const res = await fetch(GAS_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-    body: new URLSearchParams(payload).toString()
+    headers: {
+      "Content-Type": "text/plain;charset=UTF-8"
+    },
+    body: JSON.stringify(payload)
   });
 
-  return await res.json();
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    throw new Error("GAS 回傳不是合法 JSON");
+  }
 }
 
 function buildErrMsg(res){
@@ -261,12 +285,14 @@ async function loadCard(){
       action: "getCardForUpdate",
       id: state.id,
       utoken: state.utoken,
-      ts: Date.now()
+      ts: Date.now(),
+      v: VERSION
     });
 
     if(!res || !res.ok){
       showForm(false);
-      setStatus("bad",
+      setStatus(
+        "bad",
         buildErrMsg(res).includes("expired")
           ? "此更新連結已過期，請聯繫客服重新取得更新連結。"
           : buildErrMsg(res)
@@ -274,7 +300,7 @@ async function loadCard(){
       return;
     }
 
-    fillForm(res.item || {});
+    fillForm(res.item || res.card || {});
     state.loaded = true;
     showForm(true);
     setStatus("ok", "資料已載入，請確認後送出更新。圖片可直接上傳與裁切。");
@@ -306,11 +332,12 @@ async function submitForm(ev){
 
   try{
     const payload = collectPayload();
-    const res = await apiPost(payload);
+    const res = await apiPostJson(payload);
 
     if(!res || !res.ok){
       const msg = buildErrMsg(res);
-      setStatus("bad",
+      setStatus(
+        "bad",
         msg.includes("expired")
           ? "此更新連結已過期，請聯繫客服重新取得更新連結。"
           : msg
@@ -375,6 +402,8 @@ async function downscaleImage(img, maxSide = 2200, type = "image/jpeg", quality 
   canvas.width = tw;
   canvas.height = th;
   const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, 0, 0, tw, th);
 
   const blob = await canvasToBlob(canvas, type, quality);
@@ -489,7 +518,6 @@ function renderCropCanvas(){
 
   ctx.drawImage(img, x, y, drawW, drawH);
 
-  // subtle guide
   ctx.strokeStyle = "rgba(255,255,255,.18)";
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, cw - 2, ch - 2);
@@ -546,6 +574,11 @@ async function applyCropAndUpload(){
     }
 
     const localUrl = URL.createObjectURL(blob);
+
+    if (state.imageEdits[slot.key]?.localUrl) {
+      try { URL.revokeObjectURL(state.imageEdits[slot.key].localUrl); } catch (_) {}
+    }
+
     state.imageEdits[slot.key] = {
       blob,
       localUrl,
@@ -556,7 +589,7 @@ async function applyCropAndUpload(){
     setPreview(slot.previewId, localUrl);
     setImageStatus(slot.key, "已套用，準備上傳");
 
-    const remoteUrl = await uploadImageForSlot(slot.key, blob, state.imageEdits[slot.key].fileName);
+    const remoteUrl = await uploadImageForSlot(slot.key, blob);
 
     setFieldValue(slot.field, remoteUrl);
     state.imageEdits[slot.key].remoteUrl = remoteUrl;
@@ -575,32 +608,28 @@ async function applyCropAndUpload(){
   }
 }
 
-async function uploadImageForSlot(slotKey, blob, fileName){
-  const slot = IMAGE_SLOTS[slotKey];
-  if(!slot) throw new Error("invalid slot");
+async function uploadImageForSlot(slotKey, blob){
+  if(!blob) throw new Error("missing blob");
+  if(!state.id) throw new Error("missing card id");
 
-  const dataUrl = await blobToDataURL(blob);
-  const res = await apiPost({
-    action: "uploadCardImageByToken",
-    id: state.id,
-    utoken: state.utoken,
-    image_slot: slotKey,
-    field_name: slot.field,
-    filename: fileName,
-    content_type: blob.type || "image/jpeg",
-    image_base64: String(dataUrl).split(",")[1] || ""
-  });
+  let url = "";
 
-  if(!res || !res.ok){
-    throw new Error(buildErrMsg(res));
+  if(slotKey === "avatar"){
+    url = await uploadAvatar(state.id, blob);
+  } else if(slotKey === "logo"){
+    url = await uploadLogo(state.id, blob);
+  } else if(slotKey.startsWith("photo")){
+    const index = Number(slotKey.replace("photo", "")) || 1;
+    url = await uploadPhoto(state.id, blob, index);
+  } else {
+    throw new Error("invalid image slot");
   }
 
-  const imageUrl = String(res.url || "").trim();
-  if(!imageUrl){
-    throw new Error("upload url missing");
+  if(!url){
+    throw new Error("firebase upload failed");
   }
 
-  return imageUrl;
+  return clean(url);
 }
 
 async function handlePickFile(slotKey, file){
@@ -623,7 +652,6 @@ async function handlePickFile(slotKey, file){
 
     const rawDataUrl = await fileToDataURL(file);
     const rawImg = await dataUrlToImage(rawDataUrl);
-
     const optimized = await downscaleImage(rawImg, 2200, "image/jpeg", 0.9);
 
     openCropper(slotKey, optimized.img);
@@ -687,16 +715,19 @@ function bindCropperEvents(){
   const zoomRange = $("#zoomRange");
 
   $("#btnCropClose").addEventListener("click", closeCropper);
+
   $("#btnZoomOut").addEventListener("click", () => {
     const next = clampScale(state.cropper.scale - 0.08);
     $("#zoomRange").value = String(next);
     updateZoomFromRange(next);
   });
+
   $("#btnZoomIn").addEventListener("click", () => {
     const next = clampScale(state.cropper.scale + 0.08);
     $("#zoomRange").value = String(next);
     updateZoomFromRange(next);
   });
+
   $("#btnCenter").addEventListener("click", centerCropper);
   $("#btnReset").addEventListener("click", resetCropperPosition);
   $("#btnCropApply").addEventListener("click", applyCropAndUpload);
@@ -786,9 +817,17 @@ function bindEvents(){
   bindCropperEvents();
 }
 
-function init(){
+async function init(){
   state.id = getParam("id");
   state.utoken = getParam("utoken");
+
+  try {
+    initFirebase();
+    await ensureAuth();
+  } catch (err) {
+    console.error(err);
+    setStatus("bad", "Firebase 初始化失敗，圖片更新可能無法使用。");
+  }
 
   bindEvents();
   loadCard();
