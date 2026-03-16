@@ -1227,11 +1227,14 @@ import {
 
           <div class="hsc-reply-card">
             <div class="hsc-reply-label">可回覆客服文案</div>
-            <textarea class="hsc-reply-text" id="serviceReplyText" readonly>${escapeHtml_(replyText)}</textarea>
+            <textarea class="hsc-reply-text" id="serviceReplyText" readonly></textarea>
             <div class="hsc-reply-tip">建議先複製文案，再點下方按鈕前往 LINE 官方帳號回覆客服。</div>
           </div>
         </div>
       `;
+
+      const ta = document.getElementById("serviceReplyText");
+      if (ta) ta.value = replyText;
     }
 
     if (els.successActions) {
@@ -1252,7 +1255,11 @@ import {
       copyReplyBtn.addEventListener("click", async () => {
         const textArea = document.getElementById("serviceReplyText");
         if (textArea) {
-          try { textArea.focus(); textArea.select(); } catch (_) {}
+          try {
+            textArea.focus();
+            textArea.select();
+            textArea.setSelectionRange(0, textArea.value.length);
+          } catch (_) {}
         }
         const ok = await copyText_(replyText);
         flashButtonText_(copyReplyBtn, ok ? "已複製客服文案" : "複製失敗", "一鍵複製客服文案");
@@ -1523,6 +1530,11 @@ import {
     ctx.clearRect(0, 0, stage.w, stage.h);
 
     const img = cropState.image;
+    if (!img.width || !img.height || !img.naturalWidth || !img.naturalHeight) {
+      console.warn("[HSC form] crop image not ready");
+      return;
+    }
+
     const scaledW = img.width * cropState.viewScale;
     const scaledH = img.height * cropState.viewScale;
     const x = (stage.w - scaledW) / 2 + cropState.offsetX;
@@ -1758,7 +1770,6 @@ import {
         offset += 2;
 
         if (marker === 0xFFE1) {
-          const app1Length = view.getUint16(offset, false);
           offset += 2;
 
           if (getString_(view, offset, 4) !== "Exif") return 1;
@@ -1803,15 +1814,22 @@ import {
   function loadImage_(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.decoding = "async";
-      img.onload = async () => {
-        try {
-          if (typeof img.decode === "function") {
-            await img.decode().catch(() => {});
-          }
-        } catch (_) {}
+      img.crossOrigin = "anonymous";
+      img.decoding = "sync";
+
+      img.onload = () => {
+        if (
+          !img.naturalWidth ||
+          !img.naturalHeight ||
+          !img.width ||
+          !img.height
+        ) {
+          reject(new Error("Image load failed"));
+          return;
+        }
         resolve(img);
       };
+
       img.onerror = () => reject(new Error("圖片載入失敗"));
       img.src = src;
     });
