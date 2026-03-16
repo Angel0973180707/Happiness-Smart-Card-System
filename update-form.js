@@ -1,15 +1,11 @@
 /* =========================================
- * HSC update-form.js v805
+ * HSC update-form.js v804.1
  * COMPLETE OVERWRITE
  *
  * 主線：
  * - 與 form.js 對齊
  * - 圖片流程：選圖 -> 裁切 -> 套用 -> 上傳 Firebase -> 回寫 *_url
- * - 送出 updateCardByToken 時只送文字 + *_url
- * - 對齊 firebase.js v802:
- *   uploadAvatar(cardId, blob)
- *   uploadLogo(cardId, blob)
- *   uploadPhoto(cardId, blob, index)
+ * - updateCardByToken 改用 URLSearchParams POST，避開 GAS CORS / preflight 問題
  * ========================================= */
 
 import {
@@ -24,7 +20,8 @@ import {
   "use strict";
 
   const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-  const VERSION = "805";
+  const VERSION = "804.1";
+  const LINE_OA_URL = "https://lin.ee/G3VJoRm";
 
   const TEXT_FIELDS = [
     "name","unit","title","slogan","services","experience",
@@ -148,6 +145,7 @@ import {
 
     cropModal: document.getElementById("cropModal"),
     cropTitle: document.getElementById("cropTitle"),
+    cropStage: document.getElementById("cropStage"),
     cropViewport: document.getElementById("cropViewport"),
     cropImage: document.getElementById("cropImage"),
     cropZoom: document.getElementById("cropZoom"),
@@ -156,7 +154,12 @@ import {
     btnCenter: document.getElementById("btnCenter"),
     btnResetCrop: document.getElementById("btnResetCrop"),
     btnCancelCrop: document.getElementById("btnCancelCrop"),
-    btnApplyCrop: document.getElementById("btnApplyCrop")
+    btnApplyCrop: document.getElementById("btnApplyCrop"),
+
+    successBox: document.getElementById("successBox"),
+    successId: document.getElementById("successId"),
+    btnCopyId: document.getElementById("btnCopyId"),
+    btnLineOA: document.getElementById("btnLineOA")
   };
 
   init().catch((err) => {
@@ -172,6 +175,7 @@ import {
     bindBaseEvents();
     bindImageEvents();
     bindCropEvents();
+    bindSuccessEvents();
 
     if (!state.id || !state.utoken) {
       showStatus("bad", "缺少更新參數 id 或 utoken。\n請聯繫客服重新取得更新連結。");
@@ -197,6 +201,21 @@ import {
     });
 
     el.form?.addEventListener("submit", onSubmit);
+  }
+
+  function bindSuccessEvents() {
+    el.btnCopyId?.addEventListener("click", async () => {
+      try {
+        await copyText(state.id || "");
+        showStatus("ok", `已複製客服ID：${state.id}`);
+      } catch (_err) {
+        showStatus("warn", `請手動複製客服ID：${state.id}`);
+      }
+    });
+
+    el.btnLineOA?.addEventListener("click", () => {
+      window.open(LINE_OA_URL, "_blank", "noopener,noreferrer");
+    });
   }
 
   function bindImageEvents() {
@@ -274,6 +293,7 @@ import {
     if (state.busy) return;
 
     setBusy(true);
+    hideSuccess();
     showStatus("warn", isReload ? "重新載入資料中…" : "載入資料中…");
 
     try {
@@ -310,9 +330,9 @@ import {
           err?.message || "未知錯誤",
           "",
           "請檢查：",
-          "1. update-form.js 是否已更新到 v805",
-          "2. firebase.js 是否為 v802",
-          "3. HTML 是否已改為 type=\"module\"",
+          "1. update-form.js 是否已更新到 v804.1",
+          "2. update-form.html 是否為 module 版本",
+          "3. Firebase / GAS 是否為最新部署",
           "4. 連結中的 id / utoken 是否正確"
         ].join("\n")
       );
@@ -332,7 +352,9 @@ import {
       const cfg = IMAGE_SLOTS[slot];
       const url = pickFirstImage(card, cfg.fallback);
 
-      setFieldValue(cfg.key, url);
+      const hiddenInput = document.getElementById(cfg.key);
+      if (hiddenInput) hiddenInput.value = url;
+
       setSlotPreview(slot, url);
       setSlotStatus(slot, url ? "已載入既有圖片" : "未設定");
     });
@@ -349,15 +371,20 @@ import {
     if (state.busy) return;
 
     setBusy(true);
+    hideSuccess();
     showStatus("warn", "送出更新中…");
 
     try {
       const payload = collectPayload();
+      const formBody = new URLSearchParams();
+
+      Object.entries(payload).forEach(([k, v]) => {
+        formBody.append(k, v == null ? "" : String(v));
+      });
 
       const res = await fetchJson(GAS_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json;charset=utf-8" },
-        body: JSON.stringify(payload)
+        body: formBody
       });
 
       console.log("[HSC update-form] updateCardByToken:", res);
@@ -367,6 +394,7 @@ import {
       }
 
       showStatus("ok", "資料更新成功。");
+      showSuccess();
     } catch (err) {
       console.error("[HSC update-form] submit failed:", err);
       showStatus("bad", `資料更新失敗：${err?.message || "未知錯誤"}`);
@@ -412,14 +440,9 @@ import {
     state.cropper.imageW = img.naturalWidth || img.width;
     state.cropper.imageH = img.naturalHeight || img.height;
 
-    if (el.cropTitle) {
-      el.cropTitle.textContent = `裁切圖片：${getSlotLabel(slot)}`;
-    }
-
-    if (el.cropViewport) {
-      el.cropViewport.classList.toggle("is-square", cfg.cropShape === "square");
-      el.cropViewport.classList.toggle("is-wide", cfg.cropShape === "wide");
-    }
+    el.cropTitle.textContent = `裁切圖片：${getSlotLabel(slot)}`;
+    el.cropViewport.classList.toggle("is-square", cfg.cropShape === "square");
+    el.cropViewport.classList.toggle("is-wide", cfg.cropShape === "wide");
 
     openCropModal();
     resetCropperView();
@@ -468,7 +491,7 @@ import {
   function resetCropperView() {
     const cp = state.cropper;
     const cfg = IMAGE_SLOTS[cp.slot];
-    if (!cp.image || !cfg || !el.cropViewport) return;
+    if (!cp.image || !cfg) return;
 
     const rect = el.cropViewport.getBoundingClientRect();
     cp.viewportW = Math.max(1, rect.width);
@@ -673,10 +696,8 @@ import {
 
     if (url) {
       box.style.backgroundImage = `url("${escapeCssUrl(url)}")`;
-      box.classList.add("has-image");
     } else {
       box.style.backgroundImage = "none";
-      box.classList.remove("has-image");
     }
   }
 
@@ -703,6 +724,16 @@ import {
     if (!el.statusBox) return;
     el.statusBox.className = `status show ${type || "warn"}`;
     el.statusBox.textContent = message || "";
+  }
+
+  function showSuccess() {
+    if (!el.successBox) return;
+    if (el.successId) el.successId.textContent = state.id || "";
+    el.successBox.classList.remove("hidden");
+  }
+
+  function hideSuccess() {
+    el.successBox?.classList.add("hidden");
   }
 
   function getFieldValue(id) {
@@ -787,6 +818,21 @@ import {
         else reject(new Error("Canvas 轉 Blob 失敗"));
       }, type, quality);
     });
+  }
+
+  async function copyText(value) {
+    const v = String(value || "");
+    if (!v) return;
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(v);
+      return;
+    }
+    const ta = document.createElement("textarea");
+    ta.value = v;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
   }
 
   function escapeCssUrl(v) {
