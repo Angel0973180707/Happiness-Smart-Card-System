@@ -1,10 +1,10 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v802.1
+ * form.js v802.2
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 主線：
- * 1. 保留 v714 分頁 / 裁切 / 預覽體驗
+ * 1. 保留 6 步驟表單 / 裁切 / 預覽體驗
  * 2. 送出前先上傳 Firebase Storage
  * 3. 正式圖片主欄位改為：
  *    - avatar_url
@@ -12,8 +12,8 @@
  *    - photo1_url ~ photo5_url
  * 4. GAS 送出主線只送文字欄位 + *_url
  * 5. 保留 invite_code / reserved_uid / tenant
- * 6. 修正 reserved_uid / TMP cardId / Firebase path 不同步問題
- * 7. 補強 objectURL / dataURL 釋放，降低 memory leak
+ * 6. 修正圖片裁切顯示透明棋盤格 / 套用白圖問題
+ * 7. 成功送出後明確顯示資料 ID + 可複製客服文案 + LINE 客服按鈕
  * ========================================= */
 
 import {
@@ -27,9 +27,9 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "802.1";
+  const VERSION = "802.2";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-  const CUSTOMER_SERVICE_URL = "https://lin.ee/3r2ZePN";
+  const CUSTOMER_SERVICE_URL = "https://lin.ee/G3VJoRm";
 
   const MB = 1024 * 1024;
   const FILE_TIER_SMALL = 1 * MB;
@@ -90,10 +90,12 @@ import {
     ratio: 1,
     outputWidth: 1200,
     outputHeight: 1200,
-    sourceImg: null,
+    sourceFile: null,
     sourceSize: 0,
     smartProfile: SMART_PROFILE.small,
-    imageBitmap: null,
+    image: null,
+    preparedWidth: 0,
+    preparedHeight: 0,
     previewDataUrl: "",
     viewScale: 1,
     minScale: 1,
@@ -168,6 +170,7 @@ import {
     initTextareasAutoGrow_();
     initGuideCards_();
     initCropper_();
+    injectSuccessBoxStyles_();
     setPlan_("free");
     renderUploadGrid_();
     renderSummary_();
@@ -337,7 +340,7 @@ import {
     if (els.btnReset) els.btnReset.addEventListener("click", onReset_);
 
     window.addEventListener("resize", () => {
-      if (els.cropModal?.classList.contains("show") && cropState.sourceImg) {
+      if (els.cropModal?.classList.contains("show") && cropState.image) {
         renderCropCanvas_();
       }
     });
@@ -512,7 +515,13 @@ import {
             return;
           }
 
-          await openCropperForFile_(item, file);
+          try {
+            await openCropperForFile_(item, file);
+          } catch (err) {
+            console.error(err);
+            setStatus_(`載入圖片失敗：${err.message || err}`);
+            fileInput.value = "";
+          }
         }, { passive: true });
       }
 
@@ -520,7 +529,12 @@ import {
         editBtn.addEventListener("click", async () => {
           const info = state.files[item.key];
           if (!info || !info.sourceFile) return;
-          await openCropperForFile_(item, info.sourceFile, info.crop);
+          try {
+            await openCropperForFile_(item, info.sourceFile, info.crop);
+          } catch (err) {
+            console.error(err);
+            setStatus_(`重新載入圖片失敗：${err.message || err}`);
+          }
         });
       }
 
@@ -1122,12 +1136,14 @@ import {
 
   function resolveCardIdFromSubmit_(result, payload, cardIdForStorage) {
     const id = normalizeCardId_(
-      result?.id ||
       result?.data?.id ||
+      result?.id ||
       result?.item?.id ||
       result?.cardId ||
       result?.data?.cardId ||
       result?.item?.cardId ||
+      result?.data?.item?.id ||
+      result?.data?.item?.cardId ||
       payload?.reserved_uid ||
       payload?.id ||
       cardIdForStorage ||
@@ -1175,48 +1191,82 @@ import {
     els.successBox.hidden = true;
     els.successBox.classList.remove("error");
     if (els.successActions) els.successActions.innerHTML = "";
+    if (els.successBody) els.successBody.innerHTML = "";
+  }
+
+  function buildServiceReplyText_(cardId) {
+    return [
+      "您好，我已送出天使幸福智慧名片申請資料。",
+      `我的資料ID是：${cardId || "（請填入資料ID）"}`,
+      "請協助後續製作，謝謝您。"
+    ].join("\n");
   }
 
   function showSuccessBox_(cardId) {
     if (!els.successBox) return;
+
+    const safeId = normalizeCardId_(cardId || "");
+    const replyText = buildServiceReplyText_(safeId);
 
     els.successBox.hidden = false;
     els.successBox.style.display = "";
     els.successBox.classList.remove("error");
 
     if (els.successTitle) els.successTitle.textContent = "送出成功";
+
     if (els.successBody) {
-      els.successBody.innerHTML = [
-        "✅ 資料已送出成功",
-        "請完成最後一步，名片才會開始製作。",
-        "① 複製您的資料 ID",
-        "② 點擊下方按鈕進入 LINE 官方帳號",
-        "③ 將資料 ID 回覆給客服",
-        "※ 未完成 LINE 回覆，名片不會進入製作流程。"
-      ].map(line => `<div>${escapeHtml_(line)}</div>`).join("");
+      els.successBody.innerHTML = `
+        <div class="hsc-success-main">
+          <div class="hsc-success-ok">✅ 資料已送出成功</div>
+
+          <div class="hsc-id-card">
+            <div class="hsc-id-label">您的資料ID</div>
+            <div class="hsc-id-value">${escapeHtml_(safeId || "未取得")}</div>
+            <div class="hsc-id-tip">請將此資料ID回覆給客服，名片才會進入後續製作流程。</div>
+          </div>
+
+          <div class="hsc-reply-card">
+            <div class="hsc-reply-label">可回覆客服文案</div>
+            <textarea class="hsc-reply-text" id="serviceReplyText" readonly>${escapeHtml_(replyText)}</textarea>
+            <div class="hsc-reply-tip">建議先複製文案，再點下方按鈕前往 LINE 官方帳號回覆客服。</div>
+          </div>
+        </div>
+      `;
     }
 
     if (els.successActions) {
       els.successActions.innerHTML = "";
 
-      const copyBtn = document.createElement("button");
-      copyBtn.type = "button";
-      copyBtn.textContent = "複製 ID";
-      copyBtn.addEventListener("click", async () => {
-        const ok = await copyText_(cardId || "");
-        copyBtn.textContent = ok ? "已複製 ID" : "複製失敗";
-        setTimeout(() => { copyBtn.textContent = "複製 ID"; }, 1400);
+      const copyIdBtn = document.createElement("button");
+      copyIdBtn.type = "button";
+      copyIdBtn.className = "secondary";
+      copyIdBtn.textContent = "複製資料ID";
+      copyIdBtn.addEventListener("click", async () => {
+        const ok = await copyText_(safeId || "");
+        flashButtonText_(copyIdBtn, ok ? "已複製資料ID" : "複製失敗", "複製資料ID");
       });
 
-      const replyBtn = document.createElement("button");
-      replyBtn.type = "button";
-      replyBtn.className = "secondary";
-      replyBtn.textContent = "進入 LINE 官方帳號回覆客服";
-      replyBtn.addEventListener("click", () => {
+      const copyReplyBtn = document.createElement("button");
+      copyReplyBtn.type = "button";
+      copyReplyBtn.textContent = "一鍵複製客服文案";
+      copyReplyBtn.addEventListener("click", async () => {
+        const textArea = document.getElementById("serviceReplyText");
+        if (textArea) {
+          try { textArea.focus(); textArea.select(); } catch (_) {}
+        }
+        const ok = await copyText_(replyText);
+        flashButtonText_(copyReplyBtn, ok ? "已複製客服文案" : "複製失敗", "一鍵複製客服文案");
+      });
+
+      const lineBtn = document.createElement("button");
+      lineBtn.type = "button";
+      lineBtn.className = "secondary";
+      lineBtn.textContent = "前往 LINE 官方帳號回覆客服";
+      lineBtn.addEventListener("click", () => {
         window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
       });
 
-      els.successActions.append(copyBtn, replyBtn);
+      els.successActions.append(copyIdBtn, copyReplyBtn, lineBtn);
     }
   }
 
@@ -1227,18 +1277,36 @@ import {
     els.successBox.classList.add("error");
 
     if (els.successTitle) els.successTitle.textContent = "送出失敗";
-    if (els.successBody) els.successBody.textContent = message || "送出失敗";
+    if (els.successBody) {
+      els.successBody.innerHTML = `
+        <div class="hsc-success-main">
+          <div class="hsc-id-card" style="border-color:rgba(251,113,133,.22);background:rgba(251,113,133,.06);">
+            <div class="hsc-id-label">送出狀態</div>
+            <div class="hsc-id-tip" style="color:rgba(255,255,255,.92);">${escapeHtml_(message || "送出失敗，請稍後再試。")}</div>
+          </div>
+        </div>
+      `;
+    }
+
     if (els.successActions) {
       els.successActions.innerHTML = "";
       const replyBtn = document.createElement("button");
       replyBtn.type = "button";
       replyBtn.className = "secondary";
-      replyBtn.textContent = "進入 LINE 官方帳號回覆客服";
+      replyBtn.textContent = "前往 LINE 官方帳號回覆客服";
       replyBtn.addEventListener("click", () => {
         window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
       });
       els.successActions.appendChild(replyBtn);
     }
+  }
+
+  function flashButtonText_(btn, activeText, restoreText) {
+    if (!btn) return;
+    btn.textContent = activeText;
+    setTimeout(() => {
+      btn.textContent = restoreText;
+    }, 1400);
   }
 
   function onReset_() {
@@ -1276,7 +1344,7 @@ import {
     if (!els.cropCanvas) return;
 
     const onPointerDown = (e) => {
-      if (!cropState.sourceImg) return;
+      if (!cropState.image) return;
       cropState.drag.active = true;
       if (els.cropStage) els.cropStage.classList.add("dragging");
       const p = getPoint_(e);
@@ -1284,6 +1352,7 @@ import {
       cropState.drag.startY = p.y;
       cropState.drag.baseX = cropState.offsetX;
       cropState.drag.baseY = cropState.offsetY;
+      if (e.cancelable) e.preventDefault();
     };
 
     const onPointerMove = (e) => {
@@ -1293,6 +1362,7 @@ import {
       cropState.offsetY = cropState.drag.baseY + (p.y - cropState.drag.startY);
       clampCropOffset_();
       renderCropCanvas_();
+      if (e.cancelable) e.preventDefault();
     };
 
     const onPointerUp = () => {
@@ -1304,9 +1374,10 @@ import {
     window.addEventListener("mousemove", onPointerMove);
     window.addEventListener("mouseup", onPointerUp);
 
-    els.cropCanvas.addEventListener("touchstart", onPointerDown, { passive: true });
-    window.addEventListener("touchmove", onPointerMove, { passive: true });
+    els.cropCanvas.addEventListener("touchstart", onPointerDown, { passive: false });
+    window.addEventListener("touchmove", onPointerMove, { passive: false });
     window.addEventListener("touchend", onPointerUp);
+    window.addEventListener("touchcancel", onPointerUp);
 
     if (els.cropZoomOut) {
       els.cropZoomOut.addEventListener("click", () => {
@@ -1362,10 +1433,12 @@ import {
     cropState.ratio = item.outputWidth / item.outputHeight;
     cropState.outputWidth = item.outputWidth;
     cropState.outputHeight = item.outputHeight;
-    cropState.sourceImg = file;
+    cropState.sourceFile = file;
     cropState.sourceSize = file.size || 0;
     cropState.smartProfile = prepared.profile;
-    cropState.imageBitmap = prepared.image;
+    cropState.image = prepared.image;
+    cropState.preparedWidth = prepared.width;
+    cropState.preparedHeight = prepared.height;
     cropState.previewDataUrl = prepared.previewDataUrl || "";
 
     if (els.cropTitle) els.cropTitle.textContent = `調整${item.label}位置`;
@@ -1384,17 +1457,22 @@ import {
       els.cropStage.classList.add(item.ratioClass);
     }
 
-    resetCropView_(existingCrop);
     if (els.cropModal) els.cropModal.classList.add("show");
-    renderCropCanvas_();
-    setStatus_("圖片已載入，可開始裁切。");
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resetCropView_(existingCrop);
+        renderCropCanvas_();
+        setStatus_("圖片已載入，可開始裁切。");
+      });
+    });
   }
 
   function resetCropView_(existingCrop = null) {
-    if (!cropState.imageBitmap || !els.cropCanvas) return;
+    if (!cropState.image || !els.cropCanvas) return;
 
     const stageSize = getCropStageSize_();
-    const img = cropState.imageBitmap;
+    const img = cropState.image;
     const fitScale = Math.max(stageSize.w / img.width, stageSize.h / img.height);
 
     cropState.baseFitScale = fitScale;
@@ -1409,6 +1487,8 @@ import {
     const rect = els.cropStage.getBoundingClientRect();
     const dpr = Math.max(1, window.devicePixelRatio || 1);
     return {
+      cssW: Math.max(1, Math.round(rect.width)),
+      cssH: Math.max(1, Math.round(rect.height)),
       w: Math.max(1, Math.round(rect.width * dpr)),
       h: Math.max(1, Math.round(rect.height * dpr)),
       dpr
@@ -1416,10 +1496,10 @@ import {
   }
 
   function clampCropOffset_() {
-    if (!cropState.imageBitmap || !els.cropCanvas) return;
+    if (!cropState.image || !els.cropCanvas) return;
 
     const stage = getCropStageSize_();
-    const img = cropState.imageBitmap;
+    const img = cropState.image;
     const scaledW = img.width * cropState.viewScale;
     const scaledH = img.height * cropState.viewScale;
 
@@ -1431,7 +1511,7 @@ import {
   }
 
   function renderCropCanvas_() {
-    if (!cropState.imageBitmap || !els.cropCanvas) return;
+    if (!cropState.image || !els.cropCanvas) return;
 
     const stage = getCropStageSize_();
     const canvas = els.cropCanvas;
@@ -1442,7 +1522,7 @@ import {
 
     ctx.clearRect(0, 0, stage.w, stage.h);
 
-    const img = cropState.imageBitmap;
+    const img = cropState.image;
     const scaledW = img.width * cropState.viewScale;
     const scaledH = img.height * cropState.viewScale;
     const x = (stage.w - scaledW) / 2 + cropState.offsetX;
@@ -1455,52 +1535,56 @@ import {
     ctx.restore();
 
     ctx.save();
-    ctx.strokeStyle = "rgba(255,255,255,.85)";
+    ctx.strokeStyle = "rgba(255,255,255,.88)";
     ctx.lineWidth = Math.max(2, 2 * stage.dpr);
     ctx.strokeRect(0, 0, stage.w, stage.h);
     ctx.restore();
   }
 
   async function applyCrop_() {
-    if (!cropState.imageBitmap || !cropState.targetKey) return;
+    if (!cropState.image || !cropState.targetKey) return;
 
-    const outCanvas = document.createElement("canvas");
-    outCanvas.width = cropState.outputWidth;
-    outCanvas.height = cropState.outputHeight;
-    const ctx = outCanvas.getContext("2d");
-
-    const img = cropState.imageBitmap;
     const stage = getCropStageSize_();
+    const img = cropState.image;
+
+    const stageCanvas = document.createElement("canvas");
+    stageCanvas.width = stage.w;
+    stageCanvas.height = stage.h;
+    const stageCtx = stageCanvas.getContext("2d");
+
     const scaledW = img.width * cropState.viewScale;
     const scaledH = img.height * cropState.viewScale;
     const x = (stage.w - scaledW) / 2 + cropState.offsetX;
     const y = (stage.h - scaledH) / 2 + cropState.offsetY;
 
-    const scaleToOutputX = cropState.outputWidth / stage.w;
-    const scaleToOutputY = cropState.outputHeight / stage.h;
+    stageCtx.clearRect(0, 0, stage.w, stage.h);
+    stageCtx.fillStyle = "#ffffff";
+    stageCtx.fillRect(0, 0, stage.w, stage.h);
+    stageCtx.imageSmoothingEnabled = true;
+    stageCtx.imageSmoothingQuality = "high";
+    stageCtx.drawImage(img, x, y, scaledW, scaledH);
 
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, cropState.outputWidth, cropState.outputHeight);
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-
-    ctx.drawImage(
-      img,
-      x * scaleToOutputX,
-      y * scaleToOutputY,
-      scaledW * scaleToOutputX,
-      scaledH * scaleToOutputY
-    );
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = cropState.outputWidth;
+    outCanvas.height = cropState.outputHeight;
+    const outCtx = outCanvas.getContext("2d");
+    outCtx.fillStyle = "#ffffff";
+    outCtx.fillRect(0, 0, cropState.outputWidth, cropState.outputHeight);
+    outCtx.imageSmoothingEnabled = true;
+    outCtx.imageSmoothingQuality = "high";
+    outCtx.drawImage(stageCanvas, 0, 0, cropState.outputWidth, cropState.outputHeight);
 
     const quality = cropState.smartProfile.outputQuality;
     const blob = await canvasToBlob_(outCanvas, "image/jpeg", quality);
+    if (!blob || !blob.size) throw new Error("裁切後輸出的圖片無效");
+
     const previewUrl = URL.createObjectURL(blob);
 
     const oldInfo = state.files[cropState.targetKey];
     if (oldInfo) revokeFileUrls_(oldInfo);
 
     state.files[cropState.targetKey] = {
-      sourceFile: cropState.sourceImg,
+      sourceFile: cropState.sourceFile,
       blob,
       previewUrl,
       remoteUrl: "",
@@ -1524,14 +1608,14 @@ import {
   }
 
   function cleanupCropResources_() {
-    if (cropState.previewDataUrl) {
-      cropState.previewDataUrl = "";
-    }
-    cropState.imageBitmap = null;
-    cropState.sourceImg = null;
+    cropState.image = null;
+    cropState.previewDataUrl = "";
+    cropState.sourceFile = null;
     cropState.sourceSize = 0;
     cropState.targetKey = "";
     cropState.targetLabel = "";
+    cropState.preparedWidth = 0;
+    cropState.preparedHeight = 0;
     cropState.viewScale = 1;
     cropState.minScale = 1;
     cropState.baseFitScale = 1;
@@ -1552,25 +1636,21 @@ import {
     const arrayBuffer = await file.arrayBuffer();
     const orientation = getJpegOrientation_(arrayBuffer);
 
-    const sourceObjectUrl = URL.createObjectURL(file);
-    let original;
-    try {
-      original = await loadImage_(sourceObjectUrl);
-    } finally {
-      try { URL.revokeObjectURL(sourceObjectUrl); } catch (_) {}
-    }
+    const rawDataUrl = await readFileAsDataURL_(file);
+    const original = await loadImage_(rawDataUrl);
 
     const correctedCanvas = drawImageWithOrientation_(original, orientation);
     const normalizedCanvas = shrinkCanvasIfNeeded_(correctedCanvas, profile.maxLong, profile.maxShort);
 
-    const previewDataUrl = normalizedCanvas.toDataURL("image/jpeg", profile.previewQuality);
+    const previewBlob = await canvasToBlob_(normalizedCanvas, "image/jpeg", profile.previewQuality);
+    const previewDataUrl = await blobToDataURL_(previewBlob);
     const finalImg = await loadImage_(previewDataUrl);
 
     const meta = [];
     meta.push(`智慧壓縮：${profile.label}`);
     if (orientation > 1) meta.push(`已修正照片方向（EXIF ${orientation}）`);
-    if (original.width !== finalImg.width || original.height !== finalImg.height) {
-      meta.push(`已預縮圖：${original.width}×${original.height} → ${finalImg.width}×${finalImg.height}`);
+    if (original.naturalWidth !== finalImg.naturalWidth || original.naturalHeight !== finalImg.naturalHeight) {
+      meta.push(`已預縮圖：${original.naturalWidth}×${original.naturalHeight} → ${finalImg.naturalWidth}×${finalImg.naturalHeight}`);
     }
     meta.push(`原始大小：約 ${(file.size / MB).toFixed(2)} MB`);
 
@@ -1578,6 +1658,8 @@ import {
       image: finalImg,
       profile,
       previewDataUrl,
+      width: finalImg.naturalWidth || finalImg.width,
+      height: finalImg.naturalHeight || finalImg.height,
       metaText: meta.join("｜")
     };
   }
@@ -1721,9 +1803,35 @@ import {
   function loadImage_(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
+      img.decoding = "async";
+      img.onload = async () => {
+        try {
+          if (typeof img.decode === "function") {
+            await img.decode().catch(() => {});
+          }
+        } catch (_) {}
+        resolve(img);
+      };
+      img.onerror = () => reject(new Error("圖片載入失敗"));
       img.src = src;
+    });
+  }
+
+  function readFileAsDataURL_(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("讀取圖片失敗"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function blobToDataURL_(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("轉換圖片失敗"));
+      reader.readAsDataURL(blob);
     });
   }
 
@@ -1740,21 +1848,81 @@ import {
     const v = text(value);
     if (!v) return false;
     try {
-      await navigator.clipboard.writeText(v);
-      return true;
-    } catch (_) {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(v);
+        return true;
+      }
+    } catch (_) {}
+
+    try {
       const ta = document.createElement("textarea");
       ta.value = v;
+      ta.setAttribute("readonly", "readonly");
       ta.style.position = "fixed";
       ta.style.opacity = "0";
       ta.style.left = "-9999px";
+      ta.style.top = "0";
       document.body.appendChild(ta);
       ta.focus();
       ta.select();
+      ta.setSelectionRange(0, ta.value.length);
       const ok = document.execCommand("copy");
       ta.remove();
       return !!ok;
+    } catch (_) {
+      return false;
     }
+  }
+
+  function injectSuccessBoxStyles_() {
+    if (document.getElementById("hsc-form-success-extra-style")) return;
+    const style = document.createElement("style");
+    style.id = "hsc-form-success-extra-style";
+    style.textContent = `
+      .hsc-success-main{display:grid;gap:12px;}
+      .hsc-success-ok{font-weight:1000;font-size:13px;line-height:1.8;color:#fff;}
+      .hsc-id-card,.hsc-reply-card{
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:14px;
+        background:rgba(255,255,255,.05);
+        padding:12px;
+      }
+      .hsc-id-label,.hsc-reply-label{
+        font-size:11px;
+        color:rgba(255,255,255,.72);
+        font-weight:1000;
+        margin-bottom:6px;
+      }
+      .hsc-id-value{
+        font-size:24px;
+        line-height:1.25;
+        font-weight:1000;
+        letter-spacing:.03em;
+        color:#fff;
+        word-break:break-word;
+      }
+      .hsc-id-tip,.hsc-reply-tip{
+        margin-top:6px;
+        font-size:11px;
+        line-height:1.8;
+        color:rgba(255,255,255,.78);
+      }
+      .hsc-reply-text{
+        width:100%;
+        min-height:112px;
+        resize:none;
+        background:rgba(255,255,255,.06);
+        color:#fff;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:12px;
+        padding:12px;
+        font-size:13px;
+        line-height:1.8;
+        outline:none;
+        margin:0;
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   function escapeHtml_(str) {
