@@ -1,5 +1,5 @@
 /* =========================================
- * HSC update-form.js v802
+ * HSC update-form.js v802.1
  * COMPLETE OVERWRITE
  *
  * 主線：
@@ -20,7 +20,7 @@ import {
 } from "./firebase.js";
 
 const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-const VERSION = "802";
+const VERSION = "802.1";
 
 const UPDATE_FIELDS = [
   "name","unit","title","slogan","services","experience",
@@ -104,6 +104,7 @@ const state = {
   loading: false,
   submitting: false,
   imageUploading: false,
+  firebaseReady: false,
   cropper: {
     open: false,
     slotKey: "",
@@ -138,6 +139,24 @@ function escCssUrl(url){
   return String(url || "").replace(/"/g, '\\"');
 }
 
+function hasText(v){
+  return clean(v) !== "";
+}
+
+function lower(v){
+  return clean(v).toLowerCase();
+}
+
+function isExpiredMessage(msg){
+  const s = lower(msg);
+  return s.includes("expired") || s.includes("expire") || s.includes("已過期") || s.includes("過期");
+}
+
+function isInvalidTokenMessage(msg){
+  const s = lower(msg);
+  return s.includes("invalid token") || s.includes("invalid utoken") || s.includes("token invalid") || s.includes("token 錯誤") || s.includes("驗證失敗") || s.includes("無效");
+}
+
 function setStatus(type, text){
   const box = $("#statusBox");
   if (!box) return;
@@ -155,7 +174,7 @@ function clearStatus(){
 function lockForm(locked){
   const form = $("#updateForm");
   if(!form) return;
-  const fields = form.querySelectorAll("input, textarea, button");
+  const fields = form.querySelectorAll("input, textarea, button, select");
   fields.forEach(el => {
     if(el.id === "btnTop") return;
     if(el.id === "btnCropClose") return;
@@ -195,15 +214,56 @@ function getFieldValue(id){
   return el ? clean(el.value) : "";
 }
 
+function getResponseData(res){
+  if(!res || typeof res !== "object") return null;
+  return res.data || res.item || res.card || null;
+}
+
+function normalizeApiError(res){
+  const raw = clean(
+    (res && (res.error || res.message || res.msg || res.reason || "")) || ""
+  );
+
+  if (isExpiredMessage(raw)) {
+    return "此更新連結已過期，請聯繫客服重新取得更新連結。";
+  }
+
+  if (isInvalidTokenMessage(raw)) {
+    return "更新驗證失敗，請確認連結是否正確，或聯繫客服重新取得更新連結。";
+  }
+
+  return raw || "發生未知錯誤，請聯繫客服。";
+}
+
+function normalizeThrownError(err, fallback){
+  const msg = clean(err && err.message);
+  if (msg === "INVALID_JSON") {
+    return "系統回傳格式錯誤（invalid json），請稍後再試或聯繫客服。";
+  }
+  if (msg === "NETWORK_FAIL") {
+    return "網路連線失敗（network fail），請檢查網路後再試。";
+  }
+  if (isExpiredMessage(msg)) {
+    return "此更新連結已過期，請聯繫客服重新取得更新連結。";
+  }
+  if (isInvalidTokenMessage(msg)) {
+    return "更新驗證失敗，請確認連結是否正確，或聯繫客服重新取得更新連結。";
+  }
+  return msg || fallback || "系統忙碌中，請稍後再試。";
+}
+
 function fillForm(item){
+  const data = item || {};
+
   UPDATE_FIELDS.forEach(key => {
     const el = document.getElementById(key);
     if(!el) return;
-    el.value = item[key] == null ? "" : String(item[key]);
+    el.value = data[key] == null ? "" : String(data[key]);
   });
 
   Object.values(IMAGE_SLOTS).forEach(slot => {
-    const url = clean(item[slot.field] || "");
+    const url = clean(data[slot.field] || "");
+    revokeSlotLocalUrlIfRemoteSame(slot.key, url);
     setPreview(slot.previewId, url);
     setImageStatus(slot.key, url ? "已載入" : "未設定");
   });
@@ -232,40 +292,46 @@ async function apiGet(params){
     url.searchParams.set(k, params[k]);
   });
 
-  const res = await fetch(url.toString(), {
-    method: "GET",
-    cache: "no-store"
-  });
+  let res;
+  try{
+    res = await fetch(url.toString(), {
+      method: "GET",
+      cache: "no-store"
+    });
+  }catch(_){
+    throw new Error("NETWORK_FAIL");
+  }
 
   const text = await res.text();
+
   try {
     return JSON.parse(text);
   } catch {
-    throw new Error("GAS 回傳不是合法 JSON");
+    throw new Error("INVALID_JSON");
   }
 }
 
 async function apiPostJson(payload){
-  const res = await fetch(GAS_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain;charset=UTF-8"
-    },
-    body: JSON.stringify(payload)
-  });
+  let res;
+  try{
+    res = await fetch(GAS_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=UTF-8"
+      },
+      body: JSON.stringify(payload)
+    });
+  }catch(_){
+    throw new Error("NETWORK_FAIL");
+  }
 
   const text = await res.text();
+
   try {
     return JSON.parse(text);
   } catch {
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    throw new Error("GAS 回傳不是合法 JSON");
+    throw new Error("INVALID_JSON");
   }
-}
-
-function buildErrMsg(res){
-  if(!res) return "系統沒有回應，請稍後再試。";
-  return String(res.error || res.message || "發生未知錯誤，請聯繫客服。");
 }
 
 async function loadCard(){
@@ -291,23 +357,31 @@ async function loadCard(){
 
     if(!res || !res.ok){
       showForm(false);
-      setStatus(
-        "bad",
-        buildErrMsg(res).includes("expired")
-          ? "此更新連結已過期，請聯繫客服重新取得更新連結。"
-          : buildErrMsg(res)
-      );
+      setStatus("bad", normalizeApiError(res));
       return;
     }
 
-    fillForm(res.item || res.card || {});
+    const item = getResponseData(res);
+
+    if(!item || typeof item !== "object"){
+      showForm(false);
+      setStatus("bad", "載入成功但找不到可用資料，請聯繫客服協助處理。");
+      return;
+    }
+
+    fillForm(item);
     state.loaded = true;
     showForm(true);
-    setStatus("ok", "資料已載入，請確認後送出更新。圖片可直接上傳與裁切。");
+
+    if(state.firebaseReady){
+      setStatus("ok", "資料已載入，請確認後送出更新。圖片可直接上傳與裁切。");
+    }else{
+      setStatus("warn", "資料已載入。Firebase 初始化失敗，圖片更新可能無法使用，但文字更新仍可送出。");
+    }
   }catch(err){
     console.error(err);
     showForm(false);
-    setStatus("bad", "載入失敗，請檢查網路或聯繫客服。");
+    setStatus("bad", normalizeThrownError(err, "載入失敗，請檢查網路或聯繫客服。"));
   }finally{
     state.loading = false;
     lockForm(false);
@@ -317,10 +391,18 @@ async function loadCard(){
 async function submitForm(ev){
   ev.preventDefault();
   if(state.submitting) return;
+
+  if(!state.id || !state.utoken){
+    showForm(false);
+    setStatus("bad", "缺少更新驗證資訊，無法送出。請聯繫客服重新取得更新連結。");
+    return;
+  }
+
   if(state.imageUploading){
     setStatus("warn", "目前仍有圖片上傳中，請稍候完成後再送出。");
     return;
   }
+
   if(state.cropper.open){
     setStatus("warn", "請先完成目前圖片編輯，再送出更新。");
     return;
@@ -335,13 +417,7 @@ async function submitForm(ev){
     const res = await apiPostJson(payload);
 
     if(!res || !res.ok){
-      const msg = buildErrMsg(res);
-      setStatus(
-        "bad",
-        msg.includes("expired")
-          ? "此更新連結已過期，請聯繫客服重新取得更新連結。"
-          : msg
-      );
+      setStatus("bad", normalizeApiError(res));
       return;
     }
 
@@ -349,7 +425,7 @@ async function submitForm(ev){
     showForm(false);
   }catch(err){
     console.error(err);
-    setStatus("bad", "送出失敗，請稍後再試。");
+    setStatus("bad", normalizeThrownError(err, "送出失敗，請稍後再試。"));
   }finally{
     state.submitting = false;
     lockForm(false);
@@ -388,7 +464,12 @@ function blobToDataURL(blob){
 }
 
 function canvasToBlob(canvas, type = "image/jpeg", quality = 0.9){
-  return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if(blob) resolve(blob);
+      else reject(new Error("無法產生裁切圖檔"));
+    }, type, quality);
+  });
 }
 
 async function downscaleImage(img, maxSide = 2200, type = "image/jpeg", quality = 0.9){
@@ -433,14 +514,16 @@ function getCropCanvasElements(){
 
 function updateCropStageClass(ratio){
   const { stage, previewWrap } = getCropCanvasElements();
+  if (!stage) return;
   const isWide = Math.abs(ratio - 1) > 0.05;
   stage.classList.toggle("wide", isWide);
   stage.classList.toggle("square", !isWide);
-  previewWrap.classList.toggle("wide", isWide);
+  if (previewWrap) previewWrap.classList.toggle("wide", isWide);
 }
 
 function resizeCropCanvasByRatio(ratio){
   const { canvas } = getCropCanvasElements();
+  if(!canvas) return;
   const baseW = 900;
   const baseH = Math.round(baseW / ratio);
   canvas.width = baseW;
@@ -474,12 +557,15 @@ function openCropper(slotKey, imageObj){
   crop.lastDy = 0;
 
   const ui = getCropCanvasElements();
-  ui.zoomRange.value = "1";
-  ui.title.textContent = `${slot.title}｜圖片編輯`;
-  ui.previewImage.src = "";
+  if(ui.zoomRange) ui.zoomRange.value = "1";
+  if(ui.title) ui.title.textContent = `${slot.title}｜圖片編輯`;
+  if(ui.previewImage) ui.previewImage.src = "";
 
-  $("#cropModal").classList.add("show");
-  $("#cropModal").setAttribute("aria-hidden", "false");
+  const modal = $("#cropModal");
+  if(modal){
+    modal.classList.add("show");
+    modal.setAttribute("aria-hidden", "false");
+  }
 
   renderCropCanvas();
 }
@@ -491,8 +577,12 @@ function closeCropper(){
   crop.image = null;
   crop.ratio = 1;
   crop.dragging = false;
-  $("#cropModal").classList.remove("show");
-  $("#cropModal").setAttribute("aria-hidden", "true");
+
+  const modal = $("#cropModal");
+  if(modal){
+    modal.classList.remove("show");
+    modal.setAttribute("aria-hidden", "true");
+  }
 }
 
 function renderCropCanvas(){
@@ -500,6 +590,8 @@ function renderCropCanvas(){
   if(!crop.open || !crop.image) return;
 
   const { canvas, previewImage } = getCropCanvasElements();
+  if(!canvas) return;
+
   const ctx = canvas.getContext("2d");
   const cw = canvas.width;
   const ch = canvas.height;
@@ -522,15 +614,17 @@ function renderCropCanvas(){
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, cw - 2, ch - 2);
 
-  previewImage.src = canvas.toDataURL("image/jpeg", 0.92);
+  if(previewImage){
+    previewImage.src = canvas.toDataURL("image/jpeg", 0.92);
+  }
 }
 
 function clampScale(val){
-  return Math.min(3, Math.max(0.8, val));
+  return Math.min(3, Math.max(0.8, Number(val || 1)));
 }
 
 function updateZoomFromRange(val){
-  state.cropper.scale = clampScale(Number(val || 1));
+  state.cropper.scale = clampScale(val);
   renderCropCanvas();
 }
 
@@ -541,7 +635,8 @@ function resetCropperPosition(){
   crop.dy = 0;
   crop.lastDx = 0;
   crop.lastDy = 0;
-  $("#zoomRange").value = "1";
+  const zoomRange = $("#zoomRange");
+  if(zoomRange) zoomRange.value = "1";
   renderCropCanvas();
 }
 
@@ -553,10 +648,32 @@ function centerCropper(){
   renderCropCanvas();
 }
 
+function revokeSlotLocalUrl(slotKey){
+  const info = state.imageEdits[slotKey];
+  if(info && info.localUrl){
+    try { URL.revokeObjectURL(info.localUrl); } catch (_) {}
+  }
+}
+
+function revokeSlotLocalUrlIfRemoteSame(slotKey, remoteUrl){
+  const info = state.imageEdits[slotKey];
+  if(!info) return;
+  if(clean(info.remoteUrl) && clean(info.remoteUrl) === clean(remoteUrl)){
+    revokeSlotLocalUrl(slotKey);
+    info.localUrl = "";
+  }
+}
+
 async function applyCropAndUpload(){
   const crop = state.cropper;
   const slot = IMAGE_SLOTS[crop.slotKey];
   if(!crop.open || !crop.image || !slot) return;
+
+  if(!state.firebaseReady){
+    setImageStatus(slot.key, "Firebase 未就緒");
+    setStatus("bad", "Firebase 初始化失敗，圖片更新目前無法使用。");
+    return;
+  }
 
   state.imageUploading = true;
   lockForm(true);
@@ -565,19 +682,16 @@ async function applyCropAndUpload(){
 
   try{
     const { canvas } = getCropCanvasElements();
+    if(!canvas){
+      throw new Error("找不到裁切畫布");
+    }
+
     const outType = "image/jpeg";
     const outQuality = slot.ratio === 1 ? 0.9 : 0.88;
     const blob = await canvasToBlob(canvas, outType, outQuality);
-
-    if(!blob){
-      throw new Error("無法產生裁切圖檔");
-    }
-
     const localUrl = URL.createObjectURL(blob);
 
-    if (state.imageEdits[slot.key]?.localUrl) {
-      try { URL.revokeObjectURL(state.imageEdits[slot.key].localUrl); } catch (_) {}
-    }
+    revokeSlotLocalUrl(slot.key);
 
     state.imageEdits[slot.key] = {
       blob,
@@ -601,7 +715,7 @@ async function applyCropAndUpload(){
   }catch(err){
     console.error(err);
     setImageStatus(slot.key, "上傳失敗");
-    setStatus("bad", `${slot.title} 上傳失敗，請稍後再試。`);
+    setStatus("bad", normalizeThrownError(err, `${slot.title} 上傳失敗，請稍後再試。`));
   }finally{
     state.imageUploading = false;
     lockForm(false);
@@ -611,6 +725,7 @@ async function applyCropAndUpload(){
 async function uploadImageForSlot(slotKey, blob){
   if(!blob) throw new Error("missing blob");
   if(!state.id) throw new Error("missing card id");
+  if(!state.firebaseReady) throw new Error("Firebase 未就緒");
 
   let url = "";
 
@@ -636,14 +751,22 @@ async function handlePickFile(slotKey, file){
   try{
     if(!file) return;
 
+    if(!state.firebaseReady){
+      setImageStatus(slotKey, "Firebase 未就緒");
+      setStatus("bad", "Firebase 初始化失敗，圖片更新可能無法使用。");
+      return;
+    }
+
     const isImage = /^image\//i.test(file.type || "");
     if(!isImage){
       setStatus("bad", "請選擇圖片檔案。");
+      setImageStatus(slotKey, "格式錯誤");
       return;
     }
 
     if(file.size > 18 * 1024 * 1024){
       setStatus("bad", "圖片過大，請選擇 18MB 以下的檔案。");
+      setImageStatus(slotKey, "檔案過大");
       return;
     }
 
@@ -675,9 +798,7 @@ function clearSlot(slotKey){
   const fileInput = document.getElementById(slot.fileId);
   if(fileInput) fileInput.value = "";
 
-  if(state.imageEdits[slot.key]?.localUrl){
-    try{ URL.revokeObjectURL(state.imageEdits[slot.key].localUrl); }catch(_){}
-  }
+  revokeSlotLocalUrl(slot.key);
   delete state.imageEdits[slot.key];
 }
 
@@ -686,7 +807,8 @@ function startDrag(clientX, clientY){
   state.cropper.dragging = true;
   state.cropper.dragStartX = clientX;
   state.cropper.dragStartY = clientY;
-  $("#cropStage").classList.add("dragging");
+  const stage = $("#cropStage");
+  if(stage) stage.classList.add("dragging");
 }
 
 function moveDrag(clientX, clientY){
@@ -703,7 +825,8 @@ function endDrag(){
   crop.dragging = false;
   crop.lastDx = crop.dx;
   crop.lastDy = crop.dy;
-  $("#cropStage").classList.remove("dragging");
+  const stage = $("#cropStage");
+  if(stage) stage.classList.remove("dragging");
 }
 
 /* =========================
@@ -713,46 +836,56 @@ function endDrag(){
 function bindCropperEvents(){
   const stage = $("#cropStage");
   const zoomRange = $("#zoomRange");
+  const btnCropClose = $("#btnCropClose");
+  const btnZoomOut = $("#btnZoomOut");
+  const btnZoomIn = $("#btnZoomIn");
+  const btnCenter = $("#btnCenter");
+  const btnReset = $("#btnReset");
+  const btnCropApply = $("#btnCropApply");
 
-  $("#btnCropClose").addEventListener("click", closeCropper);
+  if(btnCropClose) btnCropClose.addEventListener("click", closeCropper);
 
-  $("#btnZoomOut").addEventListener("click", () => {
+  if(btnZoomOut) btnZoomOut.addEventListener("click", () => {
     const next = clampScale(state.cropper.scale - 0.08);
-    $("#zoomRange").value = String(next);
+    if(zoomRange) zoomRange.value = String(next);
     updateZoomFromRange(next);
   });
 
-  $("#btnZoomIn").addEventListener("click", () => {
+  if(btnZoomIn) btnZoomIn.addEventListener("click", () => {
     const next = clampScale(state.cropper.scale + 0.08);
-    $("#zoomRange").value = String(next);
+    if(zoomRange) zoomRange.value = String(next);
     updateZoomFromRange(next);
   });
 
-  $("#btnCenter").addEventListener("click", centerCropper);
-  $("#btnReset").addEventListener("click", resetCropperPosition);
-  $("#btnCropApply").addEventListener("click", applyCropAndUpload);
+  if(btnCenter) btnCenter.addEventListener("click", centerCropper);
+  if(btnReset) btnReset.addEventListener("click", resetCropperPosition);
+  if(btnCropApply) btnCropApply.addEventListener("click", applyCropAndUpload);
 
-  zoomRange.addEventListener("input", (ev) => {
-    updateZoomFromRange(ev.target.value);
-  });
+  if(zoomRange){
+    zoomRange.addEventListener("input", (ev) => {
+      updateZoomFromRange(ev.target.value);
+    });
+  }
 
-  stage.addEventListener("mousedown", (ev) => startDrag(ev.clientX, ev.clientY));
+  if(stage){
+    stage.addEventListener("mousedown", (ev) => startDrag(ev.clientX, ev.clientY));
+    stage.addEventListener("touchstart", (ev) => {
+      const t = ev.touches && ev.touches[0];
+      if(!t) return;
+      startDrag(t.clientX, t.clientY);
+    }, { passive: true });
+
+    stage.addEventListener("touchmove", (ev) => {
+      const t = ev.touches && ev.touches[0];
+      if(!t) return;
+      moveDrag(t.clientX, t.clientY);
+    }, { passive: true });
+
+    stage.addEventListener("touchend", endDrag, { passive: true });
+  }
+
   window.addEventListener("mousemove", (ev) => moveDrag(ev.clientX, ev.clientY));
   window.addEventListener("mouseup", endDrag);
-
-  stage.addEventListener("touchstart", (ev) => {
-    const t = ev.touches && ev.touches[0];
-    if(!t) return;
-    startDrag(t.clientX, t.clientY);
-  }, { passive: true });
-
-  stage.addEventListener("touchmove", (ev) => {
-    const t = ev.touches && ev.touches[0];
-    if(!t) return;
-    moveDrag(t.clientX, t.clientY);
-  }, { passive: true });
-
-  stage.addEventListener("touchend", endDrag, { passive: true });
 
   window.addEventListener("keydown", (ev) => {
     if(!state.cropper.open) return;
@@ -802,35 +935,63 @@ function bindImageSlotEvents(){
 }
 
 function bindEvents(){
-  $("#updateForm").addEventListener("submit", submitForm);
+  const form = $("#updateForm");
+  const btnReload = $("#btnReload");
+  const btnTop = $("#btnTop");
 
-  $("#btnReload").addEventListener("click", async () => {
-    await loadCard();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+  if(form) form.addEventListener("submit", submitForm);
 
-  $("#btnTop").addEventListener("click", () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+  if(btnReload){
+    btnReload.addEventListener("click", async () => {
+      await loadCard();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  if(btnTop){
+    btnTop.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
 
   bindImageSlotEvents();
   bindCropperEvents();
+}
+
+async function initFirebaseSafe(){
+  try {
+    initFirebase();
+    await ensureAuth();
+    state.firebaseReady = true;
+  } catch (err) {
+    console.error(err);
+    state.firebaseReady = false;
+    setStatus("bad", "Firebase 初始化失敗，圖片更新可能無法使用。");
+  }
+}
+
+function cleanupAllObjectUrls(){
+  Object.keys(state.imageEdits).forEach(slotKey => {
+    revokeSlotLocalUrl(slotKey);
+  });
 }
 
 async function init(){
   state.id = getParam("id");
   state.utoken = getParam("utoken");
 
-  try {
-    initFirebase();
-    await ensureAuth();
-  } catch (err) {
-    console.error(err);
-    setStatus("bad", "Firebase 初始化失敗，圖片更新可能無法使用。");
+  bindEvents();
+
+  if(!state.id || !state.utoken){
+    showForm(false);
+    setStatus("bad", "缺少 id 或 utoken，請聯繫客服重新取得更新連結。");
+    return;
   }
 
-  bindEvents();
-  loadCard();
+  await initFirebaseSafe();
+  await loadCard();
+
+  window.addEventListener("beforeunload", cleanupAllObjectUrls);
 }
 
 document.addEventListener("DOMContentLoaded", init);
