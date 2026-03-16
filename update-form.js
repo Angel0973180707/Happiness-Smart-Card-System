@@ -1,11 +1,11 @@
 /* =========================================
- * HSC update-form.js v804.1
+ * HSC update-form.js v804.2
  * COMPLETE OVERWRITE
  *
- * 主線：
- * - 與 form.js 對齊
- * - 圖片流程：選圖 -> 裁切 -> 套用 -> 上傳 Firebase -> 回寫 *_url
- * - updateCardByToken 改用 URLSearchParams POST，避開 GAS CORS / preflight 問題
+ * 修正：
+ * 1. 更新成功後自動捲動到完成資訊區
+ * 2. 複製客服內容改為「ID + 文案」
+ * 3. free 方案限制：CTA 1個、照片 2 張（不含頭像/Logo）
  * ========================================= */
 
 import {
@@ -20,7 +20,7 @@ import {
   "use strict";
 
   const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-  const VERSION = "804.1";
+  const VERSION = "804.2";
   const LINE_OA_URL = "https://lin.ee/G3VJoRm";
 
   const TEXT_FIELDS = [
@@ -107,6 +107,17 @@ import {
     }
   };
 
+  const PLAN_RULES = {
+    free: {
+      maxPhotos: 2,
+      maxCtas: 1
+    },
+    premium: {
+      maxPhotos: 5,
+      maxCtas: 3
+    }
+  };
+
   const state = {
     id: "",
     utoken: "",
@@ -114,6 +125,9 @@ import {
     card: null,
     busy: false,
     firebaseReady: false,
+    plan: "free",
+    maxPhotos: 2,
+    maxCtas: 1,
     drag: {
       active: false,
       startX: 0,
@@ -145,7 +159,6 @@ import {
 
     cropModal: document.getElementById("cropModal"),
     cropTitle: document.getElementById("cropTitle"),
-    cropStage: document.getElementById("cropStage"),
     cropViewport: document.getElementById("cropViewport"),
     cropImage: document.getElementById("cropImage"),
     cropZoom: document.getElementById("cropZoom"),
@@ -158,8 +171,15 @@ import {
 
     successBox: document.getElementById("successBox"),
     successId: document.getElementById("successId"),
-    btnCopyId: document.getElementById("btnCopyId"),
-    btnLineOA: document.getElementById("btnLineOA")
+    successCopyText: document.getElementById("successCopyText"),
+    btnCopyReply: document.getElementById("btnCopyReply"),
+    btnLineOA: document.getElementById("btnLineOA"),
+
+    ctaBlock2: document.getElementById("ctaBlock2"),
+    ctaBlock3: document.getElementById("ctaBlock3"),
+    photoCard3: document.getElementById("photoCard3"),
+    photoCard4: document.getElementById("photoCard4"),
+    photoCard5: document.getElementById("photoCard5")
   };
 
   init().catch((err) => {
@@ -195,21 +215,19 @@ import {
 
   function bindBaseEvents() {
     el.btnReload?.addEventListener("click", () => loadCard(true));
-
     el.btnTop?.addEventListener("click", () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
-
     el.form?.addEventListener("submit", onSubmit);
   }
 
   function bindSuccessEvents() {
-    el.btnCopyId?.addEventListener("click", async () => {
+    el.btnCopyReply?.addEventListener("click", async () => {
       try {
-        await copyText(state.id || "");
-        showStatus("ok", `已複製客服ID：${state.id}`);
+        await copyText(buildReplyText());
+        showStatus("ok", `已複製回覆文案\n\n${buildReplyText()}`);
       } catch (_err) {
-        showStatus("warn", `請手動複製客服ID：${state.id}`);
+        showStatus("warn", `請手動複製以下內容：\n\n${buildReplyText()}`);
       }
     });
 
@@ -223,6 +241,10 @@ import {
       const pickBtn = ev.target.closest("[data-pick]");
       if (pickBtn) {
         const slot = pickBtn.getAttribute("data-pick");
+        if (!isPhotoSlotAllowed(slot)) {
+          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          return;
+        }
         triggerFilePick(slot);
         return;
       }
@@ -230,6 +252,10 @@ import {
       const editBtn = ev.target.closest("[data-edit]");
       if (editBtn) {
         const slot = editBtn.getAttribute("data-edit");
+        if (!isPhotoSlotAllowed(slot)) {
+          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          return;
+        }
         triggerFilePick(slot);
         return;
       }
@@ -237,6 +263,10 @@ import {
       const clearBtn = ev.target.closest("[data-clear]");
       if (clearBtn) {
         const slot = clearBtn.getAttribute("data-clear");
+        if (!isPhotoSlotAllowed(slot)) {
+          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          return;
+        }
         clearSlot(slot);
       }
     });
@@ -248,6 +278,11 @@ import {
       fileInput.addEventListener("change", async (ev) => {
         const file = ev.target.files?.[0];
         if (!file) return;
+        if (!isPhotoSlotAllowed(slot)) {
+          fileInput.value = "";
+          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          return;
+        }
 
         try {
           await openCropper(slot, file);
@@ -305,7 +340,6 @@ import {
       url.searchParams.set("_v", VERSION);
 
       const res = await fetchJson(url.toString());
-      console.log("[HSC update-form] getCardForUpdate:", res);
 
       if (!res || res.ok !== true) {
         throw new Error(readError(res) || "資料載入失敗");
@@ -315,6 +349,7 @@ import {
       state.card = card;
       state.loaded = true;
 
+      applyPlanRules(text(card.plan).toLowerCase() || "free");
       fillForm(card);
       el.form?.classList.remove("hidden");
 
@@ -330,7 +365,7 @@ import {
           err?.message || "未知錯誤",
           "",
           "請檢查：",
-          "1. update-form.js 是否已更新到 v804.1",
+          "1. update-form.js 是否已更新到 v804.2",
           "2. update-form.html 是否為 module 版本",
           "3. Firebase / GAS 是否為最新部署",
           "4. 連結中的 id / utoken 是否正確"
@@ -339,6 +374,44 @@ import {
     } finally {
       setBusy(false);
     }
+  }
+
+  function applyPlanRules(plan) {
+    const rules = PLAN_RULES[plan] || PLAN_RULES.free;
+    state.plan = plan;
+    state.maxPhotos = rules.maxPhotos;
+    state.maxCtas = rules.maxCtas;
+
+    toggleEl(el.ctaBlock2, state.maxCtas >= 2);
+    toggleEl(el.ctaBlock3, state.maxCtas >= 3);
+
+    toggleEl(el.photoCard3, state.maxPhotos >= 3);
+    toggleEl(el.photoCard4, state.maxPhotos >= 4);
+    toggleEl(el.photoCard5, state.maxPhotos >= 5);
+
+    if (state.maxCtas < 2) {
+      setFieldValue("cta_text_2", "");
+      setFieldValue("cta_link_2", "");
+    }
+    if (state.maxCtas < 3) {
+      setFieldValue("cta_text_3", "");
+      setFieldValue("cta_link_3", "");
+    }
+
+    if (state.maxPhotos < 3) {
+      clearHiddenPhotoField("photo3");
+    }
+    if (state.maxPhotos < 4) {
+      clearHiddenPhotoField("photo4");
+    }
+    if (state.maxPhotos < 5) {
+      clearHiddenPhotoField("photo5");
+    }
+  }
+
+  function clearHiddenPhotoField(slotBase) {
+    const key = `${slotBase}_url`;
+    setFieldValue(key, "");
   }
 
   function fillForm(card) {
@@ -358,6 +431,31 @@ import {
       setSlotPreview(slot, url);
       setSlotStatus(slot, url ? "已載入既有圖片" : "未設定");
     });
+
+    if (state.maxCtas < 2) {
+      setFieldValue("cta_text_2", "");
+      setFieldValue("cta_link_2", "");
+    }
+    if (state.maxCtas < 3) {
+      setFieldValue("cta_text_3", "");
+      setFieldValue("cta_link_3", "");
+    }
+
+    if (state.maxPhotos < 3) {
+      setFieldValue("photo3_url", "");
+      setSlotPreview("photo3", "");
+      setSlotStatus("photo3", "未開放");
+    }
+    if (state.maxPhotos < 4) {
+      setFieldValue("photo4_url", "");
+      setSlotPreview("photo4", "");
+      setSlotStatus("photo4", "未開放");
+    }
+    if (state.maxPhotos < 5) {
+      setFieldValue("photo5_url", "");
+      setSlotPreview("photo5", "");
+      setSlotStatus("photo5", "未開放");
+    }
   }
 
   async function onSubmit(ev) {
@@ -387,8 +485,6 @@ import {
         body: formBody
       });
 
-      console.log("[HSC update-form] updateCardByToken:", res);
-
       if (!res || res.ok !== true) {
         throw new Error(readError(res) || "更新失敗");
       }
@@ -411,10 +507,19 @@ import {
     };
 
     TEXT_FIELDS.forEach((key) => {
+      if (state.maxCtas === 1 && (key === "cta_text_2" || key === "cta_link_2" || key === "cta_text_3" || key === "cta_link_3")) {
+        out[key] = "";
+        return;
+      }
       out[key] = getFieldValue(key);
     });
 
     IMAGE_FIELDS.forEach((key) => {
+      const photoNum = getPhotoNumberFromKey(key);
+      if (photoNum && photoNum > state.maxPhotos) {
+        out[key] = "";
+        return;
+      }
       out[key] = getFieldValue(key);
     });
 
@@ -606,6 +711,11 @@ import {
       showStatus("bad", "目前沒有可套用的圖片。");
       return;
     }
+    if (!isPhotoSlotAllowed(slot)) {
+      showStatus("warn", "此方案目前未開放這張照片欄位。");
+      closeCropper();
+      return;
+    }
 
     try {
       setBusy(true);
@@ -661,12 +771,8 @@ import {
   }
 
   async function uploadBySlot(slot, blob) {
-    if (slot === "avatar") {
-      return await uploadAvatar(state.id, blob);
-    }
-    if (slot === "logo") {
-      return await uploadLogo(state.id, blob);
-    }
+    if (slot === "avatar") return await uploadAvatar(state.id, blob);
+    if (slot === "logo") return await uploadLogo(state.id, blob);
     if (slot.startsWith("photo")) {
       const idx = Number(slot.replace("photo", ""));
       return await uploadPhoto(state.id, blob, idx);
@@ -693,12 +799,7 @@ import {
 
     const box = document.getElementById(cfg.previewId);
     if (!box) return;
-
-    if (url) {
-      box.style.backgroundImage = `url("${escapeCssUrl(url)}")`;
-    } else {
-      box.style.backgroundImage = "none";
-    }
+    box.style.backgroundImage = url ? `url("${escapeCssUrl(url)}")` : "none";
   }
 
   function setSlotStatus(slot, msg) {
@@ -729,11 +830,19 @@ import {
   function showSuccess() {
     if (!el.successBox) return;
     if (el.successId) el.successId.textContent = state.id || "";
+    if (el.successCopyText) el.successCopyText.textContent = buildReplyText();
     el.successBox.classList.remove("hidden");
+    setTimeout(() => {
+      el.successBox.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   }
 
   function hideSuccess() {
     el.successBox?.classList.add("hidden");
+  }
+
+  function buildReplyText() {
+    return `您好，我已完成智慧名片資料更新。\n客服ID：${state.id}\n請協助確認，謝謝。`;
   }
 
   function getFieldValue(id) {
@@ -754,17 +863,21 @@ import {
     return "";
   }
 
-  function getSlotLabel(slot) {
-    const map = {
-      avatar: "頭像",
-      logo: "Logo",
-      photo1: "照片 1",
-      photo2: "照片 2",
-      photo3: "照片 3",
-      photo4: "照片 4",
-      photo5: "照片 5"
-    };
-    return map[slot] || slot;
+  function isPhotoSlotAllowed(slot) {
+    if (slot === "avatar" || slot === "logo") return true;
+    if (!slot.startsWith("photo")) return true;
+    const idx = Number(slot.replace("photo", ""));
+    return idx <= state.maxPhotos;
+  }
+
+  function getPhotoNumberFromKey(key) {
+    const m = /^photo(\d+)_url$/.exec(key || "");
+    return m ? Number(m[1]) : 0;
+  }
+
+  function toggleEl(node, show) {
+    if (!node) return;
+    node.classList.toggle("hidden", !show);
   }
 
   async function fetchJson(url, options = {}) {
