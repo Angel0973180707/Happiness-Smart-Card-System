@@ -1,257 +1,405 @@
 /* =========================================
- * HSC Auto Update System v524.9
+ * HSC Update Form v722.1
  * COMPLETE OVERWRITE
  *
- * Usage:
- * - 在各頁面底部引入 update.js
- * - 自動註冊 sw.js
- * - 自動檢查 version.json
- * - 發現新版本時跳提示
- * - 一鍵刷新到新版
+ * 目標：
+ * 1. 穩定載入更新資料
+ * 2. 相容多種 GAS 回傳格式
+ * 3. 顯示既有圖片
+ * 4. 支援文字更新提交
+ * 5. 圖片先做本地預覽與欄位回寫
  * ========================================= */
 
 (() => {
   "use strict";
 
-  const APP_VERSION = "v524.6.6";
-  const VERSION_URL = "./version.json";
-  const SW_URL = `./sw.js?v=${encodeURIComponent(APP_VERSION)}`;
-  const STORAGE_KEY = "HSC_APP_VERSION";
-  const CHECK_INTERVAL = 60 * 1000;
-  const RELOAD_FLAG_KEY = "HSC_RELOAD_IN_PROGRESS";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+  const VERSION = "722.1";
 
-  let currentVersion = null;
-  let regRef = null;
-  let checking = false;
-  let hasBoundControllerChange = false;
+  const TEXT_FIELDS = [
+    "name","unit","title","slogan","services","experience",
+    "phone","email","line_url","line_oa","wechat_id","website","address",
+    "video1","video2","video3","social1","social2","social3",
+    "cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3"
+  ];
 
-  init();
+  const IMAGE_FIELDS = [
+    "avatar_url","logo_url","photo1_url","photo2_url","photo3_url","photo4_url","photo5_url"
+  ];
 
-  async function init() {
-    try {
-      const version = await fetchVersion();
-      currentVersion = version.app || version.sw || APP_VERSION;
+  const PREVIEW_MAP = {
+    avatar_url: "avatar",
+    logo_url: "logo",
+    photo1_url: "photo1",
+    photo2_url: "photo2",
+    photo3_url: "photo3",
+    photo4_url: "photo4",
+    photo5_url: "photo5"
+  };
 
-      await registerSW();
-      await checkUpdateSilently();
+  const state = {
+    id: "",
+    utoken: "",
+    loading: false,
+    loaded: false,
+    card: null
+  };
 
-      setInterval(() => {
-        checkUpdateSilently();
-      }, CHECK_INTERVAL);
-    } catch (err) {
-      console.warn("[HSC update] init failed:", err);
+  const els = {
+    form: document.getElementById("updateForm"),
+    status: document.getElementById("statusBox"),
+    btnReload: document.getElementById("btnReload"),
+    btnSubmit: document.getElementById("btnSubmit"),
+    btnTop: document.getElementById("btnTop")
+  };
+
+  boot();
+
+  function boot() {
+    const qs = new URLSearchParams(location.search);
+    state.id = text(qs.get("id"));
+    state.utoken = text(qs.get("utoken"));
+
+    bindBaseEvents();
+    bindImageEvents();
+
+    if (!state.id || !state.utoken) {
+      showStatus("bad", "缺少必要參數：id 或 utoken。\n請聯繫客服重新取得更新連結。");
+      return;
     }
+
+    loadCard();
   }
 
-  async function registerSW() {
-    if (!("serviceWorker" in navigator)) return;
+  function bindBaseEvents() {
+    els.btnReload?.addEventListener("click", () => loadCard(true));
 
-    try {
-      const reg = await navigator.serviceWorker.register(SW_URL, {
-        updateViaCache: "none"
-      });
-      regRef = reg;
+    els.btnTop?.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
 
-      if (reg.waiting) {
-        showUpdatePrompt("系統已更新，請重新載入。", () => activateWaitingSW(reg));
-      }
-
-      reg.addEventListener("updatefound", () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-
-        newWorker.addEventListener("statechange", () => {
-          if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-            showUpdatePrompt("偵測到新版本，請重新載入。", () => activateWaitingSW(reg));
-          }
-        });
-      });
-
-      if (!hasBoundControllerChange) {
-        hasBoundControllerChange = true;
-
-        navigator.serviceWorker.addEventListener("controllerchange", () => {
-          if (sessionStorage.getItem(RELOAD_FLAG_KEY) === "1") return;
-          sessionStorage.setItem(RELOAD_FLAG_KEY, "1");
-          location.reload();
-        });
-      }
-    } catch (err) {
-      console.warn("[HSC update] SW register failed:", err);
-    }
+    els.form?.addEventListener("submit", onSubmit);
   }
 
-  async function checkUpdateSilently() {
-    if (checking) return;
-    checking = true;
-
-    try {
-      const remote = await fetchVersion();
-      const remoteVersion = remote.app || remote.sw || APP_VERSION;
-      const localVersion = localStorage.getItem(STORAGE_KEY) || currentVersion || "";
-
-      if (!localVersion) {
-        localStorage.setItem(STORAGE_KEY, remoteVersion);
-        currentVersion = remoteVersion;
-        checking = false;
+  function bindImageEvents() {
+    document.addEventListener("click", (e) => {
+      const pick = e.target.closest("[data-pick]");
+      if (pick) {
+        const slot = pick.getAttribute("data-pick");
+        const input = document.getElementById(`file_${slot}`);
+        input?.click();
         return;
       }
 
-      if (remoteVersion !== localVersion) {
-        localStorage.setItem(STORAGE_KEY, remoteVersion);
-        currentVersion = remoteVersion;
-
-        if (regRef) {
-          await regRef.update();
-
-          if (regRef.waiting) {
-            showUpdatePrompt("系統已更新，請重新載入。", () => activateWaitingSW(regRef));
-          } else {
-            showUpdatePrompt("系統已更新，請重新載入。", () => hardReload());
-          }
-        } else {
-          showUpdatePrompt("系統已更新，請重新載入。", () => hardReload());
-        }
-      } else {
-        localStorage.setItem(STORAGE_KEY, remoteVersion);
+      const clear = e.target.closest("[data-clear]");
+      if (clear) {
+        const slot = clear.getAttribute("data-clear");
+        clearImage(slot);
       }
-    } catch (err) {
-      console.warn("[HSC update] version check failed:", err);
-    }
-
-    checking = false;
-  }
-
-  async function fetchVersion() {
-    const res = await fetch(`${VERSION_URL}?t=${Date.now()}&v=${encodeURIComponent(APP_VERSION)}`, {
-      cache: "no-store"
     });
 
-    if (!res.ok) {
-      throw new Error(`version.json load failed: ${res.status}`);
-    }
+    Object.values(PREVIEW_MAP).forEach((slot) => {
+      const input = document.getElementById(`file_${slot}`);
+      if (!input) return;
 
-    return res.json();
+      input.addEventListener("change", async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const dataUrl = await fileToDataURL(file);
+          setPreview(slot, dataUrl);
+          setImageValue(slot, dataUrl);
+          setSlotStatus(slot, "已選擇新圖片（尚未上傳）");
+        } catch (err) {
+          console.error(err);
+          showStatus("bad", "圖片讀取失敗，請重新選擇。");
+        }
+      });
+    });
   }
 
-  function activateWaitingSW(reg) {
-    if (reg && reg.waiting) {
-      try {
-        sessionStorage.removeItem(RELOAD_FLAG_KEY);
-      } catch (_err) {}
-      reg.waiting.postMessage({ type: "SKIP_WAITING" });
-    } else {
-      hardReload();
-    }
-  }
+  async function loadCard(isReload = false) {
+    if (state.loading) return;
+    state.loading = true;
+    toggleSubmit(true);
 
-  function hardReload() {
+    showStatus("warn", isReload ? "重新載入資料中…" : "載入名片資料中…");
+
     try {
-      sessionStorage.removeItem(RELOAD_FLAG_KEY);
-    } catch (_err) {}
+      const res = await fetchJson(buildGetUrl());
+      console.log("[HSC update-form] getCardForUpdate response:", res);
 
-    const url = new URL(location.href);
-    url.searchParams.set("_update", Date.now().toString());
-    location.replace(url.toString());
+      if (!isSuccessResponse(res)) {
+        throw new Error(readErrorMessage(res) || "資料載入失敗");
+      }
+
+      const card = readCardPayload(res);
+      if (!card || typeof card !== "object" || Array.isArray(card)) {
+        throw new Error("更新資料格式錯誤：GAS 未回傳有效的 card data");
+      }
+
+      state.card = card;
+      state.loaded = true;
+
+      fillForm(card);
+      els.form.classList.remove("hidden");
+
+      showStatus("ok", `資料已載入，可開始更新。\n名片編號：${state.id}`);
+    } catch (err) {
+      console.error("[HSC update-form] load failed:", err);
+      els.form.classList.add("hidden");
+      showStatus("bad", [
+        "更新頁資料載入失敗。",
+        err?.message || "未知錯誤",
+        "",
+        "請優先檢查：",
+        "1. GAS getCardForUpdate 是否回傳 { success:true, data:{...} }",
+        "2. validateUpdateAccess_ 是否驗證成功",
+        "3. update token 是否已過期"
+      ].join("\n"));
+    } finally {
+      state.loading = false;
+      toggleSubmit(false);
+    }
   }
 
-  function showUpdatePrompt(message, onConfirm) {
-    if (document.getElementById("hsc-update-toast")) return;
+  async function onSubmit(e) {
+    e.preventDefault();
 
-    const toast = document.createElement("div");
-    toast.id = "hsc-update-toast";
-    toast.innerHTML = `
-      <div class="hsc-update-box">
-        <div class="hsc-update-title">系統更新通知</div>
-        <div class="hsc-update-msg">${escapeHtml(message)}</div>
-        <div class="hsc-update-actions">
-          <button class="hsc-btn hsc-btn-soft" id="hsc-update-later">稍後</button>
-          <button class="hsc-btn hsc-btn-primary" id="hsc-update-now">立即更新</button>
-        </div>
-      </div>
-    `;
-
-    if (!document.getElementById("hsc-update-style")) {
-      const style = document.createElement("style");
-      style.id = "hsc-update-style";
-      style.textContent = `
-        #hsc-update-toast{
-          position:fixed;
-          left:16px;
-          right:16px;
-          bottom:18px;
-          z-index:99999;
-          display:flex;
-          justify-content:center;
-          pointer-events:none;
-        }
-        .hsc-update-box{
-          width:min(520px,100%);
-          background:rgba(32,28,25,.96);
-          color:#fff;
-          border-radius:18px;
-          box-shadow:0 20px 50px rgba(0,0,0,.24);
-          padding:16px;
-          pointer-events:auto;
-          border:1px solid rgba(255,255,255,.08);
-          backdrop-filter:blur(10px);
-        }
-        .hsc-update-title{
-          font-size:16px;
-          font-weight:800;
-          margin-bottom:6px;
-        }
-        .hsc-update-msg{
-          font-size:14px;
-          line-height:1.6;
-          color:rgba(255,255,255,.88);
-        }
-        .hsc-update-actions{
-          display:flex;
-          gap:10px;
-          margin-top:14px;
-          justify-content:flex-end;
-          flex-wrap:wrap;
-        }
-        .hsc-btn{
-          appearance:none;
-          border:none;
-          border-radius:12px;
-          padding:11px 16px;
-          font-size:14px;
-          font-weight:800;
-          cursor:pointer;
-        }
-        .hsc-btn-soft{
-          background:rgba(255,255,255,.12);
-          color:#fff;
-        }
-        .hsc-btn-primary{
-          background:#f0b56b;
-          color:#2c2118;
-        }
-      `;
-      document.head.appendChild(style);
+    if (!state.loaded) {
+      showStatus("bad", "資料尚未載入完成，無法送出。");
+      return;
     }
 
-    document.body.appendChild(toast);
+    toggleSubmit(true);
+    showStatus("warn", "送出更新中…");
 
-    document.getElementById("hsc-update-later")?.addEventListener("click", () => {
-      toast.remove();
+    try {
+      const payload = collectPayload();
+
+      const res = await fetchJson(buildPostUrl(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      console.log("[HSC update-form] update response:", res);
+
+      if (!isSuccessResponse(res)) {
+        throw new Error(readErrorMessage(res) || "更新失敗");
+      }
+
+      showStatus("ok", "資料更新成功。");
+    } catch (err) {
+      console.error("[HSC update-form] submit failed:", err);
+      showStatus("bad", `資料更新失敗：${err?.message || "未知錯誤"}`);
+    } finally {
+      toggleSubmit(false);
+    }
+  }
+
+  function collectPayload() {
+    const out = {
+      action: "updateCardByToken",
+      id: state.id,
+      utoken: state.utoken
+    };
+
+    TEXT_FIELDS.forEach((key) => {
+      out[key] = getFieldValue(key);
     });
 
-    document.getElementById("hsc-update-now")?.addEventListener("click", () => {
-      toast.remove();
-      if (typeof onConfirm === "function") onConfirm();
+    IMAGE_FIELDS.forEach((key) => {
+      out[key] = getFieldValue(key);
+    });
+
+    return out;
+  }
+
+  function fillForm(card) {
+    TEXT_FIELDS.forEach((key) => {
+      const el = document.getElementById(key);
+      if (!el) return;
+      el.value = text(card[key]);
+    });
+
+    IMAGE_FIELDS.forEach((key) => {
+      const value = pickImageValue(card, key);
+      const el = document.getElementById(key);
+      if (el) el.value = text(value);
+
+      const slot = PREVIEW_MAP[key];
+      if (slot) {
+        if (value) {
+          setPreview(slot, value);
+          setSlotStatus(slot, "已載入");
+        } else {
+          setPreview(slot, "");
+          setSlotStatus(slot, "未設定");
+        }
+      }
     });
   }
 
-  function escapeHtml(str) {
-    return String(str)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+  function pickImageValue(card, preferredKey) {
+    const direct = text(card[preferredKey]);
+    if (direct) return direct;
+
+    const legacyMap = {
+      avatar_url: ["avatar_img_fast","avatar_img"],
+      logo_url: ["logo_img_fast","logo_img"],
+      photo1_url: ["photo1_img_fast","photo1_img"],
+      photo2_url: ["photo2_img_fast","photo2_img"],
+      photo3_url: ["photo3_img_fast","photo3_img"],
+      photo4_url: ["photo4_img_fast","photo4_img"],
+      photo5_url: ["photo5_img_fast","photo5_img"]
+    };
+
+    const fallbacks = legacyMap[preferredKey] || [];
+    for (const k of fallbacks) {
+      const v = text(card[k]);
+      if (v) return v;
+    }
+    return "";
+  }
+
+  function getFieldValue(id) {
+    const el = document.getElementById(id);
+    return el ? text(el.value) : "";
+  }
+
+  function setImageValue(slot, value) {
+    const key = `${slot}_url`;
+    const el = document.getElementById(key);
+    if (el) el.value = value || "";
+  }
+
+  function clearImage(slot) {
+    setPreview(slot, "");
+    setImageValue(slot, "");
+    setSlotStatus(slot, "已清除");
+    const input = document.getElementById(`file_${slot}`);
+    if (input) input.value = "";
+  }
+
+  function setPreview(slot, url) {
+    const box = document.getElementById(`preview_${slot}`);
+    if (!box) return;
+
+    if (url) {
+      box.style.backgroundImage = `url("${escapeCssUrl(url)}")`;
+      box.dataset.hasImage = "1";
+    } else {
+      box.style.backgroundImage = "none";
+      box.dataset.hasImage = "0";
+    }
+  }
+
+  function setSlotStatus(slot, msg) {
+    const el = document.getElementById(`status_${slot}`);
+    if (el) el.textContent = msg || "未設定";
+  }
+
+  function toggleSubmit(disabled) {
+    if (els.btnSubmit) els.btnSubmit.disabled = !!disabled;
+    if (els.btnReload) els.btnReload.disabled = !!disabled;
+  }
+
+  function showStatus(type, message) {
+    if (!els.status) return;
+    els.status.className = `status show ${type || "warn"}`;
+    els.status.textContent = message || "";
+  }
+
+  function buildGetUrl() {
+    const url = new URL(GAS_URL);
+    url.searchParams.set("action", "getCardForUpdate");
+    url.searchParams.set("id", state.id);
+    url.searchParams.set("utoken", state.utoken);
+    url.searchParams.set("_t", String(Date.now()));
+    url.searchParams.set("_v", VERSION);
+    return url.toString();
+  }
+
+  function buildPostUrl() {
+    const url = new URL(GAS_URL);
+    url.searchParams.set("_t", String(Date.now()));
+    url.searchParams.set("_v", VERSION);
+    return url.toString();
+  }
+
+  async function fetchJson(url, options = {}) {
+    const res = await fetch(url, {
+      method: options.method || "GET",
+      headers: options.headers || {},
+      body: options.body || undefined,
+      cache: "no-store",
+      redirect: "follow"
+    });
+
+    const raw = await res.text();
+    let parsed = null;
+
+    try {
+      parsed = JSON.parse(raw);
+    } catch (_err) {
+      const cleaned = extractJsonObject(raw);
+      if (cleaned) {
+        parsed = JSON.parse(cleaned);
+      } else {
+        throw new Error(`GAS 回傳非 JSON：${raw.slice(0, 240)}`);
+      }
+    }
+
+    return parsed;
+  }
+
+  function isSuccessResponse(res) {
+    return !!(
+      res &&
+      (
+        res.success === true ||
+        res.ok === true
+      )
+    );
+  }
+
+  function readErrorMessage(res) {
+    if (!res || typeof res !== "object") return "";
+    return text(res.message || res.error || res.msg);
+  }
+
+  function readCardPayload(res) {
+    if (!res || typeof res !== "object") return null;
+    return res.data || res.card || res.row || res.item || null;
+  }
+
+  function extractJsonObject(raw) {
+    if (!raw) return "";
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      return raw.slice(start, end + 1);
+    }
+    return "";
+  }
+
+  function fileToDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function escapeCssUrl(url) {
+    return String(url).replace(/"/g, '\\"');
+  }
+
+  function text(v) {
+    return v == null ? "" : String(v).trim();
   }
 })();
