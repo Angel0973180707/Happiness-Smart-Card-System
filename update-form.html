@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>智慧名片資料更新 v803</title>
+  <title>智慧名片資料更新 v804</title>
   <meta name="theme-color" content="#0f172a" />
   <style>
     :root{
@@ -22,15 +22,26 @@
       --radius:20px;
       --shadow:0 16px 40px rgba(0,0,0,.28);
     }
+
     *{box-sizing:border-box}
+
     html,body{
-      margin:0;padding:0;
+      margin:0;
+      padding:0;
       background:linear-gradient(180deg,#0b1220 0%,#111827 100%);
       color:var(--text);
       font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
     }
+
     body{min-height:100vh}
-    .wrap{max-width:1100px;margin:0 auto;padding:20px 14px 56px}
+    body.modal-open{overflow:hidden}
+
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding:20px 14px 56px;
+    }
+
     .hero{
       padding:20px;
       border:1px solid var(--line);
@@ -39,8 +50,18 @@
       box-shadow:var(--shadow);
       margin-bottom:16px;
     }
-    .hero h1{margin:0 0 8px;font-size:28px}
-    .hero p{margin:0;color:var(--muted);line-height:1.7}
+
+    .hero h1{
+      margin:0 0 8px;
+      font-size:28px;
+    }
+
+    .hero p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.7;
+    }
+
     .card{
       background:rgba(17,24,39,.92);
       border:1px solid var(--line);
@@ -49,6 +70,7 @@
       padding:16px;
       margin-bottom:16px;
     }
+
     .section-title{
       margin:0 0 12px;
       font-size:18px;
@@ -58,16 +80,28 @@
       gap:10px;
       flex-wrap:wrap;
     }
+
     .section-title small{
       color:var(--muted);
       font-size:12px;
       font-weight:500;
     }
+
     .grid{display:grid;gap:12px}
     .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
     .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .field{display:flex;flex-direction:column;gap:8px}
-    .field label{font-size:13px;color:var(--muted)}
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .field label{
+      font-size:13px;
+      color:var(--muted);
+    }
+
     .input,.textarea{
       width:100%;
       border:1px solid var(--line);
@@ -78,17 +112,18 @@
       outline:none;
       font-size:15px;
     }
+
     .input:focus,.textarea:focus{
       border-color:rgba(125,211,252,.55);
       box-shadow:0 0 0 3px rgba(125,211,252,.12);
     }
-    .textarea{min-height:110px;resize:vertical;line-height:1.7}
-    .help{
-      font-size:12px;
-      color:var(--muted);
+
+    .textarea{
+      min-height:110px;
+      resize:vertical;
       line-height:1.7;
-      margin-top:4px;
     }
+
     .status{
       display:none;
       margin-bottom:16px;
@@ -98,16 +133,23 @@
       line-height:1.7;
       white-space:pre-wrap;
     }
+
     .status.show{display:block}
     .status.ok{background:rgba(52,211,153,.10);border-color:rgba(52,211,153,.34)}
     .status.warn{background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.34)}
     .status.bad{background:rgba(251,113,133,.10);border-color:rgba(251,113,133,.34)}
+
     .toolbar{
-      position:sticky;bottom:0;z-index:20;
+      position:sticky;
+      bottom:0;
+      z-index:20;
       padding-top:8px;
     }
+
     .toolbar-inner{
-      display:flex;gap:10px;flex-wrap:wrap;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
       padding:12px;
       border:1px solid var(--line);
       background:rgba(11,18,32,.92);
@@ -115,15 +157,40 @@
       border-radius:18px;
       box-shadow:var(--shadow);
     }
+
     .btn{
-      appearance:none;border:0;cursor:pointer;
+      appearance:none;
+      border:0;
+      cursor:pointer;
       border-radius:14px;
       padding:12px 16px;
       font-size:15px;
       font-weight:700;
+      transition:.18s ease;
     }
-    .btn-primary{background:var(--brand);color:#082032}
-    .btn-secondary{background:#1f2937;color:var(--text);border:1px solid var(--line)}
+
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    .btn-primary{
+      background:var(--brand);
+      color:#082032;
+    }
+
+    .btn-secondary{
+      background:#1f2937;
+      color:var(--text);
+      border:1px solid var(--line);
+    }
+
+    .btn-danger{
+      background:rgba(251,113,133,.14);
+      color:#ffd7df;
+      border:1px solid rgba(251,113,133,.28);
+    }
+
     .hidden{display:none !important}
 
     .image-grid{
@@ -132,12 +199,14 @@
       gap:14px;
       margin-top:12px;
     }
+
     .image-card{
       border:1px solid var(--line);
       background:#0b1220;
       border-radius:18px;
       padding:12px;
     }
+
     .image-card-head{
       display:flex;
       justify-content:space-between;
@@ -145,14 +214,17 @@
       align-items:center;
       margin-bottom:10px;
     }
+
     .image-card-title{
       font-size:14px;
       font-weight:700;
     }
+
     .image-card-status{
       font-size:12px;
       color:var(--muted);
     }
+
     .thumb-box{
       width:100%;
       border:1px solid var(--line);
@@ -162,20 +234,163 @@
       position:relative;
       margin-bottom:10px;
     }
+
     .thumb-box.square{aspect-ratio:1/1}
     .thumb-box.wide{aspect-ratio:16/10}
+
     .thumb-image{
       width:100%;
       height:100%;
-      background:#0f172a center/cover no-repeat;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
+        #0f172a center/cover no-repeat;
     }
-    .sys-field{display:none}
+
+    .image-actions{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .image-actions .btn{
+      padding:10px 12px;
+      font-size:13px;
+      border-radius:12px;
+    }
+
+    .sys-field,
+    .file-input{
+      display:none;
+    }
+
+    .crop-modal{
+      position:fixed;
+      inset:0;
+      background:rgba(3,7,18,.72);
+      backdrop-filter:blur(8px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:80;
+      padding:18px;
+    }
+
+    .crop-modal.show{
+      display:flex;
+    }
+
+    .crop-panel{
+      width:min(960px,100%);
+      max-height:92vh;
+      overflow:auto;
+      border:1px solid var(--line);
+      border-radius:24px;
+      background:linear-gradient(180deg,#101827,#0b1220);
+      box-shadow:0 24px 60px rgba(0,0,0,.4);
+      padding:16px;
+    }
+
+    .crop-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:14px;
+      flex-wrap:wrap;
+    }
+
+    .crop-head h3{
+      margin:0;
+      font-size:18px;
+    }
+
+    .crop-stage{
+      border:1px solid var(--line);
+      border-radius:20px;
+      background:#09111f;
+      padding:16px;
+      margin-bottom:14px;
+    }
+
+    .crop-viewport{
+      width:min(100%, 760px);
+      margin:0 auto;
+      position:relative;
+      overflow:hidden;
+      border-radius:18px;
+      border:1px solid rgba(255,255,255,.10);
+      background:
+        linear-gradient(45deg, rgba(255,255,255,.03) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.03) 75%, rgba(255,255,255,.03)),
+        linear-gradient(45deg, rgba(255,255,255,.03) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.03) 75%, rgba(255,255,255,.03));
+      background-position:0 0, 14px 14px;
+      background-size:28px 28px;
+      touch-action:none;
+      user-select:none;
+      cursor:grab;
+    }
+
+    .crop-viewport:active{
+      cursor:grabbing;
+    }
+
+    .crop-viewport.is-square{
+      aspect-ratio:1/1;
+      max-width:460px;
+    }
+
+    .crop-viewport.is-wide{
+      aspect-ratio:16/10;
+      max-width:760px;
+    }
+
+    .crop-image{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      transform-origin:center center;
+      pointer-events:none;
+      max-width:none;
+      max-height:none;
+      will-change:transform,width,height;
+    }
+
+    .crop-controls{
+      display:grid;
+      gap:12px;
+    }
+
+    .zoom-row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .zoom-row input[type="range"]{
+      flex:1 1 220px;
+    }
+
+    .control-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .hint{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.7;
+    }
 
     @media (max-width: 900px){
       .grid-2,.grid-3,.image-grid{grid-template-columns:1fr}
     }
+
     @media (max-width: 820px){
       .hero h1{font-size:24px}
+      .crop-panel{padding:14px}
+      .crop-stage{padding:12px}
     }
   </style>
 </head>
@@ -246,42 +461,112 @@
       </section>
 
       <section class="card">
-        <h2 class="section-title">圖片預覽</h2>
+        <h2 class="section-title">圖片更新 <small>選圖後可裁切，再直接上傳 Firebase</small></h2>
+
         <div class="image-grid">
           <div class="image-card">
-            <div class="image-card-head"><div class="image-card-title">頭像</div><div class="image-card-status" id="status_avatar">未設定</div></div>
+            <div class="image-card-head">
+              <div class="image-card-title">頭像</div>
+              <div class="image-card-status" id="status_avatar">未設定</div>
+            </div>
             <div class="thumb-box square"><div id="preview_avatar" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <button type="button" class="btn btn-secondary" data-pick="avatar">選圖</button>
+              <button type="button" class="btn btn-secondary" data-edit="avatar">重選</button>
+              <button type="button" class="btn btn-danger" data-clear="avatar">清除</button>
+            </div>
             <input id="avatar_url" name="avatar_url" class="input sys-field" />
+            <input id="file_avatar" class="file-input" type="file" accept="image/*" />
           </div>
+
           <div class="image-card">
-            <div class="image-card-head"><div class="image-card-title">Logo</div><div class="image-card-status" id="status_logo">未設定</div></div>
+            <div class="image-card-head">
+              <div class="image-card-title">Logo</div>
+              <div class="image-card-status" id="status_logo">未設定</div>
+            </div>
             <div class="thumb-box square"><div id="preview_logo" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <button type="button" class="btn btn-secondary" data-pick="logo">選圖</button>
+              <button type="button" class="btn btn-secondary" data-edit="logo">重選</button>
+              <button type="button" class="btn btn-danger" data-clear="logo">清除</button>
+            </div>
             <input id="logo_url" name="logo_url" class="input sys-field" />
+            <input id="file_logo" class="file-input" type="file" accept="image/*" />
           </div>
+
           <div class="image-card">
-            <div class="image-card-head"><div class="image-card-title">照片 1</div><div class="image-card-status" id="status_photo1">未設定</div></div>
+            <div class="image-card-head">
+              <div class="image-card-title">照片 1</div>
+              <div class="image-card-status" id="status_photo1">未設定</div>
+            </div>
             <div class="thumb-box wide"><div id="preview_photo1" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <button type="button" class="btn btn-secondary" data-pick="photo1">選圖</button>
+              <button type="button" class="btn btn-secondary" data-edit="photo1">重選</button>
+              <button type="button" class="btn btn-danger" data-clear="photo1">清除</button>
+            </div>
             <input id="photo1_url" name="photo1_url" class="input sys-field" />
+            <input id="file_photo1" class="file-input" type="file" accept="image/*" />
           </div>
+
           <div class="image-card">
-            <div class="image-card-head"><div class="image-card-title">照片 2</div><div class="image-card-status" id="status_photo2">未設定</div></div>
+            <div class="image-card-head">
+              <div class="image-card-title">照片 2</div>
+              <div class="image-card-status" id="status_photo2">未設定</div>
+            </div>
             <div class="thumb-box wide"><div id="preview_photo2" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <button type="button" class="btn btn-secondary" data-pick="photo2">選圖</button>
+              <button type="button" class="btn btn-secondary" data-edit="photo2">重選</button>
+              <button type="button" class="btn btn-danger" data-clear="photo2">清除</button>
+            </div>
             <input id="photo2_url" name="photo2_url" class="input sys-field" />
+            <input id="file_photo2" class="file-input" type="file" accept="image/*" />
           </div>
+
           <div class="image-card">
-            <div class="image-card-head"><div class="image-card-title">照片 3</div><div class="image-card-status" id="status_photo3">未設定</div></div>
+            <div class="image-card-head">
+              <div class="image-card-title">照片 3</div>
+              <div class="image-card-status" id="status_photo3">未設定</div>
+            </div>
             <div class="thumb-box wide"><div id="preview_photo3" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <button type="button" class="btn btn-secondary" data-pick="photo3">選圖</button>
+              <button type="button" class="btn btn-secondary" data-edit="photo3">重選</button>
+              <button type="button" class="btn btn-danger" data-clear="photo3">清除</button>
+            </div>
             <input id="photo3_url" name="photo3_url" class="input sys-field" />
+            <input id="file_photo3" class="file-input" type="file" accept="image/*" />
           </div>
+
           <div class="image-card">
-            <div class="image-card-head"><div class="image-card-title">照片 4</div><div class="image-card-status" id="status_photo4">未設定</div></div>
+            <div class="image-card-head">
+              <div class="image-card-title">照片 4</div>
+              <div class="image-card-status" id="status_photo4">未設定</div>
+            </div>
             <div class="thumb-box wide"><div id="preview_photo4" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <button type="button" class="btn btn-secondary" data-pick="photo4">選圖</button>
+              <button type="button" class="btn btn-secondary" data-edit="photo4">重選</button>
+              <button type="button" class="btn btn-danger" data-clear="photo4">清除</button>
+            </div>
             <input id="photo4_url" name="photo4_url" class="input sys-field" />
+            <input id="file_photo4" class="file-input" type="file" accept="image/*" />
           </div>
+
           <div class="image-card">
-            <div class="image-card-head"><div class="image-card-title">照片 5</div><div class="image-card-status" id="status_photo5">未設定</div></div>
+            <div class="image-card-head">
+              <div class="image-card-title">照片 5</div>
+              <div class="image-card-status" id="status_photo5">未設定</div>
+            </div>
             <div class="thumb-box wide"><div id="preview_photo5" class="thumb-image"></div></div>
+            <div class="image-actions">
+              <button type="button" class="btn btn-secondary" data-pick="photo5">選圖</button>
+              <button type="button" class="btn btn-secondary" data-edit="photo5">重選</button>
+              <button type="button" class="btn btn-danger" data-clear="photo5">清除</button>
+            </div>
             <input id="photo5_url" name="photo5_url" class="input sys-field" />
+            <input id="file_photo5" class="file-input" type="file" accept="image/*" />
           </div>
         </div>
       </section>
@@ -296,6 +581,36 @@
     </form>
   </div>
 
-  <script src="./update-form.js?v=803"></script>
+  <div id="cropModal" class="crop-modal" aria-hidden="true">
+    <div class="crop-panel">
+      <div class="crop-head">
+        <h3 id="cropTitle">裁切圖片</h3>
+        <div class="hint">拖曳可移動圖片，使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase。</div>
+      </div>
+
+      <div id="cropStage" class="crop-stage">
+        <div id="cropViewport" class="crop-viewport is-square">
+          <img id="cropImage" class="crop-image" alt="crop preview" />
+        </div>
+      </div>
+
+      <div class="crop-controls">
+        <div class="zoom-row">
+          <button id="btnZoomOut" type="button" class="btn btn-secondary">縮小</button>
+          <input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1" />
+          <button id="btnZoomIn" type="button" class="btn btn-secondary">放大</button>
+        </div>
+
+        <div class="control-row">
+          <button id="btnCenter" type="button" class="btn btn-secondary">置中</button>
+          <button id="btnResetCrop" type="button" class="btn btn-secondary">重設</button>
+          <button id="btnCancelCrop" type="button" class="btn btn-secondary">取消</button>
+          <button id="btnApplyCrop" type="button" class="btn btn-primary">套用並上傳</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./update-form.js?v=804"></script>
 </body>
 </html>
