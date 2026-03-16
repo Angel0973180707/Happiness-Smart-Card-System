@@ -188,119 +188,8 @@
     .file-input{display:none}
     .sys-field{display:none}
 
-    /* modal cropper */
-    .modal{
-      position:fixed;
-      inset:0;
-      z-index:100;
-      display:none;
-      background:rgba(2,6,23,.78);
-      backdrop-filter:blur(8px);
-      padding:18px;
-    }
-    .modal.show{display:flex;align-items:center;justify-content:center}
-    .modal-card{
-      width:min(980px,100%);
-      max-height:90vh;
-      overflow:auto;
-      border-radius:24px;
-      border:1px solid var(--line);
-      background:linear-gradient(180deg,#0f172a,#111827);
-      box-shadow:0 20px 60px rgba(0,0,0,.42);
-      padding:16px;
-    }
-    .modal-head{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:10px;
-      margin-bottom:12px;
-    }
-    .modal-head h3{margin:0;font-size:20px}
-    .crop-layout{
-      display:grid;
-      grid-template-columns:minmax(0,1.5fr) minmax(320px,.9fr);
-      gap:14px;
-    }
-    .crop-stage-wrap{
-      border:1px solid var(--line);
-      border-radius:18px;
-      background:#07101e;
-      padding:12px;
-    }
-    .crop-stage{
-      width:100%;
-      background:#0b1220;
-      border-radius:14px;
-      overflow:hidden;
-      touch-action:none;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-    .crop-stage.square{aspect-ratio:1/1}
-    .crop-stage.wide{aspect-ratio:16/10}
-    .crop-stage canvas{
-      width:100%;
-      height:100%;
-      display:block;
-      cursor:grab;
-    }
-    .crop-stage.dragging canvas{cursor:grabbing}
-
-    .crop-side{
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    .panel{
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:#0b1220;
-      padding:12px;
-    }
-    .panel h4{
-      margin:0 0 10px;
-      font-size:14px;
-      color:var(--muted);
-    }
-    .range-row{
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .range-row input[type="range"]{
-      width:100%;
-    }
-    .crop-preview{
-      width:100%;
-      border:1px solid var(--line);
-      border-radius:14px;
-      overflow:hidden;
-      background:#111827;
-      aspect-ratio:1/1;
-    }
-    .crop-preview.wide{aspect-ratio:16/10}
-    .crop-preview img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
-    }
-    .crop-actions{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .toolbar-note{
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.7;
-    }
-
     @media (max-width: 900px){
       .grid-2,.grid-3,.image-grid{grid-template-columns:1fr}
-      .crop-layout{grid-template-columns:1fr}
     }
     @media (max-width: 820px){
       .hero h1{font-size:24px}
@@ -313,7 +202,7 @@
       <h1>智慧名片資料更新</h1>
       <p>
         這個更新連結僅限本次使用，並有時效限制。<br>
-        文字與圖片都可以在這裡直接更新；若連結失效，請聯繫客服重新取得更新連結。
+        若資料沒有正常載入，請聯繫客服重新取得更新連結。
       </p>
     </section>
 
@@ -449,11 +338,10 @@
       </section>
 
       <section class="card">
-        <h2 class="section-title">圖片更新 <small>直接上傳、裁切、套用</small></h2>
+        <h2 class="section-title">圖片更新 <small>先確保原資料可正常載入</small></h2>
         <div class="help">
-          這一版可直接選擇圖片並進行編輯。<br>
-          操作支援：縮小、放大、拖移、置中、重設、套用。<br>
-          圖片上傳成功後，系統會自動回寫圖片網址，不需要手動貼網址。
+          這版先把「更新頁載入資料」修穩。<br>
+          圖片可顯示目前網址與重新選圖預覽；若你下一步要接 Firebase 即時上傳，我再接著補完整版。
         </div>
 
         <div class="image-grid">
@@ -466,7 +354,6 @@
             <div class="image-actions">
               <input id="file_avatar" class="file-input" type="file" accept="image/*" />
               <button type="button" class="btn btn-soft mini" data-pick="avatar">選擇圖片</button>
-              <button type="button" class="btn btn-secondary mini" data-edit="avatar">編輯 / 重選</button>
               <button type="button" class="btn btn-danger mini" data-clear="avatar">清除</button>
             </div>
             <input id="avatar_url" name="avatar_url" class="input sys-field" />
@@ -481,7 +368,6 @@
             <div class="image-actions">
               <input id="file_logo" class="file-input" type="file" accept="image/*" />
               <button type="button" class="btn btn-soft mini" data-pick="logo">選擇圖片</button>
-              <button type="button" class="btn btn-secondary mini" data-edit="logo">編輯 / 重選</button>
               <button type="button" class="btn btn-danger mini" data-clear="logo">清除</button>
             </div>
             <input id="logo_url" name="logo_url" class="input sys-field" />
@@ -496,7 +382,6 @@
             <div class="image-actions">
               <input id="file_photo1" class="file-input" type="file" accept="image/*" />
               <button type="button" class="btn btn-soft mini" data-pick="photo1">選擇圖片</button>
-              <button type="button" class="btn btn-secondary mini" data-edit="photo1">編輯 / 重選</button>
               <button type="button" class="btn btn-danger mini" data-clear="photo1">清除</button>
             </div>
             <input id="photo1_url" name="photo1_url" class="input sys-field" />
@@ -511,7 +396,6 @@
             <div class="image-actions">
               <input id="file_photo2" class="file-input" type="file" accept="image/*" />
               <button type="button" class="btn btn-soft mini" data-pick="photo2">選擇圖片</button>
-              <button type="button" class="btn btn-secondary mini" data-edit="photo2">編輯 / 重選</button>
               <button type="button" class="btn btn-danger mini" data-clear="photo2">清除</button>
             </div>
             <input id="photo2_url" name="photo2_url" class="input sys-field" />
@@ -526,7 +410,6 @@
             <div class="image-actions">
               <input id="file_photo3" class="file-input" type="file" accept="image/*" />
               <button type="button" class="btn btn-soft mini" data-pick="photo3">選擇圖片</button>
-              <button type="button" class="btn btn-secondary mini" data-edit="photo3">編輯 / 重選</button>
               <button type="button" class="btn btn-danger mini" data-clear="photo3">清除</button>
             </div>
             <input id="photo3_url" name="photo3_url" class="input sys-field" />
@@ -541,7 +424,6 @@
             <div class="image-actions">
               <input id="file_photo4" class="file-input" type="file" accept="image/*" />
               <button type="button" class="btn btn-soft mini" data-pick="photo4">選擇圖片</button>
-              <button type="button" class="btn btn-secondary mini" data-edit="photo4">編輯 / 重選</button>
               <button type="button" class="btn btn-danger mini" data-clear="photo4">清除</button>
             </div>
             <input id="photo4_url" name="photo4_url" class="input sys-field" />
@@ -556,7 +438,6 @@
             <div class="image-actions">
               <input id="file_photo5" class="file-input" type="file" accept="image/*" />
               <button type="button" class="btn btn-soft mini" data-pick="photo5">選擇圖片</button>
-              <button type="button" class="btn btn-secondary mini" data-edit="photo5">編輯 / 重選</button>
               <button type="button" class="btn btn-danger mini" data-clear="photo5">清除</button>
             </div>
             <input id="photo5_url" name="photo5_url" class="input sys-field" />
@@ -574,58 +455,6 @@
     </form>
   </div>
 
-  <div id="cropModal" class="modal" aria-hidden="true">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h3 id="cropTitle">圖片編輯</h3>
-        <button id="btnCropClose" type="button" class="btn btn-secondary">關閉</button>
-      </div>
-
-      <div class="crop-layout">
-        <div class="crop-stage-wrap">
-          <div id="cropStage" class="crop-stage square">
-            <canvas id="cropCanvas" width="900" height="900"></canvas>
-          </div>
-        </div>
-
-        <div class="crop-side">
-          <div class="panel">
-            <h4>縮放調整</h4>
-            <div class="range-row">
-              <button id="btnZoomOut" type="button" class="btn btn-secondary mini">縮小</button>
-              <input id="zoomRange" type="range" min="0.8" max="3" step="0.01" value="1" />
-              <button id="btnZoomIn" type="button" class="btn btn-secondary mini">放大</button>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h4>快速操作</h4>
-            <div class="crop-actions">
-              <button id="btnCenter" type="button" class="btn btn-secondary mini">置中</button>
-              <button id="btnReset" type="button" class="btn btn-secondary mini">重設</button>
-              <button id="btnCropApply" type="button" class="btn btn-primary mini">套用</button>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h4>裁切預覽</h4>
-            <div id="cropPreviewWrap" class="crop-preview">
-              <img id="cropPreviewImage" alt="crop preview" />
-            </div>
-          </div>
-
-          <div class="panel">
-            <h4>說明</h4>
-            <div class="toolbar-note">
-              可直接用手指或滑鼠拖移圖片位置。<br>
-              套用後系統會立即上傳並更新圖片網址。
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="./update-form.js?v=722.0"></script>
+  <script src="./update-form.js?v=722.1"></script>
 </body>
 </html>
