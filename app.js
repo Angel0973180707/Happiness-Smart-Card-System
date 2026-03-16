@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.9",
+  VERSION: "v524.9-track1",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -182,28 +182,47 @@ function getReferralSourceCode_(p){
   return id || "";
 }
 
-function getShareCardId_(p){
-  const payload = buildNormalizedPayload_(p || currentRow || {});
-  return normalizeId_(
-    text(pick(payload, ["id"])) || getIdFromUrl_() || CONFIG.DEFAULT_ID
-  ) || CONFIG.DEFAULT_ID;
+/* =========================================
+ * 分享追蹤核心
+ * -----------------------------------------
+ * 正常開名片網址不改：
+ * index.html?id=TW0001&view=1
+ *
+ * 只有「分享用途」改成：
+ * index.html?id=TW0001&view=1
+ *   &share_card_id=TW0001
+ *   &share_agent_id=AG001
+ *   &share_source=card_share
+ *   &share_channel=product_card
+ *   &share_visit_id=
+ * ========================================= */
+function getCardIdForShare_(p){
+  const payload = p || currentRow || null;
+  const id =
+    normalizeId_(text(pick(payload, ["id"]))) ||
+    normalizeId_(getIdFromUrl_()) ||
+    CONFIG.DEFAULT_ID;
+  return id;
 }
 
-function getShareAgentId_(p){
-  const payload = buildNormalizedPayload_(p || currentRow || {});
-  return text(pick(payload, ["service_agent"])) || "";
+function getAgentIdForShare_(p){
+  const payload = p || currentRow || null;
+  return (
+    text(pick(payload, ["service_agent"])) ||
+    ""
+  );
 }
 
-function buildTrackedProductShareUrl_(p){
-  const shareCardId = getShareCardId_(p);
-  const shareAgentId = getShareAgentId_(p);
+function buildTrackedShareUrl_(p){
+  const cardId = getCardIdForShare_(p);
+  const agentId = getAgentIdForShare_(p);
 
   try{
     const u = new URL(CONFIG.HUB_URL + "index.html");
-    u.searchParams.set("id", shareCardId);
+    u.searchParams.set("id", cardId);
     u.searchParams.set("view", "1");
-    u.searchParams.set("share_card_id", shareCardId);
-    u.searchParams.set("share_agent_id", shareAgentId);
+    u.searchParams.set("share_card_id", cardId);
+    u.searchParams.set("share_agent_id", agentId);
     u.searchParams.set("share_source", "card_share");
     u.searchParams.set("share_channel", "product_card");
     u.searchParams.set("share_visit_id", "");
@@ -211,10 +230,10 @@ function buildTrackedProductShareUrl_(p){
   }catch{
     return (
       CONFIG.HUB_URL +
-      "index.html?id=" + encodeURIComponent(shareCardId) +
+      "index.html?id=" + encodeURIComponent(cardId) +
       "&view=1" +
-      "&share_card_id=" + encodeURIComponent(shareCardId) +
-      "&share_agent_id=" + encodeURIComponent(shareAgentId) +
+      "&share_card_id=" + encodeURIComponent(cardId) +
+      "&share_agent_id=" + encodeURIComponent(agentId) +
       "&share_source=card_share" +
       "&share_channel=product_card" +
       "&share_visit_id="
@@ -1328,14 +1347,20 @@ function buildCanonicalCleanCardUrl_(id){
   }
 }
 
+/* =========================================
+ * 分享用：改成帶追蹤
+ * ========================================= */
 function buildCardShareUrl_(){
-  return buildTrackedProductShareUrl_(currentRow);
+  return buildTrackedShareUrl_(currentRow);
 }
 
 function buildCleanShareUrl_(){
-  return buildTrackedProductShareUrl_(currentRow);
+  return buildTrackedShareUrl_(currentRow);
 }
 
+/* =========================================
+ * 名片館分享：維持原本 ref 邏輯
+ * ========================================= */
 function buildHubShareUrl_(){
   try{
     const u = new URL(CONFIG.HUB_URL);
@@ -1348,12 +1373,16 @@ function buildHubShareUrl_(){
   }
 }
 
+/* =========================================
+ * 成品 QR：改成分享追蹤網址
+ * facade QR：維持名片館分享
+ * ========================================= */
 function buildBottomQrUrl_(){
-  return buildTrackedProductShareUrl_(currentRow);
+  return buildTrackedShareUrl_(currentRow);
 }
 
 function buildFeatureQrUrl_(){
-  return buildTrackedProductShareUrl_(currentRow);
+  return buildTrackedShareUrl_(currentRow);
 }
 
 function buildFacadeQrUrl_(){
@@ -1477,7 +1506,7 @@ window.renderQr = renderQr;
 window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
 window.__getHubShareUrl = buildHubShareUrl_;
 window.__getCardShareUrl = buildCardShareUrl_;
-window.__getTrackedProductShareUrl = function(){ return buildTrackedProductShareUrl_(currentRow); };
+window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(currentRow); };
 
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
