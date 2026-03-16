@@ -182,6 +182,46 @@ function getReferralSourceCode_(p){
   return id || "";
 }
 
+function getShareCardId_(p){
+  const payload = buildNormalizedPayload_(p || currentRow || {});
+  return normalizeId_(
+    text(pick(payload, ["id"])) || getIdFromUrl_() || CONFIG.DEFAULT_ID
+  ) || CONFIG.DEFAULT_ID;
+}
+
+function getShareAgentId_(p){
+  const payload = buildNormalizedPayload_(p || currentRow || {});
+  return text(pick(payload, ["service_agent"])) || "";
+}
+
+function buildTrackedProductShareUrl_(p){
+  const shareCardId = getShareCardId_(p);
+  const shareAgentId = getShareAgentId_(p);
+
+  try{
+    const u = new URL(CONFIG.HUB_URL + "index.html");
+    u.searchParams.set("id", shareCardId);
+    u.searchParams.set("view", "1");
+    u.searchParams.set("share_card_id", shareCardId);
+    u.searchParams.set("share_agent_id", shareAgentId);
+    u.searchParams.set("share_source", "card_share");
+    u.searchParams.set("share_channel", "product_card");
+    u.searchParams.set("share_visit_id", "");
+    return u.toString();
+  }catch{
+    return (
+      CONFIG.HUB_URL +
+      "index.html?id=" + encodeURIComponent(shareCardId) +
+      "&view=1" +
+      "&share_card_id=" + encodeURIComponent(shareCardId) +
+      "&share_agent_id=" + encodeURIComponent(shareAgentId) +
+      "&share_source=card_share" +
+      "&share_channel=product_card" +
+      "&share_visit_id="
+    );
+  }
+}
+
 function createLocalApplyCode_(){
   const d = new Date();
   const yy = String(d.getFullYear()).slice(-2);
@@ -1289,11 +1329,11 @@ function buildCanonicalCleanCardUrl_(id){
 }
 
 function buildCardShareUrl_(){
-  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+  return buildTrackedProductShareUrl_(currentRow);
 }
 
 function buildCleanShareUrl_(){
-  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+  return buildTrackedProductShareUrl_(currentRow);
 }
 
 function buildHubShareUrl_(){
@@ -1309,11 +1349,11 @@ function buildHubShareUrl_(){
 }
 
 function buildBottomQrUrl_(){
-  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+  return buildTrackedProductShareUrl_(currentRow);
 }
 
 function buildFeatureQrUrl_(){
-  return buildCanonicalCleanCardUrl_(getIdFromUrl_());
+  return buildTrackedProductShareUrl_(currentRow);
 }
 
 function buildFacadeQrUrl_(){
@@ -1437,6 +1477,7 @@ window.renderQr = renderQr;
 window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
 window.__getHubShareUrl = buildHubShareUrl_;
 window.__getCardShareUrl = buildCardShareUrl_;
+window.__getTrackedProductShareUrl = function(){ return buildTrackedProductShareUrl_(currentRow); };
 
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
