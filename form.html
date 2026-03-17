@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v804.4-full</title>
+  <title>天使幸福智慧名片｜資料填寫 v804.5-full</title>
   <meta name="theme-color" content="#0b1220" />
 
   <style>
@@ -555,6 +555,14 @@
     .hsc-preview[data-plan="free"][data-color="c4"]{ background:linear-gradient(180deg,#faf7ff 0%,#f2ecff 100%); }
     .hsc-preview[data-plan="free"][data-color="c5"]{ background:linear-gradient(180deg,#f7fff9 0%,#edf9f0 100%); }
 
+    .hsc-preview[data-plan="premium"][data-premium="p1"]{ background:linear-gradient(180deg,#7d3041 0%,#5c2230 100%); color:#fff7f7; }
+    .hsc-preview[data-plan="premium"][data-premium="p2"]{ background:linear-gradient(180deg,#6c1f2b 0%,#4c1520 100%); color:#fff7f7; }
+    .hsc-preview[data-plan="premium"][data-premium="p3"]{ background:linear-gradient(180deg,#243a5b 0%,#17263d 100%); color:#f6f8ff; }
+    .hsc-preview[data-plan="premium"][data-premium="p4"]{ background:linear-gradient(180deg,#705c86 0%,#534166 100%); color:#fbf8ff; }
+    .hsc-preview[data-plan="premium"][data-premium="p5"]{ background:linear-gradient(180deg,#5f7181 0%,#44515d 100%); color:#f8fbff; }
+    .hsc-preview[data-plan="premium"][data-premium="p6"]{ background:linear-gradient(180deg,#d6bc74 0%,#b18b3f 100%); color:#fffaf1; }
+    .hsc-preview[data-plan="premium"][data-premium="p7"]{ background:linear-gradient(180deg,#5b463c 0%,#403028 100%); color:#fff8f3; }
+
     .hsc-preview-banner{
       height:132px;
       position:relative;
@@ -665,6 +673,11 @@
       border-radius:16px;
       background:rgba(255,255,255,.50);
       border:1px solid rgba(0,0,0,.05);
+    }
+
+    .hsc-preview[data-plan="premium"] .hsc-preview-block{
+      background:rgba(255,255,255,.12);
+      border-color:rgba(255,255,255,.16);
     }
 
     .hsc-preview-blockTitle{
@@ -838,47 +851,63 @@
       <div class="pageHead">
         <div class="pageStep">第 1 步</div>
         <h2>選擇方案</h2>
-        <p class="subnote">請先選擇您的方案類型</p>
+        <p class="subnote">自由搭配款可選 5 色／3 版／3 紙；精品設計款只選 7 色</p>
       </div>
 
       <div class="card">
         <label>方案選擇</label>
         <select id="plan">
           <option value="">請選擇方案</option>
-          <option value="free">免費版（1 CTA + 2 張照片）</option>
-          <option value="premium">精品版（3 CTA + 5 張照片）</option>
+          <option value="free">自由搭配款（選 5 色／3 版／3 紙）</option>
+          <option value="premium">精品設計款（選 7 色）</option>
         </select>
       </div>
 
-      <div class="card">
-        <label>主色</label>
-        <select id="color">
-          <option value="">請選擇顏色</option>
-          <option value="c1">粉</option>
-          <option value="c2">藍</option>
-          <option value="c3">橘</option>
-          <option value="c4">紫</option>
-          <option value="c5">綠</option>
-        </select>
+      <div id="freeStyleGroup">
+        <div class="card">
+          <label>主色</label>
+          <select id="color">
+            <option value="">請選擇顏色</option>
+            <option value="c1">粉</option>
+            <option value="c2">藍</option>
+            <option value="c3">橘</option>
+            <option value="c4">紫</option>
+            <option value="c5">綠</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <label>版型</label>
+          <select id="style">
+            <option value="">請選擇版型</option>
+            <option value="s1">正拱</option>
+            <option value="s2">平直</option>
+            <option value="s3">晨曦</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <label>紙感</label>
+          <select id="paper">
+            <option value="">請選擇紙感</option>
+            <option value="f1">棉紙</option>
+            <option value="f2">顆粒</option>
+            <option value="f3">亞麻</option>
+          </select>
+        </div>
       </div>
 
-      <div class="card">
-        <label>版型</label>
-        <select id="style">
-          <option value="">請選擇版型</option>
-          <option value="s1">正拱</option>
-          <option value="s2">平直</option>
-          <option value="s3">晨曦</option>
-        </select>
-      </div>
-
-      <div class="card">
-        <label>紙感</label>
-        <select id="paper">
-          <option value="">請選擇紙感</option>
-          <option value="f1">棉紙</option>
-          <option value="f2">顆粒</option>
-          <option value="f3">亞麻</option>
+      <div class="card" id="premiumColorCard" style="display:none;">
+        <label>精品設計款顏色</label>
+        <select id="premium_color">
+          <option value="">請選擇精品色</option>
+          <option value="p1">胭脂紅</option>
+          <option value="p2">酒紅</option>
+          <option value="p3">深藍</option>
+          <option value="p4">霧紫</option>
+          <option value="p5">藍灰</option>
+          <option value="p6">金箔</option>
+          <option value="p7">褐碳</option>
         </select>
       </div>
     </section>
@@ -1051,6 +1080,7 @@
             data-color="c1"
             data-style="s1"
             data-paper="f1"
+            data-premium="p1"
           >
             <div class="hsc-preview-banner"></div>
 
@@ -1185,7 +1215,11 @@
   <input type="hidden" id="invite_code" />
   <input type="hidden" id="reserved_uid" />
   <input type="hidden" id="tenant" value="angel" />
-  <input type="hidden" id="gas" value="" />
+  <input
+    type="hidden"
+    id="gas"
+    value="https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec"
+  />
 
   <div id="toast"></div>
 
@@ -1196,6 +1230,6 @@
     </div>
   </div>
 
-  <script src="form.js?v=804.4-full"></script>
+  <script src="form.js?v=804.5-full"></script>
 </body>
 </html>
