@@ -1,18 +1,24 @@
 /* ==========================================
- * HSC Poster v709.5
+ * HSC Poster v710.0
  * COMPLETE OVERWRITE
  *
- * 封存版：
- * 1. 保留 v709.4 純 canvas 生成海報穩定流程
- * 2. 視覺微調，不動生成主幹
- * 3. QR 可掃描、可點擊
- * 4. 文案定稿
+ * 主線：
+ * 1. 保留 v709.5 純 canvas 生成海報穩定流程
+ * 2. 補上分享追蹤參數：
+ *    - share_card_id
+ *    - share_agent_id
+ *    - share_source
+ *    - share_channel
+ *    - share_visit_id
+ * 3. poster 頁內所有分享入口改用帶參數 URL
+ * 4. 「我也想做一張智慧名片」改走 form.html 並保留來源 channel
+ * 5. 預留未來代理分潤 / 客戶推薦資料鏈
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "709.5";
+  const VERSION = "710.0";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -24,10 +30,18 @@
     "https://lin.ee/3r2ZePN";
 
   const qs = new URLSearchParams(location.search);
+
   const id = (qs.get("id") || "").trim();
   const gas = (qs.get("gas") || DEFAULT_GAS).trim();
   const baseUrl = normalizeBase(qs.get("base") || DEFAULT_BASE);
   const lineOA = (qs.get("lineoa") || DEFAULT_LINE_OA).trim();
+
+  // 來源追蹤參數（從外部進來時可能已存在）
+  const incomingShareCardId = (qs.get("share_card_id") || "").trim();
+  const incomingShareAgentId = (qs.get("share_agent_id") || "").trim();
+  const incomingShareSource = (qs.get("share_source") || "").trim();
+  const incomingShareChannel = (qs.get("share_channel") || "").trim();
+  const incomingShareVisitId = (qs.get("share_visit_id") || "").trim();
 
   const el = {
     avatarImg: document.getElementById("avatarImg"),
@@ -54,9 +68,23 @@
   };
 
   let currentItem = null;
-  let currentCardUrl = "";
-  let currentRecommendUrl = "";
+
   let currentAvatarUrl = "";
+
+  // 追蹤後 URL
+  let currentPosterShareUrl = ""; // poster.html?...share_channel=poster
+  let currentPosterQrUrl = "";    // index.html?...share_channel=poster_qr
+  let currentProductCardUrl = ""; // index.html?...share_channel=product_card
+  let currentRecommendUrl = "";   // form.html?...share_channel=poster / poster_qr
+
+  // 解析後的追蹤上下文
+  let currentShareContext = {
+    share_card_id: "",
+    share_agent_id: "",
+    share_source: "card_share",
+    share_channel: "poster",
+    share_visit_id: ""
+  };
 
   bindEvents();
   init();
@@ -73,19 +101,23 @@
       const item = await fetchCard(id);
       currentItem = item;
 
-      currentCardUrl = buildCardUrl(item);
-      currentRecommendUrl = buildRecommendUrl(item);
+      currentShareContext = resolveShareContext(item);
+
+      currentPosterShareUrl = buildPosterShareUrl(item, currentShareContext);
+      currentPosterQrUrl = buildPosterQrUrl(item, currentShareContext);
+      currentProductCardUrl = buildProductCardUrl(item, currentShareContext);
+      currentRecommendUrl = buildRecommendUrl(item, currentShareContext);
       currentAvatarUrl = getAvatarUrl(item);
 
       renderPoster(item);
-      await renderQrLocal(currentCardUrl);
+      await renderQrLocal(currentPosterQrUrl);
       await renderQrCenterAvatar(currentAvatarUrl);
 
       setStatus("");
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] init error:`, err);
       renderPoster(null);
-      renderQrFallback(currentCardUrl || "");
+      renderQrFallback(currentPosterQrUrl || currentProductCardUrl || "");
       setStatus(err.message || "載入失敗", true);
     }
   }
@@ -106,8 +138,8 @@
     });
 
     el.qrBox?.addEventListener("click", () => {
-      if (currentCardUrl) {
-        window.open(currentCardUrl, "_blank", "noopener");
+      if (currentPosterQrUrl) {
+        window.open(currentPosterQrUrl, "_blank", "noopener");
       }
     });
 
@@ -175,14 +207,88 @@
     );
   }
 
-  function buildCardUrl(item) {
+  function resolveShareContext(item) {
     const cardId = text(item?.id) || id;
-    return `${baseUrl}index.html?id=${encodeURIComponent(cardId)}&view=1`;
+    const serviceAgent =
+      text(item?.service_agent) ||
+      text(item?.agent_id) ||
+      "";
+
+    return {
+      share_card_id: incomingShareCardId || cardId,
+      share_agent_id: incomingShareAgentId || serviceAgent || "",
+      share_source: incomingShareSource || "card_share",
+      share_channel: normalizeIncomingChannel(incomingShareChannel),
+      share_visit_id: incomingShareVisitId || ""
+    };
   }
 
-  function buildRecommendUrl(item) {
-    const refId = text(item?.id) || id;
-    return `${baseUrl}?ref=${encodeURIComponent(refId)}`;
+  function normalizeIncomingChannel(channel) {
+    const v = text(channel);
+    if (v === "poster_qr") return "poster_qr";
+    if (v === "poster") return "poster";
+    if (v === "product_card") return "product_card";
+    return "poster";
+  }
+
+  function buildPosterShareUrl(item, ctx) {
+    const cardId = text(item?.id) || id;
+    return buildUrl("poster.html", {
+      id: cardId,
+      share_card_id: ctx.share_card_id || cardId,
+      share_agent_id: ctx.share_agent_id || "",
+      share_source: ctx.share_source || "card_share",
+      share_channel: "poster",
+      share_visit_id: ctx.share_visit_id || ""
+    });
+  }
+
+  function buildPosterQrUrl(item, ctx) {
+    const cardId = text(item?.id) || id;
+    return buildUrl("index.html", {
+      id: cardId,
+      view: "1",
+      share_card_id: ctx.share_card_id || cardId,
+      share_agent_id: ctx.share_agent_id || "",
+      share_source: ctx.share_source || "card_share",
+      share_channel: "poster_qr",
+      share_visit_id: ctx.share_visit_id || ""
+    });
+  }
+
+  function buildProductCardUrl(item, ctx) {
+    const cardId = text(item?.id) || id;
+    return buildUrl("index.html", {
+      id: cardId,
+      view: "1",
+      share_card_id: ctx.share_card_id || cardId,
+      share_agent_id: ctx.share_agent_id || "",
+      share_source: ctx.share_source || "card_share",
+      share_channel: "product_card",
+      share_visit_id: ctx.share_visit_id || ""
+    });
+  }
+
+  function buildRecommendUrl(item, ctx) {
+    const cardId = text(item?.id) || id;
+    const channelForForm = ctx.share_channel === "poster_qr" ? "poster_qr" : "poster";
+
+    return buildUrl("form.html", {
+      share_card_id: ctx.share_card_id || cardId,
+      share_agent_id: ctx.share_agent_id || "",
+      share_source: ctx.share_source || "card_share",
+      share_channel: channelForForm,
+      share_visit_id: ctx.share_visit_id || ""
+    });
+  }
+
+  function buildUrl(path, params) {
+    const url = new URL(path, baseUrl);
+    Object.entries(params || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      url.searchParams.set(key, String(value));
+    });
+    return url.toString();
   }
 
   async function renderQrLocal(targetUrl) {
@@ -312,11 +418,11 @@
   }
 
   async function buildPosterImageDataUrl() {
-    if (!currentCardUrl) {
+    if (!currentPosterQrUrl) {
       throw new Error("名片連結尚未建立");
     }
 
-    const qrCanvas = await buildQrCanvas(currentCardUrl, 880);
+    const qrCanvas = await buildQrCanvas(currentPosterQrUrl, 880);
 
     const canvas = document.createElement("canvas");
     const width = 1080;
@@ -603,25 +709,26 @@
   }
 
   function onOpenCard() {
-    if (!currentCardUrl) {
+    if (!currentPosterQrUrl) {
       setStatus("名片連結尚未建立", true);
       return;
     }
-    window.open(currentCardUrl, "_blank", "noopener");
+    window.open(currentPosterQrUrl, "_blank", "noopener");
   }
 
   async function onCopyCardLink() {
-    if (!currentCardUrl) {
+    if (!currentPosterQrUrl) {
       setStatus("名片連結尚未建立", true);
       return;
     }
-    const ok = await copyText(currentCardUrl);
+    const ok = await copyText(currentPosterQrUrl);
     setStatus(ok ? "名片連結已複製" : "複製失敗，請手動複製", !ok);
     clearStatusSoon();
   }
 
   async function onShareCard() {
-    if (!currentCardUrl) {
+    const targetUrl = currentPosterQrUrl || currentProductCardUrl;
+    if (!targetUrl) {
       setStatus("名片連結尚未建立", true);
       return;
     }
@@ -629,7 +736,7 @@
     const shareData = {
       title: currentItem?.name ? `${currentItem.name} 的智慧名片` : "我的智慧名片",
       text: "這是我的智慧名片，歡迎查看。",
-      url: currentCardUrl
+      url: targetUrl
     };
 
     try {
@@ -640,25 +747,23 @@
         return;
       }
 
-      const ok = await copyText(currentCardUrl);
+      const ok = await copyText(targetUrl);
       setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
       clearStatusSoon();
     } catch (err) {
       if (err?.name === "AbortError") return;
-      const ok = await copyText(currentCardUrl);
+      const ok = await copyText(targetUrl);
       setStatus(ok ? "已改為複製名片連結" : "分享失敗，請手動複製", !ok);
       clearStatusSoon();
     }
   }
 
-  async function onRecommend() {
+  function onRecommend() {
     if (!currentRecommendUrl) {
       setStatus("推薦連結尚未建立", true);
       return;
     }
-    const ok = await copyText(currentRecommendUrl);
-    setStatus(ok ? "推薦天使智慧名片連結已複製" : "複製失敗，請手動複製", !ok);
-    clearStatusSoon();
+    window.open(currentRecommendUrl, "_blank", "noopener");
   }
 
   function onOpenLineOA() {
