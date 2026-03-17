@@ -1,6 +1,6 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v803.1
+ * form.js v803.2
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 主線：
@@ -13,8 +13,11 @@
  * 4. GAS 送出主線只送文字欄位 + *_url
  * 5. 保留 invite_code / reserved_uid / tenant
  * 6. 修正圖片裁切顯示透明棋盤格 / 套用白圖問題
- * 7. 成功送出後：下方明確顯示資料 ID + 客服回覆文案 + 一鍵複製 + LINE 客服按鈕
- * 8. 新增：接收分享追蹤參數並安全寫入 payload
+ * 7. 送出成功後：
+ *    全部顯示在第六步驟下方的 submitSuccessBox 內
+ *    - 名片 ID
+ *    - 一鍵複製 ID＋客服文案
+ *    - LINE 客服按鈕
  * ========================================= */
 
 import {
@@ -28,7 +31,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "803.1";
+  const VERSION = "803.2";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/G3VJoRm";
 
@@ -82,22 +85,7 @@ import {
     inviteCode: "",
     tenant: "angel",
     uploadCardId: "",
-    uploadCardIdSource: "tmp",
-
-    // 分享追蹤參數
-    shareCardId: "",
-    shareAgentId: "",
-    shareSource: "",
-    shareChannel: "",
-    shareVisitId: "",
-
-    // 原有 ref / 來源參數
-    ref: "",
-    source: "",
-    resolvedServiceAgent: "",
-    resolvedAgentType: "",
-    resolvedReferrer: "",
-    resolvedFormSource: "self_form"
+    uploadCardIdSource: "tmp"
   };
 
   const cropState = {
@@ -297,19 +285,6 @@ import {
     state.reservedUid = normalizeCardId_(reservedUid);
     state.inviteCode = invite || "";
     state.tenant = tenant || "angel";
-
-    // 既有來源參數
-    state.ref = text(sp.get("ref"));
-    state.source = text(sp.get("source"));
-
-    // 分享追蹤參數
-    state.shareCardId = normalizeCardId_(sp.get("share_card_id") || "");
-    state.shareAgentId = text(sp.get("share_agent_id"));
-    state.shareSource = text(sp.get("share_source"));
-    state.shareChannel = text(sp.get("share_channel"));
-    state.shareVisitId = text(sp.get("share_visit_id"));
-
-    resolveAttribution_();
     syncUploadCardId_();
 
     if (els.ver) els.ver.textContent = `v${VERSION}`;
@@ -318,69 +293,11 @@ import {
     if (els.inviteText) els.inviteText.textContent = invite || "-";
     if (els.gas) els.gas.value = gas;
 
-    if (els.modeText) els.modeText.textContent = buildModeText_();
+    if (els.modeText) els.modeText.textContent = "填表模式";
     if (els.dot) {
       els.dot.style.background = "var(--ok)";
       els.dot.style.boxShadow = "0 0 0 4px rgba(110,231,183,.14)";
     }
-
-    console.log("[HSC form] attribution", {
-      ref: state.ref,
-      source: state.source,
-      shareCardId: state.shareCardId,
-      shareAgentId: state.shareAgentId,
-      shareSource: state.shareSource,
-      shareChannel: state.shareChannel,
-      shareVisitId: state.shareVisitId,
-      resolvedServiceAgent: state.resolvedServiceAgent,
-      resolvedAgentType: state.resolvedAgentType,
-      resolvedReferrer: state.resolvedReferrer,
-      resolvedFormSource: state.resolvedFormSource
-    });
-  }
-
-  function resolveAttribution_() {
-    const ref = text(state.ref);
-    const shareAgentId = text(state.shareAgentId);
-    const shareCardId = normalizeCardId_(state.shareCardId);
-    const shareSource = text(state.shareSource);
-    const shareChannel = text(state.shareChannel);
-
-    let referrer = "";
-    let serviceAgent = "";
-    let agentType = "";
-    let formSource = "self_form";
-
-    // 優先保留既有 ref 流程
-    if (ref) {
-      referrer = ref;
-      serviceAgent = ref;
-      agentType = "service";
-      formSource = "agent_form";
-    } else if (shareAgentId) {
-      // 無 ref 才安全映射分享代理
-      referrer = shareCardId || "";
-      serviceAgent = shareAgentId;
-      agentType = "service";
-      formSource = "card_share_form";
-    } else if (shareCardId || shareSource || shareChannel) {
-      // 只有分享資訊，先保留不亂覆蓋 service_agent
-      referrer = shareCardId || "";
-      serviceAgent = "";
-      agentType = "";
-      formSource = "card_share_form";
-    }
-
-    state.resolvedReferrer = referrer;
-    state.resolvedServiceAgent = serviceAgent;
-    state.resolvedAgentType = agentType;
-    state.resolvedFormSource = formSource;
-  }
-
-  function buildModeText_() {
-    if (state.shareCardId) return "分享進站填表";
-    if (state.ref) return "代理推薦填表";
-    return "填表模式";
   }
 
   function bindEvents_() {
@@ -469,8 +386,7 @@ import {
       renderSummary_();
     }, true);
   }
-
-  function renderChipGroup_(wrap, items, activeValue, onPick, useSwatch) {
+function renderChipGroup_(wrap, items, activeValue, onPick, useSwatch) {
     if (!wrap) return;
     wrap.innerHTML = "";
     items.forEach((item) => {
@@ -560,6 +476,7 @@ import {
 
     els.uploadGrid.innerHTML = "";
     const items = buildUploadItems_();
+
     items.forEach((item) => {
       const box = document.createElement("div");
       box.className = "uItem";
@@ -640,7 +557,8 @@ import {
 
     refreshUploadThumbs_();
   }
-function refreshUploadThumbs_() {
+
+  function refreshUploadThumbs_() {
     state.uploadOrder.forEach((key) => {
       const thumb = $(`#thumb_${key}`);
       const editBtn = $(`#edit_${key}`);
@@ -776,8 +694,7 @@ function refreshUploadThumbs_() {
     }
     return ok;
   }
-
-  function validateCtaFields_(showMessage) {
+function validateCtaFields_(showMessage) {
     const pairs = [
       ["cta_text_1", "cta_link_1"],
       ["cta_text_2", "cta_link_2"],
@@ -901,8 +818,6 @@ function refreshUploadThumbs_() {
     const maxPhotoOnly = state.plan === "premium" ? 5 : 2;
     const ctaCount = state.plan === "premium" ? 3 : 1;
 
-    const shareSummary = buildShareSummary_();
-
     const items = [
       ["方案", state.plan === "premium" ? "精品設計" : "自由搭配"],
       ["外觀", state.plan === "premium"
@@ -914,24 +829,12 @@ function refreshUploadThumbs_() {
       ["圖片", `已處理 ${countUploadedPhotos_()} 張（含大頭照、Logo；照片牆上限 ${maxPhotoOnly} 張）`]
     ];
 
-    if (shareSummary) items.push(["分享追蹤", shareSummary]);
-
     els.summaryBox.innerHTML = items.map(([k, v]) => `
       <div class="sumRow">
         <span>${escapeHtml_(k)}</span>
         <strong>${escapeHtml_(v)}</strong>
       </div>
     `).join("");
-  }
-
-  function buildShareSummary_() {
-    const lines = [];
-    if (state.shareCardId) lines.push(`share_card_id：${state.shareCardId}`);
-    if (state.shareSource) lines.push(`share_source：${state.shareSource}`);
-    if (state.shareChannel) lines.push(`share_channel：${state.shareChannel}`);
-    if (state.shareVisitId) lines.push(`share_visit_id：${state.shareVisitId}`);
-    if (state.shareAgentId) lines.push(`share_agent_id：${state.shareAgentId}`);
-    return lines.join("\n");
   }
 
   function buildContactSummary_() {
@@ -1046,13 +949,11 @@ function refreshUploadThumbs_() {
       if (els.idText && cardId) els.idText.textContent = cardId;
       setStatus_("資料已送出。");
       showSuccessBox_(cardId);
-      keepViewAtProgress_();
     } catch (err) {
       console.error(err);
       setProgress_(100, "送出失敗");
       setStatus_(`送出失敗：${err.message || err}`);
       showErrorBox_(err.message || "送出失敗，請稍後再試");
-      keepViewAtProgress_();
     } finally {
       state.isSubmitting = false;
       if (els.btnSubmit) els.btnSubmit.disabled = false;
@@ -1139,23 +1040,6 @@ function refreshUploadThumbs_() {
 
     return uploaded;
   }
-function buildLeadSnapshot_() {
-    const snapshot = {
-      ref: state.ref || "",
-      source: state.source || "",
-      share_card_id: state.shareCardId || "",
-      share_agent_id: state.shareAgentId || "",
-      share_source: state.shareSource || "",
-      share_channel: state.shareChannel || "",
-      share_visit_id: state.shareVisitId || "",
-      resolved_referrer: state.resolvedReferrer || "",
-      resolved_service_agent: state.resolvedServiceAgent || "",
-      resolved_agent_type: state.resolvedAgentType || "",
-      resolved_form_source: state.resolvedFormSource || ""
-    };
-
-    return JSON.stringify(snapshot);
-  }
 
   function buildJsonPayload_(uploadedImageUrls, cardIdForStorage) {
     const reservedUid = normalizeCardId_(state.reservedUid || cardIdForStorage || "");
@@ -1213,27 +1097,13 @@ function buildLeadSnapshot_() {
       photo4_url: uploadedImageUrls.photo4_url || "",
       photo5_url: uploadedImageUrls.photo5_url || "",
 
-      // 原有來源鏈
-      referrer: state.resolvedReferrer || "",
-      service_agent: state.resolvedServiceAgent || "",
-      agent_type: state.resolvedAgentType || "",
-      source: state.source || "form",
-      form_source: state.resolvedFormSource || "self_form",
-
-      // 分享追蹤欄位
-      share_card_id: state.shareCardId || "",
-      share_source: state.shareSource || "",
-      share_channel: state.shareChannel || "",
-      share_visit_id: state.shareVisitId || "",
-
-      // 方便後續擴充，不破壞既有 agent/ref 流程
-      lead_snapshot: buildLeadSnapshot_()
+      source: "form",
+      form_source: "self_form"
     };
 
     return payload;
   }
-
-  async function postJsonPayload_(endpoint, payload) {
+async function postJsonPayload_(endpoint, payload) {
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -1353,13 +1223,13 @@ function buildLeadSnapshot_() {
           <div class="hsc-id-card">
             <div class="hsc-id-label">名片編號</div>
             <div class="hsc-id-value">${escapeHtml_(safeId || "未取得")}</div>
-            <div class="hsc-id-tip">請按下方按鈕複製「名片編號＋回覆客服文案」，再前往 LINE 客服回覆。</div>
+            <div class="hsc-id-tip">請先複製下方「名片 ID＋客服文案」，再點擊 LINE 客服按鈕回覆客服。</div>
           </div>
 
           <div class="hsc-reply-card">
-            <div class="hsc-reply-label">回覆客服文案</div>
+            <div class="hsc-reply-label">可回覆客服文案</div>
             <textarea class="hsc-reply-text" id="serviceReplyText" readonly></textarea>
-            <div class="hsc-reply-tip">送出後仍停留在此區塊，請直接在這裡完成複製與回覆客服。</div>
+            <div class="hsc-reply-tip">此區塊固定顯示在第六步驟下方，不會跳頁。</div>
           </div>
         </div>
       `;
@@ -1379,7 +1249,7 @@ function buildLeadSnapshot_() {
 
       const copyReplyBtn = document.createElement("button");
       copyReplyBtn.type = "button";
-      copyReplyBtn.textContent = "一鍵複製 ID＋回覆客服文案";
+      copyReplyBtn.textContent = "一鍵複製 ID＋客服文案";
       copyReplyBtn.addEventListener("click", async () => {
         const textArea = document.getElementById("serviceReplyText");
         if (textArea) {
@@ -1390,7 +1260,7 @@ function buildLeadSnapshot_() {
           } catch (_) {}
         }
         const ok = await copyText_(replyText);
-        flashButtonText_(copyReplyBtn, ok ? "已複製" : "複製失敗", "一鍵複製 ID＋回覆客服文案");
+        flashButtonText_(copyReplyBtn, ok ? "已複製" : "複製失敗", "一鍵複製 ID＋客服文案");
       });
 
       const lineBtn = document.createElement("button");
@@ -1442,6 +1312,12 @@ function buildLeadSnapshot_() {
       });
       els.successActions.appendChild(replyBtn);
     }
+
+    requestAnimationFrame(() => {
+      if (els.formBottomAnchor) {
+        els.formBottomAnchor.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
   }
 
   function flashButtonText_(btn, activeText, restoreText) {
@@ -1688,425 +1564,3 @@ function buildLeadSnapshot_() {
     ctx.strokeRect(0, 0, stage.w, stage.h);
     ctx.restore();
   }
-
-  async function applyCrop_() {
-    if (!cropState.image || !cropState.targetKey) return;
-
-    const stage = getCropStageSize_();
-    const img = cropState.image;
-
-    const stageCanvas = document.createElement("canvas");
-    stageCanvas.width = stage.w;
-    stageCanvas.height = stage.h;
-    const stageCtx = stageCanvas.getContext("2d");
-
-    const scaledW = img.width * cropState.viewScale;
-    const scaledH = img.height * cropState.viewScale;
-    const x = (stage.w - scaledW) / 2 + cropState.offsetX;
-    const y = (stage.h - scaledH) / 2 + cropState.offsetY;
-
-    stageCtx.clearRect(0, 0, stage.w, stage.h);
-    stageCtx.fillStyle = "#ffffff";
-    stageCtx.fillRect(0, 0, stage.w, stage.h);
-    stageCtx.imageSmoothingEnabled = true;
-    stageCtx.imageSmoothingQuality = "high";
-    stageCtx.drawImage(img, x, y, scaledW, scaledH);
-
-    const outCanvas = document.createElement("canvas");
-    outCanvas.width = cropState.outputWidth;
-    outCanvas.height = cropState.outputHeight;
-    const outCtx = outCanvas.getContext("2d");
-    outCtx.fillStyle = "#ffffff";
-    outCtx.fillRect(0, 0, cropState.outputWidth, cropState.outputHeight);
-    outCtx.imageSmoothingEnabled = true;
-    outCtx.imageSmoothingQuality = "high";
-    outCtx.drawImage(stageCanvas, 0, 0, cropState.outputWidth, cropState.outputHeight);
-
-    const quality = cropState.smartProfile.outputQuality;
-    const blob = await canvasToBlob_(outCanvas, "image/jpeg", quality);
-    if (!blob || !blob.size) throw new Error("裁切後輸出的圖片無效");
-
-    const previewUrl = URL.createObjectURL(blob);
-
-    const oldInfo = state.files[cropState.targetKey];
-    if (oldInfo) revokeFileUrls_(oldInfo);
-
-    state.files[cropState.targetKey] = {
-      sourceFile: cropState.sourceFile,
-      blob,
-      previewUrl,
-      remoteUrl: "",
-      remoteCardId: "",
-      crop: {
-        viewScale: cropState.viewScale,
-        offsetX: cropState.offsetX,
-        offsetY: cropState.offsetY
-      }
-    };
-
-    closeCropper_();
-    refreshUploadThumbs_();
-    setStatus_(`圖片已套用。壓縮模式：${cropState.smartProfile.label}｜輸出大小：約 ${(blob.size / MB).toFixed(2)} MB`);
-  }
-
-  function closeCropper_() {
-    if (els.cropModal) els.cropModal.classList.remove("show");
-    cropState.drag.active = false;
-    cleanupCropResources_();
-  }
-
-  function cleanupCropResources_() {
-    cropState.image = null;
-    cropState.previewDataUrl = "";
-    cropState.sourceFile = null;
-    cropState.sourceSize = 0;
-    cropState.targetKey = "";
-    cropState.targetLabel = "";
-    cropState.preparedWidth = 0;
-    cropState.preparedHeight = 0;
-    cropState.viewScale = 1;
-    cropState.minScale = 1;
-    cropState.baseFitScale = 1;
-    cropState.offsetX = 0;
-    cropState.offsetY = 0;
-  }
-
-  function getPoint_(e) {
-    if (e.touches && e.touches[0]) {
-      return { x: e.touches[0].clientX || 0, y: e.touches[0].clientY || 0 };
-    }
-    return { x: e.clientX || 0, y: e.clientY || 0 };
-  }
-
-  async function prepareImageForCrop_(file) {
-    const profile = getSmartProfile_(file.size || 0);
-
-    const arrayBuffer = await file.arrayBuffer();
-    const orientation = getJpegOrientation_(arrayBuffer);
-
-    const rawDataUrl = await readFileAsDataURL_(file);
-    const original = await loadImage_(rawDataUrl);
-
-    const correctedCanvas = drawImageWithOrientation_(original, orientation);
-    const normalizedCanvas = shrinkCanvasIfNeeded_(correctedCanvas, profile.maxLong, profile.maxShort);
-
-    const previewBlob = await canvasToBlob_(normalizedCanvas, "image/jpeg", profile.previewQuality);
-    const previewDataUrl = await blobToDataURL_(previewBlob);
-    const finalImg = await loadImage_(previewDataUrl);
-
-    const meta = [];
-    meta.push(`智慧壓縮：${profile.label}`);
-    if (orientation > 1) meta.push(`已修正照片方向（EXIF ${orientation}）`);
-    if (original.naturalWidth !== finalImg.naturalWidth || original.naturalHeight !== finalImg.naturalHeight) {
-      meta.push(`已預縮圖：${original.naturalWidth}×${original.naturalHeight} → ${finalImg.naturalWidth}×${finalImg.naturalHeight}`);
-    }
-    meta.push(`原始大小：約 ${(file.size / MB).toFixed(2)} MB`);
-
-    return {
-      image: finalImg,
-      profile,
-      previewDataUrl,
-      width: finalImg.naturalWidth || finalImg.width,
-      height: finalImg.naturalHeight || finalImg.height,
-      metaText: meta.join("｜")
-    };
-  }
-
-  function getSmartProfile_(size) {
-    if (size <= FILE_TIER_SMALL) return SMART_PROFILE.small;
-    if (size <= FILE_TIER_MEDIUM) return SMART_PROFILE.medium;
-    return SMART_PROFILE.large;
-  }
-
-  function shrinkCanvasIfNeeded_(canvas, maxLong, maxShort) {
-    const w = canvas.width;
-    const h = canvas.height;
-    const longSide = Math.max(w, h);
-    const shortSide = Math.min(w, h);
-
-    if (longSide <= maxLong && shortSide <= maxShort) return canvas;
-
-    const ratio = Math.min(maxLong / longSide, maxShort / shortSide);
-    const targetW = Math.max(1, Math.round(w * ratio));
-    const targetH = Math.max(1, Math.round(h * ratio));
-
-    const out = document.createElement("canvas");
-    out.width = targetW;
-    out.height = targetH;
-    const ctx = out.getContext("2d");
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(canvas, 0, 0, targetW, targetH);
-    return out;
-  }
-
-  function drawImageWithOrientation_(img, orientation) {
-    const w = img.naturalWidth || img.width;
-    const h = img.naturalHeight || img.height;
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    if ([5, 6, 7, 8].includes(orientation)) {
-      canvas.width = h;
-      canvas.height = w;
-    } else {
-      canvas.width = w;
-      canvas.height = h;
-    }
-
-    switch (orientation) {
-      case 2:
-        ctx.translate(w, 0);
-        ctx.scale(-1, 1);
-        break;
-      case 3:
-        ctx.translate(w, h);
-        ctx.rotate(Math.PI);
-        break;
-      case 4:
-        ctx.translate(0, h);
-        ctx.scale(1, -1);
-        break;
-      case 5:
-        ctx.rotate(0.5 * Math.PI);
-        ctx.scale(1, -1);
-        break;
-      case 6:
-        ctx.rotate(0.5 * Math.PI);
-        ctx.translate(0, -h);
-        break;
-      case 7:
-        ctx.rotate(0.5 * Math.PI);
-        ctx.translate(w, -h);
-        ctx.scale(-1, 1);
-        break;
-      case 8:
-        ctx.rotate(-0.5 * Math.PI);
-        ctx.translate(-w, 0);
-        break;
-      default:
-        break;
-    }
-
-    ctx.drawImage(img, 0, 0);
-    return canvas;
-  }
-
-  function getJpegOrientation_(arrayBuffer) {
-    try {
-      const view = new DataView(arrayBuffer);
-      if (view.getUint16(0, false) !== 0xFFD8) return 1;
-
-      let offset = 2;
-      const length = view.byteLength;
-
-      while (offset < length) {
-        const marker = view.getUint16(offset, false);
-        offset += 2;
-
-        if (marker === 0xFFE1) {
-          offset += 2;
-
-          if (getString_(view, offset, 4) !== "Exif") return 1;
-          offset += 6;
-
-          const little = view.getUint16(offset, false) === 0x4949;
-          const firstIFDOffset = view.getUint32(offset + 4, little);
-          offset += firstIFDOffset;
-
-          const tags = view.getUint16(offset, little);
-          offset += 2;
-
-          for (let i = 0; i < tags; i++) {
-            const tagOffset = offset + i * 12;
-            const tag = view.getUint16(tagOffset, little);
-            if (tag === 0x0112) {
-              return view.getUint16(tagOffset + 8, little);
-            }
-          }
-          return 1;
-        } else if ((marker & 0xFF00) !== 0xFF00) {
-          break;
-        } else {
-          offset += view.getUint16(offset, false);
-        }
-      }
-
-      return 1;
-    } catch (_) {
-      return 1;
-    }
-  }
-
-  function getString_(view, start, length) {
-    let out = "";
-    for (let i = 0; i < length; i++) {
-      out += String.fromCharCode(view.getUint8(start + i));
-    }
-    return out;
-  }
-
-  function loadImage_(src) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.decoding = "sync";
-
-      img.onload = () => {
-        if (!img.naturalWidth || !img.naturalHeight || !img.width || !img.height) {
-          reject(new Error("Image load failed"));
-          return;
-        }
-        resolve(img);
-      };
-
-      img.onerror = () => reject(new Error("圖片載入失敗"));
-      img.src = src;
-    });
-  }
-
-  function readFileAsDataURL_(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(new Error("讀取圖片失敗"));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function blobToDataURL_(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ""));
-      reader.onerror = () => reject(new Error("轉換圖片失敗"));
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  function canvasToBlob_(canvas, type, quality) {
-    return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("無法輸出圖片"));
-      }, type, quality);
-    });
-  }
-
-  async function copyText_(value) {
-    const v = text(value);
-    if (!v) return false;
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(v);
-        return true;
-      }
-    } catch (_) {}
-
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = v;
-      ta.setAttribute("readonly", "readonly");
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      ta.style.left = "-9999px";
-      ta.style.top = "0";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      ta.setSelectionRange(0, ta.value.length);
-      const ok = document.execCommand("copy");
-      ta.remove();
-      return !!ok;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  function injectSuccessBoxStyles_() {
-    if (document.getElementById("hsc-form-success-extra-style")) return;
-    const style = document.createElement("style");
-    style.id = "hsc-form-success-extra-style";
-    style.textContent = `
-      .hsc-success-main{display:grid;gap:12px;}
-      .hsc-success-ok{font-weight:1000;font-size:13px;line-height:1.8;color:#fff;}
-      .hsc-id-card,.hsc-reply-card{
-        border:1px solid rgba(255,255,255,.12);
-        border-radius:14px;
-        background:rgba(255,255,255,.05);
-        padding:12px;
-      }
-      .hsc-id-label,.hsc-reply-label{
-        font-size:11px;
-        color:rgba(255,255,255,.72);
-        font-weight:1000;
-        margin-bottom:6px;
-      }
-      .hsc-id-value{
-        font-size:30px;
-        line-height:1.2;
-        font-weight:1000;
-        letter-spacing:.04em;
-        color:#7bdcff;
-        word-break:break-word;
-      }
-      .hsc-id-tip,.hsc-reply-tip{
-        margin-top:6px;
-        font-size:11px;
-        line-height:1.8;
-        color:rgba(255,255,255,.78);
-      }
-      .hsc-reply-text{
-        width:100%;
-        min-height:132px;
-        resize:none;
-        background:rgba(255,255,255,.06);
-        color:#fff;
-        border:1px solid rgba(255,255,255,.12);
-        border-radius:12px;
-        padding:12px;
-        font-size:13px;
-        line-height:1.8;
-        outline:none;
-        margin:0;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function escapeHtml_(str) {
-    return String(str ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  window.HSCForm = Object.assign(window.HSCForm || {}, {
-    version: VERSION,
-    getState: () => JSON.parse(JSON.stringify({
-      currentPage: state.currentPage,
-      plan: state.plan,
-      color: state.color,
-      style: state.style,
-      paper: state.paper,
-      premiumColor: state.premiumColor,
-      isSubmitting: state.isSubmitting,
-      reservedUid: state.reservedUid,
-      inviteCode: state.inviteCode,
-      tenant: state.tenant,
-      uploadCardId: state.uploadCardId,
-      uploadCardIdSource: state.uploadCardIdSource,
-      shareCardId: state.shareCardId,
-      shareAgentId: state.shareAgentId,
-      shareSource: state.shareSource,
-      shareChannel: state.shareChannel,
-      shareVisitId: state.shareVisitId,
-      resolvedServiceAgent: state.resolvedServiceAgent,
-      resolvedAgentType: state.resolvedAgentType,
-      resolvedReferrer: state.resolvedReferrer,
-      resolvedFormSource: state.resolvedFormSource
-    }))
-  });
-})();
