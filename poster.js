@@ -1,24 +1,27 @@
 /* ==========================================
- * HSC Poster v710.0
+ * HSC Poster v710.2
  * COMPLETE OVERWRITE
  *
- * 主線：
- * 1. 保留 v709.5 純 canvas 生成海報穩定流程
- * 2. 補上分享追蹤參數：
- *    - share_card_id
- *    - share_agent_id
- *    - share_source
- *    - share_channel
- *    - share_visit_id
- * 3. poster 頁內所有分享入口改用帶參數 URL
- * 4. 「我也想做一張智慧名片」改走 form.html 並保留來源 channel
- * 5. 預留未來代理分潤 / 客戶推薦資料鏈
+ * 基礎：
+ * - 保留 v710 全功能，不精簡
+ * - 融合 v710.1 QR 顯示修正
+ *
+ * 本版升級：
+ * 1. 海報 QR 文案改為「掃描 QR Code」
+ * 2. 交付卡頁內 QR 維持可點擊、可掃描
+ * 3. 交付卡 QR 中央頭像再縮小，提高掃描成功率
+ * 4. QR 生成優先走 canvas，提高穩定度
+ * 5. 補強 quiet zone / fallback / image handling
+ * 6. 保留分享追蹤：
+ *    - poster
+ *    - product_card
+ *    - poster_qr
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "710.0";
+  const VERSION = "710.2";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -29,6 +32,18 @@
   const DEFAULT_LINE_OA =
     "https://lin.ee/3r2ZePN";
 
+  const QR_CONFIG = {
+    previewSize: 900,
+    posterSize: 880,
+    dark: "#2f241d",
+    light: "#ffffff",
+    correctLevel: "H",
+    centerAvatarRatio: 0.14,     // 再縮小，提升掃描率
+    centerAvatarBorder: 6,
+    quietZoneRatio: 0.075,       // 海報輸出額外留白比例
+    quietZoneColor: "#ffffff"
+  };
+
   const qs = new URLSearchParams(location.search);
 
   const id = (qs.get("id") || "").trim();
@@ -36,7 +51,7 @@
   const baseUrl = normalizeBase(qs.get("base") || DEFAULT_BASE);
   const lineOA = (qs.get("lineoa") || DEFAULT_LINE_OA).trim();
 
-  // 來源追蹤參數（從外部進來時可能已存在）
+  // 外部進來的追蹤參數
   const incomingShareCardId = (qs.get("share_card_id") || "").trim();
   const incomingShareAgentId = (qs.get("share_agent_id") || "").trim();
   const incomingShareSource = (qs.get("share_source") || "").trim();
@@ -68,16 +83,15 @@
   };
 
   let currentItem = null;
-
   let currentAvatarUrl = "";
 
-  // 追蹤後 URL
+  // URL
   let currentPosterShareUrl = ""; // poster.html?...share_channel=poster
   let currentPosterQrUrl = "";    // index.html?...share_channel=poster_qr
   let currentProductCardUrl = ""; // index.html?...share_channel=product_card
   let currentRecommendUrl = "";   // form.html?...share_channel=poster / poster_qr
 
-  // 解析後的追蹤上下文
+  // 追蹤上下文
   let currentShareContext = {
     share_card_id: "",
     share_agent_id: "",
@@ -137,6 +151,7 @@
       if (e.target === el.shareDialog) closeDialog();
     });
 
+    // 交付卡頁內 QR：仍可點擊
     el.qrBox?.addEventListener("click", () => {
       if (currentPosterQrUrl) {
         window.open(currentPosterQrUrl, "_blank", "noopener");
@@ -230,8 +245,7 @@
     if (v === "product_card") return "product_card";
     return "poster";
   }
-
-  function buildPosterShareUrl(item, ctx) {
+function buildPosterShareUrl(item, ctx) {
     const cardId = text(item?.id) || id;
     return buildUrl("poster.html", {
       id: cardId,
@@ -297,61 +311,30 @@
     hideQrFallback();
     el.qrViewport.innerHTML = "";
 
-    const mount = document.createElement("div");
-    mount.style.width = "100%";
-    mount.style.height = "100%";
-    mount.style.display = "flex";
-    mount.style.alignItems = "center";
-    mount.style.justifyContent = "center";
-    el.qrViewport.appendChild(mount);
+    try {
+      const qrCanvas = await buildQrCanvasWithQuietZone(
+        targetUrl,
+        QR_CONFIG.previewSize,
+        {
+          includeQuietZone: true,
+          quietZoneRatio: 0.04,
+          centerAvatarUrl: "",
+          centerAvatarRatio: 0
+        }
+      );
 
-    new window.QRCode(mount, {
-      text: targetUrl,
-      width: 900,
-      height: 900,
-      colorDark: "#2f241d",
-      colorLight: "#ffffff",
-      correctLevel: window.QRCode.CorrectLevel.H
-    });
+      qrCanvas.style.width = "100%";
+      qrCanvas.style.height = "100%";
+      qrCanvas.style.display = "block";
+      qrCanvas.style.objectFit = "contain";
+      qrCanvas.style.imageRendering = "pixelated";
 
-    await wait(240);
-
-    const img = mount.querySelector("img");
-    const canvas = mount.querySelector("canvas");
-    const table = mount.querySelector("table");
-
-    if (img) {
-      img.style.width = "100%";
-      img.style.height = "100%";
-      img.style.display = "block";
-      img.style.objectFit = "contain";
-      img.style.imageRendering = "pixelated";
-      return;
+      el.qrViewport.appendChild(qrCanvas);
+    } catch (err) {
+      console.error(`[HSC Poster ${VERSION}] renderQrLocal error:`, err);
+      renderQrFallback(targetUrl);
+      setStatus("QR 產生失敗，已改顯示名片連結", true);
     }
-
-    if (canvas) {
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      canvas.style.display = "block";
-      canvas.style.objectFit = "contain";
-      canvas.style.imageRendering = "pixelated";
-      return;
-    }
-
-    if (table) {
-      table.style.width = "100%";
-      table.style.height = "100%";
-      table.style.borderCollapse = "collapse";
-      table.style.background = "#fff";
-      table.querySelectorAll("td").forEach((td) => {
-        td.style.padding = "0";
-        td.style.margin = "0";
-      });
-      return;
-    }
-
-    renderQrFallback(targetUrl);
-    setStatus("QR 產生失敗，已改顯示名片連結", true);
   }
 
   async function renderQrCenterAvatar(avatarUrl) {
@@ -370,6 +353,13 @@
     );
 
     if (ok) {
+      // 交付卡 QR 中央頭像再縮小，提高掃描率
+      el.qrCenterAvatarImg.style.width = `${Math.round(QR_CONFIG.centerAvatarRatio * 100)}%`;
+      el.qrCenterAvatarImg.style.height = `${Math.round(QR_CONFIG.centerAvatarRatio * 100)}%`;
+      el.qrCenterAvatarImg.style.objectFit = "cover";
+      el.qrCenterAvatarImg.style.borderRadius = "999px";
+      el.qrCenterAvatarImg.style.border = `${QR_CONFIG.centerAvatarBorder}px solid #ffffff`;
+      el.qrCenterAvatarImg.style.boxSizing = "border-box";
       el.qrCenterAvatar.classList.add("show");
     } else {
       el.qrCenterAvatar.classList.remove("show");
@@ -422,7 +412,16 @@
       throw new Error("名片連結尚未建立");
     }
 
-    const qrCanvas = await buildQrCanvas(currentPosterQrUrl, 880);
+    const qrCanvas = await buildQrCanvasWithQuietZone(
+      currentPosterQrUrl,
+      QR_CONFIG.posterSize,
+      {
+        includeQuietZone: true,
+        quietZoneRatio: QR_CONFIG.quietZoneRatio,
+        centerAvatarUrl: "",
+        centerAvatarRatio: 0
+      }
+    );
 
     const canvas = document.createElement("canvas");
     const width = 1080;
@@ -454,7 +453,44 @@
     return canvas.toDataURL("image/png", 0.96);
   }
 
-  async function buildQrCanvas(targetUrl, size = 880) {
+  async function buildQrCanvasWithQuietZone(targetUrl, size = 880, options = {}) {
+    const quietRatio = Number(options.quietZoneRatio || 0);
+    const includeQuietZone = !!options.includeQuietZone;
+    const centerAvatarUrl = text(options.centerAvatarUrl);
+    const centerAvatarRatio = Number(options.centerAvatarRatio || 0);
+
+    const innerSize = includeQuietZone
+      ? Math.max(100, Math.round(size * (1 - quietRatio * 2)))
+      : size;
+
+    const rawCanvas = await buildRawQrCanvas(targetUrl, innerSize);
+
+    const finalCanvas = document.createElement("canvas");
+    finalCanvas.width = size;
+    finalCanvas.height = size;
+
+    const ctx = finalCanvas.getContext("2d");
+    if (!ctx) throw new Error("無法建立 QR 畫布");
+
+    ctx.fillStyle = QR_CONFIG.quietZoneColor;
+    ctx.fillRect(0, 0, size, size);
+
+    const offset = Math.round((size - innerSize) / 2);
+    ctx.drawImage(rawCanvas, offset, offset, innerSize, innerSize);
+
+    if (centerAvatarUrl && centerAvatarRatio > 0) {
+      await drawQrCenterAvatarOnCanvas(
+        ctx,
+        size,
+        centerAvatarUrl,
+        centerAvatarRatio,
+        QR_CONFIG.centerAvatarBorder
+      );
+    }
+
+    return finalCanvas;
+  }
+async function buildRawQrCanvas(targetUrl, size = 880) {
     const wrap = document.createElement("div");
     wrap.style.position = "fixed";
     wrap.style.left = "-99999px";
@@ -463,6 +499,7 @@
     wrap.style.height = `${size}px`;
     wrap.style.pointerEvents = "none";
     wrap.style.opacity = "0";
+    wrap.style.overflow = "hidden";
     document.body.appendChild(wrap);
 
     try {
@@ -470,15 +507,25 @@
         text: targetUrl,
         width: size,
         height: size,
-        colorDark: "#2f241d",
-        colorLight: "#ffffff",
-        correctLevel: window.QRCode.CorrectLevel.H
+        colorDark: QR_CONFIG.dark,
+        colorLight: QR_CONFIG.light,
+        correctLevel: window.QRCode.CorrectLevel[QR_CONFIG.correctLevel] || window.QRCode.CorrectLevel.H
       });
 
       await wait(260);
 
       const nodeCanvas = wrap.querySelector("canvas");
-      if (nodeCanvas) return nodeCanvas;
+      if (nodeCanvas) {
+        const cloned = document.createElement("canvas");
+        cloned.width = size;
+        cloned.height = size;
+        const clonedCtx = cloned.getContext("2d");
+        if (!clonedCtx) throw new Error("無法複製 QR canvas");
+        clonedCtx.fillStyle = "#ffffff";
+        clonedCtx.fillRect(0, 0, size, size);
+        clonedCtx.drawImage(nodeCanvas, 0, 0, size, size);
+        return cloned;
+      }
 
       const img = wrap.querySelector("img");
       if (img && img.src) {
@@ -487,15 +534,103 @@
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("無法建立 QR image canvas");
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, size, size);
         ctx.drawImage(loaded, 0, 0, size, size);
         return canvas;
       }
 
+      const table = wrap.querySelector("table");
+      if (table) {
+        // 最後 fallback：把 table 畫成 canvas
+        return tableQrToCanvas(table, size);
+      }
+
       throw new Error("QR 生成失敗");
     } finally {
       wrap.remove();
+    }
+  }
+
+  function tableQrToCanvas(table, size) {
+    const rows = Array.from(table.querySelectorAll("tr"));
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("無法建立 table QR canvas");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, size, size);
+
+    if (!rows.length) return canvas;
+
+    const cols = rows[0].querySelectorAll("td").length || 1;
+    const cellSize = size / Math.max(rows.length, cols);
+
+    rows.forEach((tr, y) => {
+      const cells = Array.from(tr.querySelectorAll("td"));
+      cells.forEach((td, x) => {
+        const bg = getComputedStyle(td).backgroundColor;
+        const dark = isDarkColor(bg);
+        ctx.fillStyle = dark ? QR_CONFIG.dark : "#ffffff";
+        ctx.fillRect(
+          Math.round(x * cellSize),
+          Math.round(y * cellSize),
+          Math.ceil(cellSize),
+          Math.ceil(cellSize)
+        );
+      });
+    });
+
+    return canvas;
+  }
+
+  function isDarkColor(color) {
+    const s = String(color || "").toLowerCase();
+    if (!s) return false;
+    if (s === "black") return true;
+    if (s === "rgb(0, 0, 0)") return true;
+    if (s === "rgba(0, 0, 0, 1)") return true;
+
+    const m = s.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (!m) return false;
+
+    const r = Number(m[1]);
+    const g = Number(m[2]);
+    const b = Number(m[3]);
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance < 140;
+  }
+
+  async function drawQrCenterAvatarOnCanvas(ctx, size, avatarUrl, ratio, borderWidth) {
+    try {
+      const img = await createImageWithFallback(avatarUrl, buildDefaultAvatarSvg());
+      const avatarSize = Math.round(size * ratio);
+      const x = Math.round((size - avatarSize) / 2);
+      const y = Math.round((size - avatarSize) / 2);
+      const radius = Math.round(avatarSize / 2);
+
+      ctx.save();
+
+      // 白底圓形，避免頭像直接壓到 QR
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, radius + borderWidth, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+      // 裁成圓形頭像
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, radius, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+
+      ctx.drawImage(img, x, y, avatarSize, avatarSize);
+      ctx.restore();
+    } catch (err) {
+      console.warn(`[HSC Poster ${VERSION}] drawQrCenterAvatarOnCanvas skipped:`, err);
     }
   }
 
@@ -578,8 +713,7 @@
     ctx.fillStyle = "#9a6a44";
     ctx.fillText("智慧名片交付卡", width / 2, y + pillH / 2 + 1);
   }
-
-  function drawNameAndTitle(ctx, width, name, title) {
+function drawNameAndTitle(ctx, width, name, title) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
@@ -641,8 +775,9 @@
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#6b5a4d";
 
+    // 修正：海報文案去掉「點擊」
     ctx.font = "800 28px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
-    ctx.fillText("掃描或點擊 QR Code", width / 2, 1490);
+    ctx.fillText("掃描 QR Code", width / 2, 1490);
     ctx.fillText("即可查看完整智慧名片", width / 2, 1536);
   }
 
@@ -815,8 +950,7 @@
       .replace(/\s+/g, "-")
       .slice(0, 60);
   }
-
-  function buildDefaultAvatarSvg() {
+function buildDefaultAvatarSvg() {
     return "data:image/svg+xml;utf8," + encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
         <rect width="320" height="320" rx="160" fill="#eadfd4"/>
@@ -860,10 +994,20 @@
   function createImage(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
+      img.crossOrigin = "anonymous";
       img.onload = () => resolve(img);
       img.onerror = () => reject(new Error("圖片載入失敗"));
       img.src = src;
     });
+  }
+
+  async function createImageWithFallback(src, fallback = "") {
+    try {
+      return await createImage(src);
+    } catch (err) {
+      if (!fallback) throw err;
+      return await createImage(fallback);
+    }
   }
 
   async function copyText(value) {
@@ -947,4 +1091,5 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
+
 })();
