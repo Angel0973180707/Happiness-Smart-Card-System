@@ -9,6 +9,17 @@ const CONFIG = {
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
 };
 
+const PLAN_LIMITS = {
+  free: {
+    maxPhotos: 2,
+    maxCtas: 1
+  },
+  premium: {
+    maxPhotos: 5,
+    maxCtas: 3
+  }
+};
+
 let currentRow = null;
 let deferredInstallPrompt = null;
 let currentAvatarUrlCache = "";
@@ -165,6 +176,14 @@ function pick(p, keys){
   return "";
 }
 
+function normalizePlan_(v){
+  return text(v).toLowerCase() === "premium" ? "premium" : "free";
+}
+
+function getCurrentPlanLimit_(){
+  return PLAN_LIMITS[normalizePlan_(UI_STATE.plan)] || PLAN_LIMITS.free;
+}
+
 function getReferralSourceCode_(p){
   const urlRef = getRefFromUrl_();
   if(urlRef) return urlRef;
@@ -209,6 +228,9 @@ function getAgentIdForShare_(p){
   const payload = p || currentRow || null;
   return (
     text(pick(payload, ["service_agent"])) ||
+    text(pick(payload, ["agent_id"])) ||
+    text(pick(payload, ["share_agent_id"])) ||
+    text(pick(payload, ["referrer"])) ||
     ""
   );
 }
@@ -500,7 +522,7 @@ function mapPremiumToUi_(v){
 }
 
 function applyThemeFromPayload_(p){
-  const planRaw = text(pick(p, ["plan"])) || "free";
+  const planRaw = normalizePlan_(pick(p, ["plan"]));
   const isPremium = planRaw === "premium";
 
   if(isPremium){
@@ -508,9 +530,9 @@ function applyThemeFromPayload_(p){
     UI_STATE.plan = "premium";
     UI_STATE.premiumTheme = mapPremiumToUi_(rawPremium);
   }else{
-    const rawColor = pick(p, ["color","free_color"]);
-    const rawStyle = pick(p, ["style","free_style"]);
-    const rawPaper = pick(p, ["paper","free_paper"]);
+    const rawColor = pick(p, ["free_color","color"]);
+    const rawStyle = pick(p, ["free_style","style"]);
+    const rawPaper = pick(p, ["free_paper","paper"]);
 
     UI_STATE.plan = "free";
     UI_STATE.theme = mapFreeColorToTheme_(rawColor);
@@ -807,25 +829,13 @@ function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
 }
 
 function pickAvatarInfo_(p){
-  const keys = [
-    "avatar_img_fast",
-    "avatar_img",
-    "avatar_url",
-    "avatar",
-    "個人照_fast",
-    "個人照",
-    "個人照_url"
-  ];
-
-  for(const k of keys){
-    const v = pick(p, [k]);
-    if(text(v)){
-      return {
-        key: k,
-        raw: v,
-        url: normalizeImageUrl_(v)
-      };
-    }
+  const url = pick(p, ["avatar_url"]);
+  if(text(url)){
+    return {
+      key: "avatar_url",
+      raw: url,
+      url: normalizeImageUrl_(url)
+    };
   }
 
   return {
@@ -858,7 +868,7 @@ function renderAvatar_(p){
 }
 
 function renderLogo_(p){
-  const logoUrl = pick(p, ["logo_img_fast","logo_img","logo_url","Logo_fast","Logo"]);
+  const logoUrl = pick(p, ["logo_url"]);
   const wrap = qs("logoWrap");
   const img = qs("u-logo");
   if(!wrap || !img) return;
@@ -1024,11 +1034,12 @@ function renderCtaDock_(p){
   btns.innerHTML = "";
 
   const items = [];
+  const limit = getCurrentPlanLimit_().maxCtas;
 
   const ctaPairs = [
     {
-      text: text(pick(p, ["cta_text_1","cta_text","CTA文字1","CTA文字","ctaText1","ctaText"])),
-      link: normalizeUrl_(pick(p, ["cta_link_1","cta_link","CTA連結1","CTA連結","ctaLink1","ctaLink"]))
+      text: text(pick(p, ["cta_text_1","CTA文字1","ctaText1"])),
+      link: normalizeUrl_(pick(p, ["cta_link_1","CTA連結1","ctaLink1"]))
     },
     {
       text: text(pick(p, ["cta_text_2","CTA文字2","ctaText2"])),
@@ -1041,7 +1052,7 @@ function renderCtaDock_(p){
   ];
 
   ctaPairs.forEach(item=>{
-    if(item.text && item.link) items.push(item);
+    if(item.text && item.link && items.length < limit) items.push(item);
   });
 
   if(!items.length){
@@ -1131,44 +1142,11 @@ function buildImageFingerprint_(raw){
 function collectPhotos_(p){
   const photos = [];
   const seen = new Set();
+  const limit = getCurrentPlanLimit_().maxPhotos;
 
   function pushPhoto_(raw){
-    if(raw == null) return;
-
-    if(Array.isArray(raw)){
-      raw.forEach(pushPhoto_);
-      return;
-    }
-
-    if(typeof raw === "object"){
-      if(raw.url) pushPhoto_(raw.url);
-      if(raw.src) pushPhoto_(raw.src);
-      if(raw.image) pushPhoto_(raw.image);
-      return;
-    }
-
     const s = String(raw || "").trim();
     if(!s) return;
-
-    if((s.startsWith("[") && s.endsWith("]")) || (s.startsWith("{") && s.endsWith("}"))){
-      try{
-        const parsed = JSON.parse(s);
-        pushPhoto_(parsed);
-        return;
-      }catch(_err){}
-    }
-
-    if(s.includes("\n") || s.includes(",")){
-      const parts = s
-        .split(/\n|,/)
-        .map(x => String(x || "").trim())
-        .filter(Boolean);
-
-      if(parts.length > 1){
-        parts.forEach(pushPhoto_);
-        return;
-      }
-    }
 
     const url = normalizeImageUrl_(s);
     if(!url) return;
@@ -1181,12 +1159,11 @@ function collectPhotos_(p){
   }
 
   const keys = [
-    "photo1_img_fast","photo1_img","photo1_url","photo1",
-    "photo2_img_fast","photo2_img","photo2_url","photo2",
-    "photo3_img_fast","photo3_img","photo3_url","photo3",
-    "photo4_img_fast","photo4_img","photo4_url","photo4",
-    "photo5_img_fast","photo5_img","photo5_url","photo5",
-    "photos","photo_urls","photos_urls","gallery","gallery_urls","images","image_urls"
+    "photo1_url",
+    "photo2_url",
+    "photo3_url",
+    "photo4_url",
+    "photo5_url"
   ];
 
   keys.forEach(k=>{
@@ -1194,14 +1171,7 @@ function collectPhotos_(p){
     if(v != null && text(v) !== "") pushPhoto_(v);
   });
 
-  const raw = p?.__raw || p || {};
-  [
-    "photos","photo_urls","photos_urls","gallery","gallery_urls","images","image_urls"
-  ].forEach(k=>{
-    if(raw[k] != null) pushPhoto_(raw[k]);
-  });
-
-  return photos.slice(0, 5);
+  return photos.slice(0, limit);
 }
 
 function renderPhotoWall_(p){
