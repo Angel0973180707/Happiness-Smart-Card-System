@@ -1,16 +1,20 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v804.4 FULL
+ * form.js v805.0-align
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 1. 6 步驟表單
  * 2. free / premium 方案限制
- * 3. 圖片上傳前壓縮
- * 4. crop：放大 / 縮小 / 上下左右拖移 / 置中 / 重設 / 套用
- * 5. 即時預覽
- * 6. 第六步固定進度條
- * 7. 成功後顯示：資料 ID + 客服文案 + 一鍵複製 + LINE OA
- * 8. 不自動 scroll、不跳頁
+ * 3. 外觀欄位對齊 app.js / GAS 表頭
+ *    - free：同步寫 color/style/paper + free_color/free_style/free_paper
+ *    - premium：只寫 premium_color，並清空 free / color/style/paper
+ * 4. 圖片正式只走 Firebase URL
+ *    - avatar_url / logo_url / photo1_url ~ photo5_url
+ * 5. crop：放大 / 縮小 / 上下左右拖移 / 置中 / 重設 / 套用
+ * 6. 即時預覽
+ * 7. 第六步固定進度條
+ * 8. 成功後顯示：資料 ID + 客服文案 + 一鍵複製 + LINE OA
+ * 9. 不自動 scroll、不跳頁
  * ========================================= */
 
 (function () {
@@ -40,6 +44,14 @@
     el.style.display = on ? "" : "none";
   }
 
+  function normalizeUrl(v) {
+    const s = text(v);
+    if (!s) return "";
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^www\./i.test(s)) return "https://" + s;
+    return s;
+  }
+
   function readFileAsDataURL(file) {
     return new Promise((resolve, reject) => {
       const fr = new FileReader();
@@ -64,15 +76,6 @@
         if (blob) resolve(blob);
         else reject(new Error("輸出圖片失敗"));
       }, type, quality);
-    });
-  }
-
-  function blobToDataURL(blob) {
-    return new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result || ""));
-      fr.onerror = () => reject(new Error("Blob 轉換失敗"));
-      fr.readAsDataURL(blob);
     });
   }
 
@@ -105,6 +108,10 @@
     }
   }
 
+  function clamp(num, min, max) {
+    return Math.min(Math.max(num, min), max);
+  }
+
   /* =========================
      Config
   ========================= */
@@ -116,11 +123,13 @@
   const PLAN_RULES = {
     free: {
       maxPhotos: 2,
-      maxCtas: 1
+      maxCtas: 1,
+      label: "自由搭配款"
     },
     premium: {
       maxPhotos: 5,
-      maxCtas: 3
+      maxCtas: 3,
+      label: "精品設計款"
     }
   };
 
@@ -135,6 +144,51 @@
   ];
 
   /* =========================
+     Firebase bridge
+  ========================= */
+  let firebaseApi = null;
+  let firebaseReady = false;
+
+  async function ensureFirebaseBridge() {
+    if (firebaseReady && firebaseApi) return firebaseApi;
+
+    try {
+      const mod = await import("./firebase.js");
+      firebaseApi = {
+        initFirebase: mod.initFirebase,
+        ensureAuth: mod.ensureAuth,
+        uploadAvatar: mod.uploadAvatar,
+        uploadLogo: mod.uploadLogo,
+        uploadPhoto: mod.uploadPhoto
+      };
+
+      if (!firebaseApi.initFirebase || !firebaseApi.ensureAuth) {
+        throw new Error("firebase.js 缺少必要函式");
+      }
+
+      firebaseApi.initFirebase();
+      await firebaseApi.ensureAuth();
+      firebaseReady = true;
+      return firebaseApi;
+    } catch (err) {
+      console.error("[form] Firebase bridge load failed:", err);
+      throw new Error("Firebase 初始化失敗，請確認 firebase.js 是否正確部署");
+    }
+  }
+
+  async function uploadBySlot(slotKey, blob, tempId) {
+    const api = await ensureFirebaseBridge();
+
+    if (slotKey === "avatar") return await api.uploadAvatar(tempId, blob);
+    if (slotKey === "logo") return await api.uploadLogo(tempId, blob);
+    if (/^photo\d+$/.test(slotKey)) {
+      const idx = Number(slotKey.replace("photo", ""));
+      return await api.uploadPhoto(tempId, blob, idx);
+    }
+    throw new Error("未知圖片欄位");
+  }
+
+  /* =========================
      DOM
   ========================= */
   const pages = document.querySelectorAll(".page");
@@ -145,6 +199,16 @@
   const navDots = $("navDots");
 
   const planEl = $("plan");
+  const colorEl = $("color");
+  const styleEl = $("style");
+  const paperEl = $("paper");
+  const premiumColorEl = $("premium_color");
+  const freeColorHidden = $("free_color");
+  const freeStyleHidden = $("free_style");
+  const freePaperHidden = $("free_paper");
+
+  const freeStyleGroup = $("freeStyleGroup");
+  const premiumColorCard = $("premiumColorCard");
   const ctaRow2 = $("ctaRow2");
   const ctaRow3 = $("ctaRow3");
 
@@ -199,6 +263,7 @@
      State
   ========================= */
   let submitting = false;
+  let tempUploadId = `TMP${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
   const imageState = {
     files: {
@@ -290,7 +355,7 @@
   nextBtn?.addEventListener("click", () => {
     if (currentPage < pages.length - 1) {
       showPage(currentPage + 1);
-      if (currentPage === 5) renderSummary();
+      if (currentPage + 1 === 5) renderSummary();
     }
   });
 
@@ -320,12 +385,33 @@
     return n <= allowedPhotoCount();
   }
 
+  function syncFreeShadowFields() {
+    if (freeColorHidden) freeColorHidden.value = text(colorEl?.value);
+    if (freeStyleHidden) freeStyleHidden.value = text(styleEl?.value);
+    if (freePaperHidden) freePaperHidden.value = text(paperEl?.value);
+  }
+
   function applyPlanUI() {
     const plan = getCurrentPlan();
     const rules = getPlanRules(plan || "free");
 
+    showEl(freeStyleGroup, plan !== "premium");
+    showEl(premiumColorCard, plan === "premium");
+
     if (ctaRow2) ctaRow2.style.display = rules.maxCtas >= 2 ? "block" : "none";
     if (ctaRow3) ctaRow3.style.display = rules.maxCtas >= 3 ? "block" : "none";
+
+    if (plan === "free") {
+      if (premiumColorEl) premiumColorEl.value = "";
+      syncFreeShadowFields();
+    } else if (plan === "premium") {
+      if (colorEl) colorEl.value = "";
+      if (styleEl) styleEl.value = "";
+      if (paperEl) paperEl.value = "";
+      if (freeColorHidden) freeColorHidden.value = "";
+      if (freeStyleHidden) freeStyleHidden.value = "";
+      if (freePaperHidden) freePaperHidden.value = "";
+    }
 
     if (rules.maxCtas < 2) {
       if ($("cta_text_2")) $("cta_text_2").value = "";
@@ -348,16 +434,32 @@
   }
 
   planEl?.addEventListener("change", applyPlanUI);
+  colorEl?.addEventListener("change", syncFreeShadowFields);
+  styleEl?.addEventListener("change", syncFreeShadowFields);
+  paperEl?.addEventListener("change", syncFreeShadowFields);
 
   /* =========================
      Form data
   ========================= */
   function getFormData() {
-    return {
-      plan: $("plan")?.value || "",
-      color: $("color")?.value || "",
-      style: $("style")?.value || "",
-      paper: $("paper")?.value || "",
+    const plan = $("plan")?.value || "";
+    const color = $("color")?.value || "";
+    const style = $("style")?.value || "";
+    const paper = $("paper")?.value || "";
+    const premiumColor = $("premium_color")?.value || "";
+
+    const base = {
+      plan,
+
+      color: plan === "free" ? color : "",
+      style: plan === "free" ? style : "",
+      paper: plan === "free" ? paper : "",
+
+      free_color: plan === "free" ? color : "",
+      free_style: plan === "free" ? style : "",
+      free_paper: plan === "free" ? paper : "",
+
+      premium_color: plan === "premium" ? premiumColor : "",
 
       name: $("name")?.value || "",
       unit: $("unit")?.value || "",
@@ -375,25 +477,35 @@
       services: $("services")?.value || "",
       experience: $("experience")?.value || "",
 
-      video1: $("video1")?.value || "",
-      video2: $("video2")?.value || "",
-      video3: $("video3")?.value || "",
+      video1: normalizeUrl($("video1")?.value || ""),
+      video2: normalizeUrl($("video2")?.value || ""),
+      video3: normalizeUrl($("video3")?.value || ""),
 
-      social1: $("social1")?.value || "",
-      social2: $("social2")?.value || "",
-      social3: $("social3")?.value || "",
+      social1: normalizeUrl($("social1")?.value || ""),
+      social2: normalizeUrl($("social2")?.value || ""),
+      social3: normalizeUrl($("social3")?.value || ""),
 
       cta_text_1: $("cta_text_1")?.value || "",
-      cta_link_1: $("cta_link_1")?.value || "",
+      cta_link_1: normalizeUrl($("cta_link_1")?.value || ""),
       cta_text_2: $("cta_text_2")?.value || "",
-      cta_link_2: $("cta_link_2")?.value || "",
+      cta_link_2: normalizeUrl($("cta_link_2")?.value || ""),
       cta_text_3: $("cta_text_3")?.value || "",
-      cta_link_3: $("cta_link_3")?.value || "",
+      cta_link_3: normalizeUrl($("cta_link_3")?.value || ""),
 
       invite_code: $("invite_code")?.value || "",
       reserved_uid: $("reserved_uid")?.value || "",
-      tenant: $("tenant")?.value || "angel"
+      tenant: $("tenant")?.value || "angel",
+
+      avatar_url: imageState.files.avatar?.url || "",
+      logo_url: imageState.files.logo?.url || "",
+      photo1_url: imageState.files.photo1?.url || "",
+      photo2_url: imageState.files.photo2?.url || "",
+      photo3_url: imageState.files.photo3?.url || "",
+      photo4_url: imageState.files.photo4?.url || "",
+      photo5_url: imageState.files.photo5?.url || ""
     };
+
+    return base;
   }
 
   /* =========================
@@ -404,6 +516,10 @@
     if (!box) return;
 
     const d = getFormData();
+    const planLabel = d.plan === "premium" ? "精品設計款" : d.plan === "free" ? "自由搭配款" : "-";
+    const schemeText = d.plan === "premium"
+      ? `精品色：${escapeHtml(d.premium_color || "-")}`
+      : `主色：${escapeHtml(d.color || "-")}｜版型：${escapeHtml(d.style || "-")}｜紙感：${escapeHtml(d.paper || "-")}`;
 
     box.innerHTML = `
       <div class="card">
@@ -413,9 +529,20 @@
       </div>
 
       <div class="card">
+        <div>方案：${escapeHtml(planLabel)}</div>
+        <div style="margin-top:4px;">${schemeText}</div>
+      </div>
+
+      <div class="card">
         <div>電話：${escapeHtml(d.phone || "-")}</div>
         <div>Email：${escapeHtml(d.email || "-")}</div>
         <div>LINE：${escapeHtml(d.line_url || "-")}</div>
+      </div>
+
+      <div class="card">
+        <div>頭像：${escapeHtml(d.avatar_url ? "已上傳" : "未上傳")}</div>
+        <div>Logo：${escapeHtml(d.logo_url ? "已上傳" : "未上傳")}</div>
+        <div>照片牆：${escapeHtml([d.photo1_url, d.photo2_url, d.photo3_url, d.photo4_url, d.photo5_url].filter(Boolean).length + " 張")}</div>
       </div>
     `;
   }
@@ -479,9 +606,10 @@
 
     if (livePreviewCard) {
       livePreviewCard.dataset.plan = data.plan || "free";
-      livePreviewCard.dataset.color = data.color || "c1";
-      livePreviewCard.dataset.style = data.style || "s1";
-      livePreviewCard.dataset.paper = data.paper || "f1";
+      livePreviewCard.dataset.color = data.free_color || data.color || "c1";
+      livePreviewCard.dataset.style = data.free_style || data.style || "s1";
+      livePreviewCard.dataset.paper = data.free_paper || data.paper || "f1";
+      livePreviewCard.dataset.premium = data.premium_color || "p1";
     }
   }
 
@@ -508,7 +636,7 @@
         <div class="uItemHead">
           <div>
             <strong>${escapeHtml(slot.label)}</strong>
-            <small>${slot.shape === "square" ? "正方形裁切" : "照片牆橫圖"}</small>
+            <small>${slot.shape === "square" ? "正方形裁切，上傳後寫入 URL" : "照片牆橫圖，上傳後寫入 URL"}</small>
           </div>
         </div>
 
@@ -671,7 +799,7 @@
 
     const resized = resizeSmart(rawImg, file.size || 0);
     const resizedBlob = await canvasToBlob(resized.canvas, "image/jpeg", resized.quality);
-    const resizedUrl = await blobToDataURL(resizedBlob);
+    const resizedUrl = await readFileAsDataURL(resizedBlob);
     const finalImg = await loadImage(resizedUrl);
 
     return {
@@ -743,8 +871,8 @@
     if (cropDesc) {
       cropDesc.textContent =
         slot.shape === "square"
-          ? "可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。"
-          : "照片牆橫圖支援上下左右拖移與縮放，套用後會同步更新預覽。";
+          ? "可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。套用後會直接上傳並寫入 URL。"
+          : "照片牆橫圖支援上下左右拖移與縮放，套用後會直接上傳並寫入 URL。";
     }
 
     openCropModal();
@@ -757,57 +885,71 @@
     const slot = IMAGE_SLOTS.find((s) => s.key === c.slot);
     if (!slot || !c.img) return;
 
-    const rect = getCanvasRect();
-    const stageCanvas = document.createElement("canvas");
-    stageCanvas.width = rect.pxW;
-    stageCanvas.height = rect.pxH;
-    const sctx = stageCanvas.getContext("2d");
+    try {
+      setLoading(true, `處理 ${slot.label} 中...`);
+      setStatus(`正在上傳 ${slot.label}...`);
 
-    const drawW = c.img.width * c.scale;
-    const drawH = c.img.height * c.scale;
-    const x = (rect.pxW - drawW) / 2 + c.offsetX;
-    const y = (rect.pxH - drawH) / 2 + c.offsetY;
+      const rect = getCanvasRect();
+      const stageCanvas = document.createElement("canvas");
+      stageCanvas.width = rect.pxW;
+      stageCanvas.height = rect.pxH;
+      const sctx = stageCanvas.getContext("2d");
 
-    sctx.fillStyle = "#ffffff";
-    sctx.fillRect(0, 0, rect.pxW, rect.pxH);
-    sctx.imageSmoothingEnabled = true;
-    sctx.imageSmoothingQuality = "high";
-    sctx.drawImage(c.img, x, y, drawW, drawH);
+      const drawW = c.img.width * c.scale;
+      const drawH = c.img.height * c.scale;
+      const x = (rect.pxW - drawW) / 2 + c.offsetX;
+      const y = (rect.pxH - drawH) / 2 + c.offsetY;
 
-    const out = document.createElement("canvas");
-    out.width = slot.w;
-    out.height = slot.h;
-    const octx = out.getContext("2d");
-    octx.fillStyle = "#ffffff";
-    octx.fillRect(0, 0, slot.w, slot.h);
-    octx.imageSmoothingEnabled = true;
-    octx.imageSmoothingQuality = "high";
-    octx.drawImage(stageCanvas, 0, 0, slot.w, slot.h);
+      sctx.fillStyle = "#ffffff";
+      sctx.fillRect(0, 0, rect.pxW, rect.pxH);
+      sctx.imageSmoothingEnabled = true;
+      sctx.imageSmoothingQuality = "high";
+      sctx.drawImage(c.img, x, y, drawW, drawH);
 
-    const blob = await canvasToBlob(out, "image/jpeg", 0.9);
-    const previewUrl = URL.createObjectURL(blob);
+      const out = document.createElement("canvas");
+      out.width = slot.w;
+      out.height = slot.h;
+      const octx = out.getContext("2d");
+      octx.fillStyle = "#ffffff";
+      octx.fillRect(0, 0, slot.w, slot.h);
+      octx.imageSmoothingEnabled = true;
+      octx.imageSmoothingQuality = "high";
+      octx.drawImage(stageCanvas, 0, 0, slot.w, slot.h);
 
-    const old = imageState.files[slot.key];
-    if (old?.previewUrl?.startsWith("blob:")) {
-      try { URL.revokeObjectURL(old.previewUrl); } catch (_) {}
-    }
+      const blob = await canvasToBlob(out, "image/jpeg", 0.9);
+      const previewUrl = URL.createObjectURL(blob);
+      const url = await uploadBySlot(slot.key, blob, tempUploadId);
 
-    imageState.files[slot.key] = {
-      sourceFile: c.file,
-      blob,
-      previewUrl,
-      cropData: {
-        scale: c.scale,
-        offsetX: c.offsetX,
-        offsetY: c.offsetY
+      const old = imageState.files[slot.key];
+      if (old?.previewUrl?.startsWith("blob:")) {
+        try { URL.revokeObjectURL(old.previewUrl); } catch (_) {}
       }
-    };
 
-    closeCropModal();
-    renderUploadGrid();
-    renderPreview();
-    renderSummary();
-    setStatus(`${slot.label} 已套用完成`);
+      imageState.files[slot.key] = {
+        sourceFile: c.file,
+        blob,
+        url,
+        previewUrl,
+        cropData: {
+          scale: c.scale,
+          offsetX: c.offsetX,
+          offsetY: c.offsetY
+        }
+      };
+
+      closeCropModal();
+      renderUploadGrid();
+      renderPreview();
+      renderSummary();
+      setStatus(`${slot.label} 已套用並上傳完成`);
+      showToast(`${slot.label} 已上傳完成`);
+    } catch (err) {
+      console.error(err);
+      setStatus(`${slot.label} 上傳失敗：${err.message || "未知錯誤"}`);
+      showToast("圖片上傳失敗");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function bindCropEvents() {
@@ -928,9 +1070,30 @@
       payload.cta_text_3 = "";
       payload.cta_link_3 = "";
 
-      delete payload.photo3_img;
-      delete payload.photo4_img;
-      delete payload.photo5_img;
+      payload.photo3_url = "";
+      payload.photo4_url = "";
+      payload.photo5_url = "";
+      payload.premium_color = "";
+
+      payload.color = payload.color || payload.free_color || "";
+      payload.style = payload.style || payload.free_style || "";
+      payload.paper = payload.paper || payload.free_paper || "";
+      payload.free_color = payload.free_color || payload.color || "";
+      payload.free_style = payload.free_style || payload.style || "";
+      payload.free_paper = payload.free_paper || payload.paper || "";
+    }
+
+    if (plan === "premium") {
+      payload.color = "";
+      payload.style = "";
+      payload.paper = "";
+      payload.free_color = "";
+      payload.free_style = "";
+      payload.free_paper = "";
+
+      if (!payload.premium_color) {
+        throw new Error("請選擇精品設計款顏色");
+      }
     }
 
     if (plan !== "free" && plan !== "premium") {
@@ -959,6 +1122,20 @@
       throw new Error("請先選擇方案");
     }
 
+    if (data.plan === "free") {
+      if (!data.color || !data.style || !data.paper) {
+        showPage(0);
+        throw new Error("自由搭配款請完成主色、版型、紙感選擇");
+      }
+    }
+
+    if (data.plan === "premium") {
+      if (!data.premium_color) {
+        showPage(0);
+        throw new Error("精品設計款請選擇精品顏色");
+      }
+    }
+
     if (!data.name) {
       showPage(1);
       throw new Error("請填寫姓名");
@@ -974,27 +1151,20 @@
     return true;
   }
 
-  async function appendImagePayload(payload) {
-    const order = ["avatar", "logo", "photo1", "photo2", "photo3", "photo4", "photo5"];
+  async function ensureAllImagesUploaded() {
+    await ensureFirebaseBridge();
 
-    for (const key of order) {
+    const keys = ["avatar", "logo", "photo1", "photo2", "photo3", "photo4", "photo5"];
+    for (const key of keys) {
       if (!slotEnabled(key)) continue;
       const fileObj = imageState.files[key];
-      payload[`${key}_img`] = fileObj?.blob ? await blobToDataURL(fileObj.blob) : "";
+      if (!fileObj) continue;
+
+      if (!fileObj.url && fileObj.blob) {
+        setStatus(`補上傳 ${key} 中...`);
+        fileObj.url = await uploadBySlot(key, fileObj.blob, tempUploadId);
+      }
     }
-
-    return payload;
-  }
-
-  function normalizeLegacyFields(payload) {
-    payload.avatar_img = payload.avatar_img || "";
-    payload.logo_img = payload.logo_img || "";
-    payload.photo1_img = payload.photo1_img || "";
-    payload.photo2_img = payload.photo2_img || "";
-    payload.photo3_img = payload.photo3_img || "";
-    payload.photo4_img = payload.photo4_img || "";
-    payload.photo5_img = payload.photo5_img || "";
-    return payload;
   }
 
   /* =========================
@@ -1053,20 +1223,23 @@
       setProgress(5, "初始化...");
       setLoading(true, "準備送出資料");
 
+      setProgress(18, "初始化 Firebase...");
+      await ensureFirebaseBridge();
+
+      setProgress(32, "確認圖片 URL...");
+      await ensureAllImagesUploaded();
+
       let payload = {
         action: "create",
-        ...data
+        ...getFormData(),
+        form_source: "form",
+        source: "form"
       };
 
-      setProgress(15, "套用方案規則...");
+      setProgress(48, "套用方案規則...");
       payload = enforcePlanRules(payload);
 
-      setProgress(30, "處理圖片中...");
-      payload = await appendImagePayload(payload);
-
-      payload = normalizeLegacyFields(payload);
-
-      setProgress(55, "連線伺服器...");
+      setProgress(62, "連線伺服器...");
 
       const res = await fetch(GAS_URL, {
         method: "POST",
@@ -1080,7 +1253,7 @@
         throw new Error("伺服器回應錯誤：" + res.status);
       }
 
-      setProgress(75, "解析回應...");
+      setProgress(78, "解析回應...");
 
       let json;
       try {
@@ -1099,7 +1272,7 @@
       setLoading(false);
       setStatus("送出成功");
       fillSuccessBox(cardId);
-      showPage(5); // 停在第六步，不scroll
+      showPage(5);
     } catch (err) {
       console.error(err);
       setLoading(false);
@@ -1117,11 +1290,18 @@
   function bindLiveSync() {
     document.querySelectorAll("input, textarea, select").forEach((el) => {
       el.addEventListener("input", () => {
+        if (el.id === "color" || el.id === "style" || el.id === "paper") {
+          syncFreeShadowFields();
+        }
         renderPreview();
         renderSummary();
       });
 
       el.addEventListener("change", () => {
+        if (el.id === "color" || el.id === "style" || el.id === "paper") {
+          syncFreeShadowFields();
+        }
+
         renderPreview();
         renderSummary();
 
@@ -1147,6 +1327,7 @@
      Init
   ========================= */
   setStatus("尚未操作。");
+  syncFreeShadowFields();
   renderSummary();
   renderPreview();
   renderUploadGrid();
