@@ -1,6 +1,6 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v803.2
+ * form.js v803.0
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 主線：
@@ -13,11 +13,7 @@
  * 4. GAS 送出主線只送文字欄位 + *_url
  * 5. 保留 invite_code / reserved_uid / tenant
  * 6. 修正圖片裁切顯示透明棋盤格 / 套用白圖問題
- * 7. 送出成功後：
- *    全部顯示在第六步驟下方的 submitSuccessBox 內
- *    - 名片 ID
- *    - 一鍵複製 ID＋客服文案
- *    - LINE 客服按鈕
+ * 7. 成功送出後：下方明確顯示資料 ID + 客服回覆文案 + 一鍵複製 + LINE 客服按鈕
  * ========================================= */
 
 import {
@@ -31,7 +27,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "803.2";
+  const VERSION = "803.0";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/G3VJoRm";
 
@@ -386,7 +382,8 @@ import {
       renderSummary_();
     }, true);
   }
-function renderChipGroup_(wrap, items, activeValue, onPick, useSwatch) {
+
+  function renderChipGroup_(wrap, items, activeValue, onPick, useSwatch) {
     if (!wrap) return;
     wrap.innerHTML = "";
     items.forEach((item) => {
@@ -476,8 +473,7 @@ function renderChipGroup_(wrap, items, activeValue, onPick, useSwatch) {
 
     els.uploadGrid.innerHTML = "";
     const items = buildUploadItems_();
-
-    items.forEach((item) => {
+items.forEach((item) => {
       const box = document.createElement("div");
       box.className = "uItem";
       box.dataset.key = item.key;
@@ -694,7 +690,8 @@ function renderChipGroup_(wrap, items, activeValue, onPick, useSwatch) {
     }
     return ok;
   }
-function validateCtaFields_(showMessage) {
+
+  function validateCtaFields_(showMessage) {
     const pairs = [
       ["cta_text_1", "cta_link_1"],
       ["cta_text_2", "cta_link_2"],
@@ -760,8 +757,7 @@ function validateCtaFields_(showMessage) {
 
     const avatarUrl = getPreviewUrl_("avatar_img");
     const logoUrl = getPreviewUrl_("logo_img");
-
-    if (els.previewAvatar) {
+if (els.previewAvatar) {
       if (avatarUrl) {
         els.previewAvatar.src = avatarUrl;
         els.previewAvatar.style.display = "block";
@@ -949,11 +945,13 @@ function validateCtaFields_(showMessage) {
       if (els.idText && cardId) els.idText.textContent = cardId;
       setStatus_("資料已送出。");
       showSuccessBox_(cardId);
+      keepViewAtProgress_();
     } catch (err) {
       console.error(err);
       setProgress_(100, "送出失敗");
       setStatus_(`送出失敗：${err.message || err}`);
       showErrorBox_(err.message || "送出失敗，請稍後再試");
+      keepViewAtProgress_();
     } finally {
       state.isSubmitting = false;
       if (els.btnSubmit) els.btnSubmit.disabled = false;
@@ -1013,8 +1011,7 @@ function validateCtaFields_(showMessage) {
       const startPercent = 18 + Math.round((done / total) * 42);
       setProgress_(startPercent, `上傳圖片：${label}…`);
       keepViewAtProgress_();
-
-      let url = "";
+let url = "";
       if (key === "avatar_img") {
         url = await uploadAvatar(cardId, info.blob);
       } else if (key === "logo_img") {
@@ -1103,7 +1100,8 @@ function validateCtaFields_(showMessage) {
 
     return payload;
   }
-async function postJsonPayload_(endpoint, payload) {
+
+  async function postJsonPayload_(endpoint, payload) {
     const res = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -1193,63 +1191,73 @@ async function postJsonPayload_(endpoint, payload) {
     if (els.successBody) els.successBody.innerHTML = "";
   }
 
-  function buildCustomerReplyText_(id) {
-    return [
-      "您好，我已完成天使幸福智慧名片資料填寫。",
-      "",
-      `我的名片編號：${id || "-"}`,
-      "",
-      "請協助我確認與後續開通，謝謝。"
-    ].join("\n");
+  function buildServiceReplyText_(cardId) {
+    const lines = [
+      "您好，我已送出天使幸福智慧名片申請資料。",
+      `我的資料ID是：${cardId || "（請填入資料ID）"}`
+    ];
+
+    const name = getFieldValue_("name");
+    const title = getFieldValue_("title");
+    const unit = getFieldValue_("unit");
+
+    if (name) lines.push(`姓名：${name}`);
+    if (title) lines.push(`頭銜：${title}`);
+    if (unit) lines.push(`單位：${unit.replace(/\n+/g, " / ")}`);
+    lines.push("請協助後續製作，謝謝您。");
+
+    return lines.join("\n");
   }
 
   function showSuccessBox_(cardId) {
     if (!els.successBox) return;
 
     const safeId = normalizeCardId_(cardId || "");
-    const replyText = buildCustomerReplyText_(safeId);
+    const replyText = buildServiceReplyText_(safeId);
 
     els.successBox.hidden = false;
     els.successBox.style.display = "";
     els.successBox.classList.remove("error");
 
-    if (els.successTitle) els.successTitle.textContent = "已送出成功";
+    if (els.successTitle) els.successTitle.textContent = "送出成功";
 
     if (els.successBody) {
       els.successBody.innerHTML = `
         <div class="hsc-success-main">
-          <div class="hsc-success-ok">已送出成功，客服會依照資料建立你的智慧名片。</div>
+          <div class="hsc-success-ok">✅ 資料已送出成功</div>
 
           <div class="hsc-id-card">
-            <div class="hsc-id-label">名片編號</div>
+            <div class="hsc-id-label">您的資料ID</div>
             <div class="hsc-id-value">${escapeHtml_(safeId || "未取得")}</div>
-            <div class="hsc-id-tip">請先複製下方「名片 ID＋客服文案」，再點擊 LINE 客服按鈕回覆客服。</div>
+            <div class="hsc-id-tip">請複製此資料ID，並搭配下方客服文案回覆客服。</div>
           </div>
 
           <div class="hsc-reply-card">
             <div class="hsc-reply-label">可回覆客服文案</div>
             <textarea class="hsc-reply-text" id="serviceReplyText" readonly></textarea>
-            <div class="hsc-reply-tip">此區塊固定顯示在第六步驟下方，不會跳頁。</div>
+            <div class="hsc-reply-tip">建議：先按「一鍵複製客服文案」，再按「前往 LINE 官方帳號回覆客服」。</div>
           </div>
         </div>
       `;
 
       const ta = document.getElementById("serviceReplyText");
-      if (ta) {
-        ta.value = replyText;
-        try {
-          ta.style.height = "auto";
-          ta.style.height = `${Math.max(132, ta.scrollHeight)}px`;
-        } catch (_) {}
-      }
+      if (ta) ta.value = replyText;
     }
 
     if (els.successActions) {
       els.successActions.innerHTML = "";
 
-      const copyReplyBtn = document.createElement("button");
+      const copyIdBtn = document.createElement("button");
+      copyIdBtn.type = "button";
+      copyIdBtn.className = "secondary";
+      copyIdBtn.textContent = "複製資料ID";
+      copyIdBtn.addEventListener("click", async () => {
+        const ok = await copyText_(safeId || "");
+        flashButtonText_(copyIdBtn, ok ? "已複製資料ID" : "複製失敗", "複製資料ID");
+      });
+const copyReplyBtn = document.createElement("button");
       copyReplyBtn.type = "button";
-      copyReplyBtn.textContent = "一鍵複製 ID＋客服文案";
+      copyReplyBtn.textContent = "一鍵複製客服文案";
       copyReplyBtn.addEventListener("click", async () => {
         const textArea = document.getElementById("serviceReplyText");
         if (textArea) {
@@ -1260,27 +1268,19 @@ async function postJsonPayload_(endpoint, payload) {
           } catch (_) {}
         }
         const ok = await copyText_(replyText);
-        flashButtonText_(copyReplyBtn, ok ? "已複製" : "複製失敗", "一鍵複製 ID＋客服文案");
+        flashButtonText_(copyReplyBtn, ok ? "已複製客服文案" : "複製失敗", "一鍵複製客服文案");
       });
 
       const lineBtn = document.createElement("button");
       lineBtn.type = "button";
       lineBtn.className = "secondary";
-      lineBtn.textContent = "前往 LINE 客服";
+      lineBtn.textContent = "前往 LINE 官方帳號回覆客服";
       lineBtn.addEventListener("click", () => {
         window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
       });
 
-      els.successActions.append(copyReplyBtn, lineBtn);
+      els.successActions.append(copyIdBtn, copyReplyBtn, lineBtn);
     }
-
-    requestAnimationFrame(() => {
-      if (els.formBottomAnchor) {
-        els.formBottomAnchor.scrollIntoView({ behavior: "smooth", block: "center" });
-      } else {
-        keepViewAtProgress_();
-      }
-    });
   }
 
   function showErrorBox_(message) {
@@ -1306,18 +1306,12 @@ async function postJsonPayload_(endpoint, payload) {
       const replyBtn = document.createElement("button");
       replyBtn.type = "button";
       replyBtn.className = "secondary";
-      replyBtn.textContent = "前往 LINE 客服";
+      replyBtn.textContent = "前往 LINE 官方帳號回覆客服";
       replyBtn.addEventListener("click", () => {
         window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
       });
       els.successActions.appendChild(replyBtn);
     }
-
-    requestAnimationFrame(() => {
-      if (els.formBottomAnchor) {
-        els.formBottomAnchor.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    });
   }
 
   function flashButtonText_(btn, activeText, restoreText) {
@@ -1564,3 +1558,416 @@ async function postJsonPayload_(endpoint, payload) {
     ctx.strokeRect(0, 0, stage.w, stage.h);
     ctx.restore();
   }
+
+  async function applyCrop_() {
+    if (!cropState.image || !cropState.targetKey) return;
+
+    const stage = getCropStageSize_();
+    const img = cropState.image;
+
+    const stageCanvas = document.createElement("canvas");
+    stageCanvas.width = stage.w;
+    stageCanvas.height = stage.h;
+    const stageCtx = stageCanvas.getContext("2d");
+
+    const scaledW = img.width * cropState.viewScale;
+    const scaledH = img.height * cropState.viewScale;
+    const x = (stage.w - scaledW) / 2 + cropState.offsetX;
+    const y = (stage.h - scaledH) / 2 + cropState.offsetY;
+
+    stageCtx.clearRect(0, 0, stage.w, stage.h);
+    stageCtx.fillStyle = "#ffffff";
+    stageCtx.fillRect(0, 0, stage.w, stage.h);
+    stageCtx.imageSmoothingEnabled = true;
+    stageCtx.imageSmoothingQuality = "high";
+    stageCtx.drawImage(img, x, y, scaledW, scaledH);
+
+    const outCanvas = document.createElement("canvas");
+    outCanvas.width = cropState.outputWidth;
+    outCanvas.height = cropState.outputHeight;
+    const outCtx = outCanvas.getContext("2d");
+    outCtx.fillStyle = "#ffffff";
+    outCtx.fillRect(0, 0, cropState.outputWidth, cropState.outputHeight);
+    outCtx.imageSmoothingEnabled = true;
+    outCtx.imageSmoothingQuality = "high";
+    outCtx.drawImage(stageCanvas, 0, 0, cropState.outputWidth, cropState.outputHeight);
+
+    const quality = cropState.smartProfile.outputQuality;
+    const blob = await canvasToBlob_(outCanvas, "image/jpeg", quality);
+    if (!blob || !blob.size) throw new Error("裁切後輸出的圖片無效");
+
+    const previewUrl = URL.createObjectURL(blob);
+
+    const oldInfo = state.files[cropState.targetKey];
+    if (oldInfo) revokeFileUrls_(oldInfo);
+
+    state.files[cropState.targetKey] = {
+      sourceFile: cropState.sourceFile,
+      blob,
+      previewUrl,
+      remoteUrl: "",
+      remoteCardId: "",
+      crop: {
+        viewScale: cropState.viewScale,
+        offsetX: cropState.offsetX,
+        offsetY: cropState.offsetY
+      }
+    };
+
+    closeCropper_();
+    refreshUploadThumbs_();
+    setStatus_(`圖片已套用。壓縮模式：${cropState.smartProfile.label}｜輸出大小：約 ${(blob.size / MB).toFixed(2)} MB`);
+  }
+
+  function closeCropper_() {
+    if (els.cropModal) els.cropModal.classList.remove("show");
+    cropState.drag.active = false;
+    cleanupCropResources_();
+  }
+
+  function cleanupCropResources_() {
+    cropState.image = null;
+    cropState.previewDataUrl = "";
+    cropState.sourceFile = null;
+    cropState.sourceSize = 0;
+    cropState.targetKey = "";
+    cropState.targetLabel = "";
+    cropState.preparedWidth = 0;
+    cropState.preparedHeight = 0;
+    cropState.viewScale = 1;
+    cropState.minScale = 1;
+    cropState.baseFitScale = 1;
+    cropState.offsetX = 0;
+    cropState.offsetY = 0;
+  }
+
+  function getPoint_(e) {
+    if (e.touches && e.touches[0]) {
+      return { x: e.touches[0].clientX || 0, y: e.touches[0].clientY || 0 };
+    }
+    return { x: e.clientX || 0, y: e.clientY || 0 };
+  }
+
+  async function prepareImageForCrop_(file) {
+    const profile = getSmartProfile_(file.size || 0);
+
+    const arrayBuffer = await file.arrayBuffer();
+    const orientation = getJpegOrientation_(arrayBuffer);
+
+    const rawDataUrl = await readFileAsDataURL_(file);
+    const original = await loadImage_(rawDataUrl);
+
+    const correctedCanvas = drawImageWithOrientation_(original, orientation);
+    const normalizedCanvas = shrinkCanvasIfNeeded_(correctedCanvas, profile.maxLong, profile.maxShort);
+
+    const previewBlob = await canvasToBlob_(normalizedCanvas, "image/jpeg", profile.previewQuality);
+    const previewDataUrl = await blobToDataURL_(previewBlob);
+    const finalImg = await loadImage_(previewDataUrl);
+
+    const meta = [];
+    meta.push(`智慧壓縮：${profile.label}`);
+    if (orientation > 1) meta.push(`已修正照片方向（EXIF ${orientation}）`);
+    if (original.naturalWidth !== finalImg.naturalWidth || original.naturalHeight !== finalImg.naturalHeight) {
+      meta.push(`已預縮圖：${original.naturalWidth}×${original.naturalHeight} → ${finalImg.naturalWidth}×${finalImg.naturalHeight}`);
+    }
+    meta.push(`原始大小：約 ${(file.size / MB).toFixed(2)} MB`);
+
+    return {
+      image: finalImg,
+      profile,
+      previewDataUrl,
+      width: finalImg.naturalWidth || finalImg.width,
+      height: finalImg.naturalHeight || finalImg.height,
+      metaText: meta.join("｜")
+    };
+  }
+
+  function getSmartProfile_(size) {
+    if (size <= FILE_TIER_SMALL) return SMART_PROFILE.small;
+    if (size <= FILE_TIER_MEDIUM) return SMART_PROFILE.medium;
+    return SMART_PROFILE.large;
+  }
+
+  function shrinkCanvasIfNeeded_(canvas, maxLong, maxShort) {
+    const w = canvas.width;
+    const h = canvas.height;
+    const longSide = Math.max(w, h);
+    const shortSide = Math.min(w, h);
+
+    if (longSide <= maxLong && shortSide <= maxShort) return canvas;
+
+    const ratio = Math.min(maxLong / longSide, maxShort / shortSide);
+    const targetW = Math.max(1, Math.round(w * ratio));
+    const targetH = Math.max(1, Math.round(h * ratio));
+
+    const out = document.createElement("canvas");
+    out.width = targetW;
+    out.height = targetH;
+    const ctx = out.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(canvas, 0, 0, targetW, targetH);
+    return out;
+  }
+
+  function drawImageWithOrientation_(img, orientation) {
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if ([5, 6, 7, 8].includes(orientation)) {
+      canvas.width = h;
+      canvas.height = w;
+    } else {
+      canvas.width = w;
+      canvas.height = h;
+    }
+
+    switch (orientation) {
+      case 2:
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        break;
+      case 3:
+        ctx.translate(w, h);
+        ctx.rotate(Math.PI);
+        break;
+      case 4:
+        ctx.translate(0, h);
+        ctx.scale(1, -1);
+        break;
+      case 5:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.scale(1, -1);
+        break;
+      case 6:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.translate(0, -h);
+        break;
+      case 7:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.translate(w, -h);
+        ctx.scale(-1, 1);
+        break;
+      case 8:
+        ctx.rotate(-0.5 * Math.PI);
+        ctx.translate(-w, 0);
+        break;
+      default:
+        break;
+    }
+
+    ctx.drawImage(img, 0, 0);
+    return canvas;
+  }
+
+  function getJpegOrientation_(arrayBuffer) {
+    try {
+      const view = new DataView(arrayBuffer);
+      if (view.getUint16(0, false) !== 0xFFD8) return 1;
+
+      let offset = 2;
+      const length = view.byteLength;
+
+      while (offset < length) {
+        const marker = view.getUint16(offset, false);
+        offset += 2;
+
+        if (marker === 0xFFE1) {
+          offset += 2;
+
+          if (getString_(view, offset, 4) !== "Exif") return 1;
+          offset += 6;
+
+          const little = view.getUint16(offset, false) === 0x4949;
+          const firstIFDOffset = view.getUint32(offset + 4, little);
+          offset += firstIFDOffset;
+
+          const tags = view.getUint16(offset, little);
+          offset += 2;
+
+          for (let i = 0; i < tags; i++) {
+            const tagOffset = offset + i * 12;
+            const tag = view.getUint16(tagOffset, little);
+            if (tag === 0x0112) {
+              return view.getUint16(tagOffset + 8, little);
+            }
+          }
+          return 1;
+        } else if ((marker & 0xFF00) !== 0xFF00) {
+          break;
+        } else {
+          offset += view.getUint16(offset, false);
+        }
+      }
+
+      return 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  function getString_(view, start, length) {
+    let out = "";
+    for (let i = 0; i < length; i++) {
+      out += String.fromCharCode(view.getUint8(start + i));
+    }
+    return out;
+  }
+
+  function loadImage_(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.decoding = "sync";
+
+      img.onload = () => {
+        if (!img.naturalWidth || !img.naturalHeight || !img.width || !img.height) {
+          reject(new Error("Image load failed"));
+          return;
+        }
+        resolve(img);
+      };
+
+      img.onerror = () => reject(new Error("圖片載入失敗"));
+      img.src = src;
+    });
+  }
+
+  function readFileAsDataURL_(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("讀取圖片失敗"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function blobToDataURL_(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("轉換圖片失敗"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  function canvasToBlob_(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("無法輸出圖片"));
+      }, type, quality);
+    });
+  }
+
+  async function copyText_(value) {
+    const v = text(value);
+    if (!v) return false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(v);
+        return true;
+      }
+    } catch (_) {}
+
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = v;
+      ta.setAttribute("readonly", "readonly");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      ta.style.left = "-9999px";
+      ta.style.top = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return !!ok;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function injectSuccessBoxStyles_() {
+    if (document.getElementById("hsc-form-success-extra-style")) return;
+    const style = document.createElement("style");
+    style.id = "hsc-form-success-extra-style";
+    style.textContent = `
+      .hsc-success-main{display:grid;gap:12px;}
+      .hsc-success-ok{font-weight:1000;font-size:13px;line-height:1.8;color:#fff;}
+      .hsc-id-card,.hsc-reply-card{
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:14px;
+        background:rgba(255,255,255,.05);
+        padding:12px;
+      }
+      .hsc-id-label,.hsc-reply-label{
+        font-size:11px;
+        color:rgba(255,255,255,.72);
+        font-weight:1000;
+        margin-bottom:6px;
+      }
+      .hsc-id-value{
+        font-size:30px;
+        line-height:1.2;
+        font-weight:1000;
+        letter-spacing:.04em;
+        color:#7bdcff;
+        word-break:break-word;
+      }
+      .hsc-id-tip,.hsc-reply-tip{
+        margin-top:6px;
+        font-size:11px;
+        line-height:1.8;
+        color:rgba(255,255,255,.78);
+      }
+      .hsc-reply-text{
+        width:100%;
+        min-height:132px;
+        resize:none;
+        background:rgba(255,255,255,.06);
+        color:#fff;
+        border:1px solid rgba(255,255,255,.12);
+        border-radius:12px;
+        padding:12px;
+        font-size:13px;
+        line-height:1.8;
+        outline:none;
+        margin:0;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function escapeHtml_(str) {
+    return String(str ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  window.HSCForm = Object.assign(window.HSCForm || {}, {
+    version: VERSION,
+    getState: () => JSON.parse(JSON.stringify({
+      currentPage: state.currentPage,
+      plan: state.plan,
+      color: state.color,
+      style: state.style,
+      paper: state.paper,
+      premiumColor: state.premiumColor,
+      isSubmitting: state.isSubmitting,
+      reservedUid: state.reservedUid,
+      inviteCode: state.inviteCode,
+      tenant: state.tenant,
+      uploadCardId: state.uploadCardId,
+      uploadCardIdSource: state.uploadCardIdSource
+    }))
+  });
+})();
