@@ -1,11 +1,15 @@
 /* =========================================
- * HSC update-form.js v804.2
+ * HSC update-form.js v804.3
  * COMPLETE OVERWRITE
  *
- * 修正：
- * 1. 更新成功後自動捲動到完成資訊區
- * 2. 複製客服內容改為「ID + 文案」
- * 3. free 方案限制：CTA 1個、照片 2 張（不含頭像/Logo）
+ * 修正重點：
+ * 1. 圖片預覽改成 <img>，與 form 一致
+ * 2. free / premium 規格分流
+ *    - free: CTA 1、照片牆 2
+ *    - premium: CTA 3、照片牆 5
+ * 3. 送出時強制清空超出方案的欄位
+ * 4. 更新成功後自動滑到下方完成區
+ * 5. 複製內容改成 ID + 客服話術
  * ========================================= */
 
 import {
@@ -20,7 +24,7 @@ import {
   "use strict";
 
   const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-  const VERSION = "804.2";
+  const VERSION = "804.3";
   const LINE_OA_URL = "https://lin.ee/G3VJoRm";
 
   const TEXT_FIELDS = [
@@ -108,14 +112,8 @@ import {
   };
 
   const PLAN_RULES = {
-    free: {
-      maxPhotos: 2,
-      maxCtas: 1
-    },
-    premium: {
-      maxPhotos: 5,
-      maxCtas: 3
-    }
+    free: { maxPhotos: 2, maxCtas: 1 },
+    premium: { maxPhotos: 5, maxCtas: 3 }
   };
 
   const state = {
@@ -175,8 +173,8 @@ import {
     btnCopyReply: document.getElementById("btnCopyReply"),
     btnLineOA: document.getElementById("btnLineOA"),
 
-    ctaBlock2: document.getElementById("ctaBlock2"),
-    ctaBlock3: document.getElementById("ctaBlock3"),
+    ctaRow2: document.getElementById("ctaRow2"),
+    ctaRow3: document.getElementById("ctaRow3"),
     photoCard3: document.getElementById("photoCard3"),
     photoCard4: document.getElementById("photoCard4"),
     photoCard5: document.getElementById("photoCard5")
@@ -223,11 +221,12 @@ import {
 
   function bindSuccessEvents() {
     el.btnCopyReply?.addEventListener("click", async () => {
+      const reply = buildReplyText();
       try {
-        await copyText(buildReplyText());
-        showStatus("ok", `已複製回覆文案\n\n${buildReplyText()}`);
+        await copyText(reply);
+        showStatus("ok", `已複製客服回覆內容\n\n${reply}`);
       } catch (_err) {
-        showStatus("warn", `請手動複製以下內容：\n\n${buildReplyText()}`);
+        showStatus("warn", `請手動複製以下內容：\n\n${reply}`);
       }
     });
 
@@ -278,6 +277,7 @@ import {
       fileInput.addEventListener("change", async (ev) => {
         const file = ev.target.files?.[0];
         if (!file) return;
+
         if (!isPhotoSlotAllowed(slot)) {
           fileInput.value = "";
           showStatus("warn", "此方案目前未開放這張照片欄位。");
@@ -294,8 +294,7 @@ import {
       });
     });
   }
-
-  function bindCropEvents() {
+function bindCropEvents() {
     el.btnCancelCrop?.addEventListener("click", closeCropper);
     el.btnZoomOut?.addEventListener("click", () => adjustZoom(-0.05));
     el.btnZoomIn?.addEventListener("click", () => adjustZoom(0.05));
@@ -365,7 +364,7 @@ import {
           err?.message || "未知錯誤",
           "",
           "請檢查：",
-          "1. update-form.js 是否已更新到 v804.2",
+          "1. update-form.js 是否已更新到 v804.3",
           "2. update-form.html 是否為 module 版本",
           "3. Firebase / GAS 是否為最新部署",
           "4. 連結中的 id / utoken 是否正確"
@@ -382,8 +381,8 @@ import {
     state.maxPhotos = rules.maxPhotos;
     state.maxCtas = rules.maxCtas;
 
-    toggleEl(el.ctaBlock2, state.maxCtas >= 2);
-    toggleEl(el.ctaBlock3, state.maxCtas >= 3);
+    toggleEl(el.ctaRow2, state.maxCtas >= 2);
+    toggleEl(el.ctaRow3, state.maxCtas >= 3);
 
     toggleEl(el.photoCard3, state.maxPhotos >= 3);
     toggleEl(el.photoCard4, state.maxPhotos >= 4);
@@ -398,15 +397,9 @@ import {
       setFieldValue("cta_link_3", "");
     }
 
-    if (state.maxPhotos < 3) {
-      clearHiddenPhotoField("photo3");
-    }
-    if (state.maxPhotos < 4) {
-      clearHiddenPhotoField("photo4");
-    }
-    if (state.maxPhotos < 5) {
-      clearHiddenPhotoField("photo5");
-    }
+    if (state.maxPhotos < 3) clearHiddenPhotoField("photo3");
+    if (state.maxPhotos < 4) clearHiddenPhotoField("photo4");
+    if (state.maxPhotos < 5) clearHiddenPhotoField("photo5");
   }
 
   function clearHiddenPhotoField(slotBase) {
@@ -507,7 +500,10 @@ import {
     };
 
     TEXT_FIELDS.forEach((key) => {
-      if (state.maxCtas === 1 && (key === "cta_text_2" || key === "cta_link_2" || key === "cta_text_3" || key === "cta_link_3")) {
+      if (state.maxCtas === 1 && (
+        key === "cta_text_2" || key === "cta_link_2" ||
+        key === "cta_text_3" || key === "cta_link_3"
+      )) {
         out[key] = "";
         return;
       }
@@ -592,8 +588,7 @@ import {
       el.cropImage.style.height = "";
     }
   }
-
-  function resetCropperView() {
+function resetCropperView() {
     const cp = state.cropper;
     const cfg = IMAGE_SLOTS[cp.slot];
     if (!cp.image || !cfg) return;
@@ -711,6 +706,7 @@ import {
       showStatus("bad", "目前沒有可套用的圖片。");
       return;
     }
+
     if (!isPhotoSlotAllowed(slot)) {
       showStatus("warn", "此方案目前未開放這張照片欄位。");
       closeCropper();
@@ -797,9 +793,16 @@ import {
     const cfg = IMAGE_SLOTS[slot];
     if (!cfg) return;
 
-    const box = document.getElementById(cfg.previewId);
-    if (!box) return;
-    box.style.backgroundImage = url ? `url("${escapeCssUrl(url)}")` : "none";
+    const img = document.getElementById(cfg.previewId);
+    if (!img) return;
+
+    if (url) {
+      img.src = url;
+      img.style.display = "block";
+    } else {
+      img.removeAttribute("src");
+      img.style.display = "none";
+    }
   }
 
   function setSlotStatus(slot, msg) {
@@ -832,6 +835,7 @@ import {
     if (el.successId) el.successId.textContent = state.id || "";
     if (el.successCopyText) el.successCopyText.textContent = buildReplyText();
     el.successBox.classList.remove("hidden");
+
     setTimeout(() => {
       el.successBox.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 80);
@@ -842,7 +846,13 @@ import {
   }
 
   function buildReplyText() {
-    return `您好，我已完成智慧名片資料更新。\n客服ID：${state.id}\n請協助確認，謝謝。`;
+    return [
+      "您好，我已完成天使幸福智慧名片資料更新。",
+      "",
+      `我的名片編號：${state.id || "-"}`,
+      "",
+      "請協助我確認與後續開通，謝謝。"
+    ].join("\n");
   }
 
   function getFieldValue(id) {
@@ -862,8 +872,7 @@ import {
     }
     return "";
   }
-
-  function isPhotoSlotAllowed(slot) {
+function isPhotoSlotAllowed(slot) {
     if (slot === "avatar" || slot === "logo") return true;
     if (!slot.startsWith("photo")) return true;
     const idx = Number(slot.replace("photo", ""));
@@ -946,10 +955,6 @@ import {
     ta.select();
     document.execCommand("copy");
     ta.remove();
-  }
-
-  function escapeCssUrl(v) {
-    return String(v || "").replace(/"/g, '\\"');
   }
 
   function clamp(num, min, max) {
