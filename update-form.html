@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>智慧名片資料更新 v804.2</title>
+  <title>智慧名片資料更新 v804.3</title>
   <meta name="theme-color" content="#0f172a" />
   <style>
     :root{
@@ -97,7 +97,7 @@
     .status.warn{background:rgba(251,191,36,.10);border-color:rgba(251,191,36,.34)}
     .status.bad{background:rgba(251,113,133,.10);border-color:rgba(251,113,133,.34)}
     .success-box{
-      margin:16px 0 22px;
+      margin:20px 0 0;
       padding:18px;
       border-radius:18px;
       border:1px solid rgba(52,211,153,.34);
@@ -180,14 +180,8 @@
       align-items:center;
       margin-bottom:10px;
     }
-    .image-card-title{
-      font-size:14px;
-      font-weight:700;
-    }
-    .image-card-status{
-      font-size:12px;
-      color:var(--muted);
-    }
+    .image-card-title{font-size:14px;font-weight:700}
+    .image-card-status{font-size:12px;color:var(--muted)}
     .thumb-box{
       width:100%;
       border:1px solid var(--line);
@@ -196,15 +190,18 @@
       background:#111827;
       position:relative;
       margin-bottom:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
     }
     .thumb-box.square{aspect-ratio:1/1}
     .thumb-box.wide{aspect-ratio:16/10}
     .thumb-image{
       width:100%;
       height:100%;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.01)),
-        #0f172a center/cover no-repeat;
+      display:none;
+      object-fit:contain;
+      background:rgba(255,255,255,.02);
     }
     .image-actions{
       display:flex;
@@ -218,8 +215,7 @@
     }
 
     .sys-field,.file-input{display:none}
-
-    .crop-modal{
+.crop-modal{
       position:fixed;
       inset:0;
       background:rgba(3,7,18,.72);
@@ -306,10 +302,10 @@
       line-height:1.7;
     }
 
-    @media (max-width: 900px){
+    @media (max-width:900px){
       .grid-2,.grid-3,.image-grid{grid-template-columns:1fr}
     }
-    @media (max-width: 820px){
+    @media (max-width:820px){
       .hero h1{font-size:24px}
       .crop-panel{padding:14px}
       .crop-stage{padding:12px}
@@ -382,20 +378,20 @@
             <input id="cta_link_1" name="cta_link_1" class="input" />
           </div>
 
-          <div id="ctaBlock2" class="field">
+          <div id="ctaRow2" class="field">
             <label for="cta_text_2">按鈕 2 文字</label>
             <input id="cta_text_2" name="cta_text_2" class="input" />
           </div>
-          <div id="ctaBlock2_link" class="field">
+          <div id="ctaRow2_link" class="field">
             <label for="cta_link_2">按鈕 2 連結</label>
             <input id="cta_link_2" name="cta_link_2" class="input" />
           </div>
 
-          <div id="ctaBlock3" class="field">
+          <div id="ctaRow3" class="field">
             <label for="cta_text_3">按鈕 3 文字</label>
             <input id="cta_text_3" name="cta_text_3" class="input" />
           </div>
-          <div id="ctaBlock3_link" class="field">
+          <div id="ctaRow3_link" class="field">
             <label for="cta_link_3">按鈕 3 連結</label>
             <input id="cta_link_3" name="cta_link_3" class="input" />
           </div>
@@ -407,11 +403,8 @@
 
         <div class="image-grid">
           <div class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">頭像</div>
-              <div class="image-card-status" id="status_avatar">未設定</div>
-            </div>
-            <div class="thumb-box square"><div id="preview_avatar" class="thumb-image"></div></div>
+            <div class="image-card-head"><div class="image-card-title">頭像</div><div class="image-card-status" id="status_avatar">未設定</div></div>
+            <div class="thumb-box square"><img id="preview_avatar" class="thumb-image" alt="頭像預覽" /></div>
             <div class="image-actions">
               <button type="button" class="btn btn-secondary" data-pick="avatar">選圖</button>
               <button type="button" class="btn btn-secondary" data-edit="avatar">重選</button>
@@ -422,11 +415,8 @@
           </div>
 
           <div class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">Logo</div>
-              <div class="image-card-status" id="status_logo">未設定</div>
-            </div>
-            <div class="thumb-box square"><div id="preview_logo" class="thumb-image"></div></div>
+            <div class="image-card-head"><div class="image-card-title">Logo</div><div class="image-card-status" id="status_logo">未設定</div></div>
+            <div class="thumb-box square"><img id="preview_logo" class="thumb-image" alt="Logo 預覽" /></div>
             <div class="image-actions">
               <button type="button" class="btn btn-secondary" data-pick="logo">選圖</button>
               <button type="button" class="btn btn-secondary" data-edit="logo">重選</button>
@@ -437,11 +427,8 @@
           </div>
 
           <div class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 1</div>
-              <div class="image-card-status" id="status_photo1">未設定</div>
-            </div>
-            <div class="thumb-box wide"><div id="preview_photo1" class="thumb-image"></div></div>
+            <div class="image-card-head"><div class="image-card-title">照片 1</div><div class="image-card-status" id="status_photo1">未設定</div></div>
+            <div class="thumb-box wide"><img id="preview_photo1" class="thumb-image" alt="照片1預覽" /></div>
             <div class="image-actions">
               <button type="button" class="btn btn-secondary" data-pick="photo1">選圖</button>
               <button type="button" class="btn btn-secondary" data-edit="photo1">重選</button>
@@ -452,11 +439,8 @@
           </div>
 
           <div class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 2</div>
-              <div class="image-card-status" id="status_photo2">未設定</div>
-            </div>
-            <div class="thumb-box wide"><div id="preview_photo2" class="thumb-image"></div></div>
+            <div class="image-card-head"><div class="image-card-title">照片 2</div><div class="image-card-status" id="status_photo2">未設定</div></div>
+            <div class="thumb-box wide"><img id="preview_photo2" class="thumb-image" alt="照片2預覽" /></div>
             <div class="image-actions">
               <button type="button" class="btn btn-secondary" data-pick="photo2">選圖</button>
               <button type="button" class="btn btn-secondary" data-edit="photo2">重選</button>
@@ -467,11 +451,8 @@
           </div>
 
           <div id="photoCard3" class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 3</div>
-              <div class="image-card-status" id="status_photo3">未設定</div>
-            </div>
-            <div class="thumb-box wide"><div id="preview_photo3" class="thumb-image"></div></div>
+            <div class="image-card-head"><div class="image-card-title">照片 3</div><div class="image-card-status" id="status_photo3">未設定</div></div>
+            <div class="thumb-box wide"><img id="preview_photo3" class="thumb-image" alt="照片3預覽" /></div>
             <div class="image-actions">
               <button type="button" class="btn btn-secondary" data-pick="photo3">選圖</button>
               <button type="button" class="btn btn-secondary" data-edit="photo3">重選</button>
@@ -482,11 +463,8 @@
           </div>
 
           <div id="photoCard4" class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 4</div>
-              <div class="image-card-status" id="status_photo4">未設定</div>
-            </div>
-            <div class="thumb-box wide"><div id="preview_photo4" class="thumb-image"></div></div>
+            <div class="image-card-head"><div class="image-card-title">照片 4</div><div class="image-card-status" id="status_photo4">未設定</div></div>
+            <div class="thumb-box wide"><img id="preview_photo4" class="thumb-image" alt="照片4預覽" /></div>
             <div class="image-actions">
               <button type="button" class="btn btn-secondary" data-pick="photo4">選圖</button>
               <button type="button" class="btn btn-secondary" data-edit="photo4">重選</button>
@@ -497,11 +475,8 @@
           </div>
 
           <div id="photoCard5" class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 5</div>
-              <div class="image-card-status" id="status_photo5">未設定</div>
-            </div>
-            <div class="thumb-box wide"><div id="preview_photo5" class="thumb-image"></div></div>
+            <div class="image-card-head"><div class="image-card-title">照片 5</div><div class="image-card-status" id="status_photo5">未設定</div></div>
+            <div class="thumb-box wide"><img id="preview_photo5" class="thumb-image" alt="照片5預覽" /></div>
             <div class="image-actions">
               <button type="button" class="btn btn-secondary" data-pick="photo5">選圖</button>
               <button type="button" class="btn btn-secondary" data-edit="photo5">重選</button>
@@ -564,6 +539,6 @@
     </div>
   </div>
 
-  <script type="module" src="./update-form.js?v=804.2"></script>
+  <script type="module" src="./update-form.js?v=804.3"></script>
 </body>
 </html>
