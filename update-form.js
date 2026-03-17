@@ -1,17 +1,3 @@
-/* =========================================
- * HSC update-form.js v804.3
- * COMPLETE OVERWRITE
- *
- * 修正重點：
- * 1. 圖片預覽改成 <img>，與 form 一致
- * 2. free / premium 規格分流
- *    - free: CTA 1、照片牆 2
- *    - premium: CTA 3、照片牆 5
- * 3. 送出時強制清空超出方案的欄位
- * 4. 更新成功後自動滑到下方完成區
- * 5. 複製內容改成 ID + 客服話術
- * ========================================= */
-
 import {
   initFirebase,
   ensureAuth,
@@ -23,23 +9,105 @@ import {
 (() => {
   "use strict";
 
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-  const VERSION = "804.3";
+  const GAS_URL =
+    "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+  const VERSION = "804.5-full";
   const LINE_OA_URL = "https://lin.ee/G3VJoRm";
 
+  const MB = 1024 * 1024;
+  const MAX_ACCEPT_FILE_SIZE = 20 * MB;
+
+  const SMART_PROFILE = {
+    small: {
+      maxLong: 1800,
+      maxShort: 1800,
+      previewQuality: 0.90,
+      outputQuality: 0.88,
+      label: "輕壓縮"
+    },
+    medium: {
+      maxLong: 1500,
+      maxShort: 1500,
+      previewQuality: 0.86,
+      outputQuality: 0.82,
+      label: "中壓縮"
+    },
+    large: {
+      maxLong: 1200,
+      maxShort: 1200,
+      previewQuality: 0.82,
+      outputQuality: 0.76,
+      label: "強壓縮"
+    }
+  };
+
   const TEXT_FIELDS = [
-    "name","unit","title","slogan","services","experience",
-    "phone","email","line_url","line_oa","wechat_id","website","address",
-    "video1","video2","video3","social1","social2","social3",
-    "cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3"
+    "plan",
+    "color",
+    "style",
+    "paper",
+    "premium_color",
+    "name",
+    "unit",
+    "title",
+    "slogan",
+    "services",
+    "experience",
+    "phone",
+    "email",
+    "line_url",
+    "line_oa",
+    "wechat_id",
+    "website",
+    "address",
+    "video1",
+    "video2",
+    "video3",
+    "social1",
+    "social2",
+    "social3",
+    "cta_text_1",
+    "cta_link_1",
+    "cta_text_2",
+    "cta_link_2",
+    "cta_text_3",
+    "cta_link_3"
   ];
 
   const IMAGE_FIELDS = [
-    "avatar_url","logo_url","photo1_url","photo2_url","photo3_url","photo4_url","photo5_url"
+    "avatar_url",
+    "logo_url",
+    "photo1_url",
+    "photo2_url",
+    "photo3_url",
+    "photo4_url",
+    "photo5_url"
   ];
+
+  const PLAN_RULES = {
+    free: {
+      key: "free",
+      label: "自由搭配款",
+      maxPhotos: 2,
+      maxCtas: 1,
+      showFreeFields: true,
+      showPremiumField: false
+    },
+    premium: {
+      key: "premium",
+      label: "精品設計款",
+      maxPhotos: 5,
+      maxCtas: 3,
+      showFreeFields: false,
+      showPremiumField: true
+    }
+  };
 
   const IMAGE_SLOTS = {
     avatar: {
+      slot: "avatar",
+      label: "頭像",
       key: "avatar_url",
       previewId: "preview_avatar",
       statusId: "status_avatar",
@@ -50,6 +118,8 @@ import {
       fallback: ["avatar_url", "avatar_img_fast", "avatar_img"]
     },
     logo: {
+      slot: "logo",
+      label: "Logo",
       key: "logo_url",
       previewId: "preview_logo",
       statusId: "status_logo",
@@ -60,6 +130,8 @@ import {
       fallback: ["logo_url", "logo_img_fast", "logo_img"]
     },
     photo1: {
+      slot: "photo1",
+      label: "照片 1",
       key: "photo1_url",
       previewId: "preview_photo1",
       statusId: "status_photo1",
@@ -70,6 +142,8 @@ import {
       fallback: ["photo1_url", "photo1_img_fast", "photo1_img"]
     },
     photo2: {
+      slot: "photo2",
+      label: "照片 2",
       key: "photo2_url",
       previewId: "preview_photo2",
       statusId: "status_photo2",
@@ -80,6 +154,8 @@ import {
       fallback: ["photo2_url", "photo2_img_fast", "photo2_img"]
     },
     photo3: {
+      slot: "photo3",
+      label: "照片 3",
       key: "photo3_url",
       previewId: "preview_photo3",
       statusId: "status_photo3",
@@ -90,6 +166,8 @@ import {
       fallback: ["photo3_url", "photo3_img_fast", "photo3_img"]
     },
     photo4: {
+      slot: "photo4",
+      label: "照片 4",
       key: "photo4_url",
       previewId: "preview_photo4",
       statusId: "status_photo4",
@@ -100,6 +178,8 @@ import {
       fallback: ["photo4_url", "photo4_img_fast", "photo4_img"]
     },
     photo5: {
+      slot: "photo5",
+      label: "照片 5",
       key: "photo5_url",
       previewId: "preview_photo5",
       statusId: "status_photo5",
@@ -111,21 +191,15 @@ import {
     }
   };
 
-  const PLAN_RULES = {
-    free: { maxPhotos: 2, maxCtas: 1 },
-    premium: { maxPhotos: 5, maxCtas: 3 }
-  };
-
   const state = {
     id: "",
     utoken: "",
     loaded: false,
-    card: null,
     busy: false,
     firebaseReady: false,
+    card: null,
     plan: "free",
-    maxPhotos: 2,
-    maxCtas: 1,
+    rules: PLAN_RULES.free,
     drag: {
       active: false,
       startX: 0,
@@ -137,6 +211,9 @@ import {
       slot: "",
       image: null,
       imageUrl: "",
+      sourceFile: null,
+      sourceSize: 0,
+      smartProfile: SMART_PROFILE.small,
       scale: 1,
       minScale: 1,
       offsetX: 0,
@@ -151,21 +228,26 @@ import {
   const el = {
     form: document.getElementById("updateForm"),
     statusBox: document.getElementById("statusBox"),
+
+    plan: document.getElementById("plan"),
+    color: document.getElementById("color"),
+    style: document.getElementById("style"),
+    paper: document.getElementById("paper"),
+    premiumColor: document.getElementById("premium_color"),
+
+    freeStyleFields: document.getElementById("freeStyleFields"),
+    premiumColorField: document.getElementById("premiumColorField"),
+    schemeHint: document.getElementById("schemeHint"),
+
     btnSubmit: document.getElementById("btnSubmit"),
     btnReload: document.getElementById("btnReload"),
     btnTop: document.getElementById("btnTop"),
 
-    cropModal: document.getElementById("cropModal"),
-    cropTitle: document.getElementById("cropTitle"),
-    cropViewport: document.getElementById("cropViewport"),
-    cropImage: document.getElementById("cropImage"),
-    cropZoom: document.getElementById("cropZoom"),
-    btnZoomOut: document.getElementById("btnZoomOut"),
-    btnZoomIn: document.getElementById("btnZoomIn"),
-    btnCenter: document.getElementById("btnCenter"),
-    btnResetCrop: document.getElementById("btnResetCrop"),
-    btnCancelCrop: document.getElementById("btnCancelCrop"),
-    btnApplyCrop: document.getElementById("btnApplyCrop"),
+    progressWrap: document.getElementById("submitProgressWrap"),
+    progressTitle: document.getElementById("submitProgressTitle"),
+    progressPercent: document.getElementById("submitProgressPercent"),
+    progressFill: document.getElementById("submitProgressFill"),
+    progressText: document.getElementById("submitProgressText"),
 
     successBox: document.getElementById("successBox"),
     successId: document.getElementById("successId"),
@@ -174,10 +256,26 @@ import {
     btnLineOA: document.getElementById("btnLineOA"),
 
     ctaRow2: document.getElementById("ctaRow2"),
+    ctaRow2Link: document.getElementById("ctaRow2_link"),
     ctaRow3: document.getElementById("ctaRow3"),
+    ctaRow3Link: document.getElementById("ctaRow3_link"),
+
     photoCard3: document.getElementById("photoCard3"),
     photoCard4: document.getElementById("photoCard4"),
-    photoCard5: document.getElementById("photoCard5")
+    photoCard5: document.getElementById("photoCard5"),
+
+    cropModal: document.getElementById("cropModal"),
+    cropTitle: document.getElementById("cropTitle"),
+    cropHint: document.getElementById("cropHint"),
+    cropViewport: document.getElementById("cropViewport"),
+    cropImage: document.getElementById("cropImage"),
+    cropZoom: document.getElementById("cropZoom"),
+    btnZoomOut: document.getElementById("btnZoomOut"),
+    btnZoomIn: document.getElementById("btnZoomIn"),
+    btnCenter: document.getElementById("btnCenter"),
+    btnResetCrop: document.getElementById("btnResetCrop"),
+    btnCancelCrop: document.getElementById("btnCancelCrop"),
+    btnApplyCrop: document.getElementById("btnApplyCrop")
   };
 
   init().catch((err) => {
@@ -191,9 +289,13 @@ import {
     state.utoken = text(qs.get("utoken"));
 
     bindBaseEvents();
+    bindSuccessEvents();
+    bindSchemeEvents();
     bindImageEvents();
     bindCropEvents();
-    bindSuccessEvents();
+
+    setProgress(0, "尚未送出");
+    hideSuccess();
 
     if (!state.id || !state.utoken) {
       showStatus("bad", "缺少更新參數 id 或 utoken。\n請聯繫客服重新取得更新連結。");
@@ -213,10 +315,20 @@ import {
 
   function bindBaseEvents() {
     el.btnReload?.addEventListener("click", () => loadCard(true));
+
     el.btnTop?.addEventListener("click", () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
+
     el.form?.addEventListener("submit", onSubmit);
+
+    TEXT_FIELDS.forEach((id) => {
+      const node = document.getElementById(id);
+      if (!node) return;
+      node.addEventListener("input", () => {
+        autoGrow(node);
+      });
+    });
   }
 
   function bindSuccessEvents() {
@@ -232,6 +344,13 @@ import {
 
     el.btnLineOA?.addEventListener("click", () => {
       window.open(LINE_OA_URL, "_blank", "noopener,noreferrer");
+    });
+  }
+
+  function bindSchemeEvents() {
+    el.plan?.addEventListener("change", () => {
+      const plan = normalizePlan(el.plan.value);
+      applyPlanRules(plan, true);
     });
   }
 
@@ -278,6 +397,12 @@ import {
         const file = ev.target.files?.[0];
         if (!file) return;
 
+        if (file.size > MAX_ACCEPT_FILE_SIZE) {
+          fileInput.value = "";
+          showStatus("bad", "圖片過大，請選擇 20MB 以下圖片。");
+          return;
+        }
+
         if (!isPhotoSlotAllowed(slot)) {
           fileInput.value = "";
           showStatus("warn", "此方案目前未開放這張照片欄位。");
@@ -294,7 +419,8 @@ import {
       });
     });
   }
-function bindCropEvents() {
+
+  function bindCropEvents() {
     el.btnCancelCrop?.addEventListener("click", closeCropper);
     el.btnZoomOut?.addEventListener("click", () => adjustZoom(-0.05));
     el.btnZoomIn?.addEventListener("click", () => adjustZoom(0.05));
@@ -315,12 +441,12 @@ function bindCropEvents() {
     el.cropModal?.addEventListener("click", (ev) => {
       if (ev.target === el.cropModal) closeCropper();
     });
-  }
 
-  function triggerFilePick(slot) {
-    if (!IMAGE_SLOTS[slot]) return;
-    const fileInput = document.getElementById(IMAGE_SLOTS[slot].fileId);
-    fileInput?.click();
+    window.addEventListener("resize", () => {
+      if (el.cropModal?.classList.contains("show") && state.cropper.image) {
+        resetCropperView();
+      }
+    });
   }
 
   async function loadCard(isReload = false) {
@@ -328,6 +454,7 @@ function bindCropEvents() {
 
     setBusy(true);
     hideSuccess();
+    setProgress(10, isReload ? "重新載入資料中…" : "載入資料中…");
     showStatus("warn", isReload ? "重新載入資料中…" : "載入資料中…");
 
     try {
@@ -348,15 +475,18 @@ function bindCropEvents() {
       state.card = card;
       state.loaded = true;
 
-      applyPlanRules(text(card.plan).toLowerCase() || "free");
+      const plan = normalizePlan(card.plan || "free");
+      applyPlanRules(plan, false);
       fillForm(card);
-      el.form?.classList.remove("hidden");
 
+      el.form?.classList.remove("hidden");
+      setProgress(100, "資料載入完成");
       showStatus("ok", `資料載入成功\n名片編號：${state.id}`);
     } catch (err) {
       console.error("[HSC update-form] loadCard failed:", err);
       state.loaded = false;
       el.form?.classList.add("hidden");
+      setProgress(0, "載入失敗");
       showStatus(
         "bad",
         [
@@ -364,7 +494,7 @@ function bindCropEvents() {
           err?.message || "未知錯誤",
           "",
           "請檢查：",
-          "1. update-form.js 是否已更新到 v804.3",
+          "1. update-form.js 是否為最新完整覆蓋版",
           "2. update-form.html 是否為 module 版本",
           "3. Firebase / GAS 是否為最新部署",
           "4. 連結中的 id / utoken 是否正確"
@@ -375,36 +505,68 @@ function bindCropEvents() {
     }
   }
 
-  function applyPlanRules(plan) {
-    const rules = PLAN_RULES[plan] || PLAN_RULES.free;
-    state.plan = plan;
-    state.maxPhotos = rules.maxPhotos;
-    state.maxCtas = rules.maxCtas;
-
-    toggleEl(el.ctaRow2, state.maxCtas >= 2);
-    toggleEl(el.ctaRow3, state.maxCtas >= 3);
-
-    toggleEl(el.photoCard3, state.maxPhotos >= 3);
-    toggleEl(el.photoCard4, state.maxPhotos >= 4);
-    toggleEl(el.photoCard5, state.maxPhotos >= 5);
-
-    if (state.maxCtas < 2) {
-      setFieldValue("cta_text_2", "");
-      setFieldValue("cta_link_2", "");
-    }
-    if (state.maxCtas < 3) {
-      setFieldValue("cta_text_3", "");
-      setFieldValue("cta_link_3", "");
-    }
-
-    if (state.maxPhotos < 3) clearHiddenPhotoField("photo3");
-    if (state.maxPhotos < 4) clearHiddenPhotoField("photo4");
-    if (state.maxPhotos < 5) clearHiddenPhotoField("photo5");
+  function normalizePlan(v) {
+    return text(v).toLowerCase() === "premium" ? "premium" : "free";
   }
 
-  function clearHiddenPhotoField(slotBase) {
-    const key = `${slotBase}_url`;
-    setFieldValue(key, "");
+  function getPlanRules(plan) {
+    return PLAN_RULES[normalizePlan(plan)] || PLAN_RULES.free;
+  }
+
+  function applyPlanRules(plan, updateSelectValue = true) {
+    const rules = getPlanRules(plan);
+    state.plan = rules.key;
+    state.rules = rules;
+
+    if (updateSelectValue && el.plan) {
+      el.plan.value = rules.key;
+    }
+
+    toggleEl(el.freeStyleFields, rules.showFreeFields);
+    toggleEl(el.premiumColorField, rules.showPremiumField);
+
+    toggleEl(el.ctaRow2, rules.maxCtas >= 2);
+    toggleEl(el.ctaRow2Link, rules.maxCtas >= 2);
+    toggleEl(el.ctaRow3, rules.maxCtas >= 3);
+    toggleEl(el.ctaRow3Link, rules.maxCtas >= 3);
+
+    toggleEl(el.photoCard3, rules.maxPhotos >= 3);
+    toggleEl(el.photoCard4, rules.maxPhotos >= 4);
+    toggleEl(el.photoCard5, rules.maxPhotos >= 5);
+
+    if (el.schemeHint) {
+      el.schemeHint.textContent =
+        rules.key === "premium"
+          ? "目前為精品設計款：支援 5 張照片、3 個 CTA，畫面只顯示 7 色。"
+          : "目前為自由搭配款：支援 2 張照片、1 個 CTA，可選 5 色 / 3 版 / 3 紙。";
+    }
+
+    if (rules.key === "free") {
+      setFieldValue("premium_color", "");
+      clearCtaFieldsFrom(2);
+      clearPhotoFieldsFrom(3);
+    } else {
+      setFieldValue("color", "");
+      setFieldValue("style", "");
+      setFieldValue("paper", "");
+    }
+  }
+
+  function clearCtaFieldsFrom(start) {
+    for (let i = start; i <= 3; i++) {
+      setFieldValue(`cta_text_${i}`, "");
+      setFieldValue(`cta_link_${i}`, "");
+    }
+  }
+
+  function clearPhotoFieldsFrom(start) {
+    for (let i = start; i <= 5; i++) {
+      const slot = `photo${i}`;
+      const key = `${slot}_url`;
+      setFieldValue(key, "");
+      setSlotPreview(slot, "");
+      setSlotStatus(slot, "未開放");
+    }
   }
 
   function fillForm(card) {
@@ -412,7 +574,10 @@ function bindCropEvents() {
       const input = document.getElementById(key);
       if (!input) return;
       input.value = text(card[key]);
+      autoGrow(input);
     });
+
+    setFieldValue("premium_color", text(card.premium_color));
 
     Object.keys(IMAGE_SLOTS).forEach((slot) => {
       const cfg = IMAGE_SLOTS[slot];
@@ -425,26 +590,26 @@ function bindCropEvents() {
       setSlotStatus(slot, url ? "已載入既有圖片" : "未設定");
     });
 
-    if (state.maxCtas < 2) {
+    if (state.rules.maxCtas < 2) {
       setFieldValue("cta_text_2", "");
       setFieldValue("cta_link_2", "");
     }
-    if (state.maxCtas < 3) {
+    if (state.rules.maxCtas < 3) {
       setFieldValue("cta_text_3", "");
       setFieldValue("cta_link_3", "");
     }
 
-    if (state.maxPhotos < 3) {
+    if (state.rules.maxPhotos < 3) {
       setFieldValue("photo3_url", "");
       setSlotPreview("photo3", "");
       setSlotStatus("photo3", "未開放");
     }
-    if (state.maxPhotos < 4) {
+    if (state.rules.maxPhotos < 4) {
       setFieldValue("photo4_url", "");
       setSlotPreview("photo4", "");
       setSlotStatus("photo4", "未開放");
     }
-    if (state.maxPhotos < 5) {
+    if (state.rules.maxPhotos < 5) {
       setFieldValue("photo5_url", "");
       setSlotPreview("photo5", "");
       setSlotStatus("photo5", "未開放");
@@ -461,58 +626,121 @@ function bindCropEvents() {
 
     if (state.busy) return;
 
+    try {
+      validateFormBeforeSubmit();
+    } catch (err) {
+      showStatus("bad", err.message || "請檢查欄位");
+      return;
+    }
+
     setBusy(true);
     hideSuccess();
+    setProgress(8, "整理更新資料中…");
     showStatus("warn", "送出更新中…");
 
     try {
       const payload = collectPayload();
-      const formBody = new URLSearchParams();
+      const body = JSON.stringify(payload);
 
-      Object.entries(payload).forEach(([k, v]) => {
-        formBody.append(k, v == null ? "" : String(v));
-      });
+      setProgress(28, "送出更新資料到 GAS…");
 
       const res = await fetchJson(GAS_URL, {
         method: "POST",
-        body: formBody
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body
       });
 
       if (!res || res.ok !== true) {
         throw new Error(readError(res) || "更新失敗");
       }
 
+      setProgress(100, "更新完成");
       showStatus("ok", "資料更新成功。");
       showSuccess();
     } catch (err) {
       console.error("[HSC update-form] submit failed:", err);
+      setProgress(0, "送出失敗");
       showStatus("bad", `資料更新失敗：${err?.message || "未知錯誤"}`);
     } finally {
       setBusy(false);
     }
   }
 
+  function validateFormBeforeSubmit() {
+    const plan = normalizePlan(getFieldValue("plan"));
+    if (!plan) {
+      throw new Error("請先選擇方案。");
+    }
+
+    const name = getFieldValue("name");
+    if (!name) {
+      throw new Error("請填寫姓名 / 品牌名稱。");
+    }
+
+    const contactOk = [
+      getFieldValue("phone"),
+      getFieldValue("email"),
+      getFieldValue("line_url"),
+      getFieldValue("line_oa"),
+      getFieldValue("wechat_id")
+    ].some(Boolean);
+
+    if (!contactOk) {
+      throw new Error("請至少填寫一種聯絡方式。");
+    }
+
+    const maxCtas = getPlanRules(plan).maxCtas;
+    for (let i = 1; i <= maxCtas; i++) {
+      const t = getFieldValue(`cta_text_${i}`);
+      const l = getFieldValue(`cta_link_${i}`);
+      if ((t && !l) || (!t && l)) {
+        throw new Error(`CTA ${i} 需同時填寫文字與連結。`);
+      }
+    }
+  }
+
   function collectPayload() {
+    const plan = normalizePlan(getFieldValue("plan"));
+    const rules = getPlanRules(plan);
+
     const out = {
       action: "updateCardByToken",
       id: state.id,
-      utoken: state.utoken
+      utoken: state.utoken,
+      plan,
+      color: plan === "free" ? getFieldValue("color") : "",
+      style: plan === "free" ? getFieldValue("style") : "",
+      paper: plan === "free" ? getFieldValue("paper") : "",
+      premium_color: plan === "premium" ? getFieldValue("premium_color") : "",
+      form_version: VERSION,
+      source: "update_form"
     };
 
     TEXT_FIELDS.forEach((key) => {
-      if (state.maxCtas === 1 && (
-        key === "cta_text_2" || key === "cta_link_2" ||
-        key === "cta_text_3" || key === "cta_link_3"
-      )) {
+      if (["plan", "color", "style", "paper", "premium_color"].includes(key)) return;
+
+      if (rules.maxCtas === 1 && [
+        "cta_text_2", "cta_link_2", "cta_text_3", "cta_link_3"
+      ].includes(key)) {
         out[key] = "";
         return;
       }
+
+      if (rules.maxCtas === 2 && [
+        "cta_text_3", "cta_link_3"
+      ].includes(key)) {
+        out[key] = "";
+        return;
+      }
+
       out[key] = getFieldValue(key);
     });
 
     IMAGE_FIELDS.forEach((key) => {
       const photoNum = getPhotoNumberFromKey(key);
-      if (photoNum && photoNum > state.maxPhotos) {
+      if (photoNum && photoNum > rules.maxPhotos) {
         out[key] = "";
         return;
       }
@@ -522,26 +750,46 @@ function bindCropEvents() {
     return out;
   }
 
+  function triggerFilePick(slot) {
+    if (!IMAGE_SLOTS[slot]) return;
+    const fileInput = document.getElementById(IMAGE_SLOTS[slot].fileId);
+    fileInput?.click();
+  }
+
   async function openCropper(slot, file) {
     const cfg = IMAGE_SLOTS[slot];
     if (!cfg) throw new Error("找不到圖片欄位設定");
 
     await ensureFirebaseReady();
 
-    const objectUrl = URL.createObjectURL(file);
-    const img = await loadImage(objectUrl);
+    const prepared = await prepareImageForCrop(file);
 
     if (state.cropper.imageUrl) {
-      URL.revokeObjectURL(state.cropper.imageUrl);
+      try {
+        URL.revokeObjectURL(state.cropper.imageUrl);
+      } catch (_) {}
     }
+
+    const objectUrl = URL.createObjectURL(prepared.blob);
+    const img = await loadImage(objectUrl);
 
     state.cropper.slot = slot;
     state.cropper.image = img;
     state.cropper.imageUrl = objectUrl;
+    state.cropper.sourceFile = file;
+    state.cropper.sourceSize = file.size || 0;
+    state.cropper.smartProfile = prepared.profile;
     state.cropper.imageW = img.naturalWidth || img.width;
     state.cropper.imageH = img.naturalHeight || img.height;
 
-    el.cropTitle.textContent = `裁切圖片：${getSlotLabel(slot)}`;
+    el.cropTitle.textContent = `裁切圖片：${cfg.label}`;
+    if (el.cropHint) {
+      el.cropHint.textContent =
+        cfg.cropShape === "square"
+          ? `拖曳可移動圖片，使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase。\n智慧壓縮：${prepared.profile.label}`
+          : `可左右上下拖移圖片，並使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase。\n智慧壓縮：${prepared.profile.label}`;
+    }
+
     el.cropViewport.classList.toggle("is-square", cfg.cropShape === "square");
     el.cropViewport.classList.toggle("is-wide", cfg.cropShape === "wide");
 
@@ -566,12 +814,17 @@ function bindCropEvents() {
     }
 
     if (state.cropper.imageUrl) {
-      URL.revokeObjectURL(state.cropper.imageUrl);
+      try {
+        URL.revokeObjectURL(state.cropper.imageUrl);
+      } catch (_) {}
     }
 
     state.cropper.slot = "";
     state.cropper.image = null;
     state.cropper.imageUrl = "";
+    state.cropper.sourceFile = null;
+    state.cropper.sourceSize = 0;
+    state.cropper.smartProfile = SMART_PROFILE.small;
     state.cropper.scale = 1;
     state.cropper.minScale = 1;
     state.cropper.offsetX = 0;
@@ -588,7 +841,8 @@ function bindCropEvents() {
       el.cropImage.style.height = "";
     }
   }
-function resetCropperView() {
+
+  function resetCropperView() {
     const cp = state.cropper;
     const cfg = IMAGE_SLOTS[cp.slot];
     if (!cp.image || !cfg) return;
@@ -655,7 +909,8 @@ function resetCropperView() {
 
     el.cropImage.style.width = `${cp.imageW * cp.scale}px`;
     el.cropImage.style.height = `${cp.imageH * cp.scale}px`;
-    el.cropImage.style.transform = `translate(calc(-50% + ${cp.offsetX}px), calc(-50% + ${cp.offsetY}px))`;
+    el.cropImage.style.transform =
+      `translate(calc(-50% + ${cp.offsetX}px), calc(-50% + ${cp.offsetY}px))`;
   }
 
   function clampOffsets() {
@@ -716,7 +971,8 @@ function resetCropperView() {
     try {
       setBusy(true);
       setSlotStatus(slot, "裁切完成，準備上傳…");
-      showStatus("warn", `上傳中：${getSlotLabel(slot)}…`);
+      showStatus("warn", `上傳中：${cfg.label}…`);
+      setProgress(18, `處理圖片：${cfg.label}…`);
 
       const blob = await renderCroppedBlob(slot);
       const url = await uploadBySlot(slot, blob);
@@ -729,12 +985,14 @@ function resetCropperView() {
       setSlotPreview(slot, url);
       setSlotStatus(slot, "已上傳成功");
 
-      showStatus("ok", `${getSlotLabel(slot)} 已更新完成。`);
+      setProgress(100, `${cfg.label} 已更新完成`);
+      showStatus("ok", `${cfg.label} 已更新完成。`);
       closeCropper();
     } catch (err) {
       console.error(`[HSC update-form] upload failed: ${slot}`, err);
       setSlotStatus(slot, "上傳失敗");
-      showStatus("bad", `${getSlotLabel(slot)} 上傳失敗：${err?.message || "未知錯誤"}`);
+      setProgress(0, "圖片上傳失敗");
+      showStatus("bad", `${cfg.label} 上傳失敗：${err?.message || "未知錯誤"}`);
     } finally {
       setBusy(false);
     }
@@ -743,6 +1001,7 @@ function resetCropperView() {
   async function renderCroppedBlob(slot) {
     const cp = state.cropper;
     const cfg = IMAGE_SLOTS[slot];
+
     const canvas = document.createElement("canvas");
     canvas.width = cfg.targetWidth;
     canvas.height = cfg.targetHeight;
@@ -761,9 +1020,11 @@ function resetCropperView() {
     const drawY = centerY - drawH / 2 + cp.offsetY * scaleToOutput;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     ctx.drawImage(cp.image, drawX, drawY, drawW, drawH);
 
-    return await canvasToBlob(canvas, "image/jpeg", 0.92);
+    return await canvasToBlob(canvas, "image/jpeg", cp.smartProfile.outputQuality);
   }
 
   async function uploadBySlot(slot, blob) {
@@ -785,8 +1046,15 @@ function resetCropperView() {
 
     setFieldValue(cfg.key, "");
     setSlotPreview(slot, "");
-    setSlotStatus(slot, "已清除，待送出保存");
-    showStatus("warn", `${getSlotLabel(slot)} 已清除，請記得按「送出更新」。`);
+    setSlotStatus(slot, isPhotoSlotAllowed(slot) ? "已清除，待送出保存" : "未開放");
+    showStatus("warn", `${cfg.label} 已清除，請記得按「送出更新」。`);
+  }
+
+  function isPhotoSlotAllowed(slot) {
+    if (slot === "avatar" || slot === "logo") return true;
+    if (!slot.startsWith("photo")) return true;
+    const idx = Number(slot.replace("photo", ""));
+    return idx <= state.rules.maxPhotos;
   }
 
   function setSlotPreview(slot, url) {
@@ -812,6 +1080,12 @@ function resetCropperView() {
     if (node) node.textContent = msg || "未設定";
   }
 
+  function showStatus(type, message) {
+    if (!el.statusBox) return;
+    el.statusBox.className = `status show ${type || "warn"}`;
+    el.statusBox.textContent = message || "";
+  }
+
   function setBusy(busy) {
     state.busy = !!busy;
 
@@ -824,16 +1098,22 @@ function resetCropperView() {
     });
   }
 
-  function showStatus(type, message) {
-    if (!el.statusBox) return;
-    el.statusBox.className = `status show ${type || "warn"}`;
-    el.statusBox.textContent = message || "";
+  function setProgress(percent, textMessage) {
+    const n = Math.max(0, Math.min(100, Number(percent) || 0));
+    if (el.progressWrap) el.progressWrap.style.display = "";
+    if (el.progressFill) el.progressFill.style.width = `${n}%`;
+    if (el.progressPercent) el.progressPercent.textContent = `${Math.round(n)}%`;
+    if (el.progressText) el.progressText.textContent = textMessage || "";
+    if (el.progressTitle) el.progressTitle.textContent = n >= 100 ? "處理完成" : "送出中";
   }
 
   function showSuccess() {
     if (!el.successBox) return;
     if (el.successId) el.successId.textContent = state.id || "";
-    if (el.successCopyText) el.successCopyText.textContent = buildReplyText();
+    if (el.successCopyText) {
+      el.successCopyText.value = buildReplyText();
+      autoGrow(el.successCopyText);
+    }
     el.successBox.classList.remove("hidden");
 
     setTimeout(() => {
@@ -872,22 +1152,6 @@ function resetCropperView() {
     }
     return "";
   }
-function isPhotoSlotAllowed(slot) {
-    if (slot === "avatar" || slot === "logo") return true;
-    if (!slot.startsWith("photo")) return true;
-    const idx = Number(slot.replace("photo", ""));
-    return idx <= state.maxPhotos;
-  }
-
-  function getPhotoNumberFromKey(key) {
-    const m = /^photo(\d+)_url$/.exec(key || "");
-    return m ? Number(m[1]) : 0;
-  }
-
-  function toggleEl(node, show) {
-    if (!node) return;
-    node.classList.toggle("hidden", !show);
-  }
 
   async function fetchJson(url, options = {}) {
     const res = await fetch(url, {
@@ -921,15 +1185,185 @@ function isPhotoSlotAllowed(slot) {
 
   function readError(res) {
     if (!res || typeof res !== "object") return "";
-    return text(res.error || res.message || res.msg);
+    return text(res.error || res.message || res.msg || res.data?.message);
   }
 
-  function loadImage(objectUrl) {
+  async function prepareImageForCrop(file) {
+    const profile = getSmartProfile(file.size || 0);
+
+    const arrayBuffer = await file.arrayBuffer();
+    const orientation = getJpegOrientation(arrayBuffer);
+
+    const rawDataUrl = await readFileAsDataURL(file);
+    const original = await loadImage(rawDataUrl);
+
+    const correctedCanvas = drawImageWithOrientation(original, orientation);
+    const normalizedCanvas = shrinkCanvasIfNeeded(
+      correctedCanvas,
+      profile.maxLong,
+      profile.maxShort
+    );
+
+    const previewBlob = await canvasToBlob(
+      normalizedCanvas,
+      "image/jpeg",
+      profile.previewQuality
+    );
+
+    return {
+      blob: previewBlob,
+      profile
+    };
+  }
+
+  function getSmartProfile(size) {
+    if (size <= 1 * MB) return SMART_PROFILE.small;
+    if (size <= 4 * MB) return SMART_PROFILE.medium;
+    return SMART_PROFILE.large;
+  }
+
+  function shrinkCanvasIfNeeded(canvas, maxLong, maxShort) {
+    const w = canvas.width;
+    const h = canvas.height;
+    const longSide = Math.max(w, h);
+    const shortSide = Math.min(w, h);
+
+    if (longSide <= maxLong && shortSide <= maxShort) return canvas;
+
+    const ratio = Math.min(maxLong / longSide, maxShort / shortSide);
+    const targetW = Math.max(1, Math.round(w * ratio));
+    const targetH = Math.max(1, Math.round(h * ratio));
+
+    const out = document.createElement("canvas");
+    out.width = targetW;
+    out.height = targetH;
+    const ctx = out.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(canvas, 0, 0, targetW, targetH);
+    return out;
+  }
+
+  function drawImageWithOrientation(img, orientation) {
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if ([5, 6, 7, 8].includes(orientation)) {
+      canvas.width = h;
+      canvas.height = w;
+    } else {
+      canvas.width = w;
+      canvas.height = h;
+    }
+
+    switch (orientation) {
+      case 2:
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        break;
+      case 3:
+        ctx.translate(w, h);
+        ctx.rotate(Math.PI);
+        break;
+      case 4:
+        ctx.translate(0, h);
+        ctx.scale(1, -1);
+        break;
+      case 5:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.scale(1, -1);
+        break;
+      case 6:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.translate(0, -h);
+        break;
+      case 7:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.translate(w, -h);
+        ctx.scale(-1, 1);
+        break;
+      case 8:
+        ctx.rotate(-0.5 * Math.PI);
+        ctx.translate(-w, 0);
+        break;
+      default:
+        break;
+    }
+
+    ctx.drawImage(img, 0, 0);
+    return canvas;
+  }
+
+  function getJpegOrientation(arrayBuffer) {
+    try {
+      const view = new DataView(arrayBuffer);
+      if (view.getUint16(0, false) !== 0xFFD8) return 1;
+
+      let offset = 2;
+      const length = view.byteLength;
+
+      while (offset < length) {
+        const marker = view.getUint16(offset, false);
+        offset += 2;
+
+        if (marker === 0xFFE1) {
+          offset += 2;
+          if (getString(view, offset, 4) !== "Exif") return 1;
+          offset += 6;
+
+          const little = view.getUint16(offset, false) === 0x4949;
+          const firstIFDOffset = view.getUint32(offset + 4, little);
+          offset += firstIFDOffset;
+
+          const tags = view.getUint16(offset, little);
+          offset += 2;
+
+          for (let i = 0; i < tags; i++) {
+            const tagOffset = offset + i * 12;
+            const tag = view.getUint16(tagOffset, little);
+            if (tag === 0x0112) {
+              return view.getUint16(tagOffset + 8, little);
+            }
+          }
+          return 1;
+        } else if ((marker & 0xFF00) !== 0xFF00) {
+          break;
+        } else {
+          offset += view.getUint16(offset, false);
+        }
+      }
+      return 1;
+    } catch (_) {
+      return 1;
+    }
+  }
+
+  function getString(view, start, length) {
+    let out = "";
+    for (let i = 0; i < length; i++) {
+      out += String.fromCharCode(view.getUint8(start + i));
+    }
+    return out;
+  }
+
+  function loadImage(src) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve(img);
       img.onerror = () => reject(new Error("圖片載入失敗"));
-      img.src = objectUrl;
+      img.src = src;
+    });
+  }
+
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result || ""));
+      fr.onerror = () => reject(new Error("讀取圖片失敗"));
+      fr.readAsDataURL(file);
     });
   }
 
@@ -955,6 +1389,23 @@ function isPhotoSlotAllowed(slot) {
     ta.select();
     document.execCommand("copy");
     ta.remove();
+  }
+
+  function getPhotoNumberFromKey(key) {
+    const m = /^photo(\d+)_url$/.exec(key || "");
+    return m ? Number(m[1]) : 0;
+  }
+
+  function toggleEl(node, show) {
+    if (!node) return;
+    node.classList.toggle("hidden", !show);
+    node.style.display = show ? "" : "none";
+  }
+
+  function autoGrow(node) {
+    if (!node || node.tagName !== "TEXTAREA") return;
+    node.style.height = "auto";
+    node.style.height = `${Math.max(110, node.scrollHeight)}px`;
   }
 
   function clamp(num, min, max) {
