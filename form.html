@@ -1,826 +1,1201 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>天使幸福智慧名片｜資料填寫 v804.4</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>天使幸福智慧名片｜資料填寫 v804.4-full</title>
+  <meta name="theme-color" content="#0b1220" />
 
-<meta name="theme-color" content="#0b1220" />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --bg-2:#0f172a;
+      --card:#111a2b;
+      --card-2:#142038;
+      --line:rgba(255,255,255,.12);
+      --line2:rgba(255,255,255,.08);
+      --text:rgba(255,255,255,.95);
+      --muted:rgba(255,255,255,.72);
+      --muted-2:rgba(255,255,255,.56);
+      --accent:#7bdcff;
+      --ok:#6ee7b7;
+      --bad:#fb7185;
+      --warn:#fbbf24;
+      --radius:18px;
+      --shadow:0 16px 34px rgba(0,0,0,.28);
+      --shadow-soft:0 8px 20px rgba(0,0,0,.18);
+      --fs:14px;
+      --fs2:16px;
+      --fs3:19px;
+      --fs4:23px;
+    }
 
-<style>
-/* =========================
-   BASE（完整保留）
-========================= */
-:root{
-  --bg:#0b1220;
-  --card:#111a2b;
-  --card-2:#142038;
-  --line:rgba(255,255,255,.12);
-  --line2:rgba(255,255,255,.08);
-  --text:rgba(255,255,255,.95);
-  --muted:rgba(255,255,255,.72);
-  --muted-2:rgba(255,255,255,.56);
-  --accent:#7bdcff;
-  --ok:#6ee7b7;
-  --bad:#fb7185;
-  --warn:#fbbf24;
-  --radius:18px;
-  --shadow:0 16px 34px rgba(0,0,0,.45);
-}
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
+    }
 
-*{
-  box-sizing:border-box;
-  -webkit-tap-highlight-color:transparent;
-}
+    html,body{
+      margin:0;
+      padding:0;
+      min-height:100%;
+      background:
+        radial-gradient(1000px 720px at 16% -10%, rgba(123,220,255,.15), transparent 62%),
+        radial-gradient(820px 680px at 100% 0%, rgba(255,191,36,.08), transparent 56%),
+        linear-gradient(180deg, #0b1220 0%, #0d1628 100%);
+      color:var(--text);
+      font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Arial,sans-serif;
+      font-size:var(--fs);
+      line-height:1.75;
+      word-break:keep-all;
+      overflow-wrap:break-word;
+    }
 
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
+    body{
+      padding-bottom:88px;
+    }
 
-/* =========================
-   HEADER
-========================= */
-.header{
-  padding:20px;
-  text-align:center;
-}
+    .wrap{
+      max-width:940px;
+      margin:0 auto;
+      padding:14px 12px 40px;
+    }
 
-.header h1{
-  margin:0;
-  font-size:20px;
-  letter-spacing:1px;
-}
+    .header{
+      padding:10px 2px 12px;
+      text-align:center;
+    }
 
-.header p{
-  margin-top:6px;
-  font-size:13px;
-  color:var(--muted);
-}
+    .header h1{
+      margin:0;
+      font-size:var(--fs4);
+      line-height:1.28;
+      letter-spacing:.01em;
+    }
 
-/* =========================
-   PAGE
-========================= */
-.page{
-  display:none;
-  padding:20px;
-}
+    .header p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.8;
+    }
 
-.page.active{
-  display:block;
-}
+    .page{
+      display:none;
+      padding:0;
+    }
 
-.pageHead{
-  margin-bottom:18px;
-}
+    .page.active{
+      display:block;
+    }
 
-.pageStep{
-  font-size:12px;
-  color:var(--muted-2);
-}
+    .pageHead{
+      margin-bottom:14px;
+      padding-bottom:12px;
+      border-bottom:1px solid var(--line2);
+    }
 
-.pageHead h2{
-  margin:4px 0;
-  font-size:18px;
-}
+    .pageStep{
+      display:inline-flex;
+      align-items:center;
+      min-height:32px;
+      padding:7px 11px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:var(--muted);
+      font-size:11px;
+      font-weight:900;
+      margin-bottom:10px;
+    }
 
-.subnote{
-  font-size:12px;
-  color:var(--muted-2);
-}
+    .pageHead h2{
+      margin:0;
+      font-size:var(--fs3);
+      line-height:1.3;
+    }
 
-/* =========================
-   CARD
-========================= */
-.card{
-  background:var(--card);
-  border-radius:var(--radius);
-  padding:16px;
-  box-shadow:var(--shadow);
-  margin-bottom:14px;
-}
+    .subnote{
+      margin:8px 0 0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.85;
+    }
 
-/* =========================
-   INPUT
-========================= */
-input, textarea, select{
-  width:100%;
-  padding:12px;
-  border-radius:12px;
-  border:1px solid var(--line);
-  background:var(--card-2);
-  color:var(--text);
-  margin-top:6px;
-  font-size:14px;
-}
+    .card{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)),
+        rgba(255,255,255,.02);
+      border:1px solid var(--line);
+      border-radius:22px;
+      padding:16px;
+      box-shadow:var(--shadow);
+      margin-bottom:14px;
+    }
 
-textarea{
-  resize:none;
-}
+    label{
+      display:block;
+      font-size:13px;
+      color:var(--text);
+      margin:0 0 8px;
+      font-weight:900;
+      line-height:1.5;
+    }
 
-/* =========================
-   BUTTON
-========================= */
-button{
-  padding:12px 16px;
-  border-radius:12px;
-  border:none;
-  background:var(--accent);
-  color:#000;
-  font-weight:600;
-  cursor:pointer;
-}
+    input, textarea, select{
+      width:100%;
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:13px 13px;
+      outline:none;
+      font-size:14px;
+      line-height:1.7;
+      min-height:48px;
+      transition:border-color .18s ease, box-shadow .18s ease;
+      margin-top:0;
+    }
 
-button.secondary{
-  background:#334155;
-  color:#fff;
-}
+    input:focus, textarea:focus, select:focus{
+      border-color:rgba(123,220,255,.46);
+      box-shadow:0 0 0 3px rgba(123,220,255,.10);
+    }
 
-button.ghost{
-  background:transparent;
-  border:1px solid var(--line);
-  color:var(--muted);
-}
+    textarea{
+      min-height:112px;
+      resize:vertical;
+    }
 
-/* =========================
-   BTN GROUP
-========================= */
-.btns{
-  display:flex;
-  gap:10px;
-  margin-top:12px;
-  flex-wrap:wrap;
-}
+    input::placeholder, textarea::placeholder{
+      color:rgba(255,255,255,.34);
+    }
 
-/* =========================
-   NAV
-========================= */
-.pageNav{
-  position:sticky;
-  bottom:0;
-  padding:14px;
-  background:var(--bg);
-  display:flex;
-  justify-content:space-between;
-  border-top:1px solid var(--line);
-}
+    button{
+      cursor:pointer;
+      border:none;
+      border-radius:14px;
+      padding:11px 15px;
+      font-weight:900;
+      font-size:14px;
+      background:rgba(123,220,255,.16);
+      color:var(--text);
+      border:1px solid rgba(123,220,255,.35);
+      min-height:44px;
+      line-height:1.3;
+      transition:.18s ease;
+    }
 
-.navDots{
-  display:flex;
-  gap:6px;
-}
+    button.secondary{
+      background:rgba(255,255,255,.05);
+      border:1px solid var(--line);
+      color:#fff;
+    }
 
-.navDots span{
-  width:6px;
-  height:6px;
-  border-radius:50%;
-  background:var(--line);
-}
+    button.ghost{
+      background:transparent;
+      border:1px solid var(--line);
+      color:var(--muted);
+    }
 
-.navDots span.active{
-  background:var(--accent);
-}
+    button:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
 
-/* =========================
-   STATUS
-========================= */
-.status{
-  margin-top:12px;
-  font-size:13px;
-  color:var(--muted);
-}
+    .btns{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
 
-/* =========================
-   PROGRESS（🔥新）
-========================= */
-.submit-progress-wrap{
-  margin-top:14px;
-  display:none;
-}
+    .pageNav{
+      position:sticky;
+      bottom:0;
+      z-index:50;
+      padding:12px;
+      background:rgba(11,18,32,.94);
+      backdrop-filter:blur(10px);
+      border-top:1px solid var(--line);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
 
-.submit-progress-head{
-  display:flex;
-  justify-content:space-between;
-  font-size:12px;
-  margin-bottom:4px;
-}
+    .navDots{
+      display:flex;
+      gap:6px;
+      align-items:center;
+      justify-content:center;
+      flex:1 1 auto;
+    }
 
-.submit-progress{
-  height:6px;
-  background:var(--line2);
-  border-radius:999px;
-  overflow:hidden;
-}
+    .navDots span{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:var(--line);
+      opacity:.9;
+    }
 
-.submit-progress-fill{
-  width:0%;
-  height:100%;
-  background:linear-gradient(90deg,#22d3ee,#60a5fa);
-  transition:width .3s ease;
-}
+    .navDots span.active{
+      background:var(--accent);
+      box-shadow:0 0 0 4px rgba(123,220,255,.12);
+    }
 
-.submit-progress-text{
-  margin-top:6px;
-  font-size:12px;
-  color:var(--muted-2);
-}
+    .status{
+      margin-top:14px;
+      border:1px dashed var(--line);
+      border-radius:14px;
+      padding:13px 14px;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.95;
+      white-space:pre-wrap;
+      word-break:break-word;
+      background:rgba(255,255,255,.02);
+    }
 
-/* =========================
-   SUCCESS（🔥新）
-========================= */
-.successBox{
-  margin-top:16px;
-  padding:14px;
-  border-radius:14px;
-  background:#052e2b;
-  border:1px solid rgba(16,185,129,.3);
-  display:none;
-}
+    .submit-progress-wrap{
+      margin-top:14px;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(255,255,255,.04);
+      display:none;
+    }
 
-.successTitle{
-  font-size:16px;
-  font-weight:700;
-  color:#6ee7b7;
-}
+    .submit-progress-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:8px;
+      font-size:11px;
+      color:rgba(255,255,255,.85);
+      font-weight:900;
+    }
 
-.successCopy{
-  margin-top:10px;
-  width:100%;
-  height:110px;
-  border-radius:10px;
-  border:1px solid var(--line);
-  background:#020617;
-  color:#fff;
-  padding:10px;
-  font-size:13px;
-}
+    .submit-progress{
+      height:10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+    }
 
-/* =========================
-   LINE BTN
-========================= */
-.lineBtn{
-  display:inline-block;
-  background:#22c55e;
-  color:#fff;
-  padding:12px 16px;
-  border-radius:12px;
-  text-decoration:none;
-  font-weight:600;
-}
+    .submit-progress-fill{
+      height:100%;
+      width:0%;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(123,220,255,.95), rgba(255,170,90,.95));
+      box-shadow:0 0 18px rgba(123,220,255,.18);
+      transition:width .28s ease;
+    }
 
-/* =========================
-   COPY BTN
-========================= */
-.copyBtn{
-  background:#0ea5e9;
-  color:#fff;
-}
+    .submit-progress-text{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.8;
+      min-height:18px;
+    }
 
-/* =========================
-   FOOT NOTE
-========================= */
-.footNote{
-  margin-top:12px;
-  font-size:12px;
-  color:var(--muted-2);
-}
+    .successBox{
+      margin-top:16px;
+      padding:14px;
+      border-radius:14px;
+      background:rgba(110,231,183,.08);
+      border:1px solid rgba(110,231,183,.25);
+      display:none;
+    }
 
-/* =========================
-   LOADING
-========================= */
-#loadingOverlay{
-  position:fixed;
-  inset:0;
-  display:none;
-  background:rgba(0,0,0,.6);
-  align-items:center;
-  justify-content:center;
-  z-index:999;
-}
+    .successTitle{
+      font-size:16px;
+      font-weight:900;
+      color:#6ee7b7;
+    }
 
-.loadingBox{
-  background:#111;
-  padding:20px;
-  border-radius:14px;
-  text-align:center;
-}
+    .successCopy{
+      margin-top:10px;
+      width:100%;
+      height:110px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:#020617;
+      color:#fff;
+      padding:10px;
+      font-size:13px;
+      line-height:1.8;
+    }
 
-.spinner{
-  width:30px;
-  height:30px;
-  border:4px solid rgba(255,255,255,.2);
-  border-top:4px solid #fff;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-  margin:auto;
-}
+    .lineBtn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      background:#22c55e;
+      color:#fff;
+      padding:12px 16px;
+      border-radius:12px;
+      text-decoration:none;
+      font-weight:900;
+      border:1px solid rgba(255,255,255,.08);
+      min-height:44px;
+    }
 
-@keyframes spin{
-  to{transform:rotate(360deg)}
-}
-</style>
+    .copyBtn{
+      background:#0ea5e9;
+      color:#fff;
+    }
+
+    .footNote{
+      margin-top:12px;
+      font-size:12px;
+      color:var(--muted-2);
+      line-height:1.8;
+    }
+
+    #toast{
+      display:none;
+    }
+
+    #loadingOverlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      background:rgba(0,0,0,.6);
+      align-items:center;
+      justify-content:center;
+      z-index:999;
+    }
+
+    .loadingBox{
+      background:#111;
+      padding:20px;
+      border-radius:14px;
+      text-align:center;
+      min-width:180px;
+      box-shadow:var(--shadow);
+    }
+
+    .loadingText{
+      margin-top:10px;
+      color:#fff;
+      font-size:14px;
+    }
+
+    .spinner{
+      width:30px;
+      height:30px;
+      border:4px solid rgba(255,255,255,.2);
+      border-top:4px solid #fff;
+      border-radius:50%;
+      animation:spin 1s linear infinite;
+      margin:auto;
+    }
+
+    @keyframes spin{
+      to{ transform:rotate(360deg); }
+    }
+
+    .summary{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+
+    .uploadGrid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+      margin-top:12px;
+    }
+
+    @media(min-width:760px){
+      .uploadGrid{ grid-template-columns:1fr 1fr; }
+    }
+
+    .uItem{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:12px;
+      background:rgba(255,255,255,.02);
+    }
+
+    .uItemHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .uItemHead strong{
+      font-size:14px;
+      line-height:1.45;
+    }
+
+    .uItemHead small{
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.7;
+    }
+
+    .thumb{
+      margin-top:10px;
+      width:100%;
+      aspect-ratio:16 / 10;
+      border-radius:14px;
+      border:1px solid var(--line);
+      overflow:hidden;
+      background:rgba(0,0,0,.18);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:rgba(255,255,255,.38);
+      font-size:11px;
+      text-align:center;
+      padding:12px;
+      line-height:1.8;
+    }
+
+    .thumb.square{
+      aspect-ratio:1 / 1;
+    }
+
+    .thumb img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      background:rgba(255,255,255,.02);
+    }
+
+    .miniRow{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-top:10px;
+      flex-wrap:wrap;
+    }
+
+    .miniRow input[type="file"]{
+      padding:10px;
+      font-size:12px;
+      min-height:auto;
+      flex:1 1 180px;
+    }
+
+    .previewWrap{
+      margin-top:14px;
+      border:1px solid rgba(123,220,255,.18);
+      border-radius:20px;
+      padding:14px;
+      background:linear-gradient(180deg, rgba(123,220,255,.05), rgba(255,255,255,.02));
+    }
+
+    .previewHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:12px;
+    }
+
+    .previewHead h3{
+      margin:0;
+      font-size:16px;
+      line-height:1.4;
+    }
+
+    .previewHead p{
+      margin:4px 0 0;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.8;
+    }
+
+    .pageBadge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:36px;
+      padding:8px 12px;
+      border:1px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      font-size:12px;
+      font-weight:900;
+      white-space:nowrap;
+      flex:0 0 auto;
+    }
+
+    .previewStage{
+      display:flex;
+      justify-content:center;
+    }
+
+    .hsc-preview{
+      width:100%;
+      max-width:420px;
+      border-radius:28px;
+      overflow:hidden;
+      position:relative;
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:0 18px 40px rgba(0,0,0,.26);
+      background:#fffaf5;
+      color:#3e2f25;
+    }
+
+    .hsc-preview[data-plan="free"][data-color="c1"]{ background:linear-gradient(180deg,#fff7fb 0%,#fff3f7 100%); }
+    .hsc-preview[data-plan="free"][data-color="c2"]{ background:linear-gradient(180deg,#f7fbff 0%,#eef7ff 100%); }
+    .hsc-preview[data-plan="free"][data-color="c3"]{ background:linear-gradient(180deg,#fff9f3 0%,#fff2e6 100%); }
+    .hsc-preview[data-plan="free"][data-color="c4"]{ background:linear-gradient(180deg,#faf7ff 0%,#f2ecff 100%); }
+    .hsc-preview[data-plan="free"][data-color="c5"]{ background:linear-gradient(180deg,#f7fff9 0%,#edf9f0 100%); }
+
+    .hsc-preview-banner{
+      height:132px;
+      position:relative;
+      background:linear-gradient(135deg, rgba(255,255,255,.30), rgba(255,255,255,.06));
+    }
+
+    .hsc-preview[data-style="s1"] .hsc-preview-banner{
+      border-bottom-left-radius:42% 34%;
+      border-bottom-right-radius:42% 34%;
+    }
+
+    .hsc-preview[data-style="s2"] .hsc-preview-banner{
+      border-bottom-left-radius:0;
+      border-bottom-right-radius:0;
+    }
+
+    .hsc-preview[data-style="s3"] .hsc-preview-banner{
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255,255,255,.62), rgba(255,255,255,.10) 48%, transparent 72%),
+        linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.06));
+      border-bottom-left-radius:22px;
+      border-bottom-right-radius:22px;
+    }
+
+    .hsc-preview-avatarWrap{
+      margin-top:-52px;
+      display:flex;
+      justify-content:center;
+      position:relative;
+      z-index:2;
+    }
+
+    .hsc-preview-avatar{
+      width:108px;
+      height:108px;
+      border-radius:999px;
+      overflow:hidden;
+      background:#fff;
+      border:5px solid rgba(255,255,255,.92);
+      box-shadow:0 12px 26px rgba(0,0,0,.18);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .hsc-preview-avatar img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .hsc-preview-logoWrap{
+      display:flex;
+      justify-content:center;
+      margin-top:12px;
+    }
+
+    .hsc-preview-logo{
+      width:74px;
+      height:74px;
+      border-radius:20px;
+      overflow:hidden;
+      background:rgba(255,255,255,.80);
+      box-shadow:0 8px 18px rgba(0,0,0,.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .hsc-preview-logo img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      display:block;
+      background:transparent;
+    }
+
+    .hsc-preview-main{
+      padding:14px 16px 18px;
+    }
+
+    .hsc-preview-name{
+      font-size:24px;
+      line-height:1.3;
+      font-weight:1000;
+      text-align:center;
+      margin-top:10px;
+      word-break:break-word;
+    }
+
+    .hsc-preview-unit,
+    .hsc-preview-title,
+    .hsc-preview-slogan{
+      text-align:center;
+      margin-top:6px;
+      white-space:pre-line;
+      word-break:break-word;
+    }
+
+    .hsc-preview-unit{ font-size:13px; opacity:.84; font-weight:900; }
+    .hsc-preview-title{ font-size:14px; opacity:.88; font-weight:900; }
+    .hsc-preview-slogan{ font-size:13px; opacity:.9; line-height:1.8; }
+
+    .hsc-preview-block{
+      margin-top:14px;
+      padding:12px;
+      border-radius:16px;
+      background:rgba(255,255,255,.50);
+      border:1px solid rgba(0,0,0,.05);
+    }
+
+    .hsc-preview-blockTitle{
+      font-size:12px;
+      font-weight:1000;
+      margin-bottom:6px;
+      opacity:.92;
+    }
+
+    .hsc-preview-blockBody{
+      font-size:13px;
+      line-height:1.8;
+      white-space:pre-line;
+      word-break:break-word;
+    }
+
+    .hsc-preview-photoWall{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:8px;
+    }
+
+    .hsc-preview-photoItem{
+      aspect-ratio:1 / 1;
+      border-radius:14px;
+      overflow:hidden;
+      background:rgba(255,255,255,.18);
+      border:1px solid rgba(0,0,0,.05);
+    }
+
+    .hsc-preview-photoItem img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .hsc-preview-empty{
+      padding:16px;
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.8;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+      margin-top:12px;
+    }
+
+    .cropModal{
+      position:fixed;
+      inset:0;
+      z-index:1000;
+      display:none;
+      background:rgba(4,8,18,.74);
+      backdrop-filter:blur(6px);
+      padding:14px;
+    }
+
+    .cropModal.show{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .cropBox{
+      width:min(920px, 100%);
+      max-height:calc(100vh - 28px);
+      overflow:auto;
+      border-radius:22px;
+      border:1px solid rgba(255,255,255,.12);
+      background:linear-gradient(180deg, rgba(16,24,40,.98), rgba(10,16,28,.98));
+      box-shadow:0 24px 60px rgba(0,0,0,.42);
+      padding:14px;
+    }
+
+    .cropHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+
+    .cropHead h3{
+      margin:0;
+      font-size:18px;
+      line-height:1.3;
+    }
+
+    .cropHead p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.8;
+      white-space:pre-line;
+    }
+
+    .cropStageWrap{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      background:rgba(255,255,255,.03);
+      padding:12px;
+    }
+
+    .cropStage{
+      width:100%;
+      touch-action:none;
+      border-radius:16px;
+      border:1px dashed rgba(255,255,255,.16);
+      overflow:hidden;
+      position:relative;
+      background:
+        linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%),
+        linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%);
+      background-size:20px 20px;
+      background-position:0 0, 10px 10px;
+    }
+
+    .cropStage.ratio-square{ aspect-ratio:1 / 1; }
+    .cropStage.ratio-logo{ aspect-ratio:1 / 1; }
+    .cropStage.ratio-photo{ aspect-ratio:16 / 10; }
+
+    .cropStage canvas{
+      width:100%;
+      height:100%;
+      display:block;
+      cursor:grab;
+      touch-action:none;
+    }
+
+    .cropTools{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .cropMeta{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:11px;
+      line-height:1.85;
+      white-space:pre-line;
+    }
+
+    @media(max-width:760px){
+      .btns{
+        flex-direction:column;
+      }
+      .pageNav{
+        gap:8px;
+      }
+      .pageNav button{
+        min-width:86px;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<!-- =========================
-  HEADER
-========================= -->
-<div class="header">
-  <h1>天使幸福智慧名片</h1>
-  <p>請依序填寫資料，完成後送出進入製作流程</p>
-</div>
+  <div class="wrap">
 
-
-<!-- =========================
-  Page 1：方案選擇（🔥修正）
-========================= -->
-<section class="page active" data-page="0">
-
-  <div class="pageHead">
-    <div class="pageStep">第 1 步</div>
-    <h2>選擇方案</h2>
-    <p class="subnote">請先選擇您的方案類型</p>
-  </div>
-
-  <div class="card">
-
-    <label>方案選擇</label>
-    <select id="plan">
-
-      <option value="">請選擇方案</option>
-
-      <!-- 🔥 FREE -->
-      <option value="free">
-        免費版（1 CTA + 2 張照片）
-      </option>
-
-      <!-- 🔥 PREMIUM -->
-      <option value="premium">
-        精品版（3 CTA + 5 張照片）
-      </option>
-
-    </select>
-
-  </div>
-
-  <!-- 顏色 -->
-  <div class="card">
-    <label>主色</label>
-    <select id="color">
-      <option value="">請選擇顏色</option>
-      <option value="c1">粉</option>
-      <option value="c2">藍</option>
-      <option value="c3">橘</option>
-      <option value="c4">紫</option>
-      <option value="c5">綠</option>
-    </select>
-  </div>
-
-  <!-- 版型 -->
-  <div class="card">
-    <label>版型</label>
-    <select id="style">
-      <option value="">請選擇版型</option>
-      <option value="s1">正拱</option>
-      <option value="s2">平直</option>
-      <option value="s3">晨曦</option>
-    </select>
-  </div>
-
-  <!-- 紙感 -->
-  <div class="card">
-    <label>紙感</label>
-    <select id="paper">
-      <option value="">請選擇紙感</option>
-      <option value="f1">棉紙</option>
-      <option value="f2">顆粒</option>
-      <option value="f3">亞麻</option>
-    </select>
-  </div>
-
-</section>
-
-
-<!-- =========================
-  Page 2：基本資料
-========================= -->
-<section class="page" data-page="1">
-
-  <div class="pageHead">
-    <div class="pageStep">第 2 步</div>
-    <h2>基本資料</h2>
-  </div>
-
-  <div class="card">
-    <label>姓名</label>
-    <input id="name" placeholder="請輸入姓名" />
-  </div>
-
-  <div class="card">
-    <label>單位</label>
-    <input id="unit" placeholder="公司 / 品牌" />
-  </div>
-
-  <div class="card">
-    <label>職稱</label>
-    <input id="title" placeholder="您的職稱" />
-  </div>
-
-  <div class="card">
-    <label>一句話介紹</label>
-    <input id="slogan" placeholder="一句話描述你自己" />
-  </div>
-
-</section>
-<!-- =========================
-  Page 3：聯絡資料 / 服務內容
-========================= -->
-<section class="page" data-page="2">
-
-  <div class="pageHead">
-    <div class="pageStep">第 3 步</div>
-    <h2>聯絡方式與服務內容</h2>
-    <p class="subnote">請填入客戶能直接聯繫到你的方式</p>
-  </div>
-
-  <div class="card">
-    <label>電話</label>
-    <input id="phone" placeholder="請輸入電話" />
-  </div>
-
-  <div class="card">
-    <label>Email</label>
-    <input id="email" placeholder="請輸入 Email" />
-  </div>
-
-  <div class="card">
-    <label>LINE 個人連結</label>
-    <input id="line_url" placeholder="https://..." />
-  </div>
-
-  <div class="card">
-    <label>LINE 官方帳號</label>
-    <input id="line_oa" placeholder="https://lin.ee/..." />
-  </div>
-
-  <div class="card">
-    <label>微信 ID</label>
-    <input id="wechat_id" placeholder="請輸入微信 ID" />
-  </div>
-
-  <div class="card">
-    <label>地址</label>
-    <input id="address" placeholder="請輸入完整地址" />
-  </div>
-
-  <div class="card">
-    <label>網站</label>
-    <input id="website" placeholder="https://..." />
-  </div>
-
-  <div class="card">
-    <label>服務項目</label>
-    <textarea id="services" placeholder="請輸入服務項目"></textarea>
-  </div>
-
-  <div class="card">
-    <label>經歷 / 品牌故事</label>
-    <textarea id="experience" placeholder="請輸入經歷或品牌故事"></textarea>
-  </div>
-
-</section>
-
-
-<!-- =========================
-  Page 4：影音 / 社群 / CTA
-========================= -->
-<section class="page" data-page="3">
-
-  <div class="pageHead">
-    <div class="pageStep">第 4 步</div>
-    <h2>影音、社群與行動按鈕</h2>
-    <p class="subnote">這些內容會成為名片上的可點擊入口</p>
-  </div>
-
-  <div class="card">
-    <label>影片連結 1</label>
-    <input id="video1" placeholder="https://..." />
-  </div>
-
-  <div class="card">
-    <label>影片連結 2</label>
-    <input id="video2" placeholder="https://..." />
-  </div>
-
-  <div class="card">
-    <label>影片連結 3</label>
-    <input id="video3" placeholder="https://..." />
-  </div>
-
-  <div class="card">
-    <label>社群連結 1</label>
-    <input id="social1" placeholder="https://..." />
-  </div>
-
-  <div class="card">
-    <label>社群連結 2</label>
-    <input id="social2" placeholder="https://..." />
-  </div>
-
-  <div class="card">
-    <label>社群連結 3</label>
-    <input id="social3" placeholder="https://..." />
-  </div>
-
-  <div class="card">
-    <label>CTA 1 文字</label>
-    <input id="cta_text_1" placeholder="例如：立即預約" />
-    <label style="margin-top:10px;">CTA 1 連結</label>
-    <input id="cta_link_1" placeholder="https://..." />
-  </div>
-
-  <div class="card" id="ctaRow2">
-    <label>CTA 2 文字</label>
-    <input id="cta_text_2" placeholder="例如：作品集" />
-    <label style="margin-top:10px;">CTA 2 連結</label>
-    <input id="cta_link_2" placeholder="https://..." />
-  </div>
-
-  <div class="card" id="ctaRow3">
-    <label>CTA 3 文字</label>
-    <input id="cta_text_3" placeholder="例如：立即聯絡" />
-    <label style="margin-top:10px;">CTA 3 連結</label>
-    <input id="cta_link_3" placeholder="https://..." />
-  </div>
-
-</section>
-<!-- =========================
-  Page 5：圖片上傳 / 裁切 / 預覽
-========================= -->
-<section class="page" data-page="4">
-
-  <div class="pageHead">
-    <div class="pageStep">第 5 步</div>
-    <h2>上傳圖片並調整位置</h2>
-    <p class="subnote">
-      支援上傳前壓縮、放大、縮小、上下左右拖移、置中、重設與套用。
-    </p>
-  </div>
-
-  <div class="card">
-    <div class="sectionGap field">
-      <label>圖片上傳區</label>
-      <div class="uploadGrid" id="uploadGrid"></div>
+    <div class="header">
+      <h1>天使幸福智慧名片</h1>
+      <p>請依序填寫資料，完成後送出進入製作流程</p>
     </div>
-  </div>
 
-  <div class="card previewWrap">
-    <div class="previewHead">
-      <div>
-        <h3>名片即時預覽</h3>
-        <p>這裡會同步顯示目前輸入內容與圖片裁切結果。</p>
+    <section class="page active" data-page="0">
+      <div class="pageHead">
+        <div class="pageStep">第 1 步</div>
+        <h2>選擇方案</h2>
+        <p class="subnote">請先選擇您的方案類型</p>
       </div>
-      <div class="pageBadge">即時同步</div>
-    </div>
 
-    <div class="previewStage">
-      <div
-        class="hsc-preview"
-        id="livePreviewCard"
-        data-plan="free"
-        data-color="c1"
-        data-style="s1"
-        data-paper="f1"
-        data-premium="p1"
-      >
-        <div class="hsc-preview-banner"></div>
+      <div class="card">
+        <label>方案選擇</label>
+        <select id="plan">
+          <option value="">請選擇方案</option>
+          <option value="free">免費版（1 CTA + 2 張照片）</option>
+          <option value="premium">精品版（3 CTA + 5 張照片）</option>
+        </select>
+      </div>
 
-        <div class="hsc-preview-avatarWrap">
-          <div class="hsc-preview-avatar" id="previewAvatarWrap">
-            <img id="previewAvatar" alt="頭像預覽" />
+      <div class="card">
+        <label>主色</label>
+        <select id="color">
+          <option value="">請選擇顏色</option>
+          <option value="c1">粉</option>
+          <option value="c2">藍</option>
+          <option value="c3">橘</option>
+          <option value="c4">紫</option>
+          <option value="c5">綠</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <label>版型</label>
+        <select id="style">
+          <option value="">請選擇版型</option>
+          <option value="s1">正拱</option>
+          <option value="s2">平直</option>
+          <option value="s3">晨曦</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <label>紙感</label>
+        <select id="paper">
+          <option value="">請選擇紙感</option>
+          <option value="f1">棉紙</option>
+          <option value="f2">顆粒</option>
+          <option value="f3">亞麻</option>
+        </select>
+      </div>
+    </section>
+
+    <section class="page" data-page="1">
+      <div class="pageHead">
+        <div class="pageStep">第 2 步</div>
+        <h2>基本資料</h2>
+      </div>
+
+      <div class="card">
+        <label>姓名</label>
+        <input id="name" placeholder="請輸入姓名" />
+      </div>
+
+      <div class="card">
+        <label>單位</label>
+        <input id="unit" placeholder="公司 / 品牌" />
+      </div>
+
+      <div class="card">
+        <label>職稱</label>
+        <input id="title" placeholder="您的職稱" />
+      </div>
+
+      <div class="card">
+        <label>一句話介紹</label>
+        <input id="slogan" placeholder="一句話描述你自己" />
+      </div>
+    </section>
+
+    <section class="page" data-page="2">
+      <div class="pageHead">
+        <div class="pageStep">第 3 步</div>
+        <h2>聯絡方式與服務內容</h2>
+        <p class="subnote">請填入客戶能直接聯繫到你的方式</p>
+      </div>
+
+      <div class="card">
+        <label>電話</label>
+        <input id="phone" placeholder="請輸入電話" />
+      </div>
+
+      <div class="card">
+        <label>Email</label>
+        <input id="email" placeholder="請輸入 Email" />
+      </div>
+
+      <div class="card">
+        <label>LINE 個人連結</label>
+        <input id="line_url" placeholder="https://..." />
+      </div>
+
+      <div class="card">
+        <label>LINE 官方帳號</label>
+        <input id="line_oa" placeholder="https://lin.ee/..." />
+      </div>
+
+      <div class="card">
+        <label>微信 ID</label>
+        <input id="wechat_id" placeholder="請輸入微信 ID" />
+      </div>
+
+      <div class="card">
+        <label>地址</label>
+        <input id="address" placeholder="請輸入完整地址" />
+      </div>
+
+      <div class="card">
+        <label>網站</label>
+        <input id="website" placeholder="https://..." />
+      </div>
+
+      <div class="card">
+        <label>服務項目</label>
+        <textarea id="services" placeholder="請輸入服務項目"></textarea>
+      </div>
+
+      <div class="card">
+        <label>經歷 / 品牌故事</label>
+        <textarea id="experience" placeholder="請輸入經歷或品牌故事"></textarea>
+      </div>
+    </section>
+
+    <section class="page" data-page="3">
+      <div class="pageHead">
+        <div class="pageStep">第 4 步</div>
+        <h2>影音、社群與行動按鈕</h2>
+        <p class="subnote">這些內容會成為名片上的可點擊入口</p>
+      </div>
+
+      <div class="card">
+        <label>影片連結 1</label>
+        <input id="video1" placeholder="https://..." />
+      </div>
+
+      <div class="card">
+        <label>影片連結 2</label>
+        <input id="video2" placeholder="https://..." />
+      </div>
+
+      <div class="card">
+        <label>影片連結 3</label>
+        <input id="video3" placeholder="https://..." />
+      </div>
+
+      <div class="card">
+        <label>社群連結 1</label>
+        <input id="social1" placeholder="https://..." />
+      </div>
+
+      <div class="card">
+        <label>社群連結 2</label>
+        <input id="social2" placeholder="https://..." />
+      </div>
+
+      <div class="card">
+        <label>社群連結 3</label>
+        <input id="social3" placeholder="https://..." />
+      </div>
+
+      <div class="card">
+        <label>CTA 1 文字</label>
+        <input id="cta_text_1" placeholder="例如：立即預約" />
+        <label style="margin-top:10px;">CTA 1 連結</label>
+        <input id="cta_link_1" placeholder="https://..." />
+      </div>
+
+      <div class="card" id="ctaRow2">
+        <label>CTA 2 文字</label>
+        <input id="cta_text_2" placeholder="例如：作品集" />
+        <label style="margin-top:10px;">CTA 2 連結</label>
+        <input id="cta_link_2" placeholder="https://..." />
+      </div>
+
+      <div class="card" id="ctaRow3">
+        <label>CTA 3 文字</label>
+        <input id="cta_text_3" placeholder="例如：立即聯絡" />
+        <label style="margin-top:10px;">CTA 3 連結</label>
+        <input id="cta_link_3" placeholder="https://..." />
+      </div>
+    </section>
+
+    <section class="page" data-page="4">
+      <div class="pageHead">
+        <div class="pageStep">第 5 步</div>
+        <h2>上傳圖片並調整位置</h2>
+        <p class="subnote">支援上傳前壓縮、放大、縮小、上下左右拖移、置中、重設與套用。</p>
+      </div>
+
+      <div class="card">
+        <label>圖片上傳區</label>
+        <div class="uploadGrid" id="uploadGrid"></div>
+      </div>
+
+      <div class="card previewWrap">
+        <div class="previewHead">
+          <div>
+            <h3>名片即時預覽</h3>
+            <p>這裡會同步顯示目前輸入內容與圖片裁切結果。</p>
           </div>
+          <div class="pageBadge">即時同步</div>
         </div>
 
-        <div class="hsc-preview-logoWrap" id="previewLogoWrap" style="display:none;">
-          <div class="hsc-preview-logo">
-            <img id="previewLogo" alt="Logo 預覽" />
+        <div class="previewStage">
+          <div
+            class="hsc-preview"
+            id="livePreviewCard"
+            data-plan="free"
+            data-color="c1"
+            data-style="s1"
+            data-paper="f1"
+          >
+            <div class="hsc-preview-banner"></div>
+
+            <div class="hsc-preview-avatarWrap">
+              <div class="hsc-preview-avatar" id="previewAvatarWrap">
+                <img id="previewAvatar" alt="頭像預覽" />
+              </div>
+            </div>
+
+            <div class="hsc-preview-logoWrap" id="previewLogoWrap" style="display:none;">
+              <div class="hsc-preview-logo">
+                <img id="previewLogo" alt="Logo 預覽" />
+              </div>
+            </div>
+
+            <div class="hsc-preview-main">
+              <div class="hsc-preview-name" id="previewName">您的姓名</div>
+              <div class="hsc-preview-unit" id="previewUnit"></div>
+              <div class="hsc-preview-title" id="previewTitle"></div>
+              <div class="hsc-preview-slogan" id="previewSlogan"></div>
+
+              <div class="hsc-preview-block" id="previewServicesBlock" style="display:none;">
+                <div class="hsc-preview-blockTitle">服務項目</div>
+                <div class="hsc-preview-blockBody" id="previewServices"></div>
+              </div>
+
+              <div class="hsc-preview-block" id="previewExperienceBlock" style="display:none;">
+                <div class="hsc-preview-blockTitle">經歷 / 品牌故事</div>
+                <div class="hsc-preview-blockBody" id="previewExperience"></div>
+              </div>
+
+              <div class="hsc-preview-photoWall" id="previewPhotoWall"></div>
+              <div class="hsc-preview-empty" id="previewEmptyPhotos">尚未上傳圖片</div>
+            </div>
           </div>
         </div>
+      </div>
+    </section>
 
-        <div class="hsc-preview-main">
-          <div class="hsc-preview-name" id="previewName">您的姓名</div>
-          <div class="hsc-preview-unit" id="previewUnit"></div>
-          <div class="hsc-preview-title" id="previewTitle"></div>
-          <div class="hsc-preview-slogan" id="previewSlogan"></div>
+    <section class="page" data-page="5">
+      <div class="pageHead">
+        <div class="pageStep">第 6 步</div>
+        <h2>確認資料並送出</h2>
+        <p class="subnote">送出完成後，請回覆 LINE 客服，才會進入製作流程。</p>
+      </div>
 
-          <div class="hsc-preview-block" id="previewServicesBlock" style="display:none;">
-            <div class="hsc-preview-blockTitle">服務項目</div>
-            <div class="hsc-preview-blockBody" id="previewServices"></div>
-          </div>
+      <div class="summary" id="summaryBox"></div>
 
-          <div class="hsc-preview-block" id="previewExperienceBlock" style="display:none;">
-            <div class="hsc-preview-blockTitle">經歷 / 品牌故事</div>
-            <div class="hsc-preview-blockBody" id="previewExperience"></div>
-          </div>
+      <div class="btns" style="margin-top:14px;">
+        <button id="btnTest" class="secondary" type="button">測試連線</button>
+        <button id="btnSubmit" type="button">送出資料</button>
+        <button id="btnReset" class="ghost" type="button">重設表單</button>
+      </div>
 
-          <div class="hsc-preview-photoWall" id="previewPhotoWall"></div>
-          <div class="hsc-preview-empty" id="previewEmptyPhotos">尚未上傳圖片</div>
+      <div class="submit-progress-wrap" id="submitProgressWrap">
+        <div class="submit-progress-head">
+          <strong id="submitProgressTitle">送出中</strong>
+          <span id="submitProgressPercent">0%</span>
+        </div>
+
+        <div class="submit-progress">
+          <div class="submit-progress-fill" id="submitProgressFill"></div>
+        </div>
+
+        <div class="submit-progress-text" id="submitProgressText">準備中…</div>
+      </div>
+
+      <div class="status" id="status">尚未操作。</div>
+
+      <div class="successBox" id="submitSuccessBox">
+        <div class="successTitle">✅ 已成功送出</div>
+
+        <div style="margin-top:6px;">
+          <strong>資料ID：</strong>
+          <span id="successCardId">-</span>
+        </div>
+
+        <textarea id="successCopyText" class="successCopy"></textarea>
+
+        <div class="btns">
+          <button id="copyBtn" class="copyBtn" type="button">一鍵複製</button>
+          <a href="https://lin.ee/G3VJoRm" target="_blank" class="lineBtn">前往LINE客服</a>
+        </div>
+      </div>
+
+      <div class="footNote">
+        送出成功後，請複製資料 ID，<br>
+        並透過 LINE 官方帳號回覆客服，才會進入製作流程。
+      </div>
+    </section>
+
+    <div class="pageNav">
+      <button id="prevBtn" class="ghost" type="button">上一步</button>
+      <div class="navDots" id="navDots"></div>
+      <button id="nextBtn" type="button">下一步</button>
+    </div>
+
+  </div>
+
+  <div class="cropModal" id="cropModal">
+    <div class="cropBox">
+      <div class="cropHead">
+        <div>
+          <h3 id="cropTitle">調整圖片位置</h3>
+          <p id="cropDesc">可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。</p>
+        </div>
+      </div>
+
+      <div class="cropStageWrap">
+        <div class="cropStage ratio-photo" id="cropStage">
+          <canvas id="cropCanvas"></canvas>
+        </div>
+
+        <div class="cropTools">
+          <button type="button" class="secondary" id="cropZoomOut">縮小</button>
+          <button type="button" class="secondary" id="cropZoomIn">放大</button>
+          <button type="button" class="secondary" id="cropCenter">置中</button>
+          <button type="button" class="ghost" id="cropReset">重設</button>
+          <button type="button" class="secondary" id="cropCancel">取消</button>
+          <button type="button" id="cropApply">套用</button>
+        </div>
+
+        <div class="cropMeta" id="cropMeta">
+          可上下左右拖移圖片。<br>
+          頭像與 Logo 建議主體置中。<br>
+          縮小可保留更多畫面，放大可讓主體更明顯。
         </div>
       </div>
     </div>
   </div>
 
-</section>
+  <input type="hidden" id="invite_code" />
+  <input type="hidden" id="reserved_uid" />
+  <input type="hidden" id="tenant" value="angel" />
+  <input type="hidden" id="gas" value="" />
 
-<!-- =========================
-  Crop Modal（完整保留）
-========================= -->
-<div class="cropModal" id="cropModal">
-  <div class="cropBox">
+  <div id="toast"></div>
 
-    <div class="cropHead">
-      <div>
-        <h3 id="cropTitle">調整圖片位置</h3>
-        <p id="cropDesc">
-          可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。
-        </p>
-      </div>
+  <div id="loadingOverlay">
+    <div class="loadingBox">
+      <div class="spinner"></div>
+      <div class="loadingText">處理中…</div>
     </div>
-
-    <div class="cropStageWrap">
-      <div class="cropStage ratio-photo" id="cropStage">
-        <canvas id="cropCanvas"></canvas>
-      </div>
-
-      <div class="cropTools">
-        <button type="button" class="secondary" id="cropZoomOut">縮小</button>
-        <button type="button" class="secondary" id="cropZoomIn">放大</button>
-        <button type="button" class="secondary" id="cropCenter">置中</button>
-        <button type="button" class="ghost" id="cropReset">重設</button>
-        <button type="button" class="secondary" id="cropCancel">取消</button>
-        <button type="button" id="cropApply">套用</button>
-      </div>
-
-      <div class="cropMeta" id="cropMeta">
-        可上下左右拖移圖片。<br>
-        頭像與 Logo 建議主體置中。<br>
-        縮小可保留更多畫面，放大可讓主體更明顯。
-      </div>
-    </div>
-
-  </div>
-</div>
-<!-- =========================
-  Page 6：確認與送出（🔥完整流程）
-========================= -->
-<section class="page" data-page="5">
-
-  <div class="pageHead">
-    <div class="pageStep">第 6 步</div>
-    <h2>確認資料並送出</h2>
-    <p class="subnote">
-      送出完成後，請回覆 LINE 客服，才會進入製作流程。
-    </p>
   </div>
 
-  <!-- Summary -->
-  <div class="summary" id="summaryBox"></div>
-
-  <!-- 操作按鈕 -->
-  <div class="btns" style="margin-top:14px;">
-
-    <button id="btnTest" class="secondary" type="button">
-      測試連線
-    </button>
-
-    <button id="btnSubmit" type="button">
-      送出資料
-    </button>
-
-    <button id="btnReset" class="ghost" type="button">
-      重設表單
-    </button>
-
-  </div>
-
-  <!-- =========================
-    🔥 進度條（固定在送出區）
-  ========================= -->
-  <div class="submit-progress-wrap" id="submitProgressWrap">
-
-    <div class="submit-progress-head">
-      <strong id="submitProgressTitle">送出中</strong>
-      <span id="submitProgressPercent">0%</span>
-    </div>
-
-    <div class="submit-progress">
-      <div class="submit-progress-fill" id="submitProgressFill"></div>
-    </div>
-
-    <div class="submit-progress-text" id="submitProgressText">
-      準備中…
-    </div>
-
-  </div>
-
-  <!-- 狀態 -->
-  <div class="status" id="status">
-    尚未操作。
-  </div>
-
-  <!-- =========================
-    🔥 成功區（核心）
-  ========================= -->
-  <div class="successBox" id="submitSuccessBox">
-
-    <div class="successTitle">
-      ✅ 已成功送出
-    </div>
-
-    <!-- ID -->
-    <div style="margin-top:6px;">
-      <strong>資料ID：</strong>
-      <span id="successCardId">-</span>
-    </div>
-
-    <!-- 客服文案 -->
-    <textarea id="successCopyText" class="successCopy"></textarea>
-
-    <!-- 操作 -->
-    <div class="btns">
-
-      <button id="copyBtn" class="copyBtn" type="button">
-        一鍵複製
-      </button>
-
-      <a href="https://lin.ee/G3VJoRm"
-         target="_blank"
-         class="lineBtn">
-         前往LINE客服
-      </a>
-
-    </div>
-
-  </div>
-
-  <!-- 說明 -->
-  <div class="footNote">
-    送出成功後，請複製資料 ID，<br>
-    並透過 LINE 官方帳號回覆客服，才會進入製作流程。
-  </div>
-
-</section>
-
-
-<!-- =========================
-  Page Navigation（完整）
-========================= -->
-<div class="pageNav">
-
-  <button id="prevBtn" class="ghost" type="button">
-    上一步
-  </button>
-
-  <div class="navDots" id="navDots"></div>
-
-  <button id="nextBtn" type="button">
-    下一步
-  </button>
-
-</div>
-
-
-<!-- =========================
-  Hidden Inputs（完整）
-========================= -->
-<input type="hidden" id="invite_code" />
-<input type="hidden" id="reserved_uid" />
-<input type="hidden" id="tenant" value="angel" />
-
-
-<!-- =========================
-  Toast
-========================= -->
-<div id="toast"></div>
-
-
-<!-- =========================
-  Loading Overlay
-========================= -->
-<div id="loadingOverlay">
-  <div class="loadingBox">
-    <div class="spinner"></div>
-    <div class="loadingText">處理中…</div>
-  </div>
-</div>
-
-
-<!-- =========================
-  Script
-========================= -->
-<script src="form.js?v=804.4-full"></script>
-
+  <script src="form.js?v=804.4-full"></script>
 </body>
 </html>
