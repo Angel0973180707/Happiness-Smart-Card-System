@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v804.5-full</title>
+  <title>天使幸福智慧名片｜資料填寫 v805.0-align</title>
   <meta name="theme-color" content="#0b1220" />
 
   <style>
@@ -133,6 +133,25 @@
       margin-bottom:14px;
     }
 
+    .helperCard{
+      border:1px solid rgba(123,220,255,.22);
+      background:linear-gradient(180deg, rgba(123,220,255,.08), rgba(255,255,255,.02));
+    }
+
+    .helperTitle{
+      font-size:13px;
+      font-weight:900;
+      margin:0 0 8px;
+      line-height:1.6;
+    }
+
+    .helperText{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.9;
+      white-space:pre-line;
+    }
+
     label{
       display:block;
       font-size:13px;
@@ -140,6 +159,15 @@
       margin:0 0 8px;
       font-weight:900;
       line-height:1.5;
+    }
+
+    .labelHint{
+      display:block;
+      margin-top:4px;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:700;
+      line-height:1.8;
     }
 
     input, textarea, select{
@@ -825,6 +853,10 @@
       white-space:pre-line;
     }
 
+    .hiddenField{
+      display:none !important;
+    }
+
     @media(max-width:760px){
       .btns{
         flex-direction:column;
@@ -851,7 +883,7 @@
       <div class="pageHead">
         <div class="pageStep">第 1 步</div>
         <h2>選擇方案</h2>
-        <p class="subnote">自由搭配款可選 5 色／3 版／3 紙；精品設計款只選 7 色</p>
+        <p class="subnote">自由搭配款可選 5 色／3 版／3 紙；精品設計款只選 7 色。表單送出時，會同步寫入 color/style/paper 與 free_color/free_style/free_paper。</p>
       </div>
 
       <div class="card">
@@ -865,7 +897,7 @@
 
       <div id="freeStyleGroup">
         <div class="card">
-          <label>主色</label>
+          <label>主色<span class="labelHint">自由搭配款會同步寫入 color 與 free_color</span></label>
           <select id="color">
             <option value="">請選擇顏色</option>
             <option value="c1">粉</option>
@@ -877,7 +909,7 @@
         </div>
 
         <div class="card">
-          <label>版型</label>
+          <label>版型<span class="labelHint">自由搭配款會同步寫入 style 與 free_style</span></label>
           <select id="style">
             <option value="">請選擇版型</option>
             <option value="s1">正拱</option>
@@ -887,7 +919,7 @@
         </div>
 
         <div class="card">
-          <label>紙感</label>
+          <label>紙感<span class="labelHint">自由搭配款會同步寫入 paper 與 free_paper</span></label>
           <select id="paper">
             <option value="">請選擇紙感</option>
             <option value="f1">棉紙</option>
@@ -898,7 +930,7 @@
       </div>
 
       <div class="card" id="premiumColorCard" style="display:none;">
-        <label>精品設計款顏色</label>
+        <label>精品設計款顏色<span class="labelHint">精品設計款只寫 premium_color</span></label>
         <select id="premium_color">
           <option value="">請選擇精品色</option>
           <option value="p1">胭脂紅</option>
@@ -972,7 +1004,7 @@
       </div>
 
       <div class="card">
-        <label>地址</label>
+        <label>地址<span class="labelHint">填寫完整地址即可，自動轉導航</span></label>
         <input id="address" placeholder="請輸入完整地址" />
       </div>
 
@@ -997,6 +1029,11 @@
         <div class="pageStep">第 4 步</div>
         <h2>影音、社群與行動按鈕</h2>
         <p class="subnote">這些內容會成為名片上的可點擊入口</p>
+      </div>
+
+      <div class="card helperCard">
+        <div class="helperTitle">影音欄位填寫提醒</div>
+        <div class="helperText">請填寫影片連結（YouTube / FB / Reels），不是上傳影片。</div>
       </div>
 
       <div class="card">
@@ -1029,6 +1066,13 @@
         <input id="social3" placeholder="https://..." />
       </div>
 
+      <div class="card helperCard">
+        <div class="helperTitle">CTA 填寫必看</div>
+        <div class="helperText">CTA 是成品名片上的行動按鈕，會直接影響轉換。
+建議填寫明確動作，例如：立即預約、加入 LINE、查看作品、立即洽詢。
+文字與連結請成對填寫。自由搭配款只開放 1 個 CTA；精品設計款開放到 3 個 CTA。</div>
+      </div>
+
       <div class="card">
         <label>CTA 1 文字</label>
         <input id="cta_text_1" placeholder="例如：立即預約" />
@@ -1055,7 +1099,7 @@
       <div class="pageHead">
         <div class="pageStep">第 5 步</div>
         <h2>上傳圖片並調整位置</h2>
-        <p class="subnote">支援上傳前壓縮、放大、縮小、上下左右拖移、置中、重設與套用。</p>
+        <p class="subnote">支援上傳前壓縮、放大、縮小、上下左右拖移、置中、重設與套用。圖片欄位正式只走 avatar_url / logo_url / photo1_url ~ photo5_url。</p>
       </div>
 
       <div class="card">
@@ -1215,6 +1259,10 @@
   <input type="hidden" id="invite_code" />
   <input type="hidden" id="reserved_uid" />
   <input type="hidden" id="tenant" value="angel" />
+  <input type="hidden" id="free_color" class="hiddenField" />
+  <input type="hidden" id="free_style" class="hiddenField" />
+  <input type="hidden" id="free_paper" class="hiddenField" />
+
   <input
     type="hidden"
     id="gas"
@@ -1230,6 +1278,6 @@
     </div>
   </div>
 
-  <script src="form.js?v=804.5-full"></script>
+  <script src="form.js?v=805.0-align"></script>
 </body>
 </html>
