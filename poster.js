@@ -1,27 +1,24 @@
 /* ==========================================
- * HSC Poster v710.2
+ * HSC Poster v710.3
  * COMPLETE OVERWRITE
  *
  * 基礎：
  * - 保留 v710 全功能，不精簡
- * - 融合 v710.1 QR 顯示修正
+ * - 保留 v710.2 分享追蹤 / QR 智慧升級
  *
- * 本版升級：
- * 1. 海報 QR 文案改為「掃描 QR Code」
- * 2. 交付卡頁內 QR 維持可點擊、可掃描
- * 3. 交付卡 QR 中央頭像再縮小，提高掃描成功率
- * 4. QR 生成優先走 canvas，提高穩定度
- * 5. 補強 quiet zone / fallback / image handling
- * 6. 保留分享追蹤：
- *    - poster
- *    - product_card
- *    - poster_qr
+ * 本版修正：
+ * 1. 修正交付卡 QR 中央頭像：
+ *    - 縮小外層頭像框，而不是只縮 img
+ *    - 白框跟著一起縮小
+ *    - img 100% 填滿容器，避免頭像消失
+ * 2. 海報 QR 文案仍為「掃描 QR Code」
+ * 3. 交付卡頁內 QR 維持可點擊、可掃描
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "710.2";
+  const VERSION = "710.3";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -38,9 +35,9 @@
     dark: "#2f241d",
     light: "#ffffff",
     correctLevel: "H",
-    centerAvatarRatio: 0.14,     // 再縮小，提升掃描率
-    centerAvatarBorder: 6,
-    quietZoneRatio: 0.075,       // 海報輸出額外留白比例
+    centerAvatarRatio: 0.14,   // 交付卡頁中央頭像框比例（縮小後）
+    centerAvatarBorder: 5,
+    quietZoneRatio: 0.075,
     quietZoneColor: "#ffffff"
   };
 
@@ -51,7 +48,6 @@
   const baseUrl = normalizeBase(qs.get("base") || DEFAULT_BASE);
   const lineOA = (qs.get("lineoa") || DEFAULT_LINE_OA).trim();
 
-  // 外部進來的追蹤參數
   const incomingShareCardId = (qs.get("share_card_id") || "").trim();
   const incomingShareAgentId = (qs.get("share_agent_id") || "").trim();
   const incomingShareSource = (qs.get("share_source") || "").trim();
@@ -85,13 +81,11 @@
   let currentItem = null;
   let currentAvatarUrl = "";
 
-  // URL
-  let currentPosterShareUrl = ""; // poster.html?...share_channel=poster
-  let currentPosterQrUrl = "";    // index.html?...share_channel=poster_qr
-  let currentProductCardUrl = ""; // index.html?...share_channel=product_card
-  let currentRecommendUrl = "";   // form.html?...share_channel=poster / poster_qr
+  let currentPosterShareUrl = "";
+  let currentPosterQrUrl = "";
+  let currentProductCardUrl = "";
+  let currentRecommendUrl = "";
 
-  // 追蹤上下文
   let currentShareContext = {
     share_card_id: "",
     share_agent_id: "",
@@ -151,7 +145,6 @@
       if (e.target === el.shareDialog) closeDialog();
     });
 
-    // 交付卡頁內 QR：仍可點擊
     el.qrBox?.addEventListener("click", () => {
       if (currentPosterQrUrl) {
         window.open(currentPosterQrUrl, "_blank", "noopener");
@@ -341,8 +334,7 @@ function buildPosterShareUrl(item, ctx) {
     if (!el.qrCenterAvatar || !el.qrCenterAvatarImg) return;
 
     if (!avatarUrl) {
-      el.qrCenterAvatar.classList.remove("show");
-      el.qrCenterAvatarImg.removeAttribute("src");
+      hideQrCenterAvatar();
       return;
     }
 
@@ -352,23 +344,55 @@ function buildPosterShareUrl(item, ctx) {
       buildDefaultAvatarSvg()
     );
 
-    if (ok) {
-      // 交付卡 QR 中央頭像再縮小，提高掃描率
-      el.qrCenterAvatarImg.style.width = `${Math.round(QR_CONFIG.centerAvatarRatio * 100)}%`;
-      el.qrCenterAvatarImg.style.height = `${Math.round(QR_CONFIG.centerAvatarRatio * 100)}%`;
-      el.qrCenterAvatarImg.style.objectFit = "cover";
-      el.qrCenterAvatarImg.style.borderRadius = "999px";
-      el.qrCenterAvatarImg.style.border = `${QR_CONFIG.centerAvatarBorder}px solid #ffffff`;
-      el.qrCenterAvatarImg.style.boxSizing = "border-box";
-      el.qrCenterAvatar.classList.add("show");
-    } else {
-      el.qrCenterAvatar.classList.remove("show");
+    if (!ok) {
+      hideQrCenterAvatar();
+      return;
     }
+
+    const ratioPercent = `${Math.round(QR_CONFIG.centerAvatarRatio * 100)}%`;
+
+    // 關鍵修正：縮小外層頭像框，不是只縮小 img
+    el.qrCenterAvatar.style.width = ratioPercent;
+    el.qrCenterAvatar.style.height = ratioPercent;
+    el.qrCenterAvatar.style.aspectRatio = "1 / 1";
+    el.qrCenterAvatar.style.position = "absolute";
+    el.qrCenterAvatar.style.left = "50%";
+    el.qrCenterAvatar.style.top = "50%";
+    el.qrCenterAvatar.style.transform = "translate(-50%, -50%)";
+    el.qrCenterAvatar.style.display = "flex";
+    el.qrCenterAvatar.style.alignItems = "center";
+    el.qrCenterAvatar.style.justifyContent = "center";
+    el.qrCenterAvatar.style.overflow = "hidden";
+    el.qrCenterAvatar.style.borderRadius = "999px";
+    el.qrCenterAvatar.style.background = "#ffffff";
+    el.qrCenterAvatar.style.boxSizing = "border-box";
+    el.qrCenterAvatar.style.border = `${QR_CONFIG.centerAvatarBorder}px solid #ffffff`;
+    el.qrCenterAvatar.style.zIndex = "3";
+
+    // img 填滿容器，避免頭像不見
+    el.qrCenterAvatarImg.style.display = "block";
+    el.qrCenterAvatarImg.style.width = "100%";
+    el.qrCenterAvatarImg.style.height = "100%";
+    el.qrCenterAvatarImg.style.minWidth = "100%";
+    el.qrCenterAvatarImg.style.minHeight = "100%";
+    el.qrCenterAvatarImg.style.objectFit = "cover";
+    el.qrCenterAvatarImg.style.borderRadius = "999px";
+    el.qrCenterAvatarImg.style.border = "0";
+    el.qrCenterAvatarImg.style.background = "transparent";
+    el.qrCenterAvatarImg.style.flex = "0 0 100%";
+
+    el.qrCenterAvatar.classList.add("show");
+  }
+
+  function hideQrCenterAvatar() {
+    if (!el.qrCenterAvatar || !el.qrCenterAvatarImg) return;
+    el.qrCenterAvatar.classList.remove("show");
+    el.qrCenterAvatarImg.removeAttribute("src");
   }
 
   function renderQrFallback(url) {
     if (el.qrViewport) el.qrViewport.innerHTML = "";
-    if (el.qrCenterAvatar) el.qrCenterAvatar.classList.remove("show");
+    hideQrCenterAvatar();
 
     if (el.qrLinkFallback) {
       el.qrLinkFallback.classList.add("show");
@@ -543,7 +567,6 @@ async function buildRawQrCanvas(targetUrl, size = 880) {
 
       const table = wrap.querySelector("table");
       if (table) {
-        // 最後 fallback：把 table 畫成 canvas
         return tableQrToCanvas(table, size);
       }
 
@@ -614,14 +637,12 @@ async function buildRawQrCanvas(targetUrl, size = 880) {
 
       ctx.save();
 
-      // 白底圓形，避免頭像直接壓到 QR
       ctx.beginPath();
       ctx.arc(size / 2, size / 2, radius + borderWidth, 0, Math.PI * 2);
       ctx.closePath();
       ctx.fillStyle = "#ffffff";
       ctx.fill();
 
-      // 裁成圓形頭像
       ctx.beginPath();
       ctx.arc(size / 2, size / 2, radius, 0, Math.PI * 2);
       ctx.closePath();
@@ -775,7 +796,6 @@ function drawNameAndTitle(ctx, width, name, title) {
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#6b5a4d";
 
-    // 修正：海報文案去掉「點擊」
     ctx.font = "800 28px 'Noto Sans TC', 'Microsoft JhengHei', sans-serif";
     ctx.fillText("掃描 QR Code", width / 2, 1490);
     ctx.fillText("即可查看完整智慧名片", width / 2, 1536);
