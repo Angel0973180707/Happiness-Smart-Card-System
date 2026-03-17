@@ -12,7 +12,7 @@ import {
   const GAS_URL =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-  const VERSION = "804.5-full";
+  const VERSION = "805.0-align";
   const LINE_OA_URL = "https://lin.ee/G3VJoRm";
 
   const MB = 1024 * 1024;
@@ -47,6 +47,9 @@ import {
     "color",
     "style",
     "paper",
+    "free_color",
+    "free_style",
+    "free_paper",
     "premium_color",
     "name",
     "unit",
@@ -115,7 +118,7 @@ import {
       cropShape: "square",
       targetWidth: 1200,
       targetHeight: 1200,
-      fallback: ["avatar_url", "avatar_img_fast", "avatar_img"]
+      fallback: ["avatar_url"]
     },
     logo: {
       slot: "logo",
@@ -127,7 +130,7 @@ import {
       cropShape: "square",
       targetWidth: 1200,
       targetHeight: 1200,
-      fallback: ["logo_url", "logo_img_fast", "logo_img"]
+      fallback: ["logo_url"]
     },
     photo1: {
       slot: "photo1",
@@ -139,7 +142,7 @@ import {
       cropShape: "wide",
       targetWidth: 1600,
       targetHeight: 1000,
-      fallback: ["photo1_url", "photo1_img_fast", "photo1_img"]
+      fallback: ["photo1_url"]
     },
     photo2: {
       slot: "photo2",
@@ -151,7 +154,7 @@ import {
       cropShape: "wide",
       targetWidth: 1600,
       targetHeight: 1000,
-      fallback: ["photo2_url", "photo2_img_fast", "photo2_img"]
+      fallback: ["photo2_url"]
     },
     photo3: {
       slot: "photo3",
@@ -163,7 +166,7 @@ import {
       cropShape: "wide",
       targetWidth: 1600,
       targetHeight: 1000,
-      fallback: ["photo3_url", "photo3_img_fast", "photo3_img"]
+      fallback: ["photo3_url"]
     },
     photo4: {
       slot: "photo4",
@@ -175,7 +178,7 @@ import {
       cropShape: "wide",
       targetWidth: 1600,
       targetHeight: 1000,
-      fallback: ["photo4_url", "photo4_img_fast", "photo4_img"]
+      fallback: ["photo4_url"]
     },
     photo5: {
       slot: "photo5",
@@ -187,7 +190,7 @@ import {
       cropShape: "wide",
       targetWidth: 1600,
       targetHeight: 1000,
-      fallback: ["photo5_url", "photo5_img_fast", "photo5_img"]
+      fallback: ["photo5_url"]
     }
   };
 
@@ -233,6 +236,9 @@ import {
     color: document.getElementById("color"),
     style: document.getElementById("style"),
     paper: document.getElementById("paper"),
+    freeColor: document.getElementById("free_color"),
+    freeStyle: document.getElementById("free_style"),
+    freePaper: document.getElementById("free_paper"),
     premiumColor: document.getElementById("premium_color"),
 
     freeStyleFields: document.getElementById("freeStyleFields"),
@@ -351,7 +357,12 @@ import {
     el.plan?.addEventListener("change", () => {
       const plan = normalizePlan(el.plan.value);
       applyPlanRules(plan, true);
+      syncFreeMirrorFields();
     });
+
+    el.color?.addEventListener("change", syncFreeMirrorFields);
+    el.style?.addEventListener("change", syncFreeMirrorFields);
+    el.paper?.addEventListener("change", syncFreeMirrorFields);
   }
 
   function bindImageEvents() {
@@ -478,6 +489,7 @@ import {
       const plan = normalizePlan(card.plan || "free");
       applyPlanRules(plan, false);
       fillForm(card);
+      syncFreeMirrorFields();
 
       el.form?.classList.remove("hidden");
       setProgress(100, "資料載入完成");
@@ -537,8 +549,8 @@ import {
     if (el.schemeHint) {
       el.schemeHint.textContent =
         rules.key === "premium"
-          ? "目前為精品設計款：支援 5 張照片、3 個 CTA，畫面只顯示 7 色。"
-          : "目前為自由搭配款：支援 2 張照片、1 個 CTA，可選 5 色 / 3 版 / 3 紙。";
+          ? "目前為精品設計款：支援 5 張照片、3 個 CTA，畫面只顯示 7 色，只寫 premium_color。"
+          : "目前為自由搭配款：支援 2 張照片、1 個 CTA，可選 5 色 / 3 版 / 3 紙，會同步寫入 color/style/paper 與 free_color/free_style/free_paper。";
     }
 
     if (rules.key === "free") {
@@ -549,6 +561,22 @@ import {
       setFieldValue("color", "");
       setFieldValue("style", "");
       setFieldValue("paper", "");
+      setFieldValue("free_color", "");
+      setFieldValue("free_style", "");
+      setFieldValue("free_paper", "");
+    }
+  }
+
+  function syncFreeMirrorFields() {
+    const plan = normalizePlan(getFieldValue("plan"));
+    if (plan === "free") {
+      setFieldValue("free_color", getFieldValue("color"));
+      setFieldValue("free_style", getFieldValue("style"));
+      setFieldValue("free_paper", getFieldValue("paper"));
+    } else {
+      setFieldValue("free_color", "");
+      setFieldValue("free_style", "");
+      setFieldValue("free_paper", "");
     }
   }
 
@@ -576,6 +604,13 @@ import {
       input.value = text(card[key]);
       autoGrow(input);
     });
+
+    const plan = normalizePlan(card.plan || "free");
+    if (plan === "free") {
+      if (!getFieldValue("color")) setFieldValue("color", text(card.free_color));
+      if (!getFieldValue("style")) setFieldValue("style", text(card.free_style));
+      if (!getFieldValue("paper")) setFieldValue("paper", text(card.free_paper));
+    }
 
     setFieldValue("premium_color", text(card.premium_color));
 
@@ -639,6 +674,8 @@ import {
     showStatus("warn", "送出更新中…");
 
     try {
+      syncFreeMirrorFields();
+
       const payload = collectPayload();
       const body = JSON.stringify(payload);
 
@@ -672,6 +709,18 @@ import {
     const plan = normalizePlan(getFieldValue("plan"));
     if (!plan) {
       throw new Error("請先選擇方案。");
+    }
+
+    if (plan === "free") {
+      if (!getFieldValue("color")) throw new Error("自由搭配款請選擇主色。");
+      if (!getFieldValue("style")) throw new Error("自由搭配款請選擇版型。");
+      if (!getFieldValue("paper")) throw new Error("自由搭配款請選擇紙感。");
+    }
+
+    if (plan === "premium") {
+      if (!getFieldValue("premium_color")) {
+        throw new Error("精品設計款請選擇精品色。");
+      }
     }
 
     const name = getFieldValue("name");
@@ -713,24 +762,34 @@ import {
       color: plan === "free" ? getFieldValue("color") : "",
       style: plan === "free" ? getFieldValue("style") : "",
       paper: plan === "free" ? getFieldValue("paper") : "",
+      free_color: plan === "free" ? getFieldValue("free_color") : "",
+      free_style: plan === "free" ? getFieldValue("free_style") : "",
+      free_paper: plan === "free" ? getFieldValue("free_paper") : "",
       premium_color: plan === "premium" ? getFieldValue("premium_color") : "",
       form_version: VERSION,
-      source: "update_form"
+      source: "update_form",
+      form_source: "update_form"
     };
 
     TEXT_FIELDS.forEach((key) => {
-      if (["plan", "color", "style", "paper", "premium_color"].includes(key)) return;
+      if (
+        ["plan", "color", "style", "paper", "free_color", "free_style", "free_paper", "premium_color"].includes(key)
+      ) {
+        return;
+      }
 
-      if (rules.maxCtas === 1 && [
-        "cta_text_2", "cta_link_2", "cta_text_3", "cta_link_3"
-      ].includes(key)) {
+      if (
+        rules.maxCtas === 1 &&
+        ["cta_text_2", "cta_link_2", "cta_text_3", "cta_link_3"].includes(key)
+      ) {
         out[key] = "";
         return;
       }
 
-      if (rules.maxCtas === 2 && [
-        "cta_text_3", "cta_link_3"
-      ].includes(key)) {
+      if (
+        rules.maxCtas === 2 &&
+        ["cta_text_3", "cta_link_3"].includes(key)
+      ) {
         out[key] = "";
         return;
       }
@@ -786,8 +845,8 @@ import {
     if (el.cropHint) {
       el.cropHint.textContent =
         cfg.cropShape === "square"
-          ? `拖曳可移動圖片，使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase。\n智慧壓縮：${prepared.profile.label}`
-          : `可左右上下拖移圖片，並使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase。\n智慧壓縮：${prepared.profile.label}`;
+          ? `拖曳可移動圖片，使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase URL。\n智慧壓縮：${prepared.profile.label}`
+          : `可左右上下拖移圖片，並使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase URL。\n智慧壓縮：${prepared.profile.label}`;
     }
 
     el.cropViewport.classList.toggle("is-square", cfg.cropShape === "square");
