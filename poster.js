@@ -35,7 +35,7 @@
     dark: "#2f241d",
     light: "#ffffff",
     correctLevel: "H",
-    centerAvatarRatio: 0.14,   // 交付卡頁中央頭像框比例（縮小後）
+    centerAvatarRatio: 0.16,   // 交付卡頁中央頭像框比例（縮小後）
     centerAvatarBorder: 5,
     quietZoneRatio: 0.075,
     quietZoneColor: "#ffffff"
