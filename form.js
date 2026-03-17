@@ -1,6 +1,6 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v803.0
+ * form.js v803.1
  * COMPLETE OVERWRITE
  * -----------------------------------------
  * 主線：
@@ -14,6 +14,7 @@
  * 5. 保留 invite_code / reserved_uid / tenant
  * 6. 修正圖片裁切顯示透明棋盤格 / 套用白圖問題
  * 7. 成功送出後：下方明確顯示資料 ID + 客服回覆文案 + 一鍵複製 + LINE 客服按鈕
+ * 8. 新增：接收分享追蹤參數並安全寫入 payload
  * ========================================= */
 
 import {
@@ -27,7 +28,7 @@ import {
 (() => {
   "use strict";
 
-  const VERSION = "803.0";
+  const VERSION = "803.1";
   const DEFAULT_GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
   const CUSTOMER_SERVICE_URL = "https://lin.ee/G3VJoRm";
 
@@ -81,7 +82,22 @@ import {
     inviteCode: "",
     tenant: "angel",
     uploadCardId: "",
-    uploadCardIdSource: "tmp"
+    uploadCardIdSource: "tmp",
+
+    // 分享追蹤參數
+    shareCardId: "",
+    shareAgentId: "",
+    shareSource: "",
+    shareChannel: "",
+    shareVisitId: "",
+
+    // 原有 ref / 來源參數
+    ref: "",
+    source: "",
+    resolvedServiceAgent: "",
+    resolvedAgentType: "",
+    resolvedReferrer: "",
+    resolvedFormSource: "self_form"
   };
 
   const cropState = {
@@ -281,6 +297,19 @@ import {
     state.reservedUid = normalizeCardId_(reservedUid);
     state.inviteCode = invite || "";
     state.tenant = tenant || "angel";
+
+    // 既有來源參數
+    state.ref = text(sp.get("ref"));
+    state.source = text(sp.get("source"));
+
+    // 分享追蹤參數
+    state.shareCardId = normalizeCardId_(sp.get("share_card_id") || "");
+    state.shareAgentId = text(sp.get("share_agent_id"));
+    state.shareSource = text(sp.get("share_source"));
+    state.shareChannel = text(sp.get("share_channel"));
+    state.shareVisitId = text(sp.get("share_visit_id"));
+
+    resolveAttribution_();
     syncUploadCardId_();
 
     if (els.ver) els.ver.textContent = `v${VERSION}`;
@@ -289,11 +318,69 @@ import {
     if (els.inviteText) els.inviteText.textContent = invite || "-";
     if (els.gas) els.gas.value = gas;
 
-    if (els.modeText) els.modeText.textContent = "填表模式";
+    if (els.modeText) els.modeText.textContent = buildModeText_();
     if (els.dot) {
       els.dot.style.background = "var(--ok)";
       els.dot.style.boxShadow = "0 0 0 4px rgba(110,231,183,.14)";
     }
+
+    console.log("[HSC form] attribution", {
+      ref: state.ref,
+      source: state.source,
+      shareCardId: state.shareCardId,
+      shareAgentId: state.shareAgentId,
+      shareSource: state.shareSource,
+      shareChannel: state.shareChannel,
+      shareVisitId: state.shareVisitId,
+      resolvedServiceAgent: state.resolvedServiceAgent,
+      resolvedAgentType: state.resolvedAgentType,
+      resolvedReferrer: state.resolvedReferrer,
+      resolvedFormSource: state.resolvedFormSource
+    });
+  }
+
+  function resolveAttribution_() {
+    const ref = text(state.ref);
+    const shareAgentId = text(state.shareAgentId);
+    const shareCardId = normalizeCardId_(state.shareCardId);
+    const shareSource = text(state.shareSource);
+    const shareChannel = text(state.shareChannel);
+
+    let referrer = "";
+    let serviceAgent = "";
+    let agentType = "";
+    let formSource = "self_form";
+
+    // 優先保留既有 ref 流程
+    if (ref) {
+      referrer = ref;
+      serviceAgent = ref;
+      agentType = "service";
+      formSource = "agent_form";
+    } else if (shareAgentId) {
+      // 無 ref 才安全映射分享代理
+      referrer = shareCardId || "";
+      serviceAgent = shareAgentId;
+      agentType = "service";
+      formSource = "card_share_form";
+    } else if (shareCardId || shareSource || shareChannel) {
+      // 只有分享資訊，先保留不亂覆蓋 service_agent
+      referrer = shareCardId || "";
+      serviceAgent = "";
+      agentType = "";
+      formSource = "card_share_form";
+    }
+
+    state.resolvedReferrer = referrer;
+    state.resolvedServiceAgent = serviceAgent;
+    state.resolvedAgentType = agentType;
+    state.resolvedFormSource = formSource;
+  }
+
+  function buildModeText_() {
+    if (state.shareCardId) return "分享進站填表";
+    if (state.ref) return "代理推薦填表";
+    return "填表模式";
   }
 
   function bindEvents_() {
@@ -473,7 +560,7 @@ import {
 
     els.uploadGrid.innerHTML = "";
     const items = buildUploadItems_();
-items.forEach((item) => {
+    items.forEach((item) => {
       const box = document.createElement("div");
       box.className = "uItem";
       box.dataset.key = item.key;
@@ -553,8 +640,7 @@ items.forEach((item) => {
 
     refreshUploadThumbs_();
   }
-
-  function refreshUploadThumbs_() {
+function refreshUploadThumbs_() {
     state.uploadOrder.forEach((key) => {
       const thumb = $(`#thumb_${key}`);
       const editBtn = $(`#edit_${key}`);
@@ -757,7 +843,8 @@ items.forEach((item) => {
 
     const avatarUrl = getPreviewUrl_("avatar_img");
     const logoUrl = getPreviewUrl_("logo_img");
-if (els.previewAvatar) {
+
+    if (els.previewAvatar) {
       if (avatarUrl) {
         els.previewAvatar.src = avatarUrl;
         els.previewAvatar.style.display = "block";
@@ -814,6 +901,8 @@ if (els.previewAvatar) {
     const maxPhotoOnly = state.plan === "premium" ? 5 : 2;
     const ctaCount = state.plan === "premium" ? 3 : 1;
 
+    const shareSummary = buildShareSummary_();
+
     const items = [
       ["方案", state.plan === "premium" ? "精品設計" : "自由搭配"],
       ["外觀", state.plan === "premium"
@@ -825,12 +914,24 @@ if (els.previewAvatar) {
       ["圖片", `已處理 ${countUploadedPhotos_()} 張（含大頭照、Logo；照片牆上限 ${maxPhotoOnly} 張）`]
     ];
 
+    if (shareSummary) items.push(["分享追蹤", shareSummary]);
+
     els.summaryBox.innerHTML = items.map(([k, v]) => `
       <div class="sumRow">
         <span>${escapeHtml_(k)}</span>
         <strong>${escapeHtml_(v)}</strong>
       </div>
     `).join("");
+  }
+
+  function buildShareSummary_() {
+    const lines = [];
+    if (state.shareCardId) lines.push(`share_card_id：${state.shareCardId}`);
+    if (state.shareSource) lines.push(`share_source：${state.shareSource}`);
+    if (state.shareChannel) lines.push(`share_channel：${state.shareChannel}`);
+    if (state.shareVisitId) lines.push(`share_visit_id：${state.shareVisitId}`);
+    if (state.shareAgentId) lines.push(`share_agent_id：${state.shareAgentId}`);
+    return lines.join("\n");
   }
 
   function buildContactSummary_() {
@@ -1011,7 +1112,8 @@ if (els.previewAvatar) {
       const startPercent = 18 + Math.round((done / total) * 42);
       setProgress_(startPercent, `上傳圖片：${label}…`);
       keepViewAtProgress_();
-let url = "";
+
+      let url = "";
       if (key === "avatar_img") {
         url = await uploadAvatar(cardId, info.blob);
       } else if (key === "logo_img") {
@@ -1036,6 +1138,23 @@ let url = "";
     }
 
     return uploaded;
+  }
+function buildLeadSnapshot_() {
+    const snapshot = {
+      ref: state.ref || "",
+      source: state.source || "",
+      share_card_id: state.shareCardId || "",
+      share_agent_id: state.shareAgentId || "",
+      share_source: state.shareSource || "",
+      share_channel: state.shareChannel || "",
+      share_visit_id: state.shareVisitId || "",
+      resolved_referrer: state.resolvedReferrer || "",
+      resolved_service_agent: state.resolvedServiceAgent || "",
+      resolved_agent_type: state.resolvedAgentType || "",
+      resolved_form_source: state.resolvedFormSource || ""
+    };
+
+    return JSON.stringify(snapshot);
   }
 
   function buildJsonPayload_(uploadedImageUrls, cardIdForStorage) {
@@ -1094,8 +1213,21 @@ let url = "";
       photo4_url: uploadedImageUrls.photo4_url || "",
       photo5_url: uploadedImageUrls.photo5_url || "",
 
-      source: "form",
-      form_source: "self_form"
+      // 原有來源鏈
+      referrer: state.resolvedReferrer || "",
+      service_agent: state.resolvedServiceAgent || "",
+      agent_type: state.resolvedAgentType || "",
+      source: state.source || "form",
+      form_source: state.resolvedFormSource || "self_form",
+
+      // 分享追蹤欄位
+      share_card_id: state.shareCardId || "",
+      share_source: state.shareSource || "",
+      share_channel: state.shareChannel || "",
+      share_visit_id: state.shareVisitId || "",
+
+      // 方便後續擴充，不破壞既有 agent/ref 流程
+      lead_snapshot: buildLeadSnapshot_()
     };
 
     return payload;
@@ -1191,73 +1323,63 @@ let url = "";
     if (els.successBody) els.successBody.innerHTML = "";
   }
 
-  function buildServiceReplyText_(cardId) {
-    const lines = [
-      "您好，我已送出天使幸福智慧名片申請資料。",
-      `我的資料ID是：${cardId || "（請填入資料ID）"}`
-    ];
-
-    const name = getFieldValue_("name");
-    const title = getFieldValue_("title");
-    const unit = getFieldValue_("unit");
-
-    if (name) lines.push(`姓名：${name}`);
-    if (title) lines.push(`頭銜：${title}`);
-    if (unit) lines.push(`單位：${unit.replace(/\n+/g, " / ")}`);
-    lines.push("請協助後續製作，謝謝您。");
-
-    return lines.join("\n");
+  function buildCustomerReplyText_(id) {
+    return [
+      "您好，我已完成天使幸福智慧名片資料填寫。",
+      "",
+      `我的名片編號：${id || "-"}`,
+      "",
+      "請協助我確認與後續開通，謝謝。"
+    ].join("\n");
   }
 
   function showSuccessBox_(cardId) {
     if (!els.successBox) return;
 
     const safeId = normalizeCardId_(cardId || "");
-    const replyText = buildServiceReplyText_(safeId);
+    const replyText = buildCustomerReplyText_(safeId);
 
     els.successBox.hidden = false;
     els.successBox.style.display = "";
     els.successBox.classList.remove("error");
 
-    if (els.successTitle) els.successTitle.textContent = "送出成功";
+    if (els.successTitle) els.successTitle.textContent = "已送出成功";
 
     if (els.successBody) {
       els.successBody.innerHTML = `
         <div class="hsc-success-main">
-          <div class="hsc-success-ok">✅ 資料已送出成功</div>
+          <div class="hsc-success-ok">已送出成功，客服會依照資料建立你的智慧名片。</div>
 
           <div class="hsc-id-card">
-            <div class="hsc-id-label">您的資料ID</div>
+            <div class="hsc-id-label">名片編號</div>
             <div class="hsc-id-value">${escapeHtml_(safeId || "未取得")}</div>
-            <div class="hsc-id-tip">請複製此資料ID，並搭配下方客服文案回覆客服。</div>
+            <div class="hsc-id-tip">請按下方按鈕複製「名片編號＋回覆客服文案」，再前往 LINE 客服回覆。</div>
           </div>
 
           <div class="hsc-reply-card">
-            <div class="hsc-reply-label">可回覆客服文案</div>
+            <div class="hsc-reply-label">回覆客服文案</div>
             <textarea class="hsc-reply-text" id="serviceReplyText" readonly></textarea>
-            <div class="hsc-reply-tip">建議：先按「一鍵複製客服文案」，再按「前往 LINE 官方帳號回覆客服」。</div>
+            <div class="hsc-reply-tip">送出後仍停留在此區塊，請直接在這裡完成複製與回覆客服。</div>
           </div>
         </div>
       `;
 
       const ta = document.getElementById("serviceReplyText");
-      if (ta) ta.value = replyText;
+      if (ta) {
+        ta.value = replyText;
+        try {
+          ta.style.height = "auto";
+          ta.style.height = `${Math.max(132, ta.scrollHeight)}px`;
+        } catch (_) {}
+      }
     }
 
     if (els.successActions) {
       els.successActions.innerHTML = "";
 
-      const copyIdBtn = document.createElement("button");
-      copyIdBtn.type = "button";
-      copyIdBtn.className = "secondary";
-      copyIdBtn.textContent = "複製資料ID";
-      copyIdBtn.addEventListener("click", async () => {
-        const ok = await copyText_(safeId || "");
-        flashButtonText_(copyIdBtn, ok ? "已複製資料ID" : "複製失敗", "複製資料ID");
-      });
-const copyReplyBtn = document.createElement("button");
+      const copyReplyBtn = document.createElement("button");
       copyReplyBtn.type = "button";
-      copyReplyBtn.textContent = "一鍵複製客服文案";
+      copyReplyBtn.textContent = "一鍵複製 ID＋回覆客服文案";
       copyReplyBtn.addEventListener("click", async () => {
         const textArea = document.getElementById("serviceReplyText");
         if (textArea) {
@@ -1268,19 +1390,27 @@ const copyReplyBtn = document.createElement("button");
           } catch (_) {}
         }
         const ok = await copyText_(replyText);
-        flashButtonText_(copyReplyBtn, ok ? "已複製客服文案" : "複製失敗", "一鍵複製客服文案");
+        flashButtonText_(copyReplyBtn, ok ? "已複製" : "複製失敗", "一鍵複製 ID＋回覆客服文案");
       });
 
       const lineBtn = document.createElement("button");
       lineBtn.type = "button";
       lineBtn.className = "secondary";
-      lineBtn.textContent = "前往 LINE 官方帳號回覆客服";
+      lineBtn.textContent = "前往 LINE 客服";
       lineBtn.addEventListener("click", () => {
         window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
       });
 
-      els.successActions.append(copyIdBtn, copyReplyBtn, lineBtn);
+      els.successActions.append(copyReplyBtn, lineBtn);
     }
+
+    requestAnimationFrame(() => {
+      if (els.formBottomAnchor) {
+        els.formBottomAnchor.scrollIntoView({ behavior: "smooth", block: "center" });
+      } else {
+        keepViewAtProgress_();
+      }
+    });
   }
 
   function showErrorBox_(message) {
@@ -1306,7 +1436,7 @@ const copyReplyBtn = document.createElement("button");
       const replyBtn = document.createElement("button");
       replyBtn.type = "button";
       replyBtn.className = "secondary";
-      replyBtn.textContent = "前往 LINE 官方帳號回覆客服";
+      replyBtn.textContent = "前往 LINE 客服";
       replyBtn.addEventListener("click", () => {
         window.open(CUSTOMER_SERVICE_URL, "_blank", "noopener");
       });
@@ -1967,7 +2097,16 @@ const copyReplyBtn = document.createElement("button");
       inviteCode: state.inviteCode,
       tenant: state.tenant,
       uploadCardId: state.uploadCardId,
-      uploadCardIdSource: state.uploadCardIdSource
+      uploadCardIdSource: state.uploadCardIdSource,
+      shareCardId: state.shareCardId,
+      shareAgentId: state.shareAgentId,
+      shareSource: state.shareSource,
+      shareChannel: state.shareChannel,
+      shareVisitId: state.shareVisitId,
+      resolvedServiceAgent: state.resolvedServiceAgent,
+      resolvedAgentType: state.resolvedAgentType,
+      resolvedReferrer: state.resolvedReferrer,
+      resolvedFormSource: state.resolvedFormSource
     }))
   });
 })();
