@@ -31,6 +31,11 @@ let lastBottomQrRenderKey = "";
 let lastFeatureQrRenderKey = "";
 let lastFacadeQrRenderKey = "";
 
+/* 公告跑馬燈 */
+let announcementItemsCache_ = [];
+let announcementIndex_ = 0;
+let announcementTimer_ = null;
+
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 function text(v){ return (v == null ? "" : String(v)).trim(); }
@@ -141,6 +146,16 @@ function buildLeadCreateUrl_(refCode){
   if(refCode) u.searchParams.set("ref", refCode);
   u.searchParams.set("source", "invite_gate_card");
   u.searchParams.set("note", "invite_gate_prelog");
+  u.searchParams.set("ts", String(Date.now()));
+  u.searchParams.set("v", CONFIG.VERSION);
+  return u.toString();
+}
+
+/* 公告 API */
+function buildAnnouncementApiUrl_(){
+  const u = new URL(CONFIG.GAS);
+  u.searchParams.set("action", "getAnnouncements");
+  u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
   u.searchParams.set("ts", String(Date.now()));
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
@@ -1347,6 +1362,152 @@ function renderCardExpiry_(p){
   el.style.display = "block";
 }
 
+/* =========================================
+ * 公告跑馬燈
+ * ========================================= */
+function normalizeAnnouncementItems_(payload){
+  if(!payload || typeof payload !== "object") return [];
+  const arr =
+    (Array.isArray(payload.items) ? payload.items : null) ||
+    (Array.isArray(payload.data) ? payload.data : null) ||
+    (Array.isArray(payload.rows) ? payload.rows : null) ||
+    [];
+  return arr.filter(x => x && typeof x === "object");
+}
+
+function parseDateLoose_(value){
+  if(!value) return null;
+  const s = String(value).trim();
+  if(!s) return null;
+
+  let d = new Date(s.replace(/\//g, "-").replace(" ", "T"));
+  if(!isNaN(d.getTime())) return d;
+
+  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
+    if(!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+function isAnnouncementActive_(item){
+  const status = text(item.status).toLowerCase();
+  if(status && status !== "active") return false;
+
+  const now = Date.now();
+  const startAt = parseDateLoose_(item.start_at);
+  const endAt = parseDateLoose_(item.end_at);
+
+  if(startAt && now < startAt.getTime()) return false;
+
+  if(endAt){
+    const endMs = new Date(
+      endAt.getFullYear(),
+      endAt.getMonth(),
+      endAt.getDate(),
+      23, 59, 59, 999
+    ).getTime();
+    if(now > endMs) return false;
+  }
+
+  return true;
+}
+
+function sortAnnouncements_(items){
+  return [...items].sort((a, b)=>{
+    const pa = Number(a.priority || 0);
+    const pb = Number(b.priority || 0);
+    if(pb !== pa) return pb - pa;
+
+    const ta = parseDateLoose_(a.updated_at || a.created_at || a.start_at || "")?.getTime() || 0;
+    const tb = parseDateLoose_(b.updated_at || b.created_at || b.start_at || "")?.getTime() || 0;
+    return tb - ta;
+  });
+}
+
+function buildAnnouncementText_(item){
+  const title = text(item.title);
+  const content = text(item.content).replace(/\s+/g, " ");
+  if(title && content) return `${title}｜${content}`;
+  return title || content || "最新公告";
+}
+
+function buildAnnouncementDetailUrl_(item){
+  const id = text(item.id || item.announcement_id || "");
+  if(!id) return "";
+  return `./announcement.html?id=${encodeURIComponent(id)}&v=${encodeURIComponent(CONFIG.VERSION)}`;
+}
+
+function stopAnnouncementRotation_(){
+  if(announcementTimer_){
+    clearInterval(announcementTimer_);
+    announcementTimer_ = null;
+  }
+}
+
+function paintAnnouncementItem_(item){
+  const wrap = qs("announcementMarquee");
+  const textEl = qs("announcementText");
+  const track = qs("announcementTrack");
+  if(!wrap || !textEl || !track) return;
+
+  if(!item){
+    wrap.style.display = "none";
+    textEl.textContent = "";
+    track.onclick = null;
+    return;
+  }
+
+  wrap.style.display = "";
+  textEl.textContent = buildAnnouncementText_(item);
+
+  const detailUrl = buildAnnouncementDetailUrl_(item);
+  track.onclick = ()=>{
+    if(detailUrl){
+      location.href = detailUrl;
+    }
+  };
+}
+
+function renderAnnouncementMarquee_(items){
+  const wrap = qs("announcementMarquee");
+  if(!wrap) return;
+
+  stopAnnouncementRotation_();
+
+  const activeItems = sortAnnouncements_((items || []).filter(isAnnouncementActive_));
+  announcementItemsCache_ = activeItems;
+  announcementIndex_ = 0;
+
+  if(!activeItems.length){
+    wrap.style.display = "none";
+    return;
+  }
+
+  paintAnnouncementItem_(activeItems[0]);
+
+  if(activeItems.length > 1){
+    announcementTimer_ = setInterval(()=>{
+      announcementIndex_ = (announcementIndex_ + 1) % activeItems.length;
+      paintAnnouncementItem_(activeItems[announcementIndex_]);
+    }, 3500);
+  }
+}
+
+async function fetchAndRenderAnnouncements_(){
+  try{
+    const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_());
+    console.log("[HSC announcement] raw payload =", payload);
+    const items = normalizeAnnouncementItems_(payload);
+    renderAnnouncementMarquee_(items);
+  }catch(err){
+    console.error("[HSC announcement] load failed:", err);
+    const wrap = qs("announcementMarquee");
+    if(wrap) wrap.style.display = "none";
+  }
+}
+
 function applySmartBalanceToEl_(el){
   if(!el) return;
   const raw = text(el.dataset.rawText || el.textContent);
@@ -1755,7 +1916,6 @@ function renderCard(row){
   currentRow = p;
   currentReferralSourceCodeCache = getReferralSourceCode_(p);
 
-  /* 提供全域資料給其他模組使用 */
   window.__CARD_DATA__ = p;
   window.cardData = p;
   window.payload = p;
@@ -1896,6 +2056,7 @@ window.addEventListener("load", ()=>{
     initSelectionState_();
     applySmartBalanceAll_();
     updateInstallUi_();
+    fetchAndRenderAnnouncements_();
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     const url = buildCardApiUrl_(id);
