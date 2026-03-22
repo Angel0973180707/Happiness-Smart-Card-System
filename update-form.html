@@ -726,8 +726,7 @@
 
     <section class="hero">
       <h1>智慧名片資料更新</h1>
-      <p>這個更新連結僅限本次使用，並有時效限制。
-若資料沒有正常載入，請聯繫客服重新取得更新連結。</p>
+    <p>這個更新連結有使用期限。如果資料沒有正常出現，請聯繫客服重新取得更新連結。</p>
 
       <div class="heroActions">
         <button id="openGuideTopBtn" type="button" class="btn btn-warn">填表說明（一定要看）</button>
@@ -829,10 +828,10 @@
           </div>
         </div>
 
-        <div class="scheme-hint" id="schemeHint">
-          請先確認方案。自由搭配款支援 2 張照片、1 個 CTA，並同步寫入 color/style/paper 與 free_color/free_style/free_paper。
-          精品設計款支援 5 張照片、3 個 CTA，只寫 premium_color。
-        </div>
+       <div class="scheme-hint" id="schemeHint">  
+  請先確認方案。  
+  自由搭配款可放 2 張照片、1 個按鈕；精品設計款可放 5 張照片、3 個按鈕。  
+</div>
       </section>
 
       <section class="card">
@@ -970,11 +969,10 @@
       <section class="card">
         <h2 class="section-title">圖片更新 <small>選圖後可裁切，再直接上傳 Firebase</small></h2>
 
-        <div class="helper">
-          圖片正式只走 URL 欄位：avatar_url / logo_url / photo1_url ~ photo5_url。<br>
-          支援：上傳前壓縮、拖曳移動、放大、縮小、置中、重設、套用。<br>
-          自由搭配款：照片牆 2 張｜精品設計款：照片牆 5 張。
-        </div>
+        <div class="helper">  
+  選圖後可調整大小與位置，再套用更新。<br>  
+  自由搭配款可放 2 張照片，精品設計款可放 5 張照片。  
+</div>
 
         <div class="image-grid">
           <div class="image-card">
@@ -1098,7 +1096,7 @@
       </section>
 
       <section class="card">
-        <h2 class="section-title">送出更新 <small>和 form 一樣，進度條固定在送出區</small></h2>
+        <h2 class="section-title">送出更新 <small>送出時會顯示進度</small></h2>
 
         <div class="submit-progress-wrap" id="submitProgressWrap">
           <div class="submit-progress-head">
@@ -1285,6 +1283,6 @@
   <input type="hidden" id="free_style" name="free_style" />
   <input type="hidden" id="free_paper" name="free_paper" />
 
-  <script type="module" src="./update-form.js?v=4.7-align"></script>
+  <script type="module" src="./update-form.js?v=4.7-stable"></script>
 </body>
 </html>
