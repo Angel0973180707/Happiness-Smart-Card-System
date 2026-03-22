@@ -1,28 +1,31 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v805.0-align
+ * form.js v4.7-align
  * COMPLETE OVERWRITE
  * -----------------------------------------
- * 1. 6 步驟表單
- * 2. free / premium 方案限制
- * 3. 外觀欄位對齊 app.js / GAS 表頭
- *    - free：同步寫 color/style/paper + free_color/free_style/free_paper
- *    - premium：只寫 premium_color，並清空 free / color/style/paper
- * 4. 圖片正式只走 Firebase URL
- *    - avatar_url / logo_url / photo1_url ~ photo5_url
- * 5. crop：放大 / 縮小 / 上下左右拖移 / 置中 / 重設 / 套用
- * 6. 即時預覽
- * 7. 第六步固定進度條
- * 8. 成功後顯示：資料 ID + 客服文案 + 一鍵複製 + LINE OA
- * 9. 不自動 scroll、不跳頁
+ * 對齊目標：
+ * 1. form -> createLead
+ * 2. 從網址讀 invite / reserved_uid / share_*
+ * 3. 成功判斷改為 json.ok === true
+ * 4. 成功後顯示 lead_id
+ * 5. 暫不前端 createCard
+ * 6. 保留圖片正式欄位：
+ *    avatar_url / logo_url / photo1_url ~ photo5_url
+ * 7. 保留圖片裁切 / 壓縮 / Firebase 上傳體驗
+ * 8. 新增：
+ *    - 填表說明 modal
+ *    - 首頁門面參考 modal（不跳離表單）
+ * 9. 方案分流：
+ *    free = 2 photos / 1 CTA
+ *    premium = 5 photos / 3 CTA
  * ========================================= */
 
 (function () {
   "use strict";
 
   /* =========================
-     Helpers
-  ========================= */
+   * Helpers
+   * ========================= */
   const $ = (id) => document.getElementById(id);
   const text = (v) => (v == null ? "" : String(v).trim());
 
@@ -39,9 +42,13 @@
     if (el) el.textContent = value == null ? "" : String(value);
   }
 
-  function showEl(el, on = true) {
+  function showEl(el, on = true, displayValue = "") {
     if (!el) return;
-    el.style.display = on ? "" : "none";
+    el.style.display = on ? displayValue : "none";
+  }
+
+  function clamp(num, min, max) {
+    return Math.min(Math.max(num, min), max);
   }
 
   function normalizeUrl(v) {
@@ -50,6 +57,11 @@
     if (/^https?:\/\//i.test(s)) return s;
     if (/^www\./i.test(s)) return "https://" + s;
     return s;
+  }
+
+  function toBoolean(v) {
+    const s = String(v == null ? "" : v).trim().toLowerCase();
+    return s === "true" || s === "1" || s === "yes" || s === "y";
   }
 
   function readFileAsDataURL(file) {
@@ -108,17 +120,33 @@
     }
   }
 
-  function clamp(num, min, max) {
-    return Math.min(Math.max(num, min), max);
+  function parseMaybeJson(raw) {
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      const start = String(raw || "").indexOf("{");
+      const end = String(raw || "").lastIndexOf("}");
+      if (start >= 0 && end > start) {
+        try {
+          return JSON.parse(String(raw).slice(start, end + 1));
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    }
   }
 
   /* =========================
-     Config
-  ========================= */
+   * Config
+   * ========================= */
   const DEFAULT_GAS_URL =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
   const LINE_OA_URL = "https://lin.ee/G3VJoRm";
+  const FACADE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
   const MAX_FILE_SIZE = 20 * 1024 * 1024;
+  const VERSION = "v4.7-align";
 
   const PLAN_RULES = {
     free: {
@@ -144,8 +172,8 @@
   ];
 
   /* =========================
-     Firebase bridge
-  ========================= */
+   * Firebase bridge
+   * ========================= */
   let firebaseApi = null;
   let firebaseReady = false;
 
@@ -154,6 +182,7 @@
 
     try {
       const mod = await import("./firebase.js");
+
       firebaseApi = {
         initFirebase: mod.initFirebase,
         ensureAuth: mod.ensureAuth,
@@ -185,12 +214,13 @@
       const idx = Number(slotKey.replace("photo", ""));
       return await api.uploadPhoto(tempId, blob, idx);
     }
+
     throw new Error("未知圖片欄位");
   }
 
   /* =========================
-     DOM
-  ========================= */
+   * DOM
+   * ========================= */
   const pages = document.querySelectorAll(".page");
   let currentPage = 0;
 
@@ -259,9 +289,33 @@
   const previewExperienceBlock = $("previewExperienceBlock");
   const livePreviewCard = $("livePreviewCard");
 
+  const inviteCodeEl = $("invite_code");
+  const reservedUidEl = $("reserved_uid");
+  const tenantEl = $("tenant");
+
+  const shareCardIdEl = $("share_card_id");
+  const shareAgentIdEl = $("share_agent_id");
+  const shareSourceEl = $("share_source");
+  const shareChannelEl = $("share_channel");
+  const shareVisitIdEl = $("share_visit_id");
+
+  const guideModal = $("guideModal");
+  const facadeModal = $("facadeModal");
+  const openGuideTopBtn = $("openGuideTopBtn");
+  const openGuideBtn = $("openGuideBtn");
+  const closeGuideBtn = $("closeGuideBtn");
+  const guideConfirmBtn = $("guideConfirmBtn");
+  const guideGoFacadeBtn = $("guideGoFacadeBtn");
+
+  const openFacadeTopBtn = $("openFacadeTopBtn");
+  const openFacadeBtn = $("openFacadeBtn");
+  const closeFacadeBtn = $("closeFacadeBtn");
+  const facadeBackBtn = $("facadeBackBtn");
+  const facadeFrame = $("facadeFrame");
+
   /* =========================
-     State
-  ========================= */
+   * State
+   * ========================= */
   let submitting = false;
   let tempUploadId = `TMP${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
@@ -294,8 +348,39 @@
   };
 
   /* =========================
-     Status / Toast / Loading
-  ========================= */
+   * URL params / hidden fields
+   * ========================= */
+  function applyUrlParams() {
+    const qs = new URLSearchParams(location.search);
+
+    const invite = text(qs.get("invite"));
+    const reservedUid = text(qs.get("reserved_uid") || qs.get("reservedUid"));
+    const tenant = text(qs.get("tenant")) || "angel";
+
+    const shareCardId = text(qs.get("share_card_id") || qs.get("shareCardId"));
+    const shareAgentId = text(qs.get("share_agent_id") || qs.get("shareAgentId"));
+    const shareSource = text(qs.get("share_source") || qs.get("shareSource"));
+    const shareChannel = text(qs.get("share_channel") || qs.get("shareChannel"));
+    const shareVisitId = text(qs.get("share_visit_id") || qs.get("shareVisitId"));
+
+    if (inviteCodeEl) inviteCodeEl.value = invite;
+    if (reservedUidEl) reservedUidEl.value = reservedUid;
+    if (tenantEl) tenantEl.value = tenant || "angel";
+
+    if (shareCardIdEl) shareCardIdEl.value = shareCardId;
+    if (shareAgentIdEl) shareAgentIdEl.value = shareAgentId;
+    if (shareSourceEl) shareSourceEl.value = shareSource;
+    if (shareChannelEl) shareChannelEl.value = shareChannel;
+    if (shareVisitIdEl) shareVisitIdEl.value = shareVisitId;
+
+    if (facadeFrame && !facadeFrame.getAttribute("src")) {
+      facadeFrame.setAttribute("src", FACADE_URL);
+    }
+  }
+
+  /* =========================
+   * Status / Toast / Loading
+   * ========================= */
   function setStatus(msg) {
     if (statusEl) statusEl.textContent = msg || "";
   }
@@ -329,8 +414,54 @@
   }
 
   /* =========================
-     Page control
-  ========================= */
+   * Modal helpers
+   * ========================= */
+  function openAssistModal(modal) {
+    if (!modal) return;
+    modal.classList.add("show");
+    document.body.classList.add("modal-open");
+  }
+
+  function closeAssistModal(modal) {
+    if (!modal) return;
+    modal.classList.remove("show");
+    if (!guideModal?.classList.contains("show") && !facadeModal?.classList.contains("show") && !cropModal?.classList.contains("show")) {
+      document.body.classList.remove("modal-open");
+    }
+  }
+
+  function bindAssistModals() {
+    [openGuideTopBtn, openGuideBtn].forEach((btn) => {
+      btn?.addEventListener("click", () => openAssistModal(guideModal));
+    });
+
+    [openFacadeTopBtn, openFacadeBtn].forEach((btn) => {
+      btn?.addEventListener("click", () => openAssistModal(facadeModal));
+    });
+
+    closeGuideBtn?.addEventListener("click", () => closeAssistModal(guideModal));
+    guideConfirmBtn?.addEventListener("click", () => closeAssistModal(guideModal));
+
+    guideGoFacadeBtn?.addEventListener("click", () => {
+      closeAssistModal(guideModal);
+      openAssistModal(facadeModal);
+    });
+
+    closeFacadeBtn?.addEventListener("click", () => closeAssistModal(facadeModal));
+    facadeBackBtn?.addEventListener("click", () => closeAssistModal(facadeModal));
+
+    guideModal?.addEventListener("click", (e) => {
+      if (e.target === guideModal) closeAssistModal(guideModal);
+    });
+
+    facadeModal?.addEventListener("click", (e) => {
+      if (e.target === facadeModal) closeAssistModal(facadeModal);
+    });
+  }
+
+  /* =========================
+   * Page control
+   * ========================= */
   function showPage(i) {
     const safeIndex = Math.max(0, Math.min(i, pages.length - 1));
     pages.forEach((p, idx) => p.classList.toggle("active", idx === safeIndex));
@@ -364,8 +495,8 @@
   });
 
   /* =========================
-     Plan rules
-  ========================= */
+   * Plan rules
+   * ========================= */
   function getCurrentPlan() {
     const p = text(planEl?.value).toLowerCase();
     return p === "premium" ? "premium" : p === "free" ? "free" : "";
@@ -417,6 +548,7 @@
       if ($("cta_text_2")) $("cta_text_2").value = "";
       if ($("cta_link_2")) $("cta_link_2").value = "";
     }
+
     if (rules.maxCtas < 3) {
       if ($("cta_text_3")) $("cta_text_3").value = "";
       if ($("cta_link_3")) $("cta_link_3").value = "";
@@ -439,16 +571,16 @@
   paperEl?.addEventListener("change", syncFreeShadowFields);
 
   /* =========================
-     Form data
-  ========================= */
+   * Form data
+   * ========================= */
   function getFormData() {
-    const plan = $("plan")?.value || "";
-    const color = $("color")?.value || "";
-    const style = $("style")?.value || "";
-    const paper = $("paper")?.value || "";
-    const premiumColor = $("premium_color")?.value || "";
+    const plan = text($("plan")?.value);
+    const color = text($("color")?.value);
+    const style = text($("style")?.value);
+    const paper = text($("paper")?.value);
+    const premiumColor = text($("premium_color")?.value);
 
-    const base = {
+    return {
       plan,
 
       color: plan === "free" ? color : "",
@@ -461,40 +593,46 @@
 
       premium_color: plan === "premium" ? premiumColor : "",
 
-      name: $("name")?.value || "",
-      unit: $("unit")?.value || "",
-      title: $("title")?.value || "",
-      slogan: $("slogan")?.value || "",
+      name: text($("name")?.value),
+      unit: text($("unit")?.value),
+      title: text($("title")?.value),
+      slogan: text($("slogan")?.value),
 
-      phone: $("phone")?.value || "",
-      email: $("email")?.value || "",
-      line_url: $("line_url")?.value || "",
-      line_oa: $("line_oa")?.value || "",
-      wechat_id: $("wechat_id")?.value || "",
-      address: $("address")?.value || "",
-      website: $("website")?.value || "",
+      phone: text($("phone")?.value),
+      email: text($("email")?.value),
+      line_url: normalizeUrl($("line_url")?.value),
+      line_oa: normalizeUrl($("line_oa")?.value),
+      wechat_id: text($("wechat_id")?.value),
+      address: text($("address")?.value),
+      website: normalizeUrl($("website")?.value),
 
-      services: $("services")?.value || "",
-      experience: $("experience")?.value || "",
+      services: text($("services")?.value),
+      experience: text($("experience")?.value),
 
-      video1: normalizeUrl($("video1")?.value || ""),
-      video2: normalizeUrl($("video2")?.value || ""),
-      video3: normalizeUrl($("video3")?.value || ""),
+      video1: normalizeUrl($("video1")?.value),
+      video2: normalizeUrl($("video2")?.value),
+      video3: normalizeUrl($("video3")?.value),
 
-      social1: normalizeUrl($("social1")?.value || ""),
-      social2: normalizeUrl($("social2")?.value || ""),
-      social3: normalizeUrl($("social3")?.value || ""),
+      social1: normalizeUrl($("social1")?.value),
+      social2: normalizeUrl($("social2")?.value),
+      social3: normalizeUrl($("social3")?.value),
 
-      cta_text_1: $("cta_text_1")?.value || "",
-      cta_link_1: normalizeUrl($("cta_link_1")?.value || ""),
-      cta_text_2: $("cta_text_2")?.value || "",
-      cta_link_2: normalizeUrl($("cta_link_2")?.value || ""),
-      cta_text_3: $("cta_text_3")?.value || "",
-      cta_link_3: normalizeUrl($("cta_link_3")?.value || ""),
+      cta_text_1: text($("cta_text_1")?.value),
+      cta_link_1: normalizeUrl($("cta_link_1")?.value),
+      cta_text_2: text($("cta_text_2")?.value),
+      cta_link_2: normalizeUrl($("cta_link_2")?.value),
+      cta_text_3: text($("cta_text_3")?.value),
+      cta_link_3: normalizeUrl($("cta_link_3")?.value),
 
-      invite_code: $("invite_code")?.value || "",
-      reserved_uid: $("reserved_uid")?.value || "",
-      tenant: $("tenant")?.value || "angel",
+      invite_code: text(inviteCodeEl?.value),
+      reserved_uid: text(reservedUidEl?.value),
+      tenant: text(tenantEl?.value) || "angel",
+
+      share_card_id: text(shareCardIdEl?.value),
+      share_agent_id: text(shareAgentIdEl?.value),
+      share_source: text(shareSourceEl?.value),
+      share_channel: text(shareChannelEl?.value),
+      share_visit_id: text(shareVisitIdEl?.value),
 
       avatar_url: imageState.files.avatar?.url || "",
       logo_url: imageState.files.logo?.url || "",
@@ -504,22 +642,103 @@
       photo4_url: imageState.files.photo4?.url || "",
       photo5_url: imageState.files.photo5?.url || ""
     };
-
-    return base;
   }
 
-  /* =========================
-     Summary
-  ========================= */
+  function getLeadPayload() {
+    const data = getFormData();
+
+    return {
+      action: "createLead",
+      tenant: data.tenant,
+
+      invite_code: data.invite_code,
+      reserved_uid: data.reserved_uid,
+
+      plan: data.plan,
+      color: data.color,
+      style: data.style,
+      paper: data.paper,
+
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      unit: data.unit,
+      title: data.title,
+      line_url: data.line_url,
+      line_oa: data.line_oa,
+      wechat_id: data.wechat_id,
+      address: data.address,
+      services: data.services,
+      experience: data.experience,
+      website: data.website,
+
+      source: "form",
+      form_source: "form",
+      process_status: "submitted",
+
+      share_card_id: data.share_card_id,
+      share_agent_id: data.share_agent_id,
+      share_source: data.share_source,
+      share_channel: data.share_channel,
+      share_visit_id: data.share_visit_id,
+
+      note: "",
+
+      /* 以下先保留，之後 createCard 可承接；
+         v4.7 createLead 目前不會正式入 lead_db 主欄位，但前端先保留 */
+      slogan: data.slogan,
+      video1: data.video1,
+      video2: data.video2,
+      video3: data.video3,
+      social1: data.social1,
+      social2: data.social2,
+      social3: data.social3,
+      cta_text_1: data.cta_text_1,
+      cta_link_1: data.cta_link_1,
+      cta_text_2: data.cta_text_2,
+      cta_link_2: data.cta_link_2,
+      cta_text_3: data.cta_text_3,
+      cta_link_3: data.cta_link_3,
+      premium_color: data.premium_color,
+      free_color: data.free_color,
+      free_style: data.free_style,
+      free_paper: data.free_paper,
+      avatar_url: data.avatar_url,
+      logo_url: data.logo_url,
+      photo1_url: data.photo1_url,
+      photo2_url: data.photo2_url,
+      photo3_url: data.photo3_url,
+      photo4_url: data.photo4_url,
+      photo5_url: data.photo5_url
+    };
+  }
+/* =========================
+   * Summary
+   * ========================= */
   function renderSummary() {
     const box = $("summaryBox");
     if (!box) return;
 
     const d = getFormData();
-    const planLabel = d.plan === "premium" ? "精品設計款" : d.plan === "free" ? "自由搭配款" : "-";
-    const schemeText = d.plan === "premium"
-      ? `精品色：${escapeHtml(d.premium_color || "-")}`
-      : `主色：${escapeHtml(d.color || "-")}｜版型：${escapeHtml(d.style || "-")}｜紙感：${escapeHtml(d.paper || "-")}`;
+    const planLabel =
+      d.plan === "premium"
+        ? "精品設計款"
+        : d.plan === "free"
+        ? "自由搭配款"
+        : "-";
+
+    const schemeText =
+      d.plan === "premium"
+        ? `精品色：${escapeHtml(d.premium_color || "-")}｜照片：5 張｜CTA：3 個`
+        : `主色：${escapeHtml(d.color || "-")}｜版型：${escapeHtml(d.style || "-")}｜紙感：${escapeHtml(d.paper || "-")}｜照片：2 張｜CTA：1 個`;
+
+    const photoCount = [
+      d.photo1_url,
+      d.photo2_url,
+      d.photo3_url,
+      d.photo4_url,
+      d.photo5_url
+    ].filter(Boolean).length;
 
     box.innerHTML = `
       <div class="card">
@@ -536,20 +755,27 @@
       <div class="card">
         <div>電話：${escapeHtml(d.phone || "-")}</div>
         <div>Email：${escapeHtml(d.email || "-")}</div>
-        <div>LINE：${escapeHtml(d.line_url || "-")}</div>
+        <div>LINE：${escapeHtml(d.line_url || d.line_oa || "-")}</div>
+        <div>微信：${escapeHtml(d.wechat_id || "-")}</div>
       </div>
 
       <div class="card">
         <div>頭像：${escapeHtml(d.avatar_url ? "已上傳" : "未上傳")}</div>
         <div>Logo：${escapeHtml(d.logo_url ? "已上傳" : "未上傳")}</div>
-        <div>照片牆：${escapeHtml([d.photo1_url, d.photo2_url, d.photo3_url, d.photo4_url, d.photo5_url].filter(Boolean).length + " 張")}</div>
+        <div>照片牆：${escapeHtml(String(photoCount) + " 張")}</div>
+      </div>
+
+      <div class="card">
+        <div>invite_code：${escapeHtml(d.invite_code || "-")}</div>
+        <div>reserved_uid：${escapeHtml(d.reserved_uid || "-")}</div>
+        <div>share_source：${escapeHtml(d.share_source || "-")}</div>
       </div>
     `;
   }
 
   /* =========================
-     Preview
-  ========================= */
+   * Preview
+   * ========================= */
   function renderPreview() {
     const data = getFormData();
 
@@ -592,7 +818,9 @@
     if (previewPhotoWall) {
       previewPhotoWall.innerHTML = "";
       const photoKeys = ["photo1", "photo2", "photo3", "photo4", "photo5"].filter(slotEnabled);
-      const urls = photoKeys.map((k) => imageState.files[k]?.previewUrl || "").filter(Boolean);
+      const urls = photoKeys
+        .map((k) => imageState.files[k]?.previewUrl || "")
+        .filter(Boolean);
 
       urls.forEach((url) => {
         const item = document.createElement("div");
@@ -614,8 +842,8 @@
   }
 
   /* =========================
-     Upload grid
-  ========================= */
+   * Upload grid
+   * ========================= */
   function renderUploadGrid() {
     if (!uploadGrid) return;
 
@@ -636,7 +864,7 @@
         <div class="uItemHead">
           <div>
             <strong>${escapeHtml(slot.label)}</strong>
-            <small>${slot.shape === "square" ? "正方形裁切，上傳後寫入 URL" : "照片牆橫圖，上傳後寫入 URL"}</small>
+            <small>${slot.shape === "square" ? "正方形裁切，套用後正式寫入 URL" : "照片牆橫圖，套用後正式寫入 URL"}</small>
           </div>
         </div>
 
@@ -698,6 +926,7 @@
     if (old?.previewUrl?.startsWith("blob:")) {
       try { URL.revokeObjectURL(old.previewUrl); } catch (_) {}
     }
+
     imageState.files[slotKey] = null;
     renderUploadGrid();
     renderPreview();
@@ -705,15 +934,20 @@
   }
 
   /* =========================
-     Crop system
-  ========================= */
+   * Crop system
+   * ========================= */
   function openCropModal() {
     if (cropModal) cropModal.classList.add("show");
+    document.body.classList.add("modal-open");
   }
 
   function closeCropModal() {
     if (cropModal) cropModal.classList.remove("show");
     imageState.crop.dragging = false;
+
+    if (!guideModal?.classList.contains("show") && !facadeModal?.classList.contains("show")) {
+      document.body.classList.remove("modal-open");
+    }
   }
 
   function getCanvasRect() {
@@ -738,8 +972,8 @@
   function clampCrop() {
     const c = imageState.crop;
     if (!c.img) return;
-    const rect = getCanvasRect();
 
+    const rect = getCanvasRect();
     const drawW = c.img.width * c.scale;
     const drawH = c.img.height * c.scale;
 
@@ -871,8 +1105,8 @@
     if (cropDesc) {
       cropDesc.textContent =
         slot.shape === "square"
-          ? "可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。套用後會直接上傳並寫入 URL。"
-          : "照片牆橫圖支援上下左右拖移與縮放，套用後會直接上傳並寫入 URL。";
+          ? "可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。套用後會直接上傳並寫入正式 URL。"
+          : "照片牆橫圖支援上下左右拖移與縮放，套用後會直接上傳並寫入正式 URL。";
     }
 
     openCropModal();
@@ -1026,10 +1260,9 @@
       if (e.target === cropModal) closeCropModal();
     });
   }
-
-  /* =========================
-     Submit helpers
-  ========================= */
+/* =========================
+   * Submit helpers
+   * ========================= */
   const GAS_URL = text($("gas")?.value) || DEFAULT_GAS_URL;
 
   function showProgress() {
@@ -1043,22 +1276,22 @@
     if (progressTitle) progressTitle.textContent = p >= 100 ? "完成" : "送出中";
   }
 
-  function buildServiceReplyText(cardId) {
-    const id = String(cardId || "").trim() || "（未取得ID）";
+  function buildServiceReplyText(leadId) {
+    const id = String(leadId || "").trim() || "（未取得申請編號）";
     return [
-      "您好，我已完成智慧名片資料填寫",
+      "您好，我已完成天使幸福智慧名片資料填寫。",
       "",
-      `我的資料ID是：${id}`,
+      `我的申請編號是：${id}`,
       "",
-      "請協助確認並進入製作流程，謝謝 🙏"
+      "請協助我確認並進入後續製作流程，謝謝 🙏"
     ].join("\n");
   }
 
-  function fillSuccessBox(cardId) {
-    if (successIdEl) successIdEl.textContent = cardId || "-";
-    if (successCopyText) successCopyText.value = buildServiceReplyText(cardId);
+  function fillSuccessBox(leadId) {
+    if (successIdEl) successIdEl.textContent = leadId || "-";
+    if (successCopyText) successCopyText.value = buildServiceReplyText(leadId);
     if (successBox) successBox.style.display = "block";
-    showToast("已完成，可直接複製並回覆客服");
+    showToast("已完成，可直接複製申請編號並回覆客服");
   }
 
   function enforcePlanRules(payload) {
@@ -1141,7 +1374,14 @@
       throw new Error("請填寫姓名");
     }
 
-    const contactOK = !!(data.phone || data.email || data.line_url || data.line_oa || data.wechat_id);
+    const contactOK = !!(
+      data.phone ||
+      data.email ||
+      data.line_url ||
+      data.line_oa ||
+      data.wechat_id
+    );
+
     if (!contactOK) {
       showPage(2);
       throw new Error("請至少填寫一種聯絡方式");
@@ -1167,15 +1407,45 @@
     }
   }
 
+  async function postJson(url, bodyObj) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify(bodyObj)
+    });
+
+    const raw = await res.text();
+    const json = parseMaybeJson(raw);
+
+    if (!res.ok) {
+      throw new Error(`伺服器回應錯誤：${res.status}`);
+    }
+    if (!json) {
+      throw new Error("回應解析失敗");
+    }
+    return json;
+  }
+
   /* =========================
-     Actions
-  ========================= */
+   * Actions
+   * ========================= */
   btnTest?.addEventListener("click", async () => {
     setStatus("測試中...");
     try {
-      const res = await fetch(`${GAS_URL}?action=ping`);
-      const json = await res.json();
-      setStatus("連線成功：" + (json?.status || "OK"));
+      const res = await fetch(`${GAS_URL}?action=ping&_v=${encodeURIComponent(VERSION)}`, {
+        method: "GET",
+        cache: "no-store"
+      });
+      const raw = await res.text();
+      const json = parseMaybeJson(raw);
+
+      if (!json || json.ok !== true) {
+        throw new Error(json?.error || json?.message || "ping 失敗");
+      }
+
+      setStatus("連線成功：" + (json?.version || "OK"));
       showToast("連線成功");
     } catch (err) {
       setStatus("連線失敗：" + err.message);
@@ -1229,49 +1499,27 @@
       setProgress(32, "確認圖片 URL...");
       await ensureAllImagesUploaded();
 
-      let payload = {
-        action: "create",
-        ...getFormData(),
-        form_source: "form",
-        source: "form"
-      };
+      let payload = getLeadPayload();
 
       setProgress(48, "套用方案規則...");
       payload = enforcePlanRules(payload);
 
-      setProgress(62, "連線伺服器...");
+      setProgress(62, "送出至 createLead...");
 
-      const res = await fetch(GAS_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
+      const json = await postJson(GAS_URL, payload);
 
-      if (!res.ok) {
-        throw new Error("伺服器回應錯誤：" + res.status);
+      if (!json || json.ok !== true) {
+        throw new Error(json?.error || json?.message || "建立 lead 失敗");
       }
 
-      setProgress(78, "解析回應...");
+      setProgress(82, "解析回應...");
 
-      let json;
-      try {
-        json = await res.json();
-      } catch (_) {
-        throw new Error("回應解析失敗");
-      }
-
-      if (!json || json.status !== "ok") {
-        throw new Error(json?.message || "建立失敗");
-      }
-
-      const cardId = json.id || json.card_id || "UNKNOWN";
+      const leadId = text(json.lead_id) || text(json.id) || "UNKNOWN";
 
       setProgress(100, "完成");
       setLoading(false);
       setStatus("送出成功");
-      fillSuccessBox(cardId);
+      fillSuccessBox(leadId);
       showPage(5);
     } catch (err) {
       console.error(err);
@@ -1285,8 +1533,8 @@
   });
 
   /* =========================
-     Live sync
-  ========================= */
+   * Live sync
+   * ========================= */
   function bindLiveSync() {
     document.querySelectorAll("input, textarea, select").forEach((el) => {
       el.addEventListener("input", () => {
@@ -1313,26 +1561,32 @@
     });
   }
 
-  bindLiveSync();
-
-  window.addEventListener("resize", () => {
-    if (cropModal?.classList.contains("show")) {
-      try {
-        drawCropCanvas();
-      } catch (_) {}
-    }
-  });
-
   /* =========================
-     Init
-  ========================= */
-  setStatus("尚未操作。");
-  syncFreeShadowFields();
-  renderSummary();
-  renderPreview();
-  renderUploadGrid();
-  applyPlanUI();
-  bindCropEvents();
-  showPage(0);
+   * Init
+   * ========================= */
+  function init() {
+    applyUrlParams();
+    bindAssistModals();
+
+    setStatus("尚未操作。");
+    syncFreeShadowFields();
+    renderSummary();
+    renderPreview();
+    renderUploadGrid();
+    applyPlanUI();
+    bindCropEvents();
+    bindLiveSync();
+    showPage(0);
+
+    window.addEventListener("resize", () => {
+      if (cropModal?.classList.contains("show")) {
+        try {
+          drawCropCanvas();
+        } catch (_) {}
+      }
+    });
+  }
+
+  init();
 
 })();
