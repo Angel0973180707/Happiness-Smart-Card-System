@@ -1366,12 +1366,18 @@ function renderCardExpiry_(p){
  * 公告跑馬燈
  * ========================================= */
 function normalizeAnnouncementItems_(payload){
+  if(Array.isArray(payload)){
+    return payload.filter(x => x && typeof x === "object");
+  }
+
   if(!payload || typeof payload !== "object") return [];
+
   const arr =
     (Array.isArray(payload.items) ? payload.items : null) ||
     (Array.isArray(payload.data) ? payload.data : null) ||
     (Array.isArray(payload.rows) ? payload.rows : null) ||
     [];
+
   return arr.filter(x => x && typeof x === "object");
 }
 
