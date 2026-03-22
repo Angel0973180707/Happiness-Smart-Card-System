@@ -1,15 +1,7 @@
-import {
-  initFirebase,
-  ensureAuth,
-  uploadAvatar,
-  uploadLogo,
-  uploadPhoto
-} from "./firebase.js";
-
 (() => {
   "use strict";
 
-  const VERSION = "v4.7-stable";
+  const VERSION = "v4.7-fix3";
   const GAS_URL =
     document.getElementById("gas")?.value ||
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -18,133 +10,54 @@ import {
   const MB = 1024 * 1024;
   const MAX_ACCEPT_FILE_SIZE = 20 * MB;
 
+  let firebaseApi = null;
+  async function getFirebaseApi() {
+    if (firebaseApi) return firebaseApi;
+    const mod = await import("./firebase.js");
+    if (
+      !mod ||
+      typeof mod.initFirebase !== "function" ||
+      typeof mod.ensureAuth !== "function" ||
+      typeof mod.uploadAvatar !== "function" ||
+      typeof mod.uploadLogo !== "function" ||
+      typeof mod.uploadPhoto !== "function"
+    ) {
+      throw new Error("firebase.js 載入失敗");
+    }
+    firebaseApi = mod;
+    return firebaseApi;
+  }
+
   const PLAN_RULES = {
     free: {
       key: "free",
       label: "自由搭配款",
       maxPhotos: 2,
-      maxCtas: 1,
-      showFreeFields: true,
-      showPremiumField: false
+      maxCtas: 1
     },
     premium: {
       key: "premium",
       label: "精品設計款",
       maxPhotos: 5,
-      maxCtas: 3,
-      showFreeFields: false,
-      showPremiumField: true
+      maxCtas: 3
     }
   };
 
   const SMART_PROFILE = {
-    small: { maxLong: 1800, maxShort: 1800, previewQuality: 0.90, outputQuality: 0.88, label: "輕壓縮" },
-    medium: { maxLong: 1500, maxShort: 1500, previewQuality: 0.86, outputQuality: 0.82, label: "中壓縮" },
-    large: { maxLong: 1200, maxShort: 1200, previewQuality: 0.82, outputQuality: 0.76, label: "強壓縮" }
+    small: { maxLong: 1800, maxShort: 1800, previewQuality: 0.9, outputQuality: 0.88 },
+    medium: { maxLong: 1500, maxShort: 1500, previewQuality: 0.86, outputQuality: 0.82 },
+    large: { maxLong: 1200, maxShort: 1200, previewQuality: 0.82, outputQuality: 0.76 }
   };
 
   const IMAGE_SLOTS = {
-    avatar: {
-      slot: "avatar",
-      label: "頭像",
-      key: "avatar_url",
-      cropShape: "square",
-      targetWidth: 1200,
-      targetHeight: 1200
-    },
-    logo: {
-      slot: "logo",
-      label: "Logo",
-      key: "logo_url",
-      cropShape: "square",
-      targetWidth: 1200,
-      targetHeight: 1200
-    },
-    photo1: {
-      slot: "photo1",
-      label: "照片 1",
-      key: "photo1_url",
-      cropShape: "wide",
-      targetWidth: 1600,
-      targetHeight: 1000
-    },
-    photo2: {
-      slot: "photo2",
-      label: "照片 2",
-      key: "photo2_url",
-      cropShape: "wide",
-      targetWidth: 1600,
-      targetHeight: 1000
-    },
-    photo3: {
-      slot: "photo3",
-      label: "照片 3",
-      key: "photo3_url",
-      cropShape: "wide",
-      targetWidth: 1600,
-      targetHeight: 1000
-    },
-    photo4: {
-      slot: "photo4",
-      label: "照片 4",
-      key: "photo4_url",
-      cropShape: "wide",
-      targetWidth: 1600,
-      targetHeight: 1000
-    },
-    photo5: {
-      slot: "photo5",
-      label: "照片 5",
-      key: "photo5_url",
-      cropShape: "wide",
-      targetWidth: 1600,
-      targetHeight: 1000
-    }
+    avatar: { slot: "avatar", label: "頭像", key: "avatar_url", cropShape: "square", targetWidth: 1200, targetHeight: 1200 },
+    logo:   { slot: "logo",   label: "Logo", key: "logo_url",   cropShape: "square", targetWidth: 1200, targetHeight: 1200 },
+    photo1: { slot: "photo1", label: "照片 1", key: "photo1_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 },
+    photo2: { slot: "photo2", label: "照片 2", key: "photo2_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 },
+    photo3: { slot: "photo3", label: "照片 3", key: "photo3_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 },
+    photo4: { slot: "photo4", label: "照片 4", key: "photo4_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 },
+    photo5: { slot: "photo5", label: "照片 5", key: "photo5_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 }
   };
-
-  const TEXT_FIELDS = [
-    "plan",
-    "color",
-    "style",
-    "paper",
-    "free_color",
-    "free_style",
-    "free_paper",
-    "premium_color",
-    "name",
-    "unit",
-    "title",
-    "slogan",
-    "services",
-    "experience",
-    "phone",
-    "email",
-    "line_url",
-    "line_oa",
-    "wechat_id",
-    "website",
-    "address",
-    "video1",
-    "video2",
-    "video3",
-    "social1",
-    "social2",
-    "social3",
-    "cta_text_1",
-    "cta_link_1",
-    "cta_text_2",
-    "cta_link_2",
-    "cta_text_3",
-    "cta_link_3",
-    "invite_code",
-    "reserved_uid",
-    "tenant",
-    "share_card_id",
-    "share_agent_id",
-    "share_source",
-    "share_channel",
-    "share_visit_id"
-  ];
 
   const PHOTO_ORDER = ["photo1", "photo2", "photo3", "photo4", "photo5"];
 
@@ -204,7 +117,6 @@ import {
 
     previewCard: document.getElementById("livePreviewCard"),
     previewAvatar: document.getElementById("previewAvatar"),
-    previewAvatarWrap: document.getElementById("previewAvatarWrap"),
     previewLogo: document.getElementById("previewLogo"),
     previewLogoWrap: document.getElementById("previewLogoWrap"),
     previewName: document.getElementById("previewName"),
@@ -282,15 +194,15 @@ import {
     updateLivePreview();
     buildSummary();
     hideSuccess();
+    setProgress(0, "尚未送出");
+    setStatus("請依序填寫。");
   }
 
   function createUploadGrid() {
     if (!el.uploadGrid) return;
-
     el.uploadGrid.innerHTML = "";
 
     Object.values(IMAGE_SLOTS).forEach((cfg) => {
-      const isSquare = cfg.cropShape === "square";
       const item = document.createElement("div");
       item.className = "uItem";
       item.id = `slotWrap_${cfg.slot}`;
@@ -301,7 +213,7 @@ import {
             <small id="slotStatus_${cfg.slot}">尚未選擇</small>
           </div>
         </div>
-        <div class="thumb ${isSquare ? "square" : ""}" id="thumb_${cfg.slot}">
+        <div class="thumb ${cfg.cropShape === "square" ? "square" : ""}" id="thumb_${cfg.slot}">
           尚未選擇圖片
         </div>
         <div class="miniRow">
@@ -323,13 +235,13 @@ import {
 
         if (file.size > MAX_ACCEPT_FILE_SIZE) {
           input.value = "";
-          setStatus("圖片太大了，請選擇 20MB 以下的圖片。");
+          setStatus("圖片太大了，請選擇 20MB 以下圖片。");
           return;
         }
 
         if (!isPhotoSlotAllowed(cfg.slot)) {
           input.value = "";
-          setStatus("目前這個方案沒有開放這個照片位置。");
+          setStatus("這個方案目前沒有開放這個照片位置。");
           return;
         }
 
@@ -346,29 +258,20 @@ import {
       const pickBtn = ev.target.closest("[data-pick]");
       if (pickBtn) {
         const slot = pickBtn.getAttribute("data-pick");
-        if (!isPhotoSlotAllowed(slot)) {
-          setStatus("目前這個方案沒有開放這個照片位置。");
-          return;
-        }
-        document.getElementById(`file_${slot}`)?.click();
+        triggerFilePick(slot);
         return;
       }
 
       const editBtn = ev.target.closest("[data-edit]");
       if (editBtn) {
         const slot = editBtn.getAttribute("data-edit");
-        if (!isPhotoSlotAllowed(slot)) {
-          setStatus("目前這個方案沒有開放這個照片位置。");
-          return;
-        }
-        document.getElementById(`file_${slot}`)?.click();
+        triggerFilePick(slot);
         return;
       }
 
       const clearBtn = ev.target.closest("[data-clear]");
       if (clearBtn) {
-        const slot = clearBtn.getAttribute("data-clear");
-        clearSlot(slot);
+        clearSlot(clearBtn.getAttribute("data-clear"));
       }
     });
   }
@@ -383,13 +286,10 @@ import {
       [el.openFacadeBtn, () => openModal(el.facadeModal)],
       [el.closeFacadeBtn, () => closeModal(el.facadeModal)],
       [el.facadeBackBtn, () => closeModal(el.facadeModal)],
-      [
-        el.guideGoFacadeBtn,
-        () => {
-          closeModal(el.guideModal);
-          openModal(el.facadeModal);
-        }
-      ]
+      [el.guideGoFacadeBtn, () => {
+        closeModal(el.guideModal);
+        openModal(el.facadeModal);
+      }]
     ].forEach(([node, fn]) => node?.addEventListener("click", fn));
 
     [el.guideModal, el.facadeModal, el.cropModal].forEach((modal) => {
@@ -406,23 +306,21 @@ import {
       updatePage();
     });
 
-    el.nextBtn?.addEventListener("click", async () => {
+    el.nextBtn?.addEventListener("click", () => {
       if (state.currentPage < state.totalPages - 1) {
-        const ok = validateCurrentPage(state.currentPage);
-        if (!ok) return;
+        if (!validateCurrentPage(state.currentPage)) return;
         state.currentPage += 1;
         updatePage();
         if (state.currentPage === 5) buildSummary();
       } else {
-        el.btnSubmit?.click();
+        submitForm();
       }
     });
   }
 
   function bindPlanEvents() {
     el.plan?.addEventListener("change", () => {
-      const plan = normalizePlan(el.plan.value);
-      applyPlanRules(plan, true);
+      applyPlanRules(normalizePlan(el.plan.value), true);
       syncFreeMirrorFields();
       updateLivePreview();
       buildSummary();
@@ -465,9 +363,8 @@ import {
     el.btnReset?.addEventListener("click", resetForm);
 
     el.copyBtn?.addEventListener("click", async () => {
-      const textToCopy = el.successCopyText?.value || "";
       try {
-        await copyText(textToCopy);
+        await copyText(el.successCopyText?.value || "");
         setStatus("已複製申請編號與客服訊息。");
       } catch {
         setStatus("請手動複製成功區內容。");
@@ -488,10 +385,8 @@ import {
 
     window.addEventListener("pointermove", (ev) => {
       if (!state.drag.active || !state.cropper.image) return;
-
       const dx = ev.clientX - state.drag.startX;
       const dy = ev.clientY - state.drag.startY;
-
       state.cropper.offsetX = state.drag.startOffsetX + dx;
       state.cropper.offsetY = state.drag.startOffsetY + dy;
       renderCropCanvas();
@@ -521,17 +416,9 @@ import {
       renderCropCanvas();
     });
 
-    el.cropReset?.addEventListener("click", () => {
-      resetCropperView();
-    });
-
-    el.cropCancel?.addEventListener("click", () => {
-      closeModal(el.cropModal);
-    });
-
-    el.cropApply?.addEventListener("click", async () => {
-      await applyCropAndUpload();
-    });
+    el.cropReset?.addEventListener("click", resetCropperView);
+    el.cropCancel?.addEventListener("click", () => closeModal(el.cropModal));
+    el.cropApply?.addEventListener("click", applyCropAndUpload);
 
     window.addEventListener("resize", () => {
       if (el.cropModal?.classList.contains("show") && state.cropper.image) {
@@ -542,22 +429,13 @@ import {
 
   function readUrlParams() {
     const url = new URL(location.href);
-    const invite = text(url.searchParams.get("invite"));
-    const ref = text(url.searchParams.get("ref"));
-    const reservedUid = text(url.searchParams.get("reserved_uid"));
-    const shareCardId = text(url.searchParams.get("share_card_id"));
-    const shareAgentId = text(url.searchParams.get("share_agent_id"));
-    const shareSource = text(url.searchParams.get("share_source") || ref);
-    const shareChannel = text(url.searchParams.get("share_channel"));
-    const shareVisitId = text(url.searchParams.get("share_visit_id"));
-
-    setFieldValue("invite_code", invite);
-    setFieldValue("reserved_uid", reservedUid);
-    setFieldValue("share_card_id", shareCardId);
-    setFieldValue("share_agent_id", shareAgentId);
-    setFieldValue("share_source", shareSource);
-    setFieldValue("share_channel", shareChannel);
-    setFieldValue("share_visit_id", shareVisitId);
+    setFieldValue("invite_code", text(url.searchParams.get("invite")));
+    setFieldValue("reserved_uid", text(url.searchParams.get("reserved_uid")));
+    setFieldValue("share_card_id", text(url.searchParams.get("share_card_id")));
+    setFieldValue("share_agent_id", text(url.searchParams.get("share_agent_id")));
+    setFieldValue("share_source", text(url.searchParams.get("share_source") || url.searchParams.get("ref")));
+    setFieldValue("share_channel", text(url.searchParams.get("share_channel")));
+    setFieldValue("share_visit_id", text(url.searchParams.get("share_visit_id")));
   }
 
   function normalizePlan(v) {
@@ -575,9 +453,8 @@ import {
 
     if (updateValue && el.plan) el.plan.value = rules.key;
 
-    toggleEl(el.freeStyleGroup, rules.showFreeFields);
-    toggleEl(el.premiumColorCard, rules.showPremiumField);
-
+    toggleEl(el.freeStyleGroup, rules.key === "free");
+    toggleEl(el.premiumColorCard, rules.key === "premium");
     toggleEl(el.ctaRow2, rules.maxCtas >= 2);
     toggleEl(el.ctaRow3, rules.maxCtas >= 3);
 
@@ -652,14 +529,8 @@ import {
   }
 
   function updatePage() {
-    el.pages.forEach((page, idx) => {
-      page.classList.toggle("active", idx === state.currentPage);
-    });
-
-    const dots = Array.from(el.navDots?.children || []);
-    dots.forEach((dot, idx) => {
-      dot.classList.toggle("active", idx === state.currentPage);
-    });
+    el.pages.forEach((page, idx) => page.classList.toggle("active", idx === state.currentPage));
+    Array.from(el.navDots?.children || []).forEach((dot, idx) => dot.classList.toggle("active", idx === state.currentPage));
 
     if (el.prevBtn) el.prevBtn.disabled = state.currentPage === 0;
     if (el.nextBtn) el.nextBtn.textContent = state.currentPage === state.totalPages - 1 ? "送出資料" : "下一步";
@@ -695,13 +566,11 @@ import {
           getFieldValue("line_oa"),
           getFieldValue("wechat_id")
         ].some(Boolean);
-
         if (!contactOk) throw new Error("請至少留一種聯絡方式。");
       }
 
       if (pageIndex === 3) {
-        const maxCtas = state.rules.maxCtas;
-        for (let i = 1; i <= maxCtas; i++) {
+        for (let i = 1; i <= state.rules.maxCtas; i++) {
           const t = getFieldValue(`cta_text_${i}`);
           const l = getFieldValue(`cta_link_${i}`);
           if ((t && !l) || (!t && l)) {
@@ -721,17 +590,11 @@ import {
   function updateLivePreview() {
     if (!el.previewCard) return;
 
-    const plan = state.plan;
-    const color = getFieldValue("color") || "c1";
-    const style = getFieldValue("style") || "s1";
-    const paper = getFieldValue("paper") || "f1";
-    const premium = getFieldValue("premium_color") || "p1";
-
-    el.previewCard.dataset.plan = plan;
-    el.previewCard.dataset.color = color;
-    el.previewCard.dataset.style = style;
-    el.previewCard.dataset.paper = paper;
-    el.previewCard.dataset.premium = premium;
+    el.previewCard.dataset.plan = state.plan;
+    el.previewCard.dataset.color = getFieldValue("color") || "c1";
+    el.previewCard.dataset.style = getFieldValue("style") || "s1";
+    el.previewCard.dataset.paper = getFieldValue("paper") || "f1";
+    el.previewCard.dataset.premium = getFieldValue("premium_color") || "p1";
 
     el.previewName.textContent = getFieldValue("name") || "您的姓名";
     el.previewUnit.textContent = getFieldValue("unit");
@@ -740,10 +603,8 @@ import {
 
     const services = getFieldValue("services");
     const experience = getFieldValue("experience");
-
     el.previewServices.textContent = services;
     el.previewExperience.textContent = experience;
-
     toggleEl(el.previewServicesBlock, !!services);
     toggleEl(el.previewExperienceBlock, !!experience);
 
@@ -788,7 +649,6 @@ import {
 
     const rows = [
       ["方案", state.rules.label],
-      ["主色 / 精品色", state.plan === "free" ? getTextLabel("color", getFieldValue("color")) : getTextLabel("premium_color", getFieldValue("premium_color"))],
       ["姓名 / 品牌", getFieldValue("name")],
       ["單位", getFieldValue("unit")],
       ["職稱", getFieldValue("title")],
@@ -816,21 +676,18 @@ import {
       const l = getFieldValue(`cta_link_${i}`);
       if (t || l) ctaRows.push(`${t || "未填寫"}｜${l || "未填寫"}`);
     }
-    rows.push(["行動按鈕", ctaRows.length ? ctaRows.join("\n") : "未填寫"]);
+    rows.push(["按鈕", ctaRows.length ? ctaRows.join("\n") : "未填寫"]);
 
-    el.summaryBox.innerHTML = rows
-      .map(([label, value]) => `
-        <div class="card" style="margin-bottom:0;">
-          <label style="margin-bottom:6px;">${escapeHtml(label)}</label>
-          <div class="helperText" style="color:rgba(255,255,255,.9);">${escapeHtml(value || "未填寫")}</div>
-        </div>
-      `)
-      .join("");
+    el.summaryBox.innerHTML = rows.map(([label, value]) => `
+      <div class="card" style="margin-bottom:0;">
+        <label style="margin-bottom:6px;">${escapeHtml(label)}</label>
+        <div class="helperText" style="color:rgba(255,255,255,.9);">${escapeHtml(value || "未填寫")}</div>
+      </div>
+    `).join("");
   }
 
   async function testConnection() {
     if (state.busy) return;
-
     try {
       setBusy(true);
       setProgress(20, "檢查連線中…");
@@ -841,10 +698,7 @@ import {
       url.searchParams.set("_t", String(Date.now()));
 
       const res = await fetchJson(url.toString());
-
-      if (!res || res.ok !== true) {
-        throw new Error(readError(res) || "連線失敗");
-      }
+      if (!res || res.ok !== true) throw new Error(readError(res) || "連線失敗");
 
       setProgress(100, "連線正常");
       setStatus("連線正常，可以送出資料。");
@@ -859,23 +713,21 @@ import {
 
   async function ensureFirebaseReady() {
     if (state.firebaseReady) return;
-    initFirebase();
-    await ensureAuth();
+    const fb = await getFirebaseApi();
+    fb.initFirebase();
+    await fb.ensureAuth();
     state.firebaseReady = true;
   }
 
   async function openCropper(slot, file) {
     await ensureFirebaseReady();
-
     const cfg = IMAGE_SLOTS[slot];
     if (!cfg) throw new Error("找不到圖片設定");
 
     const prepared = await prepareImageForCrop(file);
 
     if (state.cropper.imageUrl) {
-      try {
-        URL.revokeObjectURL(state.cropper.imageUrl);
-      } catch {}
+      try { URL.revokeObjectURL(state.cropper.imageUrl); } catch {}
     }
 
     const objectUrl = URL.createObjectURL(prepared.blob);
@@ -895,7 +747,7 @@ import {
     el.cropDesc.textContent = "可拖移位置，也可以放大、縮小，再按套用。";
     el.cropMeta.textContent =
       cfg.cropShape === "square"
-        ? "頭像與 Logo 建議主體置中，畫面看起來會更穩。"
+        ? "頭像與 Logo 建議主體置中。"
         : "照片可先縮小保留更多畫面，也可放大讓主體更明顯。";
 
     el.cropStage.classList.toggle("ratio-square", cfg.cropShape === "square");
@@ -917,7 +769,6 @@ import {
 
     el.cropCanvas.width = width;
     el.cropCanvas.height = height;
-
     cp.viewportW = width;
     cp.viewportH = height;
 
@@ -958,7 +809,6 @@ import {
 
     const drawW = cp.imageW * cp.scale;
     const drawH = cp.imageH * cp.scale;
-
     const maxX = Math.max(0, (drawW - cp.viewportW) / 2 + cp.viewportW * 0.3);
     const maxY = Math.max(0, (drawH - cp.viewportH) / 2 + cp.viewportH * 0.3);
 
@@ -1015,7 +865,6 @@ import {
     const scaleToOutput = cfg.targetWidth / cp.viewportW;
     const drawW = cp.imageW * cp.scale * scaleToOutput;
     const drawH = cp.imageH * cp.scale * scaleToOutput;
-
     const centerX = cfg.targetWidth / 2;
     const centerY = cfg.targetHeight / 2;
 
@@ -1031,29 +880,41 @@ import {
   }
 
   async function uploadBySlot(slot, blob) {
-    if (slot === "avatar") return await uploadAvatar("TMP", blob);
-    if (slot === "logo") return await uploadLogo("TMP", blob);
+    const fb = await getFirebaseApi();
+    if (slot === "avatar") return await fb.uploadAvatar("TMP", blob);
+    if (slot === "logo") return await fb.uploadLogo("TMP", blob);
     if (slot.startsWith("photo")) {
       const idx = Number(slot.replace("photo", ""));
-      return await uploadPhoto("TMP", blob, idx);
+      return await fb.uploadPhoto("TMP", blob, idx);
     }
     throw new Error("未知的圖片欄位");
+  }
+
+  function triggerFilePick(slot) {
+    if (!IMAGE_SLOTS[slot]) return;
+    if (!isPhotoSlotAllowed(slot)) {
+      setStatus("這個方案目前沒有開放這個照片位置。");
+      return;
+    }
+    const input = document.getElementById(`file_${slot}`);
+    if (!input) return;
+    input.value = "";
+    input.click();
   }
 
   function clearSlot(slot) {
     const cfg = IMAGE_SLOTS[slot];
     if (!cfg) return;
-
     if (!isPhotoSlotAllowed(slot)) {
-      setStatus("目前這個方案沒有開放這個照片位置。");
+      setStatus("這個方案目前沒有開放這個照片位置。");
       return;
     }
 
     setFieldValue(cfg.key, "");
     setSlotPreview(slot, "");
     setSlotStatus(slot, "已清除");
-    const fileInput = document.getElementById(`file_${slot}`);
-    if (fileInput) fileInput.value = "";
+    const input = document.getElementById(`file_${slot}`);
+    if (input) input.value = "";
     updateLivePreview();
     buildSummary();
     setStatus(`${cfg.label} 已清除。`);
@@ -1062,7 +923,6 @@ import {
   function setSlotPreview(slot, url) {
     const thumb = document.getElementById(`thumb_${slot}`);
     if (!thumb) return;
-
     if (url) {
       thumb.innerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(IMAGE_SLOTS[slot].label)}" style="width:100%;height:100%;object-fit:contain;display:block;background:rgba(255,255,255,.02);">`;
     } else {
@@ -1107,23 +967,13 @@ import {
 
       const res = await fetchJson(GAS_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       });
 
-      if (!res || res.ok !== true) {
-        throw new Error(readError(res) || "送出失敗");
-      }
+      if (!res || res.ok !== true) throw new Error(readError(res) || "送出失敗");
 
-      const leadId = text(
-        res.lead_id ||
-        res.id ||
-        res.data?.lead_id ||
-        res.request_id
-      );
-
+      const leadId = text(res.lead_id || res.id || res.data?.lead_id || res.request_id);
       const successText = buildSuccessReply(leadId);
 
       setProgress(100, "送出完成");
@@ -1146,7 +996,6 @@ import {
 
     return {
       action: "createLead",
-
       invite_code: getFieldValue("invite_code"),
       reserved_uid: getFieldValue("reserved_uid"),
       tenant: getFieldValue("tenant") || "angel",
@@ -1232,10 +1081,15 @@ import {
 
   function resetForm() {
     if (state.busy) return;
-
     if (!window.confirm("確定要重設這份表單嗎？")) return;
 
-    TEXT_FIELDS.forEach((id) => setFieldValue(id, ""));
+    [
+      "plan","color","style","paper","free_color","free_style","free_paper","premium_color",
+      "name","unit","title","slogan","services","experience","phone","email","line_url","line_oa",
+      "wechat_id","website","address","video1","video2","video3","social1","social2","social3",
+      "cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3"
+    ].forEach((id) => setFieldValue(id, ""));
+
     Object.values(IMAGE_SLOTS).forEach((cfg) => {
       setFieldValue(cfg.key, "");
       setSlotPreview(cfg.slot, "");
@@ -1266,7 +1120,6 @@ import {
     });
 
     const raw = await res.text();
-
     try {
       return JSON.parse(raw);
     } catch {
@@ -1291,26 +1144,14 @@ import {
 
   async function prepareImageForCrop(file) {
     const profile = getSmartProfile(file.size || 0);
-
     const arrayBuffer = await file.arrayBuffer();
     const orientation = getJpegOrientation(arrayBuffer);
-
     const rawDataUrl = await readFileAsDataURL(file);
     const original = await loadImage(rawDataUrl);
 
     const correctedCanvas = drawImageWithOrientation(original, orientation);
-    const normalizedCanvas = shrinkCanvasIfNeeded(
-      correctedCanvas,
-      profile.maxLong,
-      profile.maxShort
-    );
-
-    const previewBlob = await canvasToBlob(
-      normalizedCanvas,
-      "image/jpeg",
-      profile.previewQuality
-    );
-
+    const normalizedCanvas = shrinkCanvasIfNeeded(correctedCanvas, profile.maxLong, profile.maxShort);
+    const previewBlob = await canvasToBlob(normalizedCanvas, "image/jpeg", profile.previewQuality);
     return { blob: previewBlob, profile };
   }
 
@@ -1325,7 +1166,6 @@ import {
     const h = canvas.height;
     const longSide = Math.max(w, h);
     const shortSide = Math.min(w, h);
-
     if (longSide <= maxLong && shortSide <= maxShort) return canvas;
 
     const ratio = Math.min(maxLong / longSide, maxShort / shortSide);
@@ -1345,7 +1185,6 @@ import {
   function drawImageWithOrientation(img, orientation) {
     const w = img.naturalWidth || img.width;
     const h = img.naturalHeight || img.height;
-
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
@@ -1358,37 +1197,14 @@ import {
     }
 
     switch (orientation) {
-      case 2:
-        ctx.translate(w, 0);
-        ctx.scale(-1, 1);
-        break;
-      case 3:
-        ctx.translate(w, h);
-        ctx.rotate(Math.PI);
-        break;
-      case 4:
-        ctx.translate(0, h);
-        ctx.scale(1, -1);
-        break;
-      case 5:
-        ctx.rotate(0.5 * Math.PI);
-        ctx.scale(1, -1);
-        break;
-      case 6:
-        ctx.rotate(0.5 * Math.PI);
-        ctx.translate(0, -h);
-        break;
-      case 7:
-        ctx.rotate(0.5 * Math.PI);
-        ctx.translate(w, -h);
-        ctx.scale(-1, 1);
-        break;
-      case 8:
-        ctx.rotate(-0.5 * Math.PI);
-        ctx.translate(-w, 0);
-        break;
-      default:
-        break;
+      case 2: ctx.translate(w, 0); ctx.scale(-1, 1); break;
+      case 3: ctx.translate(w, h); ctx.rotate(Math.PI); break;
+      case 4: ctx.translate(0, h); ctx.scale(1, -1); break;
+      case 5: ctx.rotate(0.5 * Math.PI); ctx.scale(1, -1); break;
+      case 6: ctx.rotate(0.5 * Math.PI); ctx.translate(0, -h); break;
+      case 7: ctx.rotate(0.5 * Math.PI); ctx.translate(w, -h); ctx.scale(-1, 1); break;
+      case 8: ctx.rotate(-0.5 * Math.PI); ctx.translate(-w, 0); break;
+      default: break;
     }
 
     ctx.drawImage(img, 0, 0);
@@ -1421,8 +1237,7 @@ import {
 
           for (let i = 0; i < tags; i++) {
             const tagOffset = offset + i * 12;
-            const tag = view.getUint16(tagOffset, little);
-            if (tag === 0x0112) {
+            if (view.getUint16(tagOffset, little) === 0x0112) {
               return view.getUint16(tagOffset + 8, little);
             }
           }
@@ -1443,67 +1258,6 @@ import {
     let out = "";
     for (let i = 0; i < length; i++) out += String.fromCharCode(view.getUint8(start + i));
     return out;
-  }
-
-  function getFieldValue(id) {
-    const node = document.getElementById(id);
-    return node ? text(node.value) : "";
-  }
-
-  function setFieldValue(id, value) {
-    const node = document.getElementById(id);
-    if (node) node.value = value || "";
-  }
-
-  function getTextLabel(type, value) {
-    const map = {
-      color: { c1: "粉", c2: "藍", c3: "橘", c4: "紫", c5: "綠" },
-      style: { s1: "正拱", s2: "平直", s3: "晨曦" },
-      paper: { f1: "棉紙", f2: "顆粒", f3: "亞麻" },
-      premium_color: { p1: "胭脂紅", p2: "酒紅", p3: "深藍", p4: "霧紫", p5: "藍灰", p6: "金箔", p7: "褐碳" }
-    };
-    return map[type]?.[value] || value || "未選擇";
-  }
-
-  function setBusy(busy) {
-    state.busy = !!busy;
-    [
-      el.prevBtn, el.nextBtn, el.btnSubmit, el.btnReset, el.btnTest,
-      el.cropApply, el.cropCancel, el.cropCenter, el.cropReset,
-      el.cropZoomIn, el.cropZoomOut
-    ].forEach((node) => {
-      if (node) node.disabled = !!busy;
-    });
-
-    document.querySelectorAll("[data-pick],[data-edit],[data-clear]").forEach((btn) => {
-      btn.disabled = !!busy;
-    });
-  }
-
-  function setProgress(percent, textMessage) {
-    const n = Math.max(0, Math.min(100, Number(percent) || 0));
-    if (el.progressWrap) el.progressWrap.style.display = "";
-    if (el.progressFill) el.progressFill.style.width = `${n}%`;
-    if (el.progressPercent) el.progressPercent.textContent = `${Math.round(n)}%`;
-    if (el.progressText) el.progressText.textContent = textMessage || "";
-    if (el.progressTitle) el.progressTitle.textContent = n >= 100 ? "完成" : "處理中";
-  }
-
-  function setStatus(message) {
-    if (el.status) el.status.textContent = message || "";
-  }
-
-  function openModal(modal) {
-    if (!modal) return;
-    modal.classList.add("show");
-    document.body.classList.add("modal-open");
-  }
-
-  function closeModal(modal) {
-    if (!modal) return;
-    modal.classList.remove("show");
-    const stillOpen = document.querySelector(".assistModal.show, .cropModal.show");
-    if (!stillOpen) document.body.classList.remove("modal-open");
   }
 
   async function loadImage(src) {
@@ -1546,6 +1300,55 @@ import {
     ta.select();
     document.execCommand("copy");
     ta.remove();
+  }
+
+  function getFieldValue(id) {
+    const node = document.getElementById(id);
+    return node ? text(node.value) : "";
+  }
+
+  function setFieldValue(id, value) {
+    const node = document.getElementById(id);
+    if (node) node.value = value || "";
+  }
+
+  function setBusy(busy) {
+    state.busy = !!busy;
+    [
+      el.prevBtn, el.nextBtn, el.btnSubmit, el.btnReset, el.btnTest,
+      el.cropApply, el.cropCancel, el.cropCenter, el.cropReset, el.cropZoomIn, el.cropZoomOut
+    ].forEach((node) => { if (node) node.disabled = !!busy; });
+
+    document.querySelectorAll("[data-pick],[data-edit],[data-clear]").forEach((btn) => {
+      btn.disabled = !!busy;
+    });
+  }
+
+  function setProgress(percent, textMessage) {
+    const n = Math.max(0, Math.min(100, Number(percent) || 0));
+    if (el.progressWrap) el.progressWrap.style.display = "";
+    if (el.progressFill) el.progressFill.style.width = `${n}%`;
+    if (el.progressPercent) el.progressPercent.textContent = `${Math.round(n)}%`;
+    if (el.progressText) el.progressText.textContent = textMessage || "";
+    if (el.progressTitle) el.progressTitle.textContent = n >= 100 ? "完成" : "處理中";
+  }
+
+  function setStatus(message) {
+    if (el.status) el.status.textContent = message || "";
+  }
+
+  function openModal(modal) {
+    if (!modal) return;
+    modal.classList.add("show");
+    document.body.classList.add("modal-open");
+  }
+
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove("show");
+    if (modal === el.cropModal) state.drag.active = false;
+    const stillOpen = document.querySelector(".assistModal.show, .cropModal.show");
+    if (!stillOpen) document.body.classList.remove("modal-open");
   }
 
   function autoGrow(node) {
