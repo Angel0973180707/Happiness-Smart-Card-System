@@ -2092,3 +2092,55 @@ window.addEventListener("load", ()=>{
     if(titleEl) titleEl.textContent = "";
   }
 })();
+/* =========================
+   公告外掛（安全版）
+========================= */
+(function(){
+
+  const GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
+
+  async function loadAnnouncements(){
+    try{
+      const res = await fetch(GAS + "?action=getAnnouncements");
+      const payload = await res.json();
+
+      const items =
+        payload.announcements ||
+        payload.items ||
+        payload.data ||
+        payload.rows ||
+        [];
+
+      if(!items.length) return;
+
+      renderMarquee(items);
+
+    }catch(e){
+      console.warn("公告失敗", e);
+    }
+  }
+
+  function renderMarquee(items){
+    const texts = items
+      .filter(x => x && x.status === "active")
+      .map(x => x.content)
+      .filter(Boolean);
+
+    if(!texts.length) return;
+
+    const wrap = document.createElement("div");
+    wrap.className = "marquee-wrap";
+
+    const inner = document.createElement("div");
+    inner.className = "marquee";
+    inner.innerHTML = texts.join("　✦　");
+
+    wrap.appendChild(inner);
+
+    document.body.appendChild(wrap);
+  }
+
+  // 等頁面載入後執行（不干擾你原本邏輯）
+  window.addEventListener("load", loadAnnouncements);
+
+})();
