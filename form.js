@@ -1,23 +1,20 @@
 /* =========================================
  * 天使幸福智慧名片系統
- * form.js v4.7-align
+ * form.js v4.7-final
  * COMPLETE OVERWRITE
  * -----------------------------------------
- * 對齊目標：
  * 1. form -> createLead
- * 2. 從網址讀 invite / reserved_uid / share_*
- * 3. 成功判斷改為 json.ok === true
+ * 2. 讀取 invite / reserved_uid / tenant / share_*
+ * 3. 成功判斷 json.ok === true
  * 4. 成功後顯示 lead_id
  * 5. 暫不前端 createCard
  * 6. 保留圖片正式欄位：
  *    avatar_url / logo_url / photo1_url ~ photo5_url
- * 7. 保留圖片裁切 / 壓縮 / Firebase 上傳體驗
+ * 7. 保留圖片裁切 / 壓縮 / Firebase 上傳
  * 8. 新增：
  *    - 填表說明 modal
  *    - 首頁門面參考 modal（不跳離表單）
- * 9. 方案分流：
- *    free = 2 photos / 1 CTA
- *    premium = 5 photos / 3 CTA
+ * 9. free / premium 分流
  * ========================================= */
 
 (function () {
@@ -42,9 +39,9 @@
     if (el) el.textContent = value == null ? "" : String(value);
   }
 
-  function showEl(el, on = true, displayValue = "") {
+  function showEl(el, on = true) {
     if (!el) return;
-    el.style.display = on ? displayValue : "none";
+    el.style.display = on ? "" : "none";
   }
 
   function clamp(num, min, max) {
@@ -57,11 +54,6 @@
     if (/^https?:\/\//i.test(s)) return s;
     if (/^www\./i.test(s)) return "https://" + s;
     return s;
-  }
-
-  function toBoolean(v) {
-    const s = String(v == null ? "" : v).trim().toLowerCase();
-    return s === "true" || s === "1" || s === "yes" || s === "y";
   }
 
   function readFileAsDataURL(file) {
@@ -100,7 +92,7 @@
         await navigator.clipboard.writeText(v);
         return true;
       }
-    } catch (_) {}
+    } catch {}
 
     try {
       const ta = document.createElement("textarea");
@@ -115,7 +107,7 @@
       const ok = document.execCommand("copy");
       ta.remove();
       return !!ok;
-    } catch (_) {
+    } catch {
       return false;
     }
   }
@@ -123,13 +115,13 @@
   function parseMaybeJson(raw) {
     try {
       return JSON.parse(raw);
-    } catch (_) {
+    } catch {
       const start = String(raw || "").indexOf("{");
       const end = String(raw || "").lastIndexOf("}");
       if (start >= 0 && end > start) {
         try {
           return JSON.parse(String(raw).slice(start, end + 1));
-        } catch (_) {
+        } catch {
           return null;
         }
       }
@@ -142,11 +134,10 @@
    * ========================= */
   const DEFAULT_GAS_URL =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-
   const LINE_OA_URL = "https://lin.ee/G3VJoRm";
   const FACADE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
   const MAX_FILE_SIZE = 20 * 1024 * 1024;
-  const VERSION = "v4.7-align";
+  const VERSION = "v4.7-final";
 
   const PLAN_RULES = {
     free: {
@@ -182,7 +173,6 @@
 
     try {
       const mod = await import("./firebase.js");
-
       firebaseApi = {
         initFirebase: mod.initFirebase,
         ensureAuth: mod.ensureAuth,
@@ -292,7 +282,6 @@
   const inviteCodeEl = $("invite_code");
   const reservedUidEl = $("reserved_uid");
   const tenantEl = $("tenant");
-
   const shareCardIdEl = $("share_card_id");
   const shareAgentIdEl = $("share_agent_id");
   const shareSourceEl = $("share_source");
@@ -306,7 +295,6 @@
   const closeGuideBtn = $("closeGuideBtn");
   const guideConfirmBtn = $("guideConfirmBtn");
   const guideGoFacadeBtn = $("guideGoFacadeBtn");
-
   const openFacadeTopBtn = $("openFacadeTopBtn");
   const openFacadeBtn = $("openFacadeBtn");
   const closeFacadeBtn = $("closeFacadeBtn");
@@ -425,7 +413,12 @@
   function closeAssistModal(modal) {
     if (!modal) return;
     modal.classList.remove("show");
-    if (!guideModal?.classList.contains("show") && !facadeModal?.classList.contains("show") && !cropModal?.classList.contains("show")) {
+
+    if (
+      !guideModal?.classList.contains("show") &&
+      !facadeModal?.classList.contains("show") &&
+      !cropModal?.classList.contains("show")
+    ) {
       document.body.classList.remove("modal-open");
     }
   }
@@ -555,9 +548,7 @@
     }
 
     ["photo3", "photo4", "photo5"].forEach((key) => {
-      if (!slotEnabled(key) && imageState.files[key]) {
-        clearSlot(key);
-      }
+      if (!slotEnabled(key) && imageState.files[key]) clearSlot(key);
     });
 
     renderUploadGrid();
@@ -644,75 +635,75 @@
     };
   }
 
-  function getLeadPayload() {
-    const data = getFormData();
+  function buildLeadPayload() {
+    const d = getFormData();
 
     return {
       action: "createLead",
-      tenant: data.tenant,
+      tenant: d.tenant,
 
-      invite_code: data.invite_code,
-      reserved_uid: data.reserved_uid,
+      invite_code: d.invite_code,
+      reserved_uid: d.reserved_uid,
 
-      plan: data.plan,
-      color: data.color,
-      style: data.style,
-      paper: data.paper,
+      plan: d.plan,
+      color: d.color,
+      style: d.style,
+      paper: d.paper,
 
-      name: data.name,
-      phone: data.phone,
-      email: data.email,
-      unit: data.unit,
-      title: data.title,
-      line_url: data.line_url,
-      line_oa: data.line_oa,
-      wechat_id: data.wechat_id,
-      address: data.address,
-      services: data.services,
-      experience: data.experience,
-      website: data.website,
+      name: d.name,
+      phone: d.phone,
+      email: d.email,
+      unit: d.unit,
+      title: d.title,
+      line_url: d.line_url,
+      line_oa: d.line_oa,
+      wechat_id: d.wechat_id,
+      address: d.address,
+      services: d.services,
+      experience: d.experience,
+      website: d.website,
 
       source: "form",
       form_source: "form",
       process_status: "submitted",
 
-      share_card_id: data.share_card_id,
-      share_agent_id: data.share_agent_id,
-      share_source: data.share_source,
-      share_channel: data.share_channel,
-      share_visit_id: data.share_visit_id,
+      share_card_id: d.share_card_id,
+      share_agent_id: d.share_agent_id,
+      share_source: d.share_source,
+      share_channel: d.share_channel,
+      share_visit_id: d.share_visit_id,
 
       note: "",
 
-      /* 以下先保留，之後 createCard 可承接；
-         v4.7 createLead 目前不會正式入 lead_db 主欄位，但前端先保留 */
-      slogan: data.slogan,
-      video1: data.video1,
-      video2: data.video2,
-      video3: data.video3,
-      social1: data.social1,
-      social2: data.social2,
-      social3: data.social3,
-      cta_text_1: data.cta_text_1,
-      cta_link_1: data.cta_link_1,
-      cta_text_2: data.cta_text_2,
-      cta_link_2: data.cta_link_2,
-      cta_text_3: data.cta_text_3,
-      cta_link_3: data.cta_link_3,
-      premium_color: data.premium_color,
-      free_color: data.free_color,
-      free_style: data.free_style,
-      free_paper: data.free_paper,
-      avatar_url: data.avatar_url,
-      logo_url: data.logo_url,
-      photo1_url: data.photo1_url,
-      photo2_url: data.photo2_url,
-      photo3_url: data.photo3_url,
-      photo4_url: data.photo4_url,
-      photo5_url: data.photo5_url
+      /* 先保留，之後 createCard 可承接 */
+      slogan: d.slogan,
+      video1: d.video1,
+      video2: d.video2,
+      video3: d.video3,
+      social1: d.social1,
+      social2: d.social2,
+      social3: d.social3,
+      cta_text_1: d.cta_text_1,
+      cta_link_1: d.cta_link_1,
+      cta_text_2: d.cta_text_2,
+      cta_link_2: d.cta_link_2,
+      cta_text_3: d.cta_text_3,
+      cta_link_3: d.cta_link_3,
+      premium_color: d.premium_color,
+      free_color: d.free_color,
+      free_style: d.free_style,
+      free_paper: d.free_paper,
+      avatar_url: d.avatar_url,
+      logo_url: d.logo_url,
+      photo1_url: d.photo1_url,
+      photo2_url: d.photo2_url,
+      photo3_url: d.photo3_url,
+      photo4_url: d.photo4_url,
+      photo5_url: d.photo5_url
     };
   }
-/* =========================
+
+  /* =========================
    * Summary
    * ========================= */
   function renderSummary() {
@@ -924,7 +915,9 @@
   function clearSlot(slotKey) {
     const old = imageState.files[slotKey];
     if (old?.previewUrl?.startsWith("blob:")) {
-      try { URL.revokeObjectURL(old.previewUrl); } catch (_) {}
+      try {
+        URL.revokeObjectURL(old.previewUrl);
+      } catch {}
     }
 
     imageState.files[slotKey] = null;
@@ -945,7 +938,10 @@
     if (cropModal) cropModal.classList.remove("show");
     imageState.crop.dragging = false;
 
-    if (!guideModal?.classList.contains("show") && !facadeModal?.classList.contains("show")) {
+    if (
+      !guideModal?.classList.contains("show") &&
+      !facadeModal?.classList.contains("show")
+    ) {
       document.body.classList.remove("modal-open");
     }
   }
@@ -1156,7 +1152,9 @@
 
       const old = imageState.files[slot.key];
       if (old?.previewUrl?.startsWith("blob:")) {
-        try { URL.revokeObjectURL(old.previewUrl); } catch (_) {}
+        try {
+          URL.revokeObjectURL(old.previewUrl);
+        } catch {}
       }
 
       imageState.files[slot.key] = {
@@ -1260,7 +1258,8 @@
       if (e.target === cropModal) closeCropModal();
     });
   }
-/* =========================
+
+  /* =========================
    * Submit helpers
    * ========================= */
   const GAS_URL = text($("gas")?.value) || DEFAULT_GAS_URL;
@@ -1269,7 +1268,7 @@
     if (progressWrap) progressWrap.style.display = "block";
   }
 
-  function setProgress(p, msg) {
+  function setProgressBar(p, msg) {
     if (progressFill) progressFill.style.width = `${p}%`;
     if (progressPercent) progressPercent.textContent = `${p}%`;
     if (progressText && msg) progressText.textContent = msg;
@@ -1419,12 +1418,9 @@
     const raw = await res.text();
     const json = parseMaybeJson(raw);
 
-    if (!res.ok) {
-      throw new Error(`伺服器回應錯誤：${res.status}`);
-    }
-    if (!json) {
-      throw new Error("回應解析失敗");
-    }
+    if (!res.ok) throw new Error(`伺服器回應錯誤：${res.status}`);
+    if (!json) throw new Error("回應解析失敗");
+
     return json;
   }
 
@@ -1490,33 +1486,31 @@
 
       setStatus("開始送出...");
       showProgress();
-      setProgress(5, "初始化...");
+      setProgressBar(5, "初始化...");
       setLoading(true, "準備送出資料");
 
-      setProgress(18, "初始化 Firebase...");
+      setProgressBar(18, "初始化 Firebase...");
       await ensureFirebaseBridge();
 
-      setProgress(32, "確認圖片 URL...");
+      setProgressBar(32, "確認圖片 URL...");
       await ensureAllImagesUploaded();
 
-      let payload = getLeadPayload();
+      let payload = buildLeadPayload();
 
-      setProgress(48, "套用方案規則...");
+      setProgressBar(48, "套用方案規則...");
       payload = enforcePlanRules(payload);
 
-      setProgress(62, "送出至 createLead...");
-
+      setProgressBar(62, "送出至 createLead...");
       const json = await postJson(GAS_URL, payload);
 
       if (!json || json.ok !== true) {
         throw new Error(json?.error || json?.message || "建立 lead 失敗");
       }
 
-      setProgress(82, "解析回應...");
-
+      setProgressBar(82, "解析回應...");
       const leadId = text(json.lead_id) || text(json.id) || "UNKNOWN";
 
-      setProgress(100, "完成");
+      setProgressBar(100, "完成");
       setLoading(false);
       setStatus("送出成功");
       fillSuccessBox(leadId);
@@ -1525,7 +1519,7 @@
       console.error(err);
       setLoading(false);
       setStatus("送出失敗：" + err.message);
-      setProgress(0, "發生錯誤");
+      setProgressBar(0, "發生錯誤");
       showToast("送出失敗，請稍後再試");
     } finally {
       submitting = false;
@@ -1582,11 +1576,10 @@
       if (cropModal?.classList.contains("show")) {
         try {
           drawCropCanvas();
-        } catch (_) {}
+        } catch {}
       }
     });
   }
 
   init();
-
 })();
