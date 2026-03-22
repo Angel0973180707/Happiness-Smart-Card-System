@@ -151,7 +151,6 @@ function buildLeadCreateUrl_(refCode){
   return u.toString();
 }
 
-/* 公告 API */
 function buildAnnouncementApiUrl_(){
   const u = new URL(CONFIG.GAS);
   u.searchParams.set("action", "getAnnouncements");
@@ -191,9 +190,6 @@ function pick(p, keys){
   return "";
 }
 
-/* =========================================
- * 專門解 card action 回傳層級
- * ========================================= */
 function extractCardRow_(payload){
   if(!payload || typeof payload !== "object") return {};
 
@@ -246,9 +242,6 @@ function getReferralSourceCode_(p){
   return id || "";
 }
 
-/* =========================================
- * 分享追蹤核心
- * ========================================= */
 function getCardIdForShare_(p){
   const payload = p || currentRow || null;
   const id =
@@ -554,14 +547,6 @@ function mapPremiumToUi_(v){
   const allow = ["p1","p2","p3","p4","p5","p6","p7"];
   return allow.includes(raw) ? raw : "p1";
 }
-
-/* =========================================
- * 最新 card_db 對齊
- * free:
- *   color/style/paper
- * premium:
- *   color = p1~p7
- * ========================================= */
 function applyThemeFromPayload_(p){
   const planRaw = normalizePlan_(pick(p, ["plan"]));
   const isPremium = planRaw === "premium";
@@ -1151,7 +1136,6 @@ function renderDocks_(p){
   renderMediaDock_(p);
   renderCtaDock_(p);
 }
-
 function stripQueryAndHash_(url){
   const s = String(url || "");
   return s.split("#")[0].split("?")[0];
@@ -1249,9 +1233,7 @@ function renderPhotoWall_(p){
   const photos = collectPhotos_(p);
   const count = photos.length;
 
-  if(!count){
-    return;
-  }
+  if(!count) return;
 
   grid.className = "photo-grid";
   if(count === 1) grid.classList.add("layout-1");
@@ -1293,18 +1275,13 @@ function renderPhotoWall_(p){
   wall.style.display = "";
 }
 
-/* =========================================
- * 到期倒數
- * ========================================= */
 function parseDateSafe_(value){
   if(!value) return null;
 
   const s = String(value).trim();
   if(!s) return null;
 
-  const normalized = s
-    .replace(/\//g, "-")
-    .replace(" ", "T");
+  const normalized = s.replace(/\//g, "-").replace(" ", "T");
 
   let d = new Date(normalized);
   if(!isNaN(d.getTime())) return d;
@@ -1347,7 +1324,6 @@ function renderCardExpiry_(p){
   const diffDays = Math.floor((expStart - nowStart) / 86400000);
 
   let label = "";
-
   if(diffDays < 0){
     label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
   }else if(diffDays === 0){
@@ -1362,9 +1338,6 @@ function renderCardExpiry_(p){
   el.style.display = "block";
 }
 
-/* =========================================
- * 公告跑馬燈
- * ========================================= */
 function normalizeAnnouncementItems_(payload){
   if(Array.isArray(payload)){
     return payload.filter(x => x && typeof x === "object");
@@ -1373,6 +1346,7 @@ function normalizeAnnouncementItems_(payload){
   if(!payload || typeof payload !== "object") return [];
 
   const arr =
+    (Array.isArray(payload.announcements) ? payload.announcements : null) ||
     (Array.isArray(payload.items) ? payload.items : null) ||
     (Array.isArray(payload.data) ? payload.data : null) ||
     (Array.isArray(payload.rows) ? payload.rows : null) ||
@@ -1663,7 +1637,6 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   if(!imgEl) return;
 
   const u = normalizeImageUrl_(centerImgUrl);
-
   if(!u){
     hideCenterImg_(imgEl);
     return;
@@ -1785,9 +1758,7 @@ function renderBottomQr_(p){
   const key = "bottom|" + qrUrl + "|" + avatarUrl;
 
   const canvas = avatar.parentElement;
-  if(canvas){
-    canvas.style.position = "relative";
-  }
+  if(canvas) canvas.style.position = "relative";
 
   if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
     lastBottomQrRenderKey = key;
@@ -1817,9 +1788,7 @@ function renderFeatureQrFromCurrent_(){
   const key = "feature|" + url + "|" + avatarUrl;
 
   const canvas = avatar.parentElement;
-  if(canvas){
-    canvas.style.position = "relative";
-  }
+  if(canvas) canvas.style.position = "relative";
 
   if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
     lastFeatureQrRenderKey = key;
@@ -2091,56 +2060,4 @@ window.addEventListener("load", ()=>{
     if(unitEl) unitEl.textContent = "請稍後再試";
     if(titleEl) titleEl.textContent = "";
   }
-})();
-/* =========================
-   公告外掛（安全版）
-========================= */
-(function(){
-
-  const GAS = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-
-  async function loadAnnouncements(){
-    try{
-      const res = await fetch(GAS + "?action=getAnnouncements");
-      const payload = await res.json();
-
-      const items =
-        payload.announcements ||
-        payload.items ||
-        payload.data ||
-        payload.rows ||
-        [];
-
-      if(!items.length) return;
-
-      renderMarquee(items);
-
-    }catch(e){
-      console.warn("公告失敗", e);
-    }
-  }
-
-  function renderMarquee(items){
-    const texts = items
-      .filter(x => x && x.status === "active")
-      .map(x => x.content)
-      .filter(Boolean);
-
-    if(!texts.length) return;
-
-    const wrap = document.createElement("div");
-    wrap.className = "marquee-wrap";
-
-    const inner = document.createElement("div");
-    inner.className = "marquee";
-    inner.innerHTML = texts.join("　✦　");
-
-    wrap.appendChild(inner);
-
-    document.body.appendChild(wrap);
-  }
-
-  // 等頁面載入後執行（不干擾你原本邏輯）
-  window.addEventListener("load", loadAnnouncements);
-
 })();
