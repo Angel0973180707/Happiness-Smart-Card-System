@@ -1,888 +1,1408 @@
-/* =========================================================
- * HSC update-form.js v4.7 (FULL OVERWRITE)
- * 對齊 GAS v4.7
- * - getCardForUpdate
- * - updateCardByToken
- * - plan 分流
- * - 圖片維持原裁切流程
- * ========================================================= */
+import {
+  initFirebase,
+  ensureAuth,
+  uploadAvatar,
+  uploadLogo,
+  uploadPhoto
+} from "./firebase.js";
 
 (() => {
   "use strict";
 
-  const VERSION = "update-v4.7-align";
+  const GAS_URL =
+    "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-  /* =========================
-   * 基本 DOM
-   * ========================= */
-  const $ = (id) => document.getElementById(id);
+  const VERSION = "v4.7-final";
+  const LINE_OA_URL = "https://lin.ee/G3VJoRm";
 
-  const form = $("updateForm");
-  const statusEl = $("status");
+  const MB = 1024 * 1024;
+  const MAX_ACCEPT_FILE_SIZE = 20 * MB;
 
-  const progressWrap = $("submitProgressWrap");
-  const progressFill = $("submitProgressFill");
-  const progressText = $("submitProgressText");
-  const progressPercent = $("submitProgressPercent");
-  const progressTitle = $("submitProgressTitle");
-
-  const successBox = $("successBox");
-  const successIdEl = $("successId");
-  const successCopyText = $("successCopyText");
-
-  const btnSubmit = $("btnSubmit");
-  const btnReload = $("btnReload");
-  const btnTop = $("btnTop");
-  const btnCopy = $("btnCopyReply");
-  const btnLine = $("btnLineOA");
-
-  const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uG/exec";
-
-  let submitting = false;
-  let currentToken = "";
-
-  /* =========================
-   * 工具
-   * ========================= */
-  function text(v) {
-    return (v || "").toString().trim();
-  }
-
-  function showToast(msg) {
-    console.log("[Toast]", msg);
-  }
-
-  function setStatus(msg) {
-    if (statusEl) statusEl.textContent = msg || "";
-  }
-
-  function showProgress() {
-    if (progressWrap) progressWrap.style.display = "block";
-  }
-
-  function setProgress(p, msg) {
-    if (progressFill) progressFill.style.width = p + "%";
-    if (progressPercent) progressPercent.textContent = p + "%";
-    if (progressText && msg) progressText.textContent = msg;
-    if (progressTitle) progressTitle.textContent = p >= 100 ? "完成" : "送出中";
-  }
-
-  function copyText(txt) {
-    if (!txt) return false;
-    navigator.clipboard.writeText(txt);
-    return true;
-  }
-
-  function parseJSON(raw) {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
+  const SMART_PROFILE = {
+    small: {
+      maxLong: 1800,
+      maxShort: 1800,
+      previewQuality: 0.90,
+      outputQuality: 0.88,
+      label: "輕壓縮"
+    },
+    medium: {
+      maxLong: 1500,
+      maxShort: 1500,
+      previewQuality: 0.86,
+      outputQuality: 0.82,
+      label: "中壓縮"
+    },
+    large: {
+      maxLong: 1200,
+      maxShort: 1200,
+      previewQuality: 0.82,
+      outputQuality: 0.76,
+      label: "強壓縮"
     }
-  }
+  };
 
-  function getParam(name) {
-    const url = new URL(location.href);
-    return url.searchParams.get(name) || "";
-  }
+  const TEXT_FIELDS = [
+    "plan",
+    "color",
+    "style",
+    "paper",
+    "free_color",
+    "free_style",
+    "free_paper",
+    "premium_color",
+    "name",
+    "unit",
+    "title",
+    "slogan",
+    "services",
+    "experience",
+    "phone",
+    "email",
+    "line_url",
+    "line_oa",
+    "wechat_id",
+    "website",
+    "address",
+    "video1",
+    "video2",
+    "video3",
+    "social1",
+    "social2",
+    "social3",
+    "cta_text_1",
+    "cta_link_1",
+    "cta_text_2",
+    "cta_link_2",
+    "cta_text_3",
+    "cta_link_3"
+  ];
 
-  function scrollTop() {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  const IMAGE_FIELDS = [
+    "avatar_url",
+    "logo_url",
+    "photo1_url",
+    "photo2_url",
+    "photo3_url",
+    "photo4_url",
+    "photo5_url"
+  ];
 
-  /* =========================
-   * LINE OA
-   * ========================= */
-  function goLineOA() {
-    window.open("https://lin.ee/G3VJoRm", "_blank");
-  }
+  const PLAN_RULES = {
+    free: {
+      key: "free",
+      label: "自由搭配款",
+      maxPhotos: 2,
+      maxCtas: 1,
+      showFreeFields: true,
+      showPremiumField: false
+    },
+    premium: {
+      key: "premium",
+      label: "精品設計款",
+      maxPhotos: 5,
+      maxCtas: 3,
+      showFreeFields: false,
+      showPremiumField: true
+    }
+  };
 
-  /* =========================
-   * 成功文案
-   * ========================= */
-  function buildReply(cardId) {
-    return [
-      "您好，我已完成智慧名片更新。",
-      "",
-      "名片編號：" + (cardId || ""),
-      "",
-      "請協助確認，謝謝 🙏"
-    ].join("\n");
-  }
+  const IMAGE_SLOTS = {
+    avatar: {
+      slot: "avatar",
+      label: "頭像",
+      key: "avatar_url",
+      previewId: "preview_avatar",
+      statusId: "status_avatar",
+      fileId: "file_avatar",
+      cropShape: "square",
+      targetWidth: 1200,
+      targetHeight: 1200,
+      fallback: ["avatar_url"]
+    },
+    logo: {
+      slot: "logo",
+      label: "Logo",
+      key: "logo_url",
+      previewId: "preview_logo",
+      statusId: "status_logo",
+      fileId: "file_logo",
+      cropShape: "square",
+      targetWidth: 1200,
+      targetHeight: 1200,
+      fallback: ["logo_url"]
+    },
+    photo1: {
+      slot: "photo1",
+      label: "照片 1",
+      key: "photo1_url",
+      previewId: "preview_photo1",
+      statusId: "status_photo1",
+      fileId: "file_photo1",
+      cropShape: "wide",
+      targetWidth: 1600,
+      targetHeight: 1000,
+      fallback: ["photo1_url"]
+    },
+    photo2: {
+      slot: "photo2",
+      label: "照片 2",
+      key: "photo2_url",
+      previewId: "preview_photo2",
+      statusId: "status_photo2",
+      fileId: "file_photo2",
+      cropShape: "wide",
+      targetWidth: 1600,
+      targetHeight: 1000,
+      fallback: ["photo2_url"]
+    },
+    photo3: {
+      slot: "photo3",
+      label: "照片 3",
+      key: "photo3_url",
+      previewId: "preview_photo3",
+      statusId: "status_photo3",
+      fileId: "file_photo3",
+      cropShape: "wide",
+      targetWidth: 1600,
+      targetHeight: 1000,
+      fallback: ["photo3_url"]
+    },
+    photo4: {
+      slot: "photo4",
+      label: "照片 4",
+      key: "photo4_url",
+      previewId: "preview_photo4",
+      statusId: "status_photo4",
+      fileId: "file_photo4",
+      cropShape: "wide",
+      targetWidth: 1600,
+      targetHeight: 1000,
+      fallback: ["photo4_url"]
+    },
+    photo5: {
+      slot: "photo5",
+      label: "照片 5",
+      key: "photo5_url",
+      previewId: "preview_photo5",
+      statusId: "status_photo5",
+      fileId: "file_photo5",
+      cropShape: "wide",
+      targetWidth: 1600,
+      targetHeight: 1000,
+      fallback: ["photo5_url"]
+    }
+  };
 
-  function showSuccess(cardId) {
-    if (successIdEl) successIdEl.textContent = cardId;
-    if (successCopyText) successCopyText.value = buildReply(cardId);
-    if (successBox) successBox.classList.remove("hidden");
-  }
+  const state = {
+    id: "",
+    token: "",
+    loaded: false,
+    busy: false,
+    firebaseReady: false,
+    card: null,
+    plan: "free",
+    rules: PLAN_RULES.free,
+    drag: {
+      active: false,
+      startX: 0,
+      startY: 0,
+      startOffsetX: 0,
+      startOffsetY: 0
+    },
+    cropper: {
+      slot: "",
+      image: null,
+      imageUrl: "",
+      sourceFile: null,
+      sourceSize: 0,
+      smartProfile: SMART_PROFILE.small,
+      scale: 1,
+      minScale: 1,
+      offsetX: 0,
+      offsetY: 0,
+      viewportW: 0,
+      viewportH: 0,
+      imageW: 0,
+      imageH: 0
+    }
+  };
 
-  /* =========================
-   * API
-   * ========================= */
-  async function post(body) {
-    const res = await fetch(DEFAULT_GAS_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8"
-      },
-      body: JSON.stringify(body)
-    });
+  const el = {
+    form: document.getElementById("updateForm"),
+    statusBox: document.getElementById("statusBox"),
 
-    const raw = await res.text();
-    const json = parseJSON(raw);
+    plan: document.getElementById("plan"),
+    color: document.getElementById("color"),
+    style: document.getElementById("style"),
+    paper: document.getElementById("paper"),
+    freeColor: document.getElementById("free_color"),
+    freeStyle: document.getElementById("free_style"),
+    freePaper: document.getElementById("free_paper"),
+    premiumColor: document.getElementById("premium_color"),
 
-    if (!res.ok) throw new Error("HTTP錯誤");
-    if (!json) throw new Error("JSON解析失敗");
+    freeStyleFields: document.getElementById("freeStyleFields"),
+    premiumColorField: document.getElementById("premiumColorField"),
+    schemeHint: document.getElementById("schemeHint"),
 
-    return json;
-  }
+    btnSubmit: document.getElementById("btnSubmit"),
+    btnReload: document.getElementById("btnReload"),
+    btnTop: document.getElementById("btnTop"),
 
-  /* =========================
-   * 讀取卡片資料
-   * ========================= */
-  async function loadCard() {
-    const token = getParam("token");
+    progressWrap: document.getElementById("submitProgressWrap"),
+    progressTitle: document.getElementById("submitProgressTitle"),
+    progressPercent: document.getElementById("submitProgressPercent"),
+    progressFill: document.getElementById("submitProgressFill"),
+    progressText: document.getElementById("submitProgressText"),
 
-    if (!token) {
-      setStatus("缺少 token");
+    successBox: document.getElementById("successBox"),
+    successId: document.getElementById("successId"),
+    successCopyText: document.getElementById("successCopyText"),
+    btnCopyReply: document.getElementById("btnCopyReply"),
+    btnLineOA: document.getElementById("btnLineOA"),
+
+    ctaRow2: document.getElementById("ctaRow2"),
+    ctaRow2Link: document.getElementById("ctaRow2_link"),
+    ctaRow3: document.getElementById("ctaRow3"),
+    ctaRow3Link: document.getElementById("ctaRow3_link"),
+
+    photoCard3: document.getElementById("photoCard3"),
+    photoCard4: document.getElementById("photoCard4"),
+    photoCard5: document.getElementById("photoCard5"),
+
+    guideModal: document.getElementById("guideModal"),
+    facadeModal: document.getElementById("facadeModal"),
+    cropModal: document.getElementById("cropModal"),
+
+    openGuideTopBtn: document.getElementById("openGuideTopBtn"),
+    openGuideBtn: document.getElementById("openGuideBtn"),
+    closeGuideBtn: document.getElementById("closeGuideBtn"),
+    guideConfirmBtn: document.getElementById("guideConfirmBtn"),
+    guideGoFacadeBtn: document.getElementById("guideGoFacadeBtn"),
+
+    openFacadeTopBtn: document.getElementById("openFacadeTopBtn"),
+    openFacadeBtn: document.getElementById("openFacadeBtn"),
+    closeFacadeBtn: document.getElementById("closeFacadeBtn"),
+    facadeBackBtn: document.getElementById("facadeBackBtn"),
+
+    cropTitle: document.getElementById("cropTitle"),
+    cropHint: document.getElementById("cropHint"),
+    cropViewport: document.getElementById("cropViewport"),
+    cropImage: document.getElementById("cropImage"),
+    cropZoom: document.getElementById("cropZoom"),
+    btnZoomOut: document.getElementById("btnZoomOut"),
+    btnZoomIn: document.getElementById("btnZoomIn"),
+    btnCenter: document.getElementById("btnCenter"),
+    btnResetCrop: document.getElementById("btnResetCrop"),
+    btnCancelCrop: document.getElementById("btnCancelCrop"),
+    btnApplyCrop: document.getElementById("btnApplyCrop")
+  };
+
+  init().catch((err) => {
+    console.error("[HSC update-form] init failed:", err);
+    showStatus("bad", `初始化失敗：${err?.message || "未知錯誤"}`);
+  });
+
+  async function init() {
+    state.token = text(getUrlParam("token") || getUrlParam("update_token"));
+
+    bindBaseEvents();
+    bindSuccessEvents();
+    bindSchemeEvents();
+    bindAssistModals();
+    bindImageEvents();
+    bindCropEvents();
+
+    setProgress(0, "尚未送出");
+    hideSuccess();
+
+    if (!state.token) {
+      showStatus("bad", "缺少更新 token。\n請聯繫客服重新取得更新連結。");
       return;
     }
 
-    currentToken = token;
-
-    setStatus("讀取資料中...");
-
-    try {
-      const res = await fetch(
-        `${DEFAULT_GAS_URL}?action=getCardForUpdate&token=${encodeURIComponent(token)}&_v=${VERSION}`
-      );
-
-      const raw = await res.text();
-      const json = parseJSON(raw);
-
-      if (!json || json.ok !== true) {
-        throw new Error("取得資料失敗");
-      }
-
-      fillForm(json.data);
-
-      setStatus("資料載入完成");
-    } catch (err) {
-      console.error(err);
-      setStatus("讀取失敗：" + err.message);
-    }
-  }
-/* =========================
-   * 欄位填入
-   * ========================= */
-  function setValue(id, value) {
-    const el = $(id);
-    if (!el) return;
-    el.value = value == null ? "" : String(value);
+    await ensureFirebaseReady();
+    await loadCard();
   }
 
-  function getValue(id) {
-    const el = $(id);
-    return el ? text(el.value) : "";
+  async function ensureFirebaseReady() {
+    if (state.firebaseReady) return;
+    initFirebase();
+    await ensureAuth();
+    state.firebaseReady = true;
   }
 
-  function fillForm(card) {
-    if (!card) return;
+  function bindBaseEvents() {
+    el.btnReload?.addEventListener("click", () => loadCard(true));
 
-    setValue("plan", card.plan || "");
-    setValue("color", card.color || "");
-    setValue("style", card.style || "");
-    setValue("paper", card.paper || "");
-    setValue("free_color", card.free_color || card.color || "");
-    setValue("free_style", card.free_style || card.style || "");
-    setValue("free_paper", card.free_paper || card.paper || "");
-    setValue("premium_color", card.premium_color || "");
+    el.btnTop?.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
 
-    setValue("name", card.name || "");
-    setValue("unit", card.unit || "");
-    setValue("title", card.title || "");
-    setValue("slogan", card.slogan || "");
-    setValue("services", card.services || "");
-    setValue("experience", card.experience || "");
+    el.form?.addEventListener("submit", onSubmit);
 
-    setValue("phone", card.phone || "");
-    setValue("email", card.email || "");
-    setValue("line_url", card.line_url || "");
-    setValue("line_oa", card.line_oa || "");
-    setValue("wechat_id", card.wechat_id || "");
-    setValue("website", card.website || "");
-    setValue("address", card.address || "");
-
-    setValue("video1", card.video1 || "");
-    setValue("video2", card.video2 || "");
-    setValue("video3", card.video3 || "");
-    setValue("social1", card.social1 || "");
-    setValue("social2", card.social2 || "");
-    setValue("social3", card.social3 || "");
-
-    setValue("cta_text_1", card.cta_text_1 || "");
-    setValue("cta_link_1", card.cta_link_1 || "");
-    setValue("cta_text_2", card.cta_text_2 || "");
-    setValue("cta_link_2", card.cta_link_2 || "");
-    setValue("cta_text_3", card.cta_text_3 || "");
-    setValue("cta_link_3", card.cta_link_3 || "");
-
-    setValue("avatar_url", card.avatar_url || "");
-    setValue("logo_url", card.logo_url || "");
-    setValue("photo1_url", card.photo1_url || "");
-    setValue("photo2_url", card.photo2_url || "");
-    setValue("photo3_url", card.photo3_url || "");
-    setValue("photo4_url", card.photo4_url || "");
-    setValue("photo5_url", card.photo5_url || "");
-
-    renderImagePreview("avatar", card.avatar_url || "");
-    renderImagePreview("logo", card.logo_url || "");
-    renderImagePreview("photo1", card.photo1_url || "");
-    renderImagePreview("photo2", card.photo2_url || "");
-    renderImagePreview("photo3", card.photo3_url || "");
-    renderImagePreview("photo4", card.photo4_url || "");
-    renderImagePreview("photo5", card.photo5_url || "");
-
-    applyPlanUI();
-  }
-
-  /* =========================
-   * 方案分流
-   * ========================= */
-  function syncFreeShadowFields() {
-    const plan = getValue("plan");
-    if (plan === "free") {
-      setValue("free_color", getValue("color"));
-      setValue("free_style", getValue("style"));
-      setValue("free_paper", getValue("paper"));
-    } else {
-      setValue("free_color", "");
-      setValue("free_style", "");
-      setValue("free_paper", "");
-    }
-  }
-
-  function applyPlanUI() {
-    const plan = getValue("plan");
-
-    const freeStyleFields = $("freeStyleFields");
-    const premiumColorField = $("premiumColorField");
-
-    const ctaRow2 = $("ctaRow2");
-    const ctaRow2Link = $("ctaRow2_link");
-    const ctaRow3 = $("ctaRow3");
-    const ctaRow3Link = $("ctaRow3_link");
-
-    const photoCard3 = $("photoCard3");
-    const photoCard4 = $("photoCard4");
-    const photoCard5 = $("photoCard5");
-
-    const schemeHint = $("schemeHint");
-
-    if (plan === "premium") {
-      if (freeStyleFields) freeStyleFields.style.display = "none";
-      if (premiumColorField) premiumColorField.style.display = "";
-
-      if (ctaRow2) ctaRow2.style.display = "";
-      if (ctaRow2Link) ctaRow2Link.style.display = "";
-      if (ctaRow3) ctaRow3.style.display = "";
-      if (ctaRow3Link) ctaRow3Link.style.display = "";
-
-      if (photoCard3) photoCard3.style.display = "";
-      if (photoCard4) photoCard4.style.display = "";
-      if (photoCard5) photoCard5.style.display = "";
-
-      if (schemeHint) {
-        schemeHint.textContent =
-          "目前為精品設計款：支援 5 張照片、3 個 CTA，只顯示精品色，並只寫 premium_color。";
-      }
-
-      setValue("color", "");
-      setValue("style", "");
-      setValue("paper", "");
-      setValue("free_color", "");
-      setValue("free_style", "");
-      setValue("free_paper", "");
-    } else {
-      if (freeStyleFields) freeStyleFields.style.display = "";
-      if (premiumColorField) premiumColorField.style.display = "none";
-
-      if (ctaRow2) ctaRow2.style.display = "none";
-      if (ctaRow2Link) ctaRow2Link.style.display = "none";
-      if (ctaRow3) ctaRow3.style.display = "none";
-      if (ctaRow3Link) ctaRow3Link.style.display = "none";
-
-      if (photoCard3) photoCard3.style.display = "none";
-      if (photoCard4) photoCard4.style.display = "none";
-      if (photoCard5) photoCard5.style.display = "none";
-
-      if (schemeHint) {
-        schemeHint.textContent =
-          "目前為自由搭配款：支援 2 張照片、1 個 CTA，會同步寫入 color/style/paper 與 free_color/free_style/free_paper。";
-      }
-
-      setValue("premium_color", "");
-      setValue("cta_text_2", "");
-      setValue("cta_link_2", "");
-      setValue("cta_text_3", "");
-      setValue("cta_link_3", "");
-      setValue("photo3_url", "");
-      setValue("photo4_url", "");
-      setValue("photo5_url", "");
-
-      renderImagePreview("photo3", "");
-      renderImagePreview("photo4", "");
-      renderImagePreview("photo5", "");
-
-      syncFreeShadowFields();
-    }
-  }
-
-  /* =========================
-   * 圖片預覽 / 清除
-   * ========================= */
-  function renderImagePreview(slot, url) {
-    const img = $(`preview_${slot}`);
-    const status = $(`status_${slot}`);
-    const hidden = $(`${slot}_url`);
-
-    if (hidden) hidden.value = url || "";
-
-    if (img) {
-      if (url) {
-        img.src = url;
-        img.style.display = "block";
-      } else {
-        img.removeAttribute("src");
-        img.style.display = "none";
-      }
-    }
-
-    if (status) {
-      status.textContent = url ? "已設定" : "未設定";
-    }
-  }
-
-  function clearImage(slot) {
-    renderImagePreview(slot, "");
-    setStatus(`${slot} 已清除，送出更新後生效`);
-  }
-
-  /* =========================
-   * 圖片操作按鈕
-   * ========================= */
-  function bindImageButtons() {
-    document.querySelectorAll("[data-clear]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const slot = btn.getAttribute("data-clear");
-        if (!slot) return;
-        clearImage(slot);
-      });
+    TEXT_FIELDS.forEach((id) => {
+      const node = document.getElementById(id);
+      if (!node) return;
+      node.addEventListener("input", () => autoGrow(node));
     });
   }
 
-  /* =========================
-   * modal：填表說明 / 門面參考
-   * ========================= */
-  function openModal(id) {
-    const m = $(id);
-    if (!m) return;
-    m.classList.add("show");
-    document.body.classList.add("modal-open");
+  function bindSuccessEvents() {
+    el.btnCopyReply?.addEventListener("click", async () => {
+      const reply = buildReplyText();
+      try {
+        await copyText(reply);
+        showStatus("ok", `已複製客服回覆內容\n\n${reply}`);
+      } catch {
+        showStatus("warn", `請手動複製以下內容：\n\n${reply}`);
+      }
+    });
+
+    el.btnLineOA?.addEventListener("click", () => {
+      window.open(LINE_OA_URL, "_blank", "noopener,noreferrer");
+    });
   }
 
-  function closeModal(id) {
-    const m = $(id);
-    if (!m) return;
-    m.classList.remove("show");
+  function bindSchemeEvents() {
+    el.plan?.addEventListener("change", () => {
+      const plan = normalizePlan(el.plan.value);
+      applyPlanRules(plan, true);
+      syncFreeMirrorFields();
+    });
 
-    const stillOpen = document.querySelector(".assist-modal.show, .crop-modal.show");
-    if (!stillOpen) {
-      document.body.classList.remove("modal-open");
-    }
+    el.color?.addEventListener("change", syncFreeMirrorFields);
+    el.style?.addEventListener("change", syncFreeMirrorFields);
+    el.paper?.addEventListener("change", syncFreeMirrorFields);
   }
 
   function bindAssistModals() {
     const pairs = [
-      ["openGuideTopBtn", () => openModal("guideModal")],
-      ["openGuideBtn", () => openModal("guideModal")],
-      ["openFacadeTopBtn", () => openModal("facadeModal")],
-      ["openFacadeBtn", () => openModal("facadeModal")],
-      ["closeGuideBtn", () => closeModal("guideModal")],
-      ["guideConfirmBtn", () => closeModal("guideModal")],
-      ["closeFacadeBtn", () => closeModal("facadeModal")],
-      ["facadeBackBtn", () => closeModal("facadeModal")],
-      ["guideGoFacadeBtn", () => {
-        closeModal("guideModal");
-        openModal("facadeModal");
-      }]
+      [el.openGuideTopBtn, () => openModal(el.guideModal)],
+      [el.openGuideBtn, () => openModal(el.guideModal)],
+      [el.openFacadeTopBtn, () => openModal(el.facadeModal)],
+      [el.openFacadeBtn, () => openModal(el.facadeModal)],
+      [el.closeGuideBtn, () => closeModal(el.guideModal)],
+      [el.guideConfirmBtn, () => closeModal(el.guideModal)],
+      [el.closeFacadeBtn, () => closeModal(el.facadeModal)],
+      [el.facadeBackBtn, () => closeModal(el.facadeModal)],
+      [
+        el.guideGoFacadeBtn,
+        () => {
+          closeModal(el.guideModal);
+          openModal(el.facadeModal);
+        }
+      ]
     ];
 
-    pairs.forEach(([id, fn]) => {
-      const el = $(id);
-      if (el) el.addEventListener("click", fn);
-    });
+    pairs.forEach(([node, fn]) => node?.addEventListener("click", fn));
 
-    ["guideModal", "facadeModal"].forEach((id) => {
-      const m = $(id);
-      if (!m) return;
-      m.addEventListener("click", (e) => {
-        if (e.target === m) closeModal(id);
+    [el.guideModal, el.facadeModal, el.cropModal].forEach((modal) => {
+      modal?.addEventListener("click", (ev) => {
+        if (ev.target === modal) closeModal(modal);
       });
     });
   }
 
-  /* =========================
-   * 綁定基本事件
-   * ========================= */
-  function bindBasicEvents() {
-    const plan = $("plan");
-    const color = $("color");
-    const style = $("style");
-    const paper = $("paper");
+  function openModal(modal) {
+    if (!modal) return;
+    modal.classList.add("show");
+    document.body.classList.add("modal-open");
+  }
 
-    if (plan) {
-      plan.addEventListener("change", () => {
-        applyPlanUI();
-      });
+  function closeModal(modal) {
+    if (!modal) return;
+    modal.classList.remove("show");
+
+    const stillOpen = document.querySelector(".assist-modal.show, .crop-modal.show");
+    if (!stillOpen) document.body.classList.remove("modal-open");
+  }
+
+  async function loadCard(isReload = false) {
+    if (state.busy) return;
+
+    setBusy(true);
+    hideSuccess();
+    setProgress(10, isReload ? "重新載入資料中…" : "載入資料中…");
+    showStatus("warn", isReload ? "重新載入資料中…" : "載入資料中…");
+
+    try {
+      const url = new URL(GAS_URL);
+      url.searchParams.set("action", "getCardForUpdate");
+      url.searchParams.set("token", state.token);
+      url.searchParams.set("_t", String(Date.now()));
+      url.searchParams.set("_v", VERSION);
+
+      const res = await fetchJson(url.toString());
+
+      if (!res || res.ok !== true) {
+        throw new Error(readError(res) || "資料載入失敗");
+      }
+
+      const card = res.card || res.data || {};
+      state.card = card;
+      state.loaded = true;
+      state.id = text(card.id);
+      if (text(card.update_token)) state.token = text(card.update_token);
+
+      const plan = normalizePlan(card.plan || "free");
+      applyPlanRules(plan, false);
+      fillForm(card);
+      syncFreeMirrorFields();
+
+      el.form?.classList.remove("hidden");
+      setProgress(100, "資料載入完成");
+      showStatus("ok", `資料載入成功\n名片編號：${state.id || "-"}`);
+    } catch (err) {
+      console.error("[HSC update-form] loadCard failed:", err);
+      state.loaded = false;
+      el.form?.classList.add("hidden");
+      setProgress(0, "載入失敗");
+      showStatus("bad", `資料沒有正常載入。\n${err?.message || "未知錯誤"}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function normalizePlan(v) {
+    return text(v).toLowerCase() === "premium" ? "premium" : "free";
+  }
+
+  function getPlanRules(plan) {
+    return PLAN_RULES[normalizePlan(plan)] || PLAN_RULES.free;
+  }
+
+  function applyPlanRules(plan, updateSelectValue = true) {
+    const rules = getPlanRules(plan);
+    state.plan = rules.key;
+    state.rules = rules;
+
+    if (updateSelectValue && el.plan) el.plan.value = rules.key;
+
+    toggleEl(el.freeStyleFields, rules.showFreeFields);
+    toggleEl(el.premiumColorField, rules.showPremiumField);
+
+    toggleEl(el.ctaRow2, rules.maxCtas >= 2);
+    toggleEl(el.ctaRow2Link, rules.maxCtas >= 2);
+    toggleEl(el.ctaRow3, rules.maxCtas >= 3);
+    toggleEl(el.ctaRow3Link, rules.maxCtas >= 3);
+
+    toggleEl(el.photoCard3, rules.maxPhotos >= 3);
+    toggleEl(el.photoCard4, rules.maxPhotos >= 4);
+    toggleEl(el.photoCard5, rules.maxPhotos >= 5);
+
+    if (el.schemeHint) {
+      el.schemeHint.textContent =
+        rules.key === "premium"
+          ? "目前為精品設計款：支援 5 張照片、3 個 CTA，畫面只顯示 7 色，只寫 premium_color。"
+          : "目前為自由搭配款：支援 2 張照片、1 個 CTA，可選 5 色 / 3 版 / 3 紙，會同步寫入 color/style/paper 與 free_color/free_style/free_paper。";
     }
 
-    [color, style, paper].forEach((el) => {
-      if (!el) return;
-      el.addEventListener("change", syncFreeShadowFields);
+    if (rules.key === "free") {
+      setFieldValue("premium_color", "");
+      clearCtaFieldsFrom(2);
+      clearPhotoFieldsFrom(3);
+    } else {
+      setFieldValue("color", "");
+      setFieldValue("style", "");
+      setFieldValue("paper", "");
+      setFieldValue("free_color", "");
+      setFieldValue("free_style", "");
+      setFieldValue("free_paper", "");
+    }
+  }
+
+  function syncFreeMirrorFields() {
+    const plan = normalizePlan(getFieldValue("plan"));
+    if (plan === "free") {
+      setFieldValue("free_color", getFieldValue("color"));
+      setFieldValue("free_style", getFieldValue("style"));
+      setFieldValue("free_paper", getFieldValue("paper"));
+    } else {
+      setFieldValue("free_color", "");
+      setFieldValue("free_style", "");
+      setFieldValue("free_paper", "");
+    }
+  }
+
+  function clearCtaFieldsFrom(start) {
+    for (let i = start; i <= 3; i++) {
+      setFieldValue(`cta_text_${i}`, "");
+      setFieldValue(`cta_link_${i}`, "");
+    }
+  }
+
+  function clearPhotoFieldsFrom(start) {
+    for (let i = start; i <= 5; i++) {
+      const slot = `photo${i}`;
+      const key = `${slot}_url`;
+      setFieldValue(key, "");
+      setSlotPreview(slot, "");
+      setSlotStatus(slot, "未開放");
+    }
+  }
+
+  function fillForm(card) {
+    TEXT_FIELDS.forEach((key) => {
+      const input = document.getElementById(key);
+      if (!input) return;
+      input.value = text(card[key]);
+      autoGrow(input);
     });
 
-    if (btnReload) {
-      btnReload.addEventListener("click", () => {
-        loadCard();
-      });
+    const plan = normalizePlan(card.plan || "free");
+    if (plan === "free") {
+      if (!getFieldValue("color")) setFieldValue("color", text(card.free_color || card.color));
+      if (!getFieldValue("style")) setFieldValue("style", text(card.free_style || card.style));
+      if (!getFieldValue("paper")) setFieldValue("paper", text(card.free_paper || card.paper));
     }
 
-    if (btnTop) {
-      btnTop.addEventListener("click", scrollTop);
+    setFieldValue("premium_color", text(card.premium_color));
+
+    Object.keys(IMAGE_SLOTS).forEach((slot) => {
+      const cfg = IMAGE_SLOTS[slot];
+      const url = text(card[cfg.key]);
+      const hiddenInput = document.getElementById(cfg.key);
+      if (hiddenInput) hiddenInput.value = url;
+      setSlotPreview(slot, url);
+      setSlotStatus(slot, url ? "已載入既有圖片" : "未設定");
+    });
+
+    if (state.rules.maxCtas < 2) {
+      setFieldValue("cta_text_2", "");
+      setFieldValue("cta_link_2", "");
+    }
+    if (state.rules.maxCtas < 3) {
+      setFieldValue("cta_text_3", "");
+      setFieldValue("cta_link_3", "");
     }
 
-    if (btnCopy) {
-      btnCopy.addEventListener("click", () => {
-        const ok = copyText(successCopyText?.value || "");
-        if (ok) {
-          setStatus("已複製客服文案");
-          showToast("已複製");
+    if (state.rules.maxPhotos < 3) {
+      setFieldValue("photo3_url", "");
+      setSlotPreview("photo3", "");
+      setSlotStatus("photo3", "未開放");
+    }
+    if (state.rules.maxPhotos < 4) {
+      setFieldValue("photo4_url", "");
+      setSlotPreview("photo4", "");
+      setSlotStatus("photo4", "未開放");
+    }
+    if (state.rules.maxPhotos < 5) {
+      setFieldValue("photo5_url", "");
+      setSlotPreview("photo5", "");
+      setSlotStatus("photo5", "未開放");
+    }
+  }
+
+  function bindImageEvents() {
+    document.addEventListener("click", (ev) => {
+      const pickBtn = ev.target.closest("[data-pick]");
+      if (pickBtn) {
+        const slot = pickBtn.getAttribute("data-pick");
+        if (!isPhotoSlotAllowed(slot)) {
+          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          return;
         }
-      });
-    }
+        triggerFilePick(slot);
+        return;
+      }
 
-    if (btnLine) {
-      btnLine.addEventListener("click", goLineOA);
-    }
-  }
-/* =========================
-   * 圖片裁切（保留原體驗主線）
-   * ========================= */
-  const cropModal = $("cropModal");
-  const cropViewport = $("cropViewport");
-  const cropImage = $("cropImage");
-  const cropZoom = $("cropZoom");
-  const btnZoomOut = $("btnZoomOut");
-  const btnZoomIn = $("btnZoomIn");
-  const btnCenter = $("btnCenter");
-  const btnResetCrop = $("btnResetCrop");
-  const btnCancelCrop = $("btnCancelCrop");
-  const btnApplyCrop = $("btnApplyCrop");
-  const cropTitle = $("cropTitle");
-  const cropHint = $("cropHint");
+      const editBtn = ev.target.closest("[data-edit]");
+      if (editBtn) {
+        const slot = editBtn.getAttribute("data-edit");
+        if (!isPhotoSlotAllowed(slot)) {
+          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          return;
+        }
+        triggerFilePick(slot);
+        return;
+      }
 
-  let cropState = {
-    slot: "",
-    file: null,
-    imgUrl: "",
-    scale: 1,
-    minScale: 1,
-    offsetX: 0,
-    offsetY: 0,
-    dragging: false,
-    startX: 0,
-    startY: 0,
-    baseX: 0,
-    baseY: 0,
-    targetW: 1200,
-    targetH: 1200,
-    shape: "square"
-  };
+      const clearBtn = ev.target.closest("[data-clear]");
+      if (clearBtn) {
+        const slot = clearBtn.getAttribute("data-clear");
+        if (!isPhotoSlotAllowed(slot)) {
+          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          return;
+        }
+        clearSlot(slot);
+      }
+    });
 
-  function bindFileInputs() {
-    ["avatar","logo","photo1","photo2","photo3","photo4","photo5"].forEach((slot) => {
-      const pickBtns = document.querySelectorAll(`[data-pick="${slot}"], [data-edit="${slot}"]`);
-      const input = $(`file_${slot}`);
+    Object.keys(IMAGE_SLOTS).forEach((slot) => {
+      const fileInput = document.getElementById(IMAGE_SLOTS[slot].fileId);
+      if (!fileInput) return;
 
-      pickBtns.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          if (slot.startsWith("photo")) {
-            const n = Number(slot.replace("photo", ""));
-            const plan = getValue("plan") || "free";
-            if (plan === "free" && n > 2) {
-              setStatus("自由搭配款只開放 2 張照片");
-              return;
-            }
-          }
-          input?.click();
-        });
-      });
-
-      input?.addEventListener("change", async (e) => {
-        const file = e.target.files?.[0];
+      fileInput.addEventListener("change", async (ev) => {
+        const file = ev.target.files?.[0];
         if (!file) return;
 
+        if (file.size > MAX_ACCEPT_FILE_SIZE) {
+          fileInput.value = "";
+          showStatus("bad", "圖片過大，請選擇 20MB 以下圖片。");
+          return;
+        }
+
+        if (!isPhotoSlotAllowed(slot)) {
+          fileInput.value = "";
+          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          return;
+        }
+
         try {
-          await openCrop(slot, file);
+          await openCropper(slot, file);
         } catch (err) {
-          console.error(err);
-          setStatus("圖片讀取失敗：" + err.message);
-        } finally {
-          e.target.value = "";
+          console.error(`[HSC update-form] openCropper failed: ${slot}`, err);
+          showStatus("bad", `圖片讀取失敗：${err?.message || "請重新選擇圖片"}`);
+          fileInput.value = "";
         }
       });
     });
   }
 
-  async function openCrop(slot, file) {
-    if (!file) throw new Error("未選擇圖片");
+  function triggerFilePick(slot) {
+    if (!IMAGE_SLOTS[slot]) return;
+    const fileInput = document.getElementById(IMAGE_SLOTS[slot].fileId);
+    fileInput?.click();
+  }
 
-    if (file.size > 20 * 1024 * 1024) {
-      throw new Error("圖片需小於 20MB");
-    }
+  function clearSlot(slot) {
+    const cfg = IMAGE_SLOTS[slot];
+    if (!cfg) return;
 
-    const reader = new FileReader();
-    const dataUrl = await new Promise((resolve, reject) => {
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error("圖片讀取失敗"));
-      reader.readAsDataURL(file);
-    });
+    const fileInput = document.getElementById(cfg.fileId);
+    if (fileInput) fileInput.value = "";
 
-    cropState.slot = slot;
-    cropState.file = file;
-    cropState.imgUrl = dataUrl;
-    cropState.offsetX = 0;
-    cropState.offsetY = 0;
+    setFieldValue(cfg.key, "");
+    setSlotPreview(slot, "");
+    setSlotStatus(slot, isPhotoSlotAllowed(slot) ? "已清除，待送出保存" : "未開放");
+    showStatus("warn", `${cfg.label} 已清除，請記得按「送出更新」。`);
+  }
 
-    if (slot === "avatar" || slot === "logo") {
-      cropState.shape = "square";
-      cropState.targetW = 1200;
-      cropState.targetH = 1200;
+  function isPhotoSlotAllowed(slot) {
+    if (slot === "avatar" || slot === "logo") return true;
+    if (!slot.startsWith("photo")) return true;
+    const idx = Number(slot.replace("photo", ""));
+    return idx <= state.rules.maxPhotos;
+  }
+
+  function setSlotPreview(slot, url) {
+    const cfg = IMAGE_SLOTS[slot];
+    if (!cfg) return;
+
+    const img = document.getElementById(cfg.previewId);
+    if (!img) return;
+
+    if (url) {
+      img.src = url;
+      img.style.display = "block";
     } else {
-      cropState.shape = "wide";
-      cropState.targetW = 1600;
-      cropState.targetH = 1000;
+      img.removeAttribute("src");
+      img.style.display = "none";
     }
-
-    if (cropTitle) {
-      cropTitle.textContent = `裁切圖片：${slot}`;
-    }
-
-    if (cropHint) {
-      cropHint.textContent =
-        cropState.shape === "square"
-          ? "拖曳可移動圖片，縮放後按『套用並上傳』，會直接更新正式圖片 URL。"
-          : "可上下左右拖曳橫圖，縮放後按『套用並上傳』，會直接更新正式圖片 URL。";
-    }
-
-    if (cropViewport) {
-      cropViewport.classList.toggle("is-square", cropState.shape === "square");
-      cropViewport.classList.toggle("is-wide", cropState.shape === "wide");
-    }
-
-    if (cropImage) {
-      cropImage.onload = () => {
-        resetCrop();
-      };
-      cropImage.src = dataUrl;
-    }
-
-    openModal("cropModal");
   }
 
-  function renderCrop() {
-    if (!cropImage) return;
-    cropImage.style.transform = `translate(calc(-50% + ${cropState.offsetX}px), calc(-50% + ${cropState.offsetY}px)) scale(${cropState.scale})`;
+  function setSlotStatus(slot, msg) {
+    const cfg = IMAGE_SLOTS[slot];
+    if (!cfg) return;
+    const node = document.getElementById(cfg.statusId);
+    if (node) node.textContent = msg || "未設定";
   }
 
-  function resetCrop() {
-    cropState.scale = 1;
-    cropState.minScale = 1;
-    cropState.offsetX = 0;
-    cropState.offsetY = 0;
-    if (cropZoom) cropZoom.value = "1";
-    renderCrop();
+  async function openCropper(slot, file) {
+    const cfg = IMAGE_SLOTS[slot];
+    if (!cfg) throw new Error("找不到圖片欄位設定");
+
+    await ensureFirebaseReady();
+
+    const prepared = await prepareImageForCrop(file);
+
+    if (state.cropper.imageUrl) {
+      try {
+        URL.revokeObjectURL(state.cropper.imageUrl);
+      } catch {}
+    }
+
+    const objectUrl = URL.createObjectURL(prepared.blob);
+    const img = await loadImage(objectUrl);
+
+    state.cropper.slot = slot;
+    state.cropper.image = img;
+    state.cropper.imageUrl = objectUrl;
+    state.cropper.sourceFile = file;
+    state.cropper.sourceSize = file.size || 0;
+    state.cropper.smartProfile = prepared.profile;
+    state.cropper.imageW = img.naturalWidth || img.width;
+    state.cropper.imageH = img.naturalHeight || img.height;
+
+    state.cropper.targetWidth = cfg.targetWidth;
+    state.cropper.targetHeight = cfg.targetHeight;
+
+    el.cropTitle.textContent = `裁切圖片：${cfg.label}`;
+    if (el.cropHint) {
+      el.cropHint.textContent =
+        cfg.cropShape === "square"
+          ? `拖曳可移動圖片，使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase URL。\n智慧壓縮：${prepared.profile.label}`
+          : `可左右上下拖移圖片，並使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase URL。\n智慧壓縮：${prepared.profile.label}`;
+    }
+
+    el.cropViewport.classList.toggle("is-square", cfg.cropShape === "square");
+    el.cropViewport.classList.toggle("is-wide", cfg.cropShape === "wide");
+
+    openModal(el.cropModal);
+    resetCropperView();
+  }
+
+  function resetCropperView() {
+    const cp = state.cropper;
+    if (!cp.image) return;
+
+    const rect = el.cropViewport.getBoundingClientRect();
+    cp.viewportW = Math.max(1, rect.width);
+    cp.viewportH = Math.max(1, rect.height);
+
+    const baseScale = Math.max(
+      cp.viewportW / cp.imageW,
+      cp.viewportH / cp.imageH
+    );
+
+    cp.minScale = baseScale;
+    cp.scale = baseScale;
+    cp.offsetX = 0;
+    cp.offsetY = 0;
+
+    if (el.cropZoom) {
+      el.cropZoom.min = String(baseScale);
+      el.cropZoom.max = String(baseScale * 3);
+      el.cropZoom.step = "0.01";
+      el.cropZoom.value = String(baseScale);
+    }
+
+    if (el.cropImage) {
+      el.cropImage.src = cp.image.src;
+      renderCropImage();
+    }
+  }
+
+  function renderCropImage() {
+    const cp = state.cropper;
+    if (!cp.image || !el.cropImage) return;
+
+    clampOffsets();
+
+    el.cropImage.style.width = `${cp.imageW * cp.scale}px`;
+    el.cropImage.style.height = `${cp.imageH * cp.scale}px`;
+    el.cropImage.style.transform =
+      `translate(calc(-50% + ${cp.offsetX}px), calc(-50% + ${cp.offsetY}px))`;
+  }
+
+  function clampOffsets() {
+    const cp = state.cropper;
+    if (!cp.image) return;
+
+    const drawW = cp.imageW * cp.scale;
+    const drawH = cp.imageH * cp.scale;
+
+    const maxX = Math.max(0, (drawW - cp.viewportW) / 2);
+    const maxY = Math.max(0, (drawH - cp.viewportH) / 2);
+
+    cp.offsetX = clamp(cp.offsetX, -maxX, maxX);
+    cp.offsetY = clamp(cp.offsetY, -maxY, maxY);
   }
 
   function bindCropEvents() {
-    if (cropViewport) {
-      cropViewport.addEventListener("pointerdown", (e) => {
-        cropState.dragging = true;
-        cropState.startX = e.clientX;
-        cropState.startY = e.clientY;
-        cropState.baseX = cropState.offsetX;
-        cropState.baseY = cropState.offsetY;
-      });
-    }
+    el.cropViewport?.addEventListener("pointerdown", (ev) => {
+      if (!state.cropper.image) return;
+      state.drag.active = true;
+      state.drag.startX = ev.clientX;
+      state.drag.startY = ev.clientY;
+      state.drag.startOffsetX = state.cropper.offsetX;
+      state.drag.startOffsetY = state.cropper.offsetY;
+      el.cropViewport?.setPointerCapture?.(ev.pointerId);
+    });
 
-    window.addEventListener("pointermove", (e) => {
-      if (!cropState.dragging) return;
-      cropState.offsetX = cropState.baseX + (e.clientX - cropState.startX);
-      cropState.offsetY = cropState.baseY + (e.clientY - cropState.startY);
-      renderCrop();
+    window.addEventListener("pointermove", (ev) => {
+      if (!state.drag.active || !state.cropper.image) return;
+
+      const dx = ev.clientX - state.drag.startX;
+      const dy = ev.clientY - state.drag.startY;
+
+      state.cropper.offsetX = state.drag.startOffsetX + dx;
+      state.cropper.offsetY = state.drag.startOffsetY + dy;
+      renderCropImage();
     });
 
     window.addEventListener("pointerup", () => {
-      cropState.dragging = false;
+      state.drag.active = false;
     });
 
-    btnZoomOut?.addEventListener("click", () => {
-      cropState.scale = Math.max(0.5, cropState.scale - 0.1);
-      if (cropZoom) cropZoom.value = String(cropState.scale);
-      renderCrop();
+    el.btnZoomOut?.addEventListener("click", () => {
+      const cp = state.cropper;
+      if (!cp.image) return;
+      cp.scale = clamp(cp.scale - 0.05, cp.minScale, cp.minScale * 3);
+      if (el.cropZoom) el.cropZoom.value = String(cp.scale);
+      renderCropImage();
     });
 
-    btnZoomIn?.addEventListener("click", () => {
-      cropState.scale = Math.min(3, cropState.scale + 0.1);
-      if (cropZoom) cropZoom.value = String(cropState.scale);
-      renderCrop();
+    el.btnZoomIn?.addEventListener("click", () => {
+      const cp = state.cropper;
+      if (!cp.image) return;
+      cp.scale = clamp(cp.scale + 0.05, cp.minScale, cp.minScale * 3);
+      if (el.cropZoom) el.cropZoom.value = String(cp.scale);
+      renderCropImage();
     });
 
-    cropZoom?.addEventListener("input", () => {
-      cropState.scale = Number(cropZoom.value || 1);
-      renderCrop();
+    el.cropZoom?.addEventListener("input", () => {
+      const cp = state.cropper;
+      if (!cp.image) return;
+      cp.scale = clamp(Number(el.cropZoom.value || cp.minScale), cp.minScale, cp.minScale * 3);
+      renderCropImage();
     });
 
-    btnCenter?.addEventListener("click", () => {
-      cropState.offsetX = 0;
-      cropState.offsetY = 0;
-      renderCrop();
+    el.btnCenter?.addEventListener("click", () => {
+      state.cropper.offsetX = 0;
+      state.cropper.offsetY = 0;
+      renderCropImage();
     });
 
-    btnResetCrop?.addEventListener("click", () => {
-      resetCrop();
+    el.btnResetCrop?.addEventListener("click", () => {
+      resetCropperView();
     });
 
-    btnCancelCrop?.addEventListener("click", () => {
-      closeModal("cropModal");
+    el.btnCancelCrop?.addEventListener("click", () => {
+      closeModal(el.cropModal);
     });
 
-    btnApplyCrop?.addEventListener("click", async () => {
-      try {
-        setStatus("圖片處理中...");
-        const url = await fakeUploadFromCrop();
-        renderImagePreview(cropState.slot, url);
-        closeModal("cropModal");
-        setStatus("圖片已更新，送出後保存");
-      } catch (err) {
-        console.error(err);
-        setStatus("圖片更新失敗：" + err.message);
+    el.btnApplyCrop?.addEventListener("click", applyCropAndUpload);
+
+    window.addEventListener("resize", () => {
+      if (el.cropModal?.classList.contains("show") && state.cropper.image) {
+        resetCropperView();
       }
-    });
-
-    cropModal?.addEventListener("click", (e) => {
-      if (e.target === cropModal) closeModal("cropModal");
     });
   }
 
-  async function fakeUploadFromCrop() {
-    if (!cropState.file || !cropState.imgUrl) {
-      throw new Error("沒有可上傳圖片");
+  async function applyCropAndUpload() {
+    const cp = state.cropper;
+    const slot = cp.slot;
+    const cfg = IMAGE_SLOTS[slot];
+
+    if (!cp.image || !cfg) {
+      showStatus("bad", "目前沒有可套用的圖片。");
+      return;
     }
 
-    return cropState.imgUrl;
-  }
-
-  /* =========================
-   * payload 對齊 updateCardByToken
-   * ========================= */
-  function buildPayload() {
-    const plan = getValue("plan") || "free";
-
-    const payload = {
-      action: "updateCardByToken",
-      token: currentToken,
-
-      plan,
-
-      color: plan === "free" ? getValue("color") : "",
-      style: plan === "free" ? getValue("style") : "",
-      paper: plan === "free" ? getValue("paper") : "",
-      free_color: plan === "free" ? getValue("free_color") : "",
-      free_style: plan === "free" ? getValue("free_style") : "",
-      free_paper: plan === "free" ? getValue("free_paper") : "",
-      premium_color: plan === "premium" ? getValue("premium_color") : "",
-
-      name: getValue("name"),
-      unit: getValue("unit"),
-      title: getValue("title"),
-      slogan: getValue("slogan"),
-      services: getValue("services"),
-      experience: getValue("experience"),
-
-      phone: getValue("phone"),
-      email: getValue("email"),
-      line_url: getValue("line_url"),
-      line_oa: getValue("line_oa"),
-      wechat_id: getValue("wechat_id"),
-      website: getValue("website"),
-      address: getValue("address"),
-
-      video1: getValue("video1"),
-      video2: getValue("video2"),
-      video3: getValue("video3"),
-      social1: getValue("social1"),
-      social2: getValue("social2"),
-      social3: getValue("social3"),
-
-      cta_text_1: getValue("cta_text_1"),
-      cta_link_1: getValue("cta_link_1"),
-      cta_text_2: plan === "premium" ? getValue("cta_text_2") : "",
-      cta_link_2: plan === "premium" ? getValue("cta_link_2") : "",
-      cta_text_3: plan === "premium" ? getValue("cta_text_3") : "",
-      cta_link_3: plan === "premium" ? getValue("cta_link_3") : "",
-
-      avatar_url: getValue("avatar_url"),
-      logo_url: getValue("logo_url"),
-      photo1_url: getValue("photo1_url"),
-      photo2_url: getValue("photo2_url"),
-      photo3_url: plan === "premium" ? getValue("photo3_url") : "",
-      photo4_url: plan === "premium" ? getValue("photo4_url") : "",
-      photo5_url: plan === "premium" ? getValue("photo5_url") : ""
-    };
-
-    return payload;
-  }
-
-  function validateBeforeSubmit() {
-    const plan = getValue("plan");
-
-    if (!plan) throw new Error("請先選擇方案");
-
-    if (plan === "free") {
-      if (!getValue("color") || !getValue("style") || !getValue("paper")) {
-        throw new Error("自由搭配款請完成主色、版型、紙感");
-      }
-    }
-
-    if (plan === "premium") {
-      if (!getValue("premium_color")) {
-        throw new Error("精品設計款請選擇精品色");
-      }
-    }
-
-    if (!getValue("name")) {
-      throw new Error("請填寫姓名 / 品牌名稱");
-    }
-
-    const hasContact =
-      getValue("phone") ||
-      getValue("email") ||
-      getValue("line_url") ||
-      getValue("line_oa") ||
-      getValue("wechat_id");
-
-    if (!hasContact) {
-      throw new Error("請至少保留一種聯絡方式");
-    }
-
-    const cta1Text = getValue("cta_text_1");
-    const cta1Link = getValue("cta_link_1");
-    if ((cta1Text && !cta1Link) || (!cta1Text && cta1Link)) {
-      throw new Error("CTA 1 文字與連結需成對填寫");
-    }
-
-    if (plan === "premium") {
-      const cta2Text = getValue("cta_text_2");
-      const cta2Link = getValue("cta_link_2");
-      const cta3Text = getValue("cta_text_3");
-      const cta3Link = getValue("cta_link_3");
-
-      if ((cta2Text && !cta2Link) || (!cta2Text && cta2Link)) {
-        throw new Error("CTA 2 文字與連結需成對填寫");
-      }
-
-      if ((cta3Text && !cta3Link) || (!cta3Text && cta3Link)) {
-        throw new Error("CTA 3 文字與連結需成對填寫");
-      }
-    }
-  }
-
-  /* =========================
-   * 送出更新
-   * ========================= */
-  async function handleSubmit(e) {
-    e.preventDefault();
-
-    if (submitting) return;
-
-    try {
-      validateBeforeSubmit();
-    } catch (err) {
-      setStatus(err.message);
+    if (!isPhotoSlotAllowed(slot)) {
+      showStatus("warn", "此方案目前未開放這張照片欄位。");
+      closeModal(el.cropModal);
       return;
     }
 
     try {
-      submitting = true;
-      showProgress();
-      setProgress(10, "整理更新資料中...");
-      setStatus("開始送出更新...");
+      setBusy(true);
+      setSlotStatus(slot, "裁切完成，準備上傳…");
+      showStatus("warn", `上傳中：${cfg.label}…`);
+      setProgress(18, `處理圖片：${cfg.label}…`);
 
-      syncFreeShadowFields();
+      const blob = await renderCroppedBlob(slot);
+      const url = await uploadBySlot(slot, blob);
 
-      const payload = buildPayload();
+      if (!url) throw new Error("Firebase 未回傳 downloadURL");
 
-      setProgress(45, "送出至 updateCardByToken...");
+      setFieldValue(cfg.key, url);
+      setSlotPreview(slot, url);
+      setSlotStatus(slot, "已上傳成功");
 
-      const json = await post(payload);
-
-      if (!json || json.ok !== true) {
-        throw new Error(json?.error || json?.message || "更新失敗");
-      }
-
-      setProgress(80, "解析更新結果...");
-
-      const cardId =
-        text(json.card_id) ||
-        text(json.id) ||
-        text(json?.card?.id) ||
-        "UNKNOWN";
-
-      if (json.new_update_token) {
-        currentToken = text(json.new_update_token);
-      }
-
-      setProgress(100, "完成");
-      setStatus("更新成功");
-      showSuccess(cardId);
+      setProgress(100, `${cfg.label} 已更新完成`);
+      showStatus("ok", `${cfg.label} 已更新完成。`);
+      closeModal(el.cropModal);
     } catch (err) {
-      console.error(err);
-      setProgress(0, "發生錯誤");
-      setStatus("更新失敗：" + err.message);
+      console.error(`[HSC update-form] upload failed: ${slot}`, err);
+      setSlotStatus(slot, "上傳失敗");
+      setProgress(0, "圖片上傳失敗");
+      showStatus("bad", `${cfg.label} 上傳失敗：${err?.message || "未知錯誤"}`);
     } finally {
-      submitting = false;
+      setBusy(false);
     }
   }
 
-  /* =========================
-   * 初始化
-   * ========================= */
-  function init() {
-    bindBasicEvents();
-    bindAssistModals();
-    bindImageButtons();
-    bindFileInputs();
-    bindCropEvents();
+  async function renderCroppedBlob(slot) {
+    const cp = state.cropper;
+    const cfg = IMAGE_SLOTS[slot];
 
-    if (form) {
-      form.addEventListener("submit", handleSubmit);
-    }
+    const canvas = document.createElement("canvas");
+    canvas.width = cfg.targetWidth;
+    canvas.height = cfg.targetHeight;
 
-    loadCard();
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("無法建立 Canvas");
+
+    const scaleToOutput = cfg.targetWidth / cp.viewportW;
+    const drawW = cp.imageW * cp.scale * scaleToOutput;
+    const drawH = cp.imageH * cp.scale * scaleToOutput;
+
+    const centerX = cfg.targetWidth / 2;
+    const centerY = cfg.targetHeight / 2;
+
+    const drawX = centerX - drawW / 2 + cp.offsetX * scaleToOutput;
+    const drawY = centerY - drawH / 2 + cp.offsetY * scaleToOutput;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(cp.image, drawX, drawY, drawW, drawH);
+
+    return await canvasToBlob(canvas, "image/jpeg", cp.smartProfile.outputQuality);
   }
 
-  init();
+  async function uploadBySlot(slot, blob) {
+    if (slot === "avatar") return await uploadAvatar(state.id || "TMP", blob);
+    if (slot === "logo") return await uploadLogo(state.id || "TMP", blob);
+    if (slot.startsWith("photo")) {
+      const idx = Number(slot.replace("photo", ""));
+      return await uploadPhoto(state.id || "TMP", blob, idx);
+    }
+    throw new Error(`未知圖片欄位：${slot}`);
+  }
 
+  async function onSubmit(ev) {
+    ev.preventDefault();
+
+    if (!state.loaded) {
+      showStatus("bad", "資料尚未載入完成，暫時不能送出。");
+      return;
+    }
+    if (state.busy) return;
+
+    try {
+      validateFormBeforeSubmit();
+    } catch (err) {
+      showStatus("bad", err.message || "請檢查欄位");
+      return;
+    }
+
+    setBusy(true);
+    hideSuccess();
+    setProgress(8, "整理更新資料中…");
+    showStatus("warn", "送出更新中…");
+
+    try {
+      syncFreeMirrorFields();
+
+      const payload = collectPayload();
+
+      setProgress(28, "送出更新資料到 GAS…");
+
+      const res = await fetchJson(GAS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res || res.ok !== true) {
+        throw new Error(readError(res) || "更新失敗");
+      }
+
+      setProgress(100, "更新完成");
+
+      state.id = text(res.card_id || res.card?.id || state.id);
+      if (text(res.new_update_token)) state.token = text(res.new_update_token);
+
+      showStatus("ok", "資料更新成功。");
+      showSuccess();
+    } catch (err) {
+      console.error("[HSC update-form] submit failed:", err);
+      setProgress(0, "送出失敗");
+      showStatus("bad", `資料更新失敗：${err?.message || "未知錯誤"}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function validateFormBeforeSubmit() {
+    const plan = normalizePlan(getFieldValue("plan"));
+    if (!plan) throw new Error("請先選擇方案。");
+
+    if (plan === "free") {
+      if (!getFieldValue("color")) throw new Error("自由搭配款請選擇主色。");
+      if (!getFieldValue("style")) throw new Error("自由搭配款請選擇版型。");
+      if (!getFieldValue("paper")) throw new Error("自由搭配款請選擇紙感。");
+    }
+
+    if (plan === "premium") {
+      if (!getFieldValue("premium_color")) throw new Error("精品設計款請選擇精品色。");
+    }
+
+    if (!getFieldValue("name")) throw new Error("請填寫姓名 / 品牌名稱。");
+
+    const contactOk = [
+      getFieldValue("phone"),
+      getFieldValue("email"),
+      getFieldValue("line_url"),
+      getFieldValue("line_oa"),
+      getFieldValue("wechat_id")
+    ].some(Boolean);
+
+    if (!contactOk) throw new Error("請至少填寫一種聯絡方式。");
+
+    const maxCtas = getPlanRules(plan).maxCtas;
+    for (let i = 1; i <= maxCtas; i++) {
+      const t = getFieldValue(`cta_text_${i}`);
+      const l = getFieldValue(`cta_link_${i}`);
+      if ((t && !l) || (!t && l)) {
+        throw new Error(`CTA ${i} 需同時填寫文字與連結。`);
+      }
+    }
+  }
+
+  function collectPayload() {
+    const plan = normalizePlan(getFieldValue("plan"));
+    const rules = getPlanRules(plan);
+
+    const out = {
+      action: "updateCardByToken",
+      token: state.token,
+
+      plan,
+      color: plan === "free" ? getFieldValue("color") : "",
+      style: plan === "free" ? getFieldValue("style") : "",
+      paper: plan === "free" ? getFieldValue("paper") : "",
+      free_color: plan === "free" ? getFieldValue("free_color") : "",
+      free_style: plan === "free" ? getFieldValue("free_style") : "",
+      free_paper: plan === "free" ? getFieldValue("free_paper") : "",
+      premium_color: plan === "premium" ? getFieldValue("premium_color") : "",
+
+      name: getFieldValue("name"),
+      unit: getFieldValue("unit"),
+      title: getFieldValue("title"),
+      slogan: getFieldValue("slogan"),
+      services: getFieldValue("services"),
+      experience: getFieldValue("experience"),
+
+      phone: getFieldValue("phone"),
+      email: getFieldValue("email"),
+      line_url: getFieldValue("line_url"),
+      line_oa: getFieldValue("line_oa"),
+      wechat_id: getFieldValue("wechat_id"),
+      website: getFieldValue("website"),
+      address: getFieldValue("address"),
+
+      video1: getFieldValue("video1"),
+      video2: getFieldValue("video2"),
+      video3: getFieldValue("video3"),
+      social1: getFieldValue("social1"),
+      social2: getFieldValue("social2"),
+      social3: getFieldValue("social3"),
+
+      cta_text_1: getFieldValue("cta_text_1"),
+      cta_link_1: getFieldValue("cta_link_1"),
+      cta_text_2: rules.maxCtas >= 2 ? getFieldValue("cta_text_2") : "",
+      cta_link_2: rules.maxCtas >= 2 ? getFieldValue("cta_link_2") : "",
+      cta_text_3: rules.maxCtas >= 3 ? getFieldValue("cta_text_3") : "",
+      cta_link_3: rules.maxCtas >= 3 ? getFieldValue("cta_link_3") : "",
+
+      avatar_url: getFieldValue("avatar_url"),
+      logo_url: getFieldValue("logo_url"),
+      photo1_url: getFieldValue("photo1_url"),
+      photo2_url: getFieldValue("photo2_url"),
+      photo3_url: rules.maxPhotos >= 3 ? getFieldValue("photo3_url") : "",
+      photo4_url: rules.maxPhotos >= 4 ? getFieldValue("photo4_url") : "",
+      photo5_url: rules.maxPhotos >= 5 ? getFieldValue("photo5_url") : ""
+    };
+
+    return out;
+  }
+
+  function buildReplyText() {
+    return [
+      "您好，我已完成天使幸福智慧名片資料更新。",
+      "",
+      `名片編號：${state.id || "-"}`,
+      "",
+      "請協助我確認與後續開通，謝謝。"
+    ].join("\n");
+  }
+
+  function showSuccess() {
+    if (!el.successBox) return;
+    if (el.successId) el.successId.textContent = state.id || "";
+    if (el.successCopyText) {
+      el.successCopyText.value = buildReplyText();
+      autoGrow(el.successCopyText);
+    }
+    el.successBox.classList.remove("hidden");
+  }
+
+  function hideSuccess() {
+    el.successBox?.classList.add("hidden");
+  }
+
+  function getFieldValue(id) {
+    const input = document.getElementById(id);
+    return input ? text(input.value) : "";
+  }
+
+  function setFieldValue(id, value) {
+    const input = document.getElementById(id);
+    if (input) input.value = value || "";
+  }
+
+  async function fetchJson(url, options = {}) {
+    const res = await fetch(url, {
+      method: options.method || "GET",
+      headers: options.headers || {},
+      body: options.body,
+      cache: "no-store",
+      redirect: "follow"
+    });
+
+    const raw = await res.text();
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      const cleaned = extractJson(raw);
+      if (cleaned) return JSON.parse(cleaned);
+      throw new Error(`GAS 回傳非有效 JSON：${raw.slice(0, 240)}`);
+    }
+  }
+
+  function extractJson(raw) {
+    if (!raw) return "";
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    if (start >= 0 && end > start) return raw.slice(start, end + 1);
+    return "";
+  }
+
+  function readError(res) {
+    if (!res || typeof res !== "object") return "";
+    return text(res.error || res.message || res.msg || res.data?.message);
+  }
+
+  async function prepareImageForCrop(file) {
+    const profile = getSmartProfile(file.size || 0);
+
+    const arrayBuffer = await file.arrayBuffer();
+    const orientation = getJpegOrientation(arrayBuffer);
+
+    const rawDataUrl = await readFileAsDataURL(file);
+    const original = await loadImage(rawDataUrl);
+
+    const correctedCanvas = drawImageWithOrientation(original, orientation);
+    const normalizedCanvas = shrinkCanvasIfNeeded(
+      correctedCanvas,
+      profile.maxLong,
+      profile.maxShort
+    );
+
+    const previewBlob = await canvasToBlob(
+      normalizedCanvas,
+      "image/jpeg",
+      profile.previewQuality
+    );
+
+    return {
+      blob: previewBlob,
+      profile
+    };
+  }
+
+  function getSmartProfile(size) {
+    if (size <= 1 * MB) return SMART_PROFILE.small;
+    if (size <= 4 * MB) return SMART_PROFILE.medium;
+    return SMART_PROFILE.large;
+  }
+
+  function shrinkCanvasIfNeeded(canvas, maxLong, maxShort) {
+    const w = canvas.width;
+    const h = canvas.height;
+    const longSide = Math.max(w, h);
+    const shortSide = Math.min(w, h);
+
+    if (longSide <= maxLong && shortSide <= maxShort) return canvas;
+
+    const ratio = Math.min(maxLong / longSide, maxShort / shortSide);
+    const targetW = Math.max(1, Math.round(w * ratio));
+    const targetH = Math.max(1, Math.round(h * ratio));
+
+    const out = document.createElement("canvas");
+    out.width = targetW;
+    out.height = targetH;
+    const ctx = out.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(canvas, 0, 0, targetW, targetH);
+    return out;
+  }
+
+  function drawImageWithOrientation(img, orientation) {
+    const w = img.naturalWidth || img.width;
+    const h = img.naturalHeight || img.height;
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if ([5, 6, 7, 8].includes(orientation)) {
+      canvas.width = h;
+      canvas.height = w;
+    } else {
+      canvas.width = w;
+      canvas.height = h;
+    }
+
+    switch (orientation) {
+      case 2:
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        break;
+      case 3:
+        ctx.translate(w, h);
+        ctx.rotate(Math.PI);
+        break;
+      case 4:
+        ctx.translate(0, h);
+        ctx.scale(1, -1);
+        break;
+      case 5:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.scale(1, -1);
+        break;
+      case 6:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.translate(0, -h);
+        break;
+      case 7:
+        ctx.rotate(0.5 * Math.PI);
+        ctx.translate(w, -h);
+        ctx.scale(-1, 1);
+        break;
+      case 8:
+        ctx.rotate(-0.5 * Math.PI);
+        ctx.translate(-w, 0);
+        break;
+      default:
+        break;
+    }
+
+    ctx.drawImage(img, 0, 0);
+    return canvas;
+  }
+
+  function getJpegOrientation(arrayBuffer) {
+    try {
+      const view = new DataView(arrayBuffer);
+      if (view.getUint16(0, false) !== 0xFFD8) return 1;
+
+      let offset = 2;
+      const length = view.byteLength;
+
+      while (offset < length) {
+        const marker = view.getUint16(offset, false);
+        offset += 2;
+
+        if (marker === 0xFFE1) {
+          offset += 2;
+          if (getString(view, offset, 4) !== "Exif") return 1;
+          offset += 6;
+
+          const little = view.getUint16(offset, false) === 0x4949;
+          const firstIFDOffset = view.getUint32(offset + 4, little);
+          offset += firstIFDOffset;
+
+          const tags = view.getUint16(offset, little);
+          offset += 2;
+
+          for (let i = 0; i < tags; i++) {
+            const tagOffset = offset + i * 12;
+            const tag = view.getUint16(tagOffset, little);
+            if (tag === 0x0112) {
+              return view.getUint16(tagOffset + 8, little);
+            }
+          }
+          return 1;
+        } else if ((marker & 0xFF00) !== 0xFF00) {
+          break;
+        } else {
+          offset += view.getUint16(offset, false);
+        }
+      }
+      return 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  function getString(view, start, length) {
+    let out = "";
+    for (let i = 0; i < length; i++) out += String.fromCharCode(view.getUint8(start + i));
+    return out;
+  }
+
+  function autoGrow(node) {
+    if (!node || node.tagName !== "TEXTAREA") return;
+    node.style.height = "auto";
+    node.style.height = `${Math.max(110, node.scrollHeight)}px`;
+  }
+
+  function setBusy(busy) {
+    state.busy = !!busy;
+    if (el.btnSubmit) el.btnSubmit.disabled = !!busy;
+    if (el.btnReload) el.btnReload.disabled = !!busy;
+    if (el.btnApplyCrop) el.btnApplyCrop.disabled = !!busy;
+
+    document.querySelectorAll("[data-pick],[data-edit],[data-clear]").forEach((btn) => {
+      btn.disabled = !!busy;
+    });
+  }
+
+  function setProgress(percent, textMessage) {
+    const n = Math.max(0, Math.min(100, Number(percent) || 0));
+    if (el.progressWrap) el.progressWrap.style.display = "";
+    if (el.progressFill) el.progressFill.style.width = `${n}%`;
+    if (el.progressPercent) el.progressPercent.textContent = `${Math.round(n)}%`;
+    if (el.progressText) el.progressText.textContent = textMessage || "";
+    if (el.progressTitle) el.progressTitle.textContent = n >= 100 ? "處理完成" : "送出中";
+  }
+
+  function showStatus(type, message) {
+    if (!el.statusBox) return;
+    el.statusBox.className = `status show ${type || "warn"}`;
+    el.statusBox.textContent = message || "";
+  }
+
+  function getUrlParam(name) {
+    return new URL(location.href).searchParams.get(name) || "";
+  }
+
+  function clamp(num, min, max) {
+    return Math.min(Math.max(num, min), max);
+  }
+
+  function text(v) {
+    return v == null ? "" : String(v).trim();
+  }
+
+  async function copyText(value) {
+    const v = String(value || "");
+    if (!v) return;
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(v);
+      return;
+    }
+    const ta = document.createElement("textarea");
+    ta.value = v;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+
+  function toggleEl(node, show) {
+    if (!node) return;
+    node.classList.toggle("hidden", !show);
+    node.style.display = show ? "" : "none";
+  }
 })();
