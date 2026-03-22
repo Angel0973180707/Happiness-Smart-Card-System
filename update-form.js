@@ -12,9 +12,8 @@ import {
   const GAS_URL =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-  const VERSION = "v4.7-final";
+  const VERSION = "v4.7-stable";
   const LINE_OA_URL = "https://lin.ee/G3VJoRm";
-
   const MB = 1024 * 1024;
   const MAX_ACCEPT_FILE_SIZE = 20 * MB;
 
@@ -78,16 +77,6 @@ import {
     "cta_link_3"
   ];
 
-  const IMAGE_FIELDS = [
-    "avatar_url",
-    "logo_url",
-    "photo1_url",
-    "photo2_url",
-    "photo3_url",
-    "photo4_url",
-    "photo5_url"
-  ];
-
   const PLAN_RULES = {
     free: {
       key: "free",
@@ -117,8 +106,7 @@ import {
       fileId: "file_avatar",
       cropShape: "square",
       targetWidth: 1200,
-      targetHeight: 1200,
-      fallback: ["avatar_url"]
+      targetHeight: 1200
     },
     logo: {
       slot: "logo",
@@ -129,8 +117,7 @@ import {
       fileId: "file_logo",
       cropShape: "square",
       targetWidth: 1200,
-      targetHeight: 1200,
-      fallback: ["logo_url"]
+      targetHeight: 1200
     },
     photo1: {
       slot: "photo1",
@@ -141,8 +128,7 @@ import {
       fileId: "file_photo1",
       cropShape: "wide",
       targetWidth: 1600,
-      targetHeight: 1000,
-      fallback: ["photo1_url"]
+      targetHeight: 1000
     },
     photo2: {
       slot: "photo2",
@@ -153,8 +139,7 @@ import {
       fileId: "file_photo2",
       cropShape: "wide",
       targetWidth: 1600,
-      targetHeight: 1000,
-      fallback: ["photo2_url"]
+      targetHeight: 1000
     },
     photo3: {
       slot: "photo3",
@@ -165,8 +150,7 @@ import {
       fileId: "file_photo3",
       cropShape: "wide",
       targetWidth: 1600,
-      targetHeight: 1000,
-      fallback: ["photo3_url"]
+      targetHeight: 1000
     },
     photo4: {
       slot: "photo4",
@@ -177,8 +161,7 @@ import {
       fileId: "file_photo4",
       cropShape: "wide",
       targetWidth: 1600,
-      targetHeight: 1000,
-      fallback: ["photo4_url"]
+      targetHeight: 1000
     },
     photo5: {
       slot: "photo5",
@@ -189,8 +172,7 @@ import {
       fileId: "file_photo5",
       cropShape: "wide",
       targetWidth: 1600,
-      targetHeight: 1000,
-      fallback: ["photo5_url"]
+      targetHeight: 1000
     }
   };
 
@@ -317,7 +299,7 @@ import {
     hideSuccess();
 
     if (!state.token) {
-      showStatus("bad", "缺少更新 token。\n請聯繫客服重新取得更新連結。");
+      showStatus("bad", "缺少更新連結資訊，請聯繫客服重新取得。");
       return;
     }
 
@@ -494,8 +476,8 @@ import {
     if (el.schemeHint) {
       el.schemeHint.textContent =
         rules.key === "premium"
-          ? "目前為精品設計款：支援 5 張照片、3 個 CTA，畫面只顯示 7 色，只寫 premium_color。"
-          : "目前為自由搭配款：支援 2 張照片、1 個 CTA，可選 5 色 / 3 版 / 3 紙，會同步寫入 color/style/paper 與 free_color/free_style/free_paper。";
+          ? "目前為精品設計款：可放 5 張照片、3 個按鈕，並使用精品色。"
+          : "目前為自由搭配款：可放 2 張照片、1 個按鈕，並可調整顏色、版型與紙感。";
     }
 
     if (rules.key === "free") {
@@ -565,7 +547,7 @@ import {
       const hiddenInput = document.getElementById(cfg.key);
       if (hiddenInput) hiddenInput.value = url;
       setSlotPreview(slot, url);
-      setSlotStatus(slot, url ? "已載入既有圖片" : "未設定");
+      setSlotStatus(slot, url ? "已載入" : "尚未設定");
     });
 
     if (state.rules.maxCtas < 2) {
@@ -600,7 +582,7 @@ import {
       if (pickBtn) {
         const slot = pickBtn.getAttribute("data-pick");
         if (!isPhotoSlotAllowed(slot)) {
-          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          showStatus("warn", "目前這個方案沒有開放這個照片位置。");
           return;
         }
         triggerFilePick(slot);
@@ -611,7 +593,7 @@ import {
       if (editBtn) {
         const slot = editBtn.getAttribute("data-edit");
         if (!isPhotoSlotAllowed(slot)) {
-          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          showStatus("warn", "目前這個方案沒有開放這個照片位置。");
           return;
         }
         triggerFilePick(slot);
@@ -622,7 +604,7 @@ import {
       if (clearBtn) {
         const slot = clearBtn.getAttribute("data-clear");
         if (!isPhotoSlotAllowed(slot)) {
-          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          showStatus("warn", "目前這個方案沒有開放這個照片位置。");
           return;
         }
         clearSlot(slot);
@@ -639,13 +621,13 @@ import {
 
         if (file.size > MAX_ACCEPT_FILE_SIZE) {
           fileInput.value = "";
-          showStatus("bad", "圖片過大，請選擇 20MB 以下圖片。");
+          showStatus("bad", "圖片太大了，請選擇 20MB 以下的圖片。");
           return;
         }
 
         if (!isPhotoSlotAllowed(slot)) {
           fileInput.value = "";
-          showStatus("warn", "此方案目前未開放這張照片欄位。");
+          showStatus("warn", "目前這個方案沒有開放這個照片位置。");
           return;
         }
 
@@ -675,7 +657,7 @@ import {
 
     setFieldValue(cfg.key, "");
     setSlotPreview(slot, "");
-    setSlotStatus(slot, isPhotoSlotAllowed(slot) ? "已清除，待送出保存" : "未開放");
+    setSlotStatus(slot, isPhotoSlotAllowed(slot) ? "已清除，待送出" : "未開放");
     showStatus("warn", `${cfg.label} 已清除，請記得按「送出更新」。`);
   }
 
@@ -738,12 +720,12 @@ import {
     state.cropper.targetWidth = cfg.targetWidth;
     state.cropper.targetHeight = cfg.targetHeight;
 
-    el.cropTitle.textContent = `裁切圖片：${cfg.label}`;
+    el.cropTitle.textContent = `調整圖片：${cfg.label}`;
     if (el.cropHint) {
       el.cropHint.textContent =
         cfg.cropShape === "square"
-          ? `拖曳可移動圖片，使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase URL。\n智慧壓縮：${prepared.profile.label}`
-          : `可左右上下拖移圖片，並使用縮放調整構圖，按「套用並上傳」即會直接寫入 Firebase URL。\n智慧壓縮：${prepared.profile.label}`;
+          ? "拖曳可移動位置，也可以放大、縮小，再按套用。"
+          : "可上下左右調整畫面，也可以放大、縮小，再按套用。";
     }
 
     el.cropViewport.classList.toggle("is-square", cfg.cropShape === "square");
@@ -761,21 +743,18 @@ import {
     cp.viewportW = Math.max(1, rect.width);
     cp.viewportH = Math.max(1, rect.height);
 
-    const baseScale = Math.max(
-      cp.viewportW / cp.imageW,
-      cp.viewportH / cp.imageH
-    );
+    const fitScale = Math.max(cp.viewportW / cp.imageW, cp.viewportH / cp.imageH);
 
-    cp.minScale = baseScale;
-    cp.scale = baseScale;
+    cp.minScale = fitScale;
+    cp.scale = fitScale;
     cp.offsetX = 0;
     cp.offsetY = 0;
 
     if (el.cropZoom) {
-      el.cropZoom.min = String(baseScale);
-      el.cropZoom.max = String(baseScale * 3);
+      el.cropZoom.min = String(fitScale * 0.6);
+      el.cropZoom.max = String(fitScale * 3);
       el.cropZoom.step = "0.01";
-      el.cropZoom.value = String(baseScale);
+      el.cropZoom.value = String(fitScale);
     }
 
     if (el.cropImage) {
@@ -803,8 +782,8 @@ import {
     const drawW = cp.imageW * cp.scale;
     const drawH = cp.imageH * cp.scale;
 
-    const maxX = Math.max(0, (drawW - cp.viewportW) / 2);
-    const maxY = Math.max(0, (drawH - cp.viewportH) / 2);
+    const maxX = Math.max(0, (drawW - cp.viewportW) / 2 + cp.viewportW * 0.3);
+    const maxY = Math.max(0, (drawH - cp.viewportH) / 2 + cp.viewportH * 0.3);
 
     cp.offsetX = clamp(cp.offsetX, -maxX, maxX);
     cp.offsetY = clamp(cp.offsetY, -maxY, maxY);
@@ -839,7 +818,7 @@ import {
     el.btnZoomOut?.addEventListener("click", () => {
       const cp = state.cropper;
       if (!cp.image) return;
-      cp.scale = clamp(cp.scale - 0.05, cp.minScale, cp.minScale * 3);
+      cp.scale = clamp(cp.scale - Math.max(cp.minScale * 0.08, 0.04), cp.minScale * 0.6, cp.minScale * 3);
       if (el.cropZoom) el.cropZoom.value = String(cp.scale);
       renderCropImage();
     });
@@ -847,7 +826,7 @@ import {
     el.btnZoomIn?.addEventListener("click", () => {
       const cp = state.cropper;
       if (!cp.image) return;
-      cp.scale = clamp(cp.scale + 0.05, cp.minScale, cp.minScale * 3);
+      cp.scale = clamp(cp.scale + Math.max(cp.minScale * 0.08, 0.04), cp.minScale * 0.6, cp.minScale * 3);
       if (el.cropZoom) el.cropZoom.value = String(cp.scale);
       renderCropImage();
     });
@@ -855,7 +834,7 @@ import {
     el.cropZoom?.addEventListener("input", () => {
       const cp = state.cropper;
       if (!cp.image) return;
-      cp.scale = clamp(Number(el.cropZoom.value || cp.minScale), cp.minScale, cp.minScale * 3);
+      cp.scale = clamp(Number(el.cropZoom.value || cp.minScale), cp.minScale * 0.6, cp.minScale * 3);
       renderCropImage();
     });
 
@@ -893,34 +872,34 @@ import {
     }
 
     if (!isPhotoSlotAllowed(slot)) {
-      showStatus("warn", "此方案目前未開放這張照片欄位。");
+      showStatus("warn", "目前這個方案沒有開放這張照片。");
       closeModal(el.cropModal);
       return;
     }
 
     try {
       setBusy(true);
-      setSlotStatus(slot, "裁切完成，準備上傳…");
-      showStatus("warn", `上傳中：${cfg.label}…`);
-      setProgress(18, `處理圖片：${cfg.label}…`);
+      setSlotStatus(slot, "處理中…");
+      showStatus("warn", `正在處理 ${cfg.label}…`);
+      setProgress(18, `正在處理 ${cfg.label}…`);
 
       const blob = await renderCroppedBlob(slot);
       const url = await uploadBySlot(slot, blob);
 
-      if (!url) throw new Error("Firebase 未回傳 downloadURL");
+      if (!url) throw new Error("沒有取得圖片網址");
 
       setFieldValue(cfg.key, url);
       setSlotPreview(slot, url);
-      setSlotStatus(slot, "已上傳成功");
+      setSlotStatus(slot, "已完成");
 
-      setProgress(100, `${cfg.label} 已更新完成`);
+      setProgress(100, `${cfg.label} 已更新`);
       showStatus("ok", `${cfg.label} 已更新完成。`);
       closeModal(el.cropModal);
     } catch (err) {
       console.error(`[HSC update-form] upload failed: ${slot}`, err);
-      setSlotStatus(slot, "上傳失敗");
-      setProgress(0, "圖片上傳失敗");
-      showStatus("bad", `${cfg.label} 上傳失敗：${err?.message || "未知錯誤"}`);
+      setSlotStatus(slot, "失敗");
+      setProgress(0, "圖片更新失敗");
+      showStatus("bad", `${cfg.label} 更新失敗：${err?.message || "未知錯誤"}`);
     } finally {
       setBusy(false);
     }
@@ -991,7 +970,7 @@ import {
 
       const payload = collectPayload();
 
-      setProgress(28, "送出更新資料到 GAS…");
+      setProgress(28, "送出更新資料到系統…");
 
       const res = await fetchJson(GAS_URL, {
         method: "POST",
@@ -1008,7 +987,12 @@ import {
       setProgress(100, "更新完成");
 
       state.id = text(res.card_id || res.card?.id || state.id);
-      if (text(res.new_update_token)) state.token = text(res.new_update_token);
+
+      const nextToken = text(res.new_update_token || res.update_token);
+      if (nextToken) {
+        state.token = nextToken;
+        updateTokenInUrl(nextToken);
+      }
 
       showStatus("ok", "資料更新成功。");
       showSuccess();
@@ -1018,6 +1002,17 @@ import {
       showStatus("bad", `資料更新失敗：${err?.message || "未知錯誤"}`);
     } finally {
       setBusy(false);
+    }
+  }
+
+  function updateTokenInUrl(nextToken) {
+    try {
+      const url = new URL(location.href);
+      url.searchParams.set("token", nextToken);
+      url.searchParams.delete("update_token");
+      history.replaceState({}, "", url.toString());
+    } catch (err) {
+      console.warn("[HSC update-form] updateTokenInUrl failed:", err);
     }
   }
 
@@ -1052,7 +1047,7 @@ import {
       const t = getFieldValue(`cta_text_${i}`);
       const l = getFieldValue(`cta_link_${i}`);
       if ((t && !l) || (!t && l)) {
-        throw new Error(`CTA ${i} 需同時填寫文字與連結。`);
+        throw new Error(`第 ${i} 個按鈕請同時填寫文字與連結。`);
       }
     }
   }
@@ -1061,7 +1056,7 @@ import {
     const plan = normalizePlan(getFieldValue("plan"));
     const rules = getPlanRules(plan);
 
-    const out = {
+    return {
       action: "updateCardByToken",
       token: state.token,
 
@@ -1111,8 +1106,6 @@ import {
       photo4_url: rules.maxPhotos >= 4 ? getFieldValue("photo4_url") : "",
       photo5_url: rules.maxPhotos >= 5 ? getFieldValue("photo5_url") : ""
     };
-
-    return out;
   }
 
   function buildReplyText() {
@@ -1121,7 +1114,7 @@ import {
       "",
       `名片編號：${state.id || "-"}`,
       "",
-      "請協助我確認與後續開通，謝謝。"
+      "再請協助確認，謝謝。"
     ].join("\n");
   }
 
@@ -1165,7 +1158,7 @@ import {
     } catch {
       const cleaned = extractJson(raw);
       if (cleaned) return JSON.parse(cleaned);
-      throw new Error(`GAS 回傳非有效 JSON：${raw.slice(0, 240)}`);
+      throw new Error(`GAS 回傳格式不正確：${raw.slice(0, 240)}`);
     }
   }
 
@@ -1364,7 +1357,7 @@ import {
     if (el.progressFill) el.progressFill.style.width = `${n}%`;
     if (el.progressPercent) el.progressPercent.textContent = `${Math.round(n)}%`;
     if (el.progressText) el.progressText.textContent = textMessage || "";
-    if (el.progressTitle) el.progressTitle.textContent = n >= 100 ? "處理完成" : "送出中";
+    if (el.progressTitle) el.progressTitle.textContent = n >= 100 ? "完成" : "處理中";
   }
 
   function showStatus(type, message) {
@@ -1404,5 +1397,32 @@ import {
     if (!node) return;
     node.classList.toggle("hidden", !show);
     node.style.display = show ? "" : "none";
+  }
+
+  async function loadImage(src) {
+    return await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("圖片載入失敗"));
+      img.src = src;
+    });
+  }
+
+  async function readFileAsDataURL(file) {
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("讀取圖片失敗"));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function canvasToBlob(canvas, type, quality) {
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("圖片轉換失敗"));
+      }, type, quality);
+    });
   }
 })();
