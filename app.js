@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.9-track1",
+  VERSION: "v524.9-track1-carddb-align",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -203,17 +203,6 @@ function getReferralSourceCode_(p){
 
 /* =========================================
  * 分享追蹤核心
- * -----------------------------------------
- * 正常開名片網址不改：
- * index.html?id=TW0001&view=1
- *
- * 只有「分享用途」改成：
- * index.html?id=TW0001&view=1
- *   &share_card_id=TW0001
- *   &share_agent_id=AG001
- *   &share_source=card_share
- *   &share_channel=product_card
- *   &share_visit_id=
  * ========================================= */
 function getCardIdForShare_(p){
   const payload = p || currentRow || null;
@@ -521,23 +510,39 @@ function mapPremiumToUi_(v){
   return allow.includes(raw) ? raw : "p1";
 }
 
+/* =========================================
+ * 最新 card_db 對齊
+ * -----------------------------------------
+ * free:
+ *   plan = free
+ *   color = c1~c5
+ *   style = s1~s3
+ *   paper = f1~f3
+ *
+ * premium:
+ *   plan = premium
+ *   color = p1~p7
+ *   style / paper 可忽略
+ *
+ * 已移除舊欄位依賴：
+ *   free_color / free_style / free_paper / premium_color
+ * ========================================= */
 function applyThemeFromPayload_(p){
   const planRaw = normalizePlan_(pick(p, ["plan"]));
   const isPremium = planRaw === "premium";
 
-  if(isPremium){
-    const rawPremium = pick(p, ["premium_color"]);
-    UI_STATE.plan = "premium";
-    UI_STATE.premiumTheme = mapPremiumToUi_(rawPremium);
-  }else{
-    const rawColor = pick(p, ["free_color","color"]);
-    const rawStyle = pick(p, ["free_style","style"]);
-    const rawPaper = pick(p, ["free_paper","paper"]);
+  const rawColor = pick(p, ["color"]);
+  const rawStyle = pick(p, ["style"]);
+  const rawPaper = pick(p, ["paper"]);
 
+  if(isPremium){
+    UI_STATE.plan = "premium";
+    UI_STATE.premiumTheme = mapPremiumToUi_(rawColor || "p1");
+  }else{
     UI_STATE.plan = "free";
-    UI_STATE.theme = mapFreeColorToTheme_(rawColor);
-    UI_STATE.style = mapStyleToUi_(rawStyle);
-    UI_STATE.paper = mapPaperToUi_(rawPaper);
+    UI_STATE.theme = mapFreeColorToTheme_(rawColor || "c1");
+    UI_STATE.style = mapStyleToUi_(rawStyle || "s1");
+    UI_STATE.paper = mapPaperToUi_(rawPaper || "f1");
   }
 
   syncPlanUI_();
@@ -701,10 +706,27 @@ function escapeHtmlWithBreaks_(s){
   return escapeHtml_(s).replace(/\n/g, "<br>");
 }
 
+/* =========================================
+ * 長文字穩定收合
+ * -----------------------------------------
+ * 1. 清除頭尾空白
+ * 2. 連續 3 行以上空白壓成 2 行
+ * 3. 保留正常換行
+ * ========================================= */
+function normalizeLongText_(raw){
+  return String(raw || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}){
   if(!contentEl) return;
 
-  const value = String(rawText || "");
+  const value = normalizeLongText_(rawText);
   const hasText = text(value) !== "";
   const allowMultiline = !!options.allowMultiline;
 
@@ -807,7 +829,7 @@ window.addEventListener("resize", ()=>{
 function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
   if(!blockEl) return;
 
-  const value = String(rawText || "");
+  const value = normalizeLongText_(rawText);
   if(!text(value)){
     blockEl.style.display = "none";
     blockEl.innerHTML = "";
@@ -898,8 +920,8 @@ function renderBlocks_(p){
   const b1 = qs("block-service");
   const b2 = qs("block-exp");
 
-  renderExpandableInfoBlock_(b1, "服務項目", service, 3);
-  renderExpandableInfoBlock_(b2, "經歷", exp, 3);
+  renderExpandableInfoBlock_(b1, "服務項目", service, 2);
+  renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", exp, 3);
 }
 
 function renderContactDock_(p){
@@ -1317,9 +1339,6 @@ function buildCanonicalCleanCardUrl_(id){
   }
 }
 
-/* =========================================
- * 分享用：改成帶追蹤
- * ========================================= */
 function buildCardShareUrl_(){
   return buildTrackedShareUrl_(currentRow);
 }
@@ -1328,9 +1347,6 @@ function buildCleanShareUrl_(){
   return buildTrackedShareUrl_(currentRow);
 }
 
-/* =========================================
- * 名片館分享：維持原本 ref 邏輯
- * ========================================= */
 function buildHubShareUrl_(){
   try{
     const u = new URL(CONFIG.HUB_URL);
@@ -1343,10 +1359,6 @@ function buildHubShareUrl_(){
   }
 }
 
-/* =========================================
- * 成品 QR：改成分享追蹤網址
- * facade QR：維持名片館分享
- * ========================================= */
 function buildBottomQrUrl_(){
   return buildTrackedShareUrl_(currentRow);
 }
@@ -1643,9 +1655,9 @@ function renderCard(row){
   const sloganToggle = qs("u-slogan-toggle");
 
   const nameVal = text(pick(p, ["name","姓名"])) || "未命名";
-  const unitVal = String(pick(p, ["unit","單位","公司"]) || "");
+  const unitVal = normalizeLongText_(pick(p, ["unit","單位","公司"]));
   const titleVal = text(pick(p, ["title","職稱"])) || "";
-  const sloganVal = String(pick(p, ["slogan","一句話","簡介"]) || "");
+  const sloganVal = normalizeLongText_(pick(p, ["slogan","一句話","簡介"]));
 
   if(nameEl) nameEl.textContent = nameVal;
 
