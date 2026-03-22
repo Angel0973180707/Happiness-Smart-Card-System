@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片｜資料更新 v805.0-align</title>
+  <title>天使幸福智慧名片｜資料更新 v4.7-align</title>
   <meta name="theme-color" content="#0b1220" />
 
   <style>
@@ -91,6 +91,13 @@
       white-space:pre-line;
     }
 
+    .heroActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:14px;
+    }
+
     .status{
       display:none;
       margin-bottom:16px;
@@ -147,6 +154,13 @@
       white-space:pre-line;
     }
 
+    .topAssist{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
     .section-title{
       margin:0 0 12px;
       font-size:18px;
@@ -199,6 +213,7 @@
       font-weight:600;
       line-height:1.8;
       margin-top:2px;
+      white-space:pre-line;
     }
 
     .input,
@@ -226,6 +241,11 @@
     .textarea{
       min-height:110px;
       resize:vertical;
+    }
+
+    .input::placeholder,
+    .textarea::placeholder{
+      color:rgba(255,255,255,.34);
     }
 
     .helper{
@@ -343,6 +363,7 @@
     .btn-primary{
       background:var(--brand, #7dd3fc);
       color:#082032;
+      border:1px solid rgba(125,211,252,.18);
     }
 
     .btn-secondary{
@@ -363,6 +384,12 @@
       border:1px solid rgba(255,255,255,.08);
     }
 
+    .btn-warn{
+      background:rgba(251,191,36,.10);
+      color:#ffe8a3;
+      border:1px solid rgba(251,191,36,.28);
+    }
+
     .image-actions .btn{
       padding:10px 12px;
       font-size:13px;
@@ -375,7 +402,8 @@
       display:none;
     }
 
-    .crop-modal{
+    .crop-modal,
+    .assist-modal{
       position:fixed;
       inset:0;
       background:rgba(3,7,18,.72);
@@ -387,11 +415,13 @@
       padding:18px;
     }
 
-    .crop-modal.show{
+    .crop-modal.show,
+    .assist-modal.show{
       display:flex;
     }
 
-    .crop-panel{
+    .crop-panel,
+    .assist-panel{
       width:min(960px,100%);
       max-height:92vh;
       overflow:auto;
@@ -402,7 +432,8 @@
       padding:16px;
     }
 
-    .crop-head{
+    .crop-head,
+    .assist-head{
       display:flex;
       justify-content:space-between;
       align-items:flex-start;
@@ -411,13 +442,15 @@
       flex-wrap:wrap;
     }
 
-    .crop-head h3{
+    .crop-head h3,
+    .assist-head h3{
       margin:0;
       font-size:18px;
       line-height:1.4;
     }
 
-    .crop-head .hint{
+    .crop-head .hint,
+    .assist-head .hint{
       color:var(--muted);
       font-size:12px;
       line-height:1.8;
@@ -496,6 +529,55 @@
       display:flex;
       gap:10px;
       flex-wrap:wrap;
+    }
+
+    .assist-body{
+      display:grid;
+      gap:12px;
+    }
+
+    .assist-card{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+      padding:14px;
+    }
+
+    .assist-card h4{
+      margin:0 0 8px;
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    .assist-card p{
+      margin:0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.9;
+      white-space:pre-line;
+    }
+
+    .assist-frame{
+      width:100%;
+      height:min(72vh, 720px);
+      border:1px solid var(--line);
+      border-radius:16px;
+      overflow:hidden;
+      background:#fff;
+    }
+
+    .assist-frame iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background:#fff;
+    }
+
+    .assist-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:14px;
     }
 
     .submit-progress-wrap{
@@ -614,7 +696,8 @@
 
     @media (max-width:820px){
       .hero h1{font-size:24px}
-      .crop-panel{padding:14px}
+      .crop-panel,
+      .assist-panel{padding:14px}
       .crop-stage{padding:12px}
     }
 
@@ -623,7 +706,10 @@
       .success-actions,
       .image-actions,
       .control-row,
-      .zoom-row{
+      .zoom-row,
+      .heroActions,
+      .topAssist,
+      .assist-actions{
         flex-direction:column;
         align-items:stretch;
       }
@@ -642,6 +728,11 @@
       <h1>智慧名片資料更新</h1>
       <p>這個更新連結僅限本次使用，並有時效限制。
 若資料沒有正常載入，請聯繫客服重新取得更新連結。</p>
+
+      <div class="heroActions">
+        <button id="openGuideTopBtn" type="button" class="btn btn-warn">填表說明（一定要看）</button>
+        <button id="openFacadeTopBtn" type="button" class="btn btn-secondary">先看首頁門面參考</button>
+      </div>
     </section>
 
     <div id="statusBox" class="status"></div>
@@ -651,16 +742,27 @@
       <section class="card">
         <h2 class="section-title">方案與外觀 <small>更新頁也統一使用同一套方案規格</small></h2>
 
+        <div class="card helper-card" style="margin-bottom:12px;">
+          <div class="helper-title">開始修改前，建議先做這兩件事</div>
+          <div class="helper-text">1. 先點「填表說明（一定要看）」了解欄位如何填寫
+2. 先點「首頁門面參考」體驗整體呈現，再回來調整方案與內容</div>
+
+          <div class="topAssist">
+            <button id="openGuideBtn" type="button" class="btn btn-warn">填表說明（一定要看）</button>
+            <button id="openFacadeBtn" type="button" class="btn btn-secondary">先看首頁門面參考</button>
+          </div>
+        </div>
+
         <div class="grid grid-2">
           <div class="field">
             <label for="plan">
               方案
-              <span class="label-note">自由搭配款：5 色 / 3 版 / 3 紙｜精品設計款：7 色</span>
+              <span class="label-note">自由搭配款：2 照片 / 1 CTA｜精品設計款：5 照片 / 3 CTA</span>
             </label>
             <select id="plan" name="plan" class="select">
               <option value="">請選擇方案</option>
-              <option value="free">自由搭配款（選 5 色 / 3 版 / 3 紙）</option>
-              <option value="premium">精品設計款（選 7 色）</option>
+              <option value="free">自由搭配款（2 照片 / 1 CTA）</option>
+              <option value="premium">精品設計款（5 照片 / 3 CTA）</option>
             </select>
           </div>
 
@@ -737,20 +839,20 @@
         <h2 class="section-title">基本資料 <small>可修改顯示文字</small></h2>
         <div class="grid grid-2">
           <div class="field">
-            <label for="name">姓名 / 品牌名稱</label>
-            <input id="name" name="name" class="input" />
+            <label for="name">姓名 / 品牌名稱<span class="label-note">例：王小美／幸福緣</span></label>
+            <input id="name" name="name" class="input" placeholder="例如：王小美／幸福緣" />
           </div>
           <div class="field">
-            <label for="unit">單位</label>
-            <input id="unit" name="unit" class="input" />
+            <label for="unit">單位<span class="label-note">例：幸福緣烘焙工作室／晨光企業有限公司</span></label>
+            <input id="unit" name="unit" class="input" placeholder="例如：幸福緣烘焙工作室" />
           </div>
           <div class="field">
-            <label for="title">職稱</label>
-            <input id="title" name="title" class="input" />
+            <label for="title">職稱<span class="label-note">例：創辦人／講師／教練／店長</span></label>
+            <input id="title" name="title" class="input" placeholder="例如：創辦人" />
           </div>
           <div class="field">
-            <label for="slogan">一句話介紹</label>
-            <input id="slogan" name="slogan" class="input" />
+            <label for="slogan">一句話介紹<span class="label-note">例：陪你把健康與美味一起帶進生活</span></label>
+            <input id="slogan" name="slogan" class="input" placeholder="例如：陪你把健康與美味一起帶進生活" />
           </div>
         </div>
 
@@ -758,16 +860,16 @@
           <div class="field">
             <label for="services">
               服務項目
-              <span class="label-note">建議一行一項，閱讀較整齊</span>
+              <span class="label-note">建議一行一項，例：健康手作麵包、親子烘焙體驗、企業禮盒訂製</span>
             </label>
-            <textarea id="services" name="services" class="textarea"></textarea>
+            <textarea id="services" name="services" class="textarea" placeholder="例如：健康手作麵包、親子烘焙體驗、企業禮盒訂製"></textarea>
           </div>
           <div class="field">
             <label for="experience">
               經歷 / 品牌故事
-              <span class="label-note">可分行輸入，避免一整段太長</span>
+              <span class="label-note">例：退休教師自學烘焙，希望把幸福感帶進每一個家庭</span>
             </label>
-            <textarea id="experience" name="experience" class="textarea"></textarea>
+            <textarea id="experience" name="experience" class="textarea" placeholder="例如：退休教師自學烘焙，希望把幸福感帶進每一個家庭"></textarea>
           </div>
         </div>
       </section>
@@ -775,20 +877,20 @@
       <section class="card">
         <h2 class="section-title">聯絡方式 <small>會顯示在名片聯繫區</small></h2>
         <div class="grid grid-2">
-          <div class="field"><label for="phone">電話</label><input id="phone" name="phone" class="input" /></div>
-          <div class="field"><label for="email">Email</label><input id="email" name="email" class="input" /></div>
-          <div class="field"><label for="line_url">LINE 連結</label><input id="line_url" name="line_url" class="input" /></div>
-          <div class="field"><label for="line_oa">LINE 官方帳號</label><input id="line_oa" name="line_oa" class="input" /></div>
-          <div class="field"><label for="wechat_id">WeChat ID</label><input id="wechat_id" name="wechat_id" class="input" /></div>
-          <div class="field"><label for="website">網站</label><input id="website" name="website" class="input" /></div>
+          <div class="field"><label for="phone">電話<span class="label-note">例：0912-345-678</span></label><input id="phone" name="phone" class="input" placeholder="例如：0912-345-678" /></div>
+          <div class="field"><label for="email">Email<span class="label-note">例：hello@example.com</span></label><input id="email" name="email" class="input" placeholder="例如：hello@example.com" /></div>
+          <div class="field"><label for="line_url">LINE 連結<span class="label-note">例：https://line.me/ti/p/xxxxxx</span></label><input id="line_url" name="line_url" class="input" placeholder="例如：https://line.me/ti/p/xxxxxx" /></div>
+          <div class="field"><label for="line_oa">LINE 官方帳號<span class="label-note">例：https://lin.ee/xxxxxxx</span></label><input id="line_oa" name="line_oa" class="input" placeholder="例如：https://lin.ee/xxxxxxx" /></div>
+          <div class="field"><label for="wechat_id">WeChat ID<span class="label-note">例：angel123</span></label><input id="wechat_id" name="wechat_id" class="input" placeholder="例如：angel123" /></div>
+          <div class="field"><label for="website">網站<span class="label-note">例：https://yourbrand.com</span></label><input id="website" name="website" class="input" placeholder="例如：https://yourbrand.com" /></div>
         </div>
         <div class="grid" style="margin-top:12px;">
           <div class="field">
             <label for="address">
               地址
-              <span class="label-note">請填完整地址文字，系統會轉成導航</span>
+              <span class="label-note">請填完整地址，系統會自動轉成導航。例：高雄市左營區博愛二路100號</span>
             </label>
-            <input id="address" name="address" class="input" />
+            <input id="address" name="address" class="input" placeholder="例如：高雄市左營區博愛二路100號" />
           </div>
         </div>
       </section>
@@ -798,16 +900,17 @@
 
         <div class="card helper-card" style="margin-bottom:12px;">
           <div class="helper-title">影音欄位填寫提醒</div>
-          <div class="helper-text">請填寫影片連結（YouTube / FB / Reels），不是上傳影片。</div>
+          <div class="helper-text">請填寫影片連結（YouTube / FB / Reels / Shorts），不是上傳影片。
+可放：作品介紹影片、品牌故事影片、教學影片、客戶見證、服務流程說明。</div>
         </div>
 
         <div class="grid grid-3">
-          <div class="field"><label for="video1">影片 1</label><input id="video1" name="video1" class="input" /></div>
-          <div class="field"><label for="video2">影片 2</label><input id="video2" name="video2" class="input" /></div>
-          <div class="field"><label for="video3">影片 3</label><input id="video3" name="video3" class="input" /></div>
-          <div class="field"><label for="social1">社群 1</label><input id="social1" name="social1" class="input" /></div>
-          <div class="field"><label for="social2">社群 2</label><input id="social2" name="social2" class="input" /></div>
-          <div class="field"><label for="social3">社群 3</label><input id="social3" name="social3" class="input" /></div>
+          <div class="field"><label for="video1">影片 1</label><input id="video1" name="video1" class="input" placeholder="例如：https://youtu.be/xxxxxx" /></div>
+          <div class="field"><label for="video2">影片 2</label><input id="video2" name="video2" class="input" placeholder="例如：https://www.facebook.com/.../videos/..." /></div>
+          <div class="field"><label for="video3">影片 3</label><input id="video3" name="video3" class="input" placeholder="例如：https://www.instagram.com/reel/xxxxxx/" /></div>
+          <div class="field"><label for="social1">社群 1</label><input id="social1" name="social1" class="input" placeholder="例如：https://www.facebook.com/yourpage" /></div>
+          <div class="field"><label for="social2">社群 2</label><input id="social2" name="social2" class="input" placeholder="例如：https://www.instagram.com/yourbrand/" /></div>
+          <div class="field"><label for="social3">社群 3</label><input id="social3" name="social3" class="input" placeholder="例如：https://www.threads.net/@yourbrand" /></div>
         </div>
       </section>
 
@@ -817,36 +920,45 @@
         <div class="card helper-card" style="margin-bottom:12px;">
           <div class="helper-title">CTA 填寫必看</div>
           <div class="helper-text">CTA 是成品名片上的行動按鈕，會直接影響轉換。
-建議填寫明確動作，例如：立即預約、加入 LINE、查看作品、立即洽詢。
-文字與連結請成對填寫。自由搭配款只開放 1 個 CTA；精品設計款開放到 3 個 CTA。</div>
+可參考：
+店家：立即導航、菜單查看、立即訂購
+講師：課程介紹、立即報名、講座邀約
+教練：預約諮詢、課表查詢、立即私訊
+工作室：作品集、預約服務、聯絡我們
+公司單位：官方網站、服務介紹、聯繫窗口
+專業維修：立即報修、服務項目、立即來電
+個人品牌：作品集、合作邀約、加入社群
+預約服務：立即預約、線上填表、查看時段
+
+文字與連結一定要成對填寫。自由搭配款只開放 1 個 CTA；精品設計款最多 3 個 CTA。</div>
         </div>
 
         <div class="grid grid-2">
           <div class="field">
             <label for="cta_text_1">按鈕 1 文字</label>
-            <input id="cta_text_1" name="cta_text_1" class="input" />
+            <input id="cta_text_1" name="cta_text_1" class="input" placeholder="例如：立即預約" />
           </div>
           <div class="field">
             <label for="cta_link_1">按鈕 1 連結</label>
-            <input id="cta_link_1" name="cta_link_1" class="input" />
+            <input id="cta_link_1" name="cta_link_1" class="input" placeholder="例如：https://..." />
           </div>
 
           <div id="ctaRow2" class="field">
             <label for="cta_text_2">按鈕 2 文字</label>
-            <input id="cta_text_2" name="cta_text_2" class="input" />
+            <input id="cta_text_2" name="cta_text_2" class="input" placeholder="例如：查看作品" />
           </div>
           <div id="ctaRow2_link" class="field">
             <label for="cta_link_2">按鈕 2 連結</label>
-            <input id="cta_link_2" name="cta_link_2" class="input" />
+            <input id="cta_link_2" name="cta_link_2" class="input" placeholder="例如：https://..." />
           </div>
 
           <div id="ctaRow3" class="field">
             <label for="cta_text_3">按鈕 3 文字</label>
-            <input id="cta_text_3" name="cta_text_3" class="input" />
+            <input id="cta_text_3" name="cta_text_3" class="input" placeholder="例如：加入 LINE" />
           </div>
           <div id="ctaRow3_link" class="field">
             <label for="cta_link_3">按鈕 3 連結</label>
-            <input id="cta_link_3" name="cta_link_3" class="input" />
+            <input id="cta_link_3" name="cta_link_3" class="input" placeholder="例如：https://..." />
           </div>
         </div>
 
@@ -932,8 +1044,7 @@
             <input id="photo2_url" name="photo2_url" class="input sys-field" />
             <input id="file_photo2" class="file-input" type="file" accept="image/*" />
           </div>
-
-          <div id="photoCard3" class="image-card">
+<div id="photoCard3" class="image-card">
             <div class="image-card-head">
               <div class="image-card-title">照片 3</div>
               <div class="image-card-status" id="status_photo3">未設定</div>
@@ -1006,8 +1117,8 @@
           可將以下內容直接回傳客服，方便快速協助確認。
           <textarea id="successCopyText" class="success-copy" readonly></textarea>
           <div class="success-actions">
-            <button id="btnCopyReply" type="button" class="btn btn-secondary">一鍵複製 ID＋客服文案</button>
-            <button id="btnLineOA" type="button" class="btn btn-line">LINE 客服</button>
+            <button id="btnCopyReply" type="button" class="btn btn-secondary">一鍵複製編號＋客服文案</button>
+            <button id="btnLineOA" type="button" class="btn btn-line">回覆客服</button>
           </div>
         </div>
       </section>
@@ -1054,10 +1165,126 @@
     </div>
   </div>
 
+  <div id="guideModal" class="assist-modal" aria-hidden="true">
+    <div class="assist-panel">
+      <div class="assist-head">
+        <div>
+          <h3>填表說明（一定要看）</h3>
+          <div class="hint">先看完再修改，能減少來回調整，也能更快完成更新。</div>
+        </div>
+        <button id="closeGuideBtn" type="button" class="btn btn-secondary">關閉</button>
+      </div>
+
+      <div class="assist-body">
+        <div class="assist-card">
+          <h4>1. 影音平台欄位是填「連結」</h4>
+          <p>不是上傳影片檔。
+可放 YouTube、Facebook 影片、Instagram Reels、Shorts、作品介紹影片、教學影片、品牌故事影片。</p>
+        </div>
+
+        <div class="assist-card">
+          <h4>2. 地址請填完整地址</h4>
+          <p>系統會自動轉成導航。
+例：
+高雄市左營區博愛二路100號
+台中市西屯區台灣大道三段99號</p>
+        </div>
+
+        <div class="assist-card">
+          <h4>3. 每個欄位都有透明舉例文字</h4>
+          <p>請直接參考 placeholder 內容填寫。
+照著範例填，通常最快也最穩。</p>
+        </div>
+
+        <div class="assist-card">
+          <h4>4. 不同行業可放什麼內容</h4>
+          <p>店家：菜單、導航、訂購連結、官方社群
+講師：課程介紹、講座報名、影片精華、講師簡介
+教練：預約諮詢、課表、見證影片、加入 LINE
+工作室：作品集、預約服務、品牌故事、交通資訊
+公司單位：官網、服務介紹、業務窗口、成功案例
+專業維修：立即報修、服務項目、電話、營業資訊
+個人品牌：作品集、自我介紹、合作邀約、社群入口
+預約服務：立即預約、線上表單、查看時段、加入客服</p>
+        </div>
+
+        <div class="assist-card">
+          <h4>5. CTA 按鈕名稱可以怎麼寫</h4>
+          <p>可參考：
+立即預約
+加入 LINE
+查看作品
+立即洽詢
+課程報名
+立即導航
+立即來電
+作品集
+官方網站
+線上表單
+菜單查看
+立即訂購</p>
+        </div>
+
+        <div class="assist-card">
+          <h4>6. 方案會自動分流</h4>
+          <p>自由搭配款：
+- 只開放 2 張照片
+- 只開放 1 個 CTA
+- 顯示自由搭配顏色 / 版型 / 紙感
+
+精品設計款：
+- 只開放 5 張照片
+- 只開放 3 個 CTA
+- 只顯示精品色</p>
+        </div>
+
+        <div class="assist-card">
+          <h4>7. 更新送出後會怎麼進行</h4>
+          <p>送出時會顯示進度條。
+成功後會產生：
+- 一鍵複製按鈕
+- 回覆客服按鈕（LINE OA）
+
+請把成功訊息內容回覆給客服，方便快速確認。</p>
+        </div>
+      </div>
+
+      <div class="assist-actions">
+        <button id="guideGoFacadeBtn" type="button" class="btn btn-secondary">看首頁門面參考</button>
+        <button id="guideConfirmBtn" type="button" class="btn btn-primary">我已閱讀，回到修改</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="facadeModal" class="assist-modal" aria-hidden="true">
+    <div class="assist-panel">
+      <div class="assist-head">
+        <div>
+          <h3>首頁門面參考</h3>
+          <div class="hint">你可以先操作看看整體門面呈現，再回來調整資料。關閉後仍停留在更新頁，不會離開表單。</div>
+        </div>
+        <button id="closeFacadeBtn" type="button" class="btn btn-secondary">關閉</button>
+      </div>
+
+      <div class="assist-frame">
+        <iframe
+          id="facadeFrame"
+          src="https://angel0973180707.github.io/Happiness-Smart-Card-System/"
+          title="首頁門面參考"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+
+      <div class="assist-actions">
+        <button id="facadeBackBtn" type="button" class="btn btn-primary">看完了，回到更新</button>
+      </div>
+    </div>
+  </div>
+
   <input type="hidden" id="free_color" name="free_color" />
   <input type="hidden" id="free_style" name="free_style" />
   <input type="hidden" id="free_paper" name="free_paper" />
 
-  <script type="module" src="./update-form.js?v=805.0-align"></script>
+  <script type="module" src="./update-form.js?v=4.7-align"></script>
 </body>
 </html>
