@@ -126,7 +126,7 @@ async function fetchJsonRobust_(url){
 function buildCardApiUrl_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
   const u = new URL(CONFIG.GAS);
-  u.searchParams.set("action", "card");
+  u.searchParams.set("action", "getCard");
   u.searchParams.set("id", cid);
   u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
   u.searchParams.set("ts", String(Date.now()));
