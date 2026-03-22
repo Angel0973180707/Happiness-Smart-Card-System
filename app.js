@@ -6,7 +6,7 @@
 
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-  CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
+  CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
   VERSION: "v526.0-announcement-upgrade",
