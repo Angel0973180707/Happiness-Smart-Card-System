@@ -3,7 +3,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v524.9-track1-carddb-align",
+  VERSION: "v525.0-card-load-fix",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -174,6 +174,36 @@ function pick(p, keys){
     }
   }
   return "";
+}
+
+/* =========================================
+ * 專門解 card action 回傳層級
+ * ========================================= */
+function extractCardRow_(payload){
+  if(!payload || typeof payload !== "object") return {};
+
+  if(payload.item && typeof payload.item === "object") return payload.item;
+  if(payload.row && typeof payload.row === "object") return payload.row;
+  if(payload.card && typeof payload.card === "object") return payload.card;
+
+  if(payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)){
+    if(payload.data.item && typeof payload.data.item === "object") return payload.data.item;
+    if(payload.data.row && typeof payload.data.row === "object") return payload.data.row;
+    if(payload.data.card && typeof payload.data.card === "object") return payload.data.card;
+    return payload.data;
+  }
+
+  if(
+    "id" in payload ||
+    "name" in payload ||
+    "plan" in payload ||
+    "avatar_url" in payload ||
+    "title" in payload
+  ){
+    return payload;
+  }
+
+  return {};
 }
 
 function normalizePlan_(v){
@@ -512,20 +542,10 @@ function mapPremiumToUi_(v){
 
 /* =========================================
  * 最新 card_db 對齊
- * -----------------------------------------
  * free:
- *   plan = free
- *   color = c1~c5
- *   style = s1~s3
- *   paper = f1~f3
- *
+ *   color/style/paper
  * premium:
- *   plan = premium
  *   color = p1~p7
- *   style / paper 可忽略
- *
- * 已移除舊欄位依賴：
- *   free_color / free_style / free_paper / premium_color
  * ========================================= */
 function applyThemeFromPayload_(p){
   const planRaw = normalizePlan_(pick(p, ["plan"]));
@@ -706,13 +726,6 @@ function escapeHtmlWithBreaks_(s){
   return escapeHtml_(s).replace(/\n/g, "<br>");
 }
 
-/* =========================================
- * 長文字穩定收合
- * -----------------------------------------
- * 1. 清除頭尾空白
- * 2. 連續 3 行以上空白壓成 2 行
- * 3. 保留正常換行
- * ========================================= */
 function normalizeLongText_(raw){
   return String(raw || "")
     .replace(/\r\n/g, "\n")
@@ -879,12 +892,19 @@ function renderAvatar_(p){
 
   if(!u){
     img.removeAttribute("src");
+    img.style.display = "none";
     return;
   }
+
+  img.style.display = "block";
 
   setImgWithFallback_(img, buildImgCandidates_(u), {
     onFail: ()=>{
       img.removeAttribute("src");
+      img.style.display = "none";
+    },
+    onLoad: ()=>{
+      img.style.display = "block";
     }
   });
 }
@@ -905,10 +925,17 @@ function renderLogo_(p){
   wrap.style.display = "flex";
   img.style.borderRadius = "18px";
   img.style.objectFit = "cover";
+  img.style.display = "block";
+
   setImgWithFallback_(img, buildImgCandidates_(u), {
     onFail: ()=>{
       wrap.style.display = "none";
       img.removeAttribute("src");
+      img.style.display = "none";
+    },
+    onLoad: ()=>{
+      wrap.style.display = "flex";
+      img.style.display = "block";
     }
   });
 }
@@ -1639,7 +1666,23 @@ function ensureBottomQrVisible_(){
 }
 
 function renderCard(row){
-  const p = buildNormalizedPayload_(row || {});
+  let sourceRow = row || {};
+
+  if(
+    sourceRow &&
+    typeof sourceRow === "object" &&
+    (!text(sourceRow.name)) &&
+    text(sourceRow.lead_snapshot)
+  ){
+    try{
+      const snap = safeJsonParse_(sourceRow.lead_snapshot);
+      if(snap && typeof snap === "object"){
+        sourceRow = { ...snap, ...sourceRow };
+      }
+    }catch(_e){}
+  }
+
+  const p = buildNormalizedPayload_(sourceRow || {});
   currentRow = p;
   currentReferralSourceCodeCache = getReferralSourceCode_(p);
 
@@ -1779,17 +1822,28 @@ window.addEventListener("load", ()=>{
 
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     const url = buildCardApiUrl_(id);
+
     const payload = await fetchJsonRobust_(url);
-    const row = payload?.item || payload?.data || payload;
+    console.log("[HSC card] raw payload =", payload);
+
+    const row = extractCardRow_(payload);
+    console.log("[HSC card] extracted row =", row);
+
+    if(!row || typeof row !== "object" || !Object.keys(row).length){
+      throw new Error("卡片資料為空");
+    }
+
     renderCard(row);
   }catch(err){
-    console.error(err);
+    console.error("[HSC card] boot failed:", err);
+
     const nameEl = qs("u-name");
     const unitWrap = qs("u-unit-wrap");
     const titleEl = qs("u-title");
+    const unitEl = qs("u-unit");
+
     if(nameEl) nameEl.textContent = "資料載入失敗";
     if(unitWrap) unitWrap.style.display = "";
-    const unitEl = qs("u-unit");
     if(unitEl) unitEl.textContent = "請稍後再試";
     if(titleEl) titleEl.textContent = "";
   }
