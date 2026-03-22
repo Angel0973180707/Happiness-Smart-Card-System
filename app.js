@@ -1848,3 +1848,61 @@ window.addEventListener("load", ()=>{
     if(titleEl) titleEl.textContent = "";
   }
 })();
+(function(){
+  function renderCardExpirySafe(){
+    const el = document.getElementById("cardExpiry");
+    if(!el) return;
+
+    // 嘗試從畫面抓 expires_at（從 data 屬性或全域變數）
+    let p = window.__CARD_DATA__ || window.cardData || window.payload || null;
+
+    // 如果抓不到，就嘗試從 DOM fallback（極保險）
+    if(!p){
+      try{
+        const raw = document.body.getAttribute("data-card");
+        if(raw) p = JSON.parse(raw);
+      }catch(e){}
+    }
+
+    if(!p) return;
+
+    const expiresRaw = (p.expires_at || "").toString().trim();
+    if(!expiresRaw){
+      el.style.display = "none";
+      return;
+    }
+
+    const exp = new Date(expiresRaw);
+    if(isNaN(exp.getTime())){
+      el.style.display = "none";
+      return;
+    }
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const expStart = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate()).getTime();
+
+    const diffDays = Math.floor((expStart - todayStart) / 86400000);
+
+    let label = "";
+
+    if(diffDays < 0){
+      label = "Expired";
+    }else if(diffDays === 0){
+      label = "Expires today";
+    }else{
+      label = "Expires in " + diffDays + " days";
+    }
+
+    el.textContent = label;
+    el.style.display = "block";
+  }
+
+  // 自動重試（因為資料是 async）
+  let tries = 0;
+  const timer = setInterval(function(){
+    renderCardExpirySafe();
+    tries++;
+    if(tries > 20) clearInterval(timer);
+  }, 300);
+})();
