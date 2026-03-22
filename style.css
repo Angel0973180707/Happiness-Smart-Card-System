@@ -1581,3 +1581,35 @@ body.mode-free.paper-3 #paperOverlay::after {
       rgba(0,0,0,.06) 0px, rgba(0,0,0,.06) 1px,
       rgba(0,0,0,.00) 7px, rgba(0,0,0,.00) 12px);
 }
+.card-expiry{
+  display:none;
+  margin-top:14px;
+  text-align:center;
+  font-size:11px;
+  line-height:1.6;
+  letter-spacing:.10em;
+  font-weight:800;
+  opacity:.48;
+  user-select:none;
+}
+
+body.mode-free .card-expiry{
+  color:rgba(67,50,39,.58);
+}
+
+body.mode-premium .card-expiry{
+  color:rgba(255,255,255,.56);
+}
+
+body.mode-premium.p6 .card-expiry{
+  color:rgba(255,248,225,.62);
+}
+
+@media (max-width:520px){
+  .card-expiry{
+    margin-top:12px;
+    font-size:10px;
+    letter-spacing:.08em;
+    opacity:.46;
+  }
+}
