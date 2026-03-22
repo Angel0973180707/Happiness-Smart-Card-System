@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v525.0</title>
+  <title>天使幸福智慧名片館 v526.0-announcement-upgrade</title>
 
-  <link rel="manifest" href="./manifest.json?v=525.0" />
+  <link rel="manifest" href="./manifest.json?v=526.0-announcement-upgrade" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=524.9" />
-  <link rel="icon" href="./icons/icon-192.png?v=524.8" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=526.0-announcement-upgrade" />
+  <link rel="icon" href="./icons/icon-192.png?v=526.0-announcement-upgrade" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,12 +18,12 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=525.0" />
+  <meta property="og:image" content="og-card.png?v=526.0-announcement-upgrade" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=525.0" />
+  <link rel="stylesheet" href="./style.css?v=526.0-announcement-upgrade" />
 
   <style>
     :root{
@@ -322,7 +322,8 @@
       padding:0;
       pointer-events:none;
     }
-.modal-mask,
+
+    .modal-mask,
     .invite-mask{
       display:none;
       position:fixed !important;
@@ -336,6 +337,7 @@
       padding:18px;
       box-sizing:border-box;
     }
+
     .modal,
     .invite-box{
       position:relative;
@@ -350,6 +352,12 @@
       border:1px solid rgba(102,78,57,.10);
       color:var(--poster-ink);
     }
+
+    .modal.announcement-modal{
+      width:min(92vw, 560px);
+      max-width:560px;
+    }
+
     .modal-hd,
     .invite-hd{
       display:flex;
@@ -359,7 +367,9 @@
       padding:16px 16px 10px;
       font-weight:900;
     }
+
     .modal-title{ font-size:15px; }
+
     .modal-close,
     .invite-btn{
       border:none;
@@ -371,6 +381,7 @@
       font-weight:800;
       cursor:pointer;
     }
+
     .modal-bd,
     .invite-bd{ padding:6px 16px 16px; }
 
@@ -592,12 +603,6 @@
           智慧名片訂製｜為創業者、講師、店家與個人品牌打造專屬名片入口
         </div>
       </div>
-<div class="announcement-marquee" id="announcementMarquee" style="display:none;">
-  <button class="announcement-track" id="announcementTrack" type="button" aria-label="查看公告">
-    <span class="announcement-badge">公告</span>
-    <span class="announcement-text" id="announcementText">載入中…</span>
-  </button>
-</div>
 
       <div class="facade-qr" id="facadeQrCard">
         <div class="facade-qr-box">
@@ -632,7 +637,8 @@
           精品設計
         </button>
       </div>
-<div class="controls-block" id="free-controls">
+
+      <div class="controls-block" id="free-controls">
         <div class="section-title">選顏色</div>
         <div class="dots-row" id="freeDotsRow">
           <button class="dot dot-1 active" data-group="theme" type="button" aria-label="粉" onclick="window.setTheme && window.setTheme('color-1', this)"></button>
@@ -656,9 +662,16 @@
           <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-3', this)">霧灰</button>
         </div>
 
-        <button class="btn-cta subtle" id="btnFeature" type="button">
-          <i class="fa-solid fa-circle-info"></i> 產品特色說明
-        </button>
+        <div class="announcement-panel" data-announcement-panel style="display:none;">
+          <button class="announcement-card" data-announcement-track type="button" aria-label="查看公告全文">
+            <span class="announcement-card-top">
+              <span class="announcement-badge">公告</span>
+              <span class="announcement-counter" data-announcement-counter>1 / 1</span>
+            </span>
+            <span class="announcement-title" data-announcement-title>載入中…</span>
+            <span class="announcement-summary" data-announcement-text>載入中…</span>
+          </button>
+        </div>
 
         <button class="btn-cta subtle" id="btnInviteGate" type="button">
           <i class="fa-solid fa-key"></i> 申請開通表單邀請碼
@@ -685,9 +698,16 @@
           <button class="p-dot p7" data-group="theme" type="button" aria-label="p7" onclick="window.setTheme && window.setTheme('p7', this)"></button>
         </div>
 
-        <button class="btn-cta subtle" id="btnFeature2" type="button">
-          <i class="fa-solid fa-circle-info"></i> 產品特色說明
-        </button>
+        <div class="announcement-panel" data-announcement-panel style="display:none;">
+          <button class="announcement-card" data-announcement-track type="button" aria-label="查看公告全文">
+            <span class="announcement-card-top">
+              <span class="announcement-badge">公告</span>
+              <span class="announcement-counter" data-announcement-counter>1 / 1</span>
+            </span>
+            <span class="announcement-title" data-announcement-title>載入中…</span>
+            <span class="announcement-summary" data-announcement-text>載入中…</span>
+          </button>
+        </div>
 
         <button class="btn-cta subtle" id="btnInviteGate2" type="button">
           <i class="fa-solid fa-key"></i> 申請開通表單邀請碼
@@ -777,14 +797,14 @@
           <div class="dock-buttons" id="ctaButtons"></div>
         </div>
 
-    <div class="photo-wall" id="photoWall" style="display:none;">
-  <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
-  <div class="photo-grid" id="photoGrid"></div>
-</div>
+        <div class="photo-wall" id="photoWall" style="display:none;">
+          <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
+          <div class="photo-grid" id="photoGrid"></div>
+        </div>
 
-<div class="card-expiry" id="cardExpiry" style="display:none;"></div>
+        <div class="card-expiry" id="cardExpiry" style="display:none;"></div>
 
-<div class="qr-bottom" id="bottomQrSection">
+        <div class="qr-bottom" id="bottomQrSection">
           <div class="qr-bottom-head">
             <div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">
               掃描 QRcode｜開啟我的智慧名片
@@ -801,41 +821,22 @@
           </div>
         </div>
 
-        <div class="version-tag" id="versionTag">v525.0</div>
+        <div class="version-tag" id="versionTag">v526.0-announcement-upgrade</div>
       </div>
     </section>
   </main>
 
-  <div class="modal-mask" id="featureMask" aria-hidden="true">
-    <div class="modal" role="dialog" aria-modal="true" aria-label="產品特色說明">
+  <div class="modal-mask" id="announcementMask" aria-hidden="true">
+    <div class="modal announcement-modal" role="dialog" aria-modal="true" aria-label="公告內容">
       <div class="modal-hd">
-        <div class="modal-title"><i class="fa-solid fa-circle-info"></i> 產品特色說明</div>
-        <button class="modal-close" type="button" id="featureCloseBtn">關閉</button>
+        <div class="modal-title" id="announcementModalTitle">
+          <i class="fa-solid fa-bullhorn"></i> 公告
+        </div>
+        <button class="modal-close" type="button" id="announcementCloseBtn">關閉</button>
       </div>
       <div class="modal-bd">
-        <div style="
-          font-size:13px;
-          line-height:1.8;
-          color:#5a4b40;
-          font-weight:600;
-          text-align:left;
-          white-space:normal;
-        ">
-          天使幸福智慧名片是一套可收藏、可分享的智慧名片系統。<br><br>
-
-          透過一張智慧名片，可以整合：<br><br>
-
-          ・聯絡方式<br>
-          ・LINE 與社群平台<br>
-          ・官方網站與影音內容<br>
-          ・品牌介紹與照片展示<br><br>
-
-          名片可一鍵分享，也可收藏到手機桌面，<br>
-          隨時快速開啟查看。<br><br>
-
-          適合講師、創業者、店家與個人品牌<br>
-          打造專屬的智慧名片入口。
-        </div>
+        <div class="announcement-modal-meta" id="announcementModalMeta">門面公告</div>
+        <div class="announcement-modal-body" id="announcementModalBody"></div>
       </div>
     </div>
   </div>
@@ -882,13 +883,13 @@
     </div>
   </div>
 
-  <script src="./app.js?v=525.0"></script>
+  <script src="./app.js?v=526.0-announcement-upgrade"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "525.0";
+      var VERSION = "v526.0-announcement-upgrade";
       var LINE_OA_URL = "https://lin.ee/3r2ZePN";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -926,6 +927,9 @@
           window.scrollTo(0, __scrollTop || 0);
         }catch(e){}
       }
+
+      window.__lockBodyScroll = lockScroll;
+      window.__unlockBodyScroll = unlockScroll;
 
       function applyCleanUI(){
         if(!isClean()) return;
@@ -983,7 +987,8 @@
           return BASE_URL + "index.html?id=" + encodeURIComponent(getCurrentCardId()) + "&view=1";
         }
       }
-function buildFacadeHubQrUrl(){
+
+      function buildFacadeHubQrUrl(){
         try{
           var u = new URL(BASE_URL);
           var refCode = (typeof window.__getReferralSourceCode === "function" ? window.__getReferralSourceCode() : "") || getCurrentCardId();
@@ -1117,31 +1122,6 @@ function buildFacadeHubQrUrl(){
         }
       }
 
-      function bindFeature(){
-        var mask = qs("featureMask");
-        var close = qs("featureCloseBtn");
-        function open(){
-          if(!mask) return;
-          mask.style.display = "flex";
-          mask.setAttribute("aria-hidden", "false");
-          lockScroll();
-        }
-        function shut(){
-          if(!mask) return;
-          mask.style.display = "none";
-          mask.setAttribute("aria-hidden", "true");
-          unlockScroll();
-        }
-        ["btnFeature","btnFeature2"].forEach(function(id){
-          var b = qs(id);
-          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
-        });
-        if(close) close.addEventListener("click", function(){ shut(); });
-        if(mask) mask.addEventListener("click", function(e){
-          if(e.target === mask) shut();
-        });
-      }
-
       function bindInviteGate(){
         var mask = qs("inviteMask");
         var close = qs("inviteCloseBtn");
@@ -1236,7 +1216,6 @@ function buildFacadeHubQrUrl(){
       function boot(){
         applyCleanUI();
         bindLineOa();
-        bindFeature();
         bindInviteGate();
         bindShareFallback();
         bindInstall();
