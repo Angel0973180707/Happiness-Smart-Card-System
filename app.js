@@ -1278,6 +1278,75 @@ function renderPhotoWall_(p){
   wall.style.display = "";
 }
 
+/* =========================================
+ * 到期倒數
+ * ========================================= */
+function parseDateSafe_(value){
+  if(!value) return null;
+
+  const s = String(value).trim();
+  if(!s) return null;
+
+  const normalized = s
+    .replace(/\//g, "-")
+    .replace(" ", "T");
+
+  let d = new Date(normalized);
+  if(!isNaN(d.getTime())) return d;
+
+  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    d = new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      23, 59, 59, 999
+    );
+    if(!isNaN(d.getTime())) return d;
+  }
+
+  return null;
+}
+
+function renderCardExpiry_(p){
+  const el = qs("cardExpiry");
+  if(!el) return;
+
+  const raw = text(pick(p, ["expires_at"]));
+  if(!raw){
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
+
+  const exp = parseDateSafe_(raw);
+  if(!exp){
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
+
+  const now = new Date();
+  const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const expStart = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate()).getTime();
+  const diffDays = Math.floor((expStart - nowStart) / 86400000);
+
+  let label = "";
+
+  if(diffDays < 0){
+    label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
+  }else if(diffDays === 0){
+    label = "EXPIRES TODAY";
+  }else if(diffDays === 1){
+    label = "EXPIRES IN 1 DAY";
+  }else{
+    label = `EXPIRES IN ${diffDays} DAYS`;
+  }
+
+  el.textContent = label;
+  el.style.display = "block";
+}
+
 function applySmartBalanceToEl_(el){
   if(!el) return;
   const raw = text(el.dataset.rawText || el.textContent);
@@ -1686,6 +1755,11 @@ function renderCard(row){
   currentRow = p;
   currentReferralSourceCodeCache = getReferralSourceCode_(p);
 
+  /* 提供全域資料給其他模組使用 */
+  window.__CARD_DATA__ = p;
+  window.cardData = p;
+  window.payload = p;
+
   applyThemeFromPayload_(p);
 
   const nameEl = qs("u-name");
@@ -1728,11 +1802,14 @@ function renderCard(row){
     }
   }
 
+  console.log("expires_at =", pick(p, ["expires_at"]));
+
   renderAvatar_(p);
   renderLogo_(p);
   renderBlocks_(p);
   renderDocks_(p);
   renderPhotoWall_(p);
+  renderCardExpiry_(p);
   renderBottomQr_(p);
   renderBottomHubShareBtn_();
   renderFeatureQrFromCurrent_();
@@ -1847,62 +1924,4 @@ window.addEventListener("load", ()=>{
     if(unitEl) unitEl.textContent = "請稍後再試";
     if(titleEl) titleEl.textContent = "";
   }
-})();
-(function(){
-  function renderCardExpirySafe(){
-    const el = document.getElementById("cardExpiry");
-    if(!el) return;
-
-    // 嘗試從畫面抓 expires_at（從 data 屬性或全域變數）
-    let p = window.__CARD_DATA__ || window.cardData || window.payload || null;
-
-    // 如果抓不到，就嘗試從 DOM fallback（極保險）
-    if(!p){
-      try{
-        const raw = document.body.getAttribute("data-card");
-        if(raw) p = JSON.parse(raw);
-      }catch(e){}
-    }
-
-    if(!p) return;
-
-    const expiresRaw = (p.expires_at || "").toString().trim();
-    if(!expiresRaw){
-      el.style.display = "none";
-      return;
-    }
-
-    const exp = new Date(expiresRaw);
-    if(isNaN(exp.getTime())){
-      el.style.display = "none";
-      return;
-    }
-
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const expStart = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate()).getTime();
-
-    const diffDays = Math.floor((expStart - todayStart) / 86400000);
-
-    let label = "";
-
-    if(diffDays < 0){
-      label = "Expired";
-    }else if(diffDays === 0){
-      label = "Expires today";
-    }else{
-      label = "Expires in " + diffDays + " days";
-    }
-
-    el.textContent = label;
-    el.style.display = "block";
-  }
-
-  // 自動重試（因為資料是 async）
-  let tries = 0;
-  const timer = setInterval(function(){
-    renderCardExpirySafe();
-    tries++;
-    if(tries > 20) clearInterval(timer);
-  }, 300);
 })();
