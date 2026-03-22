@@ -1,23 +1,58 @@
+/* ============================================================
+   天使幸福智慧名片館 app.js
+   v526.0-announcement-upgrade
+   完整覆蓋版 — 含公告系統升級（卡片輪播 + Modal 彈出）
+============================================================ */
+
 const CONFIG = {
   GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
   CUSTOMER_SERVICE_URL: "https://lin.ee/3r2ZePN",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v525.0-card-load-fix",
+  VERSION: "v526.0-announcement-upgrade",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
 };
 
-const PLAN_LIMITS = {
-  free: {
-    maxPhotos: 2,
-    maxCtas: 1
+/* 內建公告（Fallback，當 GAS 無公告時使用） */
+const BUILTIN_ANNOUNCEMENTS = [
+  {
+    id: "builtin-feature",
+    title: "產品特色",
+    content: `天使幸福智慧名片是一個專為創業者、講師、服務業與個人品牌打造的數位名片入口系統。
+
+【核心特色】
+1. 一頁整合：整合電話、LINE、網站、社群平台、影音與品牌介紹，一次呈現。
+2. 行動門面：名片不只是聯絡資訊，而是你的品牌入口，讓客戶快速了解你。
+3. 可分享可收藏：支援 QR Code、連結分享與手機收藏，讓客戶隨時找得到你。
+4. 彈性設計：提供自由搭配款與精品設計款，依照個人風格打造專屬名片。
+5. 持續更新：內容可隨時調整，讓名片永遠保持最新狀態。
+6. 導流轉換：結合 CTA 按鈕，引導客戶聯繫、加 LINE 或前往服務頁。
+
+天使幸福智慧名片館，幫你把「被看見」變成「被記住」。`,
+    status: "active",
+    priority: 10
   },
-  premium: {
-    maxPhotos: 5,
-    maxCtas: 3
+  {
+    id: "builtin-flow",
+    title: "申請流程",
+    content: `【申請流程】
+1. 先申請表單邀請碼
+2. 複製申請內容
+3. 加入 LINE 官方帳號提出申請
+4. 客服提供邀請碼與表單連結
+5. 完成填表後建立你的智慧名片
+
+若想更快開始，也可直接先閱讀門面內容，再依指引完成申請。`,
+    status: "active",
+    priority: 9
   }
+];
+
+const PLAN_LIMITS = {
+  free: { maxPhotos: 2, maxCtas: 1 },
+  premium: { maxPhotos: 5, maxCtas: 3 }
 };
 
 let currentRow = null;
@@ -31,11 +66,14 @@ let lastBottomQrRenderKey = "";
 let lastFeatureQrRenderKey = "";
 let lastFacadeQrRenderKey = "";
 
-/* 公告跑馬燈 */
-let announcementItemsCache_ = [];
+/* ── 公告系統狀態 ── */
+let announcementItems_ = [];
 let announcementIndex_ = 0;
 let announcementTimer_ = null;
 
+/* ============================================================
+   工具函式
+============================================================ */
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 function text(v){ return (v == null ? "" : String(v)).trim(); }
@@ -61,18 +99,14 @@ function getIdFromUrl_(){
   try{
     const sp = getSearchParams_();
     return sp.get("id") || "";
-  }catch{
-    return "";
-  }
+  }catch{ return ""; }
 }
 
 function getRefFromUrl_(){
   try{
     const sp = getSearchParams_();
     return text(sp.get("ref") || "");
-  }catch{
-    return "";
-  }
+  }catch{ return ""; }
 }
 
 function normalizeUrl_(s){
@@ -90,15 +124,13 @@ function safeJsonParse_(rawText){
   s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
   try{ return JSON.parse(s); }catch{}
   const m = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-  if(m){
-    try{ return JSON.parse(m[0]); }catch{}
-  }
+  if(m){ try{ return JSON.parse(m[0]); }catch{} }
   return null;
 }
 
 async function fetchWithTimeout_(url, timeoutMs){
   const controller = new AbortController();
-  const t = setTimeout(()=>controller.abort(), timeoutMs);
+  const t = setTimeout(() => controller.abort(), timeoutMs);
   try{
     const res = await fetch(url, {
       method: "GET",
@@ -128,6 +160,31 @@ async function fetchJsonRobust_(url){
   throw last || new Error("Fetch failed");
 }
 
+function escapeHtml_(s){
+  return String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function openUrl_(url){
+  const u = normalizeUrl_(url);
+  if(!u) return;
+  window.open(u, "_blank");
+}
+
+function openMapByAddress_(addr){
+  const a = text(addr);
+  if(!a) return;
+  const q = encodeURIComponent(a);
+  window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
+}
+
+/* ============================================================
+   API URL 建置
+============================================================ */
 function buildCardApiUrl_(id){
   const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
   const u = new URL(CONFIG.GAS);
@@ -160,6 +217,9 @@ function buildAnnouncementApiUrl_(){
   return u.toString();
 }
 
+/* ============================================================
+   Payload 正規化
+============================================================ */
 function buildNormalizedPayload_(obj){
   if(!obj || typeof obj !== "object") return obj;
   const out = { __raw: obj };
@@ -192,31 +252,25 @@ function pick(p, keys){
 
 function extractCardRow_(payload){
   if(!payload || typeof payload !== "object") return {};
-
   if(payload.item && typeof payload.item === "object") return payload.item;
   if(payload.row && typeof payload.row === "object") return payload.row;
   if(payload.card && typeof payload.card === "object") return payload.card;
-
   if(payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)){
     if(payload.data.item && typeof payload.data.item === "object") return payload.data.item;
     if(payload.data.row && typeof payload.data.row === "object") return payload.data.row;
     if(payload.data.card && typeof payload.data.card === "object") return payload.data.card;
     return payload.data;
   }
-
-  if(
-    "id" in payload ||
-    "name" in payload ||
-    "plan" in payload ||
-    "avatar_url" in payload ||
-    "title" in payload
-  ){
+  if("id" in payload || "name" in payload || "plan" in payload ||
+     "avatar_url" in payload || "title" in payload){
     return payload;
   }
-
   return {};
 }
 
+/* ============================================================
+   Plan / 方案
+============================================================ */
 function normalizePlan_(v){
   return text(v).toLowerCase() === "premium" ? "premium" : "free";
 }
@@ -225,10 +279,12 @@ function getCurrentPlanLimit_(){
   return PLAN_LIMITS[normalizePlan_(UI_STATE.plan)] || PLAN_LIMITS.free;
 }
 
+/* ============================================================
+   Referral / 邀請碼
+============================================================ */
 function getReferralSourceCode_(p){
   const urlRef = getRefFromUrl_();
   if(urlRef) return urlRef;
-
   if(p){
     const code =
       text(pick(p, ["agent_id"])) ||
@@ -237,18 +293,17 @@ function getReferralSourceCode_(p){
       text(pick(p, ["id"]));
     if(code) return code;
   }
-
   const id = normalizeId_(getIdFromUrl_());
   return id || "";
 }
 
 function getCardIdForShare_(p){
   const payload = p || currentRow || null;
-  const id =
+  return (
     normalizeId_(text(pick(payload, ["id"]))) ||
     normalizeId_(getIdFromUrl_()) ||
-    CONFIG.DEFAULT_ID;
-  return id;
+    CONFIG.DEFAULT_ID
+  );
 }
 
 function getAgentIdForShare_(p){
@@ -265,7 +320,6 @@ function getAgentIdForShare_(p){
 function buildTrackedShareUrl_(p){
   const cardId = getCardIdForShare_(p);
   const agentId = getAgentIdForShare_(p);
-
   try{
     const u = new URL(CONFIG.HUB_URL + "index.html");
     u.searchParams.set("id", cardId);
@@ -283,9 +337,7 @@ function buildTrackedShareUrl_(p){
       "&view=1" +
       "&share_card_id=" + encodeURIComponent(cardId) +
       "&share_agent_id=" + encodeURIComponent(agentId) +
-      "&share_source=card_share" +
-      "&share_channel=product_card" +
-      "&share_visit_id="
+      "&share_source=card_share&share_channel=product_card&share_visit_id="
     );
   }
 }
@@ -321,23 +373,16 @@ async function ensureInviteApplyData_(){
       copyText: currentInviteCopyTextCache
     };
   }
-
   const refCode = getReferralSourceCode_(currentRow);
   currentReferralSourceCodeCache = refCode || "";
-
   let applyCode = "";
   try{
     const payload = await fetchJsonRobust_(buildLeadCreateUrl_(refCode));
     applyCode = text(payload?.data?.lead_id || payload?.lead_id || "");
-  }catch(_err){
-    applyCode = "";
-  }
-
+  }catch(_err){ applyCode = ""; }
   if(!applyCode) applyCode = createLocalApplyCode_();
-
   currentInviteApplyCodeCache = applyCode;
   currentInviteCopyTextCache = buildInviteApplyText_(refCode, applyCode);
-
   return {
     refCode: refCode || "無",
     applyCode,
@@ -346,25 +391,23 @@ async function ensureInviteApplyData_(){
 }
 
 window.__ensureInviteApplyData = ensureInviteApplyData_;
-window.__getReferralSourceCode = function(){
-  return getReferralSourceCode_(currentRow);
-};
+window.__getReferralSourceCode = function(){ return getReferralSourceCode_(currentRow); };
 
+/* ============================================================
+   圖片處理
+============================================================ */
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
   if(!url) return "";
-
   if(url.includes("dropbox.com")){
     url = url.replace("dl=0", "raw=1");
     if(!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
     return url;
   }
-
   if(url.includes("drive.google.com") && url.includes("/file/d/")){
     const m = url.match(/\/file\/d\/([^/]+)/i);
     if(m && m[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m[1])}`;
   }
-
   return url;
 }
 
@@ -373,7 +416,6 @@ function buildImgCandidates_(raw){
   if(!s) return [];
   const url = normalizeImageUrl_(s);
   const list = [url];
-
   if(url.includes("drive.google.com/uc?export=view&id=")){
     const m = url.match(/id=([^&]+)/i);
     if(m && m[1]){
@@ -382,7 +424,6 @@ function buildImgCandidates_(raw){
       list.push(`https://drive.google.com/uc?export=download&id=${id}`);
     }
   }
-
   return [...new Set(list.filter(Boolean))];
 }
 
@@ -392,99 +433,44 @@ function setImgWithFallback_(imgEl, candidates, options = {}){
     if(typeof options.onFail === "function") options.onFail();
     return;
   }
-
   if(!list.length){
     if(typeof options.onFail === "function") options.onFail();
     return;
   }
-
   let idx = 0;
   let done = false;
-
   imgEl.referrerPolicy = options.referrerPolicy || "no-referrer";
   try{ imgEl.crossOrigin = options.crossOrigin || "anonymous"; }catch{}
-
-  const buildSrc = (src)=>{
+  const buildSrc = (src) => {
     const sep = src.includes("?") ? "&" : "?";
     return src + sep + "t=" + Date.now() + "&v=" + encodeURIComponent(CONFIG.VERSION);
   };
-
-  const cleanup = ()=>{
-    imgEl.onerror = null;
-    imgEl.onload = null;
-  };
-
-  const failAll = ()=>{
+  const cleanup = () => { imgEl.onerror = null; imgEl.onload = null; };
+  const failAll = () => {
     if(done) return;
     done = true;
     cleanup();
     if(typeof options.onFail === "function") options.onFail();
   };
-
-  const tryNext = ()=>{
+  const tryNext = () => {
     if(done) return;
     idx++;
-    if(idx >= list.length){
-      failAll();
-      return;
-    }
+    if(idx >= list.length){ failAll(); return; }
     imgEl.src = buildSrc(list[idx]);
   };
-
-  imgEl.onload = ()=>{
+  imgEl.onload = () => {
     if(done) return;
     done = true;
     cleanup();
     if(typeof options.onLoad === "function") options.onLoad();
   };
-
-  imgEl.onerror = ()=>{
-    tryNext();
-  };
-
+  imgEl.onerror = () => { tryNext(); };
   imgEl.src = buildSrc(list[0]);
 }
 
-function escapeHtml_(s){
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function openUrl_(url){
-  const u = normalizeUrl_(url);
-  if(!u) return;
-  window.open(u, "_blank");
-}
-
-function openMapByAddress_(addr){
-  const a = text(addr);
-  if(!a) return;
-  const q = encodeURIComponent(a);
-  window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
-}
-
-function buildDockBtn_({label, icon, onClick, extraClass}){
-  const b = document.createElement("button");
-  b.className = "dock-btn" + (extraClass ? (" " + extraClass) : "");
-  b.type = "button";
-  b.innerHTML = `<i class="${icon}"></i><span>${escapeHtml_(label)}</span>`;
-  b.addEventListener("click", onClick);
-  return b;
-}
-
-function applyWideRule_(container){
-  if(!container) return;
-  const btns = Array.from(container.querySelectorAll(".dock-btn"));
-  btns.forEach(b => b.classList.remove("wide"));
-  if(btns.length % 2 === 1){
-    btns[btns.length - 1].classList.add("wide");
-  }
-}
-
+/* ============================================================
+   UI 狀態 / 主題
+============================================================ */
 const BODY_MODE_CLASSES = ["mode-free", "mode-premium"];
 const BODY_FREE_THEME_CLASSES = ["color-1", "color-2", "color-3", "color-4", "color-5"];
 const BODY_PREMIUM_THEME_CLASSES = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"];
@@ -499,15 +485,8 @@ const UI_STATE = {
   paper: "paper-1"
 };
 
-function removeBodyClasses_(classes){
-  classes.forEach(c => document.body.classList.remove(c));
-}
-
-function setBodyClassOneOf_(classes, target){
-  removeBodyClasses_(classes);
-  if(target) document.body.classList.add(target);
-}
-
+function removeBodyClasses_(classes){ classes.forEach(c => document.body.classList.remove(c)); }
+function setBodyClassOneOf_(classes, target){ removeBodyClasses_(classes); if(target) document.body.classList.add(target); }
 function setActiveAmong_(elements, activeEl){
   (elements || []).forEach(el => {
     if(el === activeEl) el.classList.add("active");
@@ -526,19 +505,13 @@ function mapFreeColorToTheme_(v){
 
 function mapStyleToUi_(v){
   const raw = text(v).toLowerCase();
-  const map = {
-    "s1":"arch","s2":"flat","s3":"spot",
-    "arch":"arch","flat":"flat","spot":"spot"
-  };
+  const map = { "s1":"arch","s2":"flat","s3":"spot","arch":"arch","flat":"flat","spot":"spot" };
   return map[raw] || "arch";
 }
 
 function mapPaperToUi_(v){
   const raw = text(v).toLowerCase();
-  const map = {
-    "f1":"paper-1","f2":"paper-2","f3":"paper-3",
-    "paper-1":"paper-1","paper-2":"paper-2","paper-3":"paper-3"
-  };
+  const map = { "f1":"paper-1","f2":"paper-2","f3":"paper-3","paper-1":"paper-1","paper-2":"paper-2","paper-3":"paper-3" };
   return map[raw] || "paper-1";
 }
 
@@ -547,14 +520,13 @@ function mapPremiumToUi_(v){
   const allow = ["p1","p2","p3","p4","p5","p6","p7"];
   return allow.includes(raw) ? raw : "p1";
 }
+
 function applyThemeFromPayload_(p){
   const planRaw = normalizePlan_(pick(p, ["plan"]));
   const isPremium = planRaw === "premium";
-
   const rawColor = pick(p, ["color"]);
   const rawStyle = pick(p, ["style"]);
   const rawPaper = pick(p, ["paper"]);
-
   if(isPremium){
     UI_STATE.plan = "premium";
     UI_STATE.premiumTheme = mapPremiumToUi_(rawColor || "p1");
@@ -564,7 +536,6 @@ function applyThemeFromPayload_(p){
     UI_STATE.style = mapStyleToUi_(rawStyle || "s1");
     UI_STATE.paper = mapPaperToUi_(rawPaper || "f1");
   }
-
   syncPlanUI_();
 }
 
@@ -574,9 +545,7 @@ function syncPlanUI_(){
   const freeControls = qs("free-controls");
   const premiumControls = qs("premium-controls");
   const badge = qs("premiumBadge");
-
   setBodyClassOneOf_(BODY_MODE_CLASSES, UI_STATE.plan === "premium" ? "mode-premium" : "mode-free");
-
   if(UI_STATE.plan === "premium"){
     if(freeControls) freeControls.style.display = "none";
     if(premiumControls) premiumControls.style.display = "";
@@ -590,7 +559,6 @@ function syncPlanUI_(){
     if(premBtn) premBtn.classList.remove("active");
     if(freeBtn) freeBtn.classList.add("active");
   }
-
   syncThemeUI_();
   syncStyleUI_();
   syncPaperUI_();
@@ -599,32 +567,24 @@ function syncPlanUI_(){
 function syncThemeUI_(){
   const freeDots = qsa("#freeDotsRow .dot");
   const premiumDots = qsa("#premiumDotsRow .p-dot");
-
   removeBodyClasses_(BODY_FREE_THEME_CLASSES);
   removeBodyClasses_(BODY_PREMIUM_THEME_CLASSES);
-
   if(UI_STATE.plan === "premium"){
     document.body.classList.add(UI_STATE.premiumTheme || "p1");
-
     premiumDots.forEach(btn => {
       const expected = btn.getAttribute("aria-label");
       if(expected === UI_STATE.premiumTheme) btn.classList.add("active");
       else btn.classList.remove("active");
     });
-
     freeDots.forEach(btn => btn.classList.remove("active"));
   }else{
     document.body.classList.add(UI_STATE.theme || "color-1");
-
     freeDots.forEach(btn => {
-      const map = {
-        "dot-1":"color-1","dot-2":"color-2","dot-3":"color-3","dot-4":"color-4","dot-5":"color-5"
-      };
+      const map = { "dot-1":"color-1","dot-2":"color-2","dot-3":"color-3","dot-4":"color-4","dot-5":"color-5" };
       const match = Object.keys(map).find(cls => btn.classList.contains(cls));
       if(match && map[match] === UI_STATE.theme) btn.classList.add("active");
       else btn.classList.remove("active");
     });
-
     premiumDots.forEach(btn => btn.classList.remove("active"));
   }
 }
@@ -632,11 +592,10 @@ function syncThemeUI_(){
 function syncStyleUI_(){
   removeBodyClasses_(BODY_STYLE_CLASSES);
   document.body.classList.add(`style-${UI_STATE.style || "arch"}`);
-
   const buttons = qsa("#styleRow .btn-neo");
   buttons.forEach(btn => {
     const t = text(btn.textContent);
-    const map = { "正拱": "arch", "平直": "flat", "晨曦": "spot" };
+    const map = { "正拱":"arch","平直":"flat","晨曦":"spot" };
     const v = map[t] || "";
     if(v === UI_STATE.style) btn.classList.add("active");
     else btn.classList.remove("active");
@@ -646,11 +605,10 @@ function syncStyleUI_(){
 function syncPaperUI_(){
   removeBodyClasses_(BODY_PAPER_CLASSES);
   document.body.classList.add(UI_STATE.paper || "paper-1");
-
   const buttons = qsa("#paperRow .btn-neo");
   buttons.forEach(btn => {
     const t = text(btn.textContent);
-    const map = { "棉紙": "paper-1", "象牙紙": "paper-2", "霧灰": "paper-3" };
+    const map = { "棉紙":"paper-1","象牙紙":"paper-2","霧灰":"paper-3" };
     const v = map[t] || "";
     if(v === UI_STATE.paper) btn.classList.add("active");
     else btn.classList.remove("active");
@@ -668,17 +626,9 @@ window.setPlan = function(plan, el){
 
 window.setTheme = function(theme, el){
   if(!theme) return;
-
-  if(/^color-\d+$/.test(theme)){
-    UI_STATE.plan = "free";
-    UI_STATE.theme = theme;
-  }else if(/^p\d+$/.test(theme)){
-    UI_STATE.plan = "premium";
-    UI_STATE.premiumTheme = theme;
-  }
-
+  if(/^color-\d+$/.test(theme)){ UI_STATE.plan = "free"; UI_STATE.theme = theme; }
+  else if(/^p\d+$/.test(theme)){ UI_STATE.plan = "premium"; UI_STATE.premiumTheme = theme; }
   syncPlanUI_();
-
   if(el){
     const groupSel = UI_STATE.plan === "premium" ? "#premiumDotsRow .p-dot" : "#freeDotsRow .dot";
     setActiveAmong_(qsa(groupSel), el);
@@ -704,24 +654,21 @@ window.setPaper = function(paper, el){
 function initSelectionState_(){
   const body = document.body;
   if(!body) return;
-
   UI_STATE.plan = body.classList.contains("mode-premium") ? "premium" : "free";
-
   const freeTheme = BODY_FREE_THEME_CLASSES.find(c => body.classList.contains(c));
   if(freeTheme) UI_STATE.theme = freeTheme;
-
   const premiumTheme = BODY_PREMIUM_THEME_CLASSES.find(c => body.classList.contains(c));
   if(premiumTheme) UI_STATE.premiumTheme = premiumTheme;
-
   const styleClass = BODY_STYLE_CLASSES.find(c => body.classList.contains(c));
   if(styleClass) UI_STATE.style = styleClass.replace(/^style-/, "");
-
   const paperClass = BODY_PAPER_CLASSES.find(c => body.classList.contains(c));
   if(paperClass) UI_STATE.paper = paperClass;
-
   syncPlanUI_();
 }
 
+/* ============================================================
+   可展開文字
+============================================================ */
 function escapeHtmlWithBreaks_(s){
   return escapeHtml_(s).replace(/\n/g, "<br>");
 }
@@ -738,15 +685,12 @@ function normalizeLongText_(raw){
 
 function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}){
   if(!contentEl) return;
-
   const value = normalizeLongText_(rawText);
   const hasText = text(value) !== "";
   const allowMultiline = !!options.allowMultiline;
-
   contentEl.dataset.raw = value;
   contentEl.dataset.maxLines = String(maxLines || 3);
   contentEl.dataset.expandable = "1";
-
   if(allowMultiline){
     contentEl.innerHTML = escapeHtmlWithBreaks_(value);
     contentEl.classList.add("preline");
@@ -754,19 +698,16 @@ function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}
     contentEl.textContent = value;
     contentEl.classList.remove("preline");
   }
-
   contentEl.classList.remove("is-expanded");
   contentEl.classList.add("is-collapsed");
   contentEl.style.setProperty("--max-lines", String(maxLines || 3));
-
   if(toggleEl){
     toggleEl.type = "button";
     toggleEl.textContent = "看更多";
     toggleEl.style.display = "none";
     toggleEl.setAttribute("aria-expanded", "false");
     toggleEl.onclick = null;
-
-    toggleEl.onclick = ()=>{
+    toggleEl.onclick = () => {
       const expanded = contentEl.classList.contains("is-expanded");
       if(expanded){
         contentEl.classList.remove("is-expanded");
@@ -781,49 +722,31 @@ function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}
       }
     };
   }
-
-  if(!hasText){
-    if(toggleEl) toggleEl.style.display = "none";
-    return;
-  }
-
-  requestAnimationFrame(()=>{
-    refreshExpandableItem_(contentEl, toggleEl);
-  });
+  if(!hasText){ if(toggleEl) toggleEl.style.display = "none"; return; }
+  requestAnimationFrame(() => { refreshExpandableItem_(contentEl, toggleEl); });
 }
 
 function refreshExpandableItem_(contentEl, toggleEl){
   if(!contentEl) return;
-
   const maxLines = Number(contentEl.dataset.maxLines || 3);
   const wasExpanded = contentEl.classList.contains("is-expanded");
-
   contentEl.classList.remove("is-expanded");
   contentEl.classList.add("is-collapsed");
   contentEl.style.setProperty("--max-lines", String(maxLines));
-
   const needToggle = (contentEl.scrollHeight - contentEl.clientHeight) > 4;
-
   if(toggleEl){
     toggleEl.style.display = needToggle ? "inline-flex" : "none";
-    if(!needToggle){
-      toggleEl.textContent = "看更多";
-      toggleEl.setAttribute("aria-expanded", "false");
-    }
+    if(!needToggle){ toggleEl.textContent = "看更多"; toggleEl.setAttribute("aria-expanded", "false"); }
   }
-
   if(needToggle && wasExpanded){
     contentEl.classList.remove("is-collapsed");
     contentEl.classList.add("is-expanded");
-    if(toggleEl){
-      toggleEl.textContent = "收合";
-      toggleEl.setAttribute("aria-expanded", "true");
-    }
+    if(toggleEl){ toggleEl.textContent = "收合"; toggleEl.setAttribute("aria-expanded", "true"); }
   }
 }
 
 function refreshAllExpandable_(){
-  qsa("[data-expandable='1']").forEach((contentEl)=>{
+  qsa("[data-expandable='1']").forEach(contentEl => {
     const wrap = contentEl.closest(".expandable-wrap") || contentEl.parentElement;
     const toggleEl = wrap ? wrap.querySelector(".expand-toggle") : null;
     refreshExpandableItem_(contentEl, toggleEl);
@@ -831,9 +754,9 @@ function refreshAllExpandable_(){
 }
 
 let __expandRefreshTimer = null;
-window.addEventListener("resize", ()=>{
+window.addEventListener("resize", () => {
   clearTimeout(__expandRefreshTimer);
-  __expandRefreshTimer = setTimeout(()=>{
+  __expandRefreshTimer = setTimeout(() => {
     refreshAllExpandable_();
     applySmartBalanceAll_();
   }, 120);
@@ -841,14 +764,12 @@ window.addEventListener("resize", ()=>{
 
 function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
   if(!blockEl) return;
-
   const value = normalizeLongText_(rawText);
   if(!text(value)){
     blockEl.style.display = "none";
     blockEl.innerHTML = "";
     return;
   }
-
   blockEl.style.display = "";
   blockEl.innerHTML = `
     <div class="block-title">${escapeHtml_(title)}</div>
@@ -857,55 +778,34 @@ function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
       <button class="expand-toggle" type="button" style="display:none;">看更多</button>
     </div>
   `;
-
   const contentEl = blockEl.querySelector(".expandable-text");
   const toggleEl = blockEl.querySelector(".expand-toggle");
   setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline: true });
 }
 
+/* ============================================================
+   Avatar / Logo
+============================================================ */
 function pickAvatarInfo_(p){
   const url = pick(p, ["avatar_url"]);
   if(text(url)){
-    return {
-      key: "avatar_url",
-      raw: url,
-      url: normalizeImageUrl_(url)
-    };
+    return { key: "avatar_url", raw: url, url: normalizeImageUrl_(url) };
   }
-
-  return {
-    key: "",
-    raw: "",
-    url: ""
-  };
+  return { key: "", raw: "", url: "" };
 }
 
 function renderAvatar_(p){
   const img = qs("u-img");
   if(!img) return;
-
   const info = pickAvatarInfo_(p);
   const u = info.url;
-
   currentAvatarUrlCache = u || "";
   currentAvatarSourceKeyCache = info.key || "";
-
-  if(!u){
-    img.removeAttribute("src");
-    img.style.display = "none";
-    return;
-  }
-
+  if(!u){ img.removeAttribute("src"); img.style.display = "none"; return; }
   img.style.display = "block";
-
   setImgWithFallback_(img, buildImgCandidates_(u), {
-    onFail: ()=>{
-      img.removeAttribute("src");
-      img.style.display = "none";
-    },
-    onLoad: ()=>{
-      img.style.display = "block";
-    }
+    onFail: () => { img.removeAttribute("src"); img.style.display = "none"; },
+    onLoad: () => { img.style.display = "block"; }
   });
 }
 
@@ -914,39 +814,42 @@ function renderLogo_(p){
   const wrap = qs("logoWrap");
   const img = qs("u-logo");
   if(!wrap || !img) return;
-
   const u = normalizeImageUrl_(logoUrl);
-  if(!u){
-    wrap.style.display = "none";
-    img.removeAttribute("src");
-    return;
-  }
-
+  if(!u){ wrap.style.display = "none"; img.removeAttribute("src"); return; }
   wrap.style.display = "flex";
   img.style.borderRadius = "18px";
   img.style.objectFit = "cover";
   img.style.display = "block";
-
   setImgWithFallback_(img, buildImgCandidates_(u), {
-    onFail: ()=>{
-      wrap.style.display = "none";
-      img.removeAttribute("src");
-      img.style.display = "none";
-    },
-    onLoad: ()=>{
-      wrap.style.display = "flex";
-      img.style.display = "block";
-    }
+    onFail: () => { wrap.style.display = "none"; img.removeAttribute("src"); img.style.display = "none"; },
+    onLoad: () => { wrap.style.display = "flex"; img.style.display = "block"; }
   });
+}
+
+/* ============================================================
+   Dock 按鈕
+============================================================ */
+function buildDockBtn_({ label, icon, onClick, extraClass }){
+  const b = document.createElement("button");
+  b.className = "dock-btn" + (extraClass ? (" " + extraClass) : "");
+  b.type = "button";
+  b.innerHTML = `<i class="${icon}"></i><span>${escapeHtml_(label)}</span>`;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function applyWideRule_(container){
+  if(!container) return;
+  const btns = Array.from(container.querySelectorAll(".dock-btn"));
+  btns.forEach(b => b.classList.remove("wide"));
+  if(btns.length % 2 === 1){ btns[btns.length - 1].classList.add("wide"); }
 }
 
 function renderBlocks_(p){
   const service = pick(p, ["services","服務項目","service"]);
   const exp = pick(p, ["experience","經歷","exp"]);
-
   const b1 = qs("block-service");
   const b2 = qs("block-exp");
-
   renderExpandableInfoBlock_(b1, "服務項目", service, 2);
   renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", exp, 3);
 }
@@ -956,65 +859,37 @@ function renderContactDock_(p){
   const btns = qs("contactButtons");
   if(!dock || !btns) return;
   btns.innerHTML = "";
-
   const phone = pick(p, ["phone","電話"]);
   const email = pick(p, ["email","Email"]);
   const address = pick(p, ["address","地址"]);
   const lineUrl = normalizeUrl_(pick(p, ["line_url","line_oa","LINE連結"]));
   const wechatId = text(pick(p, ["wechat_id","微信ID","微信"]));
-
   const list = [];
-
-  if(lineUrl){
-    list.push({ label:"私訊 LINE", icon:"fa-brands fa-line", cls:"dock-line", action: ()=> openUrl_(lineUrl) });
-  }
-  if(wechatId){
-    list.push({
-      label:"微信ID",
-      icon:"fa-brands fa-weixin",
-      cls:"dock-web",
-      action: async ()=>{
-        try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(wechatId); }catch{}
-        alert("✅ 已複製微信ID");
-      }
-    });
-  }
-  if(phone){
-    list.push({ label:"電話", icon:"fa-solid fa-phone", cls:"dock-web", action: ()=> { location.href = `tel:${text(phone)}`; } });
-  }
-  if(email){
-    list.push({ label:"Email", icon:"fa-solid fa-envelope", cls:"dock-web", action: ()=> { location.href = `mailto:${text(email)}`; } });
-  }
-  if(address){
-    list.push({ label:"地址導航", icon:"fa-solid fa-location-dot", cls:"dock-map", action: ()=> openMapByAddress_(address) });
-  }
-
-  if(!list.length){
-    dock.style.display = "none";
-    return;
-  }
-
-  list.forEach(x=>{
-    btns.appendChild(buildDockBtn_({
-      label: x.label,
-      icon: x.icon,
-      extraClass: x.cls,
-      onClick: x.action
-    }));
+  if(lineUrl) list.push({ label:"私訊 LINE", icon:"fa-brands fa-line", cls:"dock-line", action: () => openUrl_(lineUrl) });
+  if(wechatId) list.push({
+    label:"微信ID", icon:"fa-brands fa-weixin", cls:"dock-web",
+    action: async () => {
+      try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(wechatId); }catch{}
+      alert("✅ 已複製微信ID");
+    }
   });
-
+  if(phone) list.push({ label:"電話", icon:"fa-solid fa-phone", cls:"dock-web", action: () => { location.href = `tel:${text(phone)}`; } });
+  if(email) list.push({ label:"Email", icon:"fa-solid fa-envelope", cls:"dock-web", action: () => { location.href = `mailto:${text(email)}`; } });
+  if(address) list.push({ label:"地址導航", icon:"fa-solid fa-location-dot", cls:"dock-map", action: () => openMapByAddress_(address) });
+  if(!list.length){ dock.style.display = "none"; return; }
+  list.forEach(x => {
+    btns.appendChild(buildDockBtn_({ label: x.label, icon: x.icon, extraClass: x.cls, onClick: x.action }));
+  });
   dock.style.display = "";
   applyWideRule_(btns);
 }
 
 function inferLinkMeta_(url, kind, idx){
   const u = String(url || "").toLowerCase();
-
   if(u.includes("youtube.com") || u.includes("youtu.be")) return { label:"YouTube", icon:"fa-brands fa-youtube", cls:"dock-yt" };
   if(u.includes("facebook.com") || u.includes("fb.com")) return { label:"FB", icon:"fa-brands fa-facebook", cls:"dock-fb" };
   if(u.includes("instagram.com")) return { label:"Instagram", icon:"fa-brands fa-instagram", cls:"dock-ig" };
   if(u.includes("threads.net")) return { label:"Threads", icon:"fa-solid fa-at", cls:"dock-web" };
-
   if(kind === "video") return { label:`影音 ${idx}`, icon:"fa-solid fa-play", cls:"dock-web" };
   return { label:`社群 ${idx}`, icon:"fa-solid fa-link", cls:"dock-web" };
 }
@@ -1023,21 +898,10 @@ function renderPrimaryLinkDock_(p){
   const dock = qs("primaryLinkDock");
   const btns = qs("primaryLinkButtons");
   if(!dock || !btns) return;
-
   btns.innerHTML = "";
   const website = normalizeUrl_(pick(p, ["website","網站","web","homepage"]));
-  if(!website){
-    dock.style.display = "none";
-    return;
-  }
-
-  btns.appendChild(buildDockBtn_({
-    label: "官方網站",
-    icon: "fa-solid fa-globe",
-    extraClass: "dock-web wide",
-    onClick: ()=> openUrl_(website)
-  }));
-
+  if(!website){ dock.style.display = "none"; return; }
+  btns.appendChild(buildDockBtn_({ label:"官方網站", icon:"fa-solid fa-globe", extraClass:"dock-web wide", onClick: () => openUrl_(website) }));
   dock.style.display = "";
 }
 
@@ -1046,32 +910,20 @@ function renderMediaDock_(p){
   const btns = qs("mediaButtons");
   if(!dock || !btns) return;
   btns.innerHTML = "";
-
   const items = [];
-  ["video1","video2","video3"].forEach((k, i)=>{
+  ["video1","video2","video3"].forEach((k, i) => {
     const u = normalizeUrl_(pick(p, [k, `影音連結${i+1}`]));
     if(u) items.push({ kind:"video", idx:i+1, url:u });
   });
-  ["social1","social2","social3"].forEach((k, i)=>{
+  ["social1","social2","social3"].forEach((k, i) => {
     const u = normalizeUrl_(pick(p, [k, `社群連結${i+1}`]));
     if(u) items.push({ kind:"social", idx:i+1, url:u });
   });
-
-  if(!items.length){
-    dock.style.display = "none";
-    return;
-  }
-
-  items.forEach(item=>{
+  if(!items.length){ dock.style.display = "none"; return; }
+  items.forEach(item => {
     const meta = inferLinkMeta_(item.url, item.kind, item.idx);
-    btns.appendChild(buildDockBtn_({
-      label: meta.label,
-      icon: meta.icon,
-      extraClass: meta.cls,
-      onClick: ()=> openUrl_(item.url)
-    }));
+    btns.appendChild(buildDockBtn_({ label: meta.label, icon: meta.icon, extraClass: meta.cls, onClick: () => openUrl_(item.url) }));
   });
-
   dock.style.display = "";
   applyWideRule_(btns);
 }
@@ -1081,43 +933,23 @@ function renderCtaDock_(p){
   const btns = qs("ctaButtons");
   if(!dock || !btns) return;
   btns.innerHTML = "";
-
   const items = [];
   const limit = getCurrentPlanLimit_().maxCtas;
-
   const ctaPairs = [
-    {
-      text: text(pick(p, ["cta_text_1","CTA文字1","ctaText1"])),
-      link: normalizeUrl_(pick(p, ["cta_link_1","CTA連結1","ctaLink1"]))
-    },
-    {
-      text: text(pick(p, ["cta_text_2","CTA文字2","ctaText2"])),
-      link: normalizeUrl_(pick(p, ["cta_link_2","CTA連結2","ctaLink2"]))
-    },
-    {
-      text: text(pick(p, ["cta_text_3","CTA文字3","ctaText3"])),
-      link: normalizeUrl_(pick(p, ["cta_link_3","CTA連結3","ctaLink3"]))
-    }
+    { text: text(pick(p, ["cta_text_1","CTA文字1","ctaText1"])), link: normalizeUrl_(pick(p, ["cta_link_1","CTA連結1","ctaLink1"])) },
+    { text: text(pick(p, ["cta_text_2","CTA文字2","ctaText2"])), link: normalizeUrl_(pick(p, ["cta_link_2","CTA連結2","ctaLink2"])) },
+    { text: text(pick(p, ["cta_text_3","CTA文字3","ctaText3"])), link: normalizeUrl_(pick(p, ["cta_link_3","CTA連結3","ctaLink3"])) }
   ];
-
-  ctaPairs.forEach(item=>{
-    if(item.text && item.link && items.length < limit) items.push(item);
-  });
-
-  if(!items.length){
-    dock.style.display = "none";
-    return;
-  }
-
-  items.forEach((item, idx)=>{
+  ctaPairs.forEach(item => { if(item.text && item.link && items.length < limit) items.push(item); });
+  if(!items.length){ dock.style.display = "none"; return; }
+  items.forEach((item, idx) => {
     btns.appendChild(buildDockBtn_({
       label: item.text,
       icon: idx === 0 ? "fa-solid fa-bolt" : "fa-solid fa-arrow-up-right-from-square",
       extraClass: items.length === 1 ? "dock-web wide" : "dock-web",
-      onClick: ()=> openUrl_(item.link)
+      onClick: () => openUrl_(item.link)
     }));
   });
-
   dock.style.display = "";
   applyWideRule_(btns);
 }
@@ -1136,22 +968,20 @@ function renderDocks_(p){
   renderMediaDock_(p);
   renderCtaDock_(p);
 }
-function stripQueryAndHash_(url){
-  const s = String(url || "");
-  return s.split("#")[0].split("?")[0];
-}
+
+/* ============================================================
+   照片牆
+============================================================ */
+function stripQueryAndHash_(url){ const s = String(url || ""); return s.split("#")[0].split("?")[0]; }
 
 function extractDriveId_(url){
   const s = String(url || "");
   let m = s.match(/[?&]id=([^&]+)/i);
   if(m && m[1]) return decodeURIComponent(m[1]);
-
   m = s.match(/\/file\/d\/([^/]+)/i);
   if(m && m[1]) return decodeURIComponent(m[1]);
-
   m = s.match(/\/thumbnail\?id=([^&]+)/i);
   if(m && m[1]) return decodeURIComponent(m[1]);
-
   return "";
 }
 
@@ -1173,16 +1003,12 @@ function extractLastPathSeg_(url){
 function buildImageFingerprint_(raw){
   const url = normalizeImageUrl_(raw);
   if(!url) return "";
-
   const driveId = extractDriveId_(url);
   if(driveId) return "gdrive:" + driveId.toLowerCase();
-
   const firebaseKey = extractFirebaseFingerprint_(url);
   if(firebaseKey) return "firebase:" + firebaseKey;
-
   const noQuery = stripQueryAndHash_(url).toLowerCase();
   const lastSeg = extractLastPathSeg_(url);
-
   if(lastSeg) return "path:" + lastSeg + "|" + noQuery;
   return "url:" + noQuery;
 }
@@ -1191,34 +1017,20 @@ function collectPhotos_(p){
   const photos = [];
   const seen = new Set();
   const limit = getCurrentPlanLimit_().maxPhotos;
-
   function pushPhoto_(raw){
     const s = String(raw || "").trim();
     if(!s) return;
-
     const url = normalizeImageUrl_(s);
     if(!url) return;
-
     const fp = buildImageFingerprint_(url) || url;
     if(seen.has(fp)) return;
-
     seen.add(fp);
     photos.push(url);
   }
-
-  const keys = [
-    "photo1_url",
-    "photo2_url",
-    "photo3_url",
-    "photo4_url",
-    "photo5_url"
-  ];
-
-  keys.forEach(k=>{
+  ["photo1_url","photo2_url","photo3_url","photo4_url","photo5_url"].forEach(k => {
     const v = pick(p, [k]);
     if(v != null && text(v) !== "") pushPhoto_(v);
   });
-
   return photos.slice(0, limit);
 }
 
@@ -1226,143 +1038,89 @@ function renderPhotoWall_(p){
   const wall = qs("photoWall");
   const grid = qs("photoGrid");
   if(!wall || !grid) return;
-
   grid.innerHTML = "";
   wall.style.display = "none";
-
   const photos = collectPhotos_(p);
   const count = photos.length;
-
   if(!count) return;
-
   grid.className = "photo-grid";
   if(count === 1) grid.classList.add("layout-1");
   else if(count === 2) grid.classList.add("layout-2");
   else if(count === 3) grid.classList.add("layout-3");
   else if(count === 4) grid.classList.add("layout-4");
   else grid.classList.add("layout-5");
-
   let successCount = 0;
   let failCount = 0;
   const total = photos.length;
-
-  photos.forEach((u, idx)=>{
+  photos.forEach((u, idx) => {
     const img = document.createElement("img");
     img.className = "wall-img";
     img.alt = `照片 ${idx + 1}`;
     img.loading = "lazy";
     img.decoding = "async";
     img.style.cursor = "pointer";
-
     setImgWithFallback_(img, buildImgCandidates_(u), {
-      onLoad: ()=>{
-        successCount++;
-        wall.style.display = "";
-      },
-      onFail: ()=>{
-        failCount++;
-        img.remove();
-        if(successCount === 0 && failCount >= total){
-          wall.style.display = "none";
-        }
-      }
+      onLoad: () => { successCount++; wall.style.display = ""; },
+      onFail: () => { failCount++; img.remove(); if(successCount === 0 && failCount >= total) wall.style.display = "none"; }
     });
-
-    img.addEventListener("click", ()=> openUrl_(u));
+    img.addEventListener("click", () => openUrl_(u));
     grid.appendChild(img);
   });
-
   wall.style.display = "";
 }
 
+/* ============================================================
+   到期日
+============================================================ */
 function parseDateSafe_(value){
   if(!value) return null;
-
   const s = String(value).trim();
   if(!s) return null;
-
   const normalized = s.replace(/\//g, "-").replace(" ", "T");
-
   let d = new Date(normalized);
   if(!isNaN(d.getTime())) return d;
-
   const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if(m){
-    d = new Date(
-      Number(m[1]),
-      Number(m[2]) - 1,
-      Number(m[3]),
-      23, 59, 59, 999
-    );
+    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999);
     if(!isNaN(d.getTime())) return d;
   }
-
   return null;
 }
 
 function renderCardExpiry_(p){
   const el = qs("cardExpiry");
   if(!el) return;
-
   const raw = text(pick(p, ["expires_at"]));
-  if(!raw){
-    el.style.display = "none";
-    el.textContent = "";
-    return;
-  }
-
+  if(!raw){ el.style.display = "none"; el.textContent = ""; return; }
   const exp = parseDateSafe_(raw);
-  if(!exp){
-    el.style.display = "none";
-    el.textContent = "";
-    return;
-  }
-
+  if(!exp){ el.style.display = "none"; el.textContent = ""; return; }
   const now = new Date();
   const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const expStart = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate()).getTime();
   const diffDays = Math.floor((expStart - nowStart) / 86400000);
-
   let label = "";
-  if(diffDays < 0){
-    label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
-  }else if(diffDays === 0){
-    label = "EXPIRES TODAY";
-  }else if(diffDays === 1){
-    label = "EXPIRES IN 1 DAY";
-  }else{
-    label = `EXPIRES IN ${diffDays} DAYS`;
-  }
-
+  if(diffDays < 0) label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
+  else if(diffDays === 0) label = "EXPIRES TODAY";
+  else if(diffDays === 1) label = "EXPIRES IN 1 DAY";
+  else label = `EXPIRES IN ${diffDays} DAYS`;
   el.textContent = label;
   el.style.display = "block";
 }
 
-function normalizeAnnouncementItems_(payload){
-  if(Array.isArray(payload)){
-    return payload.filter(x => x && typeof x === "object");
-  }
-
-  if(!payload || typeof payload !== "object") return [];
-
-  const arr =
-    (Array.isArray(payload.announcements) ? payload.announcements : null) ||
-    (Array.isArray(payload.items) ? payload.items : null) ||
-    (Array.isArray(payload.data) ? payload.data : null) ||
-    (Array.isArray(payload.rows) ? payload.rows : null) ||
-    [];
-
-  return arr.filter(x => x && typeof x === "object");
-}
+/* ============================================================
+   ★ 公告系統升級版
+   - 支援 GAS 資料 + Fallback 內建公告
+   - 公告卡片輪播（不是跑馬燈）
+   - 點擊彈出 Modal 顯示完整內容
+   - 多則公告自動輪播 + 計數器
+============================================================ */
 
 function parseDateLoose_(value){
   if(!value) return null;
   const s = String(value).trim();
   if(!s) return null;
-
   let d = new Date(s.replace(/\//g, "-").replace(" ", "T"));
   if(!isNaN(d.getTime())) return d;
-
   const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if(m){
     d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
@@ -1372,150 +1130,201 @@ function parseDateLoose_(value){
 }
 
 function isAnnouncementActive_(item){
-  const status = text(item.status).toLowerCase();
+  const status = text(item.status || "active").toLowerCase();
   if(status && status !== "active") return false;
-
   const now = Date.now();
   const startAt = parseDateLoose_(item.start_at);
   const endAt = parseDateLoose_(item.end_at);
-
   if(startAt && now < startAt.getTime()) return false;
-
   if(endAt){
     const endMs = new Date(
-      endAt.getFullYear(),
-      endAt.getMonth(),
-      endAt.getDate(),
-      23, 59, 59, 999
+      endAt.getFullYear(), endAt.getMonth(), endAt.getDate(), 23, 59, 59, 999
     ).getTime();
     if(now > endMs) return false;
   }
-
   return true;
 }
 
 function sortAnnouncements_(items){
-  return [...items].sort((a, b)=>{
+  return [...items].sort((a, b) => {
     const pa = Number(a.priority || 0);
     const pb = Number(b.priority || 0);
     if(pb !== pa) return pb - pa;
-
     const ta = parseDateLoose_(a.updated_at || a.created_at || a.start_at || "")?.getTime() || 0;
     const tb = parseDateLoose_(b.updated_at || b.created_at || b.start_at || "")?.getTime() || 0;
     return tb - ta;
   });
 }
 
-function buildAnnouncementText_(item){
-  const title = text(item.title);
-  const content = text(item.content).replace(/\s+/g, " ");
-  if(title && content) return `${title}｜${content}`;
-  return title || content || "最新公告";
+function normalizeAnnouncementItems_(payload){
+  if(Array.isArray(payload)){
+    return payload.filter(x => x && typeof x === "object");
+  }
+  if(!payload || typeof payload !== "object") return [];
+  const arr =
+    (Array.isArray(payload.announcements) ? payload.announcements : null) ||
+    (Array.isArray(payload.items) ? payload.items : null) ||
+    (Array.isArray(payload.data) ? payload.data : null) ||
+    (Array.isArray(payload.rows) ? payload.rows : null) ||
+    [];
+  return arr.filter(x => x && typeof x === "object");
 }
 
-function buildAnnouncementDetailUrl_(item){
-  const id = text(item.id || item.announcement_id || "");
-  if(!id) return "";
-  return `./announcement.html?id=${encodeURIComponent(id)}&v=${encodeURIComponent(CONFIG.VERSION)}`;
+/**
+ * 開啟公告 Modal，填入標題與完整內容
+ */
+function openAnnouncementModal_(item, currentIdx, total){
+  if(!item) return;
+  const mask = qs("announcementMask");
+  const titleEl = qs("announcementModalTitle");
+  const metaEl = qs("announcementModalMeta");
+  const bodyEl = qs("announcementModalBody");
+  if(!mask || !bodyEl) return;
+
+  if(titleEl){
+    titleEl.innerHTML = `<i class="fa-solid fa-bullhorn"></i> ${escapeHtml_(item.title || "公告")}`;
+  }
+  if(metaEl){
+    let metaStr = "門面公告";
+    if(total > 1) metaStr += `　${(currentIdx||0)+1} / ${total}`;
+    metaEl.textContent = metaStr;
+  }
+  if(bodyEl){
+    bodyEl.textContent = text(item.content || "（無內容）");
+  }
+
+  mask.style.display = "flex";
+  mask.setAttribute("aria-hidden", "false");
+  if(typeof window.__lockBodyScroll === "function") window.__lockBodyScroll();
+}
+
+function closeAnnouncementModal_(){
+  const mask = qs("announcementMask");
+  if(!mask) return;
+  mask.style.display = "none";
+  mask.setAttribute("aria-hidden", "true");
+  if(typeof window.__unlockBodyScroll === "function") window.__unlockBodyScroll();
+}
+
+function bindAnnouncementModal_(){
+  const closeBtn = qs("announcementCloseBtn");
+  const mask = qs("announcementMask");
+  if(closeBtn) closeBtn.addEventListener("click", closeAnnouncementModal_);
+  if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) closeAnnouncementModal_(); });
+}
+
+/**
+ * 更新公告卡片顯示（標題 + 摘要 + 計數器）
+ * 同時更新所有 [data-announcement-panel] 內的卡片
+ */
+function paintAnnouncementCards_(items, idx){
+  const item = items[idx];
+  if(!item) return;
+  const total = items.length;
+
+  qsa("[data-announcement-panel]").forEach(panel => {
+    const titleEl = panel.querySelector("[data-announcement-title]");
+    const textEl = panel.querySelector("[data-announcement-text]");
+    const counterEl = panel.querySelector("[data-announcement-counter]");
+    const trackBtn = panel.querySelector("[data-announcement-track]");
+
+    if(titleEl) titleEl.textContent = text(item.title) || "公告";
+    if(textEl){
+      const summary = text(item.content || "").split("\n")[0].slice(0, 60);
+      textEl.textContent = summary + (text(item.content || "").length > 60 ? "⋯" : "");
+    }
+    if(counterEl) counterEl.textContent = total > 1 ? `${idx + 1} / ${total}` : "";
+
+    if(trackBtn){
+      trackBtn.onclick = null;
+      trackBtn.onclick = () => openAnnouncementModal_(item, idx, total);
+    }
+  });
 }
 
 function stopAnnouncementRotation_(){
-  if(announcementTimer_){
-    clearInterval(announcementTimer_);
-    announcementTimer_ = null;
-  }
+  if(announcementTimer_){ clearInterval(announcementTimer_); announcementTimer_ = null; }
 }
 
-function paintAnnouncementItem_(item){
-  const wrap = qs("announcementMarquee");
-  const textEl = qs("announcementText");
-  const track = qs("announcementTrack");
-  if(!wrap || !textEl || !track) return;
-
-  if(!item){
-    wrap.style.display = "none";
-    textEl.textContent = "";
-    track.onclick = null;
-    return;
-  }
-
-  wrap.style.display = "";
-  textEl.textContent = buildAnnouncementText_(item);
-
-  const detailUrl = buildAnnouncementDetailUrl_(item);
-  track.onclick = ()=>{
-    if(detailUrl){
-      location.href = detailUrl;
-    }
-  };
-}
-
-function renderAnnouncementMarquee_(items){
-  const wrap = qs("announcementMarquee");
-  if(!wrap) return;
-
+/**
+ * 啟動公告輪播
+ */
+function startAnnouncementRotation_(items){
   stopAnnouncementRotation_();
-
-  const activeItems = sortAnnouncements_((items || []).filter(isAnnouncementActive_));
-  announcementItemsCache_ = activeItems;
+  announcementItems_ = items;
   announcementIndex_ = 0;
 
-  if(!activeItems.length){
-    wrap.style.display = "none";
-    return;
-  }
+  paintAnnouncementCards_(items, 0);
 
-  paintAnnouncementItem_(activeItems[0]);
-
-  if(activeItems.length > 1){
-    announcementTimer_ = setInterval(()=>{
-      announcementIndex_ = (announcementIndex_ + 1) % activeItems.length;
-      paintAnnouncementItem_(activeItems[announcementIndex_]);
-    }, 3500);
+  if(items.length > 1){
+    announcementTimer_ = setInterval(() => {
+      announcementIndex_ = (announcementIndex_ + 1) % items.length;
+      paintAnnouncementCards_(items, announcementIndex_);
+    }, 4000);
   }
 }
 
+/**
+ * 顯示公告 panels，並帶入公告資料開始輪播
+ */
+function renderAnnouncementPanels_(items){
+  const active = sortAnnouncements_(items.filter(isAnnouncementActive_));
+
+  if(!active.length){
+    qsa("[data-announcement-panel]").forEach(p => { p.style.display = "none"; });
+    return;
+  }
+
+  qsa("[data-announcement-panel]").forEach(p => { p.style.display = ""; });
+  startAnnouncementRotation_(active);
+}
+
+/**
+ * 從 GAS 抓公告；若 GAS 無資料則 fallback 到內建公告
+ */
 async function fetchAndRenderAnnouncements_(){
   try{
     const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_());
     console.log("[HSC announcement] raw payload =", payload);
     const items = normalizeAnnouncementItems_(payload);
-    renderAnnouncementMarquee_(items);
+
+    if(items && items.length > 0){
+      renderAnnouncementPanels_(items);
+    }else{
+      console.log("[HSC announcement] GAS 無公告，使用內建公告");
+      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
+    }
   }catch(err){
-    console.error("[HSC announcement] load failed:", err);
-    const wrap = qs("announcementMarquee");
-    if(wrap) wrap.style.display = "none";
+    console.warn("[HSC announcement] GAS 請求失敗，使用內建公告:", err);
+    renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
   }
 }
 
+/* ============================================================
+   Smart Balance
+============================================================ */
 function applySmartBalanceToEl_(el){
   if(!el) return;
   const raw = text(el.dataset.rawText || el.textContent);
   if(!raw) return;
   el.dataset.rawText = raw;
-
-  if(window.innerWidth > 560){
-    el.textContent = raw;
-    return;
-  }
+  if(window.innerWidth > 560){ el.textContent = raw; return; }
 
   if(el.dataset.balanceType === "hero-copy"){
-    const parts = raw.split("｜");
+    const parts = raw.split("|");
     el.innerHTML = "";
     if(parts.length >= 2){
       const first = document.createElement("span");
       first.className = "balance-line";
-      first.textContent = parts[0] + "｜";
+      first.textContent = parts[0] + "|";
       el.appendChild(first);
-
-      const rest = parts.slice(1).join("｜");
+      const rest = parts.slice(1).join("|");
       const idx = rest.indexOf("打造");
       if(idx > -1){
         const line2 = document.createElement("span");
         line2.className = "balance-line";
         line2.textContent = rest.slice(0, idx).trim();
         el.appendChild(line2);
-
         const line3 = document.createElement("span");
         line3.className = "balance-line";
         line3.textContent = rest.slice(idx).trim();
@@ -1531,9 +1340,9 @@ function applySmartBalanceToEl_(el){
   }
 
   if(el.dataset.balanceType === "qr-title" || el.dataset.balanceType === "product-qr-title"){
-    if(raw.includes("｜")){
-      const arr = raw.split("｜");
-      el.innerHTML = `<span class="balance-line">${escapeHtml_(arr[0])}｜</span><span class="balance-line">${escapeHtml_(arr.slice(1).join("｜"))}</span>`;
+    if(raw.includes("|")){
+      const arr = raw.split("|");
+      el.innerHTML = `<span class="balance-line">${escapeHtml_(arr[0])}|</span><span class="balance-line">${escapeHtml_(arr.slice(1).join("|"))}</span>`;
       return;
     }
   }
@@ -1554,35 +1363,19 @@ function applySmartBalanceToEl_(el){
   el.textContent = raw;
 }
 
-function applySmartBalanceAll_(){
-  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
-}
+function applySmartBalanceAll_(){ qsa("[data-balance-type]").forEach(applySmartBalanceToEl_); }
 
 let __balanceTimer = null;
-window.addEventListener("resize", ()=>{
+window.addEventListener("resize", () => {
   clearTimeout(__balanceTimer);
   __balanceTimer = setTimeout(applySmartBalanceAll_, 120);
 });
 
-function buildCanonicalCleanCardUrl_(id){
-  const cid = normalizeId_(id || getIdFromUrl_()) || CONFIG.DEFAULT_ID;
-  try{
-    const u = new URL(CONFIG.HUB_URL + "index.html");
-    u.searchParams.set("id", cid);
-    u.searchParams.set("view", "1");
-    return u.toString();
-  }catch{
-    return CONFIG.HUB_URL + "index.html?id=" + encodeURIComponent(cid) + "&view=1";
-  }
-}
-
-function buildCardShareUrl_(){
-  return buildTrackedShareUrl_(currentRow);
-}
-
-function buildCleanShareUrl_(){
-  return buildTrackedShareUrl_(currentRow);
-}
+/* ============================================================
+   Share URL 建置
+============================================================ */
+function buildCardShareUrl_(){ return buildTrackedShareUrl_(currentRow); }
+function buildCleanShareUrl_(){ return buildTrackedShareUrl_(currentRow); }
 
 function buildHubShareUrl_(){
   try{
@@ -1596,18 +1389,13 @@ function buildHubShareUrl_(){
   }
 }
 
-function buildBottomQrUrl_(){
-  return buildTrackedShareUrl_(currentRow);
-}
+function buildBottomQrUrl_(){ return buildTrackedShareUrl_(currentRow); }
+function buildFeatureQrUrl_(){ return buildTrackedShareUrl_(currentRow); }
+function buildFacadeQrUrl_(){ return buildHubShareUrl_(); }
 
-function buildFeatureQrUrl_(){
-  return buildTrackedShareUrl_(currentRow);
-}
-
-function buildFacadeQrUrl_(){
-  return buildHubShareUrl_();
-}
-
+/* ============================================================
+   QR Code 渲染
+============================================================ */
 function getQrCenterRatio_(baseRatio){
   const vw = window.innerWidth || 390;
   if(vw <= 360) return Math.max(0.06, baseRatio - 0.02);
@@ -1635,15 +1423,9 @@ function hideCenterImg_(imgEl){
 
 function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   if(!imgEl) return;
-
   const u = normalizeImageUrl_(centerImgUrl);
-  if(!u){
-    hideCenterImg_(imgEl);
-    return;
-  }
-
+  if(!u){ hideCenterImg_(imgEl); return; }
   const ratio = getQrCenterRatio_(sizeRatio);
-
   imgEl.style.position = "absolute";
   imgEl.style.left = "50%";
   imgEl.style.top = "50%";
@@ -1658,48 +1440,28 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   imgEl.style.boxShadow = "none";
   imgEl.style.display = "block";
   imgEl.style.pointerEvents = "none";
-
-  imgEl.onerror = ()=>{
-    hideCenterImg_(imgEl);
-  };
-
+  imgEl.onerror = () => { hideCenterImg_(imgEl); };
   setImgWithFallback_(imgEl, buildImgCandidates_(u), {
     crossOrigin: "anonymous",
     referrerPolicy: "no-referrer",
-    onLoad: ()=>{
-      imgEl.style.display = "block";
-      imgEl.style.background = "transparent";
-      imgEl.style.padding = "0";
-      imgEl.style.boxShadow = "none";
-    },
-    onFail: ()=>{
-      hideCenterImg_(imgEl);
-    }
+    onLoad: () => { imgEl.style.display = "block"; imgEl.style.background = "transparent"; imgEl.style.padding = "0"; imgEl.style.boxShadow = "none"; },
+    onFail: () => { hideCenterImg_(imgEl); }
   });
 }
 
 function renderQr(options){
   const {
-    container,
-    url,
-    size = 160,
-    centerImgEl = null,
-    centerImgUrl = "",
-    centerSizeRatio = 0.09,
-    renderKey = ""
+    container, url, size = 160,
+    centerImgEl = null, centerImgUrl = "", centerSizeRatio = 0.09, renderKey = ""
   } = options || {};
-
   if(!container || !url) return false;
-
   const key = renderKey || `${url}|${size}|${normalizeImageUrl_(centerImgUrl)}|${centerSizeRatio}`;
   if(container.dataset.renderKey === key){
     if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
     return true;
   }
-
   container.dataset.renderKey = key;
   container.innerHTML = "";
-
   const img = document.createElement("img");
   img.alt = "QR Code";
   img.loading = "eager";
@@ -1712,11 +1474,7 @@ function renderQr(options){
   img.style.display = "block";
   img.style.objectFit = "contain";
   container.appendChild(img);
-
-  if(centerImgEl){
-    setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
-  }
-
+  if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
   return true;
 }
 
@@ -1729,52 +1487,30 @@ window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(currentRo
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
   if(!grid) return;
-
   const url = buildFacadeQrUrl_();
   const key = "facade|" + url;
   if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
-
   lastFacadeQrRenderKey = key;
-  renderQr({
-    container: grid,
-    url,
-    size: 148,
-    centerImgEl: null,
-    centerImgUrl: "",
-    renderKey: key
-  });
+  renderQr({ container: grid, url, size: 148, centerImgEl: null, centerImgUrl: "", renderKey: key });
 }
 
 function renderBottomQr_(p){
   const sec = qs("bottomQrSection");
   const grid = qs("bottomQrGrid");
   const avatar = qs("bottomQrAvatar");
-
   if(!sec || !grid || !avatar) return;
-
   const info = pickAvatarInfo_(p);
   const qrUrl = buildBottomQrUrl_();
   const avatarUrl = info.url;
   const key = "bottom|" + qrUrl + "|" + avatarUrl;
-
   const canvas = avatar.parentElement;
   if(canvas) canvas.style.position = "relative";
-
   if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
     lastBottomQrRenderKey = key;
-    renderQr({
-      container: grid,
-      url: qrUrl,
-      size: 136,
-      centerImgEl: avatar,
-      centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.09,
-      renderKey: key
-    });
+    renderQr({ container: grid, url: qrUrl, size: 136, centerImgEl: avatar, centerImgUrl: avatarUrl, centerSizeRatio: 0.09, renderKey: key });
   }else{
     setCenterImg_(avatar, avatarUrl, 0.09);
   }
-
   sec.style.display = "block";
 }
 
@@ -1782,31 +1518,23 @@ function renderFeatureQrFromCurrent_(){
   const grid = qs("featureQrGrid");
   const avatar = qs("featureQrAvatar");
   if(!grid || !avatar) return;
-
   const url = buildFeatureQrUrl_();
   const avatarUrl = currentAvatarUrlCache || "";
   const key = "feature|" + url + "|" + avatarUrl;
-
   const canvas = avatar.parentElement;
   if(canvas) canvas.style.position = "relative";
-
   if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
     lastFeatureQrRenderKey = key;
-    renderQr({
-      container: grid,
-      url,
-      size: 152,
-      centerImgEl: avatar,
-      centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.09,
-      renderKey: key
-    });
+    renderQr({ container: grid, url, size: 152, centerImgEl: avatar, centerImgUrl: avatarUrl, centerSizeRatio: 0.09, renderKey: key });
   }else{
     setCenterImg_(avatar, avatarUrl, 0.09);
   }
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 
+/* ============================================================
+   分享
+============================================================ */
 async function shareUrl_(url, title, textMsg, okMsg){
   try{
     if(navigator.share){
@@ -1825,7 +1553,6 @@ async function shareUrl_(url, title, textMsg, okMsg){
 function renderBottomHubShareBtn_(){
   const sec = qs("bottomQrSection");
   if(!sec) return;
-
   let wrap = qs("bottomHubShareWrap");
   if(!wrap){
     wrap = document.createElement("div");
@@ -1833,7 +1560,6 @@ function renderBottomHubShareBtn_(){
     wrap.style.marginTop = "12px";
     wrap.style.display = "flex";
     wrap.style.justifyContent = "center";
-
     const btn = document.createElement("button");
     btn.id = "btnShareHubBottom";
     btn.type = "button";
@@ -1844,11 +1570,10 @@ function renderBottomHubShareBtn_(){
     btn.style.fontWeight = "900";
     btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
     btn.innerHTML = `<i class="fa-solid fa-share-nodes"></i><span>分享智慧名片館</span>`;
-    btn.addEventListener("click", async ()=>{
+    btn.addEventListener("click", async () => {
       const url = buildHubShareUrl_();
       await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
     });
-
     wrap.appendChild(btn);
     sec.insertAdjacentElement("afterend", wrap);
   }
@@ -1858,39 +1583,33 @@ function ensureBottomQrVisible_(){
   if(!currentRow) return;
   try{ renderBottomQr_(currentRow); }catch(e){}
   try{ renderBottomHubShareBtn_(); }catch(e){}
-
-  setTimeout(()=>{
+  setTimeout(() => {
     try{ renderBottomQr_(currentRow); }catch(e){}
     try{ renderBottomHubShareBtn_(); }catch(e){}
   }, 250);
-
-  setTimeout(()=>{
+  setTimeout(() => {
     try{ renderBottomQr_(currentRow); }catch(e){}
     try{ renderBottomHubShareBtn_(); }catch(e){}
   }, 800);
 }
 
+/* ============================================================
+   renderCard — 主渲染
+============================================================ */
 function renderCard(row){
   let sourceRow = row || {};
-
   if(
-    sourceRow &&
-    typeof sourceRow === "object" &&
-    (!text(sourceRow.name)) &&
-    text(sourceRow.lead_snapshot)
+    sourceRow && typeof sourceRow === "object" &&
+    (!text(sourceRow.name)) && text(sourceRow.lead_snapshot)
   ){
     try{
       const snap = safeJsonParse_(sourceRow.lead_snapshot);
-      if(snap && typeof snap === "object"){
-        sourceRow = { ...snap, ...sourceRow };
-      }
+      if(snap && typeof snap === "object") sourceRow = { ...snap, ...sourceRow };
     }catch(_e){}
   }
-
   const p = buildNormalizedPayload_(sourceRow || {});
   currentRow = p;
   currentReferralSourceCodeCache = getReferralSourceCode_(p);
-
   window.__CARD_DATA__ = p;
   window.cardData = p;
   window.payload = p;
@@ -1912,7 +1631,6 @@ function renderCard(row){
   const sloganVal = normalizeLongText_(pick(p, ["slogan","一句話","簡介"]));
 
   if(nameEl) nameEl.textContent = nameVal;
-
   if(unitWrap && unitEl){
     if(text(unitVal)){
       unitWrap.style.display = "";
@@ -1923,9 +1641,7 @@ function renderCard(row){
       if(unitToggle) unitToggle.style.display = "none";
     }
   }
-
   if(titleEl) titleEl.textContent = titleVal;
-
   if(sloganWrap && sloganEl){
     if(text(sloganVal)){
       sloganWrap.style.display = "";
@@ -1954,19 +1670,17 @@ function renderCard(row){
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
 
-  requestAnimationFrame(()=>{
+  requestAnimationFrame(() => {
     refreshAllExpandable_();
     ensureBottomQrVisible_();
   });
 }
 
-function isIos_(){
-  return /iphone|ipad|ipod/i.test(navigator.userAgent || "");
-}
-
-function isStandalone_(){
-  return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true;
-}
+/* ============================================================
+   PWA Install
+============================================================ */
+function isIos_(){ return /iphone|ipad|ipod/i.test(navigator.userAgent || ""); }
+function isStandalone_(){ return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true; }
 
 function updateInstallUi_(){
   const btn = qs("btnInstallCard");
@@ -1974,68 +1688,49 @@ function updateInstallUi_(){
   const dock = qs("installDock");
   const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
   const canInstall = !!deferredInstallPrompt || isIos_() || !isStandalone_();
-  if(btn){
-    btn.disabled = false;
-    btn.style.opacity = canInstall ? "1" : ".62";
-  }
+  if(btn){ btn.disabled = false; btn.style.opacity = canInstall ? "1" : ".62"; }
   if(fab) fab.style.display = cleanMode ? "flex" : "none";
   if(dock) dock.style.display = cleanMode ? "" : "none";
 }
 
 async function triggerPwaInstall_(){
-  if(isStandalone_()){
-    alert("✅ 已經安裝在桌面上了");
-    return;
-  }
-
+  if(isStandalone_()){ alert("✅ 已經安裝在桌面上了"); return; }
   if(deferredInstallPrompt){
     try{
       deferredInstallPrompt.prompt();
       await deferredInstallPrompt.userChoice;
-    }catch(err){
-      console.error(err);
-    }finally{
-      deferredInstallPrompt = null;
-      updateInstallUi_();
-    }
+    }catch(err){ console.error(err); }
+    finally{ deferredInstallPrompt = null; updateInstallUi_(); }
     return;
   }
-
-  if(isIos_()){
-    alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。");
-    return;
-  }
-
+  if(isIos_()){ alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。"); return; }
   alert("目前裝置尚未出現系統安裝提示。\n\n你可以先用瀏覽器選單中的『安裝應用程式』或『加入主畫面』。");
 }
 
 window.__triggerPwaInstall = triggerPwaInstall_;
 
-window.addEventListener("beforeinstallprompt", (e)=>{
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  updateInstallUi_();
-});
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; updateInstallUi_(); });
+window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; updateInstallUi_(); });
+window.addEventListener("load", () => { ensureBottomQrVisible_(); }, { once: true });
 
-window.addEventListener("appinstalled", ()=>{
-  deferredInstallPrompt = null;
-  updateInstallUi_();
-});
-
-window.addEventListener("load", ()=>{
-  ensureBottomQrVisible_();
-}, { once: true });
-
+/* ============================================================
+   Boot
+============================================================ */
 (async function boot_(){
   try{
     initSelectionState_();
     applySmartBalanceAll_();
     updateInstallUi_();
+
+    /* 綁定公告 Modal 關閉事件 */
+    bindAnnouncementModal_();
+
+    /* 抓公告（含 fallback 到內建公告） */
     fetchAndRenderAnnouncements_();
 
+    /* 抓名片資料 */
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     const url = buildCardApiUrl_(id);
-
     const payload = await fetchJsonRobust_(url);
     console.log("[HSC card] raw payload =", payload);
 
@@ -2049,15 +1744,17 @@ window.addEventListener("load", ()=>{
     renderCard(row);
   }catch(err){
     console.error("[HSC card] boot failed:", err);
-
     const nameEl = qs("u-name");
     const unitWrap = qs("u-unit-wrap");
     const titleEl = qs("u-title");
     const unitEl = qs("u-unit");
-
     if(nameEl) nameEl.textContent = "資料載入失敗";
     if(unitWrap) unitWrap.style.display = "";
     if(unitEl) unitEl.textContent = "請稍後再試";
     if(titleEl) titleEl.textContent = "";
+
+    /* 即使名片載入失敗，公告仍顯示內建公告 */
+    bindAnnouncementModal_();
+    renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
   }
 })();
