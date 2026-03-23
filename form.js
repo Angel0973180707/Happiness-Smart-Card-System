@@ -1,5 +1,3 @@
-// form.js 完整覆蓋版 (修正樣式同步問題)
-
 (() => {
   "use strict";
 
@@ -136,6 +134,7 @@
     previewServicesBlock: document.getElementById("previewServicesBlock"),
     previewExperienceBlock: document.getElementById("previewExperienceBlock"),
     previewPhotoWall: document.getElementById("previewPhotoWall"),
+    previewPhotoGrid: document.getElementById("previewPhotoGrid"),
     previewEmptyPhotos: document.getElementById("previewEmptyPhotos"),
 
     btnTest: document.getElementById("btnTest"),
@@ -626,7 +625,7 @@
     }
   }
 
-  // --- 新增映射函式 (必修項目 1) ---
+  // --- 映射函式 ---
   function mapFreeColorToTheme(v) {
     const map = {
       'c1': 'color-1', 'c2': 'color-2', 'c3': 'color-3', 'c4': 'color-4', 'c5': 'color-5',
@@ -656,13 +655,11 @@
     const val = String(v).toLowerCase();
     return allowed.includes(val) ? val : 'p1';
   }
-  // --- 映射函式結束 ---
 
-  // --- 新增 applyPreviewTheme 函式 (必修項目 1) ---
+  // --- applyPreviewTheme 函式 ---
   function applyPreviewTheme() {
     if (!el.previewCard) return;
 
-    // 1. 先移除所有可能的主題 class
     const allThemeClasses = [
       'mode-free', 'mode-premium',
       'color-1', 'color-2', 'color-3', 'color-4', 'color-5',
@@ -672,8 +669,7 @@
     ];
     el.previewCard.classList.remove(...allThemeClasses);
 
-    // 2. 根據目前方案和對應的值，加上新的 class
-    const currentPlan = state.plan; // 'free' or 'premium'
+    const currentPlan = state.plan;
     if (currentPlan === 'premium') {
       el.previewCard.classList.add('mode-premium');
       const premiumColorValue = getFieldValue("premium_color");
@@ -694,52 +690,95 @@
       el.previewCard.classList.add(paperThemeClass);
     }
   }
-  // --- applyPreviewTheme 結束 ---
 
-  // 修改後的 updateLivePreview 函式
+  // --- 更新照片牆的輔助函式 ---
+  function updatePhotoWall(photos) {
+    if (!el.previewPhotoWall || !el.previewPhotoGrid) return;
+    
+    el.previewPhotoGrid.innerHTML = "";
+    
+    if (photos.length === 0) {
+      el.previewPhotoWall.style.display = "none";
+      if (el.previewEmptyPhotos) el.previewEmptyPhotos.style.display = "";
+      return;
+    }
+    
+    el.previewPhotoWall.style.display = "";
+    if (el.previewEmptyPhotos) el.previewEmptyPhotos.style.display = "none";
+    
+    // 設定 grid layout class
+    el.previewPhotoGrid.className = "photo-grid";
+    if (photos.length === 1) el.previewPhotoGrid.classList.add("layout-1");
+    else if (photos.length === 2) el.previewPhotoGrid.classList.add("layout-2");
+    else if (photos.length === 3) el.previewPhotoGrid.classList.add("layout-3");
+    else if (photos.length === 4) el.previewPhotoGrid.classList.add("layout-4");
+    else el.previewPhotoGrid.classList.add("layout-5");
+    
+    photos.forEach((url, idx) => {
+      const item = document.createElement("img");
+      item.className = "wall-img";
+      item.alt = `照片 ${idx + 1}`;
+      item.src = url;
+      item.loading = "lazy";
+      el.previewPhotoGrid.appendChild(item);
+    });
+  }
+
+  // --- 更新頭像的輔助函式 ---
+  function updateAvatar(url) {
+    if (!el.previewAvatar) return;
+    if (url) {
+      el.previewAvatar.src = url;
+      el.previewAvatar.style.display = "block";
+    } else {
+      el.previewAvatar.removeAttribute("src");
+      el.previewAvatar.style.display = "none";
+    }
+  }
+
+  // --- 更新 Logo 的輔助函式 ---
+  function updateLogo(url) {
+    if (!el.previewLogo) return;
+    if (url) {
+      el.previewLogo.src = url;
+      el.previewLogo.style.display = "block";
+      if (el.previewLogoWrap) el.previewLogoWrap.style.display = "flex";
+    } else {
+      el.previewLogo.removeAttribute("src");
+      el.previewLogo.style.display = "none";
+      if (el.previewLogoWrap) el.previewLogoWrap.style.display = "none";
+    }
+  }
+
+  // --- 主要更新預覽函式 ---
   function updateLivePreview() {
     if (!el.previewCard) return;
 
-    // 保留 dataset 以便其他用途，但樣式控制已交由 class 處理
+    // 保留 dataset 以便其他用途
     el.previewCard.dataset.plan = state.plan;
     el.previewCard.dataset.color = getFieldValue("color") || "c1";
     el.previewCard.dataset.style = getFieldValue("style") || "s1";
     el.previewCard.dataset.paper = getFieldValue("paper") || "f1";
     el.previewCard.dataset.premium = getFieldValue("premium_color") || "p1";
 
-    // 文字和圖片內容更新
-    el.previewName.textContent = getFieldValue("name") || "您的姓名";
-    el.previewUnit.textContent = getFieldValue("unit");
-    el.previewTitle.textContent = getFieldValue("title");
-    el.previewSlogan.textContent = getFieldValue("slogan");
+    // 更新文字內容
+    if (el.previewName) el.previewName.textContent = getFieldValue("name") || "您的姓名";
+    if (el.previewUnit) el.previewUnit.textContent = getFieldValue("unit");
+    if (el.previewTitle) el.previewTitle.textContent = getFieldValue("title");
+    if (el.previewSlogan) el.previewSlogan.textContent = getFieldValue("slogan");
 
     const services = getFieldValue("services");
     const experience = getFieldValue("experience");
-    el.previewServices.textContent = services;
-    el.previewExperience.textContent = experience;
+    if (el.previewServices) el.previewServices.textContent = services;
+    if (el.previewExperience) el.previewExperience.textContent = experience;
     toggleEl(el.previewServicesBlock, !!services);
     toggleEl(el.previewExperienceBlock, !!experience);
 
-    const avatarUrl = getFieldValue("avatar_url");
-    if (avatarUrl) {
-      el.previewAvatar.src = avatarUrl;
-      el.previewAvatar.style.display = "block";
-    } else {
-      el.previewAvatar.removeAttribute("src");
-      el.previewAvatar.style.display = "none";
-    }
+    // 更新圖片
+    updateAvatar(getFieldValue("avatar_url"));
+    updateLogo(getFieldValue("logo_url"));
 
-    const logoUrl = getFieldValue("logo_url");
-    if (logoUrl) {
-      el.previewLogo.src = logoUrl;
-      el.previewLogo.style.display = "block";
-      toggleEl(el.previewLogoWrap, true);
-    } else {
-      el.previewLogo.removeAttribute("src");
-      el.previewLogo.style.display = "none";
-      toggleEl(el.previewLogoWrap, false);
-    }
-
+    // 收集照片
     const activePhotos = [];
     for (let i = 1; i <= state.photoLimit; i++) {
       const slot = `photo${i}`;
@@ -749,16 +788,9 @@
         if (url) activePhotos.push(url);
       }
     }
-
-    el.previewPhotoWall.innerHTML = "";
-    activePhotos.forEach((url) => {
-      const item = document.createElement("div");
-      item.className = "hsc-preview-photoItem";
-      item.innerHTML = `<img src="${escapeHtml(url)}" alt="照片預覽">`;
-      el.previewPhotoWall.appendChild(item);
-    });
-
-    toggleEl(el.previewEmptyPhotos, activePhotos.length === 0);
+    
+    // 更新照片牆
+    updatePhotoWall(activePhotos);
 
     // 最後套用樣式 class
     applyPreviewTheme();
@@ -1110,11 +1142,6 @@
     }
   }
 
-  /**
-   * 核心修正：完全符合最新 card_db 表頭
-   * - 移除所有舊欄位 (free_color, free_style, free_paper, premium_color)
-   * - 精品款顏色正確寫入 color
-   */
   function collectPayload() {
     const plan = normalizePlan(getFieldValue("plan"));
 
@@ -1127,7 +1154,6 @@
       style = getFieldValue("style");
       paper = getFieldValue("paper");
     } else if (plan === "premium") {
-      // 精品色 UI 仍用 premium_color 控件，但正式寫入 color
       color = getFieldValue("premium_color");
       style = "";
       paper = "";
@@ -1206,9 +1232,7 @@
   }
 
   function buildSuccessReply(cardId) {
-    return `我已填妥資料送出
-卡片ID:${cardId || "未提供"}
-請協助確認與製作名片，謝謝`;
+    return `我已填妥資料送出\n卡片ID:${cardId || "未提供"}\n請協助確認與製作名片，謝謝`;
   }
 
   function showSuccess(cardId, replyText) {
