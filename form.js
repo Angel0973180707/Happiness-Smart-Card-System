@@ -215,7 +215,7 @@ readUrlParams();
 initNavDots();  
 applyPlanRules(state.plan, true);  
 updatePage();  
-updateLivePreview();  // 確保預覽初始化時更新主題
+updateLivePreview();  
 buildSummary();  
 hideSuccess();  
 setProgress(0, "尚未送出");  
@@ -399,13 +399,13 @@ const urlPhotoLimit = getPhotoLimitFromUrl();
   syncPhotoFieldsAfterLimitChange();  
 
   applyPlanRules(state.plan, true);  
-  updateLivePreview();  // 方案變更後更新預覽
+  updateLivePreview();  
   buildSummary();  
 });  
 
 [el.color, el.style, el.paper, el.premiumColor].forEach((node) => {  
   node?.addEventListener("change", () => {  
-    updateLivePreview();  // 顏色/版型/紙感變更後更新預覽
+    updateLivePreview();  
   });  
 });
 
@@ -557,7 +557,7 @@ if (rules.key === "free") {
   setFieldValue("paper", "");  
 }  
 
-updateLivePreview();  // 確保主題更新
+updateLivePreview();
 
 }
 
@@ -639,7 +639,6 @@ if (pageIndex === 1) {
 
 }
 
-// --- 映射函式 ---
 function mapFreeColorToTheme(v) {
 const map = {
 'c1': 'color-1', 'c2': 'color-2', 'c3': 'color-3', 'c4': 'color-4', 'c5': 'color-5',
@@ -670,7 +669,6 @@ const val = String(v).toLowerCase();
 return allowed.includes(val) ? val : 'p1';
 }
 
-// --- applyPreviewTheme 函式（核心修復）---
 function applyPreviewTheme() {
 if (!el.previewCard) return;
 
@@ -706,11 +704,9 @@ if (currentPlan === 'premium') {
 
 }
 
-// --- 更新照片牆的輔助函式 ---
 function updatePhotoWall(photos) {
 if (!el.previewPhotoWall) return;
 if (!el.previewPhotoGrid) {
-// 如果沒有 photoGrid，則動態建立
 const grid = document.createElement("div");
 grid.id = "previewPhotoGrid";
 grid.className = "photo-grid";
@@ -729,7 +725,6 @@ if (photos.length === 0) {
 el.previewPhotoWall.style.display = "";  
 if (el.previewEmptyPhotos) el.previewEmptyPhotos.style.display = "none";  
   
-// 設定 grid layout class  
 el.previewPhotoGrid.className = "photo-grid";  
 if (photos.length === 1) el.previewPhotoGrid.classList.add("layout-1");  
 else if (photos.length === 2) el.previewPhotoGrid.classList.add("layout-2");  
@@ -748,7 +743,6 @@ photos.forEach((url, idx) => {
 
 }
 
-// --- 更新頭像的輔助函式 ---
 function updateAvatar(url) {
 if (!el.previewAvatar) return;
 if (url) {
@@ -760,7 +754,6 @@ el.previewAvatar.style.display = "none";
 }
 }
 
-// --- 更新 Logo 的輔助函式 ---
 function updateLogo(url) {
 if (!el.previewLogo) return;
 if (url) {
@@ -774,18 +767,15 @@ if (el.previewLogoWrap) el.previewLogoWrap.style.display = "none";
 }
 }
 
-// --- 主要更新預覽函式（確保主題被套用）---
 function updateLivePreview() {
 if (!el.previewCard) return;
 
-// 保留 dataset 以便其他用途  
 el.previewCard.dataset.plan = state.plan;  
 el.previewCard.dataset.color = getFieldValue("color") || "c1";  
 el.previewCard.dataset.style = getFieldValue("style") || "s1";  
 el.previewCard.dataset.paper = getFieldValue("paper") || "f1";  
 el.previewCard.dataset.premium = getFieldValue("premium_color") || "p1";  
 
-// 更新文字內容  
 if (el.previewName) el.previewName.textContent = getFieldValue("name") || "您的姓名";  
 if (el.previewUnit) el.previewUnit.textContent = getFieldValue("unit");  
 if (el.previewTitle) el.previewTitle.textContent = getFieldValue("title");  
@@ -798,11 +788,9 @@ if (el.previewExperience) el.previewExperience.textContent = experience;
 toggleEl(el.previewServicesBlock, !!services);  
 toggleEl(el.previewExperienceBlock, !!experience);  
 
-// 更新圖片  
 updateAvatar(getFieldValue("avatar_url"));  
 updateLogo(getFieldValue("logo_url"));  
 
-// 收集照片  
 const activePhotos = [];  
 for (let i = 1; i <= state.photoLimit; i++) {  
   const slot = `photo${i}`;  
@@ -813,10 +801,8 @@ for (let i = 1; i <= state.photoLimit; i++) {
   }  
 }  
   
-// 更新照片牆  
 updatePhotoWall(activePhotos);  
 
-// ★ 最後套用樣式 class（這是關鍵修復點）★
 applyPreviewTheme();
 
 }
