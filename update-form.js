@@ -486,15 +486,15 @@ import {
       state.id = text(card.id);
       if (text(card.update_token)) state.token = text(card.update_token);
 
-      // 決定照片數量：優先使用 card.photo_limit，若無則使用方案預設
+      // 決定照片數量：優先使用 card.photo_limit
       const plan = normalizePlan(card.plan || "free");
       const rules = PLAN_RULES[plan];
       let photoLimit = toNumber(card.photo_limit);
       if (photoLimit === 0 || isNaN(photoLimit)) {
         photoLimit = rules.maxPhotos;
       }
-      // 確保不超過方案最大限制（後端會進一步限制）
-      photoLimit = Math.min(photoLimit, rules.maxPhotos);
+      // 確保不超過方案最大限制（但優先使用 card.photo_limit）
+      photoLimit = Math.min(photoLimit, 10);
       state.photoLimit = photoLimit;
       state.plan = plan;
       state.rules = rules;
@@ -1130,10 +1130,13 @@ import {
     for (let i = 1; i <= state.photoLimit; i++) {
       payload[`photo${i}_url`] = getFieldValue(`photo${i}_url`);
     }
-    // 超出部分留空（確保覆蓋）
-    for (let i = state.photoLimit + 1; i <= 5; i++) {
+    // 清空超出上限的欄位，最多到 10
+    for (let i = state.photoLimit + 1; i <= 10; i++) {
       payload[`photo${i}_url`] = "";
     }
+
+    // 帶上 photo_limit 以便後端更新卡片上限
+    payload.photo_limit = state.photoLimit;
 
     return payload;
   }
