@@ -32,14 +32,14 @@
     free: {
       key: "free",
       label: "自由搭配款",
-      maxPhotos: 2,
-      maxCtas: 1
+      maxCtas: 1,
+      defaultPhotos: 2
     },
     premium: {
       key: "premium",
       label: "精品設計款",
-      maxPhotos: 5,
-      maxCtas: 3
+      maxCtas: 3,
+      defaultPhotos: 5
     }
   };
 
@@ -49,17 +49,25 @@
     large: { maxLong: 1200, maxShort: 1200, previewQuality: 0.82, outputQuality: 0.76 }
   };
 
-  const IMAGE_SLOTS = {
-    avatar: { slot: "avatar", label: "頭像", key: "avatar_url", cropShape: "square", targetWidth: 1200, targetHeight: 1200 },
-    logo:   { slot: "logo",   label: "Logo", key: "logo_url",   cropShape: "square", targetWidth: 1200, targetHeight: 1200 },
-    photo1: { slot: "photo1", label: "照片 1", key: "photo1_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 },
-    photo2: { slot: "photo2", label: "照片 2", key: "photo2_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 },
-    photo3: { slot: "photo3", label: "照片 3", key: "photo3_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 },
-    photo4: { slot: "photo4", label: "照片 4", key: "photo4_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 },
-    photo5: { slot: "photo5", label: "照片 5", key: "photo5_url", cropShape: "wide", targetWidth: 1600, targetHeight: 1000 }
-  };
-
-  const PHOTO_ORDER = ["photo1", "photo2", "photo3", "photo4", "photo5"];
+  // 動態產生所有圖片槽位（頭像、Logo 固定，照片依 photoLimit 動態）
+  function buildImageSlots(photoLimit) {
+    const slots = [
+      { slot: "avatar", label: "頭像", key: "avatar_url", cropShape: "square", targetWidth: 1200, targetHeight: 1200, always: true },
+      { slot: "logo",   label: "Logo", key: "logo_url",   cropShape: "square", targetWidth: 1200, targetHeight: 1200, always: true }
+    ];
+    for (let i = 1; i <= photoLimit; i++) {
+      slots.push({
+        slot: `photo${i}`,
+        label: `照片 ${i}`,
+        key: `photo${i}_url`,
+        cropShape: "wide",
+        targetWidth: 1600,
+        targetHeight: 1000,
+        always: false
+      });
+    }
+    return slots;
+  }
 
   const state = {
     currentPage: 0,
@@ -68,6 +76,8 @@
     firebaseReady: false,
     plan: "free",
     rules: PLAN_RULES.free,
+    photoLimit: 2,               // 實際允許上傳的照片數量（不含頭像 Logo）
+    imageSlots: [],              // 動態槽位列表
     drag: {
       active: false,
       startX: 0,
@@ -171,7 +181,14 @@
     cropCenter: document.getElementById("cropCenter"),
     cropReset: document.getElementById("cropReset"),
     cropCancel: document.getElementById("cropCancel"),
-    cropApply: document.getElementById("cropApply")
+    cropApply: document.getElementById("cropApply"),
+
+    photoLimitDisplay: document.getElementById("photoLimitDisplay"),
+    freePhotoLimitHint: document.getElementById("freePhotoLimitHint"),
+    premiumPhotoLimitHint: document.getElementById("premiumPhotoLimitHint"),
+    guideFreePhotoCount: document.getElementById("guideFreePhotoCount"),
+    guidePremiumPhotoCount: document.getElementById("guidePremiumPhotoCount"),
+    urlPhotoLimitHint: document.getElementById("urlPhotoLimitHint")
   };
 
   init().catch((err) => {
@@ -180,7 +197,25 @@
   });
 
   async function init() {
+    // 讀取 URL 參數中的 photo_limit
+    const urlPhotoLimit = getPhotoLimitFromUrl();
+
+    // 初始化方案規則
+    const plan = normalizePlan(getFieldValue("plan") || "free");
+    state.plan = plan;
+    state.rules = PLAN_RULES[plan];
+
+    // 決定 photoLimit：優先使用 URL 參數，否則使用方案預設
+    state.photoLimit = urlPhotoLimit !== null ? urlPhotoLimit : state.rules.defaultPhotos;
+
+    // 動態建立圖片槽位
+    state.imageSlots = buildImageSlots(state.photoLimit);
+
+    // 更新 UI 提示文字
+    updatePhotoLimitUI();
+
     createUploadGrid();
+    bindSlotEvents();
     bindModalEvents();
     bindPageEvents();
     bindPlanEvents();
@@ -189,7 +224,7 @@
     bindCropEvents();
     readUrlParams();
     initNavDots();
-    applyPlanRules(normalizePlan(getFieldValue("plan") || "free"), true);
+    applyPlanRules(state.plan, true);
     updatePage();
     updateLivePreview();
     buildSummary();
@@ -198,11 +233,39 @@
     setStatus("請依序填寫。");
   }
 
+  function getPhotoLimitFromUrl() {
+    const url = new URL(location.href);
+    const val = url.searchParams.get("photo_limit");
+    if (val === null || val === "") return null;
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num < 0) return null;
+    return Math.min(num, 10); // 最多 10 張
+  }
+
+  function updatePhotoLimitUI() {
+    if (el.photoLimitDisplay) el.photoLimitDisplay.textContent = state.photoLimit;
+    if (el.freePhotoLimitHint) el.freePhotoLimitHint.textContent = PLAN_RULES.free.defaultPhotos;
+    if (el.premiumPhotoLimitHint) el.premiumPhotoLimitHint.textContent = PLAN_RULES.premium.defaultPhotos;
+    if (el.guideFreePhotoCount) el.guideFreePhotoCount.textContent = PLAN_RULES.free.defaultPhotos;
+    if (el.guidePremiumPhotoCount) el.guidePremiumPhotoCount.textContent = PLAN_RULES.premium.defaultPhotos;
+
+    // 如果有 URL 指定且與方案預設不同，顯示提示
+    const urlPhotoLimit = getPhotoLimitFromUrl();
+    if (urlPhotoLimit !== null && urlPhotoLimit !== state.rules.defaultPhotos) {
+      if (el.urlPhotoLimitHint) {
+        el.urlPhotoLimitHint.textContent = `（本表單已設定最多上傳 ${urlPhotoLimit} 張照片）`;
+        el.urlPhotoLimitHint.style.display = "block";
+      }
+    } else {
+      if (el.urlPhotoLimitHint) el.urlPhotoLimitHint.style.display = "none";
+    }
+  }
+
   function createUploadGrid() {
     if (!el.uploadGrid) return;
     el.uploadGrid.innerHTML = "";
 
-    Object.values(IMAGE_SLOTS).forEach((cfg) => {
+    state.imageSlots.forEach((cfg) => {
       const item = document.createElement("div");
       item.className = "uItem";
       item.id = `slotWrap_${cfg.slot}`;
@@ -227,9 +290,12 @@
       el.uploadGrid.appendChild(item);
     });
 
-    Object.values(IMAGE_SLOTS).forEach((cfg) => {
+    // 重新綁定 file input 事件
+    state.imageSlots.forEach((cfg) => {
       const input = document.getElementById(`file_${cfg.slot}`);
-      input?.addEventListener("change", async (ev) => {
+      if (!input) return;
+      // 移除舊監聽避免重複（但此處新建 DOM，不會重複）
+      input.addEventListener("change", async (ev) => {
         const file = ev.target.files?.[0];
         if (!file) return;
 
@@ -253,7 +319,10 @@
         }
       });
     });
+  }
 
+  function bindSlotEvents() {
+    // 使用事件委託處理按鈕點擊
     document.addEventListener("click", (ev) => {
       const pickBtn = ev.target.closest("[data-pick]");
       if (pickBtn) {
@@ -320,7 +389,30 @@
 
   function bindPlanEvents() {
     el.plan?.addEventListener("change", () => {
-      applyPlanRules(normalizePlan(el.plan.value), true);
+      const newPlan = normalizePlan(el.plan.value);
+      if (newPlan === state.plan) return;
+      state.plan = newPlan;
+      state.rules = PLAN_RULES[newPlan];
+
+      // 重新計算 photoLimit：若 URL 有指定則優先，否則使用新方案預設
+      const urlPhotoLimit = getPhotoLimitFromUrl();
+      if (urlPhotoLimit !== null) {
+        state.photoLimit = Math.min(urlPhotoLimit, 10);
+      } else {
+        state.photoLimit = state.rules.defaultPhotos;
+      }
+
+      // 重建圖片槽位
+      state.imageSlots = buildImageSlots(state.photoLimit);
+      updatePhotoLimitUI();
+
+      // 重新產生上傳區塊
+      createUploadGrid();
+      bindSlotEvents(); // 重新綁定（事件委託已存在，但 file input 事件需重綁）
+      // 重新同步各槽位值（清除超出範圍的照片 URL）
+      syncPhotoFieldsAfterLimitChange();
+
+      applyPlanRules(state.plan, true);
       syncFreeMirrorFields();
       updateLivePreview();
       buildSummary();
@@ -332,6 +424,21 @@
         updateLivePreview();
       });
     });
+  }
+
+  function syncPhotoFieldsAfterLimitChange() {
+    // 清除超出上限的照片欄位值
+    for (let i = state.photoLimit + 1; i <= 10; i++) {
+      const slot = `photo${i}`;
+      const cfg = state.imageSlots.find(s => s.slot === slot);
+      if (cfg) {
+        setFieldValue(cfg.key, "");
+        setSlotPreview(slot, "");
+        setSlotStatus(slot, "未開放");
+        const input = document.getElementById(`file_${slot}`);
+        if (input) input.value = "";
+      }
+    }
   }
 
   function bindFieldEvents() {
@@ -442,12 +549,8 @@
     return text(v).toLowerCase() === "premium" ? "premium" : "free";
   }
 
-  function getPlanRules(plan) {
-    return PLAN_RULES[normalizePlan(plan)] || PLAN_RULES.free;
-  }
-
   function applyPlanRules(plan, updateValue = false) {
-    const rules = getPlanRules(plan);
+    const rules = PLAN_RULES[plan];
     state.plan = rules.key;
     state.rules = rules;
 
@@ -461,7 +564,6 @@
     if (rules.key === "free") {
       setFieldValue("premium_color", "");
       clearCtaFieldsFrom(2);
-      clearPhotoFieldsFrom(3);
     } else {
       setFieldValue("color", "");
       setFieldValue("style", "");
@@ -470,16 +572,6 @@
       setFieldValue("free_style", "");
       setFieldValue("free_paper", "");
     }
-
-    Object.keys(IMAGE_SLOTS).forEach((slot) => {
-      const wrap = document.getElementById(`slotWrap_${slot}`);
-      if (!wrap) return;
-      if (slot.startsWith("photo") && !isPhotoSlotAllowed(slot)) {
-        wrap.style.display = "none";
-      } else {
-        wrap.style.display = "";
-      }
-    });
 
     syncFreeMirrorFields();
     updateLivePreview();
@@ -502,20 +594,6 @@
       setFieldValue(`cta_text_${i}`, "");
       setFieldValue(`cta_link_${i}`, "");
     }
-  }
-
-  function clearPhotoFieldsFrom(start) {
-    for (let i = start; i <= 5; i++) {
-      const slot = `photo${i}`;
-      const cfg = IMAGE_SLOTS[slot];
-      if (!cfg) continue;
-      setFieldValue(cfg.key, "");
-      setSlotPreview(slot, "");
-      setSlotStatus(slot, "未開放");
-      const input = document.getElementById(`file_${slot}`);
-      if (input) input.value = "";
-    }
-    updateLivePreview();
   }
 
   function initNavDots() {
@@ -628,10 +706,16 @@
       toggleEl(el.previewLogoWrap, false);
     }
 
-    const activePhotos = PHOTO_ORDER
-      .slice(0, state.rules.maxPhotos)
-      .map((slot) => getFieldValue(IMAGE_SLOTS[slot].key))
-      .filter(Boolean);
+    // 收集有效照片 URL（不超過 photoLimit）
+    const activePhotos = [];
+    for (let i = 1; i <= state.photoLimit; i++) {
+      const slot = `photo${i}`;
+      const cfg = state.imageSlots.find(s => s.slot === slot);
+      if (cfg) {
+        const url = getFieldValue(cfg.key);
+        if (url) activePhotos.push(url);
+      }
+    }
 
     el.previewPhotoWall.innerHTML = "";
     activePhotos.forEach((url) => {
@@ -663,12 +747,13 @@
       ["品牌故事", getFieldValue("experience")]
     ];
 
-    const activePhotos = PHOTO_ORDER
-      .slice(0, state.rules.maxPhotos)
-      .map((slot) => getFieldValue(IMAGE_SLOTS[slot].key))
-      .filter(Boolean).length;
-
-    rows.push(["照片數量", `${activePhotos} / ${state.rules.maxPhotos}`]);
+    const activePhotos = [];
+    for (let i = 1; i <= state.photoLimit; i++) {
+      const slot = `photo${i}`;
+      const cfg = state.imageSlots.find(s => s.slot === slot);
+      if (cfg && getFieldValue(cfg.key)) activePhotos.push(1);
+    }
+    rows.push(["照片數量", `${activePhotos.length} / ${state.photoLimit}`]);
 
     const ctaRows = [];
     for (let i = 1; i <= state.rules.maxCtas; i++) {
@@ -721,7 +806,7 @@
 
   async function openCropper(slot, file) {
     await ensureFirebaseReady();
-    const cfg = IMAGE_SLOTS[slot];
+    const cfg = state.imageSlots.find(s => s.slot === slot);
     if (!cfg) throw new Error("找不到圖片設定");
 
     const prepared = await prepareImageForCrop(file);
@@ -819,7 +904,7 @@
   async function applyCropAndUpload() {
     const cp = state.cropper;
     const slot = cp.slot;
-    const cfg = IMAGE_SLOTS[slot];
+    const cfg = state.imageSlots.find(s => s.slot === slot);
     if (!cp.image || !cfg) return;
 
     try {
@@ -853,7 +938,7 @@
 
   async function renderCroppedBlob(slot) {
     const cp = state.cropper;
-    const cfg = IMAGE_SLOTS[slot];
+    const cfg = state.imageSlots.find(s => s.slot === slot);
 
     const canvas = document.createElement("canvas");
     canvas.width = cfg.targetWidth;
@@ -891,7 +976,7 @@
   }
 
   function triggerFilePick(slot) {
-    if (!IMAGE_SLOTS[slot]) return;
+    if (!state.imageSlots.find(s => s.slot === slot)) return;
     if (!isPhotoSlotAllowed(slot)) {
       setStatus("這個方案目前沒有開放這個照片位置。");
       return;
@@ -903,7 +988,7 @@
   }
 
   function clearSlot(slot) {
-    const cfg = IMAGE_SLOTS[slot];
+    const cfg = state.imageSlots.find(s => s.slot === slot);
     if (!cfg) return;
     if (!isPhotoSlotAllowed(slot)) {
       setStatus("這個方案目前沒有開放這個照片位置。");
@@ -924,7 +1009,7 @@
     const thumb = document.getElementById(`thumb_${slot}`);
     if (!thumb) return;
     if (url) {
-      thumb.innerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(IMAGE_SLOTS[slot].label)}" style="width:100%;height:100%;object-fit:contain;display:block;background:rgba(255,255,255,.02);">`;
+      thumb.innerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(state.imageSlots.find(s => s.slot === slot)?.label || slot)}" style="width:100%;height:100%;object-fit:contain;display:block;background:rgba(255,255,255,.02);">`;
     } else {
       thumb.textContent = "尚未選擇圖片";
     }
@@ -939,7 +1024,7 @@
     if (slot === "avatar" || slot === "logo") return true;
     if (!slot.startsWith("photo")) return true;
     const idx = Number(slot.replace("photo", ""));
-    return idx <= state.rules.maxPhotos;
+    return idx <= state.photoLimit;
   }
 
   async function submitForm() {
@@ -992,9 +1077,9 @@
 
   function collectPayload() {
     const plan = normalizePlan(getFieldValue("plan"));
-    const rules = getPlanRules(plan);
+    const rules = PLAN_RULES[plan];
 
-    return {
+    const base = {
       action: "createLead",
       invite_code: getFieldValue("invite_code"),
       reserved_uid: getFieldValue("reserved_uid"),
@@ -1042,9 +1127,14 @@
       logo_url: getFieldValue("logo_url"),
       photo1_url: getFieldValue("photo1_url"),
       photo2_url: getFieldValue("photo2_url"),
-      photo3_url: rules.maxPhotos >= 3 ? getFieldValue("photo3_url") : "",
-      photo4_url: rules.maxPhotos >= 4 ? getFieldValue("photo4_url") : "",
-      photo5_url: rules.maxPhotos >= 5 ? getFieldValue("photo5_url") : "",
+      photo3_url: state.photoLimit >= 3 ? getFieldValue("photo3_url") : "",
+      photo4_url: state.photoLimit >= 4 ? getFieldValue("photo4_url") : "",
+      photo5_url: state.photoLimit >= 5 ? getFieldValue("photo5_url") : "",
+      photo6_url: state.photoLimit >= 6 ? getFieldValue("photo6_url") : "",
+      photo7_url: state.photoLimit >= 7 ? getFieldValue("photo7_url") : "",
+      photo8_url: state.photoLimit >= 8 ? getFieldValue("photo8_url") : "",
+      photo9_url: state.photoLimit >= 9 ? getFieldValue("photo9_url") : "",
+      photo10_url: state.photoLimit >= 10 ? getFieldValue("photo10_url") : "",
 
       share_card_id: getFieldValue("share_card_id"),
       share_agent_id: getFieldValue("share_agent_id"),
@@ -1052,6 +1142,11 @@
       share_channel: getFieldValue("share_channel"),
       share_visit_id: getFieldValue("share_visit_id")
     };
+
+    // 動態添加 photo_limit 參數（讓後端知道上限）
+    base.photo_limit = state.photoLimit;
+
+    return base;
   }
 
   function buildSuccessReply(leadId) {
@@ -1083,14 +1178,15 @@
     if (state.busy) return;
     if (!window.confirm("確定要重設這份表單嗎？")) return;
 
-    [
+    const allInputIds = [
       "plan","color","style","paper","free_color","free_style","free_paper","premium_color",
       "name","unit","title","slogan","services","experience","phone","email","line_url","line_oa",
       "wechat_id","website","address","video1","video2","video3","social1","social2","social3",
       "cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3"
-    ].forEach((id) => setFieldValue(id, ""));
+    ];
+    allInputIds.forEach((id) => setFieldValue(id, ""));
 
-    Object.values(IMAGE_SLOTS).forEach((cfg) => {
+    state.imageSlots.forEach((cfg) => {
       setFieldValue(cfg.key, "");
       setSlotPreview(cfg.slot, "");
       setSlotStatus(cfg.slot, "尚未選擇");
@@ -1100,6 +1196,17 @@
 
     setFieldValue("tenant", "angel");
     readUrlParams();
+
+    // 重設方案與照片數量
+    const urlPhotoLimit = getPhotoLimitFromUrl();
+    state.plan = "free";
+    state.rules = PLAN_RULES.free;
+    state.photoLimit = urlPhotoLimit !== null ? urlPhotoLimit : state.rules.defaultPhotos;
+    state.imageSlots = buildImageSlots(state.photoLimit);
+    updatePhotoLimitUI();
+    createUploadGrid();
+    bindSlotEvents();
+
     applyPlanRules("free", true);
     state.currentPage = 0;
     updatePage();
