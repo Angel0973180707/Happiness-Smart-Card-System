@@ -927,7 +927,7 @@
 公司單位：官方網站、服務介紹、聯繫窗口
 專業維修：立即報修、服務項目、立即來電
 個人品牌：作品集、合作邀約、加入社群
-預約服務：立即預約、線上填表、查看時段
+預約服務：立即預約、線上表單、查看時段
 
 文字與連結一定要成對填寫。自由搭配款只開放 1 個 CTA；精品設計款最多 3 個 CTA。</div>
         </div>
@@ -975,6 +975,7 @@
 </div>
 
         <div class="image-grid">
+          <!-- 頭像固定 -->
           <div class="image-card">
             <div class="image-card-head">
               <div class="image-card-title">頭像</div>
@@ -992,6 +993,7 @@
             <input id="file_avatar" class="file-input" type="file" accept="image/*" />
           </div>
 
+          <!-- Logo 固定 -->
           <div class="image-card">
             <div class="image-card-head">
               <div class="image-card-title">Logo</div>
@@ -1009,89 +1011,8 @@
             <input id="file_logo" class="file-input" type="file" accept="image/*" />
           </div>
 
-          <div class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 1</div>
-              <div class="image-card-status" id="status_photo1">未設定</div>
-            </div>
-            <div class="thumb-box wide">
-              <img id="preview_photo1" class="thumb-image" alt="照片1預覽" />
-            </div>
-            <div class="image-actions">
-              <button type="button" class="btn btn-secondary" data-pick="photo1">選圖</button>
-              <button type="button" class="btn btn-secondary" data-edit="photo1">重選</button>
-              <button type="button" class="btn btn-danger" data-clear="photo1">清除</button>
-            </div>
-            <input id="photo1_url" name="photo1_url" class="input sys-field" />
-            <input id="file_photo1" class="file-input" type="file" accept="image/*" />
-          </div>
-
-          <div class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 2</div>
-              <div class="image-card-status" id="status_photo2">未設定</div>
-            </div>
-            <div class="thumb-box wide">
-              <img id="preview_photo2" class="thumb-image" alt="照片2預覽" />
-            </div>
-            <div class="image-actions">
-              <button type="button" class="btn btn-secondary" data-pick="photo2">選圖</button>
-              <button type="button" class="btn btn-secondary" data-edit="photo2">重選</button>
-              <button type="button" class="btn btn-danger" data-clear="photo2">清除</button>
-            </div>
-            <input id="photo2_url" name="photo2_url" class="input sys-field" />
-            <input id="file_photo2" class="file-input" type="file" accept="image/*" />
-          </div>
-<div id="photoCard3" class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 3</div>
-              <div class="image-card-status" id="status_photo3">未設定</div>
-            </div>
-            <div class="thumb-box wide">
-              <img id="preview_photo3" class="thumb-image" alt="照片3預覽" />
-            </div>
-            <div class="image-actions">
-              <button type="button" class="btn btn-secondary" data-pick="photo3">選圖</button>
-              <button type="button" class="btn btn-secondary" data-edit="photo3">重選</button>
-              <button type="button" class="btn btn-danger" data-clear="photo3">清除</button>
-            </div>
-            <input id="photo3_url" name="photo3_url" class="input sys-field" />
-            <input id="file_photo3" class="file-input" type="file" accept="image/*" />
-          </div>
-
-          <div id="photoCard4" class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 4</div>
-              <div class="image-card-status" id="status_photo4">未設定</div>
-            </div>
-            <div class="thumb-box wide">
-              <img id="preview_photo4" class="thumb-image" alt="照片4預覽" />
-            </div>
-            <div class="image-actions">
-              <button type="button" class="btn btn-secondary" data-pick="photo4">選圖</button>
-              <button type="button" class="btn btn-secondary" data-edit="photo4">重選</button>
-              <button type="button" class="btn btn-danger" data-clear="photo4">清除</button>
-            </div>
-            <input id="photo4_url" name="photo4_url" class="input sys-field" />
-            <input id="file_photo4" class="file-input" type="file" accept="image/*" />
-          </div>
-
-          <div id="photoCard5" class="image-card">
-            <div class="image-card-head">
-              <div class="image-card-title">照片 5</div>
-              <div class="image-card-status" id="status_photo5">未設定</div>
-            </div>
-            <div class="thumb-box wide">
-              <img id="preview_photo5" class="thumb-image" alt="照片5預覽" />
-            </div>
-            <div class="image-actions">
-              <button type="button" class="btn btn-secondary" data-pick="photo5">選圖</button>
-              <button type="button" class="btn btn-secondary" data-edit="photo5">重選</button>
-              <button type="button" class="btn btn-danger" data-clear="photo5">清除</button>
-            </div>
-            <input id="photo5_url" name="photo5_url" class="input sys-field" />
-            <input id="file_photo5" class="file-input" type="file" accept="image/*" />
-          </div>
+          <!-- 動態照片容器 -->
+          <div id="photoSlotsContainer"></div>
         </div>
       </section>
 
