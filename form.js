@@ -1,3 +1,5 @@
+// form.js 完整覆蓋版 (修正樣式同步問題)
+
 (() => {
   "use strict";
 
@@ -624,15 +626,88 @@
     }
   }
 
+  // --- 新增映射函式 (必修項目 1) ---
+  function mapFreeColorToTheme(v) {
+    const map = {
+      'c1': 'color-1', 'c2': 'color-2', 'c3': 'color-3', 'c4': 'color-4', 'c5': 'color-5',
+      'color-1': 'color-1', 'color-2': 'color-2', 'color-3': 'color-3', 'color-4': 'color-4', 'color-5': 'color-5'
+    };
+    return map[String(v).toLowerCase()] || 'color-1';
+  }
+
+  function mapStyleToTheme(v) {
+    const map = {
+      's1': 'style-arch', 's2': 'style-flat', 's3': 'style-spot',
+      'arch': 'style-arch', 'flat': 'style-flat', 'spot': 'style-spot'
+    };
+    return map[String(v).toLowerCase()] || 'style-arch';
+  }
+
+  function mapPaperToTheme(v) {
+    const map = {
+      'f1': 'paper-1', 'f2': 'paper-2', 'f3': 'paper-3',
+      'paper-1': 'paper-1', 'paper-2': 'paper-2', 'paper-3': 'paper-3'
+    };
+    return map[String(v).toLowerCase()] || 'paper-1';
+  }
+
+  function mapPremiumToTheme(v) {
+    const allowed = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
+    const val = String(v).toLowerCase();
+    return allowed.includes(val) ? val : 'p1';
+  }
+  // --- 映射函式結束 ---
+
+  // --- 新增 applyPreviewTheme 函式 (必修項目 1) ---
+  function applyPreviewTheme() {
+    if (!el.previewCard) return;
+
+    // 1. 先移除所有可能的主題 class
+    const allThemeClasses = [
+      'mode-free', 'mode-premium',
+      'color-1', 'color-2', 'color-3', 'color-4', 'color-5',
+      'style-arch', 'style-flat', 'style-spot',
+      'paper-1', 'paper-2', 'paper-3',
+      'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'
+    ];
+    el.previewCard.classList.remove(...allThemeClasses);
+
+    // 2. 根據目前方案和對應的值，加上新的 class
+    const currentPlan = state.plan; // 'free' or 'premium'
+    if (currentPlan === 'premium') {
+      el.previewCard.classList.add('mode-premium');
+      const premiumColorValue = getFieldValue("premium_color");
+      const premiumThemeClass = mapPremiumToTheme(premiumColorValue);
+      el.previewCard.classList.add(premiumThemeClass);
+    } else if (currentPlan === 'free') {
+      el.previewCard.classList.add('mode-free');
+      const colorValue = getFieldValue("color");
+      const colorThemeClass = mapFreeColorToTheme(colorValue);
+      el.previewCard.classList.add(colorThemeClass);
+      
+      const styleValue = getFieldValue("style");
+      const styleThemeClass = mapStyleToTheme(styleValue);
+      el.previewCard.classList.add(styleThemeClass);
+      
+      const paperValue = getFieldValue("paper");
+      const paperThemeClass = mapPaperToTheme(paperValue);
+      el.previewCard.classList.add(paperThemeClass);
+    }
+  }
+  // --- applyPreviewTheme 結束 ---
+
+  // 修改後的 updateLivePreview 函式
   function updateLivePreview() {
     if (!el.previewCard) return;
 
+    // 保留 dataset 以便其他用途，但樣式控制已交由 class 處理
     el.previewCard.dataset.plan = state.plan;
     el.previewCard.dataset.color = getFieldValue("color") || "c1";
     el.previewCard.dataset.style = getFieldValue("style") || "s1";
     el.previewCard.dataset.paper = getFieldValue("paper") || "f1";
     el.previewCard.dataset.premium = getFieldValue("premium_color") || "p1";
 
+    // 文字和圖片內容更新
     el.previewName.textContent = getFieldValue("name") || "您的姓名";
     el.previewUnit.textContent = getFieldValue("unit");
     el.previewTitle.textContent = getFieldValue("title");
@@ -684,6 +759,9 @@
     });
 
     toggleEl(el.previewEmptyPhotos, activePhotos.length === 0);
+
+    // 最後套用樣式 class
+    applyPreviewTheme();
   }
 
   function buildSummary() {
