@@ -1,7 +1,7 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v526.0-announcement-upgrade
-   完整覆蓋版 — 含公告系統升級（卡片輪播 + Modal 彈出）
+   v526.1-final-schema-align
+   完整覆蓋版 — 對齊最新 card_db 表頭，移除舊欄位依賴
 ============================================================ */
 
 const CONFIG = {
@@ -9,7 +9,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v526.0-announcement-upgrade",
+  VERSION: "v526.1-final-schema-align",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -269,14 +269,26 @@ function extractCardRow_(payload){
 }
 
 /* ============================================================
-   Plan / 方案
+   Plan / 方案 & 照片上限
 ============================================================ */
 function normalizePlan_(v){
   return text(v).toLowerCase() === "premium" ? "premium" : "free";
 }
 
+function getPhotoLimitFromPayload_(p){
+  // 優先讀取 payload.photo_limit
+  const limit = Number(pick(p, ["photo_limit"]));
+  if (!isNaN(limit) && limit > 0 && limit <= 10) return limit;
+
+  // 否則 fallback 到方案預設
+  const plan = normalizePlan_(pick(p, ["plan"]));
+  return PLAN_LIMITS[plan]?.maxPhotos || PLAN_LIMITS.free.maxPhotos;
+}
+
 function getCurrentPlanLimit_(){
-  return PLAN_LIMITS[normalizePlan_(UI_STATE.plan)] || PLAN_LIMITS.free;
+  // 這裡已棄用，改為從 payload 讀取，保留為 fallback
+  const plan = normalizePlan_(UI_STATE.plan);
+  return PLAN_LIMITS[plan] || PLAN_LIMITS.free;
 }
 
 /* ============================================================
@@ -524,17 +536,21 @@ function mapPremiumToUi_(v){
 function applyThemeFromPayload_(p){
   const planRaw = normalizePlan_(pick(p, ["plan"]));
   const isPremium = planRaw === "premium";
-  const rawColor = pick(p, ["color"]);
-  const rawStyle = pick(p, ["style"]);
-  const rawPaper = pick(p, ["paper"]);
+
   if(isPremium){
     UI_STATE.plan = "premium";
-    UI_STATE.premiumTheme = mapPremiumToUi_(rawColor || "p1");
+    // 精品款：只讀正式欄位 color
+    const premiumColorRaw = pick(p, ["color"]);
+    UI_STATE.premiumTheme = mapPremiumToUi_(premiumColorRaw || "p1");
   }else{
     UI_STATE.plan = "free";
-    UI_STATE.theme = mapFreeColorToTheme_(rawColor || "c1");
-    UI_STATE.style = mapStyleToUi_(rawStyle || "s1");
-    UI_STATE.paper = mapPaperToUi_(rawPaper || "f1");
+    // 自由款：只讀正式欄位 color, style, paper
+    const freeColorRaw = pick(p, ["color"]);
+    UI_STATE.theme = mapFreeColorToTheme_(freeColorRaw || "c1");
+    const freeStyleRaw = pick(p, ["style"]);
+    UI_STATE.style = mapStyleToUi_(freeStyleRaw || "s1");
+    const freePaperRaw = pick(p, ["paper"]);
+    UI_STATE.paper = mapPaperToUi_(freePaperRaw || "f1");
   }
   syncPlanUI_();
 }
@@ -934,7 +950,8 @@ function renderCtaDock_(p){
   if(!dock || !btns) return;
   btns.innerHTML = "";
   const items = [];
-  const limit = getCurrentPlanLimit_().maxCtas;
+  // 動態讀取 CTA 上限：使用方案對應的上限
+  const limit = PLAN_LIMITS[normalizePlan_(pick(p, ["plan"]))]?.maxCtas || 1;
   const ctaPairs = [
     { text: text(pick(p, ["cta_text_1","CTA文字1","ctaText1"])), link: normalizeUrl_(pick(p, ["cta_link_1","CTA連結1","ctaLink1"])) },
     { text: text(pick(p, ["cta_text_2","CTA文字2","ctaText2"])), link: normalizeUrl_(pick(p, ["cta_link_2","CTA連結2","ctaLink2"])) },
@@ -970,7 +987,7 @@ function renderDocks_(p){
 }
 
 /* ============================================================
-   照片牆
+   照片牆 (動態支援 photo_limit 到 10 張)
 ============================================================ */
 function stripQueryAndHash_(url){ const s = String(url || ""); return s.split("#")[0].split("?")[0]; }
 
@@ -1016,7 +1033,8 @@ function buildImageFingerprint_(raw){
 function collectPhotos_(p){
   const photos = [];
   const seen = new Set();
-  const limit = getCurrentPlanLimit_().maxPhotos;
+  const limit = getPhotoLimitFromPayload_(p); // 動態讀取上限
+
   function pushPhoto_(raw){
     const s = String(raw || "").trim();
     if(!s) return;
@@ -1027,10 +1045,13 @@ function collectPhotos_(p){
     seen.add(fp);
     photos.push(url);
   }
-  ["photo1_url","photo2_url","photo3_url","photo4_url","photo5_url"].forEach(k => {
-    const v = pick(p, [k]);
+
+  // 支援 photo1_url ~ photo10_url
+  for(let i = 1; i <= limit; i++){
+    const key = `photo${i}_url`;
+    const v = pick(p, [key]);
     if(v != null && text(v) !== "") pushPhoto_(v);
-  });
+  }
   return photos.slice(0, limit);
 }
 
@@ -1108,11 +1129,7 @@ function renderCardExpiry_(p){
 }
 
 /* ============================================================
-   ★ 公告系統升級版
-   - 支援 GAS 資料 + Fallback 內建公告
-   - 公告卡片輪播（不是跑馬燈）
-   - 點擊彈出 Modal 顯示完整內容
-   - 多則公告自動輪播 + 計數器
+   公告系統
 ============================================================ */
 
 function parseDateLoose_(value){
@@ -1170,9 +1187,6 @@ function normalizeAnnouncementItems_(payload){
   return arr.filter(x => x && typeof x === "object");
 }
 
-/**
- * 開啟公告 Modal，填入標題與完整內容
- */
 function openAnnouncementModal_(item, currentIdx, total){
   if(!item) return;
   const mask = qs("announcementMask");
@@ -1213,10 +1227,6 @@ function bindAnnouncementModal_(){
   if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) closeAnnouncementModal_(); });
 }
 
-/**
- * 更新公告卡片顯示（標題 + 摘要 + 計數器）
- * 同時更新所有 [data-announcement-panel] 內的卡片
- */
 function paintAnnouncementCards_(items, idx){
   const item = items[idx];
   if(!item) return;
@@ -1246,9 +1256,6 @@ function stopAnnouncementRotation_(){
   if(announcementTimer_){ clearInterval(announcementTimer_); announcementTimer_ = null; }
 }
 
-/**
- * 啟動公告輪播
- */
 function startAnnouncementRotation_(items){
   stopAnnouncementRotation_();
   announcementItems_ = items;
@@ -1264,9 +1271,6 @@ function startAnnouncementRotation_(items){
   }
 }
 
-/**
- * 顯示公告 panels，並帶入公告資料開始輪播
- */
 function renderAnnouncementPanels_(items){
   const active = sortAnnouncements_(items.filter(isAnnouncementActive_));
 
@@ -1279,9 +1283,6 @@ function renderAnnouncementPanels_(items){
   startAnnouncementRotation_(active);
 }
 
-/**
- * 從 GAS 抓公告；若 GAS 無資料則 fallback 到內建公告
- */
 async function fetchAndRenderAnnouncements_(){
   try{
     const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_());
@@ -1722,13 +1723,9 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); }, { once: tru
     applySmartBalanceAll_();
     updateInstallUi_();
 
-    /* 綁定公告 Modal 關閉事件 */
     bindAnnouncementModal_();
-
-    /* 抓公告（含 fallback 到內建公告） */
     fetchAndRenderAnnouncements_();
 
-    /* 抓名片資料 */
     const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
     const url = buildCardApiUrl_(id);
     const payload = await fetchJsonRobust_(url);
@@ -1753,7 +1750,6 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); }, { once: tru
     if(unitEl) unitEl.textContent = "請稍後再試";
     if(titleEl) titleEl.textContent = "";
 
-    /* 即使名片載入失敗，公告仍顯示內建公告 */
     bindAnnouncementModal_();
     renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
   }
