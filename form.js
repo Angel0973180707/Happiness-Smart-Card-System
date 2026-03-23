@@ -214,7 +214,7 @@ bindCropEvents();
 readUrlParams();  
 initNavDots();  
 applyPlanRules(state.plan, true);  
-updatePage();  
+updatePage(true);  
 updateLivePreview();  
 buildSummary();  
 hideSuccess();  
@@ -362,14 +362,14 @@ function bindPageEvents() {
 el.prevBtn?.addEventListener("click", () => {
 if (state.currentPage <= 0) return;
 state.currentPage -= 1;
-updatePage();
+updatePage(true);
 });
 
 el.nextBtn?.addEventListener("click", () => {  
   if (state.currentPage < state.totalPages - 1) {  
     if (!validateCurrentPage(state.currentPage)) return;  
     state.currentPage += 1;  
-    updatePage();  
+    updatePage(true);  
     if (state.currentPage === 5) buildSummary();  
   } else {  
     submitForm();  
@@ -454,14 +454,26 @@ el.btnTest?.addEventListener("click", testConnection);
 el.btnSubmit?.addEventListener("click", submitForm);
 el.btnReset?.addEventListener("click", resetForm);
 
-el.copyBtn?.addEventListener("click", async () => {  
-  try {  
-    await copyText(el.successCopyText?.value || "");  
-    setStatus("已複製申請編號與客服訊息。");  
-  } catch {  
-    setStatus("請手動複製成功區內容。");  
-  }  
+if (el.copyBtn) {
+el.copyBtn.addEventListener("click", async () => {
+  try {
+    const copyText = el.successCopyText?.value || "";
+    if (copyText) {
+      await copyToClipboard(copyText);
+      setStatus("✅ 已複製申請編號與客服文案");
+      const originalText = el.copyBtn.textContent;
+      el.copyBtn.textContent = "✅ 已複製！";
+      setTimeout(() => {
+        if (el.copyBtn) el.copyBtn.textContent = originalText;
+      }, 2000);
+    } else {
+      setStatus("沒有可複製的內容");
+    }
+  } catch {
+    setStatus("請手動複製成功區內容。");
+  }
 });
+}
 
 }
 
@@ -578,16 +590,18 @@ el.navDots.appendChild(dot);
 }
 }
 
-function updatePage() {
+function updatePage(scrollToTop = true) {
 el.pages.forEach((page, idx) => page.classList.toggle("active", idx === state.currentPage));
 Array.from(el.navDots?.children || []).forEach((dot, idx) => dot.classList.toggle("active", idx === state.currentPage));
 
-if (el.prevBtn) el.prevBtn.disabled = state.currentPage === 0;  
-if (el.nextBtn) el.nextBtn.textContent = state.currentPage === state.totalPages - 1 ? "送出資料" : "下一步";  
+if (el.prevBtn) el.prevBtn.disabled = state.currentPage === 0;
+if (el.nextBtn) el.nextBtn.textContent = state.currentPage === state.totalPages - 1 ? "送出資料" : "下一步";
 
-if (state.currentPage === 5) buildSummary();  
+if (state.currentPage === 5) buildSummary();
+
+if (scrollToTop !== false) {
 window.scrollTo({ top: 0, behavior: "smooth" });
-
+}
 }
 
 function validateCurrentPage(pageIndex) {
@@ -1121,7 +1135,7 @@ if (state.busy) return;
 for (let i = 0; i < state.totalPages - 1; i++) {  
   if (!validateCurrentPage(i)) {  
     state.currentPage = i;  
-    updatePage();  
+    updatePage(true);  
     return;  
   }  
 }  
@@ -1135,28 +1149,38 @@ try {
 
   const payload = collectPayload();  
 
-  setProgress(60, "資料送出中，勿重覆送出或中途離開");  
+  setProgress(60, "資料送出中，請勿重複送出或離開頁面");  
 
   const res = await fetchJson(GAS_URL, {  
     method: "POST",  
-    headers: { "Content-Type": "text/plain;charset=utf-8" },  
+    headers: { "Content-Type": "application/json" },  
     body: JSON.stringify(payload)  
   });  
 
   if (!res || res.ok !== true) throw new Error(readError(res) || "送出失敗");  
 
-  const cardId = text(res.id || res.card_id || res.data?.id || res.data?.card_id || res.lead_id || res.request_id);  
+  const cardId = text(  
+    res.id ||   
+    res.card_id ||   
+    res.data?.id ||   
+    res.data?.card_id ||   
+    res.lead_id ||   
+    res.request_id ||  
+    res.application_id  
+  );  
   const successText = buildSuccessReply(cardId);  
 
   setProgress(100, "送出成功");  
-  setStatus("資料已送出，請把卡片ID回覆給客服。");  
+  setStatus(`✅ 資料已送出！申請編號：${cardId || "請查看下方"}`);  
   showSuccess(cardId, successText);  
+
   state.currentPage = 5;  
-  updatePage();  
+  updatePage(false);  
+  
 } catch (err) {  
   console.error("[HSC form] submit failed:", err);  
   setProgress(0, "送出失敗");  
-  setStatus(`送出失敗：${err?.message || "未知錯誤"}`);  
+  setStatus(`❌ 送出失敗：${err?.message || "未知錯誤，請稍後重試"}`);  
 } finally {  
   setBusy(false);  
 }
@@ -1264,6 +1288,14 @@ el.successCopyText.value = replyText || "";
 autoGrow(el.successCopyText);
 }
 toggleEl(el.successBox, true);
+
+if (el.successBox) {
+el.successBox.style.transition = "background 0.3s ease";
+el.successBox.style.background = "rgba(110,231,183,.15)";
+setTimeout(() => {
+  if (el.successBox) el.successBox.style.background = "";
+}, 800);
+}
 }
 
 function hideSuccess() {
@@ -1304,7 +1336,7 @@ bindSlotEvents();
 
 applyPlanRules("free", true);  
 state.currentPage = 0;  
-updatePage();  
+updatePage(true);  
 updateLivePreview();  
 buildSummary();  
 hideSuccess();  
@@ -1495,19 +1527,22 @@ else reject(new Error("圖片轉換失敗"));
 });
 }
 
-async function copyText(value) {
-const v = String(value || "");
-if (!v) return;
-if (navigator.clipboard?.writeText) {
-await navigator.clipboard.writeText(v);
+async function copyToClipboard(text) {
+if (!text) return;
+
+if (navigator.clipboard && navigator.clipboard.writeText) {
+await navigator.clipboard.writeText(text);
 return;
 }
-const ta = document.createElement("textarea");
-ta.value = v;
-document.body.appendChild(ta);
-ta.select();
+
+const textarea = document.createElement("textarea");
+textarea.value = text;
+textarea.style.position = "fixed";
+textarea.style.opacity = "0";
+document.body.appendChild(textarea);
+textarea.select();
 document.execCommand("copy");
-ta.remove();
+document.body.removeChild(textarea);
 }
 
 function getFieldValue(id) {
