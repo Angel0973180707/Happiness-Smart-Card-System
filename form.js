@@ -1048,7 +1048,7 @@
 
       const payload = collectPayload();
 
-      setProgress(60, "正在送出申請…");
+      setProgress(60, "資料送出中，勿重覆送出或中途離開");
 
       const res = await fetchJson(GAS_URL, {
         method: "POST",
@@ -1058,12 +1058,13 @@
 
       if (!res || res.ok !== true) throw new Error(readError(res) || "送出失敗");
 
-      const leadId = text(res.lead_id || res.id || res.data?.lead_id || res.request_id);
-      const successText = buildSuccessReply(leadId);
+      // 優先取卡片ID (支援多種可能的回傳欄位)
+      const cardId = text(res.id || res.card_id || res.data?.id || res.data?.card_id || res.lead_id || res.request_id);
+      const successText = buildSuccessReply(cardId);
 
-      setProgress(100, "送出完成");
-      setStatus("資料已送出，請把申請編號回覆給客服。");
-      showSuccess(leadId, successText);
+      setProgress(100, "送出成功");
+      setStatus("資料已送出，請把卡片ID回覆給客服。");
+      showSuccess(cardId, successText);
       state.currentPage = 5;
       updatePage();
     } catch (err) {
@@ -1140,29 +1141,22 @@
       share_agent_id: getFieldValue("share_agent_id"),
       share_source: getFieldValue("share_source"),
       share_channel: getFieldValue("share_channel"),
-      share_visit_id: getFieldValue("share_visit_id")
-    };
+      share_visit_id: getFieldValue("share_visit_id"),
 
-    // 動態添加 photo_limit 參數（讓後端知道上限）
-    base.photo_limit = state.photoLimit;
+      photo_limit: state.photoLimit  // 送出照片上限
+    };
 
     return base;
   }
 
-  function buildSuccessReply(leadId) {
-    return [
-      "您好，我已完成天使幸福智慧名片資料填寫。",
-      "",
-      `申請編號：${leadId || "-"}`,
-      `姓名 / 品牌：${getFieldValue("name") || "-"}`,
-      `方案：${state.rules.label}`,
-      "",
-      "再請協助後續確認，謝謝。"
-    ].join("\n");
+  function buildSuccessReply(cardId) {
+    return `我已填妥資料送出
+卡片ID:${cardId || "未提供"}
+請協助確認與製作名片，謝謝`;
   }
 
-  function showSuccess(leadId, replyText) {
-    if (el.successCardId) el.successCardId.textContent = leadId || "-";
+  function showSuccess(cardId, replyText) {
+    if (el.successCardId) el.successCardId.textContent = cardId || "-";
     if (el.successCopyText) {
       el.successCopyText.value = replyText || "";
       autoGrow(el.successCopyText);
