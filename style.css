@@ -1,7 +1,7 @@
 /* ============================================================
    天使幸福智慧名片館 style.css
-   v527.0-palette-refined
-   完整覆蓋版 — 精品配色優化（p1-p7 飽和度 / 亮度 / 色差全面提升）
+   v527.2-stable-preview-fix — 穩定回修版
+   修正 preview selector 層級錯誤，恢復結構正確性
 ============================================================ */
 
 :root {
@@ -78,75 +78,79 @@ body {
 .preline { white-space: pre-line; }
 .hidden  { display: none !important; }
 
-/* ── 主題顏色 ── */
-body.color-1 { --p:#e57d84; --s:#b23d46; --bgTint: rgba(229,125,132,.15); --accentText: rgba(109,42,48,.94); }
-body.color-2 { --p:#7daed7; --s:#3e6e9a; --bgTint: rgba(125,174,215,.16); --accentText: rgba(37,67,92,.94); }
-body.color-3 { --p:#e7a860; --s:#ba6f2e; --bgTint: rgba(231,168,96,.16); --accentText: rgba(101,60,25,.94); }
-body.color-4 { --p:#a48bd8; --s:#6c58a7; --bgTint: rgba(164,139,216,.16); --accentText: rgba(66,51,105,.94); }
-body.color-5 { --p:#7fc89a; --s:#3a8a60; --bgTint: rgba(127,200,154,.16); --accentText: rgba(29,88,58,.94); }
+/* ── 主題顏色（變數型 root selector，安全保留）── */
+body.color-1,
+#livePreviewCard.color-1 { --p:#e57d84; --s:#b23d46; --bgTint: rgba(229,125,132,.15); --accentText: rgba(109,42,48,.94); }
+body.color-2,
+#livePreviewCard.color-2 { --p:#7daed7; --s:#3e6e9a; --bgTint: rgba(125,174,215,.16); --accentText: rgba(37,67,92,.94); }
+body.color-3,
+#livePreviewCard.color-3 { --p:#e7a860; --s:#ba6f2e; --bgTint: rgba(231,168,96,.16); --accentText: rgba(101,60,25,.94); }
+body.color-4,
+#livePreviewCard.color-4 { --p:#a48bd8; --s:#6c58a7; --bgTint: rgba(164,139,216,.16); --accentText: rgba(66,51,105,.94); }
+body.color-5,
+#livePreviewCard.color-5 { --p:#7fc89a; --s:#3a8a60; --bgTint: rgba(127,200,154,.16); --accentText: rgba(29,88,58,.94); }
 
 /* ============================================================
-   ★ p1–p7 精品配色 — 優化版
-   設計原則：
-   · p1 玫瑰石英 — 暖粉更飽、深色收斂有力
-   · p2 勃艮第酒紅 — 提升明度避免過暗、紫調更優雅
-   · p3 午夜靛藍 — 藍調更純淨、深色層次更豐富
-   · p4 薰衣草紫 — 降低灰度、提升彩度與清透感
-   · p5 月光銀 — 增加冷光感、邊框與高光更精緻
-   · p6 流金琉璃 — 金色飽和度提升、暗部更沉穩
-   · p7 可可棕 — 明度微調、冷暖均衡更精品
+   ★ p1–p7 精品配色（變數型 root selector，安全保留）
 ============================================================ */
 
-/* p1 — 玫瑰石英 Rose Quartz（暖粉珠光、柔中帶力） */
-body.p1 {
+/* p1 — 玫瑰石英 */
+body.p1,
+#livePreviewCard.p1 {
   --p: #e8909a;
   --s: #c04a58;
   --prem-soft: rgba(255,255,255,.16);
 }
 
-/* p2 — 勃艮第絳紅 Burgundy（深沉優雅、暗紅帶紫氣） */
-body.p2 {
+/* p2 — 勃艮第絳紅 */
+body.p2,
+#livePreviewCard.p2 {
   --p: #9b5566;
   --s: #6b2d3e;
   --prem-soft: rgba(255,255,255,.14);
 }
 
-/* p3 — 午夜靛藍 Midnight Indigo（深邃冷靜、純粹藍調） */
-body.p3 {
+/* p3 — 午夜靛藍 */
+body.p3,
+#livePreviewCard.p3 {
   --p: #3c5878;
   --s: #1e3450;
   --prem-soft: rgba(255,255,255,.13);
 }
 
-/* p4 — 薰衣草紫 Lavender（通透清雅、彩度提升） */
-body.p4 {
+/* p4 — 薰衣草紫 */
+body.p4,
+#livePreviewCard.p4 {
   --p: #8e7fc4;
   --s: #5d4f9a;
   --prem-soft: rgba(255,255,255,.16);
 }
 
-/* p5 — 月光銀 Moonlight Silver（冷光金屬、珠光優雅） */
-body.p5 {
+/* p5 — 月光銀 */
+body.p5,
+#livePreviewCard.p5 {
   --p: #b8c8d8;
   --s: #7a94a8;
   --prem-soft: rgba(255,255,255,.20);
 }
 
-/* p6 — 流金琉璃 Liquid Gold（金色更飽、暗部更沉穩） */
-body.p6 {
+/* p6 — 流金琉璃 */
+body.p6,
+#livePreviewCard.p6 {
   --p: #e8ba5a;
   --s: #b8882a;
   --prem-soft: rgba(255,255,255,.14);
 }
 
-/* p7 — 可可棕 Cacao（暖棕均衡、精品質感提升） */
-body.p7 {
+/* p7 — 可可棕 */
+body.p7,
+#livePreviewCard.p7 {
   --p: #7a6558;
   --s: #42302a;
   --prem-soft: rgba(255,255,255,.14);
 }
 
-/* ── Admin Panel ── */
+/* ── Admin Panel（不擴充 preview）── */
 #admin-panel {
   position: sticky;
   top: 0;
@@ -194,7 +198,7 @@ body.p7 {
   opacity: .82;
 }
 
-/* ── Controls Block ── */
+/* ── Controls Block（不擴充 preview）── */
 #free-controls,
 #premium-controls {
   position: relative;
@@ -225,7 +229,7 @@ body.mode-premium #premium-controls {
   -webkit-backdrop-filter: blur(14px);
 }
 
-/* ── Card ── */
+/* ── Card（結構型，保留子層）── */
 .card {
   position: relative;
   border-radius: var(--radius);
@@ -240,12 +244,14 @@ body.mode-premium #premium-controls {
     inset 0 -1px 0 var(--card-glow-bot);
 }
 
-body.mode-free .card {
+body.mode-free .card,
+#livePreviewCard.mode-free .card {
   filter: saturate(var(--free-sat)) contrast(var(--free-contrast));
 }
 
-/* ── Premium Mode ── */
-body.mode-premium {
+/* ── Premium Mode（結構型，保留子層）── */
+body.mode-premium,
+#livePreviewCard.mode-premium {
   background:
     radial-gradient(1200px 700px at 18% 0%, rgba(255,255,255,.16), transparent 55%),
     radial-gradient(900px 700px at 86% 8%, rgba(255,255,255,.11), transparent 60%),
@@ -259,7 +265,8 @@ body.mode-premium #admin-panel {
   box-shadow: 0 2px 20px rgba(0,0,0,.20);
 }
 
-body.mode-premium .card {
+body.mode-premium .card,
+#livePreviewCard.mode-premium .card {
   border: 1px solid rgba(255,255,255,.14);
   box-shadow:
     0 30px 88px rgba(0,0,0,.52),
@@ -274,7 +281,7 @@ body.mode-premium .card {
   filter: saturate(1.04) contrast(1.02);
 }
 
-/* ── Premium FX Layer ── */
+/* ── Premium FX Layer（結構型，保留子層）── */
 .premium-fx-layer {
   position: absolute;
   inset: 0;
@@ -284,7 +291,8 @@ body.mode-premium .card {
   z-index: 1;
 }
 
-body.mode-premium .premium-fx-layer {
+body.mode-premium .premium-fx-layer,
+#livePreviewCard.mode-premium .premium-fx-layer {
   opacity: 1;
   background:
     radial-gradient(1000px 580px at 14% 4%, rgba(255,255,255,.20), transparent 60%),
@@ -296,8 +304,9 @@ body.mode-premium .premium-fx-layer {
   filter: blur(18px) saturate(1.04);
 }
 
-/* ── p1 玫瑰石英 FX：珊瑚光暈 ── */
-body.mode-premium.p1 .premium-fx-layer {
+/* ── p1 玫瑰石英 FX（結構型，保留子層）── */
+body.mode-premium.p1 .premium-fx-layer,
+#livePreviewCard.mode-premium.p1 .premium-fx-layer {
   background:
     radial-gradient(1080px 580px at 14% 2%, rgba(255,220,224,.36), transparent 58%),
     radial-gradient(860px 560px at 94% 4%, rgba(255,160,172,.20), transparent 62%),
@@ -307,8 +316,9 @@ body.mode-premium.p1 .premium-fx-layer {
   filter: blur(14px) saturate(1.10);
 }
 
-/* ── p2 勃艮第 FX：深紅絲絨光 ── */
-body.mode-premium.p2 .premium-fx-layer {
+/* ── p2 勃艮第 FX（結構型，保留子層）── */
+body.mode-premium.p2 .premium-fx-layer,
+#livePreviewCard.mode-premium.p2 .premium-fx-layer {
   background:
     radial-gradient(1080px 580px at 14% 2%, rgba(200,140,154,.28), transparent 58%),
     radial-gradient(860px 560px at 94% 4%, rgba(140,80,98,.18), transparent 62%),
@@ -318,8 +328,9 @@ body.mode-premium.p2 .premium-fx-layer {
   filter: blur(16px) saturate(1.08);
 }
 
-/* ── p3 午夜靛藍 FX：星光深藍 ── */
-body.mode-premium.p3 .premium-fx-layer {
+/* ── p3 午夜靛藍 FX（結構型，保留子層）── */
+body.mode-premium.p3 .premium-fx-layer,
+#livePreviewCard.mode-premium.p3 .premium-fx-layer {
   background:
     radial-gradient(1080px 580px at 14% 2%, rgba(120,164,210,.22), transparent 58%),
     radial-gradient(860px 560px at 94% 4%, rgba(80,120,168,.14), transparent 62%),
@@ -329,8 +340,9 @@ body.mode-premium.p3 .premium-fx-layer {
   filter: blur(18px) saturate(1.06);
 }
 
-/* ── p4 薰衣草紫 FX：霧紫流光 ── */
-body.mode-premium.p4 .premium-fx-layer {
+/* ── p4 薰衣草紫 FX（結構型，保留子層）── */
+body.mode-premium.p4 .premium-fx-layer,
+#livePreviewCard.mode-premium.p4 .premium-fx-layer {
   background:
     radial-gradient(1080px 580px at 14% 2%, rgba(200,188,240,.30), transparent 58%),
     radial-gradient(860px 560px at 94% 4%, rgba(160,148,210,.18), transparent 62%),
@@ -340,8 +352,9 @@ body.mode-premium.p4 .premium-fx-layer {
   filter: blur(14px) saturate(1.12);
 }
 
-/* ── p5 月光銀 FX：冰藍珠光 ── */
-body.mode-premium.p5 .premium-fx-layer {
+/* ── p5 月光銀 FX（結構型，保留子層）── */
+body.mode-premium.p5 .premium-fx-layer,
+#livePreviewCard.mode-premium.p5 .premium-fx-layer {
   background:
     radial-gradient(1080px 620px at 14% 2%, rgba(220,234,248,.44), transparent 58%),
     radial-gradient(860px 560px at 94% 4%, rgba(180,200,220,.28), transparent 62%),
@@ -357,8 +370,9 @@ body.mode-premium.p5 .premium-fx-layer {
   filter: blur(10px) saturate(1.14);
 }
 
-/* ── p6 流金琉璃 FX：琉璃金光（完整保留原版升級） ── */
-body.mode-premium.p6 .premium-fx-layer {
+/* ── p6 流金琉璃 FX（結構型，保留子層）── */
+body.mode-premium.p6 .premium-fx-layer,
+#livePreviewCard.mode-premium.p6 .premium-fx-layer {
   background:
     radial-gradient(1080px 620px at 14% 2%, rgba(255,255,255,.40), transparent 60%),
     radial-gradient(860px 560px at 94% 4%, rgba(255,255,255,.24), transparent 62%),
@@ -385,8 +399,9 @@ body.mode-premium.p6 .premium-fx-layer {
   filter: blur(9px) saturate(1.20);
 }
 
-/* ── p7 可可棕 FX：琥珀暖光 ── */
-body.mode-premium.p7 .premium-fx-layer {
+/* ── p7 可可棕 FX（結構型，保留子層）── */
+body.mode-premium.p7 .premium-fx-layer,
+#livePreviewCard.mode-premium.p7 .premium-fx-layer {
   background:
     radial-gradient(1080px 580px at 14% 2%, rgba(180,152,128,.26), transparent 58%),
     radial-gradient(860px 560px at 94% 4%, rgba(140,112,88,.16), transparent 62%),
@@ -396,7 +411,8 @@ body.mode-premium.p7 .premium-fx-layer {
   filter: blur(16px) saturate(1.06);
 }
 
-body.mode-premium .card::before {
+body.mode-premium .card::before,
+#livePreviewCard.mode-premium .card::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -409,7 +425,8 @@ body.mode-premium .card::before {
   mix-blend-mode: soft-light;
 }
 
-body.mode-premium .card::after {
+body.mode-premium .card::after,
+#livePreviewCard.mode-premium .card::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -444,12 +461,16 @@ body.mode-premium .card::after {
   line-height: 1.38;
 }
 body.mode-premium .unit,
-body.mode-premium .title { color: var(--prem-muted); }
+body.mode-premium .title,
+#livePreviewCard.mode-premium .unit,
+#livePreviewCard.mode-premium .title { color: var(--prem-muted); }
 
-/* ── Banner ── */
+/* ── Banner（結構型，保留子層）── */
 .banner { position: relative; height: 130px; overflow: hidden; }
-body.mode-free .banner  { display: block; }
-body.mode-premium .banner { display: none !important; }
+body.mode-free .banner,
+#livePreviewCard.mode-free .banner  { display: block; }
+body.mode-premium .banner,
+#livePreviewCard.mode-premium .banner { display: none !important; }
 
 .dynamic-mask {
   position: absolute;
@@ -461,7 +482,8 @@ body.mode-premium .banner { display: none !important; }
   opacity: .48;
 }
 
-body.mode-free.style-arch .banner {
+body.mode-free.style-arch .banner,
+#livePreviewCard.mode-free.style-arch .banner {
   background:
     radial-gradient(960px 340px at 50% -14%, rgba(255,255,255,.56), transparent 68%),
     radial-gradient(660px 270px at 16% 4%, rgba(255,255,255,.22), transparent 70%),
@@ -469,7 +491,8 @@ body.mode-free.style-arch .banner {
     linear-gradient(135deg, var(--p), var(--s));
 }
 
-body.mode-free.style-arch .banner::after {
+body.mode-free.style-arch .banner::after,
+#livePreviewCard.mode-free.style-arch .banner::after {
   content: "";
   position: absolute;
   left: -26%; right: -26%;
@@ -481,13 +504,15 @@ body.mode-free.style-arch .banner::after {
   opacity: .97;
 }
 
-body.mode-free.style-flat .banner {
+body.mode-free.style-flat .banner,
+#livePreviewCard.mode-free.style-flat .banner {
   background:
     radial-gradient(800px 290px at 38% 0%, rgba(255,255,255,.48), transparent 70%),
     radial-gradient(540px 230px at 10% 6%, rgba(255,255,255,.20), transparent 72%),
     linear-gradient(135deg, var(--p), var(--s));
 }
-body.mode-free.style-flat .banner::after {
+body.mode-free.style-flat .banner::after,
+#livePreviewCard.mode-free.style-flat .banner::after {
   content: "";
   position: absolute;
   left: 0; right: 0; bottom: 0;
@@ -496,7 +521,8 @@ body.mode-free.style-flat .banner::after {
   opacity: .94;
 }
 
-body.mode-free.style-spot .banner {
+body.mode-free.style-spot .banner,
+#livePreviewCard.mode-free.style-spot .banner {
   background:
     radial-gradient(540px 228px at 18% 0%, rgba(255,255,255,.58), transparent 72%),
     radial-gradient(640px 270px at 82% 8%, rgba(255,255,255,.30), transparent 70%),
@@ -504,7 +530,8 @@ body.mode-free.style-spot .banner {
     linear-gradient(135deg, rgba(255,255,255,.08), rgba(0,0,0,.03)),
     linear-gradient(135deg, var(--p), var(--s));
 }
-body.mode-free.style-spot .banner::after {
+body.mode-free.style-spot .banner::after,
+#livePreviewCard.mode-free.style-spot .banner::after {
   content: "";
   position: absolute;
   left: -12%; right: -12%;
@@ -516,11 +543,13 @@ body.mode-free.style-spot .banner::after {
   opacity: .95;
 }
 
-/* ── Paper Overlay ── */
+/* ── Paper Overlay（結構型，保留子層）── */
 .paper-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 1; z-index: 2; }
-body.mode-premium .paper-overlay { display: none !important; }
+body.mode-premium .paper-overlay,
+#livePreviewCard.mode-premium .paper-overlay { display: none !important; }
 
-body.mode-free.paper-1 .paper-overlay {
+body.mode-free.paper-1 .paper-overlay,
+#livePreviewCard.mode-free.paper-1 .paper-overlay {
   background:
     radial-gradient(1px 1px at 12px 18px, rgba(0,0,0,var(--paper-grain)), transparent 60%),
     radial-gradient(1px 1px at 38px 42px, rgba(0,0,0,calc(var(--paper-grain)*.88)), transparent 60%),
@@ -531,7 +560,8 @@ body.mode-free.paper-1 .paper-overlay {
   opacity: var(--paper-strength);
 }
 
-body.mode-free.paper-2 .paper-overlay {
+body.mode-free.paper-2 .paper-overlay,
+#livePreviewCard.mode-free.paper-2 .paper-overlay {
   background:
     radial-gradient(1px 1px at 10px 12px, rgba(0,0,0,.16), transparent 60%),
     radial-gradient(1px 1px at 26px 44px, rgba(0,0,0,.14), transparent 60%),
@@ -543,7 +573,8 @@ body.mode-free.paper-2 .paper-overlay {
   opacity: calc(var(--paper-strength) + .05);
 }
 
-body.mode-free.paper-3 .paper-overlay {
+body.mode-free.paper-3 .paper-overlay,
+#livePreviewCard.mode-free.paper-3 .paper-overlay {
   background:
     repeating-linear-gradient(45deg,
       rgba(0,0,0,var(--paper-fiber)) 0px, rgba(0,0,0,var(--paper-fiber)) 1px,
@@ -556,7 +587,7 @@ body.mode-free.paper-3 .paper-overlay {
   opacity: calc(var(--paper-strength) + .08);
 }
 
-/* ── Avatar ── */
+/* ── Avatar（結構型，保留子層）── */
 .avatar-wrap {
   position: relative;
   display: flex;
@@ -564,8 +595,10 @@ body.mode-free.paper-3 .paper-overlay {
   padding-bottom: 6px;
   z-index: 6;
 }
-body.mode-free .avatar-wrap { margin-top: -58px; }
-body.mode-premium .avatar-wrap { margin-top: 18px; padding-top: 6px; }
+body.mode-free .avatar-wrap,
+#livePreviewCard.mode-free .avatar-wrap { margin-top: -58px; }
+body.mode-premium .avatar-wrap,
+#livePreviewCard.mode-premium .avatar-wrap { margin-top: 18px; padding-top: 6px; }
 
 .avatar-circle {
   width: 112px;
@@ -579,7 +612,8 @@ body.mode-premium .avatar-wrap { margin-top: 18px; padding-top: 6px; }
   z-index: 7;
 }
 
-body.mode-free .avatar-circle {
+body.mode-free .avatar-circle,
+#livePreviewCard.mode-free .avatar-circle {
   border: 2px solid rgba(255,255,255,.88);
   box-shadow:
     0 18px 42px rgba(0,0,0,.14),
@@ -588,7 +622,8 @@ body.mode-free .avatar-circle {
     inset 0 -16px 18px rgba(0,0,0,.06);
 }
 
-body.mode-premium .avatar-circle {
+body.mode-premium .avatar-circle,
+#livePreviewCard.mode-premium .avatar-circle {
   background: rgba(255,255,255,.16);
   border: 1.5px solid rgba(255,255,255,.66);
   box-shadow:
@@ -601,7 +636,8 @@ body.mode-premium .avatar-circle {
 }
 
 /* p5 月光銀 — 加強珠光邊框 */
-body.mode-premium.p5 .avatar-circle {
+body.mode-premium.p5 .avatar-circle,
+#livePreviewCard.mode-premium.p5 .avatar-circle {
   border: 1.5px solid rgba(220,235,250,.72);
   box-shadow:
     0 22px 54px rgba(0,0,0,.48),
@@ -611,7 +647,8 @@ body.mode-premium.p5 .avatar-circle {
 }
 
 /* p6 流金 — 金色邊框 */
-body.mode-premium.p6 .avatar-circle {
+body.mode-premium.p6 .avatar-circle,
+#livePreviewCard.mode-premium.p6 .avatar-circle {
   border: 1.5px solid rgba(255,224,140,.58);
   box-shadow:
     0 22px 54px rgba(0,0,0,.52),
@@ -628,7 +665,7 @@ body.mode-premium.p6 .avatar-circle {
   display: block;
 }
 
-/* ── Logo ── */
+/* ── Logo（結構型，保留子層）── */
 .logo-wrap {
   display: flex;
   justify-content: center;
@@ -647,7 +684,8 @@ body.mode-premium.p6 .avatar-circle {
   box-shadow: 0 12px 24px rgba(0,0,0,.12);
 }
 
-body.mode-free .logo-img {
+body.mode-free .logo-img,
+#livePreviewCard.mode-free .logo-img {
   border: 2px solid rgba(255,255,255,.84);
   box-shadow:
     0 14px 30px rgba(0,0,0,.13),
@@ -656,7 +694,8 @@ body.mode-free .logo-img {
     inset 0 -10px 16px rgba(0,0,0,.06);
 }
 
-body.mode-premium .logo-img {
+body.mode-premium .logo-img,
+#livePreviewCard.mode-premium .logo-img {
   background: rgba(255,255,255,.14);
   border: 1px solid rgba(255,255,255,.24);
   box-shadow: 0 16px 40px rgba(0,0,0,.48);
@@ -664,7 +703,7 @@ body.mode-premium .logo-img {
   -webkit-backdrop-filter: blur(14px);
 }
 
-/* ── Slogan ── */
+/* ── Slogan（結構型，保留子層）── */
 #u-slogan {
   width: 100%;
   max-width: 420px;
@@ -679,9 +718,10 @@ body.mode-premium .logo-img {
   font-weight: 900;
   text-shadow: 0 10px 24px rgba(0,0,0,.08);
 }
-body.mode-premium #u-slogan { text-shadow: 0 12px 28px rgba(0,0,0,.34); }
+body.mode-premium #u-slogan,
+#livePreviewCard.mode-premium #u-slogan { text-shadow: 0 12px 28px rgba(0,0,0,.34); }
 
-/* ── Section Title ── */
+/* ── Section Title（不擴充 preview）── */
 .section-title {
   width: 100%;
   max-width: 520px;
@@ -722,7 +762,7 @@ body.mode-premium #u-slogan { text-shadow: 0 12px 28px rgba(0,0,0,.34); }
   max-width: 100%;
 }
 
-/* ── btn-neo ── */
+/* ── btn-neo（不擴充 preview，僅影響表單按鈕）── */
 .btn-neo {
   border-radius: 14px;
   font-weight: 900;
@@ -816,8 +856,9 @@ body.mode-premium .btn-neo.active {
   background: rgba(255,255,255,.15);
 }
 
-/* ── p1 玫瑰石英 btn-neo ── */
-body.mode-premium.p1 .btn-neo {
+/* ── p1 玫瑰石英 btn-neo（結構型，保留子層）── */
+body.mode-premium.p1 .btn-neo,
+#livePreviewCard.mode-premium.p1 .btn-neo {
   background:
     radial-gradient(160% 200% at 16% 0%,
       rgba(255,230,232,.32),
@@ -838,7 +879,8 @@ body.mode-premium.p1 .btn-neo {
     inset 0 -18px 22px rgba(180,60,80,.20);
 }
 
-body.mode-premium.p1 .btn-neo::after {
+body.mode-premium.p1 .btn-neo::after,
+#livePreviewCard.mode-premium.p1 .btn-neo::after {
   background: linear-gradient(135deg,
     rgba(255,220,224,.88) 0%,
     rgba(232,144,154,.80) 40%,
@@ -848,7 +890,8 @@ body.mode-premium.p1 .btn-neo::after {
   opacity: .82;
 }
 
-body.mode-premium.p1 .btn-neo.active {
+body.mode-premium.p1 .btn-neo.active,
+#livePreviewCard.mode-premium.p1 .btn-neo.active {
   background:
     radial-gradient(160% 200% at 16% 0%,
       rgba(255,235,238,.40),
@@ -858,8 +901,9 @@ body.mode-premium.p1 .btn-neo.active {
     );
 }
 
-/* ── p2 勃艮第 btn-neo ── */
-body.mode-premium.p2 .btn-neo {
+/* ── p2 勃艮第 btn-neo（結構型，保留子層）── */
+body.mode-premium.p2 .btn-neo,
+#livePreviewCard.mode-premium.p2 .btn-neo {
   background:
     radial-gradient(160% 200% at 16% 0%,
       rgba(220,160,172,.28),
@@ -880,7 +924,8 @@ body.mode-premium.p2 .btn-neo {
     inset 0 -18px 22px rgba(80,24,38,.28);
 }
 
-body.mode-premium.p2 .btn-neo::after {
+body.mode-premium.p2 .btn-neo::after,
+#livePreviewCard.mode-premium.p2 .btn-neo::after {
   background: linear-gradient(135deg,
     rgba(220,160,172,.82) 0%,
     rgba(180,110,130,.76) 38%,
@@ -890,12 +935,14 @@ body.mode-premium.p2 .btn-neo::after {
   opacity: .86;
 }
 
-body.mode-premium.p2 .btn-neo.active {
+body.mode-premium.p2 .btn-neo.active,
+#livePreviewCard.mode-premium.p2 .btn-neo.active {
   background: rgba(200,130,148,.18);
 }
 
-/* ── p3 午夜靛藍 btn-neo ── */
-body.mode-premium.p3 .btn-neo {
+/* ── p3 午夜靛藍 btn-neo（結構型，保留子層）── */
+body.mode-premium.p3 .btn-neo,
+#livePreviewCard.mode-premium.p3 .btn-neo {
   background:
     radial-gradient(160% 200% at 16% 0%,
       rgba(150,188,228,.24),
@@ -916,7 +963,8 @@ body.mode-premium.p3 .btn-neo {
     inset 0 -18px 22px rgba(10,26,52,.32);
 }
 
-body.mode-premium.p3 .btn-neo::after {
+body.mode-premium.p3 .btn-neo::after,
+#livePreviewCard.mode-premium.p3 .btn-neo::after {
   background: linear-gradient(135deg,
     rgba(160,200,240,.78) 0%,
     rgba(100,150,200,.72) 38%,
@@ -926,12 +974,14 @@ body.mode-premium.p3 .btn-neo::after {
   opacity: .76;
 }
 
-body.mode-premium.p3 .btn-neo.active {
+body.mode-premium.p3 .btn-neo.active,
+#livePreviewCard.mode-premium.p3 .btn-neo.active {
   background: rgba(100,148,196,.16);
 }
 
-/* ── p4 薰衣草紫 btn-neo ── */
-body.mode-premium.p4 .btn-neo {
+/* ── p4 薰衣草紫 btn-neo（結構型，保留子層）── */
+body.mode-premium.p4 .btn-neo,
+#livePreviewCard.mode-premium.p4 .btn-neo {
   background:
     radial-gradient(160% 200% at 16% 0%,
       rgba(220,212,252,.32),
@@ -952,7 +1002,8 @@ body.mode-premium.p4 .btn-neo {
     inset 0 -18px 22px rgba(60,44,110,.26);
 }
 
-body.mode-premium.p4 .btn-neo::after {
+body.mode-premium.p4 .btn-neo::after,
+#livePreviewCard.mode-premium.p4 .btn-neo::after {
   background: linear-gradient(135deg,
     rgba(220,212,252,.90) 0%,
     rgba(185,172,236,.84) 36%,
@@ -962,7 +1013,8 @@ body.mode-premium.p4 .btn-neo::after {
   opacity: .88;
 }
 
-body.mode-premium.p4 .btn-neo.active {
+body.mode-premium.p4 .btn-neo.active,
+#livePreviewCard.mode-premium.p4 .btn-neo.active {
   background:
     radial-gradient(160% 200% at 16% 0%,
       rgba(225,218,255,.40),
@@ -972,8 +1024,9 @@ body.mode-premium.p4 .btn-neo.active {
     );
 }
 
-/* ── p5 月光銀 btn-neo ── */
-body.mode-premium.p5 .btn-neo {
+/* ── p5 月光銀 btn-neo（結構型，保留子層）── */
+body.mode-premium.p5 .btn-neo,
+#livePreviewCard.mode-premium.p5 .btn-neo {
   background:
     radial-gradient(180% 220% at 16% 0%,
       rgba(255,255,255,.52),
@@ -998,7 +1051,8 @@ body.mode-premium.p5 .btn-neo {
     inset -12px 0 18px rgba(100,130,160,.10);
 }
 
-body.mode-premium.p5 .btn-neo::after {
+body.mode-premium.p5 .btn-neo::after,
+#livePreviewCard.mode-premium.p5 .btn-neo::after {
   background: linear-gradient(135deg,
     rgba(255,255,255,.98) 0%,
     rgba(220,238,252,.92) 22%,
@@ -1009,7 +1063,8 @@ body.mode-premium.p5 .btn-neo::after {
   opacity: .92;
 }
 
-body.mode-premium.p5 .btn-neo.active {
+body.mode-premium.p5 .btn-neo.active,
+#livePreviewCard.mode-premium.p5 .btn-neo.active {
   background:
     radial-gradient(180% 220% at 16% 0%,
       rgba(255,255,255,.60),
@@ -1020,8 +1075,9 @@ body.mode-premium.p5 .btn-neo.active {
     );
 }
 
-/* ── p6 流金琉璃 btn-neo（原版保留優化） ── */
-body.mode-premium.p6 .btn-neo {
+/* ── p6 流金琉璃 btn-neo（結構型，保留子層）── */
+body.mode-premium.p6 .btn-neo,
+#livePreviewCard.mode-premium.p6 .btn-neo {
   background:
     radial-gradient(180% 220% at 16% 0%,
       rgba(255,255,255,.38),
@@ -1046,7 +1102,8 @@ body.mode-premium.p6 .btn-neo {
     inset -12px 0 18px rgba(112,78,18,.14);
 }
 
-body.mode-premium.p6 .btn-neo::after {
+body.mode-premium.p6 .btn-neo::after,
+#livePreviewCard.mode-premium.p6 .btn-neo::after {
   background:
     linear-gradient(135deg,
       rgba(255,253,239,.96) 0%,
@@ -1058,7 +1115,8 @@ body.mode-premium.p6 .btn-neo::after {
   opacity: .98;
 }
 
-body.mode-premium.p6 .btn-neo.active {
+body.mode-premium.p6 .btn-neo.active,
+#livePreviewCard.mode-premium.p6 .btn-neo.active {
   background:
     radial-gradient(180% 220% at 16% 0%,
       rgba(255,255,255,.46),
@@ -1076,8 +1134,9 @@ body.mode-premium.p6 .btn-neo.active {
     );
 }
 
-/* ── p7 可可棕 btn-neo ── */
-body.mode-premium.p7 .btn-neo {
+/* ── p7 可可棕 btn-neo（結構型，保留子層）── */
+body.mode-premium.p7 .btn-neo,
+#livePreviewCard.mode-premium.p7 .btn-neo {
   background:
     radial-gradient(160% 200% at 16% 0%,
       rgba(210,188,168,.28),
@@ -1098,7 +1157,8 @@ body.mode-premium.p7 .btn-neo {
     inset 0 -18px 22px rgba(38,24,18,.28);
 }
 
-body.mode-premium.p7 .btn-neo::after {
+body.mode-premium.p7 .btn-neo::after,
+#livePreviewCard.mode-premium.p7 .btn-neo::after {
   background: linear-gradient(135deg,
     rgba(200,176,154,.84) 0%,
     rgba(160,130,104,.78) 38%,
@@ -1108,11 +1168,12 @@ body.mode-premium.p7 .btn-neo::after {
   opacity: .80;
 }
 
-body.mode-premium.p7 .btn-neo.active {
+body.mode-premium.p7 .btn-neo.active,
+#livePreviewCard.mode-premium.p7 .btn-neo.active {
   background: rgba(160,130,104,.18);
 }
 
-/* ── CTA 按鈕 ── */
+/* ── CTA 按鈕（不擴充 preview）── */
 .btn-cta {
   width: 100%;
   max-width: 520px;
@@ -1194,7 +1255,7 @@ body.mode-premium.p6 .btn-share {
     inset -8px 0 12px rgba(115,79,18,.10);
 }
 
-/* ── Color Dots ── */
+/* ── Color Dots（不擴充 preview）── */
 .dot, .p-dot {
   width: var(--dotPrem);
   height: var(--dotPrem);
@@ -1240,37 +1301,27 @@ body.mode-free .dot { width: var(--dotFree); height: var(--dotFree); }
 .dot.dot-4 { background: linear-gradient(135deg, #ac96da, #6f5ba7); }
 .dot.dot-5 { background: linear-gradient(135deg, #8cd0a4, #489167); }
 
-/* ── p-dot 精品色點優化版 ── */
-
-/* p1 玫瑰石英 — 暖粉珠光 */
+/* ── p-dot 精品色點（不擴充 preview）── */
 .p-dot.p1 {
   background:
     radial-gradient(circle at 32% 28%, rgba(255,255,255,.78), rgba(255,255,255,.00) 48%),
     linear-gradient(135deg, #f0a0aa, #e8909a 32%, #c04a58 72%, #9c2e3c);
 }
-
-/* p2 勃艮第絳紅 — 深沉絲絨 */
 .p-dot.p2 {
   background:
     radial-gradient(circle at 30% 26%, rgba(220,160,172,.72), rgba(255,255,255,.00) 46%),
     linear-gradient(135deg, #b86878, #9b5566 34%, #6b2d3e 70%, #4a1828);
 }
-
-/* p3 午夜靛藍 — 深邃星空 */
 .p-dot.p3 {
   background:
     radial-gradient(circle at 30% 26%, rgba(160,196,232,.64), rgba(255,255,255,.00) 46%),
     linear-gradient(135deg, #5a7898, #3c5878 36%, #1e3450 70%, #0c1e34);
 }
-
-/* p4 薰衣草紫 — 清透紫霧 */
 .p-dot.p4 {
   background:
     radial-gradient(circle at 30% 26%, rgba(230,224,255,.78), rgba(255,255,255,.00) 48%),
     linear-gradient(135deg, #aaa0d8, #8e7fc4 34%, #5d4f9a 68%, #3e3478);
 }
-
-/* p5 月光銀 — 冰藍珠光 */
 .p-dot.p5 {
   background:
     radial-gradient(circle at 28% 24%, rgba(255,255,255,.90), rgba(255,255,255,.00) 50%),
@@ -1282,8 +1333,6 @@ body.mode-free .dot { width: var(--dotFree); height: var(--dotFree); }
       rgba(122,148,168,.92) 100%
     );
 }
-
-/* p6 流金琉璃 — 金色光華（飽和度提升） */
 .p-dot.p6 {
   background:
     radial-gradient(circle at 30% 26%, rgba(255,255,255,.90), rgba(255,255,255,.00) 46%),
@@ -1295,15 +1344,13 @@ body.mode-free .dot { width: var(--dotFree); height: var(--dotFree); }
       rgba(140,96,18,.96) 100%
     );
 }
-
-/* p7 可可棕 — 溫潤琥珀 */
 .p-dot.p7 {
   background:
     radial-gradient(circle at 30% 26%, rgba(220,196,172,.72), rgba(255,255,255,.00) 46%),
     linear-gradient(135deg, #9e8878, #7a6558 34%, #56402e 66%, #42302a);
 }
 
-/* ── Info Block ── */
+/* ── Info Block（結構型，保留子層）── */
 .info-block {
   margin-top: 12px;
   border-radius: 18px;
@@ -1314,7 +1361,8 @@ body.mode-free .dot { width: var(--dotFree); height: var(--dotFree); }
   overflow: hidden;
 }
 
-body.mode-free .info-block {
+body.mode-free .info-block,
+#livePreviewCard.mode-free .info-block {
   box-shadow:
     0 12px 26px rgba(0,0,0,.08),
     0 1px 2px rgba(0,0,0,.03),
@@ -1322,7 +1370,8 @@ body.mode-free .info-block {
     inset 0 -16px 20px rgba(0,0,0,.06);
 }
 
-body.mode-free .info-block::before {
+body.mode-free .info-block::before,
+#livePreviewCard.mode-free .info-block::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1337,7 +1386,8 @@ body.mode-free .info-block::before {
   opacity: .98;
 }
 
-body.mode-free .info-block::after {
+body.mode-free .info-block::after,
+#livePreviewCard.mode-free .info-block::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1365,23 +1415,26 @@ body.mode-free .info-block::after {
   line-height: 1.72;
 }
 
-body.mode-premium .info-block {
+body.mode-premium .info-block,
+#livePreviewCard.mode-premium .info-block {
   background: rgba(10,12,18,.22);
   border-color: rgba(255,255,255,.12);
   box-shadow: 0 16px 36px rgba(0,0,0,.26);
 }
 
-body.mode-premium .block-title {
+body.mode-premium .block-title,
+#livePreviewCard.mode-premium .block-title {
   color: rgba(255,255,255,.94);
   text-shadow: 0 1px 0 rgba(0,0,0,.22);
 }
-body.mode-premium .block-body { color: rgba(255,255,255,.84); }
+body.mode-premium .block-body,
+#livePreviewCard.mode-premium .block-body { color: rgba(255,255,255,.84); }
 
 #block-exp { padding: 10px 12px; }
 #block-exp .block-title { margin-bottom: 4px; }
 #block-exp .block-body  { line-height: 1.58; }
 
-/* ── Expandable ── */
+/* ── Expandable（結構型，保留子層）── */
 .expandable-wrap {
   display: flex;
   flex-direction: column;
@@ -1434,7 +1487,8 @@ body.mode-premium .block-body { color: rgba(255,255,255,.84); }
     inset 0 2px 6px rgba(0,0,0,.08);
 }
 
-body.mode-premium .expand-toggle {
+body.mode-premium .expand-toggle,
+#livePreviewCard.mode-premium .expand-toggle {
   border-color: rgba(255,255,255,.16);
   background:
     radial-gradient(130% 180% at 20% 0%, rgba(255,255,255,.20), rgba(255,255,255,.10) 54%, rgba(255,255,255,.06)),
@@ -1447,7 +1501,8 @@ body.mode-premium .expand-toggle {
   -webkit-backdrop-filter: blur(10px);
 }
 
-body.mode-premium.p6 .expand-toggle {
+body.mode-premium.p6 .expand-toggle,
+#livePreviewCard.mode-premium.p6 .expand-toggle {
   border-color: rgba(255,240,196,.34);
   background:
     radial-gradient(140% 190% at 20% 0%, rgba(255,255,255,.40), rgba(255,248,216,.22) 54%, rgba(255,255,255,.12)),
@@ -1459,7 +1514,7 @@ body.mode-premium.p6 .expand-toggle {
     inset -8px 0 12px rgba(112,79,18,.10);
 }
 
-/* ── Contact / Dock ── */
+/* ── Contact / Dock（結構型，保留子層）── */
 .contact-dock {
   margin-top: 12px;
   border-radius: 18px;
@@ -1558,18 +1613,21 @@ body.mode-premium.p6 .expand-toggle {
   opacity: .36;
 }
 
-body.mode-premium .contact-dock {
+body.mode-premium .contact-dock,
+#livePreviewCard.mode-premium .contact-dock {
   background: rgba(14,16,24,.18);
   border-color: rgba(255,255,255,.10);
   box-shadow: 0 16px 36px rgba(0,0,0,.28);
 }
 
-body.mode-premium .dock-title {
+body.mode-premium .dock-title,
+#livePreviewCard.mode-premium .dock-title {
   color: rgba(255,255,255,.88);
   opacity: 1;
 }
 
-body.mode-premium .dock-btn {
+body.mode-premium .dock-btn,
+#livePreviewCard.mode-premium .dock-btn {
   border-color: rgba(255,255,255,.13);
   background:
     radial-gradient(150% 190% at 18% 0%, rgba(255,255,255,.16), rgba(255,255,255,.06) 55%, rgba(255,255,255,.05)),
@@ -1583,7 +1641,8 @@ body.mode-premium .dock-btn {
   -webkit-backdrop-filter: blur(12px);
 }
 
-body.mode-premium .dock-btn::before {
+body.mode-premium .dock-btn::before,
+#livePreviewCard.mode-premium .dock-btn::before {
   content: "";
   position: absolute;
   inset: -1px;
@@ -1597,10 +1656,12 @@ body.mode-premium .dock-btn::before {
   opacity: .52;
 }
 
-body.mode-premium .dock-btn::after { display: none; }
+body.mode-premium .dock-btn::after,
+#livePreviewCard.mode-premium .dock-btn::after { display: none; }
 
-/* ── p1 玫瑰 dock-btn ── */
-body.mode-premium.p1 .dock-btn {
+/* ── p1 玫瑰 dock-btn（結構型，保留子層）── */
+body.mode-premium.p1 .dock-btn,
+#livePreviewCard.mode-premium.p1 .dock-btn {
   background:
     radial-gradient(160% 200% at 18% 0%, rgba(255,220,226,.22), rgba(255,180,192,.12) 55%, rgba(255,255,255,.06)),
     rgba(232,144,154,.08);
@@ -1610,13 +1671,15 @@ body.mode-premium.p1 .dock-btn {
     inset 0 1px 0 rgba(255,200,210,.16),
     inset 0 -12px 16px rgba(180,50,70,.18);
 }
-body.mode-premium.p1 .dock-btn::before {
+body.mode-premium.p1 .dock-btn::before,
+#livePreviewCard.mode-premium.p1 .dock-btn::before {
   background: linear-gradient(135deg, rgba(255,210,218,.86), rgba(232,144,154,.78), rgba(192,74,88,.70));
   opacity: .72;
 }
 
-/* ── p2 勃艮第 dock-btn ── */
-body.mode-premium.p2 .dock-btn {
+/* ── p2 勃艮第 dock-btn（結構型，保留子層）── */
+body.mode-premium.p2 .dock-btn,
+#livePreviewCard.mode-premium.p2 .dock-btn {
   background:
     radial-gradient(160% 200% at 18% 0%, rgba(210,148,162,.20), rgba(160,100,120,.10) 55%, rgba(255,255,255,.05)),
     rgba(107,45,62,.10);
@@ -1626,13 +1689,15 @@ body.mode-premium.p2 .dock-btn {
     inset 0 1px 0 rgba(200,130,148,.12),
     inset 0 -12px 16px rgba(70,20,36,.24);
 }
-body.mode-premium.p2 .dock-btn::before {
+body.mode-premium.p2 .dock-btn::before,
+#livePreviewCard.mode-premium.p2 .dock-btn::before {
   background: linear-gradient(135deg, rgba(210,148,162,.82), rgba(155,85,102,.76), rgba(107,45,62,.68));
   opacity: .76;
 }
 
-/* ── p3 靛藍 dock-btn ── */
-body.mode-premium.p3 .dock-btn {
+/* ── p3 靛藍 dock-btn（結構型，保留子層）── */
+body.mode-premium.p3 .dock-btn,
+#livePreviewCard.mode-premium.p3 .dock-btn {
   background:
     radial-gradient(160% 200% at 18% 0%, rgba(130,170,210,.18), rgba(80,120,168,.10) 55%, rgba(255,255,255,.04)),
     rgba(30,52,80,.12);
@@ -1642,13 +1707,15 @@ body.mode-premium.p3 .dock-btn {
     inset 0 1px 0 rgba(130,170,210,.12),
     inset 0 -12px 16px rgba(10,26,52,.28);
 }
-body.mode-premium.p3 .dock-btn::before {
+body.mode-premium.p3 .dock-btn::before,
+#livePreviewCard.mode-premium.p3 .dock-btn::before {
   background: linear-gradient(135deg, rgba(150,192,232,.74), rgba(90,130,180,.68), rgba(60,88,120,.62));
   opacity: .66;
 }
 
-/* ── p4 薰衣草 dock-btn ── */
-body.mode-premium.p4 .dock-btn {
+/* ── p4 薰衣草 dock-btn（結構型，保留子層）── */
+body.mode-premium.p4 .dock-btn,
+#livePreviewCard.mode-premium.p4 .dock-btn {
   background:
     radial-gradient(160% 200% at 18% 0%, rgba(210,200,248,.24), rgba(170,158,232,.14) 55%, rgba(255,255,255,.06)),
     rgba(93,79,154,.08);
@@ -1658,13 +1725,15 @@ body.mode-premium.p4 .dock-btn {
     inset 0 1px 0 rgba(200,190,244,.16),
     inset 0 -12px 16px rgba(50,36,100,.22);
 }
-body.mode-premium.p4 .dock-btn::before {
+body.mode-premium.p4 .dock-btn::before,
+#livePreviewCard.mode-premium.p4 .dock-btn::before {
   background: linear-gradient(135deg, rgba(215,206,250,.88), rgba(172,156,220,.82), rgba(93,79,154,.74));
   opacity: .80;
 }
 
-/* ── p5 月光銀 dock-btn ── */
-body.mode-premium.p5 .dock-btn {
+/* ── p5 月光銀 dock-btn（結構型，保留子層）── */
+body.mode-premium.p5 .dock-btn,
+#livePreviewCard.mode-premium.p5 .dock-btn {
   background:
     radial-gradient(160% 200% at 18% 0%, rgba(230,244,255,.38), rgba(195,220,240,.22) 55%, rgba(255,255,255,.14)),
     rgba(160,190,215,.10);
@@ -1674,13 +1743,15 @@ body.mode-premium.p5 .dock-btn {
     inset 0 1px 0 rgba(255,255,255,.28),
     inset 0 -12px 16px rgba(80,110,140,.14);
 }
-body.mode-premium.p5 .dock-btn::before {
+body.mode-premium.p5 .dock-btn::before,
+#livePreviewCard.mode-premium.p5 .dock-btn::before {
   background: linear-gradient(135deg, rgba(240,250,255,.96), rgba(200,224,244,.90), rgba(150,184,212,.82));
   opacity: .84;
 }
 
-/* ── p6 流金 dock-btn（原版保留） ── */
-body.mode-premium.p6 .dock-btn {
+/* ── p6 流金 dock-btn（結構型，保留子層）── */
+body.mode-premium.p6 .dock-btn,
+#livePreviewCard.mode-premium.p6 .dock-btn {
   background:
     radial-gradient(170% 210% at 18% 0%, rgba(255,255,255,.34), rgba(255,248,216,.18) 55%, rgba(255,255,255,.08)),
     linear-gradient(135deg, rgba(255,250,226,.14), rgba(255,222,138,.18), rgba(191,149,63,.28));
@@ -1692,13 +1763,15 @@ body.mode-premium.p6 .dock-btn {
     inset 10px 0 14px rgba(255,244,200,.08);
 }
 
-body.mode-premium.p6 .dock-btn::before {
+body.mode-premium.p6 .dock-btn::before,
+#livePreviewCard.mode-premium.p6 .dock-btn::before {
   background: linear-gradient(135deg, rgba(255,248,220,.88), rgba(255,222,138,.84), rgba(191,149,63,.74));
   opacity: .86;
 }
 
-/* ── p7 可可棕 dock-btn ── */
-body.mode-premium.p7 .dock-btn {
+/* ── p7 可可棕 dock-btn（結構型，保留子層）── */
+body.mode-premium.p7 .dock-btn,
+#livePreviewCard.mode-premium.p7 .dock-btn {
   background:
     radial-gradient(160% 200% at 18% 0%, rgba(196,168,140,.22), rgba(150,120,92,.12) 55%, rgba(255,255,255,.05)),
     rgba(66,48,42,.10);
@@ -1708,12 +1781,13 @@ body.mode-premium.p7 .dock-btn {
     inset 0 1px 0 rgba(200,170,140,.12),
     inset 0 -12px 16px rgba(38,22,14,.24);
 }
-body.mode-premium.p7 .dock-btn::before {
+body.mode-premium.p7 .dock-btn::before,
+#livePreviewCard.mode-premium.p7 .dock-btn::before {
   background: linear-gradient(135deg, rgba(195,165,135,.82), rgba(140,108,80,.76), rgba(66,48,42,.68));
   opacity: .72;
 }
 
-/* ── Photo Wall ── */
+/* ── Photo Wall（結構型，保留子層）── */
 .photo-wall {
   margin-top: 14px;
   border-radius: 18px;
@@ -1725,7 +1799,8 @@ body.mode-premium.p7 .dock-btn::before {
     inset 0 1px 0 rgba(255,255,255,.64);
 }
 
-body.mode-premium .photo-wall {
+body.mode-premium .photo-wall,
+#livePreviewCard.mode-premium .photo-wall {
   background: rgba(8,10,16,.20);
   border-color: rgba(255,255,255,.12);
   box-shadow: 0 16px 36px rgba(0,0,0,.26);
@@ -1770,7 +1845,7 @@ body.mode-premium .photo-wall {
     0 2px 4px rgba(0,0,0,.06);
 }
 
-/* ── QR Code ── */
+/* ── QR Code（不擴充 preview）── */
 #bottomQrGrid,
 #featureQrGrid,
 #facadeQrGrid {
@@ -1824,7 +1899,7 @@ body.mode-premium .photo-wall {
   transform: none !important;
 }
 
-/* ── Version Tag ── */
+/* ── Version Tag（結構型，保留子層）── */
 .version-tag {
   margin-top: 16px;
   text-align: center;
@@ -1835,7 +1910,8 @@ body.mode-premium .photo-wall {
   opacity: .34;
   color: rgba(0,0,0,.68);
 }
-body.mode-premium .version-tag { color: rgba(255,255,255,.42); }
+body.mode-premium .version-tag,
+#livePreviewCard.mode-premium .version-tag { color: rgba(255,255,255,.42); }
 
 /* ── Hidden Admin Hotspot ── */
 #adminHotspotBR {
@@ -1846,7 +1922,7 @@ body.mode-premium .version-tag { color: rgba(255,255,255,.42); }
   opacity: 0;
 }
 
-/* ── Unit / Title ── */
+/* ── Unit / Title（結構型，保留子層）── */
 #u-unit {
   display: block;
   width: 100%;
@@ -1869,18 +1945,20 @@ body.mode-premium .version-tag { color: rgba(255,255,255,.42); }
   letter-spacing: .14px;
 }
 
-body.mode-premium #u-unit {
+body.mode-premium #u-unit,
+#livePreviewCard.mode-premium #u-unit {
   font-size: clamp(12px, 3.4vw, 17px);
   opacity: .92;
   line-height: 1.20;
 }
-body.mode-premium #u-title {
+body.mode-premium #u-title,
+#livePreviewCard.mode-premium #u-title {
   margin-top: 8px;
   line-height: 1.28;
   opacity: .90;
 }
 
-/* ── Card Expiry ── */
+/* ── Card Expiry（結構型，保留子層）── */
 .card-expiry {
   display: none;
   margin-top: 14px;
@@ -1893,13 +1971,15 @@ body.mode-premium #u-title {
   user-select: none;
 }
 
-body.mode-free .card-expiry { color: rgba(67,50,39,.58); }
-body.mode-premium .card-expiry { color: rgba(255,255,255,.56); }
-body.mode-premium.p6 .card-expiry { color: rgba(255,248,225,.62); }
+body.mode-free .card-expiry,
+#livePreviewCard.mode-free .card-expiry { color: rgba(67,50,39,.58); }
+body.mode-premium .card-expiry,
+#livePreviewCard.mode-premium .card-expiry { color: rgba(255,255,255,.56); }
+body.mode-premium.p6 .card-expiry,
+#livePreviewCard.mode-premium.p6 .card-expiry { color: rgba(255,248,225,.62); }
 
 /* ============================================================
-   ★ 公告系統 — 升級版
-   卡片樣式（輪播單則 + 點擊看全文）
+   ★ 公告系統 — 升級版（不擴充 preview）
 ============================================================ */
 
 .announcement-panel {
@@ -2007,7 +2087,7 @@ body.mode-premium.p6 .card-expiry { color: rgba(255,248,225,.62); }
   opacity: .82;
 }
 
-/* ── Premium 模式公告卡 ── */
+/* ── Premium 模式公告卡（不擴充 preview）── */
 body.mode-premium .announcement-card {
   border-color: rgba(255,255,255,.10);
   background:
@@ -2044,7 +2124,7 @@ body.mode-premium.p6 .announcement-summary { color: rgba(255,245,220,.82); }
 body.mode-premium.p6 .announcement-counter { color: rgba(255,239,198,.68); }
 
 /* ============================================================
-   ★ 公告 Modal
+   ★ 公告 Modal（不擴充 preview）
 ============================================================ */
 
 .announcement-modal-meta {
@@ -2073,7 +2153,7 @@ body.mode-premium.p6 .announcement-counter { color: rgba(255,239,198,.68); }
 
 .announcement-modal-body strong { font-weight: 900; }
 
-/* ── Modal Mask & Box ── */
+/* ── Modal Mask & Box（不擴充 preview）── */
 .modal-mask,
 .invite-mask {
   display: none;
@@ -2140,7 +2220,7 @@ body.mode-premium.p6 .announcement-counter { color: rgba(255,239,198,.68); }
 .modal-bd,
 .invite-bd { padding: 6px 16px 16px; }
 
-/* ── Invite Box ── */
+/* ── Invite Box（不擴充 preview）── */
 .invite-note {
   color: rgba(67,50,39,.78);
   font-size: 13px;
@@ -2205,7 +2285,7 @@ body.mode-premium.p6 .announcement-counter { color: rgba(255,239,198,.68); }
   color: #3f2f24;
 }
 
-/* ── Layout Control ── */
+/* ── Layout Control（不擴充 preview）── */
 #free-controls, .free-controls,
 #premium-controls, .premium-controls,
 #admin-panel, .admin-panel {
@@ -2264,8 +2344,9 @@ body.mode-free .card {
   50% { transform: translateY(-1px); filter: saturate(1.04); }
 }
 
-/* ── Paper Overlay (Enhanced) ── */
-body.mode-free {
+/* ── Paper Overlay (Enhanced)（結構型，保留子層）── */
+body.mode-free,
+#livePreviewCard.mode-free {
   --paper-strength: 0.34;
   --paper-grain: 0.15;
   --paper-fiber: 0.12;
@@ -2301,25 +2382,29 @@ body.mode-free {
   background-position: 0 0, 6px 4px;
 }
 
-body.mode-free.paper-1 #paperOverlay::before {
+body.mode-free.paper-1 #paperOverlay::before,
+#livePreviewCard.mode-free.paper-1 #paperOverlay::before {
   opacity: calc(var(--paper-strength, .32) * 0.70);
   background:
     radial-gradient(148% 98% at 18% 18%, rgba(255,255,255,.24), rgba(255,255,255,.00) 57%),
     radial-gradient(128% 88% at 82% 78%, rgba(0,0,0,.10), rgba(0,0,0,.00) 60%);
 }
 
-body.mode-free.paper-1 #paperOverlay::after {
+body.mode-free.paper-1 #paperOverlay::after,
+#livePreviewCard.mode-free.paper-1 #paperOverlay::after {
   opacity: calc(var(--paper-grain, .16) * 0.60);
   background-size: 11px 11px, 17px 17px;
 }
 
-body.mode-free.paper-2 {
+body.mode-free.paper-2,
+#livePreviewCard.mode-free.paper-2 {
   --paper-strength: 0.38;
   --paper-grain: 0.18;
   --paper-fiber: 0.13;
 }
 
-body.mode-free.paper-2 #paperOverlay::after {
+body.mode-free.paper-2 #paperOverlay::after,
+#livePreviewCard.mode-free.paper-2 #paperOverlay::after {
   opacity: calc(var(--paper-grain, .16) * 0.76);
   background:
     radial-gradient(rgba(255,255,255,.13) 1.4px, transparent 1.6px),
@@ -2328,17 +2413,20 @@ body.mode-free.paper-2 #paperOverlay::after {
   background-position: 0 0, 5px 3px;
 }
 
-body.mode-free.paper-3 {
+body.mode-free.paper-3,
+#livePreviewCard.mode-free.paper-3 {
   --paper-strength: 0.34;
   --paper-grain: 0.14;
   --paper-fiber: 0.18;
 }
 
-body.mode-free.paper-3 #paperOverlay::before {
+body.mode-free.paper-3 #paperOverlay::before,
+#livePreviewCard.mode-free.paper-3 #paperOverlay::before {
   opacity: calc(var(--paper-strength, .32) * 0.58);
 }
 
-body.mode-free.paper-3 #paperOverlay::after {
+body.mode-free.paper-3 #paperOverlay::after,
+#livePreviewCard.mode-free.paper-3 #paperOverlay::after {
   opacity: calc(var(--paper-fiber, .12) * 0.64);
   mix-blend-mode: soft-light;
   background:
