@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "v4.7-fix3";
+  const VERSION = "v4.8-final";
   const GAS_URL =
     document.getElementById("gas")?.value ||
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -49,7 +49,6 @@
     large: { maxLong: 1200, maxShort: 1200, previewQuality: 0.82, outputQuality: 0.76 }
   };
 
-  // 動態產生所有圖片槽位（頭像、Logo 固定，照片依 photoLimit 動態）
   function buildImageSlots(photoLimit) {
     const slots = [
       { slot: "avatar", label: "頭像", key: "avatar_url", cropShape: "square", targetWidth: 1200, targetHeight: 1200, always: true },
@@ -76,8 +75,8 @@
     firebaseReady: false,
     plan: "free",
     rules: PLAN_RULES.free,
-    photoLimit: 2,               // 實際允許上傳的照片數量（不含頭像 Logo）
-    imageSlots: [],              // 動態槽位列表
+    photoLimit: 2,
+    imageSlots: [],
     drag: {
       active: false,
       startX: 0,
@@ -113,9 +112,6 @@
     style: document.getElementById("style"),
     paper: document.getElementById("paper"),
     premiumColor: document.getElementById("premium_color"),
-    freeColor: document.getElementById("free_color"),
-    freeStyle: document.getElementById("free_style"),
-    freePaper: document.getElementById("free_paper"),
     freeStyleGroup: document.getElementById("freeStyleGroup"),
     premiumColorCard: document.getElementById("premiumColorCard"),
 
@@ -197,23 +193,14 @@
   });
 
   async function init() {
-    // 讀取 URL 參數中的 photo_limit
     const urlPhotoLimit = getPhotoLimitFromUrl();
-
-    // 初始化方案規則
     const plan = normalizePlan(getFieldValue("plan") || "free");
     state.plan = plan;
     state.rules = PLAN_RULES[plan];
-
-    // 決定 photoLimit：優先使用 URL 參數，否則使用方案預設
     state.photoLimit = urlPhotoLimit !== null ? urlPhotoLimit : state.rules.defaultPhotos;
-
-    // 動態建立圖片槽位
     state.imageSlots = buildImageSlots(state.photoLimit);
 
-    // 更新 UI 提示文字
     updatePhotoLimitUI();
-
     createUploadGrid();
     bindSlotEvents();
     bindModalEvents();
@@ -239,7 +226,7 @@
     if (val === null || val === "") return null;
     const num = parseInt(val, 10);
     if (isNaN(num) || num < 0) return null;
-    return Math.min(num, 10); // 最多 10 張
+    return Math.min(num, 10);
   }
 
   function updatePhotoLimitUI() {
@@ -249,7 +236,6 @@
     if (el.guideFreePhotoCount) el.guideFreePhotoCount.textContent = PLAN_RULES.free.defaultPhotos;
     if (el.guidePremiumPhotoCount) el.guidePremiumPhotoCount.textContent = PLAN_RULES.premium.defaultPhotos;
 
-    // 如果有 URL 指定且與方案預設不同，顯示提示
     const urlPhotoLimit = getPhotoLimitFromUrl();
     if (urlPhotoLimit !== null && urlPhotoLimit !== state.rules.defaultPhotos) {
       if (el.urlPhotoLimitHint) {
@@ -290,11 +276,9 @@
       el.uploadGrid.appendChild(item);
     });
 
-    // 重新綁定 file input 事件
     state.imageSlots.forEach((cfg) => {
       const input = document.getElementById(`file_${cfg.slot}`);
       if (!input) return;
-      // 移除舊監聽避免重複（但此處新建 DOM，不會重複）
       input.addEventListener("change", async (ev) => {
         const file = ev.target.files?.[0];
         if (!file) return;
@@ -322,7 +306,6 @@
   }
 
   function bindSlotEvents() {
-    // 使用事件委託處理按鈕點擊
     document.addEventListener("click", (ev) => {
       const pickBtn = ev.target.closest("[data-pick]");
       if (pickBtn) {
@@ -394,7 +377,6 @@
       state.plan = newPlan;
       state.rules = PLAN_RULES[newPlan];
 
-      // 重新計算 photoLimit：若 URL 有指定則優先，否則使用新方案預設
       const urlPhotoLimit = getPhotoLimitFromUrl();
       if (urlPhotoLimit !== null) {
         state.photoLimit = Math.min(urlPhotoLimit, 10);
@@ -402,32 +384,25 @@
         state.photoLimit = state.rules.defaultPhotos;
       }
 
-      // 重建圖片槽位
       state.imageSlots = buildImageSlots(state.photoLimit);
       updatePhotoLimitUI();
-
-      // 重新產生上傳區塊
       createUploadGrid();
-      bindSlotEvents(); // 重新綁定（事件委託已存在，但 file input 事件需重綁）
-      // 重新同步各槽位值（清除超出範圍的照片 URL）
+      bindSlotEvents();
       syncPhotoFieldsAfterLimitChange();
 
       applyPlanRules(state.plan, true);
-      syncFreeMirrorFields();
       updateLivePreview();
       buildSummary();
     });
 
     [el.color, el.style, el.paper, el.premiumColor].forEach((node) => {
       node?.addEventListener("change", () => {
-        syncFreeMirrorFields();
         updateLivePreview();
       });
     });
   }
 
   function syncPhotoFieldsAfterLimitChange() {
-    // 清除超出上限的照片欄位值
     for (let i = state.photoLimit + 1; i <= 10; i++) {
       const slot = `photo${i}`;
       const cfg = state.imageSlots.find(s => s.slot === slot);
@@ -568,25 +543,9 @@
       setFieldValue("color", "");
       setFieldValue("style", "");
       setFieldValue("paper", "");
-      setFieldValue("free_color", "");
-      setFieldValue("free_style", "");
-      setFieldValue("free_paper", "");
     }
 
-    syncFreeMirrorFields();
     updateLivePreview();
-  }
-
-  function syncFreeMirrorFields() {
-    if (state.plan === "free") {
-      setFieldValue("free_color", getFieldValue("color"));
-      setFieldValue("free_style", getFieldValue("style"));
-      setFieldValue("free_paper", getFieldValue("paper"));
-    } else {
-      setFieldValue("free_color", "");
-      setFieldValue("free_style", "");
-      setFieldValue("free_paper", "");
-    }
   }
 
   function clearCtaFieldsFrom(start) {
@@ -706,7 +665,6 @@
       toggleEl(el.previewLogoWrap, false);
     }
 
-    // 收集有效照片 URL（不超過 photoLimit）
     const activePhotos = [];
     for (let i = 1; i <= state.photoLimit; i++) {
       const slot = `photo${i}`;
@@ -1041,7 +999,6 @@
     try {
       setBusy(true);
       hideSuccess();
-      syncFreeMirrorFields();
 
       setProgress(10, "正在整理資料…");
       setStatus("正在整理資料…");
@@ -1058,7 +1015,6 @@
 
       if (!res || res.ok !== true) throw new Error(readError(res) || "送出失敗");
 
-      // 優先取卡片ID (支援多種可能的回傳欄位)
       const cardId = text(res.id || res.card_id || res.data?.id || res.data?.card_id || res.lead_id || res.request_id);
       const successText = buildSuccessReply(cardId);
 
@@ -1076,9 +1032,28 @@
     }
   }
 
+  /**
+   * 核心修正：完全符合最新 card_db 表頭
+   * - 移除所有舊欄位 (free_color, free_style, free_paper, premium_color)
+   * - 精品款顏色正確寫入 color
+   */
   function collectPayload() {
     const plan = normalizePlan(getFieldValue("plan"));
-    const rules = PLAN_RULES[plan];
+
+    let color = "";
+    let style = "";
+    let paper = "";
+
+    if (plan === "free") {
+      color = getFieldValue("color");
+      style = getFieldValue("style");
+      paper = getFieldValue("paper");
+    } else if (plan === "premium") {
+      // 精品色 UI 仍用 premium_color 控件，但正式寫入 color
+      color = getFieldValue("premium_color");
+      style = "";
+      paper = "";
+    }
 
     const base = {
       action: "createLead",
@@ -1087,13 +1062,9 @@
       tenant: getFieldValue("tenant") || "angel",
 
       plan,
-      color: plan === "free" ? getFieldValue("color") : "",
-      style: plan === "free" ? getFieldValue("style") : "",
-      paper: plan === "free" ? getFieldValue("paper") : "",
-      free_color: plan === "free" ? getFieldValue("free_color") : "",
-      free_style: plan === "free" ? getFieldValue("free_style") : "",
-      free_paper: plan === "free" ? getFieldValue("free_paper") : "",
-      premium_color: plan === "premium" ? getFieldValue("premium_color") : "",
+      color,
+      style,
+      paper,
 
       name: getFieldValue("name"),
       unit: getFieldValue("unit"),
@@ -1102,30 +1073,25 @@
       services: getFieldValue("services"),
       experience: getFieldValue("experience"),
 
-      phone: getFieldValue("phone"),
-      email: getFieldValue("email"),
+      wechat_id: getFieldValue("wechat_id"),
       line_url: getFieldValue("line_url"),
       line_oa: getFieldValue("line_oa"),
-      wechat_id: getFieldValue("wechat_id"),
-      website: getFieldValue("website"),
+      email: getFieldValue("email"),
+      phone: getFieldValue("phone"),
       address: getFieldValue("address"),
 
       video1: getFieldValue("video1"),
       video2: getFieldValue("video2"),
       video3: getFieldValue("video3"),
+
       social1: getFieldValue("social1"),
       social2: getFieldValue("social2"),
       social3: getFieldValue("social3"),
 
-      cta_text_1: getFieldValue("cta_text_1"),
-      cta_link_1: getFieldValue("cta_link_1"),
-      cta_text_2: rules.maxCtas >= 2 ? getFieldValue("cta_text_2") : "",
-      cta_link_2: rules.maxCtas >= 2 ? getFieldValue("cta_link_2") : "",
-      cta_text_3: rules.maxCtas >= 3 ? getFieldValue("cta_text_3") : "",
-      cta_link_3: rules.maxCtas >= 3 ? getFieldValue("cta_link_3") : "",
-
       avatar_url: getFieldValue("avatar_url"),
       logo_url: getFieldValue("logo_url"),
+
+      photo_limit: state.photoLimit,
       photo1_url: getFieldValue("photo1_url"),
       photo2_url: getFieldValue("photo2_url"),
       photo3_url: state.photoLimit >= 3 ? getFieldValue("photo3_url") : "",
@@ -1137,13 +1103,25 @@
       photo9_url: state.photoLimit >= 9 ? getFieldValue("photo9_url") : "",
       photo10_url: state.photoLimit >= 10 ? getFieldValue("photo10_url") : "",
 
+      website: getFieldValue("website"),
+
+      cta_text_1: getFieldValue("cta_text_1"),
+      cta_link_1: getFieldValue("cta_link_1"),
+      cta_text_2: state.rules.maxCtas >= 2 ? getFieldValue("cta_text_2") : "",
+      cta_link_2: state.rules.maxCtas >= 2 ? getFieldValue("cta_link_2") : "",
+      cta_text_3: state.rules.maxCtas >= 3 ? getFieldValue("cta_text_3") : "",
+      cta_link_3: state.rules.maxCtas >= 3 ? getFieldValue("cta_link_3") : "",
+
+      referrer: getFieldValue("referrer"),
+      service_agent: getFieldValue("service_agent"),
+      agent_type: getFieldValue("agent_type"),
+      source: getFieldValue("source"),
+
       share_card_id: getFieldValue("share_card_id"),
       share_agent_id: getFieldValue("share_agent_id"),
       share_source: getFieldValue("share_source"),
       share_channel: getFieldValue("share_channel"),
-      share_visit_id: getFieldValue("share_visit_id"),
-
-      photo_limit: state.photoLimit  // 送出照片上限
+      share_visit_id: getFieldValue("share_visit_id")
     };
 
     return base;
@@ -1173,7 +1151,7 @@
     if (!window.confirm("確定要重設這份表單嗎？")) return;
 
     const allInputIds = [
-      "plan","color","style","paper","free_color","free_style","free_paper","premium_color",
+      "plan","color","style","paper","premium_color",
       "name","unit","title","slogan","services","experience","phone","email","line_url","line_oa",
       "wechat_id","website","address","video1","video2","video3","social1","social2","social3",
       "cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3"
@@ -1191,7 +1169,6 @@
     setFieldValue("tenant", "angel");
     readUrlParams();
 
-    // 重設方案與照片數量
     const urlPhotoLimit = getPhotoLimitFromUrl();
     state.plan = "free";
     state.rules = PLAN_RULES.free;
