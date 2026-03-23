@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v4.7-align</title>
+  <title>天使幸福智慧名片｜資料填寫 v4.8-align</title>
   <meta name="theme-color" content="#0b1220" />
 
   <style>
@@ -592,366 +592,189 @@
       justify-content:center;
     }
 
-    .hsc-preview{
-      width:100%;
-      max-width:420px;
-      border-radius:28px;
-      overflow:hidden;
-      position:relative;
-      border:1px solid rgba(255,255,255,.12);
-      box-shadow:0 18px 40px rgba(0,0,0,.26);
-      background:#fffaf5;
-      color:#3e2f25;
+    /* 新版預覽卡樣式 - 與主程式骨架對齊 */
+    .hsc-preview-root {
+      width: 100%;
+      max-width: 420px;
     }
-
-    .hsc-preview[data-plan="free"][data-color="c1"]{ background:linear-gradient(180deg,#fff7fb 0%,#fff3f7 100%); }
-    .hsc-preview[data-plan="free"][data-color="c2"]{ background:linear-gradient(180deg,#f7fbff 0%,#eef7ff 100%); }
-    .hsc-preview[data-plan="free"][data-color="c3"]{ background:linear-gradient(180deg,#fff9f3 0%,#fff2e6 100%); }
-    .hsc-preview[data-plan="free"][data-color="c4"]{ background:linear-gradient(180deg,#faf7ff 0%,#f2ecff 100%); }
-    .hsc-preview[data-plan="free"][data-color="c5"]{ background:linear-gradient(180deg,#f7fff9 0%,#edf9f0 100%); }
-
-    .hsc-preview[data-plan="premium"][data-premium="p1"]{ background:linear-gradient(180deg,#7d3041 0%,#5c2230 100%); color:#fff7f7; }
-    .hsc-preview[data-plan="premium"][data-premium="p2"]{ background:linear-gradient(180deg,#6c1f2b 0%,#4c1520 100%); color:#fff7f7; }
-    .hsc-preview[data-plan="premium"][data-premium="p3"]{ background:linear-gradient(180deg,#243a5b 0%,#17263d 100%); color:#f6f8ff; }
-    .hsc-preview[data-plan="premium"][data-premium="p4"]{ background:linear-gradient(180deg,#705c86 0%,#534166 100%); color:#fbf8ff; }
-    .hsc-preview[data-plan="premium"][data-premium="p5"]{ background:linear-gradient(180deg,#5f7181 0%,#44515d 100%); color:#f8fbff; }
-    .hsc-preview[data-plan="premium"][data-premium="p6"]{ background:linear-gradient(180deg,#d6bc74 0%,#b18b3f 100%); color:#fffaf1; }
-    .hsc-preview[data-plan="premium"][data-premium="p7"]{ background:linear-gradient(180deg,#5b463c 0%,#403028 100%); color:#fff8f3; }
-
-    .hsc-preview-banner{
-      height:132px;
-      position:relative;
-      background:linear-gradient(135deg, rgba(255,255,255,.30), rgba(255,255,255,.06));
+    
+    .hsc-preview-root .card {
+      background: var(--card-white);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
     }
-
-    .hsc-preview[data-style="s1"] .hsc-preview-banner{
-      border-bottom-left-radius:42% 34%;
-      border-bottom-right-radius:42% 34%;
+    
+    .hsc-preview-root.mode-premium .card {
+      background: linear-gradient(180deg, rgba(18,22,32,.10), rgba(18,22,32,.24)), linear-gradient(135deg, var(--p), var(--s));
+      border: 1px solid rgba(255,255,255,.14);
+      backdrop-filter: blur(16px);
     }
-
-    .hsc-preview[data-style="s2"] .hsc-preview-banner{
-      border-bottom-left-radius:0;
-      border-bottom-right-radius:0;
+    
+    .hsc-preview-root .banner {
+      height: 130px;
+      position: relative;
+      overflow: hidden;
     }
-
-    .hsc-preview[data-style="s3"] .hsc-preview-banner{
-      background:
-        radial-gradient(circle at 50% 18%, rgba(255,255,255,.62), rgba(255,255,255,.10) 48%, transparent 72%),
-        linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.06));
-      border-bottom-left-radius:22px;
-      border-bottom-right-radius:22px;
+    
+    .hsc-preview-root.mode-free .banner { display: block; }
+    .hsc-preview-root.mode-premium .banner { display: none !important; }
+    
+    .hsc-preview-root .avatar-wrap {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      padding-bottom: 6px;
+      z-index: 6;
     }
-
-    .hsc-preview-avatarWrap{
-      margin-top:-52px;
-      display:flex;
-      justify-content:center;
-      position:relative;
-      z-index:2;
+    
+    .hsc-preview-root.mode-free .avatar-wrap { margin-top: -58px; }
+    .hsc-preview-root.mode-premium .avatar-wrap { margin-top: 18px; padding-top: 6px; }
+    
+    .hsc-preview-root .avatar-circle {
+      width: 112px;
+      height: 112px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.95);
+      padding: 6px;
+      border: 1px solid rgba(0,0,0,.06);
+      box-shadow: var(--shadow-soft);
+      position: relative;
+      z-index: 7;
     }
-
-    .hsc-preview-avatar{
-      width:108px;
-      height:108px;
-      border-radius:999px;
-      overflow:hidden;
-      background:#fff;
-      border:5px solid rgba(255,255,255,.92);
-      box-shadow:0 12px 26px rgba(0,0,0,.18);
-      display:flex;
-      align-items:center;
-      justify-content:center;
+    
+    .hsc-preview-root.mode-free .avatar-circle {
+      border: 2px solid rgba(255,255,255,.88);
+      box-shadow: 0 18px 42px rgba(0,0,0,.14), 0 0 0 1px rgba(0,0,0,.05), inset 0 2px 0 rgba(255,255,255,.82), inset 0 -16px 18px rgba(0,0,0,.06);
     }
-
-    .hsc-preview-avatar img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
+    
+    .hsc-preview-root .avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 999px;
+      object-fit: cover;
+      display: block;
     }
-
-    .hsc-preview-logoWrap{
-      display:flex;
-      justify-content:center;
-      margin-top:12px;
+    
+    .hsc-preview-root .logo-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 6px 0 0;
+      position: relative;
+      z-index: 6;
     }
-
-    .hsc-preview-logo{
-      width:74px;
-      height:74px;
-      border-radius:20px;
-      overflow:hidden;
-      background:rgba(255,255,255,.80);
-      box-shadow:0 8px 18px rgba(0,0,0,.10);
-      display:flex;
-      align-items:center;
-      justify-content:center;
+    
+    .hsc-preview-root .logo-img {
+      width: 56px;
+      height: 56px;
+      border-radius: 999px;
+      object-fit: cover;
+      background: rgba(255,255,255,.95);
+      border: 1px solid rgba(0,0,0,.07);
+      box-shadow: 0 12px 24px rgba(0,0,0,.12);
     }
-
-    .hsc-preview-logo img{
-      width:100%;
-      height:100%;
-      object-fit:contain;
-      display:block;
-      background:transparent;
+    
+    .hsc-preview-root .info-scroll {
+      position: relative;
+      z-index: 3;
+      padding: 10px 18px 20px;
     }
-
-    .hsc-preview-main{
-      padding:14px 16px 18px;
+    
+    .hsc-preview-root .name {
+      margin: 10px 0 6px;
+      font-size: 22px;
+      letter-spacing: .5px;
+      font-weight: 900;
+      text-align: center;
+      line-height: 1.22;
     }
-
-    .hsc-preview-name{
-      font-size:24px;
-      line-height:1.3;
-      font-weight:1000;
-      text-align:center;
-      margin-top:10px;
-      word-break:break-word;
+    
+    .hsc-preview-root .unit, .hsc-preview-root .title {
+      text-align: center;
+      font-weight: 800;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.38;
     }
-
-    .hsc-preview-unit,
-    .hsc-preview-title,
-    .hsc-preview-slogan{
-      text-align:center;
-      margin-top:6px;
-      white-space:pre-line;
-      word-break:break-word;
+    
+    .hsc-preview-root.mode-premium .unit,
+    .hsc-preview-root.mode-premium .title {
+      color: var(--prem-muted, rgba(255,255,255,0.76));
     }
-
-    .hsc-preview-unit{ font-size:13px; opacity:.84; font-weight:900; }
-    .hsc-preview-title{ font-size:14px; opacity:.88; font-weight:900; }
-    .hsc-preview-slogan{ font-size:13px; opacity:.9; line-height:1.8; }
-
-    .hsc-preview-block{
-      margin-top:14px;
-      padding:12px;
-      border-radius:16px;
-      background:rgba(255,255,255,.50);
-      border:1px solid rgba(0,0,0,.05);
+    
+    .hsc-preview-root #u-slogan {
+      width: 100%;
+      max-width: 420px;
+      margin: 10px auto 0;
+      padding: 10px 14px;
+      text-align: center;
+      white-space: pre-line;
+      line-height: 1.62;
+      font-weight: 900;
     }
-
-    .hsc-preview[data-plan="premium"] .hsc-preview-block{
-      background:rgba(255,255,255,.12);
-      border-color:rgba(255,255,255,.16);
+    
+    .hsc-preview-root .info-block {
+      margin-top: 12px;
+      border-radius: 18px;
+      padding: 12px;
+      border: 1px solid rgba(0,0,0,.08);
+      background: rgba(255,255,255,.78);
     }
-
-    .hsc-preview-blockTitle{
-      font-size:12px;
-      font-weight:1000;
-      margin-bottom:6px;
-      opacity:.92;
+    
+    .hsc-preview-root.mode-premium .info-block {
+      background: rgba(10,12,18,.22);
+      border-color: rgba(255,255,255,.12);
     }
-
-    .hsc-preview-blockBody{
-      font-size:13px;
-      line-height:1.8;
-      white-space:pre-line;
-      word-break:break-word;
+    
+    .hsc-preview-root .block-title {
+      font-weight: 900;
+      margin-bottom: 6px;
+      font-size: 13px;
     }
-
-    .hsc-preview-photoWall{
-      margin-top:14px;
-      display:grid;
-      grid-template-columns:repeat(2, 1fr);
-      gap:8px;
+    
+    .hsc-preview-root .block-body {
+      color: var(--muted);
+      font-weight: 750;
+      font-size: 13px;
+      line-height: 1.72;
+      white-space: pre-line;
     }
-
-    .hsc-preview-photoItem{
-      aspect-ratio:1 / 1;
-      border-radius:14px;
-      overflow:hidden;
-      background:rgba(255,255,255,.18);
-      border:1px solid rgba(0,0,0,.05);
+    
+    .hsc-preview-root .photo-wall {
+      margin-top: 14px;
+      border-radius: 18px;
+      padding: 10px;
+      border: 1px solid rgba(0,0,0,.05);
+      background: rgba(255,255,255,.74);
     }
-
-    .hsc-preview-photoItem img{
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      display:block;
+    
+    .hsc-preview-root .photo-grid {
+      display: grid;
+      gap: 10px;
     }
-
-    .hsc-preview-empty{
-      padding:16px;
-      text-align:center;
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.8;
-      border:1px dashed rgba(255,255,255,.18);
-      border-radius:16px;
-      background:rgba(255,255,255,.03);
-      margin-top:12px;
+    
+    .hsc-preview-root .photo-grid.layout-1 { grid-template-columns: 1fr; }
+    .hsc-preview-root .photo-grid.layout-2 { grid-template-columns: 1fr 1fr; }
+    .hsc-preview-root .photo-grid.layout-3 { grid-template-columns: 1fr 1fr 1fr; }
+    
+    .hsc-preview-root .wall-img {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 14px;
+      object-fit: cover;
+      display: block;
     }
-
-    .cropModal,
-    .assistModal{
-      position:fixed;
-      inset:0;
-      z-index:1000;
-      display:none;
-      background:rgba(4,8,18,.74);
-      backdrop-filter:blur(6px);
-      padding:14px;
-    }
-
-    .cropModal.show,
-    .assistModal.show{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
-
-    .cropBox,
-    .assistBox{
-      width:min(920px, 100%);
-      max-height:calc(100vh - 28px);
-      overflow:auto;
-      border-radius:22px;
-      border:1px solid rgba(255,255,255,.12);
-      background:linear-gradient(180deg, rgba(16,24,40,.98), rgba(10,16,28,.98));
-      box-shadow:0 24px 60px rgba(0,0,0,.42);
-      padding:14px;
-    }
-
-    .cropHead,
-    .assistHead{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:12px;
-    }
-
-    .cropHead h3,
-    .assistHead h3{
-      margin:0;
-      font-size:18px;
-      line-height:1.3;
-    }
-
-    .cropHead p,
-    .assistHead p{
-      margin:6px 0 0;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.8;
-      white-space:pre-line;
-    }
-
-    .cropStageWrap{
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:18px;
-      background:rgba(255,255,255,.03);
-      padding:12px;
-    }
-
-    .cropStage{
-      width:100%;
-      touch-action:none;
-      border-radius:16px;
-      border:1px dashed rgba(255,255,255,.16);
-      overflow:hidden;
-      position:relative;
-      background:
-        linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%),
-        linear-gradient(45deg, rgba(255,255,255,.04) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.04) 75%);
-      background-size:20px 20px;
-      background-position:0 0, 10px 10px;
-    }
-
-    .cropStage.ratio-square{ aspect-ratio:1 / 1; }
-    .cropStage.ratio-logo{ aspect-ratio:1 / 1; }
-    .cropStage.ratio-photo{ aspect-ratio:16 / 10; }
-
-    .cropStage canvas{
-      width:100%;
-      height:100%;
-      display:block;
-      cursor:grab;
-      touch-action:none;
-    }
-
-    .cropTools{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-top:12px;
-    }
-
-    .cropMeta{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:11px;
-      line-height:1.85;
-      white-space:pre-line;
-    }
-
-    .hiddenField{
-      display:none !important;
-    }
-
-    .assistBody{
-      display:grid;
-      gap:12px;
-    }
-
-    .assistCard{
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:rgba(255,255,255,.03);
-      padding:14px;
-    }
-
-    .assistCard h4{
-      margin:0 0 8px;
-      font-size:14px;
-      line-height:1.5;
-    }
-
-    .assistCard p{
-      margin:0;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.9;
-      white-space:pre-line;
-    }
-
-    .assistFrame{
-      width:100%;
-      height:min(72vh, 720px);
-      border:1px solid var(--line);
-      border-radius:16px;
-      overflow:hidden;
-      background:#fff;
-    }
-
-    .assistFrame iframe{
-      width:100%;
-      height:100%;
-      border:0;
-      background:#fff;
-    }
-
-    .assistActions{
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      margin-top:12px;
-    }
-
-    @media(max-width:760px){
-      .btns,
-      .headerActions,
-      .topAssist,
-      .assistActions{
-        flex-direction:column;
-      }
-      .pageNav{
-        gap:8px;
-      }
-      .pageNav button{
-        min-width:86px;
-      }
+    
+    .hsc-preview-root .preview-empty-photos {
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      border: 1px dashed rgba(255,255,255,.18);
+      border-radius: 16px;
+      background: rgba(255,255,255,.03);
+      margin-top: 12px;
     }
   </style>
 </head>
@@ -973,9 +796,9 @@
       <div class="pageHead">
         <div class="pageStep">第 1 步</div>
         <h2>選擇方案</h2>
-        <p class="subnote">自由搭配款：2 張照片、1 個 CTA。
-精品設計款：5 張照片、3 個 CTA。
-</p>
+        <p class="subnote">自由搭配款：<span id="freePhotoLimitHint">2</span> 張照片、1 個 CTA。<br>
+        精品設計款：<span id="premiumPhotoLimitHint">5</span> 張照片、3 個 CTA。<br>
+        <span id="urlPhotoLimitHint"></span></p>
       </div>
 
       <div class="card helperCard">
@@ -1026,8 +849,8 @@
           <select id="paper">
             <option value="">請選擇紙感</option>
             <option value="f1">棉紙</option>
-            <option value="f2">顆粒</option>
-            <option value="f3">亞麻</option>
+            <option value="f2">象牙紙</option>
+            <option value="f3">霧灰</option>
           </select>
         </div>
       </div>
@@ -1218,8 +1041,8 @@
       <div class="pageHead">
         <div class="pageStep">第 5 步</div>
         <h2>上傳圖片並調整位置</h2>
-       <p class="subnote">可調整圖片大小與位置，套用後會自動更新預覽。
-自由搭配款可放 2 張照片，精品設計款可放 5 張照片。</p>
+        <p class="subnote">可調整圖片大小與位置，套用後會自動更新預覽。<br>
+        可上傳數量：<strong id="photoLimitDisplay">2</strong> 張照片（含頭像與 Logo 不計入此數量）。</p>
       </div>
 
       <div class="card">
@@ -1237,47 +1060,57 @@
         </div>
 
         <div class="previewStage">
-          <div
-            class="hsc-preview"
-            id="livePreviewCard"
-            data-plan="free"
-            data-color="c1"
-            data-style="s1"
-            data-paper="f1"
-            data-premium="p1"
-          >
-            <div class="hsc-preview-banner"></div>
-
-            <div class="hsc-preview-avatarWrap">
-              <div class="hsc-preview-avatar" id="previewAvatarWrap">
-                <img id="previewAvatar" alt="頭像預覽" />
+          <!-- 新版預覽卡骨架：完整對齊主程式成品卡 -->
+          <div id="livePreviewCard" class="hsc-preview-root mode-free color-1 style-arch paper-1">
+            <div class="card">
+              <!-- premium 特效層 -->
+              <div class="premium-fx-layer"></div>
+              
+              <!-- banner 區 -->
+              <div class="banner">
+                <div class="dynamic-mask"></div>
               </div>
-            </div>
-
-            <div class="hsc-preview-logoWrap" id="previewLogoWrap" style="display:none;">
-              <div class="hsc-preview-logo">
-                <img id="previewLogo" alt="Logo 預覽" />
+              
+              <!-- 紙感層 -->
+              <div class="paper-overlay" id="paperOverlay"></div>
+              
+              <!-- 頭像區 -->
+              <div class="avatar-wrap">
+                <div class="avatar-circle">
+                  <img id="previewAvatar" class="avatar" alt="頭像預覽" style="display: none;">
+                </div>
               </div>
-            </div>
-
-            <div class="hsc-preview-main">
-              <div class="hsc-preview-name" id="previewName">您的姓名</div>
-              <div class="hsc-preview-unit" id="previewUnit"></div>
-              <div class="hsc-preview-title" id="previewTitle"></div>
-              <div class="hsc-preview-slogan" id="previewSlogan"></div>
-
-              <div class="hsc-preview-block" id="previewServicesBlock" style="display:none;">
-                <div class="hsc-preview-blockTitle">服務項目</div>
-                <div class="hsc-preview-blockBody" id="previewServices"></div>
+              
+              <!-- Logo 區 -->
+              <div class="logo-wrap" id="previewLogoWrap" style="display: none;">
+                <img id="previewLogo" class="logo-img" alt="Logo 預覽">
               </div>
-
-              <div class="hsc-preview-block" id="previewExperienceBlock" style="display:none;">
-                <div class="hsc-preview-blockTitle">經歷 / 品牌故事</div>
-                <div class="hsc-preview-blockBody" id="previewExperience"></div>
+              
+              <!-- 文字資訊區 -->
+              <div class="info-scroll">
+                <div class="name" id="previewName">您的姓名</div>
+                <div class="unit" id="previewUnit"></div>
+                <div class="title" id="previewTitle"></div>
+                <div id="u-slogan" id="previewSlogan"></div>
+                
+                <!-- 服務項目區塊 -->
+                <div id="previewServicesBlock" class="info-block" style="display: none;">
+                  <div class="block-title">服務項目</div>
+                  <div id="previewServices" class="block-body"></div>
+                </div>
+                
+                <!-- 經歷 / 品牌故事區塊 -->
+                <div id="previewExperienceBlock" class="info-block" style="display: none;">
+                  <div class="block-title">經歷 / 品牌故事</div>
+                  <div id="previewExperience" class="block-body"></div>
+                </div>
+                
+                <!-- 照片牆 -->
+                <div id="previewPhotoWall" class="photo-wall" style="display: none;">
+                  <div class="photo-grid" id="previewPhotoGrid"></div>
+                </div>
+                <div id="previewEmptyPhotos" class="preview-empty-photos">尚未上傳圖片</div>
               </div>
-
-              <div class="hsc-preview-photoWall" id="previewPhotoWall"></div>
-              <div class="hsc-preview-empty" id="previewEmptyPhotos">尚未上傳圖片</div>
             </div>
           </div>
         </div>
@@ -1435,12 +1268,12 @@
           <h4>6. 方案會自動分流</h4>
           <p>自由搭配款：
 - 只顯示自由搭配版型 / 紙感
-- 只開放 2 張照片
+- 只開放 <span id="guideFreePhotoCount">2</span> 張照片
 - 只開放 1 個 CTA
 
 精品設計款：
 - 只顯示精品色
-- 只開放 5 張照片
+- 只開放 <span id="guidePremiumPhotoCount">5</span> 張照片
 - 只開放 3 個 CTA</p>
         </div>
 
@@ -1517,6 +1350,6 @@
     </div>
   </div>
 
-  <script src="form.js?v=4.7-fix3"></script>
+  <script src="form.js?v=4.8-align"></script>
 </body>
 </html>
