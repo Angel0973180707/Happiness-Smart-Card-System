@@ -12,7 +12,7 @@ import {
   const GAS_URL =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-  const VERSION = "v4.7-stable";
+  const VERSION = "v4.8-final";
   const LINE_OA_URL = "https://lin.ee/G3VJoRm";
   const MB = 1024 * 1024;
   const MAX_ACCEPT_FILE_SIZE = 20 * MB;
@@ -41,14 +41,12 @@ import {
     }
   };
 
+  // 移除所有舊欄位，只保留正式欄位
   const TEXT_FIELDS = [
     "plan",
     "color",
     "style",
     "paper",
-    "free_color",
-    "free_style",
-    "free_paper",
     "premium_color",
     "name",
     "unit",
@@ -131,8 +129,8 @@ import {
     card: null,
     plan: "free",
     rules: PLAN_RULES.free,
-    photoLimit: 2,              // 實際允許的照片數量（來自 card.photo_limit）
-    photoSlots: [],             // 動態照片槽位陣列 [{ slot, label, key, ... }]
+    photoLimit: 2,
+    photoSlots: [],
     drag: {
       active: false,
       startX: 0,
@@ -166,9 +164,6 @@ import {
     color: document.getElementById("color"),
     style: document.getElementById("style"),
     paper: document.getElementById("paper"),
-    freeColor: document.getElementById("free_color"),
-    freeStyle: document.getElementById("free_style"),
-    freePaper: document.getElementById("free_paper"),
     premiumColor: document.getElementById("premium_color"),
 
     freeStyleFields: document.getElementById("freeStyleFields"),
@@ -298,12 +293,10 @@ import {
       if (newPlan === state.plan) return;
 
       const rules = PLAN_RULES[newPlan];
-      // 如果新方案的最大照片數小於目前照片數量，則調整到新方案上限
       let newPhotoLimit = state.photoLimit;
       if (state.photoLimit > rules.maxPhotos) {
         newPhotoLimit = rules.maxPhotos;
         showStatus("warn", `此方案最多只能放 ${rules.maxPhotos} 張照片，超出部分將被清除。`);
-        // 清除超出上限的照片 URL
         for (let i = rules.maxPhotos + 1; i <= state.photoLimit; i++) {
           const slot = `photo${i}`;
           const cfg = getSlotConfig(slot);
@@ -318,20 +311,17 @@ import {
       state.plan = newPlan;
       state.rules = rules;
 
-      // 重新產生照片槽位
       rebuildPhotoSlots();
-
       applyPlanRules(state.plan, true);
-      syncFreeMirrorFields();
     });
 
-    el.color?.addEventListener("change", syncFreeMirrorFields);
-    el.style?.addEventListener("change", syncFreeMirrorFields);
-    el.paper?.addEventListener("change", syncFreeMirrorFields);
+    el.color?.addEventListener("change", () => updateLivePreview());
+    el.style?.addEventListener("change", () => updateLivePreview());
+    el.paper?.addEventListener("change", () => updateLivePreview());
+    el.premiumColor?.addEventListener("change", () => updateLivePreview());
   }
 
   function rebuildPhotoSlots() {
-    // 根據 state.photoLimit 重新建立照片槽位陣列
     state.photoSlots = [];
     for (let i = 1; i <= state.photoLimit; i++) {
       state.photoSlots.push({
@@ -347,7 +337,6 @@ import {
       });
     }
 
-    // 重新渲染 DOM
     if (el.photoSlotsContainer) {
       el.photoSlotsContainer.innerHTML = "";
       state.photoSlots.forEach((cfg) => {
@@ -356,7 +345,6 @@ import {
       });
     }
 
-    // 重新綁定 file input 事件（因為是新產生的 DOM）
     state.photoSlots.forEach((cfg) => {
       const fileInput = document.getElementById(cfg.fileId);
       if (fileInput) {
@@ -384,7 +372,6 @@ import {
       }
     });
 
-    // 如果已經載入卡片，需要將現有照片 URL 填入新槽位
     if (state.card) {
       state.photoSlots.forEach((cfg) => {
         const url = text(state.card[cfg.key]);
@@ -486,25 +473,20 @@ import {
       state.id = text(card.id);
       if (text(card.update_token)) state.token = text(card.update_token);
 
-      // 決定照片數量：優先使用 card.photo_limit
       const plan = normalizePlan(card.plan || "free");
       const rules = PLAN_RULES[plan];
       let photoLimit = toNumber(card.photo_limit);
       if (photoLimit === 0 || isNaN(photoLimit)) {
         photoLimit = rules.maxPhotos;
       }
-      // 確保不超過方案最大限制（但優先使用 card.photo_limit）
       photoLimit = Math.min(photoLimit, 10);
       state.photoLimit = photoLimit;
       state.plan = plan;
       state.rules = rules;
 
-      // 重建照片槽位
       rebuildPhotoSlots();
-
       applyPlanRules(plan, false);
       fillForm(card);
-      syncFreeMirrorFields();
 
       el.form?.classList.remove("hidden");
       setProgress(100, "資料載入完成");
@@ -552,23 +534,9 @@ import {
       setFieldValue("color", "");
       setFieldValue("style", "");
       setFieldValue("paper", "");
-      setFieldValue("free_color", "");
-      setFieldValue("free_style", "");
-      setFieldValue("free_paper", "");
     }
-  }
 
-  function syncFreeMirrorFields() {
-    const plan = normalizePlan(getFieldValue("plan"));
-    if (plan === "free") {
-      setFieldValue("free_color", getFieldValue("color"));
-      setFieldValue("free_style", getFieldValue("style"));
-      setFieldValue("free_paper", getFieldValue("paper"));
-    } else {
-      setFieldValue("free_color", "");
-      setFieldValue("free_style", "");
-      setFieldValue("free_paper", "");
-    }
+    updateLivePreview();
   }
 
   function clearCtaFieldsFrom(start) {
@@ -578,6 +546,9 @@ import {
     }
   }
 
+  /**
+   * 核心修正一：fillForm(card) - 正確讀取 DB 資料並回填 UI
+   */
   function fillForm(card) {
     TEXT_FIELDS.forEach((key) => {
       const input = document.getElementById(key);
@@ -587,13 +558,19 @@ import {
     });
 
     const plan = normalizePlan(card.plan || "free");
-    if (plan === "free") {
-      if (!getFieldValue("color")) setFieldValue("color", text(card.free_color || card.color));
-      if (!getFieldValue("style")) setFieldValue("style", text(card.free_style || card.style));
-      if (!getFieldValue("paper")) setFieldValue("paper", text(card.free_paper || card.paper));
-    }
 
-    setFieldValue("premium_color", text(card.premium_color));
+    if (plan === "premium") {
+      // DB 只有 color，回填到 premium UI 控件
+      setFieldValue("premium_color", card.color || "p1");
+      setFieldValue("color", "");
+      setFieldValue("style", "");
+      setFieldValue("paper", "");
+    } else {
+      setFieldValue("color", card.color || "c1");
+      setFieldValue("style", card.style || "s1");
+      setFieldValue("paper", card.paper || "f1");
+      setFieldValue("premium_color", "");
+    }
 
     // 固定槽位（頭像、Logo）
     Object.values(FIXED_SLOTS).forEach((cfg) => {
@@ -603,7 +580,7 @@ import {
       setSlotStatus(cfg.slot, url ? "已載入" : "尚未設定");
     });
 
-    // 照片槽位（由 rebuildPhotoSlots 已經建立，這裡只需設定值）
+    // 照片槽位
     state.photoSlots.forEach((cfg) => {
       const url = text(card[cfg.key]);
       setFieldValue(cfg.key, url);
@@ -621,15 +598,99 @@ import {
     }
   }
 
+  function updateLivePreview() {
+    const previewCard = document.getElementById("livePreviewCard");
+    if (!previewCard) return;
+
+    const plan = normalizePlan(getFieldValue("plan"));
+    previewCard.dataset.plan = plan;
+
+    if (plan === "free") {
+      previewCard.dataset.color = getFieldValue("color") || "c1";
+      previewCard.dataset.style = getFieldValue("style") || "s1";
+      previewCard.dataset.paper = getFieldValue("paper") || "f1";
+      previewCard.dataset.premium = "";
+    } else {
+      previewCard.dataset.color = "";
+      previewCard.dataset.style = "";
+      previewCard.dataset.paper = "";
+      previewCard.dataset.premium = getFieldValue("premium_color") || "p1";
+    }
+
+    const nameEl = document.getElementById("previewName");
+    if (nameEl) nameEl.textContent = getFieldValue("name") || "您的姓名";
+
+    const unitEl = document.getElementById("previewUnit");
+    if (unitEl) unitEl.textContent = getFieldValue("unit");
+
+    const titleEl = document.getElementById("previewTitle");
+    if (titleEl) titleEl.textContent = getFieldValue("title");
+
+    const sloganEl = document.getElementById("previewSlogan");
+    if (sloganEl) sloganEl.textContent = getFieldValue("slogan");
+
+    const servicesEl = document.getElementById("previewServices");
+    const experienceEl = document.getElementById("previewExperience");
+    const servicesBlock = document.getElementById("previewServicesBlock");
+    const experienceBlock = document.getElementById("previewExperienceBlock");
+
+    if (servicesEl) servicesEl.textContent = getFieldValue("services");
+    if (experienceEl) experienceEl.textContent = getFieldValue("experience");
+    if (servicesBlock) servicesBlock.style.display = getFieldValue("services") ? "" : "none";
+    if (experienceBlock) experienceBlock.style.display = getFieldValue("experience") ? "" : "none";
+
+    const avatarUrl = getFieldValue("avatar_url");
+    const avatarImg = document.getElementById("previewAvatar");
+    if (avatarImg) {
+      if (avatarUrl) {
+        avatarImg.src = avatarUrl;
+        avatarImg.style.display = "block";
+      } else {
+        avatarImg.removeAttribute("src");
+        avatarImg.style.display = "none";
+      }
+    }
+
+    const logoUrl = getFieldValue("logo_url");
+    const logoImg = document.getElementById("previewLogo");
+    const logoWrap = document.getElementById("previewLogoWrap");
+    if (logoImg) {
+      if (logoUrl) {
+        logoImg.src = logoUrl;
+        logoImg.style.display = "block";
+        if (logoWrap) logoWrap.style.display = "";
+      } else {
+        logoImg.removeAttribute("src");
+        logoImg.style.display = "none";
+        if (logoWrap) logoWrap.style.display = "none";
+      }
+    }
+
+    const photoWall = document.getElementById("previewPhotoWall");
+    const emptyPhotos = document.getElementById("previewEmptyPhotos");
+    if (photoWall) {
+      photoWall.innerHTML = "";
+      let hasPhotos = false;
+      for (let i = 1; i <= state.photoLimit; i++) {
+        const url = getFieldValue(`photo${i}_url`);
+        if (url) {
+          hasPhotos = true;
+          const item = document.createElement("div");
+          item.className = "hsc-preview-photoItem";
+          item.innerHTML = `<img src="${escapeHtml(url)}" alt="照片預覽">`;
+          photoWall.appendChild(item);
+        }
+      }
+      if (emptyPhotos) emptyPhotos.style.display = hasPhotos ? "none" : "";
+    }
+  }
+
   function getSlotConfig(slot) {
-    // 先找固定槽位
     if (FIXED_SLOTS[slot]) return FIXED_SLOTS[slot];
-    // 再找動態照片槽位
     return state.photoSlots.find(s => s.slot === slot);
   }
 
   function bindImageEvents() {
-    // 事件委託處理固定槽位和動態照片的按鈕
     document.addEventListener("click", (ev) => {
       const pickBtn = ev.target.closest("[data-pick]");
       if (pickBtn) {
@@ -682,6 +743,7 @@ import {
     setFieldValue(cfg.key, "");
     setSlotPreview(slot, "");
     setSlotStatus(slot, isPhotoSlotAllowed(slot) ? "已清除，待送出" : "未開放");
+    updateLivePreview();
     showStatus("warn", `${cfg.label} 已清除，請記得按「送出更新」。`);
   }
 
@@ -915,6 +977,7 @@ import {
       setFieldValue(cfg.key, url);
       setSlotPreview(slot, url);
       setSlotStatus(slot, "已完成");
+      updateLivePreview();
 
       setProgress(100, `${cfg.label} 已更新`);
       showStatus("ok", `${cfg.label} 已更新完成。`);
@@ -990,8 +1053,6 @@ import {
     showStatus("warn", "送出更新中…");
 
     try {
-      syncFreeMirrorFields();
-
       const payload = collectPayload();
 
       setProgress(28, "送出更新資料到系統…");
@@ -1076,22 +1137,34 @@ import {
     }
   }
 
+  /**
+   * 核心修正二：collectPayload() - 完全符合最新 card_db 表頭
+   */
   function collectPayload() {
     const plan = normalizePlan(getFieldValue("plan"));
-    const rules = PLAN_RULES[plan];
+
+    let color = "";
+    let style = "";
+    let paper = "";
+
+    if (plan === "free") {
+      color = getFieldValue("color");
+      style = getFieldValue("style");
+      paper = getFieldValue("paper");
+    } else if (plan === "premium") {
+      color = getFieldValue("premium_color");
+      style = "";
+      paper = "";
+    }
 
     const payload = {
       action: "updateCardByToken",
       token: state.token,
 
       plan,
-      color: plan === "free" ? getFieldValue("color") : "",
-      style: plan === "free" ? getFieldValue("style") : "",
-      paper: plan === "free" ? getFieldValue("paper") : "",
-      free_color: plan === "free" ? getFieldValue("free_color") : "",
-      free_style: plan === "free" ? getFieldValue("free_style") : "",
-      free_paper: plan === "free" ? getFieldValue("free_paper") : "",
-      premium_color: plan === "premium" ? getFieldValue("premium_color") : "",
+      color,
+      style,
+      paper,
 
       name: getFieldValue("name"),
       unit: getFieldValue("unit"),
@@ -1100,43 +1173,45 @@ import {
       services: getFieldValue("services"),
       experience: getFieldValue("experience"),
 
-      phone: getFieldValue("phone"),
-      email: getFieldValue("email"),
+      wechat_id: getFieldValue("wechat_id"),
       line_url: getFieldValue("line_url"),
       line_oa: getFieldValue("line_oa"),
-      wechat_id: getFieldValue("wechat_id"),
-      website: getFieldValue("website"),
+      email: getFieldValue("email"),
+      phone: getFieldValue("phone"),
       address: getFieldValue("address"),
 
       video1: getFieldValue("video1"),
       video2: getFieldValue("video2"),
       video3: getFieldValue("video3"),
+
       social1: getFieldValue("social1"),
       social2: getFieldValue("social2"),
       social3: getFieldValue("social3"),
 
-      cta_text_1: getFieldValue("cta_text_1"),
-      cta_link_1: getFieldValue("cta_link_1"),
-      cta_text_2: rules.maxCtas >= 2 ? getFieldValue("cta_text_2") : "",
-      cta_link_2: rules.maxCtas >= 2 ? getFieldValue("cta_link_2") : "",
-      cta_text_3: rules.maxCtas >= 3 ? getFieldValue("cta_text_3") : "",
-      cta_link_3: rules.maxCtas >= 3 ? getFieldValue("cta_link_3") : "",
-
       avatar_url: getFieldValue("avatar_url"),
       logo_url: getFieldValue("logo_url"),
+
+      photo_limit: state.photoLimit,
+      photo1_url: getFieldValue("photo1_url"),
+      photo2_url: getFieldValue("photo2_url"),
+      photo3_url: state.photoLimit >= 3 ? getFieldValue("photo3_url") : "",
+      photo4_url: state.photoLimit >= 4 ? getFieldValue("photo4_url") : "",
+      photo5_url: state.photoLimit >= 5 ? getFieldValue("photo5_url") : "",
+      photo6_url: state.photoLimit >= 6 ? getFieldValue("photo6_url") : "",
+      photo7_url: state.photoLimit >= 7 ? getFieldValue("photo7_url") : "",
+      photo8_url: state.photoLimit >= 8 ? getFieldValue("photo8_url") : "",
+      photo9_url: state.photoLimit >= 9 ? getFieldValue("photo9_url") : "",
+      photo10_url: state.photoLimit >= 10 ? getFieldValue("photo10_url") : "",
+
+      website: getFieldValue("website"),
+
+      cta_text_1: getFieldValue("cta_text_1"),
+      cta_link_1: getFieldValue("cta_link_1"),
+      cta_text_2: state.rules.maxCtas >= 2 ? getFieldValue("cta_text_2") : "",
+      cta_link_2: state.rules.maxCtas >= 2 ? getFieldValue("cta_link_2") : "",
+      cta_text_3: state.rules.maxCtas >= 3 ? getFieldValue("cta_text_3") : "",
+      cta_link_3: state.rules.maxCtas >= 3 ? getFieldValue("cta_link_3") : ""
     };
-
-    // 照片欄位：根據 state.photoLimit 決定
-    for (let i = 1; i <= state.photoLimit; i++) {
-      payload[`photo${i}_url`] = getFieldValue(`photo${i}_url`);
-    }
-    // 清空超出上限的欄位，最多到 10
-    for (let i = state.photoLimit + 1; i <= 10; i++) {
-      payload[`photo${i}_url`] = "";
-    }
-
-    // 帶上 photo_limit 以便後端更新卡片上限
-    payload.photo_limit = state.photoLimit;
 
     return payload;
   }
