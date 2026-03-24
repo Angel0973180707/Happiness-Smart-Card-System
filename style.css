@@ -2668,3 +2668,48 @@ body.mode-premium.p6 .card,
       #c99638 55%,
       #8c611c 100%);
 }
+/* =========================
+   ★ 名片核心資訊強化（對應 name/unit/title/slogan）
+========================= */
+
+/* 姓名 */
+.name {
+  display: inline-block;
+  padding: 6px 12px;
+  border: 1.8px solid rgba(255,255,255,.75);
+  border-radius: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  backdrop-filter: blur(3px);
+}
+
+/* 單位 */
+.unit {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border: 1.2px solid rgba(255,255,255,.5);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+/* 頭銜 */
+.title {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border: 1.2px dashed rgba(255,255,255,.5);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+/* 標語 */
+.slogan {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-left: 3px solid rgba(255,255,255,.6);
+  font-style: italic;
+  opacity: .9;
+}
