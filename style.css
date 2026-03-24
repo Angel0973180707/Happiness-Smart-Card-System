@@ -1659,7 +1659,7 @@ body.mode-premium .dock-btn::before,
 body.mode-premium .dock-btn::after,
 #livePreviewCard.mode-premium .dock-btn::after { display: none; }
 
-/* ── p1 玫瑰 dock-btn（結構型，保留子層）── */
+/* ── p1 胭脂紅 dock-btn（結構型，保留子層）── */
 body.mode-premium.p1 .dock-btn,
 #livePreviewCard.mode-premium.p1 .dock-btn {
   background:
@@ -1677,7 +1677,7 @@ body.mode-premium.p1 .dock-btn::before,
   opacity: .72;
 }
 
-/* ── p2 勃艮第 dock-btn（結構型，保留子層）── */
+/* ── p2 酒紅 dock-btn（結構型，保留子層）── */
 body.mode-premium.p2 .dock-btn,
 #livePreviewCard.mode-premium.p2 .dock-btn {
   background:
@@ -1695,7 +1695,7 @@ body.mode-premium.p2 .dock-btn::before,
   opacity: .76;
 }
 
-/* ── p3 靛藍 dock-btn（結構型，保留子層）── */
+/* ── p3 深藍 dock-btn（結構型，保留子層）── */
 body.mode-premium.p3 .dock-btn,
 #livePreviewCard.mode-premium.p3 .dock-btn {
   background:
@@ -1713,7 +1713,7 @@ body.mode-premium.p3 .dock-btn::before,
   opacity: .66;
 }
 
-/* ── p4 薰衣草 dock-btn（結構型，保留子層）── */
+/* ── p4 霧紫 dock-btn（結構型，保留子層）── */
 body.mode-premium.p4 .dock-btn,
 #livePreviewCard.mode-premium.p4 .dock-btn {
   background:
@@ -1731,7 +1731,7 @@ body.mode-premium.p4 .dock-btn::before,
   opacity: .80;
 }
 
-/* ── p5 月光銀 dock-btn（結構型，保留子層）── */
+/* ── p5 藍灰 dock-btn（結構型，保留子層）── */
 body.mode-premium.p5 .dock-btn,
 #livePreviewCard.mode-premium.p5 .dock-btn {
   background:
@@ -1749,7 +1749,7 @@ body.mode-premium.p5 .dock-btn::before,
   opacity: .84;
 }
 
-/* ── p6 流金 dock-btn（結構型，保留子層）── */
+/* ── p6 金箔 dock-btn（結構型，保留子層）── */
 body.mode-premium.p6 .dock-btn,
 #livePreviewCard.mode-premium.p6 .dock-btn {
   background:
@@ -1769,7 +1769,7 @@ body.mode-premium.p6 .dock-btn::before,
   opacity: .86;
 }
 
-/* ── p7 可可棕 dock-btn（結構型，保留子層）── */
+/* ── p7 褐碳dock-btn（結構型，保留子層）── */
 body.mode-premium.p7 .dock-btn,
 #livePreviewCard.mode-premium.p7 .dock-btn {
   background:
@@ -2540,4 +2540,131 @@ body.mode-free.paper-3 #paperOverlay::after,
 
   .announcement-title { font-size: 13px; }
   .announcement-modal-body { font-size: 12px; line-height: 1.85; }
+}
+/* ============================================================
+   v527.3-premium-core-upgrade（第一段：核心質感）
+============================================================ */
+
+/* 精品整體背景（更高級、去塑膠感） */
+body.mode-premium,
+#livePreviewCard.mode-premium {
+  background:
+    radial-gradient(1200px 760px at 14% -2%, rgba(255,255,255,.10), transparent 56%),
+    radial-gradient(920px 720px at 88% 6%, rgba(255,255,255,.06), transparent 60%),
+    linear-gradient(180deg, #171922 0%, #151821 40%, #13161e 100%);
+}
+
+/* 卡片：降低飽和 → 更精品 */
+body.mode-premium .card,
+#livePreviewCard.mode-premium .card {
+  background:
+    linear-gradient(180deg, rgba(12,16,24,.12), rgba(12,16,24,.22)),
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--p) 88%, #ffffff 12%),
+      color-mix(in srgb, var(--s) 92%, #000000 8%)
+    );
+
+  filter: saturate(.95) contrast(1.02) brightness(.98);
+
+  box-shadow:
+    0 34px 88px rgba(0,0,0,.52),
+    0 0 0 1px rgba(255,255,255,.04),
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -1px 0 rgba(0,0,0,.22);
+}
+
+/* 卡面光澤（更薄、更像玻璃） */
+body.mode-premium .card::before,
+#livePreviewCard.mode-premium .card::before {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.16), transparent 48%),
+    radial-gradient(760px 360px at 22% 0%, rgba(255,255,255,.12), transparent 58%);
+  opacity: .82;
+}
+
+body.mode-premium .card::after,
+#livePreviewCard.mode-premium .card::after {
+  opacity: .42;
+}
+/* ============================================================
+   v527.3-premium-typography（第二段：文字升級）
+============================================================ */
+
+body.mode-premium .name,
+#livePreviewCard.mode-premium .name {
+  letter-spacing: .04em;
+  font-weight: 900;
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.06),
+    0 12px 26px rgba(0,0,0,.28);
+}
+
+body.mode-premium .unit,
+body.mode-premium .title,
+#livePreviewCard.mode-premium .unit,
+#livePreviewCard.mode-premium .title {
+  color: rgba(255,255,255,.78);
+}
+
+body.mode-premium #u-slogan,
+#livePreviewCard.mode-premium #u-slogan {
+  font-size: 14px;
+  line-height: 1.72;
+  color: rgba(255,255,255,.96);
+  text-shadow: 0 10px 22px rgba(0,0,0,.32);
+}
+/* ============================================================
+   v527.3-premium-blocks（第三段：資訊卡升級）
+============================================================ */
+
+body.mode-premium .info-block,
+#livePreviewCard.mode-premium .info-block {
+  background:
+    radial-gradient(140% 180% at 18% 0%, rgba(255,255,255,.12), rgba(255,255,255,.05) 54%, rgba(255,255,255,.03)),
+    linear-gradient(180deg, rgba(11,14,21,.18), rgba(11,14,21,.24));
+
+  border-color: rgba(255,255,255,.10);
+
+  box-shadow:
+    0 18px 38px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.08);
+
+  backdrop-filter: blur(10px);
+}
+
+/* 聯絡區統一質感 */
+body.mode-premium .contact-dock,
+#livePreviewCard.mode-premium .contact-dock {
+  background:
+    radial-gradient(150% 190% at 18% 0%, rgba(255,255,255,.10), rgba(255,255,255,.04) 56%),
+    linear-gradient(180deg, rgba(12,15,22,.18), rgba(12,15,22,.22));
+
+  border-color: rgba(255,255,255,.10);
+}
+/* ============================================================
+   v527.3-premium-colors（第四段：色彩升級）
+============================================================ */
+
+/* p5 銀色 → 珠光銀藍 */
+body.mode-premium.p5 .card,
+#livePreviewCard.mode-premium.p5 .card {
+  background:
+    linear-gradient(180deg, rgba(20,28,36,.08), rgba(20,28,36,.18)),
+    linear-gradient(135deg,
+      #d9e6f1 0%,
+      #c3d4e2 30%,
+      #9fb4c7 60%,
+      #7f96ab 100%);
+}
+
+/* p6 金色 → 精品金（避免土黃） */
+body.mode-premium.p6 .card,
+#livePreviewCard.mode-premium.p6 .card {
+  background:
+    linear-gradient(180deg, rgba(28,20,8,.10), rgba(28,20,8,.18)),
+    linear-gradient(135deg,
+      #f0d892 0%,
+      #e2bc5d 25%,
+      #c99638 55%,
+      #8c611c 100%);
 }
