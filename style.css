@@ -2541,3 +2541,98 @@ body.mode-free.paper-3 #paperOverlay::after,
   .announcement-title { font-size: 13px; }
   .announcement-modal-body { font-size: 12px; line-height: 1.85; }
 }
+/* =====================================
+   ★ PREMIUM NAME SYSTEM v1（乾淨重構版）
+===================================== */
+
+/* ===== 基礎（所有卡共用） ===== */
+.name {
+  display: block;
+  width: fit-content;
+  margin: 14px auto 10px;
+
+  padding: 10px 18px;
+
+  border-radius: 16px;
+  text-align: center;
+
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  line-height: 1.2;
+
+  transition: all .25s ease;
+}
+
+/* ===== 微放大（手機也會觸發） ===== */
+.card:active .name,
+.card:hover .name {
+  transform: scale(1.05);
+}
+
+/* =====================================
+   ★ p1～p7 精品色（高飽和乾淨版）
+===================================== */
+
+/* p1 胭脂紅（溫柔高級） */
+.theme-p1 .name {
+  border: 2px solid #ff6f91;
+  box-shadow:
+    0 0 0 1px rgba(255,111,145,.25),
+    0 6px 18px rgba(0,0,0,.18),
+    0 0 18px rgba(255,111,145,.45);
+}
+
+/* p2 酒紅（成熟質感） */
+.theme-p2 .name {
+  border: 2px solid #c2185b;
+  box-shadow:
+    0 0 0 1px rgba(194,24,91,.25),
+    0 6px 18px rgba(0,0,0,.18),
+    0 0 18px rgba(194,24,91,.45);
+}
+
+/* p3 深藍（專業信任） */
+.theme-p3 .name {
+  border: 2px solid #2962ff;
+  box-shadow:
+    0 0 0 1px rgba(41,98,255,.25),
+    0 6px 18px rgba(0,0,0,.18),
+    0 0 18px rgba(41,98,255,.45);
+}
+
+/* p4 霧紫（靈性療癒） */
+.theme-p4 .name {
+  border: 2px solid #9c6bff;
+  box-shadow:
+    0 0 0 1px rgba(156,107,255,.25),
+    0 6px 18px rgba(0,0,0,.18),
+    0 0 18px rgba(156,107,255,.45);
+}
+
+/* p5 藍灰（穩重冷靜） */
+.theme-p5 .name {
+  border: 2px solid #607d8b;
+  box-shadow:
+    0 0 0 1px rgba(96,125,139,.25),
+    0 6px 18px rgba(0,0,0,.18),
+    0 0 14px rgba(96,125,139,.35);
+}
+
+/* p6 金箔（成交神器） */
+.theme-p6 .name {
+  border: 2px solid #ffd54f;
+  box-shadow:
+    0 0 0 1px rgba(255,213,79,.3),
+    0 6px 18px rgba(0,0,0,.2),
+    0 0 22px rgba(255,213,79,.6);
+}
+
+/* p7 褐碳（高端穩重） */
+.theme-p7 .name {
+  border: 2px solid #5d4037;
+  box-shadow:
+    0 0 0 1px rgba(93,64,55,.3),
+    0 6px 18px rgba(0,0,0,.2),
+    0 0 14px rgba(93,64,55,.35);
+}
