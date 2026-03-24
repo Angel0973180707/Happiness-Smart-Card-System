@@ -2541,3 +2541,94 @@ body.mode-free.paper-3 #paperOverlay::after,
   .announcement-title { font-size: 13px; }
   .announcement-modal-body { font-size: 12px; line-height: 1.85; }
 }
+/* =========================
+   精品款色紋理升級（安全版）
+   只覆蓋 p1~p7，不影響結構
+========================= */
+
+/* ❤️ p1 胭脂紅（柔光絲絨） */
+.p1 {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255,255,255,.12), transparent 38%),
+    linear-gradient(135deg, #c44569 0%, #a83250 100%);
+}
+
+/* 🍷 p2 酒紅（深層流動） */
+.p2 {
+  background:
+    radial-gradient(circle at 75% 25%, rgba(255,255,255,.08), transparent 45%),
+    linear-gradient(140deg, #6e1e2e 0%, #3d0f18 100%);
+}
+
+/* 🌌 p3 深藍（夜空微粒） */
+.p3 {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(135deg, #1e3a5f 0%, #0f2238 100%);
+  background-size: auto, 6px 6px;
+}
+
+/* 💜 p4 霧紫（柔霧暈染） */
+.p4 {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255,255,255,.10), transparent 50%),
+    linear-gradient(135deg, #6a5acd 0%, #4b3fa3 100%);
+}
+
+/* 🌫 p5 藍灰（高級霧面） */
+.p5 {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,.03),
+      rgba(255,255,255,.03) 1px,
+      transparent 1px,
+      transparent 6px
+    ),
+    linear-gradient(135deg, #6c7a89 0%, #3e4a56 100%);
+}
+
+/* ✨ p6 金箔（柔金流光） */
+.p6 {
+  background:
+    linear-gradient(120deg, rgba(255,255,255,.25), transparent 40%),
+    linear-gradient(135deg, #d4af37 0%, #b8962e 60%, #f1d77a 100%);
+}
+
+/* 🪵 p7 褐碳（木質層次） */
+.p7 {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,.03),
+      rgba(255,255,255,.03) 2px,
+      transparent 2px,
+      transparent 8px
+    ),
+    linear-gradient(135deg, #4b3621 0%, #2b1d12 100%);
+}
+/* =========================
+   精品文字微升級（安全）
+========================= */
+
+.p1 .name,
+.p2 .name,
+.p3 .name,
+.p4 .name,
+.p5 .name,
+.p6 .name,
+.p7 .name {
+  letter-spacing: .06em;
+  font-weight: 600;
+}
+
+.p1 .title,
+.p2 .title,
+.p3 .title,
+.p4 .title,
+.p5 .title,
+.p6 .title,
+.p7 .title {
+  letter-spacing: .04em;
+  opacity: .92;
+}
