@@ -1,18 +1,18 @@
 /* ==========================================
- * HSC Poster v5.6.5-delivery-upsell-safe-getCard-cardfix
+ * HSC Poster v5.6.5-delivery-upsell-safe-hubfix
  * COMPLETE OVERWRITE
  *
  * 修正重點：
- * 1. fetchCard 改為 action=getCard
- * 2. 正式支援 rawJson.card 回傳層級
- * 3. 保留既有交付卡主功能
- * 4. 保留資訊區塊與導購區塊
+ * 1. fetchCard 正式支援 rawJson.card
+ * 2. photo_limit / cta_limit 優先吃 API 真值
+ * 3. 推薦連結改為名片館首頁，不再導 form.html
+ * 4. 保留既有交付卡主功能 / 資訊卡 / 導購區
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "v5.6.5-delivery-upsell-safe-getCard-cardfix";
+  const VERSION = "v5.6.5-delivery-upsell-safe-hubfix";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -143,7 +143,7 @@
       currentPosterShareUrl = buildPosterShareUrl(item, currentShareContext);
       currentPosterQrUrl = buildPosterQrUrl(item, currentShareContext);
       currentProductCardUrl = buildProductCardUrl(item, currentShareContext);
-      currentRecommendUrl = buildRecommendUrl(item, currentShareContext);
+      currentRecommendUrl = buildHubRecommendUrl(item, currentShareContext);
       currentUpdateUrl = resolveUpdateUrl(item);
       currentAvatarUrl = getAvatarUrl(item);
 
@@ -323,7 +323,7 @@
     }
 
     if (el.referralLinkText) {
-      el.referralLinkText.textContent = state.referralLink || currentRecommendUrl || "尚未建立";
+      el.referralLinkText.textContent = currentRecommendUrl || "尚未建立";
     }
 
     if (el.partnerCommissionBlock) {
@@ -343,7 +343,7 @@
     }
 
     if (el.copyReferralLinkBtn) {
-      const referralCopyValue = state.referralLink || currentRecommendUrl || "";
+      const referralCopyValue = currentRecommendUrl || "";
       el.copyReferralLinkBtn.disabled = !referralCopyValue;
       el.copyReferralLinkBtn.style.opacity = referralCopyValue ? "" : "0.56";
       el.copyReferralLinkBtn.style.cursor = referralCopyValue ? "" : "not-allowed";
@@ -378,11 +378,11 @@
       : normalizeCount(rawUpdateRemaining, 0);
 
     const photoLimit = hasValue(item?.photo_limit)
-      ? normalizeCount(item?.photo_limit, plan === "premium" ? 5 : 2)
+      ? normalizeCount(item?.photo_limit, 0)
       : (plan === "premium" ? 5 : 2);
 
     const ctaLimit = hasValue(item?.cta_limit)
-      ? normalizeCount(item?.cta_limit, plan === "premium" ? 3 : 1)
+      ? normalizeCount(item?.cta_limit, 0)
       : (plan === "premium" ? 3 : 1);
 
     const marqueePurchased = toBool(item?.marquee_purchased);
@@ -458,13 +458,14 @@
   function resolveShareContext(item) {
     const cardId = text(item?.id) || id;
     const serviceAgent =
+      incomingShareAgentId ||
       text(item?.service_agent) ||
       text(item?.agent_id) ||
       "";
 
     return {
       share_card_id: incomingShareCardId || cardId,
-      share_agent_id: incomingShareAgentId || serviceAgent || "",
+      share_agent_id: serviceAgent,
       share_source: incomingShareSource || "card_share",
       share_channel: normalizeIncomingChannel(incomingShareChannel),
       share_visit_id: incomingShareVisitId || ""
@@ -517,25 +518,18 @@
     });
   }
 
-  function buildRecommendUrl(item, ctx) {
-    const explicitReferralLink = text(item?.referral_link);
-    if (explicitReferralLink) return explicitReferralLink;
-
-    const cardId = text(item?.id) || id;
-    const channelForForm = ctx.share_channel === "poster_qr" ? "poster_qr" : "poster";
-    const shareAgentId = ctx.share_agent_id || text(item?.service_agent) || text(item?.agent_id) || "";
-
-    return buildUrl("form.html", {
-      share_card_id: ctx.share_card_id || cardId,
-      share_agent_id: shareAgentId,
+  function buildHubRecommendUrl(item, ctx) {
+    return buildUrl("", {
+      share_card_id: ctx.share_card_id || text(item?.id) || id,
+      share_agent_id: ctx.share_agent_id || "",
       share_source: ctx.share_source || "card_share",
-      share_channel: channelForForm,
+      share_channel: "poster",
       share_visit_id: ctx.share_visit_id || ""
     });
   }
 
   function buildUrl(path, params) {
-    const url = new URL(path, baseUrl);
+    const url = new URL(path || ".", baseUrl);
     Object.entries(params || {}).forEach(([key, value]) => {
       if (value === undefined || value === null || String(value).trim() === "") return;
       url.searchParams.set(key, String(value));
@@ -763,10 +757,10 @@
     wrap.style.position = "fixed";
     wrap.style.left = "-99999px";
     wrap.style.top = "-99999px";
-    wrap.style.width = `${size}px`;
-    wrap.style.height = `${size}px`;
     wrap.style.pointerEvents = "none";
     wrap.style.opacity = "0";
+    wrap.style.width = `${size}px`;
+    wrap.style.height = `${size}px`;
     wrap.style.overflow = "hidden";
     document.body.appendChild(wrap);
 
@@ -1127,7 +1121,7 @@
   }
 
   async function onCopyReferralLink() {
-    const referralLink = window.__CARD_STATE__?.referralLink || currentRecommendUrl || "";
+    const referralLink = currentRecommendUrl || "";
     if (!referralLink) {
       setStatus("尚未建立推薦連結", true);
       clearStatusSoon();
