@@ -1,5 +1,5 @@
 /* ==========================================
- * HSC Poster v5.6.5-delivery-state-safe
+ * HSC Poster v5.6.5-delivery-ui-safe
  * COMPLETE OVERWRITE
  *
  * 基礎：
@@ -9,14 +9,15 @@
  *
  * 本版新增：
  * 1. 建立交付卡統一狀態資料層 window.__CARD_STATE__
- * 2. 只整理 poster.js 資料，不改 poster.html / 不新增 UI
- * 3. 保留原 render 主線
+ * 2. 新增「名片管理與權限」區塊渲染
+ * 3. 新增「推薦與代理資訊」區塊渲染
+ * 4. 保留原 UI 主線，不重做整頁
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "v5.6.5-delivery-state-safe";
+  const VERSION = "v5.6.5-delivery-ui-safe";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -74,6 +75,25 @@
 
     shareDialog: document.getElementById("shareDialog"),
     dialogCloseBtn: document.getElementById("dialogCloseBtn"),
+
+    updateRemainingText: document.getElementById("updateRemainingText"),
+    photoLimitText: document.getElementById("photoLimitText"),
+    ctaLimitText: document.getElementById("ctaLimitText"),
+    marqueeStatusText: document.getElementById("marqueeStatusText"),
+    updateEntryWrap: document.getElementById("updateEntryWrap"),
+    updateEntryBtn: document.getElementById("updateEntryBtn"),
+
+    agentRoleDisplayText: document.getElementById("agentRoleDisplayText"),
+    referralCountText: document.getElementById("referralCountText"),
+    convertedCountText: document.getElementById("convertedCountText"),
+    rewardPointsText: document.getElementById("rewardPointsText"),
+    referralCodeText: document.getElementById("referralCodeText"),
+    referralLinkText: document.getElementById("referralLinkText"),
+    copyReferralLinkBtn: document.getElementById("copyReferralLinkBtn"),
+
+    partnerCommissionBlock: document.getElementById("partnerCommissionBlock"),
+    commissionMonthlyText: document.getElementById("commissionMonthlyText"),
+    commissionTotalText: document.getElementById("commissionTotalText")
   };
 
   let currentItem = null;
@@ -83,6 +103,7 @@
   let currentPosterQrUrl = "";
   let currentProductCardUrl = "";
   let currentRecommendUrl = "";
+  let currentUpdateUrl = "";
 
   let currentShareContext = {
     share_card_id: "",
@@ -117,9 +138,13 @@
       currentPosterQrUrl = buildPosterQrUrl(item, currentShareContext);
       currentProductCardUrl = buildProductCardUrl(item, currentShareContext);
       currentRecommendUrl = buildRecommendUrl(item, currentShareContext);
+      currentUpdateUrl = resolveUpdateUrl(item);
       currentAvatarUrl = getAvatarUrl(item);
 
       renderPoster(item);
+      renderManagementSection(item, window.__CARD_STATE__);
+      renderAgentSection(item, window.__CARD_STATE__);
+
       await renderQrLocal(currentPosterQrUrl);
       await renderQrCenterAvatar(currentAvatarUrl);
 
@@ -128,6 +153,8 @@
       console.error(`[HSC Poster ${VERSION}] init error:`, err);
       window.__CARD_STATE__ = buildCardState(currentItem || null);
       renderPoster(null);
+      renderManagementSection(null, window.__CARD_STATE__);
+      renderAgentSection(null, window.__CARD_STATE__);
       renderQrFallback(currentPosterQrUrl || currentProductCardUrl || "");
       setStatus(err.message || "載入失敗", true);
     }
@@ -143,6 +170,8 @@
     el.lineOABtn?.addEventListener("click", onOpenLineOA);
 
     el.dialogCloseBtn?.addEventListener("click", closeDialog);
+    el.updateEntryBtn?.addEventListener("click", onOpenUpdateEntry);
+    el.copyReferralLinkBtn?.addEventListener("click", onCopyReferralLink);
 
     el.shareDialog?.addEventListener("click", (e) => {
       if (e.target === el.shareDialog) closeDialog();
@@ -210,6 +239,82 @@
     }
   }
 
+  function renderManagementSection(item, state) {
+    if (el.updateRemainingText) {
+      el.updateRemainingText.textContent = state.updateUnlimited
+        ? "無限更新"
+        : `剩餘 ${state.updateRemaining} 次`;
+    }
+
+    if (el.photoLimitText) {
+      el.photoLimitText.textContent = `${state.photoLimit} 張`;
+    }
+
+    if (el.ctaLimitText) {
+      el.ctaLimitText.textContent = `${state.ctaLimit} 個`;
+    }
+
+    if (el.marqueeStatusText) {
+      el.marqueeStatusText.textContent = getMarqueeStatusText(state);
+    }
+
+    if (el.updateEntryWrap) {
+      if (currentUpdateUrl) {
+        el.updateEntryWrap.classList.remove("hidden");
+      } else {
+        el.updateEntryWrap.classList.add("hidden");
+      }
+    }
+  }
+
+  function renderAgentSection(item, state) {
+    if (el.agentRoleDisplayText) {
+      el.agentRoleDisplayText.textContent = state.agentRoleDisplay || "一般用戶";
+    }
+
+    if (el.referralCountText) {
+      el.referralCountText.textContent = formatInt(state.referralCount);
+    }
+
+    if (el.convertedCountText) {
+      el.convertedCountText.textContent = formatInt(state.convertedCount);
+    }
+
+    if (el.rewardPointsText) {
+      el.rewardPointsText.textContent = formatInt(state.rewardPoints);
+    }
+
+    if (el.referralCodeText) {
+      el.referralCodeText.textContent = state.referralCode || "尚未建立";
+    }
+
+    if (el.referralLinkText) {
+      el.referralLinkText.textContent = state.referralLink || "尚未建立";
+    }
+
+    if (el.partnerCommissionBlock) {
+      if (state.agentRole === "partner") {
+        el.partnerCommissionBlock.classList.remove("hidden");
+      } else {
+        el.partnerCommissionBlock.classList.add("hidden");
+      }
+    }
+
+    if (el.commissionMonthlyText) {
+      el.commissionMonthlyText.textContent = formatMoneyLike(state.commissionMonthly);
+    }
+
+    if (el.commissionTotalText) {
+      el.commissionTotalText.textContent = formatMoneyLike(state.commissionTotal);
+    }
+
+    if (el.copyReferralLinkBtn) {
+      el.copyReferralLinkBtn.disabled = !state.referralLink;
+      el.copyReferralLinkBtn.style.opacity = state.referralLink ? "" : "0.56";
+      el.copyReferralLinkBtn.style.cursor = state.referralLink ? "" : "not-allowed";
+    }
+  }
+
   function getAvatarUrl(item) {
     return (
       text(item?.avatar_url) ||
@@ -260,6 +365,22 @@
     };
   }
 
+  function getMarqueeStatusText(state) {
+    if (!state.marqueePurchased) return "尚未開通";
+    if (state.marqueePurchased && !state.marqueeEnabled) return "已購買未啟用";
+    return "已開通";
+  }
+
+  function resolveUpdateUrl(item) {
+    return (
+      text(item?.update_link) ||
+      text(item?.update_url) ||
+      text(item?.update_form_url) ||
+      text(item?.form_url) ||
+      ""
+    );
+  }
+
   function normalizePlan(plan) {
     const v = text(plan).toLowerCase();
     if (v === "premium") return "premium";
@@ -273,7 +394,6 @@
   function toBool(v) {
     if (v === true) return true;
     if (v === false) return false;
-
     const s = String(v || "").trim().toLowerCase();
     return s === "true" || s === "1" || s === "yes" || s === "y" || s === "on";
   }
@@ -957,6 +1077,19 @@
     clearStatusSoon();
   }
 
+  async function onCopyReferralLink() {
+    const referralLink = window.__CARD_STATE__?.referralLink || "";
+    if (!referralLink) {
+      setStatus("尚未建立推薦連結", true);
+      clearStatusSoon();
+      return;
+    }
+
+    const ok = await copyText(referralLink);
+    setStatus(ok ? "推薦連結已複製" : "複製失敗，請手動複製", !ok);
+    clearStatusSoon();
+  }
+
   async function onShareCard() {
     const targetUrl = currentPosterQrUrl || currentProductCardUrl;
     if (!targetUrl) {
@@ -997,6 +1130,15 @@
     window.open(currentRecommendUrl, "_blank", "noopener");
   }
 
+  function onOpenUpdateEntry() {
+    if (!currentUpdateUrl) {
+      setStatus("目前沒有可用的更新入口", true);
+      clearStatusSoon();
+      return;
+    }
+    window.open(currentUpdateUrl, "_blank", "noopener");
+  }
+
   function onOpenLineOA() {
     if (!lineOA) {
       setStatus("LINE 官方帳號連結未設定", true);
@@ -1028,6 +1170,16 @@
     clearStatusSoon._timer = window.setTimeout(() => {
       setStatus("");
     }, 1800);
+  }
+
+  function formatInt(v) {
+    const n = normalizeNumberLike(v, 0);
+    return n.toLocaleString("zh-TW");
+  }
+
+  function formatMoneyLike(v) {
+    const n = normalizeNumberLike(v, 0);
+    return n.toLocaleString("zh-TW");
   }
 
   function text(v) {
