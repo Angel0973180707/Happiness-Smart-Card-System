@@ -1,17 +1,18 @@
 /* ==========================================
- * HSC Poster v5.6.5-delivery-upsell-safe-getCard
+ * HSC Poster v5.6.5-delivery-upsell-safe-getCard-cardfix
  * COMPLETE OVERWRITE
  *
  * 修正重點：
  * 1. fetchCard 改為 action=getCard
- * 2. 保留既有交付卡主功能
- * 3. 保留資訊區塊與導購區塊
+ * 2. 正式支援 rawJson.card 回傳層級
+ * 3. 保留既有交付卡主功能
+ * 4. 保留資訊區塊與導購區塊
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "v5.6.5-delivery-upsell-safe-getCard";
+  const VERSION = "v5.6.5-delivery-upsell-safe-getCard-cardfix";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -208,14 +209,15 @@
       throw new Error(`讀取名片失敗（HTTP ${res.status}）`);
     }
 
-    let json;
+    let rawJson;
     try {
-      json = await res.json();
+      rawJson = await res.json();
     } catch {
       throw new Error("名片資料不是有效 JSON");
     }
 
-    const item = json?.item || json?.data || json;
+    const item = rawJson?.card || rawJson?.item || rawJson?.data || rawJson;
+
     if (!item || typeof item !== "object") {
       throw new Error("名片資料格式不正確");
     }
@@ -321,7 +323,7 @@
     }
 
     if (el.referralLinkText) {
-      el.referralLinkText.textContent = state.referralLink || "尚未建立";
+      el.referralLinkText.textContent = state.referralLink || currentRecommendUrl || "尚未建立";
     }
 
     if (el.partnerCommissionBlock) {
@@ -341,9 +343,10 @@
     }
 
     if (el.copyReferralLinkBtn) {
-      el.copyReferralLinkBtn.disabled = !state.referralLink;
-      el.copyReferralLinkBtn.style.opacity = state.referralLink ? "" : "0.56";
-      el.copyReferralLinkBtn.style.cursor = state.referralLink ? "" : "not-allowed";
+      const referralCopyValue = state.referralLink || currentRecommendUrl || "";
+      el.copyReferralLinkBtn.disabled = !referralCopyValue;
+      el.copyReferralLinkBtn.style.opacity = referralCopyValue ? "" : "0.56";
+      el.copyReferralLinkBtn.style.cursor = referralCopyValue ? "" : "not-allowed";
     }
 
     if (el.agentUpgradeBlock) {
@@ -515,12 +518,16 @@
   }
 
   function buildRecommendUrl(item, ctx) {
+    const explicitReferralLink = text(item?.referral_link);
+    if (explicitReferralLink) return explicitReferralLink;
+
     const cardId = text(item?.id) || id;
     const channelForForm = ctx.share_channel === "poster_qr" ? "poster_qr" : "poster";
+    const shareAgentId = ctx.share_agent_id || text(item?.service_agent) || text(item?.agent_id) || "";
 
     return buildUrl("form.html", {
       share_card_id: ctx.share_card_id || cardId,
-      share_agent_id: ctx.share_agent_id || "",
+      share_agent_id: shareAgentId,
       share_source: ctx.share_source || "card_share",
       share_channel: channelForForm,
       share_visit_id: ctx.share_visit_id || ""
@@ -530,7 +537,7 @@
   function buildUrl(path, params) {
     const url = new URL(path, baseUrl);
     Object.entries(params || {}).forEach(([key, value]) => {
-      if (value === undefined || value === null) return;
+      if (value === undefined || value === null || String(value).trim() === "") return;
       url.searchParams.set(key, String(value));
     });
     return url.toString();
@@ -1120,7 +1127,7 @@
   }
 
   async function onCopyReferralLink() {
-    const referralLink = window.__CARD_STATE__?.referralLink || "";
+    const referralLink = window.__CARD_STATE__?.referralLink || currentRecommendUrl || "";
     if (!referralLink) {
       setStatus("尚未建立推薦連結", true);
       clearStatusSoon();
@@ -1413,670 +1420,5 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  }
-})();
-/* ==========================================
- * HSC Poster v5.6.5-delivery-debug-getCard
- * COMPLETE OVERWRITE
- *
- * 用途：
- * - 專門除錯 getCard 讀取
- * - 畫面顯示 request / response / parsed item
- * - 快速定位推薦連結無法建立原因
- * ========================================== */
-
-(() => {
-  "use strict";
-
-  const VERSION = "v5.6.5-delivery-debug-getCard";
-
-  const DEFAULT_GAS =
-    "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
-
-  const DEFAULT_BASE =
-    "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
-
-  const DEFAULT_LINE_OA =
-    "https://lin.ee/3r2ZePN";
-
-  const QR_CONFIG = {
-    previewSize: 900,
-    dark: "#2f241d",
-    light: "#ffffff",
-    correctLevel: "H",
-    centerAvatarRatio: 0.16,
-    centerAvatarBorder: 5,
-    quietZoneRatio: 0.04,
-    quietZoneColor: "#ffffff"
-  };
-
-  const qs = new URLSearchParams(location.search);
-
-  const id = (qs.get("id") || "").trim();
-  const gas = (qs.get("gas") || DEFAULT_GAS).trim();
-  const baseUrl = normalizeBase(qs.get("base") || DEFAULT_BASE);
-  const lineOA = (qs.get("lineoa") || DEFAULT_LINE_OA).trim();
-
-  const el = {
-    avatarImg: document.getElementById("avatarImg"),
-    cardName: document.getElementById("cardName"),
-    cardTitle: document.getElementById("cardTitle"),
-    qrViewport: document.getElementById("qrViewport"),
-    qrCenterAvatar: document.getElementById("qrCenterAvatar"),
-    qrCenterAvatarImg: document.getElementById("qrCenterAvatarImg"),
-    qrLinkFallback: document.getElementById("qrLinkFallback"),
-    qrBox: document.getElementById("qrBox"),
-    statusText: document.getElementById("statusText"),
-
-    downloadBtn: document.getElementById("downloadBtn"),
-    openCardBtn: document.getElementById("openCardBtn"),
-    copyLinkBtn: document.getElementById("copyLinkBtn"),
-    shareCardBtn: document.getElementById("shareCardBtn"),
-    recommendBtn: document.getElementById("recommendBtn"),
-    helpBtn: document.getElementById("helpBtn"),
-    lineOABtn: document.getElementById("lineOABtn"),
-
-    shareDialog: document.getElementById("shareDialog"),
-    dialogCloseBtn: document.getElementById("dialogCloseBtn")
-  };
-
-  let currentItem = null;
-  let currentPosterQrUrl = "";
-  let currentRecommendUrl = "";
-  let currentProductCardUrl = "";
-  let currentAvatarUrl = "";
-
-  const debugState = {
-    version: VERSION,
-    requestUrl: "",
-    httpStatus: "",
-    rawResponse: null,
-    parsedItem: null,
-    error: "",
-    built: {}
-  };
-
-  bindEvents();
-  init();
-
-  async function init() {
-    ensureDebugPanel();
-
-    try {
-      if (!id) throw new Error("缺少名片 id");
-      if (typeof window.QRCode === "undefined") {
-        throw new Error("缺少 qrcode.min.js");
-      }
-
-      setStatus("正在載入資料…", false);
-      renderDebug();
-
-      const result = await fetchCard(id);
-      currentItem = result.item;
-      debugState.requestUrl = result.requestUrl;
-      debugState.httpStatus = result.httpStatus;
-      debugState.rawResponse = result.rawJson;
-      debugState.parsedItem = result.item;
-
-      currentAvatarUrl = getAvatarUrl(currentItem);
-      currentProductCardUrl = buildProductCardUrl(currentItem);
-      currentPosterQrUrl = currentProductCardUrl;
-      currentRecommendUrl = buildRecommendUrl(currentItem);
-
-      debugState.built = {
-        id: currentItem?.id || "",
-        name: currentItem?.name || "",
-        referral_code: currentItem?.referral_code || "",
-        referral_link: currentItem?.referral_link || "",
-        agent_role: currentItem?.agent_role || "",
-        agent_role_display: currentItem?.agent_role_display || "",
-        reward_points: currentItem?.reward_points || "",
-        referral_count: currentItem?.referral_count || "",
-        converted_count: currentItem?.converted_count || "",
-        service_agent: currentItem?.service_agent || "",
-        agent_id: currentItem?.agent_id || "",
-        productCardUrl: currentProductCardUrl,
-        recommendUrl: currentRecommendUrl
-      };
-
-      renderPoster(currentItem);
-      await renderQrLocal(currentPosterQrUrl);
-      await renderQrCenterAvatar(currentAvatarUrl);
-
-      setStatus("讀取成功");
-      renderDebug();
-    } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] init error:`, err);
-      debugState.error = err?.message || String(err || "unknown error");
-      renderPoster(null);
-      renderQrFallback("");
-      setStatus(debugState.error || "載入失敗", true);
-      renderDebug();
-    }
-  }
-
-  function bindEvents() {
-    el.openCardBtn?.addEventListener("click", onOpenCard);
-    el.copyLinkBtn?.addEventListener("click", onCopyCardLink);
-    el.shareCardBtn?.addEventListener("click", onShareCard);
-    el.recommendBtn?.addEventListener("click", onRecommend);
-    el.helpBtn?.addEventListener("click", openDialog);
-    el.lineOABtn?.addEventListener("click", onOpenLineOA);
-    el.dialogCloseBtn?.addEventListener("click", closeDialog);
-
-    el.shareDialog?.addEventListener("click", (e) => {
-      if (e.target === el.shareDialog) closeDialog();
-    });
-
-    el.qrBox?.addEventListener("click", () => {
-      if (currentPosterQrUrl) {
-        window.open(currentPosterQrUrl, "_blank", "noopener");
-      }
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") closeDialog();
-    });
-  }
-
-  async function fetchCard(cardId) {
-    const requestUrl = `${gas}?action=getCard&id=${encodeURIComponent(cardId)}&_=${Date.now()}`;
-
-    const res = await fetch(requestUrl, {
-      method: "GET",
-      mode: "cors",
-      cache: "no-store"
-    });
-
-    let rawText = "";
-    try {
-      rawText = await res.text();
-    } catch (e) {
-      throw new Error(`讀取 response text 失敗：${e?.message || e}`);
-    }
-
-    let rawJson = null;
-    try {
-      rawJson = rawText ? JSON.parse(rawText) : null;
-    } catch (e) {
-      throw new Error(`回傳不是有效 JSON。原始內容前 500 字：${rawText.slice(0, 500)}`);
-    }
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}。JSON：${safeJsonPreview(rawJson)}`);
-    }
-
-    const item = rawJson?.item || rawJson?.data || rawJson;
-
-    if (!item || typeof item !== "object") {
-      throw new Error(`名片資料格式不正確。JSON：${safeJsonPreview(rawJson)}`);
-    }
-
-    return {
-      requestUrl,
-      httpStatus: `${res.status} ${res.statusText || ""}`.trim(),
-      rawJson,
-      item
-    };
-  }
-
-  function renderPoster(item) {
-    const name = text(item?.name) || text(item?.id) || "我的智慧名片";
-    const title =
-      text(item?.title) ||
-      text(item?.unit) ||
-      text(item?.slogan) ||
-      "";
-
-    if (el.cardName) el.cardName.textContent = name;
-    if (el.cardTitle) el.cardTitle.textContent = title;
-
-    const avatar = getAvatarUrl(item);
-
-    if (el.avatarImg) {
-      el.avatarImg.alt = `${name} 頭像`;
-      el.avatarImg.onerror = () => {
-        el.avatarImg.onerror = null;
-        el.avatarImg.src = buildDefaultAvatarSvg();
-      };
-      el.avatarImg.src = avatar || buildDefaultAvatarSvg();
-    }
-  }
-
-  function getAvatarUrl(item) {
-    return (
-      text(item?.avatar_url) ||
-      text(item?.avatar_img_fast) ||
-      text(item?.avatar_img)
-    );
-  }
-
-  function buildProductCardUrl(item) {
-    const cardId = text(item?.id) || id;
-    return buildUrl("index.html", {
-      id: cardId,
-      view: "1"
-    });
-  }
-
-  function buildRecommendUrl(item) {
-    const explicitReferralLink = text(item?.referral_link);
-    if (explicitReferralLink) return explicitReferralLink;
-
-    const cardId = text(item?.id) || id;
-    const shareAgentId =
-      text(item?.service_agent) ||
-      text(item?.agent_id) ||
-      "";
-
-    return buildUrl("form.html", {
-      share_card_id: cardId,
-      share_agent_id: shareAgentId,
-      share_source: "card_share",
-      share_channel: "poster"
-    });
-  }
-
-  function buildUrl(path, params) {
-    const url = new URL(path, baseUrl);
-    Object.entries(params || {}).forEach(([key, value]) => {
-      if (value === undefined || value === null || String(value).trim() === "") return;
-      url.searchParams.set(key, String(value));
-    });
-    return url.toString();
-  }
-
-  async function renderQrLocal(targetUrl) {
-    if (!el.qrViewport) return;
-
-    hideQrFallback();
-    el.qrViewport.innerHTML = "";
-
-    try {
-      const qrCanvas = await buildQrCanvasWithQuietZone(targetUrl, QR_CONFIG.previewSize);
-      qrCanvas.style.width = "100%";
-      qrCanvas.style.height = "100%";
-      qrCanvas.style.display = "block";
-      qrCanvas.style.objectFit = "contain";
-      qrCanvas.style.imageRendering = "pixelated";
-      el.qrViewport.appendChild(qrCanvas);
-    } catch (err) {
-      console.error(`[HSC Poster ${VERSION}] renderQrLocal error:`, err);
-      renderQrFallback(targetUrl);
-      setStatus("QR 產生失敗，已改顯示名片連結", true);
-    }
-  }
-
-  async function buildQrCanvasWithQuietZone(targetUrl, size = 880) {
-    const innerSize = Math.max(100, Math.round(size * (1 - QR_CONFIG.quietZoneRatio * 2)));
-    const rawCanvas = await buildRawQrCanvas(targetUrl, innerSize);
-
-    const finalCanvas = document.createElement("canvas");
-    finalCanvas.width = size;
-    finalCanvas.height = size;
-
-    const ctx = finalCanvas.getContext("2d");
-    if (!ctx) throw new Error("無法建立 QR 畫布");
-
-    ctx.fillStyle = QR_CONFIG.quietZoneColor;
-    ctx.fillRect(0, 0, size, size);
-
-    const offset = Math.round((size - innerSize) / 2);
-    ctx.drawImage(rawCanvas, offset, offset, innerSize, innerSize);
-    return finalCanvas;
-  }
-
-  async function buildRawQrCanvas(targetUrl, size = 880) {
-    const wrap = document.createElement("div");
-    wrap.style.position = "fixed";
-    wrap.style.left = "-99999px";
-    wrap.style.top = "-99999px";
-    wrap.style.width = `${size}px`;
-    wrap.style.height = `${size}px`;
-    wrap.style.opacity = "0";
-    document.body.appendChild(wrap);
-
-    try {
-      new window.QRCode(wrap, {
-        text: targetUrl,
-        width: size,
-        height: size,
-        colorDark: QR_CONFIG.dark,
-        colorLight: QR_CONFIG.light,
-        correctLevel: window.QRCode.CorrectLevel[QR_CONFIG.correctLevel] || window.QRCode.CorrectLevel.H
-      });
-
-      await wait(220);
-
-      const nodeCanvas = wrap.querySelector("canvas");
-      if (nodeCanvas) {
-        const cloned = document.createElement("canvas");
-        cloned.width = size;
-        cloned.height = size;
-        const clonedCtx = cloned.getContext("2d");
-        if (!clonedCtx) throw new Error("無法複製 QR canvas");
-        clonedCtx.fillStyle = "#ffffff";
-        clonedCtx.fillRect(0, 0, size, size);
-        clonedCtx.drawImage(nodeCanvas, 0, 0, size, size);
-        return cloned;
-      }
-
-      const img = wrap.querySelector("img");
-      if (img && img.src) {
-        const loaded = await createImage(img.src);
-        const canvas = document.createElement("canvas");
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) throw new Error("無法建立 QR image canvas");
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, size, size);
-        ctx.drawImage(loaded, 0, 0, size, size);
-        return canvas;
-      }
-
-      throw new Error("QR 生成失敗");
-    } finally {
-      wrap.remove();
-    }
-  }
-
-  async function renderQrCenterAvatar(avatarUrl) {
-    if (!el.qrCenterAvatar || !el.qrCenterAvatarImg) return;
-
-    if (!avatarUrl) {
-      hideQrCenterAvatar();
-      return;
-    }
-
-    const ok = await loadImage(
-      el.qrCenterAvatarImg,
-      avatarUrl,
-      buildDefaultAvatarSvg()
-    );
-
-    if (!ok) {
-      hideQrCenterAvatar();
-      return;
-    }
-
-    const ratioPercent = `${Math.round(QR_CONFIG.centerAvatarRatio * 100)}%`;
-
-    el.qrCenterAvatar.style.width = ratioPercent;
-    el.qrCenterAvatar.style.height = ratioPercent;
-    el.qrCenterAvatar.style.aspectRatio = "1 / 1";
-    el.qrCenterAvatar.style.position = "absolute";
-    el.qrCenterAvatar.style.left = "50%";
-    el.qrCenterAvatar.style.top = "50%";
-    el.qrCenterAvatar.style.transform = "translate(-50%, -50%)";
-    el.qrCenterAvatar.style.display = "flex";
-    el.qrCenterAvatar.style.alignItems = "center";
-    el.qrCenterAvatar.style.justifyContent = "center";
-    el.qrCenterAvatar.style.overflow = "hidden";
-    el.qrCenterAvatar.style.borderRadius = "999px";
-    el.qrCenterAvatar.style.background = "#ffffff";
-    el.qrCenterAvatar.style.boxSizing = "border-box";
-    el.qrCenterAvatar.style.border = `${QR_CONFIG.centerAvatarBorder}px solid #ffffff`;
-    el.qrCenterAvatar.style.zIndex = "3";
-
-    el.qrCenterAvatarImg.style.display = "block";
-    el.qrCenterAvatarImg.style.width = "100%";
-    el.qrCenterAvatarImg.style.height = "100%";
-    el.qrCenterAvatarImg.style.objectFit = "cover";
-    el.qrCenterAvatarImg.style.borderRadius = "999px";
-
-    el.qrCenterAvatar.classList.add("show");
-  }
-
-  function hideQrCenterAvatar() {
-    if (!el.qrCenterAvatar || !el.qrCenterAvatarImg) return;
-    el.qrCenterAvatar.classList.remove("show");
-    el.qrCenterAvatarImg.removeAttribute("src");
-  }
-
-  function renderQrFallback(url) {
-    if (el.qrViewport) el.qrViewport.innerHTML = "";
-    hideQrCenterAvatar();
-
-    if (el.qrLinkFallback) {
-      el.qrLinkFallback.classList.add("show");
-      el.qrLinkFallback.textContent = url ? `名片連結：${url}` : "QR 暫時無法顯示";
-    }
-  }
-
-  function hideQrFallback() {
-    if (el.qrLinkFallback) {
-      el.qrLinkFallback.classList.remove("show");
-      el.qrLinkFallback.textContent = "";
-    }
-  }
-
-  function onOpenCard() {
-    if (!currentPosterQrUrl) {
-      setStatus("名片連結尚未建立", true);
-      return;
-    }
-    window.open(currentPosterQrUrl, "_blank", "noopener");
-  }
-
-  async function onCopyCardLink() {
-    if (!currentPosterQrUrl) {
-      setStatus("名片連結尚未建立", true);
-      return;
-    }
-    const ok = await copyText(currentPosterQrUrl);
-    setStatus(ok ? "名片連結已複製" : "複製失敗", !ok);
-  }
-
-  async function onShareCard() {
-    const targetUrl = currentPosterQrUrl || currentProductCardUrl;
-    if (!targetUrl) {
-      setStatus("名片連結尚未建立", true);
-      return;
-    }
-
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: currentItem?.name ? `${currentItem.name} 的智慧名片` : "我的智慧名片",
-          text: "這是我的智慧名片，歡迎查看。",
-          url: targetUrl
-        });
-        setStatus("已開啟分享");
-        return;
-      }
-
-      const ok = await copyText(targetUrl);
-      setStatus(ok ? "已改為複製名片連結" : "分享失敗", !ok);
-    } catch (err) {
-      if (err?.name === "AbortError") return;
-      const ok = await copyText(targetUrl);
-      setStatus(ok ? "已改為複製名片連結" : "分享失敗", !ok);
-    }
-  }
-
-  function onRecommend() {
-    if (!currentRecommendUrl) {
-      setStatus("推薦連結尚未建立", true);
-      return;
-    }
-    window.open(currentRecommendUrl, "_blank", "noopener");
-  }
-
-  function onOpenLineOA() {
-    if (!lineOA) {
-      setStatus("LINE 官方帳號連結未設定", true);
-      return;
-    }
-    window.open(lineOA, "_blank", "noopener");
-  }
-
-  function openDialog() {
-    if (!el.shareDialog) return;
-    el.shareDialog.classList.add("show");
-    el.shareDialog.setAttribute("aria-hidden", "false");
-  }
-
-  function closeDialog() {
-    if (!el.shareDialog) return;
-    el.shareDialog.classList.remove("show");
-    el.shareDialog.setAttribute("aria-hidden", "true");
-  }
-
-  function setStatus(message, isError = false) {
-    if (!el.statusText) return;
-    el.statusText.textContent = message || "";
-    el.statusText.classList.toggle("error", !!isError);
-  }
-
-  function text(v) {
-    return String(v || "").trim();
-  }
-
-  function normalizeBase(v) {
-    const s = String(v || "").trim();
-    if (!s) return "";
-    return s.endsWith("/") ? s : `${s}/`;
-  }
-
-  function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  function loadImage(imgEl, src, fallback = "") {
-    return new Promise((resolve) => {
-      if (!imgEl) return resolve(false);
-
-      let triedFallback = false;
-      imgEl.onload = () => resolve(true);
-      imgEl.onerror = () => {
-        if (!triedFallback && fallback) {
-          triedFallback = true;
-          imgEl.src = fallback;
-          return;
-        }
-        resolve(false);
-      };
-      imgEl.src = src;
-    });
-  }
-
-  function createImage(src) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error("圖片載入失敗"));
-      img.src = src;
-    });
-  }
-
-  async function copyText(value) {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(value);
-        return true;
-      }
-      return legacyCopyText(value);
-    } catch {
-      return legacyCopyText(value);
-    }
-  }
-
-  function legacyCopyText(value) {
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = value;
-      ta.setAttribute("readonly", "readonly");
-      ta.style.position = "fixed";
-      ta.style.top = "-9999px";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      ta.setSelectionRange(0, ta.value.length);
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      return !!ok;
-    } catch {
-      return false;
-    }
-  }
-
-  function buildDefaultAvatarSvg() {
-    return "data:image/svg+xml;utf8," + encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
-        <rect width="320" height="320" rx="160" fill="#eadfd4"/>
-        <circle cx="160" cy="122" r="58" fill="#d0b8a3"/>
-        <rect x="72" y="202" width="176" height="84" rx="42" fill="#d0b8a3"/>
-      </svg>
-    `);
-  }
-
-  function ensureDebugPanel() {
-    if (document.getElementById("posterDebugPanel")) return;
-
-    const panel = document.createElement("section");
-    panel.id = "posterDebugPanel";
-    panel.style.margin = "16px 0 0";
-    panel.style.padding = "14px";
-    panel.style.background = "#fffaf3";
-    panel.style.border = "1px dashed rgba(154,106,68,.35)";
-    panel.style.borderRadius = "18px";
-    panel.style.fontSize = "12px";
-    panel.style.lineHeight = "1.7";
-    panel.style.color = "#433227";
-    panel.innerHTML = `
-      <div style="font-weight:900;margin-bottom:8px;">交付卡除錯面板</div>
-      <pre id="posterDebugPre" style="margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;"></pre>
-    `;
-
-    const target =
-      document.querySelector(".hero-body") ||
-      document.body;
-
-    target.appendChild(panel);
-  }
-
-  function renderDebug() {
-    const pre = document.getElementById("posterDebugPre");
-    if (!pre) return;
-
-    pre.textContent = [
-      `VERSION: ${debugState.version}`,
-      ``,
-      `REQUEST URL:`,
-      `${debugState.requestUrl || "(尚未建立)"}`,
-      ``,
-      `HTTP STATUS:`,
-      `${debugState.httpStatus || "(尚未收到)"}`,
-      ``,
-      `ERROR:`,
-      `${debugState.error || "(無)"}`,
-      ``,
-      `RAW RESPONSE JSON:`,
-      `${safeJson(debugState.rawResponse)}`,
-      ``,
-      `PARSED ITEM:`,
-      `${safeJson(debugState.parsedItem)}`,
-      ``,
-      `BUILT VALUES:`,
-      `${safeJson(debugState.built)}`
-    ].join("\n");
-  }
-
-  function safeJson(obj) {
-    try {
-      return JSON.stringify(obj, null, 2);
-    } catch {
-      return String(obj);
-    }
-  }
-
-  function safeJsonPreview(obj) {
-    try {
-      return JSON.stringify(obj).slice(0, 500);
-    } catch {
-      return String(obj).slice(0, 500);
-    }
   }
 })();
