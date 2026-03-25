@@ -1,23 +1,17 @@
 /* ==========================================
- * HSC Poster v5.6.5-delivery-ui-safe
+ * HSC Poster v5.6.5-delivery-upsell-safe-getCard
  * COMPLETE OVERWRITE
  *
- * 基礎：
- * - 保留 v710 全功能，不精簡
- * - 保留 v710.2 分享追蹤 / QR 智慧升級
- * - 保留 v710.3 QR 中央頭像修正
- *
- * 本版新增：
- * 1. 建立交付卡統一狀態資料層 window.__CARD_STATE__
- * 2. 新增「名片管理與權限」區塊渲染
- * 3. 新增「推薦與代理資訊」區塊渲染
- * 4. 保留原 UI 主線，不重做整頁
+ * 修正重點：
+ * 1. fetchCard 改為 action=getCard
+ * 2. 保留既有交付卡主功能
+ * 3. 保留資訊區塊與導購區塊
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "v5.6.5-delivery-ui-safe";
+  const VERSION = "v5.6.5-delivery-upsell-safe-getCard";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -93,7 +87,18 @@
 
     partnerCommissionBlock: document.getElementById("partnerCommissionBlock"),
     commissionMonthlyText: document.getElementById("commissionMonthlyText"),
-    commissionTotalText: document.getElementById("commissionTotalText")
+    commissionTotalText: document.getElementById("commissionTotalText"),
+
+    updateExhaustedHint: document.getElementById("updateExhaustedHint"),
+    photoUpsellHint: document.getElementById("photoUpsellHint"),
+    ctaUpsellHint: document.getElementById("ctaUpsellHint"),
+    marqueeUpsellHint: document.getElementById("marqueeUpsellHint"),
+    comboUpsellHint: document.getElementById("comboUpsellHint"),
+    manageUpsellBtn: document.getElementById("manageUpsellBtn"),
+
+    agentUpgradeBlock: document.getElementById("agentUpgradeBlock"),
+    agentUpgradeTitle: document.getElementById("agentUpgradeTitle"),
+    agentUpgradeBtn: document.getElementById("agentUpgradeBtn")
   };
 
   let currentItem = null;
@@ -172,6 +177,8 @@
     el.dialogCloseBtn?.addEventListener("click", closeDialog);
     el.updateEntryBtn?.addEventListener("click", onOpenUpdateEntry);
     el.copyReferralLinkBtn?.addEventListener("click", onCopyReferralLink);
+    el.manageUpsellBtn?.addEventListener("click", onManageUpsell);
+    el.agentUpgradeBtn?.addEventListener("click", onAgentUpgrade);
 
     el.shareDialog?.addEventListener("click", (e) => {
       if (e.target === el.shareDialog) closeDialog();
@@ -189,7 +196,7 @@
   }
 
   async function fetchCard(cardId) {
-    const url = `${gas}?action=card&id=${encodeURIComponent(cardId)}&_=${Date.now()}`;
+    const url = `${gas}?action=getCard&id=${encodeURIComponent(cardId)}&_=${Date.now()}`;
 
     const res = await fetch(url, {
       method: "GET",
@@ -265,6 +272,31 @@
         el.updateEntryWrap.classList.add("hidden");
       }
     }
+
+    const updateUsedOut =
+      !state.updateUnlimited && Number(state.updateRemaining) <= 0;
+
+    if (el.updateExhaustedHint) {
+      el.updateExhaustedHint.classList.toggle("hidden", !updateUsedOut);
+    }
+
+    if (el.photoUpsellHint) {
+      el.photoUpsellHint.classList.remove("hidden");
+    }
+
+    if (el.ctaUpsellHint) {
+      el.ctaUpsellHint.classList.remove("hidden");
+    }
+
+    if (el.marqueeUpsellHint) {
+      const showMarqueeUpsell = !state.marqueePurchased;
+      el.marqueeUpsellHint.classList.toggle("hidden", !showMarqueeUpsell);
+    }
+
+    if (el.comboUpsellHint) {
+      const showComboUpsell = !state.updateUnlimited || !state.marqueePurchased;
+      el.comboUpsellHint.classList.toggle("hidden", !showComboUpsell);
+    }
   }
 
   function renderAgentSection(item, state) {
@@ -312,6 +344,16 @@
       el.copyReferralLinkBtn.disabled = !state.referralLink;
       el.copyReferralLinkBtn.style.opacity = state.referralLink ? "" : "0.56";
       el.copyReferralLinkBtn.style.cursor = state.referralLink ? "" : "not-allowed";
+    }
+
+    if (el.agentUpgradeBlock) {
+      const showUpgrade = state.agentRole !== "partner";
+      el.agentUpgradeBlock.classList.toggle("hidden", !showUpgrade);
+    }
+
+    if (el.agentUpgradeTitle) {
+      const remain = Math.max(0, normalizeNumberLike(state.upgradeRemainingPoints, 0));
+      el.agentUpgradeTitle.textContent = `再累積 ${formatInt(remain)} 點可升級合作代理`;
     }
   }
 
@@ -1139,6 +1181,38 @@
     window.open(currentUpdateUrl, "_blank", "noopener");
   }
 
+  function onManageUpsell() {
+    console.log("[HSC upsell] manage upsell click", {
+      id,
+      cardId: currentItem?.id || "",
+      state: window.__CARD_STATE__,
+      type: "manage_upsell"
+    });
+
+    if (lineOA) {
+      window.open(lineOA, "_blank", "noopener");
+      return;
+    }
+
+    alert("請聯繫客服開通升級方案");
+  }
+
+  function onAgentUpgrade() {
+    console.log("[HSC upsell] agent upgrade click", {
+      id,
+      cardId: currentItem?.id || "",
+      state: window.__CARD_STATE__,
+      type: "agent_upgrade"
+    });
+
+    if (lineOA) {
+      window.open(lineOA, "_blank", "noopener");
+      return;
+    }
+
+    alert("請聯繫客服了解合作代理升級方式");
+  }
+
   function onOpenLineOA() {
     if (!lineOA) {
       setStatus("LINE 官方帳號連結未設定", true);
@@ -1340,5 +1414,4 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
   }
-
 })();
