@@ -8,7 +8,7 @@
   />
   <title>天使幸福智慧名片｜智慧名片交付卡</title>
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="stylesheet" href="./poster.css?v=565-delivery-ui-safe" />
+  <link rel="stylesheet" href="./poster.css?v=565-safe" />
 </head>
 <body>
   <main class="page">
@@ -48,100 +48,99 @@
           </div>
         </section>
 
-        <div id="statusText" class="status"></div>
-
         <!-- 新增區塊 1：名片管理與權限 -->
-        <section id="cardManageBlock" class="info-card" aria-label="名片管理與權限">
+        <section id="manageCardSection" class="info-card-section" aria-label="名片管理與權限">
           <div class="info-card-head">
             <h3 class="info-card-title">名片管理與權限</h3>
-            <div class="info-card-sub">依目前方案與開通狀態顯示</div>
+            <div class="info-card-sub">依目前方案自動顯示</div>
           </div>
 
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">更新次數</div>
-              <div id="manageUpdateLimit" class="info-value">—</div>
+              <div id="updateRemainingText" class="info-value">--</div>
             </div>
+
             <div class="info-item">
               <div class="info-label">照片上限</div>
-              <div id="managePhotoLimit" class="info-value">—</div>
+              <div id="photoLimitText" class="info-value">--</div>
             </div>
+
             <div class="info-item">
               <div class="info-label">CTA 上限</div>
-              <div id="manageCtaLimit" class="info-value">—</div>
+              <div id="ctaLimitText" class="info-value">--</div>
             </div>
+
             <div class="info-item">
               <div class="info-label">跑馬燈狀態</div>
-              <div id="manageMarqueeStatus" class="info-value">—</div>
+              <div id="marqueeStatusText" class="info-value">--</div>
             </div>
           </div>
 
-          <div class="info-actions">
-            <button id="updateDataBtn" class="btn btn-soft" type="button">前往更新資料</button>
+          <div id="updateEntryWrap" class="inline-action-row hidden">
+            <button id="updateEntryBtn" class="btn btn-soft" type="button">前往更新資料</button>
           </div>
         </section>
 
         <!-- 新增區塊 2：推薦與代理資訊 -->
-        <section id="agentInfoBlock" class="info-card" aria-label="推薦與代理資訊">
+        <section id="agentInfoSection" class="info-card-section" aria-label="推薦與代理資訊">
           <div class="info-card-head">
             <h3 class="info-card-title">推薦與代理資訊</h3>
-            <div class="info-card-sub">推薦與合作資料一覽</div>
+            <div class="info-card-sub">推薦成果與身份資訊</div>
           </div>
 
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">身份</div>
-              <div id="agentRoleDisplayText" class="info-value">—</div>
+              <div id="agentRoleDisplayText" class="info-value">--</div>
             </div>
+
             <div class="info-item">
               <div class="info-label">推薦客戶</div>
-              <div id="agentReferralCount" class="info-value">0</div>
+              <div id="referralCountText" class="info-value">0</div>
             </div>
+
             <div class="info-item">
               <div class="info-label">已成交</div>
-              <div id="agentConvertedCount" class="info-value">0</div>
+              <div id="convertedCountText" class="info-value">0</div>
             </div>
+
             <div class="info-item">
               <div class="info-label">點數</div>
-              <div id="agentRewardPoints" class="info-value">0</div>
+              <div id="rewardPointsText" class="info-value">0</div>
+            </div>
+
+            <div class="info-item info-item-wide">
+              <div class="info-label">推薦碼</div>
+              <div id="referralCodeText" class="info-value value-break">--</div>
+            </div>
+
+            <div class="info-item info-item-wide">
+              <div class="info-label">推薦連結</div>
+              <div id="referralLinkText" class="info-value value-break">--</div>
             </div>
           </div>
 
-          <div class="info-stack">
-            <div class="copy-card">
-              <div class="copy-card-head">
-                <div class="info-label">推薦碼</div>
-              </div>
-              <div class="copy-line">
-                <div id="agentReferralCode" class="copy-value">—</div>
-                <button id="copyReferralCodeBtn" class="mini-btn" type="button">複製</button>
-              </div>
-            </div>
-
-            <div class="copy-card">
-              <div class="copy-card-head">
-                <div class="info-label">推薦連結</div>
-              </div>
-              <div class="copy-line copy-line-col">
-                <div id="agentReferralLink" class="copy-value copy-value-link">—</div>
-                <button id="copyReferralLinkBtn" class="mini-btn" type="button">複製推薦連結</button>
-              </div>
-            </div>
+          <div class="inline-action-row">
+            <button id="copyReferralLinkBtn" class="btn btn-soft" type="button">複製推薦連結</button>
           </div>
 
-          <div id="partnerCommissionBlock" class="partner-commission" hidden>
-            <div class="info-grid">
-              <div class="info-item info-item-highlight">
+          <div id="partnerCommissionBlock" class="partner-block hidden">
+            <div class="partner-grid">
+              <div class="info-item">
                 <div class="info-label">本月分潤</div>
-                <div id="agentCommissionMonthly" class="info-value">0</div>
+                <div id="commissionMonthlyText" class="info-value">0</div>
               </div>
-              <div class="info-item info-item-highlight">
+
+              <div class="info-item">
                 <div class="info-label">累計分潤</div>
-                <div id="agentCommissionTotal" class="info-value">0</div>
+                <div id="commissionTotalText" class="info-value">0</div>
               </div>
             </div>
           </div>
         </section>
+
+        <div id="statusText" class="status"></div>
 
         <section class="action-group">
           <h3 class="group-title">主要操作</h3>
@@ -188,6 +187,6 @@
   </div>
 
   <script src="./qrcode.min.js"></script>
-  <script src="./poster.js?v=565-delivery-ui-safe"></script>
+  <script src="./poster.js?v=565-safe"></script>
 </body>
 </html>
