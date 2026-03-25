@@ -1,24 +1,22 @@
 /* ==========================================
- * HSC Poster v710.3
+ * HSC Poster v5.6.5-delivery-state-safe
  * COMPLETE OVERWRITE
  *
  * 基礎：
  * - 保留 v710 全功能，不精簡
  * - 保留 v710.2 分享追蹤 / QR 智慧升級
+ * - 保留 v710.3 QR 中央頭像修正
  *
- * 本版修正：
- * 1. 修正交付卡 QR 中央頭像：
- *    - 縮小外層頭像框，而不是只縮 img
- *    - 白框跟著一起縮小
- *    - img 100% 填滿容器，避免頭像消失
- * 2. 海報 QR 文案仍為「掃描 QR Code」
- * 3. 交付卡頁內 QR 維持可點擊、可掃描
+ * 本版新增：
+ * 1. 建立交付卡統一狀態資料層 window.__CARD_STATE__
+ * 2. 只整理 poster.js 資料，不改 poster.html / 不新增 UI
+ * 3. 保留原 render 主線
  * ========================================== */
 
 (() => {
   "use strict";
 
-  const VERSION = "710.3";
+  const VERSION = "v5.6.5-delivery-state-safe";
 
   const DEFAULT_GAS =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
@@ -35,7 +33,7 @@
     dark: "#2f241d",
     light: "#ffffff",
     correctLevel: "H",
-    centerAvatarRatio: 0.16,   // 交付卡頁中央頭像框比例（縮小後）
+    centerAvatarRatio: 0.16,
     centerAvatarBorder: 5,
     quietZoneRatio: 0.075,
     quietZoneColor: "#ffffff"
@@ -94,6 +92,8 @@
     share_visit_id: ""
   };
 
+  window.__CARD_STATE__ = buildCardState(null);
+
   bindEvents();
   init();
 
@@ -108,6 +108,8 @@
 
       const item = await fetchCard(id);
       currentItem = item;
+
+      window.__CARD_STATE__ = buildCardState(item);
 
       currentShareContext = resolveShareContext(item);
 
@@ -124,6 +126,7 @@
       setStatus("");
     } catch (err) {
       console.error(`[HSC Poster ${VERSION}] init error:`, err);
+      window.__CARD_STATE__ = buildCardState(currentItem || null);
       renderPoster(null);
       renderQrFallback(currentPosterQrUrl || currentProductCardUrl || "");
       setStatus(err.message || "載入失敗", true);
@@ -215,6 +218,78 @@
     );
   }
 
+  function buildCardState(item) {
+    const plan = normalizePlan(item?.plan);
+
+    const updateUnlimited = toBool(item?.update_unlimited);
+    const rawUpdateRemaining = item?.update_limit_remaining;
+    const updateRemaining = updateUnlimited
+      ? "∞"
+      : normalizeCount(rawUpdateRemaining, 0);
+
+    const photoLimit = hasValue(item?.photo_limit)
+      ? normalizeCount(item?.photo_limit, plan === "premium" ? 5 : 2)
+      : (plan === "premium" ? 5 : 2);
+
+    const ctaLimit = hasValue(item?.cta_limit)
+      ? normalizeCount(item?.cta_limit, plan === "premium" ? 3 : 1)
+      : (plan === "premium" ? 3 : 1);
+
+    const marqueePurchased = toBool(item?.marquee_purchased);
+    const marqueeEnabled = marqueePurchased
+      ? toBool(item?.marquee_enabled)
+      : false;
+
+    return {
+      updateRemaining,
+      updateUnlimited,
+      photoLimit,
+      ctaLimit,
+      marqueeEnabled,
+      marqueePurchased,
+      agentRole: text(item?.agent_role),
+      agentRoleDisplay: text(item?.agent_role_display),
+      rewardPoints: normalizeNumberLike(item?.reward_points, 0),
+      referralCount: normalizeNumberLike(item?.referral_count, 0),
+      convertedCount: normalizeNumberLike(item?.converted_count, 0),
+      commissionTotal: normalizeNumberLike(item?.commission_total, 0),
+      commissionMonthly: normalizeNumberLike(item?.commission_monthly, 0),
+      upgradeRemainingPoints: normalizeNumberLike(item?.upgrade_remaining_points, 0),
+      referralCode: text(item?.referral_code),
+      referralLink: text(item?.referral_link)
+    };
+  }
+
+  function normalizePlan(plan) {
+    const v = text(plan).toLowerCase();
+    if (v === "premium") return "premium";
+    return "free";
+  }
+
+  function hasValue(v) {
+    return !(v === undefined || v === null || String(v).trim() === "");
+  }
+
+  function toBool(v) {
+    if (v === true) return true;
+    if (v === false) return false;
+
+    const s = String(v || "").trim().toLowerCase();
+    return s === "true" || s === "1" || s === "yes" || s === "y" || s === "on";
+  }
+
+  function normalizeCount(v, fallback = 0) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(0, Math.floor(n));
+  }
+
+  function normalizeNumberLike(v, fallback = 0) {
+    if (v === null || v === undefined || String(v).trim() === "") return fallback;
+    const n = Number(String(v).replace(/,/g, "").trim());
+    return Number.isFinite(n) ? n : fallback;
+  }
+
   function resolveShareContext(item) {
     const cardId = text(item?.id) || id;
     const serviceAgent =
@@ -238,7 +313,8 @@
     if (v === "product_card") return "product_card";
     return "poster";
   }
-function buildPosterShareUrl(item, ctx) {
+
+  function buildPosterShareUrl(item, ctx) {
     const cardId = text(item?.id) || id;
     return buildUrl("poster.html", {
       id: cardId,
@@ -351,7 +427,6 @@ function buildPosterShareUrl(item, ctx) {
 
     const ratioPercent = `${Math.round(QR_CONFIG.centerAvatarRatio * 100)}%`;
 
-    // 關鍵修正：縮小外層頭像框，不是只縮小 img
     el.qrCenterAvatar.style.width = ratioPercent;
     el.qrCenterAvatar.style.height = ratioPercent;
     el.qrCenterAvatar.style.aspectRatio = "1 / 1";
@@ -369,7 +444,6 @@ function buildPosterShareUrl(item, ctx) {
     el.qrCenterAvatar.style.border = `${QR_CONFIG.centerAvatarBorder}px solid #ffffff`;
     el.qrCenterAvatar.style.zIndex = "3";
 
-    // img 填滿容器，避免頭像不見
     el.qrCenterAvatarImg.style.display = "block";
     el.qrCenterAvatarImg.style.width = "100%";
     el.qrCenterAvatarImg.style.height = "100%";
@@ -514,7 +588,8 @@ function buildPosterShareUrl(item, ctx) {
 
     return finalCanvas;
   }
-async function buildRawQrCanvas(targetUrl, size = 880) {
+
+  async function buildRawQrCanvas(targetUrl, size = 880) {
     const wrap = document.createElement("div");
     wrap.style.position = "fixed";
     wrap.style.left = "-99999px";
@@ -734,7 +809,8 @@ async function buildRawQrCanvas(targetUrl, size = 880) {
     ctx.fillStyle = "#9a6a44";
     ctx.fillText("智慧名片交付卡", width / 2, y + pillH / 2 + 1);
   }
-function drawNameAndTitle(ctx, width, name, title) {
+
+  function drawNameAndTitle(ctx, width, name, title) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
@@ -970,7 +1046,8 @@ function drawNameAndTitle(ctx, width, name, title) {
       .replace(/\s+/g, "-")
       .slice(0, 60);
   }
-function buildDefaultAvatarSvg() {
+
+  function buildDefaultAvatarSvg() {
     return "data:image/svg+xml;utf8," + encodeURIComponent(`
       <svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
         <rect width="320" height="320" rx="160" fill="#eadfd4"/>
