@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>HSC 後台管理系統 v6.2</title>
+  <title>HSC 後台管理系統 v6.2.1</title>
   <meta name="theme-color" content="#f7f5f1" />
   <meta name="format-detection" content="telephone=no" />
-  <link rel="stylesheet" href="./admin.css?v=620" />
+  <link rel="stylesheet" href="./admin.css?v=6211" />
 </head>
 <body>
   <div id="app" class="app">
@@ -14,7 +14,7 @@
       <div class="brand-block">
         <h1>HSC 後台管理系統</h1>
         <p class="topbar-sub">
-          v6.2 完整後台流程整合版｜申請碼 / 卡片 / 預覽 / 交付 / 更新 / 加購 / 續約 / 代理 / 分潤 / 多管理員
+          v6.2.1 對齊版｜已對齊 v5.9.1-admin-log-clean
         </p>
       </div>
 
@@ -72,47 +72,23 @@
               <h2>儀表板 Dashboard</h2>
             </div>
             <div class="stats-grid stats-grid-5">
-              <div class="stat-box">
-                <div class="stat-label">待付款</div>
-                <div class="stat-value" id="statUnpaid">-</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">待交付</div>
-                <div class="stat-value" id="statNeedDelivery">-</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">待續約</div>
-                <div class="stat-value" id="statNeedRenewal">-</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">待加購處理</div>
-                <div class="stat-value" id="statAddonPending">-</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">代理數</div>
-                <div class="stat-value" id="statAgents">-</div>
-              </div>
+              <div class="stat-box"><div class="stat-label">待付款</div><div class="stat-value" id="statUnpaid">-</div></div>
+              <div class="stat-box"><div class="stat-label">待交付</div><div class="stat-value" id="statNeedDelivery">-</div></div>
+              <div class="stat-box"><div class="stat-label">待續約</div><div class="stat-value" id="statNeedRenewal">-</div></div>
+              <div class="stat-box"><div class="stat-label">待加購處理</div><div class="stat-value" id="statAddonPending">-</div></div>
+              <div class="stat-box"><div class="stat-label">代理數</div><div class="stat-value" id="statAgents">-</div></div>
             </div>
           </div>
 
           <div class="card">
-            <div class="card-header">
-              <h2>今日重點清單</h2>
-            </div>
+            <div class="card-header"><h2>今日重點清單</h2></div>
             <div id="dashboardFocus" class="focus-list empty-state">尚未載入資料</div>
           </div>
         </section>
 
         <section id="inviteSection" class="section">
           <div class="card">
-            <div class="card-header">
-              <h2>申請碼 / 邀請碼管理</h2>
-              <div class="header-actions">
-                <input id="inviteSearch" class="input" type="text" placeholder="搜尋邀請碼 / ref / service_agent" />
-                <button id="btnSearchInvites" class="btn btn-primary">搜尋</button>
-                <button id="btnReloadInvites" class="btn btn-soft">重新載入</button>
-              </div>
-            </div>
+            <div class="card-header"><h2>申請碼 / 邀請碼管理</h2></div>
 
             <div class="form-grid">
               <div class="field">
@@ -133,7 +109,7 @@
               </div>
               <div class="field">
                 <label for="createInviteAgentType">agent_type</label>
-                <input id="createInviteAgentType" class="input" type="text" placeholder="例如 self / service / partner" />
+                <input id="createInviteAgentType" class="input" type="text" placeholder="例如 referral / partner / self" />
               </div>
               <div class="field">
                 <label for="createInviteSource">source</label>
@@ -146,32 +122,12 @@
             </div>
 
             <div class="result-box">
-              <div class="result-title">新建立邀請碼</div>
+              <div class="result-title">建立結果</div>
               <pre id="inviteCreateResult">尚未建立。</pre>
             </div>
-          </div>
 
-          <div class="card">
-            <div class="card-header">
-              <h2>邀請碼列表</h2>
-            </div>
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>invite_code</th>
-                    <th>status</th>
-                    <th>referrer</th>
-                    <th>service_agent</th>
-                    <th>source</th>
-                    <th>expires_at</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody id="invitesTableBody">
-                  <tr><td colspan="7" class="empty-cell">尚未載入資料</td></tr>
-                </tbody>
-              </table>
+            <div class="hint-box mt16">
+              目前 v5.9.1 GAS 未提供 invite list action，因此這裡先做「建立邀請碼 / 複製申請連結 / 複製客服文案」流程，不做全表 invite 查詢。
             </div>
           </div>
         </section>
@@ -186,6 +142,7 @@
                 <button id="btnReloadCards" class="btn btn-soft">重新載入</button>
               </div>
             </div>
+
             <div class="table-wrap">
               <table class="data-table">
                 <thead>
@@ -217,10 +174,7 @@
                 <button id="btnLoadCardDetail" class="btn btn-soft">查詢詳情</button>
               </div>
             </div>
-
-            <div id="cardDetailWrap" class="detail-stack empty-state">
-              請先從卡片列表點一筆，或手動輸入 card_id 查詢。
-            </div>
+            <div id="cardDetailWrap" class="detail-stack empty-state">請先選取卡片。</div>
           </div>
         </section>
 
@@ -302,7 +256,7 @@
             <div class="card-header">
               <h2>加購管理</h2>
               <div class="header-actions">
-                <input id="addonSearch" class="input" type="text" placeholder="搜尋 card_id / add_on_order_id / agent_id" />
+                <input id="addonSearch" class="input" type="text" placeholder="搜尋 card_id / addon_order_id / item_code" />
                 <button id="btnSearchAddons" class="btn btn-primary">搜尋</button>
                 <button id="btnReloadAddons" class="btn btn-soft">重新載入</button>
               </div>
@@ -312,9 +266,9 @@
               <table class="data-table">
                 <thead>
                   <tr>
-                    <th>add_on_order_id</th>
+                    <th>addon_order_id</th>
                     <th>card_id</th>
-                    <th>item_code</th>
+                    <th>addon_type / item_code</th>
                     <th>qty</th>
                     <th>status</th>
                     <th>amount</th>
@@ -333,7 +287,7 @@
             <div class="card-header">
               <h2>加購單詳情</h2>
               <div class="header-actions">
-                <input id="addonDetailId" class="input" type="text" placeholder="輸入 add_on_order_id 後查詢" />
+                <input id="addonDetailId" class="input" type="text" placeholder="輸入 addon_order_id 後查詢" />
                 <button id="btnLoadAddonDetail" class="btn btn-soft">查詢詳情</button>
               </div>
             </div>
@@ -343,23 +297,12 @@
 
         <section id="renewalSection" class="section">
           <div class="card">
-            <div class="card-header">
-              <h2>續約管理</h2>
-            </div>
+            <div class="card-header"><h2>續約管理</h2></div>
 
             <div class="stats-grid stats-grid-3">
-              <div class="stat-box">
-                <div class="stat-label">即將到期（30天內）</div>
-                <div class="stat-value" id="renewalSoonCount">-</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">已到期</div>
-                <div class="stat-value" id="renewalExpiredCount">-</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">待續約付款</div>
-                <div class="stat-value" id="renewalPendingPayCount">-</div>
-              </div>
+              <div class="stat-box"><div class="stat-label">即將到期（30天內）</div><div class="stat-value" id="renewalSoonCount">-</div></div>
+              <div class="stat-box"><div class="stat-label">已到期</div><div class="stat-value" id="renewalExpiredCount">-</div></div>
+              <div class="stat-box"><div class="stat-label">待續約付款</div><div class="stat-value" id="renewalPendingPayCount">-</div></div>
             </div>
 
             <div class="table-wrap mt16">
@@ -443,9 +386,7 @@
 
         <section id="logsSection" class="section">
           <div class="card">
-            <div class="card-header">
-              <h2>點數 / 分潤 / Log</h2>
-            </div>
+            <div class="card-header"><h2>點數 / 分潤 / Log</h2></div>
 
             <div class="form-grid">
               <div class="field">
@@ -531,10 +472,7 @@
 
         <section id="settlementSection" class="section">
           <div class="card">
-            <div class="card-header">
-              <h2>結算管理</h2>
-            </div>
-
+            <div class="card-header"><h2>結算管理</h2></div>
             <div class="form-grid">
               <div class="field">
                 <label for="settlementMonth">settlement_month</label>
@@ -544,7 +482,6 @@
             <div class="action-row">
               <button id="btnBuildSettlement" class="btn btn-primary">建立結算</button>
             </div>
-
             <div class="result-box mt16">
               <div class="result-title">結算回應</div>
               <pre id="settlementResult">尚未執行。</pre>
@@ -559,7 +496,7 @@
               <span class="badge badge-info">前端預留結構</span>
             </div>
             <div class="hint-box">
-              目前此區為 UI 預留。若 GAS 尚未提供 admin_users 相關 action，這裡先以 mock 資料呈現。
+              目前此區為 UI 預留。若後續 GAS 新增 admin_users 相關 action，再接進來。
               <br />
               <code>// TODO: connect GAS action adminListUsers / adminSaveUser / adminDeleteUser</code>
             </div>
@@ -611,6 +548,6 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script src="./admin.js?v=620"></script>
+  <script src="./admin.js?v=6211"></script>
 </body>
 </html>
