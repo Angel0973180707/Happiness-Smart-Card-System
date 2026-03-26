@@ -3,24 +3,254 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>天使幸福智慧名片｜客服後台 v1.5</title>
-  <meta name="theme-color" content="#f6f2eb" />
+  <title>HSC 後台管理系統 v6.0</title>
+  <meta name="theme-color" content="#f7f5f1" />
   <meta name="format-detection" content="telephone=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="HSC 客服後台" />
-  <link rel="stylesheet" href="./admin.css?v=130" />
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app" class="app">
+    <header class="topbar">
+      <div>
+        <h1>HSC 後台管理系統</h1>
+        <p class="topbar-sub">版本 v6.0｜代理 / 點數 / 分潤 / Log / 結算 操作台</p>
+      </div>
+      <div class="topbar-actions">
+        <button id="btnReloadAll" class="btn btn-soft">重新整理</button>
+      </div>
+    </header>
 
-  <noscript>
-    <div style="max-width:780px;margin:40px auto;padding:20px;border:1px solid #ddd;border-radius:16px;background:#fff;">
-      <h1 style="margin:0 0 10px;font-size:22px;">天使幸福智慧名片｜客服後台</h1>
-      <p style="margin:0;color:#666;line-height:1.8;">此頁需要啟用 JavaScript 才能正常使用。</p>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-card">
+          <div class="sidebar-title">功能選單</div>
+          <button class="nav-btn active" data-target="agentsSection">代理管理</button>
+          <button class="nav-btn" data-target="pointsSection">點數管理</button>
+          <button class="nav-btn" data-target="commissionSection">分潤管理</button>
+          <button class="nav-btn" data-target="logsSection">Log 查詢</button>
+          <button class="nav-btn" data-target="settlementSection">結算管理</button>
+        </div>
+
+        <div class="sidebar-card">
+          <div class="sidebar-title">系統狀態</div>
+          <div class="mini-kv">
+            <span>GAS</span>
+            <span id="gasStatus" class="status-pill">待檢查</span>
+          </div>
+          <div class="mini-kv">
+            <span>目前代理數</span>
+            <strong id="agentCount">-</strong>
+          </div>
+          <div class="mini-kv">
+            <span>目前選取代理</span>
+            <strong id="currentAgentLabel">未選取</strong>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <section id="dashboardSection" class="section">
+          <div class="card">
+            <div class="card-header">
+              <h2>操作總覽</h2>
+            </div>
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-label">代理數量</div>
+                <div class="stat-value" id="statAgents">-</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">目前選取代理</div>
+                <div class="stat-value stat-small" id="statCurrentAgent">未選取</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">點數餘額</div>
+                <div class="stat-value" id="statPoints">-</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">累計分潤</div>
+                <div class="stat-value" id="statCommission">-</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="agentsSection" class="section">
+          <div class="card">
+            <div class="card-header">
+              <h2>代理列表</h2>
+              <div class="header-actions">
+                <input id="agentSearch" class="input" type="text" placeholder="搜尋 agent_id / owner_name / agent_type" />
+                <button id="btnSearchAgents" class="btn btn-primary">搜尋</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>agent_id</th>
+                    <th>owner_name</th>
+                    <th>agent_type</th>
+                    <th>member_tier</th>
+                    <th>points_balance</th>
+                    <th>total_commission</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="agentsTableBody">
+                  <tr><td colspan="7" class="empty-cell">尚未載入資料</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2>單一代理詳情</h2>
+              <div class="header-actions">
+                <input id="detailAgentId" class="input" type="text" placeholder="輸入 agent_id 後查詢" />
+                <button id="btnLoadAgentDetail" class="btn btn-soft">查詢詳情</button>
+              </div>
+            </div>
+            <div id="agentDetail" class="detail-grid empty-state">
+              請先從代理列表點選一筆，或手動輸入 agent_id 查詢。
+            </div>
+          </div>
+        </section>
+
+        <section id="pointsSection" class="section">
+          <div class="card">
+            <div class="card-header">
+              <h2>點數操作區</h2>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="pointsAgentId">agent_id</label>
+                <input id="pointsAgentId" class="input" type="text" placeholder="例如 AG001" />
+              </div>
+              <div class="field">
+                <label for="pointsValue">points</label>
+                <input id="pointsValue" class="input" type="number" placeholder="例如 10" />
+              </div>
+              <div class="field field-wide">
+                <label for="pointsNote">備註</label>
+                <input id="pointsNote" class="input" type="text" placeholder="例如：人工補點 / 調整點數" />
+              </div>
+            </div>
+            <div class="action-row">
+              <button id="btnAddPoints" class="btn btn-primary">加點</button>
+              <button id="btnSubtractPoints" class="btn btn-danger">扣點</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="commissionSection" class="section">
+          <div class="card">
+            <div class="card-header">
+              <h2>分潤操作區</h2>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="commissionAgentId">agent_id</label>
+                <input id="commissionAgentId" class="input" type="text" placeholder="例如 AG001" />
+              </div>
+              <div class="field">
+                <label for="commissionValue">amount</label>
+                <input id="commissionValue" class="input" type="number" placeholder="例如 300" />
+              </div>
+              <div class="field field-wide">
+                <label for="commissionNote">備註</label>
+                <input id="commissionNote" class="input" type="text" placeholder="例如：人工補分潤 / 調整佣金" />
+              </div>
+            </div>
+            <div class="action-row">
+              <button id="btnAdjustCommission" class="btn btn-primary">補分潤</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="logsSection" class="section">
+          <div class="card">
+            <div class="card-header">
+              <h2>Log 查詢</h2>
+              <div class="header-actions">
+                <input id="logAgentId" class="input" type="text" placeholder="輸入 agent_id 查詢 log" />
+                <button id="btnLoadLogs" class="btn btn-soft">查詢 Log</button>
+              </div>
+            </div>
+
+            <div class="logs-grid">
+              <div class="sub-card">
+                <div class="sub-card-title">點數 Log</div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>時間</th>
+                        <th>type</th>
+                        <th>before → after</th>
+                        <th>備註</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pointsLogTableBody">
+                      <tr><td colspan="4" class="empty-cell">尚未載入資料</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="sub-card">
+                <div class="sub-card-title">分潤 Log</div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>時間</th>
+                        <th>amount</th>
+                        <th>before → after</th>
+                        <th>備註</th>
+                      </tr>
+                    </thead>
+                    <tbody id="commissionLogTableBody">
+                      <tr><td colspan="4" class="empty-cell">尚未載入資料</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="settlementSection" class="section">
+          <div class="card">
+            <div class="card-header">
+              <h2>結算管理</h2>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="settlementMonth">settlement_month</label>
+                <input id="settlementMonth" class="input" type="month" />
+              </div>
+            </div>
+            <div class="action-row">
+              <button id="btnBuildSettlement" class="btn btn-primary">建立結算</button>
+            </div>
+
+            <div class="result-box">
+              <div class="result-title">結算回應</div>
+              <pre id="settlementResult">尚未執行。</pre>
+            </div>
+          </div>
+        </section>
+      </main>
     </div>
-  </noscript>
+  </div>
 
-  <script src="./admin.js?v=150"></script>
+  <div id="loadingMask" class="loading-mask hidden">
+    <div class="loading-box">資料處理中...</div>
+  </div>
+
+  <script src="./admin.js"></script>
 </body>
 </html>
