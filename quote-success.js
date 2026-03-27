@@ -11,6 +11,7 @@
     openPreviewBtn: document.getElementById("openPreviewBtn"),
     planName: document.getElementById("planName"),
     planAmount: document.getElementById("planAmount"),
+    addonItems: document.getElementById("addonItems"),
     addonAmount: document.getElementById("addonAmount"),
     totalAmount: document.getElementById("totalAmount"),
     replyText: document.getElementById("replyText"),
@@ -39,6 +40,14 @@
       localData = {};
     }
 
+    let addonItems = [];
+    const addonRaw = text(q.get("addon_items")) || "";
+    try {
+      addonItems = addonRaw ? JSON.parse(addonRaw) : (Array.isArray(localData.addon_items) ? localData.addon_items : []);
+    } catch {
+      addonItems = Array.isArray(localData.addon_items) ? localData.addon_items : [];
+    }
+
     return {
       card_id: text(q.get("card_id")) || text(localData.card_id),
       plan_name: text(q.get("plan_name")) || text(localData.plan_name) || "方案",
@@ -48,7 +57,8 @@
       preview_url: text(q.get("preview_url")) || text(localData.preview_url),
       customer_name: text(q.get("customer_name")) || text(localData.customer_name) || "未提供",
       submitted_at: text(q.get("submitted_at")) || text(localData.submitted_at),
-      service_url: text(q.get("service_url")) || text(localData.service_url)
+      service_url: text(q.get("service_url")) || text(localData.service_url),
+      addon_items: addonItems
     };
   }
 
@@ -63,6 +73,7 @@
     if (el.addonAmount) el.addonAmount.textContent = money(data.addon_amount);
     if (el.totalAmount) el.totalAmount.textContent = money(data.total_amount);
     if (el.serviceBtn) el.serviceBtn.href = data.service_url || "#";
+    if (el.addonItems) el.addonItems.textContent = formatAddonItems(data.addon_items);
     if (el.replyText) el.replyText.value = buildReplyText(data);
   }
 
@@ -83,12 +94,22 @@
     });
   }
 
+  function formatAddonItems(items) {
+    if (!Array.isArray(items) || !items.length) return "未加購";
+    return items.map((item) => {
+      const main = `${item.name || "加購"}｜${money(item.amount || 0)}`;
+      if (item.marquee_text) return `${main}\n內容：${item.marquee_text}`;
+      return main;
+    }).join("\n");
+  }
+
   function buildQuoteText(data) {
     return [
       "【天使幸福智慧名片報價單】",
       `卡片編號：${data.card_id || "-"}`,
       `方案名稱：${data.plan_name || "方案"}`,
       `方案金額：${money(data.plan_amount)}`,
+      `加購明細：${formatAddonItems(data.addon_items)}`,
       `加購金額：${money(data.addon_amount)}`,
       `總金額：${money(data.total_amount)}`,
       `成品預覽：${data.preview_url || "-"}`,
@@ -101,6 +122,7 @@
       "您好，我已送出智慧名片申請資料。",
       `卡片編號：${data.card_id || "-"}`,
       `方案：${data.plan_name || "方案"}`,
+      `加購：${formatAddonItems(data.addon_items)}`,
       `總金額：${money(data.total_amount)}`,
       `成品預覽連結：${data.preview_url || "-"}`,
       "我已確認報價與預覽內容，請提供付款資訊，謝謝。"
