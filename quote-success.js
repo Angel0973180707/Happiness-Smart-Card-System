@@ -72,7 +72,7 @@
     if (el.planAmount) el.planAmount.textContent = money(data.plan_amount);
     if (el.addonAmount) el.addonAmount.textContent = money(data.addon_amount);
     if (el.totalAmount) el.totalAmount.textContent = money(data.total_amount);
-    if (el.serviceBtn) el.serviceBtn.href = data.service_url || "#";
+    if (el.serviceBtn) el.serviceBtn.href = "https://lin.ee/G3VJoRm";
     if (el.addonItems) el.addonItems.textContent = formatAddonItems(data.addon_items);
     if (el.replyText) el.replyText.value = buildReplyText(data);
   }
@@ -97,10 +97,20 @@
   function formatAddonItems(items) {
     if (!Array.isArray(items) || !items.length) return "未加購";
     return items.map((item) => {
-      const main = `${item.name || "加購"}｜${money(item.amount || 0)}`;
-      if (item.marquee_text) return `${main}\n內容：${item.marquee_text}`;
-      return main;
-    }).join("\n");
+      let out = "";
+      if (item.qty && item.unit_price) {
+        out = `${item.name || "加購"}｜${item.qty} × ${money(item.unit_price || 0)}｜${money(item.amount || 0)}`;
+      } else {
+        out = `${item.name || "加購"}｜${money(item.amount || 0)}`;
+      }
+      if (Array.isArray(item.messages) && item.messages.length) {
+        out += "
+" + item.messages.map((m, i) => `第 ${i + 1} 則：${m}`).join("
+");
+      }
+      return out;
+    }).join("
+");
   }
 
   function buildQuoteText(data) {

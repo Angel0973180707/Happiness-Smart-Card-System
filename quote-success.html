@@ -6,109 +6,95 @@
   <title>報價與預覽｜天使幸福智慧名片</title>
   <meta name="theme-color" content="#0b1220" />
   <style>
-:root {
-  --card: rgba(255,255,255,.06);
-  --line: rgba(255,255,255,.12);
-  --text: rgba(255,255,255,.95);
-  --muted: rgba(255,255,255,.70);
-  --accent: #7bdcff;
-  --ok: #6ee7b7;
-  --danger: #fb7185;
-  --radius: 20px;
-  --shadow: 0 20px 40px rgba(0,0,0,.28);
-}
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body {
-  margin: 0; padding: 0; min-height: 100%;
-  background:
-    radial-gradient(1000px 720px at 16% -10%, rgba(123,220,255,.15), transparent 62%),
-    radial-gradient(820px 680px at 100% 0%, rgba(255,191,36,.08), transparent 56%),
-    linear-gradient(180deg, #0b1220 0%, #0d1628 100%);
-  color: var(--text);
-  font-family: system-ui, -apple-system, "Noto Sans TC", Segoe UI, Roboto, Arial, sans-serif;
-}
-body { padding: 20px 14px 40px; }
-.wrap { max-width: 920px; margin: 0 auto; }
-.hero { text-align: center; padding: 18px 6px 20px; }
-.hero-badge {
-  display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 8px 12px;
-  border-radius: 999px; border: 1px solid rgba(123,220,255,.28); background: rgba(123,220,255,.10); color: var(--accent); font-size: 12px; font-weight: 900;
-}
-.hero h1 { margin: 12px 0 8px; font-size: 30px; line-height: 1.3; }
-.hero-sub { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.9; }
-.card {
-  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
-  box-shadow: var(--shadow); padding: 18px; margin-bottom: 14px; backdrop-filter: blur(10px);
-}
-.success-top {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-}
-.success-title { font-size: 20px; font-weight: 900; color: var(--ok); }
-.success-desc { margin-top: 6px; color: var(--muted); font-size: 14px; line-height: 1.8; }
-.status-pill {
-  display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 8px 12px;
-  border-radius: 999px; border: 1px solid rgba(251,191,36,.25); background: rgba(251,191,36,.12); color: #ffe29a; font-size: 12px; font-weight: 900;
-}
-.info-grid {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px;
-}
-.info-box {
-  border: 1px solid var(--line); background: rgba(255,255,255,.03); border-radius: 16px; padding: 14px;
-}
-.label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-.value { font-size: 15px; line-height: 1.7; word-break: break-word; }
-.value.strong { font-size: 22px; font-weight: 1000; }
-.value.danger { color: #ffb3c1; font-weight: 900; }
-.section-head { margin-bottom: 12px; }
-.section-head h2 { margin: 0; font-size: 18px; line-height: 1.4; }
-.readonly-input, .reply-box {
-  width: 100%; background: rgba(255,255,255,.04); color: var(--text); border: 1px solid var(--line);
-  border-radius: 14px; padding: 13px 14px; outline: none; font-size: 14px; line-height: 1.8;
-}
-.readonly-input { min-height: 48px; }
-.reply-box { min-height: 170px; resize: vertical; }
-.preview-link-box { display: grid; gap: 12px; }
-.quote-table { display: grid; gap: 10px; }
-.quote-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px;
-  border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.03);
-}
-.quote-row.total { border-color: rgba(123,220,255,.24); background: rgba(123,220,255,.08); }
-.q-label { color: var(--muted); font-size: 14px; }
-.q-value { font-size: 15px; font-weight: 900; text-align: right; white-space: pre-line; }
-.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-button, .btn {
-  cursor: pointer; border: none; border-radius: 14px; padding: 12px 16px; font-weight: 900; font-size: 14px;
-  min-height: 46px; line-height: 1.3; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
-}
-button, .btn.secondary {
-  background: rgba(123,220,255,.14); border: 1px solid rgba(123,220,255,.28); color: #fff;
-}
-.btn.service { background: #22c55e; border: 1px solid rgba(255,255,255,.08); color: #fff; }
-.hint, .notice { margin-top: 12px; font-size: 13px; line-height: 1.9; color: var(--muted); }
-.notice {
-  padding: 12px 14px; border-radius: 14px; border: 1px dashed var(--line); background: rgba(255,255,255,.03);
-}
-@media (max-width: 640px) {
-  .hero h1 { font-size: 24px; }
-  .info-grid { grid-template-columns: 1fr; }
-  .quote-row { align-items: flex-start; flex-direction: column; }
-  .q-value { text-align: left; }
-  .btn-row { flex-direction: column; }
-  button, .btn { width: 100%; }
-}
-
-</style>
+    :root {
+      --card: rgba(255,255,255,.06);
+      --line: rgba(255,255,255,.12);
+      --text: rgba(255,255,255,.95);
+      --muted: rgba(255,255,255,.70);
+      --accent: #7bdcff;
+      --ok: #6ee7b7;
+      --danger: #fb7185;
+      --radius: 20px;
+      --shadow: 0 20px 40px rgba(0,0,0,.28);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0; padding: 0; min-height: 100%;
+      background:
+        radial-gradient(1000px 720px at 16% -10%, rgba(123,220,255,.15), transparent 62%),
+        radial-gradient(820px 680px at 100% 0%, rgba(255,191,36,.08), transparent 56%),
+        linear-gradient(180deg, #0b1220 0%, #0d1628 100%);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Noto Sans TC", Segoe UI, Roboto, Arial, sans-serif;
+    }
+    body { padding: 20px 14px 40px; }
+    .wrap { max-width: 920px; margin: 0 auto; }
+    .hero { text-align: center; padding: 18px 6px 20px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 8px 12px;
+      border-radius: 999px; border: 1px solid rgba(123,220,255,.28); background: rgba(123,220,255,.10); color: var(--accent); font-size: 12px; font-weight: 900;
+    }
+    .hero h1 { margin: 12px 0 8px; font-size: 30px; line-height: 1.3; }
+    .hero-sub { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.9; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 18px; margin-bottom: 14px; backdrop-filter: blur(10px);
+    }
+    .success-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .success-title { font-size: 20px; font-weight: 900; color: var(--ok); }
+    .success-desc { margin-top: 6px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+    .status-pill {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 8px 12px;
+      border-radius: 999px; border: 1px solid rgba(251,191,36,.25); background: rgba(251,191,36,.12); color: #ffe29a; font-size: 12px; font-weight: 900;
+    }
+    .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+    .info-box { border: 1px solid var(--line); background: rgba(255,255,255,.03); border-radius: 16px; padding: 14px; }
+    .label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .value { font-size: 15px; line-height: 1.7; word-break: break-word; white-space: pre-line; }
+    .value.strong { font-size: 22px; font-weight: 1000; }
+    .value.danger { color: #ffb3c1; font-weight: 900; }
+    .section-head { margin-bottom: 12px; }
+    .section-head h2 { margin: 0; font-size: 18px; line-height: 1.4; }
+    .readonly-input, .reply-box {
+      width: 100%; background: rgba(255,255,255,.04); color: var(--text); border: 1px solid var(--line);
+      border-radius: 14px; padding: 13px 14px; outline: none; font-size: 14px; line-height: 1.8;
+    }
+    .readonly-input { min-height: 48px; }
+    .reply-box { min-height: 170px; resize: vertical; }
+    .preview-link-box { display: grid; gap: 12px; }
+    .quote-table { display: grid; gap: 10px; }
+    .quote-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px;
+      border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.03);
+    }
+    .quote-row.total { border-color: rgba(123,220,255,.24); background: rgba(123,220,255,.08); }
+    .q-label { color: var(--muted); font-size: 14px; }
+    .q-value { font-size: 15px; font-weight: 900; text-align: right; white-space: pre-line; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    button, .btn {
+      cursor: pointer; border: none; border-radius: 14px; padding: 12px 16px; font-weight: 900; font-size: 14px;
+      min-height: 46px; line-height: 1.3; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+    }
+    button, .btn.secondary { background: rgba(123,220,255,.14); border: 1px solid rgba(123,220,255,.28); color: #fff; }
+    .btn.service { background: #22c55e; border: 1px solid rgba(255,255,255,.08); color: #fff; }
+    .hint, .notice { margin-top: 12px; font-size: 13px; line-height: 1.9; color: var(--muted); }
+    .notice { padding: 12px 14px; border-radius: 14px; border: 1px dashed var(--line); background: rgba(255,255,255,.03); }
+    @media (max-width: 640px) {
+      .hero h1 { font-size: 24px; }
+      .info-grid { grid-template-columns: 1fr; }
+      .quote-row { align-items: flex-start; flex-direction: column; }
+      .q-value { text-align: left; }
+      .btn-row { flex-direction: column; }
+      button, .btn { width: 100%; }
+    }
+  </style>
 </head>
 <body>
   <div class="wrap">
     <header class="hero">
       <div class="hero-badge">表單已送出</div>
       <h1>報價單＋成品預覽</h1>
-      <p class="hero-sub">
-        請先查看預覽與報價內容，確認後回覆客服。<br>
-        付款確認後，才會開通正式交付卡。
-      </p>
+      <p class="hero-sub">請先查看預覽與報價內容，確認後回覆客服。<br>付款確認後，才會開通正式交付卡。</p>
     </header>
 
     <section class="card success-card">
@@ -121,30 +107,15 @@ button, .btn.secondary {
       </div>
 
       <div class="info-grid">
-        <div class="info-box">
-          <div class="label">卡片編號</div>
-          <div class="value strong" id="cardId">-</div>
-        </div>
-        <div class="info-box">
-          <div class="label">申請人</div>
-          <div class="value" id="customerName">-</div>
-        </div>
-        <div class="info-box">
-          <div class="label">送出時間</div>
-          <div class="value" id="submittedAt">-</div>
-        </div>
-        <div class="info-box">
-          <div class="label">付款提醒</div>
-          <div class="value danger">請於 3 天內完成付款</div>
-        </div>
+        <div class="info-box"><div class="label">卡片編號</div><div class="value strong" id="cardId">-</div></div>
+        <div class="info-box"><div class="label">申請人</div><div class="value" id="customerName">-</div></div>
+        <div class="info-box"><div class="label">送出時間</div><div class="value" id="submittedAt">-</div></div>
+        <div class="info-box"><div class="label">付款提醒</div><div class="value danger">請於 3 天內完成付款</div></div>
       </div>
     </section>
 
     <section class="card">
-      <div class="section-head">
-        <h2>成品預覽連結</h2>
-      </div>
-
+      <div class="section-head"><h2>成品預覽連結</h2></div>
       <div class="preview-link-box">
         <input id="previewUrl" class="readonly-input" readonly />
         <div class="btn-row">
@@ -152,63 +123,32 @@ button, .btn.secondary {
           <a id="openPreviewBtn" class="btn secondary" href="#" target="_blank" rel="noopener noreferrer">開啟預覽</a>
         </div>
       </div>
-
-      <p class="hint">
-        這裡是預覽用連結，方便你先確認內容與畫面。正式交付卡會在付款確認後提供。
-      </p>
+      <p class="hint">這裡是預覽用連結，方便你先確認內容與畫面。正式交付卡會在付款確認後提供。</p>
     </section>
 
     <section class="card">
-      <div class="section-head">
-        <h2>報價單</h2>
-      </div>
-
+      <div class="section-head"><h2>報價單</h2></div>
       <div class="quote-table">
-        <div class="quote-row">
-          <div class="q-label">方案名稱</div>
-          <div class="q-value" id="planName">-</div>
-        </div>
-        <div class="quote-row">
-          <div class="q-label">方案金額</div>
-          <div class="q-value" id="planAmount">NT$ 0</div>
-        </div>
-        <div class="quote-row">
-          <div class="q-label">加購明細</div>
-          <div class="q-value" id="addonItems">未加購</div>
-        </div>
-        <div class="quote-row">
-          <div class="q-label">加購金額</div>
-          <div class="q-value" id="addonAmount">NT$ 0</div>
-        </div>
-        <div class="quote-row total">
-          <div class="q-label">總金額</div>
-          <div class="q-value" id="totalAmount">NT$ 0</div>
-        </div>
+        <div class="quote-row"><div class="q-label">方案名稱</div><div class="q-value" id="planName">-</div></div>
+        <div class="quote-row"><div class="q-label">方案金額</div><div class="q-value" id="planAmount">NT$ 0</div></div>
+        <div class="quote-row"><div class="q-label">加購明細</div><div class="q-value" id="addonItems">未加購</div></div>
+        <div class="quote-row"><div class="q-label">加購金額</div><div class="q-value" id="addonAmount">NT$ 0</div></div>
+        <div class="quote-row total"><div class="q-label">總金額</div><div class="q-value" id="totalAmount">NT$ 0</div></div>
       </div>
-
-      <div class="btn-row">
-        <button id="copyQuoteBtn" type="button">複製報價單</button>
-      </div>
+      <div class="btn-row"><button id="copyQuoteBtn" type="button">複製報價單</button></div>
     </section>
 
     <section class="card">
-      <div class="section-head">
-        <h2>請回覆客服</h2>
-      </div>
-
+      <div class="section-head"><h2>請回覆客服</h2></div>
       <textarea id="replyText" class="reply-box" readonly></textarea>
-
       <div class="btn-row">
-        <button id="copyReplyBtn" type="button">複製回覆文案</button>
-        <a id="serviceBtn" class="btn service" href="#" target="_blank" rel="noopener noreferrer">聯繫客服</a>
+        <button id="copyReplyBtn" type="button">一鍵回覆客服</button>
+        <a id="serviceBtn" class="btn service" href="https://lin.ee/G3VJoRm" target="_blank" rel="noopener noreferrer">客服鈕</a>
       </div>
-
-      <div class="notice">
-        流程：填表送出 → 查看預覽與報價 → 回覆客服 → 完成付款 → 開通正式交付卡
-      </div>
+      <div class="notice">流程：填表送出 → 查看預覽與報價 → 回覆客服 → 完成付款 → 開通正式交付卡</div>
     </section>
   </div>
 
-  <script src="quote-success.js?v=1.1.0"></script>
+  <script src="quote-success.js?v=5.0-marquee-3"></script>
 </body>
 </html>

@@ -15,7 +15,12 @@ const CONFIG = {
 const MB = 1024 * 1024;
 const MAX_ACCEPT_FILE_SIZE = 20 * MB;
 const ADDON_PRICES = {
-  marquee: 300
+  marquee: 300,
+  gold_member: 10000,
+  photo: 100,
+  cta: 100,
+  update_unlimited: 300,
+  bundle: 500
 };
 
 let firebaseApi = null;
@@ -121,6 +126,11 @@ const el = {
   btnSubmit: document.getElementById("btnSubmit"),
   btnReset: document.getElementById("btnReset"),
   status: document.getElementById("status"),
+  successBox: document.getElementById("submitSuccessBox"),
+  successCardId: document.getElementById("successCardId"),
+  successCopyText: document.getElementById("successCopyText"),
+  copyBtn: document.getElementById("copyBtn"),
+  lineCustomerServiceBtn: document.getElementById("lineCustomerServiceBtn"),
 
   progressWrap: document.getElementById("submitProgressWrap"),
   progressTitle: document.getElementById("submitProgressTitle"),
@@ -368,6 +378,46 @@ function bindActionEvents() {
   el.addonMarquee?.addEventListener("change", () => {
     syncAddonUI();
     buildSummary();
+  });
+
+  el.addonGoldMember?.addEventListener("change", () => {
+    buildSummary();
+  });
+
+  el.addonPhoto?.addEventListener("change", () => {
+    syncAddonUI();
+    buildSummary();
+  });
+
+  el.addonCta?.addEventListener("change", () => {
+    syncAddonUI();
+    buildSummary();
+  });
+
+  el.addonUpdateUnlimited?.addEventListener("change", () => {
+    buildSummary();
+  });
+
+  el.addonBundle?.addEventListener("change", () => {
+    buildSummary();
+  });
+
+  el.addonPhotoQty?.addEventListener("input", () => buildSummary());
+  el.addonCtaQty?.addEventListener("input", () => buildSummary());
+
+  el.copyBtn?.addEventListener("click", async () => {
+    try {
+      const copyText = el.successCopyText?.value || "";
+      if (!copyText) return;
+      await copyToClipboard(copyText);
+      const oldText = el.copyBtn.textContent;
+      el.copyBtn.textContent = "✅ 已複製";
+      setTimeout(() => {
+        if (el.copyBtn) el.copyBtn.textContent = oldText;
+      }, 1600);
+    } catch {
+      setStatus("請手動複製客服回覆文案。");
+    }
   });
 }
 
@@ -679,14 +729,73 @@ function updateLivePreview() {
 
 function getAddonItems() {
   const items = [];
-  if (el.addonMarquee?.checked) {
+
+  const marqueeMessages = [
+    getFieldValue("marquee_text_1"),
+    getFieldValue("marquee_text_2"),
+    getFieldValue("marquee_text_3")
+  ].filter(Boolean);
+
+  const photoQty = Math.max(0, parseInt(el.addonPhotoQty?.value || "0", 10) || 0);
+  const ctaQty = Math.max(0, parseInt(el.addonCtaQty?.value || "0", 10) || 0);
+
+  const hasBundle = !!el.addonBundle?.checked;
+
+  if (hasBundle) {
     items.push({
-      code: "addon_marquee",
-      name: "跑馬燈",
-      amount: ADDON_PRICES.marquee,
-      marquee_text: getFieldValue("marquee_text")
+      code: "addon_bundle",
+      name: "組合包（跑馬燈＋無限更新）",
+      amount: ADDON_PRICES.bundle,
+      messages: marqueeMessages
+    });
+  } else {
+    if (el.addonMarquee?.checked) {
+      items.push({
+        code: "addon_marquee",
+        name: "跑馬燈（3則輪播）",
+        amount: ADDON_PRICES.marquee,
+        messages: marqueeMessages
+      });
+    }
+
+    if (el.addonUpdateUnlimited?.checked) {
+      items.push({
+        code: "addon_update_unlimited",
+        name: "無限更新",
+        amount: ADDON_PRICES.update_unlimited
+      });
+    }
+  }
+
+  if (el.addonGoldMember?.checked) {
+    items.push({
+      code: "addon_gold_member",
+      name: "升級金牌級會員方案",
+      amount: ADDON_PRICES.gold_member,
+      display_price: "請洽客服"
     });
   }
+
+  if (el.addonPhoto?.checked && photoQty > 0) {
+    items.push({
+      code: "addon_photo",
+      name: "照片加購",
+      qty: photoQty,
+      unit_price: ADDON_PRICES.photo,
+      amount: ADDON_PRICES.photo * photoQty
+    });
+  }
+
+  if (el.addonCta?.checked && ctaQty > 0) {
+    items.push({
+      code: "addon_cta",
+      name: "CTA 加購",
+      qty: ctaQty,
+      unit_price: ADDON_PRICES.cta,
+      amount: ADDON_PRICES.cta * ctaQty
+    });
+  }
+
   return items;
 }
 
@@ -694,7 +803,20 @@ function buildSummary() {
   if (!el.summaryBox) return;
   const addonItems = getAddonItems();
   const addonText = addonItems.length
-    ? addonItems.map((item) => `${item.name}｜NT$ ${item.amount.toLocaleString("zh-TW")}${item.marquee_text ? `｜${item.marquee_text}` : ""}`).join("\n")
+    ? addonItems.map((item) => {
+        let parts = [];
+        if (item.qty && item.unit_price) {
+          parts.push(`${item.name}｜${item.qty} × NT$ ${Number(item.unit_price).toLocaleString("zh-TW")}｜NT$ ${Number(item.amount || 0).toLocaleString("zh-TW")}`);
+        } else {
+          const priceText = item.display_price || `NT$ ${Number(item.amount || 0).toLocaleString("zh-TW")}`;
+          parts.push(`${item.name}｜${priceText}`);
+        }
+        if (item.messages && item.messages.length) {
+          parts.push(`內容：${item.messages.join(" / ")}`);
+        }
+        return parts.join("｜");
+      }).join("
+")
     : "未加購";
 
   const rows = [
@@ -1050,9 +1172,13 @@ async function submitForm() {
       addon_items: JSON.stringify(quoteData.addon_items || [])
     });
 
+    const replyText = buildSuccessReply(cardId);
+    showSuccess(cardId, replyText);
     setProgress(100, "送出成功，跳轉中…");
-    setStatus("✅ 資料已送出！正在跳轉報價頁…");
-    window.location.href = "quote-success.html?" + params.toString();
+    setStatus("✅ 資料已送出！可先一鍵回覆客服，或直接前往報價頁。");
+    setTimeout(() => {
+      window.location.href = "quote-success.html?" + params.toString();
+    }, 1200);
   } catch (err) {
     console.error("[HSC form] submit failed:", err);
     setProgress(0, "送出失敗");
@@ -1131,6 +1257,35 @@ function collectPayload() {
   };
 }
 
+
+function buildSuccessReply(cardId) {
+  return `您好，我已送出智慧名片申請資料。
+申請編號：${cardId || "-"}
+請協助確認資料與後續流程，謝謝。`;
+}
+
+function showSuccess(cardId, replyText) {
+  if (el.successCardId) el.successCardId.textContent = cardId || "-";
+  if (el.successCopyText) el.successCopyText.value = replyText || "";
+  toggleEl(el.successBox, true);
+}
+
+async function copyToClipboard(text) {
+  if (!text) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+}
+
 function hideSuccess() {
   toggleEl(el.successBox, false);
 }
@@ -1158,6 +1313,13 @@ function resetForm() {
   });
 
   if (el.addonMarquee) el.addonMarquee.checked = false;
+  if (el.addonGoldMember) el.addonGoldMember.checked = false;
+  if (el.addonPhoto) el.addonPhoto.checked = false;
+  if (el.addonCta) el.addonCta.checked = false;
+  if (el.addonUpdateUnlimited) el.addonUpdateUnlimited.checked = false;
+  if (el.addonBundle) el.addonBundle.checked = false;
+  if (el.addonPhotoQty) el.addonPhotoQty.value = "";
+  if (el.addonCtaQty) el.addonCtaQty.value = "";
   syncAddonUI();
 
   setFieldValue("tenant", "angel");
