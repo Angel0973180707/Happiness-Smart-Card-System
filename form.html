@@ -1,542 +1,337 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>天使幸福智慧名片｜資料填寫 v5.0-marquee-3</title>
-  <meta name="theme-color" content="#0b1220" />
-  <style>
-    :root {
-      --bg-form: #0b1220;
-      --line-form: rgba(255,255,255,.12);
-      --line2-form: rgba(255,255,255,.08);
-      --text-form: rgba(255,255,255,.95);
-      --muted-form: rgba(255,255,255,.72);
-      --muted-2-form: rgba(255,255,255,.56);
-      --accent-form: #7bdcff;
-      --ok-form: #6ee7b7;
-      --bad-form: #fb7185;
-      --warn-form: #fbbf24;
-      --shadow-form: 0 16px 34px rgba(0,0,0,.28);
-      --fs: 14px;
-      --fs3: 19px;
-      --fs4: 23px;
-    }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body {
-      margin: 0; padding: 0; min-height: 100%;
-      background:
-        radial-gradient(1000px 720px at 16% -10%, rgba(123,220,255,.15), transparent 62%),
-        radial-gradient(820px 680px at 100% 0%, rgba(255,191,36,.08), transparent 56%),
-        linear-gradient(180deg, #0b1220 0%, #0d1628 100%);
-      color: var(--text-form);
-      font-family: system-ui, -apple-system, "Noto Sans TC", Segoe UI, Roboto, Arial, sans-serif;
-      font-size: var(--fs);
-      line-height: 1.75;
-      word-break: keep-all;
-      overflow-wrap: break-word;
-    }
-    body { padding-bottom: 88px; }
-    body.modal-open { overflow: hidden; }
-    .wrap { max-width: 940px; margin: 0 auto; padding: 14px 12px 40px; }
-    .header { padding: 10px 2px 12px; text-align: center; }
-    .header h1 { margin: 0; font-size: var(--fs4); line-height: 1.28; }
-    .header p { margin: 6px 0 0; color: var(--muted-form); font-size: 13px; line-height: 1.8; }
-    .headerActions, .topAssist, .assistActions, .btns { display: flex; gap: 10px; flex-wrap: wrap; }
-    .headerActions { justify-content: center; margin-top: 14px; }
-    .page { display: none; }
-    .page.active { display: block; }
-    .pageHead { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line2-form); }
-    .pageStep {
-      display: inline-flex; align-items: center; min-height: 32px; padding: 7px 11px;
-      border: 1px solid var(--line-form); border-radius: 999px; background: rgba(255,255,255,.04);
-      color: var(--muted-form); font-size: 11px; font-weight: 900; margin-bottom: 10px;
-    }
-    .pageHead h2 { margin: 0; font-size: var(--fs3); line-height: 1.3; }
-    .subnote { margin: 8px 0 0; color: var(--muted-form); font-size: 12px; line-height: 1.85; white-space: pre-line; }
-    .card {
-      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)), rgba(255,255,255,.02);
-      border: 1px solid var(--line-form); border-radius: 22px; padding: 16px; box-shadow: var(--shadow-form); margin-bottom: 14px;
-    }
-    .helperCard { border: 1px solid rgba(123,220,255,.22); background: linear-gradient(180deg, rgba(123,220,255,.08), rgba(255,255,255,.02)); }
-    .helperTitle { font-size: 13px; font-weight: 900; margin: 0 0 8px; line-height: 1.6; }
-    .helperText { color: var(--muted-form); font-size: 12px; line-height: 1.9; white-space: pre-line; }
-    label { display: block; font-size: 13px; color: var(--text-form); margin: 0 0 8px; font-weight: 900; line-height: 1.5; }
-    .labelHint { display: block; margin-top: 4px; color: var(--muted-form); font-size: 11px; font-weight: 700; line-height: 1.8; }
-    input, textarea, select {
-      width: 100%; background: rgba(255,255,255,.04); color: var(--text-form);
-      border: 1px solid var(--line-form); border-radius: 14px; padding: 13px 13px; outline: none;
-      font-size: 14px; line-height: 1.7; min-height: 48px; transition: border-color .18s ease, box-shadow .18s ease;
-    }
-    input:focus, textarea:focus, select:focus { border-color: rgba(123,220,255,.46); box-shadow: 0 0 0 3px rgba(123,220,255,.10); }
-    textarea { min-height: 112px; resize: vertical; }
-    input::placeholder, textarea::placeholder { color: rgba(255,255,255,.34); }
-    .hsc-field-error { border-color: #fb7185 !important; box-shadow: 0 0 0 3px rgba(251,113,133,.16) !important; }
-    button {
-      cursor: pointer; border: none; border-radius: 14px; padding: 11px 15px; font-weight: 900; font-size: 14px;
-      background: rgba(123,220,255,.16); color: var(--text-form); border: 1px solid rgba(123,220,255,.35); min-height: 44px;
-    }
-    button.secondary { background: rgba(255,255,255,.05); border: 1px solid var(--line-form); color: #fff; }
-    button.ghost { background: transparent; border: 1px solid var(--line-form); color: var(--muted-form); }
-    button.warn { background: rgba(251,191,36,.10); border: 1px solid rgba(251,191,36,.28); color: #ffe8a3; }
-    button:disabled { opacity: .55; cursor: not-allowed; }
-    .status {
-      margin-top: 14px; border: 1px dashed var(--line-form); border-radius: 14px; padding: 13px 14px;
-      color: var(--muted-form); font-size: 12px; line-height: 1.95; white-space: pre-wrap; background: rgba(255,255,255,.02);
-    }
-    .submit-progress-wrap {
-      margin-top: 14px; padding: 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04); display: none;
-    }
-    .submit-progress-head {
-      display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px;
-      font-size: 11px; color: rgba(255,255,255,.85); font-weight: 900;
-    }
-    .submit-progress { height: 10px; border-radius: 999px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.10); overflow: hidden; }
-    .submit-progress-fill {
-      height: 100%; width: 0%; border-radius: 999px;
-      background: linear-gradient(90deg, rgba(123,220,255,.95), rgba(255,170,90,.95));
-      box-shadow: 0 0 18px rgba(123,220,255,.18); transition: width .28s ease;
-    }
-    .submit-progress-text { margin-top: 8px; color: var(--muted-form); font-size: 11px; line-height: 1.8; min-height: 18px; }
-    .summary { display: grid; grid-template-columns: 1fr; gap: 10px; }
-    .uploadGrid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
-    .uItem { border: 1px solid var(--line-form); border-radius: 16px; padding: 12px; background: rgba(255,255,255,.02); }
-    .uItemHead { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .uItemHead strong { font-size: 14px; line-height: 1.45; }
-    .uItemHead small { color: var(--muted-form); font-size: 11px; line-height: 1.7; }
-    .thumb {
-      margin-top: 10px; width: 100%; aspect-ratio: 16 / 10; border-radius: 14px; border: 1px solid var(--line-form);
-      overflow: hidden; background: rgba(0,0,0,.18); display: flex; align-items: center; justify-content: center;
-      color: rgba(255,255,255,.38); font-size: 11px; text-align: center; padding: 12px; line-height: 1.8;
-    }
-    .thumb.square { aspect-ratio: 1 / 1; }
-    .miniRow { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
-    .miniRow input[type="file"] { padding: 10px; font-size: 12px; min-height: auto; flex: 1 1 180px; }
-    .previewWrap { margin-top: 14px; border: 1px solid rgba(123,220,255,.18); border-radius: 20px; padding: 14px; background: linear-gradient(180deg, rgba(123,220,255,.05), rgba(255,255,255,.02)); }
-    .previewHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-    .previewHead h3 { margin: 0; font-size: 16px; line-height: 1.4; }
-    .previewHead p { margin: 4px 0 0; font-size: 12px; color: var(--muted-form); line-height: 1.8; }
-    .pageBadge {
-      display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 8px 12px;
-      border: 1px solid var(--line-form); border-radius: 999px; background: rgba(255,255,255,.04); color: var(--text-form); font-size: 12px; font-weight: 900;
-    }
-    .previewStage { display: flex; justify-content: center; }
-    .hsc-preview {
-      width: 100%; max-width: 420px; border-radius: 28px; overflow: hidden; position: relative;
-      border: 1px solid rgba(255,255,255,.12); box-shadow: 0 18px 40px rgba(0,0,0,.26); background: #fffaf5; color: #3e2f25;
-    }
-    .hsc-preview[data-plan="free"][data-color="c1"] { background: linear-gradient(180deg,#fff7fb 0%,#fff3f7 100%); }
-    .hsc-preview[data-plan="free"][data-color="c2"] { background: linear-gradient(180deg,#f7fbff 0%,#eef7ff 100%); }
-    .hsc-preview[data-plan="free"][data-color="c3"] { background: linear-gradient(180deg,#fff9f3 0%,#fff2e6 100%); }
-    .hsc-preview[data-plan="free"][data-color="c4"] { background: linear-gradient(180deg,#faf7ff 0%,#f2ecff 100%); }
-    .hsc-preview[data-plan="free"][data-color="c5"] { background: linear-gradient(180deg,#f7fff9 0%,#edf9f0 100%); }
-    .hsc-preview[data-plan="premium"][data-premium="p1"] { background: linear-gradient(180deg,#7d3041 0%,#5c2230 100%); color:#fff7f7; }
-    .hsc-preview[data-plan="premium"][data-premium="p2"] { background: linear-gradient(180deg,#6c1f2b 0%,#4c1520 100%); color:#fff7f7; }
-    .hsc-preview[data-plan="premium"][data-premium="p3"] { background: linear-gradient(180deg,#243a5b 0%,#17263d 100%); color:#f6f8ff; }
-    .hsc-preview[data-plan="premium"][data-premium="p4"] { background: linear-gradient(180deg,#705c86 0%,#534166 100%); color:#fbf8ff; }
-    .hsc-preview[data-plan="premium"][data-premium="p5"] { background: linear-gradient(180deg,#5f7181 0%,#44515d 100%); color:#f8fbff; }
-    .hsc-preview[data-plan="premium"][data-premium="p6"] { background: linear-gradient(180deg,#d6bc74 0%,#b18b3f 100%); color:#fffaf1; }
-    .hsc-preview[data-plan="premium"][data-premium="p7"] { background: linear-gradient(180deg,#5b463c 0%,#403028 100%); color:#fff8f3; }
-    .hsc-preview-banner { height: 132px; background: linear-gradient(135deg, rgba(255,255,255,.30), rgba(255,255,255,.06)); }
-    .hsc-preview-avatarWrap { margin-top: -52px; display: flex; justify-content: center; position: relative; z-index: 2; }
-    .hsc-preview-avatar { width: 108px; height: 108px; border-radius: 999px; overflow: hidden; background: #fff; border: 5px solid rgba(255,255,255,.92); box-shadow: 0 12px 26px rgba(0,0,0,.18); }
-    .hsc-preview-avatar img, .hsc-preview-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .hsc-preview-logoWrap { display: flex; justify-content: center; margin-top: 12px; }
-    .hsc-preview-logo { width: 74px; height: 74px; border-radius: 20px; overflow: hidden; background: rgba(255,255,255,.80); box-shadow: 0 8px 18px rgba(0,0,0,.10); }
-    .hsc-preview-main { padding: 14px 16px 18px; }
-    .hsc-preview-name { font-size: 24px; line-height: 1.3; font-weight: 1000; text-align: center; margin-top: 10px; word-break: break-word; }
-    .hsc-preview-unit, .hsc-preview-title, .hsc-preview-slogan { text-align: center; margin-top: 6px; white-space: pre-line; word-break: break-word; }
-    .hsc-preview-unit { font-size: 13px; opacity: .84; font-weight: 900; }
-    .hsc-preview-title { font-size: 14px; opacity: .88; font-weight: 900; }
-    .hsc-preview-slogan { font-size: 13px; opacity: .9; line-height: 1.8; }
-    .hsc-preview-block { margin-top: 14px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.50); border: 1px solid rgba(0,0,0,.05); }
-    .hsc-preview[data-plan="premium"] .hsc-preview-block { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.16); }
-    .hsc-preview-blockTitle { font-size: 12px; font-weight: 1000; margin-bottom: 6px; opacity: .92; }
-    .hsc-preview-blockBody { font-size: 13px; line-height: 1.8; white-space: pre-line; word-break: break-word; }
-    .hsc-preview-empty { padding: 16px; text-align: center; font-size: 12px; color: var(--muted-form); line-height: 1.8; border: 1px dashed rgba(255,255,255,.18); border-radius: 16px; background: rgba(255,255,255,.03); margin-top: 12px; }
-    .photo-grid { display: grid; gap: 10px; }
-    .photo-grid.layout-1 { grid-template-columns: 1fr; }
-    .photo-grid.layout-2 { grid-template-columns: 1fr 1fr; }
-    .photo-grid.layout-3 { grid-template-columns: 1fr 1fr 1fr; }
-    .photo-grid.layout-4 { grid-template-columns: 1fr 1fr; }
-    .photo-grid.layout-5 { grid-template-columns: repeat(6, 1fr); }
-    .wall-img { width: 100%; aspect-ratio: 1 / 1; border-radius: 14px; object-fit: cover; display: block; box-shadow: 0 10px 22px rgba(0,0,0,.12); }
-    .pageNav { position: sticky; bottom: 0; z-index: 50; padding: 12px; background: rgba(11,18,32,.94); backdrop-filter: blur(10px); border-top: 1px solid var(--line-form); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .navDots { display: flex; gap: 6px; align-items: center; justify-content: center; flex: 1 1 auto; }
-    .navDots span { width: 8px; height: 8px; border-radius: 50%; background: var(--line-form); opacity: .9; }
-    .navDots span.active { background: var(--accent-form); box-shadow: 0 0 0 4px rgba(123,220,255,.12); }
-    .cropModal, .assistModal { position: fixed; inset: 0; z-index: 1000; display: none; background: rgba(4,8,18,.74); backdrop-filter: blur(6px); padding: 14px; }
-    .cropModal.show, .assistModal.show { display: flex; align-items: center; justify-content: center; }
-    .cropBox, .assistBox { width: min(920px, 100%); max-height: calc(100vh - 28px); overflow: auto; border-radius: 22px; border: 1px solid rgba(255,255,255,.12); background: linear-gradient(180deg, rgba(16,24,40,.98), rgba(10,16,28,.98)); padding: 14px; }
-    .cropStage { width: 100%; touch-action: none; border-radius: 16px; border: 1px dashed rgba(255,255,255,.16); overflow: hidden; background: rgba(255,255,255,.03); }
-    .cropStage.ratio-square { aspect-ratio: 1 / 1; }
-    .cropStage.ratio-photo { aspect-ratio: 16 / 10; }
-    .cropStage canvas { width: 100%; height: 100%; display: block; cursor: grab; }
-    .cropTools { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .assistBody { display: grid; gap: 12px; }
-    .assistCard { border: 1px solid var(--line-form); border-radius: 16px; background: rgba(255,255,255,.03); padding: 14px; }
-    .assistFrame { width: 100%; height: min(72vh, 720px); border: 1px solid var(--line-form); border-radius: 16px; overflow: hidden; background: #fff; }
-    .assistFrame iframe { width: 100%; height: 100%; border: 0; }
-    .quoteHint { margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: rgba(123,220,255,.08); border: 1px solid rgba(123,220,255,.16); color: var(--muted-form); font-size: 12px; line-height: 1.85; }
-    .addonBox { border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 14px; background: rgba(255,255,255,.03); }
-    .addonCheck { display: flex; gap: 12px; align-items: flex-start; }
-    .addonCheck input[type="checkbox"] { width: 22px; min-width: 22px; height: 22px; min-height: 22px; margin-top: 2px; }
-    .addonName { font-size: 14px; font-weight: 1000; }
-    .addonPrice { color: #ffe29a; font-weight: 1000; margin-top: 4px; }
-    .addonDesc { color: var(--muted-form); font-size: 12px; line-height: 1.8; margin-top: 6px; }
-    .marqueeWrap { margin-top: 12px; display: none; }
-    .marqueeWrap.show { display: block; }
-    .marqueeGrid { display: grid; gap: 10px; }
-    .footNote { margin-top: 12px; font-size: 12px; color: var(--muted-2-form); line-height: 1.8; }
-    @media(min-width:760px){ .uploadGrid { grid-template-columns: 1fr 1fr; } }
-    @media(max-width:760px){ .btns, .headerActions, .topAssist, .assistActions { flex-direction: column; } }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>天使幸福智慧名片｜表單</title>
+  <link rel="stylesheet" href="./form.css" />
 </head>
-<body>
-<div class="wrap">
-  <div class="header">
-    <h1>天使幸福智慧名片</h1>
-    <p>請依序填寫資料，完成後送出。<br>送出成功後會跳到報價與預覽頁，再回覆客服進行後續確認。</p>
-    <div class="headerActions">
-      <button id="openGuideTopBtn" type="button" class="warn">填表說明（先看更順）</button>
-      <button id="openFacadeTopBtn" type="button" class="secondary">先看首頁門面參考</button>
-    </div>
-  </div>
-
-  <section class="page active" data-page="0">
-    <div class="pageHead">
-      <div class="pageStep">第 1 步</div>
-      <h2>選擇方案與風格</h2>
-      <p class="subnote">自由搭配款：2 張照片、1 個 CTA。<br>精品設計款：5 張照片、3 個 CTA。<br>請先選方案，再把顏色與風格選完整。</p>
-    </div>
-    <div class="card">
-      <label>方案選擇<span class="labelHint">這是必填欄位</span></label>
-      <select id="plan">
-        <option value="">請選擇方案</option>
-        <option value="free">自由搭配款（2 照片 / 1 CTA）</option>
-        <option value="premium">精品設計款（5 照片 / 3 CTA）</option>
-      </select>
-    </div>
-    <div id="freeStyleGroup">
-      <div class="card">
-        <label>主色<span class="labelHint">自由搭配款必填</span></label>
-        <select id="color">
-          <option value="">請選擇顏色</option>
-          <option value="c1">粉</option>
-          <option value="c2">藍</option>
-          <option value="c3">橘</option>
-          <option value="c4">紫</option>
-          <option value="c5">綠</option>
-        </select>
+<body class="form-page">
+  <main class="form-shell">
+    <header class="page-hero">
+      <div>
+        <p class="eyebrow">天使幸福智慧名片</p>
+        <h1>智慧名片申請表</h1>
+        <p class="hero-desc">先選主方案與加購，後面的欄位會自動連動，不用重填。</p>
       </div>
-      <div class="card">
-        <label>版型<span class="labelHint">自由搭配款必填</span></label>
-        <select id="style">
-          <option value="">請選擇版型</option>
-          <option value="s1">正拱</option>
-          <option value="s2">平直</option>
-          <option value="s3">晨曦</option>
-        </select>
+      <div class="hero-actions">
+        <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
       </div>
-      <div class="card">
-        <label>紙感<span class="labelHint">自由搭配款必填</span></label>
-        <select id="paper">
-          <option value="">請選擇紙感</option>
-          <option value="f1">棉紙</option>
-          <option value="f2">象牙紙</option>
-          <option value="f3">霧灰</option>
-        </select>
-      </div>
-    </div>
-    <div class="card" id="premiumColorCard" style="display:none;">
-      <label>精品設計款顏色<span class="labelHint">精品設計款必填</span></label>
-      <select id="premium_color">
-        <option value="">請選擇精品色</option>
-        <option value="p1">胭脂紅</option>
-        <option value="p2">酒紅</option>
-        <option value="p3">深藍</option>
-        <option value="p4">霧紫</option>
-        <option value="p5">藍灰</option>
-        <option value="p6">金箔</option>
-        <option value="p7">褐碳</option>
-      </select>
-    </div>
-  </section>
+    </header>
 
-  <section class="page" data-page="1">
-    <div class="pageHead">
-      <div class="pageStep">第 2 步</div>
-      <h2>基本資料</h2>
-      <p class="subnote">姓名或品牌名稱為必填，其他欄位可依實際需求填寫。</p>
-    </div>
-    <div class="card"><label>姓名／品牌名稱<span class="labelHint">這是必填欄位</span></label><input id="name" placeholder="例如：王小美／幸福緣" /></div>
-    <div class="card"><label>單位</label><input id="unit" placeholder="例如：幸福緣烘焙工作室" /></div>
-    <div class="card"><label>職稱</label><input id="title" placeholder="例如：創辦人" /></div>
-    <div class="card"><label>一句話介紹</label><input id="slogan" placeholder="例如：陪你把健康與美味一起帶進生活" /></div>
-  </section>
+    <section class="status-strip" id="form-status-strip" aria-live="polite"></section>
 
-  <section class="page" data-page="2">
-    <div class="pageHead">
-      <div class="pageStep">第 3 步</div>
-      <h2>聯絡方式與服務內容</h2>
-      <p class="subnote">電話、Email、LINE 個人連結、LINE 官方帳號、微信 ID，至少要填一種。</p>
-    </div>
-    <div class="card"><label>電話</label><input id="phone" placeholder="例如：0912-345-678" /></div>
-    <div class="card"><label>Email</label><input id="email" placeholder="例如：hello@example.com" /></div>
-    <div class="card"><label>LINE 個人連結</label><input id="line_url" placeholder="例如：https://line.me/ti/p/xxxxxx" /></div>
-    <div class="card"><label>LINE 官方帳號</label><input id="line_oa" placeholder="例如：https://lin.ee/xxxxxxx" /></div>
-    <div class="card"><label>微信 ID</label><input id="wechat_id" placeholder="例如：angel123" /></div>
-    <div class="card"><label>地址</label><input id="address" placeholder="例如：高雄市左營區博愛二路100號" /></div>
-    <div class="card"><label>網站</label><input id="website" placeholder="例如：https://yourbrand.com" /></div>
-    <div class="card"><label>服務項目</label><textarea id="services" placeholder="例如：健康手作麵包、親子烘焙體驗、企業禮盒訂製"></textarea></div>
-    <div class="card"><label>經歷／品牌故事</label><textarea id="experience" placeholder="例如：退休教師自學烘焙，希望把幸福感帶進每一個家庭"></textarea></div>
-  </section>
+    <form id="smart-card-form" novalidate>
+      <input type="hidden" id="invite_code" name="invite_code" value="" />
+      <input type="hidden" id="ref" name="ref" value="" />
+      <input type="hidden" id="photo_limit_total" name="photo_limit_total" value="2" />
+      <input type="hidden" id="cta_limit_total" name="cta_limit_total" value="1" />
 
-  <section class="page" data-page="3">
-    <div class="pageHead">
-      <div class="pageStep">第 4 步</div>
-      <h2>影音、社群與行動按鈕</h2>
-      <p class="subnote">影音欄位請填連結，不是上傳影片。CTA 文字與連結一定要成對填寫。</p>
-    </div>
-    <div class="card"><label>影片連結 1</label><input id="video1" placeholder="例如：https://youtu.be/xxxxxx" /></div>
-    <div class="card"><label>影片連結 2</label><input id="video2" placeholder="例如：https://www.facebook.com/.../videos/..." /></div>
-    <div class="card"><label>影片連結 3</label><input id="video3" placeholder="例如：https://www.instagram.com/reel/xxxxxx/" /></div>
-    <div class="card"><label>社群連結 1</label><input id="social1" placeholder="例如：https://www.facebook.com/yourpage" /></div>
-    <div class="card"><label>社群連結 2</label><input id="social2" placeholder="例如：https://www.instagram.com/yourbrand/" /></div>
-    <div class="card"><label>社群連結 3</label><input id="social3" placeholder="例如：https://www.threads.net/@yourbrand" /></div>
-    <div class="card"><label>CTA 1 文字</label><input id="cta_text_1" placeholder="例如：立即預約" /><label style="margin-top:10px;">CTA 1 連結</label><input id="cta_link_1" placeholder="例如：https://..." /></div>
-    <div class="card" id="ctaRow2"><label>CTA 2 文字</label><input id="cta_text_2" placeholder="例如：查看作品" /><label style="margin-top:10px;">CTA 2 連結</label><input id="cta_link_2" placeholder="例如：https://..." /></div>
-    <div class="card" id="ctaRow3"><label>CTA 3 文字</label><input id="cta_text_3" placeholder="例如：加入 LINE" /><label style="margin-top:10px;">CTA 3 連結</label><input id="cta_link_3" placeholder="例如：https://..." /></div>
-  </section>
-
-  <section class="page" data-page="4">
-    <div class="pageHead">
-      <div class="pageStep">第 5 步</div>
-      <h2>上傳圖片並調整位置</h2>
-      <p class="subnote">可調整圖片大小與位置，套用後會自動更新預覽。</p>
-    </div>
-    <div class="card">
-      <label>圖片上傳區</label>
-      <div class="uploadGrid" id="uploadGrid"></div>
-    </div>
-    <div class="card previewWrap">
-      <div class="previewHead">
-        <div><h3>名片即時預覽</h3><p>這裡會同步顯示目前輸入內容與圖片裁切結果。</p></div>
-        <div class="pageBadge">即時同步</div>
-      </div>
-      <div class="previewStage">
-        <div class="hsc-preview" id="livePreviewCard" data-plan="free" data-color="c1" data-style="s1" data-paper="f1" data-premium="p1">
-          <div class="hsc-preview-banner"></div>
-          <div class="hsc-preview-avatarWrap"><div class="hsc-preview-avatar"><img id="previewAvatar" alt="頭像預覽" /></div></div>
-          <div class="hsc-preview-logoWrap" id="previewLogoWrap" style="display:none;"><div class="hsc-preview-logo"><img id="previewLogo" alt="Logo 預覽" /></div></div>
-          <div class="hsc-preview-main">
-            <div class="hsc-preview-name" id="previewName">您的姓名</div>
-            <div class="hsc-preview-unit" id="previewUnit"></div>
-            <div class="hsc-preview-title" id="previewTitle"></div>
-            <div class="hsc-preview-slogan" id="previewSlogan"></div>
-            <div class="hsc-preview-block" id="previewServicesBlock" style="display:none;"><div class="hsc-preview-blockTitle">服務項目</div><div class="hsc-preview-blockBody" id="previewServices"></div></div>
-            <div class="hsc-preview-block" id="previewExperienceBlock" style="display:none;"><div class="hsc-preview-blockTitle">經歷／品牌故事</div><div class="hsc-preview-blockBody" id="previewExperience"></div></div>
-            <div class="hsc-preview-photoWall" id="previewPhotoWall"></div>
-            <div class="hsc-preview-empty" id="previewEmptyPhotos">尚未上傳圖片</div>
+      <section class="form-card section-priority" id="section-addon-first">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">STEP 1</p>
+            <h2>先選方案與加購</h2>
+            <p>先決定主方案與需要的加購，下面欄位會依照你的選擇自動調整。</p>
+          </div>
+          <div class="limit-badges">
+            <span class="pill" id="summary-plan-pill">目前方案：自由搭配</span>
+            <span class="pill" id="summary-photo-pill">照片上限：2</span>
+            <span class="pill" id="summary-cta-pill">CTA 上限：1</span>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
 
-  <section class="page" data-page="5">
-    <div class="pageHead">
-      <div class="pageStep">第 6 步</div>
-      <h2>確認資料、加購與送出</h2>
-      <p class="subnote">這一頁先確認內容，再決定是否加購跑馬燈。現在跑馬燈支援 3 則輪播。</p>
-    </div>
+        <div class="grid-two plan-grid">
+          <label class="plan-option" data-plan-card="free">
+            <input type="radio" name="plan" value="free" checked />
+            <span class="plan-card">
+              <span class="plan-title">自由搭配</span>
+              <span class="plan-meta">可自選顏色、版型、紙感</span>
+              <span class="plan-mini">基礎 2 照片 / 1 CTA</span>
+            </span>
+          </label>
 
-    <div class="card">
-      <label>加購選項</label>
-      <div class="addonBox">
-        <label class="addonCheck">
-          <input type="checkbox" id="addon_marquee" />
-          <div>
-            <div class="addonName">加購跑馬燈（3 則輪播）</div>
-            <div class="addonPrice">NT$ 300</div>
-            <div class="addonDesc">可放 3 則輪播訊息，適合活動、招生、公告、優惠、課程更新等重點提醒。</div>
-          </div>
-        </label>
-        <div class="marqueeWrap" id="marqueeTextWrap">
-          <div class="marqueeGrid">
-            <div>
-              <label style="margin-top:10px;">跑馬燈第 1 則<span class="labelHint">勾選加購後至少填 1 則</span></label>
-              <input id="marquee_text_1" placeholder="例如：每週五更新" />
-            </div>
-            <div>
-              <label>跑馬燈第 2 則</label>
-              <input id="marquee_text_2" placeholder="例如：歡迎預約體驗課" />
-            </div>
-            <div>
-              <label>跑馬燈第 3 則</label>
-              <input id="marquee_text_3" placeholder="例如：新品上市中" />
+          <label class="plan-option" data-plan-card="premium">
+            <input type="radio" name="plan" value="premium" />
+            <span class="plan-card">
+              <span class="plan-title">精品設計</span>
+              <span class="plan-meta">使用精品色系，樣式更精緻</span>
+              <span class="plan-mini">基礎 5 照片 / 3 CTA</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="addon-layout">
+          <div class="addon-col">
+            <h3>功能加購</h3>
+            <div class="addon-stack">
+              <label class="addon-item">
+                <input type="checkbox" name="addons" value="addon_marquee" />
+                <span>
+                  <strong>跑馬燈功能</strong>
+                  <small>開啟後可填 3 則輪播訊息</small>
+                </span>
+              </label>
+
+              <label class="addon-item">
+                <input type="checkbox" name="addons" value="addon_gold_member" />
+                <span>
+                  <strong>金牌級會員</strong>
+                  <small>保留既有商業加值流程</small>
+                </span>
+              </label>
+
+              <label class="addon-item addon-item-numbered">
+                <input type="checkbox" id="addon_photo_enabled" name="addons" value="addon_photo" />
+                <span>
+                  <strong>照片加購</strong>
+                  <small>勾選後可輸入加購張數</small>
+                </span>
+                <span class="addon-number-wrap">
+                  <input
+                    type="number"
+                    id="addon_photo_qty"
+                    name="addon_photo_qty"
+                    min="0"
+                    max="10"
+                    step="1"
+                    value="0"
+                    inputmode="numeric"
+                    disabled
+                  />
+                  <em>張</em>
+                </span>
+              </label>
+
+              <label class="addon-item addon-item-numbered">
+                <input type="checkbox" id="addon_cta_enabled" name="addons" value="addon_cta" />
+                <span>
+                  <strong>CTA 加購</strong>
+                  <small>勾選後可輸入加購數量</small>
+                </span>
+                <span class="addon-number-wrap">
+                  <input
+                    type="number"
+                    id="addon_cta_qty"
+                    name="addon_cta_qty"
+                    min="0"
+                    max="10"
+                    step="1"
+                    value="0"
+                    inputmode="numeric"
+                    disabled
+                  />
+                  <em>個</em>
+                </span>
+              </label>
+
+              <label class="addon-item">
+                <input type="checkbox" name="addons" value="addon_update_unlimited" />
+                <span>
+                  <strong>無限更新</strong>
+                  <small>保留續後台更新權限流程</small>
+                </span>
+              </label>
+
+              <label class="addon-item">
+                <input type="checkbox" name="addons" value="addon_bundle" />
+                <span>
+                  <strong>跑馬燈＋更新組合</strong>
+                  <small>組合加購維持既有流程</small>
+                </span>
+              </label>
             </div>
           </div>
+
+          <aside class="addon-col addon-col-summary">
+            <h3>目前連動結果</h3>
+            <ul class="dynamic-summary" id="dynamic-summary-list">
+              <li>主方案：<strong id="summary-plan-name">自由搭配</strong></li>
+              <li>照片可上傳：<strong id="summary-photo-count">2</strong> 張</li>
+              <li>CTA 可填寫：<strong id="summary-cta-count">1</strong> 組</li>
+              <li>跑馬燈：<strong id="summary-marquee-status">未開啟</strong></li>
+            </ul>
+            <p class="summary-note">這一區會跟著你的主方案與加購一起更新。</p>
+          </aside>
         </div>
-      
-      <div class="addonBox" style="margin-top:12px;">
-        <label class="addonCheck">
-          <input type="checkbox" id="addon_gold_member" />
-          <div>
-            <div class="addonName">升級金牌級會員方案</div>
-            <div class="addonPrice">請洽客服</div>
-            <div class="addonDesc">此項目，請由客服說明內容與開通方式；報價單會列入正式報價金額。</div>
-          </div>
-        </label>
-      </div>
+      </section>
 
-      <div class="addonBox" style="margin-top:12px;">
-        <label class="addonCheck">
-          <input type="checkbox" id="addon_photo" />
+      <section class="form-card">
+        <div class="section-head">
           <div>
-            <div class="addonName">照片加購</div>
-            <div class="addonPrice">NT$ 100 / 張</div>
-            <div class="addonDesc">用於擴充照片牆張數。請勾選後填寫需要加購的張數。</div>
+            <p class="section-kicker">STEP 2</p>
+            <h2>名片樣式</h2>
+            <p>保留原本主方案分流，自由搭配與精品設計各自顯示對應欄位。</p>
           </div>
-        </label>
-        <div class="marqueeWrap" id="photoQtyWrap">
-          <label style="margin-top:10px;">照片加購張數<span class="labelHint">至少 1 張</span></label>
-          <input id="addon_photo_qty" type="number" min="1" step="1" placeholder="例如：2" />
         </div>
-      </div>
 
-      <div class="addonBox" style="margin-top:12px;">
-        <label class="addonCheck">
-          <input type="checkbox" id="addon_cta" />
-          <div>
-            <div class="addonName">CTA 加購</div>
-            <div class="addonPrice">NT$ 100 / 個</div>
-            <div class="addonDesc">適合補更多導流按鈕。請勾選後填寫需要加購的個數。</div>
+        <div class="grid-two">
+          <div class="field-group" id="free-theme-group">
+            <label class="field-label" for="free_color">自由搭配顏色</label>
+            <select id="free_color" name="free_color">
+              <option value="c1">粉</option>
+              <option value="c2">藍</option>
+              <option value="c3">橘</option>
+              <option value="c4">紫</option>
+              <option value="c5">綠</option>
+            </select>
+
+            <label class="field-label" for="free_style">自由搭配版型</label>
+            <select id="free_style" name="free_style">
+              <option value="s1">正拱</option>
+              <option value="s2">平直</option>
+              <option value="s3">晨曦</option>
+            </select>
+
+            <label class="field-label" for="free_paper">自由搭配紙感</label>
+            <select id="free_paper" name="free_paper">
+              <option value="f1">棉紙</option>
+              <option value="f2">象牙紙</option>
+              <option value="f3">霧灰</option>
+            </select>
           </div>
-        </label>
-        <div class="marqueeWrap" id="ctaQtyWrap">
-          <label style="margin-top:10px;">CTA 加購個數<span class="labelHint">至少 1 個</span></label>
-          <input id="addon_cta_qty" type="number" min="1" step="1" placeholder="例如：1" />
+
+          <div class="field-group hidden" id="premium-theme-group">
+            <label class="field-label" for="premium_color">精品設計底色</label>
+            <select id="premium_color" name="premium_color">
+              <option value="p1">胭脂紅</option>
+              <option value="p2">酒紅</option>
+              <option value="p3">深藍</option>
+              <option value="p4">霧紫</option>
+              <option value="p5">藍灰</option>
+              <option value="p6">金箔</option>
+              <option value="p7">褐碳</option>
+            </select>
+            <p class="field-hint">精品方案只需選精品色系，版型與紙感由系統套用。</p>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="addonBox" style="margin-top:12px;">
-        <label class="addonCheck">
-          <input type="checkbox" id="addon_update_unlimited" />
+      <section class="form-card">
+        <div class="section-head">
           <div>
-            <div class="addonName">無限更新</div>
-            <div class="addonPrice">NT$ 300</div>
-            <div class="addonDesc">適合需要持續更新內容的客戶。</div>
+            <p class="section-kicker">STEP 3</p>
+            <h2>基本資料</h2>
           </div>
-        </label>
-      </div>
+        </div>
 
-      <div class="addonBox" style="margin-top:12px;">
-        <label class="addonCheck">
-          <input type="checkbox" id="addon_bundle" />
+        <div class="grid-two">
+          <div class="field-group">
+            <label class="field-label" for="display_name">姓名 / 品牌名稱</label>
+            <input type="text" id="display_name" name="display_name" placeholder="請輸入姓名或品牌名稱" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="title">職稱 / 副標</label>
+            <input type="text" id="title" name="title" placeholder="例如：烘焙品牌主理人" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="phone">電話</label>
+            <input type="tel" id="phone" name="phone" placeholder="09xxxxxxxx" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="your@email.com" />
+          </div>
+          <div class="field-group full-width">
+            <label class="field-label" for="address">地址</label>
+            <input type="text" id="address" name="address" placeholder="完整地址會自動轉成導航" />
+          </div>
+          <div class="field-group full-width">
+            <label class="field-label" for="intro">簡介</label>
+            <textarea id="intro" name="intro" rows="4" placeholder="請輸入品牌介紹或自我介紹"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="section-head">
           <div>
-            <div class="addonName">組合包（跑馬燈＋無限更新）</div>
-            <div class="addonPrice">NT$ 500</div>
-            <div class="addonDesc">若勾選組合包，報價會以組合包為主，不再重複計算單獨的跑馬燈與無限更新。</div>
+            <p class="section-kicker">STEP 4</p>
+            <h2>照片上傳</h2>
+            <p>照片區會依主方案與加購數量自動調整。</p>
           </div>
-        </label>
+        </div>
+        <div id="photo-slots" class="photo-grid"></div>
+      </section>
+
+      <section class="form-card">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">STEP 5</p>
+            <h2>CTA 連結</h2>
+            <p>CTA 欄位會依主方案與加購數量自動調整。</p>
+          </div>
+        </div>
+        <div id="cta-slots" class="cta-stack"></div>
+      </section>
+
+      <section class="form-card hidden" id="marquee-section">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">STEP 6</p>
+            <h2>跑馬燈訊息</h2>
+            <p>已開啟跑馬燈，可填 3 則輪播內容。</p>
+          </div>
+        </div>
+        <div class="marquee-stack">
+          <div class="field-group">
+            <label class="field-label" for="marquee_1">跑馬燈 1</label>
+            <input type="text" id="marquee_1" name="marquee_1" maxlength="60" placeholder="例如：歡迎加入 LINE 洽詢" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="marquee_2">跑馬燈 2</label>
+            <input type="text" id="marquee_2" name="marquee_2" maxlength="60" placeholder="例如：限時優惠中" />
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="marquee_3">跑馬燈 3</label>
+            <input type="text" id="marquee_3" name="marquee_3" maxlength="60" placeholder="例如：每週五更新" />
+          </div>
+        </div>
+      </section>
+
+      <section class="form-card actions-card">
+        <div class="action-row">
+          <button type="button" class="ghost-btn" id="btn-save-draft">暫存草稿</button>
+          <button type="button" class="ghost-btn" id="btn-clear-draft">清除暫存</button>
+          <button type="button" class="line-btn" id="btn-contact-service">聯繫客服</button>
+          <button type="submit" class="primary-btn" id="btn-submit-form">送出申請</button>
+        </div>
+        <p class="action-note">這一版先完成加購前置與欄位連動。送出、暫存、門面頁內嵌將在後續步驟補強。</p>
+      </section>
+    </form>
+  </main>
+
+  <template id="photo-slot-template">
+    <article class="photo-slot-card">
+      <div class="photo-slot-head">
+        <h3 class="photo-slot-title"></h3>
+        <span class="photo-slot-badge">尚未上傳</span>
       </div>
-
-      <div class="quoteHint">這版完整覆蓋檔已把加購完整版帶進報價流程，包含：跑馬燈 3 則輪播、金牌級會員、照片加購、CTA 加購、無限更新、組合包。</div>
-    </div>
-
-    <div class="summary" id="summaryBox"></div>
-    <div class="btns" style="margin-top:14px;">
-      <button id="btnTest" class="secondary" type="button">測試連線</button>
-      <button id="btnSubmit" type="button">送出資料</button>
-      <button id="btnReset" class="ghost" type="button">重設表單</button>
-    </div>
-
-    <div class="submit-progress-wrap" id="submitProgressWrap">
-      <div class="submit-progress-head"><strong id="submitProgressTitle">送出中</strong><span id="submitProgressPercent">0%</span></div>
-      <div class="submit-progress"><div class="submit-progress-fill" id="submitProgressFill"></div></div>
-      <div class="submit-progress-text" id="submitProgressText">準備中…</div>
-    </div>
-
-    <div class="status" id="status">尚未操作。</div>
-    <div class="card" id="submitSuccessBox" style="display:none;">
-      <div style="font-size:18px;font-weight:1000;color:#6ee7b7;">✅ 已成功送出申請</div>
-      <div style="margin-top:8px;color:rgba(255,255,255,.9);line-height:1.9;">
-        <strong>申請編號：</strong><span id="successCardId">-</span>
+      <div class="field-group">
+        <label class="field-label">圖片網址</label>
+        <input type="url" class="photo-url-input" placeholder="可先貼上已上傳圖片網址" />
       </div>
-      <textarea id="successCopyText" style="margin-top:10px;width:100%;height:130px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#020617;color:#fff;padding:10px;font-size:13px;line-height:1.8;" readonly></textarea>
-      <div class="btns" style="margin-top:12px;">
-        <button id="copyBtn" type="button">一鍵回覆客服</button>
-        <a id="lineCustomerServiceBtn" href="https://lin.ee/G3VJoRm" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:11px 15px;border-radius:14px;text-decoration:none;font-weight:900;font-size:14px;background:#22c55e;color:#fff;border:1px solid rgba(255,255,255,.08);">客服鈕</a>
+      <div class="field-group">
+        <label class="field-label">上傳圖片</label>
+        <input type="file" class="photo-file-input" accept="image/*" />
       </div>
-    </div>
-    <div class="footNote">提醒：正式交付卡不會在這裡直接開通，需待付款確認後才會交付。</div>
-  </section>
+      <div class="photo-preview-box">尚未選擇圖片</div>
+    </article>
+  </template>
 
-  <div class="pageNav">
-    <button id="prevBtn" class="ghost" type="button">上一步</button>
-    <div class="navDots" id="navDots"></div>
-    <button id="nextBtn" type="button">下一步</button>
-  </div>
-</div>
+  <template id="cta-slot-template">
+    <article class="cta-slot-card">
+      <div class="field-group">
+        <label class="field-label cta-title-label"></label>
+        <input type="text" class="cta-label-input" placeholder="按鈕文字" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">連結</label>
+        <input type="url" class="cta-url-input" placeholder="https://" />
+      </div>
+    </article>
+  </template>
 
-<div class="cropModal" id="cropModal">
-  <div class="cropBox">
-    <div><h3 id="cropTitle">調整圖片位置</h3><p id="cropDesc">可拖移位置，並用按鈕放大、縮小、置中、重設後再套用。</p></div>
-    <div class="cropStage ratio-photo" id="cropStage"><canvas id="cropCanvas"></canvas></div>
-    <div class="cropTools">
-      <button type="button" class="secondary" id="cropZoomOut">縮小</button>
-      <button type="button" class="secondary" id="cropZoomIn">放大</button>
-      <button type="button" class="secondary" id="cropCenter">置中</button>
-      <button type="button" class="ghost" id="cropReset">重設</button>
-      <button type="button" class="secondary" id="cropCancel">取消</button>
-      <button type="button" id="cropApply">套用</button>
-    </div>
-    <div id="cropMeta" style="margin-top:8px;color:var(--muted-form);font-size:12px;">可上下左右拖移圖片。頭像與 Logo 建議主體置中。</div>
-  </div>
-</div>
-
-<div class="assistModal" id="guideModal">
-  <div class="assistBox">
-    <div><h3>填表說明</h3><p>先看完再填，會更順，也能減少來回修改。</p></div>
-    <div class="assistBody">
-      <div class="assistCard"><h4>1. 影音平台欄位是填「連結」</h4><p>不是上傳影片檔。</p></div>
-      <div class="assistCard"><h4>2. 地址建議填完整</h4><p>後續較容易處理成導航連結。</p></div>
-      <div class="assistCard"><h4>3. CTA 文字與連結一定要成對</h4><p>只填其中一個，下一頁會被擋下。</p></div>
-      <div class="assistCard"><h4>4. 跑馬燈支援 3 則輪播</h4><p>勾選加購後，至少填 1 則，最多可填 3 則。</p></div>
-      <div class="assistCard"><h4>5. 金牌級會員方案</h4><p>想瞭解詳細方案內容「請洽客服」（或在line官方帳號裡留言：想瞭解金牌級會員方案）。</p></div>
-      <div class="assistCard"><h4>6. 組合包優先邏輯</h4><p>若勾選「跑馬燈＋無限更新」組合包，報價單會以組合包優惠價計，不重複計算單買跑馬燈與無限更新。</p></div>
-    </div>
-    <div class="assistActions">
-      <button type="button" class="secondary" id="guideGoFacadeBtn">看首頁門面參考</button>
-      <button type="button" class="ghost" id="closeGuideBtn">關閉</button>
-      <button type="button" id="guideConfirmBtn">我知道了，回到填表</button>
-    </div>
-  </div>
-</div>
-
-<div class="assistModal" id="facadeModal">
-  <div class="assistBox">
-    <div><h3>首頁門面參考</h3><p>你可以先操作看看整體門面呈現，再回來選方案與樣式。</p></div>
-    <div class="assistFrame"><iframe id="facadeFrame" src="https://angel0973180707.github.io/Happiness-Smart-Card-System/" title="首頁門面參考" loading="lazy"></iframe></div>
-    <div class="assistActions">
-      <button type="button" class="ghost" id="closeFacadeBtn">關閉</button>
-      <button type="button" id="facadeBackBtn">看完了，回到填表</button>
-    </div>
-  </div>
-</div>
-
-<input type="hidden" id="invite_code" />
-<input type="hidden" id="reserved_uid" />
-<input type="hidden" id="tenant" value="angel" />
-<input type="hidden" id="share_card_id" />
-<input type="hidden" id="share_agent_id" />
-<input type="hidden" id="share_source" />
-<input type="hidden" id="share_channel" />
-<input type="hidden" id="share_visit_id" />
-<input type="hidden" id="gas" value="https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec" />
-
-<script src="form.js?v=5.0-marquee-3"></script>
+  <script src="./form.js"></script>
 </body>
 </html>
