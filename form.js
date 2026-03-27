@@ -193,6 +193,8 @@ guidePremiumPhotoCount: document.getElementById("guidePremiumPhotoCount"),
 urlPhotoLimitHint: document.getElementById("urlPhotoLimitHint")
 };
 
+injectValidationStyles();
+
 init().catch((err) => {
 console.error("[HSC form] init failed:", err);
 setStatus(`初始化失敗：${err?.message || "未知錯誤"}`);
@@ -361,7 +363,12 @@ updatePage(true);
 
 el.nextBtn?.addEventListener("click", () => {
   if (state.currentPage < state.totalPages - 1) {
-    if (!validateCurrentPage(state.currentPage)) return;
+    if (!validateCurrentPage(state.currentPage)) {
+      const msg = document.getElementById("status")?.textContent || "請檢查欄位";
+      alert("⚠️ " + msg);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     state.currentPage += 1;
     updatePage(true);
     if (state.currentPage === 5) buildSummary();
@@ -592,14 +599,87 @@ window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function validateCurrentPage(pageIndex) {
+clearValidationState();
+
 try {
 if (pageIndex === 0) {
-const plan = normalizePlan(getFieldValue("plan"));
-if (!getFieldValue("plan")) throw new Error("請先選擇方案。");
-if (plan === "free") {
-if (!getFieldValue("color")) throw new Error("請選擇主色。");
-if (!getFieldValue("style")) throw new Error("請選擇版型。");
-if (!getFieldValue("paper")) throw new Error("請選擇紙感。");
+  const plan = normalizePlan(getFieldValue("plan"));
+  if (!getFieldValue("plan")) {
+    markFieldError("plan");
+    throw new Error("請先選擇方案。");
+  }
+  if (plan === "free") {
+    if (!getFieldValue("color")) {
+      markFieldError("color");
+      throw new Error("請選擇主色。");
+    }
+    if (!getFieldValue("style")) {
+      markFieldError("style");
+      throw new Error("請選擇版型。");
+    }
+    if (!getFieldValue("paper")) {
+      markFieldError("paper");
+      throw new Error("請選擇紙感。");
+    }
+  }
+  if (plan === "premium" && !getFieldValue("premium_color")) {
+    markFieldError("premium_color");
+    throw new Error("請選擇精品色。");
+  }
+}
+
+if (pageIndex === 1) {
+  if (!getFieldValue("name")) {
+    markFieldError("name");
+    throw new Error("請填寫姓名或品牌名稱。");
+  }
+}
+
+if (pageIndex === 2) {
+  const contactIds = ["phone","email","line_url","line_oa","wechat_id"];
+  const contactOk = contactIds.some((id) => getFieldValue(id));
+  if (!contactOk) {
+    contactIds.forEach(markFieldError);
+    throw new Error("請至少留一種聯絡方式。");
+  }
+}
+
+if (pageIndex === 3) {
+  for (let i = 1; i <= state.rules.maxCtas; i++) {
+    const textId = `cta_text_${i}`;
+    const linkId = `cta_link_${i}`;
+    const t = getFieldValue(textId);
+    const l = getFieldValue(linkId);
+    if ((t && !l) || (!t && l)) {
+      markFieldError(textId);
+      markFieldError(linkId);
+      throw new Error(`第 ${i} 個按鈕請同時填寫文字和連結。`);
+    }
+  }
+}
+
+setStatus("請繼續填寫。");
+return true;
+} catch (err) {
+  const msg = err?.message || "請檢查欄位。";
+  setStatus(msg);
+
+  if (pageIndex === 0) {
+    if (!getFieldValue("plan")) focusField("plan");
+    else if (normalizePlan(getFieldValue("plan")) === "free" && !getFieldValue("color")) focusField("color");
+    else if (normalizePlan(getFieldValue("plan")) === "free" && !getFieldValue("style")) focusField("style");
+    else if (normalizePlan(getFieldValue("plan")) === "free" && !getFieldValue("paper")) focusField("paper");
+    else if (normalizePlan(getFieldValue("plan")) === "premium" && !getFieldValue("premium_color")) focusField("premium_color");
+  } else if (pageIndex === 1) {
+    if (!getFieldValue("name")) focusField("name");
+  } else if (pageIndex === 2) {
+    focusField("phone");
+  } else if (pageIndex === 3) {
+    focusField("cta_text_1");
+  }
+
+  return false;
+}
 }
 if (plan === "premium" && !getFieldValue("premium_color")) {
 throw new Error("請選擇精品色。");
@@ -1386,6 +1466,49 @@ node.style.height = `${Math.max(110, node.scrollHeight)}px`;
 }
 function toggleEl(node, show) { if (!node) return; node.style.display = show ? "" : "none"; }
 function clamp(num, min, max) { return Math.min(Math.max(num, min), max); }
+
+function clearValidationState() {
+document.querySelectorAll(".hsc-field-error").forEach((node) => {
+  node.classList.remove("hsc-field-error");
+});
+}
+
+function markFieldError(id) {
+const node = document.getElementById(id);
+if (!node) return;
+node.classList.add("hsc-field-error");
+}
+
+function markCardError(id) {
+const node = document.getElementById(id);
+if (!node) return;
+node.classList.add("hsc-field-error");
+}
+
+function focusField(id) {
+const node = document.getElementById(id);
+if (!node) return;
+try {
+  node.scrollIntoView({ behavior: "smooth", block: "center" });
+  setTimeout(() => {
+    try { node.focus(); } catch {}
+  }, 160);
+} catch {}
+}
+
+function injectValidationStyles() {
+if (document.getElementById("hscValidationStyle")) return;
+const style = document.createElement("style");
+style.id = "hscValidationStyle";
+style.textContent = `
+  .hsc-field-error {
+    border-color: #fb7185 !important;
+    box-shadow: 0 0 0 3px rgba(251,113,133,.16) !important;
+  }
+`;
+document.head.appendChild(style);
+}
+
 function text(v) { return v == null ? "" : String(v).trim(); }
 function escapeHtml(value) {
 return String(value || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
