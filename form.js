@@ -815,8 +815,7 @@ function buildSummary() {
           parts.push(`內容：${item.messages.join(" / ")}`);
         }
         return parts.join("｜");
-      }).join("
-")
+      }).join("\n")
     : "未加購";
 
   const rows = [
