@@ -30,7 +30,7 @@
       <input type="hidden" id="addon_amount" name="addon_amount" value="0" />
       <input type="hidden" id="total_amount" name="total_amount" value="0" />
 
-      <section class="form-card section-priority" id="section-addon-first">
+      <section class="form-card section-priority">
         <div class="section-head">
           <div>
             <p class="section-kicker">STEP 1</p>
@@ -87,20 +87,10 @@
                 <input type="checkbox" id="addon_photo_enabled" name="addons" value="addon_photo" />
                 <span class="addon-content">
                   <strong>照片加購</strong>
-                  <small>勾選後可輸入加購張數</small>
+                  <small id="addon-photo-tip">先選方案後可輸入張數</small>
                 </span>
                 <span class="addon-number-wrap">
-                  <input
-                    type="number"
-                    id="addon_photo_qty"
-                    name="addon_photo_qty"
-                    min="0"
-                    max="10"
-                    step="1"
-                    value="0"
-                    inputmode="numeric"
-                    disabled
-                  />
+                  <input type="number" id="addon_photo_qty" name="addon_photo_qty" min="0" max="0" step="1" value="0" inputmode="numeric" disabled />
                   <em>張</em>
                 </span>
                 <span class="addon-price-tag">100/張</span>
@@ -113,17 +103,7 @@
                   <small>勾選後可輸入加購數量</small>
                 </span>
                 <span class="addon-number-wrap">
-                  <input
-                    type="number"
-                    id="addon_cta_qty"
-                    name="addon_cta_qty"
-                    min="0"
-                    max="10"
-                    step="1"
-                    value="0"
-                    inputmode="numeric"
-                    disabled
-                  />
+                  <input type="number" id="addon_cta_qty" name="addon_cta_qty" min="0" max="10" step="1" value="0" inputmode="numeric" disabled />
                   <em>個</em>
                 </span>
                 <span class="addon-price-tag">100/個</span>
@@ -151,7 +131,7 @@
                 <input type="checkbox" name="addons" value="addon_gold_member" />
                 <span class="addon-content">
                   <strong>金牌級會員<span class="gold-badge">特別加購</span></strong>
-                  <small>請先洽客服瞭解完整方案內容</small>
+                  <small>先洽客服瞭解完整權益與適合方案。</small>
                   <div class="gold-actions">
                     <button type="button" class="ghost-btn btn-mini" id="btn-gold-info">瞭解金牌會員權益</button>
                     <button type="button" class="ghost-btn btn-mini" id="btn-gold-copy">複製詢問文案</button>
@@ -165,7 +145,7 @@
 
           <aside class="addon-col addon-col-summary">
             <h3>目前連動結果</h3>
-            <ul class="dynamic-summary" id="dynamic-summary-list">
+            <ul class="dynamic-summary">
               <li>主方案：<strong id="summary-plan-name">請先選擇方案</strong></li>
               <li>照片可上傳：<strong id="summary-photo-count">-</strong> 張</li>
               <li>CTA 可填寫：<strong id="summary-cta-count">-</strong> 組</li>
@@ -175,7 +155,7 @@
           </aside>
         </div>
 
-        <div class="quote-box" id="quote-box">
+        <div class="quote-box">
           <div class="quote-head">
             <div>
               <p class="section-kicker">即時報價</p>
@@ -185,155 +165,68 @@
           </div>
 
           <div class="quote-lines">
-            <div class="quote-line">
-              <span>主方案</span>
-              <strong id="quote-plan-amount">-</strong>
-            </div>
-            <div class="quote-line">
-              <span>加購小計</span>
-              <strong id="quote-addon-amount">0</strong>
-            </div>
-            <div class="quote-breakdown" id="quote-addon-breakdown">
-              <p class="quote-breakdown-empty">尚未選擇加購</p>
-            </div>
-            <div class="quote-line quote-total">
-              <span>總價</span>
-              <strong id="quote-total-amount">-</strong>
-            </div>
+            <div class="quote-line"><span>主方案</span><strong id="quote-plan-amount">-</strong></div>
+            <div class="quote-line"><span>加購小計</span><strong id="quote-addon-amount">NT$ 0</strong></div>
+            <div class="quote-breakdown" id="quote-addon-breakdown"><p class="quote-breakdown-empty">尚未選擇加購</p></div>
+            <div class="quote-line quote-total"><span>總價</span><strong id="quote-total-amount">-</strong></div>
           </div>
         </div>
       </section>
 
       <section class="form-card">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">STEP 2</p>
-            <h2>名片樣式</h2>
-            <p>保留原本主方案分流，自由搭配與精品設計各自顯示對應欄位。</p>
-          </div>
-        </div>
-
+        <div class="section-head"><div><p class="section-kicker">STEP 2</p><h2>名片樣式</h2></div></div>
         <div class="grid-two">
-          <div class="field-group hidden" id="free-theme-group">
+          <div id="free-theme-group" class="field-group hidden">
             <label class="field-label" for="free_color">自由搭配顏色</label>
             <select id="free_color" name="free_color">
-              <option value="c1">粉</option>
-              <option value="c2">藍</option>
-              <option value="c3">橘</option>
-              <option value="c4">紫</option>
-              <option value="c5">綠</option>
+              <option value="c1">粉</option><option value="c2">藍</option><option value="c3">橘</option><option value="c4">紫</option><option value="c5">綠</option>
             </select>
-
             <label class="field-label" for="free_style">自由搭配版型</label>
             <select id="free_style" name="free_style">
-              <option value="s1">正拱</option>
-              <option value="s2">平直</option>
-              <option value="s3">晨曦</option>
+              <option value="s1">正拱</option><option value="s2">平直</option><option value="s3">晨曦</option>
             </select>
-
             <label class="field-label" for="free_paper">自由搭配紙感</label>
             <select id="free_paper" name="free_paper">
-              <option value="f1">棉紙</option>
-              <option value="f2">象牙紙</option>
-              <option value="f3">霧灰</option>
+              <option value="f1">棉紙</option><option value="f2">象牙紙</option><option value="f3">霧灰</option>
             </select>
           </div>
-
-          <div class="field-group hidden" id="premium-theme-group">
+          <div id="premium-theme-group" class="field-group hidden">
             <label class="field-label" for="premium_color">精品設計底色</label>
             <select id="premium_color" name="premium_color">
-              <option value="p1">胭脂紅</option>
-              <option value="p2">酒紅</option>
-              <option value="p3">深藍</option>
-              <option value="p4">霧紫</option>
-              <option value="p5">藍灰</option>
-              <option value="p6">金箔</option>
-              <option value="p7">褐碳</option>
+              <option value="p1">胭脂紅</option><option value="p2">酒紅</option><option value="p3">深藍</option><option value="p4">霧紫</option><option value="p5">藍灰</option><option value="p6">金箔</option><option value="p7">褐碳</option>
             </select>
-            <p class="field-hint">精品方案只需選精品色系，版型與紙感由系統套用。</p>
           </div>
         </div>
       </section>
 
       <section class="form-card">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">STEP 3</p>
-            <h2>基本資料</h2>
-          </div>
-        </div>
-
+        <div class="section-head"><div><p class="section-kicker">STEP 3</p><h2>基本資料</h2></div></div>
         <div class="grid-two">
-          <div class="field-group">
-            <label class="field-label" for="display_name">姓名 / 品牌名稱</label>
-            <input type="text" id="display_name" name="display_name" placeholder="請輸入姓名或品牌名稱" />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="title">職稱 / 副標</label>
-            <input type="text" id="title" name="title" placeholder="例如：烘焙品牌主理人" />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="phone">電話</label>
-            <input type="tel" id="phone" name="phone" placeholder="09xxxxxxxx" />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="email">Email</label>
-            <input type="email" id="email" name="email" placeholder="your@email.com" />
-          </div>
-          <div class="field-group full-width">
-            <label class="field-label" for="address">地址</label>
-            <input type="text" id="address" name="address" placeholder="完整地址會自動轉成導航" />
-          </div>
-          <div class="field-group full-width">
-            <label class="field-label" for="intro">簡介</label>
-            <textarea id="intro" name="intro" rows="4" placeholder="請輸入品牌介紹或自我介紹"></textarea>
-          </div>
+          <div class="field-group"><label class="field-label" for="display_name">姓名 / 品牌名稱</label><input type="text" id="display_name" name="display_name" required /></div>
+          <div class="field-group"><label class="field-label" for="title">職稱 / 副標</label><input type="text" id="title" name="title" /></div>
+          <div class="field-group"><label class="field-label" for="phone">電話</label><input type="tel" id="phone" name="phone" required /></div>
+          <div class="field-group"><label class="field-label" for="email">Email</label><input type="email" id="email" name="email" /></div>
+          <div class="field-group full-width"><label class="field-label" for="address">地址</label><input type="text" id="address" name="address" /></div>
+          <div class="field-group full-width"><label class="field-label" for="intro">簡介</label><textarea id="intro" name="intro" rows="4"></textarea></div>
         </div>
       </section>
 
       <section class="form-card">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">STEP 4</p>
-            <h2>照片上傳</h2>
-            <p>照片區會依主方案與加購數量自動調整。</p>
-          </div>
-        </div>
+        <div class="section-head"><div><p class="section-kicker">STEP 4</p><h2>照片上傳</h2></div></div>
         <div id="photo-slots" class="photo-grid"></div>
       </section>
 
       <section class="form-card">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">STEP 5</p>
-            <h2>CTA 連結</h2>
-            <p>CTA 欄位會依主方案與加購數量自動調整。</p>
-          </div>
-        </div>
+        <div class="section-head"><div><p class="section-kicker">STEP 5</p><h2>CTA 連結</h2></div></div>
         <div id="cta-slots" class="cta-stack"></div>
       </section>
 
-      <section class="form-card hidden" id="marquee-section">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">STEP 6</p>
-            <h2>跑馬燈訊息</h2>
-            <p>已開啟跑馬燈，可填 3 則輪播內容。</p>
-          </div>
-        </div>
+      <section id="marquee-section" class="form-card hidden">
+        <div class="section-head"><div><p class="section-kicker">STEP 6</p><h2>跑馬燈訊息</h2></div></div>
         <div class="marquee-stack">
-          <div class="field-group">
-            <label class="field-label" for="marquee_1">跑馬燈 1</label>
-            <input type="text" id="marquee_1" name="marquee_1" maxlength="60" placeholder="例如：歡迎加入 LINE 洽詢" />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="marquee_2">跑馬燈 2</label>
-            <input type="text" id="marquee_2" name="marquee_2" maxlength="60" placeholder="例如：限時優惠中" />
-          </div>
-          <div class="field-group">
-            <label class="field-label" for="marquee_3">跑馬燈 3</label>
-            <input type="text" id="marquee_3" name="marquee_3" maxlength="60" placeholder="例如：每週五更新" />
-          </div>
+          <div class="field-group"><label class="field-label" for="marquee_1">跑馬燈 1</label><input type="text" id="marquee_1" name="marquee_1" /></div>
+          <div class="field-group"><label class="field-label" for="marquee_2">跑馬燈 2</label><input type="text" id="marquee_2" name="marquee_2" /></div>
+          <div class="field-group"><label class="field-label" for="marquee_3">跑馬燈 3</label><input type="text" id="marquee_3" name="marquee_3" /></div>
         </div>
       </section>
 
@@ -344,39 +237,30 @@
           <button type="button" class="line-btn" id="btn-contact-service">聯繫客服</button>
           <button type="submit" class="primary-btn" id="btn-submit-form">送出申請</button>
         </div>
-        <p class="action-note">v6.8.1：表單正式送出 createCardWithOfflinePayment，成功後自動跳轉報價與預覽頁。</p>
       </section>
     </form>
   </main>
 
   <template id="photo-slot-template">
     <article class="photo-slot-card">
-      <div class="photo-slot-head">
-        <h3 class="photo-slot-title"></h3>
-        <span class="photo-slot-badge">尚未上傳</span>
+      <div class="photo-slot-head"><h3 class="photo-slot-title"></h3><span class="photo-slot-badge">尚未上傳</span></div>
+      <div class="photo-preview-frame"><img class="photo-preview-image hidden" alt="預覽圖" /><div class="photo-preview-empty">尚未選擇圖片</div></div>
+      <div class="field-group"><label class="field-label">上傳圖片</label><input type="file" class="photo-file-input" accept="image/*" /></div>
+      <div class="photo-tools hidden">
+        <div class="photo-tool-row">
+          <button type="button" class="ghost-btn btn-mini rotate-left">左轉</button>
+          <button type="button" class="ghost-btn btn-mini rotate-right">右轉</button>
+          <button type="button" class="ghost-btn btn-mini reset-photo">重設</button>
+        </div>
+        <div class="field-group"><label class="field-label">縮放</label><input type="range" class="zoom-range" min="1" max="2" step="0.01" value="1" /></div>
       </div>
-      <div class="field-group">
-        <label class="field-label">圖片網址</label>
-        <input type="url" class="photo-url-input" placeholder="可先貼上已上傳圖片網址" />
-      </div>
-      <div class="field-group">
-        <label class="field-label">上傳圖片</label>
-        <input type="file" class="photo-file-input" accept="image/*" />
-      </div>
-      <div class="photo-preview-box">尚未選擇圖片</div>
     </article>
   </template>
 
   <template id="cta-slot-template">
     <article class="cta-slot-card">
-      <div class="field-group">
-        <label class="field-label cta-title-label"></label>
-        <input type="text" class="cta-label-input" placeholder="按鈕文字" />
-      </div>
-      <div class="field-group">
-        <label class="field-label">連結</label>
-        <input type="url" class="cta-url-input" placeholder="https://" />
-      </div>
+      <div class="field-group"><label class="field-label cta-title-label"></label><input type="text" class="cta-label-input" placeholder="按鈕文字" /></div>
+      <div class="field-group"><label class="field-label">連結</label><input type="url" class="cta-url-input" placeholder="https://" /></div>
     </article>
   </template>
 
