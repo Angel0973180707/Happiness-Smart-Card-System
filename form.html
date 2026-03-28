@@ -12,7 +12,7 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">先選主方案與加購，後面的欄位會自動連動，不用重填。</p>
+        <p class="hero-desc">先選主方案與加購，後面的欄位、數量與報價會自動連動，不用重填。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -26,13 +26,16 @@
       <input type="hidden" id="ref" name="ref" value="" />
       <input type="hidden" id="photo_limit_total" name="photo_limit_total" value="0" />
       <input type="hidden" id="cta_limit_total" name="cta_limit_total" value="0" />
+      <input type="hidden" id="plan_amount" name="plan_amount" value="0" />
+      <input type="hidden" id="addon_amount" name="addon_amount" value="0" />
+      <input type="hidden" id="total_amount" name="total_amount" value="0" />
 
       <section class="form-card section-priority" id="section-addon-first">
         <div class="section-head">
           <div>
             <p class="section-kicker">STEP 1</p>
             <h2>先選方案與加購</h2>
-            <p>先決定主方案與需要的加購，下面欄位會依照你的選擇自動調整。</p>
+            <p>先決定主方案與需要的加購，下面欄位與價格會依照你的選擇自動調整。</p>
           </div>
           <div class="limit-badges">
             <span class="pill" id="summary-plan-pill">請先選擇方案</span>
@@ -45,7 +48,10 @@
           <label class="plan-option" data-plan-card="free">
             <input type="radio" name="plan" value="free" />
             <span class="plan-card">
-              <span class="plan-title">自由搭配</span>
+              <span class="plan-title-row">
+                <span class="plan-title">自由搭配</span>
+                <span class="plan-price-tag">1500</span>
+              </span>
               <span class="plan-meta">可自選顏色、版型、紙感</span>
               <span class="plan-mini">基礎 2 照片 / 1 CTA</span>
             </span>
@@ -54,7 +60,10 @@
           <label class="plan-option" data-plan-card="premium">
             <input type="radio" name="plan" value="premium" />
             <span class="plan-card">
-              <span class="plan-title">精品設計</span>
+              <span class="plan-title-row">
+                <span class="plan-title">精品設計</span>
+                <span class="plan-price-tag">2000</span>
+              </span>
               <span class="plan-meta">使用精品色系，樣式更精緻</span>
               <span class="plan-mini">基礎 5 照片 / 3 CTA</span>
             </span>
@@ -71,6 +80,7 @@
                   <strong>跑馬燈功能</strong>
                   <small>開啟後可填 3 則輪播訊息</small>
                 </span>
+                <span class="addon-price-tag">300</span>
               </label>
 
               <label class="addon-item">
@@ -79,6 +89,7 @@
                   <strong>金牌級會員</strong>
                   <small>保留既有商業加值流程</small>
                 </span>
+                <span class="addon-price-tag">0</span>
               </label>
 
               <label class="addon-item addon-item-numbered">
@@ -101,6 +112,7 @@
                   />
                   <em>張</em>
                 </span>
+                <span class="addon-price-tag">100/張</span>
               </label>
 
               <label class="addon-item addon-item-numbered">
@@ -123,6 +135,7 @@
                   />
                   <em>個</em>
                 </span>
+                <span class="addon-price-tag">100/個</span>
               </label>
 
               <label class="addon-item">
@@ -131,14 +144,16 @@
                   <strong>無限更新</strong>
                   <small>保留續後台更新權限流程</small>
                 </span>
+                <span class="addon-price-tag">300</span>
               </label>
 
               <label class="addon-item">
                 <input type="checkbox" name="addons" value="addon_bundle" />
                 <span>
                   <strong>跑馬燈＋更新組合</strong>
-                  <small>組合加購維持既有流程</small>
+                  <small>含跑馬燈＋無限更新，組合價優先計算</small>
                 </span>
+                <span class="addon-price-tag">500</span>
               </label>
             </div>
           </div>
@@ -153,6 +168,34 @@
             </ul>
             <p class="summary-note">選好主方案後，這一區會自動更新。</p>
           </aside>
+        </div>
+
+        <div class="quote-box" id="quote-box">
+          <div class="quote-head">
+            <div>
+              <p class="section-kicker">即時報價</p>
+              <h3>目前費用</h3>
+            </div>
+            <span class="quote-state" id="quote-state-text">請先選擇方案</span>
+          </div>
+
+          <div class="quote-lines">
+            <div class="quote-line">
+              <span>主方案</span>
+              <strong id="quote-plan-amount">-</strong>
+            </div>
+            <div class="quote-line">
+              <span>加購小計</span>
+              <strong id="quote-addon-amount">0</strong>
+            </div>
+            <div class="quote-breakdown" id="quote-addon-breakdown">
+              <p class="quote-breakdown-empty">尚未選擇加購</p>
+            </div>
+            <div class="quote-line quote-total">
+              <span>總價</span>
+              <strong id="quote-total-amount">-</strong>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -296,7 +339,7 @@
           <button type="button" class="line-btn" id="btn-contact-service">聯繫客服</button>
           <button type="submit" class="primary-btn" id="btn-submit-form">送出申請</button>
         </div>
-        <p class="action-note">這一版先完成 UI 精修與未選前不顯示。正式送出流程會在後續步驟補強。</p>
+        <p class="action-note">這一版先完成報價系統接入。正式送出與 quote-success 串接會在後續步驟補強。</p>
       </section>
     </form>
   </main>

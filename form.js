@@ -1,15 +1,27 @@
 (function () {
   'use strict';
 
-  const VERSION = 'v6.7.5-ui-refine-empty-summary';
+  const VERSION = 'v6.7.6-quote-system';
   const CONFIG = {
     GAS: 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec',
     HUB_URL: 'https://angel0973180707.github.io/Happiness-Smart-Card-System/',
     CUSTOMER_SERVICE_URL: 'https://lin.ee/G3VJoRm',
-    DRAFT_KEY: 'hsc_form_draft_v675',
+    DRAFT_KEY: 'hsc_form_draft_v676',
     BASE_LIMITS: {
       free: { photos: 2, ctas: 1 },
       premium: { photos: 5, ctas: 3 }
+    },
+    PLAN_PRICES: {
+      free: 1500,
+      premium: 2000
+    },
+    ADDON_PRICES: {
+      addon_marquee: 300,
+      addon_gold_member: 0,
+      addon_photo: 100,
+      addon_cta: 100,
+      addon_update_unlimited: 300,
+      addon_bundle: 500
     },
     MAX_ADDON_PHOTO_QTY: 10,
     MAX_ADDON_CTA_QTY: 10,
@@ -24,7 +36,11 @@
     addonCtaQty: 0,
     photoLimit: 0,
     ctaLimit: 0,
-    marqueeEnabled: false
+    marqueeEnabled: false,
+    planAmount: 0,
+    addonAmount: 0,
+    totalAmount: 0,
+    addonBreakdown: []
   };
 
   const els = {};
@@ -43,7 +59,7 @@
     recalculateDynamicState();
     renderPhotoSlots();
     renderCtaSlots();
-    paintStatus('目前版本：' + VERSION + '｜已完成 UI 精修＋未選前不顯示');
+    paintStatus('目前版本：' + VERSION + '｜已完成報價系統接入');
   }
 
   function cacheDom() {
@@ -63,6 +79,9 @@
     els.premiumThemeGroup = document.getElementById('premium-theme-group');
     els.photoLimitField = document.getElementById('photo_limit_total');
     els.ctaLimitField = document.getElementById('cta_limit_total');
+    els.planAmountField = document.getElementById('plan_amount');
+    els.addonAmountField = document.getElementById('addon_amount');
+    els.totalAmountField = document.getElementById('total_amount');
     els.marqueeSection = document.getElementById('marquee-section');
     els.summaryPlanName = document.getElementById('summary-plan-name');
     els.summaryPhotoCount = document.getElementById('summary-photo-count');
@@ -71,6 +90,11 @@
     els.summaryPlanPill = document.getElementById('summary-plan-pill');
     els.summaryPhotoPill = document.getElementById('summary-photo-pill');
     els.summaryCtaPill = document.getElementById('summary-cta-pill');
+    els.quoteStateText = document.getElementById('quote-state-text');
+    els.quotePlanAmount = document.getElementById('quote-plan-amount');
+    els.quoteAddonAmount = document.getElementById('quote-addon-amount');
+    els.quoteTotalAmount = document.getElementById('quote-total-amount');
+    els.quoteAddonBreakdown = document.getElementById('quote-addon-breakdown');
     els.btnSaveDraft = document.getElementById('btn-save-draft');
     els.btnClearDraft = document.getElementById('btn-clear-draft');
     els.btnContactService = document.getElementById('btn-contact-service');
@@ -150,7 +174,7 @@
 
     els.form.addEventListener('submit', function (event) {
       event.preventDefault();
-      paintStatus('這一版先完成 UI 精修與未選前不顯示。送出修正會在第 7 步完整處理。', 'warn');
+      paintStatus('這一版已完成報價系統。正式送出與 quote-success 串接會在後續步驟處理。', 'warn');
     });
   }
 
@@ -202,9 +226,15 @@
     if (!state.plan) {
       state.photoLimit = 0;
       state.ctaLimit = 0;
+      state.planAmount = 0;
+      state.addonAmount = 0;
+      state.totalAmount = 0;
+      state.addonBreakdown = [];
+      syncHiddenAmounts();
       if (els.photoLimitField) els.photoLimitField.value = '0';
       if (els.ctaLimitField) els.ctaLimitField.value = '0';
       updateSummaryEmpty();
+      updateQuoteEmpty();
       toggleHidden(els.marqueeSection, !state.marqueeEnabled);
       return;
     }
@@ -216,8 +246,58 @@
     if (els.photoLimitField) els.photoLimitField.value = String(state.photoLimit);
     if (els.ctaLimitField) els.ctaLimitField.value = String(state.ctaLimit);
 
+    state.planAmount = CONFIG.PLAN_PRICES[state.plan] || 0;
+    calculateAddonAmounts();
+    state.totalAmount = state.planAmount + state.addonAmount;
+    syncHiddenAmounts();
+
     updateSummaryFilled();
+    updateQuoteFilled();
     toggleHidden(els.marqueeSection, !state.marqueeEnabled);
+  }
+
+  function calculateAddonAmounts() {
+    const lines = [];
+    let addonAmount = 0;
+
+    if (state.addons.has('addon_bundle')) {
+      addonAmount += CONFIG.ADDON_PRICES.addon_bundle;
+      lines.push({ label: '跑馬燈＋更新組合', amount: CONFIG.ADDON_PRICES.addon_bundle });
+    } else {
+      if (state.addons.has('addon_marquee')) {
+        addonAmount += CONFIG.ADDON_PRICES.addon_marquee;
+        lines.push({ label: '跑馬燈功能', amount: CONFIG.ADDON_PRICES.addon_marquee });
+      }
+      if (state.addons.has('addon_update_unlimited')) {
+        addonAmount += CONFIG.ADDON_PRICES.addon_update_unlimited;
+        lines.push({ label: '無限更新', amount: CONFIG.ADDON_PRICES.addon_update_unlimited });
+      }
+    }
+
+    if (state.addons.has('addon_photo') && state.addonPhotoQty > 0) {
+      const amount = state.addonPhotoQty * CONFIG.ADDON_PRICES.addon_photo;
+      addonAmount += amount;
+      lines.push({ label: '照片加購 x ' + state.addonPhotoQty, amount: amount });
+    }
+
+    if (state.addons.has('addon_cta') && state.addonCtaQty > 0) {
+      const amount = state.addonCtaQty * CONFIG.ADDON_PRICES.addon_cta;
+      addonAmount += amount;
+      lines.push({ label: 'CTA 加購 x ' + state.addonCtaQty, amount: amount });
+    }
+
+    if (state.addons.has('addon_gold_member')) {
+      lines.push({ label: '金牌級會員', amount: CONFIG.ADDON_PRICES.addon_gold_member });
+    }
+
+    state.addonAmount = addonAmount;
+    state.addonBreakdown = lines;
+  }
+
+  function syncHiddenAmounts() {
+    if (els.planAmountField) els.planAmountField.value = String(state.planAmount || 0);
+    if (els.addonAmountField) els.addonAmountField.value = String(state.addonAmount || 0);
+    if (els.totalAmountField) els.totalAmountField.value = String(state.totalAmount || 0);
   }
 
   function updateSummaryEmpty() {
@@ -238,6 +318,50 @@
     if (els.summaryPlanPill) els.summaryPlanPill.textContent = '目前方案：' + (state.plan === 'premium' ? '精品設計' : '自由搭配');
     if (els.summaryPhotoPill) els.summaryPhotoPill.textContent = '照片上限：' + state.photoLimit;
     if (els.summaryCtaPill) els.summaryCtaPill.textContent = 'CTA 上限：' + state.ctaLimit;
+  }
+
+  function updateQuoteEmpty() {
+    if (els.quoteStateText) els.quoteStateText.textContent = '請先選擇方案';
+    if (els.quotePlanAmount) els.quotePlanAmount.textContent = '-';
+    if (els.quoteAddonAmount) els.quoteAddonAmount.textContent = '0';
+    if (els.quoteTotalAmount) els.quoteTotalAmount.textContent = '-';
+    renderAddonBreakdown([]);
+  }
+
+  function updateQuoteFilled() {
+    if (els.quoteStateText) els.quoteStateText.textContent = '已選擇 ' + (state.plan === 'premium' ? '精品設計' : '自由搭配');
+    if (els.quotePlanAmount) els.quotePlanAmount.textContent = formatMoney(state.planAmount);
+    if (els.quoteAddonAmount) els.quoteAddonAmount.textContent = formatMoney(state.addonAmount);
+    if (els.quoteTotalAmount) els.quoteTotalAmount.textContent = formatMoney(state.totalAmount);
+    renderAddonBreakdown(state.addonBreakdown);
+  }
+
+  function renderAddonBreakdown(lines) {
+    if (!els.quoteAddonBreakdown) return;
+    els.quoteAddonBreakdown.innerHTML = '';
+
+    if (!lines || !lines.length) {
+      const p = document.createElement('p');
+      p.className = 'quote-breakdown-empty';
+      p.textContent = '尚未選擇加購';
+      els.quoteAddonBreakdown.appendChild(p);
+      return;
+    }
+
+    lines.forEach(function (line) {
+      const row = document.createElement('div');
+      row.className = 'quote-breakdown-row';
+
+      const label = document.createElement('span');
+      label.textContent = line.label;
+
+      const amount = document.createElement('strong');
+      amount.textContent = formatMoney(line.amount);
+
+      row.appendChild(label);
+      row.appendChild(amount);
+      els.quoteAddonBreakdown.appendChild(row);
+    });
   }
 
   function renderPhotoSlots() {
@@ -444,6 +568,10 @@
     if (!els.statusStrip) return;
     els.statusStrip.textContent = message;
     els.statusStrip.dataset.state = type || 'ok';
+  }
+
+  function formatMoney(value) {
+    return String(value || 0);
   }
 
   function toggleHidden(node, shouldHide) {
