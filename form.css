@@ -1,99 +1,109 @@
-
-/* HSC v6.7.3 CSS 修復版 */
+/* HSC v6.7.4 UI 完整版 */
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
   background: #f7f5f1;
   color: #2a241e;
 }
 
 .form-shell {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 24px;
+  max-width: 960px;
+  margin: auto;
+  padding: 20px;
+}
+
+.page-hero {
+  margin-bottom: 24px;
 }
 
 .page-hero h1 {
-  font-size: 32px;
+  font-size: 34px;
   margin: 8px 0;
 }
 
 .hero-desc {
   color: #666;
+  line-height: 1.6;
 }
 
 .form-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  background: white;
+  border-radius: 18px;
+  padding: 22px;
+  margin-bottom: 22px;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.08);
+}
+
+.section-head {
+  margin-bottom: 16px;
+}
+
+.section-kicker {
+  font-size: 12px;
+  color: #999;
 }
 
 .section-head h2 {
-  margin: 6px 0 10px;
+  margin: 4px 0 8px;
 }
 
 .grid-two {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
 .full-width {
   grid-column: 1 / -1;
 }
 
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.plan-grid .plan-option input {
+  display: none;
 }
 
-.field-label {
-  font-size: 14px;
-  color: #555;
-}
-
-input, select, textarea {
-  padding: 10px;
-  border-radius: 8px;
+.plan-card {
+  display: block;
+  padding: 14px;
+  border-radius: 12px;
   border: 1px solid #ddd;
+  transition: all .2s;
 }
 
-textarea {
-  resize: vertical;
+.plan-option input:checked + .plan-card {
+  border-color: #f0a04b;
+  box-shadow: 0 0 0 2px rgba(240,160,75,0.2);
 }
 
-.primary-btn {
-  background: #f0a04b;
-  border: none;
-  padding: 12px 18px;
-  border-radius: 10px;
-  color: #fff;
+.plan-title {
   font-weight: bold;
 }
 
-.ghost-btn {
-  background: transparent;
-  border: 1px solid #ccc;
-  padding: 10px 16px;
-  border-radius: 10px;
+.addon-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
 
-.line-btn {
-  background: #06c755;
-  color: #fff;
-  border: none;
-  padding: 12px 18px;
-  border-radius: 10px;
+.addon-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.addon-number-wrap input {
+  width: 60px;
+}
+
+.dynamic-summary {
+  padding-left: 16px;
 }
 
 .photo-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
 .cta-stack {
@@ -116,19 +126,43 @@ textarea {
   color: #777;
 }
 
+input, select, textarea {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.primary-btn {
+  background: #f0a04b;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+  color: white;
+}
+
+.ghost-btn {
+  border: 1px solid #ccc;
+  background: transparent;
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.line-btn {
+  background: #06c755;
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 10px;
+}
+
 .hidden {
   display: none;
 }
 
-.pill {
-  background: #f3eee7;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-}
-
-.action-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+@media (max-width: 768px) {
+  .grid-two,
+  .addon-layout,
+  .photo-grid {
+    grid-template-columns: 1fr;
+  }
 }
