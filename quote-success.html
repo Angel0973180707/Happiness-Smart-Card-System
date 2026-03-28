@@ -1,1 +1,71 @@
-<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>報價與預覽｜天使幸福智慧名片</title><meta name="theme-color" content="#0b1220"><link rel="stylesheet" href="./quote-success.css"></head><body><div class="wrap"><header class="hero"><div class="hero-badge">表單已送出</div><div><h1>報價單＋成品預覽</h1><p class="hero-sub">請先查看預覽與報價內容，確認後回覆客服。<br>付款確認後，才會開通正式交付卡。</p></div></header><section class="card success-card"><div class="success-top"><div><div class="success-title">送出成功</div><div class="sub">系統已建立本次申請資料，請依下方資訊進行後續確認。</div></div><div class="status-pill">待客服確認</div></div><div class="info-grid"><div class="info-box"><div class="label">卡片編號</div><div class="value strong" id="cardId">-</div></div><div class="info-box"><div class="label">申請人</div><div class="value" id="customerName">-</div></div><div class="info-box"><div class="label">送出時間</div><div class="value" id="submittedAt">-</div></div><div class="info-box"><div class="label">付款提醒</div><div class="value danger" id="paymentNotice">請於 3 天內完成付款</div></div></div></section><section class="card"><div class="section-head"><h2>成品預覽連結</h2></div><div class="preview-link-box"><input id="previewUrl" class="readonly-input" readonly><div class="btn-row"><button id="copyPreviewBtn" type="button">複製預覽連結</button><a id="openPreviewBtn" class="btn secondary" href="#" target="_blank" rel="noopener noreferrer">開啟預覽</a></div></div></section><section class="card"><div class="section-head"><h2>報價單</h2></div><div class="quote-table"><div class="quote-row"><div class="q-label">方案名稱</div><div class="q-value" id="planName">-</div></div><div class="quote-row"><div class="q-label">方案金額</div><div class="q-value" id="planAmount">NT$ 0</div></div><div class="quote-row"><div class="q-label">加購明細</div><div class="q-value" id="addonItems">未加購</div></div><div class="quote-row"><div class="q-label">加購金額</div><div class="q-value" id="addonAmount">NT$ 0</div></div><div class="quote-row total"><div class="q-label">總金額</div><div class="q-value" id="totalAmount">NT$ 0</div></div></div><div class="btn-row"><button id="copyQuoteBtn" type="button">複製報價單</button></div></section><section class="card"><div class="section-head"><h2>請回覆客服</h2></div><textarea id="replyText" class="reply-box" readonly></textarea><div class="btn-row"><button id="copyReplyBtn" type="button">一鍵回覆客服</button><a id="serviceBtn" class="btn service" href="https://lin.ee/G3VJoRm" target="_blank" rel="noopener noreferrer">客服鈕</a></div><div class="notice">流程：填表送出 → 查看預覽與報價 → 回覆客服 → 完成付款 → 開通正式交付卡</div></section></div><script src="./quote-success.js"></script></body></html>
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>報價與預覽｜天使幸福智慧名片</title>
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="stylesheet" href="./quote-success.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="hero-badge">表單已送出</div>
+      <div>
+        <h1>報價單＋成品預覽</h1>
+        <p class="hero-sub">請先查看預覽與報價內容，確認後回覆客服。<br>付款確認後，才會開通正式交付卡。</p>
+      </div>
+    </header>
+
+    <section class="card success-card">
+      <div class="success-top">
+        <div>
+          <div class="success-title">送出成功</div>
+          <div class="sub">系統已建立本次申請資料，請依下方資訊進行後續確認。</div>
+        </div>
+        <div class="status-pill">待客服確認</div>
+      </div>
+      <div class="info-grid">
+        <div class="info-box"><div class="label">卡片編號</div><div class="value strong" id="cardId">-</div></div>
+        <div class="info-box"><div class="label">申請人</div><div class="value" id="customerName">-</div></div>
+        <div class="info-box"><div class="label">送出時間</div><div class="value" id="submittedAt">-</div></div>
+        <div class="info-box"><div class="label">付款提醒</div><div class="value danger" id="paymentNotice">請於 3 天內完成付款</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>成品預覽連結</h2></div>
+      <div class="preview-link-box">
+        <input id="previewUrl" class="readonly-input" readonly />
+        <div class="btn-row">
+          <button id="copyPreviewBtn" type="button">複製預覽連結</button>
+          <a id="openPreviewBtn" class="btn secondary" href="#" target="_blank" rel="noopener noreferrer">開啟預覽</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>報價單</h2></div>
+      <div class="quote-table">
+        <div class="quote-row"><div class="q-label">方案名稱</div><div class="q-value" id="planName">-</div></div>
+        <div class="quote-row"><div class="q-label">方案金額</div><div class="q-value" id="planAmount">NT$ 0</div></div>
+        <div class="quote-row"><div class="q-label">加購明細</div><div class="q-value" id="addonItems">未加購</div></div>
+        <div class="quote-row"><div class="q-label">加購金額</div><div class="q-value" id="addonAmount">NT$ 0</div></div>
+        <div class="quote-row total"><div class="q-label">總金額</div><div class="q-value" id="totalAmount">NT$ 0</div></div>
+      </div>
+      <div class="btn-row"><button id="copyQuoteBtn" type="button">複製報價單</button></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head"><h2>請回覆客服</h2></div>
+      <textarea id="replyText" class="reply-box" readonly></textarea>
+      <div class="btn-row">
+        <button id="copyReplyBtn" type="button">一鍵回覆客服</button>
+        <a id="serviceBtn" class="btn service" href="https://lin.ee/G3VJoRm" target="_blank" rel="noopener noreferrer">客服鈕</a>
+      </div>
+      <div class="notice">流程：填表送出 → 查看預覽與報價 → 回覆客服 → 完成付款 → 開通正式交付卡</div>
+    </section>
+  </div>
+  <script src="./quote-success.js"></script>
+</body>
+</html>
