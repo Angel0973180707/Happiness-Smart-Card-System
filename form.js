@@ -225,7 +225,6 @@
 
     for (let i = 1; i <= state.photoLimit; i += 1) {
       const frag = els.photoTpl.content.cloneNode(true);
-      const card = frag.querySelector('.photo-slot-card');
       const title = frag.querySelector('.photo-slot-title');
       const badge = frag.querySelector('.photo-slot-badge');
       const urlInput = frag.querySelector('.photo-url-input');
