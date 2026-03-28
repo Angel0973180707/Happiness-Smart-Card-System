@@ -6,13 +6,13 @@
   <title>天使幸福智慧名片｜表單</title>
   <link rel="stylesheet" href="./form.css" />
 </head>
-<body class="form-page">
+<body>
   <main class="form-shell">
     <header class="page-hero">
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v6.8.5 真 UI 商業版｜保留完整 UI，同步精準送單與報價流程。</p>
+        <p class="hero-desc">v6.8.6｜照片可左右移動、成品即時預覽、送出進度條與客服鈕。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -22,8 +22,8 @@
     <section class="status-strip" id="form-status-strip" aria-live="polite"></section>
 
     <form id="smart-card-form" novalidate>
-      <input type="hidden" id="invite_code" name="invite_code" value="" />
-      <input type="hidden" id="ref" name="ref" value="" />
+      <input type="hidden" id="invite_code" value="" />
+      <input type="hidden" id="ref" value="" />
 
       <section class="form-card">
         <div class="section-head">
@@ -39,7 +39,7 @@
           </div>
         </div>
 
-        <div class="grid-two plan-grid">
+        <div class="plan-grid">
           <label class="plan-option" data-plan-card="free">
             <input type="radio" name="plan" value="free" />
             <span class="plan-card">
@@ -59,58 +59,18 @@
         </div>
 
         <div class="addon-layout">
-          <div class="addon-col">
+          <div>
             <h3>功能加購</h3>
             <div class="addon-stack">
-              <label class="addon-item">
-                <input type="checkbox" name="addons" value="addon_marquee" />
-                <span class="addon-content"><strong>跑馬燈功能</strong><small>開啟後可填 3 則輪播訊息</small></span>
-                <span class="addon-price-tag">300</span>
-              </label>
-
-              <label class="addon-item">
-                <input type="checkbox" id="addon_photo_enabled" name="addons" value="addon_photo" />
-                <span class="addon-content"><strong>照片加購</strong><small id="addon-photo-tip">先選方案後可輸入張數</small></span>
-                <span class="addon-number-wrap"><input type="number" id="addon_photo_qty" name="addon_photo_qty" min="0" max="0" step="1" value="0" disabled><em>張</em></span>
-                <span class="addon-price-tag">100/張</span>
-              </label>
-
-              <label class="addon-item">
-                <input type="checkbox" id="addon_cta_enabled" name="addons" value="addon_cta" />
-                <span class="addon-content"><strong>CTA 加購</strong><small>勾選後可輸入數量</small></span>
-                <span class="addon-number-wrap"><input type="number" id="addon_cta_qty" name="addon_cta_qty" min="0" max="10" step="1" value="0" disabled><em>個</em></span>
-                <span class="addon-price-tag">100/個</span>
-              </label>
-
-              <label class="addon-item">
-                <input type="checkbox" name="addons" value="addon_update_unlimited" />
-                <span class="addon-content"><strong>無限更新</strong><small>保留後台續用流程</small></span>
-                <span class="addon-price-tag">300</span>
-              </label>
-
-              <label class="addon-item">
-                <input type="checkbox" name="addons" value="addon_bundle" />
-                <span class="addon-content"><strong>跑馬燈＋更新組合</strong><small>組合價優先計算，不重複加總</small></span>
-                <span class="addon-price-tag">500</span>
-              </label>
-
-              <label class="addon-item addon-item-gold">
-                <input type="checkbox" name="addons" value="addon_agent_upgrade" />
-                <span class="addon-content">
-                  <strong>金牌級會員<span class="gold-badge">特別加購</span></strong>
-                  <small>先洽客服瞭解完整權益與適合方案。</small>
-                  <div class="gold-actions">
-                    <button type="button" class="ghost-btn mini" id="btn-gold-info">瞭解金牌會員權益</button>
-                    <button type="button" class="ghost-btn mini" id="btn-gold-copy">複製詢問文案</button>
-                    <button type="button" class="line-btn mini" id="btn-gold-contact">聯繫客服</button>
-                  </div>
-                </span>
-                <span class="addon-price-tag">10000</span>
-              </label>
+              <label class="addon-item"><input type="checkbox" name="addons" value="addon_marquee" /><span class="addon-content"><strong>跑馬燈功能</strong><small>開啟後可填 3 則輪播訊息</small></span><span class="addon-price-tag">300</span></label>
+              <label class="addon-item"><input type="checkbox" id="addon_photo_enabled" name="addons" value="addon_photo" /><span class="addon-content"><strong>照片加購</strong><small id="addon-photo-tip">先選方案後可輸入張數</small></span><span class="addon-number-wrap"><input type="number" id="addon_photo_qty" value="0" min="0" max="0" disabled><em>張</em></span><span class="addon-price-tag">100/張</span></label>
+              <label class="addon-item"><input type="checkbox" id="addon_cta_enabled" name="addons" value="addon_cta" /><span class="addon-content"><strong>CTA 加購</strong><small>勾選後可輸入數量</small></span><span class="addon-number-wrap"><input type="number" id="addon_cta_qty" value="0" min="0" max="10" disabled><em>個</em></span><span class="addon-price-tag">100/個</span></label>
+              <label class="addon-item"><input type="checkbox" name="addons" value="addon_update_unlimited" /><span class="addon-content"><strong>無限更新</strong><small>保留後台續用流程</small></span><span class="addon-price-tag">300</span></label>
+              <label class="addon-item"><input type="checkbox" name="addons" value="addon_bundle" /><span class="addon-content"><strong>跑馬燈＋更新組合</strong><small>組合價優先計算，不重複加總</small></span><span class="addon-price-tag">500</span></label>
+              <label class="addon-item addon-item-gold"><input type="checkbox" name="addons" value="addon_agent_upgrade" /><span class="addon-content"><strong>金牌級會員<span class="gold-badge">特別加購</span></strong><small>先洽客服瞭解完整權益與適合方案。</small><div class="gold-actions"><button type="button" class="ghost-btn mini" id="btn-gold-info">瞭解金牌會員權益</button><button type="button" class="ghost-btn mini" id="btn-gold-copy">複製詢問文案</button><button type="button" class="line-btn mini" id="btn-gold-contact">聯繫客服</button></div></span><span class="addon-price-tag">10000</span></label>
             </div>
           </div>
-
-          <aside class="addon-col addon-col-summary">
+          <aside>
             <h3>目前連動結果</h3>
             <ul class="dynamic-summary">
               <li>主方案：<strong id="summary-plan-name">請先選擇方案</strong></li>
@@ -123,10 +83,7 @@
         </div>
 
         <div class="quote-box">
-          <div class="quote-head">
-            <div><p class="section-kicker">即時報價</p><h3>目前費用</h3></div>
-            <span class="quote-state" id="quote-state-text">請先選擇方案</span>
-          </div>
+          <div class="quote-head"><div><p class="section-kicker">即時報價</p><h3>目前費用</h3></div><span class="quote-state" id="quote-state-text">請先選擇方案</span></div>
           <div class="quote-lines">
             <div class="quote-line"><span>主方案</span><strong id="quote-plan-amount">-</strong></div>
             <div class="quote-line"><span>加購小計</span><strong id="quote-addon-amount">NT$ 0</strong></div>
@@ -139,51 +96,32 @@
       <section class="form-card">
         <div class="section-head"><div><p class="section-kicker">STEP 2</p><h2>名片樣式</h2></div></div>
         <div class="grid-two">
-          <div id="free-theme-group" class="field-group hidden">
-            <label class="field-label" for="free_color">自由搭配顏色</label>
-            <select id="free_color" name="free_color">
-              <option value="c1">粉</option><option value="c2">藍</option><option value="c3">橘</option><option value="c4">紫</option><option value="c5">綠</option>
-            </select>
-            <label class="field-label" for="free_style">自由搭配版型</label>
-            <select id="free_style" name="free_style">
-              <option value="s1">正拱</option><option value="s2">平直</option><option value="s3">晨曦</option>
-            </select>
-            <label class="field-label" for="free_paper">自由搭配紙感</label>
-            <select id="free_paper" name="free_paper">
-              <option value="f1">棉紙</option><option value="f2">象牙紙</option><option value="f3">霧灰</option>
-            </select>
-          </div>
-          <div id="premium-theme-group" class="field-group hidden">
-            <label class="field-label" for="premium_color">精品設計底色</label>
-            <select id="premium_color" name="premium_color">
-              <option value="p1">胭脂紅</option><option value="p2">酒紅</option><option value="p3">深藍</option><option value="p4">霧紫</option><option value="p5">藍灰</option><option value="p6">金箔</option><option value="p7">褐碳</option>
-            </select>
-            <p class="field-hint">精品方案僅需選色，版型與紙感由系統套用。</p>
-          </div>
+          <div id="free-theme-group" class="field-group hidden"><label class="field-label">自由搭配顏色</label><select id="free_color"><option value="c1">粉</option><option value="c2">藍</option><option value="c3">橘</option><option value="c4">紫</option><option value="c5">綠</option></select><label class="field-label">自由搭配版型</label><select id="free_style"><option value="s1">正拱</option><option value="s2">平直</option><option value="s3">晨曦</option></select><label class="field-label">自由搭配紙感</label><select id="free_paper"><option value="f1">棉紙</option><option value="f2">象牙紙</option><option value="f3">霧灰</option></select></div>
+          <div id="premium-theme-group" class="field-group hidden"><label class="field-label">精品設計底色</label><select id="premium_color"><option value="p1">胭脂紅</option><option value="p2">酒紅</option><option value="p3">深藍</option><option value="p4">霧紫</option><option value="p5">藍灰</option><option value="p6">金箔</option><option value="p7">褐碳</option></select><p class="field-hint">精品方案僅需選色，版型與紙感由系統套用。</p></div>
         </div>
       </section>
 
       <section class="form-card">
         <div class="section-head"><div><p class="section-kicker">STEP 3</p><h2>基本資料</h2></div></div>
         <div class="grid-two">
-          <div class="field-group"><label class="field-label" for="display_name">姓名 / 品牌名稱</label><input type="text" id="display_name" name="display_name" required></div>
-          <div class="field-group"><label class="field-label" for="unit">單位 / 公司</label><input type="text" id="unit" name="unit"></div>
-          <div class="field-group"><label class="field-label" for="title">職稱 / 副標</label><input type="text" id="title" name="title"></div>
-          <div class="field-group"><label class="field-label" for="phone">電話</label><input type="tel" id="phone" name="phone" required></div>
-          <div class="field-group"><label class="field-label" for="email">Email</label><input type="email" id="email" name="email"></div>
-          <div class="field-group"><label class="field-label" for="website">網站</label><input type="url" id="website" name="website" placeholder="https://"></div>
-          <div class="field-group"><label class="field-label" for="line_url">LINE 個人連結</label><input type="url" id="line_url" name="line_url" placeholder="https://"></div>
-          <div class="field-group"><label class="field-label" for="line_oa">LINE 官方帳號</label><input type="text" id="line_oa" name="line_oa"></div>
-          <div class="field-group"><label class="field-label" for="wechat_id">微信 ID</label><input type="text" id="wechat_id" name="wechat_id"></div>
-          <div class="field-group"><label class="field-label" for="experience">經歷</label><input type="text" id="experience" name="experience"></div>
-          <div class="field-group full-width"><label class="field-label" for="services">服務項目</label><input type="text" id="services" name="services"></div>
-          <div class="field-group full-width"><label class="field-label" for="address">地址</label><input type="text" id="address" name="address"></div>
-          <div class="field-group full-width"><label class="field-label" for="intro">簡介</label><textarea id="intro" name="intro" rows="4"></textarea></div>
+          <div class="field-group"><label class="field-label">姓名 / 品牌名稱</label><input type="text" id="display_name" required></div>
+          <div class="field-group"><label class="field-label">單位 / 公司</label><input type="text" id="unit"></div>
+          <div class="field-group"><label class="field-label">職稱 / 副標</label><input type="text" id="title"></div>
+          <div class="field-group"><label class="field-label">電話</label><input type="tel" id="phone" required></div>
+          <div class="field-group"><label class="field-label">Email</label><input type="email" id="email"></div>
+          <div class="field-group"><label class="field-label">網站</label><input type="url" id="website" placeholder="https://"></div>
+          <div class="field-group"><label class="field-label">LINE 個人連結</label><input type="url" id="line_url" placeholder="https://"></div>
+          <div class="field-group"><label class="field-label">LINE 官方帳號</label><input type="text" id="line_oa"></div>
+          <div class="field-group"><label class="field-label">微信 ID</label><input type="text" id="wechat_id"></div>
+          <div class="field-group"><label class="field-label">經歷</label><input type="text" id="experience"></div>
+          <div class="field-group full-width"><label class="field-label">服務項目</label><input type="text" id="services"></div>
+          <div class="field-group full-width"><label class="field-label">地址</label><input type="text" id="address"></div>
+          <div class="field-group full-width"><label class="field-label">簡介</label><textarea id="intro" rows="4"></textarea></div>
         </div>
       </section>
 
       <section class="form-card">
-        <div class="section-head"><div><p class="section-kicker">STEP 4</p><h2>照片上傳</h2></div></div>
+        <div class="section-head"><div><p class="section-kicker">STEP 4</p><h2>照片上傳</h2><p>新增左右移動控制，可在卡面中微調位置。</p></div></div>
         <div id="photo-slots" class="photo-grid"></div>
       </section>
 
@@ -194,48 +132,32 @@
 
       <section id="marquee-section" class="form-card hidden">
         <div class="section-head"><div><p class="section-kicker">STEP 6</p><h2>跑馬燈訊息</h2></div></div>
-        <div class="marquee-stack">
-          <div class="field-group"><label class="field-label" for="marquee_1">跑馬燈 1</label><input type="text" id="marquee_1" name="marquee_1"></div>
-          <div class="field-group"><label class="field-label" for="marquee_2">跑馬燈 2</label><input type="text" id="marquee_2" name="marquee_2"></div>
-          <div class="field-group"><label class="field-label" for="marquee_3">跑馬燈 3</label><input type="text" id="marquee_3" name="marquee_3"></div>
-        </div>
+        <div class="marquee-stack"><div class="field-group"><label class="field-label">跑馬燈 1</label><input type="text" id="marquee_1"></div><div class="field-group"><label class="field-label">跑馬燈 2</label><input type="text" id="marquee_2"></div><div class="field-group"><label class="field-label">跑馬燈 3</label><input type="text" id="marquee_3"></div></div>
       </section>
 
       <section class="form-card">
-        <div class="action-row">
-          <button type="button" class="ghost-btn" id="btn-save-draft">暫存草稿</button>
-          <button type="button" class="ghost-btn" id="btn-clear-draft">清除暫存</button>
-          <button type="button" class="line-btn" id="btn-contact-service">聯繫客服</button>
-          <button type="submit" class="primary-btn" id="btn-submit-form">送出申請</button>
+        <div class="section-head"><div><p class="section-kicker">STEP 7</p><h2>成品預覽</h2><p>這裡可即時預覽大致成品畫面。</p></div></div>
+        <div class="preview-section">
+          <div class="preview-card-board" id="preview-card-board">
+            <div class="preview-header"><div class="preview-avatar"><img id="preview-avatar-img" class="hidden" alt="頭像預覽"><div id="preview-avatar-empty" class="preview-avatar-empty">尚未上傳照片</div></div><div><div id="preview-name" class="preview-name">請先填寫姓名</div><div id="preview-unit" class="preview-unit">單位 / 公司</div><div id="preview-title" class="preview-title">職稱 / 副標</div></div></div>
+            <div id="preview-contact" class="preview-contact">電話 / Email / 地址</div>
+            <div id="preview-marquee" class="preview-marquee hidden"></div>
+            <div id="preview-services" class="preview-section-text"></div>
+            <div id="preview-ctas" class="preview-ctas"></div>
+            <div id="preview-photos" class="preview-photos"></div>
+          </div>
+          <div class="preview-card"><h3>預覽說明</h3><p class="hint">這是表單端的即時預覽，方便你邊調整邊看大致成品。正式成品仍以送單後資料為準。</p><p class="hint">照片上傳後，可用「左移 / 右移」調整顯示位置。</p></div>
         </div>
       </section>
+
+      <section class="form-card"><div class="action-row"><button type="button" class="ghost-btn" id="btn-save-draft">暫存草稿</button><button type="button" class="ghost-btn" id="btn-clear-draft">清除暫存</button><button type="button" class="line-btn" id="btn-contact-service">聯繫客服</button><button type="submit" class="primary-btn" id="btn-submit-form">送出申請</button></div></section>
     </form>
   </main>
 
-  <template id="photo-slot-template">
-    <article class="photo-card">
-      <div class="photo-head"><strong class="photo-title"></strong><span class="badge">尚未上傳</span></div>
-      <div class="preview-frame"><img class="preview-image hidden" alt="預覽圖"><div class="preview-empty">尚未選擇圖片</div></div>
-      <input type="file" class="photo-file-input" accept="image/*">
-      <div class="photo-tools hidden">
-        <div class="photo-tool-row">
-          <button type="button" class="ghost-btn mini rotate-left">左轉</button>
-          <button type="button" class="ghost-btn mini rotate-right">右轉</button>
-          <button type="button" class="ghost-btn mini reset-photo">重設</button>
-        </div>
-        <input type="range" class="zoom-range" min="1" max="2" step="0.01" value="1">
-      </div>
-    </article>
-  </template>
+  <div id="submit-progress-overlay" class="progress-overlay hidden"><div class="progress-card"><h3 class="progress-title">資料送出中</h3><p class="progress-text" id="progress-text">正在建立申請資料，請稍候。</p><div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div><ul class="progress-steps"><li class="progress-step" data-step="1">1. 整理表單資料</li><li class="progress-step" data-step="2">2. 建立 lead</li><li class="progress-step" data-step="3">3. 建立 card</li><li class="progress-step" data-step="4">4. 建立付款單</li><li class="progress-step" data-step="5">5. 導向報價頁</li></ul><div class="progress-actions"><button type="button" class="line-btn" id="progress-contact-service">回覆客服</button></div></div></div>
 
-  <template id="cta-slot-template">
-    <article class="cta-slot-card field-group">
-      <label class="cta-title-label"></label>
-      <input type="text" class="cta-label-input" placeholder="按鈕文字">
-      <input type="url" class="cta-url-input" placeholder="https://">
-    </article>
-  </template>
-
+  <template id="photo-slot-template"><article class="photo-card"><div class="photo-head"><strong class="photo-title"></strong><span class="badge">尚未上傳</span></div><div class="preview-frame"><img class="preview-image hidden" alt="預覽圖"><div class="preview-empty">尚未選擇圖片</div></div><input type="file" class="photo-file-input" accept="image/*"><div class="photo-tools hidden"><div class="photo-tool-row"><button type="button" class="ghost-btn mini rotate-left">左轉</button><button type="button" class="ghost-btn mini rotate-right">右轉</button><button type="button" class="ghost-btn mini move-left">左移</button><button type="button" class="ghost-btn mini move-right">右移</button><button type="button" class="ghost-btn mini reset-photo">重設</button></div><input type="range" class="zoom-range" min="1" max="2" step="0.01" value="1"></div></article></template>
+  <template id="cta-slot-template"><article class="cta-slot-card field-group"><label class="cta-title-label"></label><input type="text" class="cta-label-input" placeholder="按鈕文字"><input type="url" class="cta-url-input" placeholder="https://"></article></template>
   <script src="./form.js"></script>
 </body>
 </html>
