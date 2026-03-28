@@ -24,8 +24,8 @@
     <form id="smart-card-form" novalidate>
       <input type="hidden" id="invite_code" name="invite_code" value="" />
       <input type="hidden" id="ref" name="ref" value="" />
-      <input type="hidden" id="photo_limit_total" name="photo_limit_total" value="2" />
-      <input type="hidden" id="cta_limit_total" name="cta_limit_total" value="1" />
+      <input type="hidden" id="photo_limit_total" name="photo_limit_total" value="0" />
+      <input type="hidden" id="cta_limit_total" name="cta_limit_total" value="0" />
 
       <section class="form-card section-priority" id="section-addon-first">
         <div class="section-head">
@@ -35,15 +35,15 @@
             <p>先決定主方案與需要的加購，下面欄位會依照你的選擇自動調整。</p>
           </div>
           <div class="limit-badges">
-            <span class="pill" id="summary-plan-pill">目前方案：自由搭配</span>
-            <span class="pill" id="summary-photo-pill">照片上限：2</span>
-            <span class="pill" id="summary-cta-pill">CTA 上限：1</span>
+            <span class="pill" id="summary-plan-pill">請先選擇方案</span>
+            <span class="pill" id="summary-photo-pill">照片上限：-</span>
+            <span class="pill" id="summary-cta-pill">CTA 上限：-</span>
           </div>
         </div>
 
         <div class="grid-two plan-grid">
           <label class="plan-option" data-plan-card="free">
-            <input type="radio" name="plan" value="free" checked />
+            <input type="radio" name="plan" value="free" />
             <span class="plan-card">
               <span class="plan-title">自由搭配</span>
               <span class="plan-meta">可自選顏色、版型、紙感</span>
@@ -146,12 +146,12 @@
           <aside class="addon-col addon-col-summary">
             <h3>目前連動結果</h3>
             <ul class="dynamic-summary" id="dynamic-summary-list">
-              <li>主方案：<strong id="summary-plan-name">自由搭配</strong></li>
-              <li>照片可上傳：<strong id="summary-photo-count">2</strong> 張</li>
-              <li>CTA 可填寫：<strong id="summary-cta-count">1</strong> 組</li>
+              <li>主方案：<strong id="summary-plan-name">請先選擇方案</strong></li>
+              <li>照片可上傳：<strong id="summary-photo-count">-</strong> 張</li>
+              <li>CTA 可填寫：<strong id="summary-cta-count">-</strong> 組</li>
               <li>跑馬燈：<strong id="summary-marquee-status">未開啟</strong></li>
             </ul>
-            <p class="summary-note">這一區會跟著你的主方案與加購一起更新。</p>
+            <p class="summary-note">選好主方案後，這一區會自動更新。</p>
           </aside>
         </div>
       </section>
@@ -166,7 +166,7 @@
         </div>
 
         <div class="grid-two">
-          <div class="field-group" id="free-theme-group">
+          <div class="field-group hidden" id="free-theme-group">
             <label class="field-label" for="free_color">自由搭配顏色</label>
             <select id="free_color" name="free_color">
               <option value="c1">粉</option>
@@ -296,7 +296,7 @@
           <button type="button" class="line-btn" id="btn-contact-service">聯繫客服</button>
           <button type="submit" class="primary-btn" id="btn-submit-form">送出申請</button>
         </div>
-        <p class="action-note">這一版先完成加購前置與欄位連動。送出、暫存、門面頁內嵌將在後續步驟補強。</p>
+        <p class="action-note">這一版先完成 UI 精修與未選前不顯示。正式送出流程會在後續步驟補強。</p>
       </section>
     </form>
   </main>

@@ -1,12 +1,12 @@
 (function () {
   'use strict';
 
-  const VERSION = 'v6.7.0-step1-addon-first';
+  const VERSION = 'v6.7.5-ui-refine-empty-summary';
   const CONFIG = {
     GAS: 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec',
     HUB_URL: 'https://angel0973180707.github.io/Happiness-Smart-Card-System/',
     CUSTOMER_SERVICE_URL: 'https://lin.ee/G3VJoRm',
-    DRAFT_KEY: 'hsc_form_draft_v670_step1',
+    DRAFT_KEY: 'hsc_form_draft_v675',
     BASE_LIMITS: {
       free: { photos: 2, ctas: 1 },
       premium: { photos: 5, ctas: 3 }
@@ -18,12 +18,12 @@
   };
 
   const state = {
-    plan: 'free',
+    plan: null,
     addons: new Set(),
     addonPhotoQty: 0,
     addonCtaQty: 0,
-    photoLimit: 2,
-    ctaLimit: 1,
+    photoLimit: 0,
+    ctaLimit: 0,
     marqueeEnabled: false
   };
 
@@ -43,7 +43,7 @@
     recalculateDynamicState();
     renderPhotoSlots();
     renderCtaSlots();
-    paintStatus('目前版本：' + VERSION + '｜已完成第 1 步：加購前置＋欄位連動');
+    paintStatus('目前版本：' + VERSION + '｜已完成 UI 精修＋未選前不顯示');
   }
 
   function cacheDom() {
@@ -80,7 +80,6 @@
   function bindEvents() {
     els.planRadios.forEach(function (radio) {
       radio.addEventListener('change', function () {
-        state.plan = getCurrentPlan();
         syncPlanPanels();
         recalculateDynamicState();
         renderPhotoSlots();
@@ -100,7 +99,7 @@
     if (els.addonPhotoQty) {
       els.addonPhotoQty.addEventListener('input', function () {
         normalizeAddonNumberInput(els.addonPhotoQty, CONFIG.MAX_ADDON_PHOTO_QTY);
-        if (toInt(els.addonPhotoQty.value) > 0) {
+        if (toInt(els.addonPhotoQty.value) > 0 && els.addonPhotoEnabled) {
           els.addonPhotoEnabled.checked = true;
         }
         syncAddonControls();
@@ -112,7 +111,7 @@
     if (els.addonCtaQty) {
       els.addonCtaQty.addEventListener('input', function () {
         normalizeAddonNumberInput(els.addonCtaQty, CONFIG.MAX_ADDON_CTA_QTY);
-        if (toInt(els.addonCtaQty.value) > 0) {
+        if (toInt(els.addonCtaQty.value) > 0 && els.addonCtaEnabled) {
           els.addonCtaEnabled.checked = true;
         }
         syncAddonControls();
@@ -151,13 +150,13 @@
 
     els.form.addEventListener('submit', function (event) {
       event.preventDefault();
-      paintStatus('這一版先完成第 1 步：加購前置與欄位連動。送出修正會在第 7 步完整處理。', 'warn');
+      paintStatus('這一版先完成 UI 精修與未選前不顯示。送出修正會在第 7 步完整處理。', 'warn');
     });
   }
 
   function getCurrentPlan() {
     const checked = els.planRadios.find(function (item) { return item.checked; });
-    return checked ? checked.value : 'free';
+    return checked ? checked.value : null;
   }
 
   function syncPlanPanels() {
@@ -198,15 +197,40 @@
     );
     state.addonPhotoQty = state.addons.has('addon_photo') ? toInt(els.addonPhotoQty && els.addonPhotoQty.value) : 0;
     state.addonCtaQty = state.addons.has('addon_cta') ? toInt(els.addonCtaQty && els.addonCtaQty.value) : 0;
+    state.marqueeEnabled = state.addons.has('addon_marquee') || state.addons.has('addon_bundle');
+
+    if (!state.plan) {
+      state.photoLimit = 0;
+      state.ctaLimit = 0;
+      if (els.photoLimitField) els.photoLimitField.value = '0';
+      if (els.ctaLimitField) els.ctaLimitField.value = '0';
+      updateSummaryEmpty();
+      toggleHidden(els.marqueeSection, !state.marqueeEnabled);
+      return;
+    }
 
     const base = CONFIG.BASE_LIMITS[state.plan] || CONFIG.BASE_LIMITS.free;
     state.photoLimit = clamp(base.photos + state.addonPhotoQty, 0, CONFIG.MAX_RENDER_PHOTO);
     state.ctaLimit = clamp(base.ctas + state.addonCtaQty, 0, CONFIG.MAX_RENDER_CTA);
-    state.marqueeEnabled = state.addons.has('addon_marquee') || state.addons.has('addon_bundle');
 
     if (els.photoLimitField) els.photoLimitField.value = String(state.photoLimit);
     if (els.ctaLimitField) els.ctaLimitField.value = String(state.ctaLimit);
 
+    updateSummaryFilled();
+    toggleHidden(els.marqueeSection, !state.marqueeEnabled);
+  }
+
+  function updateSummaryEmpty() {
+    if (els.summaryPlanName) els.summaryPlanName.textContent = '請先選擇方案';
+    if (els.summaryPhotoCount) els.summaryPhotoCount.textContent = '-';
+    if (els.summaryCtaCount) els.summaryCtaCount.textContent = '-';
+    if (els.summaryMarqueeStatus) els.summaryMarqueeStatus.textContent = state.marqueeEnabled ? '已開啟' : '未開啟';
+    if (els.summaryPlanPill) els.summaryPlanPill.textContent = '請先選擇方案';
+    if (els.summaryPhotoPill) els.summaryPhotoPill.textContent = '照片上限：-';
+    if (els.summaryCtaPill) els.summaryCtaPill.textContent = 'CTA 上限：-';
+  }
+
+  function updateSummaryFilled() {
     if (els.summaryPlanName) els.summaryPlanName.textContent = state.plan === 'premium' ? '精品設計' : '自由搭配';
     if (els.summaryPhotoCount) els.summaryPhotoCount.textContent = String(state.photoLimit);
     if (els.summaryCtaCount) els.summaryCtaCount.textContent = String(state.ctaLimit);
@@ -214,14 +238,14 @@
     if (els.summaryPlanPill) els.summaryPlanPill.textContent = '目前方案：' + (state.plan === 'premium' ? '精品設計' : '自由搭配');
     if (els.summaryPhotoPill) els.summaryPhotoPill.textContent = '照片上限：' + state.photoLimit;
     if (els.summaryCtaPill) els.summaryCtaPill.textContent = 'CTA 上限：' + state.ctaLimit;
-
-    toggleHidden(els.marqueeSection, !state.marqueeEnabled);
   }
 
   function renderPhotoSlots() {
     if (!els.photoSlots || !els.photoTpl) return;
     const previous = collectExistingPhotoValues();
     els.photoSlots.innerHTML = '';
+
+    if (!state.plan || state.photoLimit <= 0) return;
 
     for (let i = 1; i <= state.photoLimit; i += 1) {
       const frag = els.photoTpl.content.cloneNode(true);
@@ -261,6 +285,8 @@
     if (!els.ctaSlots || !els.ctaTpl) return;
     const previous = collectExistingCtaValues();
     els.ctaSlots.innerHTML = '';
+
+    if (!state.plan || state.ctaLimit <= 0) return;
 
     for (let i = 1; i <= state.ctaLimit; i += 1) {
       const frag = els.ctaTpl.content.cloneNode(true);
@@ -394,9 +420,9 @@
   }
 
   function applyPlan(value) {
-    const target = value === 'premium' ? 'premium' : 'free';
+    const target = value === 'premium' ? 'premium' : value === 'free' ? 'free' : null;
     els.planRadios.forEach(function (radio) {
-      radio.checked = radio.value === target;
+      radio.checked = target ? radio.value === target : false;
     });
     state.plan = target;
   }
