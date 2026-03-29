@@ -6,7 +6,7 @@
     SERVICE_URL: "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v71_single_marquee",
+    DRAFT_KEY: "hsc_form_draft_v72_final",
     BASE_LIMITS: {
       free: { photos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { photos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -25,8 +25,8 @@
 
   const state = {
     photoMeta: {},
-    photoFiles: {},
     photoPreviewUrls: {},
+    photoFiles: {},
     photoCount: 0,
     ctaCount: 0
   };
@@ -56,17 +56,23 @@
       "btn-gold-copy",
       "btn-gold-contact",
       "progress-contact-service",
+
+      "invite_code",
+      "ref",
+
       "addon_photo_enabled",
       "addon_photo_qty",
       "addon_cta_enabled",
       "addon_cta_qty",
       "addon-photo-tip",
+
       "free-theme-group",
       "premium-theme-group",
       "free_color",
       "free_style",
       "free_paper",
       "premium_color",
+
       "display_name",
       "unit",
       "title",
@@ -80,10 +86,14 @@
       "services",
       "address",
       "intro",
+
       "marquee-section",
       "marquee_text",
+
       "photo-slots",
       "cta-slots",
+
+      "preview-card-board",
       "preview-name",
       "preview-unit",
       "preview-title",
@@ -94,6 +104,7 @@
       "preview-photos",
       "preview-avatar-img",
       "preview-avatar-empty",
+
       "summary-plan-pill",
       "summary-photo-pill",
       "summary-cta-pill",
@@ -101,11 +112,13 @@
       "summary-photo-count",
       "summary-cta-count",
       "summary-marquee-status",
+
       "quote-state-text",
       "quote-plan-amount",
       "quote-addon-amount",
       "quote-addon-breakdown",
       "quote-total-amount",
+
       "submit-progress-overlay",
       "progress-text",
       "progress-fill"
@@ -117,10 +130,10 @@
 
     els.planRadios = Array.from(document.querySelectorAll('input[name="plan"]'));
     els.addonCheckboxes = Array.from(document.querySelectorAll('input[name="addons"]'));
-    els.photoTemplate = document.getElementById("photo-slot-template");
-    els.ctaTemplate = document.getElementById("cta-slot-template");
     els.planCards = Array.from(document.querySelectorAll("[data-plan-card]"));
     els.progressSteps = Array.from(document.querySelectorAll(".progress-step"));
+    els.photoTemplate = document.getElementById("photo-slot-template");
+    els.ctaTemplate = document.getElementById("cta-slot-template");
   }
 
   function bindStaticEvents() {
@@ -164,53 +177,42 @@
       }
     });
 
-    if (els["btn-open-showcase"]) {
-      els["btn-open-showcase"].addEventListener("click", () => {
-        window.open(CONFIG.SHOWCASE_URL, "_blank", "noopener");
-      });
-    }
+    bindButton(els["btn-open-showcase"], () => {
+      window.open(CONFIG.SHOWCASE_URL, "_blank", "noopener");
+    });
 
-    if (els["btn-contact-service"]) {
-      els["btn-contact-service"].addEventListener("click", () => {
-        window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
-      });
-    }
+    bindButton(els["btn-contact-service"], () => {
+      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
+    });
 
-    if (els["progress-contact-service"]) {
-      els["progress-contact-service"].addEventListener("click", () => {
-        window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
-      });
-    }
+    bindButton(els["progress-contact-service"], () => {
+      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
+    });
 
-    if (els["btn-gold-contact"]) {
-      els["btn-gold-contact"].addEventListener("click", () => {
-        window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
-      });
-    }
+    bindButton(els["btn-gold-contact"], () => {
+      window.open(CONFIG.SERVICE_URL, "_blank", "noopener");
+    });
 
-    if (els["btn-gold-info"]) {
-      els["btn-gold-info"].addEventListener("click", () => {
-        alert("金牌級會員請聯繫客服瞭解完整權益與適合方案。");
-      });
-    }
+    bindButton(els["btn-gold-info"], () => {
+      alert("金牌級會員請聯繫客服瞭解完整權益與適合方案。");
+    });
 
-    if (els["btn-gold-copy"]) {
-      els["btn-gold-copy"].addEventListener("click", async () => {
-        await copyText("您好，我想瞭解金牌級會員的完整權益與適合方案。");
-        setStatus("已複製金牌會員詢問文案。");
-      });
-    }
+    bindButton(els["btn-gold-copy"], async () => {
+      await copyText("您好，我想瞭解金牌級會員的完整權益與適合方案。");
+      setStatus("已複製金牌會員詢問文案。");
+    });
 
-    if (els["btn-save-draft"]) {
-      els["btn-save-draft"].addEventListener("click", () => {
-        saveDraft();
-        setStatus("草稿已暫存。");
-      });
-    }
+    bindButton(els["btn-save-draft"], () => {
+      saveDraft();
+      setStatus("草稿已暫存。");
+    });
 
-    if (els["btn-clear-draft"]) {
-      els["btn-clear-draft"].addEventListener("click", clearDraft);
-    }
+    bindButton(els["btn-clear-draft"], clearDraft);
+  }
+
+  function bindButton(btn, handler) {
+    if (!btn) return;
+    btn.addEventListener("click", handler);
   }
 
   function ensureDefaultPlan() {
@@ -239,48 +241,6 @@
     return Math.max(min, Math.min(max, n));
   }
 
-  function getLimits() {
-    const plan = getSelectedPlan() || "premium";
-    const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
-
-    let extraPhotos = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
-    let extraCtas = isAddonChecked("addon_cta") ? getAddonQty("addon_cta_qty") : 0;
-
-    extraPhotos = clamp(extraPhotos, 0, CONFIG.MAX_PHOTOS);
-    extraCtas = clamp(extraCtas, 0, CONFIG.MAX_CTAS);
-
-    const photos = clamp(base.photos + extraPhotos, 0, CONFIG.MAX_PHOTOS);
-    const ctas = clamp(base.ctas + extraCtas, 0, CONFIG.MAX_CTAS);
-
-    return {
-      plan,
-      planLabel: base.label,
-      planPrice: base.price,
-      photos,
-      ctas,
-      extraPhotos,
-      extraCtas
-    };
-  }
-
-  function getThemeSelection() {
-    const plan = getSelectedPlan() || "premium";
-    if (plan === "free") {
-      return {
-        plan,
-        color: els["free_color"]?.value || "c1",
-        style: els["free_style"]?.value || "s1",
-        paper: els["free_paper"]?.value || "f1"
-      };
-    }
-    return {
-      plan,
-      color: els["premium_color"]?.value || "p1",
-      style: "",
-      paper: ""
-    };
-  }
-
   function refreshAll() {
     const limits = getLimits();
 
@@ -294,6 +254,30 @@
     syncQuote(limits);
     syncPreview();
     saveDraftSilently();
+  }
+
+  function getLimits() {
+    const plan = getSelectedPlan() || "premium";
+    const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
+
+    let extraPhotos = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
+    let extraCtas = isAddonChecked("addon_cta") ? getAddonQty("addon_cta_qty") : 0;
+
+    extraPhotos = clamp(extraPhotos, 0, CONFIG.MAX_PHOTOS - base.photos);
+    extraCtas = clamp(extraCtas, 0, CONFIG.MAX_CTAS - base.ctas);
+
+    const photos = clamp(base.photos + extraPhotos, 0, CONFIG.MAX_PHOTOS);
+    const ctas = clamp(base.ctas + extraCtas, 0, CONFIG.MAX_CTAS);
+
+    return {
+      plan,
+      planLabel: base.label,
+      planPrice: base.price,
+      photos,
+      ctas,
+      extraPhotos,
+      extraCtas
+    };
   }
 
   function syncPlanCards() {
@@ -315,12 +299,13 @@
 
   function syncAddonInputs(limits) {
     if (els["addon_photo_qty"]) {
-      els["addon_photo_qty"].disabled = !isAddonChecked("addon_photo");
-      const maxExtraPhoto = Math.max(0, CONFIG.MAX_PHOTOS - CONFIG.BASE_LIMITS[limits.plan].photos);
-      els["addon_photo_qty"].max = String(maxExtraPhoto);
-      if (!isAddonChecked("addon_photo")) els["addon_photo_qty"].value = "0";
-      if (Number(els["addon_photo_qty"].value) > maxExtraPhoto) {
-        els["addon_photo_qty"].value = String(maxExtraPhoto);
+      const enabled = isAddonChecked("addon_photo");
+      const maxExtra = Math.max(0, CONFIG.MAX_PHOTOS - CONFIG.BASE_LIMITS[limits.plan].photos);
+      els["addon_photo_qty"].disabled = !enabled;
+      els["addon_photo_qty"].max = String(maxExtra);
+      if (!enabled) els["addon_photo_qty"].value = "0";
+      if (Number(els["addon_photo_qty"].value || 0) > maxExtra) {
+        els["addon_photo_qty"].value = String(maxExtra);
       }
     }
 
@@ -330,13 +315,14 @@
     }
 
     if (els["addon_cta_qty"]) {
-      els["addon_cta_qty"].disabled = !isAddonChecked("addon_cta");
-      const maxExtraCta = Math.max(0, CONFIG.MAX_CTAS - CONFIG.BASE_LIMITS[limits.plan].ctas);
-      if (!isAddonChecked("addon_cta")) els["addon_cta_qty"].value = "0";
-      if (Number(els["addon_cta_qty"].value) > maxExtraCta) {
-        els["addon_cta_qty"].value = String(maxExtraCta);
+      const enabled = isAddonChecked("addon_cta");
+      const maxExtra = Math.max(0, CONFIG.MAX_CTAS - CONFIG.BASE_LIMITS[limits.plan].ctas);
+      els["addon_cta_qty"].disabled = !enabled;
+      els["addon_cta_qty"].max = String(maxExtra);
+      if (!enabled) els["addon_cta_qty"].value = "0";
+      if (Number(els["addon_cta_qty"].value || 0) > maxExtra) {
+        els["addon_cta_qty"].value = String(maxExtra);
       }
-      els["addon_cta_qty"].max = String(maxExtraCta);
     }
   }
 
@@ -351,14 +337,15 @@
     if (!els["photo-slots"] || !els.photoTemplate) return;
 
     const current = state.photoCount;
-    if (current === limit) return;
+    if (current === limit && els["photo-slots"].children.length === limit) {
+      return;
+    }
 
     els["photo-slots"].innerHTML = "";
     state.photoCount = limit;
 
     for (let i = 1; i <= limit; i++) {
       const frag = els.photoTemplate.content.cloneNode(true);
-      const root = frag.querySelector(".photo-card");
       const title = frag.querySelector(".photo-title");
       const badge = frag.querySelector(".badge");
       const fileInput = frag.querySelector(".photo-file-input");
@@ -378,7 +365,6 @@
         state.photoMeta[key] = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
       }
 
-      if (root) root.dataset.photoKey = key;
       if (title) title.textContent = "照片 " + i;
 
       if (fileInput) {
@@ -395,6 +381,7 @@
             previewImage.classList.remove("hidden");
             applyPhotoTransform(previewImage, state.photoMeta[key]);
           }
+
           if (previewEmpty) previewEmpty.classList.add("hidden");
           if (tools) tools.classList.remove("hidden");
           if (badge) badge.textContent = "已上傳";
@@ -486,7 +473,9 @@
     if (!els["cta-slots"] || !els.ctaTemplate) return;
 
     const current = state.ctaCount;
-    if (current === limit) return;
+    if (current === limit && els["cta-slots"].children.length === limit) {
+      return;
+    }
 
     const savedValues = collectCurrentCtaValues();
     els["cta-slots"].innerHTML = "";
@@ -494,13 +483,12 @@
 
     for (let i = 1; i <= limit; i++) {
       const frag = els.ctaTemplate.content.cloneNode(true);
-      const article = frag.querySelector(".cta-slot-card");
       const label = frag.querySelector(".cta-title-label");
       const textInput = frag.querySelector(".cta-label-input");
       const urlInput = frag.querySelector(".cta-url-input");
 
-      if (article) article.dataset.ctaIndex = String(i);
       if (label) label.textContent = "CTA " + i;
+
       if (textInput) {
         textInput.id = `cta_text_${i}`;
         textInput.value = savedValues[`cta_text_${i}`] || "";
@@ -509,6 +497,7 @@
           saveDraftSilently();
         });
       }
+
       if (urlInput) {
         urlInput.id = `cta_link_${i}`;
         urlInput.value = savedValues[`cta_link_${i}`] || "";
@@ -674,19 +663,12 @@
     }
 
     if (els["preview-contact"]) {
-      const parts = [
-        valueOf("phone"),
-        valueOf("email"),
-        valueOf("address")
-      ].filter(Boolean);
+      const parts = [valueOf("phone"), valueOf("email"), valueOf("address")].filter(Boolean);
       els["preview-contact"].textContent = parts.length ? parts.join("｜") : "電話 / Email / 地址";
     }
 
     if (els["preview-services"]) {
-      const parts = [
-        valueOf("services"),
-        valueOf("intro")
-      ].filter(Boolean);
+      const parts = [valueOf("services"), valueOf("intro")].filter(Boolean);
       els["preview-services"].textContent = parts.join("\n");
     }
 
@@ -721,15 +703,14 @@
         if (src) {
           const img = document.createElement("img");
           img.src = src;
-          els["preview-photos"].appendChild(tile);
           tile.appendChild(img);
         } else {
           const empty = document.createElement("div");
           empty.className = "preview-photo-empty";
           empty.textContent = `照片 ${i}`;
           tile.appendChild(empty);
-          els["preview-photos"].appendChild(tile);
         }
+        els["preview-photos"].appendChild(tile);
       }
     }
 
@@ -744,10 +725,33 @@
         els["preview-avatar-empty"].classList.remove("hidden");
       }
     }
+
+    if (els["preview-card-board"]) {
+      const plan = getSelectedPlan() || "premium";
+      els["preview-card-board"].classList.toggle("plan-premium", plan === "premium");
+    }
   }
 
   function valueOf(id) {
     return (els[id]?.value || "").trim();
+  }
+
+  function getThemeSelection() {
+    const plan = getSelectedPlan() || "premium";
+    if (plan === "free") {
+      return {
+        plan,
+        color: els["free_color"]?.value || "c1",
+        style: els["free_style"]?.value || "s1",
+        paper: els["free_paper"]?.value || "f1"
+      };
+    }
+    return {
+      plan,
+      color: els["premium_color"]?.value || "p1",
+      style: "",
+      paper: ""
+    };
   }
 
   function buildPayload() {
@@ -757,6 +761,7 @@
     const payload = {
       action: "createCardWithOfflinePayment",
       tenant: "angel",
+
       name: valueOf("display_name"),
       unit: valueOf("unit"),
       title: valueOf("title"),
@@ -770,13 +775,17 @@
       services: valueOf("services"),
       address: valueOf("address"),
       slogan: valueOf("intro"),
+
       invite_code: valueOf("invite_code"),
       ref: valueOf("ref"),
+
       plan: theme.plan,
       color: theme.color,
       style: theme.style,
       paper: theme.paper,
+
       marquee_text: valueOf("marquee_text"),
+
       features_json: {
         photo_meta: state.photoMeta,
         preview_meta: {
@@ -841,16 +850,16 @@
       const previewUrl = `${CONFIG.SHOWCASE_URL}poster.html?id=${encodeURIComponent(cardId)}`;
 
       const quoteData = {
-        card_id: cardId,
-        customer_name: payload.name,
+        card_id: cardId || "",
+        customer_name: payload.name || "",
         submitted_at: new Date().toISOString(),
         payment_notice: "請於 3 天內完成付款",
-        preview_url: previewUrl,
-        plan_name: limits.planLabel,
-        plan_amount: limits.planPrice,
-        addon_items: addonItems,
-        addon_amount: addonAmount,
-        total_amount: totalAmount
+        preview_url: previewUrl || "",
+        plan_name: limits.planLabel || "方案",
+        plan_amount: Number(limits.planPrice || 0),
+        addon_items: Array.isArray(addonItems) ? addonItems : [],
+        addon_amount: Number(addonAmount || 0),
+        total_amount: Number(totalAmount || 0)
       };
 
       localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify(quoteData));
@@ -867,25 +876,31 @@
   function showProgress(show) {
     if (!els["submit-progress-overlay"]) return;
     els["submit-progress-overlay"].classList.toggle("hidden", !show);
+
     if (!show) {
       els.progressSteps.forEach(step => {
         step.classList.remove("is-active", "is-done");
       });
       if (els["progress-fill"]) els["progress-fill"].style.width = "0%";
-      if (els["progress-text"]) els["progress-text"].textContent = "正在建立申請資料，請稍候。";
+      if (els["progress-text"]) {
+        els["progress-text"].textContent = "正在建立申請資料，請稍候。";
+      }
     }
   }
 
   function setProgressStep(stepNo, text) {
     const total = 5;
+
     els.progressSteps.forEach(step => {
       const n = Number(step.dataset.step || 0);
       step.classList.toggle("is-active", n === stepNo);
       step.classList.toggle("is-done", n < stepNo);
     });
+
     if (els["progress-fill"]) {
       els["progress-fill"].style.width = `${Math.round((stepNo / total) * 100)}%`;
     }
+
     if (els["progress-text"] && text) {
       els["progress-text"].textContent = text;
     }
@@ -894,7 +909,32 @@
   function setStatus(msg, stateName = "") {
     if (!els["form-status-strip"]) return;
     els["form-status-strip"].textContent = msg || "";
-    els["form-status-strip"].dataset.state = stateName || "";
+    if (stateName) {
+      els["form-status-strip"].dataset.state = stateName;
+    } else {
+      delete els["form-status-strip"].dataset.state;
+    }
+  }
+
+  function collectFormValues() {
+    const out = {};
+    document.querySelectorAll("input, textarea, select").forEach(el => {
+      if (!el.id && el.type !== "radio") return;
+
+      if (el.type === "checkbox") {
+        out[el.id] = el.checked;
+        return;
+      }
+
+      if (el.type === "radio") {
+        if (el.checked) out[el.name] = el.value;
+        return;
+      }
+
+      out[el.id] = el.value;
+    });
+
+    return out;
   }
 
   function saveDraft() {
@@ -921,16 +961,20 @@
     if (!draft || typeof draft !== "object") return;
 
     const values = draft.values || {};
-    Object.keys(values).forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-
-      if (el.type === "radio" || el.type === "checkbox") {
-        if (el.value === values[id] || values[id] === true) {
-          el.checked = true;
+    Object.keys(values).forEach(key => {
+      const byId = document.getElementById(key);
+      if (byId) {
+        if (byId.type === "checkbox") {
+          byId.checked = !!values[key];
+        } else {
+          byId.value = values[key];
         }
-      } else {
-        el.value = values[id];
+        return;
+      }
+
+      if (key === "plan") {
+        const planRadio = document.querySelector(`input[name="plan"][value="${values[key]}"]`);
+        if (planRadio) planRadio.checked = true;
       }
     });
 
@@ -940,27 +984,6 @@
     if (draft.photoPreviewUrls && typeof draft.photoPreviewUrls === "object") {
       state.photoPreviewUrls = draft.photoPreviewUrls;
     }
-  }
-
-  function collectFormValues() {
-    const out = {};
-    document.querySelectorAll("input, textarea, select").forEach(el => {
-      if (!el.id) return;
-
-      if (el.type === "checkbox") {
-        out[el.id] = el.checked;
-        return;
-      }
-
-      if (el.type === "radio") {
-        if (el.checked) out[el.name] = el.value;
-        return;
-      }
-
-      out[el.id] = el.value;
-    });
-
-    return out;
   }
 
   function clearDraft() {
@@ -975,15 +998,20 @@
 
   async function copyText(str) {
     if (!str) return;
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(str);
-      return;
-    }
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(str);
+        return;
+      }
+    } catch (_) {}
+
     const ta = document.createElement("textarea");
     ta.value = str;
     ta.style.position = "fixed";
     ta.style.opacity = "0";
     document.body.appendChild(ta);
+    ta.focus();
     ta.select();
     document.execCommand("copy");
     document.body.removeChild(ta);
