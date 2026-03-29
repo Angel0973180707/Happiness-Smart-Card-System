@@ -41,7 +41,7 @@
       const parsed = JSON.parse(raw);
       return parsed && typeof parsed === "object" ? parsed : {};
     } catch (err) {
-      console.error("readData error:", err);
+      console.error("quote-success readData error:", err);
       return {};
     }
   }
@@ -58,8 +58,10 @@
     if (el.openPreviewBtn) {
       el.openPreviewBtn.href = data.preview_url || "#";
       if (!data.preview_url) {
+        el.openPreviewBtn.classList.add("is-disabled");
         el.openPreviewBtn.setAttribute("aria-disabled", "true");
       } else {
+        el.openPreviewBtn.classList.remove("is-disabled");
         el.openPreviewBtn.removeAttribute("aria-disabled");
       }
     }
@@ -77,7 +79,12 @@
   function bind(data) {
     if (el.copyPreviewBtn) {
       el.copyPreviewBtn.addEventListener("click", async () => {
-        await copyText(data.preview_url || "");
+        const text = data.preview_url || "";
+        if (!text) {
+          flash(el.copyPreviewBtn, "尚無預覽連結");
+          return;
+        }
+        await copyText(text);
         flash(el.copyPreviewBtn, "已複製預覽連結");
       });
     }
