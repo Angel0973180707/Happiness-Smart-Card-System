@@ -10,12 +10,12 @@
 <body>
   <div class="wrap">
     <header class="hero">
-      <div class="hero-badge">表單已送出</div>
+      <div class="hero-badge">申請已送出</div>
       <div>
         <h1>報價單＋成品預覽</h1>
         <p class="hero-sub">
-          請先查看預覽與報價內容，確認後回覆客服。<br />
-          付款確認後，才會開通正式交付卡。
+          系統已為你建立本次智慧名片申請資料。<br />
+          請先查看預覽與報價內容，確認後回覆客服，付款完成後會開通正式交付卡。
         </p>
       </div>
     </header>
@@ -24,7 +24,9 @@
       <div class="success-top">
         <div>
           <div class="success-title">送出成功</div>
-          <div class="sub">系統已建立本次申請資料，請依下方資訊進行後續確認。</div>
+          <div class="sub">
+            這一頁是你的申請確認頁，請依照下方資訊完成後續付款與客服確認流程。
+          </div>
         </div>
         <div class="status-pill">待客服確認</div>
       </div>
@@ -34,14 +36,17 @@
           <div class="label">卡片編號</div>
           <div class="value strong" id="cardId">-</div>
         </div>
+
         <div class="info-box">
           <div class="label">申請人</div>
           <div class="value" id="customerName">-</div>
         </div>
+
         <div class="info-box">
           <div class="label">送出時間</div>
           <div class="value" id="submittedAt">-</div>
         </div>
+
         <div class="info-box">
           <div class="label">付款提醒</div>
           <div class="value danger" id="paymentNotice">請於 3 天內完成付款</div>
@@ -56,6 +61,7 @@
 
       <div class="preview-link-box">
         <input id="previewUrl" class="readonly-input" readonly />
+
         <div class="btn-row">
           <button id="copyPreviewBtn" type="button">複製預覽連結</button>
           <a
@@ -79,18 +85,22 @@
           <div class="q-label">方案名稱</div>
           <div class="q-value" id="planName">-</div>
         </div>
+
         <div class="quote-row">
           <div class="q-label">方案金額</div>
           <div class="q-value" id="planAmount">NT$ 0</div>
         </div>
+
         <div class="quote-row">
           <div class="q-label">加購明細</div>
           <div class="q-value preline" id="addonItems">未加購</div>
         </div>
+
         <div class="quote-row">
           <div class="q-label">加購金額</div>
           <div class="q-value" id="addonAmount">NT$ 0</div>
         </div>
+
         <div class="quote-row total">
           <div class="q-label">總金額</div>
           <div class="q-value" id="totalAmount">NT$ 0</div>
@@ -117,7 +127,7 @@
           href="https://lin.ee/G3VJoRm"
           target="_blank"
           rel="noopener noreferrer"
-        >客服鈕</a>
+        >聯繫客服</a>
       </div>
 
       <div class="notice">
