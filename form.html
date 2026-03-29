@@ -12,7 +12,7 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v6.8.8｜UI完整版 + features_json 完整融合版。</p>
+        <p class="hero-desc">v7.1｜單欄跑馬燈版 + features_json 完整融合版。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -64,7 +64,7 @@
             <div class="addon-stack">
               <label class="addon-item">
                 <input type="checkbox" name="addons" value="addon_marquee" />
-                <span class="addon-content"><strong>跑馬燈功能</strong><small>開啟後可填 3 則輪播訊息</small></span>
+                <span class="addon-content"><strong>跑馬燈功能</strong><small>開啟後可填 1 欄內容，多段請用｜分隔</small></span>
                 <span class="addon-price-tag">300</span>
               </label>
               <label class="addon-item">
@@ -180,11 +180,23 @@
       </section>
 
       <section id="marquee-section" class="form-card hidden">
-        <div class="section-head"><div><p class="section-kicker">STEP 6</p><h2>跑馬燈訊息</h2></div></div>
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">STEP 6</p>
+            <h2>跑馬燈訊息</h2>
+            <p>請填 1 欄內容；若要多段輪播，請用「｜」分隔</p>
+          </div>
+        </div>
         <div class="marquee-stack">
-          <div class="field-group"><label class="field-label" for="marquee_1">跑馬燈 1</label><input type="text" id="marquee_1"></div>
-          <div class="field-group"><label class="field-label" for="marquee_2">跑馬燈 2</label><input type="text" id="marquee_2"></div>
-          <div class="field-group"><label class="field-label" for="marquee_3">跑馬燈 3</label><input type="text" id="marquee_3"></div>
+          <div class="field-group">
+            <label class="field-label" for="marquee_text">跑馬燈內容</label>
+            <textarea
+              id="marquee_text"
+              rows="3"
+              placeholder="例如：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始"
+            ></textarea>
+            <p class="field-hint">系統會依「｜」自動輪播顯示，不再拆成 3 欄。</p>
+          </div>
         </div>
       </section>
 
