@@ -21,10 +21,12 @@
 
     replyText: document.getElementById("replyText"),
     serviceBtn: document.getElementById("serviceBtn"),
+    serviceBtnTop: document.getElementById("serviceBtnTop"),
 
     copyPreviewBtn: document.getElementById("copyPreviewBtn"),
     copyQuoteBtn: document.getElementById("copyQuoteBtn"),
-    copyReplyBtn: document.getElementById("copyReplyBtn")
+    copyReplyBtn: document.getElementById("copyReplyBtn"),
+    copyReplyBtnTop: document.getElementById("copyReplyBtnTop")
   };
 
   init();
@@ -48,6 +50,8 @@
 
   function render(data) {
     const notice = formatPaymentNotice(data.payment_notice);
+    const replyText = buildReplyText(data, notice);
+    const serviceLink = buildServiceLink(replyText);
 
     if (el.cardId) el.cardId.textContent = data.card_id || "-";
     if (el.customerName) el.customerName.textContent = data.customer_name || "-";
@@ -72,11 +76,14 @@
     if (el.addonAmount) el.addonAmount.textContent = money(data.addon_amount);
     if (el.totalAmount) el.totalAmount.textContent = money(data.total_amount);
 
-    if (el.replyText) el.replyText.value = buildReplyText(data, notice);
-    if (el.serviceBtn) el.serviceBtn.href = SERVICE_URL;
+    if (el.replyText) el.replyText.value = replyText;
+    if (el.serviceBtn) el.serviceBtn.href = serviceLink;
+    if (el.serviceBtnTop) el.serviceBtnTop.href = serviceLink;
   }
 
   function bind(data) {
+    const reply = buildReplyText(data, formatPaymentNotice(data.payment_notice));
+
     if (el.copyPreviewBtn) {
       el.copyPreviewBtn.addEventListener("click", async () => {
         const text = data.preview_url || "";
@@ -98,8 +105,15 @@
 
     if (el.copyReplyBtn) {
       el.copyReplyBtn.addEventListener("click", async () => {
-        await copyText(buildReplyText(data, formatPaymentNotice(data.payment_notice)));
-        flash(el.copyReplyBtn, "已複製回覆文案");
+        await copyText(reply);
+        flash(el.copyReplyBtn, "已複製客服文案");
+      });
+    }
+
+    if (el.copyReplyBtnTop) {
+      el.copyReplyBtnTop.addEventListener("click", async () => {
+        await copyText(reply);
+        flash(el.copyReplyBtnTop, "已複製客服文案");
       });
     }
   }
@@ -138,15 +152,21 @@
 
   function buildReplyText(data, notice) {
     return [
-      "您好，我已送出智慧名片申請資料。",
+      "您好，我已送出智慧名片申請資料，並已確認預覽與報價內容。",
       `卡片編號：${data.card_id || "-"}`,
       `方案：${data.plan_name || "方案"}`,
       `加購：${formatAddonItems(data.addon_items)}`,
       `總金額：${money(data.total_amount)}`,
       `成品預覽連結：${data.preview_url || "-"}`,
       `付款提醒：${notice}`,
-      "我已確認報價與預覽內容，請提供付款資訊，謝謝。"
+      "請提供付款資訊，完成付款後請協助開通正式交付卡，謝謝。"
     ].join("\n");
+  }
+
+  function buildServiceLink(message) {
+    // LINE 官方帳號通常不支援像一般 line://msg/ 那樣穩定帶文案
+    // 這裡仍回 lin.ee，搭配上方複製文案按鈕使用最穩。
+    return SERVICE_URL;
   }
 
   function formatPaymentNotice(notice) {
