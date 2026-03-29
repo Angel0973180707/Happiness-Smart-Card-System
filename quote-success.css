@@ -1,434 +1,243 @@
-:root{
-  --bg:#f7f5f1;
-  --bg-top:#fbf8f3;
-  --ink:#2a241e;
-  --muted:#7c746c;
-  --soft:#f3eee7;
-  --soft-2:#fbf7f0;
-  --line:rgba(42,36,30,.10);
-  --line-strong:rgba(42,36,30,.16);
+(() => {
+  "use strict";
 
-  --accent:#f0a04b;
-  --accent-2:#eb9530;
-  --accent-soft:rgba(240,160,75,.18);
+  const STORAGE_KEY = "HSC_LAST_QUOTE";
+  const SERVICE_URL = "https://lin.ee/G3VJoRm";
 
-  --premium:#9e7bd3;
-  --premium-soft:rgba(158,123,211,.16);
+  const el = {
+    cardId: document.getElementById("cardId"),
+    customerName: document.getElementById("customerName"),
+    submittedAt: document.getElementById("submittedAt"),
+    paymentNotice: document.getElementById("paymentNotice"),
 
-  --success:#06a66a;
-  --success-soft:rgba(6,166,106,.10);
+    previewUrl: document.getElementById("previewUrl"),
+    openPreviewBtn: document.getElementById("openPreviewBtn"),
 
-  --danger:#d34e69;
+    planName: document.getElementById("planName"),
+    planAmount: document.getElementById("planAmount"),
+    addonItems: document.getElementById("addonItems"),
+    addonAmount: document.getElementById("addonAmount"),
+    totalAmount: document.getElementById("totalAmount"),
 
-  --white:#fff;
-  --radius:24px;
-  --shadow:0 16px 36px rgba(0,0,0,.07);
-  --shadow-hover:0 22px 48px rgba(0,0,0,.10);
-  --shadow-soft:0 10px 24px rgba(0,0,0,.05);
-}
+    replyText: document.getElementById("replyText"),
+    serviceBtn: document.getElementById("serviceBtn"),
+    serviceBtnTop: document.getElementById("serviceBtnTop"),
 
-*{box-sizing:border-box}
+    copyPreviewBtn: document.getElementById("copyPreviewBtn"),
+    copyQuoteBtn: document.getElementById("copyQuoteBtn"),
+    copyReplyBtn: document.getElementById("copyReplyBtn"),
+    copyReplyBtnTop: document.getElementById("copyReplyBtnTop")
+  };
 
-html,body{
-  margin:0;
-  padding:0;
-  background:
-    radial-gradient(circle at top left, rgba(240,160,75,.08), transparent 28%),
-    radial-gradient(circle at top right, rgba(158,123,211,.08), transparent 24%),
-    linear-gradient(180deg,var(--bg-top) 0%,var(--bg) 100%);
-  color:var(--ink);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif;
-}
+  init();
 
-body{min-height:100vh}
-
-.wrap{
-  max-width:1120px;
-  margin:0 auto;
-  padding:28px 16px 56px;
-}
-
-.hero{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:16px;
-  margin-bottom:18px;
-}
-
-.hero-badge{
-  display:inline-flex;
-  align-items:center;
-  min-height:38px;
-  padding:7px 14px;
-  border-radius:999px;
-  font-size:13px;
-  font-weight:800;
-  background:rgba(123,220,255,.10);
-  color:#2692b8;
-  border:1px solid rgba(123,220,255,.22);
-  box-shadow:var(--shadow-soft);
-}
-
-h1{
-  margin:0 0 8px;
-  font-size:40px;
-  line-height:1.08;
-}
-
-h2{
-  margin:0;
-  font-size:26px;
-  line-height:1.2;
-}
-
-.hero-sub,.sub{
-  margin:0;
-  color:var(--muted);
-  line-height:1.75;
-}
-
-.card{
-  position:relative;
-  background:rgba(255,255,255,.92);
-  backdrop-filter:blur(4px);
-  border-radius:var(--radius);
-  padding:24px;
-  margin-bottom:18px;
-  box-shadow:var(--shadow);
-  border:1px solid rgba(255,255,255,.72);
-  transition:transform .18s ease, box-shadow .18s ease;
-}
-
-.card:hover{
-  transform:translateY(-2px);
-  box-shadow:var(--shadow-hover);
-}
-
-.section-head,
-.success-top{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:16px;
-  margin-bottom:16px;
-}
-
-.next-step-card{
-  background:linear-gradient(180deg,#fffdf9 0%,#fff8ef 100%);
-}
-
-.next-step-list{
-  display:grid;
-  gap:12px;
-}
-
-.next-step-item{
-  display:flex;
-  gap:12px;
-  align-items:flex-start;
-  padding:14px;
-  border:1px solid var(--line);
-  border-radius:18px;
-  background:#fff;
-}
-
-.next-step-item.is-active{
-  border-color:rgba(240,160,75,.36);
-  box-shadow:0 10px 24px rgba(240,160,75,.10);
-}
-
-.next-step-item.is-done{
-  border-color:rgba(6,166,106,.24);
-  background:linear-gradient(180deg,#fff 0%, #f7fffb 100%);
-}
-
-.step-no{
-  width:34px;
-  height:34px;
-  border-radius:999px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:900;
-  background:#f4eee7;
-  color:#7d6853;
-  flex:0 0 auto;
-}
-
-.next-step-item.is-active .step-no{
-  background:var(--accent);
-  color:#fff;
-}
-
-.next-step-item.is-done .step-no{
-  background:var(--success);
-  color:#fff;
-}
-
-.step-body{
-  display:flex;
-  flex-direction:column;
-  gap:4px;
-}
-
-.step-body strong{
-  font-size:15px;
-}
-
-.step-body span{
-  color:var(--muted);
-  line-height:1.65;
-  font-size:14px;
-}
-
-.success-card{
-  background:linear-gradient(180deg, rgba(255,255,255,.96) 0%, rgba(255,250,244,.95) 100%);
-}
-
-.success-title{
-  font-size:24px;
-  font-weight:900;
-  color:var(--success);
-}
-
-.status-pill{
-  display:inline-flex;
-  align-items:center;
-  min-height:34px;
-  padding:7px 13px;
-  border-radius:999px;
-  font-size:13px;
-  font-weight:800;
-  background:rgba(251,191,36,.12);
-  color:#8b5b16;
-  border:1px solid rgba(251,191,36,.24);
-  white-space:nowrap;
-}
-
-.info-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:14px;
-}
-
-.info-box{
-  border:1px solid var(--line);
-  border-radius:18px;
-  padding:15px 16px;
-  background:linear-gradient(180deg,#fff 0%, #fffdfa 100%);
-  box-shadow:var(--shadow-soft);
-}
-
-.label{
-  font-size:13px;
-  color:var(--muted);
-  margin-bottom:6px;
-}
-
-.value{
-  line-height:1.7;
-  white-space:pre-line;
-  word-break:break-word;
-  font-size:15px;
-}
-
-.value.strong{
-  font-size:26px;
-  line-height:1.2;
-  font-weight:900;
-}
-
-.value.danger{
-  color:var(--danger);
-  font-weight:900;
-}
-
-.preview-link-box{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-.readonly-input,
-.reply-box{
-  width:100%;
-  padding:13px 15px;
-  border-radius:14px;
-  border:1px solid rgba(42,36,30,.12);
-  background:#fff;
-  color:var(--ink);
-  font:inherit;
-}
-
-.reply-box{
-  min-height:180px;
-  resize:vertical;
-  line-height:1.7;
-}
-
-.btn-row{
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-}
-
-button,
-.btn{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  border:none;
-  border-radius:14px;
-  padding:12px 18px;
-  font:inherit;
-  font-weight:700;
-  cursor:pointer;
-  text-decoration:none;
-  transition:transform .16s ease, box-shadow .16s ease, opacity .16s ease;
-}
-
-button:hover,
-.btn:hover{
-  transform:translateY(-1px);
-}
-
-button{
-  color:#fff;
-  background:linear-gradient(180deg,var(--accent) 0%,var(--accent-2) 100%);
-  box-shadow:0 12px 24px rgba(240,160,75,.22);
-}
-
-.btn.secondary{
-  background:#fff;
-  border:1px solid rgba(42,36,30,.14);
-  color:var(--ink);
-  box-shadow:var(--shadow-soft);
-}
-
-.btn.service{
-  background:linear-gradient(180deg,#1ac964 0%,#05b34d 100%);
-  color:#fff;
-  box-shadow:0 12px 24px rgba(6,166,106,.18);
-}
-
-.btn.is-disabled,
-.btn[aria-disabled="true"]{
-  opacity:.55;
-  pointer-events:none;
-}
-
-.quote-table{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
-
-.quote-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:14px;
-  padding:8px 0;
-}
-
-.quote-row.total{
-  margin-top:6px;
-  padding-top:16px;
-  border-top:1px dashed rgba(42,36,30,.14);
-}
-
-.q-label{
-  color:var(--muted);
-  min-width:96px;
-  font-size:14px;
-}
-
-.q-value{
-  text-align:right;
-  white-space:pre-line;
-  word-break:break-word;
-  font-weight:800;
-  font-size:15px;
-}
-
-.quote-row.total .q-value{
-  font-size:24px;
-  line-height:1.2;
-  color:#b86f10;
-}
-
-.preline{
-  white-space:pre-line;
-}
-
-.highlight-card{
-  background:linear-gradient(180deg,#fff 0%, #fff9f1 100%);
-  border:1px solid rgba(240,160,75,.18);
-}
-
-.highlight-copy{
-  color:var(--muted);
-  line-height:1.75;
-  margin-bottom:14px;
-}
-
-.notice{
-  padding:14px 15px;
-  border-radius:16px;
-  border:1px dashed rgba(42,36,30,.12);
-  background:linear-gradient(180deg,#fffdf9 0%,#fff8ee 100%);
-  color:var(--muted);
-  line-height:1.75;
-}
-
-@media(max-width:980px){
-  .info-grid{
-    grid-template-columns:1fr;
-  }
-}
-
-@media(max-width:768px){
-  .wrap{
-    padding:22px 14px 42px;
+  function init() {
+    const data = readData();
+    render(data);
+    bind(data);
   }
 
-  .hero,
-  .section-head,
-  .success-top{
-    flex-direction:column;
+  function readData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY) || "{}";
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (err) {
+      console.error("quote-success readData error:", err);
+      return {};
+    }
   }
 
-  .btn-row > *{
-    width:100%;
+  function render(data) {
+    const notice = formatPaymentNotice(data.payment_notice);
+    const replyText = buildReplyText(data, notice);
+    const serviceLink = buildServiceLink(replyText);
+
+    if (el.cardId) el.cardId.textContent = data.card_id || "-";
+    if (el.customerName) el.customerName.textContent = data.customer_name || "-";
+    if (el.submittedAt) el.submittedAt.textContent = formatTime(data.submitted_at);
+    if (el.paymentNotice) el.paymentNotice.textContent = notice;
+
+    if (el.previewUrl) el.previewUrl.value = data.preview_url || "";
+    if (el.openPreviewBtn) {
+      el.openPreviewBtn.href = data.preview_url || "#";
+      if (!data.preview_url) {
+        el.openPreviewBtn.classList.add("is-disabled");
+        el.openPreviewBtn.setAttribute("aria-disabled", "true");
+      } else {
+        el.openPreviewBtn.classList.remove("is-disabled");
+        el.openPreviewBtn.removeAttribute("aria-disabled");
+      }
+    }
+
+    if (el.planName) el.planName.textContent = data.plan_name || "方案";
+    if (el.planAmount) el.planAmount.textContent = money(data.plan_amount);
+    if (el.addonItems) el.addonItems.textContent = formatAddonItems(data.addon_items);
+    if (el.addonAmount) el.addonAmount.textContent = money(data.addon_amount);
+    if (el.totalAmount) el.totalAmount.textContent = money(data.total_amount);
+
+    if (el.replyText) el.replyText.value = replyText;
+    if (el.serviceBtn) el.serviceBtn.href = serviceLink;
+    if (el.serviceBtnTop) el.serviceBtnTop.href = serviceLink;
   }
 
-  h1{
-    font-size:32px;
+  function bind(data) {
+    const reply = buildReplyText(data, formatPaymentNotice(data.payment_notice));
+
+    if (el.copyPreviewBtn) {
+      el.copyPreviewBtn.addEventListener("click", async () => {
+        const text = data.preview_url || "";
+        if (!text) {
+          flash(el.copyPreviewBtn, "尚無預覽連結");
+          return;
+        }
+        await copyText(text);
+        flash(el.copyPreviewBtn, "已複製預覽連結");
+      });
+    }
+
+    if (el.copyQuoteBtn) {
+      el.copyQuoteBtn.addEventListener("click", async () => {
+        await copyText(buildQuoteText(data));
+        flash(el.copyQuoteBtn, "已複製報價單");
+      });
+    }
+
+    if (el.copyReplyBtn) {
+      el.copyReplyBtn.addEventListener("click", async () => {
+        await copyText(reply);
+        flash(el.copyReplyBtn, "已複製客服文案");
+      });
+    }
+
+    if (el.copyReplyBtnTop) {
+      el.copyReplyBtnTop.addEventListener("click", async () => {
+        await copyText(reply);
+        flash(el.copyReplyBtnTop, "已複製客服文案");
+      });
+    }
   }
 
-  h2{
-    font-size:22px;
+  function formatAddonItems(items) {
+    if (!Array.isArray(items) || !items.length) return "未加購";
+
+    return items.map(item => {
+      const name = safeText(item.name || item.label || item.code || "加購項目");
+      const qty = Number(item.qty || 0);
+      const unitPrice = Number(item.unit_price || 0);
+      const amount = Number(item.amount || 0);
+
+      if (qty > 0 && unitPrice > 0) {
+        return `${name}｜${qty} × ${money(unitPrice)}｜${money(amount)}`;
+      }
+      return `${name}｜${money(amount)}`;
+    }).join("\n");
   }
 
-  .quote-row{
-    flex-direction:column;
-    gap:6px;
+  function buildQuoteText(data) {
+    return [
+      "【天使幸福智慧名片報價單】",
+      `卡片編號：${data.card_id || "-"}`,
+      `申請人：${data.customer_name || "-"}`,
+      `送出時間：${formatTime(data.submitted_at)}`,
+      `方案名稱：${data.plan_name || "方案"}`,
+      `方案金額：${money(data.plan_amount)}`,
+      `加購明細：${formatAddonItems(data.addon_items)}`,
+      `加購金額：${money(data.addon_amount)}`,
+      `總金額：${money(data.total_amount)}`,
+      `成品預覽：${data.preview_url || "-"}`,
+      `付款提醒：${formatPaymentNotice(data.payment_notice)}`
+    ].join("\n");
   }
 
-  .q-value{
-    text-align:left;
+  function buildReplyText(data, notice) {
+    return [
+      "您好，我已送出智慧名片申請資料，並已確認預覽與報價內容。",
+      `卡片編號：${data.card_id || "-"}`,
+      `方案：${data.plan_name || "方案"}`,
+      `加購：${formatAddonItems(data.addon_items)}`,
+      `總金額：${money(data.total_amount)}`,
+      `成品預覽連結：${data.preview_url || "-"}`,
+      `付款提醒：${notice}`,
+      "請提供付款資訊，完成付款後請協助開通正式交付卡，謝謝。"
+    ].join("\n");
   }
 
-  .card{
-    padding:20px;
+  function buildServiceLink(message) {
+    // LINE 官方帳號通常不支援像一般 line://msg/ 那樣穩定帶文案
+    // 這裡仍回 lin.ee，搭配上方複製文案按鈕使用最穩。
+    return SERVICE_URL;
   }
 
-  .value.strong{
-    font-size:22px;
+  function formatPaymentNotice(notice) {
+    if (!notice) return "請於 3 天內完成付款";
+    if (typeof notice === "string") return notice;
+
+    try {
+      return JSON.stringify(notice, null, 2);
+    } catch {
+      return "請於 3 天內完成付款";
+    }
   }
 
-  .quote-row.total .q-value{
-    font-size:22px;
+  function formatTime(v) {
+    if (!v) return "-";
+    const d = new Date(v);
+    if (Number.isNaN(d.getTime())) return String(v);
+
+    return d.toLocaleString("zh-TW", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
   }
-}
+
+  function money(v) {
+    return `NT$ ${Number(v || 0).toLocaleString("zh-TW")}`;
+  }
+
+  function safeText(v) {
+    return String(v || "").trim();
+  }
+
+  async function copyText(str) {
+    if (!str) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(str);
+        return;
+      }
+    } catch (err) {
+      console.warn("clipboard.writeText failed:", err);
+    }
+
+    const ta = document.createElement("textarea");
+    ta.value = str;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    ta.style.pointerEvents = "none";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+
+    try {
+      document.execCommand("copy");
+    } catch (err) {
+      console.error("execCommand copy failed:", err);
+    }
+
+    document.body.removeChild(ta);
+  }
+
+  function flash(btn, text) {
+    if (!btn) return;
+    const old = btn.textContent;
+    btn.textContent = text;
+    setTimeout(() => {
+      btn.textContent = old;
+    }, 1800);
+  }
+})();
