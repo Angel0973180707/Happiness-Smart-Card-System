@@ -57,7 +57,7 @@ h3{margin:0 0 10px;font-size:18px}
 .quote-total,.quote-row.total{border-top:1px dashed rgba(42,36,30,.12);padding-top:12px;margin-top:6px}
 .quote-breakdown,.breakdown{display:grid;gap:8px;padding:12px;border-radius:14px;background:rgba(255,255,255,.62);color:var(--muted)}
 .field-group,.field{display:flex;flex-direction:column;gap:8px}
-.field-label,.field label,.cta-title-label,.label{font-size:14px;color:var(--muted)}
+.field-label,.field label,.cta-title-label,.label,.q-label{font-size:14px;color:var(--muted)}
 input,select,textarea,.readonly-input,.reply-box{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(42,36,30,.12);background:#fff;color:var(--ink);font:inherit}
 textarea,.reply-box{resize:vertical}
 .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
