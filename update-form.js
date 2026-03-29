@@ -12,112 +12,32 @@ import {
   const GAS_URL =
     "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec";
 
-  const VERSION = "v4.8-final";
+  const VERSION = "v7.2-single-marquee";
   const LINE_OA_URL = "https://lin.ee/G3VJoRm";
   const MB = 1024 * 1024;
   const MAX_ACCEPT_FILE_SIZE = 20 * MB;
 
   const SMART_PROFILE = {
-    small: {
-      maxLong: 1800,
-      maxShort: 1800,
-      previewQuality: 0.90,
-      outputQuality: 0.88,
-      label: "輕壓縮"
-    },
-    medium: {
-      maxLong: 1500,
-      maxShort: 1500,
-      previewQuality: 0.86,
-      outputQuality: 0.82,
-      label: "中壓縮"
-    },
-    large: {
-      maxLong: 1200,
-      maxShort: 1200,
-      previewQuality: 0.82,
-      outputQuality: 0.76,
-      label: "強壓縮"
-    }
+    small: { maxLong: 1800, maxShort: 1800, previewQuality: 0.90, outputQuality: 0.88, label: "輕壓縮" },
+    medium: { maxLong: 1500, maxShort: 1500, previewQuality: 0.86, outputQuality: 0.82, label: "中壓縮" },
+    large: { maxLong: 1200, maxShort: 1200, previewQuality: 0.82, outputQuality: 0.76, label: "強壓縮" }
   };
 
-  // 移除所有舊欄位，只保留正式欄位
   const TEXT_FIELDS = [
-    "plan",
-    "color",
-    "style",
-    "paper",
-    "premium_color",
-    "name",
-    "unit",
-    "title",
-    "slogan",
-    "services",
-    "experience",
-    "phone",
-    "email",
-    "line_url",
-    "line_oa",
-    "wechat_id",
-    "website",
-    "address",
-    "video1",
-    "video2",
-    "video3",
-    "social1",
-    "social2",
-    "social3",
-    "cta_text_1",
-    "cta_link_1",
-    "cta_text_2",
-    "cta_link_2",
-    "cta_text_3",
-    "cta_link_3"
+    "plan","color","style","paper","premium_color","name","unit","title","slogan","services","experience",
+    "phone","email","line_url","line_oa","wechat_id","website","address","video1","video2","video3",
+    "social1","social2","social3","cta_text_1","cta_link_1","cta_text_2","cta_link_2","cta_text_3","cta_link_3",
+    "marquee_text"
   ];
 
   const PLAN_RULES = {
-    free: {
-      key: "free",
-      label: "自由搭配款",
-      maxPhotos: 2,
-      maxCtas: 1,
-      showFreeFields: true,
-      showPremiumField: false
-    },
-    premium: {
-      key: "premium",
-      label: "精品設計款",
-      maxPhotos: 5,
-      maxCtas: 3,
-      showFreeFields: false,
-      showPremiumField: true
-    }
+    free: { key: "free", label: "自由搭配款", maxPhotos: 2, maxCtas: 1, showFreeFields: true, showPremiumField: false },
+    premium: { key: "premium", label: "精品設計款", maxPhotos: 5, maxCtas: 3, showFreeFields: false, showPremiumField: true }
   };
 
-  // 固定頭像與 Logo 設定
   const FIXED_SLOTS = {
-    avatar: {
-      slot: "avatar",
-      label: "頭像",
-      key: "avatar_url",
-      previewId: "preview_avatar",
-      statusId: "status_avatar",
-      fileId: "file_avatar",
-      cropShape: "square",
-      targetWidth: 1200,
-      targetHeight: 1200
-    },
-    logo: {
-      slot: "logo",
-      label: "Logo",
-      key: "logo_url",
-      previewId: "preview_logo",
-      statusId: "status_logo",
-      fileId: "file_logo",
-      cropShape: "square",
-      targetWidth: 1200,
-      targetHeight: 1200
-    }
+    avatar: { slot: "avatar", label: "頭像", key: "avatar_url", previewId: "preview_avatar", statusId: "status_avatar", fileId: "file_avatar", cropShape: "square", targetWidth: 1200, targetHeight: 1200 },
+    logo: { slot: "logo", label: "Logo", key: "logo_url", previewId: "preview_logo", statusId: "status_logo", fileId: "file_logo", cropShape: "square", targetWidth: 1200, targetHeight: 1200 }
   };
 
   const state = {
@@ -131,28 +51,15 @@ import {
     rules: PLAN_RULES.free,
     photoLimit: 2,
     photoSlots: [],
-    drag: {
-      active: false,
-      startX: 0,
-      startY: 0,
-      startOffsetX: 0,
-      startOffsetY: 0
+    marquee: {
+      hasEntitlement: false,
+      enabled: false,
+      text: ""
     },
+    drag: { active: false, startX: 0, startY: 0, startOffsetX: 0, startOffsetY: 0 },
     cropper: {
-      slot: "",
-      image: null,
-      imageUrl: "",
-      sourceFile: null,
-      sourceSize: 0,
-      smartProfile: SMART_PROFILE.small,
-      scale: 1,
-      minScale: 1,
-      offsetX: 0,
-      offsetY: 0,
-      viewportW: 0,
-      viewportH: 0,
-      imageW: 0,
-      imageH: 0
+      slot: "", image: null, imageUrl: "", sourceFile: null, sourceSize: 0, smartProfile: SMART_PROFILE.small,
+      scale: 1, minScale: 1, offsetX: 0, offsetY: 0, viewportW: 0, viewportH: 0, imageW: 0, imageH: 0
     }
   };
 
@@ -169,6 +76,10 @@ import {
     freeStyleFields: document.getElementById("freeStyleFields"),
     premiumColorField: document.getElementById("premiumColorField"),
     schemeHint: document.getElementById("schemeHint"),
+
+    marqueeSection: document.getElementById("marqueeSection"),
+    marqueeEnabled: document.getElementById("marquee_enabled"),
+    marqueeText: document.getElementById("marquee_text"),
 
     btnSubmit: document.getElementById("btnSubmit"),
     btnReload: document.getElementById("btnReload"),
@@ -238,6 +149,7 @@ import {
 
     setProgress(0, "尚未送出");
     hideSuccess();
+    hideMarqueeSection();
 
     if (!state.token) {
       showStatus("bad", "缺少更新連結資訊，請聯繫客服重新取得。");
@@ -257,11 +169,7 @@ import {
 
   function bindBaseEvents() {
     el.btnReload?.addEventListener("click", () => loadCard(true));
-
-    el.btnTop?.addEventListener("click", () => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-
+    el.btnTop?.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
     el.form?.addEventListener("submit", onSubmit);
 
     TEXT_FIELDS.forEach((id) => {
@@ -319,6 +227,7 @@ import {
     el.style?.addEventListener("change", () => updateLivePreview());
     el.paper?.addEventListener("change", () => updateLivePreview());
     el.premiumColor?.addEventListener("change", () => updateLivePreview());
+    el.marqueeEnabled?.addEventListener("change", () => syncMarqueeInputState());
   }
 
   function rebuildPhotoSlots() {
@@ -414,15 +323,8 @@ import {
       [el.guideConfirmBtn, () => closeModal(el.guideModal)],
       [el.closeFacadeBtn, () => closeModal(el.facadeModal)],
       [el.facadeBackBtn, () => closeModal(el.facadeModal)],
-      [
-        el.guideGoFacadeBtn,
-        () => {
-          closeModal(el.guideModal);
-          openModal(el.facadeModal);
-        }
-      ]
+      [el.guideGoFacadeBtn, () => { closeModal(el.guideModal); openModal(el.facadeModal); }]
     ];
-
     pairs.forEach(([node, fn]) => node?.addEventListener("click", fn));
 
     [el.guideModal, el.facadeModal, el.cropModal].forEach((modal) => {
@@ -441,7 +343,6 @@ import {
   function closeModal(modal) {
     if (!modal) return;
     modal.classList.remove("show");
-
     const stillOpen = document.querySelector(".assist-modal.show, .crop-modal.show");
     if (!stillOpen) document.body.classList.remove("modal-open");
   }
@@ -451,6 +352,7 @@ import {
 
     setBusy(true);
     hideSuccess();
+    hideMarqueeSection();
     setProgress(10, isReload ? "重新載入資料中…" : "載入資料中…");
     showStatus("warn", isReload ? "重新載入資料中…" : "載入資料中…");
 
@@ -476,10 +378,9 @@ import {
       const plan = normalizePlan(card.plan || "free");
       const rules = PLAN_RULES[plan];
       let photoLimit = toNumber(card.photo_limit);
-      if (photoLimit === 0 || isNaN(photoLimit)) {
-        photoLimit = rules.maxPhotos;
-      }
+      if (photoLimit === 0 || isNaN(photoLimit)) photoLimit = rules.maxPhotos;
       photoLimit = Math.min(photoLimit, 10);
+
       state.photoLimit = photoLimit;
       state.plan = plan;
       state.rules = rules;
@@ -487,6 +388,7 @@ import {
       rebuildPhotoSlots();
       applyPlanRules(plan, false);
       fillForm(card);
+      await loadMarqueeState();
 
       el.form?.classList.remove("hidden");
       setProgress(100, "資料載入完成");
@@ -499,6 +401,61 @@ import {
       showStatus("bad", `資料沒有正常載入。\n${err?.message || "未知錯誤"}`);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function loadMarqueeState() {
+    state.marquee = { hasEntitlement: false, enabled: false, text: "" };
+    if (!state.id) return;
+    try {
+      const data = await loadMarquee(state.id);
+      if (data && data.ok && data.has_marquee) {
+        state.marquee.hasEntitlement = true;
+        state.marquee.enabled = !!data.marquee?.enabled;
+        state.marquee.text = text(data.marquee?.marquee_text);
+        showMarqueeSection();
+        if (el.marqueeEnabled) el.marqueeEnabled.checked = state.marquee.enabled;
+        if (el.marqueeText) {
+          el.marqueeText.value = state.marquee.text;
+          autoGrow(el.marqueeText);
+        }
+        syncMarqueeInputState();
+      } else {
+        hideMarqueeSection();
+      }
+    } catch (err) {
+      console.warn("[HSC update-form] load marquee failed:", err);
+      hideMarqueeSection();
+    }
+  }
+
+  async function loadMarquee(cardId) {
+    const url = new URL(GAS_URL);
+    url.searchParams.set("action", "getCardMarquee");
+    url.searchParams.set("id", cardId);
+    url.searchParams.set("_t", String(Date.now()));
+    return await fetchJson(url.toString());
+  }
+
+  function showMarqueeSection() {
+    state.marquee.hasEntitlement = true;
+    el.marqueeSection?.classList.remove("hidden");
+  }
+
+  function hideMarqueeSection() {
+    state.marquee.hasEntitlement = false;
+    el.marqueeSection?.classList.add("hidden");
+    if (el.marqueeEnabled) el.marqueeEnabled.checked = false;
+    if (el.marqueeText) el.marqueeText.value = "";
+  }
+
+  function syncMarqueeInputState() {
+    if (!el.marqueeText || !el.marqueeEnabled) return;
+    el.marqueeText.disabled = !el.marqueeEnabled.checked;
+    if (!el.marqueeEnabled.checked && !text(el.marqueeText.value)) {
+      el.marqueeText.placeholder = "未啟用跑馬燈";
+    } else {
+      el.marqueeText.placeholder = "例如：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始";
     }
   }
 
@@ -535,8 +492,6 @@ import {
       setFieldValue("style", "");
       setFieldValue("paper", "");
     }
-
-    updateLivePreview();
   }
 
   function clearCtaFieldsFrom(start) {
@@ -546,11 +501,9 @@ import {
     }
   }
 
-  /**
-   * 核心修正一：fillForm(card) - 正確讀取 DB 資料並回填 UI
-   */
   function fillForm(card) {
     TEXT_FIELDS.forEach((key) => {
+      if (key === "marquee_text") return;
       const input = document.getElementById(key);
       if (!input) return;
       input.value = text(card[key]);
@@ -560,7 +513,6 @@ import {
     const plan = normalizePlan(card.plan || "free");
 
     if (plan === "premium") {
-      // DB 只有 color，回填到 premium UI 控件
       setFieldValue("premium_color", card.color || "p1");
       setFieldValue("color", "");
       setFieldValue("style", "");
@@ -572,7 +524,6 @@ import {
       setFieldValue("premium_color", "");
     }
 
-    // 固定槽位（頭像、Logo）
     Object.values(FIXED_SLOTS).forEach((cfg) => {
       const url = text(card[cfg.key]);
       setFieldValue(cfg.key, url);
@@ -580,7 +531,6 @@ import {
       setSlotStatus(cfg.slot, url ? "已載入" : "尚未設定");
     });
 
-    // 照片槽位
     state.photoSlots.forEach((cfg) => {
       const url = text(card[cfg.key]);
       setFieldValue(cfg.key, url);
@@ -595,93 +545,6 @@ import {
     if (state.rules.maxCtas < 3) {
       setFieldValue("cta_text_3", "");
       setFieldValue("cta_link_3", "");
-    }
-  }
-
-  function updateLivePreview() {
-    const previewCard = document.getElementById("livePreviewCard");
-    if (!previewCard) return;
-
-    const plan = normalizePlan(getFieldValue("plan"));
-    previewCard.dataset.plan = plan;
-
-    if (plan === "free") {
-      previewCard.dataset.color = getFieldValue("color") || "c1";
-      previewCard.dataset.style = getFieldValue("style") || "s1";
-      previewCard.dataset.paper = getFieldValue("paper") || "f1";
-      previewCard.dataset.premium = "";
-    } else {
-      previewCard.dataset.color = "";
-      previewCard.dataset.style = "";
-      previewCard.dataset.paper = "";
-      previewCard.dataset.premium = getFieldValue("premium_color") || "p1";
-    }
-
-    const nameEl = document.getElementById("previewName");
-    if (nameEl) nameEl.textContent = getFieldValue("name") || "您的姓名";
-
-    const unitEl = document.getElementById("previewUnit");
-    if (unitEl) unitEl.textContent = getFieldValue("unit");
-
-    const titleEl = document.getElementById("previewTitle");
-    if (titleEl) titleEl.textContent = getFieldValue("title");
-
-    const sloganEl = document.getElementById("previewSlogan");
-    if (sloganEl) sloganEl.textContent = getFieldValue("slogan");
-
-    const servicesEl = document.getElementById("previewServices");
-    const experienceEl = document.getElementById("previewExperience");
-    const servicesBlock = document.getElementById("previewServicesBlock");
-    const experienceBlock = document.getElementById("previewExperienceBlock");
-
-    if (servicesEl) servicesEl.textContent = getFieldValue("services");
-    if (experienceEl) experienceEl.textContent = getFieldValue("experience");
-    if (servicesBlock) servicesBlock.style.display = getFieldValue("services") ? "" : "none";
-    if (experienceBlock) experienceBlock.style.display = getFieldValue("experience") ? "" : "none";
-
-    const avatarUrl = getFieldValue("avatar_url");
-    const avatarImg = document.getElementById("previewAvatar");
-    if (avatarImg) {
-      if (avatarUrl) {
-        avatarImg.src = avatarUrl;
-        avatarImg.style.display = "block";
-      } else {
-        avatarImg.removeAttribute("src");
-        avatarImg.style.display = "none";
-      }
-    }
-
-    const logoUrl = getFieldValue("logo_url");
-    const logoImg = document.getElementById("previewLogo");
-    const logoWrap = document.getElementById("previewLogoWrap");
-    if (logoImg) {
-      if (logoUrl) {
-        logoImg.src = logoUrl;
-        logoImg.style.display = "block";
-        if (logoWrap) logoWrap.style.display = "";
-      } else {
-        logoImg.removeAttribute("src");
-        logoImg.style.display = "none";
-        if (logoWrap) logoWrap.style.display = "none";
-      }
-    }
-
-    const photoWall = document.getElementById("previewPhotoWall");
-    const emptyPhotos = document.getElementById("previewEmptyPhotos");
-    if (photoWall) {
-      photoWall.innerHTML = "";
-      let hasPhotos = false;
-      for (let i = 1; i <= state.photoLimit; i++) {
-        const url = getFieldValue(`photo${i}_url`);
-        if (url) {
-          hasPhotos = true;
-          const item = document.createElement("div");
-          item.className = "hsc-preview-photoItem";
-          item.innerHTML = `<img src="${escapeHtml(url)}" alt="照片預覽">`;
-          photoWall.appendChild(item);
-        }
-      }
-      if (emptyPhotos) emptyPhotos.style.display = hasPhotos ? "none" : "";
     }
   }
 
@@ -736,14 +599,11 @@ import {
   function clearSlot(slot) {
     const cfg = getSlotConfig(slot);
     if (!cfg) return;
-
     const fileInput = document.getElementById(cfg.fileId);
     if (fileInput) fileInput.value = "";
-
     setFieldValue(cfg.key, "");
     setSlotPreview(slot, "");
     setSlotStatus(slot, isPhotoSlotAllowed(slot) ? "已清除，待送出" : "未開放");
-    updateLivePreview();
     showStatus("warn", `${cfg.label} 已清除，請記得按「送出更新」。`);
   }
 
@@ -757,10 +617,8 @@ import {
   function setSlotPreview(slot, url) {
     const cfg = getSlotConfig(slot);
     if (!cfg) return;
-
     const img = document.getElementById(cfg.previewId);
     if (!img) return;
-
     if (url) {
       img.src = url;
       img.style.display = "block";
@@ -786,9 +644,7 @@ import {
     const prepared = await prepareImageForCrop(file);
 
     if (state.cropper.imageUrl) {
-      try {
-        URL.revokeObjectURL(state.cropper.imageUrl);
-      } catch {}
+      try { URL.revokeObjectURL(state.cropper.imageUrl); } catch {}
     }
 
     const objectUrl = URL.createObjectURL(prepared.blob);
@@ -802,7 +658,6 @@ import {
     state.cropper.smartProfile = prepared.profile;
     state.cropper.imageW = img.naturalWidth || img.width;
     state.cropper.imageH = img.naturalHeight || img.height;
-
     state.cropper.targetWidth = cfg.targetWidth;
     state.cropper.targetHeight = cfg.targetHeight;
 
@@ -830,7 +685,6 @@ import {
     cp.viewportH = Math.max(1, rect.height);
 
     const fitScale = Math.max(cp.viewportW / cp.imageW, cp.viewportH / cp.imageH);
-
     cp.minScale = fitScale;
     cp.scale = fitScale;
     cp.offsetX = 0;
@@ -857,8 +711,7 @@ import {
 
     el.cropImage.style.width = `${cp.imageW * cp.scale}px`;
     el.cropImage.style.height = `${cp.imageH * cp.scale}px`;
-    el.cropImage.style.transform =
-      `translate(calc(-50% + ${cp.offsetX}px), calc(-50% + ${cp.offsetY}px))`;
+    el.cropImage.style.transform = `translate(calc(-50% + ${cp.offsetX}px), calc(-50% + ${cp.offsetY}px))`;
   }
 
   function clampOffsets() {
@@ -888,18 +741,14 @@ import {
 
     window.addEventListener("pointermove", (ev) => {
       if (!state.drag.active || !state.cropper.image) return;
-
       const dx = ev.clientX - state.drag.startX;
       const dy = ev.clientY - state.drag.startY;
-
       state.cropper.offsetX = state.drag.startOffsetX + dx;
       state.cropper.offsetY = state.drag.startOffsetY + dy;
       renderCropImage();
     });
 
-    window.addEventListener("pointerup", () => {
-      state.drag.active = false;
-    });
+    window.addEventListener("pointerup", () => { state.drag.active = false; });
 
     el.btnZoomOut?.addEventListener("click", () => {
       const cp = state.cropper;
@@ -930,20 +779,12 @@ import {
       renderCropImage();
     });
 
-    el.btnResetCrop?.addEventListener("click", () => {
-      resetCropperView();
-    });
-
-    el.btnCancelCrop?.addEventListener("click", () => {
-      closeModal(el.cropModal);
-    });
-
+    el.btnResetCrop?.addEventListener("click", () => { resetCropperView(); });
+    el.btnCancelCrop?.addEventListener("click", () => { closeModal(el.cropModal); });
     el.btnApplyCrop?.addEventListener("click", applyCropAndUpload);
 
     window.addEventListener("resize", () => {
-      if (el.cropModal?.classList.contains("show") && state.cropper.image) {
-        resetCropperView();
-      }
+      if (el.cropModal?.classList.contains("show") && state.cropper.image) resetCropperView();
     });
   }
 
@@ -977,7 +818,6 @@ import {
       setFieldValue(cfg.key, url);
       setSlotPreview(slot, url);
       setSlotStatus(slot, "已完成");
-      updateLivePreview();
 
       setProgress(100, `${cfg.label} 已更新`);
       showStatus("ok", `${cfg.label} 已更新完成。`);
@@ -1006,10 +846,8 @@ import {
     const scaleToOutput = cfg.targetWidth / cp.viewportW;
     const drawW = cp.imageW * cp.scale * scaleToOutput;
     const drawH = cp.imageH * cp.scale * scaleToOutput;
-
     const centerX = cfg.targetWidth / 2;
     const centerY = cfg.targetHeight / 2;
-
     const drawX = centerX - drawW / 2 + cp.offsetX * scaleToOutput;
     const drawY = centerY - drawH / 2 + cp.offsetY * scaleToOutput;
 
@@ -1056,12 +894,9 @@ import {
       const payload = collectPayload();
 
       setProgress(28, "送出更新資料到系統…");
-
       const res = await fetchJson(GAS_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8"
-        },
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(payload)
       });
 
@@ -1069,9 +904,7 @@ import {
         throw new Error(readError(res) || "更新失敗");
       }
 
-      setProgress(100, "更新完成");
-
-      state.id = text(res.card_id || res.card?.id || state.id);
+      setProgress(72, "主資料更新完成，處理跑馬燈中…");
 
       const nextToken = text(res.new_update_token || res.update_token);
       if (nextToken) {
@@ -1079,6 +912,32 @@ import {
         updateTokenInUrl(nextToken);
       }
 
+      if (state.marquee.hasEntitlement) {
+        try {
+          const marqueePayload = {
+            action: "saveCardMarquee",
+            card_id: state.id,
+            enabled: !!el.marqueeEnabled?.checked,
+            marquee_text: text(el.marqueeText?.value),
+            tenant: "angel"
+          };
+
+          const marqueeRes = await fetchJson(GAS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(marqueePayload)
+          });
+
+          if (!marqueeRes || marqueeRes.ok !== true) {
+            showStatus("warn", `主資料已更新，但跑馬燈儲存失敗：${readError(marqueeRes) || "未知錯誤"}`);
+          }
+        } catch (err) {
+          console.warn("[HSC update-form] marquee save failed:", err);
+          showStatus("warn", `主資料已更新，但跑馬燈儲存失敗：${err?.message || "未知錯誤"}`);
+        }
+      }
+
+      setProgress(100, "更新完成");
       showStatus("ok", "資料更新成功。");
       showSuccess();
     } catch (err) {
@@ -1135,11 +994,15 @@ import {
         throw new Error(`第 ${i} 個按鈕請同時填寫文字與連結。`);
       }
     }
+
+    if (state.marquee.hasEntitlement && el.marqueeEnabled?.checked) {
+      const marqueeText = text(el.marqueeText?.value);
+      if (marqueeText.length > 150) {
+        throw new Error("跑馬燈內容最多 150 字。");
+      }
+    }
   }
 
-  /**
-   * 核心修正二：collectPayload() - 完全符合最新 card_db 表頭
-   */
   function collectPayload() {
     const plan = normalizePlan(getFieldValue("plan"));
 
@@ -1157,40 +1020,30 @@ import {
       paper = "";
     }
 
-    const payload = {
+    return {
       action: "updateCardByToken",
       token: state.token,
-
-      plan,
-      color,
-      style,
-      paper,
-
+      plan, color, style, paper,
       name: getFieldValue("name"),
       unit: getFieldValue("unit"),
       title: getFieldValue("title"),
       slogan: getFieldValue("slogan"),
       services: getFieldValue("services"),
       experience: getFieldValue("experience"),
-
       wechat_id: getFieldValue("wechat_id"),
       line_url: getFieldValue("line_url"),
       line_oa: getFieldValue("line_oa"),
       email: getFieldValue("email"),
       phone: getFieldValue("phone"),
       address: getFieldValue("address"),
-
       video1: getFieldValue("video1"),
       video2: getFieldValue("video2"),
       video3: getFieldValue("video3"),
-
       social1: getFieldValue("social1"),
       social2: getFieldValue("social2"),
       social3: getFieldValue("social3"),
-
       avatar_url: getFieldValue("avatar_url"),
       logo_url: getFieldValue("logo_url"),
-
       photo_limit: state.photoLimit,
       photo1_url: getFieldValue("photo1_url"),
       photo2_url: getFieldValue("photo2_url"),
@@ -1202,9 +1055,7 @@ import {
       photo8_url: state.photoLimit >= 8 ? getFieldValue("photo8_url") : "",
       photo9_url: state.photoLimit >= 9 ? getFieldValue("photo9_url") : "",
       photo10_url: state.photoLimit >= 10 ? getFieldValue("photo10_url") : "",
-
       website: getFieldValue("website"),
-
       cta_text_1: getFieldValue("cta_text_1"),
       cta_link_1: getFieldValue("cta_link_1"),
       cta_text_2: state.rules.maxCtas >= 2 ? getFieldValue("cta_text_2") : "",
@@ -1212,8 +1063,6 @@ import {
       cta_text_3: state.rules.maxCtas >= 3 ? getFieldValue("cta_text_3") : "",
       cta_link_3: state.rules.maxCtas >= 3 ? getFieldValue("cta_link_3") : ""
     };
-
-    return payload;
   }
 
   function buildReplyText() {
@@ -1285,30 +1134,14 @@ import {
 
   async function prepareImageForCrop(file) {
     const profile = getSmartProfile(file.size || 0);
-
     const arrayBuffer = await file.arrayBuffer();
     const orientation = getJpegOrientation(arrayBuffer);
-
     const rawDataUrl = await readFileAsDataURL(file);
     const original = await loadImage(rawDataUrl);
-
     const correctedCanvas = drawImageWithOrientation(original, orientation);
-    const normalizedCanvas = shrinkCanvasIfNeeded(
-      correctedCanvas,
-      profile.maxLong,
-      profile.maxShort
-    );
-
-    const previewBlob = await canvasToBlob(
-      normalizedCanvas,
-      "image/jpeg",
-      profile.previewQuality
-    );
-
-    return {
-      blob: previewBlob,
-      profile
-    };
+    const normalizedCanvas = shrinkCanvasIfNeeded(correctedCanvas, profile.maxLong, profile.maxShort);
+    const previewBlob = await canvasToBlob(normalizedCanvas, "image/jpeg", profile.previewQuality);
+    return { blob: previewBlob, profile };
   }
 
   function getSmartProfile(size) {
@@ -1322,9 +1155,7 @@ import {
     const h = canvas.height;
     const longSide = Math.max(w, h);
     const shortSide = Math.min(w, h);
-
     if (longSide <= maxLong && shortSide <= maxShort) return canvas;
-
     const ratio = Math.min(maxLong / longSide, maxShort / shortSide);
     const targetW = Math.max(1, Math.round(w * ratio));
     const targetH = Math.max(1, Math.round(h * ratio));
@@ -1342,7 +1173,6 @@ import {
   function drawImageWithOrientation(img, orientation) {
     const w = img.naturalWidth || img.width;
     const h = img.naturalHeight || img.height;
-
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
@@ -1355,37 +1185,14 @@ import {
     }
 
     switch (orientation) {
-      case 2:
-        ctx.translate(w, 0);
-        ctx.scale(-1, 1);
-        break;
-      case 3:
-        ctx.translate(w, h);
-        ctx.rotate(Math.PI);
-        break;
-      case 4:
-        ctx.translate(0, h);
-        ctx.scale(1, -1);
-        break;
-      case 5:
-        ctx.rotate(0.5 * Math.PI);
-        ctx.scale(1, -1);
-        break;
-      case 6:
-        ctx.rotate(0.5 * Math.PI);
-        ctx.translate(0, -h);
-        break;
-      case 7:
-        ctx.rotate(0.5 * Math.PI);
-        ctx.translate(w, -h);
-        ctx.scale(-1, 1);
-        break;
-      case 8:
-        ctx.rotate(-0.5 * Math.PI);
-        ctx.translate(-w, 0);
-        break;
-      default:
-        break;
+      case 2: ctx.translate(w, 0); ctx.scale(-1, 1); break;
+      case 3: ctx.translate(w, h); ctx.rotate(Math.PI); break;
+      case 4: ctx.translate(0, h); ctx.scale(1, -1); break;
+      case 5: ctx.rotate(0.5 * Math.PI); ctx.scale(1, -1); break;
+      case 6: ctx.rotate(0.5 * Math.PI); ctx.translate(0, -h); break;
+      case 7: ctx.rotate(0.5 * Math.PI); ctx.translate(w, -h); ctx.scale(-1, 1); break;
+      case 8: ctx.rotate(-0.5 * Math.PI); ctx.translate(-w, 0); break;
+      default: break;
     }
 
     ctx.drawImage(img, 0, 0);
@@ -1396,32 +1203,24 @@ import {
     try {
       const view = new DataView(arrayBuffer);
       if (view.getUint16(0, false) !== 0xFFD8) return 1;
-
       let offset = 2;
       const length = view.byteLength;
-
       while (offset < length) {
         const marker = view.getUint16(offset, false);
         offset += 2;
-
         if (marker === 0xFFE1) {
           offset += 2;
           if (getString(view, offset, 4) !== "Exif") return 1;
           offset += 6;
-
           const little = view.getUint16(offset, false) === 0x4949;
           const firstIFDOffset = view.getUint32(offset + 4, little);
           offset += firstIFDOffset;
-
           const tags = view.getUint16(offset, little);
           offset += 2;
-
           for (let i = 0; i < tags; i++) {
             const tagOffset = offset + i * 12;
             const tag = view.getUint16(tagOffset, little);
-            if (tag === 0x0112) {
-              return view.getUint16(tagOffset + 8, little);
-            }
+            if (tag === 0x0112) return view.getUint16(tagOffset + 8, little);
           }
           return 1;
         } else if ((marker & 0xFF00) !== 0xFF00) {
@@ -1478,18 +1277,9 @@ import {
     return new URL(location.href).searchParams.get(name) || "";
   }
 
-  function clamp(num, min, max) {
-    return Math.min(Math.max(num, min), max);
-  }
-
-  function text(v) {
-    return v == null ? "" : String(v).trim();
-  }
-
-  function toNumber(v) {
-    const n = Number(v);
-    return isNaN(n) ? 0 : n;
-  }
+  function clamp(num, min, max) { return Math.min(Math.max(num, min), max); }
+  function text(v) { return v == null ? "" : String(v).trim(); }
+  function toNumber(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
 
   async function copyText(value) {
     const v = String(value || "");
@@ -1532,10 +1322,7 @@ import {
 
   async function canvasToBlob(canvas, type, quality) {
     return await new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-        else reject(new Error("圖片轉換失敗"));
-      }, type, quality);
+      canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("圖片轉換失敗")), type, quality);
     });
   }
 
