@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v6.9-main-card-marquee-features</title>
+  <title>天使幸福智慧名片館 v6.9.2-index-align-stable</title>
 
-  <link rel="manifest" href="./manifest.json?v=6.9-main-card-marquee-features" />
+  <link rel="manifest" href="./manifest.json?v=6.9.2-index-align-stable" />
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=6.9-main-card-marquee-features" />
-  <link rel="icon" href="./icons/icon-192.png?v=6.9-main-card-marquee-features" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png?v=6.9.2-index-align-stable" />
+  <link rel="icon" href="./icons/icon-192.png?v=6.9.2-index-align-stable" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,12 +18,12 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=6.9-main-card-marquee-features" />
+  <meta property="og:image" content="og-card.png?v=6.9.2-index-align-stable" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=6.9-main-card-marquee-features" />
+  <link rel="stylesheet" href="./style.css?v=6.9.2-index-align-stable" />
 
   <style>
     :root{
@@ -284,7 +284,8 @@
       justify-content:center;
       align-items:center;
     }
-    .qr-bottom-canvas{
+    .qr-bottom-canvas,
+    .feature-qr-canvas{
       position:relative;
       width:156px;
       height:156px;
@@ -298,7 +299,8 @@
       justify-content:center;
       overflow:hidden;
     }
-    .qr-bottom-grid{
+    .qr-bottom-grid,
+    .feature-qr-grid{
       width:136px;
       height:136px;
       border-radius:14px;
@@ -309,7 +311,9 @@
       justify-content:center;
     }
 
-    #bottomQrAvatar{
+    #bottomQrAvatar,
+    #featureQrAvatar,
+    #facadeQrAvatar{
       position:absolute;
       left:50%;
       top:50%;
@@ -322,6 +326,16 @@
       box-shadow:none;
       padding:0;
       pointer-events:none;
+    }
+
+    .feature-qr-support{
+      display:none;
+      position:absolute;
+      width:0;
+      height:0;
+      overflow:hidden;
+      pointer-events:none;
+      opacity:0;
     }
 
     .modal-mask,
@@ -609,6 +623,7 @@
         <div class="facade-qr-box">
           <div class="facade-qr-canvas" id="facadeQrCanvas">
             <div class="facade-qr-grid" id="facadeQrGrid"></div>
+            <img id="facadeQrAvatar" alt="門面 QR 頭像" />
             <div class="facade-qr-logo-pad" aria-hidden="true">
               <svg class="facade-qr-logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                 <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
@@ -719,114 +734,123 @@
   </header>
 
   <main id="card-container">
-    <section class="card" id="card">
-      <div class="premium-fx-layer"></div>
+    <div id="livePreviewCard">
+      <section class="card" id="card">
+        <div class="premium-fx-layer"></div>
 
-      <div class="banner" id="banner">
-        <div class="dynamic-mask"></div>
-      </div>
-
-      <div class="paper-overlay" id="paperOverlay"></div>
-
-      <div class="avatar-wrap">
-        <div class="avatar-circle">
-          <img class="avatar" id="u-img" alt="個人照" />
-        </div>
-      </div>
-
-      <div class="premium-badge" id="premiumBadge" style="display:none;">
-        <span class="badge-dot"></span>
-        <span class="badge-text">精品設計</span>
-      </div>
-
-      <div class="logo-wrap" id="logoWrap" style="display:none;">
-        <img id="u-logo" class="logo-img" alt="Logo" />
-      </div>
-
-      <div class="info-scroll">
-        <div class="name" id="u-name">載入中…</div>
-
-        <div class="text-toggle-wrap unit-wrap" id="u-unit-wrap" style="display:none;">
-          <div class="unit expandable-text is-collapsed preline" id="u-unit" style="--max-lines:2;"></div>
-          <button class="expand-toggle" id="u-unit-toggle" type="button" style="display:none;">看更多</button>
+        <div class="banner" id="banner">
+          <div class="dynamic-mask"></div>
         </div>
 
-        <div class="title" id="u-title"></div>
+        <div class="paper-overlay" id="paperOverlay"></div>
 
-        <div class="text-toggle-wrap slogan-wrap" id="u-slogan-wrap" style="display:none;">
-          <div class="slogan expandable-text is-collapsed preline" id="u-slogan" style="--max-lines:3;"></div>
-          <button class="expand-toggle" id="u-slogan-toggle" type="button" style="display:none;">看更多</button>
-        </div>
-
-        <div class="info-block" id="block-service" style="display:none;"></div>
-        <div class="info-block" id="block-exp" style="display:none;"></div>
-
-        <div class="contact-dock install-dock" id="installDock" style="display:none;">
-          <div class="dock-title"><i class="fa-solid fa-download"></i> 一鍵安裝</div>
-          <div class="dock-buttons" id="installButtons">
-            <button class="dock-btn wide dock-web" type="button" id="btnInstallCard">
-              <i class="fa-solid fa-mobile-screen-button"></i><span>安裝到手機桌面</span>
-            </button>
+        <div class="avatar-wrap">
+          <div class="avatar-circle">
+            <img class="avatar" id="u-img" alt="個人照" />
           </div>
         </div>
 
-        <div class="contact-dock" id="contactDock" style="display:none;">
-          <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
-          <div class="dock-buttons" id="contactButtons"></div>
+        <div class="premium-badge" id="premiumBadge" style="display:none;">
+          <span class="badge-dot"></span>
+          <span class="badge-text">精品設計</span>
         </div>
 
-        <div class="contact-dock marquee-dock" id="marqueeDock" style="display:none;">
-          <div class="dock-title"><i class="fa-solid fa-bullhorn"></i> 重要訊息</div>
-          <div class="marquee-shell" id="marqueeShell">
-            <div class="marquee-track" id="marqueeTrack">
-              <span class="marquee-text" id="marqueeText">載入中…</span>
+        <div class="logo-wrap" id="logoWrap" style="display:none;">
+          <img id="u-logo" class="logo-img" alt="Logo" />
+        </div>
+
+        <div class="info-scroll">
+          <div class="name" id="u-name">載入中…</div>
+
+          <div class="text-toggle-wrap unit-wrap" id="u-unit-wrap" style="display:none;">
+            <div class="unit expandable-text is-collapsed preline" id="u-unit" style="--max-lines:2;"></div>
+            <button class="expand-toggle" id="u-unit-toggle" type="button" style="display:none;">看更多</button>
+          </div>
+
+          <div class="title" id="u-title"></div>
+
+          <div class="text-toggle-wrap slogan-wrap" id="u-slogan-wrap" style="display:none;">
+            <div class="slogan expandable-text is-collapsed preline" id="u-slogan" style="--max-lines:3;"></div>
+            <button class="expand-toggle" id="u-slogan-toggle" type="button" style="display:none;">看更多</button>
+          </div>
+
+          <div class="info-block" id="block-service" style="display:none;"></div>
+          <div class="info-block" id="block-exp" style="display:none;"></div>
+
+          <div class="contact-dock install-dock" id="installDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-download"></i> 一鍵安裝</div>
+            <div class="dock-buttons" id="installButtons">
+              <button class="dock-btn wide dock-web" type="button" id="btnInstallCard">
+                <i class="fa-solid fa-mobile-screen-button"></i><span>安裝到手機桌面</span>
+              </button>
             </div>
           </div>
-        </div>
 
-        <div class="contact-dock primary-link-dock" id="primaryLinkDock" style="display:none;">
-          <div class="dock-title"><i class="fa-solid fa-globe"></i> 主網站</div>
-          <div class="dock-buttons" id="primaryLinkButtons"></div>
-        </div>
+          <div class="contact-dock" id="contactDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
+            <div class="dock-buttons" id="contactButtons"></div>
+          </div>
 
-        <div class="contact-dock" id="mediaDock" style="display:none;">
-          <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>
-          <div class="dock-buttons" id="mediaButtons"></div>
-        </div>
-
-        <div class="contact-dock cta-dock" id="ctaDock" style="display:none;">
-          <div class="dock-title"><i class="fa-solid fa-bolt"></i> 立即行動</div>
-          <div class="dock-buttons" id="ctaButtons"></div>
-        </div>
-
-        <div class="photo-wall" id="photoWall" style="display:none;">
-          <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
-          <div class="photo-grid" id="photoGrid"></div>
-        </div>
-
-        <div class="card-expiry" id="cardExpiry" style="display:none;"></div>
-
-        <div class="qr-bottom" id="bottomQrSection">
-          <div class="qr-bottom-head">
-            <div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">
-              掃描 QRcode｜開啟我的智慧名片
-            </div>
-            <div class="qr-bottom-sub balance-text" id="bottomQrSub" data-balance-type="product-qr-sub">
-              可收藏・可分享・可快速回看
+          <div class="contact-dock marquee-dock" id="marqueeDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-bullhorn"></i> 重要訊息</div>
+            <div class="marquee-shell" id="marqueeShell">
+              <div class="marquee-track" id="marqueeTrack">
+                <span class="marquee-text" id="marqueeText">載入中…</span>
+              </div>
             </div>
           </div>
-          <div class="qr-bottom-wrap">
-            <div class="qr-bottom-canvas">
-              <div class="qr-bottom-grid" id="bottomQrGrid"></div>
-              <img id="bottomQrAvatar" alt="QR 頭像" />
+
+          <div class="contact-dock primary-link-dock" id="primaryLinkDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-globe"></i> 主網站</div>
+            <div class="dock-buttons" id="primaryLinkButtons"></div>
+          </div>
+
+          <div class="contact-dock" id="mediaDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>
+            <div class="dock-buttons" id="mediaButtons"></div>
+          </div>
+
+          <div class="contact-dock cta-dock" id="ctaDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-bolt"></i> 立即行動</div>
+            <div class="dock-buttons" id="ctaButtons"></div>
+          </div>
+
+          <div class="photo-wall" id="photoWall" style="display:none;">
+            <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
+            <div class="photo-grid" id="photoGrid"></div>
+          </div>
+
+          <div class="card-expiry" id="cardExpiry" style="display:none;"></div>
+
+          <div class="qr-bottom" id="bottomQrSection">
+            <div class="qr-bottom-head">
+              <div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">
+                掃描 QRcode｜開啟我的智慧名片
+              </div>
+              <div class="qr-bottom-sub balance-text" id="bottomQrSub" data-balance-type="product-qr-sub">
+                可收藏・可分享・可快速回看
+              </div>
+            </div>
+            <div class="qr-bottom-wrap">
+              <div class="qr-bottom-canvas">
+                <div class="qr-bottom-grid" id="bottomQrGrid"></div>
+                <img id="bottomQrAvatar" alt="QR 頭像" />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="version-tag" id="versionTag">v6.9-main-card-marquee-features</div>
-      </div>
-    </section>
+          <div class="version-tag" id="versionTag">v6.9.2-index-align-stable</div>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <div class="feature-qr-support" aria-hidden="true">
+    <div class="feature-qr-canvas">
+      <div class="feature-qr-grid" id="featureQrGrid"></div>
+      <img id="featureQrAvatar" alt="功能 QR 頭像" />
+    </div>
+  </div>
 
   <div class="modal-mask" id="announcementMask" aria-hidden="true">
     <div class="modal announcement-modal" role="dialog" aria-modal="true" aria-label="公告內容">
@@ -885,13 +909,13 @@
     </div>
   </div>
 
-  <script src="./app.js?v=6.9-main-card-marquee-features"></script>
+  <script src="./app.js?v=6.9.2-index-align-stable"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "v6.9-main-card-marquee-features";
+      var VERSION = "v6.9.2-index-align-stable";
       var LINE_OA_URL = "https://lin.ee/G3VJoRm";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
