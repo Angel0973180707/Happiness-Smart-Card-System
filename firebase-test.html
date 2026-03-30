@@ -1,23 +1,9 @@
-<!-- firebase-test.html — v502 (COMPLETE OVERWRITE)
-  Purpose:
-  - Test firebase.js module:
-    1) anonymous auth
-    2) upload to Storage
-    3) get downloadURL
-
-  Requirements:
-  - Put firebase.js at repo root
-  - firebase.js must contain correct FIREBASE_CONFIG
-
-  Open:
-  https://angel0973180707.github.io/Happiness-Smart-Card-System/firebase-test.html
--->
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Firebase Storage Test (v502)</title>
+  <title>Firebase Storage Test (v503-editor)</title>
   <meta name="theme-color" content="#0f172a" />
   <style>
     :root{
@@ -32,6 +18,7 @@
       --btn2:rgba(255,255,255,.16);
       --accent:#7bdcff;
       --shadow:0 20px 80px rgba(0,0,0,.55);
+      --panel:rgba(0,0,0,.18);
     }
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
@@ -47,120 +34,56 @@
       justify-content:center;
       padding:24px 14px 60px;
     }
-    .wrap{ width:min(980px,100%); }
-    .top{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:12px; margin-bottom:14px;
-    }
+    .wrap{ width:min(1120px,100%); }
+    .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .title{ font-size:20px; font-weight:800; letter-spacing:.5px; }
-    .tag{
-      font-size:12px; padding:6px 10px; border-radius:999px;
-      background:rgba(255,255,255,.08);
-      border:1px solid rgba(255,255,255,.12);
-      color:var(--muted);
-      white-space:nowrap;
-    }
-    .card{
-      background:var(--card);
-      border:1px solid var(--line);
-      border-radius:18px;
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-    .cardHead{
-      padding:14px 16px;
-      border-bottom:1px solid rgba(255,255,255,.10);
-      display:flex; align-items:center; justify-content:space-between; gap:10px;
-    }
+    .tag{ font-size:12px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); color:var(--muted); white-space:nowrap; }
+    .card{ background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); overflow:hidden; }
+    .cardHead{ padding:14px 16px; border-bottom:1px solid rgba(255,255,255,.10); display:flex; align-items:center; justify-content:space-between; gap:10px; }
     .cardHead b{ font-size:14px; }
     .hint{ color:var(--muted); font-size:12px; }
     .cardBody{ padding:16px; }
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-    }
-    @media (max-width:860px){
-      .grid{ grid-template-columns:1fr; }
-    }
-    .panel{
-      background:rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:16px;
-      padding:14px;
-    }
+    .grid{ display:grid; grid-template-columns: 1fr 1.25fr; gap:12px; }
+    @media (max-width:920px){ .grid{ grid-template-columns:1fr; } }
+    .panel{ background:var(--panel); border:1px solid rgba(255,255,255,.10); border-radius:16px; padding:14px; }
     .panel h3{ margin:0 0 10px; font-size:14px; letter-spacing:.2px; }
     .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
     .btn{
-      appearance:none; border:1px solid rgba(255,255,255,.14);
-      background:var(--btn);
-      color:var(--text);
-      padding:10px 12px;
-      border-radius:12px;
-      font-weight:700;
-      cursor:pointer;
-      transition:transform .06s ease, background .15s ease;
-      user-select:none;
+      appearance:none; border:1px solid rgba(255,255,255,.14); background:var(--btn); color:var(--text);
+      padding:10px 12px; border-radius:12px; font-weight:700; cursor:pointer;
+      transition:transform .06s ease, background .15s ease; user-select:none;
     }
     .btn:hover{ background:var(--btn2); }
     .btn:active{ transform:translateY(1px); }
-    .btn.primary{
-      border-color:rgba(123,220,255,.35);
-      background:rgba(123,220,255,.12);
-    }
-    .btn.danger{
-      border-color:rgba(255,94,94,.35);
-      background:rgba(255,94,94,.10);
-    }
-    .btn:disabled{
-      opacity:.55;
-      cursor:not-allowed;
-      transform:none;
-    }
-    input[type="file"]{
-      width:100%;
-      padding:10px;
-      border-radius:12px;
-      border:1px dashed rgba(255,255,255,.18);
-      background:rgba(255,255,255,.06);
-      color:var(--muted);
-    }
-    .kv{
-      margin-top:10px;
-      display:grid;
-      grid-template-columns: 140px 1fr;
-      gap:8px 10px;
-      font-size:13px;
-    }
+    .btn.primary{ border-color:rgba(123,220,255,.35); background:rgba(123,220,255,.12); }
+    .btn.danger{ border-color:rgba(255,94,94,.35); background:rgba(255,94,94,.10); }
+    .btn:disabled{ opacity:.55; cursor:not-allowed; transform:none; }
+    input[type="file"]{ width:100%; padding:10px; border-radius:12px; border:1px dashed rgba(255,255,255,.18); background:rgba(255,255,255,.06); color:var(--muted); }
+    .kv{ margin-top:10px; display:grid; grid-template-columns: 140px 1fr; gap:8px 10px; font-size:13px; }
     .k{ color:var(--muted); }
     .v{ word-break:break-all; }
     .log{
-      margin-top:12px;
-      padding:12px;
-      border-radius:14px;
-      border:1px solid rgba(255,255,255,.12);
-      background:rgba(0,0,0,.35);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-      font-size:12px;
-      line-height:1.45;
-      white-space:pre-wrap;
-      word-break:break-word;
-      min-height:90px;
+      margin-top:12px; padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,.12);
+      background:rgba(0,0,0,.35); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:12px; line-height:1.45; white-space:pre-wrap; word-break:break-word; min-height:90px;
     }
     .ok{ color:var(--ok); font-weight:800; }
     .bad{ color:var(--bad); font-weight:800; }
-    .mini{
-      margin-top:10px;
-      color:var(--muted);
-      font-size:12px;
-      line-height:1.5;
-    }
-    .footer{
-      margin-top:14px;
-      color:rgba(255,255,255,.60);
-      font-size:12px;
-    }
+    .mini{ margin-top:10px; color:var(--muted); font-size:12px; line-height:1.5; }
+    .footer{ margin-top:14px; color:rgba(255,255,255,.60); font-size:12px; }
     a{ color:var(--accent); }
+    .editor-wrap{ display:grid; grid-template-columns: 1fr; gap:12px; }
+    .editor-box{ border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:12px; background:rgba(255,255,255,.04); }
+    .canvas-wrap{ position:relative; width:100%; aspect-ratio:1/1; background:linear-gradient(45deg, rgba(255,255,255,.06) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.06) 75%), linear-gradient(45deg, rgba(255,255,255,.06) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.06) 75%), rgba(0,0,0,.22); background-size:24px 24px; background-position:0 0, 12px 12px; border-radius:16px; overflow:hidden; touch-action:none; }
+    canvas{ display:block; width:100%; height:100%; }
+    .toolbar{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    @media (max-width:520px){ .toolbar{ grid-template-columns:1fr; } }
+    .toolgroup{ border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:10px; background:rgba(0,0,0,.16); }
+    .toolgroup h4{ margin:0 0 8px; font-size:12px; color:var(--muted); }
+    .toolrow{ display:flex; gap:8px; flex-wrap:wrap; }
+    .toolrow .btn{ padding:8px 10px; min-width:46px; }
+    .readout{ font-size:12px; color:var(--muted); margin-top:8px; }
+    .preview-img{ width:100%; max-width:240px; border-radius:14px; border:1px solid rgba(255,255,255,.12); display:block; background:#111; }
   </style>
 </head>
 <body>
@@ -172,8 +95,8 @@
 
     <div class="card">
       <div class="cardHead">
-        <b>Happiness Smart Card — Firebase 連線測試（v502）</b>
-        <span class="hint">匿名登入 → 選檔 → 上傳</span>
+        <b>Happiness Smart Card — Firebase 連線＋圖片編輯測試（v503）</b>
+        <span class="hint">匿名登入 → 選檔 → 編輯 → 上傳</span>
       </div>
 
       <div class="cardBody">
@@ -190,31 +113,86 @@
               <div class="k">UID</div><div class="v" id="uid">-</div>
               <div class="k">Tenant</div><div class="v" id="tenant">angel</div>
               <div class="k">版本</div><div class="v" id="ver">-</div>
+              <div class="k">正式路徑</div><div class="v" id="basePath">-</div>
             </div>
 
             <div class="mini">
-              ✅ 此頁面不直接引用 Firebase SDK<br/>
-              ✅ 全部走 <b>firebase.js</b>（與 v502 正式流程一致）
+              ✅ 全部走 <b>firebase.js</b><br/>
+              ✅ 上傳前可做 <b>縮放 / 拖曳 / 旋轉 / 重設</b>
             </div>
           </div>
 
-          <div class="panel">
-            <h3>2) Storage 上傳</h3>
-            <input type="file" id="file" accept="image/*" />
-            <div class="row" style="margin-top:10px;">
-              <button class="btn primary" id="btnUpload" disabled>測試上傳</button>
-              <button class="btn" id="btnCopy" disabled>複製 downloadURL</button>
+          <div class="panel editor-wrap">
+            <div>
+              <h3>2) 選圖與編輯</h3>
+              <input type="file" id="file" accept="image/*" />
             </div>
 
-            <div class="kv">
-              <div class="k">上傳路徑</div><div class="v" id="path">-</div>
-              <div class="k">downloadURL</div><div class="v" id="url">-</div>
+            <div class="editor-box">
+              <div class="canvas-wrap" id="canvasWrap">
+                <canvas id="editorCanvas" width="900" height="900"></canvas>
+              </div>
+              <div class="readout" id="editorReadout">x: 0.500 ｜ y: 0.500 ｜ scale: 1.000 ｜ rotate: 0°</div>
             </div>
 
-            <div class="mini">
-              測試會上傳到：<br/>
-              <b>hsc_cards/angel/TEST001/</b> 底下
+            <div class="toolbar">
+              <div class="toolgroup">
+                <h4>縮放</h4>
+                <div class="toolrow">
+                  <button class="btn" id="btnZoomOut" type="button">－</button>
+                  <button class="btn" id="btnZoomIn" type="button">＋</button>
+                  <button class="btn" id="btnFit" type="button">置中貼合</button>
+                </div>
+              </div>
+
+              <div class="toolgroup">
+                <h4>旋轉</h4>
+                <div class="toolrow">
+                  <button class="btn" id="btnRotateLeft" type="button">↺ 90°</button>
+                  <button class="btn" id="btnRotateRight" type="button">↻ 90°</button>
+                </div>
+              </div>
+
+              <div class="toolgroup">
+                <h4>位置微調</h4>
+                <div class="toolrow">
+                  <button class="btn" id="btnUp" type="button">↑</button>
+                  <button class="btn" id="btnLeft" type="button">←</button>
+                  <button class="btn" id="btnRight" type="button">→</button>
+                  <button class="btn" id="btnDown" type="button">↓</button>
+                </div>
+              </div>
+
+              <div class="toolgroup">
+                <h4>輸出</h4>
+                <div class="toolrow">
+                  <button class="btn danger" id="btnResetEditor" type="button">重設</button>
+                  <button class="btn primary" id="btnExport" type="button">產生預覽</button>
+                </div>
+              </div>
             </div>
+
+            <div>
+              <img id="previewImage" class="preview-img" alt="輸出預覽" style="display:none;" />
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px;">
+          <h3>3) Storage 上傳</h3>
+          <div class="row">
+            <button class="btn primary" id="btnUpload" disabled>上傳編輯後圖片</button>
+            <button class="btn" id="btnCopy" disabled>複製 downloadURL</button>
+          </div>
+
+          <div class="kv">
+            <div class="k">上傳路徑</div><div class="v" id="path">-</div>
+            <div class="k">downloadURL</div><div class="v" id="url">-</div>
+          </div>
+
+          <div class="mini">
+            測試會上傳到：<br/>
+            <b>cards/TEST001/</b> 底下
           </div>
         </div>
 
@@ -222,7 +200,7 @@
 
         <div class="footer">
           若出現上傳失敗：請確認 Firebase Storage Rules 允許寫入
-          <b>hsc_cards/angel/{cardId}/{file}</b>，且 반드시需要登入（匿名登入即可）。
+          <b>cards/{cardId}/{file}</b>，且需要登入（匿名登入即可）。
         </div>
       </div>
     </div>
@@ -237,17 +215,47 @@
     const uidEl = $("uid");
     const verEl = $("ver");
     const tenantEl = $("tenant");
+    const basePathEl = $("basePath");
     const pathEl = $("path");
     const urlEl = $("url");
     const logEl = $("log");
+    const editorReadout = $("editorReadout");
 
     const btnLogin = $("btnLogin");
     const btnReset = $("btnReset");
     const btnUpload = $("btnUpload");
     const btnCopy = $("btnCopy");
+    const btnZoomOut = $("btnZoomOut");
+    const btnZoomIn = $("btnZoomIn");
+    const btnFit = $("btnFit");
+    const btnRotateLeft = $("btnRotateLeft");
+    const btnRotateRight = $("btnRotateRight");
+    const btnLeft = $("btnLeft");
+    const btnRight = $("btnRight");
+    const btnUp = $("btnUp");
+    const btnDown = $("btnDown");
+    const btnResetEditor = $("btnResetEditor");
+    const btnExport = $("btnExport");
     const fileEl = $("file");
+    const previewImage = $("previewImage");
+    const canvas = $("editorCanvas");
+    const canvasWrap = $("canvasWrap");
+    const ctx = canvas.getContext("2d");
 
     let lastURL = "";
+    let sourceImage = null;
+    let exportedBlob = null;
+    let dragState = null;
+    const editor = {
+      x: 0.5,
+      y: 0.5,
+      scale: 1,
+      rotate: 0,
+      minScale: 1,
+      maxScale: 4,
+      imgW: 0,
+      imgH: 0
+    };
 
     function setTag(text, ok=true){
       statusTag.textContent = text;
@@ -262,36 +270,195 @@
     }
 
     function safeCopy(text){
-      try{
-        navigator.clipboard.writeText(text);
-        return true;
-      }catch(e){
-        return false;
-      }
+      try{ navigator.clipboard.writeText(text); return true; }
+      catch(e){ return false; }
     }
+
+    function clamp(n, min, max){ return Math.min(max, Math.max(min, n)); }
 
     function renderInfo(){
       const info = getFirebaseInfo();
       verEl.textContent = info.version || "-";
       tenantEl.textContent = info.tenant || "angel";
+      basePathEl.textContent = info.officialBasePath || "cards/{cardId}/";
       if(info.authed){
         authState.innerHTML = '<span class="ok">已登入</span>';
         uidEl.textContent = info.uid || "-";
-        btnUpload.disabled = false;
         setTag("Authed", true);
       }else{
         authState.innerHTML = '<span class="bad">未登入</span>';
         uidEl.textContent = "-";
-        btnUpload.disabled = true;
         setTag("Not authed", false);
       }
+      btnUpload.disabled = !(info.authed && exportedBlob);
     }
 
-    // Init render
-    try{
+    function getCoverBaseScale(){
+      if(!sourceImage) return 1;
+      const w = sourceImage.naturalWidth || 1;
+      const h = sourceImage.naturalHeight || 1;
+      const rad = editor.rotate * Math.PI / 180;
+      const cos = Math.abs(Math.cos(rad));
+      const sin = Math.abs(Math.sin(rad));
+      const rotW = w * cos + h * sin;
+      const rotH = w * sin + h * cos;
+      return Math.max(canvas.width / rotW, canvas.height / rotH);
+    }
+
+    function syncReadout(){
+      editorReadout.textContent = `x: ${editor.x.toFixed(3)} ｜ y: ${editor.y.toFixed(3)} ｜ scale: ${editor.scale.toFixed(3)} ｜ rotate: ${editor.rotate}°`;
+    }
+
+    function drawChecker(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = "#1f2937";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+    }
+
+    function drawImage(){
+      drawChecker();
+      if(!sourceImage) {
+        ctx.fillStyle = "rgba(255,255,255,.7)";
+        ctx.font = "bold 28px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("請先選擇圖片", canvas.width/2, canvas.height/2);
+        syncReadout();
+        return;
+      }
+
+      const baseScale = getCoverBaseScale();
+      const scale = baseScale * editor.scale;
+      const dw = sourceImage.naturalWidth * scale;
+      const dh = sourceImage.naturalHeight * scale;
+      const centerX = editor.x * canvas.width;
+      const centerY = editor.y * canvas.height;
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate(editor.rotate * Math.PI / 180);
+      ctx.drawImage(sourceImage, -dw/2, -dh/2, dw, dh);
+      ctx.restore();
+      syncReadout();
+    }
+
+    function fitImage(){
+      if(!sourceImage) return;
+      editor.x = 0.5;
+      editor.y = 0.5;
+      editor.scale = 1;
+      editor.rotate = 0;
+      drawImage();
+      exportedBlob = null;
+      previewImage.style.display = "none";
+      btnUpload.disabled = true;
+    }
+
+    function loadFile(file){
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+    }
+
+    async function setSourceFile(file){
+      const dataUrl = await loadFile(file);
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+      sourceImage = img;
+      editor.imgW = img.naturalWidth;
+      editor.imgH = img.naturalHeight;
+      fitImage();
+      log(`已載入圖片：${file.name} (${img.naturalWidth}x${img.naturalHeight})`, "ok");
+    }
+
+    function nudge(dx, dy){
+      editor.x = clamp(editor.x + dx, -0.5, 1.5);
+      editor.y = clamp(editor.y + dy, -0.5, 1.5);
+      drawImage();
+      exportedBlob = null;
+      btnUpload.disabled = true;
+    }
+
+    function zoom(mult){
+      editor.scale = clamp(Number((editor.scale * mult).toFixed(3)), 0.2, 6);
+      drawImage();
+      exportedBlob = null;
+      btnUpload.disabled = true;
+    }
+
+    function rotate(delta){
+      editor.rotate = ((editor.rotate + delta) % 360 + 360) % 360;
+      if(editor.rotate === 270) editor.rotate = -90;
+      if(editor.rotate === 180) editor.rotate = 180;
+      if(editor.rotate === 90) editor.rotate = 90;
+      if(editor.rotate === 0) editor.rotate = 0;
+      drawImage();
+      exportedBlob = null;
+      btnUpload.disabled = true;
+    }
+
+    function getPoint(evt){
+      const rect = canvas.getBoundingClientRect();
+      const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+      const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+      return {
+        x: (clientX - rect.left) / rect.width,
+        y: (clientY - rect.top) / rect.height
+      };
+    }
+
+    function startDrag(evt){
+      if(!sourceImage) return;
+      evt.preventDefault();
+      const p = getPoint(evt);
+      dragState = { startX: p.x, startY: p.y, originX: editor.x, originY: editor.y };
+    }
+
+    function moveDrag(evt){
+      if(!dragState || !sourceImage) return;
+      evt.preventDefault();
+      const p = getPoint(evt);
+      const dx = p.x - dragState.startX;
+      const dy = p.y - dragState.startY;
+      editor.x = clamp(dragState.originX + dx, -0.5, 1.5);
+      editor.y = clamp(dragState.originY + dy, -0.5, 1.5);
+      drawImage();
+      exportedBlob = null;
+      btnUpload.disabled = true;
+    }
+
+    function endDrag(){ dragState = null; }
+
+    async function exportEditedBlob(){
+      if(!sourceImage) {
+        log("請先選擇檔案", "bad");
+        return;
+      }
+      drawImage();
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+      if(!blob){
+        log("輸出圖片失敗", "bad");
+        return;
+      }
+      exportedBlob = blob;
+      previewImage.src = URL.createObjectURL(blob);
+      previewImage.style.display = "block";
+      btnUpload.disabled = false;
+      log(`已產生編輯後圖片：${Math.round(blob.size/1024)} KB`, "ok");
       renderInfo();
-      log("已載入 firebase.js（v502）", "ok");
-      log("提示：favicon.ico 404 不影響功能（可忽略）");
+    }
+
+    try{
+      drawImage();
+      renderInfo();
+      log("已載入 firebase.js（v503 對齊版）", "ok");
+      log("測試規格：cards/{cardId}/{file}", "ok");
       setTag("Initialized", true);
     }catch(err){
       log("初始化失敗: " + (err?.message || err), "bad");
@@ -311,20 +478,54 @@
 
     btnReset.addEventListener("click", () => {
       renderInfo();
+      drawImage();
       log("已刷新狀態", "ok");
     });
 
-    btnUpload.addEventListener("click", async () => {
+    fileEl.addEventListener("change", async () => {
       const f = fileEl.files?.[0];
-      if(!f){
-        log("請先選擇檔案", "bad");
+      if(!f) return;
+      try{
+        await setSourceFile(f);
+      }catch(err){
+        log("載入圖片失敗: " + (err?.message || err), "bad");
+      }
+    });
+
+    btnZoomOut.addEventListener("click", () => zoom(0.92));
+    btnZoomIn.addEventListener("click", () => zoom(1.08));
+    btnFit.addEventListener("click", fitImage);
+    btnRotateLeft.addEventListener("click", () => rotate(-90));
+    btnRotateRight.addEventListener("click", () => rotate(90));
+    btnLeft.addEventListener("click", () => nudge(-0.02, 0));
+    btnRight.addEventListener("click", () => nudge(0.02, 0));
+    btnUp.addEventListener("click", () => nudge(0, -0.02));
+    btnDown.addEventListener("click", () => nudge(0, 0.02));
+    btnResetEditor.addEventListener("click", fitImage);
+    btnExport.addEventListener("click", exportEditedBlob);
+
+    canvasWrap.addEventListener("mousedown", startDrag);
+    canvasWrap.addEventListener("mousemove", moveDrag);
+    window.addEventListener("mouseup", endDrag);
+    canvasWrap.addEventListener("mouseleave", endDrag);
+    canvasWrap.addEventListener("touchstart", startDrag, { passive:false });
+    canvasWrap.addEventListener("touchmove", moveDrag, { passive:false });
+    window.addEventListener("touchend", endDrag, { passive:false });
+
+    canvasWrap.addEventListener("wheel", (evt) => {
+      evt.preventDefault();
+      zoom(evt.deltaY > 0 ? 0.96 : 1.04);
+    }, { passive:false });
+
+    btnUpload.addEventListener("click", async () => {
+      if(!exportedBlob){
+        log("請先按『產生預覽』", "bad");
         return;
       }
-
       const cardId = "TEST001";
       const ts = new Date().toISOString().replace(/[:.]/g,"-");
       const fileName = `test_${ts}.jpg`;
-      const path = `hsc_cards/angel/${cardId}/${fileName}`;
+      const path = `cards/${cardId}/${fileName}`;
 
       pathEl.textContent = path;
       urlEl.textContent = "-";
@@ -333,18 +534,12 @@
 
       try{
         await ensureAuth();
-
         setTag("Uploading...", true);
         log("開始上傳: " + path);
-
-        // 直接用 File 當 Blob 上傳（我們命名 .jpg；contentType 仍用原始檔）
-        // 若你要強制壓縮後再上傳，下一步可以接 image-compressor.js
-        const url = await uploadImage(cardId, f, fileName);
-
+        const url = await uploadImage(cardId, exportedBlob, fileName);
         lastURL = url;
         urlEl.textContent = url;
         btnCopy.disabled = false;
-
         log("上傳成功", "ok");
         log("downloadURL: " + url, "ok");
         setTag("Upload OK", true);
