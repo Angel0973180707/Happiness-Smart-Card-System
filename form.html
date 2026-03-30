@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>天使幸福智慧名片｜表單</title>
   <link rel="stylesheet" href="./form.css" />
-  <link rel="stylesheet" href="./style.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 </head>
 <body>
   <main class="form-shell">
@@ -14,7 +12,7 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v7.2.2-form-preview-sync｜表單預覽與主程式成品卡同步版。</p>
+        <p class="hero-desc">v7.1｜單欄跑馬燈版 + features_json 完整融合版。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -192,69 +190,41 @@
         <div class="marquee-stack">
           <div class="field-group">
             <label class="field-label" for="marquee_text">跑馬燈內容</label>
-            <textarea id="marquee_text" rows="3" placeholder="例如：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始"></textarea>
+            <textarea
+              id="marquee_text"
+              rows="3"
+              placeholder="例如：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始"
+            ></textarea>
             <p class="field-hint">系統會依「｜」自動輪播顯示，不再拆成 3 欄。</p>
           </div>
         </div>
       </section>
 
       <section class="form-card">
-        <div class="section-head"><div><p class="section-kicker">STEP 7</p><h2>成品預覽</h2><p>預覽直接共用主程式 renderCard 與主程式卡片結構。</p></div></div>
+        <div class="section-head"><div><p class="section-kicker">STEP 7</p><h2>成品預覽</h2><p>即時預覽會同步寫進 preview_meta。</p></div></div>
         <div class="preview-section">
-          <div id="livePreviewCard" class="mode-free color-1 style-arch paper-1">
-            <div id="card-container">
-              <article id="card" class="layout-grid ratio-1-1 fit-cover">
-                <div id="banner"></div>
-                <div id="paperOverlay"></div>
-
-                <div class="card-top">
-                  <div class="avatar-wrap">
-                    <img id="u-img" alt="頭像預覽" />
-                  </div>
-                  <div class="identity-wrap">
-                    <div id="premiumBadge" class="hidden">精品設計</div>
-                    <div id="logoWrap"><img id="u-logo" alt="品牌 Logo" /></div>
-                    <h3 id="u-name">請先填寫姓名</h3>
-
-                    <div id="u-unit-wrap" class="expandable-wrap">
-                      <div id="u-unit"></div>
-                      <button type="button" id="u-unit-toggle" class="expand-toggle">看更多</button>
-                    </div>
-
-                    <div id="u-title"></div>
-
-                    <div id="u-slogan-wrap" class="expandable-wrap">
-                      <div id="u-slogan"></div>
-                      <button type="button" id="u-slogan-toggle" class="expand-toggle">看更多</button>
-                    </div>
-                  </div>
-                </div>
-
-                <section id="block-service"></section>
-                <section id="block-exp"></section>
-
-                <section id="contactDock"><div id="contactButtons"></div></section>
-                <section id="marqueeDock"><div id="marqueeShell"><div id="marqueeTrack"><span id="marqueeText"></span></div></div></section>
-                <section id="primaryLinkDock"><div id="primaryLinkButtons"></div></section>
-                <section id="mediaDock"><div id="mediaButtons"></div></section>
-                <section id="ctaDock"><div id="ctaButtons"></div></section>
-
-                <section id="photoWall">
-                  <div id="photoGrid"></div>
-                </section>
-
-                <div class="card-bottom-meta">
-                  <div id="cardExpiry"></div>
-                  <div id="versionTag"></div>
-                </div>
-              </article>
+          <div class="preview-card-board" id="preview-card-board">
+            <div class="preview-header">
+              <div class="preview-avatar">
+                <img id="preview-avatar-img" class="hidden" alt="頭像預覽">
+                <div id="preview-avatar-empty" class="preview-avatar-empty">尚未上傳照片</div>
+              </div>
+              <div>
+                <div id="preview-name" class="preview-name">請先填寫姓名</div>
+                <div id="preview-unit" class="preview-unit">單位 / 公司</div>
+                <div id="preview-title" class="preview-title">職稱 / 副標</div>
+              </div>
             </div>
+            <div id="preview-contact" class="preview-contact">電話 / Email / 地址</div>
+            <div id="preview-marquee" class="preview-marquee hidden"></div>
+            <div id="preview-services" class="preview-section-text"></div>
+            <div id="preview-ctas" class="preview-ctas"></div>
+            <div id="preview-photos" class="preview-photos"></div>
           </div>
-
           <div class="preview-card">
             <h3>預覽設定說明</h3>
-            <p class="hint">這裡直接吃主程式 <code>window.renderCard()</code>，不再維護第二套 preview UI。</p>
-            <p class="hint">照片位置設定會同步封裝進 <code>photo_meta</code>；版面預覽設定會同步封裝進 <code>preview_meta</code>。</p>
+            <p class="hint">這裡的卡面設定會同步封裝到 <code>features_json</code>。</p>
+            <p class="hint">照片使用 <code>x / y / scale / rotate</code>，預覽使用 <code>preview_meta</code>。</p>
           </div>
         </div>
       </section>
@@ -314,7 +284,6 @@
     </article>
   </template>
 
-  <script src="./app.js"></script>
   <script src="./form.js"></script>
 </body>
 </html>

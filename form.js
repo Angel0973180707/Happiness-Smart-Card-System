@@ -6,8 +6,7 @@
     SERVICE_URL: "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v722_preview_sync",
-    VERSION: "v7.2.2-form-preview-sync",
+    DRAFT_KEY: "hsc_form_draft_v72_final",
     BASE_LIMITS: {
       free: { photos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { photos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -94,41 +93,17 @@
       "photo-slots",
       "cta-slots",
 
-      "livePreviewCard",
-      "card-container",
-      "card",
-      "banner",
-      "paperOverlay",
-      "u-img",
-      "premiumBadge",
-      "logoWrap",
-      "u-logo",
-      "u-name",
-      "u-unit-wrap",
-      "u-unit",
-      "u-unit-toggle",
-      "u-title",
-      "u-slogan-wrap",
-      "u-slogan",
-      "u-slogan-toggle",
-      "block-service",
-      "block-exp",
-      "contactDock",
-      "contactButtons",
-      "marqueeDock",
-      "marqueeShell",
-      "marqueeTrack",
-      "marqueeText",
-      "primaryLinkDock",
-      "primaryLinkButtons",
-      "mediaDock",
-      "mediaButtons",
-      "ctaDock",
-      "ctaButtons",
-      "photoWall",
-      "photoGrid",
-      "cardExpiry",
-      "versionTag",
+      "preview-card-board",
+      "preview-name",
+      "preview-unit",
+      "preview-title",
+      "preview-contact",
+      "preview-marquee",
+      "preview-services",
+      "preview-ctas",
+      "preview-photos",
+      "preview-avatar-img",
+      "preview-avatar-empty",
 
       "summary-plan-pill",
       "summary-photo-pill",
@@ -358,13 +333,6 @@
     }
   }
 
-  function ensurePhotoMeta(key) {
-    if (!state.photoMeta[key]) {
-      state.photoMeta[key] = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
-    }
-    return state.photoMeta[key];
-  }
-
   function renderPhotos(limit) {
     if (!els["photo-slots"] || !els.photoTemplate) return;
 
@@ -392,7 +360,10 @@
       const resetBtn = frag.querySelector(".reset-photo");
 
       const key = "photo" + i;
-      const meta = ensurePhotoMeta(key);
+
+      if (!state.photoMeta[key]) {
+        state.photoMeta[key] = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
+      }
 
       if (title) title.textContent = "照片 " + i;
 
@@ -408,7 +379,7 @@
           if (previewImage) {
             previewImage.src = url;
             previewImage.classList.remove("hidden");
-            applyPhotoTransform(previewImage, meta);
+            applyPhotoTransform(previewImage, state.photoMeta[key]);
           }
 
           if (previewEmpty) previewEmpty.classList.add("hidden");
@@ -421,10 +392,10 @@
       }
 
       if (zoomRange) {
-        zoomRange.value = String(meta.scale || 1);
+        zoomRange.value = String(state.photoMeta[key].scale || 1);
         zoomRange.addEventListener("input", () => {
-          ensurePhotoMeta(key).scale = Number(zoomRange.value || 1);
-          if (previewImage) applyPhotoTransform(previewImage, ensurePhotoMeta(key));
+          state.photoMeta[key].scale = Number(zoomRange.value || 1);
+          if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
           syncPreview();
           saveDraftSilently();
         });
@@ -432,8 +403,8 @@
 
       if (rotateLeft) {
         rotateLeft.addEventListener("click", () => {
-          ensurePhotoMeta(key).rotate -= 90;
-          if (previewImage) applyPhotoTransform(previewImage, ensurePhotoMeta(key));
+          state.photoMeta[key].rotate -= 90;
+          if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
           syncPreview();
           saveDraftSilently();
         });
@@ -441,8 +412,8 @@
 
       if (rotateRight) {
         rotateRight.addEventListener("click", () => {
-          ensurePhotoMeta(key).rotate += 90;
-          if (previewImage) applyPhotoTransform(previewImage, ensurePhotoMeta(key));
+          state.photoMeta[key].rotate += 90;
+          if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
           syncPreview();
           saveDraftSilently();
         });
@@ -450,9 +421,8 @@
 
       if (moveLeft) {
         moveLeft.addEventListener("click", () => {
-          const next = ensurePhotoMeta(key);
-          next.x = clamp(Number((next.x - 0.05).toFixed(2)), 0, 1);
-          if (previewImage) applyPhotoTransform(previewImage, next);
+          state.photoMeta[key].x = Number((state.photoMeta[key].x - 0.05).toFixed(2));
+          if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
           syncPreview();
           saveDraftSilently();
         });
@@ -460,9 +430,8 @@
 
       if (moveRight) {
         moveRight.addEventListener("click", () => {
-          const next = ensurePhotoMeta(key);
-          next.x = clamp(Number((next.x + 0.05).toFixed(2)), 0, 1);
-          if (previewImage) applyPhotoTransform(previewImage, next);
+          state.photoMeta[key].x = Number((state.photoMeta[key].x + 0.05).toFixed(2));
+          if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
           syncPreview();
           saveDraftSilently();
         });
@@ -484,7 +453,7 @@
         if (previewEmpty) previewEmpty.classList.add("hidden");
         if (tools) tools.classList.remove("hidden");
         if (badge) badge.textContent = "已上傳";
-        applyPhotoTransform(previewImage, ensurePhotoMeta(key));
+        applyPhotoTransform(previewImage, state.photoMeta[key]);
       }
 
       els["photo-slots"].appendChild(frag);
@@ -527,20 +496,12 @@
           syncPreview();
           saveDraftSilently();
         });
-        textInput.addEventListener("change", () => {
-          syncPreview();
-          saveDraftSilently();
-        });
       }
 
       if (urlInput) {
         urlInput.id = `cta_link_${i}`;
         urlInput.value = savedValues[`cta_link_${i}`] || "";
         urlInput.addEventListener("input", () => {
-          syncPreview();
-          saveDraftSilently();
-        });
-        urlInput.addEventListener("change", () => {
           syncPreview();
           saveDraftSilently();
         });
@@ -681,73 +642,93 @@
         addonItems.forEach(item => {
           const row = document.createElement("div");
           row.className = "quote-breakdown-row";
-          row.innerHTML = `<span>${escapeHtml(item.name)}${item.qty > 1 ? ` × ${item.qty}` : ""}</span><strong>${money(item.amount)}</strong>`;
+          row.innerHTML = `<span>${item.name}${item.qty > 1 ? ` × ${item.qty}` : ""}</span><strong>${money(item.amount)}</strong>`;
           els["quote-addon-breakdown"].appendChild(row);
         });
       }
     }
   }
 
-  function buildPreviewFeaturesObject() {
-    const theme = getThemeSelection();
-    return {
-      photo_meta: state.photoMeta,
-      preview_meta: {
-        layout: "grid",
-        aspect_ratio: "1:1",
-        fit_mode: "cover",
-        theme: theme.plan
-      }
-    };
-  }
-
-  function buildPreviewCardData() {
-    const limits = getLimits();
-    const theme = getThemeSelection();
-    const features = buildPreviewFeaturesObject();
-    const data = {
-      id: "PREVIEW",
-      tenant: "angel",
-      name: valueOf("display_name"),
-      unit: valueOf("unit"),
-      title: valueOf("title"),
-      phone: valueOf("phone"),
-      email: valueOf("email"),
-      website: valueOf("website"),
-      line_url: valueOf("line_url"),
-      line_oa: valueOf("line_oa"),
-      wechat_id: valueOf("wechat_id"),
-      experience: valueOf("experience"),
-      services: valueOf("services"),
-      address: valueOf("address"),
-      slogan: valueOf("intro"),
-      plan: theme.plan,
-      color: theme.color,
-      style: theme.style,
-      paper: theme.paper,
-      marquee_text: valueOf("marquee_text"),
-      marquee_enabled: isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle"),
-      features,
-      features_json: JSON.stringify(features)
-    };
-
-    for (let i = 1; i <= limits.ctas; i++) {
-      data[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
-      data[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
-    }
-
-    for (let i = 1; i <= limits.photos; i++) {
-      const key = `photo${i}`;
-      data[`${key}_url`] = state.photoPreviewUrls[key] || "";
-    }
-
-    return data;
-  }
-
   function syncPreview() {
-    const data = buildPreviewCardData();
-    if (typeof window.renderCard === "function") {
-      window.renderCard(data);
+    const limits = getLimits();
+
+    if (els["preview-name"]) {
+      els["preview-name"].textContent = valueOf("display_name") || "請先填寫姓名";
+    }
+    if (els["preview-unit"]) {
+      els["preview-unit"].textContent = valueOf("unit") || "單位 / 公司";
+    }
+    if (els["preview-title"]) {
+      els["preview-title"].textContent = valueOf("title") || "職稱 / 副標";
+    }
+
+    if (els["preview-contact"]) {
+      const parts = [valueOf("phone"), valueOf("email"), valueOf("address")].filter(Boolean);
+      els["preview-contact"].textContent = parts.length ? parts.join("｜") : "電話 / Email / 地址";
+    }
+
+    if (els["preview-services"]) {
+      const parts = [valueOf("services"), valueOf("intro")].filter(Boolean);
+      els["preview-services"].textContent = parts.join("\n");
+    }
+
+    if (els["preview-marquee"]) {
+      const enabled = !(els["marquee-section"]?.classList.contains("hidden"));
+      const text = valueOf("marquee_text");
+      els["preview-marquee"].classList.toggle("hidden", !(enabled && text));
+      els["preview-marquee"].textContent = text || "";
+    }
+
+    if (els["preview-ctas"]) {
+      els["preview-ctas"].innerHTML = "";
+      for (let i = 1; i <= limits.ctas; i++) {
+        const text = valueOf(`cta_text_${i}`);
+        const link = valueOf(`cta_link_${i}`);
+        if (!text && !link) continue;
+        const chip = document.createElement("div");
+        chip.className = "preview-cta";
+        chip.textContent = text || `CTA ${i}`;
+        els["preview-ctas"].appendChild(chip);
+      }
+    }
+
+    if (els["preview-photos"]) {
+      els["preview-photos"].innerHTML = "";
+      for (let i = 1; i <= limits.photos; i++) {
+        const key = "photo" + i;
+        const tile = document.createElement("div");
+        tile.className = "preview-photo";
+
+        const src = state.photoPreviewUrls[key];
+        if (src) {
+          const img = document.createElement("img");
+          img.src = src;
+          tile.appendChild(img);
+        } else {
+          const empty = document.createElement("div");
+          empty.className = "preview-photo-empty";
+          empty.textContent = `照片 ${i}`;
+          tile.appendChild(empty);
+        }
+        els["preview-photos"].appendChild(tile);
+      }
+    }
+
+    const avatarSrc = state.photoPreviewUrls.photo1 || "";
+    if (els["preview-avatar-img"] && els["preview-avatar-empty"]) {
+      if (avatarSrc) {
+        els["preview-avatar-img"].src = avatarSrc;
+        els["preview-avatar-img"].classList.remove("hidden");
+        els["preview-avatar-empty"].classList.add("hidden");
+      } else {
+        els["preview-avatar-img"].classList.add("hidden");
+        els["preview-avatar-empty"].classList.remove("hidden");
+      }
+    }
+
+    if (els["preview-card-board"]) {
+      const plan = getSelectedPlan() || "premium";
+      els["preview-card-board"].classList.toggle("plan-premium", plan === "premium");
     }
   }
 
@@ -776,7 +757,6 @@
   function buildPayload() {
     const limits = getLimits();
     const theme = getThemeSelection();
-    const features = buildPreviewFeaturesObject();
 
     const payload = {
       action: "createCardWithOfflinePayment",
@@ -805,9 +785,16 @@
       paper: theme.paper,
 
       marquee_text: valueOf("marquee_text"),
-      marquee_enabled: isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle"),
 
-      features_json: JSON.stringify(features)
+      features_json: {
+        photo_meta: state.photoMeta,
+        preview_meta: {
+          layout: "grid",
+          aspect_ratio: "1:1",
+          fit_mode: "cover",
+          theme: theme.plan
+        }
+      }
     };
 
     for (let i = 1; i <= limits.ctas; i++) {
@@ -935,7 +922,7 @@
       if (!el.id && el.type !== "radio") return;
 
       if (el.type === "checkbox") {
-        out[el.id || `${el.name}:${el.value}`] = el.checked;
+        out[el.id] = el.checked;
         return;
       }
 
@@ -952,7 +939,6 @@
 
   function saveDraft() {
     const draft = {
-      version: CONFIG.VERSION,
       values: collectFormValues(),
       photoMeta: state.photoMeta,
       photoPreviewUrls: state.photoPreviewUrls
@@ -976,13 +962,6 @@
 
     const values = draft.values || {};
     Object.keys(values).forEach(key => {
-      if (key.includes(":")) {
-        const [name, value] = key.split(":");
-        const checkbox = document.querySelector(`input[name="${name}"][value="${value}"]`);
-        if (checkbox) checkbox.checked = !!values[key];
-        return;
-      }
-
       const byId = document.getElementById(key);
       if (byId) {
         if (byId.type === "checkbox") {
@@ -1045,14 +1024,5 @@
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-  }
-
-  function escapeHtml(str) {
-    return String(str || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/\"/g, "&quot;")
-      .replace(/'/g, "&#039;");
   }
 })();
