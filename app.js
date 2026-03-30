@@ -1,6 +1,6 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v6.9-main-card-marquee-features
+   v6.9.1-main-card-marquee-features-ui-refine
    完整覆蓋版 — 主程式成品卡正式接入跑馬燈 + features_json 套用
 ============================================================ */
 
@@ -9,7 +9,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v6.9-main-card-marquee-features",
+  VERSION: "v6.9.1-main-card-marquee-features-ui-refine",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -174,7 +174,7 @@ function escapeHtml_(s){
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
 
@@ -270,7 +270,6 @@ function extractCardRow_(payload){
   return {};
 }
 
-/* features_json / preview_meta / photo_meta */
 function clampNumber_(value, min, max, fallback){
   const n = Number(value);
   if(Number.isFinite(n)){
@@ -289,10 +288,10 @@ function normalizePreviewMeta_(raw){
   const fitMode = text(meta.fit_mode || meta.fitMode).toLowerCase();
 
   return {
-    theme: theme === "premium" || theme === "free" ? theme : "",
-    layout: layout === "single" ? "single" : "grid",
-    aspect_ratio: aspectRatio === "16:9" ? "16:9" : "1:1",
-    fit_mode: fitMode === "contain" ? "contain" : "cover"
+    theme: theme === "premium" || theme === "free" ? theme : DEFAULT_PREVIEW_META.theme,
+    layout: layout === "single" ? "single" : DEFAULT_PREVIEW_META.layout,
+    aspect_ratio: aspectRatio === "16:9" ? "16:9" : DEFAULT_PREVIEW_META.aspect_ratio,
+    fit_mode: fitMode === "contain" ? "contain" : DEFAULT_PREVIEW_META.fit_mode
   };
 }
 
@@ -604,6 +603,17 @@ function mapPremiumToUi_(v){
   return allow.includes(raw) ? raw : "p1";
 }
 
+function getPreviewScope_(){
+  return [document.body, qs("livePreviewCard")].filter(Boolean);
+}
+
+function applyScopedClassSet_(scopes, classList, targetClass){
+  (scopes || []).forEach(scope => {
+    classList.forEach(cls => scope.classList.remove(cls));
+    if(targetClass) scope.classList.add(targetClass);
+  });
+}
+
 function applyPreviewMetaUi_(p){
   const preview = getPreviewMeta_(p);
   const planFromPreview = preview.theme === "premium" ? "premium" : preview.theme === "free" ? "free" : "";
@@ -621,14 +631,15 @@ function applyPreviewMetaUi_(p){
 
   syncPlanUI_();
 
+  const previewCard = qs("livePreviewCard");
   const cardEl = qs("card");
   const photoGrid = qs("photoGrid");
-  if(cardEl){
-    cardEl.classList.remove(...CARD_LAYOUT_CLASSES, ...CARD_ASPECT_CLASSES, ...CARD_FIT_CLASSES);
-    cardEl.classList.add(preview.layout === "single" ? "layout-single" : "layout-grid");
-    cardEl.classList.add(preview.aspect_ratio === "16:9" ? "ratio-16-9" : "ratio-1-1");
-    cardEl.classList.add(preview.fit_mode === "contain" ? "fit-contain" : "fit-cover");
-  }
+  [cardEl, previewCard].filter(Boolean).forEach(target => {
+    target.classList.remove(...CARD_LAYOUT_CLASSES, ...CARD_ASPECT_CLASSES, ...CARD_FIT_CLASSES);
+    target.classList.add(preview.layout === "single" ? "layout-single" : "layout-grid");
+    target.classList.add(preview.aspect_ratio === "16:9" ? "ratio-16-9" : "ratio-1-1");
+    target.classList.add(preview.fit_mode === "contain" ? "fit-contain" : "fit-cover");
+  });
   if(photoGrid){
     photoGrid.dataset.previewLayout = preview.layout;
     photoGrid.dataset.previewAspectRatio = preview.aspect_ratio;
@@ -642,7 +653,7 @@ function syncPlanUI_(){
   const freeControls = qs("free-controls");
   const premiumControls = qs("premium-controls");
   const badge = qs("premiumBadge");
-  setBodyClassOneOf_(BODY_MODE_CLASSES, UI_STATE.plan === "premium" ? "mode-premium" : "mode-free");
+  applyScopedClassSet_(getPreviewScope_(), BODY_MODE_CLASSES, UI_STATE.plan === "premium" ? "mode-premium" : "mode-free");
   if(UI_STATE.plan === "premium"){
     if(freeControls) freeControls.style.display = "none";
     if(premiumControls) premiumControls.style.display = "";
@@ -664,10 +675,9 @@ function syncPlanUI_(){
 function syncThemeUI_(){
   const freeDots = qsa("#freeDotsRow .dot");
   const premiumDots = qsa("#premiumDotsRow .p-dot");
-  removeBodyClasses_(BODY_FREE_THEME_CLASSES);
-  removeBodyClasses_(BODY_PREMIUM_THEME_CLASSES);
+  applyScopedClassSet_(getPreviewScope_(), BODY_FREE_THEME_CLASSES, UI_STATE.plan === "premium" ? "" : (UI_STATE.theme || "color-1"));
+  applyScopedClassSet_(getPreviewScope_(), BODY_PREMIUM_THEME_CLASSES, UI_STATE.plan === "premium" ? (UI_STATE.premiumTheme || "p1") : "");
   if(UI_STATE.plan === "premium"){
-    document.body.classList.add(UI_STATE.premiumTheme || "p1");
     premiumDots.forEach(btn => {
       const expected = btn.getAttribute("aria-label");
       if(expected === UI_STATE.premiumTheme) btn.classList.add("active");
@@ -675,7 +685,6 @@ function syncThemeUI_(){
     });
     freeDots.forEach(btn => btn.classList.remove("active"));
   }else{
-    document.body.classList.add(UI_STATE.theme || "color-1");
     freeDots.forEach(btn => {
       const map = { "dot-1":"color-1","dot-2":"color-2","dot-3":"color-3","dot-4":"color-4","dot-5":"color-5" };
       const match = Object.keys(map).find(cls => btn.classList.contains(cls));
@@ -687,8 +696,11 @@ function syncThemeUI_(){
 }
 
 function syncStyleUI_(){
-  removeBodyClasses_(BODY_STYLE_CLASSES);
-  document.body.classList.add(`style-${UI_STATE.style || "arch"}`);
+  const scopes = getPreviewScope_();
+  scopes.forEach(scope => {
+    BODY_STYLE_CLASSES.forEach(cls => scope.classList.remove(cls));
+    scope.classList.add(`style-${UI_STATE.style || "arch"}`);
+  });
   const buttons = qsa("#styleRow .btn-neo");
   buttons.forEach(btn => {
     const t = text(btn.textContent);
@@ -700,8 +712,11 @@ function syncStyleUI_(){
 }
 
 function syncPaperUI_(){
-  removeBodyClasses_(BODY_PAPER_CLASSES);
-  document.body.classList.add(UI_STATE.paper || "paper-1");
+  const scopes = getPreviewScope_();
+  scopes.forEach(scope => {
+    BODY_PAPER_CLASSES.forEach(cls => scope.classList.remove(cls));
+    scope.classList.add(UI_STATE.paper || "paper-1");
+  });
   const buttons = qsa("#paperRow .btn-neo");
   buttons.forEach(btn => {
     const t = text(btn.textContent);
@@ -853,6 +868,7 @@ window.addEventListener("resize", () => {
   __expandRefreshTimer = setTimeout(() => {
     refreshAllExpandable_();
     applySmartBalanceAll_();
+    updateQrCenterSizes_();
   }, 120);
 });
 
@@ -953,7 +969,6 @@ function renderBlocks_(p){
 function getMarqueeText_(p){
   const direct = text(pick(p, ["marquee_text"]));
   if(direct) return direct;
-  const preview = getPreviewMeta_(p);
   const fallback = text(p?.features?.preview_meta?.marquee_text || "");
   if(fallback) return fallback;
   return "";
@@ -1526,7 +1541,10 @@ function applySmartBalanceAll_(){ qsa("[data-balance-type]").forEach(applySmartB
 let __balanceTimer = null;
 window.addEventListener("resize", () => {
   clearTimeout(__balanceTimer);
-  __balanceTimer = setTimeout(applySmartBalanceAll_, 120);
+  __balanceTimer = setTimeout(() => {
+    applySmartBalanceAll_();
+    updateQrCenterSizes_();
+  }, 120);
 });
 
 function buildCardShareUrl_(){ return buildTrackedShareUrl_(currentRow); }
@@ -1578,6 +1596,8 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   const u = normalizeImageUrl_(centerImgUrl);
   if(!u){ hideCenterImg_(imgEl); return; }
   const ratio = getQrCenterRatio_(sizeRatio);
+  imgEl.dataset.baseRatio = String(sizeRatio);
+  imgEl.dataset.centerUrl = u;
   imgEl.style.position = "absolute";
   imgEl.style.left = "50%";
   imgEl.style.top = "50%";
@@ -1598,6 +1618,17 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
     referrerPolicy: "no-referrer",
     onLoad: () => { imgEl.style.display = "block"; imgEl.style.background = "transparent"; imgEl.style.padding = "0"; imgEl.style.boxShadow = "none"; },
     onFail: () => { hideCenterImg_(imgEl); }
+  });
+}
+
+function updateQrCenterSizes_(){
+  ["bottomQrAvatar", "featureQrAvatar", "facadeQrAvatar"].forEach(id => {
+    const el = qs(id);
+    if(!el || el.style.display === "none") return;
+    const baseRatio = clampNumber_(el.dataset.baseRatio, 0.05, 0.2, 0.09);
+    const ratio = getQrCenterRatio_(baseRatio);
+    el.style.width = `${Math.round(ratio * 100)}%`;
+    el.style.height = `${Math.round(ratio * 100)}%`;
   });
 }
 
@@ -1730,15 +1761,15 @@ function renderBottomHubShareBtn_(){
 
 function ensureBottomQrVisible_(){
   if(!currentRow) return;
-  try{ renderBottomQr_(currentRow); }catch(e){}
-  try{ renderBottomHubShareBtn_(); }catch(e){}
+  try{ renderBottomQr_(currentRow); }catch(_e){}
+  try{ renderBottomHubShareBtn_(); }catch(_e){}
   setTimeout(() => {
-    try{ renderBottomQr_(currentRow); }catch(e){}
-    try{ renderBottomHubShareBtn_(); }catch(e){}
+    try{ renderBottomQr_(currentRow); }catch(_e){}
+    try{ renderBottomHubShareBtn_(); }catch(_e){}
   }, 250);
   setTimeout(() => {
-    try{ renderBottomQr_(currentRow); }catch(e){}
-    try{ renderBottomHubShareBtn_(); }catch(e){}
+    try{ renderBottomQr_(currentRow); }catch(_e){}
+    try{ renderBottomHubShareBtn_(); }catch(_e){}
   }, 800);
 }
 
@@ -1812,6 +1843,7 @@ function renderCard(row){
   renderFeatureQrFromCurrent_();
   renderFacadeQrFromCurrent_();
   applySmartBalanceAll_();
+  updateQrCenterSizes_();
 
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
@@ -1854,7 +1886,7 @@ window.__triggerPwaInstall = triggerPwaInstall_;
 
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; updateInstallUi_(); });
 window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; updateInstallUi_(); });
-window.addEventListener("load", () => { ensureBottomQrVisible_(); }, { once: true });
+window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenterSizes_(); }, { once: true });
 
 (async function boot_(){
   try{
