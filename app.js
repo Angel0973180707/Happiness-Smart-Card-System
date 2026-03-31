@@ -1,7 +1,10 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.5.4-facade-old-main-renderer
-   完整覆蓋版 — 門面保留舊架構，主卡改由 card-renderer.js 接管
+   v7.6-full-rebuild-renderer-aligned
+   完整覆蓋版
+   - 門面保留舊架構
+   - 主卡改由 card-renderer.js 唯一渲染
+   - 保留 fetch / announcement / share / install / invite / QR
 ============================================================ */
 
 const CONFIG = {
@@ -9,7 +12,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.5.4-facade-old-main-renderer",
+  VERSION: "v7.6-full-rebuild-renderer-aligned",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -426,6 +429,18 @@ function buildTrackedShareUrl_(p){
   }
 }
 
+function buildHubShareUrl_(){
+  try{
+    const u = new URL(CONFIG.HUB_URL);
+    const code = getReferralSourceCode_(currentRow);
+    if(code) u.searchParams.set("ref", code);
+    return u.toString();
+  }catch{
+    const code = getReferralSourceCode_(currentRow);
+    return CONFIG.HUB_URL + (code ? ("?ref=" + encodeURIComponent(code)) : "");
+  }
+}
+
 function createLocalApplyCode_(){
   const d = new Date();
   const yy = String(d.getFullYear()).slice(-2);
@@ -548,12 +563,6 @@ function setImgWithFallback_(imgEl, candidates, options = {}){
   imgEl.onerror = () => { tryNext(); };
   imgEl.src = buildSrc(list[0]);
 }
-
-const BODY_MODE_CLASSES = ["mode-free", "mode-premium"];
-const BODY_FREE_THEME_CLASSES = ["color-1", "color-2", "color-3", "color-4", "color-5"];
-const BODY_PREMIUM_THEME_CLASSES = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"];
-const BODY_STYLE_CLASSES = ["style-arch", "style-flat", "style-spot"];
-const BODY_PAPER_CLASSES = ["paper-1", "paper-2", "paper-3"];
 
 const UI_STATE = {
   plan: "free",
@@ -832,6 +841,14 @@ function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
   setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline: true });
 }
 
+function pickAvatarInfo_(p){
+  const url = pick(p, ["avatar_url"]);
+  if(text(url)){
+    return { key: "avatar_url", raw: url, url: normalizeImageUrl_(url) };
+  }
+  return { key: "", raw: "", url: "" };
+}
+
 function parseDateSafe_(value){
   if(!value) return null;
   const s = String(value).trim();
@@ -865,6 +882,178 @@ function renderCardExpiry_(p){
   else label = `EXPIRES IN ${diffDays} DAYS`;
   el.textContent = label;
   el.style.display = "block";
+}
+
+function parseDateLoose_(value){
+  if(!value) return null;
+  const s = String(value).trim();
+  if(!s) return null;
+  let d = new Date(s.replace(/\//g, "-").replace(" ", "T"));
+  if(!isNaN(d.getTime())) return d;
+  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
+    if(!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+function isAnnouncementActive_(item){
+  const status = text(item.status || "active").toLowerCase();
+  if(status && status !== "active") return false;
+  const now = Date.now();
+  const startAt = parseDateLoose_(item.start_at);
+  const endAt = parseDateLoose_(item.end_at);
+  if(startAt && now < startAt.getTime()) return false;
+  if(endAt){
+    const endMs = new Date(
+      endAt.getFullYear(), endAt.getMonth(), endAt.getDate(), 23, 59, 59, 999
+    ).getTime();
+    if(now > endMs) return false;
+  }
+  return true;
+}
+
+function sortAnnouncements_(items){
+  return [...items].sort((a, b) => {
+    const pa = Number(a.priority || 0);
+    const pb = Number(b.priority || 0);
+    if(pb !== pa) return pb - pa;
+    const ta = parseDateLoose_(a.updated_at || a.created_at || a.start_at || "")?.getTime() || 0;
+    const tb = parseDateLoose_(b.updated_at || b.created_at || b.start_at || "")?.getTime() || 0;
+    return tb - ta;
+  });
+}
+
+function normalizeAnnouncementItems_(payload){
+  if(Array.isArray(payload)){
+    return payload.filter(x => x && typeof x === "object");
+  }
+  if(!payload || typeof payload !== "object") return [];
+  const arr =
+    (Array.isArray(payload.announcements) ? payload.announcements : null) ||
+    (Array.isArray(payload.items) ? payload.items : null) ||
+    (Array.isArray(payload.data) ? payload.data : null) ||
+    (Array.isArray(payload.rows) ? payload.rows : null) ||
+    [];
+  return arr.filter(x => x && typeof x === "object");
+}
+
+function openAnnouncementModal_(item, currentIdx, total){
+  if(!item) return;
+  const mask = qs("announcementMask");
+  const titleEl = qs("announcementModalTitle");
+  const metaEl = qs("announcementModalMeta");
+  const bodyEl = qs("announcementModalBody");
+  if(!mask || !bodyEl) return;
+
+  if(titleEl){
+    titleEl.innerHTML = `<i class="fa-solid fa-bullhorn"></i> ${escapeHtml_(item.title || "公告")}`;
+  }
+  if(metaEl){
+    let metaStr = "門面公告";
+    if(total > 1) metaStr += `　${(currentIdx||0)+1} / ${total}`;
+    metaEl.textContent = metaStr;
+  }
+  if(bodyEl){
+    bodyEl.textContent = text(item.content || "（無內容）");
+  }
+
+  mask.style.display = "flex";
+  mask.setAttribute("aria-hidden", "false");
+  if(typeof window.__lockBodyScroll === "function") window.__lockBodyScroll();
+}
+
+function closeAnnouncementModal_(){
+  const mask = qs("announcementMask");
+  if(!mask) return;
+  mask.style.display = "none";
+  mask.setAttribute("aria-hidden", "true");
+  if(typeof window.__unlockBodyScroll === "function") window.__unlockBodyScroll();
+}
+
+function bindAnnouncementModal_(){
+  const closeBtn = qs("announcementCloseBtn");
+  const mask = qs("announcementMask");
+  if(closeBtn) closeBtn.addEventListener("click", closeAnnouncementModal_);
+  if(mask) mask.addEventListener("click", function(e){
+    if(e.target === mask) closeAnnouncementModal_();
+  });
+}
+
+function paintAnnouncementCards_(items, idx){
+  const item = items[idx];
+  if(!item) return;
+  const total = items.length;
+
+  qsa("[data-announcement-panel]").forEach(panel => {
+    const titleEl = panel.querySelector("[data-announcement-title]");
+    const textEl = panel.querySelector("[data-announcement-text]");
+    const counterEl = panel.querySelector("[data-announcement-counter]");
+    const trackBtn = panel.querySelector("[data-announcement-track]");
+
+    if(titleEl) titleEl.textContent = text(item.title) || "公告";
+    if(textEl){
+      const summary = text(item.content || "").split("\n")[0].slice(0, 60);
+      textEl.textContent = summary + (text(item.content || "").length > 60 ? "⋯" : "");
+    }
+    if(counterEl) counterEl.textContent = total > 1 ? `${idx + 1} / ${total}` : "";
+
+    if(trackBtn){
+      trackBtn.onclick = null;
+      trackBtn.onclick = () => openAnnouncementModal_(item, idx, total);
+    }
+  });
+}
+
+function stopAnnouncementRotation_(){
+  if(announcementTimer_){
+    clearInterval(announcementTimer_);
+    announcementTimer_ = null;
+  }
+}
+
+function startAnnouncementRotation_(items){
+  stopAnnouncementRotation_();
+  announcementItems_ = items;
+  announcementIndex_ = 0;
+
+  paintAnnouncementCards_(items, 0);
+
+  if(items.length > 1){
+    announcementTimer_ = setInterval(() => {
+      announcementIndex_ = (announcementIndex_ + 1) % items.length;
+      paintAnnouncementCards_(items, announcementIndex_);
+    }, 4000);
+  }
+}
+
+function renderAnnouncementPanels_(items){
+  const active = sortAnnouncements_(items.filter(isAnnouncementActive_));
+
+  if(!active.length){
+    qsa("[data-announcement-panel]").forEach(p => { p.style.display = "none"; });
+    return;
+  }
+
+  qsa("[data-announcement-panel]").forEach(p => { p.style.display = ""; });
+  startAnnouncementRotation_(active);
+}
+
+async function fetchAndRenderAnnouncements_(){
+  try{
+    const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_());
+    const items = normalizeAnnouncementItems_(payload);
+
+    if(items && items.length > 0){
+      renderAnnouncementPanels_(items);
+    }else{
+      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
+    }
+  }catch(err){
+    console.warn("[HSC announcement] GAS 請求失敗，使用內建公告:", err);
+    renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
+  }
 }
 
 function applySmartBalanceToEl_(el){
@@ -937,24 +1126,6 @@ window.addEventListener("resize", () => {
     updateQrCenterSizes_();
   }, 120);
 });
-
-function buildCardShareUrl_(){ return buildTrackedShareUrl_(currentRow); }
-
-function buildHubShareUrl_(){
-  try{
-    const u = new URL(CONFIG.HUB_URL);
-    const code = getReferralSourceCode_(currentRow);
-    if(code) u.searchParams.set("ref", code);
-    return u.toString();
-  }catch{
-    const code = getReferralSourceCode_(currentRow);
-    return CONFIG.HUB_URL + (code ? ("?ref=" + encodeURIComponent(code)) : "");
-  }
-}
-
-function buildBottomQrUrl_(){ return buildTrackedShareUrl_(currentRow); }
-function buildFeatureQrUrl_(){ return buildTrackedShareUrl_(currentRow); }
-function buildFacadeQrUrl_(){ return buildHubShareUrl_(); }
 
 function getQrCenterRatio_(baseRatio){
   const vw = window.innerWidth || 390;
@@ -1054,13 +1225,13 @@ function renderQr(options){
 window.renderQr = renderQr;
 window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
 window.__getHubShareUrl = buildHubShareUrl_;
-window.__getCardShareUrl = buildCardShareUrl_;
+window.__getCardShareUrl = function(){ return buildTrackedShareUrl_(currentRow); };
 window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(currentRow); };
 
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
   if(!grid) return;
-  const url = buildFacadeQrUrl_();
+  const url = buildHubShareUrl_();
   const key = "facade|" + url;
   if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
   lastFacadeQrRenderKey = key;
@@ -1073,7 +1244,7 @@ function renderBottomQr_(p){
   const avatar = qs("bottomQrAvatar");
   if(!sec || !grid || !avatar) return;
   const info = pickAvatarInfo_(p);
-  const qrUrl = buildBottomQrUrl_();
+  const qrUrl = buildTrackedShareUrl_(p);
   const avatarUrl = info.url;
   const key = "bottom|" + qrUrl + "|" + avatarUrl;
   const canvas = avatar.parentElement;
@@ -1091,7 +1262,7 @@ function renderFeatureQrFromCurrent_(){
   const grid = qs("featureQrGrid");
   const avatar = qs("featureQrAvatar");
   if(!grid || !avatar) return;
-  const url = buildFeatureQrUrl_();
+  const url = buildTrackedShareUrl_(currentRow);
   const avatarUrl = currentAvatarUrlCache || "";
   const key = "feature|" + url + "|" + avatarUrl;
   const canvas = avatar.parentElement;
@@ -1170,11 +1341,40 @@ function renderInstallDock_(){
   dock.style.display = cleanMode ? "" : "none";
 }
 
-/* ============================================================
-   ✅ 唯一主卡渲染入口
-   - 門面舊架構保留
-   - 主卡交給 card-renderer.js
-============================================================ */
+function renderPostRendererUi_(row){
+  const unitVal = normalizeLongText_(pick(row, ["unit", "單位", "公司"]));
+  const sloganVal = normalizeLongText_(pick(row, ["slogan", "一句話", "簡介"]));
+  const unitEl = qs("u-unit");
+  const unitToggle = qs("u-unit-toggle");
+  const sloganEl = qs("u-slogan");
+  const sloganToggle = qs("u-slogan-toggle");
+
+  if(unitEl) setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
+  if(sloganEl) setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
+
+  const b1 = qs("block-service");
+  const b2 = qs("block-exp");
+  renderExpandableInfoBlock_(b1, "服務項目", pick(row, ["services","服務項目","service"]), 2);
+  renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", pick(row, ["experience","經歷","exp"]), 3);
+
+  const vt = qs("versionTag");
+  if(vt) vt.textContent = CONFIG.VERSION;
+
+  renderCardExpiry_(row);
+  renderInstallDock_();
+  renderBottomQr_(row);
+  renderBottomHubShareBtn_();
+  renderFeatureQrFromCurrent_();
+  renderFacadeQrFromCurrent_();
+  applySmartBalanceAll_();
+  updateQrCenterSizes_();
+
+  requestAnimationFrame(() => {
+    refreshAllExpandable_();
+    ensureBottomQrVisible_();
+  });
+}
+
 function renderCardWithRenderer(row){
   let sourceRow = row || {};
 
@@ -1246,37 +1446,7 @@ function renderCardWithRenderer(row){
   window.cardData = currentRow;
   window.payload = currentRow;
 
-  renderCardExpiry_(currentRow);
-  renderInstallDock_();
-  renderBottomQr_(currentRow);
-  renderBottomHubShareBtn_();
-  renderFeatureQrFromCurrent_();
-  renderFacadeQrFromCurrent_();
-  applySmartBalanceAll_();
-  updateQrCenterSizes_();
-
-  const unitVal = normalizeLongText_(pick(currentRow, ["unit", "單位", "公司"]));
-  const sloganVal = normalizeLongText_(pick(currentRow, ["slogan", "一句話", "簡介"]));
-  const unitEl = qs("u-unit");
-  const unitToggle = qs("u-unit-toggle");
-  const sloganEl = qs("u-slogan");
-  const sloganToggle = qs("u-slogan-toggle");
-
-  if(unitEl) setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
-  if(sloganEl) setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
-
-  const b1 = qs("block-service");
-  const b2 = qs("block-exp");
-  renderExpandableInfoBlock_(b1, "服務項目", pick(currentRow, ["services","服務項目","service"]), 2);
-  renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", pick(currentRow, ["experience","經歷","exp"]), 3);
-
-  const vt = qs("versionTag");
-  if(vt) vt.textContent = CONFIG.VERSION;
-
-  requestAnimationFrame(() => {
-    refreshAllExpandable_();
-    ensureBottomQrVisible_();
-  });
+  renderPostRendererUi_(currentRow);
 }
 
 function isIos_(){ return /iphone|ipad|ipod/i.test(navigator.userAgent || ""); }
@@ -1318,7 +1488,6 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
     initSelectionState_();
     applySmartBalanceAll_();
     updateInstallUi_();
-
     bindAnnouncementModal_();
     fetchAndRenderAnnouncements_();
 
@@ -1343,7 +1512,9 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
     if(unitEl) unitEl.textContent = "請稍後再試";
     if(titleEl) titleEl.textContent = "";
 
-    bindAnnouncementModal_();
-    renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
+    try{
+      bindAnnouncementModal_();
+      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
+    }catch(_e){}
   }
 })();
