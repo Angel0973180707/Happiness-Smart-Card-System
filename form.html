@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>天使幸福智慧名片｜表單</title>
+  <link rel="stylesheet" href="./style.css" />
   <link rel="stylesheet" href="./form.css" />
 </head>
 <body>
@@ -12,7 +13,7 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v7.1｜單欄跑馬燈版 + features_json 完整融合版。</p>
+        <p class="hero-desc">v7.4｜表單預覽＝成品 renderer 正式版。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -170,7 +171,7 @@
       </section>
 
       <section class="form-card">
-        <div class="section-head"><div><p class="section-kicker">STEP 4</p><h2>照片上傳</h2><p>可旋轉、左右移動、縮放，並正式存進 features_json。</p></div></div>
+        <div class="section-head"><div><p class="section-kicker">STEP 4</p><h2>照片上傳</h2><p>可旋轉、上下左右移動、縮放，並正式存進 features_json。</p></div></div>
         <div id="photo-slots" class="photo-grid"></div>
       </section>
 
@@ -190,40 +191,19 @@
         <div class="marquee-stack">
           <div class="field-group">
             <label class="field-label" for="marquee_text">跑馬燈內容</label>
-            <textarea
-              id="marquee_text"
-              rows="3"
-              placeholder="例如：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始"
-            ></textarea>
+            <textarea id="marquee_text" rows="3" placeholder="例如：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始"></textarea>
             <p class="field-hint">系統會依「｜」自動輪播顯示，不再拆成 3 欄。</p>
           </div>
         </div>
       </section>
 
       <section class="form-card">
-        <div class="section-head"><div><p class="section-kicker">STEP 7</p><h2>成品預覽</h2><p>即時預覽會同步寫進 preview_meta。</p></div></div>
+        <div class="section-head"><div><p class="section-kicker">STEP 7</p><h2>成品預覽</h2><p>表單預覽＝真正成品卡 renderer。</p></div></div>
         <div class="preview-section">
-          <div class="preview-card-board" id="preview-card-board">
-            <div class="preview-header">
-              <div class="preview-avatar">
-                <img id="preview-avatar-img" class="hidden" alt="頭像預覽">
-                <div id="preview-avatar-empty" class="preview-avatar-empty">尚未上傳照片</div>
-              </div>
-              <div>
-                <div id="preview-name" class="preview-name">請先填寫姓名</div>
-                <div id="preview-unit" class="preview-unit">單位 / 公司</div>
-                <div id="preview-title" class="preview-title">職稱 / 副標</div>
-              </div>
-            </div>
-            <div id="preview-contact" class="preview-contact">電話 / Email / 地址</div>
-            <div id="preview-marquee" class="preview-marquee hidden"></div>
-            <div id="preview-services" class="preview-section-text"></div>
-            <div id="preview-ctas" class="preview-ctas"></div>
-            <div id="preview-photos" class="preview-photos"></div>
-          </div>
+          <div class="preview-card-board" id="form-card-preview-root"></div>
           <div class="preview-card">
             <h3>預覽設定說明</h3>
-            <p class="hint">這裡的卡面設定會同步封裝到 <code>features_json</code>。</p>
+            <p class="hint">這裡不再是第二套 preview UI，而是直接渲染成品卡。</p>
             <p class="hint">照片使用 <code>x / y / scale / rotate</code>，預覽使用 <code>preview_meta</code>。</p>
           </div>
         </div>
@@ -269,6 +249,8 @@
           <button type="button" class="ghost-btn mini rotate-right">右轉</button>
           <button type="button" class="ghost-btn mini move-left">左移</button>
           <button type="button" class="ghost-btn mini move-right">右移</button>
+          <button type="button" class="ghost-btn mini move-up">上移</button>
+          <button type="button" class="ghost-btn mini move-down">下移</button>
           <button type="button" class="ghost-btn mini reset-photo">重設</button>
         </div>
         <input type="range" class="zoom-range" min="0.6" max="2" step="0.01" value="1">
@@ -284,6 +266,7 @@
     </article>
   </template>
 
+  <script src="./card-renderer.js"></script>
   <script src="./form.js"></script>
 </body>
 </html>

@@ -1,17 +1,11 @@
-# 幸福智慧名片（V384 外觀參考包）
 
-這是一份「V384 外觀」的可直接部署 PWA 範本，內含：
-- index.html（控制面板 + 名片卡）
-- style.css（V384 玻璃幻鏡視覺）
-- app.js（含 GAS 抓取資料 + 表單導流）
-- manifest.json / sw.js（基本 PWA 支援）
-- icons（192 / 512）
+HSC v7.4 完整覆蓋壓縮檔
+包含：
+- index.html
+- app.js
+- form.html
+- form.js
+- card-renderer.js
 
-⚠️ 注意
-你先前提到要「保留 V385.3 之後升級的自動化系統」，但目前你沒有把 V385.3 專案檔（或 repo 連結）給我，
-因此我無法把「升級功能」合併進來——這包是用你貼的 V384 參考碼打包的可跑版本。
-
-你把 V385.3 專案 zip 上傳（或貼 GitHub repo 連結）後，我就能：
-1) 保留 V385.3 的 app.js（自動化/觸發系統不動）
-2) 把 style.css 換成此 V384 skin
-3) 重新輸出「保功能 + 回 V384 外觀」的整包 zip
+style.css：
+本壓縮檔未重打包，請沿用你目前已在專案中的 v6.9.1 style.css（使用者現有正式版）。
