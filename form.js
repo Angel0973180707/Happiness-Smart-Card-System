@@ -6,7 +6,7 @@
     SERVICE_URL: "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v72_final",
+    DRAFT_KEY: "hsc_form_draft_v751_renderer_full",
     BASE_LIMITS: {
       free: { photos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { photos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -20,7 +20,19 @@
       addon_agent_upgrade: 10000
     },
     MAX_PHOTOS: 10,
-    MAX_CTAS: 10
+    MAX_CTAS: 10,
+    DEFAULT_PREVIEW_META: {
+      layout: "grid",
+      aspect_ratio: "1:1",
+      fit_mode: "cover"
+    }
+  };
+
+  const DEFAULT_PHOTO_META = {
+    x: 0.5,
+    y: 0.5,
+    scale: 1,
+    rotate: 0
   };
 
   const state = {
@@ -37,10 +49,17 @@
 
   function init() {
     collectEls();
+    ensureRendererAlias();
     bindStaticEvents();
     restoreDraft();
     ensureDefaultPlan();
     refreshAll();
+  }
+
+  function ensureRendererAlias() {
+    if (!window.HSCCardRenderer && window.HscCardRenderer) {
+      window.HSCCardRenderer = window.HscCardRenderer;
+    }
   }
 
   function collectEls() {
@@ -93,17 +112,7 @@
       "photo-slots",
       "cta-slots",
 
-      "preview-card-board",
-      "preview-name",
-      "preview-unit",
-      "preview-title",
-      "preview-contact",
-      "preview-marquee",
-      "preview-services",
-      "preview-ctas",
-      "preview-photos",
-      "preview-avatar-img",
-      "preview-avatar-empty",
+      "form-render-root",
 
       "summary-plan-pill",
       "summary-photo-pill",
@@ -166,14 +175,8 @@
       "address", "intro", "marquee_text"
     ].forEach(id => {
       if (els[id]) {
-        els[id].addEventListener("input", () => {
-          syncPreview();
-          saveDraftSilently();
-        });
-        els[id].addEventListener("change", () => {
-          syncPreview();
-          saveDraftSilently();
-        });
+        els[id].addEventListener("input", handleLiveFieldChange);
+        els[id].addEventListener("change", handleLiveFieldChange);
       }
     });
 
@@ -210,6 +213,11 @@
     bindButton(els["btn-clear-draft"], clearDraft);
   }
 
+  function handleLiveFieldChange() {
+    updatePreview();
+    saveDraftSilently();
+  }
+
   function bindButton(btn, handler) {
     if (!btn) return;
     btn.addEventListener("click", handler);
@@ -241,6 +249,14 @@
     return Math.max(min, Math.min(max, n));
   }
 
+  function clampNumber(value, min, max, fallback) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    if (Number.isFinite(min) && n < min) return min;
+    if (Number.isFinite(max) && n > max) return max;
+    return n;
+  }
+
   function refreshAll() {
     const limits = getLimits();
 
@@ -252,7 +268,7 @@
     renderCtas(limits.ctas);
     syncSummary(limits);
     syncQuote(limits);
-    syncPreview();
+    updatePreview();
     saveDraftSilently();
   }
 
@@ -338,6 +354,7 @@
 
     const current = state.photoCount;
     if (current === limit && els["photo-slots"].children.length === limit) {
+      hydrateExistingPhotoSlots(limit);
       return;
     }
 
@@ -362,12 +379,13 @@
       const key = "photo" + i;
 
       if (!state.photoMeta[key]) {
-        state.photoMeta[key] = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
+        state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
       }
 
       if (title) title.textContent = "照片 " + i;
 
       if (fileInput) {
+        fileInput.dataset.photoKey = key;
         fileInput.addEventListener("change", async (e) => {
           const file = e.target.files?.[0];
           if (!file) return;
@@ -386,86 +404,136 @@
           if (tools) tools.classList.remove("hidden");
           if (badge) badge.textContent = "已上傳";
 
-          syncPreview();
+          updatePreview();
           saveDraftSilently();
         });
       }
 
       if (zoomRange) {
+        zoomRange.dataset.photoKey = key;
         zoomRange.value = String(state.photoMeta[key].scale || 1);
         zoomRange.addEventListener("input", () => {
-          state.photoMeta[key].scale = Number(zoomRange.value || 1);
+          state.photoMeta[key].scale = clampNumber(zoomRange.value, 0.5, 3, 1);
           if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
-          syncPreview();
+          updatePreview();
           saveDraftSilently();
         });
       }
 
       if (rotateLeft) {
         rotateLeft.addEventListener("click", () => {
-          state.photoMeta[key].rotate -= 90;
+          state.photoMeta[key].rotate = clampNumber(state.photoMeta[key].rotate - 90, -180, 180, 0);
           if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
-          syncPreview();
+          updatePreview();
           saveDraftSilently();
         });
       }
 
       if (rotateRight) {
         rotateRight.addEventListener("click", () => {
-          state.photoMeta[key].rotate += 90;
+          state.photoMeta[key].rotate = clampNumber(state.photoMeta[key].rotate + 90, -180, 180, 0);
           if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
-          syncPreview();
+          updatePreview();
           saveDraftSilently();
         });
       }
 
       if (moveLeft) {
         moveLeft.addEventListener("click", () => {
-          state.photoMeta[key].x = Number((state.photoMeta[key].x - 0.05).toFixed(2));
+          state.photoMeta[key].x = clampNumber(Number((state.photoMeta[key].x - 0.05).toFixed(2)), 0, 1, 0.5);
           if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
-          syncPreview();
+          updatePreview();
           saveDraftSilently();
         });
       }
 
       if (moveRight) {
         moveRight.addEventListener("click", () => {
-          state.photoMeta[key].x = Number((state.photoMeta[key].x + 0.05).toFixed(2));
+          state.photoMeta[key].x = clampNumber(Number((state.photoMeta[key].x + 0.05).toFixed(2)), 0, 1, 0.5);
           if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
-          syncPreview();
+          updatePreview();
           saveDraftSilently();
         });
       }
 
       if (resetBtn) {
         resetBtn.addEventListener("click", () => {
-          state.photoMeta[key] = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
+          state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
           if (zoomRange) zoomRange.value = "1";
           if (previewImage) applyPhotoTransform(previewImage, state.photoMeta[key]);
-          syncPreview();
+          updatePreview();
           saveDraftSilently();
         });
       }
 
-      if (state.photoPreviewUrls[key] && previewImage) {
-        previewImage.src = state.photoPreviewUrls[key];
-        previewImage.classList.remove("hidden");
-        if (previewEmpty) previewEmpty.classList.add("hidden");
-        if (tools) tools.classList.remove("hidden");
-        if (badge) badge.textContent = "已上傳";
-        applyPhotoTransform(previewImage, state.photoMeta[key]);
-      }
+      restorePhotoSlotUi({
+        key,
+        badge,
+        previewImage,
+        previewEmpty,
+        tools
+      });
 
       els["photo-slots"].appendChild(frag);
     }
   }
 
+  function hydrateExistingPhotoSlots(limit) {
+    const cards = Array.from(els["photo-slots"].children);
+    for (let i = 1; i <= limit; i++) {
+      const card = cards[i - 1];
+      if (!card) continue;
+      const key = "photo" + i;
+      const badge = card.querySelector(".badge");
+      const previewImage = card.querySelector(".preview-image");
+      const previewEmpty = card.querySelector(".preview-empty");
+      const tools = card.querySelector(".photo-tools");
+      const zoomRange = card.querySelector(".zoom-range");
+
+      if (zoomRange && state.photoMeta[key]) {
+        zoomRange.value = String(state.photoMeta[key].scale || 1);
+      }
+
+      restorePhotoSlotUi({
+        key,
+        badge,
+        previewImage,
+        previewEmpty,
+        tools
+      });
+    }
+  }
+
+  function restorePhotoSlotUi({ key, badge, previewImage, previewEmpty, tools }) {
+    if (!state.photoMeta[key]) {
+      state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
+    }
+
+    const src = state.photoPreviewUrls[key];
+    if (src && previewImage) {
+      previewImage.src = src;
+      previewImage.classList.remove("hidden");
+      applyPhotoTransform(previewImage, state.photoMeta[key]);
+      if (previewEmpty) previewEmpty.classList.add("hidden");
+      if (tools) tools.classList.remove("hidden");
+      if (badge) badge.textContent = "已上傳";
+    } else {
+      if (previewImage) {
+        previewImage.removeAttribute("src");
+        previewImage.classList.add("hidden");
+      }
+      if (previewEmpty) previewEmpty.classList.remove("hidden");
+      if (tools) tools.classList.add("hidden");
+      if (badge) badge.textContent = "尚未上傳";
+    }
+  }
+
   function applyPhotoTransform(img, meta) {
     if (!img || !meta) return;
-    const scale = meta.scale || 1;
-    const rotate = meta.rotate || 0;
-    const x = ((meta.x ?? 0.5) - 0.5) * 40;
-    const y = ((meta.y ?? 0.5) - 0.5) * 40;
+    const scale = clampNumber(meta.scale, 0.5, 3, 1);
+    const rotate = clampNumber(meta.rotate, -180, 180, 0);
+    const x = (((meta.x ?? 0.5) - 0.5) * 40);
+    const y = (((meta.y ?? 0.5) - 0.5) * 40);
     img.style.transform = `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotate}deg)`;
   }
 
@@ -474,6 +542,7 @@
 
     const current = state.ctaCount;
     if (current === limit && els["cta-slots"].children.length === limit) {
+      hydrateExistingCtas(limit);
       return;
     }
 
@@ -492,22 +561,35 @@
       if (textInput) {
         textInput.id = `cta_text_${i}`;
         textInput.value = savedValues[`cta_text_${i}`] || "";
-        textInput.addEventListener("input", () => {
-          syncPreview();
-          saveDraftSilently();
-        });
+        textInput.addEventListener("input", handleLiveFieldChange);
+        textInput.addEventListener("change", handleLiveFieldChange);
       }
 
       if (urlInput) {
         urlInput.id = `cta_link_${i}`;
         urlInput.value = savedValues[`cta_link_${i}`] || "";
-        urlInput.addEventListener("input", () => {
-          syncPreview();
-          saveDraftSilently();
-        });
+        urlInput.addEventListener("input", handleLiveFieldChange);
+        urlInput.addEventListener("change", handleLiveFieldChange);
       }
 
       els["cta-slots"].appendChild(frag);
+    }
+  }
+
+  function hydrateExistingCtas(limit) {
+    for (let i = 1; i <= limit; i++) {
+      const textInput = document.getElementById(`cta_text_${i}`);
+      const urlInput = document.getElementById(`cta_link_${i}`);
+      if (textInput && !textInput.dataset.bound) {
+        textInput.dataset.bound = "1";
+        textInput.addEventListener("input", handleLiveFieldChange);
+        textInput.addEventListener("change", handleLiveFieldChange);
+      }
+      if (urlInput && !urlInput.dataset.bound) {
+        urlInput.dataset.bound = "1";
+        urlInput.addEventListener("input", handleLiveFieldChange);
+        urlInput.addEventListener("change", handleLiveFieldChange);
+      }
     }
   }
 
@@ -542,7 +624,7 @@
       els["summary-cta-count"].textContent = String(limits.ctas);
     }
     if (els["summary-marquee-status"]) {
-      const enabled = isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle");
+      const enabled = isMarqueeEnabled();
       els["summary-marquee-status"].textContent = enabled ? "已開啟" : "未開啟";
     }
   }
@@ -642,98 +724,137 @@
         addonItems.forEach(item => {
           const row = document.createElement("div");
           row.className = "quote-breakdown-row";
-          row.innerHTML = `<span>${item.name}${item.qty > 1 ? ` × ${item.qty}` : ""}</span><strong>${money(item.amount)}</strong>`;
+          row.innerHTML = `<span>${escapeHtml(item.name)}${item.qty > 1 ? ` × ${item.qty}` : ""}</span><strong>${money(item.amount)}</strong>`;
           els["quote-addon-breakdown"].appendChild(row);
         });
       }
     }
   }
 
-  function syncPreview() {
-    const limits = getLimits();
+  function updatePreview() {
+    const root = els["form-render-root"];
+    if (!root) return;
 
-    if (els["preview-name"]) {
-      els["preview-name"].textContent = valueOf("display_name") || "請先填寫姓名";
-    }
-    if (els["preview-unit"]) {
-      els["preview-unit"].textContent = valueOf("unit") || "單位 / 公司";
-    }
-    if (els["preview-title"]) {
-      els["preview-title"].textContent = valueOf("title") || "職稱 / 副標";
-    }
+    ensureRendererAlias();
 
-    if (els["preview-contact"]) {
-      const parts = [valueOf("phone"), valueOf("email"), valueOf("address")].filter(Boolean);
-      els["preview-contact"].textContent = parts.length ? parts.join("｜") : "電話 / Email / 地址";
+    const renderer = window.HSCCardRenderer || window.HscCardRenderer;
+    if (!renderer || typeof renderer.renderCard !== "function") {
+      root.innerHTML = '<div style="padding:16px;border:1px solid #e5ddd4;border-radius:16px;background:#fff;">找不到 HscCardRenderer，請確認已先載入 card-renderer.js</div>';
+      return;
     }
 
-    if (els["preview-services"]) {
-      const parts = [valueOf("services"), valueOf("intro")].filter(Boolean);
-      els["preview-services"].textContent = parts.join("\n");
-    }
+    const data = buildPreviewData();
 
-    if (els["preview-marquee"]) {
-      const enabled = !(els["marquee-section"]?.classList.contains("hidden"));
-      const text = valueOf("marquee_text");
-      els["preview-marquee"].classList.toggle("hidden", !(enabled && text));
-      els["preview-marquee"].textContent = text || "";
-    }
-
-    if (els["preview-ctas"]) {
-      els["preview-ctas"].innerHTML = "";
-      for (let i = 1; i <= limits.ctas; i++) {
-        const text = valueOf(`cta_text_${i}`);
-        const link = valueOf(`cta_link_${i}`);
-        if (!text && !link) continue;
-        const chip = document.createElement("div");
-        chip.className = "preview-cta";
-        chip.textContent = text || `CTA ${i}`;
-        els["preview-ctas"].appendChild(chip);
-      }
-    }
-
-    if (els["preview-photos"]) {
-      els["preview-photos"].innerHTML = "";
-      for (let i = 1; i <= limits.photos; i++) {
-        const key = "photo" + i;
-        const tile = document.createElement("div");
-        tile.className = "preview-photo";
-
-        const src = state.photoPreviewUrls[key];
-        if (src) {
-          const img = document.createElement("img");
-          img.src = src;
-          tile.appendChild(img);
-        } else {
-          const empty = document.createElement("div");
-          empty.className = "preview-photo-empty";
-          empty.textContent = `照片 ${i}`;
-          tile.appendChild(empty);
-        }
-        els["preview-photos"].appendChild(tile);
-      }
-    }
-
-    const avatarSrc = state.photoPreviewUrls.photo1 || "";
-    if (els["preview-avatar-img"] && els["preview-avatar-empty"]) {
-      if (avatarSrc) {
-        els["preview-avatar-img"].src = avatarSrc;
-        els["preview-avatar-img"].classList.remove("hidden");
-        els["preview-avatar-empty"].classList.add("hidden");
-      } else {
-        els["preview-avatar-img"].classList.add("hidden");
-        els["preview-avatar-empty"].classList.remove("hidden");
-      }
-    }
-
-    if (els["preview-card-board"]) {
-      const plan = getSelectedPlan() || "premium";
-      els["preview-card-board"].classList.toggle("plan-premium", plan === "premium");
+    try {
+      renderer.renderCard(data, {
+        mode: "form",
+        root: root,
+        useExistingDom: false,
+        qrMode: "preview",
+        allowActions: false,
+        previewUrl: buildPreviewUrl(),
+        shareUrl: buildPreviewUrl(),
+        cardUrl: buildPreviewUrl()
+      });
+    } catch (err) {
+      console.error("updatePreview renderCard error:", err);
+      root.innerHTML = `<div style="padding:16px;border:1px solid #f3cccc;border-radius:16px;background:#fff6f6;color:#a33;">預覽渲染失敗：${escapeHtml(err.message || "未知錯誤")}</div>`;
     }
   }
 
+  function buildPreviewData() {
+    const limits = getLimits();
+    const theme = getThemeSelection();
+
+    const data = {
+      name: valueOf("display_name"),
+      unit: valueOf("unit"),
+      title: valueOf("title"),
+      slogan: valueOf("intro"),
+      phone: valueOf("phone"),
+      email: valueOf("email"),
+      address: valueOf("address"),
+      website: valueOf("website"),
+      line_url: valueOf("line_url"),
+      line_oa: valueOf("line_oa"),
+      wechat_id: valueOf("wechat_id"),
+      services: valueOf("services"),
+      experience: valueOf("experience"),
+
+      plan: theme.plan,
+      color: theme.color,
+      style: theme.style,
+      paper: theme.paper,
+
+      marquee_text: isMarqueeEnabled() ? valueOf("marquee_text") : "",
+      marquee_enabled: isMarqueeEnabled() ? "true" : "",
+
+      photo_limit: limits.photos,
+      cta_limit: limits.ctas,
+
+      preview_url: buildPreviewUrl(),
+      share_url: buildPreviewUrl(),
+      card_url: buildPreviewUrl(),
+
+      features: {
+        photo_meta: buildPhotoMetaForRenderer(),
+        preview_meta: {
+          ...CONFIG.DEFAULT_PREVIEW_META,
+          theme: theme.plan
+        }
+      }
+    };
+
+    for (let i = 1; i <= limits.ctas; i++) {
+      data[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
+      data[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
+    }
+
+    for (let i = 1; i <= limits.photos; i++) {
+      const key = `photo${i}`;
+      const src = state.photoPreviewUrls[key];
+      if (src) {
+        data[`photo${i}_url`] = src;
+      }
+    }
+
+    if (state.photoPreviewUrls.photo1) {
+      data.avatar_url = state.photoPreviewUrls.photo1;
+    }
+
+    return data;
+  }
+
+  function buildPhotoMetaForRenderer() {
+    const out = {};
+    for (let i = 1; i <= CONFIG.MAX_PHOTOS; i++) {
+      const key = `photo${i}`;
+      out[key] = normalizePhotoMeta(state.photoMeta[key]);
+    }
+    return out;
+  }
+
+  function normalizePhotoMeta(meta) {
+    const src = meta && typeof meta === "object" ? meta : {};
+    return {
+      x: clampNumber(src.x, 0, 1, DEFAULT_PHOTO_META.x),
+      y: clampNumber(src.y, 0, 1, DEFAULT_PHOTO_META.y),
+      scale: clampNumber(src.scale, 0.5, 3, DEFAULT_PHOTO_META.scale),
+      rotate: clampNumber(src.rotate, -180, 180, DEFAULT_PHOTO_META.rotate)
+    };
+  }
+
+  function buildPreviewUrl() {
+    return CONFIG.SHOWCASE_URL;
+  }
+
+  function isMarqueeEnabled() {
+    return isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle");
+  }
+
   function valueOf(id) {
-    return (els[id]?.value || "").trim();
+    const el = document.getElementById(id) || els[id];
+    return (el?.value || "").trim();
   }
 
   function getThemeSelection() {
@@ -757,24 +878,25 @@
   function buildPayload() {
     const limits = getLimits();
     const theme = getThemeSelection();
+    const previewData = buildPreviewData();
 
     const payload = {
       action: "createCardWithOfflinePayment",
       tenant: "angel",
 
-      name: valueOf("display_name"),
-      unit: valueOf("unit"),
-      title: valueOf("title"),
-      phone: valueOf("phone"),
-      email: valueOf("email"),
-      website: valueOf("website"),
-      line_url: valueOf("line_url"),
-      line_oa: valueOf("line_oa"),
-      wechat_id: valueOf("wechat_id"),
-      experience: valueOf("experience"),
-      services: valueOf("services"),
-      address: valueOf("address"),
-      slogan: valueOf("intro"),
+      name: previewData.name,
+      unit: previewData.unit,
+      title: previewData.title,
+      phone: previewData.phone,
+      email: previewData.email,
+      website: previewData.website,
+      line_url: previewData.line_url,
+      line_oa: previewData.line_oa,
+      wechat_id: previewData.wechat_id,
+      experience: previewData.experience,
+      services: previewData.services,
+      address: previewData.address,
+      slogan: previewData.slogan,
 
       invite_code: valueOf("invite_code"),
       ref: valueOf("ref"),
@@ -784,14 +906,14 @@
       style: theme.style,
       paper: theme.paper,
 
-      marquee_text: valueOf("marquee_text"),
+      marquee_text: previewData.marquee_text,
+      photo_limit: limits.photos,
+      cta_limit: limits.ctas,
 
       features_json: {
-        photo_meta: state.photoMeta,
+        photo_meta: buildPhotoMetaForRenderer(),
         preview_meta: {
-          layout: "grid",
-          aspect_ratio: "1:1",
-          fit_mode: "cover",
+          ...CONFIG.DEFAULT_PREVIEW_META,
           theme: theme.plan
         }
       }
@@ -803,10 +925,14 @@
     }
 
     for (let i = 1; i <= limits.photos; i++) {
-      const key = "photo" + i;
+      const key = `photo${i}`;
       if (state.photoPreviewUrls[key]) {
         payload[`photo${i}_url`] = state.photoPreviewUrls[key];
       }
+    }
+
+    if (state.photoPreviewUrls.photo1) {
+      payload.avatar_url = state.photoPreviewUrls.photo1;
     }
 
     return payload;
@@ -838,10 +964,10 @@
         body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
+      const data = await parseJsonSafe(res);
 
-      if (!data.ok) {
-        throw new Error(data.error || "建立卡片失敗");
+      if (!data || !data.ok) {
+        throw new Error(data?.error || "建立卡片失敗");
       }
 
       setProgressStep(4, "正在整理報價與預覽資料...");
@@ -870,6 +996,15 @@
       console.error(err);
       setStatus("送出失敗：" + (err.message || "未知錯誤"), "error");
       showProgress(false);
+    }
+  }
+
+  async function parseJsonSafe(res) {
+    const raw = await res.text();
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -1024,5 +1159,14 @@
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  }
+
+  function escapeHtml(str) {
+    return String(str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 })();
