@@ -13,7 +13,7 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v7.5.1｜表單預覽正式改為成品卡 renderer 版。</p>
+        <p class="hero-desc">v7.5.2｜成品卡 renderer 正式同步版（個人照 / Logo / 照片牆分區）。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -35,7 +35,7 @@
           </div>
           <div class="limit-badges">
             <span class="pill" id="summary-plan-pill">請先選擇方案</span>
-            <span class="pill" id="summary-photo-pill">照片上限：-</span>
+            <span class="pill" id="summary-photo-pill">照片牆：-</span>
             <span class="pill" id="summary-cta-pill">CTA 上限：-</span>
           </div>
         </div>
@@ -49,7 +49,7 @@
                 <span class="plan-price-tag">1500</span>
               </span>
               <span class="plan-meta">可自選顏色、版型、紙感</span>
-              <span class="plan-mini">基礎 2 照片 / 1 CTA</span>
+              <span class="plan-mini">個人照 1 / Logo 1 / 照片牆 2 / CTA 1</span>
             </span>
           </label>
 
@@ -61,7 +61,7 @@
                 <span class="plan-price-tag">2000</span>
               </span>
               <span class="plan-meta">使用精品色系，樣式更精緻</span>
-              <span class="plan-mini">基礎 5 照片 / 3 CTA</span>
+              <span class="plan-mini">個人照 1 / Logo 1 / 照片牆 5 / CTA 3</span>
             </span>
           </label>
         </div>
@@ -71,7 +71,7 @@
             <h3>功能加購</h3>
             <div class="addon-stack">
               <label class="addon-item">
-                <input type="checkbox" name="addons" value="addon_marquee" />
+                <input type="checkbox" name="addons" value="addon_marquee" id="addon_marquee_enabled" />
                 <span class="addon-content">
                   <strong>跑馬燈功能</strong>
                   <small>開啟後可填 1 欄內容，多段請用｜分隔</small>
@@ -82,7 +82,7 @@
               <label class="addon-item">
                 <input type="checkbox" id="addon_photo_enabled" name="addons" value="addon_photo" />
                 <span class="addon-content">
-                  <strong>照片加購</strong>
+                  <strong>照片牆加購</strong>
                   <small id="addon-photo-tip">先選方案後可輸入張數</small>
                 </span>
                 <span class="addon-number-wrap">
@@ -106,7 +106,7 @@
               </label>
 
               <label class="addon-item">
-                <input type="checkbox" name="addons" value="addon_update_unlimited" />
+                <input type="checkbox" name="addons" value="addon_update_unlimited" id="addon_update_unlimited_enabled" />
                 <span class="addon-content">
                   <strong>無限更新</strong>
                   <small>保留後台續用流程</small>
@@ -115,7 +115,7 @@
               </label>
 
               <label class="addon-item">
-                <input type="checkbox" name="addons" value="addon_bundle" />
+                <input type="checkbox" name="addons" value="addon_bundle" id="addon_bundle_enabled" />
                 <span class="addon-content">
                   <strong>跑馬燈＋更新組合</strong>
                   <small>組合價優先計算，不重複加總</small>
@@ -124,7 +124,7 @@
               </label>
 
               <label class="addon-item addon-item-gold">
-                <input type="checkbox" name="addons" value="addon_agent_upgrade" />
+                <input type="checkbox" name="addons" value="addon_agent_upgrade" id="addon_agent_upgrade_enabled" />
                 <span class="addon-content">
                   <strong>金牌級會員<span class="gold-badge">特別加購</span></strong>
                   <small>先洽客服瞭解完整權益與適合方案。</small>
@@ -143,11 +143,13 @@
             <h3>目前連動結果</h3>
             <ul class="dynamic-summary">
               <li>主方案：<strong id="summary-plan-name">請先選擇方案</strong></li>
-              <li>照片可上傳：<strong id="summary-photo-count">-</strong> 張</li>
+              <li>個人照：<strong>1</strong> 張</li>
+              <li>Logo：<strong>1</strong> 張</li>
+              <li>照片牆：<strong id="summary-photo-count">-</strong> 張</li>
               <li>CTA 可填寫：<strong id="summary-cta-count">-</strong> 組</li>
               <li>跑馬燈：<strong id="summary-marquee-status">未開啟</strong></li>
             </ul>
-            <p class="summary-note">這一區會跟著方案與加購一起更新。</p>
+            <p class="summary-note">個人照與 Logo 固定保留；照片牆依方案與加購連動。</p>
           </aside>
         </div>
 
@@ -159,7 +161,6 @@
             </div>
             <span class="quote-state" id="quote-state-text">請先選擇方案</span>
           </div>
-
           <div class="quote-lines">
             <div class="quote-line">
               <span>主方案</span>
@@ -300,7 +301,7 @@
           </div>
 
           <div class="field-group full-width">
-            <label class="field-label" for="intro">簡介</label>
+            <label class="field-label" for="intro">簡介 / 副文</label>
             <textarea id="intro" rows="4"></textarea>
           </div>
         </div>
@@ -311,10 +312,10 @@
           <div>
             <p class="section-kicker">STEP 4</p>
             <h2>照片上傳</h2>
-            <p>可旋轉、左右移動、縮放，並正式存進 features_json。</p>
+            <p>分成個人照、Logo、照片牆。可旋轉、左右移動、縮放，正式寫入 features_json。</p>
           </div>
         </div>
-        <div id="photo-slots" class="photo-grid"></div>
+        <div id="photo-slots" class="photo-sections"></div>
       </section>
 
       <section class="form-card">
@@ -335,15 +336,10 @@
             <p>請填 1 欄內容；若要多段輪播，請用「｜」分隔</p>
           </div>
         </div>
-
         <div class="marquee-stack">
           <div class="field-group">
             <label class="field-label" for="marquee_text">跑馬燈內容</label>
-            <textarea
-              id="marquee_text"
-              rows="3"
-              placeholder="例如：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始"
-            ></textarea>
+            <textarea id="marquee_text" rows="3" placeholder="例如：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始"></textarea>
             <p class="field-hint">系統會依「｜」自動輪播顯示，不再拆成 3 欄。</p>
           </div>
         </div>
@@ -354,19 +350,18 @@
           <div>
             <p class="section-kicker">STEP 7</p>
             <h2>成品預覽</h2>
-            <p>表單預覽直接使用正式成品卡 renderer，不再維持舊 preview DOM。</p>
+            <p>這裡直接使用正式成品卡 renderer。顏色、版型、紙感、精品色系會直接同步。</p>
           </div>
         </div>
 
         <div class="preview-section">
-          <div class="preview-card-board">
-            <div id="form-render-root"></div>
-          </div>
+          <div id="livePreviewCard" class="preview-card-board"></div>
 
           <div class="preview-card">
-            <h3>預覽設定說明</h3>
-            <p class="hint">這裡直接用正式成品卡 renderer 渲染。</p>
-            <p class="hint">照片使用 <code>x / y / scale / rotate</code>，預覽資料封裝進 <code>features.preview_meta</code>。</p>
+            <h3>預覽說明</h3>
+            <p class="hint">預覽即成品卡，不再維持舊 preview DOM。</p>
+            <p class="hint">資料會整理成 avatar_url、logo_url、photo1_url~、cta_text/link、features.photo_meta、features.preview_meta 再交給 renderer。</p>
+            <p class="hint">個人照、Logo 與照片牆已正式分區；照片牆張數依方案與加購計算。</p>
           </div>
         </div>
       </section>
@@ -393,7 +388,7 @@
 
       <ul class="progress-steps">
         <li class="progress-step" data-step="1">1. 整理表單與 features_json</li>
-        <li class="progress-step" data-step="2">2. 建立 lead / card</li>
+        <li class="progress-step" data-step="2">2. 建立 card</li>
         <li class="progress-step" data-step="3">3. 整理報價資料</li>
         <li class="progress-step" data-step="4">4. 寫入預覽頁資訊</li>
         <li class="progress-step" data-step="5">5. 導向報價頁</li>
