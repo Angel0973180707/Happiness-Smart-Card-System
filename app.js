@@ -1,7 +1,7 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.5.2-renderer-single-source
-   完整覆蓋版 — index 正式改為 card-renderer.js 唯一渲染來源
+   v7.5.4-facade-old-main-renderer
+   完整覆蓋版 — 門面保留舊架構，主卡改由 card-renderer.js 接管
 ============================================================ */
 
 const CONFIG = {
@@ -9,7 +9,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.5.2-renderer-single-source",
+  VERSION: "v7.5.4-facade-old-main-renderer",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -176,6 +176,10 @@ function escapeHtml_(s){
     .replace(/>/g, "&gt;")
     .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function escapeHtmlWithBreaks_(s){
+  return escapeHtml_(s).replace(/\n/g, "<br>");
 }
 
 function openUrl_(url){
@@ -360,11 +364,6 @@ function getPhotoLimitFromPayload_(p){
   if(!isNaN(limit) && limit > 0 && limit <= 10) return limit;
   const plan = getEffectiveTheme_(p);
   return PLAN_LIMITS[plan]?.maxPhotos || PLAN_LIMITS.free.maxPhotos;
-}
-
-function getCurrentPlanLimit_(){
-  const plan = normalizePlan_(UI_STATE.plan);
-  return PLAN_LIMITS[plan] || PLAN_LIMITS.free;
 }
 
 function getReferralSourceCode_(p){
@@ -555,9 +554,6 @@ const BODY_FREE_THEME_CLASSES = ["color-1", "color-2", "color-3", "color-4", "co
 const BODY_PREMIUM_THEME_CLASSES = ["p1", "p2", "p3", "p4", "p5", "p6", "p7"];
 const BODY_STYLE_CLASSES = ["style-arch", "style-flat", "style-spot"];
 const BODY_PAPER_CLASSES = ["paper-1", "paper-2", "paper-3"];
-const CARD_LAYOUT_CLASSES = ["layout-grid", "layout-single"];
-const CARD_ASPECT_CLASSES = ["ratio-1-1", "ratio-16-9"];
-const CARD_FIT_CLASSES = ["fit-cover", "fit-contain"];
 
 const UI_STATE = {
   plan: "free",
@@ -567,8 +563,6 @@ const UI_STATE = {
   paper: "paper-1"
 };
 
-function removeBodyClasses_(classes){ classes.forEach(c => document.body.classList.remove(c)); }
-function setBodyClassOneOf_(classes, target){ removeBodyClasses_(classes); if(target) document.body.classList.add(target); }
 function setActiveAmong_(elements, activeEl){
   (elements || []).forEach(el => {
     if(el === activeEl) el.classList.add("active");
@@ -603,17 +597,6 @@ function mapPremiumToUi_(v){
   return allow.includes(raw) ? raw : "p1";
 }
 
-function getPreviewScope_(){
-  return [document.body, qs("livePreviewCard")].filter(Boolean);
-}
-
-function applyScopedClassSet_(scopes, classList, targetClass){
-  (scopes || []).forEach(scope => {
-    classList.forEach(cls => scope.classList.remove(cls));
-    if(targetClass) scope.classList.add(targetClass);
-  });
-}
-
 function applyPreviewMetaUi_(p){
   const preview = getPreviewMeta_(p);
   const planFromPreview = preview.theme === "premium" ? "premium" : preview.theme === "free" ? "free" : "";
@@ -630,21 +613,6 @@ function applyPreviewMetaUi_(p){
   }
 
   syncPlanUI_();
-
-  const previewCard = qs("livePreviewCard");
-  const cardEl = qs("card");
-  const photoGrid = qs("photoGrid");
-  [cardEl, previewCard].filter(Boolean).forEach(target => {
-    target.classList.remove(...CARD_LAYOUT_CLASSES, ...CARD_ASPECT_CLASSES, ...CARD_FIT_CLASSES);
-    target.classList.add(preview.layout === "single" ? "layout-single" : "layout-grid");
-    target.classList.add(preview.aspect_ratio === "16:9" ? "ratio-16-9" : "ratio-1-1");
-    target.classList.add(preview.fit_mode === "contain" ? "fit-contain" : "fit-cover");
-  });
-  if(photoGrid){
-    photoGrid.dataset.previewLayout = preview.layout;
-    photoGrid.dataset.previewAspectRatio = preview.aspect_ratio;
-    photoGrid.dataset.previewFitMode = preview.fit_mode;
-  }
 }
 
 function syncPlanUI_(){
@@ -652,18 +620,15 @@ function syncPlanUI_(){
   const premBtn = qs("btnPlanPremium");
   const freeControls = qs("free-controls");
   const premiumControls = qs("premium-controls");
-  const badge = qs("premiumBadge");
-  applyScopedClassSet_(getPreviewScope_(), BODY_MODE_CLASSES, UI_STATE.plan === "premium" ? "mode-premium" : "mode-free");
+
   if(UI_STATE.plan === "premium"){
     if(freeControls) freeControls.style.display = "none";
     if(premiumControls) premiumControls.style.display = "";
-    if(badge) badge.style.display = "";
     if(freeBtn) freeBtn.classList.remove("active");
     if(premBtn) premBtn.classList.add("active");
   }else{
     if(premiumControls) premiumControls.style.display = "none";
     if(freeControls) freeControls.style.display = "";
-    if(badge) badge.style.display = "none";
     if(premBtn) premBtn.classList.remove("active");
     if(freeBtn) freeBtn.classList.add("active");
   }
@@ -675,8 +640,7 @@ function syncPlanUI_(){
 function syncThemeUI_(){
   const freeDots = qsa("#freeDotsRow .dot");
   const premiumDots = qsa("#premiumDotsRow .p-dot");
-  applyScopedClassSet_(getPreviewScope_(), BODY_FREE_THEME_CLASSES, UI_STATE.plan === "premium" ? "" : (UI_STATE.theme || "color-1"));
-  applyScopedClassSet_(getPreviewScope_(), BODY_PREMIUM_THEME_CLASSES, UI_STATE.plan === "premium" ? (UI_STATE.premiumTheme || "p1") : "");
+
   if(UI_STATE.plan === "premium"){
     premiumDots.forEach(btn => {
       const expected = btn.getAttribute("aria-label");
@@ -696,11 +660,6 @@ function syncThemeUI_(){
 }
 
 function syncStyleUI_(){
-  const scopes = getPreviewScope_();
-  scopes.forEach(scope => {
-    BODY_STYLE_CLASSES.forEach(cls => scope.classList.remove(cls));
-    scope.classList.add(`style-${UI_STATE.style || "arch"}`);
-  });
   const buttons = qsa("#styleRow .btn-neo");
   buttons.forEach(btn => {
     const t = text(btn.textContent);
@@ -712,11 +671,6 @@ function syncStyleUI_(){
 }
 
 function syncPaperUI_(){
-  const scopes = getPreviewScope_();
-  scopes.forEach(scope => {
-    BODY_PAPER_CLASSES.forEach(cls => scope.classList.remove(cls));
-    scope.classList.add(UI_STATE.paper || "paper-1");
-  });
   const buttons = qsa("#paperRow .btn-neo");
   buttons.forEach(btn => {
     const t = text(btn.textContent);
@@ -764,22 +718,7 @@ window.setPaper = function(paper, el){
 };
 
 function initSelectionState_(){
-  const body = document.body;
-  if(!body) return;
-  UI_STATE.plan = body.classList.contains("mode-premium") ? "premium" : "free";
-  const freeTheme = BODY_FREE_THEME_CLASSES.find(c => body.classList.contains(c));
-  if(freeTheme) UI_STATE.theme = freeTheme;
-  const premiumTheme = BODY_PREMIUM_THEME_CLASSES.find(c => body.classList.contains(c));
-  if(premiumTheme) UI_STATE.premiumTheme = premiumTheme;
-  const styleClass = BODY_STYLE_CLASSES.find(c => body.classList.contains(c));
-  if(styleClass) UI_STATE.style = styleClass.replace(/^style-/, "");
-  const paperClass = BODY_PAPER_CLASSES.find(c => body.classList.contains(c));
-  if(paperClass) UI_STATE.paper = paperClass;
   syncPlanUI_();
-}
-
-function escapeHtmlWithBreaks_(s){
-  return escapeHtml_(s).replace(/\n/g, "<br>");
 }
 
 function normalizeLongText_(raw){
@@ -893,385 +832,6 @@ function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
   setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline: true });
 }
 
-function pickAvatarInfo_(p){
-  const url = pick(p, ["avatar_url"]);
-  if(text(url)){
-    return { key: "avatar_url", raw: url, url: normalizeImageUrl_(url) };
-  }
-  return { key: "", raw: "", url: "" };
-}
-
-function pickLogoInfo_(p){
-  const url = pick(p, ["logo_url"]);
-  if(text(url)){
-    return { key: "logo_url", raw: url, url: normalizeImageUrl_(url) };
-  }
-  return { key: "", raw: "", url: "" };
-}
-
-function renderAvatar_(p){
-  const img = qs("u-img");
-  if(!img) return;
-  const info = pickAvatarInfo_(p);
-  const u = info.url;
-  currentAvatarUrlCache = u || "";
-  currentAvatarSourceKeyCache = info.key || "";
-  if(!u){ img.removeAttribute("src"); img.style.display = "none"; return; }
-  img.style.display = "block";
-  setImgWithFallback_(img, buildImgCandidates_(u), {
-    onFail: () => { img.removeAttribute("src"); img.style.display = "none"; },
-    onLoad: () => { img.style.display = "block"; }
-  });
-}
-
-function renderLogo_(p){
-  const wrap = qs("logoWrap");
-  const img = qs("u-logo");
-  if(!wrap || !img) return;
-  const info = pickLogoInfo_(p);
-  const u = info.url;
-  if(!u){ wrap.style.display = "none"; img.removeAttribute("src"); return; }
-  wrap.style.display = "flex";
-  img.style.borderRadius = "18px";
-  img.style.objectFit = "cover";
-  img.style.display = "block";
-  setImgWithFallback_(img, buildImgCandidates_(u), {
-    onFail: () => { wrap.style.display = "none"; img.removeAttribute("src"); img.style.display = "none"; },
-    onLoad: () => { wrap.style.display = "flex"; img.style.display = "block"; }
-  });
-}
-
-function buildDockBtn_({ label, icon, onClick, extraClass }){
-  const b = document.createElement("button");
-  b.className = "dock-btn" + (extraClass ? (" " + extraClass) : "");
-  b.type = "button";
-  b.innerHTML = `<i class="${icon}"></i><span>${escapeHtml_(label)}</span>`;
-  b.addEventListener("click", onClick);
-  return b;
-}
-
-function applyWideRule_(container){
-  if(!container) return;
-  const btns = Array.from(container.querySelectorAll(".dock-btn"));
-  btns.forEach(b => b.classList.remove("wide"));
-  if(btns.length % 2 === 1){ btns[btns.length - 1].classList.add("wide"); }
-}
-
-function renderBlocks_(p){
-  const service = pick(p, ["services","服務項目","service"]);
-  const exp = pick(p, ["experience","經歷","exp"]);
-  const b1 = qs("block-service");
-  const b2 = qs("block-exp");
-  renderExpandableInfoBlock_(b1, "服務項目", service, 2);
-  renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", exp, 3);
-}
-
-function getMarqueeText_(p){
-  const direct = text(pick(p, ["marquee_text"]));
-  if(direct) return direct;
-  const fallback = text(p?.features?.preview_meta?.marquee_text || "");
-  if(fallback) return fallback;
-  return "";
-}
-
-function isMarqueeEnabled_(p){
-  const v = text(pick(p, ["marquee_enabled"])).toLowerCase();
-  if(v === "true" || v === "1" || v === "yes" || v === "y") return true;
-  return false;
-}
-
-function renderMarquee_(p){
-  const dock = qs("marqueeDock");
-  const shell = qs("marqueeShell");
-  const track = qs("marqueeTrack");
-  const textEl = qs("marqueeText");
-  if(!dock || !shell || !track || !textEl) return;
-  const marqueeText = getMarqueeText_(p);
-  const enabled = isMarqueeEnabled_(p) || !!marqueeText;
-  if(!enabled || !marqueeText){
-    dock.style.display = "none";
-    textEl.textContent = "";
-    track.style.removeProperty("--marquee-duration");
-    return;
-  }
-
-  textEl.textContent = marqueeText + "　｜　" + marqueeText + "　｜　";
-  dock.style.display = "";
-
-  requestAnimationFrame(() => {
-    const shellWidth = shell.clientWidth || 280;
-    const textWidth = textEl.scrollWidth || shellWidth;
-    const distance = Math.max(textWidth, shellWidth);
-    const duration = Math.max(10, Math.round(distance / 36));
-    track.style.setProperty("--marquee-duration", `${duration}s`);
-    if(textWidth <= shellWidth + 20){
-      dock.classList.add("is-static");
-    }else{
-      dock.classList.remove("is-static");
-    }
-  });
-}
-
-function renderContactDock_(p){
-  const dock = qs("contactDock");
-  const btns = qs("contactButtons");
-  if(!dock || !btns) return;
-  btns.innerHTML = "";
-  const phone = pick(p, ["phone","電話"]);
-  const email = pick(p, ["email","Email"]);
-  const address = pick(p, ["address","地址"]);
-  const lineUrl = normalizeUrl_(pick(p, ["line_url","line_oa","LINE連結"]));
-  const wechatId = text(pick(p, ["wechat_id","微信ID","微信"]));
-  const list = [];
-  if(lineUrl) list.push({ label:"私訊 LINE", icon:"fa-brands fa-line", cls:"dock-line", action: () => openUrl_(lineUrl) });
-  if(wechatId) list.push({
-    label:"微信ID", icon:"fa-brands fa-weixin", cls:"dock-web",
-    action: async () => {
-      try{ if(navigator.clipboard?.writeText) await navigator.clipboard.writeText(wechatId); }catch{}
-      alert("✅ 已複製微信ID");
-    }
-  });
-  if(phone) list.push({ label:"電話", icon:"fa-solid fa-phone", cls:"dock-web", action: () => { location.href = `tel:${text(phone)}`; } });
-  if(email) list.push({ label:"Email", icon:"fa-solid fa-envelope", cls:"dock-web", action: () => { location.href = `mailto:${text(email)}`; } });
-  if(address) list.push({ label:"地址導航", icon:"fa-solid fa-location-dot", cls:"dock-map", action: () => openMapByAddress_(address) });
-  if(!list.length){ dock.style.display = "none"; return; }
-  list.forEach(x => {
-    btns.appendChild(buildDockBtn_({ label: x.label, icon: x.icon, extraClass: x.cls, onClick: x.action }));
-  });
-  dock.style.display = "";
-  applyWideRule_(btns);
-}
-
-function inferLinkMeta_(url, kind, idx){
-  const u = String(url || "").toLowerCase();
-  if(u.includes("youtube.com") || u.includes("youtu.be")) return { label:"YouTube", icon:"fa-brands fa-youtube", cls:"dock-yt" };
-  if(u.includes("facebook.com") || u.includes("fb.com")) return { label:"FB", icon:"fa-brands fa-facebook", cls:"dock-fb" };
-  if(u.includes("instagram.com")) return { label:"Instagram", icon:"fa-brands fa-instagram", cls:"dock-ig" };
-  if(u.includes("threads.net")) return { label:"Threads", icon:"fa-solid fa-at", cls:"dock-web" };
-  if(kind === "video") return { label:`影音 ${idx}`, icon:"fa-solid fa-play", cls:"dock-web" };
-  return { label:`社群 ${idx}`, icon:"fa-solid fa-link", cls:"dock-web" };
-}
-
-function renderPrimaryLinkDock_(p){
-  const dock = qs("primaryLinkDock");
-  const btns = qs("primaryLinkButtons");
-  if(!dock || !btns) return;
-  btns.innerHTML = "";
-  const website = normalizeUrl_(pick(p, ["website","網站","web","homepage"]));
-  if(!website){ dock.style.display = "none"; return; }
-  btns.appendChild(buildDockBtn_({ label:"官方網站", icon:"fa-solid fa-globe", extraClass:"dock-web wide", onClick: () => openUrl_(website) }));
-  dock.style.display = "";
-}
-
-function renderMediaDock_(p){
-  const dock = qs("mediaDock");
-  const btns = qs("mediaButtons");
-  if(!dock || !btns) return;
-  btns.innerHTML = "";
-  const items = [];
-  ["video1","video2","video3"].forEach((k, i) => {
-    const u = normalizeUrl_(pick(p, [k, `影音連結${i+1}`]));
-    if(u) items.push({ kind:"video", idx:i+1, url:u });
-  });
-  ["social1","social2","social3"].forEach((k, i) => {
-    const u = normalizeUrl_(pick(p, [k, `社群連結${i+1}`]));
-    if(u) items.push({ kind:"social", idx:i+1, url:u });
-  });
-  if(!items.length){ dock.style.display = "none"; return; }
-  items.forEach(item => {
-    const meta = inferLinkMeta_(item.url, item.kind, item.idx);
-    btns.appendChild(buildDockBtn_({ label: meta.label, icon: meta.icon, extraClass: meta.cls, onClick: () => openUrl_(item.url) }));
-  });
-  dock.style.display = "";
-  applyWideRule_(btns);
-}
-
-function renderCtaDock_(p){
-  const dock = qs("ctaDock");
-  const btns = qs("ctaButtons");
-  if(!dock || !btns) return;
-  btns.innerHTML = "";
-  const items = [];
-  const limit = PLAN_LIMITS[getEffectiveTheme_(p)]?.maxCtas || 1;
-  const ctaPairs = [
-    { text: text(pick(p, ["cta_text_1","CTA文字1","ctaText1"])), link: normalizeUrl_(pick(p, ["cta_link_1","CTA連結1","ctaLink1"])) },
-    { text: text(pick(p, ["cta_text_2","CTA文字2","ctaText2"])), link: normalizeUrl_(pick(p, ["cta_link_2","CTA連結2","ctaLink2"])) },
-    { text: text(pick(p, ["cta_text_3","CTA文字3","ctaText3"])), link: normalizeUrl_(pick(p, ["cta_link_3","CTA連結3","ctaLink3"])) }
-  ];
-  ctaPairs.forEach(item => { if(item.text && item.link && items.length < limit) items.push(item); });
-  if(!items.length){ dock.style.display = "none"; return; }
-  items.forEach((item, idx) => {
-    btns.appendChild(buildDockBtn_({
-      label: item.text,
-      icon: idx === 0 ? "fa-solid fa-bolt" : "fa-solid fa-arrow-up-right-from-square",
-      extraClass: items.length === 1 ? "dock-web wide" : "dock-web",
-      onClick: () => openUrl_(item.link)
-    }));
-  });
-  dock.style.display = "";
-  applyWideRule_(btns);
-}
-
-function renderInstallDock_(){
-  const dock = qs("installDock");
-  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
-  if(!dock) return;
-  dock.style.display = cleanMode ? "" : "none";
-}
-
-function renderDocks_(p){
-  renderInstallDock_();
-  renderContactDock_(p);
-  renderMarquee_(p);
-  renderPrimaryLinkDock_(p);
-  renderMediaDock_(p);
-  renderCtaDock_(p);
-}
-
-function stripQueryAndHash_(url){ const s = String(url || ""); return s.split("#")[0].split("?")[0]; }
-
-function extractDriveId_(url){
-  const s = String(url || "");
-  let m = s.match(/[?&]id=([^&]+)/i);
-  if(m && m[1]) return decodeURIComponent(m[1]);
-  m = s.match(/\/file\/d\/([^/]+)/i);
-  if(m && m[1]) return decodeURIComponent(m[1]);
-  m = s.match(/\/thumbnail\?id=([^&]+)/i);
-  if(m && m[1]) return decodeURIComponent(m[1]);
-  return "";
-}
-
-function extractFirebaseFingerprint_(url){
-  const s = String(url || "");
-  if(!/firebasestorage\.googleapis\.com/i.test(s)) return "";
-  const noHash = s.split("#")[0];
-  const m = noHash.match(/\/o\/([^?]+)/i);
-  if(m && m[1]) return decodeURIComponent(m[1]).toLowerCase();
-  return "";
-}
-
-function extractLastPathSeg_(url){
-  const clean = stripQueryAndHash_(url);
-  const arr = clean.split("/").filter(Boolean);
-  return (arr[arr.length - 1] || "").toLowerCase();
-}
-
-function buildImageFingerprint_(raw){
-  const url = normalizeImageUrl_(raw);
-  if(!url) return "";
-  const driveId = extractDriveId_(url);
-  if(driveId) return "gdrive:" + driveId.toLowerCase();
-  const firebaseKey = extractFirebaseFingerprint_(url);
-  if(firebaseKey) return "firebase:" + firebaseKey;
-  const noQuery = stripQueryAndHash_(url).toLowerCase();
-  const lastSeg = extractLastPathSeg_(url);
-  if(lastSeg) return "path:" + lastSeg + "|" + noQuery;
-  return "url:" + noQuery;
-}
-
-function collectPhotos_(p){
-  const photos = [];
-  const seen = new Set();
-  const limit = getPhotoLimitFromPayload_(p);
-
-  function pushPhoto_(raw, idx){
-    const s = String(raw || "").trim();
-    if(!s) return;
-    const url = normalizeImageUrl_(s);
-    if(!url) return;
-    const fp = buildImageFingerprint_(url) || url;
-    if(seen.has(fp)) return;
-    seen.add(fp);
-    photos.push({ key: `photo${idx}`, url });
-  }
-
-  for(let i = 1; i <= limit; i++){
-    const key = `photo${i}_url`;
-    const v = pick(p, [key]);
-    if(v != null && text(v) !== "") pushPhoto_(v, i);
-  }
-  return photos.slice(0, limit);
-}
-
-function applyPhotoMetaToImg_(img, meta, fitMode){
-  if(!img) return;
-  const x = clampNumber_(meta?.x, 0, 1, DEFAULT_PHOTO_META.x);
-  const y = clampNumber_(meta?.y, 0, 1, DEFAULT_PHOTO_META.y);
-  const scale = clampNumber_(meta?.scale, 0.5, 3, DEFAULT_PHOTO_META.scale);
-  const rotate = clampNumber_(meta?.rotate, -180, 180, DEFAULT_PHOTO_META.rotate);
-
-  img.style.objectPosition = `${(x * 100).toFixed(2)}% ${(y * 100).toFixed(2)}%`;
-  img.style.transformOrigin = "center center";
-  img.style.transform = `scale(${scale}) rotate(${rotate}deg)`;
-  img.style.objectFit = fitMode === "contain" ? "contain" : "cover";
-}
-
-function renderPhotoWall_(p){
-  const wall = qs("photoWall");
-  const grid = qs("photoGrid");
-  if(!wall || !grid) return;
-  grid.innerHTML = "";
-  wall.style.display = "none";
-
-  const photos = collectPhotos_(p);
-  const preview = getPreviewMeta_(p);
-  const count = photos.length;
-  if(!count) return;
-
-  grid.className = "photo-grid";
-  if(preview.layout === "single"){
-    grid.classList.add("layout-single");
-  }else if(count === 1) grid.classList.add("layout-1");
-  else if(count === 2) grid.classList.add("layout-2");
-  else if(count === 3) grid.classList.add("layout-3");
-  else if(count === 4) grid.classList.add("layout-4");
-  else grid.classList.add("layout-5");
-
-  if(preview.aspect_ratio === "16:9") grid.classList.add("ratio-16-9");
-  else grid.classList.add("ratio-1-1");
-
-  if(preview.fit_mode === "contain") grid.classList.add("fit-contain");
-  else grid.classList.add("fit-cover");
-
-  let successCount = 0;
-  let failCount = 0;
-  const total = photos.length;
-
-  photos.forEach((item, idx) => {
-    const tile = document.createElement("div");
-    tile.className = "photo-tile";
-    tile.dataset.photoKey = item.key;
-
-    const img = document.createElement("img");
-    img.className = "wall-img";
-    img.alt = `照片 ${idx + 1}`;
-    img.loading = "lazy";
-    img.decoding = "async";
-    img.style.cursor = "pointer";
-
-    const meta = getPhotoMeta_(p, item.key);
-    applyPhotoMetaToImg_(img, meta, preview.fit_mode);
-
-    setImgWithFallback_(img, buildImgCandidates_(item.url), {
-      onLoad: () => {
-        successCount++;
-        wall.style.display = "";
-      },
-      onFail: () => {
-        failCount++;
-        tile.remove();
-        if(successCount === 0 && failCount >= total) wall.style.display = "none";
-      }
-    });
-
-    img.addEventListener("click", () => openUrl_(item.url));
-    tile.appendChild(img);
-    grid.appendChild(tile);
-  });
-
-  wall.style.display = "";
-}
-
 function parseDateSafe_(value){
   if(!value) return null;
   const s = String(value).trim();
@@ -1305,175 +865,6 @@ function renderCardExpiry_(p){
   else label = `EXPIRES IN ${diffDays} DAYS`;
   el.textContent = label;
   el.style.display = "block";
-}
-
-function parseDateLoose_(value){
-  if(!value) return null;
-  const s = String(value).trim();
-  if(!s) return null;
-  let d = new Date(s.replace(/\//g, "-").replace(" ", "T"));
-  if(!isNaN(d.getTime())) return d;
-  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m){
-    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
-    if(!isNaN(d.getTime())) return d;
-  }
-  return null;
-}
-
-function isAnnouncementActive_(item){
-  const status = text(item.status || "active").toLowerCase();
-  if(status && status !== "active") return false;
-  const now = Date.now();
-  const startAt = parseDateLoose_(item.start_at);
-  const endAt = parseDateLoose_(item.end_at);
-  if(startAt && now < startAt.getTime()) return false;
-  if(endAt){
-    const endMs = new Date(
-      endAt.getFullYear(), endAt.getMonth(), endAt.getDate(), 23, 59, 59, 999
-    ).getTime();
-    if(now > endMs) return false;
-  }
-  return true;
-}
-
-function sortAnnouncements_(items){
-  return [...items].sort((a, b) => {
-    const pa = Number(a.priority || 0);
-    const pb = Number(b.priority || 0);
-    if(pb !== pa) return pb - pa;
-    const ta = parseDateLoose_(a.updated_at || a.created_at || a.start_at || "")?.getTime() || 0;
-    const tb = parseDateLoose_(b.updated_at || b.created_at || b.start_at || "")?.getTime() || 0;
-    return tb - ta;
-  });
-}
-
-function normalizeAnnouncementItems_(payload){
-  if(Array.isArray(payload)){
-    return payload.filter(x => x && typeof x === "object");
-  }
-  if(!payload || typeof payload !== "object") return [];
-  const arr =
-    (Array.isArray(payload.announcements) ? payload.announcements : null) ||
-    (Array.isArray(payload.items) ? payload.items : null) ||
-    (Array.isArray(payload.data) ? payload.data : null) ||
-    (Array.isArray(payload.rows) ? payload.rows : null) ||
-    [];
-  return arr.filter(x => x && typeof x === "object");
-}
-
-function openAnnouncementModal_(item, currentIdx, total){
-  if(!item) return;
-  const mask = qs("announcementMask");
-  const titleEl = qs("announcementModalTitle");
-  const metaEl = qs("announcementModalMeta");
-  const bodyEl = qs("announcementModalBody");
-  if(!mask || !bodyEl) return;
-
-  if(titleEl){
-    titleEl.innerHTML = `<i class="fa-solid fa-bullhorn"></i> ${escapeHtml_(item.title || "公告")}`;
-  }
-  if(metaEl){
-    let metaStr = "門面公告";
-    if(total > 1) metaStr += `　${(currentIdx||0)+1} / ${total}`;
-    metaEl.textContent = metaStr;
-  }
-  if(bodyEl){
-    bodyEl.textContent = text(item.content || "（無內容）");
-  }
-
-  mask.style.display = "flex";
-  mask.setAttribute("aria-hidden", "false");
-  if(typeof window.__lockBodyScroll === "function") window.__lockBodyScroll();
-}
-
-function closeAnnouncementModal_(){
-  const mask = qs("announcementMask");
-  if(!mask) return;
-  mask.style.display = "none";
-  mask.setAttribute("aria-hidden", "true");
-  if(typeof window.__unlockBodyScroll === "function") window.__unlockBodyScroll();
-}
-
-function bindAnnouncementModal_(){
-  const closeBtn = qs("announcementCloseBtn");
-  const mask = qs("announcementMask");
-  if(closeBtn) closeBtn.addEventListener("click", closeAnnouncementModal_);
-  if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) closeAnnouncementModal_(); });
-}
-
-function paintAnnouncementCards_(items, idx){
-  const item = items[idx];
-  if(!item) return;
-  const total = items.length;
-
-  qsa("[data-announcement-panel]").forEach(panel => {
-    const titleEl = panel.querySelector("[data-announcement-title]");
-    const textEl = panel.querySelector("[data-announcement-text]");
-    const counterEl = panel.querySelector("[data-announcement-counter]");
-    const trackBtn = panel.querySelector("[data-announcement-track]");
-
-    if(titleEl) titleEl.textContent = text(item.title) || "公告";
-    if(textEl){
-      const summary = text(item.content || "").split("\n")[0].slice(0, 60);
-      textEl.textContent = summary + (text(item.content || "").length > 60 ? "⋯" : "");
-    }
-    if(counterEl) counterEl.textContent = total > 1 ? `${idx + 1} / ${total}` : "";
-
-    if(trackBtn){
-      trackBtn.onclick = null;
-      trackBtn.onclick = () => openAnnouncementModal_(item, idx, total);
-    }
-  });
-}
-
-function stopAnnouncementRotation_(){
-  if(announcementTimer_){ clearInterval(announcementTimer_); announcementTimer_ = null; }
-}
-
-function startAnnouncementRotation_(items){
-  stopAnnouncementRotation_();
-  announcementItems_ = items;
-  announcementIndex_ = 0;
-
-  paintAnnouncementCards_(items, 0);
-
-  if(items.length > 1){
-    announcementTimer_ = setInterval(() => {
-      announcementIndex_ = (announcementIndex_ + 1) % items.length;
-      paintAnnouncementCards_(items, announcementIndex_);
-    }, 4000);
-  }
-}
-
-function renderAnnouncementPanels_(items){
-  const active = sortAnnouncements_(items.filter(isAnnouncementActive_));
-
-  if(!active.length){
-    qsa("[data-announcement-panel]").forEach(p => { p.style.display = "none"; });
-    return;
-  }
-
-  qsa("[data-announcement-panel]").forEach(p => { p.style.display = ""; });
-  startAnnouncementRotation_(active);
-}
-
-async function fetchAndRenderAnnouncements_(){
-  try{
-    const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_());
-    console.log("[HSC announcement] raw payload =", payload);
-    const items = normalizeAnnouncementItems_(payload);
-
-    if(items && items.length > 0){
-      renderAnnouncementPanels_(items);
-    }else{
-      console.log("[HSC announcement] GAS 無公告，使用內建公告");
-      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-    }
-  }catch(err){
-    console.warn("[HSC announcement] GAS 請求失敗，使用內建公告:", err);
-    renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-  }
 }
 
 function applySmartBalanceToEl_(el){
@@ -1548,7 +939,6 @@ window.addEventListener("resize", () => {
 });
 
 function buildCardShareUrl_(){ return buildTrackedShareUrl_(currentRow); }
-function buildCleanShareUrl_(){ return buildTrackedShareUrl_(currentRow); }
 
 function buildHubShareUrl_(){
   try{
@@ -1773,8 +1163,17 @@ function ensureBottomQrVisible_(){
   }, 800);
 }
 
+function renderInstallDock_(){
+  const dock = qs("installDock");
+  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
+  if(!dock) return;
+  dock.style.display = cleanMode ? "" : "none";
+}
+
 /* ============================================================
-   ✅ 唯一渲染入口：改由 card-renderer.js 接管
+   ✅ 唯一主卡渲染入口
+   - 門面舊架構保留
+   - 主卡交給 card-renderer.js
 ============================================================ */
 function renderCardWithRenderer(row){
   let sourceRow = row || {};
@@ -1794,8 +1193,8 @@ function renderCardWithRenderer(row){
   }
 
   sourceRow = normalizeCardFeatures(sourceRow);
-  const normalizedData = buildNormalizedPayload_(sourceRow || {});
 
+  const normalizedData = buildNormalizedPayload_(sourceRow || {});
   currentRow = normalizedData;
   currentReferralSourceCodeCache = getReferralSourceCode_(normalizedData);
   window.__CARD_DATA__ = normalizedData;
@@ -1806,34 +1205,70 @@ function renderCardWithRenderer(row){
   currentAvatarUrlCache = avatarInfo.url || "";
   currentAvatarSourceKeyCache = avatarInfo.key || "";
 
-  normalizedData.card_url = buildTrackedShareUrl_(normalizedData);
-  normalizedData.share_url = normalizedData.card_url;
-  normalizedData.preview_url = normalizedData.card_url;
-  normalizedData.hub_url = buildHubShareUrl_();
-  normalizedData.facade_url = normalizedData.hub_url;
+  sourceRow.card_url = buildTrackedShareUrl_(normalizedData);
+  sourceRow.share_url = sourceRow.card_url;
+  sourceRow.preview_url = sourceRow.card_url;
+  sourceRow.hub_url = buildHubShareUrl_();
+  sourceRow.facade_url = sourceRow.hub_url;
 
   applyPreviewMetaUi_(normalizedData);
 
-  if(typeof window.renderCard !== "function"){
-    throw new Error("card-renderer.js 尚未載入，找不到 renderCard()");
+  const renderer =
+    window.HscCardRenderer &&
+    typeof window.HscCardRenderer.renderCard === "function"
+      ? window.HscCardRenderer.renderCard
+      : null;
+
+  if(!renderer){
+    throw new Error("card-renderer.js 尚未正確載入，找不到 HscCardRenderer.renderCard()");
   }
 
-  window.renderCard(normalizedData, {
+  const root = document.getElementById("livePreviewCard");
+  if(!root){
+    throw new Error("找不到 #livePreviewCard");
+  }
+
+  const result = renderer(sourceRow, {
     mode: "index",
-    root: document.getElementById("livePreviewCard"),
+    root: root,
     useExistingDom: true,
     qrMode: "card",
     allowActions: true
   });
 
-  renderCardExpiry_(normalizedData);
+  if(!result || result.ok !== true){
+    throw new Error("renderer 回傳失敗");
+  }
+
+  currentRow = buildNormalizedPayload_(sourceRow || {});
+  currentReferralSourceCodeCache = getReferralSourceCode_(currentRow);
+  window.__CARD_DATA__ = currentRow;
+  window.cardData = currentRow;
+  window.payload = currentRow;
+
+  renderCardExpiry_(currentRow);
   renderInstallDock_();
-  renderBottomQr_(normalizedData);
+  renderBottomQr_(currentRow);
   renderBottomHubShareBtn_();
   renderFeatureQrFromCurrent_();
   renderFacadeQrFromCurrent_();
   applySmartBalanceAll_();
   updateQrCenterSizes_();
+
+  const unitVal = normalizeLongText_(pick(currentRow, ["unit", "單位", "公司"]));
+  const sloganVal = normalizeLongText_(pick(currentRow, ["slogan", "一句話", "簡介"]));
+  const unitEl = qs("u-unit");
+  const unitToggle = qs("u-unit-toggle");
+  const sloganEl = qs("u-slogan");
+  const sloganToggle = qs("u-slogan-toggle");
+
+  if(unitEl) setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
+  if(sloganEl) setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
+
+  const b1 = qs("block-service");
+  const b2 = qs("block-exp");
+  renderExpandableInfoBlock_(b1, "服務項目", pick(currentRow, ["services","服務項目","service"]), 2);
+  renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", pick(currentRow, ["experience","經歷","exp"]), 3);
 
   const vt = qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
