@@ -1,7 +1,7 @@
 
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.4-site-wrapper
+   v7.4.1-site-wrapper-stable
    完整覆蓋版 — 資料取得 + 呼叫唯一 renderer
 ============================================================ */
 (function(){
@@ -11,7 +11,7 @@
     GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     DEFAULT_ID: "TW0001",
     DEFAULT_TENANT: "angel",
-    VERSION: "v7.4-site-wrapper",
+    VERSION: "v7.4.1-site-wrapper-stable",
     FETCH_TIMEOUT_MS: 15000,
     RETRY: 3
   };

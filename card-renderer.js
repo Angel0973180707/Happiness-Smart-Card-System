@@ -522,14 +522,11 @@
     const grid = qs(root,"bottomQrGrid");
     const avatar = qs(root,"bottomQrAvatar");
     if(!sec || !grid) return;
-    if(options && options.disableShareQr){ sec.style.display = "none"; return; }
+    if(options && options.disableShareQr){ sec.style.display = "none"; if(avatar) avatar.style.display = "none"; return; }
     sec.style.display = "block";
     renderQrImage_(grid, buildTrackedShareUrl_(p), 136);
-    const avatarUrl = pickAvatarInfo_(p).url;
-    if(avatar && avatarUrl){
-      avatar.style.display = "block";
-      setImgWithFallback_(avatar, buildImgCandidates_(avatarUrl), { onFail: ()=>{ avatar.style.display="none"; } });
-    }else if(avatar){
+    if(avatar){
+      avatar.removeAttribute("src");
       avatar.style.display = "none";
     }
   }
@@ -579,9 +576,11 @@
     renderCardExpiry_(root, normalized);
     renderBottomQr_(root, normalized, options || {});
     const featureGrid = qs(root,"featureQrGrid");
-    if(featureGrid) renderQrImage_(featureGrid, buildTrackedShareUrl_(normalized), 152);
+    const featureAvatar = qs(root,"featureQrAvatar");
+    if(featureGrid) featureGrid.innerHTML = "";
+    if(featureAvatar){ featureAvatar.removeAttribute("src"); featureAvatar.style.display = "none"; }
     const versionTag = qs(root, "versionTag");
-    if(versionTag) versionTag.textContent = options.version || "v7.4-card-renderer";
+    if(versionTag) versionTag.textContent = options.version || "v7.4.1-card-renderer-stable";
     return { root, data: normalized };
   }
 
