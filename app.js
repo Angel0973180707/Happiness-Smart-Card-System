@@ -1,7 +1,7 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v6.9.1-main-card-marquee-features-ui-refine
-   完整覆蓋版 — 主程式成品卡正式接入跑馬燈 + features_json 套用
+   v7.5.2-renderer-single-source
+   完整覆蓋版 — index 正式改為 card-renderer.js 唯一渲染來源
 ============================================================ */
 
 const CONFIG = {
@@ -9,7 +9,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v6.9.1-main-card-marquee-features-ui-refine",
+  VERSION: "v7.5.2-renderer-single-source",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -1773,72 +1773,62 @@ function ensureBottomQrVisible_(){
   }, 800);
 }
 
-function renderCard(row){
+/* ============================================================
+   ✅ 唯一渲染入口：改由 card-renderer.js 接管
+============================================================ */
+function renderCardWithRenderer(row){
   let sourceRow = row || {};
+
   if(
-    sourceRow && typeof sourceRow === "object" &&
-    (!text(sourceRow.name)) && text(sourceRow.lead_snapshot)
+    sourceRow &&
+    typeof sourceRow === "object" &&
+    (!text(sourceRow.name)) &&
+    text(sourceRow.lead_snapshot)
   ){
     try{
       const snap = safeJsonParse_(sourceRow.lead_snapshot);
-      if(snap && typeof snap === "object") sourceRow = { ...snap, ...sourceRow };
+      if(snap && typeof snap === "object"){
+        sourceRow = { ...snap, ...sourceRow };
+      }
     }catch(_e){}
   }
 
   sourceRow = normalizeCardFeatures(sourceRow);
-  const p = buildNormalizedPayload_(sourceRow || {});
-  currentRow = p;
-  currentReferralSourceCodeCache = getReferralSourceCode_(p);
-  window.__CARD_DATA__ = p;
-  window.cardData = p;
-  window.payload = p;
+  const normalizedData = buildNormalizedPayload_(sourceRow || {});
 
-  applyPreviewMetaUi_(p);
+  currentRow = normalizedData;
+  currentReferralSourceCodeCache = getReferralSourceCode_(normalizedData);
+  window.__CARD_DATA__ = normalizedData;
+  window.cardData = normalizedData;
+  window.payload = normalizedData;
 
-  const nameEl = qs("u-name");
-  const unitWrap = qs("u-unit-wrap");
-  const unitEl = qs("u-unit");
-  const unitToggle = qs("u-unit-toggle");
-  const titleEl = qs("u-title");
-  const sloganWrap = qs("u-slogan-wrap");
-  const sloganEl = qs("u-slogan");
-  const sloganToggle = qs("u-slogan-toggle");
+  const avatarInfo = pickAvatarInfo_(normalizedData);
+  currentAvatarUrlCache = avatarInfo.url || "";
+  currentAvatarSourceKeyCache = avatarInfo.key || "";
 
-  const nameVal = text(pick(p, ["name","姓名"])) || "未命名";
-  const unitVal = normalizeLongText_(pick(p, ["unit","單位","公司"]));
-  const titleVal = text(pick(p, ["title","職稱"])) || "";
-  const sloganVal = normalizeLongText_(pick(p, ["slogan","一句話","簡介"]));
+  normalizedData.card_url = buildTrackedShareUrl_(normalizedData);
+  normalizedData.share_url = normalizedData.card_url;
+  normalizedData.preview_url = normalizedData.card_url;
+  normalizedData.hub_url = buildHubShareUrl_();
+  normalizedData.facade_url = normalizedData.hub_url;
 
-  if(nameEl) nameEl.textContent = nameVal;
-  if(unitWrap && unitEl){
-    if(text(unitVal)){
-      unitWrap.style.display = "";
-      setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
-    }else{
-      unitWrap.style.display = "none";
-      unitEl.innerHTML = "";
-      if(unitToggle) unitToggle.style.display = "none";
-    }
-  }
-  if(titleEl) titleEl.textContent = titleVal;
-  if(sloganWrap && sloganEl){
-    if(text(sloganVal)){
-      sloganWrap.style.display = "";
-      setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
-    }else{
-      sloganWrap.style.display = "none";
-      sloganEl.innerHTML = "";
-      if(sloganToggle) sloganToggle.style.display = "none";
-    }
+  applyPreviewMetaUi_(normalizedData);
+
+  if(typeof window.renderCard !== "function"){
+    throw new Error("card-renderer.js 尚未載入，找不到 renderCard()");
   }
 
-  renderAvatar_(p);
-  renderLogo_(p);
-  renderBlocks_(p);
-  renderDocks_(p);
-  renderPhotoWall_(p);
-  renderCardExpiry_(p);
-  renderBottomQr_(p);
+  window.renderCard(normalizedData, {
+    mode: "index",
+    root: document.getElementById("livePreviewCard"),
+    useExistingDom: true,
+    qrMode: "card",
+    allowActions: true
+  });
+
+  renderCardExpiry_(normalizedData);
+  renderInstallDock_();
+  renderBottomQr_(normalizedData);
   renderBottomHubShareBtn_();
   renderFeatureQrFromCurrent_();
   renderFacadeQrFromCurrent_();
@@ -1906,7 +1896,7 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
       throw new Error("卡片資料為空");
     }
 
-    renderCard(row);
+    renderCardWithRenderer(row);
   }catch(err){
     console.error("[HSC card] boot failed:", err);
     const nameEl = qs("u-name");
