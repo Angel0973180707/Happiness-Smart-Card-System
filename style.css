@@ -1,10 +1,11 @@
 /* ============================================================
    天使幸福智慧名片館 style.css
-   v7.7.2-premium-bright-luxury-fix
+   v7.7.3-premium-seven-color-business-tune
    完整覆蓋版
    - 修正自由款平直 banner 底線不直
    - 修正精品四角暗角
    - 提升精品整體亮度與高級感
+   - 精品七色商業感細修版
 ============================================================ */
 
 :root {
@@ -22,7 +23,7 @@
   --free-contrast: 1.03;
 
   --prem-ink: rgba(255,255,255,.96);
-  --prem-muted: rgba(255,255,255,.82);
+  --prem-muted: rgba(255,255,255,.84);
   --prem-soft: rgba(255,255,255,.18);
 
   --bgTint: rgba(255,255,255,0.0);
@@ -47,19 +48,18 @@
   --announce-badge-bg: #b08a6b;
   --announce-badge-shadow: 0 8px 16px rgba(176,138,107,.22);
 
-  /* premium 調亮版 */
-  --premium-base-shadow: rgba(0,0,0,.12);
-  --premium-inner-shadow: rgba(0,0,0,.05);
-  --premium-top-glow: rgba(255,255,255,.26);
-  --premium-dark-veil: rgba(17,21,31,.04);
-  --premium-dark-veil-2: rgba(17,21,31,.08);
-  --premium-highlight-1: rgba(255,255,255,.30);
-  --premium-highlight-2: rgba(255,255,255,.20);
-  --premium-overlay-1: rgba(255,255,255,.26);
-  --premium-overlay-2: rgba(255,255,255,.12);
-  --premium-texture-1: rgba(255,255,255,.12);
-  --premium-texture-2: rgba(255,255,255,.07);
-  --premium-texture-3: rgba(255,236,186,.07);
+  --premium-base-shadow: rgba(0,0,0,.10);
+  --premium-inner-shadow: rgba(0,0,0,.04);
+  --premium-top-glow: rgba(255,255,255,.28);
+  --premium-dark-veil: rgba(17,21,31,.03);
+  --premium-dark-veil-2: rgba(17,21,31,.07);
+  --premium-highlight-1: rgba(255,255,255,.34);
+  --premium-highlight-2: rgba(255,255,255,.22);
+  --premium-overlay-1: rgba(255,255,255,.28);
+  --premium-overlay-2: rgba(255,255,255,.14);
+  --premium-texture-1: rgba(255,255,255,.14);
+  --premium-texture-2: rgba(255,255,255,.08);
+  --premium-texture-3: rgba(255,236,186,.08);
 }
 
 * { box-sizing: border-box; }
@@ -101,74 +101,78 @@ body.color-4,
 body.color-5,
 #livePreviewCard.color-5 { --p:#7fc89a; --s:#3a8a60; --bgTint: rgba(127,200,154,.16); --accentText: rgba(29,88,58,.94); }
 
+/* =========================
+   精品七色商業感調校
+========================= */
+
 body.p1,
 #livePreviewCard.p1 {
-  --p: #eca0ab;
-  --s: #cb5968;
-  --prem-soft: rgba(255,255,255,.20);
-  --premium-texture-1: rgba(255,245,247,.16);
-  --premium-texture-2: rgba(255,255,255,.07);
-  --premium-texture-3: rgba(255,227,233,.10);
+  --p: #f1aab4;
+  --s: #d46272;
+  --prem-soft: rgba(255,255,255,.22);
+  --premium-texture-1: rgba(255,246,248,.18);
+  --premium-texture-2: rgba(255,255,255,.08);
+  --premium-texture-3: rgba(255,230,236,.11);
 }
 
 body.p2,
 #livePreviewCard.p2 {
-  --p: #a76475;
-  --s: #74384a;
+  --p: #ad6a7c;
+  --s: #7b4152;
   --prem-soft: rgba(255,255,255,.18);
-  --premium-texture-1: rgba(255,236,241,.12);
+  --premium-texture-1: rgba(255,239,243,.13);
   --premium-texture-2: rgba(255,255,255,.06);
-  --premium-texture-3: rgba(255,225,202,.07);
+  --premium-texture-3: rgba(255,226,210,.08);
 }
 
 body.p3,
 #livePreviewCard.p3 {
-  --p: #4a6789;
-  --s: #284262;
-  --prem-soft: rgba(255,255,255,.18);
-  --premium-texture-1: rgba(231,243,255,.13);
-  --premium-texture-2: rgba(255,255,255,.06);
-  --premium-texture-3: rgba(194,223,255,.08);
+  --p: #537193;
+  --s: #2f4a6d;
+  --prem-soft: rgba(255,255,255,.20);
+  --premium-texture-1: rgba(234,245,255,.15);
+  --premium-texture-2: rgba(255,255,255,.07);
+  --premium-texture-3: rgba(196,224,255,.09);
 }
 
 body.p4,
 #livePreviewCard.p4 {
-  --p: #998ad0;
-  --s: #685aa8;
-  --prem-soft: rgba(255,255,255,.20);
-  --premium-texture-1: rgba(248,242,255,.16);
-  --premium-texture-2: rgba(255,255,255,.06);
-  --premium-texture-3: rgba(232,216,255,.09);
+  --p: #a090d8;
+  --s: #7262b3;
+  --prem-soft: rgba(255,255,255,.21);
+  --premium-texture-1: rgba(249,243,255,.17);
+  --premium-texture-2: rgba(255,255,255,.07);
+  --premium-texture-3: rgba(234,218,255,.10);
 }
 
 body.p5,
 #livePreviewCard.p5 {
-  --p: #c3d1de;
-  --s: #89a0b3;
-  --prem-soft: rgba(255,255,255,.24);
-  --premium-texture-1: rgba(255,255,255,.18);
-  --premium-texture-2: rgba(255,255,255,.08);
-  --premium-texture-3: rgba(230,240,247,.12);
+  --p: #c8d5e1;
+  --s: #90a8bc;
+  --prem-soft: rgba(255,255,255,.25);
+  --premium-texture-1: rgba(255,255,255,.19);
+  --premium-texture-2: rgba(255,255,255,.09);
+  --premium-texture-3: rgba(232,241,248,.13);
 }
 
 body.p6,
 #livePreviewCard.p6 {
-  --p: #efc469;
-  --s: #c79234;
-  --prem-soft: rgba(255,255,255,.18);
-  --premium-texture-1: rgba(255,251,223,.18);
-  --premium-texture-2: rgba(255,255,255,.07);
-  --premium-texture-3: rgba(255,230,152,.14);
+  --p: #f2ca73;
+  --s: #cf9a3e;
+  --prem-soft: rgba(255,255,255,.20);
+  --premium-texture-1: rgba(255,252,226,.20);
+  --premium-texture-2: rgba(255,255,255,.08);
+  --premium-texture-3: rgba(255,232,158,.16);
 }
 
 body.p7,
 #livePreviewCard.p7 {
-  --p: #887164;
-  --s: #564239;
+  --p: #8c7669;
+  --s: #5c473e;
   --prem-soft: rgba(255,255,255,.18);
-  --premium-texture-1: rgba(243,233,221,.11);
+  --premium-texture-1: rgba(244,234,223,.12);
   --premium-texture-2: rgba(255,255,255,.05);
-  --premium-texture-3: rgba(221,192,158,.07);
+  --premium-texture-3: rgba(224,196,162,.08);
 }
 
 #admin-panel {
@@ -239,11 +243,11 @@ body.mode-premium #free-controls,
 body.mode-premium #premium-controls {
   border-color: rgba(255,255,255,.16);
   background:
-    radial-gradient(130% 150% at 16% 0%, rgba(255,255,255,.22), transparent 54%),
-    linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.07));
+    radial-gradient(130% 150% at 16% 0%, rgba(255,255,255,.24), transparent 54%),
+    linear-gradient(180deg, rgba(255,255,255,.15), rgba(255,255,255,.08));
   box-shadow:
-    0 14px 26px rgba(0,0,0,.12),
-    inset 0 1px 0 rgba(255,255,255,.16);
+    0 14px 26px rgba(0,0,0,.10),
+    inset 0 1px 0 rgba(255,255,255,.18);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -270,32 +274,32 @@ body.mode-free .card,
 body.mode-premium,
 #livePreviewCard.mode-premium {
   background:
-    radial-gradient(1200px 700px at 18% 0%, rgba(255,255,255,.22), transparent 55%),
-    radial-gradient(900px 700px at 86% 8%, rgba(255,255,255,.16), transparent 60%),
-    #222633;
+    radial-gradient(1200px 700px at 18% 0%, rgba(255,255,255,.24), transparent 55%),
+    radial-gradient(900px 700px at 86% 8%, rgba(255,255,255,.18), transparent 60%),
+    #232837;
   color: var(--prem-ink);
 }
 
 body.mode-premium #admin-panel {
-  background: rgba(28,31,42,.62);
+  background: rgba(29,33,45,.60);
   border-bottom: 1px solid rgba(255,255,255,.10);
-  box-shadow: 0 2px 20px rgba(0,0,0,.14);
+  box-shadow: 0 2px 20px rgba(0,0,0,.12);
 }
 
 body.mode-premium .card,
 #livePreviewCard.mode-premium .card {
-  border: 1px solid rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.18);
   box-shadow:
-    0 12px 26px rgba(0,0,0,.12),
+    0 10px 22px rgba(0,0,0,.09),
     0 0 0 1px rgba(255,255,255,.07),
-    inset 0 1px 0 rgba(255,255,255,.20),
+    inset 0 1px 0 rgba(255,255,255,.22),
     inset 0 -1px 0 rgba(255,255,255,.03);
   background:
     linear-gradient(180deg, var(--premium-dark-veil), var(--premium-dark-veil-2)),
     linear-gradient(135deg, var(--p), var(--s));
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  filter: saturate(1.04) brightness(1.04) contrast(1.01);
+  filter: saturate(1.05) brightness(1.05) contrast(1.01);
 }
 
 .premium-fx-layer {
@@ -311,15 +315,15 @@ body.mode-premium .premium-fx-layer,
 #livePreviewCard.mode-premium .premium-fx-layer {
   opacity: 1;
   background:
-    radial-gradient(1100px 620px at 16% 2%, rgba(255,255,255,.24), transparent 58%),
-    radial-gradient(860px 520px at 96% 0%, rgba(255,255,255,.14), transparent 60%),
-    radial-gradient(180px 180px at 72% 14%, rgba(255,255,255,.24), transparent 70%),
-    radial-gradient(280px 240px at 62% 22%, var(--premium-texture-3), transparent 72%),
+    radial-gradient(1120px 640px at 16% 2%, rgba(255,255,255,.26), transparent 58%),
+    radial-gradient(900px 540px at 96% 0%, rgba(255,255,255,.16), transparent 60%),
+    radial-gradient(190px 190px at 72% 14%, rgba(255,255,255,.26), transparent 70%),
+    radial-gradient(300px 250px at 62% 22%, var(--premium-texture-3), transparent 72%),
     linear-gradient(135deg, transparent 0%, var(--premium-texture-1) 34%, transparent 62%),
     linear-gradient(225deg, transparent 0%, var(--premium-texture-2) 44%, transparent 72%);
   mix-blend-mode: screen;
-  opacity: .34;
-  filter: blur(14px) saturate(1.04);
+  opacity: .36;
+  filter: blur(14px) saturate(1.05);
 }
 
 body.mode-premium .card::before,
@@ -330,11 +334,11 @@ body.mode-premium .card::before,
   pointer-events: none;
   z-index: 2;
   background:
-    radial-gradient(760px 320px at 50% 0%, rgba(255,255,255,.24), transparent 60%),
-    radial-gradient(520px 260px at 86% 12%, rgba(255,255,255,.12), transparent 70%),
-    linear-gradient(135deg, rgba(255,255,255,.10), transparent 60%),
-    linear-gradient(115deg, transparent 0%, var(--premium-texture-1) 26%, transparent 46%, rgba(255,255,255,.04) 68%, transparent 88%);
-  opacity: .78;
+    radial-gradient(780px 330px at 50% 0%, rgba(255,255,255,.26), transparent 60%),
+    radial-gradient(540px 270px at 86% 12%, rgba(255,255,255,.14), transparent 70%),
+    linear-gradient(135deg, rgba(255,255,255,.12), transparent 60%),
+    linear-gradient(115deg, transparent 0%, var(--premium-texture-1) 26%, transparent 46%, rgba(255,255,255,.05) 68%, transparent 88%);
+  opacity: .80;
   mix-blend-mode: soft-light;
 }
 
@@ -346,29 +350,28 @@ body.mode-premium .card::after,
   pointer-events: none;
   z-index: 2;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.00) 42%),
-    radial-gradient(560px 240px at 80% 88%, rgba(255,255,255,.06), transparent 62%);
-  opacity: .52;
+    linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.00) 42%),
+    radial-gradient(580px 250px at 80% 88%, rgba(255,255,255,.07), transparent 62%);
+  opacity: .56;
   mix-blend-mode: overlay;
 }
 
-/* 各精品色系微質感 */
 body.mode-premium.p1 .premium-fx-layer,
 #livePreviewCard.mode-premium.p1 .premium-fx-layer {
   background:
-    radial-gradient(1000px 580px at 14% 4%, rgba(255,245,247,.26), transparent 60%),
-    radial-gradient(680px 460px at 88% 16%, rgba(255,228,234,.14), transparent 64%),
+    radial-gradient(1020px 590px at 14% 4%, rgba(255,246,248,.28), transparent 60%),
+    radial-gradient(700px 470px at 88% 16%, rgba(255,232,237,.16), transparent 64%),
     repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 2px, transparent 2px 10px),
-    linear-gradient(135deg, transparent 0%, rgba(255,255,255,.06) 36%, transparent 66%);
+    linear-gradient(135deg, transparent 0%, rgba(255,255,255,.07) 36%, transparent 66%);
   mix-blend-mode: screen;
-  filter: blur(14px) saturate(1.04);
+  filter: blur(14px) saturate(1.05);
 }
 
 body.mode-premium.p2 .premium-fx-layer,
 #livePreviewCard.mode-premium.p2 .premium-fx-layer {
   background:
-    radial-gradient(960px 560px at 16% 4%, rgba(255,241,244,.18), transparent 60%),
-    linear-gradient(125deg, transparent 0%, rgba(255,229,235,.10) 24%, transparent 42%, rgba(255,255,255,.05) 64%, transparent 84%),
+    radial-gradient(980px 570px at 16% 4%, rgba(255,242,245,.19), transparent 60%),
+    linear-gradient(125deg, transparent 0%, rgba(255,232,238,.11) 24%, transparent 42%, rgba(255,255,255,.05) 64%, transparent 84%),
     linear-gradient(145deg, transparent 0%, rgba(255,255,255,.04) 18%, transparent 38%);
   mix-blend-mode: screen;
   filter: blur(14px) saturate(1.03);
@@ -377,18 +380,18 @@ body.mode-premium.p2 .premium-fx-layer,
 body.mode-premium.p3 .premium-fx-layer,
 #livePreviewCard.mode-premium.p3 .premium-fx-layer {
   background:
-    radial-gradient(1020px 580px at 18% 4%, rgba(227,241,255,.22), transparent 60%),
-    radial-gradient(260px 180px at 72% 20%, rgba(186,220,255,.10), transparent 72%),
-    linear-gradient(135deg, transparent 0%, rgba(205,230,255,.08) 32%, transparent 58%, rgba(255,255,255,.04) 76%, transparent 94%);
+    radial-gradient(1040px 600px at 18% 4%, rgba(232,244,255,.24), transparent 60%),
+    radial-gradient(280px 190px at 72% 20%, rgba(192,223,255,.12), transparent 72%),
+    linear-gradient(135deg, transparent 0%, rgba(210,233,255,.09) 32%, transparent 58%, rgba(255,255,255,.04) 76%, transparent 94%);
   mix-blend-mode: screen;
-  filter: blur(15px) saturate(1.04);
+  filter: blur(15px) saturate(1.05);
 }
 
 body.mode-premium.p4 .premium-fx-layer,
 #livePreviewCard.mode-premium.p4 .premium-fx-layer {
   background:
-    radial-gradient(980px 560px at 14% 4%, rgba(245,238,255,.24), transparent 60%),
-    radial-gradient(320px 220px at 74% 18%, rgba(226,208,255,.10), transparent 70%),
+    radial-gradient(1000px 570px at 14% 4%, rgba(247,240,255,.25), transparent 60%),
+    radial-gradient(340px 220px at 74% 18%, rgba(230,213,255,.11), transparent 70%),
     linear-gradient(140deg, transparent 0%, rgba(255,255,255,.06) 26%, transparent 46%, rgba(255,255,255,.04) 70%, transparent 90%);
   mix-blend-mode: screen;
   filter: blur(15px) saturate(1.04);
@@ -397,28 +400,28 @@ body.mode-premium.p4 .premium-fx-layer,
 body.mode-premium.p5 .premium-fx-layer,
 #livePreviewCard.mode-premium.p5 .premium-fx-layer {
   background:
-    radial-gradient(980px 560px at 14% 4%, rgba(255,255,255,.20), transparent 60%),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.028) 0 1px, transparent 1px 8px),
-    linear-gradient(135deg, transparent 0%, rgba(240,248,255,.10) 28%, transparent 56%, rgba(255,255,255,.04) 76%, transparent 94%);
+    radial-gradient(1000px 570px at 14% 4%, rgba(255,255,255,.22), transparent 60%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.03) 0 1px, transparent 1px 8px),
+    linear-gradient(135deg, transparent 0%, rgba(242,249,255,.11) 28%, transparent 56%, rgba(255,255,255,.04) 76%, transparent 94%);
   mix-blend-mode: screen;
-  filter: blur(13px) saturate(1.03);
+  filter: blur(13px) saturate(1.04);
 }
 
 body.mode-premium.p6 .premium-fx-layer,
 #livePreviewCard.mode-premium.p6 .premium-fx-layer {
   background:
-    radial-gradient(980px 560px at 14% 4%, rgba(255,250,216,.28), transparent 60%),
-    radial-gradient(260px 180px at 76% 16%, rgba(255,228,122,.12), transparent 72%),
-    linear-gradient(125deg, transparent 0%, rgba(255,245,198,.10) 24%, transparent 42%, rgba(255,255,255,.04) 68%, transparent 90%);
+    radial-gradient(1000px 570px at 14% 4%, rgba(255,251,220,.30), transparent 60%),
+    radial-gradient(280px 190px at 76% 16%, rgba(255,233,132,.14), transparent 72%),
+    linear-gradient(125deg, transparent 0%, rgba(255,247,205,.12) 24%, transparent 42%, rgba(255,255,255,.05) 68%, transparent 90%);
   mix-blend-mode: screen;
-  filter: blur(14px) saturate(1.06);
+  filter: blur(14px) saturate(1.08);
 }
 
 body.mode-premium.p7 .premium-fx-layer,
 #livePreviewCard.mode-premium.p7 .premium-fx-layer {
   background:
-    radial-gradient(960px 560px at 14% 4%, rgba(242,232,220,.16), transparent 60%),
-    linear-gradient(135deg, transparent 0%, rgba(228,206,182,.06) 26%, transparent 46%, rgba(255,255,255,.03) 70%, transparent 92%),
+    radial-gradient(980px 570px at 14% 4%, rgba(244,234,223,.17), transparent 60%),
+    linear-gradient(135deg, transparent 0%, rgba(229,208,185,.07) 26%, transparent 46%, rgba(255,255,255,.03) 70%, transparent 92%),
     repeating-linear-gradient(160deg, rgba(255,255,255,.02) 0 2px, transparent 2px 12px);
   mix-blend-mode: screen;
   filter: blur(14px) saturate(1.03);
@@ -614,13 +617,13 @@ body.mode-free .avatar-circle,
 
 body.mode-premium .avatar-circle,
 #livePreviewCard.mode-premium .avatar-circle {
-  background: rgba(255,255,255,.18);
-  border: 1.5px solid rgba(255,255,255,.72);
+  background: rgba(255,255,255,.20);
+  border: 1.5px solid rgba(255,255,255,.74);
   box-shadow:
-    0 16px 32px rgba(0,0,0,.16),
+    0 14px 28px rgba(0,0,0,.12),
     0 0 0 1px rgba(255,255,255,.06),
-    inset 0 2px 0 rgba(255,255,255,.24),
-    inset 0 -14px 18px rgba(0,0,0,.08);
+    inset 0 2px 0 rgba(255,255,255,.26),
+    inset 0 -12px 16px rgba(0,0,0,.06);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -663,9 +666,9 @@ body.mode-free .logo-img,
 
 body.mode-premium .logo-img,
 #livePreviewCard.mode-premium .logo-img {
-  background: rgba(255,255,255,.18);
-  border: 1px solid rgba(255,255,255,.26);
-  box-shadow: 0 14px 28px rgba(0,0,0,.14);
+  background: rgba(255,255,255,.20);
+  border: 1px solid rgba(255,255,255,.28);
+  box-shadow: 0 12px 24px rgba(0,0,0,.12);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -686,7 +689,7 @@ body.mode-premium .logo-img,
 }
 
 body.mode-premium #u-slogan,
-#livePreviewCard.mode-premium #u-slogan { text-shadow: 0 8px 18px rgba(0,0,0,.14); }
+#livePreviewCard.mode-premium #u-slogan { text-shadow: 0 6px 14px rgba(0,0,0,.12); }
 
 .section-title {
   width: 100%;
@@ -789,15 +792,15 @@ body.mode-premium #u-slogan,
 
 body.mode-premium .btn-neo {
   position: relative;
-  border: 1px solid rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.18);
   background:
-    radial-gradient(130% 170% at 18% 0%, rgba(255,255,255,.22), rgba(255,255,255,.10) 54%, rgba(255,255,255,.08)),
-    rgba(255,255,255,.08);
-  color: rgba(255,255,255,.95);
+    radial-gradient(130% 170% at 18% 0%, rgba(255,255,255,.24), rgba(255,255,255,.11) 54%, rgba(255,255,255,.09)),
+    rgba(255,255,255,.09);
+  color: rgba(255,255,255,.96);
   box-shadow:
-    0 14px 26px rgba(0,0,0,.16),
-    inset 0 2px 0 rgba(255,255,255,.14),
-    inset 0 -14px 18px rgba(0,0,0,.08);
+    0 12px 22px rgba(0,0,0,.12),
+    inset 0 2px 0 rgba(255,255,255,.15),
+    inset 0 -12px 16px rgba(0,0,0,.06);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -808,17 +811,17 @@ body.mode-premium .btn-neo::after {
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(255,233,168,.48), rgba(191,149,63,.52), rgba(255,255,255,.10));
+  background: linear-gradient(135deg, rgba(255,233,168,.50), rgba(191,149,63,.50), rgba(255,255,255,.12));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
-  opacity: .88;
+  opacity: .9;
 }
 
 body.mode-premium .btn-neo.active {
-  border-color: rgba(255,255,255,.24);
-  background: rgba(255,255,255,.18);
+  border-color: rgba(255,255,255,.26);
+  background: rgba(255,255,255,.20);
 }
 
 .btn-cta {
@@ -951,13 +954,13 @@ body.mode-free .dot { width: var(--dotFree); height: var(--dotFree); }
 .dot.dot-4 { background: linear-gradient(135deg, #ac96da, #6f5ba7); }
 .dot.dot-5 { background: linear-gradient(135deg, #8cd0a4, #489167); }
 
-.p-dot.p1 { background: linear-gradient(135deg, #f0a0aa, #e8909a 32%, #c04a58 72%, #9c2e3c); }
-.p-dot.p2 { background: linear-gradient(135deg, #b86878, #9b5566 34%, #6b2d3e 70%, #4a1828); }
-.p-dot.p3 { background: linear-gradient(135deg, #5a7898, #3c5878 36%, #1e3450 70%, #0c1e34); }
-.p-dot.p4 { background: linear-gradient(135deg, #aaa0d8, #8e7fc4 34%, #5d4f9a 68%, #3e3478); }
-.p-dot.p5 { background: linear-gradient(135deg, rgba(240,248,255,.98) 0%, rgba(210,230,248,.92) 22%, rgba(184,208,232,.86) 44%, rgba(150,180,210,.80) 64%, rgba(122,148,168,.92) 100%); }
-.p-dot.p6 { background: linear-gradient(135deg, rgba(255,252,224,.92) 0%, rgba(255,234,140,.88) 22%, rgba(232,186,90,.84) 44%, rgba(184,136,42,.90) 66%, rgba(140,96,18,.96) 100%); }
-.p-dot.p7 { background: linear-gradient(135deg, #9e8878, #7a6558 34%, #56402e 66%, #42302a); }
+.p-dot.p1 { background: linear-gradient(135deg, #f3b0b9, #eca0ab 30%, #d46272 70%, #b44353); }
+.p-dot.p2 { background: linear-gradient(135deg, #bc7486, #ad6a7c 34%, #7b4152 70%, #5b2a39); }
+.p-dot.p3 { background: linear-gradient(135deg, #6482a5, #537193 36%, #2f4a6d 70%, #203953); }
+.p-dot.p4 { background: linear-gradient(135deg, #b0a0e2, #a090d8 34%, #7262b3 68%, #51408f); }
+.p-dot.p5 { background: linear-gradient(135deg, rgba(244,249,255,.98) 0%, rgba(218,234,248,.94) 22%, rgba(200,213,225,.88) 44%, rgba(162,184,202,.82) 64%, rgba(144,168,188,.94) 100%); }
+.p-dot.p6 { background: linear-gradient(135deg, rgba(255,253,232,.96) 0%, rgba(255,239,166,.90) 22%, rgba(242,202,115,.86) 44%, rgba(207,154,62,.92) 66%, rgba(155,109,28,.98) 100%); }
+.p-dot.p7 { background: linear-gradient(135deg, #a08a7d, #8c7669 34%, #6a5349 66%, #5c473e); }
 
 .info-block {
   margin-top: 12px;
@@ -994,19 +997,19 @@ body.mode-free .info-block,
 
 body.mode-premium .info-block,
 #livePreviewCard.mode-premium .info-block {
-  background: rgba(255,255,255,.10);
-  border-color: rgba(255,255,255,.14);
-  box-shadow: 0 12px 24px rgba(0,0,0,.10);
+  background: rgba(255,255,255,.11);
+  border-color: rgba(255,255,255,.15);
+  box-shadow: 0 10px 22px rgba(0,0,0,.08);
 }
 
 body.mode-premium .block-title,
 #livePreviewCard.mode-premium .block-title {
-  color: rgba(255,255,255,.96);
-  text-shadow: 0 1px 0 rgba(0,0,0,.10);
+  color: rgba(255,255,255,.97);
+  text-shadow: 0 1px 0 rgba(0,0,0,.08);
 }
 
 body.mode-premium .block-body,
-#livePreviewCard.mode-premium .block-body { color: rgba(255,255,255,.88); }
+#livePreviewCard.mode-premium .block-body { color: rgba(255,255,255,.89); }
 
 .expandable-wrap {
   display: flex;
@@ -1117,28 +1120,28 @@ body.mode-premium .block-body,
 
 body.mode-premium .contact-dock,
 #livePreviewCard.mode-premium .contact-dock {
-  background: rgba(255,255,255,.10);
-  border-color: rgba(255,255,255,.14);
-  box-shadow: 0 12px 24px rgba(0,0,0,.10);
+  background: rgba(255,255,255,.11);
+  border-color: rgba(255,255,255,.15);
+  box-shadow: 0 10px 22px rgba(0,0,0,.08);
 }
 
 body.mode-premium .dock-title,
 #livePreviewCard.mode-premium .dock-title {
-  color: rgba(255,255,255,.90);
+  color: rgba(255,255,255,.91);
   opacity: 1;
 }
 
 body.mode-premium .dock-btn,
 #livePreviewCard.mode-premium .dock-btn {
-  border-color: rgba(255,255,255,.16);
+  border-color: rgba(255,255,255,.17);
   background:
-    radial-gradient(150% 190% at 18% 0%, rgba(255,255,255,.22), rgba(255,255,255,.10) 55%, rgba(255,255,255,.08)),
-    rgba(255,255,255,.08);
-  color: rgba(255,255,255,.95);
+    radial-gradient(150% 190% at 18% 0%, rgba(255,255,255,.24), rgba(255,255,255,.11) 55%, rgba(255,255,255,.09)),
+    rgba(255,255,255,.09);
+  color: rgba(255,255,255,.96);
   box-shadow:
-    0 12px 24px rgba(0,0,0,.12),
-    inset 0 1px 0 rgba(255,255,255,.12),
-    inset 0 -10px 14px rgba(0,0,0,.06);
+    0 10px 20px rgba(0,0,0,.08),
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -8px 12px rgba(0,0,0,.04);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -1206,22 +1209,22 @@ body.mode-premium .dock-btn,
 }
 
 body.mode-premium .marquee-shell {
-  border-color: rgba(255,255,255,.14);
+  border-color: rgba(255,255,255,.15);
   background:
-    radial-gradient(150% 190% at 18% 0%, rgba(255,255,255,.20), rgba(255,255,255,.10) 55%, rgba(255,255,255,.07)),
-    rgba(255,255,255,.08);
+    radial-gradient(150% 190% at 18% 0%, rgba(255,255,255,.22), rgba(255,255,255,.11) 55%, rgba(255,255,255,.08)),
+    rgba(255,255,255,.09);
 }
 
 body.mode-premium .marquee-shell::before {
-  background: linear-gradient(90deg, rgba(48,53,68,.82), rgba(48,53,68,0));
+  background: linear-gradient(90deg, rgba(50,56,72,.78), rgba(50,56,72,0));
 }
 
 body.mode-premium .marquee-shell::after {
-  background: linear-gradient(270deg, rgba(48,53,68,.82), rgba(48,53,68,0));
+  background: linear-gradient(270deg, rgba(50,56,72,.78), rgba(50,56,72,0));
 }
 
 body.mode-premium .marquee-text {
-  color: rgba(255,255,255,.96);
+  color: rgba(255,255,255,.97);
 }
 
 @keyframes hscMarquee {
@@ -1242,9 +1245,9 @@ body.mode-premium .marquee-text {
 
 body.mode-premium .photo-wall,
 #livePreviewCard.mode-premium .photo-wall {
-  background: rgba(255,255,255,.10);
-  border-color: rgba(255,255,255,.14);
-  box-shadow: 0 12px 24px rgba(0,0,0,.10);
+  background: rgba(255,255,255,.11);
+  border-color: rgba(255,255,255,.15);
+  box-shadow: 0 10px 22px rgba(0,0,0,.08);
 }
 
 .photo-grid { display: grid; gap: 10px; }
@@ -1371,7 +1374,7 @@ body.mode-premium .photo-wall,
 }
 
 body.mode-premium .version-tag,
-#livePreviewCard.mode-premium .version-tag { color: rgba(255,255,255,.48); }
+#livePreviewCard.mode-premium .version-tag { color: rgba(255,255,255,.50); }
 
 #adminHotspotBR {
   position: fixed;
