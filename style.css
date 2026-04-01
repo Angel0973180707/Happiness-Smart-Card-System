@@ -1,9 +1,9 @@
 /* ============================================================
    天使幸福智慧名片館 style.css
-   v7.7.5.1-premium-lighting-system-typography-safe
+   v7.7.5.2-premium-lighting-system-slogan-hero
    完整覆蓋版
-   - 基於 v7.7.5-premium-lighting-system 原始完整檔
-   - 安全升級姓名 / 單位 / 職稱 / 一句話理念的層級
+   - 基於 v7.7.5.1-premium-lighting-system-typography-safe
+   - 一句話理念升級為品牌金句主視覺
    - 保留原本精品卡光影系統與全站結構
 ============================================================ */
 
@@ -72,7 +72,6 @@
   --panel-accent: rgba(255,255,255,.14);
   --panel-accent-2: rgba(255,255,255,.05);
 
-  /* 光影系統 */
   --premium-light-band: rgba(255,255,255,.10);
   --premium-light-core: rgba(255,255,255,.06);
   --premium-light-edge: rgba(255,255,255,.04);
@@ -118,10 +117,6 @@ body.color-4,
 
 body.color-5,
 #livePreviewCard.color-5 { --p:#7fc89a; --s:#3a8a60; --bgTint: rgba(127,200,154,.16); --accentText: rgba(29,88,58,.94); }
-
-/* =========================
-   精品七色：顏色＋材質＋欄位細框線
-========================= */
 
 body.p1,
 #livePreviewCard.p1 {
@@ -342,10 +337,6 @@ body.mode-premium .card,
   filter: saturate(1.12) brightness(1.015) contrast(1.05);
 }
 
-/* =========================
-   精品材質層
-========================= */
-
 .premium-fx-layer {
   position: absolute;
   inset: 0;
@@ -365,7 +356,6 @@ body.mode-premium .premium-fx-layer,
   filter: none;
 }
 
-/* p1 柔霧絲絨 */
 body.mode-premium.p1 .premium-fx-layer,
 #livePreviewCard.mode-premium.p1 .premium-fx-layer {
   background:
@@ -375,7 +365,6 @@ body.mode-premium.p1 .premium-fx-layer,
   opacity: .54;
 }
 
-/* p2 霧面皮革 */
 body.mode-premium.p2 .premium-fx-layer,
 #livePreviewCard.mode-premium.p2 .premium-fx-layer {
   background:
@@ -385,7 +374,6 @@ body.mode-premium.p2 .premium-fx-layer,
   opacity: .50;
 }
 
-/* p3 金屬霧光 */
 body.mode-premium.p3 .premium-fx-layer,
 #livePreviewCard.mode-premium.p3 .premium-fx-layer {
   background:
@@ -395,7 +383,6 @@ body.mode-premium.p3 .premium-fx-layer,
   opacity: .52;
 }
 
-/* p4 精品紫 */
 body.mode-premium.p4 .premium-fx-layer,
 #livePreviewCard.mode-premium.p4 .premium-fx-layer {
   background:
@@ -406,7 +393,6 @@ body.mode-premium.p4 .premium-fx-layer,
   background-blend-mode: screen, overlay, normal;
 }
 
-/* p5 高級冷調紙膜 */
 body.mode-premium.p5 .premium-fx-layer,
 #livePreviewCard.mode-premium.p5 .premium-fx-layer {
   background:
@@ -416,7 +402,6 @@ body.mode-premium.p5 .premium-fx-layer,
   opacity: .56;
 }
 
-/* p6 香檳霧金 */
 body.mode-premium.p6 .premium-fx-layer,
 #livePreviewCard.mode-premium.p6 .premium-fx-layer {
   background:
@@ -427,7 +412,6 @@ body.mode-premium.p6 .premium-fx-layer,
   background-blend-mode: screen, overlay, normal;
 }
 
-/* p7 皮紙木質 */
 body.mode-premium.p7 .premium-fx-layer,
 #livePreviewCard.mode-premium.p7 .premium-fx-layer {
   background:
@@ -437,7 +421,6 @@ body.mode-premium.p7 .premium-fx-layer,
   opacity: .48;
 }
 
-/* 黑角再壓掉：只做中央與上緣柔亮，不碰四角 */
 body.mode-premium .card::before,
 #livePreviewCard.mode-premium .card::before {
   content: "";
@@ -472,10 +455,6 @@ body.mode-premium .card::after,
   z-index: 3;
   padding: 10px 18px 20px;
 }
-
-/* =========================
-   文字層級安全升級
-========================= */
 
 .name {
   display: block;
@@ -778,44 +757,80 @@ body.mode-premium .logo-img,
   -webkit-backdrop-filter: blur(14px);
 }
 
+/* =========================
+   品牌金句主視覺
+========================= */
+
 #u-slogan {
+  position: relative;
   width: 100%;
-  max-width: 430px;
-  margin: 20px auto 0;
-  padding: 14px 18px;
+  max-width: 460px;
+  margin: 26px auto 0;
+  padding: 18px 22px;
   text-align: center;
   text-align-last: center;
   white-space: pre-line;
-  line-height: 1.78;
-  letter-spacing: .08em;
   word-break: break-word;
-  font-size: 14px;
-  font-weight: 800;
-  color: rgba(68,52,40,.92);
-  border-radius: 18px;
-  background: linear-gradient(180deg, rgba(255,255,255,.38), rgba(255,255,255,.12));
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  line-height: 1.9;
+  color: rgba(48,32,24,1);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.65), rgba(255,255,255,.22));
   box-shadow:
-    0 12px 28px rgba(0,0,0,.06),
-    inset 0 1px 0 rgba(255,255,255,.52);
+    0 18px 36px rgba(0,0,0,.10),
+    inset 0 1px 0 rgba(255,255,255,.75),
+    inset 0 0 0 1px rgba(255,255,255,.35);
   text-shadow:
-    0 1px 0 rgba(255,255,255,.46),
-    0 8px 18px rgba(0,0,0,.06);
-  transition: transform .28s ease, box-shadow .28s ease, text-shadow .28s ease;
+    0 1px 0 rgba(255,255,255,.65),
+    0 12px 26px rgba(0,0,0,.10);
+  transition: all .32s ease;
+  z-index: 2;
+  overflow: hidden;
+}
+
+#u-slogan::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      120deg,
+      transparent 0%,
+      rgba(255,255,255,.65) 30%,
+      rgba(255,255,255,.15) 48%,
+      transparent 70%
+    );
+  opacity: .35;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  animation: sloganLightSweep 5.5s ease-in-out infinite;
 }
 
 body.mode-premium #u-slogan,
 #livePreviewCard.mode-premium #u-slogan {
-  color: var(--prem-ink-strong);
-  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.025));
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.04));
   box-shadow:
-    0 12px 28px rgba(0,0,0,.12),
-    inset 0 1px 0 rgba(255,255,255,.10),
-    inset 0 0 0 1px rgba(255,255,255,.06),
-    0 0 14px rgba(255,255,255,.03);
+    0 20px 40px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 0 0 1px rgba(255,255,255,.10),
+    0 0 24px rgba(255,255,255,.08);
   text-shadow:
-    0 2px 8px rgba(0,0,0,.28),
-    0 0 14px rgba(255,255,255,.04);
-  animation: sloganFloatGlow 4.2s ease-in-out infinite;
+    0 3px 12px rgba(0,0,0,.40),
+    0 0 22px rgba(255,255,255,.12);
+  animation: sloganFloatPremium 4.6s ease-in-out infinite;
+}
+
+#u-slogan:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow:
+    0 24px 46px rgba(0,0,0,.14),
+    inset 0 1px 0 rgba(255,255,255,.85);
 }
 
 .section-title {
@@ -1881,7 +1896,6 @@ body.mode-free .card {
   50% { transform: translateY(-1px); filter: saturate(1.04); }
 }
 
-/* 新增：名字與理念的柔和微動態 */
 @keyframes premiumNameGlow {
   0%, 100% {
     transform: translateY(0);
@@ -1905,28 +1919,30 @@ body.mode-free .card {
   }
 }
 
-@keyframes sloganFloatGlow {
-  0%, 100% {
+@keyframes sloganLightSweep {
+  0% { transform: translateX(-40%); opacity: .2; }
+  50% { transform: translateX(40%); opacity: .5; }
+  100% { transform: translateX(120%); opacity: .2; }
+}
+
+@keyframes sloganFloatPremium {
+  0%,100% {
     transform: translateY(0);
     box-shadow:
-      0 12px 28px rgba(0,0,0,.12),
-      inset 0 1px 0 rgba(255,255,255,.10),
-      inset 0 0 0 1px rgba(255,255,255,.06),
-      0 0 14px rgba(255,255,255,.03);
+      0 20px 40px rgba(0,0,0,.18),
+      0 0 20px rgba(255,255,255,.06);
   }
   50% {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     box-shadow:
-      0 16px 34px rgba(0,0,0,.14),
-      inset 0 1px 0 rgba(255,255,255,.12),
-      inset 0 0 0 1px rgba(255,255,255,.07),
-      0 0 18px rgba(255,255,255,.05);
+      0 26px 52px rgba(0,0,0,.22),
+      0 0 28px rgba(255,255,255,.10);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dot, .p-dot, .dot::after, .p-dot::after, .breathe,
-  .name, #u-slogan {
+  .name, #u-slogan, #u-slogan::before {
     animation: none !important;
   }
 }
@@ -1978,11 +1994,12 @@ body.mode-free .card {
   }
 
   #u-slogan {
-    margin-top: 18px;
-    padding: 13px 15px;
-    font-size: 13px;
-    line-height: 1.72;
-    letter-spacing: .06em;
+    max-width: 100%;
+    margin-top: 20px;
+    padding: 16px 16px;
+    font-size: 15px;
+    line-height: 1.78;
+    letter-spacing: .08em;
   }
 }
 
