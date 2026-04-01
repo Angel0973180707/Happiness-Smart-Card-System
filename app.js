@@ -1,11 +1,12 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.7.1-premium-switch-fix
+   v7.7.2-full-facade-state-isolated
    完整覆蓋版
    - 門面固定只讀 TW0001
    - 門面樣品體驗切換獨立 facadeState
-   - 修正無法切到精品設計：同步 body mode/theme class
-   - 正式使用 card-renderer.js 渲染門面樣品
+   - facadeCurrentRow / currentRow 正式分流
+   - renderFacadePreview 改為 useExistingDom:false
+   - share / invite / QR 改吃目前有效資料
    - 保留 fetch / announcement / share / install / invite / QR
 ============================================================ */
 
@@ -14,7 +15,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.7.1-premium-switch-fix",
+  VERSION: "v7.7.2-full-facade-state-isolated",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -78,7 +79,8 @@ const DEFAULT_PHOTO_META = {
 /* ============================================================
    全域狀態
 ============================================================ */
-let currentRow = null;
+let currentRow = null;             // 真卡 / 正式資料
+let facadeCurrentRow = null;       // 門面樣品專用（新）
 let deferredInstallPrompt = null;
 let currentAvatarUrlCache = "";
 let currentAvatarSourceKeyCache = "";
@@ -394,22 +396,30 @@ function getPhotoLimitFromPayload_(p){
   return PLAN_LIMITS[plan]?.maxPhotos || PLAN_LIMITS.free.maxPhotos;
 }
 
+/* ============================================================
+   核心：目前有效資料來源
+============================================================ */
+function getActiveCardPayload_(){
+  return facadeCurrentRow || currentRow || facadeBaseData || null;
+}
+
 function getReferralSourceCode_(p){
   const urlRef = getRefFromUrl_();
   if(urlRef) return urlRef;
-  if(p){
+  const active = p || getActiveCardPayload_();
+  if(active){
     const code =
-      text(pick(p, ["agent_id"])) ||
-      text(pick(p, ["service_agent"])) ||
-      text(pick(p, ["referrer"])) ||
-      text(pick(p, ["id"]));
+      text(pick(active, ["agent_id"])) ||
+      text(pick(active, ["service_agent"])) ||
+      text(pick(active, ["referrer"])) ||
+      text(pick(active, ["id"]));
     if(code) return code;
   }
   return FACADE_SAMPLE_ID;
 }
 
 function getCardIdForShare_(p){
-  const payload = p || currentRow || null;
+  const payload = p || getActiveCardPayload_();
   return (
     normalizeId_(text(pick(payload, ["id"]))) ||
     FACADE_SAMPLE_ID
@@ -417,7 +427,7 @@ function getCardIdForShare_(p){
 }
 
 function getAgentIdForShare_(p){
-  const payload = p || currentRow || null;
+  const payload = p || getActiveCardPayload_();
   return (
     text(pick(payload, ["service_agent"])) ||
     text(pick(payload, ["agent_id"])) ||
@@ -455,11 +465,11 @@ function buildTrackedShareUrl_(p){
 function buildHubShareUrl_(){
   try{
     const u = new URL(CONFIG.HUB_URL);
-    const code = getReferralSourceCode_(currentRow || facadeBaseData);
+    const code = getReferralSourceCode_(getActiveCardPayload_());
     if(code) u.searchParams.set("ref", code);
     return u.toString();
   }catch{
-    const code = getReferralSourceCode_(currentRow || facadeBaseData);
+    const code = getReferralSourceCode_(getActiveCardPayload_());
     return CONFIG.HUB_URL + (code ? ("?ref=" + encodeURIComponent(code)) : "");
   }
 }
@@ -496,7 +506,7 @@ async function ensureInviteApplyData_(){
     };
   }
 
-  const refCode = getReferralSourceCode_(facadeBaseData || currentRow);
+  const refCode = getReferralSourceCode_(getActiveCardPayload_());
   currentReferralSourceCodeCache = refCode || "";
 
   let applyCode = "";
@@ -520,7 +530,7 @@ async function ensureInviteApplyData_(){
 }
 
 window.__ensureInviteApplyData = ensureInviteApplyData_;
-window.__getReferralSourceCode = function(){ return getReferralSourceCode_(facadeBaseData || currentRow); };
+window.__getReferralSourceCode = function(){ return getReferralSourceCode_(getActiveCardPayload_()); };
 
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
@@ -813,7 +823,7 @@ function renderFacadePreview(){
   const result = renderer(data, {
     mode: "index",
     root,
-    useExistingDom: true,
+    useExistingDom: false,   // v7.7.2：改為重建式渲染
     qrMode: "facade",
     allowActions: false
   });
@@ -822,17 +832,20 @@ function renderFacadePreview(){
     throw new Error("門面 renderer 回傳失敗");
   }
 
-  currentRow = buildNormalizedPayload_(data || {});
-  currentReferralSourceCodeCache = getReferralSourceCode_(facadeBaseData);
-  window.__CARD_DATA__ = currentRow;
-  window.cardData = currentRow;
-  window.payload = currentRow;
+  // v7.7.2：門面資料獨立，不覆寫 currentRow
+  facadeCurrentRow = buildNormalizedPayload_(data || {});
+  currentReferralSourceCodeCache = getReferralSourceCode_(facadeCurrentRow);
 
-  const avatarInfo = pickAvatarInfo_(currentRow);
+  // 對外仍保留可讀取，但指向目前有效資料
+  window.__CARD_DATA__ = facadeCurrentRow;
+  window.cardData = facadeCurrentRow;
+  window.payload = facadeCurrentRow;
+
+  const avatarInfo = pickAvatarInfo_(facadeCurrentRow);
   currentAvatarUrlCache = avatarInfo.url || "";
   currentAvatarSourceKeyCache = avatarInfo.key || "";
 
-  renderPostRendererUi_(currentRow);
+  renderPostRendererUi_(facadeCurrentRow);
 }
 
 /* ============================================================
@@ -1445,8 +1458,8 @@ function renderQr(options){
 window.renderQr = renderQr;
 window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
 window.__getHubShareUrl = buildHubShareUrl_;
-window.__getCardShareUrl = function(){ return buildTrackedShareUrl_(currentRow); };
-window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(currentRow); };
+window.__getCardShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
+window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
 
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
@@ -1470,8 +1483,9 @@ function renderBottomQr_(p){
   const grid = qs("bottomQrGrid");
   const avatar = qs("bottomQrAvatar");
   if(!sec || !grid || !avatar) return;
-  const info = pickAvatarInfo_(p);
-  const qrUrl = buildTrackedShareUrl_(p);
+  const payload = p || getActiveCardPayload_();
+  const info = pickAvatarInfo_(payload);
+  const qrUrl = buildTrackedShareUrl_(payload);
   const avatarUrl = info.url;
   const key = "bottom|" + qrUrl + "|" + avatarUrl;
   const canvas = avatar.parentElement;
@@ -1497,8 +1511,10 @@ function renderFeatureQrFromCurrent_(){
   const grid = qs("featureQrGrid");
   const avatar = qs("featureQrAvatar");
   if(!grid || !avatar) return;
-  const url = buildTrackedShareUrl_(currentRow);
-  const avatarUrl = currentAvatarUrlCache || "";
+  const payload = getActiveCardPayload_();
+  const info = pickAvatarInfo_(payload);
+  const url = buildTrackedShareUrl_(payload);
+  const avatarUrl = info.url || currentAvatarUrlCache || "";
   const key = "feature|" + url + "|" + avatarUrl;
   const canvas = avatar.parentElement;
   if(canvas) canvas.style.position = "relative";
@@ -1567,15 +1583,16 @@ function renderBottomHubShareBtn_(){
 }
 
 function ensureBottomQrVisible_(){
-  if(!currentRow) return;
-  try{ renderBottomQr_(currentRow); }catch(_e){}
+  const payload = getActiveCardPayload_();
+  if(!payload) return;
+  try{ renderBottomQr_(payload); }catch(_e){}
   try{ renderBottomHubShareBtn_(); }catch(_e){}
   setTimeout(() => {
-    try{ renderBottomQr_(currentRow); }catch(_e){}
+    try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){}
     try{ renderBottomHubShareBtn_(); }catch(_e){}
   }, 250);
   setTimeout(() => {
-    try{ renderBottomQr_(currentRow); }catch(_e){}
+    try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){}
     try{ renderBottomHubShareBtn_(); }catch(_e){}
   }, 800);
 }
