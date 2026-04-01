@@ -1,8 +1,8 @@
 /* =========================================
- * HSC Update Form v4.7
+ * HSC Update Form v7.7.3
  * COMPLETE OVERWRITE
  *
- * 對齊 GAS v4.7：
+ * 對齊 GAS v6.7：
  * - API 最外層使用 ok / error / data
  * - getCardForUpdate => { ok:true, data:{...} }
  * - updateCardByToken => { ok:true, data:{...} }
