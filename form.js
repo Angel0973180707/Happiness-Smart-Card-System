@@ -6,7 +6,7 @@
     SERVICE_URL: "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v752_full",
+    DRAFT_KEY: "hsc_form_draft_v776_full",
     BASE_LIMITS: {
       free: { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -175,10 +175,24 @@
     }
 
     [
-      "free_color", "free_style", "free_paper", "premium_color",
-      "display_name", "unit", "title", "phone", "email", "website",
-      "line_url", "line_oa", "wechat_id", "experience", "services",
-      "address", "intro", "marquee_text"
+      "free_color",
+      "free_style",
+      "free_paper",
+      "premium_color",
+      "display_name",
+      "unit",
+      "title",
+      "phone",
+      "email",
+      "website",
+      "line_url",
+      "line_oa",
+      "wechat_id",
+      "experience",
+      "services",
+      "address",
+      "intro",
+      "marquee_text"
     ].forEach(id => {
       if (els[id]) {
         els[id].addEventListener("input", onLiveChange);
@@ -379,6 +393,7 @@
     state.wallPhotoCount = wallLimit;
     ensurePhotoMetaKey("avatar");
     ensurePhotoMetaKey("logo");
+
     for (let i = 1; i <= wallLimit; i++) {
       ensurePhotoMetaKey(`photo${i}`);
     }
@@ -560,8 +575,8 @@
     if (!img || !meta) return;
     const scale = clampNumber(meta.scale, 0.5, 3, 1);
     const rotate = clampNumber(meta.rotate, -180, 180, 0);
-    const x = (((meta.x ?? 0.5) - 0.5) * 40);
-    const y = (((meta.y ?? 0.5) - 0.5) * 40);
+    const x = ((meta.x ?? 0.5) - 0.5) * 40;
+    const y = ((meta.y ?? 0.5) - 0.5) * 40;
     img.style.transform = `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotate}deg)`;
   }
 
@@ -749,13 +764,15 @@
       renderer.renderCard(data, {
         mode: "form",
         root: root,
-        useExistingDom: false,
+        useExistingDom: true,
         qrMode: "preview",
         allowActions: false,
         previewUrl: buildPreviewUrl(),
         shareUrl: buildPreviewUrl(),
         cardUrl: buildPreviewUrl()
       });
+
+      bindPreviewCollapseToggles(root);
     } catch (err) {
       console.error("updatePreview renderCard error:", err);
       root.innerHTML = `<div class="renderer-error">預覽渲染失敗：${escapeHtml(err.message || "未知錯誤")}</div>`;
@@ -771,6 +788,9 @@
       unit: valueOf("unit"),
       title: valueOf("title"),
       slogan: valueOf("intro"),
+      services: valueOf("services"),
+      experience: valueOf("experience"),
+
       phone: valueOf("phone"),
       email: valueOf("email"),
       address: valueOf("address"),
@@ -778,8 +798,6 @@
       line_url: valueOf("line_url"),
       line_oa: valueOf("line_oa"),
       wechat_id: valueOf("wechat_id"),
-      services: valueOf("services"),
-      experience: valueOf("experience"),
 
       plan: theme.plan,
       color: theme.color,
@@ -826,6 +844,62 @@
     }
 
     return data;
+  }
+
+  function bindPreviewCollapseToggles(root) {
+    if (!root) return;
+    setupPreviewBlockClamp(root, "#block-service", 140);
+    setupPreviewBlockClamp(root, "#block-exp", 180);
+  }
+
+  function setupPreviewBlockClamp(root, selector, collapsedHeight) {
+    const block = root.querySelector(selector);
+    if (!block) return;
+    if (block.style.display === "none") return;
+
+    const next = block.nextElementSibling;
+    if (next && next.classList.contains("preview-more-toggle")) {
+      next.remove();
+    }
+
+    block.style.maxHeight = "";
+    block.style.overflow = "";
+    block.classList.remove("is-collapsed");
+    block.classList.remove("is-expanded");
+
+    requestAnimationFrame(() => {
+      const needsClamp = block.scrollHeight > collapsedHeight + 8;
+      if (!needsClamp) return;
+
+      block.style.maxHeight = `${collapsedHeight}px`;
+      block.style.overflow = "hidden";
+      block.classList.add("is-collapsed");
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ghost-btn mini preview-more-toggle";
+      btn.textContent = "展開更多";
+
+      btn.addEventListener("click", () => {
+        const expanded = block.classList.contains("is-expanded");
+
+        if (expanded) {
+          block.classList.remove("is-expanded");
+          block.classList.add("is-collapsed");
+          block.style.maxHeight = `${collapsedHeight}px`;
+          block.style.overflow = "hidden";
+          btn.textContent = "展開更多";
+        } else {
+          block.classList.remove("is-collapsed");
+          block.classList.add("is-expanded");
+          block.style.maxHeight = "none";
+          block.style.overflow = "visible";
+          btn.textContent = "收合";
+        }
+      });
+
+      block.insertAdjacentElement("afterend", btn);
+    });
   }
 
   function buildPhotoMetaMap() {
@@ -997,6 +1071,7 @@
         paper: els["free_paper"]?.value || "f1"
       };
     }
+
     return {
       plan,
       color: els["premium_color"]?.value || "p1",
