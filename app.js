@@ -1,11 +1,12 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.7.4-full-facade-qr-expiry-bilingual
+   v7.7.4.1-full-facade-actions-on
    完整覆蓋版
    - 門面固定只讀 TW0001
    - 門面樣品體驗切換獨立 facadeState
    - facadeCurrentRow / currentRow 正式分流
    - renderFacadePreview 改為 useExistingDom:false
+   - 門面樣品卡恢復互動 allowActions:true
    - 補回 facade / feature / bottom QR 強制回補機制
    - QR 改為雙來源容錯（qrserver + quickchart）
    - 已付款：英文顯示倒數到期日
@@ -18,7 +19,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.7.4-full-facade-qr-expiry-bilingual",
+  VERSION: "v7.7.4.1-full-facade-actions-on",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -827,7 +828,7 @@ function renderFacadePreview(){
     root,
     useExistingDom: false,
     qrMode: "facade",
-    allowActions: false
+    allowActions: true
   });
 
   if(!result || result.ok !== true){
