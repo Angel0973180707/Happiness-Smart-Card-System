@@ -13,7 +13,7 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v7.5.2｜成品卡 renderer 正式同步版（個人照 / Logo / 照片牆分區）。</p>
+        <p class="hero-desc">v7.7.6｜全系統一致版（表單預覽正式對齊成品 renderer）。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -355,13 +355,37 @@
         </div>
 
         <div class="preview-section">
-          <div id="livePreviewCard" class="preview-card-board"></div>
+          <div class="preview-card-board">
+            <div id="livePreviewCard" class="hsc-render-root" aria-live="polite">
+              <article class="card">
+                <section class="card-main">
+                  <div class="card-identity">
+                    <div id="u-name"></div>
+
+                    <div id="u-unit-wrap" style="display:none;">
+                      <div id="u-unit"></div>
+                    </div>
+
+                    <div id="u-title"></div>
+
+                    <div id="u-slogan-wrap" style="display:none;">
+                      <div id="u-slogan"></div>
+                    </div>
+                  </div>
+
+                  <div id="block-service" style="display:none;"></div>
+                  <div id="block-exp" style="display:none;"></div>
+                </section>
+              </article>
+            </div>
+          </div>
 
           <div class="preview-card">
             <h3>預覽說明</h3>
-            <p class="hint">預覽即成品卡，不再維持舊 preview DOM。</p>
-            <p class="hint">資料會整理成 avatar_url、logo_url、photo1_url~、cta_text/link、features.photo_meta、features.preview_meta 再交給 renderer。</p>
-            <p class="hint">個人照、Logo 與照片牆已正式分區；照片牆張數依方案與加購計算。</p>
+            <p class="hint">預覽即正式成品卡，直接走 card-renderer.js 同一套欄位結構。</p>
+            <p class="hint">姓名、單位、職稱、標語分開顯示；服務項目與經歷故事各自獨立成 block。</p>
+            <p class="hint">未填欄位會交由 renderer 自動隱藏，不再由 form.js 先拼成單一大段文字。</p>
+            <p class="hint">個人照、Logo、照片牆、CTA、QR、dock、跑馬燈仍維持既有接線。</p>
           </div>
         </div>
       </section>
