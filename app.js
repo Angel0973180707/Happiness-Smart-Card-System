@@ -1,9 +1,10 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.7-double-preview-facade-split
+   v7.7.1-premium-switch-fix
    完整覆蓋版
    - 門面固定只讀 TW0001
    - 門面樣品體驗切換獨立 facadeState
+   - 修正無法切到精品設計：同步 body mode/theme class
    - 正式使用 card-renderer.js 渲染門面樣品
    - 保留 fetch / announcement / share / install / invite / QR
 ============================================================ */
@@ -13,7 +14,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.7-double-preview-facade-split",
+  VERSION: "v7.7.1-premium-switch-fix",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -626,28 +627,6 @@ function mapPremiumToUi_(v){
 /* ============================================================
    門面 UI 同步
 ============================================================ */
-function syncPlanUI_(){
-  const freeBtn = qs("btnPlanFree");
-  const premBtn = qs("btnPlanPremium");
-  const freeControls = qs("free-controls");
-  const premiumControls = qs("premium-controls");
-
-  if(facadeState.plan === "premium"){
-    if(freeControls) freeControls.style.display = "none";
-    if(premiumControls) premiumControls.style.display = "";
-    if(freeBtn) freeBtn.classList.remove("active");
-    if(premBtn) premBtn.classList.add("active");
-  }else{
-    if(premiumControls) premiumControls.style.display = "none";
-    if(freeControls) freeControls.style.display = "";
-    if(premBtn) premBtn.classList.remove("active");
-    if(freeBtn) freeBtn.classList.add("active");
-  }
-  syncThemeUI_();
-  syncStyleUI_();
-  syncPaperUI_();
-}
-
 function syncThemeUI_(){
   const freeDots = qsa("#freeDotsRow .dot");
   const premiumDots = qsa("#premiumDotsRow .p-dot");
@@ -690,6 +669,54 @@ function syncPaperUI_(){
     if(v === facadeState.paper) btn.classList.add("active");
     else btn.classList.remove("active");
   });
+}
+
+function applyFacadeBodyMode_(){
+  const body = document.body;
+  if(!body) return;
+
+  body.classList.remove(
+    "mode-free","mode-premium",
+    "color-1","color-2","color-3","color-4","color-5",
+    "p1","p2","p3","p4","p5","p6","p7",
+    "style-arch","style-flat","style-spot",
+    "paper-1","paper-2","paper-3"
+  );
+
+  if(facadeState.plan === "premium"){
+    body.classList.add("mode-premium", mapPremiumToUi_(facadeState.premiumColor));
+  }else{
+    body.classList.add(
+      "mode-free",
+      mapFreeColorToTheme_(facadeState.color),
+      "style-" + mapStyleToUi_(facadeState.style),
+      mapPaperToUi_(facadeState.paper)
+    );
+  }
+}
+
+function syncPlanUI_(){
+  const freeBtn = qs("btnPlanFree");
+  const premBtn = qs("btnPlanPremium");
+  const freeControls = qs("free-controls");
+  const premiumControls = qs("premium-controls");
+
+  if(facadeState.plan === "premium"){
+    if(freeControls) freeControls.style.display = "none";
+    if(premiumControls) premiumControls.style.display = "";
+    if(freeBtn) freeBtn.classList.remove("active");
+    if(premBtn) premBtn.classList.add("active");
+  }else{
+    if(premiumControls) premiumControls.style.display = "none";
+    if(freeControls) freeControls.style.display = "";
+    if(premBtn) premBtn.classList.remove("active");
+    if(freeBtn) freeBtn.classList.add("active");
+  }
+
+  syncThemeUI_();
+  syncStyleUI_();
+  syncPaperUI_();
+  applyFacadeBodyMode_();
 }
 
 function initSelectionState_(){
@@ -770,6 +797,7 @@ function renderFacadePreview(){
   const root = qs("livePreviewCard");
   if(!root || !facadeBaseData) return;
 
+  applyFacadeBodyMode_();
   const data = buildFacadePreviewData();
 
   const renderer =
