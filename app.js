@@ -1,12 +1,13 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.7.2-full-facade-state-isolated
+   v7.7.3-full-facade-qr-restore
    完整覆蓋版
    - 門面固定只讀 TW0001
    - 門面樣品體驗切換獨立 facadeState
    - facadeCurrentRow / currentRow 正式分流
    - renderFacadePreview 改為 useExistingDom:false
-   - share / invite / QR 改吃目前有效資料
+   - 補回 facade / feature / bottom QR 強制回補機制
+   - 修正 facade QR 因 renderKey 誤判而不重繪
    - 保留 fetch / announcement / share / install / invite / QR
 ============================================================ */
 
@@ -15,7 +16,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.7.2-full-facade-state-isolated",
+  VERSION: "v7.7.3-full-facade-qr-restore",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -79,8 +80,8 @@ const DEFAULT_PHOTO_META = {
 /* ============================================================
    全域狀態
 ============================================================ */
-let currentRow = null;             // 真卡 / 正式資料
-let facadeCurrentRow = null;       // 門面樣品專用（新）
+let currentRow = null;
+let facadeCurrentRow = null;
 let deferredInstallPrompt = null;
 let currentAvatarUrlCache = "";
 let currentAvatarSourceKeyCache = "";
@@ -95,15 +96,14 @@ let announcementItems_ = [];
 let announcementIndex_ = 0;
 let announcementTimer_ = null;
 
-/* 門面專用：固定樣品資料 + 體驗切換狀態 */
 let facadeBaseData = null;
 
 const facadeState = {
-  plan: "free",       // free | premium
-  color: "c1",        // free 顏色 c1~c5
-  style: "s1",        // s1~s3
-  paper: "f1",        // f1~f3
-  premiumColor: "p1"  // premium 顏色 p1~p7
+  plan: "free",
+  color: "c1",
+  style: "s1",
+  paper: "f1",
+  premiumColor: "p1"
 };
 
 /* ============================================================
@@ -823,7 +823,7 @@ function renderFacadePreview(){
   const result = renderer(data, {
     mode: "index",
     root,
-    useExistingDom: false,   // v7.7.2：改為重建式渲染
+    useExistingDom: false,
     qrMode: "facade",
     allowActions: false
   });
@@ -832,11 +832,9 @@ function renderFacadePreview(){
     throw new Error("門面 renderer 回傳失敗");
   }
 
-  // v7.7.2：門面資料獨立，不覆寫 currentRow
   facadeCurrentRow = buildNormalizedPayload_(data || {});
   currentReferralSourceCodeCache = getReferralSourceCode_(facadeCurrentRow);
 
-  // 對外仍保留可讀取，但指向目前有效資料
   window.__CARD_DATA__ = facadeCurrentRow;
   window.cardData = facadeCurrentRow;
   window.payload = facadeCurrentRow;
@@ -846,6 +844,7 @@ function renderFacadePreview(){
   currentAvatarSourceKeyCache = avatarInfo.key || "";
 
   renderPostRendererUi_(facadeCurrentRow);
+  rerenderAllQrAfterFacade_();
 }
 
 /* ============================================================
@@ -1464,10 +1463,13 @@ window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(getActive
 function renderFacadeQrFromCurrent_(){
   const grid = qs("facadeQrGrid");
   if(!grid) return;
+
   const url = buildHubShareUrl_();
+  if(!url) return;
+
   const key = "facade|" + url;
-  if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
   lastFacadeQrRenderKey = key;
+
   renderQr({
     container: grid,
     url,
@@ -1476,6 +1478,10 @@ function renderFacadeQrFromCurrent_(){
     centerImgUrl: "",
     renderKey: key
   });
+
+  grid.style.display = "block";
+  grid.style.visibility = "visible";
+  grid.style.opacity = "1";
 }
 
 function renderBottomQr_(p){
@@ -1505,6 +1511,9 @@ function renderBottomQr_(p){
     setCenterImg_(avatar, avatarUrl, 0.09);
   }
   sec.style.display = "block";
+  grid.style.display = "block";
+  grid.style.visibility = "visible";
+  grid.style.opacity = "1";
 }
 
 function renderFeatureQrFromCurrent_(){
@@ -1532,8 +1541,43 @@ function renderFeatureQrFromCurrent_(){
   }else{
     setCenterImg_(avatar, avatarUrl, 0.09);
   }
+  grid.style.display = "block";
+  grid.style.visibility = "visible";
+  grid.style.opacity = "1";
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
+
+/* ============================================================
+   QR 強制回補（v7.7.3）
+============================================================ */
+function rerenderAllQrAfterFacade_(){
+  const active = getActiveCardPayload_();
+  if(!active) return;
+
+  requestAnimationFrame(() => {
+    try{ renderFacadeQrFromCurrent_(); }catch(_e){}
+    try{ renderFeatureQrFromCurrent_(); }catch(_e){}
+    try{ renderBottomQr_(active); }catch(_e){}
+    try{ renderBottomHubShareBtn_(); }catch(_e){}
+    try{ updateQrCenterSizes_(); }catch(_e){}
+  });
+
+  setTimeout(() => {
+    try{ renderFacadeQrFromCurrent_(); }catch(_e){}
+    try{ renderFeatureQrFromCurrent_(); }catch(_e){}
+    try{ renderBottomQr_(active); }catch(_e){}
+    try{ renderBottomHubShareBtn_(); }catch(_e){}
+    try{ updateQrCenterSizes_(); }catch(_e){}
+  }, 180);
+
+  setTimeout(() => {
+    try{ renderFacadeQrFromCurrent_(); }catch(_e){}
+    try{ renderFeatureQrFromCurrent_(); }catch(_e){}
+    try{ renderBottomQr_(active); }catch(_e){}
+    try{ renderBottomHubShareBtn_(); }catch(_e){}
+    try{ updateQrCenterSizes_(); }catch(_e){}
+  }, 520);
+}
 
 /* ============================================================
    分享 / invite
@@ -1714,6 +1758,10 @@ window.addEventListener("load", () => {
 
     await loadFacadeBaseCard();
     renderFacadePreview();
+
+    setTimeout(() => {
+      try{ rerenderAllQrAfterFacade_(); }catch(_e){}
+    }, 300);
   }catch(err){
     console.error("[HSC facade] boot failed:", err);
     const nameEl = qs("u-name");
