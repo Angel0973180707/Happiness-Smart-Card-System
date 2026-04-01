@@ -1,13 +1,15 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.7.3-full-facade-qr-restore
+   v7.7.4-full-facade-qr-expiry-bilingual
    完整覆蓋版
    - 門面固定只讀 TW0001
    - 門面樣品體驗切換獨立 facadeState
    - facadeCurrentRow / currentRow 正式分流
    - renderFacadePreview 改為 useExistingDom:false
    - 補回 facade / feature / bottom QR 強制回補機制
-   - 修正 facade QR 因 renderKey 誤判而不重繪
+   - QR 改為雙來源容錯（qrserver + quickchart）
+   - 已付款：英文顯示倒數到期日
+   - 未付款：中文顯示付款期限
    - 保留 fetch / announcement / share / install / invite / QR
 ============================================================ */
 
@@ -16,7 +18,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.7.3-full-facade-qr-restore",
+  VERSION: "v7.7.4-full-facade-qr-expiry-bilingual",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -1051,45 +1053,149 @@ function pickAvatarInfo_(p){
   return { key: "", raw: "", url: "" };
 }
 
+/* ============================================================
+   到期日 / 付款期限
+============================================================ */
+function formatDateYmd_(date){
+  if(!(date instanceof Date) || isNaN(date.getTime())) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}.${m}.${d}`;
+}
+
 function parseDateSafe_(value){
   if(!value) return null;
   const s = String(value).trim();
   if(!s) return null;
-  const normalized = s.replace(/\//g, "-").replace(" ", "T");
+
+  const normalized = s
+    .replace(/\//g, "-")
+    .replace(" ", "T")
+    .replace(/(\.\d+)?Z$/i, "");
+
   let d = new Date(normalized);
   if(!isNaN(d.getTime())) return d;
-  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if(m){
     d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999);
     if(!isNaN(d.getTime())) return d;
   }
+
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if(m){
+    d = new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      Number(m[4]),
+      Number(m[5]),
+      Number(m[6] || 0),
+      0
+    );
+    if(!isNaN(d.getTime())) return d;
+  }
+
+  return null;
+}
+
+function getExpiryInfo_(p){
+  const payload = p || {};
+  const billingStatus = text(pick(payload, ["billing_status"])).toLowerCase();
+
+  const expiresAtRaw = text(pick(payload, ["expires_at"]));
+  const paymentDueRaw = text(pick(payload, ["payment_due_at"]));
+
+  const expiresAt = parseDateSafe_(expiresAtRaw);
+  const paymentDueAt = parseDateSafe_(paymentDueRaw);
+
+  if(billingStatus === "unpaid" && paymentDueAt){
+    return {
+      type: "payment_due",
+      date: paymentDueAt,
+      raw: paymentDueRaw
+    };
+  }
+
+  if(expiresAt){
+    return {
+      type: "expires_at",
+      date: expiresAt,
+      raw: expiresAtRaw
+    };
+  }
+
+  if(paymentDueAt){
+    return {
+      type: "payment_due",
+      date: paymentDueAt,
+      raw: paymentDueRaw
+    };
+  }
+
   return null;
 }
 
 function renderCardExpiry_(p){
   const el = qs("cardExpiry");
   if(!el) return;
-  const raw = text(pick(p, ["expires_at"]));
-  if(!raw){
+
+  const info = getExpiryInfo_(p);
+  if(!info || !info.date){
     el.style.display = "none";
     el.textContent = "";
+    el.removeAttribute("title");
+    el.classList.remove("is-expired");
     return;
   }
-  const exp = parseDateSafe_(raw);
-  if(!exp){
-    el.style.display = "none";
-    el.textContent = "";
-    return;
-  }
+
+  const target = info.date;
   const now = new Date();
+
   const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const expStart = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate()).getTime();
-  const diffDays = Math.floor((expStart - nowStart) / 86400000);
+  const targetStart = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate()
+  ).getTime();
+
+  const diffDays = Math.floor((targetStart - nowStart) / 86400000);
+
   let label = "";
-  if(diffDays < 0) label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
-  else if(diffDays === 0) label = "EXPIRES TODAY";
-  else if(diffDays === 1) label = "EXPIRES IN 1 DAY";
-  else label = `EXPIRES IN ${diffDays} DAYS`;
+
+  if(info.type === "payment_due"){
+    if(diffDays < 0){
+      label = `付款期限已過 ${Math.abs(diffDays)} 天`;
+      el.classList.add("is-expired");
+    }else if(diffDays === 0){
+      label = "付款期限今天截止";
+      el.classList.remove("is-expired");
+    }else if(diffDays === 1){
+      label = "付款期限剩 1 天";
+      el.classList.remove("is-expired");
+    }else{
+      label = `付款期限剩 ${diffDays} 天`;
+      el.classList.remove("is-expired");
+    }
+    el.title = `付款期限：${formatDateYmd_(target)}`;
+  }else{
+    if(diffDays < 0){
+      label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
+      el.classList.add("is-expired");
+    }else if(diffDays === 0){
+      label = "EXPIRES TODAY";
+      el.classList.remove("is-expired");
+    }else if(diffDays === 1){
+      label = "EXPIRES IN 1 DAY";
+      el.classList.remove("is-expired");
+    }else{
+      label = `EXPIRES IN ${diffDays} DAYS`;
+      el.classList.remove("is-expired");
+    }
+    el.title = `Expiry Date: ${formatDateYmd_(target)}`;
+  }
+
   el.textContent = label;
   el.style.display = "block";
 }
@@ -1358,13 +1464,30 @@ function getQrCenterRatio_(baseRatio){
   return baseRatio;
 }
 
-function buildQrImageUrl_(url, size){
+function buildQrImageUrl_(url, size, provider){
   const s = Number(size) || 220;
+  const data = encodeURIComponent(String(url || ""));
+
+  if(provider === "quickchart"){
+    return "https://quickchart.io/qr"
+      + "?size=" + encodeURIComponent(String(s))
+      + "&text=" + data
+      + "&ecLevel=H"
+      + "&margin=2";
+  }
+
   return "https://api.qrserver.com/v1/create-qr-code/"
     + "?size=" + encodeURIComponent(`${s}x${s}`)
-    + "&data=" + encodeURIComponent(String(url))
+    + "&data=" + data
     + "&ecc=H"
     + "&margin=2";
+}
+
+function buildQrCandidates_(url, size){
+  return [
+    buildQrImageUrl_(url, size, "qrserver"),
+    buildQrImageUrl_(url, size, "quickchart")
+  ];
 }
 
 function hideCenterImg_(imgEl){
@@ -1427,30 +1550,80 @@ function updateQrCenterSizes_(){
 
 function renderQr(options){
   const {
-    container, url, size = 160,
-    centerImgEl = null, centerImgUrl = "", centerSizeRatio = 0.09, renderKey = ""
+    container,
+    url,
+    size = 160,
+    centerImgEl = null,
+    centerImgUrl = "",
+    centerSizeRatio = 0.09,
+    renderKey = ""
   } = options || {};
+
   if(!container || !url) return false;
-  const key = renderKey || `${url}|${size}|${normalizeImageUrl_(centerImgUrl)}|${centerSizeRatio}`;
-  if(container.dataset.renderKey === key){
-    if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
+
+  const normalizedCenter = normalizeImageUrl_(centerImgUrl);
+  const key = renderKey || `${url}|${size}|${normalizedCenter}|${centerSizeRatio}`;
+
+  if(container.dataset.renderKey === key && container.querySelector("img")){
+    if(centerImgEl) setCenterImg_(centerImgEl, normalizedCenter, centerSizeRatio);
+    container.style.display = "block";
+    container.style.visibility = "visible";
+    container.style.opacity = "1";
     return true;
   }
+
   container.dataset.renderKey = key;
   container.innerHTML = "";
+  container.style.display = "block";
+  container.style.visibility = "visible";
+  container.style.opacity = "1";
+
   const img = document.createElement("img");
   img.alt = "QR Code";
   img.loading = "eager";
   img.decoding = "sync";
   img.referrerPolicy = "no-referrer";
-  try{ img.crossOrigin = "anonymous"; }catch{}
-  img.src = buildQrImageUrl_(url, size) + "&t=" + Date.now();
+
+  try{ img.crossOrigin = "anonymous"; }catch(_e){}
+
   img.style.width = "100%";
   img.style.height = "100%";
   img.style.display = "block";
   img.style.objectFit = "contain";
+
+  const candidates = buildQrCandidates_(url, size).map(src => {
+    const sep = src.includes("?") ? "&" : "?";
+    return `${src}${sep}t=${Date.now()}&v=${encodeURIComponent(CONFIG.VERSION)}`;
+  });
+
+  let idx = 0;
+  const tryNext = () => {
+    idx += 1;
+    if(idx >= candidates.length){
+      container.dataset.renderKey = "";
+      console.warn("[HSC QR] QR 兩個來源都失敗:", url);
+      return;
+    }
+    img.src = candidates[idx];
+  };
+
+  img.onerror = () => {
+    tryNext();
+  };
+
+  img.onload = () => {
+    container.style.display = "block";
+    container.style.visibility = "visible";
+    container.style.opacity = "1";
+  };
+
+  img.src = candidates[0];
   container.appendChild(img);
-  if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
+
+  if(centerImgEl){
+    setCenterImg_(centerImgEl, normalizedCenter, centerSizeRatio);
+  }
+
   return true;
 }
 
@@ -1489,27 +1662,28 @@ function renderBottomQr_(p){
   const grid = qs("bottomQrGrid");
   const avatar = qs("bottomQrAvatar");
   if(!sec || !grid || !avatar) return;
+
   const payload = p || getActiveCardPayload_();
   const info = pickAvatarInfo_(payload);
   const qrUrl = buildTrackedShareUrl_(payload);
   const avatarUrl = info.url;
+
   const key = "bottom|" + qrUrl + "|" + avatarUrl;
+  lastBottomQrRenderKey = key;
+
   const canvas = avatar.parentElement;
   if(canvas) canvas.style.position = "relative";
-  if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
-    lastBottomQrRenderKey = key;
-    renderQr({
-      container: grid,
-      url: qrUrl,
-      size: 136,
-      centerImgEl: avatar,
-      centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.09,
-      renderKey: key
-    });
-  }else{
-    setCenterImg_(avatar, avatarUrl, 0.09);
-  }
+
+  renderQr({
+    container: grid,
+    url: qrUrl,
+    size: 136,
+    centerImgEl: avatar,
+    centerImgUrl: avatarUrl,
+    centerSizeRatio: 0.09,
+    renderKey: key
+  });
+
   sec.style.display = "block";
   grid.style.display = "block";
   grid.style.visibility = "visible";
@@ -1520,27 +1694,27 @@ function renderFeatureQrFromCurrent_(){
   const grid = qs("featureQrGrid");
   const avatar = qs("featureQrAvatar");
   if(!grid || !avatar) return;
+
   const payload = getActiveCardPayload_();
   const info = pickAvatarInfo_(payload);
   const url = buildTrackedShareUrl_(payload);
   const avatarUrl = info.url || currentAvatarUrlCache || "";
   const key = "feature|" + url + "|" + avatarUrl;
+  lastFeatureQrRenderKey = key;
+
   const canvas = avatar.parentElement;
   if(canvas) canvas.style.position = "relative";
-  if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
-    lastFeatureQrRenderKey = key;
-    renderQr({
-      container: grid,
-      url,
-      size: 152,
-      centerImgEl: avatar,
-      centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.09,
-      renderKey: key
-    });
-  }else{
-    setCenterImg_(avatar, avatarUrl, 0.09);
-  }
+
+  renderQr({
+    container: grid,
+    url,
+    size: 152,
+    centerImgEl: avatar,
+    centerImgUrl: avatarUrl,
+    centerSizeRatio: 0.09,
+    renderKey: key
+  });
+
   grid.style.display = "block";
   grid.style.visibility = "visible";
   grid.style.opacity = "1";
@@ -1548,35 +1722,24 @@ function renderFeatureQrFromCurrent_(){
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 
 /* ============================================================
-   QR 強制回補（v7.7.3）
+   QR 強制回補
 ============================================================ */
 function rerenderAllQrAfterFacade_(){
   const active = getActiveCardPayload_();
   if(!active) return;
 
-  requestAnimationFrame(() => {
+  const jobs = () => {
     try{ renderFacadeQrFromCurrent_(); }catch(_e){}
     try{ renderFeatureQrFromCurrent_(); }catch(_e){}
     try{ renderBottomQr_(active); }catch(_e){}
     try{ renderBottomHubShareBtn_(); }catch(_e){}
     try{ updateQrCenterSizes_(); }catch(_e){}
-  });
+  };
 
-  setTimeout(() => {
-    try{ renderFacadeQrFromCurrent_(); }catch(_e){}
-    try{ renderFeatureQrFromCurrent_(); }catch(_e){}
-    try{ renderBottomQr_(active); }catch(_e){}
-    try{ renderBottomHubShareBtn_(); }catch(_e){}
-    try{ updateQrCenterSizes_(); }catch(_e){}
-  }, 180);
-
-  setTimeout(() => {
-    try{ renderFacadeQrFromCurrent_(); }catch(_e){}
-    try{ renderFeatureQrFromCurrent_(); }catch(_e){}
-    try{ renderBottomQr_(active); }catch(_e){}
-    try{ renderBottomHubShareBtn_(); }catch(_e){}
-    try{ updateQrCenterSizes_(); }catch(_e){}
-  }, 520);
+  requestAnimationFrame(jobs);
+  setTimeout(jobs, 120);
+  setTimeout(jobs, 320);
+  setTimeout(jobs, 680);
 }
 
 /* ============================================================
