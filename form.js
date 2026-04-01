@@ -6,7 +6,7 @@
     SERVICE_URL: "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v776_full",
+    DRAFT_KEY: "hsc_form_draft_v777_full",
     BASE_LIMITS: {
       free: { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -233,14 +233,14 @@
     bindButton(els["btn-clear-draft"], clearDraft);
   }
 
-  function onLiveChange() {
-    updatePreview();
-    saveDraftSilently();
-  }
-
   function bindButton(btn, handler) {
     if (!btn) return;
     btn.addEventListener("click", handler);
+  }
+
+  function onLiveChange() {
+    updatePreview();
+    saveDraftSilently();
   }
 
   function ensureDefaultPlan() {
@@ -344,6 +344,8 @@
   }
 
   function syncAddonInputs(limits) {
+    const bundleChecked = isAddonChecked("addon_bundle");
+
     if (els["addon_photo_qty"]) {
       const enabled = isAddonChecked("addon_photo");
       const maxExtra = Math.max(0, CONFIG.MAX_WALL_PHOTOS - CONFIG.BASE_LIMITS[limits.plan].wallPhotos);
@@ -369,6 +371,16 @@
       if (Number(els["addon_cta_qty"].value || 0) > maxExtra) {
         els["addon_cta_qty"].value = String(maxExtra);
       }
+    }
+
+    if (els["addon_marquee_enabled"]) {
+      els["addon_marquee_enabled"].disabled = bundleChecked;
+      if (bundleChecked) els["addon_marquee_enabled"].checked = false;
+    }
+
+    if (els["addon_update_unlimited_enabled"]) {
+      els["addon_update_unlimited_enabled"].disabled = bundleChecked;
+      if (bundleChecked) els["addon_update_unlimited_enabled"].checked = false;
     }
   }
 
@@ -647,7 +659,18 @@
   function getAddonItemsForQuote(limits) {
     const items = [];
 
-    if (isAddonChecked("addon_bundle")) {
+    const bundleChecked = isAddonChecked("addon_bundle");
+    const marqueeChecked = isAddonChecked("addon_marquee");
+    const updateChecked = isAddonChecked("addon_update_unlimited");
+    const photoChecked = isAddonChecked("addon_photo");
+    const ctaChecked = isAddonChecked("addon_cta");
+    const goldChecked = isAddonChecked("addon_agent_upgrade");
+
+    const photoQty = photoChecked ? getAddonQty("addon_photo_qty") : 0;
+    const ctaQty = ctaChecked ? getAddonQty("addon_cta_qty") : 0;
+
+    // 組合包優先：覆蓋跑馬燈與無限更新單項
+    if (bundleChecked) {
       items.push({
         code: "addon_bundle",
         name: "跑馬燈＋更新組合",
@@ -655,50 +678,50 @@
         unit_price: CONFIG.ADDON_PRICES.addon_bundle,
         amount: CONFIG.ADDON_PRICES.addon_bundle
       });
-      return items;
+    } else {
+      if (marqueeChecked) {
+        items.push({
+          code: "addon_marquee",
+          name: "跑馬燈功能",
+          qty: 1,
+          unit_price: CONFIG.ADDON_PRICES.addon_marquee,
+          amount: CONFIG.ADDON_PRICES.addon_marquee
+        });
+      }
+
+      if (updateChecked) {
+        items.push({
+          code: "addon_update_unlimited",
+          name: "無限更新",
+          qty: 1,
+          unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited,
+          amount: CONFIG.ADDON_PRICES.addon_update_unlimited
+        });
+      }
     }
 
-    if (isAddonChecked("addon_marquee")) {
-      items.push({
-        code: "addon_marquee",
-        name: "跑馬燈功能",
-        qty: 1,
-        unit_price: CONFIG.ADDON_PRICES.addon_marquee,
-        amount: CONFIG.ADDON_PRICES.addon_marquee
-      });
-    }
-
-    if (isAddonChecked("addon_photo") && limits.extraWallPhotos > 0) {
+    // 照片、CTA 永遠獨立計價
+    if (photoChecked && photoQty > 0) {
       items.push({
         code: "addon_photo",
         name: "照片牆加購",
-        qty: limits.extraWallPhotos,
+        qty: photoQty,
         unit_price: CONFIG.ADDON_PRICES.addon_photo,
-        amount: limits.extraWallPhotos * CONFIG.ADDON_PRICES.addon_photo
+        amount: photoQty * CONFIG.ADDON_PRICES.addon_photo
       });
     }
 
-    if (isAddonChecked("addon_cta") && limits.extraCtas > 0) {
+    if (ctaChecked && ctaQty > 0) {
       items.push({
         code: "addon_cta",
         name: "CTA 加購",
-        qty: limits.extraCtas,
+        qty: ctaQty,
         unit_price: CONFIG.ADDON_PRICES.addon_cta,
-        amount: limits.extraCtas * CONFIG.ADDON_PRICES.addon_cta
+        amount: ctaQty * CONFIG.ADDON_PRICES.addon_cta
       });
     }
 
-    if (isAddonChecked("addon_update_unlimited")) {
-      items.push({
-        code: "addon_update_unlimited",
-        name: "無限更新",
-        qty: 1,
-        unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited,
-        amount: CONFIG.ADDON_PRICES.addon_update_unlimited
-      });
-    }
-
-    if (isAddonChecked("addon_agent_upgrade")) {
+    if (goldChecked) {
       items.push({
         code: "addon_agent_upgrade",
         name: "金牌級會員",
@@ -713,24 +736,32 @@
 
   function syncQuote(limits) {
     const addonItems = getAddonItemsForQuote(limits);
-    const addonAmount = addonItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-    const total = limits.planPrice + addonAmount;
+
+    const addonAmount = addonItems.reduce((sum, item) => {
+      return sum + Number(item.amount || 0);
+    }, 0);
+
+    const total = Number(limits.planPrice || 0) + addonAmount;
 
     if (els["quote-state-text"]) {
       els["quote-state-text"].textContent = `${limits.planLabel}｜${money(total)}`;
     }
+
     if (els["quote-plan-amount"]) {
-      els["quote-plan-amount"].textContent = money(limits.planPrice);
+      els["quote-plan-amount"].textContent = money(limits.planPrice || 0);
     }
+
     if (els["quote-addon-amount"]) {
       els["quote-addon-amount"].textContent = money(addonAmount);
     }
+
     if (els["quote-total-amount"]) {
       els["quote-total-amount"].textContent = money(total);
     }
 
     if (els["quote-addon-breakdown"]) {
       els["quote-addon-breakdown"].innerHTML = "";
+
       if (!addonItems.length) {
         const span = document.createElement("span");
         span.textContent = "尚未選擇加購";
@@ -739,7 +770,10 @@
         addonItems.forEach(item => {
           const row = document.createElement("div");
           row.className = "quote-breakdown-row";
-          row.innerHTML = `<span>${escapeHtml(item.name)}${item.qty > 1 ? ` × ${item.qty}` : ""}</span><strong>${money(item.amount)}</strong>`;
+          row.innerHTML = `
+            <span>${escapeHtml(item.name)}${item.qty > 1 ? ` × ${item.qty}` : (item.code === "addon_photo" || item.code === "addon_cta") ? ` × ${item.qty}` : ""}</span>
+            <strong>${money(item.amount)}</strong>
+          `;
           els["quote-addon-breakdown"].appendChild(row);
         });
       }
@@ -764,7 +798,7 @@
       renderer.renderCard(data, {
         mode: "form",
         root: root,
-        useExistingDom: true,
+        useExistingDom: false,
         qrMode: "preview",
         allowActions: false,
         previewUrl: buildPreviewUrl(),
@@ -920,6 +954,7 @@
     const limits = getLimits();
     const theme = getThemeSelection();
     const previewData = buildPreviewData();
+    const addonItems = getAddonItemsForQuote(limits);
 
     const payload = {
       action: "createCardWithOfflinePayment",
@@ -953,6 +988,8 @@
 
       avatar_url: previewData.avatar_url || "",
       logo_url: previewData.logo_url || "",
+
+      addon_items: addonItems,
 
       features_json: {
         photo_meta: buildPhotoMetaMap(),
@@ -1063,6 +1100,7 @@
 
   function getThemeSelection() {
     const plan = getSelectedPlan() || "premium";
+
     if (plan === "free") {
       return {
         plan,
@@ -1170,6 +1208,7 @@
     const values = draft.values || {};
     Object.keys(values).forEach(key => {
       const byId = document.getElementById(key);
+
       if (byId) {
         if (byId.type === "checkbox") {
           byId.checked = !!values[key];
