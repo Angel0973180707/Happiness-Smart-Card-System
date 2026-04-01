@@ -1,9 +1,10 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.6-full-rebuild-renderer-aligned
+   v7.7-double-preview-facade-split
    完整覆蓋版
-   - 門面保留舊架構
-   - 主卡改由 card-renderer.js 唯一渲染
+   - 門面固定只讀 TW0001
+   - 門面樣品體驗切換獨立 facadeState
+   - 正式使用 card-renderer.js 渲染門面樣品
    - 保留 fetch / announcement / share / install / invite / QR
 ============================================================ */
 
@@ -12,11 +13,13 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.6-full-rebuild-renderer-aligned",
+  VERSION: "v7.7-double-preview-facade-split",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
 };
+
+const FACADE_SAMPLE_ID = "TW0001";
 
 const BUILTIN_ANNOUNCEMENTS = [
   {
@@ -71,6 +74,9 @@ const DEFAULT_PHOTO_META = {
   rotate: 0
 };
 
+/* ============================================================
+   全域狀態
+============================================================ */
 let currentRow = null;
 let deferredInstallPrompt = null;
 let currentAvatarUrlCache = "";
@@ -86,6 +92,20 @@ let announcementItems_ = [];
 let announcementIndex_ = 0;
 let announcementTimer_ = null;
 
+/* 門面專用：固定樣品資料 + 體驗切換狀態 */
+let facadeBaseData = null;
+
+const facadeState = {
+  plan: "free",       // free | premium
+  color: "c1",        // free 顏色 c1~c5
+  style: "s1",        // s1~s3
+  paper: "f1",        // f1~f3
+  premiumColor: "p1"  // premium 顏色 p1~p7
+};
+
+/* ============================================================
+   基礎工具
+============================================================ */
 function qs(id){ return document.getElementById(id); }
 function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
 function text(v){ return (v == null ? "" : String(v)).trim(); }
@@ -111,14 +131,18 @@ function getIdFromUrl_(){
   try{
     const sp = getSearchParams_();
     return sp.get("id") || "";
-  }catch{ return ""; }
+  }catch{
+    return "";
+  }
 }
 
 function getRefFromUrl_(){
   try{
     const sp = getSearchParams_();
     return text(sp.get("ref") || "");
-  }catch{ return ""; }
+  }catch{
+    return "";
+  }
 }
 
 function normalizeUrl_(s){
@@ -380,16 +404,14 @@ function getReferralSourceCode_(p){
       text(pick(p, ["id"]));
     if(code) return code;
   }
-  const id = normalizeId_(getIdFromUrl_());
-  return id || "";
+  return FACADE_SAMPLE_ID;
 }
 
 function getCardIdForShare_(p){
   const payload = p || currentRow || null;
   return (
     normalizeId_(text(pick(payload, ["id"]))) ||
-    normalizeId_(getIdFromUrl_()) ||
-    CONFIG.DEFAULT_ID
+    FACADE_SAMPLE_ID
   );
 }
 
@@ -432,11 +454,11 @@ function buildTrackedShareUrl_(p){
 function buildHubShareUrl_(){
   try{
     const u = new URL(CONFIG.HUB_URL);
-    const code = getReferralSourceCode_(currentRow);
+    const code = getReferralSourceCode_(currentRow || facadeBaseData);
     if(code) u.searchParams.set("ref", code);
     return u.toString();
   }catch{
-    const code = getReferralSourceCode_(currentRow);
+    const code = getReferralSourceCode_(currentRow || facadeBaseData);
     return CONFIG.HUB_URL + (code ? ("?ref=" + encodeURIComponent(code)) : "");
   }
 }
@@ -472,16 +494,23 @@ async function ensureInviteApplyData_(){
       copyText: currentInviteCopyTextCache
     };
   }
-  const refCode = getReferralSourceCode_(currentRow);
+
+  const refCode = getReferralSourceCode_(facadeBaseData || currentRow);
   currentReferralSourceCodeCache = refCode || "";
+
   let applyCode = "";
   try{
     const payload = await fetchJsonRobust_(buildLeadCreateUrl_(refCode));
     applyCode = text(payload?.data?.lead_id || payload?.lead_id || "");
-  }catch(_err){ applyCode = ""; }
+  }catch(_err){
+    applyCode = "";
+  }
+
   if(!applyCode) applyCode = createLocalApplyCode_();
+
   currentInviteApplyCodeCache = applyCode;
   currentInviteCopyTextCache = buildInviteApplyText_(refCode, applyCode);
+
   return {
     refCode: refCode || "無",
     applyCode,
@@ -490,7 +519,7 @@ async function ensureInviteApplyData_(){
 }
 
 window.__ensureInviteApplyData = ensureInviteApplyData_;
-window.__getReferralSourceCode = function(){ return getReferralSourceCode_(currentRow); };
+window.__getReferralSourceCode = function(){ return getReferralSourceCode_(facadeBaseData || currentRow); };
 
 function normalizeImageUrl_(raw){
   let url = normalizeUrl_(raw);
@@ -564,21 +593,9 @@ function setImgWithFallback_(imgEl, candidates, options = {}){
   imgEl.src = buildSrc(list[0]);
 }
 
-const UI_STATE = {
-  plan: "free",
-  theme: "color-1",
-  premiumTheme: "p1",
-  style: "arch",
-  paper: "paper-1"
-};
-
-function setActiveAmong_(elements, activeEl){
-  (elements || []).forEach(el => {
-    if(el === activeEl) el.classList.add("active");
-    else el.classList.remove("active");
-  });
-}
-
+/* ============================================================
+   門面 state 對應工具
+============================================================ */
 function mapFreeColorToTheme_(v){
   const raw = text(v).toLowerCase();
   const map = {
@@ -606,31 +623,16 @@ function mapPremiumToUi_(v){
   return allow.includes(raw) ? raw : "p1";
 }
 
-function applyPreviewMetaUi_(p){
-  const preview = getPreviewMeta_(p);
-  const planFromPreview = preview.theme === "premium" ? "premium" : preview.theme === "free" ? "free" : "";
-  const effectivePlan = planFromPreview || normalizePlan_(pick(p, ["plan"]));
-
-  if(effectivePlan === "premium"){
-    UI_STATE.plan = "premium";
-    UI_STATE.premiumTheme = mapPremiumToUi_(pick(p, ["color"]) || "p1");
-  }else{
-    UI_STATE.plan = "free";
-    UI_STATE.theme = mapFreeColorToTheme_(pick(p, ["color"]) || "c1");
-    UI_STATE.style = mapStyleToUi_(pick(p, ["style"]) || "s1");
-    UI_STATE.paper = mapPaperToUi_(pick(p, ["paper"]) || "f1");
-  }
-
-  syncPlanUI_();
-}
-
+/* ============================================================
+   門面 UI 同步
+============================================================ */
 function syncPlanUI_(){
   const freeBtn = qs("btnPlanFree");
   const premBtn = qs("btnPlanPremium");
   const freeControls = qs("free-controls");
   const premiumControls = qs("premium-controls");
 
-  if(UI_STATE.plan === "premium"){
+  if(facadeState.plan === "premium"){
     if(freeControls) freeControls.style.display = "none";
     if(premiumControls) premiumControls.style.display = "";
     if(freeBtn) freeBtn.classList.remove("active");
@@ -650,18 +652,18 @@ function syncThemeUI_(){
   const freeDots = qsa("#freeDotsRow .dot");
   const premiumDots = qsa("#premiumDotsRow .p-dot");
 
-  if(UI_STATE.plan === "premium"){
+  if(facadeState.plan === "premium"){
     premiumDots.forEach(btn => {
-      const expected = btn.getAttribute("aria-label");
-      if(expected === UI_STATE.premiumTheme) btn.classList.add("active");
+      const expected = text(btn.getAttribute("aria-label"));
+      if(expected === facadeState.premiumColor) btn.classList.add("active");
       else btn.classList.remove("active");
     });
     freeDots.forEach(btn => btn.classList.remove("active"));
   }else{
     freeDots.forEach(btn => {
-      const map = { "dot-1":"color-1","dot-2":"color-2","dot-3":"color-3","dot-4":"color-4","dot-5":"color-5" };
+      const map = { "dot-1":"c1","dot-2":"c2","dot-3":"c3","dot-4":"c4","dot-5":"c5" };
       const match = Object.keys(map).find(cls => btn.classList.contains(cls));
-      if(match && map[match] === UI_STATE.theme) btn.classList.add("active");
+      if(match && map[match] === facadeState.color) btn.classList.add("active");
       else btn.classList.remove("active");
     });
     premiumDots.forEach(btn => btn.classList.remove("active"));
@@ -672,9 +674,9 @@ function syncStyleUI_(){
   const buttons = qsa("#styleRow .btn-neo");
   buttons.forEach(btn => {
     const t = text(btn.textContent);
-    const map = { "正拱":"arch","平直":"flat","晨曦":"spot" };
+    const map = { "正拱":"s1","平直":"s2","晨曦":"s3" };
     const v = map[t] || "";
-    if(v === UI_STATE.style) btn.classList.add("active");
+    if(v === facadeState.style) btn.classList.add("active");
     else btn.classList.remove("active");
   });
 }
@@ -683,53 +685,207 @@ function syncPaperUI_(){
   const buttons = qsa("#paperRow .btn-neo");
   buttons.forEach(btn => {
     const t = text(btn.textContent);
-    const map = { "棉紙":"paper-1","象牙紙":"paper-2","霧灰":"paper-3" };
+    const map = { "棉紙":"f1","象牙紙":"f2","霧灰":"f3" };
     const v = map[t] || "";
-    if(v === UI_STATE.paper) btn.classList.add("active");
+    if(v === facadeState.paper) btn.classList.add("active");
     else btn.classList.remove("active");
   });
 }
-
-window.setPlan = function(plan, el){
-  UI_STATE.plan = (plan === "premium") ? "premium" : "free";
-  syncPlanUI_();
-  if(el){
-    const planBtns = [qs("btnPlanFree"), qs("btnPlanPremium")].filter(Boolean);
-    setActiveAmong_(planBtns, el);
-  }
-};
-
-window.setTheme = function(theme, el){
-  if(!theme) return;
-  if(/^color-\d+$/.test(theme)){ UI_STATE.plan = "free"; UI_STATE.theme = theme; }
-  else if(/^p\d+$/.test(theme)){ UI_STATE.plan = "premium"; UI_STATE.premiumTheme = theme; }
-  syncPlanUI_();
-  if(el){
-    const groupSel = UI_STATE.plan === "premium" ? "#premiumDotsRow .p-dot" : "#freeDotsRow .dot";
-    setActiveAmong_(qsa(groupSel), el);
-  }
-};
-
-window.setStyle = function(style, el){
-  const v = text(style);
-  if(!["arch","flat","spot"].includes(v)) return;
-  UI_STATE.style = v;
-  syncStyleUI_();
-  if(el) setActiveAmong_(qsa("#styleRow .btn-neo"), el);
-};
-
-window.setPaper = function(paper, el){
-  const v = text(paper);
-  if(!["paper-1","paper-2","paper-3"].includes(v)) return;
-  UI_STATE.paper = v;
-  syncPaperUI_();
-  if(el) setActiveAmong_(qsa("#paperRow .btn-neo"), el);
-};
 
 function initSelectionState_(){
   syncPlanUI_();
 }
 
+/* ============================================================
+   門面資料：固定讀 TW0001
+============================================================ */
+async function loadFacadeBaseCard(){
+  const url = buildCardApiUrl_(FACADE_SAMPLE_ID);
+  const payload = await fetchJsonRobust_(url);
+  const row = extractCardRow_(payload);
+
+  if(!row || typeof row !== "object" || !Object.keys(row).length){
+    throw new Error("門面樣品卡資料為空");
+  }
+
+  const merged = normalizeCardFeatures(row);
+  facadeBaseData = buildNormalizedPayload_(merged);
+
+  const basePlan = getEffectiveTheme_(facadeBaseData);
+  if(basePlan === "premium"){
+    facadeState.plan = "premium";
+    facadeState.premiumColor = text(pick(facadeBaseData, ["color"])) || "p1";
+  }else{
+    facadeState.plan = "free";
+    facadeState.color = text(pick(facadeBaseData, ["color"])) || "c1";
+    facadeState.style = text(pick(facadeBaseData, ["style"])) || "s1";
+    facadeState.paper = text(pick(facadeBaseData, ["paper"])) || "f1";
+  }
+
+  syncPlanUI_();
+}
+
+function buildFacadePreviewData(){
+  const baseRaw = facadeBaseData?.__raw || facadeBaseData || {};
+  const base = JSON.parse(JSON.stringify(baseRaw || {}));
+  const isPremium = facadeState.plan === "premium";
+
+  const baseFeatures = (base.features && typeof base.features === "object")
+    ? base.features
+    : (safeJsonParse_(base.features_json) || {});
+
+  const previewMeta = {
+    ...(baseFeatures.preview_meta || {}),
+    theme: isPremium ? "premium" : "free"
+  };
+
+  const features = {
+    ...(baseFeatures || {}),
+    preview_meta: previewMeta,
+    photo_meta: normalizePhotoMetaMap_(baseFeatures.photo_meta)
+  };
+
+  base.plan = isPremium ? "premium" : "free";
+  base.color = isPremium ? facadeState.premiumColor : facadeState.color;
+  base.style = isPremium ? "" : facadeState.style;
+  base.paper = isPremium ? "" : facadeState.paper;
+  base.photo_limit = isPremium ? 5 : 2;
+  base.cta_limit = isPremium ? 3 : 1;
+  base.features = features;
+  base.features_json = JSON.stringify(features);
+
+  base.card_url = buildTrackedShareUrl_(facadeBaseData || base);
+  base.share_url = base.card_url;
+  base.preview_url = base.card_url;
+  base.hub_url = buildHubShareUrl_();
+  base.facade_url = base.hub_url;
+
+  return base;
+}
+
+/* ============================================================
+   門面樣品渲染
+============================================================ */
+function renderFacadePreview(){
+  const root = qs("livePreviewCard");
+  if(!root || !facadeBaseData) return;
+
+  const data = buildFacadePreviewData();
+
+  const renderer =
+    window.HscCardRenderer &&
+    typeof window.HscCardRenderer.renderCard === "function"
+      ? window.HscCardRenderer.renderCard
+      : null;
+
+  if(!renderer){
+    throw new Error("card-renderer.js 尚未正確載入，找不到 HscCardRenderer.renderCard()");
+  }
+
+  const result = renderer(data, {
+    mode: "index",
+    root,
+    useExistingDom: true,
+    qrMode: "facade",
+    allowActions: false
+  });
+
+  if(!result || result.ok !== true){
+    throw new Error("門面 renderer 回傳失敗");
+  }
+
+  currentRow = buildNormalizedPayload_(data || {});
+  currentReferralSourceCodeCache = getReferralSourceCode_(facadeBaseData);
+  window.__CARD_DATA__ = currentRow;
+  window.cardData = currentRow;
+  window.payload = currentRow;
+
+  const avatarInfo = pickAvatarInfo_(currentRow);
+  currentAvatarUrlCache = avatarInfo.url || "";
+  currentAvatarSourceKeyCache = avatarInfo.key || "";
+
+  renderPostRendererUi_(currentRow);
+}
+
+/* ============================================================
+   門面切換事件（只改 facadeState）
+============================================================ */
+window.setPlan = function(plan, el){
+  facadeState.plan = (plan === "premium") ? "premium" : "free";
+  syncPlanUI_();
+  if(el){
+    const planBtns = [qs("btnPlanFree"), qs("btnPlanPremium")].filter(Boolean);
+    planBtns.forEach(btn => {
+      if(btn === el) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+  }
+  renderFacadePreview();
+};
+
+window.setTheme = function(theme, el){
+  const v = text(theme).toLowerCase();
+  if(!v) return;
+
+  const freeMap = {
+    "color-1":"c1","color-2":"c2","color-3":"c3","color-4":"c4","color-5":"c5",
+    "c1":"c1","c2":"c2","c3":"c3","c4":"c4","c5":"c5"
+  };
+
+  if(v in freeMap){
+    facadeState.plan = "free";
+    facadeState.color = freeMap[v];
+  }else if(/^p\d+$/.test(v)){
+    facadeState.plan = "premium";
+    facadeState.premiumColor = v;
+  }
+
+  syncPlanUI_();
+
+  if(el){
+    const groupSel = facadeState.plan === "premium" ? "#premiumDotsRow .p-dot" : "#freeDotsRow .dot";
+    qsa(groupSel).forEach(btn => {
+      if(btn === el) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+  }
+
+  renderFacadePreview();
+};
+
+window.setStyle = function(style, el){
+  const raw = text(style).toLowerCase();
+  const map = { "arch":"s1", "flat":"s2", "spot":"s3", "s1":"s1", "s2":"s2", "s3":"s3" };
+  if(!(raw in map)) return;
+  facadeState.style = map[raw];
+  syncStyleUI_();
+  if(el){
+    qsa("#styleRow .btn-neo").forEach(btn => {
+      if(btn === el) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+  }
+  renderFacadePreview();
+};
+
+window.setPaper = function(paper, el){
+  const raw = text(paper).toLowerCase();
+  const map = { "paper-1":"f1", "paper-2":"f2", "paper-3":"f3", "f1":"f1", "f2":"f2", "f3":"f3" };
+  if(!(raw in map)) return;
+  facadeState.paper = map[raw];
+  syncPaperUI_();
+  if(el){
+    qsa("#paperRow .btn-neo").forEach(btn => {
+      if(btn === el) btn.classList.add("active");
+      else btn.classList.remove("active");
+    });
+  }
+  renderFacadePreview();
+};
+
+/* ============================================================
+   展開文字
+============================================================ */
 function normalizeLongText_(raw){
   return String(raw || "")
     .replace(/\r\n/g, "\n")
@@ -793,12 +949,18 @@ function refreshExpandableItem_(contentEl, toggleEl){
   const needToggle = (contentEl.scrollHeight - contentEl.clientHeight) > 4;
   if(toggleEl){
     toggleEl.style.display = needToggle ? "inline-flex" : "none";
-    if(!needToggle){ toggleEl.textContent = "看更多"; toggleEl.setAttribute("aria-expanded", "false"); }
+    if(!needToggle){
+      toggleEl.textContent = "看更多";
+      toggleEl.setAttribute("aria-expanded", "false");
+    }
   }
   if(needToggle && wasExpanded){
     contentEl.classList.remove("is-collapsed");
     contentEl.classList.add("is-expanded");
-    if(toggleEl){ toggleEl.textContent = "收合"; toggleEl.setAttribute("aria-expanded", "true"); }
+    if(toggleEl){
+      toggleEl.textContent = "收合";
+      toggleEl.setAttribute("aria-expanded", "true");
+    }
   }
 }
 
@@ -868,9 +1030,17 @@ function renderCardExpiry_(p){
   const el = qs("cardExpiry");
   if(!el) return;
   const raw = text(pick(p, ["expires_at"]));
-  if(!raw){ el.style.display = "none"; el.textContent = ""; return; }
+  if(!raw){
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
   const exp = parseDateSafe_(raw);
-  if(!exp){ el.style.display = "none"; el.textContent = ""; return; }
+  if(!exp){
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
   const now = new Date();
   const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const expStart = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate()).getTime();
@@ -884,6 +1054,9 @@ function renderCardExpiry_(p){
   el.style.display = "block";
 }
 
+/* ============================================================
+   公告
+============================================================ */
 function parseDateLoose_(value){
   if(!value) return null;
   const s = String(value).trim();
@@ -1056,12 +1229,18 @@ async function fetchAndRenderAnnouncements_(){
   }
 }
 
+/* ============================================================
+   文字平衡
+============================================================ */
 function applySmartBalanceToEl_(el){
   if(!el) return;
   const raw = text(el.dataset.rawText || el.textContent);
   if(!raw) return;
   el.dataset.rawText = raw;
-  if(window.innerWidth > 560){ el.textContent = raw; return; }
+  if(window.innerWidth > 560){
+    el.textContent = raw;
+    return;
+  }
 
   if(el.dataset.balanceType === "hero-copy"){
     const parts = raw.split("|");
@@ -1116,7 +1295,9 @@ function applySmartBalanceToEl_(el){
   el.textContent = raw;
 }
 
-function applySmartBalanceAll_(){ qsa("[data-balance-type]").forEach(applySmartBalanceToEl_); }
+function applySmartBalanceAll_(){
+  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
+}
 
 let __balanceTimer = null;
 window.addEventListener("resize", () => {
@@ -1127,6 +1308,9 @@ window.addEventListener("resize", () => {
   }, 120);
 });
 
+/* ============================================================
+   QR
+============================================================ */
 function getQrCenterRatio_(baseRatio){
   const vw = window.innerWidth || 390;
   if(vw <= 360) return Math.max(0.06, baseRatio - 0.02);
@@ -1155,7 +1339,10 @@ function hideCenterImg_(imgEl){
 function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   if(!imgEl) return;
   const u = normalizeImageUrl_(centerImgUrl);
-  if(!u){ hideCenterImg_(imgEl); return; }
+  if(!u){
+    hideCenterImg_(imgEl);
+    return;
+  }
   const ratio = getQrCenterRatio_(sizeRatio);
   imgEl.dataset.baseRatio = String(sizeRatio);
   imgEl.dataset.centerUrl = u;
@@ -1177,7 +1364,12 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   setImgWithFallback_(imgEl, buildImgCandidates_(u), {
     crossOrigin: "anonymous",
     referrerPolicy: "no-referrer",
-    onLoad: () => { imgEl.style.display = "block"; imgEl.style.background = "transparent"; imgEl.style.padding = "0"; imgEl.style.boxShadow = "none"; },
+    onLoad: () => {
+      imgEl.style.display = "block";
+      imgEl.style.background = "transparent";
+      imgEl.style.padding = "0";
+      imgEl.style.boxShadow = "none";
+    },
     onFail: () => { hideCenterImg_(imgEl); }
   });
 }
@@ -1235,7 +1427,14 @@ function renderFacadeQrFromCurrent_(){
   const key = "facade|" + url;
   if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
   lastFacadeQrRenderKey = key;
-  renderQr({ container: grid, url, size: 148, centerImgEl: null, centerImgUrl: "", renderKey: key });
+  renderQr({
+    container: grid,
+    url,
+    size: 148,
+    centerImgEl: null,
+    centerImgUrl: "",
+    renderKey: key
+  });
 }
 
 function renderBottomQr_(p){
@@ -1251,7 +1450,15 @@ function renderBottomQr_(p){
   if(canvas) canvas.style.position = "relative";
   if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
     lastBottomQrRenderKey = key;
-    renderQr({ container: grid, url: qrUrl, size: 136, centerImgEl: avatar, centerImgUrl: avatarUrl, centerSizeRatio: 0.09, renderKey: key });
+    renderQr({
+      container: grid,
+      url: qrUrl,
+      size: 136,
+      centerImgEl: avatar,
+      centerImgUrl: avatarUrl,
+      centerSizeRatio: 0.09,
+      renderKey: key
+    });
   }else{
     setCenterImg_(avatar, avatarUrl, 0.09);
   }
@@ -1269,13 +1476,24 @@ function renderFeatureQrFromCurrent_(){
   if(canvas) canvas.style.position = "relative";
   if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
     lastFeatureQrRenderKey = key;
-    renderQr({ container: grid, url, size: 152, centerImgEl: avatar, centerImgUrl: avatarUrl, centerSizeRatio: 0.09, renderKey: key });
+    renderQr({
+      container: grid,
+      url,
+      size: 152,
+      centerImgEl: avatar,
+      centerImgUrl: avatarUrl,
+      centerSizeRatio: 0.09,
+      renderKey: key
+    });
   }else{
     setCenterImg_(avatar, avatarUrl, 0.09);
   }
 }
 window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 
+/* ============================================================
+   分享 / invite
+============================================================ */
 async function shareUrl_(url, title, textMsg, okMsg){
   try{
     if(navigator.share){
@@ -1341,6 +1559,9 @@ function renderInstallDock_(){
   dock.style.display = cleanMode ? "" : "none";
 }
 
+/* ============================================================
+   renderer 後補 UI
+============================================================ */
 function renderPostRendererUi_(row){
   const unitVal = normalizeLongText_(pick(row, ["unit", "單位", "公司"]));
   const sloganVal = normalizeLongText_(pick(row, ["slogan", "一句話", "簡介"]));
@@ -1375,80 +1596,9 @@ function renderPostRendererUi_(row){
   });
 }
 
-function renderCardWithRenderer(row){
-  let sourceRow = row || {};
-
-  if(
-    sourceRow &&
-    typeof sourceRow === "object" &&
-    (!text(sourceRow.name)) &&
-    text(sourceRow.lead_snapshot)
-  ){
-    try{
-      const snap = safeJsonParse_(sourceRow.lead_snapshot);
-      if(snap && typeof snap === "object"){
-        sourceRow = { ...snap, ...sourceRow };
-      }
-    }catch(_e){}
-  }
-
-  sourceRow = normalizeCardFeatures(sourceRow);
-
-  const normalizedData = buildNormalizedPayload_(sourceRow || {});
-  currentRow = normalizedData;
-  currentReferralSourceCodeCache = getReferralSourceCode_(normalizedData);
-  window.__CARD_DATA__ = normalizedData;
-  window.cardData = normalizedData;
-  window.payload = normalizedData;
-
-  const avatarInfo = pickAvatarInfo_(normalizedData);
-  currentAvatarUrlCache = avatarInfo.url || "";
-  currentAvatarSourceKeyCache = avatarInfo.key || "";
-
-  sourceRow.card_url = buildTrackedShareUrl_(normalizedData);
-  sourceRow.share_url = sourceRow.card_url;
-  sourceRow.preview_url = sourceRow.card_url;
-  sourceRow.hub_url = buildHubShareUrl_();
-  sourceRow.facade_url = sourceRow.hub_url;
-
-  applyPreviewMetaUi_(normalizedData);
-
-  const renderer =
-    window.HscCardRenderer &&
-    typeof window.HscCardRenderer.renderCard === "function"
-      ? window.HscCardRenderer.renderCard
-      : null;
-
-  if(!renderer){
-    throw new Error("card-renderer.js 尚未正確載入，找不到 HscCardRenderer.renderCard()");
-  }
-
-  const root = document.getElementById("livePreviewCard");
-  if(!root){
-    throw new Error("找不到 #livePreviewCard");
-  }
-
-  const result = renderer(sourceRow, {
-    mode: "index",
-    root: root,
-    useExistingDom: true,
-    qrMode: "card",
-    allowActions: true
-  });
-
-  if(!result || result.ok !== true){
-    throw new Error("renderer 回傳失敗");
-  }
-
-  currentRow = buildNormalizedPayload_(sourceRow || {});
-  currentReferralSourceCodeCache = getReferralSourceCode_(currentRow);
-  window.__CARD_DATA__ = currentRow;
-  window.cardData = currentRow;
-  window.payload = currentRow;
-
-  renderPostRendererUi_(currentRow);
-}
-
+/* ============================================================
+   PWA
+============================================================ */
 function isIos_(){ return /iphone|ipad|ipod/i.test(navigator.userAgent || ""); }
 function isStandalone_(){ return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true; }
 
@@ -1458,31 +1608,57 @@ function updateInstallUi_(){
   const dock = qs("installDock");
   const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
   const canInstall = !!deferredInstallPrompt || isIos_() || !isStandalone_();
-  if(btn){ btn.disabled = false; btn.style.opacity = canInstall ? "1" : ".62"; }
+  if(btn){
+    btn.disabled = false;
+    btn.style.opacity = canInstall ? "1" : ".62";
+  }
   if(fab) fab.style.display = cleanMode ? "flex" : "none";
   if(dock) dock.style.display = cleanMode ? "" : "none";
 }
 
 async function triggerPwaInstall_(){
-  if(isStandalone_()){ alert("✅ 已經安裝在桌面上了"); return; }
+  if(isStandalone_()){
+    alert("✅ 已經安裝在桌面上了");
+    return;
+  }
   if(deferredInstallPrompt){
     try{
       deferredInstallPrompt.prompt();
       await deferredInstallPrompt.userChoice;
-    }catch(err){ console.error(err); }
-    finally{ deferredInstallPrompt = null; updateInstallUi_(); }
+    }catch(err){
+      console.error(err);
+    }finally{
+      deferredInstallPrompt = null;
+      updateInstallUi_();
+    }
     return;
   }
-  if(isIos_()){ alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。"); return; }
+  if(isIos_()){
+    alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。");
+    return;
+  }
   alert("目前裝置尚未出現系統安裝提示。\n\n你可以先用瀏覽器選單中的『安裝應用程式』或『加入主畫面』。");
 }
 
 window.__triggerPwaInstall = triggerPwaInstall_;
 
-window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; updateInstallUi_(); });
-window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; updateInstallUi_(); });
-window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenterSizes_(); }, { once: true });
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  updateInstallUi_();
+});
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  updateInstallUi_();
+});
+window.addEventListener("load", () => {
+  ensureBottomQrVisible_();
+  updateQrCenterSizes_();
+}, { once: true });
 
+/* ============================================================
+   啟動
+============================================================ */
 (async function boot_(){
   try{
     initSelectionState_();
@@ -1491,18 +1667,10 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
     bindAnnouncementModal_();
     fetchAndRenderAnnouncements_();
 
-    const id = getIdFromUrl_() || CONFIG.DEFAULT_ID;
-    const url = buildCardApiUrl_(id);
-    const payload = await fetchJsonRobust_(url);
-
-    const row = extractCardRow_(payload);
-    if(!row || typeof row !== "object" || !Object.keys(row).length){
-      throw new Error("卡片資料為空");
-    }
-
-    renderCardWithRenderer(row);
+    await loadFacadeBaseCard();
+    renderFacadePreview();
   }catch(err){
-    console.error("[HSC card] boot failed:", err);
+    console.error("[HSC facade] boot failed:", err);
     const nameEl = qs("u-name");
     const unitWrap = qs("u-unit-wrap");
     const titleEl = qs("u-title");
