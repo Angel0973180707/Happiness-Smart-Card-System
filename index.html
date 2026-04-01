@@ -1,1688 +1,1275 @@
-/* ============================================================
-   天使幸福智慧名片館 app.js
-   v7.7-double-preview-facade-split
-   完整覆蓋版
-   - 門面固定只讀 TW0001
-   - 門面樣品體驗切換獨立 facadeState
-   - 正式使用 card-renderer.js 渲染門面樣品
-   - 保留 fetch / announcement / share / install / invite / QR
-============================================================ */
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>天使幸福智慧名片館 v7.6-full-rebuild-renderer-aligned</title>
 
-const CONFIG = {
-  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-  CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
-  DEFAULT_ID: "TW0001",
-  DEFAULT_TENANT: "angel",
-  VERSION: "v7.7-double-preview-facade-split",
-  FETCH_TIMEOUT_MS: 15000,
-  RETRY: 3,
-  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
-};
+  <link rel="manifest" href="./manifest.json?v=v7.6-full-rebuild-renderer-aligned" />
+  <meta name="theme-color" content="#f8f4ee" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="apple-touch-icon" href="./icon-192.png?v=v7.6-full-rebuild-renderer-aligned" />
+  <link rel="icon" href="./icon-192.png?v=v7.6-full-rebuild-renderer-aligned" />
 
-const FACADE_SAMPLE_ID = "TW0001";
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="天使幸福智慧名片館" />
 
-const BUILTIN_ANNOUNCEMENTS = [
-  {
-    id: "builtin-feature",
-    title: "產品特色",
-    content: `天使幸福智慧名片是一個專為創業者、講師、服務業與個人品牌打造的數位名片入口系統。
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="天使幸福智慧名片館" />
+  <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
+  <meta property="og:image" content="og-card.png?v=v7.6-full-rebuild-renderer-aligned" />
 
-【核心特色】
-1. 一頁整合：整合電話、LINE、網站、社群平台、影音與品牌介紹，一次呈現。
-2. 行動門面：名片不只是聯絡資訊，而是你的品牌入口，讓客戶快速了解你。
-3. 可分享可收藏：支援 QR Code、連結分享與手機收藏，讓客戶隨時找得到你。
-4. 彈性設計：提供自由搭配款與精品設計款，依照個人風格打造專屬名片。
-5. 持續更新：內容可隨時調整，讓名片永遠保持最新狀態。
-6. 導流轉換：結合 CTA 按鈕，引導客戶聯繫、加 LINE 或前往服務頁。
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="./style.css?v=v7.6-full-rebuild-renderer-aligned" />
 
-天使幸福智慧名片館，幫你把「被看見」變成「被記住」。`,
-    status: "active",
-    priority: 10
-  },
-  {
-    id: "builtin-flow",
-    title: "申請流程",
-    content: `【申請流程】
-1. 先申請表單邀請碼
-2. 複製申請內容
-3. 加入 LINE 官方帳號提出申請
-4. 客服提供邀請碼與表單連結
-5. 完成填表後建立你的智慧名片
-
-若想更快開始，也可直接先閱讀門面內容，再依指引完成申請。`,
-    status: "active",
-    priority: 9
-  }
-];
-
-const PLAN_LIMITS = {
-  free: { maxPhotos: 2, maxCtas: 1 },
-  premium: { maxPhotos: 5, maxCtas: 3 }
-};
-
-const DEFAULT_PREVIEW_META = {
-  theme: "",
-  layout: "grid",
-  aspect_ratio: "1:1",
-  fit_mode: "cover"
-};
-
-const DEFAULT_PHOTO_META = {
-  x: 0.5,
-  y: 0.5,
-  scale: 1,
-  rotate: 0
-};
-
-/* ============================================================
-   全域狀態
-============================================================ */
-let currentRow = null;
-let deferredInstallPrompt = null;
-let currentAvatarUrlCache = "";
-let currentAvatarSourceKeyCache = "";
-let currentReferralSourceCodeCache = "";
-let currentInviteApplyCodeCache = "";
-let currentInviteCopyTextCache = "";
-let lastBottomQrRenderKey = "";
-let lastFeatureQrRenderKey = "";
-let lastFacadeQrRenderKey = "";
-
-let announcementItems_ = [];
-let announcementIndex_ = 0;
-let announcementTimer_ = null;
-
-/* 門面專用：固定樣品資料 + 體驗切換狀態 */
-let facadeBaseData = null;
-
-const facadeState = {
-  plan: "free",       // free | premium
-  color: "c1",        // free 顏色 c1~c5
-  style: "s1",        // s1~s3
-  paper: "f1",        // f1~f3
-  premiumColor: "p1"  // premium 顏色 p1~p7
-};
-
-/* ============================================================
-   基礎工具
-============================================================ */
-function qs(id){ return document.getElementById(id); }
-function qsa(sel){ return Array.from(document.querySelectorAll(sel)); }
-function text(v){ return (v == null ? "" : String(v)).trim(); }
-
-function normalizeId_(s){
-  const v = text(s).toUpperCase();
-  if(!v) return "";
-  if(/^TW\d{4}$/.test(v)) return v;
-  if(/^\d{1,4}$/.test(v)) return "TW" + v.padStart(4, "0");
-  if(/^TW\d{1,4}$/.test(v)){
-    const n = v.replace(/^TW/i, "");
-    return "TW" + n.padStart(4, "0");
-  }
-  return v;
-}
-
-function getSearchParams_(){
-  try{ return new URLSearchParams(location.search || ""); }
-  catch{ return new URLSearchParams(); }
-}
-
-function getIdFromUrl_(){
-  try{
-    const sp = getSearchParams_();
-    return sp.get("id") || "";
-  }catch{
-    return "";
-  }
-}
-
-function getRefFromUrl_(){
-  try{
-    const sp = getSearchParams_();
-    return text(sp.get("ref") || "");
-  }catch{
-    return "";
-  }
-}
-
-function normalizeUrl_(s){
-  let v = String(s || "").trim();
-  if(!v) return "";
-  if(/^https?:\/\//i.test(v)) return v;
-  if(/^www\./i.test(v)) return "https://" + v;
-  if(/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(v)) return "https://" + v;
-  return v;
-}
-
-function safeJsonParse_(rawText){
-  let s = String(rawText || "").trim();
-  if(!s) return null;
-  s = s.replace(/^\)\]\}'\s*\n?/, "").trim();
-  try{ return JSON.parse(s); }catch{}
-  const m = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-  if(m){ try{ return JSON.parse(m[0]); }catch{} }
-  return null;
-}
-
-async function fetchWithTimeout_(url, timeoutMs){
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
-  try{
-    const res = await fetch(url, {
-      method: "GET",
-      cache: "no-store",
-      redirect: "follow",
-      signal: controller.signal
-    });
-    const txt = await res.text();
-    const json = safeJsonParse_(txt);
-    if(!json) throw new Error("Not JSON");
-    return json;
-  }finally{
-    clearTimeout(t);
-  }
-}
-
-async function fetchJsonRobust_(url){
-  let last = null;
-  for(let i = 0; i <= CONFIG.RETRY; i++){
-    try{
-      return await fetchWithTimeout_(url, CONFIG.FETCH_TIMEOUT_MS);
-    }catch(e){
-      last = e;
-      await new Promise(r => setTimeout(r, 520 + i * 520));
+  <style>
+    :root{
+      --poster-bg:#f8f4ee;
+      --poster-bg-2:#f3ece3;
+      --poster-ink:#433227;
+      --poster-ink-soft:#6b5a4d;
+      --poster-line:rgba(102,78,57,.09);
+      --poster-shadow:0 18px 42px rgba(83,62,45,.07);
+      --poster-shadow-soft:0 10px 24px rgba(83,62,45,.05);
+      --mask-z:2147483000;
     }
-  }
-  throw last || new Error("Fetch failed");
-}
 
-function escapeHtml_(s){
-  return String(s || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function escapeHtmlWithBreaks_(s){
-  return escapeHtml_(s).replace(/\n/g, "<br>");
-}
-
-function openUrl_(url){
-  const u = normalizeUrl_(url);
-  if(!u) return;
-  window.open(u, "_blank");
-}
-
-function openMapByAddress_(addr){
-  const a = text(addr);
-  if(!a) return;
-  const q = encodeURIComponent(a);
-  window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
-}
-
-function buildCardApiUrl_(id){
-  const cid = normalizeId_(id) || CONFIG.DEFAULT_ID;
-  const u = new URL(CONFIG.GAS);
-  u.searchParams.set("action", "getCard");
-  u.searchParams.set("id", cid);
-  u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
-  u.searchParams.set("ts", String(Date.now()));
-  u.searchParams.set("v", CONFIG.VERSION);
-  return u.toString();
-}
-
-function buildLeadCreateUrl_(refCode){
-  const u = new URL(CONFIG.GAS);
-  u.searchParams.set("action", "leadCreate");
-  u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
-  if(refCode) u.searchParams.set("ref", refCode);
-  u.searchParams.set("source", "invite_gate_card");
-  u.searchParams.set("note", "invite_gate_prelog");
-  u.searchParams.set("ts", String(Date.now()));
-  u.searchParams.set("v", CONFIG.VERSION);
-  return u.toString();
-}
-
-function buildAnnouncementApiUrl_(){
-  const u = new URL(CONFIG.GAS);
-  u.searchParams.set("action", "getAnnouncements");
-  u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
-  u.searchParams.set("ts", String(Date.now()));
-  u.searchParams.set("v", CONFIG.VERSION);
-  return u.toString();
-}
-
-function buildNormalizedPayload_(obj){
-  if(!obj || typeof obj !== "object") return obj;
-  const out = { __raw: obj };
-  const lower = Object.create(null);
-  for(const k of Object.keys(obj)){
-    const nk = String(k || "").trim();
-    if(!nk) continue;
-    const v = obj[k];
-    if(out[nk] == null || text(out[nk]) === "") out[nk] = v;
-    lower[nk.toLowerCase()] = v;
-  }
-  out.__lower = lower;
-  return out;
-}
-
-function pick(p, keys){
-  if(!p) return "";
-  const lower = p.__lower || null;
-  for(const k of keys){
-    const kk = String(k || "").trim();
-    const v1 = p[kk];
-    if(v1 != null && text(v1) !== "") return v1;
-    if(lower){
-      const v2 = lower[String(kk).toLowerCase()];
-      if(v2 != null && text(v2) !== "") return v2;
+    html,body{
+      background:
+        radial-gradient(1200px 760px at 50% -10%, rgba(255,255,255,.95), transparent 58%),
+        linear-gradient(180deg, var(--poster-bg), var(--poster-bg-2)) !important;
+      color:var(--poster-ink);
     }
-  }
-  return "";
-}
 
-function extractCardRow_(payload){
-  if(!payload || typeof payload !== "object") return {};
-  if(payload.item && typeof payload.item === "object") return payload.item;
-  if(payload.row && typeof payload.row === "object") return payload.row;
-  if(payload.card && typeof payload.card === "object") return payload.card;
-  if(payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)){
-    if(payload.data.item && typeof payload.data.item === "object") return payload.data.item;
-    if(payload.data.row && typeof payload.data.row === "object") return payload.data.row;
-    if(payload.data.card && typeof payload.data.card === "object") return payload.data.card;
-    return payload.data;
-  }
-  if("id" in payload || "name" in payload || "plan" in payload || "avatar_url" in payload || "title" in payload){
-    return payload;
-  }
-  return {};
-}
+    body{ min-height:100vh; }
 
-function clampNumber_(value, min, max, fallback){
-  const n = Number(value);
-  if(Number.isFinite(n)){
-    if(Number.isFinite(min) && n < min) return min;
-    if(Number.isFinite(max) && n > max) return max;
-    return n;
-  }
-  return fallback;
-}
-
-function normalizePreviewMeta_(raw){
-  const meta = raw && typeof raw === "object" ? raw : {};
-  const theme = text(meta.theme).toLowerCase();
-  const layout = text(meta.layout).toLowerCase();
-  const aspectRatio = text(meta.aspect_ratio || meta.aspectRatio).trim();
-  const fitMode = text(meta.fit_mode || meta.fitMode).toLowerCase();
-
-  return {
-    theme: theme === "premium" || theme === "free" ? theme : DEFAULT_PREVIEW_META.theme,
-    layout: layout === "single" ? "single" : DEFAULT_PREVIEW_META.layout,
-    aspect_ratio: aspectRatio === "16:9" ? "16:9" : DEFAULT_PREVIEW_META.aspect_ratio,
-    fit_mode: fitMode === "contain" ? "contain" : DEFAULT_PREVIEW_META.fit_mode
-  };
-}
-
-function normalizeSinglePhotoMeta_(raw){
-  const meta = raw && typeof raw === "object" ? raw : {};
-  return {
-    x: clampNumber_(meta.x, 0, 1, DEFAULT_PHOTO_META.x),
-    y: clampNumber_(meta.y, 0, 1, DEFAULT_PHOTO_META.y),
-    scale: clampNumber_(meta.scale, 0.5, 3, DEFAULT_PHOTO_META.scale),
-    rotate: clampNumber_(meta.rotate, -180, 180, DEFAULT_PHOTO_META.rotate)
-  };
-}
-
-function normalizePhotoMetaMap_(raw){
-  const src = raw && typeof raw === "object" ? raw : {};
-  const out = {};
-  for(let i = 1; i <= 10; i++){
-    const key = `photo${i}`;
-    out[key] = normalizeSinglePhotoMeta_(src[key]);
-  }
-  return out;
-}
-
-function normalizeCardFeatures(card){
-  const src = card && typeof card === "object" ? card : {};
-  let parsed = {};
-  if(src.features && typeof src.features === "object"){
-    parsed = src.features;
-  }else{
-    const fromJson = safeJsonParse_(src.features_json);
-    if(fromJson && typeof fromJson === "object") parsed = fromJson;
-  }
-
-  const features = {
-    photo_meta: normalizePhotoMetaMap_(parsed.photo_meta),
-    preview_meta: normalizePreviewMeta_(parsed.preview_meta)
-  };
-
-  src.features = features;
-  return src;
-}
-
-function getPreviewMeta_(p){
-  const features = p?.features || {};
-  return normalizePreviewMeta_(features.preview_meta);
-}
-
-function getPhotoMeta_(p, key){
-  const features = p?.features || {};
-  const photoMetaMap = normalizePhotoMetaMap_(features.photo_meta);
-  return photoMetaMap[key] || { ...DEFAULT_PHOTO_META };
-}
-
-function normalizePlan_(v){
-  return text(v).toLowerCase() === "premium" ? "premium" : "free";
-}
-
-function getEffectiveTheme_(p){
-  const preview = getPreviewMeta_(p);
-  if(preview.theme === "premium" || preview.theme === "free") return preview.theme;
-  return normalizePlan_(pick(p, ["plan"]));
-}
-
-function getPhotoLimitFromPayload_(p){
-  const limit = Number(pick(p, ["photo_limit"]));
-  if(!isNaN(limit) && limit > 0 && limit <= 10) return limit;
-  const plan = getEffectiveTheme_(p);
-  return PLAN_LIMITS[plan]?.maxPhotos || PLAN_LIMITS.free.maxPhotos;
-}
-
-function getReferralSourceCode_(p){
-  const urlRef = getRefFromUrl_();
-  if(urlRef) return urlRef;
-  if(p){
-    const code =
-      text(pick(p, ["agent_id"])) ||
-      text(pick(p, ["service_agent"])) ||
-      text(pick(p, ["referrer"])) ||
-      text(pick(p, ["id"]));
-    if(code) return code;
-  }
-  return FACADE_SAMPLE_ID;
-}
-
-function getCardIdForShare_(p){
-  const payload = p || currentRow || null;
-  return (
-    normalizeId_(text(pick(payload, ["id"]))) ||
-    FACADE_SAMPLE_ID
-  );
-}
-
-function getAgentIdForShare_(p){
-  const payload = p || currentRow || null;
-  return (
-    text(pick(payload, ["service_agent"])) ||
-    text(pick(payload, ["agent_id"])) ||
-    text(pick(payload, ["share_agent_id"])) ||
-    text(pick(payload, ["referrer"])) ||
-    ""
-  );
-}
-
-function buildTrackedShareUrl_(p){
-  const cardId = getCardIdForShare_(p);
-  const agentId = getAgentIdForShare_(p);
-  try{
-    const u = new URL(CONFIG.HUB_URL + "index.html");
-    u.searchParams.set("id", cardId);
-    u.searchParams.set("view", "1");
-    u.searchParams.set("share_card_id", cardId);
-    u.searchParams.set("share_agent_id", agentId);
-    u.searchParams.set("share_source", "card_share");
-    u.searchParams.set("share_channel", "product_card");
-    u.searchParams.set("share_visit_id", "");
-    return u.toString();
-  }catch{
-    return (
-      CONFIG.HUB_URL +
-      "index.html?id=" + encodeURIComponent(cardId) +
-      "&view=1" +
-      "&share_card_id=" + encodeURIComponent(cardId) +
-      "&share_agent_id=" + encodeURIComponent(agentId) +
-      "&share_source=card_share&share_channel=product_card&share_visit_id="
-    );
-  }
-}
-
-function buildHubShareUrl_(){
-  try{
-    const u = new URL(CONFIG.HUB_URL);
-    const code = getReferralSourceCode_(currentRow || facadeBaseData);
-    if(code) u.searchParams.set("ref", code);
-    return u.toString();
-  }catch{
-    const code = getReferralSourceCode_(currentRow || facadeBaseData);
-    return CONFIG.HUB_URL + (code ? ("?ref=" + encodeURIComponent(code)) : "");
-  }
-}
-
-function createLocalApplyCode_(){
-  const d = new Date();
-  const yy = String(d.getFullYear()).slice(-2);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  return `AP${yy}${mm}${dd}${hh}${mi}${ss}`;
-}
-
-function buildInviteApplyText_(refCode, applyCode){
-  const lines = [
-    "您好，我想申請天使幸福智慧名片邀請碼。",
-    "",
-    `推薦來源識別碼：${text(refCode) || "無"}`,
-    `申請識別碼：${text(applyCode) || "-"}`,
-    "",
-    "請協助我申請開通表單，謝謝。"
-  ];
-  return lines.join("\n");
-}
-
-async function ensureInviteApplyData_(){
-  if(currentInviteApplyCodeCache && currentInviteCopyTextCache){
-    return {
-      refCode: currentReferralSourceCodeCache || "無",
-      applyCode: currentInviteApplyCodeCache,
-      copyText: currentInviteCopyTextCache
-    };
-  }
-
-  const refCode = getReferralSourceCode_(facadeBaseData || currentRow);
-  currentReferralSourceCodeCache = refCode || "";
-
-  let applyCode = "";
-  try{
-    const payload = await fetchJsonRobust_(buildLeadCreateUrl_(refCode));
-    applyCode = text(payload?.data?.lead_id || payload?.lead_id || "");
-  }catch(_err){
-    applyCode = "";
-  }
-
-  if(!applyCode) applyCode = createLocalApplyCode_();
-
-  currentInviteApplyCodeCache = applyCode;
-  currentInviteCopyTextCache = buildInviteApplyText_(refCode, applyCode);
-
-  return {
-    refCode: refCode || "無",
-    applyCode,
-    copyText: currentInviteCopyTextCache
-  };
-}
-
-window.__ensureInviteApplyData = ensureInviteApplyData_;
-window.__getReferralSourceCode = function(){ return getReferralSourceCode_(facadeBaseData || currentRow); };
-
-function normalizeImageUrl_(raw){
-  let url = normalizeUrl_(raw);
-  if(!url) return "";
-  if(url.includes("dropbox.com")){
-    url = url.replace("dl=0", "raw=1");
-    if(!url.includes("raw=1")) url += (url.includes("?") ? "&" : "?") + "raw=1";
-    return url;
-  }
-  if(url.includes("drive.google.com") && url.includes("/file/d/")){
-    const m = url.match(/\/file\/d\/([^/]+)/i);
-    if(m && m[1]) return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(m[1])}`;
-  }
-  return url;
-}
-
-function buildImgCandidates_(raw){
-  const s = text(raw);
-  if(!s) return [];
-  const url = normalizeImageUrl_(s);
-  const list = [url];
-  if(url.includes("drive.google.com/uc?export=view&id=")){
-    const m = url.match(/id=([^&]+)/i);
-    if(m && m[1]){
-      const id = decodeURIComponent(m[1]);
-      list.push(`https://drive.google.com/thumbnail?id=${id}&sz=w1200`);
-      list.push(`https://drive.google.com/uc?export=download&id=${id}`);
+    #btnLinePrivateCta,#btnLinePrivateCta2{
+      display:none !important;
+      visibility:hidden !important;
+      opacity:0 !important;
+      pointer-events:none !important;
     }
-  }
-  return [...new Set(list.filter(Boolean))];
-}
 
-function setImgWithFallback_(imgEl, candidates, options = {}){
-  const list = (candidates || []).filter(Boolean);
-  if(!imgEl){
-    if(typeof options.onFail === "function") options.onFail();
-    return;
-  }
-  if(!list.length){
-    if(typeof options.onFail === "function") options.onFail();
-    return;
-  }
-  let idx = 0;
-  let done = false;
-  imgEl.referrerPolicy = options.referrerPolicy || "no-referrer";
-  try{ imgEl.crossOrigin = options.crossOrigin || "anonymous"; }catch{}
-  const buildSrc = (src) => {
-    const sep = src.includes("?") ? "&" : "?";
-    return src + sep + "t=" + Date.now() + "&v=" + encodeURIComponent(CONFIG.VERSION);
-  };
-  const cleanup = () => { imgEl.onerror = null; imgEl.onload = null; };
-  const failAll = () => {
-    if(done) return;
-    done = true;
-    cleanup();
-    if(typeof options.onFail === "function") options.onFail();
-  };
-  const tryNext = () => {
-    if(done) return;
-    idx++;
-    if(idx >= list.length){ failAll(); return; }
-    imgEl.src = buildSrc(list[idx]);
-  };
-  imgEl.onload = () => {
-    if(done) return;
-    done = true;
-    cleanup();
-    if(typeof options.onLoad === "function") options.onLoad();
-  };
-  imgEl.onerror = () => { tryNext(); };
-  imgEl.src = buildSrc(list[0]);
-}
+    #adminHotspotBR{
+      position: fixed;
+      right: 8px;
+      bottom: 8px;
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: transparent;
+      z-index: 2147482000;
+      pointer-events: auto;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
 
-/* ============================================================
-   門面 state 對應工具
-============================================================ */
-function mapFreeColorToTheme_(v){
-  const raw = text(v).toLowerCase();
-  const map = {
-    "c1":"color-1","c2":"color-2","c3":"color-3","c4":"color-4","c5":"color-5",
-    "color-1":"color-1","color-2":"color-2","color-3":"color-3","color-4":"color-4","color-5":"color-5"
-  };
-  return map[raw] || "color-1";
-}
+    #cleanShareFab,
+    #installFab{
+      position: fixed;
+      right: 12px;
+      z-index: 2147482500;
+      width: 50px;
+      height: 50px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(24,26,32,0.46);
+      backdrop-filter: blur(14px) saturate(1.15);
+      -webkit-backdrop-filter: blur(14px) saturate(1.15);
+      box-shadow:
+        0 10px 24px rgba(0,0,0,0.22),
+        inset 0 1px 0 rgba(255,255,255,0.16),
+        0 0 0 1px rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.94);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      transition: transform .14s ease, box-shadow .14s ease, background .14s ease;
+    }
+    #cleanShareFab{ bottom: 12px; }
+    #installFab{ bottom: 68px; }
+    #cleanShareFab i,#installFab i{ font-size: 18px; }
+    #cleanShareFab:active,
+    #installFab:active{
+      transform: scale(0.96);
+      box-shadow:
+        0 6px 16px rgba(0,0,0,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.14);
+    }
 
-function mapStyleToUi_(v){
-  const raw = text(v).toLowerCase();
-  const map = { "s1":"arch","s2":"flat","s3":"spot","arch":"arch","flat":"flat","spot":"spot" };
-  return map[raw] || "arch";
-}
+    .facade-brand{
+      width:100%;
+      max-width:520px;
+      border-radius:24px;
+      padding:16px 14px 14px;
+      border:1px solid var(--poster-line);
+      background:linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
+      box-shadow:var(--poster-shadow);
+    }
+    .facade-brand-head{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+    .sun-ui-icon{
+      width:16px;
+      height:16px;
+      display:block;
+      margin-bottom:6px;
+      opacity:.92;
+    }
+    .facade-brand-title{
+      font-weight:1000;
+      font-size:18px;
+      line-height:1.25;
+      letter-spacing:.6px;
+      color:var(--poster-ink);
+      text-align:center;
+    }
+    .facade-brand-subtitle{
+      margin-top:6px;
+      font-size:13px;
+      line-height:1.35;
+      font-weight:800;
+      letter-spacing:.18em;
+      color:#a08f82;
+      text-align:center;
+    }
+    .facade-brand .p{
+      margin-top:10px;
+      font-size:11px;
+      line-height:1.72;
+      color:var(--poster-ink-soft);
+      font-weight:700;
+      text-align:center;
+      max-width:320px;
+      margin-left:auto;
+      margin-right:auto;
+      text-wrap:balance;
+      word-break:keep-all;
+    }
+    .balance-text .balance-line{ display:block; }
 
-function mapPaperToUi_(v){
-  const raw = text(v).toLowerCase();
-  const map = { "f1":"paper-1","f2":"paper-2","f3":"paper-3","paper-1":"paper-1","paper-2":"paper-2","paper-3":"paper-3" };
-  return map[raw] || "paper-1";
-}
+    .facade-qr{
+      width:100%;
+      max-width:520px;
+      margin-top:12px;
+      border-radius:24px;
+      padding:14px 14px 12px;
+      border:1px solid var(--poster-line);
+      background:linear-gradient(180deg, rgba(255,253,250,.98), rgba(255,248,241,.98));
+      box-shadow:var(--poster-shadow-soft);
+    }
+    .facade-qr-box{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+    }
+    .facade-qr-canvas{
+      position:relative;
+      width:172px;
+      height:172px;
+      padding:12px;
+      border-radius:22px;
+      background:#fff;
+      box-shadow:0 8px 18px rgba(0,0,0,.04);
+      border:1px solid rgba(0,0,0,.035);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .facade-qr-grid{
+      position:relative;
+      width:148px;
+      height:148px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      border-radius:14px;
+      background:#fff;
+    }
+    .facade-qr-grid img,
+    .qr-bottom-grid img{
+      width:100% !important;
+      height:100% !important;
+      display:block;
+      object-fit:cover;
+    }
 
-function mapPremiumToUi_(v){
-  const raw = text(v).toLowerCase();
-  const allow = ["p1","p2","p3","p4","p5","p6","p7"];
-  return allow.includes(raw) ? raw : "p1";
-}
+    .facade-qr-logo-pad{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      width:24px;
+      height:24px;
+      border-radius:8px;
+      background:rgba(255,255,255,0.98);
+      box-shadow:0 3px 8px rgba(0,0,0,0.07), 0 0 0 3px rgba(255,255,255,0.96);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      z-index:3;
+      pointer-events:none;
+    }
+    .facade-qr-logo{
+      width:10px;
+      height:10px;
+      display:block;
+    }
 
-/* ============================================================
-   門面 UI 同步
-============================================================ */
-function syncPlanUI_(){
-  const freeBtn = qs("btnPlanFree");
-  const premBtn = qs("btnPlanPremium");
-  const freeControls = qs("free-controls");
-  const premiumControls = qs("premium-controls");
+    .facade-qr-title{
+      margin-top:12px;
+      font-size:14px;
+      font-weight:900;
+      color:var(--poster-ink);
+    }
+    .facade-qr-sub{
+      margin-top:6px;
+      font-size:12px;
+      line-height:1.65;
+      font-weight:800;
+      color:var(--poster-ink-soft);
+    }
 
-  if(facadeState.plan === "premium"){
-    if(freeControls) freeControls.style.display = "none";
-    if(premiumControls) premiumControls.style.display = "";
-    if(freeBtn) freeBtn.classList.remove("active");
-    if(premBtn) premBtn.classList.add("active");
-  }else{
-    if(premiumControls) premiumControls.style.display = "none";
-    if(freeControls) freeControls.style.display = "";
-    if(premBtn) premBtn.classList.remove("active");
-    if(freeBtn) freeBtn.classList.add("active");
-  }
-  syncThemeUI_();
-  syncStyleUI_();
-  syncPaperUI_();
-}
+    .primary-link-dock .dock-buttons,
+    .cta-dock .dock-buttons,
+    .install-dock .dock-buttons,
+    .marquee-dock .dock-buttons{
+      grid-template-columns:1fr !important;
+    }
 
-function syncThemeUI_(){
-  const freeDots = qsa("#freeDotsRow .dot");
-  const premiumDots = qsa("#premiumDotsRow .p-dot");
+    .qr-bottom{
+      margin-top:16px;
+      padding:14px 12px 12px;
+      border-radius:20px;
+      border:1px solid rgba(102,78,57,.08);
+      background:linear-gradient(180deg, rgba(255,253,250,.95), rgba(255,248,241,.96));
+      box-shadow:0 12px 30px rgba(83,62,45,.05);
+      display:none;
+    }
+    .qr-bottom-head{
+      text-align:center;
+      margin-bottom:10px;
+    }
+    .qr-bottom-title{
+      font-size:13px;
+      font-weight:900;
+      color:var(--poster-ink);
+      line-height:1.6;
+      text-wrap:balance;
+    }
+    .qr-bottom-sub{
+      margin-top:4px;
+      font-size:11px;
+      font-weight:700;
+      color:var(--poster-ink-soft);
+      line-height:1.7;
+      text-wrap:balance;
+    }
+    .qr-bottom-wrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+    }
+    .qr-bottom-canvas,
+    .feature-qr-canvas{
+      position:relative;
+      width:156px;
+      height:156px;
+      padding:10px;
+      border-radius:20px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.04);
+      box-shadow:0 8px 18px rgba(0,0,0,.05);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+    }
+    .qr-bottom-grid,
+    .feature-qr-grid{
+      width:136px;
+      height:136px;
+      border-radius:14px;
+      overflow:hidden;
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
 
-  if(facadeState.plan === "premium"){
-    premiumDots.forEach(btn => {
-      const expected = text(btn.getAttribute("aria-label"));
-      if(expected === facadeState.premiumColor) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-    freeDots.forEach(btn => btn.classList.remove("active"));
-  }else{
-    freeDots.forEach(btn => {
-      const map = { "dot-1":"c1","dot-2":"c2","dot-3":"c3","dot-4":"c4","dot-5":"c5" };
-      const match = Object.keys(map).find(cls => btn.classList.contains(cls));
-      if(match && map[match] === facadeState.color) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-    premiumDots.forEach(btn => btn.classList.remove("active"));
-  }
-}
+    #bottomQrAvatar,
+    #featureQrAvatar,
+    #facadeQrAvatar{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      border-radius:999px;
+      object-fit:cover;
+      z-index:3;
+      display:none;
+      background:transparent;
+      box-shadow:none;
+      padding:0;
+      pointer-events:none;
+    }
 
-function syncStyleUI_(){
-  const buttons = qsa("#styleRow .btn-neo");
-  buttons.forEach(btn => {
-    const t = text(btn.textContent);
-    const map = { "正拱":"s1","平直":"s2","晨曦":"s3" };
-    const v = map[t] || "";
-    if(v === facadeState.style) btn.classList.add("active");
-    else btn.classList.remove("active");
-  });
-}
+    .feature-qr-support{
+      display:none;
+      position:absolute;
+      width:0;
+      height:0;
+      overflow:hidden;
+      pointer-events:none;
+      opacity:0;
+    }
 
-function syncPaperUI_(){
-  const buttons = qsa("#paperRow .btn-neo");
-  buttons.forEach(btn => {
-    const t = text(btn.textContent);
-    const map = { "棉紙":"f1","象牙紙":"f2","霧灰":"f3" };
-    const v = map[t] || "";
-    if(v === facadeState.paper) btn.classList.add("active");
-    else btn.classList.remove("active");
-  });
-}
+    .modal-mask,
+    .invite-mask{
+      display:none;
+      position:fixed !important;
+      inset:0 !important;
+      z-index:var(--mask-z) !important;
+      background:rgba(20,17,14,.46);
+      backdrop-filter:blur(4px);
+      -webkit-backdrop-filter:blur(4px);
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      box-sizing:border-box;
+    }
 
-function initSelectionState_(){
-  syncPlanUI_();
-}
+    .modal,
+    .invite-box{
+      position:relative;
+      z-index:calc(var(--mask-z) + 1);
+      width:min(92vw, 420px);
+      max-width:420px;
+      max-height:86vh;
+      overflow:auto;
+      border-radius:24px;
+      background:linear-gradient(180deg, rgba(255,252,248,.98), rgba(252,245,237,.98));
+      box-shadow:0 24px 60px rgba(0,0,0,.18);
+      border:1px solid rgba(102,78,57,.10);
+      color:var(--poster-ink);
+    }
 
-/* ============================================================
-   門面資料：固定讀 TW0001
-============================================================ */
-async function loadFacadeBaseCard(){
-  const url = buildCardApiUrl_(FACADE_SAMPLE_ID);
-  const payload = await fetchJsonRobust_(url);
-  const row = extractCardRow_(payload);
+    .modal.announcement-modal{
+      width:min(92vw, 560px);
+      max-width:560px;
+    }
 
-  if(!row || typeof row !== "object" || !Object.keys(row).length){
-    throw new Error("門面樣品卡資料為空");
-  }
+    .modal-hd,
+    .invite-hd{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:16px 16px 10px;
+      font-weight:900;
+    }
 
-  const merged = normalizeCardFeatures(row);
-  facadeBaseData = buildNormalizedPayload_(merged);
+    .modal-title{ font-size:15px; }
 
-  const basePlan = getEffectiveTheme_(facadeBaseData);
-  if(basePlan === "premium"){
-    facadeState.plan = "premium";
-    facadeState.premiumColor = text(pick(facadeBaseData, ["color"])) || "p1";
-  }else{
-    facadeState.plan = "free";
-    facadeState.color = text(pick(facadeBaseData, ["color"])) || "c1";
-    facadeState.style = text(pick(facadeBaseData, ["style"])) || "s1";
-    facadeState.paper = text(pick(facadeBaseData, ["paper"])) || "f1";
-  }
+    .modal-close,
+    .invite-btn{
+      border:none;
+      background:#f0e5d8;
+      color:var(--poster-ink);
+      border-radius:14px;
+      padding:10px 14px;
+      font-size:13px;
+      font-weight:800;
+      cursor:pointer;
+    }
 
-  syncPlanUI_();
-}
+    .modal-bd,
+    .invite-bd{ padding:6px 16px 16px; }
 
-function buildFacadePreviewData(){
-  const baseRaw = facadeBaseData?.__raw || facadeBaseData || {};
-  const base = JSON.parse(JSON.stringify(baseRaw || {}));
-  const isPremium = facadeState.plan === "premium";
+    .invite-note{
+      color:rgba(67,50,39,.78);
+      font-size:13px;
+      line-height:1.7;
+    }
+    .invite-meta{
+      margin-top:12px;
+      display:grid;
+      gap:10px;
+    }
+    .invite-meta-row{
+      border:1px solid rgba(102,78,57,.12);
+      border-radius:16px;
+      background:rgba(255,255,255,.72);
+      padding:12px 14px;
+    }
+    .invite-meta-label{
+      font-size:12px;
+      font-weight:900;
+      color:#8d684f;
+      margin-bottom:4px;
+      letter-spacing:.04em;
+    }
+    .invite-meta-value{
+      font-size:15px;
+      font-weight:900;
+      color:var(--poster-ink);
+      line-height:1.45;
+      word-break:break-word;
+    }
+    .invite-copybox{
+      margin-top:12px;
+      border:1px solid rgba(102,78,57,.12);
+      border-radius:16px;
+      background:#fff;
+      padding:12px 14px;
+      color:var(--poster-ink);
+      font-size:13px;
+      line-height:1.75;
+      white-space:pre-line;
+    }
+    .invite-actions{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+    .invite-primary{
+      background:#4d8f71;
+      color:#fff;
+    }
+    .invite-secondary{
+      background:linear-gradient(135deg, rgba(255,248,220,.96), rgba(233,199,112,.96));
+      color:#3f2f24;
+    }
 
-  const baseFeatures = (base.features && typeof base.features === "object")
-    ? base.features
-    : (safeJsonParse_(base.features_json) || {});
+    .text-toggle-wrap{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      width:100%;
+    }
 
-  const previewMeta = {
-    ...(baseFeatures.preview_meta || {}),
-    theme: isPremium ? "premium" : "free"
-  };
+    .expandable-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      width:100%;
+    }
 
-  const features = {
-    ...(baseFeatures || {}),
-    preview_meta: previewMeta,
-    photo_meta: normalizePhotoMetaMap_(baseFeatures.photo_meta)
-  };
+    .expandable-text{
+      overflow:hidden;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+    }
 
-  base.plan = isPremium ? "premium" : "free";
-  base.color = isPremium ? facadeState.premiumColor : facadeState.color;
-  base.style = isPremium ? "" : facadeState.style;
-  base.paper = isPremium ? "" : facadeState.paper;
-  base.photo_limit = isPremium ? 5 : 2;
-  base.cta_limit = isPremium ? 3 : 1;
-  base.features = features;
-  base.features_json = JSON.stringify(features);
+    .expandable-text.preline{
+      white-space:pre-line;
+    }
 
-  base.card_url = buildTrackedShareUrl_(facadeBaseData || base);
-  base.share_url = base.card_url;
-  base.preview_url = base.card_url;
-  base.hub_url = buildHubShareUrl_();
-  base.facade_url = base.hub_url;
+    .expandable-text.is-collapsed{
+      display:-webkit-box;
+      -webkit-box-orient:vertical;
+      -webkit-line-clamp:var(--max-lines, 3);
+      line-clamp:var(--max-lines, 3);
+    }
 
-  return base;
-}
+    .expandable-text.is-expanded{
+      display:block;
+      overflow:visible;
+    }
 
-/* ============================================================
-   門面樣品渲染
-============================================================ */
-function renderFacadePreview(){
-  const root = qs("livePreviewCard");
-  if(!root || !facadeBaseData) return;
+    .expand-toggle{
+      appearance:none;
+      border:none;
+      outline:none;
+      background:rgba(176,138,107,.12);
+      color:#8d684f;
+      border-radius:999px;
+      padding:6px 12px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.04em;
+      line-height:1;
+      cursor:pointer;
+      align-self:flex-start;
+      box-shadow:0 4px 12px rgba(83,62,45,.05);
+    }
 
-  const data = buildFacadePreviewData();
+    .expand-toggle:hover{
+      background:rgba(176,138,107,.18);
+    }
 
-  const renderer =
-    window.HscCardRenderer &&
-    typeof window.HscCardRenderer.renderCard === "function"
-      ? window.HscCardRenderer.renderCard
-      : null;
+    .unit-wrap,
+    .slogan-wrap{
+      margin-top:2px;
+    }
 
-  if(!renderer){
-    throw new Error("card-renderer.js 尚未正確載入，找不到 HscCardRenderer.renderCard()");
-  }
+    .unit-wrap .expand-toggle,
+    .slogan-wrap .expand-toggle{
+      align-self:center;
+    }
 
-  const result = renderer(data, {
-    mode: "index",
-    root,
-    useExistingDom: true,
-    qrMode: "facade",
-    allowActions: false
-  });
+    .unit.expandable-text,
+    .slogan.expandable-text{
+      width:100%;
+      text-align:center;
+    }
 
-  if(!result || result.ok !== true){
-    throw new Error("門面 renderer 回傳失敗");
-  }
+    .block-body.expandable-text{
+      text-align:left;
+    }
 
-  currentRow = buildNormalizedPayload_(data || {});
-  currentReferralSourceCodeCache = getReferralSourceCode_(facadeBaseData);
-  window.__CARD_DATA__ = currentRow;
-  window.cardData = currentRow;
-  window.payload = currentRow;
+    .install-dock{ display:none; }
+    body.clean .install-dock{ display:block; }
+    body.clean #cleanShareFab{ z-index:2147483500; display:flex; }
+    body.clean #installFab{ z-index:2147483500; display:flex; }
+    body.clean #admin-panel{ display:none !important; }
+    body.clean #card-container{ position: relative; z-index: 1; }
 
-  const avatarInfo = pickAvatarInfo_(currentRow);
-  currentAvatarUrlCache = avatarInfo.url || "";
-  currentAvatarSourceKeyCache = avatarInfo.key || "";
-
-  renderPostRendererUi_(currentRow);
-}
-
-/* ============================================================
-   門面切換事件（只改 facadeState）
-============================================================ */
-window.setPlan = function(plan, el){
-  facadeState.plan = (plan === "premium") ? "premium" : "free";
-  syncPlanUI_();
-  if(el){
-    const planBtns = [qs("btnPlanFree"), qs("btnPlanPremium")].filter(Boolean);
-    planBtns.forEach(btn => {
-      if(btn === el) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-  }
-  renderFacadePreview();
-};
-
-window.setTheme = function(theme, el){
-  const v = text(theme).toLowerCase();
-  if(!v) return;
-
-  const freeMap = {
-    "color-1":"c1","color-2":"c2","color-3":"c3","color-4":"c4","color-5":"c5",
-    "c1":"c1","c2":"c2","c3":"c3","c4":"c4","c5":"c5"
-  };
-
-  if(v in freeMap){
-    facadeState.plan = "free";
-    facadeState.color = freeMap[v];
-  }else if(/^p\d+$/.test(v)){
-    facadeState.plan = "premium";
-    facadeState.premiumColor = v;
-  }
-
-  syncPlanUI_();
-
-  if(el){
-    const groupSel = facadeState.plan === "premium" ? "#premiumDotsRow .p-dot" : "#freeDotsRow .dot";
-    qsa(groupSel).forEach(btn => {
-      if(btn === el) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-  }
-
-  renderFacadePreview();
-};
-
-window.setStyle = function(style, el){
-  const raw = text(style).toLowerCase();
-  const map = { "arch":"s1", "flat":"s2", "spot":"s3", "s1":"s1", "s2":"s2", "s3":"s3" };
-  if(!(raw in map)) return;
-  facadeState.style = map[raw];
-  syncStyleUI_();
-  if(el){
-    qsa("#styleRow .btn-neo").forEach(btn => {
-      if(btn === el) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-  }
-  renderFacadePreview();
-};
-
-window.setPaper = function(paper, el){
-  const raw = text(paper).toLowerCase();
-  const map = { "paper-1":"f1", "paper-2":"f2", "paper-3":"f3", "f1":"f1", "f2":"f2", "f3":"f3" };
-  if(!(raw in map)) return;
-  facadeState.paper = map[raw];
-  syncPaperUI_();
-  if(el){
-    qsa("#paperRow .btn-neo").forEach(btn => {
-      if(btn === el) btn.classList.add("active");
-      else btn.classList.remove("active");
-    });
-  }
-  renderFacadePreview();
-};
-
-/* ============================================================
-   展開文字
-============================================================ */
-function normalizeLongText_(raw){
-  return String(raw || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/\r/g, "\n")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n[ \t]+/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function setExpandableText_(contentEl, toggleEl, rawText, maxLines, options = {}){
-  if(!contentEl) return;
-  const value = normalizeLongText_(rawText);
-  const hasText = text(value) !== "";
-  const allowMultiline = !!options.allowMultiline;
-  contentEl.dataset.raw = value;
-  contentEl.dataset.maxLines = String(maxLines || 3);
-  contentEl.dataset.expandable = "1";
-  if(allowMultiline){
-    contentEl.innerHTML = escapeHtmlWithBreaks_(value);
-    contentEl.classList.add("preline");
-  }else{
-    contentEl.textContent = value;
-    contentEl.classList.remove("preline");
-  }
-  contentEl.classList.remove("is-expanded");
-  contentEl.classList.add("is-collapsed");
-  contentEl.style.setProperty("--max-lines", String(maxLines || 3));
-  if(toggleEl){
-    toggleEl.type = "button";
-    toggleEl.textContent = "看更多";
-    toggleEl.style.display = "none";
-    toggleEl.setAttribute("aria-expanded", "false");
-    toggleEl.onclick = null;
-    toggleEl.onclick = () => {
-      const expanded = contentEl.classList.contains("is-expanded");
-      if(expanded){
-        contentEl.classList.remove("is-expanded");
-        contentEl.classList.add("is-collapsed");
-        toggleEl.textContent = "看更多";
-        toggleEl.setAttribute("aria-expanded", "false");
-      }else{
-        contentEl.classList.remove("is-collapsed");
-        contentEl.classList.add("is-expanded");
-        toggleEl.textContent = "收合";
-        toggleEl.setAttribute("aria-expanded", "true");
+    @media (max-width: 520px){
+      .facade-brand .p{
+        font-size:10px;
+        line-height:1.7;
+        max-width:286px;
       }
-    };
-  }
-  if(!hasText){ if(toggleEl) toggleEl.style.display = "none"; return; }
-  requestAnimationFrame(() => { refreshExpandableItem_(contentEl, toggleEl); });
-}
+      .qr-bottom-title{ font-size:12px; }
+      .qr-bottom-sub{ font-size:10px; }
 
-function refreshExpandableItem_(contentEl, toggleEl){
-  if(!contentEl) return;
-  const maxLines = Number(contentEl.dataset.maxLines || 3);
-  const wasExpanded = contentEl.classList.contains("is-expanded");
-  contentEl.classList.remove("is-expanded");
-  contentEl.classList.add("is-collapsed");
-  contentEl.style.setProperty("--max-lines", String(maxLines));
-  const needToggle = (contentEl.scrollHeight - contentEl.clientHeight) > 4;
-  if(toggleEl){
-    toggleEl.style.display = needToggle ? "inline-flex" : "none";
-    if(!needToggle){
-      toggleEl.textContent = "看更多";
-      toggleEl.setAttribute("aria-expanded", "false");
+      .expand-toggle{
+        font-size:11px;
+        padding:6px 11px;
+      }
     }
-  }
-  if(needToggle && wasExpanded){
-    contentEl.classList.remove("is-collapsed");
-    contentEl.classList.add("is-expanded");
-    if(toggleEl){
-      toggleEl.textContent = "收合";
-      toggleEl.setAttribute("aria-expanded", "true");
-    }
-  }
-}
+  </style>
 
-function refreshAllExpandable_(){
-  qsa("[data-expandable='1']").forEach(contentEl => {
-    const wrap = contentEl.closest(".expandable-wrap") || contentEl.parentElement;
-    const toggleEl = wrap ? wrap.querySelector(".expand-toggle") : null;
-    refreshExpandableItem_(contentEl, toggleEl);
-  });
-}
+  <script>
+    (function(){
+      "use strict";
+      var DEMO_ID = "TW0001";
+      var sp = new URLSearchParams(location.search || "");
+      var isClean = (sp.get("view") === "1") || (sp.get("clean") === "1");
+      var isAdmin = (sp.get("admin") === "1");
 
-let __expandRefreshTimer = null;
-window.addEventListener("resize", () => {
-  clearTimeout(__expandRefreshTimer);
-  __expandRefreshTimer = setTimeout(() => {
-    refreshAllExpandable_();
-    applySmartBalanceAll_();
-    updateQrCenterSizes_();
-  }, 120);
-});
+      if (isClean) {
+        try{
+          document.addEventListener("DOMContentLoaded", function(){
+            document.body.classList.add("clean");
+          }, {once:true});
+        }catch(e){}
+      }
 
-function renderExpandableInfoBlock_(blockEl, title, rawText, maxLines){
-  if(!blockEl) return;
-  const value = normalizeLongText_(rawText);
-  if(!text(value)){
-    blockEl.style.display = "none";
-    blockEl.innerHTML = "";
-    return;
-  }
-  blockEl.style.display = "";
-  blockEl.innerHTML = `
-    <div class="block-title">${escapeHtml_(title)}</div>
-    <div class="expandable-wrap">
-      <div class="block-body expandable-text is-collapsed preline" style="--max-lines:${Number(maxLines || 3)}"></div>
-      <button class="expand-toggle" type="button" style="display:none;">看更多</button>
+      if (!isClean && !isAdmin) {
+        var currentId = (sp.get("id") || "").trim();
+        if (!currentId) {
+          sp.set("id", DEMO_ID);
+          try { history.replaceState({}, "", location.pathname + "?" + sp.toString()); } catch(e) {}
+        }
+      }
+    })();
+  </script>
+</head>
+
+<body class="mode-free color-1 style-arch paper-1">
+  <div id="adminHotspotBR" aria-hidden="true"></div>
+
+  <button id="installFab" type="button" aria-label="一鍵安裝">
+    <i class="fa-solid fa-download" aria-hidden="true"></i>
+  </button>
+
+  <button id="cleanShareFab" type="button" aria-label="分享這張名片">
+    <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+  </button>
+
+  <header id="admin-panel">
+    <div class="panel-inner">
+
+      <div class="facade-brand" id="facadeBrand">
+        <div class="facade-brand-head">
+          <svg class="sun-ui-icon" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
+            <line x1="32" y1="6" x2="32" y2="16" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="32" y1="48" x2="32" y2="58" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="6" y1="32" x2="16" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="48" y1="32" x2="58" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="14" y1="14" x2="20" y2="20" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="44" y1="44" x2="50" y2="50" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="14" y1="50" x2="20" y2="44" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+            <line x1="44" y1="20" x2="50" y2="14" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <div class="facade-brand-title">天使幸福智慧名片館</div>
+          <div class="facade-brand-subtitle">Angel Smart Card</div>
+        </div>
+        <div class="p balance-text" id="facadePitch" data-balance-type="hero-copy">
+          智慧名片訂製｜為創業者、講師、店家與個人品牌打造專屬名片入口
+        </div>
+      </div>
+
+      <div class="facade-qr" id="facadeQrCard">
+        <div class="facade-qr-box">
+          <div class="facade-qr-canvas" id="facadeQrCanvas">
+            <div class="facade-qr-grid" id="facadeQrGrid"></div>
+            <img id="facadeQrAvatar" alt="門面 QR 頭像" />
+            <div class="facade-qr-logo-pad" aria-hidden="true">
+              <svg class="facade-qr-logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                <circle cx="32" cy="32" r="8" fill="#b08a6b"/>
+                <line x1="32" y1="6" x2="32" y2="16" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="32" y1="48" x2="32" y2="58" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="6" y1="32" x2="16" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="48" y1="32" x2="58" y2="32" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="14" y1="14" x2="20" y2="20" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="44" y1="44" x2="50" y2="50" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="14" y1="50" x2="20" y2="44" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+                <line x1="44" y1="20" x2="50" y2="14" stroke="#b08a6b" stroke-width="3" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="facade-qr-title balance-text" data-balance-type="qr-title">掃描 QRcode｜帶走智慧名片館</div>
+          <div class="facade-qr-sub balance-text" data-balance-type="qr-sub">可收藏・可分享・可隨時回來慢慢體驗</div>
+        </div>
+      </div>
+
+      <div class="plan-row" id="planRow">
+        <button class="btn-neo pill breathe active" data-group="plan" id="btnPlanFree" type="button"
+          onclick="window.setPlan && window.setPlan('free', this)">
+          自由搭配
+        </button>
+        <button class="btn-neo pill" data-group="plan" id="btnPlanPremium" type="button"
+          onclick="window.setPlan && window.setPlan('premium', this)">
+          精品設計
+        </button>
+      </div>
+
+      <div class="controls-block" id="free-controls">
+        <div class="section-title">選顏色</div>
+        <div class="dots-row" id="freeDotsRow">
+          <button class="dot dot-1 active" data-group="theme" type="button" aria-label="粉" onclick="window.setTheme && window.setTheme('color-1', this)"></button>
+          <button class="dot dot-2" data-group="theme" type="button" aria-label="藍" onclick="window.setTheme && window.setTheme('color-2', this)"></button>
+          <button class="dot dot-3" data-group="theme" type="button" aria-label="橘" onclick="window.setTheme && window.setTheme('color-3', this)"></button>
+          <button class="dot dot-4" data-group="theme" type="button" aria-label="紫" onclick="window.setTheme && window.setTheme('color-4', this)"></button>
+          <button class="dot dot-5" data-group="theme" type="button" aria-label="綠" onclick="window.setTheme && window.setTheme('color-5', this)"></button>
+        </div>
+
+        <div class="section-title">選版型</div>
+        <div class="btn-row" id="styleRow">
+          <button class="btn-neo active" data-group="style" type="button" onclick="window.setStyle && window.setStyle('arch', this)">正拱</button>
+          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle && window.setStyle('flat', this)">平直</button>
+          <button class="btn-neo" data-group="style" type="button" onclick="window.setStyle && window.setStyle('spot', this)">晨曦</button>
+        </div>
+
+        <div class="section-title">選紙感</div>
+        <div class="btn-row" id="paperRow">
+          <button class="btn-neo active" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-1', this)">棉紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-2', this)">象牙紙</button>
+          <button class="btn-neo" data-group="paper" type="button" onclick="window.setPaper && window.setPaper('paper-3', this)">霧灰</button>
+        </div>
+
+        <div class="announcement-panel" data-announcement-panel style="display:none;">
+          <button class="announcement-card" data-announcement-track type="button" aria-label="查看公告全文">
+            <span class="announcement-card-top">
+              <span class="announcement-badge">公告</span>
+              <span class="announcement-counter" data-announcement-counter>1 / 1</span>
+            </span>
+            <span class="announcement-title" data-announcement-title>載入中…</span>
+            <span class="announcement-summary" data-announcement-text>載入中…</span>
+          </button>
+        </div>
+
+        <button class="btn-cta subtle" id="btnInviteGate" type="button">
+          <i class="fa-solid fa-key"></i> 申請開通表單邀請碼
+        </button>
+
+        <button class="btn-cta subtle" id="btnLineOaCta" type="button">
+          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
+        </button>
+      </div>
+
+      <div class="controls-block" id="premium-controls" style="display:none;">
+        <div class="section-title">選底色</div>
+        <div class="dots-row" id="premiumDotsRow">
+          <button class="p-dot p1 active" data-group="theme" type="button" aria-label="p1" onclick="window.setTheme && window.setTheme('p1', this)"></button>
+          <button class="p-dot p2" data-group="theme" type="button" aria-label="p2" onclick="window.setTheme && window.setTheme('p2', this)"></button>
+          <button class="p-dot p3" data-group="theme" type="button" aria-label="p3" onclick="window.setTheme && window.setTheme('p3', this)"></button>
+          <button class="p-dot p4" data-group="theme" type="button" aria-label="p4" onclick="window.setTheme && window.setTheme('p4', this)"></button>
+          <button class="p-dot p5" data-group="theme" type="button" aria-label="p5" onclick="window.setTheme && window.setTheme('p5', this)"></button>
+          <button class="p-dot p6" data-group="theme" type="button" aria-label="p6" onclick="window.setTheme && window.setTheme('p6', this)"></button>
+          <button class="p-dot p7" data-group="theme" type="button" aria-label="p7" onclick="window.setTheme && window.setTheme('p7', this)"></button>
+        </div>
+
+        <div class="announcement-panel" data-announcement-panel style="display:none;">
+          <button class="announcement-card" data-announcement-track type="button" aria-label="查看公告全文">
+            <span class="announcement-card-top">
+              <span class="announcement-badge">公告</span>
+              <span class="announcement-counter" data-announcement-counter>1 / 1</span>
+            </span>
+            <span class="announcement-title" data-announcement-title>載入中…</span>
+            <span class="announcement-summary" data-announcement-text>載入中…</span>
+          </button>
+        </div>
+
+        <button class="btn-cta subtle" id="btnInviteGate2" type="button">
+          <i class="fa-solid fa-key"></i> 申請開通表單邀請碼
+        </button>
+
+        <button class="btn-cta subtle" id="btnLineOaCta2" type="button">
+          <i class="fa-brands fa-line"></i> 加 LINE 官方帳號｜瞭解預約
+        </button>
+      </div>
+
     </div>
-  `;
-  const contentEl = blockEl.querySelector(".expandable-text");
-  const toggleEl = blockEl.querySelector(".expand-toggle");
-  setExpandableText_(contentEl, toggleEl, value, maxLines, { allowMultiline: true });
-}
+  </header>
 
-function pickAvatarInfo_(p){
-  const url = pick(p, ["avatar_url"]);
-  if(text(url)){
-    return { key: "avatar_url", raw: url, url: normalizeImageUrl_(url) };
-  }
-  return { key: "", raw: "", url: "" };
-}
+  <main id="card-container">
+    <div id="livePreviewCard">
+      <section class="card" id="card">
+        <div class="premium-fx-layer"></div>
 
-function parseDateSafe_(value){
-  if(!value) return null;
-  const s = String(value).trim();
-  if(!s) return null;
-  const normalized = s.replace(/\//g, "-").replace(" ", "T");
-  let d = new Date(normalized);
-  if(!isNaN(d.getTime())) return d;
-  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m){
-    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999);
-    if(!isNaN(d.getTime())) return d;
-  }
-  return null;
-}
+        <div class="banner" id="banner">
+          <div class="dynamic-mask"></div>
+        </div>
 
-function renderCardExpiry_(p){
-  const el = qs("cardExpiry");
-  if(!el) return;
-  const raw = text(pick(p, ["expires_at"]));
-  if(!raw){
-    el.style.display = "none";
-    el.textContent = "";
-    return;
-  }
-  const exp = parseDateSafe_(raw);
-  if(!exp){
-    el.style.display = "none";
-    el.textContent = "";
-    return;
-  }
-  const now = new Date();
-  const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const expStart = new Date(exp.getFullYear(), exp.getMonth(), exp.getDate()).getTime();
-  const diffDays = Math.floor((expStart - nowStart) / 86400000);
-  let label = "";
-  if(diffDays < 0) label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
-  else if(diffDays === 0) label = "EXPIRES TODAY";
-  else if(diffDays === 1) label = "EXPIRES IN 1 DAY";
-  else label = `EXPIRES IN ${diffDays} DAYS`;
-  el.textContent = label;
-  el.style.display = "block";
-}
+        <div class="paper-overlay" id="paperOverlay"></div>
 
-/* ============================================================
-   公告
-============================================================ */
-function parseDateLoose_(value){
-  if(!value) return null;
-  const s = String(value).trim();
-  if(!s) return null;
-  let d = new Date(s.replace(/\//g, "-").replace(" ", "T"));
-  if(!isNaN(d.getTime())) return d;
-  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m){
-    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
-    if(!isNaN(d.getTime())) return d;
-  }
-  return null;
-}
+        <div class="avatar-wrap">
+          <div class="avatar-circle">
+            <img class="avatar" id="u-img" alt="個人照" />
+          </div>
+        </div>
 
-function isAnnouncementActive_(item){
-  const status = text(item.status || "active").toLowerCase();
-  if(status && status !== "active") return false;
-  const now = Date.now();
-  const startAt = parseDateLoose_(item.start_at);
-  const endAt = parseDateLoose_(item.end_at);
-  if(startAt && now < startAt.getTime()) return false;
-  if(endAt){
-    const endMs = new Date(
-      endAt.getFullYear(), endAt.getMonth(), endAt.getDate(), 23, 59, 59, 999
-    ).getTime();
-    if(now > endMs) return false;
-  }
-  return true;
-}
+        <div class="premium-badge" id="premiumBadge" style="display:none;">
+          <span class="badge-dot"></span>
+          <span class="badge-text">精品設計</span>
+        </div>
 
-function sortAnnouncements_(items){
-  return [...items].sort((a, b) => {
-    const pa = Number(a.priority || 0);
-    const pb = Number(b.priority || 0);
-    if(pb !== pa) return pb - pa;
-    const ta = parseDateLoose_(a.updated_at || a.created_at || a.start_at || "")?.getTime() || 0;
-    const tb = parseDateLoose_(b.updated_at || b.created_at || b.start_at || "")?.getTime() || 0;
-    return tb - ta;
-  });
-}
+        <div class="logo-wrap" id="logoWrap" style="display:none;">
+          <img id="u-logo" class="logo-img" alt="Logo" />
+        </div>
 
-function normalizeAnnouncementItems_(payload){
-  if(Array.isArray(payload)){
-    return payload.filter(x => x && typeof x === "object");
-  }
-  if(!payload || typeof payload !== "object") return [];
-  const arr =
-    (Array.isArray(payload.announcements) ? payload.announcements : null) ||
-    (Array.isArray(payload.items) ? payload.items : null) ||
-    (Array.isArray(payload.data) ? payload.data : null) ||
-    (Array.isArray(payload.rows) ? payload.rows : null) ||
-    [];
-  return arr.filter(x => x && typeof x === "object");
-}
+        <div class="info-scroll">
+          <div class="name" id="u-name">載入中…</div>
 
-function openAnnouncementModal_(item, currentIdx, total){
-  if(!item) return;
-  const mask = qs("announcementMask");
-  const titleEl = qs("announcementModalTitle");
-  const metaEl = qs("announcementModalMeta");
-  const bodyEl = qs("announcementModalBody");
-  if(!mask || !bodyEl) return;
+          <div class="text-toggle-wrap unit-wrap" id="u-unit-wrap" style="display:none;">
+            <div class="unit expandable-text is-collapsed preline" id="u-unit" style="--max-lines:2;"></div>
+            <button class="expand-toggle" id="u-unit-toggle" type="button" style="display:none;">看更多</button>
+          </div>
 
-  if(titleEl){
-    titleEl.innerHTML = `<i class="fa-solid fa-bullhorn"></i> ${escapeHtml_(item.title || "公告")}`;
-  }
-  if(metaEl){
-    let metaStr = "門面公告";
-    if(total > 1) metaStr += `　${(currentIdx||0)+1} / ${total}`;
-    metaEl.textContent = metaStr;
-  }
-  if(bodyEl){
-    bodyEl.textContent = text(item.content || "（無內容）");
-  }
+          <div class="title" id="u-title"></div>
 
-  mask.style.display = "flex";
-  mask.setAttribute("aria-hidden", "false");
-  if(typeof window.__lockBodyScroll === "function") window.__lockBodyScroll();
-}
+          <div class="text-toggle-wrap slogan-wrap" id="u-slogan-wrap" style="display:none;">
+            <div class="slogan expandable-text is-collapsed preline" id="u-slogan" style="--max-lines:3;"></div>
+            <button class="expand-toggle" id="u-slogan-toggle" type="button" style="display:none;">看更多</button>
+          </div>
 
-function closeAnnouncementModal_(){
-  const mask = qs("announcementMask");
-  if(!mask) return;
-  mask.style.display = "none";
-  mask.setAttribute("aria-hidden", "true");
-  if(typeof window.__unlockBodyScroll === "function") window.__unlockBodyScroll();
-}
+          <div class="info-block" id="block-service" style="display:none;"></div>
+          <div class="info-block" id="block-exp" style="display:none;"></div>
 
-function bindAnnouncementModal_(){
-  const closeBtn = qs("announcementCloseBtn");
-  const mask = qs("announcementMask");
-  if(closeBtn) closeBtn.addEventListener("click", closeAnnouncementModal_);
-  if(mask) mask.addEventListener("click", function(e){
-    if(e.target === mask) closeAnnouncementModal_();
-  });
-}
+          <div class="contact-dock install-dock" id="installDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-download"></i> 一鍵安裝</div>
+            <div class="dock-buttons" id="installButtons">
+              <button class="dock-btn wide dock-web" type="button" id="btnInstallCard">
+                <i class="fa-solid fa-mobile-screen-button"></i><span>安裝到手機桌面</span>
+              </button>
+            </div>
+          </div>
 
-function paintAnnouncementCards_(items, idx){
-  const item = items[idx];
-  if(!item) return;
-  const total = items.length;
+          <div class="contact-dock" id="contactDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-address-card"></i> 聯繫方式</div>
+            <div class="dock-buttons" id="contactButtons"></div>
+          </div>
 
-  qsa("[data-announcement-panel]").forEach(panel => {
-    const titleEl = panel.querySelector("[data-announcement-title]");
-    const textEl = panel.querySelector("[data-announcement-text]");
-    const counterEl = panel.querySelector("[data-announcement-counter]");
-    const trackBtn = panel.querySelector("[data-announcement-track]");
+          <div class="contact-dock marquee-dock" id="marqueeDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-bullhorn"></i> 重要訊息</div>
+            <div class="marquee-shell" id="marqueeShell">
+              <div class="marquee-track" id="marqueeTrack">
+                <span class="marquee-text" id="marqueeText">載入中…</span>
+              </div>
+            </div>
+          </div>
 
-    if(titleEl) titleEl.textContent = text(item.title) || "公告";
-    if(textEl){
-      const summary = text(item.content || "").split("\n")[0].slice(0, 60);
-      textEl.textContent = summary + (text(item.content || "").length > 60 ? "⋯" : "");
-    }
-    if(counterEl) counterEl.textContent = total > 1 ? `${idx + 1} / ${total}` : "";
+          <div class="contact-dock primary-link-dock" id="primaryLinkDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-globe"></i> 主網站</div>
+            <div class="dock-buttons" id="primaryLinkButtons"></div>
+          </div>
 
-    if(trackBtn){
-      trackBtn.onclick = null;
-      trackBtn.onclick = () => openAnnouncementModal_(item, idx, total);
-    }
-  });
-}
+          <div class="contact-dock" id="mediaDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-clapperboard"></i> 影音／社群</div>
+            <div class="dock-buttons" id="mediaButtons"></div>
+          </div>
 
-function stopAnnouncementRotation_(){
-  if(announcementTimer_){
-    clearInterval(announcementTimer_);
-    announcementTimer_ = null;
-  }
-}
+          <div class="contact-dock cta-dock" id="ctaDock" style="display:none;">
+            <div class="dock-title"><i class="fa-solid fa-bolt"></i> 立即行動</div>
+            <div class="dock-buttons" id="ctaButtons"></div>
+          </div>
 
-function startAnnouncementRotation_(items){
-  stopAnnouncementRotation_();
-  announcementItems_ = items;
-  announcementIndex_ = 0;
+          <div class="photo-wall" id="photoWall" style="display:none;">
+            <div class="dock-title"><i class="fa-regular fa-images"></i> 照片</div>
+            <div class="photo-grid" id="photoGrid"></div>
+          </div>
 
-  paintAnnouncementCards_(items, 0);
+          <div class="card-expiry" id="cardExpiry" style="display:none;"></div>
 
-  if(items.length > 1){
-    announcementTimer_ = setInterval(() => {
-      announcementIndex_ = (announcementIndex_ + 1) % items.length;
-      paintAnnouncementCards_(items, announcementIndex_);
-    }, 4000);
-  }
-}
+          <div class="qr-bottom" id="bottomQrSection">
+            <div class="qr-bottom-head">
+              <div class="qr-bottom-title balance-text" id="bottomQrTitle" data-balance-type="product-qr-title">
+                掃描 QRcode｜開啟我的智慧名片
+              </div>
+              <div class="qr-bottom-sub balance-text" id="bottomQrSub" data-balance-type="product-qr-sub">
+                可收藏・可分享・可快速回看
+              </div>
+            </div>
+            <div class="qr-bottom-wrap">
+              <div class="qr-bottom-canvas">
+                <div class="qr-bottom-grid" id="bottomQrGrid"></div>
+                <img id="bottomQrAvatar" alt="QR 頭像" />
+              </div>
+            </div>
+          </div>
 
-function renderAnnouncementPanels_(items){
-  const active = sortAnnouncements_(items.filter(isAnnouncementActive_));
+          <div class="version-tag" id="versionTag">v7.6-full-rebuild-renderer-aligned</div>
+        </div>
+      </section>
+    </div>
+  </main>
 
-  if(!active.length){
-    qsa("[data-announcement-panel]").forEach(p => { p.style.display = "none"; });
-    return;
-  }
+  <div class="feature-qr-support" aria-hidden="true">
+    <div class="feature-qr-canvas">
+      <div class="feature-qr-grid" id="featureQrGrid"></div>
+      <img id="featureQrAvatar" alt="功能 QR 頭像" />
+    </div>
+  </div>
 
-  qsa("[data-announcement-panel]").forEach(p => { p.style.display = ""; });
-  startAnnouncementRotation_(active);
-}
+  <div class="modal-mask" id="announcementMask" aria-hidden="true">
+    <div class="modal announcement-modal" role="dialog" aria-modal="true" aria-label="公告內容">
+      <div class="modal-hd">
+        <div class="modal-title" id="announcementModalTitle">
+          <i class="fa-solid fa-bullhorn"></i> 公告
+        </div>
+        <button class="modal-close" type="button" id="announcementCloseBtn">關閉</button>
+      </div>
+      <div class="modal-bd">
+        <div class="announcement-modal-meta" id="announcementModalMeta">門面公告</div>
+        <div class="announcement-modal-body" id="announcementModalBody"></div>
+      </div>
+    </div>
+  </div>
 
-async function fetchAndRenderAnnouncements_(){
-  try{
-    const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_());
-    const items = normalizeAnnouncementItems_(payload);
+  <div class="invite-mask" id="inviteMask" aria-hidden="true">
+    <div class="invite-box" role="dialog" aria-modal="true" aria-label="申請邀請碼">
+      <div class="invite-hd">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <i class="fa-solid fa-key"></i> 申請開通表單邀請碼
+        </div>
+        <button class="invite-btn" type="button" id="inviteCloseBtn">關閉</button>
+      </div>
+      <div class="invite-bd">
+        <div class="invite-note">
+          請先複製下方申請內容，再點下一個按鈕加入 LINE 官方帳號提出申請。
+        </div>
 
-    if(items && items.length > 0){
-      renderAnnouncementPanels_(items);
-    }else{
-      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-    }
-  }catch(err){
-    console.warn("[HSC announcement] GAS 請求失敗，使用內建公告:", err);
-    renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-  }
-}
+        <div class="invite-meta">
+          <div class="invite-meta-row">
+            <div class="invite-meta-label">推薦來源識別碼</div>
+            <div class="invite-meta-value" id="inviteRefCode">載入中…</div>
+          </div>
+          <div class="invite-meta-row">
+            <div class="invite-meta-label">申請識別碼</div>
+            <div class="invite-meta-value" id="inviteApplyCode">載入中…</div>
+          </div>
+        </div>
 
-/* ============================================================
-   文字平衡
-============================================================ */
-function applySmartBalanceToEl_(el){
-  if(!el) return;
-  const raw = text(el.dataset.rawText || el.textContent);
-  if(!raw) return;
-  el.dataset.rawText = raw;
-  if(window.innerWidth > 560){
-    el.textContent = raw;
-    return;
-  }
+        <div class="invite-copybox" id="inviteCopyContent">載入中…</div>
 
-  if(el.dataset.balanceType === "hero-copy"){
-    const parts = raw.split("|");
-    el.innerHTML = "";
-    if(parts.length >= 2){
-      const first = document.createElement("span");
-      first.className = "balance-line";
-      first.textContent = parts[0] + "|";
-      el.appendChild(first);
-      const rest = parts.slice(1).join("|");
-      const idx = rest.indexOf("打造");
-      if(idx > -1){
-        const line2 = document.createElement("span");
-        line2.className = "balance-line";
-        line2.textContent = rest.slice(0, idx).trim();
-        el.appendChild(line2);
-        const line3 = document.createElement("span");
-        line3.className = "balance-line";
-        line3.textContent = rest.slice(idx).trim();
-        el.appendChild(line3);
+        <div class="invite-actions">
+          <button class="invite-btn invite-secondary" type="button" id="inviteCopyBtn">
+            一鍵複製申請內容
+          </button>
+          <button class="invite-btn invite-primary" type="button" id="inviteLineBtn">
+            加入官方帳號提出申請
+          </button>
+        </div>
+
+        <div style="margin-top:10px; color:rgba(67,50,39,0.72); font-size:13px;">
+          ※ 客服收到你的申請內容後，會協助提供邀請碼與後續開通。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./card-renderer.js?v=v7.6-full-rebuild-renderer-aligned"></script>
+  <script src="./app.js?v=v7.6-full-rebuild-renderer-aligned"></script>
+
+  <script>
+    (function(){
+      "use strict";
+
+      var VERSION = "v7.6-full-rebuild-renderer-aligned";
+      var LINE_OA_URL = "https://lin.ee/G3VJoRm";
+      var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
+      var DEMO_ID = "TW0001";
+      var ADMIN_URL = "./admin.html?v=" + encodeURIComponent(VERSION);
+
+      function qs(id){ return document.getElementById(id); }
+      function sp(){ try{return new URLSearchParams(location.search || "");}catch(e){return new URLSearchParams();} }
+      function isClean(){
+        var p = sp();
+        return (p.get("view") === "1") || (p.get("clean") === "1");
+      }
+
+      var __scrollTop = 0;
+      function lockScroll(){
+        try{
+          __scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+          document.documentElement.style.overflow = "hidden";
+          document.body.style.overflow = "hidden";
+          document.body.style.position = "fixed";
+          document.body.style.top = (-__scrollTop) + "px";
+          document.body.style.left = "0";
+          document.body.style.right = "0";
+          document.body.style.width = "100%";
+        }catch(e){}
+      }
+      function unlockScroll(){
+        try{
+          document.documentElement.style.overflow = "";
+          document.body.style.overflow = "";
+          document.body.style.position = "";
+          document.body.style.top = "";
+          document.body.style.left = "";
+          document.body.style.right = "";
+          document.body.style.width = "";
+          window.scrollTo(0, __scrollTop || 0);
+        }catch(e){}
+      }
+
+      window.__lockBodyScroll = lockScroll;
+      window.__unlockBodyScroll = unlockScroll;
+
+      function applyCleanUI(){
+        if(!isClean()) return;
+        document.body.classList.add("clean");
+        var panel = qs("admin-panel");
+        var hot = qs("adminHotspotBR");
+        var fab = qs("cleanShareFab");
+        var installFab = qs("installFab");
+        var installDock = qs("installDock");
+        if(panel) panel.style.display = "none";
+        if(hot) hot.style.display = "none";
+        if(fab) fab.style.display = "flex";
+        if(installFab) installFab.style.display = "flex";
+        if(installDock) installDock.style.display = "";
+      }
+
+      function getCurrentCardId(){
+        try{
+          var p = sp();
+          var id = (p.get("id") || p.get("ref") || "").trim();
+          return id || DEMO_ID;
+        }catch(e){
+          return DEMO_ID;
+        }
+      }
+
+      function buildHubShareUrlFallback(){
+        try{
+          if(typeof window.__getHubShareUrl === "function"){
+            return window.__getHubShareUrl();
+          }
+        }catch(e){}
+        try{
+          var u = new URL(BASE_URL);
+          var id = getCurrentCardId();
+          if(id) u.searchParams.set("ref", id);
+          return u.toString();
+        }catch(e){
+          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
+        }
+      }
+
+      function buildCardShareUrlFallback(){
+        try{
+          if(typeof window.__getCardShareUrl === "function"){
+            return window.__getCardShareUrl();
+          }
+        }catch(e){}
+        try{
+          var u = new URL(BASE_URL + "index.html");
+          u.searchParams.set("id", getCurrentCardId());
+          u.searchParams.set("view", "1");
+          return u.toString();
+        }catch(e){
+          return BASE_URL + "index.html?id=" + encodeURIComponent(getCurrentCardId()) + "&view=1";
+        }
+      }
+
+      function buildFacadeHubQrUrl(){
+        try{
+          var u = new URL(BASE_URL);
+          var refCode = (typeof window.__getReferralSourceCode === "function" ? window.__getReferralSourceCode() : "") || getCurrentCardId();
+          if(refCode) u.searchParams.set("ref", refCode);
+          return u.toString();
+        }catch(e){
+          return BASE_URL + "?ref=" + encodeURIComponent(getCurrentCardId());
+        }
+      }
+
+      function buildAdminUrl(){
+        try{
+          var p = sp();
+          var u = new URL(ADMIN_URL, location.href);
+          var tenant = (p.get("tenant") || "").trim();
+          if(tenant) u.searchParams.set("tenant", tenant);
+          return u.toString();
+        }catch(e){
+          return ADMIN_URL;
+        }
+      }
+
+      function renderFacadeQr(){
+        var mount = qs("facadeQrGrid");
+        if(!mount || isClean()) return;
+        mount.innerHTML = "";
+        var qrUrl = buildFacadeHubQrUrl();
+        try{
+          if(window.renderQr){
+            window.renderQr({ container: mount, url: qrUrl, size: 148 });
+          }
+        }catch(e){}
+      }
+
+      async function shareUrl(url, title, textMsg, okMsg){
+        try{
+          if(navigator.share){
+            await navigator.share({
+              title: title || "天使幸福智慧名片",
+              text: textMsg || "",
+              url: url
+            });
+            return;
+          }
+
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(url);
+            alert(okMsg || "✅ 已複製連結");
+            return;
+          }
+
+          prompt("請手動複製連結", url);
+        }catch(_err){}
+      }
+
+      async function copyApplyContent(){
+        var box = qs("inviteCopyContent");
+        var value = box ? (box.textContent || box.innerText || "") : "";
+        if(!value) return;
+
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            await navigator.clipboard.writeText(value);
+            alert("✅ 已複製申請內容");
+            return;
+          }
+          prompt("請手動複製申請內容", value);
+        }catch(e){}
+      }
+
+      async function fillInviteCard(){
+        var refEl = qs("inviteRefCode");
+        var applyEl = qs("inviteApplyCode");
+        var copyEl = qs("inviteCopyContent");
+
+        if(refEl) refEl.textContent = "載入中…";
+        if(applyEl) applyEl.textContent = "載入中…";
+        if(copyEl) copyEl.textContent = "載入中…";
+
+        try{
+          if(typeof window.__ensureInviteApplyData === "function"){
+            var data = await window.__ensureInviteApplyData();
+            if(refEl) refEl.textContent = data.refCode || "無";
+            if(applyEl) applyEl.textContent = data.applyCode || "-";
+            if(copyEl) copyEl.textContent = data.copyText || "";
+            return;
+          }
+        }catch(e){}
+
+        if(refEl) refEl.textContent = "無";
+        if(applyEl) applyEl.textContent = "-";
+        if(copyEl) copyEl.textContent = "您好，我想申請天使幸福智慧名片邀請碼。";
+      }
+
+      function bindShareFallback(){
+        function bindOne(id){
+          var btn = qs(id);
+          if(!btn) return;
+
+          btn.addEventListener("click", function(e){
+            e.preventDefault();
+            shareUrl(
+              buildHubShareUrlFallback(),
+              "天使幸福智慧名片館",
+              "分享智慧名片館",
+              "✅ 已複製智慧名片館連結"
+            );
+          }, true);
+        }
+
+        bindOne("btnShare");
+        bindOne("btnSharePremium");
+      }
+
+      function bindLineOa(){
+        function openOA(){
+          try{ window.open(LINE_OA_URL, "_blank", "noopener"); }
+          catch(e){ location.href = LINE_OA_URL; }
+        }
+        ["btnLineOaCta","btnLineOaCta2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); openOA(); }, {passive:false});
+        });
+
+        var inviteLineBtn = qs("inviteLineBtn");
+        if(inviteLineBtn){
+          inviteLineBtn.addEventListener("click", function(e){
+            e.preventDefault();
+            openOA();
+          }, {passive:false});
+        }
+      }
+
+      function bindInviteGate(){
+        var mask = qs("inviteMask");
+        var close = qs("inviteCloseBtn");
+        var copyBtn = qs("inviteCopyBtn");
+
+        function open(){
+          if(isClean()) return;
+          if(!mask) return;
+          mask.style.display = "flex";
+          mask.setAttribute("aria-hidden", "false");
+          lockScroll();
+          fillInviteCard();
+        }
+        function shut(){
+          if(!mask) return;
+          mask.style.display = "none";
+          mask.setAttribute("aria-hidden", "true");
+          unlockScroll();
+        }
+
+        ["btnInviteGate","btnInviteGate2"].forEach(function(id){
+          var b = qs(id);
+          if(b) b.addEventListener("click", function(e){ e.preventDefault(); open(); }, {passive:false});
+        });
+
+        if(close) close.addEventListener("click", function(){ shut(); });
+        if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) shut(); });
+        if(copyBtn) copyBtn.addEventListener("click", function(){ copyApplyContent(); });
+      }
+
+      function bindInstall(){
+        function runInstall(){
+          if(typeof window.__triggerPwaInstall === "function"){
+            window.__triggerPwaInstall();
+          }
+        }
+        ["btnInstallCard", "installFab"].forEach(function(id){
+          var btn = qs(id);
+          if(btn) btn.addEventListener("click", function(e){ e.preventDefault(); runInstall(); }, {passive:false});
+        });
+      }
+
+      function bindHiddenAdminEntry(){
+        if(isClean()) return;
+
+        var hot = qs("adminHotspotBR");
+        if(!hot) return;
+
+        var taps = 0;
+        var firstTapAt = 0;
+        var resetTimer = null;
+        var WINDOW_MS = 1800;
+        var NEED_TAPS = 5;
+
+        function resetTapState(){
+          taps = 0;
+          firstTapAt = 0;
+          if(resetTimer){
+            clearTimeout(resetTimer);
+            resetTimer = null;
+          }
+        }
+
+        function onTap(e){
+          if(isClean()) return;
+          if(e){
+            e.preventDefault();
+            e.stopPropagation();
+          }
+
+          var now = Date.now();
+          if(!firstTapAt || (now - firstTapAt > WINDOW_MS)){
+            taps = 0;
+            firstTapAt = now;
+          }
+
+          taps += 1;
+
+          if(resetTimer) clearTimeout(resetTimer);
+          resetTimer = setTimeout(resetTapState, WINDOW_MS + 120);
+
+          if(taps >= NEED_TAPS){
+            resetTapState();
+            location.href = buildAdminUrl();
+          }
+        }
+
+        hot.addEventListener("click", onTap, { passive:false });
+        hot.addEventListener("touchstart", onTap, { passive:false });
+      }
+
+      function boot(){
+        applyCleanUI();
+        bindLineOa();
+        bindInviteGate();
+        bindShareFallback();
+        bindInstall();
+        bindHiddenAdminEntry();
+        renderFacadeQr();
+
+        var fab = qs("cleanShareFab");
+        if(fab){
+          fab.addEventListener("click", function(e){
+            e.preventDefault();
+            shareUrl(
+              buildCardShareUrlFallback(),
+              "天使幸福智慧名片",
+              "分享這張名片",
+              "✅ 已複製這張名片連結"
+            );
+          });
+        }
+      }
+
+      if(document.readyState === "loading"){
+        document.addEventListener("DOMContentLoaded", boot, {once:true});
       }else{
-        const line2 = document.createElement("span");
-        line2.className = "balance-line";
-        line2.textContent = rest.trim();
-        el.appendChild(line2);
+        boot();
       }
-      return;
-    }
-  }
-
-  if(el.dataset.balanceType === "qr-title" || el.dataset.balanceType === "product-qr-title"){
-    if(raw.includes("|")){
-      const arr = raw.split("|");
-      el.innerHTML = `<span class="balance-line">${escapeHtml_(arr[0])}|</span><span class="balance-line">${escapeHtml_(arr.slice(1).join("|"))}</span>`;
-      return;
-    }
-  }
-
-  if(el.dataset.balanceType === "qr-sub" || el.dataset.balanceType === "product-qr-sub"){
-    if(raw.includes("・")){
-      const parts = raw.split("・").map(x => x.trim()).filter(Boolean);
-      if(parts.length >= 2){
-        const half = Math.ceil(parts.length / 2);
-        const l1 = parts.slice(0, half).join("・");
-        const l2 = parts.slice(half).join("・");
-        el.innerHTML = `<span class="balance-line">${escapeHtml_(l1)}</span><span class="balance-line">${escapeHtml_(l2)}</span>`;
-        return;
-      }
-    }
-  }
-
-  el.textContent = raw;
-}
-
-function applySmartBalanceAll_(){
-  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
-}
-
-let __balanceTimer = null;
-window.addEventListener("resize", () => {
-  clearTimeout(__balanceTimer);
-  __balanceTimer = setTimeout(() => {
-    applySmartBalanceAll_();
-    updateQrCenterSizes_();
-  }, 120);
-});
-
-/* ============================================================
-   QR
-============================================================ */
-function getQrCenterRatio_(baseRatio){
-  const vw = window.innerWidth || 390;
-  if(vw <= 360) return Math.max(0.06, baseRatio - 0.02);
-  if(vw <= 520) return Math.max(0.07, baseRatio - 0.01);
-  return baseRatio;
-}
-
-function buildQrImageUrl_(url, size){
-  const s = Number(size) || 220;
-  return "https://api.qrserver.com/v1/create-qr-code/"
-    + "?size=" + encodeURIComponent(`${s}x${s}`)
-    + "&data=" + encodeURIComponent(String(url))
-    + "&ecc=H"
-    + "&margin=2";
-}
-
-function hideCenterImg_(imgEl){
-  if(!imgEl) return;
-  imgEl.removeAttribute("src");
-  imgEl.style.display = "none";
-  imgEl.style.background = "transparent";
-  imgEl.style.padding = "0";
-  imgEl.style.boxShadow = "none";
-}
-
-function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
-  if(!imgEl) return;
-  const u = normalizeImageUrl_(centerImgUrl);
-  if(!u){
-    hideCenterImg_(imgEl);
-    return;
-  }
-  const ratio = getQrCenterRatio_(sizeRatio);
-  imgEl.dataset.baseRatio = String(sizeRatio);
-  imgEl.dataset.centerUrl = u;
-  imgEl.style.position = "absolute";
-  imgEl.style.left = "50%";
-  imgEl.style.top = "50%";
-  imgEl.style.width = `${Math.round(ratio * 100)}%`;
-  imgEl.style.height = `${Math.round(ratio * 100)}%`;
-  imgEl.style.transform = "translate(-50%, -50%)";
-  imgEl.style.borderRadius = "999px";
-  imgEl.style.objectFit = "cover";
-  imgEl.style.zIndex = "3";
-  imgEl.style.background = "transparent";
-  imgEl.style.padding = "0";
-  imgEl.style.boxShadow = "none";
-  imgEl.style.display = "block";
-  imgEl.style.pointerEvents = "none";
-  imgEl.onerror = () => { hideCenterImg_(imgEl); };
-  setImgWithFallback_(imgEl, buildImgCandidates_(u), {
-    crossOrigin: "anonymous",
-    referrerPolicy: "no-referrer",
-    onLoad: () => {
-      imgEl.style.display = "block";
-      imgEl.style.background = "transparent";
-      imgEl.style.padding = "0";
-      imgEl.style.boxShadow = "none";
-    },
-    onFail: () => { hideCenterImg_(imgEl); }
-  });
-}
-
-function updateQrCenterSizes_(){
-  ["bottomQrAvatar", "featureQrAvatar", "facadeQrAvatar"].forEach(id => {
-    const el = qs(id);
-    if(!el || el.style.display === "none") return;
-    const baseRatio = clampNumber_(el.dataset.baseRatio, 0.05, 0.2, 0.09);
-    const ratio = getQrCenterRatio_(baseRatio);
-    el.style.width = `${Math.round(ratio * 100)}%`;
-    el.style.height = `${Math.round(ratio * 100)}%`;
-  });
-}
-
-function renderQr(options){
-  const {
-    container, url, size = 160,
-    centerImgEl = null, centerImgUrl = "", centerSizeRatio = 0.09, renderKey = ""
-  } = options || {};
-  if(!container || !url) return false;
-  const key = renderKey || `${url}|${size}|${normalizeImageUrl_(centerImgUrl)}|${centerSizeRatio}`;
-  if(container.dataset.renderKey === key){
-    if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
-    return true;
-  }
-  container.dataset.renderKey = key;
-  container.innerHTML = "";
-  const img = document.createElement("img");
-  img.alt = "QR Code";
-  img.loading = "eager";
-  img.decoding = "sync";
-  img.referrerPolicy = "no-referrer";
-  try{ img.crossOrigin = "anonymous"; }catch{}
-  img.src = buildQrImageUrl_(url, size) + "&t=" + Date.now();
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.display = "block";
-  img.style.objectFit = "contain";
-  container.appendChild(img);
-  if(centerImgEl) setCenterImg_(centerImgEl, centerImgUrl, centerSizeRatio);
-  return true;
-}
-
-window.renderQr = renderQr;
-window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
-window.__getHubShareUrl = buildHubShareUrl_;
-window.__getCardShareUrl = function(){ return buildTrackedShareUrl_(currentRow); };
-window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(currentRow); };
-
-function renderFacadeQrFromCurrent_(){
-  const grid = qs("facadeQrGrid");
-  if(!grid) return;
-  const url = buildHubShareUrl_();
-  const key = "facade|" + url;
-  if(lastFacadeQrRenderKey === key && grid.dataset.renderKey === key) return;
-  lastFacadeQrRenderKey = key;
-  renderQr({
-    container: grid,
-    url,
-    size: 148,
-    centerImgEl: null,
-    centerImgUrl: "",
-    renderKey: key
-  });
-}
-
-function renderBottomQr_(p){
-  const sec = qs("bottomQrSection");
-  const grid = qs("bottomQrGrid");
-  const avatar = qs("bottomQrAvatar");
-  if(!sec || !grid || !avatar) return;
-  const info = pickAvatarInfo_(p);
-  const qrUrl = buildTrackedShareUrl_(p);
-  const avatarUrl = info.url;
-  const key = "bottom|" + qrUrl + "|" + avatarUrl;
-  const canvas = avatar.parentElement;
-  if(canvas) canvas.style.position = "relative";
-  if(lastBottomQrRenderKey !== key || grid.dataset.renderKey !== key){
-    lastBottomQrRenderKey = key;
-    renderQr({
-      container: grid,
-      url: qrUrl,
-      size: 136,
-      centerImgEl: avatar,
-      centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.09,
-      renderKey: key
-    });
-  }else{
-    setCenterImg_(avatar, avatarUrl, 0.09);
-  }
-  sec.style.display = "block";
-}
-
-function renderFeatureQrFromCurrent_(){
-  const grid = qs("featureQrGrid");
-  const avatar = qs("featureQrAvatar");
-  if(!grid || !avatar) return;
-  const url = buildTrackedShareUrl_(currentRow);
-  const avatarUrl = currentAvatarUrlCache || "";
-  const key = "feature|" + url + "|" + avatarUrl;
-  const canvas = avatar.parentElement;
-  if(canvas) canvas.style.position = "relative";
-  if(lastFeatureQrRenderKey !== key || grid.dataset.renderKey !== key){
-    lastFeatureQrRenderKey = key;
-    renderQr({
-      container: grid,
-      url,
-      size: 152,
-      centerImgEl: avatar,
-      centerImgUrl: avatarUrl,
-      centerSizeRatio: 0.09,
-      renderKey: key
-    });
-  }else{
-    setCenterImg_(avatar, avatarUrl, 0.09);
-  }
-}
-window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
-
-/* ============================================================
-   分享 / invite
-============================================================ */
-async function shareUrl_(url, title, textMsg, okMsg){
-  try{
-    if(navigator.share){
-      await navigator.share({ title: title || "天使幸福智慧名片", text: textMsg || "", url });
-      return;
-    }
-    if(navigator.clipboard?.writeText){
-      await navigator.clipboard.writeText(url);
-      alert(okMsg || "✅ 已複製連結");
-      return;
-    }
-    prompt("請手動複製連結", url);
-  }catch(_err){}
-}
-
-function renderBottomHubShareBtn_(){
-  const sec = qs("bottomQrSection");
-  if(!sec) return;
-  let wrap = qs("bottomHubShareWrap");
-  if(!wrap){
-    wrap = document.createElement("div");
-    wrap.id = "bottomHubShareWrap";
-    wrap.style.marginTop = "12px";
-    wrap.style.display = "flex";
-    wrap.style.justifyContent = "center";
-    const btn = document.createElement("button");
-    btn.id = "btnShareHubBottom";
-    btn.type = "button";
-    btn.className = "dock-btn wide dock-web";
-    btn.style.maxWidth = "260px";
-    btn.style.width = "100%";
-    btn.style.borderRadius = "999px";
-    btn.style.fontWeight = "900";
-    btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
-    btn.innerHTML = `<i class="fa-solid fa-share-nodes"></i><span>分享智慧名片館</span>`;
-    btn.addEventListener("click", async () => {
-      const url = buildHubShareUrl_();
-      await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
-    });
-    wrap.appendChild(btn);
-    sec.insertAdjacentElement("afterend", wrap);
-  }
-}
-
-function ensureBottomQrVisible_(){
-  if(!currentRow) return;
-  try{ renderBottomQr_(currentRow); }catch(_e){}
-  try{ renderBottomHubShareBtn_(); }catch(_e){}
-  setTimeout(() => {
-    try{ renderBottomQr_(currentRow); }catch(_e){}
-    try{ renderBottomHubShareBtn_(); }catch(_e){}
-  }, 250);
-  setTimeout(() => {
-    try{ renderBottomQr_(currentRow); }catch(_e){}
-    try{ renderBottomHubShareBtn_(); }catch(_e){}
-  }, 800);
-}
-
-function renderInstallDock_(){
-  const dock = qs("installDock");
-  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
-  if(!dock) return;
-  dock.style.display = cleanMode ? "" : "none";
-}
-
-/* ============================================================
-   renderer 後補 UI
-============================================================ */
-function renderPostRendererUi_(row){
-  const unitVal = normalizeLongText_(pick(row, ["unit", "單位", "公司"]));
-  const sloganVal = normalizeLongText_(pick(row, ["slogan", "一句話", "簡介"]));
-  const unitEl = qs("u-unit");
-  const unitToggle = qs("u-unit-toggle");
-  const sloganEl = qs("u-slogan");
-  const sloganToggle = qs("u-slogan-toggle");
-
-  if(unitEl) setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
-  if(sloganEl) setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
-
-  const b1 = qs("block-service");
-  const b2 = qs("block-exp");
-  renderExpandableInfoBlock_(b1, "服務項目", pick(row, ["services","服務項目","service"]), 2);
-  renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", pick(row, ["experience","經歷","exp"]), 3);
-
-  const vt = qs("versionTag");
-  if(vt) vt.textContent = CONFIG.VERSION;
-
-  renderCardExpiry_(row);
-  renderInstallDock_();
-  renderBottomQr_(row);
-  renderBottomHubShareBtn_();
-  renderFeatureQrFromCurrent_();
-  renderFacadeQrFromCurrent_();
-  applySmartBalanceAll_();
-  updateQrCenterSizes_();
-
-  requestAnimationFrame(() => {
-    refreshAllExpandable_();
-    ensureBottomQrVisible_();
-  });
-}
-
-/* ============================================================
-   PWA
-============================================================ */
-function isIos_(){ return /iphone|ipad|ipod/i.test(navigator.userAgent || ""); }
-function isStandalone_(){ return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true; }
-
-function updateInstallUi_(){
-  const btn = qs("btnInstallCard");
-  const fab = qs("installFab");
-  const dock = qs("installDock");
-  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
-  const canInstall = !!deferredInstallPrompt || isIos_() || !isStandalone_();
-  if(btn){
-    btn.disabled = false;
-    btn.style.opacity = canInstall ? "1" : ".62";
-  }
-  if(fab) fab.style.display = cleanMode ? "flex" : "none";
-  if(dock) dock.style.display = cleanMode ? "" : "none";
-}
-
-async function triggerPwaInstall_(){
-  if(isStandalone_()){
-    alert("✅ 已經安裝在桌面上了");
-    return;
-  }
-  if(deferredInstallPrompt){
-    try{
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
-    }catch(err){
-      console.error(err);
-    }finally{
-      deferredInstallPrompt = null;
-      updateInstallUi_();
-    }
-    return;
-  }
-  if(isIos_()){
-    alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。");
-    return;
-  }
-  alert("目前裝置尚未出現系統安裝提示。\n\n你可以先用瀏覽器選單中的『安裝應用程式』或『加入主畫面』。");
-}
-
-window.__triggerPwaInstall = triggerPwaInstall_;
-
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  updateInstallUi_();
-});
-window.addEventListener("appinstalled", () => {
-  deferredInstallPrompt = null;
-  updateInstallUi_();
-});
-window.addEventListener("load", () => {
-  ensureBottomQrVisible_();
-  updateQrCenterSizes_();
-}, { once: true });
-
-/* ============================================================
-   啟動
-============================================================ */
-(async function boot_(){
-  try{
-    initSelectionState_();
-    applySmartBalanceAll_();
-    updateInstallUi_();
-    bindAnnouncementModal_();
-    fetchAndRenderAnnouncements_();
-
-    await loadFacadeBaseCard();
-    renderFacadePreview();
-  }catch(err){
-    console.error("[HSC facade] boot failed:", err);
-    const nameEl = qs("u-name");
-    const unitWrap = qs("u-unit-wrap");
-    const titleEl = qs("u-title");
-    const unitEl = qs("u-unit");
-    if(nameEl) nameEl.textContent = "資料載入失敗";
-    if(unitWrap) unitWrap.style.display = "";
-    if(unitEl) unitEl.textContent = "請稍後再試";
-    if(titleEl) titleEl.textContent = "";
-
-    try{
-      bindAnnouncementModal_();
-      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-    }catch(_e){}
-  }
-})();
+    })();
+  </script>
+</body>
+</html>
