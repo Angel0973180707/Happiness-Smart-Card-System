@@ -7,13 +7,13 @@
   <link rel="stylesheet" href="./style.css" />
   <style>
     /* ============================================================
-       form.css  v7.7.9
-       完整覆蓋版 — 照片欄位正式穩定版
-       僅修正照片上傳欄位 UI / 結構，不動其他流程
-       1. photo-card 改為穩定左右欄
-       2. 補上 photo-right-col
-       3. 圖片預覽 / file input / 工具列完整對齊
-       4. 手機版改單欄，避免工具區擠爆
+       form.css  v7.7.9-drag
+       完整覆蓋版 — 照片拖曳排序版
+       只升級照片欄位 UX：
+       1. photo-card 穩定左右欄
+       2. 拿掉上移 / 下移，改拖拉排序
+       3. 保留左轉 / 右轉 / 左移 / 右移 / 縮放 / 重設
+       4. 手機版單欄，避免擠爆
     ============================================================ */
 
     :root {
@@ -537,6 +537,28 @@
       column-gap: 14px;
       row-gap: 10px;
       align-items: start;
+      position: relative;
+      transition: box-shadow .16s ease, transform .16s ease, border-color .16s ease, opacity .16s ease;
+    }
+
+    .photo-card.is-draggable {
+      cursor: grab;
+    }
+
+    .photo-card.is-draggable:active {
+      cursor: grabbing;
+    }
+
+    .photo-card.dragging {
+      opacity: .62;
+      transform: scale(.985);
+      box-shadow: 0 18px 36px rgba(0,0,0,.14);
+      border-color: rgba(240,160,75,.42);
+    }
+
+    .photo-card.drag-over {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
 
     .photo-head {
@@ -547,7 +569,62 @@
       gap: 8px;
     }
 
+    .photo-head-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .drag-handle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(42,36,30,.10);
+      background: linear-gradient(180deg, #fffdf9, #f8f1e7);
+      box-shadow: 0 6px 14px rgba(0,0,0,.05);
+      color: rgba(42,36,30,.62);
+      font-size: 16px;
+      font-weight: 900;
+      user-select: none;
+      touch-action: none;
+      flex: 0 0 auto;
+    }
+
+    .drag-handle::before {
+      content: "⋮⋮";
+      letter-spacing: -2px;
+      transform: rotate(90deg);
+      display: inline-block;
+      line-height: 1;
+    }
+
     .photo-title { font-size: 13px; font-weight: 900; }
+
+    .photo-head-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .order-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      height: 28px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #fff7ec;
+      color: #a76412;
+      border: 1px solid rgba(240,160,75,.22);
+      font-size: 12px;
+      font-weight: 900;
+    }
 
     .badge {
       font-size: 11px;
@@ -624,6 +701,17 @@
     .photo-tool-row .mini {
       padding: 7px 10px;
       font-size: 12px;
+    }
+
+    .drag-tip {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      line-height: 1.5;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(240,160,75,.08);
+      border: 1px dashed rgba(240,160,75,.22);
     }
 
     .zoom-range {
@@ -889,6 +977,11 @@
 
       .photo-tool-row .mini {
         flex: 1 1 calc(50% - 6px);
+      }
+
+      .drag-handle {
+        width: 32px;
+        height: 32px;
       }
     }
   </style>
@@ -1340,8 +1433,14 @@
   <template id="photo-slot-template">
     <article class="photo-card">
       <div class="photo-head">
-        <strong class="photo-title"></strong>
-        <span class="badge">尚未上傳</span>
+        <div class="photo-head-left">
+          <button type="button" class="drag-handle" title="拖拉排序" aria-label="拖拉排序"></button>
+          <strong class="photo-title"></strong>
+        </div>
+        <div class="photo-head-right">
+          <span class="order-badge">#1</span>
+          <span class="badge">尚未上傳</span>
+        </div>
       </div>
 
       <div class="preview-frame">
@@ -1358,10 +1457,9 @@
             <button type="button" class="ghost-btn mini rotate-right">右轉</button>
             <button type="button" class="ghost-btn mini move-left">左移</button>
             <button type="button" class="ghost-btn mini move-right">右移</button>
-            <button type="button" class="ghost-btn mini move-up">上移</button>
-            <button type="button" class="ghost-btn mini move-down">下移</button>
             <button type="button" class="ghost-btn mini reset-photo">重設</button>
           </div>
+          <div class="drag-tip">長按或拖曳左上角拖拉柄，可直接調整照片順序。</div>
           <input type="range" class="zoom-range" min="0.6" max="2" step="0.01" value="1" />
         </div>
       </div>
@@ -1386,5 +1484,304 @@
 
   <script src="./card-renderer.js"></script>
   <script src="./form.js"></script>
+
+  <script>
+    /* ============================================================
+       v7.7.9-drag enhancer
+       不改既有 form.js 核心流程
+       只在畫面生成後，將照片牆卡片升級為拖曳排序 UI
+    ============================================================ */
+    (function () {
+      const DRAG_STATE = {
+        draggedCard: null,
+        draggedGrid: null
+      };
+
+      function isPhotoWallSection(section) {
+        if (!section) return false;
+        const text = (section.textContent || '').replace(/\s+/g, '');
+        return text.includes('照片牆');
+      }
+
+      function getPhotoSectionsRoot() {
+        return document.getElementById('photo-slots');
+      }
+
+      function getPhotoGrids() {
+        const root = getPhotoSectionsRoot();
+        if (!root) return [];
+        return Array.from(root.querySelectorAll('.photo-grid-form'));
+      }
+
+      function ensureCardMeta(card, index) {
+        if (!card) return;
+
+        card.classList.add('is-draggable');
+
+        let head = card.querySelector('.photo-head');
+        if (!head) return;
+
+        if (!head.querySelector('.photo-head-left')) {
+          const title = head.querySelector('.photo-title');
+          const badge = head.querySelector('.badge');
+
+          head.innerHTML = '';
+
+          const left = document.createElement('div');
+          left.className = 'photo-head-left';
+
+          const handle = document.createElement('button');
+          handle.type = 'button';
+          handle.className = 'drag-handle';
+          handle.title = '拖拉排序';
+          handle.setAttribute('aria-label', '拖拉排序');
+
+          if (title) left.appendChild(handle), left.appendChild(title);
+          else {
+            const fallbackTitle = document.createElement('strong');
+            fallbackTitle.className = 'photo-title';
+            fallbackTitle.textContent = '照片';
+            left.appendChild(handle);
+            left.appendChild(fallbackTitle);
+          }
+
+          const right = document.createElement('div');
+          right.className = 'photo-head-right';
+
+          const order = document.createElement('span');
+          order.className = 'order-badge';
+          order.textContent = '#' + (index + 1);
+
+          right.appendChild(order);
+          if (badge) right.appendChild(badge);
+
+          head.appendChild(left);
+          head.appendChild(right);
+        } else {
+          let order = head.querySelector('.order-badge');
+          if (!order) {
+            const right = head.querySelector('.photo-head-right') || (() => {
+              const el = document.createElement('div');
+              el.className = 'photo-head-right';
+              head.appendChild(el);
+              return el;
+            })();
+            order = document.createElement('span');
+            order.className = 'order-badge';
+            right.prepend(order);
+          }
+          order.textContent = '#' + (index + 1);
+        }
+
+        let rightCol = card.querySelector('.photo-right-col');
+        const fileInput = card.querySelector('.photo-file-input');
+        const tools = card.querySelector('.photo-tools');
+
+        if (!rightCol) {
+          rightCol = document.createElement('div');
+          rightCol.className = 'photo-right-col';
+
+          if (fileInput) rightCol.appendChild(fileInput);
+          if (tools) rightCol.appendChild(tools);
+
+          const preview = card.querySelector('.preview-frame');
+          if (preview) {
+            preview.insertAdjacentElement('afterend', rightCol);
+          } else {
+            card.appendChild(rightCol);
+          }
+        }
+
+        if (tools && !tools.querySelector('.drag-tip')) {
+          const tip = document.createElement('div');
+          tip.className = 'drag-tip';
+          tip.textContent = '長按或拖曳左上角拖拉柄，可直接調整照片順序。';
+          const zoom = tools.querySelector('.zoom-range');
+          if (zoom) zoom.insertAdjacentElement('beforebegin', tip);
+          else tools.appendChild(tip);
+        }
+
+        const handle = card.querySelector('.drag-handle');
+        if (handle && !handle.dataset.dragBound) {
+          handle.dataset.dragBound = '1';
+          handle.setAttribute('draggable', 'true');
+
+          handle.addEventListener('dragstart', function (e) {
+            const ownerCard = handle.closest('.photo-card');
+            const ownerGrid = handle.closest('.photo-grid-form');
+            if (!ownerCard || !ownerGrid) return;
+
+            DRAG_STATE.draggedCard = ownerCard;
+            DRAG_STATE.draggedGrid = ownerGrid;
+
+            ownerCard.classList.add('dragging');
+            try {
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', 'photo-card');
+            } catch (_) {}
+          });
+
+          handle.addEventListener('dragend', function () {
+            cleanupDragState();
+            refreshAllPhotoOrders();
+            dispatchPhotoOrderChanged();
+          });
+        }
+
+        if (!card.dataset.dragCardBound) {
+          card.dataset.dragCardBound = '1';
+
+          card.addEventListener('dragover', function (e) {
+            const grid = card.closest('.photo-grid-form');
+            if (!grid) return;
+            if (!DRAG_STATE.draggedCard || !DRAG_STATE.draggedGrid) return;
+            if (grid !== DRAG_STATE.draggedGrid) return;
+            if (card === DRAG_STATE.draggedCard) return;
+
+            e.preventDefault();
+            card.classList.add('drag-over');
+          });
+
+          card.addEventListener('dragleave', function () {
+            card.classList.remove('drag-over');
+          });
+
+          card.addEventListener('drop', function (e) {
+            const grid = card.closest('.photo-grid-form');
+            if (!grid) return;
+            if (!DRAG_STATE.draggedCard || !DRAG_STATE.draggedGrid) return;
+            if (grid !== DRAG_STATE.draggedGrid) return;
+            if (card === DRAG_STATE.draggedCard) return;
+
+            e.preventDefault();
+
+            const cards = Array.from(grid.querySelectorAll('.photo-card'));
+            const draggedIndex = cards.indexOf(DRAG_STATE.draggedCard);
+            const targetIndex = cards.indexOf(card);
+            if (draggedIndex === -1 || targetIndex === -1) return;
+
+            if (draggedIndex < targetIndex) {
+              card.insertAdjacentElement('afterend', DRAG_STATE.draggedCard);
+            } else {
+              card.insertAdjacentElement('beforebegin', DRAG_STATE.draggedCard);
+            }
+
+            cleanupDragState();
+            refreshAllPhotoOrders();
+            dispatchPhotoOrderChanged();
+          });
+        }
+      }
+
+      function cleanupDragState() {
+        document.querySelectorAll('.photo-card.dragging, .photo-card.drag-over').forEach(el => {
+          el.classList.remove('dragging', 'drag-over');
+        });
+        DRAG_STATE.draggedCard = null;
+        DRAG_STATE.draggedGrid = null;
+      }
+
+      function refreshGridOrder(grid) {
+        if (!grid) return;
+        const cards = Array.from(grid.querySelectorAll('.photo-card'));
+        cards.forEach((card, index) => {
+          ensureCardMeta(card, index);
+          const badge = card.querySelector('.order-badge');
+          if (badge) badge.textContent = '#' + (index + 1);
+
+          card.dataset.photoOrder = String(index + 1);
+
+          const title = card.querySelector('.photo-title');
+          if (title && !title.dataset.baseTitle) {
+            title.dataset.baseTitle = title.textContent.trim();
+          }
+        });
+      }
+
+      function refreshAllPhotoOrders() {
+        getPhotoGrids().forEach(refreshGridOrder);
+      }
+
+      function dispatchPhotoOrderChanged() {
+        document.dispatchEvent(new CustomEvent('hsc:photo-order-changed'));
+      }
+
+      function enhancePhotoSections() {
+        const root = getPhotoSectionsRoot();
+        if (!root) return;
+
+        const sections = Array.from(root.querySelectorAll('.photo-section'));
+        sections.forEach(section => {
+          const grid = section.querySelector('.photo-grid-form');
+          if (!grid) return;
+
+          const cards = Array.from(grid.querySelectorAll('.photo-card'));
+          cards.forEach((card, index) => {
+            if (isPhotoWallSection(section)) {
+              ensureCardMeta(card, index);
+            } else {
+              card.classList.remove('is-draggable');
+              const handle = card.querySelector('.drag-handle');
+              if (handle) {
+                handle.style.display = 'none';
+                handle.setAttribute('draggable', 'false');
+              }
+              const order = card.querySelector('.order-badge');
+              if (order) order.style.display = 'none';
+            }
+          });
+
+          if (isPhotoWallSection(section)) {
+            refreshGridOrder(grid);
+          }
+        });
+      }
+
+      function bootEnhancer() {
+        enhancePhotoSections();
+
+        const root = getPhotoSectionsRoot();
+        if (!root) return;
+
+        const mo = new MutationObserver(() => {
+          enhancePhotoSections();
+        });
+
+        mo.observe(root, {
+          childList: true,
+          subtree: true
+        });
+
+        document.addEventListener('change', function (e) {
+          if (e.target && e.target.closest && e.target.closest('#photo-slots')) {
+            requestAnimationFrame(enhancePhotoSections);
+          }
+        });
+
+        document.addEventListener('click', function (e) {
+          const target = e.target;
+          if (!target) return;
+
+          if (
+            target.classList.contains('rotate-left') ||
+            target.classList.contains('rotate-right') ||
+            target.classList.contains('move-left') ||
+            target.classList.contains('move-right') ||
+            target.classList.contains('reset-photo')
+          ) {
+            requestAnimationFrame(enhancePhotoSections);
+          }
+        });
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+          setTimeout(bootEnhancer, 80);
+        });
+      } else {
+        setTimeout(bootEnhancer, 80);
+      }
+    })();
+  </script>
 </body>
 </html>
