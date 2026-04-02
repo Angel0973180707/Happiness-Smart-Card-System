@@ -1,26 +1,31 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v7.7.7-payload-fix
+   v7.7.7
    完整覆蓋版
 
-   修正項目：
+   修正 / 新增：
    1. buildPayload() ref → referrer
-   2. buildPayload() 補齊 marquee_purchased / marquee_enabled /
+   2. 補齊 marquee_purchased / marquee_enabled /
       cta_extra_purchased / photo_extra_purchased
-   3. submit() cardId 取值相容多種 GAS 回傳格式
-   4. quote-success.html 的 HSC_LAST_QUOTE 補齊 plan_name /
-      plan_amount / addon_items / total_amount
+   3. 新增 video1~3 / social1~3 欄位收集與送出
+   4. submit() cardId 相容多種 GAS 回傳格式
+   5. HSC_LAST_QUOTE 補齊 preview_url / payment_due_at（+3天）
+      → quote-success.html 顯示成品連結與繳費倒數
+   6. intro → slogan（card_db 欄位名）
 ============================================================ */
 
 (() => {
   "use strict";
 
+  /* ============================================================
+     CONFIG
+  ============================================================ */
   const CONFIG = {
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-    SERVICE_URL: "https://lin.ee/G3VJoRm",
+    SERVICE_URL:  "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v777_full",
+    DRAFT_KEY: "hsc_form_draft_v777",
     BASE_LIMITS: {
       free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -36,9 +41,7 @@
     MAX_WALL_PHOTOS: 10,
     MAX_CTAS: 10,
     DEFAULT_PREVIEW_META: {
-      layout:       "grid",
-      aspect_ratio: "1:1",
-      fit_mode:     "cover"
+      layout: "grid", aspect_ratio: "1:1", fit_mode: "cover"
     }
   };
 
@@ -70,86 +73,49 @@
 
   function collectEls() {
     const ids = [
-      "smart-card-form",
-      "form-status-strip",
-      "btn-open-showcase",
-      "btn-save-draft",
-      "btn-clear-draft",
-      "btn-contact-service",
-      "btn-submit-form",
-      "btn-gold-info",
-      "btn-gold-copy",
-      "btn-gold-contact",
+      "smart-card-form", "form-status-strip",
+      "btn-open-showcase", "btn-save-draft", "btn-clear-draft",
+      "btn-contact-service", "btn-submit-form",
+      "btn-gold-info", "btn-gold-copy", "btn-gold-contact",
       "progress-contact-service",
 
-      "invite_code",
-      "ref",
+      "invite_code", "ref",
 
-      "addon_marquee_enabled",
-      "addon_photo_enabled",
-      "addon_photo_qty",
-      "addon_cta_enabled",
-      "addon_cta_qty",
-      "addon_update_unlimited_enabled",
-      "addon_bundle_enabled",
-      "addon_agent_upgrade_enabled",
-      "addon-photo-tip",
+      "addon_marquee_enabled", "addon_photo_enabled", "addon_photo_qty",
+      "addon_cta_enabled", "addon_cta_qty",
+      "addon_update_unlimited_enabled", "addon_bundle_enabled",
+      "addon_agent_upgrade_enabled", "addon-photo-tip",
 
-      "free-theme-group",
-      "premium-theme-group",
-      "free_color",
-      "free_style",
-      "free_paper",
-      "premium_color",
+      "free-theme-group", "premium-theme-group",
+      "free_color", "free_style", "free_paper", "premium_color",
 
-      "display_name",
-      "unit",
-      "title",
-      "phone",
-      "email",
-      "website",
-      "line_url",
-      "line_oa",
-      "wechat_id",
-      "experience",
-      "services",
-      "address",
-      "intro",
+      "display_name", "unit", "title", "phone", "email", "website",
+      "line_url", "line_oa", "wechat_id", "experience", "services",
+      "address", "intro",
+      "video1", "video2", "video3",
+      "social1", "social2", "social3",
 
-      "marquee-section",
-      "marquee_text",
+      "marquee-section", "marquee_text",
+      "photo-slots", "cta-slots", "livePreviewCard",
 
-      "photo-slots",
-      "cta-slots",
-      "livePreviewCard",
-
-      "summary-plan-pill",
-      "summary-photo-pill",
-      "summary-cta-pill",
-      "summary-plan-name",
-      "summary-photo-count",
-      "summary-cta-count",
+      "summary-plan-pill", "summary-photo-pill", "summary-cta-pill",
+      "summary-plan-name", "summary-photo-count", "summary-cta-count",
       "summary-marquee-status",
 
-      "quote-state-text",
-      "quote-plan-amount",
-      "quote-addon-amount",
-      "quote-addon-breakdown",
-      "quote-total-amount",
+      "quote-state-text", "quote-plan-amount", "quote-addon-amount",
+      "quote-addon-breakdown", "quote-total-amount",
 
-      "submit-progress-overlay",
-      "progress-text",
-      "progress-fill"
+      "submit-progress-overlay", "progress-text", "progress-fill"
     ];
 
     ids.forEach(id => { els[id] = document.getElementById(id); });
 
-    els.planRadios        = Array.from(document.querySelectorAll('input[name="plan"]'));
-    els.addonCheckboxes   = Array.from(document.querySelectorAll('input[name="addons"]'));
-    els.planCards         = Array.from(document.querySelectorAll("[data-plan-card]"));
-    els.progressSteps     = Array.from(document.querySelectorAll(".progress-step"));
-    els.photoTemplate     = document.getElementById("photo-slot-template");
-    els.ctaTemplate       = document.getElementById("cta-slot-template");
+    els.planRadios      = Array.from(document.querySelectorAll('input[name="plan"]'));
+    els.addonCheckboxes = Array.from(document.querySelectorAll('input[name="addons"]'));
+    els.planCards       = Array.from(document.querySelectorAll("[data-plan-card]"));
+    els.progressSteps   = Array.from(document.querySelectorAll(".progress-step"));
+    els.photoTemplate   = document.getElementById("photo-slot-template");
+    els.ctaTemplate     = document.getElementById("cta-slot-template");
   }
 
   function ensureRendererAlias() {
@@ -159,31 +125,27 @@
   }
 
   /* ============================================================
-     靜態事件綁定
+     靜態事件
   ============================================================ */
   function bindStaticEvents() {
-    if (els["smart-card-form"]) {
-      els["smart-card-form"].addEventListener("submit", submit);
-    }
+    if (els["smart-card-form"]) els["smart-card-form"].addEventListener("submit", submit);
 
-    els.planRadios.forEach(radio => radio.addEventListener("change", refreshAll));
-    els.addonCheckboxes.forEach(box => box.addEventListener("change", refreshAll));
+    els.planRadios.forEach(r => r.addEventListener("change", refreshAll));
+    els.addonCheckboxes.forEach(b => b.addEventListener("change", refreshAll));
 
-    if (els["addon_photo_qty"]) {
-      els["addon_photo_qty"].addEventListener("input",  refreshAll);
-      els["addon_photo_qty"].addEventListener("change", refreshAll);
-    }
-
-    if (els["addon_cta_qty"]) {
-      els["addon_cta_qty"].addEventListener("input",  refreshAll);
-      els["addon_cta_qty"].addEventListener("change", refreshAll);
-    }
+    ["addon_photo_qty", "addon_cta_qty"].forEach(id => {
+      if (els[id]) {
+        els[id].addEventListener("input",  refreshAll);
+        els[id].addEventListener("change", refreshAll);
+      }
+    });
 
     [
       "free_color","free_style","free_paper","premium_color",
       "display_name","unit","title","phone","email","website",
       "line_url","line_oa","wechat_id","experience","services",
-      "address","intro","marquee_text"
+      "address","intro","marquee_text",
+      "video1","video2","video3","social1","social2","social3"
     ].forEach(id => {
       if (els[id]) {
         els[id].addEventListener("input",  onLiveChange);
@@ -192,10 +154,10 @@
     });
 
     bindButton(els["btn-open-showcase"],        () => window.open(CONFIG.SHOWCASE_URL, "_blank", "noopener"));
-    bindButton(els["btn-contact-service"],      () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
-    bindButton(els["progress-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
-    bindButton(els["btn-gold-contact"],         () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
-    bindButton(els["btn-gold-info"],            () => alert("金牌級會員請聯繫客服瞭解完整權益與適合方案。"));
+    bindButton(els["btn-contact-service"],      () => window.open(CONFIG.SERVICE_URL,  "_blank", "noopener"));
+    bindButton(els["progress-contact-service"], () => window.open(CONFIG.SERVICE_URL,  "_blank", "noopener"));
+    bindButton(els["btn-gold-contact"],         () => window.open(CONFIG.SERVICE_URL,  "_blank", "noopener"));
+    bindButton(els["btn-gold-info"],            () => alert("金牌級會員請聯繫客服瞭解完整權益。"));
     bindButton(els["btn-gold-copy"], async () => {
       await copyText("您好，我想瞭解金牌級會員的完整權益與適合方案。");
       setStatus("已複製金牌會員詢問文案。");
@@ -205,22 +167,18 @@
   }
 
   function bindButton(btn, handler) {
-    if (!btn) return;
-    btn.addEventListener("click", handler);
+    if (btn) btn.addEventListener("click", handler);
   }
 
-  function onLiveChange() {
-    updatePreview();
-    saveDraftSilently();
-  }
+  function onLiveChange() { updatePreview(); saveDraftSilently(); }
 
   /* ============================================================
-     方案與加購邏輯
+     方案 / 加購邏輯
   ============================================================ */
   function ensureDefaultPlan() {
     if (getSelectedPlan()) return;
-    const premium = els.planRadios.find(r => r.value === "premium");
-    if (premium) premium.checked = true;
+    const r = els.planRadios.find(r => r.value === "premium");
+    if (r) r.checked = true;
   }
 
   function getSelectedPlan() {
@@ -232,9 +190,9 @@
   }
 
   function getAddonQty(id) {
-    const el  = els[id];
+    const el = els[id];
     if (!el) return 0;
-    const n   = Number(el.value || 0);
+    const n = Number(el.value || 0);
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
   }
 
@@ -242,19 +200,19 @@
 
   function clampNumber(value, min, max, fallback) {
     const n = Number(value);
-    if (!Number.isFinite(n))                       return fallback;
-    if (Number.isFinite(min) && n < min)           return min;
-    if (Number.isFinite(max) && n > max)           return max;
+    if (!Number.isFinite(n)) return fallback;
+    if (Number.isFinite(min) && n < min) return min;
+    if (Number.isFinite(max) && n > max) return max;
     return n;
   }
 
   function normalizePhotoMeta(meta) {
-    const src = meta && typeof meta === "object" ? meta : {};
+    const s = meta && typeof meta === "object" ? meta : {};
     return {
-      x:      clampNumber(src.x,      0,    1,   DEFAULT_PHOTO_META.x),
-      y:      clampNumber(src.y,      0,    1,   DEFAULT_PHOTO_META.y),
-      scale:  clampNumber(src.scale,  0.5,  3,   DEFAULT_PHOTO_META.scale),
-      rotate: clampNumber(src.rotate, -180, 180, DEFAULT_PHOTO_META.rotate)
+      x:      clampNumber(s.x,      0,    1,   DEFAULT_PHOTO_META.x),
+      y:      clampNumber(s.y,      0,    1,   DEFAULT_PHOTO_META.y),
+      scale:  clampNumber(s.scale,  0.5,  3,   DEFAULT_PHOTO_META.scale),
+      rotate: clampNumber(s.rotate, -180, 180, DEFAULT_PHOTO_META.rotate)
     };
   }
 
@@ -276,31 +234,26 @@
   }
 
   function getLimits() {
-    const plan   = getSelectedPlan() || "premium";
-    const base   = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
-
-    let extraWallPhotos = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
-    let extraCtas       = isAddonChecked("addon_cta")   ? getAddonQty("addon_cta_qty")   : 0;
-
-    extraWallPhotos = clamp(extraWallPhotos, 0, CONFIG.MAX_WALL_PHOTOS - base.wallPhotos);
-    extraCtas       = clamp(extraCtas,       0, CONFIG.MAX_CTAS         - base.ctas);
-
+    const plan  = getSelectedPlan() || "premium";
+    const base  = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
+    let ewp = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
+    let ect = isAddonChecked("addon_cta")   ? getAddonQty("addon_cta_qty")   : 0;
+    ewp = clamp(ewp, 0, CONFIG.MAX_WALL_PHOTOS - base.wallPhotos);
+    ect = clamp(ect, 0, CONFIG.MAX_CTAS - base.ctas);
     return {
       plan,
-      planLabel:       base.label,
-      planPrice:       base.price,
-      wallPhotos:      clamp(base.wallPhotos + extraWallPhotos, 0, CONFIG.MAX_WALL_PHOTOS),
-      ctas:            clamp(base.ctas       + extraCtas,       0, CONFIG.MAX_CTAS),
-      extraWallPhotos,
-      extraCtas
+      planLabel:  base.label,
+      planPrice:  base.price,
+      wallPhotos: clamp(base.wallPhotos + ewp, 0, CONFIG.MAX_WALL_PHOTOS),
+      ctas:       clamp(base.ctas + ect, 0, CONFIG.MAX_CTAS),
+      extraWallPhotos: ewp,
+      extraCtas: ect
     };
   }
 
   function syncPlanCards() {
     const plan = getSelectedPlan();
-    els.planCards.forEach(card => {
-      card.classList.toggle("is-selected", card.getAttribute("data-plan-card") === plan);
-    });
+    els.planCards.forEach(c => c.classList.toggle("is-selected", c.getAttribute("data-plan-card") === plan));
   }
 
   function syncThemeGroups(plan) {
@@ -322,7 +275,7 @@
 
     if (els["addon-photo-tip"]) {
       const remain = Math.max(0, CONFIG.MAX_WALL_PHOTOS - CONFIG.BASE_LIMITS[limits.plan].wallPhotos);
-      els["addon-photo-tip"].textContent = `本方案照片牆最多可再加 ${remain} 張`;
+      els["addon-photo-tip"].textContent = `本方案最多可再加 ${remain} 張`;
     }
 
     if (els["addon_cta_qty"]) {
@@ -346,25 +299,19 @@
   }
 
   function syncMarqueeSection() {
-    if (els["marquee-section"]) {
-      els["marquee-section"].classList.toggle("hidden", !isMarqueeEnabled());
-    }
+    if (els["marquee-section"]) els["marquee-section"].classList.toggle("hidden", !isMarqueeEnabled());
   }
 
   /* ============================================================
      照片區塊
   ============================================================ */
   function ensurePhotoMetaKey(key) {
-    if (!state.photoMeta[key]) {
-      state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
-    } else {
-      state.photoMeta[key] = normalizePhotoMeta(state.photoMeta[key]);
-    }
+    if (!state.photoMeta[key]) state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
+    else state.photoMeta[key] = normalizePhotoMeta(state.photoMeta[key]);
   }
 
   function renderPhotoSections(wallLimit) {
     if (!els["photo-slots"] || !els.photoTemplate) return;
-
     state.wallPhotoCount = wallLimit;
     ensurePhotoMetaKey("avatar");
     ensurePhotoMetaKey("logo");
@@ -373,26 +320,20 @@
     els["photo-slots"].innerHTML = "";
 
     const sections = [
-      { title: "個人照", desc: "固定 1 張，會套用到成品卡頭像。",                           keys: ["avatar"] },
-      { title: "Logo",   desc: "固定 1 張，會套用到成品卡 logo。",                          keys: ["logo"]   },
-      { title: "照片牆", desc: `本次可上傳 ${wallLimit} 張（不含個人照與 Logo）`,            keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
+      { title: "個人照", desc: "固定 1 張，套用到成品卡頭像。",                             keys: ["avatar"] },
+      { title: "Logo",   desc: "固定 1 張，套用到成品卡 logo。",                            keys: ["logo"]   },
+      { title: "照片牆", desc: `本次可上傳 ${wallLimit} 張（不含個人照與 Logo）`,             keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
     ];
 
-    sections.forEach(section => {
+    sections.forEach(sec => {
       const wrapper = document.createElement("section");
       wrapper.className = "photo-section";
-
       const head = document.createElement("div");
       head.className = "photo-section-head";
-      head.innerHTML = `<div><h3>${escapeHtml(section.title)}</h3><p>${escapeHtml(section.desc)}</p></div>`;
-
+      head.innerHTML = `<div><h3>${escapeHtml(sec.title)}</h3><p>${escapeHtml(sec.desc)}</p></div>`;
       const grid = document.createElement("div");
       grid.className = "photo-grid photo-grid-form";
-
-      section.keys.forEach((key, index) => {
-        grid.appendChild(buildPhotoCard(key, section.title, index + 1));
-      });
-
+      sec.keys.forEach((key, idx) => grid.appendChild(buildPhotoCard(key, sec.title, idx + 1)));
       wrapper.appendChild(head);
       wrapper.appendChild(grid);
       els["photo-slots"].appendChild(wrapper);
@@ -415,10 +356,8 @@
     const moveRight    = frag.querySelector(".move-right");
     const resetBtn     = frag.querySelector(".reset-photo");
 
-    card.dataset.photoKey = key;
-
-    const labels = { avatar: "個人照", logo: "Logo" };
-    title.textContent       = labels[key] || `照片牆 ${index}`;
+    card.dataset.photoKey      = key;
+    title.textContent          = ({ avatar: "個人照", logo: "Logo" })[key] || `照片牆 ${index}`;
     fileInput.dataset.photoKey = key;
     zoomRange.dataset.photoKey = key;
     zoomRange.value            = String(state.photoMeta[key]?.scale || 1);
@@ -435,15 +374,13 @@
       tools.classList.remove("hidden");
       badge.textContent = "已上傳";
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview();
-      saveDraftSilently();
+      updatePreview(); saveDraftSilently();
     });
 
     zoomRange.addEventListener("input", () => {
       state.photoMeta[key].scale = clampNumber(zoomRange.value, 0.5, 3, 1);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview();
-      saveDraftSilently();
+      updatePreview(); saveDraftSilently();
     });
 
     rotateLeft.addEventListener("click", () => {
@@ -451,25 +388,21 @@
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
-
     rotateRight.addEventListener("click", () => {
       state.photoMeta[key].rotate = clampNumber(state.photoMeta[key].rotate + 90, -180, 180, 0);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
-
     moveLeft.addEventListener("click", () => {
-      state.photoMeta[key].x = clampNumber(Number((state.photoMeta[key].x - 0.05).toFixed(2)), 0, 1, 0.5);
+      state.photoMeta[key].x = clampNumber(+(state.photoMeta[key].x - 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
-
     moveRight.addEventListener("click", () => {
-      state.photoMeta[key].x = clampNumber(Number((state.photoMeta[key].x + 0.05).toFixed(2)), 0, 1, 0.5);
+      state.photoMeta[key].x = clampNumber(+(state.photoMeta[key].x + 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
-
     resetBtn.addEventListener("click", () => {
       state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
       zoomRange.value = "1";
@@ -481,13 +414,10 @@
     return card;
   }
 
-  function hydratePhotoCardUi(key, refs) {
+  function hydratePhotoCardUi(key, { badge, previewImage, previewEmpty, tools, zoomRange }) {
     ensurePhotoMetaKey(key);
-    const { badge, previewImage, previewEmpty, tools, zoomRange } = refs;
     const src = state.photoPreviewUrls[key];
-
     if (zoomRange) zoomRange.value = String(state.photoMeta[key].scale || 1);
-
     if (src) {
       previewImage.src = src;
       previewImage.classList.remove("hidden");
@@ -518,8 +448,7 @@
   ============================================================ */
   function renderCtas(limit) {
     if (!els["cta-slots"] || !els.ctaTemplate) return;
-
-    const savedValues = collectCurrentCtaValues();
+    const saved = collectCurrentCtaValues();
     els["cta-slots"].innerHTML = "";
     state.ctaCount = limit;
 
@@ -529,11 +458,11 @@
       const textInput = frag.querySelector(".cta-label-input");
       const urlInput  = frag.querySelector(".cta-url-input");
 
-      label.textContent = `CTA ${i}`;
-      textInput.id      = `cta_text_${i}`;
-      textInput.value   = savedValues[`cta_text_${i}`] || "";
-      urlInput.id       = `cta_link_${i}`;
-      urlInput.value    = savedValues[`cta_link_${i}`] || "";
+      label.textContent = `CTA 按鈕 ${i}`;
+      textInput.id    = `cta_text_${i}`;
+      textInput.value = saved[`cta_text_${i}`] || "";
+      urlInput.id     = `cta_link_${i}`;
+      urlInput.value  = saved[`cta_link_${i}`] || "";
 
       textInput.addEventListener("input",  onLiveChange);
       textInput.addEventListener("change", onLiveChange);
@@ -559,71 +488,73 @@
      Summary & Quote
   ============================================================ */
   function syncSummary(limits) {
-    if (els["summary-plan-pill"])     els["summary-plan-pill"].textContent     = limits.planLabel;
-    if (els["summary-photo-pill"])    els["summary-photo-pill"].textContent    = `照片牆：${limits.wallPhotos}`;
-    if (els["summary-cta-pill"])      els["summary-cta-pill"].textContent      = `CTA 上限：${limits.ctas}`;
-    if (els["summary-plan-name"])     els["summary-plan-name"].textContent     = limits.planLabel;
-    if (els["summary-photo-count"])   els["summary-photo-count"].textContent   = String(limits.wallPhotos);
-    if (els["summary-cta-count"])     els["summary-cta-count"].textContent     = String(limits.ctas);
-    if (els["summary-marquee-status"])els["summary-marquee-status"].textContent = isMarqueeEnabled() ? "已開啟" : "未開啟";
+    if (els["summary-plan-pill"])      els["summary-plan-pill"].textContent      = limits.planLabel;
+    if (els["summary-photo-pill"])     els["summary-photo-pill"].textContent     = `照片牆：${limits.wallPhotos}`;
+    if (els["summary-cta-pill"])       els["summary-cta-pill"].textContent       = `CTA：${limits.ctas}`;
+    if (els["summary-plan-name"])      els["summary-plan-name"].textContent      = limits.planLabel;
+    if (els["summary-photo-count"])    els["summary-photo-count"].textContent    = String(limits.wallPhotos);
+    if (els["summary-cta-count"])      els["summary-cta-count"].textContent      = String(limits.ctas);
+    if (els["summary-marquee-status"]) els["summary-marquee-status"].textContent = isMarqueeEnabled() ? "已開啟" : "未開啟";
   }
 
   function getAddonItemsForQuote(limits) {
-    const items         = [];
-    const bundleChecked = isAddonChecked("addon_bundle");
-    const marqueeChecked= isAddonChecked("addon_marquee");
-    const updateChecked = isAddonChecked("addon_update_unlimited");
-    const photoChecked  = isAddonChecked("addon_photo");
-    const ctaChecked    = isAddonChecked("addon_cta");
-    const goldChecked   = isAddonChecked("addon_agent_upgrade");
-    const photoQty      = photoChecked ? getAddonQty("addon_photo_qty") : 0;
-    const ctaQty        = ctaChecked   ? getAddonQty("addon_cta_qty")   : 0;
+    const items          = [];
+    const bundleChecked  = isAddonChecked("addon_bundle");
+    const photoChecked   = isAddonChecked("addon_photo");
+    const ctaChecked     = isAddonChecked("addon_cta");
+    const photoQty       = photoChecked ? getAddonQty("addon_photo_qty") : 0;
+    const ctaQty         = ctaChecked   ? getAddonQty("addon_cta_qty")   : 0;
 
     if (bundleChecked) {
       items.push({ code: "addon_bundle", name: "跑馬燈＋更新組合", qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_bundle, amount: CONFIG.ADDON_PRICES.addon_bundle });
     } else {
-      if (marqueeChecked) items.push({ code: "addon_marquee", name: "跑馬燈功能", qty: 1,
+      if (isAddonChecked("addon_marquee")) items.push({
+        code: "addon_marquee", name: "跑馬燈功能", qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_marquee, amount: CONFIG.ADDON_PRICES.addon_marquee });
-      if (updateChecked)  items.push({ code: "addon_update_unlimited", name: "無限更新", qty: 1,
+      if (isAddonChecked("addon_update_unlimited")) items.push({
+        code: "addon_update_unlimited", name: "無限更新", qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited, amount: CONFIG.ADDON_PRICES.addon_update_unlimited });
     }
 
-    if (photoChecked && photoQty > 0) items.push({ code: "addon_photo", name: "照片牆加購",
-      qty: photoQty, unit_price: CONFIG.ADDON_PRICES.addon_photo, amount: photoQty * CONFIG.ADDON_PRICES.addon_photo });
+    if (photoChecked && photoQty > 0) items.push({
+      code: "addon_photo", name: "照片牆加購", qty: photoQty,
+      unit_price: CONFIG.ADDON_PRICES.addon_photo, amount: photoQty * CONFIG.ADDON_PRICES.addon_photo });
 
-    if (ctaChecked && ctaQty > 0) items.push({ code: "addon_cta", name: "CTA 加購",
-      qty: ctaQty, unit_price: CONFIG.ADDON_PRICES.addon_cta, amount: ctaQty * CONFIG.ADDON_PRICES.addon_cta });
+    if (ctaChecked && ctaQty > 0) items.push({
+      code: "addon_cta", name: "CTA 加購", qty: ctaQty,
+      unit_price: CONFIG.ADDON_PRICES.addon_cta, amount: ctaQty * CONFIG.ADDON_PRICES.addon_cta });
 
-    if (goldChecked) items.push({ code: "addon_agent_upgrade", name: "金牌級會員", qty: 1,
+    if (isAddonChecked("addon_agent_upgrade")) items.push({
+      code: "addon_agent_upgrade", name: "金牌級會員", qty: 1,
       unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade, amount: CONFIG.ADDON_PRICES.addon_agent_upgrade });
 
     return items;
   }
 
   function syncQuote(limits) {
-    const addonItems   = getAddonItemsForQuote(limits);
-    const addonAmount  = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const total        = Number(limits.planPrice || 0) + addonAmount;
+    const items       = getAddonItemsForQuote(limits);
+    const addonAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const total       = (limits.planPrice || 0) + addonAmount;
 
-    if (els["quote-state-text"])    els["quote-state-text"].textContent    = `${limits.planLabel}｜${money(total)}`;
-    if (els["quote-plan-amount"])   els["quote-plan-amount"].textContent   = money(limits.planPrice || 0);
-    if (els["quote-addon-amount"])  els["quote-addon-amount"].textContent  = money(addonAmount);
-    if (els["quote-total-amount"])  els["quote-total-amount"].textContent  = money(total);
+    if (els["quote-state-text"])   els["quote-state-text"].textContent   = `${limits.planLabel}｜${money(total)}`;
+    if (els["quote-plan-amount"])  els["quote-plan-amount"].textContent  = money(limits.planPrice || 0);
+    if (els["quote-addon-amount"]) els["quote-addon-amount"].textContent = money(addonAmount);
+    if (els["quote-total-amount"]) els["quote-total-amount"].textContent = money(total);
 
     if (els["quote-addon-breakdown"]) {
       els["quote-addon-breakdown"].innerHTML = "";
-      if (!addonItems.length) {
-        const span = document.createElement("span");
-        span.textContent = "尚未選擇加購";
-        els["quote-addon-breakdown"].appendChild(span);
+      if (!items.length) {
+        const s = document.createElement("span");
+        s.textContent = "尚未選擇加購";
+        els["quote-addon-breakdown"].appendChild(s);
       } else {
-        addonItems.forEach(item => {
+        items.forEach(item => {
           const row = document.createElement("div");
           row.className = "quote-breakdown-row";
-          const qtyStr = (item.code === "addon_photo" || item.code === "addon_cta") && item.qty > 1
+          const qs = (item.code === "addon_photo" || item.code === "addon_cta") && item.qty > 1
             ? ` × ${item.qty}` : "";
-          row.innerHTML = `<span>${escapeHtml(item.name)}${qtyStr}</span><strong>${money(item.amount)}</strong>`;
+          row.innerHTML = `<span>${escapeHtml(item.name)}${qs}</span><strong>${money(item.amount)}</strong>`;
           els["quote-addon-breakdown"].appendChild(row);
         });
       }
@@ -636,32 +567,24 @@
   function updatePreview() {
     const root = els["livePreviewCard"];
     if (!root) return;
-
     ensureRendererAlias();
     const renderer = window.HSCCardRenderer || window.HscCardRenderer;
-
     if (!renderer || typeof renderer.renderCard !== "function") {
-      root.innerHTML = `<div class="renderer-error">找不到 HscCardRenderer，請確認已先載入 card-renderer.js</div>`;
+      root.innerHTML = `<div class="renderer-error">找不到 HscCardRenderer，請確認已載入 card-renderer.js</div>`;
       return;
     }
-
-    const data = buildPreviewData();
-
     try {
-      renderer.renderCard(data, {
-        mode: "form",
-        root,
-        useExistingDom: false,
-        qrMode:        "preview",
-        allowActions:  false,
-        previewUrl:    buildPreviewUrl(),
-        shareUrl:      buildPreviewUrl(),
-        cardUrl:       buildPreviewUrl()
+      renderer.renderCard(buildPreviewData(), {
+        mode: "form", root, useExistingDom: false,
+        qrMode: "preview", allowActions: false,
+        previewUrl: CONFIG.SHOWCASE_URL,
+        shareUrl:   CONFIG.SHOWCASE_URL,
+        cardUrl:    CONFIG.SHOWCASE_URL
       });
       bindPreviewCollapseToggles(root);
     } catch (err) {
-      console.error("updatePreview renderCard error:", err);
-      root.innerHTML = `<div class="renderer-error">預覽渲染失敗：${escapeHtml(err.message || "未知錯誤")}</div>`;
+      console.error("updatePreview error:", err);
+      root.innerHTML = `<div class="renderer-error">預覽渲染失敗：${escapeHtml(err.message || "未知")}</div>`;
     }
   }
 
@@ -673,33 +596,33 @@
       name:       valueOf("display_name"),
       unit:       valueOf("unit"),
       title:      valueOf("title"),
-      slogan:     valueOf("intro"),
+      slogan:     valueOf("intro"),          // intro → slogan
       services:   valueOf("services"),
       experience: valueOf("experience"),
-
-      phone:    valueOf("phone"),
-      email:    valueOf("email"),
-      address:  valueOf("address"),
-      website:  valueOf("website"),
-      line_url: valueOf("line_url"),
-      line_oa:  valueOf("line_oa"),
-      wechat_id:valueOf("wechat_id"),
-
+      phone:      valueOf("phone"),
+      email:      valueOf("email"),
+      address:    valueOf("address"),
+      website:    valueOf("website"),
+      line_url:   valueOf("line_url"),
+      line_oa:    valueOf("line_oa"),
+      wechat_id:  valueOf("wechat_id"),
+      video1:     valueOf("video1"),
+      video2:     valueOf("video2"),
+      video3:     valueOf("video3"),
+      social1:    valueOf("social1"),
+      social2:    valueOf("social2"),
+      social3:    valueOf("social3"),
       plan:  theme.plan,
       color: theme.color,
       style: theme.style,
       paper: theme.paper,
-
       marquee_text:    isMarqueeEnabled() ? valueOf("marquee_text") : "",
       marquee_enabled: isMarqueeEnabled() ? "true" : "",
-
       photo_limit: limits.wallPhotos,
       cta_limit:   limits.ctas,
-
-      preview_url: buildPreviewUrl(),
-      share_url:   buildPreviewUrl(),
-      card_url:    buildPreviewUrl(),
-
+      preview_url: CONFIG.SHOWCASE_URL,
+      share_url:   CONFIG.SHOWCASE_URL,
+      card_url:    CONFIG.SHOWCASE_URL,
       features: {
         photo_meta:   buildPhotoMetaMap(),
         preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }
@@ -710,20 +633,16 @@
     if (state.photoPreviewUrls.logo)   data.logo_url   = state.photoPreviewUrls.logo;
 
     for (let i = 1; i <= limits.wallPhotos; i++) {
-      const key = `photo${i}`;
-      if (state.photoPreviewUrls[key]) data[`photo${i}_url`] = state.photoPreviewUrls[key];
+      if (state.photoPreviewUrls[`photo${i}`]) data[`photo${i}_url`] = state.photoPreviewUrls[`photo${i}`];
     }
-
     for (let i = 1; i <= limits.ctas; i++) {
       data[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
       data[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
     }
-
     return data;
   }
 
   function bindPreviewCollapseToggles(root) {
-    if (!root) return;
     setupPreviewBlockClamp(root, "#block-service", 140);
     setupPreviewBlockClamp(root, "#block-exp",     180);
   }
@@ -731,41 +650,31 @@
   function setupPreviewBlockClamp(root, selector, collapsedHeight) {
     const block = root.querySelector(selector);
     if (!block || block.style.display === "none") return;
-
     const next = block.nextElementSibling;
     if (next && next.classList.contains("preview-more-toggle")) next.remove();
-
-    block.style.maxHeight = "";
-    block.style.overflow  = "";
+    block.style.maxHeight = ""; block.style.overflow = "";
     block.classList.remove("is-collapsed", "is-expanded");
-
     requestAnimationFrame(() => {
       if (block.scrollHeight <= collapsedHeight + 8) return;
-
       block.style.maxHeight = `${collapsedHeight}px`;
       block.style.overflow  = "hidden";
       block.classList.add("is-collapsed");
-
       const btn = document.createElement("button");
-      btn.type      = "button";
-      btn.className = "ghost-btn mini preview-more-toggle";
+      btn.type = "button"; btn.className = "ghost-btn mini preview-more-toggle";
       btn.textContent = "展開更多";
-
       btn.addEventListener("click", () => {
-        const expanded = block.classList.contains("is-expanded");
-        if (expanded) {
-          block.classList.replace("is-expanded", "is-collapsed");
+        if (block.classList.contains("is-expanded")) {
+          block.classList.replace("is-expanded","is-collapsed");
           block.style.maxHeight = `${collapsedHeight}px`;
           block.style.overflow  = "hidden";
           btn.textContent = "展開更多";
         } else {
-          block.classList.replace("is-collapsed", "is-expanded");
+          block.classList.replace("is-collapsed","is-expanded");
           block.style.maxHeight = "none";
           block.style.overflow  = "visible";
           btn.textContent = "收合";
         }
       });
-
       block.insertAdjacentElement("afterend", btn);
     });
   }
@@ -782,17 +691,17 @@
   }
 
   /* ============================================================
-     buildPayload — 修正版
+     buildPayload — 完整版
      ・ref → referrer
-     ・補齊 marquee_purchased / marquee_enabled /
-            cta_extra_purchased / photo_extra_purchased
+     ・補 marquee_purchased / photo_extra_purchased / cta_extra_purchased
+     ・補 video1~3 / social1~3
+     ・slogan 對應 intro 欄位
   ============================================================ */
   function buildPayload() {
     const limits      = getLimits();
     const theme       = getThemeSelection();
     const previewData = buildPreviewData();
     const addonItems  = getAddonItemsForQuote(limits);
-
     const bundleChecked  = isAddonChecked("addon_bundle");
     const marqueeChecked = isAddonChecked("addon_marquee");
 
@@ -804,20 +713,28 @@
       name:       previewData.name,
       unit:       previewData.unit,
       title:      previewData.title,
+      slogan:     previewData.slogan,      // intro → slogan
       phone:      previewData.phone,
       email:      previewData.email,
       website:    previewData.website,
+      address:    previewData.address,
       line_url:   previewData.line_url,
       line_oa:    previewData.line_oa,
       wechat_id:  previewData.wechat_id,
       experience: previewData.experience,
       services:   previewData.services,
-      address:    previewData.address,
-      slogan:     previewData.slogan,
 
-      /* 邀請碼 & 來源 — 修正：ref → referrer */
+      /* 影音 / 社群連結 */
+      video1:  valueOf("video1"),
+      video2:  valueOf("video2"),
+      video3:  valueOf("video3"),
+      social1: valueOf("social1"),
+      social2: valueOf("social2"),
+      social3: valueOf("social3"),
+
+      /* 邀請碼 & 來源 */
       invite_code: valueOf("invite_code"),
-      referrer:    valueOf("ref"),
+      referrer:    valueOf("ref"),          // ref → referrer
 
       /* 樣式 */
       plan:  theme.plan,
@@ -842,7 +759,7 @@
       avatar_url: previewData.avatar_url || "",
       logo_url:   previewData.logo_url   || "",
 
-      /* 加購明細（GAS 端可存 JSON 字串或用於報價計算） */
+      /* 加購明細 */
       addon_items: addonItems,
 
       /* features */
@@ -852,13 +769,9 @@
       }
     };
 
-    /* 照片牆 */
     for (let i = 1; i <= limits.wallPhotos; i++) {
-      const key = `photo${i}`;
-      if (state.photoPreviewUrls[key]) payload[`photo${i}_url`] = state.photoPreviewUrls[key];
+      if (state.photoPreviewUrls[`photo${i}`]) payload[`photo${i}_url`] = state.photoPreviewUrls[`photo${i}`];
     }
-
-    /* CTA */
     for (let i = 1; i <= limits.ctas; i++) {
       payload[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
       payload[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
@@ -870,7 +783,7 @@
   /* ============================================================
      送出 — 修正版
      ・cardId 相容多種 GAS 回傳格式
-     ・HSC_LAST_QUOTE 補齊所有 quote-success.html 所需欄位
+     ・HSC_LAST_QUOTE 補齊 preview_url / payment_due_at（+3天）
   ============================================================ */
   async function submit(e) {
     e.preventDefault();
@@ -901,44 +814,51 @@
       const data = await parseJsonSafe(res);
 
       if (!data || !data.ok) {
-        throw new Error(data?.error || data?.message || "建立卡片失敗，請稍後再試。");
+        throw new Error(data?.error || data?.message || "建立名片失敗，請稍後再試。");
       }
 
       setProgressStep(3, "正在整理報價資料…");
 
       /* ── 相容多種 GAS 回傳格式 ── */
       const cardId =
-        data.card_id        ||
-        data.id             ||
-        data.card?.id       ||
-        data.card?.card_id  ||
-        data.data?.card_id  ||
-        data.data?.id       ||
+        data.card_id       ||
+        data.id            ||
+        data.card?.id      ||
+        data.card?.card_id ||
+        data.data?.card_id ||
+        data.data?.id      ||
         "";
 
+      /* ── 成品連結 ── */
       const previewUrl = cardId
         ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
         : CONFIG.SHOWCASE_URL;
 
+      /* ── 繳費期限：今天 + 3 天 ── */
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 3);
+      const paymentDueAt = dueDate.toISOString();
+
       setProgressStep(4, "正在寫入報價與預覽資料…");
 
-      /* ── 寫入 localStorage，供 quote-success.html 使用 ── */
+      /* ── 寫入 localStorage → quote-success.html 使用 ── */
       const quoteData = {
         card_id:        cardId,
-        customer_name:  payload.name       || "",
-        plan_name:      limits.planLabel   || "方案",
+        customer_name:  payload.name      || "",
+        plan_name:      limits.planLabel  || "方案",
         submitted_at:   new Date().toISOString(),
         payment_notice: "請於 3 天內完成付款",
+        payment_due_at: paymentDueAt,
         preview_url:    previewUrl,
-        plan_amount:    Number(limits.planPrice  || 0),
-        addon_items:    Array.isArray(addonItems) ? addonItems : [],
-        addon_amount:   Number(addonAmount        || 0),
-        total_amount:   Number(totalAmount        || 0)
+        plan_amount:    Number(limits.planPrice || 0),
+        addon_items:    addonItems,
+        addon_amount:   Number(addonAmount || 0),
+        total_amount:   Number(totalAmount || 0)
       };
 
       localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify(quoteData));
 
-      setProgressStep(5, "即將前往報價與預覽頁…");
+      setProgressStep(5, "即將前往確認頁…");
       window.location.href = "./quote-success.html";
 
     } catch (err) {
@@ -956,8 +876,6 @@
   /* ============================================================
      工具函式
   ============================================================ */
-  function buildPreviewUrl() { return CONFIG.SHOWCASE_URL; }
-
   function isMarqueeEnabled() {
     return isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle");
   }
@@ -969,31 +887,21 @@
 
   function getThemeSelection() {
     const plan = getSelectedPlan() || "premium";
-    if (plan === "free") {
-      return {
-        plan,
-        color: els["free_color"]?.value  || "c1",
-        style: els["free_style"]?.value  || "s1",
-        paper: els["free_paper"]?.value  || "f1"
-      };
-    }
-    return {
-      plan,
-      color: els["premium_color"]?.value || "p1",
-      style: "",
-      paper: ""
+    if (plan === "free") return {
+      plan, color: els["free_color"]?.value  || "c1",
+      style: els["free_style"]?.value  || "s1", paper: els["free_paper"]?.value  || "f1"
     };
+    return { plan, color: els["premium_color"]?.value || "p1", style: "", paper: "" };
   }
 
   /* ── 進度條 ── */
   function showProgress(show) {
     if (!els["submit-progress-overlay"]) return;
     els["submit-progress-overlay"].classList.toggle("hidden", !show);
-
     if (!show) {
-      els.progressSteps.forEach(s => s.classList.remove("is-active", "is-done"));
-      if (els["progress-fill"])  els["progress-fill"].style.width  = "0%";
-      if (els["progress-text"])  els["progress-text"].textContent  = "正在建立申請資料，請稍候。";
+      els.progressSteps.forEach(s => s.classList.remove("is-active","is-done"));
+      if (els["progress-fill"]) els["progress-fill"].style.width = "0%";
+      if (els["progress-text"]) els["progress-text"].textContent = "正在建立申請資料，請稍候。";
     }
   }
 
@@ -1004,29 +912,23 @@
       step.classList.toggle("is-active", n === stepNo);
       step.classList.toggle("is-done",   n < stepNo);
     });
-    if (els["progress-fill"]) {
-      els["progress-fill"].style.width = `${Math.round((stepNo / total) * 100)}%`;
-    }
-    if (els["progress-text"] && text) {
-      els["progress-text"].textContent = text;
-    }
+    if (els["progress-fill"]) els["progress-fill"].style.width = `${Math.round((stepNo / total) * 100)}%`;
+    if (els["progress-text"] && text) els["progress-text"].textContent = text;
   }
 
   function setStatus(msg, stateName = "") {
-    if (!els["form-status-strip"]) return;
-    els["form-status-strip"].textContent = msg || "";
-    if (stateName) els["form-status-strip"].dataset.state = stateName;
-    else           delete els["form-status-strip"].dataset.state;
+    const el = els["form-status-strip"];
+    if (!el) return;
+    el.textContent = msg || "";
+    if (msg) el.classList.add("visible"); else el.classList.remove("visible");
+    if (stateName) el.dataset.state = stateName; else delete el.dataset.state;
   }
 
   /* ── 草稿 ── */
   function collectFormValues() {
     const out = {};
     document.querySelectorAll("input, textarea, select").forEach(el => {
-      if (el.type === "radio") {
-        if (el.checked) out[el.name] = el.value;
-        return;
-      }
+      if (el.type === "radio") { if (el.checked) out[el.name] = el.value; return; }
       if (!el.id) return;
       out[el.id] = el.type === "checkbox" ? el.checked : el.value;
     });
@@ -1034,33 +936,29 @@
   }
 
   function saveDraft() {
-    const draft = {
-      values:           collectFormValues(),
-      photoMeta:        state.photoMeta,
+    localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify({
+      values: collectFormValues(),
+      photoMeta: state.photoMeta,
       photoPreviewUrls: state.photoPreviewUrls
-    };
-    localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify(draft));
+    }));
   }
 
-  function saveDraftSilently() {
-    try { saveDraft(); } catch (_) {}
-  }
+  function saveDraftSilently() { try { saveDraft(); } catch (_) {} }
 
   function restoreDraft() {
     let draft = null;
     try { draft = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || "null"); } catch (_) {}
     if (!draft || typeof draft !== "object") return;
 
-    const values = draft.values || {};
-    Object.keys(values).forEach(key => {
-      const byId = document.getElementById(key);
-      if (byId) {
-        if (byId.type === "checkbox") byId.checked = !!values[key];
-        else byId.value = values[key];
+    Object.keys(draft.values || {}).forEach(key => {
+      const el = document.getElementById(key);
+      if (el) {
+        if (el.type === "checkbox") el.checked = !!draft.values[key];
+        else el.value = draft.values[key];
         return;
       }
       if (key === "plan") {
-        const r = document.querySelector(`input[name="plan"][value="${values[key]}"]`);
+        const r = document.querySelector(`input[name="plan"][value="${draft.values[key]}"]`);
         if (r) r.checked = true;
       }
     });
@@ -1079,9 +977,7 @@
   }
 
   /* ── 格式化 ── */
-  function money(v) {
-    return `NT$ ${Number(v || 0).toLocaleString("zh-TW")}`;
-  }
+  function money(v) { return `NT$ ${Number(v || 0).toLocaleString("zh-TW")}`; }
 
   async function copyText(str) {
     if (!str) return;
@@ -1099,20 +995,17 @@
 
   function fileToDataURL(file) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload  = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      const r = new FileReader();
+      r.onload  = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
     });
   }
 
   function escapeHtml(str) {
     return String(str || "")
-      .replace(/&/g,  "&amp;")
-      .replace(/</g,  "&lt;")
-      .replace(/>/g,  "&gt;")
-      .replace(/"/g,  "&quot;")
-      .replace(/'/g,  "&#039;");
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
   }
 
 })();
