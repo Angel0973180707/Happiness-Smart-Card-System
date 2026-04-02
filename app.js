@@ -1,19 +1,16 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.7.5-stable-commercial
+   v7.7.6-fix-qr-expiry
    完整覆蓋版
-   - 門面固定只讀 TW0001
-   - 門面樣品體驗切換獨立 facadeState
-   - facadeCurrentRow / currentRow 正式分流
-   - renderFacadePreview 改為 useExistingDom:false
-   - 門面樣品卡恢復互動 allowActions:true
-   - 保留 fetch / announcement / share / install / invite / QR
-   - 已付款：英文顯示倒數到期日
-   - 未付款：中文顯示付款期限
-   - 三組 QR 穩定化：facade / feature / bottom
-   - QR 成功判定改為 canvas/img/table 全接受
-   - renderer 重建 DOM 後自動回補
-   - fallback 保留，但不再和主控互相打架
+   修正項目：
+   1. QR Code：renderer useExistingDom:false 重建 DOM 後，
+      bindQrSlots_ 改為動態查找（每次 render 後重新綁定），
+      不再依賴 boot 時的一次性綁定
+   2. 到期倒數：buildGeneratedTemplate 沒有產生 #cardExpiry，
+      改為 renderPostRendererUi_ 直接在 card 內插入 expiry 節點，
+      並強化 pick key 清單（expires_at / expiry_date / payment_due_at 等）
+   3. renderBottomQr_ 改為用 scope 查找，不依賴全域 ID
+   4. 其餘邏輯保持 v7.7.5 穩定版原樣
 ============================================================ */
 
 const CONFIG = {
@@ -21,7 +18,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.7.5-stable-commercial",
+  VERSION: "v7.7.6-fix-qr-expiry",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -806,7 +803,8 @@ function buildFacadePreviewData(){
 }
 
 /* ============================================================
-   QR 穩定控制層
+   ★ 修正 1：QR Slot 改為「每次 render 後動態重新查找並綁定」
+   不再依賴 boot 時一次性綁定的廢棄 DOM 節點
 ============================================================ */
 const HSC_QR = (() => {
   const registry = new Map();
@@ -822,67 +820,67 @@ const HSC_QR = (() => {
     el.innerHTML = "";
   }
 
-  function ensureSlot(slotKey){
-    if(registry.has(slotKey)) return registry.get(slotKey);
-    const slot = {
-      slotKey,
-      host: null,
-      fallback: null,
-      url: "",
-      renderKey: "",
-      renderVersion: 0,
-      busy: false
+  // ★ 動態查找：每次使用 slot 前，重新從 DOM 抓取最新節點
+  function resolveHost(slotKey){
+    const hostIdMap = {
+      "facadeQrGrid": "facadeQrGrid",
+      "featureQrGrid": "featureQrGrid",
+      "bottomQrGrid": "bottomQrGrid"
     };
-    registry.set(slotKey, slot);
-    return slot;
-  }
+    const fallbackIdMap = {
+      "facadeQrGrid": "facadeQrFallback",
+      "featureQrGrid": "featureQrFallback",
+      "bottomQrGrid": "bottomQrFallback"
+    };
+    const hostId = hostIdMap[slotKey];
+    const fallbackId = fallbackIdMap[slotKey];
 
-  function bindSlot(slotKey, host, fallback){
-    const slot = ensureSlot(slotKey);
-    slot.host = host || null;
-    slot.fallback = fallback || null;
-    setupObserver_(slot);
-    return slot;
-  }
+    // 先找 HTML 靜態 ID
+    let host = hostId ? document.getElementById(hostId) : null;
+    let fallback = fallbackId ? document.getElementById(fallbackId) : null;
 
-  function setupObserver_(slot){
-    const old = observers.get(slot.slotKey);
-    if(old){
-      try{ old.disconnect(); }catch(_e){}
-      observers.delete(slot.slotKey);
+    // 如果找不到靜態 ID，嘗試找 renderer 產生的 data-* 節點
+    if(!host){
+      const dataMap = {
+        "facadeQrGrid": "[data-bottom-qr-grid]",   // facade QR 沒有獨立 data attr，用靜態 ID
+        "featureQrGrid": "[data-feature-qr-grid]",
+        "bottomQrGrid": "[data-bottom-qr-grid]"
+      };
+      const sel = dataMap[slotKey];
+      if(sel) host = document.querySelector(sel);
     }
-    if(!slot.host || typeof MutationObserver === "undefined") return;
 
-    const ob = new MutationObserver(() => {
-      if(!slot.host) return;
-      if(!slot.url || !slot.renderKey) return;
-      if(hasQrContent(slot.host)) return;
-      scheduleRender(slot.slotKey, {
-        url: slot.url,
-        renderKey: slot.renderKey,
-        force: true,
-        reason: "mutation-rehydrate"
+    return { host, fallback };
+  }
+
+  function ensureSlot(slotKey){
+    if(!registry.has(slotKey)){
+      registry.set(slotKey, {
+        slotKey,
+        url: "",
+        renderKey: "",
+        renderVersion: 0,
+        busy: false
       });
-    });
-
-    try{
-      ob.observe(slot.host, { childList: true, subtree: true });
-      observers.set(slot.slotKey, ob);
-    }catch(_e){}
+    }
+    return registry.get(slotKey);
   }
 
-  function showFallback(slot){
-    const el = slot?.fallback;
-    if(!el) return;
-    el.hidden = false;
-    el.style.display = "";
+  // ★ bindSlot 保留向後相容，但不再儲存 host 參照
+  function bindSlot(slotKey, host, fallback){
+    return ensureSlot(slotKey);
   }
 
-  function hideFallback(slot){
-    const el = slot?.fallback;
-    if(!el) return;
-    el.hidden = true;
-    el.style.display = "none";
+  function showFallback(fallbackEl){
+    if(!fallbackEl) return;
+    fallbackEl.hidden = false;
+    fallbackEl.style.display = "";
+  }
+
+  function hideFallback(fallbackEl){
+    if(!fallbackEl) return;
+    fallbackEl.hidden = true;
+    fallbackEl.style.display = "none";
   }
 
   function defaultRenderKey(scope, rowId, styleKey, url){
@@ -890,21 +888,25 @@ const HSC_QR = (() => {
   }
 
   function scheduleRender(slotKey, payload = {}){
-    const slot = registry.get(slotKey);
-    if(!slot || !slot.host) return false;
+    const slot = ensureSlot(slotKey);
+    const { host, fallback } = resolveHost(slotKey);
+
+    if(!host){
+      return false;
+    }
 
     const url = text(payload.url);
     const renderKey = text(payload.renderKey);
     const force = !!payload.force;
 
     if(!url){
-      clearHost(slot.host);
-      showFallback(slot);
+      clearHost(host);
+      showFallback(fallback);
       return false;
     }
 
-    if(!force && slot.url === url && slot.renderKey === renderKey && hasQrContent(slot.host)){
-      hideFallback(slot);
+    if(!force && slot.url === url && slot.renderKey === renderKey && hasQrContent(host)){
+      hideFallback(fallback);
       return true;
     }
 
@@ -912,20 +914,20 @@ const HSC_QR = (() => {
     slot.renderKey = renderKey;
     slot.renderVersion += 1;
 
-    renderSlot_(slot, payload);
+    renderSlot_(slot, host, fallback, payload);
     return true;
   }
 
-  function renderSlot_(slot, payload = {}){
-    if(!slot || !slot.host) return;
+  function renderSlot_(slot, host, fallback, payload = {}){
+    if(!host) return;
     if(slot.busy && !payload.force) return;
 
     slot.busy = true;
     const currentVersion = slot.renderVersion;
 
     try{
-      hideFallback(slot);
-      clearHost(slot.host);
+      hideFallback(fallback);
+      clearHost(host);
 
       const centerImgEl = payload.centerImgEl || null;
       const centerImgUrl = payload.centerImgUrl || "";
@@ -933,7 +935,7 @@ const HSC_QR = (() => {
       const size = Number(payload.size || 160);
 
       const ok = renderQr({
-        container: slot.host,
+        container: host,
         url: slot.url,
         size,
         centerImgEl,
@@ -943,61 +945,35 @@ const HSC_QR = (() => {
       });
 
       if(!ok){
-        showFallback(slot);
+        showFallback(fallback);
       }else{
-        hideFallback(slot);
+        hideFallback(fallback);
       }
 
-      requestAnimationFrame(() => {
+      const checkAndRehydrate = (reason) => {
         if(slot.renderVersion !== currentVersion) return;
-        if(!hasQrContent(slot.host)){
-          showFallback(slot);
+        const { host: freshHost, fallback: freshFallback } = resolveHost(slot.slotKey);
+        if(!freshHost) return;
+        if(!hasQrContent(freshHost)){
+          showFallback(freshFallback);
           scheduleRender(slot.slotKey, {
             ...payload,
             url: slot.url,
             renderKey: slot.renderKey,
             force: true,
-            reason: "raf-rehydrate"
+            reason
           });
         }else{
-          hideFallback(slot);
+          hideFallback(freshFallback);
         }
-      });
+      };
 
-      setTimeout(() => {
-        if(slot.renderVersion !== currentVersion) return;
-        if(!hasQrContent(slot.host)){
-          showFallback(slot);
-          scheduleRender(slot.slotKey, {
-            ...payload,
-            url: slot.url,
-            renderKey: slot.renderKey,
-            force: true,
-            reason: "timeout-rehydrate"
-          });
-        }else{
-          hideFallback(slot);
-        }
-      }, 180);
-
-      setTimeout(() => {
-        if(slot.renderVersion !== currentVersion) return;
-        if(!hasQrContent(slot.host)){
-          showFallback(slot);
-          scheduleRender(slot.slotKey, {
-            ...payload,
-            url: slot.url,
-            renderKey: slot.renderKey,
-            force: true,
-            reason: "timeout-rehydrate-2"
-          });
-        }else{
-          hideFallback(slot);
-        }
-      }, 520);
+      requestAnimationFrame(() => checkAndRehydrate("raf-rehydrate"));
+      setTimeout(() => checkAndRehydrate("timeout-rehydrate-180"), 180);
+      setTimeout(() => checkAndRehydrate("timeout-rehydrate-520"), 520);
 
     }catch(_err){
-      showFallback(slot);
+      showFallback(fallback);
     }finally{
       slot.busy = false;
     }
@@ -1010,6 +986,212 @@ const HSC_QR = (() => {
     defaultRenderKey
   };
 })();
+
+/* ============================================================
+   ★ 修正 2：到期倒數 — 強化 pick key + 動態查找節點
+   renderCardExpiry_ 改為接受 root 參數（預設全域 qs）
+   並強化 billing_status / expires_at / payment_due_at 的 key 清單
+============================================================ */
+function formatDateYmd_(date){
+  if(!(date instanceof Date) || isNaN(date.getTime())) return "";
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}.${m}.${d}`;
+}
+
+function parseDateSafe_(value){
+  if(!value) return null;
+  const s = String(value).trim();
+  if(!s) return null;
+
+  const normalized = s
+    .replace(/\//g, "-")
+    .replace(" ", "T")
+    .replace(/(\.\d+)?Z$/i, "");
+
+  let d = new Date(normalized);
+  if(!isNaN(d.getTime())) return d;
+
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(m){
+    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999);
+    if(!isNaN(d.getTime())) return d;
+  }
+
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+  if(m){
+    d = new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      Number(m[4]),
+      Number(m[5]),
+      Number(m[6] || 0),
+      0
+    );
+    if(!isNaN(d.getTime())) return d;
+  }
+
+  return null;
+}
+
+function getExpiryInfo_(p){
+  const payload = p || {};
+
+  // ★ 強化 billing_status key 清單（含中文欄位名）
+  const billingStatus = text(
+    pick(payload, [
+      "billing_status",
+      "billingStatus",
+      "payment_status",
+      "paymentStatus",
+      "付款狀態",
+      "狀態"
+    ])
+  ).toLowerCase();
+
+  // ★ 強化 expires_at key 清單
+  const expiresAtRaw = text(
+    pick(payload, [
+      "expires_at",
+      "expiresAt",
+      "expiry_date",
+      "expiryDate",
+      "expiry",
+      "expire_at",
+      "expireAt",
+      "到期日",
+      "有效期限"
+    ])
+  );
+
+  // ★ 強化 payment_due_at key 清單
+  const paymentDueRaw = text(
+    pick(payload, [
+      "payment_due_at",
+      "paymentDueAt",
+      "payment_due",
+      "paymentDue",
+      "due_date",
+      "dueDate",
+      "付款期限",
+      "繳費期限"
+    ])
+  );
+
+  const expiresAt = parseDateSafe_(expiresAtRaw);
+  const paymentDueAt = parseDateSafe_(paymentDueRaw);
+
+  if(billingStatus === "unpaid" && paymentDueAt){
+    return { type: "payment_due", date: paymentDueAt, raw: paymentDueRaw };
+  }
+
+  if(expiresAt){
+    return { type: "expires_at", date: expiresAt, raw: expiresAtRaw };
+  }
+
+  if(paymentDueAt){
+    return { type: "payment_due", date: paymentDueAt, raw: paymentDueRaw };
+  }
+
+  return null;
+}
+
+/**
+ * ★ 修正：renderCardExpiry_ 接受可選 rootEl 參數
+ * 優先從 rootEl 內部查找 .card-expiry 節點，
+ * 找不到則嘗試 qs("cardExpiry")，
+ * 再找不到就在 card 的 .info-scroll 末尾自動插入一個
+ */
+function renderCardExpiry_(p, rootEl){
+  // 1. 從指定 root 內尋找
+  let el = null;
+  if(rootEl instanceof HTMLElement){
+    el = rootEl.querySelector("#cardExpiry") ||
+         rootEl.querySelector(".card-expiry");
+  }
+  // 2. 從全域 ID 尋找
+  if(!el) el = qs("cardExpiry");
+  // 3. 找不到就自動插入
+  if(!el){
+    const infoScroll = rootEl
+      ? rootEl.querySelector(".info-scroll")
+      : document.querySelector("#livePreviewCard .info-scroll");
+    if(infoScroll){
+      el = document.createElement("div");
+      el.className = "card-expiry";
+      el.id = "cardExpiry";
+      // 插入在 .qr-bottom 之前，或末尾
+      const qrBottom = infoScroll.querySelector(".qr-bottom, [data-bottom-qr-section]");
+      if(qrBottom){
+        infoScroll.insertBefore(el, qrBottom);
+      }else{
+        infoScroll.appendChild(el);
+      }
+    }
+  }
+
+  if(!el){
+    return; // 實在找不到，靜默退出
+  }
+
+  const info = getExpiryInfo_(p);
+  if(!info || !info.date){
+    el.style.display = "none";
+    el.textContent = "";
+    el.removeAttribute("title");
+    el.classList.remove("is-expired");
+    return;
+  }
+
+  const target = info.date;
+  const now = new Date();
+  const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const targetStart = new Date(
+    target.getFullYear(), target.getMonth(), target.getDate()
+  ).getTime();
+  const diffDays = Math.floor((targetStart - nowStart) / 86400000);
+
+  let label = "";
+
+  if(info.type === "payment_due"){
+    // 未付款：中文顯示付款期限
+    if(diffDays < 0){
+      label = `付款期限已過 ${Math.abs(diffDays)} 天`;
+      el.classList.add("is-expired");
+    }else if(diffDays === 0){
+      label = "付款期限今天截止";
+      el.classList.remove("is-expired");
+    }else if(diffDays === 1){
+      label = "付款期限剩 1 天";
+      el.classList.remove("is-expired");
+    }else{
+      label = `付款期限剩 ${diffDays} 天`;
+      el.classList.remove("is-expired");
+    }
+    el.title = `付款期限：${formatDateYmd_(target)}`;
+  }else{
+    // 已付款：英文顯示到期倒數
+    if(diffDays < 0){
+      label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
+      el.classList.add("is-expired");
+    }else if(diffDays === 0){
+      label = "EXPIRES TODAY";
+      el.classList.remove("is-expired");
+    }else if(diffDays === 1){
+      label = "EXPIRES IN 1 DAY";
+      el.classList.remove("is-expired");
+    }else{
+      label = `EXPIRES IN ${diffDays} DAYS`;
+      el.classList.remove("is-expired");
+    }
+    el.title = `Expiry Date: ${formatDateYmd_(target)}`;
+  }
+
+  el.textContent = label;
+  el.style.display = "block";
+}
 
 /* ============================================================
    門面樣品渲染
@@ -1059,7 +1241,8 @@ function renderFacadePreview(){
     ? facadeState.premiumColor
     : `${facadeState.color}|${facadeState.style}|${facadeState.paper}`;
 
-  renderPostRendererUi_(facadeCurrentRow);
+  // ★ renderPostRendererUi_ 傳入 root，讓 expiry 能正確找到節點
+  renderPostRendererUi_(facadeCurrentRow, root);
 
   requestAnimationFrame(() => {
     try{ rerenderAllQrAfterFacade_(); }catch(_e){}
@@ -1268,153 +1451,6 @@ function pickAvatarInfo_(p){
     return { key: "avatar_url", raw: url, url: normalizeImageUrl_(url) };
   }
   return { key: "", raw: "", url: "" };
-}
-
-/* ============================================================
-   到期日 / 付款期限
-============================================================ */
-function formatDateYmd_(date){
-  if(!(date instanceof Date) || isNaN(date.getTime())) return "";
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}.${m}.${d}`;
-}
-
-function parseDateSafe_(value){
-  if(!value) return null;
-  const s = String(value).trim();
-  if(!s) return null;
-
-  const normalized = s
-    .replace(/\//g, "-")
-    .replace(" ", "T")
-    .replace(/(\.\d+)?Z$/i, "");
-
-  let d = new Date(normalized);
-  if(!isNaN(d.getTime())) return d;
-
-  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m){
-    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 23, 59, 59, 999);
-    if(!isNaN(d.getTime())) return d;
-  }
-
-  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
-  if(m){
-    d = new Date(
-      Number(m[1]),
-      Number(m[2]) - 1,
-      Number(m[3]),
-      Number(m[4]),
-      Number(m[5]),
-      Number(m[6] || 0),
-      0
-    );
-    if(!isNaN(d.getTime())) return d;
-  }
-
-  return null;
-}
-
-function getExpiryInfo_(p){
-  const payload = p || {};
-  const billingStatus = text(pick(payload, ["billing_status"])).toLowerCase();
-
-  const expiresAtRaw = text(pick(payload, ["expires_at"]));
-  const paymentDueRaw = text(pick(payload, ["payment_due_at"]));
-
-  const expiresAt = parseDateSafe_(expiresAtRaw);
-  const paymentDueAt = parseDateSafe_(paymentDueRaw);
-
-  if(billingStatus === "unpaid" && paymentDueAt){
-    return {
-      type: "payment_due",
-      date: paymentDueAt,
-      raw: paymentDueRaw
-    };
-  }
-
-  if(expiresAt){
-    return {
-      type: "expires_at",
-      date: expiresAt,
-      raw: expiresAtRaw
-    };
-  }
-
-  if(paymentDueAt){
-    return {
-      type: "payment_due",
-      date: paymentDueAt,
-      raw: paymentDueRaw
-    };
-  }
-
-  return null;
-}
-
-function renderCardExpiry_(p){
-  const el = qs("cardExpiry");
-  if(!el) return;
-
-  const info = getExpiryInfo_(p);
-  if(!info || !info.date){
-    el.style.display = "none";
-    el.textContent = "";
-    el.removeAttribute("title");
-    el.classList.remove("is-expired");
-    return;
-  }
-
-  const target = info.date;
-  const now = new Date();
-
-  const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const targetStart = new Date(
-    target.getFullYear(),
-    target.getMonth(),
-    target.getDate()
-  ).getTime();
-
-  const diffDays = Math.floor((targetStart - nowStart) / 86400000);
-
-  let label = "";
-
-  if(info.type === "payment_due"){
-    if(diffDays < 0){
-      label = `付款期限已過 ${Math.abs(diffDays)} 天`;
-      el.classList.add("is-expired");
-    }else if(diffDays === 0){
-      label = "付款期限今天截止";
-      el.classList.remove("is-expired");
-    }else if(diffDays === 1){
-      label = "付款期限剩 1 天";
-      el.classList.remove("is-expired");
-    }else{
-      label = `付款期限剩 ${diffDays} 天`;
-      el.classList.remove("is-expired");
-    }
-    el.title = `付款期限：${formatDateYmd_(target)}`;
-  }else{
-    if(diffDays < 0){
-      label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
-      el.classList.add("is-expired");
-    }else if(diffDays === 0){
-      label = "EXPIRES TODAY";
-      el.classList.remove("is-expired");
-    }else if(diffDays === 1){
-      label = "EXPIRES IN 1 DAY";
-      el.classList.remove("is-expired");
-    }else{
-      label = `EXPIRES IN ${diffDays} DAYS`;
-      el.classList.remove("is-expired");
-    }
-    el.title = `Expiry Date: ${formatDateYmd_(target)}`;
-  }
-
-  el.textContent = label;
-  el.style.display = "block";
 }
 
 /* ============================================================
@@ -1763,6 +1799,14 @@ function updateQrCenterSizes_(){
     el.style.width = `${Math.round(ratio * 100)}%`;
     el.style.height = `${Math.round(ratio * 100)}%`;
   });
+  // ★ 也更新 renderer 產生的 data-bottom-qr-avatar
+  document.querySelectorAll("[data-bottom-qr-avatar]").forEach(el => {
+    if(el.style.display === "none") return;
+    const baseRatio = clampNumber_(el.dataset.baseRatio, 0.05, 0.2, 0.09);
+    const ratio = getQrCenterRatio_(baseRatio);
+    el.style.width = `${Math.round(ratio * 100)}%`;
+    el.style.height = `${Math.round(ratio * 100)}%`;
+  });
 }
 
 function hasQrContent(el){
@@ -1856,6 +1900,7 @@ window.__getHubShareUrl = buildHubShareUrl_;
 window.__getCardShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
 window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
 
+// ★ bindQrSlots_ 保留向後相容，但實際由動態查找機制接管
 function bindQrSlots_(){
   HSC_QR.bindSlot("facadeQrGrid", qs("facadeQrGrid"), qs("facadeQrFallback"));
   HSC_QR.bindSlot("featureQrGrid", qs("featureQrGrid"), qs("featureQrFallback"));
@@ -1900,13 +1945,21 @@ function renderProductQrsStable(row, styleKey, featureUrl, bottomUrl){
   lastFeatureQrRenderKey = featureRenderKey;
   lastBottomQrRenderKey = bottomRenderKey;
 
+  // ★ featureQrAvatar：先找靜態 ID，再找 renderer 生成的
+  const featureAvatarEl = qs("featureQrAvatar") ||
+    document.querySelector("[data-feature-qr-avatar]");
+
+  // ★ bottomQrAvatar：先找靜態 ID，再找 renderer 生成的
+  const bottomAvatarEl = qs("bottomQrAvatar") ||
+    document.querySelector("[data-bottom-qr-avatar]");
+
   HSC_QR.scheduleRender("featureQrGrid", {
     url: featureUrl,
     renderKey: featureRenderKey,
     force: true,
     reason: "feature-render",
     size: 152,
-    centerImgEl: qs("featureQrAvatar"),
+    centerImgEl: featureAvatarEl,
     centerImgUrl: avatarUrl,
     centerSizeRatio: 0.09
   });
@@ -1917,7 +1970,7 @@ function renderProductQrsStable(row, styleKey, featureUrl, bottomUrl){
     force: true,
     reason: "bottom-render",
     size: 136,
-    centerImgEl: qs("bottomQrAvatar"),
+    centerImgEl: bottomAvatarEl,
     centerImgUrl: avatarUrl,
     centerSizeRatio: 0.09
   });
@@ -1937,8 +1990,12 @@ function renderFacadeQrFromCurrent_(){
 }
 
 function renderBottomQr_(p){
-  const sec = qs("bottomQrSection");
+  // ★ 先從靜態 ID 找，再從 renderer DOM 找
+  const sec = qs("bottomQrSection") ||
+    document.querySelector("#livePreviewCard [data-bottom-qr-section]");
+
   if(sec) sec.style.display = "block";
+
   const payload = p || getActiveCardPayload_();
   if(!payload) return;
   const qrUrl = buildTrackedShareUrl_(payload);
@@ -2029,7 +2086,8 @@ async function shareUrl_(url, title, textMsg, okMsg){
 }
 
 function renderBottomHubShareBtn_(){
-  const sec = qs("bottomQrSection");
+  const sec = qs("bottomQrSection") ||
+    document.querySelector("#livePreviewCard [data-bottom-qr-section]");
   if(!sec) return;
   let wrap = qs("bottomHubShareWrap");
   if(!wrap){
@@ -2080,28 +2138,38 @@ function renderInstallDock_(){
 }
 
 /* ============================================================
-   renderer 後補 UI
+   ★ 修正 3：renderPostRendererUi_ 接受 rootEl 參數，
+   傳給 renderCardExpiry_ 讓它能找到 renderer 重建的 DOM
 ============================================================ */
-function renderPostRendererUi_(row){
+function renderPostRendererUi_(row, rootEl){
+  // rootEl 預設為 #livePreviewCard
+  const root = (rootEl instanceof HTMLElement)
+    ? rootEl
+    : (qs("livePreviewCard") || document.body);
+
   const unitVal = normalizeLongText_(pick(row, ["unit", "單位", "公司"]));
   const sloganVal = normalizeLongText_(pick(row, ["slogan", "一句話", "簡介"]));
-  const unitEl = qs("u-unit");
-  const unitToggle = qs("u-unit-toggle");
-  const sloganEl = qs("u-slogan");
-  const sloganToggle = qs("u-slogan-toggle");
+
+  // ★ 優先從 root 內查找，再 fallback 到全域 ID
+  const unitEl = root.querySelector("#u-unit") || qs("u-unit");
+  const unitToggle = root.querySelector("#u-unit-toggle") || qs("u-unit-toggle");
+  const sloganEl = root.querySelector("#u-slogan") || qs("u-slogan");
+  const sloganToggle = root.querySelector("#u-slogan-toggle") || qs("u-slogan-toggle");
 
   if(unitEl) setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
   if(sloganEl) setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
 
-  const b1 = qs("block-service");
-  const b2 = qs("block-exp");
+  const b1 = root.querySelector("#block-service") || qs("block-service");
+  const b2 = root.querySelector("#block-exp") || qs("block-exp");
   renderExpandableInfoBlock_(b1, "服務項目", pick(row, ["services","服務項目","service"]), 2);
   renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", pick(row, ["experience","經歷","exp"]), 3);
 
-  const vt = qs("versionTag");
+  const vt = root.querySelector("#versionTag") || qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
 
-  renderCardExpiry_(row);
+  // ★ 傳入 root，讓 expiry 能在 renderer 重建的 DOM 中正確找到或插入節點
+  renderCardExpiry_(row, root);
+
   renderInstallDock_();
   renderBottomQr_(row);
   renderBottomHubShareBtn_();
@@ -2201,10 +2269,11 @@ window.addEventListener("load", () => {
     }, 900);
   }catch(err){
     console.error("[HSC facade] boot failed:", err);
-    const nameEl = qs("u-name");
-    const unitWrap = qs("u-unit-wrap");
-    const titleEl = qs("u-title");
-    const unitEl = qs("u-unit");
+    const root = qs("livePreviewCard") || document.body;
+    const nameEl = root.querySelector("#u-name") || qs("u-name");
+    const unitWrap = root.querySelector("#u-unit-wrap") || qs("u-unit-wrap");
+    const titleEl = root.querySelector("#u-title") || qs("u-title");
+    const unitEl = root.querySelector("#u-unit") || qs("u-unit");
     if(nameEl) nameEl.textContent = "資料載入失敗";
     if(unitWrap) unitWrap.style.display = "";
     if(unitEl) unitEl.textContent = "請稍後再試";
