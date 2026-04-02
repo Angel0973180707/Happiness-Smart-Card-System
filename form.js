@@ -1,10 +1,10 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v7.8.0 完整覆蓋版
+   v7.8.1 完整覆蓋版
 
    修正：
    1. 經歷欄位改為 textarea（加高可分行填寫）
-   2. 服務、品牌金句、經歷超過 3 行自動加收折按鈕
+   2. 移除表單 textarea 收折功能（收折僅留成品展示 renderer 使用）
    3. 送出後進度條完成時顯示序號 + 複製回覆文案按鈕
    4. 送出後立即生成成品連結顯示在成功面板
    5. 成功面板顯示 3 天付款期限日期
@@ -21,7 +21,7 @@
     SERVICE_URL:  "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v780",
+    DRAFT_KEY: "hsc_form_draft_v781",
     BASE_LIMITS: {
       free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -66,7 +66,7 @@
     restoreDraft();
     ensureDefaultPlan();
     refreshAll();
-    initTextareaCollapse();        // FIX 2
+    // 注意：不在這裡初始化任何 textarea 收折功能（FIX 2 已移除）
   }
 
   /* ============================================================
@@ -76,15 +76,15 @@
     const old = document.getElementById("experience");
     if (!old || old.tagName === "TEXTAREA") return;
 
-    const ta       = document.createElement("textarea");
-    ta.id          = "experience";
-    ta.rows        = 4;
-    ta.placeholder = "例：前 XX 公司品牌顧問、10 年業界資歷\n可換行填寫多段經歷";
+    const ta         = document.createElement("textarea");
+    ta.id            = "experience";
+    ta.rows          = 4;
+    ta.placeholder   = "例：前 XX 公司品牌顧問、10 年業界資歷\n可換行填寫多段經歷";
     ta.style.cssText = "resize:vertical;min-height:96px;";
-    ta.value       = old.value || "";
+    ta.value         = old.value || "";
 
-    const hint    = document.createElement("p");
-    hint.className = "field-hint";
+    const hint       = document.createElement("p");
+    hint.className   = "field-hint";
     hint.textContent = "可換行填寫多段經歷，系統自動整理排版。";
 
     const parent = old.parentNode;
@@ -92,64 +92,11 @@
     parent.removeChild(old);
     parent.appendChild(hint);
 
-    // 重新掛 el 快取
     els["experience"] = ta;
-  }
 
-  /* ============================================================
-     FIX 2: 長文欄位超過 3 行自動收折
-  ============================================================ */
-  const COLLAPSE_LINE_HEIGHT = 24;
-  const COLLAPSE_MAX_LINES   = 3;
-  const COLLAPSE_THRESHOLD   = COLLAPSE_MAX_LINES * COLLAPSE_LINE_HEIGHT + 8;
-
-  function initTextareaCollapse() {
-    ["services", "intro", "experience", "marquee_text"].forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.addEventListener("input", () => checkCollapse(el));
-      checkCollapse(el);
-    });
-  }
-
-  function checkCollapse(ta) {
-    // 移除舊按鈕
-    const old = ta.parentNode && ta.parentNode.querySelector(".textarea-collapse-btn");
-    if (old) old.remove();
-
-    ta.style.maxHeight = "";
-    ta.style.overflow  = "hidden auto";
-
-    requestAnimationFrame(() => {
-      if (ta.scrollHeight <= COLLAPSE_THRESHOLD) return;
-
-      if (!ta.dataset.expanded) {
-        ta.style.maxHeight = `${COLLAPSE_THRESHOLD}px`;
-        ta.style.overflow  = "hidden";
-      }
-
-      const btn      = document.createElement("button");
-      btn.type       = "button";
-      btn.className  = "ghost-btn mini textarea-collapse-btn";
-      btn.style.cssText = "margin-top:4px;width:100%;";
-      btn.textContent = ta.dataset.expanded ? "▲ 收起" : "▼ 展開全部";
-
-      btn.addEventListener("click", () => {
-        if (ta.dataset.expanded) {
-          delete ta.dataset.expanded;
-          ta.style.maxHeight = `${COLLAPSE_THRESHOLD}px`;
-          ta.style.overflow  = "hidden";
-          btn.textContent    = "▼ 展開全部";
-        } else {
-          ta.dataset.expanded = "1";
-          ta.style.maxHeight  = "none";
-          ta.style.overflow   = "hidden auto";
-          btn.textContent     = "▲ 收起";
-        }
-      });
-
-      ta.insertAdjacentElement("afterend", btn);
-    });
+    // 補上 live 事件
+    ta.addEventListener("input",  onLiveChange);
+    ta.addEventListener("change", onLiveChange);
   }
 
   /* ============================================================
@@ -190,12 +137,10 @@
       "quote-addon-breakdown", "quote-total-amount",
 
       "submit-progress-overlay", "progress-text", "progress-fill",
-      // FIX 3/4/5
       "progress-success-panel",
       "progress-card-id-display",
       "btn-copy-card-notice",
-      "progress-preview-link",
-      "btn-goto-quote"
+      "progress-preview-link"
     ];
 
     ids.forEach(id => { els[id] = document.getElementById(id); });
@@ -223,7 +168,7 @@
     els.planRadios.forEach(r => r.addEventListener("change", refreshAll));
     els.addonCheckboxes.forEach(b => b.addEventListener("change", refreshAll));
 
-    ["addon_photo_qty","addon_cta_qty"].forEach(id => {
+    ["addon_photo_qty", "addon_cta_qty"].forEach(id => {
       if (els[id]) {
         els[id].addEventListener("input",  refreshAll);
         els[id].addEventListener("change", refreshAll);
@@ -231,11 +176,11 @@
     });
 
     [
-      "free_color","free_style","free_paper","premium_color",
-      "display_name","unit","title","phone","email","website",
-      "line_url","line_oa","wechat_id","experience","services",
-      "address","intro","marquee_text",
-      "video1","video2","video3","social1","social2","social3"
+      "free_color", "free_style", "free_paper", "premium_color",
+      "display_name", "unit", "title", "phone", "email", "website",
+      "line_url", "line_oa", "wechat_id", "experience", "services",
+      "address", "intro", "marquee_text",
+      "video1", "video2", "video3", "social1", "social2", "social3"
     ].forEach(id => {
       if (els[id]) {
         els[id].addEventListener("input",  onLiveChange);
@@ -258,22 +203,15 @@
 
     // FIX 3: 複製序號 + 回覆文案
     bindButton(els["btn-copy-card-notice"], handleCopyCardNotice);
-
-    // FIX 4: 前往報價確認頁
-    bindButton(els["btn-goto-quote"], () => { window.location.href = "./quote-success.html"; });
   }
 
   function bindButton(btn, handler) {
     if (btn) btn.addEventListener("click", handler);
   }
 
-  function onLiveChange(e) {
+  function onLiveChange() {
     updatePreview();
     saveDraftSilently();
-    // FIX 2: textarea 輸入後重新檢查收折
-    if (e && e.target && e.target.tagName === "TEXTAREA") {
-      checkCollapse(e.target);
-    }
   }
 
   /* ============================================================
@@ -289,7 +227,9 @@
 
     const dueDate    = new Date();
     dueDate.setDate(dueDate.getDate() + 3);
-    const dueDateStr = `${dueDate.getFullYear()}/${String(dueDate.getMonth()+1).padStart(2,"0")}/${String(dueDate.getDate()).padStart(2,"0")}`;
+    const dueDateStr =
+      `${dueDate.getFullYear()}/${String(dueDate.getMonth()+1).padStart(2,"0")}` +
+      `/${String(dueDate.getDate()).padStart(2,"0")}`;
 
     const previewUrl = cardId
       ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
@@ -382,10 +322,10 @@
     ect = clamp(ect, 0, CONFIG.MAX_CTAS        - base.ctas);
     return {
       plan,
-      planLabel:  base.label,
-      planPrice:  base.price,
-      wallPhotos: clamp(base.wallPhotos + ewp, 0, CONFIG.MAX_WALL_PHOTOS),
-      ctas:       clamp(base.ctas       + ect, 0, CONFIG.MAX_CTAS),
+      planLabel:      base.label,
+      planPrice:      base.price,
+      wallPhotos:     clamp(base.wallPhotos + ewp, 0, CONFIG.MAX_WALL_PHOTOS),
+      ctas:           clamp(base.ctas       + ect, 0, CONFIG.MAX_CTAS),
       extraWallPhotos: ewp,
       extraCtas:       ect
     };
@@ -398,8 +338,8 @@
   }
 
   function syncThemeGroups(plan) {
-    els["free-theme-group"]    ?.classList.toggle("hidden", plan !== "free");
-    els["premium-theme-group"] ?.classList.toggle("hidden", plan !== "premium");
+    els["free-theme-group"]   ?.classList.toggle("hidden", plan !== "free");
+    els["premium-theme-group"]?.classList.toggle("hidden", plan !== "premium");
   }
 
   function syncAddonInputs(limits) {
@@ -463,9 +403,11 @@
     els["photo-slots"].innerHTML = "";
 
     const sections = [
-      { title:"個人照", desc:"固定 1 張，套用到成品卡頭像。",                         keys:["avatar"] },
-      { title:"Logo",   desc:"固定 1 張，套用到成品卡 logo。",                        keys:["logo"]   },
-      { title:"照片牆", desc:`本次可上傳 ${wallLimit} 張（不含個人照與 Logo）`,
+      { title: "個人照", desc: "固定 1 張，套用到成品卡頭像。",
+        keys: ["avatar"] },
+      { title: "Logo",   desc: "固定 1 張，套用到成品卡 logo。",
+        keys: ["logo"]   },
+      { title: "照片牆", desc: `本次可上傳 ${wallLimit} 張（不含個人照與 Logo）`,
         keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
     ];
 
@@ -474,10 +416,12 @@
       wrapper.className = "photo-section";
       const head = document.createElement("div");
       head.className = "photo-section-head";
-      head.innerHTML = `<div><h3>${escapeHtml(sec.title)}</h3><p>${escapeHtml(sec.desc)}</p></div>`;
+      head.innerHTML =
+        `<div><h3>${escapeHtml(sec.title)}</h3><p>${escapeHtml(sec.desc)}</p></div>`;
       const grid = document.createElement("div");
       grid.className = "photo-grid photo-grid-form";
-      sec.keys.forEach((key, idx) => grid.appendChild(buildPhotoCard(key, sec.title, idx + 1)));
+      sec.keys.forEach((key, idx) =>
+        grid.appendChild(buildPhotoCard(key, sec.title, idx + 1)));
       wrapper.appendChild(head);
       wrapper.appendChild(grid);
       els["photo-slots"].appendChild(wrapper);
@@ -503,7 +447,7 @@
     const resetBtn     = frag.querySelector(".reset-photo");
 
     card.dataset.photoKey      = key;
-    title.textContent          = ({ avatar:"個人照", logo:"Logo" })[key] || `照片牆 ${index}`;
+    title.textContent          = ({ avatar: "個人照", logo: "Logo" })[key] || `照片牆 ${index}`;
     fileInput.dataset.photoKey = key;
     zoomRange.dataset.photoKey = key;
     zoomRange.value            = String(state.photoMeta[key]?.scale || 1);
@@ -542,25 +486,29 @@
     });
 
     moveLeft.addEventListener("click", () => {
-      state.photoMeta[key].x = clampNumber(+(state.photoMeta[key].x - 0.05).toFixed(2), 0, 1, 0.5);
+      state.photoMeta[key].x =
+        clampNumber(+(state.photoMeta[key].x - 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
 
     moveRight.addEventListener("click", () => {
-      state.photoMeta[key].x = clampNumber(+(state.photoMeta[key].x + 0.05).toFixed(2), 0, 1, 0.5);
+      state.photoMeta[key].x =
+        clampNumber(+(state.photoMeta[key].x + 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
 
     moveUp.addEventListener("click", () => {
-      state.photoMeta[key].y = clampNumber(+(state.photoMeta[key].y - 0.05).toFixed(2), 0, 1, 0.5);
+      state.photoMeta[key].y =
+        clampNumber(+(state.photoMeta[key].y - 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
 
     moveDown.addEventListener("click", () => {
-      state.photoMeta[key].y = clampNumber(+(state.photoMeta[key].y + 0.05).toFixed(2), 0, 1, 0.5);
+      state.photoMeta[key].y =
+        clampNumber(+(state.photoMeta[key].y + 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
@@ -650,14 +598,14 @@
      Summary & Quote
   ============================================================ */
   function syncSummary(limits) {
-    const setText = (id, v) => { if (els[id]) els[id].textContent = v; };
-    setText("summary-plan-pill",      limits.planLabel);
-    setText("summary-photo-pill",     `照片牆：${limits.wallPhotos}`);
-    setText("summary-cta-pill",       `CTA：${limits.ctas}`);
-    setText("summary-plan-name",      limits.planLabel);
-    setText("summary-photo-count",    String(limits.wallPhotos));
-    setText("summary-cta-count",      String(limits.ctas));
-    setText("summary-marquee-status", isMarqueeEnabled() ? "已開啟" : "未開啟");
+    const set = (id, v) => { if (els[id]) els[id].textContent = v; };
+    set("summary-plan-pill",      limits.planLabel);
+    set("summary-photo-pill",     `照片牆：${limits.wallPhotos}`);
+    set("summary-cta-pill",       `CTA：${limits.ctas}`);
+    set("summary-plan-name",      limits.planLabel);
+    set("summary-photo-count",    String(limits.wallPhotos));
+    set("summary-cta-count",      String(limits.ctas));
+    set("summary-marquee-status", isMarqueeEnabled() ? "已開啟" : "未開啟");
   }
 
   function getAddonItemsForQuote(limits) {
@@ -669,32 +617,32 @@
     const ctaQty        = ctaChecked   ? getAddonQty("addon_cta_qty")   : 0;
 
     if (bundleChecked) {
-      items.push({ code:"addon_bundle", name:"跑馬燈＋更新組合", qty:1,
+      items.push({ code: "addon_bundle", name: "跑馬燈＋更新組合", qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_bundle,
         amount:     CONFIG.ADDON_PRICES.addon_bundle });
     } else {
       if (isAddonChecked("addon_marquee")) items.push({
-        code:"addon_marquee", name:"跑馬燈功能", qty:1,
+        code: "addon_marquee", name: "跑馬燈功能", qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_marquee,
         amount:     CONFIG.ADDON_PRICES.addon_marquee });
       if (isAddonChecked("addon_update_unlimited")) items.push({
-        code:"addon_update_unlimited", name:"無限更新", qty:1,
+        code: "addon_update_unlimited", name: "無限更新", qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited,
         amount:     CONFIG.ADDON_PRICES.addon_update_unlimited });
     }
 
     if (photoChecked && photoQty > 0) items.push({
-      code:"addon_photo", name:"照片牆加購", qty:photoQty,
+      code: "addon_photo", name: "照片牆加購", qty: photoQty,
       unit_price: CONFIG.ADDON_PRICES.addon_photo,
       amount:     photoQty * CONFIG.ADDON_PRICES.addon_photo });
 
     if (ctaChecked && ctaQty > 0) items.push({
-      code:"addon_cta", name:"CTA 加購", qty:ctaQty,
+      code: "addon_cta", name: "CTA 加購", qty: ctaQty,
       unit_price: CONFIG.ADDON_PRICES.addon_cta,
       amount:     ctaQty * CONFIG.ADDON_PRICES.addon_cta });
 
     if (isAddonChecked("addon_agent_upgrade")) items.push({
-      code:"addon_agent_upgrade", name:"金牌級會員", qty:1,
+      code: "addon_agent_upgrade", name: "金牌級會員", qty: 1,
       unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade,
       amount:     CONFIG.ADDON_PRICES.addon_agent_upgrade });
 
@@ -705,18 +653,18 @@
     const items       = getAddonItemsForQuote(limits);
     const addonAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
     const total       = (limits.planPrice || 0) + addonAmount;
+    const set         = (id, v) => { if (els[id]) els[id].textContent = v; };
 
-    const setText = (id, v) => { if (els[id]) els[id].textContent = v; };
-    setText("quote-state-text",   `${limits.planLabel}｜${money(total)}`);
-    setText("quote-plan-amount",  money(limits.planPrice || 0));
-    setText("quote-addon-amount", money(addonAmount));
-    setText("quote-total-amount", money(total));
+    set("quote-state-text",   `${limits.planLabel}｜${money(total)}`);
+    set("quote-plan-amount",  money(limits.planPrice || 0));
+    set("quote-addon-amount", money(addonAmount));
+    set("quote-total-amount", money(total));
 
     if (els["quote-addon-breakdown"]) {
       els["quote-addon-breakdown"].innerHTML = "";
       if (!items.length) {
         els["quote-addon-breakdown"].appendChild(
-          Object.assign(document.createElement("span"), { textContent:"尚未選擇加購" }));
+          Object.assign(document.createElement("span"), { textContent: "尚未選擇加購" }));
       } else {
         items.forEach(item => {
           const row = document.createElement("div");
@@ -831,6 +779,7 @@
     return data;
   }
 
+  /* 成品展示 renderer 內部的收折（不影響表單填寫區） */
   function bindPreviewCollapseToggles(root) {
     setupPreviewBlockClamp(root, "#block-service", 140);
     setupPreviewBlockClamp(root, "#block-exp",     180);
@@ -843,24 +792,24 @@
     if (next && next.classList.contains("preview-more-toggle")) next.remove();
     block.style.maxHeight = "";
     block.style.overflow  = "";
-    block.classList.remove("is-collapsed","is-expanded");
+    block.classList.remove("is-collapsed", "is-expanded");
     requestAnimationFrame(() => {
       if (block.scrollHeight <= collapsedHeight + 8) return;
       block.style.maxHeight = `${collapsedHeight}px`;
       block.style.overflow  = "hidden";
       block.classList.add("is-collapsed");
       const btn = document.createElement("button");
-      btn.type = "button";
+      btn.type      = "button";
       btn.className = "ghost-btn mini preview-more-toggle";
       btn.textContent = "展開更多";
       btn.addEventListener("click", () => {
         if (block.classList.contains("is-expanded")) {
-          block.classList.replace("is-expanded","is-collapsed");
+          block.classList.replace("is-expanded", "is-collapsed");
           block.style.maxHeight = `${collapsedHeight}px`;
           block.style.overflow  = "hidden";
           btn.textContent = "展開更多";
         } else {
-          block.classList.replace("is-collapsed","is-expanded");
+          block.classList.replace("is-collapsed", "is-expanded");
           block.style.maxHeight = "none";
           block.style.overflow  = "visible";
           btn.textContent = "收合";
@@ -885,10 +834,10 @@
      buildPayload
   ============================================================ */
   function buildPayload() {
-    const limits      = getLimits();
-    const theme       = getThemeSelection();
-    const previewData = buildPreviewData();
-    const addonItems  = getAddonItemsForQuote(limits);
+    const limits         = getLimits();
+    const theme          = getThemeSelection();
+    const previewData    = buildPreviewData();
+    const addonItems     = getAddonItemsForQuote(limits);
     const bundleChecked  = isAddonChecked("addon_bundle");
     const marqueeChecked = isAddonChecked("addon_marquee");
 
@@ -1016,7 +965,7 @@
         : CONFIG.SHOWCASE_URL;
 
       // FIX 5: 計算 3 天付款期限
-      const dueDate = new Date();
+      const dueDate    = new Date();
       dueDate.setDate(dueDate.getDate() + 3);
       const paymentDueAt = dueDate.toISOString();
       const dueDateStr   =
@@ -1027,8 +976,8 @@
 
       const quoteData = {
         card_id:        cardId,
-        customer_name:  payload.name      || "",
-        plan_name:      limits.planLabel  || "方案",
+        customer_name:  payload.name     || "",
+        plan_name:      limits.planLabel || "方案",
         submitted_at:   new Date().toISOString(),
         payment_notice: "請於 3 天內完成付款",
         payment_due_at: paymentDueAt,
@@ -1064,33 +1013,31 @@
      成功面板 helpers (FIX 3 + 4 + 5)
   ============================================================ */
   function showSuccessPanel({ cardId, previewUrl, dueDateStr, totalAmount, planLabel, customerName }) {
-    // 更新進度條進度至 100%
     if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
 
-    // 序號
     const idEl = els["progress-card-id-display"];
     if (idEl) {
-      idEl.textContent     = cardId || "（待確認）";
-      idEl.dataset.cardId  = cardId || "";
+      idEl.textContent    = cardId || "（待確認）";
+      idEl.dataset.cardId = cardId || "";
     }
 
-    // 預覽連結
     const linkEl = els["progress-preview-link"];
     if (linkEl) {
       linkEl.href        = previewUrl;
       linkEl.textContent = previewUrl;
     }
 
-    // 填入動態文字
     const panel = els["progress-success-panel"];
     if (!panel) return;
 
-    const q = s => panel.querySelector(s);
-    const setT = (sel, v) => { const el = q(sel); if (el) el.textContent = v; };
+    const setT = (sel, v) => {
+      const el = panel.querySelector(sel);
+      if (el) el.textContent = v;
+    };
 
     setT(".success-name",  customerName || "您");
     setT(".success-plan",  planLabel    || "方案");
-    setT(".success-total", `NT$ ${Number(totalAmount||0).toLocaleString("zh-TW")}`);
+    setT(".success-total", `NT$ ${Number(totalAmount || 0).toLocaleString("zh-TW")}`);
     setT(".success-due",   dueDateStr   || "3 天內");
 
     panel.classList.remove("hidden");
@@ -1133,7 +1080,7 @@
     if (!els["submit-progress-overlay"]) return;
     els["submit-progress-overlay"].classList.toggle("hidden", !show);
     if (!show) {
-      els.progressSteps.forEach(s => s.classList.remove("is-active","is-done"));
+      els.progressSteps.forEach(s => s.classList.remove("is-active", "is-done"));
       if (els["progress-fill"]) els["progress-fill"].style.width = "0%";
       if (els["progress-text"]) els["progress-text"].textContent = "正在建立申請資料，請稍候。";
       hideSuccessPanel();
@@ -1243,8 +1190,8 @@
 
   function escapeHtml(str) {
     return String(str || "")
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-      .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
 })();
