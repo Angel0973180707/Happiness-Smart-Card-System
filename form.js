@@ -1,20 +1,12 @@
 /* ============================================================
-   天使幸福智慧名片館 form.js
-   v7.7.8
-   完整覆蓋版
-
-   修正：
-   1. 照片上傳工具列補上移/下移按鈕（photoMeta[key].y ±0.05，clamp 0~1）
-   2. photo-grid-form 已於 HTML/CSS 改為固定兩欄（CSS 端修正）
-   3. buildPreviewData() 正確傳入 avatar_url / logo_url / photo_url，
-      並在 features.photo_preview_urls 提供備援，對齊 renderer 欄位
-   4. buildPayload() ref → referrer
-   5. 補齊 marquee_purchased / marquee_enabled /
-      cta_extra_purchased / photo_extra_purchased
-   6. 新增 video1~3 / social1~3 欄位收集與送出
-   7. submit() cardId 相容多種 GAS 回傳格式
-   8. HSC_LAST_QUOTE 補齊 preview_url / payment_due_at（+3天）
-   9. intro → slogan（card_db 欄位名）
+   \u5929\u4f7f\u5e78\u798f\u667a\u6167\u540d\u7247\u9928 form.js
+   v7.8.0
+   \u4fee\u6b63\uff1a
+   1. \u7d93\u6b77\u6b04\u4f4d\u6539\u70ba textarea\uff08\u53ef\u5206\u884c\u586b\u5beb\uff09
+   2. \u670d\u52d9\u3001\u54c1\u724c\u91d1\u53e5\u3001\u7d93\u6b77\u8d85\u904e 3 \u884c\u53ef\u6536\u8d77
+   3. \u9001\u51fa\u5f8c\u9032\u5ea6\u689d + \u5b8c\u6210\u756b\u9762\u986f\u793a\u5e8f\u865f + \u8907\u88fd\u6587\u6848\u6309\u9215
+   4. \u9001\u51fa\u5f8c\u7acb\u5373\u751f\u6210\u6210\u54c1\u9023\u7d50\uff08cardId \u2192 previewUrl\uff09
+   5. \u6210\u54c1\u9801\u986f\u793a 3 \u5929\u4ed8\u6b3e\u5012\u6578\u671f\u9650
 ============================================================ */
 
 (() => {
@@ -28,10 +20,10 @@
     SERVICE_URL:  "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v778",
+    DRAFT_KEY: "hsc_form_draft_v780",
     BASE_LIMITS: {
-      free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
-      premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
+      free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "\u81ea\u7531\u642d\u914d" },
+      premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "\u7cbe\u54c1\u8a2d\u8a08" }
     },
     ADDON_PRICES: {
       addon_marquee:          300,
@@ -63,15 +55,101 @@
   document.addEventListener("DOMContentLoaded", init);
 
   /* ============================================================
-     初始化
+     \u521d\u59cb\u5316
   ============================================================ */
   function init() {
     collectEls();
     ensureRendererAlias();
+    // FIX 1: \u5c07 experience \u8f38\u5165\u6846\u5347\u7d1a\u70ba textarea
+    upgradeExperienceToTextarea();
     bindStaticEvents();
     restoreDraft();
     ensureDefaultPlan();
     refreshAll();
+    // FIX 2: \u521d\u59cb\u5316\u9577\u6587\u6536\u6298
+    initTextareaCollapse();
+  }
+
+  /* ============================================================
+     FIX 1: \u5c07 experience <input> \u52d5\u614b\u66ff\u63db\u70ba <textarea>
+  ============================================================ */
+  function upgradeExperienceToTextarea() {
+    const oldInput = document.getElementById("experience");
+    if (!oldInput || oldInput.tagName === "TEXTAREA") return;
+
+    const ta = document.createElement("textarea");
+    ta.id          = "experience";
+    ta.name        = oldInput.name || "experience";
+    ta.rows        = 4;
+    ta.placeholder = "\u4f8b\uff1a\u524d XX \u516c\u53f8\u54c1\u724c\u9867\u554f\u300110 \u5e74\u696d\u754c\u8cc7\u6b77\n\u53ef\u5206\u884c\u586b\u5beb\u591a\u6bb5\u7d93\u6b77";
+    ta.style.cssText = "resize:vertical;min-height:96px;";
+
+    // \u52a0\u63d0\u793a\u5b57
+    const hint = document.createElement("p");
+    hint.className = "field-hint";
+    hint.textContent = "\u53ef\u63db\u884c\u586b\u5beb\u591a\u6bb5\u7d93\u6b77\uff0c\u7cfb\u7d71\u81ea\u52d5\u6574\u7406\u6392\u7248\u3002";
+
+    oldInput.parentNode.insertBefore(ta, oldInput);
+    oldInput.parentNode.removeChild(oldInput);
+    oldInput.parentNode && oldInput.parentNode.appendChild(hint);
+    ta.parentNode.appendChild(hint);
+  }
+
+  /* ============================================================
+     FIX 2: \u9577\u6587\u6b04\u4f4d\u8d85\u904e 3 \u884c\u81ea\u52d5\u52a0\u300c\u6536\u8d77\uff0f\u5c55\u958b\u300d\u6309\u9215
+     \u9069\u7528\uff1aservices, intro (\u54c1\u724c\u91d1\u53e5), experience
+  ============================================================ */
+  function initTextareaCollapse() {
+    ["services","intro","experience","marquee_text"].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("input", () => checkCollapse(el));
+      checkCollapse(el);
+    });
+  }
+
+  function checkCollapse(textarea) {
+    const MAX_VISIBLE_LINES = 3;
+    const LINE_HEIGHT = 24; // px
+    const THRESHOLD = MAX_VISIBLE_LINES * LINE_HEIGHT + 8;
+
+    // \u5148\u79fb\u9664\u820a\u6309\u9215
+    const existingBtn = textarea.parentNode.querySelector(".textarea-collapse-btn");
+    if (existingBtn) existingBtn.remove();
+    textarea.style.maxHeight = "";
+    textarea.style.overflow  = "hidden auto";
+
+    requestAnimationFrame(() => {
+      if (textarea.scrollHeight <= THRESHOLD) return;
+
+      // \u9810\u8a2d\u6536\u8d77
+      if (!textarea.dataset.expanded) {
+        textarea.style.maxHeight = `${THRESHOLD}px`;
+        textarea.style.overflow  = "hidden";
+      }
+
+      const btn = document.createElement("button");
+      btn.type      = "button";
+      btn.className = "ghost-btn mini textarea-collapse-btn";
+      btn.style.cssText = "margin-top:4px;width:100%;";
+      btn.textContent = textarea.dataset.expanded ? "\u25b2 \u6536\u8d77" : "\u25bc \u5c55\u958b\u5168\u90e8";
+
+      btn.addEventListener("click", () => {
+        if (textarea.dataset.expanded) {
+          delete textarea.dataset.expanded;
+          textarea.style.maxHeight = `${THRESHOLD}px`;
+          textarea.style.overflow  = "hidden";
+          btn.textContent = "\u25bc \u5c55\u958b\u5168\u90e8";
+        } else {
+          textarea.dataset.expanded = "1";
+          textarea.style.maxHeight = "none";
+          textarea.style.overflow  = "hidden auto";
+          btn.textContent = "\u25b2 \u6536\u8d77";
+        }
+      });
+
+      textarea.insertAdjacentElement("afterend", btn);
+    });
   }
 
   function collectEls() {
@@ -108,7 +186,9 @@
       "quote-state-text", "quote-plan-amount", "quote-addon-amount",
       "quote-addon-breakdown", "quote-total-amount",
 
-      "submit-progress-overlay", "progress-text", "progress-fill"
+      "submit-progress-overlay", "progress-text", "progress-fill",
+      "progress-success-panel", "progress-card-id-display",
+      "btn-copy-card-notice", "progress-preview-link"
     ];
 
     ids.forEach(id => { els[id] = document.getElementById(id); });
@@ -128,7 +208,7 @@
   }
 
   /* ============================================================
-     靜態事件
+     \u975c\u614b\u4e8b\u4ef6
   ============================================================ */
   function bindStaticEvents() {
     if (els["smart-card-form"]) els["smart-card-form"].addEventListener("submit", submit);
@@ -160,23 +240,57 @@
     bindButton(els["btn-contact-service"],      () => window.open(CONFIG.SERVICE_URL,  "_blank", "noopener"));
     bindButton(els["progress-contact-service"], () => window.open(CONFIG.SERVICE_URL,  "_blank", "noopener"));
     bindButton(els["btn-gold-contact"],         () => window.open(CONFIG.SERVICE_URL,  "_blank", "noopener"));
-    bindButton(els["btn-gold-info"],            () => alert("金牌級會員請聯繫客服瞭解完整權益。"));
+    bindButton(els["btn-gold-info"],            () => alert("\u91d1\u724c\u7d1a\u6703\u54e1\u8acb\u806f\u7e6b\u5ba2\u670d\u77ad\u89e3\u5b8c\u6574\u6b0a\u76ca\u3002"));
     bindButton(els["btn-gold-copy"], async () => {
-      await copyText("您好，我想瞭解金牌級會員的完整權益與適合方案。");
-      setStatus("已複製金牌會員詢問文案。");
+      await copyText("\u60a8\u597d\uff0c\u6211\u60f3\u77ad\u89e3\u91d1\u724c\u7d1a\u6703\u54e1\u7684\u5b8c\u6574\u6b0a\u76ca\u8207\u9069\u5408\u65b9\u6848\u3002");
+      setStatus("\u5df2\u8907\u88fd\u91d1\u724c\u6703\u54e1\u8a62\u554f\u6587\u6848\u3002");
     });
-    bindButton(els["btn-save-draft"],  () => { saveDraft(); setStatus("草稿已暫存。"); });
+    bindButton(els["btn-save-draft"],  () => { saveDraft(); setStatus("\u8349\u7a3f\u5df2\u66ab\u5b58\u3002"); });
     bindButton(els["btn-clear-draft"], clearDraft);
+
+    // FIX 3: \u8907\u88fd\u5e8f\u865f\u901a\u77e5\u6587\u6848
+    bindButton(els["btn-copy-card-notice"], async () => {
+      const cardId = els["progress-card-id-display"]?.dataset.cardId || "";
+      const name   = valueOf("display_name") || "\u60a8";
+      const limits = getLimits();
+      const addonItems = getAddonItemsForQuote(limits);
+      const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+      const total = limits.planPrice + addonAmount;
+      const dueDate = new Date(); dueDate.setDate(dueDate.getDate() + 3);
+      const dueDateStr = `${dueDate.getFullYear()}/${dueDate.getMonth()+1}/${dueDate.getDate()}`;
+      const previewUrl = cardId
+        ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
+        : CONFIG.SHOWCASE_URL;
+
+      const notice = `\u60a8\u597d\uff0c\u6211\u662f ${name}\uff0c\u5df2\u5b8c\u6210\u5929\u4f7f\u5e78\u798f\u667a\u6167\u540d\u7247\u7533\u8acb\uff01\n` +
+        `\ud83d\udccb \u540d\u7247\u5e8f\u865f\uff1a${cardId || "\uff08\u5f85\u78ba\u8a8d\uff09"}\n` +
+        `\ud83d\udcb3 \u65b9\u6848\uff1a${limits.planLabel}\uff0c\u7e3d\u91d1\u984d NT$ ${total.toLocaleString("zh-TW")}\n` +
+        `\ud83d\udd17 \u6210\u54c1\u9810\u89bd\uff1a${previewUrl}\n` +
+        `\u23f0 \u4ed8\u6b3e\u671f\u9650\uff1a${dueDateStr} \u524d\uff0c\u8acb\u5354\u52a9\u78ba\u8a8d\u4e26\u958b\u901a\u540d\u7247\uff0c\u8b1d\u8b1d\uff01`;
+
+      await copyText(notice);
+      const btn = els["btn-copy-card-notice"];
+      if (btn) {
+        btn.textContent = "\u2705 \u5df2\u8907\u88fd\uff01";
+        setTimeout(() => { btn.textContent = "\ud83d\udccb \u8907\u88fd\u5e8f\u865f\uff0b\u56de\u8986\u6587\u6848"; }, 2000);
+      }
+    });
   }
 
   function bindButton(btn, handler) {
     if (btn) btn.addEventListener("click", handler);
   }
 
-  function onLiveChange() { updatePreview(); saveDraftSilently(); }
+  function onLiveChange() {
+    updatePreview();
+    saveDraftSilently();
+    // FIX 2: \u91cd\u65b0\u6aa2\u67e5\u6536\u6298
+    const el = event?.target;
+    if (el && el.tagName === "TEXTAREA") checkCollapse(el);
+  }
 
   /* ============================================================
-     方案 / 加購邏輯
+     \u65b9\u6848 / \u52a0\u8cfc\u908f\u8f2f
   ============================================================ */
   function ensureDefaultPlan() {
     if (getSelectedPlan()) return;
@@ -220,7 +334,7 @@
   }
 
   /* ============================================================
-     全面刷新
+     \u5168\u9762\u5237\u65b0
   ============================================================ */
   function refreshAll() {
     const limits = getLimits();
@@ -278,7 +392,7 @@
 
     if (els["addon-photo-tip"]) {
       const remain = Math.max(0, CONFIG.MAX_WALL_PHOTOS - CONFIG.BASE_LIMITS[limits.plan].wallPhotos);
-      els["addon-photo-tip"].textContent = `本方案最多可再加 ${remain} 張`;
+      els["addon-photo-tip"].textContent = `\u672c\u65b9\u6848\u6700\u591a\u53ef\u518d\u52a0 ${remain} \u5f35`;
     }
 
     if (els["addon_cta_qty"]) {
@@ -306,7 +420,7 @@
   }
 
   /* ============================================================
-     照片區塊
+     \u7167\u7247\u5340\u584a
   ============================================================ */
   function ensurePhotoMetaKey(key) {
     if (!state.photoMeta[key]) state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
@@ -323,9 +437,9 @@
     els["photo-slots"].innerHTML = "";
 
     const sections = [
-      { title: "個人照", desc: "固定 1 張，套用到成品卡頭像。",                              keys: ["avatar"] },
-      { title: "Logo",   desc: "固定 1 張，套用到成品卡 logo。",                             keys: ["logo"]   },
-      { title: "照片牆", desc: `本次可上傳 ${wallLimit} 張（不含個人照與 Logo）`,              keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
+      { title: "\u500b\u4eba\u7167", desc: "\u56fa\u5b9a 1 \u5f35\uff0c\u5957\u7528\u5230\u6210\u54c1\u5361\u982d\u50cf\u3002",                              keys: ["avatar"] },
+      { title: "Logo",   desc: "\u56fa\u5b9a 1 \u5f35\uff0c\u5957\u7528\u5230\u6210\u54c1\u5361 logo\u3002",                             keys: ["logo"]   },
+      { title: "\u7167\u7247\u7246", desc: `\u672c\u6b21\u53ef\u4e0a\u50b3 ${wallLimit} \u5f35\uff08\u4e0d\u542b\u500b\u4eba\u7167\u8207 Logo\uff09`,              keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
     ];
 
     sections.forEach(sec => {
@@ -357,12 +471,12 @@
     const rotateRight  = frag.querySelector(".rotate-right");
     const moveLeft     = frag.querySelector(".move-left");
     const moveRight    = frag.querySelector(".move-right");
-    const moveUp       = frag.querySelector(".move-up");    // FIX 1
-    const moveDown     = frag.querySelector(".move-down");  // FIX 1
+    const moveUp       = frag.querySelector(".move-up");
+    const moveDown     = frag.querySelector(".move-down");
     const resetBtn     = frag.querySelector(".reset-photo");
 
     card.dataset.photoKey      = key;
-    title.textContent          = ({ avatar: "個人照", logo: "Logo" })[key] || `照片牆 ${index}`;
+    title.textContent          = ({ avatar: "\u500b\u4eba\u7167", logo: "Logo" })[key] || `\u7167\u7247\u7246 ${index}`;
     fileInput.dataset.photoKey = key;
     zoomRange.dataset.photoKey = key;
     zoomRange.value            = String(state.photoMeta[key]?.scale || 1);
@@ -377,7 +491,7 @@
       previewImage.classList.remove("hidden");
       previewEmpty.classList.add("hidden");
       tools.classList.remove("hidden");
-      badge.textContent = "已上傳";
+      badge.textContent = "\u5df2\u4e0a\u50b3";
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
@@ -412,14 +526,12 @@
       updatePreview(); saveDraftSilently();
     });
 
-    // FIX 1: 上移 — y 減小（畫面往上）
     moveUp.addEventListener("click", () => {
       state.photoMeta[key].y = clampNumber(+(state.photoMeta[key].y - 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
 
-    // FIX 1: 下移 — y 增大（畫面往下）
     moveDown.addEventListener("click", () => {
       state.photoMeta[key].y = clampNumber(+(state.photoMeta[key].y + 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
@@ -446,14 +558,14 @@
       previewImage.classList.remove("hidden");
       previewEmpty.classList.add("hidden");
       tools.classList.remove("hidden");
-      badge.textContent = "已上傳";
+      badge.textContent = "\u5df2\u4e0a\u50b3";
       applyPhotoTransform(previewImage, state.photoMeta[key]);
     } else {
       previewImage.removeAttribute("src");
       previewImage.classList.add("hidden");
       previewEmpty.classList.remove("hidden");
       tools.classList.add("hidden");
-      badge.textContent = "尚未上傳";
+      badge.textContent = "\u5c1a\u672a\u4e0a\u50b3";
     }
   }
 
@@ -467,7 +579,7 @@
   }
 
   /* ============================================================
-     CTA 區塊
+     CTA \u5340\u584a
   ============================================================ */
   function renderCtas(limit) {
     if (!els["cta-slots"] || !els.ctaTemplate) return;
@@ -481,7 +593,7 @@
       const textInput = frag.querySelector(".cta-label-input");
       const urlInput  = frag.querySelector(".cta-url-input");
 
-      label.textContent = `CTA 按鈕 ${i}`;
+      label.textContent = `CTA \u6309\u9215 ${i}`;
       textInput.id    = `cta_text_${i}`;
       textInput.value = saved[`cta_text_${i}`] || "";
       urlInput.id     = `cta_link_${i}`;
@@ -512,12 +624,12 @@
   ============================================================ */
   function syncSummary(limits) {
     if (els["summary-plan-pill"])      els["summary-plan-pill"].textContent      = limits.planLabel;
-    if (els["summary-photo-pill"])     els["summary-photo-pill"].textContent     = `照片牆：${limits.wallPhotos}`;
-    if (els["summary-cta-pill"])       els["summary-cta-pill"].textContent       = `CTA：${limits.ctas}`;
+    if (els["summary-photo-pill"])     els["summary-photo-pill"].textContent     = `\u7167\u7247\u7246\uff1a${limits.wallPhotos}`;
+    if (els["summary-cta-pill"])       els["summary-cta-pill"].textContent       = `CTA\uff1a${limits.ctas}`;
     if (els["summary-plan-name"])      els["summary-plan-name"].textContent      = limits.planLabel;
     if (els["summary-photo-count"])    els["summary-photo-count"].textContent    = String(limits.wallPhotos);
     if (els["summary-cta-count"])      els["summary-cta-count"].textContent      = String(limits.ctas);
-    if (els["summary-marquee-status"]) els["summary-marquee-status"].textContent = isMarqueeEnabled() ? "已開啟" : "未開啟";
+    if (els["summary-marquee-status"]) els["summary-marquee-status"].textContent = isMarqueeEnabled() ? "\u5df2\u958b\u555f" : "\u672a\u958b\u555f";
   }
 
   function getAddonItemsForQuote(limits) {
@@ -529,27 +641,27 @@
     const ctaQty         = ctaChecked   ? getAddonQty("addon_cta_qty")   : 0;
 
     if (bundleChecked) {
-      items.push({ code: "addon_bundle", name: "跑馬燈＋更新組合", qty: 1,
+      items.push({ code: "addon_bundle", name: "\u8dd1\u99ac\u71c8\uff0b\u66f4\u65b0\u7d44\u5408", qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_bundle, amount: CONFIG.ADDON_PRICES.addon_bundle });
     } else {
       if (isAddonChecked("addon_marquee")) items.push({
-        code: "addon_marquee", name: "跑馬燈功能", qty: 1,
+        code: "addon_marquee", name: "\u8dd1\u99ac\u71c8\u529f\u80fd", qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_marquee, amount: CONFIG.ADDON_PRICES.addon_marquee });
       if (isAddonChecked("addon_update_unlimited")) items.push({
-        code: "addon_update_unlimited", name: "無限更新", qty: 1,
+        code: "addon_update_unlimited", name: "\u7121\u9650\u66f4\u65b0", qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited, amount: CONFIG.ADDON_PRICES.addon_update_unlimited });
     }
 
     if (photoChecked && photoQty > 0) items.push({
-      code: "addon_photo", name: "照片牆加購", qty: photoQty,
+      code: "addon_photo", name: "\u7167\u7247\u7246\u52a0\u8cfc", qty: photoQty,
       unit_price: CONFIG.ADDON_PRICES.addon_photo, amount: photoQty * CONFIG.ADDON_PRICES.addon_photo });
 
     if (ctaChecked && ctaQty > 0) items.push({
-      code: "addon_cta", name: "CTA 加購", qty: ctaQty,
+      code: "addon_cta", name: "CTA \u52a0\u8cfc", qty: ctaQty,
       unit_price: CONFIG.ADDON_PRICES.addon_cta, amount: ctaQty * CONFIG.ADDON_PRICES.addon_cta });
 
     if (isAddonChecked("addon_agent_upgrade")) items.push({
-      code: "addon_agent_upgrade", name: "金牌級會員", qty: 1,
+      code: "addon_agent_upgrade", name: "\u91d1\u724c\u7d1a\u6703\u54e1", qty: 1,
       unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade, amount: CONFIG.ADDON_PRICES.addon_agent_upgrade });
 
     return items;
@@ -560,7 +672,7 @@
     const addonAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
     const total       = (limits.planPrice || 0) + addonAmount;
 
-    if (els["quote-state-text"])   els["quote-state-text"].textContent   = `${limits.planLabel}｜${money(total)}`;
+    if (els["quote-state-text"])   els["quote-state-text"].textContent   = `${limits.planLabel}\uff5c${money(total)}`;
     if (els["quote-plan-amount"])  els["quote-plan-amount"].textContent  = money(limits.planPrice || 0);
     if (els["quote-addon-amount"]) els["quote-addon-amount"].textContent = money(addonAmount);
     if (els["quote-total-amount"]) els["quote-total-amount"].textContent = money(total);
@@ -569,14 +681,14 @@
       els["quote-addon-breakdown"].innerHTML = "";
       if (!items.length) {
         const s = document.createElement("span");
-        s.textContent = "尚未選擇加購";
+        s.textContent = "\u5c1a\u672a\u9078\u64c7\u52a0\u8cfc";
         els["quote-addon-breakdown"].appendChild(s);
       } else {
         items.forEach(item => {
           const row = document.createElement("div");
           row.className = "quote-breakdown-row";
           const qs = (item.code === "addon_photo" || item.code === "addon_cta") && item.qty > 1
-            ? ` × ${item.qty}` : "";
+            ? ` \u00d7 ${item.qty}` : "";
           row.innerHTML = `<span>${escapeHtml(item.name)}${qs}</span><strong>${money(item.amount)}</strong>`;
           els["quote-addon-breakdown"].appendChild(row);
         });
@@ -585,7 +697,7 @@
   }
 
   /* ============================================================
-     即時預覽
+     \u5373\u6642\u9810\u89bd
   ============================================================ */
   function updatePreview() {
     const root = els["livePreviewCard"];
@@ -593,7 +705,7 @@
     ensureRendererAlias();
     const renderer = window.HSCCardRenderer || window.HscCardRenderer;
     if (!renderer || typeof renderer.renderCard !== "function") {
-      root.innerHTML = `<div class="renderer-error">找不到 HscCardRenderer，請確認已載入 card-renderer.js</div>`;
+      root.innerHTML = `<div class="renderer-error">\u627e\u4e0d\u5230 HscCardRenderer\uff0c\u8acb\u78ba\u8a8d\u5df2\u8f09\u5165 card-renderer.js</div>`;
       return;
     }
     try {
@@ -607,22 +719,15 @@
       bindPreviewCollapseToggles(root);
     } catch (err) {
       console.error("updatePreview error:", err);
-      root.innerHTML = `<div class="renderer-error">預覽渲染失敗：${escapeHtml(err.message || "未知")}</div>`;
+      root.innerHTML = `<div class="renderer-error">\u9810\u89bd\u6e32\u67d3\u5931\u6557\uff1a${escapeHtml(err.message || "\u672a\u77e5")}</div>`;
     }
   }
 
-  /* ============================================================
-     FIX 3: buildPreviewData
-     - avatar_url / logo_url / photo${i}_url 直接帶入頂層
-     - features.photo_preview_urls 提供備援（renderer 可自行取用）
-     - u-img 對應欄位：avatar_url → renderer 需讀此欄
-  ============================================================ */
   function buildPreviewData() {
     const limits = getLimits();
     const theme  = getThemeSelection();
 
     const data = {
-      /* 基本資料 */
       name:       valueOf("display_name"),
       unit:       valueOf("unit"),
       title:      valueOf("title"),
@@ -635,428 +740,4 @@
       website:    valueOf("website"),
       line_url:   valueOf("line_url"),
       line_oa:    valueOf("line_oa"),
-      wechat_id:  valueOf("wechat_id"),
-      video1:     valueOf("video1"),
-      video2:     valueOf("video2"),
-      video3:     valueOf("video3"),
-      social1:    valueOf("social1"),
-      social2:    valueOf("social2"),
-      social3:    valueOf("social3"),
-
-      /* 樣式 */
-      plan:  theme.plan,
-      color: theme.color,
-      style: theme.style,
-      paper: theme.paper,
-
-      /* 跑馬燈 */
-      marquee_text:    isMarqueeEnabled() ? valueOf("marquee_text") : "",
-      marquee_enabled: isMarqueeEnabled() ? "true" : "",
-
-      /* 數量 */
-      photo_limit: limits.wallPhotos,
-      cta_limit:   limits.ctas,
-
-      /* 系統 */
-      preview_url: CONFIG.SHOWCASE_URL,
-      share_url:   CONFIG.SHOWCASE_URL,
-      card_url:    CONFIG.SHOWCASE_URL,
-
-      features: {
-        photo_meta:         buildPhotoMetaMap(),
-        preview_meta:       { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
-        /* FIX 3: 備援圖片來源，renderer 可由此取 base64 DataURL */
-        photo_preview_urls: { ...state.photoPreviewUrls }
-      }
-    };
-
-    /* FIX 3: 頂層圖片欄位，對應 renderer 的 avatar_url / logo_url */
-    if (state.photoPreviewUrls.avatar) {
-      data.avatar_url = state.photoPreviewUrls.avatar;
-      data["u-img"]   = state.photoPreviewUrls.avatar; // 相容 renderer 讀 u-img src
-    }
-    if (state.photoPreviewUrls.logo) {
-      data.logo_url = state.photoPreviewUrls.logo;
-    }
-
-    /* 照片牆 */
-    for (let i = 1; i <= limits.wallPhotos; i++) {
-      const url = state.photoPreviewUrls[`photo${i}`];
-      if (url) {
-        data[`photo${i}_url`] = url;
-        data[`photo_url_${i}`] = url; // 備援欄位名
-      }
-    }
-
-    /* CTA */
-    for (let i = 1; i <= limits.ctas; i++) {
-      data[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
-      data[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
-    }
-
-    return data;
-  }
-
-  function bindPreviewCollapseToggles(root) {
-    setupPreviewBlockClamp(root, "#block-service", 140);
-    setupPreviewBlockClamp(root, "#block-exp",     180);
-  }
-
-  function setupPreviewBlockClamp(root, selector, collapsedHeight) {
-    const block = root.querySelector(selector);
-    if (!block || block.style.display === "none") return;
-    const next = block.nextElementSibling;
-    if (next && next.classList.contains("preview-more-toggle")) next.remove();
-    block.style.maxHeight = ""; block.style.overflow = "";
-    block.classList.remove("is-collapsed", "is-expanded");
-    requestAnimationFrame(() => {
-      if (block.scrollHeight <= collapsedHeight + 8) return;
-      block.style.maxHeight = `${collapsedHeight}px`;
-      block.style.overflow  = "hidden";
-      block.classList.add("is-collapsed");
-      const btn = document.createElement("button");
-      btn.type = "button"; btn.className = "ghost-btn mini preview-more-toggle";
-      btn.textContent = "展開更多";
-      btn.addEventListener("click", () => {
-        if (block.classList.contains("is-expanded")) {
-          block.classList.replace("is-expanded","is-collapsed");
-          block.style.maxHeight = `${collapsedHeight}px`;
-          block.style.overflow  = "hidden";
-          btn.textContent = "展開更多";
-        } else {
-          block.classList.replace("is-collapsed","is-expanded");
-          block.style.maxHeight = "none";
-          block.style.overflow  = "visible";
-          btn.textContent = "收合";
-        }
-      });
-      block.insertAdjacentElement("afterend", btn);
-    });
-  }
-
-  function buildPhotoMetaMap() {
-    const out = {
-      avatar: normalizePhotoMeta(state.photoMeta.avatar),
-      logo:   normalizePhotoMeta(state.photoMeta.logo)
-    };
-    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) {
-      out[`photo${i}`] = normalizePhotoMeta(state.photoMeta[`photo${i}`]);
-    }
-    return out;
-  }
-
-  /* ============================================================
-     buildPayload — 完整版
-  ============================================================ */
-  function buildPayload() {
-    const limits      = getLimits();
-    const theme       = getThemeSelection();
-    const previewData = buildPreviewData();
-    const addonItems  = getAddonItemsForQuote(limits);
-    const bundleChecked  = isAddonChecked("addon_bundle");
-    const marqueeChecked = isAddonChecked("addon_marquee");
-
-    const payload = {
-      action: "createCardWithOfflinePayment",
-      tenant: "angel",
-
-      /* 基本資料 */
-      name:       previewData.name,
-      unit:       previewData.unit,
-      title:      previewData.title,
-      slogan:     previewData.slogan,
-      phone:      previewData.phone,
-      email:      previewData.email,
-      website:    previewData.website,
-      address:    previewData.address,
-      line_url:   previewData.line_url,
-      line_oa:    previewData.line_oa,
-      wechat_id:  previewData.wechat_id,
-      experience: previewData.experience,
-      services:   previewData.services,
-
-      /* 影音 / 社群連結 */
-      video1:  valueOf("video1"),
-      video2:  valueOf("video2"),
-      video3:  valueOf("video3"),
-      social1: valueOf("social1"),
-      social2: valueOf("social2"),
-      social3: valueOf("social3"),
-
-      /* 邀請碼 & 來源 */
-      invite_code: valueOf("invite_code"),
-      referrer:    valueOf("ref"),
-
-      /* 樣式 */
-      plan:  theme.plan,
-      color: theme.color,
-      style: theme.style,
-      paper: theme.paper,
-
-      /* 跑馬燈 */
-      marquee_text:      previewData.marquee_text,
-      marquee_enabled:   isMarqueeEnabled() ? "true" : "",
-      marquee_purchased: (marqueeChecked || bundleChecked) ? "1" : "",
-
-      /* 照片 & CTA 數量 */
-      photo_limit:           limits.wallPhotos,
-      cta_limit:             limits.ctas,
-      photo_extra_purchased: isAddonChecked("addon_photo")
-                              ? String(getAddonQty("addon_photo_qty")) : "",
-      cta_extra_purchased:   isAddonChecked("addon_cta")
-                              ? String(getAddonQty("addon_cta_qty"))   : "",
-
-      /* 圖片主檔 */
-      avatar_url: previewData.avatar_url || "",
-      logo_url:   previewData.logo_url   || "",
-
-      /* 加購明細 */
-      addon_items: addonItems,
-
-      /* features */
-      features_json: {
-        photo_meta:         buildPhotoMetaMap(),
-        preview_meta:       { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
-        photo_preview_urls: { ...state.photoPreviewUrls }
-      }
-    };
-
-    for (let i = 1; i <= limits.wallPhotos; i++) {
-      const url = state.photoPreviewUrls[`photo${i}`];
-      if (url) {
-        payload[`photo${i}_url`] = url;
-        payload[`photo_url_${i}`] = url;
-      }
-    }
-    for (let i = 1; i <= limits.ctas; i++) {
-      payload[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
-      payload[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
-    }
-
-    return payload;
-  }
-
-  /* ============================================================
-     送出
-  ============================================================ */
-  async function submit(e) {
-    e.preventDefault();
-
-    const payload     = buildPayload();
-    const limits      = getLimits();
-    const addonItems  = getAddonItemsForQuote(limits);
-    const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const totalAmount = limits.planPrice + addonAmount;
-
-    if (!payload.name || !payload.phone || !payload.plan) {
-      setStatus("請先完成必填欄位（姓名、電話、方案）。", "error");
-      return;
-    }
-
-    showProgress(true);
-    setProgressStep(1, "正在整理表單與 features_json…");
-
-    try {
-      setProgressStep(2, "正在送出建卡資料…");
-
-      const res  = await fetch(CONFIG.GAS_URL, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(payload)
-      });
-
-      const data = await parseJsonSafe(res);
-
-      if (!data || !data.ok) {
-        throw new Error(data?.error || data?.message || "建立名片失敗，請稍後再試。");
-      }
-
-      setProgressStep(3, "正在整理報價資料…");
-
-      /* 相容多種 GAS 回傳格式 */
-      const cardId =
-        data.card_id       ||
-        data.id            ||
-        data.card?.id      ||
-        data.card?.card_id ||
-        data.data?.card_id ||
-        data.data?.id      ||
-        "";
-
-      const previewUrl = cardId
-        ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
-        : CONFIG.SHOWCASE_URL;
-
-      const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 3);
-      const paymentDueAt = dueDate.toISOString();
-
-      setProgressStep(4, "正在寫入報價與預覽資料…");
-
-      const quoteData = {
-        card_id:        cardId,
-        customer_name:  payload.name      || "",
-        plan_name:      limits.planLabel  || "方案",
-        submitted_at:   new Date().toISOString(),
-        payment_notice: "請於 3 天內完成付款",
-        payment_due_at: paymentDueAt,
-        preview_url:    previewUrl,
-        plan_amount:    Number(limits.planPrice || 0),
-        addon_items:    addonItems,
-        addon_amount:   Number(addonAmount || 0),
-        total_amount:   Number(totalAmount || 0)
-      };
-
-      localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify(quoteData));
-
-      setProgressStep(5, "即將前往確認頁…");
-      window.location.href = "./quote-success.html";
-
-    } catch (err) {
-      console.error("[HSC form] submit error:", err);
-      setStatus("送出失敗：" + (err.message || "未知錯誤"), "error");
-      showProgress(false);
-    }
-  }
-
-  async function parseJsonSafe(res) {
-    const raw = await res.text();
-    try { return JSON.parse(raw); } catch (_) { return null; }
-  }
-
-  /* ============================================================
-     工具函式
-  ============================================================ */
-  function isMarqueeEnabled() {
-    return isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle");
-  }
-
-  function valueOf(id) {
-    const el = document.getElementById(id) || els[id];
-    return (el?.value || "").trim();
-  }
-
-  function getThemeSelection() {
-    const plan = getSelectedPlan() || "premium";
-    if (plan === "free") return {
-      plan, color: els["free_color"]?.value  || "c1",
-      style: els["free_style"]?.value  || "s1", paper: els["free_paper"]?.value  || "f1"
-    };
-    return { plan, color: els["premium_color"]?.value || "p1", style: "", paper: "" };
-  }
-
-  /* ── 進度條 ── */
-  function showProgress(show) {
-    if (!els["submit-progress-overlay"]) return;
-    els["submit-progress-overlay"].classList.toggle("hidden", !show);
-    if (!show) {
-      els.progressSteps.forEach(s => s.classList.remove("is-active","is-done"));
-      if (els["progress-fill"]) els["progress-fill"].style.width = "0%";
-      if (els["progress-text"]) els["progress-text"].textContent = "正在建立申請資料，請稍候。";
-    }
-  }
-
-  function setProgressStep(stepNo, text) {
-    const total = 5;
-    els.progressSteps.forEach(step => {
-      const n = Number(step.dataset.step || 0);
-      step.classList.toggle("is-active", n === stepNo);
-      step.classList.toggle("is-done",   n < stepNo);
-    });
-    if (els["progress-fill"]) els["progress-fill"].style.width = `${Math.round((stepNo / total) * 100)}%`;
-    if (els["progress-text"] && text) els["progress-text"].textContent = text;
-  }
-
-  function setStatus(msg, stateName = "") {
-    const el = els["form-status-strip"];
-    if (!el) return;
-    el.textContent = msg || "";
-    if (msg) el.classList.add("visible"); else el.classList.remove("visible");
-    if (stateName) el.dataset.state = stateName; else delete el.dataset.state;
-  }
-
-  /* ── 草稿 ── */
-  function collectFormValues() {
-    const out = {};
-    document.querySelectorAll("input, textarea, select").forEach(el => {
-      if (el.type === "radio") { if (el.checked) out[el.name] = el.value; return; }
-      if (!el.id) return;
-      out[el.id] = el.type === "checkbox" ? el.checked : el.value;
-    });
-    return out;
-  }
-
-  function saveDraft() {
-    localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify({
-      values: collectFormValues(),
-      photoMeta: state.photoMeta,
-      photoPreviewUrls: state.photoPreviewUrls
-    }));
-  }
-
-  function saveDraftSilently() { try { saveDraft(); } catch (_) {} }
-
-  function restoreDraft() {
-    let draft = null;
-    try { draft = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || "null"); } catch (_) {}
-    if (!draft || typeof draft !== "object") return;
-
-    Object.keys(draft.values || {}).forEach(key => {
-      const el = document.getElementById(key);
-      if (el) {
-        if (el.type === "checkbox") el.checked = !!draft.values[key];
-        else el.value = draft.values[key];
-        return;
-      }
-      if (key === "plan") {
-        const r = document.querySelector(`input[name="plan"][value="${draft.values[key]}"]`);
-        if (r) r.checked = true;
-      }
-    });
-
-    if (draft.photoMeta        && typeof draft.photoMeta        === "object") state.photoMeta        = draft.photoMeta;
-    if (draft.photoPreviewUrls && typeof draft.photoPreviewUrls === "object") state.photoPreviewUrls = draft.photoPreviewUrls;
-
-    ensurePhotoMetaKey("avatar");
-    ensurePhotoMetaKey("logo");
-  }
-
-  function clearDraft() {
-    localStorage.removeItem(CONFIG.DRAFT_KEY);
-    localStorage.removeItem(CONFIG.QUOTE_STORAGE_KEY);
-    location.reload();
-  }
-
-  /* ── 格式化 ── */
-  function money(v) { return `NT$ ${Number(v || 0).toLocaleString("zh-TW")}`; }
-
-  async function copyText(str) {
-    if (!str) return;
-    try {
-      if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(str); return; }
-    } catch (_) {}
-    const ta = document.createElement("textarea");
-    ta.value = str;
-    ta.style.cssText = "position:fixed;top:-9999px;opacity:0;";
-    document.body.appendChild(ta);
-    ta.focus(); ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-  }
-
-  function fileToDataURL(file) {
-    return new Promise((resolve, reject) => {
-      const r = new FileReader();
-      r.onload  = () => resolve(r.result);
-      r.onerror = reject;
-      r.readAsDataURL(file);
-    });
-  }
-
-  function escapeHtml(str) {
-    return String(str || "")
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-      .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
-  }
-
-})();
+      wechat_id:  valueOf("wechat_
