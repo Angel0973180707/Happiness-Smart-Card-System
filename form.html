@@ -5,15 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>天使幸福智慧名片｜申請表單</title>
 
-  <!-- 引入與成品頁相同的 style.css，確保預覽樣式一致 -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!--
+    style.css 引入說明（v7.8.4）：
+    .preview-theme-scope 是預覽主題作用域容器，
+    form.js 會動態將 mode-free / mode-premium / color-x / p1~p7 等 class
+    掛在 .preview-theme-scope 上，使 style.css 的 body.mode-premium .xxx 規則
+    可透過 .preview-theme-scope.mode-premium .xxx 完整套用，
+    達成預覽與成品頁樣式 100% 一致。
+  -->
   <link rel="stylesheet" href="./style.css" />
 
   <style>
     /* ============================================================
-       form-local.css  v7.8.3
+       form-local.css  v7.8.4
        僅包含表單頁面專屬樣式，不覆蓋 style.css
     ============================================================ */
 
@@ -464,6 +471,21 @@
       white-space: nowrap;
     }
 
+    .badge[data-upload-state="uploading"] {
+      background: #fff8ec;
+      color: #8b5b16;
+    }
+
+    .badge[data-upload-state="done"] {
+      background: rgba(6,166,106,.12);
+      color: #0a7a4e;
+    }
+
+    .badge[data-upload-state="error"] {
+      background: #fff1f1;
+      color: #a83d3d;
+    }
+
     .preview-frame {
       grid-column: 1;
       grid-row: 2;
@@ -535,7 +557,28 @@
     .cta-title-label { font-size: 13px; font-weight: 900; color: var(--muted); }
     .marquee-stack { display: flex; flex-direction: column; gap: 12px; }
 
-    /* 預覽區塊 */
+    /* ============================================================
+       預覽區塊
+       v7.8.4 關鍵修正：
+       .preview-theme-scope 是主題 class 的掛載點。
+       form.js 的 syncPreviewContainerClasses() 會將
+       mode-free / mode-premium / color-1 / p1 / style-arch / paper-1 等
+       全部掛在 .preview-theme-scope 上。
+
+       style.css 的規則型態：
+         body.mode-premium .card { ... }
+         body.color-1 { --p: ... }
+         body.p1 { --p: ... }
+
+       透過在 style.css 的選擇器前補上
+         .preview-theme-scope 同等對應 body
+       讓預覽吃到與成品頁完全一致的樣式。
+
+       注意：style.css 已有
+         body.mode-premium .xxx, #livePreviewCard.mode-premium .xxx
+       等雙選擇器寫法，可部分覆蓋，但主題色變數（--p / --s 等）
+       需靠 .preview-theme-scope 作為 CSS 繼承根節點才能正確傳遞。
+    ============================================================ */
     .preview-section {
       display: grid;
       grid-template-columns: 1.1fr .9fr;
@@ -553,10 +596,34 @@
     }
 
     /*
-      livePreviewCard：不設固定 class，由 form.js syncPreviewContainerClasses()
-      動態同步 mode-free/mode-premium/color-x/style-x/paper-x，
-      與成品頁 body class 一致，style.css 規則自然套用
+      .preview-theme-scope：主題 class 的作用域根節點
+      form.js 會動態將以下 class 同步掛在此元素上：
+        mode-free / mode-premium
+        color-1~5（自由搭配）
+        p1~p7（精品設計）
+        style-arch / style-flat / style-spot
+        paper-1 / paper-2 / paper-3
+      確保 style.css 裡 body.mode-premium .card 等規則
+      可透過 .preview-theme-scope.mode-premium .card 完全套用。
     */
+    .preview-theme-scope {
+      min-height: 420px;
+      position: relative;
+    }
+
+    /* style.css 中用 body.xxx 的規則，在預覽區改用 .preview-theme-scope.xxx */
+    .preview-theme-scope.mode-premium {
+      background: radial-gradient(1200px 700px at 18% 0%, rgba(255,255,255,.14), transparent 55%),
+                  radial-gradient(900px 700px at 86% 8%, rgba(255,255,255,.07), transparent 60%),
+                  #232837;
+      border-radius: 18px;
+      color: var(--prem-ink, rgba(255,255,255,.97));
+    }
+
+    .preview-theme-scope.mode-free {
+      background: transparent;
+    }
+
     #livePreviewCard {
       min-height: 420px;
     }
@@ -843,7 +910,7 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v7.8.3｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
+        <p class="hero-desc">v7.8.4｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -1116,7 +1183,12 @@
             <input type="text" id="wechat_id" placeholder="例：your_wechat_id" />
           </div>
 
-          <!-- FIX: experience 由 form.js 自動升級為 textarea -->
+          <!--
+            experience 欄位：form.js upgradeExperienceToTextarea() 會在 DOMContentLoaded 後
+            將此 input 升級為 textarea，並補上 hint 文字。
+            v7.8.4 修正：upgradeExperienceToTextarea() 加防重複執行保護，
+            草稿回填在升級後才執行，不會因元素替換導致失效。
+          -->
           <div class="field-group">
             <label class="field-label" for="experience">經歷</label>
             <input type="text" id="experience" placeholder="例：前 XX 公司品牌顧問、10 年業界資歷" />
@@ -1247,12 +1319,17 @@
         <div class="preview-section">
           <div class="preview-card-board">
             <!--
-              livePreviewCard 不設固定主題 class
-              form.js syncPreviewContainerClasses() 會動態同步
-              mode-free/mode-premium/color-x/style-x/paper-x
-              讓 style.css 的規則正確套用，確保預覽與成品一致
+              v7.8.4 預覽作用域修正：
+              .preview-theme-scope 是主題 class 的掛載容器
+              form.js syncPreviewContainerClasses() 將 mode-free / mode-premium /
+              color-x / p1~p7 / style-arch / paper-1 等 class 掛在此元素，
+              讓 style.css 的 body.mode-premium .card 等規則
+              透過 .preview-theme-scope.mode-premium .card 完全套用。
+              #livePreviewCard 是 renderer 的渲染目標，不再直接承載主題 class。
             -->
-            <div id="livePreviewCard" aria-live="polite"></div>
+            <div class="preview-theme-scope" id="preview-theme-scope">
+              <div id="livePreviewCard" aria-live="polite"></div>
+            </div>
           </div>
           <div class="preview-card">
             <h3>預覽說明</h3>
@@ -1355,7 +1432,7 @@
     <article class="photo-card">
       <div class="photo-head">
         <strong class="photo-title"></strong>
-        <span class="badge">尚未上傳</span>
+        <span class="badge" data-upload-state="idle">尚未上傳</span>
       </div>
 
       <div class="preview-frame">
