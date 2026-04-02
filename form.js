@@ -1,17 +1,20 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v7.7.7
+   v7.7.8
    完整覆蓋版
 
-   修正 / 新增：
-   1. buildPayload() ref → referrer
-   2. 補齊 marquee_purchased / marquee_enabled /
+   修正：
+   1. 照片上傳工具列補上移/下移按鈕（photoMeta[key].y ±0.05，clamp 0~1）
+   2. photo-grid-form 已於 HTML/CSS 改為固定兩欄（CSS 端修正）
+   3. buildPreviewData() 正確傳入 avatar_url / logo_url / photo_url，
+      並在 features.photo_preview_urls 提供備援，對齊 renderer 欄位
+   4. buildPayload() ref → referrer
+   5. 補齊 marquee_purchased / marquee_enabled /
       cta_extra_purchased / photo_extra_purchased
-   3. 新增 video1~3 / social1~3 欄位收集與送出
-   4. submit() cardId 相容多種 GAS 回傳格式
-   5. HSC_LAST_QUOTE 補齊 preview_url / payment_due_at（+3天）
-      → quote-success.html 顯示成品連結與繳費倒數
-   6. intro → slogan（card_db 欄位名）
+   6. 新增 video1~3 / social1~3 欄位收集與送出
+   7. submit() cardId 相容多種 GAS 回傳格式
+   8. HSC_LAST_QUOTE 補齊 preview_url / payment_due_at（+3天）
+   9. intro → slogan（card_db 欄位名）
 ============================================================ */
 
 (() => {
@@ -25,7 +28,7 @@
     SERVICE_URL:  "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v777",
+    DRAFT_KEY: "hsc_form_draft_v778",
     BASE_LIMITS: {
       free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -320,9 +323,9 @@
     els["photo-slots"].innerHTML = "";
 
     const sections = [
-      { title: "個人照", desc: "固定 1 張，套用到成品卡頭像。",                             keys: ["avatar"] },
-      { title: "Logo",   desc: "固定 1 張，套用到成品卡 logo。",                            keys: ["logo"]   },
-      { title: "照片牆", desc: `本次可上傳 ${wallLimit} 張（不含個人照與 Logo）`,             keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
+      { title: "個人照", desc: "固定 1 張，套用到成品卡頭像。",                              keys: ["avatar"] },
+      { title: "Logo",   desc: "固定 1 張，套用到成品卡 logo。",                             keys: ["logo"]   },
+      { title: "照片牆", desc: `本次可上傳 ${wallLimit} 張（不含個人照與 Logo）`,              keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
     ];
 
     sections.forEach(sec => {
@@ -354,6 +357,8 @@
     const rotateRight  = frag.querySelector(".rotate-right");
     const moveLeft     = frag.querySelector(".move-left");
     const moveRight    = frag.querySelector(".move-right");
+    const moveUp       = frag.querySelector(".move-up");    // FIX 1
+    const moveDown     = frag.querySelector(".move-down");  // FIX 1
     const resetBtn     = frag.querySelector(".reset-photo");
 
     card.dataset.photoKey      = key;
@@ -388,21 +393,39 @@
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
+
     rotateRight.addEventListener("click", () => {
       state.photoMeta[key].rotate = clampNumber(state.photoMeta[key].rotate + 90, -180, 180, 0);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
+
     moveLeft.addEventListener("click", () => {
       state.photoMeta[key].x = clampNumber(+(state.photoMeta[key].x - 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
+
     moveRight.addEventListener("click", () => {
       state.photoMeta[key].x = clampNumber(+(state.photoMeta[key].x + 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview(); saveDraftSilently();
     });
+
+    // FIX 1: 上移 — y 減小（畫面往上）
+    moveUp.addEventListener("click", () => {
+      state.photoMeta[key].y = clampNumber(+(state.photoMeta[key].y - 0.05).toFixed(2), 0, 1, 0.5);
+      applyPhotoTransform(previewImage, state.photoMeta[key]);
+      updatePreview(); saveDraftSilently();
+    });
+
+    // FIX 1: 下移 — y 增大（畫面往下）
+    moveDown.addEventListener("click", () => {
+      state.photoMeta[key].y = clampNumber(+(state.photoMeta[key].y + 0.05).toFixed(2), 0, 1, 0.5);
+      applyPhotoTransform(previewImage, state.photoMeta[key]);
+      updatePreview(); saveDraftSilently();
+    });
+
     resetBtn.addEventListener("click", () => {
       state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
       zoomRange.value = "1";
@@ -588,15 +611,22 @@
     }
   }
 
+  /* ============================================================
+     FIX 3: buildPreviewData
+     - avatar_url / logo_url / photo${i}_url 直接帶入頂層
+     - features.photo_preview_urls 提供備援（renderer 可自行取用）
+     - u-img 對應欄位：avatar_url → renderer 需讀此欄
+  ============================================================ */
   function buildPreviewData() {
     const limits = getLimits();
     const theme  = getThemeSelection();
 
     const data = {
+      /* 基本資料 */
       name:       valueOf("display_name"),
       unit:       valueOf("unit"),
       title:      valueOf("title"),
-      slogan:     valueOf("intro"),          // intro → slogan
+      slogan:     valueOf("intro"),
       services:   valueOf("services"),
       experience: valueOf("experience"),
       phone:      valueOf("phone"),
@@ -612,33 +642,58 @@
       social1:    valueOf("social1"),
       social2:    valueOf("social2"),
       social3:    valueOf("social3"),
+
+      /* 樣式 */
       plan:  theme.plan,
       color: theme.color,
       style: theme.style,
       paper: theme.paper,
+
+      /* 跑馬燈 */
       marquee_text:    isMarqueeEnabled() ? valueOf("marquee_text") : "",
       marquee_enabled: isMarqueeEnabled() ? "true" : "",
+
+      /* 數量 */
       photo_limit: limits.wallPhotos,
       cta_limit:   limits.ctas,
+
+      /* 系統 */
       preview_url: CONFIG.SHOWCASE_URL,
       share_url:   CONFIG.SHOWCASE_URL,
       card_url:    CONFIG.SHOWCASE_URL,
+
       features: {
-        photo_meta:   buildPhotoMetaMap(),
-        preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }
+        photo_meta:         buildPhotoMetaMap(),
+        preview_meta:       { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
+        /* FIX 3: 備援圖片來源，renderer 可由此取 base64 DataURL */
+        photo_preview_urls: { ...state.photoPreviewUrls }
       }
     };
 
-    if (state.photoPreviewUrls.avatar) data.avatar_url = state.photoPreviewUrls.avatar;
-    if (state.photoPreviewUrls.logo)   data.logo_url   = state.photoPreviewUrls.logo;
-
-    for (let i = 1; i <= limits.wallPhotos; i++) {
-      if (state.photoPreviewUrls[`photo${i}`]) data[`photo${i}_url`] = state.photoPreviewUrls[`photo${i}`];
+    /* FIX 3: 頂層圖片欄位，對應 renderer 的 avatar_url / logo_url */
+    if (state.photoPreviewUrls.avatar) {
+      data.avatar_url = state.photoPreviewUrls.avatar;
+      data["u-img"]   = state.photoPreviewUrls.avatar; // 相容 renderer 讀 u-img src
     }
+    if (state.photoPreviewUrls.logo) {
+      data.logo_url = state.photoPreviewUrls.logo;
+    }
+
+    /* 照片牆 */
+    for (let i = 1; i <= limits.wallPhotos; i++) {
+      const url = state.photoPreviewUrls[`photo${i}`];
+      if (url) {
+        data[`photo${i}_url`] = url;
+        data[`photo_url_${i}`] = url; // 備援欄位名
+      }
+    }
+
+    /* CTA */
     for (let i = 1; i <= limits.ctas; i++) {
       data[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
       data[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
     }
+
     return data;
   }
 
@@ -692,10 +747,6 @@
 
   /* ============================================================
      buildPayload — 完整版
-     ・ref → referrer
-     ・補 marquee_purchased / photo_extra_purchased / cta_extra_purchased
-     ・補 video1~3 / social1~3
-     ・slogan 對應 intro 欄位
   ============================================================ */
   function buildPayload() {
     const limits      = getLimits();
@@ -713,7 +764,7 @@
       name:       previewData.name,
       unit:       previewData.unit,
       title:      previewData.title,
-      slogan:     previewData.slogan,      // intro → slogan
+      slogan:     previewData.slogan,
       phone:      previewData.phone,
       email:      previewData.email,
       website:    previewData.website,
@@ -734,7 +785,7 @@
 
       /* 邀請碼 & 來源 */
       invite_code: valueOf("invite_code"),
-      referrer:    valueOf("ref"),          // ref → referrer
+      referrer:    valueOf("ref"),
 
       /* 樣式 */
       plan:  theme.plan,
@@ -764,13 +815,18 @@
 
       /* features */
       features_json: {
-        photo_meta:   buildPhotoMetaMap(),
-        preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }
+        photo_meta:         buildPhotoMetaMap(),
+        preview_meta:       { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
+        photo_preview_urls: { ...state.photoPreviewUrls }
       }
     };
 
     for (let i = 1; i <= limits.wallPhotos; i++) {
-      if (state.photoPreviewUrls[`photo${i}`]) payload[`photo${i}_url`] = state.photoPreviewUrls[`photo${i}`];
+      const url = state.photoPreviewUrls[`photo${i}`];
+      if (url) {
+        payload[`photo${i}_url`] = url;
+        payload[`photo_url_${i}`] = url;
+      }
     }
     for (let i = 1; i <= limits.ctas; i++) {
       payload[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
@@ -781,9 +837,7 @@
   }
 
   /* ============================================================
-     送出 — 修正版
-     ・cardId 相容多種 GAS 回傳格式
-     ・HSC_LAST_QUOTE 補齊 preview_url / payment_due_at（+3天）
+     送出
   ============================================================ */
   async function submit(e) {
     e.preventDefault();
@@ -819,7 +873,7 @@
 
       setProgressStep(3, "正在整理報價資料…");
 
-      /* ── 相容多種 GAS 回傳格式 ── */
+      /* 相容多種 GAS 回傳格式 */
       const cardId =
         data.card_id       ||
         data.id            ||
@@ -829,19 +883,16 @@
         data.data?.id      ||
         "";
 
-      /* ── 成品連結 ── */
       const previewUrl = cardId
         ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
         : CONFIG.SHOWCASE_URL;
 
-      /* ── 繳費期限：今天 + 3 天 ── */
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 3);
       const paymentDueAt = dueDate.toISOString();
 
       setProgressStep(4, "正在寫入報價與預覽資料…");
 
-      /* ── 寫入 localStorage → quote-success.html 使用 ── */
       const quoteData = {
         card_id:        cardId,
         customer_name:  payload.name      || "",
