@@ -7,11 +7,13 @@
   <link rel="stylesheet" href="./style.css" />
   <style>
     /* ============================================================
-       form.css  v7.7.8
-       完整覆蓋版 — 修正三個問題
-       1. photo-grid-form 改為固定兩欄
-       2. 補上移/下移按鈕（template 內）
-       3. 圖片預覽欄位對齊
+       form.css  v7.7.9
+       完整覆蓋版 — 照片欄位正式穩定版
+       僅修正照片上傳欄位 UI / 結構，不動其他流程
+       1. photo-card 改為穩定左右欄
+       2. 補上 photo-right-col
+       3. 圖片預覽 / file input / 工具列完整對齊
+       4. 手機版改單欄，避免工具區擠爆
     ============================================================ */
 
     :root {
@@ -45,14 +47,12 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── 容器 ── */
     .form-shell {
       max-width: 1120px;
       margin: 0 auto;
       padding: 24px 16px 60px;
     }
 
-    /* ── 頁首 ── */
     .page-hero {
       display: flex;
       justify-content: space-between;
@@ -92,7 +92,6 @@
       padding-top: 4px;
     }
 
-    /* ── 狀態列 ── */
     .status-strip {
       min-height: 26px;
       padding: 12px 16px;
@@ -112,7 +111,6 @@
     .status-strip[data-state="warn"]  { background: #fff8ee; color: #8b5b16; border-color: rgba(240,160,75,.22); }
     .status-strip[data-state="success"] { background: rgba(6,166,106,.10); color: #0a7a4e; border-color: rgba(6,166,106,.20); }
 
-    /* ── 表單卡片 ── */
     .form-card {
       background: var(--warm-white);
       border-radius: var(--radius);
@@ -122,7 +120,6 @@
       border: 1px solid var(--poster-line);
     }
 
-    /* ── section head ── */
     .section-head {
       display: flex;
       justify-content: space-between;
@@ -162,7 +159,6 @@
       margin-bottom: 10px;
     }
 
-    /* ── 徽章群 ── */
     .limit-badges {
       display: flex;
       gap: 8px;
@@ -183,7 +179,6 @@
       border: 1px solid var(--line);
     }
 
-    /* ── 方案選擇 ── */
     .plan-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -244,7 +239,6 @@
     .plan-meta { font-size: 13px; color: var(--muted); font-weight: 700; }
     .plan-mini { font-size: 12px; color: var(--muted); font-weight: 700; }
 
-    /* ── 加購 ── */
     .addon-layout {
       display: grid;
       grid-template-columns: 1.3fr .7fr;
@@ -314,7 +308,6 @@
       margin-top: 8px;
     }
 
-    /* ── 連動摘要 ── */
     .dynamic-summary {
       list-style: none;
       padding: 14px;
@@ -343,7 +336,6 @@
       line-height: 1.6;
     }
 
-    /* ── 報價區 ── */
     .quote-box {
       margin-top: 16px;
       padding: 16px;
@@ -416,7 +408,6 @@
       gap: 10px;
     }
 
-    /* ── 格線 ── */
     .grid-two {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -425,7 +416,6 @@
 
     .full-width { grid-column: 1 / -1; }
 
-    /* ── 欄位 ── */
     .field-group {
       display: flex;
       flex-direction: column;
@@ -506,7 +496,6 @@
       cursor: not-allowed;
     }
 
-    /* ── 照片區 ── */
     .photo-sections {
       display: flex;
       flex-direction: column;
@@ -531,10 +520,9 @@
     .photo-section-head h3 { margin: 0 0 4px; font-size: 16px; }
     .photo-section-head p { margin: 0; font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.6; }
 
-    /* ── 照片卡：固定兩欄，橫向排列，不再狹長 ── */
     .photo-grid-form {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
     }
 
@@ -544,65 +532,18 @@
       padding: 14px;
       background: var(--warm-white);
       display: grid;
-      grid-template-columns: 120px 1fr;
-      grid-template-rows: auto auto auto;
+      grid-template-columns: 120px minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
       column-gap: 14px;
-      row-gap: 6px;
+      row-gap: 10px;
       align-items: start;
     }
 
-    /* 標題列橫跨兩欄 */
     .photo-head {
       grid-column: 1 / -1;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 8px;
-    }
-
-    /* 預覽框：左欄，橫跨 row 2~3 */
-    .preview-frame {
-      grid-column: 1;
-      grid-row: 2 / 4;
-      width: 120px;
-      height: 120px;
-      border-radius: 10px;
-      overflow: hidden;
-      background: var(--soft-2);
-      border: 1px dashed rgba(42,36,30,.12);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    /* 右欄：透過 wrapper div 包住 file input + 工具，在 JS buildPhotoCard 中動態加入 */
-    .photo-right-col {
-      grid-column: 2;
-      grid-row: 2;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-self: start;
-      min-width: 0;
-    }
-
-    /* 相容：沒有 wrapper 時，個別項目各自佔欄 */
-    .photo-file-input {
-      grid-column: 2;
-      grid-row: 2;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--muted);
-      width: 100%;
-      padding: 8px 0;
-    }
-
-    .photo-tools {
-      grid-column: 2;
-      grid-row: 3;
-      display: flex;
-      flex-direction: column;
       gap: 8px;
     }
 
@@ -615,6 +556,22 @@
       border-radius: 999px;
       background: var(--soft);
       color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .preview-frame {
+      grid-column: 1;
+      grid-row: 2;
+      width: 120px;
+      height: 120px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--soft-2);
+      border: 1px dashed rgba(42,36,30,.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
     }
 
     .preview-image {
@@ -630,6 +587,17 @@
       font-weight: 700;
       text-align: center;
       padding: 0 12px;
+      line-height: 1.5;
+    }
+
+    .photo-right-col {
+      grid-column: 2;
+      grid-row: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+      align-self: stretch;
     }
 
     .photo-file-input {
@@ -644,12 +612,18 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      min-width: 0;
     }
 
     .photo-tool-row {
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
+    }
+
+    .photo-tool-row .mini {
+      padding: 7px 10px;
+      font-size: 12px;
     }
 
     .zoom-range {
@@ -661,7 +635,6 @@
       height: 20px;
     }
 
-    /* ── CTA ── */
     .cta-stack {
       display: flex;
       flex-direction: column;
@@ -684,14 +657,12 @@
       color: var(--muted);
     }
 
-    /* ── 跑馬燈 ── */
     .marquee-stack {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
 
-    /* ── 預覽區 ── */
     .preview-section {
       display: grid;
       grid-template-columns: 1.1fr .9fr;
@@ -732,7 +703,6 @@
       font-size: 13px;
     }
 
-    /* ── 按鈕 ── */
     .primary-btn, .ghost-btn, .line-btn {
       display: inline-flex;
       align-items: center;
@@ -783,7 +753,6 @@
       align-items: center;
     }
 
-    /* ── 進度條 overlay ── */
     .progress-overlay {
       position: fixed;
       inset: 0;
@@ -856,10 +825,8 @@
 
     .progress-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-    /* ── 隱藏 ── */
     .hidden { display: none !important; }
 
-    /* ── 影音 / 社群欄位群組 ── */
     .link-group-title {
       font-size: 12px;
       font-weight: 900;
@@ -870,7 +837,6 @@
       margin-top: 4px;
     }
 
-    /* ── 響應式 ── */
     @media (max-width: 980px) {
       .preview-section, .addon-layout { grid-template-columns: 1fr; }
     }
@@ -883,40 +849,70 @@
       .addon-price-tag, .addon-number-wrap { grid-column: 2 / 3; justify-self: start; }
       h1 { font-size: 28px; }
       .action-row > * { width: 100%; }
+
+      .photo-grid-form {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .photo-card {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto;
+      }
+
+      .photo-head {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .preview-frame {
+        grid-column: 1;
+        grid-row: 2;
+        width: 100%;
+        max-width: 180px;
+        height: 180px;
+      }
+
+      .photo-right-col {
+        grid-column: 1;
+        grid-row: 3;
+      }
     }
 
     @media (max-width: 480px) {
       .form-shell { padding: 14px 12px 48px; }
-      /* 手機維持兩欄，可視需要改為一欄 */
-      .photo-grid-form { grid-template-columns: 1fr 1fr; }
+
+      .photo-grid-form {
+        grid-template-columns: 1fr;
+      }
+
+      .photo-tool-row .mini {
+        flex: 1 1 calc(50% - 6px);
+      }
     }
   </style>
 </head>
 <body>
   <main class="form-shell">
 
-    <!-- 頁首 -->
     <header class="page-hero">
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v7.7.8｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
+        <p class="hero-desc">v7.7.9｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
       </div>
     </header>
 
-    <!-- 狀態列 -->
     <div class="status-strip" id="form-status-strip" role="status" aria-live="polite"></div>
 
     <form id="smart-card-form" novalidate>
       <input type="hidden" id="invite_code" name="invite_code" value="" />
       <input type="hidden" id="ref" name="ref" value="" />
 
-      <!-- ══════════════════════════════════════════
-           STEP 1  方案與加購
-      ══════════════════════════════════════════ -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -931,7 +927,6 @@
           </div>
         </div>
 
-        <!-- 方案卡 -->
         <div class="plan-grid">
           <label class="plan-option" data-plan-card="free">
             <input type="radio" name="plan" value="free" />
@@ -958,7 +953,6 @@
           </label>
         </div>
 
-        <!-- 加購 + 摘要 -->
         <div class="addon-layout">
           <div>
             <h3>功能加購</h3>
@@ -1048,7 +1042,6 @@
           </aside>
         </div>
 
-        <!-- 報價 -->
         <div class="quote-box">
           <div class="quote-head">
             <div>
@@ -1066,9 +1059,6 @@
         </div>
       </section>
 
-      <!-- ══════════════════════════════════════════
-           STEP 2  名片樣式
-      ══════════════════════════════════════════ -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1078,7 +1068,6 @@
         </div>
 
         <div class="grid-two">
-          <!-- 自由搭配 -->
           <div id="free-theme-group" class="hidden" style="display:flex;flex-direction:column;gap:12px;">
             <div class="field-group">
               <label class="field-label" for="free_color">顏色</label>
@@ -1108,7 +1097,6 @@
             </div>
           </div>
 
-          <!-- 精品設計 -->
           <div id="premium-theme-group" class="hidden" style="display:flex;flex-direction:column;gap:12px;">
             <div class="field-group">
               <label class="field-label" for="premium_color">精品底色</label>
@@ -1127,9 +1115,6 @@
         </div>
       </section>
 
-      <!-- ══════════════════════════════════════════
-           STEP 3  基本資料
-      ══════════════════════════════════════════ -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1140,7 +1125,6 @@
         </div>
 
         <div class="grid-two">
-
           <div class="field-group">
             <label class="field-label" for="display_name">✱ 姓名 ／ 品牌名稱</label>
             <input type="text" id="display_name" placeholder="例：王小明 ／ 幸福烘焙坊" required />
@@ -1206,13 +1190,9 @@
             <textarea id="intro" rows="4" placeholder="例：幫你把「被看見」變成「被記住」。&#10;這裡顯示在名片最顯眼的位置，可填一句話或品牌理念。"></textarea>
             <p class="field-hint">對應成品卡「品牌金句」位置，建議 15～50 字以內。</p>
           </div>
-
         </div>
       </section>
 
-      <!-- ══════════════════════════════════════════
-           STEP 4  影音 ／ 社群連結
-      ══════════════════════════════════════════ -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1223,7 +1203,6 @@
         </div>
 
         <div class="grid-two">
-
           <div class="field-group full-width">
             <p class="link-group-title">影音平台連結（最多 3 個）</p>
           </div>
@@ -1261,13 +1240,9 @@
             <label class="field-label" for="social3">社群連結 3</label>
             <input type="url" id="social3" placeholder="https://www.threads.net/@youraccount" />
           </div>
-
         </div>
       </section>
 
-      <!-- ══════════════════════════════════════════
-           STEP 5  照片上傳
-      ══════════════════════════════════════════ -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1279,9 +1254,6 @@
         <div id="photo-slots" class="photo-sections"></div>
       </section>
 
-      <!-- ══════════════════════════════════════════
-           STEP 6  CTA 按鈕
-      ══════════════════════════════════════════ -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1293,9 +1265,6 @@
         <div id="cta-slots" class="cta-stack"></div>
       </section>
 
-      <!-- ══════════════════════════════════════════
-           STEP 7  跑馬燈
-      ══════════════════════════════════════════ -->
       <section id="marquee-section" class="form-card hidden">
         <div class="section-head">
           <div>
@@ -1314,9 +1283,6 @@
         </div>
       </section>
 
-      <!-- ══════════════════════════════════════════
-           STEP 8  成品預覽
-      ══════════════════════════════════════════ -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1340,7 +1306,6 @@
         </div>
       </section>
 
-      <!-- ── 底部動作列 ── -->
       <section class="form-card">
         <div class="action-row">
           <button type="button" class="ghost-btn" id="btn-save-draft">暫存草稿</button>
@@ -1352,7 +1317,6 @@
     </form>
   </main>
 
-  <!-- ── 進度條 Overlay ── -->
   <div id="submit-progress-overlay" class="progress-overlay hidden">
     <div class="progress-card">
       <h3 class="progress-title">資料送出中</h3>
@@ -1373,34 +1337,37 @@
     </div>
   </div>
 
-  <!-- ── 照片 Template（FIX 1: 補上移/下移按鈕） ── -->
   <template id="photo-slot-template">
     <article class="photo-card">
       <div class="photo-head">
         <strong class="photo-title"></strong>
         <span class="badge">尚未上傳</span>
       </div>
+
       <div class="preview-frame">
         <img class="preview-image hidden" alt="預覽圖" />
         <div class="preview-empty">尚未選擇圖片</div>
       </div>
-      <input type="file" class="photo-file-input" accept="image/*" />
-      <div class="photo-tools hidden">
-        <div class="photo-tool-row">
-          <button type="button" class="ghost-btn mini rotate-left">左轉</button>
-          <button type="button" class="ghost-btn mini rotate-right">右轉</button>
-          <button type="button" class="ghost-btn mini move-left">左移</button>
-          <button type="button" class="ghost-btn mini move-right">右移</button>
-          <button type="button" class="ghost-btn mini move-up">上移</button>
-          <button type="button" class="ghost-btn mini move-down">下移</button>
-          <button type="button" class="ghost-btn mini reset-photo">重設</button>
+
+      <div class="photo-right-col">
+        <input type="file" class="photo-file-input" accept="image/*" />
+
+        <div class="photo-tools hidden">
+          <div class="photo-tool-row">
+            <button type="button" class="ghost-btn mini rotate-left">左轉</button>
+            <button type="button" class="ghost-btn mini rotate-right">右轉</button>
+            <button type="button" class="ghost-btn mini move-left">左移</button>
+            <button type="button" class="ghost-btn mini move-right">右移</button>
+            <button type="button" class="ghost-btn mini move-up">上移</button>
+            <button type="button" class="ghost-btn mini move-down">下移</button>
+            <button type="button" class="ghost-btn mini reset-photo">重設</button>
+          </div>
+          <input type="range" class="zoom-range" min="0.6" max="2" step="0.01" value="1" />
         </div>
-        <input type="range" class="zoom-range" min="0.6" max="2" step="0.01" value="1" />
       </div>
     </article>
   </template>
 
-  <!-- ── CTA Template ── -->
   <template id="cta-slot-template">
     <article class="cta-slot-card">
       <label class="cta-title-label"></label>
