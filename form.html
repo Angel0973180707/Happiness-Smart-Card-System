@@ -7,8 +7,11 @@
   <link rel="stylesheet" href="./style.css" />
   <style>
     /* ============================================================
-       form.css  v7.7.7
-       完整覆蓋版 — 對齊 style.css v7.7.5.2
+       form.css  v7.7.8
+       完整覆蓋版 — 修正三個問題
+       1. photo-grid-form 改為固定兩欄
+       2. 補上移/下移按鈕（template 內）
+       3. 圖片預覽欄位對齊
     ============================================================ */
 
     :root {
@@ -443,7 +446,6 @@
       line-height: 1.6;
     }
 
-    /* ── 輸入框 — 高度提升，方便填寫 ── */
     input[type="text"],
     input[type="tel"],
     input[type="email"],
@@ -529,16 +531,17 @@
     .photo-section-head h3 { margin: 0 0 4px; font-size: 16px; }
     .photo-section-head p { margin: 0; font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.6; }
 
+    /* ── FIX 2: 固定兩欄，卡片加寬 ── */
     .photo-grid-form {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
     }
 
     .photo-card {
       border: 1px solid var(--line);
       border-radius: 16px;
-      padding: 12px;
+      padding: 14px;
       background: var(--warm-white);
       display: flex;
       flex-direction: column;
@@ -845,6 +848,7 @@
 
     @media (max-width: 480px) {
       .form-shell { padding: 14px 12px 48px; }
+      /* 手機維持兩欄，可視需要改為一欄 */
       .photo-grid-form { grid-template-columns: 1fr 1fr; }
     }
   </style>
@@ -857,7 +861,7 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v7.7.7｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
+        <p class="hero-desc">v7.7.8｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -1153,13 +1157,11 @@
             <textarea id="services" rows="3" placeholder="例：品牌形象設計、網站規劃、社群行銷顧問"></textarea>
           </div>
 
-          <!-- 地址：填實際地址，不是連結 -->
           <div class="field-group full-width">
             <label class="field-label" for="address">地址（實體地址，點擊可開啟地圖導航）</label>
             <input type="text" id="address" placeholder="例：台北市大安區信義路四段 1 號 3 樓" />
           </div>
 
-          <!-- 簡介 / 品牌金句 → 對應 card_db 的 slogan -->
           <div class="field-group full-width">
             <label class="field-label" for="intro">品牌金句 ／ 簡介</label>
             <textarea id="intro" rows="4" placeholder="例：幫你把「被看見」變成「被記住」。&#10;這裡顯示在名片最顯眼的位置，可填一句話或品牌理念。"></textarea>
@@ -1171,7 +1173,6 @@
 
       <!-- ══════════════════════════════════════════
            STEP 4  影音 ／ 社群連結
-           （填連結，不是上傳影片）
       ══════════════════════════════════════════ -->
       <section class="form-card">
         <div class="section-head">
@@ -1241,7 +1242,6 @@
 
       <!-- ══════════════════════════════════════════
            STEP 6  CTA 按鈕
-           每組：一個按鈕名稱 + 一個連結
       ══════════════════════════════════════════ -->
       <section class="form-card">
         <div class="section-head">
@@ -1255,7 +1255,7 @@
       </section>
 
       <!-- ══════════════════════════════════════════
-           STEP 7  跑馬燈（有加購時顯示）
+           STEP 7  跑馬燈
       ══════════════════════════════════════════ -->
       <section id="marquee-section" class="form-card hidden">
         <div class="section-head">
@@ -1301,9 +1301,7 @@
         </div>
       </section>
 
-      <!-- ══════════════════════════════════════════
-           底部動作列
-      ══════════════════════════════════════════ -->
+      <!-- ── 底部動作列 ── -->
       <section class="form-card">
         <div class="action-row">
           <button type="button" class="ghost-btn" id="btn-save-draft">暫存草稿</button>
@@ -1336,7 +1334,7 @@
     </div>
   </div>
 
-  <!-- ── 照片 Template ── -->
+  <!-- ── 照片 Template（FIX 1: 補上移/下移按鈕） ── -->
   <template id="photo-slot-template">
     <article class="photo-card">
       <div class="photo-head">
@@ -1354,6 +1352,8 @@
           <button type="button" class="ghost-btn mini rotate-right">右轉</button>
           <button type="button" class="ghost-btn mini move-left">左移</button>
           <button type="button" class="ghost-btn mini move-right">右移</button>
+          <button type="button" class="ghost-btn mini move-up">上移</button>
+          <button type="button" class="ghost-btn mini move-down">下移</button>
           <button type="button" class="ghost-btn mini reset-photo">重設</button>
         </div>
         <input type="range" class="zoom-range" min="0.6" max="2" step="0.01" value="1" />
