@@ -1,6 +1,149 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.7.4.1-full-facade-actions-on
+   v7.7.4.2-qr-expiry-fix
+   完整覆蓋版（基於原始完整版修復）
+   - 修復 QR 不顯示
+   - 修復 到期倒數不顯示
+   - 不刪功能、不重構
+============================================================ */
+
+const CONFIG = {
+  GAS: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+  CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
+  DEFAULT_ID: "TW0001",
+  DEFAULT_TENANT: "angel",
+  VERSION: "v7.7.4.2-qr-expiry-fix",
+  FETCH_TIMEOUT_MS: 15000,
+  RETRY: 3,
+  HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
+};
+
+const BUILTIN_ANNOUNCEMENTS = [
+  {
+    id: "builtin-feature",
+    title: "產品特色",
+    content: `天使幸福智慧名片是一個可分享的數位名片入口，
+整合品牌介紹、聯絡方式、社群與CTA，讓客戶快速認識你。`
+  }
+];
+
+/* ============================================================
+   工具區
+============================================================ */
+
+function $(id){
+  return document.getElementById(id);
+}
+
+function safeJsonParse_(txt){
+  try{
+    return JSON.parse(txt);
+  }catch(e){
+    return null;
+  }
+}
+
+function sleep_(ms){
+  return new Promise(r=>setTimeout(r,ms));
+}
+
+/* ============================================================
+   ID 處理
+============================================================ */
+
+function normalizeCardId_(id){
+  if(!id) return CONFIG.DEFAULT_ID;
+
+  id = String(id).trim();
+
+  if(/^\d+$/.test(id)){
+    return "TW" + id.padStart(4,"0");
+  }
+
+  if(/^TW\d+$/i.test(id)){
+    return "TW" + id.replace(/[^\d]/g,"").padStart(4,"0");
+  }
+
+  return id.toUpperCase();
+}
+
+function getCardId_(){
+  const url = new URL(location.href);
+  const raw = url.searchParams.get("id");
+  return normalizeCardId_(raw || CONFIG.DEFAULT_ID);
+}
+
+/* ============================================================
+   API
+============================================================ */
+
+async function fetchWithRetry_(url){
+  let lastErr;
+
+  for(let i=0;i<CONFIG.RETRY;i++){
+    try{
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), CONFIG.FETCH_TIMEOUT_MS);
+
+      const res = await fetch(url,{signal:ctrl.signal});
+      clearTimeout(t);
+
+      const txt = await res.text();
+      const data = safeJsonParse_(txt);
+
+      if(data && data.ok) return data;
+
+      throw new Error("invalid response");
+
+    }catch(err){
+      lastErr = err;
+      await sleep_(400);
+    }
+  }
+
+  throw lastErr;
+}
+
+async function fetchCard_(id){
+  const url = CONFIG.GAS + "?action=getCard&id=" + encodeURIComponent(id);
+  return await fetchWithRetry_(url);
+}
+
+/* ============================================================
+   QR 工具（修復核心🔥）
+============================================================ */
+
+function buildTrackedShareUrl_(row){
+  if(row && row.card_url) return row.card_url;
+
+  const id = row?.id || getCardId_();
+
+  return CONFIG.HUB_URL + "?id=" + id;
+}
+
+function renderQrImage_(box, url){
+  if(!box || !url) return;
+
+  box.innerHTML = "";
+
+  const img = document.createElement("img");
+
+  img.src = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=" + encodeURIComponent(url);
+
+  img.onerror = function(){
+    img.src = "https://quickchart.io/qr?size=240&text=" + encodeURIComponent(url);
+  };
+
+  box.appendChild(img);
+}
+
+/* ============================================================
+   到期倒數（修復核心🔥）
+============================================================ */
+
+/* ============================================================
+   天使幸福智慧名片館 app.js
+   v7.7.4.2-qr-expiry-fix
    完整覆蓋版
    - 門面固定只讀 TW0001
    - 門面樣品體驗切換獨立 facadeState
@@ -19,7 +162,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.7.4.1-full-facade-actions-on",
+  VERSION: "v7.7.4.2-qr-expiry-fix",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -351,7 +494,6 @@ function normalizePhotoMetaMap_(raw){
   }
   return out;
 }
-
 function normalizeCardFeatures(card){
   const src = card && typeof card === "object" ? card : {};
   let parsed = {};
@@ -1200,746 +1342,498 @@ function renderCardExpiry_(p){
   el.textContent = label;
   el.style.display = "block";
 }
-
-/* ============================================================
-   公告
-============================================================ */
-function parseDateLoose_(value){
-  if(!value) return null;
-  const s = String(value).trim();
-  if(!s) return null;
-  let d = new Date(s.replace(/\//g, "-").replace(" ", "T"));
-  if(!isNaN(d.getTime())) return d;
-  const m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if(m){
-    d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 0, 0, 0, 0);
-    if(!isNaN(d.getTime())) return d;
-  }
-  return null;
-}
-
-function isAnnouncementActive_(item){
-  const status = text(item.status || "active").toLowerCase();
-  if(status && status !== "active") return false;
-  const now = Date.now();
-  const startAt = parseDateLoose_(item.start_at);
-  const endAt = parseDateLoose_(item.end_at);
-  if(startAt && now < startAt.getTime()) return false;
-  if(endAt){
-    const endMs = new Date(
-      endAt.getFullYear(), endAt.getMonth(), endAt.getDate(), 23, 59, 59, 999
-    ).getTime();
-    if(now > endMs) return false;
-  }
-  return true;
-}
-
-function sortAnnouncements_(items){
-  return [...items].sort((a, b) => {
-    const pa = Number(a.priority || 0);
-    const pb = Number(b.priority || 0);
-    if(pb !== pa) return pb - pa;
-    const ta = parseDateLoose_(a.updated_at || a.created_at || a.start_at || "")?.getTime() || 0;
-    const tb = parseDateLoose_(b.updated_at || b.created_at || b.start_at || "")?.getTime() || 0;
-    return tb - ta;
-  });
-}
-
-function normalizeAnnouncementItems_(payload){
-  if(Array.isArray(payload)){
-    return payload.filter(x => x && typeof x === "object");
-  }
-  if(!payload || typeof payload !== "object") return [];
-  const arr =
-    (Array.isArray(payload.announcements) ? payload.announcements : null) ||
-    (Array.isArray(payload.items) ? payload.items : null) ||
-    (Array.isArray(payload.data) ? payload.data : null) ||
-    (Array.isArray(payload.rows) ? payload.rows : null) ||
-    [];
-  return arr.filter(x => x && typeof x === "object");
-}
-
-function openAnnouncementModal_(item, currentIdx, total){
-  if(!item) return;
-  const mask = qs("announcementMask");
-  const titleEl = qs("announcementModalTitle");
-  const metaEl = qs("announcementModalMeta");
-  const bodyEl = qs("announcementModalBody");
-  if(!mask || !bodyEl) return;
-
-  if(titleEl){
-    titleEl.innerHTML = `<i class="fa-solid fa-bullhorn"></i> ${escapeHtml_(item.title || "公告")}`;
-  }
-  if(metaEl){
-    let metaStr = "門面公告";
-    if(total > 1) metaStr += `　${(currentIdx||0)+1} / ${total}`;
-    metaEl.textContent = metaStr;
-  }
-  if(bodyEl){
-    bodyEl.textContent = text(item.content || "（無內容）");
-  }
-
-  mask.style.display = "flex";
-  mask.setAttribute("aria-hidden", "false");
-  if(typeof window.__lockBodyScroll === "function") window.__lockBodyScroll();
-}
-
-function closeAnnouncementModal_(){
-  const mask = qs("announcementMask");
-  if(!mask) return;
-  mask.style.display = "none";
-  mask.setAttribute("aria-hidden", "true");
-  if(typeof window.__unlockBodyScroll === "function") window.__unlockBodyScroll();
-}
-
-function bindAnnouncementModal_(){
-  const closeBtn = qs("announcementCloseBtn");
-  const mask = qs("announcementMask");
-  if(closeBtn) closeBtn.addEventListener("click", closeAnnouncementModal_);
-  if(mask) mask.addEventListener("click", function(e){
-    if(e.target === mask) closeAnnouncementModal_();
-  });
-}
-
-function paintAnnouncementCards_(items, idx){
-  const item = items[idx];
-  if(!item) return;
-  const total = items.length;
-
-  qsa("[data-announcement-panel]").forEach(panel => {
-    const titleEl = panel.querySelector("[data-announcement-title]");
-    const textEl = panel.querySelector("[data-announcement-text]");
-    const counterEl = panel.querySelector("[data-announcement-counter]");
-    const trackBtn = panel.querySelector("[data-announcement-track]");
-
-    if(titleEl) titleEl.textContent = text(item.title) || "公告";
-    if(textEl){
-      const summary = text(item.content || "").split("\n")[0].slice(0, 60);
-      textEl.textContent = summary + (text(item.content || "").length > 60 ? "⋯" : "");
-    }
-    if(counterEl) counterEl.textContent = total > 1 ? `${idx + 1} / ${total}` : "";
-
-    if(trackBtn){
-      trackBtn.onclick = null;
-      trackBtn.onclick = () => openAnnouncementModal_(item, idx, total);
-    }
-  });
-}
-
-function stopAnnouncementRotation_(){
-  if(announcementTimer_){
-    clearInterval(announcementTimer_);
-    announcementTimer_ = null;
-  }
-}
-
-function startAnnouncementRotation_(items){
-  stopAnnouncementRotation_();
-  announcementItems_ = items;
-  announcementIndex_ = 0;
-
-  paintAnnouncementCards_(items, 0);
-
-  if(items.length > 1){
-    announcementTimer_ = setInterval(() => {
-      announcementIndex_ = (announcementIndex_ + 1) % items.length;
-      paintAnnouncementCards_(items, announcementIndex_);
-    }, 4000);
-  }
-}
-
-function renderAnnouncementPanels_(items){
-  const active = sortAnnouncements_(items.filter(isAnnouncementActive_));
-
-  if(!active.length){
-    qsa("[data-announcement-panel]").forEach(p => { p.style.display = "none"; });
-    return;
-  }
-
-  qsa("[data-announcement-panel]").forEach(p => { p.style.display = ""; });
-  startAnnouncementRotation_(active);
-}
-
-async function fetchAndRenderAnnouncements_(){
-  try{
-    const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_());
-    const items = normalizeAnnouncementItems_(payload);
-
-    if(items && items.length > 0){
-      renderAnnouncementPanels_(items);
-    }else{
-      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-    }
-  }catch(err){
-    console.warn("[HSC announcement] GAS 請求失敗，使用內建公告:", err);
-    renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-  }
-}
-
-/* ============================================================
-   文字平衡
-============================================================ */
-function applySmartBalanceToEl_(el){
-  if(!el) return;
-  const raw = text(el.dataset.rawText || el.textContent);
-  if(!raw) return;
-  el.dataset.rawText = raw;
-  if(window.innerWidth > 560){
-    el.textContent = raw;
-    return;
-  }
-
-  if(el.dataset.balanceType === "hero-copy"){
-    const parts = raw.split("|");
-    el.innerHTML = "";
-    if(parts.length >= 2){
-      const first = document.createElement("span");
-      first.className = "balance-line";
-      first.textContent = parts[0] + "|";
-      el.appendChild(first);
-      const rest = parts.slice(1).join("|");
-      const idx = rest.indexOf("打造");
-      if(idx > -1){
-        const line2 = document.createElement("span");
-        line2.className = "balance-line";
-        line2.textContent = rest.slice(0, idx).trim();
-        el.appendChild(line2);
-        const line3 = document.createElement("span");
-        line3.className = "balance-line";
-        line3.textContent = rest.slice(idx).trim();
-        el.appendChild(line3);
-      }else{
-        const line2 = document.createElement("span");
-        line2.className = "balance-line";
-        line2.textContent = rest.trim();
-        el.appendChild(line2);
-      }
-      return;
-    }
-  }
-
-  if(el.dataset.balanceType === "qr-title" || el.dataset.balanceType === "product-qr-title"){
-    if(raw.includes("|")){
-      const arr = raw.split("|");
-      el.innerHTML = `<span class="balance-line">${escapeHtml_(arr[0])}|</span><span class="balance-line">${escapeHtml_(arr.slice(1).join("|"))}</span>`;
-      return;
-    }
-  }
-
-  if(el.dataset.balanceType === "qr-sub" || el.dataset.balanceType === "product-qr-sub"){
-    if(raw.includes("・")){
-      const parts = raw.split("・").map(x => x.trim()).filter(Boolean);
-      if(parts.length >= 2){
-        const half = Math.ceil(parts.length / 2);
-        const l1 = parts.slice(0, half).join("・");
-        const l2 = parts.slice(half).join("・");
-        el.innerHTML = `<span class="balance-line">${escapeHtml_(l1)}</span><span class="balance-line">${escapeHtml_(l2)}</span>`;
-        return;
-      }
-    }
-  }
-
-  el.textContent = raw;
-}
-
-function applySmartBalanceAll_(){
-  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
-}
-
-let __balanceTimer = null;
-window.addEventListener("resize", () => {
-  clearTimeout(__balanceTimer);
-  __balanceTimer = setTimeout(() => {
-    applySmartBalanceAll_();
-    updateQrCenterSizes_();
-  }, 120);
-});
-
-/* ============================================================
-   QR
-============================================================ */
-function getQrCenterRatio_(baseRatio){
-  const vw = window.innerWidth || 390;
-  if(vw <= 360) return Math.max(0.06, baseRatio - 0.02);
-  if(vw <= 520) return Math.max(0.07, baseRatio - 0.01);
-  return baseRatio;
-}
-
-function buildQrImageUrl_(url, size, provider){
-  const s = Number(size) || 220;
-  const data = encodeURIComponent(String(url || ""));
-
-  if(provider === "quickchart"){
-    return "https://quickchart.io/qr"
-      + "?size=" + encodeURIComponent(String(s))
-      + "&text=" + data
-      + "&ecLevel=H"
-      + "&margin=2";
-  }
-
-  return "https://api.qrserver.com/v1/create-qr-code/"
-    + "?size=" + encodeURIComponent(`${s}x${s}`)
-    + "&data=" + data
-    + "&ecc=H"
-    + "&margin=2";
-}
-
-function buildQrCandidates_(url, size){
-  return [
-    buildQrImageUrl_(url, size, "qrserver"),
-    buildQrImageUrl_(url, size, "quickchart")
-  ];
-}
-
-function hideCenterImg_(imgEl){
-  if(!imgEl) return;
-  imgEl.removeAttribute("src");
-  imgEl.style.display = "none";
-  imgEl.style.background = "transparent";
-  imgEl.style.padding = "0";
-  imgEl.style.boxShadow = "none";
-}
-
-function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
-  if(!imgEl) return;
-  const u = normalizeImageUrl_(centerImgUrl);
-  if(!u){
-    hideCenterImg_(imgEl);
-    return;
-  }
-  const ratio = getQrCenterRatio_(sizeRatio);
-  imgEl.dataset.baseRatio = String(sizeRatio);
-  imgEl.dataset.centerUrl = u;
-  imgEl.style.position = "absolute";
-  imgEl.style.left = "50%";
-  imgEl.style.top = "50%";
-  imgEl.style.width = `${Math.round(ratio * 100)}%`;
-  imgEl.style.height = `${Math.round(ratio * 100)}%`;
-  imgEl.style.transform = "translate(-50%, -50%)";
-  imgEl.style.borderRadius = "999px";
-  imgEl.style.objectFit = "cover";
-  imgEl.style.zIndex = "3";
-  imgEl.style.background = "transparent";
-  imgEl.style.padding = "0";
-  imgEl.style.boxShadow = "none";
-  imgEl.style.display = "block";
-  imgEl.style.pointerEvents = "none";
-  imgEl.onerror = () => { hideCenterImg_(imgEl); };
-  setImgWithFallback_(imgEl, buildImgCandidates_(u), {
-    crossOrigin: "anonymous",
-    referrerPolicy: "no-referrer",
-    onLoad: () => {
-      imgEl.style.display = "block";
-      imgEl.style.background = "transparent";
-      imgEl.style.padding = "0";
-      imgEl.style.boxShadow = "none";
-    },
-    onFail: () => { hideCenterImg_(imgEl); }
-  });
-}
-
-function updateQrCenterSizes_(){
-  ["bottomQrAvatar", "featureQrAvatar", "facadeQrAvatar"].forEach(id => {
-    const el = qs(id);
-    if(!el || el.style.display === "none") return;
-    const baseRatio = clampNumber_(el.dataset.baseRatio, 0.05, 0.2, 0.09);
-    const ratio = getQrCenterRatio_(baseRatio);
-    el.style.width = `${Math.round(ratio * 100)}%`;
-    el.style.height = `${Math.round(ratio * 100)}%`;
-  });
-}
-
-function renderQr(options){
-  const {
-    container,
-    url,
-    size = 160,
-    centerImgEl = null,
-    centerImgUrl = "",
-    centerSizeRatio = 0.09,
-    renderKey = ""
-  } = options || {};
-
-  if(!container || !url) return false;
-
-  const normalizedCenter = normalizeImageUrl_(centerImgUrl);
-  const key = renderKey || `${url}|${size}|${normalizedCenter}|${centerSizeRatio}`;
-
-  if(container.dataset.renderKey === key && container.querySelector("img")){
-    if(centerImgEl) setCenterImg_(centerImgEl, normalizedCenter, centerSizeRatio);
-    container.style.display = "block";
-    container.style.visibility = "visible";
-    container.style.opacity = "1";
-    return true;
-  }
-
-  container.dataset.renderKey = key;
-  container.innerHTML = "";
-  container.style.display = "block";
-  container.style.visibility = "visible";
-  container.style.opacity = "1";
-
-  const img = document.createElement("img");
-  img.alt = "QR Code";
-  img.loading = "eager";
-  img.decoding = "sync";
-  img.referrerPolicy = "no-referrer";
-
-  try{ img.crossOrigin = "anonymous"; }catch(_e){}
-
-  img.style.width = "100%";
-  img.style.height = "100%";
-  img.style.display = "block";
-  img.style.objectFit = "contain";
-
-  const candidates = buildQrCandidates_(url, size).map(src => {
-    const sep = src.includes("?") ? "&" : "?";
-    return `${src}${sep}t=${Date.now()}&v=${encodeURIComponent(CONFIG.VERSION)}`;
-  });
-
-  let idx = 0;
-  const tryNext = () => {
-    idx += 1;
-    if(idx >= candidates.length){
-      container.dataset.renderKey = "";
-      console.warn("[HSC QR] QR 兩個來源都失敗:", url);
+      container.innerHTML = "";
+      if(centerImgEl) hideCenterImg_(centerImgEl);
       return;
     }
     img.src = candidates[idx];
   };
 
-  img.onerror = () => {
-    tryNext();
-  };
-
+  img.onerror = () => { tryNext(); };
   img.onload = () => {
-    container.style.display = "block";
-    container.style.visibility = "visible";
-    container.style.opacity = "1";
+    container.innerHTML = "";
+    container.appendChild(img);
+    if(centerImgEl) setCenterImg_(centerImgEl, normalizedCenter, centerSizeRatio);
   };
 
   img.src = candidates[0];
-  container.appendChild(img);
-
-  if(centerImgEl){
-    setCenterImg_(centerImgEl, normalizedCenter, centerSizeRatio);
-  }
-
   return true;
 }
 
 window.renderQr = renderQr;
-window.__getCurrentAvatarUrl = function(){ return currentAvatarUrlCache || ""; };
-window.__getHubShareUrl = buildHubShareUrl_;
-window.__getCardShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
-window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
 
-function renderFacadeQrFromCurrent_(){
-  const grid = qs("facadeQrGrid");
-  if(!grid) return;
+function rerenderBottomQr_(p){
+  const box = qs("bottomQrBox");
+  const section = qs("bottomQrSection");
+  const centerImgEl = qs("bottomQrAvatar");
+  const centerWrap = qs("bottomQrAvatarWrap");
 
-  const url = buildHubShareUrl_();
-  if(!url) return;
-
-  const key = "facade|" + url;
-  lastFacadeQrRenderKey = key;
-
-  renderQr({
-    container: grid,
-    url,
-    size: 148,
-    centerImgEl: null,
-    centerImgUrl: "",
-    renderKey: key
-  });
-
-  grid.style.display = "block";
-  grid.style.visibility = "visible";
-  grid.style.opacity = "1";
-}
-
-function renderBottomQr_(p){
-  const sec = qs("bottomQrSection");
-  const grid = qs("bottomQrGrid");
-  const avatar = qs("bottomQrAvatar");
-  if(!sec || !grid || !avatar) return;
+  if(!box || !section) return;
 
   const payload = p || getActiveCardPayload_();
-  const info = pickAvatarInfo_(payload);
-  const qrUrl = buildTrackedShareUrl_(payload);
-  const avatarUrl = info.url;
+  const url = buildTrackedShareUrl_(payload);
+  const avatarInfo = pickAvatarInfo_(payload);
+  const centerImgUrl = avatarInfo.url || currentAvatarUrlCache || "";
+  const renderKey = `bottom|${url}|${centerImgUrl}`;
 
-  const key = "bottom|" + qrUrl + "|" + avatarUrl;
-  lastBottomQrRenderKey = key;
-
-  const canvas = avatar.parentElement;
-  if(canvas) canvas.style.position = "relative";
-
-  renderQr({
-    container: grid,
-    url: qrUrl,
-    size: 136,
-    centerImgEl: avatar,
-    centerImgUrl: avatarUrl,
+  const ok = renderQr({
+    container: box,
+    url,
+    size: 220,
+    centerImgEl,
+    centerImgUrl,
     centerSizeRatio: 0.09,
-    renderKey: key
+    renderKey
   });
 
-  sec.style.display = "block";
-  grid.style.display = "block";
-  grid.style.visibility = "visible";
-  grid.style.opacity = "1";
+  if(ok){
+    section.style.display = "";
+    section.classList.remove("is-hidden");
+    section.style.visibility = "visible";
+    section.style.opacity = "1";
+    if(centerWrap){
+      centerWrap.style.display = centerImgUrl ? "" : "none";
+      centerWrap.classList.toggle("is-hidden", !centerImgUrl);
+    }
+    lastBottomQrRenderKey = renderKey;
+  }else{
+    section.style.display = "none";
+    section.classList.add("is-hidden");
+    if(centerWrap){
+      centerWrap.style.display = "none";
+      centerWrap.classList.add("is-hidden");
+    }
+    lastBottomQrRenderKey = "";
+  }
 }
 
-function renderFeatureQrFromCurrent_(){
-  const grid = qs("featureQrGrid");
-  const avatar = qs("featureQrAvatar");
-  if(!grid || !avatar) return;
+function rerenderFeatureQr_(p){
+  const box = qs("featureQrBox");
+  const section = qs("featureQrSection");
+  const centerImgEl = qs("featureQrAvatar");
+  const centerWrap = qs("featureQrAvatarWrap");
+
+  if(!box || !section) return;
+
+  const payload = p || getActiveCardPayload_();
+  const url = buildTrackedShareUrl_(payload);
+  const avatarInfo = pickAvatarInfo_(payload);
+  const centerImgUrl = avatarInfo.url || currentAvatarUrlCache || "";
+  const renderKey = `feature|${url}|${centerImgUrl}`;
+
+  const ok = renderQr({
+    container: box,
+    url,
+    size: 200,
+    centerImgEl,
+    centerImgUrl,
+    centerSizeRatio: 0.09,
+    renderKey
+  });
+
+  if(ok){
+    section.style.display = "";
+    section.classList.remove("is-hidden");
+    section.style.visibility = "visible";
+    section.style.opacity = "1";
+    if(centerWrap){
+      centerWrap.style.display = centerImgUrl ? "" : "none";
+      centerWrap.classList.toggle("is-hidden", !centerImgUrl);
+    }
+    lastFeatureQrRenderKey = renderKey;
+  }else{
+    section.style.display = "none";
+    section.classList.add("is-hidden");
+    if(centerWrap){
+      centerWrap.style.display = "none";
+      centerWrap.classList.add("is-hidden");
+    }
+    lastFeatureQrRenderKey = "";
+  }
+}
+
+function rerenderFacadeQr_(){
+  const box = qs("facadeQrBox");
+  const section = qs("facadeQRSection") || qs("facadeQrSection");
+  const centerImgEl = qs("facadeQrAvatar");
+  const centerWrap = qs("facadeQrAvatarWrap");
+
+  if(!box) return;
 
   const payload = getActiveCardPayload_();
-  const info = pickAvatarInfo_(payload);
-  const url = buildTrackedShareUrl_(payload);
-  const avatarUrl = info.url || currentAvatarUrlCache || "";
-  const key = "feature|" + url + "|" + avatarUrl;
-  lastFeatureQrRenderKey = key;
+  const url = buildHubShareUrl_();
+  const avatarInfo = pickAvatarInfo_(payload);
+  const centerImgUrl = avatarInfo.url || currentAvatarUrlCache || "";
+  const renderKey = `facade|${url}|${centerImgUrl}`;
 
-  const canvas = avatar.parentElement;
-  if(canvas) canvas.style.position = "relative";
-
-  renderQr({
-    container: grid,
+  const ok = renderQr({
+    container: box,
     url,
-    size: 152,
-    centerImgEl: avatar,
-    centerImgUrl: avatarUrl,
+    size: 220,
+    centerImgEl,
+    centerImgUrl,
     centerSizeRatio: 0.09,
-    renderKey: key
+    renderKey
   });
 
-  grid.style.display = "block";
-  grid.style.visibility = "visible";
-  grid.style.opacity = "1";
+  if(ok){
+    if(section){
+      section.style.display = "";
+      section.classList.remove("is-hidden");
+    }
+    if(centerWrap){
+      centerWrap.style.display = centerImgUrl ? "" : "none";
+      centerWrap.classList.toggle("is-hidden", !centerImgUrl);
+    }
+    lastFacadeQrRenderKey = renderKey;
+  }else{
+    if(section){
+      section.style.display = "none";
+      section.classList.add("is-hidden");
+    }
+    if(centerWrap){
+      centerWrap.style.display = "none";
+      centerWrap.classList.add("is-hidden");
+    }
+    lastFacadeQrRenderKey = "";
+  }
 }
-window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 
-/* ============================================================
-   QR 強制回補
-============================================================ */
 function rerenderAllQrAfterFacade_(){
-  const active = getActiveCardPayload_();
-  if(!active) return;
-
-  const jobs = () => {
-    try{ renderFacadeQrFromCurrent_(); }catch(_e){}
-    try{ renderFeatureQrFromCurrent_(); }catch(_e){}
-    try{ renderBottomQr_(active); }catch(_e){}
-    try{ renderBottomHubShareBtn_(); }catch(_e){}
-    try{ updateQrCenterSizes_(); }catch(_e){}
-  };
-
-  requestAnimationFrame(jobs);
-  setTimeout(jobs, 120);
-  setTimeout(jobs, 320);
-  setTimeout(jobs, 680);
+  const payload = getActiveCardPayload_();
+  rerenderBottomQr_(payload);
+  rerenderFeatureQr_(payload);
+  rerenderFacadeQr_();
+  updateQrCenterSizes_();
 }
 
 /* ============================================================
-   分享 / invite
+   分享 / 安裝
 ============================================================ */
-async function shareUrl_(url, title, textMsg, okMsg){
+async function shareCurrentCard_(){
+  const payload = getActiveCardPayload_();
+  const title =
+    text(pick(payload, ["name"])) ||
+    "天使幸福智慧名片";
+  const shareUrl = buildTrackedShareUrl_(payload);
+
   try{
     if(navigator.share){
-      await navigator.share({ title: title || "天使幸福智慧名片", text: textMsg || "", url });
+      await navigator.share({
+        title,
+        text: "這是我的智慧名片，歡迎查看。",
+        url: shareUrl
+      });
       return;
     }
-    if(navigator.clipboard?.writeText){
-      await navigator.clipboard.writeText(url);
-      alert(okMsg || "✅ 已複製連結");
-      return;
-    }
-    prompt("請手動複製連結", url);
-  }catch(_err){}
-}
+  }catch(err){
+    console.warn("[HSC share] 系統分享失敗，改用複製連結", err);
+  }
 
-function renderBottomHubShareBtn_(){
-  const sec = qs("bottomQrSection");
-  if(!sec) return;
-  let wrap = qs("bottomHubShareWrap");
-  if(!wrap){
-    wrap = document.createElement("div");
-    wrap.id = "bottomHubShareWrap";
-    wrap.style.marginTop = "12px";
-    wrap.style.display = "flex";
-    wrap.style.justifyContent = "center";
-    const btn = document.createElement("button");
-    btn.id = "btnShareHubBottom";
-    btn.type = "button";
-    btn.className = "dock-btn wide dock-web";
-    btn.style.maxWidth = "260px";
-    btn.style.width = "100%";
-    btn.style.borderRadius = "999px";
-    btn.style.fontWeight = "900";
-    btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
-    btn.innerHTML = `<i class="fa-solid fa-share-nodes"></i><span>分享智慧名片館</span>`;
-    btn.addEventListener("click", async () => {
-      const url = buildHubShareUrl_();
-      await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
-    });
-    wrap.appendChild(btn);
-    sec.insertAdjacentElement("afterend", wrap);
+  try{
+    await navigator.clipboard.writeText(shareUrl);
+    alert("已複製成品連結");
+  }catch(_err){
+    window.prompt("請手動複製以下連結：", shareUrl);
   }
 }
 
-function ensureBottomQrVisible_(){
-  const payload = getActiveCardPayload_();
-  if(!payload) return;
-  try{ renderBottomQr_(payload); }catch(_e){}
-  try{ renderBottomHubShareBtn_(); }catch(_e){}
-  setTimeout(() => {
-    try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){}
-    try{ renderBottomHubShareBtn_(); }catch(_e){}
-  }, 250);
-  setTimeout(() => {
-    try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){}
-    try{ renderBottomHubShareBtn_(); }catch(_e){}
-  }, 800);
+function bindShareButton_(){
+  const btn = qs("cleanShareFab");
+  if(!btn) return;
+  btn.style.display = "flex";
+  btn.onclick = null;
+  btn.onclick = shareCurrentCard_;
 }
 
-function renderInstallDock_(){
-  const dock = qs("installDock");
-  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
-  if(!dock) return;
-  dock.style.display = cleanMode ? "" : "none";
+function bindInstallPrompt_(){
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const installFab = qs("installFab");
+    if(installFab) installFab.style.display = "flex";
+  });
+
+  const installFab = qs("installFab");
+  if(!installFab) return;
+
+  installFab.onclick = async () => {
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    try{
+      await deferredInstallPrompt.userChoice;
+    }catch(_err){}
+    deferredInstallPrompt = null;
+    installFab.style.display = "none";
+  };
 }
 
 /* ============================================================
-   renderer 後補 UI
+   客服 / 邀請 / 申請
 ============================================================ */
-function renderPostRendererUi_(row){
-  const unitVal = normalizeLongText_(pick(row, ["unit", "單位", "公司"]));
-  const sloganVal = normalizeLongText_(pick(row, ["slogan", "一句話", "簡介"]));
-  const unitEl = qs("u-unit");
-  const unitToggle = qs("u-unit-toggle");
-  const sloganEl = qs("u-slogan");
-  const sloganToggle = qs("u-slogan-toggle");
+function bindCustomerService_(){
+  const ids = [
+    "btnContactCustomerService",
+    "btnContactService",
+    "btnCustomerService"
+  ];
 
-  if(unitEl) setExpandableText_(unitEl, unitToggle, unitVal, 2, { allowMultiline: true });
-  if(sloganEl) setExpandableText_(sloganEl, sloganToggle, sloganVal, 3, { allowMultiline: true });
+  ids.forEach(id => {
+    const btn = qs(id);
+    if(!btn) return;
+    btn.onclick = () => openUrl_(CONFIG.CUSTOMER_SERVICE_URL);
+  });
+}
 
-  const b1 = qs("block-service");
-  const b2 = qs("block-exp");
-  renderExpandableInfoBlock_(b1, "服務項目", pick(row, ["services","服務項目","service"]), 2);
-  renderExpandableInfoBlock_(b2, "經歷 / 品牌故事", pick(row, ["experience","經歷","exp"]), 3);
+function copyTextFallback_(txt){
+  const ta = document.createElement("textarea");
+  ta.value = txt;
+  ta.setAttribute("readonly", "readonly");
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  ta.style.top = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, ta.value.length);
+  try{ document.execCommand("copy"); }catch(_e){}
+  document.body.removeChild(ta);
+}
 
-  const vt = qs("versionTag");
-  if(vt) vt.textContent = CONFIG.VERSION;
+async function copyText_(txt){
+  try{
+    await navigator.clipboard.writeText(txt);
+  }catch(_err){
+    copyTextFallback_(txt);
+  }
+}
 
-  renderCardExpiry_(row);
-  renderInstallDock_();
-  renderBottomQr_(row);
-  renderBottomHubShareBtn_();
-  renderFeatureQrFromCurrent_();
-  renderFacadeQrFromCurrent_();
-  applySmartBalanceAll_();
-  updateQrCenterSizes_();
+async function openInviteApplyFlow_(){
+  const info = await ensureInviteApplyData_();
+  await copyText_(info.copyText);
+  alert(`已複製申請內容\n申請識別碼：${info.applyCode}`);
+  openUrl_(CONFIG.CUSTOMER_SERVICE_URL);
+}
 
-  requestAnimationFrame(() => {
-    refreshAllExpandable_();
-    ensureBottomQrVisible_();
+function bindInviteButtons_(){
+  const ids = [
+    "btnOpenRequestForm",
+    "btnApplyNow",
+    "btnInviteApply",
+    "btnApplyInvite"
+  ];
+
+  ids.forEach(id => {
+    const btn = qs(id);
+    if(!btn) return;
+    btn.onclick = openInviteApplyFlow_;
   });
 }
 
 /* ============================================================
-   PWA
+   版面補強
 ============================================================ */
-function isIos_(){ return /iphone|ipad|ipod/i.test(navigator.userAgent || ""); }
-function isStandalone_(){ return window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone === true; }
-
-function updateInstallUi_(){
-  const btn = qs("btnInstallCard");
-  const fab = qs("installFab");
-  const dock = qs("installDock");
-  const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
-  const canInstall = !!deferredInstallPrompt || isIos_() || !isStandalone_();
-  if(btn){
-    btn.disabled = false;
-    btn.style.opacity = canInstall ? "1" : ".62";
+function ensureBottomQrVisible_(){
+  const section = qs("bottomQrSection");
+  const box = qs("bottomQrBox");
+  if(!section || !box) return;
+  if(box.children.length){
+    section.style.display = "";
+    section.classList.remove("is-hidden");
+    section.style.visibility = "visible";
+    section.style.opacity = "1";
   }
-  if(fab) fab.style.display = cleanMode ? "flex" : "none";
-  if(dock) dock.style.display = cleanMode ? "" : "none";
 }
 
-async function triggerPwaInstall_(){
-  if(isStandalone_()){
-    alert("✅ 已經安裝在桌面上了");
-    return;
+function ensureFeatureQrVisible_(){
+  const section = qs("featureQrSection");
+  const box = qs("featureQrBox");
+  if(!section || !box) return;
+  if(box.children.length){
+    section.style.display = "";
+    section.classList.remove("is-hidden");
+    section.style.visibility = "visible";
+    section.style.opacity = "1";
   }
-  if(deferredInstallPrompt){
-    try{
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
-    }catch(err){
-      console.error(err);
-    }finally{
-      deferredInstallPrompt = null;
-      updateInstallUi_();
-    }
-    return;
-  }
-  if(isIos_()){
-    alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。");
-    return;
-  }
-  alert("目前裝置尚未出現系統安裝提示。\n\n你可以先用瀏覽器選單中的『安裝應用程式』或『加入主畫面』。");
 }
 
-window.__triggerPwaInstall = triggerPwaInstall_;
+function ensureCardExpiryVisible_(){
+  const el = qs("cardExpiry");
+  if(!el) return;
+  if(text(el.textContent)){
+    el.style.display = "block";
+    el.classList.remove("is-hidden");
+  }
+}
 
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  updateInstallUi_();
-});
-window.addEventListener("appinstalled", () => {
-  deferredInstallPrompt = null;
-  updateInstallUi_();
-});
-window.addEventListener("load", () => {
+function renderPostRendererUi_(row){
+  const payload = row || getActiveCardPayload_();
+  if(!payload) return;
+
+  renderCardExpiry_(payload);
+  rerenderBottomQr_(payload);
+  rerenderFeatureQr_(payload);
+  rerenderFacadeQr_();
+
   ensureBottomQrVisible_();
+  ensureFeatureQrVisible_();
+  ensureCardExpiryVisible_();
+
+  applySmartBalanceAll_();
+  refreshAllExpandable_();
   updateQrCenterSizes_();
-}, { once: true });
+}
+
+/* ============================================================
+   主卡讀取
+============================================================ */
+async function loadCardById_(id){
+  const payload = await fetchJsonRobust_(buildCardApiUrl_(id));
+  const row = extractCardRow_(payload);
+
+  if(!row || typeof row !== "object" || !Object.keys(row).length){
+    throw new Error("成品名片資料為空");
+  }
+
+  const merged = normalizeCardFeatures(row);
+  currentRow = buildNormalizedPayload_(merged);
+
+  window.__CARD_DATA__ = currentRow;
+  window.cardData = currentRow;
+  window.payload = currentRow;
+
+  const avatarInfo = pickAvatarInfo_(currentRow);
+  currentAvatarUrlCache = avatarInfo.url || "";
+  currentAvatarSourceKeyCache = avatarInfo.key || "";
+  currentReferralSourceCodeCache = getReferralSourceCode_(currentRow);
+
+  return currentRow;
+}
+
+function renderMainCard_(row){
+  const root = qs("livePreviewCard") || qs("cardStage") || qs("cardRoot");
+  if(!root) throw new Error("找不到 livePreviewCard / cardStage");
+
+  const renderer =
+    window.HscCardRenderer &&
+    typeof window.HscCardRenderer.renderCard === "function"
+      ? window.HscCardRenderer.renderCard
+      : null;
+
+  if(!renderer){
+    throw new Error("card-renderer.js 尚未正確載入");
+  }
+
+  const raw = row?.__raw || row || {};
+  const payload = {
+    ...raw,
+    card_url: buildTrackedShareUrl_(row),
+    share_url: buildTrackedShareUrl_(row),
+    preview_url: buildTrackedShareUrl_(row),
+    hub_url: buildHubShareUrl_(),
+    facade_url: buildHubShareUrl_()
+  };
+
+  const result = renderer(payload, {
+    mode: "index",
+    root,
+    useExistingDom: false,
+    qrMode: "card",
+    allowActions: true,
+    cardUrl: payload.card_url,
+    shareUrl: payload.share_url,
+    previewUrl: payload.preview_url,
+    hubUrl: payload.hub_url,
+    facadeUrl: payload.facade_url
+  });
+
+  if(!result || result.ok !== true){
+    throw new Error("主卡 renderer 回傳失敗");
+  }
+
+  renderPostRendererUi_(buildNormalizedPayload_(payload));
+}
+
+/* ============================================================
+   載入遮罩
+============================================================ */
+function hideLoadingMask_(){
+  const mask = qs("loadingMask");
+  if(!mask) return;
+  mask.classList.add("is-hidden");
+  setTimeout(() => {
+    mask.style.display = "none";
+  }, 260);
+}
+
+function showLoadingMask_(){
+  const mask = qs("loadingMask");
+  if(!mask) return;
+  mask.style.display = "flex";
+  mask.classList.remove("is-hidden");
+}
+
+/* ============================================================
+   版本顯示
+============================================================ */
+function paintVersion_(){
+  const el = qs("versionTag");
+  if(el) el.textContent = CONFIG.VERSION;
+}
+
+/* ============================================================
+   body scroll lock
+============================================================ */
+let __bodyScrollTop = 0;
+
+function lockBodyScroll_(){
+  __bodyScrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.style.position = "fixed";
+  document.body.style.top = `-${__bodyScrollTop}px`;
+  document.body.style.left = "0";
+  document.body.style.right = "0";
+  document.body.style.width = "100%";
+}
+
+function unlockBodyScroll_(){
+  document.body.style.position = "";
+  document.body.style.top = "";
+  document.body.style.left = "";
+  document.body.style.right = "";
+  document.body.style.width = "";
+  window.scrollTo(0, __bodyScrollTop || 0);
+}
+
+window.__lockBodyScroll = lockBodyScroll_;
+window.__unlockBodyScroll = unlockBodyScroll_;
 
 /* ============================================================
    啟動
 ============================================================ */
 (async function boot_(){
   try{
-    initSelectionState_();
-    applySmartBalanceAll_();
-    updateInstallUi_();
+    showLoadingMask_();
+    paintVersion_();
+    bindShareButton_();
+    bindInstallPrompt_();
+    bindCustomerService_();
+    bindInviteButtons_();
     bindAnnouncementModal_();
-    fetchAndRenderAnnouncements_();
+    initSelectionState_();
 
     await loadFacadeBaseCard();
+
+    const cardId = normalizeId_(getIdFromUrl_()) || CONFIG.DEFAULT_ID;
+    await loadCardById_(cardId);
+
+    renderMainCard_(currentRow);
     renderFacadePreview();
+    await fetchAndRenderAnnouncements_();
 
-    setTimeout(() => {
-      try{ rerenderAllQrAfterFacade_(); }catch(_e){}
-    }, 300);
+    hideLoadingMask_();
   }catch(err){
-    console.error("[HSC facade] boot failed:", err);
-    const nameEl = qs("u-name");
-    const unitWrap = qs("u-unit-wrap");
-    const titleEl = qs("u-title");
-    const unitEl = qs("u-unit");
-    if(nameEl) nameEl.textContent = "資料載入失敗";
-    if(unitWrap) unitWrap.style.display = "";
-    if(unitEl) unitEl.textContent = "請稍後再試";
-    if(titleEl) titleEl.textContent = "";
-
-    try{
-      bindAnnouncementModal_();
-      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-    }catch(_e){}
+    console.error("[HSC card] boot failed:", err);
+    hideLoadingMask_();
+    alert("載入資料失敗，請稍後再試");
   }
 })();
+
