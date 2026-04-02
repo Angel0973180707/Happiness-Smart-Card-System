@@ -1,13 +1,24 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v7.8.1 完整覆蓋版
+   v7.8.2 完整覆蓋版
 
-   修正：
-   1. 經歷欄位改為 textarea（加高可分行填寫）
-   2. 移除表單 textarea 收折功能（收折僅留成品展示 renderer 使用）
-   3. 送出後進度條完成時顯示序號 + 複製回覆文案按鈕
-   4. 送出後立即生成成品連結顯示在成功面板
-   5. 成功面板顯示 3 天付款期限日期
+   升級項目（由 v7.8.1）：
+   1. 新增 hydrateQueryParams() — 讀取 URL 參數自動填入 invite_code / ref / plan
+   2. 新增 state.lastSubmitResult — 送出成功後統一暫存結果
+   3. 新增 buildLastSubmitResult() — 整理結果物件單一來源
+   4. 新增 pickPaymentDueAt(data) — 優先吃後端欄位，fallback 前端 +3天
+   5. 新增 formatDateYMD(input) — 統一日期格式化，不多處各自重算
+   6. 新增 validateBeforeSubmit() — CTA 成對驗證
+   7. 強化 parseJsonSafe() — 非 JSON 回應給出明確 console.error
+   8. handleCopyCardNotice() 改吃 state.lastSubmitResult
+   9. showSuccessPanel() 只負責顯示，不計算日期
+   10. submit 成功後清除 DRAFT_KEY，保留 QUOTE_STORAGE_KEY
+   11. 全程保留後續可升級空間（Firebase 真上傳、後端欄位對齊等）
+
+   已知風險（保留註解）：
+   - 圖片目前仍為 base64 預覽流，正式商用後需改為先上傳再取 URL
+   - action: "createCardWithOfflinePayment" 必須與 GAS 後端一致，
+     本版本不擅自更名，若後端 action 名稱有異動請一併修改
 ============================================================ */
 
 (() => {
@@ -21,7 +32,7 @@
     SERVICE_URL:  "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v781",
+    DRAFT_KEY: "hsc_form_draft_v782",
     BASE_LIMITS: {
       free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -43,12 +54,17 @@
 
   const DEFAULT_PHOTO_META = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
 
+  /* ============================================================
+     STATE
+     - lastSubmitResult: 送出成功後的統一暫存，供成功面板與複製文案共用
+  ============================================================ */
   const state = {
     photoMeta:        { avatar: { ...DEFAULT_PHOTO_META }, logo: { ...DEFAULT_PHOTO_META } },
     photoPreviewUrls: {},
     photoFiles:       {},
     wallPhotoCount:   0,
-    ctaCount:         0
+    ctaCount:         0,
+    lastSubmitResult: null   // 新增：送出成功後統一暫存結果物件
   };
 
   const els = {};
@@ -56,17 +72,55 @@
   document.addEventListener("DOMContentLoaded", init);
 
   /* ============================================================
-     初始化
+     初始化（順序依規格）
   ============================================================ */
   function init() {
     collectEls();
     ensureRendererAlias();
-    upgradeExperienceToTextarea(); // FIX 1
+    hydrateQueryParams();          // 新增：讀取 URL 參數
+    upgradeExperienceToTextarea(); // FIX 1: 經歷欄位升級為 textarea
     bindStaticEvents();
     restoreDraft();
     ensureDefaultPlan();
     refreshAll();
-    // 注意：不在這裡初始化任何 textarea 收折功能（FIX 2 已移除）
+    // 表單 textarea 不做收折（收折只在成品展示 renderer 內部）
+  }
+
+  /* ============================================================
+     新增：hydrateQueryParams()
+     讀取 location.search，自動填入 invite_code / ref / plan
+  ============================================================ */
+  function hydrateQueryParams() {
+    let search = "";
+    try { search = window.location.search || ""; } catch (_) { return; }
+    if (!search) return;
+
+    const params = new URLSearchParams(search);
+
+    // invite_code
+    const inviteCode = params.get("invite_code");
+    if (inviteCode && els["invite_code"]) {
+      els["invite_code"].value = inviteCode.trim();
+    }
+
+    // ref
+    const ref = params.get("ref");
+    if (ref && els["ref"]) {
+      els["ref"].value = ref.trim();
+    }
+
+    // plan — 自動選取方案
+    const planParam = params.get("plan");
+    if (planParam === "free" || planParam === "premium") {
+      const radio = document.querySelector(`input[name="plan"][value="${planParam}"]`);
+      if (radio) radio.checked = true;
+    }
+
+    // photo_limit — 本版本先不直接覆寫系統邏輯
+    // TODO: 未來可由後端或推薦流程傳入 photo_limit，
+    //       目前僅讀取保留，待後續擴充使用
+    // const photoLimit = params.get("photo_limit");
+    // if (photoLimit) { /* 未來實作 */ }
   }
 
   /* ============================================================
@@ -93,8 +147,6 @@
     parent.appendChild(hint);
 
     els["experience"] = ta;
-
-    // 補上 live 事件
     ta.addEventListener("input",  onLiveChange);
     ta.addEventListener("change", onLiveChange);
   }
@@ -201,7 +253,6 @@
       setStatus("已複製金牌會員詢問文案。");
     });
 
-    // FIX 3: 複製序號 + 回覆文案
     bindButton(els["btn-copy-card-notice"], handleCopyCardNotice);
   }
 
@@ -215,32 +266,119 @@
   }
 
   /* ============================================================
-     FIX 3: 複製序號 + 回覆文案
+     新增：validateBeforeSubmit()
+     CTA 成對驗證：文字與連結必須同時有值或同時空白
+  ============================================================ */
+  function validateBeforeSubmit() {
+    const limits = getLimits();
+    for (let i = 1; i <= limits.ctas; i++) {
+      const textVal = valueOf(`cta_text_${i}`);
+      const linkVal = valueOf(`cta_link_${i}`);
+      if (textVal && !linkVal) {
+        setStatus(`CTA 按鈕第 ${i} 組：文字與連結需完整成對填寫。`, "error");
+        return false;
+      }
+      if (!textVal && linkVal) {
+        setStatus(`CTA 按鈕第 ${i} 組：文字與連結需完整成對填寫。`, "error");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /* ============================================================
+     新增：formatDateYMD(input)
+     統一日期格式化，輸入 ISO 字串或 Date 物件，
+     輸出 "YYYY/MM/DD"
+  ============================================================ */
+  function formatDateYMD(input) {
+    try {
+      const d = input instanceof Date ? input : new Date(input);
+      if (isNaN(d.getTime())) throw new Error("invalid date");
+      return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+    } catch (_) {
+      // fallback: 前端 +3天
+      const fallback = new Date();
+      fallback.setDate(fallback.getDate() + 3);
+      return `${fallback.getFullYear()}/${String(fallback.getMonth()+1).padStart(2,"0")}/${String(fallback.getDate()).padStart(2,"0")}`;
+    }
+  }
+
+  /* ============================================================
+     新增：pickPaymentDueAt(data)
+     優先吃後端回傳的 payment_due_at，
+     多層嘗試後 fallback 前端 +3天
+  ============================================================ */
+  function pickPaymentDueAt(data) {
+    const candidates = [
+      data?.payment_due_at,
+      data?.card?.payment_due_at,
+      data?.data?.payment_due_at,
+      data?.quote?.payment_due_at
+    ];
+    for (const c of candidates) {
+      if (c && String(c).trim()) return String(c).trim();
+    }
+    // fallback: 前端計算 +3天
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    return d.toISOString();
+  }
+
+  /* ============================================================
+     新增：buildLastSubmitResult({ cardId, previewUrl, paymentDueAt,
+                                   totalAmount, planLabel, customerName })
+     整理成統一結果物件，單一來源
+  ============================================================ */
+  function buildLastSubmitResult({ cardId, previewUrl, paymentDueAt, totalAmount, planLabel, customerName }) {
+    const dueDateStr = formatDateYMD(paymentDueAt);
+    return {
+      cardId,
+      previewUrl,
+      paymentDueAt,
+      dueDateStr,
+      totalAmount,
+      planLabel,
+      customerName
+    };
+  }
+
+  /* ============================================================
+     改寫：handleCopyCardNotice()
+     優先吃 state.lastSubmitResult，無則 fallback
   ============================================================ */
   async function handleCopyCardNotice() {
-    const cardId      = els["progress-card-id-display"]?.dataset.cardId || "";
-    const name        = valueOf("display_name") || "您";
-    const limits      = getLimits();
-    const addonItems  = getAddonItemsForQuote(limits);
-    const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const total       = limits.planPrice + addonAmount;
+    let r = state.lastSubmitResult;
 
-    const dueDate    = new Date();
-    dueDate.setDate(dueDate.getDate() + 3);
-    const dueDateStr =
-      `${dueDate.getFullYear()}/${String(dueDate.getMonth()+1).padStart(2,"0")}` +
-      `/${String(dueDate.getDate()).padStart(2,"0")}`;
+    // fallback: 若尚無成功資料（例如直接點按鈕），從目前畫面補齊
+    if (!r) {
+      const limits      = getLimits();
+      const addonItems  = getAddonItemsForQuote(limits);
+      const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+      const total       = limits.planPrice + addonAmount;
+      const cardId      = els["progress-card-id-display"]?.dataset.cardId || "";
+      const previewUrl  = cardId
+        ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
+        : CONFIG.SHOWCASE_URL;
+      const dueIso = new Date();
+      dueIso.setDate(dueIso.getDate() + 3);
 
-    const previewUrl = cardId
-      ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
-      : CONFIG.SHOWCASE_URL;
+      r = buildLastSubmitResult({
+        cardId,
+        previewUrl,
+        paymentDueAt:  dueIso.toISOString(),
+        totalAmount:   total,
+        planLabel:     limits.planLabel,
+        customerName:  valueOf("display_name") || "您"
+      });
+    }
 
     const notice =
-      `您好，我是 ${name}，已完成天使幸福智慧名片申請！\n` +
-      `📋 名片序號：${cardId || "（待確認）"}\n` +
-      `💳 方案：${limits.planLabel}，總金額 NT$ ${total.toLocaleString("zh-TW")}\n` +
-      `🔗 成品預覽：${previewUrl}\n` +
-      `⏰ 付款期限：${dueDateStr} 前，請協助確認並開通名片，謝謝！`;
+      `您好，我是 ${r.customerName}，已完成天使幸福智慧名片申請！\n` +
+      `📋 名片序號：${r.cardId || "（待確認）"}\n` +
+      `💳 方案：${r.planLabel}，總金額 NT$ ${Number(r.totalAmount || 0).toLocaleString("zh-TW")}\n` +
+      `🔗 成品預覽：${r.previewUrl}\n` +
+      `⏰ 付款期限：${r.dueDateStr} 前，請協助確認並開通名片，謝謝！`;
 
     await copyText(notice);
 
@@ -322,10 +460,10 @@
     ect = clamp(ect, 0, CONFIG.MAX_CTAS        - base.ctas);
     return {
       plan,
-      planLabel:      base.label,
-      planPrice:      base.price,
-      wallPhotos:     clamp(base.wallPhotos + ewp, 0, CONFIG.MAX_WALL_PHOTOS),
-      ctas:           clamp(base.ctas       + ect, 0, CONFIG.MAX_CTAS),
+      planLabel:       base.label,
+      planPrice:       base.price,
+      wallPhotos:      clamp(base.wallPhotos + ewp, 0, CONFIG.MAX_WALL_PHOTOS),
+      ctas:            clamp(base.ctas       + ect, 0, CONFIG.MAX_CTAS),
       extraWallPhotos: ewp,
       extraCtas:       ect
     };
@@ -455,6 +593,8 @@
     fileInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      // TODO: 後續升級為先上傳圖檔取得真實 URL，再存入 state.photoPreviewUrls
+      //       目前暫存 base64 DataURL 作為預覽用途
       state.photoFiles[key] = file;
       const url = await fileToDataURL(file);
       state.photoPreviewUrls[key] = url;
@@ -779,7 +919,7 @@
     return data;
   }
 
-  /* 成品展示 renderer 內部的收折（不影響表單填寫區） */
+  /* 成品展示 renderer 內的收折（僅作用於 livePreviewCard 內部） */
   function bindPreviewCollapseToggles(root) {
     setupPreviewBlockClamp(root, "#block-service", 140);
     setupPreviewBlockClamp(root, "#block-exp",     180);
@@ -832,6 +972,8 @@
 
   /* ============================================================
      buildPayload
+     注意：action: "createCardWithOfflinePayment" 必須與 GAS 後端一致
+     若後端 action 名稱有異動，請同步修改此處
   ============================================================ */
   function buildPayload() {
     const limits         = getLimits();
@@ -842,6 +984,8 @@
     const marqueeChecked = isAddonChecked("addon_marquee");
 
     const payload = {
+      // TODO: 確認 GAS 後端是否有 "createCardWithOfflinePayment" action
+      //       若後端 action 名稱不同，請修改此行
       action: "createCardWithOfflinePayment",
       tenant: "angel",
 
@@ -885,6 +1029,7 @@
       cta_extra_purchased:   isAddonChecked("addon_cta")
                                ? String(getAddonQty("addon_cta_qty"))   : "",
 
+      // TODO: 後續升級為真實圖片 URL，目前傳入 base64 DataURL
       avatar_url: previewData.avatar_url || "",
       logo_url:   previewData.logo_url   || "",
 
@@ -913,21 +1058,29 @@
   }
 
   /* ============================================================
-     送出 (FIX 3 + 4 + 5)
+     送出流程 v7.8.2
+     順序：validateBeforeSubmit → showProgress → fetch →
+           pickPaymentDueAt → buildLastSubmitResult →
+           state.lastSubmitResult → QUOTE_STORAGE_KEY →
+           清 DRAFT_KEY → showSuccessPanel
   ============================================================ */
   async function submit(e) {
     e.preventDefault();
 
-    const payload     = buildPayload();
-    const limits      = getLimits();
-    const addonItems  = getAddonItemsForQuote(limits);
-    const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const totalAmount = limits.planPrice + addonAmount;
-
+    // 必填驗證
+    const payload = buildPayload();
     if (!payload.name || !payload.phone || !payload.plan) {
       setStatus("請先完成必填欄位（姓名、電話、方案）。", "error");
       return;
     }
+
+    // CTA 成對驗證
+    if (!validateBeforeSubmit()) return;
+
+    const limits      = getLimits();
+    const addonItems  = getAddonItemsForQuote(limits);
+    const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const totalAmount = limits.planPrice + addonAmount;
 
     showProgress(true);
     hideSuccessPanel();
@@ -945,12 +1098,12 @@
       const data = await parseJsonSafe(res);
 
       if (!data || !data.ok) {
-        throw new Error(data?.error || data?.message || "建立名片失敗，請稍後再試。");
+        throw new Error(data?.error || data?.message || data?.raw || "建立名片失敗，請稍後再試。");
       }
 
       setProgressStep(3, "正在整理報價資料…");
 
-      // FIX 4: 相容多種 GAS 回傳格式，立即產生成品連結
+      // 相容多種 GAS 回傳格式
       const cardId =
         data.card_id       ||
         data.id            ||
@@ -964,16 +1117,26 @@
         ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
         : CONFIG.SHOWCASE_URL;
 
-      // FIX 5: 計算 3 天付款期限
-      const dueDate    = new Date();
-      dueDate.setDate(dueDate.getDate() + 3);
-      const paymentDueAt = dueDate.toISOString();
-      const dueDateStr   =
-        `${dueDate.getFullYear()}/${String(dueDate.getMonth()+1).padStart(2,"0")}` +
-        `/${String(dueDate.getDate()).padStart(2,"0")}`;
+      // 優先吃後端 payment_due_at，fallback 前端 +3天
+      const paymentDueAt = pickPaymentDueAt(data);
+      const dueDateStr   = formatDateYMD(paymentDueAt);
 
       setProgressStep(4, "正在寫入報價與預覽資料…");
 
+      // 整理統一結果物件
+      const result = buildLastSubmitResult({
+        cardId,
+        previewUrl,
+        paymentDueAt,
+        totalAmount,
+        planLabel:    limits.planLabel,
+        customerName: payload.name
+      });
+
+      // 存入 state（供面板與複製文案共用）
+      state.lastSubmitResult = result;
+
+      // 存入 localStorage（供 quote-success.html 使用）
       const quoteData = {
         card_id:        cardId,
         customer_name:  payload.name     || "",
@@ -987,20 +1150,13 @@
         addon_amount:   Number(addonAmount || 0),
         total_amount:   Number(totalAmount || 0)
       };
-
       localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify(quoteData));
 
-      setProgressStep(5, "✅ 申請成功！名片已建立。");
+      // 成功後清除草稿，保留 QUOTE_STORAGE_KEY
+      localStorage.removeItem(CONFIG.DRAFT_KEY);
 
-      // FIX 3 + 4 + 5: 顯示成功面板
-      showSuccessPanel({
-        cardId,
-        previewUrl,
-        dueDateStr,
-        totalAmount,
-        planLabel:    limits.planLabel,
-        customerName: payload.name
-      });
+      setProgressStep(5, "✅ 申請成功！名片已建立。");
+      showSuccessPanel(result);
 
     } catch (err) {
       console.error("[HSC form] submit error:", err);
@@ -1010,21 +1166,27 @@
   }
 
   /* ============================================================
-     成功面板 helpers (FIX 3 + 4 + 5)
+     改寫：showSuccessPanel(result)
+     只負責顯示，不計算日期或金額
+     接收已整理好的 result 物件（來自 buildLastSubmitResult）
   ============================================================ */
-  function showSuccessPanel({ cardId, previewUrl, dueDateStr, totalAmount, planLabel, customerName }) {
+  function showSuccessPanel(result) {
+    if (!result) return;
+
     if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
 
+    // 序號
     const idEl = els["progress-card-id-display"];
     if (idEl) {
-      idEl.textContent    = cardId || "（待確認）";
-      idEl.dataset.cardId = cardId || "";
+      idEl.textContent    = result.cardId || "（待確認）";
+      idEl.dataset.cardId = result.cardId || "";
     }
 
+    // 預覽連結
     const linkEl = els["progress-preview-link"];
     if (linkEl) {
-      linkEl.href        = previewUrl;
-      linkEl.textContent = previewUrl;
+      linkEl.href        = result.previewUrl;
+      linkEl.textContent = result.previewUrl;
     }
 
     const panel = els["progress-success-panel"];
@@ -1035,10 +1197,10 @@
       if (el) el.textContent = v;
     };
 
-    setT(".success-name",  customerName || "您");
-    setT(".success-plan",  planLabel    || "方案");
-    setT(".success-total", `NT$ ${Number(totalAmount || 0).toLocaleString("zh-TW")}`);
-    setT(".success-due",   dueDateStr   || "3 天內");
+    setT(".success-name",  result.customerName || "您");
+    setT(".success-plan",  result.planLabel    || "方案");
+    setT(".success-total", `NT$ ${Number(result.totalAmount || 0).toLocaleString("zh-TW")}`);
+    setT(".success-due",   result.dueDateStr   || "3 天內");
 
     panel.classList.remove("hidden");
   }
@@ -1047,9 +1209,23 @@
     els["progress-success-panel"]?.classList.add("hidden");
   }
 
+  /* ============================================================
+     強化：parseJsonSafe(res)
+     非 JSON 回應給出明確 console.error，
+     並回傳 { ok:false, error, raw } 讓 submit catch 可顯示訊息
+  ============================================================ */
   async function parseJsonSafe(res) {
-    const raw = await res.text();
-    try { return JSON.parse(raw); } catch (_) { return null; }
+    let raw = "";
+    try { raw = await res.text(); } catch (e) {
+      console.error("[HSC form] failed to read response text:", e);
+      return { ok: false, error: "無法讀取回應內容", raw: "" };
+    }
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      console.error("[HSC form] non-json response:", raw.slice(0, 500));
+      return { ok: false, error: "Non-JSON response", raw };
+    }
   }
 
   /* ============================================================
