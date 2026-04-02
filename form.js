@@ -1,31 +1,59 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v7.8.3 完整覆蓋版
+   v7.8.4 穩定修正版
 
-   升級項目（由 v7.8.2）：
-   1. Firebase Storage 真上傳
-      - 選圖後立即顯示 base64 預覽（體驗不中斷）
-      - 背景非同步上傳到 Firebase Storage
-      - 取得 downloadURL 存入 state.photoRealUrls[key]
-      - buildPayload() 優先用 photoRealUrls，沒有才用 base64
-      - 送出前等所有上傳完成（A方案：全部完成才能送出）
-   2. 預覽與成品樣式一致
-      - updatePreview() 同步 plan/color/style/paper class 到 livePreviewCard
-      - renderer 走 useExistingDom: false 產生 DOM
-      - livePreviewCard 的 class 與成品頁 body 一致
-   3. 沿用 v7.8.2 所有功能
-      - hydrateQueryParams / validateBeforeSubmit
-      - state.lastSubmitResult / buildLastSubmitResult
-      - pickPaymentDueAt / formatDateYMD
-      - parseJsonSafe 強化
-      - 送出成功清 DRAFT_KEY
+   本版修正項目（由 v7.8.3）：
 
-   已知風險（保留註解）：
-   - action: "createCardWithOfflinePayment" 必須與 GAS 後端一致
-   - Firebase uploadImage 上傳路徑：cards/{cardId}/{fileName}
-     cardId 在送出前尚未建立，暫用前端 tempId（timestamp）
-     正式流程建議：先建卡取 cardId，再上傳圖片，再更新卡片圖片欄位
-     本版本採用 tempId 方式，後端收到後可自行 rename
+   1. 預覽真正與成品作用域對齊
+      - syncPreviewContainerClasses() 改掛在 #preview-theme-scope
+        (.preview-theme-scope) 而非 #livePreviewCard
+      - #preview-theme-scope 作為 CSS 繼承根節點
+        讓 style.css body.mode-premium .xxx 規則
+        可透過 .preview-theme-scope.mode-premium .xxx 完整套用
+      - renderCard() 的 root 仍是 #livePreviewCard（renderer 的渲染目標）
+      - 主題色變數 (--p / --s 等) 在 .preview-theme-scope 層正確繼承
+
+   2. CTA 草稿恢復修正
+      - 新增 state.draftValues 暫存層
+      - restoreDraft() 先把 draft values 存到 state.draftValues
+      - renderCtas() 渲染時優先讀 state.draftValues，fallback 空字串
+      - 跑馬燈、主題選擇等動態欄位同步走暫存層
+      - refreshAll() / renderCtas() 後仍可正確帶回草稿內容
+
+   3. experience textarea 升級後草稿恢復穩定
+      - upgradeExperienceToTextarea() 加防重複執行保護
+      - 升級後才執行草稿回填
+      - 不重複 append hint 文字
+      - 不重複綁事件
+
+   4. 圖片上傳狀態穩定
+      - 每個 key 加 uploadToken（timestamp）防 race condition
+      - badge 五態管理：idle / pending / uploading / done / error
+      - 快速重選同一格圖片，舊上傳狀態不污染新圖
+      - waitAllUploads() 只等真正上傳中的項目
+      - 沒有選圖的格子不阻擋送出
+      - 上傳失敗後重新選圖可正常覆蓋
+
+   5. 送出前驗證補強
+      - 跑馬燈開啟時 marquee_text 不可空白
+      - 照片加購數量必須 > 0
+      - CTA 加購數量必須 > 0
+      - URL 欄位格式友善提示
+      - 電話欄位字串型態保護（前導 0 保留）
+
+   6. buildPayload() 安全補強
+      - 只送有值的圖片欄位
+      - CTA 只送 limit 內欄位
+      - phone 一律以字串送出
+
+   7. action 可配置化
+      - CONFIG.CREATE_ACTION 統一管理
+      - buildPayload() 改吃 CONFIG.CREATE_ACTION
+
+   8. 成功面板穩定
+      - cardId 抓取多層 fallback
+      - 後端未回 cardId 也不壞面板
+      - 成功後清除草稿但保留 QUOTE_STORAGE_KEY
 ============================================================ */
 
 (() => {
@@ -39,7 +67,11 @@
     SERVICE_URL:  "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v783",
+    DRAFT_KEY: "hsc_form_draft_v784",
+
+    // FIX 7: action 可配置化，不再寫死在 buildPayload()
+    CREATE_ACTION: "createCardWithOfflinePayment",
+
     BASE_LIMITS: {
       free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -67,14 +99,27 @@
   ============================================================ */
   const state = {
     photoMeta:        { avatar: { ...DEFAULT_PHOTO_META }, logo: { ...DEFAULT_PHOTO_META } },
-    photoPreviewUrls: {},   // base64 DataURL，供預覽用
-    photoRealUrls:    {},   // Firebase downloadURL，供送出用
-    photoFiles:       {},   // 原始 File 物件
-    photoUploadState: {},   // "pending" | "uploading" | "done" | "error"
+    photoPreviewUrls: {},
+    photoRealUrls:    {},
+    photoFiles:       {},
+
+    // FIX 4: upload token 防 race condition
+    // { [key]: tokenString }
+    photoUploadTokens: {},
+
+    // FIX 4: 五態 badge 管理
+    // "idle" | "pending" | "uploading" | "done" | "error"
+    photoUploadState: {},
+
     wallPhotoCount:   0,
     ctaCount:         0,
     lastSubmitResult: null,
-    tempCardId:       null  // 上傳圖片用的暫時 ID（timestamp）
+    tempCardId:       null,
+
+    // FIX 2: CTA 草稿暫存層
+    // 在 restoreDraft() 時先把 draft values 存入此物件
+    // renderCtas() 優先讀此物件補回欄位值
+    draftValues: {}
   };
 
   const els = {};
@@ -91,11 +136,14 @@
     collectEls();
     ensureRendererAlias();
     hydrateQueryParams();
+
+    // FIX 3: upgradeExperienceToTextarea 必須在 restoreDraft 之前
+    // 確保升級完成後才執行草稿回填
     upgradeExperienceToTextarea();
+
     bindStaticEvents();
     restoreDraft();
     ensureDefaultPlan();
-    // 產生本次 session 用的 tempCardId
     state.tempCardId = "TEMP_" + Date.now();
     refreshAll();
   }
@@ -115,64 +163,82 @@
   }
 
   /* ============================================================
-     圖片上傳到 Firebase Storage
-     上傳路徑：cards/{tempCardId}/{key}.jpg
-     key: avatar / logo / photo1 ~ photo5
+     FIX 4: 圖片上傳到 Firebase Storage（upload token 防 race condition）
+     每次上傳前產生新 token，回呼時比對 token，
+     若 key 已被新的上傳覆蓋則捨棄舊結果。
   ============================================================ */
   async function uploadPhotoToFirebase(key, file) {
+    // 產生本次上傳的 token
+    const token = Date.now() + "_" + Math.random().toString(36).slice(2);
+    state.photoUploadTokens[key] = token;
     state.photoUploadState[key] = "uploading";
-    updateUploadBadge(key, "上傳中…");
+    updateUploadBadge(key, "uploading", "上傳中…");
 
     try {
       const fb = await getFirebase();
       await fb.ensureAuth();
 
-      // 決定檔名
       const fileName = `${key}.jpg`;
       const cardId   = state.tempCardId;
 
       const url = await fb.uploadImage(cardId, file, fileName);
+
+      // token 比對：若 key 已被新上傳覆蓋，丟棄此結果
+      if (state.photoUploadTokens[key] !== token) {
+        console.log(`[HSC form] upload result discarded (stale token): ${key}`);
+        return;
+      }
+
       state.photoRealUrls[key]    = url;
       state.photoUploadState[key] = "done";
-      updateUploadBadge(key, "已上傳 ✓");
+      updateUploadBadge(key, "done", "已上傳 ✓");
       console.log(`[HSC form] upload OK: ${key} →`, url);
       return url;
     } catch (err) {
+      // token 比對：舊的失敗不影響新上傳
+      if (state.photoUploadTokens[key] !== token) return;
+
       state.photoUploadState[key] = "error";
-      updateUploadBadge(key, "上傳失敗");
+      updateUploadBadge(key, "error", "上傳失敗");
       console.error(`[HSC form] upload failed: ${key}`, err);
       throw err;
     }
   }
 
-  function updateUploadBadge(key, text) {
-    // 找到對應 photo-card 的 badge 更新狀態
+  /* ============================================================
+     FIX 4: badge 五態管理
+     state: "idle" | "pending" | "uploading" | "done" | "error"
+  ============================================================ */
+  function updateUploadBadge(key, uploadState, text) {
     const cards = document.querySelectorAll("[data-photo-key]");
     cards.forEach(card => {
-      if (card.dataset.photoKey === key) {
-        const badge = card.querySelector(".badge");
-        if (badge) badge.textContent = text;
-      }
+      if (card.dataset.photoKey !== key) return;
+      const badge = card.querySelector(".badge");
+      if (!badge) return;
+      badge.textContent = text;
+      badge.dataset.uploadState = uploadState;
     });
   }
 
   /* ============================================================
-     等待所有圖片上傳完成（A 方案：送出前 block）
+     FIX 4: waitAllUploads — 只等真正有選圖且正在上傳的項目
   ============================================================ */
   async function waitAllUploads() {
     const keys = Object.keys(state.photoUploadState);
     for (const key of keys) {
-      if (state.photoUploadState[key] === "uploading") {
+      const s = state.photoUploadState[key];
+
+      // 沒有選圖的格子不阻擋送出
+      if (s === "idle" || s === "pending") continue;
+
+      if (s === "uploading") {
         // 等候最多 30 秒
         await new Promise((resolve, reject) => {
           const start = Date.now();
           const check = setInterval(() => {
-            const s = state.photoUploadState[key];
-            if (s === "done" || s === "error") {
-              clearInterval(check);
-              if (s === "error") reject(new Error(`圖片上傳失敗：${key}`));
-              else resolve();
-            }
+            const cur = state.photoUploadState[key];
+            if (cur === "done") { clearInterval(check); resolve(); return; }
+            if (cur === "error") { clearInterval(check); reject(new Error(`圖片上傳失敗：${key}`)); return; }
             if (Date.now() - start > 30000) {
               clearInterval(check);
               reject(new Error(`圖片上傳逾時：${key}`));
@@ -180,14 +246,16 @@
           }, 300);
         });
       }
+
+      // 上傳失敗，送出前攔截
       if (state.photoUploadState[key] === "error") {
-        throw new Error(`圖片上傳失敗：${key}，請重新上傳後再試。`);
+        throw new Error(`圖片 ${key} 上傳失敗，請重新選取後再送出。`);
       }
     }
   }
 
   /* ============================================================
-     hydrateQueryParams — 讀取 URL 參數自動填入
+     hydrateQueryParams
   ============================================================ */
   function hydrateQueryParams() {
     let search = "";
@@ -209,35 +277,51 @@
       const radio = document.querySelector(`input[name="plan"][value="${planParam}"]`);
       if (radio) radio.checked = true;
     }
-
-    // TODO: photo_limit — 保留未來擴充位置
-    // const photoLimit = params.get("photo_limit");
   }
 
   /* ============================================================
-     FIX: 將 experience <input> 升級為 <textarea>
+     FIX 3: 將 experience <input> 升級為 <textarea>
+     - 防重複執行（already-upgraded 標記）
+     - 升級後才執行草稿回填（由 restoreDraft 內部判斷）
+     - 不重複 append hint
+     - 不重複綁事件
   ============================================================ */
   function upgradeExperienceToTextarea() {
     const old = document.getElementById("experience");
-    if (!old || old.tagName === "TEXTAREA") return;
+    if (!old) return;
+
+    // 已升級或本來就是 textarea，不重複執行
+    if (old.tagName === "TEXTAREA") return;
+    if (old.dataset.upgraded === "1") return;
+
+    const existingValue = old.value || "";
+    const parent = old.parentNode;
 
     const ta         = document.createElement("textarea");
     ta.id            = "experience";
     ta.rows          = 4;
     ta.placeholder   = "例：前 XX 公司品牌顧問、10 年業界資歷\n可換行填寫多段經歷";
     ta.style.cssText = "resize:vertical;min-height:96px;";
-    ta.value         = old.value || "";
+    ta.value         = existingValue;
+    ta.dataset.upgraded = "1";
 
-    const hint       = document.createElement("p");
-    hint.className   = "field-hint";
+    // 確保 hint 只加一次
+    const existingHint = parent.querySelector(".experience-hint");
+    const hint = document.createElement("p");
+    hint.className   = "field-hint experience-hint";
     hint.textContent = "可換行填寫多段經歷，系統自動整理排版。";
 
-    const parent = old.parentNode;
     parent.insertBefore(ta, old);
     parent.removeChild(old);
-    parent.appendChild(hint);
 
+    if (!existingHint) {
+      parent.appendChild(hint);
+    }
+
+    // 更新 els 快取
     els["experience"] = ta;
+
+    // 綁事件（只綁一次）
     ta.addEventListener("input",  onLiveChange);
     ta.addEventListener("change", onLiveChange);
   }
@@ -270,7 +354,9 @@
       "social1", "social2", "social3",
 
       "marquee-section", "marquee_text",
-      "photo-slots", "cta-slots", "livePreviewCard",
+      "photo-slots", "cta-slots",
+      "livePreviewCard",
+      "preview-theme-scope",  // FIX 1: 主題 class 掛載點
 
       "summary-plan-pill", "summary-photo-pill", "summary-cta-pill",
       "summary-plan-name", "summary-photo-count", "summary-cta-count",
@@ -357,27 +443,83 @@
   }
 
   /* ============================================================
-     validateBeforeSubmit — CTA 成對驗證
+     FIX 5: validateBeforeSubmit — 補強驗證
   ============================================================ */
   function validateBeforeSubmit() {
     const limits = getLimits();
+
+    // CTA 成對驗證
     for (let i = 1; i <= limits.ctas; i++) {
       const textVal = valueOf(`cta_text_${i}`);
       const linkVal = valueOf(`cta_link_${i}`);
       if (textVal && !linkVal) {
-        setStatus(`CTA 按鈕第 ${i} 組：文字與連結需完整成對填寫。`, "error");
+        setStatus(`CTA 按鈕第 ${i} 組：請補上按鈕連結（文字與連結需成對）。`, "error");
         return false;
       }
       if (!textVal && linkVal) {
-        setStatus(`CTA 按鈕第 ${i} 組：文字與連結需完整成對填寫。`, "error");
+        setStatus(`CTA 按鈕第 ${i} 組：請補上按鈕文字（文字與連結需成對）。`, "error");
+        return false;
+      }
+      // URL 格式友善提示
+      if (linkVal && !isLooksLikeUrl(linkVal)) {
+        setStatus(`CTA 按鈕第 ${i} 組的連結格式看起來有誤，請確認以 https:// 開頭。`, "warn");
         return false;
       }
     }
+
+    // 跑馬燈開啟時 marquee_text 不可空白
+    if (isMarqueeEnabled()) {
+      const mText = valueOf("marquee_text");
+      if (!mText) {
+        setStatus("已開啟跑馬燈功能，請填入跑馬燈內容。", "error");
+        return false;
+      }
+    }
+
+    // 照片加購數量 > 0
+    if (isAddonChecked("addon_photo")) {
+      const photoQty = getAddonQty("addon_photo_qty");
+      if (photoQty <= 0) {
+        setStatus("已勾選照片牆加購，請輸入加購張數（至少 1 張）。", "error");
+        return false;
+      }
+    }
+
+    // CTA 加購數量 > 0
+    if (isAddonChecked("addon_cta")) {
+      const ctaQty = getAddonQty("addon_cta_qty");
+      if (ctaQty <= 0) {
+        setStatus("已勾選 CTA 按鈕加購，請輸入加購數量（至少 1 個）。", "error");
+        return false;
+      }
+    }
+
+    // URL 欄位格式友善提示（非空才驗）
+    const urlFields = ["website", "line_url", "video1", "video2", "video3",
+                       "social1", "social2", "social3"];
+    for (const id of urlFields) {
+      const v = valueOf(id);
+      if (v && !isLooksLikeUrl(v)) {
+        setStatus(`「${id}」的網址格式看起來有誤，請確認是否以 https:// 開頭。`, "warn");
+        return false;
+      }
+    }
+
     return true;
   }
 
+  // 寬鬆 URL 格式判斷
+  function isLooksLikeUrl(str) {
+    if (!str) return true; // 空值不驗
+    const s = str.trim();
+    if (/^(https?:\/\/|line:|tel:|mailto:)/i.test(s)) return true;
+    if (/^www\./i.test(s)) return true;
+    if (/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(s)) return true;
+    return false;
+  }
+
   /* ============================================================
-     formatDateYMD — 統一日期格式化
+     formatDateYMD
   ============================================================ */
   function formatDateYMD(input) {
     try {
@@ -392,7 +534,7 @@
   }
 
   /* ============================================================
-     pickPaymentDueAt — 優先吃後端欄位
+     pickPaymentDueAt
   ============================================================ */
   function pickPaymentDueAt(data) {
     const candidates = [
@@ -410,7 +552,7 @@
   }
 
   /* ============================================================
-     buildLastSubmitResult — 整理統一結果物件
+     buildLastSubmitResult
   ============================================================ */
   function buildLastSubmitResult({ cardId, previewUrl, paymentDueAt, totalAmount, planLabel, customerName }) {
     return {
@@ -425,7 +567,7 @@
   }
 
   /* ============================================================
-     handleCopyCardNotice — 優先吃 state.lastSubmitResult
+     handleCopyCardNotice
   ============================================================ */
   async function handleCopyCardNotice() {
     let r = state.lastSubmitResult;
@@ -673,7 +815,9 @@
       const file = e.target.files?.[0];
       if (!file) return;
 
+      // FIX 4: 重選同一格圖片時，清除舊上傳狀態，不污染新圖
       state.photoFiles[key]  = file;
+      delete state.photoRealUrls[key];
       state.photoUploadState[key] = "pending";
 
       // 立即顯示 base64 預覽
@@ -684,6 +828,7 @@
       previewEmpty.classList.add("hidden");
       tools.classList.remove("hidden");
       badge.textContent = "準備上傳…";
+      badge.dataset.uploadState = "pending";
       applyPhotoTransform(previewImage, state.photoMeta[key]);
       updatePreview();
       saveDraftSilently();
@@ -760,8 +905,20 @@
       previewImage.classList.remove("hidden");
       previewEmpty.classList.add("hidden");
       tools.classList.remove("hidden");
-      const uploadDone = state.photoRealUrls[key];
-      badge.textContent = uploadDone ? "已上傳 ✓" : "已選擇（上傳中）";
+      const us = state.photoUploadState[key];
+      if (us === "done") {
+        badge.textContent = "已上傳 ✓";
+        badge.dataset.uploadState = "done";
+      } else if (us === "uploading") {
+        badge.textContent = "上傳中…";
+        badge.dataset.uploadState = "uploading";
+      } else if (us === "error") {
+        badge.textContent = "上傳失敗";
+        badge.dataset.uploadState = "error";
+      } else {
+        badge.textContent = "已選擇";
+        badge.dataset.uploadState = "pending";
+      }
       applyPhotoTransform(previewImage, state.photoMeta[key]);
     } else {
       previewImage.removeAttribute("src");
@@ -769,6 +926,7 @@
       previewEmpty.classList.remove("hidden");
       tools.classList.add("hidden");
       badge.textContent = "尚未上傳";
+      badge.dataset.uploadState = "idle";
     }
   }
 
@@ -782,11 +940,13 @@
   }
 
   /* ============================================================
-     CTA 區塊
+     FIX 2: CTA 區塊 — renderCtas 優先讀 state.draftValues
   ============================================================ */
   function renderCtas(limit) {
     if (!els["cta-slots"] || !els.ctaTemplate) return;
-    const saved = collectCurrentCtaValues();
+
+    // 收集當前 DOM 裡的值（若有）
+    const currentDomValues = collectCurrentCtaValues();
     els["cta-slots"].innerHTML = "";
     state.ctaCount = limit;
 
@@ -798,9 +958,15 @@
 
       label.textContent = `CTA 按鈕 ${i}`;
       textInput.id    = `cta_text_${i}`;
-      textInput.value = saved[`cta_text_${i}`] || "";
       urlInput.id     = `cta_link_${i}`;
-      urlInput.value  = saved[`cta_link_${i}`] || "";
+
+      // 優先讀：目前 DOM 值 → draftValues → 空字串
+      textInput.value =
+        currentDomValues[`cta_text_${i}`] ||
+        state.draftValues[`cta_text_${i}`] || "";
+      urlInput.value  =
+        currentDomValues[`cta_link_${i}`] ||
+        state.draftValues[`cta_link_${i}`] || "";
 
       textInput.addEventListener("input",  onLiveChange);
       textInput.addEventListener("change", onLiveChange);
@@ -908,12 +1074,25 @@
   }
 
   /* ============================================================
-     即時預覽
-     FIX 樣式一致：同步 plan/color/style/paper class 到 livePreviewCard
-     讓 renderer 產生的 DOM 套用與成品頁相同的 style.css 規則
-  ============================================================ */
+     FIX 1: 即時預覽 — 主題 class 掛在 .preview-theme-scope
 
-  // 成品頁 body 上的主題 class 列表，預覽容器需要同步
+     style.css 的規則型態：
+       body.mode-premium .card { ... }
+       body.color-1 { --p: ... }
+       body.p1 { --p: ... }
+
+     v7.8.4 做法：
+       主題 class 掛在 #preview-theme-scope（.preview-theme-scope）
+       而非 #livePreviewCard，讓 CSS 繼承正確傳遞。
+
+     style.css 已有雙選擇器：
+       body.mode-premium .xxx,
+       #livePreviewCard.mode-premium .xxx { ... }
+
+     v7.8.4 在 form.html 的 <style> 中補充：
+       .preview-theme-scope.mode-premium { background: ...; }
+     確保整個預覽區背景也跟成品頁一致。
+  ============================================================ */
   const THEME_CLASSES = [
     "mode-free", "mode-premium",
     "color-1","color-2","color-3","color-4","color-5",
@@ -923,25 +1102,42 @@
   ];
 
   function syncPreviewContainerClasses() {
-    const root = els["livePreviewCard"];
-    if (!root) return;
+    // FIX 1: 掛在 #preview-theme-scope，而非 #livePreviewCard
+    const scope = els["preview-theme-scope"];
+    if (!scope) return;
 
     const theme = getThemeSelection();
     const plan  = theme.plan;
 
     // 移除所有主題 class
-    THEME_CLASSES.forEach(c => root.classList.remove(c));
+    THEME_CLASSES.forEach(c => scope.classList.remove(c));
 
     // 補上對應 class
-    root.classList.add(plan === "premium" ? "mode-premium" : "mode-free");
+    scope.classList.add(plan === "premium" ? "mode-premium" : "mode-free");
 
     if (plan === "premium") {
       const premClass = mapPremiumColor(theme.color);
-      root.classList.add(premClass);
+      scope.classList.add(premClass);
     } else {
-      root.classList.add(mapFreeColor(theme.color));
-      root.classList.add(mapStyle(theme.style));
-      root.classList.add(mapPaper(theme.paper));
+      scope.classList.add(mapFreeColor(theme.color));
+      scope.classList.add(mapStyle(theme.style));
+      scope.classList.add(mapPaper(theme.paper));
+    }
+
+    // 同步到 #livePreviewCard，讓 card-renderer 的雙選擇器規則也能吃到
+    // （style.css 有 body.mode-premium .xxx, #livePreviewCard.mode-premium .xxx 寫法）
+    const liveCard = els["livePreviewCard"];
+    if (liveCard) {
+      THEME_CLASSES.forEach(c => liveCard.classList.remove(c));
+      // 只補 mode class，讓 renderer 雙選擇器生效
+      liveCard.classList.add(plan === "premium" ? "mode-premium" : "mode-free");
+      if (plan === "premium") {
+        liveCard.classList.add(mapPremiumColor(theme.color));
+      } else {
+        liveCard.classList.add(mapFreeColor(theme.color));
+        liveCard.classList.add(mapStyle(theme.style));
+        liveCard.classList.add(mapPaper(theme.paper));
+      }
     }
   }
 
@@ -968,7 +1164,7 @@
     const root = els["livePreviewCard"];
     if (!root) return;
 
-    // 先同步 class，再呼叫 renderer
+    // 先同步 class
     syncPreviewContainerClasses();
 
     ensureRendererAlias();
@@ -1067,7 +1263,6 @@
     return data;
   }
 
-  /* 成品展示 renderer 內的收折（僅作用於 livePreviewCard 內部） */
   function bindPreviewCollapseToggles(root) {
     setupPreviewBlockClamp(root, "[data-block-service]", 140);
     setupPreviewBlockClamp(root, "[data-block-exp]",     180);
@@ -1119,9 +1314,12 @@
   }
 
   /* ============================================================
-     buildPayload
-     優先用 photoRealUrls（Firebase downloadURL），
-     沒有才 fallback base64（警告：base64 不應送入 GAS 生產環境）
+     FIX 6 & 7: buildPayload
+     - action 改吃 CONFIG.CREATE_ACTION
+     - 只送有值的圖片欄位
+     - phone 以字串送出（保留前導 0）
+     - CTA 只送 limit 內欄位
+     - features_json 結構穩定
   ============================================================ */
   function buildPayload() {
     const limits         = getLimits();
@@ -1131,16 +1329,20 @@
     const bundleChecked  = isAddonChecked("addon_bundle");
     const marqueeChecked = isAddonChecked("addon_marquee");
 
+    // FIX 5: phone 強制字串，保留前導 0
+    const phoneStr = String(valueOf("phone") || "").replace(/\s/g, "");
+
     const payload = {
-      // TODO: 確認 GAS 後端是否有 "createCardWithOfflinePayment" action
-      action: "createCardWithOfflinePayment",
+      // FIX 7: 改吃 CONFIG.CREATE_ACTION
+      action: CONFIG.CREATE_ACTION,
       tenant: "angel",
 
       name:       previewData.name,
       unit:       previewData.unit,
       title:      previewData.title,
       slogan:     previewData.slogan,
-      phone:      previewData.phone,
+      // FIX 5: phone 以字串送出
+      phone:      phoneStr,
       email:      previewData.email,
       website:    previewData.website,
       address:    previewData.address,
@@ -1176,19 +1378,20 @@
       cta_extra_purchased:   isAddonChecked("addon_cta")
                                ? String(getAddonQty("addon_cta_qty"))   : "",
 
-      // 使用真實 URL，不傳 base64
-      avatar_url: state.photoRealUrls.avatar || "",
-      logo_url:   state.photoRealUrls.logo   || "",
+      // FIX 6: 只送有值的圖片欄位，不送空字串
+      ...(state.photoRealUrls.avatar ? { avatar_url: state.photoRealUrls.avatar } : {}),
+      ...(state.photoRealUrls.logo   ? { logo_url:   state.photoRealUrls.logo   } : {}),
 
       addon_items: addonItems,
 
       features_json: {
         photo_meta:   buildPhotoMetaMap(),
         preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }
-        // 不再傳 photo_preview_urls（base64 不進 GAS）
+        // 不傳 photo_preview_urls（base64 不進 GAS）
       }
     };
 
+    // FIX 6: 只送有真實 URL 的照片牆欄位
     for (let i = 1; i <= limits.wallPhotos; i++) {
       const url = state.photoRealUrls[`photo${i}`] || "";
       if (url) {
@@ -1197,6 +1400,7 @@
       }
     }
 
+    // FIX 6: CTA 只送 limit 內的欄位
     for (let i = 1; i <= limits.ctas; i++) {
       payload[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
       payload[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
@@ -1206,13 +1410,15 @@
   }
 
   /* ============================================================
-     送出流程 v7.8.3
+     送出流程 v7.8.4
   ============================================================ */
   async function submit(e) {
     e.preventDefault();
 
     const payload = buildPayload();
-    if (!payload.name || !payload.phone || !payload.plan) {
+
+    // FIX 5: phone 字串型態檢查
+    if (!payload.name || !String(payload.phone || "").trim() || !payload.plan) {
       setStatus("請先完成必填欄位（姓名、電話、方案）。", "error");
       return;
     }
@@ -1229,7 +1435,6 @@
     setProgressStep(1, "正在等待圖片上傳完成…");
 
     try {
-      // A 方案：等所有圖片上傳完成
       await waitAllUploads();
 
       setProgressStep(2, "正在送出建卡資料…");
@@ -1251,6 +1456,7 @@
 
       setProgressStep(3, "正在整理報價資料…");
 
+      // FIX 8: cardId 多層 fallback，後端沒回也不壞面板
       const cardId =
         data.card_id       ||
         data.id            ||
@@ -1279,6 +1485,7 @@
 
       state.lastSubmitResult = result;
 
+      // FIX 8: 成功後清草稿，保留 QUOTE_STORAGE_KEY
       localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify({
         card_id:        cardId,
         customer_name:  finalPayload.name || "",
@@ -1293,6 +1500,7 @@
         total_amount:   Number(totalAmount || 0)
       }));
 
+      // 清草稿但不清報價
       localStorage.removeItem(CONFIG.DRAFT_KEY);
 
       setProgressStep(5, "✅ 申請成功！名片已建立。");
@@ -1306,7 +1514,7 @@
   }
 
   /* ============================================================
-     showSuccessPanel — 只負責顯示
+     FIX 8: showSuccessPanel — 穩定版，後端沒回 cardId 也不壞
   ============================================================ */
   function showSuccessPanel(result) {
     if (!result) return;
@@ -1315,14 +1523,14 @@
 
     const idEl = els["progress-card-id-display"];
     if (idEl) {
-      idEl.textContent    = result.cardId || "（待確認）";
+      idEl.textContent    = result.cardId || "（待客服確認）";
       idEl.dataset.cardId = result.cardId || "";
     }
 
     const linkEl = els["progress-preview-link"];
     if (linkEl) {
-      linkEl.href        = result.previewUrl;
-      linkEl.textContent = result.previewUrl;
+      linkEl.href        = result.previewUrl || CONFIG.SHOWCASE_URL;
+      linkEl.textContent = result.previewUrl || CONFIG.SHOWCASE_URL;
     }
 
     const panel = els["progress-success-panel"];
@@ -1346,7 +1554,7 @@
   }
 
   /* ============================================================
-     parseJsonSafe — 強化版
+     parseJsonSafe
   ============================================================ */
   async function parseJsonSafe(res) {
     let raw = "";
@@ -1427,10 +1635,17 @@
     return out;
   }
 
+  /* ============================================================
+     FIX 2: 草稿儲存 / 恢復
+     - saveDraft 同時保存 CTA 當下值到 draftValues section
+     - restoreDraft 先把 draft values 存到 state.draftValues
+     - 靜態欄位直接回填 DOM
+     - CTA 動態欄位由 renderCtas() 讀 state.draftValues 補回
+  ============================================================ */
   function saveDraft() {
-    // 草稿只存表單值與 photoMeta，不存 base64（避免 localStorage 爆掉）
+    const values = collectFormValues();
     localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify({
-      values:    collectFormValues(),
+      values,
       photoMeta: state.photoMeta
     }));
   }
@@ -1442,18 +1657,38 @@
     try { draft = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || "null"); } catch (_) {}
     if (!draft || typeof draft !== "object") return;
 
-    Object.keys(draft.values || {}).forEach(key => {
+    const values = draft.values || {};
+
+    // FIX 2: 先把所有 draft values 存到 state.draftValues
+    // renderCtas() 會讀此物件補回 CTA 欄位
+    state.draftValues = { ...values };
+
+    // 回填靜態欄位（不包含 CTA 動態欄位，那些由 renderCtas 負責）
+    Object.keys(values).forEach(key => {
+      // CTA 欄位跳過，交給 renderCtas()
+      if (/^cta_(text|link)_\d+$/.test(key)) return;
+
       const el = document.getElementById(key);
       if (el) {
-        if (el.type === "checkbox") el.checked = !!draft.values[key];
-        else el.value = draft.values[key];
+        if (el.type === "checkbox") el.checked = !!values[key];
+        else el.value = values[key];
         return;
       }
+
+      // plan radio 特殊處理
       if (key === "plan") {
-        const r = document.querySelector(`input[name="plan"][value="${draft.values[key]}"]`);
+        const r = document.querySelector(`input[name="plan"][value="${values[key]}"]`);
         if (r) r.checked = true;
       }
     });
+
+    // FIX 3: experience textarea 升級後才回填
+    // upgradeExperienceToTextarea() 在 restoreDraft() 之前執行
+    // 此時 els["experience"] 已是 textarea，可直接回填
+    if (values["experience"] !== undefined) {
+      const expEl = document.getElementById("experience") || els["experience"];
+      if (expEl) expEl.value = values["experience"] || "";
+    }
 
     if (draft.photoMeta && typeof draft.photoMeta === "object")
       state.photoMeta = draft.photoMeta;
