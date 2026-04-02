@@ -1,7 +1,12 @@
 /* ============================================================
    card-renderer.js
-   HSC 唯一渲染模組（完整覆蓋版）
+   HSC 唯一渲染模組
+   v7.7.6-fix-qr-expiry
    唯一入口：renderCard(data, options)
+
+   修正項目：
+   - buildGeneratedTemplate 加入 id="cardExpiry" 節點
+     （原版缺少此節點，導致 app.js renderCardExpiry_ 找不到目標）
 
    設計原則
    - 不依賴 form.js
@@ -356,9 +361,7 @@
   }
 
   function getMarqueeText(p) {
-    const direct = text(pick(p, ["marquee_text"]));
-    if (direct) return direct;
-    return "";
+    return text(pick(p, ["marquee_text"]));
   }
 
   function isMarqueeEnabled(p) {
@@ -584,6 +587,10 @@
     return true;
   }
 
+  /* ============================================================
+     ★ 修正：buildGeneratedTemplate 加入 id="cardExpiry" 節點
+     位置在 .qr-bottom 之前，與靜態 HTML 結構一致
+  ============================================================ */
   function buildGeneratedTemplate(root, mode) {
     root.innerHTML = `
       <div class="hsc-render-root ${mode === "form" ? "hsc-render-form" : "hsc-render-index"}">
@@ -657,6 +664,8 @@
               <div class="photo-grid" data-photo-grid></div>
             </div>
 
+            <div class="card-expiry" id="cardExpiry" style="display:none;"></div>
+
             <div class="qr-bottom" data-bottom-qr-section style="display:none;">
               <div class="qr-bottom-head">
                 <div class="qr-bottom-title">掃描 QRcode｜開啟我的智慧名片</div>
@@ -712,6 +721,7 @@
         ctaButtons: q("#ctaButtons"),
         photoWall: q("#photoWall"),
         photoGrid: q("#photoGrid"),
+        cardExpiry: q("#cardExpiry"),
         bottomQrSection: q("#bottomQrSection"),
         bottomQrGrid: q("#bottomQrGrid"),
         bottomQrAvatar: q("#bottomQrAvatar")
@@ -749,6 +759,7 @@
       ctaButtons: q("[data-cta-buttons]"),
       photoWall: q("[data-photo-wall]"),
       photoGrid: q("[data-photo-grid]"),
+      cardExpiry: q("#cardExpiry"),
       bottomQrSection: q("[data-bottom-qr-section]"),
       bottomQrGrid: q("[data-bottom-qr-grid]"),
       bottomQrAvatar: q("[data-bottom-qr-avatar]")
@@ -1263,7 +1274,7 @@
   const api = {
     renderCard,
     renderQr,
-    version: "HSC-card-renderer-single-entry"
+    version: "HSC-card-renderer-v7.7.6-fix-qr-expiry"
   };
 
   global.HscCardRenderer = api;
