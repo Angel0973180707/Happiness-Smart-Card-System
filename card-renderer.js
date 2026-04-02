@@ -1,12 +1,17 @@
 /* ============================================================
    card-renderer.js
    HSC 唯一渲染模組
-   v7.7.6-fix-qr-expiry
+   v7.7.7-fix-base64-img
    唯一入口：renderCard(data, options)
 
    修正項目：
-   - buildGeneratedTemplate 加入 id="cardExpiry" 節點
-     （原版缺少此節點，導致 app.js renderCardExpiry_ 找不到目標）
+   - v7.7.6: buildGeneratedTemplate 加入 id="cardExpiry" 節點
+   - v7.7.7: 修正 base64 DataURL 圖片無法顯示的問題
+     * setImgWithFallback 對 base64/blob URL 跳過 cache-bust timestamp
+     * pickAvatarInfo 加入 features.photo_preview_urls 備援讀取
+     * pickLogoInfo 加入 features.photo_preview_urls 備援讀取
+     * collectPhotos 加入 features.photo_preview_urls 備援讀取
+     * buildImgCandidates 對 base64 不做任何修改直接回傳
 
    設計原則
    - 不依賴 form.js
@@ -101,15 +106,31 @@
   function normalizeUrl(raw) {
     let v = String(raw || "").trim();
     if (!v) return "";
-    if (/^(tel:|mailto:|sms:|line:|https?:\/\/)/i.test(v)) return v;
+    if (/^(tel:|mailto:|sms:|line:|https?:\/\/|data:)/i.test(v)) return v;
     if (/^www\./i.test(v)) return "https://" + v;
     if (/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(v)) return "https://" + v;
     return v;
   }
 
+  /* ── FIX: base64 / blob URL 判斷 ── */
+  function isDataUrl(url) {
+    return typeof url === "string" && url.startsWith("data:");
+  }
+
+  function isBlobUrl(url) {
+    return typeof url === "string" && url.startsWith("blob:");
+  }
+
+  function isLocalUrl(url) {
+    return isDataUrl(url) || isBlobUrl(url);
+  }
+
   function normalizeImageUrl(raw) {
     let url = normalizeUrl(raw);
     if (!url) return "";
+
+    /* base64 / blob：不做任何處理，直接回傳 */
+    if (isLocalUrl(url)) return url;
 
     if (url.includes("dropbox.com")) {
       url = url.replace("dl=0", "raw=1");
@@ -127,10 +148,16 @@
     return url;
   }
 
+  /* ── FIX: base64 不加 timestamp，外部 URL 才加 ── */
   function buildImgCandidates(raw) {
     const s = text(raw);
     if (!s) return [];
     const url = normalizeImageUrl(s);
+    if (!url) return [];
+
+    /* base64 / blob：單一候選，不展開也不加參數 */
+    if (isLocalUrl(url)) return [url];
+
     const out = [url];
 
     if (url.includes("drive.google.com/uc?export=view&id=")) {
@@ -145,6 +172,7 @@
     return [...new Set(out.filter(Boolean))];
   }
 
+  /* ── FIX: base64 / blob 跳過 cache-bust ── */
   function setImgWithFallback(imgEl, candidates, options) {
     const opts = options || {};
     const list = (candidates || []).filter(Boolean);
@@ -161,10 +189,15 @@
     let idx = 0;
     let done = false;
 
-    imgEl.referrerPolicy = opts.referrerPolicy || "no-referrer";
-    try { imgEl.crossOrigin = opts.crossOrigin || "anonymous"; } catch (_) {}
+    /* base64 / blob 不需要 crossOrigin / referrerPolicy */
+    if (!isLocalUrl(list[0])) {
+      imgEl.referrerPolicy = opts.referrerPolicy || "no-referrer";
+      try { imgEl.crossOrigin = opts.crossOrigin || "anonymous"; } catch (_) {}
+    }
 
     function buildSrc(src) {
+      /* base64 / blob：直接用，不加 timestamp */
+      if (isLocalUrl(src)) return src;
       const sep = src.includes("?") ? "&" : "?";
       return src + sep + "t=" + Date.now();
     }
@@ -264,8 +297,12 @@
     }
 
     src.features = {
-      photo_meta: normalizePhotoMetaMap(parsed.photo_meta),
-      preview_meta: normalizePreviewMeta(parsed.preview_meta)
+      photo_meta:         normalizePhotoMetaMap(parsed.photo_meta),
+      preview_meta:       normalizePreviewMeta(parsed.preview_meta),
+      /* FIX: 保留 form.js 傳入的 base64 備援 map */
+      photo_preview_urls: (parsed.photo_preview_urls && typeof parsed.photo_preview_urls === "object")
+                            ? parsed.photo_preview_urls
+                            : {}
     };
 
     return src;
@@ -303,6 +340,17 @@
     return "";
   }
 
+  /* ── FIX: 從 features.photo_preview_urls 讀備援 base64 ── */
+  function getPreviewUrl(p, key) {
+    const raw = p && p.__raw;
+    if (!raw) return "";
+    const features = raw.features;
+    if (!features || typeof features !== "object") return "";
+    const ppu = features.photo_preview_urls;
+    if (!ppu || typeof ppu !== "object") return "";
+    return text(ppu[key]);
+  }
+
   function normalizePlan(v) {
     return text(v).toLowerCase() === "premium" ? "premium" : "free";
   }
@@ -311,7 +359,8 @@
     const raw = text(v).toLowerCase();
     const map = {
       c1: "color-1", c2: "color-2", c3: "color-3", c4: "color-4", c5: "color-5",
-      "color-1": "color-1", "color-2": "color-2", "color-3": "color-3", "color-4": "color-4", "color-5": "color-5"
+      "color-1": "color-1", "color-2": "color-2", "color-3": "color-3",
+      "color-4": "color-4", "color-5": "color-5"
     };
     return map[raw] || "color-1";
   }
@@ -324,7 +373,10 @@
 
   function mapPaperToUi(v) {
     const raw = text(v).toLowerCase();
-    const map = { f1: "paper-1", f2: "paper-2", f3: "paper-3", "paper-1": "paper-1", "paper-2": "paper-2", "paper-3": "paper-3" };
+    const map = {
+      f1: "paper-1", f2: "paper-2", f3: "paper-3",
+      "paper-1": "paper-1", "paper-2": "paper-2", "paper-3": "paper-3"
+    };
     return map[raw] || "paper-1";
   }
 
@@ -334,11 +386,11 @@
   }
 
   function getPreviewMeta(p) {
-    return normalizePreviewMeta(p && p.features ? p.features.preview_meta : null);
+    return normalizePreviewMeta(p && p.__raw && p.__raw.features ? p.__raw.features.preview_meta : null);
   }
 
   function getPhotoMeta(p, key) {
-    const map = normalizePhotoMetaMap(p && p.features ? p.features.photo_meta : null);
+    const map = normalizePhotoMetaMap(p && p.__raw && p.__raw.features ? p.__raw.features.photo_meta : null);
     return map[key] || { ...DEFAULT_PHOTO_META };
   }
 
@@ -370,51 +422,49 @@
     return !!getMarqueeText(p);
   }
 
-  function collectPhotos(p) {
-    const photos = [];
-    const limit = getPhotoLimitFromPayload(p);
-
-    for (let i = 1; i <= limit; i++) {
-      const key = `photo${i}_url`;
-      const raw = pick(p, [key]);
-      const url = normalizeImageUrl(raw);
-      if (!url) continue;
-      photos.push({ key: `photo${i}`, url });
-    }
-
-    return photos;
-  }
-
-  function applyPhotoMetaToImg(img, meta, fitMode) {
-    if (!img) return;
-    const x = clampNumber(meta?.x, 0, 1, DEFAULT_PHOTO_META.x);
-    const y = clampNumber(meta?.y, 0, 1, DEFAULT_PHOTO_META.y);
-    const scale = clampNumber(meta?.scale, 0.5, 3, DEFAULT_PHOTO_META.scale);
-    const rotate = clampNumber(meta?.rotate, -180, 180, DEFAULT_PHOTO_META.rotate);
-
-    img.style.objectPosition = `${(x * 100).toFixed(2)}% ${(y * 100).toFixed(2)}%`;
-    img.style.objectFit = fitMode === "contain" ? "contain" : "cover";
-    img.style.transformOrigin = "center center";
-    img.style.transform = `scale(${scale}) rotate(${rotate}deg)`;
-  }
-
+  /* ── FIX: pickAvatarInfo 加入 base64 備援 ── */
   function pickAvatarInfo(p) {
+    /* 1. 頂層 avatar_url */
     const url = pick(p, ["avatar_url"]);
     if (text(url)) {
       return { key: "avatar_url", raw: url, url: normalizeImageUrl(url) };
     }
+
+    /* 2. features.photo_preview_urls.avatar（form.js 傳入的 base64）*/
+    const b64 = getPreviewUrl(p, "avatar");
+    if (b64) {
+      return { key: "avatar_preview", raw: b64, url: b64 };
+    }
+
+    /* 3. 相容舊欄位 u-img */
+    const uimg = pick(p, ["u-img"]);
+    if (text(uimg)) {
+      return { key: "u-img", raw: uimg, url: normalizeImageUrl(uimg) };
+    }
+
+    /* 4. fallback: photo1_url */
     const fallback = pick(p, ["photo1_url"]);
     if (text(fallback)) {
       return { key: "photo1_url", raw: fallback, url: normalizeImageUrl(fallback) };
     }
+
     return { key: "", raw: "", url: "" };
   }
 
+  /* ── FIX: pickLogoInfo 加入 base64 備援 ── */
   function pickLogoInfo(p) {
+    /* 1. 頂層 logo_url */
     const url = pick(p, ["logo_url"]);
     if (text(url)) {
       return { key: "logo_url", raw: url, url: normalizeImageUrl(url) };
     }
+
+    /* 2. features.photo_preview_urls.logo（form.js 傳入的 base64）*/
+    const b64 = getPreviewUrl(p, "logo");
+    if (b64) {
+      return { key: "logo_preview", raw: b64, url: b64 };
+    }
+
     return { key: "", raw: "", url: "" };
   }
 
@@ -534,16 +584,17 @@
     imgEl.style.display = "block";
     imgEl.style.pointerEvents = "none";
 
-    setImgWithFallback(imgEl, buildImgCandidates(u), {
-      crossOrigin: "anonymous",
-      referrerPolicy: "no-referrer",
-      onLoad: function () {
-        imgEl.style.display = "block";
-      },
-      onFail: function () {
-        hideCenterImg(imgEl);
-      }
-    });
+    /* base64：不加 crossOrigin */
+    const loadOpts = isLocalUrl(u)
+      ? { onLoad: function () { imgEl.style.display = "block"; }, onFail: function () { hideCenterImg(imgEl); } }
+      : {
+          crossOrigin: "anonymous",
+          referrerPolicy: "no-referrer",
+          onLoad: function () { imgEl.style.display = "block"; },
+          onFail: function () { hideCenterImg(imgEl); }
+        };
+
+    setImgWithFallback(imgEl, buildImgCandidates(u), loadOpts);
   }
 
   function renderQr(options) {
@@ -588,8 +639,7 @@
   }
 
   /* ============================================================
-     ★ 修正：buildGeneratedTemplate 加入 id="cardExpiry" 節點
-     位置在 .qr-bottom 之前，與靜態 HTML 結構一致
+     buildGeneratedTemplate
   ============================================================ */
   function buildGeneratedTemplate(root, mode) {
     root.innerHTML = `
@@ -777,7 +827,6 @@
 
     classTargets.forEach(function (el) {
       if (!el) return;
-
       BODY_MODE_CLASSES.forEach(c => el.classList.remove(c));
       FREE_THEME_CLASSES.forEach(c => el.classList.remove(c));
       PREMIUM_THEME_CLASSES.forEach(c => el.classList.remove(c));
@@ -831,10 +880,15 @@
     }
 
     img.style.display = "block";
+
+    /* base64：直接賦值，不走 fallback 流程 */
+    if (isLocalUrl(u)) {
+      img.src = u;
+      return;
+    }
+
     setImgWithFallback(img, buildImgCandidates(u), {
-      onLoad: function () {
-        img.style.display = "block";
-      },
+      onLoad: function () { img.style.display = "block"; },
       onFail: function () {
         img.removeAttribute("src");
         img.style.display = "none";
@@ -858,6 +912,12 @@
 
     wrap.style.display = "flex";
     img.style.display = "block";
+
+    /* base64：直接賦值 */
+    if (isLocalUrl(u)) {
+      img.src = u;
+      return;
+    }
 
     setImgWithFallback(img, buildImgCandidates(u), {
       onLoad: function () {
@@ -883,12 +943,8 @@
     if (scope.title) scope.title.textContent = titleVal;
     if (scope.slogan) scope.slogan.textContent = sloganVal;
 
-    if (scope.unitWrap) {
-      scope.unitWrap.style.display = unitVal ? "" : "none";
-    }
-    if (scope.sloganWrap) {
-      scope.sloganWrap.style.display = sloganVal ? "" : "none";
-    }
+    if (scope.unitWrap)   scope.unitWrap.style.display   = unitVal   ? "" : "none";
+    if (scope.sloganWrap) scope.sloganWrap.style.display = sloganVal ? "" : "none";
   }
 
   function renderInfoBlock(blockEl, title, body) {
@@ -899,7 +955,6 @@
       blockEl.innerHTML = "";
       return;
     }
-
     blockEl.style.display = "";
     blockEl.innerHTML = `
       <div class="block-title">${escapeHtml(title)}</div>
@@ -972,9 +1027,7 @@
     if (wechatId) {
       list.push(createDockBtn("微信ID", "fa-brands fa-weixin", "dock-web", async function () {
         if (!allowActions) return;
-        try {
-          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(wechatId);
-        } catch (_) {}
+        try { if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(wechatId); } catch (_) {}
       }));
     }
 
@@ -1074,14 +1127,50 @@
         item.label,
         idx === 0 ? "fa-solid fa-bolt" : "fa-solid fa-arrow-up-right-from-square",
         items.length === 1 ? "dock-web wide" : "dock-web",
-        function () {
-          if (allowActions) openUrl(item.link);
-        }
+        function () { if (allowActions) openUrl(item.link); }
       ));
     });
 
     dock.style.display = "";
     applyWideRule(btns);
+  }
+
+  /* ── FIX: collectPhotos 加入 base64 備援 ── */
+  function collectPhotos(p) {
+    const photos = [];
+    const limit = getPhotoLimitFromPayload(p);
+
+    for (let i = 1; i <= limit; i++) {
+      /* 1. 頂層 photo${i}_url 或 photo_url_${i} */
+      const raw = pick(p, [`photo${i}_url`, `photo_url_${i}`]);
+      const url = raw ? normalizeImageUrl(raw) : "";
+
+      if (url) {
+        photos.push({ key: `photo${i}`, url });
+        continue;
+      }
+
+      /* 2. features.photo_preview_urls.photo${i}（base64 備援）*/
+      const b64 = getPreviewUrl(p, `photo${i}`);
+      if (b64) {
+        photos.push({ key: `photo${i}`, url: b64 });
+      }
+    }
+
+    return photos;
+  }
+
+  function applyPhotoMetaToImg(img, meta, fitMode) {
+    if (!img) return;
+    const x = clampNumber(meta?.x, 0, 1, DEFAULT_PHOTO_META.x);
+    const y = clampNumber(meta?.y, 0, 1, DEFAULT_PHOTO_META.y);
+    const scale = clampNumber(meta?.scale, 0.5, 3, DEFAULT_PHOTO_META.scale);
+    const rotate = clampNumber(meta?.rotate, -180, 180, DEFAULT_PHOTO_META.rotate);
+
+    img.style.objectPosition = `${(x * 100).toFixed(2)}% ${(y * 100).toFixed(2)}%`;
+    img.style.objectFit = fitMode === "contain" ? "contain" : "cover";
+    img.style.transformOrigin = "center center";
+    img.style.transform = `scale(${scale}) rotate(${rotate}deg)`;
   }
 
   function renderPhotoWall(p, scope, options) {
@@ -1100,19 +1189,12 @@
 
     grid.className = "photo-grid";
 
-    if (preview.layout === "single") {
-      grid.classList.add("layout-single");
-    } else if (photos.length === 1) {
-      grid.classList.add("layout-1");
-    } else if (photos.length === 2) {
-      grid.classList.add("layout-2");
-    } else if (photos.length === 3) {
-      grid.classList.add("layout-3");
-    } else if (photos.length === 4) {
-      grid.classList.add("layout-4");
-    } else {
-      grid.classList.add("layout-5");
-    }
+    if (preview.layout === "single") grid.classList.add("layout-single");
+    else if (photos.length === 1) grid.classList.add("layout-1");
+    else if (photos.length === 2) grid.classList.add("layout-2");
+    else if (photos.length === 3) grid.classList.add("layout-3");
+    else if (photos.length === 4) grid.classList.add("layout-4");
+    else grid.classList.add("layout-5");
 
     grid.classList.add(preview.aspect_ratio === "16:9" ? "ratio-16-9" : "ratio-1-1");
     grid.classList.add(preview.fit_mode === "contain" ? "fit-contain" : "fit-cover");
@@ -1131,21 +1213,21 @@
       const meta = getPhotoMeta(p, item.key);
       applyPhotoMetaToImg(img, meta, preview.fit_mode);
 
-      setImgWithFallback(img, buildImgCandidates(item.url), {
-        onLoad: function () {
-          wall.style.display = "";
-        },
-        onFail: function () {
-          tile.remove();
-          if (!grid.children.length) wall.style.display = "none";
-        }
-      });
-
-      if (allowActions) {
-        img.style.cursor = "pointer";
-        img.addEventListener("click", function () {
-          openUrl(item.url);
+      /* base64：直接賦值，不走 fallback */
+      if (isLocalUrl(item.url)) {
+        img.src = item.url;
+        img.onload = function () { wall.style.display = ""; };
+        img.onerror = function () { tile.remove(); if (!grid.children.length) wall.style.display = "none"; };
+      } else {
+        setImgWithFallback(img, buildImgCandidates(item.url), {
+          onLoad:  function () { wall.style.display = ""; },
+          onFail:  function () { tile.remove(); if (!grid.children.length) wall.style.display = "none"; }
         });
+      }
+
+      if (allowActions && !isLocalUrl(item.url)) {
+        img.style.cursor = "pointer";
+        img.addEventListener("click", function () { openUrl(item.url); });
       }
 
       tile.appendChild(img);
@@ -1163,27 +1245,20 @@
     if (qrMode === "facade") {
       return normalizeUrl(
         pick(p, ["facade_url", "hub_url", "showcase_url", "website"]) ||
-        options.facadeUrl ||
-        options.hubUrl ||
-        ""
+        options.facadeUrl || options.hubUrl || ""
       );
     }
 
     if (qrMode === "preview") {
       return normalizeUrl(
         pick(p, ["preview_url", "share_url", "card_url"]) ||
-        options.previewUrl ||
-        options.shareUrl ||
-        options.cardUrl ||
-        ""
+        options.previewUrl || options.shareUrl || options.cardUrl || ""
       );
     }
 
     return normalizeUrl(
       pick(p, ["card_url", "share_url", "preview_url", "website"]) ||
-      options.cardUrl ||
-      options.shareUrl ||
-      ""
+      options.cardUrl || options.shareUrl || ""
     );
   }
 
@@ -1215,6 +1290,9 @@
     });
   }
 
+  /* ============================================================
+     主入口 renderCard
+  ============================================================ */
   function renderCard(data, options) {
     const opts = Object.assign({}, DEFAULTS, options || {});
     if (!opts.root || !(opts.root instanceof HTMLElement)) {
@@ -1274,10 +1352,11 @@
   const api = {
     renderCard,
     renderQr,
-    version: "HSC-card-renderer-v7.7.6-fix-qr-expiry"
+    version: "HSC-card-renderer-v7.7.7-fix-base64-img"
   };
 
   global.HscCardRenderer = api;
+  global.HSCCardRenderer = api;
   global.renderCard = renderCard;
   global.renderQr = renderQr;
 
