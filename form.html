@@ -4,9 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>天使幸福智慧名片｜申請表單</title>
+
+  <!-- 引入與成品頁相同的 style.css，確保預覽樣式一致 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="./style.css" />
+
   <style>
     /* ============================================================
-       form.css  v7.8.0  完整覆蓋版
+       form-local.css  v7.8.3
+       僅包含表單頁面專屬樣式，不覆蓋 style.css
     ============================================================ */
 
     :root {
@@ -152,12 +160,7 @@
       margin-bottom: 10px;
     }
 
-    .limit-badges {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
+    .limit-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
     .pill {
       display: inline-flex;
@@ -194,9 +197,7 @@
       transition: border-color .15s, box-shadow .15s;
     }
 
-    .premium-plan-card {
-      background: linear-gradient(180deg, #fff, #faf6ff);
-    }
+    .premium-plan-card { background: linear-gradient(180deg, #fff, #faf6ff); }
 
     .plan-option input:checked + .plan-card {
       border-color: var(--accent);
@@ -208,13 +209,7 @@
       box-shadow: 0 0 0 3px var(--premium-soft);
     }
 
-    .plan-title-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
-
+    .plan-title-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .plan-title { font-size: 20px; font-weight: 900; }
 
     .plan-price-tag, .addon-price-tag {
@@ -232,17 +227,8 @@
     .plan-meta { font-size: 13px; color: var(--muted); font-weight: 700; }
     .plan-mini { font-size: 12px; color: var(--muted); font-weight: 700; }
 
-    .addon-layout {
-      display: grid;
-      grid-template-columns: 1.3fr .7fr;
-      gap: 16px;
-    }
-
-    .addon-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    .addon-layout { display: grid; grid-template-columns: 1.3fr .7fr; gap: 16px; }
+    .addon-stack  { display: flex; flex-direction: column; gap: 10px; }
 
     .addon-item {
       display: grid;
@@ -255,33 +241,11 @@
       background: var(--warm-white);
     }
 
-    .addon-item-gold {
-      background: linear-gradient(135deg, #fff8ee, #fff2d8);
-    }
-
-    .addon-content {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .addon-content small {
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-      line-height: 1.5;
-    }
-
-    .addon-number-wrap {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .addon-number-wrap input {
-      width: 68px;
-      text-align: center;
-    }
+    .addon-item-gold { background: linear-gradient(135deg, #fff8ee, #fff2d8); }
+    .addon-content { display: flex; flex-direction: column; gap: 4px; }
+    .addon-content small { font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.5; }
+    .addon-number-wrap { display: inline-flex; align-items: center; gap: 6px; }
+    .addon-number-wrap input { width: 68px; text-align: center; }
 
     .gold-badge {
       display: inline-flex;
@@ -294,12 +258,7 @@
       margin-left: 6px;
     }
 
-    .gold-actions {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-top: 8px;
-    }
+    .gold-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 
     .dynamic-summary {
       list-style: none;
@@ -321,13 +280,7 @@
 
     .dynamic-summary li:last-child { border-bottom: none; }
 
-    .summary-note {
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-      margin-top: 10px;
-      line-height: 1.6;
-    }
+    .summary-note { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 10px; line-height: 1.6; }
 
     .quote-box {
       margin-top: 16px;
@@ -359,11 +312,7 @@
       border: 1px solid rgba(42,36,30,.08);
     }
 
-    .quote-lines {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+    .quote-lines { display: flex; flex-direction: column; gap: 8px; }
 
     .quote-line {
       display: flex;
@@ -395,39 +344,13 @@
       font-weight: 700;
     }
 
-    .quote-breakdown-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
+    .quote-breakdown-row { display: flex; justify-content: space-between; gap: 10px; }
 
-    .grid-two {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
+    .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .full-width { grid-column: 1 / -1; }
-
-    .field-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .field-label {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--muted);
-      letter-spacing: .02em;
-    }
-
-    .field-hint {
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-      line-height: 1.6;
-    }
+    .field-group { display: flex; flex-direction: column; gap: 8px; }
+    .field-label { font-size: 13px; font-weight: 800; color: var(--muted); letter-spacing: .02em; }
+    .field-hint  { font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.6; }
 
     input[type="text"],
     input[type="tel"],
@@ -463,30 +386,13 @@
       box-shadow: 0 0 0 3px var(--accent-soft);
     }
 
-    input::placeholder,
-    textarea::placeholder {
+    input::placeholder, textarea::placeholder {
       color: rgba(42,36,30,.28);
       font-weight: 600;
     }
 
     textarea { resize: vertical; min-height: 90px; }
-
-    /* FIX 1: 經歷欄位加高 */
-    #experience {
-      min-height: 96px;
-      resize: vertical;
-    }
-
-    /* FIX 2: 長文收折按鈕 */
-    .textarea-collapse-btn {
-      display: block;
-      width: 100%;
-      margin-top: 4px;
-      font-size: 12px;
-      color: var(--muted);
-      background: var(--soft);
-      border: 1px solid var(--line);
-    }
+    #experience { min-height: 96px; resize: vertical; }
 
     select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237c746c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -495,22 +401,11 @@
       padding-right: 36px;
     }
 
-    input[type="number"] {
-      width: 72px;
-      padding: 10px 12px;
-      text-align: center;
-    }
+    input[type="number"] { width: 72px; padding: 10px 12px; text-align: center; }
+    input[disabled], select[disabled] { opacity: .46; cursor: not-allowed; }
 
-    input[disabled], select[disabled] {
-      opacity: .46;
-      cursor: not-allowed;
-    }
-
-    .photo-sections {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
+    /* 照片區塊 */
+    .photo-sections { display: flex; flex-direction: column; gap: 18px; }
 
     .photo-section {
       border: 1px solid var(--line);
@@ -610,27 +505,10 @@
       align-self: stretch;
     }
 
-    .photo-file-input {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--muted);
-      width: 100%;
-      padding: 8px 0;
-    }
+    .photo-file-input { font-size: 13px; font-weight: 700; color: var(--muted); width: 100%; padding: 8px 0; }
 
-    .photo-tools {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .photo-tool-row {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
+    .photo-tools { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .photo-tool-row { display: flex; gap: 6px; flex-wrap: wrap; }
     .photo-tool-row .mini { padding: 7px 10px; font-size: 12px; }
 
     .zoom-range {
@@ -642,11 +520,7 @@
       height: 20px;
     }
 
-    .cta-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+    .cta-stack { display: flex; flex-direction: column; gap: 12px; }
 
     .cta-slot-card {
       border: 1px solid var(--line);
@@ -658,18 +532,10 @@
       gap: 10px;
     }
 
-    .cta-title-label {
-      font-size: 13px;
-      font-weight: 900;
-      color: var(--muted);
-    }
+    .cta-title-label { font-size: 13px; font-weight: 900; color: var(--muted); }
+    .marquee-stack { display: flex; flex-direction: column; gap: 12px; }
 
-    .marquee-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
+    /* 預覽區塊 */
     .preview-section {
       display: grid;
       grid-template-columns: 1.1fr .9fr;
@@ -686,7 +552,14 @@
       overflow: hidden;
     }
 
-    #livePreviewCard { min-height: 420px; }
+    /*
+      livePreviewCard：不設固定 class，由 form.js syncPreviewContainerClasses()
+      動態同步 mode-free/mode-premium/color-x/style-x/paper-x，
+      與成品頁 body class 一致，style.css 規則自然套用
+    */
+    #livePreviewCard {
+      min-height: 420px;
+    }
 
     .preview-card {
       border: 1px solid var(--line);
@@ -710,6 +583,7 @@
       font-size: 13px;
     }
 
+    /* 按鈕 */
     .primary-btn, .ghost-btn, .line-btn {
       display: inline-flex;
       align-items: center;
@@ -753,16 +627,9 @@
 
     .mini { padding: 8px 12px; font-size: 12px; }
 
-    .action-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
+    .action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-    /* ============================================================
-       進度條彈窗
-    ============================================================ */
+    /* 進度條彈窗 */
     .progress-overlay {
       position: fixed;
       inset: 0;
@@ -785,11 +652,7 @@
       overflow-y: auto;
     }
 
-    .progress-title {
-      font-size: 22px;
-      font-weight: 900;
-      margin-bottom: 8px;
-    }
+    .progress-title { font-size: 22px; font-weight: 900; margin-bottom: 8px; }
 
     .progress-text {
       font-size: 13px;
@@ -799,13 +662,7 @@
       margin-bottom: 16px;
     }
 
-    .progress-bar {
-      height: 12px;
-      background: var(--soft);
-      border-radius: 999px;
-      overflow: hidden;
-      margin-bottom: 14px;
-    }
+    .progress-bar { height: 12px; background: var(--soft); border-radius: 999px; overflow: hidden; margin-bottom: 14px; }
 
     .progress-fill {
       height: 100%;
@@ -815,13 +672,7 @@
       transition: width .25s ease;
     }
 
-    .progress-steps {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-      margin-bottom: 16px;
-    }
+    .progress-steps { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
 
     .progress-step {
       padding: 9px 12px;
@@ -835,7 +686,7 @@
     .progress-step.is-active { background: #fff7ec; color: #8b5b16; font-weight: 900; }
     .progress-step.is-done   { background: #edf9f3; color: #0b8a56; }
 
-    /* FIX 3/4/5: 成功面板 */
+    /* 成功面板 */
     .progress-success-panel {
       margin-top: 16px;
       padding: 16px;
@@ -847,29 +698,10 @@
       gap: 12px;
     }
 
-    .success-header {
-      text-align: center;
-      padding-bottom: 4px;
-    }
-
-    .success-header-icon {
-      font-size: 32px;
-      line-height: 1;
-      margin-bottom: 6px;
-    }
-
-    .success-header-title {
-      font-size: 18px;
-      font-weight: 900;
-      color: #0a7a4e;
-    }
-
-    .success-header-sub {
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-      margin-top: 4px;
-    }
+    .success-header { text-align: center; padding-bottom: 4px; }
+    .success-header-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; }
+    .success-header-title { font-size: 18px; font-weight: 900; color: #0a7a4e; }
+    .success-header-sub { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 4px; }
 
     .success-card-id-row {
       display: flex;
@@ -882,12 +714,7 @@
       border: 1.5px dashed rgba(6,166,106,.35);
     }
 
-    .success-card-id-label {
-      font-size: 12px;
-      font-weight: 900;
-      color: var(--muted);
-      white-space: nowrap;
-    }
+    .success-card-id-label { font-size: 12px; font-weight: 900; color: var(--muted); white-space: nowrap; }
 
     .success-card-id-value {
       font-size: 16px;
@@ -918,10 +745,7 @@
       padding: 4px 0;
     }
 
-    .success-info-row:not(:last-child) {
-      border-bottom: 1px dashed rgba(42,36,30,.07);
-    }
-
+    .success-info-row:not(:last-child) { border-bottom: 1px dashed rgba(42,36,30,.07); }
     .success-info-row .label { color: var(--muted); }
     .success-info-row .value { font-weight: 900; color: var(--ink); }
 
@@ -939,17 +763,8 @@
       line-height: 1.5;
     }
 
-    .success-preview-row {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .success-preview-label {
-      font-size: 12px;
-      font-weight: 900;
-      color: var(--muted);
-    }
+    .success-preview-row { display: flex; flex-direction: column; gap: 6px; }
+    .success-preview-label { font-size: 12px; font-weight: 900; color: var(--muted); }
 
     #progress-preview-link {
       font-size: 12px;
@@ -966,12 +781,7 @@
 
     #progress-preview-link:hover { text-decoration: underline; }
 
-    .success-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
+    .success-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .success-actions > * { flex: 1; min-width: 130px; }
 
     .success-footer-note {
@@ -983,11 +793,6 @@
       padding-top: 2px;
     }
 
-    .progress-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-    /* ============================================================
-       共用
-    ============================================================ */
     .hidden { display: none !important; }
 
     .link-group-title {
@@ -1000,9 +805,7 @@
       margin-top: 4px;
     }
 
-    /* ============================================================
-       RWD
-    ============================================================ */
+    /* RWD */
     @media (max-width: 980px) {
       .preview-section, .addon-layout { grid-template-columns: 1fr; }
     }
@@ -1019,10 +822,7 @@
     }
 
     @media (max-width: 560px) {
-      .photo-card {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
-      }
+      .photo-card { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
       .photo-head      { grid-column: 1; grid-row: 1; }
       .preview-frame   { grid-column: 1; grid-row: 2; width: 100%; max-width: 180px; height: 180px; }
       .photo-right-col { grid-column: 1; grid-row: 3; }
@@ -1043,7 +843,7 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v7.8.0｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
+        <p class="hero-desc">v7.8.3｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -1316,7 +1116,7 @@
             <input type="text" id="wechat_id" placeholder="例：your_wechat_id" />
           </div>
 
-          <!-- FIX 1: 經歷改為 textarea，JS 會在 init 時自動升級，這裡留 input 作為初始結構 -->
+          <!-- FIX: experience 由 form.js 自動升級為 textarea -->
           <div class="field-group">
             <label class="field-label" for="experience">經歷</label>
             <input type="text" id="experience" placeholder="例：前 XX 公司品牌顧問、10 年業界資歷" />
@@ -1324,7 +1124,6 @@
 
           <div class="field-group full-width">
             <label class="field-label" for="services">服務項目</label>
-            <!-- FIX 2: textarea 超過3行可收折，由 JS 自動處理 -->
             <textarea id="services" rows="3" placeholder="例：品牌形象設計、網站規劃、社群行銷顧問"></textarea>
           </div>
 
@@ -1335,7 +1134,6 @@
 
           <div class="field-group full-width">
             <label class="field-label" for="intro">品牌金句 ／ 簡介</label>
-            <!-- FIX 2: textarea 超過3行可收折，由 JS 自動處理 -->
             <textarea id="intro" rows="4" placeholder="例：幫你把「被看見」變成「被記住」。&#10;這裡顯示在名片最顯眼的位置，可填一句話或品牌理念。"></textarea>
             <p class="field-hint">對應成品卡「品牌金句」位置，建議 15～50 字以內。</p>
           </div>
@@ -1399,7 +1197,7 @@
           <div>
             <p class="section-kicker">STEP 5</p>
             <h2>照片上傳</h2>
-            <p>個人照、Logo、照片牆分區上傳，支援旋轉、移動、縮放。</p>
+            <p>個人照、Logo、照片牆分區上傳，支援旋轉、移動、縮放。圖片選取後自動上傳。</p>
           </div>
         </div>
         <div id="photo-slots" class="photo-sections"></div>
@@ -1442,19 +1240,25 @@
           <div>
             <p class="section-kicker">STEP 8</p>
             <h2>成品預覽</h2>
-            <p>即時同步正式成品卡 renderer，所見即所得。</p>
+            <p>即時同步正式成品卡 renderer，樣式與成品頁完全一致。</p>
           </div>
         </div>
 
         <div class="preview-section">
           <div class="preview-card-board">
-            <div id="livePreviewCard" class="hsc-render-root" aria-live="polite"></div>
+            <!--
+              livePreviewCard 不設固定主題 class
+              form.js syncPreviewContainerClasses() 會動態同步
+              mode-free/mode-premium/color-x/style-x/paper-x
+              讓 style.css 的規則正確套用，確保預覽與成品一致
+            -->
+            <div id="livePreviewCard" aria-live="polite"></div>
           </div>
           <div class="preview-card">
             <h3>預覽說明</h3>
-            <p class="hint">即時走正式 card-renderer.js 渲染，顏色、版型、精品色系同步。</p>
+            <p class="hint">即時走正式 card-renderer.js 渲染，顏色、版型、精品色系與成品完全一致。</p>
             <p class="hint">未填欄位由 renderer 自動隱藏。</p>
-            <p class="hint">個人照、Logo、照片牆、CTA、跑馬燈皆同步顯示。</p>
+            <p class="hint">圖片選取後自動上傳 Firebase，上傳完成才能送出。</p>
             <p class="hint">送出後將收到成品連結與繳費期限（3 天倒數）。</p>
           </div>
         </div>
@@ -1472,9 +1276,7 @@
     </form>
   </main>
 
-  <!-- ============================================================
-       進度條彈窗 (FIX 3 + 4 + 5)
-  ============================================================ -->
+  <!-- 進度條彈窗 -->
   <div id="submit-progress-overlay" class="progress-overlay hidden">
     <div class="progress-card">
       <h3 class="progress-title">資料送出中</h3>
@@ -1485,30 +1287,27 @@
       </div>
 
       <ul class="progress-steps">
-        <li class="progress-step" data-step="1">1. 整理表單與 features_json</li>
-        <li class="progress-step" data-step="2">2. 建立名片</li>
+        <li class="progress-step" data-step="1">1. 等待圖片上傳完成</li>
+        <li class="progress-step" data-step="2">2. 送出建卡資料</li>
         <li class="progress-step" data-step="3">3. 整理報價資料</li>
         <li class="progress-step" data-step="4">4. 寫入預覽與繳費資訊</li>
         <li class="progress-step" data-step="5">5. 申請完成</li>
       </ul>
 
-      <!-- FIX 3 + 4 + 5: 成功面板（送出完成後顯示） -->
+      <!-- 成功面板 -->
       <div id="progress-success-panel" class="progress-success-panel hidden">
 
-        <!-- 標題 -->
         <div class="success-header">
           <div class="success-header-icon">🎉</div>
           <div class="success-header-title">名片申請成功！</div>
           <div class="success-header-sub">請複製以下資訊並回覆客服，協助開通名片。</div>
         </div>
 
-        <!-- 名片序號 -->
         <div class="success-card-id-row">
           <span class="success-card-id-label">📋 名片序號</span>
           <span class="success-card-id-value" id="progress-card-id-display">—</span>
         </div>
 
-        <!-- 訂單摘要 -->
         <div class="success-info-rows">
           <div class="success-info-row">
             <span class="label">申請人</span>
@@ -1524,18 +1323,15 @@
           </div>
         </div>
 
-        <!-- 付款期限警示 -->
         <div class="success-due-alert">
           ⏰&nbsp;付款期限：<strong class="success-due" style="margin:0 4px;">—</strong> 前完成付款，逾期名片將暫停開通
         </div>
 
-        <!-- 成品預覽連結 -->
         <div class="success-preview-row">
           <p class="success-preview-label">🔗 成品預覽連結（付款完成後正式開通）</p>
           <a id="progress-preview-link" href="#" target="_blank" rel="noopener">（建立後顯示）</a>
         </div>
 
-        <!-- 操作按鈕 -->
         <div class="success-actions">
           <button type="button" class="primary-btn mini" id="btn-copy-card-notice">
             📋 複製序號＋回覆文案
@@ -1551,11 +1347,8 @@
         </p>
 
       </div>
-      <!-- / progress-success-panel -->
-
     </div>
   </div>
-  <!-- / progress-overlay -->
 
   <!-- 照片 slot template -->
   <template id="photo-slot-template">
@@ -1606,7 +1399,13 @@
     </article>
   </template>
 
+  <!-- card-renderer.js 必須在 form.js 之前載入 -->
   <script src="./card-renderer.js"></script>
-  <script src="./form.js"></script>
+
+  <!--
+    form.js 使用 type="module" 以支援 import() 動態載入 firebase.js
+    firebase.js 必須存在於根目錄
+  -->
+  <script type="module" src="./form.js"></script>
 </body>
 </html>
