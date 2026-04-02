@@ -1,24 +1,31 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v7.8.2 完整覆蓋版
+   v7.8.3 完整覆蓋版
 
-   升級項目（由 v7.8.1）：
-   1. 新增 hydrateQueryParams() — 讀取 URL 參數自動填入 invite_code / ref / plan
-   2. 新增 state.lastSubmitResult — 送出成功後統一暫存結果
-   3. 新增 buildLastSubmitResult() — 整理結果物件單一來源
-   4. 新增 pickPaymentDueAt(data) — 優先吃後端欄位，fallback 前端 +3天
-   5. 新增 formatDateYMD(input) — 統一日期格式化，不多處各自重算
-   6. 新增 validateBeforeSubmit() — CTA 成對驗證
-   7. 強化 parseJsonSafe() — 非 JSON 回應給出明確 console.error
-   8. handleCopyCardNotice() 改吃 state.lastSubmitResult
-   9. showSuccessPanel() 只負責顯示，不計算日期
-   10. submit 成功後清除 DRAFT_KEY，保留 QUOTE_STORAGE_KEY
-   11. 全程保留後續可升級空間（Firebase 真上傳、後端欄位對齊等）
+   升級項目（由 v7.8.2）：
+   1. Firebase Storage 真上傳
+      - 選圖後立即顯示 base64 預覽（體驗不中斷）
+      - 背景非同步上傳到 Firebase Storage
+      - 取得 downloadURL 存入 state.photoRealUrls[key]
+      - buildPayload() 優先用 photoRealUrls，沒有才用 base64
+      - 送出前等所有上傳完成（A方案：全部完成才能送出）
+   2. 預覽與成品樣式一致
+      - updatePreview() 同步 plan/color/style/paper class 到 livePreviewCard
+      - renderer 走 useExistingDom: false 產生 DOM
+      - livePreviewCard 的 class 與成品頁 body 一致
+   3. 沿用 v7.8.2 所有功能
+      - hydrateQueryParams / validateBeforeSubmit
+      - state.lastSubmitResult / buildLastSubmitResult
+      - pickPaymentDueAt / formatDateYMD
+      - parseJsonSafe 強化
+      - 送出成功清 DRAFT_KEY
 
    已知風險（保留註解）：
-   - 圖片目前仍為 base64 預覽流，正式商用後需改為先上傳再取 URL
-   - action: "createCardWithOfflinePayment" 必須與 GAS 後端一致，
-     本版本不擅自更名，若後端 action 名稱有異動請一併修改
+   - action: "createCardWithOfflinePayment" 必須與 GAS 後端一致
+   - Firebase uploadImage 上傳路徑：cards/{cardId}/{fileName}
+     cardId 在送出前尚未建立，暫用前端 tempId（timestamp）
+     正式流程建議：先建卡取 cardId，再上傳圖片，再更新卡片圖片欄位
+     本版本採用 tempId 方式，後端收到後可自行 rename
 ============================================================ */
 
 (() => {
@@ -32,7 +39,7 @@
     SERVICE_URL:  "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v782",
+    DRAFT_KEY: "hsc_form_draft_v783",
     BASE_LIMITS: {
       free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
@@ -49,46 +56,138 @@
     MAX_CTAS: 10,
     DEFAULT_PREVIEW_META: {
       layout: "grid", aspect_ratio: "1:1", fit_mode: "cover"
-    }
+    },
+    FIREBASE_MODULE: "./firebase.js"
   };
 
   const DEFAULT_PHOTO_META = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
 
   /* ============================================================
      STATE
-     - lastSubmitResult: 送出成功後的統一暫存，供成功面板與複製文案共用
   ============================================================ */
   const state = {
     photoMeta:        { avatar: { ...DEFAULT_PHOTO_META }, logo: { ...DEFAULT_PHOTO_META } },
-    photoPreviewUrls: {},
-    photoFiles:       {},
+    photoPreviewUrls: {},   // base64 DataURL，供預覽用
+    photoRealUrls:    {},   // Firebase downloadURL，供送出用
+    photoFiles:       {},   // 原始 File 物件
+    photoUploadState: {},   // "pending" | "uploading" | "done" | "error"
     wallPhotoCount:   0,
     ctaCount:         0,
-    lastSubmitResult: null   // 新增：送出成功後統一暫存結果物件
+    lastSubmitResult: null,
+    tempCardId:       null  // 上傳圖片用的暫時 ID（timestamp）
   };
 
   const els = {};
 
+  // Firebase module（lazy import）
+  let _fb = null;
+
   document.addEventListener("DOMContentLoaded", init);
 
   /* ============================================================
-     初始化（順序依規格）
+     初始化
   ============================================================ */
   function init() {
     collectEls();
     ensureRendererAlias();
-    hydrateQueryParams();          // 新增：讀取 URL 參數
-    upgradeExperienceToTextarea(); // FIX 1: 經歷欄位升級為 textarea
+    hydrateQueryParams();
+    upgradeExperienceToTextarea();
     bindStaticEvents();
     restoreDraft();
     ensureDefaultPlan();
+    // 產生本次 session 用的 tempCardId
+    state.tempCardId = "TEMP_" + Date.now();
     refreshAll();
-    // 表單 textarea 不做收折（收折只在成品展示 renderer 內部）
   }
 
   /* ============================================================
-     新增：hydrateQueryParams()
-     讀取 location.search，自動填入 invite_code / ref / plan
+     Firebase lazy import
+  ============================================================ */
+  async function getFirebase() {
+    if (_fb) return _fb;
+    try {
+      _fb = await import(CONFIG.FIREBASE_MODULE);
+      return _fb;
+    } catch (err) {
+      console.error("[HSC form] firebase.js import failed:", err);
+      throw new Error("Firebase 模組載入失敗，請確認 firebase.js 存在於根目錄。");
+    }
+  }
+
+  /* ============================================================
+     圖片上傳到 Firebase Storage
+     上傳路徑：cards/{tempCardId}/{key}.jpg
+     key: avatar / logo / photo1 ~ photo5
+  ============================================================ */
+  async function uploadPhotoToFirebase(key, file) {
+    state.photoUploadState[key] = "uploading";
+    updateUploadBadge(key, "上傳中…");
+
+    try {
+      const fb = await getFirebase();
+      await fb.ensureAuth();
+
+      // 決定檔名
+      const fileName = `${key}.jpg`;
+      const cardId   = state.tempCardId;
+
+      const url = await fb.uploadImage(cardId, file, fileName);
+      state.photoRealUrls[key]    = url;
+      state.photoUploadState[key] = "done";
+      updateUploadBadge(key, "已上傳 ✓");
+      console.log(`[HSC form] upload OK: ${key} →`, url);
+      return url;
+    } catch (err) {
+      state.photoUploadState[key] = "error";
+      updateUploadBadge(key, "上傳失敗");
+      console.error(`[HSC form] upload failed: ${key}`, err);
+      throw err;
+    }
+  }
+
+  function updateUploadBadge(key, text) {
+    // 找到對應 photo-card 的 badge 更新狀態
+    const cards = document.querySelectorAll("[data-photo-key]");
+    cards.forEach(card => {
+      if (card.dataset.photoKey === key) {
+        const badge = card.querySelector(".badge");
+        if (badge) badge.textContent = text;
+      }
+    });
+  }
+
+  /* ============================================================
+     等待所有圖片上傳完成（A 方案：送出前 block）
+  ============================================================ */
+  async function waitAllUploads() {
+    const keys = Object.keys(state.photoUploadState);
+    for (const key of keys) {
+      if (state.photoUploadState[key] === "uploading") {
+        // 等候最多 30 秒
+        await new Promise((resolve, reject) => {
+          const start = Date.now();
+          const check = setInterval(() => {
+            const s = state.photoUploadState[key];
+            if (s === "done" || s === "error") {
+              clearInterval(check);
+              if (s === "error") reject(new Error(`圖片上傳失敗：${key}`));
+              else resolve();
+            }
+            if (Date.now() - start > 30000) {
+              clearInterval(check);
+              reject(new Error(`圖片上傳逾時：${key}`));
+            }
+          }, 300);
+        });
+      }
+      if (state.photoUploadState[key] === "error") {
+        throw new Error(`圖片上傳失敗：${key}，請重新上傳後再試。`);
+      }
+    }
+  }
+
+  /* ============================================================
+     hydrateQueryParams — 讀取 URL 參數自動填入
   ============================================================ */
   function hydrateQueryParams() {
     let search = "";
@@ -97,34 +196,26 @@
 
     const params = new URLSearchParams(search);
 
-    // invite_code
     const inviteCode = params.get("invite_code");
-    if (inviteCode && els["invite_code"]) {
+    if (inviteCode && els["invite_code"])
       els["invite_code"].value = inviteCode.trim();
-    }
 
-    // ref
     const ref = params.get("ref");
-    if (ref && els["ref"]) {
+    if (ref && els["ref"])
       els["ref"].value = ref.trim();
-    }
 
-    // plan — 自動選取方案
     const planParam = params.get("plan");
     if (planParam === "free" || planParam === "premium") {
       const radio = document.querySelector(`input[name="plan"][value="${planParam}"]`);
       if (radio) radio.checked = true;
     }
 
-    // photo_limit — 本版本先不直接覆寫系統邏輯
-    // TODO: 未來可由後端或推薦流程傳入 photo_limit，
-    //       目前僅讀取保留，待後續擴充使用
+    // TODO: photo_limit — 保留未來擴充位置
     // const photoLimit = params.get("photo_limit");
-    // if (photoLimit) { /* 未來實作 */ }
   }
 
   /* ============================================================
-     FIX 1: 將 experience <input> 升級為 <textarea>
+     FIX: 將 experience <input> 升級為 <textarea>
   ============================================================ */
   function upgradeExperienceToTextarea() {
     const old = document.getElementById("experience");
@@ -266,8 +357,7 @@
   }
 
   /* ============================================================
-     新增：validateBeforeSubmit()
-     CTA 成對驗證：文字與連結必須同時有值或同時空白
+     validateBeforeSubmit — CTA 成對驗證
   ============================================================ */
   function validateBeforeSubmit() {
     const limits = getLimits();
@@ -287,27 +377,22 @@
   }
 
   /* ============================================================
-     新增：formatDateYMD(input)
-     統一日期格式化，輸入 ISO 字串或 Date 物件，
-     輸出 "YYYY/MM/DD"
+     formatDateYMD — 統一日期格式化
   ============================================================ */
   function formatDateYMD(input) {
     try {
       const d = input instanceof Date ? input : new Date(input);
-      if (isNaN(d.getTime())) throw new Error("invalid date");
+      if (isNaN(d.getTime())) throw new Error("invalid");
       return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
     } catch (_) {
-      // fallback: 前端 +3天
-      const fallback = new Date();
-      fallback.setDate(fallback.getDate() + 3);
-      return `${fallback.getFullYear()}/${String(fallback.getMonth()+1).padStart(2,"0")}/${String(fallback.getDate()).padStart(2,"0")}`;
+      const fb = new Date();
+      fb.setDate(fb.getDate() + 3);
+      return `${fb.getFullYear()}/${String(fb.getMonth()+1).padStart(2,"0")}/${String(fb.getDate()).padStart(2,"0")}`;
     }
   }
 
   /* ============================================================
-     新增：pickPaymentDueAt(data)
-     優先吃後端回傳的 payment_due_at，
-     多層嘗試後 fallback 前端 +3天
+     pickPaymentDueAt — 優先吃後端欄位
   ============================================================ */
   function pickPaymentDueAt(data) {
     const candidates = [
@@ -319,24 +404,20 @@
     for (const c of candidates) {
       if (c && String(c).trim()) return String(c).trim();
     }
-    // fallback: 前端計算 +3天
     const d = new Date();
     d.setDate(d.getDate() + 3);
     return d.toISOString();
   }
 
   /* ============================================================
-     新增：buildLastSubmitResult({ cardId, previewUrl, paymentDueAt,
-                                   totalAmount, planLabel, customerName })
-     整理成統一結果物件，單一來源
+     buildLastSubmitResult — 整理統一結果物件
   ============================================================ */
   function buildLastSubmitResult({ cardId, previewUrl, paymentDueAt, totalAmount, planLabel, customerName }) {
-    const dueDateStr = formatDateYMD(paymentDueAt);
     return {
       cardId,
       previewUrl,
       paymentDueAt,
-      dueDateStr,
+      dueDateStr: formatDateYMD(paymentDueAt),
       totalAmount,
       planLabel,
       customerName
@@ -344,13 +425,11 @@
   }
 
   /* ============================================================
-     改寫：handleCopyCardNotice()
-     優先吃 state.lastSubmitResult，無則 fallback
+     handleCopyCardNotice — 優先吃 state.lastSubmitResult
   ============================================================ */
   async function handleCopyCardNotice() {
     let r = state.lastSubmitResult;
 
-    // fallback: 若尚無成功資料（例如直接點按鈕），從目前畫面補齊
     if (!r) {
       const limits      = getLimits();
       const addonItems  = getAddonItemsForQuote(limits);
@@ -593,18 +672,26 @@
     fileInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      // TODO: 後續升級為先上傳圖檔取得真實 URL，再存入 state.photoPreviewUrls
-      //       目前暫存 base64 DataURL 作為預覽用途
-      state.photoFiles[key] = file;
-      const url = await fileToDataURL(file);
-      state.photoPreviewUrls[key] = url;
-      previewImage.src = url;
+
+      state.photoFiles[key]  = file;
+      state.photoUploadState[key] = "pending";
+
+      // 立即顯示 base64 預覽
+      const b64 = await fileToDataURL(file);
+      state.photoPreviewUrls[key] = b64;
+      previewImage.src = b64;
       previewImage.classList.remove("hidden");
       previewEmpty.classList.add("hidden");
       tools.classList.remove("hidden");
-      badge.textContent = "已上傳";
+      badge.textContent = "準備上傳…";
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview(); saveDraftSilently();
+      updatePreview();
+      saveDraftSilently();
+
+      // 背景上傳到 Firebase
+      uploadPhotoToFirebase(key, file).catch(err => {
+        setStatus(`圖片上傳失敗（${key}）：${err.message}`, "error");
+      });
     });
 
     zoomRange.addEventListener("input", () => {
@@ -673,7 +760,8 @@
       previewImage.classList.remove("hidden");
       previewEmpty.classList.add("hidden");
       tools.classList.remove("hidden");
-      badge.textContent = "已上傳";
+      const uploadDone = state.photoRealUrls[key];
+      badge.textContent = uploadDone ? "已上傳 ✓" : "已選擇（上傳中）";
       applyPhotoTransform(previewImage, state.photoMeta[key]);
     } else {
       previewImage.removeAttribute("src");
@@ -821,10 +909,68 @@
 
   /* ============================================================
      即時預覽
+     FIX 樣式一致：同步 plan/color/style/paper class 到 livePreviewCard
+     讓 renderer 產生的 DOM 套用與成品頁相同的 style.css 規則
   ============================================================ */
+
+  // 成品頁 body 上的主題 class 列表，預覽容器需要同步
+  const THEME_CLASSES = [
+    "mode-free", "mode-premium",
+    "color-1","color-2","color-3","color-4","color-5",
+    "p1","p2","p3","p4","p5","p6","p7",
+    "style-arch","style-flat","style-spot",
+    "paper-1","paper-2","paper-3"
+  ];
+
+  function syncPreviewContainerClasses() {
+    const root = els["livePreviewCard"];
+    if (!root) return;
+
+    const theme = getThemeSelection();
+    const plan  = theme.plan;
+
+    // 移除所有主題 class
+    THEME_CLASSES.forEach(c => root.classList.remove(c));
+
+    // 補上對應 class
+    root.classList.add(plan === "premium" ? "mode-premium" : "mode-free");
+
+    if (plan === "premium") {
+      const premClass = mapPremiumColor(theme.color);
+      root.classList.add(premClass);
+    } else {
+      root.classList.add(mapFreeColor(theme.color));
+      root.classList.add(mapStyle(theme.style));
+      root.classList.add(mapPaper(theme.paper));
+    }
+  }
+
+  function mapFreeColor(v) {
+    const m = { c1:"color-1", c2:"color-2", c3:"color-3", c4:"color-4", c5:"color-5" };
+    return m[v] || "color-1";
+  }
+
+  function mapStyle(v) {
+    const m = { s1:"style-arch", s2:"style-flat", s3:"style-spot" };
+    return m[v] || "style-arch";
+  }
+
+  function mapPaper(v) {
+    const m = { f1:"paper-1", f2:"paper-2", f3:"paper-3" };
+    return m[v] || "paper-1";
+  }
+
+  function mapPremiumColor(v) {
+    return ["p1","p2","p3","p4","p5","p6","p7"].includes(v) ? v : "p1";
+  }
+
   function updatePreview() {
     const root = els["livePreviewCard"];
     if (!root) return;
+
+    // 先同步 class，再呼叫 renderer
+    syncPreviewContainerClasses();
+
     ensureRendererAlias();
     const renderer = window.HSCCardRenderer || window.HscCardRenderer;
     if (!renderer || typeof renderer.renderCard !== "function") {
@@ -895,16 +1041,18 @@
       }
     };
 
-    if (state.photoPreviewUrls.avatar) {
-      data.avatar_url = state.photoPreviewUrls.avatar;
-      data["u-img"]   = state.photoPreviewUrls.avatar;
-    }
-    if (state.photoPreviewUrls.logo) {
-      data.logo_url = state.photoPreviewUrls.logo;
+    // 優先用真實 URL，沒有才用 base64
+    const avatarUrl = state.photoRealUrls.avatar || state.photoPreviewUrls.avatar || "";
+    if (avatarUrl) {
+      data.avatar_url = avatarUrl;
+      data["u-img"]   = avatarUrl;
     }
 
+    const logoUrl = state.photoRealUrls.logo || state.photoPreviewUrls.logo || "";
+    if (logoUrl) data.logo_url = logoUrl;
+
     for (let i = 1; i <= limits.wallPhotos; i++) {
-      const url = state.photoPreviewUrls[`photo${i}`];
+      const url = state.photoRealUrls[`photo${i}`] || state.photoPreviewUrls[`photo${i}`] || "";
       if (url) {
         data[`photo${i}_url`]  = url;
         data[`photo_url_${i}`] = url;
@@ -921,8 +1069,8 @@
 
   /* 成品展示 renderer 內的收折（僅作用於 livePreviewCard 內部） */
   function bindPreviewCollapseToggles(root) {
-    setupPreviewBlockClamp(root, "#block-service", 140);
-    setupPreviewBlockClamp(root, "#block-exp",     180);
+    setupPreviewBlockClamp(root, "[data-block-service]", 140);
+    setupPreviewBlockClamp(root, "[data-block-exp]",     180);
   }
 
   function setupPreviewBlockClamp(root, selector, collapsedHeight) {
@@ -972,8 +1120,8 @@
 
   /* ============================================================
      buildPayload
-     注意：action: "createCardWithOfflinePayment" 必須與 GAS 後端一致
-     若後端 action 名稱有異動，請同步修改此處
+     優先用 photoRealUrls（Firebase downloadURL），
+     沒有才 fallback base64（警告：base64 不應送入 GAS 生產環境）
   ============================================================ */
   function buildPayload() {
     const limits         = getLimits();
@@ -985,7 +1133,6 @@
 
     const payload = {
       // TODO: 確認 GAS 後端是否有 "createCardWithOfflinePayment" action
-      //       若後端 action 名稱不同，請修改此行
       action: "createCardWithOfflinePayment",
       tenant: "angel",
 
@@ -1029,26 +1176,27 @@
       cta_extra_purchased:   isAddonChecked("addon_cta")
                                ? String(getAddonQty("addon_cta_qty"))   : "",
 
-      // TODO: 後續升級為真實圖片 URL，目前傳入 base64 DataURL
-      avatar_url: previewData.avatar_url || "",
-      logo_url:   previewData.logo_url   || "",
+      // 使用真實 URL，不傳 base64
+      avatar_url: state.photoRealUrls.avatar || "",
+      logo_url:   state.photoRealUrls.logo   || "",
 
       addon_items: addonItems,
 
       features_json: {
-        photo_meta:         buildPhotoMetaMap(),
-        preview_meta:       { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
-        photo_preview_urls: { ...state.photoPreviewUrls }
+        photo_meta:   buildPhotoMetaMap(),
+        preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }
+        // 不再傳 photo_preview_urls（base64 不進 GAS）
       }
     };
 
     for (let i = 1; i <= limits.wallPhotos; i++) {
-      const url = state.photoPreviewUrls[`photo${i}`];
+      const url = state.photoRealUrls[`photo${i}`] || "";
       if (url) {
         payload[`photo${i}_url`]  = url;
         payload[`photo_url_${i}`] = url;
       }
     }
+
     for (let i = 1; i <= limits.ctas; i++) {
       payload[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
       payload[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
@@ -1058,23 +1206,17 @@
   }
 
   /* ============================================================
-     送出流程 v7.8.2
-     順序：validateBeforeSubmit → showProgress → fetch →
-           pickPaymentDueAt → buildLastSubmitResult →
-           state.lastSubmitResult → QUOTE_STORAGE_KEY →
-           清 DRAFT_KEY → showSuccessPanel
+     送出流程 v7.8.3
   ============================================================ */
   async function submit(e) {
     e.preventDefault();
 
-    // 必填驗證
     const payload = buildPayload();
     if (!payload.name || !payload.phone || !payload.plan) {
       setStatus("請先完成必填欄位（姓名、電話、方案）。", "error");
       return;
     }
 
-    // CTA 成對驗證
     if (!validateBeforeSubmit()) return;
 
     const limits      = getLimits();
@@ -1084,15 +1226,21 @@
 
     showProgress(true);
     hideSuccessPanel();
-    setProgressStep(1, "正在整理表單與 features_json…");
+    setProgressStep(1, "正在等待圖片上傳完成…");
 
     try {
+      // A 方案：等所有圖片上傳完成
+      await waitAllUploads();
+
       setProgressStep(2, "正在送出建卡資料…");
+
+      // 重新 buildPayload 確保使用最新 photoRealUrls
+      const finalPayload = buildPayload();
 
       const res  = await fetch(CONFIG.GAS_URL, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(payload)
+        body:    JSON.stringify(finalPayload)
       });
 
       const data = await parseJsonSafe(res);
@@ -1103,7 +1251,6 @@
 
       setProgressStep(3, "正在整理報價資料…");
 
-      // 相容多種 GAS 回傳格式
       const cardId =
         data.card_id       ||
         data.id            ||
@@ -1117,30 +1264,25 @@
         ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
         : CONFIG.SHOWCASE_URL;
 
-      // 優先吃後端 payment_due_at，fallback 前端 +3天
       const paymentDueAt = pickPaymentDueAt(data);
-      const dueDateStr   = formatDateYMD(paymentDueAt);
 
       setProgressStep(4, "正在寫入報價與預覽資料…");
 
-      // 整理統一結果物件
       const result = buildLastSubmitResult({
         cardId,
         previewUrl,
         paymentDueAt,
         totalAmount,
         planLabel:    limits.planLabel,
-        customerName: payload.name
+        customerName: finalPayload.name
       });
 
-      // 存入 state（供面板與複製文案共用）
       state.lastSubmitResult = result;
 
-      // 存入 localStorage（供 quote-success.html 使用）
-      const quoteData = {
+      localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify({
         card_id:        cardId,
-        customer_name:  payload.name     || "",
-        plan_name:      limits.planLabel || "方案",
+        customer_name:  finalPayload.name || "",
+        plan_name:      limits.planLabel  || "方案",
         submitted_at:   new Date().toISOString(),
         payment_notice: "請於 3 天內完成付款",
         payment_due_at: paymentDueAt,
@@ -1149,10 +1291,8 @@
         addon_items:    addonItems,
         addon_amount:   Number(addonAmount || 0),
         total_amount:   Number(totalAmount || 0)
-      };
-      localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify(quoteData));
+      }));
 
-      // 成功後清除草稿，保留 QUOTE_STORAGE_KEY
       localStorage.removeItem(CONFIG.DRAFT_KEY);
 
       setProgressStep(5, "✅ 申請成功！名片已建立。");
@@ -1166,23 +1306,19 @@
   }
 
   /* ============================================================
-     改寫：showSuccessPanel(result)
-     只負責顯示，不計算日期或金額
-     接收已整理好的 result 物件（來自 buildLastSubmitResult）
+     showSuccessPanel — 只負責顯示
   ============================================================ */
   function showSuccessPanel(result) {
     if (!result) return;
 
     if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
 
-    // 序號
     const idEl = els["progress-card-id-display"];
     if (idEl) {
       idEl.textContent    = result.cardId || "（待確認）";
       idEl.dataset.cardId = result.cardId || "";
     }
 
-    // 預覽連結
     const linkEl = els["progress-preview-link"];
     if (linkEl) {
       linkEl.href        = result.previewUrl;
@@ -1210,9 +1346,7 @@
   }
 
   /* ============================================================
-     強化：parseJsonSafe(res)
-     非 JSON 回應給出明確 console.error，
-     並回傳 { ok:false, error, raw } 讓 submit catch 可顯示訊息
+     parseJsonSafe — 強化版
   ============================================================ */
   async function parseJsonSafe(res) {
     let raw = "";
@@ -1251,7 +1385,6 @@
     return { plan, color: els["premium_color"]?.value || "p1", style: "", paper: "" };
   }
 
-  /* 進度條 */
   function showProgress(show) {
     if (!els["submit-progress-overlay"]) return;
     els["submit-progress-overlay"].classList.toggle("hidden", !show);
@@ -1284,7 +1417,6 @@
     if (stateName) el.dataset.state = stateName; else delete el.dataset.state;
   }
 
-  /* 草稿 */
   function collectFormValues() {
     const out = {};
     document.querySelectorAll("input, textarea, select").forEach(el => {
@@ -1296,10 +1428,10 @@
   }
 
   function saveDraft() {
+    // 草稿只存表單值與 photoMeta，不存 base64（避免 localStorage 爆掉）
     localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify({
-      values:           collectFormValues(),
-      photoMeta:        state.photoMeta,
-      photoPreviewUrls: state.photoPreviewUrls
+      values:    collectFormValues(),
+      photoMeta: state.photoMeta
     }));
   }
 
@@ -1323,10 +1455,8 @@
       }
     });
 
-    if (draft.photoMeta        && typeof draft.photoMeta        === "object")
-      state.photoMeta        = draft.photoMeta;
-    if (draft.photoPreviewUrls && typeof draft.photoPreviewUrls === "object")
-      state.photoPreviewUrls = draft.photoPreviewUrls;
+    if (draft.photoMeta && typeof draft.photoMeta === "object")
+      state.photoMeta = draft.photoMeta;
 
     ensurePhotoMetaKey("avatar");
     ensurePhotoMetaKey("logo");
@@ -1338,7 +1468,6 @@
     location.reload();
   }
 
-  /* 格式化 */
   function money(v) { return `NT$ ${Number(v || 0).toLocaleString("zh-TW")}`; }
 
   async function copyText(str) {
