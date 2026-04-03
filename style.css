@@ -1,14 +1,11 @@
 /* ============================================================
    天使幸福智慧名片館 style.css
-   v7.8.4.3-color-refinement
-   基於 v7.8.4.2-visual-refinement
+   v7.8.4.4-corner-fix
+   基於 v7.8.4.3-color-refinement
 
-   v7.8.4.3 修正：
-   - p1 重定義：水蜜桃嫩粉，飽和不艷，少女感
-   - p2 重定義：酒紅成熟，深度有層次不沉悶
-   - p6 FX 層重製：金絲感，45°+135° 交織細紋，輕薄透氣
-   - p1/p2 色球漸層同步更新
-   - 新增 goldSilkShimmer 動畫（p6 專屬）
+   v7.8.4.4 修正：
+   - 移除 premium 卡片背景右下角 rgba(0,0,0,.24) 暗角漸層
+   - 底部 inset shadow 從 .18 降至 .08，四角不再發黑
 ============================================================ */
 
 :root {
@@ -432,11 +429,10 @@ body.mode-premium .card,
     0 10px 28px rgba(0,0,0,.24),
     0 0 0 1px rgba(255,255,255,.06),
     inset 0 1px 0 rgba(255,255,255,.24),
-    inset 0 -2px 0 rgba(0,0,0,.18);
+    inset 0 -1px 0 rgba(0,0,0,.08);
   background:
     radial-gradient(ellipse 100% 50% at 50% -5%, rgba(255,255,255,.18) 0%, transparent 55%),
     radial-gradient(ellipse 60% 40% at 12% 18%, rgba(255,255,255,.08) 0%, transparent 50%),
-    radial-gradient(ellipse 70% 50% at 88% 85%, rgba(0,0,0,.24) 0%, transparent 58%),
     linear-gradient(168deg, var(--p) 0%, var(--s) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
