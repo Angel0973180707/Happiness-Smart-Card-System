@@ -1,11 +1,15 @@
 /* ============================================================
    天使幸福智慧名片館 style.css
-   v7.8.4.4-corner-fix
-   基於 v7.8.4.3-color-refinement
+   v7.8.4.5-color-depth
+   基於 v7.8.4.4-corner-fix
 
-   v7.8.4.4 修正：
-   - 移除 premium 卡片背景右下角 rgba(0,0,0,.24) 暗角漸層
-   - 底部 inset shadow 從 .18 降至 .08，四角不再發黑
+   v7.8.4.5 修正：
+   - p1 降亮度，水蜜桃有深度不過白
+   - p2 降飽和，真酒紅，沉而不艷
+   - p4 去俗紫，改霧藕紫，降飽和加灰調
+   - p6 降黃調，深沉金屬金，去芒果感
+   - 欄位框立體感強化：頂部亮邊+底部壓暗+多層陰影
+   - 色球同步更新
 ============================================================ */
 
 :root {
@@ -144,48 +148,48 @@ body.color-5,
    精品色變數區（p1 ~ p7）
    v7.8.4.2: p6 金箔大幅強化
 ============================================================ */
-/* p1 水蜜桃嫩粉 v7.8.4.3 */
+/* p1 水蜜桃粉 v7.8.4.5 — 有深度，不過亮 */
 body.p1,
 #livePreviewCard.p1,
 .preview-theme-scope.p1 {
-  --p: #f0808a;
-  --s: #d45868;
-  --prem-soft: rgba(255,200,210,.16);
-  --premium-dark-veil: rgba(30,8,12,.04);
-  --premium-dark-veil-2: rgba(30,8,12,.10);
-  --premium-texture-1: rgba(255,215,222,.10);
-  --premium-texture-2: rgba(240,140,155,.06);
-  --premium-texture-3: rgba(255,235,240,.04);
-  --panel-accent: rgba(255,195,208,.20);
-  --panel-accent-2: rgba(220,110,130,.12);
-  --premium-light-band: rgba(255,210,220,.14);
-  --premium-light-core: rgba(255,225,232,.09);
-  --premium-panel-bg-1: rgba(255,220,228,.14);
-  --premium-panel-bg-2: rgba(240,140,155,.05);
-  --premium-panel-border: rgba(255,200,215,.24);
-  --premium-panel-highlight: rgba(255,218,228,.28);
-  --premium-panel-shadow: rgba(120,30,45,.16);
+  --p: #d9606e;
+  --s: #a83848;
+  --prem-soft: rgba(255,185,195,.14);
+  --premium-dark-veil: rgba(28,6,10,.05);
+  --premium-dark-veil-2: rgba(28,6,10,.12);
+  --premium-texture-1: rgba(255,195,205,.09);
+  --premium-texture-2: rgba(210,110,125,.05);
+  --premium-texture-3: rgba(255,220,228,.03);
+  --panel-accent: rgba(255,180,195,.18);
+  --panel-accent-2: rgba(195,90,108,.12);
+  --premium-light-band: rgba(255,195,208,.12);
+  --premium-light-core: rgba(255,210,220,.08);
+  --premium-panel-bg-1: rgba(255,200,212,.11);
+  --premium-panel-bg-2: rgba(210,110,125,.05);
+  --premium-panel-border: rgba(255,175,192,.20);
+  --premium-panel-highlight: rgba(255,198,212,.24);
+  --premium-panel-shadow: rgba(100,22,35,.20);
 }
 
-/* p2 酒紅成熟 v7.8.4.3 */
+/* p2 酒紅沉穩 v7.8.4.5 — 降飽和，有深度 */
 body.p2,
 #livePreviewCard.p2,
 .preview-theme-scope.p2 {
-  --p: #8c2a3e;
-  --s: #4e1020;
-  --prem-soft: rgba(255,200,215,.14);
-  --premium-texture-1: rgba(220,130,148,.08);
-  --premium-texture-2: rgba(160,60,80,.05);
-  --premium-texture-3: rgba(255,210,220,.03);
-  --panel-accent: rgba(255,170,190,.18);
-  --panel-accent-2: rgba(140,50,70,.14);
-  --premium-light-band: rgba(255,185,205,.11);
-  --premium-light-core: rgba(255,200,215,.07);
-  --premium-panel-bg-1: rgba(255,200,215,.12);
-  --premium-panel-bg-2: rgba(200,90,110,.06);
-  --premium-panel-border: rgba(255,175,195,.22);
-  --premium-panel-highlight: rgba(255,195,210,.24);
-  --premium-panel-shadow: rgba(55,10,20,.24);
+  --p: #7a2235;
+  --s: #3e0e1a;
+  --prem-soft: rgba(220,160,175,.12);
+  --premium-texture-1: rgba(190,100,118,.07);
+  --premium-texture-2: rgba(130,45,62,.05);
+  --premium-texture-3: rgba(230,180,190,.03);
+  --panel-accent: rgba(230,148,165,.15);
+  --panel-accent-2: rgba(120,40,58,.12);
+  --premium-light-band: rgba(240,165,182,.09);
+  --premium-light-core: rgba(245,180,195,.06);
+  --premium-panel-bg-1: rgba(235,165,180,.10);
+  --premium-panel-bg-2: rgba(170,72,88,.05);
+  --premium-panel-border: rgba(220,148,165,.18);
+  --premium-panel-highlight: rgba(235,168,182,.20);
+  --premium-panel-shadow: rgba(45,8,16,.26);
 }
 
 body.p3,
@@ -202,18 +206,25 @@ body.p3,
   --premium-light-band: rgba(212,231,250,.10);
 }
 
+/* p4 霧藕紫 v7.8.4.5 — 去俗氣，降飽和偏灰藕 */
 body.p4,
 #livePreviewCard.p4,
 .preview-theme-scope.p4 {
-  --p: #6e5aa8;
-  --s: #3f2f78;
-  --prem-soft: rgba(255,255,255,.16);
-  --premium-texture-1: rgba(245,235,255,.12);
-  --premium-texture-2: rgba(210,190,255,.08);
-  --premium-texture-3: rgba(255,235,170,.05);
-  --panel-accent: rgba(243,214,141,.26);
-  --panel-accent-2: rgba(197,154,74,.16);
-  --premium-light-band: rgba(229,214,255,.11);
+  --p: #7060a0;
+  --s: #3e3068;
+  --prem-soft: rgba(210,200,240,.14);
+  --premium-texture-1: rgba(215,205,245,.10);
+  --premium-texture-2: rgba(170,158,210,.06);
+  --premium-texture-3: rgba(235,228,255,.04);
+  --panel-accent: rgba(200,190,235,.20);
+  --panel-accent-2: rgba(148,135,190,.14);
+  --premium-light-band: rgba(212,205,245,.10);
+  --premium-light-core: rgba(225,218,252,.07);
+  --premium-panel-bg-1: rgba(215,208,248,.11);
+  --premium-panel-bg-2: rgba(165,155,205,.05);
+  --premium-panel-border: rgba(200,192,238,.20);
+  --premium-panel-highlight: rgba(218,212,248,.22);
+  --premium-panel-shadow: rgba(38,28,72,.20);
 }
 
 body.p5,
@@ -230,53 +241,52 @@ body.p5,
   --premium-light-band: rgba(220,233,242,.09);
 }
 
-/* ── p6 金箔 v7.8.4.2 大幅強化 ── */
+/* p6 金屬金 v7.8.4.5 — 深沉，去芒果黃，有金屬重量感 */
 body.p6,
 #livePreviewCard.p6,
 .preview-theme-scope.p6 {
-  --p: #c49a2e;
-  --s: #7a5210;
-  --prem-soft: rgba(255,242,195,.16);
-  --premium-texture-1: rgba(255,238,175,.12);
-  --premium-texture-2: rgba(210,158,65,.08);
-  --premium-texture-3: rgba(255,250,225,.05);
-  --panel-accent: rgba(255,228,145,.22);
-  --panel-accent-2: rgba(168,118,35,.16);
-  --premium-light-band: rgba(255,235,158,.16);
-  --premium-light-core: rgba(255,245,190,.10);
-  --premium-panel-bg-1: rgba(255,235,165,.15);
-  --premium-panel-bg-2: rgba(190,130,35,.07);
-  --premium-panel-border: rgba(255,220,128,.26);
-  --premium-panel-highlight: rgba(255,240,175,.30);
-  --premium-panel-shadow: rgba(65,32,0,.28);
-  /* 金箔專屬擴展變數 */
-  --gold-foil-dark:   #5c3a08;
-  --gold-foil-base:   #9a7020;
-  --gold-foil-mid:    #c9a030;
-  --gold-foil-bright: #e8c858;
-  --gold-foil-shine:  #f8e890;
-  --gold-foil-white:  #fffbe0;
+  --p: #a07828;
+  --s: #5c3e08;
+  --prem-soft: rgba(235,210,155,.14);
+  --premium-texture-1: rgba(240,210,140,.10);
+  --premium-texture-2: rgba(175,128,45,.07);
+  --premium-texture-3: rgba(248,232,185,.04);
+  --panel-accent: rgba(238,205,120,.18);
+  --panel-accent-2: rgba(145,98,25,.14);
+  --premium-light-band: rgba(242,218,138,.13);
+  --premium-light-core: rgba(248,228,165,.08);
+  --premium-panel-bg-1: rgba(240,215,145,.12);
+  --premium-panel-bg-2: rgba(165,108,28,.06);
+  --premium-panel-border: rgba(228,195,105,.22);
+  --premium-panel-highlight: rgba(242,218,152,.26);
+  --premium-panel-shadow: rgba(55,28,0,.30);
+  --gold-foil-dark:   #3e2604;
+  --gold-foil-base:   #7a5618;
+  --gold-foil-mid:    #a07828;
+  --gold-foil-bright: #c8a040;
+  --gold-foil-shine:  #e0c060;
+  --gold-foil-white:  #f5e098;
   --gold-foil-grad: linear-gradient(
     105deg,
-    #5c3a08  0%,
-    #9a7020 15%,
-    #c9a030 30%,
-    #f0d060 46%,
-    #fffbe0 50%,
-    #f0d060 54%,
-    #c9a030 70%,
-    #8a6018 86%,
-    #5c3a08 100%
+    #3e2604  0%,
+    #7a5618 16%,
+    #a07828 30%,
+    #c8a040 44%,
+    #f0d878 50%,
+    #c8a040 56%,
+    #a07828 70%,
+    #6a4810 86%,
+    #3e2604 100%
   );
   --gold-foil-grad-h: linear-gradient(
     90deg,
-    #5c3a08  0%,
-    #9a7020 18%,
-    #e8c858 38%,
-    #fffbe0 50%,
-    #e8c858 62%,
-    #9a7020 82%,
-    #5c3a08 100%
+    #3e2604  0%,
+    #7a5618 18%,
+    #c8a040 36%,
+    #f0d878 50%,
+    #c8a040 64%,
+    #7a5618 82%,
+    #3e2604 100%
   );
 }
 
@@ -461,42 +471,42 @@ body.mode-premium .premium-fx-layer,
   mix-blend-mode: screen;
 }
 
-/* ── p1 水蜜桃嫩粉 ── */
+/* ── p1 水蜜桃粉 ── */
 body.mode-premium.p1 .card,
 #livePreviewCard.mode-premium.p1 .card,
 .preview-theme-scope.mode-premium.p1 .card {
-  filter: saturate(1.12) brightness(1.02) contrast(1.06);
-  border-color: rgba(255,195,210,.22);
+  filter: saturate(1.08) brightness(0.98) contrast(1.08);
+  border-color: rgba(255,175,190,.20);
 }
 
 body.mode-premium.p1 .premium-fx-layer,
 #livePreviewCard.mode-premium.p1 .premium-fx-layer,
 .preview-theme-scope.mode-premium.p1 .premium-fx-layer {
   background:
-    repeating-linear-gradient(142deg, rgba(255,220,228,.028) 0 1px, transparent 1px 13px),
-    linear-gradient(138deg, transparent 0%, rgba(255,210,220,.12) 36%, transparent 60%),
-    linear-gradient(228deg, transparent 0%, rgba(240,140,160,.06) 46%, transparent 72%);
-  opacity: .62;
+    repeating-linear-gradient(142deg, rgba(245,190,200,.022) 0 1px, transparent 1px 13px),
+    linear-gradient(138deg, transparent 0%, rgba(240,185,198,.10) 36%, transparent 60%),
+    linear-gradient(228deg, transparent 0%, rgba(185,100,118,.05) 46%, transparent 72%);
+  opacity: .58;
   mix-blend-mode: soft-light;
 }
 
-/* ── p2 酒紅成熟 ── */
+/* ── p2 酒紅沉穩 ── */
 body.mode-premium.p2 .card,
 #livePreviewCard.mode-premium.p2 .card,
 .preview-theme-scope.mode-premium.p2 .card {
-  filter: saturate(1.08) brightness(0.97) contrast(1.09);
-  border-color: rgba(255,170,188,.16);
+  filter: saturate(0.95) brightness(0.94) contrast(1.10);
+  border-color: rgba(220,140,158,.14);
 }
 
 body.mode-premium.p2 .premium-fx-layer,
 #livePreviewCard.mode-premium.p2 .premium-fx-layer,
 .preview-theme-scope.mode-premium.p2 .premium-fx-layer {
   background:
-    repeating-linear-gradient(132deg, rgba(255,200,215,.022) 0 1px, transparent 1px 12px),
-    repeating-linear-gradient(42deg, rgba(0,0,0,.016) 0 1px, transparent 1px 14px),
-    linear-gradient(128deg, transparent 0%, rgba(255,185,205,.08) 28%, transparent 50%),
-    linear-gradient(228deg, transparent 0%, rgba(140,40,60,.06) 46%, transparent 70%);
-  opacity: .56;
+    repeating-linear-gradient(132deg, rgba(220,155,170,.018) 0 1px, transparent 1px 12px),
+    repeating-linear-gradient(42deg, rgba(0,0,0,.018) 0 1px, transparent 1px 16px),
+    linear-gradient(128deg, transparent 0%, rgba(210,148,165,.07) 28%, transparent 50%),
+    linear-gradient(228deg, transparent 0%, rgba(110,30,48,.06) 46%, transparent 70%);
+  opacity: .50;
   mix-blend-mode: soft-light;
 }
 
@@ -511,16 +521,23 @@ body.mode-premium.p3 .premium-fx-layer,
   opacity: .52;
 }
 
-/* ── p4 ── */
+/* ── p4 霧藕紫 ── */
+body.mode-premium.p4 .card,
+#livePreviewCard.mode-premium.p4 .card,
+.preview-theme-scope.mode-premium.p4 .card {
+  filter: saturate(0.88) brightness(1.00) contrast(1.05);
+  border-color: rgba(195,185,232,.18);
+}
+
 body.mode-premium.p4 .premium-fx-layer,
 #livePreviewCard.mode-premium.p4 .premium-fx-layer,
 .preview-theme-scope.mode-premium.p4 .premium-fx-layer {
   background:
-    repeating-linear-gradient(160deg, rgba(255,255,255,.035) 0 1px, transparent 1px 10px),
-    linear-gradient(140deg, transparent 0%, rgba(240,225,255,.14) 28%, transparent 60%),
-    linear-gradient(220deg, transparent 0%, rgba(200,180,255,.10) 44%, transparent 72%);
-  opacity: .62;
-  background-blend-mode: screen, overlay, normal;
+    repeating-linear-gradient(155deg, rgba(210,202,242,.030) 0 1px, transparent 1px 11px),
+    linear-gradient(138deg, transparent 0%, rgba(205,198,240,.10) 28%, transparent 58%),
+    linear-gradient(218deg, transparent 0%, rgba(165,155,205,.07) 44%, transparent 70%);
+  opacity: .55;
+  mix-blend-mode: soft-light;
 }
 
 /* ── p5 ── */
@@ -534,27 +551,20 @@ body.mode-premium.p5 .premium-fx-layer,
   opacity: .56;
 }
 
-/* ── p6 金箔 v7.8.4.2 深度強化 ── */
+/* ── p6 金屬金 v7.8.4.5 ── */
 body.mode-premium.p6 .card,
 #livePreviewCard.mode-premium.p6 .card,
 .preview-theme-scope.mode-premium.p6 .card {
-  filter: saturate(1.18) brightness(0.93) contrast(1.14);
-  border-color: rgba(255,215,105,.24);
+  filter: saturate(1.05) brightness(0.88) contrast(1.16);
+  border-color: rgba(200,168,80,.22);
   box-shadow:
-    /* 頂部金色高光邊 */
-    0 2px 0 rgba(255,228,140,.18),
-    /* 主陰影深度 */
-    0 36px 80px rgba(45,22,0,.44),
-    0 10px 28px rgba(35,16,0,.30),
-    /* 外框金色光暈 */
-    0 0 0 1px rgba(255,205,85,.08),
-    /* 頂部玻璃高光 */
-    inset 0 1px 0 rgba(255,238,168,.30),
-    /* 底部壓暗 */
-    inset 0 -2px 0 rgba(22,10,0,.22),
-    /* 外側金色暈光 */
-    0 0 48px rgba(200,158,40,.12),
-    0 0 96px rgba(180,130,20,.06);
+    0 2px 0 rgba(225,190,110,.14),
+    0 36px 80px rgba(35,18,0,.48),
+    0 10px 28px rgba(28,12,0,.32),
+    0 0 0 1px rgba(200,158,60,.07),
+    inset 0 1px 0 rgba(235,200,120,.26),
+    inset 0 -1px 0 rgba(18,8,0,.14),
+    0 0 40px rgba(160,118,30,.10);
 }
 
 body.mode-premium.p6 .premium-fx-layer,
@@ -1472,33 +1482,32 @@ body.mode-free .dot,
 .dot.dot-4 { background: linear-gradient(135deg, #ac96da, #6f5ba7); }
 .dot.dot-5 { background: linear-gradient(135deg, #8cd0a4, #489167); }
 
-/* p1 水蜜桃嫩粉色球 */
-.p-dot.p1 { background: linear-gradient(135deg, #f9b8c0, #f0808a 36%, #d45868 68%, #b83a52); }
-/* p2 酒紅成熟色球 */
-.p-dot.p2 { background: linear-gradient(135deg, #c06070, #8c2a3e 34%, #4e1020 70%, #360a18); }
+/* p1 水蜜桃粉色球 */
+.p-dot.p1 { background: linear-gradient(135deg, #e89aa5, #d9606e 38%, #a83848 70%, #7a2232); }
+/* p2 酒紅沉穩色球 */
+.p-dot.p2 { background: linear-gradient(135deg, #a05868, #7a2235 36%, #3e0e1a 70%, #280812); }
 .p-dot.p3 { background: linear-gradient(135deg, #5a7a9a, #466585 36%, #253d5b 70%, #1a2e47); }
-.p-dot.p4 { background: linear-gradient(135deg, #8c78c6, #6e5aa8 34%, #3f2f78 68%, #2b1f58); }
+/* p4 霧藕紫色球 */
+.p-dot.p4 { background: linear-gradient(135deg, #a098cc, #7060a0 36%, #3e3068 70%, #2a2050); }
 .p-dot.p5 { background: linear-gradient(135deg, #b6c5cf 0%, #9fb0bd 22%, #7f8f9a 50%, #62727e 100%); }
-
-/* p6 金箔色點：五色漸層模擬真金屬反光 */
+/* p6 金屬金色球 */
 .p-dot.p6 {
   background: linear-gradient(
     135deg,
-    #f0d878  0%,
-    #c8962a 18%,
-    #e8c858 32%,
-    #fffbe0 46%,
-    #c9a030 58%,
-    #8a6018 74%,
-    #5c3a08 100%
+    #d4aa48  0%,
+    #a07828 20%,
+    #c8a040 34%,
+    #e8c858 48%,
+    #a07828 62%,
+    #6a4810 78%,
+    #3e2604 100%
   );
   box-shadow:
-    0 14px 28px rgba(60,30,0,.22),
-    inset 0 2px 8px rgba(255,238,160,.50),
-    inset 0 -8px 12px rgba(40,18,0,.22),
-    0 0 16px rgba(200,158,40,.18);
+    0 14px 28px rgba(45,22,0,.26),
+    inset 0 2px 8px rgba(220,185,110,.42),
+    inset 0 -8px 12px rgba(35,16,0,.24),
+    0 0 14px rgba(160,118,30,.16);
 }
-
 .p-dot.p7 { background: linear-gradient(135deg, #948073, #7a655a 34%, #5d493f 66%, #4b3a33); }
 
 /* ============================================================
@@ -1556,16 +1565,21 @@ body.mode-premium .announcement-card,
 #livePreviewCard.mode-premium .announcement-card,
 .preview-theme-scope.mode-premium .announcement-card {
   border: 1px solid var(--premium-panel-border);
-  border-bottom-color: rgba(0,0,0,.13);
+  border-top-color: rgba(255,255,255,.28);
+  border-bottom-color: rgba(0,0,0,.22);
   background:
     linear-gradient(180deg,
-      rgba(255,255,255,.15) 0%,
-      rgba(255,255,255,.06) 100%
+      rgba(255,255,255,.18) 0%,
+      rgba(255,255,255,.07) 50%,
+      rgba(0,0,0,.04) 100%
     );
   box-shadow:
-    0 9px 26px var(--premium-panel-shadow, rgba(0,0,0,.16)),
+    0 2px 0 rgba(255,255,255,.12),
+    0 10px 28px var(--premium-panel-shadow, rgba(0,0,0,.18)),
+    0 2px 6px rgba(0,0,0,.12),
     inset 0 1px 0 var(--premium-panel-highlight),
-    inset 0 -1px 0 rgba(0,0,0,.09);
+    inset 0 -2px 0 rgba(0,0,0,.14),
+    inset 0 0 0 1px rgba(255,255,255,.06);
   backdrop-filter: blur(24px) saturate(1.6);
   -webkit-backdrop-filter: blur(24px) saturate(1.6);
 }
