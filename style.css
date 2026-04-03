@@ -147,15 +147,15 @@ body.color-5,
 body.p1,
 #livePreviewCard.p1,
 .preview-theme-scope.p1 {
-  --p: #c8687a;
-  --s: #8c3245;
+  --p: #c04858;
+  --s: #882030;
   --prem-soft: rgba(255,255,255,.20);
-  --premium-texture-1: rgba(255,235,240,.10);
-  --premium-texture-2: rgba(220,140,155,.07);
+  --premium-texture-1: rgba(255,225,228,.10);
+  --premium-texture-2: rgba(210,110,120,.07);
   --premium-texture-3: rgba(255,255,255,.05);
-  --panel-accent: rgba(255,210,220,.20);
-  --panel-accent-2: rgba(180,90,110,.14);
-  --premium-light-band: rgba(255,220,228,.09);
+  --panel-accent: rgba(255,200,208,.20);
+  --panel-accent-2: rgba(175,75,90,.14);
+  --premium-light-band: rgba(255,210,216,.09);
 }
 
 body.p2,
@@ -410,10 +410,10 @@ body.mode-premium.p1 .premium-fx-layer,
 #livePreviewCard.mode-premium.p1 .premium-fx-layer,
 .preview-theme-scope.mode-premium.p1 .premium-fx-layer {
   background:
-    repeating-linear-gradient(145deg, rgba(255,255,255,.028) 0 1px, transparent 1px 10px),
-    linear-gradient(135deg, transparent 0%, rgba(255,228,234,.10) 34%, transparent 60%),
-    linear-gradient(225deg, transparent 0%, rgba(210,130,148,.07) 44%, transparent 72%);
-  opacity: .50;
+    repeating-linear-gradient(145deg, rgba(255,255,255,.026) 0 1px, transparent 1px 10px),
+    linear-gradient(135deg, transparent 0%, rgba(255,215,218,.10) 34%, transparent 60%),
+    linear-gradient(225deg, transparent 0%, rgba(200,100,110,.07) 44%, transparent 72%);
+  opacity: .52;
 }
 
 body.mode-premium.p2 .card,
@@ -1228,7 +1228,7 @@ body.mode-free .dot,
 .dot.dot-4 { background: linear-gradient(135deg, #ac96da, #6f5ba7); }
 .dot.dot-5 { background: linear-gradient(135deg, #8cd0a4, #489167); }
 
-.p-dot.p1 { background: linear-gradient(135deg, #e0949f, #c8687a 30%, #8c3245 70%, #6e2236); }
+.p-dot.p1 { background: linear-gradient(135deg, #d87080, #c04858 30%, #882030 70%, #641828); }
 .p-dot.p2 { background: linear-gradient(135deg, #a85068, #7a2840 34%, #4e1428 70%, #360d1c); }
 .p-dot.p3 { background: linear-gradient(135deg, #5a7a9a, #466585 36%, #253d5b 70%, #1a2e47); }
 .p-dot.p4 { background: linear-gradient(135deg, #8c78c6, #6e5aa8 34%, #3f2f78 68%, #2b1f58); }
