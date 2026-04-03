@@ -1,7 +1,7 @@
 /* ============================================================
    天使幸福智慧名片館 style.css
-   v527.0-palette-refined
-   完整覆蓋版 — 精品配色優化（p1-p7 飽和度 / 亮度 / 色差全面提升）
+   v528.0-marquee-integrated
+   完整覆蓋版 — 精品配色 + 跑馬燈整合版
 ============================================================ */
 
 :root {
@@ -2350,6 +2350,153 @@ body.mode-free.paper-3 #paperOverlay::after {
       rgba(0,0,0,.00) 7px, rgba(0,0,0,.00) 12px);
 }
 
+
+/* ============================================================
+   ★ 跑馬燈 Marquee — 完整系統
+============================================================ */
+
+.marquee-dock {
+  overflow: hidden;
+}
+
+.marquee-shell {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.03);
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.94), rgba(255,255,255,.82)),
+    rgba(255,255,255,.84);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.92),
+    inset 0 -1px 0 rgba(0,0,0,.03);
+}
+
+.marquee-shell::before,
+.marquee-shell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 28px;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.marquee-shell::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(255,255,255,.98), rgba(255,255,255,0));
+}
+
+.marquee-shell::after {
+  right: 0;
+  background: linear-gradient(270deg, rgba(255,255,255,.98), rgba(255,255,255,0));
+}
+
+.marquee-track {
+  display: inline-flex;
+  align-items: center;
+  min-width: max-content;
+  will-change: transform;
+  animation: hscMarquee var(--marquee-duration, 14s) linear infinite;
+}
+
+.marquee-dock.is-static .marquee-track {
+  animation: none;
+  min-width: 100%;
+}
+
+.marquee-text {
+  display: inline-block;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  color: var(--accentText);
+  white-space: nowrap;
+}
+
+/* Premium 模式跑馬燈 */
+body.mode-premium .marquee-shell {
+  border: 1px solid rgba(255,255,255,.12);
+  border-bottom-color: rgba(0,0,0,.12);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.14) 0%, rgba(255,255,255,.06) 100%);
+  box-shadow:
+    0 8px 24px rgba(0,0,0,.16),
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -1px 0 rgba(0,0,0,.08);
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+}
+
+body.mode-premium .marquee-shell::before {
+  background: linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,0));
+}
+
+body.mode-premium .marquee-shell::after {
+  background: linear-gradient(270deg, rgba(255,255,255,.08), rgba(255,255,255,0));
+}
+
+body.mode-premium .marquee-text {
+  color: rgba(255,255,255,.98);
+  text-shadow:
+    0 1px 6px rgba(0,0,0,.28),
+    0 0 10px rgba(255,255,255,.04);
+}
+
+/* p1 玫瑰 — 跑馬燈 */
+body.mode-premium.p1 .marquee-shell {
+  border-color: rgba(255,185,200,.18);
+  background: linear-gradient(180deg, rgba(255,215,222,.14), rgba(255,190,204,.06));
+}
+
+/* p2 勃艮第 — 跑馬燈 */
+body.mode-premium.p2 .marquee-shell {
+  border-color: rgba(200,130,148,.16);
+  background: linear-gradient(180deg, rgba(200,130,148,.14), rgba(155,85,102,.06));
+}
+
+/* p3 靛藍 — 跑馬燈 */
+body.mode-premium.p3 .marquee-shell {
+  border-color: rgba(130,170,210,.14);
+  background: linear-gradient(180deg, rgba(130,170,210,.14), rgba(90,130,180,.06));
+}
+
+/* p4 薰衣草 — 跑馬燈 */
+body.mode-premium.p4 .marquee-shell {
+  border-color: rgba(200,190,244,.16);
+  background: linear-gradient(180deg, rgba(200,190,244,.14), rgba(155,140,220,.06));
+}
+
+/* p5 月光銀 — 跑馬燈 */
+body.mode-premium.p5 .marquee-shell {
+  border-color: rgba(200,220,240,.18);
+  background: linear-gradient(180deg, rgba(220,235,248,.16), rgba(180,205,225,.07));
+}
+
+/* p6 流金 — 跑馬燈 */
+body.mode-premium.p6 .marquee-shell {
+  border-color: rgba(255,210,100,.18);
+  background: linear-gradient(180deg, rgba(255,228,148,.14), rgba(191,149,63,.07));
+}
+
+body.mode-premium.p6 .marquee-text {
+  color: rgba(255,248,220,.99);
+}
+
+/* p7 可可棕 — 跑馬燈 */
+body.mode-premium.p7 .marquee-shell {
+  border-color: rgba(190,160,130,.14);
+  background: linear-gradient(180deg, rgba(196,168,140,.14), rgba(140,108,80,.06));
+}
+
+@keyframes hscMarquee {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
 /* ============================================================
    Responsive
 ============================================================ */
@@ -2370,6 +2517,12 @@ body.mode-free.paper-3 #paperOverlay::after {
     font-size: 10px;
     letter-spacing: .08em;
     opacity: .46;
+  }
+
+
+  .marquee-text {
+    padding: 11px 16px;
+    font-size: 12px;
   }
 
   .announcement-card {
