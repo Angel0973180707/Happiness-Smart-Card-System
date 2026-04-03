@@ -21,8 +21,8 @@
   --line: rgba(0,0,0,.07);
   --p: #ff6b81;
   --s: #ff4757;
-  --free-sat: 1.18;
-  --free-contrast: 1.03;
+  --free-sat: 1.24;
+  --free-contrast: 1.04;
 
   --prem-ink: rgba(255,255,255,.97);
   --prem-ink-strong: #ffffff;
@@ -373,7 +373,7 @@ body.mode-premium .card,
     linear-gradient(135deg, var(--p), var(--s));
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  filter: saturate(1.12) brightness(1.015) contrast(1.05);
+  filter: saturate(1.22) brightness(1.02) contrast(1.06);
 }
 
 .premium-fx-layer {
@@ -620,8 +620,8 @@ body.mode-free.style-arch .banner,
 #livePreviewCard.mode-free.style-arch .banner,
 .preview-theme-scope.mode-free.style-arch .banner {
   background:
-    radial-gradient(960px 340px at 50% -14%, rgba(255,255,255,.56), transparent 68%),
-    radial-gradient(660px 270px at 16% 4%, rgba(255,255,255,.22), transparent 70%),
+    radial-gradient(960px 340px at 50% -14%, rgba(255,255,255,.32), transparent 68%),
+    radial-gradient(660px 270px at 16% 4%, rgba(255,255,255,.14), transparent 70%),
     linear-gradient(138deg, rgba(0,0,0,.03), rgba(0,0,0,.00)),
     linear-gradient(135deg, var(--p), var(--s));
 }
@@ -663,10 +663,10 @@ body.mode-free.style-spot .banner,
 #livePreviewCard.mode-free.style-spot .banner,
 .preview-theme-scope.mode-free.style-spot .banner {
   background:
-    radial-gradient(540px 228px at 18% 0%, rgba(255,255,255,.58), transparent 72%),
-    radial-gradient(640px 270px at 82% 8%, rgba(255,255,255,.30), transparent 70%),
-    radial-gradient(540px 270px at 10% 10%, rgba(255,255,255,.18), transparent 72%),
-    linear-gradient(135deg, rgba(255,255,255,.08), rgba(0,0,0,.03)),
+    radial-gradient(540px 228px at 18% 0%, rgba(255,255,255,.30), transparent 72%),
+    radial-gradient(640px 270px at 82% 8%, rgba(255,255,255,.16), transparent 70%),
+    radial-gradient(540px 270px at 10% 10%, rgba(255,255,255,.10), transparent 72%),
+    linear-gradient(135deg, rgba(255,255,255,.04), rgba(0,0,0,.02)),
     linear-gradient(135deg, var(--p), var(--s));
 }
 
@@ -856,7 +856,7 @@ body.mode-premium .logo-img,
   font-weight: 900;
   letter-spacing: .18em;
   line-height: 1.5;
-  color: rgba(48,32,24,1);
+  color: var(--accentText);
   border-radius: 20px;
   background:
     linear-gradient(180deg, rgba(255,255,255,.68), rgba(255,255,255,.24));
@@ -1182,7 +1182,7 @@ body.mode-free .dot,
       0 20px 34px rgba(0,0,0,.18),
       inset 0 2px 9px rgba(255,255,255,.42),
       inset 0 -9px 14px rgba(0,0,0,.18);
-    filter: saturate(1.05) brightness(1.03);
+    filter: saturate(1.15) brightness(1.04);
   }
 }
 
@@ -1210,7 +1210,7 @@ body.mode-free .dot,
   border-radius: 18px;
   padding: 12px 12px;
   border: 1px solid rgba(0,0,0,.08);
-  background: rgba(255,255,255,.78);
+  background: color-mix(in srgb, var(--p) 5%, rgba(255,255,255,.80));
   position: relative;
   overflow: hidden;
 }
@@ -1325,7 +1325,7 @@ body.mode-premium .block-body,
   border-radius: 18px;
   padding: 10px;
   border: 1px solid rgba(0,0,0,.05);
-  background: rgba(255,255,255,.74);
+  background: color-mix(in srgb, var(--p) 4%, rgba(255,255,255,.76));
   position: relative;
   overflow: hidden;
   box-shadow:
@@ -1508,7 +1508,7 @@ body.mode-premium .marquee-text,
   border-radius: 18px;
   padding: 10px;
   border: 1px solid rgba(0,0,0,.05);
-  background: rgba(255,255,255,.74);
+  background: color-mix(in srgb, var(--p) 4%, rgba(255,255,255,.76));
   box-shadow:
     0 10px 24px rgba(0,0,0,.07),
     inset 0 1px 0 rgba(255,255,255,.64);
