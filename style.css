@@ -147,29 +147,29 @@ body.color-5,
 body.p1,
 #livePreviewCard.p1,
 .preview-theme-scope.p1 {
-  --p: #dd97a3;
-  --s: #b2505f;
-  --prem-soft: rgba(255,255,255,.22);
-  --premium-texture-1: rgba(255,242,246,.12);
-  --premium-texture-2: rgba(255,226,234,.08);
-  --premium-texture-3: rgba(255,255,255,.06);
-  --panel-accent: rgba(255,223,230,.24);
-  --panel-accent-2: rgba(204,116,132,.16);
-  --premium-light-band: rgba(255,233,240,.11);
+  --p: #c8687a;
+  --s: #8c3245;
+  --prem-soft: rgba(255,255,255,.20);
+  --premium-texture-1: rgba(255,235,240,.10);
+  --premium-texture-2: rgba(220,140,155,.07);
+  --premium-texture-3: rgba(255,255,255,.05);
+  --panel-accent: rgba(255,210,220,.20);
+  --panel-accent-2: rgba(180,90,110,.14);
+  --premium-light-band: rgba(255,220,228,.09);
 }
 
 body.p2,
 #livePreviewCard.p2,
 .preview-theme-scope.p2 {
-  --p: #905868;
-  --s: #623645;
+  --p: #7a2840;
+  --s: #4e1428;
   --prem-soft: rgba(255,255,255,.16);
-  --premium-texture-1: rgba(255,235,241,.08);
-  --premium-texture-2: rgba(0,0,0,.035);
+  --premium-texture-1: rgba(255,220,230,.07);
+  --premium-texture-2: rgba(180,80,100,.05);
   --premium-texture-3: rgba(255,255,255,.03);
-  --panel-accent: rgba(222,180,192,.22);
-  --panel-accent-2: rgba(142,97,112,.15);
-  --premium-light-band: rgba(238,212,221,.09);
+  --panel-accent: rgba(200,140,158,.18);
+  --panel-accent-2: rgba(120,50,70,.14);
+  --premium-light-band: rgba(220,160,178,.08);
 }
 
 body.p3,
@@ -400,24 +400,36 @@ body.mode-premium .premium-fx-layer,
   filter: none;
 }
 
+body.mode-premium.p1 .card,
+#livePreviewCard.mode-premium.p1 .card,
+.preview-theme-scope.mode-premium.p1 .card {
+  filter: saturate(1.08) brightness(1.01) contrast(1.04);
+}
+
 body.mode-premium.p1 .premium-fx-layer,
 #livePreviewCard.mode-premium.p1 .premium-fx-layer,
 .preview-theme-scope.mode-premium.p1 .premium-fx-layer {
   background:
-    repeating-linear-gradient(145deg, rgba(255,255,255,.035) 0 1px, transparent 1px 10px),
-    linear-gradient(135deg, transparent 0%, rgba(255,242,246,.13) 34%, transparent 60%),
-    linear-gradient(225deg, transparent 0%, rgba(255,226,234,.08) 44%, transparent 72%);
-  opacity: .54;
+    repeating-linear-gradient(145deg, rgba(255,255,255,.028) 0 1px, transparent 1px 10px),
+    linear-gradient(135deg, transparent 0%, rgba(255,228,234,.10) 34%, transparent 60%),
+    linear-gradient(225deg, transparent 0%, rgba(210,130,148,.07) 44%, transparent 72%);
+  opacity: .50;
+}
+
+body.mode-premium.p2 .card,
+#livePreviewCard.mode-premium.p2 .card,
+.preview-theme-scope.mode-premium.p2 .card {
+  filter: saturate(1.10) brightness(1.02) contrast(1.06);
 }
 
 body.mode-premium.p2 .premium-fx-layer,
 #livePreviewCard.mode-premium.p2 .premium-fx-layer,
 .preview-theme-scope.mode-premium.p2 .premium-fx-layer {
   background:
-    repeating-linear-gradient(135deg, rgba(255,255,255,.022) 0 2px, transparent 2px 11px),
-    repeating-linear-gradient(45deg, rgba(0,0,0,.020) 0 1px, transparent 1px 13px),
-    linear-gradient(125deg, transparent 0%, rgba(255,235,242,.06) 24%, transparent 42%);
-  opacity: .50;
+    repeating-linear-gradient(135deg, rgba(255,255,255,.018) 0 2px, transparent 2px 11px),
+    repeating-linear-gradient(45deg, rgba(0,0,0,.018) 0 1px, transparent 1px 13px),
+    linear-gradient(125deg, transparent 0%, rgba(255,200,215,.06) 24%, transparent 42%);
+  opacity: .52;
 }
 
 body.mode-premium.p3 .premium-fx-layer,
@@ -1216,8 +1228,8 @@ body.mode-free .dot,
 .dot.dot-4 { background: linear-gradient(135deg, #ac96da, #6f5ba7); }
 .dot.dot-5 { background: linear-gradient(135deg, #8cd0a4, #489167); }
 
-.p-dot.p1 { background: linear-gradient(135deg, #eaadb6, #dd97a3 30%, #b2505f 70%, #94414e); }
-.p-dot.p2 { background: linear-gradient(135deg, #a86e7d, #905868 34%, #623645 70%, #472631); }
+.p-dot.p1 { background: linear-gradient(135deg, #e0949f, #c8687a 30%, #8c3245 70%, #6e2236); }
+.p-dot.p2 { background: linear-gradient(135deg, #a85068, #7a2840 34%, #4e1428 70%, #360d1c); }
 .p-dot.p3 { background: linear-gradient(135deg, #5a7a9a, #466585 36%, #253d5b 70%, #1a2e47); }
 .p-dot.p4 { background: linear-gradient(135deg, #8c78c6, #6e5aa8 34%, #3f2f78 68%, #2b1f58); }
 .p-dot.p5 { background: linear-gradient(135deg, #b6c5cf 0%, #9fb0bd 22%, #7f8f9a 50%, #62727e 100%); }
