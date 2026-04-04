@@ -627,21 +627,23 @@
   function renderPremiumBanner(p, scope) {
     const banner = scope.banner;
     const bannerImg = scope.bannerImg;
-    if (!banner || !bannerImg) return;
+    const cardRoot = scope.cardRoot;
+    if (!banner || !bannerImg || !cardRoot) return;
 
     const plan = getEffectiveTheme(p);
     const info = pickPremiumBannerInfo(p);
     const u = info.url;
-    banner.classList.remove("has-premium-banner", "no-premium-banner");
+
+    cardRoot.classList.remove("has-premium-banner", "no-premium-banner");
 
     if (plan !== "premium" || !u) {
-      banner.classList.add("no-premium-banner");
+      cardRoot.classList.add("no-premium-banner");
       bannerImg.removeAttribute("src");
       bannerImg.style.display = "none";
       return;
     }
 
-    banner.classList.add("has-premium-banner");
+    cardRoot.classList.add("has-premium-banner");
     bannerImg.style.display = "block";
     const meta = getPhotoMeta(p, "premium_banner");
     bannerImg.style.objectPosition = `${(meta.x * 100).toFixed(2)}% ${(meta.y * 100).toFixed(2)}%`;
@@ -655,8 +657,8 @@
     setImgWithFallback(bannerImg, buildImgCandidates(u), {
       onLoad: function () { bannerImg.style.display = "block"; },
       onFail: function () {
-        banner.classList.remove("has-premium-banner");
-        banner.classList.add("no-premium-banner");
+        cardRoot.classList.remove("has-premium-banner");
+        cardRoot.classList.add("no-premium-banner");
         bannerImg.removeAttribute("src");
         bannerImg.style.display = "none";
       }

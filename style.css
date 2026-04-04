@@ -161,22 +161,19 @@ body.mode-free .banner-img,
 
 body.mode-premium .banner,
 .mode-premium .banner {
-  display: block;
+  display: none !important;
+  height: 130px;
+}
+body.mode-premium .card.has-premium-banner .banner,
+.mode-premium .card.has-premium-banner .banner {
+  display: block !important;
   height: 156px;
   background:
     linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
     linear-gradient(135deg, var(--p), var(--s));
 }
-body.mode-premium .banner.no-premium-banner,
-.mode-premium .banner.no-premium-banner {
-  display: none !important;
-}
-body.mode-premium .banner.has-premium-banner,
-.mode-premium .banner.has-premium-banner {
-  display: block !important;
-}
-body.mode-premium .banner.has-premium-banner .banner-img,
-.mode-premium .banner.has-premium-banner .banner-img {
+body.mode-premium .card.has-premium-banner .banner-img,
+.mode-premium .card.has-premium-banner .banner-img {
   display: block !important;
 }
 
@@ -194,9 +191,9 @@ body.mode-premium .paper-overlay,
 body.mode-free .avatar-wrap,
 .mode-free .avatar-wrap { margin-top: -58px; }
 body.mode-premium .avatar-wrap,
-.mode-premium .avatar-wrap { margin-top: -38px; padding-top: 0; }
-body.mode-premium .banner.no-premium-banner ~ .paper-overlay ~ .avatar-wrap,
-.mode-premium .banner.no-premium-banner ~ .paper-overlay ~ .avatar-wrap { margin-top: 18px; padding-top: 6px; }
+.mode-premium .avatar-wrap { margin-top: 18px; padding-top: 6px; }
+body.mode-premium .card.has-premium-banner .avatar-wrap,
+.mode-premium .card.has-premium-banner .avatar-wrap { margin-top: -38px; padding-top: 0; }
 
 .avatar-circle {
   width: 112px;
