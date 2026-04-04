@@ -8,22 +8,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <!--
-    style.css 引入說明（v7.8.4）：
-    .preview-theme-scope 是預覽主題作用域容器，
-    form.js 會動態將 mode-free / mode-premium / color-x / p1~p7 等 class
-    掛在 .preview-theme-scope 上，使 style.css 的 body.mode-premium .xxx 規則
-    可透過 .preview-theme-scope.mode-premium .xxx 完整套用，
-    達成預覽與成品頁樣式 100% 一致。
-  -->
   <link rel="stylesheet" href="./style.css" />
 
   <style>
-    /* ============================================================
-       form-local.css  v7.8.4
-       僅包含表單頁面專屬樣式，不覆蓋 style.css
-    ============================================================ */
-
     :root {
       --bg: #f7f5f1;
       --ink: #2a241e;
@@ -411,7 +398,6 @@
     input[type="number"] { width: 72px; padding: 10px 12px; text-align: center; }
     input[disabled], select[disabled] { opacity: .46; cursor: not-allowed; }
 
-    /* 照片區塊 */
     .photo-sections { display: flex; flex-direction: column; gap: 18px; }
 
     .photo-section {
@@ -557,28 +543,6 @@
     .cta-title-label { font-size: 13px; font-weight: 900; color: var(--muted); }
     .marquee-stack { display: flex; flex-direction: column; gap: 12px; }
 
-    /* ============================================================
-       預覽區塊
-       v7.8.4 關鍵修正：
-       .preview-theme-scope 是主題 class 的掛載點。
-       form.js 的 syncPreviewContainerClasses() 會將
-       mode-free / mode-premium / color-1 / p1 / style-arch / paper-1 等
-       全部掛在 .preview-theme-scope 上。
-
-       style.css 的規則型態：
-         body.mode-premium .card { ... }
-         body.color-1 { --p: ... }
-         body.p1 { --p: ... }
-
-       透過在 style.css 的選擇器前補上
-         .preview-theme-scope 同等對應 body
-       讓預覽吃到與成品頁完全一致的樣式。
-
-       注意：style.css 已有
-         body.mode-premium .xxx, #livePreviewCard.mode-premium .xxx
-       等雙選擇器寫法，可部分覆蓋，但主題色變數（--p / --s 等）
-       需靠 .preview-theme-scope 作為 CSS 繼承根節點才能正確傳遞。
-    ============================================================ */
     .preview-section {
       display: grid;
       grid-template-columns: 1.1fr .9fr;
@@ -595,23 +559,11 @@
       overflow: hidden;
     }
 
-    /*
-      .preview-theme-scope：主題 class 的作用域根節點
-      form.js 會動態將以下 class 同步掛在此元素上：
-        mode-free / mode-premium
-        color-1~5（自由搭配）
-        p1~p7（精品設計）
-        style-arch / style-flat / style-spot
-        paper-1 / paper-2 / paper-3
-      確保 style.css 裡 body.mode-premium .card 等規則
-      可透過 .preview-theme-scope.mode-premium .card 完全套用。
-    */
     .preview-theme-scope {
       min-height: 420px;
       position: relative;
     }
 
-    /* style.css 中用 body.xxx 的規則，在預覽區改用 .preview-theme-scope.xxx */
     .preview-theme-scope.mode-premium {
       background: radial-gradient(1200px 700px at 18% 0%, rgba(255,255,255,.14), transparent 55%),
                   radial-gradient(900px 700px at 86% 8%, rgba(255,255,255,.07), transparent 60%),
@@ -650,7 +602,6 @@
       font-size: 13px;
     }
 
-    /* 按鈕 */
     .primary-btn, .ghost-btn, .line-btn {
       display: inline-flex;
       align-items: center;
@@ -696,7 +647,6 @@
 
     .action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-    /* 進度條彈窗 */
     .progress-overlay {
       position: fixed;
       inset: 0;
@@ -753,7 +703,6 @@
     .progress-step.is-active { background: #fff7ec; color: #8b5b16; font-weight: 900; }
     .progress-step.is-done   { background: #edf9f3; color: #0b8a56; }
 
-    /* 成功面板 */
     .progress-success-panel {
       margin-top: 16px;
       padding: 16px;
@@ -872,7 +821,6 @@
       margin-top: 4px;
     }
 
-    /* RWD */
     @media (max-width: 980px) {
       .preview-section, .addon-layout { grid-template-columns: 1fr; }
     }
@@ -905,12 +853,11 @@
 </head>
 <body>
   <main class="form-shell">
-
     <header class="page-hero">
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v7.8.4｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
+        <p class="hero-desc">v7.8.5｜精品款支援可選 Banner，上傳後即時套用預覽；未上傳自動隱藏。</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -923,7 +870,6 @@
       <input type="hidden" id="invite_code" name="invite_code" value="" />
       <input type="hidden" id="ref"         name="ref"         value="" />
 
-      <!-- STEP 1 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -958,8 +904,8 @@
                 <span class="plan-title">精品設計</span>
                 <span class="plan-price-tag">NT$ 2,000</span>
               </span>
-              <span class="plan-meta">精品色系，版型更精緻</span>
-              <span class="plan-mini">個人照 1 ／ Logo 1 ／ 照片牆 5 ／ CTA 3</span>
+              <span class="plan-meta">精品色系，版型更精緻，可選 Banner 圖</span>
+              <span class="plan-mini">個人照 1 ／ Logo 1 ／ Banner 1（可選）／ 照片牆 5 ／ CTA 3</span>
             </span>
           </label>
         </div>
@@ -968,7 +914,6 @@
           <div>
             <h3>功能加購</h3>
             <div class="addon-stack">
-
               <label class="addon-item">
                 <input type="checkbox" name="addons" value="addon_marquee" id="addon_marquee_enabled" />
                 <span class="addon-content">
@@ -1035,7 +980,6 @@
                 </span>
                 <span class="addon-price-tag">NT$ 10,000</span>
               </label>
-
             </div>
           </div>
 
@@ -1049,7 +993,7 @@
               <li>CTA 按鈕<strong id="summary-cta-count">-</strong> 組</li>
               <li>跑馬燈<strong id="summary-marquee-status">未開啟</strong></li>
             </ul>
-            <p class="summary-note">個人照與 Logo 固定；照片牆依方案與加購連動。</p>
+            <p class="summary-note">精品設計另支援可選 Banner 1 張；未上傳不顯示。</p>
           </aside>
         </div>
 
@@ -1070,7 +1014,6 @@
         </div>
       </section>
 
-      <!-- STEP 2 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1121,13 +1064,12 @@
                 <option value="p6">金箔</option>
                 <option value="p7">褐碳</option>
               </select>
-              <p class="field-hint">精品方案僅選色，版型與紙感由系統套用。</p>
+              <p class="field-hint">精品方案僅選色，版型與紙感由系統套用；可再選擇是否上傳 Banner。</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- STEP 3 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1183,12 +1125,6 @@
             <input type="text" id="wechat_id" placeholder="例：your_wechat_id" />
           </div>
 
-          <!--
-            experience 欄位：form.js upgradeExperienceToTextarea() 會在 DOMContentLoaded 後
-            將此 input 升級為 textarea，並補上 hint 文字。
-            v7.8.4 修正：upgradeExperienceToTextarea() 加防重複執行保護，
-            草稿回填在升級後才執行，不會因元素替換導致失效。
-          -->
           <div class="field-group">
             <label class="field-label" for="experience">經歷</label>
             <input type="text" id="experience" placeholder="例：前 XX 公司品牌顧問、10 年業界資歷" />
@@ -1212,7 +1148,6 @@
         </div>
       </section>
 
-      <!-- STEP 4 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1263,19 +1198,17 @@
         </div>
       </section>
 
-      <!-- STEP 5 -->
       <section class="form-card">
         <div class="section-head">
           <div>
             <p class="section-kicker">STEP 5</p>
             <h2>照片上傳</h2>
-            <p>個人照、Logo、照片牆分區上傳，支援旋轉、移動、縮放。圖片選取後自動上傳。</p>
+            <p>個人照、Logo、精品 Banner（精品款可選）與照片牆分區上傳，支援旋轉、移動、縮放。圖片選取後自動上傳。</p>
           </div>
         </div>
         <div id="photo-slots" class="photo-sections"></div>
       </section>
 
-      <!-- STEP 6 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1287,7 +1220,6 @@
         <div id="cta-slots" class="cta-stack"></div>
       </section>
 
-      <!-- STEP 7 跑馬燈 -->
       <section id="marquee-section" class="form-card hidden">
         <div class="section-head">
           <div>
@@ -1299,14 +1231,12 @@
         <div class="marquee-stack">
           <div class="field-group">
             <label class="field-label" for="marquee_text">跑馬燈內容</label>
-            <textarea id="marquee_text" rows="3"
-              placeholder="例：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始&#10;（用｜分隔，系統自動輪播）"></textarea>
+            <textarea id="marquee_text" rows="3" placeholder="例：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始&#10;（用｜分隔，系統自動輪播）"></textarea>
             <p class="field-hint">每段以「｜」隔開，不需分行。</p>
           </div>
         </div>
       </section>
 
-      <!-- STEP 8 預覽 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1318,15 +1248,6 @@
 
         <div class="preview-section">
           <div class="preview-card-board">
-            <!--
-              v7.8.4 預覽作用域修正：
-              .preview-theme-scope 是主題 class 的掛載容器
-              form.js syncPreviewContainerClasses() 將 mode-free / mode-premium /
-              color-x / p1~p7 / style-arch / paper-1 等 class 掛在此元素，
-              讓 style.css 的 body.mode-premium .card 等規則
-              透過 .preview-theme-scope.mode-premium .card 完全套用。
-              #livePreviewCard 是 renderer 的渲染目標，不再直接承載主題 class。
-            -->
             <div class="preview-theme-scope" id="preview-theme-scope">
               <div id="livePreviewCard" aria-live="polite"></div>
             </div>
@@ -1334,6 +1255,7 @@
           <div class="preview-card">
             <h3>預覽說明</h3>
             <p class="hint">即時走正式 card-renderer.js 渲染，顏色、版型、精品色系與成品完全一致。</p>
+            <p class="hint">精品款 Banner 上傳後會直接顯示在卡片最上方；沒上傳會自動隱藏。</p>
             <p class="hint">未填欄位由 renderer 自動隱藏。</p>
             <p class="hint">圖片選取後自動上傳 Firebase，上傳完成才能送出。</p>
             <p class="hint">送出後將收到成品連結與繳費期限（3 天倒數）。</p>
@@ -1341,7 +1263,6 @@
         </div>
       </section>
 
-      <!-- 操作列 -->
       <section class="form-card">
         <div class="action-row">
           <button type="button" class="ghost-btn" id="btn-save-draft">暫存草稿</button>
@@ -1353,7 +1274,6 @@
     </form>
   </main>
 
-  <!-- 進度條彈窗 -->
   <div id="submit-progress-overlay" class="progress-overlay hidden">
     <div class="progress-card">
       <h3 class="progress-title">資料送出中</h3>
@@ -1371,9 +1291,7 @@
         <li class="progress-step" data-step="5">5. 申請完成</li>
       </ul>
 
-      <!-- 成功面板 -->
       <div id="progress-success-panel" class="progress-success-panel hidden">
-
         <div class="success-header">
           <div class="success-header-icon">🎉</div>
           <div class="success-header-title">名片申請成功！</div>
@@ -1410,24 +1328,18 @@
         </div>
 
         <div class="success-actions">
-          <button type="button" class="primary-btn mini" id="btn-copy-card-notice">
-            📋 複製序號＋回覆文案
-          </button>
-          <button type="button" class="line-btn mini" id="progress-contact-service">
-            💬 LINE 客服開通
-          </button>
+          <button type="button" class="primary-btn mini" id="btn-copy-card-notice">📋 複製序號＋回覆文案</button>
+          <button type="button" class="line-btn mini" id="progress-contact-service">💬 LINE 客服開通</button>
         </div>
 
         <p class="success-footer-note">
           點「複製序號＋回覆文案」→ 貼到 LINE 客服對話框<br>
           客服確認付款後將立即為您開通名片。
         </p>
-
       </div>
     </div>
   </div>
 
-  <!-- 照片 slot template -->
   <template id="photo-slot-template">
     <article class="photo-card">
       <div class="photo-head">
@@ -1459,30 +1371,21 @@
     </article>
   </template>
 
-  <!-- CTA slot template -->
   <template id="cta-slot-template">
     <article class="cta-slot-card">
       <label class="cta-title-label"></label>
       <div class="field-group">
         <label class="field-label">按鈕文字</label>
-        <input type="text" class="cta-label-input"
-          placeholder="例：預約諮詢、立即購買、加入會員" />
+        <input type="text" class="cta-label-input" placeholder="例：預約諮詢、立即購買、加入會員" />
       </div>
       <div class="field-group">
         <label class="field-label">按鈕連結</label>
-        <input type="url" class="cta-url-input"
-          placeholder="https://line.me/ti/p/~yourID（點按鈕後跳轉的網址）" />
+        <input type="url" class="cta-url-input" placeholder="https://line.me/ti/p/~yourID（點按鈕後跳轉的網址）" />
       </div>
     </article>
   </template>
 
-  <!-- card-renderer.js 必須在 form.js 之前載入 -->
   <script src="./card-renderer.js"></script>
-
-  <!--
-    form.js 使用 type="module" 以支援 import() 動態載入 firebase.js
-    firebase.js 必須存在於根目錄
-  -->
   <script type="module" src="./form.js"></script>
 </body>
 </html>
