@@ -3,2058 +3,337 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title id="page-title">天使幸福智慧名片</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <title>天使幸福智慧名片｜共構表單</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./style.css" />
-
-  <style>
-    /* ============================================================
-       form.css v8.0.0-unified
-       三模式共構表單專屬樣式
-       create / update / renew — 共用骨架，依 mode 切換
-    ============================================================ */
-
-    :root {
-      --bg: #f7f5f1;
-      --ink: #2a241e;
-      --muted: rgba(42,36,30,.64);
-      --soft: #f3eee7;
-      --soft-2: #fbf7f0;
-      --line: rgba(42,36,30,.10);
-      --accent: #f0a04b;
-      --accent-2: #c87c28;
-      --accent-soft: rgba(240,160,75,.18);
-      --premium: #9e7bd3;
-      --premium-soft: rgba(158,123,211,.16);
-      --success: #06a66a;
-      --danger: #d34e69;
-      --info: #3b82f6;
-      --radius: 22px;
-      --shadow: 0 16px 36px rgba(0,0,0,.07);
-      --shadow-soft: 0 10px 24px rgba(83,62,45,.07);
-      --warm-white: rgba(255,253,249,.98);
-      --poster-line: rgba(102,78,57,.09);
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { -webkit-text-size-adjust: 100%; }
-
-    body {
-      background: linear-gradient(180deg, #f8f5f0, #f7f5f1);
-      color: var(--ink);
-      font-family: "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .form-shell {
-      max-width: 1120px;
-      margin: 0 auto;
-      padding: 24px 16px 60px;
-    }
-
-    /* ─────────── MODE INDICATOR STRIP ─────────── */
-    .mode-indicator {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-
-    .mode-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: .04em;
-    }
-
-    .mode-badge.create { background: rgba(240,160,75,.16); color: #8b5b16; border: 1px solid rgba(240,160,75,.28); }
-    .mode-badge.update { background: rgba(59,130,246,.12); color: #1e40af; border: 1px solid rgba(59,130,246,.22); }
-    .mode-badge.renew  { background: rgba(6,166,106,.12);  color: #0a7a4e; border: 1px solid rgba(6,166,106,.20); }
-
-    /* ─────────── PAGE HERO ─────────── */
-    .page-hero {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .eyebrow {
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    h1 {
-      font-size: 36px;
-      font-weight: 900;
-      line-height: 1.12;
-      margin-bottom: 8px;
-      letter-spacing: .02em;
-    }
-
-    .hero-desc {
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 700;
-      line-height: 1.7;
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: flex-start;
-      padding-top: 4px;
-    }
-
-    /* ─────────── STATUS STRIP ─────────── */
-    .status-strip {
-      min-height: 26px;
-      padding: 12px 16px;
-      background: var(--warm-white);
-      border-radius: 14px;
-      border: 1px solid var(--line);
-      margin-bottom: 14px;
-      box-shadow: var(--shadow-soft);
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--muted);
-      display: none;
-    }
-
-    .status-strip.visible { display: block; }
-    .status-strip[data-state="error"]   { background: #fff1f1; color: #a83d3d; border-color: rgba(200,60,60,.18); }
-    .status-strip[data-state="warn"]    { background: #fff8ee; color: #8b5b16; border-color: rgba(240,160,75,.22); }
-    .status-strip[data-state="success"] { background: rgba(6,166,106,.10); color: #0a7a4e; border-color: rgba(6,166,106,.20); }
-    .status-strip[data-state="info"]    { background: rgba(59,130,246,.08); color: #1e40af; border-color: rgba(59,130,246,.20); }
-
-    /* ─────────── UPDATE ELIGIBILITY CARD ─────────── */
-    .eligibility-card {
-      padding: 18px 20px;
-      border-radius: 18px;
-      border: 1.5px solid var(--line);
-      background: var(--warm-white);
-      margin-bottom: 14px;
-      box-shadow: var(--shadow-soft);
-    }
-
-    .eligibility-card.charge-required {
-      border-color: rgba(240,160,75,.36);
-      background: linear-gradient(135deg, #fffdf9, #fff7ec);
-    }
-
-    .eligibility-card.charge-free {
-      border-color: rgba(6,166,106,.24);
-      background: linear-gradient(135deg, #f0fff8, #e8f9f2);
-    }
-
-    .eligibility-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      margin-top: 14px;
-    }
-
-    .eligibility-stat {
-      text-align: center;
-      padding: 12px;
-      border-radius: 14px;
-      background: rgba(255,255,255,.68);
-      border: 1px solid var(--line);
-    }
-
-    .eligibility-stat-value {
-      font-size: 24px;
-      font-weight: 900;
-      color: var(--ink);
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-
-    .eligibility-stat-label {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--muted);
-      letter-spacing: .04em;
-    }
-
-    .charge-alert {
-      margin-top: 14px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: #fff7ec;
-      border: 1px solid rgba(240,160,75,.28);
-      font-size: 13px;
-      font-weight: 800;
-      color: #8b5b16;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* ─────────── RENEWAL SUMMARY ─────────── */
-    .renewal-summary-card {
-      padding: 18px 20px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, #fffdf9, #fff7ec);
-      border: 1.5px solid rgba(240,160,75,.22);
-      margin-bottom: 14px;
-      box-shadow: var(--shadow-soft);
-    }
-
-    .renewal-plan-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 0;
-      border-bottom: 1px dashed rgba(42,36,30,.08);
-    }
-
-    .renewal-plan-row:last-child { border-bottom: none; }
-
-    .renewal-plan-label {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--muted);
-      min-width: 100px;
-    }
-
-    .renewal-plan-value {
-      font-size: 14px;
-      font-weight: 900;
-      color: var(--ink);
-    }
-
-    .renewal-options {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 14px;
-    }
-
-    .renewal-option {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px;
-      border-radius: 14px;
-      border: 1.5px solid var(--line);
-      background: var(--warm-white);
-      cursor: pointer;
-      transition: border-color .14s, box-shadow .14s;
-    }
-
-    .renewal-option:hover {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-    }
-
-    .renewal-option input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); flex: 0 0 auto; }
-    .renewal-option-content { flex: 1; }
-    .renewal-option-title { font-size: 14px; font-weight: 900; }
-    .renewal-option-desc  { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 2px; }
-    .renewal-option-price { font-size: 14px; font-weight: 900; color: #8b5b16; white-space: nowrap; }
-
-    /* ─────────── TARGET PLAN SELECTOR (renew) ─────────── */
-    .target-plan-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    /* ─────────── FORM CARD ─────────── */
-    .form-card {
-      background: var(--warm-white);
-      border-radius: var(--radius);
-      padding: 24px 22px;
-      margin-bottom: 14px;
-      box-shadow: var(--shadow);
-      border: 1px solid var(--poster-line);
-    }
-
-    .section-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
-    }
-
-    .section-kicker {
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: 1.2px;
-      text-transform: uppercase;
-      color: rgba(42,36,30,.38);
-      margin-bottom: 6px;
-    }
-
-    h2 {
-      font-size: 22px;
-      font-weight: 900;
-      margin-bottom: 4px;
-      letter-spacing: .02em;
-    }
-
-    h2 + p, .section-head p {
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 700;
-      line-height: 1.7;
-      margin: 0;
-    }
-
-    h3 {
-      font-size: 15px;
-      font-weight: 900;
-      margin-bottom: 10px;
-    }
-
-    .limit-badges { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 5px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
-      background: var(--soft);
-      color: var(--muted);
-      border: 1px solid var(--line);
-    }
-
-    /* ─────────── PLAN GRID ─────────── */
-    .plan-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    .plan-option { display: block; cursor: pointer; }
-    .plan-option input { position: absolute; opacity: 0; pointer-events: none; }
-
-    .plan-card {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      height: 100%;
-      padding: 16px;
-      border-radius: 18px;
-      border: 1.5px solid var(--line);
-      background: var(--warm-white);
-      transition: border-color .15s, box-shadow .15s;
-    }
-
-    .premium-plan-card { background: linear-gradient(180deg, #fff, #faf6ff); }
-
-    .plan-option input:checked + .plan-card {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-    }
-
-    .plan-option input:checked + .premium-plan-card {
-      border-color: var(--premium);
-      box-shadow: 0 0 0 3px var(--premium-soft);
-    }
-
-    .plan-title-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-    .plan-title { font-size: 20px; font-weight: 900; }
-
-    .plan-price-tag, .addon-price-tag {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: #fff7ec;
-      color: #b86f10;
-      font-size: 12px;
-      font-weight: 900;
-      flex: 0 0 auto;
-    }
-
-    .plan-meta { font-size: 13px; color: var(--muted); font-weight: 700; }
-    .plan-mini { font-size: 12px; color: var(--muted); font-weight: 700; }
-
-    /* ─────────── ADDON LAYOUT ─────────── */
-    .addon-layout { display: grid; grid-template-columns: 1.3fr .7fr; gap: 16px; }
-    .addon-stack  { display: flex; flex-direction: column; gap: 10px; }
-
-    .addon-item {
-      display: grid;
-      grid-template-columns: auto 1fr auto auto;
-      gap: 12px;
-      align-items: center;
-      padding: 14px;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: var(--warm-white);
-    }
-
-    .addon-item-gold { background: linear-gradient(135deg, #fff8ee, #fff2d8); }
-    .addon-content { display: flex; flex-direction: column; gap: 4px; }
-    .addon-content small { font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.5; }
-    .addon-number-wrap { display: inline-flex; align-items: center; gap: 6px; }
-    .addon-number-wrap input { width: 68px; text-align: center; }
-
-    .gold-badge {
-      display: inline-flex;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: rgba(221,164,62,.16);
-      font-size: 11px;
-      color: #8b620f;
-      font-weight: 800;
-      margin-left: 6px;
-    }
-
-    .gold-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-
-    /* ─────────── DYNAMIC SUMMARY / QUOTE ─────────── */
-    .dynamic-summary {
-      list-style: none;
-      padding: 14px;
-      border-radius: 16px;
-      background: var(--soft);
-      border: 1px solid var(--line);
-    }
-
-    .dynamic-summary li {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 8px 0;
-      border-bottom: 1px dashed rgba(42,36,30,.08);
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .dynamic-summary li:last-child { border-bottom: none; }
-
-    .summary-note { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 10px; line-height: 1.6; }
-
-    .quote-box {
-      margin-top: 16px;
-      padding: 16px;
-      border-radius: 18px;
-      background: linear-gradient(180deg, #fffdf9, #fff7ec);
-      border: 1px solid rgba(240,160,75,.18);
-      box-shadow: var(--shadow-soft);
-    }
-
-    .quote-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
-    .quote-state {
-      display: inline-flex;
-      align-items: center;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 800;
-      background: var(--warm-white);
-      color: #8b6a3d;
-      border: 1px solid rgba(42,36,30,.08);
-    }
-
-    .quote-lines { display: flex; flex-direction: column; gap: 8px; }
-
-    .quote-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--muted);
-    }
-
-    .quote-total {
-      border-top: 1px dashed rgba(42,36,30,.12);
-      padding-top: 10px;
-      margin-top: 4px;
-      font-size: 15px;
-      font-weight: 900;
-      color: var(--ink);
-    }
-
-    .quote-breakdown {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(255,255,255,.62);
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .quote-breakdown-row { display: flex; justify-content: space-between; gap: 10px; }
-
-    /* ─────────── FIELDS ─────────── */
-    .grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .full-width { grid-column: 1 / -1; }
-    .field-group { display: flex; flex-direction: column; gap: 8px; }
-    .field-label { font-size: 13px; font-weight: 800; color: var(--muted); letter-spacing: .02em; }
-    .field-hint  { font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.6; }
-
-    input[type="text"],
-    input[type="tel"],
-    input[type="email"],
-    input[type="url"],
-    input[type="number"],
-    select,
-    textarea {
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 14px;
-      border: 1px solid rgba(42,36,30,.12);
-      background: var(--warm-white);
-      color: var(--ink);
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 700;
-      line-height: 1.5;
-      transition: border-color .14s, box-shadow .14s;
-      -webkit-appearance: none;
-      appearance: none;
-    }
-
-    input[type="text"]:focus,
-    input[type="tel"]:focus,
-    input[type="email"]:focus,
-    input[type="url"]:focus,
-    input[type="number"]:focus,
-    select:focus,
-    textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-    }
-
-    input::placeholder, textarea::placeholder {
-      color: rgba(42,36,30,.28);
-      font-weight: 600;
-    }
-
-    textarea { resize: vertical; min-height: 90px; }
-    #experience { min-height: 96px; resize: vertical; }
-
-    select {
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237c746c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      padding-right: 36px;
-    }
-
-    input[type="number"] { width: 72px; padding: 10px 12px; text-align: center; }
-    input[disabled], select[disabled] { opacity: .46; cursor: not-allowed; }
-
-    /* ─────────── BANNER UPLOAD ─────────── */
-    .banner-upload-section {
-      margin-top: 0;
-    }
-
-    .banner-upload-board {
-      position: relative;
-      width: 100%;
-      border-radius: 18px;
-      overflow: hidden;
-      border: 2px dashed rgba(42,36,30,.14);
-      background: var(--soft-2);
-      cursor: pointer;
-      transition: border-color .14s, background .14s;
-    }
-
-    .banner-upload-board:hover {
-      border-color: var(--accent);
-      background: rgba(240,160,75,.06);
-    }
-
-    .banner-upload-board.has-image {
-      border-style: solid;
-      border-color: rgba(42,36,30,.10);
-    }
-
-    /* Banner 比例：match style.css .banner height=130px / card width ~520px ≈ 130:520 ≈ 1:4 */
-    .banner-aspect-box {
-      width: 100%;
-      padding-top: 25%; /* 130/520 = 25% */
-      position: relative;
-    }
-
-    .banner-preview-img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: none;
-    }
-
-    .banner-preview-img.visible { display: block; }
-
-    .banner-placeholder {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      color: var(--muted);
-    }
-
-    .banner-placeholder i { font-size: 28px; opacity: .5; }
-    .banner-placeholder span { font-size: 13px; font-weight: 800; }
-    .banner-placeholder small { font-size: 11px; font-weight: 700; opacity: .7; }
-
-    /* Crop overlay */
-    .banner-crop-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(20,17,14,.74);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      z-index: 2000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .banner-crop-box {
-      background: var(--warm-white);
-      border-radius: 24px;
-      padding: 22px;
-      width: min(720px, 100%);
-      box-shadow: 0 24px 60px rgba(0,0,0,.28);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .banner-crop-title { font-size: 18px; font-weight: 900; }
-    .banner-crop-subtitle { font-size: 13px; color: var(--muted); font-weight: 700; }
-
-    .banner-crop-canvas-wrap {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      border-radius: 12px;
-      background: #1a1a1a;
-      touch-action: none;
-    }
-
-    /* 裁切框：4:1 ratio (matching banner) */
-    .banner-crop-canvas-wrap::before {
-      content: "";
-      display: block;
-      padding-top: 25%;
-    }
-
-    .banner-crop-source {
-      position: absolute;
-      inset: 0;
-      cursor: grab;
-      touch-action: none;
-      user-select: none;
-    }
-
-    .banner-crop-source:active { cursor: grabbing; }
-
-    .banner-crop-source img {
-      position: absolute;
-      transform-origin: center center;
-      will-change: transform;
-      pointer-events: none;
-      -webkit-user-drag: none;
-      user-select: none;
-    }
-
-    .banner-crop-controls {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .banner-crop-slider-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .banner-crop-slider-row label { font-size: 12px; font-weight: 900; color: var(--muted); min-width: 36px; }
-
-    .banner-crop-slider {
-      flex: 1;
-      height: 6px;
-      border-radius: 999px;
-      background: var(--soft);
-      border: none;
-      padding: 0;
-      accent-color: var(--accent);
-      cursor: pointer;
-    }
-
-    .banner-crop-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
-
-    .banner-toolbar {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-top: 8px;
-    }
-
-    /* ─────────── PHOTO SECTIONS ─────────── */
-    .photo-sections { display: flex; flex-direction: column; gap: 18px; }
-
-    .photo-section {
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 16px;
-      background: rgba(251,247,240,.60);
-    }
-
-    .photo-section-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
-    .photo-section-head h3 { margin: 0 0 4px; font-size: 16px; }
-    .photo-section-head p  { margin: 0; font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.6; }
-
-    .photo-grid-form {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .photo-card {
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 14px;
-      background: var(--warm-white);
-      display: grid;
-      grid-template-columns: 120px minmax(0, 1fr);
-      grid-template-rows: auto 1fr;
-      column-gap: 14px;
-      row-gap: 10px;
-      align-items: start;
-    }
-
-    .photo-head {
-      grid-column: 1 / -1;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .photo-title { font-size: 13px; font-weight: 900; }
-
-    .badge {
-      font-size: 11px;
-      font-weight: 800;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: var(--soft);
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .badge[data-upload-state="uploading"] { background: #fff8ec; color: #8b5b16; }
-    .badge[data-upload-state="done"]      { background: rgba(6,166,106,.12); color: #0a7a4e; }
-    .badge[data-upload-state="error"]     { background: #fff1f1; color: #a83d3d; }
-
-    .preview-frame {
-      grid-column: 1;
-      grid-row: 2;
-      width: 120px;
-      height: 120px;
-      border-radius: 12px;
-      overflow: hidden;
-      background: var(--soft-2);
-      border: 1px dashed rgba(42,36,30,.12);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .preview-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform .18s ease;
-    }
-
-    .preview-empty {
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-      text-align: center;
-      padding: 0 12px;
-      line-height: 1.5;
-    }
-
-    .photo-right-col {
-      grid-column: 2;
-      grid-row: 2;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      min-width: 0;
-      align-self: stretch;
-    }
-
-    .photo-file-input { font-size: 13px; font-weight: 700; color: var(--muted); width: 100%; padding: 8px 0; }
-
-    .photo-tools { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-    .photo-tool-row { display: flex; gap: 6px; flex-wrap: wrap; }
-    .photo-tool-row .mini { padding: 7px 10px; font-size: 12px; }
-
-    .zoom-range {
-      width: 100%;
-      padding: 0;
-      border: none;
-      background: transparent;
-      accent-color: var(--accent);
-      height: 20px;
-    }
-
-    /* ─────────── CTA SLOTS ─────────── */
-    .cta-stack { display: flex; flex-direction: column; gap: 12px; }
-
-    .cta-slot-card {
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 16px;
-      background: var(--warm-white);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .cta-title-label { font-size: 13px; font-weight: 900; color: var(--muted); }
-    .marquee-stack { display: flex; flex-direction: column; gap: 12px; }
-
-    /* ─────────── PREVIEW SECTION ─────────── */
-    .preview-section {
-      display: grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap: 16px;
-      align-items: start;
-    }
-
-    .preview-card-board {
-      min-height: 420px;
-      border-radius: 28px;
-      padding: 18px;
-      background: linear-gradient(180deg, #fffdf9, #fff7ec);
-      border: 1px solid rgba(240,160,75,.18);
-      overflow: hidden;
-    }
-
-    .preview-theme-scope {
-      min-height: 420px;
-      position: relative;
-    }
-
-    .preview-theme-scope.mode-premium {
-      background: radial-gradient(1200px 700px at 18% 0%, rgba(255,255,255,.14), transparent 55%),
-                  radial-gradient(900px 700px at 86% 8%, rgba(255,255,255,.07), transparent 60%),
-                  #232837;
-      border-radius: 18px;
-      color: var(--prem-ink, rgba(255,255,255,.97));
-    }
-
-    .preview-theme-scope.mode-free { background: transparent; }
-
-    #livePreviewCard { min-height: 420px; }
-
-    .preview-card {
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 16px;
-      background: var(--warm-white);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .preview-card h3 { margin: 0; }
-    .hint { font-size: 12px; color: var(--muted); font-weight: 700; line-height: 1.7; }
-
-    .renderer-error {
-      padding: 16px;
-      border: 1px solid #f3cccc;
-      border-radius: 16px;
-      background: #fff6f6;
-      color: #a33;
-      font-size: 13px;
-    }
-
-    /* ─────────── RENEW PREVIEW CARD ─────────── */
-    .renew-preview-card {
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 18px;
-      background: var(--soft-2);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .renew-preview-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .renew-preview-avatar {
-      width: 52px;
-      height: 52px;
-      border-radius: 999px;
-      object-fit: cover;
-      background: var(--soft);
-      border: 2px solid rgba(255,255,255,.88);
-      box-shadow: 0 8px 18px rgba(0,0,0,.10);
-    }
-
-    .renew-preview-name {
-      font-size: 18px;
-      font-weight: 900;
-    }
-
-    .renew-preview-unit {
-      font-size: 12px;
-      color: var(--muted);
-      font-weight: 700;
-      margin-top: 2px;
-    }
-
-    /* ─────────── BUTTONS ─────────── */
-    .primary-btn, .ghost-btn, .line-btn, .danger-btn, .info-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      border: none;
-      border-radius: 14px;
-      padding: 13px 20px;
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 900;
-      cursor: pointer;
-      letter-spacing: .3px;
-      white-space: nowrap;
-      transition: transform .12s ease, filter .12s ease, box-shadow .12s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .primary-btn:active, .ghost-btn:active, .line-btn:active,
-    .danger-btn:active, .info-btn:active { transform: scale(.97); }
-
-    .primary-btn {
-      background: linear-gradient(180deg, #f2aa5e, #eb9530);
-      color: #fff;
-      box-shadow: 0 12px 26px rgba(235,149,48,.26);
-    }
-
-    .ghost-btn {
-      background: var(--warm-white);
-      border: 1px solid rgba(42,36,30,.13);
-      color: var(--ink);
-      box-shadow: 0 8px 20px rgba(0,0,0,.06);
-    }
-
-    .ghost-btn:hover { filter: brightness(1.02); }
-
-    .line-btn {
-      background: linear-gradient(180deg, #1ac964, #05b34d);
-      color: #fff;
-      box-shadow: 0 12px 24px rgba(5,179,77,.24);
-    }
-
-    .danger-btn {
-      background: linear-gradient(180deg, #f87171, #dc2626);
-      color: #fff;
-      box-shadow: 0 12px 24px rgba(220,38,38,.20);
-    }
-
-    .info-btn {
-      background: linear-gradient(180deg, #60a5fa, #2563eb);
-      color: #fff;
-      box-shadow: 0 12px 24px rgba(37,99,235,.20);
-    }
-
-    .mini { padding: 8px 12px; font-size: 12px; }
-
-    .action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-
-    /* ─────────── PROGRESS OVERLAY ─────────── */
-    .progress-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(42,36,30,.28);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 1000;
-    }
-
-    .progress-card {
-      width: min(560px, 100%);
-      background: var(--warm-white);
-      border-radius: 24px;
-      padding: 26px;
-      box-shadow: 0 24px 60px rgba(0,0,0,.22);
-      border: 1px solid var(--poster-line);
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .progress-title { font-size: 22px; font-weight: 900; margin-bottom: 8px; }
-
-    .progress-text {
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 700;
-      line-height: 1.7;
-      margin-bottom: 16px;
-    }
-
-    .progress-bar { height: 12px; background: var(--soft); border-radius: 999px; overflow: hidden; margin-bottom: 14px; }
-
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #f2aa5e, #eb9530);
-      border-radius: 999px;
-      transition: width .25s ease;
-    }
-
-    .progress-steps { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-bottom: 16px; }
-
-    .progress-step {
-      padding: 9px 12px;
-      border-radius: 12px;
-      background: var(--soft);
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .progress-step.is-active { background: #fff7ec; color: #8b5b16; font-weight: 900; }
-    .progress-step.is-done   { background: #edf9f3; color: #0b8a56; }
-
-    /* ─────────── SUCCESS PANEL ─────────── */
-    .progress-success-panel {
-      margin-top: 16px;
-      padding: 16px;
-      border-radius: 18px;
-      background: linear-gradient(135deg, #f0fff8, #e6f9f1);
-      border: 1.5px solid rgba(6,166,106,.22);
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .success-header { text-align: center; padding-bottom: 4px; }
-    .success-header-icon { font-size: 32px; line-height: 1; margin-bottom: 6px; }
-    .success-header-title { font-size: 18px; font-weight: 900; color: #0a7a4e; }
-    .success-header-sub { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 4px; }
-
-    .success-card-id-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      padding: 12px 14px;
-      background: var(--warm-white);
-      border-radius: 12px;
-      border: 1.5px dashed rgba(6,166,106,.35);
-    }
-
-    .success-card-id-label { font-size: 12px; font-weight: 900; color: var(--muted); white-space: nowrap; }
-
-    .success-card-id-value {
-      font-size: 16px;
-      font-weight: 900;
-      color: #0a7a4e;
-      letter-spacing: .1em;
-      flex: 1;
-      word-break: break-all;
-    }
-
-    .success-info-rows {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding: 10px 14px;
-      background: rgba(255,255,255,.7);
-      border-radius: 12px;
-      border: 1px solid rgba(6,166,106,.12);
-    }
-
-    .success-info-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      font-size: 13px;
-      font-weight: 700;
-      padding: 4px 0;
-    }
-
-    .success-info-row:not(:last-child) { border-bottom: 1px dashed rgba(42,36,30,.07); }
-    .success-info-row .label { color: var(--muted); }
-    .success-info-row .value { font-weight: 900; color: var(--ink); }
-
-    .success-due-alert {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      background: #fff7ec;
-      border: 1px solid rgba(240,160,75,.28);
-      font-size: 13px;
-      font-weight: 800;
-      color: #8b5b16;
-      line-height: 1.5;
-    }
-
-    .success-preview-row { display: flex; flex-direction: column; gap: 6px; }
-    .success-preview-label { font-size: 12px; font-weight: 900; color: var(--muted); }
-
-    #progress-preview-link {
-      font-size: 12px;
-      font-weight: 700;
-      color: #0969da;
-      word-break: break-all;
-      padding: 8px 12px;
-      background: var(--warm-white);
-      border-radius: 10px;
-      border: 1px solid rgba(42,36,30,.09);
-      text-decoration: none;
-      display: block;
-    }
-
-    #progress-preview-link:hover { text-decoration: underline; }
-
-    .success-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-    .success-actions > * { flex: 1; min-width: 130px; }
-
-    .success-footer-note {
-      font-size: 11px;
-      color: var(--muted);
-      font-weight: 700;
-      line-height: 1.7;
-      text-align: center;
-      padding-top: 2px;
-    }
-
-    /* ─────────── MISC ─────────── */
-    .hidden { display: none !important; }
-
-    .link-group-title {
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: .6px;
-      text-transform: uppercase;
-      color: rgba(42,36,30,.38);
-      margin-bottom: 8px;
-      margin-top: 4px;
-    }
-
-    .divider {
-      height: 1px;
-      background: var(--line);
-      margin: 4px 0 16px;
-    }
-
-    /* ─────────── RWD ─────────── */
-    @media (max-width: 980px) {
-      .preview-section, .addon-layout { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 768px) {
-      .page-hero, .section-head { flex-direction: column; }
-      .plan-grid    { grid-template-columns: 1fr; }
-      .grid-two     { grid-template-columns: 1fr; }
-      .addon-item   { grid-template-columns: auto 1fr; }
-      .addon-price-tag, .addon-number-wrap { grid-column: 2 / 3; justify-self: start; }
-      h1 { font-size: 28px; }
-      .action-row > * { width: 100%; }
-      .photo-grid-form { grid-template-columns: 1fr; }
-      .eligibility-grid { grid-template-columns: 1fr 1fr; }
-      .target-plan-grid { grid-template-columns: 1fr; }
-    }
-
-    @media (max-width: 560px) {
-      .photo-card { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
-      .photo-head      { grid-column: 1; grid-row: 1; }
-      .preview-frame   { grid-column: 1; grid-row: 2; width: 100%; max-width: 180px; height: 180px; }
-      .photo-right-col { grid-column: 1; grid-row: 3; }
-    }
-
-    @media (max-width: 480px) {
-      .form-shell { padding: 14px 12px 48px; }
-      .photo-grid-form { grid-template-columns: 1fr; }
-      .photo-tool-row .mini { flex: 1 1 calc(50% - 6px); }
-      .success-actions > * { flex: 1 1 100%; }
-      .eligibility-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+  <link rel="stylesheet" href="./form.css" />
+  <script>
+    window.HSC_FORM_CONFIG = Object.assign({
+      GAS: "",
+      CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
+      DEFAULT_TENANT: "angel",
+      CREATE_CARD_ACTION: "createCard",
+      CREATE_CARD_OFFLINE_ACTION: "createCardWithOfflinePayment",
+      USE_OFFLINE_CREATE: false
+    }, window.HSC_FORM_CONFIG || {});
+  </script>
 </head>
-<body>
-  <main class="form-shell">
-
-    <!-- PAGE HERO -->
-    <header class="page-hero">
+<body class="mode-free color-1 style-arch paper-1">
+  <div class="form-page">
+    <header class="form-hero">
       <div>
-        <div class="mode-indicator">
-          <span class="mode-badge" id="mode-badge">建卡</span>
-        </div>
-        <p class="eyebrow">天使幸福智慧名片</p>
-        <h1 id="page-h1">智慧名片申請表</h1>
-        <p class="hero-desc" id="page-desc">v8.0.0｜填完送出後，系統自動產生成品連結與繳費期限倒數。</p>
+        <div class="form-kicker">Happiness Smart Card System</div>
+        <h1 id="pageTitle">智慧名片表單</h1>
+        <p id="pageDesc">單一共構頁，依 mode 切換 create / update / renew。</p>
       </div>
-      <div class="hero-actions">
-        <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
-      </div>
+      <div class="mode-pill" id="modePill">MODE</div>
     </header>
 
-    <div class="status-strip" id="form-status-strip" role="status" aria-live="polite"></div>
-
-    <!-- ══════════════════════════════════════════════
-         UPDATE 模式：更新資格區（只在 mode=update 顯示）
-    ══════════════════════════════════════════════ -->
-    <div id="update-eligibility-section" class="hidden">
-      <div class="eligibility-card" id="eligibility-card">
-        <div class="section-head" style="margin-bottom:12px;">
-          <div>
-            <p class="section-kicker">更新資格</p>
-            <h2>本次更新狀態</h2>
-          </div>
-          <span class="pill" id="eligibility-status-pill">載入中…</span>
+    <main class="form-shell">
+      <section class="form-main">
+        <div class="message-stack">
+          <div class="result-box hidden" id="statusBox"></div>
+          <div class="result-box hidden is-soft" id="resultBox"></div>
         </div>
 
-        <div class="eligibility-grid">
-          <div class="eligibility-stat">
-            <div class="eligibility-stat-value" id="stat-free-limit">—</div>
-            <div class="eligibility-stat-label">年度免費上限</div>
+        <section class="panel" id="modeExplainPanel">
+          <div class="panel-title">模式說明</div>
+          <p class="panel-note" id="modeExplainText"></p>
+        </section>
+
+        <section class="panel hidden" id="identityPanel">
+          <div class="panel-title">表單識別</div>
+          <div class="kv-grid">
+            <div class="kv-card"><span class="kv-label">invite_code</span><strong id="identityInvite">—</strong></div>
+            <div class="kv-card"><span class="kv-label">ref</span><strong id="identityRef">—</strong></div>
+            <div class="kv-card"><span class="kv-label">token</span><strong id="identityToken">—</strong></div>
+            <div class="kv-card"><span class="kv-label">card_id</span><strong id="identityCardId">—</strong></div>
           </div>
-          <div class="eligibility-stat">
-            <div class="eligibility-stat-value" id="stat-used-count">—</div>
-            <div class="eligibility-stat-label">已用次數</div>
-          </div>
-          <div class="eligibility-stat">
-            <div class="eligibility-stat-value" id="stat-remaining">—</div>
-            <div class="eligibility-stat-label">剩餘次數</div>
-          </div>
-        </div>
+        </section>
 
-        <div class="charge-alert hidden" id="charge-alert">
-          ⚠️ 免費次數已用完，本次更新需收費 <strong id="charge-amount-text">NT$ 300</strong>，送出後將建立付款單。
-        </div>
-      </div>
-    </div>
+        <form id="smartCardForm" novalidate>
+          <input type="hidden" id="modeField" name="mode" />
+          <input type="hidden" id="inviteCodeField" name="invite_code" />
+          <input type="hidden" id="refField" name="ref" />
+          <input type="hidden" id="tokenField" name="token" />
+          <input type="hidden" id="cardIdField" name="card_id" />
+          <input type="hidden" id="planField" name="plan" />
+          <input type="hidden" id="themeField" name="theme" value="free" />
+          <input type="hidden" id="bannerDataField" name="banner_data" />
 
-    <!-- ══════════════════════════════════════════════
-         RENEW 模式：續約摘要區（只在 mode=renew 顯示）
-    ══════════════════════════════════════════════ -->
-    <div id="renew-summary-section" class="hidden">
-      <!-- 目前卡片摘要 -->
-      <div class="form-card" id="renew-card-preview-section">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">目前名片</p>
-            <h2>名片摘要</h2>
-          </div>
-        </div>
-        <div class="renew-preview-card">
-          <div class="renew-preview-header">
-            <img class="renew-preview-avatar" id="renew-preview-avatar" src="" alt="頭像" />
-            <div>
-              <div class="renew-preview-name" id="renew-preview-name">—</div>
-              <div class="renew-preview-unit" id="renew-preview-unit">—</div>
-            </div>
-          </div>
-          <div class="renewal-summary-card" style="margin-bottom:0;">
-            <div class="renewal-plan-row">
-              <span class="renewal-plan-label">目前方案</span>
-              <span class="renewal-plan-value" id="renew-current-plan">—</span>
-            </div>
-            <div class="renewal-plan-row">
-              <span class="renewal-plan-label">到期日</span>
-              <span class="renewal-plan-value" id="renew-expires-at">—</span>
-            </div>
-          </div>
-        </div>
-      </div>
+          <section class="panel" id="themePanel">
+            <div class="panel-title">方案與樣式</div>
+            <div class="theme-layout">
+              <div class="theme-box">
+                <label class="field-label" for="planSelect">方案</label>
+                <select id="planSelect" name="plan_select">
+                  <option value="free">自由搭配</option>
+                  <option value="premium">精品設計</option>
+                </select>
+              </div>
 
-      <!-- 續約設定 -->
-      <div class="form-card" id="renew-settings-section">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">續約設定</p>
-            <h2>選擇續約方案與加購</h2>
-          </div>
-        </div>
+              <div class="theme-box free-only">
+                <label class="field-label" for="colorSelect">自由款顏色</label>
+                <select id="colorSelect" name="color">
+                  <option value="c1">c1 粉</option>
+                  <option value="c2">c2 藍</option>
+                  <option value="c3">c3 橘</option>
+                  <option value="c4">c4 紫</option>
+                  <option value="c5">c5 綠</option>
+                </select>
+              </div>
 
-        <!-- 目標方案 -->
-        <h3>續約方案</h3>
-        <div class="target-plan-grid" id="target-plan-grid">
-          <label class="plan-option" data-plan-card="free">
-            <input type="radio" name="target_plan" value="free" />
-            <span class="plan-card">
-              <span class="plan-title-row">
-                <span class="plan-title">自由搭配</span>
-                <span class="plan-price-tag" id="renew-free-price">NT$ 1,500</span>
-              </span>
-              <span class="plan-meta">維持現有自由搭配方案</span>
-            </span>
-          </label>
-          <label class="plan-option" data-plan-card="premium">
-            <input type="radio" name="target_plan" value="premium" />
-            <span class="plan-card premium-plan-card">
-              <span class="plan-title-row">
-                <span class="plan-title">精品設計</span>
-                <span class="plan-price-tag" id="renew-premium-price">NT$ 2,000</span>
-              </span>
-              <span class="plan-meta">升級精品設計方案</span>
-            </span>
-          </label>
-        </div>
+              <div class="theme-box free-only">
+                <label class="field-label" for="styleSelect">自由款版型</label>
+                <select id="styleSelect" name="style">
+                  <option value="s1">s1 正拱</option>
+                  <option value="s2">s2 平直</option>
+                  <option value="s3">s3 晨曦</option>
+                </select>
+              </div>
 
-        <div class="divider" style="margin-top:18px;"></div>
+              <div class="theme-box free-only">
+                <label class="field-label" for="paperSelect">自由款紙感</label>
+                <select id="paperSelect" name="paper">
+                  <option value="f1">f1 棉紙</option>
+                  <option value="f2">f2 象牙紙</option>
+                  <option value="f3">f3 霧灰</option>
+                </select>
+              </div>
 
-        <!-- 加購選項 -->
-        <h3>保留 / 加購項目</h3>
-        <div class="renewal-options">
-          <label class="renewal-option">
-            <input type="checkbox" id="renew_keep_marquee" />
-            <div class="renewal-option-content">
-              <div class="renewal-option-title">保留跑馬燈功能</div>
-              <div class="renewal-option-desc">維持跑馬燈功能不中斷</div>
-            </div>
-            <span class="renewal-option-price" id="renew-marquee-price">NT$ 300</span>
-          </label>
-
-          <label class="renewal-option">
-            <input type="checkbox" id="renew_update_unlimited" />
-            <div class="renewal-option-content">
-              <div class="renewal-option-title">加購無限更新</div>
-              <div class="renewal-option-desc">年度內無限次名片更新</div>
-            </div>
-            <span class="renewal-option-price">NT$ 300</span>
-          </label>
-
-          <div class="renewal-option" style="cursor:default;">
-            <div style="display:flex;flex-direction:column;gap:6px;flex:1;">
-              <div class="renewal-option-title">照片牆加購張數</div>
-              <div class="renewal-option-desc">在方案基礎上加購</div>
-            </div>
-            <div class="addon-number-wrap" style="margin-right:8px;">
-              <input type="number" id="renew_photo_extra_qty" value="0" min="0" max="8" />
-              <em style="font-size:13px;color:var(--muted);font-style:normal;font-weight:700;">張</em>
-            </div>
-            <span class="renewal-option-price">NT$ 100／張</span>
-          </div>
-
-          <div class="renewal-option" style="cursor:default;">
-            <div style="display:flex;flex-direction:column;gap:6px;flex:1;">
-              <div class="renewal-option-title">CTA 按鈕加購</div>
-              <div class="renewal-option-desc">在方案基礎上加購</div>
-            </div>
-            <div class="addon-number-wrap" style="margin-right:8px;">
-              <input type="number" id="renew_cta_extra_qty" value="0" min="0" max="7" />
-              <em style="font-size:13px;color:var(--muted);font-style:normal;font-weight:700;">個</em>
-            </div>
-            <span class="renewal-option-price">NT$ 100／個</span>
-          </div>
-        </div>
-
-        <!-- 續約報價 -->
-        <div class="quote-box" style="margin-top:20px;">
-          <div class="quote-head">
-            <div>
-              <p class="section-kicker">續約報價</p>
-              <h3 style="margin:0;">費用明細</h3>
-            </div>
-            <span class="quote-state" id="renew-quote-state">請選擇方案</span>
-          </div>
-          <div class="quote-lines">
-            <div class="quote-line"><span>續約基本費</span><strong id="renew-quote-base">—</strong></div>
-            <div class="quote-line"><span>升級差價</span><strong id="renew-quote-upgrade">NT$ 0</strong></div>
-            <div class="quote-line"><span>加購小計</span><strong id="renew-quote-addon">NT$ 0</strong></div>
-            <div class="quote-line quote-total"><span>續約總金額</span><strong id="renew-quote-total">—</strong></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══════════════════════════════════════════════
-         主表單（create / update 共用）
-    ══════════════════════════════════════════════ -->
-    <form id="smart-card-form" novalidate>
-      <input type="hidden" id="invite_code" name="invite_code" value="" />
-      <input type="hidden" id="ref"         name="ref"         value="" />
-      <input type="hidden" id="form-mode"   name="mode"        value="create" />
-      <input type="hidden" id="form-token"  name="token"       value="" />
-      <input type="hidden" id="form-card-id" name="card_id"    value="" />
-
-      <!-- ── STEP 1：方案與加購（只在 create 顯示） ── -->
-      <section class="form-card" id="section-plan" data-mode-show="create">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">STEP 1</p>
-            <h2>選方案與加購</h2>
-            <p>方案決定照片牆張數與 CTA 按鈕數；加購可再增加。</p>
-          </div>
-          <div class="limit-badges">
-            <span class="pill" id="summary-plan-pill">請先選擇方案</span>
-            <span class="pill" id="summary-photo-pill">照片牆：-</span>
-            <span class="pill" id="summary-cta-pill">CTA：-</span>
-          </div>
-        </div>
-
-        <div class="plan-grid">
-          <label class="plan-option" data-plan-card="free">
-            <input type="radio" name="plan" value="free" />
-            <span class="plan-card">
-              <span class="plan-title-row">
-                <span class="plan-title">自由搭配</span>
-                <span class="plan-price-tag">NT$ 1,500</span>
-              </span>
-              <span class="plan-meta">可自選顏色、版型、紙感</span>
-              <span class="plan-mini">個人照 1 ／ Logo 1 ／ 照片牆 2 ／ CTA 1</span>
-            </span>
-          </label>
-
-          <label class="plan-option" data-plan-card="premium">
-            <input type="radio" name="plan" value="premium" />
-            <span class="plan-card premium-plan-card">
-              <span class="plan-title-row">
-                <span class="plan-title">精品設計</span>
-                <span class="plan-price-tag">NT$ 2,000</span>
-              </span>
-              <span class="plan-meta">精品色系，版型更精緻</span>
-              <span class="plan-mini">個人照 1 ／ Logo 1 ／ 照片牆 5 ／ CTA 3</span>
-            </span>
-          </label>
-        </div>
-
-        <div class="addon-layout">
-          <div>
-            <h3>功能加購</h3>
-            <div class="addon-stack">
-
-              <label class="addon-item">
-                <input type="checkbox" name="addons" value="addon_marquee" id="addon_marquee_enabled" />
-                <span class="addon-content">
-                  <strong>跑馬燈功能</strong>
-                  <small>開啟後可填跑馬燈內容，多段用｜分隔</small>
-                </span>
-                <span class="addon-price-tag">NT$ 300</span>
-              </label>
-
-              <label class="addon-item">
-                <input type="checkbox" id="addon_photo_enabled" name="addons" value="addon_photo" />
-                <span class="addon-content">
-                  <strong>照片牆加購</strong>
-                  <small id="addon-photo-tip">先選方案後可輸入張數</small>
-                </span>
-                <span class="addon-number-wrap">
-                  <input type="number" id="addon_photo_qty" value="0" min="0" max="0" disabled />
-                  <em style="font-size:13px;color:var(--muted);font-style:normal;font-weight:700;">張</em>
-                </span>
-                <span class="addon-price-tag">NT$ 100／張</span>
-              </label>
-
-              <label class="addon-item">
-                <input type="checkbox" id="addon_cta_enabled" name="addons" value="addon_cta" />
-                <span class="addon-content">
-                  <strong>CTA 按鈕加購</strong>
-                  <small>勾選後輸入數量</small>
-                </span>
-                <span class="addon-number-wrap">
-                  <input type="number" id="addon_cta_qty" value="0" min="0" max="10" disabled />
-                  <em style="font-size:13px;color:var(--muted);font-style:normal;font-weight:700;">個</em>
-                </span>
-                <span class="addon-price-tag">NT$ 100／個</span>
-              </label>
-
-              <label class="addon-item">
-                <input type="checkbox" name="addons" value="addon_update_unlimited" id="addon_update_unlimited_enabled" />
-                <span class="addon-content">
-                  <strong>無限更新</strong>
-                  <small>保留後台續用流程</small>
-                </span>
-                <span class="addon-price-tag">NT$ 300</span>
-              </label>
-
-              <label class="addon-item">
-                <input type="checkbox" name="addons" value="addon_bundle" id="addon_bundle_enabled" />
-                <span class="addon-content">
-                  <strong>跑馬燈＋更新組合</strong>
-                  <small>組合優先計算，不重複加總</small>
-                </span>
-                <span class="addon-price-tag">NT$ 500</span>
-              </label>
-
-              <label class="addon-item addon-item-gold">
-                <input type="checkbox" name="addons" value="addon_agent_upgrade" id="addon_agent_upgrade_enabled" />
-                <span class="addon-content">
-                  <strong>金牌級會員<span class="gold-badge">特別加購</span></strong>
-                  <small>先洽客服瞭解完整權益與適合方案。</small>
-                  <div class="gold-actions">
-                    <button type="button" class="ghost-btn mini" id="btn-gold-info">瞭解金牌會員</button>
-                    <button type="button" class="ghost-btn mini" id="btn-gold-copy">複製詢問文案</button>
-                    <button type="button" class="line-btn  mini" id="btn-gold-contact">聯繫客服</button>
-                  </div>
-                </span>
-                <span class="addon-price-tag">NT$ 10,000</span>
-              </label>
-
-            </div>
-          </div>
-
-          <aside>
-            <h3>連動摘要</h3>
-            <ul class="dynamic-summary">
-              <li>主方案<strong id="summary-plan-name">請先選擇</strong></li>
-              <li>個人照<strong>1 張</strong></li>
-              <li>Logo<strong>1 張</strong></li>
-              <li>照片牆<strong id="summary-photo-count">-</strong> 張</li>
-              <li>CTA 按鈕<strong id="summary-cta-count">-</strong> 組</li>
-              <li>跑馬燈<strong id="summary-marquee-status">未開啟</strong></li>
-            </ul>
-            <p class="summary-note">個人照與 Logo 固定；照片牆依方案與加購連動。</p>
-          </aside>
-        </div>
-
-        <div class="quote-box">
-          <div class="quote-head">
-            <div>
-              <p class="section-kicker">即時報價</p>
-              <h3 style="margin:0;">目前費用</h3>
-            </div>
-            <span class="quote-state" id="quote-state-text">請先選擇方案</span>
-          </div>
-          <div class="quote-lines">
-            <div class="quote-line"><span>主方案</span><strong id="quote-plan-amount">-</strong></div>
-            <div class="quote-line"><span>加購小計</span><strong id="quote-addon-amount">NT$ 0</strong></div>
-            <div id="quote-addon-breakdown" class="quote-breakdown"><span>尚未選擇加購</span></div>
-            <div class="quote-line quote-total"><span>總價</span><strong id="quote-total-amount">-</strong></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── STEP 2：名片樣式（create / update 共用） ── -->
-      <section class="form-card" id="section-style" data-mode-show="create,update">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker" id="step-style-kicker">STEP 2</p>
-            <h2>名片樣式</h2>
-          </div>
-        </div>
-
-        <div class="grid-two">
-          <div id="free-theme-group" class="hidden" style="display:flex;flex-direction:column;gap:12px;">
-            <div class="field-group">
-              <label class="field-label" for="free_color">顏色</label>
-              <select id="free_color">
-                <option value="c1">粉</option>
-                <option value="c2">藍</option>
-                <option value="c3">橘</option>
-                <option value="c4">紫</option>
-                <option value="c5">綠</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label class="field-label" for="free_style">版型</label>
-              <select id="free_style">
-                <option value="s1">正拱</option>
-                <option value="s2">平直</option>
-                <option value="s3">晨曦</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label class="field-label" for="free_paper">紙感</label>
-              <select id="free_paper">
-                <option value="f1">棉紙</option>
-                <option value="f2">象牙紙</option>
-                <option value="f3">霧灰</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="premium-theme-group" class="hidden" style="display:flex;flex-direction:column;gap:12px;">
-            <div class="field-group">
-              <label class="field-label" for="premium_color">精品底色</label>
-              <select id="premium_color">
-                <option value="p1">胭脂紅</option>
-                <option value="p2">酒紅</option>
-                <option value="p3">深藍</option>
-                <option value="p4">霧紫</option>
-                <option value="p5">藍灰</option>
-                <option value="p6">金箔</option>
-                <option value="p7">褐碳</option>
-              </select>
-              <p class="field-hint">精品方案僅選色，版型與紙感由系統套用。</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── STEP 3：Banner 上傳（create / update 共用） ── -->
-      <section class="form-card" id="section-banner" data-mode-show="create,update">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker" id="step-banner-kicker">STEP 3</p>
-            <h2>Banner 橫幅</h2>
-            <p>上傳後自動裁切為名片橫幅比例（4:1），可拖移、縮放調整構圖。</p>
-          </div>
-          <div>
-            <span class="badge" id="banner-upload-badge" data-upload-state="idle">尚未上傳</span>
-          </div>
-        </div>
-
-        <div class="banner-upload-section">
-          <div class="banner-upload-board" id="banner-upload-board" role="button" tabindex="0">
-            <div class="banner-aspect-box">
-              <img class="banner-preview-img" id="banner-preview-img" alt="Banner 預覽" />
-              <div class="banner-placeholder" id="banner-placeholder">
-                <i class="fa-solid fa-panorama"></i>
-                <span>點擊上傳 Banner 圖片</span>
-                <small>支援 JPG / PNG / WebP，建議 1400×350px 以上</small>
+              <div class="theme-box premium-only hidden">
+                <label class="field-label" for="premiumColorSelect">精品顏色</label>
+                <select id="premiumColorSelect" name="premium_color">
+                  <option value="p1">p1 胭脂紅</option>
+                  <option value="p2">p2 酒紅</option>
+                  <option value="p3">p3 深藍</option>
+                  <option value="p4">p4 霧紫</option>
+                  <option value="p5">p5 藍灰</option>
+                  <option value="p6">p6 金箔</option>
+                  <option value="p7">p7 褐碳</option>
+                </select>
               </div>
             </div>
-          </div>
-          <input type="file" id="banner-file-input" accept="image/*" style="display:none;" />
+          </section>
 
-          <div class="banner-toolbar" id="banner-toolbar" style="display:none;">
-            <button type="button" class="ghost-btn mini" id="btn-banner-recrop">重新裁切</button>
-            <button type="button" class="ghost-btn mini" id="btn-banner-clear">移除圖片</button>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── STEP 4：基本資料（create / update 共用） ── -->
-      <section class="form-card" id="section-basic" data-mode-show="create,update">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker" id="step-basic-kicker">STEP 4</p>
-            <h2>基本資料</h2>
-            <p>✱ 為必填欄位</p>
-          </div>
-        </div>
-
-        <div class="grid-two">
-          <div class="field-group">
-            <label class="field-label" for="display_name">✱ 姓名 ／ 品牌名稱</label>
-            <input type="text" id="display_name" placeholder="例：王小明 ／ 幸福烘焙坊" required />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="unit">單位 ／ 公司</label>
-            <input type="text" id="unit" placeholder="例：天使幸福股份有限公司" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="title">職稱 ／ 副標</label>
-            <input type="text" id="title" placeholder="例：品牌總監 ／ 健康烘焙師" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="phone">✱ 電話</label>
-            <input type="tel" id="phone" placeholder="例：0912-345-678" required />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="email">Email</label>
-            <input type="email" id="email" placeholder="example@mail.com" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="website">官方網站</label>
-            <input type="url" id="website" placeholder="https://www.yoursite.com" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="line_url">LINE 個人連結</label>
-            <input type="url" id="line_url" placeholder="https://line.me/ti/p/~yourID" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="line_oa">LINE 官方帳號</label>
-            <input type="text" id="line_oa" placeholder="例：@angel_hsc" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="wechat_id">微信 ID</label>
-            <input type="text" id="wechat_id" placeholder="例：your_wechat_id" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="experience">經歷</label>
-            <input type="text" id="experience" placeholder="例：前 XX 公司品牌顧問、10 年業界資歷" />
-          </div>
-
-          <div class="field-group full-width">
-            <label class="field-label" for="services">服務項目</label>
-            <textarea id="services" rows="3" placeholder="例：品牌形象設計、網站規劃、社群行銷顧問"></textarea>
-          </div>
-
-          <div class="field-group full-width">
-            <label class="field-label" for="address">地址（實體地址，點擊可開啟地圖導航）</label>
-            <input type="text" id="address" placeholder="例：台北市大安區信義路四段 1 號 3 樓" />
-          </div>
-
-          <div class="field-group full-width">
-            <label class="field-label" for="intro">品牌金句 ／ 簡介</label>
-            <textarea id="intro" rows="4" placeholder="例：幫你把「被看見」變成「被記住」。&#10;這裡顯示在名片最顯眼的位置，可填一句話或品牌理念。"></textarea>
-            <p class="field-hint">對應成品卡「品牌金句」位置，建議 15～50 字以內。</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── STEP 5：影音 / 社群（create / update 共用） ── -->
-      <section class="form-card" id="section-media" data-mode-show="create,update">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker" id="step-media-kicker">STEP 5</p>
-            <h2>影音 ／ 社群連結</h2>
-            <p>填入平台頁面網址，會顯示在名片的「影音／社群」區塊。</p>
-          </div>
-        </div>
-
-        <div class="grid-two">
-          <div class="field-group full-width">
-            <p class="link-group-title">影音平台連結（最多 3 個）</p>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="video1">影音連結 1</label>
-            <input type="url" id="video1" placeholder="https://www.youtube.com/@yourchannel" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="video2">影音連結 2</label>
-            <input type="url" id="video2" placeholder="https://www.youtube.com/watch?v=..." />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="video3">影音連結 3</label>
-            <input type="url" id="video3" placeholder="https://vimeo.com/yourchannel" />
-          </div>
-
-          <div class="field-group full-width" style="margin-top:4px;">
-            <p class="link-group-title">社群平台連結（最多 3 個）</p>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="social1">社群連結 1</label>
-            <input type="url" id="social1" placeholder="https://www.facebook.com/yourpage" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="social2">社群連結 2</label>
-            <input type="url" id="social2" placeholder="https://www.instagram.com/youraccount" />
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" for="social3">社群連結 3</label>
-            <input type="url" id="social3" placeholder="https://www.threads.net/@youraccount" />
-          </div>
-        </div>
-      </section>
-
-      <!-- ── STEP 6：照片上傳（create / update 共用） ── -->
-      <section class="form-card" id="section-photos" data-mode-show="create,update">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker" id="step-photos-kicker">STEP 6</p>
-            <h2>照片上傳</h2>
-            <p>個人照、Logo、照片牆分區上傳，支援旋轉、移動、縮放。圖片選取後自動上傳。</p>
-          </div>
-        </div>
-        <div id="photo-slots" class="photo-sections"></div>
-      </section>
-
-      <!-- ── STEP 7：CTA 按鈕（create / update 共用） ── -->
-      <section class="form-card" id="section-cta" data-mode-show="create,update">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker" id="step-cta-kicker">STEP 7</p>
-            <h2>CTA 行動按鈕</h2>
-            <p>每組填一個「按鈕文字」與「連結網址」，點擊後直接跳轉。</p>
-          </div>
-        </div>
-        <div id="cta-slots" class="cta-stack"></div>
-      </section>
-
-      <!-- ── STEP 8：跑馬燈（create / update 共用，依勾選顯示） ── -->
-      <section id="marquee-section" class="form-card hidden" data-mode-show="create,update">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker" id="step-marquee-kicker">STEP 8</p>
-            <h2>跑馬燈訊息</h2>
-            <p>多段輪播請用「｜」分隔，系統自動切換顯示。</p>
-          </div>
-        </div>
-        <div class="marquee-stack">
-          <div class="field-group">
-            <label class="field-label" for="marquee_text">跑馬燈內容</label>
-            <textarea id="marquee_text" rows="3"
-              placeholder="例：歡迎聯絡我｜健康手作麵包｜幸福從早餐開始&#10;（用｜分隔，系統自動輪播）"></textarea>
-            <p class="field-hint">每段以「｜」隔開，不需分行。</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- ── STEP 9：成品預覽（create / update 共用） ── -->
-      <section class="form-card" id="section-preview" data-mode-show="create,update">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker" id="step-preview-kicker">STEP 9</p>
-            <h2>成品預覽</h2>
-            <p>即時同步正式成品卡 renderer，樣式與成品頁完全一致。</p>
-          </div>
-        </div>
-
-        <div class="preview-section">
-          <div class="preview-card-board">
-            <div class="preview-theme-scope" id="preview-theme-scope">
-              <div id="livePreviewCard" aria-live="polite"></div>
+          <section class="panel" id="profilePanel">
+            <div class="panel-title">名片資料</div>
+            <div class="field-grid two">
+              <div class="field">
+                <label class="field-label" for="name">名稱</label>
+                <input id="name" name="name" type="text" maxlength="40" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="unit">單位</label>
+                <input id="unit" name="unit" type="text" maxlength="80" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="title">職稱</label>
+                <input id="title" name="title" type="text" maxlength="40" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="website">網站</label>
+                <input id="website" name="website" type="url" placeholder="https://..." />
+              </div>
             </div>
+
+            <div class="field">
+              <label class="field-label" for="slogan">標語</label>
+              <textarea id="slogan" name="slogan" rows="3"></textarea>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="services">服務</label>
+              <textarea id="services" name="services" rows="4"></textarea>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="experience">經歷</label>
+              <textarea id="experience" name="experience" rows="5"></textarea>
+            </div>
+
+            <div class="field-grid two">
+              <div class="field">
+                <label class="field-label" for="wechat_id">微信</label>
+                <input id="wechat_id" name="wechat_id" type="text" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="line_url">LINE</label>
+                <input id="line_url" name="line_url" type="url" placeholder="https://line.me/..." />
+              </div>
+              <div class="field">
+                <label class="field-label" for="line_oa">官方 LINE</label>
+                <input id="line_oa" name="line_oa" type="url" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="email">Email</label>
+                <input id="email" name="email" type="email" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="phone">電話</label>
+                <input id="phone" name="phone" type="tel" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="address">地址</label>
+                <input id="address" name="address" type="text" placeholder="完整地址可自動導航" />
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" id="socialPanel">
+            <div class="panel-title">社群與影音</div>
+            <div class="field-grid two">
+              <div class="field"><label class="field-label" for="social1">社群 1</label><input id="social1" name="social1" type="url" /></div>
+              <div class="field"><label class="field-label" for="social2">社群 2</label><input id="social2" name="social2" type="url" /></div>
+              <div class="field"><label class="field-label" for="social3">社群 3</label><input id="social3" name="social3" type="url" /></div>
+              <div class="field"><label class="field-label" for="video1">影音 1</label><input id="video1" name="video1" type="url" /></div>
+              <div class="field"><label class="field-label" for="video2">影音 2</label><input id="video2" name="video2" type="url" /></div>
+              <div class="field"><label class="field-label" for="video3">影音 3</label><input id="video3" name="video3" type="url" /></div>
+            </div>
+          </section>
+
+          <section class="panel" id="bannerPanel">
+            <div class="panel-title">Banner 圖</div>
+            <p class="panel-note">create / update 可上傳 Banner 圖，會先進入固定比例裁切，再同步到預覽。</p>
+            <div class="media-box banner-box">
+              <div class="media-preview banner-preview" id="bannerPreviewBox">
+                <span class="media-placeholder" id="bannerPlaceholder">尚未選擇 Banner</span>
+                <img id="bannerPreview" alt="Banner 預覽" />
+              </div>
+              <div class="media-actions">
+                <label class="btn-chip">
+                  <input id="bannerInput" type="file" accept="image/*" hidden />
+                  選擇 Banner
+                </label>
+                <button class="btn-chip" type="button" id="bannerRecropBtn">重新裁切</button>
+                <button class="btn-chip subtle" type="button" id="bannerClearBtn">清除 Banner</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel" id="mediaPanel">
+            <div class="panel-title">頭像、Logo、照片牆</div>
+            <div class="field-grid two">
+              <div class="field">
+                <label class="field-label">頭像</label>
+                <div class="media-box">
+                  <div class="media-preview square">
+                    <span class="media-placeholder" id="avatarPlaceholder">頭像</span>
+                    <img id="avatarPreview" alt="頭像預覽" />
+                  </div>
+                  <div class="media-actions">
+                    <label class="btn-chip"><input id="avatarInput" type="file" accept="image/*" hidden />選擇</label>
+                    <button class="btn-chip subtle" type="button" data-clear-media="avatar">清除</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="field-label">Logo</label>
+                <div class="media-box">
+                  <div class="media-preview square">
+                    <span class="media-placeholder" id="logoPlaceholder">Logo</span>
+                    <img id="logoPreview" alt="Logo 預覽" />
+                  </div>
+                  <div class="media-actions">
+                    <label class="btn-chip"><input id="logoInput" type="file" accept="image/*" hidden />選擇</label>
+                    <button class="btn-chip subtle" type="button" data-clear-media="logo">清除</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="photo-slots" id="photoSlots"></div>
+          </section>
+
+          <section class="panel" id="ctaPanel">
+            <div class="panel-title">CTA</div>
+            <div class="field-grid cta-grid">
+              <div class="cta-card">
+                <div class="field"><label class="field-label" for="cta_text_1">CTA1 文字</label><input id="cta_text_1" name="cta_text_1" type="text" /></div>
+                <div class="field"><label class="field-label" for="cta_link_1">CTA1 連結</label><input id="cta_link_1" name="cta_link_1" type="url" /></div>
+              </div>
+              <div class="cta-card">
+                <div class="field"><label class="field-label" for="cta_text_2">CTA2 文字</label><input id="cta_text_2" name="cta_text_2" type="text" /></div>
+                <div class="field"><label class="field-label" for="cta_link_2">CTA2 連結</label><input id="cta_link_2" name="cta_link_2" type="url" /></div>
+              </div>
+              <div class="cta-card">
+                <div class="field"><label class="field-label" for="cta_text_3">CTA3 文字</label><input id="cta_text_3" name="cta_text_3" type="text" /></div>
+                <div class="field"><label class="field-label" for="cta_link_3">CTA3 連結</label><input id="cta_link_3" name="cta_link_3" type="url" /></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel hidden" id="updateBenefitPanel">
+            <div class="panel-title">更新權益</div>
+            <div class="kv-grid">
+              <div class="kv-card"><span class="kv-label">免費次數</span><strong id="benefitFreeLimit">—</strong></div>
+              <div class="kv-card"><span class="kv-label">已用次數</span><strong id="benefitUsed">—</strong></div>
+              <div class="kv-card"><span class="kv-label">剩餘次數</span><strong id="benefitRemaining">—</strong></div>
+              <div class="kv-card"><span class="kv-label">無限更新</span><strong id="benefitUnlimited">—</strong></div>
+              <div class="kv-card"><span class="kv-label">是否收費</span><strong id="benefitChargeRequired">—</strong></div>
+              <div class="kv-card"><span class="kv-label">更新費用</span><strong id="benefitChargeAmount">—</strong></div>
+            </div>
+          </section>
+
+          <section class="panel hidden" id="renewPanel">
+            <div class="panel-title">續約設定</div>
+            <div class="kv-grid renew-grid">
+              <div class="kv-card"><span class="kv-label">當前方案</span><strong id="renewCurrentPlan">—</strong></div>
+              <div class="kv-card"><span class="kv-label">續約方案</span><strong id="renewTargetPlan">—</strong></div>
+              <div class="kv-card"><span class="kv-label">目前到期日</span><strong id="renewCurrentExpires">—</strong></div>
+              <div class="kv-card"><span class="kv-label">保留跑馬燈</span><strong id="renewKeepMarquee">—</strong></div>
+              <div class="kv-card"><span class="kv-label">保留照片加購</span><strong id="renewKeepPhotoExtra">—</strong></div>
+              <div class="kv-card"><span class="kv-label">保留 CTA 加購</span><strong id="renewKeepCtaExtra">—</strong></div>
+              <div class="kv-card"><span class="kv-label">續約無限更新</span><strong id="renewUnlimited">—</strong></div>
+              <div class="kv-card"><span class="kv-label">基本續約</span><strong id="renewBasePrice">—</strong></div>
+              <div class="kv-card"><span class="kv-label">升級差價</span><strong id="renewUpgradeDiff">—</strong></div>
+              <div class="kv-card"><span class="kv-label">加購金額</span><strong id="renewAddonAmount">—</strong></div>
+              <div class="kv-card major"><span class="kv-label">總金額</span><strong id="renewTotalAmount">—</strong></div>
+            </div>
+          </section>
+
+          <div class="submit-row">
+            <button type="button" class="btn-main subtle" id="saveDraftBtn">儲存草稿</button>
+            <button type="button" class="btn-main subtle" id="clearDraftBtn">清除草稿</button>
+            <button type="submit" class="btn-main" id="submitBtn">送出</button>
           </div>
-          <div class="preview-card">
-            <h3>預覽說明</h3>
-            <p class="hint">即時走正式 card-renderer.js 渲染，顏色、版型、精品色系與成品完全一致。</p>
-            <p class="hint">未填欄位由 renderer 自動隱藏。</p>
-            <p class="hint">圖片選取後自動上傳 Firebase，上傳完成才能送出。</p>
-            <p class="hint" id="preview-hint-mode-specific">送出後將收到成品連結與繳費期限（3 天倒數）。</p>
-          </div>
-        </div>
+        </form>
       </section>
 
-      <!-- ── 操作列（三模式共用，按鈕依 mode 不同） ── -->
-      <section class="form-card">
-        <div class="action-row">
-          <button type="button" class="ghost-btn" id="btn-save-draft">暫存草稿</button>
-          <button type="button" class="ghost-btn" id="btn-clear-draft">清除暫存</button>
-          <button type="button" class="line-btn"  id="btn-contact-service">聯繫客服</button>
-          <button type="submit" class="primary-btn" id="btn-submit-form">送出申請</button>
-        </div>
-      </section>
-    </form>
-  </main>
+      <aside class="preview-side">
+        <section class="panel preview-panel">
+          <div class="panel-title">預覽</div>
+          <p class="panel-note" id="previewNote">create：即時預覽；update：預載後即時預覽；renew：續約摘要卡。</p>
+          <div id="previewRoot" class="preview-root"></div>
+        </section>
+      </aside>
+    </main>
+  </div>
 
-  <!-- ══════════════════════════════════════════════
-       Banner 裁切彈窗
-  ══════════════════════════════════════════════ -->
-  <div id="banner-crop-overlay" class="banner-crop-overlay hidden">
-    <div class="banner-crop-box">
-      <div>
-        <div class="banner-crop-title">裁切 Banner 圖片</div>
-        <div class="banner-crop-subtitle">拖曳圖片調整位置，使用縮放滑桿控制大小。黃色框為最終輸出範圍。</div>
+  <div class="crop-mask hidden" id="cropMask">
+    <div class="crop-box">
+      <div class="crop-head">
+        <strong>Banner 裁切</strong>
+        <button type="button" class="btn-chip subtle" id="cropCloseBtn">關閉</button>
       </div>
-
-      <div class="banner-crop-canvas-wrap" id="banner-crop-canvas-wrap">
-        <div class="banner-crop-source" id="banner-crop-source">
-          <img id="banner-crop-img" alt="" draggable="false" />
-        </div>
-        <!-- 裁切框視覺指示 -->
-        <div style="
-          position:absolute;inset:0;
-          border:2px solid rgba(240,160,75,.9);
-          border-radius:6px;
-          pointer-events:none;
-          box-shadow:0 0 0 9999px rgba(0,0,0,.42);
-          z-index:10;
-        "></div>
+      <div class="crop-stage" id="cropStage">
+        <img id="cropImage" alt="裁切圖片" />
+        <div class="crop-frame" id="cropFrame"></div>
       </div>
-
-      <div class="banner-crop-controls">
-        <div class="banner-crop-slider-row">
-          <label>縮放</label>
-          <input type="range" class="banner-crop-slider" id="banner-crop-zoom"
-            min="0.5" max="3" step="0.01" value="1" />
-          <span id="banner-crop-zoom-val" style="font-size:12px;font-weight:800;color:var(--muted);min-width:36px;text-align:right;">100%</span>
-        </div>
-        <div class="banner-crop-slider-row">
-          <label>旋轉</label>
-          <input type="range" class="banner-crop-slider" id="banner-crop-rotate"
-            min="-45" max="45" step="1" value="0" />
-          <span id="banner-crop-rotate-val" style="font-size:12px;font-weight:800;color:var(--muted);min-width:36px;text-align:right;">0°</span>
-        </div>
+      <div class="crop-tools">
+        <label>縮放 <input type="range" id="cropZoom" min="1" max="3" step="0.01" value="1" /></label>
+        <p class="panel-note">拖曳圖片調整位置，裁切比例固定為 Banner 顯示比例。</p>
       </div>
-
-      <div class="banner-crop-actions">
-        <button type="button" class="ghost-btn" id="btn-banner-crop-cancel">取消</button>
-        <button type="button" class="ghost-btn mini" id="btn-banner-crop-reset">重設</button>
-        <button type="button" class="primary-btn" id="btn-banner-crop-confirm">確認裁切</button>
+      <div class="submit-row">
+        <button type="button" class="btn-main subtle" id="cropResetBtn">重設</button>
+        <button type="button" class="btn-main" id="cropApplyBtn">套用 Banner</button>
       </div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════
-       進度條彈窗
-  ══════════════════════════════════════════════ -->
-  <div id="submit-progress-overlay" class="progress-overlay hidden">
-    <div class="progress-card">
-      <h3 class="progress-title" id="progress-title">資料送出中</h3>
-      <p class="progress-text" id="progress-text">正在建立申請資料，請稍候。</p>
-
-      <div class="progress-bar">
-        <div id="progress-fill" class="progress-fill"></div>
-      </div>
-
-      <ul class="progress-steps" id="progress-steps-list">
-        <!-- 由 form.js 依 mode 動態生成 -->
-      </ul>
-
-      <!-- 成功面板 -->
-      <div id="progress-success-panel" class="progress-success-panel hidden">
-
-        <div class="success-header">
-          <div class="success-header-icon">🎉</div>
-          <div class="success-header-title" id="success-header-title">申請成功！</div>
-          <div class="success-header-sub" id="success-header-sub">請複製以下資訊並回覆客服，協助開通名片。</div>
-        </div>
-
-        <div class="success-card-id-row">
-          <span class="success-card-id-label" id="success-id-label">📋 名片序號</span>
-          <span class="success-card-id-value" id="progress-card-id-display">—</span>
-        </div>
-
-        <div class="success-info-rows">
-          <div class="success-info-row">
-            <span class="label" id="success-info-label-1">申請人</span>
-            <span class="value success-name">—</span>
-          </div>
-          <div class="success-info-row">
-            <span class="label" id="success-info-label-2">方案</span>
-            <span class="value success-plan">—</span>
-          </div>
-          <div class="success-info-row">
-            <span class="label">總金額</span>
-            <span class="value success-total">—</span>
-          </div>
-        </div>
-
-        <div class="success-due-alert" id="success-due-alert">
-          ⏰&nbsp;付款期限：<strong class="success-due" style="margin:0 4px;">—</strong> 前完成付款，逾期名片將暫停開通
-        </div>
-
-        <div class="success-preview-row">
-          <p class="success-preview-label">🔗 成品預覽連結（付款完成後正式開通）</p>
-          <a id="progress-preview-link" href="#" target="_blank" rel="noopener">（建立後顯示）</a>
-        </div>
-
-        <div class="success-actions">
-          <button type="button" class="primary-btn mini" id="btn-copy-card-notice">
-            📋 複製序號＋回覆文案
-          </button>
-          <button type="button" class="line-btn mini" id="progress-contact-service">
-            💬 LINE 客服
-          </button>
-        </div>
-
-        <p class="success-footer-note" id="success-footer-note">
-          點「複製序號＋回覆文案」→ 貼到 LINE 客服對話框<br>
-          客服確認付款後將立即為您開通名片。
-        </p>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- ── 照片 slot template ── -->
-  <template id="photo-slot-template">
-    <article class="photo-card">
-      <div class="photo-head">
-        <strong class="photo-title"></strong>
-        <span class="badge" data-upload-state="idle">尚未上傳</span>
-      </div>
-
-      <div class="preview-frame">
-        <img class="preview-image hidden" alt="預覽圖" />
-        <div class="preview-empty">尚未選擇圖片</div>
-      </div>
-
-      <div class="photo-right-col">
-        <input type="file" class="photo-file-input" accept="image/*" />
-
-        <div class="photo-tools hidden">
-          <div class="photo-tool-row">
-            <button type="button" class="ghost-btn mini rotate-left">左轉</button>
-            <button type="button" class="ghost-btn mini rotate-right">右轉</button>
-            <button type="button" class="ghost-btn mini move-left">左移</button>
-            <button type="button" class="ghost-btn mini move-right">右移</button>
-            <button type="button" class="ghost-btn mini move-up">上移</button>
-            <button type="button" class="ghost-btn mini move-down">下移</button>
-            <button type="button" class="ghost-btn mini reset-photo">重設</button>
-          </div>
-          <input type="range" class="zoom-range" min="0.6" max="2" step="0.01" value="1" />
-        </div>
-      </div>
-    </article>
-  </template>
-
-  <!-- ── CTA slot template ── -->
-  <template id="cta-slot-template">
-    <article class="cta-slot-card">
-      <label class="cta-title-label"></label>
-      <div class="field-group">
-        <label class="field-label">按鈕文字</label>
-        <input type="text" class="cta-label-input"
-          placeholder="例：預約諮詢、立即購買、加入會員" />
-      </div>
-      <div class="field-group">
-        <label class="field-label">按鈕連結</label>
-        <input type="url" class="cta-url-input"
-          placeholder="https://line.me/ti/p/~yourID（點按鈕後跳轉的網址）" />
-      </div>
-    </article>
-  </template>
-
-  <!-- card-renderer.js 必須在 form.js 之前載入 -->
   <script src="./card-renderer.js"></script>
   <script type="module" src="./form.js"></script>
 </body>

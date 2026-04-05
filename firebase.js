@@ -1,6 +1,6 @@
 /* ======================================================
  * Happiness Smart Card System — firebase.js
- * HSCv802 (COMPLETE OVERWRITE)
+ * HSCv803-banner-support (COMPLETE OVERWRITE)
  *
  * Purpose:
  * - Firebase v10 modular via CDN ESM
@@ -11,12 +11,12 @@
  * Official route:
  * - cards/{cardId}/avatar.jpg
  * - cards/{cardId}/logo.jpg
- * - cards/{cardId}/photo1.jpg ~ photo5.jpg
+ * - cards/{cardId}/banner.jpg
+ * - cards/{cardId}/photo1.jpg ~ photo10.jpg
  * ====================================================== */
 
-export const HSC_FRONTEND_VERSION = "v802";
+export const HSC_FRONTEND_VERSION = "v803-banner-support";
 
-// ✅ 已驗證可用 config（沿用）
 export const FIREBASE_CONFIG = {
   apiKey: "AIzaSyD8DTzmzyuDFkrBMjGNZkJoN9fcY9_8mb4",
   authDomain: "happiness-smart-card-pro-7389a.firebaseapp.com",
@@ -26,7 +26,6 @@ export const FIREBASE_CONFIG = {
   appId: "1:143313936007:web:7c948563c51e8a47d3a222"
 };
 
-// ===== Firebase SDK (pin version) =====
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
@@ -62,18 +61,15 @@ export function initFirebase() {
   }
 
   const apps = getApps();
-  _app = (apps && apps.length) ? apps[0] : initializeApp(FIREBASE_CONFIG);
-
+  _app = apps && apps.length ? apps[0] : initializeApp(FIREBASE_CONFIG);
   _auth = getAuth(_app);
   _storage = getStorage(_app);
-
   _inited = true;
   return { app: _app, auth: _auth, storage: _storage };
 }
 
 export async function ensureAuth() {
   initFirebase();
-
   if (_auth.currentUser) return _auth.currentUser;
   if (_signing) return _signing;
 
@@ -91,7 +87,6 @@ export async function ensureAuth() {
 
 export async function uploadImage(cardId, blob, fileName) {
   if (!blob) throw new Error("uploadImage: missing blob");
-
   await ensureAuth();
 
   const safeCardId = normalizeCardId(cardId);
@@ -119,11 +114,10 @@ export async function uploadImage(cardId, blob, fileName) {
 }
 
 export const uploadAvatar = (cardId, blob) => uploadImage(cardId, blob, "avatar.jpg");
-
 export const uploadLogo = (cardId, blob) => uploadImage(cardId, blob, "logo.jpg");
-
+export const uploadBanner = (cardId, blob) => uploadImage(cardId, blob, "banner.jpg");
 export const uploadPhoto = (cardId, blob, index = 1) => {
-  const i = Math.max(1, Math.min(5, Number(index) || 1));
+  const i = Math.max(1, Math.min(10, Number(index) || 1));
   return uploadImage(cardId, blob, `photo${i}.jpg`);
 };
 
@@ -135,13 +129,9 @@ export function getFirebaseInfo() {
     uid: (_auth && _auth.currentUser) ? _auth.currentUser.uid : "",
     officialBasePath: "cards/{cardId}/",
     files: [
-      "avatar.jpg",
-      "logo.jpg",
-      "photo1.jpg",
-      "photo2.jpg",
-      "photo3.jpg",
-      "photo4.jpg",
-      "photo5.jpg"
+      "avatar.jpg", "logo.jpg", "banner.jpg",
+      "photo1.jpg", "photo2.jpg", "photo3.jpg", "photo4.jpg", "photo5.jpg",
+      "photo6.jpg", "photo7.jpg", "photo8.jpg", "photo9.jpg", "photo10.jpg"
     ]
   };
 }
