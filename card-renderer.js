@@ -468,19 +468,6 @@
     return { key: "", raw: "", url: "" };
   }
 
-
-  function pickBannerInfo(p) {
-    const url = pick(p, ["banner_url"]);
-    if (text(url)) {
-      return { key: "banner_url", raw: url, url: normalizeImageUrl(url) };
-    }
-    const b64 = getPreviewUrl(p, "banner");
-    if (b64) {
-      return { key: "banner_preview", raw: b64, url: b64 };
-    }
-    return { key: "", raw: "", url: "" };
-  }
-
   function buildCtaItems(p) {
     const limit = getCtaLimitFromPayload(p);
     const items = [];
@@ -659,7 +646,7 @@
       <div class="hsc-render-root ${mode === "form" ? "hsc-render-form" : "hsc-render-index"}">
         <section class="card" data-card-root>
           <div class="premium-fx-layer"></div>
-          <div class="banner"><img class="banner-media" data-u-banner alt="Banner" /><div class="dynamic-mask"></div></div>
+          <div class="banner"><div class="dynamic-mask"></div></div>
           <div class="paper-overlay"></div>
 
           <div class="avatar-wrap">
@@ -757,7 +744,6 @@
         root,
         cardRoot: q("#card") || q(".card"),
         banner: q("#banner") || q(".banner"),
-        bannerImg: q("#u-banner") || q(".banner-media"),
         paperOverlay: q("#paperOverlay") || q(".paper-overlay"),
         premiumBadge: q("#premiumBadge") || q(".premium-badge"),
         avatar: q("#u-img"),
@@ -796,7 +782,6 @@
       root,
       cardRoot: q("[data-card-root]"),
       banner: q(".banner"),
-      bannerImg: q("[data-u-banner]"),
       paperOverlay: q(".paper-overlay"),
       premiumBadge: q("[data-premium-badge]"),
       avatar: q("[data-u-img]"),
@@ -879,43 +864,6 @@
       cardRoot.classList.add(preview.aspect_ratio === "16:9" ? "ratio-16-9" : "ratio-1-1");
       cardRoot.classList.add(preview.fit_mode === "contain" ? "fit-contain" : "fit-cover");
     }
-  }
-
-
-  function renderBanner(p, scope) {
-    const banner = scope.banner;
-    const img = scope.bannerImg;
-    if (!banner || !img) return;
-
-    const info = pickBannerInfo(p);
-    const u = info.url;
-
-    if (!u) {
-      banner.classList.remove("has-banner");
-      img.removeAttribute("src");
-      img.style.display = "none";
-      return;
-    }
-
-    banner.classList.add("has-banner");
-    img.style.display = "block";
-
-    if (isLocalUrl(u)) {
-      img.src = u;
-      return;
-    }
-
-    setImgWithFallback(img, buildImgCandidates(u), {
-      onLoad: function () {
-        banner.classList.add("has-banner");
-        img.style.display = "block";
-      },
-      onFail: function () {
-        banner.classList.remove("has-banner");
-        img.removeAttribute("src");
-        img.style.display = "none";
-      }
-    });
   }
 
   function renderAvatar(p, scope) {
@@ -1376,7 +1324,6 @@
     }
 
     applyThemeClasses(p, scope, opts);
-    renderBanner(p, scope);
     renderAvatar(p, scope);
     renderLogo(p, scope);
     renderTexts(p, scope);
