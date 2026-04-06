@@ -1,5 +1,6 @@
 /* =========================================
- * HSC Service Worker v7.7.4
+ * HSC Service Worker v8
+.3
  * COMPLETE OVERWRITE
  *
  * Goal:
@@ -10,7 +11,7 @@
  * - HTML / version.json 走網路優先
  * ========================================= */
 
-const SW_VERSION = "v7.7.4";
+const SW_VERSION = "v8.3";
 const CACHE_NAME = `hsc-cache-${SW_VERSION}`;
 
 const CORE_ASSETS = [
