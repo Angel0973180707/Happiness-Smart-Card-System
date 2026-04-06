@@ -1406,7 +1406,11 @@
       setProgressStep(2, "正在送出建卡資料…");
 
       const finalPayload = buildPayload();
-      const data = await postToGas(finalPayload);
+
+// ⭐強制補 action（最穩）
+finalPayload.action = "createCardWithOfflinePayment";
+
+const data = await postToGas(finalPayload);
 
       if (!data || !data.ok) {
         throw new Error(data?.error || data?.message || data?.raw || "建立名片失敗，請稍後再試。");
