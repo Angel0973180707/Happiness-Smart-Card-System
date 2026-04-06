@@ -628,6 +628,31 @@
       min-height: 420px;
     }
 
+    /* v8.2 FINAL：預覽 slogan 對齊修正（只影響預覽，不碰主程式成品視覺） */
+    #livePreviewCard .slogan,
+    #livePreviewCard [data-u-slogan],
+    .preview-theme-scope .slogan,
+    .preview-theme-scope [data-u-slogan] {
+      display: block;
+      width: 100%;
+      max-width: 420px;
+      margin: 10px auto 0;
+      padding: 10px 14px;
+      text-align: center;
+      text-align-last: center;
+      white-space: pre-line;
+      line-height: 1.62;
+      letter-spacing: .2px;
+      word-break: break-word;
+      font-weight: 900;
+    }
+
+    .preview-theme-scope.mode-premium #livePreviewCard .slogan,
+    .preview-theme-scope.mode-premium #livePreviewCard [data-u-slogan] {
+      color: var(--prem-ink, rgba(255,255,255,.94));
+      text-shadow: 0 12px 28px rgba(0,0,0,.34);
+    }
+
     .preview-card {
       border: 1px solid var(--line);
       border-radius: 16px;
@@ -1319,7 +1344,7 @@
         <div class="preview-section">
           <div class="preview-card-board">
             <!--
-              v7.8.4 預覽作用域修正：
+              v8.2 FINAL 預覽作用域修正：
               .preview-theme-scope 是主題 class 的掛載容器
               form.js syncPreviewContainerClasses() 將 mode-free / mode-premium /
               color-x / p1~p7 / style-arch / paper-1 等 class 掛在此元素，
