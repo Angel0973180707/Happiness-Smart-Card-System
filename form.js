@@ -1,6 +1,6 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v7.8.4.1-final-stable
+   v8.2-gas-connected-complete-overwrite
 
    基於 v7.8.4，本版修正：
 
@@ -27,9 +27,11 @@
     SERVICE_URL:  "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v784",
+    DRAFT_KEY: "hsc_form_draft_v82",
 
     CREATE_ACTION: "createCardWithOfflinePayment",
+    DELIVER_ACTION: "markCardDelivered",
+    PAYMENT_NOTICE_ACTION: "buildPaymentNoticeText",
 
     BASE_LIMITS: {
       free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
@@ -230,7 +232,7 @@
 
     const params = new URLSearchParams(search);
 
-    const inviteCode = params.get("invite_code");
+    const inviteCode = params.get("invite_code") || params.get("invite");
     if (inviteCode && els["invite_code"])
       els["invite_code"].value = inviteCode.trim();
 
@@ -243,7 +245,13 @@
       const radio = document.querySelector(`input[name="plan"][value="${planParam}"]`);
       if (radio) radio.checked = true;
     }
+
+    const photoLimitParam = Number(params.get("photo_limit") || 0);
+    if (Number.isFinite(photoLimitParam) && photoLimitParam > 0) {
+      state.urlPhotoLimitOverride = Math.min(CONFIG.MAX_WALL_PHOTOS, Math.max(0, Math.floor(photoLimitParam)));
+    }
   }
+
 
   /* ============================================================
      將 experience <input> 升級為 <textarea>
@@ -509,7 +517,7 @@
   /* ============================================================
      buildLastSubmitResult
   ============================================================ */
-  function buildLastSubmitResult({ cardId, previewUrl, paymentDueAt, totalAmount, planLabel, customerName }) {
+  function buildLastSubmitResult({ cardId, previewUrl, paymentDueAt, totalAmount, planLabel, customerName, paymentId = "", paymentNotice = "" }) {
     return {
       cardId,
       previewUrl,
@@ -517,7 +525,9 @@
       dueDateStr: formatDateYMD(paymentDueAt),
       totalAmount,
       planLabel,
-      customerName
+      customerName,
+      paymentId,
+      paymentNotice
     };
   }
 
@@ -630,20 +640,30 @@
   function getLimits() {
     const plan = getSelectedPlan() || "premium";
     const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
-    let ewp    = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
-    let ect    = isAddonChecked("addon_cta")   ? getAddonQty("addon_cta_qty")   : 0;
-    ewp = clamp(ewp, 0, CONFIG.MAX_WALL_PHOTOS - base.wallPhotos);
-    ect = clamp(ect, 0, CONFIG.MAX_CTAS        - base.ctas);
+    const urlOverride = Number(state.urlPhotoLimitOverride || 0);
+
+    const effectiveBaseWallPhotos = urlOverride > 0
+      ? clamp(urlOverride, base.wallPhotos, CONFIG.MAX_WALL_PHOTOS)
+      : base.wallPhotos;
+
+    let ewp = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
+    let ect = isAddonChecked("addon_cta") ? getAddonQty("addon_cta_qty") : 0;
+
+    ewp = clamp(ewp, 0, CONFIG.MAX_WALL_PHOTOS - effectiveBaseWallPhotos);
+    ect = clamp(ect, 0, CONFIG.MAX_CTAS - base.ctas);
+
     return {
       plan,
-      planLabel:       base.label,
-      planPrice:       base.price,
-      wallPhotos:      clamp(base.wallPhotos + ewp, 0, CONFIG.MAX_WALL_PHOTOS),
-      ctas:            clamp(base.ctas       + ect, 0, CONFIG.MAX_CTAS),
+      planLabel: base.label,
+      planPrice: base.price,
+      baseWallPhotos: effectiveBaseWallPhotos,
+      wallPhotos: clamp(effectiveBaseWallPhotos + ewp, 0, CONFIG.MAX_WALL_PHOTOS),
+      ctas: clamp(base.ctas + ect, 0, CONFIG.MAX_CTAS),
       extraWallPhotos: ewp,
-      extraCtas:       ect
+      extraCtas: ect
     };
   }
+
 
   function syncPlanCards() {
     const plan = getSelectedPlan();
@@ -1248,8 +1268,11 @@
     const addonItems     = getAddonItemsForQuote(limits);
     const bundleChecked  = isAddonChecked("addon_bundle");
     const marqueeChecked = isAddonChecked("addon_marquee");
+    const addonAmount    = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const totalAmount    = Number(limits.planPrice || 0) + Number(addonAmount || 0);
 
     const phoneStr = String(valueOf("phone") || "").replace(/\s/g, "");
+    const refCode  = valueOf("ref");
 
     const payload = {
       action: CONFIG.CREATE_ACTION,
@@ -1277,7 +1300,12 @@
       social3: valueOf("social3"),
 
       invite_code: valueOf("invite_code"),
-      referrer:    valueOf("ref"),
+      referrer:    refCode,
+      service_agent: refCode,
+      agent_type:  refCode ? "service" : "self",
+      source:      refCode ? "agent_form" : "form",
+      form_source: "smart_card_form",
+      process_status: "submitted",
 
       plan:  theme.plan,
       color: theme.color,
@@ -1295,6 +1323,12 @@
       cta_extra_purchased:   isAddonChecked("addon_cta")
                                ? String(getAddonQty("addon_cta_qty"))   : "",
 
+      amount: totalAmount,
+      plan_amount: Number(limits.planPrice || 0),
+      addon_amount: Number(addonAmount || 0),
+      total_amount: totalAmount,
+      note: buildOrderNote(limits, addonItems, totalAmount),
+
       ...(state.photoRealUrls.avatar ? { avatar_url: state.photoRealUrls.avatar } : {}),
       ...(state.photoRealUrls.logo   ? { logo_url:   state.photoRealUrls.logo   } : {}),
 
@@ -1302,7 +1336,15 @@
 
       features_json: {
         photo_meta:   buildPhotoMetaMap(),
-        preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }
+        preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
+        addon_items: addonItems,
+        order_summary: {
+          plan: theme.plan,
+          plan_label: limits.planLabel,
+          plan_amount: Number(limits.planPrice || 0),
+          addon_amount: Number(addonAmount || 0),
+          total_amount: Number(totalAmount || 0)
+        }
       }
     };
 
@@ -1322,6 +1364,27 @@
     return payload;
   }
 
+  function buildOrderNote(limits, addonItems, totalAmount) {
+    const parts = [
+      `form_submit`,
+      `plan=${limits.plan}`,
+      `plan_label=${limits.planLabel}`,
+      `plan_amount=${Number(limits.planPrice || 0)}`,
+      `addon_amount=${addonItems.reduce((s, i) => s + Number(i.amount || 0), 0)}`,
+      `total_amount=${Number(totalAmount || 0)}`
+    ];
+
+    addonItems.forEach(item => {
+      const code = String(item.code || item.item_code || "").trim();
+      const qty  = Number(item.qty || item.quantity || 1);
+      const amt  = Number(item.amount || 0);
+      if (code) parts.push(`addon=${code}:${qty}:${amt}`);
+    });
+
+    return parts.join(" ; ");
+  }
+
+
   /* ============================================================
      送出流程 v7.8.4.1
   ============================================================ */
@@ -1340,7 +1403,7 @@
     const limits      = getLimits();
     const addonItems  = getAddonItemsForQuote(limits);
     const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const totalAmount = limits.planPrice + addonAmount;
+    const totalAmount = Number(limits.planPrice || 0) + Number(addonAmount || 0);
 
     showProgress(true);
     hideSuccessPanel();
@@ -1352,35 +1415,62 @@
       setProgressStep(2, "正在送出建卡資料…");
 
       const finalPayload = buildPayload();
-
-      const res  = await fetch(CONFIG.GAS_URL, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(finalPayload)
-      });
-
-      const data = await parseJsonSafe(res);
+      const data = await postToGas(finalPayload);
 
       if (!data || !data.ok) {
         throw new Error(data?.error || data?.message || data?.raw || "建立名片失敗，請稍後再試。");
       }
 
-      setProgressStep(3, "正在整理報價資料…");
-
       const cardId =
-        data.card_id       ||
-        data.id            ||
-        data.card?.id      ||
+        data.card_id ||
+        data.id ||
+        data.card?.id ||
         data.card?.card_id ||
         data.data?.card_id ||
-        data.data?.id      ||
+        data.data?.id ||
         "";
 
-      const previewUrl = cardId
-        ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
-        : CONFIG.SHOWCASE_URL;
+      const paymentId =
+        data.payment?.payment_id ||
+        data.payment_id ||
+        "";
 
-      const paymentDueAt = pickPaymentDueAt(data);
+      if (!cardId) {
+        throw new Error("GAS 已回應成功，但沒有回傳 card_id，請檢查 createCardWithOfflinePayment 回傳格式。");
+      }
+
+      setProgressStep(3, "正在建立付款期限…");
+
+      const delivered = await postToGas({
+        action: CONFIG.DELIVER_ACTION,
+        card_id: cardId
+      });
+
+      if (!delivered || !delivered.ok) {
+        throw new Error(delivered?.error || delivered?.message || "付款期限建立失敗，請檢查 markCardDelivered。");
+      }
+
+      let paymentNoticeText = data.payment_notice?.copy_text || "";
+      if (paymentId) {
+        try {
+          const noticeRes = await postToGas({
+            action: CONFIG.PAYMENT_NOTICE_ACTION,
+            payment_id: paymentId
+          });
+          if (noticeRes?.ok && noticeRes?.copy_text) {
+            paymentNoticeText = noticeRes.copy_text;
+          }
+        } catch (noticeErr) {
+          console.warn("[HSC form] payment notice fetch failed:", noticeErr);
+        }
+      }
+
+      const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
+      const paymentDueAt =
+        delivered?.payment_due_at ||
+        delivered?.card?.payment_due_at ||
+        data?.payment?.due_at ||
+        pickPaymentDueAt(data);
 
       setProgressStep(4, "正在寫入報價與預覽資料…");
 
@@ -1389,30 +1479,35 @@
         previewUrl,
         paymentDueAt,
         totalAmount,
-        planLabel:    limits.planLabel,
+        planLabel: limits.planLabel,
         customerName: finalPayload.name
       });
+
+      result.paymentId = paymentId || "";
+      result.paymentNotice = paymentNoticeText || "";
 
       state.lastSubmitResult = result;
 
       localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify({
-        card_id:        cardId,
-        customer_name:  finalPayload.name || "",
-        plan_name:      limits.planLabel  || "方案",
-        submitted_at:   new Date().toISOString(),
-        payment_notice: "請於 3 天內完成付款",
+        card_id: cardId,
+        payment_id: paymentId || "",
+        customer_name: finalPayload.name || "",
+        plan_name: limits.planLabel || "方案",
+        submitted_at: new Date().toISOString(),
+        payment_notice: paymentNoticeText || "請於 3 天內完成付款",
         payment_due_at: paymentDueAt,
-        preview_url:    previewUrl,
-        plan_amount:    Number(limits.planPrice || 0),
-        addon_items:    addonItems,
-        addon_amount:   Number(addonAmount || 0),
-        total_amount:   Number(totalAmount || 0)
+        preview_url: previewUrl,
+        plan_amount: Number(limits.planPrice || 0),
+        addon_items: addonItems,
+        addon_amount: Number(addonAmount || 0),
+        total_amount: Number(totalAmount || 0)
       }));
 
       localStorage.removeItem(CONFIG.DRAFT_KEY);
 
       setProgressStep(5, "✅ 申請成功！名片已建立。");
       showSuccessPanel(result);
+      setStatus("名片已成功建立，請複製下方資訊回覆客服。", "success");
 
     } catch (err) {
       console.error("[HSC form] submit error:", err);
@@ -1420,6 +1515,21 @@
       showProgress(false);
     }
   }
+
+  async function postToGas(payload) {
+    const res = await fetch(CONFIG.GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await parseJsonSafe(res);
+    if (!res.ok) {
+      throw new Error(data?.error || `HTTP ${res.status}`);
+    }
+    return data;
+  }
+
 
   /* ============================================================
      showSuccessPanel
