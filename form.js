@@ -1508,19 +1508,32 @@
   }
 
   async function postToGas(payload) {
-    const res = await fetch(CONFIG.GAS_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
+  const fd = new FormData();
 
-    const data = await parseJsonSafe(res);
-    if (!res.ok) {
-      throw new Error(data?.error || `HTTP ${res.status}`);
-    }
-    return data;
+  // ⭐關鍵：把 JSON 放進 FormData
+  fd.append("payload", JSON.stringify(payload));
+
+  const res = await fetch(CONFIG.GAS_URL, {
+    method: "POST",
+    body: fd
+  });
+
+  const text = await res.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    console.error("GAS回傳不是JSON:", text);
+    throw new Error("GAS 回傳格式錯誤");
   }
 
+  if (!res.ok || data.ok === false) {
+    throw new Error(data?.error || `HTTP ${res.status}`);
+  }
+
+  return data;
+}
 
   /* ============================================================
      showSuccessPanel
