@@ -1511,11 +1511,22 @@ const data = await postToGas(finalPayload);
     }
   }
 
-  async function postToGas(payload) {
+async function postToGas(payload) {
   const fd = new FormData();
 
-  // ⭐關鍵：把 JSON 放進 FormData
-  fd.append("payload", JSON.stringify(payload));
+  // ✅ 改成「平鋪欄位」
+  Object.keys(payload || {}).forEach((key) => {
+    const value = payload[key];
+
+    if (value === undefined || value === null) return;
+
+    // 物件轉 JSON
+    if (typeof value === "object") {
+      fd.append(key, JSON.stringify(value));
+    } else {
+      fd.append(key, String(value));
+    }
+  });
 
   const res = await fetch(CONFIG.GAS_URL, {
     method: "POST",
@@ -1538,7 +1549,6 @@ const data = await postToGas(finalPayload);
 
   return data;
 }
-
   /* ============================================================
      showSuccessPanel
   ============================================================ */
