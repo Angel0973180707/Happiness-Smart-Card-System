@@ -1437,7 +1437,7 @@ const data = await postToGas(finalPayload);
       setProgressStep(3, "正在建立付款期限…");
 
       const delivered = await postToGas({
-        action: CONFIG.DELIVER_ACTION,
+       action: "markCardDelivered"
         card_id: cardId
       });
 
@@ -1449,7 +1449,7 @@ const data = await postToGas(finalPayload);
       if (paymentId) {
         try {
           const noticeRes = await postToGas({
-            action: CONFIG.PAYMENT_NOTICE_ACTION,
+          action: "buildPaymentNoticeText"
             payment_id: paymentId
           });
           if (noticeRes?.ok && noticeRes?.copy_text) {
