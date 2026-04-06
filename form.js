@@ -1411,40 +1411,46 @@
 finalPayload.action = "createCardWithOfflinePayment";
 
 const data = await postToGas(finalPayload);
+console.log("[HSC form] createCardWithOfflinePayment response =", data);
 
-      if (!data || !data.ok) {
-        throw new Error(data?.error || data?.message || data?.raw || "建立名片失敗，請稍後再試。");
-      }
+if (!data || !data.ok) {
+  throw new Error(data?.error || data?.message || data?.raw || "建立名片失敗，請稍後再試。");
+}
 
-      const cardId =
-        data.card_id ||
-        data.id ||
-        data.card?.id ||
-        data.card?.card_id ||
-        data.data?.card_id ||
-        data.data?.id ||
-        "";
+const cardId =
+  data.card_id ||
+  data.id ||
+  data.card?.id ||
+  data.card?.card_id ||
+  data.data?.card_id ||
+  data.data?.id ||
+  data.result?.card_id ||
+  data.result?.id ||
+  data.payload?.card_id ||
+  "";
 
-      const paymentId =
-        data.payment?.payment_id ||
-        data.payment_id ||
-        "";
+const paymentId =
+  data.payment?.payment_id ||
+  data.payment_id ||
+  data.result?.payment_id ||
+  data.payload?.payment_id ||
+  "";
 
-      if (!cardId) {
-        throw new Error("GAS 已回應成功，但沒有回傳 card_id，請檢查 createCardWithOfflinePayment 回傳格式。");
-      }
+if (!cardId) {
+  console.error("⚠️ 沒拿到 card_id，完整回傳如下：", data);
+  throw new Error("GAS 已回應成功，但沒有回傳 card_id，請檢查 createCardWithOfflinePayment 回傳格式。");
+}
 
-      setProgressStep(3, "正在建立付款期限…");
+setProgressStep(3, "正在建立付款期限…");
 
-      const delivered = await postToGas({
-       action: "markCardDelivered",
-        card_id: cardId
-      });
+const delivered = await postToGas({
+  action: "markCardDelivered",
+  card_id: cardId
+});
 
-      if (!delivered || !delivered.ok) {
-        throw new Error(delivered?.error || delivered?.message || "付款期限建立失敗，請檢查 markCardDelivered。");
-      }
-
+if (!delivered || !delivered.ok) {
+  throw new Error(delivered?.error || delivered?.message || "付款期限建立失敗，請檢查 markCardDelivered。");
+}
       let paymentNoticeText = data.payment_notice?.copy_text || "";
       if (paymentId) {
         try {
