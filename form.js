@@ -1428,7 +1428,6 @@ const cardId =
   data.result?.id ||
   data.payload?.card_id ||
   "";
-
 const paymentId =
   data.payment?.payment_id ||
   data.payment_id ||
@@ -1437,8 +1436,10 @@ const paymentId =
   "";
 
 if (!cardId) {
-  console.error("⚠️ 沒拿到 card_id，完整回傳如下：", data);
-  throw new Error("GAS 已回應成功，但沒有回傳 card_id，請檢查 createCardWithOfflinePayment 回傳格式。");
+  throw new Error(
+    "GAS 已回應成功，但沒有回傳 card_id。\n完整回傳：\n" +
+    JSON.stringify(data, null, 2)
+  );
 }
 
 setProgressStep(3, "正在建立付款期限…");
