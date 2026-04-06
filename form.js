@@ -13,7 +13,7 @@
    - error 狀態一律阻擋送出並提示重試
 
    【任務一說明】style.css 已在 v7.8.4.1 補上所有 .preview-theme-scope 選擇器
-   本 form.js 的 syncPreviewContainerClasses() 邏輯不變（掛在 #preview-theme-scope）
+   v8.2 FINAL：syncPreviewContainerClasses() 仍只掛在 #preview-theme-scope，並移除 #livePreviewCard 雙重掛載，避免與 renderer 打架
 ============================================================ */
 
 (() => {
@@ -1074,18 +1074,8 @@
       scope.classList.add(mapPaper(theme.paper));
     }
 
-    const liveCard = els["livePreviewCard"];
-    if (liveCard) {
-      THEME_CLASSES.forEach(c => liveCard.classList.remove(c));
-      liveCard.classList.add(plan === "premium" ? "mode-premium" : "mode-free");
-      if (plan === "premium") {
-        liveCard.classList.add(mapPremiumColor(theme.color));
-      } else {
-        liveCard.classList.add(mapFreeColor(theme.color));
-        liveCard.classList.add(mapStyle(theme.style));
-        liveCard.classList.add(mapPaper(theme.paper));
-      }
-    }
+    // v8.2 FINAL：主題 class 只掛在 .preview-theme-scope
+    // #livePreviewCard 只作為 renderer 掛載目標，避免雙重掛載打架
   }
 
   function mapFreeColor(v) {
