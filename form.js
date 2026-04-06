@@ -1266,7 +1266,7 @@
     const refCode  = valueOf("ref");
 
     const payload = {
-      action: CONFIG.CREATE_ACTION,
+      action:"createCardWithOfflinePayment",
       tenant: "angel",
 
       name:       previewData.name,
