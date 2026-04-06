@@ -1,984 +1,2085 @@
-import { ensureAuth, uploadAvatar, uploadLogo, uploadPhoto, uploadImage } from './firebase.js';
+# form.html（完整覆蓋版）
 
-(() => {
-  'use strict';
+```html
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>天使幸福智慧名片｜申請表單</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./form.css" />
+</head>
+<body class="hsc-form-page">
+  <main class="form-shell">
+    <header class="page-hero">
+      <div>
+        <p class="eyebrow">天使幸福智慧名片</p>
+        <h1 id="page-title">智慧名片申請表</h1>
+        <p class="hero-desc" id="page-desc">請填寫名片資料，送出後系統會建立申請與名片資訊。</p>
+      </div>
+      <div class="hero-actions">
+        <span class="mode-ribbon" id="mode-ribbon">建卡申請</span>
+        <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
+      </div>
+    </header>
 
-  const CONFIG = {
-    GAS_URL: 'https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec',
-    SERVICE_URL: 'https://lin.ee/G3VJoRm',
-    SHOWCASE_URL: 'https://angel0973180707.github.io/Happiness-Smart-Card-System/',
-    BASE_LIMITS: {
-      free: { wallPhotos: 2, ctas: 1, price: 1500, label: '自由搭配' },
-      premium: { wallPhotos: 5, ctas: 3, price: 2000, label: '精品設計' }
-    },
-    ADDON_PRICES: {
-      addon_marquee: 300,
-      addon_photo: 100,
-      addon_cta: 100,
-      addon_update_unlimited: 300,
-      addon_bundle: 500
-    },
-    UPDATE_FEE_DEFAULT: 300,
-    MAX_WALL_PHOTOS: 10,
-    MAX_CTAS: 10,
-    BANNER_RATIO: 16 / 5,
-    DEFAULT_PREVIEW_META: { layout: 'grid', aspect_ratio: '1:1', fit_mode: 'cover' }
+    <div class="status-strip" id="form-status-strip" role="status" aria-live="polite"></div>
+
+    <form id="smart-card-form" novalidate>
+      <input type="hidden" id="invite_code" name="invite_code" value="" />
+      <input type="hidden" id="ref" name="ref" value="" />
+      <input type="hidden" id="token" name="token" value="" />
+      <input type="hidden" id="card_id" name="card_id" value="" />
+      <input type="hidden" id="mode" name="mode" value="create" />
+
+      <section class="form-card" id="mode-intro-card">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">目前流程</p>
+            <h2 id="mode-headline">建卡模式</h2>
+            <p id="mode-copy">第一次建立智慧名片，請完整填寫資料與上傳圖片。</p>
+          </div>
+          <div class="mode-badges" id="mode-badges"></div>
+        </div>
+      </section>
+
+      <section class="form-card" id="section-plan-addons">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">步驟 1</p>
+            <h2 id="step1-title">選方案與加購</h2>
+            <p id="step1-desc">不同方案包含的照片張數與按鈕數不同，如有需要可再加購。</p>
+          </div>
+          <div class="limit-badges">
+            <span class="pill" id="summary-plan-pill">請先選擇方案</span>
+            <span class="pill" id="summary-photo-pill">照片牆：-</span>
+            <span class="pill" id="summary-cta-pill">按鈕：-</span>
+          </div>
+        </div>
+
+        <div class="plan-grid">
+          <label class="plan-option" data-plan-card="free">
+            <input type="radio" name="plan" value="free" />
+            <span class="plan-card">
+              <span class="plan-title-row">
+                <span class="plan-title">自由搭配</span>
+                <span class="plan-price-tag">NT$ 1,500</span>
+              </span>
+              <span class="plan-meta">可自選顏色、版型、紙感</span>
+              <span class="plan-mini">個人照 1 ／ Logo 1 ／ 照片牆 2 ／ 按鈕 1</span>
+            </span>
+          </label>
+          <label class="plan-option" data-plan-card="premium">
+            <input type="radio" name="plan" value="premium" />
+            <span class="plan-card premium-plan-card">
+              <span class="plan-title-row">
+                <span class="plan-title">精品設計</span>
+                <span class="plan-price-tag">NT$ 2,000</span>
+              </span>
+              <span class="plan-meta">精品配色、玻璃質感、精品色系</span>
+              <span class="plan-mini">個人照 1 ／ Logo 1 ／ 照片牆 5 ／ 按鈕 3</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="addon-layout">
+          <div class="addon-stack">
+            <label class="addon-item"><input type="checkbox" id="addon_marquee_enabled" name="addons" value="addon_marquee" /><div class="addon-content"><strong>跑馬燈加購</strong><small>開啟重要訊息輪播區。</small></div><span class="addon-price-tag">NT$ 300</span></label>
+            <label class="addon-item"><input type="checkbox" id="addon_photo_enabled" name="addons" value="addon_photo" /><div class="addon-content"><strong>照片牆加購</strong><small>每張 NT$ 100，可再增加照片牆張數。</small></div><span class="addon-price-tag">NT$ 100 / 張</span><span class="addon-number-wrap"><input type="number" id="addon_photo_qty" min="0" max="10" value="0" /></span></label>
+            <label class="addon-item"><input type="checkbox" id="addon_cta_enabled" name="addons" value="addon_cta" /><div class="addon-content"><strong>快速按鈕加購</strong><small>每個 NT$ 100，可再增加行動按鈕。</small></div><span class="addon-price-tag">NT$ 100 / 個</span><span class="addon-number-wrap"><input type="number" id="addon_cta_qty" min="0" max="10" value="0" /></span></label>
+            <label class="addon-item addon-item-gold"><input type="checkbox" id="addon_update_unlimited_enabled" name="addons" value="addon_update_unlimited" /><div class="addon-content"><strong>無限次更新加購 <span class="gold-badge">年度權益</span></strong><small>更新與續約模式都會清楚標示這項權益，新年度需重新加購後才生效。</small></div><span class="addon-price-tag">NT$ 300</span></label>
+            <label class="addon-item"><input type="checkbox" id="addon_bundle_enabled" name="addons" value="addon_bundle" /><div class="addon-content"><strong>跑馬燈＋無限更新組合</strong><small>一次勾選兩項權益。</small></div><span class="addon-price-tag">NT$ 500</span></label>
+          </div>
+
+          <div class="quote-box">
+            <div class="quote-head">
+              <div>
+                <h3>報價摘要</h3>
+                <p class="section-copy">系統會依目前模式自動顯示建卡、更新或續約金額。</p>
+              </div>
+              <span class="quote-state" id="quote-state-text">尚未計價</span>
+            </div>
+            <div class="quote-lines">
+              <div class="quote-line"><span>方案金額</span><strong id="quote-plan-amount">-</strong></div>
+              <div class="quote-line"><span>加購金額</span><strong id="quote-addon-amount">-</strong></div>
+              <div class="quote-line quote-total"><span>總價</span><strong id="quote-total-amount">-</strong></div>
+            </div>
+            <div class="quote-breakdown" id="quote-addon-breakdown"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-card" id="section-style">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">步驟 2</p>
+            <h2>名片樣式</h2>
+          </div>
+        </div>
+        <div class="grid-two">
+          <div id="free-theme-group" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="field-group"><label class="field-label" for="free_color">顏色</label><select id="free_color"><option value="c1">粉</option><option value="c2">藍</option><option value="c3">橘</option><option value="c4">紫</option><option value="c5">綠</option></select></div>
+            <div class="field-group"><label class="field-label" for="free_style">版型</label><select id="free_style"><option value="s1">弧形</option><option value="s2">平版</option><option value="s3">聚光</option></select></div>
+            <div class="field-group"><label class="field-label" for="free_paper">紙感</label><select id="free_paper"><option value="f1">紙感 1</option><option value="f2">紙感 2</option><option value="f3">紙感 3</option></select></div>
+          </div>
+          <div id="premium-theme-group" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="field-group"><label class="field-label" for="premium_color">精品色系</label><select id="premium_color"><option value="p1">玫瑰石英</option><option value="p2">勃艮第</option><option value="p3">午夜靛藍</option><option value="p4">薰衣草紫</option><option value="p5">月光銀</option><option value="p6">流金琉璃</option><option value="p7">可可棕</option></select><p class="field-hint">精品方案僅選色，版型與紙感由系統套用。</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-card" id="section-basic-fields">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">步驟 3</p>
+            <h2 id="basic-fields-title">基本資料</h2>
+            <p>✱ 為必填欄位</p>
+          </div>
+        </div>
+        <div class="grid-two">
+          <div class="field-group"><label class="field-label" for="display_name">✱ 姓名 ／ 品牌名稱</label><input type="text" id="display_name" required /></div>
+          <div class="field-group"><label class="field-label" for="unit">單位 ／ 公司</label><input type="text" id="unit" /></div>
+          <div class="field-group"><label class="field-label" for="title">職稱 ／ 副標</label><input type="text" id="title" /></div>
+          <div class="field-group"><label class="field-label" for="phone">✱ 電話</label><input type="tel" id="phone" required /></div>
+          <div class="field-group"><label class="field-label" for="email">Email</label><input type="email" id="email" /></div>
+          <div class="field-group"><label class="field-label" for="website">網站</label><input type="url" id="website" /></div>
+          <div class="field-group"><label class="field-label" for="line_url">LINE 個人頁</label><input type="url" id="line_url" /></div>
+          <div class="field-group"><label class="field-label" for="line_oa">LINE 官方帳號</label><input type="text" id="line_oa" /></div>
+          <div class="field-group"><label class="field-label" for="wechat_id">微信 ID</label><input type="text" id="wechat_id" /></div>
+          <div class="field-group"><label class="field-label" for="experience">經歷</label><textarea id="experience" rows="4"></textarea></div>
+          <div class="field-group full-width"><label class="field-label" for="services">服務項目</label><textarea id="services" rows="3"></textarea></div>
+          <div class="field-group full-width"><label class="field-label" for="address">地址</label><input type="text" id="address" /></div>
+          <div class="field-group full-width"><label class="field-label" for="intro">品牌金句 ／ 簡介</label><textarea id="intro" rows="4"></textarea></div>
+          <div class="field-group"><label class="field-label" for="referrer">推薦人（選填）</label><input type="text" id="referrer" placeholder="若有推薦人或服務窗口，可填寫代號或姓名" /><p class="field-hint">若由代理、朋友或服務窗口協助，可填寫以便後續確認。</p></div>
+        </div>
+      </section>
+
+      <section class="form-card" id="section-links">
+        <div class="section-head"><div><p class="section-kicker">步驟 4</p><h2>影音／社群連結</h2><p>填入平台頁面網址，會顯示在名片的影音／社群區塊。</p></div></div>
+        <div class="grid-two">
+          <div class="field-group full-width"><p class="field-label">影音平台連結（最多 3 個）</p></div>
+          <div class="field-group"><label class="field-label" for="video1">影音連結 1</label><input type="url" id="video1" /></div>
+          <div class="field-group"><label class="field-label" for="video2">影音連結 2</label><input type="url" id="video2" /></div>
+          <div class="field-group"><label class="field-label" for="video3">影音連結 3</label><input type="url" id="video3" /></div>
+          <div class="field-group full-width"><p class="field-label">社群連結（最多 3 個）</p></div>
+          <div class="field-group"><label class="field-label" for="social1">社群連結 1</label><input type="url" id="social1" /></div>
+          <div class="field-group"><label class="field-label" for="social2">社群連結 2</label><input type="url" id="social2" /></div>
+          <div class="field-group"><label class="field-label" for="social3">社群連結 3</label><input type="url" id="social3" /></div>
+        </div>
+      </section>
+
+      <section class="form-card" id="section-photos">
+        <div class="section-head"><div><p class="section-kicker">步驟 5</p><h2>圖片上傳</h2><p>個人照、Logo、橫幅圖、照片牆分區上傳；橫幅圖先作預覽用途。</p></div></div>
+        <div id="photo-slots" class="photo-sections"></div>
+      </section>
+
+      <section class="form-card" id="section-cta">
+        <div class="section-head"><div><p class="section-kicker">步驟 6</p><h2>快速行動按鈕</h2><p>每個按鈕可設定一段文字與對應連結。</p></div></div>
+        <div id="cta-slots" class="cta-stack"></div>
+      </section>
+
+      <section id="marquee-section" class="form-card hidden">
+        <div class="section-head"><div><p class="section-kicker">步驟 7</p><h2>跑馬燈訊息</h2><p>若有多段訊息，請用「｜」隔開，系統會自動輪播顯示。</p></div></div>
+        <div class="field-group"><label class="field-label" for="marquee_text">跑馬燈內容</label><textarea id="marquee_text" rows="3"></textarea><p class="field-hint">每段以「｜」隔開，不需分行。</p></div>
+      </section>
+
+      <section class="form-card hidden" id="section-update-eligibility">
+        <div class="section-head"><div><p class="section-kicker">更新權益</p><h2>更新方式說明</h2><p>系統會自動判斷：無限次更新、年度免費更新，或本次需建立付款資訊。</p></div></div>
+        <div class="eligibility-box" id="eligibility-box"></div>
+      </section>
+
+      <section class="form-card hidden" id="section-renew">
+        <div class="section-head"><div><p class="section-kicker">續約設定</p><h2>續約內容確認</h2><p>續約會帶出目前名片與既有加購。照片與按鈕數量預設沿用目前設定；若減少數量，差額不另退回。</p></div></div>
+        <div class="grid-two">
+          <div class="renew-option-stack">
+            <div class="field-group"><label class="field-label" for="renew_target_plan">續約方案</label><select id="renew_target_plan"><option value="free">自由搭配</option><option value="premium">精品設計</option></select></div>
+            <label class="addon-item"><input type="checkbox" id="renew_keep_marquee" /><div class="addon-content"><strong>延續跑馬燈</strong><small>若目前已有跑馬燈，可在新年度延續。</small></div></label>
+            <label class="addon-item"><input type="checkbox" id="renew_update_unlimited" /><div class="addon-content"><strong>新年度無限次更新</strong><small>若要延續無限次更新，新年度需重新加購後才生效。</small></div><span class="addon-price-tag">NT$ 300</span></label>
+            <div class="renew-addon-card">
+              <div class="field-group"><label class="field-label" for="renew_photo_extra_qty">照片額外增加數量</label><input type="number" id="renew_photo_extra_qty" value="0" min="0" max="10" /></div>
+              <div class="field-group"><label class="field-label" for="renew_cta_extra_qty">按鈕額外增加數量</label><input type="number" id="renew_cta_extra_qty" value="0" min="0" max="10" /></div>
+            </div>
+            <div class="renew-rule" id="renew-rule-text"></div>
+          </div>
+          <div class="summary-stack">
+            <div class="summary-box" id="renew-summary-box"></div>
+            <div class="summary-box" id="renew-addon-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-card hidden" id="section-renew-card-copy">
+        <div class="section-head"><div><p class="section-kicker">目前資料</p><h2>目前名片與既有加購</h2><p>此區僅供確認續約內容，不會直接修改目前名片資料。</p></div></div>
+        <div class="grid-two">
+          <div class="renew-card-copy"><h3>目前名片資料</h3><div id="renew-card-data" class="read-card-grid"></div></div>
+          <div class="renew-card-copy"><h3>目前加購摘要</h3><div id="renew-addon-data" class="summary-stack"></div></div>
+        </div>
+      </section>
+
+      <section class="form-card" id="section-preview">
+        <div class="section-head"><div><p class="section-kicker">成品預覽</p><h2>預覽畫面</h2><p>填寫內容後會即時顯示預覽，方便確認整體呈現。</p></div></div>
+        <div class="preview-section">
+          <div class="preview-card-board"><div id="livePreviewCard" class="hsc-render-root" aria-live="polite"></div></div>
+          <div class="preview-card">
+            <h3>預覽說明</h3>
+            <p class="hint">建卡時可即時查看成品樣貌。</p>
+            <p class="hint">更新時會先帶入原本內容，再顯示新的預覽。</p>
+            <p class="hint">續約時會顯示目前名片摘要與續約內容。</p>
+            <div class="section-divider"></div>
+            <div id="renew-preview-summary" class="hint hidden"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-card">
+        <div class="action-row">
+          <button type="button" class="ghost-btn" id="btn-save-draft">暫存草稿</button>
+          <button type="button" class="ghost-btn" id="btn-clear-draft">清除暫存</button>
+          <button type="button" class="line-btn" id="btn-contact-service">聯繫客服</button>
+          <button type="submit" class="primary-btn" id="btn-submit-form">送出申請</button>
+        </div>
+        <div class="progress-wrap hidden" id="submitProgressWrap">
+          <div class="progress-head"><strong id="submitProgressTitle">送出中</strong><span id="submitProgressPercent">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="submitProgressFill"></div></div>
+          <div class="progress-text" id="submitProgressText">準備中…</div>
+        </div>
+        <div class="result-box hidden" id="successBox">
+          <div class="result-copy-wrap">
+            <div class="result-serial">序號：<span id="successId">-</span></div>
+            <p class="hint" id="successDesc">以下內容可直接貼給客服，方便協助你快速確認與開通。</p>
+            <textarea id="successCopyText" readonly></textarea>
+            <div class="result-actions">
+              <button id="btnCopyReply" type="button" class="ghost-btn">一鍵複製序號＋客服文案</button>
+              <button id="btnLineOA" type="button" class="line-btn">回覆客服</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </form>
+  </main>
+
+  <div id="submit-progress-overlay" class="progress-overlay hidden">
+    <div class="progress-card">
+      <h3 class="progress-title">資料送出中</h3>
+      <p class="progress-text" id="progress-text">正在整理資料，請稍候。</p>
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+      <ul class="progress-steps">
+        <li>1. 整理表單與摘要</li>
+        <li>2. 驗證更新或續約內容</li>
+        <li>3. 建立資料或付款資訊</li>
+        <li>4. 產出客服回覆內容</li>
+      </ul>
+      <div class="service-actions"><button type="button" class="line-btn" id="progress-contact-service">回覆客服</button></div>
+    </div>
+  </div>
+
+  <template id="photo-slot-template">
+    <article class="photo-card">
+      <div class="photo-head"><strong class="photo-title"></strong><span class="badge" data-upload-state="idle">尚未上傳</span></div>
+      <div class="preview-frame"><img class="preview-image hidden" alt="預覽圖" /><div class="preview-empty">尚未選擇圖片</div></div>
+      <div class="photo-right-col">
+        <input type="file" class="photo-file-input" accept="image/*" />
+        <div class="photo-tools hidden">
+          <div class="photo-tool-row"><button type="button" class="ghost-btn rotate-left">左轉</button><button type="button" class="ghost-btn rotate-right">右轉</button><button type="button" class="ghost-btn move-left">左移</button><button type="button" class="ghost-btn move-right">右移</button><button type="button" class="ghost-btn move-up">上移</button><button type="button" class="ghost-btn move-down">下移</button><button type="button" class="ghost-btn reset-photo">重設</button><button type="button" class="warn-btn clear-photo">清除</button></div>
+          <input type="range" class="zoom-range" min="0.6" max="2" step="0.01" value="1" />
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <template id="cta-slot-template">
+    <article class="cta-slot-card">
+      <label class="cta-title-label"></label>
+      <div class="field-group"><label class="field-label">按鈕文字</label><input type="text" class="cta-label-input" /></div>
+      <div class="field-group"><label class="field-label">按鈕連結</label><input type="url" class="cta-url-input" /></div>
+    </article>
+  </template>
+
+  <script src="./card-renderer.js"></script>
+  <script type="module" src="./form.js"></script>
+</body>
+</html>
+```
+
+# form.js（完整覆蓋版）
+
+```javascript
+/* form.js v8.2.1-canvas-complete-overwrite */
+import {
+  initFirebase,
+  ensureAuth,
+  uploadAvatar,
+  uploadLogo,
+  uploadPhoto
+} from "./firebase.js";
+
+const CONFIG = {
+  GAS:
+    window.HSC_GAS_URL ||
+    localStorage.getItem("HSC_GAS_URL") ||
+    "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
+  CUSTOMER_SERVICE_URL:
+    window.HSC_CUSTOMER_SERVICE_URL ||
+    "https://lin.ee/G3VJoRm",
+  HUB_BASE_URL:
+    window.HSC_HUB_BASE_URL ||
+    "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
+  VERSION: "v8.2.1-canvas-complete-overwrite",
+  MAX_PHOTOS: 10,
+  MAX_CTAS: 3,
+  PLAN_PRICE: { free: 1500, premium: 2000 },
+  BASE_LIMITS: {
+    free: { photos: 2, ctas: 1 },
+    premium: { photos: 5, ctas: 3 }
+  },
+  ADDON_PRICE: {
+    marquee: 300,
+    photo: 100,
+    cta: 100,
+    update_unlimited: 300,
+    bundle: 500
+  }
+};
+
+const state = {
+  mode: "create",
+  cardId: "",
+  updateToken: "",
+  currentCard: null,
+  currentLead: null,
+  updateEligibility: null,
+  renewalSummary: null,
+  planOptions: null,
+  photoMeta: {},
+  previewMeta: {},
+  cropMeta: {},
+  photoPreviewUrls: {},
+  slotFiles: {},
+  slotBlobs: {},
+  slotRemoteUrls: {},
+  slotKeys: {},
+  slotTransforms: {},
+  submitResult: null,
+  submitting: false
+};
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+function clean(v) {
+  return String(v == null ? "" : v).trim();
+}
+
+function num(v, fallback = 0) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function toBool(v) {
+  const s = clean(v).toLowerCase();
+  return s === "true" || s === "1" || s === "yes" || s === "y" || s === "on" || v === true;
+}
+
+function normalizeBoolField(v) {
+  return toBool(v) ? "TRUE" : "FALSE";
+}
+
+function getQuery(key) {
+  return new URL(location.href).searchParams.get(key) || "";
+}
+
+function getVal(id) {
+  const el = document.getElementById(id);
+  if (!el) return "";
+  if (el.type === "checkbox") return el.checked ? "TRUE" : "FALSE";
+  return clean(el.value);
+}
+
+function setVal(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.type === "checkbox") {
+    el.checked = !!value && value !== "FALSE";
+    return;
+  }
+  el.value = value == null ? "" : String(value);
+}
+
+function show(el, yes = true) {
+  if (!el) return;
+  el.classList.toggle("hidden", !yes);
+  if (yes) el.style.display = "";
+}
+
+function hide(el) {
+  if (!el) return;
+  el.classList.add("hidden");
+  el.style.display = "";
+}
+
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, (m) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[m]));
+}
+
+function safeJsonParse(raw, fallback = null) {
+  try {
+    return JSON.parse(raw);
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function pick(obj, ...keys) {
+  for (const key of keys) {
+    const v = obj?.[key];
+    if (v != null && clean(v) !== "") return v;
+  }
+  return "";
+}
+
+function debounce(fn, delay = 160) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
   };
+}
 
-  const DEFAULT_PHOTO_META = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
-  const RENEW_CARD_FIELDS = ['name','unit','title','slogan','services','experience','wechat_id','line_url','line_oa','email','phone','address','website'];
+function shallowClone(obj) {
+  return JSON.parse(JSON.stringify(obj || {}));
+}
 
-  const state = {
-    mode: 'create',
-    token: '',
-    cardId: '',
-    tempCardId: 'TEMP_' + Date.now(),
-    cardData: null,
-    updateEligibility: null,
-    renewalSummary: null,
-    quote: null,
-    photoMeta: {},
-    photoPreviewUrls: {},
-    photoRealUrls: {},
-    photoUploadState: {},
-    photoFiles: {},
-    crop: null,
-    draftValues: {}
+function buildCardUrl(cardId) {
+  const id = clean(cardId);
+  if (!id) return "";
+  const base = CONFIG.HUB_BASE_URL.replace(/\/+$/, "/");
+  return `${base}?id=${encodeURIComponent(id)}`;
+}
+
+function getSelectedPlan() {
+  const checked = document.querySelector('input[name="plan"]:checked');
+  return checked ? clean(checked.value).toLowerCase() : "free";
+}
+
+function mapPlanTheme() {
+  const plan = getSelectedPlan();
+  if (plan === "premium") {
+    return {
+      plan: "premium",
+      color: getVal("premium_color") || "p1",
+      style: "",
+      paper: ""
+    };
+  }
+  return {
+    plan: "free",
+    color: getVal("free_color") || "c1",
+    style: getVal("free_style") || "s1",
+    paper: getVal("free_paper") || "f1"
   };
+}
 
-  const els = {};
-  const photoSlots = [];
+function getPhotoExtraQty() {
+  const enabled = $("#addon_photo_enabled")?.checked;
+  return enabled ? Math.max(0, num($("#addon_photo_qty")?.value, 0)) : 0;
+}
 
-  document.addEventListener('DOMContentLoaded', init);
+function getCtaExtraQty() {
+  const enabled = $("#addon_cta_enabled")?.checked;
+  return enabled ? Math.max(0, num($("#addon_cta_qty")?.value, 0)) : 0;
+}
 
-  async function init() {
-    collectEls();
-    initMode();
-    bindStaticEvents();
-    buildPhotoSlots();
-    restoreDraft();
-    hydrateQueryParams();
-    ensureDefaultPlan();
-    syncModeUi();
-    await loadModeData();
-    refreshAll();
+function getPhotoLimit() {
+  const plan = getSelectedPlan();
+  const base = CONFIG.BASE_LIMITS[plan]?.photos || 0;
+  return Math.min(CONFIG.MAX_PHOTOS, base + getPhotoExtraQty());
+}
+
+function getCtaLimit() {
+  const plan = getSelectedPlan();
+  const base = CONFIG.BASE_LIMITS[plan]?.ctas || 0;
+  return Math.min(CONFIG.MAX_CTAS, base + getCtaExtraQty());
+}
+
+function isCreateMode() { return state.mode === "create"; }
+function isUpdateMode() { return state.mode === "update"; }
+function isRenewMode() { return state.mode === "renew"; }
+
+function unwrapCard(res) {
+  return res?.card || res?.data?.card || res?.result?.card || res?.data || null;
+}
+
+function unwrapLead(res) {
+  return res?.lead || res?.data?.lead || res?.result?.lead || null;
+}
+
+function unwrapPayment(res) {
+  return res?.payment || res?.data?.payment || res?.result?.payment || null;
+}
+
+function pickId(res, ...keys) {
+  for (const key of keys) {
+    const value = res?.[key] ?? res?.data?.[key] ?? res?.result?.[key];
+    if (clean(value)) return clean(value);
   }
+  return "";
+}
 
-  function collectEls() {
-    [
-      'smart-card-form','form-status-strip','btn-open-showcase','btn-save-draft','btn-clear-draft','btn-contact-service','btn-submit-form',
-      'invite_code','ref','token','card_id','mode','page-title','page-desc','mode-ribbon','mode-headline','mode-copy','mode-badges',
-      'section-plan-addons','section-style','section-basic-fields','section-links','section-photos','section-cta','section-update-eligibility','section-renew','section-renew-card-copy','section-preview',
-      'display_name','unit','title','phone','email','website','line_url','line_oa','wechat_id','experience','services','address','intro',
-      'video1','video2','video3','social1','social2','social3','marquee-section','marquee_text',
-      'addon_marquee_enabled','addon_photo_enabled','addon_photo_qty','addon_cta_enabled','addon_cta_qty','addon_update_unlimited_enabled','addon_bundle_enabled',
-      'free-theme-group','premium-theme-group','free_color','free_style','free_paper','premium_color',
-      'summary-plan-pill','summary-photo-pill','summary-cta-pill','quote-state-text','quote-plan-amount','quote-addon-amount','quote-addon-breakdown','quote-total-amount',
-      'photo-slots','cta-slots','livePreviewCard','eligibility-box','renew_target_plan','renew_keep_marquee','renew_update_unlimited','renew_photo_extra_qty','renew_cta_extra_qty','renew-summary-box','renew-addon-box','renew-card-data','renew-addon-data','renew-rule-text','renew-preview-summary',
-      'submitProgressWrap','submitProgressTitle','submitProgressPercent','submitProgressFill','submitProgressText','successBox','successId','successCopyText','successDesc','btnCopyReply','btnLineOA',
-      'submit-progress-overlay','progress-text','progress-fill','progress-contact-service',
-      'cropModal','cropTitle','cropHint','cropViewport','cropImage','cropZoom','btnZoomOut','btnZoomIn','btnCenter','btnResetCrop','btnCancelCrop','btnApplyCrop'
-    ].forEach(id => els[id] = document.getElementById(id));
+function getDraftKey() {
+  const mode = state.mode || "create";
+  const token = clean(state.updateToken || getQuery("token"));
+  const cardId = clean(state.cardId || getQuery("card_id"));
+  return `HSC_FORM_DRAFT_${mode}_${token || cardId || "new"}`;
+}
 
-    els.planRadios = Array.from(document.querySelectorAll('input[name="plan"]'));
-    els.addonCheckboxes = Array.from(document.querySelectorAll('input[name="addons"]'));
-    els.photoTemplate = document.getElementById('photo-slot-template');
-    els.ctaTemplate = document.getElementById('cta-slot-template');
-  }
+async function callApi(action, params = {}, method = "POST") {
+  const url = CONFIG.GAS;
+  const payload = new URLSearchParams();
+  payload.set("action", action);
 
-  function initMode() {
-    const params = new URLSearchParams(location.search);
-    const mode = String(params.get('mode') || 'create').trim().toLowerCase();
-    state.mode = ['create','update','renew'].includes(mode) ? mode : 'create';
-    state.token = String(params.get('token') || '').trim();
-    state.cardId = String(params.get('card_id') || '').trim();
-    els.mode.value = state.mode;
-    els.token.value = state.token;
-    els.card_id.value = state.cardId;
-  }
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    const str = String(value);
+    if (str === "") return;
+    payload.set(key, str);
+  });
 
-  function hydrateQueryParams() {
-    const params = new URLSearchParams(location.search);
-    if (params.get('invite') || params.get('invite_code')) els.invite_code.value = params.get('invite') || params.get('invite_code') || '';
-    if (params.get('ref')) els.ref.value = params.get('ref') || '';
-    const planParam = params.get('plan');
-    if (planParam === 'free' || planParam === 'premium') {
-      const r = document.querySelector(`input[name="plan"][value="${planParam}"]`);
-      if (r) r.checked = true;
-    }
-  }
-
-  function syncModeUi() {
-    const maps = {
-      create: {
-        title: '智慧名片申請表', desc: 'v8.1.0｜建卡模式：填完送出後，系統自動產生名片、連結與付款資訊。', ribbon: 'mode=create', head: '建卡模式', copy: '填完整名片資料後送出，系統將建立名片與付款資訊。'
-      },
-      update: {
-        title: '智慧名片資料更新', desc: 'v8.1.0｜更新模式：會先讀取原卡資料與更新權益，再依規則判斷是否需收費。', ribbon: 'mode=update', head: '更新模式', copy: '會識別：無限次更新 / 年度 3 次免費更新 / 單次收費更新（一次 300）。'
-      },
-      renew: {
-        title: '智慧名片續約表單', desc: 'v8.1.0｜續約模式：顯示原卡資料、原加購摘要與續約報價。', ribbon: 'mode=renew', head: '續約模式', copy: '續約會延續上年度照片與 CTA 數量；若要減少，不退款。'
-      }
-    };
-    const conf = maps[state.mode];
-    els['page-title'].textContent = conf.title;
-    els['page-desc'].textContent = conf.desc;
-    els['mode-ribbon'].textContent = conf.ribbon;
-    els['mode-headline'].textContent = conf.head;
-    els['mode-copy'].textContent = conf.copy;
-
-    toggle(els['section-update-eligibility'], state.mode === 'update');
-    toggle(els['section-renew'], state.mode === 'renew');
-    toggle(els['section-renew-card-copy'], state.mode === 'renew');
-    toggle(els['section-style'], state.mode !== 'renew');
-    toggle(els['section-basic-fields'], state.mode !== 'renew');
-    toggle(els['section-links'], state.mode !== 'renew');
-    toggle(els['section-photos'], state.mode !== 'renew');
-    toggle(els['section-cta'], state.mode !== 'renew');
-    toggle(els['section-plan-addons'], true);
-    els['btn-submit-form'].textContent = state.mode === 'create' ? '送出申請' : state.mode === 'update' ? '送出更新' : '送出續約';
-    renderModeBadges();
-  }
-
-  function renderModeBadges() {
-    const host = els['mode-badges'];
-    host.innerHTML = '';
-    if (state.mode === 'update' && state.token) host.appendChild(makePill('更新 Token 已載入'));
-    if (state.mode === 'renew' && state.cardId) host.appendChild(makePill(`卡號 ${state.cardId}`));
-    if (state.mode === 'create' && els.invite_code.value) host.appendChild(makePill(`邀請碼 ${els.invite_code.value}`));
-  }
-
-  function makePill(text, kind='') {
-    const span = document.createElement('span');
-    span.className = 'pill' + (kind ? ` ${kind}` : '');
-    span.textContent = text;
-    return span;
-  }
-
-  function bindStaticEvents() {
-    els['smart-card-form'].addEventListener('submit', onSubmit);
-    els['btn-open-showcase'].addEventListener('click', () => window.open(CONFIG.SHOWCASE_URL, '_blank', 'noopener'));
-    els['btn-contact-service'].addEventListener('click', () => openService());
-    els['progress-contact-service'].addEventListener('click', () => openService());
-    els['btnLineOA'].addEventListener('click', () => openService());
-    els['btn-save-draft'].addEventListener('click', () => { saveDraft(); setStatus('草稿已暫存。','success'); });
-    els['btn-clear-draft'].addEventListener('click', clearDraft);
-    els['btnCopyReply'].addEventListener('click', () => copyText(els['successCopyText'].value || ''));
-
-    els.planRadios.forEach(r => r.addEventListener('change', refreshAll));
-    els.addonCheckboxes.forEach(c => c.addEventListener('change', refreshAll));
-    ['addon_photo_qty','addon_cta_qty','free_color','free_style','free_paper','premium_color','display_name','unit','title','phone','email','website','line_url','line_oa','wechat_id','experience','services','address','intro','marquee_text','video1','video2','video3','social1','social2','social3','renew_target_plan','renew_photo_extra_qty','renew_cta_extra_qty'].forEach(id => {
-      const el = document.getElementById(id); if (el) { el.addEventListener('input', onLiveChange); el.addEventListener('change', onLiveChange); }
-    });
-    ['renew_keep_marquee','renew_update_unlimited'].forEach(id => document.getElementById(id)?.addEventListener('change', onLiveChange));
-
-    bindCropEvents();
-  }
-
-  function bindCropEvents() {
-    els.btnZoomOut.addEventListener('click', () => adjustCropZoom(-0.1));
-    els.btnZoomIn.addEventListener('click', () => adjustCropZoom(0.1));
-    els.cropZoom.addEventListener('input', () => { if (state.crop) { state.crop.scale = clamp(+els.cropZoom.value, 1, 3, 1); syncCropTransform(); } });
-    els.btnCenter.addEventListener('click', () => { if (state.crop) { state.crop.x = 0; state.crop.y = 0; syncCropTransform(); } });
-    els.btnResetCrop.addEventListener('click', () => resetCropState());
-    els.btnCancelCrop.addEventListener('click', closeCropper);
-    els.btnApplyCrop.addEventListener('click', applyCropAndUpload);
-
-    let dragging = false, sx=0, sy=0, ox=0, oy=0;
-    const start = (clientX, clientY) => { if (!state.crop) return; dragging = true; sx = clientX; sy = clientY; ox = state.crop.x; oy = state.crop.y; };
-    const move = (clientX, clientY) => {
-      if (!dragging || !state.crop) return;
-      state.crop.x = ox + (clientX - sx);
-      state.crop.y = oy + (clientY - sy);
-      syncCropTransform();
-    };
-    const end = () => { dragging = false; };
-    els.cropViewport.addEventListener('mousedown', e => { e.preventDefault(); start(e.clientX, e.clientY); });
-    window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
-    window.addEventListener('mouseup', end);
-    els.cropViewport.addEventListener('touchstart', e => { const t=e.touches[0]; start(t.clientX, t.clientY); }, { passive:true });
-    window.addEventListener('touchmove', e => { const t=e.touches[0]; if (t) move(t.clientX, t.clientY); }, { passive:true });
-    window.addEventListener('touchend', end, { passive:true });
-  }
-
-  function onLiveChange() { refreshAll(); saveDraftSilently(); }
-
-  function toggle(el, show) { if (!el) return; el.classList.toggle('hidden', !show); }
-  function setStatus(msg='', stateName='') {
-    const el = els['form-status-strip'];
-    el.textContent = msg || '';
-    el.classList.toggle('visible', !!msg);
-    if (stateName) el.dataset.state = stateName; else delete el.dataset.state;
-  }
-  function valueOf(id) { return (document.getElementById(id)?.value ?? '').toString().trim(); }
-  function checked(id) { return !!document.getElementById(id)?.checked; }
-  function money(v) { return `NT$ ${Number(v || 0).toLocaleString('zh-TW')}`; }
-  function clamp(v, min, max, fb) { const n = Number(v); if (!Number.isFinite(n)) return fb; return Math.max(min, Math.min(max, n)); }
-
-  async function loadModeData() {
-    if (state.mode === 'update') {
-      if (!state.token) { setStatus('缺少 token，無法載入更新資料。','error'); return; }
-      await loadUpdateData();
-    }
-    if (state.mode === 'renew') {
-      if (!state.cardId) { setStatus('缺少 card_id，無法載入續約資料。','error'); return; }
-      await loadRenewData();
-    }
-  }
-
-  async function loadUpdateData() {
-    try {
-      setStatus('正在載入原卡資料與更新權益…','warn');
-      const cardResp = await callGas('getCardForUpdate', { token: state.token });
-      const card = pickRecord(cardResp);
-      state.cardData = normalizeIncoming(card || {});
-      if (state.cardData.card_id) { state.cardId = state.cardData.card_id; els.card_id.value = state.cardId; }
-      hydrateCardIntoFields(state.cardData);
-
-      const eligResp = await callGas('getUpdateEligibility', { token: state.token, card_id: state.cardId || state.cardData.card_id || '' });
-      state.updateEligibility = normalizeEligibility(pickRecord(eligResp) || eligResp || {});
-      renderEligibility();
-      setStatus('更新資料已載入。','success');
-    } catch (err) {
-      console.error(err);
-      setStatus(`載入更新資料失敗：${err.message}`,'error');
-    }
-  }
-
-  async function loadRenewData() {
-    try {
-      setStatus('正在載入續約資料與報價…','warn');
-      const cardResp = await callGas('getCardForRenewal', { card_id: state.cardId });
-      const card = pickRecord(cardResp);
-      state.cardData = normalizeIncoming(card || {});
-      hydrateRenewView(state.cardData);
-      hydrateCardIntoFields(state.cardData, true);
-
-      const renewResp = await callGas('getRenewalSummary', { card_id: state.cardId });
-      state.renewalSummary = normalizeRenewalSummary(pickRecord(renewResp) || renewResp || {});
-      hydrateRenewSummary();
-      setStatus('續約資料已載入。','success');
-    } catch (err) {
-      console.error(err);
-      setStatus(`載入續約資料失敗：${err.message}`,'error');
-    }
-  }
-
-  function normalizeIncoming(src) {
-    const out = { ...(src || {}) };
-    out.name = out.name || out.display_name || '';
-    out.slogan = out.slogan || out.intro || '';
-    out.plan = out.plan || 'free';
-    out.color = out.color || (out.plan === 'premium' ? 'p1' : 'c1');
-    out.style = out.style || 's1';
-    out.paper = out.paper || 'f1';
-    out.photo_limit = Number(out.photo_limit || out.keep_photo_extra_qty || 0) || 0;
-    out.cta_limit = Number(out.cta_limit || out.keep_cta_extra_qty || 0) || 0;
-    return out;
-  }
-
-  function normalizeEligibility(src) {
-    const e = { ...(src || {}) };
-    e.is_unlimited = toBool(e.is_unlimited);
-    e.free_limit = Number(e.free_limit || 3) || 3;
-    e.used_count = Number(e.used_count || 0) || 0;
-    e.remaining_count = Number.isFinite(Number(e.remaining_count)) ? Number(e.remaining_count) : Math.max(0, e.free_limit - e.used_count);
-    e.charge_amount = Number(e.charge_amount || CONFIG.UPDATE_FEE_DEFAULT) || CONFIG.UPDATE_FEE_DEFAULT;
-    e.charge_required = e.is_unlimited ? false : toBool(e.charge_required) || e.remaining_count <= 0;
-    if (e.is_unlimited) e.mode_text = '無限次更新';
-    else if (e.remaining_count > 0) e.mode_text = `年度免費更新（剩餘 ${e.remaining_count} 次）`;
-    else e.mode_text = '單次收費更新';
-    return e;
-  }
-
-  function normalizeRenewalSummary(src) {
-    const r = { ...(src || {}) };
-    r.current_plan = r.current_plan || state.cardData?.plan || 'free';
-    r.target_plan = r.target_plan || r.current_plan;
-    r.current_expires_at = r.current_expires_at || '';
-    r.keep_marquee = toBool(r.keep_marquee);
-    r.keep_photo_extra_qty = Number(r.keep_photo_extra_qty || 0) || 0;
-    r.keep_cta_extra_qty = Number(r.keep_cta_extra_qty || 0) || 0;
-    r.update_unlimited_renew = toBool(r.update_unlimited_renew);
-    r.renewal_price = Number(r.renewal_price || CONFIG.BASE_LIMITS[r.target_plan]?.price || 0) || 0;
-    r.upgrade_diff = Number(r.upgrade_diff || 0) || 0;
-    r.addon_amount = Number(r.addon_amount || 0) || 0;
-    r.total_amount = Number(r.total_amount || (r.renewal_price + r.upgrade_diff + r.addon_amount)) || 0;
-    return r;
-  }
-
-  function toBool(v) { return [true,'true','1',1,'yes','y'].includes(v); }
-  function pickRecord(resp) { return resp?.data || resp?.card || resp?.item || resp?.record || resp; }
-
-  function hydrateCardIntoFields(card, readonlyOnly=false) {
-    if (!card) return;
-    const map = {
-      display_name: card.name || '', unit: card.unit || '', title: card.title || '', phone: card.phone || '', email: card.email || '', website: card.website || '',
-      line_url: card.line_url || '', line_oa: card.line_oa || '', wechat_id: card.wechat_id || '', experience: card.experience || '', services: card.services || '', address: card.address || '', intro: card.slogan || card.intro || '',
-      video1: card.video1 || '', video2: card.video2 || '', video3: card.video3 || '', social1: card.social1 || '', social2: card.social2 || '', social3: card.social3 || '', marquee_text: card.marquee_text || ''
-    };
-    Object.entries(map).forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.value = val; if (readonlyOnly && el) el.classList.add('readonly-field'); });
-    const plan = card.plan || 'free';
-    const radio = document.querySelector(`input[name="plan"][value="${plan}"]`); if (radio) radio.checked = true;
-    els.free_color.value = card.color && card.color.startsWith('c') ? card.color : 'c1';
-    els.free_style.value = card.style || 's1';
-    els.free_paper.value = card.paper || 'f1';
-    els.premium_color.value = card.color && card.color.startsWith('p') ? card.color : 'p1';
-    if (card.marquee_enabled || card.marquee_text) els.addon_marquee_enabled.checked = true;
-    if (Number(card.photo_extra_purchased || 0) > 0) { els.addon_photo_enabled.checked = true; els.addon_photo_qty.value = Number(card.photo_extra_purchased || 0); }
-    if (Number(card.cta_extra_purchased || 0) > 0) { els.addon_cta_enabled.checked = true; els.addon_cta_qty.value = Number(card.cta_extra_purchased || 0); }
-    if (toBool(card.update_unlimited) || toBool(card.update_unlimited_renew) || toBool(card.update_unlimited_purchased)) els.addon_update_unlimited_enabled.checked = true;
-
-    if (card.avatar_url) setLoadedPhoto('avatar', card.avatar_url);
-    if (card.logo_url) setLoadedPhoto('logo', card.logo_url);
-    if (card.banner_url) setLoadedPhoto('banner', card.banner_url);
-    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) {
-      const url = card[`photo${i}_url`] || card[`photo_url_${i}`] || '';
-      if (url) setLoadedPhoto(`photo${i}`, url);
-    }
-    for (let i = 1; i <= CONFIG.MAX_CTAS; i++) {
-      const label = card[`cta_text_${i}`] || ''; const link = card[`cta_link_${i}`] || '';
-      const labelEl = document.getElementById(`cta_text_${i}`), linkEl = document.getElementById(`cta_link_${i}`);
-      if (labelEl) labelEl.value = label;
-      if (linkEl) linkEl.value = link;
-    }
-  }
-
-  function hydrateRenewView(card) {
-    const host = els['renew-card-data'];
-    host.innerHTML = '';
-    RENEW_CARD_FIELDS.forEach(key => {
-      const row = document.createElement('div');
-      row.className = 'summary-row';
-      row.innerHTML = `<span>${labelOfCardField(key)}</span><strong>${escapeHtml(card[key] || '') || '-'}</strong>`;
-      host.appendChild(row);
-    });
-    const addonHost = els['renew-addon-data'];
-    addonHost.innerHTML = '';
-    const rows = [
-      ['原方案', card.plan || '-'],
-      ['原照片數', String(getCurrentPhotoLimit(card))],
-      ['原 CTA 數', String(getCurrentCtaLimit(card))],
-      ['原跑馬燈', card.marquee_text ? '有' : '無'],
-      ['原無限更新', toBool(card.update_unlimited_renew || card.update_unlimited || card.update_unlimited_purchased) ? '有' : '無']
-    ];
-    rows.forEach(([k,v]) => {
-      const box = document.createElement('div');
-      box.className = 'summary-box';
-      box.innerHTML = `<div class="summary-row"><span>${k}</span><strong>${escapeHtml(v)}</strong></div>`;
-      addonHost.appendChild(box);
-    });
-    els['renew_target_plan'].value = card.plan || 'free';
-    els['renew_keep_marquee'].checked = !!card.marquee_text;
-    els['renew_update_unlimited'].checked = !!(card.update_unlimited || card.update_unlimited_renew || card.update_unlimited_purchased);
-    els['renew-rule-text'].textContent = '無限次更新屬年度權益，新年度需重新加購後才生效。\n照片與 CTA 數量預設延續上年度數量；若本次選擇減少，不退款。';
-  }
-
-  function hydrateRenewSummary() {
-    const s = state.renewalSummary || {};
-    renderSummaryBox(els['renew-summary-box'], [
-      ['目前方案', s.current_plan || '-'], ['續約方案', s.target_plan || els['renew_target_plan'].value], ['目前到期日', s.current_expires_at || '-'], ['基本續約', money(s.renewal_price || 0)], ['升級差價', money(s.upgrade_diff || 0)], ['加購金額', money(s.addon_amount || 0)], ['總金額', money(s.total_amount || 0)]
-    ]);
-    renderSummaryBox(els['renew-addon-box'], [
-      ['保留跑馬燈', s.keep_marquee ? '是' : '否'], ['延續照片數', String(getCurrentPhotoLimit(state.cardData))], ['延續 CTA 數', String(getCurrentCtaLimit(state.cardData))], ['無限更新需重購', '是']
-    ]);
-  }
-
-  function renderSummaryBox(el, rows) {
-    el.innerHTML = '';
-    rows.forEach(([k,v]) => {
-      const row = document.createElement('div'); row.className = 'summary-row'; row.innerHTML = `<span>${k}</span><strong>${escapeHtml(v)}</strong>`; el.appendChild(row);
-    });
-  }
-
-  function renderEligibility() {
-    const e = state.updateEligibility; if (!e) return;
-    const kind = e.is_unlimited ? 'ok' : e.charge_required ? 'warn' : 'ok';
-    els['eligibility-box'].innerHTML = [
-      pillHtml(e.mode_text, kind),
-      rowHtml('免費次數上限', String(e.free_limit)),
-      rowHtml('已使用次數', String(e.used_count)),
-      rowHtml('剩餘次數', String(e.remaining_count)),
-      rowHtml('無限更新', e.is_unlimited ? '是' : '否'),
-      rowHtml('本次是否需收費', e.charge_required ? '是' : '否'),
-      rowHtml('本次更新金額', money(e.charge_required ? e.charge_amount : 0))
-    ].join('');
-  }
-  function rowHtml(k,v) { return `<div class="summary-row"><span>${escapeHtml(k)}</span><strong>${escapeHtml(v)}</strong></div>`; }
-  function pillHtml(t, kind='') { return `<div style="margin-bottom:8px;">${makePill(t, kind).outerHTML}</div>`; }
-
-  function buildPhotoSlots() {
-    const root = els['photo-slots'];
-    root.innerHTML = '';
-    photoSlots.length = 0;
-    const sections = [
-      { title: '主圖區', copy: '個人照、Logo、Banner', items: [
-        { key: 'avatar', title: '個人照', shape: 'square' },
-        { key: 'logo', title: 'Logo', shape: 'square' },
-        { key: 'banner', title: 'Banner', shape: 'banner' }
-      ]},
-      { title: '照片牆', copy: '照片牆數量會依方案 / 加購動態顯示', items: [] }
-    ];
-    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) sections[1].items.push({ key: `photo${i}`, title: `照片 ${i}`, shape: 'square', wall:true });
-
-    sections.forEach(section => {
-      const wrap = document.createElement('div'); wrap.className = 'photo-section';
-      wrap.innerHTML = `<div class="photo-section-head"><div><h3>${escapeHtml(section.title)}</h3><p>${escapeHtml(section.copy)}</p></div></div>`;
-      const grid = document.createElement('div'); grid.className = 'photo-grid-form';
-      section.items.forEach(cfg => {
-        const node = els.photoTemplate.content.firstElementChild.cloneNode(true);
-        node.dataset.photoKey = cfg.key;
-        node.querySelector('.photo-title').textContent = cfg.title;
-        const frame = node.querySelector('.preview-frame');
-        if (cfg.shape === 'banner') frame.classList.add('banner');
-        const previewImage = node.querySelector('.preview-image');
-        const previewEmpty = node.querySelector('.preview-empty');
-        const fileInput = node.querySelector('.photo-file-input');
-        const tools = node.querySelector('.photo-tools');
-        const zoomRange = node.querySelector('.zoom-range');
-        const badge = node.querySelector('.badge');
-        state.photoMeta[cfg.key] = state.photoMeta[cfg.key] || { ...DEFAULT_PHOTO_META };
-        const slot = { cfg, node, frame, previewImage, previewEmpty, fileInput, tools, zoomRange, badge };
-        photoSlots.push(slot);
-        bindPhotoSlot(slot);
-        grid.appendChild(node);
-      });
-      wrap.appendChild(grid);
-      root.appendChild(wrap);
-    });
-    buildCtaSlots();
-  }
-
-  function bindPhotoSlot(slot) {
-    const { cfg, fileInput, previewImage, previewEmpty, tools, zoomRange, badge } = slot;
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files?.[0]; if (!file) return;
-      try { await openCropper(cfg.key, file, cfg.shape === 'banner' ? 'banner' : 'square'); } catch (err) { setStatus(`圖片讀取失敗：${err.message}`,'error'); }
-      fileInput.value = '';
-    });
-    slot.node.querySelector('.preview-frame').addEventListener('click', () => fileInput.click());
-    slot.node.querySelector('.clear-photo').addEventListener('click', () => clearPhoto(cfg.key));
-    slot.node.querySelector('.rotate-left').addEventListener('click', () => transformPhoto(cfg.key, { rotate: state.photoMeta[cfg.key].rotate - 90 }));
-    slot.node.querySelector('.rotate-right').addEventListener('click', () => transformPhoto(cfg.key, { rotate: state.photoMeta[cfg.key].rotate + 90 }));
-    slot.node.querySelector('.move-left').addEventListener('click', () => transformPhoto(cfg.key, { x: +(state.photoMeta[cfg.key].x - 0.05).toFixed(2) }));
-    slot.node.querySelector('.move-right').addEventListener('click', () => transformPhoto(cfg.key, { x: +(state.photoMeta[cfg.key].x + 0.05).toFixed(2) }));
-    slot.node.querySelector('.move-up').addEventListener('click', () => transformPhoto(cfg.key, { y: +(state.photoMeta[cfg.key].y - 0.05).toFixed(2) }));
-    slot.node.querySelector('.move-down').addEventListener('click', () => transformPhoto(cfg.key, { y: +(state.photoMeta[cfg.key].y + 0.05).toFixed(2) }));
-    slot.node.querySelector('.reset-photo').addEventListener('click', () => { state.photoMeta[cfg.key] = { ...DEFAULT_PHOTO_META }; applyPhotoTransform(previewImage, state.photoMeta[cfg.key]); updatePreview(); saveDraftSilently(); zoomRange.value = '1'; });
-    zoomRange.addEventListener('input', () => { state.photoMeta[cfg.key].scale = clamp(zoomRange.value, 0.5, 3, 1); applyPhotoTransform(previewImage, state.photoMeta[cfg.key]); updatePreview(); saveDraftSilently(); });
-    tools.classList.add('hidden'); previewImage.classList.add('hidden'); previewEmpty.classList.remove('hidden'); badge.textContent = '尚未上傳'; badge.dataset.uploadState = 'idle';
-  }
-
-  function buildCtaSlots() {
-    const root = els['cta-slots']; root.innerHTML = '';
-    for (let i = 1; i <= CONFIG.MAX_CTAS; i++) {
-      const node = els.ctaTemplate.content.firstElementChild.cloneNode(true);
-      node.querySelector('.cta-title-label').textContent = `CTA ${i}`;
-      const labelInput = node.querySelector('.cta-label-input');
-      const urlInput = node.querySelector('.cta-url-input');
-      labelInput.id = `cta_text_${i}`; urlInput.id = `cta_link_${i}`;
-      labelInput.addEventListener('input', onLiveChange); urlInput.addEventListener('input', onLiveChange);
-      root.appendChild(node);
-    }
-  }
-
-  function clearPhoto(key) {
-    delete state.photoPreviewUrls[key]; delete state.photoRealUrls[key]; delete state.photoFiles[key]; state.photoUploadState[key] = 'idle';
-    const slot = photoSlots.find(s => s.cfg.key === key); if (!slot) return;
-    slot.previewImage.removeAttribute('src'); slot.previewImage.classList.add('hidden'); slot.previewEmpty.classList.remove('hidden'); slot.tools.classList.add('hidden'); slot.badge.textContent = '尚未上傳'; slot.badge.dataset.uploadState = 'idle';
-    updatePreview(); saveDraftSilently();
-  }
-
-  function setLoadedPhoto(key, url) {
-    state.photoPreviewUrls[key] = url; state.photoRealUrls[key] = url; state.photoUploadState[key] = 'done';
-    const slot = photoSlots.find(s => s.cfg.key === key); if (!slot) return;
-    slot.previewImage.src = url; slot.previewImage.classList.remove('hidden'); slot.previewEmpty.classList.add('hidden'); slot.tools.classList.remove('hidden'); slot.badge.textContent = '已載入'; slot.badge.dataset.uploadState = 'done'; applyPhotoTransform(slot.previewImage, state.photoMeta[key] || DEFAULT_PHOTO_META);
-  }
-
-  function transformPhoto(key, next) {
-    state.photoMeta[key] = { ...state.photoMeta[key], ...next };
-    state.photoMeta[key].x = clamp(state.photoMeta[key].x, 0, 1, 0.5);
-    state.photoMeta[key].y = clamp(state.photoMeta[key].y, 0, 1, 0.5);
-    state.photoMeta[key].scale = clamp(state.photoMeta[key].scale, 0.5, 3, 1);
-    state.photoMeta[key].rotate = clamp(state.photoMeta[key].rotate, -180, 180, 0);
-    const slot = photoSlots.find(s => s.cfg.key === key); if (slot) applyPhotoTransform(slot.previewImage, state.photoMeta[key]);
-    updatePreview(); saveDraftSilently();
-  }
-
-  function applyPhotoTransform(img, meta) {
-    if (!img) return;
-    img.style.objectPosition = `${(meta.x * 100).toFixed(2)}% ${(meta.y * 100).toFixed(2)}%`;
-    img.style.transform = `scale(${meta.scale}) rotate(${meta.rotate}deg)`;
-  }
-
-  function getLimits(plan = getPlan()) {
-    const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.free;
-    const photoExtra = checked('addon_photo_enabled') ? Number(els['addon_photo_qty'].value || 0) : 0;
-    const ctaExtra = checked('addon_cta_enabled') ? Number(els['addon_cta_qty'].value || 0) : 0;
-    return { wallPhotos: Math.min(CONFIG.MAX_WALL_PHOTOS, base.wallPhotos + photoExtra), ctas: Math.min(CONFIG.MAX_CTAS, base.ctas + ctaExtra), price: base.price, label: base.label };
-  }
-  function getPlan() { return document.querySelector('input[name="plan"]:checked')?.value || 'free'; }
-  function getThemeSelection() {
-    const plan = getPlan();
-    return plan === 'premium' ? { plan, color: els['premium_color'].value || 'p1', style: 's1', paper: 'f1' } : { plan, color: els['free_color'].value || 'c1', style: els['free_style'].value || 's1', paper: els['free_paper'].value || 'f1' };
-  }
-
-  function refreshAll() {
-    refreshModeVisibility();
-    refreshSummary();
-    refreshDynamicSlots();
-    updatePreview();
-    if (state.mode === 'renew') updateRenewSummaryLive();
-  }
-
-  function refreshModeVisibility() {
-    const plan = getPlan();
-    toggle(els['free-theme-group'], plan === 'free');
-    toggle(els['premium-theme-group'], plan === 'premium');
-    const showMarquee = checked('addon_marquee_enabled') || checked('addon_bundle_enabled') || state.mode === 'renew' && checked('renew_keep_marquee');
-    toggle(els['marquee-section'], showMarquee && state.mode !== 'renew');
-    photoSlots.forEach(slot => {
-      if (!slot.cfg.wall) return;
-      const idx = Number(slot.cfg.key.replace('photo',''));
-      toggle(slot.node, idx <= getLimits().wallPhotos && state.mode !== 'renew');
-    });
-    const bannerSlot = photoSlots.find(s => s.cfg.key === 'banner'); if (bannerSlot) toggle(bannerSlot.node, state.mode !== 'renew');
-  }
-
-  function refreshDynamicSlots() {
-    const limits = getLimits();
-    for (let i = 1; i <= CONFIG.MAX_CTAS; i++) toggle(document.getElementById(`cta_text_${i}`)?.closest('.cta-slot-card'), i <= limits.ctas && state.mode !== 'renew');
-  }
-
-  function refreshSummary() {
-    const limits = state.mode === 'renew' ? getRenewComputedLimits() : getLimits();
-    const plan = state.mode === 'renew' ? (els['renew_target_plan'].value || state.cardData?.plan || 'free') : getPlan();
-    els['summary-plan-pill'].textContent = `方案：${CONFIG.BASE_LIMITS[plan].label}`;
-    els['summary-photo-pill'].textContent = `照片牆：${limits.wallPhotos}`;
-    els['summary-cta-pill'].textContent = `CTA：${limits.ctas}`;
-
-    let planAmount = 0, addonAmount = 0, breakdown = [];
-    if (state.mode === 'create') {
-      planAmount = CONFIG.BASE_LIMITS[plan].price;
-      addonAmount = calcCreateAddonAmount(breakdown);
-      els['quote-state-text'].textContent = '建卡報價';
-    } else if (state.mode === 'update') {
-      const e = state.updateEligibility || normalizeEligibility({});
-      planAmount = 0;
-      addonAmount = e.charge_required ? e.charge_amount : 0;
-      breakdown.push(e.mode_text);
-      els['quote-state-text'].textContent = e.charge_required ? '本次更新需付費' : '本次更新免費';
+  let raw = "";
+  try {
+    if (String(method).toUpperCase() === "GET") {
+      const qs = payload.toString();
+      raw = await fetch(`${url}?${qs}`, { method: "GET", credentials: "omit" }).then(r => r.text());
     } else {
-      const rs = computeRenewPricing();
-      planAmount = rs.planAmount;
-      addonAmount = rs.addonAmount + rs.upgradeDiff;
-      breakdown = rs.breakdown;
-      els['quote-state-text'].textContent = '續約報價';
+      raw = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+        },
+        body: payload.toString(),
+        credentials: "omit"
+      }).then(r => r.text());
     }
-    els['quote-plan-amount'].textContent = money(planAmount);
-    els['quote-addon-amount'].textContent = money(addonAmount);
-    els['quote-total-amount'].textContent = money(planAmount + addonAmount);
-    els['quote-addon-breakdown'].innerHTML = breakdown.length ? breakdown.map(t => `<div class="quote-breakdown-row"><span>${escapeHtml(t)}</span></div>`).join('') : '<div class="quote-breakdown-row"><span>目前沒有額外加購</span></div>';
+  } catch (error) {
+    return { ok: false, error: `Network Error: ${error?.message || "request failed"}` };
   }
 
-  function calcCreateAddonAmount(breakdown) {
-    let addonAmount = 0;
-    if (checked('addon_bundle_enabled')) { addonAmount += CONFIG.ADDON_PRICES.addon_bundle; breakdown.push(`跑馬燈 + 無限更新組合 ${money(CONFIG.ADDON_PRICES.addon_bundle)}`); }
-    else {
-      if (checked('addon_marquee_enabled')) { addonAmount += CONFIG.ADDON_PRICES.addon_marquee; breakdown.push(`跑馬燈 ${money(CONFIG.ADDON_PRICES.addon_marquee)}`); }
-      if (checked('addon_update_unlimited_enabled')) { addonAmount += CONFIG.ADDON_PRICES.addon_update_unlimited; breakdown.push(`無限更新 ${money(CONFIG.ADDON_PRICES.addon_update_unlimited)}`); }
+  try {
+    return JSON.parse(raw);
+  } catch (_) {
+    return { ok: false, error: "Invalid JSON", raw };
+  }
+}
+
+function setStatus(text = "", isError = false) {
+  const strip = $("#form-status-strip");
+  if (!strip) return;
+  strip.textContent = clean(text);
+  strip.classList.toggle("is-error", !!isError);
+}
+
+function renderProgress(percent = 0, text = "處理中…", title = "資料處理中") {
+  const safe = Math.max(0, Math.min(100, Math.round(percent)));
+
+  const fill1 = $("#submitProgressFill");
+  const pct1 = $("#submitProgressPercent");
+  const text1 = $("#submitProgressText");
+  const title1 = $("#submitProgressTitle");
+  const wrap1 = $("#submitProgressWrap");
+
+  const fill2 = $("#progress-fill");
+  const text2 = $("#progress-text");
+  const overlay = $("#submit-progress-overlay");
+
+  if (fill1) fill1.style.width = `${safe}%`;
+  if (pct1) pct1.textContent = `${safe}%`;
+  if (text1) text1.textContent = text;
+  if (title1) title1.textContent = title;
+  if (wrap1) show(wrap1, safe > 0 && safe < 100);
+
+  if (fill2) fill2.style.width = `${safe}%`;
+  if (text2) text2.textContent = text;
+  if (overlay) show(overlay, safe > 0 && safe < 100);
+}
+
+function hideProgress() {
+  renderProgress(0, "準備中…", "資料處理中");
+  hide($("#submitProgressWrap"));
+  hide($("#submit-progress-overlay"));
+}
+
+function showError(message, detail = "") {
+  const text = [clean(message), clean(detail)].filter(Boolean).join("｜");
+  setStatus(text || "發生錯誤，請稍後再試", true);
+}
+
+function applyModeText() {
+  const title = $("#page-title");
+  const desc = $("#page-desc");
+  const ribbon = $("#mode-ribbon");
+  const headline = $("#mode-headline");
+  const copy = $("#mode-copy");
+  const submitBtn = $("#btn-submit-form");
+  const step1Title = $("#step1-title");
+  const step1Desc = $("#step1-desc");
+  const basicTitle = $("#basic-fields-title");
+
+  if (isCreateMode()) {
+    title.textContent = "智慧名片申請表";
+    desc.textContent = "請填寫名片資料，送出後系統會建立申請與名片資訊。";
+    ribbon.textContent = "建卡申請";
+    headline.textContent = "建卡模式";
+    copy.textContent = "第一次建立智慧名片，請完整填寫資料與上傳圖片。";
+    submitBtn.textContent = "送出申請";
+    step1Title.textContent = "選方案與加購";
+    step1Desc.textContent = "不同方案包含的照片張數與按鈕數不同，如有需要可再加購。";
+    basicTitle.textContent = "基本資料";
+  } else if (isUpdateMode()) {
+    title.textContent = "智慧名片資料更新";
+    desc.textContent = "請確認並修改需要更新的內容，系統會依權益判斷是否需付費。";
+    ribbon.textContent = "資料更新";
+    headline.textContent = "更新模式";
+    copy.textContent = "系統會先帶入原本資料，更新後可立即預覽。";
+    submitBtn.textContent = "送出更新";
+    step1Title.textContent = "確認方案與加購";
+    step1Desc.textContent = "此區會顯示目前方案與相關加購，供你確認。";
+    basicTitle.textContent = "名片資料";
+  } else {
+    title.textContent = "智慧名片續約申請";
+    desc.textContent = "請確認目前名片與續約內容，系統會建立本次續約付款資訊。";
+    ribbon.textContent = "續約申請";
+    headline.textContent = "續約模式";
+    copy.textContent = "這裡會帶出原卡資料與既有加購，方便確認本次續約內容。";
+    submitBtn.textContent = "送出續約";
+    step1Title.textContent = "續約內容";
+    step1Desc.textContent = "請確認原方案、原加購與本次續約設定。";
+    basicTitle.textContent = "名片資料摘要";
+  }
+}
+
+function renderModeUI() {
+  applyModeText();
+  show($("#section-update-eligibility"), isUpdateMode());
+  show($("#section-renew"), isRenewMode());
+  show($("#section-renew-card-copy"), isRenewMode());
+
+  show($("#section-plan-addons"), !isRenewMode());
+  show($("#section-style"), !isRenewMode());
+  show($("#section-basic-fields"), !isRenewMode());
+  show($("#section-links"), !isRenewMode());
+  show($("#section-photos"), !isRenewMode());
+  show($("#section-cta"), !isRenewMode());
+  show($("#marquee-section"), !isRenewMode() && !!$("#addon_marquee_enabled")?.checked);
+
+  const modeBadges = $("#mode-badges");
+  if (!modeBadges) return;
+  modeBadges.innerHTML = "";
+  const labels = isCreateMode()
+    ? ["建立資料", "上傳圖片", "送出申請"]
+    : isUpdateMode()
+      ? ["載入原資料", "確認更新權益", "送出更新"]
+      : ["帶出原卡", "確認續約內容", "建立付款資訊"];
+  labels.forEach((label) => {
+    const span = document.createElement("span");
+    span.className = "pill";
+    span.textContent = label;
+    modeBadges.appendChild(span);
+  });
+}
+
+function hydrateQueryParams() {
+  const mode = getQuery("mode") || "create";
+  const token = getQuery("token");
+  const cardId = getQuery("card_id");
+  const inviteCode = getQuery("invite_code");
+  const ref = getQuery("ref");
+
+  setVal("mode", mode);
+  setVal("token", token);
+  setVal("card_id", cardId);
+  setVal("invite_code", inviteCode);
+  setVal("ref", ref);
+
+  if (ref && !clean($("#referrer")?.value)) {
+    setVal("referrer", ref);
+  }
+}
+
+function collectDraftData() {
+  const ids = [
+    "invite_code", "ref", "referrer", "token", "card_id", "mode",
+    "display_name", "unit", "title", "phone", "email", "website",
+    "line_url", "line_oa", "wechat_id", "experience", "services",
+    "address", "intro", "video1", "video2", "video3", "social1",
+    "social2", "social3", "marquee_text", "free_color", "free_style",
+    "free_paper", "premium_color", "addon_photo_qty", "addon_cta_qty",
+    "renew_target_plan", "renew_photo_extra_qty", "renew_cta_extra_qty"
+  ];
+
+  const out = {};
+  ids.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.type === "checkbox") out[id] = !!el.checked;
+    else out[id] = el.value;
+  });
+
+  $$('input[name="plan"]').forEach((radio) => {
+    if (radio.checked) out[`plan__${radio.value}`] = radio.value;
+  });
+
+  [
+    "addon_marquee_enabled",
+    "addon_photo_enabled",
+    "addon_cta_enabled",
+    "addon_update_unlimited_enabled",
+    "addon_bundle_enabled",
+    "renew_keep_marquee",
+    "renew_update_unlimited"
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) out[id] = !!el.checked;
+  });
+
+  return out;
+}
+
+function saveDraft() {
+  const payload = {
+    mode: state.mode,
+    data: collectDraftData(),
+    slotTransforms: shallowClone(state.slotTransforms),
+    photoPreviewUrls: shallowClone(state.photoPreviewUrls),
+    previewMeta: shallowClone(state.previewMeta)
+  };
+  localStorage.setItem(getDraftKey(), JSON.stringify(payload));
+  setStatus("草稿已暫存");
+}
+
+function saveDraftSilently() {
+  try {
+    localStorage.setItem(getDraftKey(), JSON.stringify({
+      mode: state.mode,
+      data: collectDraftData(),
+      slotTransforms: shallowClone(state.slotTransforms),
+      photoPreviewUrls: shallowClone(state.photoPreviewUrls),
+      previewMeta: shallowClone(state.previewMeta)
+    }));
+  } catch (_) {}
+}
+
+function loadDraft() {
+  const raw = localStorage.getItem(getDraftKey());
+  if (!raw) return false;
+  const saved = safeJsonParse(raw);
+  if (!saved?.data) return false;
+
+  Object.entries(saved.data).forEach(([id, value]) => {
+    if (id.startsWith("plan__")) {
+      const target = document.querySelector(`input[name="plan"][value="${value}"]`);
+      if (target) target.checked = true;
+      return;
     }
-    if (checked('addon_photo_enabled') && Number(els['addon_photo_qty'].value || 0) > 0) { const amt = Number(els['addon_photo_qty'].value || 0) * CONFIG.ADDON_PRICES.addon_photo; addonAmount += amt; breakdown.push(`照片加購 ${money(amt)}`); }
-    if (checked('addon_cta_enabled') && Number(els['addon_cta_qty'].value || 0) > 0) { const amt = Number(els['addon_cta_qty'].value || 0) * CONFIG.ADDON_PRICES.addon_cta; addonAmount += amt; breakdown.push(`CTA 加購 ${money(amt)}`); }
-    return addonAmount;
-  }
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = !!value;
+    else el.value = value ?? "";
+  });
 
-  function getCurrentPhotoLimit(card = state.cardData || {}) {
-    const base = CONFIG.BASE_LIMITS[card.plan || 'free']?.wallPhotos || 2;
-    return base + (Number(card.photo_extra_purchased || 0) || 0);
-  }
-  function getCurrentCtaLimit(card = state.cardData || {}) {
-    const base = CONFIG.BASE_LIMITS[card.plan || 'free']?.ctas || 1;
-    return base + (Number(card.cta_extra_purchased || 0) || 0);
-  }
-  function getRenewComputedLimits() {
-    return { wallPhotos: getCurrentPhotoLimit(state.cardData) + Number(els['renew_photo_extra_qty'].value || 0), ctas: getCurrentCtaLimit(state.cardData) + Number(els['renew_cta_extra_qty'].value || 0) };
-  }
+  state.slotTransforms = saved.slotTransforms || {};
+  state.photoPreviewUrls = saved.photoPreviewUrls || {};
+  state.previewMeta = saved.previewMeta || {};
+  refreshAllPreviewThumbsFromState();
+  return true;
+}
 
-  function computeRenewPricing() {
-    const currentPlan = state.cardData?.plan || 'free';
-    const targetPlan = els['renew_target_plan'].value || currentPlan;
-    const planAmount = CONFIG.BASE_LIMITS[targetPlan].price;
-    const photoExtraQty = Number(els['renew_photo_extra_qty'].value || 0) || 0;
-    const ctaExtraQty = Number(els['renew_cta_extra_qty'].value || 0) || 0;
-    const keepUnlimited = checked('renew_update_unlimited');
-    const keepMarquee = checked('renew_keep_marquee');
-    let addonAmount = 0, upgradeDiff = 0; const breakdown = [];
-    if (currentPlan === 'free' && targetPlan === 'premium') { upgradeDiff = CONFIG.BASE_LIMITS.premium.price - CONFIG.BASE_LIMITS.free.price; breakdown.push(`升級差價 ${money(upgradeDiff)}`); }
-    if (photoExtraQty > 0) { const amt = photoExtraQty * CONFIG.ADDON_PRICES.addon_photo; addonAmount += amt; breakdown.push(`照片增加 ${money(amt)}`); }
-    if (ctaExtraQty > 0) { const amt = ctaExtraQty * CONFIG.ADDON_PRICES.addon_cta; addonAmount += amt; breakdown.push(`CTA 增加 ${money(amt)}`); }
-    if (keepMarquee) { addonAmount += CONFIG.ADDON_PRICES.addon_marquee; breakdown.push(`跑馬燈續保 ${money(CONFIG.ADDON_PRICES.addon_marquee)}`); }
-    if (keepUnlimited) { addonAmount += CONFIG.ADDON_PRICES.addon_update_unlimited; breakdown.push(`新年度無限更新 ${money(CONFIG.ADDON_PRICES.addon_update_unlimited)}`); }
-    return { planAmount, addonAmount, upgradeDiff, total: planAmount + addonAmount + upgradeDiff, breakdown };
-  }
+function clearDraft() {
+  localStorage.removeItem(getDraftKey());
+  setStatus("已清除暫存草稿");
+}
 
-  function updateRenewSummaryLive() {
-    const p = computeRenewPricing();
-    renderSummaryBox(els['renew-summary-box'], [
-      ['目前方案', state.cardData?.plan || '-'], ['續約方案', els['renew_target_plan'].value], ['基本續約', money(p.planAmount)], ['升級差價', money(p.upgradeDiff)], ['加購金額', money(p.addonAmount)], ['總金額', money(p.total)]
-    ]);
-    renderSummaryBox(els['renew-addon-box'], [
-      ['延續照片數', String(getCurrentPhotoLimit(state.cardData))], ['延續 CTA 數', String(getCurrentCtaLimit(state.cardData))], ['照片新增', String(Number(els['renew_photo_extra_qty'].value || 0))], ['CTA 新增', String(Number(els['renew_cta_extra_qty'].value || 0))]
-    ]);
-    els['renew-preview-summary'].classList.remove('hidden');
-    els['renew-preview-summary'].textContent = `續約方案：${CONFIG.BASE_LIMITS[els['renew_target_plan'].value].label}｜照片延續 ${getCurrentPhotoLimit(state.cardData)} 張，可再增加 ${Number(els['renew_photo_extra_qty'].value || 0)} 張｜CTA 延續 ${getCurrentCtaLimit(state.cardData)} 個，可再增加 ${Number(els['renew_cta_extra_qty'].value || 0)} 個。`;
-  }
+function getAddonBundleActive() {
+  return !!$("#addon_bundle_enabled")?.checked;
+}
 
-  function buildPreviewData() {
-    if (state.mode === 'renew') {
-      const base = state.cardData || {};
-      return {
-        ...base,
-        name: base.name || '續約名片',
-        slogan: base.slogan || base.intro || '',
-        plan: els['renew_target_plan'].value || base.plan || 'free',
-        marquee_text: checked('renew_keep_marquee') ? (base.marquee_text || '') : '',
-        cta_limit: getRenewComputedLimits().ctas,
-        photo_limit: getRenewComputedLimits().wallPhotos,
-        card_url: base.card_url || '',
-        features_json: { photo_meta: state.photoMeta, preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: els['renew_target_plan'].value || base.plan || 'free' }, photo_preview_urls: { ...state.photoPreviewUrls } }
-      };
+function syncBundleCheckboxes() {
+  const bundle = $("#addon_bundle_enabled");
+  if (!bundle) return;
+  if (bundle.checked) {
+    if ($("#addon_marquee_enabled")) $("#addon_marquee_enabled").checked = true;
+    if ($("#addon_update_unlimited_enabled")) $("#addon_update_unlimited_enabled").checked = true;
+  }
+}
+
+function calcCreateOrUpdateQuote() {
+  syncBundleCheckboxes();
+  const plan = getSelectedPlan();
+  const planAmount = CONFIG.PLAN_PRICE[plan] || 0;
+  let addonAmount = 0;
+  const breakdown = [];
+
+  const marquee = !!$("#addon_marquee_enabled")?.checked;
+  const photoQty = getPhotoExtraQty();
+  const ctaQty = getCtaExtraQty();
+  const updateUnlimited = !!$("#addon_update_unlimited_enabled")?.checked;
+  const bundle = getAddonBundleActive();
+
+  if (bundle) {
+    addonAmount += CONFIG.ADDON_PRICE.bundle;
+    breakdown.push(`跑馬燈＋無限次更新組合 NT$ ${CONFIG.ADDON_PRICE.bundle}`);
+  } else {
+    if (marquee) {
+      addonAmount += CONFIG.ADDON_PRICE.marquee;
+      breakdown.push(`跑馬燈 NT$ ${CONFIG.ADDON_PRICE.marquee}`);
     }
-    const theme = getThemeSelection();
-    const limits = getLimits(theme.plan);
-    return {
-      name: valueOf('display_name'), unit: valueOf('unit'), title: valueOf('title'), slogan: valueOf('intro'), phone: valueOf('phone'), email: valueOf('email'), website: valueOf('website'), address: valueOf('address'), line_url: valueOf('line_url'), line_oa: valueOf('line_oa'), wechat_id: valueOf('wechat_id'), experience: valueOf('experience'), services: valueOf('services'),
-      video1: valueOf('video1'), video2: valueOf('video2'), video3: valueOf('video3'), social1: valueOf('social1'), social2: valueOf('social2'), social3: valueOf('social3'),
-      plan: theme.plan, color: theme.color, style: theme.style, paper: theme.paper,
-      marquee_text: checked('addon_marquee_enabled') || checked('addon_bundle_enabled') ? valueOf('marquee_text') : '',
-      marquee_enabled: checked('addon_marquee_enabled') || checked('addon_bundle_enabled') ? 'true' : '',
-      photo_limit: limits.wallPhotos, cta_limit: limits.ctas,
-      avatar_url: state.photoRealUrls.avatar || '', logo_url: state.photoRealUrls.logo || '', banner_url: state.photoRealUrls.banner || '',
-      card_url: state.cardData?.card_url || '',
-      features_json: { photo_meta: state.photoMeta, preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }, photo_preview_urls: { ...state.photoPreviewUrls } }
+    if (updateUnlimited) {
+      addonAmount += CONFIG.ADDON_PRICE.update_unlimited;
+      breakdown.push(`無限次更新 NT$ ${CONFIG.ADDON_PRICE.update_unlimited}`);
+    }
+  }
+
+  if (photoQty > 0) {
+    const amount = photoQty * CONFIG.ADDON_PRICE.photo;
+    addonAmount += amount;
+    breakdown.push(`照片加購 ${photoQty} 張｜NT$ ${amount}`);
+  }
+
+  if (ctaQty > 0) {
+    const amount = ctaQty * CONFIG.ADDON_PRICE.cta;
+    addonAmount += amount;
+    breakdown.push(`按鈕加購 ${ctaQty} 個｜NT$ ${amount}`);
+  }
+
+  return { planAmount, addonAmount, totalAmount: planAmount + addonAmount, breakdown };
+}
+
+function renderQuote() {
+  if (isRenewMode()) {
+    renderRenewSummary();
+    return;
+  }
+
+  const quote = calcCreateOrUpdateQuote();
+  $("#quote-plan-amount").textContent = `NT$ ${quote.planAmount}`;
+  $("#quote-addon-amount").textContent = `NT$ ${quote.addonAmount}`;
+  $("#quote-total-amount").textContent = `NT$ ${quote.totalAmount}`;
+  $("#quote-state-text").textContent = isUpdateMode() ? "目前更新設定" : "目前建卡設定";
+
+  const box = $("#quote-addon-breakdown");
+  if (box) {
+    box.innerHTML = quote.breakdown.length
+      ? quote.breakdown.map((x) => `<div class="hint">${escapeHtml(x)}</div>`).join("")
+      : `<div class="hint">目前沒有加購。</div>`;
+  }
+
+  $("#summary-plan-pill").textContent = getSelectedPlan() === "premium" ? "精品設計" : "自由搭配";
+  $("#summary-photo-pill").textContent = `照片牆：${getPhotoLimit()} 張`;
+  $("#summary-cta-pill").textContent = `按鈕：${getCtaLimit()} 個`;
+}
+
+function getAllSlotKeys() {
+  const keys = ["avatar", "logo", "banner"];
+  for (let i = 1; i <= CONFIG.MAX_PHOTOS; i++) keys.push(`photo${i}`);
+  return keys;
+}
+
+function getVisiblePhotoKeys() {
+  return getAllSlotKeys().filter((key) => {
+    if (["avatar", "logo", "banner"].includes(key)) return true;
+    const index = Number(key.replace("photo", ""));
+    return index >= 1 && index <= getPhotoLimit();
+  });
+}
+
+function initSlotDefaults(key) {
+  if (!state.slotTransforms[key]) {
+    state.slotTransforms[key] = { scale: 1, x: 0, y: 0, rotate: 0 };
+  }
+}
+
+function createSlotTitle(key) {
+  if (key === "avatar") return "個人照";
+  if (key === "logo") return "Logo";
+  if (key === "banner") return "橫幅圖（預覽用）";
+  return `照片 ${key.replace("photo", "")}`;
+}
+
+function buildPhotoSlots() {
+  const container = $("#photo-slots");
+  const tpl = $("#photo-slot-template");
+  if (!container || !tpl) return;
+  container.innerHTML = "";
+
+  getAllSlotKeys().forEach((key) => {
+    initSlotDefaults(key);
+
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    node.dataset.slotKey = key;
+    node.querySelector(".photo-title").textContent = createSlotTitle(key);
+
+    const fileInput = node.querySelector(".photo-file-input");
+    const previewImage = node.querySelector(".preview-image");
+    const empty = node.querySelector(".preview-empty");
+    const badge = node.querySelector('[data-upload-state]');
+    const tools = node.querySelector(".photo-tools");
+    const zoomRange = node.querySelector(".zoom-range");
+
+    if (fileInput) {
+      fileInput.dataset.slotKey = key;
+      fileInput.addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        await handleSelectSlotFile(key, file, { previewImage, empty, badge, tools, zoomRange });
+        renderPreview();
+      });
+    }
+
+    bindSlotTool(node, key, previewImage, empty, badge, zoomRange);
+    container.appendChild(node);
+  });
+
+  updatePhotoSlotVisibility();
+  refreshAllPreviewThumbsFromState();
+}
+
+function updatePhotoSlotVisibility() {
+  const visible = new Set(getVisiblePhotoKeys());
+  $$('[data-slot-key]', $("#photo-slots")).forEach((card) => {
+    const key = card.dataset.slotKey;
+    card.classList.toggle("hidden", !visible.has(key));
+  });
+}
+
+async function handleSelectSlotFile(key, file, refs = {}) {
+  if (!file || !/^image\//i.test(file.type)) {
+    setStatus("請選擇圖片檔案", true);
+    return;
+  }
+
+  initSlotDefaults(key);
+  state.slotFiles[key] = file;
+  state.slotBlobs[key] = file;
+  state.slotRemoteUrls[key] = "";
+  state.slotKeys[key] = "";
+
+  const localUrl = URL.createObjectURL(file);
+  state.photoPreviewUrls[key] = localUrl;
+  state.previewMeta[key] = {
+    kind: key,
+    fileName: file.name,
+    size: file.size,
+    type: file.type,
+    local: true
+  };
+
+  if (refs.previewImage) {
+    refs.previewImage.src = localUrl;
+    refs.previewImage.classList.remove("hidden");
+    refs.previewImage.style.display = "block";
+    applySlotPreviewTransform(key, refs.previewImage);
+  }
+
+  if (refs.empty) refs.empty.classList.add("hidden");
+  if (refs.badge) refs.badge.textContent = key === "banner" ? "已載入預覽" : "待上傳";
+  if (refs.tools) refs.tools.classList.remove("hidden");
+  if (refs.zoomRange) refs.zoomRange.value = String(state.slotTransforms[key].scale || 1);
+}
+
+function bindSlotTool(node, key, previewImage, empty, badge, zoomRange) {
+  const mutate = (patch = {}) => {
+    initSlotDefaults(key);
+    state.slotTransforms[key] = { ...state.slotTransforms[key], ...patch };
+    applySlotPreviewTransform(key, previewImage);
+    renderPreview();
+  };
+
+  const by = (selector, fn) => {
+    const el = node.querySelector(selector);
+    if (el) el.addEventListener("click", fn);
+  };
+
+  by(".rotate-left", () => mutate({ rotate: (state.slotTransforms[key]?.rotate || 0) - 90 }));
+  by(".rotate-right", () => mutate({ rotate: (state.slotTransforms[key]?.rotate || 0) + 90 }));
+  by(".move-left", () => mutate({ x: (state.slotTransforms[key]?.x || 0) - 10 }));
+  by(".move-right", () => mutate({ x: (state.slotTransforms[key]?.x || 0) + 10 }));
+  by(".move-up", () => mutate({ y: (state.slotTransforms[key]?.y || 0) - 10 }));
+  by(".move-down", () => mutate({ y: (state.slotTransforms[key]?.y || 0) + 10 }));
+  by(".reset-photo", () => {
+    state.slotTransforms[key] = { scale: 1, x: 0, y: 0, rotate: 0 };
+    if (zoomRange) zoomRange.value = "1";
+    applySlotPreviewTransform(key, previewImage);
+    renderPreview();
+  });
+  by(".clear-photo", () => {
+    if (state.photoPreviewUrls[key]?.startsWith("blob:")) URL.revokeObjectURL(state.photoPreviewUrls[key]);
+    delete state.slotFiles[key];
+    delete state.slotBlobs[key];
+    delete state.slotRemoteUrls[key];
+    delete state.slotKeys[key];
+    delete state.photoPreviewUrls[key];
+    delete state.previewMeta[key];
+    delete state.cropMeta[key];
+    state.slotTransforms[key] = { scale: 1, x: 0, y: 0, rotate: 0 };
+    if (previewImage) {
+      previewImage.removeAttribute("src");
+      previewImage.classList.add("hidden");
+    }
+    if (empty) empty.classList.remove("hidden");
+    if (badge) badge.textContent = "尚未上傳";
+    if (zoomRange) zoomRange.value = "1";
+    renderPreview();
+  });
+
+  if (zoomRange) {
+    zoomRange.addEventListener("input", (e) => {
+      mutate({ scale: Math.max(0.6, Math.min(2, Number(e.target.value) || 1)) });
+    });
+  }
+}
+
+function applySlotPreviewTransform(key, img) {
+  if (!img) return;
+  const t = state.slotTransforms[key] || { scale: 1, x: 0, y: 0, rotate: 0 };
+  img.style.transform = `translate(${t.x || 0}px, ${t.y || 0}px) rotate(${t.rotate || 0}deg) scale(${t.scale || 1})`;
+  img.style.transformOrigin = "center center";
+}
+
+function refreshAllPreviewThumbsFromState() {
+  $$('[data-slot-key]', $("#photo-slots")).forEach((card) => {
+    const key = card.dataset.slotKey;
+    const img = $(".preview-image", card);
+    const empty = $(".preview-empty", card);
+    const badge = $('[data-upload-state]', card);
+    const tools = $(".photo-tools", card);
+    const zoomRange = $(".zoom-range", card);
+
+    const url = state.photoPreviewUrls[key] || state.slotRemoteUrls[key];
+    if (url) {
+      img.src = url;
+      img.classList.remove("hidden");
+      applySlotPreviewTransform(key, img);
+      empty.classList.add("hidden");
+      if (badge) badge.textContent = state.slotRemoteUrls[key] ? "已上傳" : (key === "banner" ? "已載入預覽" : "待上傳");
+      if (tools) tools.classList.remove("hidden");
+      if (zoomRange) zoomRange.value = String(state.slotTransforms[key]?.scale || 1);
+    } else {
+      img.removeAttribute("src");
+      img.classList.add("hidden");
+      empty.classList.remove("hidden");
+      if (badge) badge.textContent = "尚未上傳";
+    }
+  });
+}
+
+function buildCtaSlots() {
+  const wrap = $("#cta-slots");
+  const tpl = $("#cta-slot-template");
+  if (!wrap || !tpl) return;
+  wrap.innerHTML = "";
+  for (let i = 1; i <= CONFIG.MAX_CTAS; i++) {
+    const node = tpl.content.firstElementChild.cloneNode(true);
+    node.dataset.ctaIndex = String(i);
+    const label = $(".cta-title-label", node);
+    const textInput = $(".cta-label-input", node);
+    const urlInput = $(".cta-url-input", node);
+    label.textContent = `按鈕 ${i}`;
+    textInput.id = `cta_text_${i}`;
+    urlInput.id = `cta_link_${i}`;
+    textInput.addEventListener("input", debouncedPreview);
+    urlInput.addEventListener("input", debouncedPreview);
+    wrap.appendChild(node);
+  }
+  updateCtaSlotVisibility();
+}
+
+function updateCtaSlotVisibility() {
+  const limit = getCtaLimit();
+  $$('[data-cta-index]', $("#cta-slots")).forEach((card) => {
+    const index = Number(card.dataset.ctaIndex);
+    card.classList.toggle("hidden", index > limit);
+  });
+}
+
+function buildFeaturesJsonString() {
+  const features = {
+    photoMeta: shallowClone(state.photoMeta),
+    preview_meta: shallowClone(state.previewMeta),
+    cropMeta: shallowClone(state.cropMeta),
+    photo_preview_urls: shallowClone(state.photoPreviewUrls)
+  };
+  return JSON.stringify(features);
+}
+
+function appendPhotoPayload(out, sourceUrls = {}, sourceKeys = {}) {
+  for (let i = 1; i <= CONFIG.MAX_PHOTOS; i++) {
+    out[`photo${i}_url`] = sourceUrls[`photo${i}`] || "";
+    out[`photo${i}_key`] = sourceKeys[`photo${i}`] || "";
+  }
+}
+
+function collectCurrentRemotePhotoUrls() {
+  const out = {};
+  for (let i = 1; i <= CONFIG.MAX_PHOTOS; i++) {
+    out[`photo${i}`] = pick(state.currentCard || {}, `photo${i}_url`);
+  }
+  return out;
+}
+
+function buildCreateLeadPayload(source = {}) {
+  const theme = mapPlanTheme();
+  const out = {
+    invite_code: getVal("invite_code"),
+    ref: getVal("ref"),
+    referrer: getVal("referrer"),
+    plan: theme.plan,
+    color: theme.color,
+    style: theme.style,
+    paper: theme.paper,
+    name: getVal("display_name"),
+    unit: getVal("unit"),
+    title: getVal("title"),
+    slogan: getVal("intro"),
+    services: getVal("services"),
+    experience: getVal("experience"),
+    wechat_id: getVal("wechat_id"),
+    line_url: getVal("line_url"),
+    line_oa: getVal("line_oa"),
+    email: getVal("email"),
+    phone: getVal("phone"),
+    address: getVal("address"),
+    website: getVal("website"),
+    social1: getVal("social1"),
+    social2: getVal("social2"),
+    social3: getVal("social3"),
+    video1: getVal("video1"),
+    video2: getVal("video2"),
+    video3: getVal("video3"),
+    source: isCreateMode() ? "form" : state.mode,
+    service_agent: getVal("referrer"),
+    agent_type: getVal("referrer") ? "agent" : "self",
+    form_source: "form_create",
+    is_test: "FALSE",
+    avatar_url: source.avatar_url || "",
+    logo_url: source.logo_url || "",
+    avatar_key: source.avatar_key || "",
+    logo_key: source.logo_key || "",
+    cta_text_1: getVal("cta_text_1"),
+    cta_link_1: getVal("cta_link_1"),
+    cta_text_2: getVal("cta_text_2"),
+    cta_link_2: getVal("cta_link_2"),
+    cta_text_3: getVal("cta_text_3"),
+    cta_link_3: getVal("cta_link_3"),
+    features_json: buildFeaturesJsonString()
+  };
+  appendPhotoPayload(out, source.urls || {}, source.keys || {});
+  if ($("#addon_marquee_enabled")?.checked && !isRenewMode()) {
+    out.marquee_text = getVal("marquee_text");
+  }
+  return out;
+}
+
+function buildUpdatePayload(source = {}) {
+  const out = {
+    token: state.updateToken || getVal("token"),
+    name: getVal("display_name"),
+    unit: getVal("unit"),
+    title: getVal("title"),
+    slogan: getVal("intro"),
+    services: getVal("services"),
+    experience: getVal("experience"),
+    wechat_id: getVal("wechat_id"),
+    line_url: getVal("line_url"),
+    line_oa: getVal("line_oa"),
+    email: getVal("email"),
+    phone: getVal("phone"),
+    address: getVal("address"),
+    website: getVal("website"),
+    social1: getVal("social1"),
+    social2: getVal("social2"),
+    social3: getVal("social3"),
+    video1: getVal("video1"),
+    video2: getVal("video2"),
+    video3: getVal("video3"),
+    avatar_url: source.avatar_url || pick(state.currentCard || {}, "avatar_url"),
+    logo_url: source.logo_url || pick(state.currentCard || {}, "logo_url"),
+    avatar_key: source.avatar_key || "",
+    logo_key: source.logo_key || "",
+    cta_text_1: getVal("cta_text_1"),
+    cta_link_1: getVal("cta_link_1"),
+    cta_text_2: getVal("cta_text_2"),
+    cta_link_2: getVal("cta_link_2"),
+    cta_text_3: getVal("cta_text_3"),
+    cta_link_3: getVal("cta_link_3"),
+    features_json: buildFeaturesJsonString()
+  };
+  appendPhotoPayload(out, source.urls || collectCurrentRemotePhotoUrls(), source.keys || {});
+  if ($("#addon_marquee_enabled")?.checked || pick(state.currentCard || {}, "marquee_text")) {
+    out.marquee_text = getVal("marquee_text");
+  }
+  return out;
+}
+
+function buildRenewPayload() {
+  return {
+    card_id: state.cardId || getVal("card_id"),
+    target_plan: getVal("renew_target_plan") || pick(state.currentCard || {}, "plan") || "free",
+    keep_marquee: normalizeBoolField($("#renew_keep_marquee")?.checked),
+    keep_photo_extra_qty: String(Math.max(0, num(getVal("renew_photo_extra_qty"), 0))),
+    keep_cta_extra_qty: String(Math.max(0, num(getVal("renew_cta_extra_qty"), 0))),
+    update_unlimited_renew: normalizeBoolField($("#renew_update_unlimited")?.checked),
+    submitted_by: getVal("referrer") || "SELF",
+    note: "form_renew"
+  };
+}
+
+function buildPreviewPayload() {
+  const theme = mapPlanTheme();
+  const payload = {
+    plan: theme.plan,
+    color: theme.color,
+    style: theme.style,
+    paper: theme.paper,
+    name: getVal("display_name"),
+    unit: getVal("unit"),
+    title: getVal("title"),
+    slogan: getVal("intro"),
+    services: getVal("services"),
+    experience: getVal("experience"),
+    wechat_id: getVal("wechat_id"),
+    line_url: getVal("line_url"),
+    line_oa: getVal("line_oa"),
+    email: getVal("email"),
+    phone: getVal("phone"),
+    address: getVal("address"),
+    website: getVal("website"),
+    social1: getVal("social1"),
+    social2: getVal("social2"),
+    social3: getVal("social3"),
+    video1: getVal("video1"),
+    video2: getVal("video2"),
+    video3: getVal("video3"),
+    avatar_url: state.photoPreviewUrls.avatar || pick(state.currentCard || {}, "avatar_url"),
+    logo_url: state.photoPreviewUrls.logo || pick(state.currentCard || {}, "logo_url"),
+    banner_url: state.photoPreviewUrls.banner || "",
+    marquee_text: (( $("#addon_marquee_enabled")?.checked || $("#renew_keep_marquee")?.checked)
+      ? getVal("marquee_text") || pick(state.currentCard || {}, "marquee_text")
+      : ""),
+    cta_limit: getCtaLimit(),
+    photo_limit: getPhotoLimit(),
+    cta_text_1: getVal("cta_text_1"),
+    cta_link_1: getVal("cta_link_1"),
+    cta_text_2: getVal("cta_text_2"),
+    cta_link_2: getVal("cta_link_2"),
+    cta_text_3: getVal("cta_text_3"),
+    cta_link_3: getVal("cta_link_3"),
+    features_json: buildFeaturesJsonString()
+  };
+
+  for (let i = 1; i <= CONFIG.MAX_PHOTOS; i++) {
+    payload[`photo${i}_url`] = state.photoPreviewUrls[`photo${i}`] || pick(state.currentCard || {}, `photo${i}_url`) || "";
+  }
+  return payload;
+}
+
+function buildRenewPreviewPayload() {
+  const card = state.currentCard || {};
+  return {
+    ...card,
+    card_url: buildCardUrl(state.cardId || card.id),
+    name: pick(card, "name", "display_name"),
+    services: pick(card, "services"),
+    experience: pick(card, "experience")
+  };
+}
+
+function renderRenewPreviewSummary() {
+  const el = $("#renew-preview-summary");
+  if (!el) return;
+  if (!isRenewMode()) {
+    hide(el);
+    return;
+  }
+  const summary = state.renewalSummary || {};
+  const parts = [];
+  if (clean(summary.current_plan)) parts.push(`目前方案：${summary.current_plan}`);
+  if (clean(summary.target_plan || getVal("renew_target_plan"))) parts.push(`續約方案：${summary.target_plan || getVal("renew_target_plan")}`);
+  if (clean(summary.total_amount)) parts.push(`續約金額：NT$ ${summary.total_amount}`);
+  el.innerHTML = parts.length
+    ? parts.map((x) => `<div>${escapeHtml(x)}</div>`).join("")
+    : "<div>請先確認續約設定。</div>";
+  show(el, true);
+}
+
+function renderPreview() {
+  const root = $("#livePreviewCard");
+  if (!root || typeof window.renderCard !== "function") return;
+  const payload = isRenewMode() ? buildRenewPreviewPayload() : buildPreviewPayload();
+  try {
+    window.renderCard(payload, { root, mode: "form", allowActions: false });
+  } catch (error) {
+    console.error(error);
+  }
+  renderRenewPreviewSummary();
+}
+
+const debouncedPreview = debounce(() => {
+  updatePhotoSlotVisibility();
+  updateCtaSlotVisibility();
+  renderQuote();
+  renderPreview();
+  saveDraftSilently();
+});
+
+function renderUpdateEligibility() {
+  const box = $("#eligibility-box");
+  if (!box) return;
+  const e = state.updateEligibility || {};
+  const chargeRequired = toBool(pick(e, "charge_required", "need_charge", "is_charge_required"));
+  const isUnlimited = toBool(pick(e, "update_unlimited", "has_unlimited_update", "is_unlimited"));
+  const freeRemaining = num(pick(e, "free_remaining", "remaining_free_updates", "remaining"), -1);
+
+  let headline = "更新權益資訊";
+  let lines = [];
+
+  if (isUnlimited) {
+    headline = "本卡享有無限次更新";
+    lines = ["此卡目前享有年度無限次更新。", "本次更新可直接送出，不需另建付款資訊。"];
+  } else if (freeRemaining > 0) {
+    headline = "本卡享有年度免費更新";
+    lines = [`本年度尚餘 ${freeRemaining} 次免費更新。`, "本次更新可直接送出，不需另建付款資訊。"];
+  } else if (chargeRequired) {
+    headline = "本次更新需建立付款資訊";
+    lines = ["本次更新將先建立付款資訊。", "付款確認後，再進行正式更新。"];
+  } else {
+    headline = "本次更新可直接送出";
+    lines = ["本次更新不需另建付款資訊。"];
+  }
+
+  box.innerHTML = `
+    <div class="summary-box">
+      <h3>${escapeHtml(headline)}</h3>
+      ${lines.map((x) => `<div class="hint">${escapeHtml(x)}</div>`).join("")}
+    </div>
+  `;
+}
+
+function hydrateUpdateForm(card = {}) {
+  const plan = clean(pick(card, "plan", "target_plan")).toLowerCase() || "free";
+  const radio = document.querySelector(`input[name="plan"][value="${plan}"]`);
+  if (radio) radio.checked = true;
+
+  if (plan === "premium") {
+    setVal("premium_color", pick(card, "color") || "p1");
+  } else {
+    setVal("free_color", pick(card, "color") || "c1");
+    setVal("free_style", pick(card, "style") || "s1");
+    setVal("free_paper", pick(card, "paper") || "f1");
+  }
+
+  setVal("display_name", pick(card, "name", "display_name"));
+  setVal("unit", pick(card, "unit"));
+  setVal("title", pick(card, "title"));
+  setVal("phone", pick(card, "phone"));
+  setVal("email", pick(card, "email"));
+  setVal("website", pick(card, "website"));
+  setVal("line_url", pick(card, "line_url"));
+  setVal("line_oa", pick(card, "line_oa"));
+  setVal("wechat_id", pick(card, "wechat_id"));
+  setVal("experience", pick(card, "experience"));
+  setVal("services", pick(card, "services"));
+  setVal("address", pick(card, "address"));
+  setVal("intro", pick(card, "slogan", "intro"));
+  setVal("video1", pick(card, "video1"));
+  setVal("video2", pick(card, "video2"));
+  setVal("video3", pick(card, "video3"));
+  setVal("social1", pick(card, "social1"));
+  setVal("social2", pick(card, "social2"));
+  setVal("social3", pick(card, "social3"));
+  setVal("marquee_text", pick(card, "marquee_text"));
+
+  if (!clean($("#referrer")?.value)) {
+    setVal("referrer", pick(card, "referrer", "service_agent", "agent_id"));
+  }
+
+  for (let i = 1; i <= CONFIG.MAX_CTAS; i++) {
+    setVal(`cta_text_${i}`, pick(card, `cta_text_${i}`));
+    setVal(`cta_link_${i}`, pick(card, `cta_link_${i}`));
+  }
+
+  if (pick(card, "avatar_url")) {
+    state.photoPreviewUrls.avatar = pick(card, "avatar_url");
+    state.slotRemoteUrls.avatar = pick(card, "avatar_url");
+  }
+  if (pick(card, "logo_url")) {
+    state.photoPreviewUrls.logo = pick(card, "logo_url");
+    state.slotRemoteUrls.logo = pick(card, "logo_url");
+  }
+  for (let i = 1; i <= CONFIG.MAX_PHOTOS; i++) {
+    const key = `photo${i}`;
+    const url = pick(card, `${key}_url`);
+    if (url) {
+      state.photoPreviewUrls[key] = url;
+      state.slotRemoteUrls[key] = url;
+    }
+  }
+
+  refreshAllPreviewThumbsFromState();
+  renderQuote();
+}
+
+function countExistingPhotos(card) {
+  let c = 0;
+  for (let i = 1; i <= CONFIG.MAX_PHOTOS; i++) {
+    if (clean(pick(card, `photo${i}_url`))) c++;
+  }
+  return c;
+}
+
+function countExistingCtas(card) {
+  let c = 0;
+  for (let i = 1; i <= CONFIG.MAX_CTAS; i++) {
+    if (clean(pick(card, `cta_text_${i}`)) && clean(pick(card, `cta_link_${i}`))) c++;
+  }
+  return c;
+}
+
+function renderRenewCardData() {
+  const card = state.currentCard || {};
+  const dataBox = $("#renew-card-data");
+  const addonBox = $("#renew-addon-data");
+
+  if (dataBox) {
+    const rows = [
+      ["名片編號", pick(card, "id", "card_id")],
+      ["姓名", pick(card, "name", "display_name")],
+      ["方案", pick(card, "plan")],
+      ["顏色", pick(card, "color")],
+      ["版型", pick(card, "style")],
+      ["紙感", pick(card, "paper")],
+      ["電話", pick(card, "phone")],
+      ["Email", pick(card, "email")]
+    ].filter(([, v]) => clean(v));
+
+    dataBox.innerHTML = rows.map(([k, v]) => `
+      <div class="hint"><strong>${escapeHtml(k)}：</strong>${escapeHtml(v)}</div>
+    `).join("");
+  }
+
+  if (addonBox) {
+    const rows = [
+      `跑馬燈：${pick(card, "marquee_text") ? "有" : "無"}`,
+      `照片數：${countExistingPhotos(card)} 張`,
+      `按鈕數：${countExistingCtas(card)} 個`,
+      `無限次更新：${toBool(pick(card, "update_unlimited")) ? "有" : "無"}`
+    ];
+
+    addonBox.innerHTML = `
+      <div class="summary-box">
+        ${rows.map((x) => `<div class="hint">${escapeHtml(x)}</div>`).join("")}
+        <div class="hint">無限次更新為年度權益，新年度需重新加購後才生效。</div>
+      </div>
+    `;
+  }
+
+  setVal("renew_target_plan", pick(card, "plan") || "free");
+  if ($("#renew_keep_marquee")) $("#renew_keep_marquee").checked = !!pick(card, "marquee_text");
+}
+
+async function refreshRenewSummary() {
+  if (!isRenewMode() || !state.cardId) return;
+  renderProgress(45, "正在計算續約內容…", "資料載入中");
+  const payload = buildRenewPayload();
+  const res = await callApi("getRenewalSummary", payload, "GET");
+  if (res?.ok) {
+    state.renewalSummary = res?.summary || res?.data?.summary || res?.data || res;
+  }
+  renderRenewSummary();
+  hideProgress();
+}
+
+function renderRenewSummary() {
+  if (!isRenewMode()) return;
+  const box = $("#renew-summary-box");
+  const addonBox = $("#renew-addon-box");
+  const ruleText = $("#renew-rule-text");
+  const s = state.renewalSummary || {};
+  const card = state.currentCard || {};
+
+  if (ruleText) {
+    ruleText.textContent = "照片與按鈕數量會先沿用目前設定；若續約時選擇減少數量，差額不另退回。";
+  }
+
+  if (box) {
+    box.innerHTML = `
+      <h3>續約摘要</h3>
+      <div class="hint">原方案：${escapeHtml(pick(card, "plan") || "-")}</div>
+      <div class="hint">續約方案：${escapeHtml(pick(s, "target_plan") || getVal("renew_target_plan") || "-")}</div>
+      <div class="hint">續約金額：NT$ ${escapeHtml(pick(s, "renewal_amount", "renewal_price") || "0")}</div>
+      <div class="hint">加購金額：NT$ ${escapeHtml(pick(s, "addon_amount") || "0")}</div>
+      <div class="hint"><strong>總金額：NT$ ${escapeHtml(pick(s, "total_amount") || "0")}</strong></div>
+    `;
+  }
+
+  if (addonBox) {
+    const rows = [
+      `原照片數：${countExistingPhotos(card)} 張`,
+      `原按鈕數：${countExistingCtas(card)} 個`,
+      `原跑馬燈：${pick(card, "marquee_text") ? "有" : "無"}`,
+      `原無限更新：${toBool(pick(card, "update_unlimited")) ? "有" : "無"}`
+    ];
+    addonBox.innerHTML = `
+      <h3>原加購摘要</h3>
+      ${rows.map((x) => `<div class="hint">${escapeHtml(x)}</div>`).join("")}
+      <div class="hint">無限次更新為年度權益，新年度需重新加購後才生效。</div>
+    `;
+  }
+
+  $("#quote-plan-amount").textContent = `NT$ ${pick(s, "renewal_amount", "renewal_price") || "0"}`;
+  $("#quote-addon-amount").textContent = `NT$ ${pick(s, "addon_amount") || "0"}`;
+  $("#quote-total-amount").textContent = `NT$ ${pick(s, "total_amount") || "0"}`;
+  $("#quote-state-text").textContent = "續約試算";
+}
+
+async function ensureFirebaseReady() {
+  initFirebase();
+  await ensureAuth();
+}
+
+function loadImageFromBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
     };
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    };
+    img.src = url;
+  });
+}
+
+async function buildTransformedBlob(key, originalBlob) {
+  const blob = originalBlob || state.slotBlobs[key];
+  if (!blob) return null;
+  const img = await loadImageFromBlob(blob);
+  const t = state.slotTransforms[key] || { scale: 1, x: 0, y: 0, rotate: 0 };
+
+  const canvas = document.createElement("canvas");
+  const size = key === "banner" ? { w: 1200, h: 420 } : { w: 1200, h: 1200 };
+  canvas.width = size.w;
+  canvas.height = size.h;
+  const ctx = canvas.getContext("2d");
+
+  ctx.save();
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.translate(canvas.width / 2 + (t.x || 0), canvas.height / 2 + (t.y || 0));
+  ctx.rotate(((t.rotate || 0) * Math.PI) / 180);
+
+  const naturalW = img.naturalWidth || img.width || size.w;
+  const naturalH = img.naturalHeight || img.height || size.h;
+  const coverScale = Math.max(canvas.width / naturalW, canvas.height / naturalH) * (t.scale || 1);
+  const drawW = naturalW * coverScale;
+  const drawH = naturalH * coverScale;
+
+  ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+  ctx.restore();
+
+  return await new Promise((resolve) => {
+    canvas.toBlob((b) => resolve(b), "image/jpeg", 0.9);
+  });
+}
+
+async function uploadImagesForCard(cardId) {
+  const safeCardId = clean(cardId);
+  if (!safeCardId) throw new Error("缺少名片編號，無法上傳圖片");
+
+  await ensureFirebaseReady();
+  const urls = {};
+  const keys = {};
+
+  renderProgress(65, "正在上傳圖片…", "資料送出中");
+
+  if (state.slotBlobs.avatar) {
+    const blob = await buildTransformedBlob("avatar", state.slotBlobs.avatar);
+    urls.avatar = await uploadAvatar(safeCardId, blob);
+    keys.avatar = `cards/${safeCardId}/avatar.jpg`;
+    state.slotRemoteUrls.avatar = urls.avatar;
+  } else if (state.slotRemoteUrls.avatar) {
+    urls.avatar = state.slotRemoteUrls.avatar;
   }
 
-  function updatePreview() {
-    if (!window.renderCard) return;
-    const data = buildPreviewData();
-    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) {
-      const url = state.photoRealUrls[`photo${i}`] || '';
-      if (url) { data[`photo${i}_url`] = url; data[`photo_url_${i}`] = url; }
+  if (state.slotBlobs.logo) {
+    const blob = await buildTransformedBlob("logo", state.slotBlobs.logo);
+    urls.logo = await uploadLogo(safeCardId, blob);
+    keys.logo = `cards/${safeCardId}/logo.jpg`;
+    state.slotRemoteUrls.logo = urls.logo;
+  } else if (state.slotRemoteUrls.logo) {
+    urls.logo = state.slotRemoteUrls.logo;
+  }
+
+  for (let i = 1; i <= CONFIG.MAX_PHOTOS; i++) {
+    const key = `photo${i}`;
+    if (!state.slotBlobs[key]) {
+      if (state.slotRemoteUrls[key]) urls[key] = state.slotRemoteUrls[key];
+      continue;
     }
+    const blob = await buildTransformedBlob(key, state.slotBlobs[key]);
+    urls[key] = await uploadPhoto(safeCardId, blob, i);
+    keys[key] = `cards/${safeCardId}/photo${i}.jpg`;
+    state.slotRemoteUrls[key] = urls[key];
+  }
+
+  return { urls, keys };
+}
+
+function validateBeforeSubmit() {
+  if (isCreateMode() || isUpdateMode()) {
+    if (!clean(getVal("display_name"))) {
+      showError("請填寫姓名或品牌名稱");
+      return false;
+    }
+    if (!clean(getVal("phone"))) {
+      showError("請填寫電話");
+      return false;
+    }
+
     for (let i = 1; i <= CONFIG.MAX_CTAS; i++) {
-      const label = document.getElementById(`cta_text_${i}`)?.value || '';
-      const link = document.getElementById(`cta_link_${i}`)?.value || '';
-      if (label) data[`cta_text_${i}`] = label;
-      if (link) data[`cta_link_${i}`] = link;
-    }
-    try { window.renderCard(data, { root: els['livePreviewCard'], useExistingDom: false, mode: 'form', allowActions: false }); } catch (err) { console.error(err); }
-  }
-
-  async function onSubmit(e) {
-    e.preventDefault();
-    try {
-      if (!validateBeforeSubmit()) return;
-      showOverlay(true, '整理資料中…', 10);
-      showInlineProgress(10, '整理資料中…');
-      await waitAllUploads();
-      if (state.mode === 'create') await submitCreate();
-      else if (state.mode === 'update') await submitUpdate();
-      else await submitRenew();
-    } catch (err) {
-      console.error(err);
-      setStatus(err.message || '送出失敗。','error');
-      showOverlay(false); showInlineProgress(0, '送出失敗');
-    }
-  }
-
-  function validateBeforeSubmit() {
-    if (state.mode !== 'renew') {
-      if (!valueOf('display_name') || !valueOf('phone')) { setStatus('請先完成必填欄位（姓名、電話）。','error'); return false; }
-      if (!getPlan()) { setStatus('請先選擇方案。','error'); return false; }
-    }
-    if (state.mode === 'update' && !state.token) { setStatus('缺少更新 token。','error'); return false; }
-    if (state.mode === 'renew' && !state.cardId) { setStatus('缺少 card_id。','error'); return false; }
-    return true;
-  }
-
-  async function submitCreate() {
-    const payload = buildCreatePayload();
-    showOverlay(true, '建立建卡資料中…', 20); showInlineProgress(20, '建立建卡資料中…');
-    const leadResp = await callGas('createLead', payload);
-    showOverlay(true, '建立名片中…', 55); showInlineProgress(55, '建立名片中…');
-    const cardResp = await callGas(payload.action, payload);
-    finishSuccess({ mode: 'create', serial: cardResp?.card_id || cardResp?.request_id || leadResp?.request_id || 'CREATE_OK', desc: '建卡資料已建立完成。', raw: cardResp, payload });
-  }
-
-  async function submitUpdate() {
-    const payload = buildUpdatePayload();
-    const e = state.updateEligibility || normalizeEligibility({});
-    showOverlay(true, e.charge_required ? '建立更新付款單中…' : '寫入更新資料中…', 35); showInlineProgress(35, e.charge_required ? '建立更新付款單中…' : '寫入更新資料中…');
-    const resp = e.charge_required ? await callGas('createUpdateFeePayment', payload) : await callGas('updateCardByToken', payload);
-    finishSuccess({ mode: 'update', serial: resp?.payment_id || resp?.request_id || state.cardId || 'UPDATE_OK', desc: e.charge_required ? '更新付款單已建立。' : '名片更新完成。', raw: resp, payload });
-  }
-
-  async function submitRenew() {
-    const payload = buildRenewPayload();
-    showOverlay(true, '建立續約付款資料中…', 45); showInlineProgress(45, '建立續約付款資料中…');
-    const resp = await callGas('createRenewalPayment', payload);
-    finishSuccess({ mode: 'renew', serial: resp?.payment_id || resp?.request_id || state.cardId || 'RENEW_OK', desc: '續約付款資料已建立。', raw: resp, payload });
-  }
-
-  function buildCreatePayload() {
-    const theme = getThemeSelection();
-    const limits = getLimits(theme.plan);
-    const payload = buildCommonCardPayload(theme, limits);
-    payload.action = 'createCardWithOfflinePayment';
-    payload.invite_code = els.invite_code.value || '';
-    payload.referrer = els.ref.value || '';
-    return payload;
-  }
-
-  function buildUpdatePayload() {
-    const theme = getThemeSelection();
-    const limits = getLimits(theme.plan);
-    const payload = buildCommonCardPayload(theme, limits);
-    payload.token = state.token;
-    payload.card_id = state.cardId || state.cardData?.card_id || '';
-    payload.charge_required = state.updateEligibility?.charge_required ? 'true' : '';
-    payload.charge_amount = state.updateEligibility?.charge_amount || 0;
-    return payload;
-  }
-
-  function buildRenewPayload() {
-    const pricing = computeRenewPricing();
-    return {
-      action: 'createRenewalPayment', tenant: 'angel', card_id: state.cardId,
-      current_plan: state.cardData?.plan || 'free', target_plan: els['renew_target_plan'].value,
-      current_expires_at: state.renewalSummary?.current_expires_at || '',
-      keep_marquee: checked('renew_keep_marquee') ? 'true' : '',
-      keep_photo_extra_qty: getCurrentPhotoLimit(state.cardData),
-      keep_cta_extra_qty: getCurrentCtaLimit(state.cardData),
-      update_unlimited_renew: checked('renew_update_unlimited') ? 'true' : '',
-      renewal_price: pricing.planAmount, upgrade_diff: pricing.upgradeDiff, addon_amount: pricing.addonAmount, total_amount: pricing.total,
-      photo_extra_qty: Number(els['renew_photo_extra_qty'].value || 0) || 0,
-      cta_extra_qty: Number(els['renew_cta_extra_qty'].value || 0) || 0,
-      lead_snapshot: JSON.stringify({ card: state.cardData || {}, renewal: state.renewalSummary || {}, pricing })
-    };
-  }
-
-  function buildCommonCardPayload(theme, limits) {
-    const payload = {
-      tenant: 'angel', name: valueOf('display_name'), unit: valueOf('unit'), title: valueOf('title'), slogan: valueOf('intro'), phone: String(valueOf('phone')).replace(/\s/g,''), email: valueOf('email'), website: valueOf('website'), address: valueOf('address'), line_url: valueOf('line_url'), line_oa: valueOf('line_oa'), wechat_id: valueOf('wechat_id'), experience: valueOf('experience'), services: valueOf('services'),
-      video1: valueOf('video1'), video2: valueOf('video2'), video3: valueOf('video3'), social1: valueOf('social1'), social2: valueOf('social2'), social3: valueOf('social3'),
-      plan: theme.plan, color: theme.color, style: theme.style, paper: theme.paper,
-      marquee_text: checked('addon_marquee_enabled') || checked('addon_bundle_enabled') ? valueOf('marquee_text') : '', marquee_enabled: checked('addon_marquee_enabled') || checked('addon_bundle_enabled') ? 'true' : '',
-      photo_limit: limits.wallPhotos, cta_limit: limits.ctas, photo_extra_purchased: checked('addon_photo_enabled') ? String(Number(els['addon_photo_qty'].value || 0) || 0) : '', cta_extra_purchased: checked('addon_cta_enabled') ? String(Number(els['addon_cta_qty'].value || 0) || 0) : '', update_unlimited_purchased: checked('addon_update_unlimited_enabled') || checked('addon_bundle_enabled') ? '1' : ''
-    };
-    if (state.photoRealUrls.avatar) payload.avatar_url = state.photoRealUrls.avatar;
-    if (state.photoRealUrls.logo) payload.logo_url = state.photoRealUrls.logo;
-    if (state.photoRealUrls.banner) payload.banner_url = state.photoRealUrls.banner;
-    for (let i = 1; i <= limits.wallPhotos; i++) {
-      const url = state.photoRealUrls[`photo${i}`] || '';
-      if (url) { payload[`photo${i}_url`] = url; payload[`photo_url_${i}`] = url; }
-    }
-    for (let i = 1; i <= limits.ctas; i++) {
-      payload[`cta_text_${i}`] = document.getElementById(`cta_text_${i}`)?.value || '';
-      payload[`cta_link_${i}`] = document.getElementById(`cta_link_${i}`)?.value || '';
-    }
-    payload.features_json = JSON.stringify({ photo_meta: state.photoMeta, preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan }, photo_preview_urls: { ...state.photoPreviewUrls } });
-    return payload;
-  }
-
-  async function callGas(action, params = {}) {
-    const body = new URLSearchParams();
-    body.set('action', action);
-    Object.entries(params).forEach(([k,v]) => {
-      if (v == null) return;
-      body.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v));
-    });
-    const resp = await fetch(CONFIG.GAS_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body: body.toString() });
-    if (!resp.ok) throw new Error(`GAS 呼叫失敗（${resp.status}）`);
-    const text = await resp.text();
-    const data = safeJsonParse(text) || {};
-    if (data.ok === false || data.error) throw new Error(data.error || data.message || 'GAS 回傳失敗');
-    return data;
-  }
-
-  function safeJsonParse(raw) {
-    let s = String(raw || '').trim();
-    if (!s) return null;
-    s = s.replace(/^\)\]\}'\s*\n?/, '').trim();
-    try { return JSON.parse(s); } catch (_) {}
-    const m = s.match(/(\{[\s\S]*\}|\[[\s\S]*\])/); if (m) { try { return JSON.parse(m[0]); } catch (_) {} }
-    return null;
-  }
-
-  function showOverlay(show, text = '', percent = 0) {
-    els['submit-progress-overlay'].classList.toggle('hidden', !show);
-    if (text) els['progress-text'].textContent = text;
-    if (percent != null) els['progress-fill'].style.width = `${percent}%`;
-  }
-  function showInlineProgress(percent, text) {
-    els['submitProgressWrap'].classList.add('show');
-    els['submitProgressPercent'].textContent = `${Math.round(percent)}%`;
-    els['submitProgressFill'].style.width = `${percent}%`;
-    els['submitProgressText'].textContent = text || '處理中…';
-  }
-
-  function finishSuccess({ mode, serial, desc, raw, payload }) {
-    showOverlay(true, '完成', 100); showInlineProgress(100, '完成');
-    els['successBox'].classList.remove('hidden');
-    els['successId'].textContent = serial;
-    els['successDesc'].textContent = desc;
-    const copy = buildServiceCopy(mode, serial, raw, payload);
-    els['successCopyText'].value = copy;
-    setStatus(desc,'success');
-    setTimeout(() => showOverlay(false), 900);
-  }
-
-  function buildServiceCopy(mode, serial, raw, payload) {
-    if (mode === 'create') return `您好，我已完成智慧名片建卡申請。\n序號：${serial}\n姓名／品牌：${payload.name || ''}\n方案：${CONFIG.BASE_LIMITS[payload.plan]?.label || payload.plan}\n請協助確認後續付款與開通，謝謝。`;
-    if (mode === 'update') return `您好，我已送出智慧名片更新。\n序號：${serial}\n卡號：${payload.card_id || ''}\n本次模式：${state.updateEligibility?.mode_text || ''}\n若需付款，請協助確認付款資訊，謝謝。`;
-    return `您好，我已送出智慧名片續約。\n序號：${serial}\n卡號：${payload.card_id || ''}\n續約方案：${CONFIG.BASE_LIMITS[payload.target_plan]?.label || payload.target_plan}\n總金額：${money(payload.total_amount || 0)}\n請協助確認續約後續流程，謝謝。`;
-  }
-
-  function openService() { window.open(CONFIG.SERVICE_URL, '_blank', 'noopener'); }
-
-  async function copyText(str) {
-    if (!str) return;
-    try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(str); setStatus('已複製客服文案。','success'); return; } } catch (_) {}
-    const ta = document.createElement('textarea'); ta.value = str; ta.style.cssText = 'position:fixed;top:-9999px;opacity:0;'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); setStatus('已複製客服文案。','success');
-  }
-
-  function getDraftKey() {
-    if (state.mode === 'create') return 'hsc_form_create_draft';
-    if (state.mode === 'update') return `hsc_form_update_${state.token || 'unknown'}`;
-    return `hsc_form_renew_${state.cardId || 'unknown'}`;
-  }
-
-  function collectFormValues() {
-    const out = {};
-    document.querySelectorAll('input, textarea, select').forEach(el => {
-      if (!el.id) return;
-      if (el.type === 'radio') { if (el.checked) out[el.name] = el.value; return; }
-      if (el.type === 'checkbox') out[el.id] = el.checked; else out[el.id] = el.value;
-    });
-    return out;
-  }
-
-  function saveDraft() {
-    const draft = { values: collectFormValues(), photoMeta: state.photoMeta, photoPreviewUrls: state.photoPreviewUrls, photoRealUrls: state.photoRealUrls };
-    localStorage.setItem(getDraftKey(), JSON.stringify(draft));
-  }
-  function saveDraftSilently() { try { saveDraft(); } catch (_) {} }
-  function restoreDraft() {
-    let draft = null; try { draft = JSON.parse(localStorage.getItem(getDraftKey()) || 'null'); } catch (_) {}
-    if (!draft || typeof draft !== 'object') return;
-    state.photoMeta = draft.photoMeta || {};
-    state.photoPreviewUrls = draft.photoPreviewUrls || {};
-    state.photoRealUrls = draft.photoRealUrls || {};
-    const values = draft.values || {};
-    Object.entries(values).forEach(([key,val]) => {
-      const el = document.getElementById(key);
-      if (el) { if (el.type === 'checkbox') el.checked = !!val; else el.value = val; return; }
-      if (key === 'plan') { const r = document.querySelector(`input[name="plan"][value="${val}"]`); if (r) r.checked = true; }
-    });
-    Object.keys(state.photoPreviewUrls).forEach(k => setLoadedPhoto(k, state.photoPreviewUrls[k]));
-  }
-  function clearDraft() { localStorage.removeItem(getDraftKey()); location.reload(); }
-
-  async function waitAllUploads() {
-    const keys = Object.keys(state.photoUploadState);
-    for (const key of keys) {
-      const s = state.photoUploadState[key];
-      if (!state.photoFiles[key]) continue;
-      if (s === 'uploading' || s === 'pending') {
-        await new Promise((resolve, reject) => {
-          const start = Date.now();
-          const timer = setInterval(() => {
-            const cur = state.photoUploadState[key];
-            if (cur === 'done') { clearInterval(timer); resolve(); return; }
-            if (cur === 'error') { clearInterval(timer); reject(new Error(`圖片上傳失敗：${key}`)); return; }
-            if (Date.now() - start > 30000) { clearInterval(timer); reject(new Error(`圖片上傳逾時：${key}`)); }
-          }, 300);
-        });
+      const textVal = clean(getVal(`cta_text_${i}`));
+      const linkVal = clean(getVal(`cta_link_${i}`));
+      if ((textVal && !linkVal) || (!textVal && linkVal)) {
+        showError(`按鈕 ${i} 請同時填寫文字與連結`);
+        return false;
       }
     }
   }
 
-  async function openCropper(key, file, ratioType='square') {
-    const dataUrl = await fileToDataURL(file);
-    state.crop = { key, file, ratioType, src: dataUrl, scale: 1, x: 0, y: 0, imageNaturalWidth: 0, imageNaturalHeight: 0 };
-    els.cropImage.src = dataUrl;
-    els.cropViewport.classList.toggle('is-square', ratioType === 'square');
-    els.cropViewport.classList.toggle('is-wide', ratioType === 'banner');
-    els.cropTitle.textContent = ratioType === 'banner' ? '裁切 Banner 圖片' : '裁切圖片';
-    els.cropHint.textContent = ratioType === 'banner' ? 'Banner 採固定比例裁切，請調整構圖後套用。' : '拖曳可移動圖片，使用縮放調整構圖後套用。';
-    els.cropZoom.value = '1';
-    els.cropModal.classList.add('show');
-    await new Promise(resolve => { els.cropImage.onload = resolve; });
-    state.crop.imageNaturalWidth = els.cropImage.naturalWidth; state.crop.imageNaturalHeight = els.cropImage.naturalHeight;
-    resetCropState(); syncCropTransform();
+  if (isRenewMode() && !clean(state.cardId)) {
+    showError("缺少名片編號，無法續約");
+    return false;
   }
 
-  function closeCropper() { els.cropModal.classList.remove('show'); state.crop = null; }
-  function adjustCropZoom(diff) { if (!state.crop) return; state.crop.scale = clamp(state.crop.scale + diff, 1, 3, 1); els.cropZoom.value = String(state.crop.scale); syncCropTransform(); }
-  function resetCropState() { if (!state.crop) return; state.crop.scale = 1; state.crop.x = 0; state.crop.y = 0; els.cropZoom.value = '1'; syncCropTransform(); }
-  function syncCropTransform() {
-    if (!state.crop) return;
-    const vp = els.cropViewport.getBoundingClientRect();
-    const iw = state.crop.imageNaturalWidth || 1000; const ih = state.crop.imageNaturalHeight || 1000;
-    const baseScale = Math.max(vp.width / iw, vp.height / ih);
-    const scale = baseScale * state.crop.scale;
-    const w = iw * scale, h = ih * scale;
-    els.cropImage.style.width = `${w}px`; els.cropImage.style.height = `${h}px`; els.cropImage.style.transform = `translate(calc(-50% + ${state.crop.x}px), calc(-50% + ${state.crop.y}px))`;
+  return true;
+}
+
+function formatDateTime(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return clean(value);
+  return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+function buildServiceCopy(result) {
+  const cardId = clean(result.card_id || result.cardId);
+  const leadId = clean(result.lead_id || result.leadId);
+  const paymentId = clean(result.payment_id || result.paymentId);
+  const amount = clean(result.amount || result.total_amount);
+  const dueAt = clean(result.due_at || result.dueAt);
+  const referrer = getVal("referrer") || "無";
+  const name = getVal("display_name") || pick(state.currentCard || {}, "name") || "未填寫";
+  const phone = getVal("phone") || pick(state.currentCard || {}, "phone") || "未填寫";
+
+  const lines = [];
+  if (isCreateMode()) {
+    lines.push("您好，我已完成智慧名片申請：");
+    if (leadId) lines.push(`📌 申請序號：${leadId}`);
+    if (cardId) lines.push(`📌 名片編號：${cardId}`);
+  } else if (isUpdateMode()) {
+    lines.push("您好，我已送出智慧名片更新：");
+    if (cardId) lines.push(`📌 名片編號：${cardId}`);
+    if (paymentId) lines.push(`📌 更新付款單：${paymentId}`);
+  } else {
+    lines.push("您好，我已送出智慧名片續約：");
+    if (cardId) lines.push(`📌 名片編號：${cardId}`);
+    if (paymentId) lines.push(`📌 續約付款單：${paymentId}`);
+  }
+  lines.push(`📌 姓名：${name}`);
+  lines.push(`📌 電話：${phone}`);
+  lines.push(`📌 推薦人：${referrer}`);
+  if (paymentId) lines.push(`📌 付款單號：${paymentId}`);
+  if (amount) lines.push(`📌 金額：NT$ ${amount}`);
+  if (dueAt) lines.push(`📌 付款期限：${formatDateTime(dueAt)}`);
+  lines.push("再請協助確認與後續開通，謝謝🙏");
+  return lines.join("\n");
+}
+
+function renderResult(result = {}) {
+  state.submitResult = result;
+  const box = $("#successBox");
+  const successId = $("#successId");
+  const successDesc = $("#successDesc");
+  const copyText = $("#successCopyText");
+
+  const serial = clean(result.card_id || result.payment_id || result.lead_id || result.cardId || result.paymentId || result.leadId || "-");
+  if (successId) successId.textContent = serial;
+  if (successDesc) {
+    successDesc.textContent = result.ok === false
+      ? "送出未完成，請將訊息回傳客服協助確認。"
+      : "以下內容可直接貼給客服，方便協助你快速確認與開通。";
+  }
+  if (copyText) copyText.value = buildServiceCopy(result);
+  show(box, true);
+
+  const btnLine = $("#btnLineOA");
+  if (btnLine) {
+    btnLine.onclick = () => window.open(CONFIG.CUSTOMER_SERVICE_URL, "_blank", "noopener");
   }
 
-  async function applyCropAndUpload() {
-    if (!state.crop) return;
-    const { blob, dataUrl } = await renderCropBlob();
-    const key = state.crop.key;
-    state.photoPreviewUrls[key] = dataUrl; state.photoFiles[key] = state.crop.file; state.photoUploadState[key] = 'uploading';
-    const slot = photoSlots.find(s => s.cfg.key === key);
-    if (slot) { slot.previewImage.src = dataUrl; slot.previewImage.classList.remove('hidden'); slot.previewEmpty.classList.add('hidden'); slot.tools.classList.remove('hidden'); slot.badge.textContent = '上傳中…'; slot.badge.dataset.uploadState = 'uploading'; }
-    closeCropper(); updatePreview(); saveDraftSilently();
-    try {
-      await ensureAuth();
-      let url = '';
-      if (key === 'avatar') url = await uploadAvatar(state.tempCardId, blob);
-      else if (key === 'logo') url = await uploadLogo(state.tempCardId, blob);
-      else if (key === 'banner') url = await uploadImage(state.tempCardId, blob, 'banner.jpg');
-      else if (/^photo\d+$/.test(key)) url = await uploadPhoto(state.tempCardId, blob, Number(key.replace('photo','')));
-      state.photoRealUrls[key] = url || dataUrl; state.photoUploadState[key] = 'done'; if (slot) { slot.badge.textContent = '已上傳 ✓'; slot.badge.dataset.uploadState = 'done'; }
-      updatePreview(); saveDraftSilently();
-    } catch (err) {
-      state.photoUploadState[key] = 'error'; if (slot) { slot.badge.textContent = '上傳失敗'; slot.badge.dataset.uploadState = 'error'; }
-      setStatus(`圖片上傳失敗（${key}）：${err.message}`,'error');
-    }
+  const btnCopy = $("#btnCopyReply");
+  if (btnCopy) {
+    btnCopy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(copyText.value || "");
+        setStatus("已複製客服回覆內容");
+      } catch (_) {
+        copyText.select();
+        document.execCommand("copy");
+        setStatus("已複製客服回覆內容");
+      }
+    };
+  }
+}
+
+async function loadPlanOptions() {
+  const res = await callApi("getPlanOptions", {}, "GET");
+  if (res?.ok) state.planOptions = res?.plans || res?.data?.plans || res?.data || res;
+}
+
+async function bootCreateMode() {
+  renderModeUI();
+  await loadPlanOptions();
+}
+
+async function bootUpdateMode() {
+  renderModeUI();
+  if (!state.updateToken) {
+    showError("缺少更新憑證", "請由正確的更新連結進入");
+    return;
   }
 
-  async function renderCropBlob() {
-    const ratio = state.crop.ratioType === 'banner' ? CONFIG.BANNER_RATIO : 1;
-    const outW = state.crop.ratioType === 'banner' ? 1600 : 1200;
-    const outH = Math.round(outW / ratio);
-    const canvas = document.createElement('canvas'); canvas.width = outW; canvas.height = outH; const ctx = canvas.getContext('2d');
-    const img = new Image(); img.src = state.crop.src; await img.decode();
-    const vp = els.cropViewport.getBoundingClientRect();
-    const iw = img.naturalWidth, ih = img.naturalHeight; const baseScale = Math.max(vp.width / iw, vp.height / ih); const scale = baseScale * state.crop.scale;
-    const drawW = iw * scale, drawH = ih * scale;
-    const scaleToOut = outW / vp.width;
-    const dx = (outW - drawW * scaleToOut) / 2 + state.crop.x * scaleToOut;
-    const dy = (outH - drawH * scaleToOut) / 2 + state.crop.y * scaleToOut;
-    ctx.drawImage(img, dx, dy, drawW * scaleToOut, drawH * scaleToOut);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
-    return { blob, dataUrl: canvas.toDataURL('image/jpeg', 0.9) };
+  renderProgress(15, "正在讀取原卡資料…", "資料載入中");
+  const cardRes = await callApi("getCardForUpdate", { token: state.updateToken }, "GET");
+  if (!cardRes?.ok) {
+    hideProgress();
+    showError("讀取原卡資料失敗", cardRes?.error || "");
+    return;
   }
 
-  function fileToDataURL(file) { return new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file); }); }
-  function ensureDefaultPlan() { if (!document.querySelector('input[name="plan"]:checked')) { const r = document.querySelector('input[name="plan"][value="free"]'); if (r) r.checked = true; } }
-  function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[c])); }
-  function labelOfCardField(k) { return ({ name:'姓名', unit:'單位', title:'職稱', slogan:'標語', services:'服務', experience:'經歷', wechat_id:'微信', line_url:'LINE', line_oa:'官方 LINE', email:'Email', phone:'電話', address:'地址', website:'網站' }[k] || k); }
-})();
+  const card = unwrapCard(cardRes);
+  state.currentCard = card || {};
+  state.cardId = clean(pick(card, "id", "card_id"));
+  setVal("card_id", state.cardId);
+  hydrateUpdateForm(state.currentCard);
+
+  renderProgress(45, "正在確認更新權益…", "資料載入中");
+  const eligibilityRes = await callApi("getUpdateEligibility", {
+    token: state.updateToken,
+    card_id: state.cardId
+  }, "GET");
+
+  if (eligibilityRes?.ok) {
+    state.updateEligibility = eligibilityRes?.eligibility || eligibilityRes?.data?.eligibility || eligibilityRes?.data || eligibilityRes;
+    renderUpdateEligibility();
+  }
+
+  await loadPlanOptions();
+  hideProgress();
+}
+
+async function bootRenewMode() {
+  renderModeUI();
+  if (!state.cardId) {
+    showError("缺少名片編號", "請由正確的續約連結進入");
+    return;
+  }
+
+  renderProgress(15, "正在讀取原卡資料…", "資料載入中");
+  const cardRes = await callApi("getCardForRenewal", { card_id: state.cardId }, "GET");
+  if (!cardRes?.ok) {
+    hideProgress();
+    showError("讀取續約資料失敗", cardRes?.error || "");
+    return;
+  }
+
+  state.currentCard = cardRes?.card || cardRes?.data?.card || cardRes?.data || {};
+  renderRenewCardData();
+  await refreshRenewSummary();
+  hideProgress();
+}
+
+async function submitCreate() {
+  renderProgress(10, "正在整理建卡資料…", "資料送出中");
+  const leadPayload = buildCreateLeadPayload();
+  const leadRes = await callApi("createLead", leadPayload);
+  if (!leadRes?.ok) {
+    renderResult({ ok: false, lead_id: "", card_id: "", error: leadRes?.error || "建立申請失敗" });
+    throw new Error(leadRes?.error || "建立申請失敗");
+  }
+
+  renderProgress(25, "正在建立名片資料…", "資料送出中");
+  const lead = unwrapLead(leadRes) || {};
+  state.currentLead = lead;
+  const leadId = clean(pick(lead, "lead_id", "id") || pickId(leadRes, "lead_id", "id"));
+
+  const cardPayload = { ...buildCreateLeadPayload(), lead_id: leadId };
+  const cardRes = await callApi("createCard", cardPayload);
+  if (!cardRes?.ok) {
+    renderResult({ ok: false, lead_id: leadId, card_id: "", error: cardRes?.error || "建立名片失敗" });
+    throw new Error(cardRes?.error || "建立名片失敗");
+  }
+
+  renderProgress(45, "名片已建立，準備上傳圖片…", "資料送出中");
+  const card = unwrapCard(cardRes) || {};
+  const cardId = clean(pick(card, "id", "card_id") || pickId(cardRes, "card_id", "id"));
+  const token = clean(pick(card, "update_token", "token")) || clean(pickId(cardRes, "update_token", "token"));
+  state.cardId = cardId;
+  state.updateToken = token;
+
+  let finalPayload = buildUpdatePayload();
+  const hasUploadableImage = ["avatar", "logo", ...Array.from({ length: CONFIG.MAX_PHOTOS }, (_, i) => `photo${i + 1}`)].some((k) => !!state.slotBlobs[k]);
+
+  if (hasUploadableImage && token && cardId) {
+    const uploaded = await uploadImagesForCard(cardId);
+    finalPayload = buildUpdatePayload({
+      avatar_url: uploaded.urls.avatar || "",
+      logo_url: uploaded.urls.logo || "",
+      avatar_key: uploaded.keys.avatar || "",
+      logo_key: uploaded.keys.logo || "",
+      urls: uploaded.urls,
+      keys: uploaded.keys
+    });
+
+    renderProgress(85, "正在寫入圖片資料…", "資料送出中");
+    const updateRes = await callApi("updateCardByToken", finalPayload);
+    if (!updateRes?.ok) throw new Error(updateRes?.error || "圖片寫回失敗");
+  }
+
+  renderProgress(100, "已完成送出", "送出完成");
+  hideProgress();
+
+  const payment = unwrapPayment(cardRes) || {};
+  renderResult({
+    ok: true,
+    lead_id: leadId,
+    card_id: cardId,
+    payment_id: clean(pick(payment, "payment_id")) || pickId(cardRes, "payment_id"),
+    due_at: clean(pick(payment, "due_at")) || pickId(cardRes, "due_at"),
+    amount: clean(pick(payment, "amount")) || pickId(cardRes, "amount"),
+    card_url: buildCardUrl(cardId)
+  });
+  setStatus("已完成申請送出");
+}
+
+async function submitUpdate() {
+  if (!state.updateToken) throw new Error("缺少更新憑證");
+  const eligibility = state.updateEligibility || {};
+  const chargeRequired = toBool(pick(eligibility, "charge_required", "need_charge", "is_charge_required"));
+
+  if (chargeRequired) {
+    renderProgress(25, "正在建立更新付款資訊…", "資料送出中");
+    const paymentPayload = buildUpdatePayload();
+    const payRes = await callApi("createUpdateFeePayment", paymentPayload);
+    if (!payRes?.ok) throw new Error(payRes?.error || "建立更新付款單失敗");
+
+    renderProgress(100, "已建立付款資訊", "送出完成");
+    hideProgress();
+    const payment = unwrapPayment(payRes) || {};
+    renderResult({
+      ok: true,
+      card_id: state.cardId,
+      payment_id: clean(pick(payment, "payment_id")) || pickId(payRes, "payment_id"),
+      due_at: clean(pick(payment, "due_at")) || pickId(payRes, "due_at"),
+      amount: clean(pick(payment, "amount")) || pickId(payRes, "amount")
+    });
+    setStatus("已建立付款資訊，待付款確認後處理更新");
+    return;
+  }
+
+  renderProgress(25, "正在整理更新資料…", "資料送出中");
+  let uploaded = { urls: collectCurrentRemotePhotoUrls(), keys: {} };
+  const hasUploadableImage = ["avatar", "logo", ...Array.from({ length: CONFIG.MAX_PHOTOS }, (_, i) => `photo${i + 1}`)].some((k) => !!state.slotBlobs[k]);
+
+  if (hasUploadableImage) {
+    uploaded = await uploadImagesForCard(state.cardId);
+  }
+
+  const updatePayload = buildUpdatePayload({
+    avatar_url: uploaded.urls.avatar || state.slotRemoteUrls.avatar || pick(state.currentCard || {}, "avatar_url"),
+    logo_url: uploaded.urls.logo || state.slotRemoteUrls.logo || pick(state.currentCard || {}, "logo_url"),
+    avatar_key: uploaded.keys.avatar || "",
+    logo_key: uploaded.keys.logo || "",
+    urls: uploaded.urls || collectCurrentRemotePhotoUrls(),
+    keys: uploaded.keys || {}
+  });
+
+  renderProgress(85, "正在送出更新資料…", "資料送出中");
+  const updateRes = await callApi("updateCardByToken", updatePayload);
+  if (!updateRes?.ok) throw new Error(updateRes?.error || "更新失敗");
+
+  renderProgress(100, "已完成更新", "送出完成");
+  hideProgress();
+  renderResult({ ok: true, card_id: state.cardId, card_url: buildCardUrl(state.cardId) });
+  setStatus("已完成資料更新");
+}
+
+async function submitRenew() {
+  renderProgress(25, "正在建立續約付款資訊…", "資料送出中");
+  const payload = buildRenewPayload();
+  const res = await callApi("createRenewalPayment", payload);
+  if (!res?.ok) throw new Error(res?.error || "建立續約付款單失敗");
+
+  renderProgress(100, "已建立續約付款資訊", "送出完成");
+  hideProgress();
+
+  const payment = unwrapPayment(res) || {};
+  const totalAmount = clean(pick(payment, "amount")) || clean(pick(state.renewalSummary || {}, "total_amount")) || pickId(res, "total_amount");
+  renderResult({
+    ok: true,
+    card_id: state.cardId,
+    payment_id: clean(pick(payment, "payment_id")) || pickId(res, "payment_id"),
+    due_at: clean(pick(payment, "due_at")) || pickId(res, "due_at"),
+    total_amount: totalAmount
+  });
+  setStatus("已建立續約付款資訊");
+}
+
+async function handleSubmit(event) {
+  event.preventDefault();
+  if (state.submitting) return;
+  if (!validateBeforeSubmit()) return;
+
+  state.submitting = true;
+  hide($("#successBox"));
+  setStatus("");
+
+  try {
+    if (isCreateMode()) await submitCreate();
+    else if (isUpdateMode()) await submitUpdate();
+    else await submitRenew();
+  } catch (error) {
+    hideProgress();
+    showError(error?.message || "送出失敗");
+    renderResult({ ok: false, card_id: state.cardId, error: error?.message || "送出失敗" });
+  } finally {
+    state.submitting = false;
+  }
+}
+
+function bindPageEvents() {
+  const form = $("#smart-card-form");
+  if (form) form.addEventListener("submit", handleSubmit);
+
+  $("#btn-save-draft")?.addEventListener("click", saveDraft);
+  $("#btn-clear-draft")?.addEventListener("click", clearDraft);
+  $("#btn-contact-service")?.addEventListener("click", () => window.open(CONFIG.CUSTOMER_SERVICE_URL, "_blank", "noopener"));
+  $("#progress-contact-service")?.addEventListener("click", () => window.open(CONFIG.CUSTOMER_SERVICE_URL, "_blank", "noopener"));
+  $("#btn-open-showcase")?.addEventListener("click", () => window.open(CONFIG.HUB_BASE_URL, "_blank", "noopener"));
+
+  $$('input[name="plan"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      updatePhotoSlotVisibility();
+      updateCtaSlotVisibility();
+      renderQuote();
+      renderPreview();
+    });
+  });
+
+  [
+    "free_color", "free_style", "free_paper", "premium_color",
+    "display_name", "unit", "title", "phone", "email", "website",
+    "line_url", "line_oa", "wechat_id", "experience", "services",
+    "address", "intro", "video1", "video2", "video3",
+    "social1", "social2", "social3", "marquee_text", "referrer"
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", debouncedPreview);
+    el.addEventListener("change", debouncedPreview);
+  });
+
+  [
+    "addon_marquee_enabled",
+    "addon_photo_enabled",
+    "addon_cta_enabled",
+    "addon_update_unlimited_enabled",
+    "addon_bundle_enabled",
+    "renew_keep_marquee",
+    "renew_update_unlimited"
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("change", async () => {
+      if (id === "addon_bundle_enabled") syncBundleCheckboxes();
+      show($("#marquee-section"), !isRenewMode() && !!$("#addon_marquee_enabled")?.checked);
+      renderQuote();
+      renderPreview();
+      if (isRenewMode()) await refreshRenewSummary();
+    });
+  });
+
+  [
+    "addon_photo_qty",
+    "addon_cta_qty",
+    "renew_target_plan",
+    "renew_photo_extra_qty",
+    "renew_cta_extra_qty"
+  ].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", async () => {
+      updatePhotoSlotVisibility();
+      updateCtaSlotVisibility();
+      renderQuote();
+      renderPreview();
+      if (isRenewMode()) await refreshRenewSummary();
+    });
+    el.addEventListener("change", async () => {
+      updatePhotoSlotVisibility();
+      updateCtaSlotVisibility();
+      renderQuote();
+      renderPreview();
+      if (isRenewMode()) await refreshRenewSummary();
+    });
+  });
+}
+
+async function bootForm() {
+  hydrateQueryParams();
+  initFirebase();
+
+  state.mode = clean(getVal("mode") || getQuery("mode") || "create").toLowerCase();
+  state.updateToken = getVal("token") || getQuery("token");
+  state.cardId = getVal("card_id") || getQuery("card_id");
+
+  buildPhotoSlots();
+  buildCtaSlots();
+  renderModeUI();
+  bindPageEvents();
+  renderQuote();
+  loadDraft();
+
+  if (isCreateMode()) await bootCreateMode();
+  else if (isUpdateMode()) await bootUpdateMode();
+  else if (isRenewMode()) await bootRenewMode();
+
+  renderPreview();
+  setStatus("請確認資料後送出");
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  bootForm().catch((error) => {
+    console.error(error);
+    showError("初始化失敗", error?.message || "");
+  });
+});
+```
+
+> 補充：你的 `firebase.js` 仍需把 `uploadPhoto()` 的上限從 5 改成 10，這份 `form.js` 才能完整吃到 `photo1 ~ photo10`。
