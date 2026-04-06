@@ -1,6 +1,6 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v8.2-gas-connected-complete-overwrite
+   v8.2-FINAL-marquee-complete-overwrite
 
    基於 v7.8.4，本版修正：
 
@@ -14,6 +14,7 @@
 
    【任務一說明】style.css 已在 v7.8.4.1 補上所有 .preview-theme-scope 選擇器
    v8.2 FINAL：syncPreviewContainerClasses() 仍只掛在 #preview-theme-scope，並移除 #livePreviewCard 雙重掛載，避免與 renderer 打架
+   跑馬燈正式接通：marquee_enabled / marquee_text / marquee_purchased
 ============================================================ */
 
 (() => {
