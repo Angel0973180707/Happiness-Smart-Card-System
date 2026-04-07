@@ -1535,143 +1535,140 @@
      SUBMIT
   ============================================================ */
   async function submit(e) {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (state.mode !== "create") {
-      if (state.mode === "update") {
-        setStatus("目前這版已先收好 update 模式骨架，下一步再正式接通更新送出。", "warn");
-      } else if (state.mode === "renew") {
-        setStatus("目前這版已先收好 renew 模式骨架，下一步再正式接通續約流程。", "warn");
-      }
-      return;
+  if (state.mode !== "create") {
+    if (state.mode === "update") {
+      setStatus("目前這版已先收好 update 模式骨架，下一步再正式接通更新送出。", "warn");
+    } else if (state.mode === "renew") {
+      setStatus("目前這版已先收好 renew 模式骨架，下一步再正式接通續約流程。", "warn");
     }
-
-    const payload = buildPayload();
-
-    if (!payload.name || !String(payload.phone || "").trim() || !payload.plan) {
-      setStatus("請先完成必填欄位（姓名、電話、方案）。", "error");
-      return;
-    }
-
-    if (!validateBeforeSubmit()) return;
-
-    const limits = getLimits();
-    const addonItems = getAddonItemsForQuote(limits);
-    const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const totalAmount = Number(limits.planPrice || 0) + Number(addonAmount || 0);
-
-    showProgress(true);
-    hideSuccessPanel();
-    setProgressStep(1, "正在等待圖片上傳完成…");
-
-    try {
-      await waitAllUploads();
-
-      setProgressStep(2, "正在送出建卡資料…");
-
-const finalPayload = buildPayload();
-finalPayload.action = "createCardWithOfflinePayment";
-
-alert("action = " + finalPayload.action);
-console.log("[HSC] finalPayload =", finalPayload);
-
-const createRes = await postToGas(finalPayload);
-console.log("[HSC form] createCardWithOfflinePayment response =", createRes);
-
-if (!createRes || !createRes.ok) {
-  throw new Error(createRes?.error || createRes?.message || "建立名片失敗，請稍後再試。");
-}
-
-      const cardId = extractCardId(createRes);
-      const paymentId = extractPaymentId(createRes);
-
-      if (!cardId) {
-        console.error("⚠️ 沒拿到 card_id，完整回傳如下：", createRes);
-        throw new Error(
-          "GAS 已回應成功，但沒有回傳 card_id，請檢查 createCardWithOfflinePayment 回傳格式。"
-        );
-      }
-
-      setProgressStep(3, "正在建立付款期限…");
-
-      const delivered = await postToGas({
-        action: CONFIG.DELIVER_ACTION,
-        card_id: cardId
-      });
-
-      if (!delivered || !delivered.ok) {
-        throw new Error(delivered?.error || delivered?.message || "付款期限建立失敗，請檢查 markCardDelivered。");
-      }
-
-      setProgressStep(4, "正在整理付款通知與預覽資料…");
-
-      let paymentNoticeText = createRes?.payment_notice?.copy_text || "";
-      try {
-        const noticePayload = {
-          action: CONFIG.PAYMENT_NOTICE_ACTION
-        };
-
-        if (paymentId) noticePayload.payment_id = paymentId;
-        else noticePayload.card_id = cardId;
-
-        const noticeRes = await postToGas(noticePayload);
-        if (noticeRes?.ok) {
-          paymentNoticeText =
-            noticeRes?.copy_text ||
-            noticeRes?.payment_notice?.copy_text ||
-            paymentNoticeText ||
-            "";
-        }
-      } catch (noticeErr) {
-        console.warn("[HSC form] payment notice fetch failed:", noticeErr);
-      }
-
-      const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
-      const paymentDueAt =
-        delivered?.payment_due_at ||
-        delivered?.card?.payment_due_at ||
-        createRes?.payment?.due_at ||
-        pickPaymentDueAt(delivered || createRes);
-
-      const result = buildLastSubmitResult({
-        cardId,
-        previewUrl,
-        paymentDueAt,
-        totalAmount,
-        planLabel: limits.planLabel,
-        customerName: finalPayload.name,
-        paymentId,
-        paymentNotice: paymentNoticeText
-      });
-
-      state.lastSubmitResult = result;
-
-      localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify({
-        card_id: cardId,
-        payment_id: paymentId || "",
-        customer_name: finalPayload.name || "",
-        plan_name: limits.planLabel || "方案",
-        submitted_at: new Date().toISOString(),
-        payment_notice: paymentNoticeText || "請於 3 天內完成付款",
-        payment_due_at: paymentDueAt,
-        preview_url: previewUrl,
-        plan_amount: Number(limits.planPrice || 0),
-        addon_items: addonItems,
-        addon_amount: Number(addonAmount || 0),
-        total_amount: Number(totalAmount || 0)
-      }));
-
-      localStorage.removeItem(CONFIG.DRAFT_KEY);
-
-      setProgressStep(5, "✅ 申請成功！名片已建立。");
-      showSuccessPanel(result);
-      setStatus("名片已成功建立，請複製下方資訊回覆客服。", "success");
-    } catch (err) {
-      console.error("[HSC form] submit error:", err);
-      setStatus("送出失敗：" + (err.message || "未知錯誤"), "error");
-      showProgress(false);
-    }
+    return;
   }
+
+  const finalPayload = buildPayload();
+
+  if (!finalPayload.name || !String(finalPayload.phone || "").trim() || !finalPayload.plan) {
+    setStatus("請先完成必填欄位（姓名、電話、方案）。", "error");
+    return;
+  }
+
+  if (!validateBeforeSubmit()) return;
+
+  const limits = getLimits();
+  const addonItems = getAddonItemsForQuote(limits);
+  const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const totalAmount = Number(limits.planPrice || 0) + Number(addonAmount || 0);
+
+  showProgress(true);
+  hideSuccessPanel();
+  setProgressStep(1, "正在等待圖片上傳完成…");
+
+  try {
+    await waitAllUploads();
+
+    setProgressStep(2, "正在送出建卡資料…");
+
+    finalPayload.action = "createCardWithOfflinePayment";
+
+    alert("action = " + finalPayload.action);
+    console.log("[HSC] finalPayload =", finalPayload);
+
+    const createRes = await postToGas(finalPayload);
+    console.log("[HSC form] createCardWithOfflinePayment response =", createRes);
+
+    if (!createRes || !createRes.ok) {
+      throw new Error(createRes?.error || createRes?.message || "建立名片失敗，請稍後再試。");
+    }
+
+    const cardId = extractCardId(createRes);
+    const paymentId = extractPaymentId(createRes);
+
+    if (!cardId) {
+      console.error("⚠️ 沒拿到 card_id，完整回傳如下：", createRes);
+      throw new Error("GAS 已回應成功，但沒有回傳 card_id，請檢查 createCardWithOfflinePayment 回傳格式。");
+    }
+
+    setProgressStep(3, "正在建立付款期限…");
+
+    const delivered = await postToGas({
+      action: CONFIG.DELIVER_ACTION,
+      card_id: cardId
+    });
+
+    if (!delivered || !delivered.ok) {
+      throw new Error(delivered?.error || delivered?.message || "付款期限建立失敗，請檢查 markCardDelivered。");
+    }
+
+    setProgressStep(4, "正在整理付款通知與預覽資料…");
+
+    let paymentNoticeText = createRes?.payment_notice?.copy_text || "";
+    try {
+      const noticePayload = {
+        action: CONFIG.PAYMENT_NOTICE_ACTION
+      };
+
+      if (paymentId) noticePayload.payment_id = paymentId;
+      else noticePayload.card_id = cardId;
+
+      const noticeRes = await postToGas(noticePayload);
+      if (noticeRes?.ok) {
+        paymentNoticeText =
+          noticeRes?.copy_text ||
+          noticeRes?.payment_notice?.copy_text ||
+          paymentNoticeText ||
+          "";
+      }
+    } catch (noticeErr) {
+      console.warn("[HSC form] payment notice fetch failed:", noticeErr);
+    }
+
+    const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
+    const paymentDueAt =
+      delivered?.payment_due_at ||
+      delivered?.card?.payment_due_at ||
+      createRes?.payment?.due_at ||
+      pickPaymentDueAt(delivered || createRes);
+
+    const result = buildLastSubmitResult({
+      cardId,
+      previewUrl,
+      paymentDueAt,
+      totalAmount,
+      planLabel: limits.planLabel,
+      customerName: finalPayload.name,
+      paymentId,
+      paymentNotice: paymentNoticeText
+    });
+
+    state.lastSubmitResult = result;
+
+    localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify({
+      card_id: cardId,
+      payment_id: paymentId || "",
+      customer_name: finalPayload.name || "",
+      plan_name: limits.planLabel || "方案",
+      submitted_at: new Date().toISOString(),
+      payment_notice: paymentNoticeText || "請於 3 天內完成付款",
+      payment_due_at: paymentDueAt,
+      preview_url: previewUrl,
+      plan_amount: Number(limits.planPrice || 0),
+      addon_items: addonItems,
+      addon_amount: Number(addonAmount || 0),
+      total_amount: Number(totalAmount || 0)
+    }));
+
+    localStorage.removeItem(CONFIG.DRAFT_KEY);
+
+    setProgressStep(5, "✅ 申請成功！名片已建立。");
+    showSuccessPanel(result);
+    setStatus("名片已成功建立，請複製下方資訊回覆客服。", "success");
+  } catch (err) {
+    console.error("[HSC form] submit error:", err);
+    setStatus("送出失敗：" + (err.message || "未知錯誤"), "error");
+    showProgress(false);
+  }
+}
 
   /* ============================================================
      SUCCESS PANEL
