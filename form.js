@@ -1569,15 +1569,18 @@
 
       setProgressStep(2, "正在送出建卡資料…");
 
-      const finalPayload = buildPayload();
-      finalPayload.action = CONFIG.CREATE_ACTION;
+const finalPayload = buildPayload();
+finalPayload.action = "createCardWithOfflinePayment";
 
-      const createRes = await postToGas(finalPayload);
-      console.log("[HSC form] createCardWithOfflinePayment response =", createRes);
+alert("action = " + finalPayload.action);
+console.log("[HSC] finalPayload =", finalPayload);
 
-      if (!createRes || !createRes.ok) {
-        throw new Error(createRes?.error || createRes?.message || "建立名片失敗，請稍後再試。");
-      }
+const createRes = await postToGas(finalPayload);
+console.log("[HSC form] createCardWithOfflinePayment response =", createRes);
+
+if (!createRes || !createRes.ok) {
+  throw new Error(createRes?.error || createRes?.message || "建立名片失敗，請稍後再試。");
+}
 
       const cardId = extractCardId(createRes);
       const paymentId = extractPaymentId(createRes);
