@@ -1767,3 +1767,29 @@ async function postToGas(payload) {
   }
 
 })();
+// ⭐ 強制覆蓋版 postToGas（解決 GAS 收不到 payload 問題）
+async function postToGas(payload) {
+  const body = new URLSearchParams();
+  body.append("payload", JSON.stringify(payload));
+
+  const res = await fetch(CONFIG.GAS_URL, {
+    method: "POST",
+    body
+  });
+
+  const text = await res.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    console.error("GAS回傳不是JSON:", text);
+    throw new Error("GAS 回傳格式錯誤");
+  }
+
+  if (!res.ok || data.ok === false) {
+    throw new Error(data?.error || `HTTP ${res.status}`);
+  }
+
+  return data;
+}
