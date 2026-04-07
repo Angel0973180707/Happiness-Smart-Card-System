@@ -1268,6 +1268,7 @@
     const payload = {
       action:"createCardWithOfflinePayment",
       tenant: "angel",
+invite_code: "TEST001",
 
       name:       previewData.name,
       unit:       previewData.unit,
