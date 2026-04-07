@@ -1,20 +1,31 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v8.2-FINAL-marquee-complete-overwrite
+   v8.3.2-full-overwrite-create-fix
 
-   基於 v7.8.4，本版修正：
-
-   【任務二修正】waitAllUploads() 補強（pending bug 修正）
-   - 原本：pending 狀態直接跳過（continue），導致剛選圖但未進入
-     uploading 的圖片被漏掉
-   - 修正：pending 或 uploading 都要等待
-   - 等待邏輯：30 秒 timeout，每 300ms poll 一次 state
-   - 有選圖（hasFile）才等待，沒選圖的格子不阻擋送出
-   - error 狀態一律阻擋送出並提示重試
-
-   【任務一說明】style.css 已在 v7.8.4.1 補上所有 .preview-theme-scope 選擇器
-   v8.2 FINAL：syncPreviewContainerClasses() 仍只掛在 #preview-theme-scope，並移除 #livePreviewCard 雙重掛載，避免與 renderer 打架
-   跑馬燈正式接通：marquee_enabled / marquee_text / marquee_purchased
+   基底：v8.2 FINAL（保留原有表單功能骨架）
+   本版重點：
+   1. create 真送出打通
+   2. 統一唯一 postToGas()，改用 payload + URLSearchParams
+   3. 移除舊版雙 postToGas 衝突
+   4. buildPayload() 固定帶 action=createCardWithOfflinePayment
+   5. 移除硬編 invite_code: "TEST001"
+   6. create 成功後固定三段流程：
+      Step1 createCardWithOfflinePayment
+      Step2 markCardDelivered
+      Step3 buildPaymentNoticeText
+   7. card_id / payment_id 多格式兼容解析
+   8. 保留 v8.2 的：
+      - Firebase 圖片上傳
+      - 預覽 renderer
+      - quote
+      - progress overlay
+      - success panel
+      - waitAllUploads
+      - 草稿
+   9. 收 mode 架構骨架：
+      - create
+      - update
+      - renew
 ============================================================ */
 
 (() => {
@@ -25,31 +36,40 @@
   ============================================================ */
   const CONFIG = {
     GAS_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-    SERVICE_URL:  "https://lin.ee/G3VJoRm",
+    SERVICE_URL: "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v82",
+    DRAFT_KEY: "hsc_form_draft_v832",
 
     CREATE_ACTION: "createCardWithOfflinePayment",
     DELIVER_ACTION: "markCardDelivered",
     PAYMENT_NOTICE_ACTION: "buildPaymentNoticeText",
 
+    UPDATE_LOAD_ACTION: "getCardForUpdate",
+    UPDATE_SUBMIT_ACTION: "updateCardByToken",
+
+    RENEW_LOAD_ACTION: "getCardForRenewal",
+    RENEW_SUMMARY_ACTION: "getRenewalSummary",
+    RENEW_CREATE_PAYMENT_ACTION: "createRenewalPayment",
+
     BASE_LIMITS: {
-      free:    { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
+      free: { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
       premium: { wallPhotos: 5, ctas: 3, price: 2000, label: "精品設計" }
     },
     ADDON_PRICES: {
-      addon_marquee:          300,
-      addon_photo:            100,
-      addon_cta:              100,
+      addon_marquee: 300,
+      addon_photo: 100,
+      addon_cta: 100,
       addon_update_unlimited: 300,
-      addon_bundle:           500,
-      addon_agent_upgrade:  10000
+      addon_bundle: 500,
+      addon_agent_upgrade: 10000
     },
     MAX_WALL_PHOTOS: 10,
     MAX_CTAS: 10,
     DEFAULT_PREVIEW_META: {
-      layout: "grid", aspect_ratio: "1:1", fit_mode: "cover"
+      layout: "grid",
+      aspect_ratio: "1:1",
+      fit_mode: "cover"
     },
     FIREBASE_MODULE: "./firebase.js"
   };
@@ -60,49 +80,92 @@
      STATE
   ============================================================ */
   const state = {
-    photoMeta:        { avatar: { ...DEFAULT_PHOTO_META }, logo: { ...DEFAULT_PHOTO_META } },
+    mode: "create",
+    query: {},
+    modeContext: {
+      token: "",
+      cardId: ""
+    },
+
+    photoMeta: {
+      avatar: { ...DEFAULT_PHOTO_META },
+      logo: { ...DEFAULT_PHOTO_META }
+    },
     photoPreviewUrls: {},
-    photoRealUrls:    {},
-    photoFiles:       {},
+    photoRealUrls: {},
+    photoFiles: {},
 
-    // upload token 防 race condition
     photoUploadTokens: {},
-
-    // 五態 badge 管理
-    // "idle" | "pending" | "uploading" | "done" | "error"
     photoUploadState: {},
 
-    wallPhotoCount:   0,
-    ctaCount:         0,
+    wallPhotoCount: 0,
+    ctaCount: 0,
     lastSubmitResult: null,
-    tempCardId:       null,
+    tempCardId: null,
 
-    // CTA 草稿暫存層
-    draftValues: {}
+    draftValues: {},
+
+    urlPhotoLimitOverride: 0
   };
 
   const els = {};
-
-  // Firebase module（lazy import）
   let _fb = null;
 
   document.addEventListener("DOMContentLoaded", init);
 
   /* ============================================================
-     初始化
+     INIT
   ============================================================ */
   function init() {
     collectEls();
     ensureRendererAlias();
     hydrateQueryParams();
+    hydrateModeFromQuery();
+    applyModeUi();
 
     upgradeExperienceToTextarea();
 
     bindStaticEvents();
     restoreDraft();
     ensureDefaultPlan();
+
     state.tempCardId = "TEMP_" + Date.now();
+
     refreshAll();
+  }
+
+  /* ============================================================
+     MODE
+  ============================================================ */
+  function hydrateModeFromQuery() {
+    const mode = String(state.query.mode || "create").trim().toLowerCase();
+    if (mode === "update" || mode === "renew") state.mode = mode;
+    else state.mode = "create";
+
+    state.modeContext.token = String(state.query.token || "").trim();
+    state.modeContext.cardId = String(state.query.card_id || "").trim();
+  }
+
+  function applyModeUi() {
+    const h1 = document.querySelector(".page-hero h1");
+    const heroDesc = document.querySelector(".hero-desc");
+    const step1Title = document.querySelector('.section-head h2');
+
+    if (!h1 || !heroDesc) return;
+
+    if (state.mode === "update") {
+      h1.textContent = "智慧名片更新表單";
+      heroDesc.textContent = "v8.3.2｜已收 update 模式骨架，後續接 getCardForUpdate / updateCardByToken。";
+      if (step1Title) step1Title.textContent = "選方案與加購";
+    } else if (state.mode === "renew") {
+      h1.textContent = "智慧名片續約表單";
+      heroDesc.textContent = "v8.3.2｜已收 renew 模式骨架，後續接 getCardForRenewal / getRenewalSummary / createRenewalPayment。";
+      if (step1Title) step1Title.textContent = "選方案與加購";
+    } else {
+      h1.textContent = "智慧名片申請表";
+      heroDesc.textContent = "v8.3.2｜已對齊 GAS 真送出流程：建卡後自動寫入 3 天付款期限。";
+      if (step1Title) step1Title.textContent = "選方案與加購";
+    }
   }
 
   /* ============================================================
@@ -120,7 +183,37 @@
   }
 
   /* ============================================================
-     圖片上傳到 Firebase Storage（upload token 防 race condition）
+     統一唯一送法（關鍵）
+     routeAction_ / normalizeRequest_ 會吃 e.parameter.payload
+  ============================================================ */
+  async function postToGas(payload) {
+    const body = new URLSearchParams();
+    body.append("payload", JSON.stringify(payload || {}));
+
+    const res = await fetch(CONFIG.GAS_URL, {
+      method: "POST",
+      body
+    });
+
+    const text = await res.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.error("[HSC form] GAS non-json response:", text);
+      throw new Error("GAS 回傳格式錯誤");
+    }
+
+    if (!res.ok || data?.ok === false) {
+      throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+    }
+
+    return data;
+  }
+
+  /* ============================================================
+     圖片上傳
   ============================================================ */
   async function uploadPhotoToFirebase(key, file) {
     const token = Date.now() + "_" + Math.random().toString(36).slice(2);
@@ -133,7 +226,7 @@
       await fb.ensureAuth();
 
       const fileName = `${key}.jpg`;
-      const cardId   = state.tempCardId;
+      const cardId = state.tempCardId;
 
       const url = await fb.uploadImage(cardId, file, fileName);
 
@@ -142,7 +235,7 @@
         return;
       }
 
-      state.photoRealUrls[key]    = url;
+      state.photoRealUrls[key] = url;
       state.photoUploadState[key] = "done";
       updateUploadBadge(key, "done", "已上傳 ✓");
       console.log(`[HSC form] upload OK: ${key} →`, url);
@@ -157,9 +250,6 @@
     }
   }
 
-  /* ============================================================
-     badge 五態管理
-  ============================================================ */
   function updateUploadBadge(key, uploadState, text) {
     const cards = document.querySelectorAll("[data-photo-key]");
     cards.forEach(card => {
@@ -172,11 +262,7 @@
   }
 
   /* ============================================================
-     【任務二修正】waitAllUploads v7.8.4.1
-     - pending 狀態（剛選圖、尚未進入 uploading）同樣要等待
-     - 只等有選圖（hasFile）的格子
-     - 等待上限 30 秒，每 300ms poll 一次
-     - error 一律阻擋送出
+     waitAllUploads
   ============================================================ */
   async function waitAllUploads() {
     const keys = Object.keys(state.photoUploadState);
@@ -185,10 +271,8 @@
       const s = state.photoUploadState[key];
       const hasFile = !!state.photoFiles[key];
 
-      // 沒選圖 → 不阻擋
       if (!hasFile) continue;
 
-      // pending 或 uploading 都要等
       if (s === "pending" || s === "uploading") {
         await new Promise((resolve, reject) => {
           const start = Date.now();
@@ -216,7 +300,6 @@
         });
       }
 
-      // error 一律阻擋送出
       if (state.photoUploadState[key] === "error") {
         throw new Error(`圖片 ${key} 上傳失敗，請重新選取後再送出。`);
       }
@@ -224,22 +307,29 @@
   }
 
   /* ============================================================
-     hydrateQueryParams
+     QUERY
   ============================================================ */
   function hydrateQueryParams() {
     let search = "";
-    try { search = window.location.search || ""; } catch (_) { return; }
+    try {
+      search = window.location.search || "";
+    } catch (_) {
+      return;
+    }
     if (!search) return;
 
     const params = new URLSearchParams(search);
+    state.query = Object.fromEntries(params.entries());
 
     const inviteCode = params.get("invite_code") || params.get("invite");
-    if (inviteCode && els["invite_code"])
+    if (inviteCode && els["invite_code"]) {
       els["invite_code"].value = inviteCode.trim();
+    }
 
     const ref = params.get("ref");
-    if (ref && els["ref"])
+    if (ref && els["ref"]) {
       els["ref"].value = ref.trim();
+    }
 
     const planParam = params.get("plan");
     if (planParam === "free" || planParam === "premium") {
@@ -253,13 +343,8 @@
     }
   }
 
-
   /* ============================================================
-     將 experience <input> 升級為 <textarea>
-     - 防重複執行（already-upgraded 標記）
-     - 升級後才執行草稿回填
-     - 不重複 append hint
-     - 不重複綁事件
+     experience 升級 textarea
   ============================================================ */
   function upgradeExperienceToTextarea() {
     const old = document.getElementById("experience");
@@ -271,17 +356,17 @@
     const existingValue = old.value || "";
     const parent = old.parentNode;
 
-    const ta         = document.createElement("textarea");
-    ta.id            = "experience";
-    ta.rows          = 4;
-    ta.placeholder   = "例：前 XX 公司品牌顧問、10 年業界資歷\n可換行填寫多段經歷";
+    const ta = document.createElement("textarea");
+    ta.id = "experience";
+    ta.rows = 4;
+    ta.placeholder = "例：前 XX 公司品牌顧問、10 年業界資歷\n可換行填寫多段經歷";
     ta.style.cssText = "resize:vertical;min-height:96px;";
-    ta.value         = existingValue;
+    ta.value = existingValue;
     ta.dataset.upgraded = "1";
 
     const existingHint = parent.querySelector(".experience-hint");
     const hint = document.createElement("p");
-    hint.className   = "field-hint experience-hint";
+    hint.className = "field-hint experience-hint";
     hint.textContent = "可換行填寫多段經歷，系統自動整理排版。";
 
     parent.insertBefore(ta, old);
@@ -293,12 +378,12 @@
 
     els["experience"] = ta;
 
-    ta.addEventListener("input",  onLiveChange);
+    ta.addEventListener("input", onLiveChange);
     ta.addEventListener("change", onLiveChange);
   }
 
   /* ============================================================
-     collectEls
+     COLLECT ELS
   ============================================================ */
   function collectEls() {
     const ids = [
@@ -343,34 +428,38 @@
       "progress-preview-link"
     ];
 
-    ids.forEach(id => { els[id] = document.getElementById(id); });
+    ids.forEach(id => {
+      els[id] = document.getElementById(id);
+    });
 
-    els.planRadios      = Array.from(document.querySelectorAll('input[name="plan"]'));
+    els.planRadios = Array.from(document.querySelectorAll('input[name="plan"]'));
     els.addonCheckboxes = Array.from(document.querySelectorAll('input[name="addons"]'));
-    els.planCards       = Array.from(document.querySelectorAll("[data-plan-card]"));
-    els.progressSteps   = Array.from(document.querySelectorAll(".progress-step"));
-    els.photoTemplate   = document.getElementById("photo-slot-template");
-    els.ctaTemplate     = document.getElementById("cta-slot-template");
+    els.planCards = Array.from(document.querySelectorAll("[data-plan-card]"));
+    els.progressSteps = Array.from(document.querySelectorAll(".progress-step"));
+    els.photoTemplate = document.getElementById("photo-slot-template");
+    els.ctaTemplate = document.getElementById("cta-slot-template");
   }
 
   function ensureRendererAlias() {
-    if (!window.HSCCardRenderer && window.HscCardRenderer)
+    if (!window.HSCCardRenderer && window.HscCardRenderer) {
       window.HSCCardRenderer = window.HscCardRenderer;
+    }
   }
 
   /* ============================================================
-     靜態事件
+     EVENTS
   ============================================================ */
   function bindStaticEvents() {
-    if (els["smart-card-form"])
+    if (els["smart-card-form"]) {
       els["smart-card-form"].addEventListener("submit", submit);
+    }
 
     els.planRadios.forEach(r => r.addEventListener("change", refreshAll));
     els.addonCheckboxes.forEach(b => b.addEventListener("change", refreshAll));
 
     ["addon_photo_qty", "addon_cta_qty"].forEach(id => {
       if (els[id]) {
-        els[id].addEventListener("input",  refreshAll);
+        els[id].addEventListener("input", refreshAll);
         els[id].addEventListener("change", refreshAll);
       }
     });
@@ -383,17 +472,20 @@
       "video1", "video2", "video3", "social1", "social2", "social3"
     ].forEach(id => {
       if (els[id]) {
-        els[id].addEventListener("input",  onLiveChange);
+        els[id].addEventListener("input", onLiveChange);
         els[id].addEventListener("change", onLiveChange);
       }
     });
 
-    bindButton(els["btn-open-showcase"],        () => window.open(CONFIG.SHOWCASE_URL, "_blank", "noopener"));
-    bindButton(els["btn-contact-service"],      () => window.open(CONFIG.SERVICE_URL,  "_blank", "noopener"));
-    bindButton(els["progress-contact-service"], () => window.open(CONFIG.SERVICE_URL,  "_blank", "noopener"));
-    bindButton(els["btn-gold-contact"],         () => window.open(CONFIG.SERVICE_URL,  "_blank", "noopener"));
-    bindButton(els["btn-gold-info"],            () => alert("金牌級會員請聯繫客服瞭解完整權益。"));
-    bindButton(els["btn-save-draft"],  () => { saveDraft(); setStatus("草稿已暫存。"); });
+    bindButton(els["btn-open-showcase"], () => window.open(CONFIG.SHOWCASE_URL, "_blank", "noopener"));
+    bindButton(els["btn-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
+    bindButton(els["progress-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
+    bindButton(els["btn-gold-contact"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
+    bindButton(els["btn-gold-info"], () => alert("金牌級會員請聯繫客服瞭解完整權益。"));
+    bindButton(els["btn-save-draft"], () => {
+      saveDraft();
+      setStatus("草稿已暫存。");
+    });
     bindButton(els["btn-clear-draft"], clearDraft);
 
     bindButton(els["btn-gold-copy"], async () => {
@@ -414,10 +506,17 @@
   }
 
   /* ============================================================
-     validateBeforeSubmit
+     VALIDATION
   ============================================================ */
   function validateBeforeSubmit() {
     const limits = getLimits();
+
+    if (state.mode === "create") {
+      if (!valueOf("invite_code")) {
+        setStatus("缺少 invite_code，請確認是從正確的邀請連結進入。", "error");
+        return false;
+      }
+    }
 
     for (let i = 1; i <= limits.ctas; i++) {
       const textVal = valueOf(`cta_text_${i}`);
@@ -460,8 +559,7 @@
       }
     }
 
-    const urlFields = ["website", "line_url", "video1", "video2", "video3",
-                       "social1", "social2", "social3"];
+    const urlFields = ["website", "line_url", "video1", "video2", "video3", "social1", "social2", "social3"];
     for (const id of urlFields) {
       const v = valueOf(id);
       if (v && !isLooksLikeUrl(v)) {
@@ -483,29 +581,27 @@
   }
 
   /* ============================================================
-     formatDateYMD
+     DATE HELPERS
   ============================================================ */
   function formatDateYMD(input) {
     try {
       const d = input instanceof Date ? input : new Date(input);
       if (isNaN(d.getTime())) throw new Error("invalid");
-      return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;
+      return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
     } catch (_) {
       const fb = new Date();
       fb.setDate(fb.getDate() + 3);
-      return `${fb.getFullYear()}/${String(fb.getMonth()+1).padStart(2,"0")}/${String(fb.getDate()).padStart(2,"0")}`;
+      return `${fb.getFullYear()}/${String(fb.getMonth() + 1).padStart(2, "0")}/${String(fb.getDate()).padStart(2, "0")}`;
     }
   }
 
-  /* ============================================================
-     pickPaymentDueAt
-  ============================================================ */
   function pickPaymentDueAt(data) {
     const candidates = [
       data?.payment_due_at,
       data?.card?.payment_due_at,
       data?.data?.payment_due_at,
-      data?.quote?.payment_due_at
+      data?.quote?.payment_due_at,
+      data?.payment?.due_at
     ];
     for (const c of candidates) {
       if (c && String(c).trim()) return String(c).trim();
@@ -515,9 +611,6 @@
     return d.toISOString();
   }
 
-  /* ============================================================
-     buildLastSubmitResult
-  ============================================================ */
   function buildLastSubmitResult({ cardId, previewUrl, paymentDueAt, totalAmount, planLabel, customerName, paymentId = "", paymentNotice = "" }) {
     return {
       cardId,
@@ -533,18 +626,18 @@
   }
 
   /* ============================================================
-     handleCopyCardNotice
+     COPY NOTICE
   ============================================================ */
   async function handleCopyCardNotice() {
     let r = state.lastSubmitResult;
 
     if (!r) {
-      const limits      = getLimits();
-      const addonItems  = getAddonItemsForQuote(limits);
+      const limits = getLimits();
+      const addonItems = getAddonItemsForQuote(limits);
       const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-      const total       = limits.planPrice + addonAmount;
-      const cardId      = els["progress-card-id-display"]?.dataset.cardId || "";
-      const previewUrl  = cardId
+      const total = limits.planPrice + addonAmount;
+      const cardId = els["progress-card-id-display"]?.dataset.cardId || "";
+      const previewUrl = cardId
         ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`
         : CONFIG.SHOWCASE_URL;
       const dueIso = new Date();
@@ -553,10 +646,10 @@
       r = buildLastSubmitResult({
         cardId,
         previewUrl,
-        paymentDueAt:  dueIso.toISOString(),
-        totalAmount:   total,
-        planLabel:     limits.planLabel,
-        customerName:  valueOf("display_name") || "您"
+        paymentDueAt: dueIso.toISOString(),
+        totalAmount: total,
+        planLabel: limits.planLabel,
+        customerName: valueOf("display_name") || "您"
       });
     }
 
@@ -573,12 +666,14 @@
     if (btn) {
       const orig = btn.textContent;
       btn.textContent = "✅ 已複製！";
-      setTimeout(() => { btn.textContent = orig; }, 2200);
+      setTimeout(() => {
+        btn.textContent = orig;
+      }, 2200);
     }
   }
 
   /* ============================================================
-     方案 / 加購邏輯
+     PLAN / ADDON
   ============================================================ */
   function ensureDefaultPlan() {
     if (getSelectedPlan()) return;
@@ -601,7 +696,9 @@
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
   }
 
-  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+  function clamp(n, lo, hi) {
+    return Math.max(lo, Math.min(hi, n));
+  }
 
   function clampNumber(value, min, max, fallback) {
     const n = Number(value);
@@ -614,15 +711,15 @@
   function normalizePhotoMeta(meta) {
     const s = meta && typeof meta === "object" ? meta : {};
     return {
-      x:      clampNumber(s.x,      0,    1,   DEFAULT_PHOTO_META.x),
-      y:      clampNumber(s.y,      0,    1,   DEFAULT_PHOTO_META.y),
-      scale:  clampNumber(s.scale,  0.5,  3,   DEFAULT_PHOTO_META.scale),
+      x: clampNumber(s.x, 0, 1, DEFAULT_PHOTO_META.x),
+      y: clampNumber(s.y, 0, 1, DEFAULT_PHOTO_META.y),
+      scale: clampNumber(s.scale, 0.5, 3, DEFAULT_PHOTO_META.scale),
       rotate: clampNumber(s.rotate, -180, 180, DEFAULT_PHOTO_META.rotate)
     };
   }
 
   /* ============================================================
-     全面刷新
+     REFRESH
   ============================================================ */
   function refreshAll() {
     const limits = getLimits();
@@ -665,15 +762,15 @@
     };
   }
 
-
   function syncPlanCards() {
     const plan = getSelectedPlan();
     els.planCards.forEach(c =>
-      c.classList.toggle("is-selected", c.getAttribute("data-plan-card") === plan));
+      c.classList.toggle("is-selected", c.getAttribute("data-plan-card") === plan)
+    );
   }
 
   function syncThemeGroups(plan) {
-    els["free-theme-group"]   ?.classList.toggle("hidden", plan !== "free");
+    els["free-theme-group"]?.classList.toggle("hidden", plan !== "free");
     els["premium-theme-group"]?.classList.toggle("hidden", plan !== "premium");
   }
 
@@ -681,13 +778,14 @@
     const bundleChecked = isAddonChecked("addon_bundle");
 
     if (els["addon_photo_qty"]) {
-      const enabled  = isAddonChecked("addon_photo");
+      const enabled = isAddonChecked("addon_photo");
       const maxExtra = Math.max(0, CONFIG.MAX_WALL_PHOTOS - CONFIG.BASE_LIMITS[limits.plan].wallPhotos);
       els["addon_photo_qty"].disabled = !enabled;
-      els["addon_photo_qty"].max      = String(maxExtra);
+      els["addon_photo_qty"].max = String(maxExtra);
       if (!enabled) els["addon_photo_qty"].value = "0";
-      if (Number(els["addon_photo_qty"].value || 0) > maxExtra)
+      if (Number(els["addon_photo_qty"].value || 0) > maxExtra) {
         els["addon_photo_qty"].value = String(maxExtra);
+      }
     }
 
     if (els["addon-photo-tip"]) {
@@ -696,13 +794,14 @@
     }
 
     if (els["addon_cta_qty"]) {
-      const enabled  = isAddonChecked("addon_cta");
+      const enabled = isAddonChecked("addon_cta");
       const maxExtra = Math.max(0, CONFIG.MAX_CTAS - CONFIG.BASE_LIMITS[limits.plan].ctas);
       els["addon_cta_qty"].disabled = !enabled;
-      els["addon_cta_qty"].max      = String(maxExtra);
+      els["addon_cta_qty"].max = String(maxExtra);
       if (!enabled) els["addon_cta_qty"].value = "0";
-      if (Number(els["addon_cta_qty"].value || 0) > maxExtra)
+      if (Number(els["addon_cta_qty"].value || 0) > maxExtra) {
         els["addon_cta_qty"].value = String(maxExtra);
+      }
     }
 
     if (els["addon_marquee_enabled"]) {
@@ -721,7 +820,7 @@
   }
 
   /* ============================================================
-     照片區塊
+     PHOTO UI
   ============================================================ */
   function ensurePhotoMetaKey(key) {
     if (!state.photoMeta[key]) state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
@@ -738,12 +837,9 @@
     els["photo-slots"].innerHTML = "";
 
     const sections = [
-      { title: "個人照", desc: "固定 1 張，套用到成品卡頭像。",
-        keys: ["avatar"] },
-      { title: "Logo",   desc: "固定 1 張，套用到成品卡 logo。",
-        keys: ["logo"]   },
-      { title: "照片牆", desc: `本次可上傳 ${wallLimit} 張（不含個人照與 Logo）`,
-        keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
+      { title: "個人照", desc: "固定 1 張，套用到成品卡頭像。", keys: ["avatar"] },
+      { title: "Logo", desc: "固定 1 張，套用到成品卡 logo。", keys: ["logo"] },
+      { title: "照片牆", desc: `本次可上傳 ${wallLimit} 張（不含個人照與 Logo）`, keys: Array.from({ length: wallLimit }, (_, i) => `photo${i + 1}`) }
     ];
 
     sections.forEach(sec => {
@@ -751,12 +847,10 @@
       wrapper.className = "photo-section";
       const head = document.createElement("div");
       head.className = "photo-section-head";
-      head.innerHTML =
-        `<div><h3>${escapeHtml(sec.title)}</h3><p>${escapeHtml(sec.desc)}</p></div>`;
+      head.innerHTML = `<div><h3>${escapeHtml(sec.title)}</h3><p>${escapeHtml(sec.desc)}</p></div>`;
       const grid = document.createElement("div");
       grid.className = "photo-grid photo-grid-form";
-      sec.keys.forEach((key, idx) =>
-        grid.appendChild(buildPhotoCard(key, sec.title, idx + 1)));
+      sec.keys.forEach((key, idx) => grid.appendChild(buildPhotoCard(key, sec.title, idx + 1)));
       wrapper.appendChild(head);
       wrapper.appendChild(grid);
       els["photo-slots"].appendChild(wrapper);
@@ -764,34 +858,34 @@
   }
 
   function buildPhotoCard(key, sectionTitle, index) {
-    const frag         = els.photoTemplate.content.cloneNode(true);
-    const card         = frag.querySelector(".photo-card");
-    const title        = frag.querySelector(".photo-title");
-    const badge        = frag.querySelector(".badge");
-    const fileInput    = frag.querySelector(".photo-file-input");
+    const frag = els.photoTemplate.content.cloneNode(true);
+    const card = frag.querySelector(".photo-card");
+    const title = frag.querySelector(".photo-title");
+    const badge = frag.querySelector(".badge");
+    const fileInput = frag.querySelector(".photo-file-input");
     const previewImage = frag.querySelector(".preview-image");
     const previewEmpty = frag.querySelector(".preview-empty");
-    const tools        = frag.querySelector(".photo-tools");
-    const zoomRange    = frag.querySelector(".zoom-range");
-    const rotateLeft   = frag.querySelector(".rotate-left");
-    const rotateRight  = frag.querySelector(".rotate-right");
-    const moveLeft     = frag.querySelector(".move-left");
-    const moveRight    = frag.querySelector(".move-right");
-    const moveUp       = frag.querySelector(".move-up");
-    const moveDown     = frag.querySelector(".move-down");
-    const resetBtn     = frag.querySelector(".reset-photo");
+    const tools = frag.querySelector(".photo-tools");
+    const zoomRange = frag.querySelector(".zoom-range");
+    const rotateLeft = frag.querySelector(".rotate-left");
+    const rotateRight = frag.querySelector(".rotate-right");
+    const moveLeft = frag.querySelector(".move-left");
+    const moveRight = frag.querySelector(".move-right");
+    const moveUp = frag.querySelector(".move-up");
+    const moveDown = frag.querySelector(".move-down");
+    const resetBtn = frag.querySelector(".reset-photo");
 
-    card.dataset.photoKey      = key;
-    title.textContent          = ({ avatar: "個人照", logo: "Logo" })[key] || `照片牆 ${index}`;
+    card.dataset.photoKey = key;
+    title.textContent = ({ avatar: "個人照", logo: "Logo" })[key] || `照片牆 ${index}`;
     fileInput.dataset.photoKey = key;
     zoomRange.dataset.photoKey = key;
-    zoomRange.value            = String(state.photoMeta[key]?.scale || 1);
+    zoomRange.value = String(state.photoMeta[key]?.scale || 1);
 
-    fileInput.addEventListener("change", async (e) => {
+    fileInput.addEventListener("change", async e => {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      state.photoFiles[key]  = file;
+      state.photoFiles[key] = file;
       delete state.photoRealUrls[key];
       state.photoUploadState[key] = "pending";
 
@@ -815,54 +909,58 @@
     zoomRange.addEventListener("input", () => {
       state.photoMeta[key].scale = clampNumber(zoomRange.value, 0.5, 3, 1);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview(); saveDraftSilently();
+      updatePreview();
+      saveDraftSilently();
     });
 
     rotateLeft.addEventListener("click", () => {
       state.photoMeta[key].rotate = clampNumber(state.photoMeta[key].rotate - 90, -180, 180, 0);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview(); saveDraftSilently();
+      updatePreview();
+      saveDraftSilently();
     });
 
     rotateRight.addEventListener("click", () => {
       state.photoMeta[key].rotate = clampNumber(state.photoMeta[key].rotate + 90, -180, 180, 0);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview(); saveDraftSilently();
+      updatePreview();
+      saveDraftSilently();
     });
 
     moveLeft.addEventListener("click", () => {
-      state.photoMeta[key].x =
-        clampNumber(+(state.photoMeta[key].x - 0.05).toFixed(2), 0, 1, 0.5);
+      state.photoMeta[key].x = clampNumber(+(state.photoMeta[key].x - 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview(); saveDraftSilently();
+      updatePreview();
+      saveDraftSilently();
     });
 
     moveRight.addEventListener("click", () => {
-      state.photoMeta[key].x =
-        clampNumber(+(state.photoMeta[key].x + 0.05).toFixed(2), 0, 1, 0.5);
+      state.photoMeta[key].x = clampNumber(+(state.photoMeta[key].x + 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview(); saveDraftSilently();
+      updatePreview();
+      saveDraftSilently();
     });
 
     moveUp.addEventListener("click", () => {
-      state.photoMeta[key].y =
-        clampNumber(+(state.photoMeta[key].y - 0.05).toFixed(2), 0, 1, 0.5);
+      state.photoMeta[key].y = clampNumber(+(state.photoMeta[key].y - 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview(); saveDraftSilently();
+      updatePreview();
+      saveDraftSilently();
     });
 
     moveDown.addEventListener("click", () => {
-      state.photoMeta[key].y =
-        clampNumber(+(state.photoMeta[key].y + 0.05).toFixed(2), 0, 1, 0.5);
+      state.photoMeta[key].y = clampNumber(+(state.photoMeta[key].y + 0.05).toFixed(2), 0, 1, 0.5);
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview(); saveDraftSilently();
+      updatePreview();
+      saveDraftSilently();
     });
 
     resetBtn.addEventListener("click", () => {
       state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
       zoomRange.value = "1";
       applyPhotoTransform(previewImage, state.photoMeta[key]);
-      updatePreview(); saveDraftSilently();
+      updatePreview();
+      saveDraftSilently();
     });
 
     hydratePhotoCardUi(key, { badge, previewImage, previewEmpty, tools, zoomRange });
@@ -905,15 +1003,15 @@
 
   function applyPhotoTransform(img, meta) {
     if (!img || !meta) return;
-    const scale  = clampNumber(meta.scale,  0.5, 3,    1);
+    const scale = clampNumber(meta.scale, 0.5, 3, 1);
     const rotate = clampNumber(meta.rotate, -180, 180, 0);
-    const x      = ((meta.x ?? 0.5) - 0.5) * 40;
-    const y      = ((meta.y ?? 0.5) - 0.5) * 40;
+    const x = ((meta.x ?? 0.5) - 0.5) * 40;
+    const y = ((meta.y ?? 0.5) - 0.5) * 40;
     img.style.transform = `translate(${x}px,${y}px) scale(${scale}) rotate(${rotate}deg)`;
   }
 
   /* ============================================================
-     CTA 區塊 — renderCtas 優先讀 state.draftValues
+     CTA
   ============================================================ */
   function renderCtas(limit) {
     if (!els["cta-slots"] || !els.ctaTemplate) return;
@@ -923,26 +1021,22 @@
     state.ctaCount = limit;
 
     for (let i = 1; i <= limit; i++) {
-      const frag      = els.ctaTemplate.content.cloneNode(true);
-      const label     = frag.querySelector(".cta-title-label");
+      const frag = els.ctaTemplate.content.cloneNode(true);
+      const label = frag.querySelector(".cta-title-label");
       const textInput = frag.querySelector(".cta-label-input");
-      const urlInput  = frag.querySelector(".cta-url-input");
+      const urlInput = frag.querySelector(".cta-url-input");
 
       label.textContent = `CTA 按鈕 ${i}`;
-      textInput.id    = `cta_text_${i}`;
-      urlInput.id     = `cta_link_${i}`;
+      textInput.id = `cta_text_${i}`;
+      urlInput.id = `cta_link_${i}`;
 
-      textInput.value =
-        currentDomValues[`cta_text_${i}`] ||
-        state.draftValues[`cta_text_${i}`] || "";
-      urlInput.value  =
-        currentDomValues[`cta_link_${i}`] ||
-        state.draftValues[`cta_link_${i}`] || "";
+      textInput.value = currentDomValues[`cta_text_${i}`] || state.draftValues[`cta_text_${i}`] || "";
+      urlInput.value = currentDomValues[`cta_link_${i}`] || state.draftValues[`cta_link_${i}`] || "";
 
-      textInput.addEventListener("input",  onLiveChange);
+      textInput.addEventListener("input", onLiveChange);
       textInput.addEventListener("change", onLiveChange);
-      urlInput.addEventListener("input",   onLiveChange);
-      urlInput.addEventListener("change",  onLiveChange);
+      urlInput.addEventListener("input", onLiveChange);
+      urlInput.addEventListener("change", onLiveChange);
 
       els["cta-slots"].appendChild(frag);
     }
@@ -960,68 +1054,101 @@
   }
 
   /* ============================================================
-     Summary & Quote
+     SUMMARY / QUOTE
   ============================================================ */
   function syncSummary(limits) {
-    const set = (id, v) => { if (els[id]) els[id].textContent = v; };
-    set("summary-plan-pill",      limits.planLabel);
-    set("summary-photo-pill",     `照片牆：${limits.wallPhotos}`);
-    set("summary-cta-pill",       `CTA：${limits.ctas}`);
-    set("summary-plan-name",      limits.planLabel);
-    set("summary-photo-count",    String(limits.wallPhotos));
-    set("summary-cta-count",      String(limits.ctas));
+    const set = (id, v) => {
+      if (els[id]) els[id].textContent = v;
+    };
+    set("summary-plan-pill", limits.planLabel);
+    set("summary-photo-pill", `照片牆：${limits.wallPhotos}`);
+    set("summary-cta-pill", `CTA：${limits.ctas}`);
+    set("summary-plan-name", limits.planLabel);
+    set("summary-photo-count", String(limits.wallPhotos));
+    set("summary-cta-count", String(limits.ctas));
     set("summary-marquee-status", isMarqueeEnabled() ? "已開啟" : "未開啟");
   }
 
   function getAddonItemsForQuote(limits) {
-    const items         = [];
+    const items = [];
     const bundleChecked = isAddonChecked("addon_bundle");
-    const photoChecked  = isAddonChecked("addon_photo");
-    const ctaChecked    = isAddonChecked("addon_cta");
-    const photoQty      = photoChecked ? getAddonQty("addon_photo_qty") : 0;
-    const ctaQty        = ctaChecked   ? getAddonQty("addon_cta_qty")   : 0;
+    const photoChecked = isAddonChecked("addon_photo");
+    const ctaChecked = isAddonChecked("addon_cta");
+    const photoQty = photoChecked ? getAddonQty("addon_photo_qty") : 0;
+    const ctaQty = ctaChecked ? getAddonQty("addon_cta_qty") : 0;
 
     if (bundleChecked) {
-      items.push({ code: "addon_bundle", name: "跑馬燈＋更新組合", qty: 1,
+      items.push({
+        code: "addon_bundle",
+        name: "跑馬燈＋更新組合",
+        qty: 1,
         unit_price: CONFIG.ADDON_PRICES.addon_bundle,
-        amount:     CONFIG.ADDON_PRICES.addon_bundle });
+        amount: CONFIG.ADDON_PRICES.addon_bundle
+      });
     } else {
-      if (isAddonChecked("addon_marquee")) items.push({
-        code: "addon_marquee", name: "跑馬燈功能", qty: 1,
-        unit_price: CONFIG.ADDON_PRICES.addon_marquee,
-        amount:     CONFIG.ADDON_PRICES.addon_marquee });
-      if (isAddonChecked("addon_update_unlimited")) items.push({
-        code: "addon_update_unlimited", name: "無限更新", qty: 1,
-        unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited,
-        amount:     CONFIG.ADDON_PRICES.addon_update_unlimited });
+      if (isAddonChecked("addon_marquee")) {
+        items.push({
+          code: "addon_marquee",
+          name: "跑馬燈功能",
+          qty: 1,
+          unit_price: CONFIG.ADDON_PRICES.addon_marquee,
+          amount: CONFIG.ADDON_PRICES.addon_marquee
+        });
+      }
+      if (isAddonChecked("addon_update_unlimited")) {
+        items.push({
+          code: "addon_update_unlimited",
+          name: "無限更新",
+          qty: 1,
+          unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited,
+          amount: CONFIG.ADDON_PRICES.addon_update_unlimited
+        });
+      }
     }
 
-    if (photoChecked && photoQty > 0) items.push({
-      code: "addon_photo", name: "照片牆加購", qty: photoQty,
-      unit_price: CONFIG.ADDON_PRICES.addon_photo,
-      amount:     photoQty * CONFIG.ADDON_PRICES.addon_photo });
+    if (photoChecked && photoQty > 0) {
+      items.push({
+        code: "addon_photo",
+        name: "照片牆加購",
+        qty: photoQty,
+        unit_price: CONFIG.ADDON_PRICES.addon_photo,
+        amount: photoQty * CONFIG.ADDON_PRICES.addon_photo
+      });
+    }
 
-    if (ctaChecked && ctaQty > 0) items.push({
-      code: "addon_cta", name: "CTA 加購", qty: ctaQty,
-      unit_price: CONFIG.ADDON_PRICES.addon_cta,
-      amount:     ctaQty * CONFIG.ADDON_PRICES.addon_cta });
+    if (ctaChecked && ctaQty > 0) {
+      items.push({
+        code: "addon_cta",
+        name: "CTA 加購",
+        qty: ctaQty,
+        unit_price: CONFIG.ADDON_PRICES.addon_cta,
+        amount: ctaQty * CONFIG.ADDON_PRICES.addon_cta
+      });
+    }
 
-    if (isAddonChecked("addon_agent_upgrade")) items.push({
-      code: "addon_agent_upgrade", name: "金牌級會員", qty: 1,
-      unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade,
-      amount:     CONFIG.ADDON_PRICES.addon_agent_upgrade });
+    if (isAddonChecked("addon_agent_upgrade")) {
+      items.push({
+        code: "addon_agent_upgrade",
+        name: "金牌級會員",
+        qty: 1,
+        unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade,
+        amount: CONFIG.ADDON_PRICES.addon_agent_upgrade
+      });
+    }
 
     return items;
   }
 
   function syncQuote(limits) {
-    const items       = getAddonItemsForQuote(limits);
+    const items = getAddonItemsForQuote(limits);
     const addonAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const total       = (limits.planPrice || 0) + addonAmount;
-    const set         = (id, v) => { if (els[id]) els[id].textContent = v; };
+    const total = (limits.planPrice || 0) + addonAmount;
+    const set = (id, v) => {
+      if (els[id]) els[id].textContent = v;
+    };
 
-    set("quote-state-text",   `${limits.planLabel}｜${money(total)}`);
-    set("quote-plan-amount",  money(limits.planPrice || 0));
+    set("quote-state-text", `${limits.planLabel}｜${money(total)}`);
+    set("quote-plan-amount", money(limits.planPrice || 0));
     set("quote-addon-amount", money(addonAmount));
     set("quote-total-amount", money(total));
 
@@ -1029,15 +1156,16 @@
       els["quote-addon-breakdown"].innerHTML = "";
       if (!items.length) {
         els["quote-addon-breakdown"].appendChild(
-          Object.assign(document.createElement("span"), { textContent: "尚未選擇加購" }));
+          Object.assign(document.createElement("span"), { textContent: "尚未選擇加購" })
+        );
       } else {
         items.forEach(item => {
           const row = document.createElement("div");
           row.className = "quote-breakdown-row";
           const qs = (item.code === "addon_photo" || item.code === "addon_cta") && item.qty > 1
-            ? ` × ${item.qty}` : "";
-          row.innerHTML =
-            `<span>${escapeHtml(item.name)}${qs}</span><strong>${money(item.amount)}</strong>`;
+            ? ` × ${item.qty}`
+            : "";
+          row.innerHTML = `<span>${escapeHtml(item.name)}${qs}</span><strong>${money(item.amount)}</strong>`;
           els["quote-addon-breakdown"].appendChild(row);
         });
       }
@@ -1045,14 +1173,14 @@
   }
 
   /* ============================================================
-     即時預覽 — 主題 class 掛在 .preview-theme-scope
+     PREVIEW
   ============================================================ */
   const THEME_CLASSES = [
     "mode-free", "mode-premium",
-    "color-1","color-2","color-3","color-4","color-5",
-    "p1","p2","p3","p4","p5","p6","p7",
-    "style-arch","style-flat","style-spot",
-    "paper-1","paper-2","paper-3"
+    "color-1", "color-2", "color-3", "color-4", "color-5",
+    "p1", "p2", "p3", "p4", "p5", "p6", "p7",
+    "style-arch", "style-flat", "style-spot",
+    "paper-1", "paper-2", "paper-3"
   ];
 
   function syncPreviewContainerClasses() {
@@ -1060,10 +1188,9 @@
     if (!scope) return;
 
     const theme = getThemeSelection();
-    const plan  = theme.plan;
+    const plan = theme.plan;
 
     THEME_CLASSES.forEach(c => scope.classList.remove(c));
-
     scope.classList.add(plan === "premium" ? "mode-premium" : "mode-free");
 
     if (plan === "premium") {
@@ -1074,28 +1201,25 @@
       scope.classList.add(mapStyle(theme.style));
       scope.classList.add(mapPaper(theme.paper));
     }
-
-    // v8.2 FINAL：主題 class 只掛在 .preview-theme-scope
-    // #livePreviewCard 只作為 renderer 掛載目標，避免雙重掛載打架
   }
 
   function mapFreeColor(v) {
-    const m = { c1:"color-1", c2:"color-2", c3:"color-3", c4:"color-4", c5:"color-5" };
+    const m = { c1: "color-1", c2: "color-2", c3: "color-3", c4: "color-4", c5: "color-5" };
     return m[v] || "color-1";
   }
 
   function mapStyle(v) {
-    const m = { s1:"style-arch", s2:"style-flat", s3:"style-spot" };
+    const m = { s1: "style-arch", s2: "style-flat", s3: "style-spot" };
     return m[v] || "style-arch";
   }
 
   function mapPaper(v) {
-    const m = { f1:"paper-1", f2:"paper-2", f3:"paper-3" };
+    const m = { f1: "paper-1", f2: "paper-2", f3: "paper-3" };
     return m[v] || "paper-1";
   }
 
   function mapPremiumColor(v) {
-    return ["p1","p2","p3","p4","p5","p6","p7"].includes(v) ? v : "p1";
+    return ["p1", "p2", "p3", "p4", "p5", "p6", "p7"].includes(v) ? v : "p1";
   }
 
   function updatePreview() {
@@ -1107,69 +1231,71 @@
     ensureRendererAlias();
     const renderer = window.HSCCardRenderer || window.HscCardRenderer;
     if (!renderer || typeof renderer.renderCard !== "function") {
-      root.innerHTML =
-        `<div class="renderer-error">找不到 HscCardRenderer，請確認已載入 card-renderer.js</div>`;
+      root.innerHTML = `<div class="renderer-error">找不到 HscCardRenderer，請確認已載入 card-renderer.js</div>`;
       return;
     }
+
     try {
       renderer.renderCard(buildPreviewData(), {
-        mode: "form", root, useExistingDom: false,
-        qrMode: "preview", allowActions: false,
+        mode: "form",
+        root,
+        useExistingDom: false,
+        qrMode: "preview",
+        allowActions: false,
         previewUrl: CONFIG.SHOWCASE_URL,
-        shareUrl:   CONFIG.SHOWCASE_URL,
-        cardUrl:    CONFIG.SHOWCASE_URL
+        shareUrl: CONFIG.SHOWCASE_URL,
+        cardUrl: CONFIG.SHOWCASE_URL
       });
       bindPreviewCollapseToggles(root);
     } catch (err) {
       console.error("updatePreview error:", err);
-      root.innerHTML =
-        `<div class="renderer-error">預覽渲染失敗：${escapeHtml(err.message || "未知")}</div>`;
+      root.innerHTML = `<div class="renderer-error">預覽渲染失敗：${escapeHtml(err.message || "未知")}</div>`;
     }
   }
 
   function buildPreviewData() {
     const limits = getLimits();
-    const theme  = getThemeSelection();
+    const theme = getThemeSelection();
 
     const data = {
-      name:       valueOf("display_name"),
-      unit:       valueOf("unit"),
-      title:      valueOf("title"),
-      slogan:     valueOf("intro"),
-      services:   valueOf("services"),
+      name: valueOf("display_name"),
+      unit: valueOf("unit"),
+      title: valueOf("title"),
+      slogan: valueOf("intro"),
+      services: valueOf("services"),
       experience: valueOf("experience"),
-      phone:      valueOf("phone"),
-      email:      valueOf("email"),
-      address:    valueOf("address"),
-      website:    valueOf("website"),
-      line_url:   valueOf("line_url"),
-      line_oa:    valueOf("line_oa"),
-      wechat_id:  valueOf("wechat_id"),
-      video1:     valueOf("video1"),
-      video2:     valueOf("video2"),
-      video3:     valueOf("video3"),
-      social1:    valueOf("social1"),
-      social2:    valueOf("social2"),
-      social3:    valueOf("social3"),
+      phone: valueOf("phone"),
+      email: valueOf("email"),
+      address: valueOf("address"),
+      website: valueOf("website"),
+      line_url: valueOf("line_url"),
+      line_oa: valueOf("line_oa"),
+      wechat_id: valueOf("wechat_id"),
+      video1: valueOf("video1"),
+      video2: valueOf("video2"),
+      video3: valueOf("video3"),
+      social1: valueOf("social1"),
+      social2: valueOf("social2"),
+      social3: valueOf("social3"),
 
-      plan:  theme.plan,
+      plan: theme.plan,
       color: theme.color,
       style: theme.style,
       paper: theme.paper,
 
-      marquee_text:    isMarqueeEnabled() ? valueOf("marquee_text") : "",
+      marquee_text: isMarqueeEnabled() ? valueOf("marquee_text") : "",
       marquee_enabled: isMarqueeEnabled() ? "true" : "",
 
       photo_limit: limits.wallPhotos,
-      cta_limit:   limits.ctas,
+      cta_limit: limits.ctas,
 
       preview_url: CONFIG.SHOWCASE_URL,
-      share_url:   CONFIG.SHOWCASE_URL,
-      card_url:    CONFIG.SHOWCASE_URL,
+      share_url: CONFIG.SHOWCASE_URL,
+      card_url: CONFIG.SHOWCASE_URL,
 
       features: {
-        photo_meta:         buildPhotoMetaMap(),
-        preview_meta:       { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
+        photo_meta: buildPhotoMetaMap(),
+        preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
         photo_preview_urls: { ...state.photoPreviewUrls }
       }
     };
@@ -1177,7 +1303,7 @@
     const avatarUrl = state.photoRealUrls.avatar || state.photoPreviewUrls.avatar || "";
     if (avatarUrl) {
       data.avatar_url = avatarUrl;
-      data["u-img"]   = avatarUrl;
+      data["u-img"] = avatarUrl;
     }
 
     const logoUrl = state.photoRealUrls.logo || state.photoPreviewUrls.logo || "";
@@ -1186,7 +1312,7 @@
     for (let i = 1; i <= limits.wallPhotos; i++) {
       const url = state.photoRealUrls[`photo${i}`] || state.photoPreviewUrls[`photo${i}`] || "";
       if (url) {
-        data[`photo${i}_url`]  = url;
+        data[`photo${i}_url`] = url;
         data[`photo_url_${i}`] = url;
       }
     }
@@ -1201,7 +1327,7 @@
 
   function bindPreviewCollapseToggles(root) {
     setupPreviewBlockClamp(root, "[data-block-service]", 140);
-    setupPreviewBlockClamp(root, "[data-block-exp]",     180);
+    setupPreviewBlockClamp(root, "[data-block-exp]", 180);
   }
 
   function setupPreviewBlockClamp(root, selector, collapsedHeight) {
@@ -1210,27 +1336,27 @@
     const next = block.nextElementSibling;
     if (next && next.classList.contains("preview-more-toggle")) next.remove();
     block.style.maxHeight = "";
-    block.style.overflow  = "";
+    block.style.overflow = "";
     block.classList.remove("is-collapsed", "is-expanded");
     requestAnimationFrame(() => {
       if (block.scrollHeight <= collapsedHeight + 8) return;
       block.style.maxHeight = `${collapsedHeight}px`;
-      block.style.overflow  = "hidden";
+      block.style.overflow = "hidden";
       block.classList.add("is-collapsed");
       const btn = document.createElement("button");
-      btn.type      = "button";
+      btn.type = "button";
       btn.className = "ghost-btn mini preview-more-toggle";
       btn.textContent = "展開更多";
       btn.addEventListener("click", () => {
         if (block.classList.contains("is-expanded")) {
           block.classList.replace("is-expanded", "is-collapsed");
           block.style.maxHeight = `${collapsedHeight}px`;
-          block.style.overflow  = "hidden";
+          block.style.overflow = "hidden";
           btn.textContent = "展開更多";
         } else {
           block.classList.replace("is-collapsed", "is-expanded");
           block.style.maxHeight = "none";
-          block.style.overflow  = "visible";
+          block.style.overflow = "visible";
           btn.textContent = "收合";
         }
       });
@@ -1241,7 +1367,7 @@
   function buildPhotoMetaMap() {
     const out = {
       avatar: normalizePhotoMeta(state.photoMeta.avatar),
-      logo:   normalizePhotoMeta(state.photoMeta.logo)
+      logo: normalizePhotoMeta(state.photoMeta.logo)
     };
     for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) {
       out[`photo${i}`] = normalizePhotoMeta(state.photoMeta[`photo${i}`]);
@@ -1250,70 +1376,98 @@
   }
 
   /* ============================================================
-     buildPayload
+     RESPONSE HELPERS
+  ============================================================ */
+  function extractCardId(data) {
+    return (
+      data?.card_id ||
+      data?.id ||
+      data?.card?.id ||
+      data?.card?.card_id ||
+      data?.data?.card_id ||
+      data?.data?.id ||
+      data?.result?.card_id ||
+      data?.result?.id ||
+      data?.payload?.card_id ||
+      data?.payload?.id ||
+      ""
+    );
+  }
+
+  function extractPaymentId(data) {
+    return (
+      data?.payment?.payment_id ||
+      data?.payment_id ||
+      data?.data?.payment_id ||
+      data?.result?.payment_id ||
+      data?.payload?.payment_id ||
+      ""
+    );
+  }
+
+  /* ============================================================
+     BUILD PAYLOAD
   ============================================================ */
   function buildPayload() {
-    const limits         = getLimits();
-    const theme          = getThemeSelection();
-    const previewData    = buildPreviewData();
-    const addonItems     = getAddonItemsForQuote(limits);
-    const bundleChecked  = isAddonChecked("addon_bundle");
+    const limits = getLimits();
+    const theme = getThemeSelection();
+    const previewData = buildPreviewData();
+    const addonItems = getAddonItemsForQuote(limits);
+    const bundleChecked = isAddonChecked("addon_bundle");
     const marqueeChecked = isAddonChecked("addon_marquee");
-    const addonAmount    = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const totalAmount    = Number(limits.planPrice || 0) + Number(addonAmount || 0);
+    const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const totalAmount = Number(limits.planPrice || 0) + Number(addonAmount || 0);
 
     const phoneStr = String(valueOf("phone") || "").replace(/\s/g, "");
-    const refCode  = valueOf("ref");
+    const refCode = valueOf("ref");
+    const inviteCode = valueOf("invite_code");
 
     const payload = {
-      action:"createCardWithOfflinePayment",
+      action: CONFIG.CREATE_ACTION,
       tenant: "angel",
-invite_code: "TEST001",
 
-      name:       previewData.name,
-      unit:       previewData.unit,
-      title:      previewData.title,
-      slogan:     previewData.slogan,
-      phone:      phoneStr,
-      email:      previewData.email,
-      website:    previewData.website,
-      address:    previewData.address,
-      line_url:   previewData.line_url,
-      line_oa:    previewData.line_oa,
-      wechat_id:  previewData.wechat_id,
+      invite_code: inviteCode,
+      referrer: refCode,
+      service_agent: refCode,
+      agent_type: refCode ? "service" : "self",
+      source: refCode ? "agent_form" : "form",
+      form_source: "smart_card_form",
+      process_status: "submitted",
+
+      name: previewData.name,
+      unit: previewData.unit,
+      title: previewData.title,
+      slogan: previewData.slogan,
+      phone: phoneStr,
+      email: previewData.email,
+      website: previewData.website,
+      address: previewData.address,
+      line_url: previewData.line_url,
+      line_oa: previewData.line_oa,
+      wechat_id: previewData.wechat_id,
       experience: previewData.experience,
-      services:   previewData.services,
+      services: previewData.services,
 
-      video1:  valueOf("video1"),
-      video2:  valueOf("video2"),
-      video3:  valueOf("video3"),
+      video1: valueOf("video1"),
+      video2: valueOf("video2"),
+      video3: valueOf("video3"),
       social1: valueOf("social1"),
       social2: valueOf("social2"),
       social3: valueOf("social3"),
 
-      invite_code: valueOf("invite_code"),
-      referrer:    refCode,
-      service_agent: refCode,
-      agent_type:  refCode ? "service" : "self",
-      source:      refCode ? "agent_form" : "form",
-      form_source: "smart_card_form",
-      process_status: "submitted",
-
-      plan:  theme.plan,
+      plan: theme.plan,
       color: theme.color,
       style: theme.style,
       paper: theme.paper,
 
-      marquee_text:      previewData.marquee_text,
-      marquee_enabled:   isMarqueeEnabled() ? "true" : "",
+      marquee_text: previewData.marquee_text,
+      marquee_enabled: isMarqueeEnabled() ? "true" : "",
       marquee_purchased: (marqueeChecked || bundleChecked) ? "1" : "",
 
-      photo_limit:           limits.wallPhotos,
-      cta_limit:             limits.ctas,
-      photo_extra_purchased: isAddonChecked("addon_photo")
-                               ? String(getAddonQty("addon_photo_qty")) : "",
-      cta_extra_purchased:   isAddonChecked("addon_cta")
-                               ? String(getAddonQty("addon_cta_qty"))   : "",
+      photo_limit: limits.wallPhotos,
+      cta_limit: limits.ctas,
+      photo_extra_purchased: isAddonChecked("addon_photo") ? String(getAddonQty("addon_photo_qty")) : "",
+      cta_extra_purchased: isAddonChecked("addon_cta") ? String(getAddonQty("addon_cta_qty")) : "",
 
       amount: totalAmount,
       plan_amount: Number(limits.planPrice || 0),
@@ -1322,12 +1476,12 @@ invite_code: "TEST001",
       note: buildOrderNote(limits, addonItems, totalAmount),
 
       ...(state.photoRealUrls.avatar ? { avatar_url: state.photoRealUrls.avatar } : {}),
-      ...(state.photoRealUrls.logo   ? { logo_url:   state.photoRealUrls.logo   } : {}),
+      ...(state.photoRealUrls.logo ? { logo_url: state.photoRealUrls.logo } : {}),
 
       addon_items: addonItems,
 
       features_json: {
-        photo_meta:   buildPhotoMetaMap(),
+        photo_meta: buildPhotoMetaMap(),
         preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
         addon_items: addonItems,
         order_summary: {
@@ -1343,7 +1497,7 @@ invite_code: "TEST001",
     for (let i = 1; i <= limits.wallPhotos; i++) {
       const url = state.photoRealUrls[`photo${i}`] || "";
       if (url) {
-        payload[`photo${i}_url`]  = url;
+        payload[`photo${i}_url`] = url;
         payload[`photo_url_${i}`] = url;
       }
     }
@@ -1358,7 +1512,7 @@ invite_code: "TEST001",
 
   function buildOrderNote(limits, addonItems, totalAmount) {
     const parts = [
-      `form_submit`,
+      "form_submit",
       `plan=${limits.plan}`,
       `plan_label=${limits.planLabel}`,
       `plan_amount=${Number(limits.planPrice || 0)}`,
@@ -1368,20 +1522,28 @@ invite_code: "TEST001",
 
     addonItems.forEach(item => {
       const code = String(item.code || item.item_code || "").trim();
-      const qty  = Number(item.qty || item.quantity || 1);
-      const amt  = Number(item.amount || 0);
+      const qty = Number(item.qty || item.quantity || 1);
+      const amt = Number(item.amount || 0);
       if (code) parts.push(`addon=${code}:${qty}:${amt}`);
     });
 
     return parts.join(" ; ");
   }
 
-
   /* ============================================================
-     送出流程 v7.8.4.1
+     SUBMIT
   ============================================================ */
   async function submit(e) {
     e.preventDefault();
+
+    if (state.mode !== "create") {
+      if (state.mode === "update") {
+        setStatus("目前這版已先收好 update 模式骨架，下一步再正式接通更新送出。", "warn");
+      } else if (state.mode === "renew") {
+        setStatus("目前這版已先收好 renew 模式骨架，下一步再正式接通續約流程。", "warn");
+      }
+      return;
+    }
 
     const payload = buildPayload();
 
@@ -1392,8 +1554,8 @@ invite_code: "TEST001",
 
     if (!validateBeforeSubmit()) return;
 
-    const limits      = getLimits();
-    const addonItems  = getAddonItemsForQuote(limits);
+    const limits = getLimits();
+    const addonItems = getAddonItemsForQuote(limits);
     const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
     const totalAmount = Number(limits.planPrice || 0) + Number(addonAmount || 0);
 
@@ -1407,75 +1569,65 @@ invite_code: "TEST001",
       setProgressStep(2, "正在送出建卡資料…");
 
       const finalPayload = buildPayload();
+      finalPayload.action = CONFIG.CREATE_ACTION;
 
-// ⭐強制補 action（最穩）
-finalPayload.action = "createCardWithOfflinePayment";
+      const createRes = await postToGas(finalPayload);
+      console.log("[HSC form] createCardWithOfflinePayment response =", createRes);
 
-const data = await postToGas(finalPayload);
-console.log("[HSC form] createCardWithOfflinePayment response =", data);
+      if (!createRes || !createRes.ok) {
+        throw new Error(createRes?.error || createRes?.message || "建立名片失敗，請稍後再試。");
+      }
 
-if (!data || !data.ok) {
-  throw new Error(data?.error || data?.message || data?.raw || "建立名片失敗，請稍後再試。");
-}
+      const cardId = extractCardId(createRes);
+      const paymentId = extractPaymentId(createRes);
 
-const cardId =
-  data.card_id ||
-  data.id ||
-  data.card?.id ||
-  data.card?.card_id ||
-  data.data?.card_id ||
-  data.data?.id ||
-  data.result?.card_id ||
-  data.result?.id ||
-  data.payload?.card_id ||
-  "";
-const paymentId =
-  data.payment?.payment_id ||
-  data.payment_id ||
-  data.result?.payment_id ||
-  data.payload?.payment_id ||
-  "";
+      if (!cardId) {
+        console.error("⚠️ 沒拿到 card_id，完整回傳如下：", createRes);
+        throw new Error(
+          "GAS 已回應成功，但沒有回傳 card_id，請檢查 createCardWithOfflinePayment 回傳格式。"
+        );
+      }
 
-if (!cardId) {
-  throw new Error(
-    "GAS 已回應成功，但沒有回傳 card_id。\n完整回傳：\n" +
-    JSON.stringify(data, null, 2)
-  );
-}
+      setProgressStep(3, "正在建立付款期限…");
 
-setProgressStep(3, "正在建立付款期限…");
+      const delivered = await postToGas({
+        action: CONFIG.DELIVER_ACTION,
+        card_id: cardId
+      });
 
-const delivered = await postToGas({
-  action: "markCardDelivered",
-  card_id: cardId
-});
+      if (!delivered || !delivered.ok) {
+        throw new Error(delivered?.error || delivered?.message || "付款期限建立失敗，請檢查 markCardDelivered。");
+      }
 
-if (!delivered || !delivered.ok) {
-  throw new Error(delivered?.error || delivered?.message || "付款期限建立失敗，請檢查 markCardDelivered。");
-}
-      let paymentNoticeText = data.payment_notice?.copy_text || "";
-      if (paymentId) {
-        try {
-          const noticeRes = await postToGas({
-          action: "buildPaymentNoticeText",
-            payment_id: paymentId
-          });
-          if (noticeRes?.ok && noticeRes?.copy_text) {
-            paymentNoticeText = noticeRes.copy_text;
-          }
-        } catch (noticeErr) {
-          console.warn("[HSC form] payment notice fetch failed:", noticeErr);
+      setProgressStep(4, "正在整理付款通知與預覽資料…");
+
+      let paymentNoticeText = createRes?.payment_notice?.copy_text || "";
+      try {
+        const noticePayload = {
+          action: CONFIG.PAYMENT_NOTICE_ACTION
+        };
+
+        if (paymentId) noticePayload.payment_id = paymentId;
+        else noticePayload.card_id = cardId;
+
+        const noticeRes = await postToGas(noticePayload);
+        if (noticeRes?.ok) {
+          paymentNoticeText =
+            noticeRes?.copy_text ||
+            noticeRes?.payment_notice?.copy_text ||
+            paymentNoticeText ||
+            "";
         }
+      } catch (noticeErr) {
+        console.warn("[HSC form] payment notice fetch failed:", noticeErr);
       }
 
       const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
       const paymentDueAt =
         delivered?.payment_due_at ||
         delivered?.card?.payment_due_at ||
-        data?.payment?.due_at ||
-        pickPaymentDueAt(data);
-
-      setProgressStep(4, "正在寫入報價與預覽資料…");
+        createRes?.payment?.due_at ||
+        pickPaymentDueAt(delivered || createRes);
 
       const result = buildLastSubmitResult({
         cardId,
@@ -1483,11 +1635,10 @@ if (!delivered || !delivered.ok) {
         paymentDueAt,
         totalAmount,
         planLabel: limits.planLabel,
-        customerName: finalPayload.name
+        customerName: finalPayload.name,
+        paymentId,
+        paymentNotice: paymentNoticeText
       });
-
-      result.paymentId = paymentId || "";
-      result.paymentNotice = paymentNoticeText || "";
 
       state.lastSubmitResult = result;
 
@@ -1511,7 +1662,6 @@ if (!delivered || !delivered.ok) {
       setProgressStep(5, "✅ 申請成功！名片已建立。");
       showSuccessPanel(result);
       setStatus("名片已成功建立，請複製下方資訊回覆客服。", "success");
-
     } catch (err) {
       console.error("[HSC form] submit error:", err);
       setStatus("送出失敗：" + (err.message || "未知錯誤"), "error");
@@ -1519,46 +1669,8 @@ if (!delivered || !delivered.ok) {
     }
   }
 
-async function postToGas(payload) {
-  const fd = new FormData();
-
-  // ✅ 改成「平鋪欄位」
-  Object.keys(payload || {}).forEach((key) => {
-    const value = payload[key];
-
-    if (value === undefined || value === null) return;
-
-    // 物件轉 JSON
-    if (typeof value === "object") {
-      fd.append(key, JSON.stringify(value));
-    } else {
-      fd.append(key, String(value));
-    }
-  });
-
-  const res = await fetch(CONFIG.GAS_URL, {
-    method: "POST",
-    body: fd
-  });
-
-  const text = await res.text();
-
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch (err) {
-    console.error("GAS回傳不是JSON:", text);
-    throw new Error("GAS 回傳格式錯誤");
-  }
-
-  if (!res.ok || data.ok === false) {
-    throw new Error(data?.error || `HTTP ${res.status}`);
-  }
-
-  return data;
-}
   /* ============================================================
-     showSuccessPanel
+     SUCCESS PANEL
   ============================================================ */
   function showSuccessPanel(result) {
     if (!result) return;
@@ -1567,13 +1679,13 @@ async function postToGas(payload) {
 
     const idEl = els["progress-card-id-display"];
     if (idEl) {
-      idEl.textContent    = result.cardId || "（待客服確認）";
+      idEl.textContent = result.cardId || "（待客服確認）";
       idEl.dataset.cardId = result.cardId || "";
     }
 
     const linkEl = els["progress-preview-link"];
     if (linkEl) {
-      linkEl.href        = result.previewUrl || CONFIG.SHOWCASE_URL;
+      linkEl.href = result.previewUrl || CONFIG.SHOWCASE_URL;
       linkEl.textContent = result.previewUrl || CONFIG.SHOWCASE_URL;
     }
 
@@ -1585,10 +1697,10 @@ async function postToGas(payload) {
       if (el) el.textContent = v;
     };
 
-    setT(".success-name",  result.customerName || "您");
-    setT(".success-plan",  result.planLabel    || "方案");
+    setT(".success-name", result.customerName || "您");
+    setT(".success-plan", result.planLabel || "方案");
     setT(".success-total", `NT$ ${Number(result.totalAmount || 0).toLocaleString("zh-TW")}`);
-    setT(".success-due",   result.dueDateStr   || "3 天內");
+    setT(".success-due", result.dueDateStr || "3 天內");
 
     panel.classList.remove("hidden");
   }
@@ -1598,24 +1710,7 @@ async function postToGas(payload) {
   }
 
   /* ============================================================
-     parseJsonSafe
-  ============================================================ */
-  async function parseJsonSafe(res) {
-    let raw = "";
-    try { raw = await res.text(); } catch (e) {
-      console.error("[HSC form] failed to read response text:", e);
-      return { ok: false, error: "無法讀取回應內容", raw: "" };
-    }
-    try {
-      return JSON.parse(raw);
-    } catch (_) {
-      console.error("[HSC form] non-json response:", raw.slice(0, 500));
-      return { ok: false, error: "Non-JSON response", raw };
-    }
-  }
-
-  /* ============================================================
-     工具函式
+     UTIL
   ============================================================ */
   function isMarqueeEnabled() {
     return isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle");
@@ -1628,13 +1723,20 @@ async function postToGas(payload) {
 
   function getThemeSelection() {
     const plan = getSelectedPlan() || "premium";
-    if (plan === "free") return {
+    if (plan === "free") {
+      return {
+        plan,
+        color: els["free_color"]?.value || "c1",
+        style: els["free_style"]?.value || "s1",
+        paper: els["free_paper"]?.value || "f1"
+      };
+    }
+    return {
       plan,
-      color: els["free_color"]?.value || "c1",
-      style: els["free_style"]?.value || "s1",
-      paper: els["free_paper"]?.value || "f1"
+      color: els["premium_color"]?.value || "p1",
+      style: "",
+      paper: ""
     };
-    return { plan, color: els["premium_color"]?.value || "p1", style: "", paper: "" };
   }
 
   function showProgress(show) {
@@ -1653,26 +1755,33 @@ async function postToGas(payload) {
     els.progressSteps.forEach(step => {
       const n = Number(step.dataset.step || 0);
       step.classList.toggle("is-active", n === stepNo);
-      step.classList.toggle("is-done",   n <  stepNo);
+      step.classList.toggle("is-done", n < stepNo);
     });
-    if (els["progress-fill"])
+    if (els["progress-fill"]) {
       els["progress-fill"].style.width = `${Math.round((stepNo / total) * 100)}%`;
-    if (els["progress-text"] && text)
+    }
+    if (els["progress-text"] && text) {
       els["progress-text"].textContent = text;
+    }
   }
 
   function setStatus(msg, stateName = "") {
     const el = els["form-status-strip"];
     if (!el) return;
     el.textContent = msg || "";
-    if (msg) el.classList.add("visible"); else el.classList.remove("visible");
-    if (stateName) el.dataset.state = stateName; else delete el.dataset.state;
+    if (msg) el.classList.add("visible");
+    else el.classList.remove("visible");
+    if (stateName) el.dataset.state = stateName;
+    else delete el.dataset.state;
   }
 
   function collectFormValues() {
     const out = {};
     document.querySelectorAll("input, textarea, select").forEach(el => {
-      if (el.type === "radio") { if (el.checked) out[el.name] = el.value; return; }
+      if (el.type === "radio") {
+        if (el.checked) out[el.name] = el.value;
+        return;
+      }
       if (!el.id) return;
       out[el.id] = el.type === "checkbox" ? el.checked : el.value;
     });
@@ -1680,7 +1789,7 @@ async function postToGas(payload) {
   }
 
   /* ============================================================
-     草稿儲存 / 恢復
+     DRAFT
   ============================================================ */
   function saveDraft() {
     const values = collectFormValues();
@@ -1690,15 +1799,21 @@ async function postToGas(payload) {
     }));
   }
 
-  function saveDraftSilently() { try { saveDraft(); } catch (_) {} }
+  function saveDraftSilently() {
+    try {
+      saveDraft();
+    } catch (_) {}
+  }
 
   function restoreDraft() {
     let draft = null;
-    try { draft = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || "null"); } catch (_) {}
+    try {
+      draft = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || "null");
+    } catch (_) {}
+
     if (!draft || typeof draft !== "object") return;
 
     const values = draft.values || {};
-
     state.draftValues = { ...values };
 
     Object.keys(values).forEach(key => {
@@ -1722,8 +1837,9 @@ async function postToGas(payload) {
       if (expEl) expEl.value = values["experience"] || "";
     }
 
-    if (draft.photoMeta && typeof draft.photoMeta === "object")
+    if (draft.photoMeta && typeof draft.photoMeta === "object") {
       state.photoMeta = draft.photoMeta;
+    }
 
     ensurePhotoMetaKey("avatar");
     ensurePhotoMetaKey("logo");
@@ -1735,18 +1851,25 @@ async function postToGas(payload) {
     location.reload();
   }
 
-  function money(v) { return `NT$ ${Number(v || 0).toLocaleString("zh-TW")}`; }
+  function money(v) {
+    return `NT$ ${Number(v || 0).toLocaleString("zh-TW")}`;
+  }
 
   async function copyText(str) {
     if (!str) return;
     try {
-      if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(str); return; }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(str);
+        return;
+      }
     } catch (_) {}
+
     const ta = document.createElement("textarea");
     ta.value = str;
     ta.style.cssText = "position:fixed;top:-9999px;opacity:0;";
     document.body.appendChild(ta);
-    ta.focus(); ta.select();
+    ta.focus();
+    ta.select();
     document.execCommand("copy");
     document.body.removeChild(ta);
   }
@@ -1754,7 +1877,7 @@ async function postToGas(payload) {
   function fileToDataURL(file) {
     return new Promise((resolve, reject) => {
       const r = new FileReader();
-      r.onload  = () => resolve(r.result);
+      r.onload = () => resolve(r.result);
       r.onerror = reject;
       r.readAsDataURL(file);
     });
@@ -1762,34 +1885,10 @@ async function postToGas(payload) {
 
   function escapeHtml(str) {
     return String(str || "")
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
-
 })();
-// ⭐ 強制覆蓋版 postToGas（解決 GAS 收不到 payload 問題）
-async function postToGas(payload) {
-  const body = new URLSearchParams();
-  body.append("payload", JSON.stringify(payload));
-
-  const res = await fetch(CONFIG.GAS_URL, {
-    method: "POST",
-    body
-  });
-
-  const text = await res.text();
-
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch (err) {
-    console.error("GAS回傳不是JSON:", text);
-    throw new Error("GAS 回傳格式錯誤");
-  }
-
-  if (!res.ok || data.ok === false) {
-    throw new Error(data?.error || `HTTP ${res.status}`);
-  }
-
-  return data;
-}
