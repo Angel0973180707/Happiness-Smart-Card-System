@@ -127,6 +127,7 @@
 
     bindStaticEvents();
     restoreDraft();
+    hydrateQueryParams(); // ← 再吃一次 URL，強制覆蓋草稿
     ensureDefaultPlan();
 
     state.tempCardId = "TEMP_" + Date.now();
