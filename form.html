@@ -9,18 +9,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <!--
-    style.css 引入說明（v8.2 FINAL）：
+    style.css 引入說明（v9999）：
     .preview-theme-scope 是預覽主題作用域容器，
     form.js 會動態將 mode-free / mode-premium / color-x / p1~p7 等 class
     掛在 .preview-theme-scope 上，使 style.css 的 body.mode-premium .xxx 規則
     可透過 .preview-theme-scope.mode-premium .xxx 完整套用，
     達成預覽與成品頁樣式 100% 一致。
   -->
-  <link rel="stylesheet" href="./style.css" />
+ <link rel="stylesheet" href="./style.css?v=9999" />
 
   <style>
     /* ============================================================
-       form-local.css  v8.2 FINAL
+       form-local.css  v9999
        僅包含表單頁面專屬樣式，不覆蓋 style.css
     ============================================================ */
 
@@ -628,7 +628,7 @@
       min-height: 420px;
     }
 
-    /* v8.2 FINAL：預覽 slogan 對齊修正（只影響預覽，不碰主程式成品視覺） */
+    /* v9999：預覽 slogan 對齊修正（只影響預覽，不碰主程式成品視覺） */
     #livePreviewCard .slogan,
     #livePreviewCard [data-u-slogan],
     .preview-theme-scope .slogan,
@@ -1502,12 +1502,12 @@
   </template>
 
   <!-- card-renderer.js 必須在 form.js 之前載入 -->
-  <script src="./card-renderer.js"></script>
+<script src="./card-renderer.js?v=9999"></script>
 
   <!--
     form.js 使用 type="module" 以支援 import() 動態載入 firebase.js
     firebase.js 必須存在於根目錄
   -->
-  <script type="module" src="./form.js?v=999"></script>
+  <script type="module" src="./form.js?v=9999"></script>
 </body>
 </html>
