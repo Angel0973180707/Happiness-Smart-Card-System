@@ -1,16 +1,21 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v7.7.6-fix-qr-expiry
+   v8.3.3-card-view-mode
    完整覆蓋版
-   修正項目：
-   1. QR Code：renderer useExistingDom:false 重建 DOM 後，
-      bindQrSlots_ 改為動態查找（每次 render 後重新綁定），
-      不再依賴 boot 時的一次性綁定
-   2. 到期倒數：buildGeneratedTemplate 沒有產生 #cardExpiry，
-      改為 renderPostRendererUi_ 直接在 card 內插入 expiry 節點，
-      並強化 pick key 清單（expires_at / expiry_date / payment_due_at 等）
-   3. renderBottomQr_ 改為用 scope 查找，不依賴全域 ID
-   4. 其餘邏輯保持 v7.7.5 穩定版原樣
+
+   v8.3.3 修正項目：
+   1. 加入 loadCardById_() — 依 card_id 從 GAS 撈資料
+   2. 加入 renderPersonalCard_() — 個人名片渲染流程
+   3. boot_() 開頭判斷 ?id=xxx&view=1，有則走個人名片模式
+   4. 個人名片模式使用 useExistingDom:true，直接填入靜態 HTML
+      節點，避免 DOM 重建後靜態 ID 找不到的問題
+   5. 個人名片模式正確設定 body 主題 class
+   6. 保留所有 v7.7.6 原有邏輯不變
+
+   v7.7.6 原修正項目（保留）：
+   1. QR Code：bindQrSlots_ 改為動態查找
+   2. 到期倒數：強化 pick key 清單 + 動態查找節點
+   3. renderBottomQr_ 改為用 scope 查找
 ============================================================ */
 
 const CONFIG = {
@@ -18,7 +23,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v7.7.6-fix-qr-expiry",
+  VERSION: "v8.3.3-card-view-mode",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -803,12 +808,119 @@ function buildFacadePreviewData(){
 }
 
 /* ============================================================
-   ★ 修正 1：QR Slot 改為「每次 render 後動態重新查找並綁定」
-   不再依賴 boot 時一次性綁定的廢棄 DOM 節點
+   ★ v8.3.3 新增：個人名片模式
+============================================================ */
+
+/**
+ * 依 card_id 從 GAS 撈資料
+ */
+async function loadCardById_(cardId){
+  const url = buildCardApiUrl_(cardId);
+  const payload = await fetchJsonRobust_(url);
+  const row = extractCardRow_(payload);
+
+  if(!row || typeof row !== "object" || !Object.keys(row).length){
+    throw new Error("名片資料為空，id=" + cardId);
+  }
+
+  return normalizeCardFeatures(row);
+}
+
+/**
+ * 個人名片渲染：
+ * - 使用 useExistingDom:true，填入靜態 HTML 節點
+ * - 設定 body 主題 class
+ * - 設定 share URL
+ */
+async function renderPersonalCard_(cardId){
+  const root = qs("livePreviewCard");
+  if(!root) throw new Error("找不到 #livePreviewCard");
+
+  const row = await loadCardById_(cardId);
+  const p = buildNormalizedPayload_(row);
+
+  // 取得 plan / 顏色
+  const plan = getEffectiveTheme_(p);
+  const colorRaw = text(pick(p, ["color"])) || (plan === "premium" ? "p1" : "c1");
+  const styleRaw = text(pick(p, ["style"])) || "s1";
+  const paperRaw = text(pick(p, ["paper"])) || "f1";
+
+  // 套 body 主題 class
+  document.body.classList.remove(
+    "mode-free","mode-premium",
+    "color-1","color-2","color-3","color-4","color-5",
+    "p1","p2","p3","p4","p5","p6","p7",
+    "style-arch","style-flat","style-spot",
+    "paper-1","paper-2","paper-3"
+  );
+
+  if(plan === "premium"){
+    document.body.classList.add("mode-premium", mapPremiumToUi_(colorRaw));
+  }else{
+    document.body.classList.add(
+      "mode-free",
+      mapFreeColorToTheme_(colorRaw),
+      "style-" + mapStyleToUi_(styleRaw),
+      mapPaperToUi_(paperRaw)
+    );
+  }
+
+  // 找 renderer
+  const renderer =
+    (window.HscCardRenderer && typeof window.HscCardRenderer.renderCard === "function")
+      ? window.HscCardRenderer.renderCard
+      : (window.HSCCardRenderer && typeof window.HSCCardRenderer.renderCard === "function")
+        ? window.HSCCardRenderer.renderCard
+        : null;
+
+  if(!renderer) throw new Error("card-renderer.js 未正確載入");
+
+  // 建立 share URL
+  const shareUrl = buildTrackedShareUrl_(p);
+  row.card_url = shareUrl;
+  row.share_url = shareUrl;
+  row.preview_url = shareUrl;
+
+  const normalizedWithUrl = buildNormalizedPayload_(row);
+
+  // 使用 useExistingDom:true — 直接填靜態 HTML 節點，不重建 DOM
+  const result = renderer(normalizedWithUrl, {
+    mode: "index",
+    root,
+    useExistingDom: true,
+    qrMode: "card",
+    allowActions: true,
+    cardUrl: shareUrl,
+    shareUrl: shareUrl,
+    previewUrl: shareUrl
+  });
+
+  if(!result || result.ok !== true) throw new Error("renderer 回傳失敗");
+
+  // 更新全域狀態
+  currentRow = normalizedWithUrl;
+  facadeCurrentRow = normalizedWithUrl;
+  window.__CARD_DATA__ = normalizedWithUrl;
+  window.cardData = normalizedWithUrl;
+
+  const avatarInfo = pickAvatarInfo_(normalizedWithUrl);
+  currentAvatarUrlCache = avatarInfo.url || "";
+  currentAvatarSourceKeyCache = avatarInfo.key || "";
+
+  window.__bottomQrUrl = shareUrl;
+  window.__featureQrUrl = shareUrl;
+  window.__cardStyleKey = plan === "premium"
+    ? mapPremiumToUi_(colorRaw)
+    : `${mapFreeColorToTheme_(colorRaw)}|${mapStyleToUi_(styleRaw)}|${mapPaperToUi_(paperRaw)}`;
+
+  renderPostRendererUi_(normalizedWithUrl, root);
+}
+
+/* ============================================================
+   QR Slot — 動態查找
 ============================================================ */
 const HSC_QR = (() => {
   const registry = new Map();
-  const observers = new Map();
 
   function hasQrContent(el){
     if(!el) return false;
@@ -820,7 +932,6 @@ const HSC_QR = (() => {
     el.innerHTML = "";
   }
 
-  // ★ 動態查找：每次使用 slot 前，重新從 DOM 抓取最新節點
   function resolveHost(slotKey){
     const hostIdMap = {
       "facadeQrGrid": "facadeQrGrid",
@@ -835,14 +946,11 @@ const HSC_QR = (() => {
     const hostId = hostIdMap[slotKey];
     const fallbackId = fallbackIdMap[slotKey];
 
-    // 先找 HTML 靜態 ID
     let host = hostId ? document.getElementById(hostId) : null;
     let fallback = fallbackId ? document.getElementById(fallbackId) : null;
 
-    // 如果找不到靜態 ID，嘗試找 renderer 產生的 data-* 節點
     if(!host){
       const dataMap = {
-        "facadeQrGrid": "[data-bottom-qr-grid]",   // facade QR 沒有獨立 data attr，用靜態 ID
         "featureQrGrid": "[data-feature-qr-grid]",
         "bottomQrGrid": "[data-bottom-qr-grid]"
       };
@@ -866,8 +974,7 @@ const HSC_QR = (() => {
     return registry.get(slotKey);
   }
 
-  // ★ bindSlot 保留向後相容，但不再儲存 host 參照
-  function bindSlot(slotKey, host, fallback){
+  function bindSlot(slotKey){
     return ensureSlot(slotKey);
   }
 
@@ -891,9 +998,7 @@ const HSC_QR = (() => {
     const slot = ensureSlot(slotKey);
     const { host, fallback } = resolveHost(slotKey);
 
-    if(!host){
-      return false;
-    }
+    if(!host) return false;
 
     const url = text(payload.url);
     const renderKey = text(payload.renderKey);
@@ -979,18 +1084,11 @@ const HSC_QR = (() => {
     }
   }
 
-  return {
-    bindSlot,
-    scheduleRender,
-    hasQrContent,
-    defaultRenderKey
-  };
+  return { bindSlot, scheduleRender, hasQrContent, defaultRenderKey };
 })();
 
 /* ============================================================
-   ★ 修正 2：到期倒數 — 強化 pick key + 動態查找節點
-   renderCardExpiry_ 改為接受 root 參數（預設全域 qs）
-   並強化 billing_status / expires_at / payment_due_at 的 key 清單
+   到期倒數
 ============================================================ */
 function formatDateYmd_(date){
   if(!(date instanceof Date) || isNaN(date.getTime())) return "";
@@ -1022,13 +1120,8 @@ function parseDateSafe_(value){
   m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
   if(m){
     d = new Date(
-      Number(m[1]),
-      Number(m[2]) - 1,
-      Number(m[3]),
-      Number(m[4]),
-      Number(m[5]),
-      Number(m[6] || 0),
-      0
+      Number(m[1]), Number(m[2]) - 1, Number(m[3]),
+      Number(m[4]), Number(m[5]), Number(m[6] || 0), 0
     );
     if(!isNaN(d.getTime())) return d;
   }
@@ -1039,44 +1132,21 @@ function parseDateSafe_(value){
 function getExpiryInfo_(p){
   const payload = p || {};
 
-  // ★ 強化 billing_status key 清單（含中文欄位名）
   const billingStatus = text(
     pick(payload, [
-      "billing_status",
-      "billingStatus",
-      "payment_status",
-      "paymentStatus",
-      "付款狀態",
-      "狀態"
+      "billing_status","billingStatus","payment_status","paymentStatus","付款狀態","狀態"
     ])
   ).toLowerCase();
 
-  // ★ 強化 expires_at key 清單
   const expiresAtRaw = text(
     pick(payload, [
-      "expires_at",
-      "expiresAt",
-      "expiry_date",
-      "expiryDate",
-      "expiry",
-      "expire_at",
-      "expireAt",
-      "到期日",
-      "有效期限"
+      "expires_at","expiresAt","expiry_date","expiryDate","expiry","expire_at","expireAt","到期日","有效期限"
     ])
   );
 
-  // ★ 強化 payment_due_at key 清單
   const paymentDueRaw = text(
     pick(payload, [
-      "payment_due_at",
-      "paymentDueAt",
-      "payment_due",
-      "paymentDue",
-      "due_date",
-      "dueDate",
-      "付款期限",
-      "繳費期限"
+      "payment_due_at","paymentDueAt","payment_due","paymentDue","due_date","dueDate","付款期限","繳費期限"
     ])
   );
 
@@ -1086,11 +1156,9 @@ function getExpiryInfo_(p){
   if(billingStatus === "unpaid" && paymentDueAt){
     return { type: "payment_due", date: paymentDueAt, raw: paymentDueRaw };
   }
-
   if(expiresAt){
     return { type: "expires_at", date: expiresAt, raw: expiresAtRaw };
   }
-
   if(paymentDueAt){
     return { type: "payment_due", date: paymentDueAt, raw: paymentDueRaw };
   }
@@ -1098,22 +1166,12 @@ function getExpiryInfo_(p){
   return null;
 }
 
-/**
- * ★ 修正：renderCardExpiry_ 接受可選 rootEl 參數
- * 優先從 rootEl 內部查找 .card-expiry 節點，
- * 找不到則嘗試 qs("cardExpiry")，
- * 再找不到就在 card 的 .info-scroll 末尾自動插入一個
- */
 function renderCardExpiry_(p, rootEl){
-  // 1. 從指定 root 內尋找
   let el = null;
   if(rootEl instanceof HTMLElement){
-    el = rootEl.querySelector("#cardExpiry") ||
-         rootEl.querySelector(".card-expiry");
+    el = rootEl.querySelector("#cardExpiry") || rootEl.querySelector(".card-expiry");
   }
-  // 2. 從全域 ID 尋找
   if(!el) el = qs("cardExpiry");
-  // 3. 找不到就自動插入
   if(!el){
     const infoScroll = rootEl
       ? rootEl.querySelector(".info-scroll")
@@ -1122,19 +1180,13 @@ function renderCardExpiry_(p, rootEl){
       el = document.createElement("div");
       el.className = "card-expiry";
       el.id = "cardExpiry";
-      // 插入在 .qr-bottom 之前，或末尾
       const qrBottom = infoScroll.querySelector(".qr-bottom, [data-bottom-qr-section]");
-      if(qrBottom){
-        infoScroll.insertBefore(el, qrBottom);
-      }else{
-        infoScroll.appendChild(el);
-      }
+      if(qrBottom) infoScroll.insertBefore(el, qrBottom);
+      else infoScroll.appendChild(el);
     }
   }
 
-  if(!el){
-    return; // 實在找不到，靜默退出
-  }
+  if(!el) return;
 
   const info = getExpiryInfo_(p);
   if(!info || !info.date){
@@ -1148,44 +1200,22 @@ function renderCardExpiry_(p, rootEl){
   const target = info.date;
   const now = new Date();
   const nowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  const targetStart = new Date(
-    target.getFullYear(), target.getMonth(), target.getDate()
-  ).getTime();
+  const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
   const diffDays = Math.floor((targetStart - nowStart) / 86400000);
 
   let label = "";
 
   if(info.type === "payment_due"){
-    // 未付款：中文顯示付款期限
-    if(diffDays < 0){
-      label = `付款期限已過 ${Math.abs(diffDays)} 天`;
-      el.classList.add("is-expired");
-    }else if(diffDays === 0){
-      label = "付款期限今天截止";
-      el.classList.remove("is-expired");
-    }else if(diffDays === 1){
-      label = "付款期限剩 1 天";
-      el.classList.remove("is-expired");
-    }else{
-      label = `付款期限剩 ${diffDays} 天`;
-      el.classList.remove("is-expired");
-    }
+    if(diffDays < 0){ label = `付款期限已過 ${Math.abs(diffDays)} 天`; el.classList.add("is-expired"); }
+    else if(diffDays === 0){ label = "付款期限今天截止"; el.classList.remove("is-expired"); }
+    else if(diffDays === 1){ label = "付款期限剩 1 天"; el.classList.remove("is-expired"); }
+    else{ label = `付款期限剩 ${diffDays} 天`; el.classList.remove("is-expired"); }
     el.title = `付款期限：${formatDateYmd_(target)}`;
   }else{
-    // 已付款：英文顯示到期倒數
-    if(diffDays < 0){
-      label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`;
-      el.classList.add("is-expired");
-    }else if(diffDays === 0){
-      label = "EXPIRES TODAY";
-      el.classList.remove("is-expired");
-    }else if(diffDays === 1){
-      label = "EXPIRES IN 1 DAY";
-      el.classList.remove("is-expired");
-    }else{
-      label = `EXPIRES IN ${diffDays} DAYS`;
-      el.classList.remove("is-expired");
-    }
+    if(diffDays < 0){ label = diffDays === -1 ? "EXPIRED 1 DAY AGO" : `EXPIRED ${Math.abs(diffDays)} DAYS AGO`; el.classList.add("is-expired"); }
+    else if(diffDays === 0){ label = "EXPIRES TODAY"; el.classList.remove("is-expired"); }
+    else if(diffDays === 1){ label = "EXPIRES IN 1 DAY"; el.classList.remove("is-expired"); }
+    else{ label = `EXPIRES IN ${diffDays} DAYS`; el.classList.remove("is-expired"); }
     el.title = `Expiry Date: ${formatDateYmd_(target)}`;
   }
 
@@ -1204,8 +1234,7 @@ function renderFacadePreview(){
   const data = buildFacadePreviewData();
 
   const renderer =
-    window.HscCardRenderer &&
-    typeof window.HscCardRenderer.renderCard === "function"
+    window.HscCardRenderer && typeof window.HscCardRenderer.renderCard === "function"
       ? window.HscCardRenderer.renderCard
       : null;
 
@@ -1216,7 +1245,7 @@ function renderFacadePreview(){
   const result = renderer(data, {
     mode: "index",
     root,
-    useExistingDom: false,
+    useExistingDom: true,
     qrMode: "facade",
     allowActions: true
   });
@@ -1241,7 +1270,6 @@ function renderFacadePreview(){
     ? facadeState.premiumColor
     : `${facadeState.color}|${facadeState.style}|${facadeState.paper}`;
 
-  // ★ renderPostRendererUi_ 傳入 root，讓 expiry 能正確找到節點
   renderPostRendererUi_(facadeCurrentRow, root);
 
   requestAnimationFrame(() => {
@@ -1250,7 +1278,7 @@ function renderFacadePreview(){
 }
 
 /* ============================================================
-   門面切換事件（只改 facadeState）
+   門面切換事件
 ============================================================ */
 window.setPlan = function(plan, el){
   facadeState.plan = (plan === "premium") ? "premium" : "free";
@@ -1297,7 +1325,7 @@ window.setTheme = function(theme, el){
 
 window.setStyle = function(style, el){
   const raw = text(style).toLowerCase();
-  const map = { "arch":"s1", "flat":"s2", "spot":"s3", "s1":"s1", "s2":"s2", "s3":"s3" };
+  const map = { "arch":"s1","flat":"s2","spot":"s3","s1":"s1","s2":"s2","s3":"s3" };
   if(!(raw in map)) return;
   facadeState.style = map[raw];
   syncStyleUI_();
@@ -1312,7 +1340,7 @@ window.setStyle = function(style, el){
 
 window.setPaper = function(paper, el){
   const raw = text(paper).toLowerCase();
-  const map = { "paper-1":"f1", "paper-2":"f2", "paper-3":"f3", "f1":"f1", "f2":"f2", "f3":"f3" };
+  const map = { "paper-1":"f1","paper-2":"f2","paper-3":"f3","f1":"f1","f2":"f2","f3":"f3" };
   if(!(raw in map)) return;
   facadeState.paper = map[raw];
   syncPaperUI_();
@@ -1478,9 +1506,7 @@ function isAnnouncementActive_(item){
   const endAt = parseDateLoose_(item.end_at);
   if(startAt && now < startAt.getTime()) return false;
   if(endAt){
-    const endMs = new Date(
-      endAt.getFullYear(), endAt.getMonth(), endAt.getDate(), 23, 59, 59, 999
-    ).getTime();
+    const endMs = new Date(endAt.getFullYear(), endAt.getMonth(), endAt.getDate(), 23, 59, 59, 999).getTime();
     if(now > endMs) return false;
   }
   return true;
@@ -1498,16 +1524,13 @@ function sortAnnouncements_(items){
 }
 
 function normalizeAnnouncementItems_(payload){
-  if(Array.isArray(payload)){
-    return payload.filter(x => x && typeof x === "object");
-  }
+  if(Array.isArray(payload)) return payload.filter(x => x && typeof x === "object");
   if(!payload || typeof payload !== "object") return [];
   const arr =
     (Array.isArray(payload.announcements) ? payload.announcements : null) ||
     (Array.isArray(payload.items) ? payload.items : null) ||
     (Array.isArray(payload.data) ? payload.data : null) ||
-    (Array.isArray(payload.rows) ? payload.rows : null) ||
-    [];
+    (Array.isArray(payload.rows) ? payload.rows : null) || [];
   return arr.filter(x => x && typeof x === "object");
 }
 
@@ -1518,19 +1541,9 @@ function openAnnouncementModal_(item, currentIdx, total){
   const metaEl = qs("announcementModalMeta");
   const bodyEl = qs("announcementModalBody");
   if(!mask || !bodyEl) return;
-
-  if(titleEl){
-    titleEl.innerHTML = `<i class="fa-solid fa-bullhorn"></i> ${escapeHtml_(item.title || "公告")}`;
-  }
-  if(metaEl){
-    let metaStr = "門面公告";
-    if(total > 1) metaStr += `　${(currentIdx||0)+1} / ${total}`;
-    metaEl.textContent = metaStr;
-  }
-  if(bodyEl){
-    bodyEl.textContent = text(item.content || "（無內容）");
-  }
-
+  if(titleEl) titleEl.innerHTML = `<i class="fa-solid fa-bullhorn"></i> ${escapeHtml_(item.title || "公告")}`;
+  if(metaEl){ let s = "門面公告"; if(total > 1) s += `　${(currentIdx||0)+1} / ${total}`; metaEl.textContent = s; }
+  if(bodyEl) bodyEl.textContent = text(item.content || "（無內容）");
   mask.style.display = "flex";
   mask.setAttribute("aria-hidden", "false");
   if(typeof window.__lockBodyScroll === "function") window.__lockBodyScroll();
@@ -1548,50 +1561,34 @@ function bindAnnouncementModal_(){
   const closeBtn = qs("announcementCloseBtn");
   const mask = qs("announcementMask");
   if(closeBtn) closeBtn.addEventListener("click", closeAnnouncementModal_);
-  if(mask) mask.addEventListener("click", function(e){
-    if(e.target === mask) closeAnnouncementModal_();
-  });
+  if(mask) mask.addEventListener("click", function(e){ if(e.target === mask) closeAnnouncementModal_(); });
 }
 
 function paintAnnouncementCards_(items, idx){
   const item = items[idx];
   if(!item) return;
   const total = items.length;
-
   qsa("[data-announcement-panel]").forEach(panel => {
     const titleEl = panel.querySelector("[data-announcement-title]");
     const textEl = panel.querySelector("[data-announcement-text]");
     const counterEl = panel.querySelector("[data-announcement-counter]");
     const trackBtn = panel.querySelector("[data-announcement-track]");
-
     if(titleEl) titleEl.textContent = text(item.title) || "公告";
-    if(textEl){
-      const summary = text(item.content || "").split("\n")[0].slice(0, 60);
-      textEl.textContent = summary + (text(item.content || "").length > 60 ? "⋯" : "");
-    }
+    if(textEl){ const s = text(item.content || "").split("\n")[0].slice(0, 60); textEl.textContent = s + (text(item.content || "").length > 60 ? "⋯" : ""); }
     if(counterEl) counterEl.textContent = total > 1 ? `${idx + 1} / ${total}` : "";
-
-    if(trackBtn){
-      trackBtn.onclick = null;
-      trackBtn.onclick = () => openAnnouncementModal_(item, idx, total);
-    }
+    if(trackBtn){ trackBtn.onclick = null; trackBtn.onclick = () => openAnnouncementModal_(item, idx, total); }
   });
 }
 
 function stopAnnouncementRotation_(){
-  if(announcementTimer_){
-    clearInterval(announcementTimer_);
-    announcementTimer_ = null;
-  }
+  if(announcementTimer_){ clearInterval(announcementTimer_); announcementTimer_ = null; }
 }
 
 function startAnnouncementRotation_(items){
   stopAnnouncementRotation_();
   announcementItems_ = items;
   announcementIndex_ = 0;
-
   paintAnnouncementCards_(items, 0);
-
   if(items.length > 1){
     announcementTimer_ = setInterval(() => {
       announcementIndex_ = (announcementIndex_ + 1) % items.length;
@@ -1602,12 +1599,7 @@ function startAnnouncementRotation_(items){
 
 function renderAnnouncementPanels_(items){
   const active = sortAnnouncements_(items.filter(isAnnouncementActive_));
-
-  if(!active.length){
-    qsa("[data-announcement-panel]").forEach(p => { p.style.display = "none"; });
-    return;
-  }
-
+  if(!active.length){ qsa("[data-announcement-panel]").forEach(p => { p.style.display = "none"; }); return; }
   qsa("[data-announcement-panel]").forEach(p => { p.style.display = ""; });
   startAnnouncementRotation_(active);
 }
@@ -1616,12 +1608,8 @@ async function fetchAndRenderAnnouncements_(){
   try{
     const payload = await fetchJsonRobust_(buildAnnouncementApiUrl_());
     const items = normalizeAnnouncementItems_(payload);
-
-    if(items && items.length > 0){
-      renderAnnouncementPanels_(items);
-    }else{
-      renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
-    }
+    if(items && items.length > 0) renderAnnouncementPanels_(items);
+    else renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
   }catch(err){
     console.warn("[HSC announcement] GAS 請求失敗，使用內建公告:", err);
     renderAnnouncementPanels_(BUILTIN_ANNOUNCEMENTS);
@@ -1636,35 +1624,20 @@ function applySmartBalanceToEl_(el){
   const raw = text(el.dataset.rawText || el.textContent);
   if(!raw) return;
   el.dataset.rawText = raw;
-  if(window.innerWidth > 560){
-    el.textContent = raw;
-    return;
-  }
+  if(window.innerWidth > 560){ el.textContent = raw; return; }
 
   if(el.dataset.balanceType === "hero-copy"){
     const parts = raw.split("|");
     el.innerHTML = "";
     if(parts.length >= 2){
-      const first = document.createElement("span");
-      first.className = "balance-line";
-      first.textContent = parts[0] + "|";
-      el.appendChild(first);
+      const first = document.createElement("span"); first.className = "balance-line"; first.textContent = parts[0] + "|"; el.appendChild(first);
       const rest = parts.slice(1).join("|");
       const idx = rest.indexOf("打造");
       if(idx > -1){
-        const line2 = document.createElement("span");
-        line2.className = "balance-line";
-        line2.textContent = rest.slice(0, idx).trim();
-        el.appendChild(line2);
-        const line3 = document.createElement("span");
-        line3.className = "balance-line";
-        line3.textContent = rest.slice(idx).trim();
-        el.appendChild(line3);
+        const line2 = document.createElement("span"); line2.className = "balance-line"; line2.textContent = rest.slice(0, idx).trim(); el.appendChild(line2);
+        const line3 = document.createElement("span"); line3.className = "balance-line"; line3.textContent = rest.slice(idx).trim(); el.appendChild(line3);
       }else{
-        const line2 = document.createElement("span");
-        line2.className = "balance-line";
-        line2.textContent = rest.trim();
-        el.appendChild(line2);
+        const line2 = document.createElement("span"); line2.className = "balance-line"; line2.textContent = rest.trim(); el.appendChild(line2);
       }
       return;
     }
@@ -1694,17 +1667,12 @@ function applySmartBalanceToEl_(el){
   el.textContent = raw;
 }
 
-function applySmartBalanceAll_(){
-  qsa("[data-balance-type]").forEach(applySmartBalanceToEl_);
-}
+function applySmartBalanceAll_(){ qsa("[data-balance-type]").forEach(applySmartBalanceToEl_); }
 
 let __balanceTimer = null;
 window.addEventListener("resize", () => {
   clearTimeout(__balanceTimer);
-  __balanceTimer = setTimeout(() => {
-    applySmartBalanceAll_();
-    updateQrCenterSizes_();
-  }, 120);
+  __balanceTimer = setTimeout(() => { applySmartBalanceAll_(); updateQrCenterSizes_(); }, 120);
 });
 
 /* ============================================================
@@ -1720,27 +1688,14 @@ function getQrCenterRatio_(baseRatio){
 function buildQrImageUrl_(url, size, provider){
   const s = Number(size) || 220;
   const data = encodeURIComponent(String(url || ""));
-
   if(provider === "quickchart"){
-    return "https://quickchart.io/qr"
-      + "?size=" + encodeURIComponent(String(s))
-      + "&text=" + data
-      + "&ecLevel=H"
-      + "&margin=2";
+    return "https://quickchart.io/qr?size=" + encodeURIComponent(String(s)) + "&text=" + data + "&ecLevel=H&margin=2";
   }
-
-  return "https://api.qrserver.com/v1/create-qr-code/"
-    + "?size=" + encodeURIComponent(`${s}x${s}`)
-    + "&data=" + data
-    + "&ecc=H"
-    + "&margin=2";
+  return "https://api.qrserver.com/v1/create-qr-code/?size=" + encodeURIComponent(`${s}x${s}`) + "&data=" + data + "&ecc=H&margin=2";
 }
 
 function buildQrCandidates_(url, size){
-  return [
-    buildQrImageUrl_(url, size, "qrserver"),
-    buildQrImageUrl_(url, size, "quickchart")
-  ];
+  return [buildQrImageUrl_(url, size, "qrserver"), buildQrImageUrl_(url, size, "quickchart")];
 }
 
 function hideCenterImg_(imgEl){
@@ -1755,10 +1710,7 @@ function hideCenterImg_(imgEl){
 function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   if(!imgEl) return;
   const u = normalizeImageUrl_(centerImgUrl);
-  if(!u){
-    hideCenterImg_(imgEl);
-    return;
-  }
+  if(!u){ hideCenterImg_(imgEl); return; }
   const ratio = getQrCenterRatio_(sizeRatio);
   imgEl.dataset.baseRatio = String(sizeRatio);
   imgEl.dataset.centerUrl = u;
@@ -1780,18 +1732,13 @@ function setCenterImg_(imgEl, centerImgUrl, sizeRatio = 0.09){
   setImgWithFallback_(imgEl, buildImgCandidates_(u), {
     crossOrigin: "anonymous",
     referrerPolicy: "no-referrer",
-    onLoad: () => {
-      imgEl.style.display = "block";
-      imgEl.style.background = "transparent";
-      imgEl.style.padding = "0";
-      imgEl.style.boxShadow = "none";
-    },
+    onLoad: () => { imgEl.style.display = "block"; imgEl.style.background = "transparent"; imgEl.style.padding = "0"; imgEl.style.boxShadow = "none"; },
     onFail: () => { hideCenterImg_(imgEl); }
   });
 }
 
 function updateQrCenterSizes_(){
-  ["bottomQrAvatar", "featureQrAvatar", "facadeQrAvatar"].forEach(id => {
+  ["bottomQrAvatar","featureQrAvatar","facadeQrAvatar"].forEach(id => {
     const el = qs(id);
     if(!el || el.style.display === "none") return;
     const baseRatio = clampNumber_(el.dataset.baseRatio, 0.05, 0.2, 0.09);
@@ -1799,7 +1746,6 @@ function updateQrCenterSizes_(){
     el.style.width = `${Math.round(ratio * 100)}%`;
     el.style.height = `${Math.round(ratio * 100)}%`;
   });
-  // ★ 也更新 renderer 產生的 data-bottom-qr-avatar
   document.querySelectorAll("[data-bottom-qr-avatar]").forEach(el => {
     if(el.style.display === "none") return;
     const baseRatio = clampNumber_(el.dataset.baseRatio, 0.05, 0.2, 0.09);
@@ -1809,21 +1755,10 @@ function updateQrCenterSizes_(){
   });
 }
 
-function hasQrContent(el){
-  return HSC_QR.hasQrContent(el);
-}
+function hasQrContent(el){ return HSC_QR.hasQrContent(el); }
 
 function renderQr(options){
-  const {
-    container,
-    url,
-    size = 160,
-    centerImgEl = null,
-    centerImgUrl = "",
-    centerSizeRatio = 0.09,
-    renderKey = ""
-  } = options || {};
-
+  const { container, url, size = 160, centerImgEl = null, centerImgUrl = "", centerSizeRatio = 0.09, renderKey = "" } = options || {};
   if(!container || !url) return false;
 
   const normalizedCenter = normalizeImageUrl_(centerImgUrl);
@@ -1850,9 +1785,7 @@ function renderQr(options){
   img.loading = "eager";
   img.decoding = "sync";
   img.referrerPolicy = "no-referrer";
-
   try{ img.crossOrigin = "anonymous"; }catch(_e){}
-
   img.style.width = "100%";
   img.style.height = "100%";
   img.style.display = "block";
@@ -1864,18 +1797,8 @@ function renderQr(options){
   });
 
   let idx = 0;
-  const tryNext = () => {
-    idx += 1;
-    if(idx >= candidates.length){
-      container.dataset.renderKey = "";
-      console.warn("[HSC QR] QR 兩個來源都失敗:", url);
-      return;
-    }
-    img.src = candidates[idx];
-  };
-
+  const tryNext = () => { idx += 1; if(idx >= candidates.length){ container.dataset.renderKey = ""; return; } img.src = candidates[idx]; };
   img.onerror = () => { tryNext(); };
-
   img.onload = () => {
     container.style.display = "flex";
     container.style.alignItems = "center";
@@ -1883,14 +1806,9 @@ function renderQr(options){
     container.style.visibility = "visible";
     container.style.opacity = "1";
   };
-
   img.src = candidates[0];
   container.appendChild(img);
-
-  if(centerImgEl){
-    setCenterImg_(centerImgEl, normalizedCenter, centerSizeRatio);
-  }
-
+  if(centerImgEl) setCenterImg_(centerImgEl, normalizedCenter, centerSizeRatio);
   return true;
 }
 
@@ -1900,100 +1818,46 @@ window.__getHubShareUrl = buildHubShareUrl_;
 window.__getCardShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
 window.__getTrackedShareUrl = function(){ return buildTrackedShareUrl_(getActiveCardPayload_()); };
 
-// ★ bindQrSlots_ 保留向後相容，但實際由動態查找機制接管
 function bindQrSlots_(){
-  HSC_QR.bindSlot("facadeQrGrid", qs("facadeQrGrid"), qs("facadeQrFallback"));
-  HSC_QR.bindSlot("featureQrGrid", qs("featureQrGrid"), qs("featureQrFallback"));
-  HSC_QR.bindSlot("bottomQrGrid", qs("bottomQrGrid"), qs("bottomQrFallback"));
+  HSC_QR.bindSlot("facadeQrGrid");
+  HSC_QR.bindSlot("featureQrGrid");
+  HSC_QR.bindSlot("bottomQrGrid");
 }
 
 function renderFacadeQrStable(row, styleKey, url){
-  const renderKey = HSC_QR.defaultRenderKey(
-    "facade",
-    row?.id || FACADE_SAMPLE_ID,
-    styleKey || "",
-    url || ""
-  );
+  const renderKey = HSC_QR.defaultRenderKey("facade", row?.id || FACADE_SAMPLE_ID, styleKey || "", url || "");
   lastFacadeQrRenderKey = renderKey;
-  HSC_QR.scheduleRender("facadeQrGrid", {
-    url,
-    renderKey,
-    force: true,
-    reason: "facade-render",
-    size: 148
-  });
+  HSC_QR.scheduleRender("facadeQrGrid", { url, renderKey, force: true, reason: "facade-render", size: 148 });
 }
 
 function renderProductQrsStable(row, styleKey, featureUrl, bottomUrl){
   const info = pickAvatarInfo_(row || getActiveCardPayload_());
   const avatarUrl = info.url || currentAvatarUrlCache || "";
 
-  const featureRenderKey = HSC_QR.defaultRenderKey(
-    "feature",
-    row?.id || "",
-    styleKey || "",
-    featureUrl || ""
-  ) + "::" + avatarUrl;
-
-  const bottomRenderKey = HSC_QR.defaultRenderKey(
-    "bottom",
-    row?.id || "",
-    styleKey || "",
-    bottomUrl || ""
-  ) + "::" + avatarUrl;
+  const featureRenderKey = HSC_QR.defaultRenderKey("feature", row?.id || "", styleKey || "", featureUrl || "") + "::" + avatarUrl;
+  const bottomRenderKey = HSC_QR.defaultRenderKey("bottom", row?.id || "", styleKey || "", bottomUrl || "") + "::" + avatarUrl;
 
   lastFeatureQrRenderKey = featureRenderKey;
   lastBottomQrRenderKey = bottomRenderKey;
 
-  // ★ featureQrAvatar：先找靜態 ID，再找 renderer 生成的
-  const featureAvatarEl = qs("featureQrAvatar") ||
-    document.querySelector("[data-feature-qr-avatar]");
+  const featureAvatarEl = qs("featureQrAvatar") || document.querySelector("[data-feature-qr-avatar]");
+  const bottomAvatarEl = qs("bottomQrAvatar") || document.querySelector("[data-bottom-qr-avatar]");
 
-  // ★ bottomQrAvatar：先找靜態 ID，再找 renderer 生成的
-  const bottomAvatarEl = qs("bottomQrAvatar") ||
-    document.querySelector("[data-bottom-qr-avatar]");
-
-  HSC_QR.scheduleRender("featureQrGrid", {
-    url: featureUrl,
-    renderKey: featureRenderKey,
-    force: true,
-    reason: "feature-render",
-    size: 152,
-    centerImgEl: featureAvatarEl,
-    centerImgUrl: avatarUrl,
-    centerSizeRatio: 0.09
-  });
-
-  HSC_QR.scheduleRender("bottomQrGrid", {
-    url: bottomUrl,
-    renderKey: bottomRenderKey,
-    force: true,
-    reason: "bottom-render",
-    size: 136,
-    centerImgEl: bottomAvatarEl,
-    centerImgUrl: avatarUrl,
-    centerSizeRatio: 0.09
-  });
+  HSC_QR.scheduleRender("featureQrGrid", { url: featureUrl, renderKey: featureRenderKey, force: true, reason: "feature-render", size: 152, centerImgEl: featureAvatarEl, centerImgUrl: avatarUrl, centerSizeRatio: 0.09 });
+  HSC_QR.scheduleRender("bottomQrGrid", { url: bottomUrl, renderKey: bottomRenderKey, force: true, reason: "bottom-render", size: 136, centerImgEl: bottomAvatarEl, centerImgUrl: avatarUrl, centerSizeRatio: 0.09 });
 }
 
 function renderFacadeQrFromCurrent_(){
   const row = facadeCurrentRow || facadeBaseData;
   if(!row) return;
   const url = buildHubShareUrl_();
-  const styleKey = window.__facadeStyleKey || (
-    facadeState.plan === "premium"
-      ? facadeState.premiumColor
-      : `${facadeState.color}|${facadeState.style}|${facadeState.paper}`
-  );
+  const styleKey = window.__facadeStyleKey || (facadeState.plan === "premium" ? facadeState.premiumColor : `${facadeState.color}|${facadeState.style}|${facadeState.paper}`);
   window.__facadeQrUrl = url;
   renderFacadeQrStable(row, styleKey, url);
 }
 
 function renderBottomQr_(p){
-  // ★ 先從靜態 ID 找，再從 renderer DOM 找
-  const sec = qs("bottomQrSection") ||
-    document.querySelector("#livePreviewCard [data-bottom-qr-section]");
-
+  const sec = qs("bottomQrSection") || document.querySelector("#livePreviewCard [data-bottom-qr-section]");
   if(sec) sec.style.display = "block";
 
   const payload = p || getActiveCardPayload_();
@@ -2024,7 +1888,6 @@ window.__renderFeatureQrFromCurrent = renderFeatureQrFromCurrent_;
 function rerenderAllQrAfterFacade_(){
   const active = getActiveCardPayload_();
   if(!active) return;
-
   const jobs = () => {
     try{ renderFacadeQrFromCurrent_(); }catch(_e){}
     try{ renderFeatureQrFromCurrent_(); }catch(_e){}
@@ -2032,7 +1895,6 @@ function rerenderAllQrAfterFacade_(){
     try{ renderBottomHubShareBtn_(); }catch(_e){}
     try{ updateQrCenterSizes_(); }catch(_e){}
   };
-
   requestAnimationFrame(jobs);
   setTimeout(jobs, 120);
   setTimeout(jobs, 320);
@@ -2042,22 +1904,12 @@ function rerenderAllQrAfterFacade_(){
 function reRenderAllQrStable(){
   try{
     if(facadeCurrentRow && window.__facadeQrUrl){
-      renderFacadeQrStable(
-        facadeCurrentRow,
-        window.__facadeStyleKey || "",
-        window.__facadeQrUrl
-      );
+      renderFacadeQrStable(facadeCurrentRow, window.__facadeStyleKey || "", window.__facadeQrUrl);
     }else{
       renderFacadeQrFromCurrent_();
     }
-
     if(currentRow){
-      renderProductQrsStable(
-        currentRow,
-        window.__cardStyleKey || "",
-        window.__featureQrUrl || buildTrackedShareUrl_(currentRow),
-        window.__bottomQrUrl || buildTrackedShareUrl_(currentRow)
-      );
+      renderProductQrsStable(currentRow, window.__cardStyleKey || "", window.__featureQrUrl || buildTrackedShareUrl_(currentRow), window.__bottomQrUrl || buildTrackedShareUrl_(currentRow));
     }else{
       renderFeatureQrFromCurrent_();
       renderBottomQr_(getActiveCardPayload_());
@@ -2072,22 +1924,14 @@ function reRenderAllQrStable(){
 ============================================================ */
 async function shareUrl_(url, title, textMsg, okMsg){
   try{
-    if(navigator.share){
-      await navigator.share({ title: title || "天使幸福智慧名片", text: textMsg || "", url });
-      return;
-    }
-    if(navigator.clipboard?.writeText){
-      await navigator.clipboard.writeText(url);
-      alert(okMsg || "✅ 已複製連結");
-      return;
-    }
+    if(navigator.share){ await navigator.share({ title: title || "天使幸福智慧名片", text: textMsg || "", url }); return; }
+    if(navigator.clipboard?.writeText){ await navigator.clipboard.writeText(url); alert(okMsg || "✅ 已複製連結"); return; }
     prompt("請手動複製連結", url);
   }catch(_err){}
 }
 
 function renderBottomHubShareBtn_(){
-  const sec = qs("bottomQrSection") ||
-    document.querySelector("#livePreviewCard [data-bottom-qr-section]");
+  const sec = qs("bottomQrSection") || document.querySelector("#livePreviewCard [data-bottom-qr-section]");
   if(!sec) return;
   let wrap = qs("bottomHubShareWrap");
   if(!wrap){
@@ -2106,10 +1950,7 @@ function renderBottomHubShareBtn_(){
     btn.style.fontWeight = "900";
     btn.style.boxShadow = "0 10px 22px rgba(83,62,45,.08)";
     btn.innerHTML = `<i class="fa-solid fa-share-nodes"></i><span>分享智慧名片館</span>`;
-    btn.addEventListener("click", async () => {
-      const url = buildHubShareUrl_();
-      await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結");
-    });
+    btn.addEventListener("click", async () => { const url = buildHubShareUrl_(); await shareUrl_(url, "天使幸福智慧名片館", "分享智慧名片館", "✅ 已複製智慧名片館連結"); });
     wrap.appendChild(btn);
     sec.insertAdjacentElement("afterend", wrap);
   }
@@ -2120,14 +1961,8 @@ function ensureBottomQrVisible_(){
   if(!payload) return;
   try{ renderBottomQr_(payload); }catch(_e){}
   try{ renderBottomHubShareBtn_(); }catch(_e){}
-  setTimeout(() => {
-    try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){}
-    try{ renderBottomHubShareBtn_(); }catch(_e){}
-  }, 250);
-  setTimeout(() => {
-    try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){}
-    try{ renderBottomHubShareBtn_(); }catch(_e){}
-  }, 800);
+  setTimeout(() => { try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){} try{ renderBottomHubShareBtn_(); }catch(_e){} }, 250);
+  setTimeout(() => { try{ renderBottomQr_(getActiveCardPayload_()); }catch(_e){} try{ renderBottomHubShareBtn_(); }catch(_e){} }, 800);
 }
 
 function renderInstallDock_(){
@@ -2138,19 +1973,14 @@ function renderInstallDock_(){
 }
 
 /* ============================================================
-   ★ 修正 3：renderPostRendererUi_ 接受 rootEl 參數，
-   傳給 renderCardExpiry_ 讓它能找到 renderer 重建的 DOM
+   renderPostRendererUi_
 ============================================================ */
 function renderPostRendererUi_(row, rootEl){
-  // rootEl 預設為 #livePreviewCard
-  const root = (rootEl instanceof HTMLElement)
-    ? rootEl
-    : (qs("livePreviewCard") || document.body);
+  const root = (rootEl instanceof HTMLElement) ? rootEl : (qs("livePreviewCard") || document.body);
 
-  const unitVal = normalizeLongText_(pick(row, ["unit", "單位", "公司"]));
-  const sloganVal = normalizeLongText_(pick(row, ["slogan", "一句話", "簡介"]));
+  const unitVal = normalizeLongText_(pick(row, ["unit","單位","公司"]));
+  const sloganVal = normalizeLongText_(pick(row, ["slogan","一句話","簡介"]));
 
-  // ★ 優先從 root 內查找，再 fallback 到全域 ID
   const unitEl = root.querySelector("#u-unit") || qs("u-unit");
   const unitToggle = root.querySelector("#u-unit-toggle") || qs("u-unit-toggle");
   const sloganEl = root.querySelector("#u-slogan") || qs("u-slogan");
@@ -2167,9 +1997,7 @@ function renderPostRendererUi_(row, rootEl){
   const vt = root.querySelector("#versionTag") || qs("versionTag");
   if(vt) vt.textContent = CONFIG.VERSION;
 
-  // ★ 傳入 root，讓 expiry 能在 renderer 重建的 DOM 中正確找到或插入節點
   renderCardExpiry_(row, root);
-
   renderInstallDock_();
   renderBottomQr_(row);
   renderBottomHubShareBtn_();
@@ -2197,56 +2025,33 @@ function updateInstallUi_(){
   const dock = qs("installDock");
   const cleanMode = getSearchParams_().get("view") === "1" || getSearchParams_().get("clean") === "1";
   const canInstall = !!deferredInstallPrompt || isIos_() || !isStandalone_();
-  if(btn){
-    btn.disabled = false;
-    btn.style.opacity = canInstall ? "1" : ".62";
-  }
+  if(btn){ btn.disabled = false; btn.style.opacity = canInstall ? "1" : ".62"; }
   if(fab) fab.style.display = cleanMode ? "flex" : "none";
   if(dock) dock.style.display = cleanMode ? "" : "none";
 }
 
 async function triggerPwaInstall_(){
-  if(isStandalone_()){
-    alert("✅ 已經安裝在桌面上了");
-    return;
-  }
+  if(isStandalone_()){ alert("✅ 已經安裝在桌面上了"); return; }
   if(deferredInstallPrompt){
-    try{
-      deferredInstallPrompt.prompt();
-      await deferredInstallPrompt.userChoice;
-    }catch(err){
-      console.error(err);
-    }finally{
-      deferredInstallPrompt = null;
-      updateInstallUi_();
-    }
+    try{ deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; }
+    catch(err){ console.error(err); }
+    finally{ deferredInstallPrompt = null; updateInstallUi_(); }
     return;
   }
-  if(isIos_()){
-    alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。");
-    return;
-  }
+  if(isIos_()){ alert("請用 Safari 開啟，點分享，再選『加入主畫面』。\n\n若目前不是 Safari，請先複製此頁連結後改用 Safari 開啟。"); return; }
   alert("目前裝置尚未出現系統安裝提示。\n\n你可以先用瀏覽器選單中的『安裝應用程式』或『加入主畫面』。");
 }
 
 window.__triggerPwaInstall = triggerPwaInstall_;
 
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  updateInstallUi_();
-});
-window.addEventListener("appinstalled", () => {
-  deferredInstallPrompt = null;
-  updateInstallUi_();
-});
-window.addEventListener("load", () => {
-  ensureBottomQrVisible_();
-  updateQrCenterSizes_();
-}, { once: true });
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; updateInstallUi_(); });
+window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; updateInstallUi_(); });
+window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenterSizes_(); }, { once: true });
 
 /* ============================================================
-   啟動
+   ★ boot_ v8.3.3
+   開頭判斷 ?id=xxx&view=1 → 個人名片模式
+   其餘 → 門面模式（原有邏輯不變）
 ============================================================ */
 (async function boot_(){
   try{
@@ -2257,16 +2062,36 @@ window.addEventListener("load", () => {
     bindAnnouncementModal_();
     fetchAndRenderAnnouncements_();
 
+    // ★ 個人名片模式判斷
+    const sp = getSearchParams_();
+    const urlId = text(sp.get("id") || "");
+    const isViewMode = sp.get("view") === "1";
+
+    if(urlId && isViewMode){
+      // 個人名片模式：依 id 撈資料渲染，不走門面流程
+      try{
+        await renderPersonalCard_(urlId);
+      }catch(err){
+        console.error("[HSC card] 個人名片載入失敗:", err);
+        const root = qs("livePreviewCard") || document.body;
+        const nameEl = root.querySelector("[data-u-name]") || root.querySelector("#u-name") || qs("u-name");
+        const titleEl = root.querySelector("[data-u-title]") || root.querySelector("#u-title") || qs("u-title");
+        if(nameEl) nameEl.textContent = "名片載入失敗";
+        if(titleEl) titleEl.textContent = "請確認連結是否正確，或聯繫客服";
+      }
+
+      setTimeout(() => { try{ reRenderAllQrStable(); }catch(_e){} }, 300);
+      setTimeout(() => { try{ reRenderAllQrStable(); }catch(_e){} }, 900);
+      return; // 不繼續執行門面流程
+    }
+
+    // 門面模式（原有邏輯）
     await loadFacadeBaseCard();
     renderFacadePreview();
 
-    setTimeout(() => {
-      try{ rerenderAllQrAfterFacade_(); }catch(_e){}
-    }, 300);
+    setTimeout(() => { try{ rerenderAllQrAfterFacade_(); }catch(_e){} }, 300);
+    setTimeout(() => { try{ reRenderAllQrStable(); }catch(_e){} }, 900);
 
-    setTimeout(() => {
-      try{ reRenderAllQrStable(); }catch(_e){}
-    }, 900);
   }catch(err){
     console.error("[HSC facade] boot failed:", err);
     const root = qs("livePreviewCard") || document.body;
