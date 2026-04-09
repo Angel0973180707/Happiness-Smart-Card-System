@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="format-detection" content="telephone=no" />
-  <title>天使幸福智慧名片館 v7.6-full-rebuild-renderer-aligned</title>
+  <title>天使幸福智慧名片館</title>
 
-  <link rel="manifest" href="./manifest.json?v=v7.6-full-rebuild-renderer-aligned" />
+  <link rel="manifest" href="./manifest.json?v=v8.3.3" />
   <meta name="theme-color" content="#f8f4ee" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <link rel="apple-touch-icon" href="./icon-192.png?v=v7.6-full-rebuild-renderer-aligned" />
-  <link rel="icon" href="./icon-192.png?v=v7.6-full-rebuild-renderer-aligned" />
+  <link rel="apple-touch-icon" href="./icon-192.png?v=v8.3.3" />
+  <link rel="icon" href="./icon-192.png?v=v8.3.3" />
 
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -19,12 +19,12 @@
   <meta property="og:type" content="website" />
   <meta property="og:title" content="天使幸福智慧名片館" />
   <meta property="og:description" content="智慧名片訂製｜打造可分享的專屬名片入口" />
-  <meta property="og:image" content="og-card.png?v=v7.6-full-rebuild-renderer-aligned" />
+  <meta property="og:image" content="og-card.png?v=v8.3.3" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=v7.6-full-rebuild-renderer-aligned" />
+  <link rel="stylesheet" href="./style.css?v=v8.3.3" />
 
   <style>
     :root{
@@ -542,6 +542,10 @@
     body.clean #admin-panel{ display:none !important; }
     body.clean #card-container{ position: relative; z-index: 1; }
 
+    /* ── 個人名片模式：隱藏門面 UI ── */
+    body.card-view-mode #admin-panel{ display:none !important; }
+    body.card-view-mode #adminHotspotBR{ display:none !important; }
+
     @media (max-width: 520px){
       .facade-brand .p{
         font-size:10px;
@@ -561,23 +565,27 @@
   <script>
     (function(){
       "use strict";
-      var DEMO_ID = "TW0001";
       var sp = new URLSearchParams(location.search || "");
       var isClean = (sp.get("view") === "1") || (sp.get("clean") === "1");
       var isAdmin = (sp.get("admin") === "1");
+      var urlId = (sp.get("id") || "").trim();
+      var isCardViewMode = !!(urlId && isClean);
 
       if (isClean) {
         try{
           document.addEventListener("DOMContentLoaded", function(){
             document.body.classList.add("clean");
+            if (isCardViewMode) {
+              document.body.classList.add("card-view-mode");
+            }
           }, {once:true});
         }catch(e){}
       }
 
-      if (!isClean && !isAdmin) {
-        var currentId = (sp.get("id") || "").trim();
-        if (!currentId) {
-          sp.set("id", DEMO_ID);
+      // 門面模式才補預設 id=TW0001
+      if (!isClean && !isAdmin && !isCardViewMode) {
+        if (!urlId) {
+          sp.set("id", "TW0001");
           try { history.replaceState({}, "", location.pathname + "?" + sp.toString()); } catch(e) {}
         }
       }
@@ -596,6 +604,7 @@
     <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
   </button>
 
+  <!-- 門面 header：個人名片模式由 body.card-view-mode CSS 隱藏 -->
   <header id="admin-panel">
     <div class="panel-inner">
 
@@ -735,6 +744,12 @@
   </header>
 
   <main id="card-container">
+    <!--
+      v8.3.3 修正：
+      useExistingDom:true 模式（門面用）保留靜態 HTML 結構。
+      useExistingDom:false 模式（個人名片用）renderer 會清空並重建 DOM。
+      兩種模式都以 #livePreviewCard 為根節點。
+    -->
     <div id="livePreviewCard">
       <section class="card" id="card">
         <div class="premium-fx-layer"></div>
@@ -840,7 +855,7 @@
             </div>
           </div>
 
-          <div class="version-tag" id="versionTag">v7.6-full-rebuild-renderer-aligned</div>
+          <div class="version-tag" id="versionTag">v8.3.3</div>
         </div>
       </section>
     </div>
@@ -910,14 +925,14 @@
     </div>
   </div>
 
-  <script src="./card-renderer.js?v=v7.6-full-rebuild-renderer-aligned"></script>
-  <script src="./app.js?v=v7.6-full-rebuild-renderer-aligned"></script>
+  <script src="./card-renderer.js?v=v8.3.3"></script>
+  <script src="./app.js?v=v8.3.3"></script>
 
   <script>
     (function(){
       "use strict";
 
-      var VERSION = "v7.6-full-rebuild-renderer-aligned";
+      var VERSION = "v8.3.3";
       var LINE_OA_URL = "https://lin.ee/G3VJoRm";
       var BASE_URL = "https://angel0973180707.github.io/Happiness-Smart-Card-System/";
       var DEMO_ID = "TW0001";
@@ -928,6 +943,11 @@
       function isClean(){
         var p = sp();
         return (p.get("view") === "1") || (p.get("clean") === "1");
+      }
+      function isCardViewMode(){
+        var p = sp();
+        var urlId = (p.get("id") || "").trim();
+        return !!(urlId && isClean());
       }
 
       var __scrollTop = 0;
@@ -962,6 +982,10 @@
       function applyCleanUI(){
         if(!isClean()) return;
         document.body.classList.add("clean");
+        if(isCardViewMode()){
+          document.body.classList.add("card-view-mode");
+          return; // 個人名片模式不顯示 fab
+        }
         var panel = qs("admin-panel");
         var hot = qs("adminHotspotBR");
         var fab = qs("cleanShareFab");
@@ -1061,13 +1085,11 @@
             });
             return;
           }
-
           if(navigator.clipboard && navigator.clipboard.writeText){
             await navigator.clipboard.writeText(url);
             alert(okMsg || "✅ 已複製連結");
             return;
           }
-
           prompt("請手動複製連結", url);
         }catch(_err){}
       }
@@ -1076,7 +1098,6 @@
         var box = qs("inviteCopyContent");
         var value = box ? (box.textContent || box.innerText || "") : "";
         if(!value) return;
-
         try{
           if(navigator.clipboard && navigator.clipboard.writeText){
             await navigator.clipboard.writeText(value);
@@ -1115,7 +1136,6 @@
         function bindOne(id){
           var btn = qs(id);
           if(!btn) return;
-
           btn.addEventListener("click", function(e){
             e.preventDefault();
             shareUrl(
@@ -1126,7 +1146,6 @@
             );
           }, true);
         }
-
         bindOne("btnShare");
         bindOne("btnSharePremium");
       }
@@ -1140,7 +1159,6 @@
           var b = qs(id);
           if(b) b.addEventListener("click", function(e){ e.preventDefault(); openOA(); }, {passive:false});
         });
-
         var inviteLineBtn = qs("inviteLineBtn");
         if(inviteLineBtn){
           inviteLineBtn.addEventListener("click", function(e){
@@ -1194,7 +1212,6 @@
 
       function bindHiddenAdminEntry(){
         if(isClean()) return;
-
         var hot = qs("adminHotspotBR");
         if(!hot) return;
 
@@ -1207,30 +1224,20 @@
         function resetTapState(){
           taps = 0;
           firstTapAt = 0;
-          if(resetTimer){
-            clearTimeout(resetTimer);
-            resetTimer = null;
-          }
+          if(resetTimer){ clearTimeout(resetTimer); resetTimer = null; }
         }
 
         function onTap(e){
           if(isClean()) return;
-          if(e){
-            e.preventDefault();
-            e.stopPropagation();
-          }
-
+          if(e){ e.preventDefault(); e.stopPropagation(); }
           var now = Date.now();
           if(!firstTapAt || (now - firstTapAt > WINDOW_MS)){
             taps = 0;
             firstTapAt = now;
           }
-
           taps += 1;
-
           if(resetTimer) clearTimeout(resetTimer);
           resetTimer = setTimeout(resetTapState, WINDOW_MS + 120);
-
           if(taps >= NEED_TAPS){
             resetTapState();
             location.href = buildAdminUrl();
