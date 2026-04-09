@@ -1426,6 +1426,7 @@
     const payload = {
       action: CONFIG.CREATE_ACTION,
       tenant: "angel",
+invite_code: "TEST001",
 
       invite_code: inviteCode,
       referrer: refCode,
