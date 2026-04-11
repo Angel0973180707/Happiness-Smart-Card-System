@@ -685,6 +685,32 @@ textarea{ resize:vertical; }
   color:var(--warn);
 }
 
+/* ── REVERT NOTICE（付款後「我按錯了」浮動提示）── */
+.revert-notice{
+  position:fixed;
+  bottom:70px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#fff;
+  border:2px solid var(--danger);
+  border-radius:16px;
+  padding:12px 18px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  box-shadow:var(--shadow);
+  z-index:9998;
+  font-size:14px;
+  font-weight:800;
+  white-space:nowrap;
+  animation:slideUp .25s ease;
+}
+
+@keyframes slideUp{
+  from{ opacity:0; transform:translateX(-50%) translateY(16px); }
+  to{ opacity:1; transform:translateX(-50%) translateY(0); }
+}
+
 /* ── CODE ── */
 code{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
