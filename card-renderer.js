@@ -1,7 +1,7 @@
 /* ============================================================
    card-renderer.js
    HSC 唯一渲染模組
-   v8.4.1-photo-wall-carousel-plus
+   v8.4.2-photo-wall-carousel-ratio-fix
 
    修正與升級項目：
    - v7.7.7: 修正 base64 DataURL 圖片無法顯示的問題
@@ -14,6 +14,11 @@
      * free 5+ 張 → carousel；premium 4+ 張 → carousel
      * 1~4 張（free）/ 1~3 張（premium）維持原本 grid
      * 不影響既有 CTA / QR / 公告 / 跑馬燈 / grid 樣式
+   - v8.4.2: 修正 premium / carousel 照片牆撐爆預覽高度問題
+     * 新增 applyCarouselRatioStyles_()
+     * carousel 視窗鎖定 1:1 / 16:9 比例
+     * 每張 slide 固定為 100% viewport，不再被原圖尺寸撐開
+     * 保留 cover / contain 與 photo_meta 裁切定位
 
    設計原則
    - 不依賴 form.js
@@ -1112,6 +1117,9 @@
 
     carousel.appendChild(track);
 
+    /* ★ 新增：鎖住 carousel 比例，避免 premium 預覽被原圖撐高 */
+    applyCarouselRatioStyles_(carousel, track, preview);
+
     /* dots */
     var dotsWrap = document.createElement("div");
     dotsWrap.className = "carousel-dots";
@@ -1262,6 +1270,13 @@
       wall.appendChild(built.dotsWrap);
       wall.style.display = "";
 
+      /* 保險再同步一次比例，避免重渲染後被外部樣式影響 */
+      applyCarouselRatioStyles_(
+        built.carousel,
+        built.carousel.querySelector("[data-carousel-track]"),
+        preview
+      );
+
       initPhotoCarousel_(wall, { interval: 3200 });
 
     } else {
@@ -1372,6 +1387,57 @@
   }
 
   /* ============================================================
+     ★ 新增：修正 carousel 比例，避免照片牆撐爆預覽高度
+  ============================================================ */
+  function applyCarouselRatioStyles_(carousel, track, preview) {
+    if (!carousel || !track) return;
+
+    var is169   = preview && preview.aspect_ratio === "16:9";
+    var fitMode = preview && preview.fit_mode === "contain" ? "contain" : "cover";
+
+    carousel.classList.remove("ratio-1-1", "ratio-16-9", "fit-cover", "fit-contain");
+    carousel.classList.add(is169 ? "ratio-16-9" : "ratio-1-1");
+    carousel.classList.add(fitMode === "contain" ? "fit-contain" : "fit-cover");
+
+    carousel.style.position = "relative";
+    carousel.style.width = "100%";
+    carousel.style.maxWidth = "100%";
+    carousel.style.overflowX = "auto";
+    carousel.style.overflowY = "hidden";
+    carousel.style.borderRadius = "18px";
+    carousel.style.aspectRatio = is169 ? "16 / 9" : "1 / 1";
+    carousel.style.scrollSnapType = "x mandatory";
+    carousel.style.WebkitOverflowScrolling = "touch";
+    carousel.style.scrollBehavior = "smooth";
+    carousel.style.scrollbarWidth = "none";
+
+    track.style.display = "flex";
+    track.style.width = "100%";
+    track.style.height = "100%";
+    track.style.minHeight = "100%";
+    track.style.overflow = "visible";
+
+    Array.from(track.children).forEach(function (tile) {
+      tile.style.flex = "0 0 100%";
+      tile.style.width = "100%";
+      tile.style.maxWidth = "100%";
+      tile.style.height = "100%";
+      tile.style.minHeight = "100%";
+      tile.style.position = "relative";
+      tile.style.overflow = "hidden";
+      tile.style.scrollSnapAlign = "start";
+
+      var img = tile.querySelector(".wall-img");
+      if (img) {
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.display = "block";
+        img.style.objectFit = fitMode;
+      }
+    });
+  }
+
+  /* ============================================================
      主入口 renderCard
   ============================================================ */
   function renderCard(data, options) {
@@ -1436,7 +1502,7 @@
     renderQr:                renderQr,
     shouldUsePhotoCarousel_: shouldUsePhotoCarousel_,
     initPhotoCarousel_:      initPhotoCarousel_,
-    version: "HSC-card-renderer-v8.4.1-photo-wall-carousel-plus"
+    version: "HSC-card-renderer-v8.4.2-photo-wall-carousel-ratio-fix"
   };
 
   global.HscCardRenderer  = api;
