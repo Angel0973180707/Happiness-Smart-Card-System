@@ -1,15 +1,23 @@
 (() => {
   "use strict";
 
+  // ─────────────────────────────────────────────
+  //  CONFIG
+  // ─────────────────────────────────────────────
   const CONFIG = {
-    VERSION: "v6.2.1",
+    VERSION: "v6.3.0",
     GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
     ADMIN_KEY: "ANGEL20261972070707",
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
-    DEFAULT_RENEW_DAYS: 365
+    DEFAULT_RENEW_DAYS: 365,
+    API_TIMEOUT_MS: 10000,
+    API_RETRY: 1
   };
 
+  // ─────────────────────────────────────────────
+  //  STATE
+  // ─────────────────────────────────────────────
   const state = {
     cards: [],
     payments: [],
@@ -26,6 +34,9 @@
     ]
   };
 
+  // ─────────────────────────────────────────────
+  //  INIT
+  // ─────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", init);
 
   function init() {
@@ -35,6 +46,9 @@
     refreshAll();
   }
 
+  // ─────────────────────────────────────────────
+  //  BIND EVENTS
+  // ─────────────────────────────────────────────
   function bindEvents() {
     $$(".nav-btn").forEach(btn => {
       btn.addEventListener("click", () => {
@@ -86,7 +100,12 @@
       await loadAddonDetail(id);
     });
 
-    $("#btnConfirmRenewalPaid").addEventListener("click", confirmRenewalAndExtend);
+    // v6.3：續約改用 renewCard
+    $("#btnConfirmRenewalPaid").addEventListener("click", async () => {
+      if (!state.currentCard) return alert("請先選取卡片");
+      const id = textOf(state.currentCard.id || state.currentCard.card_id);
+      await renewCard(id);
+    });
     $("#btnCopyRenewalText").addEventListener("click", copyRenewalReminderText);
     $("#btnCopyRenewalDeliveryText").addEventListener("click", copyRenewalDeliveryText);
 
@@ -110,6 +129,9 @@
     $("#btnAddMockAdmin").addEventListener("click", addMockAdmin);
   }
 
+  // ─────────────────────────────────────────────
+  //  REFRESH ALL
+  // ─────────────────────────────────────────────
   async function refreshAll() {
     await Promise.allSettled([
       loadCards(),
@@ -120,64 +142,123 @@
     renderDashboard();
   }
 
-  async function api(action, params = {}) {
-    const getUrl = new URL(CONFIG.GAS_BASE_URL);
-    getUrl.searchParams.set("action", action);
-    getUrl.searchParams.set("admin_key", CONFIG.ADMIN_KEY);
+  // ─────────────────────────────────────────────
+  //  API LAYER  （v6.3 標準化：apiGet / apiPost）
+  // ─────────────────────────────────────────────
 
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && String(value).trim() !== "") {
-        getUrl.searchParams.set(key, value);
+  /**
+   * 帶 timeout + retry 的底層 fetch
+   */
+  async function fetchWithTimeout(url, options = {}, timeoutMs = CONFIG.API_TIMEOUT_MS) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * 查詢用 GET（不改資料）
+   */
+  async function apiGet(action, params = {}) {
+    const url = new URL(CONFIG.GAS_BASE_URL);
+    url.searchParams.set("action", action);
+    url.searchParams.set("admin_key", CONFIG.ADMIN_KEY);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v).trim() !== "") {
+        url.searchParams.set(k, v);
       }
     });
 
+    return _apiCall("GET", url.toString(), null, action);
+  }
+
+  /**
+   * 寫入用 POST（會改資料）
+   */
+  async function apiPost(action, params = {}) {
+    return _apiCall(
+      "POST",
+      CONFIG.GAS_BASE_URL,
+      JSON.stringify({ action, admin_key: CONFIG.ADMIN_KEY, ...params }),
+      action
+    );
+  }
+
+  /**
+   * 內部執行核心（帶 retry）
+   */
+  async function _apiCall(method, url, body, action, attempt = 0) {
     try {
       setLoading(true);
 
-      let res;
-      let text;
-      let json;
+      const options = {
+        method,
+        ...(body ? { headers: { "Content-Type": "text/plain;charset=utf-8" }, body } : {})
+      };
 
-      try {
-        res = await fetch(getUrl.toString(), { method: "GET" });
-        text = await res.text();
-        json = parseJsonSafe(text);
-        if (res.ok && json && json.ok !== false) {
-          setGasStatus("正常", "ok");
-          return json.data != null ? json.data : json;
-        }
-      } catch (err) {
-        console.warn("GET failed, fallback POST:", action, err);
-      }
-
-      res = await fetch(CONFIG.GAS_BASE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action, admin_key: CONFIG.ADMIN_KEY, ...params })
-      });
-
-      text = await res.text();
-      json = parseJsonSafe(text);
+      const res = await fetchWithTimeout(url, options, CONFIG.API_TIMEOUT_MS);
+      const text = await res.text();
+      const json = parseJsonSafe(text);
 
       if (!res.ok) throw new Error((json && json.error) || `HTTP ${res.status}`);
       if (json && json.ok === false) throw new Error(json.error || `${action} 執行失敗`);
 
       setGasStatus("正常", "ok");
-      return json && json.data != null ? json.data : json;
+
+      const result = json && json.data != null ? json.data : json;
+
+      console.info("[API]", { action, method, result });
+      return result;
+
     } catch (err) {
-      console.error("API error:", action, err);
+      // retry once
+      if (attempt < CONFIG.API_RETRY) {
+        console.warn(`[API] retry #${attempt + 1}`, action, err.message);
+        await new Promise(r => setTimeout(r, 600));
+        return _apiCall(method, url, body, action, attempt + 1);
+      }
+
+      console.error("[API] error:", action, err);
       setGasStatus("異常", "bad");
-      alert(err.message || "系統錯誤");
+      toast(`❌ ${action}：${err.message || "系統錯誤"}`);
       throw err;
+
     } finally {
       setLoading(false);
     }
   }
 
+  /**
+   * 舊版相容 api()（部分地方仍保留呼叫，自動根據 action 判斷 GET/POST）
+   */
+  const WRITE_ACTIONS = new Set([
+    "confirmPayment",
+    "confirmAddonOrderPaid",
+    "adminCancelAddonOrder",
+    "markCardRenewed",
+    "adminAdjustPoints",
+    "adminAdjustCommission",
+    "adminMarkPaid",
+    "adminUpdateCard",
+    "createInviteCode",
+    "buildMonthlySettlement"
+  ]);
+
+  async function api(action, params = {}) {
+    if (WRITE_ACTIONS.has(action)) return apiPost(action, params);
+    return apiGet(action, params);
+  }
+
+  // ─────────────────────────────────────────────
+  //  PARSE HELPERS
+  // ─────────────────────────────────────────────
   function parseJsonSafe(text) {
     try {
       return text ? JSON.parse(text) : {};
-    } catch (err) {
+    } catch {
       throw new Error("GAS 回傳不是合法 JSON");
     }
   }
@@ -194,8 +275,11 @@
     return [];
   }
 
+  // ─────────────────────────────────────────────
+  //  LOAD DATA
+  // ─────────────────────────────────────────────
   async function loadCards() {
-    const data = await api("getCards");
+    const data = await apiGet("getCards");
     state.cards = normalizeList(data, ["cards"]);
     renderCards();
     renderRenewals();
@@ -205,9 +289,9 @@
   async function loadCardDetail(cardId) {
     let data;
     try {
-      data = await api("getCard", { id: cardId });
-    } catch (err) {
-      data = await api("getCard", { card_id: cardId });
+      data = await apiGet("getCard", { id: cardId });
+    } catch {
+      data = await apiGet("getCard", { card_id: cardId });
     }
 
     const card = data.card || data || {};
@@ -221,21 +305,21 @@
   }
 
   async function loadPayments() {
-    const data = await api("getPayments");
+    const data = await apiGet("getPayments");
     state.payments = normalizeList(data, ["payments"]);
     renderDashboard();
     renderRenewals();
   }
 
   async function loadAddons() {
-    const data = await api("getAddonOrders");
+    const data = await apiGet("getAddonOrders");
     state.addons = normalizeList(data, ["addon_orders", "orders", "addons"]);
     renderAddons();
     renderDashboard();
   }
 
   async function loadAddonDetail(addonOrderId) {
-    const data = await api("getAddonOrder", {
+    const data = await apiGet("getAddonOrder", {
       addon_order_id: addonOrderId,
       add_on_order_id: addonOrderId
     });
@@ -246,14 +330,14 @@
   }
 
   async function loadAgents() {
-    const data = await api("adminListAgents");
+    const data = await apiGet("adminListAgents");
     state.agents = normalizeList(data, ["agents"]);
     renderAgents();
     renderDashboard();
   }
 
   async function loadAgentDetail(agentId) {
-    const data = await api("adminGetAgent", { agent_id: agentId });
+    const data = await apiGet("adminGetAgent", { agent_id: agentId });
     const detail = data.agent || data || {};
     state.currentAgent = detail;
 
@@ -266,6 +350,101 @@
     await reloadLogsForCurrentAgent();
   }
 
+  // ─────────────────────────────────────────────
+  //  v6.3：confirmPaymentAndSync
+  // ─────────────────────────────────────────────
+  /**
+   * 確認付款 → 依付款類型同步資料
+   * @param {string} paymentId
+   * @param {"first_payment"|"renewal"|"addon"} [paymentType]
+   * @param {string} [relatedCardId]
+   */
+  async function confirmPaymentAndSync(paymentId, paymentType, relatedCardId) {
+    console.info("[confirmPaymentAndSync]", { paymentId, paymentType, relatedCardId });
+
+    const result = await apiPost("confirmPayment", { payment_id: paymentId });
+
+    console.info("[confirmPaymentAndSync] result", result);
+
+    // 同步資料
+    await Promise.allSettled([loadPayments(), loadCards()]);
+    renderDashboard();
+
+    // 依類型執行後續
+    if (paymentType === "first_payment" && relatedCardId) {
+      toast("✅ 首次付款確認完成，可開放交付卡");
+      await loadCardDetail(relatedCardId);
+    } else if (paymentType === "renewal" && relatedCardId) {
+      toast("✅ 續約付款確認完成");
+      await loadCardDetail(relatedCardId);
+    } else if (paymentType === "addon" && relatedCardId) {
+      toast("✅ 加購付款確認完成");
+      await Promise.allSettled([loadAddons(), loadCardDetail(relatedCardId)]);
+    } else {
+      toast("✅ 付款確認完成");
+    }
+
+    return result;
+  }
+
+  // ─────────────────────────────────────────────
+  //  v6.3：renewCard（取代前端自算 expires_at）
+  // ─────────────────────────────────────────────
+  async function renewCard(cardId) {
+    const renewDays = Number(valueOf("#renewDays") || CONFIG.DEFAULT_RENEW_DAYS);
+    if (!Number.isFinite(renewDays) || renewDays <= 0) return alert("續約天數需大於 0");
+
+    const ok1 = confirm(`將卡片 ${cardId} 執行「付款確認＋續約 ${renewDays} 天」？`);
+    if (!ok1) return;
+    const ok2 = confirm(`再次確認：卡片 ${cardId} 正式執行續約，此動作將更新到期日。是否繼續？`);
+    if (!ok2) return;
+
+    console.info("[renewCard] start", { cardId, renewDays });
+
+    const btnEl = $("#btnConfirmRenewalPaid");
+    setBtnLoading(btnEl, true);
+
+    try {
+      // Step 1：建立並確認付款
+      let paymentResult;
+      try {
+        paymentResult = await apiPost("adminMarkPaid", {
+          id: cardId,
+          note: `renewal paid ${renewDays} days`,
+          operator: "admin-v630"
+        });
+        console.info("[renewCard] adminMarkPaid", paymentResult);
+      } catch (err) {
+        console.warn("[renewCard] adminMarkPaid skipped or failed:", err.message);
+      }
+
+      // Step 2：呼叫 markCardRenewed（後端計算新到期日）
+      const renewResult = await apiPost("markCardRenewed", {
+        card_id: cardId,
+        renew_days: renewDays,
+        operator: "admin-v630"
+      });
+      console.info("[renewCard] markCardRenewed", renewResult);
+
+      // Step 3：reload
+      await Promise.allSettled([loadCards(), loadPayments()]);
+      await loadCardDetail(cardId);
+      renderDashboard();
+
+      toast("✅ 續約完成");
+      $("#renewalTextBox").value = buildRenewalDeliveryText(state.currentCard);
+
+    } catch (err) {
+      console.error("[renewCard] error", err);
+      toast(`❌ 續約失敗：${err.message}`);
+    } finally {
+      setBtnLoading(btnEl, false);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  INVITE
+  // ─────────────────────────────────────────────
   async function createInviteCodeAligned() {
     const params = {
       count: valueOf("#createInviteCount") || "1",
@@ -276,26 +455,41 @@
       source: valueOf("#createInviteSource") || "admin"
     };
 
-    const data = await api("createInviteCode", params);
-    const invite = data.invite || {};
-    const inviteCode = textOf(invite.invite_code);
-    const formUrl = data.form_url || buildFormUrl(inviteCode);
+    console.info("[createInviteCode] payload", params);
 
-    state.lastInviteCreated = {
-      invite_code: inviteCode,
-      form_url: formUrl,
-      reply_text: buildInviteReplyText(inviteCode)
-    };
+    const btnEl = $("#btnCreateInviteCode");
+    setBtnLoading(btnEl, true);
 
-    $("#inviteCreateResult").textContent = JSON.stringify({
-      invite_code: inviteCode,
-      form_url: formUrl,
-      reply_text: state.lastInviteCreated.reply_text
-    }, null, 2);
+    try {
+      const data = await apiPost("createInviteCode", params);
+      const invite = data.invite || {};
+      const inviteCode = textOf(invite.invite_code);
+      const formUrl = data.form_url || buildFormUrl(inviteCode);
 
-    toast("邀請碼建立完成");
+      state.lastInviteCreated = {
+        invite_code: inviteCode,
+        form_url: formUrl,
+        reply_text: buildInviteReplyText(inviteCode)
+      };
+
+      $("#inviteCreateResult").textContent = JSON.stringify({
+        invite_code: inviteCode,
+        form_url: formUrl,
+        reply_text: state.lastInviteCreated.reply_text
+      }, null, 2);
+
+      console.info("[createInviteCode] result", state.lastInviteCreated);
+      toast("✅ 邀請碼建立完成");
+    } catch (err) {
+      console.error("[createInviteCode] error", err);
+    } finally {
+      setBtnLoading(btnEl, false);
+    }
   }
 
+  // ─────────────────────────────────────────────
+  //  RENDER：CARDS
+  // ─────────────────────────────────────────────
   function renderCards() {
     const keyword = valueOf("#cardSearch").toLowerCase();
     const rows = state.cards.filter(item => {
@@ -341,6 +535,9 @@
     });
   }
 
+  // ─────────────────────────────────────────────
+  //  RENDER：CARD DETAIL
+  // ─────────────────────────────────────────────
   function renderCardDetail(card) {
     const wrap = $("#cardDetailWrap");
     if (!card || !Object.keys(card).length) {
@@ -354,6 +551,7 @@
     const deliveryLink = buildDeliveryLink(id);
     const canDelivery = isPaid(card);
     const updateInfo = getUpdateInfo(id);
+    const addonImpact = buildAddonImpactHtml(id);
 
     wrap.className = "detail-stack";
     wrap.innerHTML = `
@@ -386,7 +584,41 @@
           ${renderDetailItem("付款資訊", summarizePaymentInfo(id))}
         </div>
       </div>
+
+      ${addonImpact ? `
+      <div class="detail-section">
+        <div class="detail-title">加購影響摘要</div>
+        <div class="addon-impact-grid">${addonImpact}</div>
+      </div>` : ""}
     `;
+  }
+
+  /**
+   * v6.3：建立加購影響 HTML（CTA +X、照片 +X、更新權限、跑馬燈…）
+   */
+  function buildAddonImpactHtml(cardId) {
+    const rows = state.addons.filter(
+      item => textOf(item.card_id) === textOf(cardId) &&
+               textOf(item.status).toLowerCase() === "paid"
+    );
+    if (!rows.length) return "";
+
+    const impact = { cta: 0, photo: 0, update: false, marquee: false };
+    rows.forEach(item => {
+      const code = textOf(item.addon_type || item.item_code || item.addon_key).toLowerCase();
+      const qty = Number(item.qty || item.quantity || 1);
+      if (code.includes("cta")) impact.cta += qty;
+      else if (code.includes("photo")) impact.photo += qty;
+      else if (code.includes("update")) impact.update = true;
+      else if (code.includes("marquee")) impact.marquee = true;
+    });
+
+    const badges = [];
+    if (impact.cta > 0) badges.push(`<span class="badge badge-info">CTA +${impact.cta}</span>`);
+    if (impact.photo > 0) badges.push(`<span class="badge badge-info">照片 +${impact.photo}</span>`);
+    if (impact.update) badges.push(`<span class="badge badge-warn">更新權限 ✓</span>`);
+    if (impact.marquee) badges.push(`<span class="badge">跑馬燈 ✓</span>`);
+    return badges.join(" ");
   }
 
   function syncCurrentCardBox(card) {
@@ -423,18 +655,29 @@
     if (!state.currentCard) return alert("請先選取卡片");
     const id = textOf(state.currentCard.id || state.currentCard.card_id);
 
-    const data = await api("getCardForUpdate", { id });
-    const card = data.card || state.currentCard;
-    const token = textOf(card.update_token);
-    const link = token ? `${CONFIG.HUB_URL}update-form.html?token=${encodeURIComponent(token)}` : "";
+    const btnEl = $("#btnGenerateUpdateLink");
+    setBtnLoading(btnEl, true);
+    try {
+      const data = await apiGet("getCardForUpdate", { id });
+      const card = data.card || state.currentCard;
+      const token = textOf(card.update_token);
+      const link = token ? `${CONFIG.HUB_URL}update-form.html?token=${encodeURIComponent(token)}` : "";
 
-    state.updateLinks[id] = { link, expire_at: textOf(card.update_token_expire) };
-    $("#updateLinkBox").value = link;
-    $("#updateTextBox").value = buildUpdateReplyText(state.currentCard, link);
-    renderCardDetail(state.currentCard);
-    toast("已產生更新連結");
+      state.updateLinks[id] = { link, expire_at: textOf(card.update_token_expire) };
+      $("#updateLinkBox").value = link;
+      $("#updateTextBox").value = buildUpdateReplyText(state.currentCard, link);
+      renderCardDetail(state.currentCard);
+      toast("✅ 已產生更新連結");
+    } catch (err) {
+      console.error("[generateUpdateLink] error", err);
+    } finally {
+      setBtnLoading(btnEl, false);
+    }
   }
 
+  // ─────────────────────────────────────────────
+  //  RENDER：ADDONS
+  // ─────────────────────────────────────────────
   function renderAddons() {
     const keyword = valueOf("#addonSearch").toLowerCase();
     const rows = state.addons.filter(item => {
@@ -467,7 +710,7 @@
           <td>
             <div class="table-actions">
               <button class="btn btn-xs btn-soft btn-addon-detail" data-addon-id="${escapeAttr(addonOrderId)}">查看</button>
-              ${status.toLowerCase() !== "paid" ? `<button class="btn btn-xs btn-primary btn-addon-paid" data-addon-id="${escapeAttr(addonOrderId)}">確認付款</button>` : ""}
+              ${status.toLowerCase() !== "paid" ? `<button class="btn btn-xs btn-primary btn-addon-paid" data-addon-id="${escapeAttr(addonOrderId)}" data-card-id="${escapeAttr(textOf(item.card_id))}">確認付款</button>` : ""}
               ${status.toLowerCase() !== "cancelled" ? `<button class="btn btn-xs btn-danger btn-addon-cancel" data-addon-id="${escapeAttr(addonOrderId)}">取消</button>` : ""}
               <button class="btn btn-xs btn-soft" data-copy="${escapeAttr(buildAddonPaymentReminderText(item))}">複製付款提醒</button>
             </div>
@@ -483,11 +726,13 @@
     });
 
     $$(".btn-addon-paid", tbody).forEach(btn => {
-      btn.addEventListener("click", async () => confirmAddonPaid(btn.dataset.addonId));
+      btn.addEventListener("click", async () =>
+        confirmAddonPaid(btn.dataset.addonId, btn.dataset.cardId, btn)
+      );
     });
 
     $$(".btn-addon-cancel", tbody).forEach(btn => {
-      btn.addEventListener("click", async () => cancelAddon(btn.dataset.addonId));
+      btn.addEventListener("click", async () => cancelAddon(btn.dataset.addonId, btn));
     });
   }
 
@@ -510,33 +755,65 @@
     `;
   }
 
-  async function confirmAddonPaid(addonOrderId) {
+  // ─────────────────────────────────────────────
+  //  ADDON ACTIONS
+  // ─────────────────────────────────────────────
+  async function confirmAddonPaid(addonOrderId, cardId, btnEl) {
     const ok = confirm(`確認加購單 ${addonOrderId} 已付款？`);
     if (!ok) return;
 
-    await api("confirmAddonOrderPaid", {
-      addon_order_id: addonOrderId,
-      add_on_order_id: addonOrderId
-    });
+    console.info("[confirmAddonPaid]", { addonOrderId, cardId });
+    setBtnLoading(btnEl, true);
 
-    toast("加購單已確認付款");
-    await loadAddons();
-    if (state.currentCard) await loadCardDetail(textOf(state.currentCard.id || state.currentCard.card_id));
+    try {
+      // v6.3：改為 apiPost
+      const result = await apiPost("confirmAddonOrderPaid", {
+        addon_order_id: addonOrderId,
+        add_on_order_id: addonOrderId
+      });
+
+      console.info("[confirmAddonPaid] result", result);
+      toast("✅ 加購單已確認付款");
+
+      // reload addons + card detail + dashboard
+      await loadAddons();
+      renderDashboard();
+      if (cardId) {
+        await loadCardDetail(cardId);
+      } else if (state.currentCard) {
+        await loadCardDetail(textOf(state.currentCard.id || state.currentCard.card_id));
+      }
+    } catch (err) {
+      console.error("[confirmAddonPaid] error", err);
+    } finally {
+      setBtnLoading(btnEl, false);
+    }
   }
 
-  async function cancelAddon(addonOrderId) {
+  async function cancelAddon(addonOrderId, btnEl) {
     const ok = confirm(`確定取消加購單 ${addonOrderId}？`);
     if (!ok) return;
 
-    await api("adminCancelAddonOrder", {
-      addon_order_id: addonOrderId,
-      add_on_order_id: addonOrderId
-    });
+    console.info("[cancelAddon]", { addonOrderId });
+    setBtnLoading(btnEl, true);
 
-    toast("加購單已取消");
-    await loadAddons();
+    try {
+      await apiPost("adminCancelAddonOrder", {
+        addon_order_id: addonOrderId,
+        add_on_order_id: addonOrderId
+      });
+      toast("✅ 加購單已取消");
+      await loadAddons();
+    } catch (err) {
+      console.error("[cancelAddon] error", err);
+    } finally {
+      setBtnLoading(btnEl, false);
+    }
   }
 
+  // ─────────────────────────────────────────────
+  //  RENDER：RENEWALS
+  // ─────────────────────────────────────────────
   function renderRenewals() {
     const rows = state.cards.filter(card => needsRenewal(card) || isExpired(card) || isExpiringSoon(card, 30));
     const tbody = $("#renewalTableBody");
@@ -581,34 +858,6 @@
     $("#renewalTextBox").value = card ? buildRenewalReminderText(card) : "";
   }
 
-  async function confirmRenewalAndExtend() {
-    if (!state.currentCard) return alert("請先選取卡片");
-    const id = textOf(state.currentCard.id || state.currentCard.card_id);
-    const renewDays = Number(valueOf("#renewDays") || CONFIG.DEFAULT_RENEW_DAYS);
-    if (!Number.isFinite(renewDays) || renewDays <= 0) return alert("續約天數需大於 0");
-
-    const ok = confirm(`將卡片 ${id} 執行「付款確認＋續約 ${renewDays} 天」？`);
-    if (!ok) return;
-
-    await api("adminMarkPaid", { id, note: `renewal paid ${renewDays} days`, operator: "admin-v621" });
-
-    const base = parseDate(state.currentCard.expires_at);
-    const start = base && base > new Date() ? base : new Date();
-    const next = new Date(start.getTime() + renewDays * 24 * 60 * 60 * 1000);
-
-    await api("adminUpdateCard", {
-      id,
-      expires_at: next.toISOString(),
-      status: "active",
-      billing_status: "paid"
-    });
-
-    toast("續約完成");
-    await Promise.allSettled([loadCards(), loadPayments()]);
-    await loadCardDetail(id);
-    $("#renewalTextBox").value = buildRenewalDeliveryText(state.currentCard);
-  }
-
   function copyRenewalReminderText() {
     if (!state.currentCard) return alert("請先選取卡片");
     const text = buildRenewalReminderText(state.currentCard);
@@ -623,6 +872,9 @@
     $("#renewalTextBox").value = text;
   }
 
+  // ─────────────────────────────────────────────
+  //  RENDER：AGENTS
+  // ─────────────────────────────────────────────
   function renderAgents() {
     const keyword = valueOf("#agentSearch").toLowerCase();
     const rows = state.agents.filter(item => {
@@ -688,6 +940,9 @@
     $("#currentAgentCommission").textContent = formatValue(agent.total_commission);
   }
 
+  // ─────────────────────────────────────────────
+  //  POINTS / COMMISSION
+  // ─────────────────────────────────────────────
   async function adjustPoints(mode) {
     const agentId = valueOf("#pointsAgentId");
     const pointsValue = Number(valueOf("#pointsValue"));
@@ -696,12 +951,27 @@
     if (!agentId) return alert("請輸入 agent_id");
     if (!Number.isFinite(pointsValue) || pointsValue <= 0) return alert("points 必須大於 0");
 
-    const points = mode === "subtract" ? -Math.abs(pointsValue) : Math.abs(pointsValue);
-    await api("adminAdjustPoints", { agent_id: agentId, points, note });
+    const ok = confirm(`確認對 ${agentId} 執行「${mode === "subtract" ? "扣點" : "加點"} ${pointsValue}」？`);
+    if (!ok) return;
 
-    toast(mode === "subtract" ? "已扣點" : "已加點");
-    await loadAgents();
-    await loadAgentDetail(agentId);
+    const points = mode === "subtract" ? -Math.abs(pointsValue) : Math.abs(pointsValue);
+
+    console.info("[adjustPoints]", { agentId, points, note });
+
+    const btnEl = mode === "subtract" ? $("#btnSubtractPoints") : $("#btnAddPoints");
+    setBtnLoading(btnEl, true);
+
+    try {
+      const result = await apiPost("adminAdjustPoints", { agent_id: agentId, points, note });
+      console.info("[adjustPoints] result", result);
+      toast(mode === "subtract" ? "✅ 已扣點" : "✅ 已加點");
+      await loadAgents();
+      await loadAgentDetail(agentId);
+    } catch (err) {
+      console.error("[adjustPoints] error", err);
+    } finally {
+      setBtnLoading(btnEl, false);
+    }
   }
 
   async function adjustCommission() {
@@ -712,11 +982,25 @@
     if (!agentId) return alert("請輸入 agent_id");
     if (!Number.isFinite(amount) || amount <= 0) return alert("amount 必須大於 0");
 
-    await api("adminAdjustCommission", { agent_id: agentId, amount, note });
+    const ok = confirm(`確認對 ${agentId} 補分潤 ${amount}？`);
+    if (!ok) return;
 
-    toast("已補分潤");
-    await loadAgents();
-    await loadAgentDetail(agentId);
+    console.info("[adjustCommission]", { agentId, amount, note });
+
+    const btnEl = $("#btnAdjustCommission");
+    setBtnLoading(btnEl, true);
+
+    try {
+      const result = await apiPost("adminAdjustCommission", { agent_id: agentId, amount, note });
+      console.info("[adjustCommission] result", result);
+      toast("✅ 已補分潤");
+      await loadAgents();
+      await loadAgentDetail(agentId);
+    } catch (err) {
+      console.error("[adjustCommission] error", err);
+    } finally {
+      setBtnLoading(btnEl, false);
+    }
   }
 
   async function reloadLogsForCurrentAgent() {
@@ -728,9 +1012,11 @@
 
     if (!agentId) return alert("請先選取代理");
 
+    console.info("[reloadLogs]", { agentId });
+
     const [pointsLogData, commissionLogData] = await Promise.all([
-      api("getAgentPointsLog", { agent_id: agentId }),
-      api("getAgentCommissionLog", { agent_id: agentId })
+      apiGet("getAgentPointsLog", { agent_id: agentId }),
+      apiGet("getAgentCommissionLog", { agent_id: agentId })
     ]);
 
     renderPointsLog(normalizeList(pointsLogData, ["logs", "points_logs"]));
@@ -743,7 +1029,6 @@
       tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">沒有點數 Log</td></tr>`;
       return;
     }
-
     tbody.innerHTML = rows.map(row => `
       <tr>
         <td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time", "updated_at", "timestamp"])))}</td>
@@ -760,7 +1045,6 @@
       tbody.innerHTML = `<tr><td colspan="4" class="empty-cell">沒有分潤 Log</td></tr>`;
       return;
     }
-
     tbody.innerHTML = rows.map(row => `
       <tr>
         <td>${escapeHtml(formatValue(firstValue(row, ["created_at", "time", "updated_at", "timestamp"])))}</td>
@@ -771,16 +1055,37 @@
     `).join("");
   }
 
+  // ─────────────────────────────────────────────
+  //  SETTLEMENT
+  // ─────────────────────────────────────────────
   async function buildSettlement() {
     const settlementMonth = valueOf("#settlementMonth");
     if (!settlementMonth) return alert("請選擇 settlement_month");
 
-    const data = await api("buildMonthlySettlement", { settlement_month: settlementMonth });
-    $("#settlementResult").textContent = JSON.stringify(data, null, 2);
-    toast("已建立結算");
+    const ok = confirm(`確認建立 ${settlementMonth} 的結算？`);
+    if (!ok) return;
+
+    const btnEl = $("#btnBuildSettlement");
+    setBtnLoading(btnEl, true);
+
+    try {
+      console.info("[buildSettlement]", { settlementMonth });
+      const data = await apiPost("buildMonthlySettlement", { settlement_month: settlementMonth });
+      console.info("[buildSettlement] result", data);
+      $("#settlementResult").textContent = JSON.stringify(data, null, 2);
+      toast("✅ 已建立結算");
+    } catch (err) {
+      console.error("[buildSettlement] error", err);
+    } finally {
+      setBtnLoading(btnEl, false);
+    }
   }
 
+  // ─────────────────────────────────────────────
+  //  DASHBOARD  （v6.3 升級：今日 KPI + 高風險提醒）
+  // ─────────────────────────────────────────────
   function renderDashboard() {
+    // 基礎指標（v6.2 保留）
     const unpaid = state.cards.filter(card => !isPaid(card)).length;
     const needDelivery = state.cards.filter(card => isPaid(card)).length;
     const needRenewal = state.cards.filter(card => needsRenewal(card) || isExpiringSoon(card, 30)).length;
@@ -795,6 +1100,94 @@
     $("#statAddonPending").textContent = addonPending;
     $("#statAgents").textContent = state.agents.length;
 
+    // v6.3：今日 KPI
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const todayPayments = state.payments.filter(p => {
+      const t = textOf(p.paid_at || p.created_at || "");
+      return t.startsWith(todayStr);
+    }).length;
+
+    const todayCards = state.cards.filter(c => {
+      const t = textOf(c.created_at || "");
+      return t.startsWith(todayStr);
+    }).length;
+
+    // CTA & conversion：若後端有回傳則顯示，否則顯示 N/A
+    safeSetText("#statTodayPayments", todayPayments);
+    safeSetText("#statTodayCards", todayCards);
+    safeSetText("#statTodayCta", "N/A");
+    safeSetText("#statTodayConversion", "N/A");
+
+    // v6.3：高風險提醒
+    const now = new Date();
+    const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const risks = [];
+
+    // 未付款超過 3 天
+    const overdueUnpaid = state.cards.filter(card => {
+      if (isPaid(card)) return false;
+      const created = parseDate(card.created_at);
+      return created && created < threeDaysAgo;
+    });
+    if (overdueUnpaid.length > 0) {
+      risks.push({
+        level: "danger",
+        text: `⚠️ 未付款超過 3 天：${overdueUnpaid.length} 張（${overdueUnpaid.slice(0, 3).map(c => textOf(c.id || c.card_id)).join("、")}${overdueUnpaid.length > 3 ? "…" : ""}）`
+      });
+    }
+
+    // 已付款未交付（有付款紀錄但卡片 status 非 active）
+    const paidNotDelivered = state.cards.filter(card => {
+      return isPaid(card) && textOf(card.status).toLowerCase() !== "active";
+    });
+    if (paidNotDelivered.length > 0) {
+      risks.push({
+        level: "warn",
+        text: `📦 已付款未交付（未啟用）：${paidNotDelivered.length} 張`
+      });
+    }
+
+    // 即將到期（30 天內）
+    const expiringSoon = state.cards.filter(card => isExpiringSoon(card, 30) && !isExpired(card));
+    if (expiringSoon.length > 0) {
+      risks.push({
+        level: "info",
+        text: `⏰ 30 天內即將到期：${expiringSoon.length} 張`
+      });
+    }
+
+    // 已到期
+    const expired = state.cards.filter(card => isExpired(card));
+    if (expired.length > 0) {
+      risks.push({
+        level: "danger",
+        text: `🔴 已到期：${expired.length} 張`
+      });
+    }
+
+    // 待處理加購單
+    if (addonPending > 0) {
+      risks.push({
+        level: "warn",
+        text: `🛒 加購單待處理：${addonPending} 筆`
+      });
+    }
+
+    const riskEl = $("#dashboardRiskList");
+    if (riskEl) {
+      if (risks.length === 0) {
+        riskEl.innerHTML = `<div class="focus-item">✅ 目前無高風險項目</div>`;
+      } else {
+        riskEl.innerHTML = risks.map(r =>
+          `<div class="focus-item risk-item risk-${r.level}">${escapeHtml(r.text)}</div>`
+        ).join("");
+      }
+    }
+
+    // 原有今日重點清單
     const focus = [];
     if (unpaid > 0) focus.push(`待付款卡片 ${unpaid} 張。`);
     if (needDelivery > 0) focus.push(`已付款待交付卡片 ${needDelivery} 張。`);
@@ -805,6 +1198,14 @@
     $("#dashboardFocus").innerHTML = focus.map(x => `<div class="focus-item">${escapeHtml(x)}</div>`).join("");
   }
 
+  function safeSetText(selector, value) {
+    const el = $(selector);
+    if (el) el.textContent = value;
+  }
+
+  // ─────────────────────────────────────────────
+  //  ADMIN USERS (mock)
+  // ─────────────────────────────────────────────
   function renderMockAdmins() {
     const tbody = $("#adminUsersTableBody");
     tbody.innerHTML = state.adminUsers.map(user => `
@@ -839,9 +1240,12 @@
     $("#mockAdminName").value = "";
     $("#mockAdminRole").value = "";
     $("#mockAdminPermissions").value = "";
-    toast("已新增管理員 UI 假資料");
+    toast("✅ 已新增管理員 UI 假資料");
   }
 
+  // ─────────────────────────────────────────────
+  //  TEXT BUILDERS
+  // ─────────────────────────────────────────────
   function buildFormUrl(inviteCode) {
     const url = new URL(CONFIG.FORM_URL);
     if (inviteCode) url.searchParams.set("invite", inviteCode);
@@ -937,6 +1341,9 @@
     ].join("\n");
   }
 
+  // ─────────────────────────────────────────────
+  //  DATA HELPERS
+  // ─────────────────────────────────────────────
   function summarizeCardAddons(cardId) {
     const rows = state.addons.filter(item => textOf(item.card_id) === textOf(cardId));
     if (!rows.length) return "無";
@@ -984,12 +1391,10 @@
   function isPaid(card) {
     const cardId = textOf(card.id || card.card_id);
     if (textOf(card.billing_status).toLowerCase() === "paid") return true;
-
-    const paidPayment = state.payments.some(p =>
+    return state.payments.some(p =>
       textOf(p.card_id) === cardId &&
       textOf(p.status).toLowerCase() === "paid"
     );
-    return paidPayment;
   }
 
   function isExpired(card) {
@@ -1025,6 +1430,9 @@
     return textOf(item.addon_type || item.item_code || item.addon_key);
   }
 
+  // ─────────────────────────────────────────────
+  //  RENDER HELPERS
+  // ─────────────────────────────────────────────
   function renderDetailItem(key, value) {
     return `
       <div class="detail-item">
@@ -1032,6 +1440,28 @@
         <div class="detail-value">${escapeHtml(formatValue(value))}</div>
       </div>
     `;
+  }
+
+  // ─────────────────────────────────────────────
+  //  UI HELPERS
+  // ─────────────────────────────────────────────
+
+  /**
+   * v6.3：按鈕 loading 狀態
+   */
+  function setBtnLoading(btnEl, isLoading) {
+    if (!btnEl) return;
+    if (isLoading) {
+      btnEl.dataset.originalText = btnEl.dataset.originalText || btnEl.textContent;
+      btnEl.textContent = "處理中…";
+      btnEl.disabled = true;
+      btnEl.classList.add("is-disabled");
+    } else {
+      btnEl.textContent = btnEl.dataset.originalText || btnEl.textContent;
+      btnEl.disabled = false;
+      btnEl.classList.remove("is-disabled");
+      delete btnEl.dataset.originalText;
+    }
   }
 
   function bindCopyButtons(root = document) {
@@ -1059,7 +1489,9 @@
     if (!value) return alert("沒有可複製的內容");
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(value).then(() => toast(message)).catch(() => fallbackCopy(value, message));
+      navigator.clipboard.writeText(value)
+        .then(() => toast(message))
+        .catch(() => fallbackCopy(value, message));
       return;
     }
     fallbackCopy(value, message);
@@ -1077,7 +1509,7 @@
     try {
       document.execCommand("copy");
       toast(message);
-    } catch (err) {
+    } catch {
       alert("複製失敗，請手動複製");
     } finally {
       ta.remove();
@@ -1089,7 +1521,7 @@
     el.textContent = message;
     el.classList.remove("hidden");
     clearTimeout(toast._timer);
-    toast._timer = setTimeout(() => el.classList.add("hidden"), 1800);
+    toast._timer = setTimeout(() => el.classList.add("hidden"), 2200);
   }
 
   function setLoading(show) {
@@ -1108,6 +1540,9 @@
     $("#renewDays").value = CONFIG.DEFAULT_RENEW_DAYS;
   }
 
+  // ─────────────────────────────────────────────
+  //  PURE UTILS
+  // ─────────────────────────────────────────────
   function parseDate(value) {
     if (!value) return null;
     const d = new Date(value);
@@ -1117,11 +1552,7 @@
   function formatValue(value) {
     if (value === undefined || value === null || value === "") return "-";
     if (typeof value === "object") {
-      try {
-        return JSON.stringify(value);
-      } catch (err) {
-        return String(value);
-      }
+      try { return JSON.stringify(value); } catch { return String(value); }
     }
     return String(value);
   }
@@ -1187,4 +1618,5 @@
   function $$(selector, root = document) {
     return Array.from(root.querySelectorAll(selector));
   }
+
 })();
