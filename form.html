@@ -8,12 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=v8.3.3" />
+  <link rel="stylesheet" href="./style.css?v=v8.3.4" />
 
   <style>
     /* ============================================================
-       form-local.css  v8.3.3
-       僅包含表單頁面專屬樣式，不覆蓋 style.css
+       form-local.css  v8.3.4
+       新增模式卡片與成功面板樣式
     ============================================================ */
 
     :root {
@@ -537,13 +537,7 @@
     .cta-title-label { font-size: 13px; font-weight: 900; color: var(--muted); }
     .marquee-stack { display: flex; flex-direction: column; gap: 12px; }
 
-    /* ============================================================
-       預覽區塊
-       v8.3.3 修正：
-       · 移除 #livePreviewCard wrapper，renderer 直接在
-         .preview-theme-scope 裡建出 .card
-       · 補上顏色變數鏡像規則，確保 --p / --s 正確繼承
-    ============================================================ */
+    /* 預覽區塊 */
     .preview-section {
       display: grid;
       grid-template-columns: 1.1fr .9fr;
@@ -560,13 +554,11 @@
       overflow: hidden;
     }
 
-    /* ── 預覽主題作用域根節點 ── */
     .preview-theme-scope {
       min-height: 420px;
       position: relative;
     }
 
-    /* ── 模式背景 ── */
     .preview-theme-scope.mode-premium {
       background:
         radial-gradient(1200px 700px at 18% 0%, rgba(255,255,255,.14), transparent 55%),
@@ -580,7 +572,6 @@
       background: transparent;
     }
 
-    /* ── ★ 顏色變數鏡像：讓 --p / --s 在預覽作用域內正確繼承 ── */
     .preview-theme-scope.color-1 { --p:#e57d84; --s:#b23d46; --accentText:rgba(109,42,48,.94); }
     .preview-theme-scope.color-2 { --p:#7daed7; --s:#3e6e9a; --accentText:rgba(37,67,92,.94); }
     .preview-theme-scope.color-3 { --p:#e7a860; --s:#ba6f2e; --accentText:rgba(101,60,25,.94); }
@@ -595,7 +586,6 @@
     .preview-theme-scope.p6 { --p:#e8ba5a; --s:#b8882a; }
     .preview-theme-scope.p7 { --p:#7a6558; --s:#42302a; }
 
-    /* slogan 對齊 */
     .preview-theme-scope .slogan,
     .preview-theme-scope [data-u-slogan] {
       display: block;
@@ -742,7 +732,7 @@
     .progress-step.is-active { background: #fff7ec; color: #8b5b16; font-weight: 900; }
     .progress-step.is-done   { background: #edf9f3; color: #0b8a56; }
 
-    /* 成功面板 */
+    /* 成功面板 - 三模式共構版 */
     .progress-success-panel {
       margin-top: 16px;
       padding: 16px;
@@ -849,6 +839,18 @@
       padding-top: 2px;
     }
 
+    .success-summary-box {
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.8);
+      border: 1px solid rgba(6,166,106,.15);
+    }
+
+    .success-summary-box .section-kicker {
+      font-size: 10px;
+      margin-bottom: 8px;
+    }
+
     .hidden { display: none !important; }
 
     .link-group-title {
@@ -859,6 +861,55 @@
       color: rgba(42,36,30,.38);
       margin-bottom: 8px;
       margin-top: 4px;
+    }
+
+    /* 模式資訊面板 */
+    #mode-info-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .mode-info-block {
+      background: var(--soft);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .mode-info-label {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .mode-info-value {
+      font-size: 14px;
+      font-weight: 800;
+      word-break: break-word;
+    }
+
+    /* 續約控制項 */
+    #renew-controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .renew-control-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--soft);
+      border-radius: 14px;
+    }
+
+    .renew-control-group label {
+      font-weight: 800;
+      font-size: 13px;
     }
 
     /* RWD */
@@ -875,6 +926,7 @@
       h1 { font-size: 28px; }
       .action-row > * { width: 100%; }
       .photo-grid-form { grid-template-columns: 1fr; }
+      #mode-info-panel { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 560px) {
@@ -898,8 +950,8 @@
     <header class="page-hero">
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
-        <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v8.3.3｜已對齊 GAS 真送出流程：建卡後自動寫入 3 天付款期限。</p>
+        <h1 id="page-hero-title">智慧名片申請表</h1>
+        <p class="hero-desc" id="hero-desc">v8.3.4｜三模式共構：建卡 / 更新 / 續約</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
@@ -907,10 +959,35 @@
     </header>
 
     <div class="status-strip" id="form-status-strip" role="status" aria-live="polite"></div>
+    <div class="status-strip hidden" id="mode-inline-tip" role="note" aria-live="polite"></div>
 
     <form id="smart-card-form" novalidate>
       <input type="hidden" id="invite_code" name="invite_code" value="" />
       <input type="hidden" id="ref"         name="ref"         value="" />
+
+      <!-- 模式資訊卡片 -->
+      <section class="form-card hidden" id="mode-info-card">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker" id="mode-info-kicker">MODE INFO</p>
+            <h2 id="mode-info-title">模式資訊</h2>
+            <p id="mode-info-desc">依目前模式顯示更新資格或續約摘要。</p>
+          </div>
+        </div>
+        <div id="mode-info-panel" class="grid-two"></div>
+      </section>
+
+      <!-- 續約控制卡片 -->
+      <section class="form-card hidden" id="renew-controls-card">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">RENEW OPTIONS</p>
+            <h2>續約與加購設定</h2>
+            <p>續約時可直接換方案、補差價、加購項目與續用無限更新。</p>
+          </div>
+        </div>
+        <div id="renew-controls-panel"></div>
+      </section>
 
       <!-- STEP 1 -->
       <section class="form-card">
@@ -1045,8 +1122,8 @@
         <div class="quote-box">
           <div class="quote-head">
             <div>
-              <p class="section-kicker">即時報價</p>
-              <h3 style="margin:0;">目前費用</h3>
+              <p class="section-kicker" id="quote-kicker">即時報價</p>
+              <h3 id="quote-title" style="margin:0;">目前費用</h3>
             </div>
             <span class="quote-state" id="quote-state-text">請先選擇方案</span>
           </div>
@@ -1174,7 +1251,7 @@
 
           <div class="field-group">
             <label class="field-label" for="experience">經歷</label>
-            <input type="text" id="experience" placeholder="例：前 XX 公司品牌顧問、10 年業界資歷" />
+            <textarea id="experience" rows="4" placeholder="例：前 XX 公司品牌顧問、10 年業界資歷"></textarea>
           </div>
 
           <div class="field-group full-width">
@@ -1295,14 +1372,6 @@
 
         <div class="preview-section">
           <div class="preview-card-board">
-            <!--
-              v8.3.3 修正：
-              移除 #livePreviewCard wrapper。
-              renderer 以 useExistingDom:false 模式直接在
-              #preview-theme-scope 裡建出 .card，
-              主題 class 套在 scope 本身，
-              CSS 變數透過上方鏡像規則正確繼承。
-            -->
             <div class="preview-theme-scope" id="preview-theme-scope" aria-live="polite"></div>
           </div>
           <div class="preview-card">
@@ -1347,52 +1416,40 @@
 
       <div id="progress-success-panel" class="progress-success-panel hidden">
         <div class="success-header">
-          <div class="success-header-icon">🎉</div>
-          <div class="success-header-title">名片申請成功！</div>
-          <div class="success-header-sub">請複製以下資訊並回覆客服，協助開通名片。</div>
+          <div class="success-header-icon" id="success-header-icon">🎉</div>
+          <div class="success-header-title" id="success-header-title">作業完成</div>
+          <div class="success-header-sub" id="success-header-sub">請依下列資訊完成後續操作。</div>
         </div>
 
         <div class="success-card-id-row">
-          <span class="success-card-id-label">📋 名片序號</span>
-          <span class="success-card-id-value" id="progress-card-id-display">—</span>
+          <span class="success-card-id-label" id="success-primary-id-label">📋 編號</span>
+          <span class="success-card-id-value" id="success-primary-id-value">—</span>
         </div>
 
-        <div class="success-info-rows">
-          <div class="success-info-row">
-            <span class="label">申請人</span>
-            <span class="value success-name">—</span>
-          </div>
-          <div class="success-info-row">
-            <span class="label">方案</span>
-            <span class="value success-plan">—</span>
-          </div>
-          <div class="success-info-row">
-            <span class="label">總金額</span>
-            <span class="value success-total">—</span>
-          </div>
+        <div class="success-info-rows" id="success-info-rows"></div>
+
+        <div class="success-due-alert hidden" id="success-due-alert">
+          ⏰&nbsp;<span id="success-due-text">付款期限：—</span>
         </div>
 
-        <div class="success-due-alert">
-          ⏰&nbsp;付款期限：<strong class="success-due" style="margin:0 4px;">—</strong> 前完成付款，逾期名片將暫停開通
-        </div>
-
-        <div class="success-preview-row">
-          <p class="success-preview-label">🔗 成品預覽連結（付款完成後正式開通）</p>
+        <div class="success-preview-row hidden" id="success-preview-row">
+          <p class="success-preview-label" id="success-preview-label">🔗 入口連結</p>
           <a id="progress-preview-link" href="#" target="_blank" rel="noopener">（建立後顯示）</a>
         </div>
 
-        <div class="success-actions">
-          <button type="button" class="primary-btn mini" id="btn-copy-card-notice">
-            📋 複製序號＋回覆文案
-          </button>
-          <button type="button" class="line-btn mini" id="progress-contact-service">
-            💬 LINE 客服開通
-          </button>
+        <div class="success-summary-box hidden" id="success-summary-box">
+          <div class="section-kicker">摘要</div>
+          <div id="success-summary-content" class="quote-breakdown"></div>
         </div>
 
-        <p class="success-footer-note">
-          點「複製序號＋回覆文案」→ 貼到 LINE 客服對話框<br>
-          客服確認付款後將立即為您開通名片。
+        <div class="success-actions" id="success-actions">
+          <button type="button" class="primary-btn mini" id="btn-copy-primary-notice">📋 複製通知</button>
+          <button type="button" class="ghost-btn mini hidden" id="btn-copy-secondary-notice">📄 複製摘要</button>
+          <button type="button" class="line-btn mini" id="progress-contact-service">💬 LINE 客服</button>
+        </div>
+
+        <p class="success-footer-note" id="success-footer-note">
+          點選上方按鈕即可複製需要的回覆資訊。
         </p>
       </div>
     </div>
@@ -1444,7 +1501,7 @@
     </article>
   </template>
 
-  <script src="./card-renderer.js?v=v8.3.3"></script>
-  <script type="module" src="./form.js?v=v8.3.3"></script>
+  <script src="./card-renderer.js?v=v8.3.4"></script>
+  <script type="module" src="./form.js?v=v8.3.4"></script>
 </body>
 </html>
