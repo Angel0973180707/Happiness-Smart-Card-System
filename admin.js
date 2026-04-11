@@ -114,6 +114,14 @@
 
     $("#btnCreateInviteCode").addEventListener("click", createInviteCodeAligned);
 
+    on("#btnCopyInviteCode", "click", () => {
+      const code = textOf(state.lastInviteCreated?.invite_code);
+      if (!code) return toast("⚠️ 請先建立邀請碼");
+      copyText(code, "✅ 已複製邀請碼");
+    });
+    on("#btnCopyInviteUrl", "click", () => copyFromField("#inviteFormUrlBox", "✅ 已複製申請連結"));
+    on("#btnCopyInviteText", "click", () => copyFromField("#inviteReplyTextBox", "✅ 已複製客服文案"));
+
     $("#btnSearchCards").addEventListener("click", renderCards);
     $("#btnReloadCards").addEventListener("click", async () => {
       $("#cardSearch").value = "";
@@ -477,10 +485,11 @@
     const renewDays = Number(valueOf("#renewDays") || CONFIG.DEFAULT_RENEW_DAYS);
     if (!Number.isFinite(renewDays) || renewDays <= 0) return alert("續約天數需大於 0");
 
-    const ok1 = confirm(`將卡片 ${cardId} 執行「付款確認＋續約 ${renewDays} 天」？`);
+    const ok1 = confirm(`將卡片 ${cardId} 執行「付款確認＋續約 ${renewDays} 天」？\n\n⚠️ 此操作執行後無法自動撤銷。`);
     if (!ok1) return;
-    const ok2 = confirm(`再次確認：卡片 ${cardId} 正式執行續約，此動作將更新到期日。是否繼續？`);
-    if (!ok2) return;
+
+    // 第二層：輸入卡片 ID 確認
+    if (!doubleConfirmId(cardId, "卡片")) return;
 
     console.info("[renewCard] start", { cardId, renewDays });
 
@@ -515,6 +524,7 @@
       renderDashboard();
 
       toast("✅ 續約完成");
+      showRevertButtonAfterPaid("卡片", cardId);
       $("#renewalTextBox").value = buildRenewalDeliveryText(state.currentCard);
 
     } catch (err) {
@@ -548,18 +558,21 @@
       const invite = data.invite || {};
       const inviteCode = textOf(invite.invite_code);
       const formUrl = data.form_url || buildFormUrl(inviteCode);
+      const replyText = buildInviteReplyText(inviteCode);
 
-      state.lastInviteCreated = {
-        invite_code: inviteCode,
-        form_url: formUrl,
-        reply_text: buildInviteReplyText(inviteCode)
-      };
+      state.lastInviteCreated = { invite_code: inviteCode, form_url: formUrl, reply_text: replyText };
 
       $("#inviteCreateResult").textContent = JSON.stringify({
         invite_code: inviteCode,
         form_url: formUrl,
-        reply_text: state.lastInviteCreated.reply_text
+        reply_text: replyText
       }, null, 2);
+
+      // 填入複製區
+      const urlBox = $("#inviteFormUrlBox");
+      const textBox = $("#inviteReplyTextBox");
+      if (urlBox) urlBox.value = formUrl;
+      if (textBox) textBox.value = replyText;
 
       console.info("[createInviteCode] result", state.lastInviteCreated);
       toast("✅ 邀請碼建立完成");
@@ -841,15 +854,60 @@
   // ─────────────────────────────────────────────
   //  ADDON ACTIONS
   // ─────────────────────────────────────────────
+
+  /**
+   * Double confirm：要求輸入 ID 才能繼續
+   * @param {string} id - 需要輸入確認的 ID
+   * @param {string} label - 顯示名稱（例如「加購單」「卡片」）
+   * @returns {boolean}
+   */
+  function doubleConfirmId(id, label = "ID") {
+    const entered = prompt(
+      `⚠️ 高風險操作：請輸入 ${label}「${id}」以確認執行\n\n（輸入錯誤或取消則中止）`
+    );
+    if (entered === null) return false; // 按取消
+    if (textOf(entered) !== textOf(id)) {
+      toast("❌ 輸入不符，操作已取消");
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * 顯示撤銷提示 + 複製指令給管理員手動處理
+   */
+  function showRevertNotice(type, id) {
+    const instructions = [
+      `【撤銷${type}付款 - 手動處理】`,
+      `操作時間：${new Date().toLocaleString("zh-TW")}`,
+      `${type} ID：${id}`,
+      ``,
+      `請至 GAS 試算表手動將以下欄位改回：`,
+      `- billing_status → unpaid`,
+      `- status → pending（或原始狀態）`,
+      `- paid_at → 清空`,
+      ``,
+      `或請工程師執行對應 script 撤銷。`
+    ].join("\n");
+
+    copyText(instructions, "✅ 撤銷指令已複製，請貼給工程師或手動至 GAS 處理");
+    alert(
+      `⚠️ 注意：系統目前無法自動撤銷付款。\n\n已複製處理指令到剪貼簿，請貼給工程師或手動至 GAS 試算表修改。\n\n${type} ID：${id}`
+    );
+  }
+
   async function confirmAddonPaid(addonOrderId, cardId, btnEl) {
-    const ok = confirm(`確認加購單 ${addonOrderId} 已付款？`);
-    if (!ok) return;
+    // 第一層：基本確認
+    const ok1 = confirm(`確認加購單 ${addonOrderId} 已付款？\n\n⚠️ 此操作執行後無法自動撤銷。`);
+    if (!ok1) return;
+
+    // 第二層：輸入 ID 確認
+    if (!doubleConfirmId(addonOrderId, "加購單")) return;
 
     console.info("[confirmAddonPaid]", { addonOrderId, cardId });
     setBtnLoading(btnEl, true);
 
     try {
-      // v6.3：改為 apiPost
       const result = await apiPost("confirmAddonOrderPaid", {
         addon_order_id: addonOrderId,
         add_on_order_id: addonOrderId
@@ -858,7 +916,9 @@
       console.info("[confirmAddonPaid] result", result);
       toast("✅ 加購單已確認付款");
 
-      // reload addons + card detail + dashboard
+      // 顯示撤銷按鈕（前端暫存）
+      showRevertButtonAfterPaid("addon", addonOrderId);
+
       await loadAddons();
       renderDashboard();
       if (cardId) {
@@ -871,6 +931,30 @@
     } finally {
       setBtnLoading(btnEl, false);
     }
+  }
+
+  /**
+   * 付款確認後，在 toast 區下方短暫顯示「我按錯了」撤銷入口
+   */
+  function showRevertButtonAfterPaid(type, id) {
+    const label = type === "addon" ? "加購單" : "卡片";
+    // 在頁面底部插入一個臨時浮動提示，30 秒後消失
+    const el = document.createElement("div");
+    el.id = "revertNotice";
+    el.className = "revert-notice";
+    el.innerHTML = `
+      <span>剛才確認了${label} <strong>${escapeHtml(id)}</strong> 的付款</span>
+      <button class="btn btn-xs btn-danger" id="btnRevertPaid">我按錯了</button>
+    `;
+    document.body.appendChild(el);
+
+    document.getElementById("btnRevertPaid")?.addEventListener("click", () => {
+      el.remove();
+      showRevertNotice(label, id);
+    });
+
+    // 30 秒後自動消失
+    setTimeout(() => el.remove(), 30000);
   }
 
   async function cancelAddon(addonOrderId, btnEl) {
