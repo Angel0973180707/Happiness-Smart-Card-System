@@ -57,6 +57,21 @@
         </div>
 
         <div class="sidebar-card">
+          <div class="sidebar-title">🔑 Admin Key</div>
+          <div id="keyStatus" class="key-status warn">⚠️ 尚未設定</div>
+          <div class="field mt8">
+            <input id="adminKeyInput" class="input" type="password" placeholder="貼上 Admin Key，按 Enter 儲存" autocomplete="off" />
+          </div>
+          <div class="action-row" style="margin-top:10px;">
+            <button id="btnSaveKey" class="btn btn-primary btn-xs" style="flex:1;">儲存</button>
+            <button id="btnClearKey" class="btn btn-danger btn-xs">清除</button>
+          </div>
+          <div class="hint-box" style="margin-top:10px;font-size:12px;">
+            Key 存於 localStorage，不會上傳任何伺服器。關閉瀏覽器後仍保留。
+          </div>
+        </div>
+
+        <div class="sidebar-card">
           <div class="sidebar-title">目前選取代理</div>
           <div class="mini-kv"><span>agent_id</span><strong id="currentAgentLabel">未選取</strong></div>
           <div class="mini-kv"><span>姓名</span><strong id="currentAgentName">-</strong></div>
