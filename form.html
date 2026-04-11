@@ -8,11 +8,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="./style.css?v=v8.3.3" />
+  <link rel="stylesheet" href="./style.css" />
 
   <style>
     /* ============================================================
-       form-local.css  v8.3.3
+       form-local.css
        僅包含表單頁面專屬樣式，不覆蓋 style.css
     ============================================================ */
 
@@ -543,7 +543,7 @@
        · 移除 #livePreviewCard wrapper，renderer 直接在
          .preview-theme-scope 裡建出 .card
        · 補上顏色變數鏡像規則，確保 --p / --s 正確繼承
-    ============================================================ */
+       ============================================================ */
     .preview-section {
       display: grid;
       grid-template-columns: 1.1fr .9fr;
@@ -612,10 +612,45 @@
       font-weight: 900;
     }
 
+    /* ============================================================
+       任務 A：修正精品款預覽文字看不清
+       1. 強制設定 premium 模式下的文字顏色為高對比白色
+       2. 提高重要元素的亮度與字重
+       3. 移除可能造成文字模糊的陰影或遮罩
+    ============================================================ */
+    .preview-theme-scope.mode-premium,
+    .preview-theme-scope.mode-premium .card,
+    .preview-theme-scope.mode-premium * {
+      color: #fff !important;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    }
+
     .preview-theme-scope.mode-premium .slogan,
     .preview-theme-scope.mode-premium [data-u-slogan] {
-      color: var(--prem-ink, rgba(255,255,255,.94));
-      text-shadow: 0 12px 28px rgba(0,0,0,.34);
+      color: #fff !important;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.5) !important;
+      font-weight: 900 !important;
+      background: rgba(0,0,0,0.2) !important;
+      border-radius: 20px !important;
+      backdrop-filter: blur(4px) !important;
+    }
+
+    /* 確保姓名、單位、職稱等重要文字清晰 */
+    .preview-theme-scope.mode-premium [data-u-name],
+    .preview-theme-scope.mode-premium [data-u-unit],
+    .preview-theme-scope.mode-premium [data-u-title],
+    .preview-theme-scope.mode-premium .card-header,
+    .preview-theme-scope.mode-premium .card-content {
+      color: #fff !important;
+      font-weight: 800 !important;
+    }
+
+    /* 服務、經歷、CTA 等區塊文字 */
+    .preview-theme-scope.mode-premium .service-item,
+    .preview-theme-scope.mode-premium .exp-item,
+    .preview-theme-scope.mode-premium .cta-button {
+      color: #fff !important;
+      font-weight: 700 !important;
     }
 
     .preview-card {
@@ -899,10 +934,12 @@
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
         <h1>智慧名片申請表</h1>
-        <p class="hero-desc">v8.3.3｜已對齊 GAS 真送出流程：建卡後自動寫入 3 天付款期限。</p>
+        <p class="hero-desc">即時預覽｜照片編輯｜完整報價</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
+        <!-- 任務 C：新增一鍵切換模式按鈕（create / update / renew） -->
+        <button type="button" class="ghost-btn" id="btn-toggle-mode">切換模式 (建卡/更新/續約)</button>
       </div>
     </header>
 
@@ -1174,7 +1211,7 @@
 
           <div class="field-group">
             <label class="field-label" for="experience">經歷</label>
-            <input type="text" id="experience" placeholder="例：前 XX 公司品牌顧問、10 年業界資歷" />
+            <textarea id="experience" rows="4" placeholder="例：前 XX 公司品牌顧問、10 年業界資歷"></textarea>
           </div>
 
           <div class="field-group full-width">
@@ -1289,27 +1326,19 @@
           <div>
             <p class="section-kicker">STEP 8</p>
             <h2>成品預覽</h2>
-            <p>即時同步正式成品卡 renderer，樣式與成品頁完全一致。</p>
+            <p>即時同步正式成品卡樣式，與成品頁完全一致。</p>
           </div>
         </div>
 
         <div class="preview-section">
           <div class="preview-card-board">
-            <!--
-              v8.3.3 修正：
-              移除 #livePreviewCard wrapper。
-              renderer 以 useExistingDom:false 模式直接在
-              #preview-theme-scope 裡建出 .card，
-              主題 class 套在 scope 本身，
-              CSS 變數透過上方鏡像規則正確繼承。
-            -->
             <div class="preview-theme-scope" id="preview-theme-scope" aria-live="polite"></div>
           </div>
           <div class="preview-card">
             <h3>預覽說明</h3>
-            <p class="hint">即時走正式 card-renderer.js 渲染，顏色、版型、精品色系與成品完全一致。</p>
-            <p class="hint">未填欄位由 renderer 自動隱藏。</p>
-            <p class="hint">圖片選取後自動上傳 Firebase，上傳完成才能送出。</p>
+            <p class="hint">即時走正式 renderer 渲染，顏色、版型、精品色系與成品完全一致。</p>
+            <p class="hint">未填欄位由系統自動隱藏。</p>
+            <p class="hint">圖片選取後自動上傳，上傳完成才能送出。</p>
             <p class="hint">送出後將收到成品連結與繳費期限（3 天倒數）。</p>
           </div>
         </div>
@@ -1444,7 +1473,7 @@
     </article>
   </template>
 
-  <script src="./card-renderer.js?v=v8.3.3"></script>
-  <script type="module" src="./form.js?v=v8.3.3"></script>
+  <script src="./card-renderer.js"></script>
+  <script type="module" src="./form.js"></script>
 </body>
 </html>
