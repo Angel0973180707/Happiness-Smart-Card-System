@@ -11,11 +11,6 @@
   <link rel="stylesheet" href="./style.css" />
 
   <style>
-    /* ============================================================
-       form-local.css
-       僅包含表單頁面專屬樣式，不覆蓋 style.css
-    ============================================================ */
-
     :root {
       --bg: #f7f5f1;
       --ink: #2a241e;
@@ -35,6 +30,22 @@
       --shadow-soft: 0 10px 24px rgba(83,62,45,.07);
       --warm-white: rgba(255,253,249,.98);
       --poster-line: rgba(102,78,57,.09);
+
+      /* premium preview readable text */
+      --prem-text-strong: rgba(255,255,255,.98);
+      --prem-text: rgba(245,247,252,.94);
+      --prem-text-soft: rgba(232,237,247,.88);
+
+      /* mode pill */
+      --mode-create-bg: rgba(240,160,75,.14);
+      --mode-create-bd: rgba(240,160,75,.28);
+      --mode-create-tx: #9a5c14;
+      --mode-update-bg: rgba(92,143,214,.14);
+      --mode-update-bd: rgba(92,143,214,.28);
+      --mode-update-tx: #315e9c;
+      --mode-renew-bg: rgba(64,166,112,.14);
+      --mode-renew-bd: rgba(64,166,112,.28);
+      --mode-renew-tx: #20724a;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -110,6 +121,7 @@
     .status-strip[data-state="error"]   { background: #fff1f1; color: #a83d3d; border-color: rgba(200,60,60,.18); }
     .status-strip[data-state="warn"]    { background: #fff8ee; color: #8b5b16; border-color: rgba(240,160,75,.22); }
     .status-strip[data-state="success"] { background: rgba(6,166,106,.10); color: #0a7a4e; border-color: rgba(6,166,106,.20); }
+    .status-strip[data-state="info"]    { background: #f7fbff; color: #3e6e9a; border-color: rgba(62,110,154,.18); }
 
     .form-card {
       background: var(--warm-white);
@@ -174,6 +186,70 @@
       border: 1px solid var(--line);
     }
 
+    #dev-current-mode-pill[data-mode="create"] {
+      background: var(--mode-create-bg);
+      border-color: var(--mode-create-bd);
+      color: var(--mode-create-tx);
+    }
+    #dev-current-mode-pill[data-mode="update"] {
+      background: var(--mode-update-bg);
+      border-color: var(--mode-update-bd);
+      color: var(--mode-update-tx);
+    }
+    #dev-current-mode-pill[data-mode="renew"] {
+      background: var(--mode-renew-bg);
+      border-color: var(--mode-renew-bd);
+      color: var(--mode-renew-tx);
+    }
+
+    .mode-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .mode-info-block,
+    .renew-control-group {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--soft-2);
+    }
+
+    .mode-info-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .mode-info-value {
+      font-size: 14px;
+      color: var(--ink);
+      font-weight: 800;
+      line-height: 1.7;
+      word-break: break-word;
+    }
+
+    .renew-control-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .renew-control-group label {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 800;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .renew-control-group input[type="checkbox"] {
+      transform: translateY(1px);
+      margin-right: 6px;
+    }
+
     .plan-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -198,7 +274,8 @@
 
     .premium-plan-card { background: linear-gradient(180deg, #fff, #faf6ff); }
 
-    .plan-option input:checked + .plan-card {
+    .plan-option input:checked + .plan-card,
+    .plan-card.is-selected {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px var(--accent-soft);
     }
@@ -402,7 +479,6 @@
     input[type="number"] { width: 72px; padding: 10px 12px; text-align: center; }
     input[disabled], select[disabled] { opacity: .46; cursor: not-allowed; }
 
-    /* 照片區塊 */
     .photo-sections { display: flex; flex-direction: column; gap: 18px; }
 
     .photo-section {
@@ -537,13 +613,6 @@
     .cta-title-label { font-size: 13px; font-weight: 900; color: var(--muted); }
     .marquee-stack { display: flex; flex-direction: column; gap: 12px; }
 
-    /* ============================================================
-       預覽區塊
-       v8.3.3 修正：
-       · 移除 #livePreviewCard wrapper，renderer 直接在
-         .preview-theme-scope 裡建出 .card
-       · 補上顏色變數鏡像規則，確保 --p / --s 正確繼承
-       ============================================================ */
     .preview-section {
       display: grid;
       grid-template-columns: 1.1fr .9fr;
@@ -560,27 +629,40 @@
       overflow: hidden;
     }
 
-    /* ── 預覽主題作用域根節點 ── */
     .preview-theme-scope {
       min-height: 420px;
       position: relative;
     }
 
-    /* ── 模式背景 ── */
     .preview-theme-scope.mode-premium {
       background:
-        radial-gradient(1200px 700px at 18% 0%, rgba(255,255,255,.14), transparent 55%),
-        radial-gradient(900px 700px at 86% 8%, rgba(255,255,255,.07), transparent 60%),
+        radial-gradient(1200px 700px at 18% 0%, rgba(255,255,255,.10), transparent 55%),
+        radial-gradient(900px 700px at 86% 8%, rgba(255,255,255,.05), transparent 60%),
         #232837;
       border-radius: 18px;
-      color: var(--prem-ink, rgba(255,255,255,.97));
+      color: var(--prem-text);
+      isolation: isolate;
+    }
+
+    .preview-theme-scope.mode-premium::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.04));
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .preview-theme-scope.mode-premium > * {
+      position: relative;
+      z-index: 1;
     }
 
     .preview-theme-scope.mode-free {
       background: transparent;
     }
 
-    /* ── ★ 顏色變數鏡像：讓 --p / --s 在預覽作用域內正確繼承 ── */
     .preview-theme-scope.color-1 { --p:#e57d84; --s:#b23d46; --accentText:rgba(109,42,48,.94); }
     .preview-theme-scope.color-2 { --p:#7daed7; --s:#3e6e9a; --accentText:rgba(37,67,92,.94); }
     .preview-theme-scope.color-3 { --p:#e7a860; --s:#ba6f2e; --accentText:rgba(101,60,25,.94); }
@@ -595,7 +677,6 @@
     .preview-theme-scope.p6 { --p:#e8ba5a; --s:#b8882a; }
     .preview-theme-scope.p7 { --p:#7a6558; --s:#42302a; }
 
-    /* slogan 對齊 */
     .preview-theme-scope .slogan,
     .preview-theme-scope [data-u-slogan] {
       display: block;
@@ -612,45 +693,59 @@
       font-weight: 900;
     }
 
-    /* ============================================================
-       任務 A：修正精品款預覽文字看不清
-       1. 強制設定 premium 模式下的文字顏色為高對比白色
-       2. 提高重要元素的亮度與字重
-       3. 移除可能造成文字模糊的陰影或遮罩
-    ============================================================ */
-    .preview-theme-scope.mode-premium,
+    /* 任務 A：premium 預覽文字可讀性修正 */
     .preview-theme-scope.mode-premium .card,
-    .preview-theme-scope.mode-premium * {
-      color: #fff !important;
-      text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    .preview-theme-scope.mode-premium .card * {
+      text-shadow: none !important;
+      filter: none !important;
+      opacity: 1 !important;
+      mix-blend-mode: normal !important;
     }
 
-    .preview-theme-scope.mode-premium .slogan,
-    .preview-theme-scope.mode-premium [data-u-slogan] {
-      color: #fff !important;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.5) !important;
-      font-weight: 900 !important;
-      background: rgba(0,0,0,0.2) !important;
-      border-radius: 20px !important;
-      backdrop-filter: blur(4px) !important;
+    .preview-theme-scope.mode-premium .card [data-u-name],
+    .preview-theme-scope.mode-premium .card .name,
+    .preview-theme-scope.mode-premium .card .display-name,
+    .preview-theme-scope.mode-premium .card .card-name,
+    .preview-theme-scope.mode-premium .card [data-u-unit],
+    .preview-theme-scope.mode-premium .card [data-u-title],
+    .preview-theme-scope.mode-premium .card .unit,
+    .preview-theme-scope.mode-premium .card .title,
+    .preview-theme-scope.mode-premium .card .headline {
+      color: var(--prem-text-strong) !important;
     }
 
-    /* 確保姓名、單位、職稱等重要文字清晰 */
-    .preview-theme-scope.mode-premium [data-u-name],
-    .preview-theme-scope.mode-premium [data-u-unit],
-    .preview-theme-scope.mode-premium [data-u-title],
-    .preview-theme-scope.mode-premium .card-header,
-    .preview-theme-scope.mode-premium .card-content {
-      color: #fff !important;
-      font-weight: 800 !important;
+    .preview-theme-scope.mode-premium .card .slogan,
+    .preview-theme-scope.mode-premium .card [data-u-slogan],
+    .preview-theme-scope.mode-premium .card .services,
+    .preview-theme-scope.mode-premium .card .experience,
+    .preview-theme-scope.mode-premium .card [data-block-service],
+    .preview-theme-scope.mode-premium .card [data-block-exp],
+    .preview-theme-scope.mode-premium .card .card-content,
+    .preview-theme-scope.mode-premium .card .card-desc,
+    .preview-theme-scope.mode-premium .card .service-item,
+    .preview-theme-scope.mode-premium .card .exp-item,
+    .preview-theme-scope.mode-premium .card .desc,
+    .preview-theme-scope.mode-premium .card p,
+    .preview-theme-scope.mode-premium .card li,
+    .preview-theme-scope.mode-premium .card span,
+    .preview-theme-scope.mode-premium .card strong,
+    .preview-theme-scope.mode-premium .card small {
+      color: var(--prem-text) !important;
     }
 
-    /* 服務、經歷、CTA 等區塊文字 */
-    .preview-theme-scope.mode-premium .service-item,
-    .preview-theme-scope.mode-premium .exp-item,
-    .preview-theme-scope.mode-premium .cta-button {
-      color: #fff !important;
-      font-weight: 700 !important;
+    .preview-theme-scope.mode-premium .card .slogan,
+    .preview-theme-scope.mode-premium .card [data-u-slogan] {
+      background: rgba(255,255,255,.10) !important;
+      border: 1px solid rgba(255,255,255,.10) !important;
+      border-radius: 18px !important;
+      backdrop-filter: blur(1.5px) !important;
+    }
+
+    .preview-theme-scope.mode-premium .card .cta-button,
+    .preview-theme-scope.mode-premium .card .cta-btn,
+    .preview-theme-scope.mode-premium .card a,
+    .preview-theme-scope.mode-premium .card button {
+      color: var(--prem-text-strong) !important;
     }
 
     .preview-card {
@@ -675,7 +770,6 @@
       font-size: 13px;
     }
 
-    /* 按鈕 */
     .primary-btn, .ghost-btn, .line-btn {
       display: inline-flex;
       align-items: center;
@@ -720,7 +814,6 @@
     .mini { padding: 8px 12px; font-size: 12px; }
     .action-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-    /* 進度條彈窗 */
     .progress-overlay {
       position: fixed;
       inset: 0;
@@ -777,7 +870,6 @@
     .progress-step.is-active { background: #fff7ec; color: #8b5b16; font-weight: 900; }
     .progress-step.is-done   { background: #edf9f3; color: #0b8a56; }
 
-    /* 成功面板 */
     .progress-success-panel {
       margin-top: 16px;
       padding: 16px;
@@ -884,6 +976,16 @@
       padding-top: 2px;
     }
 
+    .success-summary-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(6,166,106,.12);
+    }
+
     .hidden { display: none !important; }
 
     .link-group-title {
@@ -896,9 +998,9 @@
       margin-top: 4px;
     }
 
-    /* RWD */
     @media (max-width: 980px) {
       .preview-section, .addon-layout { grid-template-columns: 1fr; }
+      .renew-control-grid, .mode-info-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 768px) {
@@ -933,23 +1035,60 @@
     <header class="page-hero">
       <div>
         <p class="eyebrow">天使幸福智慧名片</p>
-        <h1>智慧名片申請表</h1>
-        <p class="hero-desc">即時預覽｜照片編輯｜完整報價</p>
+        <h1 id="page-hero-title">智慧名片申請表</h1>
+        <p class="hero-desc" id="hero-desc">即時預覽｜照片編輯｜完整報價</p>
       </div>
       <div class="hero-actions">
         <button type="button" class="ghost-btn" id="btn-open-showcase">參考門面頁</button>
-        <!-- 任務 C：新增一鍵切換模式按鈕（create / update / renew） -->
-        <button type="button" class="ghost-btn" id="btn-toggle-mode">切換模式 (建卡/更新/續約)</button>
+        <button type="button" class="ghost-btn" id="btn-toggle-mode">查看模式切換</button>
       </div>
     </header>
 
     <div class="status-strip" id="form-status-strip" role="status" aria-live="polite"></div>
 
+    <section class="form-card" id="dev-mode-switcher" style="padding:16px 18px;">
+      <div class="section-head" style="margin-bottom:10px;">
+        <div>
+          <p class="section-kicker">模式切換</p>
+          <h2 style="font-size:18px;margin-bottom:4px;">快速切換表單模式</h2>
+          <p>可直接切換申請、更新、續約三種模式。</p>
+        </div>
+      </div>
+      <div class="action-row">
+        <button type="button" class="ghost-btn mini" id="btn-mode-create">申請名片</button>
+        <button type="button" class="ghost-btn mini" id="btn-mode-update">更新內容</button>
+        <button type="button" class="ghost-btn mini" id="btn-mode-renew">續約服務</button>
+        <span class="pill" id="dev-current-mode-pill" data-mode="">目前模式：-</span>
+      </div>
+    </section>
+
+    <section class="form-card hidden" id="mode-info-card">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker" id="mode-info-kicker">操作說明</p>
+          <h2 id="mode-info-title">表單資訊</h2>
+          <p id="mode-info-desc">系統會依目前模式帶入對應資料。</p>
+        </div>
+      </div>
+      <div class="mode-info-grid" id="mode-info-panel"></div>
+      <p class="field-hint" id="mode-inline-tip" style="margin-top:12px;">若需要調整內容，請確認資料後再送出。</p>
+    </section>
+
+    <section class="form-card hidden" id="renew-controls-card">
+      <div class="section-head">
+        <div>
+          <p class="section-kicker">續約設定</p>
+          <h2>續約方案與延用項目</h2>
+          <p>可在這裡決定續約後的方案與功能延用方式。</p>
+        </div>
+      </div>
+      <div class="renew-control-grid" id="renew-controls-panel"></div>
+    </section>
+
     <form id="smart-card-form" novalidate>
       <input type="hidden" id="invite_code" name="invite_code" value="" />
       <input type="hidden" id="ref"         name="ref"         value="" />
 
-      <!-- STEP 1 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1034,7 +1173,7 @@
                 <input type="checkbox" name="addons" value="addon_update_unlimited" id="addon_update_unlimited_enabled" />
                 <span class="addon-content">
                   <strong>無限更新</strong>
-                  <small>保留後台續用流程</small>
+                  <small>開通後可於有效期間內持續調整內容</small>
                 </span>
                 <span class="addon-price-tag">NT$ 300</span>
               </label>
@@ -1082,8 +1221,8 @@
         <div class="quote-box">
           <div class="quote-head">
             <div>
-              <p class="section-kicker">即時報價</p>
-              <h3 style="margin:0;">目前費用</h3>
+              <p class="section-kicker" id="quote-kicker">即時報價</p>
+              <h3 id="quote-title" style="margin:0;">目前費用</h3>
             </div>
             <span class="quote-state" id="quote-state-text">請先選擇方案</span>
           </div>
@@ -1096,7 +1235,6 @@
         </div>
       </section>
 
-      <!-- STEP 2 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1153,7 +1291,6 @@
         </div>
       </section>
 
-      <!-- STEP 3 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1232,7 +1369,6 @@
         </div>
       </section>
 
-      <!-- STEP 4 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1277,7 +1413,6 @@
         </div>
       </section>
 
-      <!-- STEP 5 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1289,7 +1424,6 @@
         <div id="photo-slots" class="photo-sections"></div>
       </section>
 
-      <!-- STEP 6 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1301,7 +1435,6 @@
         <div id="cta-slots" class="cta-stack"></div>
       </section>
 
-      <!-- STEP 7 跑馬燈 -->
       <section id="marquee-section" class="form-card hidden">
         <div class="section-head">
           <div>
@@ -1320,7 +1453,6 @@
         </div>
       </section>
 
-      <!-- STEP 8 預覽 -->
       <section class="form-card">
         <div class="section-head">
           <div>
@@ -1336,15 +1468,14 @@
           </div>
           <div class="preview-card">
             <h3>預覽說明</h3>
-            <p class="hint">即時走正式 renderer 渲染，顏色、版型、精品色系與成品完全一致。</p>
-            <p class="hint">未填欄位由系統自動隱藏。</p>
-            <p class="hint">圖片選取後自動上傳，上傳完成才能送出。</p>
-            <p class="hint">送出後將收到成品連結與繳費期限（3 天倒數）。</p>
+            <p class="hint">即時同步正式成品卡樣式，顏色、版型與精品色系皆會立即更新。</p>
+            <p class="hint">未填欄位會自動隱藏。</p>
+            <p class="hint">圖片選取後會先上傳，完成後才能送出。</p>
+            <p class="hint">送出後會產生預覽連結與付款資訊，確認付款後正式開通。</p>
           </div>
         </div>
       </section>
 
-      <!-- 操作列 -->
       <section class="form-card">
         <div class="action-row">
           <button type="button" class="ghost-btn" id="btn-save-draft">暫存草稿</button>
@@ -1356,11 +1487,10 @@
     </form>
   </main>
 
-  <!-- 進度條彈窗 -->
   <div id="submit-progress-overlay" class="progress-overlay hidden">
     <div class="progress-card">
       <h3 class="progress-title">資料送出中</h3>
-      <p class="progress-text" id="progress-text">正在建立申請資料，請稍候。</p>
+      <p class="progress-text" id="progress-text">正在整理資料，請稍候。</p>
 
       <div class="progress-bar">
         <div id="progress-fill" class="progress-fill"></div>
@@ -1368,66 +1498,53 @@
 
       <ul class="progress-steps">
         <li class="progress-step" data-step="1">1. 等待圖片上傳完成</li>
-        <li class="progress-step" data-step="2">2. 送出建卡資料</li>
-        <li class="progress-step" data-step="3">3. 整理報價資料</li>
-        <li class="progress-step" data-step="4">4. 寫入預覽與繳費資訊</li>
-        <li class="progress-step" data-step="5">5. 申請完成</li>
+        <li class="progress-step" data-step="2">2. 送出資料</li>
+        <li class="progress-step" data-step="3">3. 整理報價資訊</li>
+        <li class="progress-step" data-step="4">4. 產生預覽與付款資訊</li>
+        <li class="progress-step" data-step="5">5. 完成</li>
       </ul>
 
       <div id="progress-success-panel" class="progress-success-panel hidden">
         <div class="success-header">
-          <div class="success-header-icon">🎉</div>
-          <div class="success-header-title">名片申請成功！</div>
-          <div class="success-header-sub">請複製以下資訊並回覆客服，協助開通名片。</div>
+          <div class="success-header-icon" id="success-header-icon">🎉</div>
+          <div class="success-header-title" id="success-header-title">申請成功！</div>
+          <div class="success-header-sub" id="success-header-sub">請複製以下資訊並回覆客服。</div>
         </div>
 
         <div class="success-card-id-row">
-          <span class="success-card-id-label">📋 名片序號</span>
-          <span class="success-card-id-value" id="progress-card-id-display">—</span>
+          <span class="success-card-id-label" id="success-primary-id-label">📋 名片序號</span>
+          <span class="success-card-id-value" id="success-primary-id-value">—</span>
         </div>
 
-        <div class="success-info-rows">
-          <div class="success-info-row">
-            <span class="label">申請人</span>
-            <span class="value success-name">—</span>
-          </div>
-          <div class="success-info-row">
-            <span class="label">方案</span>
-            <span class="value success-plan">—</span>
-          </div>
-          <div class="success-info-row">
-            <span class="label">總金額</span>
-            <span class="value success-total">—</span>
-          </div>
+        <div class="success-info-rows" id="success-info-rows"></div>
+
+        <div class="success-due-alert hidden" id="success-due-alert">
+          ⏰&nbsp;<strong id="success-due-text">付款期限：—</strong>
         </div>
 
-        <div class="success-due-alert">
-          ⏰&nbsp;付款期限：<strong class="success-due" style="margin:0 4px;">—</strong> 前完成付款，逾期名片將暫停開通
-        </div>
-
-        <div class="success-preview-row">
-          <p class="success-preview-label">🔗 成品預覽連結（付款完成後正式開通）</p>
+        <div class="success-preview-row hidden" id="success-preview-row">
+          <p class="success-preview-label" id="success-preview-label">🔗 成品預覽連結</p>
           <a id="progress-preview-link" href="#" target="_blank" rel="noopener">（建立後顯示）</a>
         </div>
 
-        <div class="success-actions">
-          <button type="button" class="primary-btn mini" id="btn-copy-card-notice">
-            📋 複製序號＋回覆文案
-          </button>
-          <button type="button" class="line-btn mini" id="progress-contact-service">
-            💬 LINE 客服開通
-          </button>
+        <div class="success-summary-box hidden" id="success-summary-box">
+          <p class="success-preview-label" style="margin:0;">摘要資訊</p>
+          <div id="success-summary-content" class="quote-breakdown"></div>
         </div>
 
-        <p class="success-footer-note">
-          點「複製序號＋回覆文案」→ 貼到 LINE 客服對話框<br>
-          客服確認付款後將立即為您開通名片。
+        <div class="success-actions" id="success-actions">
+          <button type="button" class="primary-btn mini" id="btn-copy-primary-notice">📋 複製通知</button>
+          <button type="button" class="ghost-btn mini hidden" id="btn-copy-secondary-notice">📄 複製摘要</button>
+          <button type="button" class="line-btn mini" id="progress-contact-service">💬 LINE 客服</button>
+        </div>
+
+        <p class="success-footer-note" id="success-footer-note">
+          複製資訊後貼到 LINE 客服對話框，客服確認付款後將協助開通或續用服務。
         </p>
       </div>
     </div>
   </div>
 
-  <!-- 照片 slot template -->
   <template id="photo-slot-template">
     <article class="photo-card">
       <div class="photo-head">
@@ -1456,7 +1573,6 @@
     </article>
   </template>
 
-  <!-- CTA slot template -->
   <template id="cta-slot-template">
     <article class="cta-slot-card">
       <label class="cta-title-label"></label>
