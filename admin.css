@@ -44,6 +44,7 @@ textarea{ resize:vertical; }
   padding:20px;
 }
 
+/* ── TOPBAR ── */
 .topbar{
   display:flex;
   justify-content:space-between;
@@ -113,6 +114,7 @@ textarea{ resize:vertical; }
   color:var(--danger);
 }
 
+/* ── LAYOUT ── */
 .layout{
   display:grid;
   grid-template-columns:290px 1fr;
@@ -164,6 +166,7 @@ textarea{ resize:vertical; }
   color:#fff;
 }
 
+/* ── MAIN ── */
 .main{
   display:flex;
   flex-direction:column;
@@ -174,6 +177,7 @@ textarea{ resize:vertical; }
   scroll-margin-top:18px;
 }
 
+/* ── CARD ── */
 .card{
   background:var(--panel);
   border:1px solid var(--line);
@@ -215,6 +219,7 @@ textarea{ resize:vertical; }
   flex-wrap:wrap;
 }
 
+/* ── FORM ── */
 .input,.textarea{
   width:100%;
   border:1px solid var(--line);
@@ -235,6 +240,7 @@ textarea{ resize:vertical; }
   min-width:320px;
 }
 
+/* ── BUTTONS ── */
 .btn{
   border:none;
   border-radius:14px;
@@ -243,7 +249,7 @@ textarea{ resize:vertical; }
   transition:.18s ease;
 }
 
-.btn:hover{ transform:translateY(-1px); }
+.btn:hover:not(:disabled){ transform:translateY(-1px); }
 
 .btn-primary{
   background:linear-gradient(135deg,var(--primary),var(--primary-dark));
@@ -266,11 +272,13 @@ textarea{ resize:vertical; }
   font-size:13px;
 }
 
+/* v6.3：loading 狀態 */
 .is-disabled{
   opacity:.55;
   cursor:not-allowed;
 }
 
+/* ── GRID ── */
 .form-grid{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
@@ -300,6 +308,7 @@ textarea{ resize:vertical; }
   margin-top:16px;
 }
 
+/* ── STATS ── */
 .stats-grid{
   display:grid;
   gap:12px;
@@ -307,6 +316,10 @@ textarea{ resize:vertical; }
 
 .stats-grid-5{
   grid-template-columns:repeat(5,minmax(0,1fr));
+}
+
+.stats-grid-4{
+  grid-template-columns:repeat(4,minmax(0,1fr));
 }
 
 .stats-grid-3{
@@ -318,6 +331,12 @@ textarea{ resize:vertical; }
   border:1px solid var(--line);
   border-radius:16px;
   padding:16px;
+}
+
+/* v6.3：今日 KPI 略有差異 */
+.stat-box-today{
+  background:linear-gradient(135deg,#fdf6f0,#fff);
+  border-color:rgba(185,122,78,.22);
 }
 
 .stat-label{
@@ -333,6 +352,19 @@ textarea{ resize:vertical; }
   line-height:1.2;
 }
 
+.stat-today{
+  font-size:24px;
+  color:var(--primary-dark);
+}
+
+/* ── SECTION SUBTITLE ── */
+.section-subtitle{
+  font-size:15px;
+  font-weight:900;
+  color:var(--muted);
+}
+
+/* ── TABLE ── */
 .table-wrap{
   overflow:auto;
 }
@@ -377,6 +409,7 @@ textarea{ resize:vertical; }
   gap:6px;
 }
 
+/* ── DETAIL ── */
 .detail-stack{
   display:flex;
   flex-direction:column;
@@ -430,6 +463,15 @@ textarea{ resize:vertical; }
   padding:10px 0;
 }
 
+/* v6.3：加購影響摘要 badges */
+.addon-impact-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:4px 0;
+}
+
+/* ── TOOLS ── */
 .tool-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -448,6 +490,7 @@ textarea{ resize:vertical; }
   color:var(--muted);
 }
 
+/* ── HINT ── */
 .hint-box{
   background:var(--panel-soft);
   border:1px solid var(--line);
@@ -459,6 +502,7 @@ textarea{ resize:vertical; }
   font-weight:700;
 }
 
+/* ── BADGE ── */
 .badge{
   display:inline-flex;
   align-items:center;
@@ -483,6 +527,7 @@ textarea{ resize:vertical; }
   color:var(--warn);
 }
 
+/* ── RESULT ── */
 .result-box{
   background:var(--panel-soft);
   border:1px solid var(--line);
@@ -503,12 +548,14 @@ textarea{ resize:vertical; }
   line-height:1.6;
 }
 
+/* ── LOGS ── */
 .logs-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:14px;
 }
 
+/* ── MINI KV ── */
 .mini-kv{
   display:flex;
   justify-content:space-between;
@@ -521,6 +568,7 @@ textarea{ resize:vertical; }
 
 .mini-kv:last-child{ border-bottom:none; }
 
+/* ── FOCUS LIST ── */
 .focus-list{
   display:flex;
   flex-direction:column;
@@ -537,14 +585,40 @@ textarea{ resize:vertical; }
   font-weight:800;
 }
 
+/* v6.3：高風險提醒色彩 */
+.risk-item{
+  border-left:4px solid var(--line);
+}
+
+.risk-danger{
+  background:var(--danger-bg);
+  border-color:var(--danger);
+  color:var(--danger);
+}
+
+.risk-warn{
+  background:var(--warn-bg);
+  border-color:var(--warn);
+  color:var(--warn);
+}
+
+.risk-info{
+  background:var(--info-bg);
+  border-color:var(--info);
+  color:var(--info);
+}
+
+/* ── MISC ── */
 .divider{
   border:none;
   border-top:1px solid var(--line);
   margin:20px 0;
 }
 
+.mt8{ margin-top:8px; }
 .mt16{ margin-top:16px; }
 
+/* ── LOADING MASK ── */
 .loading-mask{
   position:fixed;
   inset:0;
@@ -568,6 +642,7 @@ textarea{ resize:vertical; }
   font-weight:900;
 }
 
+/* ── TOAST ── */
 .toast{
   position:fixed;
   left:50%;
@@ -581,17 +656,21 @@ textarea{ resize:vertical; }
   z-index:10000;
   font-size:14px;
   font-weight:900;
+  max-width:90vw;
+  text-align:center;
 }
 
 .toast.hidden{
   display:none;
 }
 
+/* ── CODE ── */
 code{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   font-size:12px;
 }
 
+/* ── RESPONSIVE ── */
 @media (max-width:1280px){
   .layout{
     grid-template-columns:1fr;
@@ -603,6 +682,10 @@ code{
 
   .stats-grid-5{
     grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+
+  .stats-grid-4{
+    grid-template-columns:repeat(2,minmax(0,1fr));
   }
 
   .detail-grid{
@@ -626,6 +709,7 @@ code{
   .tool-grid,
   .logs-grid,
   .stats-grid-5,
+  .stats-grid-4,
   .stats-grid-3,
   .detail-grid{
     grid-template-columns:1fr;
