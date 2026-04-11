@@ -69,6 +69,14 @@
   };
 
   // ─────────────────────────────────────────────
+  //  SAFE EVENT HELPER（找不到元素不會 throw）
+  // ─────────────────────────────────────────────
+  function on(selector, event, handler) {
+    const el = typeof selector === "string" ? document.querySelector(selector) : selector;
+    if (el) el.addEventListener(event, handler);
+  }
+
+  // ─────────────────────────────────────────────
   //  INIT
   // ─────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", init);
@@ -169,7 +177,7 @@
     $("#btnAddMockAdmin").addEventListener("click", addMockAdmin);
 
     // ── Admin Key 管理 ──
-    $("#btnSaveKey").addEventListener("click", () => {
+    on("#btnSaveKey", "click", () => {
       const input = valueOf("#adminKeyInput");
       if (!input) return toast("⚠️ 請輸入 Key");
       const ok = saveAdminKey(input);
@@ -181,7 +189,7 @@
       }
     });
 
-    $("#btnClearKey").addEventListener("click", () => {
+    on("#btnClearKey", "click", () => {
       const ok = confirm("確定清除已儲存的 Admin Key？");
       if (!ok) return;
       clearAdminKey();
@@ -189,10 +197,10 @@
       toast("🗑️ Key 已清除");
     });
 
-    // Enter 鍵快速儲存
-    $("#adminKeyInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") $("#btnSaveKey").click();
+    on("#adminKeyInput", "keydown", (e) => {
+      if (e.key === "Enter") $("#btnSaveKey")?.click();
     });
+  } // ← bindEvents 結尾
 
   // ─────────────────────────────────────────────
   //  REFRESH ALL
