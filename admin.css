@@ -664,6 +664,27 @@ textarea{ resize:vertical; }
   display:none;
 }
 
+/* ── ADMIN KEY STATUS ── */
+.key-status{
+  display:block;
+  border-radius:10px;
+  padding:8px 12px;
+  font-size:13px;
+  font-weight:900;
+  line-height:1.5;
+  word-break:break-all;
+}
+
+.key-status.ok{
+  background:var(--ok-bg);
+  color:var(--ok);
+}
+
+.key-status.warn{
+  background:var(--warn-bg);
+  color:var(--warn);
+}
+
 /* ── CODE ── */
 code{
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
