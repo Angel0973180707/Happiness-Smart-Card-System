@@ -7,13 +7,47 @@
   const CONFIG = {
     VERSION: "v6.3.0",
     GAS_BASE_URL: "https://script.google.com/macros/s/AKfycbycjN-ooacgi-K-uGUTZeWUwfmjHFI_JeESbM2SEGnjFsk0TPBuUY71bW-1AYAMI-E/exec",
-    ADMIN_KEY: "ANGEL20261972070707",
+    // ⚠️ ADMIN_KEY 已移除，改由操作台輸入後存入 localStorage
     HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     FORM_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/form.html",
     DEFAULT_RENEW_DAYS: 365,
     API_TIMEOUT_MS: 10000,
     API_RETRY: 1
   };
+
+  // ─────────────────────────────────────────────
+  //  ADMIN KEY 管理（localStorage 永久保存）
+  // ─────────────────────────────────────────────
+  const KEY_STORAGE = "hsc_admin_key";
+
+  function getAdminKey() {
+    return localStorage.getItem(KEY_STORAGE) || "";
+  }
+
+  function saveAdminKey(key) {
+    if (!key || !key.trim()) return false;
+    localStorage.setItem(KEY_STORAGE, key.trim());
+    return true;
+  }
+
+  function clearAdminKey() {
+    localStorage.removeItem(KEY_STORAGE);
+  }
+
+  function renderKeyStatus() {
+    const key = getAdminKey();
+    const statusEl = $("#keyStatus");
+    if (!statusEl) return;
+    if (key) {
+      // 只顯示末 4 碼，其餘遮蔽
+      const masked = "•".repeat(Math.max(0, key.length - 4)) + key.slice(-4);
+      statusEl.textContent = `✅ 已設定（${masked}）`;
+      statusEl.className = "key-status ok";
+    } else {
+      statusEl.textContent = "⚠️ 尚未設定，API 無法呼叫";
+      statusEl.className = "key-status warn";
+    }
+  }
 
   // ─────────────────────────────────────────────
   //  STATE
@@ -43,7 +77,13 @@
     bindEvents();
     setDefaultSettlementMonth();
     renderMockAdmins();
-    refreshAll();
+    renderKeyStatus();
+    // 若已有 key 才自動載入；否則提示先設定
+    if (getAdminKey()) {
+      refreshAll();
+    } else {
+      toast("⚠️ 請先在左側「Admin Key」區設定金鑰");
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -127,7 +167,32 @@
 
     $("#btnBuildSettlement").addEventListener("click", buildSettlement);
     $("#btnAddMockAdmin").addEventListener("click", addMockAdmin);
-  }
+
+    // ── Admin Key 管理 ──
+    $("#btnSaveKey").addEventListener("click", () => {
+      const input = valueOf("#adminKeyInput");
+      if (!input) return toast("⚠️ 請輸入 Key");
+      const ok = saveAdminKey(input);
+      if (ok) {
+        $("#adminKeyInput").value = "";
+        renderKeyStatus();
+        toast("✅ Key 已儲存，重新載入資料中…");
+        refreshAll();
+      }
+    });
+
+    $("#btnClearKey").addEventListener("click", () => {
+      const ok = confirm("確定清除已儲存的 Admin Key？");
+      if (!ok) return;
+      clearAdminKey();
+      renderKeyStatus();
+      toast("🗑️ Key 已清除");
+    });
+
+    // Enter 鍵快速儲存
+    $("#adminKeyInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("#btnSaveKey").click();
+    });
 
   // ─────────────────────────────────────────────
   //  REFRESH ALL
@@ -163,9 +228,14 @@
    * 查詢用 GET（不改資料）
    */
   async function apiGet(action, params = {}) {
+    const key = getAdminKey();
+    if (!key) {
+      toast("⚠️ 請先在左側「Admin Key」區設定金鑰");
+      throw new Error("Admin Key 未設定");
+    }
     const url = new URL(CONFIG.GAS_BASE_URL);
     url.searchParams.set("action", action);
-    url.searchParams.set("admin_key", CONFIG.ADMIN_KEY);
+    url.searchParams.set("admin_key", key);
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== null && String(v).trim() !== "") {
         url.searchParams.set(k, v);
@@ -179,10 +249,15 @@
    * 寫入用 POST（會改資料）
    */
   async function apiPost(action, params = {}) {
+    const key = getAdminKey();
+    if (!key) {
+      toast("⚠️ 請先在左側「Admin Key」區設定金鑰");
+      throw new Error("Admin Key 未設定");
+    }
     return _apiCall(
       "POST",
       CONFIG.GAS_BASE_URL,
-      JSON.stringify({ action, admin_key: CONFIG.ADMIN_KEY, ...params }),
+      JSON.stringify({ action, admin_key: key, ...params }),
       action
     );
   }
