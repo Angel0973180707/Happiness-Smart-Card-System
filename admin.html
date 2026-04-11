@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>HSC 後台管理系統 v6.2.1</title>
+  <title>HSC 後台管理系統 v6.3.0</title>
   <meta name="theme-color" content="#f7f5f1" />
   <meta name="format-detection" content="telephone=no" />
-  <link rel="stylesheet" href="./admin.css?v=6211" />
+  <link rel="stylesheet" href="./admin.css?v=630" />
 </head>
 <body>
   <div id="app" class="app">
@@ -14,7 +14,7 @@
       <div class="brand-block">
         <h1>HSC 後台管理系統</h1>
         <p class="topbar-sub">
-          v6.2.1 對齊版｜已對齊 v5.9.1-admin-log-clean
+          v6.3.0 商業閉環版｜付款→交付→續約→加購→分潤 全閉環
         </p>
       </div>
 
@@ -66,11 +66,15 @@
       </aside>
 
       <main class="main">
+        <!-- ───────────── DASHBOARD ───────────── -->
         <section id="dashboardSection" class="section">
           <div class="card">
             <div class="card-header">
               <h2>儀表板 Dashboard</h2>
+              <span class="badge badge-info">v6.3 商業閉環版</span>
             </div>
+
+            <!-- 原有 5 大指標 -->
             <div class="stats-grid stats-grid-5">
               <div class="stat-box"><div class="stat-label">待付款</div><div class="stat-value" id="statUnpaid">-</div></div>
               <div class="stat-box"><div class="stat-label">待交付</div><div class="stat-value" id="statNeedDelivery">-</div></div>
@@ -78,6 +82,36 @@
               <div class="stat-box"><div class="stat-label">待加購處理</div><div class="stat-value" id="statAddonPending">-</div></div>
               <div class="stat-box"><div class="stat-label">代理數</div><div class="stat-value" id="statAgents">-</div></div>
             </div>
+
+            <!-- v6.3：今日 KPI -->
+            <div class="section-subtitle mt16">今日 KPI</div>
+            <div class="stats-grid stats-grid-4 mt8">
+              <div class="stat-box stat-box-today">
+                <div class="stat-label">今日付款數</div>
+                <div class="stat-value stat-today" id="statTodayPayments">-</div>
+              </div>
+              <div class="stat-box stat-box-today">
+                <div class="stat-label">今日新增卡片</div>
+                <div class="stat-value stat-today" id="statTodayCards">-</div>
+              </div>
+              <div class="stat-box stat-box-today">
+                <div class="stat-label">今日 CTA 點擊</div>
+                <div class="stat-value stat-today" id="statTodayCta">-</div>
+              </div>
+              <div class="stat-box stat-box-today">
+                <div class="stat-label">今日轉換</div>
+                <div class="stat-value stat-today" id="statTodayConversion">-</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- v6.3：高風險提醒 -->
+          <div class="card">
+            <div class="card-header">
+              <h2>⚠️ 高風險提醒</h2>
+              <span class="badge badge-warn">需立即處理</span>
+            </div>
+            <div id="dashboardRiskList" class="focus-list empty-state">尚未載入資料</div>
           </div>
 
           <div class="card">
@@ -86,6 +120,7 @@
           </div>
         </section>
 
+        <!-- ───────────── INVITE ───────────── -->
         <section id="inviteSection" class="section">
           <div class="card">
             <div class="card-header"><h2>申請碼 / 邀請碼管理</h2></div>
@@ -121,7 +156,7 @@
               <button id="btnCreateInviteCode" class="btn btn-primary">建立邀請碼</button>
             </div>
 
-            <div class="result-box">
+            <div class="result-box mt16">
               <div class="result-title">建立結果</div>
               <pre id="inviteCreateResult">尚未建立。</pre>
             </div>
@@ -132,6 +167,7 @@
           </div>
         </section>
 
+        <!-- ───────────── CARDS ───────────── -->
         <section id="cardSection" class="section">
           <div class="card">
             <div class="card-header">
@@ -178,6 +214,7 @@
           </div>
         </section>
 
+        <!-- ───────────── PREVIEW ───────────── -->
         <section id="previewSection" class="section">
           <div class="card">
             <div class="card-header">
@@ -202,6 +239,7 @@
           </div>
         </section>
 
+        <!-- ───────────── DELIVERY ───────────── -->
         <section id="deliverySection" class="section">
           <div class="card">
             <div class="card-header">
@@ -226,6 +264,7 @@
           </div>
         </section>
 
+        <!-- ───────────── UPDATE ───────────── -->
         <section id="updateSection" class="section">
           <div class="card">
             <div class="card-header">
@@ -251,6 +290,7 @@
           </div>
         </section>
 
+        <!-- ───────────── ADDONS ───────────── -->
         <section id="addonSection" class="section">
           <div class="card">
             <div class="card-header">
@@ -295,9 +335,13 @@
           </div>
         </section>
 
+        <!-- ───────────── RENEWAL ───────────── -->
         <section id="renewalSection" class="section">
           <div class="card">
-            <div class="card-header"><h2>續約管理</h2></div>
+            <div class="card-header">
+              <h2>續約管理</h2>
+              <span class="badge badge-info">v6.3：到期日由後端 markCardRenewed 計算</span>
+            </div>
 
             <div class="stats-grid stats-grid-3">
               <div class="stat-box"><div class="stat-label">即將到期（30天內）</div><div class="stat-value" id="renewalSoonCount">-</div></div>
@@ -336,11 +380,12 @@
                 <button id="btnCopyRenewalText" class="btn btn-primary">複製續約提醒文案</button>
                 <button id="btnCopyRenewalDeliveryText" class="btn btn-soft">複製續約交付文案</button>
               </div>
-              <textarea id="renewalTextBox" class="textarea" readonly></textarea>
+              <textarea id="renewalTextBox" class="textarea mt16" readonly></textarea>
             </div>
           </div>
         </section>
 
+        <!-- ───────────── AGENTS ───────────── -->
         <section id="agentSection" class="section">
           <div class="card">
             <div class="card-header">
@@ -384,6 +429,7 @@
           </div>
         </section>
 
+        <!-- ───────────── LOGS ───────────── -->
         <section id="logsSection" class="section">
           <div class="card">
             <div class="card-header"><h2>點數 / 分潤 / Log</h2></div>
@@ -470,6 +516,7 @@
           </div>
         </section>
 
+        <!-- ───────────── SETTLEMENT ───────────── -->
         <section id="settlementSection" class="section">
           <div class="card">
             <div class="card-header"><h2>結算管理</h2></div>
@@ -489,6 +536,7 @@
           </div>
         </section>
 
+        <!-- ───────────── ADMIN USERS ───────────── -->
         <section id="adminUsersSection" class="section">
           <div class="card">
             <div class="card-header">
@@ -543,11 +591,11 @@
   </div>
 
   <div id="loadingMask" class="loading-mask hidden">
-    <div class="loading-box">資料處理中...</div>
+    <div class="loading-box">資料處理中…</div>
   </div>
 
   <div id="toast" class="toast hidden"></div>
 
-  <script src="./admin.js?v=6211"></script>
+  <script src="./admin.js?v=630"></script>
 </body>
 </html>
