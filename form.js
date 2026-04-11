@@ -54,8 +54,7 @@
       aspect_ratio: "1:1",
       fit_mode: "cover"
     },
-    FIREBASE_MODULE: "./firebase.js",
-    RENEWAL_BASE_FEE: 500
+    FIREBASE_MODULE: "./firebase.js"
   };
 
   const DEFAULT_PHOTO_META = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
@@ -78,9 +77,7 @@
       renewCard: null,
       renewPaymentSummary: null,
       renewAddonSummary: null,
-      renewQuote: null,
-      hydratedCardMediaSource: null,
-      hydratedCardCtaSource: null
+      renewQuote: null
     },
 
     identity: {
@@ -558,85 +555,17 @@
   }
 
   function hydrateMediaFromCard(card) {
-    if (!card) return;
-    state.runtime.hydratedCardMediaSource = card;
-    const mediaMap = { avatar: card.avatar_url, logo: card.logo_url };
-    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) mediaMap[`photo${i}`] = card[`photo${i}_url`] || "";
-    Object.keys(mediaMap).forEach(key => {
-      const url = String(mediaMap[key] || "").trim();
-      if (!url) return;
-      ensurePhotoMetaKey(key);
-      if (!state.photoPreviewUrls[key]) state.photoPreviewUrls[key] = url;
-      if (!state.photoRealUrls[key]) state.photoRealUrls[key] = url;
-      if (!state.photoUploadState[key] || state.photoUploadState[key] === "idle" || state.photoUploadState[key] === "pending") {
-        state.photoUploadState[key] = "done";
-      }
-    });
+    void card;
   }
 
   function hydrateCtasFromCard(card) {
     if (!card) return;
-    state.runtime.hydratedCardCtaSource = card;
     for (let i = 1; i <= CONFIG.MAX_CTAS; i++) {
       const text = card[`cta_text_${i}`];
       const link = card[`cta_link_${i}`];
-      if (text !== undefined && !state.draftValues[`cta_text_${i}`]) state.draftValues[`cta_text_${i}`] = text || "";
-      if (link !== undefined && !state.draftValues[`cta_link_${i}`]) state.draftValues[`cta_link_${i}`] = link || "";
+      if (text !== undefined) state.draftValues[`cta_text_${i}`] = text || "";
+      if (link !== undefined) state.draftValues[`cta_link_${i}`] = link || "";
     }
-  }
-
-  function getHydrationSourceCard() {
-    return state.mode === "update" ? state.runtime.updateCard : state.mode === "renew" ? state.runtime.renewCard : null;
-  }
-
-  function applyCardCtaValuesToDom(card, limit) {
-    if (!card || !limit) return;
-    for (let i = 1; i <= limit; i++) {
-      const textEl = document.getElementById(`cta_text_${i}`);
-      const linkEl = document.getElementById(`cta_link_${i}`);
-      const textVal = card[`cta_text_${i}`];
-      const linkVal = card[`cta_link_${i}`];
-      if (textEl && !String(textEl.value || "").trim() && textVal !== undefined) textEl.value = textVal || "";
-      if (linkEl && !String(linkEl.value || "").trim() && linkVal !== undefined) linkEl.value = linkVal || "";
-    }
-  }
-
-  function reapplyHydratedCardCtasIfNeeded(limit) {
-    const card = state.runtime.hydratedCardCtaSource || getHydrationSourceCard();
-    if (!card || !limit) return;
-    applyCardCtaValuesToDom(card, limit);
-  }
-
-  function applyHydratedPhotoStateToDom() {
-    document.querySelectorAll("[data-photo-key]").forEach(cardEl => {
-      const key = cardEl.dataset.photoKey;
-      if (!key) return;
-      const previewImage = cardEl.querySelector(".preview-image");
-      const previewEmpty = cardEl.querySelector(".preview-empty");
-      const tools = cardEl.querySelector(".photo-tools");
-      const badge = cardEl.querySelector(".badge");
-      const zoomRange = cardEl.querySelector(".zoom-range");
-      hydratePhotoCardUi(key, { badge, previewImage, previewEmpty, tools, zoomRange });
-      if (badge && state.photoRealUrls[key] && !state.photoFiles[key]) {
-        badge.textContent = "已載入";
-        badge.dataset.uploadState = "done";
-      }
-    });
-  }
-
-  function reapplyHydratedCardMediaIfNeeded() {
-    const card = state.runtime.hydratedCardMediaSource || getHydrationSourceCard();
-    if (!card) return;
-    const mediaMap = { avatar: card.avatar_url, logo: card.logo_url };
-    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) mediaMap[`photo${i}`] = card[`photo${i}_url`] || "";
-    Object.keys(mediaMap).forEach(key => {
-      const url = String(mediaMap[key] || "").trim();
-      if (!url) return;
-      if (!state.photoPreviewUrls[key]) state.photoPreviewUrls[key] = url;
-      if (!state.photoRealUrls[key]) state.photoRealUrls[key] = url;
-      if (!state.photoUploadState[key] || state.photoUploadState[key] === "idle") state.photoUploadState[key] = "done";
-    });
-    applyHydratedPhotoStateToDom();
   }
 
   function setInputValue(id, value) {
@@ -701,20 +630,15 @@
   function getLimitsRenew() {
     const plan = state.renewFlow.targetPlan || getSelectedPlan() || "free";
     const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.free;
-    const card = state.runtime.renewCard;
-    const existingWallPhotos = clampNumber(card?.photo_limit, 0, CONFIG.MAX_WALL_PHOTOS, base.wallPhotos);
-    const existingCtas = clampNumber(card?.cta_limit, 0, CONFIG.MAX_CTAS, base.ctas);
-    const effectiveBaseWallPhotos = Math.max(base.wallPhotos, existingWallPhotos);
-    const effectiveBaseCtas = Math.max(base.ctas, existingCtas);
     let ewp = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
     let ect = isAddonChecked("addon_cta") ? getAddonQty("addon_cta_qty") : 0;
-    ewp = Math.min(ewp, CONFIG.MAX_WALL_PHOTOS - effectiveBaseWallPhotos);
-    ect = Math.min(ect, CONFIG.MAX_CTAS - effectiveBaseCtas);
+    ewp = Math.min(ewp, CONFIG.MAX_WALL_PHOTOS - base.wallPhotos);
+    ect = Math.min(ect, CONFIG.MAX_CTAS - base.ctas);
     return {
       plan, planLabel: base.label, planPrice: base.price,
-      baseWallPhotos: effectiveBaseWallPhotos,
-      wallPhotos: effectiveBaseWallPhotos + ewp,
-      ctas: effectiveBaseCtas + ect,
+      baseWallPhotos: base.wallPhotos,
+      wallPhotos: base.wallPhotos + ewp,
+      ctas: base.ctas + ect,
       extraWallPhotos: ewp, extraCtas: ect
     };
   }
@@ -747,9 +671,7 @@
     syncAddonInputs(limits);
     syncMarqueeSection();
     renderPhotoSections(limits.wallPhotos);
-    reapplyHydratedCardMediaIfNeeded();
     renderCtas(limits.ctas);
-    reapplyHydratedCardCtasIfNeeded(limits.ctas);
     syncSummary(limits);
     syncQuoteByMode();
     syncModePanels();
@@ -867,25 +789,34 @@
 
   function syncRenewQuote() {
     const targetPlan = state.renewFlow.targetPlan || getSelectedPlan() || "free";
-    const basePrice = CONFIG.RENEWAL_BASE_FEE;
+    const basePrice = CONFIG.BASE_LIMITS[targetPlan]?.price || 1500;
     const addonItems = getAddonItemsForQuote(getLimitsRenew());
     const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
     const unlimitedFee = state.renewFlow.renewUnlimitedUpdate ? 300 : 0;
-    const total = basePrice + addonAmount + unlimitedFee;
+    let total = basePrice + addonAmount + unlimitedFee;
+
+    const originalPlan = state.runtime.renewCard?.plan;
+    let planDiffFee = 0;
+    if (originalPlan && originalPlan !== targetPlan) {
+      const originalPrice = CONFIG.BASE_LIMITS[originalPlan]?.price || 0;
+      planDiffFee = Math.max(0, basePrice - originalPrice);
+      total = planDiffFee + addonAmount + unlimitedFee;
+    }
 
     if (els["quote-kicker"]) els["quote-kicker"].textContent = "續約報價";
     if (els["quote-title"]) els["quote-title"].textContent = "續約費用";
-    if (els["quote-state-text"]) els["quote-state-text"].textContent = `${CONFIG.BASE_LIMITS[targetPlan]?.label || targetPlan}｜續約基本費 ${money(basePrice)}`;
-    if (els["quote-plan-amount"]) els["quote-plan-amount"].textContent = money(basePrice);
+    if (els["quote-state-text"]) els["quote-state-text"].textContent = `${CONFIG.BASE_LIMITS[targetPlan]?.label || targetPlan} 續約`;
+    if (els["quote-plan-amount"]) els["quote-plan-amount"].textContent = money(planDiffFee > 0 ? planDiffFee : basePrice);
     if (els["quote-addon-amount"]) els["quote-addon-amount"].textContent = money(addonAmount + unlimitedFee);
     if (els["quote-total-amount"]) els["quote-total-amount"].textContent = money(total);
     if (els["quote-addon-breakdown"]) {
       els["quote-addon-breakdown"].innerHTML = "";
-      const baseRow = document.createElement("div");
-      baseRow.className = "quote-breakdown-row";
-      baseRow.innerHTML = `<span>續約基本費</span><strong>${money(basePrice)}</strong>`;
-      els["quote-addon-breakdown"].appendChild(baseRow);
-
+      if (planDiffFee > 0) {
+        const row = document.createElement("div");
+        row.className = "quote-breakdown-row";
+        row.innerHTML = `<span>方案差價 (${escapeHtml(originalPlan)} → ${escapeHtml(targetPlan)})</span><strong>${money(planDiffFee)}</strong>`;
+        els["quote-addon-breakdown"].appendChild(row);
+      }
       addonItems.forEach(item => {
         const row = document.createElement("div");
         row.className = "quote-breakdown-row";
@@ -898,8 +829,14 @@
         row.innerHTML = `<span>續用無限更新</span><strong>${money(unlimitedFee)}</strong>`;
         els["quote-addon-breakdown"].appendChild(row);
       }
+      if (!planDiffFee && !addonItems.length && !unlimitedFee) {
+        const row = document.createElement("div");
+        row.className = "quote-breakdown-row";
+        row.innerHTML = `<span>續約主方案</span><strong>${money(basePrice)}</strong>`;
+        els["quote-addon-breakdown"].appendChild(row);
+      }
     }
-    state.quote = { mode: "renew", planAmount: basePrice, addonAmount, totalAmount: total, baseRenewalFee: basePrice, planDiffFee: 0, unlimitedUpdateFee: unlimitedFee, quoteItems: addonItems };
+    state.quote = { mode: "renew", planAmount: basePrice, addonAmount, totalAmount: total, planDiffFee, unlimitedUpdateFee: unlimitedFee, quoteItems: addonItems };
   }
 
   function buildCreateQuoteSummary() {
@@ -1387,7 +1324,7 @@
       invite_code: valueOf("invite_code"),
       referrer: valueOf("ref"),
       service_agent: valueOf("ref"),
-      agent_type: valueOf("ref") ? "service" : "self",
+      agent_type: valueOf("ref") ? "referral" : "customer",
       share_source: "form",
       share_channel: "direct",
       ...shared,
@@ -1740,7 +1677,6 @@
 
     try {
       const quote = await requestRenewQuote();
-      const normalizedRenewTotal = Number(state.quote.totalAmount || 0);
       setProgressStep(2, "建立續約付款資訊…");
 
       const paymentPayload = {
@@ -1750,8 +1686,8 @@
         target_plan: state.renewFlow.targetPlan,
         selected_addons: collectRenewSelectedAddons(),
         renew_unlimited_update: state.renewFlow.renewUnlimitedUpdate,
-        quote_items: quote.quote_items || state.quote.quoteItems || [],
-        total_amount: normalizedRenewTotal || quote.total_amount || state.quote.totalAmount
+        quote_items: quote.quote_items || [],
+        total_amount: quote.total_amount || state.quote.totalAmount
       };
       const paymentRes = await postToGas(paymentPayload);
       if (!paymentRes.ok) throw new Error(paymentRes.error || "建立續約付款資訊失敗");
@@ -1766,7 +1702,7 @@
         paymentId,
         paymentDueAt: dueAt,
         dueDateStr: formatDateYMD(dueAt),
-        totalAmount: normalizedRenewTotal || paymentPayload.total_amount,
+        totalAmount: paymentPayload.total_amount,
         targetPlan: state.renewFlow.targetPlan,
         customerName: valueOf("display_name") || "您",
         quoteItems: quote.quote_items || []
@@ -1932,9 +1868,8 @@
       els["success-info-rows"].innerHTML = `
         <div class="success-info-row"><span class="label">名片序號</span><span class="value">${escapeHtml(result.cardId)}</span></div>
         <div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>
-        <div class="success-info-row"><span class="label">續約基本費</span><span class="value">${money(CONFIG.RENEWAL_BASE_FEE)}</span></div>
         <div class="success-info-row"><span class="label">應付金額</span><span class="value">${money(result.totalAmount)}</span></div>
-        <div class="success-info-row"><span class="label">續約方案</span><span class="value">${escapeHtml(CONFIG.BASE_LIMITS[result.targetPlan]?.label || result.targetPlan)}</span></div>
+        <div class="success-info-row"><span class="label">目標方案</span><span class="value">${escapeHtml(result.targetPlan)}</span></div>
       `;
     }
     if (els["success-due-alert"]) {
