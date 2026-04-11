@@ -78,7 +78,9 @@
       renewCard: null,
       renewPaymentSummary: null,
       renewAddonSummary: null,
-      renewQuote: null
+      renewQuote: null,
+      hydratedCardMediaSource: null,
+      hydratedCardCtaSource: null
     },
 
     identity: {
@@ -556,17 +558,85 @@
   }
 
   function hydrateMediaFromCard(card) {
-    void card;
+    if (!card) return;
+    state.runtime.hydratedCardMediaSource = card;
+    const mediaMap = { avatar: card.avatar_url, logo: card.logo_url };
+    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) mediaMap[`photo${i}`] = card[`photo${i}_url`] || "";
+    Object.keys(mediaMap).forEach(key => {
+      const url = String(mediaMap[key] || "").trim();
+      if (!url) return;
+      ensurePhotoMetaKey(key);
+      if (!state.photoPreviewUrls[key]) state.photoPreviewUrls[key] = url;
+      if (!state.photoRealUrls[key]) state.photoRealUrls[key] = url;
+      if (!state.photoUploadState[key] || state.photoUploadState[key] === "idle" || state.photoUploadState[key] === "pending") {
+        state.photoUploadState[key] = "done";
+      }
+    });
   }
 
   function hydrateCtasFromCard(card) {
     if (!card) return;
+    state.runtime.hydratedCardCtaSource = card;
     for (let i = 1; i <= CONFIG.MAX_CTAS; i++) {
       const text = card[`cta_text_${i}`];
       const link = card[`cta_link_${i}`];
-      if (text !== undefined) state.draftValues[`cta_text_${i}`] = text || "";
-      if (link !== undefined) state.draftValues[`cta_link_${i}`] = link || "";
+      if (text !== undefined && !state.draftValues[`cta_text_${i}`]) state.draftValues[`cta_text_${i}`] = text || "";
+      if (link !== undefined && !state.draftValues[`cta_link_${i}`]) state.draftValues[`cta_link_${i}`] = link || "";
     }
+  }
+
+  function getHydrationSourceCard() {
+    return state.mode === "update" ? state.runtime.updateCard : state.mode === "renew" ? state.runtime.renewCard : null;
+  }
+
+  function applyCardCtaValuesToDom(card, limit) {
+    if (!card || !limit) return;
+    for (let i = 1; i <= limit; i++) {
+      const textEl = document.getElementById(`cta_text_${i}`);
+      const linkEl = document.getElementById(`cta_link_${i}`);
+      const textVal = card[`cta_text_${i}`];
+      const linkVal = card[`cta_link_${i}`];
+      if (textEl && !String(textEl.value || "").trim() && textVal !== undefined) textEl.value = textVal || "";
+      if (linkEl && !String(linkEl.value || "").trim() && linkVal !== undefined) linkEl.value = linkVal || "";
+    }
+  }
+
+  function reapplyHydratedCardCtasIfNeeded(limit) {
+    const card = state.runtime.hydratedCardCtaSource || getHydrationSourceCard();
+    if (!card || !limit) return;
+    applyCardCtaValuesToDom(card, limit);
+  }
+
+  function applyHydratedPhotoStateToDom() {
+    document.querySelectorAll("[data-photo-key]").forEach(cardEl => {
+      const key = cardEl.dataset.photoKey;
+      if (!key) return;
+      const previewImage = cardEl.querySelector(".preview-image");
+      const previewEmpty = cardEl.querySelector(".preview-empty");
+      const tools = cardEl.querySelector(".photo-tools");
+      const badge = cardEl.querySelector(".badge");
+      const zoomRange = cardEl.querySelector(".zoom-range");
+      hydratePhotoCardUi(key, { badge, previewImage, previewEmpty, tools, zoomRange });
+      if (badge && state.photoRealUrls[key] && !state.photoFiles[key]) {
+        badge.textContent = "已載入";
+        badge.dataset.uploadState = "done";
+      }
+    });
+  }
+
+  function reapplyHydratedCardMediaIfNeeded() {
+    const card = state.runtime.hydratedCardMediaSource || getHydrationSourceCard();
+    if (!card) return;
+    const mediaMap = { avatar: card.avatar_url, logo: card.logo_url };
+    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) mediaMap[`photo${i}`] = card[`photo${i}_url`] || "";
+    Object.keys(mediaMap).forEach(key => {
+      const url = String(mediaMap[key] || "").trim();
+      if (!url) return;
+      if (!state.photoPreviewUrls[key]) state.photoPreviewUrls[key] = url;
+      if (!state.photoRealUrls[key]) state.photoRealUrls[key] = url;
+      if (!state.photoUploadState[key] || state.photoUploadState[key] === "idle") state.photoUploadState[key] = "done";
+    });
+    applyHydratedPhotoStateToDom();
   }
 
   function setInputValue(id, value) {
@@ -631,15 +701,20 @@
   function getLimitsRenew() {
     const plan = state.renewFlow.targetPlan || getSelectedPlan() || "free";
     const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.free;
+    const card = state.runtime.renewCard;
+    const existingWallPhotos = clampNumber(card?.photo_limit, 0, CONFIG.MAX_WALL_PHOTOS, base.wallPhotos);
+    const existingCtas = clampNumber(card?.cta_limit, 0, CONFIG.MAX_CTAS, base.ctas);
+    const effectiveBaseWallPhotos = Math.max(base.wallPhotos, existingWallPhotos);
+    const effectiveBaseCtas = Math.max(base.ctas, existingCtas);
     let ewp = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
     let ect = isAddonChecked("addon_cta") ? getAddonQty("addon_cta_qty") : 0;
-    ewp = Math.min(ewp, CONFIG.MAX_WALL_PHOTOS - base.wallPhotos);
-    ect = Math.min(ect, CONFIG.MAX_CTAS - base.ctas);
+    ewp = Math.min(ewp, CONFIG.MAX_WALL_PHOTOS - effectiveBaseWallPhotos);
+    ect = Math.min(ect, CONFIG.MAX_CTAS - effectiveBaseCtas);
     return {
       plan, planLabel: base.label, planPrice: base.price,
-      baseWallPhotos: base.wallPhotos,
-      wallPhotos: base.wallPhotos + ewp,
-      ctas: base.ctas + ect,
+      baseWallPhotos: effectiveBaseWallPhotos,
+      wallPhotos: effectiveBaseWallPhotos + ewp,
+      ctas: effectiveBaseCtas + ect,
       extraWallPhotos: ewp, extraCtas: ect
     };
   }
@@ -672,7 +747,9 @@
     syncAddonInputs(limits);
     syncMarqueeSection();
     renderPhotoSections(limits.wallPhotos);
+    reapplyHydratedCardMediaIfNeeded();
     renderCtas(limits.ctas);
+    reapplyHydratedCardCtasIfNeeded(limits.ctas);
     syncSummary(limits);
     syncQuoteByMode();
     syncModePanels();
