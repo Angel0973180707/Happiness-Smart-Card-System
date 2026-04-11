@@ -1,26 +1,14 @@
 /* ============================================================
    天使幸福智慧名片館 form.js
-   v8.3.3-preview-fix
+   v8.3.4 - 三模式共構可實作版
 
-   v8.3.3 修正項目：
-   1. updatePreview() root 改為 #preview-theme-scope
-      renderer 的 applyThemeClasses 會把主題 class 套在
-      preview-theme-scope 本身，與 style.css 選擇器一致
-   2. 移除 syncPreviewContainerClasses()，不再與 renderer 衝突
-   3. buildPreviewData() 傳 features.photo_preview_urls（base64 備援）
-   4. 移除硬編 invite_code: "TEST001"
-   5. create 成功後固定三段流程：
-      Step1 createCardWithOfflinePayment
-      Step2 markCardDelivered
-      Step3 buildPaymentNoticeText
-
-   v8.2 原有功能（完整保留）：
-   - Firebase 圖片上傳
-   - quote
-   - progress overlay / success panel
-   - waitAllUploads
-   - 草稿
-   - update / renew 模式骨架
+   主要更新：
+   1. 新增 mode=create / update / renew 三模式切換
+   2. 新增 mode-aware 報價、驗證、送出、成功面板
+   3. 保留 Firebase 圖片上傳、草稿、預覽等既有功能
+   4. update 模式支援資格判斷（免費次數/無限更新/付費更新）
+   5. renew 模式支援換方案、加購、續用無限更新
+   6. 成功面板依模式顯示不同文案與按鈕
 ============================================================ */
 
 (() => {
@@ -34,18 +22,24 @@
     SERVICE_URL: "https://lin.ee/G3VJoRm",
     SHOWCASE_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/",
     QUOTE_STORAGE_KEY: "HSC_LAST_QUOTE",
-    DRAFT_KEY: "hsc_form_draft_v833",
+    DRAFT_KEY: "hsc_form_draft_v834",
 
+    // Actions
     CREATE_ACTION: "createCardWithOfflinePayment",
     DELIVER_ACTION: "markCardDelivered",
     PAYMENT_NOTICE_ACTION: "buildPaymentNoticeText",
 
     UPDATE_LOAD_ACTION: "getCardForUpdate",
+    UPDATE_ELIGIBILITY_ACTION: "getUpdateEligibility",
     UPDATE_SUBMIT_ACTION: "updateCardByToken",
+    UPDATE_CREATE_PAYMENT_ACTION: "createUpdateFeePayment",
 
-    RENEW_LOAD_ACTION: "getCardForRenewal",
-    RENEW_SUMMARY_ACTION: "getRenewalSummary",
+    RENEW_LOAD_CARD_ACTION: "getCard",
+    RENEW_PAYMENT_SUMMARY_ACTION: "getCardPaymentSummary",
+    RENEW_ADDON_SUMMARY_ACTION: "getAddonOrders",
+    RENEW_QUOTE_ACTION: "createRenewalQuote",
     RENEW_CREATE_PAYMENT_ACTION: "createRenewalPayment",
+    RENEW_MARK_RENEWED_ACTION: "markCardRenewed",
 
     BASE_LIMITS: {
       free: { wallPhotos: 2, ctas: 1, price: 1500, label: "自由搭配" },
@@ -72,12 +66,112 @@
   const DEFAULT_PHOTO_META = { x: 0.5, y: 0.5, scale: 1, rotate: 0 };
 
   /* ============================================================
-     STATE
+     STATE - 三模式共構狀態結構
   ============================================================ */
   const state = {
     mode: "create",
     query: {},
-    modeContext: { token: "", cardId: "" },
+    modeContext: {
+      cardId: "",
+      inviteCode: "",
+      updateToken: "",
+      renewToken: ""
+    },
+
+    runtime: {
+      createMeta: null,
+      updateCard: null,
+      updateEligibilityRaw: null,
+      updateEligibility: null,
+      renewCard: null,
+      renewPaymentSummary: null,
+      renewAddonSummary: null,
+      renewQuote: null
+    },
+
+    identity: {
+      tenant: "angel",
+      cardId: "",
+      leadId: "",
+      paymentId: "",
+      renewalId: "",
+      addonOrderId: ""
+    },
+
+    shared: {
+      name: "",
+      unit: "",
+      title: "",
+      slogan: "",
+      services: "",
+      experience: "",
+      wechat_id: "",
+      line_url: "",
+      line_oa: "",
+      email: "",
+      phone: "",
+      address: "",
+      website: "",
+      social1: "",
+      social2: "",
+      social3: "",
+      video1: "",
+      video2: "",
+      video3: ""
+    },
+
+    theme: {
+      plan: "",
+      color: "",
+      style: "",
+      paper: "",
+      photoLimit: 0,
+      ctaLimit: 0,
+      marqueeText: "",
+      marqueeEnabled: false
+    },
+
+    meta: {
+      referrer: "",
+      serviceAgent: "",
+      agentType: "",
+      shareSource: "",
+      shareChannel: ""
+    },
+
+    ctas: [],
+
+    quote: {
+      mode: "",
+      planAmount: 0,
+      addonAmount: 0,
+      totalAmount: 0,
+      baseRenewalFee: 0,
+      planDiffFee: 0,
+      unlimitedUpdateFee: 0,
+      quoteItems: [],
+      quoteSummary: ""
+    },
+
+    updateFlow: {
+      cardExpired: false,
+      freeRemaining: 0,
+      isUnlimited: false,
+      requiresPayment: false,
+      canSubmitDirectly: false,
+      deductFreeCount: false,
+      updateFeeAmount: 0,
+      expiresAt: "",
+      reasonText: ""
+    },
+
+    renewFlow: {
+      targetPlan: "",
+      selectedAddons: [],
+      renewUnlimitedUpdate: false,
+      renewTerm: 1,
+      newExpiresAt: ""
+    },
 
     photoMeta: {
       avatar: { ...DEFAULT_PHOTO_META },
@@ -91,16 +185,77 @@
 
     wallPhotoCount: 0,
     ctaCount: 0,
+    tempCardId: "",
     lastSubmitResult: null,
-    tempCardId: null,
     draftValues: {},
-    urlPhotoLimitOverride: 0
+    urlPhotoLimitOverride: 0,
+
+    snapshots: {
+      before: null,
+      after: null,
+      diff: null
+    }
   };
 
   const els = {};
   let _fb = null;
 
   document.addEventListener("DOMContentLoaded", init);
+
+  /* ============================================================
+     DOM CACHE & HELPER
+  ============================================================ */
+  function collectEls() {
+    const ids = [
+      "smart-card-form", "form-status-strip",
+      "btn-open-showcase", "btn-save-draft", "btn-clear-draft",
+      "btn-contact-service", "btn-submit-form",
+      "btn-gold-info", "btn-gold-copy", "btn-gold-contact",
+      "progress-contact-service", "btn-copy-primary-notice", "btn-copy-secondary-notice",
+      "invite_code", "ref",
+      "addon_marquee_enabled", "addon_photo_enabled", "addon_photo_qty",
+      "addon_cta_enabled", "addon_cta_qty",
+      "addon_update_unlimited_enabled", "addon_bundle_enabled",
+      "addon_agent_upgrade_enabled", "addon-photo-tip",
+      "free-theme-group", "premium-theme-group",
+      "free_color", "free_style", "free_paper", "premium_color",
+      "display_name", "unit", "title", "phone", "email", "website",
+      "line_url", "line_oa", "wechat_id", "experience", "services",
+      "address", "intro",
+      "video1", "video2", "video3",
+      "social1", "social2", "social3",
+      "marquee-section", "marquee_text",
+      "photo-slots", "cta-slots",
+      "preview-theme-scope",
+      "summary-plan-pill", "summary-photo-pill", "summary-cta-pill",
+      "summary-plan-name", "summary-photo-count", "summary-cta-count",
+      "summary-marquee-status",
+      "quote-kicker", "quote-title", "quote-state-text", "quote-plan-amount",
+      "quote-addon-amount", "quote-addon-breakdown", "quote-total-amount",
+      "submit-progress-overlay", "progress-text", "progress-fill",
+      "progress-success-panel",
+      "success-primary-id-label", "success-primary-id-value",
+      "success-info-rows", "success-due-alert", "success-due-text",
+      "success-preview-row", "success-preview-label", "progress-preview-link",
+      "success-summary-box", "success-summary-content",
+      "success-actions", "success-footer-note",
+      "success-header-icon", "success-header-title", "success-header-sub",
+      "mode-info-card", "mode-info-kicker", "mode-info-title", "mode-info-desc",
+      "mode-info-panel", "renew-controls-card", "renew-controls-panel",
+      "mode-inline-tip"
+    ];
+    ids.forEach(id => { els[id] = document.getElementById(id); });
+    els.planRadios = Array.from(document.querySelectorAll('input[name="plan"]'));
+    els.addonCheckboxes = Array.from(document.querySelectorAll('input[name="addons"]'));
+    els.planCards = Array.from(document.querySelectorAll("[data-plan-card]"));
+    els.progressSteps = Array.from(document.querySelectorAll(".progress-step"));
+    els.photoTemplate = document.getElementById("photo-slot-template");
+    els.ctaTemplate = document.getElementById("cta-slot-template");
+  }
+
+  function ensureRendererAlias() {
+    if (!window.HSCCardRenderer && window.HscCardRenderer) window.HSCCardRenderer = window.HscCardRenderer;
+  }
 
   /* ============================================================
      INIT
@@ -114,55 +269,203 @@
     upgradeExperienceToTextarea();
     bindStaticEvents();
     restoreDraft();
-    hydrateQueryParams();
     ensureDefaultPlan();
     state.tempCardId = "TEMP_" + Date.now();
+    loadModeBootstrap();
     refreshAll();
   }
 
+  function upgradeExperienceToTextarea() {
+    const old = document.getElementById("experience");
+    if (!old || old.tagName === "TEXTAREA") return;
+    const existingValue = old.value || "";
+    const parent = old.parentNode;
+    const ta = document.createElement("textarea");
+    ta.id = "experience";
+    ta.rows = 4;
+    ta.placeholder = "例：前 XX 公司品牌顧問、10 年業界資歷\n可換行填寫多段經歷";
+    ta.style.cssText = "resize:vertical;min-height:96px;";
+    ta.value = existingValue;
+    parent.insertBefore(ta, old);
+    parent.removeChild(old);
+    els["experience"] = ta;
+    ta.addEventListener("input", onLiveChange);
+    ta.addEventListener("change", onLiveChange);
+  }
+
   /* ============================================================
-     MODE
+     QUERY / MODE
   ============================================================ */
+  function hydrateQueryParams() {
+    let search = "";
+    try { search = window.location.search || ""; } catch (_) { return; }
+    if (!search) return;
+    const params = new URLSearchParams(search);
+    state.query = Object.fromEntries(params.entries());
+
+    const inviteCode = params.get("invite_code") || params.get("invite");
+    if (inviteCode && els["invite_code"]) els["invite_code"].value = inviteCode.trim();
+
+    const ref = params.get("ref");
+    if (ref && els["ref"]) els["ref"].value = ref.trim();
+
+    const planParam = params.get("plan");
+    if (planParam === "free" || planParam === "premium") {
+      const radio = document.querySelector(`input[name="plan"][value="${planParam}"]`);
+      if (radio) radio.checked = true;
+    }
+
+    const photoLimitParam = Number(params.get("photo_limit") || 0);
+    if (Number.isFinite(photoLimitParam) && photoLimitParam > 0) {
+      state.urlPhotoLimitOverride = Math.min(CONFIG.MAX_WALL_PHOTOS, Math.max(0, Math.floor(photoLimitParam)));
+    }
+  }
+
   function hydrateModeFromQuery() {
     const mode = String(state.query.mode || "create").trim().toLowerCase();
     if (mode === "update" || mode === "renew") state.mode = mode;
     else state.mode = "create";
-    state.modeContext.token = String(state.query.token || "").trim();
+
     state.modeContext.cardId = String(state.query.card_id || "").trim();
+    state.modeContext.inviteCode = String(state.query.invite_code || state.query.invite || "").trim();
+    state.modeContext.updateToken = String(state.query.update_token || "").trim();
+    state.modeContext.renewToken = String(state.query.renew_token || "").trim();
+
+    if (state.mode === "update" && !state.modeContext.updateToken && state.modeContext.cardId) {
+      state.modeContext.updateToken = state.modeContext.cardId;
+    }
+    if (state.mode === "renew" && !state.modeContext.renewToken && state.modeContext.cardId) {
+      state.modeContext.renewToken = state.modeContext.cardId;
+    }
   }
 
   function applyModeUi() {
-    const h1 = document.querySelector(".page-hero h1");
-    const heroDesc = document.querySelector(".hero-desc");
-    if (!h1 || !heroDesc) return;
+    const h1 = document.getElementById("page-hero-title") || document.querySelector(".page-hero h1");
+    const heroDesc = document.getElementById("hero-desc") || document.querySelector(".hero-desc");
+    const submitBtn = els["btn-submit-form"];
+
     if (state.mode === "update") {
-      h1.textContent = "智慧名片更新表單";
-      heroDesc.textContent = "v8.3.3｜update 模式骨架已收，後續接 getCardForUpdate / updateCardByToken。";
+      if (h1) h1.textContent = "智慧名片更新表單";
+      if (heroDesc) heroDesc.textContent = "v8.3.4｜更新模式：免費次數／無限更新／單次付費更新";
+      if (submitBtn) submitBtn.textContent = "送出更新申請";
     } else if (state.mode === "renew") {
-      h1.textContent = "智慧名片續約表單";
-      heroDesc.textContent = "v8.3.3｜renew 模式骨架已收，後續接 getCardForRenewal / createRenewalPayment。";
+      if (h1) h1.textContent = "智慧名片續約表單";
+      if (heroDesc) heroDesc.textContent = "v8.3.4｜續約模式：可換方案、加購、續用無限更新";
+      if (submitBtn) submitBtn.textContent = "送出續約申請";
     } else {
-      h1.textContent = "智慧名片申請表";
-      heroDesc.textContent = "v8.3.3｜已對齊 GAS 真送出流程：建卡後自動寫入 3 天付款期限。";
+      if (h1) h1.textContent = "智慧名片申請表";
+      if (heroDesc) heroDesc.textContent = "v8.3.4｜三模式共構：建卡 / 更新 / 續約";
+      if (submitBtn) submitBtn.textContent = "送出申請";
+    }
+
+    // 控制模式卡片顯示
+    const isUpdate = state.mode === "update";
+    const isRenew = state.mode === "renew";
+    if (els["mode-info-card"]) {
+      els["mode-info-card"].classList.toggle("hidden", !(isUpdate || isRenew));
+    }
+    if (els["renew-controls-card"]) {
+      els["renew-controls-card"].classList.toggle("hidden", !isRenew);
+    }
+  }
+
+  function syncModePanels() {
+    if (state.mode === "update" && state.runtime.updateEligibility) {
+      renderUpdateEligibilityPanel();
+    } else if (state.mode === "renew" && state.runtime.renewCard) {
+      renderRenewSummaryPanel();
+      renderRenewControls();
     }
   }
 
   /* ============================================================
-     Firebase lazy import
+     BOOTSTRAP
   ============================================================ */
-  async function getFirebase() {
-    if (_fb) return _fb;
+  async function loadModeBootstrap() {
+    if (state.mode === "create") {
+      await loadCreateBootstrap();
+    } else if (state.mode === "update") {
+      await loadUpdateBootstrap();
+    } else if (state.mode === "renew") {
+      await loadRenewBootstrap();
+    }
+    refreshAll();
+  }
+
+  async function loadCreateBootstrap() {
+    console.log("[HSC] 載入 create 模式");
+    state.runtime.createMeta = { mode: "create" };
+    if (els["invite_code"] && !els["invite_code"].value && state.modeContext.inviteCode) {
+      els["invite_code"].value = state.modeContext.inviteCode;
+    }
+  }
+
+  async function loadUpdateBootstrap() {
+    console.log("[HSC] 載入 update 模式");
+    const cardId = state.modeContext.cardId;
+    const token = state.modeContext.updateToken;
+    if (!cardId || !token) {
+      setStatus("缺少 card_id 或 update_token，無法載入更新模式。", "error");
+      return;
+    }
+
     try {
-      _fb = await import(CONFIG.FIREBASE_MODULE);
-      return _fb;
+      // 1. 取得卡片資料
+      const cardRes = await postToGas({ action: CONFIG.UPDATE_LOAD_ACTION, card_id: cardId, update_token: token });
+      if (!cardRes.ok) throw new Error(cardRes.error || "取得卡片資料失敗");
+      state.runtime.updateCard = cardRes.card || cardRes.data || cardRes;
+
+      // 2. 取得更新資格
+      const eligRes = await postToGas({ action: CONFIG.UPDATE_ELIGIBILITY_ACTION, card_id: cardId });
+      state.runtime.updateEligibilityRaw = eligRes;
+      resolveUpdateEligibilityState(eligRes);
+
+      // 3. 填入表單
+      hydrateFormFromCard(state.runtime.updateCard);
+
+      setStatus(`更新模式已載入。${state.updateFlow.reasonText || ""}`, "info");
     } catch (err) {
-      console.error("[HSC form] firebase.js import failed:", err);
-      throw new Error("Firebase 模組載入失敗，請確認 firebase.js 存在於根目錄。");
+      console.error(err);
+      setStatus(`載入更新失敗：${err.message}`, "error");
+    }
+  }
+
+  async function loadRenewBootstrap() {
+    console.log("[HSC] 載入 renew 模式");
+    const cardId = state.modeContext.cardId;
+    const token = state.modeContext.renewToken;
+    if (!cardId || !token) {
+      setStatus("缺少 card_id 或 renew_token，無法載入續約模式。", "error");
+      return;
+    }
+
+    try {
+      const cardRes = await postToGas({ action: CONFIG.RENEW_LOAD_CARD_ACTION, card_id: cardId, renew_token: token });
+      if (!cardRes.ok) throw new Error(cardRes.error || "取得卡片資料失敗");
+      state.runtime.renewCard = cardRes.card || cardRes.data || cardRes;
+
+      const paymentRes = await postToGas({ action: CONFIG.RENEW_PAYMENT_SUMMARY_ACTION, card_id: cardId });
+      state.runtime.renewPaymentSummary = paymentRes;
+
+      const addonRes = await postToGas({ action: CONFIG.RENEW_ADDON_SUMMARY_ACTION, card_id: cardId });
+      state.runtime.renewAddonSummary = addonRes;
+
+      hydrateFormFromCard(state.runtime.renewCard);
+
+      // 預設目標方案為原方案
+      state.renewFlow.targetPlan = state.runtime.renewCard?.plan || getSelectedPlan() || "free";
+      const radio = document.querySelector(`input[name="plan"][value="${state.renewFlow.targetPlan}"]`);
+      if (radio) radio.checked = true;
+
+      setStatus("續約模式已載入，可調整方案與加購項目。", "info");
+    } catch (err) {
+      console.error(err);
+      setStatus(`載入續約失敗：${err.message}`, "error");
     }
   }
 
   /* ============================================================
-     統一送法
+     API / RESPONSE HELPERS
   ============================================================ */
   async function postToGas(payload) {
     const body = new URLSearchParams();
@@ -170,9 +473,8 @@
     const res = await fetch(CONFIG.GAS_URL, { method: "POST", body });
     const text = await res.text();
     let data;
-    try { data = JSON.parse(text); }
-    catch (err) {
-      console.error("[HSC form] GAS non-json response:", text);
+    try { data = JSON.parse(text); } catch (err) {
+      console.error("[HSC] GAS non-json response:", text);
       throw new Error("GAS 回傳格式錯誤");
     }
     if (!res.ok || data?.ok === false) {
@@ -181,9 +483,364 @@
     return data;
   }
 
+  function extractCardId(data) {
+    return data?.card_id || data?.id || data?.card?.id || data?.card?.card_id || data?.data?.card_id || "";
+  }
+
+  function extractPaymentId(data) {
+    return data?.payment?.payment_id || data?.payment_id || data?.data?.payment_id || "";
+  }
+
   /* ============================================================
-     圖片上傳
+     SHARED STATE / MAPPING
   ============================================================ */
+  function buildSharedCardData() {
+    return {
+      name: valueOf("display_name"),
+      unit: valueOf("unit"),
+      title: valueOf("title"),
+      slogan: valueOf("intro"),
+      services: valueOf("services"),
+      experience: valueOf("experience"),
+      wechat_id: valueOf("wechat_id"),
+      line_url: valueOf("line_url"),
+      line_oa: valueOf("line_oa"),
+      email: valueOf("email"),
+      phone: String(valueOf("phone") || "").replace(/\s/g, ""),
+      address: valueOf("address"),
+      website: valueOf("website"),
+      social1: valueOf("social1"),
+      social2: valueOf("social2"),
+      social3: valueOf("social3"),
+      video1: valueOf("video1"),
+      video2: valueOf("video2"),
+      video3: valueOf("video3")
+    };
+  }
+
+  function hydrateFormFromCard(card) {
+    if (!card) return;
+    const map = {
+      display_name: "name", unit: "unit", title: "title", intro: "slogan",
+      services: "services", experience: "experience", wechat_id: "wechat_id",
+      line_url: "line_url", line_oa: "line_oa", email: "email", phone: "phone",
+      address: "address", website: "website", social1: "social1", social2: "social2",
+      social3: "social3", video1: "video1", video2: "video2", video3: "video3"
+    };
+    for (const [field, prop] of Object.entries(map)) {
+      if (card[prop] !== undefined) setInputValue(field, card[prop]);
+    }
+    if (card.plan) {
+      const radio = document.querySelector(`input[name="plan"][value="${card.plan}"]`);
+      if (radio) radio.checked = true;
+    }
+    hydrateThemeFromCard(card);
+    hydrateMediaFromCard(card);
+    hydrateCtasFromCard(card);
+  }
+
+  function hydrateThemeFromCard(card) {
+    if (card.plan === "free") {
+      if (card.color) setInputValue("free_color", card.color);
+      if (card.style) setInputValue("free_style", card.style);
+      if (card.paper) setInputValue("free_paper", card.paper);
+    } else if (card.plan === "premium") {
+      if (card.color) setInputValue("premium_color", card.color);
+    }
+  }
+
+  function hydrateMediaFromCard(card) {
+    // 圖片 URL 暫不預填，避免覆蓋上傳狀態
+  }
+
+  function hydrateCtasFromCard(card) {
+    // CTA 動態產生後再填入
+  }
+
+  function setInputValue(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value ?? "";
+  }
+
+  /* ============================================================
+     LIMITS / PLAN / ADDON (mode-aware)
+  ============================================================ */
+  function ensureDefaultPlan() {
+    if (getSelectedPlan()) return;
+    const r = els.planRadios.find(r => r.value === "premium");
+    if (r) r.checked = true;
+  }
+
+  function getSelectedPlan() { return els.planRadios.find(r => r.checked)?.value || ""; }
+  function isAddonChecked(code) { return !!document.querySelector(`input[name="addons"][value="${code}"]`)?.checked; }
+  function getAddonQty(id) { const el = els[id]; if (!el) return 0; const n = Number(el.value || 0); return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0; }
+
+  function getLimits() {
+    if (state.mode === "create") return getLimitsCreate();
+    if (state.mode === "update") return getLimitsUpdate();
+    if (state.mode === "renew") return getLimitsRenew();
+    return getLimitsCreate();
+  }
+
+  function getLimitsCreate() {
+    const plan = getSelectedPlan() || "premium";
+    const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
+    const urlOverride = Number(state.urlPhotoLimitOverride || 0);
+    const effectiveBaseWallPhotos = urlOverride > 0 ? Math.min(urlOverride, CONFIG.MAX_WALL_PHOTOS) : base.wallPhotos;
+    let ewp = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
+    let ect = isAddonChecked("addon_cta") ? getAddonQty("addon_cta_qty") : 0;
+    ewp = Math.min(ewp, CONFIG.MAX_WALL_PHOTOS - effectiveBaseWallPhotos);
+    ect = Math.min(ect, CONFIG.MAX_CTAS - base.ctas);
+    return {
+      plan, planLabel: base.label, planPrice: base.price,
+      baseWallPhotos: effectiveBaseWallPhotos,
+      wallPhotos: effectiveBaseWallPhotos + ewp,
+      ctas: base.ctas + ect,
+      extraWallPhotos: ewp, extraCtas: ect
+    };
+  }
+
+  function getLimitsUpdate() {
+    // 更新模式沿用原卡片限制，不可變更方案與加購數量（僅可修改內容）
+    const card = state.runtime.updateCard;
+    const plan = card?.plan || getSelectedPlan() || "premium";
+    const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
+    return {
+      plan, planLabel: base.label, planPrice: base.price,
+      baseWallPhotos: card?.photo_limit ?? base.wallPhotos,
+      wallPhotos: card?.photo_limit ?? base.wallPhotos,
+      ctas: card?.cta_limit ?? base.ctas,
+      extraWallPhotos: 0, extraCtas: 0
+    };
+  }
+
+  function getLimitsRenew() {
+    // 續約模式：可選擇新方案，加購可重新選擇
+    const plan = state.renewFlow.targetPlan || getSelectedPlan() || "premium";
+    const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
+    let ewp = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
+    let ect = isAddonChecked("addon_cta") ? getAddonQty("addon_cta_qty") : 0;
+    ewp = Math.min(ewp, CONFIG.MAX_WALL_PHOTOS - base.wallPhotos);
+    ect = Math.min(ect, CONFIG.MAX_CTAS - base.ctas);
+    return {
+      plan, planLabel: base.label, planPrice: base.price,
+      baseWallPhotos: base.wallPhotos,
+      wallPhotos: base.wallPhotos + ewp,
+      ctas: base.ctas + ect,
+      extraWallPhotos: ewp, extraCtas: ect
+    };
+  }
+
+  function getAddonItemsForQuote(limits) {
+    const items = [];
+    const bundleChecked = isAddonChecked("addon_bundle");
+    const photoChecked = isAddonChecked("addon_photo");
+    const ctaChecked = isAddonChecked("addon_cta");
+    const photoQty = photoChecked ? getAddonQty("addon_photo_qty") : 0;
+    const ctaQty = ctaChecked ? getAddonQty("addon_cta_qty") : 0;
+
+    if (bundleChecked) {
+      items.push({ code: "addon_bundle", name: "跑馬燈＋更新組合", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_bundle, amount: CONFIG.ADDON_PRICES.addon_bundle });
+    } else {
+      if (isAddonChecked("addon_marquee")) items.push({ code: "addon_marquee", name: "跑馬燈功能", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_marquee, amount: CONFIG.ADDON_PRICES.addon_marquee });
+      if (isAddonChecked("addon_update_unlimited")) items.push({ code: "addon_update_unlimited", name: "無限更新", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited, amount: CONFIG.ADDON_PRICES.addon_update_unlimited });
+    }
+    if (photoChecked && photoQty > 0) items.push({ code: "addon_photo", name: "照片牆加購", qty: photoQty, unit_price: CONFIG.ADDON_PRICES.addon_photo, amount: photoQty * CONFIG.ADDON_PRICES.addon_photo });
+    if (ctaChecked && ctaQty > 0) items.push({ code: "addon_cta", name: "CTA 加購", qty: ctaQty, unit_price: CONFIG.ADDON_PRICES.addon_cta, amount: ctaQty * CONFIG.ADDON_PRICES.addon_cta });
+    if (isAddonChecked("addon_agent_upgrade")) items.push({ code: "addon_agent_upgrade", name: "金牌級會員", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade, amount: CONFIG.ADDON_PRICES.addon_agent_upgrade });
+
+    return items;
+  }
+
+  /* ============================================================
+     REFRESH / UI SYNC
+  ============================================================ */
+  function refreshAll() {
+    const limits = getLimits();
+    syncPlanCards();
+    syncThemeGroups(limits.plan);
+    syncAddonInputs(limits);
+    syncMarqueeSection();
+    renderPhotoSections(limits.wallPhotos);
+    renderCtas(limits.ctas);
+    syncSummary(limits);
+    syncQuoteByMode();
+    syncModePanels();
+    updatePreview();
+    saveDraftSilently();
+  }
+
+  function syncPlanCards() {
+    const plan = getSelectedPlan();
+    els.planCards.forEach(c => c.classList.toggle("is-selected", c.getAttribute("data-plan-card") === plan));
+  }
+
+  function syncThemeGroups(plan) {
+    els["free-theme-group"]?.classList.toggle("hidden", plan !== "free");
+    els["premium-theme-group"]?.classList.toggle("hidden", plan !== "premium");
+  }
+
+  function syncAddonInputs(limits) {
+    const bundleChecked = isAddonChecked("addon_bundle");
+    if (els["addon_photo_qty"]) {
+      const enabled = isAddonChecked("addon_photo");
+      const maxExtra = Math.max(0, CONFIG.MAX_WALL_PHOTOS - limits.baseWallPhotos);
+      els["addon_photo_qty"].disabled = !enabled || state.mode !== "create";
+      els["addon_photo_qty"].max = String(maxExtra);
+      if (!enabled) els["addon_photo_qty"].value = "0";
+    }
+    if (els["addon_cta_qty"]) {
+      const enabled = isAddonChecked("addon_cta");
+      const maxExtra = Math.max(0, CONFIG.MAX_CTAS - (CONFIG.BASE_LIMITS[limits.plan]?.ctas || 3));
+      els["addon_cta_qty"].disabled = !enabled || state.mode !== "create";
+      els["addon_cta_qty"].max = String(maxExtra);
+      if (!enabled) els["addon_cta_qty"].value = "0";
+    }
+    if (els["addon_marquee_enabled"]) {
+      els["addon_marquee_enabled"].disabled = bundleChecked || state.mode !== "create";
+      if (bundleChecked) els["addon_marquee_enabled"].checked = false;
+    }
+    if (els["addon_update_unlimited_enabled"]) {
+      els["addon_update_unlimited_enabled"].disabled = bundleChecked || state.mode !== "create";
+      if (bundleChecked) els["addon_update_unlimited_enabled"].checked = false;
+    }
+  }
+
+  function syncMarqueeSection() {
+    els["marquee-section"]?.classList.toggle("hidden", !isMarqueeEnabled());
+  }
+
+  function syncSummary(limits) {
+    const set = (id, v) => { if (els[id]) els[id].textContent = v; };
+    set("summary-plan-pill", limits.planLabel);
+    set("summary-photo-pill", `照片牆：${limits.wallPhotos}`);
+    set("summary-cta-pill", `CTA：${limits.ctas}`);
+    set("summary-plan-name", limits.planLabel);
+    set("summary-photo-count", String(limits.wallPhotos));
+    set("summary-cta-count", String(limits.ctas));
+    set("summary-marquee-status", isMarqueeEnabled() ? "已開啟" : "未開啟");
+  }
+
+  /* ============================================================
+     QUOTE (mode-aware)
+  ============================================================ */
+  function syncQuoteByMode() {
+    if (state.mode === "create") syncCreateQuote();
+    else if (state.mode === "update") syncUpdateQuote();
+    else if (state.mode === "renew") syncRenewQuote();
+  }
+
+  function syncCreateQuote() {
+    const limits = getLimitsCreate();
+    const items = getAddonItemsForQuote(limits);
+    const addonAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const total = limits.planPrice + addonAmount;
+    if (els["quote-kicker"]) els["quote-kicker"].textContent = "即時報價";
+    if (els["quote-title"]) els["quote-title"].textContent = "目前費用";
+    if (els["quote-state-text"]) els["quote-state-text"].textContent = `${limits.planLabel}｜${money(total)}`;
+    if (els["quote-plan-amount"]) els["quote-plan-amount"].textContent = money(limits.planPrice);
+    if (els["quote-addon-amount"]) els["quote-addon-amount"].textContent = money(addonAmount);
+    if (els["quote-total-amount"]) els["quote-total-amount"].textContent = money(total);
+    if (els["quote-addon-breakdown"]) {
+      els["quote-addon-breakdown"].innerHTML = "";
+      if (!items.length) els["quote-addon-breakdown"].appendChild(Object.assign(document.createElement("span"), { textContent: "尚未選擇加購" }));
+      else items.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "quote-breakdown-row";
+        row.innerHTML = `<span>${escapeHtml(item.name)}${item.qty > 1 ? ` × ${item.qty}` : ""}</span><strong>${money(item.amount)}</strong>`;
+        els["quote-addon-breakdown"].appendChild(row);
+      });
+    }
+    state.quote = { mode: "create", planAmount: limits.planPrice, addonAmount, totalAmount: total, quoteItems: items };
+  }
+
+  function syncUpdateQuote() {
+    // 更新模式：顯示免費或付費資訊，不顯示金額變化
+    const elig = state.updateFlow;
+    if (els["quote-kicker"]) els["quote-kicker"].textContent = "更新資格";
+    if (els["quote-title"]) els["quote-title"].textContent = elig.requiresPayment ? "需付費更新" : "免費更新";
+    if (els["quote-state-text"]) els["quote-state-text"].textContent = elig.reasonText || (elig.canSubmitDirectly ? "可直接更新" : "需先建立付款單");
+    if (els["quote-plan-amount"]) els["quote-plan-amount"].textContent = elig.requiresPayment ? money(elig.updateFeeAmount) : "NT$ 0";
+    if (els["quote-addon-amount"]) els["quote-addon-amount"].textContent = "";
+    if (els["quote-total-amount"]) els["quote-total-amount"].textContent = elig.requiresPayment ? money(elig.updateFeeAmount) : "免費";
+    if (els["quote-addon-breakdown"]) els["quote-addon-breakdown"].innerHTML = `<div class="quote-breakdown-row">${elig.reasonText || ""}</div>`;
+  }
+
+  function syncRenewQuote() {
+    const targetPlan = state.renewFlow.targetPlan || getSelectedPlan() || "premium";
+    const basePrice = CONFIG.BASE_LIMITS[targetPlan]?.price || 2000;
+    const addonItems = getAddonItemsForQuote(getLimitsRenew());
+    const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+    const unlimitedFee = state.renewFlow.renewUnlimitedUpdate ? 300 : 0;
+    let total = basePrice + addonAmount + unlimitedFee;
+
+    // 若有原卡片，計算方案差價
+    const originalPlan = state.runtime.renewCard?.plan;
+    let planDiffFee = 0;
+    if (originalPlan && originalPlan !== targetPlan) {
+      const originalPrice = CONFIG.BASE_LIMITS[originalPlan]?.price || 0;
+      planDiffFee = Math.max(0, basePrice - originalPrice);
+      total = planDiffFee + addonAmount + unlimitedFee;
+    }
+
+    if (els["quote-kicker"]) els["quote-kicker"].textContent = "續約報價";
+    if (els["quote-title"]) els["quote-title"].textContent = "續約費用";
+    if (els["quote-state-text"]) els["quote-state-text"].textContent = `${CONFIG.BASE_LIMITS[targetPlan]?.label} 續約`;
+    if (els["quote-plan-amount"]) els["quote-plan-amount"].textContent = money(planDiffFee > 0 ? planDiffFee : basePrice);
+    if (els["quote-addon-amount"]) els["quote-addon-amount"].textContent = money(addonAmount + unlimitedFee);
+    if (els["quote-total-amount"]) els["quote-total-amount"].textContent = money(total);
+    if (els["quote-addon-breakdown"]) {
+      els["quote-addon-breakdown"].innerHTML = "";
+      if (planDiffFee > 0) {
+        const row = document.createElement("div");
+        row.className = "quote-breakdown-row";
+        row.innerHTML = `<span>方案差價 (${originalPlan} → ${targetPlan})</span><strong>${money(planDiffFee)}</strong>`;
+        els["quote-addon-breakdown"].appendChild(row);
+      }
+      addonItems.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "quote-breakdown-row";
+        row.innerHTML = `<span>${escapeHtml(item.name)}${item.qty > 1 ? ` × ${item.qty}` : ""}</span><strong>${money(item.amount)}</strong>`;
+        els["quote-addon-breakdown"].appendChild(row);
+      });
+      if (unlimitedFee > 0) {
+        const row = document.createElement("div");
+        row.className = "quote-breakdown-row";
+        row.innerHTML = `<span>續用無限更新</span><strong>${money(unlimitedFee)}</strong>`;
+        els["quote-addon-breakdown"].appendChild(row);
+      }
+    }
+    state.quote = { mode: "renew", planAmount: basePrice, addonAmount, totalAmount: total, planDiffFee, unlimitedUpdateFee: unlimitedFee, quoteItems: addonItems };
+  }
+
+  function buildCreateQuoteSummary() {
+    const limits = getLimitsCreate();
+    const items = getAddonItemsForQuote(limits);
+    const addonAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
+    return {
+      plan: limits.plan,
+      plan_label: limits.planLabel,
+      plan_amount: limits.planPrice,
+      addon_amount: addonAmount,
+      total_amount: limits.planPrice + addonAmount,
+      addon_items: items
+    };
+  }
+
+  /* ============================================================
+     PHOTO / FIREBASE (保留原實作)
+  ============================================================ */
+  async function getFirebase() {
+    if (_fb) return _fb;
+    try {
+      _fb = await import(CONFIG.FIREBASE_MODULE);
+      return _fb;
+    } catch (err) {
+      console.error("[HSC] firebase.js import failed:", err);
+      throw new Error("Firebase 模組載入失敗");
+    }
+  }
+
   async function uploadPhotoToFirebase(key, file) {
     const token = Date.now() + "_" + Math.random().toString(36).slice(2);
     state.photoUploadTokens[key] = token;
@@ -218,9 +875,6 @@
     });
   }
 
-  /* ============================================================
-     waitAllUploads
-  ============================================================ */
   async function waitAllUploads() {
     const keys = Object.keys(state.photoUploadState);
     for (const key of keys) {
@@ -244,389 +898,6 @@
     }
   }
 
-  /* ============================================================
-     QUERY
-  ============================================================ */
-  function hydrateQueryParams() {
-    let search = "";
-    try { search = window.location.search || ""; } catch (_) { return; }
-    if (!search) return;
-    const params = new URLSearchParams(search);
-    state.query = Object.fromEntries(params.entries());
-
-    const inviteCode = params.get("invite_code") || params.get("invite");
-    if (inviteCode && els["invite_code"]) els["invite_code"].value = inviteCode.trim();
-
-    const ref = params.get("ref");
-    if (ref && els["ref"]) els["ref"].value = ref.trim();
-
-    const planParam = params.get("plan");
-    if (planParam === "free" || planParam === "premium") {
-      const radio = document.querySelector(`input[name="plan"][value="${planParam}"]`);
-      if (radio) radio.checked = true;
-    }
-
-    const photoLimitParam = Number(params.get("photo_limit") || 0);
-    if (Number.isFinite(photoLimitParam) && photoLimitParam > 0) {
-      state.urlPhotoLimitOverride = Math.min(CONFIG.MAX_WALL_PHOTOS, Math.max(0, Math.floor(photoLimitParam)));
-    }
-  }
-
-  /* ============================================================
-     experience 升級 textarea
-  ============================================================ */
-  function upgradeExperienceToTextarea() {
-    const old = document.getElementById("experience");
-    if (!old) return;
-    if (old.tagName === "TEXTAREA") return;
-    if (old.dataset.upgraded === "1") return;
-
-    const existingValue = old.value || "";
-    const parent = old.parentNode;
-
-    const ta = document.createElement("textarea");
-    ta.id = "experience";
-    ta.rows = 4;
-    ta.placeholder = "例：前 XX 公司品牌顧問、10 年業界資歷\n可換行填寫多段經歷";
-    ta.style.cssText = "resize:vertical;min-height:96px;";
-    ta.value = existingValue;
-    ta.dataset.upgraded = "1";
-
-    const hint = document.createElement("p");
-    hint.className = "field-hint experience-hint";
-    hint.textContent = "可換行填寫多段經歷，系統自動整理排版。";
-
-    parent.insertBefore(ta, old);
-    parent.removeChild(old);
-
-    if (!parent.querySelector(".experience-hint")) parent.appendChild(hint);
-
-    els["experience"] = ta;
-    ta.addEventListener("input", onLiveChange);
-    ta.addEventListener("change", onLiveChange);
-  }
-
-  /* ============================================================
-     COLLECT ELS
-  ============================================================ */
-  function collectEls() {
-    const ids = [
-      "smart-card-form","form-status-strip",
-      "btn-open-showcase","btn-save-draft","btn-clear-draft",
-      "btn-contact-service","btn-submit-form",
-      "btn-gold-info","btn-gold-copy","btn-gold-contact",
-      "progress-contact-service",
-      "invite_code","ref",
-      "addon_marquee_enabled","addon_photo_enabled","addon_photo_qty",
-      "addon_cta_enabled","addon_cta_qty",
-      "addon_update_unlimited_enabled","addon_bundle_enabled",
-      "addon_agent_upgrade_enabled","addon-photo-tip",
-      "free-theme-group","premium-theme-group",
-      "free_color","free_style","free_paper","premium_color",
-      "display_name","unit","title","phone","email","website",
-      "line_url","line_oa","wechat_id","experience","services",
-      "address","intro",
-      "video1","video2","video3",
-      "social1","social2","social3",
-      "marquee-section","marquee_text",
-      "photo-slots","cta-slots",
-      "livePreviewCard",
-      "preview-theme-scope",
-      "summary-plan-pill","summary-photo-pill","summary-cta-pill",
-      "summary-plan-name","summary-photo-count","summary-cta-count",
-      "summary-marquee-status",
-      "quote-state-text","quote-plan-amount","quote-addon-amount",
-      "quote-addon-breakdown","quote-total-amount",
-      "submit-progress-overlay","progress-text","progress-fill",
-      "progress-success-panel",
-      "progress-card-id-display",
-      "btn-copy-card-notice",
-      "progress-preview-link"
-    ];
-    ids.forEach(id => { els[id] = document.getElementById(id); });
-    els.planRadios = Array.from(document.querySelectorAll('input[name="plan"]'));
-    els.addonCheckboxes = Array.from(document.querySelectorAll('input[name="addons"]'));
-    els.planCards = Array.from(document.querySelectorAll("[data-plan-card]"));
-    els.progressSteps = Array.from(document.querySelectorAll(".progress-step"));
-    els.photoTemplate = document.getElementById("photo-slot-template");
-    els.ctaTemplate = document.getElementById("cta-slot-template");
-  }
-
-  function ensureRendererAlias() {
-    if (!window.HSCCardRenderer && window.HscCardRenderer) window.HSCCardRenderer = window.HscCardRenderer;
-  }
-
-  /* ============================================================
-     EVENTS
-  ============================================================ */
-  function bindStaticEvents() {
-    if (els["smart-card-form"]) els["smart-card-form"].addEventListener("submit", submit);
-
-    els.planRadios.forEach(r => r.addEventListener("change", refreshAll));
-    els.addonCheckboxes.forEach(b => b.addEventListener("change", refreshAll));
-
-    ["addon_photo_qty","addon_cta_qty"].forEach(id => {
-      if (els[id]) {
-        els[id].addEventListener("input", refreshAll);
-        els[id].addEventListener("change", refreshAll);
-      }
-    });
-
-    [
-      "free_color","free_style","free_paper","premium_color",
-      "display_name","unit","title","phone","email","website",
-      "line_url","line_oa","wechat_id","experience","services",
-      "address","intro","marquee_text",
-      "video1","video2","video3","social1","social2","social3"
-    ].forEach(id => {
-      if (els[id]) {
-        els[id].addEventListener("input", onLiveChange);
-        els[id].addEventListener("change", onLiveChange);
-      }
-    });
-
-    bindButton(els["btn-open-showcase"], () => window.open(CONFIG.SHOWCASE_URL, "_blank", "noopener"));
-    bindButton(els["btn-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
-    bindButton(els["progress-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
-    bindButton(els["btn-gold-contact"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
-    bindButton(els["btn-gold-info"], () => alert("金牌級會員請聯繫客服瞭解完整權益。"));
-    bindButton(els["btn-save-draft"], () => { saveDraft(); setStatus("草稿已暫存。"); });
-    bindButton(els["btn-clear-draft"], clearDraft);
-    bindButton(els["btn-gold-copy"], async () => {
-      await copyText("您好，我想瞭解金牌級會員的完整權益與適合方案。");
-      setStatus("已複製金牌會員詢問文案。");
-    });
-    bindButton(els["btn-copy-card-notice"], handleCopyCardNotice);
-  }
-
-  function bindButton(btn, handler) { if (btn) btn.addEventListener("click", handler); }
-  function onLiveChange() { updatePreview(); saveDraftSilently(); }
-
-  /* ============================================================
-     VALIDATION
-  ============================================================ */
-  function validateBeforeSubmit() {
-    const limits = getLimits();
-
-    if (state.mode === "create") {
-      if (!valueOf("invite_code")) {
-        setStatus("缺少 invite_code，請確認是從正確的邀請連結進入。", "error");
-        return false;
-      }
-    }
-
-    for (let i = 1; i <= limits.ctas; i++) {
-      const textVal = valueOf(`cta_text_${i}`);
-      const linkVal = valueOf(`cta_link_${i}`);
-      if (textVal && !linkVal) { setStatus(`CTA 按鈕第 ${i} 組：請補上按鈕連結。`, "error"); return false; }
-      if (!textVal && linkVal) { setStatus(`CTA 按鈕第 ${i} 組：請補上按鈕文字。`, "error"); return false; }
-      if (linkVal && !isLooksLikeUrl(linkVal)) { setStatus(`CTA 按鈕第 ${i} 組的連結格式看起來有誤，請確認以 https:// 開頭。`, "warn"); return false; }
-    }
-
-    if (isMarqueeEnabled()) {
-      if (!valueOf("marquee_text")) { setStatus("已開啟跑馬燈功能，請填入跑馬燈內容。", "error"); return false; }
-    }
-
-    if (isAddonChecked("addon_photo")) {
-      if (getAddonQty("addon_photo_qty") <= 0) { setStatus("已勾選照片牆加購，請輸入加購張數（至少 1 張）。", "error"); return false; }
-    }
-
-    if (isAddonChecked("addon_cta")) {
-      if (getAddonQty("addon_cta_qty") <= 0) { setStatus("已勾選 CTA 按鈕加購，請輸入加購數量（至少 1 個）。", "error"); return false; }
-    }
-
-    const urlFields = ["website","line_url","video1","video2","video3","social1","social2","social3"];
-    for (const id of urlFields) {
-      const v = valueOf(id);
-      if (v && !isLooksLikeUrl(v)) { setStatus(`「${id}」的網址格式看起來有誤，請確認是否以 https:// 開頭。`, "warn"); return false; }
-    }
-
-    return true;
-  }
-
-  function isLooksLikeUrl(str) {
-    if (!str) return true;
-    const s = str.trim();
-    if (/^(https?:\/\/|line:|tel:|mailto:)/i.test(s)) return true;
-    if (/^www\./i.test(s)) return true;
-    if (/^[\w.-]+\.[a-z]{2,}(\/.*)?$/i.test(s)) return true;
-    return false;
-  }
-
-  /* ============================================================
-     DATE HELPERS
-  ============================================================ */
-  function formatDateYMD(input) {
-    try {
-      const d = input instanceof Date ? input : new Date(input);
-      if (isNaN(d.getTime())) throw new Error("invalid");
-      return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
-    } catch (_) {
-      const fb = new Date(); fb.setDate(fb.getDate() + 3);
-      return `${fb.getFullYear()}/${String(fb.getMonth() + 1).padStart(2, "0")}/${String(fb.getDate()).padStart(2, "0")}`;
-    }
-  }
-
-  function pickPaymentDueAt(data) {
-    const candidates = [
-      data?.payment_due_at, data?.card?.payment_due_at,
-      data?.data?.payment_due_at, data?.quote?.payment_due_at, data?.payment?.due_at
-    ];
-    for (const c of candidates) { if (c && String(c).trim()) return String(c).trim(); }
-    const d = new Date(); d.setDate(d.getDate() + 3);
-    return d.toISOString();
-  }
-
-  function buildLastSubmitResult({ cardId, previewUrl, paymentDueAt, totalAmount, planLabel, customerName, paymentId = "", paymentNotice = "" }) {
-    return { cardId, previewUrl, paymentDueAt, dueDateStr: formatDateYMD(paymentDueAt), totalAmount, planLabel, customerName, paymentId, paymentNotice };
-  }
-
-  /* ============================================================
-     COPY NOTICE
-  ============================================================ */
-  async function handleCopyCardNotice() {
-    let r = state.lastSubmitResult;
-    if (!r) {
-      const limits = getLimits();
-      const addonItems = getAddonItemsForQuote(limits);
-      const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-      const total = limits.planPrice + addonAmount;
-      const cardId = els["progress-card-id-display"]?.dataset.cardId || "";
-      const previewUrl = cardId ? `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1` : CONFIG.SHOWCASE_URL;
-      const dueIso = new Date(); dueIso.setDate(dueIso.getDate() + 3);
-      r = buildLastSubmitResult({ cardId, previewUrl, paymentDueAt: dueIso.toISOString(), totalAmount: total, planLabel: limits.planLabel, customerName: valueOf("display_name") || "您" });
-    }
-
-    const notice =
-      `您好，我是 ${r.customerName}，已完成天使幸福智慧名片申請！\n` +
-      `📋 名片序號：${r.cardId || "（待確認）"}\n` +
-      `💳 方案：${r.planLabel}，總金額 NT$ ${Number(r.totalAmount || 0).toLocaleString("zh-TW")}\n` +
-      `🔗 成品預覽：${r.previewUrl}\n` +
-      `⏰ 付款期限：${r.dueDateStr} 前，請協助確認並開通名片，謝謝！`;
-
-    await copyText(notice);
-    const btn = els["btn-copy-card-notice"];
-    if (btn) {
-      const orig = btn.textContent;
-      btn.textContent = "✅ 已複製！";
-      setTimeout(() => { btn.textContent = orig; }, 2200);
-    }
-  }
-
-  /* ============================================================
-     PLAN / ADDON
-  ============================================================ */
-  function ensureDefaultPlan() {
-    if (getSelectedPlan()) return;
-    const r = els.planRadios.find(r => r.value === "premium");
-    if (r) r.checked = true;
-  }
-
-  function getSelectedPlan() { return els.planRadios.find(r => r.checked)?.value || ""; }
-  function isAddonChecked(code) { return !!document.querySelector(`input[name="addons"][value="${code}"]`)?.checked; }
-  function getAddonQty(id) { const el = els[id]; if (!el) return 0; const n = Number(el.value || 0); return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0; }
-  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
-  function clampNumber(value, min, max, fallback) { const n = Number(value); if (!Number.isFinite(n)) return fallback; if (Number.isFinite(min) && n < min) return min; if (Number.isFinite(max) && n > max) return max; return n; }
-
-  function normalizePhotoMeta(meta) {
-    const s = meta && typeof meta === "object" ? meta : {};
-    return {
-      x: clampNumber(s.x, 0, 1, DEFAULT_PHOTO_META.x),
-      y: clampNumber(s.y, 0, 1, DEFAULT_PHOTO_META.y),
-      scale: clampNumber(s.scale, 0.5, 3, DEFAULT_PHOTO_META.scale),
-      rotate: clampNumber(s.rotate, -180, 180, DEFAULT_PHOTO_META.rotate)
-    };
-  }
-
-  /* ============================================================
-     REFRESH
-  ============================================================ */
-  function refreshAll() {
-    const limits = getLimits();
-    syncPlanCards();
-    syncThemeGroups(limits.plan);
-    syncAddonInputs(limits);
-    syncMarqueeSection();
-    renderPhotoSections(limits.wallPhotos);
-    renderCtas(limits.ctas);
-    syncSummary(limits);
-    syncQuote(limits);
-    updatePreview();
-    saveDraftSilently();
-  }
-
-  function getLimits() {
-    const plan = getSelectedPlan() || "premium";
-    const base = CONFIG.BASE_LIMITS[plan] || CONFIG.BASE_LIMITS.premium;
-    const urlOverride = Number(state.urlPhotoLimitOverride || 0);
-    const effectiveBaseWallPhotos = urlOverride > 0 ? clamp(urlOverride, base.wallPhotos, CONFIG.MAX_WALL_PHOTOS) : base.wallPhotos;
-    let ewp = isAddonChecked("addon_photo") ? getAddonQty("addon_photo_qty") : 0;
-    let ect = isAddonChecked("addon_cta") ? getAddonQty("addon_cta_qty") : 0;
-    ewp = clamp(ewp, 0, CONFIG.MAX_WALL_PHOTOS - effectiveBaseWallPhotos);
-    ect = clamp(ect, 0, CONFIG.MAX_CTAS - base.ctas);
-    return {
-      plan, planLabel: base.label, planPrice: base.price,
-      baseWallPhotos: effectiveBaseWallPhotos,
-      wallPhotos: clamp(effectiveBaseWallPhotos + ewp, 0, CONFIG.MAX_WALL_PHOTOS),
-      ctas: clamp(base.ctas + ect, 0, CONFIG.MAX_CTAS),
-      extraWallPhotos: ewp, extraCtas: ect
-    };
-  }
-
-  function syncPlanCards() {
-    const plan = getSelectedPlan();
-    els.planCards.forEach(c => c.classList.toggle("is-selected", c.getAttribute("data-plan-card") === plan));
-  }
-
-  function syncThemeGroups(plan) {
-    els["free-theme-group"]?.classList.toggle("hidden", plan !== "free");
-    els["premium-theme-group"]?.classList.toggle("hidden", plan !== "premium");
-  }
-
-  function syncAddonInputs(limits) {
-    const bundleChecked = isAddonChecked("addon_bundle");
-
-    if (els["addon_photo_qty"]) {
-      const enabled = isAddonChecked("addon_photo");
-      const maxExtra = Math.max(0, CONFIG.MAX_WALL_PHOTOS - CONFIG.BASE_LIMITS[limits.plan].wallPhotos);
-      els["addon_photo_qty"].disabled = !enabled;
-      els["addon_photo_qty"].max = String(maxExtra);
-      if (!enabled) els["addon_photo_qty"].value = "0";
-      if (Number(els["addon_photo_qty"].value || 0) > maxExtra) els["addon_photo_qty"].value = String(maxExtra);
-    }
-
-    if (els["addon-photo-tip"]) {
-      const remain = Math.max(0, CONFIG.MAX_WALL_PHOTOS - CONFIG.BASE_LIMITS[limits.plan].wallPhotos);
-      els["addon-photo-tip"].textContent = `本方案最多可再加 ${remain} 張`;
-    }
-
-    if (els["addon_cta_qty"]) {
-      const enabled = isAddonChecked("addon_cta");
-      const maxExtra = Math.max(0, CONFIG.MAX_CTAS - CONFIG.BASE_LIMITS[limits.plan].ctas);
-      els["addon_cta_qty"].disabled = !enabled;
-      els["addon_cta_qty"].max = String(maxExtra);
-      if (!enabled) els["addon_cta_qty"].value = "0";
-      if (Number(els["addon_cta_qty"].value || 0) > maxExtra) els["addon_cta_qty"].value = String(maxExtra);
-    }
-
-    if (els["addon_marquee_enabled"]) {
-      els["addon_marquee_enabled"].disabled = bundleChecked;
-      if (bundleChecked) els["addon_marquee_enabled"].checked = false;
-    }
-
-    if (els["addon_update_unlimited_enabled"]) {
-      els["addon_update_unlimited_enabled"].disabled = bundleChecked;
-      if (bundleChecked) els["addon_update_unlimited_enabled"].checked = false;
-    }
-  }
-
-  function syncMarqueeSection() {
-    els["marquee-section"]?.classList.toggle("hidden", !isMarqueeEnabled());
-  }
-
-  /* ============================================================
-     PHOTO UI
-  ============================================================ */
   function ensurePhotoMetaKey(key) {
     if (!state.photoMeta[key]) state.photoMeta[key] = { ...DEFAULT_PHOTO_META };
     else state.photoMeta[key] = normalizePhotoMeta(state.photoMeta[key]);
@@ -759,7 +1030,7 @@
   }
 
   /* ============================================================
-     CTA
+     CTA RENDER
   ============================================================ */
   function renderCtas(limit) {
     if (!els["cta-slots"] || !els.ctaTemplate) return;
@@ -800,90 +1071,21 @@
   }
 
   /* ============================================================
-     SUMMARY / QUOTE
-  ============================================================ */
-  function syncSummary(limits) {
-    const set = (id, v) => { if (els[id]) els[id].textContent = v; };
-    set("summary-plan-pill", limits.planLabel);
-    set("summary-photo-pill", `照片牆：${limits.wallPhotos}`);
-    set("summary-cta-pill", `CTA：${limits.ctas}`);
-    set("summary-plan-name", limits.planLabel);
-    set("summary-photo-count", String(limits.wallPhotos));
-    set("summary-cta-count", String(limits.ctas));
-    set("summary-marquee-status", isMarqueeEnabled() ? "已開啟" : "未開啟");
-  }
-
-  function getAddonItemsForQuote(limits) {
-    const items = [];
-    const bundleChecked = isAddonChecked("addon_bundle");
-    const photoChecked = isAddonChecked("addon_photo");
-    const ctaChecked = isAddonChecked("addon_cta");
-    const photoQty = photoChecked ? getAddonQty("addon_photo_qty") : 0;
-    const ctaQty = ctaChecked ? getAddonQty("addon_cta_qty") : 0;
-
-    if (bundleChecked) {
-      items.push({ code: "addon_bundle", name: "跑馬燈＋更新組合", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_bundle, amount: CONFIG.ADDON_PRICES.addon_bundle });
-    } else {
-      if (isAddonChecked("addon_marquee")) items.push({ code: "addon_marquee", name: "跑馬燈功能", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_marquee, amount: CONFIG.ADDON_PRICES.addon_marquee });
-      if (isAddonChecked("addon_update_unlimited")) items.push({ code: "addon_update_unlimited", name: "無限更新", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_update_unlimited, amount: CONFIG.ADDON_PRICES.addon_update_unlimited });
-    }
-    if (photoChecked && photoQty > 0) items.push({ code: "addon_photo", name: "照片牆加購", qty: photoQty, unit_price: CONFIG.ADDON_PRICES.addon_photo, amount: photoQty * CONFIG.ADDON_PRICES.addon_photo });
-    if (ctaChecked && ctaQty > 0) items.push({ code: "addon_cta", name: "CTA 加購", qty: ctaQty, unit_price: CONFIG.ADDON_PRICES.addon_cta, amount: ctaQty * CONFIG.ADDON_PRICES.addon_cta });
-    if (isAddonChecked("addon_agent_upgrade")) items.push({ code: "addon_agent_upgrade", name: "金牌級會員", qty: 1, unit_price: CONFIG.ADDON_PRICES.addon_agent_upgrade, amount: CONFIG.ADDON_PRICES.addon_agent_upgrade });
-
-    return items;
-  }
-
-  function syncQuote(limits) {
-    const items = getAddonItemsForQuote(limits);
-    const addonAmount = items.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const total = (limits.planPrice || 0) + addonAmount;
-    const set = (id, v) => { if (els[id]) els[id].textContent = v; };
-
-    set("quote-state-text", `${limits.planLabel}｜${money(total)}`);
-    set("quote-plan-amount", money(limits.planPrice || 0));
-    set("quote-addon-amount", money(addonAmount));
-    set("quote-total-amount", money(total));
-
-    if (els["quote-addon-breakdown"]) {
-      els["quote-addon-breakdown"].innerHTML = "";
-      if (!items.length) {
-        els["quote-addon-breakdown"].appendChild(Object.assign(document.createElement("span"), { textContent: "尚未選擇加購" }));
-      } else {
-        items.forEach(item => {
-          const row = document.createElement("div");
-          row.className = "quote-breakdown-row";
-          const qs = (item.code === "addon_photo" || item.code === "addon_cta") && item.qty > 1 ? ` × ${item.qty}` : "";
-          row.innerHTML = `<span>${escapeHtml(item.name)}${qs}</span><strong>${money(item.amount)}</strong>`;
-          els["quote-addon-breakdown"].appendChild(row);
-        });
-      }
-    }
-  }
-
-  /* ============================================================
-     ★ v8.3.3 修正：updatePreview
-     root 改為 #preview-theme-scope
-     renderer 的 applyThemeClasses 把主題 class 套在 scope 本身
-     與 style.css 的 .preview-theme-scope.mode-premium .card 一致
-     移除 syncPreviewContainerClasses()，不再衝突
+     PREVIEW (保留原有)
   ============================================================ */
   function updatePreview() {
-    // ★ 改這裡：root 改為 preview-theme-scope
     const scope = els["preview-theme-scope"];
     if (!scope) return;
-
     ensureRendererAlias();
     const renderer = window.HSCCardRenderer || window.HscCardRenderer;
     if (!renderer || typeof renderer.renderCard !== "function") {
       scope.innerHTML = `<div class="renderer-error">找不到 HscCardRenderer，請確認已載入 card-renderer.js</div>`;
       return;
     }
-
     try {
       renderer.renderCard(buildPreviewData(), {
         mode: "form",
-        root: scope,         // ★ 改這裡（原本是 els["livePreviewCard"]）
+        root: scope,
         useExistingDom: false,
         qrMode: "preview",
         allowActions: false,
@@ -901,7 +1103,6 @@
   function buildPreviewData() {
     const limits = getLimits();
     const theme = getThemeSelection();
-
     const data = {
       name: valueOf("display_name"),
       unit: valueOf("unit"),
@@ -922,47 +1123,42 @@
       social1: valueOf("social1"),
       social2: valueOf("social2"),
       social3: valueOf("social3"),
-
       plan: theme.plan,
       color: theme.color,
       style: theme.style,
       paper: theme.paper,
-
       marquee_text: isMarqueeEnabled() ? valueOf("marquee_text") : "",
       marquee_enabled: isMarqueeEnabled() ? "true" : "",
-
       photo_limit: limits.wallPhotos,
       cta_limit: limits.ctas,
-
       preview_url: CONFIG.SHOWCASE_URL,
       share_url: CONFIG.SHOWCASE_URL,
       card_url: CONFIG.SHOWCASE_URL,
-
-      // ★ features.photo_preview_urls：傳入 base64 備援，讓 renderer 能在圖片上傳前先預覽
       features: {
         photo_meta: buildPhotoMetaMap(),
         preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
         photo_preview_urls: { ...state.photoPreviewUrls }
       }
     };
-
     const avatarUrl = state.photoRealUrls.avatar || state.photoPreviewUrls.avatar || "";
     if (avatarUrl) { data.avatar_url = avatarUrl; data["u-img"] = avatarUrl; }
-
     const logoUrl = state.photoRealUrls.logo || state.photoPreviewUrls.logo || "";
     if (logoUrl) data.logo_url = logoUrl;
-
     for (let i = 1; i <= limits.wallPhotos; i++) {
       const url = state.photoRealUrls[`photo${i}`] || state.photoPreviewUrls[`photo${i}`] || "";
-      if (url) { data[`photo${i}_url`] = url; data[`photo_url_${i}`] = url; }
+      if (url) data[`photo${i}_url`] = url;
     }
-
     for (let i = 1; i <= limits.ctas; i++) {
       data[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
       data[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
     }
-
     return data;
+  }
+
+  function buildPhotoMetaMap() {
+    const out = { avatar: normalizePhotoMeta(state.photoMeta.avatar), logo: normalizePhotoMeta(state.photoMeta.logo) };
+    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) out[`photo${i}`] = normalizePhotoMeta(state.photoMeta[`photo${i}`]);
+    return out;
   }
 
   function bindPreviewCollapseToggles(root) {
@@ -1004,174 +1200,119 @@
     });
   }
 
-  function buildPhotoMetaMap() {
-    const out = {
-      avatar: normalizePhotoMeta(state.photoMeta.avatar),
-      logo: normalizePhotoMeta(state.photoMeta.logo)
-    };
-    for (let i = 1; i <= CONFIG.MAX_WALL_PHOTOS; i++) {
-      out[`photo${i}`] = normalizePhotoMeta(state.photoMeta[`photo${i}`]);
+  /* ============================================================
+     VALIDATION (mode-aware dispatcher)
+  ============================================================ */
+  function validateBeforeSubmit() {
+    if (state.mode === "create") return validateCreateBeforeSubmit();
+    if (state.mode === "update") return validateUpdateBeforeSubmit();
+    if (state.mode === "renew") return validateRenewBeforeSubmit();
+    return false;
+  }
+
+  function validateCreateBeforeSubmit() {
+    if (!valueOf("invite_code")) {
+      setStatus("缺少 invite_code，請確認是從正確的邀請連結進入。", "error");
+      return false;
     }
-    return out;
+    if (!valueOf("display_name")) { setStatus("請填寫姓名／品牌名稱。", "error"); return false; }
+    if (!valueOf("phone")) { setStatus("請填寫電話。", "error"); return false; }
+    const limits = getLimitsCreate();
+    for (let i = 1; i <= limits.ctas; i++) {
+      const textVal = valueOf(`cta_text_${i}`);
+      const linkVal = valueOf(`cta_link_${i}`);
+      if (textVal && !linkVal) { setStatus(`CTA 按鈕第 ${i} 組：請補上按鈕連結。`, "error"); return false; }
+      if (!textVal && linkVal) { setStatus(`CTA 按鈕第 ${i} 組：請補上按鈕文字。`, "error"); return false; }
+    }
+    if (isMarqueeEnabled() && !valueOf("marquee_text")) { setStatus("已開啟跑馬燈功能，請填入跑馬燈內容。", "error"); return false; }
+    if (isAddonChecked("addon_photo") && getAddonQty("addon_photo_qty") <= 0) { setStatus("已勾選照片牆加購，請輸入加購張數。", "error"); return false; }
+    if (isAddonChecked("addon_cta") && getAddonQty("addon_cta_qty") <= 0) { setStatus("已勾選 CTA 按鈕加購，請輸入加購數量。", "error"); return false; }
+    return true;
+  }
+
+  function validateUpdateBeforeSubmit() {
+    if (state.updateFlow.cardExpired) {
+      setStatus("卡片已到期，請先進行續約。", "error");
+      return false;
+    }
+    if (!state.updateFlow.canSubmitDirectly && !state.updateFlow.requiresPayment) {
+      setStatus("無法判斷更新資格，請重新載入。", "error");
+      return false;
+    }
+    return true;
+  }
+
+  function validateRenewBeforeSubmit() {
+    if (!state.renewFlow.targetPlan) {
+      setStatus("請選擇續約方案。", "error");
+      return false;
+    }
+    return true;
+  }
+
+  function isLooksLikeUrl(str) {
+    if (!str) return true;
+    const s = str.trim();
+    if (/^(https?:\/\/|line:|tel:|mailto:)/i.test(s)) return true;
+    if (/^www\./i.test(s)) return true;
+    return false;
   }
 
   /* ============================================================
-     RESPONSE HELPERS
+     CREATE FLOW
   ============================================================ */
-  function extractCardId(data) {
-    return (
-      data?.card_id || data?.id || data?.card?.id || data?.card?.card_id ||
-      data?.data?.card_id || data?.data?.id || data?.result?.card_id ||
-      data?.result?.id || data?.payload?.card_id || data?.payload?.id || ""
-    );
-  }
-
-  function extractPaymentId(data) {
-    return (
-      data?.payment?.payment_id || data?.payment_id || data?.data?.payment_id ||
-      data?.result?.payment_id || data?.payload?.payment_id || ""
-    );
-  }
-
-  /* ============================================================
-     BUILD PAYLOAD
-  ============================================================ */
-  function buildPayload() {
-    const limits = getLimits();
+  function buildCreatePayload() {
+    const limits = getLimitsCreate();
     const theme = getThemeSelection();
-    const previewData = buildPreviewData();
     const addonItems = getAddonItemsForQuote(limits);
-    const bundleChecked = isAddonChecked("addon_bundle");
-    const marqueeChecked = isAddonChecked("addon_marquee");
     const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const totalAmount = Number(limits.planPrice || 0) + Number(addonAmount || 0);
-
-    const phoneStr = String(valueOf("phone") || "").replace(/\s/g, "");
-    const refCode = valueOf("ref");
-    const inviteCode = valueOf("invite_code");
-
+    const totalAmount = limits.planPrice + addonAmount;
+    const shared = buildSharedCardData();
     const payload = {
       action: CONFIG.CREATE_ACTION,
       tenant: "angel",
-      invite_code: inviteCode,
-      referrer: refCode,
-      service_agent: refCode,
-      agent_type: refCode ? "service" : "self",
-      source: refCode ? "agent_form" : "form",
-      form_source: "smart_card_form",
-      process_status: "submitted",
-
-      name: previewData.name,
-      unit: previewData.unit,
-      title: previewData.title,
-      slogan: previewData.slogan,
-      phone: phoneStr,
-      email: previewData.email,
-      website: previewData.website,
-      address: previewData.address,
-      line_url: previewData.line_url,
-      line_oa: previewData.line_oa,
-      wechat_id: previewData.wechat_id,
-      experience: previewData.experience,
-      services: previewData.services,
-
-      video1: valueOf("video1"), video2: valueOf("video2"), video3: valueOf("video3"),
-      social1: valueOf("social1"), social2: valueOf("social2"), social3: valueOf("social3"),
-
+      invite_code: valueOf("invite_code"),
+      referrer: valueOf("ref"),
+      service_agent: valueOf("ref"),
+      agent_type: valueOf("ref") ? "service" : "self",
+      share_source: "form",
+      share_channel: "direct",
+      ...shared,
       plan: theme.plan,
       color: theme.color,
       style: theme.style,
       paper: theme.paper,
-
-      marquee_text: previewData.marquee_text,
+      marquee_text: isMarqueeEnabled() ? valueOf("marquee_text") : "",
       marquee_enabled: isMarqueeEnabled() ? "true" : "",
-      marquee_purchased: (marqueeChecked || bundleChecked) ? "1" : "",
-
       photo_limit: limits.wallPhotos,
       cta_limit: limits.ctas,
-      photo_extra_purchased: isAddonChecked("addon_photo") ? String(getAddonQty("addon_photo_qty")) : "",
-      cta_extra_purchased: isAddonChecked("addon_cta") ? String(getAddonQty("addon_cta_qty")) : "",
-
       amount: totalAmount,
-      plan_amount: Number(limits.planPrice || 0),
-      addon_amount: Number(addonAmount || 0),
+      plan_amount: limits.planPrice,
+      addon_amount: addonAmount,
       total_amount: totalAmount,
-      note: buildOrderNote(limits, addonItems, totalAmount),
-
-      ...(state.photoRealUrls.avatar ? { avatar_url: state.photoRealUrls.avatar } : {}),
-      ...(state.photoRealUrls.logo ? { logo_url: state.photoRealUrls.logo } : {}),
-
       addon_items: addonItems,
-
       features_json: {
         photo_meta: buildPhotoMetaMap(),
         preview_meta: { ...CONFIG.DEFAULT_PREVIEW_META, theme: theme.plan },
         addon_items: addonItems,
-        order_summary: {
-          plan: theme.plan,
-          plan_label: limits.planLabel,
-          plan_amount: Number(limits.planPrice || 0),
-          addon_amount: Number(addonAmount || 0),
-          total_amount: Number(totalAmount || 0)
-        }
+        order_summary: buildCreateQuoteSummary()
       }
     };
-
+    if (state.photoRealUrls.avatar) payload.avatar_url = state.photoRealUrls.avatar;
+    if (state.photoRealUrls.logo) payload.logo_url = state.photoRealUrls.logo;
     for (let i = 1; i <= limits.wallPhotos; i++) {
-      const url = state.photoRealUrls[`photo${i}`] || "";
-      if (url) { payload[`photo${i}_url`] = url; payload[`photo_url_${i}`] = url; }
+      if (state.photoRealUrls[`photo${i}`]) payload[`photo${i}_url`] = state.photoRealUrls[`photo${i}`];
     }
-
     for (let i = 1; i <= limits.ctas; i++) {
       payload[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
       payload[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
     }
-
     return payload;
   }
 
-  function buildOrderNote(limits, addonItems, totalAmount) {
-    const parts = [
-      "form_submit",
-      `plan=${limits.plan}`, `plan_label=${limits.planLabel}`,
-      `plan_amount=${Number(limits.planPrice || 0)}`,
-      `addon_amount=${addonItems.reduce((s, i) => s + Number(i.amount || 0), 0)}`,
-      `total_amount=${Number(totalAmount || 0)}`
-    ];
-    addonItems.forEach(item => {
-      const code = String(item.code || item.item_code || "").trim();
-      const qty = Number(item.qty || item.quantity || 1);
-      const amt = Number(item.amount || 0);
-      if (code) parts.push(`addon=${code}:${qty}:${amt}`);
-    });
-    return parts.join(" ; ");
-  }
-
-  /* ============================================================
-     SUBMIT
-  ============================================================ */
-  async function submit(e) {
-    e.preventDefault();
-
-    if (state.mode !== "create") {
-      if (state.mode === "update") setStatus("update 模式骨架已收，下一步接通更新送出。", "warn");
-      else if (state.mode === "renew") setStatus("renew 模式骨架已收，下一步接通續約流程。", "warn");
-      return;
-    }
-
-    const finalPayload = buildPayload();
-
-    if (!finalPayload.name || !String(finalPayload.phone || "").trim() || !finalPayload.plan) {
-      setStatus("請先完成必填欄位（姓名、電話、方案）。", "error");
-      return;
-    }
-
-    if (!validateBeforeSubmit()) return;
-
-    const limits = getLimits();
-    const addonItems = getAddonItemsForQuote(limits);
-    const addonAmount = addonItems.reduce((s, i) => s + Number(i.amount || 0), 0);
-    const totalAmount = Number(limits.planPrice || 0) + Number(addonAmount || 0);
+  async function submitCreate() {
+    const payload = buildCreatePayload();
+    if (!validateCreateBeforeSubmit()) return;
 
     showProgress(true);
     hideSuccessPanel();
@@ -1181,132 +1322,564 @@
       await waitAllUploads();
       setProgressStep(2, "正在送出建卡資料…");
 
-      finalPayload.action = CONFIG.CREATE_ACTION;
-
-      const createRes = await postToGas(finalPayload);
-      console.log("[HSC form] createCardWithOfflinePayment response =", createRes);
-
-      if (!createRes || !createRes.ok) {
-        throw new Error(createRes?.error || createRes?.message || "建立名片失敗，請稍後再試。");
-      }
+      const createRes = await postToGas(payload);
+      if (!createRes.ok) throw new Error(createRes.error || "建立名片失敗");
 
       const cardId = extractCardId(createRes);
       const paymentId = extractPaymentId(createRes);
-
-      if (!cardId) {
-        console.error("⚠️ 沒拿到 card_id，完整回傳：", createRes);
-        throw new Error("GAS 已回應成功，但沒有回傳 card_id，請檢查 createCardWithOfflinePayment 回傳格式。");
-      }
+      if (!cardId) throw new Error("GAS 沒有回傳 card_id");
 
       setProgressStep(3, "正在建立付款期限…");
+      await postToGas({ action: CONFIG.DELIVER_ACTION, card_id: cardId });
 
-      const delivered = await postToGas({ action: CONFIG.DELIVER_ACTION, card_id: cardId });
-
-      if (!delivered || !delivered.ok) {
-        throw new Error(delivered?.error || delivered?.message || "付款期限建立失敗，請檢查 markCardDelivered。");
-      }
-
-      setProgressStep(4, "正在整理付款通知與預覽資料…");
-
-      let paymentNoticeText = createRes?.payment_notice?.copy_text || "";
+      setProgressStep(4, "正在整理付款通知…");
+      let paymentNotice = "";
       try {
-        const noticePayload = { action: CONFIG.PAYMENT_NOTICE_ACTION };
-        if (paymentId) noticePayload.payment_id = paymentId;
-        else noticePayload.card_id = cardId;
-        const noticeRes = await postToGas(noticePayload);
-        if (noticeRes?.ok) {
-          paymentNoticeText = noticeRes?.copy_text || noticeRes?.payment_notice?.copy_text || paymentNoticeText || "";
-        }
-      } catch (noticeErr) {
-        console.warn("[HSC form] payment notice fetch failed:", noticeErr);
-      }
+        const noticeRes = await postToGas({ action: CONFIG.PAYMENT_NOTICE_ACTION, payment_id: paymentId, card_id: cardId });
+        paymentNotice = noticeRes?.copy_text || noticeRes?.payment_notice?.copy_text || "";
+      } catch (e) { console.warn(e); }
 
       const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(cardId)}&view=1`;
-      const paymentDueAt =
-        delivered?.payment_due_at ||
-        delivered?.card?.payment_due_at ||
-        createRes?.payment?.due_at ||
-        pickPaymentDueAt(delivered || createRes);
+      const dueIso = new Date(); dueIso.setDate(dueIso.getDate() + 3);
+      const dueDateStr = formatDateYMD(dueIso);
 
-      const result = buildLastSubmitResult({
-        cardId, previewUrl, paymentDueAt, totalAmount,
-        planLabel: limits.planLabel, customerName: finalPayload.name,
-        paymentId, paymentNotice: paymentNoticeText
-      });
-
+      const result = {
+        cardId, paymentId, previewUrl, paymentDueAt: dueIso.toISOString(), dueDateStr,
+        totalAmount: payload.total_amount, planLabel: CONFIG.BASE_LIMITS[payload.plan]?.label || payload.plan,
+        customerName: payload.name, paymentNotice
+      };
       state.lastSubmitResult = result;
 
-      localStorage.setItem(CONFIG.QUOTE_STORAGE_KEY, JSON.stringify({
-        card_id: cardId, payment_id: paymentId || "",
-        customer_name: finalPayload.name || "",
-        plan_name: limits.planLabel || "方案",
-        submitted_at: new Date().toISOString(),
-        payment_notice: paymentNoticeText || "請於 3 天內完成付款",
-        payment_due_at: paymentDueAt, preview_url: previewUrl,
-        plan_amount: Number(limits.planPrice || 0),
-        addon_items: addonItems,
-        addon_amount: Number(addonAmount || 0),
-        total_amount: Number(totalAmount || 0)
-      }));
-
-      localStorage.removeItem(CONFIG.DRAFT_KEY);
-
-      setProgressStep(5, "✅ 申請成功！名片已建立。");
-      showSuccessPanel(result);
+      setProgressStep(5, "✅ 申請成功！");
+      showCreateSuccessPanel(result);
       setStatus("名片已成功建立，請複製下方資訊回覆客服。", "success");
-
+      localStorage.removeItem(CONFIG.DRAFT_KEY);
     } catch (err) {
-      console.error("[HSC form] submit error:", err);
-      setStatus("送出失敗：" + (err.message || "未知錯誤"), "error");
+      console.error(err);
+      setStatus("送出失敗：" + err.message, "error");
+    } finally {
       showProgress(false);
     }
   }
 
+  function buildCreatePrimaryNoticeText(result) {
+    return `您好，我是 ${result.customerName}，已完成天使幸福智慧名片申請！\n📋 名片序號：${result.cardId}\n💳 方案：${result.planLabel}，總金額 NT$ ${Number(result.totalAmount).toLocaleString("zh-TW")}\n🔗 成品預覽：${result.previewUrl}\n⏰ 付款期限：${result.dueDateStr} 前，請協助確認並開通名片，謝謝！`;
+  }
+
+  function buildCreateSecondaryNoticeText(result) {
+    return `【天使幸福智慧名片 報價摘要】\n名片序號：${result.cardId}\n方案：${result.planLabel}  NT$ ${Number(result.totalAmount).toLocaleString("zh-TW")}\n付款期限：${result.dueDateStr}\n預覽連結：${result.previewUrl}`;
+  }
+
   /* ============================================================
-     SUCCESS PANEL
+     UPDATE FLOW
   ============================================================ */
+  function resolveUpdateEligibilityState(eligData) {
+    const card = state.runtime.updateCard;
+    const expiresAt = card?.expires_at || card?.expiry_date;
+    const expired = expiresAt ? new Date(expiresAt) < new Date() : false;
+    const freeRemaining = Number(eligData?.free_update_remaining ?? 0);
+    const isUnlimited = !!eligData?.has_unlimited_update || !!card?.has_unlimited_update;
+
+    let requiresPayment = false;
+    let canSubmitDirectly = false;
+    let deductFreeCount = false;
+    let reasonText = "";
+    let updateFeeAmount = 0;
+
+    if (expired) {
+      reasonText = "卡片已到期，請先續約後再更新。";
+    } else if (isUnlimited) {
+      canSubmitDirectly = true;
+      reasonText = "無限更新資格有效，可直接更新。";
+    } else if (freeRemaining > 0) {
+      canSubmitDirectly = true;
+      deductFreeCount = true;
+      reasonText = `尚有 ${freeRemaining} 次免費更新次數，可直接更新。`;
+    } else {
+      requiresPayment = true;
+      updateFeeAmount = eligData?.update_fee_amount || 300;
+      reasonText = `免費更新次數已用完，需付費 NT$ ${updateFeeAmount} 進行單次更新。`;
+    }
+
+    state.updateFlow = {
+      cardExpired: expired,
+      freeRemaining,
+      isUnlimited,
+      requiresPayment,
+      canSubmitDirectly,
+      deductFreeCount,
+      updateFeeAmount,
+      expiresAt: expiresAt || "",
+      reasonText
+    };
+  }
+
+  function renderUpdateEligibilityPanel() {
+    const panel = els["mode-info-panel"];
+    if (!panel) return;
+    const f = state.updateFlow;
+    panel.innerHTML = `
+      <div class="mode-info-block"><div class="mode-info-label">卡片狀態</div><div class="mode-info-value">${f.cardExpired ? "⚠️ 已到期" : "✅ 有效期內"}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">免費更新次數</div><div class="mode-info-value">${f.isUnlimited ? "無限次" : f.freeRemaining}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">更新資格</div><div class="mode-info-value">${f.reasonText}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">建議操作</div><div class="mode-info-value">${f.canSubmitDirectly ? "可直接送出更新" : f.requiresPayment ? "需先建立付款單" : "請先續約"}</div></div>
+    `;
+    if (els["mode-info-kicker"]) els["mode-info-kicker"].textContent = "UPDATE INFO";
+    if (els["mode-info-title"]) els["mode-info-title"].textContent = "更新資格摘要";
+    if (els["mode-info-desc"]) els["mode-info-desc"].textContent = f.reasonText;
+  }
+
+  async function createUpdatePaymentIfNeeded() {
+    if (!state.updateFlow.requiresPayment) return null;
+    const cardId = state.modeContext.cardId;
+    const res = await postToGas({ action: CONFIG.UPDATE_CREATE_PAYMENT_ACTION, card_id: cardId, amount: state.updateFlow.updateFeeAmount });
+    if (!res.ok) throw new Error(res.error || "建立更新付款單失敗");
+    return res;
+  }
+
+  async function submitUpdate() {
+    if (!validateUpdateBeforeSubmit()) return;
+    showProgress(true);
+    hideSuccessPanel();
+    setProgressStep(1, "檢查更新資格…");
+
+    try {
+      const cardId = state.modeContext.cardId;
+      const token = state.modeContext.updateToken;
+
+      if (state.updateFlow.cardExpired) throw new Error("卡片已到期，無法更新。");
+
+      if (state.updateFlow.requiresPayment) {
+        setProgressStep(2, "建立更新付款單…");
+        const paymentRes = await createUpdatePaymentIfNeeded();
+        const paymentId = paymentRes?.payment_id || "";
+        const dueAt = paymentRes?.due_at || new Date(Date.now() + 3*86400000).toISOString();
+        const result = {
+          cardId, paymentId, paymentDueAt: dueAt, dueDateStr: formatDateYMD(dueAt),
+          updateFeeAmount: state.updateFlow.updateFeeAmount, requiresPayment: true,
+          customerName: valueOf("display_name") || "您"
+        };
+        state.lastSubmitResult = result;
+        setProgressStep(5, "付款單已建立");
+        showUpdateSuccessPanel(result);
+        setStatus("已建立更新付款單，請完成付款後再進行更新。", "success");
+        showProgress(false);
+        return;
+      }
+
+      setProgressStep(2, "送出更新資料…");
+      const updatePayload = buildUpdatePayload();
+      const updateRes = await postToGas({ action: CONFIG.UPDATE_SUBMIT_ACTION, card_id: cardId, update_token: token, ...updatePayload });
+      if (!updateRes.ok) throw new Error(updateRes.error || "更新失敗");
+
+      const result = {
+        cardId, updatedCard: updateRes.card || updateRes,
+        deductFreeCount: state.updateFlow.deductFreeCount,
+        isUnlimited: state.updateFlow.isUnlimited,
+        customerName: valueOf("display_name") || "您"
+      };
+      state.lastSubmitResult = result;
+      setProgressStep(5, "更新完成");
+      showUpdateSuccessPanel(result);
+      setStatus("名片已成功更新！", "success");
+    } catch (err) {
+      console.error(err);
+      setStatus("更新失敗：" + err.message, "error");
+    } finally {
+      showProgress(false);
+    }
+  }
+
+  function buildUpdatePayload() {
+    const shared = buildSharedCardData();
+    const theme = getThemeSelection();
+    const limits = getLimitsUpdate();
+    const payload = {
+      ...shared,
+      plan: theme.plan,
+      color: theme.color,
+      style: theme.style,
+      paper: theme.paper,
+      marquee_text: isMarqueeEnabled() ? valueOf("marquee_text") : "",
+      marquee_enabled: isMarqueeEnabled() ? "true" : "",
+      photo_limit: limits.wallPhotos,
+      cta_limit: limits.ctas
+    };
+    for (let i = 1; i <= limits.ctas; i++) {
+      payload[`cta_text_${i}`] = valueOf(`cta_text_${i}`);
+      payload[`cta_link_${i}`] = valueOf(`cta_link_${i}`);
+    }
+    return payload;
+  }
+
+  function buildUpdateDoneText(result) {
+    return `【名片更新完成通知】\n名片序號：${result.cardId}\n更新方式：${result.isUnlimited ? "無限更新" : result.deductFreeCount ? "免費次數更新" : "付費更新"}\n已成功套用最新內容。`;
+  }
+
+  function buildUpdatePaymentText(result) {
+    return `【更新付款通知】\n名片序號：${result.cardId}\n付款單號：${result.paymentId}\n應付金額：NT$ ${result.updateFeeAmount}\n付款期限：${result.dueDateStr}\n請完成付款後通知客服進行更新。`;
+  }
+
+  function buildUpdateSummaryText(result) {
+    return `更新摘要：${result.isUnlimited ? "無限更新" : result.deductFreeCount ? "使用免費次數" : "單次付費更新"}`;
+  }
+
+  /* ============================================================
+     RENEW FLOW
+  ============================================================ */
+  function renderRenewSummaryPanel() {
+    const panel = els["mode-info-panel"];
+    if (!panel) return;
+    const card = state.runtime.renewCard;
+    const summary = state.runtime.renewPaymentSummary || {};
+    panel.innerHTML = `
+      <div class="mode-info-block"><div class="mode-info-label">原方案</div><div class="mode-info-value">${card?.plan || "—"}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">原到期日</div><div class="mode-info-value">${card?.expires_at ? formatDateYMD(card.expires_at) : "—"}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">無限更新</div><div class="mode-info-value">${card?.has_unlimited_update ? "✅ 有" : "❌ 無"}</div></div>
+      <div class="mode-info-block"><div class="mode-info-label">加購項目</div><div class="mode-info-value">${summary.addon_summary || "無"}</div></div>
+    `;
+    if (els["mode-info-kicker"]) els["mode-info-kicker"].textContent = "RENEW INFO";
+    if (els["mode-info-title"]) els["mode-info-title"].textContent = "原卡片摘要";
+  }
+
+  function renderRenewControls() {
+    const panel = els["renew-controls-panel"];
+    if (!panel) return;
+    panel.innerHTML = `
+      <div class="renew-control-group">
+        <label>目標方案</label>
+        <select id="renew-target-plan">
+          <option value="free">自由搭配 NT$1,500</option>
+          <option value="premium">精品設計 NT$2,000</option>
+        </select>
+      </div>
+      <div class="renew-control-group">
+        <label><input type="checkbox" id="renew-unlimited-update" /> 續用無限更新 (+NT$300)</label>
+      </div>
+      <div class="renew-control-group">
+        <label>續約年數</label>
+        <select id="renew-term">
+          <option value="1">1 年</option>
+          <option value="2">2 年</option>
+        </select>
+      </div>
+    `;
+    const targetSelect = document.getElementById("renew-target-plan");
+    const unlimitedCheck = document.getElementById("renew-unlimited-update");
+    const termSelect = document.getElementById("renew-term");
+    if (targetSelect) {
+      targetSelect.value = state.renewFlow.targetPlan || "free";
+      targetSelect.addEventListener("change", (e) => {
+        state.renewFlow.targetPlan = e.target.value;
+        const radio = document.querySelector(`input[name="plan"][value="${state.renewFlow.targetPlan}"]`);
+        if (radio) radio.checked = true;
+        refreshAll();
+      });
+    }
+    if (unlimitedCheck) {
+      unlimitedCheck.checked = state.renewFlow.renewUnlimitedUpdate;
+      unlimitedCheck.addEventListener("change", (e) => {
+        state.renewFlow.renewUnlimitedUpdate = e.target.checked;
+        refreshAll();
+      });
+    }
+    if (termSelect) {
+      termSelect.value = state.renewFlow.renewTerm;
+      termSelect.addEventListener("change", (e) => {
+        state.renewFlow.renewTerm = parseInt(e.target.value, 10);
+        refreshAll();
+      });
+    }
+  }
+
+  function collectRenewSelectedAddons() {
+    const items = getAddonItemsForQuote(getLimitsRenew());
+    return items.map(i => ({ addon_code: i.code, quantity: i.qty, price: i.unit_price }));
+  }
+
+  async function requestRenewQuote() {
+    const cardId = state.modeContext.cardId;
+    const token = state.modeContext.renewToken;
+    const payload = {
+      action: CONFIG.RENEW_QUOTE_ACTION,
+      card_id: cardId,
+      renew_token: token,
+      target_plan: state.renewFlow.targetPlan,
+      selected_addons: collectRenewSelectedAddons(),
+      renew_unlimited_update: state.renewFlow.renewUnlimitedUpdate,
+      renew_term: state.renewFlow.renewTerm
+    };
+    const res = await postToGas(payload);
+    if (!res.ok) throw new Error(res.error || "取得續約報價失敗");
+    state.runtime.renewQuote = res;
+    return res;
+  }
+
+  async function submitRenew() {
+    if (!validateRenewBeforeSubmit()) return;
+    showProgress(true);
+    hideSuccessPanel();
+    setProgressStep(1, "計算續約報價…");
+
+    try {
+      const quote = await requestRenewQuote();
+      setProgressStep(2, "建立續約付款單…");
+
+      const paymentPayload = {
+        action: CONFIG.RENEW_CREATE_PAYMENT_ACTION,
+        card_id: state.modeContext.cardId,
+        renew_token: state.modeContext.renewToken,
+        target_plan: state.renewFlow.targetPlan,
+        selected_addons: collectRenewSelectedAddons(),
+        renew_unlimited_update: state.renewFlow.renewUnlimitedUpdate,
+        quote_items: quote.quote_items || [],
+        total_amount: quote.total_amount || state.quote.totalAmount
+      };
+      const paymentRes = await postToGas(paymentPayload);
+      if (!paymentRes.ok) throw new Error(paymentRes.error || "建立續約付款單失敗");
+
+      const renewalId = paymentRes.renewal_id || paymentRes.id;
+      const paymentId = paymentRes.payment_id || "";
+      const dueAt = paymentRes.due_at || new Date(Date.now() + 3*86400000).toISOString();
+
+      const result = {
+        cardId: state.modeContext.cardId,
+        renewalId,
+        paymentId,
+        paymentDueAt: dueAt,
+        dueDateStr: formatDateYMD(dueAt),
+        totalAmount: paymentPayload.total_amount,
+        targetPlan: state.renewFlow.targetPlan,
+        customerName: valueOf("display_name") || "您",
+        quoteItems: quote.quote_items || []
+      };
+      state.lastSubmitResult = result;
+
+      setProgressStep(5, "續約付款單已建立");
+      showRenewSuccessPanel(result);
+      setStatus("續約付款單已建立，請完成付款後續約生效。", "success");
+    } catch (err) {
+      console.error(err);
+      setStatus("續約失敗：" + err.message, "error");
+    } finally {
+      showProgress(false);
+    }
+  }
+
+  function buildRenewPaymentText(result) {
+    return `【續約付款通知】\n名片序號：${result.cardId}\n續約單號：${result.renewalId}\n付款單號：${result.paymentId}\n目標方案：${result.targetPlan}\n應付總額：NT$ ${result.totalAmount}\n付款期限：${result.dueDateStr}\n請完成付款後通知客服開通續約。`;
+  }
+
+  function buildRenewQuoteText(result) {
+    let itemsText = "";
+    if (result.quoteItems && result.quoteItems.length) {
+      itemsText = result.quoteItems.map(i => `${i.name} ${i.amount}`).join("\n");
+    }
+    return `【續約報價摘要】\n名片序號：${result.cardId}\n目標方案：${result.targetPlan}\n總金額：NT$ ${result.totalAmount}\n${itemsText}`;
+  }
+
+  function buildRenewDoneText(result) {
+    return `【續約完成通知】\n名片序號：${result.cardId}\n續約單號：${result.renewalId}\n新方案：${result.targetPlan}\n有效期已延長。`;
+  }
+
+  /* ============================================================
+     SUBMIT DISPATCHER
+  ============================================================ */
+  async function submit(e) {
+    e.preventDefault();
+    if (state.mode === "create") await submitCreate();
+    else if (state.mode === "update") await submitUpdate();
+    else if (state.mode === "renew") await submitRenew();
+    else setStatus("不支援的模式", "error");
+  }
+
+  /* ============================================================
+     SUCCESS PANEL (mode-aware)
+  ============================================================ */
+  function resetSuccessPanel() {
+    if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 編號";
+    if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = "—";
+    if (els["success-info-rows"]) els["success-info-rows"].innerHTML = "";
+    if (els["success-due-alert"]) els["success-due-alert"].classList.add("hidden");
+    if (els["success-preview-row"]) els["success-preview-row"].classList.add("hidden");
+    if (els["success-summary-box"]) els["success-summary-box"].classList.add("hidden");
+    if (els["btn-copy-secondary-notice"]) els["btn-copy-secondary-notice"].classList.add("hidden");
+    if (els["btn-copy-primary-notice"]) els["btn-copy-primary-notice"].textContent = "📋 複製通知";
+  }
+
   function showSuccessPanel(result) {
     if (!result) return;
-    if (els["progress-fill"]) els["progress-fill"].style.width = "100%";
-
-    const idEl = els["progress-card-id-display"];
-    if (idEl) { idEl.textContent = result.cardId || "（待客服確認）"; idEl.dataset.cardId = result.cardId || ""; }
-
-    const linkEl = els["progress-preview-link"];
-    if (linkEl) { linkEl.href = result.previewUrl || CONFIG.SHOWCASE_URL; linkEl.textContent = result.previewUrl || CONFIG.SHOWCASE_URL; }
-
-    const panel = els["progress-success-panel"];
-    if (!panel) return;
-
-    const setT = (sel, v) => { const el = panel.querySelector(sel); if (el) el.textContent = v; };
-    setT(".success-name", result.customerName || "您");
-    setT(".success-plan", result.planLabel || "方案");
-    setT(".success-total", `NT$ ${Number(result.totalAmount || 0).toLocaleString("zh-TW")}`);
-    setT(".success-due", result.dueDateStr || "3 天內");
-
-    panel.classList.remove("hidden");
+    if (state.mode === "create") showCreateSuccessPanel(result);
+    else if (state.mode === "update") showUpdateSuccessPanel(result);
+    else if (state.mode === "renew") showRenewSuccessPanel(result);
+    if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
   }
 
-  function hideSuccessPanel() { els["progress-success-panel"]?.classList.add("hidden"); }
+  function showCreateSuccessPanel(result) {
+    resetSuccessPanel();
+    if (els["success-header-icon"]) els["success-header-icon"].textContent = "🎉";
+    if (els["success-header-title"]) els["success-header-title"].textContent = "名片申請成功！";
+    if (els["success-header-sub"]) els["success-header-sub"].textContent = "請複製以下資訊並回覆客服，協助確認付款與開通名片。";
+    if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
+    if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
+    if (els["success-info-rows"]) {
+      els["success-info-rows"].innerHTML = `
+        <div class="success-info-row"><span class="label">申請人</span><span class="value">${escapeHtml(result.customerName)}</span></div>
+        <div class="success-info-row"><span class="label">方案</span><span class="value">${escapeHtml(result.planLabel)}</span></div>
+        <div class="success-info-row"><span class="label">總金額</span><span class="value">${money(result.totalAmount)}</span></div>
+        ${result.paymentId ? `<div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>` : ""}
+      `;
+    }
+    if (els["success-due-alert"]) {
+      els["success-due-alert"].classList.remove("hidden");
+      if (els["success-due-text"]) els["success-due-text"].textContent = `付款期限：${result.dueDateStr || "—"}`;
+    }
+    if (els["success-preview-row"]) {
+      els["success-preview-row"].classList.remove("hidden");
+      if (els["progress-preview-link"]) {
+        els["progress-preview-link"].href = result.previewUrl || "";
+        els["progress-preview-link"].textContent = result.previewUrl || "（建立後顯示）";
+      }
+    }
+    if (els["success-summary-box"]) {
+      els["success-summary-box"].classList.remove("hidden");
+      if (els["success-summary-content"]) {
+        els["success-summary-content"].innerHTML = `
+          <div class="quote-breakdown-row"><span>主方案</span><strong>${money(result.totalAmount - (result.addonAmount || 0))}</strong></div>
+          <div class="quote-breakdown-row"><span>加購小計</span><strong>${money(result.addonAmount || 0)}</strong></div>
+          <div class="quote-breakdown-row"><span>應付總額</span><strong>${money(result.totalAmount)}</strong></div>
+        `;
+      }
+    }
+    setSuccessActionLabels("create", result);
+  }
+
+  function showUpdateSuccessPanel(result) {
+    resetSuccessPanel();
+    if (result.requiresPayment) {
+      if (els["success-header-icon"]) els["success-header-icon"].textContent = "💳";
+      if (els["success-header-title"]) els["success-header-title"].textContent = "已建立更新付款單";
+      if (els["success-header-sub"]) els["success-header-sub"].textContent = "請先完成本次單次更新付款。";
+      if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
+      if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
+      if (els["success-info-rows"]) {
+        els["success-info-rows"].innerHTML = `
+          <div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>
+          <div class="success-info-row"><span class="label">更新方式</span><span class="value">單次付費更新</span></div>
+          <div class="success-info-row"><span class="label">應付金額</span><span class="value">${money(result.updateFeeAmount)}</span></div>
+        `;
+      }
+      if (els["success-due-alert"]) {
+        els["success-due-alert"].classList.remove("hidden");
+        if (els["success-due-text"]) els["success-due-text"].textContent = `付款期限：${result.dueDateStr || "—"}`;
+      }
+      if (els["success-summary-box"]) {
+        els["success-summary-box"].classList.remove("hidden");
+        if (els["success-summary-content"]) {
+          els["success-summary-content"].innerHTML = `<div class="quote-breakdown-row">本次更新費用：${money(result.updateFeeAmount)}</div>`;
+        }
+      }
+      setSuccessActionLabels("update_payment", result);
+    } else {
+      if (els["success-header-icon"]) els["success-header-icon"].textContent = "🛠️";
+      if (els["success-header-title"]) els["success-header-title"].textContent = "名片更新完成";
+      if (els["success-header-sub"]) els["success-header-sub"].textContent = "更新內容已套用到名片。";
+      if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
+      if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
+      if (els["success-info-rows"]) {
+        els["success-info-rows"].innerHTML = `
+          <div class="success-info-row"><span class="label">是否需付款</span><span class="value">否</span></div>
+          <div class="success-info-row"><span class="label">扣減次數</span><span class="value">${result.deductFreeCount ? "是" : "否"}</span></div>
+          <div class="success-info-row"><span class="label">無限更新</span><span class="value">${result.isUnlimited ? "是" : "否"}</span></div>
+        `;
+      }
+      if (els["success-preview-row"]) {
+        els["success-preview-row"].classList.remove("hidden");
+        const previewUrl = `${CONFIG.SHOWCASE_URL}index.html?id=${encodeURIComponent(result.cardId)}&view=1`;
+        if (els["progress-preview-link"]) {
+          els["progress-preview-link"].href = previewUrl;
+          els["progress-preview-link"].textContent = previewUrl;
+        }
+      }
+      setSuccessActionLabels("update_done", result);
+    }
+  }
+
+  function showRenewSuccessPanel(result) {
+    resetSuccessPanel();
+    if (els["success-header-icon"]) els["success-header-icon"].textContent = "🔄";
+    if (els["success-header-title"]) els["success-header-title"].textContent = "續約付款單已建立";
+    if (els["success-header-sub"]) els["success-header-sub"].textContent = "請依下列資訊完成續約付款。";
+    if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 續約單號";
+    if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.renewalId || "—";
+    if (els["success-info-rows"]) {
+      els["success-info-rows"].innerHTML = `
+        <div class="success-info-row"><span class="label">名片序號</span><span class="value">${escapeHtml(result.cardId)}</span></div>
+        <div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>
+        <div class="success-info-row"><span class="label">應付金額</span><span class="value">${money(result.totalAmount)}</span></div>
+        <div class="success-info-row"><span class="label">目標方案</span><span class="value">${escapeHtml(result.targetPlan)}</span></div>
+      `;
+    }
+    if (els["success-due-alert"]) {
+      els["success-due-alert"].classList.remove("hidden");
+      if (els["success-due-text"]) els["success-due-text"].textContent = `付款期限：${result.dueDateStr || "—"}`;
+    }
+    if (els["success-summary-box"]) {
+      els["success-summary-box"].classList.remove("hidden");
+      if (els["success-summary-content"]) {
+        let summaryHtml = "";
+        if (result.quoteItems && result.quoteItems.length) {
+          summaryHtml = result.quoteItems.map(i => `<div class="quote-breakdown-row"><span>${escapeHtml(i.name)}</span><strong>${money(i.amount)}</strong></div>`).join("");
+        }
+        summaryHtml += `<div class="quote-breakdown-row"><span>總計</span><strong>${money(result.totalAmount)}</strong></div>`;
+        els["success-summary-content"].innerHTML = summaryHtml;
+      }
+    }
+    setSuccessActionLabels("renew", result);
+  }
+
+  function buildSuccessInfoRows(result) { /* 已整合至各模式 */ }
+  function buildSuccessSummaryRows(result) { /* 已整合 */ }
+
+  function setSuccessActionLabels(mode, result) {
+    const primaryBtn = els["btn-copy-primary-notice"];
+    const secondaryBtn = els["btn-copy-secondary-notice"];
+    if (!primaryBtn) return;
+
+    if (mode === "create") {
+      primaryBtn.textContent = "📋 複製預覽＋付款通知";
+      primaryBtn.onclick = async () => { await copyText(buildCreatePrimaryNoticeText(result)); setStatus("已複製通知", "success"); };
+      if (secondaryBtn) {
+        secondaryBtn.classList.remove("hidden");
+        secondaryBtn.textContent = "📄 複製報價＋付款資訊";
+        secondaryBtn.onclick = async () => { await copyText(buildCreateSecondaryNoticeText(result)); setStatus("已複製摘要", "success"); };
+      }
+    } else if (mode === "update_done") {
+      primaryBtn.textContent = "📋 複製更新完成通知";
+      primaryBtn.onclick = async () => { await copyText(buildUpdateDoneText(result)); setStatus("已複製", "success"); };
+      if (secondaryBtn) secondaryBtn.classList.add("hidden");
+    } else if (mode === "update_payment") {
+      primaryBtn.textContent = "📋 複製更新付款通知";
+      primaryBtn.onclick = async () => { await copyText(buildUpdatePaymentText(result)); setStatus("已複製", "success"); };
+      if (secondaryBtn) {
+        secondaryBtn.classList.remove("hidden");
+        secondaryBtn.textContent = "📄 複製更新摘要";
+        secondaryBtn.onclick = async () => { await copyText(buildUpdateSummaryText(result)); setStatus("已複製", "success"); };
+      }
+    } else if (mode === "renew") {
+      primaryBtn.textContent = "📋 複製續約付款通知";
+      primaryBtn.onclick = async () => { await copyText(buildRenewPaymentText(result)); setStatus("已複製", "success"); };
+      if (secondaryBtn) {
+        secondaryBtn.classList.remove("hidden");
+        secondaryBtn.textContent = "📄 複製續約報價摘要";
+        secondaryBtn.onclick = async () => { await copyText(buildRenewQuoteText(result)); setStatus("已複製", "success"); };
+      }
+    }
+  }
 
   /* ============================================================
-     UTIL
+     PROGRESS / STATUS
   ============================================================ */
-  function isMarqueeEnabled() { return isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle"); }
-
-  function valueOf(id) {
-    const el = document.getElementById(id) || els[id];
-    return (el?.value || "").trim();
-  }
-
-  function getThemeSelection() {
-    const plan = getSelectedPlan() || "premium";
-    if (plan === "free") {
-      return { plan, color: els["free_color"]?.value || "c1", style: els["free_style"]?.value || "s1", paper: els["free_paper"]?.value || "f1" };
-    }
-    return { plan, color: els["premium_color"]?.value || "p1", style: "", paper: "" };
-  }
-
   function showProgress(show) {
     if (!els["submit-progress-overlay"]) return;
     els["submit-progress-overlay"].classList.toggle("hidden", !show);
@@ -1337,6 +1910,11 @@
     if (stateName) el.dataset.state = stateName; else delete el.dataset.state;
   }
 
+  function hideSuccessPanel() { if (els["progress-success-panel"]) els["progress-success-panel"].classList.add("hidden"); }
+
+  /* ============================================================
+     DRAFT
+  ============================================================ */
   function collectFormValues() {
     const out = {};
     document.querySelectorAll("input, textarea, select").forEach(el => {
@@ -1347,12 +1925,9 @@
     return out;
   }
 
-  /* ============================================================
-     DRAFT
-  ============================================================ */
   function saveDraft() {
     const values = collectFormValues();
-    localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify({ values, photoMeta: state.photoMeta }));
+    localStorage.setItem(CONFIG.DRAFT_KEY, JSON.stringify({ values, photoMeta: state.photoMeta, mode: state.mode }));
   }
 
   function saveDraftSilently() { try { saveDraft(); } catch (_) {} }
@@ -1361,24 +1936,15 @@
     let draft = null;
     try { draft = JSON.parse(localStorage.getItem(CONFIG.DRAFT_KEY) || "null"); } catch (_) {}
     if (!draft || typeof draft !== "object") return;
-
     const values = draft.values || {};
     state.draftValues = { ...values };
-
     Object.keys(values).forEach(key => {
       if (/^cta_(text|link)_\d+$/.test(key)) return;
       const el = document.getElementById(key);
       if (el) { if (el.type === "checkbox") el.checked = !!values[key]; else el.value = values[key]; return; }
       if (key === "plan") { const r = document.querySelector(`input[name="plan"][value="${values[key]}"]`); if (r) r.checked = true; }
     });
-
-    if (values["experience"] !== undefined) {
-      const expEl = document.getElementById("experience") || els["experience"];
-      if (expEl) expEl.value = values["experience"] || "";
-    }
-
     if (draft.photoMeta && typeof draft.photoMeta === "object") state.photoMeta = draft.photoMeta;
-
     ensurePhotoMetaKey("avatar");
     ensurePhotoMetaKey("logo");
   }
@@ -1387,6 +1953,49 @@
     localStorage.removeItem(CONFIG.DRAFT_KEY);
     localStorage.removeItem(CONFIG.QUOTE_STORAGE_KEY);
     location.reload();
+  }
+
+  /* ============================================================
+     STATIC EVENTS
+  ============================================================ */
+  function bindStaticEvents() {
+    if (els["smart-card-form"]) els["smart-card-form"].addEventListener("submit", submit);
+    els.planRadios.forEach(r => r.addEventListener("change", refreshAll));
+    els.addonCheckboxes.forEach(b => b.addEventListener("change", refreshAll));
+    ["addon_photo_qty", "addon_cta_qty"].forEach(id => { if (els[id]) { els[id].addEventListener("input", refreshAll); els[id].addEventListener("change", refreshAll); } });
+    [
+      "free_color","free_style","free_paper","premium_color",
+      "display_name","unit","title","phone","email","website",
+      "line_url","line_oa","wechat_id","experience","services",
+      "address","intro","marquee_text",
+      "video1","video2","video3","social1","social2","social3"
+    ].forEach(id => { if (els[id]) { els[id].addEventListener("input", onLiveChange); els[id].addEventListener("change", onLiveChange); } });
+
+    bindButton(els["btn-open-showcase"], () => window.open(CONFIG.SHOWCASE_URL, "_blank", "noopener"));
+    bindButton(els["btn-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
+    bindButton(els["progress-contact-service"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
+    bindButton(els["btn-gold-contact"], () => window.open(CONFIG.SERVICE_URL, "_blank", "noopener"));
+    bindButton(els["btn-gold-info"], () => alert("金牌級會員請聯繫客服瞭解完整權益。"));
+    bindButton(els["btn-save-draft"], () => { saveDraft(); setStatus("草稿已暫存。"); });
+    bindButton(els["btn-clear-draft"], clearDraft);
+    bindButton(els["btn-gold-copy"], async () => { await copyText("您好，我想瞭解金牌級會員的完整權益與適合方案。"); setStatus("已複製金牌會員詢問文案。"); });
+  }
+
+  function bindButton(btn, handler) { if (btn) btn.addEventListener("click", handler); }
+  function onLiveChange() { updatePreview(); saveDraftSilently(); }
+
+  /* ============================================================
+     DATE / TEXT / UTIL
+  ============================================================ */
+  function formatDateYMD(input) {
+    try {
+      const d = input instanceof Date ? input : new Date(input);
+      if (isNaN(d.getTime())) throw new Error();
+      return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+    } catch (_) {
+      const fb = new Date(); fb.setDate(fb.getDate() + 3);
+      return `${fb.getFullYear()}/${String(fb.getMonth() + 1).padStart(2, "0")}/${String(fb.getDate()).padStart(2, "0")}`;
+    }
   }
 
   function money(v) { return `NT$ ${Number(v || 0).toLocaleString("zh-TW")}`; }
@@ -1416,5 +2025,31 @@
     return String(str || "")
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  function clampNumber(value, min, max, fallback) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    if (Number.isFinite(min) && n < min) return min;
+    if (Number.isFinite(max) && n > max) return max;
+    return n;
+  }
+
+  function normalizePhotoMeta(meta) {
+    const s = meta && typeof meta === "object" ? meta : {};
+    return {
+      x: clampNumber(s.x, 0, 1, DEFAULT_PHOTO_META.x),
+      y: clampNumber(s.y, 0, 1, DEFAULT_PHOTO_META.y),
+      scale: clampNumber(s.scale, 0.5, 3, DEFAULT_PHOTO_META.scale),
+      rotate: clampNumber(s.rotate, -180, 180, DEFAULT_PHOTO_META.rotate)
+    };
+  }
+
+  function isMarqueeEnabled() { return isAddonChecked("addon_marquee") || isAddonChecked("addon_bundle"); }
+  function valueOf(id) { const el = document.getElementById(id) || els[id]; return (el?.value || "").trim(); }
+  function getThemeSelection() {
+    const plan = getSelectedPlan() || "premium";
+    if (plan === "free") return { plan, color: els["free_color"]?.value || "c1", style: els["free_style"]?.value || "s1", paper: els["free_paper"]?.value || "f1" };
+    return { plan, color: els["premium_color"]?.value || "p1", style: "", paper: "" };
   }
 })();
