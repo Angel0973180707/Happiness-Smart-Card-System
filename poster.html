@@ -3,13 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>天使幸福智慧名片｜智慧名片交付卡</title>
+  <title>天使幸福智慧名片｜專屬名片入口</title>
   <meta name="theme-color" content="#f8f4ee" />
-  <link rel="stylesheet" href="./poster.css?v=120-final" />
+  <link rel="stylesheet" href="./poster.css?v=130-fixed" />
   <style>
-    /* ── v1.2 新增樣式 ── */
-
-    /* 主標語 */
     .hero-tagline {
       margin-top: 10px;
       font-size: 13px;
@@ -19,7 +16,6 @@
       font-weight: 500;
     }
 
-    /* 名片交付區 */
     .delivery-section {
       margin-top: 16px;
     }
@@ -28,7 +24,6 @@
       margin-bottom: 12px;
     }
 
-    /* 分享名片按鈕 — 柔和交流感 */
     .btn-share-card {
       color: var(--gold-deep);
       background: linear-gradient(180deg, #fffdf8 0%, #fef5e7 100%);
@@ -36,7 +31,6 @@
       box-shadow: 0 3px 8px rgba(191,135,87,.06);
     }
 
-    /* 下載名片海報按鈕 — 實用下載感 */
     .btn-download {
       display: flex;
       flex-direction: column;
@@ -75,7 +69,6 @@
       cursor: wait;
     }
 
-    /* 服務荷包 accordion */
     .wallet-accordion {
       margin-top: 16px;
       background: linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,249,242,.74));
@@ -162,7 +155,6 @@
       margin: 0 -14px;
     }
 
-    /* 服務荷包內的導引提示 */
     .wallet-nav-hint {
       font-size: 12px;
       color: #a08f82;
@@ -178,7 +170,6 @@
       font-weight: 900;
     }
 
-    /* 升級提示條 */
     .upgrade-hint-bar {
       background: linear-gradient(135deg, #fffdf8, #fef0dc);
       border: 1px solid rgba(191,135,87,.18);
@@ -198,7 +189,6 @@
       margin-bottom: 4px;
     }
 
-    /* 分享專屬入口 — 明確經營感 */
     .referral-entry-block {
       background: linear-gradient(180deg, #fffefb, #fdf5e8);
       border: 1px solid rgba(191,135,87,.2);
@@ -241,7 +231,6 @@
       gap: 8px;
     }
 
-    /* 服務快記 */
     .service-log-block {
       background: linear-gradient(180deg, rgba(255,255,255,.88), rgba(255,252,247,.86));
       border: 1px solid rgba(98,76,56,.07);
@@ -265,7 +254,6 @@
       font-weight: 500;
     }
 
-    /* 成果統計 */
     .wallet-stats-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -295,7 +283,6 @@
       letter-spacing: .01em;
     }
 
-    /* 合作說明 dialog 專用樣式 */
     .collab-tier {
       margin-bottom: 14px;
       padding: 12px 14px;
@@ -330,7 +317,6 @@
       border: 1px solid rgba(191,135,87,.14);
     }
 
-    /* 名片狀態區 */
     .card-status-section {
       margin-top: 16px;
       background: linear-gradient(180deg, rgba(255,255,255,.82), rgba(255,249,242,.74));
@@ -346,14 +332,12 @@
       gap: 10px;
     }
 
-    /* 按鈕 sm */
     .btn-sm {
       padding: 12px 16px;
       font-size: 14px;
       min-height: 46px;
     }
 
-    /* 客服按鈕 */
     .btn-support {
       color: #fffaf6;
       background: linear-gradient(180deg, #d4956a 0%, #c48050 100%);
@@ -361,7 +345,6 @@
       box-shadow: 0 4px 10px rgba(88,67,48,.09), inset 0 1px 0 rgba(255,255,255,.18);
     }
 
-    /* 狀態標籤 */
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -387,6 +370,15 @@
       background: rgba(122,90,78,.1);
     }
 
+    .hidden {
+      display: none !important;
+    }
+
+    .service-chip.active {
+      background: linear-gradient(180deg,#c38a5c,#b67b4f) !important;
+      color: #fffaf6 !important;
+    }
+
     @media (max-width: 420px) {
       .wallet-stats-grid { grid-template-columns: repeat(2, 1fr); }
       .card-status-grid { grid-template-columns: 1fr; }
@@ -397,8 +389,6 @@
 <body>
   <main class="page">
     <section class="hero-card">
-
-      <!-- ── Hero 區 ── -->
       <div class="hero-head">
         <div class="brand-stack">
           <div class="brand-icon">☀</div>
@@ -410,8 +400,6 @@
       </div>
 
       <div class="hero-body">
-
-        <!-- ── 人物與 QR 區 ── -->
         <section id="posterCapture" class="poster-canvas" aria-label="名片主視覺">
           <div class="avatar-wrap">
             <img id="avatarImg" alt="頭像" />
@@ -435,46 +423,21 @@
           </div>
         </section>
 
-        <!-- ══════════════════════════════════
-             名片交付區
-        ══════════════════════════════════ -->
         <section class="action-group delivery-section" aria-label="名片交付">
           <h3 class="group-title">名片交付</h3>
           <div class="actions">
-
-            <!-- 1. 打開名片 -->
-            <button id="openCardBtn" class="btn btn-primary" type="button">
-              打開我的名片
-            </button>
-
-            <!-- 2. 分享名片（交流用，不帶 ref） -->
-            <button id="shareCardBtn" class="btn btn-share-card" type="button">
-              分享我的名片
-            </button>
-
-            <!-- 3. 下載名片海報 -->
+            <button id="openCardBtn" class="btn btn-primary" type="button">打開我的名片</button>
+            <button id="shareCardBtn" class="btn btn-share-card" type="button">分享我的名片</button>
             <button id="downloadBtn" class="btn btn-download" type="button">
               <span class="btn-download-icon" aria-hidden="true">↓</span>
               下載我的名片海報
               <span class="btn-download-sub">存到手機裡，分享更方便</span>
             </button>
-
-            <!-- 4. 更新資訊 -->
-            <button id="updateEntryBtn" class="btn btn-soft" type="button">
-              更新一下最新資訊
-            </button>
-
-            <!-- 5. 繼續使用 -->
-            <button id="renewalBtn" class="btn btn-soft" type="button">
-              繼續使用這張名片
-            </button>
-
+            <button id="updateEntryBtn" class="btn btn-soft" type="button">更新一下最新資訊</button>
+            <button id="renewalBtn" class="btn btn-soft" type="button">繼續使用這張名片</button>
           </div>
         </section>
 
-        <!-- ══════════════════════════════════
-             服務荷包（accordion，由 wallet_mode 控制）
-        ══════════════════════════════════ -->
         <div id="walletAccordion" class="wallet-accordion" aria-label="服務荷包">
           <button id="walletToggle" class="wallet-toggle" type="button" aria-expanded="false" aria-controls="walletBody">
             <div class="wallet-toggle-left">
@@ -488,32 +451,26 @@
 
           <div id="walletBody" class="wallet-body" role="region" aria-labelledby="walletToggle">
             <div class="wallet-inner">
-
-              <!-- 導引提示語（只在完整版顯示） -->
               <div id="walletNavHint" class="wallet-nav-hint hidden">
                 <strong>想交流</strong> → 用名片區的分享功能<br>
                 <strong>想經營</strong> → 用下方的專屬入口
               </div>
 
-              <!-- 升級提示（trial 模式） -->
               <div id="upgradeHintBar" class="upgrade-hint-bar">
                 <div class="upgrade-bar-label">🌱 解鎖進度</div>
                 <span id="upgradeHintText">完成 5 次分享成交，累積 5 點後，就能開啟完整服務荷包。</span>
               </div>
 
-              <!-- 記一下今天的服務（完整版） -->
               <div id="serviceLogBlock" class="service-log-block hidden">
                 <div class="service-log-label">記一下今天的服務</div>
                 <div class="service-log-hint">服務完，點一下就好</div>
                 <button id="logServiceBtn" class="btn btn-soft btn-sm" type="button">開始記錄</button>
               </div>
 
-              <!-- 看看我做了哪些服務（完整版） -->
               <div id="serviceLogsViewBlock" class="hidden">
                 <button id="viewServiceLogsBtn" class="btn btn-soft btn-sm" type="button">看看我做了哪些服務</button>
               </div>
 
-              <!-- 慢慢累積的成果（完整版） -->
               <div id="walletStatsBlock" class="hidden">
                 <div class="service-log-label" style="margin-bottom:8px;">慢慢累積的成果</div>
                 <div class="wallet-stats-grid">
@@ -530,7 +487,6 @@
                     <div id="statConvertedCount" class="wallet-stat-value">0</div>
                   </div>
                 </div>
-                <!-- 金牌收益（partner 專用） -->
                 <div id="partnerEarningsBlock" class="wallet-stats-grid hidden" style="margin-top:8px;">
                   <div class="wallet-stat-item">
                     <div class="wallet-stat-label">本月分潤</div>
@@ -545,7 +501,6 @@
 
               <div class="wallet-divider"></div>
 
-              <!-- 分享專屬入口（trial 也可用） -->
               <div id="referralEntryBlock" class="referral-entry-block hidden">
                 <div class="referral-entry-label">✦ 分享專屬入口</div>
                 <div class="referral-entry-desc">朋友從這裡進來，你的推薦與服務會被記錄</div>
@@ -556,16 +511,11 @@
                 </div>
               </div>
 
-              <!-- 看看怎麼一起合作 -->
               <button id="openCollabBtn" class="btn btn-soft btn-sm" type="button">看看怎麼一起合作</button>
-
             </div>
           </div>
         </div>
 
-        <!-- ══════════════════════════════════
-             名片狀態區
-        ══════════════════════════════════ -->
         <section class="card-status-section" aria-label="我的名片狀態">
           <h3 class="group-title" style="margin-bottom:10px;">我的名片狀態</h3>
           <div class="card-status-grid">
@@ -590,7 +540,6 @@
           </div>
         </section>
 
-        <!-- 客服入口 -->
         <section class="action-group" aria-label="客服">
           <div class="actions">
             <button id="lineOABtn" class="btn btn-support" type="button">需要幫忙，找我</button>
@@ -598,16 +547,11 @@
           <p style="margin:8px 0 0;text-align:center;font-size:12px;color:var(--muted);">有任何問題，這裡都有人幫你</p>
         </section>
 
-        <!-- 全域狀態提示 -->
         <div id="statusText" class="status"></div>
-
-      </div><!-- /hero-body -->
-    </section><!-- /hero-card -->
+      </div>
+    </section>
   </main>
 
-  <!-- ══════════════════════════════════
-       Dialog：合作說明
-  ══════════════════════════════════ -->
   <div id="collabDialog" class="dialog-mask" aria-hidden="true">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="collabDialogTitle">
       <h3 id="collabDialogTitle" class="dialog-title">一起合作的方式</h3>
@@ -638,9 +582,6 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════
-       Dialog：分享名片說明（分享按鈕用）
-  ══════════════════════════════════ -->
   <div id="shareCardDialog" class="dialog-mask" aria-hidden="true">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="shareCardDialogTitle">
       <h3 id="shareCardDialogTitle" class="dialog-title">分享我的名片</h3>
@@ -656,9 +597,6 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════
-       Dialog：服務快記
-  ══════════════════════════════════ -->
   <div id="serviceLogDialog" class="dialog-mask" aria-hidden="true">
     <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="serviceLogDialogTitle">
       <h3 id="serviceLogDialogTitle" class="dialog-title">記一下今天的服務</h3>
@@ -687,6 +625,6 @@
   </div>
 
   <script src="./qrcode.min.js"></script>
-  <script src="./poster.js?v=120-final"></script>
+  <script src="./poster.js?v=130-fixed"></script>
 </body>
 </html>
