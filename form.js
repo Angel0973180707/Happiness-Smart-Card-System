@@ -1420,9 +1420,16 @@
     return `您好，我是 ${result.customerName}，已完成天使幸福智慧名片申請！\n📋 名片序號：${result.cardId}\n💳 方案：${result.planLabel}，總金額 ${money(result.totalAmount)}\n🔗 成品預覽：${result.previewUrl}\n⏰ 付款期限：${result.dueDateStr} 前，請協助確認並開通名片，謝謝！`;
   }
 
-  function buildCreateSecondaryNoticeText(result) {
-    return `【天使幸福智慧名片 報價摘要】\n名片序號：${result.cardId}\n方案：${result.planLabel} ${money(result.totalAmount)}\n付款期限：${result.dueDateStr}\n預覽連結：${result.previewUrl}`;
-  }
+ function buildCreateSecondaryNoticeText(result) {
+  return `【天使幸福智慧名片 報價摘要】
+名片序號：${result.cardId}
+方案：${result.planLabel} ${money(result.totalAmount)}
+付款期限：${result.dueDateStr}
+預覽連結：${result.previewUrl}
+
+付款與開通請以官方通知流程為準
+本系統不會透過私訊更改收款帳號`;
+}
 
   function resolveUpdateEligibilityState(eligData) {
     const card = state.runtime.updateCard;
