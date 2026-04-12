@@ -1766,7 +1766,46 @@
     else if (state.mode === "renew") showRenewSuccessPanel(result);
     if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
   }
+function renderCreateSuccessFooterNote(els) {
+  if (!els["success-footer-note"]) return;
 
+  els["success-footer-note"].innerHTML = `
+    <div style="
+      margin-top:14px;
+      padding:16px;
+      border-radius:16px;
+      background:linear-gradient(135deg,#fffdf9,#fff7ec);
+      border:1.5px solid rgba(240,160,75,.28);
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    ">
+
+      <div style="text-align:center;">
+        <div style="font-size:22px;">✅</div>
+        <div style="font-size:15px;font-weight:900;">
+          已收到你的申請，我們會協助你完成開通
+        </div>
+      </div>
+
+      <div style="padding:12px;border-radius:12px;background:#fff;">
+        <b>接下來的流程</b><br>
+        1️⃣ 客服會提供付款資訊給你<br>
+        2️⃣ 完成付款後開通名片
+      </div>
+
+      <div style="padding:12px;border-radius:12px;background:#fff8ec;border:1px solid #f0a04b;">
+        🔒 <b>付款安全提醒</b><br>
+        付款與開通請以官方通知流程為準，避免被詐騙
+      </div>
+
+      <button onclick="window.open('https://lin.ee/G3VJoRm')"
+        style="background:#1ac964;color:#fff;border:none;padding:12px;border-radius:12px;font-weight:900;">
+        💬 聯繫客服
+      </button>
+    </div>
+  `;
+}
   function showCreateSuccessPanel(result) {
     resetSuccessPanel();
     if (els["success-header-icon"]) els["success-header-icon"].textContent = "🎉";
@@ -1803,6 +1842,7 @@
         `;
       }
     }
+    renderCreateSuccessFooterNote(els);  
     setSuccessActionLabels("create", result);
   }
 
