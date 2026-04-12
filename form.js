@@ -1761,6 +1761,7 @@
     if (els["success-due-alert"]) els["success-due-alert"].classList.add("hidden");
     if (els["success-preview-row"]) els["success-preview-row"].classList.add("hidden");
     if (els["success-summary-box"]) els["success-summary-box"].classList.add("hidden");
+    if (els["success-footer-note"]) els["success-footer-note"].innerHTML = "";
     if (els["btn-copy-secondary-notice"]) els["btn-copy-secondary-notice"].classList.add("hidden");
     if (els["btn-copy-primary-notice"]) els["btn-copy-primary-notice"].textContent = "📋 複製通知";
     if (els["progress-success-panel"]) els["progress-success-panel"].classList.remove("hidden");
