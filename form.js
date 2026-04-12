@@ -1814,11 +1814,7 @@ function renderCreateSuccessFooterNote(els) {
     </div>
   `;
 }
-  function renderCreateSuccessFooterNote(els) {
-  ...
-}
 
-// ⭐ 就貼在這裡（同一層）
 function renderSafeLinkNotice(els) {
   if (!els["success-footer-note"]) return;
 
@@ -1842,47 +1838,48 @@ function renderSafeLinkNotice(els) {
   `;
 
   els["success-footer-note"].appendChild(box);
-} 
-  function showCreateSuccessPanel(result) {
-    resetSuccessPanel();
-    if (els["success-header-icon"]) els["success-header-icon"].textContent = "🎉";
-    if (els["success-header-title"]) els["success-header-title"].textContent = "名片申請成功！";
-    if (els["success-header-sub"]) els["success-header-sub"].textContent = "請複製以下資訊並回覆客服，協助確認付款與開通名片。";
-    if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
-    if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
-    if (els["success-info-rows"]) {
-      els["success-info-rows"].innerHTML = `
-        <div class="success-info-row"><span class="label">申請人</span><span class="value">${escapeHtml(result.customerName)}</span></div>
-        <div class="success-info-row"><span class="label">方案</span><span class="value">${escapeHtml(result.planLabel)}</span></div>
-        <div class="success-info-row"><span class="label">總金額</span><span class="value">${money(result.totalAmount)}</span></div>
-        ${result.paymentId ? `<div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>` : ""}
+}
+
+function showCreateSuccessPanel(result) {
+  resetSuccessPanel();
+  if (els["success-header-icon"]) els["success-header-icon"].textContent = "🎉";
+  if (els["success-header-title"]) els["success-header-title"].textContent = "名片申請成功！";
+  if (els["success-header-sub"]) els["success-header-sub"].textContent = "請複製以下資訊並回覆客服，協助確認付款與開通名片。";
+  if (els["success-primary-id-label"]) els["success-primary-id-label"].textContent = "📋 名片序號";
+  if (els["success-primary-id-value"]) els["success-primary-id-value"].textContent = result.cardId || "—";
+  if (els["success-info-rows"]) {
+    els["success-info-rows"].innerHTML = `
+      <div class="success-info-row"><span class="label">申請人</span><span class="value">${escapeHtml(result.customerName)}</span></div>
+      <div class="success-info-row"><span class="label">方案</span><span class="value">${escapeHtml(result.planLabel)}</span></div>
+      <div class="success-info-row"><span class="label">總金額</span><span class="value">${money(result.totalAmount)}</span></div>
+      ${result.paymentId ? `<div class="success-info-row"><span class="label">付款單號</span><span class="value">${escapeHtml(result.paymentId)}</span></div>` : ""}
+    `;
+  }
+  if (els["success-due-alert"]) {
+    els["success-due-alert"].classList.remove("hidden");
+    if (els["success-due-text"]) els["success-due-text"].textContent = `付款期限：${result.dueDateStr || "—"}`;
+  }
+  if (els["success-preview-row"]) {
+    els["success-preview-row"].classList.remove("hidden");
+    if (els["progress-preview-link"]) {
+      els["progress-preview-link"].href = result.previewUrl || "";
+      els["progress-preview-link"].textContent = result.previewUrl || "（建立後顯示）";
+    }
+  }
+  if (els["success-summary-box"]) {
+    els["success-summary-box"].classList.remove("hidden");
+    if (els["success-summary-content"]) {
+      els["success-summary-content"].innerHTML = `
+        <div class="quote-breakdown-row"><span>主方案</span><strong>${money(result.totalAmount - (result.addonAmount || 0))}</strong></div>
+        <div class="quote-breakdown-row"><span>加購小計</span><strong>${money(result.addonAmount || 0)}</strong></div>
+        <div class="quote-breakdown-row"><span>應付總額</span><strong>${money(result.totalAmount)}</strong></div>
       `;
     }
-    if (els["success-due-alert"]) {
-      els["success-due-alert"].classList.remove("hidden");
-      if (els["success-due-text"]) els["success-due-text"].textContent = `付款期限：${result.dueDateStr || "—"}`;
-    }
-    if (els["success-preview-row"]) {
-      els["success-preview-row"].classList.remove("hidden");
-      if (els["progress-preview-link"]) {
-        els["progress-preview-link"].href = result.previewUrl || "";
-        els["progress-preview-link"].textContent = result.previewUrl || "（建立後顯示）";
-      }
-    }
-    if (els["success-summary-box"]) {
-      els["success-summary-box"].classList.remove("hidden");
-      if (els["success-summary-content"]) {
-        els["success-summary-content"].innerHTML = `
-          <div class="quote-breakdown-row"><span>主方案</span><strong>${money(result.totalAmount - (result.addonAmount || 0))}</strong></div>
-          <div class="quote-breakdown-row"><span>加購小計</span><strong>${money(result.addonAmount || 0)}</strong></div>
-          <div class="quote-breakdown-row"><span>應付總額</span><strong>${money(result.totalAmount)}</strong></div>
-        `;
-      }
-    }
-    renderCreateSuccessFooterNote(els);  
-    setSuccessActionLabels("create", result);
   }
-
+  renderCreateSuccessFooterNote(els);
+  renderSafeLinkNotice(els);
+  setSuccessActionLabels("create", result);
+}
   function showUpdateSuccessPanel(result) {
     resetSuccessPanel();
     if (result.requiresPayment) {
