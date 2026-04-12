@@ -1814,6 +1814,35 @@ function renderCreateSuccessFooterNote(els) {
     </div>
   `;
 }
+  function renderCreateSuccessFooterNote(els) {
+  ...
+}
+
+// ⭐ 就貼在這裡（同一層）
+function renderSafeLinkNotice(els) {
+  if (!els["success-footer-note"]) return;
+
+  const box = document.createElement("div");
+  box.style.cssText = `
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:10px;
+    background:#f5fbff;
+    border:1px solid rgba(37,99,235,.2);
+    font-size:12px;
+    font-weight:700;
+    color:#1e3a8a;
+    line-height:1.6;
+    text-align:center;
+  `;
+
+  box.innerHTML = `
+    🔎 本頁為官方網站，可安心點擊使用（不涉及帳號登入）<br>
+    ⚠️ 請僅透過本頁提供的客服入口聯繫，避免誤加假帳號
+  `;
+
+  els["success-footer-note"].appendChild(box);
+} 
   function showCreateSuccessPanel(result) {
     resetSuccessPanel();
     if (els["success-header-icon"]) els["success-header-icon"].textContent = "🎉";
