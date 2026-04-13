@@ -2179,6 +2179,7 @@ function renderCardWatermark_(){
 }
 function renderCopyright_(){
   try{
+     if(!shouldShowCopyright_()) return;
     const root =
       document.querySelector(".info-scroll") ||
       document.querySelector("#card-container") ||
@@ -2216,3 +2217,19 @@ __hscCopyrightObserver.observe(document.body, {
   childList: true,
   subtree: true
 });
+/* ============================================================
+   HSC 版權顯示控制（新增）
+============================================================ */
+function shouldShowCopyright_(){
+  try{
+    const url = new URL(location.href);
+    const cardId = (url.searchParams.get("id") || "").toUpperCase();
+
+    // 客戶名片（TWxxxx）不顯示
+    if(cardId.startsWith("TW")) return false;
+
+    return true;
+  }catch(e){
+    return true;
+  }
+}
