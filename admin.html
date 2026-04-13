@@ -118,7 +118,7 @@
         <details class="collapsible-native"><summary>🔗 預覽與交付</summary><div class="details-content"><div class="tool-grid"><div class="tool-box"><div class="tool-label">成品預覽連結</div><textarea id="previewLinkBox" class="textarea" readonly></textarea><button id="btnCopyPreviewLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="tool-box"><div class="tool-label">交付卡連結</div><textarea id="deliveryLinkBox" class="textarea" readonly></textarea><button id="btnCopyDeliveryLink" class="btn btn-xs btn-soft mt8">複製</button></div></div></div></details>
       </section>
 
-      <!-- deliverySection (完整營運版) -->
+      <!-- deliverySection -->
       <section id="deliverySection" class="section">
         <div class="card"><div class="card-header"><h2>🎛️ 交付卡控制區</h2><span class="badge badge-info">完整管理交付卡行為</span></div><div id="deliveryCardMetaWrap" class="empty-state">請先選取卡片</div></div>
         <details class="collapsible-native" open><summary>🔗 交付卡連結工具箱</summary><div class="details-content"><div class="delivery-meta-grid" id="deliveryLinkToolbox"><div class="delivery-meta-card"><div class="delivery-meta-label">名片連結</div><div class="delivery-meta-value" id="toolboxCardLink">-</div><button id="btnCopyCardLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">交付卡連結</div><div class="delivery-meta-value" id="toolboxPosterLink">-</div><button id="btnCopyPosterLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">推薦入口</div><div class="delivery-meta-value" id="toolboxReferralLink">-</div><button id="btnCopyReferralToolLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">更新入口</div><div class="delivery-meta-value" id="toolboxUpdateLink">-</div><button id="btnCopyUpdateToolLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">續用入口</div><div class="delivery-meta-value" id="toolboxRenewalLink">-</div><button id="btnCopyRenewalToolLink" class="btn btn-xs btn-soft mt8">複製</button></div><div class="delivery-meta-card"><div class="delivery-meta-label">海報圖片</div><div class="delivery-meta-value" id="toolboxPosterUrl">-</div><button id="btnCopyPosterUrlLink" class="btn btn-xs btn-soft mt8">複製</button></div></div></div></details>
@@ -176,8 +176,43 @@
       <!-- inviteSection -->
       <section id="inviteSection" class="section">
         <div class="card"><div class="card-header"><h2>🎫 申請碼 / 邀請碼管理</h2></div>
-          <details class="collapsible-native"><summary>➕ 建立邀請碼</summary><div class="details-content"><div class="form-grid"><div class="field"><label for="createInviteCount">建立數量</label><input id="createInviteCount" class="input" type="number" value="1" min="1" /></div><div class="field"><label for="createInviteDays">有效天數</label><input id="createInviteDays" class="input" type="number" value="30" min="1" /></div><div class="field"><label for="createInviteReferrer">推薦來源 referrer</label><input id="createInviteReferrer" class="input" type="text" placeholder="例如 AG001 / SELF" /></div><div class="field"><label for="createInviteServiceAgent">service_agent</label><input id="createInviteServiceAgent" class="input" type="text" placeholder="例如 AG001" /></div><div class="field"><label for="createInviteAgentType">agent_type</label><input id="createInviteAgentType" class="input" type="text" placeholder="例如 referral / partner / self" /></div><div class="field"><label for="createInviteSource">source</label><input id="createInviteSource" class="input" type="text" value="admin" /></div></div><div class="action-row"><button id="btnCreateInviteCode" class="btn btn-primary">建立邀請碼</button></div></div></details>
+          <!-- 原有的手動建立邀請碼區塊 -->
+          <details class="collapsible-native"><summary>➕ 建立邀請碼 (手動臨時)</summary><div class="details-content"><div class="form-grid"><div class="field"><label for="createInviteCount">建立數量</label><input id="createInviteCount" class="input" type="number" value="1" min="1" /></div><div class="field"><label for="createInviteDays">有效天數</label><input id="createInviteDays" class="input" type="number" value="30" min="1" /></div><div class="field"><label for="createInviteReferrer">推薦來源 referrer</label><input id="createInviteReferrer" class="input" type="text" placeholder="例如 AG001 / SELF" /></div><div class="field"><label for="createInviteServiceAgent">service_agent</label><input id="createInviteServiceAgent" class="input" type="text" placeholder="例如 AG001" /></div><div class="field"><label for="createInviteAgentType">agent_type</label><input id="createInviteAgentType" class="input" type="text" placeholder="例如 referral / partner / self" /></div><div class="field"><label for="createInviteSource">source</label><input id="createInviteSource" class="input" type="text" value="admin" /></div></div><div class="action-row"><button id="btnCreateInviteCode" class="btn btn-primary">建立邀請碼</button></div></div></details>
+
+          <!-- 原有的建立結果與複製區塊 -->
           <details class="collapsible-native"><summary>📋 建立結果與複製</summary><div class="details-content"><div class="result-box"><div class="result-title">建立結果（原始）</div><pre id="inviteCreateResult">尚未建立。</pre></div><div class="tool-grid mt16"><div class="tool-box"><div class="tool-label">申請連結</div><textarea id="inviteFormUrlBox" class="textarea" readonly placeholder="建立後自動填入"></textarea></div><div class="tool-box"><div class="tool-label">客服回覆文案</div><textarea id="inviteReplyTextBox" class="textarea" readonly placeholder="建立後自動填入"></textarea></div></div><div class="action-row"><button id="btnCopyInviteCode" class="btn btn-soft">複製邀請碼</button><button id="btnCopyInviteUrl" class="btn btn-primary">複製申請連結</button><button id="btnCopyInviteText" class="btn btn-primary">複製客服文案</button></div></div></details>
+
+          <!-- ========== 新增：申請碼 Request 清單區塊 ========== -->
+          <details class="collapsible-native" open>
+            <summary>📋 申請碼 Request 清單</summary>
+            <div class="details-content">
+              <div class="action-row"><button id="btnRefreshRequests" class="btn btn-soft btn-xs">重新整理申請清單</button></div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>request_id</th><th>申請時間</th><th>來源 ref</th><th>狀態</th><th>派發邀請碼</th><th>指派人員</th><th>備註</th><th>操作</th></tr></thead>
+                  <tbody id="requestListContainer"><tr><td colspan="8" class="empty-cell">尚未載入申請資料</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </details>
+
+          <!-- ========== 新增：正式派碼表單區塊 ========== -->
+          <details class="collapsible-native">
+            <summary>🎫 正式派發邀請碼（綁定申請單）</summary>
+            <div class="details-content">
+              <div class="form-grid">
+                <div class="field"><label>申請單 ID (唯讀)</label><input id="requestIdForAssign" class="input" type="text" readonly placeholder="點擊「填寫派碼」自動帶入" /></div>
+                <div class="field"><label>邀請碼 (自動產生)</label><input id="inviteCodeForRequest" class="input" type="text" readonly placeholder="系統自動產生" /></div>
+              </div>
+              <div class="action-row"><button id="btnAssignInviteToRequest" class="btn btn-primary">確認派發邀請碼</button></div>
+            </div>
+          </details>
+
+          <!-- ========== 新增：申請單追蹤區塊 ========== -->
+          <details class="collapsible-native">
+            <summary>🔍 申請單追蹤 (Request → Invite → Lead)</summary>
+            <div class="details-content"><div id="requestTraceContainer" class="detail-stack empty-state">請點擊 assigned 狀態的「查看追蹤」</div></div>
+          </details>
         </div>
       </section>
     </main>
