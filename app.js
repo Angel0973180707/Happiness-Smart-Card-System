@@ -2190,9 +2190,8 @@ function renderCopyright_(){
     const el = document.createElement("div");
     el.className = "copyright-block";
     el.innerHTML = `
-      © ${new Date().getFullYear()} 天使幸福智慧名片館 All Rights Reserved<br>
-      本系統與內容未經授權不得重製、轉載或商業使用
-    `;
+     © ${new Date().getFullYear()} 天使幸福智慧名片館 · All Rights Reserved
+`;
     root.appendChild(el);
   }catch(e){
     console.warn("copyright error", e);
