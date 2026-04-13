@@ -563,20 +563,29 @@ body.mode-premium.p7 .marquee-shell{border-color:rgba(190,160,130,.14);backgroun
   .photo-carousel .photo-tile{flex:0 0 92%;}
 }
 /* ============================================================
-   HSC 版權聲明（新增）
+   HSC 版權聲明｜精品弱化版
 ============================================================ */
 .copyright-block{
-  margin-top:18px;
-  padding:14px 10px;
-  font-size:12px;
-  line-height:1.7;
+  margin-top:14px;
+  padding:8px 6px;
+  font-size:10.5px;
   text-align:center;
-  color:#8a7f74;
-  opacity:.85;
+  color:#a79c92;
+  opacity:.55;
+  letter-spacing:.06em;
+  white-space:nowrap;
+  font-weight:500;
 }
 
+/* 免費款（紙感） */
+body.mode-free .copyright-block{
+  color:#a79c92;
+}
+
+/* 精品款（更淡） */
 body.mode-premium .copyright-block{
-  color:rgba(255,255,255,.55);
+  color:rgba(255,255,255,.35);
+  opacity:.5;
 }
 /* ============================================================
    HSC 浮水印版權層｜低干擾高質感版
