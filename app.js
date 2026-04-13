@@ -2150,155 +2150,63 @@ const observer = new MutationObserver(()=>{
 });
 observer.observe(document.body, { childList:true, subtree:true });
 /* ============================================================
-   HSC 浮水印版權層｜低干擾高質感版
+   HSC 浮水印版權層（自動注入）
 ============================================================ */
-.card-watermark{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  user-select:none;
-  overflow:hidden;
-  z-index:1;
-}
+function renderCardWatermark_(){
+  try{
+    const cardRoot =
+      document.querySelector("#livePreviewCard .card") ||
+      document.querySelector("#livePreviewCard") ||
+      document.querySelector(".card");
 
-.card-watermark::before{
-  content:"天使幸福智慧名片館";
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%) rotate(-16deg);
-  font-size:clamp(24px, 6.6vw, 42px);
-  font-weight:900;
-  letter-spacing:.22em;
-  white-space:nowrap;
-  color:rgba(88, 68, 52, 0.045);
-  text-shadow:
-    0 1px 0 rgba(255,255,255,.14),
-    0 -1px 0 rgba(0,0,0,.015);
-  filter:blur(.15px);
-}
+    if(!cardRoot) return;
+    if(cardRoot.querySelector(".card-watermark")) return;
 
-.card-watermark::after{
-  content:"Angel Happiness Smart Card";
-  position:absolute;
-  left:50%;
-  top:61%;
-  transform:translate(-50%,-50%) rotate(-16deg);
-  font-size:clamp(10px, 2.2vw, 14px);
-  font-weight:800;
-  letter-spacing:.28em;
-  white-space:nowrap;
-  color:rgba(88, 68, 52, 0.032);
-  text-shadow:
-    0 1px 0 rgba(255,255,255,.10),
-    0 -1px 0 rgba(0,0,0,.012);
-}
-
-/* 再加一層細暗紋感 */
-.card-watermark .wm-pattern{
-  position:absolute;
-  inset:8% 6%;
-  border-radius:22px;
-  opacity:.22;
-  background:
-    repeating-linear-gradient(
-      -16deg,
-      rgba(90,70,54,.018) 0px,
-      rgba(90,70,54,.018) 1px,
-      transparent 1px,
-      transparent 18px
-    );
-}
-
-/* 免費款更像紙紋 */
-body.mode-free .card-watermark{
-  mix-blend-mode:multiply;
-}
-
-/* 精品款改成微亮暗紋 */
-body.mode-premium .card-watermark{
-  mix-blend-mode:screen;
-}
-
-body.mode-premium .card-watermark::before{
-  color:rgba(255,255,255,.055);
-  text-shadow:
-    0 1px 0 rgba(255,255,255,.06),
-    0 -1px 0 rgba(0,0,0,.06);
-}
-
-body.mode-premium .card-watermark::after{
-  color:rgba(255,255,255,.032);
-  text-shadow:
-    0 1px 0 rgba(255,255,255,.04),
-    0 -1px 0 rgba(0,0,0,.05);
-}
-
-body.mode-premium .card-watermark .wm-pattern{
-  background:
-    repeating-linear-gradient(
-      -16deg,
-      rgba(255,255,255,.018) 0px,
-      rgba(255,255,255,.018) 1px,
-      transparent 1px,
-      transparent 18px
-    );
-  opacity:.18;
-}
-
-/* 金箔款再亮一點，但仍低調 */
-body.mode-premium.p6 .card-watermark::before{
-  color:rgba(255,244,208,.078);
-  text-shadow:
-    0 1px 0 rgba(255,255,255,.08),
-    0 0 8px rgba(255,226,150,.03);
-}
-
-body.mode-premium.p6 .card-watermark::after{
-  color:rgba(255,240,196,.045);
-}
-
-body.mode-premium.p6 .card-watermark .wm-pattern{
-  background:
-    repeating-linear-gradient(
-      -16deg,
-      rgba(255,236,170,.025) 0px,
-      rgba(255,236,170,.025) 1px,
-      transparent 1px,
-      transparent 18px
-    );
-  opacity:.22;
-}
-
-/* 主要內容維持在浮水印上面 */
-.banner,
-.avatar-wrap,
-.logo-wrap,
-.info-scroll,
-.contact-dock,
-.photo-wall,
-.card-expiry,
-.marquee-dock{
-  position:relative;
-  z-index:2;
-}
-
-@media (max-width:520px){
-  .card-watermark::before{
-    font-size:clamp(20px, 6vw, 34px);
-    letter-spacing:.18em;
-  }
-  .card-watermark::after{
-    font-size:clamp(9px, 2vw, 12px);
-    letter-spacing:.22em;
+    const wm = document.createElement("div");
+    wm.className = "card-watermark";
+    cardRoot.appendChild(wm);
+  }catch(e){
+    console.warn("watermark error", e);
   }
 }
 
-@media (max-width:360px){
-  .card-watermark::before{
-    font-size:22px;
-  }
-  .card-watermark::after{
-    font-size:10px;
+function renderCopyright_(){
+  try{
+    const root =
+      document.querySelector(".info-scroll") ||
+      document.querySelector("#card-container") ||
+      document.body;
+
+    if(!root) return;
+    if(root.querySelector(".copyright-block")) return;
+
+    const el = document.createElement("div");
+    el.className = "copyright-block";
+    el.innerHTML = `
+      © ${new Date().getFullYear()} 天使幸福智慧名片館 All Rights Reserved<br>
+      本系統與內容未經授權不得重製、轉載或商業使用
+    `;
+    root.appendChild(el);
+  }catch(e){
+    console.warn("copyright error", e);
   }
 }
+
+function renderCopyrightSystem_(){
+  renderCardWatermark_();
+  renderCopyright_();
+}
+
+/* 首次載入後補上 */
+window.addEventListener("load", function(){
+  setTimeout(renderCopyrightSystem_, 800);
+});
+
+/* 動態重繪後自動補回 */
+const __hscCopyrightObserver = new MutationObserver(() => {
+  renderCopyrightSystem_();
+});
+__hscCopyrightObserver.observe(document.body, {
+  childList: true,
+  subtree: true
+});
