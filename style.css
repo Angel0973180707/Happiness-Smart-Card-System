@@ -562,3 +562,19 @@ body.mode-premium.p7 .marquee-shell{border-color:rgba(190,160,130,.14);backgroun
   .announcement-modal-body{font-size:12px;line-height:1.85;}
   .photo-carousel .photo-tile{flex:0 0 92%;}
 }
+/* ============================================================
+   HSC 版權聲明（新增）
+============================================================ */
+.copyright-block{
+  margin-top:18px;
+  padding:14px 10px;
+  font-size:12px;
+  line-height:1.7;
+  text-align:center;
+  color:#8a7f74;
+  opacity:.85;
+}
+
+body.mode-premium .copyright-block{
+  color:rgba(255,255,255,.55);
+}
