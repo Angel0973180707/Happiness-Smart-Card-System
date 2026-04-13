@@ -219,6 +219,92 @@ textarea{ resize:vertical; }
   flex-wrap:wrap;
 }
 
+/* ── ACCORDION / COLLAPSIBLE (v6.4 收合核心) ── */
+.collapsible-panel {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-soft);
+}
+
+.collapsible-header {
+  padding: 12px 16px;
+  font-weight: 900;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid transparent;
+  transition: background 0.15s;
+}
+
+.collapsible-header:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+.collapsible-header::before {
+  content: "▶";
+  font-size: 12px;
+  transition: transform 0.2s;
+  width: 16px;
+  display: inline-block;
+  color: var(--muted);
+}
+
+.collapsible-panel.expanded .collapsible-header::before {
+  transform: rotate(90deg);
+}
+
+.collapsible-panel.expanded .collapsible-header {
+  border-bottom-color: var(--line);
+}
+
+.collapsible-content {
+  padding: 16px;
+  display: none;
+}
+
+.collapsible-panel.expanded .collapsible-content {
+  display: block;
+}
+
+/* 原生 details 也可用，但為了統一外觀，我們用 class */
+details.collapsible-native {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel-soft);
+  padding: 0;
+}
+details.collapsible-native summary {
+  padding: 12px 16px;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+details.collapsible-native summary::-webkit-details-marker {
+  display: none;
+}
+details.collapsible-native summary::before {
+  content: "▶";
+  font-size: 12px;
+  transition: transform 0.2s;
+  width: 16px;
+  display: inline-block;
+  color: var(--muted);
+}
+details.collapsible-native[open] summary::before {
+  transform: rotate(90deg);
+}
+details.collapsible-native .details-content {
+  padding: 16px;
+  border-top: 1px solid var(--line);
+}
+
 /* ── FORM ── */
 .input,.textarea{
   width:100%;
@@ -272,7 +358,6 @@ textarea{ resize:vertical; }
   font-size:13px;
 }
 
-/* v6.3：loading 狀態 */
 .is-disabled{
   opacity:.55;
   cursor:not-allowed;
@@ -333,7 +418,6 @@ textarea{ resize:vertical; }
   padding:16px;
 }
 
-/* v6.3：今日 KPI 略有差異 */
 .stat-box-today{
   background:linear-gradient(135deg,#fdf6f0,#fff);
   border-color:rgba(185,122,78,.22);
@@ -463,7 +547,6 @@ textarea{ resize:vertical; }
   padding:10px 0;
 }
 
-/* v6.3：加購影響摘要 badges */
 .addon-impact-grid{
   display:flex;
   flex-wrap:wrap;
@@ -585,7 +668,6 @@ textarea{ resize:vertical; }
   font-weight:800;
 }
 
-/* v6.3：高風險提醒色彩 */
 .risk-item{
   border-left:4px solid var(--line);
 }
@@ -685,7 +767,7 @@ textarea{ resize:vertical; }
   color:var(--warn);
 }
 
-/* ── REVERT NOTICE（付款後「我按錯了」浮動提示）── */
+/* ── REVERT NOTICE ── */
 .revert-notice{
   position:fixed;
   bottom:70px;
