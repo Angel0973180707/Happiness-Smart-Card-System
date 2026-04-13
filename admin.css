@@ -860,3 +860,4 @@ details.collapsible-native .details-content {
 
 /* 可選：申請單表格內的按鈕對齊 */
 .btn-request-fill, .btn-request-trace { white-space: nowrap; }
+.action-buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
