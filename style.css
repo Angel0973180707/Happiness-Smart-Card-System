@@ -578,3 +578,62 @@ body.mode-premium.p7 .marquee-shell{border-color:rgba(190,160,130,.14);backgroun
 body.mode-premium .copyright-block{
   color:rgba(255,255,255,.55);
 }
+/* ============================================================
+   HSC 浮水印版權層（新增）
+============================================================ */
+.card-watermark{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  user-select:none;
+  overflow:hidden;
+  z-index:1;
+}
+
+.card-watermark::before{
+  content:"天使幸福智慧名片館";
+  position:absolute;
+  left:50%;
+  top:52%;
+  transform:translate(-50%,-50%) rotate(-18deg);
+  font-size:clamp(28px, 8vw, 54px);
+  font-weight:900;
+  letter-spacing:.18em;
+  white-space:nowrap;
+  color:rgba(80, 60, 45, 0.07);
+  text-shadow:none;
+}
+
+.card-watermark::after{
+  content:"Angel Happiness Smart Card";
+  position:absolute;
+  left:50%;
+  top:66%;
+  transform:translate(-50%,-50%) rotate(-18deg);
+  font-size:clamp(12px, 3vw, 18px);
+  font-weight:800;
+  letter-spacing:.22em;
+  white-space:nowrap;
+  color:rgba(80, 60, 45, 0.05);
+}
+
+body.mode-premium .card-watermark::before{
+  color:rgba(255,255,255,.08);
+}
+
+body.mode-premium .card-watermark::after{
+  color:rgba(255,255,255,.05);
+}
+
+/* 讓主要內容壓在浮水印上面 */
+.banner,
+.avatar-wrap,
+.logo-wrap,
+.info-scroll,
+.contact-dock,
+.photo-wall,
+.card-expiry,
+.marquee-dock{
+  position:relative;
+  z-index:2;
+}
