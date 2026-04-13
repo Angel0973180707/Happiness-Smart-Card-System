@@ -292,44 +292,141 @@ async function reassignInvite(requestId) {
   }
 }
 
-// ======================== 申請單列表渲染（收合式操作） ========================
+// ========================
+// 申請單列表渲染（收合式操作）
+// 完整覆蓋版
+// ========================
 function renderRequests() {
   const tbody = $("#requestListContainer");
   if (!tbody) return;
-  if (!state.requests.length) {
+
+  if (!Array.isArray(state.requests) || !state.requests.length) {
     tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">尚無申請資料</td></tr>';
     return;
   }
+
   tbody.innerHTML = state.requests.map(req => {
-    const id = escapeHtml(req.request_id);
-    const status = req.status;
-    const inviteCode = req.assigned_invite_code || '';
-    const isAssignedOrCompleted = (status === 'assigned' || status === 'completed');
+    const rawId = textOf(req.request_id);
+    const id = escapeAttr(rawId);
+    const createdAt = textOf(req.created_at);
+    const ref = textOf(req.ref);
+    const status = textOf(req.status).toLowerCase();
+    const inviteCode = textOf(req.assigned_invite_code);
+    const assignedBy = textOf(req.assigned_by);
+    const note = textOf(req.note);
+
+    const isPending = status === "pending";
+    const isAssigned = status === "assigned";
+    const isCompleted = status === "completed";
+    const isCancelled = status === "cancelled";
+    const isAssignedOrCompleted = isAssigned || isCompleted;
+
+    let statusClass = "status-info";
+    if (isPending) statusClass = "status-warning";
+    else if (isAssignedOrCompleted) statusClass = "status-success";
+    else if (isCancelled) statusClass = "status-danger";
+
+    let mainActionHtml = "";
+    if (isPending) {
+      mainActionHtml = `
+        <button
+          type="button"
+          class="btn btn-xs btn-primary"
+          data-action="fill"
+          data-request-id="${id}"
+        >填寫派碼</button>
+      `;
+    } else if (isAssignedOrCompleted) {
+      mainActionHtml = `
+        <button
+          type="button"
+          class="btn btn-xs btn-soft"
+          data-action="trace"
+          data-request-id="${id}"
+        >查看追蹤</button>
+      `;
+    } else {
+      mainActionHtml = `
+        <button
+          type="button"
+          class="btn btn-xs btn-soft"
+          data-action="view"
+          data-request-id="${id}"
+        >查看</button>
+      `;
+    }
+
     return `
-      <tr>
-        <td>${id}</td>
-        <td>${escapeHtml(req.created_at || '')}</td>
-        <td>${escapeHtml(req.ref || '')}</td>
-        <td><span class="status-badge ${status === 'pending' ? 'status-warning' : 'status-success'}">${escapeHtml(status)}</span></td>
-        <td>${escapeHtml(inviteCode)}</td>
-        <td>${escapeHtml(req.assigned_by || '')}</td>
-        <td>${escapeHtml(req.note || '')}</td>
+      <tr class="request-main-row" data-request-row="${id}">
+        <td>${escapeHtml(rawId)}</td>
+        <td>${escapeHtml(createdAt)}</td>
+        <td>${escapeHtml(ref)}</td>
+        <td>
+          <span class="status-badge ${statusClass}">
+            ${escapeHtml(status || "-")}
+          </span>
+        </td>
+        <td>${escapeHtml(inviteCode || "-")}</td>
+        <td>${escapeHtml(assignedBy || "-")}</td>
+        <td>${escapeHtml(note || "-")}</td>
         <td class="action-buttons">
-          <button class="btn btn-xs btn-soft" onclick="toggleRequest('${id}')">查看</button>
+          <div class="request-main-actions">
+            ${mainActionHtml}
+            <button
+              type="button"
+              class="btn btn-xs btn-soft"
+              data-action="toggle"
+              data-request-id="${id}"
+            >更多</button>
+          </div>
         </td>
       </tr>
-      <tr class="request-actions-row hidden" id="req-${id}">
+
+      <tr class="request-actions-row hidden" id="req-${id}" data-request-actions="${id}">
         <td colspan="8">
           <div class="request-actions-panel">
-            <button class="btn btn-sm btn-soft" onclick="copyInviteCodeByRequest('${id}')">複製邀請碼</button>
-            <button class="btn btn-sm btn-primary" onclick="copyInviteUrlByRequest('${id}')">複製申請連結</button>
-            <button class="btn btn-sm btn-primary" onclick="copyInviteReplyByRequest('${id}')">複製客服文案</button>
-            <button class="btn btn-sm btn-danger" onclick="reassignInvite('${id}')">重新派發</button>
+            ${
+              isAssignedOrCompleted
+                ? `
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-soft"
+                    data-action="copy-code"
+                    data-request-id="${id}"
+                  >複製邀請碼</button>
+
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary"
+                    data-action="copy-url"
+                    data-request-id="${id}"
+                  >複製申請連結</button>
+
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary"
+                    data-action="copy-reply"
+                    data-request-id="${id}"
+                  >複製客服文案</button>
+
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-danger"
+                    data-action="reassign"
+                    data-request-id="${id}"
+                  >重新派發</button>
+                `
+                : `
+                  <div class="empty-state">此申請尚未派碼，請先點「填寫派碼」</div>
+                `
+            }
           </div>
         </td>
       </tr>
     `;
-  }).join('');
+  }).join("");
+
+  bindRequestListEvents();
 }
 
 // 更新右側結果區（從 request 資料）
@@ -337,33 +434,223 @@ function updateInviteResultPanel(request) {
   const resultPre = $("#inviteCreateResult");
   const urlBox = $("#inviteFormUrlBox");
   const textBox = $("#inviteReplyTextBox");
+
   if (!resultPre) return;
-  if (!request || !request.assigned_invite_code) {
-    resultPre.innerText = '尚未選取任何已派發申請';
-    if (urlBox) urlBox.value = '';
-    if (textBox) textBox.value = '';
+
+  if (!request || !textOf(request.assigned_invite_code)) {
+    resultPre.innerText = "尚未選取任何已派發申請";
+    if (urlBox) urlBox.value = "";
+    if (textBox) textBox.value = "";
     return;
   }
-  const inviteCode = request.assigned_invite_code;
+
+  const inviteCode = textOf(request.assigned_invite_code);
   const formUrl = buildInviteFormUrl(inviteCode);
   const replyText = buildInviteReplyText(request);
-  resultPre.innerText = `【已派發申請單】\n申請單 ID: ${request.request_id}\n邀請碼: ${inviteCode}\n派發時間: ${request.assigned_at || '未知'}`;
+
+  resultPre.innerText =
+    `【已派發申請單】
+申請單 ID: ${textOf(request.request_id)}
+邀請碼: ${inviteCode}
+派發時間: ${textOf(request.assigned_at) || textOf(request.updated_at) || textOf(request.created_at) || "未知"}`;
+
   if (urlBox) urlBox.value = formUrl;
   if (textBox) textBox.value = replyText;
 }
 
 // 填寫派碼：將 request 帶入正式派碼表單
 function fillRequestToAssignForm(requestId) {
-  const request = state.requests.find(r => r.request_id === requestId);
-  if (!request) { toast('找不到該申請單'); return; }
-  if (request.status !== 'pending') { toast('只有 pending 狀態的申請單可以派碼'); return; }
+  const request = state.requests.find(r => textOf(r.request_id) === textOf(requestId));
+  if (!request) {
+    toast("找不到該申請單");
+    return;
+  }
+
+  if (textOf(request.status).toLowerCase() !== "pending") {
+    toast("只有 pending 狀態的申請單可以派碼");
+    return;
+  }
+
   state.currentRequest = request;
-  const reqInput = $("#requestIdForAssign");
-  const codeInput = $("#inviteCodeForRequest");
-  if (reqInput) reqInput.value = request.request_id;
-  if (codeInput) codeInput.value = `TEMP_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-  toast(`已載入申請單 ${request.request_id}，可進行派碼`);
+
+  const reqInput =
+    $("#requestIdForAssign") ||
+    $("#assignRequestId");
+
+  const refInput =
+    $("#assignRequestRef");
+
+  const sourceInput =
+    $("#assignInviteSource");
+
+  const noteInput =
+    $("#assignInviteNote");
+
+  const codeInput =
+    $("#inviteCodeForRequest") ||
+    $("#assignInviteCode");
+
+  if (reqInput) reqInput.value = textOf(request.request_id);
+  if (refInput) refInput.value = textOf(request.ref);
+  if (sourceInput && !textOf(sourceInput.value)) sourceInput.value = "request_assign";
+  if (noteInput && !textOf(noteInput.value)) noteInput.value = textOf(request.note);
+
+  // 正式派碼不可預先塞假邀請碼，清空即可
+  if (codeInput) codeInput.value = "";
+
   updateInviteResultPanel(null);
+
+  const assignDetails =
+    $("#assignInviteDetails") ||
+    document.querySelector('[data-block="assign-invite"]') ||
+    document.querySelector("#formalInviteDetails");
+
+  if (assignDetails && typeof assignDetails.open !== "undefined") {
+    assignDetails.open = true;
+  }
+
+  if (reqInput && typeof reqInput.scrollIntoView === "function") {
+    reqInput.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  toast(`已載入申請單 ${textOf(request.request_id)}，可進行派碼`);
+}
+
+function toggleRequest(requestId) {
+  const el = document.getElementById(`req-${requestId}`);
+  if (!el) return;
+  el.classList.toggle("hidden");
+}
+
+function renderFallbackTrace(request) {
+  const wrap = $("#requestTraceWrap");
+  if (!wrap) return;
+
+  if (!request) {
+    wrap.innerHTML = '<div class="empty-state">查無申請資料</div>';
+    return;
+  }
+
+  const inviteCode = textOf(request.assigned_invite_code);
+
+  wrap.innerHTML = `
+    <div class="detail-section">
+      <div class="detail-title">申請單基本資料</div>
+      <div class="detail-grid">
+        ${renderDetailItem("request_id", request.request_id)}
+        ${renderDetailItem("created_at", request.created_at)}
+        ${renderDetailItem("ref", request.ref)}
+        ${renderDetailItem("status", request.status)}
+        ${renderDetailItem("assigned_invite_code", inviteCode || "尚未派碼")}
+        ${renderDetailItem("assigned_by", request.assigned_by)}
+        ${renderDetailItem("note", request.note)}
+        ${renderDetailItem("trace_mode", "local_fallback")}
+      </div>
+    </div>
+  `;
+}
+
+async function handleRequestTrace(requestId) {
+  const request = state.requests.find(r => textOf(r.request_id) === textOf(requestId));
+  if (!request) {
+    toast("查無申請資料");
+    return;
+  }
+
+  updateInviteResultPanel(request);
+
+  // 先開操作列
+  const actionRow = document.getElementById(`req-${requestId}`);
+  if (actionRow) {
+    actionRow.classList.remove("hidden");
+  }
+
+  // 先做本地 fallback，避免沒畫面
+  renderFallbackTrace(request);
+
+  // 再嘗試遠端 trace
+  try {
+    if (typeof loadRequestTrace === "function") {
+      await loadRequestTrace(requestId);
+    }
+  } catch (err) {
+    console.warn("[handleRequestTrace] fallback mode:", err);
+    toast("目前使用本地追蹤模式");
+  }
+
+  const traceDetails =
+    $("#requestTraceDetails") ||
+    document.querySelector('[data-block="request-trace"]') ||
+    document.querySelector("#requestTraceWrap")?.closest("details");
+
+  if (traceDetails && typeof traceDetails.open !== "undefined") {
+    traceDetails.open = true;
+  }
+
+  const traceWrap = $("#requestTraceWrap");
+  if (traceWrap && typeof traceWrap.scrollIntoView === "function") {
+    traceWrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+function bindRequestListEvents() {
+  const host = $("#requestListContainer");
+  if (!host) return;
+  if (host.dataset.bound === "1") return;
+
+  host.dataset.bound = "1";
+
+  host.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+
+    const action = textOf(btn.dataset.action);
+    const requestId = textOf(btn.dataset.requestId);
+
+    if (!requestId) {
+      toast("查無 request_id");
+      return;
+    }
+
+    if (action === "toggle") {
+      toggleRequest(requestId);
+      return;
+    }
+
+    if (action === "fill") {
+      fillRequestToAssignForm(requestId);
+      return;
+    }
+
+    if (action === "trace") {
+      await handleRequestTrace(requestId);
+      return;
+    }
+
+    if (action === "view") {
+      toggleRequest(requestId);
+      return;
+    }
+
+    if (action === "copy-code") {
+      copyInviteCodeByRequest(requestId);
+      return;
+    }
+
+    if (action === "copy-url") {
+      copyInviteUrlByRequest(requestId);
+      return;
+    }
+
+    if (action === "copy-reply") {
+      copyInviteReplyByRequest(requestId);
+      return;
+    }
+
+    if (action === "reassign") {
+      reassignInvite(requestId);
+    }
+  });
 }
 
 // 正式派碼函式
