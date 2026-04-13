@@ -227,8 +227,8 @@
           </details>
 
           <!-- 正式派發邀請碼表單（綁定申請單） -->
-          <details class="collapsible-native">
-            <summary>🎫 正式派發邀請碼（綁定申請單）</summary>
+ <details id="assignInviteDetails" class="collapsible-native">
+  <summary>🎫 正式派發邀請碼（綁定申請單）</summary>
             <div class="details-content">
               <div class="form-grid">
                 <div class="field"><label>申請單 ID (唯讀)</label><input id="requestIdForAssign" class="input" type="text" readonly placeholder="點擊「填寫派碼」自動帶入" /></div>
@@ -239,10 +239,10 @@
           </details>
 
           <!-- 申請單追蹤區塊 (Request → Invite → Lead) -->
-          <details class="collapsible-native">
-            <summary>🔍 申請單追蹤 (Request → Invite → Lead)</summary>
+         <details id="requestTraceDetails" class="collapsible-native">
+  <summary>🔍 申請單追蹤 (Request → Invite → Lead)</summary>
             <div class="details-content">
-              <div id="requestTraceContainer" class="detail-stack empty-state">請點擊 assigned 或 completed 狀態的「查看追蹤」</div>
+               <div id="requestTraceWrap" class="detail-stack empty-state">請點擊 assigned 或 completed 狀態的「查看追蹤」</div>
             </div>
           </details>
         </div>
