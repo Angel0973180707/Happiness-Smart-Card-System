@@ -594,61 +594,9 @@ function bindRequestListEvents() {
   if (!host) return;
   if (host.dataset.bound === "1") return;
 
+  // 👉 這裡目前不需要任何內容
   host.dataset.bound = "1";
-
-  host.addEventListener("click", async (e) => {
-    const btn = e.target.closest("[data-action]");
-    if (!btn) return;
-
-    const action = textOf(btn.dataset.action);
-    const requestId = textOf(btn.dataset.requestId);
-
-    if (!requestId) {
-      toast("查無 request_id");
-      return;
-    }
-
-    if (action === "toggle") {
-      toggleRequest(requestId);
-      return;
-    }
-
-    if (action === "fill") {
-      fillRequestToAssignForm(requestId);
-      return;
-    }
-
-    if (action === "trace") {
-      await handleRequestTrace(requestId);
-      return;
-    }
-
-    if (action === "view") {
-      toggleRequest(requestId);
-      return;
-    }
-
-    if (action === "copy-code") {
-      copyInviteCodeByRequest(requestId);
-      return;
-    }
-
-    if (action === "copy-url") {
-      copyInviteUrlByRequest(requestId);
-      return;
-    }
-
-    if (action === "copy-reply") {
-      copyInviteReplyByRequest(requestId);
-      return;
-    }
-
-    if (action === "reassign") {
-      reassignInvite(requestId);
-    }
-  });
 }
-
 // 正式派碼函式
 async function assignInviteToRequestAligned() {
   const reqInput = $("#requestIdForAssign");
