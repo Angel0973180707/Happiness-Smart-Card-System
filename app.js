@@ -2118,9 +2118,10 @@ function shouldShowCopyright_(){
   try{
     const url = new URL(location.href);
     const cardId = (url.searchParams.get("id") || "").toUpperCase();
+    const isViewMode = url.searchParams.get("view") === "1";
 
-    // 客戶名片（TWxxxx）不顯示
-    if(cardId.startsWith("TW")) return false;
+    // 只有「客戶成品 view=1 + TW卡號」才隱藏
+    if(isViewMode && cardId.startsWith("TW")) return false;
 
     return true;
   }catch(e){
@@ -2161,21 +2162,19 @@ function renderCopyright_(){
   try{
     if(!shouldShowCopyright_()) return;
 
-    const root =
-      document.querySelector("#livePreviewCard .info-scroll") ||
-      document.querySelector(".info-scroll") ||
-      document.querySelector("#card-container") ||
-      document.body;
+    const cardRoot =
+      document.querySelector("#livePreviewCard") ||
+      document.querySelector("#card-container");
 
-    if(!root) return;
-    if(root.querySelector(".copyright-block")) return;
+    if(!cardRoot) return;
+    if(cardRoot.querySelector(".copyright-block")) return;
 
     const el = document.createElement("div");
     el.className = "copyright-block";
     el.textContent =
       `© ${new Date().getFullYear()} 天使幸福智慧名片館 · All Rights Reserved`;
 
-    root.appendChild(el);
+    cardRoot.appendChild(el);
   }catch(e){
     console.warn("copyright error", e);
   }
@@ -2192,10 +2191,21 @@ window.addEventListener("load", function(){
 });
 
 /* 動態重繪後自動補回 */
+let __hscObserverTimer = null;
+
 const __hscCopyrightObserver = new MutationObserver(() => {
-  renderCopyrightSystem_();
+  if(__hscObserverTimer) return;
+
+  __hscObserverTimer = setTimeout(() => {
+    renderCopyrightSystem_();
+    __hscObserverTimer = null;
+  }, 300);
 });
-__hscCopyrightObserver.observe(document.body, {
-  childList: true,
-  subtree: true
-});
+
+__hscCopyrightObserver.observe(
+  document.querySelector("#livePreviewCard") || document.body,
+  {
+    childList: true,
+    subtree: true
+  }
+);
