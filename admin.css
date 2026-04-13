@@ -829,6 +829,86 @@ details.collapsible-native .details-content {
   color:var(--warn);
 }
 
+/* ======================== 新增：收合式表格操作區樣式 ======================== */
+/* 操作列隱藏／顯示控制 */
+.request-actions-row.hidden {
+  display: none;
+}
+
+.request-actions-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel-soft);
+  border-radius: 12px;
+}
+
+.request-actions-panel .btn {
+  flex: 1 1 140px;
+  text-align: center;
+  justify-content: center;
+}
+
+/* 狀態徽章 */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 40px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+.status-badge.status-warning {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.status-badge.status-success {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+/* 表格內操作按鈕區域 */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* 申請單追蹤區塊內的特殊樣式 */
+.trace-card {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 16px;
+}
+.trace-card h4 {
+  margin: 16px 0 8px 0;
+  font-size: 15px;
+  font-weight: 900;
+}
+.trace-card pre {
+  background: var(--soft);
+  padding: 12px;
+  border-radius: 12px;
+  overflow-x: auto;
+  font-size: 12px;
+}
+.info-message {
+  background: var(--info-bg);
+  color: var(--info);
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+/* 重新整理按鈕等小工具 */
+.btn-xs {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width:1280px){
   .layout{ grid-template-columns:1fr; }
@@ -854,10 +934,3 @@ details.collapsible-native .details-content {
   .tools-button-grid{ grid-template-columns:1fr; }
   .recognition-tabs{ flex-wrap:wrap; justify-content:center; }
 }
-/* 可選：狀態徽章 */
-.status-badge.status-warning { background-color: #fef3c7; color: #b45309; }
-.status-badge.status-success { background-color: #d1fae5; color: #065f46; }
-
-/* 可選：申請單表格內的按鈕對齊 */
-.btn-request-fill, .btn-request-trace { white-space: nowrap; }
-.action-buttons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
