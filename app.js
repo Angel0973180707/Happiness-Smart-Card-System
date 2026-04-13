@@ -1,9 +1,17 @@
 /* ============================================================
    天使幸福智慧名片館 app.js
-   v8.3.3-card-view-mode
+   v8.3.4-request-db-fix
    完整覆蓋版
 
-   v8.3.3 修正項目：
+   v8.3.4 修正項目：
+   1. 申請邀請碼流程改為正式 createRequest
+   2. buildLeadCreateUrl_ 改為 buildCreateRequestUrl_
+   3. 保留 buildLeadCreateUrl_ 作為相容別名，但實際改走 createRequest
+   4. ensureInviteApplyData_ 改讀 request_id，不再讀 lead_id
+   5. 移除本機假碼 fallback，API 失敗時明確報錯
+   6. 申請文字改用「申請單號」而非誤導性的申請識別碼
+
+   v8.3.3 原修正項目（保留）：
    1. 加入 loadCardById_() — 依 card_id 從 GAS 撈資料
    2. 加入 renderPersonalCard_() — 個人名片渲染流程
    3. boot_() 開頭判斷 ?id=xxx&view=1，有則走個人名片模式
@@ -23,7 +31,7 @@ const CONFIG = {
   CUSTOMER_SERVICE_URL: "https://lin.ee/G3VJoRm",
   DEFAULT_ID: "TW0001",
   DEFAULT_TENANT: "angel",
-  VERSION: "v8.3.3-card-view-mode",
+  VERSION: "v8.3.4-request-db-fix",
   FETCH_TIMEOUT_MS: 15000,
   RETRY: 3,
   HUB_URL: "https://angel0973180707.github.io/Happiness-Smart-Card-System/"
@@ -243,16 +251,21 @@ function buildCardApiUrl_(id){
   return u.toString();
 }
 
-function buildLeadCreateUrl_(refCode){
+function buildCreateRequestUrl_(refCode){
   const u = new URL(CONFIG.GAS);
-  u.searchParams.set("action", "leadCreate");
+  u.searchParams.set("action", "createRequest");
   u.searchParams.set("tenant", CONFIG.DEFAULT_TENANT);
   if(refCode) u.searchParams.set("ref", refCode);
   u.searchParams.set("source", "invite_gate_card");
-  u.searchParams.set("note", "invite_gate_prelog");
+  u.searchParams.set("note", "invite_gate_request");
   u.searchParams.set("ts", String(Date.now()));
   u.searchParams.set("v", CONFIG.VERSION);
   return u.toString();
+}
+
+/* 向下相容：舊名稱保留，但實際改走 createRequest */
+function buildLeadCreateUrl_(refCode){
+  return buildCreateRequestUrl_(refCode);
 }
 
 function buildAnnouncementApiUrl_(){
@@ -481,23 +494,12 @@ function buildHubShareUrl_(){
   }
 }
 
-function createLocalApplyCode_(){
-  const d = new Date();
-  const yy = String(d.getFullYear()).slice(-2);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  return `AP${yy}${mm}${dd}${hh}${mi}${ss}`;
-}
-
 function buildInviteApplyText_(refCode, applyCode){
   const lines = [
     "您好，我想申請天使幸福智慧名片邀請碼。",
     "",
     `推薦來源識別碼：${text(refCode) || "無"}`,
-    `申請識別碼：${text(applyCode) || "-"}`,
+    `申請單號：${text(applyCode) || "-"}`,
     "",
     "請協助我申請開通表單，謝謝。"
   ];
@@ -516,15 +518,24 @@ async function ensureInviteApplyData_(){
   const refCode = getReferralSourceCode_(getActiveCardPayload_());
   currentReferralSourceCodeCache = refCode || "";
 
-  let applyCode = "";
-  try{
-    const payload = await fetchJsonRobust_(buildLeadCreateUrl_(refCode));
-    applyCode = text(payload?.data?.lead_id || payload?.lead_id || "");
-  }catch(_err){
-    applyCode = "";
+  const payload = await fetchJsonRobust_(buildCreateRequestUrl_(refCode));
+  if(!payload || payload.ok !== true){
+    throw new Error(text(payload?.error) || "createRequest failed");
   }
 
-  if(!applyCode) applyCode = createLocalApplyCode_();
+  const applyCode = text(
+    payload?.data?.request_id ||
+    payload?.request_id ||
+    payload?.data?.id ||
+    payload?.id ||
+    payload?.data?.request?.request_id ||
+    payload?.request?.request_id ||
+    ""
+  );
+
+  if(!applyCode){
+    throw new Error("createRequest succeeded but request_id missing");
+  }
 
   currentInviteApplyCodeCache = applyCode;
   currentInviteCopyTextCache = buildInviteApplyText_(refCode, applyCode);
