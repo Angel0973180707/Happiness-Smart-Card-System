@@ -2160,16 +2160,23 @@ function renderCardWatermark_(){
       document.querySelector(".card");
 
     if(!cardRoot) return;
-    if(cardRoot.querySelector(".card-watermark")) return;
 
-    const wm = document.createElement("div");
-    wm.className = "card-watermark";
-    cardRoot.appendChild(wm);
+    let wm = cardRoot.querySelector(".card-watermark");
+    if(!wm){
+      wm = document.createElement("div");
+      wm.className = "card-watermark";
+      cardRoot.appendChild(wm);
+    }
+
+    if(!wm.querySelector(".wm-pattern")){
+      const pattern = document.createElement("div");
+      pattern.className = "wm-pattern";
+      wm.appendChild(pattern);
+    }
   }catch(e){
     console.warn("watermark error", e);
   }
 }
-
 function renderCopyright_(){
   try{
     const root =
