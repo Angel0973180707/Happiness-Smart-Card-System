@@ -854,3 +854,9 @@ details.collapsible-native .details-content {
   .tools-button-grid{ grid-template-columns:1fr; }
   .recognition-tabs{ flex-wrap:wrap; justify-content:center; }
 }
+/* 可選：狀態徽章 */
+.status-badge.status-warning { background-color: #fef3c7; color: #b45309; }
+.status-badge.status-success { background-color: #d1fae5; color: #065f46; }
+
+/* 可選：申請單表格內的按鈕對齊 */
+.btn-request-fill, .btn-request-trace { white-space: nowrap; }
