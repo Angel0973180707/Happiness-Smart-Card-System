@@ -588,8 +588,10 @@ body.mode-premium .copyright-block{
   opacity:.5;
 }
 /* ============================================================
-   HSC 浮水印版權層｜低干擾高質感版
+   HSC 浮水印版權層｜精品紙紋最終版（乾淨整合）
 ============================================================ */
+
+/* 基礎容器 */
 .card-watermark{
   position:absolute;
   inset:0;
@@ -599,116 +601,150 @@ body.mode-premium .copyright-block{
   z-index:1;
 }
 
+/* ============================================================
+   中文主識別（壓印感）
+============================================================ */
 .card-watermark::before{
   content:"天使幸福智慧名片館";
   position:absolute;
   left:50%;
   top:50%;
-  transform:translate(-50%,-50%) rotate(-16deg);
-  font-size:clamp(24px, 6.6vw, 42px);
+  transform:translate(-50%,-50%) rotate(-15deg);
+
+  font-size:clamp(22px, 6vw, 40px);
   font-weight:900;
-  letter-spacing:.22em;
+  letter-spacing:.24em;
   white-space:nowrap;
-  color:rgba(88, 68, 52, 0.045);
+
+  color:rgba(88, 68, 52, 0.032);
+
   text-shadow:
-    0 1px 0 rgba(255,255,255,.14),
-    0 -1px 0 rgba(0,0,0,.015);
-  filter:blur(.15px);
+    0 1px 0 rgba(255,255,255,.18),
+    0 -1px 0 rgba(0,0,0,.02);
+
+  filter:blur(.25px);
 }
 
+/* ============================================================
+   英文副識別（極淡）
+============================================================ */
 .card-watermark::after{
   content:"Angel Happiness Smart Card";
   position:absolute;
   left:50%;
-  top:61%;
-  transform:translate(-50%,-50%) rotate(-16deg);
-  font-size:clamp(10px, 2.2vw, 14px);
-  font-weight:800;
-  letter-spacing:.28em;
+  top:60%;
+  transform:translate(-50%,-50%) rotate(-15deg);
+
+  font-size:clamp(9px, 2vw, 13px);
+  font-weight:700;
+  letter-spacing:.32em;
   white-space:nowrap;
-  color:rgba(88, 68, 52, 0.032);
+
+  color:rgba(88, 68, 52, 0.022);
+
   text-shadow:
-    0 1px 0 rgba(255,255,255,.10),
-    0 -1px 0 rgba(0,0,0,.012);
+    0 1px 0 rgba(255,255,255,.12),
+    0 -1px 0 rgba(0,0,0,.015);
+
+  filter:blur(.2px);
 }
 
-/* 再加一層細暗紋感 */
+/* ============================================================
+   紙張纖維紋理（核心質感）
+============================================================ */
 .card-watermark .wm-pattern{
   position:absolute;
-  inset:8% 6%;
+  inset:10% 8%;
   border-radius:22px;
-  opacity:.22;
+
+  opacity:.05;
+
   background:
     repeating-linear-gradient(
-      -16deg,
-      rgba(90,70,54,.018) 0px,
-      rgba(90,70,54,.018) 1px,
-      transparent 1px,
-      transparent 18px
+      -18deg,
+      rgba(90,70,54,.012) 0px,
+      rgba(90,70,54,.012) 0.6px,
+      transparent 0.6px,
+      transparent 26px
     );
+
+  filter:blur(0.3px);
 }
 
-/* 免費款更像紙紋 */
+/* ============================================================
+   免費模式（自然紙紋）
+============================================================ */
 body.mode-free .card-watermark{
   mix-blend-mode:multiply;
 }
 
-/* 精品款改成微亮暗紋 */
+/* ============================================================
+   精品模式（深色卡）
+============================================================ */
 body.mode-premium .card-watermark{
   mix-blend-mode:screen;
 }
 
 body.mode-premium .card-watermark::before{
-  color:rgba(255,255,255,.055);
+  color:rgba(255,255,255,.045);
+
   text-shadow:
-    0 1px 0 rgba(255,255,255,.06),
-    0 -1px 0 rgba(0,0,0,.06);
+    0 1px 0 rgba(255,255,255,.08),
+    0 -1px 0 rgba(0,0,0,.08);
 }
 
 body.mode-premium .card-watermark::after{
-  color:rgba(255,255,255,.032);
+  color:rgba(255,255,255,.028);
+
   text-shadow:
-    0 1px 0 rgba(255,255,255,.04),
-    0 -1px 0 rgba(0,0,0,.05);
+    0 1px 0 rgba(255,255,255,.06),
+    0 -1px 0 rgba(0,0,0,.07);
 }
 
 body.mode-premium .card-watermark .wm-pattern{
   background:
     repeating-linear-gradient(
-      -16deg,
-      rgba(255,255,255,.018) 0px,
-      rgba(255,255,255,.018) 1px,
-      transparent 1px,
-      transparent 18px
+      -18deg,
+      rgba(255,255,255,.012) 0px,
+      rgba(255,255,255,.012) 0.6px,
+      transparent 0.6px,
+      transparent 26px
     );
-  opacity:.18;
+
+  opacity:.045;
 }
 
-/* 金箔款再亮一點，但仍低調 */
+/* ============================================================
+   金箔款（p6）微亮質感
+============================================================ */
 body.mode-premium.p6 .card-watermark::before{
-  color:rgba(255,244,208,.078);
+  color:rgba(255,236,170,.065);
+
   text-shadow:
-    0 1px 0 rgba(255,255,255,.08),
-    0 0 8px rgba(255,226,150,.03);
+    0 1px 0 rgba(255,255,255,.12),
+    0 0 10px rgba(255,226,150,.04);
 }
 
 body.mode-premium.p6 .card-watermark::after{
-  color:rgba(255,240,196,.045);
+  color:rgba(255,240,196,.04);
 }
 
 body.mode-premium.p6 .card-watermark .wm-pattern{
   background:
     repeating-linear-gradient(
-      -16deg,
-      rgba(255,236,170,.025) 0px,
-      rgba(255,236,170,.025) 1px,
-      transparent 1px,
-      transparent 18px
+      -18deg,
+      rgba(255,236,170,.018) 0px,
+      rgba(255,236,170,.018) 0.6px,
+      transparent 0.6px,
+      transparent 26px
     );
-  opacity:.22;
+
+  opacity:.07;
 }
 
-/* 主要內容維持在浮水印上面 */
+/* ============================================================
+   主要內容層級（壓在浮水印上）
+============================================================ */
 .banner,
 .avatar-wrap,
 .logo-wrap,
@@ -721,22 +757,27 @@ body.mode-premium.p6 .card-watermark .wm-pattern{
   z-index:2;
 }
 
+/* ============================================================
+   手機微調
+============================================================ */
 @media (max-width:520px){
   .card-watermark::before{
-    font-size:clamp(20px, 6vw, 34px);
+    font-size:clamp(18px, 5.5vw, 32px);
     letter-spacing:.18em;
   }
+
   .card-watermark::after{
-    font-size:clamp(9px, 2vw, 12px);
-    letter-spacing:.22em;
+    font-size:clamp(8px, 2vw, 11px);
+    letter-spacing:.26em;
   }
 }
 
 @media (max-width:360px){
   .card-watermark::before{
-    font-size:22px;
+    font-size:20px;
   }
+
   .card-watermark::after{
-    font-size:10px;
+    font-size:9px;
   }
 }
