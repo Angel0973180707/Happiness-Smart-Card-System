@@ -219,57 +219,7 @@ textarea{ resize:vertical; }
   flex-wrap:wrap;
 }
 
-/* ── ACCORDION / COLLAPSIBLE (v6.4 收合核心) ── */
-.collapsible-panel {
-  margin-top: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--panel-soft);
-}
-
-.collapsible-header {
-  padding: 12px 16px;
-  font-weight: 900;
-  cursor: pointer;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-bottom: 1px solid transparent;
-  transition: background 0.15s;
-}
-
-.collapsible-header:hover {
-  background: rgba(0,0,0,0.02);
-}
-
-.collapsible-header::before {
-  content: "▶";
-  font-size: 12px;
-  transition: transform 0.2s;
-  width: 16px;
-  display: inline-block;
-  color: var(--muted);
-}
-
-.collapsible-panel.expanded .collapsible-header::before {
-  transform: rotate(90deg);
-}
-
-.collapsible-panel.expanded .collapsible-header {
-  border-bottom-color: var(--line);
-}
-
-.collapsible-content {
-  padding: 16px;
-  display: none;
-}
-
-.collapsible-panel.expanded .collapsible-content {
-  display: block;
-}
-
-/* 原生 details 也可用，但為了統一外觀，我們用 class */
+/* ── ACCORDION / COLLAPSIBLE NATIVE ── */
 details.collapsible-native {
   margin-top: 16px;
   border: 1px solid var(--line);
@@ -278,30 +228,31 @@ details.collapsible-native {
   padding: 0;
 }
 details.collapsible-native summary {
-  padding: 12px 16px;
+  padding: 14px 18px;
   font-weight: 900;
   cursor: pointer;
   list-style: none;
   display: flex;
   align-items: center;
   gap: 8px;
+  font-size: 1rem;
 }
 details.collapsible-native summary::-webkit-details-marker {
   display: none;
 }
 details.collapsible-native summary::before {
   content: "▶";
-  font-size: 12px;
+  font-size: 14px;
   transition: transform 0.2s;
-  width: 16px;
+  width: 20px;
   display: inline-block;
-  color: var(--muted);
+  color: var(--primary);
 }
 details.collapsible-native[open] summary::before {
   transform: rotate(90deg);
 }
 details.collapsible-native .details-content {
-  padding: 16px;
+  padding: 18px;
   border-top: 1px solid var(--line);
 }
 
@@ -326,38 +277,41 @@ details.collapsible-native .details-content {
   min-width:320px;
 }
 
-/* ── BUTTONS ── */
+/* ── BUTTONS (加大版) ── */
 .btn{
   border:none;
-  border-radius:14px;
-  padding:12px 16px;
+  border-radius:16px;
+  padding:14px 20px;
   font-weight:900;
+  font-size:1rem;
   transition:.18s ease;
 }
-
-.btn:hover:not(:disabled){ transform:translateY(-1px); }
-
+.btn:hover:not(:disabled){ transform:translateY(-2px); }
 .btn-primary{
   background:linear-gradient(135deg,var(--primary),var(--primary-dark));
   color:#fff;
 }
-
 .btn-soft{
   background:var(--soft);
   color:var(--ink);
 }
-
 .btn-danger{
   background:var(--danger-bg);
   color:var(--danger);
 }
-
-.btn-xs{
-  padding:8px 12px;
-  border-radius:10px;
-  font-size:13px;
+.btn-warn{
+  background:var(--warn-bg);
+  color:var(--warn);
 }
-
+.btn-xs{
+  padding:10px 16px;
+  border-radius:14px;
+  font-size:0.9rem;
+}
+.btn-sm{
+  padding:10px 16px;
+  font-size:0.9rem;
+}
 .is-disabled{
   opacity:.55;
   cursor:not-allowed;
@@ -388,7 +342,7 @@ details.collapsible-native .details-content {
 
 .action-row{
   display:flex;
-  gap:10px;
+  gap:12px;
   flex-wrap:wrap;
   margin-top:16px;
 }
@@ -547,13 +501,6 @@ details.collapsible-native .details-content {
   padding:10px 0;
 }
 
-.addon-impact-grid{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  padding:4px 0;
-}
-
 /* ── TOOLS ── */
 .tool-grid{
   display:grid;
@@ -573,6 +520,131 @@ details.collapsible-native .details-content {
   color:var(--muted);
 }
 
+/* 新增 .tools-button-grid */
+.tools-button-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,auto));
+  gap:12px;
+  margin-bottom:12px;
+}
+
+/* 交付卡工具箱專用網格 */
+.delivery-meta-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  gap:14px;
+}
+.delivery-meta-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:14px;
+}
+.delivery-meta-label{
+  font-size:13px;
+  font-weight:900;
+  color:var(--muted);
+  margin-bottom:8px;
+}
+.delivery-meta-value{
+  font-size:14px;
+  word-break:break-all;
+  background:var(--soft);
+  padding:8px;
+  border-radius:12px;
+  font-family:monospace;
+}
+
+/* 採認 tabs */
+.recognition-tabs{
+  display:flex;
+  gap:6px;
+  background:var(--soft);
+  border-radius:40px;
+  padding:4px;
+}
+.recognition-tab{
+  border:none;
+  background:transparent;
+  padding:8px 18px;
+  border-radius:40px;
+  font-weight:900;
+  cursor:pointer;
+  transition:0.1s;
+}
+.recognition-tab.active{
+  background:var(--primary);
+  color:white;
+}
+
+/* 追蹤 KPI 網格 (沿用 stats-grid) */
+.tracking-kpi-grid{
+  margin-bottom:16px;
+}
+
+/* badge 擴充 */
+.badge-success{
+  background:var(--ok-bg);
+  color:var(--ok);
+}
+.badge-warn{
+  background:var(--warn-bg);
+  color:var(--warn);
+}
+.badge-info{
+  background:var(--info-bg);
+  color:var(--info);
+}
+.payment-status-paid{
+  background:var(--ok-bg);
+  color:var(--ok);
+}
+.payment-status-pending{
+  background:var(--warn-bg);
+  color:var(--warn);
+}
+
+/* wallet mode badges */
+.wallet-mode-badge{
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:40px;
+  font-size:12px;
+  font-weight:900;
+}
+.wallet-mode-trial{
+  background:#f0ebe3;
+  color:#5a4a3c;
+}
+.wallet-mode-referral{
+  background:#e6f7ec;
+  color:#1f8f5f;
+}
+.wallet-mode-partner{
+  background:#fee2e2;
+  color:#b91c1c;
+}
+
+/* 異常提示 */
+.delivery-warning{
+  background:var(--danger-bg);
+  border-left:4px solid var(--danger);
+  padding:12px;
+  border-radius:14px;
+  color:var(--danger);
+  font-weight:800;
+}
+
+/* 維運收合區輔助 */
+.ops-collapse{
+  margin-top:12px;
+}
+
+.result-box.empty-state{
+  background:var(--soft);
+  text-align:center;
+}
+
 /* ── HINT ── */
 .hint-box{
   background:var(--panel-soft);
@@ -585,7 +657,7 @@ details.collapsible-native .details-content {
   font-weight:700;
 }
 
-/* ── BADGE ── */
+/* ── BADGE (通用) ── */
 .badge{
   display:inline-flex;
   align-items:center;
@@ -598,16 +670,6 @@ details.collapsible-native .details-content {
   background:#f4ede6;
   color:#6b513e;
   white-space:nowrap;
-}
-
-.badge-info{
-  background:var(--info-bg);
-  color:var(--info);
-}
-
-.badge-warn{
-  background:var(--warn-bg);
-  color:var(--warn);
 }
 
 /* ── RESULT ── */
@@ -767,97 +829,28 @@ details.collapsible-native .details-content {
   color:var(--warn);
 }
 
-/* ── REVERT NOTICE ── */
-.revert-notice{
-  position:fixed;
-  bottom:70px;
-  left:50%;
-  transform:translateX(-50%);
-  background:#fff;
-  border:2px solid var(--danger);
-  border-radius:16px;
-  padding:12px 18px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  box-shadow:var(--shadow);
-  z-index:9998;
-  font-size:14px;
-  font-weight:800;
-  white-space:nowrap;
-  animation:slideUp .25s ease;
-}
-
-@keyframes slideUp{
-  from{ opacity:0; transform:translateX(-50%) translateY(16px); }
-  to{ opacity:1; transform:translateX(-50%) translateY(0); }
-}
-
-/* ── CODE ── */
-code{
-  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  font-size:12px;
-}
-
 /* ── RESPONSIVE ── */
 @media (max-width:1280px){
-  .layout{
-    grid-template-columns:1fr;
-  }
-
-  .sidebar{
-    position:static;
-  }
-
-  .stats-grid-5{
-    grid-template-columns:repeat(3,minmax(0,1fr));
-  }
-
-  .stats-grid-4{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-
-  .detail-grid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
+  .layout{ grid-template-columns:1fr; }
+  .sidebar{ position:static; }
+  .stats-grid-5{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .stats-grid-4{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .detail-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
 @media (max-width:840px){
   .app{ padding:12px; }
-
-  .topbar{
-    flex-direction:column;
-    padding:16px;
-  }
-
-  .brand-block h1{
-    font-size:24px;
-  }
-
-  .form-grid,
-  .tool-grid,
-  .logs-grid,
-  .stats-grid-5,
-  .stats-grid-4,
-  .stats-grid-3,
-  .detail-grid{
+  .topbar{ flex-direction:column; padding:16px; }
+  .brand-block h1{ font-size:24px; }
+  .form-grid, .tool-grid, .logs-grid, .stats-grid-5, .stats-grid-4, .stats-grid-3, .detail-grid, .delivery-meta-grid{
     grid-template-columns:1fr;
   }
-
-  .header-actions,
-  .action-row,
-  .topbar-tools{
+  .header-actions, .action-row, .topbar-tools{
     flex-direction:column;
     align-items:stretch;
   }
-
-  .btn,
-  .input,
-  .textarea{
-    width:100%;
-  }
-
-  .wide-input{
-    min-width:0;
-  }
+  .btn, .input, .textarea{ width:100%; }
+  .wide-input{ min-width:0; }
+  .tools-button-grid{ grid-template-columns:1fr; }
+  .recognition-tabs{ flex-wrap:wrap; justify-content:center; }
 }
