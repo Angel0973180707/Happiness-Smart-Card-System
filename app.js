@@ -2149,3 +2149,64 @@ const observer = new MutationObserver(()=>{
   renderCopyright_();
 });
 observer.observe(document.body, { childList:true, subtree:true });
+/* ============================================================
+   HSC 浮水印版權層（自動注入）
+============================================================ */
+function renderCardWatermark_(){
+  try{
+    const cardRoot =
+      document.querySelector("#livePreviewCard .card") ||
+      document.querySelector("#livePreviewCard") ||
+      document.querySelector(".card");
+
+    if(!cardRoot) return;
+    if(cardRoot.querySelector(".card-watermark")) return;
+
+    const wm = document.createElement("div");
+    wm.className = "card-watermark";
+    cardRoot.appendChild(wm);
+  }catch(e){
+    console.warn("watermark error", e);
+  }
+}
+
+function renderCopyright_(){
+  try{
+    const root =
+      document.querySelector(".info-scroll") ||
+      document.querySelector("#card-container") ||
+      document.body;
+
+    if(!root) return;
+    if(root.querySelector(".copyright-block")) return;
+
+    const el = document.createElement("div");
+    el.className = "copyright-block";
+    el.innerHTML = `
+      © ${new Date().getFullYear()} 天使幸福智慧名片館 All Rights Reserved<br>
+      本系統與內容未經授權不得重製、轉載或商業使用
+    `;
+    root.appendChild(el);
+  }catch(e){
+    console.warn("copyright error", e);
+  }
+}
+
+function renderCopyrightSystem_(){
+  renderCardWatermark_();
+  renderCopyright_();
+}
+
+/* 首次載入後補上 */
+window.addEventListener("load", function(){
+  setTimeout(renderCopyrightSystem_, 800);
+});
+
+/* 動態重繪後自動補回 */
+const __hscCopyrightObserver = new MutationObserver(() => {
+  renderCopyrightSystem_();
+});
+__hscCopyrightObserver.observe(document.body, {
+  childList: true,
+  subtree: true
+});
