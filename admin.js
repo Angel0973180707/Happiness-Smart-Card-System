@@ -40,24 +40,60 @@
   //  STATE (移除 lastInviteCreated, lastFormalInviteCreated)
   // ─────────────────────────────────────────────
   const state = {
-    cards: [], payments: [], addons: [], agents: [],
-    currentCard: null, currentAgent: null, currentAddon: null,
-    paymentList: [],
-    recognitionRenewalItems: [], recognitionAddonItems: [],
-    renewalItems: [], commissionItems: [], announcementItems: [],
-    trackingSummary: null, cardTrackingDetail: null, agentTrackingDetail: null,
-    opsLogs: [], schemaStatus: null,
-    deliveryCardMeta: {}, deliveryWalletMeta: {},
-    currentRecognitionType: "renewal",
-    currentPaymentDetail: null, currentRecognitionDetail: null, currentRenewalDetail: null,
-    // 唯一來源：申請單列表
-    requests: [],
-    requestFilter: '',
-    currentRequest: null,
-    currentRequestTrace: null
-  };
+  cards: [],
+  payments: [],
+  addons: [],
+  agents: [],
 
-  // ─────────────────────────────────────────────
+  currentCard: null,
+  currentAgent: null,
+  currentAddon: null,
+
+  paymentList: [],
+
+  recognitionRenewalItems: [],
+  recognitionAddonItems: [],
+
+  renewalItems: [],
+  commissionItems: [],
+  announcementItems: [],
+
+  trackingSummary: null,
+  cardTrackingDetail: null,
+  agentTrackingDetail: null,
+
+  opsLogs: [],
+  schemaStatus: null,
+
+  deliveryCardMeta: {},
+  deliveryWalletMeta: {},
+
+  currentRecognitionType: "renewal",
+
+  currentPaymentDetail: null,
+  currentRecognitionDetail: null,
+  currentRenewalDetail: null,
+
+  // ========================
+  // 🔥 邀請碼系統（核心修正）
+  // ========================
+
+  // 申請單列表（來源）
+  requests: [],
+
+  // 篩選
+  requestFilter: '',
+
+  // 原本已有（保留）
+  currentRequest: null,
+
+  // trace 資料
+  currentRequestTrace: null,
+
+  // ✅ 新增（最重要）
+  // 👉 用來記住你目前點的是哪一筆（複製/上方顯示用）
+  currentSelectedRequestForInvite: null
+};────────────────────────────────────────────
   //  UTILS
   // ─────────────────────────────────────────────
   function $(selector) { return document.querySelector(selector); }
@@ -300,133 +336,93 @@ function renderRequests() {
   const tbody = $("#requestListContainer");
   if (!tbody) return;
 
-  if (!Array.isArray(state.requests) || !state.requests.length) {
+  if (!state.requests.length) {
     tbody.innerHTML = '<tr><td colspan="8" class="empty-cell">尚無申請資料</td></tr>';
     return;
   }
 
   tbody.innerHTML = state.requests.map(req => {
-    const rawId = textOf(req.request_id);
-    const id = escapeAttr(rawId);
-    const createdAt = textOf(req.created_at);
-    const ref = textOf(req.ref);
-    const status = textOf(req.status).toLowerCase();
-    const inviteCode = textOf(req.assigned_invite_code);
-    const assignedBy = textOf(req.assigned_by);
-    const note = textOf(req.note);
-
-    const isPending = status === "pending";
-    const isAssigned = status === "assigned";
-    const isCompleted = status === "completed";
-    const isCancelled = status === "cancelled";
-    const isAssignedOrCompleted = isAssigned || isCompleted;
-
-    let statusClass = "status-info";
-    if (isPending) statusClass = "status-warning";
-    else if (isAssignedOrCompleted) statusClass = "status-success";
-    else if (isCancelled) statusClass = "status-danger";
-
-    let mainActionHtml = "";
-    if (isPending) {
-      mainActionHtml = `
-        <button
-          type="button"
-          class="btn btn-xs btn-primary"
-          data-action="fill"
-          data-request-id="${id}"
-        >填寫派碼</button>
-      `;
-    } else if (isAssignedOrCompleted) {
-      mainActionHtml = `
-        <button
-          type="button"
-          class="btn btn-xs btn-soft"
-          data-action="trace"
-          data-request-id="${id}"
-        >查看追蹤</button>
-      `;
-    } else {
-      mainActionHtml = `
-        <button
-          type="button"
-          class="btn btn-xs btn-soft"
-          data-action="view"
-          data-request-id="${id}"
-        >查看</button>
-      `;
-    }
+    const id = escapeHtml(req.request_id);
+    const status = req.status;
+    const inviteCode = req.assigned_invite_code || '';
 
     return `
-      <tr class="request-main-row" data-request-row="${id}">
-        <td>${escapeHtml(rawId)}</td>
-        <td>${escapeHtml(createdAt)}</td>
-        <td>${escapeHtml(ref)}</td>
+      <tr>
+        <td>${id}</td>
+        <td>${escapeHtml(req.created_at || '')}</td>
+        <td>${escapeHtml(req.ref || '')}</td>
         <td>
-          <span class="status-badge ${statusClass}">
-            ${escapeHtml(status || "-")}
+          <span class="status-badge ${status === 'pending' ? 'status-warning' : 'status-success'}">
+            ${escapeHtml(status)}
           </span>
         </td>
-        <td>${escapeHtml(inviteCode || "-")}</td>
-        <td>${escapeHtml(assignedBy || "-")}</td>
-        <td>${escapeHtml(note || "-")}</td>
+        <td>${escapeHtml(inviteCode)}</td>
+        <td>${escapeHtml(req.assigned_by || '')}</td>
+        <td>${escapeHtml(req.note || '')}</td>
         <td class="action-buttons">
-          <div class="request-main-actions">
-            ${mainActionHtml}
-            <button
-              type="button"
-              class="btn btn-xs btn-soft"
-              data-action="toggle"
-              data-request-id="${id}"
-            >更多</button>
-          </div>
+          <button class="btn btn-xs btn-soft"
+            onclick="toggleRequest('${id}'); selectRequest('${id}')">
+            查看
+          </button>
         </td>
       </tr>
 
-      <tr class="request-actions-row hidden" id="req-${id}" data-request-actions="${id}">
+      <tr class="request-actions-row hidden" id="req-${id}">
         <td colspan="8">
           <div class="request-actions-panel">
-            ${
-              isAssignedOrCompleted
-                ? `
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-soft"
-                    data-action="copy-code"
-                    data-request-id="${id}"
-                  >複製邀請碼</button>
-
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-primary"
-                    data-action="copy-url"
-                    data-request-id="${id}"
-                  >複製申請連結</button>
-
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-primary"
-                    data-action="copy-reply"
-                    data-request-id="${id}"
-                  >複製客服文案</button>
-
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-danger"
-                    data-action="reassign"
-                    data-request-id="${id}"
-                  >重新派發</button>
-                `
-                : `
-                  <div class="empty-state">此申請尚未派碼，請先點「填寫派碼」</div>
-                `
-            }
+            <button class="btn btn-sm btn-soft" onclick="copyInviteCodeByRequest('${id}')">複製邀請碼</button>
+            <button class="btn btn-sm btn-primary" onclick="copyInviteUrlByRequest('${id}')">複製申請連結</button>
+            <button class="btn btn-sm btn-primary" onclick="copyInviteReplyByRequest('${id}')">複製客服文案</button>
+            <button class="btn btn-sm btn-danger" onclick="reassignInvite('${id}')">重新派發</button>
           </div>
         </td>
       </tr>
     `;
-  }).join("");
+  }).join('');
+}
+function copyInviteCode() {
+  const r = state.currentSelectedRequestForInvite;
+  if (!r || !textOf(r.assigned_invite_code)) {
+    toast("請先選取已派發申請");
+    return;
+  }
+  copyText(textOf(r.assigned_invite_code));
+  toast("已複製邀請碼");
+}
 
-  bindRequestListEvents();
+function copyInviteUrl() {
+  const r = state.currentSelectedRequestForInvite;
+  if (!r || !textOf(r.assigned_invite_code)) {
+    toast("請先選取已派發申請");
+    return;
+  }
+  const url = buildInviteFormUrl(textOf(r.assigned_invite_code));
+  copyText(url);
+  toast("已複製申請連結");
+}
+
+function copyInviteText() {
+  const r = state.currentSelectedRequestForInvite;
+  if (!r || !textOf(r.assigned_invite_code)) {
+    toast("請先選取已派發申請");
+    return;
+  }
+  const txt = buildInviteReplyText(r);
+  copyText(txt);
+  toast("已複製客服文案");
+}
+function selectRequest(requestId) {
+  const request = state.requests.find(r => r.request_id === requestId);
+  if (!request) {
+    toast('找不到該申請單');
+    return;
+  }
+
+  // 🔥 記住目前選取
+  state.currentSelectedRequestForInvite = request;
+
+  // 🔥 更新上方結果區
+  updateInviteResultPanel(request);
 }
 
 // 更新右側結果區（從 request 資料）
