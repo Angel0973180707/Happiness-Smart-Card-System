@@ -2110,45 +2110,24 @@ window.addEventListener("load", () => { ensureBottomQrVisible_(); updateQrCenter
     }catch(_e){}
   }
 })();
+
 /* ============================================================
-   HSC 版權聲明（自動注入）
+   HSC 版權顯示控制（新增）
 ============================================================ */
-function renderCopyright_(){
+function shouldShowCopyright_(){
   try{
-    const root =
-      document.querySelector(".info-scroll") ||
-      document.querySelector("#card-container") ||
-      document.body;
+    const url = new URL(location.href);
+    const cardId = (url.searchParams.get("id") || "").toUpperCase();
 
-    if(!root) return;
+    // 客戶名片（TWxxxx）不顯示
+    if(cardId.startsWith("TW")) return false;
 
-    // 已存在就不重複加
-    if(root.querySelector(".copyright-block")) return;
-
-    const el = document.createElement("div");
-    el.className = "copyright-block";
-
-    el.innerHTML = `
-      © ${new Date().getFullYear()} 天使幸福智慧名片館 All Rights Reserved<br>
-      本系統與內容未經授權不得重製、轉載或商業使用
-    `;
-
-    root.appendChild(el);
+    return true;
   }catch(e){
-    console.warn("copyright error", e);
+    return true;
   }
 }
 
-/* 自動執行（保證渲染完成後插入） */
-window.addEventListener("load", function(){
-  setTimeout(renderCopyright_, 800);
-});
-
-/* 若是動態重繪（例如切卡、換模式） */
-const observer = new MutationObserver(()=>{
-  renderCopyright_();
-});
-observer.observe(document.body, { childList:true, subtree:true });
 /* ============================================================
    HSC 浮水印版權層（自動注入）
 ============================================================ */
@@ -2177,10 +2156,13 @@ function renderCardWatermark_(){
     console.warn("watermark error", e);
   }
 }
+
 function renderCopyright_(){
   try{
-     if(!shouldShowCopyright_()) return;
+    if(!shouldShowCopyright_()) return;
+
     const root =
+      document.querySelector("#livePreviewCard .info-scroll") ||
       document.querySelector(".info-scroll") ||
       document.querySelector("#card-container") ||
       document.body;
@@ -2190,9 +2172,9 @@ function renderCopyright_(){
 
     const el = document.createElement("div");
     el.className = "copyright-block";
-    el.innerHTML = `
-     © ${new Date().getFullYear()} 天使幸福智慧名片館 · All Rights Reserved
-`;
+    el.textContent =
+      `© ${new Date().getFullYear()} 天使幸福智慧名片館 · All Rights Reserved`;
+
     root.appendChild(el);
   }catch(e){
     console.warn("copyright error", e);
@@ -2217,19 +2199,3 @@ __hscCopyrightObserver.observe(document.body, {
   childList: true,
   subtree: true
 });
-/* ============================================================
-   HSC 版權顯示控制（新增）
-============================================================ */
-function shouldShowCopyright_(){
-  try{
-    const url = new URL(location.href);
-    const cardId = (url.searchParams.get("id") || "").toUpperCase();
-
-    // 客戶名片（TWxxxx）不顯示
-    if(cardId.startsWith("TW")) return false;
-
-    return true;
-  }catch(e){
-    return true;
-  }
-}
